@@ -1,0 +1,63 @@
+﻿@inherits MudComponentBase
+
+<EditForm Model="FormModel" OnValidSubmit="OnSubmitForm">
+    <DataAnnotationsValidator />
+    <div class="mb-3 row">
+        <label class="form-label col-2">@_loc["_EmailAddress"]</label>
+        <div class="col-10"><InputText class="form-control" @bind-Value="FormModel.EmailAddress" placeholder="@_loc["_EmailAddress"]"></InputText></div>
+        <div class="form-text text-danger"><ValidationMessage For="@(() => FormModel.EmailAddress)" /></div>
+    </div>
+
+    <div class="mb-3 row">
+        <label class="form-label col-2">@_loc["_EmailPassword"]</label>
+        <div class="col-10"><InputText class="form-control" @bind-Value="FormModel.EmailPassword" placeholder="@_loc["_EmailPassword"]"></InputText></div>
+        <div class="form-text text-danger"><ValidationMessage For="@(() => FormModel.EmailPassword)" /></div>
+    </div>
+
+    <div class="mb-3 row">
+        <label class="form-label col-2">@_loc["_EmailName"]</label>
+        <div class="col-10"><InputText class="form-control" @bind-Value="FormModel.EmailName" placeholder="@_loc["_EmailName"]"></InputText></div>
+        <div class="form-text text-danger"><ValidationMessage For="@(() => FormModel.EmailName)" /></div>
+    </div>
+
+    <div class="mb-3 row">
+        <label class="form-label col-2">@_loc["_MailServer"]</label>
+        <div class="col-10"><InputText class="form-control" @bind-Value="FormModel.MailServer" placeholder="@_loc["_MailServer"]"></InputText></div>
+        <div class="form-text text-danger"><ValidationMessage For="@(() => FormModel.MailServer)" /></div>
+    </div>
+
+    <div class="mb-3 row">
+        <label class="form-label col-2">@_loc["_EMailType"]</label>
+        <div class="col-10">
+            <InputSelect class="form-control" @bind-Value="FormModel.EMailType" placeholder="@_loc["_EMailType"]">
+                @foreach (var mType in Enum.GetValues(typeof(Dotnetable.Shared.DTO.Public.EmailType)))
+                {
+                    <option value="@mType">@mType</option>
+                }
+            </InputSelect>
+        </div>
+        <div class="form-text text-danger"><ValidationMessage For="@(() => FormModel.EMailType)" /></div>
+    </div>
+
+    <div class="mb-3 row">
+        <label class="form-label col-2">@_loc["_SMTPPort"]</label>
+        <div class="col-10"><InputNumber class="form-control" @bind-Value="FormModel.SMTPPort" placeholder="@_loc["_SMTPPort"]"></InputNumber></div>
+        <div class="form-text text-danger"><ValidationMessage For="@(() => FormModel.SMTPPort)" /></div>
+    </div>
+
+    <div class="mb-3 row">
+        <label class="form-label col-2">@_loc["_EnableSSL"]</label>
+        <div class="col-10"><InputCheckbox @bind-Value="_formEnableSSL" placeholder="@_loc["_EnableSSL"]"></InputCheckbox></div>
+        <div class="form-text text-danger"><ValidationMessage For="@(() => FormModel.EnableSSL)" /></div>
+    </div>
+    
+    <div class="mb-3 row">
+        <label class="form-label col-2">@_loc["_DefaultEmail"]</label>
+        <div class="col-10"><InputCheckbox @bind-Value="_formDefaultEmail" placeholder="@_loc["_DefaultEmail"]"></InputCheckbox></div>
+        <div class="form-text text-danger"><ValidationMessage For="@(() => FormModel.DefaultEmail)" /></div>
+    </div>
+
+    <hr />
+    <MudButton ButtonType="ButtonType.Button" OnClick="OnSubmitForm" Color="Color.Primary" Variant="Variant.Filled" EndIcon="@Icons.Material.Filled.Dataset">@_loc["_Submit"]</MudButton>
+
+</EditForm>

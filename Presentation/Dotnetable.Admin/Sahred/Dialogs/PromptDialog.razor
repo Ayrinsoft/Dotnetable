@@ -1,0 +1,12 @@
+﻿<MudDialog DefaultFocus="DefaultFocus.FirstChild">
+    <DialogContent>
+        <div class="mb-3">
+            <label class="form-label">@ColumnTitle</label>
+            <InputText class="form-control" @bind-Value="_returnedValue" @onkeyup="SubmitForm" placeholder="@ColumnTitle"></InputText>
+        </div>
+    </DialogContent>
+    <DialogActions>
+        <MudButton IconClass="@Icons.Material.Filled.Cancel" OnClick="Cancel">@_loc["_Cancel"]</MudButton>
+        <MudButton IconClass="@Icons.Material.Filled.Check" Color="Color.Primary" OnClick="Submit">@_loc["_Confirm"]</MudButton>
+    </DialogActions>
+</MudDialog>

@@ -1,0 +1,38 @@
+﻿@page "/Member/PolicyRoles/{PolicyID:int}"
+
+
+<PageTitle>@_loc["_Policy_Role_Manage"]</PageTitle>
+
+<MudCard Outlined="true">
+    <MudCardHeader>
+        <CardHeaderAvatar>
+            <MudIconButton Color="Color.Secondary" Icon="@Icons.Material.Filled.Security" Size="Size.Large" ButtonType="ButtonType.Button" />
+        </CardHeaderAvatar>
+        <CardHeaderContent>
+            <MudText Typo="Typo.body1">@_loc["_Policy_Role_Manage"]</MudText>
+        </CardHeaderContent>
+        <CardHeaderActions>
+            <MudTooltip Arrow="true" Text="@($"{_loc["_Append"]} {_loc["_RoleKey"]}")">
+                <MudIconButton Icon="@Icons.Material.Filled.Add" Variant="Variant.Filled" Color="Color.Success" ButtonType="ButtonType.Button" OnClick="AppendRoleToPolicy" />
+            </MudTooltip>            
+        </CardHeaderActions>
+    </MudCardHeader>
+    <MudCardContent>
+        <Dotnetable.Admin.Sahred.FormControls.DNGridView GridHeaderParams="_gridHeaderParams" OnSearchChanged="OnSearchChanged">
+            @if (_policyRolesListResponse != null && _policyRolesListResponse.Roles is not null && _policyRolesListResponse.Roles.Count > 0)
+            {
+                foreach (var j in _policyRolesListResponse.Roles)
+                {
+                    <tr>
+                        <td>@j.PolicyRoleID</td>
+                        <td>@j.RoleID</td>
+                        <td>@j.RoleKey</td>
+                        <td>
+                            <MudButton OnClick="@(()=> RemoveItem(j))" ButtonType="ButtonType.Button" Color="Color.Primary" Variant="Variant.Filled" Size="Size.Small" EndIcon="@Icons.Material.Filled.RemoveCircle">@_loc["_Remove"]</MudButton>
+                        </td>
+                    </tr>
+                }
+            }
+        </Dotnetable.Admin.Sahred.FormControls.DNGridView>
+    </MudCardContent>
+</MudCard>

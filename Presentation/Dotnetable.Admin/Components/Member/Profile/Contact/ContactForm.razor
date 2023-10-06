@@ -1,0 +1,54 @@
+﻿<EditForm Model="FormModel" OnValidSubmit="OnSubmitForm">
+    <DataAnnotationsValidator />
+
+    <div class="mb-3">
+        <label class="form-label">@_loc["_PhoneNumber"]</label>
+        <InputText class="form-control" @bind-Value="FormModel.PhoneNumber" placeholder="@_loc["_PhoneNumber"]"></InputText>
+        <div class="form-text text-danger"><ValidationMessage For="@(() => FormModel.PhoneNumber)" /></div>
+    </div>
+
+    <div class="mb-3">
+        <label class="form-label">@_loc["_Cellphone"]</label>
+        <InputText class="form-control" @bind-Value="FormModel.CellphoneNumber" placeholder="@_loc["_Cellphone"]"></InputText>
+        <div class="form-text text-danger"><ValidationMessage For="@(() => FormModel.CellphoneNumber)" /></div>
+    </div>
+
+    <div class="mb-3">
+        <label class="form-label">@_loc["_HomeOwnerName"]</label>
+        <InputText class="form-control" @bind-Value="FormModel.HomeOwnerName" placeholder="@_loc["_HomeOwnerName"]"></InputText>
+        <div class="form-text text-danger"><ValidationMessage For="@(() => FormModel.HomeOwnerName)" /></div>
+    </div>
+
+    <div class="mb-3">
+        <label class="form-label">@_loc["_PostalCode"]</label>
+        <InputText class="form-control" @bind-Value="FormModel.PostalCode" placeholder="@_loc["_PostalCode"]"></InputText>
+        <div class="form-text text-danger"><ValidationMessage For="@(() => FormModel.PostalCode)" /></div>
+    </div>
+
+    <div class="mb-3 form-check">
+        <InputCheckbox @bind-Value="FormModel.DefaultContact" />
+        <label class="form-label">@_loc["_DefaultContact"]</label>
+    </div>
+
+    <div class="mb-3">
+        <label class="form-label">@_loc["_Address"]</label>
+        <InputText class="form-control" @bind-Value="FormModel.Address" placeholder="@_loc["_Address"]"></InputText>
+        <div class="form-text text-danger"><ValidationMessage For="@(() => FormModel.Address)" /></div>
+    </div>
+
+    <div class="mb-3">
+        <label class="form-label">@_loc["_Country"]</label>
+        <Dotnetable.Admin.Components.Place.CountrySelector OnChangeCountryEvent="BindCities" PassedCountryID="FormModel?.CountryID" />
+    </div>
+
+    <div class="mb-3">
+        <label class="form-label">@_loc["_City"]</label>
+        <Dotnetable.Admin.Components.Place.CitySelector OnChangeCityEvent="UpdateCityItem" SelectedCountryID="_selectedCountryID" PassedCityID="FormModel?.CityID ?? null" PassedCountryID="FormModel?.CountryID" />
+        <div class="form-text text-danger"><ValidationMessage For="@(() => FormModel.CityID)" /></div>
+    </div>
+
+    <hr />
+
+    <MudButton ButtonType="ButtonType.Submit" Color="Color.Primary" Variant="Variant.Filled" EndIcon="@Icons.Material.Filled.Dataset">@_loc["_Submit"]  @_loc["_Address"]</MudButton>
+
+</EditForm>

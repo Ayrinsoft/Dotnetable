@@ -1,0 +1,27 @@
+﻿@using Dotnetable.Shared.DTO.Member;
+@inherits MudComponentBase
+
+
+<Dotnetable.Admin.Sahred.FormControls.DNGridView GridHeaderParams="_gridHeaderParams" OnSearchChanged="OnSearchChanged">
+    @if (_policyListResponse != null && _policyListResponse.Policies is not null && _policyListResponse.Policies.Count > 0)
+    {
+        foreach (var j in _policyListResponse.Policies)
+        {
+            <tr>
+                <td>@j.PolicyID</td>
+                <td>@j.Title</td>
+                <td>@(j.Active ? _loc["_Active"] : _loc["_DeActive"])</td>
+                <td>
+                    <MudButtonGroup Color="Color.Primary" Variant="Variant.Outlined">
+                        <MudButton>@_loc["_Management"]</MudButton>
+                        <MudMenu Icon="@Icons.Material.Filled.ArrowDropDown">
+                            <MudMenuItem Icon="@Icons.Material.Filled.Edit" OnClick="@(() => UpdatePolicy(j))">@_loc["_Edit"]</MudMenuItem>
+                            <MudMenuItem Icon="@Icons.Material.Filled.Lock" OnClick="@(() => ChangeActiveStatus(j))">@_loc["_Active_DeActive"]</MudMenuItem>
+                            <MudMenuItem Icon="@Icons.Material.Filled.Policy" Href="@($"/Member/PolicyRoles/{j.PolicyID}")" Target="_blank">@_loc["_Related_Roles"]</MudMenuItem>
+                        </MudMenu>
+                    </MudButtonGroup>
+                </td>
+            </tr>
+        }
+    }
+</Dotnetable.Admin.Sahred.FormControls.DNGridView>

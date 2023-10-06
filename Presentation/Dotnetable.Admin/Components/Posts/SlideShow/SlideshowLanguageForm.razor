@@ -1,0 +1,35 @@
+﻿@inherits MudComponentBase
+
+<EditForm Model="FormModel" OnValidSubmit="OnSubmitForm">
+    <DataAnnotationsValidator />
+
+    <div class="mb-3">
+        <label class="form-label">@_loc["_LanguageCode"]</label>
+        <InputText type="text" class="form-control" @bind-Value="FormModel.LanguageCode" placeholder="@_loc["_LanguageCode"]"></InputText>
+        <div class="form-text text-danger"><ValidationMessage For="@(() => FormModel.LanguageCode)" /></div>
+    </div>
+
+    <div class="mb-3">
+        <label class="form-label">@_loc["_Title"]</label>
+        <InputText type="text" class="form-control" @bind-Value="FormModel.Title" placeholder="@_loc["_Title"]"></InputText>
+        <div class="form-text text-danger"><ValidationMessage For="@(() => FormModel.Title)" /></div>
+    </div>
+
+    <div class="mb-3">
+        <label class="form-label">@_loc["_SettingsArray"]</label>
+        <div class="col-sm-4"><input type="text" class="form-control" placeholder="@_loc["_Title"]" @bind="_settingKey" /></div>
+        <div class="col-sm-4"><input type="text" class="form-control" placeholder="@_loc["_Body"]" @bind="_settingValue" /></div>
+        <div class="col-sm-2"><input type="button" class="btn btn-primary" value="@_loc["_AddNew"]" @onclick="AddNewSetting" /></div>
+
+        <div class="col-sm-12">
+            @foreach (var j in _slideShowSettings)
+            {
+                <p><button type="button" class="btn btn-sm btn-danger" @onclick="(()=> RemoveSetting(j.Key))">@_loc["_Delete"]</button>@(j.Key): @j.Value</p>
+            }
+        </div>
+    </div>
+
+    <hr />
+    
+    <MudButton ButtonType="ButtonType.Submit" Color="Color.Primary" Variant="Variant.Filled" EndIcon="@Icons.Material.Filled.Dataset">@_loc["_Submit"]  @_loc["_SlideShow_Language"]</MudButton>
+</EditForm>

@@ -1,0 +1,12 @@
+﻿@using Dotnetable.Shared.DTO.Member;
+@inherits MudComponentBase
+
+<MudAutocomplete T="PolicyListOnInsertMemberResponse"
+                 Label="@_loc["_PolicyID"]"
+                 SearchFunc="@SearchPolicy"
+                 Margin="Margin.None"
+                 Dense="false"
+                 Variant="Variant.Outlined"
+                 ToStringFunc="@(e=> e==null?null : $"{e.Title}")"
+                 ValueChanged="PolicySelectedChange"
+                 Value="_selectedPolicy" />

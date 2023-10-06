@@ -1,0 +1,55 @@
+﻿<Project Sdk="Microsoft.NET.Sdk.Web">
+
+	<PropertyGroup>
+		<TargetFramework>net7.0</TargetFramework>
+		<ImplicitUsings>enable</ImplicitUsings>
+	</PropertyGroup>
+
+	<ItemGroup>
+		<None Include="D:\Projects\AyrinSoft\Dotnetable\Presentation\Dotnetable.Admin\.editorconfig" />
+		<None Include="Pages\Member\MemberProfile.razor" />
+		<None Include="Pages\Member\Policy\PolicyManage.razor" />
+		<None Include="Pages\Member\Policy\PolicyRoles.razor" />
+		<None Include="Pages\Member\Policy\RoleList.razor" />
+		<None Include="Pages\Member\Subscribe\SubscribeManage.razor" />
+		<None Include="Pages\Posts\Comment\PostCommentManage.razor" />
+		<None Include="Pages\Posts\PostCategory\PostCategoryList.razor" />
+		<None Include="Pages\Posts\PostCategory\PostCategoryListItem.razor" />
+		<None Include="Pages\Posts\PostCategory\PostCategoryManage.razor" />
+		<None Include="Pages\Posts\Post\AboutUsManage.razor" />
+		<None Include="Pages\Posts\Post\ContactUsManage.razor" />
+		<None Include="Pages\Posts\Post\QRCodeManage.razor" />
+		<None Include="Pages\Posts\SlideShow\SlideShowManage.razor" />
+		<None Include="wwwroot\plugins\bootstrap-5.3\js\bootstrap.bundle.js" />
+		<None Include="wwwroot\plugins\bootstrap-5.3\js\bootstrap.bundle.min.js" />
+		<None Include="wwwroot\plugins\bootstrap-5.3\js\bootstrap.esm.js" />
+		<None Include="wwwroot\plugins\bootstrap-5.3\js\bootstrap.esm.min.js" />
+		<None Include="wwwroot\plugins\bootstrap-5.3\js\bootstrap.js" />
+		<None Include="wwwroot\plugins\bootstrap-5.3\js\bootstrap.min.js" />
+		<None Include="wwwroot\plugins\nestable-master\js\jquery.nestable.js" />
+	</ItemGroup>
+
+	<ItemGroup>
+		<PackageReference Include="Blazor.ContextMenu" Version="1.16.0" />
+		<PackageReference Include="Blazored.LocalStorage" Version="4.4.0" />
+		<PackageReference Include="Microsoft.AspNetCore.Mvc.Versioning" Version="5.1.0" />
+		<PackageReference Include="MudBlazor" Version="6.10.0" />
+		<PackageReference Include="OpenLayers.Blazor" Version="1.1.0" />
+		<PackageReference Include="Microsoft.AspNetCore.Authentication.JwtBearer" Version="7.0.11" />
+		<PackageReference Include="SixLabors.ImageSharp" Version="3.0.2" />
+	</ItemGroup>
+
+	<ItemGroup>
+		<ProjectReference Include="..\..\Library\Dotnetable.Service\Dotnetable.Service.csproj" />
+	</ItemGroup>
+
+	<ItemGroup>
+		<Folder Include="Components\Place\" />
+		<Folder Include="FileLibrary\" />
+	</ItemGroup>
+
+	<ItemGroup>
+	  <EditorConfigFiles Remove="D:\Projects\AyrinSoft\Dotnetable\Presentation\Dotnetable.Admin\.editorconfig" />
+	</ItemGroup>
+
+</Project>

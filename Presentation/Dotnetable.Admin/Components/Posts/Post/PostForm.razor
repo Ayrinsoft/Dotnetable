@@ -1,0 +1,130 @@
+﻿@inherits MudComponentBase
+
+<EditForm Model="FormModel" OnValidSubmit="OnSubmitForm">
+    <DataAnnotationsValidator />
+    <div class="mb-3 row">
+        <label class="form-label col-2">@_loc["_Title"]</label>
+        <div class="col-10"><InputText type="text" class="form-control" @bind-Value="FormModel.Title" placeholder="@_loc["_Title"]"></InputText></div>
+        <div class="form-text text-danger"><ValidationMessage For="@(() => FormModel.Title)" /></div>
+    </div>
+
+    <div class="mb-3 row">
+        <label class="form-label col-2">@_loc["_Summary"]</label>
+        <div class="col-10"><InputTextArea type="text" class="form-control" @bind-Value="FormModel.Summary" placeholder="@_loc["_Summary"]"></InputTextArea></div>
+        <div class="form-text text-danger"><ValidationMessage For="@(() => FormModel.Summary)" /></div>
+    </div>
+
+    <div class="mb-3 row">
+        <label class="form-label col-2">@_loc["_Body"]</label>
+        <div class="col-10" id="@_ckContainerID">
+            <div class="toolbar-container"></div>
+            <div id="CKPostBody">
+                @((MarkupString)FormModel.Body)
+            </div>
+        </div>
+
+        <div class="form-text text-danger"><ValidationMessage For="@(() => FormModel.Body)" /></div>
+    </div>
+
+    <div class="mb-3 row">
+        <label class="form-label col-2">@_loc["_Tags"]</label>
+        <div class="col-10"><InputText type="text" class="form-control" @bind-Value="FormModel.Tags" placeholder="@_loc["_Tags"]"></InputText></div>
+        <div class="form-text text-danger"><ValidationMessage For="@(() => FormModel.Tags)" /></div>
+    </div>
+
+    <div class="mb-3 row">
+        <label class="form-label col-2">@_loc["_MetaKeywords"]</label>
+        <div class="col-10"><InputTextArea type="text" class="form-control" @bind-Value="FormModel.MetaKeywords" placeholder="@_loc["_MetaKeywords"]"></InputTextArea></div>
+        <div class="form-text text-danger"><ValidationMessage For="@(() => FormModel.MetaKeywords)" /></div>
+    </div>
+
+    <div class="mb-3 row">
+        <label class="form-label col-2">@_loc["_MetaDescription"]</label>
+        <div class="col-10"><InputTextArea type="text" class="form-control" @bind-Value="FormModel.MetaDescription" placeholder="@_loc["_MetaDescription"]"></InputTextArea></div>
+        <div class="form-text text-danger"><ValidationMessage For="@(() => FormModel.MetaDescription)" /></div>
+    </div>
+
+    <div class="mb-3 row">
+        <label class="form-label col-2">@_loc["_LanguageCode"]</label>
+        <div class="col-10"><InputText type="text" class="form-control" @bind-Value="FormModel.LanguageCode" placeholder="@_loc["_LanguageCode"]"></InputText></div>
+        <div class="form-text text-danger"><ValidationMessage For="@(() => FormModel.LanguageCode)" /></div>
+    </div>
+
+    <div class="mb-3 row @(FunctionName == "UpdateLanguage" ? "hide" : "")">
+        <label class="form-label col-2">@_loc["_CoverImage"]</label>
+        @* @if (FormModel.MainImage is not null)
+        {
+        <div class="col-sm-5"><img class="img-thumbnail" src="@($"{_context.Request.Scheme}://{_context.Request.Host}")/api/Files/Receive/120X120/@FormModel.MainImage.ToString()/CoverImage.jpg" /></div>
+        <div class="col-sm-5"><button type="button" class="btn btn-block btn-danger" @onclick="DoDeleteCoverFile">@loc["_Delete"]</button></div>
+        }
+        else
+        {
+        <div class="col-sm-5"><MatFileUpload OnChange="@UploadedFiles" Label="@loc["_FileUpload"]" AllowMultiple="false"></MatFileUpload></div>
+        <div class="col-sm-5"><button type="button" class="btn btn-block btn-info" @onclick="DoUploadFile">@loc["_DoUploadFile"]</button></div>
+        }*@
+
+        @if (FormModel.MainImage.HasValue)
+        {
+            <div Class="row">
+                <div class="col-12 mb-3">
+                    <img class="img-thumbnail" src="@($"{_context.Request.Scheme}://{_context.Request.Host}")/api/Files/Receive/120X120/@FormModel.MainImage.ToString()/CoverImage.jpg" />
+                </div>
+                <div class="col-12 mb-3">
+                    <MudButton OnClick="DoDeleteCoverFile" Disabled="@(_currentFileName == "")" ButtonType="ButtonType.Button" Color="Color.Error" Variant="Variant.Filled" EndIcon="@Icons.Material.Filled.Delete">@_loc["_Delete"]</MudButton>
+                </div>
+            </div>
+        }
+        else
+        {
+            <div Class="row">
+                <div class="col-12 mb-3">
+                    <MudFileUpload T="IBrowserFile" OnFilesChanged="UploadFiles">
+                        <ButtonTemplate Context="SlideShowFormContext">
+                            <MudButton HtmlTag="label" ButtonType="ButtonType.Button" Variant="Variant.Filled" Color="Color.Primary" StartIcon="@Icons.Material.Filled.CloudUpload" for="@SlideShowFormContext">
+                                @_loc["_FileUpload"]
+                            </MudButton>
+                        </ButtonTemplate>
+                    </MudFileUpload>
+                </div>
+                <div class="col-12 mb-3">
+                    <MudButton OnClick="DoUploadFile" Disabled="@(_currentFileName == "")" ButtonType="ButtonType.Button" Color="Color.Primary" Variant="Variant.Filled" EndIcon="@Icons.Material.Filled.FileUpload">@_loc["_DoUploadFile"]</MudButton>
+                    <MudButton OnClick="ClearUploadFile" Disabled="@(_currentFileName == "")" ButtonType="ButtonType.Button" Color="Color.Error" Variant="Variant.Filled" EndIcon="@Icons.Material.Filled.Clear">@_loc["_Clear"]</MudButton>
+                </div>
+            </div>
+        }
+        <div class="form-text text-danger"><ValidationMessage For="@(() => FormModel.MainImage)" /></div>
+
+    </div>
+
+    <div class="mb-3 row @(FunctionName == "UpdateLanguage" ? "hide" : "")">
+        <div class="col-10 offset-sm-3">
+            <div class="custom-control custom-checkbox">
+                <InputCheckbox class="custom-control-input" @bind-Value="FormModel.Active" id="PostCategoryFooterview"></InputCheckbox>
+                <label class="custom-control-label" for="PostCategoryFooterview">@_loc["_Active"]</label>
+            </div>
+        </div>
+        <div class="form-text text-danger"><ValidationMessage For="@(() => FormModel.Active)" /></div>
+    </div>
+
+    <div class="mb-3 row @(FunctionName == "UpdateLanguage" ? "hide" : "")">
+        <label class="form-label col-2">@_loc["_PostCategory"]</label>
+        <div class="col-10">
+            <Dotnetable.Admin.Pages.Posts.PostCategory.PostCategoryList CssClass="form-control" SelectedLastPostCategoryID="OnChangePostCategorySelected" DefaultPostCategoryID="@FormModel.PostCategoryID" LanguageCode="@_postCatDefaultLanguage" />
+        </div>
+        <div class="form-text text-danger"><ValidationMessage For="@(() => FormModel.PostCategoryID)" /></div>
+    </div>
+
+
+    <hr />
+    <MudButton ButtonType="ButtonType.Button" OnClick="OnSubmitForm" Color="Color.Primary" Variant="Variant.Filled" EndIcon="@Icons.Material.Filled.Dataset">@_loc["_Submit"]  @_loc["_Post"]</MudButton>
+
+</EditForm>
+
+<hr />
+@if (FunctionName != "Insert" && FormModel is not null && FormModel.FileCodes is not null && FormModel.FileCodes.Count > 0)
+{
+    foreach (var j in FormModel.FileCodes.Where(i => i != FormModel.MainImage.ToString()))
+    {
+        <p><img class="img-thumbnail" src="@($"{_context.Request.Scheme}://{_context.Request.Host}")/api/Files/Receive/120X120/@(j)/CoverImage.jpg" @onclick="@(()=> DeleteUploadedFile(j))" /></p>
+    }
+}

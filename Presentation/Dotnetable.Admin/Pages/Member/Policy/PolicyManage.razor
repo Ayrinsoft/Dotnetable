@@ -1,0 +1,22 @@
+﻿@page "/Member/PolicyManage"
+
+<PageTitle>@_loc["_Policy_Manage"]</PageTitle>
+
+<MudCard Outlined="true">
+    <MudCardHeader>
+        <CardHeaderAvatar>
+            <MudIconButton Color="Color.Secondary" Icon="@Icons.Material.Filled.Policy" Size="Size.Large" ButtonType="ButtonType.Button" />
+        </CardHeaderAvatar>
+        <CardHeaderContent>
+            <MudText Typo="Typo.body1">@_loc["_Policy_Manage"]</MudText>
+        </CardHeaderContent>
+        <CardHeaderActions>
+            <MudTooltip Arrow="true" Text="@_loc["_Policy_Insert"]">
+                <MudIconButton Icon="@Icons.Material.Filled.Add" Variant="Variant.Filled" Size="Size.Large" Color="Color.Success" OnClick="InsertPolicy" />
+            </MudTooltip>
+        </CardHeaderActions>
+    </MudCardHeader>
+    <MudCardContent>
+        <Dotnetable.Admin.Components.Member.Policy.Manage.PolicyManageGrid></Dotnetable.Admin.Components.Member.Policy.Manage.PolicyManageGrid>
+    </MudCardContent>
+</MudCard>

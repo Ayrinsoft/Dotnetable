@@ -1,0 +1,6 @@
+﻿namespace Dotnetable.Shared.DTO.Member;
+
+public class MemberActivateSendLinkRequest
+{
+    public int? CurrentMemberID { get; set; }
+}

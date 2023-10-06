@@ -1,0 +1,12 @@
+﻿@using Dotnetable.Shared.DTO.Place;
+@inherits MudComponentBase
+
+<MudAutocomplete T="CityDetailResponse"
+                 Label="@_loc["_SelectCity"]"
+                 SearchFunc="@SearchCity"
+                 Margin="Margin.None"
+                 Dense="false"
+                 Variant="Variant.Outlined"
+                 ToStringFunc="@(e=> e==null?null : $"{e.Title}")"
+                 ValueChanged="CitySelectedChange"
+                 Value="_selectedCity" />

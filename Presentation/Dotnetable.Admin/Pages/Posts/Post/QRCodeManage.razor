@@ -1,0 +1,112 @@
+﻿@page "/Post/QRCodeManage"
+
+<PageTitle>@_loc[$"_QRCodeManage"]</PageTitle>
+
+
+<MudContainer MaxWidth="MaxWidth.False">
+    <MudGrid>
+        <MudItem md="12" sm="12" xs="12">
+            <MudCard Outlined="true">
+                <MudCardHeader>
+                    <CardHeaderAvatar>
+                        <MudIconButton Color="Color.Secondary" Icon="@Icons.Material.Filled.QrCodeScanner" Size="Size.Large" ButtonType="ButtonType.Button" />
+                    </CardHeaderAvatar>
+                    <CardHeaderContent>
+                        <MudText Typo="Typo.body1">@_loc["_QRCodeManage"]</MudText>
+                    </CardHeaderContent>
+                    <CardHeaderActions>
+                    </CardHeaderActions>
+                </MudCardHeader>
+                <MudCardContent>
+
+                    @if (_showLanguageSelected)
+                    {
+                        <div class="mb-3 row">
+                            <label class="form-label col-2">@_loc["_CheckLanguage"]</label>
+                            <div class="col-8"><input type="text" class="form-control" @bind-value="_selectedLanguageCode" @bind-value:event="oninput" @onkeyup="checkForSend" placeholder="@_loc["_LanguageCode"]" /></div>
+                            <div class="col-2"><button class="btn btn-primary" @onclick="ChangeLanguageCode">@_loc["_CheckLanguage"]</button></div>
+                        </div>
+                    }
+
+                    <div class="@(_showLanguageSelected ? "hide" : "")">
+                        <EditForm Model="_qrCodeModel" OnValidSubmit="UpdateModel">
+                            <DataAnnotationsValidator />
+                            <div class="mb-3 row">
+                                <label class="form-label col-2">@_loc["_Title"]</label>
+                                <div class="col-10"><InputText type="text" class="form-control" @bind-Value="_qrCodeModel.PublicPostDetail.Title" placeholder="@_loc["_Title"]"></InputText></div>
+                                <div class="form-text text-danger"><ValidationMessage For="@(() => _qrCodeModel.PublicPostDetail.Title)" /></div>
+                            </div>
+
+                            <div class="mb-3 row">
+                                <label class="form-label col-2">@_loc["_Summary"]</label>
+                                <div class="col-10"><InputTextArea type="text" class="form-control" @bind-Value="_qrCodeModel.PublicPostDetail.Summary" placeholder="@_loc["_Summary"]"></InputTextArea></div>
+                                <div class="form-text text-danger"><ValidationMessage For="@(() => _qrCodeModel.PublicPostDetail.Summary)" /></div>
+                            </div>
+
+                            <div class="mb-3 row">
+                                <label class="form-label col-2">@_loc["_Tags"]</label>
+                                <div class="col-10"><InputText type="text" class="form-control" @bind-Value="_qrCodeModel.PublicPostDetail.Tags" placeholder="@_loc["_Tags"]"></InputText></div>
+                                <div class="form-text text-danger"><ValidationMessage For="@(() => _qrCodeModel.PublicPostDetail.Tags)" /></div>
+                            </div>
+
+                            <div class="mb-3 row">
+                                <label class="form-label col-2">@_loc["_MetaKeywords"]</label>
+                                <div class="col-10"><InputTextArea type="text" class="form-control" @bind-Value="_qrCodeModel.PublicPostDetail.MetaKeywords" placeholder="@_loc["_MetaKeywords"]"></InputTextArea></div>
+                                <div class="form-text text-danger"><ValidationMessage For="@(() => _qrCodeModel.PublicPostDetail.MetaKeywords)" /></div>
+                            </div>
+
+                            <div class="mb-3 row">
+                                <label class="form-label col-2">@_loc["_MetaDescription"]</label>
+                                <div class="col-10"><InputTextArea type="text" class="form-control" @bind-Value="_qrCodeModel.PublicPostDetail.MetaDescription" placeholder="@_loc["_MetaDescription"]"></InputTextArea></div>
+                                <div class="form-text text-danger"><ValidationMessage For="@(() => _qrCodeModel.PublicPostDetail.MetaDescription)" /></div>
+                            </div>
+
+                            <div class="mb-3 row">
+                                <label class="form-label col-2">@_loc["_LanguageCode"]</label>
+                                <div class="col-10"><InputText type="text" class="form-control" @bind-Value="_qrCodeModel.PublicPostDetail.LanguageCode" placeholder="@_loc["_LanguageCode"]"></InputText></div>
+                                <div class="form-text text-danger"><ValidationMessage For="@(() => _qrCodeModel.PublicPostDetail.LanguageCode)" /></div>
+                            </div>
+
+
+
+                            <div class="mb-3 row">
+                                <label class="form-label col-2">@_loc["_HTMLBody"]</label>
+                                <div class="col-10" id="@_ckContainerID">
+                                    <div class="toolbar-container"></div>
+                                    <div id="CKPostBody"></div>
+                                </div>
+                            </div>
+                            <div class="mb-3 row">
+                                <label class="form-label col-2">@_loc["_RedirectURL"]</label>
+                                <div class="col-10"><InputText type="text" class="form-control" @bind-Value="_qrCodeModel.QRCodeDetail.RedirectURL" placeholder="@_loc["_RedirectURL"]"></InputText></div>
+                                <div class="form-text text-danger"><ValidationMessage For="@(() => _qrCodeModel.QRCodeDetail.RedirectURL)" /></div>
+                            </div>
+
+                            <hr />
+                            <label class="form-label col-2">@_loc["_OtherHTMLPart"]</label>
+                            <div class="mb-3 row">
+                                <div class="col-sm-2"><input type="text" class="form-control" placeholder="@_loc["_PartTitle"]" @bind="_partKey" /></div>
+                                <div class="col-sm-8"><input type="text" class="form-control" placeholder="@_loc["_PartBody"]" @bind="_partValue" /></div>
+                                <div class="col-sm-2"><input type="button" class="btn btn-primary" value="@_loc["_AddNew"]" @onclick="AddNewPart" /></div>
+                                <div class="col-sm-12">
+                                    @if (_otherParts is not null && _otherParts.Count > 0)
+                                    {
+                                        @foreach (var j in _otherParts)
+                                        {
+                                            <p><button type="button" class="btn btn-sm btn-danger" @onclick="(()=> RemovePart(j.Key))">@_loc["_Delete"]</button>@(j.Key): @j.Value</p>
+                                        }
+                                    }
+                                </div>
+                            </div>
+
+
+                            <hr />
+                            <MudButton ButtonType="ButtonType.Submit" Color="Color.Primary" Variant="Variant.Filled" EndIcon="@Icons.Material.Filled.Add">@_loc["_Insert"]</MudButton>
+                        </EditForm>
+                    </div>
+
+                </MudCardContent>
+            </MudCard>
+        </MudItem>
+    </MudGrid>
+</MudContainer>

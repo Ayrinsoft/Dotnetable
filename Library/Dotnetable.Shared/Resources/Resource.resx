@@ -1,0 +1,1233 @@
+﻿<?xml version="1.0" encoding="utf-8"?>
+<root>
+  <!-- 
+    Microsoft ResX Schema 
+    
+    Version 2.0
+    
+    The primary goals of this format is to allow a simple XML format 
+    that is mostly human readable. The generation and parsing of the 
+    various data types are done through the TypeConverter classes 
+    associated with the data types.
+    
+    Example:
+    
+    ... ado.net/XML headers & schema ...
+    <resheader name="resmimetype">text/microsoft-resx</resheader>
+    <resheader name="version">2.0</resheader>
+    <resheader name="reader">System.Resources.ResXResourceReader, System.Windows.Forms, ...</resheader>
+    <resheader name="writer">System.Resources.ResXResourceWriter, System.Windows.Forms, ...</resheader>
+    <data name="Name1"><value>this is my long string</value><comment>this is a comment</comment></data>
+    <data name="Color1" type="System.Drawing.Color, System.Drawing">Blue</data>
+    <data name="Bitmap1" mimetype="application/x-microsoft.net.object.binary.base64">
+        <value>[base64 mime encoded serialized .NET Framework object]</value>
+    </data>
+    <data name="Icon1" type="System.Drawing.Icon, System.Drawing" mimetype="application/x-microsoft.net.object.bytearray.base64">
+        <value>[base64 mime encoded string representing a byte array form of the .NET Framework object]</value>
+        <comment>This is a comment</comment>
+    </data>
+                
+    There are any number of "resheader" rows that contain simple 
+    name/value pairs.
+    
+    Each data row contains a name, and value. The row also contains a 
+    type or mimetype. Type corresponds to a .NET class that support 
+    text/value conversion through the TypeConverter architecture. 
+    Classes that don't support this are serialized and stored with the 
+    mimetype set.
+    
+    The mimetype is used for serialized objects, and tells the 
+    ResXResourceReader how to depersist the object. This is currently not 
+    extensible. For a given mimetype the value must be set accordingly:
+    
+    Note - application/x-microsoft.net.object.binary.base64 is the format 
+    that the ResXResourceWriter will generate, however the reader can 
+    read any of the formats listed below.
+    
+    mimetype: application/x-microsoft.net.object.binary.base64
+    value   : The object must be serialized with 
+            : System.Runtime.Serialization.Formatters.Binary.BinaryFormatter
+            : and then encoded with base64 encoding.
+    
+    mimetype: application/x-microsoft.net.object.soap.base64
+    value   : The object must be serialized with 
+            : System.Runtime.Serialization.Formatters.Soap.SoapFormatter
+            : and then encoded with base64 encoding.
+
+    mimetype: application/x-microsoft.net.object.bytearray.base64
+    value   : The object must be serialized into a byte array 
+            : using a System.ComponentModel.TypeConverter
+            : and then encoded with base64 encoding.
+    -->
+  <xsd:schema id="root" xmlns="" xmlns:xsd="http://www.w3.org/2001/XMLSchema" xmlns:msdata="urn:schemas-microsoft-com:xml-msdata">
+    <xsd:import namespace="http://www.w3.org/XML/1998/namespace" />
+    <xsd:element name="root" msdata:IsDataSet="true">
+      <xsd:complexType>
+        <xsd:choice maxOccurs="unbounded">
+          <xsd:element name="metadata">
+            <xsd:complexType>
+              <xsd:sequence>
+                <xsd:element name="value" type="xsd:string" minOccurs="0" />
+              </xsd:sequence>
+              <xsd:attribute name="name" use="required" type="xsd:string" />
+              <xsd:attribute name="type" type="xsd:string" />
+              <xsd:attribute name="mimetype" type="xsd:string" />
+              <xsd:attribute ref="xml:space" />
+            </xsd:complexType>
+          </xsd:element>
+          <xsd:element name="assembly">
+            <xsd:complexType>
+              <xsd:attribute name="alias" type="xsd:string" />
+              <xsd:attribute name="name" type="xsd:string" />
+            </xsd:complexType>
+          </xsd:element>
+          <xsd:element name="data">
+            <xsd:complexType>
+              <xsd:sequence>
+                <xsd:element name="value" type="xsd:string" minOccurs="0" msdata:Ordinal="1" />
+                <xsd:element name="comment" type="xsd:string" minOccurs="0" msdata:Ordinal="2" />
+              </xsd:sequence>
+              <xsd:attribute name="name" type="xsd:string" use="required" msdata:Ordinal="1" />
+              <xsd:attribute name="type" type="xsd:string" msdata:Ordinal="3" />
+              <xsd:attribute name="mimetype" type="xsd:string" msdata:Ordinal="4" />
+              <xsd:attribute ref="xml:space" />
+            </xsd:complexType>
+          </xsd:element>
+          <xsd:element name="resheader">
+            <xsd:complexType>
+              <xsd:sequence>
+                <xsd:element name="value" type="xsd:string" minOccurs="0" msdata:Ordinal="1" />
+              </xsd:sequence>
+              <xsd:attribute name="name" type="xsd:string" use="required" />
+            </xsd:complexType>
+          </xsd:element>
+        </xsd:choice>
+      </xsd:complexType>
+    </xsd:element>
+  </xsd:schema>
+  <resheader name="resmimetype">
+    <value>text/microsoft-resx</value>
+  </resheader>
+  <resheader name="version">
+    <value>2.0</value>
+  </resheader>
+  <resheader name="reader">
+    <value>System.Resources.ResXResourceReader, System.Windows.Forms, Version=4.0.0.0, Culture=neutral, PublicKeyToken=b77a5c561934e089</value>
+  </resheader>
+  <resheader name="writer">
+    <value>System.Resources.ResXResourceWriter, System.Windows.Forms, Version=4.0.0.0, Culture=neutral, PublicKeyToken=b77a5c561934e089</value>
+  </resheader>
+  <data name="_Aboutus" xml:space="preserve">
+    <value>About us</value>
+  </data>
+  <data name="_AboutUsManage" xml:space="preserve">
+    <value>About us management</value>
+  </data>
+  <data name="_Activate" xml:space="preserve">
+    <value>Activate</value>
+  </data>
+  <data name="_Activat_Member" xml:space="preserve">
+    <value>Activate member</value>
+  </data>
+  <data name="_Active" xml:space="preserve">
+    <value>Active</value>
+  </data>
+  <data name="_Active_DeActive" xml:space="preserve">
+    <value>Active / DeActive</value>
+  </data>
+  <data name="_AddNew" xml:space="preserve">
+    <value>Add new</value>
+  </data>
+  <data name="_AddNewLanguage" xml:space="preserve">
+    <value>Add new language</value>
+  </data>
+  <data name="_Address" xml:space="preserve">
+    <value>Address</value>
+  </data>
+  <data name="_AddressBody" xml:space="preserve">
+    <value>Address body</value>
+  </data>
+  <data name="_AddressTitle" xml:space="preserve">
+    <value>Address title</value>
+  </data>
+  <data name="_Add_Language" xml:space="preserve">
+    <value>Add language</value>
+  </data>
+  <data name="_AllRightsReserved" xml:space="preserve">
+    <value>All Rights Reserved</value>
+  </data>
+  <data name="_Append" xml:space="preserve">
+    <value>Append</value>
+  </data>
+  <data name="_Append_Other_Language" xml:space="preserve">
+    <value>Append an other language</value>
+  </data>
+  <data name="_Archive" xml:space="preserve">
+    <value>Archive</value>
+  </data>
+  <data name="_AreYouSure" xml:space="preserve">
+    <value>Are you sure?</value>
+  </data>
+  <data name="_Back" xml:space="preserve">
+    <value>Back</value>
+  </data>
+  <data name="_Body" xml:space="preserve">
+    <value>Body</value>
+  </data>
+  <data name="_Calory" xml:space="preserve">
+    <value>Calory</value>
+  </data>
+  <data name="_CalorySpecial" xml:space="preserve">
+    <value>Special Calory</value>
+  </data>
+  <data name="_Cancel" xml:space="preserve">
+    <value>Cancel</value>
+  </data>
+  <data name="_CAPTCHA" xml:space="preserve">
+    <value>Captcha</value>
+  </data>
+  <data name="_Categories" xml:space="preserve">
+    <value>Categories</value>
+  </data>
+  <data name="_Cellphone" xml:space="preserve">
+    <value>Cellphone</value>
+  </data>
+  <data name="_CellphoneNumber" xml:space="preserve">
+    <value>Cellphone number</value>
+  </data>
+  <data name="_ChangeArchiveStatus" xml:space="preserve">
+    <value>Change archive status</value>
+  </data>
+  <data name="_ChangeLanguage" xml:space="preserve">
+    <value>English</value>
+  </data>
+  <data name="_ChangePassword" xml:space="preserve">
+    <value>Change Password</value>
+  </data>
+  <data name="_CheckLanguage" xml:space="preserve">
+    <value>Check language</value>
+  </data>
+  <data name="_City" xml:space="preserve">
+    <value>City</value>
+  </data>
+  <data name="_CityName" xml:space="preserve">
+    <value>City name</value>
+  </data>
+  <data name="_Clear" xml:space="preserve">
+    <value>Clear</value>
+  </data>
+  <data name="_Color" xml:space="preserve">
+    <value>Color</value>
+  </data>
+  <data name="_CommentBody" xml:space="preserve">
+    <value>Comment Body</value>
+  </data>
+  <data name="_Comments" xml:space="preserve">
+    <value>Comments</value>
+  </data>
+  <data name="_CommentTypeID" xml:space="preserve">
+    <value>Comment TypeID</value>
+  </data>
+  <data name="_Comment_Manage" xml:space="preserve">
+    <value>Manage Comments</value>
+  </data>
+  <data name="_CompanyBody" xml:space="preserve">
+    <value>Company detail</value>
+  </data>
+  <data name="_CompanyTitle" xml:space="preserve">
+    <value>Company title</value>
+  </data>
+  <data name="_Confirm" xml:space="preserve">
+    <value>Confirm</value>
+  </data>
+  <data name="_Confirmation" xml:space="preserve">
+    <value>Confirmation</value>
+  </data>
+  <data name="_ConfirmPassword" xml:space="preserve">
+    <value>Confirm Password</value>
+  </data>
+  <data name="_ConfirmThis" xml:space="preserve">
+    <value>Confirm to continue the process</value>
+  </data>
+  <data name="_ContactDetail" xml:space="preserve">
+    <value>Contact detail</value>
+  </data>
+  <data name="_ContactForm" xml:space="preserve">
+    <value>Contact form</value>
+  </data>
+  <data name="_Contactus" xml:space="preserve">
+    <value>Contact us</value>
+  </data>
+  <data name="_ContactUsManage" xml:space="preserve">
+    <value>Contact us management</value>
+  </data>
+  <data name="_ContactUsMessagesID" xml:space="preserve">
+    <value>Contactus message ID</value>
+  </data>
+  <data name="_ContactUs_Message_Manage" xml:space="preserve">
+    <value>Contact Us message manage</value>
+  </data>
+  <data name="_Country" xml:space="preserve">
+    <value>Country</value>
+  </data>
+  <data name="_CountryCode" xml:space="preserve">
+    <value>Country code</value>
+  </data>
+  <data name="_CoverImage" xml:space="preserve">
+    <value>Cover Image</value>
+  </data>
+  <data name="_Create_New_Member" xml:space="preserve">
+    <value>Create new Member</value>
+  </data>
+  <data name="_CurrentPassword" xml:space="preserve">
+    <value>Current Password</value>
+  </data>
+  <data name="_DeActivate" xml:space="preserve">
+    <value>DeActivate</value>
+  </data>
+  <data name="_DeActive" xml:space="preserve">
+    <value>DeActive</value>
+  </data>
+  <data name="_DefaultContact" xml:space="preserve">
+    <value>Default contact</value>
+  </data>
+  <data name="_DefaultEmail" xml:space="preserve">
+    <value>Default email</value>
+  </data>
+  <data name="_Delete" xml:space="preserve">
+    <value>Delete</value>
+  </data>
+  <data name="_DeleteLanguage" xml:space="preserve">
+    <value>Delete other language</value>
+  </data>
+  <data name="_Description" xml:space="preserve">
+    <value>Description</value>
+  </data>
+  <data name="_DoUploadFile" xml:space="preserve">
+    <value>Do Upload File</value>
+  </data>
+  <data name="_Edit" xml:space="preserve">
+    <value>Edit</value>
+  </data>
+  <data name="_Email" xml:space="preserve">
+    <value>Email</value>
+  </data>
+  <data name="_EmailAddress" xml:space="preserve">
+    <value>EmailAddress</value>
+  </data>
+  <data name="_EmailAddressTitle" xml:space="preserve">
+    <value>Title of email address</value>
+  </data>
+  <data name="_EmailAddressValue" xml:space="preserve">
+    <value>Value of email address</value>
+  </data>
+  <data name="_EmailName" xml:space="preserve">
+    <value>Email name</value>
+  </data>
+  <data name="_EmailPassword" xml:space="preserve">
+    <value>Email password</value>
+  </data>
+  <data name="_EmailSettingID" xml:space="preserve">
+    <value>Email setting ID</value>
+  </data>
+  <data name="_EmailSubscribeID" xml:space="preserve">
+    <value>Email SubscribeID</value>
+  </data>
+  <data name="_EMailType" xml:space="preserve">
+    <value>Email type</value>
+  </data>
+  <data name="_Email_Setting_Insert" xml:space="preserve">
+    <value>Insert email setting</value>
+  </data>
+  <data name="_Email_Setting_Manage" xml:space="preserve">
+    <value>Manage email settings</value>
+  </data>
+  <data name="_Email_Setting_Update" xml:space="preserve">
+    <value>Email setting update</value>
+  </data>
+  <data name="_EnableSSL" xml:space="preserve">
+    <value>Enable SSL</value>
+  </data>
+  <data name="_Enter_LangugeCode" xml:space="preserve">
+    <value>Enter language code</value>
+  </data>
+  <data name="_Enter_New_Password" xml:space="preserve">
+    <value>Enter new password</value>
+  </data>
+  <data name="_ERROR_C0" xml:space="preserve">
+    <value>One or more validation errors occurred</value>
+  </data>
+  <data name="_ERROR_C1" xml:space="preserve">
+    <value>Check Username and password</value>
+  </data>
+  <data name="_ERROR_C10" xml:space="preserve">
+    <value>Confirm password is not equal password</value>
+  </data>
+  <data name="_ERROR_C11" xml:space="preserve">
+    <value>There is nothing to change</value>
+  </data>
+  <data name="_ERROR_C12" xml:space="preserve">
+    <value>Enter valid memberid</value>
+  </data>
+  <data name="_ERROR_C13" xml:space="preserve">
+    <value>No mail setting</value>
+  </data>
+  <data name="_ERROR_C14" xml:space="preserve">
+    <value>Cannot send mail</value>
+  </data>
+  <data name="_ERROR_C15" xml:space="preserve">
+    <value>Old password and new password are same</value>
+  </data>
+  <data name="_ERROR_C16" xml:space="preserve">
+    <value>This Action is not valid for yourself account</value>
+  </data>
+  <data name="_ERROR_C17" xml:space="preserve">
+    <value>Login captcha error</value>
+  </data>
+  <data name="_ERROR_C18" xml:space="preserve">
+    <value>Cannot change self policy</value>
+  </data>
+  <data name="_ERROR_C19" xml:space="preserve">
+    <value>This is not your role</value>
+  </data>
+  <data name="_ERROR_C2" xml:space="preserve">
+    <value>Too many try on this user, wait for 5 minutes</value>
+  </data>
+  <data name="_ERROR_C3" xml:space="preserve">
+    <value>Captcha is Incorrect</value>
+  </data>
+  <data name="_ERROR_C4" xml:space="preserve">
+    <value>Username is availale in DB</value>
+  </data>
+  <data name="_ERROR_C5" xml:space="preserve">
+    <value>Email is available in database</value>
+  </data>
+  <data name="_ERROR_C6" xml:space="preserve">
+    <value>Cellphone is available in database</value>
+  </data>
+  <data name="_ERROR_C7" xml:space="preserve">
+    <value>This data is available</value>
+  </data>
+  <data name="_ERROR_C8" xml:space="preserve">
+    <value>OldPassword is wrong</value>
+  </data>
+  <data name="_ERROR_C9" xml:space="preserve">
+    <value>Activate code expired</value>
+  </data>
+  <data name="_ERROR_D0" xml:space="preserve">
+    <value>Record not exists</value>
+  </data>
+  <data name="_ERROR_D1" xml:space="preserve">
+    <value>DB Generic Error</value>
+  </data>
+  <data name="_ERROR_D2" xml:space="preserve">
+    <value>Duplicate record</value>
+  </data>
+  <data name="_ERROR_D3" xml:space="preserve">
+    <value>too much item inserted</value>
+  </data>
+  <data name="_ERROR_F1" xml:space="preserve">
+    <value>File not exists</value>
+  </data>
+  <data name="_ERROR_F2" xml:space="preserve">
+    <value>Cannot modify file</value>
+  </data>
+  <data name="_ERROR_NULLDATA" xml:space="preserve">
+    <value>Error on call service, try again</value>
+  </data>
+  <data name="_ERROR_SX" xml:space="preserve">
+    <value>Service generic error</value>
+  </data>
+  <data name="_Err_Approve_Required" xml:space="preserve">
+    <value>Approval is required</value>
+  </data>
+  <data name="_Err_Authentication_CaptchaCode_Required" xml:space="preserve">
+    <value>CaptchaCode is Required</value>
+  </data>
+  <data name="_Err_Authentication_Captcha_Required" xml:space="preserve">
+    <value>Captcha is Required</value>
+  </data>
+  <data name="_Err_Authentication_Password_Required" xml:space="preserve">
+    <value>Password is Required</value>
+  </data>
+  <data name="_Err_Authentication_RefreshToken_Required" xml:space="preserve">
+    <value>RefreshToken is Required</value>
+  </data>
+  <data name="_Err_Authentication_Token_Required" xml:space="preserve">
+    <value>Token is Required</value>
+  </data>
+  <data name="_Err_Authentication_UserHashKey_Required" xml:space="preserve">
+    <value>UserHashKey is Required</value>
+  </data>
+  <data name="_Err_Authentication_Username_Required" xml:space="preserve">
+    <value>Username is Required</value>
+  </data>
+  <data name="_Err_AvailableLanguages_Required" xml:space="preserve">
+    <value>Available languages is required</value>
+  </data>
+  <data name="_Err_CellphoneNumber_Required" xml:space="preserve">
+    <value>Cellphone number is required</value>
+  </data>
+  <data name="_Err_CityCode_Required" xml:space="preserve">
+    <value>City code is required</value>
+  </data>
+  <data name="_Err_CityID_Required" xml:space="preserve">
+    <value>CityID is required</value>
+  </data>
+  <data name="_Err_CityName_Required" xml:space="preserve">
+    <value>City name is required</value>
+  </data>
+  <data name="_Err_CommentBody_Required" xml:space="preserve">
+    <value>Comment body is required</value>
+  </data>
+  <data name="_Err_CommentCategoryID_Required" xml:space="preserve">
+    <value>CommentCategoryID is required</value>
+  </data>
+  <data name="_Err_CommentCategory_Required" xml:space="preserve">
+    <value>Comment category is required</value>
+  </data>
+  <data name="_Err_CommentType_Required" xml:space="preserve">
+    <value>Comment type is required</value>
+  </data>
+  <data name="_Err_CountryCode_Required" xml:space="preserve">
+    <value>Country code is required</value>
+  </data>
+  <data name="_Err_CountryName_Required" xml:space="preserve">
+    <value>Country name is required</value>
+  </data>
+  <data name="_Err_DefaultEmail_Required" xml:space="preserve">
+    <value>Default email is required</value>
+  </data>
+  <data name="_Err_Description_Required" xml:space="preserve">
+    <value>Description is required</value>
+  </data>
+  <data name="_Err_EmailAddress_Required" xml:space="preserve">
+    <value>EmailAddress is required</value>
+  </data>
+  <data name="_Err_EmailName_Required" xml:space="preserve">
+    <value>Email name is required</value>
+  </data>
+  <data name="_Err_EmailSettingID_Required" xml:space="preserve">
+    <value>Email setting ID is required</value>
+  </data>
+  <data name="_Err_EMailType_Required" xml:space="preserve">
+    <value>Email type is required</value>
+  </data>
+  <data name="_Err_EnableSSL_Required" xml:space="preserve">
+    <value>EnableSSL is required</value>
+  </data>
+  <data name="_Err_FileCode_Required" xml:space="preserve">
+    <value>FileCode is required</value>
+  </data>
+  <data name="_Err_File_FileCategoryID_Required" xml:space="preserve">
+    <value>FileCategory is Required</value>
+  </data>
+  <data name="_Err_File_FileName_Required" xml:space="preserve">
+    <value>Filename is Required</value>
+  </data>
+  <data name="_Err_File_FileStream_Required" xml:space="preserve">
+    <value>FileStream is Required</value>
+  </data>
+  <data name="_Err_ForgetKey_Required" xml:space="preserve">
+    <value>Forget key is required</value>
+  </data>
+  <data name="_Err_IPAddress_Required" xml:space="preserve">
+    <value>IP is required</value>
+  </data>
+  <data name="_Err_ItemID_Required" xml:space="preserve">
+    <value>ItemID is required</value>
+  </data>
+  <data name="_Err_LanguageCode_Required" xml:space="preserve">
+    <value>Language code is required</value>
+  </data>
+  <data name="_Err_MailServer_Required" xml:space="preserve">
+    <value>Mail server is required</value>
+  </data>
+  <data name="_Err_MaxLength_1024" xml:space="preserve">
+    <value>maximum length is 1024</value>
+  </data>
+  <data name="_Err_MaxLength_128" xml:space="preserve">
+    <value>maximum length is 128</value>
+  </data>
+  <data name="_Err_MaxLength_15" xml:space="preserve">
+    <value>maximum length is 15</value>
+  </data>
+  <data name="_Err_MaxLength_16" xml:space="preserve">
+    <value>maximum length is 16</value>
+  </data>
+  <data name="_Err_MaxLength_2" xml:space="preserve">
+    <value>maximum length is 2</value>
+  </data>
+  <data name="_Err_MaxLength_2000" xml:space="preserve">
+    <value>maximum length is 2000</value>
+  </data>
+  <data name="_Err_MaxLength_256" xml:space="preserve">
+    <value>maximum length is 256</value>
+  </data>
+  <data name="_Err_MaxLength_3" xml:space="preserve">
+    <value>maximum length is 3</value>
+  </data>
+  <data name="_Err_MaxLength_36" xml:space="preserve">
+    <value>maximum length is 36</value>
+  </data>
+  <data name="_Err_MaxLength_4000" xml:space="preserve">
+    <value>maximum length is 4000</value>
+  </data>
+  <data name="_Err_MaxLength_42" xml:space="preserve">
+    <value>maximum length is 42</value>
+  </data>
+  <data name="_Err_MaxLength_48" xml:space="preserve">
+    <value>maximum length is 48</value>
+  </data>
+  <data name="_Err_MaxLength_512" xml:space="preserve">
+    <value>maximum length is 512</value>
+  </data>
+  <data name="_Err_MaxLength_54" xml:space="preserve">
+    <value>maximum length is 54</value>
+  </data>
+  <data name="_Err_MaxLength_6" xml:space="preserve">
+    <value>maximum length is 6</value>
+  </data>
+  <data name="_Err_MaxLength_64" xml:space="preserve">
+    <value>maximum length is 64</value>
+  </data>
+  <data name="_Err_MaxLength_8" xml:space="preserve">
+    <value>maximum length is 8</value>
+  </data>
+  <data name="_Err_MaxLength_96" xml:space="preserve">
+    <value>maximum length is 96</value>
+  </data>
+  <data name="_Err_MemberID_Required" xml:space="preserve">
+    <value>MemberID is required</value>
+  </data>
+  <data name="_Err_Member_Cellphone_Required" xml:space="preserve">
+    <value>Cellphone is Required</value>
+  </data>
+  <data name="_Err_Member_CountryCode_Required" xml:space="preserve">
+    <value>CountryCode is Required</value>
+  </data>
+  <data name="_Err_Member_Email_Required" xml:space="preserve">
+    <value>Email is Required</value>
+  </data>
+  <data name="_Err_Member_Givenname_Required" xml:space="preserve">
+    <value>Givenname is Required</value>
+  </data>
+  <data name="_Err_Member_NewPassword_Required" xml:space="preserve">
+    <value>New password is Required</value>
+  </data>
+  <data name="_Err_Member_OldPassword_Required" xml:space="preserve">
+    <value>Current Password is Required</value>
+  </data>
+  <data name="_Err_Member_Password_Policy" xml:space="preserve">
+    <value>for more security use mix of numbers and chars and sign</value>
+  </data>
+  <data name="_Err_Member_PlaceID_Required" xml:space="preserve">
+    <value>City is Required</value>
+  </data>
+  <data name="_Err_Member_SetCompair_Password" xml:space="preserve">
+    <value>Set same password in new password and confirm password fileds</value>
+  </data>
+  <data name="_Err_Member_Surname_Required" xml:space="preserve">
+    <value>Surname is Required</value>
+  </data>
+  <data name="_Err_MessageBody_Required" xml:space="preserve">
+    <value>Message body is required</value>
+  </data>
+  <data name="_Err_MessageSubject_Required" xml:space="preserve">
+    <value>Subject is required</value>
+  </data>
+  <data name="_Err_MinLength_1" xml:space="preserve">
+    <value>minimum length is 1</value>
+  </data>
+  <data name="_Err_MinLength_10" xml:space="preserve">
+    <value>minimum length is 10</value>
+  </data>
+  <data name="_Err_MinLength_11" xml:space="preserve">
+    <value>minimum length is 11</value>
+  </data>
+  <data name="_Err_MinLength_2" xml:space="preserve">
+    <value>minimum length is 2</value>
+  </data>
+  <data name="_Err_MinLength_25" xml:space="preserve">
+    <value>minimum length is 25</value>
+  </data>
+  <data name="_Err_MinLength_3" xml:space="preserve">
+    <value>minimum length is 3</value>
+  </data>
+  <data name="_Err_MinLength_36" xml:space="preserve">
+    <value>minimum length is 36</value>
+  </data>
+  <data name="_Err_MinLength_4" xml:space="preserve">
+    <value>minimum length is 4</value>
+  </data>
+  <data name="_Err_MinLength_5" xml:space="preserve">
+    <value>Minimum length is 5</value>
+  </data>
+  <data name="_Err_MinLength_8" xml:space="preserve">
+    <value>minimum length is 8</value>
+  </data>
+  <data name="_Err_MinLength_9" xml:space="preserve">
+    <value>minimum length is 9</value>
+  </data>
+  <data name="_Err_Name_Required" xml:space="preserve">
+    <value>Name is required</value>
+  </data>
+  <data name="_Err_ObjectID_Required" xml:space="preserve">
+    <value>Object ID is required</value>
+  </data>
+  <data name="_Err_PageCode_Required" xml:space="preserve">
+    <value>PageCode is required</value>
+  </data>
+  <data name="_Err_PolicyID_Required" xml:space="preserve">
+    <value>PolicyID is required</value>
+  </data>
+  <data name="_Err_Post_Body_Required" xml:space="preserve">
+    <value>Post Body is Required</value>
+  </data>
+  <data name="_Err_Post_MenuView_Required" xml:space="preserve">
+    <value>Menuview item is Required</value>
+  </data>
+  <data name="_Err_Post_PostCategoryID_Required" xml:space="preserve">
+    <value>PostCategoryID is Required</value>
+  </data>
+  <data name="_Err_Post_PostID_Required" xml:space="preserve">
+    <value>PostID is Required</value>
+  </data>
+  <data name="_Err_Post_Summary_Required" xml:space="preserve">
+    <value>Post Summary is Required</value>
+  </data>
+  <data name="_Err_Post_Title_Required" xml:space="preserve">
+    <value>Post title is Required</value>
+  </data>
+  <data name="_Err_Priority_Required" xml:space="preserve">
+    <value>Priority is required</value>
+  </data>
+  <data name="_Err_ProductID_Required" xml:space="preserve">
+    <value>ProductID is required</value>
+  </data>
+  <data name="_Err_Public_Enter_Valid_Byte" xml:space="preserve">
+    <value>Enter valid byte number</value>
+  </data>
+  <data name="_Err_Public_Enter_Valid_Integer" xml:space="preserve">
+    <value>Enter valid integer number</value>
+  </data>
+  <data name="_Err_Public_Int_Length" xml:space="preserve">
+    <value>Please enter valid integer</value>
+  </data>
+  <data name="_Err_Public_LanguageID_Required" xml:space="preserve">
+    <value>LanguageID is Required</value>
+  </data>
+  <data name="_Err_Public_SkipCount_Required" xml:space="preserve">
+    <value>Skip Count is Required</value>
+  </data>
+  <data name="_Err_Public_TakeCount_Required" xml:space="preserve">
+    <value>Take Count is Required</value>
+  </data>
+  <data name="_Err_SettingCode_Required" xml:space="preserve">
+    <value>Setting code is required</value>
+  </data>
+  <data name="_Err_SettingValue_Required" xml:space="preserve">
+    <value>Setting value is reuired</value>
+  </data>
+  <data name="_Err_SlideShowID_Required" xml:space="preserve">
+    <value>SlideShow ID is required</value>
+  </data>
+  <data name="_Err_SMTPPort_Required" xml:space="preserve">
+    <value>SMTPPort is required</value>
+  </data>
+  <data name="_Err_Title_Required" xml:space="preserve">
+    <value>Title is required</value>
+  </data>
+  <data name="_FailedAction" xml:space="preserve">
+    <value>Failed action</value>
+  </data>
+  <data name="_FaxKey" xml:space="preserve">
+    <value>Title of Fax</value>
+  </data>
+  <data name="_FaxNumber" xml:space="preserve">
+    <value>Fax number</value>
+  </data>
+  <data name="_Female" xml:space="preserve">
+    <value>Female</value>
+  </data>
+  <data name="_FilePreview" xml:space="preserve">
+    <value>File preview</value>
+  </data>
+  <data name="_FileUpload" xml:space="preserve">
+    <value>Choose file</value>
+  </data>
+  <data name="_FillFormcontact" xml:space="preserve">
+    <value>Fill below form to send us your message. We will contact you within your information.</value>
+  </data>
+  <data name="_First" xml:space="preserve">
+    <value>First</value>
+  </data>
+  <data name="_FooterView" xml:space="preserve">
+    <value>View in footer</value>
+  </data>
+  <data name="_ForgetKey" xml:space="preserve">
+    <value>Forget password key</value>
+  </data>
+  <data name="_ForgetYourPassword" xml:space="preserve">
+    <value>Forget your password?</value>
+  </data>
+  <data name="_Gender" xml:space="preserve">
+    <value>Gender</value>
+  </data>
+  <data name="_GenerateNewPassword" xml:space="preserve">
+    <value>Generate new password</value>
+  </data>
+  <data name="_GetBrochure" xml:space="preserve">
+    <value>Get Brochure</value>
+  </data>
+  <data name="_Givenname" xml:space="preserve">
+    <value>Givenname</value>
+  </data>
+  <data name="_GoToLogin" xml:space="preserve">
+    <value>Go to login page</value>
+  </data>
+  <data name="_Home" xml:space="preserve">
+    <value>Home</value>
+  </data>
+  <data name="_HomeOwnerName" xml:space="preserve">
+    <value>Home owner name</value>
+  </data>
+  <data name="_HomePage" xml:space="preserve">
+    <value>Home page</value>
+  </data>
+  <data name="_HTMLBody" xml:space="preserve">
+    <value>HTML Body</value>
+  </data>
+  <data name="_Icon" xml:space="preserve">
+    <value>Icon</value>
+  </data>
+  <data name="_Index" xml:space="preserve">
+    <value>Index</value>
+  </data>
+  <data name="_Insert" xml:space="preserve">
+    <value>Insert</value>
+  </data>
+  <data name="_InsertPolicy" xml:space="preserve">
+    <value>Insert Policy</value>
+  </data>
+  <data name="_IPAddress" xml:space="preserve">
+    <value>IP Address</value>
+  </data>
+  <data name="_LanguageCode" xml:space="preserve">
+    <value>Language code</value>
+  </data>
+  <data name="_LanguageCodes" xml:space="preserve">
+    <value>Language Codes</value>
+  </data>
+  <data name="_Last" xml:space="preserve">
+    <value>Last</value>
+  </data>
+  <data name="_LoadMore" xml:space="preserve">
+    <value>Load more</value>
+  </data>
+  <data name="_Login" xml:space="preserve">
+    <value>Login</value>
+  </data>
+  <data name="_Logout" xml:space="preserve">
+    <value>Logout</value>
+  </data>
+  <data name="_LogTime" xml:space="preserve">
+    <value>Log time</value>
+  </data>
+  <data name="_MailServer" xml:space="preserve">
+    <value>Mail server</value>
+  </data>
+  <data name="_Main_Page" xml:space="preserve">
+    <value>Main page</value>
+  </data>
+  <data name="_Male" xml:space="preserve">
+    <value>Male</value>
+  </data>
+  <data name="_Management" xml:space="preserve">
+    <value>Management</value>
+  </data>
+  <data name="_MapLocation" xml:space="preserve">
+    <value>Map location</value>
+  </data>
+  <data name="_MemberID" xml:space="preserve">
+    <value>MemberID</value>
+  </data>
+  <data name="_MemberSettings" xml:space="preserve">
+    <value>Member Settings</value>
+  </data>
+  <data name="_Member_Edit" xml:space="preserve">
+    <value>Member Edit</value>
+  </data>
+  <data name="_Member_Insert_New_Address" xml:space="preserve">
+    <value>Insert New profile address</value>
+  </data>
+  <data name="_Member_Manage" xml:space="preserve">
+    <value>Member Management</value>
+  </data>
+  <data name="_Member_Profile" xml:space="preserve">
+    <value>Member Profile</value>
+  </data>
+  <data name="_Member_Profile_Addresses" xml:space="preserve">
+    <value>Member profile Addresses</value>
+  </data>
+  <data name="_Member_Profile_Detail" xml:space="preserve">
+    <value>Member profile detail</value>
+  </data>
+  <data name="_Member_Update_Address" xml:space="preserve">
+    <value>Member update address</value>
+  </data>
+  <data name="_Member_Upload_Avatar" xml:space="preserve">
+    <value>Upload Avatar</value>
+  </data>
+  <data name="_MenuView" xml:space="preserve">
+    <value>View in Menu</value>
+  </data>
+  <data name="_MessageBody" xml:space="preserve">
+    <value>Message body</value>
+  </data>
+  <data name="_MessageSubject" xml:space="preserve">
+    <value>Message subject</value>
+  </data>
+  <data name="_Message_Manage" xml:space="preserve">
+    <value>Message manage</value>
+  </data>
+  <data name="_MetaDescription" xml:space="preserve">
+    <value>MetaDescription</value>
+  </data>
+  <data name="_MetaKeywords" xml:space="preserve">
+    <value>MetaKeywords</value>
+  </data>
+  <data name="_MiniMenu" xml:space="preserve">
+    <value>Mini menu</value>
+  </data>
+  <data name="_MinimumCookingTime" xml:space="preserve">
+    <value>Minimum cooking time</value>
+  </data>
+  <data name="_Mode" xml:space="preserve">
+    <value>Mode</value>
+  </data>
+  <data name="_ModifierName" xml:space="preserve">
+    <value>Modifier Name</value>
+  </data>
+  <data name="_ModifyDate" xml:space="preserve">
+    <value>Modify Date</value>
+  </data>
+  <data name="_NewPassword" xml:space="preserve">
+    <value>New Password</value>
+  </data>
+  <data name="_Next" xml:space="preserve">
+    <value>Next</value>
+  </data>
+  <data name="_OtherHTMLPart" xml:space="preserve">
+    <value>Other HTML parts</value>
+  </data>
+  <data name="_OurTeam" xml:space="preserve">
+    <value>Our Team</value>
+  </data>
+  <data name="_PageCode" xml:space="preserve">
+    <value>Page Code</value>
+  </data>
+  <data name="_PageSize" xml:space="preserve">
+    <value>Page size</value>
+  </data>
+  <data name="_PartBody" xml:space="preserve">
+    <value>Part body</value>
+  </data>
+  <data name="_PartTitle" xml:space="preserve">
+    <value>Part title</value>
+  </data>
+  <data name="_Password" xml:space="preserve">
+    <value>Password</value>
+  </data>
+  <data name="_PhoneNumber" xml:space="preserve">
+    <value>Phonenumber</value>
+  </data>
+  <data name="_PhoneNumberKey" xml:space="preserve">
+    <value>Title of phone</value>
+  </data>
+  <data name="_Policy" xml:space="preserve">
+    <value>Policy</value>
+  </data>
+  <data name="_PolicyID" xml:space="preserve">
+    <value>PolicyID</value>
+  </data>
+  <data name="_PolicyRoleID" xml:space="preserve">
+    <value>Policy RoleID</value>
+  </data>
+  <data name="_Policy_Insert" xml:space="preserve">
+    <value>Insert policy</value>
+  </data>
+  <data name="_Policy_Manage" xml:space="preserve">
+    <value>Policy Management</value>
+  </data>
+  <data name="_Policy_Role_Manage" xml:space="preserve">
+    <value>Policy roles management</value>
+  </data>
+  <data name="_Post" xml:space="preserve">
+    <value>Post</value>
+  </data>
+  <data name="_PostalCode" xml:space="preserve">
+    <value>PostalCode</value>
+  </data>
+  <data name="_PostCategory" xml:space="preserve">
+    <value>PostCategory</value>
+  </data>
+  <data name="_PostCategoryName" xml:space="preserve">
+    <value>Post category name</value>
+  </data>
+  <data name="_PostCategory_ChangeStatus" xml:space="preserve">
+    <value>PostCategory Change status</value>
+  </data>
+  <data name="_PostCategory_Insert" xml:space="preserve">
+    <value>PostCategory Insert</value>
+  </data>
+  <data name="_PostCategory_Insert_Child" xml:space="preserve">
+    <value>PostCategory Insert as child</value>
+  </data>
+  <data name="_PostCategory_Insert_Parent" xml:space="preserve">
+    <value>PostCategory Insert as parent</value>
+  </data>
+  <data name="_PostCategory_Language" xml:space="preserve">
+    <value>Post category languages</value>
+  </data>
+  <data name="_PostCategory_Manage" xml:space="preserve">
+    <value>Manage Post Category</value>
+  </data>
+  <data name="_PostCategory_Other_Langauge" xml:space="preserve">
+    <value>Manage Post category languages</value>
+  </data>
+  <data name="_PostCategory_Update" xml:space="preserve">
+    <value>PostCategory Update</value>
+  </data>
+  <data name="_PostCategoy_ChangePriority_Update" xml:space="preserve">
+    <value>Update Postcategory priority</value>
+  </data>
+  <data name="_PostCommentID" xml:space="preserve">
+    <value>Post CommentID</value>
+  </data>
+  <data name="_PostComments" xml:space="preserve">
+    <value>Post Comments</value>
+  </data>
+  <data name="_PostID" xml:space="preserve">
+    <value>Post ID</value>
+  </data>
+  <data name="_Post_Comment_Manage" xml:space="preserve">
+    <value>Manage Post Comments</value>
+  </data>
+  <data name="_Post_Insert" xml:space="preserve">
+    <value>Post Insert</value>
+  </data>
+  <data name="_Post_Manage" xml:space="preserve">
+    <value>Post Management</value>
+  </data>
+  <data name="_Post_PostAddLanguage" xml:space="preserve">
+    <value>Add other language to post</value>
+  </data>
+  <data name="_Post_Update" xml:space="preserve">
+    <value>Post update</value>
+  </data>
+  <data name="_Prev" xml:space="preserve">
+    <value>Prev</value>
+  </data>
+  <data name="_Previous" xml:space="preserve">
+    <value>Previous</value>
+  </data>
+  <data name="_Priority" xml:space="preserve">
+    <value>Prioity</value>
+  </data>
+  <data name="_ProductCommentID" xml:space="preserve">
+    <value>Product CommentID</value>
+  </data>
+  <data name="_ProductComments" xml:space="preserve">
+    <value>Product Comments</value>
+  </data>
+  <data name="_ProductID" xml:space="preserve">
+    <value>ProductID</value>
+  </data>
+  <data name="_Product_Comment_Manage" xml:space="preserve">
+    <value>Manage Product Comments</value>
+  </data>
+  <data name="_Profile" xml:space="preserve">
+    <value>Profile</value>
+  </data>
+  <data name="_Profile1" xml:space="preserve">
+    <value>Profile</value>
+  </data>
+  <data name="_QRCode" xml:space="preserve">
+    <value>QR Code</value>
+  </data>
+  <data name="_QRCodeManage" xml:space="preserve">
+    <value>QR code management</value>
+  </data>
+  <data name="_ReadMore" xml:space="preserve">
+    <value>Read More</value>
+  </data>
+  <data name="_RecoveryPassword" xml:space="preserve">
+    <value>Recovery password</value>
+  </data>
+  <data name="_RedirectURL" xml:space="preserve">
+    <value>Redirect URL</value>
+  </data>
+  <data name="_RegisterDate" xml:space="preserve">
+    <value>Register date</value>
+  </data>
+  <data name="_RelatedCompany" xml:space="preserve">
+    <value>Related company</value>
+  </data>
+  <data name="_Related_Roles" xml:space="preserve">
+    <value>Related roles</value>
+  </data>
+  <data name="_Remove" xml:space="preserve">
+    <value>Remove</value>
+  </data>
+  <data name="_RemoveItem" xml:space="preserve">
+    <value>Remove item</value>
+  </data>
+  <data name="_ReplyPostCommentID" xml:space="preserve">
+    <value>Reply Post CommentID</value>
+  </data>
+  <data name="_ReplyProductCommentID" xml:space="preserve">
+    <value>Reply Product CommentID</value>
+  </data>
+  <data name="_RoleID" xml:space="preserve">
+    <value>RoleID</value>
+  </data>
+  <data name="_RoleKey" xml:space="preserve">
+    <value>Role Key</value>
+  </data>
+  <data name="_Role_List" xml:space="preserve">
+    <value>Roles list</value>
+  </data>
+  <data name="_SeccessFetchFile" xml:space="preserve">
+    <value>Success fetch file</value>
+  </data>
+  <data name="_SelectCity" xml:space="preserve">
+    <value>Select City</value>
+  </data>
+  <data name="_SelectCountry" xml:space="preserve">
+    <value>Select Country</value>
+  </data>
+  <data name="_SelectPlace" xml:space="preserve">
+    <value>Select place</value>
+  </data>
+  <data name="_Select_Item" xml:space="preserve">
+    <value>Select Item</value>
+  </data>
+  <data name="_Send" xml:space="preserve">
+    <value>Send</value>
+  </data>
+  <data name="_SenderIPAddress" xml:space="preserve">
+    <value>Sender IP Address</value>
+  </data>
+  <data name="_SenderName" xml:space="preserve">
+    <value>Sender name</value>
+  </data>
+  <data name="_SendMessage" xml:space="preserve">
+    <value>Send message</value>
+  </data>
+  <data name="_SendRecoveryCode" xml:space="preserve">
+    <value>Send recovery code</value>
+  </data>
+  <data name="_Send_Activate_Link" xml:space="preserve">
+    <value>Send activate link</value>
+  </data>
+  <data name="_SetNewPassword" xml:space="preserve">
+    <value>Set new password</value>
+  </data>
+  <data name="_Settings" xml:space="preserve">
+    <value>Settings</value>
+  </data>
+  <data name="_SettingsArray" xml:space="preserve">
+    <value>Settings Array</value>
+  </data>
+  <data name="_SlideShow" xml:space="preserve">
+    <value>Slide Show</value>
+  </data>
+  <data name="_SlideShowID" xml:space="preserve">
+    <value>Slideshow ID</value>
+  </data>
+  <data name="_SlideShow_Insert" xml:space="preserve">
+    <value>Insert new slideshow</value>
+  </data>
+  <data name="_SlideShow_Language" xml:space="preserve">
+    <value>Slide show other language</value>
+  </data>
+  <data name="_SlideShow_Lanugage_Manage" xml:space="preserve">
+    <value>Manage Slideshow languages</value>
+  </data>
+  <data name="_SlideShow_Manage" xml:space="preserve">
+    <value>SlideShow management</value>
+  </data>
+  <data name="_SlideShow_Update" xml:space="preserve">
+    <value>Update slideshow</value>
+  </data>
+  <data name="_SMTPPort" xml:space="preserve">
+    <value>SMTP port</value>
+  </data>
+  <data name="_Status" xml:space="preserve">
+    <value>Status</value>
+  </data>
+  <data name="_Submit" xml:space="preserve">
+    <value>Submit</value>
+  </data>
+  <data name="_Subscribe_Management" xml:space="preserve">
+    <value>Subscribe Management</value>
+  </data>
+  <data name="_SuccessAction" xml:space="preserve">
+    <value>Success action</value>
+  </data>
+  <data name="_SuccessUploadFile" xml:space="preserve">
+    <value>Success Upload file</value>
+  </data>
+  <data name="_Summary" xml:space="preserve">
+    <value>Summary</value>
+  </data>
+  <data name="_Surname" xml:space="preserve">
+    <value>Surname</value>
+  </data>
+  <data name="_Tags" xml:space="preserve">
+    <value>Tags</value>
+  </data>
+  <data name="_Themes" xml:space="preserve">
+    <value>Themes</value>
+  </data>
+  <data name="_Title" xml:space="preserve">
+    <value>Title</value>
+  </data>
+  <data name="_UnConfirm" xml:space="preserve">
+    <value>Unconfirm</value>
+  </data>
+  <data name="_Unknown" xml:space="preserve">
+    <value>Unknown</value>
+  </data>
+  <data name="_Update" xml:space="preserve">
+    <value>Update</value>
+  </data>
+  <data name="_UpdateLanguage" xml:space="preserve">
+    <value>Update other language</value>
+  </data>
+  <data name="_UpdatePolicy" xml:space="preserve">
+    <value>Update Policy</value>
+  </data>
+  <data name="_Username" xml:space="preserve">
+    <value>Username</value>
+  </data>
+  <data name="_View_Roles" xml:space="preserve">
+    <value>View Roles</value>
+  </data>
+  <data name="_WebSolutions" xml:space="preserve">
+    <value>Web Solutions</value>
+  </data>
+  <data name="_WorkHours" xml:space="preserve">
+    <value>Work hours</value>
+  </data>
+  <data name="_WorkingFrom" xml:space="preserve">
+    <value>Start working hours</value>
+  </data>
+  <data name="_WorkingTo" xml:space="preserve">
+    <value>End working hours</value>
+  </data>
+  <data name="_WorkingWeekDays" xml:space="preserve">
+    <value>Working week days</value>
+  </data>
+</root>

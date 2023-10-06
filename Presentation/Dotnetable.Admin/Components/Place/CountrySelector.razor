@@ -1,0 +1,12 @@
+﻿@using Dotnetable.Shared.DTO.Place;
+@inherits MudComponentBase
+
+<MudAutocomplete T="CountryDetailResponse"
+                 Label="@_loc["_SelectCountry"]"
+                 SearchFunc="@SearchCountry"
+                 Margin="Margin.None"
+                 Dense="false"
+                 Variant="Variant.Outlined"
+                 ToStringFunc="@(e=> e==null?null : $"{e.Title}")"
+                 ValueChanged="CountrySelectedChange"
+                 Value="_selectedCountryItem" />

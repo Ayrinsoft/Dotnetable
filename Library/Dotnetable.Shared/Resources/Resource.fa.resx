@@ -1,0 +1,1227 @@
+﻿<?xml version="1.0" encoding="utf-8"?>
+<root>
+  <!-- 
+    Microsoft ResX Schema 
+    
+    Version 2.0
+    
+    The primary goals of this format is to allow a simple XML format 
+    that is mostly human readable. The generation and parsing of the 
+    various data types are done through the TypeConverter classes 
+    associated with the data types.
+    
+    Example:
+    
+    ... ado.net/XML headers & schema ...
+    <resheader name="resmimetype">text/microsoft-resx</resheader>
+    <resheader name="version">2.0</resheader>
+    <resheader name="reader">System.Resources.ResXResourceReader, System.Windows.Forms, ...</resheader>
+    <resheader name="writer">System.Resources.ResXResourceWriter, System.Windows.Forms, ...</resheader>
+    <data name="Name1"><value>this is my long string</value><comment>this is a comment</comment></data>
+    <data name="Color1" type="System.Drawing.Color, System.Drawing">Blue</data>
+    <data name="Bitmap1" mimetype="application/x-microsoft.net.object.binary.base64">
+        <value>[base64 mime encoded serialized .NET Framework object]</value>
+    </data>
+    <data name="Icon1" type="System.Drawing.Icon, System.Drawing" mimetype="application/x-microsoft.net.object.bytearray.base64">
+        <value>[base64 mime encoded string representing a byte array form of the .NET Framework object]</value>
+        <comment>This is a comment</comment>
+    </data>
+                
+    There are any number of "resheader" rows that contain simple 
+    name/value pairs.
+    
+    Each data row contains a name, and value. The row also contains a 
+    type or mimetype. Type corresponds to a .NET class that support 
+    text/value conversion through the TypeConverter architecture. 
+    Classes that don't support this are serialized and stored with the 
+    mimetype set.
+    
+    The mimetype is used for serialized objects, and tells the 
+    ResXResourceReader how to depersist the object. This is currently not 
+    extensible. For a given mimetype the value must be set accordingly:
+    
+    Note - application/x-microsoft.net.object.binary.base64 is the format 
+    that the ResXResourceWriter will generate, however the reader can 
+    read any of the formats listed below.
+    
+    mimetype: application/x-microsoft.net.object.binary.base64
+    value   : The object must be serialized with 
+            : System.Runtime.Serialization.Formatters.Binary.BinaryFormatter
+            : and then encoded with base64 encoding.
+    
+    mimetype: application/x-microsoft.net.object.soap.base64
+    value   : The object must be serialized with 
+            : System.Runtime.Serialization.Formatters.Soap.SoapFormatter
+            : and then encoded with base64 encoding.
+
+    mimetype: application/x-microsoft.net.object.bytearray.base64
+    value   : The object must be serialized into a byte array 
+            : using a System.ComponentModel.TypeConverter
+            : and then encoded with base64 encoding.
+    -->
+  <xsd:schema id="root" xmlns="" xmlns:xsd="http://www.w3.org/2001/XMLSchema" xmlns:msdata="urn:schemas-microsoft-com:xml-msdata">
+    <xsd:import namespace="http://www.w3.org/XML/1998/namespace" />
+    <xsd:element name="root" msdata:IsDataSet="true">
+      <xsd:complexType>
+        <xsd:choice maxOccurs="unbounded">
+          <xsd:element name="metadata">
+            <xsd:complexType>
+              <xsd:sequence>
+                <xsd:element name="value" type="xsd:string" minOccurs="0" />
+              </xsd:sequence>
+              <xsd:attribute name="name" use="required" type="xsd:string" />
+              <xsd:attribute name="type" type="xsd:string" />
+              <xsd:attribute name="mimetype" type="xsd:string" />
+              <xsd:attribute ref="xml:space" />
+            </xsd:complexType>
+          </xsd:element>
+          <xsd:element name="assembly">
+            <xsd:complexType>
+              <xsd:attribute name="alias" type="xsd:string" />
+              <xsd:attribute name="name" type="xsd:string" />
+            </xsd:complexType>
+          </xsd:element>
+          <xsd:element name="data">
+            <xsd:complexType>
+              <xsd:sequence>
+                <xsd:element name="value" type="xsd:string" minOccurs="0" msdata:Ordinal="1" />
+                <xsd:element name="comment" type="xsd:string" minOccurs="0" msdata:Ordinal="2" />
+              </xsd:sequence>
+              <xsd:attribute name="name" type="xsd:string" use="required" msdata:Ordinal="1" />
+              <xsd:attribute name="type" type="xsd:string" msdata:Ordinal="3" />
+              <xsd:attribute name="mimetype" type="xsd:string" msdata:Ordinal="4" />
+              <xsd:attribute ref="xml:space" />
+            </xsd:complexType>
+          </xsd:element>
+          <xsd:element name="resheader">
+            <xsd:complexType>
+              <xsd:sequence>
+                <xsd:element name="value" type="xsd:string" minOccurs="0" msdata:Ordinal="1" />
+              </xsd:sequence>
+              <xsd:attribute name="name" type="xsd:string" use="required" />
+            </xsd:complexType>
+          </xsd:element>
+        </xsd:choice>
+      </xsd:complexType>
+    </xsd:element>
+  </xsd:schema>
+  <resheader name="resmimetype">
+    <value>text/microsoft-resx</value>
+  </resheader>
+  <resheader name="version">
+    <value>2.0</value>
+  </resheader>
+  <resheader name="reader">
+    <value>System.Resources.ResXResourceReader, System.Windows.Forms, Version=4.0.0.0, Culture=neutral, PublicKeyToken=b77a5c561934e089</value>
+  </resheader>
+  <resheader name="writer">
+    <value>System.Resources.ResXResourceWriter, System.Windows.Forms, Version=4.0.0.0, Culture=neutral, PublicKeyToken=b77a5c561934e089</value>
+  </resheader>
+  <data name="_Aboutus" xml:space="preserve">
+    <value>درباره ما</value>
+  </data>
+  <data name="_AboutUsManage" xml:space="preserve">
+    <value>مدیریت درباره ما</value>
+  </data>
+  <data name="_Activate" xml:space="preserve">
+    <value>فعالسازی</value>
+  </data>
+  <data name="_Activat_Member" xml:space="preserve">
+    <value>فعالسازی کاربر</value>
+  </data>
+  <data name="_Active" xml:space="preserve">
+    <value>فعال</value>
+  </data>
+  <data name="_Active_DeActive" xml:space="preserve">
+    <value>فعال / غیر فعال</value>
+  </data>
+  <data name="_AddNew" xml:space="preserve">
+    <value>اضافه کردن جدید</value>
+  </data>
+  <data name="_AddNewLanguage" xml:space="preserve">
+    <value>اضافه کردن زبان جدید</value>
+  </data>
+  <data name="_Address" xml:space="preserve">
+    <value>آدرس</value>
+  </data>
+  <data name="_AddressBody" xml:space="preserve">
+    <value>متن آدرس</value>
+  </data>
+  <data name="_AddressTitle" xml:space="preserve">
+    <value>عنوان آدرس</value>
+  </data>
+  <data name="_Add_Language" xml:space="preserve">
+    <value>اضافه کردن زبان</value>
+  </data>
+  <data name="_AllRightsReserved" xml:space="preserve">
+    <value>تمامی حقوق محفوظ است</value>
+  </data>
+  <data name="_Append" xml:space="preserve">
+    <value>اضافه کردن</value>
+  </data>
+  <data name="_Append_Other_Language" xml:space="preserve">
+    <value>اضافه کردن یک زبان دیگر</value>
+  </data>
+  <data name="_Archive" xml:space="preserve">
+    <value>آرشیو</value>
+  </data>
+  <data name="_AreYouSure" xml:space="preserve">
+    <value>آیا مطمئن هستید؟</value>
+  </data>
+  <data name="_Back" xml:space="preserve">
+    <value>بازگشت</value>
+  </data>
+  <data name="_Body" xml:space="preserve">
+    <value>متن</value>
+  </data>
+  <data name="_Calory" xml:space="preserve">
+    <value>کالری</value>
+  </data>
+  <data name="_CalorySpecial" xml:space="preserve">
+    <value>کالری منتخب</value>
+  </data>
+  <data name="_Cancel" xml:space="preserve">
+    <value>لغو</value>
+  </data>
+  <data name="_CAPTCHA" xml:space="preserve">
+    <value>کد امنیتی</value>
+  </data>
+  <data name="_Categories" xml:space="preserve">
+    <value>دسته بندیها</value>
+  </data>
+  <data name="_Cellphone" xml:space="preserve">
+    <value>موبایل</value>
+  </data>
+  <data name="_CellphoneNumber" xml:space="preserve">
+    <value>شماره تلفن همراه</value>
+  </data>
+  <data name="_ChangeArchiveStatus" xml:space="preserve">
+    <value>تغییر وضعیت آرشیو</value>
+  </data>
+  <data name="_ChangeLanguage" xml:space="preserve">
+    <value>فارسی</value>
+  </data>
+  <data name="_ChangePassword" xml:space="preserve">
+    <value>تغییر رمز عبور</value>
+  </data>
+  <data name="_CheckLanguage" xml:space="preserve">
+    <value>چک کردن زبان</value>
+  </data>
+  <data name="_City" xml:space="preserve">
+    <value>شهر</value>
+  </data>
+  <data name="_CityName" xml:space="preserve">
+    <value>نام شهر</value>
+  </data>
+  <data name="_Clear" xml:space="preserve">
+    <value>پاک کردن</value>
+  </data>
+  <data name="_Color" xml:space="preserve">
+    <value>رنگ</value>
+  </data>
+  <data name="_CommentBody" xml:space="preserve">
+    <value>متن نظر</value>
+  </data>
+  <data name="_Comments" xml:space="preserve">
+    <value>نظرات</value>
+  </data>
+  <data name="_CommentTypeID" xml:space="preserve">
+    <value>نوع نظر</value>
+  </data>
+  <data name="_Comment_Manage" xml:space="preserve">
+    <value>مدیریت نظرات</value>
+  </data>
+  <data name="_CompanyBody" xml:space="preserve">
+    <value>درباره شرکت</value>
+  </data>
+  <data name="_CompanyTitle" xml:space="preserve">
+    <value>عنوان شرکت</value>
+  </data>
+  <data name="_Confirm" xml:space="preserve">
+    <value>تایید</value>
+  </data>
+  <data name="_Confirmation" xml:space="preserve">
+    <value>تاییدیه</value>
+  </data>
+  <data name="_ConfirmPassword" xml:space="preserve">
+    <value>تایید رمز</value>
+  </data>
+  <data name="_ConfirmThis" xml:space="preserve">
+    <value>برای ادامه روند تایید فرمایید</value>
+  </data>
+  <data name="_ContactDetail" xml:space="preserve">
+    <value>اطلاعات تماس</value>
+  </data>
+  <data name="_ContactForm" xml:space="preserve">
+    <value>فرم تماس</value>
+  </data>
+  <data name="_Contactus" xml:space="preserve">
+    <value>تماس با ما</value>
+  </data>
+  <data name="_ContactUsManage" xml:space="preserve">
+    <value>مدیریت تماس باما</value>
+  </data>
+  <data name="_ContactUsMessagesID" xml:space="preserve">
+    <value>آیدی پیام تماس با ما</value>
+  </data>
+  <data name="_ContactUs_Message_Manage" xml:space="preserve">
+    <value>مدیریت پیامهای تماس با ما</value>
+  </data>
+  <data name="_Country" xml:space="preserve">
+    <value>کشور</value>
+  </data>
+  <data name="_CountryCode" xml:space="preserve">
+    <value>کد کشور</value>
+  </data>
+  <data name="_CoverImage" xml:space="preserve">
+    <value>تصویر روی جلد</value>
+  </data>
+  <data name="_Create_New_Member" xml:space="preserve">
+    <value>ساخت کاربر جدید</value>
+  </data>
+  <data name="_CurrentPassword" xml:space="preserve">
+    <value>رمز فعلی</value>
+  </data>
+  <data name="_DeActivate" xml:space="preserve">
+    <value>غیر فعالسازی</value>
+  </data>
+  <data name="_DeActive" xml:space="preserve">
+    <value>غیر فعال</value>
+  </data>
+  <data name="_DefaultContact" xml:space="preserve">
+    <value>آدرس پیش فرض</value>
+  </data>
+  <data name="_DefaultEmail" xml:space="preserve">
+    <value>ایمیل پیشفرض</value>
+  </data>
+  <data name="_Delete" xml:space="preserve">
+    <value>حذف</value>
+  </data>
+  <data name="_DeleteLanguage" xml:space="preserve">
+    <value>حذف زبانهای دیگر</value>
+  </data>
+  <data name="_Description" xml:space="preserve">
+    <value>توضیحات</value>
+  </data>
+  <data name="_DoUploadFile" xml:space="preserve">
+    <value>انجام آپلود فایل</value>
+  </data>
+  <data name="_Edit" xml:space="preserve">
+    <value>ویرایش</value>
+  </data>
+  <data name="_Email" xml:space="preserve">
+    <value>ایمیل</value>
+  </data>
+  <data name="_EmailAddress" xml:space="preserve">
+    <value>آدرس ایمیل</value>
+  </data>
+  <data name="_EmailAddressTitle" xml:space="preserve">
+    <value>عنوان آدرس ایمیل</value>
+  </data>
+  <data name="_EmailAddressValue" xml:space="preserve">
+    <value>مقدار آدرس ایمیل</value>
+  </data>
+  <data name="_EmailName" xml:space="preserve">
+    <value>نام ایمیل</value>
+  </data>
+  <data name="_EmailPassword" xml:space="preserve">
+    <value>رمز عبور ایمیل</value>
+  </data>
+  <data name="_EmailSettingID" xml:space="preserve">
+    <value>آیدی تنظیمات ایمیل</value>
+  </data>
+  <data name="_EmailSubscribeID" xml:space="preserve">
+    <value>آیدی ایمیل اشتراک</value>
+  </data>
+  <data name="_EMailType" xml:space="preserve">
+    <value>نوع ایمیل</value>
+  </data>
+  <data name="_Email_Setting_Insert" xml:space="preserve">
+    <value>ثبت تنظیمات ایمیل</value>
+  </data>
+  <data name="_Email_Setting_Manage" xml:space="preserve">
+    <value>مدیریت تنظیمات ایمیل</value>
+  </data>
+  <data name="_Email_Setting_Update" xml:space="preserve">
+    <value>به روزرسانی تنظیمات ایمیل</value>
+  </data>
+  <data name="_EnableSSL" xml:space="preserve">
+    <value>فعال بودن SSL</value>
+  </data>
+  <data name="_Enter_LangugeCode" xml:space="preserve">
+    <value>کد زبان را وارد نمایید</value>
+  </data>
+  <data name="_Enter_New_Password" xml:space="preserve">
+    <value>رمز عبور جدید را وارد نمایید</value>
+  </data>
+  <data name="_ERROR_C0" xml:space="preserve">
+    <value>یک یا چند مورد وارد شده معتبر نمیباشند</value>
+  </data>
+  <data name="_ERROR_C1" xml:space="preserve">
+    <value>نام کاربری و رمز عبور را چک نمایید</value>
+  </data>
+  <data name="_ERROR_C10" xml:space="preserve">
+    <value>تکرار رمز عبور اشتباه است</value>
+  </data>
+  <data name="_ERROR_C11" xml:space="preserve">
+    <value>چیزی برای تغییر وجود ندارد</value>
+  </data>
+  <data name="_ERROR_C12" xml:space="preserve">
+    <value>آیدی کاربر را وارد نمایید</value>
+  </data>
+  <data name="_ERROR_C13" xml:space="preserve">
+    <value>تنظیمات ایمیل اشتباه است و یا وارد نشده است</value>
+  </data>
+  <data name="_ERROR_C14" xml:space="preserve">
+    <value>ایمیل قابل ارسال نیست</value>
+  </data>
+  <data name="_ERROR_C15" xml:space="preserve">
+    <value>رمز های قبلی و جدید یکسان هستند</value>
+  </data>
+  <data name="_ERROR_C16" xml:space="preserve">
+    <value>این عملیات برای کاربر خودتان غیر مجاز است</value>
+  </data>
+  <data name="_ERROR_C17" xml:space="preserve">
+    <value>خطای کد امنیتی</value>
+  </data>
+  <data name="_ERROR_C18" xml:space="preserve">
+    <value>دسترسی شخصی غیرقابل تغییر است</value>
+  </data>
+  <data name="_ERROR_C19" xml:space="preserve">
+    <value>این نقش در حیطه کاربری شما تعریف نشده است</value>
+  </data>
+  <data name="_ERROR_C2" xml:space="preserve">
+    <value>درخواست برای این کاربر محدود شد. لطفاً 5 دقیقه صبر نمایید</value>
+  </data>
+  <data name="_ERROR_C3" xml:space="preserve">
+    <value>کد امنیتی اشتباه است</value>
+  </data>
+  <data name="_ERROR_C4" xml:space="preserve">
+    <value>نام کاربری وجود دارد</value>
+  </data>
+  <data name="_ERROR_C5" xml:space="preserve">
+    <value>ایمیل وجود دارد</value>
+  </data>
+  <data name="_ERROR_C6" xml:space="preserve">
+    <value>شماره موبایل وارد شده وجود دارد</value>
+  </data>
+  <data name="_ERROR_C7" xml:space="preserve">
+    <value>این اطلاعات موجود است</value>
+  </data>
+  <data name="_ERROR_C8" xml:space="preserve">
+    <value>رمز عبور قبلی اشتباه است</value>
+  </data>
+  <data name="_ERROR_C9" xml:space="preserve">
+    <value>کد فعالسازی منقضی شده است</value>
+  </data>
+  <data name="_ERROR_D0" xml:space="preserve">
+    <value>رکورد وجود ندارد</value>
+  </data>
+  <data name="_ERROR_D1" xml:space="preserve">
+    <value>خطای عمومی دیتابیس</value>
+  </data>
+  <data name="_ERROR_D2" xml:space="preserve">
+    <value>رکورد وارد شده تکراری است</value>
+  </data>
+  <data name="_ERROR_D3" xml:space="preserve">
+    <value>تعداد رکورد های وارد شده بیش از حد است</value>
+  </data>
+  <data name="_ERROR_F1" xml:space="preserve">
+    <value>فایل موجود نیست</value>
+  </data>
+  <data name="_ERROR_F2" xml:space="preserve">
+    <value>فایل قابل تغییر نیست</value>
+  </data>
+  <data name="_ERROR_NULLDATA" xml:space="preserve">
+    <value>خطا در زمان استفاده از سرویس، مجدداً تلاش نمایید</value>
+  </data>
+  <data name="_ERROR_SX" xml:space="preserve">
+    <value>خطای عمومی سرویس</value>
+  </data>
+  <data name="_Err_Approve_Required" xml:space="preserve">
+    <value>فیلد تایید الزامی است</value>
+  </data>
+  <data name="_Err_Authentication_CaptchaCode_Required" xml:space="preserve">
+    <value>کدکپچا مورد نیاز است</value>
+  </data>
+  <data name="_Err_Authentication_Captcha_Required" xml:space="preserve">
+    <value>کد امنیتی مورد نیاز است</value>
+  </data>
+  <data name="_Err_Authentication_Password_Required" xml:space="preserve">
+    <value>رمز عبور مورد نیاز است</value>
+  </data>
+  <data name="_Err_Authentication_RefreshToken_Required" xml:space="preserve">
+    <value>توکن رفرش مورد نیاز است</value>
+  </data>
+  <data name="_Err_Authentication_Token_Required" xml:space="preserve">
+    <value>توکن مورد نیاز است</value>
+  </data>
+  <data name="_Err_Authentication_UserHashKey_Required" xml:space="preserve">
+    <value>کد کاربری مورد نیاز است</value>
+  </data>
+  <data name="_Err_Authentication_Username_Required" xml:space="preserve">
+    <value>نام کاربری مورد نیاز است</value>
+  </data>
+  <data name="_Err_AvailableLanguages_Required" xml:space="preserve">
+    <value>زبانهای موجود را وارد نمایید</value>
+  </data>
+  <data name="_Err_CellphoneNumber_Required" xml:space="preserve">
+    <value>شماره موبایل الزامی است</value>
+  </data>
+  <data name="_Err_CityCode_Required" xml:space="preserve">
+    <value>کد شهر الزامی است</value>
+  </data>
+  <data name="_Err_CityID_Required" xml:space="preserve">
+    <value>آیدی شهر الزامی است</value>
+  </data>
+  <data name="_Err_CityName_Required" xml:space="preserve">
+    <value>نام شهر الزامی است</value>
+  </data>
+  <data name="_Err_CommentBody_Required" xml:space="preserve">
+    <value>متن کامنت الزامی است</value>
+  </data>
+  <data name="_Err_CommentCategoryID_Required" xml:space="preserve">
+    <value>دسته بندی کامنت الزامی است</value>
+  </data>
+  <data name="_Err_CommentCategory_Required" xml:space="preserve">
+    <value>دسته بندی کامنت الزامی است</value>
+  </data>
+  <data name="_Err_CommentType_Required" xml:space="preserve">
+    <value>نوع کامنت الزامی است</value>
+  </data>
+  <data name="_Err_CountryCode_Required" xml:space="preserve">
+    <value>کد کشور الزامی است</value>
+  </data>
+  <data name="_Err_CountryName_Required" xml:space="preserve">
+    <value>نام کشور الزامی است</value>
+  </data>
+  <data name="_Err_DefaultEmail_Required" xml:space="preserve">
+    <value>پیش فرض ایمیل الزامی است</value>
+  </data>
+  <data name="_Err_Description_Required" xml:space="preserve">
+    <value>توضیحات الزامی است</value>
+  </data>
+  <data name="_Err_EmailAddress_Required" xml:space="preserve">
+    <value>وارد کردن ایمیل الزامی است</value>
+  </data>
+  <data name="_Err_EmailName_Required" xml:space="preserve">
+    <value>نام ایمیل الزامی است</value>
+  </data>
+  <data name="_Err_EmailSettingID_Required" xml:space="preserve">
+    <value>آیدی تنظیمات ایمیل الزامی است</value>
+  </data>
+  <data name="_Err_EMailType_Required" xml:space="preserve">
+    <value>نوع ایمیل الزامی است</value>
+  </data>
+  <data name="_Err_EnableSSL_Required" xml:space="preserve">
+    <value>فعال بودن/نبودن اس اس ال الزامی است</value>
+  </data>
+  <data name="_Err_FileCode_Required" xml:space="preserve">
+    <value>کدفایل اجباری است</value>
+  </data>
+  <data name="_Err_File_FileCategoryID_Required" xml:space="preserve">
+    <value>دسته بندی فایل مورد نیاز است</value>
+  </data>
+  <data name="_Err_File_FileName_Required" xml:space="preserve">
+    <value>نام فایل مورد نیاز است</value>
+  </data>
+  <data name="_Err_File_FileStream_Required" xml:space="preserve">
+    <value>استریم فایل مورد نیاز است</value>
+  </data>
+  <data name="_Err_ForgetKey_Required" xml:space="preserve">
+    <value>کلید فراموشی رمز الزامی است</value>
+  </data>
+  <data name="_Err_IPAddress_Required" xml:space="preserve">
+    <value>آی پی الزامی است</value>
+  </data>
+  <data name="_Err_ItemID_Required" xml:space="preserve">
+    <value>آیدی آیتم الزامی است</value>
+  </data>
+  <data name="_Err_LanguageCode_Required" xml:space="preserve">
+    <value>کد زبان الزامی است</value>
+  </data>
+  <data name="_Err_MailServer_Required" xml:space="preserve">
+    <value>سرور ایمیل الزامی است</value>
+  </data>
+  <data name="_Err_MaxLength_1024" xml:space="preserve">
+    <value>حداکثر طول 1024 کاراکتر است</value>
+  </data>
+  <data name="_Err_MaxLength_128" xml:space="preserve">
+    <value>حداکثر طول 128 کاراکتر است</value>
+  </data>
+  <data name="_Err_MaxLength_15" xml:space="preserve">
+    <value>حداکثر طول 15 کاراکتر است</value>
+  </data>
+  <data name="_Err_MaxLength_16" xml:space="preserve">
+    <value>حداکثر طول 16 کاراکتر است</value>
+  </data>
+  <data name="_Err_MaxLength_2" xml:space="preserve">
+    <value>حداکثر طول 2 کاراکتر است</value>
+  </data>
+  <data name="_Err_MaxLength_2000" xml:space="preserve">
+    <value>حداکثر طول 2000 کاراکتر است</value>
+  </data>
+  <data name="_Err_MaxLength_256" xml:space="preserve">
+    <value>حداکثر طول 256 کاراکتر است</value>
+  </data>
+  <data name="_Err_MaxLength_3" xml:space="preserve">
+    <value>حداکثر طول 3 کاراکتر است</value>
+  </data>
+  <data name="_Err_MaxLength_36" xml:space="preserve">
+    <value>حداکثر طول 36 کاراکتر است</value>
+  </data>
+  <data name="_Err_MaxLength_4000" xml:space="preserve">
+    <value>حداکثر طول 4000 کاراکتر است</value>
+  </data>
+  <data name="_Err_MaxLength_42" xml:space="preserve">
+    <value>حداکثر طول 42 کاراکتر است</value>
+  </data>
+  <data name="_Err_MaxLength_48" xml:space="preserve">
+    <value>حداکثر طول 48 کاراکتر است</value>
+  </data>
+  <data name="_Err_MaxLength_512" xml:space="preserve">
+    <value>حداکثر طول 512 کاراکتر است</value>
+  </data>
+  <data name="_Err_MaxLength_54" xml:space="preserve">
+    <value>حداکثر طول 54 کاراکتر است</value>
+  </data>
+  <data name="_Err_MaxLength_6" xml:space="preserve">
+    <value>حد اکثر طول 6 کاراکتر است</value>
+  </data>
+  <data name="_Err_MaxLength_64" xml:space="preserve">
+    <value>حد اکثر طول 64 کاراکتر است</value>
+  </data>
+  <data name="_Err_MaxLength_8" xml:space="preserve">
+    <value>حداکثر طول 8 کاراکتر است</value>
+  </data>
+  <data name="_Err_MaxLength_96" xml:space="preserve">
+    <value>حداکثر طول 96 کاراکتر است</value>
+  </data>
+  <data name="_Err_MemberID_Required" xml:space="preserve">
+    <value>آیدی کاربر الزامی است</value>
+  </data>
+  <data name="_Err_Member_Cellphone_Required" xml:space="preserve">
+    <value>شماره تلفن همراه مورد نیاز است</value>
+  </data>
+  <data name="_Err_Member_CountryCode_Required" xml:space="preserve">
+    <value>کد کشور مورد نیاز است</value>
+  </data>
+  <data name="_Err_Member_Email_Required" xml:space="preserve">
+    <value>ایمیل مورد نیاز است</value>
+  </data>
+  <data name="_Err_Member_Givenname_Required" xml:space="preserve">
+    <value>نام مورد نیاز است</value>
+  </data>
+  <data name="_Err_Member_NewPassword_Required" xml:space="preserve">
+    <value>رمز عبور جدید مورد نیاز است</value>
+  </data>
+  <data name="_Err_Member_OldPassword_Required" xml:space="preserve">
+    <value>رمز عبور فعلی مورد نیاز است</value>
+  </data>
+  <data name="_Err_Member_Password_Policy" xml:space="preserve">
+    <value>برای امنیت بیشتر از ترکیب عدد و حروف و علائم استفاده نمایید</value>
+  </data>
+  <data name="_Err_Member_PlaceID_Required" xml:space="preserve">
+    <value>انتخاب شهر اجباری است</value>
+  </data>
+  <data name="_Err_Member_SetCompair_Password" xml:space="preserve">
+    <value>در فیلدهای رمز عبور جدید و تایید رمز عبور رمز های یکسان وارد نمایید</value>
+  </data>
+  <data name="_Err_Member_Surname_Required" xml:space="preserve">
+    <value>نام خانوادگی مورد نیاز است</value>
+  </data>
+  <data name="_Err_MessageBody_Required" xml:space="preserve">
+    <value>وارد کردن متن پیام الزامی است</value>
+  </data>
+  <data name="_Err_MessageSubject_Required" xml:space="preserve">
+    <value>وارد کردن عنوان الزامی است</value>
+  </data>
+  <data name="_Err_MinLength_1" xml:space="preserve">
+    <value>حداقل طول 1 کارکتر است</value>
+  </data>
+  <data name="_Err_MinLength_10" xml:space="preserve">
+    <value>حداقل طول 10 کاراکتر است</value>
+  </data>
+  <data name="_Err_MinLength_11" xml:space="preserve">
+    <value>حداقل طول 11 کاراکتر است</value>
+  </data>
+  <data name="_Err_MinLength_2" xml:space="preserve">
+    <value>حداقل طول 2 کاراکتر است</value>
+  </data>
+  <data name="_Err_MinLength_25" xml:space="preserve">
+    <value>حداقل طول 25 کاراکتر است</value>
+  </data>
+  <data name="_Err_MinLength_3" xml:space="preserve">
+    <value>حداقل طول 3 کاراکتر است</value>
+  </data>
+  <data name="_Err_MinLength_36" xml:space="preserve">
+    <value>حداقل طول 36 کاراکتر است</value>
+  </data>
+  <data name="_Err_MinLength_4" xml:space="preserve">
+    <value>حداقل طول 4 کاراکتر است</value>
+  </data>
+  <data name="_Err_MinLength_5" xml:space="preserve">
+    <value>حداقل طول 5 کاراکتر است</value>
+  </data>
+  <data name="_Err_MinLength_8" xml:space="preserve">
+    <value>حداقل طول 8 کاراکتر است</value>
+  </data>
+  <data name="_Err_MinLength_9" xml:space="preserve">
+    <value>حداقل طول 9 کاراکتر است</value>
+  </data>
+  <data name="_Err_Name_Required" xml:space="preserve">
+    <value>وارد کردن نام الزامی است</value>
+  </data>
+  <data name="_Err_ObjectID_Required" xml:space="preserve">
+    <value>آیدی مقصد الزامی است</value>
+  </data>
+  <data name="_Err_PageCode_Required" xml:space="preserve">
+    <value>وارد کردن کد صفحه الزامی است</value>
+  </data>
+  <data name="_Err_PolicyID_Required" xml:space="preserve">
+    <value>آیدی پالیسی الزامی است</value>
+  </data>
+  <data name="_Err_Post_Body_Required" xml:space="preserve">
+    <value>متن پست را وارد نمایید</value>
+  </data>
+  <data name="_Err_Post_MenuView_Required" xml:space="preserve">
+    <value>مشاهده در منو اجباری است</value>
+  </data>
+  <data name="_Err_Post_PostCategoryID_Required" xml:space="preserve">
+    <value>دسته بندی پست را مشخص نمایید</value>
+  </data>
+  <data name="_Err_Post_PostID_Required" xml:space="preserve">
+    <value>آیدی پست اجباری است</value>
+  </data>
+  <data name="_Err_Post_Summary_Required" xml:space="preserve">
+    <value>خلاصه پست را وارد نمایید</value>
+  </data>
+  <data name="_Err_Post_Title_Required" xml:space="preserve">
+    <value>عنوان پست را وارد نمایید</value>
+  </data>
+  <data name="_Err_Priority_Required" xml:space="preserve">
+    <value>وارد کردن رتبه الزامی است</value>
+  </data>
+  <data name="_Err_ProductID_Required" xml:space="preserve">
+    <value>آیدی محصول الزامی است</value>
+  </data>
+  <data name="_Err_Public_Enter_Valid_Byte" xml:space="preserve">
+    <value>مقدار عددی را به درستی وارد نمایید</value>
+  </data>
+  <data name="_Err_Public_Enter_Valid_Integer" xml:space="preserve">
+    <value>مقدار عددی را به درستی وارد نمایید</value>
+  </data>
+  <data name="_Err_Public_Int_Length" xml:space="preserve">
+    <value>لطفاً عدد صحیح وارد نمایید</value>
+  </data>
+  <data name="_Err_Public_LanguageID_Required" xml:space="preserve">
+    <value>آیدی زبان اجباری است</value>
+  </data>
+  <data name="_Err_Public_SkipCount_Required" xml:space="preserve">
+    <value>مقدار رد کردن رکورد ها اجباری است</value>
+  </data>
+  <data name="_Err_Public_TakeCount_Required" xml:space="preserve">
+    <value>مقدار دریافت رکورد ها اجباری است</value>
+  </data>
+  <data name="_Err_SlideShowID_Required" xml:space="preserve">
+    <value>وارد کردن آیدی اسلاید شو الزامی است</value>
+  </data>
+  <data name="_Err_SMTPPort_Required" xml:space="preserve">
+    <value>پورت اس ام تی پی الزامی است</value>
+  </data>
+  <data name="_Err_Title_Required" xml:space="preserve">
+    <value>عنوان الزامی است</value>
+  </data>
+  <data name="_FailedAction" xml:space="preserve">
+    <value>خطا در انجام</value>
+  </data>
+  <data name="_FaxKey" xml:space="preserve">
+    <value>عنوان فکس</value>
+  </data>
+  <data name="_FaxNumber" xml:space="preserve">
+    <value>شماره فکس</value>
+  </data>
+  <data name="_Female" xml:space="preserve">
+    <value>زن</value>
+  </data>
+  <data name="_FilePreview" xml:space="preserve">
+    <value>پیش نمایش عکس</value>
+  </data>
+  <data name="_FileUpload" xml:space="preserve">
+    <value>انتخاب فایل</value>
+  </data>
+  <data name="_FillFormcontact" xml:space="preserve">
+    <value>فرم زیر را کامل نمایید تا پیامتان برای ما ارسال شود. با شما بر اساس اطلاعات تکمیل شده شما تماس خواهیم گرفت.</value>
+  </data>
+  <data name="_First" xml:space="preserve">
+    <value>ابتدا</value>
+  </data>
+  <data name="_FooterView" xml:space="preserve">
+    <value>مشاهده در فوتر</value>
+  </data>
+  <data name="_ForgetKey" xml:space="preserve">
+    <value>کد بازیابی رمز عبور</value>
+  </data>
+  <data name="_ForgetYourPassword" xml:space="preserve">
+    <value>رمز عبور خود را فراموش کرده اید؟</value>
+  </data>
+  <data name="_Gender" xml:space="preserve">
+    <value>جنسیت</value>
+  </data>
+  <data name="_GenerateNewPassword" xml:space="preserve">
+    <value>تولید رمز عبور</value>
+  </data>
+  <data name="_GetBrochure" xml:space="preserve">
+    <value>دریافت بروشور</value>
+  </data>
+  <data name="_Givenname" xml:space="preserve">
+    <value>نام</value>
+  </data>
+  <data name="_GoToLogin" xml:space="preserve">
+    <value>رفتن به صفحه ورود</value>
+  </data>
+  <data name="_Home" xml:space="preserve">
+    <value>خانه</value>
+  </data>
+  <data name="_HomeOwnerName" xml:space="preserve">
+    <value>نام صاحبخانه</value>
+  </data>
+  <data name="_HomePage" xml:space="preserve">
+    <value>صفحه اصلی</value>
+  </data>
+  <data name="_HTMLBody" xml:space="preserve">
+    <value>بدنه اچ تی ام ال</value>
+  </data>
+  <data name="_Icon" xml:space="preserve">
+    <value>آیکن</value>
+  </data>
+  <data name="_Index" xml:space="preserve">
+    <value>صفحه اصلی</value>
+  </data>
+  <data name="_Insert" xml:space="preserve">
+    <value>ثبت</value>
+  </data>
+  <data name="_InsertPolicy" xml:space="preserve">
+    <value>ثبت دسترسی</value>
+  </data>
+  <data name="_IPAddress" xml:space="preserve">
+    <value>آدرس آی پی</value>
+  </data>
+  <data name="_LanguageCode" xml:space="preserve">
+    <value>کد زبان</value>
+  </data>
+  <data name="_LanguageCodes" xml:space="preserve">
+    <value>کدهای زبان</value>
+  </data>
+  <data name="_Last" xml:space="preserve">
+    <value>انتها</value>
+  </data>
+  <data name="_LoadMore" xml:space="preserve">
+    <value>مطالب بیشتر</value>
+  </data>
+  <data name="_Login" xml:space="preserve">
+    <value>ورود</value>
+  </data>
+  <data name="_Logout" xml:space="preserve">
+    <value>خروج</value>
+  </data>
+  <data name="_LogTime" xml:space="preserve">
+    <value>زمان ثبت</value>
+  </data>
+  <data name="_MailServer" xml:space="preserve">
+    <value>سرور ایمیل</value>
+  </data>
+  <data name="_Main_Page" xml:space="preserve">
+    <value>صفحه اصلی</value>
+  </data>
+  <data name="_Male" xml:space="preserve">
+    <value>مرد</value>
+  </data>
+  <data name="_Management" xml:space="preserve">
+    <value>مدیریت</value>
+  </data>
+  <data name="_MapLocation" xml:space="preserve">
+    <value>موقعیت مکانی</value>
+  </data>
+  <data name="_MemberID" xml:space="preserve">
+    <value>آیدی کاربر</value>
+  </data>
+  <data name="_MemberSettings" xml:space="preserve">
+    <value>تنظیمات کاربری</value>
+  </data>
+  <data name="_Member_Edit" xml:space="preserve">
+    <value>به روزرسانی کاربر</value>
+  </data>
+  <data name="_Member_Insert_New_Address" xml:space="preserve">
+    <value>ثبت آدرس جدید پروفایل</value>
+  </data>
+  <data name="_Member_Manage" xml:space="preserve">
+    <value>مدیریت کاربران</value>
+  </data>
+  <data name="_Member_Profile" xml:space="preserve">
+    <value>پروفایل کاربری</value>
+  </data>
+  <data name="_Member_Profile_Addresses" xml:space="preserve">
+    <value>آدرس های ثبت شده پروفایل</value>
+  </data>
+  <data name="_Member_Profile_Detail" xml:space="preserve">
+    <value>جزئیات پروفایل کاربری</value>
+  </data>
+  <data name="_Member_Update_Address" xml:space="preserve">
+    <value>به روزرسانی آدرس کاربر</value>
+  </data>
+  <data name="_Member_Upload_Avatar" xml:space="preserve">
+    <value>بارگذاری عکس پروفایل</value>
+  </data>
+  <data name="_MenuView" xml:space="preserve">
+    <value>مشاهده در منو</value>
+  </data>
+  <data name="_MessageBody" xml:space="preserve">
+    <value>متن پیام </value>
+  </data>
+  <data name="_MessageSubject" xml:space="preserve">
+    <value>عنوان پیام</value>
+  </data>
+  <data name="_Message_Manage" xml:space="preserve">
+    <value>مدیریت پیامها</value>
+  </data>
+  <data name="_MetaDescription" xml:space="preserve">
+    <value>توضیحات متا هدر</value>
+  </data>
+  <data name="_MetaKeywords" xml:space="preserve">
+    <value>کلمات متا هدر</value>
+  </data>
+  <data name="_MiniMenu" xml:space="preserve">
+    <value>منو کوچک</value>
+  </data>
+  <data name="_MinimumCookingTime" xml:space="preserve">
+    <value>حداقل زمان پخت</value>
+  </data>
+  <data name="_Mode" xml:space="preserve">
+    <value>مود</value>
+  </data>
+  <data name="_ModifierName" xml:space="preserve">
+    <value>نام تغییر دهنده</value>
+  </data>
+  <data name="_ModifyDate" xml:space="preserve">
+    <value>تاریخ تغییر</value>
+  </data>
+  <data name="_NewPassword" xml:space="preserve">
+    <value>رمز جدید</value>
+  </data>
+  <data name="_Next" xml:space="preserve">
+    <value>بعدی</value>
+  </data>
+  <data name="_OtherHTMLPart" xml:space="preserve">
+    <value>دیگر قسمتها</value>
+  </data>
+  <data name="_OurTeam" xml:space="preserve">
+    <value>تیم ما</value>
+  </data>
+  <data name="_PageCode" xml:space="preserve">
+    <value>کد صفحه</value>
+  </data>
+  <data name="_PageSize" xml:space="preserve">
+    <value>تعداد در صفحه</value>
+  </data>
+  <data name="_PartBody" xml:space="preserve">
+    <value>متن قسمت</value>
+  </data>
+  <data name="_PartTitle" xml:space="preserve">
+    <value>عنوان قسمت</value>
+  </data>
+  <data name="_Password" xml:space="preserve">
+    <value>رمزعبور</value>
+  </data>
+  <data name="_PhoneNumber" xml:space="preserve">
+    <value>شماره تلفن</value>
+  </data>
+  <data name="_PhoneNumberKey" xml:space="preserve">
+    <value>عنوان تلفن</value>
+  </data>
+  <data name="_Policy" xml:space="preserve">
+    <value>دسترسی</value>
+  </data>
+  <data name="_PolicyID" xml:space="preserve">
+    <value>آیدی دسترسی</value>
+  </data>
+  <data name="_PolicyRoleID" xml:space="preserve">
+    <value>آیدی نقشهای دسترسی</value>
+  </data>
+  <data name="_Policy_Insert" xml:space="preserve">
+    <value>ثبت دسترسی جدید</value>
+  </data>
+  <data name="_Policy_Manage" xml:space="preserve">
+    <value>مدیریت دسترسی</value>
+  </data>
+  <data name="_Policy_Role_Manage" xml:space="preserve">
+    <value>مدیریت نقشهای دسترسی</value>
+  </data>
+  <data name="_Post" xml:space="preserve">
+    <value>پست</value>
+  </data>
+  <data name="_PostalCode" xml:space="preserve">
+    <value>کدپستی</value>
+  </data>
+  <data name="_PostCategory" xml:space="preserve">
+    <value>دسته بندی پست</value>
+  </data>
+  <data name="_PostCategoryName" xml:space="preserve">
+    <value>نام دسته بندی پست</value>
+  </data>
+  <data name="_PostCategory_ChangeStatus" xml:space="preserve">
+    <value>تغییر وضعیت دسته بندی پست</value>
+  </data>
+  <data name="_PostCategory_Insert" xml:space="preserve">
+    <value>ایجاد دسته بندی پست</value>
+  </data>
+  <data name="_PostCategory_Insert_Child" xml:space="preserve">
+    <value>ایجاد دسته بندی پست زیرشاخه</value>
+  </data>
+  <data name="_PostCategory_Insert_Parent" xml:space="preserve">
+    <value>ایجاد دسته بندی پست سرشاخه</value>
+  </data>
+  <data name="_PostCategory_Language" xml:space="preserve">
+    <value>زبانهای دیگر دسته بندی پست</value>
+  </data>
+  <data name="_PostCategory_Manage" xml:space="preserve">
+    <value>مدیریت دسته بندی پست</value>
+  </data>
+  <data name="_PostCategory_Other_Langauge" xml:space="preserve">
+    <value>مدیریت زبانهای دسته بندی پست</value>
+  </data>
+  <data name="_PostCategory_Update" xml:space="preserve">
+    <value>به روزرسانی دسته بندی پست</value>
+  </data>
+  <data name="_PostCategoy_ChangePriority_Update" xml:space="preserve">
+    <value>به روزرسانی ترتیب دسته بندی پست</value>
+  </data>
+  <data name="_PostCommentID" xml:space="preserve">
+    <value>آیدی نظر پست</value>
+  </data>
+  <data name="_PostComments" xml:space="preserve">
+    <value>نظرات پستها</value>
+  </data>
+  <data name="_PostID" xml:space="preserve">
+    <value>آیدی پست</value>
+  </data>
+  <data name="_Post_Comment_Manage" xml:space="preserve">
+    <value>مدیریت نظرات پستها</value>
+  </data>
+  <data name="_Post_Insert" xml:space="preserve">
+    <value>پست جدید</value>
+  </data>
+  <data name="_Post_Manage" xml:space="preserve">
+    <value>مدیریت پست</value>
+  </data>
+  <data name="_Post_PostAddLanguage" xml:space="preserve">
+    <value>اضافه کردن زبانهای دیگر پست</value>
+  </data>
+  <data name="_Post_Update" xml:space="preserve">
+    <value>به روز رسانی پست</value>
+  </data>
+  <data name="_Prev" xml:space="preserve">
+    <value>قبلی</value>
+  </data>
+  <data name="_Previous" xml:space="preserve">
+    <value>قبلی</value>
+  </data>
+  <data name="_Priority" xml:space="preserve">
+    <value>اولویت</value>
+  </data>
+  <data name="_ProductCommentID" xml:space="preserve">
+    <value>آیدی نظر محصول</value>
+  </data>
+  <data name="_ProductComments" xml:space="preserve">
+    <value>نظرات محصولات</value>
+  </data>
+  <data name="_ProductID" xml:space="preserve">
+    <value>آیدی محصول</value>
+  </data>
+  <data name="_Product_Comment_Manage" xml:space="preserve">
+    <value>مدیریت نظرات محصولات</value>
+  </data>
+  <data name="_Profile" xml:space="preserve">
+    <value>پروفایل</value>
+  </data>
+  <data name="_Profile1" xml:space="preserve">
+    <value>پروفایل</value>
+  </data>
+  <data name="_QRCode" xml:space="preserve">
+    <value>کد پاسخ سریع</value>
+  </data>
+  <data name="_QRCodeManage" xml:space="preserve">
+    <value>مدیریت صفحه کدپاسخ</value>
+  </data>
+  <data name="_ReadMore" xml:space="preserve">
+    <value>ادامه مطلب</value>
+  </data>
+  <data name="_RecoveryPassword" xml:space="preserve">
+    <value>بازیابی رمز عبور</value>
+  </data>
+  <data name="_RedirectURL" xml:space="preserve">
+    <value>آدرس انتقال</value>
+  </data>
+  <data name="_RegisterDate" xml:space="preserve">
+    <value>تاریخ ثبت</value>
+  </data>
+  <data name="_RelatedCompany" xml:space="preserve">
+    <value>شرکتهای مرتبط</value>
+  </data>
+  <data name="_Related_Roles" xml:space="preserve">
+    <value>نقشهای مرتبط</value>
+  </data>
+  <data name="_Remove" xml:space="preserve">
+    <value>حذف</value>
+  </data>
+  <data name="_RemoveItem" xml:space="preserve">
+    <value>حذف مورد</value>
+  </data>
+  <data name="_ReplyPostCommentID" xml:space="preserve">
+    <value>آیدی ارجاع نظر پست</value>
+  </data>
+  <data name="_ReplyProductCommentID" xml:space="preserve">
+    <value>بازخورد به آیدی نظر محصول</value>
+  </data>
+  <data name="_RoleID" xml:space="preserve">
+    <value>آیدی نقش</value>
+  </data>
+  <data name="_RoleKey" xml:space="preserve">
+    <value>کلید نقش</value>
+  </data>
+  <data name="_Role_List" xml:space="preserve">
+    <value>لیست نقشها</value>
+  </data>
+  <data name="_SeccessFetchFile" xml:space="preserve">
+    <value>فایل با موفقیت دریافت شد</value>
+  </data>
+  <data name="_SelectCity" xml:space="preserve">
+    <value>انتخاب شهر</value>
+  </data>
+  <data name="_SelectCountry" xml:space="preserve">
+    <value>انتخاب کشور</value>
+  </data>
+  <data name="_SelectPlace" xml:space="preserve">
+    <value>مکان را انتخاب نمایید</value>
+  </data>
+  <data name="_Select_Item" xml:space="preserve">
+    <value>انتخاب نمایید</value>
+  </data>
+  <data name="_Send" xml:space="preserve">
+    <value>ارسال</value>
+  </data>
+  <data name="_SenderIPAddress" xml:space="preserve">
+    <value>آی پی ارسال کننده</value>
+  </data>
+  <data name="_SenderName" xml:space="preserve">
+    <value>نام ارسال کننده</value>
+  </data>
+  <data name="_SendMessage" xml:space="preserve">
+    <value>ارسال پیام</value>
+  </data>
+  <data name="_SendRecoveryCode" xml:space="preserve">
+    <value>ارسال کد بازیابی</value>
+  </data>
+  <data name="_Send_Activate_Link" xml:space="preserve">
+    <value>ارسال لینک فعالسازی</value>
+  </data>
+  <data name="_SetNewPassword" xml:space="preserve">
+    <value>ایجاد رمزعبور جدید</value>
+  </data>
+  <data name="_Settings" xml:space="preserve">
+    <value>تنظیمات</value>
+  </data>
+  <data name="_SettingsArray" xml:space="preserve">
+    <value>آرایه تنظیمات</value>
+  </data>
+  <data name="_SlideShow" xml:space="preserve">
+    <value>اسلاید شو</value>
+  </data>
+  <data name="_SlideShowID" xml:space="preserve">
+    <value>آیدی اسلاید شو</value>
+  </data>
+  <data name="_SlideShow_Insert" xml:space="preserve">
+    <value>ثبت اسلاید شو جدید</value>
+  </data>
+  <data name="_SlideShow_Language" xml:space="preserve">
+    <value>زبانهای دیگر اسلاید شو</value>
+  </data>
+  <data name="_SlideShow_Lanugage_Manage" xml:space="preserve">
+    <value>مدیریت زبانهای اسلایدشو</value>
+  </data>
+  <data name="_SlideShow_Manage" xml:space="preserve">
+    <value>مدیریت اسلاید شو</value>
+  </data>
+  <data name="_SlideShow_Update" xml:space="preserve">
+    <value>به روزرسانی اسلایدشو</value>
+  </data>
+  <data name="_SMTPPort" xml:space="preserve">
+    <value>پورت SMTP</value>
+  </data>
+  <data name="_Status" xml:space="preserve">
+    <value>وضعیت</value>
+  </data>
+  <data name="_Submit" xml:space="preserve">
+    <value>ارسال</value>
+  </data>
+  <data name="_Subscribe_Management" xml:space="preserve">
+    <value>مدیریت اشتراکها</value>
+  </data>
+  <data name="_SuccessAction" xml:space="preserve">
+    <value>با موفقیت انجام شد</value>
+  </data>
+  <data name="_SuccessUploadFile" xml:space="preserve">
+    <value>فایل با موفقیت آپلود شد</value>
+  </data>
+  <data name="_Summary" xml:space="preserve">
+    <value>خلاصه</value>
+  </data>
+  <data name="_Surname" xml:space="preserve">
+    <value>نام خانوادگی</value>
+  </data>
+  <data name="_Tags" xml:space="preserve">
+    <value>تگها</value>
+  </data>
+  <data name="_Themes" xml:space="preserve">
+    <value>قالب ها</value>
+  </data>
+  <data name="_Title" xml:space="preserve">
+    <value>عنوان</value>
+  </data>
+  <data name="_UnConfirm" xml:space="preserve">
+    <value>عدم تایید</value>
+  </data>
+  <data name="_Unknown" xml:space="preserve">
+    <value>نا مشخص</value>
+  </data>
+  <data name="_Update" xml:space="preserve">
+    <value>به روز رسانی</value>
+  </data>
+  <data name="_UpdateLanguage" xml:space="preserve">
+    <value>به روزرسانی زبانهای دیگر</value>
+  </data>
+  <data name="_UpdatePolicy" xml:space="preserve">
+    <value>به روز رسانی دسترسی</value>
+  </data>
+  <data name="_Username" xml:space="preserve">
+    <value>نام کاربری</value>
+  </data>
+  <data name="_View_Roles" xml:space="preserve">
+    <value>مشاهده نقشها</value>
+  </data>
+  <data name="_WebSolutions" xml:space="preserve">
+    <value>راهکارهای تحت وب</value>
+  </data>
+  <data name="_WorkHours" xml:space="preserve">
+    <value>ساعت های کاری</value>
+  </data>
+  <data name="_WorkingFrom" xml:space="preserve">
+    <value>شروع ساعت کاری</value>
+  </data>
+  <data name="_WorkingTo" xml:space="preserve">
+    <value>پایان ساعت کاری</value>
+  </data>
+  <data name="_WorkingWeekDays" xml:space="preserve">
+    <value>روزهای کاری</value>
+  </data>
+</root>

@@ -1,0 +1,24 @@
+﻿@using Dotnetable.Shared.DTO.Member;
+@inherits MudComponentBase
+
+<MudDialog>
+    <DialogContent>
+        <div class="mb-3">
+            <label class="form-label">@_loc["_NewPassword"]</label>
+            
+            <MudAutocomplete T="RoleListOnPolicyManageResponse"
+                             Label="@_loc["_RoleID"]"
+                             SearchFunc="@SearchRole"
+                             Margin="Margin.None"
+                             Dense="false"
+                             Variant="Variant.Outlined"
+                             ToStringFunc="@(e=> e==null?null : $"{e.RoleKey}")"
+                             ValueChanged="RoleSelectedChange"
+                             Value="_selectedRole" />
+
+        </div>
+    </DialogContent>
+    <DialogActions>
+        <MudButton Variant="Variant.Filled" StartIcon="@Icons.Material.Filled.Send" Color="Color.Primary" OnClick="OnSubmitObject">@_loc["_Confirm"]</MudButton>
+    </DialogActions>
+</MudDialog>
