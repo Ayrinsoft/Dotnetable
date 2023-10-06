@@ -1,0 +1,79 @@
+﻿@using Dotnetable.Shared.DTO.Public
+@inherits MudComponentBase
+@inject IStringLocalizer<Dotnetable.Shared.Resources.Resource> loc
+
+
+<nav>
+    <ul class="pagination justify-content-center">
+
+        @if (PaginationModel.ShowFirstLast)
+        {
+            if (PaginationModel.PageIndex == 1)
+            {
+                <li class="page-item disabled"><a class="page-link" tabindex="-1"><span aria-hidden="true">@loc["_First"]</span><span class="sr-only">@loc["_First"]</span></a></li>
+            }
+            else
+            {
+                <li class="page-item"><a class="page-link sort-link" @onclick="@(() => PagerButtonClicked(1))"><span aria-hidden="true">@loc["_First"]</span><span class="sr-only">@loc["_First"]</span></a></li>
+            }
+        }
+        @if (_hasPrevios)
+        {
+            <li class="page-item"><a class="page-link sort-link" @onclick="@(() => PagerButtonClicked(PaginationModel.PageIndex - 1))"><span aria-hidden="true">@loc["_Previous"]</span><span class="sr-only"></span></a></li>
+        }
+        else
+        {
+            <li class="page-item disabled"><a class="page-link" tabindex="-1"><span aria-hidden="true">@loc["_Previous"]</span><span class="sr -only"></span></a></li>
+        }
+        @if (PaginationModel.ShowNumbers)
+        {
+            for (var i = _start; i <= _finish; i++)
+            {
+                var currentIndex = i;
+                if (currentIndex == PaginationModel.PageIndex)
+                {
+                    <li class="page-item active"><a class="page-link">@currentIndex</a></li>
+                }
+                else
+                {
+                    <li class="page-item"><a class="page-link sort-link" @onclick="@(() => PagerButtonClicked(currentIndex))">@currentIndex</a></li>
+                }
+            }
+        }
+        @if (_hasNext)
+        {
+            <li class="page-item"><a class="page-link sort-link" @onclick="@(() => PagerButtonClicked(PaginationModel.PageIndex + 1))"><span aria-hidden="true">@loc["_Next"]</span><span class="sr-only"></span></a></li>
+        }
+        else
+        {
+            <li class="page-item disabled"><a class="page-link" href="#" tabindex="-1"><span aria-hidden="true">@loc["_Next"]</span><span class="sr-only"></span></a></li>
+        }
+        @if (PaginationModel.ShowFirstLast)
+        {
+            if (PaginationModel.PageIndex == _pageCount)
+            {
+                <li class="page-item disabled"><a class="page-link" href="#" tabindex="-1"><span aria-hidden="true">@loc["_Last"]</span><span class="sr-only"></span></a></li>
+            }
+            else
+            {
+                <li class="page-item"><a class="page-link sort-link" @onclick="@(() => PagerButtonClicked(_pageCount))"><span aria-hidden="true">@loc["_Last"]</span><span class="sr-only"></span></a></li>
+            }
+        }
+        <li class="page-item">
+            <span aria-hidden="true">@loc["_PageSize"]</span><span class="sr-only">@loc["_PageSize"]</span>
+            <select @onchange="OnChangePageSize">
+                @foreach (var j in _paginationSize)
+                {
+                    if (PaginationModel.PageSize == j)
+                    {
+                        <option value="@j" selected="selected">@j</option>
+                    }
+                    else
+                    {
+                        <option value="@j">@j</option>
+                    }
+                }
+            </select>
+        </li>
+    </ul>
+</nav>

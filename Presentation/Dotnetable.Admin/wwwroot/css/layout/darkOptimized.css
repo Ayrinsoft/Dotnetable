@@ -1,0 +1,53 @@
+﻿.dropdown-divider, .table-bordered {
+    border: 1px solid #282a2c
+}
+.table td {
+    border-top: 1px solid #2d2f31
+}
+.table thead th {
+    border-bottom: 1px solid #2d2f31
+}
+.table th, .table thead th, .table-bordered td, .table-bordered th {
+    border-color: #2d2f31
+}
+
+.table-striped tbody tr:nth-of-type(2n+1) {
+    background-color: #212224
+}
+
+.footable .label-default, .footable .pagination > .disabled > a, .footable .pagination > li > a, .footable.table-striped > tbody > tr:nth-child(odd) {
+    background-color: rgba(9,9,9,.25);
+    border: 1px solid #2d2f31;
+    color: #919ea7
+}
+
+.footable.table > tbody > tr > td, .footable.table > tfoot > tr > td {
+    border-top: 1px solid #2d2f31
+}
+
+.footable.table > thead > tr > th {
+    border-bottom: 2px solid #282a2c
+}
+
+.footable-details.table-hover > tbody > tr:hover, .footable.table-hover > tbody > tr:hover {
+    background: #212224
+}
+
+.form-material .form-control {
+    border-color: #212224
+}
+
+table.dataTable.table-striped.DTFC_Cloned tbody {
+    background-color: #1a1a1c
+}
+.ck-content .table table, .ck-content .table table td, .ck-content .table table th {
+    border-color: #101011;
+    background: #212224
+}
+.table-columned > tbody > tr > td {
+    border-left: 1px solid #2b2c2f
+}
+
+.ck-restricted-editing_mode_standard {
+    border-color: #f4f7fa !important;
+}

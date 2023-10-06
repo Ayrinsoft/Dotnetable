@@ -1,0 +1,41 @@
+﻿<EditForm Model="FormModel" OnValidSubmit="OnSubmitForm">
+    <DataAnnotationsValidator />
+    <div class="mb-3 row">
+        <label class="form-label col-2">@_loc["_Title"]</label>
+        <div class="col-10"><InputText type="text" class="form-control" @bind-Value="FormModel.Title" placeholder="@_loc["_Title"]"></InputText></div>
+        <div class="form-text text-danger"><ValidationMessage For="@(() => FormModel.Title)" /></div>
+    </div>
+
+    <div class="mb-3 row">
+        <label class="form-label col-2">@_loc["_Tags"]</label>
+        <div class="col-10"><InputText type="text" class="form-control" @bind-Value="FormModel.Tags" placeholder="@_loc["_Tags"]"></InputText></div>
+        <div class="form-text text-danger"><ValidationMessage For="@(() => FormModel.Tags)" /></div>
+    </div>
+
+    <div class="mb-3 row">
+        <label class="form-label col-2">@_loc["_MetaKeywords"]</label>
+        <div class="col-10"><InputTextArea type="text" class="form-control" @bind-Value="FormModel.MetaKeywords" placeholder="@_loc["_MetaKeywords"]"></InputTextArea></div>
+        <div class="form-text text-danger"><ValidationMessage For="@(() => FormModel.MetaKeywords)" /></div>
+    </div>
+
+    <div class="mb-3 row">
+        <label class="form-label col-2">@_loc["_MetaDescription"]</label>
+        <div class="col-10"><InputTextArea type="text" class="form-control" @bind-Value="FormModel.MetaDescription" placeholder="@_loc["_MetaDescription"]"></InputTextArea></div>
+        <div class="form-text text-danger"><ValidationMessage For="@(() => FormModel.MetaDescription)" /></div>
+    </div>
+
+    <div class="mb-3 row">
+        <label class="form-label col-2">@_loc["_LanguageCode"]</label>
+        <div class="col-10"><InputText type="text" class="form-control" @bind-Value="FormModel.LanguageCode" placeholder="@_loc["_LanguageCode"]"></InputText></div>
+        <div class="form-text text-danger"><ValidationMessage For="@(() => FormModel.LanguageCode)" /></div>
+    </div>
+
+    <div class="mb-3 row">
+        <label class="form-label col-2">@_loc["_Description"]</label>
+        <div class="col-10"><InputTextArea type="text" class="form-control" @bind-Value="FormModel.Description" placeholder="@_loc["_Description"]"></InputTextArea></div>
+        <div class="form-text text-danger"><ValidationMessage For="@(() => FormModel.Description)" /></div>
+    </div>
+
+    <hr />
+    <MudButton ButtonType="ButtonType.Submit" Color="Color.Primary" Variant="Variant.Filled" EndIcon="@Icons.Material.Filled.Dataset">@_loc["_Submit"]  @_loc["_PostCategory_Language"]</MudButton>
+</EditForm>

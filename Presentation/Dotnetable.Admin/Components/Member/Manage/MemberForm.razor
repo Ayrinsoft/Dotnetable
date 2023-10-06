@@ -1,0 +1,104 @@
+﻿@using Dotnetable.Shared.DTO.Member;
+@inherits MudComponentBase
+
+<EditForm Model="FormModel" OnValidSubmit="OnSubmitForm">
+    <DataAnnotationsValidator />
+    <ValidationSummary />
+
+    <div class="mb-3 row">
+        <label class="form-label col-3">@_loc["_Username"]</label>
+        <div class="col-9"><InputText type="text" class="form-control" @bind-Value="FormModel.Username" placeholder="@_loc["_Username"]"></InputText></div>
+        <div class="form-text text-danger"><ValidationMessage For="@(() => FormModel.Username)" /></div>
+    </div>
+
+    @if (FunctionName == "RegisterAdmin")
+    {
+        <div class="mb-3 row">
+            <label class="form-label col-3">@_loc["_Password"]</label>
+            <div class="col-9"><InputText type="password" class="form-control" @bind-Value="FormModel.Password" placeholder="@_loc["_Password"]"></InputText></div>
+            <div class="form-text text-danger"><ValidationMessage For="@(() => FormModel.Password)" /></div>
+        </div>
+
+        <div class="mb-3 row">
+            <label class="form-label col-3">@_loc["_ConfirmPassword"]</label>
+            <div class="col-9"><InputText type="password" class="form-control" @bind-Value="@_confirmPassword" placeholder="@_loc["_ConfirmPassword"]"></InputText></div>
+            <div class="form-text text-danger">@(FormModel.Password == _confirmPassword ? "" : _loc["_Err_Member_SetCompair_Password"])</div>
+        </div>
+    }
+
+    <div class="mb-3 row">
+        <label class="form-label col-3">@_loc["_Email"]</label>
+        <div class="col-9"><InputText type="email" class="form-control" @bind-Value="FormModel.Email" placeholder="@_loc["_Email"]"></InputText></div>
+        <div class="form-text text-danger"><ValidationMessage For="@(() => FormModel.Email)" /></div>
+    </div>
+
+    <div class="mb-3 row">
+        <label class="form-label col-3">@_loc["_Cellphone"]</label>
+        <div class="col-9">
+            <div class="row">
+                <div class="col-8"><InputText type="text" class="form-control" @bind-Value="FormModel.CellphoneNumber" placeholder="@_loc["_Cellphone"]"></InputText></div>
+                <div class="col-4"><InputText type="text" class="form-control" @bind-Value="FormModel.CountryCode" placeholder="@_loc["_CountryCode"]"></InputText></div>
+            </div>
+        </div>
+        <div class="form-text text-danger"><ValidationMessage For="@(() => FormModel.CellphoneNumber)" /><ValidationMessage For="@(() => FormModel.CountryCode)" /></div>
+    </div>
+
+    <div class="mb-3 row">
+        <label class="form-label col-3">@_loc["_Gender"]</label>
+        <div class="row col-9">
+            <MudRadioGroup @bind-SelectedOption="@FormModel.Gender" T="bool?">
+                <MudRadio T="bool?" Option="@null" Color="Color.Info">@_loc["_Unknown"]</MudRadio>
+                <MudRadio T="bool?" Option="@true" Color="Color.Primary">@_loc["_Male"]</MudRadio>
+                <MudRadio T="bool?" Option="@false" Color="Color.Secondary">@_loc["_Female"]</MudRadio>
+            </MudRadioGroup>
+        </div>
+    </div>
+
+    <div class="mb-3 row">
+        <label class="form-label col-3">@_loc["_Givenname"]</label>
+        <div class="row col-9"><InputText type="text" class="form-control" @bind-Value="FormModel.GivenName" placeholder="@_loc["_Givenname"]"></InputText></div>
+        <div class="form-text text-danger"><ValidationMessage For="@(() => FormModel.GivenName)" /></div>
+    </div>
+
+    <div class="mb-3 row">
+        <label class="form-label col-3">@_loc["_Surname"]</label>
+        <div class="row col-9"><InputText type="text" class="form-control" @bind-Value="FormModel.Surname" placeholder="@_loc["_Surname"]"></InputText></div>
+        <div class="form-text text-danger"><ValidationMessage For="@(() => FormModel.Surname)" /></div>
+    </div>
+
+    <div class="mb-3 row">
+        <label class="form-label col-3">@_loc["_PostalCode"]</label>
+        <div class="row col-9">
+            <InputText type="text" class="form-control" @bind-Value="FormModel.PostalCode" placeholder="@_loc["_PostalCode"]"></InputText>
+        </div>
+        <div class="form-text text-danger"><ValidationMessage For="@(() => FormModel.PostalCode)" /></div>
+    </div>
+
+    <div class="mb-3 row">
+        <label class="form-label col-3">@_loc["_Country"]</label>
+        <div class="row col-9">
+            <Dotnetable.Admin.Components.Place.CountrySelector OnChangeCountryEvent="BindCities" PassedCountryID="FormModel?.CountryID" />
+        </div>
+    </div>
+
+    <div class="mb-3 row">
+        <label class="form-label col-3">@_loc["_City"]</label>
+        <div class="row col-9">
+            <Dotnetable.Admin.Components.Place.CitySelector OnChangeCityEvent="UpdateCityItem" SelectedCountryID="_selectedCountryID" PassedCityID="FormModel?.CityID ?? null" PassedCountryID="FormModel?.CountryID" />
+        </div>
+        <div class="form-text text-danger"><ValidationMessage For="@(() => FormModel.CityID)" /></div>
+    </div>
+
+    <div class="mb-3 row">
+        <label class="form-label col-3">@_loc["_PolicyID"]</label>
+        <div class="row col-9">
+
+            <Dotnetable.Admin.Components.Member.Policy.PolicySelector OnChangePolicyEvent="UpdateSelectedPolicy" PassedPolicyID="FormModel?.PolicyID" />
+        </div>
+        <div class="form-text text-danger"><ValidationMessage For="@(() => FormModel.PolicyID)" /></div>
+    </div>
+
+    <hr />
+    <MudButton ButtonType="ButtonType.Submit" Color="Color.Primary" Variant="Variant.Filled" EndIcon="@Icons.Material.Filled.Add">@_loc["_Insert"]</MudButton>
+
+</EditForm>

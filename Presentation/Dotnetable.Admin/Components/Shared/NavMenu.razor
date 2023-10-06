@@ -1,0 +1,33 @@
+﻿<MudAppBar Class="px-8"
+           Elevation="0"
+           Style="@(ThemeManager.IsDarkMode ? "background: rgba(21,27,34,0.7)" : "background: rgba(255,255,255,0.7)")">
+    @if (!CanMiniSideMenuDrawer)
+    {
+        <MudHidden Breakpoint="Breakpoint.MdAndUp">
+            <MudTooltip Arrow="true"
+                    Text="Toggle menu">
+                <MudIconButton Class="mr-3"
+                           Color="Color.Default"
+                           Edge="Edge.Start"
+                           Icon="@Icons.Material.Filled.Menu"
+                           OnClick="ToggleSideMenuDrawer" />
+            </MudTooltip>
+        </MudHidden>
+    }
+    <MudTooltip Arrow="true" Text="(Ctrl + K)">
+        <MudIconButton Color="Color.Default"
+                       Edge="Edge.Start"
+                       Icon="@Icons.Material.Filled.Search"
+                       OnClick="OpenCommandPalette" />
+    </MudTooltip>
+    <MudSpacer />
+
+    <MudButtonGroup Color="Color.Primary" Variant="Variant.Outlined" Size="Size.Small">
+        <MudIconButton Icon="@Icons.Material.Filled.Language"></MudIconButton>
+        <MudMenu Icon="@Icons.Material.Filled.ArrowDropDown">
+            <MudMenuItem OnClick="@(() => ChangeLanguageCode("en-US"))">English</MudMenuItem>
+            <MudMenuItem OnClick="@(() => ChangeLanguageCode("fa-IR"))">فارسی</MudMenuItem>
+        </MudMenu>
+    </MudButtonGroup>
+
+</MudAppBar>

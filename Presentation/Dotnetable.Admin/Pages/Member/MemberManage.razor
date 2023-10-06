@@ -1,0 +1,67 @@
+﻿@page "/Member/Manage"
+
+<PageTitle>@_loc["_Member_Manage"]</PageTitle>
+
+
+<MudContainer MaxWidth="MaxWidth.False">
+    <MudGrid>
+        <MudItem md="12" sm="12" xs="12">
+            <MudCard Outlined="true">
+                <MudCardHeader>
+                    <CardHeaderAvatar>
+                        <MudIconButton Color="Color.Secondary" Icon="@Icons.Material.Filled.VerifiedUser" Size="Size.Large" ButtonType="ButtonType.Button" />
+                    </CardHeaderAvatar>
+                    <CardHeaderContent>
+                        <MudText Typo="Typo.body1">@_loc["_Member_Manage"]</MudText>
+                    </CardHeaderContent>
+                    <CardHeaderActions>
+                        <MudTooltip Arrow="true" Text="@_loc["_Create_New_Member"]">
+                            <MudIconButton Icon="@Icons.Material.Filled.Add" Variant="Variant.Filled" Color="Color.Success" OnClick="InsertNewMember" />
+                        </MudTooltip>
+                    </CardHeaderActions>
+                </MudCardHeader>
+                <MudCardContent>
+                    <Dotnetable.Admin.Sahred.FormControls.DNGridView GridHeaderParams="_gridHeaderParams" OnSearchChanged="OnSearchChanged">
+                        @if (_listResponse != null && _listResponse.Members != null && _listResponse.Members.Count > 0)
+                        {
+                            foreach (var j in _listResponse.Members)
+                            {
+                                <tr>
+                                    <td>@j.Username</td>
+                                    <td>@j.Email</td>
+                                    <td>@j.CellphoneNumber</td>
+                                    <td>@j.CountryCode</td>
+                                    <td>@((j.Gender ?? true) ? _loc["_Male"] : _loc["_Female"])</td>
+                                    <td>@j.Givenname</td>
+                                    <td>@j.Surname</td>
+                                    <td>@j.RegisterDate.ToString("yyyy-MM-dd")</td>
+                                    <td>@(j.Activate ? _loc["_Active"] : _loc["_DeActive"])</td>
+                                    <td>@(j.Active ? _loc["_Active"] : _loc["_DeActive"])</td>
+                                    <td>
+                                        <MudButtonGroup Color="Color.Primary" Variant="Variant.Outlined">
+                                            <MudButton>@_loc["_Management"]</MudButton>
+                                            <MudMenu Icon="@Icons.Material.Filled.ArrowDropDown">
+                                                <MudMenuItem Icon="@Icons.Material.Filled.Edit" OnClick="@(() => EditCurrentMember(j))">@_loc["_Edit"]</MudMenuItem>
+                                                <MudMenuItem Icon="@(j.Active?Icons.Material.Filled.LockOpen:Icons.Material.Filled.Lock)" OnClick="@(() => ChangeActiveStatus(j))">@_loc["_Active_DeActive"]</MudMenuItem>
+                                                
+                                                @if (!j.Activate)
+                                                {
+                                                    <MudMenuItem Icon="@(j.Active?Icons.Material.Filled.LockOpen:Icons.Material.Filled.Lock)" OnClick="@(() => ActivateMember(j))">@_loc["_Activat_Member"]</MudMenuItem>
+                                                }
+
+                                                <MudMenuItem Icon="@Icons.Material.Filled.Password" OnClick="@(() => ChangeMemberPassword(j.MemberID))">@_loc["_ChangePassword"]</MudMenuItem>
+                                                <MudMenuItem Icon="@Icons.Material.Filled.Send" OnClick="@(() => SendActivateLink(j.MemberID))">@_loc["_Send_Activate_Link"]</MudMenuItem>
+                                                <MudMenuItem Icon="@Icons.Material.Filled.ContactEmergency" OnClick="@(() => InsertNewMemberContact(j.MemberID))">@_loc["_Member_Insert_New_Address"]</MudMenuItem>
+                                                <MudMenuItem Icon="@Icons.Material.Filled.Contacts" OnClick="@(() => ViewAllContacts(j.MemberID))">@_loc["_Member_Profile_Addresses"]</MudMenuItem>
+                                            </MudMenu>
+                                        </MudButtonGroup>
+                                    </td>
+                                </tr>
+                            }
+                        }
+                    </Dotnetable.Admin.Sahred.FormControls.DNGridView>
+                </MudCardContent>
+            </MudCard>
+        </MudItem>
+    </MudGrid>
+</MudContainer>

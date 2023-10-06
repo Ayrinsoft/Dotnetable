@@ -1,0 +1,106 @@
+﻿@inherits MudComponentBase
+
+<MudCard Outlined="true">
+    <MudCardHeader>
+        <CardHeaderAvatar>
+            <MudIconButton Color="Color.Secondary" Icon="@Icons.Material.Filled.CardMembership" Size="Size.Large" ButtonType="ButtonType.Button" />
+        </CardHeaderAvatar>
+        <CardHeaderContent>
+            <MudText Typo="Typo.body1">@_loc["_Member_Profile_Detail"]</MudText>
+        </CardHeaderContent>
+    </MudCardHeader>
+    <MudCardContent>
+
+        <EditForm Model="MemberEdit" OnValidSubmit="DoUpdateProfile">
+            <DataAnnotationsValidator />
+            <div class="mb-3 row">
+                <label class="form-label col-sm-2">@_loc["_Username"]</label>
+                <div class="col-10">
+                    <InputText class="form-control" @bind-Value="MemberEdit.Username" placeholder="@_loc["_Username"]"></InputText>
+                </div>
+                <div class="form-text text-danger"><ValidationMessage For="@(() => MemberEdit.Username)" /></div>
+            </div>
+
+            <div class="mb-3 row">
+                <label class="form-label col-sm-2">@_loc["_Email"]</label>
+                <div class="col-10">
+                    <InputText type="email" class="form-control" @bind-Value="MemberEdit.Email" placeholder="@_loc["_Email"]"></InputText>
+                </div>
+                <div class="form-text text-danger"><ValidationMessage For="@(() => MemberEdit.Email)" /></div>
+            </div>
+
+            <div class="mb-3 row">
+                <label class="form-label col-sm-2">@_loc["_Cellphone"]</label>
+                <div class="col-sm-8">
+                    <InputText class="form-control" @bind-Value="MemberEdit.CellphoneNumber" placeholder="@_loc["_Cellphone"]"></InputText>
+                </div>
+                <div class="col-sm-2">
+                    <InputText class="form-control" @bind-Value="MemberEdit.CountryCode" placeholder="@_loc["_CountryCode"]"></InputText>
+                </div>
+                <div class="form-text text-danger"><ValidationMessage For="@(() => MemberEdit.CellphoneNumber)" /><ValidationMessage For="@(() => MemberEdit.CountryCode)" /></div>
+            </div>
+
+            <div class="mb-3 row">
+                <label class="form-label col-sm-2">@_loc["_Gender"]</label>
+                <div class="col-10">
+                    <MudRadioGroup @bind-SelectedOption="@MemberEdit.Gender">
+                        <MudRadio Option="true" Color="Color.Primary">@_loc["_Male"]</MudRadio>
+                        <MudRadio Option="false" Color="Color.Secondary">@_loc["_Female"]</MudRadio>
+                    </MudRadioGroup>
+                </div>
+            </div>
+
+            <div class="mb-3 row">
+                <label class="form-label col-sm-2">@_loc["_Givenname"]</label>
+                <div class="col-10">
+                    <InputText class="form-control" @bind-Value="MemberEdit.Givenname" placeholder="@_loc["_Givenname"]"></InputText>
+                </div>
+                <div class="form-text text-danger"><ValidationMessage For="@(() => MemberEdit.Givenname)" /></div>
+            </div>
+
+            <div class="mb-3 row">
+                <label class="form-label col-sm-2">@_loc["_Surname"]</label>
+                <div class="col-10">
+                    <InputText class="form-control" @bind-Value="MemberEdit.Surname" placeholder="@_loc["_Surname"]"></InputText>
+                </div>
+                <div class="form-text text-danger"><ValidationMessage For="@(() => MemberEdit.Surname)" /></div>
+            </div>
+
+            <div class="mb-3 row">
+                <label class="form-label col-sm-2">@_loc["_PostalCode"]</label>
+                <div class="col-10">
+                    <InputText class="form-control" @bind-Value="MemberEdit.PostalCode" placeholder="@_loc["_PostalCode"]"></InputText>
+                </div>
+                <div class="form-text text-danger"><ValidationMessage For="@(() => MemberEdit.PostalCode)" /></div>
+            </div>
+
+            <div class="mb-3 row">
+                <label class="form-label col-sm-2">@_loc["_Country"]</label>
+                <div class="col-10">
+                    <Dotnetable.Admin.Components.Place.CountrySelector OnChangeCountryEvent="BindCities" PassedCountryID="MemberEdit?.CountryID" />
+                </div>
+            </div>
+
+            <div class="mb-3 row">
+                <label class="form-label col-sm-2">@_loc["_City"]</label>
+                <div class="col-10">
+                    <Dotnetable.Admin.Components.Place.CitySelector OnChangeCityEvent="UpdateCityItem" SelectedCountryID="_selectedCountryID" PassedCityID="MemberEdit?.CityID ?? null" PassedCountryID="MemberEdit?.CountryID" />
+                </div>
+                <div class="form-text text-danger"><ValidationMessage For="@(() => MemberEdit.CityID)" /></div>
+            </div>
+
+            @if (FunctionName == "EditAdmin")
+            {
+                <div class="mb-3 row">
+                    <label class="form-label col-sm-2">@_loc["_Policy"]</label>
+                    <div class="col-10">
+                        <InputNumber class="form-control" @bind-Value="MemberEdit.PolicyID" placeholder="@_loc["_Policy"]"></InputNumber>
+                    </div>
+                    <div class="form-text text-danger"><ValidationMessage For="@(() => MemberEdit.PolicyID)" /></div>
+                </div>
+            }
+            <MudButton Variant="Variant.Filled" EndIcon="@Icons.Material.Filled.Update" Color="Color.Primary" ButtonType="ButtonType.Submit">@_loc["_Update"]</MudButton>
+
+        </EditForm>
+    </MudCardContent>
+</MudCard>

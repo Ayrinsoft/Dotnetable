@@ -1,0 +1,22 @@
+﻿@if (_currentPostCategories is not null && _currentPostCategories.Count > 0)
+{
+    <select class="@CssClass" @onchange="OnChangePostCatSelect">
+        <option value="0">@_loc["_Select_Item"]</option>
+        @foreach (var j in _currentPostCategories)
+        {
+            if (_tempParentID.HasValue && _tempParentID.Value == j.PostCategoryID)
+            {
+                <option selected="selected" value="@j.PostCategoryID.ToString()">@j.Title</option>
+            }
+            else
+            {
+                <option value="@j.PostCategoryID.ToString()">@j.Title</option>
+            }
+        }
+    </select>
+
+    @if (_selectedPostCategoryID > 0 && _showChilds)
+    {
+        <PostCategoryListItem PostCategoryList="PostCategoryList" ParentID="_selectedPostCategoryID" CssClass="@CssClass" SelectedLastPostCategoryID="SelectedLastPostCategoryID" DefaultPostCategoryID="DefaultPostCategoryID" DefaultPostCategoryParentID="_tempParentID" LanguageCode="@LanguageCode" />
+    }
+}

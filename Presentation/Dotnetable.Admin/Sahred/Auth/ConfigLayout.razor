@@ -1,0 +1,31 @@
+﻿@inherits LayoutComponentBase
+
+<CascadingValue Value="@_ThemeManager">
+    <MudDialogProvider FullWidth="true" MaxWidth="MaxWidth.Medium" CloseButton="true" DisableBackdropClick="true" Position="DialogPosition.Center" CloseOnEscapeKey="true" />
+</CascadingValue>
+
+<MudSnackbarProvider />
+<MudThemeProvider Theme="_theme" />
+
+
+<div class="aut-bg-img">
+    @Body
+</div>
+
+
+@code {
+
+    private ThemeManagerModel _ThemeManager = new()
+        {
+            IsDarkMode = false,
+            PrimaryColor = Colors.Green.Default,
+            MaxWidthPage = MaxWidth.ExtraExtraLarge
+        };
+
+    private readonly MudTheme _theme = new()
+        {
+            Palette = new() { Primary = Colors.Green.Default },
+            LayoutProperties = new() { AppbarHeight = "80px", DefaultBorderRadius = "12px" },
+            Typography = new() { Default = new() { FontSize = "0.9rem", } }
+        };
+}

@@ -1,0 +1,30 @@
+﻿@inherits MudComponentBase
+
+<Dotnetable.Admin.Sahred.FormControls.DNGridView GridHeaderParams="_gridHeaderParams" OnSearchChanged="OnSearchChanged">
+    @if (_gridData != null && _gridData.ContactUsMessages != null && _gridData.ContactUsMessages.Count > 0)
+    {
+        foreach (var j in _gridData.ContactUsMessages)
+        {
+            <tr>
+                <td>@j.ContactUsMessagesID</td>
+                <td>@(j.Archive ? "Archive" : "Not Archive")</td>
+                <td>@j.SenderName</td>
+                <td>@j.EmailAddress</td>
+                <td>@j.CellphoneNumber</td>
+                <td>@j.MessageSubject</td>
+                <td>@j.MessageBody</td>
+                <td>@j.LogTime.ToString("yyyy-MM-dd")</td>
+                <td>@j.SenderIPAddress</td>
+                <td>
+                    <MudButtonGroup Color="Color.Primary" Variant="Variant.Outlined">
+                        <MudButton>@_loc["_Management"]</MudButton>
+                        <MudMenu Icon="@Icons.Material.Filled.ArrowDropDown">
+                            <MudMenuItem Icon="@(j.Archive ? Icons.Material.Filled.Unarchive: Icons.Material.Filled.Archive)" OnClick="@(() => ChangeArchiveStatus(j.ContactUsMessagesID))">@_loc["_ChangeArchiveStatus"]</MudMenuItem>
+                            <MudMenuItem Icon="@Icons.Material.Filled.Remove" OnClick="@(() => DeleteItem(j.ContactUsMessagesID))">@_loc["_Remove"]</MudMenuItem>
+                        </MudMenu>
+                    </MudButtonGroup>
+                </td>
+            </tr>
+        }
+    }
+</Dotnetable.Admin.Sahred.FormControls.DNGridView>

@@ -1,0 +1,115 @@
+@using MudBlazor.Extensions
+@using Dotnetable.Admin.Models.SideMenu
+
+
+<MudDrawer Breakpoint="Breakpoint.Md"
+           Class="side-menu"
+           Elevation="0"
+           MiniWidth="100px"
+           Open="SideMenuDrawerOpen"
+           OpenChanged="@(e => SideMenuDrawerOpenChanged.InvokeAsync(e))"
+           OpenMiniOnHover="true"
+           Variant="@(CanMiniSideMenuDrawer ? DrawerVariant.Mini : DrawerVariant.Responsive)"
+           Width="280px">
+
+    <MudDrawerHeader Class="align-center d-flex justify-center pa-0">
+        @if (SideMenuDrawerOpen)
+        {
+            <div class="mx-6">
+                <MudButton Class="d-flex justify-start my-6 user-button" FullWidth="true">
+                    <ChildContent>
+                        <div class="align-center d-flex">
+                            <MudAvatar Image="@User.Avatar" />
+                        </div>
+                        <div class="d-flex flex-column px-4">
+                            <MudText Class="d-flex justify-start" Typo="Typo.body2">
+                                @User.DisplayName
+                            </MudText>
+                            <MudText Class="d-flex justify-start" Typo="Typo.caption">
+                                @User.Role
+                            </MudText>
+                        </div>
+                    </ChildContent>
+                </MudButton>
+            </div>
+
+            <MudSpacer />
+            <MudTooltip Arrow="true" Text="@_loc["_MiniMenu"]">
+                <MudToggleIconButton Class="mr-2"
+                                     Color="@Color.Error"
+                                     Icon="@Icons.Material.Filled.MenuOpen"
+                                     Size="Size.Small"
+                                     Toggled="CanMiniSideMenuDrawer"
+                                     ToggledChanged="@(e => CanMiniSideMenuDrawerChanged.InvokeAsync(e))"
+                                     ToggledColor="@Color.Primary"
+                                     ToggledIcon="@Icons.Material.Filled.MenuOpen"
+                                     ToggledSize="Size.Small" />
+            </MudTooltip>
+        }
+        else
+        {
+            <div class="d-flex justify-center my-6">
+                <MudAvatar Image="@User.Avatar" />
+            </div>
+        }
+    </MudDrawerHeader>
+
+    <MudNavMenu>
+        <MudNavLink Icon="@Icons.Material.Filled.Home" Href="/" Match="NavLinkMatch.All"><div class="d-flex">@_loc["_Main_Page"]</div></MudNavLink>
+
+        <MudNavGroup Icon="@Icons.Material.Filled.Person" Title="@_loc["_Member_Manage"]">
+            @if (SideMenuDrawerOpen)
+            {
+                <AuthorizeView Roles="MemberManager">
+                    <MudNavLink Href="/Member/Manage" Match="NavLinkMatch.All"><div class="d-flex">@_loc["_Management"]</div></MudNavLink>
+                    <MudNavLink Href="/Member/SubscribeManage" Match="NavLinkMatch.All"><div class="d-flex">@_loc["_Subscribe_Management"]</div></MudNavLink>
+                </AuthorizeView>
+                <AuthorizeView Roles="PolicyManager">
+                    <MudNavLink Href="/Member/PolicyManage" Match="NavLinkMatch.All"><div class="d-flex">@_loc["_Policy_Manage"]</div></MudNavLink>
+                    <MudNavLink Href="/Member/RoleList" Match="NavLinkMatch.All"><div class="d-flex">@_loc["_Role_List"]</div></MudNavLink>
+                </AuthorizeView>
+            }
+        </MudNavGroup>
+
+        <MudNavGroup Icon="@Icons.Material.Filled.TextFields" Title="@_loc["_Post_Manage"]">
+            @if (SideMenuDrawerOpen)
+            {
+                <AuthorizeView Roles="PostCategoryManager">
+                    <MudNavLink Href="/PostCategory/Manage" Match="NavLinkMatch.All"><div class="d-flex">@_loc["_PostCategory"]</div></MudNavLink>
+                </AuthorizeView>
+                <AuthorizeView Roles="PostManager">
+                    <MudNavLink Href="/Post/Manage" Match="NavLinkMatch.All"><div class="d-flex">@_loc["_Post"]</div></MudNavLink>
+                    <MudNavLink Href="/SlideShow/Manage" Match="NavLinkMatch.All"><div class="d-flex">@_loc["_SlideShow"]</div></MudNavLink>
+                    <MudNavLink Href="/Post/Comment/Manage" Match="NavLinkMatch.All"><div class="d-flex">@_loc["_PostComments"]</div></MudNavLink>
+                    <MudNavLink Href="/Post/ContactUsManage" Match="NavLinkMatch.All"><div class="d-flex">@_loc["_ContactUsManage"]</div></MudNavLink>
+                    <MudNavLink Href="/Post/AboutUsManage" Match="NavLinkMatch.All"><div class="d-flex">@_loc["_AboutUsManage"]</div></MudNavLink>
+                    <MudNavLink Href="/Post/QRCodeManage" Match="NavLinkMatch.All"><div class="d-flex">@_loc["_QRCodeManage"]</div></MudNavLink>
+                </AuthorizeView>
+            }
+        </MudNavGroup>
+
+
+
+        <MudNavGroup Icon="@Icons.Material.Filled.FeaturedPlayList" Title="@_loc["_Message_Manage"]">
+            @if (SideMenuDrawerOpen)
+            {
+                <AuthorizeView Roles="MessageManager">
+                    <MudNavLink Href="/Message/ContactUsMessages" Match="NavLinkMatch.All"><div class="d-flex">@_loc["_ContactUs_Message_Manage"]</div></MudNavLink>
+                    <MudNavLink Href="/Message/EmailSettingManage" Match="NavLinkMatch.All"><div class="d-flex">@_loc["_Email_Setting_Manage"]</div></MudNavLink>
+                </AuthorizeView>
+            }
+        </MudNavGroup>
+
+
+        <MudNavGroup Icon="@Icons.Material.Filled.Settings" Title="@_loc["_MemberSettings"]">
+            @if (SideMenuDrawerOpen)
+            {
+                <MudNavLink Href="/Member/Profile" Match="NavLinkMatch.All" Icon="@Icons.Material.Filled.Person"><div class="d-flex">@_loc["_Profile"]</div></MudNavLink>
+                <MudNavLink Href="/Member/ChangePassword" Match="NavLinkMatch.All" Icon="@Icons.Material.Filled.Lock"><div class="d-flex">@_loc["_ChangePassword"]</div></MudNavLink>
+                <MudNavLink OnClick="Logout" Icon="@Icons.Material.Filled.Logout"><div class="d-flex">@_loc["_Logout"]</div></MudNavLink>
+            }
+        </MudNavGroup>
+
+    </MudNavMenu>
+
+</MudDrawer>

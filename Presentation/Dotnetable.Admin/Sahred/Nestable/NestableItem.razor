@@ -1,0 +1,27 @@
+﻿@if (Model != null && Model.Any(i => i.ParentID == ParentID))
+{
+    if (string.IsNullOrEmpty(MenuID))
+    {
+        <ol class="dd-list">
+            @foreach (var j in Model.Where(i => i.ParentID == ParentID).OrderBy(i => i.Priority).ToList())
+            {
+                <li class="dd-item dd3-item" data-id="@j.ItemID">
+                    <div class="dd-handle dd3-handle@(j.Active?"":" danger")"></div><div class="dd3-content">@j.Title</div>
+                    <NestableItem ParentID="@j.ItemID" Model="@Model" />
+                </li>
+            }
+        </ol>
+    }
+    else
+    {
+        <ol class="dd-list">
+            @foreach (var j in Model.Where(i => i.ParentID == ParentID).OrderBy(i => i.Priority).ToList())
+            {
+                <ContextMenuTrigger MenuId="@MenuID" CssClass="dd-item dd3-item" Data="@j.ItemID" WrapperTag="li" data-id="@j.ItemID">
+                    <div class="dd-handle dd3-handle@(j.Active?"":" danger")"></div><div class="dd3-content">@j.Title</div>
+                    <NestableItem ParentID="@j.ItemID" Model="@Model" MenuID="@MenuID" />
+                </ContextMenuTrigger>
+            }
+        </ol>
+    }
+}

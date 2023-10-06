@@ -1,0 +1,59 @@
+﻿@page "/SlideShow/Manage"
+
+<PageTitle>@_loc["_SlideShow_Manage"]</PageTitle>
+
+<MudContainer MaxWidth="MaxWidth.False">
+    <MudGrid>
+        <MudItem md="12" sm="12" xs="12">
+            <MudCard Outlined="true">
+                <MudCardHeader>
+                    <CardHeaderAvatar>
+                        <MudIconButton Color="Color.Secondary" Icon="@Icons.Material.Filled.Slideshow" Size="Size.Large" ButtonType="ButtonType.Button" />
+                    </CardHeaderAvatar>
+                    <CardHeaderContent>
+                        <MudText Typo="Typo.body1">@_loc["_SlideShow_Manage"]</MudText>
+                    </CardHeaderContent>
+                    <CardHeaderActions>
+                        <MudTooltip Arrow="true" Text="@_loc["_SlideShow_Insert"]">
+                            <MudIconButton Icon="@Icons.Material.Filled.Add" Variant="Variant.Filled" Color="Color.Success" OnClick="InsertSlideShow" Target="_blank" />
+                        </MudTooltip>
+                    </CardHeaderActions>
+                </MudCardHeader>
+                <MudCardContent>
+                    <Dotnetable.Admin.Sahred.FormControls.DNGridView GridHeaderParams="_gridHeaderParams" OnSearchChanged="OnSearchChanged">
+                        @if (_listResponse != null && _listResponse.SlideShows != null && _listResponse.SlideShows.Count > 0)
+                        {
+                            foreach (var j in _listResponse.SlideShows)
+                            {
+                                <tr>
+                                    <td>@j.SlideShowID</td>
+                                    <td>@j.Title</td>
+                                    <td>@j.PageCode</td>
+                                    <td>@j.LanguageCode</td>
+                                    <td>@j.Priority</td>
+                                    <td>
+                                        <img src="@($"{_context.Request.Scheme}://{_context.Request.Host}")/api/Files/Receive/90X90C/@j.FileCode/slide-@(j.FileCode).jpg" class="img img-thumbnail" />
+                                    </td>
+                                    <td>@(j.LanguageCodes ?? "")</td>
+                                    <td>@(j.Active ? _loc["_Active"] : _loc["_DeActive"])</td>
+                                    <td>
+                                        <MudButtonGroup Color="Color.Primary" Variant="Variant.Outlined">
+                                            <MudButton>@_loc["_Management"]</MudButton>
+                                            <MudMenu Icon="@Icons.Material.Filled.ArrowDropDown">
+                                                <MudMenuItem Icon="@Icons.Material.Filled.Edit" OnClick="@(() => EditCurrentSlide(j))">@_loc["_Edit"]</MudMenuItem>
+                                                <MudMenuItem Icon="@(j.Active?Icons.Material.Filled.LockOpen:Icons.Material.Filled.Lock)" OnClick="@(() => ChangeActiveStatus(j))">@_loc["_Active_DeActive"]</MudMenuItem>
+                                                <MudMenuItem Icon="@Icons.Material.Filled.Send" OnClick="@(() => UpdateLanguage(j))">@_loc["_AddNewLanguage"] / @_loc["_UpdateLanguage"]</MudMenuItem>
+                                                <MudMenuItem Icon="@Icons.Material.Filled.ContactEmergency" OnClick="@(() => DeleteLanguage(j))">@_loc["_DeleteLanguage"]</MudMenuItem>
+                                            </MudMenu>
+                                        </MudButtonGroup>
+                                    </td>
+                                </tr>
+                            }
+                        }
+                    </Dotnetable.Admin.Sahred.FormControls.DNGridView>
+
+                </MudCardContent>
+            </MudCard>
+        </MudItem>
+    </MudGrid>
+</MudContainer>

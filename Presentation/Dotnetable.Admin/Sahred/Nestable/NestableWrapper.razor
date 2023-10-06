@@ -1,0 +1,31 @@
+﻿
+<div class="dd @CssClass" id="@_nestableID">
+    <NestableItem ParentID="@string.Empty" Model="@Model" MenuID="@MenuID" />
+</div>
+
+@if (!string.IsNullOrEmpty(MenuID))
+{
+    @ChildContent
+}
+@*else
+    {
+    <div class="dd @CssClass" id="@NestableID">
+        @if (Model != null)
+        {
+            <ol class="dd-list">
+                @foreach (var j in Model.Where(i => i.ParentID == null).OrderBy(i => i.Priority).ToList())
+                {
+                    <ContextMenuTrigger MenuId="@MenuID" CssClass="dd-list" Data="j">
+                        <li class="dd-item dd3-item" data-id="@j.ItemID"><div class="dd-handle dd3-handle"></div><div class="dd3-content">@j.Title</div></li>
+                    </ContextMenuTrigger>
+                }
+            </ol>
+        }
+    </div>*@
+@*<ContextMenuTrigger MenuId="@MenuID" WrapperTag="ol" CssClass="dd-list" Data="">
+        @((MarkupString)GenerateChilds())
+    </ContextMenuTrigger>*@
+
+
+
+@*}*@

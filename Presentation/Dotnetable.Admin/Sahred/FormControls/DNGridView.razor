@@ -1,0 +1,84 @@
+﻿@using Dotnetable.Shared.DTO.Public
+
+@if (GridHeaderParams is not null)
+{
+    <div class="row" data-bs-theme="dark">
+        <div class="col-12 table-responsive">
+            <table class="table table-hover table-bordered table-striped grid-view-wrapper @(themeManager.IsDarkMode? "table-dark":"")">
+                <thead>
+                    <tr>
+                        @if (GridHeaderParams.HasRowNumber)
+                        {
+                            <th>#</th>
+                        }
+                        @foreach (var j in GridHeaderParams.HeaderItems)
+                        {
+                            <th>
+                                @((!string.IsNullOrEmpty(j.ColumnLocalizeCode) && j.ColumnLocalizeCode != "") ? _loc[j.ColumnLocalizeCode] : j.ColumnTitle)
+                                @if (j.HasSort)
+                                {
+                                    <span>&nbsp;</span>
+
+                                    <i class="hover-pointer @(j.SortStatus == GridViewSortStatus.DESC ? "fas fa-long-arrow-alt-down":"fas fa-long-arrow-alt-up")" @onclick="@(()=> SortChanged(j.ColumnName))"></i>
+
+                                }
+
+                                @if (j.HasSearch)
+                                {
+                                    <span>&nbsp;</span>
+                                    <i class="hover-pointer fas fa-filter" @onclick="ToggleSearchBar"></i>
+                                }
+                            </th>
+                        }
+                    </tr>
+                    @if (GridHeaderParams.HeaderItems.Any(i => i.HasSearch))
+                    {
+                        <tr class="@(_showGridViewSearchBar? "":"hide")">
+                            @if (GridHeaderParams.HasRowNumber)
+                            {
+                                <th>#</th>
+                            }
+                            @foreach (var j in GridHeaderParams.HeaderItems)
+                            {
+                                <th>
+                                    @if (j.HasSearch)
+                                    {
+                                        if (j.SearchType == SearchColumnType.DropDown && (j.OtherDropDownValues == null || j.OtherDropDownValues.Count == 0)) continue;
+
+                                        switch (j.SearchType)
+                                        {
+                                            case SearchColumnType.Text:
+                                                <input type="text" class="form-control" @bind-value="j.SearchText" @onkeyup="SearchChanged" />
+                                                break;
+                                            case SearchColumnType.DropDown:
+                                                <select class="form-control" @onchange="@(e=> OnChangeSearchDropdown(e, j.ColumnName))">
+                                                    <option value="X_SELECT_ITEM_X">@_loc["_Select_Item"]</option>
+                                                    @foreach (var i in j.OtherDropDownValues)
+                                                    {
+                                                        <option value="@i.Value">@i.Key</option>
+                                                    }
+                                                </select>
+                                                break;
+                                            case SearchColumnType.CheckBox:
+                                                <label><input type="checkbox" @onchange="@(e=> OnChangeSearchCheckBox(e, j.ColumnName))" /></label>
+                                                break;
+                                            case SearchColumnType.Date:
+
+                                                break;
+                                        }
+                                    }
+                                </th>
+                            }
+                        </tr>
+                    }
+                </thead>
+                <tbody>
+                    @ChildContent
+                </tbody>
+            </table>
+        </div>
+        <div class="col-md-12 text-right">
+            <DNPagination PaginationModel="GridHeaderParams.Pagination" OnPageChanged="OnPaginationChanged" />
+        </div>
+    </div>
+}
