@@ -15,7 +15,7 @@ public class AuthenticationService
     private static IConfiguration _config;
     public AuthenticationService(IConfiguration config)
     {
-        _config = config;
+            _config = config;
     }
 
     private const string JWTIssuer = "https://ayrinsoft.com";
@@ -106,7 +106,7 @@ public class AuthenticationService
             Subject = new ClaimsIdentity(new Claim[]
             {
                 new Claim(ClaimTypes.Name, requestModel.HashKey.ToLower()),
-                new Claim(ClaimTypes.Hash, CreateJWTHash(new(){ LogHashKey = requestModel.LogHashKey, UserHashKey = requestModel.HashKey, MemberID = requestModel.MemberID })),
+                new Claim(ClaimTypes.Hash, CreateJWTHash(new(){ LogHashKey = requestModel.LogHashKey, UserHashKey = requestModel.HashKey, MemberID = requestModel.MemberID }, _config)),
                 new Claim(ClaimTypes.AuthorizationDecision, requestModel.LogHashKey.ToLower()),
                 new Claim(ClaimTypes.Spn, requestModel.MemberID.ToString())
             }),
@@ -124,14 +124,14 @@ public class AuthenticationService
         return await AuthenticationDataAccess.UserValidatePolicy(validateRequest);
     }
 
-    public static bool CheckJWTHash(JWTCheckHashRequest requestModel)
+    public static bool CheckJWTHash(JWTCheckHashRequest requestModel, IConfiguration config)
     {
-        return string.Equals(requestModel.JWTHashKey, CreateJWTHash(new() { UserHashKey = requestModel.UserHashKey, LogHashKey = requestModel.LogHashKey, MemberID = requestModel.MemberID }), StringComparison.OrdinalIgnoreCase);
+        return string.Equals(requestModel.JWTHashKey, CreateJWTHash(new() { UserHashKey = requestModel.UserHashKey, LogHashKey = requestModel.LogHashKey, MemberID = requestModel.MemberID }, config), StringComparison.OrdinalIgnoreCase);
     }
 
-    private static string CreateJWTHash(JWTCreateHashRequest requestModel)
+    private static string CreateJWTHash(JWTCreateHashRequest requestModel, IConfiguration config)
     {
-        return HashJWT($"{requestModel.UserHashKey.Substring(2, 21)}&{requestModel.MemberID}!{requestModel.LogHashKey}{requestModel.UserHashKey}{requestModel.UserHashKey[..15]}{_config["AdminPanelSettings:ClientHash"]}".ToUpper());
+        return HashJWT($"{requestModel.UserHashKey.Substring(2, 21)}&{requestModel.MemberID}!{requestModel.LogHashKey}{requestModel.UserHashKey}{requestModel.UserHashKey[..15]}{config["AdminPanelSettings:ClientHash"]}".ToUpper(), config);
     }
 
     public static bool ValidateCurrentToken(string Token, string tokenHashKey)
@@ -157,9 +157,9 @@ public class AuthenticationService
         return true;
     }
 
-    private static string HashJWT(string stringToHash)
+    private static string HashJWT(string stringToHash, IConfiguration config)
     {
-        byte[] bytesToHash = Encoding.UTF8.GetBytes($"C#udP@soh!8^x8*&@%{stringToHash}#@dAS$s838^{_config["AdminPanelSettings:ClientHash"]}#uph!@%^!k@");
+        byte[] bytesToHash = Encoding.UTF8.GetBytes($"C#udP@soh!8^x8*&@%{stringToHash}#@dAS$s838^{config["AdminPanelSettings:ClientHash"]}#uph!@%^!k@");
         bytesToHash = System.Security.Cryptography.SHA384.HashData(bytesToHash);
         var hashedResult = new StringBuilder();
         foreach (byte b in bytesToHash) hashedResult.Append(b.ToString("x2"));

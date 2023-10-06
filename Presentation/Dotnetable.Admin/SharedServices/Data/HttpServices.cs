@@ -50,11 +50,6 @@ public class HttpServices : IHttpServices
             }
             else
             {
-                if (responseAPI.StatusCode == System.Net.HttpStatusCode.Unauthorized)
-                {
-                    await ((CustomAuthentication)_authenticationStateProvider).MarkUserAsLoggedOut();
-                }
-
                 responseObj = new() { Success = false, ErrorException = new() { ErrorCode = "SX", Message = $"Server return StatusCode: {responseAPI.StatusCode}" } };
             }
         }

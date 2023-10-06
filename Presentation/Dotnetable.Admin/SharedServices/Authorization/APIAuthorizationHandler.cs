@@ -7,9 +7,11 @@ namespace Dotnetable.Admin.SharedServices.Authorization;
 internal class APIAuthorizationHandler : AuthorizationHandler<APIAuthorizationRequirement>
 {
     AuthenticationService _authentication;
-    public APIAuthorizationHandler(AuthenticationService authentication)
+    IConfiguration _config;
+    public APIAuthorizationHandler(AuthenticationService authentication, IConfiguration config)
     {
         _authentication = authentication;
+        _config = config;
     }
 
     protected override Task HandleRequirementAsync(AuthorizationHandlerContext context, APIAuthorizationRequirement requirement)
@@ -22,7 +24,7 @@ internal class APIAuthorizationHandler : AuthorizationHandler<APIAuthorizationRe
             string fetchMemberID = user.Claims.FirstOrDefault(c => c.Type.EndsWith("/spn", StringComparison.OrdinalIgnoreCase))?.Value ?? "0";
             string fetchName = context.User.Identity?.Name ?? "";
 
-            if (!string.IsNullOrEmpty(fetchName) && Guid.TryParse(fetchName, out Guid _userHashKey) && !string.IsNullOrEmpty(fetchHash ?? "") && int.TryParse(fetchMemberID, out int _currentMemberID) && AuthenticationService.CheckJWTHash(new() { JWTHashKey = fetchHash, LogHashKey = fetchLogHash, UserHashKey = fetchName, MemberID = _currentMemberID }) && _authentication.UserValidatePolicy(new() { RoleNames = requirement.RoleName.Split(',').ToList(), UserHashKey = _userHashKey }).Result)
+            if (!string.IsNullOrEmpty(fetchName) && Guid.TryParse(fetchName, out Guid _userHashKey) && !string.IsNullOrEmpty(fetchHash ?? "") && int.TryParse(fetchMemberID, out int _currentMemberID) && AuthenticationService.CheckJWTHash(new() { JWTHashKey = fetchHash, LogHashKey = fetchLogHash, UserHashKey = fetchName, MemberID = _currentMemberID }, _config) && _authentication.UserValidatePolicy(new() { RoleNames = requirement.RoleName.Split(',').ToList(), UserHashKey = _userHashKey }).Result)
                 context.Succeed(requirement);
         }
 
