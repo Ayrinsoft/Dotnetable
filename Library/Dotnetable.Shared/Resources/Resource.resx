@@ -624,7 +624,7 @@
   <data name="_Err_Member_PlaceID_Required" xml:space="preserve">
     <value>City is Required</value>
   </data>
-  <data name="_Err_Member_SetCompair_Password" xml:space="preserve">
+  <data name="_Err_Member_SetCompare_Password" xml:space="preserve">
     <value>Set same password in new password and confirm password fileds</value>
   </data>
   <data name="_Err_Member_Surname_Required" xml:space="preserve">
@@ -1098,9 +1098,6 @@
   <data name="_Role_List" xml:space="preserve">
     <value>Roles list</value>
   </data>
-  <data name="_SeccessFetchFile" xml:space="preserve">
-    <value>Success fetch file</value>
-  </data>
   <data name="_SelectCity" xml:space="preserve">
     <value>Select City</value>
   </data>
@@ -1175,6 +1172,9 @@
   </data>
   <data name="_SuccessAction" xml:space="preserve">
     <value>Success action</value>
+  </data>
+  <data name="_SuccessFetchFile" xml:space="preserve">
+    <value>Success fetch file</value>
   </data>
   <data name="_SuccessUploadFile" xml:space="preserve">
     <value>Success Upload file</value>

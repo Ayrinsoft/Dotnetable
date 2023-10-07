@@ -1323,9 +1323,9 @@ namespace Dotnetable.Shared.Resources {
         /// <summary>
         ///   Looks up a localized string similar to Set same password in new password and confirm password fileds.
         /// </summary>
-        public static string _Err_Member_SetCompair_Password {
+        public static string _Err_Member_SetCompare_Password {
             get {
-                return ResourceManager.GetString("_Err_Member_SetCompair_Password", resourceCulture);
+                return ResourceManager.GetString("_Err_Member_SetCompare_Password", resourceCulture);
             }
         }
         
@@ -3004,15 +3004,6 @@ namespace Dotnetable.Shared.Resources {
         }
         
         /// <summary>
-        ///   Looks up a localized string similar to Success fetch file.
-        /// </summary>
-        public static string _SeccessFetchFile {
-            get {
-                return ResourceManager.GetString("_SeccessFetchFile", resourceCulture);
-            }
-        }
-        
-        /// <summary>
         ///   Looks up a localized string similar to Select Item.
         /// </summary>
         public static string _Select_Item {
@@ -3234,6 +3225,15 @@ namespace Dotnetable.Shared.Resources {
         public static string _SuccessAction {
             get {
                 return ResourceManager.GetString("_SuccessAction", resourceCulture);
+            }
+        }
+        
+        /// <summary>
+        ///   Looks up a localized string similar to Success fetch file.
+        /// </summary>
+        public static string _SuccessFetchFile {
+            get {
+                return ResourceManager.GetString("_SuccessFetchFile", resourceCulture);
             }
         }
         

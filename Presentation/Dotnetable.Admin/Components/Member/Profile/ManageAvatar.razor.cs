@@ -18,7 +18,6 @@ public partial class ManageAvatar
     [Inject] private IHttpContextAccessor _httpContextAccessor { get; set; }
 
     [Parameter] public Dotnetable.Shared.DTO.Member.MemberDetailResponse MemberDetail { get; set; }
-    [Parameter] public string FunctionName { get; set; }
 
     private string _classname => new CssBuilder().AddClass(Class).Build();
     private byte[] _currentFileStream = null;
@@ -30,13 +29,13 @@ public partial class ManageAvatar
     protected override void OnInitialized()
     {
         _context = _httpContextAccessor.HttpContext;
-    }    
+    }
 
     private async Task DoUploadFile()
     {
         if (_selectedFileName == "") return;
         var requestBody = new Dotnetable.Shared.DTO.Member.MemberAvatarInsertRequest() { FileName = $"{MemberDetail.Username}-Avatar.png", FileStream = _currentFileStream, SetAsDefault = true, CurrentMemberID = MemberDetail.MemberID };
-        var uploadAvatar = await _httpService.CallServiceObjAsync(HttpMethod.Post, true, $"Member/{FunctionName}", requestBody.ToJsonString());
+        var uploadAvatar = await _httpService.CallServiceObjAsync(HttpMethod.Post, true, $"Member/AvatarInsert", requestBody.ToJsonString());
         if (uploadAvatar.Success)
         {
             var parsedUploadAvatar = uploadAvatar.ResponseData.CastModel<Dotnetable.Shared.DTO.Public.PublicActionResponse>();
@@ -44,9 +43,8 @@ public partial class ManageAvatar
             _snackbar.Add(_loc["_SuccessUploadFile"], Severity.Success);
 
             var jsonIdentity = await _localStorage.GetItemAsync<Dotnetable.Shared.DTO.Authentication.UserLoginResponse>("MemberAuthorized");
-            var identityObj = jsonIdentity.ToJsonString().JsonToObject<Dotnetable.Shared.DTO.Authentication.UserLoginResponse>();
-            identityObj.AvatarID = MemberDetail.AvatarID;
-            await _localStorage.SetItemAsync("MemberAuthorized", identityObj);
+            jsonIdentity.AvatarID = MemberDetail.AvatarID;
+            await _localStorage.SetItemAsync("MemberAuthorized", jsonIdentity);
             base.StateHasChanged();
         }
     }
@@ -58,7 +56,7 @@ public partial class ManageAvatar
         if (uploadedFiles is null || uploadedFiles.Count == 0) return;
         var currentFile = uploadedFiles[0];
         if (currentFile is null) return;
-        if (!string.IsNullOrEmpty(currentFile.Name)) _snackbar.Add($"{_loc["_SeccessFetchFile"]} - File name: {currentFile.Name}", Severity.Info);
+        if (!string.IsNullOrEmpty(currentFile.Name)) _snackbar.Add($"{_loc["_SuccessFetchFile"]} - File name: {currentFile.Name}", Severity.Info);
         _selectedFileName = currentFile.Name;
 
         using MemoryStream ms = new();
