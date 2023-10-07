@@ -7,6 +7,9 @@ using Microsoft.Extensions.Localization;
 using Microsoft.JSInterop;
 using MudBlazor;
 using System.Globalization;
+using static Org.BouncyCastle.Math.EC.ECCurve;
+using System.Threading;
+using Dotnetable.Admin.SharedServices;
 
 namespace Dotnetable.Admin.Pages.Auth;
 
@@ -22,7 +25,7 @@ public partial class Login
     [Inject] private IJSRuntime _jsRuntime { get; set; }
 
     private Shared.DTO.Authentication.UserLoginRequest _loginRequest;
-    private bool _persianLanguage = false;    
+    private bool _persianLanguage = false;
 
     protected async override Task OnInitializedAsync()
     {
@@ -49,6 +52,13 @@ public partial class Login
         CultureInfo.DefaultThreadCurrentUICulture = cultureInfo;
 
         _persianLanguage = languageCode == "fa-IR";
+
+        string recaptcahPublic = _appSettingsConfig["AdminPanelSettings:RecaptchaPublicKey"];
+        if (!string.IsNullOrEmpty(recaptcahPublic) && recaptcahPublic != "")
+        {
+            await _jsRuntime.InvokeVoidAsync("Plugin.loadRecaptcha", new object[] { recaptcahPublic });
+        }
+
     }
 
     private async Task ChangeLanguage(string langName)
@@ -63,21 +73,26 @@ public partial class Login
 
     private async Task ValidateUser()
     {
-        //uncomment to enable recaptcha
-        //string currentToken = await _jsRuntime.InvokeAsync<string>("runCaptcha");
-        //var gRecaptchaCheck = await _httpService.CallServiceObjAsync(HttpMethod.Post, false, $"https://www.google.com/recaptcha/api/siteverify?secret={_appSettingsConfig["AdminPanelSettings:CaptchaPrivateKey"]}&response={currentToken}");
-        //if (gRecaptchaCheck is null || !gRecaptchaCheck.Success)
-        //{
-        //    _snackbar.Add($"{_loc[(gRecaptchaCheck.ErrorException?.ErrorCode is null ? "_ERROR_NULLDATA" : $"_ERROR_{gRecaptchaCheck.ErrorException.ErrorCode}")]} {_loc["_Login"]}", Severity.Error);
-        //    return;
-        //}
+        //for localhost test, append localhost to your google recaptcha sites
+        string recaptcahPrivate = _appSettingsConfig["AdminPanelSettings:RecaptchaPrivateKey"];
+        string recaptcahPublic = _appSettingsConfig["AdminPanelSettings:RecaptchaPublicKey"];
+        if (!string.IsNullOrEmpty(recaptcahPrivate) && recaptcahPrivate != "" && !string.IsNullOrEmpty(recaptcahPublic) && recaptcahPublic != "")
+        {
+            string currentToken = await _jsRuntime.InvokeAsync<string>("Plugin.generateCaptchaToken", new object[] { recaptcahPublic, "login" });
+            var gRecaptchaCheck = await GeneralEvents.HttpClientReceive(HttpMethod.Get, $"https://google.com/recaptcha/api/siteverify?secret={recaptcahPrivate}&response={currentToken}", contentTypeRequest: Shared.DTO.Public.RequestContentType.None);
+            if (gRecaptchaCheck is null || !gRecaptchaCheck.IsSuccess)
+            {
+                _snackbar.Add($"{_loc[(gRecaptchaCheck.ErrorException?.ErrorCode is null ? "_ERROR_NULLDATA" : $"_ERROR_{gRecaptchaCheck.ErrorException.ErrorCode}")]} {_loc["_Login"]}", Severity.Error);
+                return;
+            }
 
-        //var recaptchaResponseDetail = gRecaptchaCheck.ResponseData.ToString().JsonToObject<Shared.DTO.Public.GoogleRecaptchaResponse>();
-        //if (!recaptchaResponseDetail.success || recaptchaResponseDetail.score <= 0.3)
-        //{
-        //    _snackbar.Add($"{_loc["_ERROR_C17"]} {_loc["_Login"]}", Severity.Error);
-        //    return;
-        //}
+            var recaptchaResponseDetail = gRecaptchaCheck.ResponseBody.ToString().JsonToObject<Shared.DTO.Public.GoogleRecaptchaResponse>();
+            if (!recaptchaResponseDetail.success || recaptchaResponseDetail.score <= 0.3)
+            {
+                _snackbar.Add($"{_loc["_ERROR_C17"]} {_loc["_Login"]}", Severity.Error);
+                return;
+            }
+        }
 
         var userDetail = await _httpService.CallServiceObjAsync(HttpMethod.Post, false, "Authentication/Login", _loginRequest.ToJsonString());
         if (!userDetail.Success)

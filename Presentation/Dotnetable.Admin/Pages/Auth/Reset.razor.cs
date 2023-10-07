@@ -62,21 +62,25 @@ public partial class Reset
 
     private async Task GetRecoveryCode()
     {
-        //string currentToken = await _jsRuntime.InvokeAsync<string>("runCaptcha");
-        //var gRecaptchaCheck = await _httpService.CallServiceObjAsync(HttpMethod.Post, false, $"https://www.google.com/recaptcha/api/siteverify?secret={_appSettingsConfig["AdminPanelSettings:CaptchaPrivateKey"]}&response={currentToken}");
-        //if (gRecaptchaCheck is null || !gRecaptchaCheck.Success)
-        //{
-        //    _snackbar.Add($"{_loc[(gRecaptchaCheck.ErrorException?.ErrorCode is null ? "_ERROR_NULLDATA" : $"_ERROR_{gRecaptchaCheck.ErrorException.ErrorCode}")]} {_loc["_Login"]}", Severity.Error);
-        //    return;
-        //}
+        string recaptcahPrivate = _config["AdminPanelSettings:RecaptchaPrivateKey"];
+        string recaptcahPublic = _config["AdminPanelSettings:RecaptchaPublicKey"];
+        if (!string.IsNullOrEmpty(recaptcahPrivate) && recaptcahPrivate != "" && !string.IsNullOrEmpty(recaptcahPublic) && recaptcahPublic != "")
+        {
+            string currentToken = await _jsRuntime.InvokeAsync<string>("Plugin.generateCaptchaToken", new object[] { recaptcahPublic, "login" });
+            var gRecaptchaCheck = await GeneralEvents.HttpClientReceive(HttpMethod.Get, $"https://google.com/recaptcha/api/siteverify?secret={recaptcahPrivate}&response={currentToken}", contentTypeRequest: Shared.DTO.Public.RequestContentType.None);
+            if (gRecaptchaCheck is null || !gRecaptchaCheck.IsSuccess)
+            {
+                _snackbar.Add($"{_loc[(gRecaptchaCheck.ErrorException?.ErrorCode is null ? "_ERROR_NULLDATA" : $"_ERROR_{gRecaptchaCheck.ErrorException.ErrorCode}")]} {_loc["_Login"]}", Severity.Error);
+                return;
+            }
 
-        //var recaptchaResponseDetail = gRecaptchaCheck.ResponseData.ToString().JsonToObject<Shared.DTO.Public.GoogleRecaptchaResponse>();
-        //if (!recaptchaResponseDetail.success || recaptchaResponseDetail.score <= 0.3)
-        //{
-        //    _snackbar.Add($"{_loc["_ERROR_C17"]} {_loc["_Login"]}", Severity.Error);
-        //    return;
-        //}
-
+            var recaptchaResponseDetail = gRecaptchaCheck.ResponseBody.ToString().JsonToObject<Shared.DTO.Public.GoogleRecaptchaResponse>();
+            if (!recaptchaResponseDetail.success || recaptchaResponseDetail.score <= 0.3)
+            {
+                _snackbar.Add($"{_loc["_ERROR_C17"]} {_loc["_Login"]}", Severity.Error);
+                return;
+            }
+        }
 
         var recoveryDetail = await _httpService.CallServiceObjAsync(HttpMethod.Post, false, "Member/ForgetPasswordGetCode", _fetchRecoveryCode.ToJsonString());
         if (!recoveryDetail.Success)
@@ -94,20 +98,25 @@ public partial class Reset
     {
         if (_confirmPassword != _setRecoveryCodeModel.Password) return;
 
-        //string currentToken = await _jsRuntime.InvokeAsync<string>("runCaptcha");
-        //var gRecaptchaCheck = await _httpService.CallServiceObjAsync(HttpMethod.Post, false, $"https://www.google.com/recaptcha/api/siteverify?secret={_appSettingsConfig["AdminPanelSettings:CaptchaPrivateKey"]}&response={currentToken}");
-        //if (gRecaptchaCheck is null || !gRecaptchaCheck.Success)
-        //{
-        //    _snackbar.Add($"{_loc[(gRecaptchaCheck.ErrorException?.ErrorCode is null ? "_ERROR_NULLDATA" : $"_ERROR_{gRecaptchaCheck.ErrorException.ErrorCode}")]} {_loc["_Login"]}", Severity.Error);
-        //    return;
-        //}
+        string recaptcahPrivate = _config["AdminPanelSettings:RecaptchaPrivateKey"];
+        string recaptcahPublic = _config["AdminPanelSettings:RecaptchaPublicKey"];
+        if (!string.IsNullOrEmpty(recaptcahPrivate) && recaptcahPrivate != "" && !string.IsNullOrEmpty(recaptcahPublic) && recaptcahPublic != "")
+        {
+            string currentToken = await _jsRuntime.InvokeAsync<string>("Plugin.generateCaptchaToken", new object[] { recaptcahPublic, "login" });
+            var gRecaptchaCheck = await GeneralEvents.HttpClientReceive(HttpMethod.Get, $"https://google.com/recaptcha/api/siteverify?secret={recaptcahPrivate}&response={currentToken}", contentTypeRequest: Shared.DTO.Public.RequestContentType.None);
+            if (gRecaptchaCheck is null || !gRecaptchaCheck.IsSuccess)
+            {
+                _snackbar.Add($"{_loc[(gRecaptchaCheck.ErrorException?.ErrorCode is null ? "_ERROR_NULLDATA" : $"_ERROR_{gRecaptchaCheck.ErrorException.ErrorCode}")]} {_loc["_Login"]}", Severity.Error);
+                return;
+            }
 
-        //var recaptchaResponseDetail = gRecaptchaCheck.ResponseData.ToString().JsonToObject<Shared.DTO.Public.GoogleRecaptchaResponse>();
-        //if (!recaptchaResponseDetail.success || recaptchaResponseDetail.score <= 0.3)
-        //{
-        //    _snackbar.Add($"{_loc["_ERROR_C17"]} {_loc["_Login"]}", Severity.Error);
-        //    return;
-        //}
+            var recaptchaResponseDetail = gRecaptchaCheck.ResponseBody.ToString().JsonToObject<Shared.DTO.Public.GoogleRecaptchaResponse>();
+            if (!recaptchaResponseDetail.success || recaptchaResponseDetail.score <= 0.3)
+            {
+                _snackbar.Add($"{_loc["_ERROR_C17"]} {_loc["_Login"]}", Severity.Error);
+                return;
+            }
+        }
 
         var recoveryDetail = await _httpService.CallServiceObjAsync(HttpMethod.Post, false, "Member/ForgetPasswordSetCode", _setRecoveryCodeModel.ToJsonString());
         if (!recoveryDetail.Success)
