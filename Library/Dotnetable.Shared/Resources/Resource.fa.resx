@@ -624,7 +624,7 @@
   <data name="_Err_Member_PlaceID_Required" xml:space="preserve">
     <value>انتخاب شهر اجباری است</value>
   </data>
-  <data name="_Err_Member_SetCompair_Password" xml:space="preserve">
+  <data name="_Err_Member_SetCompare_Password" xml:space="preserve">
     <value>در فیلدهای رمز عبور جدید و تایید رمز عبور رمز های یکسان وارد نمایید</value>
   </data>
   <data name="_Err_Member_Surname_Required" xml:space="preserve">
@@ -1092,9 +1092,6 @@
   <data name="_Role_List" xml:space="preserve">
     <value>لیست نقشها</value>
   </data>
-  <data name="_SeccessFetchFile" xml:space="preserve">
-    <value>فایل با موفقیت دریافت شد</value>
-  </data>
   <data name="_SelectCity" xml:space="preserve">
     <value>انتخاب شهر</value>
   </data>
@@ -1169,6 +1166,9 @@
   </data>
   <data name="_SuccessAction" xml:space="preserve">
     <value>با موفقیت انجام شد</value>
+  </data>
+  <data name="_SuccessFetchFile" xml:space="preserve">
+    <value>فایل با موفقیت دریافت شد</value>
   </data>
   <data name="_SuccessUploadFile" xml:space="preserve">
     <value>فایل با موفقیت آپلود شد</value>
