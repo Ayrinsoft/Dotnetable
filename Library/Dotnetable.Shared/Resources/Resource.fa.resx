@@ -438,6 +438,9 @@
   <data name="_ERROR_SX" xml:space="preserve">
     <value>خطای عمومی سرویس</value>
   </data>
+  <data name="_Err_AppName_Required" xml:space="preserve">
+    <value>نام نرم افزار الزامی است</value>
+  </data>
   <data name="_Err_Approve_Required" xml:space="preserve">
     <value>فیلد تایید الزامی است</value>
   </data>
@@ -476,6 +479,9 @@
   </data>
   <data name="_Err_CityName_Required" xml:space="preserve">
     <value>نام شهر الزامی است</value>
+  </data>
+  <data name="_Err_ClientHash_Required" xml:space="preserve">
+    <value>کلید هش کاربر الزامی است</value>
   </data>
   <data name="_Err_CommentBody_Required" xml:space="preserve">
     <value>متن کامنت الزامی است</value>
@@ -731,6 +737,9 @@
   </data>
   <data name="_Err_Title_Required" xml:space="preserve">
     <value>عنوان الزامی است</value>
+  </data>
+  <data name="_Err_TokenHash_Required" xml:space="preserve">
+    <value>کلید هش توکن الزامی است</value>
   </data>
   <data name="_FailedAction" xml:space="preserve">
     <value>خطا در انجام</value>
