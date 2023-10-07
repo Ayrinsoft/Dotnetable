@@ -62,7 +62,7 @@ public partial class ConfigSettings
         {
             Shared.DTO.Public.DatabaseType.POSTGRESQL => $"Server={_serverAddress};Port={_serverPort};Database={_databaseName};User Id={_dbUsername};Password={_dbPassword};",
             Shared.DTO.Public.DatabaseType.MARIADB or Shared.DTO.Public.DatabaseType.MYSQL => $"server={_serverAddress};port={_serverPort};database={_databaseName};uid={_dbUsername};pwd={_dbPassword};",
-            _ => $"Server={_serverAddress}, {_serverPort};Database={_databaseName};User Id={_dbUsername};Password={_dbPassword};TrustServerCertificate=True;"
+            _ => $"Server={_serverAddress}{(_serverPort == "1433"?"":$", {_serverPort}")};Database={_databaseName};User Id={_dbUsername};Password={_dbPassword};TrustServerCertificate=True;"
         };
 
         _appSettingsConfig.GetSection("AppSettings").Bind(_appSettings);

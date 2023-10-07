@@ -25,6 +25,10 @@ public class PostInsertRequest
     public string Tags { get; set; }
     public string MetaKeywords { get; set; }
     public string MetaDescription { get; set; }
+
+    [Required(AllowEmptyStrings = false, ErrorMessageResourceType = typeof(Resources.Resource), ErrorMessageResourceName = nameof(Resources.Resource._Err_LanguageCode_Required))]
+    [StringLength(2, ErrorMessageResourceType = typeof(Resources.Resource), ErrorMessageResourceName = nameof(Resources.Resource._Err_MaxLength_2))]
+    [MinLength(2, ErrorMessageResourceType = typeof(Resources.Resource), ErrorMessageResourceName = nameof(Resources.Resource._Err_MinLength_2))]
     public string LanguageCode { get; set; }
     public int? CurrentMemberID { get; set; }
     public bool Active { get; set; }

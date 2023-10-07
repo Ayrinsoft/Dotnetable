@@ -438,6 +438,9 @@
   <data name="_ERROR_SX" xml:space="preserve">
     <value>Service generic error</value>
   </data>
+  <data name="_Err_AppName_Required" xml:space="preserve">
+    <value>Application name is required</value>
+  </data>
   <data name="_Err_Approve_Required" xml:space="preserve">
     <value>Approval is required</value>
   </data>
@@ -476,6 +479,9 @@
   </data>
   <data name="_Err_CityName_Required" xml:space="preserve">
     <value>City name is required</value>
+  </data>
+  <data name="_Err_ClientHash_Required" xml:space="preserve">
+    <value>Cliet hash key is required</value>
   </data>
   <data name="_Err_CommentBody_Required" xml:space="preserve">
     <value>Comment body is required</value>
@@ -737,6 +743,9 @@
   </data>
   <data name="_Err_Title_Required" xml:space="preserve">
     <value>Title is required</value>
+  </data>
+  <data name="_Err_TokenHash_Required" xml:space="preserve">
+    <value>Token hash key is required</value>
   </data>
   <data name="_FailedAction" xml:space="preserve">
     <value>Failed action</value>

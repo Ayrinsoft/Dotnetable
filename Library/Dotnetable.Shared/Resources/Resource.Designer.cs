@@ -772,6 +772,15 @@ namespace Dotnetable.Shared.Resources {
         }
         
         /// <summary>
+        ///   Looks up a localized string similar to Application name is required.
+        /// </summary>
+        public static string _Err_AppName_Required {
+            get {
+                return ResourceManager.GetString("_Err_AppName_Required", resourceCulture);
+            }
+        }
+        
+        /// <summary>
         ///   Looks up a localized string similar to Approval is required.
         /// </summary>
         public static string _Err_Approve_Required {
@@ -885,6 +894,15 @@ namespace Dotnetable.Shared.Resources {
         public static string _Err_CityName_Required {
             get {
                 return ResourceManager.GetString("_Err_CityName_Required", resourceCulture);
+            }
+        }
+        
+        /// <summary>
+        ///   Looks up a localized string similar to Cliet hash key is required.
+        /// </summary>
+        public static string _Err_ClientHash_Required {
+            get {
+                return ResourceManager.GetString("_Err_ClientHash_Required", resourceCulture);
             }
         }
         
@@ -1668,6 +1686,15 @@ namespace Dotnetable.Shared.Resources {
         public static string _Err_Title_Required {
             get {
                 return ResourceManager.GetString("_Err_Title_Required", resourceCulture);
+            }
+        }
+        
+        /// <summary>
+        ///   Looks up a localized string similar to Token hash key is required.
+        /// </summary>
+        public static string _Err_TokenHash_Required {
+            get {
+                return ResourceManager.GetString("_Err_TokenHash_Required", resourceCulture);
             }
         }
         

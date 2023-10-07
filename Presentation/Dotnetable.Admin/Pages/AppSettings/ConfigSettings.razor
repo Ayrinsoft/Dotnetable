@@ -59,31 +59,35 @@
                 <div class="mb-3 row">
                     <label for="AppName">App Name</label>
                     <InputText id="AppName" @bind-Value="_appSettings.AdminPanelSettings.AppName" class="form-control" />
+                    <div class="form-text text-danger"><ValidationMessage For="@(() => _appSettings.AdminPanelSettings.AppName)" /></div>
                 </div>
 
                 <div class="mb-3 row">
-                    <label for="RecaptchaPublicKey">Recaptcha Public Key</label>
+                    <label for="RecaptchaPublicKey">Recaptcha Public Key - Leave blank if not used </label>
                     <InputText id="RecaptchaPublicKey" @bind-Value="_appSettings.AdminPanelSettings.RecaptchaPublicKey" class="form-control" />
                 </div>
 
                 <div class="mb-3 row">
-                    <label for="RecaptchaPrivateKey">Recaptcha Private Key</label>
+                    <label for="RecaptchaPrivateKey">Recaptcha Private Key - Leave blank if not used </label>
                     <InputText id="RecaptchaPrivateKey" @bind-Value="_appSettings.AdminPanelSettings.RecaptchaPrivateKey" class="form-control" />
                 </div>
 
                 <div class="mb-3 row">
-                    <label for="TokenHash">Token hash Key</label>
+                    <label for="TokenHash">Token hash Key - Use a random string to increase the impermeability of the hash</label>
                     <InputText id="TokenHash" @bind-Value="_appSettings.AdminPanelSettings.TokenHash" class="form-control" />
+                    <div class="form-text text-danger"><ValidationMessage For="@(() => _appSettings.AdminPanelSettings.TokenHash)" /></div>
                 </div>
 
                 <div class="mb-3 row">
-                    <label for="ClientHash">Client hash Key</label>
+                    <label for="ClientHash">Client hash Key - Use a random string to increase the impermeability of the hash</label>
                     <InputText id="ClientHash" @bind-Value="_appSettings.AdminPanelSettings.ClientHash" class="form-control" />
+                    <div class="form-text text-danger"><ValidationMessage For="@(() => _appSettings.AdminPanelSettings.ClientHash)" /></div>
                 </div>
 
                 <div class="mb-3 row">
                     <label for="DefaultLanguageCode">Default Language Code</label>
                     <InputText id="DefaultLanguageCode" @bind-Value="_appSettings.AdminPanelSettings.DefaultLanguageCode" class="form-control" />
+                    <div class="form-text text-danger"><ValidationMessage For="@(() => _appSettings.AdminPanelSettings.DefaultLanguageCode)" /></div>
                 </div>
 
 
