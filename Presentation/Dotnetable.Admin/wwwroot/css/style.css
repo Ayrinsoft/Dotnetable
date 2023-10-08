@@ -15,6 +15,10 @@ body {
     --ck-z-modal: calc( var(--ck-z-default) + 999 );
 }
 
+.rtl-font {
+    font-family: sahel;
+}
+
 .ck.ck-button {
     -webkit-appearance: none;
 }
@@ -10188,8 +10192,8 @@ table.footable-paging-center > tfoot > tr.footable-paging > td {
     text-align: center
 }
 
-.nav-item a{
-    text-decoration:none;
+.nav-item a {
+    text-decoration: none;
 }
 
 .tab-content {
@@ -12492,7 +12496,7 @@ ul.flags {
 }
 
 .mud-dialog-content .confirm-dialog-fix-width {
-    padding-left:0;
+    padding-left: 0;
     padding-right: 120px;
 }
 
@@ -12515,11 +12519,11 @@ ul.flags {
     overflow-y: auto;
 }
 
-input.bc-white{
+input.bc-white {
     background-color: #efefef !important;
 }
 
-.config-form{
-    max-width:90%;
-    margin:auto;
+.config-form {
+    max-width: 90%;
+    margin: auto;
 }

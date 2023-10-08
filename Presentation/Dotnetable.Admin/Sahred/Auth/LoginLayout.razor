@@ -1,14 +1,36 @@
 ﻿@inherits LayoutComponentBase
+<MudRTLProvider RightToLeft="_rightToLeftLayout" Class="RightToLeftLayout">
 
-<MudSnackbarProvider />
-<MudThemeProvider Theme="_theme" />
+    <MudSnackbarProvider />
+    <MudLayout>
 
-<div class="auth-wrapper aut-bg-img">
-    <div class="auth-content">
-        <div class="card">
-            <div class="card-body text-center">
-                @Body
+        <CascadingValue Value="@_themeManagerModel">
+
+            @if (_rightToLeftLayout)
+            {
+                <link href="/css/layout/rtl.css" rel="stylesheet" />
+            }
+
+            <div class="auth-wrapper aut-bg-img">
+                <div class="auth-content">
+                    <div class="card">
+                        <div class="card-body text-center">
+                            @Body
+
+                            <hr />
+                            <p class="text-center">
+                                <select @onchange="ChangeLanguage" class="rtl-font text-center form-control">
+                                    <option value="--">Change language</option>
+                                    <option value="en-US">English</option>
+                                    <option value="fa-IR">فارسی</option>
+                                </select>
+                            </p>
+
+                        </div>
+                    </div>
+                </div>
             </div>
-        </div>
-    </div>
-</div>
+
+        </CascadingValue>
+    </MudLayout>
+</MudRTLProvider>

@@ -1,6 +1,6 @@
 ﻿<MudAppBar Class="px-8"
            Elevation="0"
-           Style="@(ThemeManager.IsDarkMode ? "background: rgba(21,27,34,0.7)" : "background: rgba(255,255,255,0.7)")">
+           Style="@(themeManager.IsDarkMode ? "background: rgba(21,27,34,0.7)" : "background: rgba(255,255,255,0.7)")">
     @if (!CanMiniSideMenuDrawer)
     {
         <MudHidden Breakpoint="Breakpoint.MdAndUp">
@@ -26,7 +26,7 @@
         <MudIconButton Icon="@Icons.Material.Filled.Language"></MudIconButton>
         <MudMenu Icon="@Icons.Material.Filled.ArrowDropDown">
             <MudMenuItem OnClick="@(() => ChangeLanguageCode("en-US"))">English</MudMenuItem>
-            <MudMenuItem OnClick="@(() => ChangeLanguageCode("fa-IR"))">فارسی</MudMenuItem>
+            <MudMenuItem Class="rtl-font" OnClick="@(() => ChangeLanguageCode("fa-IR"))">فارسی</MudMenuItem>
         </MudMenu>
     </MudButtonGroup>
 

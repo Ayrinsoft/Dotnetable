@@ -4,11 +4,6 @@
 
 <PageTitle>@_loc["_Login"]</PageTitle>
 
-@if (_persianLanguage)
-{
-    <link href="/css/layout/rtl.css" rel="stylesheet" />
-}
-
 <EditForm Model="@_loginRequest" OnValidSubmit="@ValidateUser">
     <DataAnnotationsValidator />
 
@@ -31,15 +26,3 @@
 <hr />
 
 <p class="text-center">@_loc["_ForgetYourPassword"] <a href="/Auth/Reset" class="btn btn-link">@_loc["_RecoveryPassword"]</a></p>
-
-
-<ul class="flags">
-    @if (_persianLanguage)
-    {
-        <li @onclick="@(()=> ChangeLanguage("en-US"))"><img src="/images/flag-en.jpg" /></li>
-    }
-    else
-    {
-        <li @onclick="@(()=> ChangeLanguage("fa-IR"))"><img src="/images/flag-fa.jpg" /></li>
-    }
-</ul>

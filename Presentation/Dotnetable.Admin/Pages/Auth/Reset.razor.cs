@@ -1,4 +1,5 @@
 ﻿using Blazored.LocalStorage;
+using Dotnetable.Admin.Models;
 using Dotnetable.Admin.SharedServices.Data;
 using Dotnetable.Shared.Tools;
 using Microsoft.AspNetCore.Components;
@@ -12,7 +13,7 @@ namespace Dotnetable.Admin.Pages.Auth;
 
 public partial class Reset
 {
-
+    [CascadingParameter] protected ThemeManagerModel themeManager { get; set; }
     [Inject] private AuthenticationStateProvider _authenticationStateProvider { get; set; }
     [Inject] private NavigationManager _navigationManager { get; set; }
     [Inject] private IHttpServices _httpService { get; set; }
@@ -28,36 +29,10 @@ public partial class Reset
     private bool _sendCode = false;
     private string _confirmPassword = "";
 
-    protected async override Task OnInitializedAsync()
+    protected override void OnInitialized()
     {
         _fetchRecoveryCode = new();
         _setRecoveryCodeModel = new();
-        string languageCode = _config["AdminPanelSettings:DefaultLanguageCode"] == "FA" ? "fa-IR" : "en-US";
-
-        if (!await _localStorage.ContainKeyAsync("LanguageCode"))
-        {
-            await _localStorage.SetItemAsStringAsync("LanguageCode", "fa-IR");
-        }
-        else
-        {
-            languageCode = await _localStorage.GetItemAsStringAsync("LanguageCode");
-        }
-
-        var cultureInfo = new CultureInfo(languageCode);
-        CultureInfo.CurrentUICulture = cultureInfo;
-        CultureInfo.DefaultThreadCurrentUICulture = cultureInfo;
-
-        _persianLanguage = languageCode == "fa-IR";
-    }
-
-    private async Task ChangeLanguage(string langName)
-    {
-        await _localStorage.SetItemAsStringAsync("LanguageCode", langName);
-        var cultureInfo = new CultureInfo(langName);
-        CultureInfo.CurrentUICulture = cultureInfo;
-        CultureInfo.DefaultThreadCurrentUICulture = cultureInfo;
-
-        _persianLanguage = langName == "fa-IR";
     }
 
     private async Task GetRecoveryCode()
