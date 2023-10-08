@@ -10,11 +10,13 @@ using System.Globalization;
 using static Org.BouncyCastle.Math.EC.ECCurve;
 using System.Threading;
 using Dotnetable.Admin.SharedServices;
+using Dotnetable.Admin.Models;
 
 namespace Dotnetable.Admin.Pages.Auth;
 
 public partial class Login
 {
+    [CascadingParameter] protected ThemeManagerModel themeManager { get; set; }
     [Inject] private AuthenticationStateProvider _authenticationStateProvider { get; set; }
     [Inject] private NavigationManager _navigationManager { get; set; }
     [Inject] private IHttpServices _httpService { get; set; }
@@ -25,7 +27,6 @@ public partial class Login
     [Inject] private IJSRuntime _jsRuntime { get; set; }
 
     private Shared.DTO.Authentication.UserLoginRequest _loginRequest;
-    private bool _persianLanguage = false;
 
     protected async override Task OnInitializedAsync()
     {
@@ -37,21 +38,6 @@ public partial class Login
 
 
         _loginRequest = new();
-        languageCode = languageCode == "FA" ? "fa-IR" : "en-US";
-        if (!await _localStorage.ContainKeyAsync("LanguageCode"))
-        {
-            await _localStorage.SetItemAsStringAsync("LanguageCode", "en-US");
-        }
-        else
-        {
-            languageCode = await _localStorage.GetItemAsStringAsync("LanguageCode");
-        }
-
-        var cultureInfo = new CultureInfo(languageCode);
-        CultureInfo.CurrentUICulture = cultureInfo;
-        CultureInfo.DefaultThreadCurrentUICulture = cultureInfo;
-
-        _persianLanguage = languageCode == "fa-IR";
 
         string recaptcahPublic = _appSettingsConfig["AdminPanelSettings:RecaptchaPublicKey"];
         if (!string.IsNullOrEmpty(recaptcahPublic) && recaptcahPublic != "")
@@ -59,16 +45,6 @@ public partial class Login
             await _jsRuntime.InvokeVoidAsync("Plugin.loadRecaptcha", new object[] { recaptcahPublic });
         }
 
-    }
-
-    private async Task ChangeLanguage(string langName)
-    {
-        await _localStorage.SetItemAsStringAsync("LanguageCode", langName);
-        var cultureInfo = new CultureInfo(langName);
-        CultureInfo.CurrentUICulture = cultureInfo;
-        CultureInfo.DefaultThreadCurrentUICulture = cultureInfo;
-
-        _persianLanguage = langName == "fa-IR";
     }
 
     private async Task ValidateUser()

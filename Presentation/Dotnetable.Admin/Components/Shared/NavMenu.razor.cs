@@ -7,7 +7,7 @@ namespace Dotnetable.Admin.Components.Shared;
 public partial class NavMenu
 {
 
-    [EditorRequired][Parameter] public ThemeManagerModel ThemeManager { get; set; }
+    [CascadingParameter] protected ThemeManagerModel themeManager { get; set; }
     [EditorRequired][Parameter] public bool CanMiniSideMenuDrawer { get; set; }
     [EditorRequired][Parameter] public EventCallback ToggleSideMenuDrawer { get; set; }
     [EditorRequired][Parameter] public EventCallback OpenCommandPalette { get; set; }
@@ -21,9 +21,9 @@ public partial class NavMenu
     {
         if (_languageCode == languageCode) return;
         _languageCode = languageCode;
-        ThemeManager.CurrentCulture = languageCode;
-        ThemeManager.LanguageCode = languageCode.Split('-')[0].ToUpper();
-        await _localStorage.SetItemAsync("ThemeManager", ThemeManager);
+        themeManager.CurrentCulture = languageCode;
+        themeManager.LanguageCode = languageCode.Split('-')[0].ToUpper();
+        await _localStorage.SetItemAsync("ThemeManager", themeManager);
         await LanguageChanged.InvokeAsync(languageCode);
         StateHasChanged();
     }

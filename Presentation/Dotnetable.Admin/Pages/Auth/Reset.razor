@@ -4,11 +4,6 @@
 
 <PageTitle>@_loc["_RecoveryPassword"]</PageTitle>
 
-@if (_persianLanguage)
-{
-    <link href="/css/layout/rtl.css" rel="stylesheet" />
-}
-
 
 @if (!_sendCode)
 {
@@ -66,13 +61,4 @@ else
 <hr />
 
 <p class="text-center">@_loc["_GoToLogin"] <a href="/Auth/Login" class="btn btn-link">@_loc["_Login"]</a></p>
-<ul class="flags">
-    @if (_persianLanguage)
-    {
-        <li @onclick="@(()=> ChangeLanguage("en-US"))"><img src="/images/flag-en.jpg" /></li>
-    }
-    else
-    {
-        <li @onclick="@(()=> ChangeLanguage("fa-IR"))"><img src="/images/flag-fa.jpg" /></li>
-    }
-</ul>
+

@@ -21,23 +21,20 @@
             <MudThemeProvider Theme="_theme" />
 
             <MudLayout>
+                <CascadingValue Value="@_themeManager">
+                    <NavMenu CanMiniSideMenuDrawer="_canMiniSideMenuDrawer" OpenCommandPalette="OpenCommandPalette" ToggleSideMenuDrawer="ToggleSideMenuDrawer" User="_user" LanguageChanged="RightToLeftLayoutChanged" />
+                    <SideMenu @bind-CanMiniSideMenuDrawer="_canMiniSideMenuDrawer" @bind-SideMenuDrawerOpen="_sideMenuDrawerOpen" User="_user" />
+                    <ThemesMenu @bind-ThemingDrawerOpen="_themingDrawerOpen" ThemeManagerChanged="ThemeManagerChanged" RTLLayout="_rightToLeftLayout" />
+                    <ThemesButton OnClick="@(() => _themingDrawerOpen = true)" RTLLayout="_rightToLeftLayout" />
 
-                <NavMenu CanMiniSideMenuDrawer="_canMiniSideMenuDrawer" OpenCommandPalette="OpenCommandPalette" ThemeManager="_themeManager" ToggleSideMenuDrawer="ToggleSideMenuDrawer" User="_user" LanguageChanged="RightToLeftLayoutChanged" />
-
-                <SideMenu @bind-CanMiniSideMenuDrawer="_canMiniSideMenuDrawer" @bind-SideMenuDrawerOpen="_sideMenuDrawerOpen" User="_user" />
-
-                <ThemesMenu @bind-ThemingDrawerOpen="_themingDrawerOpen" ThemeManager="_themeManager" ThemeManagerChanged="ThemeManagerChanged" RTLLayout="_rightToLeftLayout" />
-                <ThemesButton OnClick="@(() => _themingDrawerOpen = true)" RTLLayout="_rightToLeftLayout" />
-
-                <MudMainContent>
-                    <CascadingValue Value="@_themeManager">
+                    <MudMainContent>
                         <MudContainer MaxWidth="MaxWidth.ExtraExtraLarge" Class="mb-16 mt-4">
 
                             @Body
 
                         </MudContainer>
-                    </CascadingValue>
-                </MudMainContent>
+                    </MudMainContent>
+                </CascadingValue>
             </MudLayout>
         </MudRTLProvider>
 

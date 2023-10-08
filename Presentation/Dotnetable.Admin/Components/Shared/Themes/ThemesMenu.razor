@@ -52,11 +52,11 @@
             @foreach (var color in _primaryColors)
             {
                 <MudItem xs="4">
-                    <MudButton Class="@(color == ThemeManager.PrimaryColor ? "color-button color-button-selected" : "color-button")"
+                    <MudButton Class="@(color == themeManager.PrimaryColor ? "color-button color-button-selected" : "color-button")"
                            FullWidth="true"
                            OnClick="@(() => UpdateThemePrimaryColor(color))">
                         <ChildContent>
-                            <div class="@(color == ThemeManager.PrimaryColor ? "oval oval-selected" : "oval")"
+                            <div class="@(color == themeManager.PrimaryColor ? "oval oval-selected" : "oval")"
                              style="@($"background: {color};")">
                             </div>
                         </ChildContent>
