@@ -3,8 +3,8 @@
 @inject IStringLocalizer<Dotnetable.Shared.Resources.Resource> loc
 
 
-<nav>
-    <ul class="pagination justify-content-center">
+<nav class="text-center">
+    <ul class="pagination justify-content-center display-flex">
 
         @if (PaginationModel.ShowFirstLast)
         {
@@ -59,6 +59,9 @@
                 <li class="page-item"><a class="page-link sort-link" @onclick="@(() => PagerButtonClicked(_pageCount))"><span aria-hidden="true">@loc["_Last"]</span><span class="sr-only"></span></a></li>
             }
         }
+    </ul>
+
+    <ul class="pagination justify-content-center display-flex">
         <li class="page-item">
             <span aria-hidden="true">@loc["_PageSize"]</span><span class="sr-only">@loc["_PageSize"]</span>
             <select @onchange="OnChangePageSize">

@@ -2,6 +2,7 @@
 using Dotnetable.Admin.Components.Shared;
 using Dotnetable.Admin.Models;
 using Microsoft.AspNetCore.Components;
+using Microsoft.JSInterop;
 using MudBlazor;
 using System.Globalization;
 
@@ -12,7 +13,7 @@ public partial class MainLayout
     [Inject] private IDialogService _dialogService { get; set; }
     [Inject] private ILocalStorageService _localStorage { get; set; }
     [Inject] private IHttpContextAccessor _httpContextAccessor { get; set; }
-
+    [Inject] private IJSRuntime _jsRuntime { get; set; }
 
     private bool _canMiniSideMenuDrawer = true;
     private bool _commandPaletteOpen;
@@ -68,13 +69,9 @@ public partial class MainLayout
         MaxWidthPage = MaxWidth.ExtraExtraLarge
     };
 
-    protected override void OnInitialized()
-    {
-        _context = _httpContextAccessor.HttpContext;
-    }
-
     protected override async Task OnInitializedAsync()
     {
+        _context = _httpContextAccessor.HttpContext;
         if (await _localStorage.ContainKeyAsync("MemberAuthorized"))
         {
             var fetchAuthorize = await _localStorage.GetItemAsync<Shared.DTO.Authentication.UserLoginResponse>("MemberAuthorized");
@@ -104,11 +101,7 @@ public partial class MainLayout
         await RightToLeftLayoutChanged();
     }
 
-    private void ToggleSideMenuDrawer()
-    {
-        _sideMenuDrawerOpen = !_sideMenuDrawerOpen;
-    }
-
+    private void ToggleSideMenuDrawer() => _sideMenuDrawerOpen = !_sideMenuDrawerOpen;
 
     private async Task RightToLeftLayoutChanged()
     {
@@ -129,7 +122,6 @@ public partial class MainLayout
         _themeManager = themeManager;
         _theme.Palette = _themeManager.IsDarkMode ? _darkPalette : _lightPalette;
         _theme.Palette.Primary = _themeManager.PrimaryColor;
-
         await UpdateThemeManagerLocalStorage();
     }
 

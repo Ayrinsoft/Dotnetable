@@ -20,12 +20,6 @@
 		<None Include="Pages\Posts\Post\ContactUsManage.razor" />
 		<None Include="Pages\Posts\Post\QRCodeManage.razor" />
 		<None Include="Pages\Posts\SlideShow\SlideShowManage.razor" />
-		<None Include="wwwroot\plugins\bootstrap-5.3\js\bootstrap.bundle.js" />
-		<None Include="wwwroot\plugins\bootstrap-5.3\js\bootstrap.bundle.min.js" />
-		<None Include="wwwroot\plugins\bootstrap-5.3\js\bootstrap.esm.js" />
-		<None Include="wwwroot\plugins\bootstrap-5.3\js\bootstrap.esm.min.js" />
-		<None Include="wwwroot\plugins\bootstrap-5.3\js\bootstrap.js" />
-		<None Include="wwwroot\plugins\bootstrap-5.3\js\bootstrap.min.js" />
 		<None Include="wwwroot\plugins\nestable-master\js\jquery.nestable.js" />
 	</ItemGroup>
 
@@ -46,6 +40,7 @@
 	<ItemGroup>
 		<Folder Include="Components\Place\" />
 		<Folder Include="FileLibrary\" />
+		<Folder Include="wwwroot\plugins\bootstrap-5.3\js\" />
 	</ItemGroup>
 
 	<ItemGroup>
