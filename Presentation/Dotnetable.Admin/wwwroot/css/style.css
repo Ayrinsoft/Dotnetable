@@ -28,10 +28,14 @@ body {
     outline: none
 }
 
-a:hover {
-    outline: none;
-    text-decoration: none
+a {
+    text-decoration: none !important;
 }
+
+    a:hover {
+        outline: none;
+        text-decoration: none
+    }
 
 h1, h2, h3, h4, h5, h6 {
     color: #111;
@@ -12526,4 +12530,8 @@ input.bc-white {
 .config-form {
     max-width: 90%;
     margin: auto;
+}
+
+.display-flex {
+    display: inline-flex;
 }

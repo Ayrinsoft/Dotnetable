@@ -288,9 +288,6 @@ window.Plugin = {
     generateCaptchaToken: function (key, action) {
         return grecaptcha.execute(key, { action: action });
     }
-
-
-
 };
 
 CKEditorInterop = (() => {
@@ -322,9 +319,3 @@ CKEditorInterop = (() => {
         }
     };
 })();
-
-
-
-//https://www.youtube.com/watch?v=mny6Oj7_3j4
-//https://ckeditor.com/docs/ckeditor5/latest/framework/guides/deep-dive/upload-adapter.html
-//https://stackoverflow.com/questions/46765197/how-to-enable-image-upload-support-in-ckeditor-5
