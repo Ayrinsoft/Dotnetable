@@ -1,4 +1,6 @@
+using Asp.Versioning;
 using Blazored.LocalStorage;
+using Dotnetable.Admin.Components;
 using Dotnetable.Admin.SharedServices;
 using Dotnetable.Admin.SharedServices.Authorization;
 using Dotnetable.Admin.SharedServices.Data;
@@ -6,8 +8,6 @@ using Dotnetable.Service;
 using Microsoft.AspNetCore.Authentication.JwtBearer;
 using Microsoft.AspNetCore.Authorization;
 using Microsoft.AspNetCore.Components.Authorization;
-using Microsoft.AspNetCore.Mvc;
-using Microsoft.AspNetCore.Mvc.Versioning;
 using Microsoft.IdentityModel.Tokens;
 using MudBlazor;
 using MudBlazor.Services;
@@ -15,8 +15,11 @@ using System.Globalization;
 using System.Text;
 
 var builder = WebApplication.CreateBuilder(args);
-builder.Services.AddRazorPages();
-builder.Services.AddServerSideBlazor();
+
+// Add services to the container.
+builder.Services.AddRazorComponents()
+    .AddInteractiveServerComponents();
+
 builder.Services.AddAuthorizationCore();
 
 builder.Services.AddMudServices(config =>
@@ -37,10 +40,10 @@ builder.Services.AddBlazorContextMenu();
 
 builder.Services.AddApiVersioning(options =>
 {
-    options.ReportApiVersions = true;
     options.AssumeDefaultVersionWhenUnspecified = true;
+    options.ReportApiVersions = true;
     options.DefaultApiVersion = new ApiVersion(1, 0);
-    options.ApiVersionReader = new HeaderApiVersionReader("Accept-Version");
+    options.ApiVersionReader = new HeaderApiVersionReader("api-version");
 });
 
 
@@ -102,18 +105,18 @@ builder.Services.AddSingleton<LogsService>();
 builder.Services.AddSingleton<CommentService>();
 builder.Services.AddSingleton<WebsiteService>();
 
-
-
 var app = builder.Build();
+
 app.UseResponseCaching();
 app.UseStaticFiles(); // new StaticFileOptions() { OnPrepareResponse = ctx => { ctx.Context.Response.Headers.Append("Cache-Control", "public,max-age=2592000"); } });
 
 app.UseRouting();
 app.UseAuthentication();
 app.UseAuthorization();
-
+app.UseAntiforgery();
 app.MapControllers();
-app.MapBlazorHub();
-app.MapFallbackToPage("/_Host");
+
+app.MapRazorComponents<App>()
+    .AddInteractiveServerRenderMode();
 
 app.Run();

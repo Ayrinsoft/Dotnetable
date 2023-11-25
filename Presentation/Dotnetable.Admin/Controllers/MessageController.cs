@@ -1,4 +1,5 @@
-﻿using Dotnetable.Service;
+﻿using Asp.Versioning;
+using Dotnetable.Service;
 using Dotnetable.Shared.DTO.Message;
 using Dotnetable.Shared.DTO.Public;
 using Microsoft.AspNetCore.Authorization;

@@ -75,7 +75,7 @@ public class AuthenticationService
                 ValidateAudience = false
             };
             var Principle = tokenHandler.ValidateToken(accessToken, tokenValidationParameters, out SecurityToken securityToken);
-            if (securityToken is JwtSecurityToken jwtSecurityToken && jwtSecurityToken.Header.Alg.Equals(SecurityAlgorithms.HmacSha512, StringComparison.InvariantCultureIgnoreCase))
+            if (securityToken is JwtSecurityToken jwtSecurityToken && jwtSecurityToken.Header.Alg.Equals(SecurityAlgorithms.HmacSha384, StringComparison.InvariantCultureIgnoreCase))
                 userHashKey = Principle.FindFirst(ClaimTypes.Name)?.Value;
         }
         catch (Exception) { }
@@ -105,15 +105,15 @@ public class AuthenticationService
         {
             Subject = new ClaimsIdentity(new Claim[]
             {
-                new Claim(ClaimTypes.Name, requestModel.HashKey.ToLower()),
-                new Claim(ClaimTypes.Hash, CreateJWTHash(new(){ LogHashKey = requestModel.LogHashKey, UserHashKey = requestModel.HashKey, MemberID = requestModel.MemberID }, _config)),
-                new Claim(ClaimTypes.AuthorizationDecision, requestModel.LogHashKey.ToLower()),
-                new Claim(ClaimTypes.Spn, requestModel.MemberID.ToString())
+                new(ClaimTypes.Name, requestModel.HashKey.ToLower()),
+                new(ClaimTypes.Hash, CreateJWTHash(new(){ LogHashKey = requestModel.LogHashKey, UserHashKey = requestModel.HashKey, MemberID = requestModel.MemberID }, _config)),
+                new(ClaimTypes.AuthorizationDecision, requestModel.LogHashKey.ToLower()),
+                new(ClaimTypes.Spn, requestModel.MemberID.ToString())
             }),
             Expires = DateTime.Now.AddDays(1),
             Issuer = JWTIssuer,
             Audience = JWTIssuer,
-            SigningCredentials = new SigningCredentials(new SymmetricSecurityKey(Encoding.ASCII.GetBytes(requestModel.TokenHashKey)), SecurityAlgorithms.HmacSha512)
+            SigningCredentials = new SigningCredentials(new SymmetricSecurityKey(Encoding.ASCII.GetBytes(requestModel.TokenHashKey)), SecurityAlgorithms.HmacSha384)
         };
         var token = tokenHandler.CreateToken(TokenDescriptor);
         return tokenHandler.WriteToken(token);

@@ -1,0 +1,34 @@
+﻿@page "/Member/SubscribeManage"
+
+<PageTitle>@_loc["_Subscribe_Management"]</PageTitle>
+
+<MudCard Outlined="true">
+    <MudCardHeader>
+        <CardHeaderAvatar>
+            <MudIconButton Color="Color.Secondary" Icon="@Icons.Material.Filled.Subscriptions" Size="Size.Large" ButtonType="ButtonType.Button" />
+        </CardHeaderAvatar>
+        <CardHeaderContent>
+            <MudText Typo="Typo.body1">@_loc["_Subscribe_Management"]</MudText>
+        </CardHeaderContent>
+    </MudCardHeader>
+    <MudCardContent>
+        <Dotnetable.Admin.Components.Shared.FormControls.DNGridView GridHeaderParams="_gridHeaderParams" OnSearchChanged="OnSearchChanged">
+            @if (_responseModel != null && _responseModel.SubscribedList is not null && _responseModel.SubscribedList.Count > 0)
+            {
+                foreach (var j in _responseModel.SubscribedList)
+                {
+                    <tr>
+                        <td>@j.EmailSubscribeID</td>
+                        <td>@j.Email</td>
+                        <td>@j.MemberID</td>
+                        <td>@j.LogTime.ToString("yyyy-MM-dd")</td>
+                        <td>@(j.Active ? _loc["_Active"] : _loc["_DeActive"])</td>
+                        <td>
+                            <MudButton OnClick="@(()=> ChangeActiveStatus(j))" ButtonType="ButtonType.Button" Color="Color.Primary" Variant="Variant.Filled" Size="Size.Small" EndIcon="@Icons.Material.Filled.LockPerson">@_loc["_Active_DeActive"]</MudButton>
+                        </td>
+                    </tr>
+                }
+            }
+        </Dotnetable.Admin.Components.Shared.FormControls.DNGridView>
+    </MudCardContent>
+</MudCard>

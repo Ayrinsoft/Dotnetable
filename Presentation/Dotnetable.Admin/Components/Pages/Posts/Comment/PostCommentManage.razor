@@ -1,0 +1,48 @@
+﻿@page "/Post/Comment/Manage"
+
+<PageTitle>@_loc["_Post_Comment_Manage"]</PageTitle>
+
+<MudCard Outlined="true">
+    <MudCardHeader>
+        <CardHeaderAvatar>
+            <MudIconButton Color="Color.Secondary" Icon="@Icons.Material.Filled.Comment" Size="Size.Large" ButtonType="ButtonType.Button" />
+        </CardHeaderAvatar>
+        <CardHeaderContent>
+            <MudText Typo="Typo.body1">@_loc["_Post_Comment_Manage"]</MudText>
+        </CardHeaderContent>
+    </MudCardHeader>
+    <MudCardContent>
+        <Dotnetable.Admin.Components.Shared.FormControls.DNGridView GridHeaderParams="_gridHeaderParams" OnSearchChanged="OnSearchChanged">
+            @if (_listResponse != null && _listResponse.Comments != null && _listResponse.Comments.Count > 0)
+            {
+                foreach (var j in _listResponse.Comments)
+                {
+                    <tr>
+                        <td>@j.PostCommentID</td>
+                        <td>@j.ReplyPostCommentID</td>
+                        <td>@j.PostID</td>
+                        <td>@j.LogTime.ToString("yyyy-MM-dd HH:mm:ss")</td>
+                        <td>@j.CommentBody</td>
+                        <td>@j.LanguageCode</td>
+                        <td>@j.CommentTypeID</td>
+                        <td>@j.IPAddress</td>
+                        <td>@j.Gender</td>
+                        <td>@j.Surname</td>
+                        <td>@j.Email</td>
+                        <td>@j.CellphoneNumber</td>
+                        <td>@j.MemberID</td>
+                        <td>
+                            <MudButtonGroup Color="Color.Primary" Variant="Variant.Outlined">
+                                <MudButton>@_loc["_Management"]</MudButton>
+                                <MudMenu Icon="@Icons.Material.Filled.ArrowDropDown">
+                                    <MudMenuItem Icon="@Icons.Material.Filled.Edit" OnClick="@(() => ConfirmComment(j.PostCommentID, true))">@_loc["_Confirm"]</MudMenuItem>
+                                    <MudMenuItem Icon="@Icons.Material.Filled.Lock" OnClick="@(() => ConfirmComment(j.PostCommentID, false))">@_loc["_UnConfirm"]</MudMenuItem>
+                                </MudMenu>
+                            </MudButtonGroup>
+                        </td>
+                    </tr>
+                }
+            }
+        </Dotnetable.Admin.Components.Shared.FormControls.DNGridView>
+    </MudCardContent>
+</MudCard>

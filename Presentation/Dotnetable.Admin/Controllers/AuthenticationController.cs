@@ -6,6 +6,7 @@ using Microsoft.AspNetCore.Authorization;
 using Microsoft.AspNetCore.Mvc;
 using System.Text;
 using Dotnetable.Admin.SharedServices.Authorization;
+using Asp.Versioning;
 
 namespace Dotnetable.Admin.Controllers;
 
