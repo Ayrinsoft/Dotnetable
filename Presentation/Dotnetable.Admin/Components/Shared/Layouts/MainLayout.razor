@@ -1,0 +1,42 @@
+﻿@inherits LayoutComponentBase
+
+<AuthorizeView>
+    <NotAuthorized>
+        <RedirectToLogin />
+    </NotAuthorized>
+    <Authorized>
+
+        <MudRTLProvider RightToLeft="_rightToLeftLayout" Class="RightToLeftLayout">
+
+            @if (_rightToLeftLayout)
+            {
+                <link href="/css/layout/rtl.css" rel="stylesheet" />
+            }
+
+            <CascadingValue Value="@_themeManager">
+                <MudDialogProvider FullWidth="true" MaxWidth="MaxWidth.Medium" CloseButton="true" DisableBackdropClick="true" Position="DialogPosition.Center" CloseOnEscapeKey="true" />
+            </CascadingValue>
+
+            <MudSnackbarProvider />
+            <MudThemeProvider Theme="_theme" />
+
+            <MudLayout>
+                <CascadingValue Value="@_themeManager">
+                    <Dotnetable.Admin.Components.PageComponents.Shared.NavMenu CanMiniSideMenuDrawer="_canMiniSideMenuDrawer" OpenCommandPalette="OpenCommandPalette" ToggleSideMenuDrawer="ToggleSideMenuDrawer" User="_user" LanguageChanged="RightToLeftLayoutChanged" />
+                    <Dotnetable.Admin.Components.PageComponents.Shared.SideMenu @bind-CanMiniSideMenuDrawer="_canMiniSideMenuDrawer" @bind-SideMenuDrawerOpen="_sideMenuDrawerOpen" User="_user" />
+                    <ThemesMenu @bind-ThemingDrawerOpen="_themingDrawerOpen" ThemeManagerChanged="ThemeManagerChanged" RTLLayout="_rightToLeftLayout" />
+                    <ThemesButton OnClick="@(() => _themingDrawerOpen = true)" RTLLayout="_rightToLeftLayout" />
+
+                    <MudMainContent>
+                        <MudContainer MaxWidth="MaxWidth.ExtraExtraLarge" Class="mb-16 mt-4">
+
+                            @Body
+
+                        </MudContainer>
+                    </MudMainContent>
+                </CascadingValue>
+            </MudLayout>
+        </MudRTLProvider>
+
+    </Authorized>
+</AuthorizeView>

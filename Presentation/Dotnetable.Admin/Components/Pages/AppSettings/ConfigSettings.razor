@@ -1,0 +1,203 @@
+﻿@layout ConfigLayout
+
+@page "/ConfigSettings"
+
+<PageTitle>ConfigSettings</PageTitle>
+
+
+<div class="card config-form">
+    <div class="card-body">
+
+        @if (_insertMemberData == false)
+        {
+            <EditForm Model="_appSettings" OnValidSubmit="SaveSettings">
+                <DataAnnotationsValidator />
+                @* <ValidationSummary /> *@
+
+                <div class="mb-3 row">
+                    <label for="DBType">DB Type</label>
+
+                    <InputSelect @bind-Value="@_appSettings.DBSettings.DBType" class="form-control">
+                        <option>Choose DB</option>
+                        @foreach (var Item in Enum.GetValues<Dotnetable.Shared.DTO.Public.DatabaseType>())
+                        {
+                            <option value="@Item.ToString()">@Item.ToString()</option>
+                        }
+                    </InputSelect>
+                </div>
+
+                <div class="mb-3 row">
+                    <label for="ServerAddress">DB version</label>
+                    <InputText id="ServerAddress" @bind-Value="@_appSettings.DBSettings.Version" class="form-control" />
+                </div>
+
+                <div class="mb-3 row">
+                    <label for="ServerAddress">Server Address</label>
+                    <InputText id="ServerAddress" @bind-Value="@_serverAddress" class="form-control" />
+                </div>
+
+                <div class="mb-3 row">
+                    <label for="ServerPort">Server Port</label>
+                    <InputText id="ServerPort" @bind-Value="@_serverPort" class="form-control" />
+                </div>
+
+                <div class="mb-3 row">
+                    <label for="DatabaseName">Database Name</label>
+                    <InputText id="DatabaseName" @bind-Value="@_databaseName" class="form-control" />
+                </div>
+
+                <div class="mb-3 row">
+                    <label for="DBUsername">DB Username</label>
+                    <InputText id="DBUsername" @bind-Value="@_dbUsername" class="form-control" />
+                </div>
+
+                <div class="mb-3 row">
+                    <label for="DBPassword">DB Password</label>
+                    <InputText id="DBPassword" @bind-Value="@_dbPassword" class="form-control" />
+                </div>
+
+                <div class="mb-3 row">
+                    <label for="AppName">App Name</label>
+                    <InputText id="AppName" @bind-Value="_appSettings.AdminPanelSettings.AppName" class="form-control" />
+                    <div class="form-text text-danger"><ValidationMessage For="@(() => _appSettings.AdminPanelSettings.AppName)" /></div>
+                </div>
+
+                <div class="mb-3 row">
+                    <label for="RecaptchaPublicKey">Recaptcha Public Key - Leave blank if not used </label>
+                    <InputText id="RecaptchaPublicKey" @bind-Value="_appSettings.AdminPanelSettings.RecaptchaPublicKey" class="form-control" />
+                </div>
+
+                <div class="mb-3 row">
+                    <label for="RecaptchaPrivateKey">Recaptcha Private Key - Leave blank if not used </label>
+                    <InputText id="RecaptchaPrivateKey" @bind-Value="_appSettings.AdminPanelSettings.RecaptchaPrivateKey" class="form-control" />
+                </div>
+
+                <div class="mb-3 row">
+                    <label for="TokenHash">Token hash Key - Use a random string to increase the impermeability of the hash</label>
+                    <InputText id="TokenHash" @bind-Value="_appSettings.AdminPanelSettings.TokenHash" class="form-control" />
+                    <div class="form-text text-danger"><ValidationMessage For="@(() => _appSettings.AdminPanelSettings.TokenHash)" /></div>
+                </div>
+
+                <div class="mb-3 row">
+                    <label for="ClientHash">Client hash Key - Use a random string to increase the impermeability of the hash</label>
+                    <InputText id="ClientHash" @bind-Value="_appSettings.AdminPanelSettings.ClientHash" class="form-control" />
+                    <div class="form-text text-danger"><ValidationMessage For="@(() => _appSettings.AdminPanelSettings.ClientHash)" /></div>
+                </div>
+
+                <div class="mb-3 row">
+                    <label for="DefaultLanguageCode">Default Language Code</label>
+                    <InputText id="DefaultLanguageCode" @bind-Value="_appSettings.AdminPanelSettings.DefaultLanguageCode" class="form-control" />
+                    <div class="form-text text-danger"><ValidationMessage For="@(() => _appSettings.AdminPanelSettings.DefaultLanguageCode)" /></div>
+                </div>
+
+
+                <button type="submit" class="btn btn-primary">Save</button>
+            </EditForm>
+        }
+        else
+        {
+            <EditForm Model="_firstData" OnValidSubmit="SaveUserData">
+                <DataAnnotationsValidator />
+                @* <ValidationSummary /> *@
+
+                <div class="mb-3 row">
+                    <label for="AvailableLangauge">Available Languages (type and press Enter)</label>
+                    <InputText id="AvailableLangauge" @bind-Value="@_insertedLanguageCode" @onkeyup="CheckForEnter" class="form-control" />                    
+                    <div class="col-12 mt-2">
+                        @foreach (var j in _firstData.AvailableLanguages)
+                        {
+                            <MudFab Color="Color.Secondary" class="mr-2" StartIcon="@Icons.Material.Filled.Delete" Label="@j" OnClick="(()=> Removelanguage(j))" />
+                        }
+                    </div>
+                </div>
+
+                <div class="mb-3 row">
+                    <label for="CountryName">Country Name</label>
+                    <InputText id="CountryName" @bind-Value="@_firstData.CountryName" class="form-control" />
+                    <div class="form-text text-danger"><ValidationMessage For="@(() => _firstData.CountryName)" /></div>
+                </div>
+
+                <div class="mb-3 row">
+                    <label for="CountryCode">Country Code</label>
+                    <InputText id="CountryCode" @bind-Value="@_firstData.CountryCode" class="form-control" />
+                    <div class="form-text text-danger"><ValidationMessage For="@(() => _firstData.CountryCode)" /></div>
+                </div>
+
+                <div class="mb-3 row">
+                    <label for="CityName">City Name</label>
+                    <InputText id="CityName" @bind-Value="@_firstData.CityName" class="form-control" />
+                    <div class="form-text text-danger"><ValidationMessage For="@(() => _firstData.CityName)" /></div>
+                </div>
+
+                <div class="mb-3 row">
+                    <label for="CityCode">City Code</label>
+                    <InputText id="CityCode" @bind-Value="@_firstData.CityCode" class="form-control" />
+                    <div class="form-text text-danger"><ValidationMessage For="@(() => _firstData.CityCode)" /></div>
+                </div>
+
+                <div class="mb-3 row">
+                    <label for="Username">Username</label>
+                    <InputText id="Username" @bind-Value="@_firstData.Username" class="form-control" />
+                    <div class="form-text text-danger"><ValidationMessage For="@(() => _firstData.Username)" /></div>
+                </div>
+
+                <div class="mb-3 row">
+                    <label for="Password">Password</label>
+                    <InputText id="Password" @bind-Value="@_firstData.Password" type="password" class="form-control" />
+                    <div class="form-text text-danger"><ValidationMessage For="@(() => _firstData.Password)" /></div>
+                </div>
+
+                <div class="mb-3 row">
+                    <label for="ConfirmPassword">Confirm Password</label>
+                    <InputText id="ConfirmPassword" @bind-Value="@_confirmPassword" type="password" class="form-control" />
+                    <div class="form-text text-danger">@(_firstData.Password == _confirmPassword ? "" : "Passwords are not the same")</div>
+                </div>
+
+                <div class="mb-3 row">
+                    <label for="Email">Email</label>
+                    <InputText id="Email" @bind-Value="@_firstData.Email" class="form-control" />
+                    <div class="form-text text-danger"><ValidationMessage For="@(() => _firstData.Email)" /></div>
+                </div>
+
+                <div class="mb-3 row">
+                    <label for="PhoneCountryCode">Phone Country Code</label>
+                    <InputText id="PhoneCountryCode" @bind-Value="@_firstData.PhoneCountryCode" class="form-control" />
+                    <div class="form-text text-danger"><ValidationMessage For="@(() => _firstData.PhoneCountryCode)" /></div>
+                </div>
+
+                <div class="mb-3 row">
+                    <label for="CellphoneNumber">CellphoneNumber</label>
+                    <InputText id="CellphoneNumber" @bind-Value="@_firstData.CellphoneNumber" class="form-control" />
+                    <div class="form-text text-danger"><ValidationMessage For="@(() => _firstData.CellphoneNumber)" /></div>
+                </div>
+
+                <div class="mb-3 row">
+                    <label for="Gender">Gender</label>
+                    <MudRadioGroup @bind-SelectedOption="@_firstData.Gender" T="bool?">
+                        <MudRadio T="bool?" Option="@null" Color="Color.Info">Unknown</MudRadio>
+                        <MudRadio T="bool?" Option="@true" Color="Color.Primary">Male</MudRadio>
+                        <MudRadio T="bool?" Option="@false" Color="Color.Secondary">Female</MudRadio>
+                    </MudRadioGroup>
+                    <div class="form-text text-danger"><ValidationMessage For="@(() => _firstData.Gender)" /></div>
+                </div>
+
+                <div class="mb-3 row">
+                    <label for="GivenName">GivenName</label>
+                    <InputText id="GivenName" @bind-Value="@_firstData.GivenName" class="form-control" />
+                    <div class="form-text text-danger"><ValidationMessage For="@(() => _firstData.GivenName)" /></div>
+                </div>
+
+                <div class="mb-3 row">
+                    <label for="Surname">Surname</label>
+                    <InputText id="Surname" @bind-Value="@_firstData.Surname" class="form-control" />
+                    <div class="form-text text-danger"><ValidationMessage For="@(() => _firstData.Surname)" /></div>
+                </div>
+
+
+                <button type="submit" class="btn btn-primary">Save</button>
+            </EditForm>
+        }
+
+
+    </div>
+</div>

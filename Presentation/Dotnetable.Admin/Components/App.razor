@@ -1,0 +1,64 @@
+﻿<!DOCTYPE html>
+<html lang="en">
+
+<head>
+    <meta charset="utf-8" />
+    <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+    <base href="/" />
+    <link rel="icon" type="image/png" href="favicon.png" />
+    <HeadOutlet @rendermode="new InteractiveServerRenderMode(prerender: false)" />
+
+    <link href="/plugins/olmap/ol.min.css" rel="stylesheet" />
+    <link href="_content/OpenLayers.Blazor/OpenLayers.Blazor.css" rel="stylesheet" />
+    <script src="/plugins/olmap/ol.min.js"></script>
+
+    <link href="_content/Blazor.ContextMenu/blazorContextMenu.min.css" rel="stylesheet" />
+    <link href="/plugins/nestable-master/css/nestable.min.css" rel="stylesheet" />
+    <link href="/plugins/bootstrap-5.3/css/bootstrap.min.css" rel="stylesheet" />
+    <link href="/fonts/fontawesome/css/all.min.css" rel="stylesheet" />
+    <link href="/fonts/feather/css/feather.css" rel="stylesheet" />
+    <link href="/fonts/datta/datta-icon.css" rel="stylesheet" />
+    <link href="/plugins/perfect-scrollbar/perfect-scrollbar.css" rel="stylesheet" />
+    <link href="/css/style.css" rel="stylesheet" />
+    <link href="_content/MudBlazor/MudBlazor.min.css" rel="stylesheet" />
+
+    <style>
+        .mud-drawer.mud-drawer-temporary.mud-drawer-pos-left.mud-drawer--closed {
+            margin: 0 !important
+        }
+    </style>
+
+</head>
+
+<body class="layout-1">
+    <Routes @rendermode="new InteractiveServerRenderMode(prerender: false)" />
+
+    <div id="blazor-error-ui">
+        <environment include="Staging,Production">
+            An error has occurred. This application may no longer respond until reloaded.
+        </environment>
+        <environment include="Development">
+            An unhandled exception has occurred. See browser dev tools for details.
+        </environment>
+        <a href="" class="reload">Reload</a>
+        <a class="dismiss">🗙</a>
+    </div>
+
+    <script src="_framework/blazor.web.js"></script>
+
+    <script src="_content/Blazor.ContextMenu/blazorContextMenu.min.js"></script>
+    <script src="_content/MudBlazor/MudBlazor.min.js"></script>
+    <script src="/js/apexcharts.js"></script>
+    <script src="/js/apex-chart-wrapper.js"></script>
+    <script src="/plugins/jquery/js/jquery.min.js"></script>
+    <script src="/plugins/perfect-scrollbar/perfect-scrollbar.js"></script>
+
+    @*<script src="/plugins/bootstrap-5.3/js/bootstrap.min.js"></script>*@
+    <script src="/plugins/CKEditor/ckeditor.js"></script>
+    <script src="/js/menu-setting.min.js"></script>
+    <script src="/plugins/nestable-master/js/jquery.nestable.js"></script>
+
+    <script src="/js/Main.js"></script>
+
+</body>
+</html>

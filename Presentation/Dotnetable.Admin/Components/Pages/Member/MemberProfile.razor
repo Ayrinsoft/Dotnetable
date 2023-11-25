@@ -1,0 +1,41 @@
+﻿@page "/Member/Profile"
+
+<PageTitle>@_loc["_Member_Profile"]</PageTitle>
+
+<MudContainer MaxWidth="MaxWidth.False">
+    <MudGrid>
+        <MudItem md="6" sm="12" xs="12">
+            <Dotnetable.Admin.Components.PageComponents.Member.Profile.ProfileMemberEdit MemberEdit="_memberEdit" FunctionName="Edit" />
+        </MudItem>
+        <MudItem md="6" sm="12" xs="12">
+            <Dotnetable.Admin.Components.PageComponents.Member.Profile.ManageAvatar MemberDetail="_memberDetail" />
+        </MudItem>
+        <MudItem md="12" sm="12" xs="12">
+            <MudCard Outlined="true">
+                <MudCardHeader>
+                    <CardHeaderAvatar>
+                        <MudIconButton Color="Color.Secondary" Icon="@Icons.Material.Filled.Contacts" Size="Size.Large" ButtonType="ButtonType.Button" />
+                    </CardHeaderAvatar>
+                    <CardHeaderContent>
+                        <MudText Typo="Typo.body1">@_loc["_Member_Profile_Addresses"]</MudText>
+                    </CardHeaderContent>
+                    <CardHeaderActions>
+                        <MudTooltip Arrow="true" Text="@_loc["_Member_Insert_New_Address"]">
+                            <MudIconButton Icon="@Icons.Material.Filled.Add" Variant="Variant.Filled" Color="Color.Success" OnClick="InsertNewContact" />
+                        </MudTooltip>
+                    </CardHeaderActions>
+                </MudCardHeader>
+                <MudCardContent>
+                    @if (_memberDetail.Addresses != null && _memberDetail.Addresses.Count > 0)
+                    {
+                        <Dotnetable.Admin.Components.PageComponents.Member.Profile.Contact.MemberProfileContactGrid AddressList="_memberDetail.Addresses" />
+                    }
+                </MudCardContent>
+                @*<MudCardActions>
+                <MudIconButton Icon="@Icons.Material.Filled.Favorite" Color="Color.Default" />
+                <MudIconButton Icon="@Icons.Material.Filled.Share" Color="Color.Default" />
+                </MudCardActions>*@
+            </MudCard>
+        </MudItem>
+    </MudGrid>
+</MudContainer>

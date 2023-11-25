@@ -1,0 +1,55 @@
+﻿@page "/Post/Manage"
+
+<PageTitle>@_loc["_Post_Manage"]</PageTitle>
+
+<MudContainer MaxWidth="MaxWidth.False">
+    <MudGrid>
+        <MudItem md="12" sm="12" xs="12">
+            <MudCard Outlined="true">
+                <MudCardHeader>
+                    <CardHeaderAvatar>
+                        <MudIconButton Color="Color.Secondary" Icon="@Icons.Material.Filled.WrapText" Size="Size.Large" ButtonType="ButtonType.Button" />
+                    </CardHeaderAvatar>
+                    <CardHeaderContent>
+                        <MudText Typo="Typo.body1">@_loc["_Post_Manage"]</MudText>
+                    </CardHeaderContent>
+                    <CardHeaderActions>
+                        <MudTooltip Arrow="true" Text="@_loc["_Post_Insert"]">
+                            <MudIconButton Icon="@Icons.Material.Filled.Add" Variant="Variant.Filled" Color="Color.Success" OnClick="InsertNewPost" />
+                        </MudTooltip>
+                    </CardHeaderActions>
+                </MudCardHeader>
+                <MudCardContent>
+                    <Dotnetable.Admin.Components.Shared.FormControls.DNGridView GridHeaderParams="_gridHeaderParams" OnSearchChanged="OnSearchChanged">
+                        @if (_postListResponse != null && _postListResponse.Posts != null && _postListResponse.Posts.Count > 0)
+                        {
+                            foreach (var j in _postListResponse.Posts)
+                            {
+                                <tr>
+                                    <td>@j.PostID</td>
+                                    <td>@j.PostCategoryName</td>
+                                    <td>@j.ModifierName</td>
+                                    <td>@j.ModifyDate.ToString("yyyy-MMM-dd")</td>
+                                    <td>@j.Title</td>
+                                    <td>@(j.LanguageCodes ?? "")</td>
+                                    <td>@(j.Active ? _loc["_Active"] : _loc["_DeActive"])</td>
+                                    <td>
+                                        <MudButtonGroup Color="Color.Primary" Variant="Variant.Outlined">
+                                            <MudButton>@_loc["_Management"]</MudButton>
+                                            <MudMenu Icon="@Icons.Material.Filled.ArrowDropDown">
+                                                <MudMenuItem Icon="@Icons.Material.Filled.Edit" OnClick="@(() => EditCurrentPost(j))">@_loc["_Edit"]</MudMenuItem>
+                                                <MudMenuItem Icon="@(j.Active?Icons.Material.Filled.LockOpen:Icons.Material.Filled.Lock)" OnClick="@(() => ChangeActiveStatus(j))">@_loc["_Active_DeActive"]</MudMenuItem>
+                                                <MudMenuItem Icon="@Icons.Material.Filled.Send" OnClick="@(() => UpdateLanguage(j))">@_loc["_AddNewLanguage"] / @_loc["_UpdateLanguage"]</MudMenuItem>
+                                                <MudMenuItem Icon="@Icons.Material.Filled.ContactEmergency" OnClick="@(() => DeleteLanguage(j))">@_loc["_DeleteLanguage"]</MudMenuItem>
+                                            </MudMenu>
+                                        </MudButtonGroup>
+                                    </td>
+                                </tr>
+                            }
+                        }
+                    </Dotnetable.Admin.Components.Shared.FormControls.DNGridView>
+                </MudCardContent>
+            </MudCard>
+        </MudItem>
+    </MudGrid>
+</MudContainer>
