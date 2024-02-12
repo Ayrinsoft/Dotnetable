@@ -107,6 +107,7 @@ public partial class AboutUsManage
     private string _partValue = "";
     private void AddNewPart()
     {
+        _otherParts ??= [];
         if (_partKey == "" || _partValue == "") return;
         if (_otherParts.Any(i => i.Key == _partKey))
         {
@@ -123,8 +124,9 @@ public partial class AboutUsManage
     private string _companyValue = "";
     private void AddNewCompany()
     {
+        _relatedCompanies ??= [];
         if (_companyKey == "" || _companyValue == "") return;
-        if (_otherParts.Any(i => i.Key == _companyKey))
+        if (_relatedCompanies.Any(i => i.Key == _companyKey))
         {
             _snackbar.Add($"{_loc["_FailedAction"]} {_loc["_ERROR_D2"]}", Severity.Error);
             return;
