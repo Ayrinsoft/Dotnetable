@@ -128,6 +128,7 @@ public partial class ContactUsManage
     private string _addressValue = "";
     private void AddNewAddress()
     {
+        _addresses ??= [];
         if (_addressKey == "" || _addressValue == "") return;
         if (_addresses.Any(i => i.Key == _addressKey))
         {
@@ -146,6 +147,7 @@ public partial class ContactUsManage
     private string _emailValue = "";
     private void AddNewEmail()
     {
+        _emails ??= [];
         if (_emailValue == "" || _emailKey == "") return;
         if (_emails.Any(i => i.Value == _emailValue || i.Key == _emailKey))
         {
@@ -164,6 +166,7 @@ public partial class ContactUsManage
     private string _phoneValue = "";
     private void AddNewPhone()
     {
+        _phoneNumbers ??= [];
         if (_phoneValue == "" || _phoneKey == "") return;
         if (_phoneNumbers.Any(i => i.Value == _phoneValue || i.Key == _phoneKey))
         {
@@ -182,6 +185,7 @@ public partial class ContactUsManage
     private string _faxValue = "";
     private void AddNewFax()
     {
+        _faxNumbers ??= [];
         if (_faxValue == "" || _faxKey == "") return;
         if (_faxNumbers.Any(i => i.Value == _faxValue || i.Key == _faxKey))
         {
@@ -202,6 +206,7 @@ public partial class ContactUsManage
     private string _workingWeekDays = "";
     private void AddNewWorkingHours()
     {
+        _workingHours ??= [];
         if (_workingFrom == "" || _workingTo == "" || _workingWeekDays == "") return;
         if (_workingHours.Any(i => i.ToHour == _workingTo || i.FromHour == _workingFrom || i.WeekDays == _workingWeekDays))
         {

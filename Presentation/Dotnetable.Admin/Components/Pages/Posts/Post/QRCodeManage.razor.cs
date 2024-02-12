@@ -105,6 +105,7 @@ public partial class QRCodeManage
     private string _partValue = "";
     private void AddNewPart()
     {
+        _otherParts ??= [];
         if (_partKey == "" || _partValue == "") return;
         if (_otherParts.Any(i => i.Key == _partKey))
         {
