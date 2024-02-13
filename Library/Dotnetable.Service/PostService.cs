@@ -167,7 +167,7 @@ public class PostService
                 return new() { ErrorException = postList?.ErrorException ?? new() { ErrorCode = "D0" } };
 
             cachedPostList = postList.Posts;
-            _mmc.Set($"PublicPostList_{requestModel.PostCategoryID}", cachedPostList, new MemoryCacheEntryOptions().SetSlidingExpiration(TimeSpan.FromHours(6)));
+            _mmc.Set($"PublicPostList_{requestModel.PostCategoryID}", cachedPostList, new MemoryCacheEntryOptions().SetSlidingExpiration(TimeSpan.FromHours(1)));
         }
         return new() { Posts = cachedPostList };
     }
@@ -184,7 +184,7 @@ public class PostService
                     return new() { ErrorException = postDetail?.ErrorException ?? new() { ErrorCode = "D0" } };
 
                 cachedPostDetailByID = postDetail.PostsDetail;
-                _mmc.Set($"PublicPostDetailID_{requestModel.PostID}", cachedPostDetailByID, new MemoryCacheEntryOptions().SetSlidingExpiration(TimeSpan.FromHours(3)));
+                _mmc.Set($"PublicPostDetailID_{requestModel.PostID}", cachedPostDetailByID, new MemoryCacheEntryOptions().SetSlidingExpiration(TimeSpan.FromMinutes(15)));
             }
             responseModel = new() { PostsDetail = cachedPostDetailByID };
         }
@@ -197,7 +197,7 @@ public class PostService
                     return new() { ErrorException = postDetail?.ErrorException ?? new() { ErrorCode = "D0" } };
 
                 cachedPostDetailByCode = postDetail.PostsDetail;
-                _mmc.Set($"PublicPostDetailCode_{requestModel.PostCode}", cachedPostDetailByCode, new MemoryCacheEntryOptions().SetSlidingExpiration(TimeSpan.FromHours(3)));
+                _mmc.Set($"PublicPostDetailCode_{requestModel.PostCode}", cachedPostDetailByCode, new MemoryCacheEntryOptions().SetSlidingExpiration(TimeSpan.FromMinutes(15)));
             }
             responseModel = new() { PostsDetail = cachedPostDetailByCode };
         }
