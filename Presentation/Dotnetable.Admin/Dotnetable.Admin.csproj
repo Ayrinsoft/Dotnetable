@@ -9,9 +9,9 @@
 		<PackageReference Include="Asp.Versioning.Mvc" Version="8.0.0" />
 		<PackageReference Include="Blazor.ContextMenu" Version="1.17.0" />
 		<PackageReference Include="Blazored.LocalStorage" Version="4.5.0" />
-		<PackageReference Include="MudBlazor" Version="6.15.0" />
-		<PackageReference Include="OpenLayers.Blazor" Version="1.5.3" />
-		<PackageReference Include="Microsoft.AspNetCore.Authentication.JwtBearer" Version="8.0.1" />
+		<PackageReference Include="MudBlazor" Version="6.16.0" />
+		<PackageReference Include="OpenLayers.Blazor" Version="1.5.6" />
+		<PackageReference Include="Microsoft.AspNetCore.Authentication.JwtBearer" Version="8.0.2" />
 		<PackageReference Include="SixLabors.ImageSharp" Version="3.1.2" />
 	</ItemGroup>
 
