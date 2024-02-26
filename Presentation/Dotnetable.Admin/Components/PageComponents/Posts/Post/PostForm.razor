@@ -52,52 +52,43 @@
 
     <div class="mb-3 row @(FunctionName == "UpdateLanguage" ? "hide" : "")">
         <label class="form-label col-2">@_loc["_CoverImage"]</label>
-        @* @if (FormModel.MainImage is not null)
-        {
-        <div class="col-sm-5"><img class="img-thumbnail" src="@($"{_context.Request.Scheme}://{_context.Request.Host}")/api/Files/Receive/120X120/@FormModel.MainImage.ToString()/CoverImage.jpg" /></div>
-        <div class="col-sm-5"><button type="button" class="btn btn-block btn-danger" @onclick="DoDeleteCoverFile">@loc["_Delete"]</button></div>
-        }
-        else
-        {
-        <div class="col-sm-5"><MatFileUpload OnChange="@UploadedFiles" Label="@loc["_FileUpload"]" AllowMultiple="false"></MatFileUpload></div>
-        <div class="col-sm-5"><button type="button" class="btn btn-block btn-info" @onclick="DoUploadFile">@loc["_DoUploadFile"]</button></div>
-        }*@
-
-        @if (FormModel.MainImage.HasValue)
-        {
-            <div Class="row">
-                <div class="col-12 mb-3">
-                    <img class="img-thumbnail" src="@($"{_context.Request.Scheme}://{_context.Request.Host}")/api/Files/Receive/120X120/@FormModel.MainImage.ToString()/CoverImage.jpg" />
+        <div class="col-10">
+            @if (FormModel.MainImage.HasValue)
+            {
+                <div Class="row">
+                    <div class="col-12 mb-3">
+                        <img class="img-thumbnail" src="@($"{_context.Request.Scheme}://{_context.Request.Host}")/api/Files/Receive/120X120/@FormModel.MainImage.ToString()/CoverImage.jpg" />
+                    </div>
+                    <div class="col-12 mb-3">
+                        <MudButton OnClick="DoDeleteCoverFile" Disabled="@(_currentFileName == "")" ButtonType="ButtonType.Button" Color="Color.Error" Variant="Variant.Filled" EndIcon="@Icons.Material.Filled.Delete">@_loc["_Delete"]</MudButton>
+                    </div>
                 </div>
-                <div class="col-12 mb-3">
-                    <MudButton OnClick="DoDeleteCoverFile" Disabled="@(_currentFileName == "")" ButtonType="ButtonType.Button" Color="Color.Error" Variant="Variant.Filled" EndIcon="@Icons.Material.Filled.Delete">@_loc["_Delete"]</MudButton>
+            }
+            else
+            {
+                <div Class="row">
+                    <div class="col-12 mb-3">
+                        <MudFileUpload T="IBrowserFile" OnFilesChanged="UploadFiles">
+                            <ButtonTemplate Context="SlideShowFormContext">
+                                <MudButton HtmlTag="label" ButtonType="ButtonType.Button" Variant="Variant.Filled" Color="Color.Primary" StartIcon="@Icons.Material.Filled.CloudUpload" for="@SlideShowFormContext">
+                                    @_loc["_FileUpload"]
+                                </MudButton>
+                            </ButtonTemplate>
+                        </MudFileUpload>
+                    </div>
+                    <div class="col-12 mb-3">
+                        <MudButton OnClick="DoUploadFile" Disabled="@(_currentFileName == "")" ButtonType="ButtonType.Button" Color="Color.Primary" Variant="Variant.Filled" EndIcon="@Icons.Material.Filled.FileUpload">@_loc["_DoUploadFile"]</MudButton>
+                        <MudButton OnClick="ClearUploadFile" Disabled="@(_currentFileName == "")" ButtonType="ButtonType.Button" Color="Color.Error" Variant="Variant.Filled" EndIcon="@Icons.Material.Filled.Clear">@_loc["_Clear"]</MudButton>
+                    </div>
                 </div>
-            </div>
-        }
-        else
-        {
-            <div Class="row">
-                <div class="col-12 mb-3">
-                    <MudFileUpload T="IBrowserFile" OnFilesChanged="UploadFiles">
-                        <ButtonTemplate Context="SlideShowFormContext">
-                            <MudButton HtmlTag="label" ButtonType="ButtonType.Button" Variant="Variant.Filled" Color="Color.Primary" StartIcon="@Icons.Material.Filled.CloudUpload" for="@SlideShowFormContext">
-                                @_loc["_FileUpload"]
-                            </MudButton>
-                        </ButtonTemplate>
-                    </MudFileUpload>
-                </div>
-                <div class="col-12 mb-3">
-                    <MudButton OnClick="DoUploadFile" Disabled="@(_currentFileName == "")" ButtonType="ButtonType.Button" Color="Color.Primary" Variant="Variant.Filled" EndIcon="@Icons.Material.Filled.FileUpload">@_loc["_DoUploadFile"]</MudButton>
-                    <MudButton OnClick="ClearUploadFile" Disabled="@(_currentFileName == "")" ButtonType="ButtonType.Button" Color="Color.Error" Variant="Variant.Filled" EndIcon="@Icons.Material.Filled.Clear">@_loc["_Clear"]</MudButton>
-                </div>
-            </div>
-        }
+            }
+        </div>
         <div class="form-text text-danger"><ValidationMessage For="@(() => FormModel.MainImage)" /></div>
 
     </div>
 
     <div class="mb-3 row @(FunctionName == "UpdateLanguage" ? "hide" : "")">
-        <div class="col-10 offset-sm-3">
+        <div class="col-10 offset-sm-2">
             <div class="custom-control custom-checkbox">
                 <InputCheckbox class="custom-control-input" @bind-Value="FormModel.Active" id="PostCategoryFooterview"></InputCheckbox>
                 <label class="custom-control-label" for="PostCategoryFooterview">@_loc["_Active"]</label>
@@ -109,14 +100,15 @@
     <div class="mb-3 row @(FunctionName == "UpdateLanguage" ? "hide" : "")">
         <label class="form-label col-2">@_loc["_PostCategory"]</label>
         <div class="col-10">
-            <Dotnetable.Admin.Pages.Posts.PostCategory.PostCategoryList CssClass="form-control" SelectedLastPostCategoryID="OnChangePostCategorySelected" DefaultPostCategoryID="@FormModel.PostCategoryID" LanguageCode="@_postCatDefaultLanguage" />
+            <Dotnetable.Admin.Components.Pages.Posts.PostCategory.PostCategoryList CssClass="form-control" SelectedLastPostCategoryID="OnChangePostCategorySelected" DefaultPostCategoryID="@FormModel.PostCategoryID" LanguageCode="@_postCatDefaultLanguage" />
         </div>
         <div class="form-text text-danger"><ValidationMessage For="@(() => FormModel.PostCategoryID)" /></div>
     </div>
 
 
     <hr />
-    <MudButton ButtonType="ButtonType.Button" OnClick="OnSubmitForm" Color="Color.Primary" Variant="Variant.Filled" EndIcon="@Icons.Material.Filled.Dataset">@_loc["_Submit"]  @_loc["_Post"]</MudButton>
+    <ValidationSummary />
+    <MudButton ButtonType="ButtonType.Submit" Color="Color.Primary" Variant="Variant.Filled" EndIcon="@Icons.Material.Filled.Dataset">@_loc["_Submit"]  @_loc["_Post"]</MudButton>
 
 </EditForm>
 

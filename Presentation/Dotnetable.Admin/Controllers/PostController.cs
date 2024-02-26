@@ -66,7 +66,7 @@ public class PostController : ControllerBase
     {
         var responseData = await _post.PostCategoryDetail(requestModel);
         string responseExeption = responseData?.ErrorException is null ? string.Empty : responseData.ErrorException.ToJsonString();
-        responseData.ErrorException = null;
+        if (responseData is not null) responseData.ErrorException = null;
         return new PublicControllerResponse()
         {
             ResponseData = responseData,
