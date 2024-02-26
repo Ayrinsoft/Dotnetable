@@ -47,7 +47,7 @@ public partial class PostForm
         if (FunctionName is null || FunctionName == "" || FunctionName == "Insert")
         {
             FunctionName = "Insert";
-            FormModel = new PostUpdateRequest() { Body = "<p>.</p>", PostID = 0, LanguageCode = DefaultLanguageCode };
+            FormModel = new PostUpdateRequest() { Body = "<p>.</p>", PostID = 1, LanguageCode = DefaultLanguageCode };
             await _localStorage.RemoveItemAsync("TMPFiles");
         }
         else
