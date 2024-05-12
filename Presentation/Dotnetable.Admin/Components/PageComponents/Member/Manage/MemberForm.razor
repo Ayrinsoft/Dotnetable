@@ -3,8 +3,6 @@
 
 <EditForm Model="FormModel" OnValidSubmit="OnSubmitForm">
     <DataAnnotationsValidator />
-    <ValidationSummary />
-
     <div class="mb-3 row">
         <label class="form-label col-3">@_loc["_Username"]</label>
         <div class="col-9"><InputText type="text" class="form-control" @bind-Value="FormModel.Username" placeholder="@_loc["_Username"]"></InputText></div>
@@ -77,14 +75,14 @@
     <div class="mb-3 row">
         <label class="form-label col-3">@_loc["_Country"]</label>
         <div class="row col-9">
-            <Dotnetable.Admin.Components.Place.CountrySelector OnChangeCountryEvent="BindCities" PassedCountryID="FormModel?.CountryID" />
+            <Dotnetable.Admin.Components.PageComponents.Place.CountrySelector OnChangeCountryEvent="BindCities" PassedCountryID="FormModel?.CountryID" />
         </div>
     </div>
 
     <div class="mb-3 row">
         <label class="form-label col-3">@_loc["_City"]</label>
         <div class="row col-9">
-            <Dotnetable.Admin.Components.Place.CitySelector OnChangeCityEvent="UpdateCityItem" SelectedCountryID="_selectedCountryID" PassedCityID="FormModel?.CityID ?? null" PassedCountryID="FormModel?.CountryID" />
+            <Dotnetable.Admin.Components.PageComponents.Place.CitySelector OnChangeCityEvent="UpdateCityItem" SelectedCountryID="_selectedCountryID" PassedCityID="FormModel?.CityID ?? null" PassedCountryID="FormModel?.CountryID" />
         </div>
         <div class="form-text text-danger"><ValidationMessage For="@(() => FormModel.CityID)" /></div>
     </div>
@@ -92,13 +90,13 @@
     <div class="mb-3 row">
         <label class="form-label col-3">@_loc["_PolicyID"]</label>
         <div class="row col-9">
-
-            <Dotnetable.Admin.Components.Member.Policy.PolicySelector OnChangePolicyEvent="UpdateSelectedPolicy" PassedPolicyID="FormModel?.PolicyID" />
+            <Dotnetable.Admin.Components.PageComponents.Member.Policy.PolicySelector OnChangePolicyEvent="UpdateSelectedPolicy" PassedPolicyID="FormModel?.PolicyID" />
         </div>
         <div class="form-text text-danger"><ValidationMessage For="@(() => FormModel.PolicyID)" /></div>
     </div>
 
     <hr />
+    <ValidationSummary />
     <MudButton ButtonType="ButtonType.Submit" Color="Color.Primary" Variant="Variant.Filled" EndIcon="@Icons.Material.Filled.Add">@_loc["_Insert"]</MudButton>
 
 </EditForm>
