@@ -38,17 +38,17 @@
 
     <div class="mb-3">
         <label class="form-label">@_loc["_Country"]</label>
-        <Dotnetable.Admin.Components.Place.CountrySelector OnChangeCountryEvent="BindCities" PassedCountryID="FormModel?.CountryID" />
+        <Dotnetable.Admin.Components.PageComponents.Place.CountrySelector OnChangeCountryEvent="BindCities" PassedCountryID="FormModel?.CountryID" />
     </div>
 
     <div class="mb-3">
         <label class="form-label">@_loc["_City"]</label>
-        <Dotnetable.Admin.Components.Place.CitySelector OnChangeCityEvent="UpdateCityItem" SelectedCountryID="_selectedCountryID" PassedCityID="FormModel?.CityID ?? null" PassedCountryID="FormModel?.CountryID" />
+        <Dotnetable.Admin.Components.PageComponents.Place.CitySelector OnChangeCityEvent="UpdateCityItem" SelectedCountryID="_selectedCountryID" PassedCityID="FormModel?.CityID ?? null" PassedCountryID="FormModel?.CountryID" />
         <div class="form-text text-danger"><ValidationMessage For="@(() => FormModel.CityID)" /></div>
     </div>
 
     <hr />
-
+    <ValidationSummary />
     <MudButton ButtonType="ButtonType.Submit" Color="Color.Primary" Variant="Variant.Filled" EndIcon="@Icons.Material.Filled.Dataset">@_loc["_Submit"]  @_loc["_Address"]</MudButton>
 
 </EditForm>

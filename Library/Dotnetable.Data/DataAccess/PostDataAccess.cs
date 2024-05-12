@@ -55,11 +55,11 @@ public class PostDataAccess
         using DotnetableEntity db = new();
         var publicPostCategories = await (from pc in db.TB_Post_Categories
                                           where pc.Active && pc.MenuView
-                                          select new PostCategoryPublicListResponse.PostCategoryDetail { Description = pc.Description, LanguageCode = pc.LanguageCode, ParentID = pc.ParentID, PostCategoryID = pc.PostCategoryID, Priority = pc.Priority, Title = pc.Title })
+                                          select new PostCategoryPublicListResponse.PostCategoryDetail { Description = pc.Description, LanguageCode = pc.LanguageCode, ParentID = pc.ParentID, PostCategoryID = pc.PostCategoryID, Priority = pc.Priority, Title = pc.Title, FooterView = pc.FooterView })
                                           .Concat(from pc in db.TB_Post_Categories
                                                   join lc in db.TB_Post_Category_Languages on pc.PostCategoryID equals lc.PostCategoryID
                                                   where pc.Active && pc.MenuView
-                                                  select new PostCategoryPublicListResponse.PostCategoryDetail { Description = lc.Description, LanguageCode = lc.LanguageCode, ParentID = pc.ParentID, PostCategoryID = pc.PostCategoryID, Priority = pc.Priority, Title = lc.Title }).OrderBy(i => i.Priority).ToListAsync();
+                                                  select new PostCategoryPublicListResponse.PostCategoryDetail { Description = lc.Description, LanguageCode = lc.LanguageCode, ParentID = pc.ParentID, PostCategoryID = pc.PostCategoryID, Priority = pc.Priority, Title = lc.Title, FooterView = pc.FooterView }).OrderBy(i => i.Priority).ToListAsync();
 
         return new() { PostCategories = publicPostCategories };
     }

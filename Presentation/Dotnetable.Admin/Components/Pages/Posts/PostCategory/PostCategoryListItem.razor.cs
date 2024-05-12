@@ -24,10 +24,10 @@ public partial class PostCategoryListItem
 
     protected async override Task OnInitializedAsync()
     {
-        ParentID ??= 0;
+        //ParentID ??= 0;
         _showChilds = false;
         _selectedPostCategoryID = -1;
-        _currentPostCategories = PostCategoryList.Where(i => i.ParentID == ParentID && (string.IsNullOrEmpty(LanguageCode) || i.LanguageCode == LanguageCode)).ToList();
+        _currentPostCategories = PostCategoryList.Where(i =>  i.ParentID == ParentID && (string.IsNullOrEmpty(LanguageCode) || i.LanguageCode == LanguageCode)).ToList();
 
         if (PostCategoryList != null && DefaultPostCategoryID.HasValue)
         {
