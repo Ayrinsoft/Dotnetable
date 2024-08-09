@@ -86,7 +86,7 @@ public partial class ContactUsManage
 
             if (!string.IsNullOrEmpty(_contactModel.ContactUsDetail.MapLocationLatitude) && _contactModel.ContactUsDetail.MapLocationLatitude != "" && !string.IsNullOrEmpty(_contactModel.ContactUsDetail.MapLocationLongitude) && _contactModel.ContactUsDetail.MapLocationLongitude != "" && double.TryParse(_contactModel.ContactUsDetail.MapLocationLongitude, out double _locationLongitude) && double.TryParse(_contactModel.ContactUsDetail.MapLocationLatitude, out double _locationLatitude))
             {
-                _map.MarkersList.Add(new Marker() { Type = MarkerType.MarkerPin, Popup = true, Color = "red", Coordinate = new(_locationLatitude, _locationLongitude), Title = "Current location" });
+                _map.MarkersList.Add(new Marker() { Type = MarkerType.MarkerPin, Popup = true, PinColor = PinColor.Red, Coordinate = new(_locationLatitude, _locationLongitude), Text = "Current location" });
                 _map.Center = new Coordinate(_locationLatitude, _locationLongitude);
             }
         }
@@ -231,7 +231,7 @@ public partial class ContactUsManage
         _map.MarkersList.Clear();
 
         //Console.WriteLine(coordinate.ToJsonString()); //{"Latitude":41.03607760434852,"Y":41.03607760434852,"Longitude":28.857001228660334,"X":28.857001228660334,"Coordinates":[28.857001228660334,41.03607760434852]}
-        _map.MarkersList.Add(new Marker() { Type = MarkerType.MarkerPin, Popup = true, Color = "blue", Coordinate = coordinate, Title = "Point of your location" });
+        _map.MarkersList.Add(new Marker() { Type = MarkerType.MarkerPin, Popup = true, PinColor = PinColor.Blue, Coordinate = coordinate, Text = "Point of your location" });
     }
 
     #endregion

@@ -43,7 +43,7 @@ public partial class CitySelector
         if (PassedCityID.HasValue && _selectedCity is null) _selectedCity = _cityList.Where(i => i.CityID == PassedCityID && (i.LanguageCode == _languageCode || i.LanguageCode == "EN")).FirstOrDefault();
     }
 
-    private async Task<IEnumerable<CityDetailResponse>> SearchCity(string searchKey)
+    private async Task<IEnumerable<CityDetailResponse>> SearchCity(string searchKey, CancellationToken token)
     {
         if (SelectedCountryID == 0) return null;
         IEnumerable<CityDetailResponse> cityResponse = _cityList.Where(i => i.CountryID == SelectedCountryID && i.LanguageCode == _languageCode);
