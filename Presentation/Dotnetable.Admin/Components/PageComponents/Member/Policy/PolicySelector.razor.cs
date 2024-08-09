@@ -28,7 +28,7 @@ public partial class PolicySelector
         if (PassedPolicyID.HasValue && _selectedPolicy is null) _selectedPolicy = _policies.Where(i => i.PolicyID == PassedPolicyID).FirstOrDefault();
     }
 
-    private async Task<IEnumerable<PolicyListOnInsertMemberResponse>> SearchPolicy(string searchKey)
+    private async Task<IEnumerable<PolicyListOnInsertMemberResponse>> SearchPolicy(string searchKey, CancellationToken token)
     {
         if (string.IsNullOrEmpty(searchKey)) return await Task.FromResult(_policies);
         return await Task.FromResult(_policies.Where(i => i.Title.Contains(searchKey, StringComparison.InvariantCultureIgnoreCase)));

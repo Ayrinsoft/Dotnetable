@@ -14,11 +14,12 @@
             }
 
             <CascadingValue Value="@_themeManager">
-                <MudDialogProvider FullWidth="true" MaxWidth="MaxWidth.Medium" CloseButton="true" DisableBackdropClick="true" Position="DialogPosition.Center" CloseOnEscapeKey="true" />
+                <MudDialogProvider FullWidth="true" MaxWidth="MaxWidth.Medium" CloseButton="true" Position="DialogPosition.Center" CloseOnEscapeKey="true" />
             </CascadingValue>
-
+            <MudThemeProvider Theme="_theme" IsDarkMode="_isDarkMode" />
+            <MudPopoverProvider />
             <MudSnackbarProvider />
-            <MudThemeProvider Theme="_theme" />
+            
 
             <MudLayout>
                 <CascadingValue Value="@_themeManager">

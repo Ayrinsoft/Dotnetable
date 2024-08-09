@@ -69,11 +69,11 @@
                 <div Class="row">
                     <div class="col-12 mb-3">
                         <MudFileUpload T="IBrowserFile" OnFilesChanged="UploadFiles">
-                            <ButtonTemplate Context="SlideShowFormContext">
-                                <MudButton HtmlTag="label" ButtonType="ButtonType.Button" Variant="Variant.Filled" Color="Color.Primary" StartIcon="@Icons.Material.Filled.CloudUpload" for="@SlideShowFormContext">
+                            <ActivatorContent>
+                                <MudButton HtmlTag="label" ButtonType="ButtonType.Button" Variant="Variant.Filled" Color="Color.Primary" StartIcon="@Icons.Material.Filled.CloudUpload">
                                     @_loc["_FileUpload"]
                                 </MudButton>
-                            </ButtonTemplate>
+                            </ActivatorContent>
                         </MudFileUpload>
                     </div>
                     <div class="col-12 mb-3">

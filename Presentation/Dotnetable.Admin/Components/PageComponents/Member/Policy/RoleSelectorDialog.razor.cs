@@ -29,7 +29,7 @@ public partial class RoleSelectorDialog
             _currentMemberRoles = fetchRoles.ResponseData.CastModel<List<RoleListOnPolicyManageResponse>>();
     }
 
-    private async Task<IEnumerable<RoleListOnPolicyManageResponse>> SearchRole(string searchKey)
+    private async Task<IEnumerable<RoleListOnPolicyManageResponse>> SearchRole(string searchKey, CancellationToken token)
     {
         if (string.IsNullOrEmpty(searchKey)) return await Task.FromResult(_currentMemberRoles);
         return await Task.FromResult(_currentMemberRoles.Where(i => i.RoleKey.Contains(searchKey, StringComparison.InvariantCultureIgnoreCase)));

@@ -20,12 +20,13 @@ public partial class MainLayout
     private bool _sideMenuDrawerOpen;
     private bool _themingDrawerOpen;
     private bool _rightToLeftLayout = false;
+    private bool _isDarkMode = false;
     private HttpContext _context = null;
     private UserModel _user = new();
     private readonly PaletteLight _lightPalette = new()
     {
         Background = "#f5f5f5",
-        BackgroundGrey = "#eeeeee",
+        BackgroundGray = "#eeeeee",
         DrawerBackground = "#eeeeee",
         AppbarBackground = "#eeeeee",
         ActionDisabledBackground = "#a8a8a8",
@@ -58,7 +59,7 @@ public partial class MainLayout
 
     private readonly MudTheme _theme = new()
     {
-        Palette = new() { Primary = Colors.Green.Default },
+        PaletteLight = new() { Primary = Colors.Green.Default },
         LayoutProperties = new() { AppbarHeight = "80px", DefaultBorderRadius = "12px" },
         Typography = new() { Default = new() { FontSize = "0.9rem", } }
     };
@@ -120,8 +121,14 @@ public partial class MainLayout
     private async Task ThemeManagerChanged(ThemeManagerModel themeManager)
     {
         _themeManager = themeManager;
-        _theme.Palette = _themeManager.IsDarkMode ? _darkPalette : _lightPalette;
-        _theme.Palette.Primary = _themeManager.PrimaryColor;
+        _theme.PaletteLight.Primary = _themeManager.PrimaryColor;
+        _theme.PaletteDark = _darkPalette;
+        _theme.PaletteLight = _lightPalette; 
+        if (themeManager.IsDarkMode)
+            _isDarkMode = true;
+        else 
+            _isDarkMode = false;
+
         await UpdateThemeManagerLocalStorage();
     }
 
