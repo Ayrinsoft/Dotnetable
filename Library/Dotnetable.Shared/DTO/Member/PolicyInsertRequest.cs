@@ -2,5 +2,6 @@
 
 public class PolicyInsertRequest
 {
+    public int CurrentMemberID { get; set; }
     public string Title { get; set; }
 }

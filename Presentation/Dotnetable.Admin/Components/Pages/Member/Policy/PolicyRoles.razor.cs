@@ -1,6 +1,7 @@
 ﻿using Dotnetable.Admin.Components.PageComponents.Member.Policy;
 using Dotnetable.Admin.Models;
-using Dotnetable.Admin.SharedServices.Data;
+using Dotnetable.Admin.SharedServices;
+using Dotnetable.Service;
 using Dotnetable.Shared.DTO.Member;
 using Dotnetable.Shared.DTO.Public;
 using Dotnetable.Shared.Tools;
@@ -14,7 +15,8 @@ public partial class PolicyRoles
 {
     [Inject] private ISnackbar _snackbar { get; set; }
     [Inject] private IStringLocalizer<Dotnetable.Shared.Resources.Resource> _loc { get; set; }
-    [Inject] private IHttpServices _httpService { get; set; }
+    [Inject] private MemberService _member { get; set; }
+    [Inject] private Tools _tools { get; set; }
     [Inject] private IDialogService _dialogService { get; set; }
     [CascadingParameter] protected ThemeManagerModel themeManager { get; set; }
 
@@ -23,9 +25,10 @@ public partial class PolicyRoles
     private PolicyRoleListRequest _policyRolesListRequest { get; set; }
     private PolicyRoleListResponse _policyRolesListResponse { get; set; }
     private GridViewHeaderParameters _gridHeaderParams { get; set; }
-
+    int memberID = -1;
     protected async override Task OnInitializedAsync()
     {
+        memberID = await _tools.GetRequesterMemberID();
         _gridHeaderParams = new()
         {
             HeaderItems = new()
@@ -65,10 +68,10 @@ public partial class PolicyRoles
 
     private async Task FetchGrid()
     {
-        var fetchPolicies = await _httpService.CallServiceObjAsync(HttpMethod.Post, true, "Member/PolicyRolesList", _policyRolesListRequest.ToJsonString());
-        if (fetchPolicies.Success)
+        var fetchPolicies = await _member.PolicyRolesList(_policyRolesListRequest);
+        if (fetchPolicies.ErrorException is null)
         {
-            _policyRolesListResponse = fetchPolicies.ResponseData.CastModel<PolicyRoleListResponse>();
+            _policyRolesListResponse = fetchPolicies;
         }
         _gridHeaderParams.Pagination.MaxLength = _policyRolesListResponse?.DatabaseRecords ?? 1;
         StateHasChanged();
@@ -78,17 +81,13 @@ public partial class PolicyRoles
 
     private async Task RemoveItem(PolicyRoleListResponse.RoleDetail requestModel)
     {
-        var fetchResponse = await _httpService.CallServiceObjAsync(HttpMethod.Post, true, "Member/PolicyRoleRemove", new PolicyRoleRemoveRequest { PolicyRoleID = requestModel.PolicyRoleID }.ToJsonString());
-        if (fetchResponse.Success)
+        var fetchResponse = await _member.PolicyRoleRemove(new() { CurrentMemberID = memberID, PolicyRoleID = requestModel.PolicyRoleID });
+        if (fetchResponse.SuccessAction)
         {
-            var parsedResponse = fetchResponse.ResponseData.CastModel<PublicActionResponse>();
-            if (parsedResponse.SuccessAction)
-            {
-                var fetchPolicyRole = (from i in _policyRolesListResponse.Roles where i.PolicyRoleID == requestModel.PolicyRoleID select i).FirstOrDefault();
-                if (fetchPolicyRole is not null) _policyRolesListResponse.Roles.Remove(fetchPolicyRole);
+            var fetchPolicyRole = (from i in _policyRolesListResponse.Roles where i.PolicyRoleID == requestModel.PolicyRoleID select i).FirstOrDefault();
+            if (fetchPolicyRole is not null) _policyRolesListResponse.Roles.Remove(fetchPolicyRole);
 
-                _snackbar.Add($"{_loc["_SuccessAction"]} {_loc["_Remove"]}", Severity.Success);
-            }
+            _snackbar.Add($"{_loc["_SuccessAction"]} {_loc["_Remove"]}", Severity.Success);
         }
         else
         {
@@ -105,15 +104,11 @@ public partial class PolicyRoles
         var dialogresponseData = promptResponse.Data.CastModel<RoleListOnPolicyManageResponse>();
         if (dialogresponseData is null) return;
 
-        var fetchResponse = await _httpService.CallServiceObjAsync(HttpMethod.Post, true, "Member/MemberRoleAppend", new PolicyRoleAppendRequest { PolicyID = PolicyID, RoleKey = dialogresponseData.RoleKey }.ToJsonString());
-        if (fetchResponse.Success)
+        var fetchResponse = await _member.MemberRoleAppend(new() { CurrentMemberID = memberID, PolicyID = PolicyID, RoleKey = dialogresponseData.RoleKey });
+        if (fetchResponse.SuccessAction)
         {
-            var parsedResponse = fetchResponse.ResponseData.CastModel<PublicActionResponse>();
-            if (parsedResponse.SuccessAction)
-            {
-                _snackbar.Add($"{_loc["_SuccessAction"]} {_loc["_Remove"]}", Severity.Success);
-                await FetchGrid();
-            }
+            _snackbar.Add($"{_loc["_SuccessAction"]} {_loc["_Remove"]}", Severity.Success);
+            await FetchGrid();
         }
         else
         {

@@ -1,4 +1,4 @@
-﻿using Dotnetable.Admin.SharedServices.Data;
+﻿using Dotnetable.Service;
 using Dotnetable.Shared.DTO.Place;
 using Dotnetable.Shared.Tools;
 using Microsoft.AspNetCore.Components;
@@ -12,7 +12,7 @@ public partial class CountrySelector
 {
     [Inject] private IStringLocalizer<Dotnetable.Shared.Resources.Resource> _loc { get; set; }
     [Inject] private IMemoryCache _mmc { get; set; }
-    [Inject] private IHttpServices _httpService { get; set; }
+    [Inject] private PlaceService _place { get; set; }
 
     [Parameter] public EventCallback<CountryDetailResponse> OnChangeCountryEvent { get; set; }
     [Parameter] public byte? PassedCountryID { get; set; }
@@ -26,11 +26,10 @@ public partial class CountrySelector
     {
         if (!_mmc.TryGetValue("PlaceCountryList", out List<CountryDetailResponse> countryList))
         {
-            var fetchServiceData = await _httpService.CallServiceObjAsync(HttpMethod.Get, false, "Place/CountryList");
-            if (fetchServiceData.Success)
+            var fetchServiceData = await _place.CountryList();
+            if (fetchServiceData.ErrorException is null)
             {
-                var serviceCountries = fetchServiceData.ResponseData.CastModel<CountryListResponse>().Countries;
-                countryList = serviceCountries.CastModel<List<CountryDetailResponse>>();
+                countryList = fetchServiceData.Countries.CastModel<List<CountryDetailResponse>>();
                 _mmc.Set("PlaceCountryList", countryList, new MemoryCacheEntryOptions().SetSlidingExpiration(TimeSpan.FromMinutes(5)));
             }
         }

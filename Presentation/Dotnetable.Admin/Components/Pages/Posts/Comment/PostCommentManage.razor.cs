@@ -1,5 +1,5 @@
 ﻿using Dotnetable.Admin.Models;
-using Dotnetable.Admin.SharedServices.Data;
+using Dotnetable.Service;
 using Dotnetable.Shared.DTO.Comment;
 using Dotnetable.Shared.DTO.Post;
 using Dotnetable.Shared.DTO.Public;
@@ -14,7 +14,7 @@ public partial class PostCommentManage
 {
     [Inject] private ISnackbar _snackbar { get; set; }
     [Inject] private IStringLocalizer<Dotnetable.Shared.Resources.Resource> _loc { get; set; }
-    [Inject] private IHttpServices _httpService { get; set; }
+    [Inject] private CommentService _comment { get; set; }
     [CascadingParameter] protected ThemeManagerModel themeManager { get; set; }
 
     private PostCommentListAdminRequest _listRequest { get; set; }
@@ -82,10 +82,10 @@ public partial class PostCommentManage
 
     private async Task FetchGrid()
     {
-        var fetchData = await _httpService.CallServiceObjAsync(HttpMethod.Post, true, "Comment/PostCommentAdminList", _listRequest.ToJsonString());
-        if (fetchData.Success)
+        var fetchData = await _comment.PostCommentAdminList(_listRequest);
+        if (fetchData.ErrorException is null)
         {
-            _listResponse = fetchData.ResponseData.CastModel<PostCommentListAdminResponse>();
+            _listResponse = fetchData;
         }
         _gridHeaderParams.Pagination.MaxLength = _listResponse?.DatabaseRecords ?? 1;
         StateHasChanged();
@@ -96,20 +96,11 @@ public partial class PostCommentManage
     {
         if (itemCommentID < 0) return;
 
-        var fetchData = await _httpService.CallServiceObjAsync(HttpMethod.Post, true, "Comment/AdminApproveComment", new AdminApproveCommentRequest() { Approve = confirmItem, CommentCategoryID = CommentCategory.Post, ItemID = itemCommentID }.ToJsonString());
-        if (fetchData.Success)
+        var fetchData = await _comment.AdminApproveComment(new() { Approve = confirmItem, CommentCategoryID = CommentCategory.Post, ItemID = itemCommentID });
+        if (fetchData.SuccessAction)
         {
-            var parseData = fetchData.ResponseData.CastModel<PublicActionResponse>();
-            if (parseData is not null && parseData.SuccessAction)
-            {
-                _snackbar.Add($"{_loc["_SuccessAction"]} {_loc[(confirmItem ? "_Confirm" : "_UnConfirm")]}", Severity.Success);
-                return;
-            }
-            else
-            {
-                _snackbar.Add($"{_loc[$"_ERROR_{parseData?.ErrorException.ErrorCode}"]} {_loc[(confirmItem ? "_Confirm" : "_UnConfirm")]}", Severity.Error);
-                return;
-            }
+            _snackbar.Add($"{_loc["_SuccessAction"]} {_loc[(confirmItem ? "_Confirm" : "_UnConfirm")]}", Severity.Success);
+            return;
         }
         _snackbar.Add($"{_loc["_FailedAction"]} {_loc[(confirmItem ? "_Confirm" : "_UnConfirm")]}", Severity.Error);
     }

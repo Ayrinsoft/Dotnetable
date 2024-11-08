@@ -797,7 +797,7 @@ public class MemberDataAccess
 
         var reportQuery = db.TB_Policies.AsQueryable();
 
-        if (!string.IsNullOrEmpty(requestModel.Title) && requestModel.Title != "")
+        if (!string.IsNullOrEmpty(requestModel?.Title) && requestModel.Title != "")
             reportQuery = reportQuery.Where(i => i.Title.Contains(requestModel.Title));
 
 

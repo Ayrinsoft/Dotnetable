@@ -1,4 +1,5 @@
 ﻿@page "/Post/Comment/Manage"
+@attribute [Authorize(Roles = "PostManager")]
 
 <PageTitle>@_loc["_Post_Comment_Manage"]</PageTitle>
 

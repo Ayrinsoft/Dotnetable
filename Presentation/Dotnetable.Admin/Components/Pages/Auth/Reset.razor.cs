@@ -1,13 +1,13 @@
 ﻿using Blazored.LocalStorage;
 using Dotnetable.Admin.Models;
-using Dotnetable.Admin.SharedServices.Data;
+using Dotnetable.Admin.SharedServices.Authorization;
+using Dotnetable.Service;
 using Dotnetable.Shared.Tools;
 using Microsoft.AspNetCore.Components;
 using Microsoft.AspNetCore.Components.Authorization;
 using Microsoft.Extensions.Localization;
 using Microsoft.JSInterop;
 using MudBlazor;
-using System.Globalization;
 
 namespace Dotnetable.Admin.Components.Pages.Auth;
 
@@ -16,7 +16,8 @@ public partial class Reset
     [CascadingParameter] protected ThemeManagerModel themeManager { get; set; }
     [Inject] private AuthenticationStateProvider _authenticationStateProvider { get; set; }
     [Inject] private NavigationManager _navigationManager { get; set; }
-    [Inject] private IHttpServices _httpService { get; set; }
+    [Inject] private MemberService _member { get; set; }
+    [Inject] private AuthenticationService _auth { get; set; }
     [Inject] private IStringLocalizer<Dotnetable.Shared.Resources.Resource> _loc { get; set; }
     [Inject] private ILocalStorageService _localStorage { get; set; }
     [Inject] private ISnackbar _snackbar { get; set; }
@@ -57,8 +58,8 @@ public partial class Reset
             }
         }
 
-        var recoveryDetail = await _httpService.CallServiceObjAsync(HttpMethod.Post, false, "Member/ForgetPasswordGetCode", _fetchRecoveryCode.ToJsonString());
-        if (!recoveryDetail.Success)
+        var recoveryDetail = await _member.ForgetPasswordGetCode(_fetchRecoveryCode);
+        if (!recoveryDetail.SuccessAction)
         {
             _snackbar.Add($"{_loc[(recoveryDetail.ErrorException?.ErrorCode is null ? "_ERROR_NULLDATA" : $"_ERROR_{recoveryDetail.ErrorException.ErrorCode}")]} {(recoveryDetail?.ErrorException?.Message ?? "")}", Severity.Error);
         }
@@ -93,22 +94,21 @@ public partial class Reset
             }
         }
 
-        var recoveryDetail = await _httpService.CallServiceObjAsync(HttpMethod.Post, false, "Member/ForgetPasswordSetCode", _setRecoveryCodeModel.ToJsonString());
-        if (!recoveryDetail.Success)
+        var recoveryDetail = await _member.ForgetPasswordSetCode(_setRecoveryCodeModel);
+        if (!recoveryDetail.SuccessAction)
         {
             _snackbar.Add($"{_loc[(recoveryDetail.ErrorException?.ErrorCode is null ? "_ERROR_NULLDATA" : $"_ERROR_{recoveryDetail.ErrorException.ErrorCode}")]}", Severity.Error);
         }
         else
         {
-            var userDetail = await _httpService.CallServiceObjAsync(HttpMethod.Post, false, "Authentication/Login", new Dotnetable.Shared.DTO.Authentication.UserLoginRequest() { Username = _setRecoveryCodeModel.Username, Password = _setRecoveryCodeModel.Password }.ToJsonString());
-            if (!userDetail.Success)
+            var userDetail = await _auth.LoginUser(new() { Username = _setRecoveryCodeModel.Username, Password = _setRecoveryCodeModel.Password }, LocalSecret.TokenHashKey(_config["AdminPanelSettings:ClientHash"]));
+            if (userDetail.ErrorException is not null)
             {
                 _snackbar.Add($"{_loc[(recoveryDetail.ErrorException?.ErrorCode is null ? "_ERROR_NULLDATA" : $"_ERROR_{recoveryDetail.ErrorException.ErrorCode}")]}", Severity.Error);
             }
             else
             {
-                var parsedUserDetail = userDetail.ResponseData.CastModel<Dotnetable.Shared.DTO.Authentication.UserLoginResponse>();
-                await ((SharedServices.CustomAuthentication)_authenticationStateProvider).MarkUserAsAuthenticated(parsedUserDetail);
+                await ((SharedServices.CustomAuthentication)_authenticationStateProvider).MarkUserAsAuthenticated(userDetail);
                 _navigationManager.NavigateTo("/");
             }
         }
