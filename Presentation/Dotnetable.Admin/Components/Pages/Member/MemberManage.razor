@@ -1,4 +1,5 @@
 ﻿@page "/Member/Manage"
+@attribute [Authorize(Roles = "MemberManager")]
 
 <PageTitle>@_loc["_Member_Manage"]</PageTitle>
 

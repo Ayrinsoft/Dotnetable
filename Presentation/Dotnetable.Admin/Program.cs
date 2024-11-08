@@ -3,7 +3,6 @@ using Blazored.LocalStorage;
 using Dotnetable.Admin.Components;
 using Dotnetable.Admin.SharedServices;
 using Dotnetable.Admin.SharedServices.Authorization;
-using Dotnetable.Admin.SharedServices.Data;
 using Dotnetable.Service;
 using Microsoft.AspNetCore.Authentication.JwtBearer;
 using Microsoft.AspNetCore.Authorization;
@@ -90,8 +89,6 @@ CultureInfo.DefaultThreadCurrentUICulture = cultureInfo;
 
 builder.Services.AddScoped<CustomAuthentication>();
 builder.Services.AddScoped<AuthenticationStateProvider>(s => s.GetRequiredService<CustomAuthentication>());
-builder.Services.AddHttpClient<IHttpServices, HttpServices>();
-builder.Services.AddSingleton<HttpClient>();
 builder.Services.AddHttpContextAccessor();
 
 
@@ -104,6 +101,7 @@ builder.Services.AddSingleton<PostService>();
 builder.Services.AddSingleton<LogsService>();
 builder.Services.AddSingleton<CommentService>();
 builder.Services.AddSingleton<WebsiteService>();
+builder.Services.AddScoped<Tools>();
 
 var app = builder.Build();
 

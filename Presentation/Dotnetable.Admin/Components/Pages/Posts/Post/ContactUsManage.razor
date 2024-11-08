@@ -1,4 +1,5 @@
 ﻿@page "/Post/ContactUsManage"
+@attribute [Authorize(Roles = "PostManager")]
 
 <PageTitle>@_loc[$"_ContactUsManage"]</PageTitle>
 

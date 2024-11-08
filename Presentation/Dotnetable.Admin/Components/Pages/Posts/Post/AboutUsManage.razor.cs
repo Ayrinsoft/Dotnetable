@@ -1,6 +1,6 @@
 ﻿using Blazored.LocalStorage;
 using Dotnetable.Admin.Models;
-using Dotnetable.Admin.SharedServices.Data;
+using Dotnetable.Service;
 using Dotnetable.Shared.DTO.Authentication;
 using Dotnetable.Shared.DTO.Post;
 using Dotnetable.Shared.Tools;
@@ -16,7 +16,7 @@ public partial class AboutUsManage
 {
     [Inject] private ISnackbar _snackbar { get; set; }
     [Inject] private IStringLocalizer<Dotnetable.Shared.Resources.Resource> _loc { get; set; }
-    [Inject] private IHttpServices _httpService { get; set; }
+    [Inject] private PostService _post { get; set; }
     [Inject] private ILocalStorageService _localStorage { get; set; }
     [Inject] private IJSRuntime _jsRuntime { get; set; }
     [CascadingParameter] protected ThemeManagerModel themeManager { get; set; }
@@ -36,10 +36,10 @@ public partial class AboutUsManage
             _fetchCurrentToken = await _localStorage.GetItemAsync<UserLoginResponse.TokenItems>("JToken");
 
         _ckContainerID = $"ck{Guid.NewGuid().ToString().Replace("-", "")}";
-        var fetchServiceData = await _httpService.CallServiceObjAsync(HttpMethod.Post, false, "Post/PublicPostDetail", new PostDetailPublicRequest { PostCode = "Aboutus" }.ToJsonString());
-        if (fetchServiceData.Success)
+        var fetchServiceData = await _post.PublicPostDetail(new() { PostCode = "Aboutus" });
+        if (fetchServiceData.ErrorException is null)
         {
-            _publicPostDetail = fetchServiceData.ResponseData.CastModel<PostDetailPublicResponse>();
+            _publicPostDetail = fetchServiceData;
         }
         else
         {
@@ -91,8 +91,8 @@ public partial class AboutUsManage
         _aboutModel.AboutusDetail.OtherHtmlPart = _otherParts;
         _aboutModel.AboutusDetail.RelatedCompanies = _relatedCompanies;
 
-        var fetchServiceData = await _httpService.CallServiceObjAsync(System.Net.Http.HttpMethod.Post, true, "Post/AboutusUpdate", _aboutModel.ToJsonString());
-        if (fetchServiceData.Success)
+        var fetchServiceData = await _post.AboutusUpdate(_aboutModel);
+        if (fetchServiceData.SuccessAction)
         {
             _snackbar.Add($"{_loc["_SuccessAction"]} {_loc["_AboutUsManage"]}", Severity.Success);
         }

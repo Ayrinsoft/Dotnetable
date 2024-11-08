@@ -1,4 +1,5 @@
 ﻿@page "/Member/RoleList"
+@attribute [Authorize(Roles = "PolicyManager")]
 
 <PageTitle>@_loc["_View_Roles"]</PageTitle>
 

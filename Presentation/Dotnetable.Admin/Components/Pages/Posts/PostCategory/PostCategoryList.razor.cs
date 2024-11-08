@@ -1,4 +1,4 @@
-﻿using Dotnetable.Admin.SharedServices.Data;
+﻿using Dotnetable.Service;
 using Dotnetable.Shared.DTO.Post;
 using Dotnetable.Shared.Tools;
 using Microsoft.AspNetCore.Components;
@@ -8,7 +8,7 @@ namespace Dotnetable.Admin.Components.Pages.Posts.PostCategory;
 
 public partial class PostCategoryList
 {
-    [Inject] private IHttpServices _httpService { get; set; }
+    [Inject] private PostService _post { get; set; }
     [Inject] private IMemoryCache _mmc { get; set; }
 
     [Parameter] public string CssClass { get; set; }
@@ -22,10 +22,10 @@ public partial class PostCategoryList
     {
         if (!_mmc.TryGetValue("PostCategoryList", out List<PostCategoryListResponse.PostCategoryDetail> _postCategoryList))
         {
-            var fetchPostCategory = await _httpService.CallServiceObjAsync(HttpMethod.Get, true, "Post/PostCategoryList");
-            if (fetchPostCategory.Success)
+            var fetchPostCategory = await _post.PostCategoryList();
+            if (fetchPostCategory.ErrorException is null)
             {
-                _postCategoryList = fetchPostCategory.ResponseData.CastModel<PostCategoryListResponse>().PostCategories;
+                _postCategoryList = fetchPostCategory.PostCategories;
                 _mmc.Set("PostCategoryList", _postCategoryList, new MemoryCacheEntryOptions().SetSlidingExpiration(TimeSpan.FromMinutes(3)));
             }
         }

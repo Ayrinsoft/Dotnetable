@@ -1,5 +1,6 @@
 ﻿using Blazored.LocalStorage;
-using Dotnetable.Admin.SharedServices.Data;
+using Dotnetable.Admin.SharedServices;
+using Dotnetable.Service;
 using Dotnetable.Shared.Tools;
 using Microsoft.AspNetCore.Components;
 using Microsoft.AspNetCore.Components.Forms;
@@ -12,7 +13,8 @@ namespace Dotnetable.Admin.Components.PageComponents.Member.Profile;
 public partial class ManageAvatar
 {
     [Inject] private IStringLocalizer<Dotnetable.Shared.Resources.Resource> _loc { get; set; }
-    [Inject] private IHttpServices _httpService { get; set; }
+    [Inject] private MemberService _member { get; set; }
+    [Inject] private Tools _tools { get; set; }
     [Inject] private ISnackbar _snackbar { get; set; }
     [Inject] private ILocalStorageService _localStorage { get; set; }
     [Inject] private IHttpContextAccessor _httpContextAccessor { get; set; }
@@ -34,12 +36,13 @@ public partial class ManageAvatar
     private async Task DoUploadFile()
     {
         if (_selectedFileName == "") return;
+        int memberID = await _tools.GetRequesterMemberID();
         var requestBody = new Dotnetable.Shared.DTO.Member.MemberAvatarInsertRequest() { FileName = $"{MemberDetail.Username}-Avatar.png", FileStream = _currentFileStream, SetAsDefault = true, CurrentMemberID = MemberDetail.MemberID };
-        var uploadAvatar = await _httpService.CallServiceObjAsync(HttpMethod.Post, true, $"Member/AvatarInsert", requestBody.ToJsonString());
-        if (uploadAvatar.Success)
+        requestBody.CurrentMemberID = memberID;
+        var uploadAvatar = await _member.AvatarInsert(requestBody);
+        if (uploadAvatar.SuccessAction)
         {
-            var parsedUploadAvatar = uploadAvatar.ResponseData.CastModel<Dotnetable.Shared.DTO.Public.PublicActionResponse>();
-            MemberDetail.AvatarID = new Guid(parsedUploadAvatar.ObjectID);
+            MemberDetail.AvatarID = new Guid(uploadAvatar.ObjectID);
             _snackbar.Add(_loc["_SuccessUploadFile"], Severity.Success);
 
             var jsonIdentity = await _localStorage.GetItemAsync<Dotnetable.Shared.DTO.Authentication.UserLoginResponse>("MemberAuthorized");

@@ -168,7 +168,7 @@ public class FilesController : ControllerBase
         if (!string.IsNullOrEmpty(requestModel.FileCode) && requestModel.FileCode != "")
             Guid.TryParse(requestModel.FileCode, out FileCode);
 
-        var responseData = await _file.Insert(new()
+        var responseData = await _file.Insert(new FileInsertRequest()
         {
             FileCategoryID = 0,
             FileCode = FileCode.ToString(),

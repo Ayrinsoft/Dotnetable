@@ -1,4 +1,5 @@
-﻿using Dotnetable.Admin.SharedServices.Data;
+﻿using Dotnetable.Admin.SharedServices;
+using Dotnetable.Service;
 using Dotnetable.Shared.DTO.Member;
 using Dotnetable.Shared.Tools;
 using Microsoft.AspNetCore.Components;
@@ -9,7 +10,8 @@ namespace Dotnetable.Admin.Components.PageComponents.Member.Policy;
 public partial class PolicySelector
 {
     [Inject] private IStringLocalizer<Dotnetable.Shared.Resources.Resource> _loc { get; set; }
-    [Inject] private IHttpServices _httpService { get; set; }
+    [Inject] private MemberService _member { get; set; }
+    [Inject] private Tools _tools { get; set; }
 
     [Parameter] public EventCallback<PolicyListOnInsertMemberResponse> OnChangePolicyEvent { get; set; }
     [Parameter] public int? PassedPolicyID { get; set; } = 0;
@@ -20,11 +22,8 @@ public partial class PolicySelector
 
     protected override async Task OnInitializedAsync()
     {
-        var fetchPolicies = await _httpService.CallServiceObjAsync(HttpMethod.Get, true, "Member/PolicyListOnMemberManage");
-        if (fetchPolicies.Success)
-        {
-            _policies = fetchPolicies.ResponseData.CastModel<List<PolicyListOnInsertMemberResponse>>();
-        }
+        int memberID = await _tools.GetRequesterMemberID();
+        _policies = await _member.PolicyListOnMemberManage(memberID);
         if (PassedPolicyID.HasValue && _selectedPolicy is null) _selectedPolicy = _policies.Where(i => i.PolicyID == PassedPolicyID).FirstOrDefault();
     }
 

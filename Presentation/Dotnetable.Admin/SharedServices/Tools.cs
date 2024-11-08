@@ -1,29 +1,34 @@
-﻿using Dotnetable.Admin.SharedServices.Authorization;
+﻿using Blazored.LocalStorage;
+using Dotnetable.Admin.SharedServices.Authorization;
 using Dotnetable.Service;
+using Dotnetable.Shared.DTO.Authentication;
 
 namespace Dotnetable.Admin.SharedServices;
 
-internal class Tools
+public class Tools
 {
-    internal static string GetIpAddressFromHttpRequest(HttpRequest httprequest)
+    private ILocalStorageService _localStorage { get; set; }
+    private IConfiguration _config { get; set; }
+    public Tools(ILocalStorageService localStorage, IConfiguration config)
     {
-        string ipAddressString = string.Empty;
-        if (httprequest is null) return Guid.NewGuid().ToString();
+        _localStorage = localStorage;
+        _config = config;
+    }
 
-        if (httprequest.Headers != null && httprequest.Headers.Count > 0)
+    internal async Task<int> GetRequesterMemberID()
+    {
+        int memberID = -1;
+        try
         {
-            if (httprequest.Headers.ContainsKey("X-Forwarded-For") && !string.IsNullOrEmpty(httprequest.Headers["X-Forwarded-For"]))
-                ipAddressString = httprequest.Headers["X-Forwarded-For"];
-            else if (httprequest.Headers.ContainsKey("Http-x-Forwarded-For") && !string.IsNullOrEmpty(httprequest.Headers["Http-x-Forwarded-For"]))
-                ipAddressString = httprequest.Headers["Http-x-Forwarded-For"];
+            if (!await _localStorage.ContainKeyAsync("JToken"))
+                return -1;
+
+            var currentToken = await _localStorage.GetItemAsync<UserLoginResponse.TokenItems>("JToken");
+            if (!string.IsNullOrEmpty(currentToken.Token))
+                memberID = await MemberService.FetchMemberIDByHashKey(new Guid(AuthenticationService.GetUserHashKeyFromAccessToken(currentToken.Token, LocalSecret.TokenHashKey(_config["AdminPanelSettings:ClientHash"]))));
         }
-
-        if (string.IsNullOrEmpty(ipAddressString) || ipAddressString == "") ipAddressString = httprequest.HttpContext.Connection.RemoteIpAddress.ToString();
-        ipAddressString = ipAddressString.Contains(",") ? ipAddressString.Split(',').LastOrDefault().Trim() : ipAddressString.Trim();
-        if (ipAddressString == "127.0.0.1") ipAddressString = "::1";
-        if (string.IsNullOrEmpty(ipAddressString) || ipAddressString == "") return Guid.NewGuid().ToString();
-
-        return ipAddressString;
+        catch (Exception) { }
+        return memberID;
     }
 
     internal static async Task<int> GetRequesterMemberID(HttpRequest httprequest, IConfiguration config)
@@ -38,6 +43,5 @@ internal class Tools
         catch (Exception) { }
         return memberID;
     }
-
 
 }

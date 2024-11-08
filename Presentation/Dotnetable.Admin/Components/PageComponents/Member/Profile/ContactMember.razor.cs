@@ -1,4 +1,6 @@
-﻿using Dotnetable.Admin.SharedServices.Data;
+﻿using Dotnetable.Admin.SharedServices;
+using Dotnetable.Service;
+using Dotnetable.Shared.DTO.Public;
 using Dotnetable.Shared.Tools;
 using Microsoft.AspNetCore.Components;
 using Microsoft.Extensions.Localization;
@@ -9,7 +11,8 @@ namespace Dotnetable.Admin.Components.PageComponents.Member.Profile
     public partial class ContactMember
     {
         [Inject] private IStringLocalizer<Dotnetable.Shared.Resources.Resource> _loc { get; set; }
-        [Inject] private IHttpServices _httpService { get; set; }
+        [Inject] private MemberService _member { get; set; }
+        [Inject] private Tools _tools { get; set; }
         [Inject] private ISnackbar _snackbar { get; set; }
 
         [Parameter] public Dotnetable.Shared.DTO.Member.MemberContactRequest AddressEdit { get; set; }
@@ -34,23 +37,23 @@ namespace Dotnetable.Admin.Components.PageComponents.Member.Profile
 
         private async Task DoUpdateAddress()
         {
-            var serviceResponse = await _httpService.CallServiceObjAsync(HttpMethod.Post, true, $"Member/{FunctionName}", AddressEdit.ToJsonString());
-            if (serviceResponse.Success)
+            int memberID = await _tools.GetRequesterMemberID();
+            AddressEdit.CurrentMemberID = memberID;
+
+            PublicActionResponse serviceResponse;
+            if (FunctionName == "ContactInsert")
+                serviceResponse = await _member.ContactInsert(AddressEdit);
+            else
+                serviceResponse = await _member.ContactUpdate(AddressEdit);
+
+            //.CallServiceObjAsync(HttpMethod.Post, true, $"Member/{FunctionName}", AddressEdit.ToJsonString());
+            if (serviceResponse.SuccessAction)
             {
-                var paresedServiceResponse = serviceResponse.ResponseData.CastModel<Dotnetable.Shared.DTO.Public.PublicActionResponse>();
-                if (paresedServiceResponse.SuccessAction)
-                {
-                    _snackbar.Add($"{_loc["_SuccessAction"]} {_loc["_Member_Profile_Addresses"]}", Severity.Success);
-                    AddressEdit.MemberContactID = Convert.ToInt32(paresedServiceResponse.ObjectID);
-                    await OnInsertOrUpdateContact.InvokeAsync(AddressEdit);
-                    StateHasChanged();
-                    return;
-                }
-                else if (paresedServiceResponse.ErrorException != null && !string.IsNullOrEmpty(paresedServiceResponse.ErrorException.ErrorCode))
-                {
-                    _snackbar.Add($"{_loc[$"_ERROR_{paresedServiceResponse.ErrorException.ErrorCode}"]} {_loc["_Member_Profile_Addresses"]}", Severity.Error);
-                    return;
-                }
+                _snackbar.Add($"{_loc["_SuccessAction"]} {_loc["_Member_Profile_Addresses"]}", Severity.Success);
+                AddressEdit.MemberContactID = Convert.ToInt32(serviceResponse.ObjectID);
+                await OnInsertOrUpdateContact.InvokeAsync(AddressEdit);
+                StateHasChanged();
+                return;
             }
             _snackbar.Add($"{_loc["_FailedAction"]} {_loc["_Member_Profile_Addresses"]}", Severity.Error);
         }
