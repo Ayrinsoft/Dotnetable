@@ -2,6 +2,7 @@
 using Dotnetable.Admin.Components.PageComponents.Posts.PostCategory;
 using Dotnetable.Admin.Components.Shared.Dialogs;
 using Dotnetable.Admin.Models;
+using Dotnetable.Admin.SharedServices;
 using Dotnetable.Service;
 using Dotnetable.Shared.DTO.Post;
 using Dotnetable.Shared.Tools;
@@ -17,15 +18,17 @@ public partial class PostCategoryManage
     [Inject] private IStringLocalizer<Dotnetable.Shared.Resources.Resource> _loc { get; set; }
     [Inject] private PostService _post { get; set; }
     [Inject] private IDialogService _dialogService { get; set; }
+    [Inject] private Tools _tools { get; set; }
     [CascadingParameter] protected ThemeManagerModel themeManager { get; set; }
 
     private List<PostCategoryListResponse.PostCategoryDetail> _cachedPostCategory { get; set; }
     private List<Models.Nestable.NestableStandardRequest> _nestableItems = new();
     private List<Models.Nestable.NestableStandardResponse> _updatedListItems = null;
-
+    int currentMemberID = -1;
     protected async override Task OnInitializedAsync()
     {
-        var fetchPostCategory = await _post.PostCategoryList();
+        currentMemberID = await _tools.GetRequesterMemberID();
+        var fetchPostCategory = await _post.PostCategoryList(currentMemberID);
         if (fetchPostCategory.ErrorException is null)
         {
             _cachedPostCategory = fetchPostCategory.PostCategories;
@@ -57,7 +60,7 @@ public partial class PostCategoryManage
         var requestModel = (from i in _updatedListItems select new PostCategoryUpdatePriorityAndParentRequest() { ParentID = Convert.ToInt32(i.ParentID), PostCategoryID = Convert.ToInt32(i.ItemID), Priority = (short)i.Priority }).ToList();
         if (requestModel is null) return;
 
-        var serviceResponse = await _post.PostCategoryUpdatePriorityAndParent(requestModel);
+        var serviceResponse = await _post.PostCategoryUpdatePriorityAndParent(requestModel, currentMemberID);
         if (serviceResponse.SuccessAction)
         {
             _snackbar.Add($"{_loc["_SuccessAction"]} {_loc["_PostCategoy_ChangePriority_Update"]}", Severity.Success);

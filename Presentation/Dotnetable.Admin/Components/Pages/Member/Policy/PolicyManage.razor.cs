@@ -2,9 +2,6 @@
 using Dotnetable.Admin.Models;
 using Dotnetable.Admin.SharedServices;
 using Dotnetable.Service;
-using Dotnetable.Shared.DTO.Member;
-using Dotnetable.Shared.DTO.Public;
-using Dotnetable.Shared.Tools;
 using Microsoft.AspNetCore.Components;
 using Microsoft.Extensions.Localization;
 using MudBlazor;

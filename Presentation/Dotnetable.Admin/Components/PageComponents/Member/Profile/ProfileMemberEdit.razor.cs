@@ -28,6 +28,8 @@ public partial class ProfileMemberEdit
     {
         int memberID = await _tools.GetRequesterMemberID();
         PublicActionResponse serviceResponse;
+        MemberEdit.CurrentMemberID = memberID;
+
         if (FunctionName != "EditAdmin")
             serviceResponse = await _member.Register(MemberEdit.CastModel<MemberInsertRequest>());
         else

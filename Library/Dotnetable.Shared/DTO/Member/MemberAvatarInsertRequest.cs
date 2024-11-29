@@ -5,6 +5,7 @@ namespace Dotnetable.Shared.DTO.Member;
 public class MemberAvatarInsertRequest
 {
     public int? CurrentMemberID { get; set; }
+    public int? MemberID { get; set; }
     public int? UploaderMemberID { get; set; }
     public int? FileID { get; set; }
 

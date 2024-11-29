@@ -29,6 +29,8 @@ public partial class ContactUsMessagesGrid
     protected async override Task OnInitializedAsync()
     {
         memberID = await _tools.GetRequesterMemberID();
+
+        _gridRequest = new() { CurrentMemberID = memberID };
         _gridHeaderParams = new()
         {
             HeaderItems = new()
@@ -67,6 +69,7 @@ public partial class ContactUsMessagesGrid
             TakeCount = _gridHeaderParams.Pagination.PageSize,
             OrderbyParams = _gridHeaderParams.OrderbyParams,
             Archive = _gridHeaderParams.HeaderItems.FirstOrDefault(i => i.ColumnName == nameof(MessageContactUsListResponse.ContactMessage.Archive)).SearchText switch { "1" => true, _ => null },
+                CurrentMemberID = memberID
         };
     }
 
@@ -86,7 +89,7 @@ public partial class ContactUsMessagesGrid
         if ((await _dialogService.Show<ConfirmDialog>(_loc["_AreYouSure"], new DialogOptions { CloseOnEscapeKey = true, CloseButton = true, MaxWidth = MaxWidth.Small, Position = DialogPosition.Center }).Result).Canceled)
             return;
 
-        var changeResponse = await _message.ContactUsMessageArchive(new() { DeleteItem = false, ContactUsMessageID = contactUsMessageID });
+        var changeResponse = await _message.ContactUsMessageArchive(new() { DeleteItem = false, ContactUsMessageID = contactUsMessageID, CurrentMemberID = memberID });
         if (changeResponse.SuccessAction)
         {
             _snackbar.Add($"{_loc["_SuccessAction"]} {_loc["_Archive"]}", Severity.Success);
@@ -103,7 +106,7 @@ public partial class ContactUsMessagesGrid
         if ((await _dialogService.Show<ConfirmDialog>(_loc["_AreYouSure"], new DialogOptions { CloseOnEscapeKey = true, CloseButton = true, MaxWidth = MaxWidth.Small, Position = DialogPosition.Center }).Result).Canceled)
             return;
 
-        var deleteResponse = await _message.ContactUsMessageDelete(new() { DeleteItem = true, ContactUsMessageID = contactUsMessageID });
+        var deleteResponse = await _message.ContactUsMessageDelete(new() { DeleteItem = true, ContactUsMessageID = contactUsMessageID, CurrentMemberID = memberID });
         if (deleteResponse.SuccessAction)
         {
             _snackbar.Add($"{_loc["_SuccessAction"]} {_loc["_Delete"]}", Severity.Success);

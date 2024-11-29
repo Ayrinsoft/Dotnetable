@@ -29,6 +29,7 @@ public partial class PolicyRoles
     protected async override Task OnInitializedAsync()
     {
         memberID = await _tools.GetRequesterMemberID();
+        _policyRolesListRequest = new() { CurrentMemberID = memberID };
         _gridHeaderParams = new()
         {
             HeaderItems = new()
@@ -62,7 +63,8 @@ public partial class PolicyRoles
             SkipCount = ((_gridHeaderParams.Pagination.PageIndex - 1) * _gridHeaderParams.Pagination.PageSize),
             TakeCount = _gridHeaderParams.Pagination.PageSize,
             OrderbyParams = _gridHeaderParams.OrderbyParams,
-            PolicyID = PolicyID
+            PolicyID = PolicyID,
+            CurrentMemberID = memberID
         };
     }
 

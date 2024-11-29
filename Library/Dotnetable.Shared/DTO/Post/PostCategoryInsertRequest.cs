@@ -4,6 +4,7 @@ namespace Dotnetable.Shared.DTO.Post;
 
 public class PostCategoryInsertRequest
 {
+    public int CurrentMemberID { get; set; }
     public int? ParentID { get; set; }
 
     [Required(ErrorMessageResourceType = typeof(Resources.Resource), ErrorMessageResourceName = nameof(Resources.Resource._Err_Post_MenuView_Required))]

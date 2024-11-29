@@ -26,12 +26,13 @@ public partial class MemberManage
     private MemberListRequest _listRequest { get; set; }
     private MemberListFinalResponse _listResponse { get; set; }
     private GridViewHeaderParameters _gridHeaderParams { get; set; }
-    int memberID = -1;
+    int currentMemberID = -1;
 
     #region Grid
     protected async override Task OnInitializedAsync()
     {
-        memberID = await _tools.GetRequesterMemberID();
+        currentMemberID = await _tools.GetRequesterMemberID();
+        _listRequest = new() { CurrentMemberID = currentMemberID };
         _gridHeaderParams = new()
         {
             HeaderItems = new()
@@ -73,7 +74,8 @@ public partial class MemberManage
             Email = _gridHeaderParams.HeaderItems.FirstOrDefault(i => i.ColumnName == nameof(MemberListFinalResponse.MemberDetail.Email)).SearchText,
             Givenname = _gridHeaderParams.HeaderItems.FirstOrDefault(i => i.ColumnName == nameof(MemberListFinalResponse.MemberDetail.Givenname)).SearchText,
             Surname = _gridHeaderParams.HeaderItems.FirstOrDefault(i => i.ColumnName == nameof(MemberListFinalResponse.MemberDetail.Surname)).SearchText,
-            Username = _gridHeaderParams.HeaderItems.FirstOrDefault(i => i.ColumnName == nameof(MemberListFinalResponse.MemberDetail.Username)).SearchText
+            Username = _gridHeaderParams.HeaderItems.FirstOrDefault(i => i.ColumnName == nameof(MemberListFinalResponse.MemberDetail.Username)).SearchText,
+            CurrentMemberID = currentMemberID
         };
     }
 
@@ -96,6 +98,7 @@ public partial class MemberManage
         if (dialogresponseData is null) return;
 
         dialogresponseData.ActivateMember = true;
+        dialogresponseData.CurrentMemberID = currentMemberID;
         var serviceResponse = await _member.Register(dialogresponseData);
         if (!serviceResponse.SuccessAction)
         {
@@ -115,7 +118,7 @@ public partial class MemberManage
 
     private async Task ChangeActiveStatus(MemberListFinalResponse.MemberDetail memberDetail)
     {
-        MemberChangeStatusRequest changeRequest = new() { MemberID = memberDetail.MemberID };
+        MemberChangeStatusRequest changeRequest = new() { CurrentMemberID = currentMemberID, MemberID = memberDetail.MemberID };
         var changeResponse = await _member.ChangeStatus(changeRequest);
         if (changeResponse is null || !changeResponse.SuccessAction || changeResponse.ErrorException is not null)
         {
@@ -130,7 +133,7 @@ public partial class MemberManage
 
     private async Task ActivateMember(MemberListFinalResponse.MemberDetail memberDetail)
     {
-        MemberActivateAdminRequest changeRequest = new() { MemberID = memberDetail.MemberID };
+        MemberActivateAdminRequest changeRequest = new() { CurrentMemberID = currentMemberID, MemberID = memberDetail.MemberID };
         var changeResponse = await _member.ActivateAdmin(changeRequest);
         if (changeResponse is null || !changeResponse.SuccessAction || changeResponse.ErrorException is not null)
         {
@@ -152,6 +155,7 @@ public partial class MemberManage
         var dialogresponseData = checkInsert.Data.CastModel<MemberEditRequest>();
         if (dialogresponseData is null) return;
 
+        dialogresponseData.CurrentMemberID = currentMemberID;
         var serviceResponse = await _member.Edit(dialogresponseData);
         if (!serviceResponse.SuccessAction)
         {
@@ -182,7 +186,7 @@ public partial class MemberManage
         if ((await _dialogService.Show<ConfirmDialog>(_loc["_AreYouSure"], new DialogOptions { CloseOnEscapeKey = true, CloseButton = true, MaxWidth = MaxWidth.Small, Position = DialogPosition.Center }).Result).Canceled)
             return;
 
-        var activationResponse = await _member.SendActivateLink(new() { CurrentMemberID = memberID });
+        var activationResponse = await _member.SendActivateLink(new() { CurrentMemberID = currentMemberID, MemberID = memberID });
         if (activationResponse.SuccessAction)
         {
             _snackbar.Add($"{_loc["_SuccessAction"]} {_loc["_Send_Activate_Link"]}", Severity.Success);
@@ -207,7 +211,7 @@ public partial class MemberManage
     #region ViewAllContacts
     private async Task ViewAllContacts(int memberID)
     {
-        var fetchContacts = await _member.ContactList(new() { CurrentMemberID = memberID});
+        var fetchContacts = await _member.ContactList(new() { CurrentMemberID = currentMemberID, MemberID = memberID });
         if (fetchContacts.ErrorException is null)
         {
             var contactList = fetchContacts.Contacts.CastModel<List<MemberContactRequest>>();

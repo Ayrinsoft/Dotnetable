@@ -5,6 +5,8 @@ namespace Dotnetable.Shared.DTO.Message;
 
 public class EmailPanelInsertRequest
 {
+    public int CurrentMemberID { get; set; }
+
     [Required(AllowEmptyStrings = false, ErrorMessageResourceType = typeof(Resources.Resource), ErrorMessageResourceName = nameof(Resources.Resource._Err_EmailAddress_Required))]
     [StringLength(64, ErrorMessageResourceType = typeof(Resources.Resource), ErrorMessageResourceName = nameof(Resources.Resource._Err_MaxLength_64))]
     [MinLength(5, ErrorMessageResourceType = typeof(Resources.Resource), ErrorMessageResourceName = nameof(Resources.Resource._Err_MinLength_5))]
