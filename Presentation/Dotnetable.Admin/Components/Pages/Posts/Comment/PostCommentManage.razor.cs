@@ -1,4 +1,5 @@
 ﻿using Dotnetable.Admin.Models;
+using Dotnetable.Admin.SharedServices;
 using Dotnetable.Service;
 using Dotnetable.Shared.DTO.Comment;
 using Dotnetable.Shared.DTO.Post;
@@ -15,14 +16,18 @@ public partial class PostCommentManage
     [Inject] private ISnackbar _snackbar { get; set; }
     [Inject] private IStringLocalizer<Dotnetable.Shared.Resources.Resource> _loc { get; set; }
     [Inject] private CommentService _comment { get; set; }
+    [Inject] private Tools _tools { get; set; }
     [CascadingParameter] protected ThemeManagerModel themeManager { get; set; }
 
     private PostCommentListAdminRequest _listRequest { get; set; }
     private PostCommentListAdminResponse _listResponse { get; set; }
     private GridViewHeaderParameters _gridHeaderParams { get; set; }
-
+    int _currentMemberID = -1;
     protected async override Task OnInitializedAsync()
     {
+        _currentMemberID = await _tools.GetRequesterMemberID();
+        _listRequest = new() { CurrentMemberID = _currentMemberID };
+
         _gridHeaderParams = new()
         {
             HeaderItems = new()
@@ -76,7 +81,8 @@ public partial class PostCommentManage
             OrderbyParams = _gridHeaderParams.OrderbyParams,
             PostID = Convert.ToInt32(postID),
             ReplyID = Convert.ToInt32(replyID),
-            CommentTypeID = Convert.ToByte(commentTypeString)
+            CommentTypeID = Convert.ToByte(commentTypeString),
+            CurrentMemberID = _currentMemberID
         };
     }
 
@@ -96,7 +102,7 @@ public partial class PostCommentManage
     {
         if (itemCommentID < 0) return;
 
-        var fetchData = await _comment.AdminApproveComment(new() { Approve = confirmItem, CommentCategoryID = CommentCategory.Post, ItemID = itemCommentID });
+        var fetchData = await _comment.AdminApproveComment(new() { Approve = confirmItem, CommentCategoryID = CommentCategory.Post, ItemID = itemCommentID, CurrentMemberID = _currentMemberID });
         if (fetchData.SuccessAction)
         {
             _snackbar.Add($"{_loc["_SuccessAction"]} {_loc[(confirmItem ? "_Confirm" : "_UnConfirm")]}", Severity.Success);

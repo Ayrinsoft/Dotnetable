@@ -27,6 +27,7 @@ public partial class SubscribeManage
     protected async override Task OnInitializedAsync()
     {
         memberID = await _tools.GetRequesterMemberID();
+        _requestModel = new() { CurrentMemberID = memberID };
         _gridHeaderParams = new()
         {
             HeaderItems = new()
@@ -62,7 +63,8 @@ public partial class SubscribeManage
             OrderbyParams = _gridHeaderParams.OrderbyParams,
             Email = _gridHeaderParams.HeaderItems.FirstOrDefault(i => i.ColumnName == nameof(SubscribeListResponse.SubscribeDetail.Email)).SearchText,
             Active = _gridHeaderParams.HeaderItems.FirstOrDefault(i => i.ColumnName == nameof(SubscribeListResponse.SubscribeDetail.Active)).SearchText switch { "1" => true, "0" => false, _ => null },
-            MemberID = string.IsNullOrEmpty(searchMemberID) || searchMemberID == "" ? null : Convert.ToInt32(searchMemberID)
+            MemberID = string.IsNullOrEmpty(searchMemberID) || searchMemberID == "" ? null : Convert.ToInt32(searchMemberID),
+            CurrentMemberID = memberID
         };
     }
 
@@ -70,16 +72,15 @@ public partial class SubscribeManage
     {
         var fetchResponse = await _member.MemberSubscribedList(_requestModel);
         if (fetchResponse.ErrorException is null)
-        {
             _responseModel = fetchResponse;
-        }
+        
         _gridHeaderParams.Pagination.MaxLength = _responseModel?.DatabaseRecords ?? 1;
         StateHasChanged();
     }
 
     private async Task ChangeActiveStatus(SubscribeListResponse.SubscribeDetail requestModel)
     {
-        var changeResponse = await _member.MemberSubscribedChangeStatus(new(){ EmailSubscribeID = requestModel.EmailSubscribeID });
+        var changeResponse = await _member.MemberSubscribedChangeStatus(new(){ EmailSubscribeID = requestModel.EmailSubscribeID, CurrentMemberID = memberID });
         if (!changeResponse.SuccessAction)
         {
             _snackbar.Add($"{_loc["_FailedAction"]} {_loc["_Active_DeActive"]}", Severity.Error);

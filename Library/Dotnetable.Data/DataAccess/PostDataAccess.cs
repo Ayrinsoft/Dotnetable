@@ -277,7 +277,7 @@ public class PostDataAccess
             Summary = requestModel.Summary,
             LogTime = DateTime.Now,
             PostCategoryID = requestModel.PostCategoryID,
-            MemberID = requestModel.CurrentMemberID.Value,
+            MemberID = requestModel.CurrentMemberID,
             MetaDescription = requestModel.MetaDescription,
             MetaKeywords = requestModel.MetaKeywords,
             LanguageCode = fetchLanguage,
@@ -383,7 +383,7 @@ public class PostDataAccess
         fetchPost.MetaDescription = requestModel.MetaDescription;
         fetchPost.MetaKeywords = requestModel.MetaKeywords;
         fetchPost.LogTime = DateTime.Now;
-        fetchPost.MemberID = requestModel.CurrentMemberID.Value;
+        fetchPost.MemberID = requestModel.CurrentMemberID;
         fetchPost.FileCode = requestModel.MainImage;
 
 

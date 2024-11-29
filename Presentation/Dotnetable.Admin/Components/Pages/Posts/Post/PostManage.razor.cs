@@ -1,6 +1,7 @@
 ﻿using Dotnetable.Admin.Components.PageComponents.Posts.Post;
 using Dotnetable.Admin.Components.Shared.Dialogs;
 using Dotnetable.Admin.Models;
+using Dotnetable.Admin.SharedServices;
 using Dotnetable.Service;
 using Dotnetable.Shared.DTO.Post;
 using Dotnetable.Shared.DTO.Public;
@@ -20,6 +21,7 @@ public partial class PostManage
     [Inject] private IDialogService _dialogService { get; set; }
     [Inject] private IMemoryCache _mmc { get; set; }
     [Inject] private IConfiguration _config { get; set; }
+    [Inject] private Tools _tools { get; set; }
     [CascadingParameter] protected ThemeManagerModel themeManager { get; set; }
 
     private List<PostCategoryListResponse.PostCategoryDetail> _cachedPostCategory { get; set; }
@@ -32,7 +34,8 @@ public partial class PostManage
     {
         if (!_mmc.TryGetValue("PostCategoryList", out List<PostCategoryListResponse.PostCategoryDetail> _postCategoryList))
         {
-            var fetchServiceData = await _post.PostCategoryList();
+            int currentMemberID = await _tools.GetRequesterMemberID();
+            var fetchServiceData = await _post.PostCategoryList(currentMemberID);
             if (fetchServiceData.ErrorException is null)
             {
                 _postCategoryList = fetchServiceData.PostCategories;

@@ -27,6 +27,9 @@ public class MemberService
 
     public async Task<PublicActionResponse> ChangeSelfPassword(MemberChangePasswordRequest changeRequest)
     {
+        if (changeRequest.CurrentMemberID is null)
+            return new() { ErrorException = new() { ErrorCode = "C0" } };
+
         if (changeRequest.OldPassword == changeRequest.NewPassword)
             return new() { ErrorException = new() { ErrorCode = "C15" } };
         changeRequest.OldPassword = changeRequest.OldPassword.HashLogin();
@@ -37,6 +40,9 @@ public class MemberService
 
     public async Task<PublicActionResponse> ChangeUserPassword(MemberChangePasswordAdminRequest changeRequest)
     {
+        if (!await AuthenticationDataAccess.UserValidatePolicyServiceLayer(changeRequest.CurrentMemberID, nameof(MemberRole.MemberManager)))
+            return new() { ErrorException = new() { ErrorCode = "C19", Message = "No Policy on this action" } };
+
         string clearPassword = changeRequest.NewPassword;
         changeRequest.NewPassword = changeRequest.NewPassword.HashLogin();
         var responseItem = await MemberDataAccess.ChangeUserPassword(changeRequest);
@@ -50,17 +56,26 @@ public class MemberService
 
     public async Task<MemberListFinalResponse> MemberList(MemberListRequest listRequest)
     {
+        if (!await AuthenticationDataAccess.UserValidatePolicyServiceLayer(listRequest.CurrentMemberID, nameof(MemberRole.MemberManager)))
+            return new() { ErrorException = new() { ErrorCode = "C19", Message = "No Policy on this action" } };
+
         listRequest.OrderbyParams = listRequest.OrderbyParams.CheckForInjection(new List<string>() { "MemberID", "Username", "Email", "CellphoneNumber", "Gender", "Givenname", "Surname", });
         return await MemberDataAccess.MemberList(listRequest);
     }
 
     public async Task<MemberDetailResponse> MemberDetail(MemberDetailRequest detailRequest)
     {
+        if (!await AuthenticationDataAccess.UserValidatePolicyServiceLayer(detailRequest.CurrentMemberID, nameof(MemberRole.MemberManager)))
+            return new() { ErrorException = new() { ErrorCode = "C19", Message = "No Policy on this action" } };
+
         return await MemberDataAccess.MemberDetail(detailRequest);
     }
 
     public async Task<PublicActionResponse> Register(MemberInsertRequest requestModel)
     {
+        if (!await AuthenticationDataAccess.UserValidatePolicyServiceLayer(requestModel.CurrentMemberID, nameof(MemberRole.MemberManager)))
+            return new() { ErrorException = new() { ErrorCode = "C19", Message = "No Policy on this action" } };
+
         //if (requestModel.Password != requestModel.ConfirmPassword)
         //    return new() { ErrorException = new() { ErrorCode = "C10" } };
         requestModel.Username = requestModel.Username.ToLower();
@@ -70,16 +85,22 @@ public class MemberService
 
     public async Task<PublicActionResponse> RegisterWebsite(MemberWebsiteRegisterRequest requestModel)
     {
-        return await this.Register(requestModel);
+        return await Register(requestModel);
     }
 
     public async Task<PublicActionResponse> ChangeStatus(MemberChangeStatusRequest changeRequest)
     {
+        if (!await AuthenticationDataAccess.UserValidatePolicyServiceLayer(changeRequest.CurrentMemberID, nameof(MemberRole.MemberManager)))
+            return new() { ErrorException = new() { ErrorCode = "C19", Message = "No Policy on this action" } };
+
         return await MemberDataAccess.ChangeStatus(changeRequest);
     }
 
     public async Task<PublicActionResponse> Edit(MemberEditRequest editRequest)
     {
+        if (!await AuthenticationDataAccess.UserValidatePolicyServiceLayer(editRequest.CurrentMemberID, nameof(MemberRole.MemberManager)))
+            return new() { ErrorException = new() { ErrorCode = "C19", Message = "No Policy on this action" } };
+
         //if (!(EditRequest.UsernameChange.HasValue && EditRequest.UsernameChange.Value) &&
         //    !(EditRequest.EmailChange.HasValue && EditRequest.EmailChange.Value) &&
         //    !(EditRequest.CellphoneChange.HasValue && EditRequest.CellphoneChange.Value) &&
@@ -98,7 +119,7 @@ public class MemberService
         //    };
         //}
 
-        if (editRequest.CurrentMemberID.HasValue && editRequest.CurrentMemberID == editRequest.MemberID)
+        if (editRequest.CurrentMemberID == editRequest.MemberID.Value)
             return new() { ErrorException = new() { ErrorCode = "C16" } };
 
         if (!editRequest.MemberID.HasValue || editRequest.MemberID.Value < 1)
@@ -110,18 +131,27 @@ public class MemberService
 
     public async Task<PublicActionResponse> ActivateAdmin(MemberActivateAdminRequest requestModel)
     {
+        if (!await AuthenticationDataAccess.UserValidatePolicyServiceLayer(requestModel.CurrentMemberID, nameof(MemberRole.MemberManager)))
+            return new() { ErrorException = new() { ErrorCode = "C19", Message = "No Policy on this action" } };
+
         return await MemberDataAccess.ActivateAdmin(requestModel);
     }
 
     public async Task<MemberContactListResponse> ContactList(MemberContactListRequest listRequest)
     {
+        if (!await AuthenticationDataAccess.UserValidatePolicyServiceLayer(listRequest.CurrentMemberID, nameof(MemberRole.MemberManager)))
+            return new() { ErrorException = new() { ErrorCode = "C19", Message = "No Policy on this action" } };
+
         return await MemberDataAccess.ContactList(listRequest);
     }
 
     public async Task<PublicActionResponse> ContactUpdate(MemberContactRequest changeRequest)
     {
-        if (changeRequest.CurrentMemberID is null || changeRequest.CurrentMemberID < 1)
-            return new() { ErrorException = new() { ErrorCode = "C12" } };
+        if (!await AuthenticationDataAccess.UserValidatePolicyServiceLayer(changeRequest.CurrentMemberID.Value, nameof(MemberRole.MemberManager)))
+            return new() { ErrorException = new() { ErrorCode = "C19", Message = "No Policy on this action" } };
+
+        if (changeRequest.CurrentMemberID is null) return null;
+
         if (string.IsNullOrEmpty(changeRequest.Address) && string.IsNullOrEmpty(changeRequest.PhoneNumber) && string.IsNullOrEmpty(changeRequest.CellphoneNumber))
             return new() { ErrorException = new() { ErrorCode = "C11" } };
         return await MemberDataAccess.ContactUpdate(changeRequest);
@@ -129,14 +159,19 @@ public class MemberService
 
     public async Task<PublicActionResponse> ContactDelete(MemberContactDeleteRequest deleteRequest)
     {
-        if (deleteRequest.CurrentMemberID is null || deleteRequest.CurrentMemberID < 1)
-            return new() { ErrorException = new() { ErrorCode = "C12" } };
+        if (!await AuthenticationDataAccess.UserValidatePolicyServiceLayer(deleteRequest.CurrentMemberID.Value, nameof(MemberRole.MemberManager)))
+            return new() { ErrorException = new() { ErrorCode = "C19", Message = "No Policy on this action" } };
+
+        if (deleteRequest.CurrentMemberID is null) return null;
 
         return await MemberDataAccess.ContactDelete(deleteRequest);
     }
 
     public async Task<PublicActionResponse> ContactInsert(MemberContactRequest insertRequest)
     {
+        if (!await AuthenticationDataAccess.UserValidatePolicyServiceLayer(insertRequest.CurrentMemberID.Value, nameof(MemberRole.MemberManager)))
+            return new() { ErrorException = new() { ErrorCode = "C19", Message = "No Policy on this action" } };
+
         if (insertRequest.CurrentMemberID is null || insertRequest.CurrentMemberID < 1)
             return new() { ErrorException = new() { ErrorCode = "C12" } };
 
@@ -148,6 +183,10 @@ public class MemberService
 
     public async Task<MemberAvatarListFinalResponse> AvatarList(MemberAvatarListRequest listRequest)
     {
+        if (!await AuthenticationDataAccess.UserValidatePolicyServiceLayer(listRequest.CurrentMemberID, nameof(MemberRole.MemberManager)))
+            return new() { ErrorException = new() { ErrorCode = "C19", Message = "No Policy on this action" } };
+
+        listRequest.MemberID ??= listRequest.CurrentMemberID;
         var fetchAvatars = await MemberDataAccess.AvatarList(listRequest);
         if (fetchAvatars.ErrorException is not null)
             return new() { ErrorException = fetchAvatars.ErrorException };
@@ -171,15 +210,16 @@ public class MemberService
 
     public async Task<PublicActionResponse> AvatarDelete(MemberAvatarDeleteRequest deleteRequest)
     {
-        if (deleteRequest.CurrentMemberID is null || deleteRequest.CurrentMemberID < 1)
-            return new() { ErrorException = new() { ErrorCode = "C12" } };
+        if (!await AuthenticationDataAccess.UserValidatePolicyServiceLayer(deleteRequest.CurrentMemberID.Value, nameof(MemberRole.MemberManager)))
+            return new() { ErrorException = new() { ErrorCode = "C19", Message = "No Policy on this action" } };
 
+        deleteRequest.MemberID ??= deleteRequest.CurrentMemberID;
 
         var removeResponse = await MemberDataAccess.AvatarDelete(deleteRequest);
 
         if (removeResponse.SuccessAction && removeResponse.ErrorException is null)
         {
-            return FileService.Remove(new() { FileCategoryID = removeResponse.FileCategoryID, FileCode = deleteRequest.AvatarCode.ToString(), FilePath = removeResponse.FilePath });
+            return await FileService.Remove(new() { FileCategoryID = removeResponse.FileCategoryID, FileCode = deleteRequest.AvatarCode.ToString(), FilePath = removeResponse.FilePath });
         }
 
         return new() { SuccessAction = removeResponse.SuccessAction, ErrorException = removeResponse.ErrorException };
@@ -187,8 +227,10 @@ public class MemberService
 
     public async Task<PublicActionResponse> AvatarInsert(MemberAvatarInsertRequest insertRequest)
     {
-        if (insertRequest.CurrentMemberID is null || insertRequest.CurrentMemberID < 1)
-            return new() { ErrorException = new() { ErrorCode = "C12" } };
+        if (!await AuthenticationDataAccess.UserValidatePolicyServiceLayer(insertRequest.CurrentMemberID.Value, nameof(MemberRole.MemberManager)))
+            return new() { ErrorException = new() { ErrorCode = "C19", Message = "No Policy on this action" } };
+
+        insertRequest.MemberID ??= insertRequest.CurrentMemberID;
 
         Guid fileCode = Guid.NewGuid();
         var insertFile = await _files.Insert(new Shared.DTO.File.FileInsertRequest() { FileCategoryID = 1, FileCode = fileCode.ToString(), FileName = insertRequest.FileName, FilePath = insertRequest.CurrentMemberID.ToString(), FileStream = insertRequest.FileStream, UploaderID = insertRequest.UploaderMemberID });
@@ -200,23 +242,27 @@ public class MemberService
 
         var responseItem = await MemberDataAccess.AvatarInsert(insertRequest);
         if (responseItem.SuccessAction) responseItem.ObjectID = fileCode.ToString();
-        if (responseItem.SuccessAction && insertRequest.SetAsDefault) await this.AvatarDefault(new MemberAvatarDefaultRequest() { FileCode = fileCode, CurrentMemberID = insertRequest.CurrentMemberID });
+        if (responseItem.SuccessAction && insertRequest.SetAsDefault) await AvatarDefault(new() { FileCode = fileCode, CurrentMemberID = insertRequest.CurrentMemberID });
 
         return responseItem;
     }
 
     public async Task<PublicActionResponse> AvatarDefault(MemberAvatarDefaultRequest changeRequest)
     {
-        if (changeRequest.CurrentMemberID is null || changeRequest.CurrentMemberID < 1)
-            return new() { ErrorException = new() { ErrorCode = "C12" } };
+        if (!await AuthenticationDataAccess.UserValidatePolicyServiceLayer(changeRequest.CurrentMemberID.Value, nameof(MemberRole.MemberManager)))
+            return new() { ErrorException = new() { ErrorCode = "C19", Message = "No Policy on this action" } };
+
+        changeRequest.MemberID ??= changeRequest.CurrentMemberID;
 
         return await MemberDataAccess.AvatarDefault(changeRequest);
     }
 
     public async Task<PublicActionResponse> SendActivateLink(MemberActivateSendLinkRequest sendRequest)
     {
-        if (sendRequest.CurrentMemberID is null || sendRequest.CurrentMemberID < 1)
-            return new() { ErrorException = new() { ErrorCode = "C12" } };
+        if (!await AuthenticationDataAccess.UserValidatePolicyServiceLayer(sendRequest.CurrentMemberID.Value, nameof(MemberRole.MemberManager)))
+            return new() { ErrorException = new() { ErrorCode = "C19", Message = "No Policy on this action" } };
+
+        sendRequest.MemberID ??= sendRequest.CurrentMemberID;
 
         return await MemberDataAccess.ActivateLinkInsert(sendRequest.CurrentMemberID.Value);
     }
@@ -316,12 +362,18 @@ public class MemberService
 
     public async Task<SubscribeListResponse> MemberSubscribedList(SubscribeListRequest requestModel)
     {
+        if (!await AuthenticationDataAccess.UserValidatePolicyServiceLayer(requestModel.CurrentMemberID, nameof(MemberRole.MemberManager)))
+            return new() { ErrorException = new() { ErrorCode = "C19", Message = "No Policy on this action" } };
+
         requestModel.OrderbyParams = requestModel.OrderbyParams.CheckForInjection(new List<string>() { "EmailSubscribeID", "Email", "LogTime" });
         return await MemberDataAccess.MemberSubscribedList(requestModel);
     }
 
     public async Task<PublicActionResponse> MemberSubscribedChangeStatus(SubscribedChangeStatusRequest requestModel)
     {
+        if (!await AuthenticationDataAccess.UserValidatePolicyServiceLayer(requestModel.CurrentMemberID, nameof(MemberRole.MemberManager)))
+            return new() { ErrorException = new() { ErrorCode = "C19", Message = "No Policy on this action" } };
+
         return await MemberDataAccess.MemberSubscribedChangeStatus(requestModel);
     }
 
@@ -330,56 +382,89 @@ public class MemberService
     #region Policy & Role
     public async Task<RoleListResponse> RoleList(RoleListRequest requestModel)
     {
+        if (!await AuthenticationDataAccess.UserValidatePolicyServiceLayer(requestModel.CurrentMemberID, nameof(MemberRole.PolicyManager)))
+            return new() { ErrorException = new() { ErrorCode = "C19", Message = "No Policy on this action" } };
+
         return await MemberDataAccess.RoleList(requestModel);
     }
 
     public async Task<List<PolicyListOnInsertMemberResponse>> PolicyListOnMemberManage(int memberID)
     {
+        if (!await AuthenticationDataAccess.UserValidatePolicyServiceLayer(memberID, nameof(MemberRole.PolicyManager)))
+            return null;
+
         return await MemberDataAccess.PolicyListOnMemberManage(memberID);
     }
 
     public async Task<List<RoleListOnPolicyManageResponse>> RoleListOnPolicyManage(int memberID)
     {
+        if (!await AuthenticationDataAccess.UserValidatePolicyServiceLayer(memberID, nameof(MemberRole.PolicyManager)))
+            return null;
+
         return await MemberDataAccess.RoleListOnPolicyManage(memberID);
     }
 
     public async Task<PolicyListResponse> PolicyList(PolicyListRequest requestModel)
     {
+        if (!await AuthenticationDataAccess.UserValidatePolicyServiceLayer(requestModel.CurrentMemberID, nameof(MemberRole.PolicyManager)))
+            return new() { ErrorException = new() { ErrorCode = "C19", Message = "No Policy on this action" } };
+
         return await MemberDataAccess.PolicyList(requestModel);
     }
 
     public async Task<PolicyRoleListResponse> PolicyRolesList(PolicyRoleListRequest requestModel)
     {
+        if (!await AuthenticationDataAccess.UserValidatePolicyServiceLayer(requestModel.CurrentMemberID, nameof(MemberRole.PolicyManager)))
+            return new() { ErrorException = new() { ErrorCode = "C19", Message = "No Policy on this action" } };
+
         return await MemberDataAccess.PolicyRolesList(requestModel);
     }
 
     public async Task<PublicActionResponse> PolicyInsert(PolicyInsertRequest requestModel)
     {
+        if (!await AuthenticationDataAccess.UserValidatePolicyServiceLayer(requestModel.CurrentMemberID, nameof(MemberRole.PolicyManager)))
+            return new() { ErrorException = new() { ErrorCode = "C19", Message = "No Policy on this action" } };
+
         return await MemberDataAccess.PolicyInsert(requestModel);
     }
 
     public async Task<PolicyDetailResponse> PolicyDetail(PolicyDetailRequest requestModel)
     {
+        if (!await AuthenticationDataAccess.UserValidatePolicyServiceLayer(requestModel.CurrentMemberID, nameof(MemberRole.PolicyManager)))
+            return new() { ErrorException = new() { ErrorCode = "C19", Message = "No Policy on this action" } };
+
         return await MemberDataAccess.PolicyDetail(requestModel);
     }
 
     public async Task<PublicActionResponse> PolicyUpdate(PolicyUpdateRequest requestModel)
     {
+        if (!await AuthenticationDataAccess.UserValidatePolicyServiceLayer(requestModel.CurrentMemberID, nameof(MemberRole.PolicyManager)))
+            return new() { ErrorException = new() { ErrorCode = "C19", Message = "No Policy on this action" } };
+
         return await MemberDataAccess.PolicyUpdate(requestModel);
     }
 
     public async Task<PublicActionResponse> PolicyChangeStatus(PolicyChangeStatusRequest requestModel)
     {
+        if (!await AuthenticationDataAccess.UserValidatePolicyServiceLayer(requestModel.CurrentMemberID, nameof(MemberRole.PolicyManager)))
+            return new() { ErrorException = new() { ErrorCode = "C19", Message = "No Policy on this action" } };
+
         return await MemberDataAccess.PolicyChangeStatus(requestModel);
     }
 
     public async Task<PublicActionResponse> PolicyRoleRemove(PolicyRoleRemoveRequest requestModel)
     {
+        if (!await AuthenticationDataAccess.UserValidatePolicyServiceLayer(requestModel.CurrentMemberID, nameof(MemberRole.PolicyManager)))
+            return new() { ErrorException = new() { ErrorCode = "C19", Message = "No Policy on this action" } };
+
         return await MemberDataAccess.PolicyRoleRemove(requestModel);
     }
 
     public async Task<PublicActionResponse> MemberRoleAppend(PolicyRoleAppendRequest requestModel)
     {
+        if (!await AuthenticationDataAccess.UserValidatePolicyServiceLayer(requestModel.CurrentMemberID, nameof(MemberRole.PolicyManager)))
+            return new() { ErrorException = new() { ErrorCode = "C19", Message = "No Policy on this action" } };
+
         return await MemberDataAccess.MemberRoleAppend(requestModel);
     }
 

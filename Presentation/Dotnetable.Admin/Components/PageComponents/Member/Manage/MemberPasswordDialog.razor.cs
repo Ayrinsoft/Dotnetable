@@ -1,4 +1,5 @@
-﻿using Dotnetable.Service;
+﻿using Dotnetable.Admin.SharedServices;
+using Dotnetable.Service;
 using Dotnetable.Shared.DTO.Member;
 using Dotnetable.Shared.Tools;
 using Microsoft.AspNetCore.Components;
@@ -13,10 +14,16 @@ public partial class MemberPasswordDialog
     [CascadingParameter] MudDialogInstance MudDialog { get; set; }
 
     [Inject] private MemberService _member { get; set; }
+    [Inject] private Tools _tools { get; set; }
     [Inject] private ISnackbar _snackbar { get; set; }
     [Inject] private IStringLocalizer<Dotnetable.Shared.Resources.Resource> _loc { get; set; }
-    [Parameter] public int CurrentMemberID { get; set; }
+    [Parameter] public int SelectedMemberID { get; set; }
+    int currentMemberID = -1;
 
+    protected override async Task OnInitializedAsync()
+    {
+        currentMemberID = await _tools.GetRequesterMemberID();
+    }
 
     private string _newPassword = "";
 
@@ -31,9 +38,10 @@ public partial class MemberPasswordDialog
 
         MemberChangePasswordAdminRequest changeRequest = new()
         {
-            MemberID = CurrentMemberID,
+            MemberID = SelectedMemberID,
             NewPassword = _newPassword,
-            SendMailForUser = true
+            SendMailForUser = true,
+            CurrentMemberID = currentMemberID
         };
         var changeResponse = await _member.ChangeUserPassword(changeRequest);
         if (changeResponse.SuccessAction)

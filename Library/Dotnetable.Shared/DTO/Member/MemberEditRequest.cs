@@ -4,6 +4,7 @@ namespace Dotnetable.Shared.DTO.Member;
 
 public class MemberEditRequest
 {
+    public int CurrentMemberID { get; set; }
     public int? MemberID { get; set; }
 
     [Required(AllowEmptyStrings = false, ErrorMessageResourceType = typeof(Resources.Resource), ErrorMessageResourceName = nameof(Resources.Resource._Err_Authentication_Username_Required))]
@@ -43,5 +44,4 @@ public class MemberEditRequest
     public string PostalCode { get; set; }
 
     public int? PolicyID { get; set; }
-    public int? CurrentMemberID { get; set; }
 }

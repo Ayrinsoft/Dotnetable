@@ -2,6 +2,7 @@
 
 public class QRCodeUpdateRequest
 {
+    public int CurrentMemberID { get; set; }
     public PostPublicPageDetailUpdateRequest PublicPostDetail { get; set; }
     public StaticPageDetailQRCodeResponse QRCodeDetail { get; set; }
 }

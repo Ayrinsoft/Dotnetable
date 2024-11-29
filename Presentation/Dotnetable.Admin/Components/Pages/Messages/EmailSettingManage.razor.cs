@@ -28,6 +28,7 @@ public partial class EmailSettingManage
     protected async override Task OnInitializedAsync()
     {
         memberID = await _tools.GetRequesterMemberID();
+        _listRequest = new() { CurrentMemberID = memberID };
         _gridHeaderParams = new()
         {
             HeaderItems = new()
@@ -65,7 +66,8 @@ public partial class EmailSettingManage
             SkipCount = ((_gridHeaderParams.Pagination.PageIndex - 1) * _gridHeaderParams.Pagination.PageSize),
             TakeCount = _gridHeaderParams.Pagination.PageSize,
             OrderbyParams = _gridHeaderParams.OrderbyParams,
-            EmailName = _gridHeaderParams.HeaderItems.FirstOrDefault(i => i.ColumnName == nameof(EmailPanelListResponse.EmailSettingDetail.EmailName))?.SearchText ?? ""
+            EmailName = _gridHeaderParams.HeaderItems.FirstOrDefault(i => i.ColumnName == nameof(EmailPanelListResponse.EmailSettingDetail.EmailName))?.SearchText ?? "",
+            CurrentMemberID = memberID
         };
     }
 
@@ -91,7 +93,10 @@ public partial class EmailSettingManage
         var dialogresponseData = checkDialogData.Data.CastModel<EmailPanelUpdateRequest>();
         if (dialogresponseData is null) return;
 
-        var updateOnAPIResponse = await _message.EmailSettingInsert(dialogresponseData.CastModel<EmailPanelInsertRequest>());
+        var settingsInsert = dialogresponseData.CastModel<EmailPanelInsertRequest>();
+        settingsInsert.CurrentMemberID = memberID;
+
+        var updateOnAPIResponse = await _message.EmailSettingInsert(settingsInsert);
         if (!updateOnAPIResponse.SuccessAction)
         {
             _snackbar.Add($"{((updateOnAPIResponse.ErrorException?.ErrorCode ?? "") == "" ? _loc["_FailedAction"] : _loc[$"_ERROR_{updateOnAPIResponse.ErrorException?.ErrorCode}"])} {_loc["_Email_Setting_Insert"]}", Severity.Error);
@@ -103,7 +108,7 @@ public partial class EmailSettingManage
 
     private async Task ChangeActiveStatus(EmailPanelListResponse.EmailSettingDetail requestModel)
     {
-        var fetchResponse = await _message.EmailSettingChangeStatus(new() { EmailSettingID = requestModel.EmailSettingID });
+        var fetchResponse = await _message.EmailSettingChangeStatus(new() { EmailSettingID = requestModel.EmailSettingID, CurrentMemberID = memberID });
         if (!fetchResponse.SuccessAction)
         {
             _snackbar.Add($"{((fetchResponse.ErrorException?.ErrorCode ?? "") == "" ? _loc["_FailedAction"] : _loc[$"_ERROR_{fetchResponse.ErrorException?.ErrorCode}"])} {_loc["_Active_DeActive"]}", Severity.Error);
@@ -123,6 +128,7 @@ public partial class EmailSettingManage
         if (dialogresponseData is null) return;
 
         dialogresponseData.EmailSettingID = requestModel.EmailSettingID;
+        dialogresponseData.CurrentMemberID = memberID;
 
         var updateOnAPIResponse = await _message.EmailSettingUpdate(dialogresponseData);
         if (!updateOnAPIResponse.SuccessAction)

@@ -2,6 +2,7 @@
 
 public class PostCategoryUpdateOtherLanguageRequest
 {
+    public int CurrentMemberID { get; set; }
     public int PostCategoryID { get; set; }
     public string LanguageCode { get; set; }
     public string Title { get; set; }

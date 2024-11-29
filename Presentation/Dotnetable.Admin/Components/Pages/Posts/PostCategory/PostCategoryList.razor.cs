@@ -1,6 +1,6 @@
-﻿using Dotnetable.Service;
+﻿using Dotnetable.Admin.SharedServices;
+using Dotnetable.Service;
 using Dotnetable.Shared.DTO.Post;
-using Dotnetable.Shared.Tools;
 using Microsoft.AspNetCore.Components;
 using Microsoft.Extensions.Caching.Memory;
 
@@ -10,6 +10,7 @@ public partial class PostCategoryList
 {
     [Inject] private PostService _post { get; set; }
     [Inject] private IMemoryCache _mmc { get; set; }
+    [Inject] private Tools _tools { get; set; }
 
     [Parameter] public string CssClass { get; set; }
     [Parameter] public EventCallback<int> SelectedLastPostCategoryID { get; set; }
@@ -22,7 +23,8 @@ public partial class PostCategoryList
     {
         if (!_mmc.TryGetValue("PostCategoryList", out List<PostCategoryListResponse.PostCategoryDetail> _postCategoryList))
         {
-            var fetchPostCategory = await _post.PostCategoryList();
+            int currentMemberID = await _tools.GetRequesterMemberID();
+            var fetchPostCategory = await _post.PostCategoryList(currentMemberID);
             if (fetchPostCategory.ErrorException is null)
             {
                 _postCategoryList = fetchPostCategory.PostCategories;

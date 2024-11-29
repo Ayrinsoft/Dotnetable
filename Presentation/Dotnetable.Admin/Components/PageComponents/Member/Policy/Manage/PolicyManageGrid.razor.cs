@@ -20,10 +20,12 @@ public partial class PolicyManageGrid
     private PolicyListRequest _policyListRequest { get; set; } = new();
     private PolicyListResponse _policyListResponse { get; set; }
     private GridViewHeaderParameters _gridHeaderParams { get; set; }
+    int memberID = -1;
 
     protected async override Task OnInitializedAsync()
     {
-        _policyListRequest = new();
+        memberID = await _tools.GetRequesterMemberID();
+        _policyListRequest = new() { CurrentMemberID = memberID };
         _gridHeaderParams = new()
         {
             HeaderItems = new()
@@ -49,15 +51,15 @@ public partial class PolicyManageGrid
         await FetchGrid();
     }
 
-    private async void RefreshRequestInput()
+    private void RefreshRequestInput()
     {
-        _policyListRequest = new PolicyListRequest()
+        _policyListRequest = new()
         {
             SkipCount = (_gridHeaderParams.Pagination.PageIndex - 1) * _gridHeaderParams.Pagination.PageSize,
             TakeCount = _gridHeaderParams.Pagination.PageSize,
             OrderbyParams = _gridHeaderParams.OrderbyParams,
             Title = _gridHeaderParams.HeaderItems.FirstOrDefault(i => i.ColumnName == nameof(PolicyListResponse.PolicyDetail.Title)).SearchText, 
-            CurrentMemberID = await _tools.GetRequesterMemberID()
+            CurrentMemberID = memberID
         };
     }
 
@@ -76,7 +78,7 @@ public partial class PolicyManageGrid
     #region CRUD
     private async Task ChangeActiveStatus(PolicyListResponse.PolicyDetail requestModel)
     {
-        var fetchResponse = await _member.PolicyChangeStatus(new() { PolicyID = requestModel.PolicyID, CurrentMemberID = await _tools.GetRequesterMemberID() });
+        var fetchResponse = await _member.PolicyChangeStatus(new() { PolicyID = requestModel.PolicyID, CurrentMemberID = memberID });
         if (fetchResponse.SuccessAction)
         {
             requestModel.Active = !requestModel.Active;
@@ -98,7 +100,7 @@ public partial class PolicyManageGrid
         //var FetchPolicyItem = (from i in PolicyListResponse.Policies where i.PolicyID == SelectedPolicyID select i).FirstOrDefault();
         //if (FetchPolicyItem is null) return;
 
-        var fetchResponse = await _member.PolicyUpdate(new() { PolicyID = requestModel.PolicyID, Title = requestModel.Title });
+        var fetchResponse = await _member.PolicyUpdate(new() { PolicyID = requestModel.PolicyID, Title = requestModel.Title , CurrentMemberID = memberID});
         if (fetchResponse.SuccessAction)
         {
             _snackbar.Add($"{_loc["_SuccessAction"]} {_loc["_Update"]}", Severity.Success);

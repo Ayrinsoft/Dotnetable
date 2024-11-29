@@ -8,6 +8,7 @@ namespace Dotnetable.Shared.DTO.Post;
 
 public class PostCategoryUpdateRequest
 {
+    public int CurrentMemberID { get; set; }
     public int PostCategoryID { get; set; }
     public bool MenuView { get; set; }
     public string Title { get; set; }

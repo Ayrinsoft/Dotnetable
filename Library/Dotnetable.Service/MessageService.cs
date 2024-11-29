@@ -56,21 +56,33 @@ public class MessageService
 
     public async Task<PublicActionResponse> EmailSettingInsert(EmailPanelInsertRequest requestModel)
     {
+        if (!await AuthenticationDataAccess.UserValidatePolicyServiceLayer(requestModel.CurrentMemberID, nameof(MemberRole.MessageManager)))
+            return new() { ErrorException = new() { ErrorCode = "C19", Message = "No Policy on this action" } };
+
         return await MessageDataAccess.EmailSettingInsert(requestModel);
     }
 
     public async Task<PublicActionResponse> EmailSettingUpdate(EmailPanelUpdateRequest requestModel)
     {
+        if (!await AuthenticationDataAccess.UserValidatePolicyServiceLayer(requestModel.CurrentMemberID, nameof(MemberRole.MessageManager)))
+            return new() { ErrorException = new() { ErrorCode = "C19", Message = "No Policy on this action" } };
+
         return await MessageDataAccess.EmailSettingUpdate(requestModel);
     }
 
     public async Task<PublicActionResponse> EmailSettingChangeStatus(EmailPanelChangeStatusRequest requestModel)
     {
+        if (!await AuthenticationDataAccess.UserValidatePolicyServiceLayer(requestModel.CurrentMemberID, nameof(MemberRole.MessageManager)))
+            return new() { ErrorException = new() { ErrorCode = "C19", Message = "No Policy on this action" } };
+
         return await MessageDataAccess.EmailSettingChangeStatus(requestModel);
     }
 
     public async Task<EmailPanelListResponse> EmailSettingList(EmailPanelListRequest requestModel)
     {
+        if (!await AuthenticationDataAccess.UserValidatePolicyServiceLayer(requestModel.CurrentMemberID, nameof(MemberRole.MessageManager)))
+            return new() { ErrorException = new() { ErrorCode = "C19", Message = "No Policy on this action" } };
+
         requestModel.OrderbyParams = requestModel.OrderbyParams.CheckForInjection(new List<string>() { "i.EmailSettingID" });
         requestModel.EmailName ??= "";
         return await MessageDataAccess.EmailSettingList(requestModel);
@@ -99,17 +111,26 @@ public class MessageService
 
     public async Task<MessageContactUsListResponse> ContactUsMessageList(MessageContactUsListRequest requestModel)
     {
+        if (!await AuthenticationDataAccess.UserValidatePolicyServiceLayer(requestModel.CurrentMemberID, nameof(MemberRole.MessageManager)))
+            return new() { ErrorException = new() { ErrorCode = "C19", Message = "No Policy on this action" } };
+
         requestModel.OrderbyParams = requestModel.OrderbyParams.CheckForInjection(new List<string>() { "ContactUsMessagesID", "SenderName", "EmailAddress", "CellphoneNumber", "LogTime", "SenderIPAddress" });
         return await MessageDataAccess.MessageContactUsList(requestModel);
     }
 
     public async Task<PublicActionResponse> ContactUsMessageArchive(MessageContactUsChangesRequest requestModel)
     {
+        if (!await AuthenticationDataAccess.UserValidatePolicyServiceLayer(requestModel.CurrentMemberID, nameof(MemberRole.MessageManager)))
+            return new() { ErrorException = new() { ErrorCode = "C19", Message = "No Policy on this action" } };
+
         return await MessageDataAccess.ContactUsMessageArchive(requestModel);
     }
 
     public async Task<PublicActionResponse> ContactUsMessageDelete(MessageContactUsChangesRequest requestModel)
     {
+        if (!await AuthenticationDataAccess.UserValidatePolicyServiceLayer(requestModel.CurrentMemberID, nameof(MemberRole.MessageManager)))
+            return new() { ErrorException = new() { ErrorCode = "C19", Message = "No Policy on this action" } };
+
         return await MessageDataAccess.ContactUsMessageDelete(requestModel);
     }
 

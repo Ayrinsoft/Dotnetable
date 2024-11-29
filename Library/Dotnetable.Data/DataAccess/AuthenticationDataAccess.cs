@@ -70,5 +70,15 @@ public class AuthenticationDataAccess
                       select m).AnyAsync();
     }
 
+    public static async Task<bool> UserValidatePolicyServiceLayer(int memberID, string roleKey)
+    {
+        using DotnetableEntity db = new();
+        return await (from m in db.TB_Members
+                      join pr in db.TBM_Policy_Roles on m.PolicyID equals pr.PolicyID
+                      join r in db.TB_Roles on pr.RoleID equals r.RoleID
+                      where r.Active && pr.Active && m.Active && m.MemberID == memberID && r.RoleKey == roleKey
+                      select m).AnyAsync();
+    }
+
 
 }
