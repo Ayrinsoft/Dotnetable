@@ -89,6 +89,7 @@ public partial class PostCategoryManage
         var dialogresponseData = checkDialogData.Data.CastModel<PostCategoryInsertRequest>();
         if (dialogresponseData is null) return;
         dialogresponseData.ParentID = parentID;
+        dialogresponseData.CurrentMemberID = currentMemberID;
 
         var serviceResponse = await _post.PostCategoryInsert(dialogresponseData);
         if (!serviceResponse.SuccessAction)
@@ -109,7 +110,7 @@ public partial class PostCategoryManage
         var updateModel = _cachedPostCategory.FirstOrDefault(i => i.PostCategoryID == Convert.ToInt32(e.Data));
         if (updateModel is null) return;
 
-        var serviceResponse = await _post.PostCategoryDetail(new() { PostCategoryID = updateModel.PostCategoryID, LanguageCode = updateModel.LanguageCode });
+        var serviceResponse = await _post.PostCategoryDetail(new() { PostCategoryID = updateModel.PostCategoryID, LanguageCode = updateModel.LanguageCode, CurrentMemberID = currentMemberID });
         if (serviceResponse.ErrorException is not null) return;
 
         var checkDialogData = await _dialogService.Show<PostCategoryDialog>(_loc["_SlideShow_Update"], options: new DialogOptions { CloseButton = true, CloseOnEscapeKey = true, FullWidth = true }, parameters: new() { { "FormModel", serviceResponse }, { "DefaultLanguageCode", "EN" } }).Result;
@@ -117,6 +118,7 @@ public partial class PostCategoryManage
 
         var dialogresponseData = checkDialogData.Data.CastModel<PostCategoryUpdateRequest>();
         if (dialogresponseData is null) return;
+        dialogresponseData.CurrentMemberID = currentMemberID;
 
         var updateServiceResponse = await _post.PostCategoryUpdate(dialogresponseData);
         if (!updateServiceResponse.SuccessAction)
@@ -143,7 +145,7 @@ public partial class PostCategoryManage
         var updateModel = _cachedPostCategory.FirstOrDefault(i => i.PostCategoryID == Convert.ToInt32(e.Data));
         if (updateModel is null) return;
 
-        var serviceResponse = await _post.PostCategoryChangeStatus(new() { PostCategoryID = Convert.ToInt32(e.Data) });
+        var serviceResponse = await _post.PostCategoryChangeStatus(new() { PostCategoryID = Convert.ToInt32(e.Data), CurrentMemberID = currentMemberID });
         if (!serviceResponse.SuccessAction)
         {
             _snackbar.Add($"{_loc["_FailedAction"]} {_loc["_PostCategory_ChangeStatus"]}", Severity.Error);
@@ -168,7 +170,7 @@ public partial class PostCategoryManage
         var updateModel = _cachedPostCategory.FirstOrDefault(i => i.PostCategoryID == postCategoryID);
         if (updateModel is null) return;
 
-        var postCategoryDetailResponse = await _post.PostCategoryDetail(new() { PostCategoryID = postCategoryID, LanguageCode = promptResponse.Data.ToString() });
+        var postCategoryDetailResponse = await _post.PostCategoryDetail(new() { PostCategoryID = postCategoryID, LanguageCode = promptResponse.Data.ToString(), CurrentMemberID = currentMemberID });
 
         PostCategoryUpdateOtherLanguageRequest formModel = new() { PostCategoryID = postCategoryID, LanguageCode = promptResponse.Data.ToString() };
         if (postCategoryDetailResponse.ErrorException is null && postCategoryDetailResponse is not null)
@@ -182,6 +184,7 @@ public partial class PostCategoryManage
         var dialogresponseData = checkDialogData.Data.CastModel<PostCategoryUpdateOtherLanguageRequest>();
         if (dialogresponseData is null) return;
         dialogresponseData.PostCategoryID = postCategoryID;
+        dialogresponseData.CurrentMemberID = currentMemberID;
 
         var serviceResponse = await _post.PostCategoryUpdateOtherLanguage(dialogresponseData);
         if (!serviceResponse.SuccessAction)
