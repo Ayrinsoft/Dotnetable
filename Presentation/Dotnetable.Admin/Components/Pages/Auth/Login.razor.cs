@@ -1,7 +1,6 @@
 ﻿using Blazored.LocalStorage;
 using Dotnetable.Admin.Models;
-using Dotnetable.Admin.SharedServices.Authorization;
-using Dotnetable.Service;
+using Dotnetable.Admin.SharedServices.Data;
 using Dotnetable.Shared.Tools;
 using Microsoft.AspNetCore.Components;
 using Microsoft.AspNetCore.Components.Authorization;
@@ -16,13 +15,12 @@ public partial class Login
     [CascadingParameter] protected ThemeManagerModel themeManager { get; set; }
     [Inject] private AuthenticationStateProvider _authenticationStateProvider { get; set; }
     [Inject] private NavigationManager _navigationManager { get; set; }
+    [Inject] private IHttpServices _httpService { get; set; }
     [Inject] private IStringLocalizer<Dotnetable.Shared.Resources.Resource> _loc { get; set; }
     [Inject] private ILocalStorageService _localStorage { get; set; }
     [Inject] private ISnackbar _snackbar { get; set; }
     [Inject] private IConfiguration _appSettingsConfig { get; set; }
     [Inject] private IJSRuntime _jsRuntime { get; set; }
-    [Inject] private AuthenticationService _auth { get; set; }
-    [Inject] private IConfiguration _config { get; set; }
 
     private Dotnetable.Shared.DTO.Authentication.UserLoginRequest _loginRequest;
 
@@ -68,13 +66,14 @@ public partial class Login
             }
         }
 
-        var parsedUserDetail = await _auth.LoginUser(_loginRequest, LocalSecret.TokenHashKey(_config["AdminPanelSettings:ClientHash"]));
-        if (parsedUserDetail.ErrorException is not null)
+        var userDetail = await _httpService.CallServiceObjAsync(HttpMethod.Post, false, "Authentication/Login", _loginRequest.ToJsonString());
+        if (!userDetail.Success)
         {
-            _snackbar.Add($"{_loc["_ERROR_C1"]} {_loc["_Login"]}", Severity.Error);
+            _snackbar.Add($"{_loc[(userDetail.ErrorException?.ErrorCode is null ? "_ERROR_NULLDATA" : $"_ERROR_{userDetail.ErrorException.ErrorCode}")]} {_loc["_Login"]}", Severity.Error);
             return;
         }
 
+        var parsedUserDetail = userDetail.ResponseData.CastModel<Dotnetable.Shared.DTO.Authentication.UserLoginResponse>();
         await ((SharedServices.CustomAuthentication)_authenticationStateProvider).MarkUserAsAuthenticated(parsedUserDetail);
         _navigationManager.NavigateTo("/");
     }

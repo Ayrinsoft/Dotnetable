@@ -30,7 +30,7 @@ public class PostInsertRequest
     [StringLength(2, ErrorMessageResourceType = typeof(Resources.Resource), ErrorMessageResourceName = nameof(Resources.Resource._Err_MaxLength_2))]
     [MinLength(2, ErrorMessageResourceType = typeof(Resources.Resource), ErrorMessageResourceName = nameof(Resources.Resource._Err_MinLength_2))]
     public string LanguageCode { get; set; }
-    public int CurrentMemberID { get; set; }
+    public int? CurrentMemberID { get; set; }
     public bool Active { get; set; }
     public System.Guid? MainImage { get; set; }
 }

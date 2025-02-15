@@ -6,7 +6,7 @@ namespace Dotnetable.Admin.Components.PageComponents.Member.Manage;
 
 public partial class MemberDialog
 {
-    [CascadingParameter] MudDialogInstance MudDialog { get; set; }
+    [CascadingParameter] IMudDialogInstance MudDialog { get; set; }
     [Parameter] public string FunctionName { get; set; }
     [Parameter] public MemberInsertRequest FormModel { get; set; }
 

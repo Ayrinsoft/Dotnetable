@@ -59,34 +59,34 @@ public class CommentController : ControllerBase
         };
     }
 
-    //[Authorize(nameof(MemberRole.CommentManager))]
-    //[HttpPost("PostCommentAdminList")]
-    //public async Task<ActionResult<PublicControllerResponse>> PostCommentAdminList(PostCommentListAdminRequest requestModel)
-    //{
-    //    var responseData = await _comm.PostCommentAdminList(requestModel);
-    //    string responseExeption = responseData.ErrorException is null ? string.Empty : responseData.ErrorException.ToJsonString();
-    //    responseData.ErrorException = null;
-    //    return new PublicControllerResponse()
-    //    {
-    //        ResponseData = responseData,
-    //        Success = responseData is not null && string.IsNullOrEmpty(responseExeption),
-    //        ErrorException = string.IsNullOrEmpty(responseExeption) ? null : responseExeption.JsonToObject<ErrorExceptionResponse>()
-    //    };
-    //}
+    [Authorize(nameof(MemberRole.CommentManager))]
+    [HttpPost("PostCommentAdminList")]
+    public async Task<ActionResult<PublicControllerResponse>> PostCommentAdminList(PostCommentListAdminRequest requestModel)
+    {
+        var responseData = await _comm.PostCommentAdminList(requestModel);
+        string responseExeption = responseData.ErrorException is null ? string.Empty : responseData.ErrorException.ToJsonString();
+        responseData.ErrorException = null;
+        return new PublicControllerResponse()
+        {
+            ResponseData = responseData,
+            Success = responseData is not null && string.IsNullOrEmpty(responseExeption),
+            ErrorException = string.IsNullOrEmpty(responseExeption) ? null : responseExeption.JsonToObject<ErrorExceptionResponse>()
+        };
+    }
 
-    //[Authorize(nameof(MemberRole.CommentManager))]
-    //[HttpPost("AdminApproveComment")]
-    //public async Task<ActionResult<PublicControllerResponse>> AdminApproveComment(AdminApproveCommentRequest requestModel)
-    //{
-    //    var responseData = await _comm.AdminApproveComment(requestModel);
-    //    string responseExeption = responseData.ErrorException is null ? string.Empty : responseData.ErrorException.ToJsonString();
-    //    responseData.ErrorException = null;
-    //    return new PublicControllerResponse()
-    //    {
-    //        ResponseData = responseData,
-    //        Success = responseData is not null && string.IsNullOrEmpty(responseExeption),
-    //        ErrorException = string.IsNullOrEmpty(responseExeption) ? null : responseExeption.JsonToObject<ErrorExceptionResponse>()
-    //    };
-    //}
+    [Authorize(nameof(MemberRole.CommentManager))]
+    [HttpPost("AdminApproveComment")]
+    public async Task<ActionResult<PublicControllerResponse>> AdminApproveComment(AdminApproveCommentRequest requestModel)
+    {
+        var responseData = await _comm.AdminApproveComment(requestModel);
+        string responseExeption = responseData.ErrorException is null ? string.Empty : responseData.ErrorException.ToJsonString();
+        responseData.ErrorException = null;
+        return new PublicControllerResponse()
+        {
+            ResponseData = responseData,
+            Success = responseData is not null && string.IsNullOrEmpty(responseExeption),
+            ErrorException = string.IsNullOrEmpty(responseExeption) ? null : responseExeption.JsonToObject<ErrorExceptionResponse>()
+        };
+    }
 
 }

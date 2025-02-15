@@ -1,8 +1,8 @@
 ﻿using Dotnetable.Admin.Components.Shared.Dialogs;
-using Dotnetable.Admin.SharedServices;
-using Dotnetable.Service;
+using Dotnetable.Admin.SharedServices.Data;
 using Dotnetable.Shared.DTO.Member;
 using Dotnetable.Shared.DTO.Public;
+using Dotnetable.Shared.Tools;
 using Microsoft.AspNetCore.Components;
 using Microsoft.Extensions.Localization;
 using MudBlazor;
@@ -11,21 +11,17 @@ namespace Dotnetable.Admin.Components.PageComponents.Member.Policy.Manage;
 
 public partial class PolicyManageGrid
 {
-    [Inject] private MemberService _member { get; set; }
-    [Inject] private Tools _tools { get; set; }
+    [Inject] private IHttpServices _httpService { get; set; }
     [Inject] private IStringLocalizer<Dotnetable.Shared.Resources.Resource> _loc { get; set; }
     [Inject] private ISnackbar _snackbar { get; set; }
     [Inject] private IDialogService _dialogService { get; set; }
 
-    private PolicyListRequest _policyListRequest { get; set; } = new();
+    private PolicyListRequest _policyListRequest { get; set; }
     private PolicyListResponse _policyListResponse { get; set; }
     private GridViewHeaderParameters _gridHeaderParams { get; set; }
-    int memberID = -1;
 
     protected async override Task OnInitializedAsync()
     {
-        memberID = await _tools.GetRequesterMemberID();
-        _policyListRequest = new() { CurrentMemberID = memberID };
         _gridHeaderParams = new()
         {
             HeaderItems = new()
@@ -53,22 +49,22 @@ public partial class PolicyManageGrid
 
     private void RefreshRequestInput()
     {
-        _policyListRequest = new()
+        _policyListRequest = new PolicyListRequest()
         {
             SkipCount = (_gridHeaderParams.Pagination.PageIndex - 1) * _gridHeaderParams.Pagination.PageSize,
             TakeCount = _gridHeaderParams.Pagination.PageSize,
             OrderbyParams = _gridHeaderParams.OrderbyParams,
-            Title = _gridHeaderParams.HeaderItems.FirstOrDefault(i => i.ColumnName == nameof(PolicyListResponse.PolicyDetail.Title)).SearchText, 
-            CurrentMemberID = memberID
+            Title = _gridHeaderParams.HeaderItems.FirstOrDefault(i => i.ColumnName == nameof(PolicyListResponse.PolicyDetail.Title)).SearchText
         };
     }
 
     private async Task FetchGrid()
     {
-        var fetchPolicies = await _member.PolicyList(_policyListRequest);
-        if (fetchPolicies.ErrorException is null)
-            _policyListResponse = fetchPolicies;
-
+        var fetchPolicies = await _httpService.CallServiceObjAsync(HttpMethod.Post, true, "Member/PolicyList", _policyListRequest.ToJsonString());
+        if (fetchPolicies.Success)
+        {
+            _policyListResponse = fetchPolicies.ResponseData.CastModel<PolicyListResponse>();
+        }
         _gridHeaderParams.Pagination.MaxLength = _policyListResponse?.DatabaseRecords ?? 1;
         StateHasChanged();
     }
@@ -78,11 +74,15 @@ public partial class PolicyManageGrid
     #region CRUD
     private async Task ChangeActiveStatus(PolicyListResponse.PolicyDetail requestModel)
     {
-        var fetchResponse = await _member.PolicyChangeStatus(new() { PolicyID = requestModel.PolicyID, CurrentMemberID = memberID });
-        if (fetchResponse.SuccessAction)
+        var fetchResponse = await _httpService.CallServiceObjAsync(HttpMethod.Post, true, "Member/PolicyChangeStatus", new PolicyChangeStatusRequest { PolicyID = requestModel.PolicyID }.ToJsonString());
+        if (fetchResponse.Success)
         {
-            requestModel.Active = !requestModel.Active;
-            _snackbar.Add($"{_loc["_SuccessAction"]} {_loc["_Active_DeActive"]}", Severity.Success);
+            var parsedResponse = fetchResponse.ResponseData.CastModel<PublicActionResponse>();
+            if (parsedResponse.SuccessAction)
+            {
+                requestModel.Active = !requestModel.Active;
+                _snackbar.Add($"{_loc["_SuccessAction"]} {_loc["_Active_DeActive"]}", Severity.Success);
+            }
         }
         else
         {
@@ -100,10 +100,14 @@ public partial class PolicyManageGrid
         //var FetchPolicyItem = (from i in PolicyListResponse.Policies where i.PolicyID == SelectedPolicyID select i).FirstOrDefault();
         //if (FetchPolicyItem is null) return;
 
-        var fetchResponse = await _member.PolicyUpdate(new() { PolicyID = requestModel.PolicyID, Title = requestModel.Title , CurrentMemberID = memberID});
-        if (fetchResponse.SuccessAction)
+        var fetchResponse = await _httpService.CallServiceObjAsync(HttpMethod.Post, true, "Member/PolicyUpdate", new PolicyUpdateRequest { PolicyID = requestModel.PolicyID, Title = requestModel.Title }.ToJsonString());
+        if (fetchResponse.Success)
         {
-            _snackbar.Add($"{_loc["_SuccessAction"]} {_loc["_Update"]}", Severity.Success);
+            var parsedResponse = fetchResponse.ResponseData.CastModel<PublicActionResponse>();
+            if (parsedResponse.SuccessAction)
+            {
+                _snackbar.Add($"{_loc["_SuccessAction"]} {_loc["_Update"]}", Severity.Success);
+            }
         }
         else
         {

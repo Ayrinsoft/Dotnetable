@@ -16,9 +16,6 @@ public class PostService
     #region PostCategory
     public async Task<PublicActionResponse> PostCategoryInsert(PostCategoryInsertRequest requestModel)
     {
-        if (!await AuthenticationDataAccess.UserValidatePolicyServiceLayer(requestModel.CurrentMemberID, nameof(MemberRole.PostCategoryManager)))
-            return new() { ErrorException = new() { ErrorCode = "C19", Message = "No Policy on this action" } };
-
         return await PostDataAccess.PostCategoryInsert(requestModel);
     }
 
@@ -27,52 +24,34 @@ public class PostService
         return await PostDataAccess.PublicPostCategoryList();
     }
 
-    public async Task<PostCategoryListResponse> PostCategoryList(int currentMemberID)
+    public async Task<PostCategoryListResponse> PostCategoryList()
     {
-        if (!await AuthenticationDataAccess.UserValidatePolicyServiceLayer(currentMemberID, nameof(MemberRole.PostCategoryManager)))
-            return new() { ErrorException = new() { ErrorCode = "C19", Message = "No Policy on this action" } };
-
         return await PostDataAccess.PostCategoryList();
     }
 
     public async Task<PostCategoryDetailResponse> PostCategoryDetail(PostCategoryDetailRequest requestModel)
     {
-        if (!await AuthenticationDataAccess.UserValidatePolicyServiceLayer(requestModel.CurrentMemberID, nameof(MemberRole.PostCategoryManager)))
-            return new() { ErrorException = new() { ErrorCode = "C19", Message = "No Policy on this action" } };
-
         requestModel.LanguageCode = requestModel.LanguageCode.ToUpper();
         return await PostDataAccess.PostCategoryDetail(requestModel);
     }
 
     public async Task<PublicActionResponse> PostCategoryUpdate(PostCategoryUpdateRequest requestModel)
     {
-        if (!await AuthenticationDataAccess.UserValidatePolicyServiceLayer(requestModel.CurrentMemberID, nameof(MemberRole.PostCategoryManager)))
-            return new() { ErrorException = new() { ErrorCode = "C19", Message = "No Policy on this action" } };
-
         return await PostDataAccess.PostCategoryUpdate(requestModel);
     }
 
     public async Task<PublicActionResponse> PostCategoryChangeStatus(PostCategoryChangeStatusRequest requestModel)
     {
-        if (!await AuthenticationDataAccess.UserValidatePolicyServiceLayer(requestModel.CurrentMemberID, nameof(MemberRole.PostCategoryManager)))
-            return new() { ErrorException = new() { ErrorCode = "C19", Message = "No Policy on this action" } };
-
         return await PostDataAccess.PostCategoryChangeStatus(requestModel);
     }
 
-    public async Task<PublicActionResponse> PostCategoryUpdatePriorityAndParent(List<PostCategoryUpdatePriorityAndParentRequest> requestModel, int currentMemberID)
+    public async Task<PublicActionResponse> PostCategoryUpdatePriorityAndParent(List<PostCategoryUpdatePriorityAndParentRequest> requestModel)
     {
-        if (!await AuthenticationDataAccess.UserValidatePolicyServiceLayer(currentMemberID, nameof(MemberRole.PostCategoryManager)))
-            return new() { ErrorException = new() { ErrorCode = "C19", Message = "No Policy on this action" } };
-
         return await PostDataAccess.PostCategoryUpdatePriorityAndParent(requestModel);
     }
 
     public async Task<PublicActionResponse> PostCategoryUpdateOtherLanguage(PostCategoryUpdateOtherLanguageRequest requestModel)
     {
-        if (!await AuthenticationDataAccess.UserValidatePolicyServiceLayer(requestModel.CurrentMemberID, nameof(MemberRole.PostCategoryManager)))
-            return new() { ErrorException = new() { ErrorCode = "C19", Message = "No Policy on this action" } };
-
         requestModel.LanguageCode = requestModel.LanguageCode.ToUpper();
         return await PostDataAccess.PostCategoryUpdateOtherLanguage(requestModel);
     }
@@ -82,117 +61,81 @@ public class PostService
 
     public async Task<PostListFetchResponse> AdminPostList(PostListFetchRequest requestModel)
     {
-        if (!await AuthenticationDataAccess.UserValidatePolicyServiceLayer(requestModel.CurrentMemberID, nameof(MemberRole.PostManager)))
-            return new() { ErrorException = new() { ErrorCode = "C19", Message = "No Policy on this action" } };
-
         requestModel.OrderbyParams = requestModel.OrderbyParams.CheckForInjection(new List<string>() { "PostID", "Title" });
         return await PostDataAccess.AdminPostList(requestModel);
     }
 
     public async Task<PublicActionResponse> Insert(PostInsertRequest requestModel)
     {
-        if (!await AuthenticationDataAccess.UserValidatePolicyServiceLayer(requestModel.CurrentMemberID, nameof(MemberRole.PostManager)))
-            return new() { ErrorException = new() { ErrorCode = "C19", Message = "No Policy on this action" } };
-
         var responseItem = await PostDataAccess.Insert(requestModel);
         if (responseItem.SuccessAction && requestModel.FileCodes is not null && requestModel.FileCodes.Count > 0)
             foreach (var j in requestModel.FileCodes)
-               await FileService.FileMoveFromTMPFolder(new() { FileCode = j, NewFileCategory = ((byte)FileCategoryID.Post).ToString(), NewFilePath = responseItem.ObjectID });
+                FileService.FileMoveFromTMPFolder(new() { FileCode = j, NewFileCategory = ((byte)FileCategoryID.Post).ToString(), NewFilePath = responseItem.ObjectID });
 
         return responseItem;
     }
 
     public async Task<PublicActionResponse> Update(PostUpdateRequest requestModel)
     {
-        if (!await AuthenticationDataAccess.UserValidatePolicyServiceLayer(requestModel.CurrentMemberID, nameof(MemberRole.PostManager)))
-            return new() { ErrorException = new() { ErrorCode = "C19", Message = "No Policy on this action" } };
-
         var responseItem = await PostDataAccess.Update(requestModel);
         if (responseItem.SuccessAction && requestModel.FileCodes is not null && requestModel.FileCodes.Count > 0)
             foreach (var j in requestModel.FileCodes)
-               await FileService.FileMoveFromTMPFolder(new() { FileCode = j, NewFileCategory = ((byte)FileCategoryID.Post).ToString(), NewFilePath = requestModel.PostID.ToString() });
+                FileService.FileMoveFromTMPFolder(new() { FileCode = j, NewFileCategory = ((byte)FileCategoryID.Post).ToString(), NewFilePath = requestModel.PostID.ToString() });
 
         return responseItem;
     }
 
     public async Task<PublicActionResponse> PostAddLanguage(PostUpdateRequest requestModel)
     {
-        if (!await AuthenticationDataAccess.UserValidatePolicyServiceLayer(requestModel.CurrentMemberID, nameof(MemberRole.PostManager)))
-            return new() { ErrorException = new() { ErrorCode = "C19", Message = "No Policy on this action" } };
-
         requestModel.LanguageCode = requestModel.LanguageCode.ToUpper();
         return await PostDataAccess.PostAddLanguage(requestModel);
     }
 
     public async Task<PostLanguageDetailResponse> PostLanguageDetail(PostLanguageDetailRequest requestModel)
     {
-        if (!await AuthenticationDataAccess.UserValidatePolicyServiceLayer(requestModel.CurrentMemberID, nameof(MemberRole.PostManager)))
-            return new() { ErrorException = new() { ErrorCode = "C19", Message = "No Policy on this action" } };
-
         requestModel.LanguageCode = requestModel.LanguageCode.ToUpper();
         return await PostDataAccess.PostLanguageDetail(requestModel);
     }
 
     public async Task<PublicActionResponse> PostDeleteLangauge(PostLanguageDeleteRequest requestModel)
     {
-        if (!await AuthenticationDataAccess.UserValidatePolicyServiceLayer(requestModel.CurrentMemberID, nameof(MemberRole.PostManager)))
-            return new() { ErrorException = new() { ErrorCode = "C19", Message = "No Policy on this action" } };
-
         requestModel.LanguageCode = requestModel.LanguageCode.ToUpper();
         return await PostDataAccess.PostDeleteLangauge(requestModel);
     }
 
     public async Task<PostDetailResponse> AdminDetail(PostDetailRequest requestModel)
     {
-        if (!await AuthenticationDataAccess.UserValidatePolicyServiceLayer(requestModel.CurrentMemberID, nameof(MemberRole.PostManager)))
-            return new() { ErrorException = new() { ErrorCode = "C19", Message = "No Policy on this action" } };
-
         return await PostDataAccess.AdminDetail(requestModel);
     }
 
     public async Task<PublicActionResponse> RemovePostFile(PostFileRemoveRequest requestModel)
     {
-        if (!await AuthenticationDataAccess.UserValidatePolicyServiceLayer(requestModel.CurrentMemberID, nameof(MemberRole.PostManager)))
-            return new() { ErrorException = new() { ErrorCode = "C19", Message = "No Policy on this action" } };
-
         var dbResponse = await PostDataAccess.RemovePostFile(requestModel);
         if (dbResponse is null || !dbResponse.SuccessAction || dbResponse.ErrorException is not null) return dbResponse;
 
-       await FileService.Remove(new() { FileCode = requestModel.FileCode, FileCategoryID = (byte)FileCategoryID.Post, FilePath = requestModel.PostID.ToString() });
+        FileService.Remove(new() { FileCode = requestModel.FileCode, FileCategoryID = (byte)FileCategoryID.Post, FilePath = requestModel.PostID.ToString() });
         return dbResponse;
     }
 
     public async Task<PublicActionResponse> ChangeStatus(PostChangeStatusRequest requestModel)
     {
-        if (!await AuthenticationDataAccess.UserValidatePolicyServiceLayer(requestModel.CurrentMemberID, nameof(MemberRole.PostManager)))
-            return new() { ErrorException = new() { ErrorCode = "C19", Message = "No Policy on this action" } };
-
         return await PostDataAccess.ChangeStatus(requestModel);
     }
 
     public async Task<PublicActionResponse> ContactusUpdate(ContactUsUpdateRequest requestModel)
     {
-        if (!await AuthenticationDataAccess.UserValidatePolicyServiceLayer(requestModel.CurrentMemberID, nameof(MemberRole.PostManager)))
-            return new() { ErrorException = new() { ErrorCode = "C19", Message = "No Policy on this action" } };
-
         requestModel.PublicPostDetail.LanguageCode = requestModel.PublicPostDetail.LanguageCode.ToUpper();
         return await PostDataAccess.PublicPostUpdate(new PostPublicUpdateRequest() { PostCode = "ContactUs", PublicPostDetail = requestModel.PublicPostDetail, FinalPostBody = requestModel.ContactUsDetail.ToJsonString() });
     }
 
     public async Task<PublicActionResponse> AboutusUpdate(AboutUsUpdateRequest requestModel)
     {
-        if (!await AuthenticationDataAccess.UserValidatePolicyServiceLayer(requestModel.CurrentMemberID, nameof(MemberRole.PostManager)))
-            return new() { ErrorException = new() { ErrorCode = "C19", Message = "No Policy on this action" } };
-
         requestModel.PublicPostDetail.LanguageCode = requestModel.PublicPostDetail.LanguageCode.ToUpper();
         return await PostDataAccess.PublicPostUpdate(new PostPublicUpdateRequest() { PostCode = "AboutUs", PublicPostDetail = requestModel.PublicPostDetail, FinalPostBody = requestModel.AboutusDetail.ToJsonString() });
     }
 
     public async Task<PublicActionResponse> QRCodeUpdate(QRCodeUpdateRequest requestModel)
     {
-        if (!await AuthenticationDataAccess.UserValidatePolicyServiceLayer(requestModel.CurrentMemberID, nameof(MemberRole.PostManager)))
-            return new() { ErrorException = new() { ErrorCode = "C19", Message = "No Policy on this action" } };
-
         requestModel.PublicPostDetail.LanguageCode = requestModel.PublicPostDetail.LanguageCode.ToUpper();
         return await PostDataAccess.PublicPostUpdate(new PostPublicUpdateRequest() { PostCode = "QRCode", PublicPostDetail = requestModel.PublicPostDetail, FinalPostBody = requestModel.QRCodeDetail.ToJsonString() });
     }
@@ -210,7 +153,7 @@ public class PostService
                 return new() { ErrorException = dbPostCatDetails?.ErrorException ?? new() { ErrorCode = "D0" } };
 
             cachedPostCategoryDetails = dbPostCatDetails.PostCategories;
-            _mmc.Set($"PublicPostCategoryDetail_{requestModel.PostCategoryID}", cachedPostCategoryDetails, new MemoryCacheEntryOptions().SetSlidingExpiration(TimeSpan.FromHours(3)));
+                _mmc.Set($"PublicPostCategoryDetail_{requestModel.PostCategoryID}", cachedPostCategoryDetails, new MemoryCacheEntryOptions().SetSlidingExpiration(TimeSpan.FromHours(3)));
         }
         return new() { PostCategories = cachedPostCategoryDetails };
     }
@@ -275,58 +218,40 @@ public class PostService
 
     public async Task<PublicActionResponse> SlideShowInsert(SlideShowInsertRequest requestModel)
     {
-        if (!await AuthenticationDataAccess.UserValidatePolicyServiceLayer(requestModel.CurrentMemberID, nameof(MemberRole.PostManager)))
-            return new() { ErrorException = new() { ErrorCode = "C19", Message = "No Policy on this action" } };
-
         var responseModel = await PostDataAccess.SlideShowInsert(requestModel);
         if (responseModel.SuccessAction)
-            await FileService.FileMoveFromTMPFolder(new() { FileCode = requestModel.FileCode, NewFileCategory = "5", NewFilePath = responseModel.ObjectID });
+            FileService.FileMoveFromTMPFolder(new() { FileCode = requestModel.FileCode, NewFileCategory = "5", NewFilePath = responseModel.ObjectID });
 
         return responseModel;
     }
 
     public async Task<PublicActionResponse> SlideShowInsertLanguage(SlideShowInsertLanguageRequest requestModel)
     {
-        if (!await AuthenticationDataAccess.UserValidatePolicyServiceLayer(requestModel.CurrentMemberID, nameof(MemberRole.PostManager)))
-            return new() { ErrorException = new() { ErrorCode = "C19", Message = "No Policy on this action" } };
-
         return await PostDataAccess.SlideShowInsertLanguage(requestModel);
     }
 
     public async Task<PublicActionResponse> SlideShowRemoveLanguage(SlideShowRemoveLanguageRequest requestModel)
     {
-        if (!await AuthenticationDataAccess.UserValidatePolicyServiceLayer(requestModel.CurrentMemberID, nameof(MemberRole.PostManager)))
-            return new() { ErrorException = new() { ErrorCode = "C19", Message = "No Policy on this action" } };
-
         return await PostDataAccess.SlideShowRemoveLanguage(requestModel);
     }
 
     public async Task<SlideShowLanguageDetailResponse> SlideShowLanguageDetail(SlideShowLanguageDetailRequest requestModel)
     {
-        if (!await AuthenticationDataAccess.UserValidatePolicyServiceLayer(requestModel.CurrentMemberID, nameof(MemberRole.PostManager)))
-            return new() { ErrorException = new() { ErrorCode = "C19", Message = "No Policy on this action" } };
-
         return await PostDataAccess.SlideShowLanguageDetail(requestModel);
     }
 
     public async Task<SlideShowLanguageListResponse> SlideShowLanguageList(SlideShowLanguageListRequest requestModel)
     {
-        if (!await AuthenticationDataAccess.UserValidatePolicyServiceLayer(requestModel.CurrentMemberID, nameof(MemberRole.PostManager)))
-            return new() { ErrorException = new() { ErrorCode = "C19", Message = "No Policy on this action" } };
-
         return await PostDataAccess.SlideShowLanguageList(requestModel);
     }
 
     public async Task<PublicActionResponse> SlideShowUpdate(SlideShowUpdateRequest requestModel)
     {
-        if (!await AuthenticationDataAccess.UserValidatePolicyServiceLayer(requestModel.CurrentMemberID, nameof(MemberRole.PostManager)))
-            return new() { ErrorException = new() { ErrorCode = "C19", Message = "No Policy on this action" } };
-
         var responseModel = await PostDataAccess.SlideShowUpdate(requestModel);
         if (responseModel.SuccessAction && !string.IsNullOrEmpty(responseModel.ObjectID) && responseModel.ObjectID != "")
         {
-            await FileService.FileMoveFromTMPFolder(new() { FileCode = requestModel.FileCode, NewFileCategory = ((byte)FileCategoryID.SlideShow).ToString(), NewFilePath = requestModel.SlideShowID.ToString() });
-            await FileService.Remove(new() { FileCode = responseModel.ObjectID, FileCategoryID = (byte)FileCategoryID.SlideShow, FilePath = requestModel.SlideShowID.ToString() });
+            FileService.FileMoveFromTMPFolder(new() { FileCode = requestModel.FileCode, NewFileCategory = ((byte)FileCategoryID.SlideShow).ToString(), NewFilePath = requestModel.SlideShowID.ToString() });
+            FileService.Remove(new() { FileCode = responseModel.ObjectID, FileCategoryID = (byte)FileCategoryID.SlideShow, FilePath = requestModel.SlideShowID.ToString() });
         }
 
         return responseModel;
@@ -334,26 +259,17 @@ public class PostService
 
     public async Task<PublicActionResponse> SlideShowChangeStatus(SlideShowChangeStatusRequest requestModel)
     {
-        if (!await AuthenticationDataAccess.UserValidatePolicyServiceLayer(requestModel.CurrentMemberID, nameof(MemberRole.PostManager)))
-            return new() { ErrorException = new() { ErrorCode = "C19", Message = "No Policy on this action" } };
-
         return await PostDataAccess.SlideShowChangeStatus(requestModel);
     }
 
     public async Task<SlideShowDetailResponse> SlideShowDetail(SlideShowDetailRequest requestModel)
     {
-        if (!await AuthenticationDataAccess.UserValidatePolicyServiceLayer(requestModel.CurrentMemberID, nameof(MemberRole.PostManager)))
-            return new() { ErrorException = new() { ErrorCode = "C19", Message = "No Policy on this action" } };
-
         return await PostDataAccess.SlideShowDetail(requestModel);
     }
 
     public async Task<SlideShowListResponse> SlideShowList(SlideShowListRequest requestModel)
     {
-        if (!await AuthenticationDataAccess.UserValidatePolicyServiceLayer(requestModel.CurrentMemberID, nameof(MemberRole.PostManager)))
-            return new() { ErrorException = new() { ErrorCode = "C19", Message = "No Policy on this action" } };
-
-        requestModel.OrderbyParams = requestModel.OrderbyParams.CheckForInjection(["SlideShowID", "Title", "PageCode"]);
+        requestModel.OrderbyParams = requestModel.OrderbyParams.CheckForInjection(new List<string>() { "SlideShowID", "Title", "PageCode" });
         return await PostDataAccess.SlideShowList(requestModel);
     }
 
@@ -365,13 +281,10 @@ public class PostService
 
     public async Task<PublicActionResponse> RemoveSlideShowFile(SlideShowRemoveFileRequest requestModel)
     {
-        if (!await AuthenticationDataAccess.UserValidatePolicyServiceLayer(requestModel.CurrentMemberID, nameof(MemberRole.PostManager)))
-            return new() { ErrorException = new() { ErrorCode = "C19", Message = "No Policy on this action" } };
-
         var dbResponse = await PostDataAccess.RemoveSlideShowFile(requestModel);
         if (dbResponse is null || !dbResponse.SuccessAction || dbResponse.ErrorException is not null) return dbResponse;
 
-        await FileService.Remove(new() { FileCode = dbResponse.ObjectID, FileCategoryID = (byte)FileCategoryID.SlideShow, FilePath = requestModel.SlideShowID.ToString() });
+        FileService.Remove(new() { FileCode = dbResponse.ObjectID, FileCategoryID = (byte)FileCategoryID.SlideShow, FilePath = requestModel.SlideShowID.ToString() });
         return dbResponse;
     }
 

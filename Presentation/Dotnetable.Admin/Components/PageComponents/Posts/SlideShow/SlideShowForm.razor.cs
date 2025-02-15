@@ -1,5 +1,4 @@
-﻿using Dotnetable.Admin.SharedServices;
-using Dotnetable.Service;
+﻿using Dotnetable.Admin.SharedServices.Data;
 using Dotnetable.Shared.DTO.File;
 using Dotnetable.Shared.DTO.Post;
 using Dotnetable.Shared.Tools;
@@ -13,9 +12,7 @@ namespace Dotnetable.Admin.Components.PageComponents.Posts.SlideShow;
 public partial class SlideShowForm
 {
     [Inject] private IStringLocalizer<Dotnetable.Shared.Resources.Resource> _loc { get; set; }
-    [Inject] private PostService _post { get; set; }
-    [Inject] private FileService _fileService { get; set; }
-    [Inject] private Tools _tools { get; set; }
+    [Inject] private IHttpServices _httpService { get; set; }
     [Inject] private ISnackbar _snackbar { get; set; }
     [Inject] private IHttpContextAccessor _httpContextAccessor { get; set; }
 
@@ -27,12 +24,11 @@ public partial class SlideShowForm
     private Dictionary<string, string> _slideShowSettings = new();
     private string _settingKey = "";
     private string _settingValue = "";
-    private HttpContext _context = null;
-    int memberID = -1;
 
-    protected override async Task OnInitializedAsync()
+    private HttpContext _context = null;
+
+    protected override void OnInitialized()
     {
-        memberID = await _tools.GetRequesterMemberID();
         _context = _httpContextAccessor.HttpContext;
         FormModel ??= new() { PageCode = "MAIN", Priority = 1 };
         if (!string.IsNullOrEmpty(FormModel.FileCode)) _currentFileName = FormModel.FileCode;
@@ -53,7 +49,7 @@ public partial class SlideShowForm
     {
         FormModel.FileCode = string.Empty;
         if (slideShowID.HasValue && slideShowID.Value > 0)
-            _ = await _post.RemoveSlideShowFile(new() { SlideShowID = slideShowID.Value });
+            _ = await _httpService.CallServiceObjAsync(HttpMethod.Post, true, $"Post/RemoveSlideShowFile", new SlideShowRemoveFileRequest() { SlideShowID = slideShowID.Value }.ToJsonString());
     }
 
     private void AddNewSetting()
@@ -84,9 +80,9 @@ public partial class SlideShowForm
 
     private async Task DoUploadFile()
     {
-        FileInsertRequest requestBody = new() { FileName = _currentFileName.FileNameCorrection(), FileStream = _currentFileStream, FileCode = Guid.NewGuid().ToString(), UploaderID = memberID };
-        var uploadFile = await _fileService.Insert(requestBody);
-        if (uploadFile.SuccessAction)
+        FileTemporaryUploadRequest requestBody = new() { FileName = _currentFileName.FileNameCorrection(), FileStream = _currentFileStream, FileCode = Guid.NewGuid().ToString() };
+        var uploadFile = await _httpService.CallServiceObjAsync(HttpMethod.Post, true, $"Files/UploadTemporary", requestBody.ToJsonString());
+        if (uploadFile.Success)
         {
             FormModel.FileCode = requestBody.FileCode;
             StateHasChanged();

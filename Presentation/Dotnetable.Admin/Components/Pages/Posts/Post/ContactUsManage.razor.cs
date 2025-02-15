@@ -1,6 +1,6 @@
 ﻿using Blazored.LocalStorage;
 using Dotnetable.Admin.Models;
-using Dotnetable.Service;
+using Dotnetable.Admin.SharedServices.Data;
 using Dotnetable.Shared.DTO.Authentication;
 using Dotnetable.Shared.DTO.Post;
 using Dotnetable.Shared.Tools;
@@ -17,7 +17,7 @@ public partial class ContactUsManage
 {
     [Inject] private ISnackbar _snackbar { get; set; }
     [Inject] private IStringLocalizer<Dotnetable.Shared.Resources.Resource> _loc { get; set; }
-    [Inject] private PostService _post { get; set; }
+    [Inject] private IHttpServices _httpService { get; set; }
     [Inject] private ILocalStorageService _localStorage { get; set; }
     [Inject] private IJSRuntime _jsRuntime { get; set; }
     [CascadingParameter] protected ThemeManagerModel themeManager { get; set; }
@@ -41,10 +41,10 @@ public partial class ContactUsManage
             _fetchCurrentToken = await _localStorage.GetItemAsync<UserLoginResponse.TokenItems>("JToken");
 
         _ckContainerID = $"ck{Guid.NewGuid().ToString().Replace("-", "")}";
-        var fetchServiceData = await _post.PublicPostDetail(new() { PostCode = "ContactUs" });
-        if (fetchServiceData.ErrorException is null)
+        var fetchServiceData = await _httpService.CallServiceObjAsync(HttpMethod.Post, true, "Post/PublicPostDetail", new PostDetailPublicRequest { PostCode = "ContactUs" }.ToJsonString());
+        if (fetchServiceData.Success)
         {
-            _publicPostDetail = fetchServiceData;
+            _publicPostDetail = fetchServiceData.ResponseData.CastModel<PostDetailPublicResponse>();
         }
         else
         {
@@ -116,8 +116,8 @@ public partial class ContactUsManage
         _contactModel.ContactUsDetail.MapLocationLatitude = _locationLatitudeNew;
         _contactModel.ContactUsDetail.MapLocationLongitude = _locationLongitudeNew;
 
-        var fetchServiceData = await _post.ContactusUpdate(_contactModel);
-        if (fetchServiceData.SuccessAction)
+        var fetchServiceData = await _httpService.CallServiceObjAsync(HttpMethod.Post, true, "Post/ContactusUpdate", _contactModel.ToJsonString());
+        if (fetchServiceData.Success)
             _snackbar.Add($"{_loc["_SuccessAction"]} {_loc["_ContactUsManage"]}", Severity.Success);
         else
             _snackbar.Add($"{_loc["_FailedAction"]} {_loc[$"_ERROR_{(fetchServiceData.ErrorException?.ErrorCode ?? "SX")}"]}", Severity.Error);

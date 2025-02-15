@@ -1,6 +1,6 @@
-﻿using Dotnetable.Admin.SharedServices;
-using Dotnetable.Service;
+﻿using Dotnetable.Admin.SharedServices.Data;
 using Dotnetable.Shared.DTO.Member;
+using Dotnetable.Shared.Tools;
 using Microsoft.AspNetCore.Components;
 using Microsoft.Extensions.Localization;
 using MudBlazor;
@@ -9,10 +9,9 @@ namespace Dotnetable.Admin.Components.PageComponents.Member.Policy;
 
 public partial class RoleSelectorDialog
 {
-    [CascadingParameter] MudDialogInstance MudDialog { get; set; }
+    [CascadingParameter] IMudDialogInstance MudDialog { get; set; }
     [Inject] private IStringLocalizer<Dotnetable.Shared.Resources.Resource> _loc { get; set; }
-    [Inject] private MemberService _member { get; set; }
-    [Inject] private Tools _tools { get; set; }
+    [Inject] private IHttpServices _httpService { get; set; }
 
     private RoleListOnPolicyManageResponse _selectedRole { get; set; }
     private List<RoleListOnPolicyManageResponse> _currentMemberRoles { get; set; } = new();
@@ -25,8 +24,9 @@ public partial class RoleSelectorDialog
 
     protected override async Task OnInitializedAsync()
     {
-        int memberID = await _tools.GetRequesterMemberID();
-        _currentMemberRoles = await _member.RoleListOnPolicyManage(memberID);
+        var fetchRoles = await _httpService.CallServiceObjAsync(HttpMethod.Get, true, "Member/RoleListOnPolicyManage");
+        if (fetchRoles.Success)
+            _currentMemberRoles = fetchRoles.ResponseData.CastModel<List<RoleListOnPolicyManageResponse>>();
     }
 
     private async Task<IEnumerable<RoleListOnPolicyManageResponse>> SearchRole(string searchKey, CancellationToken token)

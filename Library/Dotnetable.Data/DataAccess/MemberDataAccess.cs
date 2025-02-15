@@ -243,7 +243,7 @@ public class MemberDataAccess
         if (requestModel.CityID.HasValue) fetchMember.CityID = requestModel.CityID.Value;
         fetchMember.Gender = requestModel.Gender;
         fetchMember.PostalCode = requestModel.PostalCode;
-        if (requestModel.PolicyID.HasValue && requestModel.PolicyID != fetchMember.PolicyID) fetchMember.PolicyID = requestModel.PolicyID.Value;
+        if (requestModel.CurrentMemberID.HasValue && requestModel.PolicyID.HasValue && requestModel.PolicyID != fetchMember.PolicyID) fetchMember.PolicyID = requestModel.PolicyID.Value;
 
         try
         {
@@ -283,7 +283,7 @@ public class MemberDataAccess
     public static async Task<PublicActionResponse> ContactUpdate(MemberContactRequest requestModel)
     {
         using DotnetableEntity db = new();
-        int memberID = requestModel.MemberID.Value;
+        int memberID = requestModel.CurrentMemberID.Value;
         var fetchMemberContact = await (from i in db.TB_Member_Contacts where i.MemberID == memberID && i.MemberContactID == requestModel.MemberContactID select i).FirstOrDefaultAsync();
         if (fetchMemberContact is null)
             return new() { ErrorException = new() { ErrorCode = "D0" } };
@@ -797,7 +797,7 @@ public class MemberDataAccess
 
         var reportQuery = db.TB_Policies.AsQueryable();
 
-        if (!string.IsNullOrEmpty(requestModel?.Title) && requestModel.Title != "")
+        if (!string.IsNullOrEmpty(requestModel.Title) && requestModel.Title != "")
             reportQuery = reportQuery.Where(i => i.Title.Contains(requestModel.Title));
 
 
@@ -901,7 +901,7 @@ public class MemberDataAccess
     public static async Task<PublicActionResponse> PolicyChangeStatus(PolicyChangeStatusRequest requestModel)
     {
         using DotnetableEntity db = new();
-        int memberID = requestModel.CurrentMemberID;
+        int memberID = requestModel.CurrentMemberID.Value;
         if (await (from i in db.TB_Members where i.MemberID == memberID && i.PolicyID == requestModel.PolicyID select i.MemberID).AnyAsync())
             return new() { ErrorException = new() { ErrorCode = "C18" } };
 
@@ -931,7 +931,7 @@ public class MemberDataAccess
         if (fetchPolicyRole is null)
             return new() { ErrorException = new() { ErrorCode = "D0" } };
 
-        int memberID = requestModel.CurrentMemberID;
+        int memberID = requestModel.CurrentMemberID.Value;
         if (await (from i in db.TB_Members where i.MemberID == memberID && i.PolicyID == fetchPolicyRole.PolicyID select i.MemberID).AnyAsync())
             return new() { ErrorException = new() { ErrorCode = "C18" } };
 
@@ -954,7 +954,7 @@ public class MemberDataAccess
     public static async Task<PublicActionResponse> MemberRoleAppend(PolicyRoleAppendRequest requestModel)
     {
         using DotnetableEntity db = new();
-        int memberID = requestModel.CurrentMemberID;
+        int memberID = requestModel.CurrentMemberID.Value;
         var fetchMemberPolicy = await (from i in db.TB_Members where i.MemberID == memberID select new { i.PolicyID }).FirstOrDefaultAsync();
         if (fetchMemberPolicy is null)
             return new() { ErrorException = new() { ErrorCode = "D0" } };

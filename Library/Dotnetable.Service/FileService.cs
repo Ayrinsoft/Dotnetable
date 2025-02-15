@@ -11,15 +11,14 @@ public class FileService
         return await FileDataAccess.Fetch(flieCode);
     }
 
-    public static async Task<PublicActionResponse> Remove(FileRemoveRequest requestModel)
+    public static PublicActionResponse Remove(FileRemoveRequest removeRequest)
     {
-        if (!await AuthenticationDataAccess.UserValidatePolicyServiceLayer(requestModel.CurrentMemberID, nameof(MemberRole.PostManager)))
-            return new() { ErrorException = new() { ErrorCode = "C19", Message = "No Policy on this action" } };
-
-        string fileURL = $"{Directory.GetCurrentDirectory()}/FileLibrary/{requestModel.FileCategoryID}/{requestModel.FilePath}/{requestModel.FileCode}";
+        string fileURL = $"{Directory.GetCurrentDirectory()}/FileLibrary/{removeRequest.FileCategoryID}/{removeRequest.FilePath}/{removeRequest.FileCode}";
 
         if (!File.Exists(fileURL))
-            return new() { ErrorException = new() { ErrorCode = "F1" } };        
+        {
+            return new() { ErrorException = new() { ErrorCode = "F1" } };
+        }
 
         try
         {
@@ -33,50 +32,44 @@ public class FileService
         return new() { SuccessAction = true };
     }
 
-    public async Task<PublicActionResponse> Insert(FileInsertRequest requestModel)
+    public async Task<PublicActionResponse> Insert(FileInsertRequest insertRequest)
     {
-        if (!await AuthenticationDataAccess.UserValidatePolicyServiceLayer(requestModel.CurrentMemberID, nameof(MemberRole.PostManager)))
-            return new() { ErrorException = new() { ErrorCode = "C19", Message = "No Policy on this action" } };
-
-        string fileURL = $"{Directory.GetCurrentDirectory()}\\FileLibrary\\{requestModel.FileCategoryID}/{requestModel.FilePath}";
+        string fileURL = $"{Directory.GetCurrentDirectory()}\\FileLibrary\\{insertRequest.FileCategoryID}/{insertRequest.FilePath}";
 
         try
         {
             if (!Directory.Exists($"{Directory.GetCurrentDirectory()}\\FileLibrary"))
                 Directory.CreateDirectory($"{Directory.GetCurrentDirectory()}\\FileLibrary");
 
-            if (!Directory.Exists($"{Directory.GetCurrentDirectory()}\\FileLibrary\\{requestModel.FileCategoryID}"))
-                Directory.CreateDirectory($"{Directory.GetCurrentDirectory()}\\FileLibrary\\{requestModel.FileCategoryID}");
+            if (!Directory.Exists($"{Directory.GetCurrentDirectory()}\\FileLibrary\\{insertRequest.FileCategoryID}"))
+                Directory.CreateDirectory($"{Directory.GetCurrentDirectory()}\\FileLibrary\\{insertRequest.FileCategoryID}");
 
             if (!Directory.Exists(fileURL))
                 Directory.CreateDirectory(fileURL);
 
-            if (File.Exists($"{fileURL}\\{requestModel.FileCode}"))
-                File.Delete($"{fileURL}\\{requestModel.FileCode}");
+            if (File.Exists($"{fileURL}\\{insertRequest.FileCode}"))
+                File.Delete($"{fileURL}\\{insertRequest.FileCode}");
 
-            await File.WriteAllBytesAsync($"{fileURL}\\{requestModel.FileCode}", requestModel.FileStream).ConfigureAwait(false);
+            await File.WriteAllBytesAsync($"{fileURL}\\{insertRequest.FileCode}", insertRequest.FileStream).ConfigureAwait(false);
         }
         catch (Exception x)
         {
             return new() { ErrorException = new() { ErrorCode = "F2", Message = x.Message } };
         }
 
-        if (requestModel.FilePath == "TMP")
+        if (insertRequest.FilePath == "TMP")
         {
             var fileList = await FileDataAccess.ExpiredTemporaryFiles();
             if (fileList is not null && fileList.Count > 0)
                 foreach (var f in fileList)
-                    File.Delete($"{Directory.GetCurrentDirectory()}\\FileLibrary\\0\\{requestModel.FilePath}/{f}");
+                    File.Delete($"{Directory.GetCurrentDirectory()}\\FileLibrary\\0\\{insertRequest.FilePath}/{f}");
         }
 
-        return await FileDataAccess.Insert(requestModel);
+        return await FileDataAccess.Insert(insertRequest);
     }
 
-    public static async Task<PublicActionResponse> FileMoveFromTMPFolder(FileMoveFromTMPFolderRequest requestModel)
+    public static PublicActionResponse FileMoveFromTMPFolder(FileMoveFromTMPFolderRequest requestModel)
     {
-        if (!await AuthenticationDataAccess.UserValidatePolicyServiceLayer(requestModel.CurrentMemberID, nameof(MemberRole.PostManager)))
-            return new() { ErrorException = new() { ErrorCode = "C19", Message = "No Policy on this action" } };
-
         string mainPath = $"{Directory.GetCurrentDirectory()}\\FileLibrary\\";
         if (!File.Exists($"{mainPath}0\\TMP\\{requestModel.FileCode}"))
             return new() { ErrorException = new() { ErrorCode = "F1" } };

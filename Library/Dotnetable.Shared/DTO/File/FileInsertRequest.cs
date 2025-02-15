@@ -4,8 +4,6 @@ namespace Dotnetable.Shared.DTO.File;
 
 public class FileInsertRequest
 {
-    public int CurrentMemberID { get; set; }
-
     [Required(AllowEmptyStrings = false, ErrorMessageResourceType = typeof(Resources.Resource), ErrorMessageResourceName = nameof(Resources.Resource._Err_File_FileName_Required))]
     [StringLength(36, ErrorMessageResourceType = typeof(Resources.Resource), ErrorMessageResourceName = nameof(Resources.Resource._Err_MaxLength_36))]
     [MinLength(4, ErrorMessageResourceType = typeof(Resources.Resource), ErrorMessageResourceName = nameof(Resources.Resource._Err_MinLength_4))]

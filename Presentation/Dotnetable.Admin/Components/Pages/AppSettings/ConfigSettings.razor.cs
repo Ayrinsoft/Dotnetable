@@ -1,5 +1,5 @@
 ﻿using Dotnetable.Admin.Components.Shared.Dialogs;
-using Dotnetable.Service;
+using Dotnetable.Admin.SharedServices.Data;
 using Dotnetable.Shared.DTO.Website;
 using Dotnetable.Shared.Tools;
 using Microsoft.AspNetCore.Components;
@@ -15,7 +15,7 @@ public partial class ConfigSettings
     [Inject] private NavigationManager _navigationManager { get; set; }
     [Inject] private IConfiguration _appSettingsConfig { get; set; }
     [Inject] private ISnackbar _snackbar { get; set; }
-    [Inject] private WebsiteService _website { get; set; }
+    [Inject] private IHttpServices _httpService { get; set; }
     [Inject] private IDialogService _dialogService { get; set; }
     [Inject] private IStringLocalizer<Dotnetable.Shared.Resources.Resource> _loc { get; set; }
 
@@ -71,8 +71,8 @@ public partial class ConfigSettings
 
         File.WriteAllText("appsettings.json", _appSettings.ToJsonString());
 
-        var dbCreateDetail = await _website.ImplementDB(_appSettings.AdminPanelSettings.DefaultLanguageCode);
-        if (!dbCreateDetail.SuccessAction)
+        var dbCreateDetail = await _httpService.CallServiceObjAsync(HttpMethod.Get, false, "Website/ImplementDB");
+        if (!dbCreateDetail.Success)
         {
             _snackbar.Add(dbCreateDetail?.ErrorException?.Message, Severity.Error);
             return;
@@ -116,8 +116,8 @@ public partial class ConfigSettings
         if (_confirmPassword != _firstData.Password)
             return;
 
-        var dbCreateDetail = await _website.InsertFirstData(_firstData);
-        if (!dbCreateDetail.SuccessAction)
+        var dbCreateDetail = await _httpService.CallServiceObjAsync(HttpMethod.Post, false, "Website/InsertFirstData", _firstData.ToJsonString());
+        if (!dbCreateDetail.Success)
         {
             _snackbar.Add(dbCreateDetail?.ErrorException?.Message, Severity.Error);
             return;

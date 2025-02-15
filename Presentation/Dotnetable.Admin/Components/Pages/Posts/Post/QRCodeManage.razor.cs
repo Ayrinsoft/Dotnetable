@@ -1,6 +1,6 @@
 ﻿using Blazored.LocalStorage;
 using Dotnetable.Admin.Models;
-using Dotnetable.Service;
+using Dotnetable.Admin.SharedServices.Data;
 using Dotnetable.Shared.DTO.Authentication;
 using Dotnetable.Shared.DTO.Post;
 using Dotnetable.Shared.Tools;
@@ -16,7 +16,7 @@ public partial class QRCodeManage
 {
     [Inject] private ISnackbar _snackbar { get; set; }
     [Inject] private IStringLocalizer<Dotnetable.Shared.Resources.Resource> _loc { get; set; }
-    [Inject] private PostService _post { get; set; }
+    [Inject] private IHttpServices _httpService { get; set; }
     [Inject] private ILocalStorageService _localStorage { get; set; }
     [Inject] private IJSRuntime _jsRuntime { get; set; }
     [CascadingParameter] protected ThemeManagerModel themeManager { get; set; }
@@ -38,10 +38,10 @@ public partial class QRCodeManage
 
         _ckContainerID = $"ck{Guid.NewGuid().ToString().Replace("-", "")}";
 
-        var fetchServiceData = await _post.PublicPostDetail(new() { PostCode = "QRCode" });
-        if (fetchServiceData.ErrorException is null)
+        var fetchServiceData = await _httpService.CallServiceObjAsync(HttpMethod.Post, false, "Post/PublicPostDetail", new PostDetailPublicRequest { PostCode = "QRCode" }.ToJsonString());
+        if (fetchServiceData.Success)
         {
-            _publicPostDetail = fetchServiceData;
+            _publicPostDetail = fetchServiceData.ResponseData.CastModel<PostDetailPublicResponse>();
         }
         else
         {
@@ -90,8 +90,8 @@ public partial class QRCodeManage
         _qrCodeModel.QRCodeDetail.HTMLBody = await _jsRuntime.InvokeAsync<string>("Plugin.CKEditorGetData");
         _qrCodeModel.QRCodeDetail.OtherHtmlPart = _otherParts;
 
-        var fetchServiceData = await _post.QRCodeUpdate(_qrCodeModel);
-        if (fetchServiceData.ErrorException is null)
+        var fetchServiceData = await _httpService.CallServiceObjAsync(HttpMethod.Post, true, "Post/QRCodeUpdate", _qrCodeModel.ToJsonString());
+        if (fetchServiceData.Success)
         {
             _snackbar.Add($"{_loc["_SuccessAction"]} {_loc["_QRCodeManage"]}", Severity.Success);
         }

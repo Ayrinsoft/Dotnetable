@@ -1,8 +1,8 @@
 ﻿using Dotnetable.Admin.Models;
-using Dotnetable.Admin.SharedServices;
-using Dotnetable.Service;
+using Dotnetable.Admin.SharedServices.Data;
 using Dotnetable.Shared.DTO.Member;
 using Dotnetable.Shared.DTO.Public;
+using Dotnetable.Shared.Tools;
 using Microsoft.AspNetCore.Components;
 using Microsoft.Extensions.Localization;
 
@@ -12,8 +12,7 @@ public partial class RoleList
 {
 
     [Inject] private IStringLocalizer<Dotnetable.Shared.Resources.Resource> _loc { get; set; }
-    [Inject] private MemberService _member { get; set; }
-    [Inject] private Tools _tools { get; set; }
+    [Inject] private IHttpServices _httpService { get; set; }
     [CascadingParameter] protected ThemeManagerModel themeManager { get; set; }
 
     private List<RoleListResponse.RoleDetail> _cachedRoles { get; set; }
@@ -21,11 +20,10 @@ public partial class RoleList
 
     protected async override Task OnInitializedAsync()
     {
-        int memberID = await _tools.GetRequesterMemberID();
-        var fetchServiceData = await _member.RoleList(new() { CurrentMemberID = memberID});
-        if (fetchServiceData.ErrorException is null)
+        var fetchServiceData = await _httpService.CallServiceObjAsync(HttpMethod.Get, true, "Member/RoleList");
+        if (fetchServiceData.Success)
         {
-            _cachedRoles = fetchServiceData.Roles;
+            _cachedRoles = fetchServiceData.ResponseData.CastModel<RoleListResponse>().Roles;
         }
 
         _gridHeaderParams = new()

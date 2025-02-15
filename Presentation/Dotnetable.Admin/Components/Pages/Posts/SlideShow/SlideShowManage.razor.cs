@@ -1,7 +1,7 @@
 ﻿using Dotnetable.Admin.Components.PageComponents.Posts.SlideShow;
 using Dotnetable.Admin.Components.Shared.Dialogs;
 using Dotnetable.Admin.Models;
-using Dotnetable.Service;
+using Dotnetable.Admin.SharedServices.Data;
 using Dotnetable.Shared.DTO.Post;
 using Dotnetable.Shared.DTO.Public;
 using Dotnetable.Shared.Tools;
@@ -15,7 +15,7 @@ public partial class SlideShowManage
 {
     [Inject] private ISnackbar _snackbar { get; set; }
     [Inject] private IStringLocalizer<Dotnetable.Shared.Resources.Resource> _loc { get; set; }
-    [Inject] private PostService _post { get; set; }
+    [Inject] private IHttpServices _httpService { get; set; }
     [Inject] private IDialogService _dialogService { get; set; }
     [Inject] private IHttpContextAccessor _httpContextAccessor { get; set; }
     [CascadingParameter] protected ThemeManagerModel themeManager { get; set; }
@@ -72,10 +72,10 @@ public partial class SlideShowManage
 
     private async Task FetchGrid()
     {
-        var fetchPosts = await _post.SlideShowList(_listRequest);
-        if (fetchPosts.ErrorException is null)
+        var fetchPosts = await _httpService.CallServiceObjAsync(HttpMethod.Post, true, "Post/SlideShowList", _listRequest.ToJsonString());
+        if (fetchPosts.Success)
         {
-            _listResponse = fetchPosts;
+            _listResponse = fetchPosts.ResponseData.CastModel<SlideShowListResponse>();
         }
         _gridHeaderParams.Pagination.MaxLength = _listResponse?.DatabaseRecords ?? 1;
         StateHasChanged();
@@ -94,8 +94,15 @@ public partial class SlideShowManage
         if (dialogresponseData is null) return;
 
 
-        var serviceResponse = await _post.SlideShowInsert(dialogresponseData);
-        if (!serviceResponse.SuccessAction)
+        var serviceResponse = await _httpService.CallServiceObjAsync(HttpMethod.Post, true, $"Post/SlideShowInsert", dialogresponseData.ToJsonString());
+        if (!serviceResponse.Success)
+        {
+            _snackbar.Add($"{_loc[$"_ERROR_{serviceResponse.ErrorException.ErrorCode}"]} {_loc["_SlideShow_Insert"]}", Severity.Error);
+            return;
+        }
+
+        var parsedServiceResponse = serviceResponse.ResponseData.CastModel<PublicActionResponse>();
+        if (parsedServiceResponse is null || !parsedServiceResponse.SuccessAction || parsedServiceResponse.ErrorException is not null)
         {
             _snackbar.Add($"{_loc[$"_ERROR_{serviceResponse.ErrorException.ErrorCode}"]} {_loc["_SlideShow_Insert"]}", Severity.Error);
             return;
@@ -106,7 +113,7 @@ public partial class SlideShowManage
         _listResponse ??= new();
         _listResponse.SlideShows ??= new();
         int slideShowID = -1;
-        if (int.TryParse(serviceResponse.ObjectID, out int _slideShowID)) slideShowID = _slideShowID;
+        if (int.TryParse(parsedServiceResponse.ObjectID, out int _slideShowID)) slideShowID = _slideShowID;
         Guid fileCode = Guid.NewGuid();
         if (Guid.TryParse(dialogresponseData.FileCode, out Guid _fileCode)) fileCode = _fileCode;
 
@@ -119,34 +126,47 @@ public partial class SlideShowManage
         if ((await _dialogService.Show<ConfirmDialog>(_loc["_AreYouSure"], new DialogOptions { CloseOnEscapeKey = true, CloseButton = true, MaxWidth = MaxWidth.Small, Position = DialogPosition.Center }).Result).Canceled)
             return;
 
-        var fetchResponse = await _post.SlideShowChangeStatus(new() { SlideShowID = requestModel.SlideShowID });
-        if (!fetchResponse.SuccessAction)
+        var fetchResponse = await _httpService.CallServiceObjAsync(HttpMethod.Post, true, "Post/SlideShowChangeStatus", new SlideShowChangeStatusRequest { SlideShowID = requestModel.SlideShowID }.ToJsonString());
+        if (!fetchResponse.Success)
         {
             _snackbar.Add($"{((fetchResponse.ErrorException?.ErrorCode ?? "") == "" ? _loc["_FailedAction"] : _loc[$"_ERROR_{fetchResponse.ErrorException?.ErrorCode}"])} {_loc["_Active_DeActive"]}", Severity.Error);
             return;
         }
 
-        requestModel.Active = !requestModel.Active;
-        _snackbar.Add($"{_loc["_SuccessAction"]} {_loc["_Active_DeActive"]}", Severity.Success);
+        var parsedResponse = fetchResponse.ResponseData.CastModel<PublicActionResponse>();
+        if (parsedResponse.SuccessAction)
+        {
+            requestModel.Active = !requestModel.Active;
+            _snackbar.Add($"{_loc["_SuccessAction"]} {_loc["_Active_DeActive"]}", Severity.Success);
+        }
     }
 
     private async Task EditCurrentSlide(SlideShowListResponse.SlideShowDetail requestModel)
     {
-        var fetchResponse = await _post.SlideShowDetail(new() { SlideShowID = requestModel.SlideShowID });
-        if (fetchResponse.ErrorException is not null)
+        var fetchResponse = await _httpService.CallServiceObjAsync(HttpMethod.Post, true, "Post/SlideShowDetail", new SlideShowDetailRequest { SlideShowID = requestModel.SlideShowID }.ToJsonString());
+        if (!fetchResponse.Success)
         {
             _snackbar.Add($"{((fetchResponse.ErrorException?.ErrorCode ?? "") == "" ? _loc["_FailedAction"] : _loc[$"_ERROR_{fetchResponse.ErrorException?.ErrorCode}"])} {_loc["_Active_DeActive"]}", Severity.Error);
             return;
         }
 
-        var checkDialogData = await _dialogService.Show<SlideShowDialog>(_loc["_SlideShow_Update"], options: new DialogOptions { CloseButton = true, CloseOnEscapeKey = true, FullWidth = true, FullScreen = true }, parameters: new() { { "FormModel", fetchResponse.CastModel<SlideShowInsertRequest>() } }).Result;
+        var parsedResponse = fetchResponse.ResponseData.CastModel<SlideShowDetailResponse>();
+
+        var checkDialogData = await _dialogService.Show<SlideShowDialog>(_loc["_SlideShow_Update"], options: new DialogOptions { CloseButton = true, CloseOnEscapeKey = true, FullWidth = true, FullScreen = true }, parameters: new() { { "FormModel", parsedResponse.CastModel<SlideShowInsertRequest>() } }).Result;
         if (checkDialogData.Canceled) return;
 
-        var dialogresponseData = checkDialogData.Data.CastModel<SlideShowUpdateRequest>();
+        var dialogresponseData = checkDialogData.Data.CastModel<SlideShowInsertRequest>();
         if (dialogresponseData is null) return;
 
-        var serviceResponse = await _post.SlideShowUpdate(dialogresponseData);
-        if (!serviceResponse.SuccessAction)
+        var serviceResponse = await _httpService.CallServiceObjAsync(HttpMethod.Post, true, $"Post/SlideShowUpdate", dialogresponseData.ToJsonString());
+        if (!serviceResponse.Success)
+        {
+            _snackbar.Add($"{_loc[$"_ERROR_{serviceResponse.ErrorException.ErrorCode}"]} {_loc["_SlideShow_Update"]}", Severity.Error);
+            return;
+        }
+
+        var parsedServiceResponse = serviceResponse.ResponseData.CastModel<PublicActionResponse>();
+        if (parsedServiceResponse is null || !parsedServiceResponse.SuccessAction || parsedServiceResponse.ErrorException is not null)
         {
             _snackbar.Add($"{_loc[$"_ERROR_{serviceResponse.ErrorException.ErrorCode}"]} {_loc["_SlideShow_Update"]}", Severity.Error);
             return;
@@ -157,15 +177,19 @@ public partial class SlideShowManage
         requestModel.FileCode = new Guid(dialogresponseData.FileCode);
         requestModel.Title = dialogresponseData.Title;
         requestModel.PageCode = dialogresponseData.PageCode;
-        requestModel.Priority = dialogresponseData.Priority ?? 1;
+        requestModel.Priority = dialogresponseData.Priority;
     }
 
     private async Task<SlideShowInsertLanguageRequest> FetchSlideShowLanguageDetail(SlideShowLanguageDetailRequest requestModel)
     {
-        var fetchResponse = await _post.SlideShowLanguageDetail(requestModel);
-        if (fetchResponse.ErrorException is null)
+        var fetchResponse = await _httpService.CallServiceObjAsync(HttpMethod.Post, true, "Post/SlideShowLanguageDetail", requestModel.ToJsonString());
+        if (fetchResponse.Success)
         {
-            return fetchResponse.CastModel<SlideShowInsertLanguageRequest>();
+            var parsedResponse = fetchResponse.ResponseData.CastModel<SlideShowInsertLanguageRequest>();
+            if (parsedResponse is not null)
+            {
+                return parsedResponse;
+            }
         }
 
         _snackbar.Add($"{((fetchResponse.ErrorException?.ErrorCode ?? "") == "" ? _loc["_FailedAction"] : _loc[$"_ERROR_{fetchResponse.ErrorException?.ErrorCode}"])} {_loc["_UpdateLanguage"]}", Severity.Warning);
@@ -184,10 +208,12 @@ public partial class SlideShowManage
         var slideshowLanguage = await _dialogService.Show<SlideshowLanguageDialog>(_loc["_AddNewLanguage"], options: new DialogOptions { CloseButton = true, CloseOnEscapeKey = true }, parameters: new() { { "FormModel", slideShowLanguageDetail } }).Result;
         if (promptResponse.Canceled) return;
 
-        var serviceResponse = await _post.SlideShowInsertLanguage(slideshowLanguage.Data.CastModel<SlideShowInsertLanguageRequest>());
-        if (serviceResponse.SuccessAction)
+        var serviceResponse = await _httpService.CallServiceObjAsync(HttpMethod.Post, true, $"Post/SlideShowInsertLanguage", slideshowLanguage.Data.ToJsonString());
+        if (serviceResponse.Success)
         {
-            _snackbar.Add($"{_loc["_SuccessAction"]} {_loc["_SlideShow_Lanugage_Manage"]}", Severity.Success);
+            var parsedResponse = serviceResponse.ResponseData.CastModel<PublicActionResponse>();
+            if (parsedResponse.SuccessAction)
+                _snackbar.Add($"{_loc["_SuccessAction"]} {_loc["_SlideShow_Lanugage_Manage"]}", Severity.Success);
         }
         else
         {
@@ -204,19 +230,24 @@ public partial class SlideShowManage
         if (promptResponse.Canceled || promptResponse.Data.ToString() == "") return;
 
 
-        var fetchResponse = await _post.SlideShowRemoveLanguage(new() { SlideShowID = requestModel.SlideShowID, LanguageCode = promptResponse.Data.ToString() });
-        if (!fetchResponse.SuccessAction)
+        var fetchResponse = await _httpService.CallServiceObjAsync(HttpMethod.Post, true, "Post/SlideShowRemoveLanguage", new SlideShowRemoveLanguageRequest { SlideShowID = requestModel.SlideShowID, LanguageCode = promptResponse.Data.ToString() }.ToJsonString());
+        if (!fetchResponse.Success)
         {
             _snackbar.Add($"{((fetchResponse.ErrorException?.ErrorCode ?? "") == "" ? _loc["_FailedAction"] : _loc[$"_ERROR_{fetchResponse.ErrorException?.ErrorCode}"])} {_loc["_DeleteLanguage"]}", Severity.Error);
             return;
         }
 
-        var fetchUpdatedPost = (from i in _listResponse.SlideShows where i.SlideShowID == requestModel.SlideShowID select i).FirstOrDefault();
-        if (fetchUpdatedPost is not null && !string.IsNullOrEmpty(fetchUpdatedPost.LanguageCodes) && fetchUpdatedPost.LanguageCodes != "")
+        var parsedResponse = fetchResponse.ResponseData.CastModel<PublicActionResponse>();
+        if (parsedResponse.SuccessAction)
         {
-            fetchUpdatedPost.LanguageCodes = fetchUpdatedPost.LanguageCodes.Replace(promptResponse.Data.ToString(), "", StringComparison.OrdinalIgnoreCase);
+            var fetchUpdatedPost = (from i in _listResponse.SlideShows where i.SlideShowID == requestModel.SlideShowID select i).FirstOrDefault();
+            if (fetchUpdatedPost is not null && !string.IsNullOrEmpty(fetchUpdatedPost.LanguageCodes) && fetchUpdatedPost.LanguageCodes != "")
+            {
+                fetchUpdatedPost.LanguageCodes = fetchUpdatedPost.LanguageCodes.Replace(promptResponse.Data.ToString(), "", StringComparison.OrdinalIgnoreCase);
+            }
+            _snackbar.Add($"{_loc["_SuccessAction"]} {_loc["_DeleteLanguage"]}", Severity.Success);
+
         }
-        _snackbar.Add($"{_loc["_SuccessAction"]} {_loc["_DeleteLanguage"]}", Severity.Success);
     }
 
 

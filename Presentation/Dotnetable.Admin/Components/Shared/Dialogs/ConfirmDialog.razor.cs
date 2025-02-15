@@ -6,7 +6,7 @@ namespace Dotnetable.Admin.Components.Shared.Dialogs;
 
 public partial class ConfirmDialog
 {
-    [CascadingParameter] MudDialogInstance MudDialog { get; set; }
+    [CascadingParameter] IMudDialogInstance MudDialog { get; set; }
     [Inject] private IStringLocalizer<Dotnetable.Shared.Resources.Resource> _loc { get; set; }
 
 

@@ -1,7 +1,6 @@
 ﻿using Dotnetable.Admin.Components.PageComponents.Member.Profile;
 using Dotnetable.Admin.Models;
-using Dotnetable.Admin.SharedServices;
-using Dotnetable.Service;
+using Dotnetable.Admin.SharedServices.Data;
 using Dotnetable.Shared.Tools;
 using Microsoft.AspNetCore.Components;
 using Microsoft.Extensions.Localization;
@@ -13,8 +12,7 @@ public partial class MemberProfile
 {
     [Inject] private IDialogService _dialogService { get; set; }
     [Inject] private IStringLocalizer<Dotnetable.Shared.Resources.Resource> _loc { get; set; }
-    [Inject] private MemberService _member { get; set; }
-    [Inject] private Tools _tools { get; set; }
+    [Inject] private IHttpServices _httpService { get; set; }
     [CascadingParameter] protected ThemeManagerModel themeManager { get; set; }
 
     private Dotnetable.Shared.DTO.Member.MemberDetailResponse _memberDetail { get; set; } = new();
@@ -23,11 +21,11 @@ public partial class MemberProfile
 
     protected async override Task OnInitializedAsync()
     {
-        int memberID = await _tools.GetRequesterMemberID();
-        var fetchMemberDetail = await _member.MemberDetail(new() { CurrentMemberID = memberID });
-        if (fetchMemberDetail.ErrorException is null)
+        var fetchMemberDetail = await _httpService.CallServiceObjAsync(HttpMethod.Get, true, "Member/MemberDetail");
+        if (fetchMemberDetail.Success)
         {
-            _memberEdit = fetchMemberDetail.CastModel<Dotnetable.Shared.DTO.Member.MemberEditRequest>();
+            _memberDetail = fetchMemberDetail.ResponseData.CastModel<Dotnetable.Shared.DTO.Member.MemberDetailResponse>();
+            _memberEdit = _memberDetail.CastModel<Dotnetable.Shared.DTO.Member.MemberEditRequest>();
         }
     }
 
