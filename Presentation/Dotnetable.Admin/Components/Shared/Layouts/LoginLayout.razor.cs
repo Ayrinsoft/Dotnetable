@@ -36,8 +36,7 @@ public partial class LoginLayout
     private readonly MudTheme _theme = new()
     {
         PaletteLight = new() { Primary = Colors.Green.Default },
-        LayoutProperties = new() { AppbarHeight = "80px", DefaultBorderRadius = "12px" },
-        Typography = new() { Default = new() { FontSize = "0.9rem", } }
+        LayoutProperties = new() { AppbarHeight = "80px", DefaultBorderRadius = "12px" }
     };
 
     private async Task ChangeLanguage(ChangeEventArgs e)

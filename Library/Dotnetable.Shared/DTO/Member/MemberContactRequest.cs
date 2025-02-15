@@ -6,7 +6,6 @@ public class MemberContactRequest: CityFormDataResponse
 {
     public int? MemberContactID { get; set; }
     public int? CurrentMemberID { get; set; }
-    public int? MemberID { get; set; }
     public string Address { get; set; }
     public string PhoneNumber { get; set; }
     public string CellphoneNumber { get; set; }

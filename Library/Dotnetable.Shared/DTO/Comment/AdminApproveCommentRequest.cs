@@ -5,8 +5,6 @@ namespace Dotnetable.Shared.DTO.Comment;
 
 public class AdminApproveCommentRequest
 {
-    public int CurrentMemberID { get; set; }
-
     [Required(ErrorMessageResourceType = typeof(Resources.Resource), ErrorMessageResourceName = nameof(Resources.Resource._Err_CommentCategoryID_Required))]
     [EnumDataType(typeof(CommentCategory))]
     public CommentCategory CommentCategoryID { get; set; }

@@ -1,8 +1,6 @@
-﻿using Dotnetable.Admin.SharedServices;
-using Dotnetable.Service;
+﻿using Dotnetable.Admin.SharedServices.Data;
 using Dotnetable.Shared.DTO.Member;
 using Dotnetable.Shared.DTO.Place;
-using Dotnetable.Shared.DTO.Public;
 using Dotnetable.Shared.Tools;
 using Microsoft.AspNetCore.Components;
 using Microsoft.Extensions.Localization;
@@ -13,8 +11,7 @@ namespace Dotnetable.Admin.Components.PageComponents.Member.Profile;
 public partial class ProfileMemberEdit
 {
     [Inject] private IStringLocalizer<Dotnetable.Shared.Resources.Resource> _loc { get; set; }
-    [Inject] private MemberService _member { get; set; }
-    [Inject] private Tools _tools { get; set; }
+    [Inject] private IHttpServices _httpService { get; set; }
     [Inject] private ISnackbar _snackbar { get; set; }
 
 
@@ -26,21 +23,22 @@ public partial class ProfileMemberEdit
 
     private async Task DoUpdateProfile()
     {
-        int memberID = await _tools.GetRequesterMemberID();
-        PublicActionResponse serviceResponse;
-        MemberEdit.CurrentMemberID = memberID;
-
-        if (FunctionName != "EditAdmin")
-            serviceResponse = await _member.Register(MemberEdit.CastModel<MemberInsertRequest>());
-        else
-            serviceResponse = await _member.Edit(MemberEdit);
-
-        if (serviceResponse.SuccessAction)
+        var updateProfile = await _httpService.CallServiceObjAsync(HttpMethod.Post, true, $"Member/{FunctionName}", MemberEdit.ToJsonString());
+        if (updateProfile.Success)
         {
-            _snackbar.Add($"{_loc["_SuccessAction"]} {_loc["_Member_Profile_Detail"]}", Severity.Success);
-            await OnEditMember.InvokeAsync(MemberEdit);
-            StateHasChanged();
-            return;
+            var parsedUpdateProfile = updateProfile.ResponseData.CastModel<Dotnetable.Shared.DTO.Public.PublicActionResponse>();
+            if (parsedUpdateProfile.SuccessAction)
+            {
+                _snackbar.Add($"{_loc["_SuccessAction"]} {_loc["_Member_Profile_Detail"]}", Severity.Success);
+                await OnEditMember.InvokeAsync(MemberEdit);
+                StateHasChanged();
+                return;
+            }
+            else if (parsedUpdateProfile.ErrorException != null && !string.IsNullOrEmpty(parsedUpdateProfile.ErrorException.ErrorCode))
+            {
+                _snackbar.Add($"{_loc[$"_ERROR_{parsedUpdateProfile.ErrorException.ErrorCode}"]} {_loc["_Member_Profile_Detail"]}", Severity.Error);
+                return;
+            }
         }
         _snackbar.Add($"{_loc["_FailedAction"]} {_loc["_Member_Profile_Detail"]}", Severity.Error);
     }

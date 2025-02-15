@@ -1,4 +1,4 @@
-﻿using Dotnetable.Service;
+﻿using Dotnetable.Admin.SharedServices.Data;
 using Dotnetable.Shared.DTO.Place;
 using Dotnetable.Shared.Tools;
 using Microsoft.AspNetCore.Components;
@@ -12,7 +12,7 @@ public partial class CitySelector
 {
     [Inject] private IStringLocalizer<Dotnetable.Shared.Resources.Resource> _loc { get; set; }
     [Inject] private IMemoryCache _mmc { get; set; }
-    [Inject] private PlaceService _place { get; set; }
+    [Inject] private IHttpServices _httpService { get; set; }
 
     [Parameter] public EventCallback<CityDetailResponse> OnChangeCityEvent { get; set; }
     [Parameter] public byte SelectedCountryID { get; set; } = 0;
@@ -28,10 +28,11 @@ public partial class CitySelector
     {
         if (!_mmc.TryGetValue("PlaceCityList", out List<CityDetailResponse> cityList))
         {
-            var fetchServiceData = await _place.CityList();
-            if (fetchServiceData.ErrorException is null)
+            var fetchServiceData = await _httpService.CallServiceObjAsync(HttpMethod.Get, false, "Place/CityList");
+            if (fetchServiceData.Success)
             {
-                cityList = fetchServiceData.Cities.CastModel<List<CityDetailResponse>>();
+                var serviceCities = fetchServiceData.ResponseData.CastModel<CityListResponse>().Cities;
+                cityList = serviceCities.CastModel<List<CityDetailResponse>>();
                 _mmc.Set("PlaceCityList", cityList, new MemoryCacheEntryOptions().SetSlidingExpiration(TimeSpan.FromMinutes(5)));
             }
         }

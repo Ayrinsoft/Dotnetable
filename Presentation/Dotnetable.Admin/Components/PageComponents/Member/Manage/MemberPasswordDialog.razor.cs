@@ -1,6 +1,6 @@
-﻿using Dotnetable.Admin.SharedServices;
-using Dotnetable.Service;
+﻿using Dotnetable.Admin.SharedServices.Data;
 using Dotnetable.Shared.DTO.Member;
+using Dotnetable.Shared.DTO.Public;
 using Dotnetable.Shared.Tools;
 using Microsoft.AspNetCore.Components;
 using Microsoft.AspNetCore.Components.Web;
@@ -11,19 +11,13 @@ namespace Dotnetable.Admin.Components.PageComponents.Member.Manage;
 
 public partial class MemberPasswordDialog
 {
-    [CascadingParameter] MudDialogInstance MudDialog { get; set; }
+    [CascadingParameter] IMudDialogInstance MudDialog { get; set; }
 
-    [Inject] private MemberService _member { get; set; }
-    [Inject] private Tools _tools { get; set; }
     [Inject] private ISnackbar _snackbar { get; set; }
     [Inject] private IStringLocalizer<Dotnetable.Shared.Resources.Resource> _loc { get; set; }
-    [Parameter] public int SelectedMemberID { get; set; }
-    int currentMemberID = -1;
+    [Inject] private IHttpServices _httpService { get; set; }
+    [Parameter] public int CurrentMemberID { get; set; }
 
-    protected override async Task OnInitializedAsync()
-    {
-        currentMemberID = await _tools.GetRequesterMemberID();
-    }
 
     private string _newPassword = "";
 
@@ -38,23 +32,27 @@ public partial class MemberPasswordDialog
 
         MemberChangePasswordAdminRequest changeRequest = new()
         {
-            MemberID = SelectedMemberID,
+            MemberID = CurrentMemberID,
             NewPassword = _newPassword,
-            SendMailForUser = true,
-            CurrentMemberID = currentMemberID
+            SendMailForUser = true
         };
-        var changeResponse = await _member.ChangeUserPassword(changeRequest);
-        if (changeResponse.SuccessAction)
+        var changeResponse = await _httpService.CallServiceObjAsync(HttpMethod.Post, true, "Member/ChangeUserPassword", changeRequest.ToJsonString());
+        if (changeResponse.Success)
         {
-            _snackbar.Add($"{_loc["_SuccessAction"]} {_loc["_ChangePassword"]}", Severity.Success);
-            MudDialog.Close(DialogResult.Ok(true));
-            return;
+            var parsedChangePassword = changeResponse.ResponseData.CastModel<PublicActionResponse>();
+            if (parsedChangePassword.SuccessAction)
+            {
+                _snackbar.Add($"{_loc["_SuccessAction"]} {_loc["_ChangePassword"]}", Severity.Success);
+                MudDialog.Close(DialogResult.Ok(true));
+                return;
+            }
+            else if (parsedChangePassword.ErrorException != null && !string.IsNullOrEmpty(parsedChangePassword.ErrorException.ErrorCode))
+            {
+                _snackbar.Add($"{_loc[$"_ERROR_{parsedChangePassword.ErrorException.ErrorCode}"]} {_loc["_ChangePassword"]}", Severity.Error);
+                return;
+            }
         }
-        else if (changeResponse.ErrorException != null && !string.IsNullOrEmpty(changeResponse.ErrorException.ErrorCode))
-        {
-            _snackbar.Add($"{_loc[$"_ERROR_{changeResponse.ErrorException.ErrorCode}"]} {_loc["_ChangePassword"]}", Severity.Error);
-            return;
-        }
+        _snackbar.Add($"{_loc["_FailedAction"]} {_loc["_ChangePassword"]}", Severity.Error);
     }
 
     private void GenerateNewPassword()

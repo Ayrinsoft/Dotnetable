@@ -13,6 +13,4 @@ public class GridviewRequest
     public int TakeCount { get; set; }
 
     public string OrderbyParams { get; set; }
-
-    public int CurrentMemberID { get; set; }
 }

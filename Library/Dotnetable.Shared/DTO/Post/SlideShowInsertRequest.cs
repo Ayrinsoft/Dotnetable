@@ -4,7 +4,6 @@ namespace Dotnetable.Shared.DTO.Post;
 
 public class SlideShowInsertRequest
 {
-    public int CurrentMemberID { get; set; }
     [Required(AllowEmptyStrings = false, ErrorMessageResourceType = typeof(Resources.Resource), ErrorMessageResourceName = nameof(Resources.Resource._Err_FileCode_Required))]
     [StringLength(36, ErrorMessageResourceType = typeof(Resources.Resource), ErrorMessageResourceName = nameof(Resources.Resource._Err_MaxLength_36))]
     [MinLength(36, ErrorMessageResourceType = typeof(Resources.Resource), ErrorMessageResourceName = nameof(Resources.Resource._Err_MinLength_36))]

@@ -21,18 +21,12 @@ public class CommentService
 
     public async Task<PostCommentListAdminResponse> PostCommentAdminList(PostCommentListAdminRequest requestModel)
     {
-        if (!await AuthenticationDataAccess.UserValidatePolicyServiceLayer(requestModel.CurrentMemberID, nameof(MemberRole.CommentManager)))
-            return new() { ErrorException = new() { ErrorCode = "C19", Message = "No Policy on this action" } };
-
         requestModel.OrderbyParams = requestModel.OrderbyParams.CheckForInjection(new() { "PostCommentID", "LogTime" });
         return await CommentDataAccess.PostCommentAdminList(requestModel);
     }
 
     public async Task<PublicActionResponse> AdminApproveComment(AdminApproveCommentRequest requestModel)
     {
-        if (!await AuthenticationDataAccess.UserValidatePolicyServiceLayer(requestModel.CurrentMemberID, nameof(MemberRole.CommentManager)))
-            return new() { ErrorException = new() { ErrorCode = "C19", Message = "No Policy on this action" } };
-
         return requestModel.CommentCategoryID switch
         {
             CommentCategory.Post => await CommentDataAccess.AdminApprovePostComment(requestModel),

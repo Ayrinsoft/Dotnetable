@@ -1,11 +1,11 @@
 ﻿using Blazored.LocalStorage;
 using Dotnetable.Admin.Components.Shared.Dialogs;
 using Dotnetable.Admin.Models;
-using Dotnetable.Admin.SharedServices;
-using Dotnetable.Service;
+using Dotnetable.Admin.SharedServices.Data;
 using Dotnetable.Shared.DTO.Authentication;
 using Dotnetable.Shared.DTO.File;
 using Dotnetable.Shared.DTO.Post;
+using Dotnetable.Shared.Tools;
 using Microsoft.AspNetCore.Components;
 using Microsoft.AspNetCore.Components.Forms;
 using Microsoft.Extensions.Localization;
@@ -18,9 +18,7 @@ public partial class PostForm
 {
     [Inject] private IStringLocalizer<Dotnetable.Shared.Resources.Resource> _loc { get; set; }
     [Inject] private IDialogService _dialogService { get; set; }
-    [Inject] private PostService _post { get; set; }
-    [Inject] private FileService _fileService { get; set; }
-    [Inject] private Tools _tools { get; set; }
+    [Inject] private IHttpServices _httpService { get; set; }
     [Inject] private ISnackbar _snackbar { get; set; }
     [Inject] private ILocalStorageService _localStorage { get; set; }
     [Inject] private IJSRuntime _jsRuntime { get; set; }
@@ -38,7 +36,7 @@ public partial class PostForm
     private UserLoginResponse.TokenItems _fetchCurrentToken = null;
     private string _ckContainerID = $"ck{Guid.NewGuid().ToString().Replace("-", "")}";
     private string _postCatDefaultLanguage = "";
-    int memberID = -1;
+
 
     protected async override Task OnInitializedAsync()
     {
@@ -66,8 +64,6 @@ public partial class PostForm
             }
             await _localStorage.SetItemAsStringAsync("TMPFiles", fileList);
         }
-
-        memberID = await _tools.GetRequesterMemberID();
     }
 
     protected async override Task OnAfterRenderAsync(bool firstRender)
@@ -98,8 +94,8 @@ public partial class PostForm
         if ((await _dialogService.Show<ConfirmDialog>(_loc["_AreYouSure"]).Result).Canceled)
             return;
 
-        var removeFile = await _post.RemovePostFile(new() { FileCode = fileCode, PostID = FormModel.PostID, CoverImage = false });
-        if (removeFile.SuccessAction)
+        var removeFile = await _httpService.CallServiceObjAsync(HttpMethod.Post, true, $"Post/RemovePostFile", new PostFileRemoveRequest() { FileCode = fileCode, PostID = FormModel.PostID, CoverImage = false }.ToJsonString());
+        if (removeFile.Success)
         {
             if (await _localStorage.ContainKeyAsync("TMPFiles"))
             {
@@ -133,7 +129,7 @@ public partial class PostForm
         }
 
         if (FunctionName != "Insert")
-            _ = await _post.RemovePostFile(new() { FileCode = FormModel.MainImage.ToString(), PostID = FormModel.PostID, CoverImage = true });
+            _ = await _httpService.CallServiceObjAsync(HttpMethod.Post, true, $"Post/RemovePostFile", new PostFileRemoveRequest() { FileCode = FormModel.MainImage.ToString(), PostID = FormModel.PostID, CoverImage = true }.ToJsonString());
 
         FormModel.MainImage = null;
     }
@@ -147,9 +143,9 @@ public partial class PostForm
             await _localStorage.SetItemAsStringAsync("TMPFiles", fileListString);
         }
 
-        FileInsertRequest requestBody = new() { FileName = "CoverImage.jpg", FileStream = _currentFileStream, FileCode = Guid.NewGuid().ToString(), UploaderID = memberID };
-        var uploadFile = await _fileService.Insert(requestBody);
-        if (uploadFile.SuccessAction)
+        FileTemporaryUploadRequest requestBody = new() { FileName = "CoverImage.jpg", FileStream = _currentFileStream, FileCode = Guid.NewGuid().ToString() };
+        var uploadFile = await _httpService.CallServiceObjAsync(HttpMethod.Post, true, $"Files/UploadTemporary", requestBody.ToJsonString());
+        if (uploadFile.Success)
         {
             FormModel.MainImage = new(requestBody.FileCode);
             string fileListString = await _localStorage.GetItemAsStringAsync("TMPFiles") ?? "";

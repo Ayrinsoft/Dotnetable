@@ -1,6 +1,5 @@
 ﻿using Dotnetable.Admin.Models;
-using Dotnetable.Admin.SharedServices;
-using Dotnetable.Service;
+using Dotnetable.Admin.SharedServices.Data;
 using Dotnetable.Shared.DTO.Member;
 using Dotnetable.Shared.DTO.Public;
 using Dotnetable.Shared.Tools;
@@ -14,20 +13,16 @@ public partial class SubscribeManage
 {
     [Inject] private ISnackbar _snackbar { get; set; }
     [Inject] private IStringLocalizer<Dotnetable.Shared.Resources.Resource> _loc { get; set; }
-    [Inject] private MemberService _member { get; set; }
-    [Inject] private Tools _tools { get; set; }
+    [Inject] private IHttpServices _httpService { get; set; }
     [CascadingParameter] protected ThemeManagerModel themeManager { get; set; }
 
 
     private GridViewHeaderParameters _gridHeaderParams { get; set; }
     private SubscribeListRequest _requestModel { get; set; }
     private SubscribeListResponse _responseModel { get; set; }
-    int memberID = -1;
 
     protected async override Task OnInitializedAsync()
     {
-        memberID = await _tools.GetRequesterMemberID();
-        _requestModel = new() { CurrentMemberID = memberID };
         _gridHeaderParams = new()
         {
             HeaderItems = new()
@@ -63,33 +58,42 @@ public partial class SubscribeManage
             OrderbyParams = _gridHeaderParams.OrderbyParams,
             Email = _gridHeaderParams.HeaderItems.FirstOrDefault(i => i.ColumnName == nameof(SubscribeListResponse.SubscribeDetail.Email)).SearchText,
             Active = _gridHeaderParams.HeaderItems.FirstOrDefault(i => i.ColumnName == nameof(SubscribeListResponse.SubscribeDetail.Active)).SearchText switch { "1" => true, "0" => false, _ => null },
-            MemberID = string.IsNullOrEmpty(searchMemberID) || searchMemberID == "" ? null : Convert.ToInt32(searchMemberID),
-            CurrentMemberID = memberID
+            MemberID = string.IsNullOrEmpty(searchMemberID) || searchMemberID == "" ? null : Convert.ToInt32(searchMemberID)
         };
     }
 
     private async Task FetchGrid()
     {
-        var fetchResponse = await _member.MemberSubscribedList(_requestModel);
-        if (fetchResponse.ErrorException is null)
-            _responseModel = fetchResponse;
-        
+        var fetchResponse = await _httpService.CallServiceObjAsync(HttpMethod.Post, true, "Member/MemberSubscribedList", _requestModel.ToJsonString());
+        if (fetchResponse.Success)
+        {
+            _responseModel = fetchResponse.ResponseData.CastModel<SubscribeListResponse>();
+        }
         _gridHeaderParams.Pagination.MaxLength = _responseModel?.DatabaseRecords ?? 1;
         StateHasChanged();
     }
 
     private async Task ChangeActiveStatus(SubscribeListResponse.SubscribeDetail requestModel)
     {
-        var changeResponse = await _member.MemberSubscribedChangeStatus(new(){ EmailSubscribeID = requestModel.EmailSubscribeID, CurrentMemberID = memberID });
-        if (!changeResponse.SuccessAction)
+        var changeResponse = await _httpService.CallServiceObjAsync(HttpMethod.Post, true, "Member/MemberSubscribedChangeStatus", new SubscribedChangeStatusRequest { EmailSubscribeID = requestModel.EmailSubscribeID }.ToJsonString());
+        if (!changeResponse.Success)
         {
             _snackbar.Add($"{_loc["_FailedAction"]} {_loc["_Active_DeActive"]}", Severity.Error);
             return;
         }
 
-        _snackbar.Add($"{_loc["_SuccessAction"]} {_loc["_Active_DeActive"]}", Severity.Success);
-        requestModel.Active = !requestModel.Active;
-        return;
+        var responseItem = changeResponse.ResponseData.CastModel<PublicActionResponse>();
+        if (responseItem.SuccessAction)
+        {
+            _snackbar.Add($"{_loc["_SuccessAction"]} {_loc["_Active_DeActive"]}", Severity.Success);
+            requestModel.Active = !requestModel.Active;
+            return;
+        }
+        else if (responseItem.ErrorException != null && !string.IsNullOrEmpty(responseItem.ErrorException.ErrorCode))
+        {
+            _snackbar.Add($"{_loc[$"_ERROR_{responseItem.ErrorException.ErrorCode}"]} {_loc["_Active_DeActive"]}", Severity.Error);
+            return;
+        }
     }
 
 

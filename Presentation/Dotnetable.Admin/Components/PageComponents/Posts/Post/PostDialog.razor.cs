@@ -6,7 +6,7 @@ namespace Dotnetable.Admin.Components.PageComponents.Posts.Post;
 
 public partial class PostDialog
 {
-    [CascadingParameter] MudDialogInstance MudDialog { get; set; }
+    [CascadingParameter] IMudDialogInstance MudDialog { get; set; }
     [Parameter] public string FunctionName { get; set; }
     [Parameter] public PostUpdateRequest FormModel { get; set; }
     [Parameter] public string DefaultLanguageCode { get; set; }

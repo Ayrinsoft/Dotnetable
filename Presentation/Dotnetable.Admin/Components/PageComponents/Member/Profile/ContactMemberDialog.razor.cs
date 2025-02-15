@@ -6,7 +6,7 @@ namespace Dotnetable.Admin.Components.PageComponents.Member.Profile
 {
     public partial class ContactMemberDialog
     {
-        [CascadingParameter] MudDialogInstance MudDialog { get; set; }
+        [CascadingParameter] IMudDialogInstance MudDialog { get; set; }
         [Parameter] public string FunctionName { get; set; }
         [Parameter] public MemberContactRequest ContactModel { get; set; }
 

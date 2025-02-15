@@ -6,7 +6,7 @@ namespace Dotnetable.Admin.Components.PageComponents.Posts.PostCategory;
 
 public partial class PostCategoryLanguageDialog
 {
-    [CascadingParameter] MudDialogInstance MudDialog { get; set; }
+    [CascadingParameter] IMudDialogInstance MudDialog { get; set; }
 
     [Parameter] public PostCategoryUpdateOtherLanguageRequest FormModel { get; set; }
 

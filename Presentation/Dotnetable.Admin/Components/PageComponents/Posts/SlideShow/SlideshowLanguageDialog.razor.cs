@@ -6,7 +6,7 @@ namespace Dotnetable.Admin.Components.PageComponents.Posts.SlideShow;
 
 public partial class SlideshowLanguageDialog
 {
-    [CascadingParameter] MudDialogInstance MudDialog { get; set; }
+    [CascadingParameter] IMudDialogInstance MudDialog { get; set; }
 
     [Parameter] public SlideShowInsertLanguageRequest FormModel { get; set; }
 
