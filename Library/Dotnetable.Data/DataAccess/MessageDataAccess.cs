@@ -37,10 +37,7 @@ public class MessageDataAccess
                 db.Entry(db.TB_Email_Settings).State = EntityState.Modified;
                 await db.SaveChangesAsync();
             }
-            catch (Exception x)
-            {
-                return new() { ErrorException = new() { ErrorCode = "D1", Message = x.Message } };
-            }
+            catch (Exception) { }
         }
 
         TB_Email_Setting emailSettingObject = new()

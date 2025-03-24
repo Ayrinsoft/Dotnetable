@@ -7,7 +7,7 @@ public class EmailPanelUpdateRequest
 {
     [Required(ErrorMessageResourceType = typeof(Resources.Resource), ErrorMessageResourceName = nameof(Resources.Resource._Err_EmailSettingID_Required))]
     [Range(1, int.MaxValue, ErrorMessageResourceType = typeof(Resources.Resource), ErrorMessageResourceName = nameof(Resources.Resource._Err_Public_Int_Length))]
-    public int EmailSettingID { get; set; }
+    public int EmailSettingID { get; set; } = 1;
 
     public string EmailAddress { get; set; }
     public string EmailPassword { get; set; }

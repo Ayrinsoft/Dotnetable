@@ -31,7 +31,7 @@ public partial class MemberProfile
 
     private async Task InsertNewContact()
     {
-        var checkInsert = await _dialogService.Show<ContactMemberDialog>(_loc["_Member_Insert_New_Address"], options: new DialogOptions { CloseButton = true, CloseOnEscapeKey = true }, parameters: new() { { "ContactModel", null }, { "FunctionName", "ContactInsert" } }).Result;
+        var checkInsert = await (await _dialogService.ShowAsync<ContactMemberDialog>(_loc["_Member_Insert_New_Address"], options: new DialogOptions { CloseButton = true, CloseOnEscapeKey = true }, parameters: new() { { "ContactModel", null }, { "FunctionName", "ContactInsert" } })).Result;
         if (!checkInsert.Canceled)
             _memberDetail.Addresses.Add(checkInsert.Data.CastModel<Dotnetable.Shared.DTO.Member.MemberContactRequest>());
     }

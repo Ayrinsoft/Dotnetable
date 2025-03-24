@@ -92,7 +92,7 @@ public partial class PolicyManageGrid
 
     private async Task UpdatePolicy(PolicyListResponse.PolicyDetail requestModel)
     {
-        var promptResponse = await _dialogService.Show<PromptDialog>(_loc["_UpdatePolicy"], options: new DialogOptions { CloseButton = true, CloseOnEscapeKey = true }, parameters: new() { { "ColumnTitle", _loc["_Title"].ToString() }, { "DefaultValue", requestModel.Title } }).Result;
+        var promptResponse = await (await _dialogService.ShowAsync<PromptDialog>(_loc["_UpdatePolicy"], options: new DialogOptions { CloseButton = true, CloseOnEscapeKey = true }, parameters: new() { { "ColumnTitle", _loc["_Title"].ToString() }, { "DefaultValue", requestModel.Title } })).Result;
         if (promptResponse.Canceled) return;
 
         requestModel.Title = promptResponse.Data.ToString();

@@ -20,7 +20,7 @@ public partial class PolicyManage
 
     private async Task InsertPolicy()
     {
-        var promptResponse = await _dialogService.Show<PromptDialog>(_loc["_InsertPolicy"], options: new DialogOptions { CloseButton = true, CloseOnEscapeKey = true }, parameters: new() { { "ColumnTitle", (_loc["_Title"]).ToString() } }).Result;
+        var promptResponse = await (await _dialogService.ShowAsync<PromptDialog>(_loc["_InsertPolicy"], options: new DialogOptions { CloseButton = true, CloseOnEscapeKey = true }, parameters: new() { { "ColumnTitle", (_loc["_Title"]).ToString() } })).Result;
         if (promptResponse.Canceled) return;
         
         var fetchResponse = await _httpService.CallServiceObjAsync(HttpMethod.Post, true, "Member/PolicyInsert", new PolicyInsertRequest { Title = promptResponse.Data.ToString() }.ToJsonString());

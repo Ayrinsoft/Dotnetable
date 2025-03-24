@@ -105,7 +105,7 @@ public partial class ConfigSettings
 
     private async Task Removelanguage(string languageCode)
     {
-        if ((await _dialogService.Show<ConfirmDialog>(_loc["_AreYouSure"], new DialogOptions { CloseOnEscapeKey = true, CloseButton = true, MaxWidth = MaxWidth.Small, Position = DialogPosition.Center }).Result).Canceled)
+        if ((await (await _dialogService.ShowAsync<ConfirmDialog>(_loc["_AreYouSure"], new DialogOptions { CloseOnEscapeKey = true, CloseButton = true, MaxWidth = MaxWidth.Small, Position = DialogPosition.Center })).Result).Canceled)
             return;
 
         _firstData.AvailableLanguages.Remove(languageCode);

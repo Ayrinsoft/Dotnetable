@@ -88,7 +88,7 @@ public partial class PostCategoryManage
 
     private async Task PostCategoryInsert(int? parentID = null)
     {
-        var checkDialogData = await _dialogService.Show<PostCategoryDialog>(_loc["_PostCategory_Insert"], options: new DialogOptions { CloseButton = true, CloseOnEscapeKey = true, FullWidth = true }, parameters: new() { { "DefaultLanguageCode", themeManager.LanguageCode } }).Result;
+        var checkDialogData = await (await _dialogService.ShowAsync<PostCategoryDialog>(_loc["_PostCategory_Insert"], options: new DialogOptions { CloseButton = true, CloseOnEscapeKey = true, FullWidth = true }, parameters: new() { { "DefaultLanguageCode", themeManager.LanguageCode } })).Result;
         if (checkDialogData.Canceled) return;
 
         var dialogresponseData = checkDialogData.Data.CastModel<PostCategoryInsertRequest>();
@@ -122,7 +122,7 @@ public partial class PostCategoryManage
         if (!serviceResponse.Success) return;
 
         var parsedResponse = serviceResponse.ResponseData.CastModel<PostCategoryInsertRequest>();
-        var checkDialogData = await _dialogService.Show<PostCategoryDialog>(_loc["_SlideShow_Update"], options: new DialogOptions { CloseButton = true, CloseOnEscapeKey = true, FullWidth = true }, parameters: new() { { "FormModel", parsedResponse }, { "DefaultLanguageCode", "EN" } }).Result;
+        var checkDialogData = await (await _dialogService.ShowAsync<PostCategoryDialog>(_loc["_SlideShow_Update"], options: new DialogOptions { CloseButton = true, CloseOnEscapeKey = true, FullWidth = true }, parameters: new() { { "FormModel", parsedResponse }, { "DefaultLanguageCode", "EN" } })).Result;
         if (checkDialogData.Canceled) return;
 
         var dialogresponseData = checkDialogData.Data.CastModel<PostCategoryInsertRequest>();
@@ -184,7 +184,7 @@ public partial class PostCategoryManage
 
     private async Task AppendLanguage(ItemClickEventArgs e)
     {
-        var promptResponse = await _dialogService.Show<PromptDialog>(_loc["_AddNewLanguage"], options: new DialogOptions { CloseButton = true, CloseOnEscapeKey = true }, parameters: new() { { "ColumnTitle", (_loc["_LanguageCode"]).ToString() } }).Result;
+        var promptResponse = await (await _dialogService.ShowAsync<PromptDialog>(_loc["_AddNewLanguage"], options: new DialogOptions { CloseButton = true, CloseOnEscapeKey = true }, parameters: new() { { "ColumnTitle", (_loc["_LanguageCode"]).ToString() } })).Result;
         if (promptResponse.Canceled || promptResponse.Data.ToString() == "") return;
         int postCategoryID = Convert.ToInt32(e.Data);
 
@@ -201,7 +201,7 @@ public partial class PostCategoryManage
                 formModel = new() { LanguageCode = postCategoryDetail.LanguageCode, Description = postCategoryDetail.Description, MetaDescription = postCategoryDetail.MetaDescription, MetaKeywords = postCategoryDetail.MetaKeywords, PostCategoryID = postCategoryDetail.PostCategoryID, Tags = postCategoryDetail.Tags, Title = postCategoryDetail.Title };
         }
 
-        var checkDialogData = await _dialogService.Show<PostCategoryLanguageDialog>(_loc["_PostCategory_Language"], options: new DialogOptions { CloseButton = true, CloseOnEscapeKey = true, FullWidth = true }, parameters: new() { { "FormModel", formModel } }).Result;
+        var checkDialogData = await (await _dialogService.ShowAsync<PostCategoryLanguageDialog>(_loc["_PostCategory_Language"], options: new DialogOptions { CloseButton = true, CloseOnEscapeKey = true, FullWidth = true }, parameters: new() { { "FormModel", formModel } })).Result;
         if (checkDialogData.Canceled) return;
 
         var dialogresponseData = checkDialogData.Data.CastModel<PostCategoryUpdateOtherLanguageRequest>();

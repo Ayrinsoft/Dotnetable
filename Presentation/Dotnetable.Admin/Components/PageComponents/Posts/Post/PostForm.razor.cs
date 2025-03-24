@@ -91,7 +91,7 @@ public partial class PostForm
 
     private async Task DeleteUploadedFile(string fileCode)
     {
-        if ((await _dialogService.Show<ConfirmDialog>(_loc["_AreYouSure"]).Result).Canceled)
+        if ((await (await _dialogService.ShowAsync<ConfirmDialog>(_loc["_AreYouSure"])).Result).Canceled)
             return;
 
         var removeFile = await _httpService.CallServiceObjAsync(HttpMethod.Post, true, $"Post/RemovePostFile", new PostFileRemoveRequest() { FileCode = fileCode, PostID = FormModel.PostID, CoverImage = false }.ToJsonString());

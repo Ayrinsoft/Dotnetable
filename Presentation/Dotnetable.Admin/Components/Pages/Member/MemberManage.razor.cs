@@ -90,7 +90,7 @@ public partial class MemberManage
 
     private async Task InsertNewMember()
     {
-        var checkInsert = await _dialogService.Show<MemberDialog>(_loc["_Create_New_Member"], options: new DialogOptions { CloseButton = true, CloseOnEscapeKey = true, FullWidth = true, FullScreen = true }, parameters: new() { { "FormModel", new MemberInsertRequest() }, { "FunctionName", "RegisterAdmin" } }).Result;
+        var checkInsert = await (await _dialogService.ShowAsync<MemberDialog>(_loc["_Create_New_Member"], options: new DialogOptions { CloseButton = true, CloseOnEscapeKey = true, FullWidth = true, FullScreen = true }, parameters: new() { { "FormModel", new MemberInsertRequest() }, { "FunctionName", "RegisterAdmin" } })).Result;
         if (checkInsert.Canceled) return;
 
         var dialogresponseData = checkInsert.Data.CastModel<MemberInsertRequest>();
@@ -174,7 +174,7 @@ public partial class MemberManage
     #region EditSection
     private async Task EditCurrentMember(MemberListFinalResponse.MemberDetail requestModel)
     {
-        var checkInsert = await _dialogService.Show<MemberDialog>(_loc["_Member_Edit"], options: new DialogOptions { CloseButton = true, CloseOnEscapeKey = true, FullWidth = true, FullScreen = true }, parameters: new() { { "FormModel", requestModel.CastModel<MemberInsertRequest>() }, { "FunctionName", "EditAdmin" } }).Result;
+        var checkInsert = await (await _dialogService.ShowAsync<MemberDialog>(_loc["_Member_Edit"], options: new DialogOptions { CloseButton = true, CloseOnEscapeKey = true, FullWidth = true, FullScreen = true }, parameters: new() { { "FormModel", requestModel.CastModel<MemberInsertRequest>() }, { "FunctionName", "EditAdmin" } })).Result;
         if (checkInsert.Canceled) return;
 
         var dialogresponseData = checkInsert.Data.CastModel<MemberInsertRequest>();
@@ -214,7 +214,7 @@ public partial class MemberManage
     #region ActivateLink
     private async Task SendActivateLink(int memberID)
     {
-        if ((await _dialogService.Show<ConfirmDialog>(_loc["_AreYouSure"], new DialogOptions { CloseOnEscapeKey = true, CloseButton = true, MaxWidth = MaxWidth.Small, Position = DialogPosition.Center }).Result).Canceled)
+        if ((await (await _dialogService.ShowAsync<ConfirmDialog>(_loc["_AreYouSure"], new DialogOptions { CloseOnEscapeKey = true, CloseButton = true, MaxWidth = MaxWidth.Small, Position = DialogPosition.Center })).Result).Canceled)
             return;
 
         var activationResponse = await _httpService.CallServiceObjAsync(HttpMethod.Post, true, "Member/SendActivateLinkAdmin", new MemberActivateSendLinkRequest() { CurrentMemberID = memberID }.ToJsonString());
@@ -238,14 +238,14 @@ public partial class MemberManage
     #endregion
 
     #region ChangeMemberPassword
-    private void ChangeMemberPassword(int memberID) =>
-        _dialogService.Show<MemberPasswordDialog>(_loc["_NewPassword"], options: new DialogOptions { CloseButton = true, CloseOnEscapeKey = true }, parameters: new() { { "CurrentMemberID", memberID } });
+    private async Task ChangeMemberPassword(int memberID) =>
+        await (await _dialogService.ShowAsync<MemberPasswordDialog>(_loc["_NewPassword"], options: new DialogOptions { CloseButton = true, CloseOnEscapeKey = true }, parameters: new() { { "CurrentMemberID", memberID } })).Result;
 
     #endregion
 
     #region InsertNewMemberContact
-    private void InsertNewMemberContact(int memberID) =>
-        _dialogService.Show<ContactMemberDialog>(_loc["_Member_Insert_New_Address"], options: new DialogOptions { CloseButton = true, CloseOnEscapeKey = true }, parameters: new() { { "ContactModel", new MemberContactRequest() { CurrentMemberID = memberID } }, { "FunctionName", "ContactInsertAdmin" } });
+    private async Task InsertNewMemberContact(int memberID) =>
+        await (await _dialogService.ShowAsync<ContactMemberDialog>(_loc["_Member_Insert_New_Address"], options: new DialogOptions { CloseButton = true, CloseOnEscapeKey = true }, parameters: new() { { "ContactModel", new MemberContactRequest() { CurrentMemberID = memberID } }, { "FunctionName", "ContactInsertAdmin" } })).Result;
 
     #endregion
 
@@ -256,7 +256,7 @@ public partial class MemberManage
         if (fetchContacts.Success)
         {
             var contactList = (fetchContacts.ResponseData.CastModel<MemberContactListResponse>().Contacts).CastModel<List<MemberContactRequest>>();
-            _dialogService.Show<MemberContactListAdminDialog>(_loc["_Member_Profile_Addresses"], options: new DialogOptions { CloseButton = true, CloseOnEscapeKey = true, FullScreen = true }, parameters: new() { { "Addresses", contactList } });
+            await (await _dialogService.ShowAsync<MemberContactListAdminDialog>(_loc["_Member_Profile_Addresses"], options: new DialogOptions { CloseButton = true, CloseOnEscapeKey = true, FullScreen = true }, parameters: new() { { "Addresses", contactList } })).Result;
         }
         else
         {
