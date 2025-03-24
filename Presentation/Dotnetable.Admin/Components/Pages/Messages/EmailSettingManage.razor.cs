@@ -81,7 +81,7 @@ public partial class EmailSettingManage
 
     public async Task InsertNewSetting()
     {
-        var checkDialogData = await _dialogService.Show<EmailSettingDialog>(_loc["_Email_Setting_Insert"], options: new DialogOptions { CloseButton = true, CloseOnEscapeKey = true, FullWidth = true, FullScreen = true }, parameters: new() { { "FormModel", new EmailPanelUpdateRequest()} }).Result;
+        var checkDialogData = await (await _dialogService.ShowAsync<EmailSettingDialog>(_loc["_Email_Setting_Insert"], options: new DialogOptions { CloseButton = true, CloseOnEscapeKey = true, FullWidth = true, FullScreen = true }, parameters: new() { { "FormModel", new EmailPanelUpdateRequest()} })).Result;
         if (checkDialogData.Canceled) return;
 
         var dialogresponseData = checkDialogData.Data.CastModel<EmailPanelUpdateRequest>();
@@ -119,7 +119,7 @@ public partial class EmailSettingManage
 
     private async Task EditCurrentSetting(EmailPanelListResponse.EmailSettingDetail requestModel)
     {
-        var checkDialogData = await _dialogService.Show<EmailSettingDialog>(_loc["_Email_Setting_Update"], options: new DialogOptions { CloseButton = true, CloseOnEscapeKey = true, FullWidth = true, FullScreen = true }, parameters: new() { { "FormModel", requestModel.CastModel<EmailPanelUpdateRequest>() } }).Result;
+        var checkDialogData = await (await _dialogService.ShowAsync<EmailSettingDialog>(_loc["_Email_Setting_Update"], options: new DialogOptions { CloseButton = true, CloseOnEscapeKey = true, FullWidth = true, FullScreen = true }, parameters: new() { { "FormModel", requestModel.CastModel<EmailPanelUpdateRequest>() } })).Result;
         if (checkDialogData.Canceled) return;
 
         var dialogresponseData = checkDialogData.Data.CastModel<EmailPanelUpdateRequest>();

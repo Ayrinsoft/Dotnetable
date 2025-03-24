@@ -37,7 +37,7 @@ public partial class MemberProfileContactGrid
 
     private async Task UpdateAddress(MemberContactRequest requestModel)
     {
-        var checkInsert = await _dialogService.Show<ContactMemberDialog>(_loc["_Member_Update_Address"], options: new DialogOptions { CloseButton = true, CloseOnEscapeKey = true }, parameters: new() { { "ContactModel", requestModel }, { "FunctionName", "ContactUpdate" } }).Result;
+        var checkInsert = await (await _dialogService.ShowAsync<ContactMemberDialog>(_loc["_Member_Update_Address"], options: new DialogOptions { CloseButton = true, CloseOnEscapeKey = true }, parameters: new() { { "ContactModel", requestModel }, { "FunctionName", "ContactUpdate" } })).Result;
         var dialogresponseData = checkInsert.Data.CastModel<MemberContactRequest>();
 
         var contactData = (from i in AddressList where i.MemberContactID == (dialogresponseData.MemberContactID ?? 0) select i).FirstOrDefault();

@@ -122,10 +122,10 @@ public partial class MainLayout
         _themeManager = themeManager;
         _theme.PaletteLight.Primary = _themeManager.PrimaryColor;
         _theme.PaletteDark = _darkPalette;
-        _theme.PaletteLight = _lightPalette; 
+        _theme.PaletteLight = _lightPalette;
         if (themeManager.IsDarkMode)
             _isDarkMode = true;
-        else 
+        else
             _isDarkMode = false;
 
         await UpdateThemeManagerLocalStorage();
@@ -136,7 +136,7 @@ public partial class MainLayout
         if (!_commandPaletteOpen)
         {
             DialogOptions options = new() { NoHeader = true, MaxWidth = MaxWidth.Medium, FullWidth = true };
-            var commandPalette = _dialogService.Show<CommandPalette>("", options);
+            var commandPalette = await _dialogService.ShowAsync<CommandPalette>("", options);
             _commandPaletteOpen = true;
             await commandPalette.Result;
             _commandPaletteOpen = false;

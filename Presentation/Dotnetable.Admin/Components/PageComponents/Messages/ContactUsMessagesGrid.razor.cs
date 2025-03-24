@@ -80,7 +80,7 @@ namespace Dotnetable.Admin.Components.PageComponents.Messages
 
         private async Task ChangeArchiveStatus(int contactUsMessageID)
         {
-            if ((await _dialogService.Show<ConfirmDialog>(_loc["_AreYouSure"], new DialogOptions { CloseOnEscapeKey = true, CloseButton = true, MaxWidth = MaxWidth.Small, Position = DialogPosition.Center }).Result).Canceled)
+            if ((await (await _dialogService.ShowAsync<ConfirmDialog>(_loc["_AreYouSure"], new DialogOptions { CloseOnEscapeKey = true, CloseButton = true, MaxWidth = MaxWidth.Small, Position = DialogPosition.Center })).Result).Canceled)
                 return;
 
             var changeResponse = await _httpService.CallServiceObjAsync(HttpMethod.Post, true, "Message/ContactUsMessageArchive", new MessageContactUsChangesRequest() { DeleteItem = false, ContactUsMessageID = contactUsMessageID }.ToJsonString());
@@ -106,7 +106,7 @@ namespace Dotnetable.Admin.Components.PageComponents.Messages
 
         private async Task DeleteItem(int contactUsMessageID)
         {
-            if ((await _dialogService.Show<ConfirmDialog>(_loc["_AreYouSure"], new DialogOptions { CloseOnEscapeKey = true, CloseButton = true, MaxWidth = MaxWidth.Small, Position = DialogPosition.Center }).Result).Canceled)
+            if ((await (await _dialogService.ShowAsync<ConfirmDialog>(_loc["_AreYouSure"], new DialogOptions { CloseOnEscapeKey = true, CloseButton = true, MaxWidth = MaxWidth.Small, Position = DialogPosition.Center })).Result).Canceled)
                 return;
 
             var deleteResponse = await _httpService.CallServiceObjAsync(HttpMethod.Post, true, "Message/ContactUsMessageDelete", new MessageContactUsChangesRequest() { DeleteItem = true, ContactUsMessageID = contactUsMessageID }.ToJsonString());

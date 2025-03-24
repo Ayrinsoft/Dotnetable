@@ -99,7 +99,7 @@ public partial class PostManage
 
     private async Task InsertNewPost()
     {
-        var checkDialogData = await _dialogService.Show<PostDialog>(_loc["_Post_Insert"], options: new DialogOptions { CloseButton = true, CloseOnEscapeKey = true, FullWidth = true, FullScreen = true }, parameters: new() { { "FormModel", new PostUpdateRequest() }, { "FunctionName", "Insert" } }).Result;
+        var checkDialogData = await (await _dialogService.ShowAsync<PostDialog>(_loc["_Post_Insert"], options: new DialogOptions { CloseButton = true, CloseOnEscapeKey = true, FullWidth = true, FullScreen = true }, parameters: new() { { "FormModel", new PostUpdateRequest() }, { "FunctionName", "Insert" } })).Result;
         if (checkDialogData.Canceled) return;
 
         var dialogresponseData = checkDialogData.Data.CastModel<PostUpdateRequest>();
@@ -147,7 +147,7 @@ public partial class PostManage
         var editDataModel = postDetailAdmin.CastModel<PostUpdateRequest>();
         editDataModel.FileCodes = postDetailAdmin.FileList.Select(i => i.FileCode.ToString()).ToList();
 
-        var checkDialogData = await _dialogService.Show<PostDialog>(_loc["_Post_Update"], options: new DialogOptions { CloseButton = true, CloseOnEscapeKey = true, FullWidth = true, FullScreen = true }, parameters: new() { { "FormModel", editDataModel }, { "FunctionName", "Update" } }).Result;
+        var checkDialogData = await (await _dialogService.ShowAsync<PostDialog>(_loc["_Post_Update"], options: new DialogOptions { CloseButton = true, CloseOnEscapeKey = true, FullWidth = true, FullScreen = true }, parameters: new() { { "FormModel", editDataModel }, { "FunctionName", "Update" } })).Result;
         if (checkDialogData.Canceled) return;
 
         var dialogresponseData = checkDialogData.Data.CastModel<PostUpdateRequest>();
@@ -182,10 +182,10 @@ public partial class PostManage
 
     private async Task DeleteLanguage(PostListFetchResponse.PostDetail requestModel)
     {
-        if ((await _dialogService.Show<ConfirmDialog>(_loc["_AreYouSure"], new DialogOptions { CloseOnEscapeKey = true, CloseButton = true, MaxWidth = MaxWidth.Small, Position = DialogPosition.Center }).Result).Canceled)
+        if ((await (await _dialogService.ShowAsync<ConfirmDialog>(_loc["_AreYouSure"], new DialogOptions { CloseOnEscapeKey = true, CloseButton = true, MaxWidth = MaxWidth.Small, Position = DialogPosition.Center })).Result).Canceled)
             return;
 
-        var promptResponse = await _dialogService.Show<PromptDialog>(_loc["_DeleteLanguage"], options: new DialogOptions { CloseButton = true, CloseOnEscapeKey = true }, parameters: new() { { "ColumnTitle", (_loc["_LanguageCode"]).ToString() } }).Result;
+        var promptResponse = await (await _dialogService.ShowAsync<PromptDialog>(_loc["_DeleteLanguage"], options: new DialogOptions { CloseButton = true, CloseOnEscapeKey = true }, parameters: new() { { "ColumnTitle", (_loc["_LanguageCode"]).ToString() } })).Result;
         if (promptResponse.Canceled || promptResponse.Data.ToString() == "") return;
 
         var fetchResponse = await _httpService.CallServiceObjAsync(HttpMethod.Post, true, "Post/PostDeleteLangauge", new PostLanguageDeleteRequest { PostID = requestModel.PostID, LanguageCode = promptResponse.Data.ToString() }.ToJsonString());
@@ -210,7 +210,7 @@ public partial class PostManage
 
     private async Task UpdateLanguage(PostListFetchResponse.PostDetail requestModel)
     {
-        var promptResponse = await _dialogService.Show<PromptDialog>(_loc["_Add_Language"], options: new DialogOptions { CloseButton = true, CloseOnEscapeKey = true }, parameters: new() { { "ColumnTitle", (_loc["_LanguageCode"]).ToString() } }).Result;
+        var promptResponse = await (await _dialogService.ShowAsync<PromptDialog>(_loc["_Add_Language"], options: new DialogOptions { CloseButton = true, CloseOnEscapeKey = true }, parameters: new() { { "ColumnTitle", (_loc["_LanguageCode"]).ToString() } })).Result;
         if (promptResponse.Canceled || promptResponse.Data.ToString() == "") return;
 
         PostUpdateRequest editDataModel = new() { PostID = requestModel.PostID, LanguageCode = promptResponse.Data.ToString().ToUpper(), PostCategoryID = requestModel.PostCategoryID };
@@ -222,7 +222,7 @@ public partial class PostManage
             if (tempEditModel is not null) editDataModel = tempEditModel;
         }
 
-        var checkDialogData = await _dialogService.Show<PostDialog>(_loc["_Post_Update"], options: new DialogOptions { CloseButton = true, CloseOnEscapeKey = true, FullWidth = true, FullScreen = true }, parameters: new() { { "FormModel", editDataModel }, { "FunctionName", "UpdateLanguage" }, { "DefaultLanguageCode", editDataModel.LanguageCode } }).Result;
+        var checkDialogData = await (await _dialogService.ShowAsync<PostDialog>(_loc["_Post_Update"], options: new DialogOptions { CloseButton = true, CloseOnEscapeKey = true, FullWidth = true, FullScreen = true }, parameters: new() { { "FormModel", editDataModel }, { "FunctionName", "UpdateLanguage" }, { "DefaultLanguageCode", editDataModel.LanguageCode } })).Result;
         if (checkDialogData.Canceled) return;
 
         var dialogresponseData = checkDialogData.Data.CastModel<PostUpdateRequest>();

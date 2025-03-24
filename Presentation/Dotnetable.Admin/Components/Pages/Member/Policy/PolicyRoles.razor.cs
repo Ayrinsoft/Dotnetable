@@ -99,7 +99,7 @@ public partial class PolicyRoles
 
     private async Task AppendRoleToPolicy()
     {
-        var promptResponse = await _dialogService.Show<RoleSelectorDialog>($"{_loc["_Append"]} {_loc["_RoleKey"]}", options: new DialogOptions { CloseButton = true, CloseOnEscapeKey = true }).Result;
+        var promptResponse = await (await _dialogService.ShowAsync<RoleSelectorDialog>($"{_loc["_Append"]} {_loc["_RoleKey"]}", options: new DialogOptions { CloseButton = true, CloseOnEscapeKey = true })).Result;
         if (promptResponse.Canceled) return;
 
         var dialogresponseData = promptResponse.Data.CastModel<RoleListOnPolicyManageResponse>();
