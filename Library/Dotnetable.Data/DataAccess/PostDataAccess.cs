@@ -163,7 +163,7 @@ public class PostDataAccess
         {
             var fetchDbItem = (from i in postcats where i.PostCategoryID == j.PostCategoryID select i).FirstOrDefault();
             fetchDbItem.Priority = j.Priority;
-            fetchDbItem.ParentID = j.ParentID;
+            fetchDbItem.ParentID = j.ParentID == 0 ? null : j.ParentID;
             db.Entry(fetchDbItem).State = EntityState.Modified;
         }
 
