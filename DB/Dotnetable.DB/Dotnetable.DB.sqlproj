@@ -1,0 +1,103 @@
+﻿<?xml version="1.0" encoding="utf-8"?>
+<Project DefaultTargets="Build" xmlns="http://schemas.microsoft.com/developer/msbuild/2003" ToolsVersion="4.0">
+  <PropertyGroup>
+    <Configuration Condition=" '$(Configuration)' == '' ">Debug</Configuration>
+    <Platform Condition=" '$(Platform)' == '' ">AnyCPU</Platform>
+    <Name>Dotnetable.DB</Name>
+    <SchemaVersion>2.0</SchemaVersion>
+    <ProjectVersion>4.1</ProjectVersion>
+    <ProjectGuid>{47ee65d3-1f53-4528-ba98-2f44213da86c}</ProjectGuid>
+    <DSP>Microsoft.Data.Tools.Schema.Sql.Sql160DatabaseSchemaProvider</DSP>
+    <OutputType>Database</OutputType>
+    <RootPath>
+    </RootPath>
+    <RootNamespace>Dotnetable.DB</RootNamespace>
+    <AssemblyName>Dotnetable.DB</AssemblyName>
+    <ModelCollation>1033, CI</ModelCollation>
+    <DefaultFileStructure>BySchemaAndSchemaType</DefaultFileStructure>
+    <DeployToDatabase>True</DeployToDatabase>
+    <TargetFrameworkVersion>v4.7.2</TargetFrameworkVersion>
+    <TargetLanguage>CS</TargetLanguage>
+    <AppDesignerFolder>Properties</AppDesignerFolder>
+    <SqlServerVerification>False</SqlServerVerification>
+    <IncludeCompositeObjects>True</IncludeCompositeObjects>
+    <TargetDatabaseSet>True</TargetDatabaseSet>
+  </PropertyGroup>
+  <PropertyGroup Condition=" '$(Configuration)|$(Platform)' == 'Release|AnyCPU' ">
+    <OutputPath>bin\Release\</OutputPath>
+    <BuildScriptName>$(MSBuildProjectName).sql</BuildScriptName>
+    <TreatWarningsAsErrors>False</TreatWarningsAsErrors>
+    <DebugType>pdbonly</DebugType>
+    <Optimize>true</Optimize>
+    <DefineDebug>false</DefineDebug>
+    <DefineTrace>true</DefineTrace>
+    <ErrorReport>prompt</ErrorReport>
+    <WarningLevel>4</WarningLevel>
+  </PropertyGroup>
+  <PropertyGroup Condition=" '$(Configuration)|$(Platform)' == 'Debug|AnyCPU' ">
+    <OutputPath>bin\Debug\</OutputPath>
+    <BuildScriptName>$(MSBuildProjectName).sql</BuildScriptName>
+    <TreatWarningsAsErrors>false</TreatWarningsAsErrors>
+    <DebugSymbols>true</DebugSymbols>
+    <DebugType>full</DebugType>
+    <Optimize>false</Optimize>
+    <DefineDebug>true</DefineDebug>
+    <DefineTrace>true</DefineTrace>
+    <ErrorReport>prompt</ErrorReport>
+    <WarningLevel>4</WarningLevel>
+  </PropertyGroup>
+  <PropertyGroup>
+    <VisualStudioVersion Condition="'$(VisualStudioVersion)' == ''">11.0</VisualStudioVersion>
+    <!-- Default to the v11.0 targets path if the targets file for the current VS version is not found -->
+    <SSDTExists Condition="Exists('$(MSBuildExtensionsPath)\Microsoft\VisualStudio\v$(VisualStudioVersion)\SSDT\Microsoft.Data.Tools.Schema.SqlTasks.targets')">True</SSDTExists>
+    <VisualStudioVersion Condition="'$(SSDTExists)' == ''">11.0</VisualStudioVersion>
+  </PropertyGroup>
+  <Import Condition="'$(SQLDBExtensionsRefPath)' != ''" Project="$(SQLDBExtensionsRefPath)\Microsoft.Data.Tools.Schema.SqlTasks.targets" />
+  <Import Condition="'$(SQLDBExtensionsRefPath)' == ''" Project="$(MSBuildExtensionsPath)\Microsoft\VisualStudio\v$(VisualStudioVersion)\SSDT\Microsoft.Data.Tools.Schema.SqlTasks.targets" />
+  <ItemGroup>
+    <Folder Include="Properties" />
+    <Folder Include="dbo\" />
+    <Folder Include="dbo\Tables\" />
+  </ItemGroup>
+  <ItemGroup>
+    <Build Include="dbo\Tables\TBM_Post_File.sql" />
+    <Build Include="dbo\Tables\TBM_Post_Category_Relation.sql" />
+    <Build Include="dbo\Tables\TBM_Policy_Role.sql" />
+    <Build Include="dbo\Tables\TBM_Member_File.sql" />
+    <Build Include="dbo\Tables\TB_State_Language.sql" />
+    <Build Include="dbo\Tables\TB_State.sql" />
+    <Build Include="dbo\Tables\TB_SlideShow_Language.sql" />
+    <Build Include="dbo\Tables\TB_SlideShow.sql" />
+    <Build Include="dbo\Tables\TB_Setting.sql" />
+    <Build Include="dbo\Tables\TB_Role.sql" />
+    <Build Include="dbo\Tables\TB_Post_Language.sql" />
+    <Build Include="dbo\Tables\TB_Post_Comment.sql" />
+    <Build Include="dbo\Tables\TB_Post_Category_Language.sql" />
+    <Build Include="dbo\Tables\TB_Post_Category.sql" />
+    <Build Include="dbo\Tables\TB_Post.sql" />
+    <Build Include="dbo\Tables\TB_Policy.sql" />
+    <Build Include="dbo\Tables\TB_Page_Settings.sql" />
+    <Build Include="dbo\Tables\TB_Member_Forget_Password.sql" />
+    <Build Include="dbo\Tables\TB_Member_Contact.sql" />
+    <Build Include="dbo\Tables\TB_Member_Activate_Log.sql" />
+    <Build Include="dbo\Tables\TB_Member.sql" />
+    <Build Include="dbo\Tables\TB_Login_Try.sql" />
+    <Build Include="dbo\Tables\TB_Login_Token.sql" />
+    <Build Include="dbo\Tables\TB_Language.sql" />
+    <Build Include="dbo\Tables\TB_IP_Address_Action.sql" />
+    <Build Include="dbo\Tables\TB_File_Type.sql" />
+    <Build Include="dbo\Tables\TB_File_Temp_Store.sql" />
+    <Build Include="dbo\Tables\TB_File_Category.sql" />
+    <Build Include="dbo\Tables\TB_File.sql" />
+    <Build Include="dbo\Tables\TB_Email_Type.sql" />
+    <Build Include="dbo\Tables\TB_Email_Subscribe.sql" />
+    <Build Include="dbo\Tables\TB_Email_Setting.sql" />
+    <Build Include="dbo\Tables\TB_Country_Language.sql" />
+    <Build Include="dbo\Tables\TB_Country.sql" />
+    <Build Include="dbo\Tables\TB_ContactUs_Message.sql" />
+    <Build Include="dbo\Tables\TB_Comment_Type.sql" />
+    <Build Include="dbo\Tables\TB_Comment_Category.sql" />
+    <Build Include="dbo\Tables\TB_City_Language.sql" />
+    <Build Include="dbo\Tables\TB_City.sql" />
+  </ItemGroup>
+</Project>

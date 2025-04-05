@@ -17,6 +17,10 @@ Project("{9A19103F-16F7-4668-BE54-9A1E7A4F7556}") = "Dotnetable.Data", "Library\
 EndProject
 Project("{FAE04EC0-301F-11D3-BF4B-00C04F79EFBC}") = "Dotnetable.Admin", "Presentation\Dotnetable.Admin\Dotnetable.Admin.csproj", "{BD633806-B81C-45F0-B329-D181D908FE88}"
 EndProject
+Project("{2150E333-8FDC-42A3-9474-1A3956D46DE8}") = "DB", "DB", "{02EA681E-C7D8-13C7-8484-4AC65E1B71E8}"
+EndProject
+Project("{00D1A9C2-B5F0-4AF3-8072-F6C62B433612}") = "Dotnetable.DB", "DB\Dotnetable.DB\Dotnetable.DB.sqlproj", "{47EE65D3-1F53-4528-BA98-2F44213DA86C}"
+EndProject
 Global
 	GlobalSection(SolutionConfigurationPlatforms) = preSolution
 		Debug|Any CPU = Debug|Any CPU
@@ -39,6 +43,12 @@ Global
 		{BD633806-B81C-45F0-B329-D181D908FE88}.Debug|Any CPU.Build.0 = Debug|Any CPU
 		{BD633806-B81C-45F0-B329-D181D908FE88}.Release|Any CPU.ActiveCfg = Release|Any CPU
 		{BD633806-B81C-45F0-B329-D181D908FE88}.Release|Any CPU.Build.0 = Release|Any CPU
+		{47EE65D3-1F53-4528-BA98-2F44213DA86C}.Debug|Any CPU.ActiveCfg = Debug|Any CPU
+		{47EE65D3-1F53-4528-BA98-2F44213DA86C}.Debug|Any CPU.Build.0 = Debug|Any CPU
+		{47EE65D3-1F53-4528-BA98-2F44213DA86C}.Debug|Any CPU.Deploy.0 = Debug|Any CPU
+		{47EE65D3-1F53-4528-BA98-2F44213DA86C}.Release|Any CPU.ActiveCfg = Release|Any CPU
+		{47EE65D3-1F53-4528-BA98-2F44213DA86C}.Release|Any CPU.Build.0 = Release|Any CPU
+		{47EE65D3-1F53-4528-BA98-2F44213DA86C}.Release|Any CPU.Deploy.0 = Release|Any CPU
 	EndGlobalSection
 	GlobalSection(SolutionProperties) = preSolution
 		HideSolutionNode = FALSE
@@ -48,6 +58,7 @@ Global
 		{8B8D53FD-D730-481F-8942-C8A1D46EA431} = {73EBBCE2-71C7-4C6D-8788-9916F637357D}
 		{7A201516-0167-4BB5-8AC6-867E879DBCF2} = {73EBBCE2-71C7-4C6D-8788-9916F637357D}
 		{BD633806-B81C-45F0-B329-D181D908FE88} = {409D8786-2ECC-43A2-8C7F-B655669C487D}
+		{47EE65D3-1F53-4528-BA98-2F44213DA86C} = {02EA681E-C7D8-13C7-8484-4AC65E1B71E8}
 	EndGlobalSection
 	GlobalSection(ExtensibilityGlobals) = postSolution
 		SolutionGuid = {56810D02-267E-4255-8AB9-B3724F825C1D}
