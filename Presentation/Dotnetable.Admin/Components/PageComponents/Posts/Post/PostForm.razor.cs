@@ -43,7 +43,7 @@ public partial class PostForm
         _postCatDefaultLanguage = themeManager.LanguageCode;
         _context = _httpContextAccessor.HttpContext;
         if (string.IsNullOrEmpty(DefaultLanguageCode) || DefaultLanguageCode == "") DefaultLanguageCode = themeManager.LanguageCode;
-        FormModel ??= new() { LanguageCode = DefaultLanguageCode };
+        FormModel ??= new() { LanguageCode = DefaultLanguageCode, Body = "." };
         if (FunctionName is null || FunctionName == "" || FunctionName == "Insert")
         {
             FunctionName = "Insert";

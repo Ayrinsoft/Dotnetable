@@ -213,13 +213,14 @@ public partial class PostManage
         var promptResponse = await (await _dialogService.ShowAsync<PromptDialog>(_loc["_Add_Language"], options: new DialogOptions { CloseButton = true, CloseOnEscapeKey = true }, parameters: new() { { "ColumnTitle", (_loc["_LanguageCode"]).ToString() } })).Result;
         if (promptResponse.Canceled || promptResponse.Data.ToString() == "") return;
 
-        PostUpdateRequest editDataModel = new() { PostID = requestModel.PostID, LanguageCode = promptResponse.Data.ToString().ToUpper(), PostCategoryID = requestModel.PostCategoryID };
+        PostUpdateRequest editDataModel = new() { PostID = requestModel.PostID, LanguageCode = promptResponse.Data.ToString().ToUpper(), PostCategoryID = requestModel.PostCategoryID, Body = "." };
 
         var fetchResponse = await _httpService.CallServiceObjAsync(HttpMethod.Post, true, "Post/PostLanguageDetail", new PostLanguageDetailRequest { PostID = requestModel.PostID, LanguageCode = editDataModel.LanguageCode }.ToJsonString());
         if (fetchResponse is not null && fetchResponse.Success)
         {
             var tempEditModel = fetchResponse.ResponseData.CastModel<PostUpdateRequest>();
             if (tempEditModel is not null) editDataModel = tempEditModel;
+            editDataModel.PostCategoryID = requestModel.PostCategoryID;
         }
 
         var checkDialogData = await (await _dialogService.ShowAsync<PostDialog>(_loc["_Post_Update"], options: new DialogOptions { CloseButton = true, CloseOnEscapeKey = true, FullWidth = true, FullScreen = true }, parameters: new() { { "FormModel", editDataModel }, { "FunctionName", "UpdateLanguage" }, { "DefaultLanguageCode", editDataModel.LanguageCode } })).Result;
