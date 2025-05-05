@@ -171,9 +171,16 @@ public partial class PostForm
         if (!string.IsNullOrEmpty(currentFile.Name)) _snackbar.Add($"{_loc["_SeccessFetchFile"]} - File name: {currentFile.Name}", Severity.Info);
         _currentFileName = currentFile.Name;
 
-        using MemoryStream ms = new();
-        await currentFile.OpenReadStream().CopyToAsync(ms);
-        _currentFileStream = ms.ToArray();
+        try
+        {
+            using MemoryStream ms = new();
+            await currentFile.OpenReadStream().CopyToAsync(ms);
+            _currentFileStream = ms.ToArray();
+        }
+        catch (Exception x)
+        {
+            _snackbar.Add(x.Message, Severity.Error);
+        }
     }
 
 }
