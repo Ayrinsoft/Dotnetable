@@ -174,9 +174,9 @@
                 <div class="mb-3 row">
                     <label for="Gender">Gender</label>
                     <MudRadioGroup @bind-SelectedOption="@_firstData.Gender" T="bool?">
-                        <MudRadio T="bool?" Option="@null" Color="Color.Info">Unknown</MudRadio>
-                        <MudRadio T="bool?" Option="@true" Color="Color.Primary">Male</MudRadio>
-                        <MudRadio T="bool?" Option="@false" Color="Color.Secondary">Female</MudRadio>
+                        <MudRadio T="bool?" Value="@null" Color="Color.Info">Unknown</MudRadio>
+                        <MudRadio T="bool?" Value="@true" Color="Color.Primary">Male</MudRadio>
+                        <MudRadio T="bool?" Value="@false" Color="Color.Secondary">Female</MudRadio>
                     </MudRadioGroup>
                     <div class="form-text text-danger"><ValidationMessage For="@(() => _firstData.Gender)" /></div>
                 </div>
