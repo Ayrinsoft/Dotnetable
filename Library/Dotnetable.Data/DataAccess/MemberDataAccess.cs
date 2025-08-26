@@ -44,7 +44,7 @@ public class MemberDataAccess
             RegisterDate = DateTime.Now,
             Surname = requestModel.Surname,
             PostalCode = requestModel.PostalCode,
-            PolicyID = 2,
+            PolicyID = requestModel.PolicyID ?? 1,
             CityID = requestModel.CityID
         };
         db.TB_Members.Add(memberObject);

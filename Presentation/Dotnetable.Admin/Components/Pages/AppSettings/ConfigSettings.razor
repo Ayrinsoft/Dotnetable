@@ -173,7 +173,7 @@
 
                 <div class="mb-3 row">
                     <label for="Gender">Gender</label>
-                    <MudRadioGroup @bind-SelectedOption="@_firstData.Gender" T="bool?">
+                    <MudRadioGroup @bind-Value="@_firstData.Gender" T="bool?">
                         <MudRadio T="bool?" Value="@null" Color="Color.Info">Unknown</MudRadio>
                         <MudRadio T="bool?" Value="@true" Color="Color.Primary">Male</MudRadio>
                         <MudRadio T="bool?" Value="@false" Color="Color.Secondary">Female</MudRadio>
