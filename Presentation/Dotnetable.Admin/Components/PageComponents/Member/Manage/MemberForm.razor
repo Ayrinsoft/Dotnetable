@@ -44,7 +44,7 @@
     <div class="mb-3 row">
         <label class="form-label col-3">@_loc["_Gender"]</label>
         <div class="row col-9">
-            <MudRadioGroup @bind-SelectedOption="@FormModel.Gender" T="bool?">
+            <MudRadioGroup @bind-Value="@FormModel.Gender" T="bool?">
                 <MudRadio T="bool?" Value="@null" Color="Color.Info">@_loc["_Unknown"]</MudRadio>
                 <MudRadio T="bool?" Value="@true" Color="Color.Primary">@_loc["_Male"]</MudRadio>
                 <MudRadio T="bool?" Value="@false" Color="Color.Secondary">@_loc["_Female"]</MudRadio>
