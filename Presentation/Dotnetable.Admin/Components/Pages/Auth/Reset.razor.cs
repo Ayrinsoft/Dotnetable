@@ -103,7 +103,7 @@ public partial class Reset
         }
         else
         {
-            var userDetail = await _httpService.CallServiceObjAsync(HttpMethod.Post, false, "Authentication/Login", new Dotnetable.Shared.DTO.Authentication.UserLoginRequest() { Username = _setRecoveryCodeModel.Username, Password = _setRecoveryCodeModel.Password }.ToJsonString());
+            var userDetail = await _httpService.CallServiceObjAsync(HttpMethod.Post, false, "Authentication/Login", new UserLoginRequest() { Username = _setRecoveryCodeModel.Username, Password = _setRecoveryCodeModel.Password }.ToJsonString());
             if (!userDetail.Success)
             {
                 _snackbar.Add($"{_loc[(recoveryDetail.ErrorException?.ErrorCode is null ? "_ERROR_NULLDATA" : $"_ERROR_{recoveryDetail.ErrorException.ErrorCode}")]}", Severity.Error);

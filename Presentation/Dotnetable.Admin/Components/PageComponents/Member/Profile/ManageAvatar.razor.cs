@@ -37,7 +37,7 @@ public partial class ManageAvatar
     private async Task DoUploadFile()
     {
         if (_selectedFileName == "") return;
-        var requestBody = new Dotnetable.Shared.DTO.Member.MemberAvatarInsertRequest() { FileName = $"{MemberDetail.Username}-Avatar.png", FileStream = _currentFileStream, SetAsDefault = true, CurrentMemberID = MemberDetail.MemberID };
+        MemberAvatarInsertRequest requestBody = new() { FileName = $"{MemberDetail.Username}-Avatar.png", FileStream = _currentFileStream, SetAsDefault = true, CurrentMemberID = MemberDetail.MemberID };
         var uploadAvatar = await _httpService.CallServiceObjAsync(HttpMethod.Post, true, $"Member/AvatarInsert", requestBody.ToJsonString());
         if (uploadAvatar.Success)
         {

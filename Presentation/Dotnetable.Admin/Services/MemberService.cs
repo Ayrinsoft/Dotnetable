@@ -3,6 +3,8 @@ using Dotnetable.Service.PrivateService;
 using Dotnetable.Shared.Tools;
 using Dotnetable.Shared.DTO.Public;
 using Dotnetable.Admin.Models.DTO.Member;
+using Dotnetable.Admin.Models.DTO.File;
+using Dotnetable.Admin.Models.DTO.Message;
 
 namespace Dotnetable.Service;
 public class MemberService
@@ -42,7 +44,7 @@ public class MemberService
         var responseItem = await MemberDataAccess.ChangeUserPassword(changeRequest);
         if (changeRequest.SendMailForUser && responseItem.SuccessAction)
         {
-            var emailSentResponse = await _msg.EmailSend(new Shared.DTO.Message.EmailSendRequest() { EmailAddress = responseItem.ObjectID, Title = "Your Password has changed", Body = $"your new password is: {clearPassword}" }).ConfigureAwait(false);
+            var emailSentResponse = await _msg.EmailSend(new() { EmailAddress = responseItem.ObjectID, Title = "Your Password has changed", Body = $"your new password is: {clearPassword}" }).ConfigureAwait(false);
             if (emailSentResponse is null || emailSentResponse.ErrorException is not null) return new() { ErrorException = emailSentResponse.ErrorException };
         }
         return new() { SuccessAction = true };
@@ -191,7 +193,7 @@ public class MemberService
             return new() { ErrorException = new() { ErrorCode = "C12" } };
 
         Guid fileCode = Guid.NewGuid();
-        var insertFile = await _files.Insert(new Shared.DTO.File.FileInsertRequest() { FileCategoryID = 1, FileCode = fileCode.ToString(), FileName = insertRequest.FileName, FilePath = insertRequest.CurrentMemberID.ToString(), FileStream = insertRequest.FileStream, UploaderID = insertRequest.UploaderMemberID });
+        var insertFile = await _files.Insert(new FileInsertRequest() { FileCategoryID = 1, FileCode = fileCode.ToString(), FileName = insertRequest.FileName, FilePath = insertRequest.CurrentMemberID.ToString(), FileStream = insertRequest.FileStream, UploaderID = insertRequest.UploaderMemberID });
 
 
         if (insertFile is null || !insertFile.SuccessAction || insertFile.ErrorException != null) return insertFile;
@@ -234,7 +236,7 @@ public class MemberService
         var passwordCode = await MemberDataAccess.GetRecoveryPasswordCode(requestModel);
         if (passwordCode.ErrorException is not null) return new() { ErrorException = passwordCode.ErrorException };
 
-        var mailSentDetail = await _msg.EmailSend(new Shared.DTO.Message.EmailSendRequest() { Title = "Forget password key", Body = $"<p>Your new forget password key is: {requestModel.ForgetKey} </p><p> It will be expire at 5 minutes later</p>", EmailAddress = passwordCode.ObjectID });
+        var mailSentDetail = await _msg.EmailSend(new() { Title = "Forget password key", Body = $"<p>Your new forget password key is: {requestModel.ForgetKey} </p><p> It will be expire at 5 minutes later</p>", EmailAddress = passwordCode.ObjectID });
         if (mailSentDetail.ErrorException is null)
             return new() { SuccessAction = true };
         else
@@ -297,7 +299,7 @@ public class MemberService
 
         string hashCheck = $"{requestModel.EmailAddress.ToUpper().HashLogin()}-{checkSubscribeEmail.ObjectID.ToUpper()}".HashLogin();
         string unsubscribeAddress = $"{requestModel.RequestURL}/{requestModel.EmailAddress}/{hashCheck}";
-        var emailSentResponse = await _msg.EmailSend(new Shared.DTO.Message.EmailSendRequest() { EmailAddress = requestModel.EmailAddress, Title = "Unsubscribe Email", Body = $"<p>Your Email address has been remove from subscribe.</p> <p>Use this link to do unsubscribe: <a href=\"{unsubscribeAddress}\" target=\"_blank\">{unsubscribeAddress}</a></p>" }).ConfigureAwait(false);
+        var emailSentResponse = await _msg.EmailSend(new() { EmailAddress = requestModel.EmailAddress, Title = "Unsubscribe Email", Body = $"<p>Your Email address has been remove from subscribe.</p> <p>Use this link to do unsubscribe: <a href=\"{unsubscribeAddress}\" target=\"_blank\">{unsubscribeAddress}</a></p>" }).ConfigureAwait(false);
         if (emailSentResponse is null || emailSentResponse.ErrorException is not null) return new() { ErrorException = emailSentResponse.ErrorException };
         return new() { SuccessAction = true };
     }

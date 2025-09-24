@@ -30,7 +30,7 @@ namespace Dotnetable.Admin.Components.PageComponents.Member.Profile
         {
             if (FunctionName == "ContactInsert")
             {
-                AddressEdit = new Dotnetable.Shared.DTO.Member.MemberContactRequest();
+                AddressEdit = new();
             }
         }
 
