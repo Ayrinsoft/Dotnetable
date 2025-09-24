@@ -12,7 +12,7 @@ namespace Dotnetable.Admin.Components.PageComponents.Member.Profile.Contact;
 public partial class MemberProfileContactGrid
 {
     [Inject] private IHttpServices _httpService { get; set; }
-    [Inject] private IStringLocalizer<Dotnetable.Shared.Resources.Resource> _loc { get; set; }
+    [Inject] private IStringLocalizer<Resources.Resource> _loc { get; set; }
     [Inject] private ISnackbar _snackbar { get; set; }
     [Inject] private IDialogService _dialogService { get; set; }
 

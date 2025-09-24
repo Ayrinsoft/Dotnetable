@@ -16,7 +16,7 @@ namespace Dotnetable.Admin.Components.Pages.Posts.Post;
 public partial class ContactUsManage
 {
     [Inject] private ISnackbar _snackbar { get; set; }
-    [Inject] private IStringLocalizer<Dotnetable.Shared.Resources.Resource> _loc { get; set; }
+    [Inject] private IStringLocalizer<Resources.Resource> _loc { get; set; }
     [Inject] private IHttpServices _httpService { get; set; }
     [Inject] private ILocalStorageService _localStorage { get; set; }
     [Inject] private IJSRuntime _jsRuntime { get; set; }

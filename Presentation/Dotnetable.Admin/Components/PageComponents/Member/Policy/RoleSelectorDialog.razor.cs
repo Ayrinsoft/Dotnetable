@@ -10,7 +10,7 @@ namespace Dotnetable.Admin.Components.PageComponents.Member.Policy;
 public partial class RoleSelectorDialog
 {
     [CascadingParameter] IMudDialogInstance MudDialog { get; set; }
-    [Inject] private IStringLocalizer<Dotnetable.Shared.Resources.Resource> _loc { get; set; }
+    [Inject] private IStringLocalizer<Resources.Resource> _loc { get; set; }
     [Inject] private IHttpServices _httpService { get; set; }
 
     private RoleListOnPolicyManageResponse _selectedRole { get; set; }

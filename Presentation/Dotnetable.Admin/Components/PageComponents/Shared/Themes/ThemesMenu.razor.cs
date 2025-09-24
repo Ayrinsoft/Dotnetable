@@ -7,7 +7,7 @@ namespace Dotnetable.Admin.Components.PageComponents.Shared.Themes;
 
 public partial class ThemesMenu
 {
-    [Inject] private IStringLocalizer<Dotnetable.Shared.Resources.Resource> _loc { get; set; }
+    [Inject] private IStringLocalizer<Resources.Resource> _loc { get; set; }
 
     [EditorRequired][Parameter] public bool ThemingDrawerOpen { get; set; }
     [EditorRequired][Parameter] public EventCallback<bool> ThemingDrawerOpenChanged { get; set; }

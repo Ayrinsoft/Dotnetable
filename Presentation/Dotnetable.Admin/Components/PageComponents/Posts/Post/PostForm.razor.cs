@@ -16,7 +16,7 @@ namespace Dotnetable.Admin.Components.PageComponents.Posts.Post;
 
 public partial class PostForm
 {
-    [Inject] private IStringLocalizer<Dotnetable.Shared.Resources.Resource> _loc { get; set; }
+    [Inject] private IStringLocalizer<Resources.Resource> _loc { get; set; }
     [Inject] private IDialogService _dialogService { get; set; }
     [Inject] private IHttpServices _httpService { get; set; }
     [Inject] private ISnackbar _snackbar { get; set; }

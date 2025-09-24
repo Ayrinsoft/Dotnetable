@@ -10,7 +10,7 @@ namespace Dotnetable.Admin.Components.PageComponents.Place;
 
 public partial class CountrySelector
 {
-    [Inject] private IStringLocalizer<Dotnetable.Shared.Resources.Resource> _loc { get; set; }
+    [Inject] private IStringLocalizer<Resources.Resource> _loc { get; set; }
     [Inject] private IMemoryCache _mmc { get; set; }
     [Inject] private IHttpServices _httpService { get; set; }
 

@@ -7,7 +7,7 @@ namespace Dotnetable.Admin.Components.PageComponents.Member.Profile.Contact
 {
     public partial class ContactForm
     {
-        [Inject] private IStringLocalizer<Dotnetable.Shared.Resources.Resource> _loc { get; set; }
+        [Inject] private IStringLocalizer<Resources.Resource> _loc { get; set; }
         [Parameter] public MemberContactRequest FormModel { get; set; }
         [Parameter] public EventCallback<MemberContactRequest> OnSubmitObject { get; set; }
         private byte _selectedCountryID = 0;

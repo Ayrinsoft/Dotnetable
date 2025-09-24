@@ -5,7 +5,7 @@ namespace Dotnetable.Admin.Components.PageComponents.Shared;
 
 public partial class CommandPalette
 {
-    [Inject] private IStringLocalizer<Dotnetable.Shared.Resources.Resource> _loc { get; set; }
+    [Inject] private IStringLocalizer<Resources.Resource> _loc { get; set; }
     [Inject] private NavigationManager _navigation { get; set; }
 
     private static Dictionary<string, string> _pages = new();

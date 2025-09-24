@@ -8,7 +8,7 @@ namespace Dotnetable.Admin.Components.Shared.Dialogs;
 public partial class PromptDialog
 {
     [CascadingParameter] IMudDialogInstance MudDialog { get; set; }
-    [Inject] private IStringLocalizer<Dotnetable.Shared.Resources.Resource> _loc { get; set; }
+    [Inject] private IStringLocalizer<Resources.Resource> _loc { get; set; }
 
     [Parameter] public string ColumnTitle { get; set; }
     [Parameter] public string DefaultValue { get; set; }

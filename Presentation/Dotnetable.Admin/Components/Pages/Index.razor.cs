@@ -5,7 +5,7 @@ namespace Dotnetable.Admin.Components.Pages;
 
 public partial class Index
 {
-    [Inject] private IStringLocalizer<Dotnetable.Shared.Resources.Resource> _loc { get; set; }
+    [Inject] private IStringLocalizer<Resources.Resource> _loc { get; set; }
 
     private const int TotalActiveUsers = 18765;
     private const double IncreaseDecreaseActiveUsers = 2.6;

@@ -7,7 +7,7 @@ namespace Dotnetable.Admin.Components.PageComponents.Shared;
 
 public partial class SideMenu
 {
-    [Inject] private IStringLocalizer<Dotnetable.Shared.Resources.Resource> _loc { get; set; }
+    [Inject] private IStringLocalizer<Resources.Resource> _loc { get; set; }
     [Inject] private AuthenticationStateProvider _authenticationStateProvider { get; set; }
     [Inject] private NavigationManager _navigationManager { get; set; }
 

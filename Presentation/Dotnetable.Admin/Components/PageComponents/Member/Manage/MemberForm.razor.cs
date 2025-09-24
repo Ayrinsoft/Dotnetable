@@ -7,7 +7,7 @@ namespace Dotnetable.Admin.Components.PageComponents.Member.Manage;
 
 public partial class MemberForm
 {
-    [Inject] private IStringLocalizer<Dotnetable.Shared.Resources.Resource> _loc { get; set; }
+    [Inject] private IStringLocalizer<Resources.Resource> _loc { get; set; }
 
     [Parameter] public EventCallback<MemberInsertRequest> OnSubmitObject { get; set; }
     [Parameter] public MemberInsertRequest FormModel { get; set; }

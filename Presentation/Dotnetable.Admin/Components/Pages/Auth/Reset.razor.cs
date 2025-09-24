@@ -20,7 +20,7 @@ public partial class Reset
     [Inject] private AuthenticationStateProvider _authenticationStateProvider { get; set; }
     [Inject] private NavigationManager _navigationManager { get; set; }
     [Inject] private IHttpServices _httpService { get; set; }
-    [Inject] private IStringLocalizer<Dotnetable.Shared.Resources.Resource> _loc { get; set; }
+    [Inject] private IStringLocalizer<Resources.Resource> _loc { get; set; }
     [Inject] private ILocalStorageService _localStorage { get; set; }
     [Inject] private ISnackbar _snackbar { get; set; }
     [Inject] private IJSRuntime _jsRuntime { get; set; }

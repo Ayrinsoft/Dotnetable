@@ -11,7 +11,7 @@ namespace Dotnetable.Admin.Components.PageComponents.Member.Profile;
 
 public partial class ProfileMemberEdit
 {
-    [Inject] private IStringLocalizer<Dotnetable.Shared.Resources.Resource> _loc { get; set; }
+    [Inject] private IStringLocalizer<Resources.Resource> _loc { get; set; }
     [Inject] private IHttpServices _httpService { get; set; }
     [Inject] private ISnackbar _snackbar { get; set; }
 
