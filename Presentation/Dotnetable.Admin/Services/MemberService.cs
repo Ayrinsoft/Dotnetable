@@ -2,7 +2,7 @@
 using Dotnetable.Data.DataAccess;
 using Dotnetable.Service.PrivateService;
 using Dotnetable.Shared.Tools;
-using Dotnetable.SharedDTO.p.Public;
+using Dotnetable.Shared.DTO.Public;
 
 namespace Dotnetable.Service;
 public class MemberService

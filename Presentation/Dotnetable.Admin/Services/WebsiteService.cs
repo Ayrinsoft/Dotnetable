@@ -1,7 +1,7 @@
 ﻿using Dotnetable.Admin.Models.Charts.DTO.Website;
 using Dotnetable.Data.DataAccess;
 using Dotnetable.Service.PrivateService;
-using Dotnetable.SharedDTO.p.Public;
+using Dotnetable.Shared.DTO.Public;
 
 namespace Dotnetable.Service;
 

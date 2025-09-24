@@ -1,7 +1,7 @@
 ﻿using Asp.Versioning;
 using Dotnetable.Admin.Models.Charts.DTO.Message;
 using Dotnetable.Service;
-using Dotnetable.SharedDTO.p.Public;
+using Dotnetable.Shared.DTO.Public;
 using Microsoft.AspNetCore.Authorization;
 using Microsoft.AspNetCore.Mvc;
 

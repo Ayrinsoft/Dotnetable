@@ -1,7 +1,7 @@
 ﻿using Dotnetable.Admin.Models.Charts.DTO.Message;
 using Dotnetable.Data.DataAccess;
 using Dotnetable.Shared.Tools;
-using Dotnetable.SharedDTO.p.Public;
+using Dotnetable.Shared.DTO.Public;
 using System.Net;
 using System.Net.Mail;
 using System.Net.Security;
