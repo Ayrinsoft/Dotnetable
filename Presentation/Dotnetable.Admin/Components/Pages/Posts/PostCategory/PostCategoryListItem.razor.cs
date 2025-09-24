@@ -1,4 +1,4 @@
-﻿using Dotnetable.Shared.DTO.Post;
+﻿using Dotnetable.Admin.Models.Charts.DTO.Post;
 using Microsoft.AspNetCore.Components;
 using Microsoft.Extensions.Localization;
 

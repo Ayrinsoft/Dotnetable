@@ -1,4 +1,4 @@
-﻿namespace Dotnetable.Shared.DTO.Logs;
+﻿namespace Dotnetable.Admin.Models.Charts.DTO.Logs;
 
 public class LogsCheckIPActionValidRequest
 {

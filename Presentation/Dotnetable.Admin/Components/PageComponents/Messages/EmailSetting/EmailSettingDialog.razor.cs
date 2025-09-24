@@ -1,4 +1,4 @@
-﻿using Dotnetable.Shared.DTO.Message;
+﻿using Dotnetable.Admin.Models.Charts.DTO.Message;
 using Microsoft.AspNetCore.Components;
 using MudBlazor;
 

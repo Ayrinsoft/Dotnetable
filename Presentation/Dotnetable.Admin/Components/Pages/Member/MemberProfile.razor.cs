@@ -1,5 +1,6 @@
 ﻿using Dotnetable.Admin.Components.PageComponents.Member.Profile;
 using Dotnetable.Admin.Models;
+using Dotnetable.Admin.Models.Charts.DTO.Member;
 using Dotnetable.Admin.SharedServices.Data;
 using Dotnetable.Shared.Tools;
 using Microsoft.AspNetCore.Components;
@@ -15,8 +16,8 @@ public partial class MemberProfile
     [Inject] private IHttpServices _httpService { get; set; }
     [CascadingParameter] protected ThemeManagerModel themeManager { get; set; }
 
-    private Dotnetable.Shared.DTO.Member.MemberDetailResponse _memberDetail { get; set; } = new();
-    private Dotnetable.Shared.DTO.Member.MemberEditRequest _memberEdit { get; set; } = new();
+    private MemberDetailResponse _memberDetail { get; set; } = new();
+    private MemberEditRequest _memberEdit { get; set; } = new();
 
 
     protected async override Task OnInitializedAsync()
@@ -24,8 +25,8 @@ public partial class MemberProfile
         var fetchMemberDetail = await _httpService.CallServiceObjAsync(HttpMethod.Get, true, "Member/MemberDetail");
         if (fetchMemberDetail.Success)
         {
-            _memberDetail = fetchMemberDetail.ResponseData.CastModel<Dotnetable.Shared.DTO.Member.MemberDetailResponse>();
-            _memberEdit = _memberDetail.CastModel<Dotnetable.Shared.DTO.Member.MemberEditRequest>();
+            _memberDetail = fetchMemberDetail.ResponseData.CastModel<MemberDetailResponse>();
+            _memberEdit = _memberDetail.CastModel<MemberEditRequest>();
         }
     }
 
@@ -33,7 +34,7 @@ public partial class MemberProfile
     {
         var checkInsert = await (await _dialogService.ShowAsync<ContactMemberDialog>(_loc["_Member_Insert_New_Address"], options: new DialogOptions { CloseButton = true, CloseOnEscapeKey = true }, parameters: new() { { "ContactModel", null }, { "FunctionName", "ContactInsert" } })).Result;
         if (!checkInsert.Canceled)
-            _memberDetail.Addresses.Add(checkInsert.Data.CastModel<Dotnetable.Shared.DTO.Member.MemberContactRequest>());
+            _memberDetail.Addresses.Add(checkInsert.Data.CastModel<MemberContactRequest>());
     }
 
 }

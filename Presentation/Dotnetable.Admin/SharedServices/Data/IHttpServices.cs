@@ -1,4 +1,4 @@
-﻿using Dotnetable.Shared.DTO.Public;
+﻿using Dotnetable.SharedDTO.p.Public;
 
 namespace Dotnetable.Admin.SharedServices.Data;
 

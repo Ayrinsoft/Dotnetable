@@ -1,0 +1,10 @@
+﻿using Dotnetable.SharedDTO.p.Public;
+
+namespace Dotnetable.Admin.Models.Charts.DTO.Member;
+
+public class SubscribeListRequest: GridviewRequest
+{
+    public string Email { get; set; }
+    public int? MemberID { get; set; }
+    public bool? Active { get; set; }
+}

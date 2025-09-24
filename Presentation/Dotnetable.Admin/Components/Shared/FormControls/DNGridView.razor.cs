@@ -1,5 +1,5 @@
 ﻿using Dotnetable.Admin.Models;
-using Dotnetable.Shared.DTO.Public;
+using Dotnetable.SharedDTO.p.Public;
 using Microsoft.AspNetCore.Components;
 using Microsoft.AspNetCore.Components.Web;
 using Microsoft.Extensions.Localization;

@@ -1,0 +1,10 @@
+﻿using System.ComponentModel.DataAnnotations;
+
+namespace Dotnetable.Admin.Models.Charts.DTO.Message;
+
+public class EmailPanelChangeStatusRequest
+{
+    [Required(ErrorMessageResourceType = typeof(Resources.Resource), ErrorMessageResourceName = nameof(Resources.Resource._Err_EmailSettingID_Required))]
+    [Range(1, int.MaxValue, ErrorMessageResourceType = typeof(Resources.Resource), ErrorMessageResourceName = nameof(Resources.Resource._Err_Public_Int_Length))]
+    public int EmailSettingID { get; set; }
+}

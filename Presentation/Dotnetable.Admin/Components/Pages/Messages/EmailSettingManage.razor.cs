@@ -1,9 +1,9 @@
 ﻿using Dotnetable.Admin.Components.PageComponents.Messages.EmailSetting;
 using Dotnetable.Admin.Models;
+using Dotnetable.Admin.Models.Charts.DTO.Message;
 using Dotnetable.Admin.SharedServices.Data;
-using Dotnetable.Shared.DTO.Message;
-using Dotnetable.Shared.DTO.Public;
 using Dotnetable.Shared.Tools;
+using Dotnetable.SharedDTO.p.Public;
 using Microsoft.AspNetCore.Components;
 using Microsoft.Extensions.Localization;
 using MudBlazor;

@@ -2,9 +2,11 @@
 using Dotnetable.Admin.Components.PageComponents.Posts.PostCategory;
 using Dotnetable.Admin.Components.Shared.Dialogs;
 using Dotnetable.Admin.Models;
+using Dotnetable.Admin.Models.Charts.DTO.Post;
 using Dotnetable.Admin.SharedServices.Data;
 using Dotnetable.Shared.DTO.Post;
 using Dotnetable.Shared.Tools;
+using Dotnetable.SharedDTO.p.Public;
 using Microsoft.AspNetCore.Components;
 using Microsoft.Extensions.Localization;
 using MudBlazor;
@@ -60,7 +62,7 @@ public partial class PostCategoryManage
         var serviceResponse = await _httpService.CallServiceObjAsync(HttpMethod.Post, true, $"Post/PostCategoryUpdatePriorityAndParent", requestModel.ToJsonString());
         if (serviceResponse.Success)
         {
-            var parsedResponse = serviceResponse.ResponseData.CastModel<Dotnetable.Shared.DTO.Public.PublicActionResponse>();
+            var parsedResponse = serviceResponse.ResponseData.CastModel<PublicActionResponse>();
             if (parsedResponse.SuccessAction)
             {
                 _snackbar.Add($"{_loc["_SuccessAction"]} {_loc["_PostCategoy_ChangePriority_Update"]}", Severity.Success);
@@ -103,7 +105,7 @@ public partial class PostCategoryManage
             return;
         }
 
-        var parsedResponse = serviceResponse.ResponseData.CastModel<Dotnetable.Shared.DTO.Public.PublicActionResponse>();
+        var parsedResponse = serviceResponse.ResponseData.CastModel<PublicActionResponse>();
         if (parsedResponse.SuccessAction)
         {
             _snackbar.Add($"{_loc["_SuccessAction"]} {_loc["_PostCategory_Insert"]}", Severity.Success);
@@ -136,7 +138,7 @@ public partial class PostCategoryManage
             return;
         }
 
-        var updateparsedResponse = updateServiceResponse.ResponseData.CastModel<Dotnetable.Shared.DTO.Public.PublicActionResponse>();
+        var updateparsedResponse = updateServiceResponse.ResponseData.CastModel<PublicActionResponse>();
         if (updateparsedResponse.SuccessAction)
         {
             _snackbar.Add($"{_loc["_SuccessAction"]} {_loc["_PostCategory_Insert"]}", Severity.Success);
@@ -164,7 +166,7 @@ public partial class PostCategoryManage
             return;
         }
 
-        var parsedResponse = serviceResponse.ResponseData.CastModel<Dotnetable.Shared.DTO.Public.PublicActionResponse>();
+        var parsedResponse = serviceResponse.ResponseData.CastModel<PublicActionResponse>();
         if (parsedResponse.SuccessAction)
         {
             _snackbar.Add($"{_loc["_SuccessAction"]} {_loc["_PostCategory_ChangeStatus"]}", Severity.Success);
@@ -216,7 +218,7 @@ public partial class PostCategoryManage
             return;
         }
 
-        var parsedResponse = serviceResponse.ResponseData.CastModel<Dotnetable.Shared.DTO.Public.PublicActionResponse>();
+        var parsedResponse = serviceResponse.ResponseData.CastModel<PublicActionResponse>();
         if (parsedResponse.SuccessAction)
         {
             _snackbar.Add($"{_loc["_SuccessAction"]} {_loc["_PostCategory_Other_Langauge"]}", Severity.Success);

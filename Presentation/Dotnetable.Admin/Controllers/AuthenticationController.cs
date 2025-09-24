@@ -1,12 +1,12 @@
 ﻿using Dotnetable.Service;
 using Dotnetable.Shared.Tools;
-using Dotnetable.Shared.DTO.Authentication;
-using Dotnetable.Shared.DTO.Public;
 using Microsoft.AspNetCore.Authorization;
 using Microsoft.AspNetCore.Mvc;
 using System.Text;
 using Dotnetable.Admin.SharedServices.Authorization;
 using Asp.Versioning;
+using Dotnetable.SharedDTO.p.Public;
+using Dotnetable.Admin.Models.Charts.DTO.Authentication;
 
 namespace Dotnetable.Admin.Controllers;
 

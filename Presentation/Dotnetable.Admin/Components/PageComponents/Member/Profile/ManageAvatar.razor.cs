@@ -1,6 +1,9 @@
 ﻿using Blazored.LocalStorage;
+using Dotnetable.Admin.Models.Charts.DTO.Authentication;
+using Dotnetable.Admin.Models.Charts.DTO.Member;
 using Dotnetable.Admin.SharedServices.Data;
 using Dotnetable.Shared.Tools;
+using Dotnetable.SharedDTO.p.Public;
 using Microsoft.AspNetCore.Components;
 using Microsoft.AspNetCore.Components.Forms;
 using Microsoft.Extensions.Localization;
@@ -17,7 +20,7 @@ public partial class ManageAvatar
     [Inject] private ILocalStorageService _localStorage { get; set; }
     [Inject] private IHttpContextAccessor _httpContextAccessor { get; set; }
 
-    [Parameter] public Dotnetable.Shared.DTO.Member.MemberDetailResponse MemberDetail { get; set; }
+    [Parameter] public MemberDetailResponse MemberDetail { get; set; }
 
     private string _classname => new CssBuilder().AddClass(Class).Build();
     private byte[] _currentFileStream = null;
@@ -38,11 +41,11 @@ public partial class ManageAvatar
         var uploadAvatar = await _httpService.CallServiceObjAsync(HttpMethod.Post, true, $"Member/AvatarInsert", requestBody.ToJsonString());
         if (uploadAvatar.Success)
         {
-            var parsedUploadAvatar = uploadAvatar.ResponseData.CastModel<Dotnetable.Shared.DTO.Public.PublicActionResponse>();
+            var parsedUploadAvatar = uploadAvatar.ResponseData.CastModel<PublicActionResponse>();
             MemberDetail.AvatarID = new Guid(parsedUploadAvatar.ObjectID);
             _snackbar.Add(_loc["_SuccessUploadFile"], Severity.Success);
 
-            var jsonIdentity = await _localStorage.GetItemAsync<Dotnetable.Shared.DTO.Authentication.UserLoginResponse>("MemberAuthorized");
+            var jsonIdentity = await _localStorage.GetItemAsync<UserLoginResponse>("MemberAuthorized");
             jsonIdentity.AvatarID = MemberDetail.AvatarID;
             await _localStorage.SetItemAsync("MemberAuthorized", jsonIdentity);
             StateHasChanged();

@@ -16,11 +16,23 @@
 	</ItemGroup>
 
 	<ItemGroup>
-		<ProjectReference Include="..\..\Library\Dotnetable.Service\Dotnetable.Service.csproj" />
+	  <ProjectReference Include="..\..\Library\Dotnetable.Shared\Dotnetable.Shared.csproj" />
 	</ItemGroup>
 
 	<ItemGroup>
-	  <Folder Include="FileLibrary\" />
+	  <Compile Update="Models\Resources\Resource.Designer.cs">
+	    <DependentUpon>Resource.resx</DependentUpon>
+	    <DesignTime>True</DesignTime>
+	    <AutoGen>True</AutoGen>
+	  </Compile>
 	</ItemGroup>
+
+	<ItemGroup>
+	  <EmbeddedResource Update="Models\Resources\Resource.resx">
+	    <LastGenOutput>Resource.Designer.cs</LastGenOutput>
+	    <Generator>PublicResXFileCodeGenerator</Generator>
+	  </EmbeddedResource>
+	</ItemGroup>
+
 
 </Project>

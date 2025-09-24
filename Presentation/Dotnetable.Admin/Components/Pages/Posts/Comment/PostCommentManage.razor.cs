@@ -1,9 +1,9 @@
 ﻿using Dotnetable.Admin.Models;
+using Dotnetable.Admin.Models.Charts.DTO.Post;
 using Dotnetable.Admin.SharedServices.Data;
 using Dotnetable.Shared.DTO.Comment;
-using Dotnetable.Shared.DTO.Post;
-using Dotnetable.Shared.DTO.Public;
 using Dotnetable.Shared.Tools;
+using Dotnetable.SharedDTO.p.Public;
 using Microsoft.AspNetCore.Components;
 using Microsoft.Extensions.Localization;
 using MudBlazor;
