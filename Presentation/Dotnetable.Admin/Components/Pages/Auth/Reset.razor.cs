@@ -1,7 +1,10 @@
 ﻿using Blazored.LocalStorage;
 using Dotnetable.Admin.Models;
+using Dotnetable.Admin.Models.Charts.DTO.Authentication;
+using Dotnetable.Admin.Models.Charts.DTO.Member;
 using Dotnetable.Admin.SharedServices.Data;
 using Dotnetable.Shared.Tools;
+using Dotnetable.SharedDTO.p.Public;
 using Microsoft.AspNetCore.Components;
 using Microsoft.AspNetCore.Components.Authorization;
 using Microsoft.Extensions.Localization;
@@ -23,8 +26,8 @@ public partial class Reset
     [Inject] private IJSRuntime _jsRuntime { get; set; }
     [Inject] private IConfiguration _config { get; set; }
 
-    private Dotnetable.Shared.DTO.Member.MemberForgetPasswordRequest _fetchRecoveryCode;
-    private Dotnetable.Shared.DTO.Member.MemberForgetPasswordSetRequest _setRecoveryCodeModel;
+    private MemberForgetPasswordRequest _fetchRecoveryCode;
+    private MemberForgetPasswordSetRequest _setRecoveryCodeModel;
     private bool _persianLanguage = false;
     private bool _sendCode = false;
     private string _confirmPassword = "";
@@ -42,14 +45,14 @@ public partial class Reset
         if (!string.IsNullOrEmpty(recaptcahPrivate) && recaptcahPrivate != "" && !string.IsNullOrEmpty(recaptcahPublic) && recaptcahPublic != "")
         {
             string currentToken = await _jsRuntime.InvokeAsync<string>("Plugin.generateCaptchaToken", new object[] { recaptcahPublic, "login" });
-            var gRecaptchaCheck = await GeneralEvents.HttpClientReceive(HttpMethod.Get, $"https://google.com/recaptcha/api/siteverify?secret={recaptcahPrivate}&response={currentToken}", contentTypeRequest: Dotnetable.Shared.DTO.Public.RequestContentType.None);
+            var gRecaptchaCheck = await GeneralEvents.HttpClientReceive(HttpMethod.Get, $"https://google.com/recaptcha/api/siteverify?secret={recaptcahPrivate}&response={currentToken}", contentTypeRequest: RequestContentType.None);
             if (gRecaptchaCheck is null || !gRecaptchaCheck.IsSuccess)
             {
                 _snackbar.Add($"{_loc[(gRecaptchaCheck.ErrorException?.ErrorCode is null ? "_ERROR_NULLDATA" : $"_ERROR_{gRecaptchaCheck.ErrorException.ErrorCode}")]} {_loc["_Login"]}", Severity.Error);
                 return;
             }
 
-            var recaptchaResponseDetail = gRecaptchaCheck.ResponseBody.ToString().JsonToObject<Dotnetable.Shared.DTO.Public.GoogleRecaptchaResponse>();
+            var recaptchaResponseDetail = gRecaptchaCheck.ResponseBody.ToString().JsonToObject<GoogleRecaptchaResponse>();
             if (!recaptchaResponseDetail.success || recaptchaResponseDetail.score <= 0.3)
             {
                 _snackbar.Add($"{_loc["_ERROR_C17"]} {_loc["_Login"]}", Severity.Error);
@@ -78,14 +81,14 @@ public partial class Reset
         if (!string.IsNullOrEmpty(recaptcahPrivate) && recaptcahPrivate != "" && !string.IsNullOrEmpty(recaptcahPublic) && recaptcahPublic != "")
         {
             string currentToken = await _jsRuntime.InvokeAsync<string>("Plugin.generateCaptchaToken", new object[] { recaptcahPublic, "login" });
-            var gRecaptchaCheck = await GeneralEvents.HttpClientReceive(HttpMethod.Get, $"https://google.com/recaptcha/api/siteverify?secret={recaptcahPrivate}&response={currentToken}", contentTypeRequest: Dotnetable.Shared.DTO.Public.RequestContentType.None);
+            var gRecaptchaCheck = await GeneralEvents.HttpClientReceive(HttpMethod.Get, $"https://google.com/recaptcha/api/siteverify?secret={recaptcahPrivate}&response={currentToken}", contentTypeRequest: RequestContentType.None);
             if (gRecaptchaCheck is null || !gRecaptchaCheck.IsSuccess)
             {
                 _snackbar.Add($"{_loc[(gRecaptchaCheck.ErrorException?.ErrorCode is null ? "_ERROR_NULLDATA" : $"_ERROR_{gRecaptchaCheck.ErrorException.ErrorCode}")]} {_loc["_Login"]}", Severity.Error);
                 return;
             }
 
-            var recaptchaResponseDetail = gRecaptchaCheck.ResponseBody.ToString().JsonToObject<Dotnetable.Shared.DTO.Public.GoogleRecaptchaResponse>();
+            var recaptchaResponseDetail = gRecaptchaCheck.ResponseBody.ToString().JsonToObject<GoogleRecaptchaResponse>();
             if (!recaptchaResponseDetail.success || recaptchaResponseDetail.score <= 0.3)
             {
                 _snackbar.Add($"{_loc["_ERROR_C17"]} {_loc["_Login"]}", Severity.Error);
@@ -107,7 +110,7 @@ public partial class Reset
             }
             else
             {
-                var parsedUserDetail = userDetail.ResponseData.CastModel<Dotnetable.Shared.DTO.Authentication.UserLoginResponse>();
+                var parsedUserDetail = userDetail.ResponseData.CastModel<UserLoginResponse>();
                 await ((SharedServices.CustomAuthentication)_authenticationStateProvider).MarkUserAsAuthenticated(parsedUserDetail);
                 _navigationManager.NavigateTo("/");
             }

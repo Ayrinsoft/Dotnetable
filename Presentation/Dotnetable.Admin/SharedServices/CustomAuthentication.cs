@@ -1,5 +1,5 @@
 ﻿using Blazored.LocalStorage;
-using Dotnetable.Shared.DTO.Authentication;
+using Dotnetable.Admin.Models.Charts.DTO.Authentication;
 using Dotnetable.Shared.Tools;
 using Microsoft.AspNetCore.Components.Authorization;
 using System.Security.Claims;

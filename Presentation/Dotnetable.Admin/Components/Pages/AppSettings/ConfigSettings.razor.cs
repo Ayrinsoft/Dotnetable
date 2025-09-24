@@ -1,7 +1,8 @@
 ﻿using Dotnetable.Admin.Components.Shared.Dialogs;
+using Dotnetable.Admin.Models.Charts.DTO.Website;
 using Dotnetable.Admin.SharedServices.Data;
-using Dotnetable.Shared.DTO.Website;
 using Dotnetable.Shared.Tools;
+using Dotnetable.SharedDTO.p.Public;
 using Microsoft.AspNetCore.Components;
 using Microsoft.AspNetCore.Components.Web;
 using Microsoft.Extensions.Localization;
@@ -59,11 +60,11 @@ public partial class ConfigSettings
 
         _appSettings.AdminPanelSettings.DefaultLanguageCode = _appSettings.AdminPanelSettings.DefaultLanguageCode.ToUpper();
 
-        _ = Enum.TryParse(_appSettings.DBSettings.DBType, out Dotnetable.Shared.DTO.Public.DatabaseType _dbTypeEnum);
+        _ = Enum.TryParse(_appSettings.DBSettings.DBType, out DatabaseType _dbTypeEnum);
         _appSettings.ConnectionStrings.DotnetableConnection = _dbTypeEnum switch
         {
-            Dotnetable.Shared.DTO.Public.DatabaseType.POSTGRESQL => $"Server={_serverAddress};Port={_serverPort};Database={_databaseName};User Id={_dbUsername};Password={_dbPassword};",
-            Dotnetable.Shared.DTO.Public.DatabaseType.MARIADB or Dotnetable.Shared.DTO.Public.DatabaseType.MYSQL => $"server={_serverAddress};port={_serverPort};database={_databaseName};uid={_dbUsername};pwd={_dbPassword};",
+            DatabaseType.POSTGRESQL => $"Server={_serverAddress};Port={_serverPort};Database={_databaseName};User Id={_dbUsername};Password={_dbPassword};",
+            DatabaseType.MARIADB or DatabaseType.MYSQL => $"server={_serverAddress};port={_serverPort};database={_databaseName};uid={_dbUsername};pwd={_dbPassword};",
             _ => $"Server={_serverAddress}{(_serverPort == "1433" ? "" : $", {_serverPort}")};Database={_databaseName};User Id={_dbUsername};Password={_dbPassword};TrustServerCertificate=True;"
         };
 

@@ -1,4 +1,4 @@
-﻿using Dotnetable.Shared.DTO.Member;
+﻿using Dotnetable.Admin.Models.Charts.DTO.Member;
 using Microsoft.AspNetCore.Components;
 
 namespace Dotnetable.Admin.Components.PageComponents.Member.Manage;

@@ -1,5 +1,5 @@
-﻿using Dotnetable.Shared.DTO.Member;
-using Dotnetable.Shared.DTO.Place;
+﻿using Dotnetable.Admin.Models.Charts.DTO.Member;
+using Dotnetable.Admin.Models.Charts.DTO.Place;
 using Microsoft.AspNetCore.Components;
 using Microsoft.Extensions.Localization;
 

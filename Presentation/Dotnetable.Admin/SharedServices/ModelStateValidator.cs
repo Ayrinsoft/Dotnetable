@@ -1,4 +1,5 @@
 ﻿using Dotnetable.Shared.DTO.Public;
+using Dotnetable.SharedDTO.p.Public;
 using Microsoft.AspNetCore.Mvc;
 
 namespace Dotnetable.Admin.SharedServices;

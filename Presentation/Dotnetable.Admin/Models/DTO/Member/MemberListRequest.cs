@@ -1,0 +1,12 @@
+﻿using Dotnetable.SharedDTO.p.Public;
+
+namespace Dotnetable.Admin.Models.Charts.DTO.Member;
+
+public class MemberListRequest: GridviewRequest
+{
+    public string Username { get; set; }
+    public string Email { get; set; }
+    public string CellphoneNumber { get; set; }
+    public string Givenname { get; set; }
+    public string Surname { get; set; }
+}

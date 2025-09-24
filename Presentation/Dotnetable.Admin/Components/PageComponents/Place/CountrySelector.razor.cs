@@ -1,5 +1,5 @@
-﻿using Dotnetable.Admin.SharedServices.Data;
-using Dotnetable.Shared.DTO.Place;
+﻿using Dotnetable.Admin.Models.Charts.DTO.Place;
+using Dotnetable.Admin.SharedServices.Data;
 using Dotnetable.Shared.Tools;
 using Microsoft.AspNetCore.Components;
 using Microsoft.Extensions.Caching.Memory;

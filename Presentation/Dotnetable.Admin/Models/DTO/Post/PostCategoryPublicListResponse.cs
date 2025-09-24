@@ -1,0 +1,20 @@
+﻿using Dotnetable.SharedDTO.p.Public;
+
+namespace Dotnetable.Admin.Models.Charts.DTO.Post;
+
+public class PostCategoryPublicListResponse
+{
+    public List<PostCategoryDetail> PostCategories { get; set; }
+    public ErrorExceptionResponse ErrorException { get; set; }
+
+    public class PostCategoryDetail
+    {
+        public int PostCategoryID { get; set; }
+        public int? ParentID { get; set; }
+        public string Title { get; set; }
+        public short Priority { get; set; }
+        public string LanguageCode { get; set; }
+        public string Description { get; set; }
+        public bool FooterView { get; set; }
+    }
+}

@@ -1,10 +1,10 @@
 ﻿using Dotnetable.Service;
 using Dotnetable.Shared.Tools;
-using Dotnetable.Shared.DTO.Logs;
-using Dotnetable.Shared.DTO.Public;
 using Microsoft.AspNetCore.Authorization;
 using Microsoft.AspNetCore.Mvc;
 using Asp.Versioning;
+using Dotnetable.SharedDTO.p.Public;
+using Dotnetable.Admin.Models.Charts.DTO.Logs;
 
 namespace Dotnetable.Admin.Controllers;
 

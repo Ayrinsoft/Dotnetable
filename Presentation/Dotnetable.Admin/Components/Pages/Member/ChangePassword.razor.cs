@@ -1,6 +1,8 @@
 ﻿using Dotnetable.Admin.Models;
+using Dotnetable.Admin.Models.Charts.DTO.Member;
 using Dotnetable.Admin.SharedServices.Data;
 using Dotnetable.Shared.Tools;
+using Dotnetable.SharedDTO.p.Public;
 using Microsoft.AspNetCore.Components;
 using Microsoft.Extensions.Localization;
 using MudBlazor;
@@ -14,7 +16,7 @@ public partial class ChangePassword
     [Inject] private IHttpServices _httpService { get; set; }
     [CascadingParameter] protected ThemeManagerModel themeManager { get; set; }
 
-    private Dotnetable.Shared.DTO.Member.MemberChangePasswordRequest _changeRequest = new();
+    private MemberChangePasswordRequest _changeRequest = new();
     private string _confirmPassword = "";
 
     private async Task DoChangePassword()
@@ -28,7 +30,7 @@ public partial class ChangePassword
             return;
         }
 
-        var changeObject = changePasswordResponse.ResponseData.CastModel<Dotnetable.Shared.DTO.Public.PublicActionResponse>();
+        var changeObject = changePasswordResponse.ResponseData.CastModel<PublicActionResponse>();
         if (!changeObject.SuccessAction)
         {
             _snackbar.Add($"{_loc["_FailedAction"]} {_loc["_ChangePassword"]}", Severity.Error);

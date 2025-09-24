@@ -1,6 +1,7 @@
 ﻿using Blazored.LocalStorage;
 using Dotnetable.Admin.Components.PageComponents.Shared;
 using Dotnetable.Admin.Models;
+using Dotnetable.Admin.Models.Charts.DTO.Authentication;
 using Microsoft.AspNetCore.Components;
 using Microsoft.JSInterop;
 using MudBlazor;
@@ -74,7 +75,7 @@ public partial class MainLayout
         _context = _httpContextAccessor.HttpContext;
         if (await _localStorage.ContainKeyAsync("MemberAuthorized"))
         {
-            var fetchAuthorize = await _localStorage.GetItemAsync<Dotnetable.Shared.DTO.Authentication.UserLoginResponse>("MemberAuthorized");
+            var fetchAuthorize = await _localStorage.GetItemAsync<UserLoginResponse>("MemberAuthorized");
             _user = new UserModel()
             {
                 Avatar = !fetchAuthorize.AvatarID.HasValue ? "/images/avatar-m.jpg" : $"{_context.Request.Scheme}://{_context.Request.Host}/api/Files/Receive/120X120/{fetchAuthorize.AvatarID}/Avatar.png",

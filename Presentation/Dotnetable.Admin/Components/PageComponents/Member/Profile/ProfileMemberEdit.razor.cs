@@ -1,7 +1,8 @@
-﻿using Dotnetable.Admin.SharedServices.Data;
-using Dotnetable.Shared.DTO.Member;
-using Dotnetable.Shared.DTO.Place;
+﻿using Dotnetable.Admin.Models.Charts.DTO.Member;
+using Dotnetable.Admin.Models.Charts.DTO.Place;
+using Dotnetable.Admin.SharedServices.Data;
 using Dotnetable.Shared.Tools;
+using Dotnetable.SharedDTO.p.Public;
 using Microsoft.AspNetCore.Components;
 using Microsoft.Extensions.Localization;
 using MudBlazor;
@@ -26,7 +27,7 @@ public partial class ProfileMemberEdit
         var updateProfile = await _httpService.CallServiceObjAsync(HttpMethod.Post, true, $"Member/{FunctionName}", MemberEdit.ToJsonString());
         if (updateProfile.Success)
         {
-            var parsedUpdateProfile = updateProfile.ResponseData.CastModel<Dotnetable.Shared.DTO.Public.PublicActionResponse>();
+            var parsedUpdateProfile = updateProfile.ResponseData.CastModel<PublicActionResponse>();
             if (parsedUpdateProfile.SuccessAction)
             {
                 _snackbar.Add($"{_loc["_SuccessAction"]} {_loc["_Member_Profile_Detail"]}", Severity.Success);

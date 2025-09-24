@@ -1,6 +1,7 @@
 ﻿@layout ConfigLayout
 
 @page "/ConfigSettings"
+@using Dotnetable.SharedDTO.p.Public
 
 <PageTitle>ConfigSettings</PageTitle>
 
@@ -19,7 +20,7 @@
 
                     <InputSelect @bind-Value="@_appSettings.DBSettings.DBType" class="form-control">
                         <option>Choose DB</option>
-                        @foreach (var Item in Enum.GetValues<Dotnetable.Shared.DTO.Public.DatabaseType>())
+                        @foreach (var Item in Enum.GetValues<DatabaseType>())
                         {
                             <option value="@Item.ToString()">@Item.ToString()</option>
                         }

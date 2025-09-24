@@ -1,0 +1,11 @@
+﻿using Dotnetable.SharedDTO.p.Public;
+
+namespace Dotnetable.Admin.Models.Charts.DTO.Member;
+
+public class MemberAvatarDeleteResponse
+{
+    public bool SuccessAction { get; set; } = false;
+    public byte FileCategoryID { get; set; }
+    public string FilePath { get; set; }
+    public ErrorExceptionResponse ErrorException { get; set; }
+}

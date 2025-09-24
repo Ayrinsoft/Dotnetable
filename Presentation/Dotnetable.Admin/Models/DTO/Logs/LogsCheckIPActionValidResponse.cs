@@ -1,9 +1,11 @@
-﻿namespace Dotnetable.Shared.DTO.Logs;
+﻿using Dotnetable.SharedDTO.p.Public;
+
+namespace Dotnetable.Admin.Models.Charts.DTO.Logs;
 
 public class LogsCheckIPActionValidResponse
 {
     public int TryCount { get; set; }
     public bool ValidForNewRequest { get; set; }
 
-    public Public.ErrorExceptionResponse ErrorException { get; set; }
+    public ErrorExceptionResponse ErrorException { get; set; }
 }
