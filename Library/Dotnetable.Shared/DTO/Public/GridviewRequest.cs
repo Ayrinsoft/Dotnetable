@@ -4,12 +4,12 @@ namespace Dotnetable.Shared.DTO.Public;
 
 public class GridviewRequest
 {
-    [Required(ErrorMessageResourceType = typeof(Resources.Resource), ErrorMessageResourceName = nameof(Resources.Resource._Err_Public_SkipCount_Required))]
-    [Range(0, int.MaxValue, ErrorMessageResourceType = typeof(Resources.Resource), ErrorMessageResourceName = nameof(Resources.Resource._Err_Public_Enter_Valid_Integer))]
+    [Required(ErrorMessage ="Send {0}")]
+    [Range(0, int.MaxValue, ErrorMessage = "Send correct number")]
     public int SkipCount { get; set; }
 
-    [Required(ErrorMessageResourceType = typeof(Resources.Resource), ErrorMessageResourceName = nameof(Resources.Resource._Err_Public_TakeCount_Required))]
-    [Range(1, int.MaxValue, ErrorMessageResourceType = typeof(Resources.Resource), ErrorMessageResourceName = nameof(Resources.Resource._Err_Public_Enter_Valid_Integer))]
+    [Required(ErrorMessage = "Send {0}")]
+    [Range(1, int.MaxValue, ErrorMessage = "Send correct number")]
     public int TakeCount { get; set; }
 
     public string OrderbyParams { get; set; }
