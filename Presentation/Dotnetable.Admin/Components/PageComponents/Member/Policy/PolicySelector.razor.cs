@@ -8,7 +8,7 @@ namespace Dotnetable.Admin.Components.PageComponents.Member.Policy;
 
 public partial class PolicySelector
 {
-    [Inject] private IStringLocalizer<Dotnetable.Shared.Resources.Resource> _loc { get; set; }
+    [Inject] private IStringLocalizer<Resources.Resource> _loc { get; set; }
     [Inject] private IHttpServices _httpService { get; set; }
 
     [Parameter] public EventCallback<PolicyListOnInsertMemberResponse> OnChangePolicyEvent { get; set; }

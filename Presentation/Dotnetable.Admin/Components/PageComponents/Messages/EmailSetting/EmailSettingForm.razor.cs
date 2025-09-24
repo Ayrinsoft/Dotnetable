@@ -6,7 +6,7 @@ namespace Dotnetable.Admin.Components.PageComponents.Messages.EmailSetting;
 
 public partial class EmailSettingForm
 {
-    [Inject] private IStringLocalizer<Dotnetable.Shared.Resources.Resource> _loc { get; set; }
+    [Inject] private IStringLocalizer<Resources.Resource> _loc { get; set; }
 
     [Parameter] public EmailPanelUpdateRequest FormModel { get; set; }
     [Parameter] public string DefaultLanguageCode { get; set; }

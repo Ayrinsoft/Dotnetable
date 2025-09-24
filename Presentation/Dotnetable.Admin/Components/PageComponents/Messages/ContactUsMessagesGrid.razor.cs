@@ -13,7 +13,7 @@ namespace Dotnetable.Admin.Components.PageComponents.Messages
     public partial class ContactUsMessagesGrid
     {
 
-        [Inject] private IStringLocalizer<Dotnetable.Shared.Resources.Resource> _loc { get; set; }
+        [Inject] private IStringLocalizer<Resources.Resource> _loc { get; set; }
         [Inject] private IHttpServices _httpService { get; set; }
         [Inject] private IDialogService _dialogService { get; set; }
         [Inject] private ISnackbar _snackbar { get; set; }

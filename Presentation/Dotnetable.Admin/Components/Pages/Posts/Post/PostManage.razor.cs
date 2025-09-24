@@ -15,7 +15,7 @@ namespace Dotnetable.Admin.Components.Pages.Posts.Post;
 public partial class PostManage
 {
     [Inject] private ISnackbar _snackbar { get; set; }
-    [Inject] private IStringLocalizer<Dotnetable.Shared.Resources.Resource> _loc { get; set; }
+    [Inject] private IStringLocalizer<Resources.Resource> _loc { get; set; }
     [Inject] private IHttpServices _httpService { get; set; }
     [Inject] private IDialogService _dialogService { get; set; }
     [Inject] private IMemoryCache _mmc { get; set; }

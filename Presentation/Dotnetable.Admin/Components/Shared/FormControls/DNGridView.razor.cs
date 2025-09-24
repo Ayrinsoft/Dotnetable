@@ -8,7 +8,7 @@ namespace Dotnetable.Admin.Components.Shared.FormControls;
 
 public partial class DNGridView
 {
-    [Inject] private IStringLocalizer<Dotnetable.Shared.Resources.Resource> _loc { get; set; }
+    [Inject] private IStringLocalizer<Resources.Resource> _loc { get; set; }
 
     [Parameter] public RenderFragment ChildContent { get; set; }
     [Parameter] public GridViewHeaderParameters GridHeaderParams { get; set; }

@@ -11,7 +11,7 @@ namespace Dotnetable.Admin.Components.Pages.Member.Policy;
 public partial class RoleList
 {
 
-    [Inject] private IStringLocalizer<Dotnetable.Shared.Resources.Resource> _loc { get; set; }
+    [Inject] private IStringLocalizer<Resources.Resource> _loc { get; set; }
     [Inject] private IHttpServices _httpService { get; set; }
     [CascadingParameter] protected ThemeManagerModel themeManager { get; set; }
 

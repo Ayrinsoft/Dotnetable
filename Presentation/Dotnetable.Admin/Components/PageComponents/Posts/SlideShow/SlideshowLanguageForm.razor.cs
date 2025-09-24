@@ -7,7 +7,7 @@ namespace Dotnetable.Admin.Components.PageComponents.Posts.SlideShow;
 
 public partial class SlideshowLanguageForm
 {
-    [Inject] private IStringLocalizer<Dotnetable.Shared.Resources.Resource> _loc { get; set; }
+    [Inject] private IStringLocalizer<Resources.Resource> _loc { get; set; }
 
     [Parameter] public SlideShowInsertLanguageRequest FormModel { get; set; }
     [Parameter] public EventCallback<SlideShowInsertLanguageRequest> OnSubmitObject { get; set; }

@@ -6,7 +6,7 @@ namespace Dotnetable.Admin.Components.Pages.Posts.PostCategory;
 
 public partial class PostCategoryListItem
 {
-    [Inject] private IStringLocalizer<Dotnetable.Shared.Resources.Resource> _loc { get; set; }
+    [Inject] private IStringLocalizer<Resources.Resource> _loc { get; set; }
 
     [Parameter] public int? ParentID { get; set; }
     [Parameter] public int? DefaultPostCategoryID { get; set; }

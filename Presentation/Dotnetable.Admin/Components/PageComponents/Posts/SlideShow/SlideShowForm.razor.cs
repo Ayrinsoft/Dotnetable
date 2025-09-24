@@ -12,7 +12,7 @@ namespace Dotnetable.Admin.Components.PageComponents.Posts.SlideShow;
 
 public partial class SlideShowForm
 {
-    [Inject] private IStringLocalizer<Dotnetable.Shared.Resources.Resource> _loc { get; set; }
+    [Inject] private IStringLocalizer<Resources.Resource> _loc { get; set; }
     [Inject] private IHttpServices _httpService { get; set; }
     [Inject] private ISnackbar _snackbar { get; set; }
     [Inject] private IHttpContextAccessor _httpContextAccessor { get; set; }
