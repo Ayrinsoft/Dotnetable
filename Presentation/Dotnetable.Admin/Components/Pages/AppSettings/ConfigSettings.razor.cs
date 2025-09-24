@@ -2,7 +2,7 @@
 using Dotnetable.Admin.Models.Charts.DTO.Website;
 using Dotnetable.Admin.SharedServices.Data;
 using Dotnetable.Shared.Tools;
-using Dotnetable.SharedDTO.p.Public;
+using Dotnetable.Shared.DTO.Public;
 using Microsoft.AspNetCore.Components;
 using Microsoft.AspNetCore.Components.Web;
 using Microsoft.Extensions.Localization;

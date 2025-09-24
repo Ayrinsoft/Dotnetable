@@ -1,5 +1,5 @@
 ﻿using Dotnetable.Admin.Models.Charts.DTO.Place;
-using Dotnetable.SharedDTO.p.Public;
+using Dotnetable.Shared.DTO.Public;
 
 namespace Dotnetable.Admin.Models.Charts.DTO.Member;
 

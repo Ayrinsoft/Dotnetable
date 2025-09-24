@@ -1,4 +1,4 @@
-﻿using Dotnetable.SharedDTO.p.Public;
+﻿using Dotnetable.Shared.DTO.Public;
 using Microsoft.AspNetCore.Components;
 
 namespace Dotnetable.Admin.Components.Shared.FormControls;

@@ -1,4 +1,4 @@
-﻿using Dotnetable.SharedDTO.p.Public;
+﻿using Dotnetable.Shared.DTO.Public;
 using System.ComponentModel.DataAnnotations;
 
 namespace Dotnetable.Admin.Models.Charts.DTO.Message;

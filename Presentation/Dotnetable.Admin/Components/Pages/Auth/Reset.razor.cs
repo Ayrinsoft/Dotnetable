@@ -4,7 +4,7 @@ using Dotnetable.Admin.Models.Charts.DTO.Authentication;
 using Dotnetable.Admin.Models.Charts.DTO.Member;
 using Dotnetable.Admin.SharedServices.Data;
 using Dotnetable.Shared.Tools;
-using Dotnetable.SharedDTO.p.Public;
+using Dotnetable.Shared.DTO.Public;
 using Microsoft.AspNetCore.Components;
 using Microsoft.AspNetCore.Components.Authorization;
 using Microsoft.Extensions.Localization;

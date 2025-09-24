@@ -1,7 +1,7 @@
 ﻿using Dotnetable.Admin.Models.Charts.DTO.Member;
 using Dotnetable.Data.DBContext;
 using Dotnetable.Shared.Tools;
-using Dotnetable.SharedDTO.p.Public;
+using Dotnetable.Shared.DTO.Public;
 using Microsoft.EntityFrameworkCore;
 
 namespace Dotnetable.Data.DataAccess;
