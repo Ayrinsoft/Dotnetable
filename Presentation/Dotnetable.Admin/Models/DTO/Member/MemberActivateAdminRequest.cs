@@ -1,6 +1,6 @@
 ﻿using System.ComponentModel.DataAnnotations;
 
-namespace Dotnetable.Admin.Models.Charts.DTO.Member;
+namespace Dotnetable.Admin.Models.DTO.Member;
 
 public class MemberActivateAdminRequest
 {

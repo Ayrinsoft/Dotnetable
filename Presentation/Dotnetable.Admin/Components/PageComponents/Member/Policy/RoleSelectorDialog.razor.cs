@@ -1,4 +1,4 @@
-﻿using Dotnetable.Admin.Models.Charts.DTO.Member;
+﻿using Dotnetable.Admin.Models.DTO.Member;
 using Dotnetable.Admin.SharedServices.Data;
 using Dotnetable.Shared.Tools;
 using Microsoft.AspNetCore.Components;

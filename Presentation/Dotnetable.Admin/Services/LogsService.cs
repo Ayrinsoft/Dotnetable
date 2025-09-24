@@ -1,4 +1,4 @@
-﻿using Dotnetable.Admin.Models.Charts.DTO.Logs;
+﻿using Dotnetable.Admin.Models.DTO.Logs;
 using Dotnetable.Data.DataAccess;
 
 namespace Dotnetable.Service;

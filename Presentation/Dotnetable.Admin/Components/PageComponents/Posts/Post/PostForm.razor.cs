@@ -1,9 +1,9 @@
 ﻿using Blazored.LocalStorage;
 using Dotnetable.Admin.Components.Shared.Dialogs;
 using Dotnetable.Admin.Models;
-using Dotnetable.Admin.Models.Charts.DTO.Authentication;
-using Dotnetable.Admin.Models.Charts.DTO.File;
-using Dotnetable.Admin.Models.Charts.DTO.Post;
+using Dotnetable.Admin.Models.DTO.Authentication;
+using Dotnetable.Admin.Models.DTO.File;
+using Dotnetable.Admin.Models.DTO.Post;
 using Dotnetable.Admin.SharedServices.Data;
 using Dotnetable.Shared.Tools;
 using Microsoft.AspNetCore.Components;

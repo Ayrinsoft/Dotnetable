@@ -1,10 +1,10 @@
 ﻿using Asp.Versioning;
-using Dotnetable.Admin.Models.Charts.DTO.Website;
 using Dotnetable.Service;
 using Dotnetable.Shared.Tools;
 using Dotnetable.Shared.DTO.Public;
 using Microsoft.AspNetCore.Authorization;
 using Microsoft.AspNetCore.Mvc;
+using Dotnetable.Admin.Models.DTO.Website;
 
 namespace Dotnetable.Admin.Controllers
 {

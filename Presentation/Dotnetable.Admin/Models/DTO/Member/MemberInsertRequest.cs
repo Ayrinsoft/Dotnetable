@@ -1,7 +1,7 @@
-﻿using Dotnetable.Admin.Models.Charts.DTO.Place;
+﻿using Dotnetable.Admin.Models.DTO.Place;
 using System.ComponentModel.DataAnnotations;
 
-namespace Dotnetable.Admin.Models.Charts.DTO.Member
+namespace Dotnetable.Admin.Models.DTO.Member
 {
     public class MemberInsertRequest : CityFormDataResponse
     {

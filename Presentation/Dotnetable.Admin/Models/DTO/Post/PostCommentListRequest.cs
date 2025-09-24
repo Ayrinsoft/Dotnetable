@@ -1,7 +1,7 @@
 ﻿using Dotnetable.Shared.DTO.Public;
 using System.ComponentModel.DataAnnotations;
 
-namespace Dotnetable.Admin.Models.Charts.DTO.Post;
+namespace Dotnetable.Admin.Models.DTO.Post;
 
 public class PostCommentListRequest: GridviewRequest
 {

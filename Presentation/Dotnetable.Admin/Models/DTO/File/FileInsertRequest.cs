@@ -1,6 +1,6 @@
 ﻿using System.ComponentModel.DataAnnotations;
 
-namespace Dotnetable.Admin.Models.Charts.DTO.File;
+namespace Dotnetable.Admin.Models.DTO.File;
 
 public class FileInsertRequest
 {

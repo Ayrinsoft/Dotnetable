@@ -1,4 +1,4 @@
-﻿namespace Dotnetable.Admin.Models.Charts.DTO.Authentication;
+﻿namespace Dotnetable.Admin.Models.DTO.Authentication;
 
 public class JWTGenerateRequest
 {

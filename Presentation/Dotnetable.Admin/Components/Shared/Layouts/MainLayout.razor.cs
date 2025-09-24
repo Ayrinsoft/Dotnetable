@@ -1,7 +1,7 @@
 ﻿using Blazored.LocalStorage;
 using Dotnetable.Admin.Components.PageComponents.Shared;
 using Dotnetable.Admin.Models;
-using Dotnetable.Admin.Models.Charts.DTO.Authentication;
+using Dotnetable.Admin.Models.DTO.Authentication;
 using Microsoft.AspNetCore.Components;
 using Microsoft.JSInterop;
 using MudBlazor;

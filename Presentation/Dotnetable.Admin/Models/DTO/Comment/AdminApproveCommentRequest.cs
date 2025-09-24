@@ -1,7 +1,7 @@
 ﻿using Dotnetable.Shared.DTO.Public;
 using System.ComponentModel.DataAnnotations;
 
-namespace Dotnetable.Admin.Models.Charts.DTO.Comment;
+namespace Dotnetable.Admin.Models.DTO.Comment;
 
 public class AdminApproveCommentRequest
 {

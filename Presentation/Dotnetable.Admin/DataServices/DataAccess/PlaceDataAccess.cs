@@ -1,4 +1,4 @@
-﻿using Dotnetable.Admin.Models.Charts.DTO.Place;
+﻿using Dotnetable.Admin.Models.DTO.Place;
 using Dotnetable.Data.DBContext;
 using Microsoft.EntityFrameworkCore;
 

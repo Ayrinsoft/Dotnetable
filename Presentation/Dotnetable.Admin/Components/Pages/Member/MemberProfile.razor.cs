@@ -1,6 +1,6 @@
 ﻿using Dotnetable.Admin.Components.PageComponents.Member.Profile;
 using Dotnetable.Admin.Models;
-using Dotnetable.Admin.Models.Charts.DTO.Member;
+using Dotnetable.Admin.Models.DTO.Member;
 using Dotnetable.Admin.SharedServices.Data;
 using Dotnetable.Shared.Tools;
 using Microsoft.AspNetCore.Components;

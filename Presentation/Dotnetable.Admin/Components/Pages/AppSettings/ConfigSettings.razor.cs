@@ -1,5 +1,4 @@
 ﻿using Dotnetable.Admin.Components.Shared.Dialogs;
-using Dotnetable.Admin.Models.Charts.DTO.Website;
 using Dotnetable.Admin.SharedServices.Data;
 using Dotnetable.Shared.Tools;
 using Dotnetable.Shared.DTO.Public;
@@ -8,6 +7,7 @@ using Microsoft.AspNetCore.Components.Web;
 using Microsoft.Extensions.Localization;
 using MudBlazor;
 using System.Globalization;
+using Dotnetable.Admin.Models.DTO.Website;
 
 namespace Dotnetable.Admin.Components.Pages.AppSettings;
 

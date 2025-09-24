@@ -1,11 +1,11 @@
 ﻿using Dotnetable.Admin.Models;
-using Dotnetable.Admin.Models.Charts.DTO.Member;
 using Dotnetable.Admin.SharedServices.Data;
 using Dotnetable.Shared.Tools;
 using Dotnetable.Shared.DTO.Public;
 using Microsoft.AspNetCore.Components;
 using Microsoft.Extensions.Localization;
 using MudBlazor;
+using Dotnetable.Admin.Models.DTO.Member;
 
 namespace Dotnetable.Admin.Components.Pages.Member;
 

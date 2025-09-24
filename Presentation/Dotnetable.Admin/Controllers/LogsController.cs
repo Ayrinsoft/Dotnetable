@@ -4,7 +4,7 @@ using Microsoft.AspNetCore.Authorization;
 using Microsoft.AspNetCore.Mvc;
 using Asp.Versioning;
 using Dotnetable.Shared.DTO.Public;
-using Dotnetable.Admin.Models.Charts.DTO.Logs;
+using Dotnetable.Admin.Models.DTO.Logs;
 
 namespace Dotnetable.Admin.Controllers;
 

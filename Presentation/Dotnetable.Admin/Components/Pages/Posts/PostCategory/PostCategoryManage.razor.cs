@@ -10,6 +10,7 @@ using Dotnetable.Shared.DTO.Public;
 using Microsoft.AspNetCore.Components;
 using Microsoft.Extensions.Localization;
 using MudBlazor;
+using Dotnetable.Admin.Models.DTO.Post;
 
 namespace Dotnetable.Admin.Components.Pages.Posts.PostCategory;
 

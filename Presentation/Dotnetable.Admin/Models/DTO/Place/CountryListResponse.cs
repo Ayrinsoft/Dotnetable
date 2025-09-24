@@ -1,6 +1,6 @@
 ﻿using Dotnetable.Shared.DTO.Public;
 
-namespace Dotnetable.Admin.Models.Charts.DTO.Place;
+namespace Dotnetable.Admin.Models.DTO.Place;
 
 public class CountryListResponse
 {

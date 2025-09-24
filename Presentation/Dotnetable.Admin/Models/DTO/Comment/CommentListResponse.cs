@@ -1,6 +1,6 @@
 ﻿using Dotnetable.Shared.DTO.Public;
 
-namespace Dotnetable.Admin.Models.Charts.DTO.Comment;
+namespace Dotnetable.Admin.Models.DTO.Comment;
 
 public class CommentListResponse
 {

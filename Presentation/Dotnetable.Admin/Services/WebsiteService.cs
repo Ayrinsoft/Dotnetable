@@ -1,4 +1,4 @@
-﻿using Dotnetable.Admin.Models.Charts.DTO.Website;
+﻿using Dotnetable.Admin.Models.DTO.Website;
 using Dotnetable.Data.DataAccess;
 using Dotnetable.Service.PrivateService;
 using Dotnetable.Shared.DTO.Public;

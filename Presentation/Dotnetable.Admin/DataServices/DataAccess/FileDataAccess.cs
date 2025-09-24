@@ -1,4 +1,4 @@
-﻿using Dotnetable.Admin.Models.Charts.DTO.File;
+﻿using Dotnetable.Admin.Models.DTO.File;
 using Dotnetable.Data.DBContext;
 using Dotnetable.Shared.DTO.Public;
 using Microsoft.EntityFrameworkCore;

@@ -1,4 +1,4 @@
-﻿using Dotnetable.Admin.Models.Charts.DTO.Message;
+﻿using Dotnetable.Admin.Models.DTO.Message;
 using Microsoft.AspNetCore.Components;
 using Microsoft.Extensions.Localization;
 
