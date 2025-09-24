@@ -47,5 +47,9 @@
 	  </EmbeddedResource>
 	</ItemGroup>
 
+	<ItemGroup>
+	  <Folder Include="Models\DTOs\" />
+	</ItemGroup>
+
 
 </Project>

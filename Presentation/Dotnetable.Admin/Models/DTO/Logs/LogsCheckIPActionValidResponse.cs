@@ -1,6 +1,6 @@
 ﻿using Dotnetable.Shared.DTO.Public;
 
-namespace Dotnetable.Admin.Models.Charts.DTO.Logs;
+namespace Dotnetable.Admin.Models.DTO.Logs;
 
 public class LogsCheckIPActionValidResponse
 {

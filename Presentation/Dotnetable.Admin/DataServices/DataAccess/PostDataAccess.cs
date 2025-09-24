@@ -1,8 +1,8 @@
-﻿using Dotnetable.Admin.Models.Charts.DTO.Post;
-using Dotnetable.Data.DBContext;
+﻿using Dotnetable.Data.DBContext;
 using Dotnetable.Shared.Tools;
 using Dotnetable.Shared.DTO.Public;
 using Microsoft.EntityFrameworkCore;
+using Dotnetable.Admin.Models.DTO.Post;
 
 namespace Dotnetable.Data.DataAccess;
 public class PostDataAccess

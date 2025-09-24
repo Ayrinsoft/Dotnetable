@@ -1,6 +1,6 @@
 ﻿using System.ComponentModel.DataAnnotations;
 
-namespace Dotnetable.Admin.Models.Charts.DTO.Website;
+namespace Dotnetable.Admin.Models.DTO.Website;
 
 public class AdminPanelAppSettingsResponse
 {

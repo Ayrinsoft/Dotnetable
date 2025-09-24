@@ -1,5 +1,4 @@
 ﻿using Asp.Versioning;
-using Dotnetable.Admin.Models.Charts.DTO.File;
 using Dotnetable.Admin.SharedServices;
 using Dotnetable.Service;
 using Dotnetable.Shared.Tools;
@@ -10,6 +9,7 @@ using Microsoft.Net.Http.Headers;
 using SixLabors.ImageSharp;
 using SixLabors.ImageSharp.PixelFormats;
 using SixLabors.ImageSharp.Processing;
+using Dotnetable.Admin.Models.DTO.File;
 
 namespace Dotnetable.Admin.Controllers;
 

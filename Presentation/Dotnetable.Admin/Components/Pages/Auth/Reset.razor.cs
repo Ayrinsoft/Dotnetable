@@ -1,7 +1,5 @@
 ﻿using Blazored.LocalStorage;
 using Dotnetable.Admin.Models;
-using Dotnetable.Admin.Models.Charts.DTO.Authentication;
-using Dotnetable.Admin.Models.Charts.DTO.Member;
 using Dotnetable.Admin.SharedServices.Data;
 using Dotnetable.Shared.Tools;
 using Dotnetable.Shared.DTO.Public;
@@ -11,6 +9,8 @@ using Microsoft.Extensions.Localization;
 using Microsoft.JSInterop;
 using MudBlazor;
 using System.Globalization;
+using Dotnetable.Admin.Models.DTO.Authentication;
+using Dotnetable.Admin.Models.DTO.Member;
 
 namespace Dotnetable.Admin.Components.Pages.Auth;
 

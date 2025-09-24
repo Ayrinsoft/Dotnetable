@@ -1,5 +1,4 @@
-﻿using Dotnetable.Admin.Models.Charts.DTO.Message;
-using Dotnetable.Data.DataAccess;
+﻿using Dotnetable.Data.DataAccess;
 using Dotnetable.Shared.Tools;
 using Dotnetable.Shared.DTO.Public;
 using System.Net;
@@ -7,6 +6,7 @@ using System.Net.Mail;
 using System.Net.Security;
 using System.Security.Cryptography.X509Certificates;
 using System.Text;
+using Dotnetable.Admin.Models.DTO.Message;
 
 namespace Dotnetable.Service;
 public class MessageService

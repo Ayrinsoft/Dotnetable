@@ -6,7 +6,7 @@ using System.Text;
 using Dotnetable.Admin.SharedServices.Authorization;
 using Asp.Versioning;
 using Dotnetable.Shared.DTO.Public;
-using Dotnetable.Admin.Models.Charts.DTO.Authentication;
+using Dotnetable.Admin.Models.DTO.Authentication;
 
 namespace Dotnetable.Admin.Controllers;
 

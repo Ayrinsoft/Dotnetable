@@ -4,7 +4,7 @@ using System.Linq;
 using System.Text;
 using System.Threading.Tasks;
 
-namespace Dotnetable.Admin.Models.Charts.DTO.Post;
+namespace Dotnetable.Admin.Models.DTO.Post;
 
 public class PostCategoryUpdateRequest
 {

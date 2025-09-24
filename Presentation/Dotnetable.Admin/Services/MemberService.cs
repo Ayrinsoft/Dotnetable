@@ -1,8 +1,8 @@
-﻿using Dotnetable.Admin.Models.Charts.DTO.Member;
-using Dotnetable.Data.DataAccess;
+﻿using Dotnetable.Data.DataAccess;
 using Dotnetable.Service.PrivateService;
 using Dotnetable.Shared.Tools;
 using Dotnetable.Shared.DTO.Public;
+using Dotnetable.Admin.Models.DTO.Member;
 
 namespace Dotnetable.Service;
 public class MemberService

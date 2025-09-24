@@ -1,4 +1,4 @@
-﻿using Dotnetable.Admin.Models.Charts.DTO.Post;
+﻿using Dotnetable.Admin.Models.DTO.Post;
 using Microsoft.AspNetCore.Components;
 using MudBlazor;
 

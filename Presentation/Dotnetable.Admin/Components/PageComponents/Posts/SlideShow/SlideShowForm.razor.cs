@@ -1,5 +1,6 @@
-﻿using Dotnetable.Admin.Models.Charts.DTO.File;
-using Dotnetable.Admin.Models.Charts.DTO.Post;
+﻿using Dotnetable.Admin.Models.Charts.DTO.Post;
+using Dotnetable.Admin.Models.DTO.File;
+using Dotnetable.Admin.Models.DTO.Post;
 using Dotnetable.Admin.SharedServices.Data;
 using Dotnetable.Shared.DTO.Post;
 using Dotnetable.Shared.Tools;

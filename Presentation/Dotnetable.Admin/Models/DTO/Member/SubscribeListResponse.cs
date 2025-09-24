@@ -1,6 +1,6 @@
 ﻿using Dotnetable.Shared.DTO.Public;
 
-namespace Dotnetable.Admin.Models.Charts.DTO.Member;
+namespace Dotnetable.Admin.Models.DTO.Member;
 
 public class SubscribeListResponse
 {

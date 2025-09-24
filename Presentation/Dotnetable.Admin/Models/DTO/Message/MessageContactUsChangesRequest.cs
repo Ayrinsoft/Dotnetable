@@ -1,4 +1,4 @@
-﻿namespace Dotnetable.Admin.Models.Charts.DTO.Message;
+﻿namespace Dotnetable.Admin.Models.DTO.Message;
 
 public class MessageContactUsChangesRequest
 {

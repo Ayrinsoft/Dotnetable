@@ -1,4 +1,4 @@
-﻿using Dotnetable.Admin.Models.Charts.DTO.File;
+﻿using Dotnetable.Admin.Models.DTO.File;
 using Dotnetable.Data.DataAccess;
 using Dotnetable.Shared.DTO.Public;
 

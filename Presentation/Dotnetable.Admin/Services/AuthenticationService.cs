@@ -1,4 +1,4 @@
-﻿using Dotnetable.Admin.Models.Charts.DTO.Authentication;
+﻿using Dotnetable.Admin.Models.DTO.Authentication;
 using Dotnetable.Data.DataAccess;
 using Dotnetable.Service.PrivateService;
 using Dotnetable.Shared.Tools;

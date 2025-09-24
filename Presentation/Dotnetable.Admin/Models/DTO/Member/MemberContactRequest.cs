@@ -1,6 +1,6 @@
-﻿using Dotnetable.Admin.Models.Charts.DTO.Place;
+﻿using Dotnetable.Admin.Models.DTO.Place;
 
-namespace Dotnetable.Admin.Models.Charts.DTO.Member;
+namespace Dotnetable.Admin.Models.DTO.Member;
 
 public class MemberContactRequest: CityFormDataResponse
 {
