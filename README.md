@@ -1,60 +1,112 @@
 # 🌐 Dotnetable
 
 A **lightweight, modular, and open-source content management admin panel** built with **.NET 9**.  
-Easily deployable, database-agnostic, and extendable — **Dotnetable** is designed to give you full control over your backend with maximum flexibility.
+Easily deployable, database-agnostic, and extendable — **Dotnetable** gives you full control over your backend with maximum flexibility.
 
-🔗 **GitHub Repository:** [https://github.com/Ayrinsoft/Dotnetable](https://github.com/Ayrinsoft/Dotnetable)
+🔗 **Repository:** [https://github.com/Ayrinsoft/Dotnetable](https://github.com/Ayrinsoft/Dotnetable)
 
 ---
 
-## 🚀 Overview
+## 🌍 Language / زبان / اللغة
+[🇬🇧 English](#-english-version) | [🇮🇷 فارسی](#-نسخه-فارسی) | [🇸🇦 العربية](#-النسخة-العربية)
+
+---
+
+## 🇬🇧 English Version
+
+### 🚀 Overview
 
 **Dotnetable** is a minimal yet powerful **Admin Panel & CMS backend** written in **C# (.NET 9)**.  
 It’s built to be **cross-platform** — running seamlessly on **Linux**, **Windows**, or **Docker containers**.
 
-Once you publish the project and open it for the first time, it automatically:
-- Guides you through the initial setup wizard
-- Creates the database structure
-- Seeds required initial data
+When you run it for the first time, it automatically:
+- Guides you through setup
+- Creates the database schema
+- Seeds initial data
 
-From there, you get a full-featured **admin dashboard** for managing content, users, and posts —  
-while your data is served via **RESTful APIs**, ready to be consumed by any frontend stack.
+You’ll get a full-featured **admin dashboard** for managing content, users, and posts —  
+while data is served via **RESTful APIs**, ready for any frontend stack.
 
 ---
 
-## ⚙️ Key Features
+### ⚙️ Key Features
 
-✅ **Cross-platform** – works on Linux, Windows, or inside Docker  
+✅ **Cross-platform** – Linux / Windows / Docker  
 ✅ **Auto setup** on first launch  
-✅ **Multi-database support**:  
-&nbsp;&nbsp;&nbsp;&nbsp;• MSSQL  
-&nbsp;&nbsp;&nbsp;&nbsp;• PostgreSQL  
-&nbsp;&nbsp;&nbsp;&nbsp;• MySQL  
-&nbsp;&nbsp;&nbsp;&nbsp;• MariaDB  
-✅ **Entity Framework Core** – code-first with migrations  
-✅ **Modular architecture** – extend and customize easily  
+✅ **Multi-database support:**
+  - MSSQL  
+  - PostgreSQL  
+  - MySQL  
+  - MariaDB  
+✅ **EF Core** – migrations & seeding  
+✅ **Modular and extensible**  
 ✅ **RESTful API** for all content  
-✅ **JWT Authentication** for secure access  
-✅ **Admin panel** for managing content and posts  
-✅ **Frontend-agnostic** – connect from React, Blazor, Vue, PHP, or serverless apps  
-✅ **Customizable UI** and settings  
+✅ **JWT Authentication**  
+✅ **Customizable Admin Panel**  
+✅ **Frontend-agnostic** (React, Blazor, Vue, Angular, PHP, etc.)
 
 ---
 
-## 🧠 Tech Stack
+### 🧠 Tech Stack
 
-- **.NET 9 / C#**
-- **Entity Framework Core**
-- **ASP.NET Core Web API**
-- **Razor / Blazor (for Admin UI)**
-- **Bootstrap / Tailwind (optional UI)**
-- **JWT Authentication**
+- .NET 9 / C#
+- ASP.NET Core Web API
+- Entity Framework Core
+- Razor / Blazor
+- JWT Authentication
+- Docker support
 
 ---
 
-## 🛠️ Installation & Setup
+### 🛠️ Installation & Setup
 
-1. **Clone the repository:**
-   ```bash
-   git clone https://github.com/Ayrinsoft/Dotnetable.git
-   cd Dotnetable
+```bash
+# 1. Clone the repository
+git clone https://github.com/Ayrinsoft/Dotnetable.git
+cd Dotnetable
+
+# 2. Restore dependencies
+dotnet restore
+
+# 3. Run the project locally
+dotnet run
+
+# OR: publish for production
+dotnet publish -c Release
+```
+
+Then open your browser at:
+
+```
+http://localhost:5000
+```
+
+You’ll be guided through the initial setup process — including database connection, configuration, and automatic seeding of initial data.
+
+---
+
+### Optional: Run with Docker (basic example)
+
+```bash
+# Build the Docker image
+docker build -t dotnetable .
+
+# Run container, mapping port 5000
+docker run -p 5000:80   -e ASPNETCORE_ENVIRONMENT=Production   dotnetable
+```
+
+> Note: adjust the Dockerfile, environment variables, and ports as needed for your environment.
+
+---
+
+### Optional: Use Entity Framework Migrations Manually
+
+If you want to run migrations or seed data manually, make sure the `dotnet-ef` tool is installed:
+
+```bash
+dotnet tool install --global dotnet-ef
+dotnet ef database update
+```
+
+Run the above commands from the project folder where the EF Core migrations are defined.
+
