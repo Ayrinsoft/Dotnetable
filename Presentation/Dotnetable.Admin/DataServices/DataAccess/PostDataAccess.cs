@@ -319,6 +319,36 @@ public class PostDataAccess
             }
         }
 
+        if (requestModel.PostSlides is not null && requestModel.PostSlides.Count > 0)
+        {
+            foreach (var slide in requestModel.PostSlides)
+            {
+                if (string.IsNullOrEmpty(slide.FileCode)) continue;
+
+                Guid fileCode = new(slide.FileCode);
+                var fetchDBFile = await (from i in db.TB_Files where i.FileCode == fileCode select i).FirstOrDefaultAsync();
+                if (fetchDBFile is null) continue;
+
+                fetchDBFile.FileCategoryID = (byte)FileCategoryID.Post;
+                fetchDBFile.FilePath = postModel.PostID.ToString();
+                db.Entry(fetchDBFile).State = EntityState.Modified;
+
+                try
+                {
+                    var postSlide = new TB_Post_Slide()
+                    {
+                        PostID = postModel.PostID,
+                        FileCode = fileCode,
+                        Slug = slide.Slug ?? "",
+                        Description = slide.Description ?? ""
+                    };
+                    db.TB_Post_Slides.Add(postSlide);
+                    await db.SaveChangesAsync();
+                }
+                catch (Exception) { }
+            }
+        }
+
         return new()
         {
             SuccessAction = true,
@@ -334,6 +364,18 @@ public class PostDataAccess
             return new PostDetailResponse() { ErrorException = new() { ErrorCode = "D0" } };
 
         fetchPost.FileList = await (from i in db.TBM_Post_Files join j in db.TB_Files on i.FileID equals j.FileID where i.PostID == requestModel.PostID select new PostDetailResponse.PostFiles { FileCode = j.FileCode, FileName = j.FileName }).ToListAsync();
+
+        fetchPost.PostSlides = await (from ps in db.TB_Post_Slides
+                                       join f in db.TB_Files on ps.FileCode equals f.FileCode
+                                       where ps.PostID == requestModel.PostID
+                                       select new PostDetailResponse.PostSlideDetail 
+                                       { 
+                                           PostSlideID = ps.PostSlideID,
+                                           Slug = ps.Slug,
+                                           FileCode = ps.FileCode,
+                                           FileName = f.FileName,
+                                           Description = ps.Description
+                                       }).ToListAsync();
 
         return fetchPost;
     }
@@ -413,6 +455,56 @@ public class PostDataAccess
                 try
                 {
                     db.TBM_Post_Files.Add(new() { FileID = fetchDBFile.FileID, PostID = requestModel.PostID, ShowGallery = false });
+                    await db.SaveChangesAsync();
+                }
+                catch (Exception) { }
+            }
+        }
+
+        if (requestModel.PostSlides is not null && requestModel.PostSlides.Count > 0)
+        {
+            foreach (var slide in requestModel.PostSlides)
+            {
+                if (string.IsNullOrEmpty(slide.FileCode)) continue;
+
+                Guid fileCode = new(slide.FileCode);
+                var fetchDBFile = await (from i in db.TB_Files where i.FileCode == fileCode select i).FirstOrDefaultAsync();
+                if (fetchDBFile is null) continue;
+
+                if (slide.PostSlideID.HasValue)
+                {
+                    var existingSlide = await (from ps in db.TB_Post_Slides where ps.PostSlideID == slide.PostSlideID select ps).FirstOrDefaultAsync();
+                    if (existingSlide is not null)
+                    {
+                        existingSlide.Slug = slide.Slug ?? "";
+                        existingSlide.Description = slide.Description ?? "";
+                        db.Entry(existingSlide).State = EntityState.Modified;
+
+                        try
+                        {
+                            await db.SaveChangesAsync();
+                        }
+                        catch (Exception) { }
+                        continue;
+                    }
+                }
+
+                if (await (from ps in db.TB_Post_Slides where ps.PostID == requestModel.PostID && ps.FileCode == fileCode select ps.PostSlideID).AnyAsync()) continue;
+
+                fetchDBFile.FileCategoryID = (byte)FileCategoryID.Post;
+                fetchDBFile.FilePath = requestModel.PostID.ToString();
+                db.Entry(fetchDBFile).State = EntityState.Modified;
+
+                try
+                {
+                    var postSlide = new TB_Post_Slide()
+                    {
+                        PostID = requestModel.PostID,
+                        FileCode = fileCode,
+                        Slug = slide.Slug ?? "",
+                        Description = slide.Description ?? ""
+                    };
+                    db.TB_Post_Slides.Add(postSlide);
                     await db.SaveChangesAsync();
                 }
                 catch (Exception) { }
