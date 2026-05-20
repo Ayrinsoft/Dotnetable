@@ -1,5 +1,5 @@
 ﻿using Dotnetable.Admin.Models.DTO.Website;
-using Dotnetable.Data.DBContext;
+using Dotnetable.Admin.DataServices.DBContext;
 using Dotnetable.Shared.DTO.Public;
 using Microsoft.EntityFrameworkCore;
 

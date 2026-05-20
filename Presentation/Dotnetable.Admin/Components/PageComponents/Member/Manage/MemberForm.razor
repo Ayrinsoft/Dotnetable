@@ -64,14 +64,14 @@
         <div class="form-text text-danger"><ValidationMessage For="@(() => FormModel.Surname)" /></div>
     </div>
 
-    <div class="mb-3 row">
+    @* <div class="mb-3 row">
         <label class="form-label col-3">@_loc["_PostalCode"]</label>
         <div class="row col-9">
             <InputText type="text" class="form-control" @bind-Value="FormModel.PostalCode" placeholder="@_loc["_PostalCode"]"></InputText>
         </div>
         <div class="form-text text-danger"><ValidationMessage For="@(() => FormModel.PostalCode)" /></div>
-    </div>
-
+    </div> *@
+@* 
     <div class="mb-3 row">
         <label class="form-label col-3">@_loc["_Country"]</label>
         <div class="row col-9">
@@ -85,7 +85,7 @@
             <Dotnetable.Admin.Components.PageComponents.Place.CitySelector OnChangeCityEvent="UpdateCityItem" SelectedCountryID="_selectedCountryID" PassedCityID="FormModel?.CityID ?? null" PassedCountryID="FormModel?.CountryID" />
         </div>
         <div class="form-text text-danger"><ValidationMessage For="@(() => FormModel.CityID)" /></div>
-    </div>
+    </div> *@
 
     <div class="mb-3 row">
         <label class="form-label col-3">@_loc["_PolicyID"]</label>

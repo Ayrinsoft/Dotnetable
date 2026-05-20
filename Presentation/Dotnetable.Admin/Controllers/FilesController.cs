@@ -1,15 +1,16 @@
 ﻿using Asp.Versioning;
+//using SixLabors.ImageSharp;
+//using SixLabors.ImageSharp.PixelFormats;
+//using SixLabors.ImageSharp.Processing;
+using Dotnetable.Admin.Models.DTO.File;
 using Dotnetable.Admin.SharedServices;
 using Dotnetable.Service;
-using Dotnetable.Shared.Tools;
 using Dotnetable.Shared.DTO.Public;
+using Dotnetable.Shared.Tools;
 using Microsoft.AspNetCore.Authorization;
 using Microsoft.AspNetCore.Mvc;
 using Microsoft.Net.Http.Headers;
-using SixLabors.ImageSharp;
-using SixLabors.ImageSharp.PixelFormats;
-using SixLabors.ImageSharp.Processing;
-using Dotnetable.Admin.Models.DTO.File;
+using SkiaSharp;
 
 namespace Dotnetable.Admin.Controllers;
 
@@ -59,61 +60,133 @@ public class FilesController : ControllerBase
         var ImageSizes = ImageSize.Split('x');
         if (ImageSizes.Length != 2 || !int.TryParse(ImageSizes[0], out int CropImgWidth) || !int.TryParse(ImageSizes[1].Replace("g", "").Replace("c", ""), out int CropImgHeight))
             return new FileStreamResult(new MemoryStream(CurrentFileStream), new MediaTypeHeaderValue(FileDetail.MIMEType));
+        //try
+        //{
+        //    var stream = new MemoryStream();
+        //    using (Image<Rgba32> image = Image.Load<Rgba32>(CurrentFileStream))
+        //    {
+        //        int ImgSizeWidth = image.Width;
+        //        int ImgSizeHeight = image.Height;
+
+        //        if (ImgSizeWidth < CropImgWidth) CropImgWidth = ImgSizeWidth;
+        //        if (ImgSizeHeight < CropImgHeight) CropImgHeight = ImgSizeHeight;
+
+        //        image.Mutate(
+        //            x => x.Resize(new ResizeOptions()
+        //            {
+        //                Mode = ImageSize.Contains('c') ? ResizeMode.Crop : ResizeMode.Pad,
+        //                Size = new Size(CropImgWidth, CropImgHeight)
+        //            })
+        //        );
+
+        //        if (ImageSize.Contains('g')) image.Mutate(x => x.Grayscale());
+        //        image.SaveAsPng(stream);
+        //    }
+        //    return new FileStreamResult(new MemoryStream(stream.ToArray()), new MediaTypeHeaderValue(FileDetail.MIMEType));
+        //}
+        //catch (Exception)
+        //{
+        //    return new FileStreamResult(new MemoryStream(CurrentFileStream), new MediaTypeHeaderValue(FileDetail.MIMEType));
+        //}
+
         try
         {
-            var stream = new MemoryStream();
-            using (Image<Rgba32> image = Image.Load<Rgba32>(CurrentFileStream))
+            // Load image from stream
+            using var skStream = new SKManagedStream(new MemoryStream(CurrentFileStream));
+            using var original = SKBitmap.Decode(skStream);
+
+            int srcWidth = original.Width;
+            int srcHeight = original.Height;
+
+            if (CropImgWidth > srcWidth) CropImgWidth = srcWidth;
+            if (CropImgHeight > srcHeight) CropImgHeight = srcHeight;
+
+            bool isCrop = ImageSize.Contains('c');
+            bool isGray = ImageSize.Contains('g');
+
+            // --- Resize: Crop or Pad ---
+            SKBitmap resized;
+            if (isCrop)
             {
-                int ImgSizeWidth = image.Width;
-                int ImgSizeHeight = image.Height;
+                float scaleX = (float)CropImgWidth / srcWidth;
+                float scaleY = (float)CropImgHeight / srcHeight;
+                float scale = Math.Max(scaleX, scaleY);         
 
-                //int CropImgWidth = Convert.ToInt32(ImageSizes[0]);
-                //int CropImgHeight = Convert.ToInt32(ImageSizes[1].Replace("g", "").Replace("c", ""));
+                int scaledW = (int)Math.Ceiling(srcWidth * scale);
+                int scaledH = (int)Math.Ceiling(srcHeight * scale);
 
-                if (ImgSizeWidth < CropImgWidth) CropImgWidth = ImgSizeWidth;
-                if (ImgSizeHeight < CropImgHeight) CropImgHeight = ImgSizeHeight;
+                var sampling = new SKSamplingOptions(SKFilterMode.Linear, SKMipmapMode.Linear);
+                using var scaled = original.Resize(new SKImageInfo(scaledW, scaledH), sampling);
 
-                //int ResizeImgWidth = 0;
-                //int ResizeImgHeight = 0;
+                int offsetX = (scaledW - CropImgWidth) / 2;
+                int offsetY = (scaledH - CropImgHeight) / 2;
 
-                //if (ImgSizeHeight < ImgSizeWidth)
-                //{
-                //    ResizeImgHeight = CropImgHeight;
-                //    ResizeImgWidth = (CropImgHeight * ImgSizeWidth) / ImgSizeHeight;
-                //}
-                //else if (ImgSizeWidth < ImgSizeHeight)
-                //{
-                //    ResizeImgWidth = CropImgWidth;
-                //    ResizeImgHeight = (CropImgWidth * ImgSizeHeight) / ImgSizeWidth;
-                //}
-                //else
-                //{
-                //    ResizeImgHeight = CropImgHeight;
-                //    ResizeImgWidth = CropImgWidth;
-                //}
-
-                //int XPoint = (ResizeImgWidth - CropImgWidth) / 2;
-                //int YPoint = (ResizeImgHeight - CropImgHeight) / 2;
-
-                image.Mutate(
-                    x => x.Resize(new ResizeOptions()
-                    {
-                        Mode = ImageSize.Contains('c') ? ResizeMode.Crop : ResizeMode.Pad,
-                        Size = new Size(CropImgWidth, CropImgHeight)
-                    })
-                //.Resize(ResizeImgWidth, ResizeImgHeight)
-                //.Crop(new SixLabors.Primitives.Rectangle() { Width = CropImgWidth, Height = CropImgHeight, X = XPoint, Y = YPoint })
-                );
-
-                if (ImageSize.Contains('g')) image.Mutate(x => x.Grayscale());
-                image.SaveAsPng(stream);
-                //image.Save(stream, format);
+                resized = new SKBitmap(CropImgWidth, CropImgHeight);
+                using var canvas = new SKCanvas(resized);
+                canvas.DrawBitmap(scaled,
+                    new SKRect(offsetX, offsetY,
+                               offsetX + CropImgWidth,
+                               offsetY + CropImgHeight),
+                    new SKRect(0, 0, CropImgWidth, CropImgHeight));
             }
-            return new FileStreamResult(new MemoryStream(stream.ToArray()), new MediaTypeHeaderValue(FileDetail.MIMEType));
+            else
+            {
+                float scale = Math.Min((float)CropImgWidth / srcWidth,
+                                        (float)CropImgHeight / srcHeight);
+                int fittedW = (int)(srcWidth * scale);
+                int fittedH = (int)(srcHeight * scale);
+                int padX = (CropImgWidth - fittedW) / 2;
+                int padY = (CropImgHeight - fittedH) / 2;
+
+                var sampling = new SKSamplingOptions(SKFilterMode.Linear, SKMipmapMode.Linear);
+                using var scaled = original.Resize(new SKImageInfo(fittedW, fittedH), sampling);
+
+                resized = new SKBitmap(CropImgWidth, CropImgHeight);
+                using var canvas = new SKCanvas(resized);
+                canvas.Clear(SKColors.Black);                     
+                canvas.DrawBitmap(scaled, padX, padY);
+            }
+
+            // --- Grayscale (optional) ---
+            SKBitmap finalBitmap = resized;
+            if (isGray)
+            {
+                var grayInfo = resized.Info.WithColorType(SKColorType.Gray8);
+                finalBitmap = new SKBitmap(grayInfo);
+                using var canvas = new SKCanvas(finalBitmap);
+
+                // ColorMatrix that converts RGB → luminance
+                using var paint = new SKPaint
+                {
+                    ColorFilter = SKColorFilter.CreateColorMatrix(new float[]
+                    {
+                0.299f, 0.587f, 0.114f, 0, 0,
+                0.299f, 0.587f, 0.114f, 0, 0,
+                0.299f, 0.587f, 0.114f, 0, 0,
+                0,      0,      0,      1, 0
+                    })
+                };
+                canvas.DrawBitmap(resized, 0, 0, paint);
+                resized.Dispose();
+            }
+
+            // --- Encode to PNG and return ---
+            using var image = SKImage.FromBitmap(finalBitmap);
+            using var encoded = image.Encode(SKEncodedImageFormat.Png, 100);
+            finalBitmap.Dispose();
+
+            var outStream = new MemoryStream();
+            encoded.SaveTo(outStream);
+            outStream.Position = 0;
+
+            return new FileStreamResult(outStream,
+                new MediaTypeHeaderValue(FileDetail.MIMEType));
         }
         catch (Exception)
         {
-            return new FileStreamResult(new MemoryStream(CurrentFileStream), new MediaTypeHeaderValue(FileDetail.MIMEType));
+            return new FileStreamResult(
+                new MemoryStream(CurrentFileStream),
+                new MediaTypeHeaderValue(FileDetail.MIMEType));
         }
 
     }

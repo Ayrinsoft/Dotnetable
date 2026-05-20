@@ -43,14 +43,14 @@ namespace Dotnetable.Admin.Models.DTO.Member
         [MinLength(2, ErrorMessageResourceType = typeof(Resources.Resource), ErrorMessageResourceName = nameof(Resources.Resource._Err_MinLength_2))]
         public string Surname { get; set; }
 
-        [Required(ErrorMessageResourceType = typeof(Resources.Resource), ErrorMessageResourceName = nameof(Resources.Resource._Err_CityID_Required))]
-        [Range(1, 99999, ErrorMessageResourceType = typeof(Resources.Resource), ErrorMessageResourceName = nameof(Resources.Resource._Err_Public_Int_Length))]
-        public int CityID { get; set; }
+        //[Required(ErrorMessageResourceType = typeof(Resources.Resource), ErrorMessageResourceName = nameof(Resources.Resource._Err_CityID_Required))]
+        //[Range(1, 99999, ErrorMessageResourceType = typeof(Resources.Resource), ErrorMessageResourceName = nameof(Resources.Resource._Err_Public_Int_Length))]
+        //public int CityID { get; set; }
 
-        public string PostalCode { get; set; }
+        //public string PostalCode { get; set; }
 
         public int? PolicyID { get; set; }
-        public bool? ActivateMember { get; set; } = false;
+        public bool? ActivateMember { get; set; } = true;
 
 
         //Member edit params

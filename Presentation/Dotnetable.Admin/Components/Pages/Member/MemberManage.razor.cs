@@ -94,31 +94,13 @@ public partial class MemberManage
         if (checkInsert.Canceled) return;
 
         var dialogresponseData = checkInsert.Data.CastModel<MemberInsertRequest>();
-        if (dialogresponseData is null) return;
+        if (dialogresponseData?.MemberID is null) return;
 
-        dialogresponseData.ActivateMember = true;
-        var serviceResponse = await _httpService.CallServiceObjAsync(HttpMethod.Post, true, "Member/RegisterAdmin", dialogresponseData.ToJsonString());
-        if (!serviceResponse.Success)
-        {
-            _snackbar.Add($"{_loc["_FailedAction"]} {_loc["_Create_New_Member"]}", Severity.Error);
-            return;
-        }
-
-        var parsedCreateMember = serviceResponse.ResponseData.CastModel<PublicActionResponse>();
-        if (parsedCreateMember is null || !parsedCreateMember.SuccessAction || parsedCreateMember.ErrorException is not null)
-        {
-            _snackbar.Add($"{_loc[$"_ERROR_{(parsedCreateMember?.ErrorException?.ErrorCode ?? "NULLDATA")}"]} {_loc["_Create_New_Member"]}", Severity.Error);
-            return;
-        }
-
-        _snackbar.Add($"{_loc["_SuccessAction"]} {_loc["_Create_New_Member"]}", Severity.Success);
+        
 
         _listResponse ??= new();
         _listResponse.Members ??= new();
-        int currentInsertedMemberID = -1;
-        if (int.TryParse(parsedCreateMember.ObjectID, out int _insertedMemberID)) currentInsertedMemberID = _insertedMemberID;
-
-        _listResponse.Members.Add(new() { Activate = true, Active = true, Givenname = dialogresponseData.GivenName, CellphoneNumber = dialogresponseData.CellphoneNumber, CityID = dialogresponseData.CityID, PolicyID = dialogresponseData.PolicyID ?? 0, CityName = dialogresponseData.CityName, CountryCode = dialogresponseData.CountryCode, CountryID = dialogresponseData.CountryID, Email = dialogresponseData.Email, Gender = dialogresponseData.Gender, MemberID = currentInsertedMemberID, PostalCode = dialogresponseData.PostalCode, RegisterDate = DateTime.Now, Surname = dialogresponseData.Surname, Username = dialogresponseData.Username });
+        _listResponse.Members.Add(new() { Activate = true, Active = true, Givenname = dialogresponseData.GivenName, CellphoneNumber = dialogresponseData.CellphoneNumber, CityID = null, PolicyID = dialogresponseData.PolicyID ?? 0, CityName = dialogresponseData.CityName, CountryCode = dialogresponseData.CountryCode, CountryID = dialogresponseData.CountryID, Email = dialogresponseData.Email, Gender = dialogresponseData.Gender, MemberID = dialogresponseData.MemberID.Value, PostalCode = "", RegisterDate = DateTime.Now, Surname = dialogresponseData.Surname, Username = dialogresponseData.Username });
     }
 
     private async Task ChangeActiveStatus(MemberListFinalResponse.MemberDetail memberDetail)
@@ -179,22 +161,6 @@ public partial class MemberManage
 
         var dialogresponseData = checkInsert.Data.CastModel<MemberInsertRequest>();
         if (dialogresponseData is null) return;
-
-        var serviceResponse = await _httpService.CallServiceObjAsync(HttpMethod.Post, true, "Member/EditAdmin", dialogresponseData.ToJsonString());
-        if (!serviceResponse.Success)
-        {
-            _snackbar.Add($"{_loc["_FailedAction"]} {_loc["_Member_Edit"]}", Severity.Error);
-            return;
-        }
-
-        var parsedServciceResponse = serviceResponse.ResponseData.CastModel<PublicActionResponse>();
-        if (parsedServciceResponse is null || !parsedServciceResponse.SuccessAction || parsedServciceResponse.ErrorException is not null)
-        {
-            _snackbar.Add($"{_loc[$"_ERROR_{(parsedServciceResponse?.ErrorException?.ErrorCode ?? "NULLDATA")}"]} {_loc["_Member_Edit"]}", Severity.Error);
-            return;
-        }
-
-        _snackbar.Add($"{_loc["_SuccessAction"]} {_loc["_Member_Edit"]}", Severity.Success);
 
         var memberData = (from i in _listResponse.Members where i.MemberID == (dialogresponseData.MemberID ?? 0) select i).FirstOrDefault();
         if (memberData != null)

@@ -13,7 +13,7 @@ public class MemberDetailResponse : CityFormDataResponse
     public int MemberID { get; set; }
     public string CountryCode { get; set; }
     public string Username { get; set; }
-    public int CityID { get; set; }
+    public int? CityID { get; set; }
     public bool? Gender { get; set; }
     public Guid? AvatarID { get; set; }
     public string PostalCode { get; set; }

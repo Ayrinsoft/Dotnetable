@@ -1,9 +1,8 @@
 ﻿using System;
 using System.Collections.Generic;
 using Microsoft.EntityFrameworkCore;
-using Microsoft.Extensions.Configuration;
 
-namespace Dotnetable.Data.DBContext;
+namespace Dotnetable.Admin.DataServices.DBContext;
 
 public partial class DotnetableEntity : DbContext
 {
@@ -82,6 +81,8 @@ public partial class DotnetableEntity : DbContext
 
     public virtual DbSet<TB_Post_Language> TB_Post_Languages { get; set; }
 
+    public virtual DbSet<TB_Post_Slide> TB_Post_Slides { get; set; }
+
     public virtual DbSet<TB_Role> TB_Roles { get; set; }
 
     public virtual DbSet<TB_Setting> TB_Settings { get; set; }
@@ -122,7 +123,6 @@ public partial class DotnetableEntity : DbContext
             }
         }
     }
-
 
     protected override void OnModelCreating(ModelBuilder modelBuilder)
     {
@@ -582,7 +582,6 @@ public partial class DotnetableEntity : DbContext
 
             entity.HasOne(d => d.City).WithMany(p => p.TB_Members)
                 .HasForeignKey(d => d.CityID)
-                .OnDelete(DeleteBehavior.ClientSetNull)
                 .HasConstraintName("FK_TB_Member_TB_City");
 
             entity.HasOne(d => d.Policy).WithMany(p => p.TB_Members)
@@ -840,6 +839,24 @@ public partial class DotnetableEntity : DbContext
                 .HasConstraintName("FK_TB_Post_Language_TB_Post");
         });
 
+        modelBuilder.Entity<TB_Post_Slide>(entity =>
+        {
+            entity.HasKey(e => e.PostSlideID);
+
+            entity.ToTable("TB_Post_Slide");
+
+            entity.Property(e => e.Description).HasMaxLength(120);
+            entity.Property(e => e.Slug)
+                .IsRequired()
+                .HasMaxLength(16)
+                .IsUnicode(false);
+
+            entity.HasOne(d => d.Post).WithMany(p => p.TB_Post_Slides)
+                .HasForeignKey(d => d.PostID)
+                .OnDelete(DeleteBehavior.ClientSetNull)
+                .HasConstraintName("FK_TB_Post_Slide_TB_Post");
+        });
+
         modelBuilder.Entity<TB_Role>(entity =>
         {
             entity.HasKey(e => e.RoleID);
@@ -954,12 +971,6 @@ public partial class DotnetableEntity : DbContext
                 .OnDelete(DeleteBehavior.ClientSetNull)
                 .HasConstraintName("FK_TB_State_Language_TB_State");
         });
-
-        if (DBType == "POSTGRESQL")
-        {
-            foreach (var property in modelBuilder.Model.GetEntityTypes().SelectMany(t => t.GetProperties()).Where(p => p.ClrType == typeof(DateTime) || p.ClrType == typeof(DateTime?)))
-                property.SetColumnType("timestamp without time zone");
-        }
 
         OnModelCreatingPartial(modelBuilder);
     }
