@@ -1,7 +1,7 @@
 ﻿using System;
 using System.Collections.Generic;
 
-namespace Dotnetable.Data.DBContext;
+namespace Dotnetable.Admin.DataServices.DBContext;
 
 public partial class TB_Post
 {
@@ -48,4 +48,6 @@ public partial class TB_Post
     public virtual ICollection<TB_Post_Comment> TB_Post_Comments { get; set; } = new List<TB_Post_Comment>();
 
     public virtual ICollection<TB_Post_Language> TB_Post_Languages { get; set; } = new List<TB_Post_Language>();
+
+    public virtual ICollection<TB_Post_Slide> TB_Post_Slides { get; set; } = new List<TB_Post_Slide>();
 }

@@ -1,7 +1,7 @@
 ﻿using System;
 using System.Collections.Generic;
 
-namespace Dotnetable.Data.DBContext;
+namespace Dotnetable.Admin.DataServices.DBContext;
 
 public partial class TB_Post_Comment
 {

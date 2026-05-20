@@ -35,7 +35,6 @@ public partial class LoginLayout
 
     private readonly MudTheme _theme = new()
     {
-        PaletteLight = new() { Primary = Colors.Green.Default },
         LayoutProperties = new() { AppbarHeight = "80px", DefaultBorderRadius = "12px" }
     };
 

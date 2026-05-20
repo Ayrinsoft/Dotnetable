@@ -1,10 +1,11 @@
-﻿using Dotnetable.Data.DBContext;
+﻿using Dotnetable.Admin.DataServices.DBContext;
 using Dotnetable.Shared.Tools;
 using Dotnetable.Shared.DTO.Public;
 using Microsoft.EntityFrameworkCore;
 using Dotnetable.Admin.Models.DTO.Member;
 
 namespace Dotnetable.Data.DataAccess;
+
 public class MemberDataAccess
 {
 
@@ -43,9 +44,9 @@ public class MemberDataAccess
             Username = requestModel.Username.ToLower(),
             RegisterDate = DateTime.Now,
             Surname = requestModel.Surname,
-            PostalCode = requestModel.PostalCode,
+            //PostalCode = requestModel.PostalCode,
             PolicyID = requestModel.PolicyID ?? 1,
-            CityID = requestModel.CityID
+            //CityID = requestModel.CityID
         };
         db.TB_Members.Add(memberObject);
 
@@ -58,11 +59,7 @@ public class MemberDataAccess
             return new() { ErrorException = new() { ErrorCode = "D1", Message = x.Message } };
         }
 
-        return new()
-        {
-            SuccessAction = true,
-            ObjectID = memberObject.MemberID.ToString()
-        };
+        return new() { SuccessAction = true, ObjectID = memberObject.MemberID.ToString() };
     }
 
     public static async Task<PublicActionResponse> ContactInsert(MemberContactRequest requestModel)

@@ -1,7 +1,7 @@
 ﻿using System;
 using System.Collections.Generic;
 
-namespace Dotnetable.Data.DBContext;
+namespace Dotnetable.Admin.DataServices.DBContext;
 
 public partial class TB_Member
 {
@@ -37,7 +37,7 @@ public partial class TB_Member
 
     public string PostalCode { get; set; }
 
-    public int CityID { get; set; }
+    public int? CityID { get; set; }
 
     public virtual TB_City City { get; set; }
 

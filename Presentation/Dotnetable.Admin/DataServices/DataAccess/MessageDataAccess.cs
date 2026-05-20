@@ -1,4 +1,4 @@
-﻿using Dotnetable.Data.DBContext;
+﻿using Dotnetable.Admin.DataServices.DBContext;
 using Dotnetable.Shared.Tools;
 using Dotnetable.Shared.DTO.Public;
 using Microsoft.EntityFrameworkCore;

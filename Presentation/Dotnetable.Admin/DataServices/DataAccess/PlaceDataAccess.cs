@@ -1,5 +1,5 @@
 ﻿using Dotnetable.Admin.Models.DTO.Place;
-using Dotnetable.Data.DBContext;
+using Dotnetable.Admin.DataServices.DBContext;
 using Microsoft.EntityFrameworkCore;
 
 namespace Dotnetable.Data.DataAccess;
