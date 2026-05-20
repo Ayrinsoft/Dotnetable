@@ -16,6 +16,7 @@ public class PostDetailResponse
     public Guid? MainImage { get; set; }
     public bool Active { get; set; }
     public List<PostFiles> FileList { get; set; }
+    public List<PostSlideDetail> PostSlides { get; set; }
 
     public ErrorExceptionResponse ErrorException { get; set; }
 
@@ -23,5 +24,14 @@ public class PostDetailResponse
     {
         public Guid FileCode { get; set; }
         public string FileName { get; set; }
+    }
+
+    public class PostSlideDetail
+    {
+        public int? PostSlideID { get; set; }
+        public string Slug { get; set; }
+        public Guid FileCode { get; set; }
+        public string FileName { get; set; }
+        public string Description { get; set; }
     }
 }

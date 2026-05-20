@@ -72,6 +72,11 @@ public class PostService
             foreach (var j in requestModel.FileCodes)
                 FileService.FileMoveFromTMPFolder(new() { FileCode = j, NewFileCategory = ((byte)FileCategoryID.Post).ToString(), NewFilePath = responseItem.ObjectID });
 
+        if (responseItem.SuccessAction && requestModel.PostSlides is not null && requestModel.PostSlides.Count > 0)
+            foreach (var slide in requestModel.PostSlides)
+                if (!string.IsNullOrEmpty(slide.FileCode))
+                    FileService.FileMoveFromTMPFolder(new() { FileCode = slide.FileCode, NewFileCategory = ((byte)FileCategoryID.Post).ToString(), NewFilePath = responseItem.ObjectID });
+
         return responseItem;
     }
 
@@ -81,6 +86,11 @@ public class PostService
         if (responseItem.SuccessAction && requestModel.FileCodes is not null && requestModel.FileCodes.Count > 0)
             foreach (var j in requestModel.FileCodes)
                 FileService.FileMoveFromTMPFolder(new() { FileCode = j, NewFileCategory = ((byte)FileCategoryID.Post).ToString(), NewFilePath = requestModel.PostID.ToString() });
+
+        if (responseItem.SuccessAction && requestModel.PostSlides is not null && requestModel.PostSlides.Count > 0)
+            foreach (var slide in requestModel.PostSlides)
+                if (!string.IsNullOrEmpty(slide.FileCode))
+                    FileService.FileMoveFromTMPFolder(new() { FileCode = slide.FileCode, NewFileCategory = ((byte)FileCategoryID.Post).ToString(), NewFilePath = requestModel.PostID.ToString() });
 
         return responseItem;
     }
