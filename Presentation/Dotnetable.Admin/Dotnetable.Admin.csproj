@@ -59,4 +59,8 @@
 	  <Folder Include="Models\DTOs\" />
 	</ItemGroup>
 
+	<PropertyGroup>
+		<PublishIISAssets>true</PublishIISAssets>
+	</PropertyGroup>
+
 </Project>
