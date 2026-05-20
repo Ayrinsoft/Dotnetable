@@ -36,6 +36,7 @@ public partial class PostForm
     private UserLoginResponse.TokenItems _fetchCurrentToken = null;
     private string _ckContainerID = $"ck{Guid.NewGuid().ToString().Replace("-", "")}";
     private string _postCatDefaultLanguage = "";
+    const long MAXFileSize = 5 * 1024 * 1024;
 
 
     protected async override Task OnInitializedAsync()
@@ -166,20 +167,30 @@ public partial class PostForm
     {
         var uploadedFiles = e.GetMultipleFiles();
         if (uploadedFiles is null || uploadedFiles.Count == 0) return;
+
         var currentFile = uploadedFiles[0];
         if (currentFile is null) return;
-        if (!string.IsNullOrEmpty(currentFile.Name)) _snackbar.Add($"{_loc["_SeccessFetchFile"]} - File name: {currentFile.Name}", Severity.Info);
-        _currentFileName = currentFile.Name;
 
-        try
+        if (currentFile.Size > MAXFileSize)
         {
+            _snackbar.Add("File is too large. Maximum allowed is 5 MB.", Severity.Error);
+            return;
+        }
+
+        if (!string.IsNullOrEmpty(currentFile.Name))
+            _snackbar.Add($"{_loc["_SeccessFetchFile"]} - File name: {currentFile.Name}", Severity.Info);
+
+        _currentFileName = currentFile.Name;
+        try
+        {            
+            using var stream = currentFile.OpenReadStream(MAXFileSize); 
             using MemoryStream ms = new();
-            await currentFile.OpenReadStream().CopyToAsync(ms);
+            await stream.CopyToAsync(ms);
             _currentFileStream = ms.ToArray();
         }
         catch (Exception x)
         {
-            _snackbar.Add(x.Message, Severity.Error);
+            _snackbar.Add($"Upload failed: {x.Message}", Severity.Error);
         }
     }
 

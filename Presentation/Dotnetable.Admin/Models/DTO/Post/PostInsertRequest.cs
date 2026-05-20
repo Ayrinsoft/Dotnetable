@@ -27,10 +27,24 @@ public class PostInsertRequest
     public string MetaDescription { get; set; }
 
     [Required(AllowEmptyStrings = false, ErrorMessageResourceType = typeof(Resources.Resource), ErrorMessageResourceName = nameof(Resources.Resource._Err_LanguageCode_Required))]
-    [StringLength(2, ErrorMessageResourceType = typeof(Resources.Resource), ErrorMessageResourceName = nameof(Resources.Resource._Err_MaxLength_2))]
+    [MaxLength(2, ErrorMessageResourceType = typeof(Resources.Resource), ErrorMessageResourceName = nameof(Resources.Resource._Err_MaxLength_2))]
     [MinLength(2, ErrorMessageResourceType = typeof(Resources.Resource), ErrorMessageResourceName = nameof(Resources.Resource._Err_MinLength_2))]
     public string LanguageCode { get; set; }
     public int? CurrentMemberID { get; set; }
     public bool Active { get; set; }
     public Guid? MainImage { get; set; }
+    public List<PostSlideDetails> PostSlides { get; set; }
+
+    public class PostSlideDetails
+    {
+        public int? PostSlideID { get; set; }
+
+        [MaxLength(16, ErrorMessageResourceType = typeof(Resources.Resource), ErrorMessageResourceName = nameof(Resources.Resource._Err_MaxLength_16))]
+        public string Slug { get; set; } = "";
+        public string FileName { get; set; }
+        public byte[] FileStream { get; set; }
+        public string FileCode { get; set; }
+        public string Description { get; set; }
+    }
+
 }
