@@ -38,6 +38,11 @@ public partial class PostForm
     private string _postCatDefaultLanguage = "";
     const long MAXFileSize = 5 * 1024 * 1024;
 
+    private byte[] _currentSlideFileStream { get; set; }
+    private string _currentSlideFileName { get; set; }
+    private string _currentSlideSlug { get; set; }
+    private string _currentSlideDescription { get; set; }
+
 
     protected async override Task OnInitializedAsync()
     {
@@ -48,7 +53,7 @@ public partial class PostForm
         if (FunctionName is null || FunctionName == "" || FunctionName == "Insert")
         {
             FunctionName = "Insert";
-            FormModel = new PostUpdateRequest() { Body = "<p>.</p>", PostID = 1, LanguageCode = DefaultLanguageCode };
+            FormModel = new PostUpdateRequest() { Body = "<p>.</p>", PostID = 1, LanguageCode = DefaultLanguageCode, PostSlides = new() };
             await _localStorage.RemoveItemAsync("TMPFiles");
         }
         else
@@ -64,6 +69,7 @@ public partial class PostForm
                 }
             }
             await _localStorage.SetItemAsStringAsync("TMPFiles", fileList);
+            FormModel.PostSlides ??= new();
         }
     }
 
@@ -165,32 +171,149 @@ public partial class PostForm
 
     private async Task UploadFiles(InputFileChangeEventArgs e)
     {
-        var uploadedFiles = e.GetMultipleFiles();
-        if (uploadedFiles is null || uploadedFiles.Count == 0) return;
-
-        var currentFile = uploadedFiles[0];
-        if (currentFile is null) return;
-
-        if (currentFile.Size > MAXFileSize)
-        {
-            _snackbar.Add("File is too large. Maximum allowed is 5 MB.", Severity.Error);
-            return;
-        }
-
-        if (!string.IsNullOrEmpty(currentFile.Name))
-            _snackbar.Add($"{_loc["_SeccessFetchFile"]} - File name: {currentFile.Name}", Severity.Info);
-
-        _currentFileName = currentFile.Name;
         try
-        {            
+        {
+            _snackbar.Add("File selection started", Severity.Info);
+            var uploadedFiles = e.GetMultipleFiles();
+            if (uploadedFiles is null || uploadedFiles.Count == 0)
+            {
+                _snackbar.Add("No files selected", Severity.Warning);
+                return;
+            }
+
+            var currentFile = uploadedFiles[0];
+            if (currentFile is null)
+            {
+                _snackbar.Add("Current file is null", Severity.Warning);
+                return;
+            }
+
+            if (currentFile.Size > MAXFileSize)
+            {
+                _snackbar.Add("File is too large. Maximum allowed is 5 MB.", Severity.Error);
+                return;
+            }
+
+            if (!string.IsNullOrEmpty(currentFile.Name))
+                _snackbar.Add($"{_loc["_SeccessFetchFile"]} - File name: {currentFile.Name}", Severity.Info);
+
+            _currentFileName = currentFile.Name;
             using var stream = currentFile.OpenReadStream(MAXFileSize); 
             using MemoryStream ms = new();
             await stream.CopyToAsync(ms);
             _currentFileStream = ms.ToArray();
+            _snackbar.Add("File loaded successfully", Severity.Success);
+            StateHasChanged();
         }
         catch (Exception x)
         {
             _snackbar.Add($"Upload failed: {x.Message}", Severity.Error);
+        }
+    }
+
+    private async Task UploadSlideFiles(InputFileChangeEventArgs e)
+    {
+        try
+        {
+            _snackbar.Add("Slide file selection started", Severity.Info);
+            var uploadedFiles = e.GetMultipleFiles();
+            if (uploadedFiles is null || uploadedFiles.Count == 0)
+            {
+                _snackbar.Add("No files selected", Severity.Warning);
+                return;
+            }
+
+            var currentFile = uploadedFiles[0];
+            if (currentFile is null)
+            {
+                _snackbar.Add("Current file is null", Severity.Warning);
+                return;
+            }
+
+            if (currentFile.Size > MAXFileSize)
+            {
+                _snackbar.Add("File is too large. Maximum allowed is 5 MB.", Severity.Error);
+                return;
+            }
+
+            if (!string.IsNullOrEmpty(currentFile.Name))
+                _snackbar.Add($"{_loc["_SeccessFetchFile"]} - File name: {currentFile.Name}", Severity.Info);
+
+            _currentSlideFileName = currentFile.Name;
+            using var stream = currentFile.OpenReadStream(MAXFileSize); 
+            using MemoryStream ms = new();
+            await stream.CopyToAsync(ms);
+            _currentSlideFileStream = ms.ToArray();
+            _snackbar.Add("Slide file loaded successfully", Severity.Success);
+            StateHasChanged();
+        }
+        catch (Exception x)
+        {
+            _snackbar.Add($"Upload failed: {x.Message}", Severity.Error);
+        }
+    }
+
+    private async Task DoUploadSlide()
+    {
+        if (string.IsNullOrEmpty(_currentSlideFileName))
+        {
+            _snackbar.Add("Please select a file first", Severity.Warning);
+            return;
+        }
+
+        if (string.IsNullOrEmpty(_currentSlideSlug))
+        {
+            _snackbar.Add("Please enter a Slug for the slide", Severity.Warning);
+            return;
+        }
+
+        if (_currentSlideSlug.Length > 16)
+        {
+            _snackbar.Add("Slug must be 16 characters or less", Severity.Warning);
+            return;
+        }
+
+        FileTemporaryUploadRequest requestBody = new() { FileName = _currentSlideFileName, FileStream = _currentSlideFileStream, FileCode = Guid.NewGuid().ToString() };
+        var uploadFile = await _httpService.CallServiceObjAsync(HttpMethod.Post, true, $"Files/UploadTemporary", requestBody.ToJsonString());
+        if (uploadFile.Success)
+        {
+            FormModel.PostSlides ??= new();
+            FormModel.PostSlides.Add(new PostInsertRequest.PostSlideDetails
+            {
+                FileCode = requestBody.FileCode,
+                Slug = _currentSlideSlug,
+                Description = _currentSlideDescription ?? "",
+                FileName = _currentSlideFileName
+            });
+
+            _snackbar.Add($"{_loc["_SuccessAction"]} {_loc["_FileUpload"]}", Severity.Success);
+            ClearSlideUpload();
+            StateHasChanged();
+        }
+        else
+        {
+            _snackbar.Add($"{_loc["_FailedAction"]} {_loc["_FileUpload"]}", Severity.Error);
+        }
+    }
+
+    private void ClearSlideUpload()
+    {
+        _currentSlideFileName = "";
+        _currentSlideFileStream = null;
+        _currentSlideSlug = "";
+        _currentSlideDescription = "";
+    }
+
+    private async Task DeleteSlide(PostInsertRequest.PostSlideDetails slide)
+    {
+        if ((await (await _dialogService.ShowAsync<ConfirmDialog>(_loc["_AreYouSure"])).Result).Canceled)
+            return;
+
+        if (FormModel.PostSlides is not null)
+        {
+            FormModel.PostSlides.Remove(slide);
+            _snackbar.Add($"{_loc["_SuccessAction"]} {_loc["_Delete"]}", Severity.Success);
+            StateHasChanged();
         }
     }
 

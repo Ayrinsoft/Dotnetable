@@ -19,7 +19,7 @@ namespace Dotnetable.Admin.Resources {
     // class via a tool like ResGen or Visual Studio.
     // To add or remove a member, edit your .ResX file then rerun ResGen
     // with the /str option, or rebuild your VS project.
-    [global::System.CodeDom.Compiler.GeneratedCodeAttribute("System.Resources.Tools.StronglyTypedResourceBuilder", "17.0.0.0")]
+    [global::System.CodeDom.Compiler.GeneratedCodeAttribute("System.Resources.Tools.StronglyTypedResourceBuilder", "18.0.0.0")]
     [global::System.Diagnostics.DebuggerNonUserCodeAttribute()]
     [global::System.Runtime.CompilerServices.CompilerGeneratedAttribute()]
     public class Resource {
@@ -1951,6 +1951,15 @@ namespace Dotnetable.Admin.Resources {
         }
         
         /// <summary>
+        ///   Looks up a localized string similar to Existing Slides.
+        /// </summary>
+        public static string _ExistingSlides {
+            get {
+                return ResourceManager.GetString("_ExistingSlides", resourceCulture);
+            }
+        }
+        
+        /// <summary>
         ///   Looks up a localized string similar to Failed action.
         /// </summary>
         public static string _FailedAction {
@@ -2275,11 +2284,29 @@ namespace Dotnetable.Admin.Resources {
         }
         
         /// <summary>
+        ///   Looks up a localized string similar to Manage slides.
+        /// </summary>
+        public static string _ManageSlides {
+            get {
+                return ResourceManager.GetString("_ManageSlides", resourceCulture);
+            }
+        }
+        
+        /// <summary>
         ///   Looks up a localized string similar to Map location.
         /// </summary>
         public static string _MapLocation {
             get {
                 return ResourceManager.GetString("_MapLocation", resourceCulture);
+            }
+        }
+        
+        /// <summary>
+        ///   Looks up a localized string similar to Max Length 16.
+        /// </summary>
+        public static string _MaxLength_16 {
+            get {
+                return ResourceManager.GetString("_MaxLength_16", resourceCulture);
             }
         }
         
@@ -3067,6 +3094,15 @@ namespace Dotnetable.Admin.Resources {
         }
         
         /// <summary>
+        ///   Looks up a localized string similar to select slide image.
+        /// </summary>
+        public static string _SelectSlideImage {
+            get {
+                return ResourceManager.GetString("_SelectSlideImage", resourceCulture);
+            }
+        }
+        
+        /// <summary>
         ///   Looks up a localized string similar to Send.
         /// </summary>
         public static string _Send {
@@ -3148,6 +3184,15 @@ namespace Dotnetable.Admin.Resources {
         }
         
         /// <summary>
+        ///   Looks up a localized string similar to Slides.
+        /// </summary>
+        public static string _Slides {
+            get {
+                return ResourceManager.GetString("_Slides", resourceCulture);
+            }
+        }
+        
+        /// <summary>
         ///   Looks up a localized string similar to Slide Show.
         /// </summary>
         public static string _SlideShow {
@@ -3207,6 +3252,15 @@ namespace Dotnetable.Admin.Resources {
         public static string _SlideShowID {
             get {
                 return ResourceManager.GetString("_SlideShowID", resourceCulture);
+            }
+        }
+        
+        /// <summary>
+        ///   Looks up a localized string similar to Slug.
+        /// </summary>
+        public static string _Slug {
+            get {
+                return ResourceManager.GetString("_Slug", resourceCulture);
             }
         }
         

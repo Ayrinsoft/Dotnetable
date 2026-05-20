@@ -1233,4 +1233,22 @@
   <data name="_WorkingWeekDays" xml:space="preserve">
     <value>روزهای کاری</value>
   </data>
+  <data name="_ManageSlides" xml:space="preserve">
+    <value>مدیریت اسلایدها</value>
+  </data>
+  <data name="_SelectSlideImage" xml:space="preserve">
+    <value>انتخاب عکس اسلاید</value>
+  </data>
+  <data name="_ExistingSlides" xml:space="preserve">
+    <value>اسلایدهای موجود</value>
+  </data>
+  <data name="_Slug" xml:space="preserve">
+    <value>اسلاگ</value>
+  </data>
+  <data name="_MaxLength_16" xml:space="preserve">
+    <value>حداکثرطول 16</value>
+  </data>
+  <data name="_Slides" xml:space="preserve">
+    <value>اسلایدها</value>
+  </data>
 </root>
