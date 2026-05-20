@@ -27,9 +27,9 @@ public partial class PostCategoryListItem
         //ParentID ??= 0;
         _showChilds = false;
         _selectedPostCategoryID = -1;
-        _currentPostCategories = PostCategoryList.Where(i =>  i.ParentID == ParentID && (string.IsNullOrEmpty(LanguageCode) || i.LanguageCode == LanguageCode)).ToList();
+        _currentPostCategories = PostCategoryList.Where(i => ((ParentID is null && (i.ParentID == 0 || i.ParentID is null)) || i.ParentID == ParentID) && (string.IsNullOrEmpty(LanguageCode) || i.LanguageCode == LanguageCode)).ToList();
 
-        if (PostCategoryList != null && DefaultPostCategoryID.HasValue)
+        if (PostCategoryList != null && DefaultPostCategoryID.HasValue && DefaultPostCategoryID.Value > 0)
         {
             _tempParentID = LastParentID(DefaultPostCategoryID.Value);
             if (_tempParentID > 0)

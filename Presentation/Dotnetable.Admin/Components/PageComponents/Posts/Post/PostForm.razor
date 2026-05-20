@@ -105,6 +105,118 @@
         <div class="form-text text-danger"><ValidationMessage For="@(() => FormModel.PostCategoryID)" /></div>
     </div>
 
+    <hr />
+
+    <!-- Post Slides Section -->
+    <div class="mb-3 row @(FunctionName == "UpdateLanguage" ? "hide" : "")">
+        <label class="form-label col-2">@_loc["_Slides"]</label>
+        <div class="col-10">
+            <div class="card">
+                <div class="card-header">
+                    <h5>@_loc["_ManageSlides"]</h5>
+                </div>
+                <div class="card-body">
+                    <!-- Slide Upload Section -->
+                    <div class="row mb-3">
+                        <div class="col-12 mb-2">
+                            <label>@_loc["_SelectSlideImage"]</label>
+                        </div>
+                        <div class="col-md-6 mb-2">
+                            <MudFileUpload T="IBrowserFile" OnFilesChanged="UploadSlideFiles">
+                                <ActivatorContent>
+                                    <MudButton HtmlTag="label" ButtonType="ButtonType.Button" Variant="Variant.Filled" Color="Color.Primary" StartIcon="@Icons.Material.Filled.CloudUpload">
+                                        @_loc["_FileUpload"]
+                                    </MudButton>
+                                </ActivatorContent>
+                            </MudFileUpload>
+                            @if (!string.IsNullOrEmpty(_currentSlideFileName))
+                            {
+                                <div class="mt-2">
+                                    <small class="text-muted">@_loc["_SelectedFile"]: @_currentSlideFileName</small>
+                                </div>
+                            }
+                        </div>
+                    </div>
+
+                    <!-- Slide Details Section -->
+                    @if (!string.IsNullOrEmpty(_currentSlideFileName))
+                    {
+                        <div class="row mb-3">
+                            <div class="col-md-6 mb-2">
+                                <label>@_loc["_Slug"]</label>
+                                <input type="text" class="form-control" @bind="_currentSlideSlug" placeholder="@_loc["_Slug"]" maxlength="16" />
+                                <small class="form-text text-muted">@_loc["_MaxLength_16"]</small>
+                            </div>
+                        </div>
+
+                        <div class="row mb-3">
+                            <div class="col-12">
+                                <label>@_loc["_Description"]</label>
+                                <textarea class="form-control" @bind="_currentSlideDescription" placeholder="@_loc["_Description"]" rows="3"></textarea>
+                            </div>
+                        </div>
+
+                        <div class="row mb-3">
+                            <div class="col-12">
+                                <MudButton OnClick="DoUploadSlide" ButtonType="ButtonType.Button" Color="Color.Primary" Variant="Variant.Filled" EndIcon="@Icons.Material.Filled.FileUpload">@_loc["_DoUploadFile"]</MudButton>
+                                <MudButton OnClick="ClearSlideUpload" ButtonType="ButtonType.Button" Color="Color.Error" Variant="Variant.Filled" EndIcon="@Icons.Material.Filled.Clear">@_loc["_Clear"]</MudButton>
+                            </div>
+                        </div>
+                    }
+
+                    <hr />
+
+                    <!-- Existing Slides Display -->
+                    @if (FormModel.PostSlides is not null && FormModel.PostSlides.Count > 0)
+                    {
+                        <div class="row">
+                            <div class="col-12">
+                                <h6>@_loc["_ExistingSlides"]</h6>
+                            </div>
+                        </div>
+
+                        @foreach (var slide in FormModel.PostSlides)
+                        {
+                            <div class="row mb-3 p-3 border rounded">
+                                <div class="col-md-3">
+                                    @if (!string.IsNullOrEmpty(slide.FileCode))
+                                    {
+                                        <img class="img-thumbnail" src="@($"{_context.Request.Scheme}://{_context.Request.Host}")/api/Files/Receive/150X150/@(slide.FileCode)/Slide.jpg" alt="@slide.Slug" />
+                                    }
+                                </div>
+                                <div class="col-md-9">
+                                    <div class="row mb-2">
+                                        <div class="col-12">
+                                            <label class="form-label">@_loc["_Slug"]</label>
+                                            <input type="text" class="form-control" @bind="slide.Slug" placeholder="@_loc["_Slug"]" maxlength="16" />
+                                            <small class="form-text text-muted">@_loc["_MaxLength_16"]</small>
+                                        </div>
+                                    </div>
+                                    <div class="row mb-2">
+                                        <div class="col-12">
+                                            <label class="form-label">@_loc["_Description"]</label>
+                                            <textarea class="form-control" @bind="slide.Description" placeholder="@_loc["_Description"]" rows="2"></textarea>
+                                        </div>
+                                    </div>
+                                    <div class="row">
+                                        <div class="col-12">
+                                            <MudButton OnClick="@(()=> DeleteSlide(slide))" ButtonType="ButtonType.Button" Color="Color.Error" Variant="Variant.Filled" EndIcon="@Icons.Material.Filled.Delete">@_loc["_Delete"]</MudButton>
+                                        </div>
+                                    </div>
+                                </div>
+                            </div>
+                        }
+                    }
+                    else
+                    {
+                        <div class="alert alert-info">
+                            @_loc["_NoSlidesAdded"]
+                        </div>
+                    }
+                </div>
+            </div>
+        </div>
+    </div>
 
     <hr />
     <ValidationSummary />

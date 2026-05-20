@@ -1239,4 +1239,22 @@
   <data name="_WorkingWeekDays" xml:space="preserve">
     <value>Working week days</value>
   </data>
+  <data name="_ManageSlides" xml:space="preserve">
+    <value>Manage slides</value>
+  </data>
+  <data name="_SelectSlideImage" xml:space="preserve">
+    <value>select slide image</value>
+  </data>
+  <data name="_ExistingSlides" xml:space="preserve">
+    <value>Existing Slides</value>
+  </data>
+  <data name="_Slug" xml:space="preserve">
+    <value>Slug</value>
+  </data>
+  <data name="_MaxLength_16" xml:space="preserve">
+    <value>Max Length 16</value>
+  </data>
+  <data name="_Slides" xml:space="preserve">
+    <value>Slides</value>
+  </data>
 </root>
