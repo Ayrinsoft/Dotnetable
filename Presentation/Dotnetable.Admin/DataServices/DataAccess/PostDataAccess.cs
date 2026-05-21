@@ -743,14 +743,31 @@ public class PostDataAccess
                                  join pc in db.TB_Post_Categories on p.PostCategoryID equals pc.PostCategoryID
                                  join m in db.TB_Members on p.MemberID equals m.MemberID
                                  where pc.Active && p.Active && p.PostID == postID
-                                 select new PostDetailPublicResponse.PostDetails { FileCode = p.FileCode, LanguageCode = p.LanguageCode, LogTime = p.LogTime, PostID = p.PostID, Summary = p.Summary, Title = p.Title, Body = p.Body, MemberGivenName = m.Givenname, MemberSurname = m.Surname, MetaDescription = p.MetaDescription, MetaKeywords = p.MetaKeywords, NormalBody = p.NormalBody, PostCategoryTitle = pc.Title, Tags = p.Tags })
-                          .Concat(from p in db.TB_Posts
-                                  join pc in db.TB_Post_Categories on p.PostCategoryID equals pc.PostCategoryID
-                                  join m in db.TB_Members on p.MemberID equals m.MemberID
-                                  join pl in db.TB_Post_Languages on p.PostID equals pl.PostID
-                                  where pc.Active && p.Active && p.PostID == postID
-                                  select new PostDetailPublicResponse.PostDetails { FileCode = p.FileCode, LanguageCode = pl.LanguageCode, LogTime = p.LogTime, PostID = p.PostID, Summary = pl.Summary, Title = pl.Title, Body = pl.Body, MemberGivenName = m.Givenname, MemberSurname = m.Surname, MetaDescription = pl.MetaDescription, MetaKeywords = pl.MetaKeywords, NormalBody = p.NormalBody, PostCategoryTitle = pc.Title, Tags = p.Tags })
-                          .ToListAsync();
+                                 select new PostDetailPublicResponse.PostDetails { FileCode = p.FileCode, LanguageCode = p.LanguageCode, LogTime = p.LogTime, PostID = p.PostID, Summary = p.Summary, Title = p.Title, Body = p.Body, MemberGivenName = m.Givenname, MemberSurname = m.Surname, MetaDescription = p.MetaDescription, MetaKeywords = p.MetaKeywords, NormalBody = p.NormalBody, PostCategoryTitle = pc.Title, Tags = p.Tags, Slides = new() })
+                                 .Concat(from p in db.TB_Posts
+                                         join pc in db.TB_Post_Categories on p.PostCategoryID equals pc.PostCategoryID
+                                         join m in db.TB_Members on p.MemberID equals m.MemberID
+                                         join pl in db.TB_Post_Languages on p.PostID equals pl.PostID
+                                         where pc.Active && p.Active && p.PostID == postID
+                                         select new PostDetailPublicResponse.PostDetails { FileCode = p.FileCode, LanguageCode = pl.LanguageCode, LogTime = p.LogTime, PostID = p.PostID, Summary = pl.Summary, Title = pl.Title, Body = pl.Body, MemberGivenName = m.Givenname, MemberSurname = m.Surname, MetaDescription = pl.MetaDescription, MetaKeywords = pl.MetaKeywords, NormalBody = p.NormalBody, PostCategoryTitle = pc.Title, Tags = p.Tags, Slides = new() })
+                                 .ToListAsync();
+
+        // Fetch and add slides for each post
+        foreach (var post in postDetails)
+        {
+            var slides = await (from ps in db.TB_Post_Slides
+                               join f in db.TB_Files on ps.FileCode equals f.FileCode
+                               where ps.PostID == post.PostID
+                               select new PostDetailPublicResponse.PostSlidePublicDetail
+                               {
+                                   PostSlideID = ps.PostSlideID,
+                                   Slug = ps.Slug,
+                                   FileCode = ps.FileCode,
+                                   FileName = f.FileName,
+                                   Description = ps.Description
+                               }).ToListAsync();
+            post.Slides = slides;
+        }
 
         return new() { PostsDetail = postDetails };
     }
@@ -762,14 +779,31 @@ public class PostDataAccess
                                  join pc in db.TB_Post_Categories on p.PostCategoryID equals pc.PostCategoryID
                                  join m in db.TB_Members on p.MemberID equals m.MemberID
                                  where pc.Active && p.Active && p.PostCode == postCode
-                                 select new PostDetailPublicResponse.PostDetails { FileCode = p.FileCode, LanguageCode = p.LanguageCode, LogTime = p.LogTime, PostID = p.PostID, Summary = p.Summary, Title = p.Title, Body = p.Body, MemberGivenName = m.Givenname, MemberSurname = m.Surname, MetaDescription = p.MetaDescription, MetaKeywords = p.MetaKeywords, NormalBody = p.NormalBody, PostCategoryTitle = pc.Title, Tags = p.Tags })
-                           .Concat(from p in db.TB_Posts
-                                   join pc in db.TB_Post_Categories on p.PostCategoryID equals pc.PostCategoryID
-                                   join m in db.TB_Members on p.MemberID equals m.MemberID
-                                   join pl in db.TB_Post_Languages on p.PostID equals pl.PostID
-                                   where pc.Active && p.Active && p.PostCode == postCode
-                                   select new PostDetailPublicResponse.PostDetails { FileCode = p.FileCode, LanguageCode = pl.LanguageCode, LogTime = p.LogTime, PostID = p.PostID, Summary = pl.Summary, Title = pl.Title, Body = pl.Body, MemberGivenName = m.Givenname, MemberSurname = m.Surname, MetaDescription = pl.MetaDescription, MetaKeywords = pl.MetaKeywords, NormalBody = p.NormalBody, PostCategoryTitle = pc.Title, Tags = p.Tags })
-                           .ToListAsync();
+                                 select new PostDetailPublicResponse.PostDetails { FileCode = p.FileCode, LanguageCode = p.LanguageCode, LogTime = p.LogTime, PostID = p.PostID, Summary = p.Summary, Title = p.Title, Body = p.Body, MemberGivenName = m.Givenname, MemberSurname = m.Surname, MetaDescription = p.MetaDescription, MetaKeywords = p.MetaKeywords, NormalBody = p.NormalBody, PostCategoryTitle = pc.Title, Tags = p.Tags, Slides = new() })
+                                 .Concat(from p in db.TB_Posts
+                                         join pc in db.TB_Post_Categories on p.PostCategoryID equals pc.PostCategoryID
+                                         join m in db.TB_Members on p.MemberID equals m.MemberID
+                                         join pl in db.TB_Post_Languages on p.PostID equals pl.PostID
+                                         where pc.Active && p.Active && p.PostCode == postCode
+                                         select new PostDetailPublicResponse.PostDetails { FileCode = p.FileCode, LanguageCode = pl.LanguageCode, LogTime = p.LogTime, PostID = p.PostID, Summary = pl.Summary, Title = pl.Title, Body = pl.Body, MemberGivenName = m.Givenname, MemberSurname = m.Surname, MetaDescription = pl.MetaDescription, MetaKeywords = pl.MetaKeywords, NormalBody = p.NormalBody, PostCategoryTitle = pc.Title, Tags = p.Tags, Slides = new() })
+                                 .ToListAsync();
+
+        // Fetch and add slides for each post
+        foreach (var post in postDetails)
+        {
+            var slides = await (from ps in db.TB_Post_Slides
+                               join f in db.TB_Files on ps.FileCode equals f.FileCode
+                               where ps.PostID == post.PostID
+                               select new PostDetailPublicResponse.PostSlidePublicDetail
+                               {
+                                   PostSlideID = ps.PostSlideID,
+                                   Slug = ps.Slug,
+                                   FileCode = ps.FileCode,
+                                   FileName = f.FileName,
+                                   Description = ps.Description
+                               }).ToListAsync();
+            post.Slides = slides;
+        }
 
         return new() { PostsDetail = postDetails };
     }
