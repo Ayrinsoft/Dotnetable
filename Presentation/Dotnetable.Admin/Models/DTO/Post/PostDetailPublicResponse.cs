@@ -23,5 +23,15 @@ public class PostDetailPublicResponse
         public string MemberSurname { get; set; }
         public bool NormalBody { get; set; }
         public string PostCategoryTitle { get; set; }
+        public List<PostSlidePublicDetail> Slides { get; set; }
+    }
+
+    public class PostSlidePublicDetail
+    {
+        public int PostSlideID { get; set; }
+        public string Slug { get; set; }
+        public Guid FileCode { get; set; }
+        public string FileName { get; set; }
+        public string Description { get; set; }
     }
 }
