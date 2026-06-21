@@ -32,8 +32,29 @@
         {
             <p class="err">@Model.ErrorMessage</p>
         }
+        @if (!string.IsNullOrEmpty(Model.TestMessage))
+        {
+            <p style="color:@(Model.TestSucceeded ? "#15803d" : "#b91c1c")">@Model.TestMessage</p>
+        }
 
         <form method="post">
+            <h3>Database (MariaDB / MySQL)</h3>
+            <label>Server / host</label>
+            <input asp-for="Input.DbServer" />
+            <label>Port</label>
+            <input asp-for="Input.DbPort" type="number" />
+            <label>Database name</label>
+            <input asp-for="Input.DbName" />
+            <label>User</label>
+            <input asp-for="Input.DbUser" autocomplete="off" />
+            <label>Password</label>
+            <input asp-for="Input.DbPassword" type="password" autocomplete="off" />
+            <label style="display:flex;align-items:center;gap:6px;margin-top:10px">
+                <input asp-for="Input.CreateDatabaseIfMissing" type="checkbox" style="width:auto" />
+                Create the database if it doesn't exist
+            </label>
+            <button type="submit" asp-page-handler="Test" style="background:#6b7280;margin-top:12px">Test connection</button>
+
             <h3>Website</h3>
             <label>Trade name</label>
             <input asp-for="Input.TradeName" />

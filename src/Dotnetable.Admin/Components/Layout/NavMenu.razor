@@ -5,6 +5,7 @@
 
     <AuthorizeView Policy="@AdminPolicies.SuperAdminOnly">
         <li><NavLink href="/websites">Websites</NavLink></li>
+        <li><NavLink href="/system/updates">Database Updates</NavLink></li>
     </AuthorizeView>
 
     <AuthorizeView Policy="@AdminPolicies.WebsiteAdminOrAbove">

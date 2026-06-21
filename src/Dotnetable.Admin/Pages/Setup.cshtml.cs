@@ -19,9 +19,19 @@ public class SetupModel : PageModel
     public InputModel Input { get; set; } = new();
 
     public string? ErrorMessage { get; set; }
+    public string? TestMessage { get; set; }
+    public bool TestSucceeded { get; set; }
 
     public class InputModel
     {
+        // Database connection
+        [Required, StringLength(128)] public string DbServer { get; set; } = "localhost";
+        [Range(1, 65535)] public int DbPort { get; set; } = 3306;
+        [Required, StringLength(64)] public string DbName { get; set; } = "Dotnetable";
+        [Required, StringLength(64)] public string DbUser { get; set; } = "root";
+        [StringLength(128)] public string DbPassword { get; set; } = string.Empty;
+        public bool CreateDatabaseIfMissing { get; set; } = true;
+
         // Website
         [Required, StringLength(32)] public string TradeName { get; set; } = string.Empty;
         [Required, StringLength(60)] public string BrandName { get; set; } = string.Empty;
@@ -47,6 +57,18 @@ public class SetupModel : PageModel
         return Page();
     }
 
+    /// <summary>Validates the database connection without creating anything.</summary>
+    public async Task<IActionResult> OnPostTestAsync(CancellationToken ct)
+    {
+        if (await _setupService.IsSetupCompletedAsync(ct))
+            return RedirectToPage("/Login");
+
+        var result = await _setupService.TestConnectionAsync(BuildDatabaseInfo(), ct);
+        TestSucceeded = result.Success;
+        TestMessage = result.Message;
+        return Page();
+    }
+
     public async Task<IActionResult> OnPostAsync(CancellationToken ct)
     {
         if (await _setupService.IsSetupCompletedAsync(ct))
@@ -56,6 +78,7 @@ public class SetupModel : PageModel
 
         var request = new SetupRequest
         {
+            Database = BuildDatabaseInfo(),
             TradeName = Input.TradeName,
             BrandName = Input.BrandName,
             WebsiteAddress = Input.WebsiteAddress,
@@ -82,4 +105,14 @@ public class SetupModel : PageModel
 
         return RedirectToPage("/Login");
     }
+
+    private DatabaseConnectionInfo BuildDatabaseInfo() => new()
+    {
+        Server = Input.DbServer,
+        Port = Input.DbPort,
+        DatabaseName = Input.DbName,
+        Username = Input.DbUser,
+        Password = Input.DbPassword,
+        CreateDatabaseIfMissing = Input.CreateDatabaseIfMissing,
+    };
 }
