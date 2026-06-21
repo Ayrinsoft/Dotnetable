@@ -38,17 +38,33 @@
         }
 
         <form method="post">
-            <h3>Database (MariaDB / MySQL)</h3>
+            <h3>Database</h3>
+            <label>Provider</label>
+            <select asp-for="Input.DbProvider">
+                @foreach (var p in Dotnetable.Admin.Pages.SetupModel.Providers)
+                {
+                    <option value="@p.Value">@p.Label</option>
+                }
+            </select>
             <label>Server / host</label>
             <input asp-for="Input.DbServer" />
-            <label>Port</label>
+            <p class="hint">SQL Server: <code>.</code> or <code>.\SQLEXPRESS</code> or <code>localhost,1433</code>. Others: host name.</p>
+            <label>Port (PostgreSQL / MySQL / MariaDB)</label>
             <input asp-for="Input.DbPort" type="number" />
             <label>Database name</label>
             <input asp-for="Input.DbName" />
+            <label style="display:flex;align-items:center;gap:6px;margin-top:10px">
+                <input asp-for="Input.DbIntegratedSecurity" type="checkbox" style="width:auto" />
+                SQL Server: use Windows authentication (leave user/password blank)
+            </label>
             <label>User</label>
             <input asp-for="Input.DbUser" autocomplete="off" />
             <label>Password</label>
             <input asp-for="Input.DbPassword" type="password" autocomplete="off" />
+            <label style="display:flex;align-items:center;gap:6px;margin-top:10px">
+                <input asp-for="Input.DbTrustServerCertificate" type="checkbox" style="width:auto" />
+                SQL Server: trust server certificate
+            </label>
             <label style="display:flex;align-items:center;gap:6px;margin-top:10px">
                 <input asp-for="Input.CreateDatabaseIfMissing" type="checkbox" style="width:auto" />
                 Create the database if it doesn't exist

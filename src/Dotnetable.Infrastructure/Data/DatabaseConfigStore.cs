@@ -14,7 +14,7 @@ public class DatabaseConfigStore : IDatabaseConfigStore
     public DatabaseConfigStore(string filePath, string defaultProvider, string? defaultConnectionString)
     {
         _filePath = filePath;
-        _provider = string.IsNullOrWhiteSpace(defaultProvider) ? "MariaDB" : defaultProvider;
+        _provider = string.IsNullOrWhiteSpace(defaultProvider) ? "SqlServer" : defaultProvider;
         _connectionString = string.IsNullOrWhiteSpace(defaultConnectionString) ? null : defaultConnectionString;
 
         // A persisted dbsettings.json (written by the Setup page) takes precedence over appsettings.
@@ -68,7 +68,7 @@ public class DatabaseConfigStore : IDatabaseConfigStore
 
     private sealed class PersistedConfig
     {
-        public string Provider { get; set; } = "MariaDB";
+        public string Provider { get; set; } = "SqlServer";
         public string ConnectionString { get; set; } = string.Empty;
     }
 }

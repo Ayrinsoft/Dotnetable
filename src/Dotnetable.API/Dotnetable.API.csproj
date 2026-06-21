@@ -17,6 +17,9 @@
   <ItemGroup>
     <ProjectReference Include="..\Dotnetable.Application\Dotnetable.Application.csproj" />
     <ProjectReference Include="..\Dotnetable.Infrastructure\Dotnetable.Infrastructure.csproj" />
+    <ProjectReference Include="..\Dotnetable.Migrations.SqlServer\Dotnetable.Migrations.SqlServer.csproj" />
+    <ProjectReference Include="..\Dotnetable.Migrations.MySql\Dotnetable.Migrations.MySql.csproj" />
+    <ProjectReference Include="..\Dotnetable.Migrations.PostgreSql\Dotnetable.Migrations.PostgreSql.csproj" />
   </ItemGroup>
 
 </Project>

@@ -3,6 +3,7 @@ using Dotnetable.Application.Interfaces;
 using Dotnetable.Domain.Entities;
 using Dotnetable.Domain.Interfaces;
 using Dotnetable.Infrastructure.Data;
+using Dotnetable.Infrastructure.Provisioning;
 using Dotnetable.Infrastructure.Repositories;
 using Dotnetable.Infrastructure.Services;
 using Microsoft.AspNetCore.Identity;
@@ -45,6 +46,12 @@ public static class ServiceCollectionExtensions
         services.AddScoped<IDatabaseUpdateService, DatabaseUpdateService>();
         services.AddScoped<IPasswordHasher<Member>, PasswordHasher<Member>>();
 
+        // Provider-specific connection test / database creation used by the Setup page.
+        services.AddSingleton<IDatabaseProvisioner, SqlServerProvisioner>();
+        services.AddSingleton<IDatabaseProvisioner, PostgreSqlProvisioner>();
+        services.AddSingleton<IDatabaseProvisioner, MySqlProvisioner>();
+        services.AddSingleton<IDatabaseProvisionerRegistry, DatabaseProvisionerRegistry>();
+
         services.AddApplication();
 
         return services;
@@ -53,24 +60,37 @@ public static class ServiceCollectionExtensions
     private static void ConfigureFromStore(DbContextOptionsBuilder options, IDatabaseConfigStore store) =>
         ConfigureProvider(options, store.Provider, store.ConnectionString ?? PlaceholderConnection);
 
+    // Migrations are provider-specific, so each provider keeps its own migrations assembly/project.
+    public const string SqlServerMigrations = "Dotnetable.Migrations.SqlServer";
+    public const string MySqlMigrations = "Dotnetable.Migrations.MySql";
+    public const string PostgreSqlMigrations = "Dotnetable.Migrations.PostgreSql";
+
     internal static void ConfigureProvider(DbContextOptionsBuilder options, string provider, string connectionString)
     {
         switch (provider.ToLowerInvariant())
         {
             case "sqlserver":
-                options.UseSqlServer(connectionString, sql => sql.EnableRetryOnFailure(3));
+                options.UseSqlServer(connectionString, sql =>
+                {
+                    sql.EnableRetryOnFailure(3);
+                    sql.MigrationsAssembly(SqlServerMigrations);
+                });
                 break;
 
             case "postgresql":
             case "postgres":
-                options.UseNpgsql(connectionString, npgsql => npgsql.EnableRetryOnFailure(3));
+                options.UseNpgsql(connectionString, npgsql =>
+                {
+                    npgsql.EnableRetryOnFailure(3);
+                    npgsql.MigrationsAssembly(PostgreSqlMigrations);
+                });
                 break;
 
             case "mysql":
             case "mariadb":
                 // MariaDB speaks the MySQL protocol; the Oracle MySql.EntityFrameworkCore
                 // provider (replacing the removed Pomelo/MariaDB package) handles both.
-                options.UseMySQL(connectionString);
+                options.UseMySQL(connectionString, mysql => mysql.MigrationsAssembly(MySqlMigrations));
                 break;
 
             default:
