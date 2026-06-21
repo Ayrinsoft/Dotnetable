@@ -1,14 +1,29 @@
+﻿using System;
+using System.Collections.Generic;
+
 namespace Dotnetable.Domain.Entities;
 
-public class Language
+public partial class Language
 {
-    public int Id { get; set; }
-    public string Code { get; set; } = string.Empty;
-    public string Name { get; set; } = string.Empty;
-    public string NativeName { get; set; } = string.Empty;
-    public bool IsRtl { get; set; }
-    public bool IsActive { get; set; } = true;
+    public int LangaugeID { get; set; }
 
-    public ICollection<Translation> Translations { get; set; } = [];
-    public ICollection<WebsiteLanguage> WebsiteLanguages { get; set; } = [];
+    public string LanguageCode { get; set; } = null!;
+
+    public string LanguageCodeISO { get; set; } = null!;
+
+    public string Name { get; set; } = null!;
+
+    public int Priority { get; set; }
+
+    public bool IsDefault { get; set; }
+
+    public bool Active { get; set; }
+
+    public bool RTLDesign { get; set; }
+
+    public int WebsiteID { get; set; }
+
+    public virtual ICollection<LocalizationKey> LocalizationKeys { get; set; } = new List<LocalizationKey>();
+
+    public virtual Website Website { get; set; } = null!;
 }

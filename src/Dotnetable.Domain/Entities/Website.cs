@@ -1,20 +1,58 @@
+﻿using System;
+using System.Collections.Generic;
+
 namespace Dotnetable.Domain.Entities;
 
-public class Website
+public partial class Website
 {
-    public int Id { get; set; }
-    public string Name { get; set; } = string.Empty;
-    public string Domain { get; set; } = string.Empty;
-    public string? Description { get; set; }
-    public bool IsActive { get; set; } = true;
-    public int DefaultLanguageId { get; set; }
-    public string? ActiveTheme { get; set; }
-    public DateTime CreatedAt { get; set; } = DateTime.UtcNow;
-    public DateTime? UpdatedAt { get; set; }
+    public int WebsiteID { get; set; }
 
-    public Language? DefaultLanguage { get; set; }
-    public ICollection<Post> Posts { get; set; } = [];
-    public ICollection<Product> Products { get; set; } = [];
-    public ICollection<ApiKey> ApiKeys { get; set; } = [];
-    public ICollection<WebsiteLanguage> WebsiteLanguages { get; set; } = [];
+    public string TradeName { get; set; } = null!;
+
+    public string WebsiteAddress { get; set; } = null!;
+
+    public Guid AuthCode { get; set; }
+
+    public bool Active { get; set; }
+
+    public string Manager { get; set; } = null!;
+
+    public string Mobile { get; set; } = null!;
+
+    public string Email { get; set; } = null!;
+
+    public DateOnly RegisterDate { get; set; }
+
+    public bool AllowAllIP { get; set; }
+
+    public string DefaultLanguageCode { get; set; } = null!;
+
+    public byte WebsiteType { get; set; }
+
+    /// <summary>
+    /// show in title of pages
+    /// </summary>
+    public string BrandName { get; set; } = null!;
+
+    public int? LogoFileID { get; set; }
+
+    public int? FaveIconFileID { get; set; }
+
+    public virtual FileRecord? FaveIconFile { get; set; }
+
+    public virtual ICollection<Language> Languages { get; set; } = new List<Language>();
+
+    public virtual FileRecord? LogoFile { get; set; }
+
+    public virtual ICollection<Member> Members { get; set; } = new List<Member>();
+
+    public virtual ICollection<WebsiteIP> WebsiteIPs { get; set; } = new List<WebsiteIP>();
+
+    public virtual ICollection<WebsiteScript> WebsiteScripts { get; set; } = new List<WebsiteScript>();
+
+    public virtual ICollection<WebsiteSeoSetting> WebsiteSeoSettings { get; set; } = new List<WebsiteSeoSetting>();
+
+    public virtual ICollection<WebsiteSocialLink> WebsiteSocialLinks { get; set; } = new List<WebsiteSocialLink>();
+
+    public virtual ICollection<WebstieStorageSetting> WebstieStorageSettings { get; set; } = new List<WebstieStorageSetting>();
 }

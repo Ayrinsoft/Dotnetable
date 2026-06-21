@@ -55,10 +55,6 @@ public static class ServiceCollectionExtensions
             case "mysql":
                 options.UseMySQL(connectionString);
                 break;
-            case "mariadb":
-                options.UseMySql(connectionString, ServerVersion.AutoDetect(connectionString),
-                    mysql => mysql.EnableRetryOnFailure(3));
-                break;
 
             default:
                 throw new NotSupportedException(
