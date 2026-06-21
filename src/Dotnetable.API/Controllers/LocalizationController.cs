@@ -12,17 +12,17 @@ public class LocalizationController : BaseController
         _localizationService = localizationService;
     }
 
-    [HttpGet("{languageId}")]
-    public async Task<IActionResult> GetAll(int languageId, CancellationToken ct = default)
+    [HttpGet("{languageCode}")]
+    public async Task<IActionResult> GetAll(string languageCode, CancellationToken ct = default)
     {
-        var translations = await _localizationService.GetAllAsync(CurrentWebsiteId, languageId, ct);
+        var translations = await _localizationService.GetAllAsync(CurrentWebsiteId, languageCode, ct);
         return Ok(translations);
     }
 
-    [HttpPut("{languageId}/{key}")]
-    public async Task<IActionResult> Set(int languageId, string key, [FromBody] string value, CancellationToken ct = default)
+    [HttpPut("{languageCode}/{key}")]
+    public async Task<IActionResult> Set(string languageCode, string key, [FromBody] string value, CancellationToken ct = default)
     {
-        await _localizationService.SetAsync(CurrentWebsiteId, languageId, key, value, ct);
+        await _localizationService.SetAsync(CurrentWebsiteId, languageCode, key, value, ct);
         return NoContent();
     }
 }

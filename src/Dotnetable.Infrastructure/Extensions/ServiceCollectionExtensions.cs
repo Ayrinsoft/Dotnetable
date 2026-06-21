@@ -27,12 +27,10 @@ public static class ServiceCollectionExtensions
         services.AddScoped(typeof(IRepository<>), typeof(GenericRepository<>));
         services.AddScoped<IUnitOfWork, UnitOfWork>();
         services.AddScoped<ILocalizationService, LocalizationService>();
-        services.AddScoped<IApiKeyService, ApiKeyService>();
-        services.AddScoped<IUserService, UserService>();
+        services.AddScoped<IMemberService, MemberService>();
         services.AddScoped<IWebsiteService, WebsiteService>();
-        services.AddScoped<IPostService, PostService>();
-        services.AddScoped<IProductService, ProductService>();
-        services.AddScoped<IPasswordHasher<User>, PasswordHasher<User>>();
+        services.AddScoped<ISetupService, SetupService>();
+        services.AddScoped<IPasswordHasher<Member>, PasswordHasher<Member>>();
 
         services.AddApplication();
 
@@ -53,6 +51,9 @@ public static class ServiceCollectionExtensions
                 break;
 
             case "mysql":
+            case "mariadb":
+                // MariaDB speaks the MySQL protocol; the Oracle MySql.EntityFrameworkCore
+                // provider (replacing the removed Pomelo/MariaDB package) handles both.
                 options.UseMySQL(connectionString);
                 break;
 

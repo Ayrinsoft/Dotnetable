@@ -13,17 +13,17 @@ else
 {
     <table>
         <thead>
-            <tr><th>ID</th><th>Name</th><th>Domain</th><th>Active</th><th>Theme</th></tr>
+            <tr><th>ID</th><th>Trade name</th><th>Address</th><th>Brand</th><th>Active</th></tr>
         </thead>
         <tbody>
             @foreach (var site in _websites)
             {
                 <tr>
-                    <td>@site.Id</td>
-                    <td><a href="/websites/@site.Id">@site.Name</a></td>
-                    <td>@site.Domain</td>
-                    <td>@(site.IsActive ? "Yes" : "No")</td>
-                    <td>@site.ActiveTheme</td>
+                    <td>@site.WebsiteID</td>
+                    <td><a href="/websites/@site.WebsiteID">@site.TradeName</a></td>
+                    <td>@site.WebsiteAddress</td>
+                    <td>@site.BrandName</td>
+                    <td>@(site.Active ? "Yes" : "No")</td>
                 </tr>
             }
         </tbody>

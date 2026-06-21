@@ -27,9 +27,9 @@ public class LocalizationServiceTests : IDisposable
     [Fact]
     public async Task SetAsync_ThenGet_ShouldReturnCorrectValue()
     {
-        await _service.SetAsync(websiteId: 1, languageId: 1, key: "hello", value: "Hello World");
+        await _service.SetAsync(websiteId: 1, languageCode: "en", key: "hello", value: "Hello World");
 
-        var result = _service.Get("hello", websiteId: 1, languageId: 1);
+        var result = _service.Get(websiteId: 1, languageCode: "en", key: "hello");
 
         result.Should().Be("Hello World");
     }
@@ -37,25 +37,21 @@ public class LocalizationServiceTests : IDisposable
     [Fact]
     public async Task LoadAsync_ShouldPopulateCache()
     {
-        _context.Translations.Add(new Translation
-        {
-            LanguageId = 1,
-            WebsiteId = 1,
-            Key = "welcome",
-            Value = "Welcome"
-        });
+        var key = new LocalizationKey { WebsiteID = 1, ItemKey = "welcome", DefaultValue = "Welcome" };
+        key.LocalizationValues.Add(new LocalizationValue { LanguageCode = "en", ItemValue = "Welcome" });
+        _context.LocalizationKeys.Add(key);
         await _context.SaveChangesAsync();
 
-        await _service.LoadAsync(websiteId: 1, languageId: 1);
+        await _service.LoadAsync(websiteId: 1, languageCode: "en");
 
-        var result = _service.Get("welcome", websiteId: 1, languageId: 1);
+        var result = _service.Get(websiteId: 1, languageCode: "en", key: "welcome");
         result.Should().Be("Welcome");
     }
 
     [Fact]
     public void Get_WithMissingKey_ShouldReturnFallback()
     {
-        var result = _service.Get("missing.key", websiteId: 1, languageId: 1, fallback: "Default");
+        var result = _service.Get(websiteId: 1, languageCode: "en", key: "missing.key", fallback: "Default");
 
         result.Should().Be("Default");
     }

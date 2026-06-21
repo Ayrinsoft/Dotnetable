@@ -1,4 +1,3 @@
-using Dotnetable.Domain.Entities;
 using Microsoft.AspNetCore.Mvc;
 
 namespace Dotnetable.API.Controllers;
@@ -7,13 +6,9 @@ namespace Dotnetable.API.Controllers;
 [Route("api/[controller]")]
 public abstract class BaseController : ControllerBase
 {
+    /// <summary>Website scope for the request, taken from the <c>X-Website-Id</c> header.</summary>
     protected int CurrentWebsiteId =>
-        HttpContext.Items.TryGetValue("WebsiteId", out var id) && id is int websiteId
+        Request.Headers.TryGetValue("X-Website-Id", out var value) && int.TryParse(value, out var websiteId)
             ? websiteId
-            : throw new InvalidOperationException("WebsiteId not found in context.");
-
-    protected ApiKey CurrentApiKey =>
-        HttpContext.Items.TryGetValue("ApiKey", out var key) && key is ApiKey apiKey
-            ? apiKey
-            : throw new InvalidOperationException("ApiKey not found in context.");
+            : throw new InvalidOperationException("X-Website-Id header is missing or invalid.");
 }
