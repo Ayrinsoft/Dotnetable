@@ -99,5 +99,6 @@
     <Build Include="dbo\Tables\TB_Comment_Category.sql" />
     <Build Include="dbo\Tables\TB_City_Language.sql" />
     <Build Include="dbo\Tables\TB_City.sql" />
+    <Build Include="dbo\Tables\TB_Post_Slide.sql" />
   </ItemGroup>
 </Project>
