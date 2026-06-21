@@ -1,0 +1,20 @@
+@inject NavigationManager Nav
+
+<ul class="nav-menu">
+    <li><NavLink href="/">Dashboard</NavLink></li>
+
+    <AuthorizeView Policy="@AdminPolicies.SuperAdminOnly">
+        <li><NavLink href="/websites">Websites</NavLink></li>
+        <li><NavLink href="/users">Users</NavLink></li>
+    </AuthorizeView>
+
+    <AuthorizeView Policy="@AdminPolicies.WebsiteAdminOrAbove">
+        <li><NavLink href="/posts">Posts</NavLink></li>
+        <li><NavLink href="/products">Products</NavLink></li>
+        <li><NavLink href="/translations">Translations</NavLink></li>
+    </AuthorizeView>
+
+    <AuthorizeView Policy="@AdminPolicies.AnyEditor">
+        <li><NavLink href="/api-keys">API Keys</NavLink></li>
+    </AuthorizeView>
+</ul>

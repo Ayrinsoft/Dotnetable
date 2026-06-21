@@ -1,0 +1,62 @@
+@page "/translations"
+@attribute [Authorize(Policy = AdminPolicies.WebsiteAdminOrAbove)]
+@inject ILocalizationService LocalizationService
+@inject AuthenticationStateProvider AuthState
+
+<PageTitle>Translations</PageTitle>
+<h1>Translations</h1>
+
+<div>
+    <label>Language ID: </label>
+    <input type="number" @bind="_languageId" style="width:80px" />
+    <button @onclick="LoadAsync">Load</button>
+</div>
+
+@if (_loading)
+{
+    <p>Loading...</p>
+}
+else if (_translations.Any())
+{
+    <table>
+        <thead><tr><th>Key</th><th>Value</th><th></th></tr></thead>
+        <tbody>
+            @foreach (var kv in _translations)
+            {
+                <tr>
+                    <td>@kv.Key</td>
+                    <td>
+                        <input value="@kv.Value"
+                               @onchange="async e => await SaveAsync(kv.Key, e.Value?.ToString() ?? string.Empty)" />
+                    </td>
+                </tr>
+            }
+        </tbody>
+    </table>
+}
+
+@code {
+    private bool _loading;
+    private int _websiteId;
+    private int _languageId = 1;
+    private IReadOnlyDictionary<string, string> _translations = new Dictionary<string, string>();
+
+    protected override async Task OnInitializedAsync()
+    {
+        var state = await AuthState.GetAuthenticationStateAsync();
+        int.TryParse(state.User.FindFirst(AdminClaimTypes.WebsiteId)?.Value, out _websiteId);
+        await LoadAsync();
+    }
+
+    private async Task LoadAsync()
+    {
+        _loading = true;
+        _translations = await LocalizationService.GetAllAsync(_websiteId, _languageId);
+        _loading = false;
+    }
+
+    private async Task SaveAsync(string key, string value)
+    {
+        await LocalizationService.SetAsync(_websiteId, _languageId, key, value);
+    }
+}

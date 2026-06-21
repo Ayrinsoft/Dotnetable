@@ -1,0 +1,42 @@
+@page "/websites"
+@attribute [Authorize(Policy = AdminPolicies.SuperAdminOnly)]
+@inject IWebsiteService WebsiteService
+
+<PageTitle>Websites</PageTitle>
+<h1>Websites</h1>
+
+@if (_loading)
+{
+    <p>Loading...</p>
+}
+else
+{
+    <table>
+        <thead>
+            <tr><th>ID</th><th>Name</th><th>Domain</th><th>Active</th><th>Theme</th></tr>
+        </thead>
+        <tbody>
+            @foreach (var site in _websites)
+            {
+                <tr>
+                    <td>@site.Id</td>
+                    <td><a href="/websites/@site.Id">@site.Name</a></td>
+                    <td>@site.Domain</td>
+                    <td>@(site.IsActive ? "Yes" : "No")</td>
+                    <td>@site.ActiveTheme</td>
+                </tr>
+            }
+        </tbody>
+    </table>
+}
+
+@code {
+    private bool _loading = true;
+    private IEnumerable<Website> _websites = [];
+
+    protected override async Task OnInitializedAsync()
+    {
+        _websites = await WebsiteService.GetAllAsync();
+        _loading = false;
+    }
+}
