@@ -25,11 +25,17 @@ public class SetupModel : PageModel
     public class InputModel
     {
         // Database connection
-        [Required, StringLength(128)] public string DbServer { get; set; } = "localhost";
-        [Range(1, 65535)] public int DbPort { get; set; } = 3306;
+        [Required] public string DbProvider { get; set; } = "SqlServer";
+        [Required, StringLength(128)] public string DbServer { get; set; } = ".";
+        [Range(1, 65535)] public int DbPort { get; set; } = 1433;
         [Required, StringLength(64)] public string DbName { get; set; } = "Dotnetable";
-        [Required, StringLength(64)] public string DbUser { get; set; } = "root";
+        [StringLength(64)] public string DbUser { get; set; } = string.Empty;
         [StringLength(128)] public string DbPassword { get; set; } = string.Empty;
+
+        // SQL Server only
+        public bool DbIntegratedSecurity { get; set; } = true;
+        public bool DbTrustServerCertificate { get; set; } = true;
+
         public bool CreateDatabaseIfMissing { get; set; } = true;
 
         // Website
@@ -108,11 +114,22 @@ public class SetupModel : PageModel
 
     private DatabaseConnectionInfo BuildDatabaseInfo() => new()
     {
+        Provider = Input.DbProvider,
         Server = Input.DbServer,
         Port = Input.DbPort,
         DatabaseName = Input.DbName,
         Username = Input.DbUser,
         Password = Input.DbPassword,
+        IntegratedSecurity = Input.DbIntegratedSecurity,
+        TrustServerCertificate = Input.DbTrustServerCertificate,
         CreateDatabaseIfMissing = Input.CreateDatabaseIfMissing,
     };
+
+    public static readonly (string Value, string Label)[] Providers =
+    [
+        ("SqlServer", "SQL Server (default)"),
+        ("PostgreSQL", "PostgreSQL"),
+        ("MySQL", "MySQL"),
+        ("MariaDB", "MariaDB"),
+    ];
 }

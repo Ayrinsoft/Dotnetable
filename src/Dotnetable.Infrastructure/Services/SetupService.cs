@@ -5,7 +5,6 @@ using Dotnetable.Domain.Entities;
 using Dotnetable.Infrastructure.Data;
 using Microsoft.AspNetCore.Identity;
 using Microsoft.EntityFrameworkCore;
-using MySql.Data.MySqlClient;
 
 namespace Dotnetable.Infrastructure.Services;
 
@@ -13,15 +12,18 @@ public class SetupService : ISetupService
 {
     private readonly IDbContextFactory<AppDbContext> _contextFactory;
     private readonly IDatabaseConfigStore _configStore;
+    private readonly IDatabaseProvisionerRegistry _provisioners;
     private readonly IPasswordHasher<Member> _hasher;
 
     public SetupService(
         IDbContextFactory<AppDbContext> contextFactory,
         IDatabaseConfigStore configStore,
+        IDatabaseProvisionerRegistry provisioners,
         IPasswordHasher<Member> hasher)
     {
         _contextFactory = contextFactory;
         _configStore = configStore;
+        _provisioners = provisioners;
         _hasher = hasher;
     }
 
@@ -42,50 +44,32 @@ public class SetupService : ISetupService
         }
     }
 
-    public async Task<ConnectionTestResult> TestConnectionAsync(DatabaseConnectionInfo db, CancellationToken ct = default)
-    {
-        try
-        {
-            await using var connection = new MySqlConnection(db.ToConnectionString(includeDatabase: false));
-            await connection.OpenAsync(ct);
-            return ConnectionTestResult.Ok($"Connected to {db.Server}:{db.Port} successfully.");
-        }
-        catch (Exception ex)
-        {
-            return ConnectionTestResult.Fail(ex.Message);
-        }
-    }
+    public Task<ConnectionTestResult> TestConnectionAsync(DatabaseConnectionInfo db, CancellationToken ct = default) =>
+        _provisioners.Get(db.Provider).TestConnectionAsync(db, ct);
 
     public async Task CompleteSetupAsync(SetupRequest request, CancellationToken ct = default)
     {
         if (await IsSetupCompletedAsync(ct))
             throw new InvalidOperationException("Setup has already been completed.");
 
-        var test = await TestConnectionAsync(request.Database, ct);
+        var provisioner = _provisioners.Get(request.Database.Provider);
+
+        var test = await provisioner.TestConnectionAsync(request.Database, ct);
         if (!test.Success)
             throw new InvalidOperationException($"Database connection failed: {test.Message}");
 
         if (request.Database.CreateDatabaseIfMissing)
-            await CreateDatabaseAsync(request.Database, ct);
+            await provisioner.CreateDatabaseAsync(request.Database, ct);
 
         // Persist the connection so the DbContext (and the API) bind to it from now on.
-        await _configStore.SaveAsync("MariaDB", request.Database.ToConnectionString(), ct);
+        var connectionString = provisioner.BuildConnectionString(request.Database, includeDatabase: true);
+        await _configStore.SaveAsync(request.Database.Provider, connectionString, ct);
 
         await using var context = await _contextFactory.CreateDbContextAsync(ct);
 
         // Build/upgrade the schema, then seed initial data in one transaction.
         await context.Database.MigrateAsync(ct);
         await SeedInitialDataAsync(context, request, ct);
-    }
-
-    private static async Task CreateDatabaseAsync(DatabaseConnectionInfo db, CancellationToken ct)
-    {
-        var name = SanitizeIdentifier(db.DatabaseName);
-        await using var connection = new MySqlConnection(db.ToConnectionString(includeDatabase: false));
-        await connection.OpenAsync(ct);
-        await using var command = connection.CreateCommand();
-        command.CommandText = $"CREATE DATABASE IF NOT EXISTS `{name}` CHARACTER SET utf8mb4 COLLATE utf8mb4_unicode_ci;";
-        await command.ExecuteNonQueryAsync(ct);
     }
 
     private async Task SeedInitialDataAsync(AppDbContext context, SetupRequest request, CancellationToken ct)
@@ -151,12 +135,5 @@ public class SetupService : ISetupService
         await context.SaveChangesAsync(ct);
 
         await transaction.CommitAsync(ct);
-    }
-
-    private static string SanitizeIdentifier(string name)
-    {
-        if (string.IsNullOrWhiteSpace(name) || name.Any(c => !char.IsLetterOrDigit(c) && c != '_'))
-            throw new InvalidOperationException($"Invalid database name '{name}'. Use letters, digits and underscores only.");
-        return name;
     }
 }
