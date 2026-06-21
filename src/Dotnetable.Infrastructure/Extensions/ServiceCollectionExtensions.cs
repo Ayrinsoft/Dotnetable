@@ -1,4 +1,4 @@
-﻿using Dotnetable.Application.Extensions;
+using Dotnetable.Application.Extensions;
 using Dotnetable.Application.Interfaces;
 using Dotnetable.Domain.Entities;
 using Dotnetable.Domain.Interfaces;
@@ -14,14 +14,26 @@ namespace Dotnetable.Infrastructure.Extensions;
 
 public static class ServiceCollectionExtensions
 {
-    public static IServiceCollection AddInfrastructure(this IServiceCollection services, IConfiguration configuration)
-    {
-        var provider = configuration["Database:Provider"] ?? "SqlServer";
-        var connectionString = configuration.GetConnectionString("DefaultConnection")
-            ?? throw new InvalidOperationException("Connection string 'DefaultConnection' is not configured.");
+    // Used before the database is configured, so context registration never throws at startup.
+    private const string PlaceholderConnection = "Server=localhost;Database=__unconfigured;User Id=root;Password=;";
 
-        services.AddDbContext<AppDbContext>(options => ConfigureProvider(options, provider, connectionString));
-        services.AddDbContextFactory<AppDbContext>(options => ConfigureProvider(options, provider, connectionString));
+    public static IServiceCollection AddInfrastructure(this IServiceCollection services, IConfiguration configuration, string contentRootPath)
+    {
+        var defaultProvider = configuration["Database:Provider"] ?? "MariaDB";
+        var defaultConnection = configuration.GetConnectionString("DefaultConnection");
+        var dbSettingsPath = Path.Combine(contentRootPath, "dbsettings.json");
+
+        // Single source of truth for the live connection; seeded from appsettings, overridden by dbsettings.json.
+        services.AddSingleton<IDatabaseConfigStore>(_ =>
+            new DatabaseConfigStore(dbSettingsPath, defaultProvider, defaultConnection));
+
+        // Register the factory (its options are singleton and read the live connection from the
+        // store) and derive the scoped DbContext from it, so both can coexist without the
+        // singleton/scoped options conflict that registering AddDbContext separately would cause.
+        services.AddDbContextFactory<AppDbContext>((sp, options) =>
+            ConfigureFromStore(options, sp.GetRequiredService<IDatabaseConfigStore>()));
+        services.AddScoped<AppDbContext>(sp =>
+            sp.GetRequiredService<IDbContextFactory<AppDbContext>>().CreateDbContext());
 
         services.AddSingleton<TranslationCache>();
         services.AddScoped(typeof(IRepository<>), typeof(GenericRepository<>));
@@ -30,6 +42,7 @@ public static class ServiceCollectionExtensions
         services.AddScoped<IMemberService, MemberService>();
         services.AddScoped<IWebsiteService, WebsiteService>();
         services.AddScoped<ISetupService, SetupService>();
+        services.AddScoped<IDatabaseUpdateService, DatabaseUpdateService>();
         services.AddScoped<IPasswordHasher<Member>, PasswordHasher<Member>>();
 
         services.AddApplication();
@@ -37,7 +50,10 @@ public static class ServiceCollectionExtensions
         return services;
     }
 
-    private static void ConfigureProvider(DbContextOptionsBuilder options, string provider, string connectionString)
+    private static void ConfigureFromStore(DbContextOptionsBuilder options, IDatabaseConfigStore store) =>
+        ConfigureProvider(options, store.Provider, store.ConnectionString ?? PlaceholderConnection);
+
+    internal static void ConfigureProvider(DbContextOptionsBuilder options, string provider, string connectionString)
     {
         switch (provider.ToLowerInvariant())
         {

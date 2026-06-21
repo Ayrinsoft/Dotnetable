@@ -5,6 +5,9 @@ namespace Dotnetable.Application.DTOs;
 /// </summary>
 public class SetupRequest
 {
+    // Database connection (tested, optionally created, then persisted)
+    public DatabaseConnectionInfo Database { get; set; } = new();
+
     // Website
     public string TradeName { get; set; } = string.Empty;
     public string BrandName { get; set; } = string.Empty;

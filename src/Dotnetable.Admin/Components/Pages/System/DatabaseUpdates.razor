@@ -1,0 +1,86 @@
+@page "/system/updates"
+@attribute [Authorize(Policy = AdminPolicies.SuperAdminOnly)]
+@inject IDatabaseUpdateService UpdateService
+
+<PageTitle>Database Updates</PageTitle>
+<h1>Database Updates</h1>
+
+@if (_loading)
+{
+    <p>Loading...</p>
+}
+else
+{
+    <p>Applied updates: <strong>@_applied.Count</strong> &nbsp;|&nbsp; Pending: <strong>@_pending.Count</strong></p>
+
+    @if (_pending.Count > 0)
+    {
+        <h3>Pending</h3>
+        <ul>
+            @foreach (var name in _pending)
+            {
+                <li>@name</li>
+            }
+        </ul>
+        <button @onclick="ApplyAsync" disabled="@_applying">@(_applying ? "Applying..." : "Apply updates")</button>
+    }
+    else
+    {
+        <p>The database schema is up to date.</p>
+    }
+
+    @if (!string.IsNullOrEmpty(_message))
+    {
+        <p>@_message</p>
+    }
+
+    <h3>Applied</h3>
+    <ul>
+        @foreach (var name in _applied)
+        {
+            <li>@name</li>
+        }
+    </ul>
+}
+
+@code {
+    private bool _loading = true;
+    private bool _applying;
+    private string? _message;
+    private IReadOnlyList<string> _applied = [];
+    private IReadOnlyList<string> _pending = [];
+
+    protected override async Task OnInitializedAsync() => await RefreshAsync();
+
+    private async Task RefreshAsync()
+    {
+        _loading = true;
+        try
+        {
+            _applied = await UpdateService.GetAppliedUpdatesAsync();
+            _pending = await UpdateService.GetPendingUpdatesAsync();
+        }
+        catch (Exception ex)
+        {
+            _message = $"Could not read update status: {ex.Message}";
+        }
+        _loading = false;
+    }
+
+    private async Task ApplyAsync()
+    {
+        _applying = true;
+        _message = null;
+        try
+        {
+            await UpdateService.ApplyUpdatesAsync();
+            _message = "Updates applied successfully.";
+            await RefreshAsync();
+        }
+        catch (Exception ex)
+        {
+            _message = $"Apply failed: {ex.Message}";
+        }
+        _applying = false;
+    }
+}
