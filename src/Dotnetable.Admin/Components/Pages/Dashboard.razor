@@ -1,0 +1,20 @@
+@page "/"
+@attribute [Authorize]
+@inject AuthenticationStateProvider AuthState
+
+<PageTitle>Dashboard</PageTitle>
+<h1>Dashboard</h1>
+
+<AuthorizeView>
+    <Authorized Context="authCtx">
+        <p>Welcome, <strong>@authCtx.User.Identity?.Name</strong></p>
+
+        <AuthorizeView Policy="@AdminPolicies.SuperAdminOnly" Context="superCtx">
+            <p>You have <strong>SuperAdmin</strong> access — all websites are visible.</p>
+        </AuthorizeView>
+
+        <AuthorizeView Roles="WebsiteAdmin" Context="adminCtx">
+            <p>You manage website ID: <strong>@adminCtx.User.FindFirst(AdminClaimTypes.WebsiteId)?.Value</strong></p>
+        </AuthorizeView>
+    </Authorized>
+</AuthorizeView>

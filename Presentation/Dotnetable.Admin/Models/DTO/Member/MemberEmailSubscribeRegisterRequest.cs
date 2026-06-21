@@ -1,8 +1,0 @@
-﻿namespace Dotnetable.Admin.Models.DTO.Member;
-
-public class MemberEmailSubscribeRegisterRequest
-{
-    public int? CurrentMemberID { get; set; }
-    public string RequestURL { get; set; }
-    public string EmailAddress { get; set; }
-}

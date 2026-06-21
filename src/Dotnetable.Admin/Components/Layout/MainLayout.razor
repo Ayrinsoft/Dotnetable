@@ -1,0 +1,25 @@
+@inherits LayoutComponentBase
+@inject NavigationManager Nav
+
+<AuthorizeView>
+    <Authorized Context="authCtx">
+        <div class="admin-layout">
+            <nav class="admin-sidebar">
+                <div class="admin-brand">Dotnetable Admin</div>
+                <NavMenu />
+            </nav>
+            <main class="admin-main">
+                <div class="admin-topbar">
+                    <span>@authCtx.User.Identity?.Name</span>
+                    <a href="/Logout">Logout</a>
+                </div>
+                <div class="admin-content">
+                    @Body
+                </div>
+            </main>
+        </div>
+    </Authorized>
+    <NotAuthorized>
+        <RedirectToLogin />
+    </NotAuthorized>
+</AuthorizeView>
