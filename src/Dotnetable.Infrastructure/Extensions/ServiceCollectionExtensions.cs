@@ -1,4 +1,4 @@
-using Dotnetable.Application.Extensions;
+﻿using Dotnetable.Application.Extensions;
 using Dotnetable.Application.Interfaces;
 using Dotnetable.Domain.Entities;
 using Dotnetable.Domain.Interfaces;
@@ -53,6 +53,8 @@ public static class ServiceCollectionExtensions
                 break;
 
             case "mysql":
+                options.UseMySQL(connectionString);
+                break;
             case "mariadb":
                 options.UseMySql(connectionString, ServerVersion.AutoDetect(connectionString),
                     mysql => mysql.EnableRetryOnFailure(3));
