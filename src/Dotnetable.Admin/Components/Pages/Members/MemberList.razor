@@ -1,0 +1,57 @@
+@page "/members"
+@attribute [Authorize(Policy = AdminPolicies.WebsiteAdminOrAbove)]
+@inject IMemberService MemberService
+@inject AuthenticationStateProvider AuthState
+
+<PageTitle>Members</PageTitle>
+<h1>Members</h1>
+
+@if (_loading)
+{
+    <p>Loading...</p>
+}
+else
+{
+    <table>
+        <thead>
+            <tr><th>ID</th><th>Username</th><th>Email</th><th>Name</th><th>Website</th><th>Active</th></tr>
+        </thead>
+        <tbody>
+            @foreach (var m in _members)
+            {
+                <tr>
+                    <td>@m.MemberID</td>
+                    <td>@m.Username</td>
+                    <td>@m.Email</td>
+                    <td>@m.Givenname @m.Surname</td>
+                    <td>@m.WebsiteID</td>
+                    <td>@(m.Active ? "Yes" : "No")</td>
+                </tr>
+            }
+        </tbody>
+    </table>
+}
+
+@code {
+    private bool _loading = true;
+    private IEnumerable<Member> _members = [];
+
+    protected override async Task OnInitializedAsync()
+    {
+        var state = await AuthState.GetAuthenticationStateAsync();
+        var user = state.User;
+
+        // Master-website members see every member; everyone else only their own website.
+        if (user.HasClaim(AdminClaimTypes.Master, "true"))
+        {
+            _members = await MemberService.GetAllAsync();
+        }
+        else
+        {
+            int.TryParse(user.FindFirst(AdminClaimTypes.WebsiteId)?.Value, out var websiteId);
+            _members = await MemberService.GetByWebsiteAsync(websiteId);
+        }
+
+        _loading = false;
+    }
+}

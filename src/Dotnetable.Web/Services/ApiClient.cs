@@ -14,7 +14,7 @@ public class ApiClient
     public async Task<T?> GetAsync<T>(string path, CancellationToken ct = default) =>
         await _http.GetFromJsonAsync<T>(path, ct);
 
-    public async Task<IReadOnlyDictionary<string, string>> GetTranslationsAsync(int languageId, CancellationToken ct = default) =>
-        await _http.GetFromJsonAsync<Dictionary<string, string>>($"api/localization/{languageId}", ct)
+    public async Task<IReadOnlyDictionary<string, string>> GetTranslationsAsync(string languageCode, CancellationToken ct = default) =>
+        await _http.GetFromJsonAsync<Dictionary<string, string>>($"api/localization/{languageCode}", ct)
         ?? new Dictionary<string, string>();
 }

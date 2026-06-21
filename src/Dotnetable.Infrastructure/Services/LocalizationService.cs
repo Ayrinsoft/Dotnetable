@@ -16,41 +16,57 @@ public class LocalizationService : ILocalizationService
         _cache = cache;
     }
 
-    public async Task LoadAsync(int websiteId, int languageId, CancellationToken ct = default)
+    public async Task LoadAsync(int websiteId, string languageCode, CancellationToken ct = default)
     {
-        var translations = await _context.Translations
-            .Where(t => t.LanguageId == languageId && (t.WebsiteId == null || t.WebsiteId == websiteId))
-            .Select(t => new { t.WebsiteId, t.Key, t.Value })
-            .ToListAsync(ct);
-
-        _cache.Load(translations.Select(t => (t.WebsiteId ?? 0, languageId, t.Key, t.Value)));
+        var entries = await QueryFor(websiteId, languageCode).ToListAsync(ct);
+        _cache.Load(entries.Select(e => (websiteId, languageCode, e.Key, e.Value)));
     }
 
+    private IQueryable<KeyValue> QueryFor(int websiteId, string languageCode) =>
+        _context.LocalizationKeys
+            .Where(k => k.WebsiteID == websiteId)
+            .Select(k => new KeyValue(
+                k.ItemKey,
+                k.LocalizationValues
+                    .Where(v => v.LanguageCode == languageCode)
+                    .Select(v => v.ItemValue)
+                    .FirstOrDefault() ?? k.DefaultValue));
+
+    private sealed record KeyValue(string Key, string Value);
+
     public string Get(string key, string? fallback = null) =>
-        _cache.TryGet(0, 0, key, out var v) ? v : fallback ?? key;
+        _cache.TryGet(0, string.Empty, key, out var v) ? v : fallback ?? key;
 
-    public string Get(string key, int websiteId, int languageId, string? fallback = null) =>
-        _cache.TryGet(websiteId, languageId, key, out var v) ? v : fallback ?? key;
+    public string Get(int websiteId, string languageCode, string key, string? fallback = null) =>
+        _cache.TryGet(websiteId, languageCode, key, out var v) ? v : fallback ?? key;
 
-    public async Task<IReadOnlyDictionary<string, string>> GetAllAsync(int websiteId, int languageId, CancellationToken ct = default) =>
-        await _context.Translations
-            .Where(t => t.LanguageId == languageId && (t.WebsiteId == null || t.WebsiteId == websiteId))
-            .ToDictionaryAsync(t => t.Key, t => t.Value, ct);
-
-    public async Task SetAsync(int websiteId, int languageId, string key, string value, CancellationToken ct = default)
+    public async Task<IReadOnlyDictionary<string, string>> GetAllAsync(int websiteId, string languageCode, CancellationToken ct = default)
     {
-        var existing = await _context.Translations
-            .FirstOrDefaultAsync(t => t.WebsiteId == websiteId && t.LanguageId == languageId && t.Key == key, ct);
+        var entries = await QueryFor(websiteId, languageCode).ToListAsync(ct);
+        return entries.ToDictionary(e => e.Key, e => e.Value);
+    }
 
-        if (existing is null)
-            _context.Translations.Add(new Translation { WebsiteId = websiteId, LanguageId = languageId, Key = key, Value = value });
-        else
+    public async Task SetAsync(int websiteId, string languageCode, string key, string value, CancellationToken ct = default)
+    {
+        var localizationKey = await _context.LocalizationKeys
+            .Include(k => k.LocalizationValues)
+            .FirstOrDefaultAsync(k => k.WebsiteID == websiteId && k.ItemKey == key, ct);
+
+        if (localizationKey is null)
         {
-            existing.Value = value;
-            existing.UpdatedAt = DateTime.UtcNow;
+            localizationKey = new LocalizationKey { WebsiteID = websiteId, ItemKey = key, DefaultValue = value };
+            _context.LocalizationKeys.Add(localizationKey);
         }
 
+        var localizedValue = localizationKey.LocalizationValues
+            .FirstOrDefault(v => v.LanguageCode == languageCode);
+
+        if (localizedValue is null)
+            localizationKey.LocalizationValues.Add(new LocalizationValue { LanguageCode = languageCode, ItemValue = value });
+        else
+            localizedValue.ItemValue = value;
+
         await _context.SaveChangesAsync(ct);
-        _cache.Set(websiteId, languageId, key, value);
+        _cache.Set(websiteId, languageCode, key, value);
     }
 }

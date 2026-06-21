@@ -7,8 +7,8 @@
 <h1>Translations</h1>
 
 <div>
-    <label>Language ID: </label>
-    <input type="number" @bind="_languageId" style="width:80px" />
+    <label>Language code: </label>
+    <input @bind="_languageCode" maxlength="2" style="width:80px" />
     <button @onclick="LoadAsync">Load</button>
 </div>
 
@@ -38,7 +38,7 @@ else if (_translations.Any())
 @code {
     private bool _loading;
     private int _websiteId;
-    private int _languageId = 1;
+    private string _languageCode = "en";
     private IReadOnlyDictionary<string, string> _translations = new Dictionary<string, string>();
 
     protected override async Task OnInitializedAsync()
@@ -51,12 +51,12 @@ else if (_translations.Any())
     private async Task LoadAsync()
     {
         _loading = true;
-        _translations = await LocalizationService.GetAllAsync(_websiteId, _languageId);
+        _translations = await LocalizationService.GetAllAsync(_websiteId, _languageCode);
         _loading = false;
     }
 
     private async Task SaveAsync(string key, string value)
     {
-        await LocalizationService.SetAsync(_websiteId, _languageId, key, value);
+        await LocalizationService.SetAsync(_websiteId, _languageCode, key, value);
     }
 }

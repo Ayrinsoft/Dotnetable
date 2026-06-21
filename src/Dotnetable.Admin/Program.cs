@@ -1,4 +1,5 @@
 using Dotnetable.Admin.Auth;
+using Dotnetable.Admin.Middleware;
 using Dotnetable.Infrastructure.Extensions;
 using Microsoft.AspNetCore.Authentication.Cookies;
 
@@ -37,6 +38,7 @@ if (!app.Environment.IsDevelopment())
 app.UseHttpsRedirection();
 app.UseStaticFiles();
 app.UseRouting();
+app.UseSetupRedirect();
 app.UseAuthentication();
 app.UseAuthorization();
 app.UseAntiforgery();

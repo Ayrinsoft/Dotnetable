@@ -6,9 +6,9 @@ public class WebLocalizationService
 {
     private ConcurrentDictionary<string, string> _translations = new();
 
-    public async Task LoadFromApiAsync(ApiClient client, int languageId, CancellationToken ct = default)
+    public async Task LoadFromApiAsync(ApiClient client, string languageCode, CancellationToken ct = default)
     {
-        var data = await client.GetTranslationsAsync(languageId, ct);
+        var data = await client.GetTranslationsAsync(languageCode, ct);
         _translations = new ConcurrentDictionary<string, string>(data);
     }
 

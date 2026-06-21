@@ -2,7 +2,6 @@
 @attribute [Authorize(Policy = AdminPolicies.SuperAdminOnly)]
 @inject IWebsiteService WebsiteService
 @inject NavigationManager Nav
-@inject AuthenticationStateProvider AuthState
 
 <PageTitle>Edit Website</PageTitle>
 <h1>Edit Website</h1>
@@ -14,20 +13,32 @@
 else
 {
     <div>
-        <label>Name</label>
-        <input @bind="_website.Name" />
+        <label>Trade name</label>
+        <input @bind="_website.TradeName" />
     </div>
     <div>
-        <label>Domain</label>
-        <input @bind="_website.Domain" />
+        <label>Brand name</label>
+        <input @bind="_website.BrandName" />
     </div>
     <div>
-        <label>Active Theme</label>
-        <input @bind="_website.ActiveTheme" />
+        <label>Website address</label>
+        <input @bind="_website.WebsiteAddress" />
+    </div>
+    <div>
+        <label>Manager</label>
+        <input @bind="_website.Manager" />
+    </div>
+    <div>
+        <label>Mobile</label>
+        <input @bind="_website.Mobile" />
+    </div>
+    <div>
+        <label>Email</label>
+        <input @bind="_website.Email" />
     </div>
     <div>
         <label>Active</label>
-        <input type="checkbox" @bind="_website.IsActive" />
+        <input type="checkbox" @bind="_website.Active" />
     </div>
     <button @onclick="SaveAsync">Save</button>
     @if (!string.IsNullOrEmpty(_message))

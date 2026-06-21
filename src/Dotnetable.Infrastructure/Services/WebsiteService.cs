@@ -14,11 +14,11 @@ public class WebsiteService : IWebsiteService
     public async Task<Website?> GetByIdAsync(int id, CancellationToken ct = default) =>
         await _context.Websites.FindAsync([id], ct);
 
-    public async Task<Website?> GetByDomainAsync(string domain, CancellationToken ct = default) =>
-        await _context.Websites.FirstOrDefaultAsync(w => w.Domain == domain, ct);
+    public async Task<Website?> GetByAddressAsync(string websiteAddress, CancellationToken ct = default) =>
+        await _context.Websites.FirstOrDefaultAsync(w => w.WebsiteAddress == websiteAddress, ct);
 
     public async Task<IEnumerable<Website>> GetAllAsync(CancellationToken ct = default) =>
-        await _context.Websites.OrderBy(w => w.Name).ToListAsync(ct);
+        await _context.Websites.OrderBy(w => w.WebsiteID).ToListAsync(ct);
 
     public async Task<Website> CreateAsync(Website website, CancellationToken ct = default)
     {
@@ -29,7 +29,6 @@ public class WebsiteService : IWebsiteService
 
     public async Task UpdateAsync(Website website, CancellationToken ct = default)
     {
-        website.UpdatedAt = DateTime.UtcNow;
         _context.Websites.Update(website);
         await _context.SaveChangesAsync(ct);
     }

@@ -1,5 +1,4 @@
-﻿using Dotnetable.API.Middleware;
-using Dotnetable.Infrastructure.Extensions;
+﻿using Dotnetable.Infrastructure.Extensions;
 
 var builder = WebApplication.CreateBuilder(args);
 
@@ -21,7 +20,6 @@ if (app.Environment.IsDevelopment())
 }
 
 app.UseHttpsRedirection();
-app.UseApiKeyAuthentication();
 app.MapControllers();
 
 app.Run();

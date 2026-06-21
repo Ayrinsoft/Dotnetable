@@ -10,11 +10,9 @@
         <p>Welcome, <strong>@authCtx.User.Identity?.Name</strong></p>
 
         <AuthorizeView Policy="@AdminPolicies.SuperAdminOnly" Context="superCtx">
-            <p>You have <strong>SuperAdmin</strong> access — all websites are visible.</p>
+            <p>You are a <strong>master website</strong> administrator — all websites are visible.</p>
         </AuthorizeView>
 
-        <AuthorizeView Roles="WebsiteAdmin" Context="adminCtx">
-            <p>You manage website ID: <strong>@adminCtx.User.FindFirst(AdminClaimTypes.WebsiteId)?.Value</strong></p>
-        </AuthorizeView>
+        <p>Your website ID: <strong>@authCtx.User.FindFirst(AdminClaimTypes.WebsiteId)?.Value</strong></p>
     </Authorized>
 </AuthorizeView>
