@@ -28,11 +28,15 @@ public static class ServiceCollectionExtensions
         services.AddSingleton<IDatabaseConfigStore>(_ =>
             new DatabaseConfigStore(dbSettingsPath, defaultProvider, defaultConnection));
 
-        // Register the factory (its options are singleton and read the live connection from the
-        // store) and derive the scoped DbContext from it, so both can coexist without the
-        // singleton/scoped options conflict that registering AddDbContext separately would cause.
+        // Register the factory with SCOPED options so the live connection string is re-read from
+        // the store on every new scope (HTTP request / Blazor circuit). This matters during
+        // first-run setup: the Setup page writes the real connection to the store, and the next
+        // scope must pick it up rather than reusing the placeholder captured at startup. The
+        // scoped DbContext is derived from the factory so both share one options lifetime and avoid
+        // the singleton/scoped conflict that registering AddDbContext separately would cause.
         services.AddDbContextFactory<AppDbContext>((sp, options) =>
-            ConfigureFromStore(options, sp.GetRequiredService<IDatabaseConfigStore>()));
+            ConfigureFromStore(options, sp.GetRequiredService<IDatabaseConfigStore>()),
+            ServiceLifetime.Scoped);
         services.AddScoped<AppDbContext>(sp =>
             sp.GetRequiredService<IDbContextFactory<AppDbContext>>().CreateDbContext());
 

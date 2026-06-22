@@ -7,10 +7,10 @@
     <title>Dotnetable Admin</title>
     <link rel="stylesheet" href="https://fonts.googleapis.com/css?family=Roboto:300,400,500,700&display=swap" />
     <link rel="stylesheet" href="_content/MudBlazor/MudBlazor.min.css" />
-    <HeadOutlet />
+    <HeadOutlet @rendermode="@RenderMode.InteractiveServer" />
 </head>
 <body>
-    <Routes />
+    <Routes @rendermode="@RenderMode.InteractiveServer" />
     <script src="_framework/blazor.server.js"></script>
     <script src="_content/MudBlazor/MudBlazor.min.js"></script>
 </body>
