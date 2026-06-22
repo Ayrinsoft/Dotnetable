@@ -1,0 +1,23 @@
+﻿CREATE TABLE [dbo].[FileRecord] (
+    [FileRecordID]             INT             IDENTITY (1, 1) NOT NULL,
+    [WebsiteStorageSettingsID] INT             NOT NULL,
+    [StorageProvider]          SMALLINT        NOT NULL,
+    [StoragePath]              NVARCHAR (350)  NULL,
+    [CNDUrl]                   NVARCHAR (450)  NULL,
+    [OriginalFileName]         NVARCHAR (120)  NOT NULL,
+    [StoredFileName]           VARCHAR (40)    NOT NULL,
+    [MimeType]                 VARCHAR (74)    NOT NULL,
+    [FileSizeKB]               INT             NOT NULL,
+    [MetadataJSON]             NVARCHAR (2000) NULL,
+    [AltText]                  NVARCHAR (120)  NULL,
+    [Title]                    NVARCHAR (50)   NULL,
+    [IsDeleted]                BIT             NOT NULL,
+    [UploadDate]               DATETIME        NOT NULL,
+    [ThumbnailStorage]         NVARCHAR (350)  NULL,
+    [ThumbnailCDN]             NVARCHAR (450)  NULL,
+    [FileCategory]             TINYINT         NOT NULL,
+    [CDNFileCode]              VARCHAR (80)    NULL,
+    CONSTRAINT [PK_FileRecord] PRIMARY KEY CLUSTERED ([FileRecordID] ASC),
+    CONSTRAINT [FK_FileRecord_WebstieStorageSettings] FOREIGN KEY ([WebsiteStorageSettingsID]) REFERENCES [dbo].[WebstieStorageSettings] ([WebsiteStorageSettingsID])
+);
+
