@@ -3,6 +3,7 @@ using Dotnetable.Application.DTOs;
 using Dotnetable.Application.Interfaces;
 using Dotnetable.Domain.Entities;
 using Dotnetable.Infrastructure.Data;
+using Dotnetable.Infrastructure.Extensions;
 using Microsoft.AspNetCore.Identity;
 using Microsoft.EntityFrameworkCore;
 
@@ -65,7 +66,13 @@ public class SetupService : ISetupService
         var connectionString = provisioner.BuildConnectionString(request.Database, includeDatabase: true);
         await _configStore.SaveAsync(request.Database.Provider, connectionString, ct);
 
-        await using var context = await _contextFactory.CreateDbContextAsync(ct);
+        // The shared DbContextFactory caches its options as a singleton, and those options were
+        // very likely materialized earlier in this request (IsSetupCompletedAsync above) with the
+        // placeholder connection string. Build a fresh context bound to the just-saved connection
+        // so migrate/seed run against the real target rather than the stale placeholder.
+        var optionsBuilder = new DbContextOptionsBuilder<AppDbContext>();
+        ServiceCollectionExtensions.ConfigureProvider(optionsBuilder, request.Database.Provider, connectionString);
+        await using var context = new AppDbContext(optionsBuilder.Options);
 
         // Build/upgrade the schema, then seed initial data in one transaction.
         await context.Database.MigrateAsync(ct);
