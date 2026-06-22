@@ -3,6 +3,7 @@ using Dotnetable.Admin.Middleware;
 using Dotnetable.Application.Interfaces;
 using Dotnetable.Infrastructure.Extensions;
 using Microsoft.AspNetCore.Authentication.Cookies;
+using MudBlazor.Services;
 
 var builder = WebApplication.CreateBuilder(args);
 
@@ -22,6 +23,7 @@ builder.Services
 builder.Services.AddAuthorization(AdminPolicies.Register);
 builder.Services.AddCascadingAuthenticationState();
 
+builder.Services.AddMudServices();
 builder.Services.AddRazorPages();
 builder.Services.AddRazorComponents()
     .AddInteractiveServerComponents();
