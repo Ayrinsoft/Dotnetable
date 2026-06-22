@@ -1,25 +1,41 @@
-@inherits LayoutComponentBase
-@inject NavigationManager Nav
+﻿@inherits LayoutComponentBase
+
+<MudPopoverProvider />
+<MudThemeProvider />
+<MudDialogProvider />
+<MudSnackbarProvider />
 
 <AuthorizeView>
     <Authorized Context="authCtx">
-        <div class="admin-layout">
-            <nav class="admin-sidebar">
-                <div class="admin-brand">Dotnetable Admin</div>
+        <MudLayout>
+            <MudAppBar Elevation="1" Color="Color.Primary">
+                <MudIconButton Icon="@Icons.Material.Filled.Menu" Color="Color.Inherit" Edge="Edge.Start"
+                               OnClick="@(() => _drawerOpen = !_drawerOpen)" />
+                <MudText Typo="Typo.h6" Class="ml-2">Dotnetable Admin</MudText>
+                <MudSpacer />
+                <MudText Typo="Typo.body2" Class="mr-2">@authCtx.User.Identity?.Name</MudText>
+                <MudTooltip Text="Logout">
+                    <MudIconButton Icon="@Icons.Material.Filled.Logout" Color="Color.Inherit" Href="/Logout" />
+                </MudTooltip>
+            </MudAppBar>
+            <MudDrawer @bind-Open="_drawerOpen" Elevation="2" ClipMode="DrawerClipMode.Always">
+                <MudDrawerHeader>
+                    <MudText Typo="Typo.subtitle1" Class="mt-1"><b>Navigation</b></MudText>
+                </MudDrawerHeader>
                 <NavMenu />
-            </nav>
-            <main class="admin-main">
-                <div class="admin-topbar">
-                    <span>@authCtx.User.Identity?.Name</span>
-                    <a href="/Logout">Logout</a>
-                </div>
-                <div class="admin-content">
+            </MudDrawer>
+            <MudMainContent>
+                <MudContainer MaxWidth="MaxWidth.ExtraLarge" Class="pa-6 mt-4">
                     @Body
-                </div>
-            </main>
-        </div>
+                </MudContainer>
+            </MudMainContent>
+        </MudLayout>
     </Authorized>
     <NotAuthorized>
         <RedirectToLogin />
     </NotAuthorized>
 </AuthorizeView>
+
+@code {
+    private bool _drawerOpen = true;
+}

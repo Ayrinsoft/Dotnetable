@@ -1,0 +1,340 @@
+@page "/setup"
+@attribute [AllowAnonymous]
+@attribute [Layout(typeof(SetupLayout))]
+@using Dotnetable.Application.DTOs
+@inject ISetupService SetupService
+@inject NavigationManager Nav
+@inject ISnackbar Snackbar
+
+<PageTitle>@_s.Title</PageTitle>
+
+<MudThemeProvider />
+<MudDialogProvider />
+<MudSnackbarProvider />
+
+<div dir="@(_isRtl ? "rtl" : "ltr")" style="min-height:100vh;background:var(--mud-palette-background-grey)">
+    <MudContainer MaxWidth="MaxWidth.Small" Class="py-8">
+
+        @* Language selector – always LTR so buttons stay in a consistent row *@
+        <div dir="ltr" class="d-flex justify-end flex-wrap gap-1 mb-4">
+            @foreach (var lang in _languages)
+            {
+                <MudButton Size="Size.Small"
+                           Variant="@(_lang == lang.Code ? Variant.Filled : Variant.Outlined)"
+                           Color="@(_lang == lang.Code ? Color.Primary : Color.Default)"
+                           OnClick="@(() => SetLanguage(lang.Code))">
+                    @lang.Label
+                </MudButton>
+            }
+        </div>
+
+        <MudPaper Elevation="3" Class="pa-6 pa-sm-8">
+
+            @* Header *@
+            <MudText Typo="Typo.h5" GutterBottom="true">@_s.Heading</MudText>
+            <MudText Typo="Typo.body2" Class="mb-6" Color="Color.Secondary">@_s.SubHeading</MudText>
+
+            <MudForm @ref="_form">
+
+                @* ── Database ─────────────────────────────────────────── *@
+                <MudText Typo="Typo.h6" Class="mt-2">@_s.DbSection</MudText>
+                <MudDivider Class="mb-4" />
+
+                <MudSelect T="string"
+                           Value="@_req.Database.Provider"
+                           ValueChanged="OnProviderChanged"
+                           Label="@_s.DbProvider"
+                           Variant="Variant.Outlined"
+                           Class="mb-3">
+                    <MudSelectItem T="string" Value="@("SqlServer")">SQL Server</MudSelectItem>
+                    <MudSelectItem T="string" Value="@("PostgreSQL")">PostgreSQL</MudSelectItem>
+                    <MudSelectItem T="string" Value="@("MySQL")">MySQL</MudSelectItem>
+                    <MudSelectItem T="string" Value="@("MariaDB")">MariaDB</MudSelectItem>
+                </MudSelect>
+
+                <MudTextField T="string"
+                              @bind-Value="_req.Database.Server"
+                              Label="@_s.DbServer"
+                              Variant="Variant.Outlined"
+                              Class="mb-1"
+                              Required="true"
+                              RequiredError="@_s.Required" />
+                <MudText Typo="Typo.caption" Color="Color.Secondary" Class="mb-3 ml-2">
+                    @_s.DbServerHint
+                </MudText>
+
+                @if (_req.Database.Provider != "SqlServer")
+                {
+                    <MudNumericField T="int"
+                                     @bind-Value="_req.Database.Port"
+                                     Label="@_s.DbPort"
+                                     Variant="Variant.Outlined"
+                                     Class="mb-3"
+                                     Min="1" Max="65535" />
+                }
+
+                <MudTextField T="string"
+                              @bind-Value="_req.Database.DatabaseName"
+                              Label="@_s.DbName"
+                              Variant="Variant.Outlined"
+                              Class="mb-3"
+                              Required="true"
+                              RequiredError="@_s.Required" />
+
+                @if (_req.Database.Provider != "SqlServer" || !_req.Database.IntegratedSecurity)
+                {
+                    <MudTextField T="string"
+                                  @bind-Value="_req.Database.Username"
+                                  Label="@_s.DbUser"
+                                  Variant="Variant.Outlined"
+                                  Class="mb-3" />
+                    <MudTextField T="string"
+                                  @bind-Value="_req.Database.Password"
+                                  Label="@_s.DbPassword"
+                                  Variant="Variant.Outlined"
+                                  Class="mb-3"
+                                  InputType="InputType.Password" />
+                }
+
+                @if (_req.Database.Provider == "SqlServer")
+                {
+                    <MudCheckBox T="bool"
+                                 @bind-Value="_req.Database.IntegratedSecurity"
+                                 Label="@_s.DbIntegratedSecurity"
+                                 Class="mb-1" />
+                    <MudCheckBox T="bool"
+                                 @bind-Value="_req.Database.TrustServerCertificate"
+                                 Label="@_s.DbTrustServerCertificate"
+                                 Class="mb-1" />
+                }
+
+                <MudCheckBox T="bool"
+                             @bind-Value="_req.Database.CreateDatabaseIfMissing"
+                             Label="@_s.DbCreateIfMissing"
+                             Class="mb-4" />
+
+                <MudButton Variant="Variant.Outlined"
+                           Color="Color.Secondary"
+                           StartIcon="@Icons.Material.Filled.NetworkCheck"
+                           OnClick="TestConnection"
+                           Disabled="@(_testLoading || _createLoading)"
+                           Class="mb-2">
+                    @if (_testLoading)
+                    {
+                        <MudProgressCircular Size="Size.Small" Indeterminate="true" Class="me-2" />
+                    }
+                    @_s.BtnTestConnection
+                </MudButton>
+
+                @* ── Website ───────────────────────────────────────────── *@
+                <MudText Typo="Typo.h6" Class="mt-6">@_s.WebsiteSection</MudText>
+                <MudDivider Class="mb-4" />
+
+                <MudTextField T="string"
+                              @bind-Value="_req.TradeName"
+                              Label="@_s.TradeName"
+                              Variant="Variant.Outlined"
+                              Class="mb-3"
+                              Required="true"
+                              RequiredError="@_s.Required" />
+                <MudTextField T="string"
+                              @bind-Value="_req.BrandName"
+                              Label="@_s.BrandName"
+                              Variant="Variant.Outlined"
+                              Class="mb-3"
+                              Required="true"
+                              RequiredError="@_s.Required" />
+                <MudTextField T="string"
+                              @bind-Value="_req.WebsiteAddress"
+                              Label="@_s.WebsiteAddress"
+                              Variant="Variant.Outlined"
+                              Class="mb-3"
+                              Required="true"
+                              RequiredError="@_s.Required" />
+                <MudTextField T="string"
+                              @bind-Value="_req.Manager"
+                              Label="@_s.Manager"
+                              Variant="Variant.Outlined"
+                              Class="mb-3"
+                              Required="true"
+                              RequiredError="@_s.Required" />
+                <MudTextField T="string"
+                              @bind-Value="_req.Mobile"
+                              Label="@_s.Mobile"
+                              Variant="Variant.Outlined"
+                              Class="mb-3"
+                              Required="true"
+                              RequiredError="@_s.Required" />
+                <MudTextField T="string"
+                              @bind-Value="_req.WebsiteEmail"
+                              Label="@_s.WebsiteEmail"
+                              Variant="Variant.Outlined"
+                              Class="mb-3"
+                              InputType="InputType.Email"
+                              Validation="@(new Func<string, string?>(ValidateEmail))"
+                              Required="true"
+                              RequiredError="@_s.Required" />
+                <MudTextField T="string"
+                              @bind-Value="_req.DefaultLanguageCode"
+                              Label="@_s.DefaultLanguageCode"
+                              Variant="Variant.Outlined"
+                              Class="mb-3"
+                              MaxLength="2" />
+
+                @* ── Administrator ─────────────────────────────────────── *@
+                <MudText Typo="Typo.h6" Class="mt-6">@_s.AdminSection</MudText>
+                <MudDivider Class="mb-4" />
+
+                <MudTextField T="string"
+                              @bind-Value="_req.Username"
+                              Label="@_s.AdminUsername"
+                              Variant="Variant.Outlined"
+                              Class="mb-3"
+                              Required="true"
+                              RequiredError="@_s.Required" />
+                <MudTextField T="string"
+                              @bind-Value="_req.Password"
+                              Label="@_s.AdminPassword"
+                              Variant="Variant.Outlined"
+                              Class="mb-3"
+                              InputType="InputType.Password"
+                              Required="true"
+                              RequiredError="@_s.Required" />
+                <MudTextField T="string"
+                              @bind-Value="_req.Email"
+                              Label="@_s.AdminEmail"
+                              Variant="Variant.Outlined"
+                              Class="mb-3"
+                              InputType="InputType.Email"
+                              Validation="@(new Func<string, string?>(ValidateEmail))"
+                              Required="true"
+                              RequiredError="@_s.Required" />
+                <MudTextField T="string"
+                              @bind-Value="_req.Givenname"
+                              Label="@_s.AdminGivenname"
+                              Variant="Variant.Outlined"
+                              Class="mb-3"
+                              Required="true"
+                              RequiredError="@_s.Required" />
+                <MudTextField T="string"
+                              @bind-Value="_req.Surname"
+                              Label="@_s.AdminSurname"
+                              Variant="Variant.Outlined"
+                              Class="mb-4"
+                              Required="true"
+                              RequiredError="@_s.Required" />
+
+                <MudButton Variant="Variant.Filled"
+                           Color="Color.Primary"
+                           StartIcon="@Icons.Material.Filled.Rocket"
+                           Size="Size.Large"
+                           FullWidth="true"
+                           OnClick="CreateSetup"
+                           Disabled="@(_testLoading || _createLoading)">
+                    @if (_createLoading)
+                    {
+                        <MudProgressCircular Size="Size.Small" Indeterminate="true" Class="me-2" />
+                    }
+                    @_s.BtnCreate
+                </MudButton>
+
+            </MudForm>
+        </MudPaper>
+    </MudContainer>
+</div>
+
+@code {
+    private MudForm _form = null!;
+    private SetupRequest _req = new();
+    private string _lang = "en";
+    private bool _testLoading;
+    private bool _createLoading;
+
+    private SetupStrings _s => SetupL10n.Get(_lang);
+    private bool _isRtl => _lang is "fa" or "ar";
+
+    private static readonly (string Code, string Label)[] _languages =
+    [
+        ("en", "EN"),
+        ("de", "DE"),
+        ("fr", "FR"),
+        ("ru", "RU"),
+        ("zh", "中文"),
+        ("fa", "فا"),
+        ("ar", "عر"),
+    ];
+
+    protected override async Task OnInitializedAsync()
+    {
+        try
+        {
+            if (await SetupService.IsSetupCompletedAsync())
+                Nav.NavigateTo("/Login", forceLoad: true);
+        }
+        catch
+        {
+            // DB not yet configured – stay on Setup page
+        }
+    }
+
+    private void SetLanguage(string lang) => _lang = lang;
+
+    private void OnProviderChanged(string provider)
+    {
+        _req.Database.Provider = provider;
+        _req.Database.Port = provider switch
+        {
+            "PostgreSQL" => 5432,
+            "MySQL" or "MariaDB" => 3306,
+            _ => 1433,
+        };
+    }
+
+    private string? ValidateEmail(string? value)
+    {
+        if (string.IsNullOrWhiteSpace(value)) return null; // Required handles this
+        return value.Contains('@') ? null : _s.InvalidEmail;
+    }
+
+    private async Task TestConnection()
+    {
+        _testLoading = true;
+        try
+        {
+            var result = await SetupService.TestConnectionAsync(_req.Database);
+            if (result.Success)
+                Snackbar.Add(_s.TestOk, Severity.Success);
+            else
+                Snackbar.Add($"{_s.TestFail}: {result.Message}", Severity.Error);
+        }
+        catch (Exception ex)
+        {
+            Snackbar.Add($"{_s.TestFail}: {ex.Message}", Severity.Error);
+        }
+        finally
+        {
+            _testLoading = false;
+        }
+    }
+
+    private async Task CreateSetup()
+    {
+        await _form.ValidateAsync();
+        if (!_form.IsValid) return;
+
+        _createLoading = true;
+        try
+        {
+            await SetupService.CompleteSetupAsync(_req);
+            Nav.NavigateTo("/Login", forceLoad: true);
+        }
+        catch (Exception ex)
+        {
+            Snackbar.Add($"{_s.SetupFail}: {ex.Message}", Severity.Error);
+        }
+        finally
+        {
+            _createLoading = false;
+        }
+    }
+}

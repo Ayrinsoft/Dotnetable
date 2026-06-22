@@ -1,15 +1,23 @@
-@inject NavigationManager Nav
-
-<ul class="nav-menu">
-    <li><NavLink href="/">Dashboard</NavLink></li>
+<MudNavMenu>
+    <MudNavLink Href="/" Match="NavLinkMatch.All" Icon="@Icons.Material.Filled.Dashboard">
+        Dashboard
+    </MudNavLink>
 
     <AuthorizeView Policy="@AdminPolicies.SuperAdminOnly">
-        <li><NavLink href="/websites">Websites</NavLink></li>
-        <li><NavLink href="/system/updates">Database Updates</NavLink></li>
+        <MudNavLink Href="/websites" Icon="@Icons.Material.Filled.Language">
+            Websites
+        </MudNavLink>
+        <MudNavLink Href="/system/updates" Icon="@Icons.Material.Filled.SystemUpdate">
+            Database Updates
+        </MudNavLink>
     </AuthorizeView>
 
     <AuthorizeView Policy="@AdminPolicies.WebsiteAdminOrAbove">
-        <li><NavLink href="/members">Members</NavLink></li>
-        <li><NavLink href="/translations">Translations</NavLink></li>
+        <MudNavLink Href="/members" Icon="@Icons.Material.Filled.People">
+            Members
+        </MudNavLink>
+        <MudNavLink Href="/translations" Icon="@Icons.Material.Filled.Translate">
+            Translations
+        </MudNavLink>
     </AuthorizeView>
-</ul>
+</MudNavMenu>
