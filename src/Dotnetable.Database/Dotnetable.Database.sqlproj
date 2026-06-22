@@ -48,6 +48,33 @@
     <Folder Include="StoredProcedures\" />
     <Folder Include="Security\" />
   </ItemGroup>
+  <ItemGroup>
+    <Build Include="WebstieStorageSettings.sql" />
+    <Build Include="WebsiteSocialLink.sql" />
+    <Build Include="WebsiteSeoSetting.sql" />
+    <Build Include="WebsiteScript.sql" />
+    <Build Include="WebsiteIP.sql" />
+    <Build Include="Website.sql" />
+    <Build Include="StateTranslation.sql" />
+    <Build Include="State.sql" />
+    <Build Include="Role.sql" />
+    <Build Include="PolicyRole.sql" />
+    <Build Include="Policy.sql" />
+    <Build Include="MemberForgetPassword.sql" />
+    <Build Include="Member.sql" />
+    <Build Include="LoginTry.sql" />
+    <Build Include="LocalizationValue.sql" />
+    <Build Include="LocalizationKey.sql" />
+    <Build Include="Language.sql" />
+    <Build Include="FileRecord.sql" />
+    <Build Include="EmailSubscribe.sql" />
+    <Build Include="EmailSetting.sql" />
+    <Build Include="CountryTranslation.sql" />
+    <Build Include="Country.sql" />
+    <Build Include="ContactUsMessage.sql" />
+    <Build Include="CityTranslation.sql" />
+    <Build Include="City.sql" />
+  </ItemGroup>
   <Import Project="$(MSBuildExtensionsPath)\Microsoft\VisualStudio\v$(VisualStudioVersion)\SSDT\Microsoft.Data.Tools.Schema.SqlTasks.targets" Condition="'$(VisualStudioVersion)' != '' And Exists('$(MSBuildExtensionsPath)\Microsoft\VisualStudio\v$(VisualStudioVersion)\SSDT\Microsoft.Data.Tools.Schema.SqlTasks.targets')" />
   <Import Project="$(MSBuildExtensionsPath)\Microsoft\VisualStudio\SSDT\Microsoft.Data.Tools.Schema.SqlTasks.targets" Condition="'$(VisualStudioVersion)' == '' And Exists('$(MSBuildExtensionsPath)\Microsoft\VisualStudio\SSDT\Microsoft.Data.Tools.Schema.SqlTasks.targets')" />
 </Project>
