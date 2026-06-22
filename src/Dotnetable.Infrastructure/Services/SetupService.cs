@@ -81,9 +81,14 @@ public class SetupService : ISetupService
 
     private async Task SeedInitialDataAsync(AppDbContext context, SetupRequest request, CancellationToken ct)
     {
-        await using var transaction = await context.Database.BeginTransactionAsync(ct);
+        // Providers are configured with EnableRetryOnFailure, so a user-initiated transaction must
+        // run inside the execution strategy as a single retriable unit — otherwise EF throws.
+        var strategy = context.Database.CreateExecutionStrategy();
+        await strategy.ExecuteAsync(async () =>
+        {
+            await using var transaction = await context.Database.BeginTransactionAsync(ct);
 
-        // 1. Master website. As the first row inserted into an empty table it receives WebsiteID 1.
+            // 1. Master website. As the first row inserted into an empty table it receives WebsiteID 1.
         var website = new Website
         {
             TradeName = request.TradeName,
@@ -141,6 +146,7 @@ public class SetupService : ISetupService
         context.Members.Add(member);
         await context.SaveChangesAsync(ct);
 
-        await transaction.CommitAsync(ct);
+            await transaction.CommitAsync(ct);
+        });
     }
 }
