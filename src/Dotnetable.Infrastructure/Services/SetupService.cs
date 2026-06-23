@@ -13,17 +13,20 @@ public class SetupService : ISetupService
 {
     private readonly IDbContextFactory<AppDbContext> _contextFactory;
     private readonly IDatabaseConfigStore _configStore;
+    private readonly IAppSettingsStore _appSettings;
     private readonly IDatabaseProvisionerRegistry _provisioners;
     private readonly IPasswordHasher<Member> _hasher;
 
     public SetupService(
         IDbContextFactory<AppDbContext> contextFactory,
         IDatabaseConfigStore configStore,
+        IAppSettingsStore appSettings,
         IDatabaseProvisionerRegistry provisioners,
         IPasswordHasher<Member> hasher)
     {
         _contextFactory = contextFactory;
         _configStore = configStore;
+        _appSettings = appSettings;
         _provisioners = provisioners;
         _hasher = hasher;
     }
@@ -73,6 +76,14 @@ public class SetupService : ISetupService
         var optionsBuilder = new DbContextOptionsBuilder<AppDbContext>();
         ServiceCollectionExtensions.ConfigureProvider(optionsBuilder, request.Database.Provider, connectionString);
         await using var context = new AppDbContext(optionsBuilder.Options);
+
+        // Persist the optional anti-bot keys collected on the form (empty = math captcha fallback).
+        await _appSettings.SaveSecurityAsync(new SecuritySettings
+        {
+            TurnstileSiteKey = request.TurnstileSiteKey,
+            TurnstileSecretKey = request.TurnstileSecretKey,
+            CaptchaMode = CaptchaMode.Auto,
+        }, ct);
 
         // Build/upgrade the schema, then seed initial data in one transaction.
         await context.Database.MigrateAsync(ct);
@@ -145,6 +156,24 @@ public class SetupService : ISetupService
         member.Password = _hasher.HashPassword(member, request.Password);
         context.Members.Add(member);
         await context.SaveChangesAsync(ct);
+
+        // 5. Optional default SMTP settings so forgot-password email works from first run.
+        if (!string.IsNullOrWhiteSpace(request.MailServer) && !string.IsNullOrWhiteSpace(request.MailAddress))
+        {
+            context.EmailSettings.Add(new EmailSetting
+            {
+                MailServer = request.MailServer.Trim(),
+                SMTPPort = request.SmtpPort,
+                EnableSSL = request.MailEnableSSL,
+                EmailAddress = request.MailAddress.Trim(),
+                Password = request.MailPassword,
+                MailName = string.IsNullOrWhiteSpace(request.MailName) ? request.MailAddress.Trim() : request.MailName.Trim(),
+                EmailTypeID = 0,
+                DefaultEMail = true,
+                Active = true,
+            });
+            await context.SaveChangesAsync(ct);
+        }
 
             await transaction.CommitAsync(ct);
         });

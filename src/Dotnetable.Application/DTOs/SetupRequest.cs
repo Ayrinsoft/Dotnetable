@@ -23,4 +23,16 @@ public class SetupRequest
     public string Email { get; set; } = string.Empty;
     public string Givenname { get; set; } = string.Empty;
     public string Surname { get; set; } = string.Empty;
+
+    // Optional bot protection. When left empty the admin forms fall back to the math captcha.
+    public string TurnstileSiteKey { get; set; } = string.Empty;
+    public string TurnstileSecretKey { get; set; } = string.Empty;
+
+    // Optional SMTP settings, enabling forgot-password email from first run. All optional.
+    public string MailServer { get; set; } = string.Empty;
+    public int SmtpPort { get; set; } = 587;
+    public bool MailEnableSSL { get; set; } = true;
+    public string MailAddress { get; set; } = string.Empty;
+    public string MailPassword { get; set; } = string.Empty;
+    public string MailName { get; set; } = string.Empty;
 }

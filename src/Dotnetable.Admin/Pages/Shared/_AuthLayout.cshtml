@@ -1,0 +1,138 @@
+@{
+    Layout = null;
+    var dir = (ViewData["Dir"] as string) ?? "ltr";
+}
+<!DOCTYPE html>
+<html lang="en" dir="@dir">
+<head>
+    <meta charset="utf-8" />
+    <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+    <title>@ViewData["Title"] - Dotnetable Admin</title>
+    <link rel="stylesheet" href="https://fonts.googleapis.com/css?family=Roboto:300,400,500,700&display=swap" />
+    <style>
+        :root {
+            --accent: #594AE2;
+            --accent-dark: #4439b0;
+            --text: #2d3142;
+            --muted: #7a829a;
+            --border: #e2e5ef;
+            --error: #d32f2f;
+            --success: #2e7d32;
+        }
+
+        * { box-sizing: border-box; }
+
+        body {
+            margin: 0;
+            min-height: 100vh;
+            font-family: 'Roboto', system-ui, -apple-system, sans-serif;
+            color: var(--text);
+            background: linear-gradient(135deg, #6a5cf0 0%, #4439b0 100%);
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            padding: 24px;
+        }
+
+        .auth-card {
+            width: 100%;
+            max-width: 420px;
+            background: #fff;
+            border-radius: 16px;
+            box-shadow: 0 18px 50px rgba(33, 27, 87, .28);
+            padding: 40px 36px 32px;
+            animation: rise .35s ease;
+        }
+
+        @@keyframes rise { from { opacity: 0; transform: translateY(12px); } to { opacity: 1; transform: none; } }
+
+        .auth-brand {
+            display: flex;
+            align-items: center;
+            gap: 12px;
+            margin-bottom: 6px;
+        }
+
+        .auth-logo {
+            width: 44px; height: 44px;
+            border-radius: 12px;
+            background: linear-gradient(135deg, var(--accent), var(--accent-dark));
+            color: #fff;
+            font-weight: 700; font-size: 22px;
+            display: flex; align-items: center; justify-content: center;
+        }
+
+        .auth-brand h1 { font-size: 20px; margin: 0; font-weight: 700; }
+        .auth-subtitle { color: var(--muted); font-size: 14px; margin: 4px 0 28px; }
+
+        .field { margin-bottom: 18px; }
+        .field label { display: block; font-size: 13px; font-weight: 500; margin-bottom: 6px; color: var(--text); }
+
+        .field input[type=text],
+        .field input[type=password],
+        .field input[type=email],
+        .field input[type=number] {
+            width: 100%;
+            padding: 12px 14px;
+            font-size: 15px;
+            border: 1px solid var(--border);
+            border-radius: 10px;
+            outline: none;
+            transition: border-color .15s, box-shadow .15s;
+            background: #fbfbfe;
+        }
+
+        .field input:focus {
+            border-color: var(--accent);
+            box-shadow: 0 0 0 3px rgba(89, 74, 226, .15);
+            background: #fff;
+        }
+
+        .btn {
+            width: 100%;
+            padding: 13px;
+            font-size: 15px;
+            font-weight: 600;
+            color: #fff;
+            background: linear-gradient(135deg, var(--accent), var(--accent-dark));
+            border: none;
+            border-radius: 10px;
+            cursor: pointer;
+            transition: filter .15s, transform .05s;
+        }
+
+        .btn:hover { filter: brightness(1.06); }
+        .btn:active { transform: translateY(1px); }
+
+        .auth-links { display: flex; justify-content: space-between; margin-top: 18px; font-size: 13px; flex-wrap: wrap; gap: 8px; }
+        .auth-links a { color: var(--accent); text-decoration: none; }
+        .auth-links a:hover { text-decoration: underline; }
+
+        .alert { padding: 11px 14px; border-radius: 10px; font-size: 13.5px; margin-bottom: 18px; }
+        .alert-error { background: #fde8e8; color: var(--error); }
+        .alert-success { background: #e7f4e8; color: var(--success); }
+        .alert-info { background: #eef1fd; color: var(--accent-dark); }
+
+        .captcha-row { display: flex; align-items: center; gap: 10px; }
+        .captcha-row .captcha-img { flex: 0 0 auto; line-height: 0; border-radius: 8px; overflow: hidden; border: 1px solid var(--border); }
+        .captcha-row input { flex: 1 1 auto; }
+        .captcha-refresh {
+            flex: 0 0 auto; border: 1px solid var(--border); background: #fbfbfe;
+            border-radius: 8px; width: 40px; height: 44px; cursor: pointer; font-size: 18px; color: var(--muted);
+        }
+        .captcha-refresh:hover { color: var(--accent); border-color: var(--accent); }
+
+        .field-error { color: var(--error); font-size: 12.5px; margin-top: 5px; }
+    </style>
+    @await RenderSectionAsync("Head", required: false)
+</head>
+<body>
+    <div class="auth-card">
+        <div class="auth-brand">
+            <div class="auth-logo">D</div>
+            <h1>Dotnetable Admin</h1>
+        </div>
+        @RenderBody()
+    </div>
+</body>
+</html>

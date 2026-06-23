@@ -368,5 +368,6 @@ FodyWeavers.xsd
 /Presentation/Dotnetable.Admin/FileLibrary/0/TMP
 /Presentation/Dotnetable.Admin/FileLibrary/2/5
 
-# Runtime DB connection written by the Setup page (do not commit secrets)
+# Runtime local settings written by Setup / Settings: DB connection + Turnstile keys (do not commit secrets)
 **/dbsettings.json
+**/localsettings.json

@@ -1,34 +1,35 @@
 @page
 @model Dotnetable.Admin.Pages.LoginModel
 @{
-    Layout = null;
+    Layout = "_AuthLayout";
+    ViewData["Title"] = "Login";
 }
-<!DOCTYPE html>
-<html lang="en">
-<head>
-    <meta charset="utf-8" />
-    <meta name="viewport" content="width=device-width, initial-scale=1.0" />
-    <title>Login - Dotnetable Admin</title>
-</head>
-<body>
-    <div style="max-width:400px;margin:80px auto;font-family:sans-serif">
-        <h2>Dotnetable Admin</h2>
-        <form method="post">
-            <div asp-validation-summary="ModelOnly" style="color:red"></div>
-            <div>
-                <label>Username</label>
-                <input asp-for="Input.Username" type="text" autocomplete="username" style="display:block;width:100%;padding:8px;margin:4px 0 12px" />
-            </div>
-            <div>
-                <label>Password</label>
-                <input asp-for="Input.Password" type="password" autocomplete="current-password" style="display:block;width:100%;padding:8px;margin:4px 0 12px" />
-            </div>
-            <button type="submit" style="padding:8px 20px">Login</button>
-        </form>
-        @if (!string.IsNullOrEmpty(Model.ErrorMessage))
-        {
-            <p style="color:red;margin-top:12px">@Model.ErrorMessage</p>
-        }
+
+<p class="auth-subtitle">Sign in to your administration panel.</p>
+
+@if (!string.IsNullOrEmpty(Model.ErrorMessage))
+{
+    <div class="alert alert-error">@Model.ErrorMessage</div>
+}
+
+<form method="post">
+    <div class="field">
+        <label asp-for="Input.Username">Username</label>
+        <input asp-for="Input.Username" type="text" autocomplete="username" autofocus />
+        <span asp-validation-for="Input.Username" class="field-error"></span>
     </div>
-</body>
-</html>
+
+    <div class="field">
+        <label asp-for="Input.Password">Password</label>
+        <input asp-for="Input.Password" type="password" autocomplete="current-password" />
+        <span asp-validation-for="Input.Password" class="field-error"></span>
+    </div>
+
+    <partial name="_Captcha" model="Model" />
+
+    <button type="submit" class="btn">Sign in</button>
+
+    <div class="auth-links">
+        <a asp-page="/ForgotPassword">Forgot password?</a>
+    </div>
+</form>
