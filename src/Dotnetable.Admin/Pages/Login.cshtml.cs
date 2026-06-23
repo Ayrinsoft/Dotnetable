@@ -6,16 +6,17 @@ using Dotnetable.Application.Interfaces;
 using Dotnetable.Domain.Entities;
 using Microsoft.AspNetCore.Authentication;
 using Microsoft.AspNetCore.Authentication.Cookies;
+using Microsoft.AspNetCore.Authorization;
 using Microsoft.AspNetCore.Mvc;
-using Microsoft.AspNetCore.Mvc.RazorPages;
 
 namespace Dotnetable.Admin.Pages;
 
-public class LoginModel : PageModel
+[AllowAnonymous]
+public class LoginModel : CaptchaPageModel
 {
     private readonly IMemberService _memberService;
 
-    public LoginModel(IMemberService memberService)
+    public LoginModel(IMemberService memberService, IHumanVerificationService human) : base(human)
     {
         _memberService = memberService;
     }
@@ -34,18 +35,28 @@ public class LoginModel : PageModel
     public IActionResult OnGet()
     {
         if (User.Identity?.IsAuthenticated == true)
-            return RedirectToPage("/Dashboard");
+            return Redirect("/");
+
+        PrepareCaptcha();
         return Page();
     }
 
-    public async Task<IActionResult> OnPostAsync()
+    public async Task<IActionResult> OnPostAsync(CancellationToken ct)
     {
-        if (!ModelState.IsValid) return Page();
+        if (!ModelState.IsValid)
+        {
+            PrepareCaptcha();
+            return Page();
+        }
 
-        var member = await _memberService.ValidateCredentialsAsync(Input.Username, Input.Password);
+        if (!await ValidateCaptchaAsync(ct))
+            return Page();
+
+        var member = await _memberService.ValidateCredentialsAsync(Input.Username, Input.Password, ct);
         if (member is null)
         {
             ErrorMessage = "Invalid username or password.";
+            PrepareCaptcha();
             return Page();
         }
 
@@ -56,7 +67,7 @@ public class LoginModel : PageModel
         await HttpContext.SignInAsync(CookieAuthenticationDefaults.AuthenticationScheme, principal,
             new AuthenticationProperties { IsPersistent = true });
 
-        return RedirectToPage("/Dashboard");
+        return Redirect("/");
     }
 
     private static List<Claim> BuildClaims(Member member)

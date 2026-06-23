@@ -224,6 +224,66 @@
                               Required="true"
                               RequiredError="@_s.Required" />
 
+                @* ── Bot protection (optional) ─────────────────────────── *@
+                <MudText Typo="Typo.h6" Class="mt-6">@_s.SecuritySection</MudText>
+                <MudDivider Class="mb-2" />
+                <MudText Typo="Typo.caption" Color="Color.Secondary" Class="mb-3 ml-2">
+                    @_s.SecurityHint
+                </MudText>
+
+                <MudTextField T="string"
+                              @bind-Value="_req.TurnstileSiteKey"
+                              Label="@_s.TurnstileSiteKey"
+                              Variant="Variant.Outlined"
+                              Class="mb-3" />
+                <MudTextField T="string"
+                              @bind-Value="_req.TurnstileSecretKey"
+                              Label="@_s.TurnstileSecretKey"
+                              Variant="Variant.Outlined"
+                              Class="mb-4"
+                              InputType="InputType.Password" />
+
+                @* ── Email / SMTP (optional) ───────────────────────────── *@
+                <MudText Typo="Typo.h6" Class="mt-6">@_s.EmailSection</MudText>
+                <MudDivider Class="mb-2" />
+                <MudText Typo="Typo.caption" Color="Color.Secondary" Class="mb-3 ml-2">
+                    @_s.EmailHint
+                </MudText>
+
+                <MudTextField T="string"
+                              @bind-Value="_req.MailServer"
+                              Label="@_s.SmtpServer"
+                              Variant="Variant.Outlined"
+                              Class="mb-3" />
+                <MudNumericField T="int"
+                                 @bind-Value="_req.SmtpPort"
+                                 Label="@_s.SmtpPort"
+                                 Variant="Variant.Outlined"
+                                 Class="mb-3"
+                                 Min="1" Max="65535" />
+                <MudCheckBox T="bool"
+                             @bind-Value="_req.MailEnableSSL"
+                             Label="@_s.SmtpSSL"
+                             Class="mb-1" />
+                <MudTextField T="string"
+                              @bind-Value="_req.MailAddress"
+                              Label="@_s.SmtpFrom"
+                              Variant="Variant.Outlined"
+                              Class="mb-3"
+                              InputType="InputType.Email"
+                              Validation="@(new Func<string, string?>(ValidateEmail))" />
+                <MudTextField T="string"
+                              @bind-Value="_req.MailPassword"
+                              Label="@_s.SmtpPassword"
+                              Variant="Variant.Outlined"
+                              Class="mb-3"
+                              InputType="InputType.Password" />
+                <MudTextField T="string"
+                              @bind-Value="_req.MailName"
+                              Label="@_s.SmtpFromName"
+                              Variant="Variant.Outlined"
+                              Class="mb-4" />
+
                 <MudButton Variant="Variant.Filled"
                            Color="Color.Primary"
                            StartIcon="@Icons.Material.Filled.Rocket"

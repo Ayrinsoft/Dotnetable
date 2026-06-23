@@ -1,0 +1,25 @@
+@model Dotnetable.Admin.Pages.ICaptchaView
+<div class="field">
+    @if (Model.CaptchaUseTurnstile)
+    {
+        <label>Verification</label>
+        <div id="turnstile-box">
+            <div class="cf-turnstile" data-sitekey="@Model.TurnstileSiteKey" data-theme="light" data-language="auto"></div>
+        </div>
+        @* If the Turnstile script fails to load (CDN blocked/unreachable), reveal the math fallback. *@
+        <div id="math-fallback" style="display:none;margin-top:12px">
+            <partial name="_MathCaptcha" model="Model" />
+        </div>
+        <script src="https://challenges.cloudflare.com/turnstile/v0/api.js" async defer
+                onerror="(function(){var m=document.getElementById('math-fallback');if(m)m.style.display='block';var t=document.getElementById('turnstile-box');if(t)t.style.display='none';})();"></script>
+    }
+    else
+    {
+        <partial name="_MathCaptcha" model="Model" />
+    }
+
+    @if (!string.IsNullOrEmpty(Model.CaptchaError))
+    {
+        <div class="field-error">@Model.CaptchaError</div>
+    }
+</div>

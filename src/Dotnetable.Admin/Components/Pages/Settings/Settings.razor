@@ -1,0 +1,126 @@
+@page "/settings"
+@attribute [Authorize(Policy = AdminPolicies.SuperAdminOnly)]
+@using Dotnetable.Application.DTOs
+@inject IAppSettingsStore AppSettings
+@inject IEmailService EmailService
+@inject ISnackbar Snackbar
+
+<PageTitle>Settings</PageTitle>
+
+<MudText Typo="Typo.h5" GutterBottom="true">Settings</MudText>
+
+<MudGrid>
+    @* ── Bot protection ───────────────────────────────────────────── *@
+    <MudItem xs="12" md="6">
+        <MudPaper Elevation="2" Class="pa-6">
+            <MudText Typo="Typo.h6" GutterBottom="true">Bot protection</MudText>
+            <MudText Typo="Typo.body2" Color="Color.Secondary" Class="mb-4">
+                Protects the login and forgot-password forms. With Cloudflare Turnstile keys set, the
+                Turnstile widget is used; otherwise a simple math captcha is shown automatically.
+            </MudText>
+
+            <MudSelect T="CaptchaMode" @bind-Value="_security.CaptchaMode" Label="Captcha mode"
+                       Variant="Variant.Outlined" Class="mb-3">
+                <MudSelectItem T="CaptchaMode" Value="CaptchaMode.Auto">Auto (Turnstile if configured, else math)</MudSelectItem>
+                <MudSelectItem T="CaptchaMode" Value="CaptchaMode.Turnstile">Turnstile (falls back to math if unreachable)</MudSelectItem>
+                <MudSelectItem T="CaptchaMode" Value="CaptchaMode.Math">Math captcha only</MudSelectItem>
+            </MudSelect>
+
+            <MudTextField @bind-Value="_security.TurnstileSiteKey" Label="Turnstile site key"
+                          Variant="Variant.Outlined" Class="mb-3" Clearable="true" />
+            <MudTextField @bind-Value="_security.TurnstileSecretKey" Label="Turnstile secret key"
+                          Variant="Variant.Outlined" Class="mb-4" InputType="InputType.Password" Clearable="true" />
+
+            <MudButton Variant="Variant.Filled" Color="Color.Primary"
+                       StartIcon="@Icons.Material.Filled.Save"
+                       OnClick="SaveSecurity" Disabled="@_savingSecurity">
+                @if (_savingSecurity)
+                {
+                    <MudProgressCircular Size="Size.Small" Indeterminate="true" Class="me-2" />
+                }
+                Save protection
+            </MudButton>
+        </MudPaper>
+    </MudItem>
+
+    @* ── Email (SMTP) ─────────────────────────────────────────────── *@
+    <MudItem xs="12" md="6">
+        <MudPaper Elevation="2" Class="pa-6">
+            <MudText Typo="Typo.h6" GutterBottom="true">Email (SMTP)</MudText>
+            <MudText Typo="Typo.body2" Color="Color.Secondary" Class="mb-4">
+                Used to send forgot-password links. Leave empty to disable outgoing email.
+            </MudText>
+
+            <MudTextField @bind-Value="_email.MailServer" Label="SMTP server"
+                          Variant="Variant.Outlined" Class="mb-3" />
+            <MudNumericField @bind-Value="_email.SmtpPort" Label="Port" Min="1" Max="65535"
+                             Variant="Variant.Outlined" Class="mb-3" />
+            <MudCheckBox T="bool" @bind-Value="_email.EnableSSL" Label="Enable SSL/TLS" Class="mb-2" />
+            <MudTextField @bind-Value="_email.EmailAddress" Label="From address / username"
+                          Variant="Variant.Outlined" Class="mb-3" InputType="InputType.Email" />
+            <MudTextField @bind-Value="_email.Password" Label="Password"
+                          Variant="Variant.Outlined" Class="mb-3" InputType="InputType.Password" />
+            <MudTextField @bind-Value="_email.MailName" Label="From display name"
+                          Variant="Variant.Outlined" Class="mb-4" />
+
+            <MudButton Variant="Variant.Filled" Color="Color.Primary"
+                       StartIcon="@Icons.Material.Filled.Save"
+                       OnClick="SaveEmail" Disabled="@_savingEmail">
+                @if (_savingEmail)
+                {
+                    <MudProgressCircular Size="Size.Small" Indeterminate="true" Class="me-2" />
+                }
+                Save email
+            </MudButton>
+        </MudPaper>
+    </MudItem>
+</MudGrid>
+
+@code {
+    private SecuritySettings _security = new();
+    private EmailSettingsInfo _email = new();
+    private bool _savingSecurity;
+    private bool _savingEmail;
+
+    protected override async Task OnInitializedAsync()
+    {
+        _security = AppSettings.Security;
+        _email = await EmailService.GetDefaultAsync() ?? new EmailSettingsInfo();
+    }
+
+    private async Task SaveSecurity()
+    {
+        _savingSecurity = true;
+        try
+        {
+            await AppSettings.SaveSecurityAsync(_security);
+            Snackbar.Add("Bot protection settings saved.", Severity.Success);
+        }
+        catch (Exception ex)
+        {
+            Snackbar.Add($"Save failed: {ex.Message}", Severity.Error);
+        }
+        finally
+        {
+            _savingSecurity = false;
+        }
+    }
+
+    private async Task SaveEmail()
+    {
+        _savingEmail = true;
+        try
+        {
+            await EmailService.SaveDefaultAsync(_email);
+            Snackbar.Add("Email settings saved.", Severity.Success);
+        }
+        catch (Exception ex)
+        {
+            Snackbar.Add($"Save failed: {ex.Message}", Severity.Error);
+        }
+        finally
+        {
+            _savingEmail = false;
+        }
+    }
+}

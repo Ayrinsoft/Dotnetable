@@ -22,11 +22,15 @@ public static class ServiceCollectionExtensions
     {
         var defaultProvider = configuration["Database:Provider"] ?? "MariaDB";
         var defaultConnection = configuration.GetConnectionString("DefaultConnection");
-        var dbSettingsPath = Path.Combine(contentRootPath, "dbsettings.json");
+        var settingsPath = Path.Combine(contentRootPath, "localsettings.json");
 
-        // Single source of truth for the live connection; seeded from appsettings, overridden by dbsettings.json.
-        services.AddSingleton<IDatabaseConfigStore>(_ =>
-            new DatabaseConfigStore(dbSettingsPath, defaultProvider, defaultConnection));
+        // One writable JSON file owns everything that must persist outside the database: the live
+        // connection AND the anti-bot security settings. A single instance is shared by both
+        // interfaces so there is never more than one writer to the file.
+        services.AddSingleton<LocalSettingsStore>(_ =>
+            new LocalSettingsStore(settingsPath, defaultProvider, defaultConnection));
+        services.AddSingleton<IDatabaseConfigStore>(sp => sp.GetRequiredService<LocalSettingsStore>());
+        services.AddSingleton<IAppSettingsStore>(sp => sp.GetRequiredService<LocalSettingsStore>());
 
         // Register the factory with SCOPED options so the live connection string is re-read from
         // the store on every new scope (HTTP request / Blazor circuit). This matters during
@@ -49,6 +53,12 @@ public static class ServiceCollectionExtensions
         services.AddScoped<ISetupService, SetupService>();
         services.AddScoped<IDatabaseUpdateService, DatabaseUpdateService>();
         services.AddScoped<IPasswordHasher<Member>, PasswordHasher<Member>>();
+
+        // Login/forgot-password protection + email.
+        services.AddMemoryCache();
+        services.AddSingleton<IHumanVerificationService, HumanVerificationService>();
+        services.AddScoped<IEmailService, EmailService>();
+        services.AddScoped<IPasswordResetService, PasswordResetService>();
 
         // Provider-specific connection test / database creation used by the Setup page.
         services.AddSingleton<IDatabaseProvisioner, SqlServerProvisioner>();
