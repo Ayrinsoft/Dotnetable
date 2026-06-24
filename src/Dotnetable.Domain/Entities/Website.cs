@@ -40,6 +40,10 @@ public partial class Website
 
     public virtual FileRecord? FaveIconFile { get; set; }
 
+    public virtual ICollection<FileAlbum> FileAlbums { get; set; } = new List<FileAlbum>();
+
+    public virtual ICollection<FileTag> FileTags { get; set; } = new List<FileTag>();
+
     public virtual ICollection<Language> Languages { get; set; } = new List<Language>();
 
     public virtual FileRecord? LogoFile { get; set; }

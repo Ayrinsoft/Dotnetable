@@ -49,6 +49,9 @@
     <Folder Include="Security\" />
   </ItemGroup>
   <ItemGroup>
+    <Build Include="FileAlbum.sql" />
+    <Build Include="FileTag.sql" />
+    <Build Include="FileRecordTag.sql" />
     <Build Include="WebstieStorageSettings.sql" />
     <Build Include="WebsiteSocialLink.sql" />
     <Build Include="WebsiteSeoSetting.sql" />

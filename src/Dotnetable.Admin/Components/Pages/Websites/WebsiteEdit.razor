@@ -2,6 +2,8 @@
 @page "/websites/{Id:int}"
 @attribute [Authorize(Policy = AdminPolicies.SuperAdminOnly)]
 @inject IWebsiteService WebsiteService
+@inject IFileService FileService
+@inject IDialogService DialogService
 @inject NavigationManager Nav
 @inject ISnackbar Snackbar
 
@@ -98,6 +100,67 @@ else if (_website is not null)
                 </MudPaper>
             </MudItem>
 
+            @* ── Branding ─────────────────────────────────── *@
+            <MudItem xs="12">
+                <MudPaper Elevation="0" Class="border rounded-lg pa-6">
+                    <MudText Typo="Typo.subtitle1" Class="fw-bold mb-4">
+                        <MudIcon Icon="@Icons.Material.Filled.Image" Size="Size.Small" Class="me-1" />
+                        Branding
+                    </MudText>
+                    @if (_isNew)
+                    {
+                        <MudAlert Severity="Severity.Info" Dense="true">
+                            Save the website first, then pick a logo and favicon from its media library.
+                        </MudAlert>
+                    }
+                    else
+                    {
+                        <MudGrid Spacing="3">
+                            <MudItem xs="12" sm="6">
+                                <MudText Typo="Typo.body2" Class="mb-1">Logo</MudText>
+                                <MudStack Row="true" Spacing="2" AlignItems="AlignItems.Center">
+                                    <div class="border rounded" style="width:64px; height:64px; display:flex; align-items:center; justify-content:center; overflow:hidden; background:var(--mud-palette-background-grey);">
+                                        @if (_logoFile is { CNDUrl: not null })
+                                        {
+                                            <img src="@(_logoFile.ThumbnailCDN ?? _logoFile.CNDUrl)" style="width:100%; height:100%; object-fit:cover;" />
+                                        }
+                                        else
+                                        {
+                                            <MudIcon Icon="@Icons.Material.Filled.Image" Color="Color.Secondary" />
+                                        }
+                                    </div>
+                                    <MudButton Variant="Variant.Outlined" Size="Size.Small" OnClick="PickLogoAsync">Choose</MudButton>
+                                    @if (_website!.LogoFileID is not null)
+                                    {
+                                        <MudIconButton Icon="@Icons.Material.Filled.Clear" Size="Size.Small" OnClick="ClearLogo" />
+                                    }
+                                </MudStack>
+                            </MudItem>
+                            <MudItem xs="12" sm="6">
+                                <MudText Typo="Typo.body2" Class="mb-1">Favicon</MudText>
+                                <MudStack Row="true" Spacing="2" AlignItems="AlignItems.Center">
+                                    <div class="border rounded" style="width:64px; height:64px; display:flex; align-items:center; justify-content:center; overflow:hidden; background:var(--mud-palette-background-grey);">
+                                        @if (_faveFile is { CNDUrl: not null })
+                                        {
+                                            <img src="@(_faveFile.ThumbnailCDN ?? _faveFile.CNDUrl)" style="width:100%; height:100%; object-fit:cover;" />
+                                        }
+                                        else
+                                        {
+                                            <MudIcon Icon="@Icons.Material.Filled.Image" Color="Color.Secondary" />
+                                        }
+                                    </div>
+                                    <MudButton Variant="Variant.Outlined" Size="Size.Small" OnClick="PickFaveAsync">Choose</MudButton>
+                                    @if (_website!.FaveIconFileID is not null)
+                                    {
+                                        <MudIconButton Icon="@Icons.Material.Filled.Clear" Size="Size.Small" OnClick="ClearFave" />
+                                    }
+                                </MudStack>
+                            </MudItem>
+                        </MudGrid>
+                    }
+                </MudPaper>
+            </MudItem>
+
             @* ── Status ───────────────────────────────────── *@
             <MudItem xs="12">
                 <MudPaper Elevation="0" Class="border rounded-lg pa-6">
@@ -137,6 +200,8 @@ else if (_website is not null)
 
     private MudForm _form = null!;
     private Website? _website;
+    private FileRecord? _logoFile;
+    private FileRecord? _faveFile;
     private bool _loading = true;
     private bool _saving;
     private bool _isNew => Id == 0;
@@ -162,8 +227,41 @@ else if (_website is not null)
         {
             _website = await WebsiteService.GetByIdAsync(Id);
             if (_website is null) Nav.NavigateTo("/websites");
+            else
+            {
+                if (_website.LogoFileID is int logoId) _logoFile = await FileService.GetByIdAsync(logoId);
+                if (_website.FaveIconFileID is int faveId) _faveFile = await FileService.GetByIdAsync(faveId);
+            }
         }
         _loading = false;
+    }
+
+    private async Task PickLogoAsync()
+    {
+        var picked = await PickImageAsync();
+        if (picked is not null) { _website!.LogoFileID = picked.FileRecordID; _logoFile = picked; }
+    }
+
+    private async Task PickFaveAsync()
+    {
+        var picked = await PickImageAsync();
+        if (picked is not null) { _website!.FaveIconFileID = picked.FileRecordID; _faveFile = picked; }
+    }
+
+    private void ClearLogo() { _website!.LogoFileID = null; _logoFile = null; }
+    private void ClearFave() { _website!.FaveIconFileID = null; _faveFile = null; }
+
+    private async Task<FileRecord?> PickImageAsync()
+    {
+        var parameters = new DialogParameters
+        {
+            [nameof(FilePickerDialog.WebsiteId)] = Id,
+            [nameof(FilePickerDialog.Category)] = FileCategory.Image,
+        };
+        var dialog = await DialogService.ShowAsync<FilePickerDialog>("Select a file", parameters,
+            new DialogOptions { MaxWidth = MaxWidth.Medium, FullWidth = true });
+        var result = await dialog.Result;
+        return result is { Canceled: false, Data: FileRecord file } ? file : null;
     }
 
     private async Task SaveAsync()

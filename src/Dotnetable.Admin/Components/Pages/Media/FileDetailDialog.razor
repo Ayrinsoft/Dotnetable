@@ -1,0 +1,130 @@
+@inject IFileService FileService
+@inject ISnackbar Snackbar
+@inject IJSRuntime JS
+
+<MudDialog>
+    <TitleContent>
+        <MudText Typo="Typo.h6">File details</MudText>
+    </TitleContent>
+    <DialogContent>
+        @if (_file is null)
+        {
+            <MudProgressCircular Indeterminate="true" />
+        }
+        else
+        {
+            <MudGrid Spacing="3">
+                <MudItem xs="12" sm="5">
+                    <div class="app-media-preview rounded-lg" style="aspect-ratio:1; display:flex; align-items:center; justify-content:center; overflow:hidden; background:var(--mud-palette-background-grey);">
+                        @if (_file.FileCategory == (byte)FileCategory.Image && !string.IsNullOrEmpty(_file.CNDUrl))
+                        {
+                            <img src="@(_file.ThumbnailCDN ?? _file.CNDUrl)" alt="@_file.AltText"
+                                 style="width:100%; height:100%; object-fit:cover;" />
+                        }
+                        else
+                        {
+                            <MudIcon Icon="@MediaFormat.CategoryIcon(_file.FileCategory)" Size="Size.Large" Color="Color.Secondary" />
+                        }
+                    </div>
+                    <MudText Typo="Typo.caption" Color="Color.Secondary" Class="d-block mt-2">
+                        @_file.OriginalFileName · @MediaFormat.Size(_file.FileSizeKB) · @_file.MimeType
+                    </MudText>
+                </MudItem>
+                <MudItem xs="12" sm="7">
+                    <MudTextField @bind-Value="_title" Label="Title" Variant="Variant.Outlined" Class="mb-3" />
+                    <MudTextField @bind-Value="_alt" Label="Alt text" Variant="Variant.Outlined" Class="mb-3" />
+                    <MudSelect T="int?" @bind-Value="_albumId" Label="Album" Variant="Variant.Outlined" Clearable="true" Class="mb-3">
+                        @foreach (var a in _albums)
+                        {
+                            <MudSelectItem T="int?" Value="a.FileAlbumID">@a.Name</MudSelectItem>
+                        }
+                    </MudSelect>
+                    <MudSelect T="int" @bind-SelectedValues="_tagIds" Label="Tags" Variant="Variant.Outlined"
+                               MultiSelection="true" SelectAll="false">
+                        @foreach (var t in _tags)
+                        {
+                            <MudSelectItem T="int" Value="t.FileTagID">@t.Name</MudSelectItem>
+                        }
+                    </MudSelect>
+
+                    @if (!string.IsNullOrEmpty(_file.CNDUrl))
+                    {
+                        <MudTextField Value="_file.CNDUrl" Label="CDN URL" Variant="Variant.Outlined" ReadOnly="true"
+                                      Class="mt-3" Adornment="Adornment.End"
+                                      AdornmentIcon="@Icons.Material.Filled.ContentCopy"
+                                      OnAdornmentClick="CopyUrlAsync" />
+                    }
+                </MudItem>
+            </MudGrid>
+        }
+    </DialogContent>
+    <DialogActions>
+        <MudButton Color="Color.Error" StartIcon="@Icons.Material.Filled.Delete" OnClick="DeleteAsync">Delete</MudButton>
+        <MudSpacer />
+        <MudButton OnClick="Cancel">Cancel</MudButton>
+        <MudButton Color="Color.Primary" Variant="Variant.Filled" OnClick="SaveAsync" Disabled="@_busy">Save</MudButton>
+    </DialogActions>
+</MudDialog>
+
+@code {
+    [CascadingParameter] private IMudDialogInstance MudDialog { get; set; } = null!;
+    [Parameter] public int FileId { get; set; }
+    [Parameter] public int WebsiteId { get; set; }
+
+    private FileRecord? _file;
+    private bool _busy;
+    private string? _title;
+    private string? _alt;
+    private int? _albumId;
+    private IReadOnlyCollection<int> _tagIds = new HashSet<int>();
+    private IReadOnlyList<FileAlbum> _albums = Array.Empty<FileAlbum>();
+    private IReadOnlyList<FileTag> _tags = Array.Empty<FileTag>();
+
+    protected override async Task OnInitializedAsync()
+    {
+        _albums = await FileService.GetAlbumsAsync(WebsiteId);
+        _tags = await FileService.GetTagsAsync(WebsiteId);
+        _file = await FileService.GetByIdAsync(FileId);
+        if (_file is not null)
+        {
+            _title = _file.Title;
+            _alt = _file.AltText;
+            _albumId = _file.FileAlbumID;
+            _tagIds = _file.FileRecordTags.Select(t => t.FileTagID).ToHashSet();
+        }
+    }
+
+    private async Task SaveAsync()
+    {
+        if (_file is null) return;
+        _busy = true;
+        try
+        {
+            await FileService.UpdateMetadataAsync(_file.FileRecordID, _title, _alt, _albumId, _tagIds.ToList());
+            Snackbar.Add("Saved.", Severity.Success);
+            MudDialog.Close(DialogResult.Ok(true));
+        }
+        catch (Exception ex) { Snackbar.Add($"Save failed: {ex.Message}", Severity.Error); }
+        finally { _busy = false; }
+    }
+
+    private async Task DeleteAsync()
+    {
+        if (_file is null) return;
+        await FileService.SoftDeleteAsync(_file.FileRecordID);
+        Snackbar.Add("File removed.", Severity.Success);
+        MudDialog.Close(DialogResult.Ok(true));
+    }
+
+    private async Task CopyUrlAsync()
+    {
+        try
+        {
+            await JS.InvokeVoidAsync("navigator.clipboard.writeText", _file?.CNDUrl ?? "");
+            Snackbar.Add("URL copied.", Severity.Info);
+        }
+        catch { /* clipboard unavailable */ }
+    }
+
+    private void Cancel() => MudDialog.Cancel();
+}
