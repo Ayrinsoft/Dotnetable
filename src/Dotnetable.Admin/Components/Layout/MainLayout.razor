@@ -1,40 +1,45 @@
 @inherits LayoutComponentBase
+@using Microsoft.JSInterop
+@inject IJSRuntime JS
 
 <MudPopoverProvider />
-<MudThemeProvider Theme="_theme" />
+<MudThemeProvider Theme="_theme" @bind-IsDarkMode="_isDarkMode" />
 <MudDialogProvider />
 <MudSnackbarProvider />
 
 <AuthorizeView>
     <Authorized Context="authCtx">
         <MudLayout>
-            <MudAppBar Elevation="1" Dense="false" Color="Color.Primary">
-                <MudIconButton Icon="@Icons.Material.Filled.Menu" Color="Color.Inherit" Edge="Edge.Start"
+            <MudAppBar Elevation="0" Dense="true" Color="Color.Surface">
+                <MudIconButton Icon="@Icons.Material.Filled.Menu" Color="Color.Default" Edge="Edge.Start"
                                OnClick="@(() => _drawerOpen = !_drawerOpen)" />
-                <MudText Typo="Typo.h6" Class="ms-3 fw-bold">Dotnetable</MudText>
                 <MudSpacer />
-                <MudText Typo="Typo.body2" Class="me-2 d-none d-sm-flex" Style="opacity:.85">
+                <MudText Typo="Typo.body2" Class="me-2 d-none d-sm-flex" Style="color:#4c4c5c;">
                     @authCtx.User.Identity?.Name
                 </MudText>
-                <MudAvatar Color="Color.Secondary" Size="Size.Small" Class="me-2">
+                <MudAvatar Color="Color.Primary" Size="Size.Small" Class="me-1">
                     @(_initials(authCtx.User.Identity?.Name))
                 </MudAvatar>
-                <MudDivider Vertical="true" FlexItem="true" Class="mx-1" Style="border-color:rgba(255,255,255,.3)" />
+                <MudTooltip Text="@(_isDarkMode ? "Light mode" : "Dark mode")">
+                    <MudIconButton Icon="@(_isDarkMode ? Icons.Material.Filled.LightMode : Icons.Material.Filled.DarkMode)"
+                                   Color="Color.Default" OnClick="ToggleDarkMode" />
+                </MudTooltip>
                 <MudTooltip Text="Logout">
-                    <MudIconButton Icon="@Icons.Material.Filled.Logout" Color="Color.Inherit" Href="/Logout" />
+                    <MudIconButton Icon="@Icons.Material.Filled.Logout" Color="Color.Default" Href="/Logout" />
                 </MudTooltip>
             </MudAppBar>
 
-            <MudDrawer @bind-Open="_drawerOpen" Elevation="2" Variant="DrawerVariant.Responsive"
-                       ClipMode="DrawerClipMode.Always">
-                <MudDrawerHeader Class="d-flex align-center gap-2 py-4 px-3">
-                    <MudIcon Icon="@Icons.Material.Filled.AdminPanelSettings" Color="Color.Primary" Size="Size.Large" />
+            <MudDrawer @bind-Open="_drawerOpen" Elevation="0" Variant="DrawerVariant.Responsive"
+                       ClipMode="DrawerClipMode.Never">
+                <MudDrawerHeader Class="d-flex align-center gap-2 px-4">
+                    <MudIcon Icon="@Icons.Material.Filled.Dashboard" Style="color:#348fe2;" Size="Size.Medium" />
                     <MudStack Spacing="0">
-                        <MudText Typo="Typo.subtitle1" Class="fw-bold lh-1">Dotnetable</MudText>
-                        <MudText Typo="Typo.caption" Color="Color.Secondary">Admin Panel</MudText>
+                        <MudText Typo="Typo.subtitle1" Class="fw-bold lh-1" Style="color:#fff; letter-spacing:.04em;">
+                            DOTNETABLE
+                        </MudText>
+                        <MudText Typo="Typo.caption" Style="color:#6d7681;">Admin Panel</MudText>
                     </MudStack>
                 </MudDrawerHeader>
-                <MudDivider />
                 <NavMenu />
             </MudDrawer>
 
@@ -52,6 +57,26 @@
 
 @code {
     private bool _drawerOpen = true;
+    private bool _isDarkMode;
+
+    protected override async Task OnAfterRenderAsync(bool firstRender)
+    {
+        if (firstRender)
+        {
+            var stored = await JS.InvokeAsync<string>("dotnetableTheme.get");
+            if (stored == "dark" && !_isDarkMode)
+            {
+                _isDarkMode = true;
+                StateHasChanged();
+            }
+        }
+    }
+
+    private async Task ToggleDarkMode()
+    {
+        _isDarkMode = !_isDarkMode;
+        await JS.InvokeVoidAsync("dotnetableTheme.set", _isDarkMode ? "dark" : "light");
+    }
 
     private static string _initials(string? name) =>
         string.IsNullOrWhiteSpace(name) ? "?" : name.Trim()[0].ToString().ToUpper();
@@ -60,15 +85,59 @@
     {
         PaletteLight = new PaletteLight
         {
-            Primary          = "#594AE2",
+            Primary             = "#348fe2",
             PrimaryContrastText = "#FFFFFF",
-            Secondary        = "#FF4081",
-            Background       = "#F5F5F6",
-            Surface          = "#FFFFFF",
-            DrawerBackground = "#FFFFFF",
-            DrawerText       = "#424242",
-            AppbarBackground = "#594AE2",
-            AppbarText       = "#FFFFFF",
+            Secondary           = "#727cb6",
+            Tertiary            = "#49b6d6",
+            Info                = "#49b6d6",
+            Success             = "#00acac",
+            Warning             = "#f59c1a",
+            Error               = "#ff5b57",
+            Dark                = "#2d353c",
+            Background          = "#e4e7ea",
+            Surface             = "#FFFFFF",
+            TextPrimary         = "#2d353c",
+            TextSecondary       = "#7b8488",
+            AppbarBackground    = "#FFFFFF",
+            AppbarText          = "#2d353c",
+            DrawerBackground    = "#2d353c",
+            DrawerText          = "#a8acb1",
+            DrawerIcon          = "#a8acb1",
+            LinesDefault        = "#e2e7eb",
+            TableLines          = "#e2e7eb",
+        },
+        PaletteDark = new PaletteDark
+        {
+            Primary             = "#348fe2",
+            PrimaryContrastText = "#FFFFFF",
+            Secondary           = "#727cb6",
+            Tertiary            = "#49b6d6",
+            Info                = "#49b6d6",
+            Success             = "#00acac",
+            Warning             = "#f59c1a",
+            Error               = "#ff5b57",
+            Dark                = "#1a2025",
+            Background          = "#1a2025",
+            BackgroundGray      = "#151a1e",
+            Surface             = "#2d353c",
+            TextPrimary         = "#cdd3d8",
+            TextSecondary       = "#8a939a",
+            AppbarBackground    = "#2d353c",
+            AppbarText          = "#cdd3d8",
+            DrawerBackground    = "#1b2127",
+            DrawerText          = "#a8acb1",
+            DrawerIcon          = "#a8acb1",
+            LinesDefault        = "#3a4148",
+            TableLines          = "#3a4148",
+        },
+        LayoutProperties = new LayoutProperties
+        {
+            DefaultBorderRadius = "4px",
+            DrawerWidthLeft     = "240px",
+        },
+        Typography = new Typography
+        {
+            Default = new DefaultTypography { FontFamily = new[] { "Open Sans", "sans-serif" } }
         }
     };
 }

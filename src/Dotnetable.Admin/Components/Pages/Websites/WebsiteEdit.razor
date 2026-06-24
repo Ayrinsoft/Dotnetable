@@ -57,6 +57,14 @@ else if (_website is not null)
                             <MudTextField @bind-Value="_website.DefaultLanguageCode" Label="Default Language Code"
                                           Variant="Variant.Outlined" MaxLength="2" Placeholder="en" />
                         </MudItem>
+                        <MudItem xs="12" sm="6">
+                            <MudSelect T="byte" @bind-Value="_website.WebsiteType" Label="Website Type"
+                                       Variant="Variant.Outlined"
+                                       HelperText="Stores get the e-commerce dashboard.">
+                                <MudSelectItem T="byte" Value="@((byte)0)">Website</MudSelectItem>
+                                <MudSelectItem T="byte" Value="@((byte)1)">Store</MudSelectItem>
+                            </MudSelect>
+                        </MudItem>
                     </MudGrid>
                 </MudPaper>
             </MudItem>
@@ -171,7 +179,6 @@ else if (_website is not null)
                 _website!.RegisterDate = DateOnly.FromDateTime(DateTime.UtcNow);
                 _website.AuthCode = Guid.NewGuid();
                 _website.AllowAllIP = true;
-                _website.WebsiteType = 0;
                 await WebsiteService.CreateAsync(_website!);
                 Snackbar.Add("Website created successfully.", Severity.Success);
             }

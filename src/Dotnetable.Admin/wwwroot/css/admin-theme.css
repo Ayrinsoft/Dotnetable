@@ -1,0 +1,133 @@
+/* ============================================================
+   Admin UI theme overrides for MudBlazor
+   Palette: accent #348fe2 · sidebar #2d353c · body #e4e7ea
+   ============================================================ */
+
+:root {
+    --app-sidebar-text-mut: #6d7681;
+    --app-accent:           #348fe2;
+    --app-border:           #e2e7eb;
+    --app-body:             #e4e7ea;
+}
+
+/* ---- Typography ---------------------------------------------------- */
+html, body {
+    font-family: 'Open Sans', sans-serif !important;
+    background-color: var(--mud-palette-background, #e4e7ea);
+}
+
+.mud-typography,
+.mud-input-root,
+.mud-button-root,
+.mud-table,
+.mud-nav-link {
+    font-family: 'Open Sans', sans-serif !important;
+}
+
+/* ---- Top bar ------------------------------------------------------- */
+.mud-appbar {
+    box-shadow: 0 1px 2px rgba(0, 0, 0, .04) !important;
+    border-bottom: 1px solid var(--mud-palette-lines-default, var(--app-border));
+}
+
+/* ---- Sidebar / drawer (background comes from the Mud palette) ------ */
+.mud-drawer {
+    border-right: none !important;
+}
+
+.mud-drawer .mud-drawer-header {
+    background: rgba(0, 0, 0, .15);
+    min-height: 64px;
+}
+
+/* section labels inside the dark sidebar */
+.app-nav-label {
+    display: block;
+    color: var(--app-sidebar-text-mut) !important;
+    font-size: .62rem !important;
+    font-weight: 700;
+    letter-spacing: .1em;
+    text-transform: uppercase;
+    padding: 18px 18px 6px;
+}
+
+/* nav links */
+.mud-drawer .mud-nav-link {
+    color: var(--mud-palette-drawer-text) !important;
+    font-size: .855rem;
+    font-weight: 600;
+    padding-top: 11px;
+    padding-bottom: 11px;
+    border-left: 3px solid transparent;
+    transition: background-color .15s ease, color .15s ease;
+}
+
+.mud-drawer .mud-nav-link .mud-nav-link-icon {
+    color: var(--mud-palette-drawer-icon) !important;
+    font-size: 1.15rem;
+}
+
+.mud-drawer .mud-nav-link:hover {
+    color: #ffffff !important;
+    background-color: rgba(255, 255, 255, .05) !important;
+}
+
+.mud-drawer .mud-nav-link:hover .mud-nav-link-icon {
+    color: #ffffff !important;
+}
+
+.mud-drawer .mud-nav-link.active {
+    color: #ffffff !important;
+    background-color: rgba(0, 0, 0, .22) !important;
+    border-left-color: var(--app-accent) !important;
+}
+
+.mud-drawer .mud-nav-link.active .mud-nav-link-icon {
+    color: var(--app-accent) !important;
+}
+
+/* ---- Cards / surfaces --------------------------------------------- */
+.mud-paper.border,
+.app-card {
+    border: 1px solid var(--mud-palette-lines-default, var(--app-border)) !important;
+    box-shadow: 0 1px 2px rgba(0, 0, 0, .035) !important;
+}
+
+/* ---- Colored stat widgets ----------------------------------------- */
+.app-stat {
+    position: relative;
+    overflow: hidden;
+    color: #fff;
+}
+
+.app-stat .app-stat-icon {
+    position: absolute;
+    right: -6px;
+    bottom: -14px;
+    font-size: 5.2rem !important;
+    opacity: .18;
+    pointer-events: none;
+}
+
+.app-stat-value {
+    font-size: 1.7rem;
+    font-weight: 700;
+    line-height: 1.1;
+}
+
+.app-stat-label {
+    font-size: .72rem;
+    font-weight: 700;
+    letter-spacing: .04em;
+    text-transform: uppercase;
+    opacity: .85;
+}
+
+/* ---- Data grid polish --------------------------------------------- */
+.mud-table-container thead th {
+    font-weight: 700 !important;
+    color: var(--mud-palette-text-secondary) !important;
+    text-transform: uppercase;
+    font-size: .72rem;
+    letter-spacing: .03em;
+}
