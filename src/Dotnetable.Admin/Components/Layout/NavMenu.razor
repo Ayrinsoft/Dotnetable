@@ -1,40 +1,31 @@
-<MudNavMenu Class="pt-2">
+<MudNavMenu Class="pt-1">
 
-    <MudNavLink Href="/" Match="NavLinkMatch.All"
-                Icon="@Icons.Material.Filled.Dashboard" IconColor="Color.Primary">
+    <span class="app-nav-label">Navigation</span>
+    <MudNavLink Href="/" Match="NavLinkMatch.All" Icon="@Icons.Material.Filled.Dashboard">
         Dashboard
     </MudNavLink>
 
     <AuthorizeView Policy="@AdminPolicies.WebsiteAdminOrAbove">
-        <MudText Typo="Typo.overline" Class="px-4 mt-4 mb-1"
-                 Style="font-size:.6rem; letter-spacing:.1em; color:var(--mud-palette-text-secondary)">
-            MANAGEMENT
-        </MudText>
-        <MudNavLink Href="/members" Icon="@Icons.Material.Filled.People" IconColor="Color.Primary">
+        <span class="app-nav-label">Management</span>
+        <MudNavLink Href="/members" Icon="@Icons.Material.Filled.People">
             Members
         </MudNavLink>
-        <MudNavLink Href="/translations" Icon="@Icons.Material.Filled.Translate" IconColor="Color.Primary">
+        <MudNavLink Href="/translations" Icon="@Icons.Material.Filled.Translate">
             Translations
         </MudNavLink>
     </AuthorizeView>
 
     <AuthorizeView Policy="@AdminPolicies.SuperAdminOnly">
-        <MudText Typo="Typo.overline" Class="px-4 mt-4 mb-1"
-                 Style="font-size:.6rem; letter-spacing:.1em; color:var(--mud-palette-text-secondary)">
-            ADMINISTRATION
-        </MudText>
-        <MudNavLink Href="/websites" Icon="@Icons.Material.Filled.Language" IconColor="Color.Primary">
+        <span class="app-nav-label">Administration</span>
+        <MudNavLink Href="/websites" Icon="@Icons.Material.Filled.Language">
             Websites
         </MudNavLink>
 
-        <MudText Typo="Typo.overline" Class="px-4 mt-4 mb-1"
-                 Style="font-size:.6rem; letter-spacing:.1em; color:var(--mud-palette-text-secondary)">
-            SYSTEM
-        </MudText>
-        <MudNavLink Href="/system/updates" Icon="@Icons.Material.Filled.SystemUpdateAlt" IconColor="Color.Primary">
+        <span class="app-nav-label">System</span>
+        <MudNavLink Href="/system/updates" Icon="@Icons.Material.Filled.SystemUpdateAlt">
             DB Updates
         </MudNavLink>
-        <MudNavLink Href="/settings" Icon="@Icons.Material.Filled.Settings" IconColor="Color.Primary">
+        <MudNavLink Href="/settings" Icon="@Icons.Material.Filled.Settings">
             Settings
         </MudNavLink>
     </AuthorizeView>

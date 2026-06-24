@@ -1,131 +1,143 @@
 @page "/"
 @attribute [Authorize]
+@inject IWebsiteService WebsiteService
+@inject AuthenticationStateProvider AuthState
+@inject NavigationManager Nav
 
 <PageTitle>Dashboard — Dotnetable</PageTitle>
 
-<AuthorizeView>
-    <Authorized Context="authCtx">
+@* ── Page header ─────────────────────────────────────────────── *@
+<MudStack Row="true" AlignItems="AlignItems.Center" Justify="Justify.SpaceBetween" Class="mb-4">
+    <MudStack Spacing="0">
+        <MudText Typo="Typo.h5" Class="fw-bold">Dashboard</MudText>
+        <MudText Typo="Typo.body2" Color="Color.Secondary">
+            Welcome back, @_userName
+        </MudText>
+    </MudStack>
+    <MudChip T="string" Size="Size.Small" Variant="Variant.Outlined"
+             Color="@(_isShop ? Color.Warning : Color.Primary)"
+             Icon="@(_isShop ? Icons.Material.Filled.ShoppingCart : Icons.Material.Filled.Language)">
+        @(_isShop ? "Store" : "Website")
+    </MudChip>
+</MudStack>
 
-        @* ── Welcome banner ─────────────────────────────────────── *@
-        <MudPaper Elevation="0" Class="rounded-lg pa-6 mb-6 d-flex align-center gap-4"
-                  Style="background:linear-gradient(135deg,#594AE2 0%,#7B6CF6 100%); color:#fff;">
-            <MudAvatar Color="Color.Secondary" Size="Size.Large" Style="font-size:1.5rem; flex-shrink:0;">
-                @(authCtx.User.Identity?.Name?.Trim()[0].ToString().ToUpper() ?? "?")
-            </MudAvatar>
-            <div>
-                <MudText Typo="Typo.h5" Style="color:#fff; font-weight:700;">
-                    Welcome back, @authCtx.User.Identity?.Name
-                </MudText>
-                <MudText Typo="Typo.body2" Style="color:rgba(255,255,255,.75);">
-                    <AuthorizeView Policy="@AdminPolicies.SuperAdminOnly" Context="_">
-                        Super Administrator — full access across all websites
-                    </AuthorizeView>
+@if (_isShop)
+{
+    @* ════════════════ STORE DASHBOARD (v3) ════════════════ *@
+    <MudGrid Spacing="3">
+        @StatBox("#348fe2", "Total Sales", "$0.00", Icons.Material.Filled.AttachMoney, "Total orders: 0 · Avg: $0.00")
+        @StatBox("#49b6d6", "Conversion Rate", "0.00%", Icons.Material.Filled.TrendingUp, "Added to cart · Checkout · Converted")
+        @StatBox("#f59c1a", "Store Sessions", "0", Icons.Material.Filled.Devices, "Mobile · Desktop · Tablet")
+        @StatBox("#727cb6", "Total Page Views", "0K", Icons.Material.Filled.Visibility, "New & returning visitors")
+    </MudGrid>
+
+    <MudGrid Spacing="3" Class="mt-1">
+        <MudItem xs="12" md="8">
+            <MudPaper Elevation="0" Class="app-card rounded-lg">
+                <div class="pa-4 d-flex align-center gap-2" style="border-bottom:1px solid var(--mud-palette-lines-default);">
+                    <MudIcon Icon="@Icons.Material.Filled.Inventory2" Color="Color.Primary" Size="Size.Small" />
+                    <MudText Typo="Typo.subtitle2" Class="fw-bold">Top Products by Units Sold</MudText>
+                </div>
+                <MudStack AlignItems="AlignItems.Center" Class="pa-8" Spacing="2">
+                    <MudIcon Icon="@Icons.Material.Filled.ShoppingBag" Size="Size.Large" Color="Color.Secondary" />
+                    <MudText Color="Color.Secondary">No sales data yet.</MudText>
+                </MudStack>
+            </MudPaper>
+        </MudItem>
+        <MudItem xs="12" md="4">
+            <MudPaper Elevation="0" Class="app-card rounded-lg">
+                <div class="pa-4 d-flex align-center gap-2" style="border-bottom:1px solid var(--mud-palette-lines-default);">
+                    <MudIcon Icon="@Icons.Material.Filled.Public" Color="Color.Primary" Size="Size.Small" />
+                    <MudText Typo="Typo.subtitle2" Class="fw-bold">Sessions by Location</MudText>
+                </div>
+                <MudStack AlignItems="AlignItems.Center" Class="pa-8" Spacing="2">
+                    <MudIcon Icon="@Icons.Material.Filled.Map" Size="Size.Large" Color="Color.Secondary" />
+                    <MudText Color="Color.Secondary">No session data yet.</MudText>
+                </MudStack>
+            </MudPaper>
+        </MudItem>
+    </MudGrid>
+}
+else
+{
+    @* ════════════════ WEBSITE DASHBOARD (v2) ════════════════ *@
+    <MudGrid Spacing="3">
+        @StatBox("#348fe2", "Today's Visits", "0", Icons.Material.Filled.PeopleAlt, "vs last week")
+        @StatBox("#49b6d6", "Page Views", "0", Icons.Material.Filled.Visibility, "vs last week")
+        @StatBox("#f59c1a", "New Members", "0", Icons.Material.Filled.PersonAdd, "vs last week")
+        @StatBox("#ff5b57", "New Comments", "0", Icons.Material.Filled.Comment, "vs last week")
+    </MudGrid>
+
+    <MudGrid Spacing="3" Class="mt-1">
+        <MudItem xs="12" md="8">
+            <MudPaper Elevation="0" Class="app-card rounded-lg">
+                <div class="pa-4 d-flex align-center gap-2" style="border-bottom:1px solid var(--mud-palette-lines-default);">
+                    <MudIcon Icon="@Icons.Material.Filled.InsertChartOutlined" Color="Color.Primary" Size="Size.Small" />
+                    <MudText Typo="Typo.subtitle2" Class="fw-bold">Visitors Analytics</MudText>
+                </div>
+                <MudStack AlignItems="AlignItems.Center" Class="pa-8" Spacing="2">
+                    <MudIcon Icon="@Icons.Material.Filled.ShowChart" Size="Size.Large" Color="Color.Secondary" />
+                    <MudText Color="Color.Secondary">No analytics data yet.</MudText>
+                </MudStack>
+            </MudPaper>
+        </MudItem>
+        <MudItem xs="12" md="4">
+            <MudPaper Elevation="0" Class="app-card rounded-lg h-100">
+                <div class="pa-4 d-flex align-center gap-2" style="border-bottom:1px solid var(--mud-palette-lines-default);">
+                    <MudIcon Icon="@Icons.Material.Filled.Bolt" Color="Color.Primary" Size="Size.Small" />
+                    <MudText Typo="Typo.subtitle2" Class="fw-bold">Quick Actions</MudText>
+                </div>
+                <MudList T="string" Class="py-1">
                     <AuthorizeView Policy="@AdminPolicies.WebsiteAdminOrAbove" Context="_">
-                        <NotAuthorized>
-                            Website @(authCtx.User.FindFirst(AdminClaimTypes.WebsiteId)?.Value) administrator
-                        </NotAuthorized>
+                        <MudListItem T="string" Icon="@Icons.Material.Filled.People" OnClick='() => Nav.NavigateTo("/members")'>
+                            Manage Members
+                        </MudListItem>
+                        <MudListItem T="string" Icon="@Icons.Material.Filled.Translate" OnClick='() => Nav.NavigateTo("/translations")'>
+                            Translations
+                        </MudListItem>
                     </AuthorizeView>
-                </MudText>
-            </div>
-        </MudPaper>
-
-        @* ── Info cards ──────────────────────────────────────────── *@
-        <MudGrid Spacing="3">
-            <MudItem xs="12" sm="6" md="3">
-                <MudPaper Elevation="0" Class="rounded-lg pa-4 border d-flex align-center gap-3">
-                    <MudIcon Icon="@Icons.Material.Filled.Badge" Color="Color.Primary" Size="Size.Large" />
-                    <div>
-                        <MudText Typo="Typo.caption" Color="Color.Secondary">Username</MudText>
-                        <MudText Typo="Typo.subtitle1" Class="fw-bold">@authCtx.User.Identity?.Name</MudText>
-                    </div>
-                </MudPaper>
-            </MudItem>
-
-            <MudItem xs="12" sm="6" md="3">
-                <MudPaper Elevation="0" Class="rounded-lg pa-4 border d-flex align-center gap-3">
-                    <MudIcon Icon="@Icons.Material.Filled.Language" Color="Color.Primary" Size="Size.Large" />
-                    <div>
-                        <MudText Typo="Typo.caption" Color="Color.Secondary">Website ID</MudText>
-                        <MudText Typo="Typo.subtitle1" Class="fw-bold">
-                            @(authCtx.User.FindFirst(AdminClaimTypes.WebsiteId)?.Value ?? "—")
-                        </MudText>
-                    </div>
-                </MudPaper>
-            </MudItem>
-
-            <MudItem xs="12" sm="6" md="3">
-                <MudPaper Elevation="0" Class="rounded-lg pa-4 border d-flex align-center gap-3">
-                    <MudIcon Icon="@Icons.Material.Filled.Security" Color="Color.Primary" Size="Size.Large" />
-                    <div>
-                        <MudText Typo="Typo.caption" Color="Color.Secondary">Access Level</MudText>
-                        <AuthorizeView Policy="@AdminPolicies.SuperAdminOnly" Context="_super">
-                            <MudChip T="string" Size="Size.Small" Color="Color.Warning" Variant="Variant.Filled">Super Admin</MudChip>
-                        </AuthorizeView>
-                        <AuthorizeView Policy="@AdminPolicies.SuperAdminOnly" Context="_super">
-                            <NotAuthorized>
-                                <MudChip T="string" Size="Size.Small" Color="Color.Info" Variant="Variant.Filled">Website Admin</MudChip>
-                            </NotAuthorized>
-                        </AuthorizeView>
-                    </div>
-                </MudPaper>
-            </MudItem>
-
-            <MudItem xs="12" sm="6" md="3">
-                <MudPaper Elevation="0" Class="rounded-lg pa-4 border d-flex align-center gap-3">
-                    <MudIcon Icon="@Icons.Material.Filled.Circle" Color="Color.Success" Size="Size.Large" />
-                    <div>
-                        <MudText Typo="Typo.caption" Color="Color.Secondary">Status</MudText>
-                        <MudText Typo="Typo.subtitle1" Class="fw-bold" Color="Color.Success">Online</MudText>
-                    </div>
-                </MudPaper>
-            </MudItem>
-        </MudGrid>
-
-        @* ── Quick links ─────────────────────────────────────────── *@
-        <MudText Typo="Typo.subtitle2" Color="Color.Secondary" Class="mt-6 mb-3">QUICK ACTIONS</MudText>
-        <MudGrid Spacing="3">
-            <AuthorizeView Policy="@AdminPolicies.WebsiteAdminOrAbove" Context="_">
-                <MudItem xs="12" sm="6" md="4">
-                    <MudPaper Elevation="0" Class="rounded-lg border pa-4 cursor-pointer hover:mud-paper-elevation-2"
-                              @onclick='() => Nav.NavigateTo("/members")'>
-                        <MudStack Row="true" AlignItems="AlignItems.Center" Spacing="2">
-                            <MudIcon Icon="@Icons.Material.Filled.People" Color="Color.Primary" />
-                            <MudText Typo="Typo.body1" Class="fw-medium">Manage Members</MudText>
-                            <MudSpacer />
-                            <MudIcon Icon="@Icons.Material.Filled.ChevronRight" Color="Color.Secondary" />
-                        </MudStack>
-                    </MudPaper>
-                </MudItem>
-                <MudItem xs="12" sm="6" md="4">
-                    <MudPaper Elevation="0" Class="rounded-lg border pa-4 cursor-pointer"
-                              @onclick='() => Nav.NavigateTo("/translations")'>
-                        <MudStack Row="true" AlignItems="AlignItems.Center" Spacing="2">
-                            <MudIcon Icon="@Icons.Material.Filled.Translate" Color="Color.Primary" />
-                            <MudText Typo="Typo.body1" Class="fw-medium">Translations</MudText>
-                            <MudSpacer />
-                            <MudIcon Icon="@Icons.Material.Filled.ChevronRight" Color="Color.Secondary" />
-                        </MudStack>
-                    </MudPaper>
-                </MudItem>
-            </AuthorizeView>
-            <AuthorizeView Policy="@AdminPolicies.SuperAdminOnly" Context="_">
-                <MudItem xs="12" sm="6" md="4">
-                    <MudPaper Elevation="0" Class="rounded-lg border pa-4 cursor-pointer"
-                              @onclick='() => Nav.NavigateTo("/websites")'>
-                        <MudStack Row="true" AlignItems="AlignItems.Center" Spacing="2">
-                            <MudIcon Icon="@Icons.Material.Filled.Language" Color="Color.Primary" />
-                            <MudText Typo="Typo.body1" Class="fw-medium">Websites</MudText>
-                            <MudSpacer />
-                            <MudIcon Icon="@Icons.Material.Filled.ChevronRight" Color="Color.Secondary" />
-                        </MudStack>
-                    </MudPaper>
-                </MudItem>
-            </AuthorizeView>
-        </MudGrid>
-
-    </Authorized>
-</AuthorizeView>
+                    <AuthorizeView Policy="@AdminPolicies.SuperAdminOnly" Context="_">
+                        <MudListItem T="string" Icon="@Icons.Material.Filled.Language" OnClick='() => Nav.NavigateTo("/websites")'>
+                            Websites
+                        </MudListItem>
+                        <MudListItem T="string" Icon="@Icons.Material.Filled.Settings" OnClick='() => Nav.NavigateTo("/settings")'>
+                            Settings
+                        </MudListItem>
+                    </AuthorizeView>
+                </MudList>
+            </MudPaper>
+        </MudItem>
+    </MudGrid>
+}
 
 @code {
-    [Inject] private NavigationManager Nav { get; set; } = null!;
+    private string? _userName;
+    private bool _isMaster;
+    private bool _isShop;
+    private int _websiteId;
+
+    protected override async Task OnInitializedAsync()
+    {
+        var state = await AuthState.GetAuthenticationStateAsync();
+        var user = state.User;
+        _userName = user.Identity?.Name;
+        _isMaster = user.HasClaim(AdminClaimTypes.Master, "true");
+        int.TryParse(user.FindFirst(AdminClaimTypes.WebsiteId)?.Value, out _websiteId);
+
+        if (!_isMaster && _websiteId > 0)
+        {
+            var site = await WebsiteService.GetByIdAsync(_websiteId);
+            _isShop = site?.WebsiteType == 1;
+        }
+    }
+
+    private RenderFragment StatBox(string color, string label, string value, string icon, string sub) =>
+        @<MudItem xs="12" sm="6" md="3">
+            <MudPaper Elevation="0" Class="app-stat rounded-lg pa-4" Style="@($"background:{color};")">
+                <MudIcon Icon="@icon" Class="app-stat-icon" />
+                <div class="app-stat-label">@label</div>
+                <div class="app-stat-value">@value</div>
+                <div style="font-size:.72rem; opacity:.8; margin-top:6px;">@sub</div>
+            </MudPaper>
+        </MudItem>;
 }

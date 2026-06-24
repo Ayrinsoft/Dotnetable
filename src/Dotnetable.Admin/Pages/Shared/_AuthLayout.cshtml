@@ -1,23 +1,40 @@
 @{
     Layout = null;
     var dir = (ViewData["Dir"] as string) ?? "ltr";
+    var themeClass = Context.Request.Cookies["dn-theme"] == "dark" ? "dark" : "";
 }
 <!DOCTYPE html>
-<html lang="en" dir="@dir">
+<html lang="en" dir="@dir" class="@themeClass">
 <head>
     <meta charset="utf-8" />
     <meta name="viewport" content="width=device-width, initial-scale=1.0" />
     <title>@ViewData["Title"] - Dotnetable Admin</title>
-    <link rel="stylesheet" href="https://fonts.googleapis.com/css?family=Roboto:300,400,500,700&display=swap" />
+    <link rel="preconnect" href="https://fonts.googleapis.com" />
+    <link rel="stylesheet" href="https://fonts.googleapis.com/css2?family=Open+Sans:wght@300;400;600;700&display=swap" />
     <style>
         :root {
-            --accent: #594AE2;
-            --accent-dark: #4439b0;
-            --text: #2d3142;
-            --muted: #7a829a;
-            --border: #e2e5ef;
-            --error: #d32f2f;
-            --success: #2e7d32;
+            --accent: #348fe2;
+            --accent-dark: #2f80c9;
+            --bg: #e4e7ea;
+            --card: #ffffff;
+            --text: #2d353c;
+            --heading: #242a30;
+            --muted: #7b8488;
+            --border: #e2e7eb;
+            --input-bg: #fbfcfd;
+            --error: #ff5b57;
+            --success: #00acac;
+        }
+
+        html.dark {
+            --bg: #1a2025;
+            --card: #2d353c;
+            --text: #cdd3d8;
+            --heading: #ffffff;
+            --muted: #8a939a;
+            --border: #3a4148;
+            --input-bg: #232a30;
+            --accent-dark: #348fe2;
         }
 
         * { box-sizing: border-box; }
@@ -25,78 +42,95 @@
         body {
             margin: 0;
             min-height: 100vh;
-            font-family: 'Roboto', system-ui, -apple-system, sans-serif;
+            font-family: 'Open Sans', system-ui, -apple-system, sans-serif;
             color: var(--text);
-            background: linear-gradient(135deg, #6a5cf0 0%, #4439b0 100%);
+            background: var(--bg);
             display: flex;
             align-items: center;
             justify-content: center;
             padding: 24px;
+            transition: background .2s, color .2s;
         }
 
         .auth-card {
             width: 100%;
             max-width: 420px;
-            background: #fff;
-            border-radius: 16px;
-            box-shadow: 0 18px 50px rgba(33, 27, 87, .28);
-            padding: 40px 36px 32px;
+            background: var(--card);
+            border: 1px solid var(--border);
+            border-radius: .5rem;
+            box-shadow: 0 10px 40px rgba(49, 58, 70, .12);
+            padding: 38px 36px 30px;
             animation: rise .35s ease;
         }
 
         @@keyframes rise { from { opacity: 0; transform: translateY(12px); } to { opacity: 1; transform: none; } }
 
-        .auth-brand {
+        .auth-top {
             display: flex;
             align-items: center;
-            gap: 12px;
-            margin-bottom: 6px;
+            justify-content: space-between;
+            margin-bottom: 4px;
         }
 
+        .auth-brand { display: flex; align-items: center; gap: 12px; }
+
         .auth-logo {
-            width: 44px; height: 44px;
-            border-radius: 12px;
-            background: linear-gradient(135deg, var(--accent), var(--accent-dark));
+            width: 42px; height: 42px;
+            border-radius: .4rem;
+            background: var(--accent);
             color: #fff;
-            font-weight: 700; font-size: 22px;
+            font-weight: 700; font-size: 21px;
             display: flex; align-items: center; justify-content: center;
         }
 
-        .auth-brand h1 { font-size: 20px; margin: 0; font-weight: 700; }
-        .auth-subtitle { color: var(--muted); font-size: 14px; margin: 4px 0 28px; }
+        .auth-brand h1 { font-size: 19px; margin: 0; font-weight: 700; color: var(--heading); }
+        .auth-subtitle { color: var(--muted); font-size: 14px; margin: 4px 0 26px; }
+
+        .theme-toggle {
+            border: 1px solid var(--border);
+            background: var(--input-bg);
+            color: var(--muted);
+            border-radius: .4rem;
+            width: 38px; height: 38px;
+            cursor: pointer;
+            font-size: 17px; line-height: 1;
+            display: flex; align-items: center; justify-content: center;
+            transition: color .15s, border-color .15s;
+        }
+        .theme-toggle:hover { color: var(--accent); border-color: var(--accent); }
 
         .field { margin-bottom: 18px; }
-        .field label { display: block; font-size: 13px; font-weight: 500; margin-bottom: 6px; color: var(--text); }
+        .field label { display: block; font-size: 13px; font-weight: 600; margin-bottom: 6px; color: var(--text); }
 
         .field input[type=text],
         .field input[type=password],
         .field input[type=email],
         .field input[type=number] {
             width: 100%;
-            padding: 12px 14px;
+            padding: 11px 14px;
             font-size: 15px;
+            color: var(--text);
             border: 1px solid var(--border);
-            border-radius: 10px;
+            border-radius: .4rem;
             outline: none;
             transition: border-color .15s, box-shadow .15s;
-            background: #fbfbfe;
+            background: var(--input-bg);
         }
 
         .field input:focus {
             border-color: var(--accent);
-            box-shadow: 0 0 0 3px rgba(89, 74, 226, .15);
-            background: #fff;
+            box-shadow: 0 0 0 3px rgba(52, 143, 226, .18);
         }
 
         .btn {
             width: 100%;
-            padding: 13px;
+            padding: 12px;
             font-size: 15px;
             font-weight: 600;
             color: #fff;
-            background: linear-gradient(135deg, var(--accent), var(--accent-dark));
+            background: var(--accent);
             border: none;
-            border-radius: 10px;
+            border-radius: .4rem;
             cursor: pointer;
             transition: filter .15s, transform .05s;
         }
@@ -105,20 +139,20 @@
         .btn:active { transform: translateY(1px); }
 
         .auth-links { display: flex; justify-content: space-between; margin-top: 18px; font-size: 13px; flex-wrap: wrap; gap: 8px; }
-        .auth-links a { color: var(--accent); text-decoration: none; }
+        .auth-links a { color: var(--accent); text-decoration: none; font-weight: 600; }
         .auth-links a:hover { text-decoration: underline; }
 
-        .alert { padding: 11px 14px; border-radius: 10px; font-size: 13.5px; margin-bottom: 18px; }
-        .alert-error { background: #fde8e8; color: var(--error); }
-        .alert-success { background: #e7f4e8; color: var(--success); }
-        .alert-info { background: #eef1fd; color: var(--accent-dark); }
+        .alert { padding: 11px 14px; border-radius: .4rem; font-size: 13.5px; margin-bottom: 18px; }
+        .alert-error { background: rgba(237, 85, 101, .12); color: var(--error); }
+        .alert-success { background: rgba(10, 207, 151, .12); color: var(--success); }
+        .alert-info { background: rgba(52, 143, 226, .12); color: var(--accent-dark); }
 
         .captcha-row { display: flex; align-items: center; gap: 10px; }
-        .captcha-row .captcha-img { flex: 0 0 auto; line-height: 0; border-radius: 8px; overflow: hidden; border: 1px solid var(--border); }
+        .captcha-row .captcha-img { flex: 0 0 auto; line-height: 0; border-radius: .4rem; overflow: hidden; border: 1px solid var(--border); }
         .captcha-row input { flex: 1 1 auto; }
         .captcha-refresh {
-            flex: 0 0 auto; border: 1px solid var(--border); background: #fbfbfe;
-            border-radius: 8px; width: 40px; height: 44px; cursor: pointer; font-size: 18px; color: var(--muted);
+            flex: 0 0 auto; border: 1px solid var(--border); background: var(--input-bg);
+            border-radius: .4rem; width: 40px; height: 44px; cursor: pointer; font-size: 18px; color: var(--muted);
         }
         .captcha-refresh:hover { color: var(--accent); border-color: var(--accent); }
 
@@ -128,11 +162,24 @@
 </head>
 <body>
     <div class="auth-card">
-        <div class="auth-brand">
-            <div class="auth-logo">D</div>
-            <h1>Dotnetable Admin</h1>
+        <div class="auth-top">
+            <div class="auth-brand">
+                <div class="auth-logo">D</div>
+                <h1>Dotnetable Admin</h1>
+            </div>
+            <button type="button" class="theme-toggle" id="themeToggle"
+                    onclick="var n=window.dotnetableTheme.toggle();this.innerHTML=(n==='dark'?'&#9788;':'&#9790;');" title="Toggle theme">
+            </button>
         </div>
         @RenderBody()
     </div>
+    <script src="js/theme.js"></script>
+    <script>
+        (function () {
+            var dark = document.documentElement.classList.contains('dark');
+            var btn = document.getElementById('themeToggle');
+            if (btn) btn.innerHTML = dark ? '&#9788;' : '&#9790;';
+        })();
+    </script>
 </body>
 </html>
