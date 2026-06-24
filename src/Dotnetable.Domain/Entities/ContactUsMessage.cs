@@ -22,4 +22,8 @@ public partial class ContactUsMessage
     public DateTime LogTime { get; set; }
 
     public string SenderIPAddress { get; set; } = null!;
+
+    public int? WebsiteID { get; set; }
+
+    public virtual Website? Website { get; set; }
 }

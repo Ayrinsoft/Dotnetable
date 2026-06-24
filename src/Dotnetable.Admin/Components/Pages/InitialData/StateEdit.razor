@@ -1,0 +1,138 @@
+@page "/initial-data/states/new"
+@page "/initial-data/states/{Id:int}"
+@attribute [Authorize(Policy = AdminPolicies.SuperAdminOnly)]
+@inject ILocationService LocationService
+@inject NavigationManager Nav
+@inject ISnackbar Snackbar
+
+<PageTitle>@(_isNew ? "New State" : "Edit State") — Dotnetable</PageTitle>
+
+<MudBreadcrumbs Items="_breadcrumbs" Class="px-0 pb-2" />
+
+<MudStack Row="true" AlignItems="AlignItems.Center" Justify="Justify.SpaceBetween" Class="mb-4">
+    <MudStack Spacing="0">
+        <MudText Typo="Typo.h5" Class="fw-bold">@(_isNew ? "New State" : "Edit State")</MudText>
+        <MudText Typo="Typo.body2" Color="Color.Secondary">
+            @(_isNew ? "Add a new state or province" : $"Editing state #{Id}")
+        </MudText>
+    </MudStack>
+</MudStack>
+
+@if (_loading)
+{
+    <MudProgressLinear Indeterminate="true" Color="Color.Primary" Class="mb-4" />
+}
+else if (_item is not null)
+{
+    <MudForm @ref="_form">
+        <MudPaper Elevation="0" Class="border rounded-lg pa-6 mb-4">
+            <MudGrid Spacing="3">
+                <MudItem xs="12" sm="5">
+                    <MudTextField @bind-Value="_item.Tile" Label="Name" Variant="Variant.Outlined"
+                                  Required="true" RequiredError="Name is required." />
+                </MudItem>
+                <MudItem xs="12" sm="3">
+                    <MudSelect T="int" @bind-Value="_item.CountryID" Label="Country"
+                               Variant="Variant.Outlined" Required="true" RequiredError="Country is required.">
+                        @foreach (var c in _countries)
+                        {
+                            <MudSelectItem T="int" Value="@c.CountryID">@c.Title</MudSelectItem>
+                        }
+                    </MudSelect>
+                </MudItem>
+                <MudItem xs="12" sm="2">
+                    <MudTextField @bind-Value="_item.LanguageCode" Label="Language Code"
+                                  Variant="Variant.Outlined" MaxLength="2" Placeholder="fa" />
+                </MudItem>
+                <MudItem xs="12" sm="2">
+                    <MudSwitch T="bool" @bind-Value="_item.Active" Color="Color.Primary"
+                               Label="@(_item.Active ? "Active" : "Inactive")" />
+                </MudItem>
+            </MudGrid>
+        </MudPaper>
+
+        <MudStack Row="true" Spacing="2">
+            <MudButton Variant="Variant.Filled" Color="Color.Primary"
+                       StartIcon="@Icons.Material.Filled.Save"
+                       OnClick="SaveAsync" Disabled="@_saving">
+                @if (_saving)
+                {
+                    <MudProgressCircular Size="Size.Small" Indeterminate="true" Class="me-2" />
+                }
+                @(_isNew ? "Create State" : "Save Changes")
+            </MudButton>
+            <MudButton Variant="Variant.Outlined" Color="Color.Default"
+                       StartIcon="@Icons.Material.Filled.ArrowBack"
+                       Href="/initial-data/states">
+                Cancel
+            </MudButton>
+        </MudStack>
+    </MudForm>
+}
+
+@code {
+    [Parameter] public int Id { get; set; }
+
+    private MudForm _form = null!;
+    private State? _item;
+    private List<Country> _countries = new();
+    private bool _loading = true;
+    private bool _saving;
+    private bool _isNew => Id == 0;
+
+    private List<BreadcrumbItem> _breadcrumbs => new()
+    {
+        new("Dashboard", "/"),
+        new("States", "/initial-data/states"),
+        new(_isNew ? "New" : $"#{Id}", null, true),
+    };
+
+    protected override async Task OnInitializedAsync()
+    {
+        _countries = (await LocationService.GetAllCountriesAsync()).ToList();
+
+        if (_isNew)
+        {
+            _item = new State
+            {
+                Tile = string.Empty,
+                LanguageCode = "en",
+                Active = true,
+                CountryID = _countries.FirstOrDefault()?.CountryID ?? 0,
+            };
+        }
+        else
+        {
+            _item = await LocationService.GetStateByIdAsync(Id);
+            if (_item is null) Nav.NavigateTo("/initial-data/states");
+        }
+        _loading = false;
+    }
+
+    private async Task SaveAsync()
+    {
+        await _form.ValidateAsync();
+        if (!_form.IsValid) return;
+
+        _saving = true;
+        try
+        {
+            if (_isNew)
+            {
+                await LocationService.CreateStateAsync(_item!);
+                Snackbar.Add("State created successfully.", Severity.Success);
+            }
+            else
+            {
+                await LocationService.UpdateStateAsync(_item!);
+                Snackbar.Add("Changes saved successfully.", Severity.Success);
+            }
+            Nav.NavigateTo("/initial-data/states");
+        }
+        catch (Exception ex)
+        {
+            Snackbar.Add($"Save failed: {ex.Message}", Severity.Error);
+        }
+        finally { _saving = false; }
+    }
+}

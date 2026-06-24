@@ -1,0 +1,78 @@
+﻿using Microsoft.EntityFrameworkCore.Migrations;
+
+#nullable disable
+
+namespace Dotnetable.Migrations.MySql.Migrations
+{
+    /// <inheritdoc />
+    public partial class AddWebsiteMessagingScoping : Migration
+    {
+        /// <inheritdoc />
+        protected override void Up(MigrationBuilder migrationBuilder)
+        {
+            migrationBuilder.AddColumn<int>(
+                name: "WebsiteID",
+                table: "EmailSetting",
+                type: "int",
+                nullable: true);
+
+            migrationBuilder.AddColumn<int>(
+                name: "WebsiteID",
+                table: "ContactUsMessage",
+                type: "int",
+                nullable: true);
+
+            migrationBuilder.CreateIndex(
+                name: "IX_EmailSetting_WebsiteID",
+                table: "EmailSetting",
+                column: "WebsiteID");
+
+            migrationBuilder.CreateIndex(
+                name: "IX_ContactUsMessage_WebsiteID",
+                table: "ContactUsMessage",
+                column: "WebsiteID");
+
+            migrationBuilder.AddForeignKey(
+                name: "FK_ContactUsMessage_Website",
+                table: "ContactUsMessage",
+                column: "WebsiteID",
+                principalTable: "Website",
+                principalColumn: "WebsiteID");
+
+            migrationBuilder.AddForeignKey(
+                name: "FK_EmailSetting_Website",
+                table: "EmailSetting",
+                column: "WebsiteID",
+                principalTable: "Website",
+                principalColumn: "WebsiteID");
+        }
+
+        /// <inheritdoc />
+        protected override void Down(MigrationBuilder migrationBuilder)
+        {
+            migrationBuilder.DropForeignKey(
+                name: "FK_ContactUsMessage_Website",
+                table: "ContactUsMessage");
+
+            migrationBuilder.DropForeignKey(
+                name: "FK_EmailSetting_Website",
+                table: "EmailSetting");
+
+            migrationBuilder.DropIndex(
+                name: "IX_EmailSetting_WebsiteID",
+                table: "EmailSetting");
+
+            migrationBuilder.DropIndex(
+                name: "IX_ContactUsMessage_WebsiteID",
+                table: "ContactUsMessage");
+
+            migrationBuilder.DropColumn(
+                name: "WebsiteID",
+                table: "EmailSetting");
+
+            migrationBuilder.DropColumn(
+                name: "WebsiteID",
+                table: "ContactUsMessage");
+        }
+    }
+}

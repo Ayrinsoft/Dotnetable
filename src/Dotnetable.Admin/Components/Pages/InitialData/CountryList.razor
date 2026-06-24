@@ -1,0 +1,88 @@
+@page "/initial-data/countries"
+@attribute [Authorize(Policy = AdminPolicies.SuperAdminOnly)]
+@inject ILocationService LocationService
+@inject ISnackbar Snackbar
+
+<PageTitle>Countries — Dotnetable</PageTitle>
+
+<MudStack Row="true" AlignItems="AlignItems.Center" Justify="Justify.SpaceBetween" Class="mb-4">
+    <MudStack Spacing="0">
+        <MudText Typo="Typo.h5" Class="fw-bold">Countries</MudText>
+        <MudText Typo="Typo.body2" Color="Color.Secondary">Manage country reference data</MudText>
+    </MudStack>
+    <MudButton Variant="Variant.Filled" Color="Color.Primary"
+               StartIcon="@Icons.Material.Filled.Add"
+               Href="/initial-data/countries/new">
+        New Country
+    </MudButton>
+</MudStack>
+
+<MudPaper Elevation="0" Class="app-card rounded-lg pa-4">
+    @if (_loading)
+    {
+        <MudProgressLinear Indeterminate="true" Color="Color.Primary" Class="mb-3" />
+    }
+    <DNGridView GridHeaderParams="_grid" OnSearchChanged="OnGridChanged">
+        @if (_items.Count == 0)
+        {
+            <tr>
+                <td colspan="6" style="text-align:center; padding:32px;">
+                    <MudText Color="Color.Secondary">No countries found.</MudText>
+                </td>
+            </tr>
+        }
+        else
+        {
+            @foreach (var c in _items)
+            {
+                <tr>
+                    <td>
+                        <MudIconButton Icon="@Icons.Material.Filled.Edit" Size="Size.Small"
+                                       Color="Color.Primary" Href="@($"/initial-data/countries/{c.CountryID}")" />
+                    </td>
+                    <td>@c.CountryID</td>
+                    <td>@c.CountryCode</td>
+                    <td>@c.Title</td>
+                    <td>@c.PhonePerfix</td>
+                    <td>@c.LanguageCode</td>
+                </tr>
+            }
+        }
+    </DNGridView>
+</MudPaper>
+
+@code {
+    private bool _loading = true;
+    private List<Country> _items = new();
+    private GridViewHeaderParameters _grid = new();
+
+    protected override async Task OnInitializedAsync()
+    {
+        _grid = new GridViewHeaderParameters
+        {
+            Pagination = new PaginationModel { PageSize = 25 },
+            HeaderItems = new()
+            {
+                new() { ColumnTitle = "", ColumnName = "" },
+                new() { ColumnTitle = "ID", ColumnName = nameof(Country.CountryID), HasSort = true },
+                new() { ColumnTitle = "Code", ColumnName = nameof(Country.CountryCode), HasSort = true, HasSearch = true },
+                new() { ColumnTitle = "Title", ColumnName = nameof(Country.Title), HasSort = true, HasSearch = true },
+                new() { ColumnTitle = "Phone Prefix", ColumnName = nameof(Country.PhonePerfix) },
+                new() { ColumnTitle = "Language", ColumnName = nameof(Country.LanguageCode) },
+            }
+        };
+
+        await LoadAsync();
+    }
+
+    private Task OnGridChanged(GridViewHeaderParameters _) => LoadAsync();
+
+    private async Task LoadAsync()
+    {
+        _loading = true;
+        var result = await LocationService.GetCountriesPagedAsync(_grid.ToQuery());
+        _items = result.Items.ToList();
+        _grid.Pagination.MaxLength = result.TotalCount;
+        _loading = false;
+    }
+}

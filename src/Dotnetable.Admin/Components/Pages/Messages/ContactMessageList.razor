@@ -1,0 +1,128 @@
+@page "/messages/contacts"
+@attribute [Authorize(Policy = AdminPolicies.WebsiteAdminOrAbove)]
+@inject IContactMessageService MessageService
+@inject AuthenticationStateProvider AuthState
+@inject ISnackbar Snackbar
+@inject NavigationManager Nav
+
+<PageTitle>Contact Messages — Dotnetable</PageTitle>
+
+<MudStack Row="true" AlignItems="AlignItems.Center" Justify="Justify.SpaceBetween" Class="mb-4">
+    <MudStack Spacing="0">
+        <MudText Typo="Typo.h5" Class="fw-bold">Contact Messages</MudText>
+        <MudText Typo="Typo.body2" Color="Color.Secondary">Messages received through your contact form</MudText>
+    </MudStack>
+</MudStack>
+
+<MudPaper Elevation="0" Class="app-card rounded-lg pa-4">
+    @if (_loading)
+    {
+        <MudProgressLinear Indeterminate="true" Color="Color.Primary" Class="mb-3" />
+    }
+    <DNGridView GridHeaderParams="_grid" OnSearchChanged="OnGridChanged">
+        @if (_items.Count == 0)
+        {
+            <tr>
+                <td colspan="7" style="text-align:center; padding:32px;">
+                    <MudText Color="Color.Secondary">No messages found.</MudText>
+                </td>
+            </tr>
+        }
+        else
+        {
+            @foreach (var m in _items)
+            {
+                <tr style="cursor:pointer" @onclick="@(() => Nav.NavigateTo($"/messages/contacts/{m.ContactUsMessagesID}"))">
+                    <td @onclick:stopPropagation="true">
+                        <MudStack Row="true" Spacing="1">
+                            <MudIconButton Icon="@Icons.Material.Filled.Visibility" Size="Size.Small"
+                                           Color="Color.Primary"
+                                           Href="@($"/messages/contacts/{m.ContactUsMessagesID}")" />
+                            <MudIconButton Icon="@Icons.Material.Filled.Delete" Size="Size.Small"
+                                           Color="Color.Error" OnClick="@(() => DeleteAsync(m))" />
+                        </MudStack>
+                    </td>
+                    <td>
+                        @if (!m.Archive)
+                        {
+                            <MudIcon Icon="@Icons.Material.Filled.MarkEmailUnread" Color="Color.Primary" Size="Size.Small" />
+                        }
+                    </td>
+                    <td>@m.SenderName</td>
+                    <td>@m.EmailAddress</td>
+                    <td>@m.MessageSubject</td>
+                    <td>@m.LogTime.ToString("yyyy-MM-dd HH:mm")</td>
+                    <td @onclick:stopPropagation="true">
+                        <MudSwitch T="bool" Value="m.Archive" Color="Color.Default"
+                                   Disabled="_toggling.Contains(m.ContactUsMessagesID)"
+                                   ValueChanged="@(v => ToggleArchiveAsync(m, v))"
+                                   Label="@(m.Archive ? "Archived" : "New")" />
+                    </td>
+                </tr>
+            }
+        }
+    </DNGridView>
+</MudPaper>
+
+@code {
+    private bool _loading = true;
+    private bool _isMaster;
+    private int _websiteId;
+    private List<ContactUsMessage> _items = new();
+    private HashSet<int> _toggling = new();
+    private GridViewHeaderParameters _grid = new();
+
+    protected override async Task OnInitializedAsync()
+    {
+        var state = await AuthState.GetAuthenticationStateAsync();
+        var user = state.User;
+        _isMaster = user.HasClaim(AdminClaimTypes.Master, "true");
+        int.TryParse(user.FindFirst(AdminClaimTypes.WebsiteId)?.Value, out _websiteId);
+
+        _grid = new GridViewHeaderParameters
+        {
+            Pagination = new PaginationModel { PageSize = 25 },
+            HeaderItems = new()
+            {
+                new() { ColumnTitle = "", ColumnName = "" },
+                new() { ColumnTitle = "", ColumnName = "" },
+                new() { ColumnTitle = "Sender", ColumnName = nameof(ContactUsMessage.SenderName), HasSearch = true },
+                new() { ColumnTitle = "Email", ColumnName = nameof(ContactUsMessage.EmailAddress), HasSearch = true },
+                new() { ColumnTitle = "Subject", ColumnName = nameof(ContactUsMessage.MessageSubject), HasSearch = true },
+                new() { ColumnTitle = "Date", ColumnName = nameof(ContactUsMessage.LogTime), HasSort = true },
+                new() { ColumnTitle = "Status", ColumnName = nameof(ContactUsMessage.Archive), HasSearch = true,
+                    SearchType = SearchColumnType.DropDown,
+                    OtherDropDownValues = new() { ["New"] = "false", ["Archived"] = "true" } },
+            }
+        };
+
+        await LoadAsync();
+    }
+
+    private Task OnGridChanged(GridViewHeaderParameters _) => LoadAsync();
+
+    private async Task ToggleArchiveAsync(ContactUsMessage m, bool value)
+    {
+        if (!_toggling.Add(m.ContactUsMessagesID)) return;
+        m.Archive = value;
+        try { await MessageService.SetArchiveAsync(m.ContactUsMessagesID, value); }
+        finally { _toggling.Remove(m.ContactUsMessagesID); }
+    }
+
+    private async Task DeleteAsync(ContactUsMessage m)
+    {
+        await MessageService.DeleteAsync(m.ContactUsMessagesID);
+        Snackbar.Add("Message deleted.", Severity.Success);
+        await LoadAsync();
+    }
+
+    private async Task LoadAsync()
+    {
+        _loading = true;
+        var websiteId = _isMaster ? (int?)null : _websiteId;
+        var result = await MessageService.GetPagedAsync(websiteId, _grid.ToQuery());
+        _items = result.Items.ToList();
+        _grid.Pagination.MaxLength = result.TotalCount;
+        _loading = false;
+    }
+}

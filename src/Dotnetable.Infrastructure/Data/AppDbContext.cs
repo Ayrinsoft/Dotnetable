@@ -125,6 +125,10 @@ public partial class AppDbContext : DbContext
                 .HasMaxLength(15)
                 .IsUnicode(false);
             entity.Property(e => e.SenderName).HasMaxLength(64);
+
+            entity.HasOne(d => d.Website).WithMany(p => p.ContactUsMessages)
+                .HasForeignKey(d => d.WebsiteID)
+                .HasConstraintName("FK_ContactUsMessage_Website");
         });
 
         modelBuilder.Entity<Country>(entity =>
@@ -173,6 +177,10 @@ public partial class AppDbContext : DbContext
                 .HasMaxLength(64)
                 .IsUnicode(false);
             entity.Property(e => e.Password).HasMaxLength(256);
+
+            entity.HasOne(d => d.Website).WithMany(p => p.EmailSettings)
+                .HasForeignKey(d => d.WebsiteID)
+                .HasConstraintName("FK_EmailSetting_Website");
         });
 
         modelBuilder.Entity<EmailSubscribe>(entity =>

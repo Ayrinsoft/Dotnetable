@@ -1,0 +1,244 @@
+@page "/website/social"
+@attribute [Authorize(Policy = AdminPolicies.WebsiteAdminOrAbove)]
+@inject IWebsiteSettingService SettingService
+@inject IWebsiteService WebsiteService
+@inject AuthenticationStateProvider AuthState
+@inject ISnackbar Snackbar
+
+<PageTitle>Social Links — Dotnetable</PageTitle>
+
+<MudStack Row="true" AlignItems="AlignItems.Center" Justify="Justify.SpaceBetween" Class="mb-4">
+    <MudStack Spacing="0">
+        <MudText Typo="Typo.h5" Class="fw-bold">Social Network Links</MudText>
+        <MudText Typo="Typo.body2" Color="Color.Secondary">Manage social media profile links for this website</MudText>
+    </MudStack>
+    <MudStack Row="true" Spacing="2" AlignItems="AlignItems.Center">
+        @if (_isMaster)
+        {
+            <MudSelect T="int" @bind-Value="_websiteId" Label="Website" Variant="Variant.Outlined"
+                       Dense="true" Style="min-width:180px"
+                       SelectedValuesChanged="OnWebsiteChanged">
+                @foreach (var w in _websites)
+                {
+                    <MudSelectItem T="int" Value="@w.WebsiteID">@w.TradeName</MudSelectItem>
+                }
+            </MudSelect>
+        }
+        <MudButton Variant="Variant.Filled" Color="Color.Primary"
+                   StartIcon="@Icons.Material.Filled.Add"
+                   OnClick="OpenAddDialog">
+            Add Social Link
+        </MudButton>
+    </MudStack>
+</MudStack>
+
+<MudPaper Elevation="0" Class="app-card rounded-lg pa-4">
+    @if (_loading)
+    {
+        <MudProgressLinear Indeterminate="true" Color="Color.Primary" Class="mb-3" />
+    }
+    <DNGridView GridHeaderParams="_grid" OnSearchChanged="OnGridChanged">
+        @if (_items.Count == 0)
+        {
+            <tr>
+                <td colspan="5" style="text-align:center; padding:32px;">
+                    <MudText Color="Color.Secondary">No social links defined.</MudText>
+                </td>
+            </tr>
+        }
+        else
+        {
+            @foreach (var s in _items)
+            {
+                <tr>
+                    <td>
+                        <MudStack Row="true" Spacing="1">
+                            <MudIconButton Icon="@Icons.Material.Filled.Edit" Size="Size.Small"
+                                           Color="Color.Primary" OnClick="@(() => OpenEditDialog(s))" />
+                            <MudIconButton Icon="@Icons.Material.Filled.Delete" Size="Size.Small"
+                                           Color="Color.Error" OnClick="@(() => DeleteAsync(s))" />
+                        </MudStack>
+                    </td>
+                    <td>@SocialTypeLabel(s.SocialType)</td>
+                    <td>@(s.SocialName ?? "-")</td>
+                    <td>
+                        <MudLink Href="@s.UrlAddress" Target="_blank">@s.UrlAddress</MudLink>
+                    </td>
+                    <td>@(s.SocialIcon ?? "-")</td>
+                </tr>
+            }
+        }
+    </DNGridView>
+</MudPaper>
+
+@* ── Dialog ────────────────────────────────────────────────────────── *@
+<MudDialog @bind-Visible="_dialogOpen" Options="@(new DialogOptions { MaxWidth = MaxWidth.Small, FullWidth = true })">
+    <TitleContent>
+        <MudText Typo="Typo.h6">@(_editItem?.WebsiteSocialLinkID == 0 ? "Add Social Link" : "Edit Social Link")</MudText>
+    </TitleContent>
+    <DialogContent>
+        @if (_editItem is not null)
+        {
+            <MudForm @ref="_form">
+                <MudGrid Spacing="2">
+                    <MudItem xs="12" sm="6">
+                        <MudSelect T="byte" @bind-Value="_editItem.SocialType" Label="Type"
+                                   Variant="Variant.Outlined" Required="true">
+                            <MudSelectItem T="byte" Value="@((byte)0)">Other</MudSelectItem>
+                            <MudSelectItem T="byte" Value="@((byte)1)">Instagram</MudSelectItem>
+                            <MudSelectItem T="byte" Value="@((byte)2)">Telegram</MudSelectItem>
+                            <MudSelectItem T="byte" Value="@((byte)3)">Twitter / X</MudSelectItem>
+                            <MudSelectItem T="byte" Value="@((byte)4)">Facebook</MudSelectItem>
+                            <MudSelectItem T="byte" Value="@((byte)5)">LinkedIn</MudSelectItem>
+                            <MudSelectItem T="byte" Value="@((byte)6)">YouTube</MudSelectItem>
+                            <MudSelectItem T="byte" Value="@((byte)7)">WhatsApp</MudSelectItem>
+                        </MudSelect>
+                    </MudItem>
+                    <MudItem xs="12" sm="6">
+                        <MudTextField @bind-Value="_editItem.SocialName" Label="Display Name"
+                                      Variant="Variant.Outlined" />
+                    </MudItem>
+                    <MudItem xs="12">
+                        <MudTextField @bind-Value="_editItem.UrlAddress" Label="URL"
+                                      Variant="Variant.Outlined" Required="true"
+                                      RequiredError="URL is required."
+                                      Placeholder="https://instagram.com/yourpage" />
+                    </MudItem>
+                    <MudItem xs="12">
+                        <MudTextField @bind-Value="_editItem.SocialIcon" Label="Icon CSS Class (optional)"
+                                      Variant="Variant.Outlined"
+                                      Placeholder="fab fa-instagram" />
+                    </MudItem>
+                </MudGrid>
+            </MudForm>
+        }
+    </DialogContent>
+    <DialogActions>
+        <MudButton OnClick="@(() => _dialogOpen = false)" Variant="Variant.Text">Cancel</MudButton>
+        <MudButton Color="Color.Primary" Variant="Variant.Filled"
+                   OnClick="SaveDialogAsync" Disabled="@_saving">
+            @if (_saving) { <MudProgressCircular Size="Size.Small" Indeterminate="true" Class="me-2" /> }
+            Save
+        </MudButton>
+    </DialogActions>
+</MudDialog>
+
+@code {
+    private bool _loading = true;
+    private bool _isMaster;
+    private int _websiteId;
+    private List<WebsiteSocialLink> _items = new();
+    private List<Website> _websites = new();
+    private GridViewHeaderParameters _grid = new();
+
+    private bool _dialogOpen;
+    private bool _saving;
+    private WebsiteSocialLink? _editItem;
+    private MudForm _form = null!;
+
+    protected override async Task OnInitializedAsync()
+    {
+        var state = await AuthState.GetAuthenticationStateAsync();
+        var user = state.User;
+        _isMaster = user.HasClaim(AdminClaimTypes.Master, "true");
+        int.TryParse(user.FindFirst(AdminClaimTypes.WebsiteId)?.Value, out _websiteId);
+
+        if (_isMaster)
+            _websites = (await WebsiteService.GetAllAsync()).ToList();
+
+        _grid = new GridViewHeaderParameters
+        {
+            Pagination = new PaginationModel { PageSize = 25 },
+            HeaderItems = new()
+            {
+                new() { ColumnTitle = "", ColumnName = "" },
+                new() { ColumnTitle = "Type", ColumnName = "" },
+                new() { ColumnTitle = "Name", ColumnName = nameof(WebsiteSocialLink.SocialName), HasSearch = true },
+                new() { ColumnTitle = "URL", ColumnName = "" },
+                new() { ColumnTitle = "Icon", ColumnName = "" },
+            }
+        };
+
+        await LoadAsync();
+    }
+
+    private Task OnGridChanged(GridViewHeaderParameters _) => LoadAsync();
+    private async Task OnWebsiteChanged(IEnumerable<int> _) => await LoadAsync();
+
+    private void OpenAddDialog()
+    {
+        _editItem = new WebsiteSocialLink { WebsiteSocialLinkID = 0, WebsiteID = _websiteId, UrlAddress = string.Empty, SocialType = 0 };
+        _dialogOpen = true;
+    }
+
+    private void OpenEditDialog(WebsiteSocialLink s)
+    {
+        _editItem = new WebsiteSocialLink
+        {
+            WebsiteSocialLinkID = s.WebsiteSocialLinkID,
+            WebsiteID = s.WebsiteID,
+            SocialType = s.SocialType,
+            SocialName = s.SocialName,
+            SocialIcon = s.SocialIcon,
+            UrlAddress = s.UrlAddress,
+        };
+        _dialogOpen = true;
+    }
+
+    private async Task SaveDialogAsync()
+    {
+        await _form.ValidateAsync();
+        if (!_form.IsValid) return;
+
+        _saving = true;
+        try
+        {
+            if (_editItem!.WebsiteSocialLinkID == 0)
+            {
+                _editItem.WebsiteID = _websiteId;
+                await SettingService.CreateSocialLinkAsync(_editItem);
+                Snackbar.Add("Social link added.", Severity.Success);
+            }
+            else
+            {
+                await SettingService.UpdateSocialLinkAsync(_editItem);
+                Snackbar.Add("Social link updated.", Severity.Success);
+            }
+            _dialogOpen = false;
+            await LoadAsync();
+        }
+        catch (Exception ex)
+        {
+            Snackbar.Add($"Save failed: {ex.Message}", Severity.Error);
+        }
+        finally { _saving = false; }
+    }
+
+    private async Task DeleteAsync(WebsiteSocialLink s)
+    {
+        await SettingService.DeleteSocialLinkAsync(s.WebsiteSocialLinkID);
+        Snackbar.Add("Social link deleted.", Severity.Success);
+        await LoadAsync();
+    }
+
+    private async Task LoadAsync()
+    {
+        _loading = true;
+        var result = await SettingService.GetSocialLinksPagedAsync(_websiteId, _grid.ToQuery());
+        _items = result.Items.ToList();
+        _grid.Pagination.MaxLength = result.TotalCount;
+        _loading = false;
+    }
+
+    private static string SocialTypeLabel(byte type) => type switch
+    {
+        1 => "Instagram",
+        2 => "Telegram",
+        3 => "Twitter / X",
+        4 => "Facebook",
+        5 => "LinkedIn",
+        6 => "YouTube",
+        7 => "WhatsApp",
+        _ => "Other"
+    };
+}

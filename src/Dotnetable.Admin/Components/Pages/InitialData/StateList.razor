@@ -1,0 +1,131 @@
+@page "/initial-data/states"
+@attribute [Authorize(Policy = AdminPolicies.SuperAdminOnly)]
+@inject ILocationService LocationService
+@inject ISnackbar Snackbar
+
+<PageTitle>States / Provinces — Dotnetable</PageTitle>
+
+<MudStack Row="true" AlignItems="AlignItems.Center" Justify="Justify.SpaceBetween" Class="mb-4">
+    <MudStack Spacing="0">
+        <MudText Typo="Typo.h5" Class="fw-bold">States / Provinces</MudText>
+        <MudText Typo="Typo.body2" Color="Color.Secondary">Manage state and province reference data</MudText>
+    </MudStack>
+    <MudStack Row="true" Spacing="2" AlignItems="AlignItems.Center">
+        <MudSelect T="int?" Value="_filterCountryId" ValueChanged="OnCountryFilterChanged"
+                   Label="Filter by Country" Variant="Variant.Outlined" Dense="true" Style="min-width:200px"
+                   Clearable="true">
+            @foreach (var c in _countries)
+            {
+                <MudSelectItem T="int?" Value="@((int?)c.CountryID)">@c.Title</MudSelectItem>
+            }
+        </MudSelect>
+        <MudButton Variant="Variant.Filled" Color="Color.Primary"
+                   StartIcon="@Icons.Material.Filled.Add"
+                   Href="/initial-data/states/new">
+            New State
+        </MudButton>
+    </MudStack>
+</MudStack>
+
+<MudPaper Elevation="0" Class="app-card rounded-lg pa-4">
+    @if (_loading)
+    {
+        <MudProgressLinear Indeterminate="true" Color="Color.Primary" Class="mb-3" />
+    }
+    <DNGridView GridHeaderParams="_grid" OnSearchChanged="OnGridChanged">
+        @if (_items.Count == 0)
+        {
+            <tr>
+                <td colspan="6" style="text-align:center; padding:32px;">
+                    <MudText Color="Color.Secondary">No states found.</MudText>
+                </td>
+            </tr>
+        }
+        else
+        {
+            @foreach (var s in _items)
+            {
+                <tr>
+                    <td>
+                        <MudIconButton Icon="@Icons.Material.Filled.Edit" Size="Size.Small"
+                                       Color="Color.Primary" Href="@($"/initial-data/states/{s.StateID}")" />
+                    </td>
+                    <td>@s.StateID</td>
+                    <td>@s.Tile</td>
+                    <td>@(s.Country?.Title ?? s.CountryID.ToString())</td>
+                    <td>@s.LanguageCode</td>
+                    <td>
+                        <MudSwitch T="bool" Value="s.Active" Color="Color.Success"
+                                   Disabled="_toggling.Contains(s.StateID)"
+                                   ValueChanged="@(v => ToggleActiveAsync(s, v))" />
+                    </td>
+                </tr>
+            }
+        }
+    </DNGridView>
+</MudPaper>
+
+@code {
+    private bool _loading = true;
+    private int? _filterCountryId;
+    private List<State> _items = new();
+    private List<Country> _countries = new();
+    private HashSet<int> _toggling = new();
+    private GridViewHeaderParameters _grid = new();
+
+    protected override async Task OnInitializedAsync()
+    {
+        _countries = (await LocationService.GetAllCountriesAsync()).ToList();
+
+        _grid = new GridViewHeaderParameters
+        {
+            Pagination = new PaginationModel { PageSize = 25 },
+            HeaderItems = new()
+            {
+                new() { ColumnTitle = "", ColumnName = "" },
+                new() { ColumnTitle = "ID", ColumnName = nameof(State.StateID), HasSort = true },
+                new() { ColumnTitle = "Name", ColumnName = nameof(State.Tile), HasSort = true, HasSearch = true },
+                new() { ColumnTitle = "Country", ColumnName = "" },
+                new() { ColumnTitle = "Language", ColumnName = nameof(State.LanguageCode) },
+                new() { ColumnTitle = "Active", ColumnName = nameof(State.Active), HasSearch = true,
+                    SearchType = SearchColumnType.DropDown,
+                    OtherDropDownValues = new() { ["Active"] = "true", ["Inactive"] = "false" } },
+            }
+        };
+
+        await LoadAsync();
+    }
+
+    private Task OnGridChanged(GridViewHeaderParameters _) => LoadAsync();
+
+    private async Task OnCountryFilterChanged(int? countryId)
+    {
+        _filterCountryId = countryId;
+        await LoadAsync();
+    }
+
+    private async Task ToggleActiveAsync(State s, bool value)
+    {
+        if (!_toggling.Add(s.StateID)) return;
+        s.Active = value;
+        try
+        {
+            var entity = await LocationService.GetStateByIdAsync(s.StateID);
+            if (entity is not null)
+            {
+                entity.Active = value;
+                await LocationService.UpdateStateAsync(entity);
+            }
+        }
+        finally { _toggling.Remove(s.StateID); }
+    }
+
+    private async Task LoadAsync()
+    {
+        _loading = true;
+        var result = await LocationService.GetStatesPagedAsync(_filterCountryId, _grid.ToQuery());
+        _items = result.Items.ToList();
+        _grid.Pagination.MaxLength = result.TotalCount;
+        _loading = false;
+    }
+}
