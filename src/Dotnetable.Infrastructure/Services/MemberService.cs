@@ -36,6 +36,12 @@ public class MemberService : IMemberService
         return result == PasswordVerificationResult.Failed ? null : member;
     }
 
+    public async Task<int?> GetWebsiteIdByUsernameAsync(string username, CancellationToken ct = default) =>
+        await _context.Members
+            .Where(m => m.Username == username)
+            .Select(m => (int?)m.WebsiteID)
+            .FirstOrDefaultAsync(ct);
+
     public async Task<IEnumerable<Member>> GetByWebsiteAsync(int websiteId, CancellationToken ct = default) =>
         await _context.Members.Where(m => m.WebsiteID == websiteId).ToListAsync(ct);
 

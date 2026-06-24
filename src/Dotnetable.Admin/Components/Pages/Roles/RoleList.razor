@@ -1,0 +1,95 @@
+@page "/roles"
+@attribute [Authorize(Policy = AdminPolicies.SuperAdminOnly)]
+@inject IRoleService RoleService
+
+<PageTitle>Roles — Dotnetable</PageTitle>
+
+<MudStack Row="true" AlignItems="AlignItems.Center" Justify="Justify.SpaceBetween" Class="mb-4">
+    <MudStack Spacing="0">
+        <MudText Typo="Typo.h5" Class="fw-bold">Roles</MudText>
+        <MudText Typo="Typo.body2" Color="Color.Secondary">System-wide permission keys</MudText>
+    </MudStack>
+    <MudButton Variant="Variant.Filled" Color="Color.Primary"
+               StartIcon="@Icons.Material.Filled.Add" Href="/roles/new">
+        New Role
+    </MudButton>
+</MudStack>
+
+<MudPaper Elevation="0" Class="app-card rounded-lg pa-4">
+    @if (_loading)
+    {
+        <MudProgressLinear Indeterminate="true" Color="Color.Primary" Class="mb-3" />
+    }
+    <DNGridView GridHeaderParams="_grid" OnSearchChanged="OnGridChanged">
+        @if (_roles.Count == 0)
+        {
+            <tr>
+                <td colspan="5" style="text-align:center; padding:32px;">
+                    <MudText Color="Color.Secondary">No roles found.</MudText>
+                </td>
+            </tr>
+        }
+        else
+        {
+            @foreach (var r in _roles)
+            {
+                <tr>
+                    <td>
+                        <MudIconButton Icon="@Icons.Material.Filled.Edit" Size="Size.Small"
+                                       Color="Color.Primary" Href="@($"/roles/{r.RoleID}")" />
+                    </td>
+                    <td>@r.RoleID</td>
+                    <td><code>@r.RoleKey</code></td>
+                    <td>@r.Description</td>
+                    <td>
+                        @if (r.Active)
+                        {
+                            <MudChip T="string" Color="Color.Success" Size="Size.Small" Variant="Variant.Filled">Active</MudChip>
+                        }
+                        else
+                        {
+                            <MudChip T="string" Color="Color.Default" Size="Size.Small" Variant="Variant.Outlined">Inactive</MudChip>
+                        }
+                    </td>
+                </tr>
+            }
+        }
+    </DNGridView>
+</MudPaper>
+
+@code {
+    private bool _loading = true;
+    private List<Role> _roles = new();
+    private GridViewHeaderParameters _grid = new()
+    {
+        Pagination = new PaginationModel { PageSize = 25 },
+        HeaderItems = new()
+        {
+            new() { ColumnTitle = "", ColumnName = "" },
+            new() { ColumnTitle = "ID", ColumnName = nameof(Role.RoleID), HasSort = true },
+            new() { ColumnTitle = "Key", ColumnName = nameof(Role.RoleKey), HasSort = true, HasSearch = true },
+            new() { ColumnTitle = "Description", ColumnName = nameof(Role.Description), HasSearch = true },
+            new()
+            {
+                ColumnTitle = "Status",
+                ColumnName = nameof(Role.Active),
+                HasSearch = true,
+                SearchType = SearchColumnType.DropDown,
+                OtherDropDownValues = new() { ["Active"] = "true", ["Inactive"] = "false" }
+            },
+        }
+    };
+
+    protected override Task OnInitializedAsync() => LoadAsync();
+
+    private Task OnGridChanged(GridViewHeaderParameters _) => LoadAsync();
+
+    private async Task LoadAsync()
+    {
+        _loading = true;
+        var result = await RoleService.GetPagedAsync(_grid.ToQuery());
+        _roles = result.Items.ToList();
+        _grid.Pagination.MaxLength = result.TotalCount;
+        _loading = false;
+    }
+}

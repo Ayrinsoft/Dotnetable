@@ -335,6 +335,12 @@ public partial class AppDbContext : DbContext
             entity.Property(e => e.Title)
                 .HasMaxLength(64)
                 .IsUnicode(false);
+            entity.Property(e => e.WebsiteID).HasDefaultValue(1);
+
+            entity.HasOne(d => d.Website).WithMany()
+                .HasForeignKey(d => d.WebsiteID)
+                .OnDelete(DeleteBehavior.ClientSetNull)
+                .HasConstraintName("FK_Policy_Website");
         });
 
         modelBuilder.Entity<PolicyRole>(entity =>

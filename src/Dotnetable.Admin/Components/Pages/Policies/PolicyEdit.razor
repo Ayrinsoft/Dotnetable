@@ -1,0 +1,219 @@
+@page "/policies/new"
+@page "/policies/{Id:int}"
+@attribute [Authorize(Policy = AdminPolicies.WebsiteAdminOrAbove)]
+@inject IPolicyService PolicyService
+@inject IWebsiteService WebsiteService
+@inject AuthenticationStateProvider AuthState
+@inject NavigationManager Nav
+@inject ISnackbar Snackbar
+
+<PageTitle>@(_isNew ? "New Access Level" : "Edit Access Level") — Dotnetable</PageTitle>
+
+<MudBreadcrumbs Items="_breadcrumbs" Class="px-0 pb-2" />
+
+<MudStack Row="true" AlignItems="AlignItems.Center" Justify="Justify.SpaceBetween" Class="mb-4">
+    <MudStack Spacing="0">
+        <MudText Typo="Typo.h5" Class="fw-bold">@(_isNew ? "New Access Level" : "Edit Access Level")</MudText>
+        <MudText Typo="Typo.body2" Color="Color.Secondary">
+            @(_isNew ? "Define an access level and the roles it grants" : $"Editing access level #{Id}")
+        </MudText>
+    </MudStack>
+</MudStack>
+
+@if (_loading)
+{
+    <MudProgressLinear Indeterminate="true" Color="Color.Primary" Class="mb-4" />
+}
+else if (_policy is not null)
+{
+    <MudForm @ref="_form">
+        <MudGrid Spacing="4">
+            <MudItem xs="12">
+                <MudPaper Elevation="0" Class="border rounded-lg pa-6">
+                    <MudText Typo="Typo.subtitle1" Class="fw-bold mb-4">
+                        <MudIcon Icon="@Icons.Material.Filled.Shield" Size="Size.Small" Class="me-1" />
+                        Access Level
+                    </MudText>
+                    <MudGrid Spacing="3">
+                        <MudItem xs="12" sm="6">
+                            <MudTextField @bind-Value="_policy.Title" Label="Title"
+                                          Variant="Variant.Outlined" Required="true"
+                                          RequiredError="Title is required." />
+                        </MudItem>
+                        <MudItem xs="12" sm="6">
+                            @if (_isMaster && _isNew)
+                            {
+                                <MudSelect T="int" @bind-Value="_policy.WebsiteID" Label="Website"
+                                           Variant="Variant.Outlined" Required="true">
+                                    @foreach (var w in _websites)
+                                    {
+                                        <MudSelectItem T="int" Value="@w.WebsiteID">@w.TradeName (#@w.WebsiteID)</MudSelectItem>
+                                    }
+                                </MudSelect>
+                            }
+                            else
+                            {
+                                <MudTextField Value="@($"#{_policy.WebsiteID}")" Label="Website"
+                                              Variant="Variant.Outlined" ReadOnly="true" Disabled="true" />
+                            }
+                        </MudItem>
+                        <MudItem xs="12">
+                            <MudSwitch T="bool" @bind-Value="_policy.Active" Color="Color.Primary"
+                                       Label="@(_policy.Active ? "Active" : "Inactive")" />
+                        </MudItem>
+                    </MudGrid>
+                </MudPaper>
+            </MudItem>
+
+            <MudItem xs="12">
+                <MudPaper Elevation="0" Class="border rounded-lg pa-6">
+                    <MudText Typo="Typo.subtitle1" Class="fw-bold mb-1">
+                        <MudIcon Icon="@Icons.Material.Filled.VpnKey" Size="Size.Small" Class="me-1" />
+                        Roles
+                    </MudText>
+                    <MudText Typo="Typo.body2" Color="Color.Secondary" Class="mb-3">
+                        You can only grant roles you hold yourself.
+                    </MudText>
+                    @if (_assignableRoles.Count == 0)
+                    {
+                        <MudAlert Severity="Severity.Info" Variant="Variant.Outlined">
+                            You have no roles available to grant.
+                        </MudAlert>
+                    }
+                    else
+                    {
+                        <MudGrid Spacing="2">
+                            @foreach (var role in _assignableRoles)
+                            {
+                                <MudItem xs="12" sm="6" md="4">
+                                    <MudCheckBox T="bool" Value="_selected.Contains(role.RoleID)"
+                                                 ValueChanged="@(v => ToggleRole(role.RoleID, v))"
+                                                 Color="Color.Primary"
+                                                 Label="@role.RoleKey" />
+                                    <MudText Typo="Typo.caption" Color="Color.Secondary" Class="ms-8">@role.Description</MudText>
+                                </MudItem>
+                            }
+                        </MudGrid>
+                    }
+                </MudPaper>
+            </MudItem>
+        </MudGrid>
+
+        <MudStack Row="true" Class="mt-4" Spacing="2">
+            <MudButton Variant="Variant.Filled" Color="Color.Primary"
+                       StartIcon="@Icons.Material.Filled.Save"
+                       OnClick="SaveAsync" Disabled="@_saving">
+                @if (_saving)
+                {
+                    <MudProgressCircular Size="Size.Small" Indeterminate="true" Class="me-2" />
+                }
+                @(_isNew ? "Create Access Level" : "Save Changes")
+            </MudButton>
+            <MudButton Variant="Variant.Outlined" Color="Color.Default"
+                       StartIcon="@Icons.Material.Filled.ArrowBack" Href="/policies">
+                Cancel
+            </MudButton>
+        </MudStack>
+    </MudForm>
+}
+
+@code {
+    [Parameter] public int Id { get; set; }
+
+    private MudForm _form = null!;
+    private Policy? _policy;
+    private bool _loading = true;
+    private bool _saving;
+    private bool _isMaster;
+    private int _websiteId;
+    private int _memberId;
+    private List<Website> _websites = new();
+    private List<Role> _assignableRoles = new();
+    private HashSet<short> _selected = new();
+    private bool _isNew => Id == 0;
+
+    private List<BreadcrumbItem> _breadcrumbs => new()
+    {
+        new("Dashboard", "/"),
+        new("Access Levels", "/policies"),
+        new(_isNew ? "New" : $"#{Id}", null, true),
+    };
+
+    protected override async Task OnInitializedAsync()
+    {
+        var state = await AuthState.GetAuthenticationStateAsync();
+        var user = state.User;
+        _isMaster = user.HasClaim(AdminClaimTypes.Master, "true");
+        int.TryParse(user.FindFirst(AdminClaimTypes.WebsiteId)?.Value, out _websiteId);
+        int.TryParse(user.FindFirst(AdminClaimTypes.MemberId)?.Value, out _memberId);
+
+        _assignableRoles = (await PolicyService.GetAssignableRolesAsync(_memberId, _isMaster)).ToList();
+
+        if (_isNew)
+        {
+            _policy = new Policy { Active = true, WebsiteID = _websiteId };
+            if (_isMaster)
+            {
+                _websites = (await WebsiteService.GetAllAsync()).ToList();
+                _policy.WebsiteID = _websites.FirstOrDefault()?.WebsiteID ?? AppConstants.MasterWebsiteId;
+            }
+        }
+        else
+        {
+            _policy = await PolicyService.GetByIdAsync(Id);
+            if (_policy is null || (!_isMaster && _policy.WebsiteID != _websiteId))
+            {
+                Nav.NavigateTo("/policies");
+                return;
+            }
+            _selected = _policy.PolicyRoles.Where(pr => pr.Active).Select(pr => pr.RoleID).ToHashSet();
+        }
+
+        _loading = false;
+    }
+
+    private void ToggleRole(short roleId, bool isChecked)
+    {
+        if (isChecked) _selected.Add(roleId);
+        else _selected.Remove(roleId);
+    }
+
+    private async Task SaveAsync()
+    {
+        await _form.ValidateAsync();
+        if (!_form.IsValid) return;
+
+        // Only roles the current user may assign are taken from the checkboxes; any role already on the
+        // policy that the user cannot manage is preserved untouched.
+        var allowed = _assignableRoles.Select(r => r.RoleID).ToHashSet();
+        var roleIds = _selected.Where(allowed.Contains).ToHashSet();
+        if (!_isNew)
+            foreach (var pr in _policy!.PolicyRoles.Where(pr => pr.Active && !allowed.Contains(pr.RoleID)))
+                roleIds.Add(pr.RoleID);
+
+        _saving = true;
+        try
+        {
+            if (_isNew)
+            {
+                if (!_isMaster) _policy!.WebsiteID = _websiteId;
+                await PolicyService.CreateAsync(_policy!, roleIds);
+                Snackbar.Add("Access level created successfully.", Severity.Success);
+            }
+            else
+            {
+                await PolicyService.UpdateAsync(_policy!, roleIds);
+                Snackbar.Add("Changes saved successfully.", Severity.Success);
+            }
+            Nav.NavigateTo("/policies");
+        }
+        catch (Exception ex)
+        {
+            Snackbar.Add($"Save failed: {ex.Message}", Severity.Error);
+        }
+        finally
+        {
+            _saving = false;
+        }
+    }
+}

@@ -7,9 +7,22 @@
 
     <AuthorizeView Policy="@AdminPolicies.WebsiteAdminOrAbove">
         <span class="app-nav-label">Management</span>
-        <MudNavLink Href="/members" Icon="@Icons.Material.Filled.People">
-            Members
-        </MudNavLink>
+        <MudNavGroup Title="User Management" Icon="@Icons.Material.Filled.People" Expanded="true">
+            <MudNavLink Href="/members" Icon="@Icons.Material.Filled.PersonOutline">
+                Members
+            </MudNavLink>
+            <MudNavLink Href="/policies" Icon="@Icons.Material.Filled.Shield">
+                Access Levels
+            </MudNavLink>
+            <AuthorizeView Policy="@AdminPolicies.SuperAdminOnly" Context="roles">
+                <MudNavLink Href="/roles" Icon="@Icons.Material.Filled.VpnKey">
+                    Roles
+                </MudNavLink>
+            </AuthorizeView>
+            <MudNavLink Href="/login-logs" Icon="@Icons.Material.Filled.History">
+                Login Logs
+            </MudNavLink>
+        </MudNavGroup>
         <MudNavLink Href="/translations" Icon="@Icons.Material.Filled.Translate">
             Translations
         </MudNavLink>

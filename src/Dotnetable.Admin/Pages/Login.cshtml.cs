@@ -15,10 +15,12 @@ namespace Dotnetable.Admin.Pages;
 public class LoginModel : CaptchaPageModel
 {
     private readonly IMemberService _memberService;
+    private readonly ILoginLogService _loginLog;
 
-    public LoginModel(IMemberService memberService, IHumanVerificationService human) : base(human)
+    public LoginModel(IMemberService memberService, ILoginLogService loginLog, IHumanVerificationService human) : base(human)
     {
         _memberService = memberService;
+        _loginLog = loginLog;
     }
 
     [BindProperty]
@@ -52,13 +54,21 @@ public class LoginModel : CaptchaPageModel
         if (!await ValidateCaptchaAsync(ct))
             return Page();
 
+        var ip = HttpContext.Connection.RemoteIpAddress?.ToString() ?? string.Empty;
+
         var member = await _memberService.ValidateCredentialsAsync(Input.Username, Input.Password, ct);
         if (member is null)
         {
+            // Attribute the failed attempt to the matching member's website when one exists (0 = unknown, master-only).
+            var websiteId = await _memberService.GetWebsiteIdByUsernameAsync(Input.Username, ct) ?? 0;
+            await _loginLog.RecordAsync(Input.Username, websiteId, false, ip, ct);
+
             ErrorMessage = "Invalid username or password.";
             PrepareCaptcha();
             return Page();
         }
+
+        await _loginLog.RecordAsync(member.Username, member.WebsiteID, true, ip, ct);
 
         var claims = BuildClaims(member);
         var identity = new ClaimsIdentity(claims, CookieAuthenticationDefaults.AuthenticationScheme);

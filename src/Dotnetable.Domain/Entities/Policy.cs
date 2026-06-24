@@ -11,6 +11,10 @@ public partial class Policy
 
     public bool Active { get; set; }
 
+    public int WebsiteID { get; set; }
+
+    public virtual Website Website { get; set; } = null!;
+
     public virtual ICollection<Member> Members { get; set; } = new List<Member>();
 
     public virtual ICollection<PolicyRole> PolicyRoles { get; set; } = new List<PolicyRole>();

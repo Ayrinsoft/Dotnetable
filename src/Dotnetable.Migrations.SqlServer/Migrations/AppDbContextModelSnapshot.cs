@@ -517,6 +517,9 @@ namespace Dotnetable.Migrations.SqlServer.Migrations
                         .IsUnicode(false)
                         .HasColumnType("varchar(64)");
 
+                    b.Property<int>("WebsiteID")
+                        .HasColumnType("int");
+
                     b.HasKey("LoginTryID");
 
                     b.ToTable("LoginTry", (string)null);
@@ -644,7 +647,14 @@ namespace Dotnetable.Migrations.SqlServer.Migrations
                         .IsUnicode(false)
                         .HasColumnType("varchar(64)");
 
+                    b.Property<int>("WebsiteID")
+                        .ValueGeneratedOnAdd()
+                        .HasColumnType("int")
+                        .HasDefaultValue(1);
+
                     b.HasKey("PolicyID");
+
+                    b.HasIndex("WebsiteID");
 
                     b.ToTable("Policy", (string)null);
                 });
@@ -1172,6 +1182,17 @@ namespace Dotnetable.Migrations.SqlServer.Migrations
                         .HasConstraintName("FK_MemberForgetPassword_Member");
 
                     b.Navigation("Member");
+                });
+
+            modelBuilder.Entity("Dotnetable.Domain.Entities.Policy", b =>
+                {
+                    b.HasOne("Dotnetable.Domain.Entities.Website", "Website")
+                        .WithMany()
+                        .HasForeignKey("WebsiteID")
+                        .IsRequired()
+                        .HasConstraintName("FK_Policy_Website");
+
+                    b.Navigation("Website");
                 });
 
             modelBuilder.Entity("Dotnetable.Domain.Entities.PolicyRole", b =>

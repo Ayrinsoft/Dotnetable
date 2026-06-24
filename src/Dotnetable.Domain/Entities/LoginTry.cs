@@ -14,4 +14,6 @@ public partial class LoginTry
     public bool IsSuccess { get; set; }
 
     public string TryIP { get; set; } = null!;
+
+    public int WebsiteID { get; set; }
 }

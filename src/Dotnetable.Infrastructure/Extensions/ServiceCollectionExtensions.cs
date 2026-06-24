@@ -50,6 +50,9 @@ public static class ServiceCollectionExtensions
         services.AddScoped<ILocalizationService, LocalizationService>();
         services.AddScoped<IMemberService, MemberService>();
         services.AddScoped<IWebsiteService, WebsiteService>();
+        services.AddScoped<IPolicyService, PolicyService>();
+        services.AddScoped<IRoleService, RoleService>();
+        services.AddScoped<ILoginLogService, LoginLogService>();
         services.AddScoped<ISetupService, SetupService>();
         services.AddScoped<IDatabaseUpdateService, DatabaseUpdateService>();
         services.AddScoped<IPasswordHasher<Member>, PasswordHasher<Member>>();

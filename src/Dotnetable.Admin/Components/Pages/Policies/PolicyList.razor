@@ -1,22 +1,20 @@
-@page "/members"
+@page "/policies"
 @attribute [Authorize(Policy = AdminPolicies.WebsiteAdminOrAbove)]
-@inject IMemberService MemberService
+@inject IPolicyService PolicyService
 @inject AuthenticationStateProvider AuthState
 
-<PageTitle>Members — Dotnetable</PageTitle>
+<PageTitle>Access Levels — Dotnetable</PageTitle>
 
-@* ── Page header ──────────────────────────────────────────────── *@
 <MudStack Row="true" AlignItems="AlignItems.Center" Justify="Justify.SpaceBetween" Class="mb-4">
     <MudStack Spacing="0">
-        <MudText Typo="Typo.h5" Class="fw-bold">Members</MudText>
+        <MudText Typo="Typo.h5" Class="fw-bold">Access Levels</MudText>
         <MudText Typo="Typo.body2" Color="Color.Secondary">
-            @(_isMaster ? "All members across all websites" : "Members of your website")
+            @(_isMaster ? "Access levels across all websites" : "Access levels of your website")
         </MudText>
     </MudStack>
     <MudButton Variant="Variant.Filled" Color="Color.Primary"
-               StartIcon="@Icons.Material.Filled.Add"
-               Href="/members/new">
-        New Member
+               StartIcon="@Icons.Material.Filled.Add" Href="/policies/new">
+        New Access Level
     </MudButton>
 </MudStack>
 
@@ -26,41 +24,31 @@
         <MudProgressLinear Indeterminate="true" Color="Color.Primary" Class="mb-3" />
     }
     <DNGridView GridHeaderParams="_grid" OnSearchChanged="OnGridChanged">
-        @if (_members.Count == 0)
+        @if (_policies.Count == 0)
         {
             <tr>
                 <td colspan="@_colCount" style="text-align:center; padding:32px;">
-                    <MudText Color="Color.Secondary">No members found.</MudText>
+                    <MudText Color="Color.Secondary">No access levels found.</MudText>
                 </td>
             </tr>
         }
         else
         {
-            @foreach (var m in _members)
+            @foreach (var p in _policies)
             {
                 <tr>
                     <td>
                         <MudIconButton Icon="@Icons.Material.Filled.Edit" Size="Size.Small"
-                                       Color="Color.Primary" Href="@($"/members/{m.MemberID}")" />
+                                       Color="Color.Primary" Href="@($"/policies/{p.PolicyID}")" />
                     </td>
-                    <td>@m.MemberID</td>
-                    <td>@m.Username</td>
-                    <td>@m.Email</td>
-                    <td>
-                        <MudStack Row="true" AlignItems="AlignItems.Center" Spacing="2">
-                            <MudAvatar Color="Color.Primary" Size="Size.Small">
-                                @(string.IsNullOrWhiteSpace(m.Givenname) ? "?" : m.Givenname.Trim()[..1].ToUpper())
-                            </MudAvatar>
-                            <span>@m.Givenname @m.Surname</span>
-                        </MudStack>
-                    </td>
+                    <td>@p.PolicyID</td>
+                    <td>@p.Title</td>
                     @if (_isMaster)
                     {
-                        <td>@m.WebsiteID</td>
+                        <td>@p.WebsiteID</td>
                     }
-                    <td>@m.RegisterDate.ToString("yyyy-MM-dd")</td>
                     <td>
-                        @if (m.Active)
+                        @if (p.Active)
                         {
                             <MudChip T="string" Color="Color.Success" Size="Size.Small" Variant="Variant.Filled">Active</MudChip>
                         }
@@ -79,10 +67,10 @@
     private bool _loading = true;
     private bool _isMaster;
     private int _websiteId;
-    private List<Member> _members = new();
+    private List<Policy> _policies = new();
     private GridViewHeaderParameters _grid = new();
 
-    private int _colCount => 7 + (_isMaster ? 1 : 0);
+    private int _colCount => 4 + (_isMaster ? 1 : 0);
 
     protected override async Task OnInitializedAsync()
     {
@@ -97,19 +85,16 @@
             HeaderItems = new()
             {
                 new() { ColumnTitle = "", ColumnName = "" },
-                new() { ColumnTitle = "ID", ColumnName = nameof(Member.MemberID), HasSort = true },
-                new() { ColumnTitle = "Username", ColumnName = nameof(Member.Username), HasSort = true, HasSearch = true },
-                new() { ColumnTitle = "Email", ColumnName = nameof(Member.Email), HasSort = true, HasSearch = true },
-                new() { ColumnTitle = "Full Name", ColumnName = "Fullname", HasSearch = true },
+                new() { ColumnTitle = "ID", ColumnName = nameof(Policy.PolicyID), HasSort = true },
+                new() { ColumnTitle = "Title", ColumnName = nameof(Policy.Title), HasSort = true, HasSearch = true },
             }
         };
         if (_isMaster)
-            _grid.HeaderItems.Add(new() { ColumnTitle = "Website", ColumnName = nameof(Member.WebsiteID), HasSort = true });
-        _grid.HeaderItems.Add(new() { ColumnTitle = "Registered", ColumnName = nameof(Member.RegisterDate), HasSort = true });
+            _grid.HeaderItems.Add(new() { ColumnTitle = "Website", ColumnName = nameof(Policy.WebsiteID), HasSort = true });
         _grid.HeaderItems.Add(new()
         {
             ColumnTitle = "Status",
-            ColumnName = nameof(Member.Active),
+            ColumnName = nameof(Policy.Active),
             HasSearch = true,
             SearchType = SearchColumnType.DropDown,
             OtherDropDownValues = new() { ["Active"] = "true", ["Inactive"] = "false" }
@@ -123,8 +108,8 @@
     private async Task LoadAsync()
     {
         _loading = true;
-        var result = await MemberService.GetPagedAsync(_isMaster ? null : _websiteId, _grid.ToQuery());
-        _members = result.Items.ToList();
+        var result = await PolicyService.GetPagedAsync(_isMaster ? null : _websiteId, _grid.ToQuery());
+        _policies = result.Items.ToList();
         _grid.Pagination.MaxLength = result.TotalCount;
         _loading = false;
     }

@@ -1,0 +1,111 @@
+@page "/login-logs"
+@attribute [Authorize(Policy = AdminPolicies.WebsiteAdminOrAbove)]
+@inject ILoginLogService LoginLogService
+@inject AuthenticationStateProvider AuthState
+
+<PageTitle>Login Logs — Dotnetable</PageTitle>
+
+<MudStack Row="true" AlignItems="AlignItems.Center" Justify="Justify.SpaceBetween" Class="mb-4">
+    <MudStack Spacing="0">
+        <MudText Typo="Typo.h5" Class="fw-bold">Login Logs</MudText>
+        <MudText Typo="Typo.body2" Color="Color.Secondary">
+            @(_isMaster ? "Login attempts across all websites" : "Login attempts for your website")
+        </MudText>
+    </MudStack>
+</MudStack>
+
+<MudPaper Elevation="0" Class="app-card rounded-lg pa-4">
+    @if (_loading)
+    {
+        <MudProgressLinear Indeterminate="true" Color="Color.Primary" Class="mb-3" />
+    }
+    <DNGridView GridHeaderParams="_grid" OnSearchChanged="OnGridChanged">
+        @if (_logs.Count == 0)
+        {
+            <tr>
+                <td colspan="@_colCount" style="text-align:center; padding:32px;">
+                    <MudText Color="Color.Secondary">No login attempts found.</MudText>
+                </td>
+            </tr>
+        }
+        else
+        {
+            @foreach (var l in _logs)
+            {
+                <tr>
+                    <td>@l.LoginTryID</td>
+                    <td>@l.Username</td>
+                    <td>@l.LogTime.ToString("yyyy-MM-dd HH:mm:ss")</td>
+                    <td>@l.TryIP</td>
+                    @if (_isMaster)
+                    {
+                        <td>@(l.WebsiteID == 0 ? "—" : l.WebsiteID.ToString())</td>
+                    }
+                    <td>
+                        @if (l.IsSuccess)
+                        {
+                            <MudChip T="string" Color="Color.Success" Size="Size.Small" Variant="Variant.Filled">Success</MudChip>
+                        }
+                        else
+                        {
+                            <MudChip T="string" Color="Color.Error" Size="Size.Small" Variant="Variant.Outlined">Failed</MudChip>
+                        }
+                    </td>
+                </tr>
+            }
+        }
+    </DNGridView>
+</MudPaper>
+
+@code {
+    private bool _loading = true;
+    private bool _isMaster;
+    private int _websiteId;
+    private List<LoginTry> _logs = new();
+    private GridViewHeaderParameters _grid = new();
+
+    private int _colCount => 5 + (_isMaster ? 1 : 0);
+
+    protected override async Task OnInitializedAsync()
+    {
+        var state = await AuthState.GetAuthenticationStateAsync();
+        var user = state.User;
+        _isMaster = user.HasClaim(AdminClaimTypes.Master, "true");
+        int.TryParse(user.FindFirst(AdminClaimTypes.WebsiteId)?.Value, out _websiteId);
+
+        _grid = new GridViewHeaderParameters
+        {
+            Pagination = new PaginationModel { PageSize = 25 },
+            HeaderItems = new()
+            {
+                new() { ColumnTitle = "ID", ColumnName = nameof(LoginTry.LoginTryID), HasSort = true },
+                new() { ColumnTitle = "Username", ColumnName = nameof(LoginTry.Username), HasSort = true, HasSearch = true },
+                new() { ColumnTitle = "Time", ColumnName = nameof(LoginTry.LogTime), HasSort = true },
+                new() { ColumnTitle = "IP", ColumnName = nameof(LoginTry.TryIP), HasSearch = true },
+            }
+        };
+        if (_isMaster)
+            _grid.HeaderItems.Add(new() { ColumnTitle = "Website", ColumnName = nameof(LoginTry.WebsiteID), HasSort = true });
+        _grid.HeaderItems.Add(new()
+        {
+            ColumnTitle = "Result",
+            ColumnName = nameof(LoginTry.IsSuccess),
+            HasSearch = true,
+            SearchType = SearchColumnType.DropDown,
+            OtherDropDownValues = new() { ["Success"] = "true", ["Failed"] = "false" }
+        });
+
+        await LoadAsync();
+    }
+
+    private Task OnGridChanged(GridViewHeaderParameters _) => LoadAsync();
+
+    private async Task LoadAsync()
+    {
+        _loading = true;
+        var result = await LoginLogService.GetPagedAsync(_isMaster ? null : _websiteId, _grid.ToQuery());
+        _logs = result.Items.ToList();
+        _grid.Pagination.MaxLength = result.TotalCount;
+        _loading = false;
+    }
+}
