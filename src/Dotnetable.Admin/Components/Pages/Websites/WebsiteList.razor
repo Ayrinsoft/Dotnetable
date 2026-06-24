@@ -1,38 +1,87 @@
 @page "/websites"
 @attribute [Authorize(Policy = AdminPolicies.SuperAdminOnly)]
 @inject IWebsiteService WebsiteService
+@inject NavigationManager Nav
 
-<PageTitle>Websites</PageTitle>
-<h1>Websites</h1>
+<PageTitle>Websites — Dotnetable</PageTitle>
 
-@if (_loading)
-{
-    <p>Loading...</p>
-}
-else
-{
-    <table>
-        <thead>
-            <tr><th>ID</th><th>Trade name</th><th>Address</th><th>Brand</th><th>Active</th></tr>
-        </thead>
-        <tbody>
-            @foreach (var site in _websites)
-            {
-                <tr>
-                    <td>@site.WebsiteID</td>
-                    <td><a href="/websites/@site.WebsiteID">@site.TradeName</a></td>
-                    <td>@site.WebsiteAddress</td>
-                    <td>@site.BrandName</td>
-                    <td>@(site.Active ? "Yes" : "No")</td>
-                </tr>
-            }
-        </tbody>
-    </table>
-}
+@* ── Page header ──────────────────────────────────────────────── *@
+<MudStack Row="true" AlignItems="AlignItems.Center" Justify="Justify.SpaceBetween" Class="mb-4">
+    <MudStack Spacing="0">
+        <MudText Typo="Typo.h5" Class="fw-bold">Websites</MudText>
+        <MudText Typo="Typo.body2" Color="Color.Secondary">Manage all registered websites</MudText>
+    </MudStack>
+    <MudButton Variant="Variant.Filled" Color="Color.Primary"
+               StartIcon="@Icons.Material.Filled.Add"
+               Href="/websites/new">
+        New Website
+    </MudButton>
+</MudStack>
+
+@* ── Data grid ────────────────────────────────────────────────── *@
+<MudPaper Elevation="0" Class="border rounded-lg overflow-hidden">
+    <MudDataGrid T="Website" Items="@_websites" QuickFilter="@_quickFilter"
+                 Loading="@_loading" Hover="true" Dense="false" Elevation="0"
+                 SortMode="SortMode.Multiple" Filterable="false">
+        <ToolBarContent>
+            <MudSpacer />
+            <MudTextField @bind-Value="_search" Placeholder="Search…"
+                          Adornment="Adornment.Start" AdornmentIcon="@Icons.Material.Filled.Search"
+                          IconSize="Size.Medium" Class="mt-0 mb-0" Variant="Variant.Outlined"
+                          Margin="Margin.Dense" Immediate="true" />
+        </ToolBarContent>
+        <Columns>
+            <PropertyColumn Property="x => x.WebsiteID" Title="ID" Sortable="true" InitialDirection="SortDirection.Ascending" />
+            <PropertyColumn Property="x => x.TradeName" Title="Trade Name" Sortable="true" />
+            <PropertyColumn Property="x => x.BrandName" Title="Brand" Sortable="true" />
+            <PropertyColumn Property="x => x.WebsiteAddress" Title="Address" Sortable="false" />
+            <PropertyColumn Property="x => x.Manager" Title="Manager" Sortable="false" />
+            <TemplateColumn Title="Status" Sortable="true">
+                <CellTemplate>
+                    @if (context.Item.Active)
+                    {
+                        <MudChip T="string" Color="Color.Success" Size="Size.Small" Variant="Variant.Filled">Active</MudChip>
+                    }
+                    else
+                    {
+                        <MudChip T="string" Color="Color.Default" Size="Size.Small" Variant="Variant.Outlined">Inactive</MudChip>
+                    }
+                </CellTemplate>
+            </TemplateColumn>
+            <TemplateColumn Title="Actions" Sortable="false">
+                <CellTemplate>
+                    <MudTooltip Text="Edit">
+                        <MudIconButton Icon="@Icons.Material.Filled.Edit" Color="Color.Primary" Size="Size.Small"
+                                       Href="@($"/websites/{context.Item.WebsiteID}")" />
+                    </MudTooltip>
+                </CellTemplate>
+            </TemplateColumn>
+        </Columns>
+        <NoRecordsContent>
+            <MudStack AlignItems="AlignItems.Center" Class="pa-8" Spacing="2">
+                <MudIcon Icon="@Icons.Material.Filled.Language" Size="Size.Large" Color="Color.Secondary" />
+                <MudText Color="Color.Secondary">No websites found.</MudText>
+            </MudStack>
+        </NoRecordsContent>
+        <LoadingContent>
+            <MudStack AlignItems="AlignItems.Center" Class="pa-8">
+                <MudProgressCircular Indeterminate="true" Color="Color.Primary" />
+            </MudStack>
+        </LoadingContent>
+    </MudDataGrid>
+</MudPaper>
 
 @code {
     private bool _loading = true;
+    private string _search = string.Empty;
     private IEnumerable<Website> _websites = [];
+
+    private Func<Website, bool> _quickFilter => x =>
+        string.IsNullOrWhiteSpace(_search)
+        || x.TradeName.Contains(_search, StringComparison.OrdinalIgnoreCase)
+        || x.BrandName.Contains(_search, StringComparison.OrdinalIgnoreCase)
+        || (x.WebsiteAddress?.Contains(_search, StringComparison.OrdinalIgnoreCase) ?? false)
+        || (x.Manager?.Contains(_search, StringComparison.OrdinalIgnoreCase) ?? false);
 
     protected override async Task OnInitializedAsync()
     {

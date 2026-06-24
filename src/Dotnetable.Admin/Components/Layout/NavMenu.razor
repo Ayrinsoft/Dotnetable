@@ -1,26 +1,42 @@
-<MudNavMenu>
-    <MudNavLink Href="/" Match="NavLinkMatch.All" Icon="@Icons.Material.Filled.Dashboard">
+<MudNavMenu Class="pt-2">
+
+    <MudNavLink Href="/" Match="NavLinkMatch.All"
+                Icon="@Icons.Material.Filled.Dashboard" IconColor="Color.Primary">
         Dashboard
     </MudNavLink>
 
+    <AuthorizeView Policy="@AdminPolicies.WebsiteAdminOrAbove">
+        <MudText Typo="Typo.overline" Class="px-4 mt-4 mb-1"
+                 Style="font-size:.6rem; letter-spacing:.1em; color:var(--mud-palette-text-secondary)">
+            MANAGEMENT
+        </MudText>
+        <MudNavLink Href="/members" Icon="@Icons.Material.Filled.People" IconColor="Color.Primary">
+            Members
+        </MudNavLink>
+        <MudNavLink Href="/translations" Icon="@Icons.Material.Filled.Translate" IconColor="Color.Primary">
+            Translations
+        </MudNavLink>
+    </AuthorizeView>
+
     <AuthorizeView Policy="@AdminPolicies.SuperAdminOnly">
-        <MudNavLink Href="/websites" Icon="@Icons.Material.Filled.Language">
+        <MudText Typo="Typo.overline" Class="px-4 mt-4 mb-1"
+                 Style="font-size:.6rem; letter-spacing:.1em; color:var(--mud-palette-text-secondary)">
+            ADMINISTRATION
+        </MudText>
+        <MudNavLink Href="/websites" Icon="@Icons.Material.Filled.Language" IconColor="Color.Primary">
             Websites
         </MudNavLink>
-        <MudNavLink Href="/system/updates" Icon="@Icons.Material.Filled.SystemUpdate">
-            Database Updates
+
+        <MudText Typo="Typo.overline" Class="px-4 mt-4 mb-1"
+                 Style="font-size:.6rem; letter-spacing:.1em; color:var(--mud-palette-text-secondary)">
+            SYSTEM
+        </MudText>
+        <MudNavLink Href="/system/updates" Icon="@Icons.Material.Filled.SystemUpdateAlt" IconColor="Color.Primary">
+            DB Updates
         </MudNavLink>
-        <MudNavLink Href="/settings" Icon="@Icons.Material.Filled.Settings">
+        <MudNavLink Href="/settings" Icon="@Icons.Material.Filled.Settings" IconColor="Color.Primary">
             Settings
         </MudNavLink>
     </AuthorizeView>
 
-    <AuthorizeView Policy="@AdminPolicies.WebsiteAdminOrAbove">
-        <MudNavLink Href="/members" Icon="@Icons.Material.Filled.People">
-            Members
-        </MudNavLink>
-        <MudNavLink Href="/translations" Icon="@Icons.Material.Filled.Translate">
-            Translations
-        </MudNavLink>
-    </AuthorizeView>
 </MudNavMenu>

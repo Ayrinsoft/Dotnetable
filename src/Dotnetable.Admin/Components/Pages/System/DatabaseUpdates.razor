@@ -1,52 +1,123 @@
 @page "/system/updates"
 @attribute [Authorize(Policy = AdminPolicies.SuperAdminOnly)]
 @inject IDatabaseUpdateService UpdateService
+@inject ISnackbar Snackbar
 
-<PageTitle>Database Updates</PageTitle>
-<h1>Database Updates</h1>
+<PageTitle>Database Updates — Dotnetable</PageTitle>
+
+@* ── Page header ──────────────────────────────────────────────── *@
+<MudStack Row="true" AlignItems="AlignItems.Center" Justify="Justify.SpaceBetween" Class="mb-4">
+    <MudStack Spacing="0">
+        <MudText Typo="Typo.h5" Class="fw-bold">Database Updates</MudText>
+        <MudText Typo="Typo.body2" Color="Color.Secondary">Manage EF Core schema migrations</MudText>
+    </MudStack>
+    <MudButton Variant="Variant.Outlined" Color="Color.Default"
+               StartIcon="@Icons.Material.Filled.Refresh"
+               OnClick="RefreshAsync" Disabled="@(_loading || _applying)">
+        Refresh
+    </MudButton>
+</MudStack>
 
 @if (_loading)
 {
-    <p>Loading...</p>
+    <MudProgressLinear Indeterminate="true" Color="Color.Primary" Class="mb-4" />
 }
 else
 {
-    <p>Applied updates: <strong>@_applied.Count</strong> &nbsp;|&nbsp; Pending: <strong>@_pending.Count</strong></p>
+    @* ── Summary cards ────────────────────────────────────────── *@
+    <MudGrid Spacing="3" Class="mb-4">
+        <MudItem xs="12" sm="6" md="3">
+            <MudPaper Elevation="0" Class="border rounded-lg pa-4 d-flex align-center gap-3">
+                <MudIcon Icon="@Icons.Material.Filled.CheckCircle" Color="Color.Success" Size="Size.Large" />
+                <div>
+                    <MudText Typo="Typo.caption" Color="Color.Secondary">Applied</MudText>
+                    <MudText Typo="Typo.h5" Class="fw-bold lh-1">@_applied.Count</MudText>
+                </div>
+            </MudPaper>
+        </MudItem>
+        <MudItem xs="12" sm="6" md="3">
+            <MudPaper Elevation="0" Class="border rounded-lg pa-4 d-flex align-center gap-3"
+                      Style="@(_pending.Count > 0 ? "border-color:var(--mud-palette-warning) !important;" : "")">
+                <MudIcon Icon="@(_pending.Count > 0 ? Icons.Material.Filled.Warning : Icons.Material.Filled.Done)"
+                         Color="@(_pending.Count > 0 ? Color.Warning : Color.Success)" Size="Size.Large" />
+                <div>
+                    <MudText Typo="Typo.caption" Color="Color.Secondary">Pending</MudText>
+                    <MudText Typo="Typo.h5" Class="fw-bold lh-1"
+                             Color="@(_pending.Count > 0 ? Color.Warning : Color.Success)">
+                        @_pending.Count
+                    </MudText>
+                </div>
+            </MudPaper>
+        </MudItem>
+    </MudGrid>
 
+    @* ── Pending migrations ───────────────────────────────────── *@
     @if (_pending.Count > 0)
     {
-        <h3>Pending</h3>
-        <ul>
-            @foreach (var name in _pending)
-            {
-                <li>@name</li>
-            }
-        </ul>
-        <button @onclick="ApplyAsync" disabled="@_applying">@(_applying ? "Applying..." : "Apply updates")</button>
+        <MudPaper Elevation="0" Class="border rounded-lg pa-4 mb-4"
+                  Style="border-color:var(--mud-palette-warning) !important;">
+            <MudStack Row="true" AlignItems="AlignItems.Center" Justify="Justify.SpaceBetween" Class="mb-3">
+                <MudStack Row="true" AlignItems="AlignItems.Center" Spacing="2">
+                    <MudIcon Icon="@Icons.Material.Filled.Warning" Color="Color.Warning" />
+                    <MudText Typo="Typo.subtitle1" Class="fw-bold">Pending Migrations</MudText>
+                </MudStack>
+                <MudButton Variant="Variant.Filled" Color="Color.Warning"
+                           StartIcon="@Icons.Material.Filled.SystemUpdateAlt"
+                           OnClick="ApplyAsync" Disabled="@_applying">
+                    @if (_applying)
+                    {
+                        <MudProgressCircular Size="Size.Small" Indeterminate="true" Class="me-2" />
+                    }
+                    Apply @_pending.Count Migration(s)
+                </MudButton>
+            </MudStack>
+            <MudList T="string" Dense="true">
+                @foreach (var name in _pending)
+                {
+                    <MudListItem T="string" Icon="@Icons.Material.Filled.ArrowRight" IconColor="Color.Warning">
+                        <MudText Typo="Typo.body2" Class="font-monospace">@name</MudText>
+                    </MudListItem>
+                }
+            </MudList>
+        </MudPaper>
     }
     else
     {
-        <p>The database schema is up to date.</p>
+        <MudAlert Severity="Severity.Success" Class="mb-4" Elevation="0">
+            <MudText>The database schema is fully up to date.</MudText>
+        </MudAlert>
     }
 
-    @if (!string.IsNullOrEmpty(_message))
-    {
-        <p>@_message</p>
-    }
-
-    <h3>Applied</h3>
-    <ul>
-        @foreach (var name in _applied)
+    @* ── Applied migrations ───────────────────────────────────── *@
+    <MudPaper Elevation="0" Class="border rounded-lg">
+        <div class="pa-4 border-bottom d-flex align-center gap-2">
+            <MudIcon Icon="@Icons.Material.Filled.History" Color="Color.Secondary" />
+            <MudText Typo="Typo.subtitle1" Class="fw-bold">Applied Migrations</MudText>
+            <MudChip T="string" Size="Size.Small" Color="Color.Success" Variant="Variant.Outlined">@_applied.Count</MudChip>
+        </div>
+        @if (_applied.Count == 0)
         {
-            <li>@name</li>
+            <MudStack AlignItems="AlignItems.Center" Class="pa-6" Spacing="1">
+                <MudText Color="Color.Secondary">No migrations applied yet.</MudText>
+            </MudStack>
         }
-    </ul>
+        else
+        {
+            <MudList T="string" Dense="true" Class="py-2">
+                @foreach (var name in _applied.AsEnumerable().Reverse())
+                {
+                    <MudListItem T="string" Icon="@Icons.Material.Filled.CheckCircleOutline" IconColor="Color.Success">
+                        <MudText Typo="Typo.body2" Class="font-monospace">@name</MudText>
+                    </MudListItem>
+                }
+            </MudList>
+        }
+    </MudPaper>
 }
 
 @code {
     private bool _loading = true;
     private bool _applying;
-    private string? _message;
     private IReadOnlyList<string> _applied = [];
     private IReadOnlyList<string> _pending = [];
 
@@ -62,7 +133,7 @@ else
         }
         catch (Exception ex)
         {
-            _message = $"Could not read update status: {ex.Message}";
+            Snackbar.Add($"Could not read update status: {ex.Message}", Severity.Error);
         }
         _loading = false;
     }
@@ -70,16 +141,15 @@ else
     private async Task ApplyAsync()
     {
         _applying = true;
-        _message = null;
         try
         {
             await UpdateService.ApplyUpdatesAsync();
-            _message = "Updates applied successfully.";
+            Snackbar.Add("Migrations applied successfully.", Severity.Success);
             await RefreshAsync();
         }
         catch (Exception ex)
         {
-            _message = $"Apply failed: {ex.Message}";
+            Snackbar.Add($"Apply failed: {ex.Message}", Severity.Error);
         }
         _applying = false;
     }

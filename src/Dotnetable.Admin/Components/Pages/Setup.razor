@@ -3,6 +3,7 @@
 @attribute [Layout(typeof(SetupLayout))]
 @using Dotnetable.Application.DTOs
 @inject ISetupService SetupService
+@inject IDatabaseConfigStore ConfigStore
 @inject NavigationManager Nav
 @inject ISnackbar Snackbar
 
@@ -324,17 +325,14 @@
         ("ar", "عر"),
     ];
 
-    protected override async Task OnInitializedAsync()
+    protected override Task OnInitializedAsync()
     {
-        try
-        {
-            if (await SetupService.IsSetupCompletedAsync())
-                Nav.NavigateTo("/Login", forceLoad: true);
-        }
-        catch
-        {
-            // DB not yet configured – stay on Setup page
-        }
+        // If the connection is already configured (localsettings.json exists with a connection
+        // string), setup has already been completed — redirect away without querying the DB.
+        if (ConfigStore.IsConfigured)
+            Nav.NavigateTo("/Login", forceLoad: true);
+
+        return Task.CompletedTask;
     }
 
     private void SetLanguage(string lang) => _lang = lang;

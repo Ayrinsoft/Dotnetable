@@ -1,18 +1,131 @@
 @page "/"
 @attribute [Authorize]
-@inject AuthenticationStateProvider AuthState
 
-<PageTitle>Dashboard</PageTitle>
-<h1>Dashboard</h1>
+<PageTitle>Dashboard — Dotnetable</PageTitle>
 
 <AuthorizeView>
     <Authorized Context="authCtx">
-        <p>Welcome, <strong>@authCtx.User.Identity?.Name</strong></p>
 
-        <AuthorizeView Policy="@AdminPolicies.SuperAdminOnly" Context="superCtx">
-            <p>You are a <strong>master website</strong> administrator — all websites are visible.</p>
-        </AuthorizeView>
+        @* ── Welcome banner ─────────────────────────────────────── *@
+        <MudPaper Elevation="0" Class="rounded-lg pa-6 mb-6 d-flex align-center gap-4"
+                  Style="background:linear-gradient(135deg,#594AE2 0%,#7B6CF6 100%); color:#fff;">
+            <MudAvatar Color="Color.Secondary" Size="Size.Large" Style="font-size:1.5rem; flex-shrink:0;">
+                @(authCtx.User.Identity?.Name?.Trim()[0].ToString().ToUpper() ?? "?")
+            </MudAvatar>
+            <div>
+                <MudText Typo="Typo.h5" Style="color:#fff; font-weight:700;">
+                    Welcome back, @authCtx.User.Identity?.Name
+                </MudText>
+                <MudText Typo="Typo.body2" Style="color:rgba(255,255,255,.75);">
+                    <AuthorizeView Policy="@AdminPolicies.SuperAdminOnly" Context="_">
+                        Super Administrator — full access across all websites
+                    </AuthorizeView>
+                    <AuthorizeView Policy="@AdminPolicies.WebsiteAdminOrAbove" Context="_">
+                        <NotAuthorized>
+                            Website @(authCtx.User.FindFirst(AdminClaimTypes.WebsiteId)?.Value) administrator
+                        </NotAuthorized>
+                    </AuthorizeView>
+                </MudText>
+            </div>
+        </MudPaper>
 
-        <p>Your website ID: <strong>@authCtx.User.FindFirst(AdminClaimTypes.WebsiteId)?.Value</strong></p>
+        @* ── Info cards ──────────────────────────────────────────── *@
+        <MudGrid Spacing="3">
+            <MudItem xs="12" sm="6" md="3">
+                <MudPaper Elevation="0" Class="rounded-lg pa-4 border d-flex align-center gap-3">
+                    <MudIcon Icon="@Icons.Material.Filled.Badge" Color="Color.Primary" Size="Size.Large" />
+                    <div>
+                        <MudText Typo="Typo.caption" Color="Color.Secondary">Username</MudText>
+                        <MudText Typo="Typo.subtitle1" Class="fw-bold">@authCtx.User.Identity?.Name</MudText>
+                    </div>
+                </MudPaper>
+            </MudItem>
+
+            <MudItem xs="12" sm="6" md="3">
+                <MudPaper Elevation="0" Class="rounded-lg pa-4 border d-flex align-center gap-3">
+                    <MudIcon Icon="@Icons.Material.Filled.Language" Color="Color.Primary" Size="Size.Large" />
+                    <div>
+                        <MudText Typo="Typo.caption" Color="Color.Secondary">Website ID</MudText>
+                        <MudText Typo="Typo.subtitle1" Class="fw-bold">
+                            @(authCtx.User.FindFirst(AdminClaimTypes.WebsiteId)?.Value ?? "—")
+                        </MudText>
+                    </div>
+                </MudPaper>
+            </MudItem>
+
+            <MudItem xs="12" sm="6" md="3">
+                <MudPaper Elevation="0" Class="rounded-lg pa-4 border d-flex align-center gap-3">
+                    <MudIcon Icon="@Icons.Material.Filled.Security" Color="Color.Primary" Size="Size.Large" />
+                    <div>
+                        <MudText Typo="Typo.caption" Color="Color.Secondary">Access Level</MudText>
+                        <AuthorizeView Policy="@AdminPolicies.SuperAdminOnly" Context="_super">
+                            <MudChip T="string" Size="Size.Small" Color="Color.Warning" Variant="Variant.Filled">Super Admin</MudChip>
+                        </AuthorizeView>
+                        <AuthorizeView Policy="@AdminPolicies.SuperAdminOnly" Context="_super">
+                            <NotAuthorized>
+                                <MudChip T="string" Size="Size.Small" Color="Color.Info" Variant="Variant.Filled">Website Admin</MudChip>
+                            </NotAuthorized>
+                        </AuthorizeView>
+                    </div>
+                </MudPaper>
+            </MudItem>
+
+            <MudItem xs="12" sm="6" md="3">
+                <MudPaper Elevation="0" Class="rounded-lg pa-4 border d-flex align-center gap-3">
+                    <MudIcon Icon="@Icons.Material.Filled.Circle" Color="Color.Success" Size="Size.Large" />
+                    <div>
+                        <MudText Typo="Typo.caption" Color="Color.Secondary">Status</MudText>
+                        <MudText Typo="Typo.subtitle1" Class="fw-bold" Color="Color.Success">Online</MudText>
+                    </div>
+                </MudPaper>
+            </MudItem>
+        </MudGrid>
+
+        @* ── Quick links ─────────────────────────────────────────── *@
+        <MudText Typo="Typo.subtitle2" Color="Color.Secondary" Class="mt-6 mb-3">QUICK ACTIONS</MudText>
+        <MudGrid Spacing="3">
+            <AuthorizeView Policy="@AdminPolicies.WebsiteAdminOrAbove" Context="_">
+                <MudItem xs="12" sm="6" md="4">
+                    <MudPaper Elevation="0" Class="rounded-lg border pa-4 cursor-pointer hover:mud-paper-elevation-2"
+                              @onclick='() => Nav.NavigateTo("/members")'>
+                        <MudStack Row="true" AlignItems="AlignItems.Center" Spacing="2">
+                            <MudIcon Icon="@Icons.Material.Filled.People" Color="Color.Primary" />
+                            <MudText Typo="Typo.body1" Class="fw-medium">Manage Members</MudText>
+                            <MudSpacer />
+                            <MudIcon Icon="@Icons.Material.Filled.ChevronRight" Color="Color.Secondary" />
+                        </MudStack>
+                    </MudPaper>
+                </MudItem>
+                <MudItem xs="12" sm="6" md="4">
+                    <MudPaper Elevation="0" Class="rounded-lg border pa-4 cursor-pointer"
+                              @onclick='() => Nav.NavigateTo("/translations")'>
+                        <MudStack Row="true" AlignItems="AlignItems.Center" Spacing="2">
+                            <MudIcon Icon="@Icons.Material.Filled.Translate" Color="Color.Primary" />
+                            <MudText Typo="Typo.body1" Class="fw-medium">Translations</MudText>
+                            <MudSpacer />
+                            <MudIcon Icon="@Icons.Material.Filled.ChevronRight" Color="Color.Secondary" />
+                        </MudStack>
+                    </MudPaper>
+                </MudItem>
+            </AuthorizeView>
+            <AuthorizeView Policy="@AdminPolicies.SuperAdminOnly" Context="_">
+                <MudItem xs="12" sm="6" md="4">
+                    <MudPaper Elevation="0" Class="rounded-lg border pa-4 cursor-pointer"
+                              @onclick='() => Nav.NavigateTo("/websites")'>
+                        <MudStack Row="true" AlignItems="AlignItems.Center" Spacing="2">
+                            <MudIcon Icon="@Icons.Material.Filled.Language" Color="Color.Primary" />
+                            <MudText Typo="Typo.body1" Class="fw-medium">Websites</MudText>
+                            <MudSpacer />
+                            <MudIcon Icon="@Icons.Material.Filled.ChevronRight" Color="Color.Secondary" />
+                        </MudStack>
+                    </MudPaper>
+                </MudItem>
+            </AuthorizeView>
+        </MudGrid>
+
     </Authorized>
 </AuthorizeView>
+
+@code {
+    [Inject] private NavigationManager Nav { get; set; } = null!;
+}
