@@ -1,6 +1,8 @@
+using Dotnetable.Application.DTOs;
 using Dotnetable.Application.Interfaces;
 using Dotnetable.Domain.Entities;
 using Dotnetable.Infrastructure.Data;
+using Dotnetable.Infrastructure.Extensions;
 using Microsoft.AspNetCore.Identity;
 using Microsoft.EntityFrameworkCore;
 
@@ -39,6 +41,31 @@ public class MemberService : IMemberService
 
     public async Task<IEnumerable<Member>> GetAllAsync(CancellationToken ct = default) =>
         await _context.Members.ToListAsync(ct);
+
+    public async Task<PagedResult<Member>> GetPagedAsync(int? websiteId, GridQuery query, CancellationToken ct = default)
+    {
+        var q = _context.Members.AsNoTracking();
+
+        if (websiteId is int wid)
+            q = q.Where(m => m.WebsiteID == wid);
+
+        if (query.GetSearch("Username") is string username)
+            q = q.Where(m => m.Username.Contains(username));
+        if (query.GetSearch("Email") is string email)
+            q = q.Where(m => m.Email.Contains(email));
+        if (query.GetSearch("Fullname") is string fullname)
+            q = q.Where(m => (m.Givenname + " " + m.Surname).Contains(fullname));
+        if (query.GetSearch("Active") is string active && bool.TryParse(active, out var isActive))
+            q = q.Where(m => m.Active == isActive);
+
+        var total = await q.CountAsync(ct);
+        var items = await q
+            .ApplyOrderBy(query.OrderBy, nameof(Member.MemberID))
+            .Skip(query.Skip).Take(query.Take)
+            .ToListAsync(ct);
+
+        return new PagedResult<Member> { Items = items, TotalCount = total };
+    }
 
     public async Task<Member> CreateAsync(Member member, string plainPassword, CancellationToken ct = default)
     {

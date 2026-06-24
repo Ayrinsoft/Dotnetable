@@ -1,0 +1,127 @@
+@namespace Dotnetable.Admin.Components.Shared.FormControls
+
+@if (PaginationModel is not null && _pageCount > 0)
+{
+    <nav class="dn-pagination">
+        <ul class="dn-pages">
+            @if (PaginationModel.ShowFirstLast)
+            {
+                <li class="dn-page @(PaginationModel.PageIndex == 1 ? "disabled" : "")">
+                    <button type="button" disabled="@(PaginationModel.PageIndex == 1)"
+                            @onclick="@(() => PagerButtonClicked(1))" title="First">
+                        <MudIcon Icon="@Icons.Material.Filled.FirstPage" Size="Size.Small" />
+                    </button>
+                </li>
+            }
+            <li class="dn-page @(_hasPrevious ? "" : "disabled")">
+                <button type="button" disabled="@(!_hasPrevious)"
+                        @onclick="@(() => PagerButtonClicked(PaginationModel.PageIndex - 1))" title="Previous">
+                    <MudIcon Icon="@Icons.Material.Filled.ChevronLeft" Size="Size.Small" />
+                </button>
+            </li>
+
+            @if (PaginationModel.ShowNumbers)
+            {
+                @for (var i = _start; i <= _finish; i++)
+                {
+                    var currentIndex = i;
+                    <li class="dn-page @(currentIndex == PaginationModel.PageIndex ? "active" : "")">
+                        <button type="button" @onclick="@(() => PagerButtonClicked(currentIndex))">@currentIndex</button>
+                    </li>
+                }
+            }
+
+            <li class="dn-page @(_hasNext ? "" : "disabled")">
+                <button type="button" disabled="@(!_hasNext)"
+                        @onclick="@(() => PagerButtonClicked(PaginationModel.PageIndex + 1))" title="Next">
+                    <MudIcon Icon="@Icons.Material.Filled.ChevronRight" Size="Size.Small" />
+                </button>
+            </li>
+            @if (PaginationModel.ShowFirstLast)
+            {
+                <li class="dn-page @(PaginationModel.PageIndex == _pageCount ? "disabled" : "")">
+                    <button type="button" disabled="@(PaginationModel.PageIndex == _pageCount)"
+                            @onclick="@(() => PagerButtonClicked(_pageCount))" title="Last">
+                        <MudIcon Icon="@Icons.Material.Filled.LastPage" Size="Size.Small" />
+                    </button>
+                </li>
+            }
+        </ul>
+
+        <div class="dn-pagesize">
+            <span>@_rangeText</span>
+            <span>·</span>
+            <span>Rows</span>
+            <select value="@PaginationModel.PageSize" @onchange="OnChangePageSize">
+                @foreach (var size in _paginationSize)
+                {
+                    <option value="@size">@size</option>
+                }
+            </select>
+        </div>
+    </nav>
+}
+
+@code {
+    [Parameter] public PaginationModel PaginationModel { get; set; } = new();
+    [Parameter] public EventCallback<PaginationModel> OnPageChanged { get; set; }
+
+    private static readonly int[] _paginationSize = { 10, 25, 50, 100, 200 };
+
+    private int _pageCount;
+    private int _start;
+    private int _finish;
+    private bool _hasPrevious;
+    private bool _hasNext;
+    private string _rangeText = "";
+
+    // Recompute whenever the parent updates the model (e.g. MaxLength after a search).
+    protected override void OnParametersSet() => CheckItems();
+
+    private async Task PagerButtonClicked(int page)
+    {
+        if (page < 1 || page > _pageCount || page == PaginationModel.PageIndex) return;
+        PaginationModel.PageIndex = page;
+        CheckItems();
+        await OnPageChanged.InvokeAsync(PaginationModel);
+    }
+
+    private async Task OnChangePageSize(ChangeEventArgs e)
+    {
+        PaginationModel.PageSize = Convert.ToInt32(e.Value);
+        PaginationModel.PageIndex = 1; // avoid landing on an out-of-range page
+        CheckItems();
+        await OnPageChanged.InvokeAsync(PaginationModel);
+    }
+
+    private void CheckItems()
+    {
+        var pageSize = PaginationModel.PageSize <= 0 ? 10 : PaginationModel.PageSize;
+        _pageCount = (int)Math.Ceiling(PaginationModel.MaxLength / (double)pageSize);
+
+        if (_pageCount <= 0)
+        {
+            _start = _finish = 0;
+            _hasPrevious = _hasNext = false;
+            _rangeText = "0 of 0";
+            return;
+        }
+
+        if (PaginationModel.PageIndex > _pageCount) PaginationModel.PageIndex = _pageCount;
+        if (PaginationModel.PageIndex < 1) PaginationModel.PageIndex = 1;
+        PaginationModel.ShowFirstLast = _pageCount > 5;
+
+        var visible = Math.Min(PaginationModel.VisiblePages < 5 ? 5 : PaginationModel.VisiblePages, _pageCount);
+        var half = visible / 2;
+        _start = Math.Max(PaginationModel.PageIndex - half, 1);
+        _finish = Math.Min(_start + visible - 1, _pageCount);
+        _start = Math.Max(_finish - visible + 1, 1);
+
+        _hasPrevious = PaginationModel.PageIndex > 1;
+        _hasNext = PaginationModel.PageIndex < _pageCount;
+
+        var from = (PaginationModel.PageIndex - 1) * pageSize + 1;
+        var to = Math.Min(PaginationModel.PageIndex * pageSize, PaginationModel.MaxLength);
+        _rangeText = $"{from}–{to} of {PaginationModel.MaxLength}";
+    }
+}

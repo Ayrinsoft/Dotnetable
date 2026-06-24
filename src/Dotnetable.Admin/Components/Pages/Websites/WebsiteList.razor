@@ -1,7 +1,6 @@
 @page "/websites"
 @attribute [Authorize(Policy = AdminPolicies.SuperAdminOnly)]
 @inject IWebsiteService WebsiteService
-@inject NavigationManager Nav
 
 <PageTitle>Websites — Dotnetable</PageTitle>
 
@@ -18,74 +17,96 @@
     </MudButton>
 </MudStack>
 
-@* ── Data grid ────────────────────────────────────────────────── *@
-<MudPaper Elevation="0" Class="border rounded-lg overflow-hidden">
-    <MudDataGrid T="Website" Items="@_websites" QuickFilter="@_quickFilter"
-                 Loading="@_loading" Hover="true" Dense="false" Elevation="0"
-                 SortMode="SortMode.Multiple" Filterable="false">
-        <ToolBarContent>
-            <MudSpacer />
-            <MudTextField @bind-Value="_search" Placeholder="Search…"
-                          Adornment="Adornment.Start" AdornmentIcon="@Icons.Material.Filled.Search"
-                          IconSize="Size.Medium" Class="mt-0 mb-0" Variant="Variant.Outlined"
-                          Margin="Margin.Dense" Immediate="true" />
-        </ToolBarContent>
-        <Columns>
-            <PropertyColumn Property="x => x.WebsiteID" Title="ID" Sortable="true" InitialDirection="SortDirection.Ascending" />
-            <PropertyColumn Property="x => x.TradeName" Title="Trade Name" Sortable="true" />
-            <PropertyColumn Property="x => x.BrandName" Title="Brand" Sortable="true" />
-            <PropertyColumn Property="x => x.WebsiteAddress" Title="Address" Sortable="false" />
-            <PropertyColumn Property="x => x.Manager" Title="Manager" Sortable="false" />
-            <TemplateColumn Title="Status" Sortable="true">
-                <CellTemplate>
-                    @if (context.Item.Active)
-                    {
-                        <MudChip T="string" Color="Color.Success" Size="Size.Small" Variant="Variant.Filled">Active</MudChip>
-                    }
-                    else
-                    {
-                        <MudChip T="string" Color="Color.Default" Size="Size.Small" Variant="Variant.Outlined">Inactive</MudChip>
-                    }
-                </CellTemplate>
-            </TemplateColumn>
-            <TemplateColumn Title="Actions" Sortable="false">
-                <CellTemplate>
-                    <MudTooltip Text="Edit">
-                        <MudIconButton Icon="@Icons.Material.Filled.Edit" Color="Color.Primary" Size="Size.Small"
-                                       Href="@($"/websites/{context.Item.WebsiteID}")" />
-                    </MudTooltip>
-                </CellTemplate>
-            </TemplateColumn>
-        </Columns>
-        <NoRecordsContent>
-            <MudStack AlignItems="AlignItems.Center" Class="pa-8" Spacing="2">
-                <MudIcon Icon="@Icons.Material.Filled.Language" Size="Size.Large" Color="Color.Secondary" />
-                <MudText Color="Color.Secondary">No websites found.</MudText>
-            </MudStack>
-        </NoRecordsContent>
-        <LoadingContent>
-            <MudStack AlignItems="AlignItems.Center" Class="pa-8">
-                <MudProgressCircular Indeterminate="true" Color="Color.Primary" />
-            </MudStack>
-        </LoadingContent>
-    </MudDataGrid>
+<MudPaper Elevation="0" Class="app-card rounded-lg pa-4">
+    @if (_loading)
+    {
+        <MudProgressLinear Indeterminate="true" Color="Color.Primary" Class="mb-3" />
+    }
+    <DNGridView GridHeaderParams="_grid" OnSearchChanged="OnGridChanged">
+        @if (_websites.Count == 0)
+        {
+            <tr>
+                <td colspan="8" style="text-align:center; padding:32px;">
+                    <MudText Color="Color.Secondary">No websites found.</MudText>
+                </td>
+            </tr>
+        }
+        else
+        {
+            @foreach (var w in _websites)
+            {
+                <tr>
+                    <td>
+                        <MudIconButton Icon="@Icons.Material.Filled.Edit" Size="Size.Small"
+                                       Color="Color.Primary" Href="@($"/websites/{w.WebsiteID}")" />
+                    </td>
+                    <td>@w.WebsiteID</td>
+                    <td>@w.TradeName</td>
+                    <td>@w.BrandName</td>
+                    <td>@w.WebsiteAddress</td>
+                    <td>@w.Manager</td>
+                    <td>
+                        @if (w.WebsiteType == 1)
+                        {
+                            <MudChip T="string" Color="Color.Warning" Size="Size.Small" Variant="Variant.Outlined">Store</MudChip>
+                        }
+                        else
+                        {
+                            <MudChip T="string" Color="Color.Primary" Size="Size.Small" Variant="Variant.Outlined">Website</MudChip>
+                        }
+                    </td>
+                    <td>
+                        @if (w.Active)
+                        {
+                            <MudChip T="string" Color="Color.Success" Size="Size.Small" Variant="Variant.Filled">Active</MudChip>
+                        }
+                        else
+                        {
+                            <MudChip T="string" Color="Color.Default" Size="Size.Small" Variant="Variant.Outlined">Inactive</MudChip>
+                        }
+                    </td>
+                </tr>
+            }
+        }
+    </DNGridView>
 </MudPaper>
 
 @code {
     private bool _loading = true;
-    private string _search = string.Empty;
-    private IEnumerable<Website> _websites = [];
-
-    private Func<Website, bool> _quickFilter => x =>
-        string.IsNullOrWhiteSpace(_search)
-        || x.TradeName.Contains(_search, StringComparison.OrdinalIgnoreCase)
-        || x.BrandName.Contains(_search, StringComparison.OrdinalIgnoreCase)
-        || (x.WebsiteAddress?.Contains(_search, StringComparison.OrdinalIgnoreCase) ?? false)
-        || (x.Manager?.Contains(_search, StringComparison.OrdinalIgnoreCase) ?? false);
-
-    protected override async Task OnInitializedAsync()
+    private List<Website> _websites = new();
+    private GridViewHeaderParameters _grid = new()
     {
-        _websites = await WebsiteService.GetAllAsync();
+        Pagination = new PaginationModel { PageSize = 25 },
+        HeaderItems = new()
+        {
+            new() { ColumnTitle = "", ColumnName = "" },
+            new() { ColumnTitle = "ID", ColumnName = nameof(Website.WebsiteID), HasSort = true },
+            new() { ColumnTitle = "Trade Name", ColumnName = nameof(Website.TradeName), HasSort = true, HasSearch = true },
+            new() { ColumnTitle = "Brand", ColumnName = nameof(Website.BrandName), HasSort = true, HasSearch = true },
+            new() { ColumnTitle = "Address", ColumnName = nameof(Website.WebsiteAddress), HasSearch = true },
+            new() { ColumnTitle = "Manager", ColumnName = nameof(Website.Manager), HasSearch = true },
+            new() { ColumnTitle = "Type", ColumnName = nameof(Website.WebsiteType), HasSort = true },
+            new()
+            {
+                ColumnTitle = "Status",
+                ColumnName = nameof(Website.Active),
+                HasSearch = true,
+                SearchType = SearchColumnType.DropDown,
+                OtherDropDownValues = new() { ["Active"] = "true", ["Inactive"] = "false" }
+            },
+        }
+    };
+
+    protected override Task OnInitializedAsync() => LoadAsync();
+
+    private Task OnGridChanged(GridViewHeaderParameters _) => LoadAsync();
+
+    private async Task LoadAsync()
+    {
+        _loading = true;
+        var result = await WebsiteService.GetPagedAsync(_grid.ToQuery());
+        _websites = result.Items.ToList();
+        _grid.Pagination.MaxLength = result.TotalCount;
         _loading = false;
     }
 }
