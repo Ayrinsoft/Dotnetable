@@ -1,0 +1,166 @@
+@inject IFileService FileService
+@inject IStorageSettingService StorageService
+@inject ISnackbar Snackbar
+
+<MudDialog>
+    <TitleContent>
+        <MudText Typo="Typo.h6">
+            <MudIcon Icon="@Icons.Material.Filled.CloudUpload" Class="me-2" />
+            Upload files
+        </MudText>
+    </TitleContent>
+    <DialogContent>
+        @if (_storages.Count == 0)
+        {
+            <MudAlert Severity="Severity.Warning">
+                No active storage for this website. Add one under <b>Storage Backends</b> first.
+            </MudAlert>
+        }
+        else
+        {
+            <MudGrid Spacing="3">
+                <MudItem xs="12">
+                    <MudSelect T="int" @bind-Value="_storageId" Label="Storage" Variant="Variant.Outlined">
+                        @foreach (var s in _storages)
+                        {
+                            <MudSelectItem T="int" Value="s.WebsiteStorageSettingsID">
+                                @MediaFormat.ProviderLabel(s.Provider)
+                                @if (s.Quota is { } q)
+                                {
+                                    <span> — @MediaFormat.Size(q.UsedKB)@(q.TotalKB is long t ? $"/{MediaFormat.Size(t)}" : "") used</span>
+                                }
+                            </MudSelectItem>
+                        }
+                    </MudSelect>
+                </MudItem>
+
+                @{ var selected = _storages.FirstOrDefault(s => s.WebsiteStorageSettingsID == _storageId); }
+                @if (selected?.Quota is { TotalKB: long } && MediaFormat.UsedPercent(selected.Quota) is double pct)
+                {
+                    <MudItem xs="12">
+                        <MudProgressLinear Color="@(pct >= 90 ? Color.Error : Color.Info)" Value="@pct" />
+                        <MudText Typo="Typo.caption" Color="Color.Secondary">
+                            @($"{pct:0}% used · {MediaFormat.Size(selected.Quota!.RemainingKB ?? 0)} remaining")
+                        </MudText>
+                    </MudItem>
+                }
+
+                <MudItem xs="12" sm="6">
+                    <MudSelect T="int?" @bind-Value="_albumId" Label="Album (optional)" Variant="Variant.Outlined" Clearable="true">
+                        @foreach (var a in _albums)
+                        {
+                            <MudSelectItem T="int?" Value="a.FileAlbumID">@a.Name</MudSelectItem>
+                        }
+                    </MudSelect>
+                </MudItem>
+                <MudItem xs="12" sm="6">
+                    <MudSelect T="int" @bind-SelectedValues="_tagIds" Label="Tags (optional)" Variant="Variant.Outlined"
+                               MultiSelection="true">
+                        @foreach (var t in _tags)
+                        {
+                            <MudSelectItem T="int" Value="t.FileTagID">@t.Name</MudSelectItem>
+                        }
+                    </MudSelect>
+                </MudItem>
+
+                <MudItem xs="12">
+                    <MudFileUpload T="IReadOnlyList<IBrowserFile>" @bind-Files="_files" MaximumFileCount="20">
+                        <CustomContent Context="upload">
+                            <MudButton Variant="Variant.Outlined" Color="Color.Primary"
+                                       StartIcon="@Icons.Material.Filled.AttachFile"
+                                       OnClick="@(() => upload.OpenFilePickerAsync())">
+                                Choose files
+                            </MudButton>
+                        </CustomContent>
+                    </MudFileUpload>
+                    @if (_files is { Count: > 0 })
+                    {
+                        <MudList T="string" Dense="true" Class="mt-2">
+                            @foreach (var f in _files)
+                            {
+                                <MudListItem T="string" Icon="@Icons.Material.Filled.InsertDriveFile">
+                                    @f.Name <MudText Typo="Typo.caption" Color="Color.Secondary" Class="d-inline">(@MediaFormat.Size((long)Math.Ceiling(f.Size / 1024d)))</MudText>
+                                </MudListItem>
+                            }
+                        </MudList>
+                    }
+                </MudItem>
+            </MudGrid>
+            @if (_busy)
+            {
+                <MudProgressLinear Indeterminate="true" Color="Color.Primary" Class="mt-3" />
+            }
+        }
+    </DialogContent>
+    <DialogActions>
+        <MudButton OnClick="Cancel">Cancel</MudButton>
+        <MudButton Color="Color.Primary" Variant="Variant.Filled" StartIcon="@Icons.Material.Filled.CloudUpload"
+                   OnClick="UploadAsync" Disabled="@(_busy || _storages.Count == 0 || _files is null or { Count: 0 })">
+            Upload
+        </MudButton>
+    </DialogActions>
+</MudDialog>
+
+@code {
+    [CascadingParameter] private IMudDialogInstance MudDialog { get; set; } = null!;
+    [Parameter] public int WebsiteId { get; set; }
+    [Parameter] public int? PresetAlbumId { get; set; }
+
+    private const long MaxUploadBytes = 200L * 1024 * 1024; // 200 MB per file
+
+    private bool _busy;
+    private int _storageId;
+    private int? _albumId;
+    private IReadOnlyCollection<int> _tagIds = new HashSet<int>();
+    private IReadOnlyList<IBrowserFile>? _files;
+    private List<StorageSettingInfo> _storages = new();
+    private IReadOnlyList<FileAlbum> _albums = Array.Empty<FileAlbum>();
+    private IReadOnlyList<FileTag> _tags = Array.Empty<FileTag>();
+
+    protected override async Task OnInitializedAsync()
+    {
+        _albumId = PresetAlbumId;
+        _storages = (await StorageService.GetActiveForWebsiteAsync(WebsiteId)).ToList();
+        if (_storages.Count > 0) _storageId = _storages[0].WebsiteStorageSettingsID;
+        _albums = await FileService.GetAlbumsAsync(WebsiteId);
+        _tags = await FileService.GetTagsAsync(WebsiteId);
+    }
+
+    private async Task UploadAsync()
+    {
+        if (_files is null || _files.Count == 0) return;
+        _busy = true;
+        int ok = 0;
+        try
+        {
+            var tagIds = _tagIds.ToList();
+            foreach (var file in _files)
+            {
+                try
+                {
+                    await using var stream = file.OpenReadStream(MaxUploadBytes);
+                    await FileService.UploadAsync(new FileUploadRequest
+                    {
+                        WebsiteID = WebsiteId,
+                        StorageSettingID = _storageId,
+                        Content = stream,
+                        OriginalFileName = file.Name,
+                        MimeType = file.ContentType,
+                        AlbumID = _albumId,
+                        TagIDs = tagIds,
+                    });
+                    ok++;
+                }
+                catch (Exception ex)
+                {
+                    Snackbar.Add($"{file.Name}: {ex.Message}", Severity.Error);
+                }
+            }
+            if (ok > 0) Snackbar.Add($"Uploaded {ok} file(s).", Severity.Success);
+            MudDialog.Close(DialogResult.Ok(ok));
+        }
+        finally { _busy = false; }
+    }
+
+    private void Cancel() => MudDialog.Cancel();
+}

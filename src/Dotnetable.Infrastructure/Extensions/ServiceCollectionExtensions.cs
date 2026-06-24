@@ -57,6 +57,13 @@ public static class ServiceCollectionExtensions
         services.AddScoped<IDatabaseUpdateService, DatabaseUpdateService>();
         services.AddScoped<IPasswordHasher<Member>, PasswordHasher<Member>>();
 
+        // Media library: pluggable CDN storage backends + file/album/tag management.
+        services.AddScoped<IFileStorageProvider, Storage.ArvanStorageProvider>();
+        services.AddScoped<IFileStorageProvider, Storage.DropboxStorageProvider>();
+        services.AddScoped<IFileStorageProviderRegistry, Storage.FileStorageProviderRegistry>();
+        services.AddScoped<IStorageSettingService, StorageSettingService>();
+        services.AddScoped<IFileService, FileService>();
+
         // Login/forgot-password protection + email.
         services.AddMemoryCache();
         services.AddSingleton<IHumanVerificationService, HumanVerificationService>();

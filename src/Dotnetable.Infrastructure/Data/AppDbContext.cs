@@ -28,6 +28,12 @@ public partial class AppDbContext : DbContext
 
     public virtual DbSet<FileRecord> FileRecords { get; set; }
 
+    public virtual DbSet<FileAlbum> FileAlbums { get; set; }
+
+    public virtual DbSet<FileTag> FileTags { get; set; }
+
+    public virtual DbSet<FileRecordTag> FileRecordTags { get; set; }
+
     public virtual DbSet<Language> Languages { get; set; }
 
     public virtual DbSet<LocalizationKey> LocalizationKeys { get; set; }
@@ -210,6 +216,51 @@ public partial class AppDbContext : DbContext
                 .HasForeignKey(d => d.WebsiteStorageSettingsID)
                 .OnDelete(DeleteBehavior.ClientSetNull)
                 .HasConstraintName("FK_FileRecord_WebstieStorageSettings");
+
+            entity.HasOne(d => d.FileAlbum).WithMany(p => p.FileRecords)
+                .HasForeignKey(d => d.FileAlbumID)
+                .HasConstraintName("FK_FileRecord_FileAlbum");
+        });
+
+        modelBuilder.Entity<FileAlbum>(entity =>
+        {
+            entity.ToTable("FileAlbum");
+
+            entity.Property(e => e.Name).HasMaxLength(120);
+            entity.Property(e => e.Description).HasMaxLength(400);
+            entity.Property(e => e.CreateDate).HasColumnType("datetime");
+
+            entity.HasOne(d => d.Website).WithMany(p => p.FileAlbums)
+                .HasForeignKey(d => d.WebsiteID)
+                .OnDelete(DeleteBehavior.ClientSetNull)
+                .HasConstraintName("FK_FileAlbum_Website");
+        });
+
+        modelBuilder.Entity<FileTag>(entity =>
+        {
+            entity.ToTable("FileTag");
+
+            entity.Property(e => e.Name).HasMaxLength(60);
+
+            entity.HasOne(d => d.Website).WithMany(p => p.FileTags)
+                .HasForeignKey(d => d.WebsiteID)
+                .OnDelete(DeleteBehavior.ClientSetNull)
+                .HasConstraintName("FK_FileTag_Website");
+        });
+
+        modelBuilder.Entity<FileRecordTag>(entity =>
+        {
+            entity.ToTable("FileRecordTag");
+
+            entity.HasOne(d => d.FileRecord).WithMany(p => p.FileRecordTags)
+                .HasForeignKey(d => d.FileRecordID)
+                .OnDelete(DeleteBehavior.ClientSetNull)
+                .HasConstraintName("FK_FileRecordTag_FileRecord");
+
+            entity.HasOne(d => d.FileTag).WithMany(p => p.FileRecordTags)
+                .HasForeignKey(d => d.FileTagID)
+                .OnDelete(DeleteBehavior.ClientSetNull)
+                .HasConstraintName("FK_FileRecordTag_FileTag");
         });
 
         modelBuilder.Entity<Language>(entity =>

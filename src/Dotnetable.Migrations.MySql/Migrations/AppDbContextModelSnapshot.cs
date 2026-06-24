@@ -282,6 +282,34 @@ namespace Dotnetable.Migrations.MySql.Migrations
                     b.ToTable("EmailSubscribe", (string)null);
                 });
 
+            modelBuilder.Entity("Dotnetable.Domain.Entities.FileAlbum", b =>
+                {
+                    b.Property<int>("FileAlbumID")
+                        .ValueGeneratedOnAdd()
+                        .HasColumnType("int");
+
+                    b.Property<DateTime>("CreateDate")
+                        .HasColumnType("datetime");
+
+                    b.Property<string>("Description")
+                        .HasMaxLength(400)
+                        .HasColumnType("varchar(400)");
+
+                    b.Property<string>("Name")
+                        .IsRequired()
+                        .HasMaxLength(120)
+                        .HasColumnType("varchar(120)");
+
+                    b.Property<int>("WebsiteID")
+                        .HasColumnType("int");
+
+                    b.HasKey("FileAlbumID");
+
+                    b.HasIndex("WebsiteID");
+
+                    b.ToTable("FileAlbum", (string)null);
+                });
+
             modelBuilder.Entity("Dotnetable.Domain.Entities.FileRecord", b =>
                 {
                     b.Property<int>("FileRecordID")
@@ -300,6 +328,9 @@ namespace Dotnetable.Migrations.MySql.Migrations
                     b.Property<string>("CNDUrl")
                         .HasMaxLength(450)
                         .HasColumnType("varchar(450)");
+
+                    b.Property<int?>("FileAlbumID")
+                        .HasColumnType("int");
 
                     b.Property<byte>("FileCategory")
                         .HasColumnType("tinyint unsigned");
@@ -358,9 +389,53 @@ namespace Dotnetable.Migrations.MySql.Migrations
 
                     b.HasKey("FileRecordID");
 
+                    b.HasIndex("FileAlbumID");
+
                     b.HasIndex("WebsiteStorageSettingsID");
 
                     b.ToTable("FileRecord", (string)null);
+                });
+
+            modelBuilder.Entity("Dotnetable.Domain.Entities.FileRecordTag", b =>
+                {
+                    b.Property<int>("FileRecordTagID")
+                        .ValueGeneratedOnAdd()
+                        .HasColumnType("int");
+
+                    b.Property<int>("FileRecordID")
+                        .HasColumnType("int");
+
+                    b.Property<int>("FileTagID")
+                        .HasColumnType("int");
+
+                    b.HasKey("FileRecordTagID");
+
+                    b.HasIndex("FileRecordID");
+
+                    b.HasIndex("FileTagID");
+
+                    b.ToTable("FileRecordTag", (string)null);
+                });
+
+            modelBuilder.Entity("Dotnetable.Domain.Entities.FileTag", b =>
+                {
+                    b.Property<int>("FileTagID")
+                        .ValueGeneratedOnAdd()
+                        .HasColumnType("int");
+
+                    b.Property<string>("Name")
+                        .IsRequired()
+                        .HasMaxLength(60)
+                        .HasColumnType("varchar(60)");
+
+                    b.Property<int>("WebsiteID")
+                        .HasColumnType("int");
+
+                    b.HasKey("FileTagID");
+
+                    b.HasIndex("WebsiteID");
+
+                    b.ToTable("FileTag", (string)null);
                 });
 
             modelBuilder.Entity("Dotnetable.Domain.Entities.Language", b =>
@@ -1058,15 +1133,63 @@ namespace Dotnetable.Migrations.MySql.Migrations
                     b.Navigation("Member");
                 });
 
+            modelBuilder.Entity("Dotnetable.Domain.Entities.FileAlbum", b =>
+                {
+                    b.HasOne("Dotnetable.Domain.Entities.Website", "Website")
+                        .WithMany("FileAlbums")
+                        .HasForeignKey("WebsiteID")
+                        .IsRequired()
+                        .HasConstraintName("FK_FileAlbum_Website");
+
+                    b.Navigation("Website");
+                });
+
             modelBuilder.Entity("Dotnetable.Domain.Entities.FileRecord", b =>
                 {
+                    b.HasOne("Dotnetable.Domain.Entities.FileAlbum", "FileAlbum")
+                        .WithMany("FileRecords")
+                        .HasForeignKey("FileAlbumID")
+                        .HasConstraintName("FK_FileRecord_FileAlbum");
+
                     b.HasOne("Dotnetable.Domain.Entities.WebstieStorageSetting", "WebsiteStorageSettings")
                         .WithMany("FileRecords")
                         .HasForeignKey("WebsiteStorageSettingsID")
                         .IsRequired()
                         .HasConstraintName("FK_FileRecord_WebstieStorageSettings");
 
+                    b.Navigation("FileAlbum");
+
                     b.Navigation("WebsiteStorageSettings");
+                });
+
+            modelBuilder.Entity("Dotnetable.Domain.Entities.FileRecordTag", b =>
+                {
+                    b.HasOne("Dotnetable.Domain.Entities.FileRecord", "FileRecord")
+                        .WithMany("FileRecordTags")
+                        .HasForeignKey("FileRecordID")
+                        .IsRequired()
+                        .HasConstraintName("FK_FileRecordTag_FileRecord");
+
+                    b.HasOne("Dotnetable.Domain.Entities.FileTag", "FileTag")
+                        .WithMany("FileRecordTags")
+                        .HasForeignKey("FileTagID")
+                        .IsRequired()
+                        .HasConstraintName("FK_FileRecordTag_FileTag");
+
+                    b.Navigation("FileRecord");
+
+                    b.Navigation("FileTag");
+                });
+
+            modelBuilder.Entity("Dotnetable.Domain.Entities.FileTag", b =>
+                {
+                    b.HasOne("Dotnetable.Domain.Entities.Website", "Website")
+                        .WithMany("FileTags")
+                        .HasForeignKey("WebsiteID")
+                        .IsRequired()
+                        .HasConstraintName("FK_FileTag_Website");
+
+                    b.Navigation("Website");
                 });
 
             modelBuilder.Entity("Dotnetable.Domain.Entities.Language", b =>
@@ -1270,11 +1393,23 @@ namespace Dotnetable.Migrations.MySql.Migrations
                     b.Navigation("States");
                 });
 
+            modelBuilder.Entity("Dotnetable.Domain.Entities.FileAlbum", b =>
+                {
+                    b.Navigation("FileRecords");
+                });
+
             modelBuilder.Entity("Dotnetable.Domain.Entities.FileRecord", b =>
                 {
+                    b.Navigation("FileRecordTags");
+
                     b.Navigation("WebsiteFaveIconFiles");
 
                     b.Navigation("WebsiteLogoFiles");
+                });
+
+            modelBuilder.Entity("Dotnetable.Domain.Entities.FileTag", b =>
+                {
+                    b.Navigation("FileRecordTags");
                 });
 
             modelBuilder.Entity("Dotnetable.Domain.Entities.Language", b =>
@@ -1315,6 +1450,10 @@ namespace Dotnetable.Migrations.MySql.Migrations
 
             modelBuilder.Entity("Dotnetable.Domain.Entities.Website", b =>
                 {
+                    b.Navigation("FileAlbums");
+
+                    b.Navigation("FileTags");
+
                     b.Navigation("Languages");
 
                     b.Navigation("Members");

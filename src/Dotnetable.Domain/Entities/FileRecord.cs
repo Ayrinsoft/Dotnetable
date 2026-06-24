@@ -41,6 +41,12 @@ public partial class FileRecord
 
     public string? CDNFileCode { get; set; }
 
+    public int? FileAlbumID { get; set; }
+
+    public virtual FileAlbum? FileAlbum { get; set; }
+
+    public virtual ICollection<FileRecordTag> FileRecordTags { get; set; } = new List<FileRecordTag>();
+
     public virtual ICollection<Website> WebsiteFaveIconFiles { get; set; } = new List<Website>();
 
     public virtual ICollection<Website> WebsiteLogoFiles { get; set; } = new List<Website>();

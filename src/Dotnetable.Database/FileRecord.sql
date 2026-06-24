@@ -17,7 +17,9 @@
     [ThumbnailCDN]             NVARCHAR (450)  NULL,
     [FileCategory]             TINYINT         NOT NULL,
     [CDNFileCode]              VARCHAR (80)    NULL,
+    [FileAlbumID]              INT             NULL,
     CONSTRAINT [PK_FileRecord] PRIMARY KEY CLUSTERED ([FileRecordID] ASC),
-    CONSTRAINT [FK_FileRecord_WebstieStorageSettings] FOREIGN KEY ([WebsiteStorageSettingsID]) REFERENCES [dbo].[WebstieStorageSettings] ([WebsiteStorageSettingsID])
+    CONSTRAINT [FK_FileRecord_WebstieStorageSettings] FOREIGN KEY ([WebsiteStorageSettingsID]) REFERENCES [dbo].[WebstieStorageSettings] ([WebsiteStorageSettingsID]),
+    CONSTRAINT [FK_FileRecord_FileAlbum] FOREIGN KEY ([FileAlbumID]) REFERENCES [dbo].[FileAlbum] ([FileAlbumID])
 );
 

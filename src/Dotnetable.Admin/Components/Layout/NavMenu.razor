@@ -26,6 +26,14 @@
         <MudNavLink Href="/translations" Icon="@Icons.Material.Filled.Translate">
             Translations
         </MudNavLink>
+        <MudNavGroup Title="Media" Icon="@Icons.Material.Filled.PermMedia">
+            <MudNavLink Href="/media" Icon="@Icons.Material.Filled.PhotoLibrary">
+                Media Library
+            </MudNavLink>
+            <MudNavLink Href="/media/storage" Icon="@Icons.Material.Filled.Cloud">
+                Storage
+            </MudNavLink>
+        </MudNavGroup>
     </AuthorizeView>
 
     <AuthorizeView Policy="@AdminPolicies.SuperAdminOnly">
