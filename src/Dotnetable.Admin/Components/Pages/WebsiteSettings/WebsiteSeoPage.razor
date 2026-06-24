@@ -1,0 +1,149 @@
+@page "/website/seo"
+@attribute [Authorize(Policy = AdminPolicies.WebsiteAdminOrAbove)]
+@inject IWebsiteSettingService SettingService
+@inject IWebsiteService WebsiteService
+@inject AuthenticationStateProvider AuthState
+@inject ISnackbar Snackbar
+
+<PageTitle>SEO Settings — Dotnetable</PageTitle>
+
+<MudStack Spacing="0" Class="mb-6">
+    <MudStack Row="true" AlignItems="AlignItems.Center" Justify="Justify.SpaceBetween">
+        <MudStack Spacing="0">
+            <MudText Typo="Typo.h5" Class="fw-bold">SEO Settings</MudText>
+            <MudText Typo="Typo.body2" Color="Color.Secondary">Search engine optimization configuration</MudText>
+        </MudStack>
+        @if (_isMaster)
+        {
+            <MudSelect T="int" @bind-Value="_websiteId" Label="Website" Variant="Variant.Outlined"
+                       Dense="true" Style="min-width:180px"
+                       SelectedValuesChanged="OnWebsiteChanged">
+                @foreach (var w in _websites)
+                {
+                    <MudSelectItem T="int" Value="@w.WebsiteID">@w.TradeName</MudSelectItem>
+                }
+            </MudSelect>
+        }
+    </MudStack>
+</MudStack>
+
+@if (_loading)
+{
+    <MudProgressLinear Indeterminate="true" Color="Color.Primary" Class="mb-4" />
+}
+else
+{
+    <MudGrid Spacing="4">
+        <MudItem xs="12" md="8">
+            <MudPaper Elevation="0" Class="border rounded-lg pa-6">
+                <MudText Typo="Typo.subtitle1" Class="fw-bold mb-4">
+                    <MudIcon Icon="@Icons.Material.Filled.Search" Size="Size.Small" Class="me-1" />
+                    Meta Tags
+                </MudText>
+                <MudGrid Spacing="3">
+                    <MudItem xs="12" sm="8">
+                        <MudTextField @bind-Value="_setting.DefaultMetaTitle" Label="Default Meta Title"
+                                      Variant="Variant.Outlined" MaxLength="40"
+                                      HelperText="Used when page has no title. E.g. 'Page | SiteName'" />
+                    </MudItem>
+                    <MudItem xs="12" sm="4">
+                        <MudTextField @bind-Value="_setting.TitleSeparator" Label="Title Separator"
+                                      Variant="Variant.Outlined" MaxLength="3"
+                                      Placeholder=" | " HelperText="Between page and site name" />
+                    </MudItem>
+                    <MudItem xs="12">
+                        <MudTextField @bind-Value="_setting.DefaultMetaDescription" Label="Default Meta Description"
+                                      Variant="Variant.Outlined" Lines="3" MaxLength="158"
+                                      HelperText="Shown in search results when page has no description (max 158 chars)" />
+                    </MudItem>
+                </MudGrid>
+            </MudPaper>
+        </MudItem>
+
+        <MudItem xs="12" md="4">
+            <MudPaper Elevation="0" Class="border rounded-lg pa-6">
+                <MudText Typo="Typo.subtitle1" Class="fw-bold mb-4">
+                    <MudIcon Icon="@Icons.Material.Filled.Settings" Size="Size.Small" Class="me-1" />
+                    Options
+                </MudText>
+                <MudSwitch T="bool" @bind-Value="_setting.SitemapEnabled" Color="Color.Primary"
+                           Label="Enable Sitemap (sitemap.xml)" Class="mb-2" />
+                <MudSwitch T="bool" @bind-Value="_setting.RobotsEnabled" Color="Color.Primary"
+                           Label="Enable Robots.txt" />
+            </MudPaper>
+        </MudItem>
+
+        <MudItem xs="12">
+            <MudPaper Elevation="0" Class="border rounded-lg pa-6">
+                <MudText Typo="Typo.subtitle1" Class="fw-bold mb-3">
+                    <MudIcon Icon="@Icons.Material.Filled.SmartToy" Size="Size.Small" Class="me-1" />
+                    Custom robots.txt
+                </MudText>
+                <MudTextField @bind-Value="_setting.CustomRobotsTxt" Label="robots.txt content"
+                              Variant="Variant.Outlined" Lines="6"
+                              Style="font-family: monospace; font-size: 13px;"
+                              Placeholder="User-agent: *&#10;Disallow: /admin/" />
+            </MudPaper>
+        </MudItem>
+    </MudGrid>
+
+    <MudStack Row="true" Class="mt-4" Spacing="2">
+        <MudButton Variant="Variant.Filled" Color="Color.Primary"
+                   StartIcon="@Icons.Material.Filled.Save"
+                   OnClick="SaveAsync" Disabled="@_saving">
+            @if (_saving)
+            {
+                <MudProgressCircular Size="Size.Small" Indeterminate="true" Class="me-2" />
+            }
+            Save SEO Settings
+        </MudButton>
+    </MudStack>
+}
+
+@code {
+    private bool _loading = true;
+    private bool _saving;
+    private bool _isMaster;
+    private int _websiteId;
+    private List<Website> _websites = new();
+    private WebsiteSeoSetting _setting = new() { CustomRobotsTxt = string.Empty };
+
+    protected override async Task OnInitializedAsync()
+    {
+        var state = await AuthState.GetAuthenticationStateAsync();
+        var user = state.User;
+        _isMaster = user.HasClaim(AdminClaimTypes.Master, "true");
+        int.TryParse(user.FindFirst(AdminClaimTypes.WebsiteId)?.Value, out _websiteId);
+
+        if (_isMaster)
+            _websites = (await WebsiteService.GetAllAsync()).ToList();
+
+        await LoadAsync();
+    }
+
+    private async Task OnWebsiteChanged(IEnumerable<int> _) => await LoadAsync();
+
+    private async Task LoadAsync()
+    {
+        _loading = true;
+        var existing = await SettingService.GetSeoSettingAsync(_websiteId);
+        _setting = existing ?? new WebsiteSeoSetting { WebsiteID = _websiteId, CustomRobotsTxt = string.Empty };
+        _loading = false;
+    }
+
+    private async Task SaveAsync()
+    {
+        _saving = true;
+        try
+        {
+            _setting.WebsiteID = _websiteId;
+            await SettingService.SaveSeoSettingAsync(_setting);
+            Snackbar.Add("SEO settings saved.", Severity.Success);
+        }
+        catch (Exception ex)
+        {
+            Snackbar.Add($"Save failed: {ex.Message}", Severity.Error);
+        }
+        finally { _saving = false; }
+    }
+}

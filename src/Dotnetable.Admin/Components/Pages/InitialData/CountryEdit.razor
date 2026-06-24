@@ -1,0 +1,125 @@
+@page "/initial-data/countries/new"
+@page "/initial-data/countries/{Id:int}"
+@attribute [Authorize(Policy = AdminPolicies.SuperAdminOnly)]
+@inject ILocationService LocationService
+@inject NavigationManager Nav
+@inject ISnackbar Snackbar
+
+<PageTitle>@(_isNew ? "New Country" : "Edit Country") — Dotnetable</PageTitle>
+
+<MudBreadcrumbs Items="_breadcrumbs" Class="px-0 pb-2" />
+
+<MudStack Row="true" AlignItems="AlignItems.Center" Justify="Justify.SpaceBetween" Class="mb-4">
+    <MudStack Spacing="0">
+        <MudText Typo="Typo.h5" Class="fw-bold">@(_isNew ? "New Country" : "Edit Country")</MudText>
+        <MudText Typo="Typo.body2" Color="Color.Secondary">
+            @(_isNew ? "Add a new country to reference data" : $"Editing country #{Id}")
+        </MudText>
+    </MudStack>
+</MudStack>
+
+@if (_loading)
+{
+    <MudProgressLinear Indeterminate="true" Color="Color.Primary" Class="mb-4" />
+}
+else if (_item is not null)
+{
+    <MudForm @ref="_form">
+        <MudPaper Elevation="0" Class="border rounded-lg pa-6 mb-4">
+            <MudGrid Spacing="3">
+                <MudItem xs="12" sm="4">
+                    <MudTextField @bind-Value="_item.Title" Label="Title" Variant="Variant.Outlined"
+                                  Required="true" RequiredError="Title is required." />
+                </MudItem>
+                <MudItem xs="12" sm="2">
+                    <MudTextField @bind-Value="_item.CountryCode" Label="Country Code (ISO 2)"
+                                  Variant="Variant.Outlined" MaxLength="2" Required="true"
+                                  RequiredError="Country code is required." Placeholder="IR" />
+                </MudItem>
+                <MudItem xs="12" sm="2">
+                    <MudTextField @bind-Value="_item.LanguageCode" Label="Language Code"
+                                  Variant="Variant.Outlined" MaxLength="2" Placeholder="fa" />
+                </MudItem>
+                <MudItem xs="12" sm="2">
+                    <MudTextField @bind-Value="_item.PhonePerfix" Label="Phone Prefix"
+                                  Variant="Variant.Outlined" MaxLength="3" Placeholder="98" />
+                </MudItem>
+            </MudGrid>
+        </MudPaper>
+
+        <MudStack Row="true" Spacing="2">
+            <MudButton Variant="Variant.Filled" Color="Color.Primary"
+                       StartIcon="@Icons.Material.Filled.Save"
+                       OnClick="SaveAsync" Disabled="@_saving">
+                @if (_saving)
+                {
+                    <MudProgressCircular Size="Size.Small" Indeterminate="true" Class="me-2" />
+                }
+                @(_isNew ? "Create Country" : "Save Changes")
+            </MudButton>
+            <MudButton Variant="Variant.Outlined" Color="Color.Default"
+                       StartIcon="@Icons.Material.Filled.ArrowBack"
+                       Href="/initial-data/countries">
+                Cancel
+            </MudButton>
+        </MudStack>
+    </MudForm>
+}
+
+@code {
+    [Parameter] public int Id { get; set; }
+
+    private MudForm _form = null!;
+    private Country? _item;
+    private bool _loading = true;
+    private bool _saving;
+    private bool _isNew => Id == 0;
+
+    private List<BreadcrumbItem> _breadcrumbs => new()
+    {
+        new("Dashboard", "/"),
+        new("Countries", "/initial-data/countries"),
+        new(_isNew ? "New" : $"#{Id}", null, true),
+    };
+
+    protected override async Task OnInitializedAsync()
+    {
+        if (_isNew)
+        {
+            _item = new Country { CountryCode = string.Empty, LanguageCode = string.Empty, Title = string.Empty, PhonePerfix = string.Empty };
+        }
+        else
+        {
+            _item = await LocationService.GetCountryByIdAsync(Id);
+            if (_item is null) Nav.NavigateTo("/initial-data/countries");
+        }
+        _loading = false;
+    }
+
+    private async Task SaveAsync()
+    {
+        await _form.ValidateAsync();
+        if (!_form.IsValid) return;
+
+        _saving = true;
+        try
+        {
+            if (_isNew)
+            {
+                await LocationService.CreateCountryAsync(_item!);
+                Snackbar.Add("Country created successfully.", Severity.Success);
+            }
+            else
+            {
+                await LocationService.UpdateCountryAsync(_item!);
+                Snackbar.Add("Changes saved successfully.", Severity.Success);
+            }
+            Nav.NavigateTo("/initial-data/countries");
+        }
+        catch (Exception ex)
+        {
+            Snackbar.Add($"Save failed: {ex.Message}", Severity.Error);
+        }
+        finally { _saving = false; }
+    }
+}

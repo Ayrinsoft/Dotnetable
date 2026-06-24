@@ -16,4 +16,10 @@ public interface IEmailService
 
     /// <summary>True when a usable default email setting exists.</summary>
     Task<bool> IsConfiguredAsync(CancellationToken ct = default);
+
+    /// <summary>Per-website SMTP settings, or null when not configured.</summary>
+    Task<EmailSettingsInfo?> GetWebsiteEmailAsync(int websiteId, CancellationToken ct = default);
+
+    /// <summary>Creates or updates the SMTP settings for a specific website.</summary>
+    Task SaveWebsiteEmailAsync(int websiteId, EmailSettingsInfo settings, CancellationToken ct = default);
 }

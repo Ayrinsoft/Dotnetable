@@ -59,4 +59,8 @@ public partial class Website
     public virtual ICollection<WebsiteSocialLink> WebsiteSocialLinks { get; set; } = new List<WebsiteSocialLink>();
 
     public virtual ICollection<WebstieStorageSetting> WebstieStorageSettings { get; set; } = new List<WebstieStorageSetting>();
+
+    public virtual ICollection<ContactUsMessage> ContactUsMessages { get; set; } = new List<ContactUsMessage>();
+
+    public virtual ICollection<EmailSetting> EmailSettings { get; set; } = new List<EmailSetting>();
 }

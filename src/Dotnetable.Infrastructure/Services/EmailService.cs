@@ -89,8 +89,48 @@ public class EmailService : IEmailService
         await client.SendMailAsync(message, ct);
     }
 
+    public async Task<EmailSettingsInfo?> GetWebsiteEmailAsync(int websiteId, CancellationToken ct = default)
+    {
+        var row = await _context.EmailSettings
+            .FirstOrDefaultAsync(e => e.WebsiteID == websiteId, ct);
+        if (row is null) return null;
+
+        return new EmailSettingsInfo
+        {
+            MailServer = row.MailServer,
+            SmtpPort = row.SMTPPort,
+            EnableSSL = row.EnableSSL,
+            EmailAddress = row.EmailAddress,
+            Password = row.Password,
+            MailName = row.MailName,
+        };
+    }
+
+    public async Task SaveWebsiteEmailAsync(int websiteId, EmailSettingsInfo settings, CancellationToken ct = default)
+    {
+        var row = await _context.EmailSettings
+            .FirstOrDefaultAsync(e => e.WebsiteID == websiteId, ct);
+
+        if (row is null)
+        {
+            row = new EmailSetting { WebsiteID = websiteId, DefaultEMail = false, EmailTypeID = 0 };
+            _context.EmailSettings.Add(row);
+        }
+
+        row.MailServer = settings.MailServer.Trim();
+        row.SMTPPort = settings.SmtpPort;
+        row.EnableSSL = settings.EnableSSL;
+        row.EmailAddress = settings.EmailAddress.Trim();
+        row.Password = settings.Password;
+        row.MailName = string.IsNullOrWhiteSpace(settings.MailName) ? settings.EmailAddress.Trim() : settings.MailName.Trim();
+        row.Active = settings.IsConfigured;
+
+        await _context.SaveChangesAsync(ct);
+    }
+
     private async Task<EmailSetting?> GetDefaultRowAsync(CancellationToken ct) =>
         await _context.EmailSettings
+            .Where(e => e.WebsiteID == null)
             .OrderByDescending(e => e.DefaultEMail)
             .ThenByDescending(e => e.EmailSettingID)
             .FirstOrDefaultAsync(ct);

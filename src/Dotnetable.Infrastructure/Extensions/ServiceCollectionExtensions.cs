@@ -63,6 +63,9 @@ public static class ServiceCollectionExtensions
         services.AddScoped<IFileStorageProviderRegistry, Storage.FileStorageProviderRegistry>();
         services.AddScoped<IStorageSettingService, StorageSettingService>();
         services.AddScoped<IFileService, FileService>();
+        services.AddScoped<ILocationService, LocationService>();
+        services.AddScoped<IWebsiteSettingService, WebsiteSettingService>();
+        services.AddScoped<IContactMessageService, ContactMessageService>();
 
         // Login/forgot-password protection + email.
         services.AddMemoryCache();

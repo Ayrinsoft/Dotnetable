@@ -134,7 +134,12 @@ namespace Dotnetable.Migrations.MySql.Migrations
                         .HasMaxLength(64)
                         .HasColumnType("varchar(64)");
 
+                    b.Property<int?>("WebsiteID")
+                        .HasColumnType("int");
+
                     b.HasKey("ContactUsMessagesID");
+
+                    b.HasIndex("WebsiteID");
 
                     b.ToTable("ContactUsMessage", (string)null);
                 });
@@ -246,7 +251,12 @@ namespace Dotnetable.Migrations.MySql.Migrations
                     b.Property<int>("SMTPPort")
                         .HasColumnType("int");
 
+                    b.Property<int?>("WebsiteID")
+                        .HasColumnType("int");
+
                     b.HasKey("EmailSettingID");
+
+                    b.HasIndex("WebsiteID");
 
                     b.ToTable("EmailSetting", (string)null);
                 });
@@ -1112,6 +1122,16 @@ namespace Dotnetable.Migrations.MySql.Migrations
                     b.Navigation("City");
                 });
 
+            modelBuilder.Entity("Dotnetable.Domain.Entities.ContactUsMessage", b =>
+                {
+                    b.HasOne("Dotnetable.Domain.Entities.Website", "Website")
+                        .WithMany("ContactUsMessages")
+                        .HasForeignKey("WebsiteID")
+                        .HasConstraintName("FK_ContactUsMessage_Website");
+
+                    b.Navigation("Website");
+                });
+
             modelBuilder.Entity("Dotnetable.Domain.Entities.CountryTranslation", b =>
                 {
                     b.HasOne("Dotnetable.Domain.Entities.Country", "Country")
@@ -1121,6 +1141,16 @@ namespace Dotnetable.Migrations.MySql.Migrations
                         .HasConstraintName("FK_CountryTranslation_Country");
 
                     b.Navigation("Country");
+                });
+
+            modelBuilder.Entity("Dotnetable.Domain.Entities.EmailSetting", b =>
+                {
+                    b.HasOne("Dotnetable.Domain.Entities.Website", "Website")
+                        .WithMany("EmailSettings")
+                        .HasForeignKey("WebsiteID")
+                        .HasConstraintName("FK_EmailSetting_Website");
+
+                    b.Navigation("Website");
                 });
 
             modelBuilder.Entity("Dotnetable.Domain.Entities.EmailSubscribe", b =>
@@ -1450,6 +1480,10 @@ namespace Dotnetable.Migrations.MySql.Migrations
 
             modelBuilder.Entity("Dotnetable.Domain.Entities.Website", b =>
                 {
+                    b.Navigation("ContactUsMessages");
+
+                    b.Navigation("EmailSettings");
+
                     b.Navigation("FileAlbums");
 
                     b.Navigation("FileTags");

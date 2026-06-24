@@ -1,0 +1,143 @@
+@page "/messages/email"
+@attribute [Authorize(Policy = AdminPolicies.WebsiteAdminOrAbove)]
+@inject IEmailService EmailService
+@inject IWebsiteService WebsiteService
+@inject AuthenticationStateProvider AuthState
+@inject ISnackbar Snackbar
+
+<PageTitle>Website Email Settings — Dotnetable</PageTitle>
+
+<MudStack Spacing="0" Class="mb-6">
+    <MudStack Row="true" AlignItems="AlignItems.Center" Justify="Justify.SpaceBetween">
+        <MudStack Spacing="0">
+            <MudText Typo="Typo.h5" Class="fw-bold">Website Email Settings</MudText>
+            <MudText Typo="Typo.body2" Color="Color.Secondary">
+                SMTP configuration for outgoing emails from this website (contact replies, notifications, etc.)
+            </MudText>
+        </MudStack>
+        @if (_isMaster)
+        {
+            <MudSelect T="int" @bind-Value="_websiteId" Label="Website" Variant="Variant.Outlined"
+                       Dense="true" Style="min-width:180px"
+                       SelectedValuesChanged="OnWebsiteChanged">
+                @foreach (var w in _websites)
+                {
+                    <MudSelectItem T="int" Value="@w.WebsiteID">@w.TradeName</MudSelectItem>
+                }
+            </MudSelect>
+        }
+    </MudStack>
+</MudStack>
+
+@if (_loading)
+{
+    <MudProgressLinear Indeterminate="true" Color="Color.Primary" Class="mb-4" />
+}
+else
+{
+    <MudGrid Spacing="4">
+        <MudItem xs="12" md="7">
+            <MudPaper Elevation="0" Class="border rounded-lg pa-6">
+                <MudStack Row="true" AlignItems="AlignItems.Center" Spacing="2" Class="mb-4">
+                    <MudIcon Icon="@Icons.Material.Filled.Email" Color="Color.Primary" />
+                    <MudText Typo="Typo.subtitle1" Class="fw-bold">SMTP Configuration</MudText>
+                </MudStack>
+
+                <MudGrid Spacing="2" Class="mb-2">
+                    <MudItem xs="12" sm="8">
+                        <MudTextField @bind-Value="_email.MailServer" Label="SMTP Server"
+                                      Variant="Variant.Outlined"
+                                      Adornment="Adornment.Start" AdornmentIcon="@Icons.Material.Filled.Dns" />
+                    </MudItem>
+                    <MudItem xs="12" sm="4">
+                        <MudNumericField @bind-Value="_email.SmtpPort" Label="Port"
+                                         Min="1" Max="65535" Variant="Variant.Outlined" />
+                    </MudItem>
+                </MudGrid>
+
+                <MudCheckBox T="bool" @bind-Value="_email.EnableSSL" Label="Enable SSL / TLS"
+                             Color="Color.Primary" Class="mb-2" />
+
+                <MudTextField @bind-Value="_email.EmailAddress" Label="From Address / Username"
+                              Variant="Variant.Outlined" Class="mb-2" InputType="InputType.Email"
+                              Adornment="Adornment.Start" AdornmentIcon="@Icons.Material.Filled.AlternateEmail" />
+                <MudTextField @bind-Value="_email.Password" Label="Password"
+                              Variant="Variant.Outlined" Class="mb-2" InputType="InputType.Password" />
+                <MudTextField @bind-Value="_email.MailName" Label="From Display Name"
+                              Variant="Variant.Outlined" Class="mb-4" />
+
+                <MudButton Variant="Variant.Filled" Color="Color.Primary"
+                           StartIcon="@Icons.Material.Filled.Save"
+                           OnClick="SaveAsync" Disabled="@_saving">
+                    @if (_saving)
+                    {
+                        <MudProgressCircular Size="Size.Small" Indeterminate="true" Class="me-2" />
+                    }
+                    Save Email Settings
+                </MudButton>
+            </MudPaper>
+        </MudItem>
+
+        <MudItem xs="12" md="5">
+            <MudPaper Elevation="0" Class="border rounded-lg pa-6">
+                <MudStack Row="true" AlignItems="AlignItems.Center" Spacing="2" Class="mb-3">
+                    <MudIcon Icon="@Icons.Material.Filled.Info" Color="Color.Secondary" />
+                    <MudText Typo="Typo.subtitle1" Class="fw-bold">How it works</MudText>
+                </MudStack>
+                <MudText Typo="Typo.body2" Color="Color.Secondary">
+                    These SMTP settings are used when sending emails on behalf of this specific website:
+                    contact form auto-replies, order confirmations, notifications, etc.
+                </MudText>
+                <MudText Typo="Typo.body2" Color="Color.Secondary" Class="mt-2">
+                    Leave empty to use the system-wide email configuration (configured in System → Settings).
+                </MudText>
+            </MudPaper>
+        </MudItem>
+    </MudGrid>
+}
+
+@code {
+    private bool _loading = true;
+    private bool _saving;
+    private bool _isMaster;
+    private int _websiteId;
+    private List<Website> _websites = new();
+    private EmailSettingsInfo _email = new();
+
+    protected override async Task OnInitializedAsync()
+    {
+        var state = await AuthState.GetAuthenticationStateAsync();
+        var user = state.User;
+        _isMaster = user.HasClaim(AdminClaimTypes.Master, "true");
+        int.TryParse(user.FindFirst(AdminClaimTypes.WebsiteId)?.Value, out _websiteId);
+
+        if (_isMaster)
+            _websites = (await WebsiteService.GetAllAsync()).ToList();
+
+        await LoadAsync();
+    }
+
+    private async Task OnWebsiteChanged(IEnumerable<int> _) => await LoadAsync();
+
+    private async Task LoadAsync()
+    {
+        _loading = true;
+        _email = await EmailService.GetWebsiteEmailAsync(_websiteId) ?? new EmailSettingsInfo();
+        _loading = false;
+    }
+
+    private async Task SaveAsync()
+    {
+        _saving = true;
+        try
+        {
+            await EmailService.SaveWebsiteEmailAsync(_websiteId, _email);
+            Snackbar.Add("Email settings saved.", Severity.Success);
+        }
+        catch (Exception ex)
+        {
+            Snackbar.Add($"Save failed: {ex.Message}", Severity.Error);
+        }
+        finally { _saving = false; }
+    }
+}

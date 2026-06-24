@@ -1,0 +1,116 @@
+@page "/messages/contacts/{Id:int}"
+@attribute [Authorize(Policy = AdminPolicies.WebsiteAdminOrAbove)]
+@inject IContactMessageService MessageService
+@inject NavigationManager Nav
+@inject ISnackbar Snackbar
+
+<PageTitle>Contact Message — Dotnetable</PageTitle>
+
+<MudBreadcrumbs Items="_breadcrumbs" Class="px-0 pb-2" />
+
+@if (_loading)
+{
+    <MudProgressLinear Indeterminate="true" Color="Color.Primary" Class="mb-4" />
+}
+else if (_item is not null)
+{
+    <MudStack Row="true" AlignItems="AlignItems.Center" Justify="Justify.SpaceBetween" Class="mb-4">
+        <MudStack Spacing="0">
+            <MudText Typo="Typo.h5" Class="fw-bold">@_item.MessageSubject</MudText>
+            <MudText Typo="Typo.body2" Color="Color.Secondary">
+                From @_item.SenderName — @_item.LogTime.ToString("yyyy-MM-dd HH:mm")
+            </MudText>
+        </MudStack>
+        <MudStack Row="true" Spacing="2">
+            <MudButton Variant="Variant.Outlined" Color="@(_item.Archive ? Color.Default : Color.Primary)"
+                       StartIcon="@(_item.Archive ? Icons.Material.Filled.Unarchive : Icons.Material.Filled.Archive)"
+                       OnClick="ToggleArchiveAsync" Disabled="@_saving">
+                @(_item.Archive ? "Unarchive" : "Archive")
+            </MudButton>
+            <MudButton Variant="Variant.Outlined" Color="Color.Default"
+                       StartIcon="@Icons.Material.Filled.ArrowBack" Href="/messages/contacts">
+                Back
+            </MudButton>
+        </MudStack>
+    </MudStack>
+
+    <MudGrid Spacing="4">
+        <MudItem xs="12" md="4">
+            <MudPaper Elevation="0" Class="border rounded-lg pa-6">
+                <MudText Typo="Typo.subtitle1" Class="fw-bold mb-3">Sender Details</MudText>
+                <MudStack Spacing="2">
+                    <div>
+                        <MudText Typo="Typo.caption" Color="Color.Secondary">Name</MudText>
+                        <MudText>@_item.SenderName</MudText>
+                    </div>
+                    <div>
+                        <MudText Typo="Typo.caption" Color="Color.Secondary">Email</MudText>
+                        <MudLink Href="@($"mailto:{_item.EmailAddress}")">@_item.EmailAddress</MudLink>
+                    </div>
+                    <div>
+                        <MudText Typo="Typo.caption" Color="Color.Secondary">Phone</MudText>
+                        <MudText>@(string.IsNullOrWhiteSpace(_item.CellphoneNumber) ? "—" : _item.CellphoneNumber)</MudText>
+                    </div>
+                    <div>
+                        <MudText Typo="Typo.caption" Color="Color.Secondary">IP Address</MudText>
+                        <MudText Typo="Typo.body2">@_item.SenderIPAddress</MudText>
+                    </div>
+                    <div>
+                        <MudText Typo="Typo.caption" Color="Color.Secondary">Received</MudText>
+                        <MudText Typo="Typo.body2">@_item.LogTime.ToString("yyyy-MM-dd HH:mm:ss")</MudText>
+                    </div>
+                </MudStack>
+            </MudPaper>
+        </MudItem>
+
+        <MudItem xs="12" md="8">
+            <MudPaper Elevation="0" Class="border rounded-lg pa-6" Style="min-height:200px;">
+                <MudText Typo="Typo.subtitle1" Class="fw-bold mb-3">Message</MudText>
+                <MudText Style="white-space: pre-wrap;">@_item.MessageBody</MudText>
+            </MudPaper>
+        </MudItem>
+    </MudGrid>
+}
+
+@code {
+    [Parameter] public int Id { get; set; }
+
+    private ContactUsMessage? _item;
+    private bool _loading = true;
+    private bool _saving;
+
+    private List<BreadcrumbItem> _breadcrumbs => new()
+    {
+        new("Dashboard", "/"),
+        new("Contact Messages", "/messages/contacts"),
+        new($"#{Id}", null, true),
+    };
+
+    protected override async Task OnInitializedAsync()
+    {
+        _item = await MessageService.GetByIdAsync(Id);
+        if (_item is null) Nav.NavigateTo("/messages/contacts");
+        else if (!_item.Archive)
+        {
+            _item.Archive = false;
+        }
+        _loading = false;
+    }
+
+    private async Task ToggleArchiveAsync()
+    {
+        _saving = true;
+        try
+        {
+            var newValue = !_item!.Archive;
+            await MessageService.SetArchiveAsync(Id, newValue);
+            _item.Archive = newValue;
+            Snackbar.Add(newValue ? "Message archived." : "Message unarchived.", Severity.Success);
+        }
+        catch (Exception ex)
+        {
+            Snackbar.Add($"Failed: {ex.Message}", Severity.Error);
+        }
+        finally { _saving = false; }
+    }
+}

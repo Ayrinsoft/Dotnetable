@@ -24,4 +24,8 @@ public partial class EmailSetting
     public bool DefaultEMail { get; set; }
 
     public bool Active { get; set; }
+
+    public int? WebsiteID { get; set; }
+
+    public virtual Website? Website { get; set; }
 }
