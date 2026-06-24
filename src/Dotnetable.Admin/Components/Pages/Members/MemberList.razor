@@ -13,6 +13,11 @@
             @(_isMaster ? "All members across all websites" : "Members of your website")
         </MudText>
     </MudStack>
+    <MudButton Variant="Variant.Filled" Color="Color.Primary"
+               StartIcon="@Icons.Material.Filled.Add"
+               Href="/members/new">
+        New Member
+    </MudButton>
 </MudStack>
 
 <MudPaper Elevation="0" Class="app-card rounded-lg pa-4">
@@ -34,6 +39,10 @@
             @foreach (var m in _members)
             {
                 <tr>
+                    <td>
+                        <MudIconButton Icon="@Icons.Material.Filled.Edit" Size="Size.Small"
+                                       Color="Color.Primary" Href="@($"/members/{m.MemberID}")" />
+                    </td>
                     <td>@m.MemberID</td>
                     <td>@m.Username</td>
                     <td>@m.Email</td>
@@ -73,7 +82,7 @@
     private List<Member> _members = new();
     private GridViewHeaderParameters _grid = new();
 
-    private int _colCount => 6 + (_isMaster ? 1 : 0);
+    private int _colCount => 7 + (_isMaster ? 1 : 0);
 
     protected override async Task OnInitializedAsync()
     {
@@ -87,6 +96,7 @@
             Pagination = new PaginationModel { PageSize = 25 },
             HeaderItems = new()
             {
+                new() { ColumnTitle = "", ColumnName = "" },
                 new() { ColumnTitle = "ID", ColumnName = nameof(Member.MemberID), HasSort = true },
                 new() { ColumnTitle = "Username", ColumnName = nameof(Member.Username), HasSort = true, HasSearch = true },
                 new() { ColumnTitle = "Email", ColumnName = nameof(Member.Email), HasSort = true, HasSearch = true },

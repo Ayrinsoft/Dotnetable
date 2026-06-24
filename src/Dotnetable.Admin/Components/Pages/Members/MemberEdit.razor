@@ -1,0 +1,253 @@
+@page "/members/new"
+@page "/members/{Id:int}"
+@attribute [Authorize(Policy = AdminPolicies.WebsiteAdminOrAbove)]
+@inject IMemberService MemberService
+@inject IPolicyService PolicyService
+@inject IWebsiteService WebsiteService
+@inject AuthenticationStateProvider AuthState
+@inject NavigationManager Nav
+@inject ISnackbar Snackbar
+
+<PageTitle>@(_isNew ? "New Member" : "Edit Member") — Dotnetable</PageTitle>
+
+<MudBreadcrumbs Items="_breadcrumbs" Class="px-0 pb-2" />
+
+<MudStack Row="true" AlignItems="AlignItems.Center" Justify="Justify.SpaceBetween" Class="mb-4">
+    <MudStack Spacing="0">
+        <MudText Typo="Typo.h5" Class="fw-bold">@(_isNew ? "New Member" : "Edit Member")</MudText>
+        <MudText Typo="Typo.body2" Color="Color.Secondary">
+            @(_isNew ? "Create a new member account" : $"Editing member #{Id}")
+        </MudText>
+    </MudStack>
+</MudStack>
+
+@if (_loading)
+{
+    <MudProgressLinear Indeterminate="true" Color="Color.Primary" Class="mb-4" />
+}
+else if (_member is not null)
+{
+    <MudForm @ref="_form">
+        <MudGrid Spacing="4">
+            <MudItem xs="12">
+                <MudPaper Elevation="0" Class="border rounded-lg pa-6">
+                    <MudText Typo="Typo.subtitle1" Class="fw-bold mb-4">
+                        <MudIcon Icon="@Icons.Material.Filled.Person" Size="Size.Small" Class="me-1" />
+                        Account
+                    </MudText>
+                    <MudGrid Spacing="3">
+                        <MudItem xs="12" sm="6">
+                            <MudTextField @bind-Value="_member.Username" Label="Username"
+                                          Variant="Variant.Outlined" Required="true"
+                                          RequiredError="Username is required." />
+                        </MudItem>
+                        <MudItem xs="12" sm="6">
+                            <MudTextField @bind-Value="_member.Email" Label="Email"
+                                          Variant="Variant.Outlined" InputType="InputType.Email" Required="true"
+                                          RequiredError="Email is required." />
+                        </MudItem>
+                        <MudItem xs="12" sm="6">
+                            <MudTextField @bind-Value="_password" Label="@(_isNew ? "Password" : "New Password (leave blank to keep)")"
+                                          Variant="Variant.Outlined" InputType="InputType.Password"
+                                          Required="@_isNew" RequiredError="Password is required." />
+                        </MudItem>
+                        <MudItem xs="12" sm="6">
+                            @if (_isMaster && _isNew)
+                            {
+                                <MudSelect T="int" @bind-Value="_member.WebsiteID" Label="Website"
+                                           Variant="Variant.Outlined" Required="true"
+                                           SelectedValuesChanged="OnWebsiteChanged">
+                                    @foreach (var w in _websites)
+                                    {
+                                        <MudSelectItem T="int" Value="@w.WebsiteID">@w.TradeName (#@w.WebsiteID)</MudSelectItem>
+                                    }
+                                </MudSelect>
+                            }
+                            else
+                            {
+                                <MudTextField Value="@($"#{_member.WebsiteID}")" Label="Website"
+                                              Variant="Variant.Outlined" ReadOnly="true" Disabled="true" />
+                            }
+                        </MudItem>
+                        <MudItem xs="12" sm="6">
+                            <MudSelect T="int" @bind-Value="_member.PolicyID" Label="Access Level"
+                                       Variant="Variant.Outlined" Required="true"
+                                       RequiredError="Access level is required."
+                                       HelperText="@(_policies.Count == 0 ? "This website has no access levels yet." : null)">
+                                @foreach (var p in _policies)
+                                {
+                                    <MudSelectItem T="int" Value="@p.PolicyID">@p.Title</MudSelectItem>
+                                }
+                            </MudSelect>
+                        </MudItem>
+                    </MudGrid>
+                </MudPaper>
+            </MudItem>
+
+            <MudItem xs="12">
+                <MudPaper Elevation="0" Class="border rounded-lg pa-6">
+                    <MudText Typo="Typo.subtitle1" Class="fw-bold mb-4">
+                        <MudIcon Icon="@Icons.Material.Filled.Badge" Size="Size.Small" Class="me-1" />
+                        Profile
+                    </MudText>
+                    <MudGrid Spacing="3">
+                        <MudItem xs="12" sm="6">
+                            <MudTextField @bind-Value="_member.Givenname" Label="Given Name"
+                                          Variant="Variant.Outlined" Required="true"
+                                          RequiredError="Given name is required." />
+                        </MudItem>
+                        <MudItem xs="12" sm="6">
+                            <MudTextField @bind-Value="_member.Surname" Label="Surname"
+                                          Variant="Variant.Outlined" Required="true"
+                                          RequiredError="Surname is required." />
+                        </MudItem>
+                        <MudItem xs="12" sm="4">
+                            <MudTextField @bind-Value="_member.CountryCode" Label="Country Code"
+                                          Variant="Variant.Outlined" MaxLength="3" Placeholder="98" />
+                        </MudItem>
+                        <MudItem xs="12" sm="4">
+                            <MudTextField @bind-Value="_member.CellphoneNumber" Label="Cellphone"
+                                          Variant="Variant.Outlined" MaxLength="12" />
+                        </MudItem>
+                        <MudItem xs="12" sm="4">
+                            <MudSelect T="bool?" @bind-Value="_member.Gender" Label="Gender" Variant="Variant.Outlined">
+                                <MudSelectItem T="bool?" Value="@((bool?)null)">—</MudSelectItem>
+                                <MudSelectItem T="bool?" Value="@((bool?)true)">Male</MudSelectItem>
+                                <MudSelectItem T="bool?" Value="@((bool?)false)">Female</MudSelectItem>
+                            </MudSelect>
+                        </MudItem>
+                    </MudGrid>
+                </MudPaper>
+            </MudItem>
+
+            <MudItem xs="12">
+                <MudPaper Elevation="0" Class="border rounded-lg pa-6">
+                    <MudSwitch T="bool" @bind-Value="_member.Active" Color="Color.Primary"
+                               Label="@(_member.Active ? "Active — can sign in" : "Inactive — cannot sign in")" />
+                </MudPaper>
+            </MudItem>
+        </MudGrid>
+
+        <MudStack Row="true" Class="mt-4" Spacing="2">
+            <MudButton Variant="Variant.Filled" Color="Color.Primary"
+                       StartIcon="@Icons.Material.Filled.Save"
+                       OnClick="SaveAsync" Disabled="@_saving">
+                @if (_saving)
+                {
+                    <MudProgressCircular Size="Size.Small" Indeterminate="true" Class="me-2" />
+                }
+                @(_isNew ? "Create Member" : "Save Changes")
+            </MudButton>
+            <MudButton Variant="Variant.Outlined" Color="Color.Default"
+                       StartIcon="@Icons.Material.Filled.ArrowBack" Href="/members">
+                Cancel
+            </MudButton>
+        </MudStack>
+    </MudForm>
+}
+
+@code {
+    [Parameter] public int Id { get; set; }
+
+    private MudForm _form = null!;
+    private Member? _member;
+    private string _password = string.Empty;
+    private bool _loading = true;
+    private bool _saving;
+    private bool _isMaster;
+    private int _websiteId;
+    private List<Website> _websites = new();
+    private List<Policy> _policies = new();
+    private bool _isNew => Id == 0;
+
+    private List<BreadcrumbItem> _breadcrumbs => new()
+    {
+        new("Dashboard", "/"),
+        new("Members", "/members"),
+        new(_isNew ? "New" : $"#{Id}", null, true),
+    };
+
+    protected override async Task OnInitializedAsync()
+    {
+        var state = await AuthState.GetAuthenticationStateAsync();
+        var user = state.User;
+        _isMaster = user.HasClaim(AdminClaimTypes.Master, "true");
+        int.TryParse(user.FindFirst(AdminClaimTypes.WebsiteId)?.Value, out _websiteId);
+
+        if (_isNew)
+        {
+            _member = new Member
+            {
+                Active = true,
+                WebsiteID = _websiteId,
+                CellphoneNumber = string.Empty,
+                CountryCode = string.Empty,
+                RegisterDate = DateOnly.FromDateTime(DateTime.UtcNow),
+            };
+            if (_isMaster)
+            {
+                _websites = (await WebsiteService.GetAllAsync()).ToList();
+                _member.WebsiteID = _websites.FirstOrDefault()?.WebsiteID ?? AppConstants.MasterWebsiteId;
+            }
+        }
+        else
+        {
+            _member = await MemberService.GetByIdAsync(Id);
+            if (_member is null || (!_isMaster && _member.WebsiteID != _websiteId))
+            {
+                Nav.NavigateTo("/members");
+                return;
+            }
+        }
+
+        await LoadPoliciesAsync();
+        _loading = false;
+    }
+
+    private async Task LoadPoliciesAsync()
+    {
+        _policies = (await PolicyService.GetByWebsiteAsync(_member!.WebsiteID)).ToList();
+        if (!_policies.Any(p => p.PolicyID == _member.PolicyID))
+            _member.PolicyID = _policies.FirstOrDefault()?.PolicyID ?? 0;
+    }
+
+    private async Task OnWebsiteChanged(IEnumerable<int> _) => await LoadPoliciesAsync();
+
+    private async Task SaveAsync()
+    {
+        await _form.ValidateAsync();
+        if (!_form.IsValid) return;
+
+        if (_member!.PolicyID == 0)
+        {
+            Snackbar.Add("Select an access level. This website has none — create one first.", Severity.Warning);
+            return;
+        }
+
+        _saving = true;
+        try
+        {
+            if (_isNew)
+            {
+                await MemberService.CreateAsync(_member, _password);
+                Snackbar.Add("Member created successfully.", Severity.Success);
+            }
+            else
+            {
+                await MemberService.UpdateAsync(_member);
+                if (!string.IsNullOrWhiteSpace(_password))
+                    await MemberService.ChangePasswordAsync(_member.MemberID, _password);
+                Snackbar.Add("Changes saved successfully.", Severity.Success);
+            }
+            Nav.NavigateTo("/members");
+        }
+        catch (Exception ex)
+        {
+            Snackbar.Add($"Save failed: {ex.Message}", Severity.Error);
+        }
+        finally
+        {
+            _saving = false;
+        }
+    }
+}

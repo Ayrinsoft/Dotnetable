@@ -1,0 +1,116 @@
+@page "/policies"
+@attribute [Authorize(Policy = AdminPolicies.WebsiteAdminOrAbove)]
+@inject IPolicyService PolicyService
+@inject AuthenticationStateProvider AuthState
+
+<PageTitle>Access Levels — Dotnetable</PageTitle>
+
+<MudStack Row="true" AlignItems="AlignItems.Center" Justify="Justify.SpaceBetween" Class="mb-4">
+    <MudStack Spacing="0">
+        <MudText Typo="Typo.h5" Class="fw-bold">Access Levels</MudText>
+        <MudText Typo="Typo.body2" Color="Color.Secondary">
+            @(_isMaster ? "Access levels across all websites" : "Access levels of your website")
+        </MudText>
+    </MudStack>
+    <MudButton Variant="Variant.Filled" Color="Color.Primary"
+               StartIcon="@Icons.Material.Filled.Add" Href="/policies/new">
+        New Access Level
+    </MudButton>
+</MudStack>
+
+<MudPaper Elevation="0" Class="app-card rounded-lg pa-4">
+    @if (_loading)
+    {
+        <MudProgressLinear Indeterminate="true" Color="Color.Primary" Class="mb-3" />
+    }
+    <DNGridView GridHeaderParams="_grid" OnSearchChanged="OnGridChanged">
+        @if (_policies.Count == 0)
+        {
+            <tr>
+                <td colspan="@_colCount" style="text-align:center; padding:32px;">
+                    <MudText Color="Color.Secondary">No access levels found.</MudText>
+                </td>
+            </tr>
+        }
+        else
+        {
+            @foreach (var p in _policies)
+            {
+                <tr>
+                    <td>
+                        <MudIconButton Icon="@Icons.Material.Filled.Edit" Size="Size.Small"
+                                       Color="Color.Primary" Href="@($"/policies/{p.PolicyID}")" />
+                    </td>
+                    <td>@p.PolicyID</td>
+                    <td>@p.Title</td>
+                    @if (_isMaster)
+                    {
+                        <td>@p.WebsiteID</td>
+                    }
+                    <td>
+                        @if (p.Active)
+                        {
+                            <MudChip T="string" Color="Color.Success" Size="Size.Small" Variant="Variant.Filled">Active</MudChip>
+                        }
+                        else
+                        {
+                            <MudChip T="string" Color="Color.Default" Size="Size.Small" Variant="Variant.Outlined">Inactive</MudChip>
+                        }
+                    </td>
+                </tr>
+            }
+        }
+    </DNGridView>
+</MudPaper>
+
+@code {
+    private bool _loading = true;
+    private bool _isMaster;
+    private int _websiteId;
+    private List<Policy> _policies = new();
+    private GridViewHeaderParameters _grid = new();
+
+    private int _colCount => 4 + (_isMaster ? 1 : 0);
+
+    protected override async Task OnInitializedAsync()
+    {
+        var state = await AuthState.GetAuthenticationStateAsync();
+        var user = state.User;
+        _isMaster = user.HasClaim(AdminClaimTypes.Master, "true");
+        int.TryParse(user.FindFirst(AdminClaimTypes.WebsiteId)?.Value, out _websiteId);
+
+        _grid = new GridViewHeaderParameters
+        {
+            Pagination = new PaginationModel { PageSize = 25 },
+            HeaderItems = new()
+            {
+                new() { ColumnTitle = "", ColumnName = "" },
+                new() { ColumnTitle = "ID", ColumnName = nameof(Policy.PolicyID), HasSort = true },
+                new() { ColumnTitle = "Title", ColumnName = nameof(Policy.Title), HasSort = true, HasSearch = true },
+            }
+        };
+        if (_isMaster)
+            _grid.HeaderItems.Add(new() { ColumnTitle = "Website", ColumnName = nameof(Policy.WebsiteID), HasSort = true });
+        _grid.HeaderItems.Add(new()
+        {
+            ColumnTitle = "Status",
+            ColumnName = nameof(Policy.Active),
+            HasSearch = true,
+            SearchType = SearchColumnType.DropDown,
+            OtherDropDownValues = new() { ["Active"] = "true", ["Inactive"] = "false" }
+        });
+
+        await LoadAsync();
+    }
+
+    private Task OnGridChanged(GridViewHeaderParameters _) => LoadAsync();
+
+    private async Task LoadAsync()
+    {
+        _loading = true;
+        var result = await PolicyService.GetPagedAsync(_isMaster ? null : _websiteId, _grid.ToQuery());
+        _policies = result.Items.ToList();
+        _grid.Pagination.MaxLength = result.TotalCount;
+        _loading = false;
+    }
+}

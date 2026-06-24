@@ -13,6 +13,9 @@ public interface IMemberService
     /// <summary>Validates credentials and returns the member with its Policy and Roles loaded, or null.</summary>
     Task<Member?> ValidateCredentialsAsync(string username, string password, CancellationToken ct = default);
 
+    /// <summary>WebsiteID of the member with this username (any status), or null if no such member — used to attribute failed logins.</summary>
+    Task<int?> GetWebsiteIdByUsernameAsync(string username, CancellationToken ct = default);
+
     Task<IEnumerable<Member>> GetByWebsiteAsync(int websiteId, CancellationToken ct = default);
 
     /// <summary>All members. Only meaningful for master-website administrators.</summary>

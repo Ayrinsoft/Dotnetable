@@ -126,7 +126,7 @@ public class SetupService : ISetupService
         await context.SaveChangesAsync(ct);
 
         // 3. Administrator policy with full access (every seeded role).
-        var policy = new Policy { Title = "Administrators", Active = true };
+        var policy = new Policy { Title = "Administrators", Active = true, WebsiteID = website.WebsiteID };
         context.Policies.Add(policy);
         await context.SaveChangesAsync(ct);
 
