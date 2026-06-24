@@ -11,6 +11,7 @@ public interface IWebsiteService
 
     /// <summary>Server-side paged/sorted/searched websites.</summary>
     Task<PagedResult<Website>> GetPagedAsync(GridQuery query, CancellationToken ct = default);
+    Task SetActiveAsync(int id, bool active, CancellationToken ct = default);
     Task<Website> CreateAsync(Website website, CancellationToken ct = default);
     Task UpdateAsync(Website website, CancellationToken ct = default);
     Task DeleteAsync(int id, CancellationToken ct = default);

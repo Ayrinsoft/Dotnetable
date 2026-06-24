@@ -73,6 +73,12 @@ public class MemberService : IMemberService
         return new PagedResult<Member> { Items = items, TotalCount = total };
     }
 
+    public async Task SetActiveAsync(int id, bool active, CancellationToken ct = default)
+    {
+        await _context.Members.Where(m => m.MemberID == id)
+            .ExecuteUpdateAsync(s => s.SetProperty(m => m.Active, active), ct);
+    }
+
     public async Task<Member> CreateAsync(Member member, string plainPassword, CancellationToken ct = default)
     {
         if (member.HashKey == Guid.Empty) member.HashKey = Guid.NewGuid();

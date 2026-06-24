@@ -20,6 +20,7 @@ public interface IPolicyService
     /// <summary>Updates the access level and reconciles its <see cref="PolicyRole"/> rows to the given roles.</summary>
     Task UpdateAsync(Policy policy, IEnumerable<short> roleIds, CancellationToken ct = default);
 
+    Task SetActiveAsync(int id, bool active, CancellationToken ct = default);
     Task DeleteAsync(int id, CancellationToken ct = default);
 
     /// <summary>Roles a member is allowed to grant: every active role for master, otherwise only the roles the member already holds.</summary>

@@ -52,6 +52,12 @@ public class RoleService : IRoleService
         await _context.SaveChangesAsync(ct);
     }
 
+    public async Task SetActiveAsync(short id, bool active, CancellationToken ct = default)
+    {
+        await _context.Roles.Where(r => r.RoleID == id)
+            .ExecuteUpdateAsync(s => s.SetProperty(r => r.Active, active), ct);
+    }
+
     public async Task DeleteAsync(short id, CancellationToken ct = default)
     {
         var role = await _context.Roles.FindAsync([id], ct);

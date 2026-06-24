@@ -2,6 +2,7 @@
 @attribute [Authorize(Policy = AdminPolicies.WebsiteAdminOrAbove)]
 @inject IPolicyService PolicyService
 @inject AuthenticationStateProvider AuthState
+@inject ISnackbar Snackbar
 
 <PageTitle>Access Levels — Dotnetable</PageTitle>
 
@@ -48,14 +49,9 @@
                         <td>@p.WebsiteID</td>
                     }
                     <td>
-                        @if (p.Active)
-                        {
-                            <MudChip T="string" Color="Color.Success" Size="Size.Small" Variant="Variant.Filled">Active</MudChip>
-                        }
-                        else
-                        {
-                            <MudChip T="string" Color="Color.Default" Size="Size.Small" Variant="Variant.Outlined">Inactive</MudChip>
-                        }
+                        <MudSwitch T="bool" Value="p.Active" Color="Color.Success"
+                                   Disabled="_toggling.Contains(p.PolicyID)"
+                                   ValueChanged="@(v => ToggleActiveAsync(p, v))" />
                     </td>
                 </tr>
             }
@@ -68,6 +64,7 @@
     private bool _isMaster;
     private int _websiteId;
     private List<Policy> _policies = new();
+    private HashSet<int> _toggling = new();
     private GridViewHeaderParameters _grid = new();
 
     private int _colCount => 4 + (_isMaster ? 1 : 0);
@@ -101,6 +98,14 @@
         });
 
         await LoadAsync();
+    }
+
+    private async Task ToggleActiveAsync(Policy p, bool value)
+    {
+        if (!_toggling.Add(p.PolicyID)) return;
+        p.Active = value;
+        try { await PolicyService.SetActiveAsync(p.PolicyID, value); }
+        finally { _toggling.Remove(p.PolicyID); }
     }
 
     private Task OnGridChanged(GridViewHeaderParameters _) => LoadAsync();

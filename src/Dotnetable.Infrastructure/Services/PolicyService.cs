@@ -76,6 +76,12 @@ public class PolicyService : IPolicyService
         await _context.SaveChangesAsync(ct);
     }
 
+    public async Task SetActiveAsync(int id, bool active, CancellationToken ct = default)
+    {
+        await _context.Policies.Where(p => p.PolicyID == id)
+            .ExecuteUpdateAsync(s => s.SetProperty(p => p.Active, active), ct);
+    }
+
     public async Task DeleteAsync(int id, CancellationToken ct = default)
     {
         var policy = await _context.Policies.FindAsync([id], ct);

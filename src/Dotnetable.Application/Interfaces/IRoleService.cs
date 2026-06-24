@@ -11,5 +11,6 @@ public interface IRoleService
     Task<IReadOnlyList<Role>> GetAllActiveAsync(CancellationToken ct = default);
     Task<Role> CreateAsync(Role role, CancellationToken ct = default);
     Task UpdateAsync(Role role, CancellationToken ct = default);
+    Task SetActiveAsync(short id, bool active, CancellationToken ct = default);
     Task DeleteAsync(short id, CancellationToken ct = default);
 }
