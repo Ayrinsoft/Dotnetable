@@ -1,5 +1,6 @@
 @page "/translations"
 @attribute [Authorize(Policy = AdminPolicies.WebsiteAdminOrAbove)]
+@using Dotnetable.Application.DTOs
 @inject ILocalizationService LocalizationService
 @inject AuthenticationStateProvider AuthState
 @inject ISnackbar Snackbar
@@ -12,75 +13,62 @@
         <MudText Typo="Typo.h5" Class="fw-bold">Translations</MudText>
         <MudText Typo="Typo.body2" Color="Color.Secondary">Edit UI text for each language</MudText>
     </MudStack>
-    <MudStack Row="true" AlignItems="AlignItems.Center" Spacing="2">
-        <MudSelect T="string" @bind-Value="_languageCode" Label="Language"
-                   Variant="Variant.Outlined" Margin="Margin.Dense"
-                   Style="width:130px;" AnchorOrigin="Origin.BottomLeft">
-            @foreach (var lang in _languages)
-            {
-                <MudSelectItem T="string" Value="@lang.Code">@lang.Label</MudSelectItem>
-            }
-        </MudSelect>
-        <MudButton Variant="Variant.Filled" Color="Color.Primary"
-                   StartIcon="@Icons.Material.Filled.Refresh"
-                   OnClick="LoadAsync" Disabled="@_loading">
-            Load
-        </MudButton>
-    </MudStack>
+    <MudSelect T="string" Value="_languageCode" ValueChanged="OnLanguageChanged" Label="Language"
+               Variant="Variant.Outlined" Margin="Margin.Dense"
+               Style="width:150px;" AnchorOrigin="Origin.BottomLeft">
+        @foreach (var lang in _languages)
+        {
+            <MudSelectItem T="string" Value="@lang.Code">@lang.Label</MudSelectItem>
+        }
+    </MudSelect>
 </MudStack>
 
-@* ── Data grid ────────────────────────────────────────────────── *@
-<MudPaper Elevation="0" Class="border rounded-lg overflow-hidden">
+<MudPaper Elevation="0" Class="app-card rounded-lg pa-4">
     @if (_loading)
     {
-        <MudStack AlignItems="AlignItems.Center" Class="pa-8">
-            <MudProgressCircular Indeterminate="true" Color="Color.Primary" />
-        </MudStack>
+        <MudProgressLinear Indeterminate="true" Color="Color.Primary" Class="mb-3" />
     }
-    else if (_translations.Count == 0)
-    {
-        <MudStack AlignItems="AlignItems.Center" Class="pa-8" Spacing="2">
-            <MudIcon Icon="@Icons.Material.Filled.Translate" Size="Size.Large" Color="Color.Secondary" />
-            <MudText Color="Color.Secondary">No translations found for "<b>@_languageCode</b>".</MudText>
-        </MudStack>
-    }
-    else
-    {
-        <MudDataGrid T="KeyValuePair<string,string>" Items="@_translations" QuickFilter="@_quickFilter"
-                     Hover="true" Dense="true" Elevation="0" Filterable="false">
-            <ToolBarContent>
-                <MudText Typo="Typo.body2" Color="Color.Secondary">@_translations.Count key(s)</MudText>
-                <MudSpacer />
-                <MudTextField @bind-Value="_search" Placeholder="Search keys…"
-                              Adornment="Adornment.Start" AdornmentIcon="@Icons.Material.Filled.Search"
-                              IconSize="Size.Medium" Class="mt-0" Variant="Variant.Outlined"
-                              Margin="Margin.Dense" Immediate="true" />
-            </ToolBarContent>
-            <Columns>
-                <TemplateColumn Title="Key" Sortable="true">
-                    <CellTemplate>
-                        <MudText Typo="Typo.body2" Class="font-monospace">@context.Item.Key</MudText>
-                    </CellTemplate>
-                </TemplateColumn>
-                <TemplateColumn Title="Value" Sortable="false">
-                    <CellTemplate>
-                        <MudTextField T="string" Value="@context.Item.Value"
-                                      ValueChanged="@(v => SaveAsync(context.Item.Key, v))"
-                                      Variant="Variant.Outlined" Margin="Margin.Dense"
-                                      FullWidth="true" />
-                    </CellTemplate>
-                </TemplateColumn>
-            </Columns>
-        </MudDataGrid>
-    }
+    <DNGridView GridHeaderParams="_grid" OnSearchChanged="OnGridChanged">
+        @if (_translations.Count == 0)
+        {
+            <tr>
+                <td colspan="2" style="text-align:center; padding:32px;">
+                    <MudText Color="Color.Secondary">No translations found for "<b>@_languageCode</b>".</MudText>
+                </td>
+            </tr>
+        }
+        else
+        {
+            @foreach (var entry in _translations)
+            {
+                <tr @key="entry.Key">
+                    <td style="font-family:monospace; white-space:nowrap;">@entry.Key</td>
+                    <td>
+                        <MudTextField T="string" Value="@entry.Value"
+                                      ValueChanged="@(v => SaveAsync(entry.Key, v))"
+                                      Variant="Variant.Outlined" Margin="Margin.Dense" FullWidth="true" />
+                    </td>
+                </tr>
+            }
+        }
+    </DNGridView>
 </MudPaper>
 
 @code {
-    private bool _loading;
+    private bool _loading = true;
     private int _websiteId;
     private string _languageCode = "en";
-    private string _search = string.Empty;
-    private List<KeyValuePair<string, string>> _translations = [];
+    private List<TranslationEntry> _translations = new();
+
+    private GridViewHeaderParameters _grid = new()
+    {
+        Pagination = new PaginationModel { PageSize = 25 },
+        HeaderItems = new()
+        {
+            new() { ColumnTitle = "Key", ColumnName = "Key", HasSort = true, HasSearch = true },
+            new() { ColumnTitle = "Value", ColumnName = "Value", HasSearch = true },
+        }
+    };
 
     private static readonly (string Code, string Label)[] _languages =
     [
@@ -93,11 +81,6 @@
         ("ar", "العربية"),
     ];
 
-    private Func<KeyValuePair<string, string>, bool> _quickFilter => x =>
-        string.IsNullOrWhiteSpace(_search)
-        || x.Key.Contains(_search, StringComparison.OrdinalIgnoreCase)
-        || x.Value.Contains(_search, StringComparison.OrdinalIgnoreCase);
-
     protected override async Task OnInitializedAsync()
     {
         var state = await AuthState.GetAuthenticationStateAsync();
@@ -105,11 +88,21 @@
         await LoadAsync();
     }
 
+    private async Task OnLanguageChanged(string code)
+    {
+        _languageCode = code;
+        _grid.Pagination.PageIndex = 1;
+        await LoadAsync();
+    }
+
+    private Task OnGridChanged(GridViewHeaderParameters _) => LoadAsync();
+
     private async Task LoadAsync()
     {
         _loading = true;
-        var dict = await LocalizationService.GetAllAsync(_websiteId, _languageCode);
-        _translations = dict.ToList();
+        var result = await LocalizationService.GetPagedAsync(_websiteId, _languageCode, _grid.ToQuery());
+        _translations = result.Items.ToList();
+        _grid.Pagination.MaxLength = result.TotalCount;
         _loading = false;
     }
 
@@ -118,6 +111,7 @@
         try
         {
             await LocalizationService.SetAsync(_websiteId, _languageCode, key, value);
+            Snackbar.Add($"Saved \"{key}\".", Severity.Success);
         }
         catch (Exception ex)
         {

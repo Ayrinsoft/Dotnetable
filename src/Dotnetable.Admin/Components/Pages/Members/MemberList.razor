@@ -15,91 +15,107 @@
     </MudStack>
 </MudStack>
 
-@* ── Data grid ────────────────────────────────────────────────── *@
-<MudPaper Elevation="0" Class="border rounded-lg overflow-hidden">
-    <MudDataGrid T="Member" Items="@_members" QuickFilter="@_quickFilter"
-                 Loading="@_loading" Hover="true" Dense="false" Elevation="0"
-                 SortMode="SortMode.Multiple" Filterable="false">
-        <ToolBarContent>
-            <MudSpacer />
-            <MudTextField @bind-Value="_search" Placeholder="Search…"
-                          Adornment="Adornment.Start" AdornmentIcon="@Icons.Material.Filled.Search"
-                          IconSize="Size.Medium" Class="mt-0 mb-0" Variant="Variant.Outlined"
-                          Margin="Margin.Dense" Immediate="true" />
-        </ToolBarContent>
-        <Columns>
-            <PropertyColumn Property="x => x.MemberID" Title="ID" Sortable="true" InitialDirection="SortDirection.Ascending" />
-            <PropertyColumn Property="x => x.Username" Title="Username" Sortable="true" />
-            <PropertyColumn Property="x => x.Email" Title="Email" Sortable="true" />
-            <TemplateColumn Title="Full Name" Sortable="false">
-                <CellTemplate>
-                    <MudStack Row="true" AlignItems="AlignItems.Center" Spacing="2">
-                        <MudAvatar Color="Color.Primary" Size="Size.Small">
-                            @(context.Item.Givenname?.Trim()[0].ToString().ToUpper() ?? "?")
-                        </MudAvatar>
-                        <MudText>@context.Item.Givenname @context.Item.Surname</MudText>
-                    </MudStack>
-                </CellTemplate>
-            </TemplateColumn>
-            @if (_isMaster)
+<MudPaper Elevation="0" Class="app-card rounded-lg pa-4">
+    @if (_loading)
+    {
+        <MudProgressLinear Indeterminate="true" Color="Color.Primary" Class="mb-3" />
+    }
+    <DNGridView GridHeaderParams="_grid" OnSearchChanged="OnGridChanged">
+        @if (_members.Count == 0)
+        {
+            <tr>
+                <td colspan="@_colCount" style="text-align:center; padding:32px;">
+                    <MudText Color="Color.Secondary">No members found.</MudText>
+                </td>
+            </tr>
+        }
+        else
+        {
+            @foreach (var m in _members)
             {
-                <PropertyColumn Property="x => x.WebsiteID" Title="Website" Sortable="true" />
+                <tr>
+                    <td>@m.MemberID</td>
+                    <td>@m.Username</td>
+                    <td>@m.Email</td>
+                    <td>
+                        <MudStack Row="true" AlignItems="AlignItems.Center" Spacing="2">
+                            <MudAvatar Color="Color.Primary" Size="Size.Small">
+                                @(string.IsNullOrWhiteSpace(m.Givenname) ? "?" : m.Givenname.Trim()[..1].ToUpper())
+                            </MudAvatar>
+                            <span>@m.Givenname @m.Surname</span>
+                        </MudStack>
+                    </td>
+                    @if (_isMaster)
+                    {
+                        <td>@m.WebsiteID</td>
+                    }
+                    <td>@m.RegisterDate.ToString("yyyy-MM-dd")</td>
+                    <td>
+                        @if (m.Active)
+                        {
+                            <MudChip T="string" Color="Color.Success" Size="Size.Small" Variant="Variant.Filled">Active</MudChip>
+                        }
+                        else
+                        {
+                            <MudChip T="string" Color="Color.Default" Size="Size.Small" Variant="Variant.Outlined">Inactive</MudChip>
+                        }
+                    </td>
+                </tr>
             }
-            <PropertyColumn Property="x => x.RegisterDate" Title="Registered" Sortable="true" />
-            <TemplateColumn Title="Status" Sortable="false">
-                <CellTemplate>
-                    @if (context.Item.Active)
-                    {
-                        <MudChip T="string" Color="Color.Success" Size="Size.Small" Variant="Variant.Filled">Active</MudChip>
-                    }
-                    else
-                    {
-                        <MudChip T="string" Color="Color.Default" Size="Size.Small" Variant="Variant.Outlined">Inactive</MudChip>
-                    }
-                </CellTemplate>
-            </TemplateColumn>
-        </Columns>
-        <NoRecordsContent>
-            <MudStack AlignItems="AlignItems.Center" Class="pa-8" Spacing="2">
-                <MudIcon Icon="@Icons.Material.Filled.People" Size="Size.Large" Color="Color.Secondary" />
-                <MudText Color="Color.Secondary">No members found.</MudText>
-            </MudStack>
-        </NoRecordsContent>
-        <LoadingContent>
-            <MudStack AlignItems="AlignItems.Center" Class="pa-8">
-                <MudProgressCircular Indeterminate="true" Color="Color.Primary" />
-            </MudStack>
-        </LoadingContent>
-    </MudDataGrid>
+        }
+    </DNGridView>
 </MudPaper>
 
 @code {
     private bool _loading = true;
     private bool _isMaster;
-    private string _search = string.Empty;
-    private IEnumerable<Member> _members = [];
+    private int _websiteId;
+    private List<Member> _members = new();
+    private GridViewHeaderParameters _grid = new();
 
-    private Func<Member, bool> _quickFilter => x =>
-        string.IsNullOrWhiteSpace(_search)
-        || x.Username.Contains(_search, StringComparison.OrdinalIgnoreCase)
-        || x.Email.Contains(_search, StringComparison.OrdinalIgnoreCase)
-        || ($"{x.Givenname} {x.Surname}").Contains(_search, StringComparison.OrdinalIgnoreCase);
+    private int _colCount => 6 + (_isMaster ? 1 : 0);
 
     protected override async Task OnInitializedAsync()
     {
         var state = await AuthState.GetAuthenticationStateAsync();
         var user = state.User;
         _isMaster = user.HasClaim(AdminClaimTypes.Master, "true");
+        int.TryParse(user.FindFirst(AdminClaimTypes.WebsiteId)?.Value, out _websiteId);
 
+        _grid = new GridViewHeaderParameters
+        {
+            Pagination = new PaginationModel { PageSize = 25 },
+            HeaderItems = new()
+            {
+                new() { ColumnTitle = "ID", ColumnName = nameof(Member.MemberID), HasSort = true },
+                new() { ColumnTitle = "Username", ColumnName = nameof(Member.Username), HasSort = true, HasSearch = true },
+                new() { ColumnTitle = "Email", ColumnName = nameof(Member.Email), HasSort = true, HasSearch = true },
+                new() { ColumnTitle = "Full Name", ColumnName = "Fullname", HasSearch = true },
+            }
+        };
         if (_isMaster)
+            _grid.HeaderItems.Add(new() { ColumnTitle = "Website", ColumnName = nameof(Member.WebsiteID), HasSort = true });
+        _grid.HeaderItems.Add(new() { ColumnTitle = "Registered", ColumnName = nameof(Member.RegisterDate), HasSort = true });
+        _grid.HeaderItems.Add(new()
         {
-            _members = await MemberService.GetAllAsync();
-        }
-        else
-        {
-            int.TryParse(user.FindFirst(AdminClaimTypes.WebsiteId)?.Value, out var websiteId);
-            _members = await MemberService.GetByWebsiteAsync(websiteId);
-        }
+            ColumnTitle = "Status",
+            ColumnName = nameof(Member.Active),
+            HasSearch = true,
+            SearchType = SearchColumnType.DropDown,
+            OtherDropDownValues = new() { ["Active"] = "true", ["Inactive"] = "false" }
+        });
+
+        await LoadAsync();
+    }
+
+    private Task OnGridChanged(GridViewHeaderParameters _) => LoadAsync();
+
+    private async Task LoadAsync()
+    {
+        _loading = true;
+        var result = await MemberService.GetPagedAsync(_isMaster ? null : _websiteId, _grid.ToQuery());
+        _members = result.Items.ToList();
+        _grid.Pagination.MaxLength = result.TotalCount;
         _loading = false;
     }
 }

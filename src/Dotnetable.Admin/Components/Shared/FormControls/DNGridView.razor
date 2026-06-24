@@ -1,0 +1,160 @@
+@namespace Dotnetable.Admin.Components.Shared.FormControls
+
+@if (GridHeaderParams is not null)
+{
+    <div class="dn-grid-wrapper">
+        <table class="dn-grid">
+            <thead>
+                <tr>
+                    @if (GridHeaderParams.HasRowNumber)
+                    {
+                        <th class="dn-grid-rownum">#</th>
+                    }
+                    @foreach (var col in GridHeaderParams.HeaderItems)
+                    {
+                        <th>
+                            <span class="dn-col-head">
+                                <span>@ColumnText(col)</span>
+                                @if (col.HasSort)
+                                {
+                                    <MudIcon Icon="@SortIcon(col)" Size="Size.Small"
+                                             Class="dn-sort" @onclick="@(() => SortChanged(col.ColumnName))" />
+                                }
+                                @if (col.HasSearch)
+                                {
+                                    <MudIcon Icon="@Icons.Material.Filled.FilterAlt" Size="Size.Small"
+                                             Class="@($"dn-filter {(_showSearchBar ? "active" : "")}")" @onclick="ToggleSearchBar" />
+                                }
+                            </span>
+                        </th>
+                    }
+                </tr>
+                @if (_showSearchBar && GridHeaderParams.HeaderItems.Any(i => i.HasSearch))
+                {
+                    <tr class="dn-grid-search">
+                        @if (GridHeaderParams.HasRowNumber)
+                        {
+                            <th></th>
+                        }
+                        @foreach (var col in GridHeaderParams.HeaderItems)
+                        {
+                            <th>
+                                @if (col.HasSearch)
+                                {
+                                    @switch (col.SearchType)
+                                    {
+                                        case SearchColumnType.Text:
+                                        case SearchColumnType.Date:
+                                            <input type="@(col.SearchType == SearchColumnType.Date ? "date" : "text")"
+                                                   class="dn-grid-input" placeholder="@SearchPlaceholder"
+                                                   @bind-value="col.SearchText" @bind-value:event="oninput"
+                                                   @onkeyup="SearchKeyUp" />
+                                            break;
+                                        case SearchColumnType.DropDown when col.OtherDropDownValues is { Count: > 0 }:
+                                            <select class="dn-grid-input"
+                                                    @onchange="@(e => OnChangeSearchDropdown(e, col.ColumnName))">
+                                                <option value="@AllToken">@AllText</option>
+                                                @foreach (var opt in col.OtherDropDownValues)
+                                                {
+                                                    <option value="@opt.Value" selected="@(opt.Value == col.SearchText)">@opt.Key</option>
+                                                }
+                                            </select>
+                                            break;
+                                        case SearchColumnType.CheckBox:
+                                            <input type="checkbox" class="dn-grid-check"
+                                                   @onchange="@(e => OnChangeSearchCheckBox(e, col.ColumnName))" />
+                                            break;
+                                    }
+                                }
+                            </th>
+                        }
+                    </tr>
+                }
+            </thead>
+            <tbody>
+                @ChildContent
+            </tbody>
+        </table>
+    </div>
+
+    <DNPagination PaginationModel="GridHeaderParams.Pagination" OnPageChanged="OnPaginationChanged" />
+}
+
+@code {
+    [Parameter] public RenderFragment? ChildContent { get; set; }
+    [Parameter] public GridViewHeaderParameters? GridHeaderParams { get; set; }
+    [Parameter] public EventCallback<GridViewHeaderParameters> OnSearchChanged { get; set; }
+
+    /// <summary>Optional resolver for <c>ColumnLocalizeCode</c>. Falls back to <c>ColumnTitle</c>.</summary>
+    [Parameter] public Func<string, string>? Localizer { get; set; }
+
+    [Parameter] public string SearchPlaceholder { get; set; } = "Search…";
+    [Parameter] public string AllText { get; set; } = "All";
+
+    private const string AllToken = "__ALL__";
+    private bool _showSearchBar;
+
+    private string ColumnText(GridViewHeaderParameters.HeaderItemDetail col) =>
+        Localizer is not null && !string.IsNullOrEmpty(col.ColumnLocalizeCode)
+            ? Localizer(col.ColumnLocalizeCode)
+            : col.ColumnTitle;
+
+    private static string SortIcon(GridViewHeaderParameters.HeaderItemDetail col) => col.SortStatus switch
+    {
+        GridViewSortStatus.ASC => Icons.Material.Filled.ArrowUpward,
+        GridViewSortStatus.DESC => Icons.Material.Filled.ArrowDownward,
+        _ => Icons.Material.Filled.UnfoldMore,
+    };
+
+    private void ToggleSearchBar() => _showSearchBar = !_showSearchBar;
+
+    private async Task OnPaginationChanged(PaginationModel pageChange)
+    {
+        GridHeaderParams!.Pagination = pageChange;
+        await OnSearchChanged.InvokeAsync(GridHeaderParams);
+    }
+
+    private async Task SearchKeyUp(KeyboardEventArgs e)
+    {
+        if (e.Key == "Enter")
+            await OnSearchChanged.InvokeAsync(GridHeaderParams);
+    }
+
+    private async Task SortChanged(string columnName)
+    {
+        var current = GridHeaderParams!.HeaderItems.FirstOrDefault(i => i.ColumnName == columnName);
+        if (current is null) return;
+
+        current.SortStatus = current.SortStatus == GridViewSortStatus.DESC
+            ? GridViewSortStatus.ASC
+            : GridViewSortStatus.DESC;
+
+        var clauses = new List<string>
+        {
+            $"{columnName} {(current.SortStatus == GridViewSortStatus.DESC ? "DESC" : "ASC")}"
+        };
+        clauses.AddRange(GridHeaderParams.HeaderItems
+            .Where(i => i.HasSort && i.SortStatus != GridViewSortStatus.NoSort && i.ColumnName != columnName)
+            .Select(i => $"{i.ColumnName} {(i.SortStatus == GridViewSortStatus.DESC ? "DESC" : "ASC")}"));
+
+        GridHeaderParams.OrderbyParams = string.Join(", ", clauses);
+        await OnSearchChanged.InvokeAsync(GridHeaderParams);
+    }
+
+    private async Task OnChangeSearchDropdown(ChangeEventArgs e, string columnName)
+    {
+        var value = e.Value?.ToString() ?? "";
+        var col = GridHeaderParams!.HeaderItems.FirstOrDefault(i => i.ColumnName == columnName);
+        if (col is null) return;
+        col.SearchText = value == AllToken ? "" : value;
+        await OnSearchChanged.InvokeAsync(GridHeaderParams);
+    }
+
+    private async Task OnChangeSearchCheckBox(ChangeEventArgs e, string columnName)
+    {
+        var col = GridHeaderParams!.HeaderItems.FirstOrDefault(i => i.ColumnName == columnName);
+        if (col is null) return;
+        col.SearchText = e.Value?.ToString() ?? "";
+        await OnSearchChanged.InvokeAsync(GridHeaderParams);
+    }
+}

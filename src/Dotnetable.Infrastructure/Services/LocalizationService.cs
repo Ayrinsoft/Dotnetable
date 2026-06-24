@@ -1,6 +1,8 @@
+using Dotnetable.Application.DTOs;
 using Dotnetable.Application.Interfaces;
 using Dotnetable.Domain.Entities;
 using Dotnetable.Infrastructure.Data;
+using Dotnetable.Infrastructure.Extensions;
 using Microsoft.EntityFrameworkCore;
 
 namespace Dotnetable.Infrastructure.Services;
@@ -44,6 +46,31 @@ public class LocalizationService : ILocalizationService
     {
         var entries = await QueryFor(websiteId, languageCode).ToListAsync(ct);
         return entries.ToDictionary(e => e.Key, e => e.Value);
+    }
+
+    public async Task<PagedResult<TranslationEntry>> GetPagedAsync(int websiteId, string languageCode, GridQuery query, CancellationToken ct = default)
+    {
+        var projected = _context.LocalizationKeys
+            .Where(k => k.WebsiteID == websiteId)
+            .Select(k => new TranslationEntry(
+                k.ItemKey,
+                k.LocalizationValues
+                    .Where(v => v.LanguageCode == languageCode)
+                    .Select(v => v.ItemValue)
+                    .FirstOrDefault() ?? k.DefaultValue));
+
+        if (query.GetSearch("Key") is string key)
+            projected = projected.Where(e => e.Key.Contains(key));
+        if (query.GetSearch("Value") is string value)
+            projected = projected.Where(e => e.Value.Contains(value));
+
+        var total = await projected.CountAsync(ct);
+        var items = await projected
+            .ApplyOrderBy(query.OrderBy, nameof(TranslationEntry.Key))
+            .Skip(query.Skip).Take(query.Take)
+            .ToListAsync(ct);
+
+        return new PagedResult<TranslationEntry> { Items = items, TotalCount = total };
     }
 
     public async Task SetAsync(int websiteId, string languageCode, string key, string value, CancellationToken ct = default)

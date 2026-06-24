@@ -1,3 +1,4 @@
+using Dotnetable.Application.DTOs;
 using Dotnetable.Domain.Entities;
 
 namespace Dotnetable.Application.Interfaces;
@@ -5,6 +6,9 @@ namespace Dotnetable.Application.Interfaces;
 public interface IMemberService
 {
     Task<Member?> GetByIdAsync(int id, CancellationToken ct = default);
+
+    /// <summary>Server-side paged/sorted/searched members. <paramref name="websiteId"/> null = all websites (master only).</summary>
+    Task<PagedResult<Member>> GetPagedAsync(int? websiteId, GridQuery query, CancellationToken ct = default);
 
     /// <summary>Validates credentials and returns the member with its Policy and Roles loaded, or null.</summary>
     Task<Member?> ValidateCredentialsAsync(string username, string password, CancellationToken ct = default);
