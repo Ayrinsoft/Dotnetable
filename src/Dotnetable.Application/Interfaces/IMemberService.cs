@@ -21,6 +21,7 @@ public interface IMemberService
     /// <summary>All members. Only meaningful for master-website administrators.</summary>
     Task<IEnumerable<Member>> GetAllAsync(CancellationToken ct = default);
 
+    Task SetActiveAsync(int id, bool active, CancellationToken ct = default);
     Task<Member> CreateAsync(Member member, string plainPassword, CancellationToken ct = default);
     Task UpdateAsync(Member member, CancellationToken ct = default);
     Task ChangePasswordAsync(int memberId, string newPassword, CancellationToken ct = default);

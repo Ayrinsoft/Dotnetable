@@ -46,6 +46,12 @@ public class WebsiteService : IWebsiteService
         return new PagedResult<Website> { Items = items, TotalCount = total };
     }
 
+    public async Task SetActiveAsync(int id, bool active, CancellationToken ct = default)
+    {
+        await _context.Websites.Where(w => w.WebsiteID == id)
+            .ExecuteUpdateAsync(s => s.SetProperty(w => w.Active, active), ct);
+    }
+
     public async Task<Website> CreateAsync(Website website, CancellationToken ct = default)
     {
         _context.Websites.Add(website);

@@ -60,14 +60,9 @@
                     }
                     <td>@m.RegisterDate.ToString("yyyy-MM-dd")</td>
                     <td>
-                        @if (m.Active)
-                        {
-                            <MudChip T="string" Color="Color.Success" Size="Size.Small" Variant="Variant.Filled">Active</MudChip>
-                        }
-                        else
-                        {
-                            <MudChip T="string" Color="Color.Default" Size="Size.Small" Variant="Variant.Outlined">Inactive</MudChip>
-                        }
+                        <MudSwitch T="bool" Value="m.Active" Color="Color.Success"
+                                   Disabled="_toggling.Contains(m.MemberID)"
+                                   ValueChanged="@(v => ToggleActiveAsync(m, v))" />
                     </td>
                 </tr>
             }
@@ -80,6 +75,7 @@
     private bool _isMaster;
     private int _websiteId;
     private List<Member> _members = new();
+    private HashSet<int> _toggling = new();
     private GridViewHeaderParameters _grid = new();
 
     private int _colCount => 7 + (_isMaster ? 1 : 0);
@@ -119,6 +115,14 @@
     }
 
     private Task OnGridChanged(GridViewHeaderParameters _) => LoadAsync();
+
+    private async Task ToggleActiveAsync(Member m, bool value)
+    {
+        if (!_toggling.Add(m.MemberID)) return;
+        m.Active = value;
+        try { await MemberService.SetActiveAsync(m.MemberID, value); }
+        finally { _toggling.Remove(m.MemberID); }
+    }
 
     private async Task LoadAsync()
     {

@@ -1,6 +1,7 @@
 @page "/websites"
 @attribute [Authorize(Policy = AdminPolicies.SuperAdminOnly)]
 @inject IWebsiteService WebsiteService
+@inject ISnackbar Snackbar
 
 <PageTitle>Websites — Dotnetable</PageTitle>
 
@@ -56,14 +57,9 @@
                         }
                     </td>
                     <td>
-                        @if (w.Active)
-                        {
-                            <MudChip T="string" Color="Color.Success" Size="Size.Small" Variant="Variant.Filled">Active</MudChip>
-                        }
-                        else
-                        {
-                            <MudChip T="string" Color="Color.Default" Size="Size.Small" Variant="Variant.Outlined">Inactive</MudChip>
-                        }
+                        <MudSwitch T="bool" Value="w.Active" Color="Color.Success"
+                                   Disabled="_toggling.Contains(w.WebsiteID)"
+                                   ValueChanged="@(v => ToggleActiveAsync(w, v))" />
                     </td>
                 </tr>
             }
@@ -74,6 +70,7 @@
 @code {
     private bool _loading = true;
     private List<Website> _websites = new();
+    private HashSet<int> _toggling = new();
     private GridViewHeaderParameters _grid = new()
     {
         Pagination = new PaginationModel { PageSize = 25 },
@@ -96,6 +93,14 @@
             },
         }
     };
+
+    private async Task ToggleActiveAsync(Website w, bool value)
+    {
+        if (!_toggling.Add(w.WebsiteID)) return;
+        w.Active = value;
+        try { await WebsiteService.SetActiveAsync(w.WebsiteID, value); }
+        finally { _toggling.Remove(w.WebsiteID); }
+    }
 
     protected override Task OnInitializedAsync() => LoadAsync();
 
