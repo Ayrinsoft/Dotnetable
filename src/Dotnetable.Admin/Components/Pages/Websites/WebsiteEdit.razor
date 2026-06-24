@@ -1,68 +1,194 @@
+@page "/websites/new"
 @page "/websites/{Id:int}"
 @attribute [Authorize(Policy = AdminPolicies.SuperAdminOnly)]
 @inject IWebsiteService WebsiteService
 @inject NavigationManager Nav
+@inject ISnackbar Snackbar
 
-<PageTitle>Edit Website</PageTitle>
-<h1>Edit Website</h1>
+<PageTitle>@(_isNew ? "New Website" : "Edit Website") — Dotnetable</PageTitle>
 
-@if (_website is null)
+@* ── Breadcrumbs ───────────────────────────────────────────────── *@
+<MudBreadcrumbs Items="_breadcrumbs" Class="px-0 pb-2" />
+
+@* ── Page header ──────────────────────────────────────────────── *@
+<MudStack Row="true" AlignItems="AlignItems.Center" Justify="Justify.SpaceBetween" Class="mb-4">
+    <MudStack Spacing="0">
+        <MudText Typo="Typo.h5" Class="fw-bold">@(_isNew ? "New Website" : "Edit Website")</MudText>
+        <MudText Typo="Typo.body2" Color="Color.Secondary">
+            @(_isNew ? "Register a new website in the system" : $"Editing website #{Id}")
+        </MudText>
+    </MudStack>
+</MudStack>
+
+@if (_loading)
 {
-    <p>Loading...</p>
+    <MudProgressLinear Indeterminate="true" Color="Color.Primary" Class="mb-4" />
 }
-else
+else if (_website is not null)
 {
-    <div>
-        <label>Trade name</label>
-        <input @bind="_website.TradeName" />
-    </div>
-    <div>
-        <label>Brand name</label>
-        <input @bind="_website.BrandName" />
-    </div>
-    <div>
-        <label>Website address</label>
-        <input @bind="_website.WebsiteAddress" />
-    </div>
-    <div>
-        <label>Manager</label>
-        <input @bind="_website.Manager" />
-    </div>
-    <div>
-        <label>Mobile</label>
-        <input @bind="_website.Mobile" />
-    </div>
-    <div>
-        <label>Email</label>
-        <input @bind="_website.Email" />
-    </div>
-    <div>
-        <label>Active</label>
-        <input type="checkbox" @bind="_website.Active" />
-    </div>
-    <button @onclick="SaveAsync">Save</button>
-    @if (!string.IsNullOrEmpty(_message))
-    {
-        <p>@_message</p>
-    }
+    <MudForm @ref="_form">
+        <MudGrid Spacing="4">
+
+            @* ── Basic info ──────────────────────────────────── *@
+            <MudItem xs="12">
+                <MudPaper Elevation="0" Class="border rounded-lg pa-6">
+                    <MudText Typo="Typo.subtitle1" Class="fw-bold mb-4">
+                        <MudIcon Icon="@Icons.Material.Filled.Info" Size="Size.Small" Class="me-1" />
+                        Basic Information
+                    </MudText>
+                    <MudGrid Spacing="3">
+                        <MudItem xs="12" sm="6">
+                            <MudTextField @bind-Value="_website.TradeName" Label="Trade Name"
+                                          Variant="Variant.Outlined" Required="true"
+                                          RequiredError="Trade name is required." />
+                        </MudItem>
+                        <MudItem xs="12" sm="6">
+                            <MudTextField @bind-Value="_website.BrandName" Label="Brand Name"
+                                          Variant="Variant.Outlined" Required="true"
+                                          RequiredError="Brand name is required." />
+                        </MudItem>
+                        <MudItem xs="12" sm="6">
+                            <MudTextField @bind-Value="_website.WebsiteAddress" Label="Website Address"
+                                          Variant="Variant.Outlined" Required="true"
+                                          RequiredError="Website address is required."
+                                          Placeholder="example.com" />
+                        </MudItem>
+                        <MudItem xs="12" sm="6">
+                            <MudTextField @bind-Value="_website.DefaultLanguageCode" Label="Default Language Code"
+                                          Variant="Variant.Outlined" MaxLength="2" Placeholder="en" />
+                        </MudItem>
+                    </MudGrid>
+                </MudPaper>
+            </MudItem>
+
+            @* ── Contact info ─────────────────────────────── *@
+            <MudItem xs="12">
+                <MudPaper Elevation="0" Class="border rounded-lg pa-6">
+                    <MudText Typo="Typo.subtitle1" Class="fw-bold mb-4">
+                        <MudIcon Icon="@Icons.Material.Filled.ContactPhone" Size="Size.Small" Class="me-1" />
+                        Contact Information
+                    </MudText>
+                    <MudGrid Spacing="3">
+                        <MudItem xs="12" sm="4">
+                            <MudTextField @bind-Value="_website.Manager" Label="Manager"
+                                          Variant="Variant.Outlined" Required="true"
+                                          RequiredError="Manager name is required." />
+                        </MudItem>
+                        <MudItem xs="12" sm="4">
+                            <MudTextField @bind-Value="_website.Mobile" Label="Mobile"
+                                          Variant="Variant.Outlined"
+                                          Adornment="Adornment.Start"
+                                          AdornmentIcon="@Icons.Material.Filled.Phone" />
+                        </MudItem>
+                        <MudItem xs="12" sm="4">
+                            <MudTextField @bind-Value="_website.Email" Label="Email"
+                                          Variant="Variant.Outlined" InputType="InputType.Email"
+                                          Adornment="Adornment.Start"
+                                          AdornmentIcon="@Icons.Material.Filled.Email" />
+                        </MudItem>
+                    </MudGrid>
+                </MudPaper>
+            </MudItem>
+
+            @* ── Status ───────────────────────────────────── *@
+            <MudItem xs="12">
+                <MudPaper Elevation="0" Class="border rounded-lg pa-6">
+                    <MudText Typo="Typo.subtitle1" Class="fw-bold mb-4">
+                        <MudIcon Icon="@Icons.Material.Filled.ToggleOn" Size="Size.Small" Class="me-1" />
+                        Status
+                    </MudText>
+                    <MudSwitch T="bool" @bind-Value="_website.Active" Color="Color.Primary"
+                               Label="@(_website.Active ? "Active — visible and accessible" : "Inactive — hidden from users")" />
+                </MudPaper>
+            </MudItem>
+
+        </MudGrid>
+
+        @* ── Action buttons ───────────────────────────────────────── *@
+        <MudStack Row="true" Class="mt-4" Spacing="2">
+            <MudButton Variant="Variant.Filled" Color="Color.Primary"
+                       StartIcon="@Icons.Material.Filled.Save"
+                       OnClick="SaveAsync" Disabled="@_saving">
+                @if (_saving)
+                {
+                    <MudProgressCircular Size="Size.Small" Indeterminate="true" Class="me-2" />
+                }
+                @(_isNew ? "Create Website" : "Save Changes")
+            </MudButton>
+            <MudButton Variant="Variant.Outlined" Color="Color.Default"
+                       StartIcon="@Icons.Material.Filled.ArrowBack"
+                       Href="/websites">
+                Cancel
+            </MudButton>
+        </MudStack>
+    </MudForm>
 }
 
 @code {
     [Parameter] public int Id { get; set; }
 
+    private MudForm _form = null!;
     private Website? _website;
-    private string? _message;
+    private bool _loading = true;
+    private bool _saving;
+    private bool _isNew => Id == 0;
+
+    private List<BreadcrumbItem> _breadcrumbs => new()
+    {
+        new("Dashboard", "/"),
+        new("Websites", "/websites"),
+        new(_isNew ? "New" : $"#{Id}", null, true),
+    };
 
     protected override async Task OnInitializedAsync()
     {
-        _website = await WebsiteService.GetByIdAsync(Id);
-        if (_website is null) Nav.NavigateTo("/websites");
+        if (_isNew)
+        {
+            _website = new Website
+            {
+                Active = true,
+                DefaultLanguageCode = "en",
+            };
+        }
+        else
+        {
+            _website = await WebsiteService.GetByIdAsync(Id);
+            if (_website is null) Nav.NavigateTo("/websites");
+        }
+        _loading = false;
     }
 
     private async Task SaveAsync()
     {
-        if (_website is null) return;
-        await WebsiteService.UpdateAsync(_website);
-        _message = "Saved successfully.";
+        await _form.ValidateAsync();
+        if (!_form.IsValid) return;
+
+        _saving = true;
+        try
+        {
+            if (_isNew)
+            {
+                _website!.RegisterDate = DateOnly.FromDateTime(DateTime.UtcNow);
+                _website.AuthCode = Guid.NewGuid();
+                _website.AllowAllIP = true;
+                _website.WebsiteType = 0;
+                await WebsiteService.CreateAsync(_website!);
+                Snackbar.Add("Website created successfully.", Severity.Success);
+            }
+            else
+            {
+                await WebsiteService.UpdateAsync(_website!);
+                Snackbar.Add("Changes saved successfully.", Severity.Success);
+            }
+            Nav.NavigateTo("/websites");
+        }
+        catch (Exception ex)
+        {
+            Snackbar.Add($"Save failed: {ex.Message}", Severity.Error);
+        }
+        finally
+        {
+            _saving = false;
+        }
     }
 }

@@ -5,31 +5,47 @@
 @inject IEmailService EmailService
 @inject ISnackbar Snackbar
 
-<PageTitle>Settings</PageTitle>
+<PageTitle>Settings — Dotnetable</PageTitle>
 
-<MudText Typo="Typo.h5" GutterBottom="true">Settings</MudText>
+@* ── Page header ──────────────────────────────────────────────── *@
+<MudStack Spacing="0" Class="mb-6">
+    <MudText Typo="Typo.h5" Class="fw-bold">Settings</MudText>
+    <MudText Typo="Typo.body2" Color="Color.Secondary">System-wide configuration</MudText>
+</MudStack>
 
-<MudGrid>
-    @* ── Bot protection ───────────────────────────────────────────── *@
+<MudGrid Spacing="4">
+
+    @* ── Bot protection ───────────────────────────────────────── *@
     <MudItem xs="12" md="6">
-        <MudPaper Elevation="2" Class="pa-6">
-            <MudText Typo="Typo.h6" GutterBottom="true">Bot protection</MudText>
+        <MudPaper Elevation="0" Class="border rounded-lg pa-6 h-100">
+            <MudStack Row="true" AlignItems="AlignItems.Center" Spacing="2" Class="mb-1">
+                <MudIcon Icon="@Icons.Material.Filled.Shield" Color="Color.Primary" />
+                <MudText Typo="Typo.subtitle1" Class="fw-bold">Bot Protection</MudText>
+            </MudStack>
             <MudText Typo="Typo.body2" Color="Color.Secondary" Class="mb-4">
-                Protects the login and forgot-password forms. With Cloudflare Turnstile keys set, the
-                Turnstile widget is used; otherwise a simple math captcha is shown automatically.
+                Protects login and forgot-password forms. Cloudflare Turnstile is used when keys are set;
+                otherwise a math captcha is shown automatically.
             </MudText>
 
-            <MudSelect T="CaptchaMode" @bind-Value="_security.CaptchaMode" Label="Captcha mode"
+            <MudSelect T="CaptchaMode" @bind-Value="_security.CaptchaMode" Label="Captcha Mode"
                        Variant="Variant.Outlined" Class="mb-3">
-                <MudSelectItem T="CaptchaMode" Value="CaptchaMode.Auto">Auto (Turnstile if configured, else math)</MudSelectItem>
-                <MudSelectItem T="CaptchaMode" Value="CaptchaMode.Turnstile">Turnstile (falls back to math if unreachable)</MudSelectItem>
-                <MudSelectItem T="CaptchaMode" Value="CaptchaMode.Math">Math captcha only</MudSelectItem>
+                <MudSelectItem T="CaptchaMode" Value="CaptchaMode.Auto">
+                    Auto — Turnstile if configured, else math
+                </MudSelectItem>
+                <MudSelectItem T="CaptchaMode" Value="CaptchaMode.Turnstile">
+                    Turnstile — falls back to math if unreachable
+                </MudSelectItem>
+                <MudSelectItem T="CaptchaMode" Value="CaptchaMode.Math">
+                    Math captcha only
+                </MudSelectItem>
             </MudSelect>
 
-            <MudTextField @bind-Value="_security.TurnstileSiteKey" Label="Turnstile site key"
-                          Variant="Variant.Outlined" Class="mb-3" Clearable="true" />
-            <MudTextField @bind-Value="_security.TurnstileSecretKey" Label="Turnstile secret key"
-                          Variant="Variant.Outlined" Class="mb-4" InputType="InputType.Password" Clearable="true" />
+            <MudTextField @bind-Value="_security.TurnstileSiteKey" Label="Turnstile Site Key"
+                          Variant="Variant.Outlined" Class="mb-3" Clearable="true"
+                          Adornment="Adornment.Start" AdornmentIcon="@Icons.Material.Filled.VpnKey" />
+            <MudTextField @bind-Value="_security.TurnstileSecretKey" Label="Turnstile Secret Key"
+                          Variant="Variant.Outlined" Class="mb-5" InputType="InputType.Password"
+                          Clearable="true" />
 
             <MudButton Variant="Variant.Filled" Color="Color.Primary"
                        StartIcon="@Icons.Material.Filled.Save"
@@ -38,30 +54,43 @@
                 {
                     <MudProgressCircular Size="Size.Small" Indeterminate="true" Class="me-2" />
                 }
-                Save protection
+                Save Protection
             </MudButton>
         </MudPaper>
     </MudItem>
 
-    @* ── Email (SMTP) ─────────────────────────────────────────────── *@
+    @* ── Email / SMTP ─────────────────────────────────────────── *@
     <MudItem xs="12" md="6">
-        <MudPaper Elevation="2" Class="pa-6">
-            <MudText Typo="Typo.h6" GutterBottom="true">Email (SMTP)</MudText>
+        <MudPaper Elevation="0" Class="border rounded-lg pa-6 h-100">
+            <MudStack Row="true" AlignItems="AlignItems.Center" Spacing="2" Class="mb-1">
+                <MudIcon Icon="@Icons.Material.Filled.Email" Color="Color.Primary" />
+                <MudText Typo="Typo.subtitle1" Class="fw-bold">Email (SMTP)</MudText>
+            </MudStack>
             <MudText Typo="Typo.body2" Color="Color.Secondary" Class="mb-4">
                 Used to send forgot-password links. Leave empty to disable outgoing email.
             </MudText>
 
-            <MudTextField @bind-Value="_email.MailServer" Label="SMTP server"
-                          Variant="Variant.Outlined" Class="mb-3" />
-            <MudNumericField @bind-Value="_email.SmtpPort" Label="Port" Min="1" Max="65535"
-                             Variant="Variant.Outlined" Class="mb-3" />
-            <MudCheckBox T="bool" @bind-Value="_email.EnableSSL" Label="Enable SSL/TLS" Class="mb-2" />
-            <MudTextField @bind-Value="_email.EmailAddress" Label="From address / username"
-                          Variant="Variant.Outlined" Class="mb-3" InputType="InputType.Email" />
+            <MudGrid Spacing="2" Class="mb-2">
+                <MudItem xs="12" sm="8">
+                    <MudTextField @bind-Value="_email.MailServer" Label="SMTP Server"
+                                  Variant="Variant.Outlined"
+                                  Adornment="Adornment.Start" AdornmentIcon="@Icons.Material.Filled.Dns" />
+                </MudItem>
+                <MudItem xs="12" sm="4">
+                    <MudNumericField @bind-Value="_email.SmtpPort" Label="Port"
+                                     Min="1" Max="65535" Variant="Variant.Outlined" />
+                </MudItem>
+            </MudGrid>
+
+            <MudCheckBox T="bool" @bind-Value="_email.EnableSSL" Label="Enable SSL / TLS" Color="Color.Primary" Class="mb-2" />
+
+            <MudTextField @bind-Value="_email.EmailAddress" Label="From Address / Username"
+                          Variant="Variant.Outlined" Class="mb-2" InputType="InputType.Email"
+                          Adornment="Adornment.Start" AdornmentIcon="@Icons.Material.Filled.AlternateEmail" />
             <MudTextField @bind-Value="_email.Password" Label="Password"
-                          Variant="Variant.Outlined" Class="mb-3" InputType="InputType.Password" />
-            <MudTextField @bind-Value="_email.MailName" Label="From display name"
-                          Variant="Variant.Outlined" Class="mb-4" />
+                          Variant="Variant.Outlined" Class="mb-2" InputType="InputType.Password" />
+            <MudTextField @bind-Value="_email.MailName" Label="From Display Name"
+                          Variant="Variant.Outlined" Class="mb-5" />
 
             <MudButton Variant="Variant.Filled" Color="Color.Primary"
                        StartIcon="@Icons.Material.Filled.Save"
@@ -70,10 +99,11 @@
                 {
                     <MudProgressCircular Size="Size.Small" Indeterminate="true" Class="me-2" />
                 }
-                Save email
+                Save Email
             </MudButton>
         </MudPaper>
     </MudItem>
+
 </MudGrid>
 
 @code {
@@ -100,10 +130,7 @@
         {
             Snackbar.Add($"Save failed: {ex.Message}", Severity.Error);
         }
-        finally
-        {
-            _savingSecurity = false;
-        }
+        finally { _savingSecurity = false; }
     }
 
     private async Task SaveEmail()
@@ -118,9 +145,6 @@
         {
             Snackbar.Add($"Save failed: {ex.Message}", Severity.Error);
         }
-        finally
-        {
-            _savingEmail = false;
-        }
+        finally { _savingEmail = false; }
     }
 }

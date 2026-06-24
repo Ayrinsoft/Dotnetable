@@ -3,46 +3,95 @@
 @inject IMemberService MemberService
 @inject AuthenticationStateProvider AuthState
 
-<PageTitle>Members</PageTitle>
-<h1>Members</h1>
+<PageTitle>Members — Dotnetable</PageTitle>
 
-@if (_loading)
-{
-    <p>Loading...</p>
-}
-else
-{
-    <table>
-        <thead>
-            <tr><th>ID</th><th>Username</th><th>Email</th><th>Name</th><th>Website</th><th>Active</th></tr>
-        </thead>
-        <tbody>
-            @foreach (var m in _members)
+@* ── Page header ──────────────────────────────────────────────── *@
+<MudStack Row="true" AlignItems="AlignItems.Center" Justify="Justify.SpaceBetween" Class="mb-4">
+    <MudStack Spacing="0">
+        <MudText Typo="Typo.h5" Class="fw-bold">Members</MudText>
+        <MudText Typo="Typo.body2" Color="Color.Secondary">
+            @(_isMaster ? "All members across all websites" : "Members of your website")
+        </MudText>
+    </MudStack>
+</MudStack>
+
+@* ── Data grid ────────────────────────────────────────────────── *@
+<MudPaper Elevation="0" Class="border rounded-lg overflow-hidden">
+    <MudDataGrid T="Member" Items="@_members" QuickFilter="@_quickFilter"
+                 Loading="@_loading" Hover="true" Dense="false" Elevation="0"
+                 SortMode="SortMode.Multiple" Filterable="false">
+        <ToolBarContent>
+            <MudSpacer />
+            <MudTextField @bind-Value="_search" Placeholder="Search…"
+                          Adornment="Adornment.Start" AdornmentIcon="@Icons.Material.Filled.Search"
+                          IconSize="Size.Medium" Class="mt-0 mb-0" Variant="Variant.Outlined"
+                          Margin="Margin.Dense" Immediate="true" />
+        </ToolBarContent>
+        <Columns>
+            <PropertyColumn Property="x => x.MemberID" Title="ID" Sortable="true" InitialDirection="SortDirection.Ascending" />
+            <PropertyColumn Property="x => x.Username" Title="Username" Sortable="true" />
+            <PropertyColumn Property="x => x.Email" Title="Email" Sortable="true" />
+            <TemplateColumn Title="Full Name" Sortable="false">
+                <CellTemplate>
+                    <MudStack Row="true" AlignItems="AlignItems.Center" Spacing="2">
+                        <MudAvatar Color="Color.Primary" Size="Size.Small">
+                            @(context.Item.Givenname?.Trim()[0].ToString().ToUpper() ?? "?")
+                        </MudAvatar>
+                        <MudText>@context.Item.Givenname @context.Item.Surname</MudText>
+                    </MudStack>
+                </CellTemplate>
+            </TemplateColumn>
+            @if (_isMaster)
             {
-                <tr>
-                    <td>@m.MemberID</td>
-                    <td>@m.Username</td>
-                    <td>@m.Email</td>
-                    <td>@m.Givenname @m.Surname</td>
-                    <td>@m.WebsiteID</td>
-                    <td>@(m.Active ? "Yes" : "No")</td>
-                </tr>
+                <PropertyColumn Property="x => x.WebsiteID" Title="Website" Sortable="true" />
             }
-        </tbody>
-    </table>
-}
+            <PropertyColumn Property="x => x.RegisterDate" Title="Registered" Sortable="true" />
+            <TemplateColumn Title="Status" Sortable="false">
+                <CellTemplate>
+                    @if (context.Item.Active)
+                    {
+                        <MudChip T="string" Color="Color.Success" Size="Size.Small" Variant="Variant.Filled">Active</MudChip>
+                    }
+                    else
+                    {
+                        <MudChip T="string" Color="Color.Default" Size="Size.Small" Variant="Variant.Outlined">Inactive</MudChip>
+                    }
+                </CellTemplate>
+            </TemplateColumn>
+        </Columns>
+        <NoRecordsContent>
+            <MudStack AlignItems="AlignItems.Center" Class="pa-8" Spacing="2">
+                <MudIcon Icon="@Icons.Material.Filled.People" Size="Size.Large" Color="Color.Secondary" />
+                <MudText Color="Color.Secondary">No members found.</MudText>
+            </MudStack>
+        </NoRecordsContent>
+        <LoadingContent>
+            <MudStack AlignItems="AlignItems.Center" Class="pa-8">
+                <MudProgressCircular Indeterminate="true" Color="Color.Primary" />
+            </MudStack>
+        </LoadingContent>
+    </MudDataGrid>
+</MudPaper>
 
 @code {
     private bool _loading = true;
+    private bool _isMaster;
+    private string _search = string.Empty;
     private IEnumerable<Member> _members = [];
+
+    private Func<Member, bool> _quickFilter => x =>
+        string.IsNullOrWhiteSpace(_search)
+        || x.Username.Contains(_search, StringComparison.OrdinalIgnoreCase)
+        || x.Email.Contains(_search, StringComparison.OrdinalIgnoreCase)
+        || ($"{x.Givenname} {x.Surname}").Contains(_search, StringComparison.OrdinalIgnoreCase);
 
     protected override async Task OnInitializedAsync()
     {
         var state = await AuthState.GetAuthenticationStateAsync();
         var user = state.User;
+        _isMaster = user.HasClaim(AdminClaimTypes.Master, "true");
 
-        // Master-website members see every member; everyone else only their own website.
-        if (user.HasClaim(AdminClaimTypes.Master, "true"))
+        if (_isMaster)
         {
             _members = await MemberService.GetAllAsync();
         }
@@ -51,7 +100,6 @@ else
             int.TryParse(user.FindFirst(AdminClaimTypes.WebsiteId)?.Value, out var websiteId);
             _members = await MemberService.GetByWebsiteAsync(websiteId);
         }
-
         _loading = false;
     }
 }

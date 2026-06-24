@@ -4,8 +4,9 @@ namespace Dotnetable.Admin.Middleware;
 
 /// <summary>
 /// Until the first-run setup is completed, redirects every request to /Setup so the
-/// administrator can create the master website and account. Once completed the check is
-/// short-circuited and never hits the database again.
+/// administrator can create the master website and account.
+/// Uses only the local settings file (no DB round-trip) so a temporary DB outage does
+/// not incorrectly send users back to the Setup page.
 /// </summary>
 public class SetupRedirectMiddleware
 {
@@ -17,7 +18,7 @@ public class SetupRedirectMiddleware
         _next = next;
     }
 
-    public async Task InvokeAsync(HttpContext context, ISetupService setupService)
+    public async Task InvokeAsync(HttpContext context, IDatabaseConfigStore configStore)
     {
         if (_setupCompleted || IsExempt(context.Request.Path))
         {
@@ -25,7 +26,7 @@ public class SetupRedirectMiddleware
             return;
         }
 
-        if (await setupService.IsSetupCompletedAsync(context.RequestAborted))
+        if (configStore.IsConfigured)
         {
             _setupCompleted = true;
             await _next(context);

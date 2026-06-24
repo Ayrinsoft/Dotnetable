@@ -2,44 +2,101 @@
 @attribute [Authorize(Policy = AdminPolicies.WebsiteAdminOrAbove)]
 @inject ILocalizationService LocalizationService
 @inject AuthenticationStateProvider AuthState
+@inject ISnackbar Snackbar
 
-<PageTitle>Translations</PageTitle>
-<h1>Translations</h1>
+<PageTitle>Translations — Dotnetable</PageTitle>
 
-<div>
-    <label>Language code: </label>
-    <input @bind="_languageCode" maxlength="2" style="width:80px" />
-    <button @onclick="LoadAsync">Load</button>
-</div>
-
-@if (_loading)
-{
-    <p>Loading...</p>
-}
-else if (_translations.Any())
-{
-    <table>
-        <thead><tr><th>Key</th><th>Value</th><th></th></tr></thead>
-        <tbody>
-            @foreach (var kv in _translations)
+@* ── Page header ──────────────────────────────────────────────── *@
+<MudStack Row="true" AlignItems="AlignItems.Center" Justify="Justify.SpaceBetween" Class="mb-4">
+    <MudStack Spacing="0">
+        <MudText Typo="Typo.h5" Class="fw-bold">Translations</MudText>
+        <MudText Typo="Typo.body2" Color="Color.Secondary">Edit UI text for each language</MudText>
+    </MudStack>
+    <MudStack Row="true" AlignItems="AlignItems.Center" Spacing="2">
+        <MudSelect T="string" @bind-Value="_languageCode" Label="Language"
+                   Variant="Variant.Outlined" Margin="Margin.Dense"
+                   Style="width:130px;" AnchorOrigin="Origin.BottomLeft">
+            @foreach (var lang in _languages)
             {
-                <tr>
-                    <td>@kv.Key</td>
-                    <td>
-                        <input value="@kv.Value"
-                               @onchange="async e => await SaveAsync(kv.Key, e.Value?.ToString() ?? string.Empty)" />
-                    </td>
-                </tr>
+                <MudSelectItem T="string" Value="@lang.Code">@lang.Label</MudSelectItem>
             }
-        </tbody>
-    </table>
-}
+        </MudSelect>
+        <MudButton Variant="Variant.Filled" Color="Color.Primary"
+                   StartIcon="@Icons.Material.Filled.Refresh"
+                   OnClick="LoadAsync" Disabled="@_loading">
+            Load
+        </MudButton>
+    </MudStack>
+</MudStack>
+
+@* ── Data grid ────────────────────────────────────────────────── *@
+<MudPaper Elevation="0" Class="border rounded-lg overflow-hidden">
+    @if (_loading)
+    {
+        <MudStack AlignItems="AlignItems.Center" Class="pa-8">
+            <MudProgressCircular Indeterminate="true" Color="Color.Primary" />
+        </MudStack>
+    }
+    else if (_translations.Count == 0)
+    {
+        <MudStack AlignItems="AlignItems.Center" Class="pa-8" Spacing="2">
+            <MudIcon Icon="@Icons.Material.Filled.Translate" Size="Size.Large" Color="Color.Secondary" />
+            <MudText Color="Color.Secondary">No translations found for "<b>@_languageCode</b>".</MudText>
+        </MudStack>
+    }
+    else
+    {
+        <MudDataGrid T="KeyValuePair<string,string>" Items="@_translations" QuickFilter="@_quickFilter"
+                     Hover="true" Dense="true" Elevation="0" Filterable="false">
+            <ToolBarContent>
+                <MudText Typo="Typo.body2" Color="Color.Secondary">@_translations.Count key(s)</MudText>
+                <MudSpacer />
+                <MudTextField @bind-Value="_search" Placeholder="Search keys…"
+                              Adornment="Adornment.Start" AdornmentIcon="@Icons.Material.Filled.Search"
+                              IconSize="Size.Medium" Class="mt-0" Variant="Variant.Outlined"
+                              Margin="Margin.Dense" Immediate="true" />
+            </ToolBarContent>
+            <Columns>
+                <TemplateColumn Title="Key" Sortable="true">
+                    <CellTemplate>
+                        <MudText Typo="Typo.body2" Class="font-monospace">@context.Item.Key</MudText>
+                    </CellTemplate>
+                </TemplateColumn>
+                <TemplateColumn Title="Value" Sortable="false">
+                    <CellTemplate>
+                        <MudTextField T="string" Value="@context.Item.Value"
+                                      ValueChanged="@(v => SaveAsync(context.Item.Key, v))"
+                                      Variant="Variant.Outlined" Margin="Margin.Dense"
+                                      FullWidth="true" />
+                    </CellTemplate>
+                </TemplateColumn>
+            </Columns>
+        </MudDataGrid>
+    }
+</MudPaper>
 
 @code {
     private bool _loading;
     private int _websiteId;
     private string _languageCode = "en";
-    private IReadOnlyDictionary<string, string> _translations = new Dictionary<string, string>();
+    private string _search = string.Empty;
+    private List<KeyValuePair<string, string>> _translations = [];
+
+    private static readonly (string Code, string Label)[] _languages =
+    [
+        ("en", "English"),
+        ("de", "Deutsch"),
+        ("fr", "Français"),
+        ("ru", "Русский"),
+        ("zh", "中文"),
+        ("fa", "فارسی"),
+        ("ar", "العربية"),
+    ];
+
+    private Func<KeyValuePair<string, string>, bool> _quickFilter => x =>
+        string.IsNullOrWhiteSpace(_search)
+        || x.Key.Contains(_search, StringComparison.OrdinalIgnoreCase)
+        || x.Value.Contains(_search, StringComparison.OrdinalIgnoreCase);
 
     protected override async Task OnInitializedAsync()
     {
@@ -51,12 +108,20 @@ else if (_translations.Any())
     private async Task LoadAsync()
     {
         _loading = true;
-        _translations = await LocalizationService.GetAllAsync(_websiteId, _languageCode);
+        var dict = await LocalizationService.GetAllAsync(_websiteId, _languageCode);
+        _translations = dict.ToList();
         _loading = false;
     }
 
     private async Task SaveAsync(string key, string value)
     {
-        await LocalizationService.SetAsync(_websiteId, _languageCode, key, value);
+        try
+        {
+            await LocalizationService.SetAsync(_websiteId, _languageCode, key, value);
+        }
+        catch (Exception ex)
+        {
+            Snackbar.Add($"Save failed: {ex.Message}", Severity.Error);
+        }
     }
 }
