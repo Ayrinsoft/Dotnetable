@@ -1,5 +1,7 @@
 using Dotnetable.Admin.Auth;
+using Dotnetable.Admin.Localization;
 using Dotnetable.Admin.Middleware;
+using Dotnetable.Application;
 using Dotnetable.Application.Interfaces;
 using Dotnetable.Infrastructure.Extensions;
 using Microsoft.AspNetCore.Authentication.Cookies;
@@ -7,7 +9,11 @@ using MudBlazor.Services;
 
 var builder = WebApplication.CreateBuilder(args);
 
+// Brand name shown in titles/chrome — single source of truth, overridable via configuration.
+AppBranding.Name = builder.Configuration["Branding:AppName"] ?? AppBranding.Name;
+
 builder.Services.AddInfrastructure(builder.Configuration, builder.Environment.ContentRootPath);
+builder.Services.AddScoped<IPageLocalizer, PageLocalizer>();
 
 builder.Services
     .AddAuthentication(CookieAuthenticationDefaults.AuthenticationScheme)

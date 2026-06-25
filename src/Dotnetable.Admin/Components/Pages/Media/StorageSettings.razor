@@ -5,18 +5,19 @@
 @inject IDialogService DialogService
 @inject ISnackbar Snackbar
 @inject AuthenticationStateProvider AuthState
+@inject IPageLocalizer L
 
-<PageTitle>Storage — Dotnetable</PageTitle>
+<DNPageTitle Title=@L["storage", "Storage"] />
 
 <MudStack Row="true" AlignItems="AlignItems.Center" Justify="Justify.SpaceBetween" Class="mb-4">
     <MudStack Spacing="0">
-        <MudText Typo="Typo.h5" Class="fw-bold">Storage Backends</MudText>
-        <MudText Typo="Typo.body2" Color="Color.Secondary">CDN storages used by the media library</MudText>
+        <MudText Typo="Typo.h5" Class="fw-bold">@L["storage.heading", "Storage Backends"]</MudText>
+        <MudText Typo="Typo.body2" Color="Color.Secondary">@L["storage.subtitle", "CDN storages used by the media library"]</MudText>
     </MudStack>
     <MudStack Row="true" Spacing="2" AlignItems="AlignItems.Center">
         @if (_isMaster)
         {
-            <MudSelect T="int" Value="_websiteId" ValueChanged="OnWebsiteChanged" Label="Website"
+            <MudSelect T="int" Value="_websiteId" ValueChanged="OnWebsiteChanged" Label="@L["website", "Website"]"
                        Variant="Variant.Outlined" Dense="true" Style="min-width:200px;">
                 @foreach (var w in _websites)
                 {
@@ -26,7 +27,7 @@
         }
         <MudButton Variant="Variant.Filled" Color="Color.Primary"
                    StartIcon="@Icons.Material.Filled.Add" OnClick="@(() => OpenEditAsync(null))">
-            Add Storage
+            @L["storage.add", "Add Storage"]
         </MudButton>
     </MudStack>
 </MudStack>
@@ -39,7 +40,7 @@ else if (_items.Count == 0)
 {
     <MudPaper Elevation="0" Class="app-card rounded-lg pa-8" Style="text-align:center;">
         <MudIcon Icon="@Icons.Material.Filled.CloudOff" Size="Size.Large" Color="Color.Secondary" />
-        <MudText Color="Color.Secondary" Class="mt-2">No storage configured for this website yet.</MudText>
+        <MudText Color="Color.Secondary" Class="mt-2">@L["storage.empty", "No storage configured for this website yet."]</MudText>
     </MudPaper>
 }
 else
@@ -59,7 +60,7 @@ else
                         </MudStack>
                         <MudChip T="string" Size="Size.Small" Variant="Variant.Outlined"
                                  Color="@(s.Active ? Color.Success : Color.Default)">
-                            @(s.Active ? "Active" : "Inactive")
+                            @(s.Active ? L["active", "Active"] : L["inactive", "Inactive"])
                         </MudChip>
                     </MudStack>
 
@@ -68,25 +69,25 @@ else
                     @if (quota is not null)
                     {
                         <MudText Typo="Typo.caption" Color="Color.Secondary">
-                            @MediaFormat.Size(quota.UsedKB) used@(quota.TotalKB is long t ? $" of {MediaFormat.Size(t)}" : "")
+                            @($"{MediaFormat.Size(quota.UsedKB)} {L["storage.used", "used"]}")@(quota.TotalKB is long t ? $" {L["storage.of", "of"]} {MediaFormat.Size(t)}" : "")
                         </MudText>
                         <MudProgressLinear Color="@(pct >= 90 ? Color.Error : Color.Info)" Class="my-1"
                                            Value="@(pct ?? 0)" />
                     }
                     else
                     {
-                        <MudText Typo="Typo.caption" Color="Color.Secondary">Quota unavailable.</MudText>
+                        <MudText Typo="Typo.caption" Color="Color.Secondary">@L["storage.quota_unavailable", "Quota unavailable."]</MudText>
                     }
 
                     <MudText Typo="Typo.caption" Color="Color.Secondary" Class="d-block mt-2">
-                        Max @MediaFormat.Size(s.MaxFileSizeKB) · @(string.IsNullOrWhiteSpace(s.AllowedExtensions) ? "all types" : s.AllowedExtensions)
+                        @($"{L["storage.max", "Max"]} {MediaFormat.Size(s.MaxFileSizeKB)} · ")@(string.IsNullOrWhiteSpace(s.AllowedExtensions) ? L["storage.all_types", "all types"] : s.AllowedExtensions)
                     </MudText>
 
                     <MudStack Row="true" Spacing="1" Class="mt-3">
                         <MudButton Size="Size.Small" StartIcon="@Icons.Material.Filled.Edit"
-                                   OnClick="@(() => OpenEditAsync(s))">Edit</MudButton>
+                                   OnClick="@(() => OpenEditAsync(s))">@L["edit", "Edit"]</MudButton>
                         <MudButton Size="Size.Small" StartIcon="@Icons.Material.Filled.NetworkCheck"
-                                   OnClick="@(() => TestAsync(s.WebsiteStorageSettingsID))">Test</MudButton>
+                                   OnClick="@(() => TestAsync(s.WebsiteStorageSettingsID))">@L["storage.test", "Test"]</MudButton>
                         <MudSpacer />
                         <MudIconButton Icon="@Icons.Material.Filled.Delete" Size="Size.Small" Color="Color.Error"
                                        OnClick="@(() => DeleteAsync(s.WebsiteStorageSettingsID))" />
@@ -107,6 +108,8 @@ else
 
     protected override async Task OnInitializedAsync()
     {
+        await L.EnsureLoadedAsync();
+
         var user = (await AuthState.GetAuthenticationStateAsync()).User;
         _isMaster = user.HasClaim(AdminClaimTypes.Master, "true");
         int.TryParse(user.FindFirst(AdminClaimTypes.WebsiteId)?.Value, out _websiteId);
@@ -150,7 +153,7 @@ else
             [nameof(StorageEditDialog.Setting)] = setting,
         };
         var dialog = await DialogService.ShowAsync<StorageEditDialog>(
-            setting is null ? "Add Storage" : "Edit Storage", parameters,
+            setting is null ? L["storage.add", "Add Storage"] : L["storage.edit_title", "Edit Storage"], parameters,
             new DialogOptions { MaxWidth = MaxWidth.Medium, FullWidth = true });
         if ((await dialog.Result) is { Canceled: false }) await LoadAsync();
     }
@@ -158,18 +161,18 @@ else
     private async Task TestAsync(int id)
     {
         var ok = await StorageService.TestAsync(id);
-        Snackbar.Add(ok ? "Connection succeeded." : "Connection failed.", ok ? Severity.Success : Severity.Error);
+        Snackbar.Add(ok ? L["storage.test_ok", "Connection succeeded."] : L["storage.test_fail", "Connection failed."], ok ? Severity.Success : Severity.Error);
     }
 
     private async Task DeleteAsync(int id)
     {
-        var ok = await DialogService.ShowMessageBoxAsync("Delete storage?",
-            "Files already uploaded stay on the CDN, but this storage will no longer be selectable.",
-            yesText: "Delete", cancelText: "Cancel");
+        var ok = await DialogService.ShowMessageBoxAsync(L["storage.delete_q", "Delete storage?"],
+            L["storage.delete_body", "Files already uploaded stay on the CDN, but this storage will no longer be selectable."],
+            yesText: L["delete", "Delete"], cancelText: L["cancel", "Cancel"]);
         if (ok == true)
         {
             await StorageService.DeleteAsync(id);
-            Snackbar.Add("Storage deleted.", Severity.Success);
+            Snackbar.Add(L["storage.deleted", "Storage deleted."], Severity.Success);
             await LoadAsync();
         }
     }

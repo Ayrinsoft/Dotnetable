@@ -4,13 +4,14 @@
 @inject AuthenticationStateProvider AuthState
 @inject ISnackbar Snackbar
 @inject NavigationManager Nav
+@inject IPageLocalizer L
 
-<PageTitle>Contact Messages — Dotnetable</PageTitle>
+<DNPageTitle Title=@L["contact_messages", "Contact Messages"] />
 
 <MudStack Row="true" AlignItems="AlignItems.Center" Justify="Justify.SpaceBetween" Class="mb-4">
     <MudStack Spacing="0">
-        <MudText Typo="Typo.h5" Class="fw-bold">Contact Messages</MudText>
-        <MudText Typo="Typo.body2" Color="Color.Secondary">Messages received through your contact form</MudText>
+        <MudText Typo="Typo.h5" Class="fw-bold">@L["contact_messages", "Contact Messages"]</MudText>
+        <MudText Typo="Typo.body2" Color="Color.Secondary">@L["contact.subtitle", "Messages received through your contact form"]</MudText>
     </MudStack>
 </MudStack>
 
@@ -24,7 +25,7 @@
         {
             <tr>
                 <td colspan="7" style="text-align:center; padding:32px;">
-                    <MudText Color="Color.Secondary">No messages found.</MudText>
+                    <MudText Color="Color.Secondary">@L["contact.empty", "No messages found."]</MudText>
                 </td>
             </tr>
         }
@@ -56,7 +57,7 @@
                         <MudSwitch T="bool" Value="m.Archive" Color="Color.Default"
                                    Disabled="_toggling.Contains(m.ContactUsMessagesID)"
                                    ValueChanged="@(v => ToggleArchiveAsync(m, v))"
-                                   Label="@(m.Archive ? "Archived" : "New")" />
+                                   Label="@(m.Archive ? L["archived", "Archived"] : L["new", "New"])" />
                     </td>
                 </tr>
             }
@@ -74,6 +75,8 @@
 
     protected override async Task OnInitializedAsync()
     {
+        await L.EnsureLoadedAsync();
+
         var state = await AuthState.GetAuthenticationStateAsync();
         var user = state.User;
         _isMaster = user.HasClaim(AdminClaimTypes.Master, "true");
@@ -86,13 +89,13 @@
             {
                 new() { ColumnTitle = "", ColumnName = "" },
                 new() { ColumnTitle = "", ColumnName = "" },
-                new() { ColumnTitle = "Sender", ColumnName = nameof(ContactUsMessage.SenderName), HasSearch = true },
-                new() { ColumnTitle = "Email", ColumnName = nameof(ContactUsMessage.EmailAddress), HasSearch = true },
-                new() { ColumnTitle = "Subject", ColumnName = nameof(ContactUsMessage.MessageSubject), HasSearch = true },
-                new() { ColumnTitle = "Date", ColumnName = nameof(ContactUsMessage.LogTime), HasSort = true },
-                new() { ColumnTitle = "Status", ColumnName = nameof(ContactUsMessage.Archive), HasSearch = true,
+                new() { ColumnTitle = L["sender", "Sender"], ColumnName = nameof(ContactUsMessage.SenderName), HasSearch = true },
+                new() { ColumnTitle = L["email", "Email"], ColumnName = nameof(ContactUsMessage.EmailAddress), HasSearch = true },
+                new() { ColumnTitle = L["subject", "Subject"], ColumnName = nameof(ContactUsMessage.MessageSubject), HasSearch = true },
+                new() { ColumnTitle = L["date", "Date"], ColumnName = nameof(ContactUsMessage.LogTime), HasSort = true },
+                new() { ColumnTitle = L["status", "Status"], ColumnName = nameof(ContactUsMessage.Archive), HasSearch = true,
                     SearchType = SearchColumnType.DropDown,
-                    OtherDropDownValues = new() { ["New"] = "false", ["Archived"] = "true" } },
+                    OtherDropDownValues = new() { [L["new", "New"]] = "false", [L["archived", "Archived"]] = "true" } },
             }
         };
 
@@ -112,7 +115,7 @@
     private async Task DeleteAsync(ContactUsMessage m)
     {
         await MessageService.DeleteAsync(m.ContactUsMessagesID);
-        Snackbar.Add("Message deleted.", Severity.Success);
+        Snackbar.Add(L["contact.deleted", "Message deleted."], Severity.Success);
         await LoadAsync();
     }
 

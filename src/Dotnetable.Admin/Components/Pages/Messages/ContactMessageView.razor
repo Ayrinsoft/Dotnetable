@@ -3,8 +3,9 @@
 @inject IContactMessageService MessageService
 @inject NavigationManager Nav
 @inject ISnackbar Snackbar
+@inject IPageLocalizer L
 
-<PageTitle>Contact Message — Dotnetable</PageTitle>
+<DNPageTitle Title=@L["contact_message", "Contact Message"] />
 
 <MudBreadcrumbs Items="_breadcrumbs" Class="px-0 pb-2" />
 
@@ -18,18 +19,18 @@ else if (_item is not null)
         <MudStack Spacing="0">
             <MudText Typo="Typo.h5" Class="fw-bold">@_item.MessageSubject</MudText>
             <MudText Typo="Typo.body2" Color="Color.Secondary">
-                From @_item.SenderName — @_item.LogTime.ToString("yyyy-MM-dd HH:mm")
+                @($"{L["contact.from", "From"]} {_item.SenderName} — {_item.LogTime:yyyy-MM-dd HH:mm}")
             </MudText>
         </MudStack>
         <MudStack Row="true" Spacing="2">
             <MudButton Variant="Variant.Outlined" Color="@(_item.Archive ? Color.Default : Color.Primary)"
                        StartIcon="@(_item.Archive ? Icons.Material.Filled.Unarchive : Icons.Material.Filled.Archive)"
                        OnClick="ToggleArchiveAsync" Disabled="@_saving">
-                @(_item.Archive ? "Unarchive" : "Archive")
+                @(_item.Archive ? L["unarchive", "Unarchive"] : L["archive", "Archive"])
             </MudButton>
             <MudButton Variant="Variant.Outlined" Color="Color.Default"
                        StartIcon="@Icons.Material.Filled.ArrowBack" Href="/messages/contacts">
-                Back
+                @L["back", "Back"]
             </MudButton>
         </MudStack>
     </MudStack>
@@ -37,26 +38,26 @@ else if (_item is not null)
     <MudGrid Spacing="4">
         <MudItem xs="12" md="4">
             <MudPaper Elevation="0" Class="border rounded-lg pa-6">
-                <MudText Typo="Typo.subtitle1" Class="fw-bold mb-3">Sender Details</MudText>
+                <MudText Typo="Typo.subtitle1" Class="fw-bold mb-3">@L["contact.sender_details", "Sender Details"]</MudText>
                 <MudStack Spacing="2">
                     <div>
-                        <MudText Typo="Typo.caption" Color="Color.Secondary">Name</MudText>
+                        <MudText Typo="Typo.caption" Color="Color.Secondary">@L["name", "Name"]</MudText>
                         <MudText>@_item.SenderName</MudText>
                     </div>
                     <div>
-                        <MudText Typo="Typo.caption" Color="Color.Secondary">Email</MudText>
+                        <MudText Typo="Typo.caption" Color="Color.Secondary">@L["email", "Email"]</MudText>
                         <MudLink Href="@($"mailto:{_item.EmailAddress}")">@_item.EmailAddress</MudLink>
                     </div>
                     <div>
-                        <MudText Typo="Typo.caption" Color="Color.Secondary">Phone</MudText>
+                        <MudText Typo="Typo.caption" Color="Color.Secondary">@L["phone", "Phone"]</MudText>
                         <MudText>@(string.IsNullOrWhiteSpace(_item.CellphoneNumber) ? "—" : _item.CellphoneNumber)</MudText>
                     </div>
                     <div>
-                        <MudText Typo="Typo.caption" Color="Color.Secondary">IP Address</MudText>
+                        <MudText Typo="Typo.caption" Color="Color.Secondary">@L["ip_address", "IP Address"]</MudText>
                         <MudText Typo="Typo.body2">@_item.SenderIPAddress</MudText>
                     </div>
                     <div>
-                        <MudText Typo="Typo.caption" Color="Color.Secondary">Received</MudText>
+                        <MudText Typo="Typo.caption" Color="Color.Secondary">@L["received", "Received"]</MudText>
                         <MudText Typo="Typo.body2">@_item.LogTime.ToString("yyyy-MM-dd HH:mm:ss")</MudText>
                     </div>
                 </MudStack>
@@ -65,7 +66,7 @@ else if (_item is not null)
 
         <MudItem xs="12" md="8">
             <MudPaper Elevation="0" Class="border rounded-lg pa-6" Style="min-height:200px;">
-                <MudText Typo="Typo.subtitle1" Class="fw-bold mb-3">Message</MudText>
+                <MudText Typo="Typo.subtitle1" Class="fw-bold mb-3">@L["message", "Message"]</MudText>
                 <MudText Style="white-space: pre-wrap;">@_item.MessageBody</MudText>
             </MudPaper>
         </MudItem>
@@ -81,13 +82,15 @@ else if (_item is not null)
 
     private List<BreadcrumbItem> _breadcrumbs => new()
     {
-        new("Dashboard", "/"),
-        new("Contact Messages", "/messages/contacts"),
+        new(L["dashboard", "Dashboard"], "/"),
+        new(L["contact_messages", "Contact Messages"], "/messages/contacts"),
         new($"#{Id}", null, true),
     };
 
     protected override async Task OnInitializedAsync()
     {
+        await L.EnsureLoadedAsync();
+
         _item = await MessageService.GetByIdAsync(Id);
         if (_item is null) Nav.NavigateTo("/messages/contacts");
         else if (!_item.Archive)
@@ -105,11 +108,11 @@ else if (_item is not null)
             var newValue = !_item!.Archive;
             await MessageService.SetArchiveAsync(Id, newValue);
             _item.Archive = newValue;
-            Snackbar.Add(newValue ? "Message archived." : "Message unarchived.", Severity.Success);
+            Snackbar.Add(newValue ? L["contact.archived", "Message archived."] : L["contact.unarchived", "Message unarchived."], Severity.Success);
         }
         catch (Exception ex)
         {
-            Snackbar.Add($"Failed: {ex.Message}", Severity.Error);
+            Snackbar.Add($"{L["failed", "Failed"]}: {ex.Message}", Severity.Error);
         }
         finally { _saving = false; }
     }

@@ -6,8 +6,9 @@
 @inject IDialogService DialogService
 @inject NavigationManager Nav
 @inject ISnackbar Snackbar
+@inject IPageLocalizer L
 
-<PageTitle>@(_isNew ? "New Website" : "Edit Website") — Dotnetable</PageTitle>
+<DNPageTitle Title=@(_isNew ? L["website.new", "New Website"] : L["website.edit", "Edit Website"]) />
 
 @* ── Breadcrumbs ───────────────────────────────────────────────── *@
 <MudBreadcrumbs Items="_breadcrumbs" Class="px-0 pb-2" />
@@ -15,9 +16,9 @@
 @* ── Page header ──────────────────────────────────────────────── *@
 <MudStack Row="true" AlignItems="AlignItems.Center" Justify="Justify.SpaceBetween" Class="mb-4">
     <MudStack Spacing="0">
-        <MudText Typo="Typo.h5" Class="fw-bold">@(_isNew ? "New Website" : "Edit Website")</MudText>
+        <MudText Typo="Typo.h5" Class="fw-bold">@(_isNew ? L["website.new", "New Website"] : L["website.edit", "Edit Website"])</MudText>
         <MudText Typo="Typo.body2" Color="Color.Secondary">
-            @(_isNew ? "Register a new website in the system" : $"Editing website #{Id}")
+            @(_isNew ? L["website.new_subtitle", "Register a new website in the system"] : $"{L["website.editing", "Editing website"]} #{Id}")
         </MudText>
     </MudStack>
 </MudStack>
@@ -36,35 +37,35 @@ else if (_website is not null)
                 <MudPaper Elevation="0" Class="border rounded-lg pa-6">
                     <MudText Typo="Typo.subtitle1" Class="fw-bold mb-4">
                         <MudIcon Icon="@Icons.Material.Filled.Info" Size="Size.Small" Class="me-1" />
-                        Basic Information
+                        @L["website.section.basic", "Basic Information"]
                     </MudText>
                     <MudGrid Spacing="3">
                         <MudItem xs="12" sm="6">
-                            <MudTextField @bind-Value="_website.TradeName" Label="Trade Name"
+                            <MudTextField @bind-Value="_website.TradeName" Label="@L["trade_name", "Trade Name"]"
                                           Variant="Variant.Outlined" Required="true"
-                                          RequiredError="Trade name is required." />
+                                          RequiredError="@L["required", "This field is required."]" />
                         </MudItem>
                         <MudItem xs="12" sm="6">
-                            <MudTextField @bind-Value="_website.BrandName" Label="Brand Name"
+                            <MudTextField @bind-Value="_website.BrandName" Label="@L["brand_name", "Brand Name"]"
                                           Variant="Variant.Outlined" Required="true"
-                                          RequiredError="Brand name is required." />
+                                          RequiredError="@L["required", "This field is required."]" />
                         </MudItem>
                         <MudItem xs="12" sm="6">
-                            <MudTextField @bind-Value="_website.WebsiteAddress" Label="Website Address"
+                            <MudTextField @bind-Value="_website.WebsiteAddress" Label="@L["website_address", "Website Address"]"
                                           Variant="Variant.Outlined" Required="true"
-                                          RequiredError="Website address is required."
+                                          RequiredError="@L["required", "This field is required."]"
                                           Placeholder="example.com" />
                         </MudItem>
                         <MudItem xs="12" sm="6">
-                            <MudTextField @bind-Value="_website.DefaultLanguageCode" Label="Default Language Code"
+                            <MudTextField @bind-Value="_website.DefaultLanguageCode" Label="@L["default_language_code", "Default Language Code"]"
                                           Variant="Variant.Outlined" MaxLength="2" Placeholder="en" />
                         </MudItem>
                         <MudItem xs="12" sm="6">
-                            <MudSelect T="byte" @bind-Value="_website.WebsiteType" Label="Website Type"
+                            <MudSelect T="byte" @bind-Value="_website.WebsiteType" Label="@L["website_type", "Website Type"]"
                                        Variant="Variant.Outlined"
-                                       HelperText="Stores get the e-commerce dashboard.">
-                                <MudSelectItem T="byte" Value="@((byte)0)">Website</MudSelectItem>
-                                <MudSelectItem T="byte" Value="@((byte)1)">Store</MudSelectItem>
+                                       HelperText="@L["website.type_hint", "Stores get the e-commerce dashboard."]">
+                                <MudSelectItem T="byte" Value="@((byte)0)">@L["website", "Website"]</MudSelectItem>
+                                <MudSelectItem T="byte" Value="@((byte)1)">@L["store", "Store"]</MudSelectItem>
                             </MudSelect>
                         </MudItem>
                     </MudGrid>
@@ -76,22 +77,22 @@ else if (_website is not null)
                 <MudPaper Elevation="0" Class="border rounded-lg pa-6">
                     <MudText Typo="Typo.subtitle1" Class="fw-bold mb-4">
                         <MudIcon Icon="@Icons.Material.Filled.ContactPhone" Size="Size.Small" Class="me-1" />
-                        Contact Information
+                        @L["website.section.contact", "Contact Information"]
                     </MudText>
                     <MudGrid Spacing="3">
                         <MudItem xs="12" sm="4">
-                            <MudTextField @bind-Value="_website.Manager" Label="Manager"
+                            <MudTextField @bind-Value="_website.Manager" Label="@L["manager", "Manager"]"
                                           Variant="Variant.Outlined" Required="true"
-                                          RequiredError="Manager name is required." />
+                                          RequiredError="@L["required", "This field is required."]" />
                         </MudItem>
                         <MudItem xs="12" sm="4">
-                            <MudTextField @bind-Value="_website.Mobile" Label="Mobile"
+                            <MudTextField @bind-Value="_website.Mobile" Label="@L["mobile", "Mobile"]"
                                           Variant="Variant.Outlined"
                                           Adornment="Adornment.Start"
                                           AdornmentIcon="@Icons.Material.Filled.Phone" />
                         </MudItem>
                         <MudItem xs="12" sm="4">
-                            <MudTextField @bind-Value="_website.Email" Label="Email"
+                            <MudTextField @bind-Value="_website.Email" Label="@L["email", "Email"]"
                                           Variant="Variant.Outlined" InputType="InputType.Email"
                                           Adornment="Adornment.Start"
                                           AdornmentIcon="@Icons.Material.Filled.Email" />
@@ -105,19 +106,19 @@ else if (_website is not null)
                 <MudPaper Elevation="0" Class="border rounded-lg pa-6">
                     <MudText Typo="Typo.subtitle1" Class="fw-bold mb-4">
                         <MudIcon Icon="@Icons.Material.Filled.Image" Size="Size.Small" Class="me-1" />
-                        Branding
+                        @L["website.section.branding", "Branding"]
                     </MudText>
                     @if (_isNew)
                     {
                         <MudAlert Severity="Severity.Info" Dense="true">
-                            Save the website first, then pick a logo and favicon from its media library.
+                            @L["website.branding_hint", "Save the website first, then pick a logo and favicon from its media library."]
                         </MudAlert>
                     }
                     else
                     {
                         <MudGrid Spacing="3">
                             <MudItem xs="12" sm="6">
-                                <MudText Typo="Typo.body2" Class="mb-1">Logo</MudText>
+                                <MudText Typo="Typo.body2" Class="mb-1">@L["logo", "Logo"]</MudText>
                                 <MudStack Row="true" Spacing="2" AlignItems="AlignItems.Center">
                                     <div class="border rounded" style="width:64px; height:64px; display:flex; align-items:center; justify-content:center; overflow:hidden; background:var(--mud-palette-background-grey);">
                                         @if (_logoFile is { CNDUrl: not null })
@@ -129,7 +130,7 @@ else if (_website is not null)
                                             <MudIcon Icon="@Icons.Material.Filled.Image" Color="Color.Secondary" />
                                         }
                                     </div>
-                                    <MudButton Variant="Variant.Outlined" Size="Size.Small" OnClick="PickLogoAsync">Choose</MudButton>
+                                    <MudButton Variant="Variant.Outlined" Size="Size.Small" OnClick="PickLogoAsync">@L["choose", "Choose"]</MudButton>
                                     @if (_website!.LogoFileID is not null)
                                     {
                                         <MudIconButton Icon="@Icons.Material.Filled.Clear" Size="Size.Small" OnClick="ClearLogo" />
@@ -137,7 +138,7 @@ else if (_website is not null)
                                 </MudStack>
                             </MudItem>
                             <MudItem xs="12" sm="6">
-                                <MudText Typo="Typo.body2" Class="mb-1">Favicon</MudText>
+                                <MudText Typo="Typo.body2" Class="mb-1">@L["favicon", "Favicon"]</MudText>
                                 <MudStack Row="true" Spacing="2" AlignItems="AlignItems.Center">
                                     <div class="border rounded" style="width:64px; height:64px; display:flex; align-items:center; justify-content:center; overflow:hidden; background:var(--mud-palette-background-grey);">
                                         @if (_faveFile is { CNDUrl: not null })
@@ -149,7 +150,7 @@ else if (_website is not null)
                                             <MudIcon Icon="@Icons.Material.Filled.Image" Color="Color.Secondary" />
                                         }
                                     </div>
-                                    <MudButton Variant="Variant.Outlined" Size="Size.Small" OnClick="PickFaveAsync">Choose</MudButton>
+                                    <MudButton Variant="Variant.Outlined" Size="Size.Small" OnClick="PickFaveAsync">@L["choose", "Choose"]</MudButton>
                                     @if (_website!.FaveIconFileID is not null)
                                     {
                                         <MudIconButton Icon="@Icons.Material.Filled.Clear" Size="Size.Small" OnClick="ClearFave" />
@@ -166,10 +167,10 @@ else if (_website is not null)
                 <MudPaper Elevation="0" Class="border rounded-lg pa-6">
                     <MudText Typo="Typo.subtitle1" Class="fw-bold mb-4">
                         <MudIcon Icon="@Icons.Material.Filled.ToggleOn" Size="Size.Small" Class="me-1" />
-                        Status
+                        @L["status", "Status"]
                     </MudText>
                     <MudSwitch T="bool" @bind-Value="_website.Active" Color="Color.Primary"
-                               Label="@(_website.Active ? "Active — visible and accessible" : "Inactive — hidden from users")" />
+                               Label="@(_website.Active ? L["website.active_on", "Active — visible and accessible"] : L["website.active_off", "Inactive — hidden from users"])" />
                 </MudPaper>
             </MudItem>
 
@@ -184,12 +185,12 @@ else if (_website is not null)
                 {
                     <MudProgressCircular Size="Size.Small" Indeterminate="true" Class="me-2" />
                 }
-                @(_isNew ? "Create Website" : "Save Changes")
+                @(_isNew ? L["website.create", "Create Website"] : L["save", "Save Changes"])
             </MudButton>
             <MudButton Variant="Variant.Outlined" Color="Color.Default"
                        StartIcon="@Icons.Material.Filled.ArrowBack"
                        Href="/websites">
-                Cancel
+                @L["cancel", "Cancel"]
             </MudButton>
         </MudStack>
     </MudForm>
@@ -208,13 +209,15 @@ else if (_website is not null)
 
     private List<BreadcrumbItem> _breadcrumbs => new()
     {
-        new("Dashboard", "/"),
-        new("Websites", "/websites"),
-        new(_isNew ? "New" : $"#{Id}", null, true),
+        new(L["dashboard", "Dashboard"], "/"),
+        new(L["websites", "Websites"], "/websites"),
+        new(_isNew ? L["new", "New"] : $"#{Id}", null, true),
     };
 
     protected override async Task OnInitializedAsync()
     {
+        await L.EnsureLoadedAsync();
+
         if (_isNew)
         {
             _website = new Website
@@ -258,7 +261,7 @@ else if (_website is not null)
             [nameof(FilePickerDialog.WebsiteId)] = Id,
             [nameof(FilePickerDialog.Category)] = FileCategory.Image,
         };
-        var dialog = await DialogService.ShowAsync<FilePickerDialog>("Select a file", parameters,
+        var dialog = await DialogService.ShowAsync<FilePickerDialog>(L["select_file", "Select a file"], parameters,
             new DialogOptions { MaxWidth = MaxWidth.Medium, FullWidth = true });
         var result = await dialog.Result;
         return result is { Canceled: false, Data: FileRecord file } ? file : null;
@@ -278,18 +281,18 @@ else if (_website is not null)
                 _website.AuthCode = Guid.NewGuid();
                 _website.AllowAllIP = true;
                 await WebsiteService.CreateAsync(_website!);
-                Snackbar.Add("Website created successfully.", Severity.Success);
+                Snackbar.Add(L["website.created", "Website created successfully."], Severity.Success);
             }
             else
             {
                 await WebsiteService.UpdateAsync(_website!);
-                Snackbar.Add("Changes saved successfully.", Severity.Success);
+                Snackbar.Add(L["saved", "Changes saved successfully."], Severity.Success);
             }
             Nav.NavigateTo("/websites");
         }
         catch (Exception ex)
         {
-            Snackbar.Add($"Save failed: {ex.Message}", Severity.Error);
+            Snackbar.Add($"{L["save_failed", "Save failed"]}: {ex.Message}", Severity.Error);
         }
         finally
         {

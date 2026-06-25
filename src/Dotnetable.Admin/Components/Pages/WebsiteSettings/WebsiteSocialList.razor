@@ -4,18 +4,19 @@
 @inject IWebsiteService WebsiteService
 @inject AuthenticationStateProvider AuthState
 @inject ISnackbar Snackbar
+@inject IPageLocalizer L
 
-<PageTitle>Social Links — Dotnetable</PageTitle>
+<DNPageTitle Title=@L["social_links", "Social Links"] />
 
 <MudStack Row="true" AlignItems="AlignItems.Center" Justify="Justify.SpaceBetween" Class="mb-4">
     <MudStack Spacing="0">
-        <MudText Typo="Typo.h5" Class="fw-bold">Social Network Links</MudText>
-        <MudText Typo="Typo.body2" Color="Color.Secondary">Manage social media profile links for this website</MudText>
+        <MudText Typo="Typo.h5" Class="fw-bold">@L["social.heading", "Social Network Links"]</MudText>
+        <MudText Typo="Typo.body2" Color="Color.Secondary">@L["social.subtitle", "Manage social media profile links for this website"]</MudText>
     </MudStack>
     <MudStack Row="true" Spacing="2" AlignItems="AlignItems.Center">
         @if (_isMaster)
         {
-            <MudSelect T="int" @bind-Value="_websiteId" Label="Website" Variant="Variant.Outlined"
+            <MudSelect T="int" @bind-Value="_websiteId" Label="@L["website", "Website"]" Variant="Variant.Outlined"
                        Dense="true" Style="min-width:180px"
                        SelectedValuesChanged="OnWebsiteChanged">
                 @foreach (var w in _websites)
@@ -27,7 +28,7 @@
         <MudButton Variant="Variant.Filled" Color="Color.Primary"
                    StartIcon="@Icons.Material.Filled.Add"
                    OnClick="OpenAddDialog">
-            Add Social Link
+            @L["social.add", "Add Social Link"]
         </MudButton>
     </MudStack>
 </MudStack>
@@ -42,7 +43,7 @@
         {
             <tr>
                 <td colspan="5" style="text-align:center; padding:32px;">
-                    <MudText Color="Color.Secondary">No social links defined.</MudText>
+                    <MudText Color="Color.Secondary">@L["social.empty", "No social links defined."]</MudText>
                 </td>
             </tr>
         }
@@ -74,7 +75,7 @@
 @* ── Dialog ────────────────────────────────────────────────────────── *@
 <MudDialog @bind-Visible="_dialogOpen" Options="@(new DialogOptions { MaxWidth = MaxWidth.Small, FullWidth = true })">
     <TitleContent>
-        <MudText Typo="Typo.h6">@(_editItem?.WebsiteSocialLinkID == 0 ? "Add Social Link" : "Edit Social Link")</MudText>
+        <MudText Typo="Typo.h6">@(_editItem?.WebsiteSocialLinkID == 0 ? L["social.dialog_add", "Add Social Link"] : L["social.dialog_edit", "Edit Social Link"])</MudText>
     </TitleContent>
     <DialogContent>
         @if (_editItem is not null)
@@ -82,30 +83,30 @@
             <MudForm @ref="_form">
                 <MudGrid Spacing="2">
                     <MudItem xs="12" sm="6">
-                        <MudSelect T="byte" @bind-Value="_editItem.SocialType" Label="Type"
+                        <MudSelect T="byte" @bind-Value="_editItem.SocialType" Label="@L["type", "Type"]"
                                    Variant="Variant.Outlined" Required="true">
-                            <MudSelectItem T="byte" Value="@((byte)0)">Other</MudSelectItem>
-                            <MudSelectItem T="byte" Value="@((byte)1)">Instagram</MudSelectItem>
-                            <MudSelectItem T="byte" Value="@((byte)2)">Telegram</MudSelectItem>
-                            <MudSelectItem T="byte" Value="@((byte)3)">Twitter / X</MudSelectItem>
-                            <MudSelectItem T="byte" Value="@((byte)4)">Facebook</MudSelectItem>
-                            <MudSelectItem T="byte" Value="@((byte)5)">LinkedIn</MudSelectItem>
-                            <MudSelectItem T="byte" Value="@((byte)6)">YouTube</MudSelectItem>
-                            <MudSelectItem T="byte" Value="@((byte)7)">WhatsApp</MudSelectItem>
+                            <MudSelectItem T="byte" Value="@((byte)0)">@L["social.other", "Other"]</MudSelectItem>
+                            <MudSelectItem T="byte" Value="@((byte)1)">@L["social.instagram", "Instagram"]</MudSelectItem>
+                            <MudSelectItem T="byte" Value="@((byte)2)">@L["social.telegram", "Telegram"]</MudSelectItem>
+                            <MudSelectItem T="byte" Value="@((byte)3)">@L["social.twitter", "Twitter / X"]</MudSelectItem>
+                            <MudSelectItem T="byte" Value="@((byte)4)">@L["social.facebook", "Facebook"]</MudSelectItem>
+                            <MudSelectItem T="byte" Value="@((byte)5)">@L["social.linkedin", "LinkedIn"]</MudSelectItem>
+                            <MudSelectItem T="byte" Value="@((byte)6)">@L["social.youtube", "YouTube"]</MudSelectItem>
+                            <MudSelectItem T="byte" Value="@((byte)7)">@L["social.whatsapp", "WhatsApp"]</MudSelectItem>
                         </MudSelect>
                     </MudItem>
                     <MudItem xs="12" sm="6">
-                        <MudTextField @bind-Value="_editItem.SocialName" Label="Display Name"
+                        <MudTextField @bind-Value="_editItem.SocialName" Label="@L["social.display_name", "Display Name"]"
                                       Variant="Variant.Outlined" />
                     </MudItem>
                     <MudItem xs="12">
-                        <MudTextField @bind-Value="_editItem.UrlAddress" Label="URL"
+                        <MudTextField @bind-Value="_editItem.UrlAddress" Label="@L["url", "URL"]"
                                       Variant="Variant.Outlined" Required="true"
-                                      RequiredError="URL is required."
+                                      RequiredError="@L["required", "This field is required."]"
                                       Placeholder="https://instagram.com/yourpage" />
                     </MudItem>
                     <MudItem xs="12">
-                        <MudTextField @bind-Value="_editItem.SocialIcon" Label="Icon CSS Class (optional)"
+                        <MudTextField @bind-Value="_editItem.SocialIcon" Label="@L["social.icon", "Icon CSS Class (optional)"]"
                                       Variant="Variant.Outlined"
                                       Placeholder="fab fa-instagram" />
                     </MudItem>
@@ -114,11 +115,11 @@
         }
     </DialogContent>
     <DialogActions>
-        <MudButton OnClick="@(() => _dialogOpen = false)" Variant="Variant.Text">Cancel</MudButton>
+        <MudButton OnClick="@(() => _dialogOpen = false)" Variant="Variant.Text">@L["cancel", "Cancel"]</MudButton>
         <MudButton Color="Color.Primary" Variant="Variant.Filled"
                    OnClick="SaveDialogAsync" Disabled="@_saving">
             @if (_saving) { <MudProgressCircular Size="Size.Small" Indeterminate="true" Class="me-2" /> }
-            Save
+            @L["save_short", "Save"]
         </MudButton>
     </DialogActions>
 </MudDialog>
@@ -138,6 +139,8 @@
 
     protected override async Task OnInitializedAsync()
     {
+        await L.EnsureLoadedAsync();
+
         var state = await AuthState.GetAuthenticationStateAsync();
         var user = state.User;
         _isMaster = user.HasClaim(AdminClaimTypes.Master, "true");
@@ -152,10 +155,10 @@
             HeaderItems = new()
             {
                 new() { ColumnTitle = "", ColumnName = "" },
-                new() { ColumnTitle = "Type", ColumnName = "" },
-                new() { ColumnTitle = "Name", ColumnName = nameof(WebsiteSocialLink.SocialName), HasSearch = true },
-                new() { ColumnTitle = "URL", ColumnName = "" },
-                new() { ColumnTitle = "Icon", ColumnName = "" },
+                new() { ColumnTitle = L["type", "Type"], ColumnName = "" },
+                new() { ColumnTitle = L["name", "Name"], ColumnName = nameof(WebsiteSocialLink.SocialName), HasSearch = true },
+                new() { ColumnTitle = L["url", "URL"], ColumnName = "" },
+                new() { ColumnTitle = L["icon", "Icon"], ColumnName = "" },
             }
         };
 
@@ -197,19 +200,19 @@
             {
                 _editItem.WebsiteID = _websiteId;
                 await SettingService.CreateSocialLinkAsync(_editItem);
-                Snackbar.Add("Social link added.", Severity.Success);
+                Snackbar.Add(L["social.added", "Social link added."], Severity.Success);
             }
             else
             {
                 await SettingService.UpdateSocialLinkAsync(_editItem);
-                Snackbar.Add("Social link updated.", Severity.Success);
+                Snackbar.Add(L["social.updated", "Social link updated."], Severity.Success);
             }
             _dialogOpen = false;
             await LoadAsync();
         }
         catch (Exception ex)
         {
-            Snackbar.Add($"Save failed: {ex.Message}", Severity.Error);
+            Snackbar.Add($"{L["save_failed", "Save failed"]}: {ex.Message}", Severity.Error);
         }
         finally { _saving = false; }
     }
@@ -217,7 +220,7 @@
     private async Task DeleteAsync(WebsiteSocialLink s)
     {
         await SettingService.DeleteSocialLinkAsync(s.WebsiteSocialLinkID);
-        Snackbar.Add("Social link deleted.", Severity.Success);
+        Snackbar.Add(L["social.deleted", "Social link deleted."], Severity.Success);
         await LoadAsync();
     }
 
@@ -230,15 +233,15 @@
         _loading = false;
     }
 
-    private static string SocialTypeLabel(byte type) => type switch
+    private string SocialTypeLabel(byte type) => type switch
     {
-        1 => "Instagram",
-        2 => "Telegram",
-        3 => "Twitter / X",
-        4 => "Facebook",
-        5 => "LinkedIn",
-        6 => "YouTube",
-        7 => "WhatsApp",
-        _ => "Other"
+        1 => L["social.instagram", "Instagram"],
+        2 => L["social.telegram", "Telegram"],
+        3 => L["social.twitter", "Twitter / X"],
+        4 => L["social.facebook", "Facebook"],
+        5 => L["social.linkedin", "LinkedIn"],
+        6 => L["social.youtube", "YouTube"],
+        7 => L["social.whatsapp", "WhatsApp"],
+        _ => L["social.other", "Other"]
     };
 }

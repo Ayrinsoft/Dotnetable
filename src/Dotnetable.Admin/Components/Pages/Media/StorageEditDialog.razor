@@ -1,69 +1,70 @@
 @using JsonSerializer = global::System.Text.Json.JsonSerializer
 @inject IStorageSettingService StorageService
 @inject ISnackbar Snackbar
+@inject IPageLocalizer L
 
 <MudDialog>
     <TitleContent>
         <MudText Typo="Typo.h6">
             <MudIcon Icon="@Icons.Material.Filled.Cloud" Class="me-2" />
-            @(_isNew ? "Add Storage" : "Edit Storage")
+            @(_isNew ? L["storage.add", "Add Storage"] : L["storage.edit_title", "Edit Storage"])
         </MudText>
     </TitleContent>
     <DialogContent>
         <MudForm @ref="_form">
             <MudGrid Spacing="3">
                 <MudItem xs="12" sm="6">
-                    <MudSelect T="StorageProviderType" @bind-Value="_provider" Label="Provider"
+                    <MudSelect T="StorageProviderType" @bind-Value="_provider" Label="@L["storage.provider", "Provider"]"
                                Variant="Variant.Outlined" Disabled="@(!_isNew)">
                         <MudSelectItem T="StorageProviderType" Value="StorageProviderType.Arvan">ArvanCloud (S3)</MudSelectItem>
                         <MudSelectItem T="StorageProviderType" Value="StorageProviderType.Dropbox">Dropbox</MudSelectItem>
                     </MudSelect>
                 </MudItem>
                 <MudItem xs="12" sm="6" Class="d-flex align-center">
-                    <MudSwitch T="bool" @bind-Value="_active" Color="Color.Success" Label="Active" />
+                    <MudSwitch T="bool" @bind-Value="_active" Color="Color.Success" Label="@L["active", "Active"]" />
                 </MudItem>
 
                 @if (_provider == StorageProviderType.Arvan)
                 {
                     <MudItem xs="12" sm="6">
-                        <MudTextField @bind-Value="_arvan.Endpoint" Label="Endpoint" Variant="Variant.Outlined"
+                        <MudTextField @bind-Value="_arvan.Endpoint" Label="@L["storage.endpoint", "Endpoint"]" Variant="Variant.Outlined"
                                       Placeholder="https://s3.ir-thr-at1.arvanstorage.ir" Required="true" />
                     </MudItem>
                     <MudItem xs="12" sm="6">
-                        <MudTextField @bind-Value="_arvan.BucketName" Label="Bucket" Variant="Variant.Outlined" Required="true" />
+                        <MudTextField @bind-Value="_arvan.BucketName" Label="@L["storage.bucket", "Bucket"]" Variant="Variant.Outlined" Required="true" />
                     </MudItem>
                     <MudItem xs="12" sm="6">
-                        <MudTextField @bind-Value="_arvan.AccessKey" Label="Access Key" Variant="Variant.Outlined" Required="true" />
+                        <MudTextField @bind-Value="_arvan.AccessKey" Label="@L["storage.access_key", "Access Key"]" Variant="Variant.Outlined" Required="true" />
                     </MudItem>
                     <MudItem xs="12" sm="6">
-                        <MudTextField @bind-Value="_arvan.SecretKey" Label="Secret Key" Variant="Variant.Outlined"
+                        <MudTextField @bind-Value="_arvan.SecretKey" Label="@L["storage.secret_key", "Secret Key"]" Variant="Variant.Outlined"
                                       InputType="InputType.Password" Required="true" />
                     </MudItem>
                     <MudItem xs="12" sm="8">
-                        <MudTextField @bind-Value="_arvan.PublicBaseUrl" Label="Public Base URL" Variant="Variant.Outlined"
+                        <MudTextField @bind-Value="_arvan.PublicBaseUrl" Label="@L["storage.public_url", "Public Base URL"]" Variant="Variant.Outlined"
                                       Placeholder="https://my-bucket.s3.ir-thr-at1.arvanstorage.ir" Required="true" />
                     </MudItem>
                     <MudItem xs="12" sm="4">
-                        <MudNumericField T="long?" @bind-Value="_arvan.CapacityKB" Label="Capacity (KB)"
-                                         Variant="Variant.Outlined" HelperText="Plan size for the quota bar" />
+                        <MudNumericField T="long?" @bind-Value="_arvan.CapacityKB" Label="@L["storage.capacity", "Capacity (KB)"]"
+                                         Variant="Variant.Outlined" HelperText="@L["storage.capacity_hint", "Plan size for the quota bar"]" />
                     </MudItem>
                 }
                 else
                 {
                     <MudItem xs="12">
-                        <MudTextField @bind-Value="_dropbox.AccessToken" Label="Access Token" Variant="Variant.Outlined"
+                        <MudTextField @bind-Value="_dropbox.AccessToken" Label="@L["storage.access_token", "Access Token"]" Variant="Variant.Outlined"
                                       InputType="InputType.Password" />
                     </MudItem>
                     <MudItem xs="12" sm="6">
-                        <MudTextField @bind-Value="_dropbox.RootFolder" Label="Root Folder" Variant="Variant.Outlined"
+                        <MudTextField @bind-Value="_dropbox.RootFolder" Label="@L["storage.root_folder", "Root Folder"]" Variant="Variant.Outlined"
                                       Placeholder="/media" />
                     </MudItem>
                     <MudItem xs="12">
                         <MudExpansionPanels Elevation="0">
-                            <MudExpansionPanel Text="Refresh-token flow (optional)">
-                                <MudTextField @bind-Value="_dropbox.RefreshToken" Label="Refresh Token" Variant="Variant.Outlined" Class="mb-2" />
-                                <MudTextField @bind-Value="_dropbox.AppKey" Label="App Key" Variant="Variant.Outlined" Class="mb-2" />
-                                <MudTextField @bind-Value="_dropbox.AppSecret" Label="App Secret" Variant="Variant.Outlined"
+                            <MudExpansionPanel Text="@L["storage.refresh_flow", "Refresh-token flow (optional)"]">
+                                <MudTextField @bind-Value="_dropbox.RefreshToken" Label="@L["storage.refresh_token", "Refresh Token"]" Variant="Variant.Outlined" Class="mb-2" />
+                                <MudTextField @bind-Value="_dropbox.AppKey" Label="@L["storage.app_key", "App Key"]" Variant="Variant.Outlined" Class="mb-2" />
+                                <MudTextField @bind-Value="_dropbox.AppSecret" Label="@L["storage.app_secret", "App Secret"]" Variant="Variant.Outlined"
                                               InputType="InputType.Password" />
                             </MudExpansionPanel>
                         </MudExpansionPanels>
@@ -71,23 +72,23 @@
                 }
 
                 <MudItem xs="12" sm="4">
-                    <MudNumericField T="long" @bind-Value="_maxFileSizeKB" Label="Max File Size (KB)" Variant="Variant.Outlined" />
+                    <MudNumericField T="long" @bind-Value="_maxFileSizeKB" Label="@L["storage.max_file_size", "Max File Size (KB)"]" Variant="Variant.Outlined" />
                 </MudItem>
                 <MudItem xs="12" sm="5">
-                    <MudTextField @bind-Value="_allowedExtensions" Label="Allowed Extensions" Variant="Variant.Outlined"
+                    <MudTextField @bind-Value="_allowedExtensions" Label="@L["storage.allowed_ext", "Allowed Extensions"]" Variant="Variant.Outlined"
                                   Placeholder="jpg,png,pdf  (blank = all)" />
                 </MudItem>
                 <MudItem xs="12" sm="3" Class="d-flex align-center">
-                    <MudSwitch T="bool" @bind-Value="_autoThumbnails" Color="Color.Primary" Label="Thumbnails" />
+                    <MudSwitch T="bool" @bind-Value="_autoThumbnails" Color="Color.Primary" Label="@L["storage.thumbnails", "Thumbnails"]" />
                 </MudItem>
             </MudGrid>
         </MudForm>
     </DialogContent>
     <DialogActions>
-        <MudButton OnClick="Cancel">Cancel</MudButton>
+        <MudButton OnClick="Cancel">@L["cancel", "Cancel"]</MudButton>
         <MudButton Color="Color.Info" StartIcon="@Icons.Material.Filled.NetworkCheck"
-                   OnClick="TestAsync" Disabled="@_busy">Test connection</MudButton>
-        <MudButton Color="Color.Primary" Variant="Variant.Filled" OnClick="SaveAsync" Disabled="@_busy">Save</MudButton>
+                   OnClick="TestAsync" Disabled="@_busy">@L["storage.test_connection", "Test connection"]</MudButton>
+        <MudButton Color="Color.Primary" Variant="Variant.Filled" OnClick="SaveAsync" Disabled="@_busy">@L["save_short", "Save"]</MudButton>
     </DialogActions>
 </MudDialog>
 
@@ -147,10 +148,10 @@
         try
         {
             var ok = await StorageService.TestAsync(BuildContext());
-            Snackbar.Add(ok ? "Connection succeeded." : "Connection failed — check the credentials.",
+            Snackbar.Add(ok ? L["storage.test_ok", "Connection succeeded."] : L["storage.test_fail_creds", "Connection failed — check the credentials."],
                 ok ? Severity.Success : Severity.Error);
         }
-        catch (Exception ex) { Snackbar.Add($"Test failed: {ex.Message}", Severity.Error); }
+        catch (Exception ex) { Snackbar.Add($"{L["storage.test_failed", "Test failed"]}: {ex.Message}", Severity.Error); }
         finally { _busy = false; }
     }
 
@@ -185,10 +186,10 @@
                 Setting.AutoGenerateThumbnails = _autoThumbnails;
                 await StorageService.UpdateAsync(Setting);
             }
-            Snackbar.Add("Storage saved.", Severity.Success);
+            Snackbar.Add(L["storage.saved", "Storage saved."], Severity.Success);
             MudDialog.Close(DialogResult.Ok(true));
         }
-        catch (Exception ex) { Snackbar.Add($"Save failed: {ex.Message}", Severity.Error); }
+        catch (Exception ex) { Snackbar.Add($"{L["save_failed", "Save failed"]}: {ex.Message}", Severity.Error); }
         finally { _busy = false; }
     }
 

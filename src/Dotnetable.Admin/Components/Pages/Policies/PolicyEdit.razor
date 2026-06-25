@@ -6,16 +6,17 @@
 @inject AuthenticationStateProvider AuthState
 @inject NavigationManager Nav
 @inject ISnackbar Snackbar
+@inject IPageLocalizer L
 
-<PageTitle>@(_isNew ? "New Access Level" : "Edit Access Level") — Dotnetable</PageTitle>
+<DNPageTitle Title=@(_isNew ? L["policy.new", "New Access Level"] : L["policy.edit", "Edit Access Level"]) />
 
 <MudBreadcrumbs Items="_breadcrumbs" Class="px-0 pb-2" />
 
 <MudStack Row="true" AlignItems="AlignItems.Center" Justify="Justify.SpaceBetween" Class="mb-4">
     <MudStack Spacing="0">
-        <MudText Typo="Typo.h5" Class="fw-bold">@(_isNew ? "New Access Level" : "Edit Access Level")</MudText>
+        <MudText Typo="Typo.h5" Class="fw-bold">@(_isNew ? L["policy.new", "New Access Level"] : L["policy.edit", "Edit Access Level"])</MudText>
         <MudText Typo="Typo.body2" Color="Color.Secondary">
-            @(_isNew ? "Define an access level and the roles it grants" : $"Editing access level #{Id}")
+            @(_isNew ? L["policy.new_subtitle", "Define an access level and the roles it grants"] : $"{L["policy.editing", "Editing access level"]} #{Id}")
         </MudText>
     </MudStack>
 </MudStack>
@@ -32,18 +33,18 @@ else if (_policy is not null)
                 <MudPaper Elevation="0" Class="border rounded-lg pa-6">
                     <MudText Typo="Typo.subtitle1" Class="fw-bold mb-4">
                         <MudIcon Icon="@Icons.Material.Filled.Shield" Size="Size.Small" Class="me-1" />
-                        Access Level
+                        @L["access_level", "Access Level"]
                     </MudText>
                     <MudGrid Spacing="3">
                         <MudItem xs="12" sm="6">
-                            <MudTextField @bind-Value="_policy.Title" Label="Title"
+                            <MudTextField @bind-Value="_policy.Title" Label="@L["title", "Title"]"
                                           Variant="Variant.Outlined" Required="true"
-                                          RequiredError="Title is required." />
+                                          RequiredError="@L["required", "This field is required."]" />
                         </MudItem>
                         <MudItem xs="12" sm="6">
                             @if (_isMaster && _isNew)
                             {
-                                <MudSelect T="int" @bind-Value="_policy.WebsiteID" Label="Website"
+                                <MudSelect T="int" @bind-Value="_policy.WebsiteID" Label="@L["website", "Website"]"
                                            Variant="Variant.Outlined" Required="true">
                                     @foreach (var w in _websites)
                                     {
@@ -53,13 +54,13 @@ else if (_policy is not null)
                             }
                             else
                             {
-                                <MudTextField Value="@($"#{_policy.WebsiteID}")" Label="Website"
+                                <MudTextField Value="@($"#{_policy.WebsiteID}")" Label="@L["website", "Website"]"
                                               Variant="Variant.Outlined" ReadOnly="true" Disabled="true" />
                             }
                         </MudItem>
                         <MudItem xs="12">
                             <MudSwitch T="bool" @bind-Value="_policy.Active" Color="Color.Primary"
-                                       Label="@(_policy.Active ? "Active" : "Inactive")" />
+                                       Label="@(_policy.Active ? L["active", "Active"] : L["inactive", "Inactive"])" />
                         </MudItem>
                     </MudGrid>
                 </MudPaper>
@@ -69,15 +70,15 @@ else if (_policy is not null)
                 <MudPaper Elevation="0" Class="border rounded-lg pa-6">
                     <MudText Typo="Typo.subtitle1" Class="fw-bold mb-1">
                         <MudIcon Icon="@Icons.Material.Filled.VpnKey" Size="Size.Small" Class="me-1" />
-                        Roles
+                        @L["roles", "Roles"]
                     </MudText>
                     <MudText Typo="Typo.body2" Color="Color.Secondary" Class="mb-3">
-                        You can only grant roles you hold yourself.
+                        @L["policy.roles_hint", "You can only grant roles you hold yourself."]
                     </MudText>
                     @if (_assignableRoles.Count == 0)
                     {
                         <MudAlert Severity="Severity.Info" Variant="Variant.Outlined">
-                            You have no roles available to grant.
+                            @L["policy.no_roles", "You have no roles available to grant."]
                         </MudAlert>
                     }
                     else
@@ -107,11 +108,11 @@ else if (_policy is not null)
                 {
                     <MudProgressCircular Size="Size.Small" Indeterminate="true" Class="me-2" />
                 }
-                @(_isNew ? "Create Access Level" : "Save Changes")
+                @(_isNew ? L["policy.create", "Create Access Level"] : L["save", "Save Changes"])
             </MudButton>
             <MudButton Variant="Variant.Outlined" Color="Color.Default"
                        StartIcon="@Icons.Material.Filled.ArrowBack" Href="/policies">
-                Cancel
+                @L["cancel", "Cancel"]
             </MudButton>
         </MudStack>
     </MudForm>
@@ -134,13 +135,15 @@ else if (_policy is not null)
 
     private List<BreadcrumbItem> _breadcrumbs => new()
     {
-        new("Dashboard", "/"),
-        new("Access Levels", "/policies"),
-        new(_isNew ? "New" : $"#{Id}", null, true),
+        new(L["dashboard", "Dashboard"], "/"),
+        new(L["access_levels", "Access Levels"], "/policies"),
+        new(_isNew ? L["new", "New"] : $"#{Id}", null, true),
     };
 
     protected override async Task OnInitializedAsync()
     {
+        await L.EnsureLoadedAsync();
+
         var state = await AuthState.GetAuthenticationStateAsync();
         var user = state.User;
         _isMaster = user.HasClaim(AdminClaimTypes.Master, "true");
@@ -198,18 +201,18 @@ else if (_policy is not null)
             {
                 if (!_isMaster) _policy!.WebsiteID = _websiteId;
                 await PolicyService.CreateAsync(_policy!, roleIds);
-                Snackbar.Add("Access level created successfully.", Severity.Success);
+                Snackbar.Add(L["policy.created", "Access level created successfully."], Severity.Success);
             }
             else
             {
                 await PolicyService.UpdateAsync(_policy!, roleIds);
-                Snackbar.Add("Changes saved successfully.", Severity.Success);
+                Snackbar.Add(L["saved", "Changes saved successfully."], Severity.Success);
             }
             Nav.NavigateTo("/policies");
         }
         catch (Exception ex)
         {
-            Snackbar.Add($"Save failed: {ex.Message}", Severity.Error);
+            Snackbar.Add($"{L["save_failed", "Save failed"]}: {ex.Message}", Severity.Error);
         }
         finally
         {

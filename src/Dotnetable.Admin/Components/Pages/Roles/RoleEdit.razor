@@ -4,16 +4,17 @@
 @inject IRoleService RoleService
 @inject NavigationManager Nav
 @inject ISnackbar Snackbar
+@inject IPageLocalizer L
 
-<PageTitle>@(_isNew ? "New Role" : "Edit Role") — Dotnetable</PageTitle>
+<DNPageTitle Title=@(_isNew ? L["role.new", "New Role"] : L["role.edit", "Edit Role"]) />
 
 <MudBreadcrumbs Items="_breadcrumbs" Class="px-0 pb-2" />
 
 <MudStack Row="true" AlignItems="AlignItems.Center" Justify="Justify.SpaceBetween" Class="mb-4">
     <MudStack Spacing="0">
-        <MudText Typo="Typo.h5" Class="fw-bold">@(_isNew ? "New Role" : "Edit Role")</MudText>
+        <MudText Typo="Typo.h5" Class="fw-bold">@(_isNew ? L["role.new", "New Role"] : L["role.edit", "Edit Role"])</MudText>
         <MudText Typo="Typo.body2" Color="Color.Secondary">
-            @(_isNew ? "Define a new permission key" : $"Editing role #{Id}")
+            @(_isNew ? L["role.new_subtitle", "Define a new permission key"] : $"{L["role.editing", "Editing role"]} #{Id}")
         </MudText>
     </MudStack>
 </MudStack>
@@ -28,18 +29,18 @@ else if (_role is not null)
         <MudPaper Elevation="0" Class="border rounded-lg pa-6">
             <MudGrid Spacing="3">
                 <MudItem xs="12" sm="6">
-                    <MudTextField @bind-Value="_role.RoleKey" Label="Key"
+                    <MudTextField @bind-Value="_role.RoleKey" Label="@L["key", "Key"]"
                                   Variant="Variant.Outlined" Required="true" MaxLength="42"
-                                  RequiredError="Key is required." Placeholder="manage.something" />
+                                  RequiredError="@L["required", "This field is required."]" Placeholder="manage.something" />
                 </MudItem>
                 <MudItem xs="12" sm="6">
-                    <MudTextField @bind-Value="_role.Description" Label="Description"
+                    <MudTextField @bind-Value="_role.Description" Label="@L["description", "Description"]"
                                   Variant="Variant.Outlined" Required="true" MaxLength="128"
-                                  RequiredError="Description is required." />
+                                  RequiredError="@L["required", "This field is required."]" />
                 </MudItem>
                 <MudItem xs="12">
                     <MudSwitch T="bool" @bind-Value="_role.Active" Color="Color.Primary"
-                               Label="@(_role.Active ? "Active" : "Inactive")" />
+                               Label="@(_role.Active ? L["active", "Active"] : L["inactive", "Inactive"])" />
                 </MudItem>
             </MudGrid>
         </MudPaper>
@@ -52,11 +53,11 @@ else if (_role is not null)
                 {
                     <MudProgressCircular Size="Size.Small" Indeterminate="true" Class="me-2" />
                 }
-                @(_isNew ? "Create Role" : "Save Changes")
+                @(_isNew ? L["role.create", "Create Role"] : L["save", "Save Changes"])
             </MudButton>
             <MudButton Variant="Variant.Outlined" Color="Color.Default"
                        StartIcon="@Icons.Material.Filled.ArrowBack" Href="/roles">
-                Cancel
+                @L["cancel", "Cancel"]
             </MudButton>
         </MudStack>
     </MudForm>
@@ -73,13 +74,15 @@ else if (_role is not null)
 
     private List<BreadcrumbItem> _breadcrumbs => new()
     {
-        new("Dashboard", "/"),
-        new("Roles", "/roles"),
-        new(_isNew ? "New" : $"#{Id}", null, true),
+        new(L["dashboard", "Dashboard"], "/"),
+        new(L["roles", "Roles"], "/roles"),
+        new(_isNew ? L["new", "New"] : $"#{Id}", null, true),
     };
 
     protected override async Task OnInitializedAsync()
     {
+        await L.EnsureLoadedAsync();
+
         if (_isNew)
         {
             _role = new Role { Active = true };
@@ -103,18 +106,18 @@ else if (_role is not null)
             if (_isNew)
             {
                 await RoleService.CreateAsync(_role!);
-                Snackbar.Add("Role created successfully.", Severity.Success);
+                Snackbar.Add(L["role.created", "Role created successfully."], Severity.Success);
             }
             else
             {
                 await RoleService.UpdateAsync(_role!);
-                Snackbar.Add("Changes saved successfully.", Severity.Success);
+                Snackbar.Add(L["saved", "Changes saved successfully."], Severity.Success);
             }
             Nav.NavigateTo("/roles");
         }
         catch (Exception ex)
         {
-            Snackbar.Add($"Save failed: {ex.Message}", Severity.Error);
+            Snackbar.Add($"{L["save_failed", "Save failed"]}: {ex.Message}", Severity.Error);
         }
         finally
         {

@@ -1,0 +1,7 @@
+@* Browser tab title that appends the global brand name, e.g. "Members — Dotnetable".
+   Pass a localized string for Title to make the page name translatable too. *@
+<PageTitle>@Title — @AppBranding.Name</PageTitle>
+
+@code {
+    [Parameter, EditorRequired] public string Title { get; set; } = string.Empty;
+}

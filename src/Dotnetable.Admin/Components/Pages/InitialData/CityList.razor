@@ -2,17 +2,18 @@
 @attribute [Authorize(Policy = AdminPolicies.SuperAdminOnly)]
 @inject ILocationService LocationService
 @inject ISnackbar Snackbar
+@inject IPageLocalizer L
 
-<PageTitle>Cities — Dotnetable</PageTitle>
+<DNPageTitle Title=@L["cities", "Cities"] />
 
 <MudStack Row="true" AlignItems="AlignItems.Center" Justify="Justify.SpaceBetween" Class="mb-4">
     <MudStack Spacing="0">
-        <MudText Typo="Typo.h5" Class="fw-bold">Cities</MudText>
-        <MudText Typo="Typo.body2" Color="Color.Secondary">Manage city reference data</MudText>
+        <MudText Typo="Typo.h5" Class="fw-bold">@L["cities", "Cities"]</MudText>
+        <MudText Typo="Typo.body2" Color="Color.Secondary">@L["city.subtitle", "Manage city reference data"]</MudText>
     </MudStack>
     <MudStack Row="true" Spacing="2" AlignItems="AlignItems.Center">
         <MudSelect T="int?" Value="_filterCountryId" ValueChanged="OnCountryFilterChanged"
-                   Label="Country" Variant="Variant.Outlined" Dense="true" Style="min-width:160px"
+                   Label="@L["country", "Country"]" Variant="Variant.Outlined" Dense="true" Style="min-width:160px"
                    Clearable="true">
             @foreach (var c in _countries)
             {
@@ -20,7 +21,7 @@
             }
         </MudSelect>
         <MudSelect T="int?" Value="_filterStateId" ValueChanged="OnStateFilterChanged"
-                   Label="State" Variant="Variant.Outlined" Dense="true" Style="min-width:160px"
+                   Label="@L["state", "State"]" Variant="Variant.Outlined" Dense="true" Style="min-width:160px"
                    Clearable="true" Disabled="@(!_filterCountryId.HasValue)">
             @foreach (var s in _states)
             {
@@ -30,7 +31,7 @@
         <MudButton Variant="Variant.Filled" Color="Color.Primary"
                    StartIcon="@Icons.Material.Filled.Add"
                    Href="/initial-data/cities/new">
-            New City
+            @L["city.new", "New City"]
         </MudButton>
     </MudStack>
 </MudStack>
@@ -45,7 +46,7 @@
         {
             <tr>
                 <td colspan="7" style="text-align:center; padding:32px;">
-                    <MudText Color="Color.Secondary">No cities found.</MudText>
+                    <MudText Color="Color.Secondary">@L["city.empty", "No cities found."]</MudText>
                 </td>
             </tr>
         }
@@ -86,6 +87,8 @@
 
     protected override async Task OnInitializedAsync()
     {
+        await L.EnsureLoadedAsync();
+
         _countries = (await LocationService.GetAllCountriesAsync()).ToList();
 
         _grid = new GridViewHeaderParameters
@@ -94,14 +97,14 @@
             HeaderItems = new()
             {
                 new() { ColumnTitle = "", ColumnName = "" },
-                new() { ColumnTitle = "ID", ColumnName = nameof(City.CityID), HasSort = true },
-                new() { ColumnTitle = "Title", ColumnName = nameof(City.Title), HasSort = true, HasSearch = true },
-                new() { ColumnTitle = "Country", ColumnName = "" },
-                new() { ColumnTitle = "State", ColumnName = "" },
-                new() { ColumnTitle = "Language", ColumnName = nameof(City.LanguageCode) },
-                new() { ColumnTitle = "Active", ColumnName = nameof(City.Active), HasSearch = true,
+                new() { ColumnTitle = L["id", "ID"], ColumnName = nameof(City.CityID), HasSort = true },
+                new() { ColumnTitle = L["title", "Title"], ColumnName = nameof(City.Title), HasSort = true, HasSearch = true },
+                new() { ColumnTitle = L["country", "Country"], ColumnName = "" },
+                new() { ColumnTitle = L["state", "State"], ColumnName = "" },
+                new() { ColumnTitle = L["language", "Language"], ColumnName = nameof(City.LanguageCode) },
+                new() { ColumnTitle = L["active", "Active"], ColumnName = nameof(City.Active), HasSearch = true,
                     SearchType = SearchColumnType.DropDown,
-                    OtherDropDownValues = new() { ["Active"] = "true", ["Inactive"] = "false" } },
+                    OtherDropDownValues = new() { [L["active", "Active"]] = "true", [L["inactive", "Inactive"]] = "false" } },
             }
         };
 

@@ -4,13 +4,14 @@
 @inject IAppSettingsStore AppSettings
 @inject IEmailService EmailService
 @inject ISnackbar Snackbar
+@inject IPageLocalizer L
 
-<PageTitle>Settings — Dotnetable</PageTitle>
+<DNPageTitle Title=@L["settings", "Settings"] />
 
 @* ── Page header ──────────────────────────────────────────────── *@
 <MudStack Spacing="0" Class="mb-6">
-    <MudText Typo="Typo.h5" Class="fw-bold">Settings</MudText>
-    <MudText Typo="Typo.body2" Color="Color.Secondary">System-wide configuration</MudText>
+    <MudText Typo="Typo.h5" Class="fw-bold">@L["settings", "Settings"]</MudText>
+    <MudText Typo="Typo.body2" Color="Color.Secondary">@L["settings.subtitle", "System-wide configuration"]</MudText>
 </MudStack>
 
 <MudGrid Spacing="4">
@@ -20,30 +21,29 @@
         <MudPaper Elevation="0" Class="border rounded-lg pa-6 h-100">
             <MudStack Row="true" AlignItems="AlignItems.Center" Spacing="2" Class="mb-1">
                 <MudIcon Icon="@Icons.Material.Filled.Shield" Color="Color.Primary" />
-                <MudText Typo="Typo.subtitle1" Class="fw-bold">Bot Protection</MudText>
+                <MudText Typo="Typo.subtitle1" Class="fw-bold">@L["settings.bot_protection", "Bot Protection"]</MudText>
             </MudStack>
             <MudText Typo="Typo.body2" Color="Color.Secondary" Class="mb-4">
-                Protects login and forgot-password forms. Cloudflare Turnstile is used when keys are set;
-                otherwise a math captcha is shown automatically.
+                @L["settings.bot_hint", "Protects login and forgot-password forms. Cloudflare Turnstile is used when keys are set; otherwise a math captcha is shown automatically."]
             </MudText>
 
-            <MudSelect T="CaptchaMode" @bind-Value="_security.CaptchaMode" Label="Captcha Mode"
+            <MudSelect T="CaptchaMode" @bind-Value="_security.CaptchaMode" Label="@L["settings.captcha_mode", "Captcha Mode"]"
                        Variant="Variant.Outlined" Class="mb-3">
                 <MudSelectItem T="CaptchaMode" Value="CaptchaMode.Auto">
-                    Auto — Turnstile if configured, else math
+                    @L["settings.captcha_auto", "Auto — Turnstile if configured, else math"]
                 </MudSelectItem>
                 <MudSelectItem T="CaptchaMode" Value="CaptchaMode.Turnstile">
-                    Turnstile — falls back to math if unreachable
+                    @L["settings.captcha_turnstile", "Turnstile — falls back to math if unreachable"]
                 </MudSelectItem>
                 <MudSelectItem T="CaptchaMode" Value="CaptchaMode.Math">
-                    Math captcha only
+                    @L["settings.captcha_math", "Math captcha only"]
                 </MudSelectItem>
             </MudSelect>
 
-            <MudTextField @bind-Value="_security.TurnstileSiteKey" Label="Turnstile Site Key"
+            <MudTextField @bind-Value="_security.TurnstileSiteKey" Label="@L["settings.turnstile_site", "Turnstile Site Key"]"
                           Variant="Variant.Outlined" Class="mb-3" Clearable="true"
                           Adornment="Adornment.Start" AdornmentIcon="@Icons.Material.Filled.VpnKey" />
-            <MudTextField @bind-Value="_security.TurnstileSecretKey" Label="Turnstile Secret Key"
+            <MudTextField @bind-Value="_security.TurnstileSecretKey" Label="@L["settings.turnstile_secret", "Turnstile Secret Key"]"
                           Variant="Variant.Outlined" Class="mb-5" InputType="InputType.Password"
                           Clearable="true" />
 
@@ -54,7 +54,7 @@
                 {
                     <MudProgressCircular Size="Size.Small" Indeterminate="true" Class="me-2" />
                 }
-                Save Protection
+                @L["settings.save_protection", "Save Protection"]
             </MudButton>
         </MudPaper>
     </MudItem>
@@ -64,32 +64,32 @@
         <MudPaper Elevation="0" Class="border rounded-lg pa-6 h-100">
             <MudStack Row="true" AlignItems="AlignItems.Center" Spacing="2" Class="mb-1">
                 <MudIcon Icon="@Icons.Material.Filled.Email" Color="Color.Primary" />
-                <MudText Typo="Typo.subtitle1" Class="fw-bold">Email (SMTP)</MudText>
+                <MudText Typo="Typo.subtitle1" Class="fw-bold">@L["settings.email_smtp", "Email (SMTP)"]</MudText>
             </MudStack>
             <MudText Typo="Typo.body2" Color="Color.Secondary" Class="mb-4">
-                Used to send forgot-password links. Leave empty to disable outgoing email.
+                @L["settings.email_hint", "Used to send forgot-password links. Leave empty to disable outgoing email."]
             </MudText>
 
             <MudGrid Spacing="2" Class="mb-2">
                 <MudItem xs="12" sm="8">
-                    <MudTextField @bind-Value="_email.MailServer" Label="SMTP Server"
+                    <MudTextField @bind-Value="_email.MailServer" Label="@L["email.smtp_server", "SMTP Server"]"
                                   Variant="Variant.Outlined"
                                   Adornment="Adornment.Start" AdornmentIcon="@Icons.Material.Filled.Dns" />
                 </MudItem>
                 <MudItem xs="12" sm="4">
-                    <MudNumericField @bind-Value="_email.SmtpPort" Label="Port"
+                    <MudNumericField @bind-Value="_email.SmtpPort" Label="@L["port", "Port"]"
                                      Min="1" Max="65535" Variant="Variant.Outlined" />
                 </MudItem>
             </MudGrid>
 
-            <MudCheckBox T="bool" @bind-Value="_email.EnableSSL" Label="Enable SSL / TLS" Color="Color.Primary" Class="mb-2" />
+            <MudCheckBox T="bool" @bind-Value="_email.EnableSSL" Label="@L["email.enable_ssl", "Enable SSL / TLS"]" Color="Color.Primary" Class="mb-2" />
 
-            <MudTextField @bind-Value="_email.EmailAddress" Label="From Address / Username"
+            <MudTextField @bind-Value="_email.EmailAddress" Label="@L["email.from_address", "From Address / Username"]"
                           Variant="Variant.Outlined" Class="mb-2" InputType="InputType.Email"
                           Adornment="Adornment.Start" AdornmentIcon="@Icons.Material.Filled.AlternateEmail" />
-            <MudTextField @bind-Value="_email.Password" Label="Password"
+            <MudTextField @bind-Value="_email.Password" Label="@L["password", "Password"]"
                           Variant="Variant.Outlined" Class="mb-2" InputType="InputType.Password" />
-            <MudTextField @bind-Value="_email.MailName" Label="From Display Name"
+            <MudTextField @bind-Value="_email.MailName" Label="@L["email.from_name", "From Display Name"]"
                           Variant="Variant.Outlined" Class="mb-5" />
 
             <MudButton Variant="Variant.Filled" Color="Color.Primary"
@@ -99,7 +99,7 @@
                 {
                     <MudProgressCircular Size="Size.Small" Indeterminate="true" Class="me-2" />
                 }
-                Save Email
+                @L["settings.save_email", "Save Email"]
             </MudButton>
         </MudPaper>
     </MudItem>
@@ -114,6 +114,7 @@
 
     protected override async Task OnInitializedAsync()
     {
+        await L.EnsureLoadedAsync();
         _security = AppSettings.Security;
         _email = await EmailService.GetDefaultAsync() ?? new EmailSettingsInfo();
     }
@@ -124,11 +125,11 @@
         try
         {
             await AppSettings.SaveSecurityAsync(_security);
-            Snackbar.Add("Bot protection settings saved.", Severity.Success);
+            Snackbar.Add(L["settings.bot_saved", "Bot protection settings saved."], Severity.Success);
         }
         catch (Exception ex)
         {
-            Snackbar.Add($"Save failed: {ex.Message}", Severity.Error);
+            Snackbar.Add($"{L["save_failed", "Save failed"]}: {ex.Message}", Severity.Error);
         }
         finally { _savingSecurity = false; }
     }
@@ -139,11 +140,11 @@
         try
         {
             await EmailService.SaveDefaultAsync(_email);
-            Snackbar.Add("Email settings saved.", Severity.Success);
+            Snackbar.Add(L["email.saved", "Email settings saved."], Severity.Success);
         }
         catch (Exception ex)
         {
-            Snackbar.Add($"Save failed: {ex.Message}", Severity.Error);
+            Snackbar.Add($"{L["save_failed", "Save failed"]}: {ex.Message}", Severity.Error);
         }
         finally { _savingEmail = false; }
     }

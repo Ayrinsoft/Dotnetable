@@ -3,21 +3,22 @@
 @inject IWebsiteService WebsiteService
 @inject AuthenticationStateProvider AuthState
 @inject NavigationManager Nav
+@inject IPageLocalizer L
 
-<PageTitle>Dashboard — Dotnetable</PageTitle>
+<DNPageTitle Title=@L["dashboard", "Dashboard"] />
 
 @* ── Page header ─────────────────────────────────────────────── *@
 <MudStack Row="true" AlignItems="AlignItems.Center" Justify="Justify.SpaceBetween" Class="mb-4">
     <MudStack Spacing="0">
-        <MudText Typo="Typo.h5" Class="fw-bold">Dashboard</MudText>
+        <MudText Typo="Typo.h5" Class="fw-bold">@L["dashboard", "Dashboard"]</MudText>
         <MudText Typo="Typo.body2" Color="Color.Secondary">
-            Welcome back, @_userName
+            @($"{L["dashboard.welcome", "Welcome back"]}, {_userName}")
         </MudText>
     </MudStack>
     <MudChip T="string" Size="Size.Small" Variant="Variant.Outlined"
              Color="@(_isShop ? Color.Warning : Color.Primary)"
              Icon="@(_isShop ? Icons.Material.Filled.ShoppingCart : Icons.Material.Filled.Language)">
-        @(_isShop ? "Store" : "Website")
+        @(_isShop ? L["store", "Store"] : L["website", "Website"])
     </MudChip>
 </MudStack>
 
@@ -25,10 +26,10 @@
 {
     @* ════════════════ STORE DASHBOARD (v3) ════════════════ *@
     <MudGrid Spacing="3">
-        @StatBox("#348fe2", "Total Sales", "$0.00", Icons.Material.Filled.AttachMoney, "Total orders: 0 · Avg: $0.00")
-        @StatBox("#49b6d6", "Conversion Rate", "0.00%", Icons.Material.Filled.TrendingUp, "Added to cart · Checkout · Converted")
-        @StatBox("#f59c1a", "Store Sessions", "0", Icons.Material.Filled.Devices, "Mobile · Desktop · Tablet")
-        @StatBox("#727cb6", "Total Page Views", "0K", Icons.Material.Filled.Visibility, "New & returning visitors")
+        @StatBox("#348fe2", L["dashboard.total_sales", "Total Sales"], "$0.00", Icons.Material.Filled.AttachMoney, L["dashboard.total_sales_sub", "Total orders: 0 · Avg: $0.00"])
+        @StatBox("#49b6d6", L["dashboard.conversion_rate", "Conversion Rate"], "0.00%", Icons.Material.Filled.TrendingUp, L["dashboard.conversion_rate_sub", "Added to cart · Checkout · Converted"])
+        @StatBox("#f59c1a", L["dashboard.store_sessions", "Store Sessions"], "0", Icons.Material.Filled.Devices, L["dashboard.store_sessions_sub", "Mobile · Desktop · Tablet"])
+        @StatBox("#727cb6", L["dashboard.total_page_views", "Total Page Views"], "0K", Icons.Material.Filled.Visibility, L["dashboard.total_page_views_sub", "New & returning visitors"])
     </MudGrid>
 
     <MudGrid Spacing="3" Class="mt-1">
@@ -36,11 +37,11 @@
             <MudPaper Elevation="0" Class="app-card rounded-lg">
                 <div class="pa-4 d-flex align-center gap-2" style="border-bottom:1px solid var(--mud-palette-lines-default);">
                     <MudIcon Icon="@Icons.Material.Filled.Inventory2" Color="Color.Primary" Size="Size.Small" />
-                    <MudText Typo="Typo.subtitle2" Class="fw-bold">Top Products by Units Sold</MudText>
+                    <MudText Typo="Typo.subtitle2" Class="fw-bold">@L["dashboard.top_products", "Top Products by Units Sold"]</MudText>
                 </div>
                 <MudStack AlignItems="AlignItems.Center" Class="pa-8" Spacing="2">
                     <MudIcon Icon="@Icons.Material.Filled.ShoppingBag" Size="Size.Large" Color="Color.Secondary" />
-                    <MudText Color="Color.Secondary">No sales data yet.</MudText>
+                    <MudText Color="Color.Secondary">@L["dashboard.no_sales", "No sales data yet."]</MudText>
                 </MudStack>
             </MudPaper>
         </MudItem>
@@ -48,11 +49,11 @@
             <MudPaper Elevation="0" Class="app-card rounded-lg">
                 <div class="pa-4 d-flex align-center gap-2" style="border-bottom:1px solid var(--mud-palette-lines-default);">
                     <MudIcon Icon="@Icons.Material.Filled.Public" Color="Color.Primary" Size="Size.Small" />
-                    <MudText Typo="Typo.subtitle2" Class="fw-bold">Sessions by Location</MudText>
+                    <MudText Typo="Typo.subtitle2" Class="fw-bold">@L["dashboard.sessions_by_location", "Sessions by Location"]</MudText>
                 </div>
                 <MudStack AlignItems="AlignItems.Center" Class="pa-8" Spacing="2">
                     <MudIcon Icon="@Icons.Material.Filled.Map" Size="Size.Large" Color="Color.Secondary" />
-                    <MudText Color="Color.Secondary">No session data yet.</MudText>
+                    <MudText Color="Color.Secondary">@L["dashboard.no_sessions", "No session data yet."]</MudText>
                 </MudStack>
             </MudPaper>
         </MudItem>
@@ -62,10 +63,10 @@ else
 {
     @* ════════════════ WEBSITE DASHBOARD (v2) ════════════════ *@
     <MudGrid Spacing="3">
-        @StatBox("#348fe2", "Today's Visits", "0", Icons.Material.Filled.PeopleAlt, "vs last week")
-        @StatBox("#49b6d6", "Page Views", "0", Icons.Material.Filled.Visibility, "vs last week")
-        @StatBox("#f59c1a", "New Members", "0", Icons.Material.Filled.PersonAdd, "vs last week")
-        @StatBox("#ff5b57", "New Comments", "0", Icons.Material.Filled.Comment, "vs last week")
+        @StatBox("#348fe2", L["dashboard.todays_visits", "Today's Visits"], "0", Icons.Material.Filled.PeopleAlt, L["dashboard.vs_last_week", "vs last week"])
+        @StatBox("#49b6d6", L["dashboard.page_views", "Page Views"], "0", Icons.Material.Filled.Visibility, L["dashboard.vs_last_week", "vs last week"])
+        @StatBox("#f59c1a", L["dashboard.new_members", "New Members"], "0", Icons.Material.Filled.PersonAdd, L["dashboard.vs_last_week", "vs last week"])
+        @StatBox("#ff5b57", L["dashboard.new_comments", "New Comments"], "0", Icons.Material.Filled.Comment, L["dashboard.vs_last_week", "vs last week"])
     </MudGrid>
 
     <MudGrid Spacing="3" Class="mt-1">
@@ -73,11 +74,11 @@ else
             <MudPaper Elevation="0" Class="app-card rounded-lg">
                 <div class="pa-4 d-flex align-center gap-2" style="border-bottom:1px solid var(--mud-palette-lines-default);">
                     <MudIcon Icon="@Icons.Material.Filled.InsertChartOutlined" Color="Color.Primary" Size="Size.Small" />
-                    <MudText Typo="Typo.subtitle2" Class="fw-bold">Visitors Analytics</MudText>
+                    <MudText Typo="Typo.subtitle2" Class="fw-bold">@L["dashboard.visitors_analytics", "Visitors Analytics"]</MudText>
                 </div>
                 <MudStack AlignItems="AlignItems.Center" Class="pa-8" Spacing="2">
                     <MudIcon Icon="@Icons.Material.Filled.ShowChart" Size="Size.Large" Color="Color.Secondary" />
-                    <MudText Color="Color.Secondary">No analytics data yet.</MudText>
+                    <MudText Color="Color.Secondary">@L["dashboard.no_analytics", "No analytics data yet."]</MudText>
                 </MudStack>
             </MudPaper>
         </MudItem>
@@ -85,23 +86,23 @@ else
             <MudPaper Elevation="0" Class="app-card rounded-lg h-100">
                 <div class="pa-4 d-flex align-center gap-2" style="border-bottom:1px solid var(--mud-palette-lines-default);">
                     <MudIcon Icon="@Icons.Material.Filled.Bolt" Color="Color.Primary" Size="Size.Small" />
-                    <MudText Typo="Typo.subtitle2" Class="fw-bold">Quick Actions</MudText>
+                    <MudText Typo="Typo.subtitle2" Class="fw-bold">@L["dashboard.quick_actions", "Quick Actions"]</MudText>
                 </div>
                 <MudList T="string" Class="py-1">
                     <AuthorizeView Policy="@AdminPolicies.WebsiteAdminOrAbove" Context="_">
                         <MudListItem T="string" Icon="@Icons.Material.Filled.People" OnClick='() => Nav.NavigateTo("/members")'>
-                            Manage Members
+                            @L["dashboard.manage_members", "Manage Members"]
                         </MudListItem>
                         <MudListItem T="string" Icon="@Icons.Material.Filled.Translate" OnClick='() => Nav.NavigateTo("/translations")'>
-                            Translations
+                            @L["translations", "Translations"]
                         </MudListItem>
                     </AuthorizeView>
                     <AuthorizeView Policy="@AdminPolicies.SuperAdminOnly" Context="_">
                         <MudListItem T="string" Icon="@Icons.Material.Filled.Language" OnClick='() => Nav.NavigateTo("/websites")'>
-                            Websites
+                            @L["websites", "Websites"]
                         </MudListItem>
                         <MudListItem T="string" Icon="@Icons.Material.Filled.Settings" OnClick='() => Nav.NavigateTo("/settings")'>
-                            Settings
+                            @L["settings", "Settings"]
                         </MudListItem>
                     </AuthorizeView>
                 </MudList>
@@ -118,6 +119,8 @@ else
 
     protected override async Task OnInitializedAsync()
     {
+        await L.EnsureLoadedAsync();
+
         var state = await AuthState.GetAuthenticationStateAsync();
         var user = state.User;
         _userName = user.Identity?.Name;

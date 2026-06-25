@@ -2,17 +2,18 @@
 @attribute [Authorize(Policy = AdminPolicies.SuperAdminOnly)]
 @inject IRoleService RoleService
 @inject ISnackbar Snackbar
+@inject IPageLocalizer L
 
-<PageTitle>Roles — Dotnetable</PageTitle>
+<DNPageTitle Title=@L["roles", "Roles"] />
 
 <MudStack Row="true" AlignItems="AlignItems.Center" Justify="Justify.SpaceBetween" Class="mb-4">
     <MudStack Spacing="0">
-        <MudText Typo="Typo.h5" Class="fw-bold">Roles</MudText>
-        <MudText Typo="Typo.body2" Color="Color.Secondary">System-wide permission keys</MudText>
+        <MudText Typo="Typo.h5" Class="fw-bold">@L["roles", "Roles"]</MudText>
+        <MudText Typo="Typo.body2" Color="Color.Secondary">@L["role.subtitle", "System-wide permission keys"]</MudText>
     </MudStack>
     <MudButton Variant="Variant.Filled" Color="Color.Primary"
                StartIcon="@Icons.Material.Filled.Add" Href="/roles/new">
-        New Role
+        @L["role.new", "New Role"]
     </MudButton>
 </MudStack>
 
@@ -26,7 +27,7 @@
         {
             <tr>
                 <td colspan="5" style="text-align:center; padding:32px;">
-                    <MudText Color="Color.Secondary">No roles found.</MudText>
+                    <MudText Color="Color.Secondary">@L["role.empty", "No roles found."]</MudText>
                 </td>
             </tr>
         }
@@ -57,25 +58,7 @@
     private bool _loading = true;
     private List<Role> _roles = new();
     private HashSet<short> _toggling = new();
-    private GridViewHeaderParameters _grid = new()
-    {
-        Pagination = new PaginationModel { PageSize = 25 },
-        HeaderItems = new()
-        {
-            new() { ColumnTitle = "", ColumnName = "" },
-            new() { ColumnTitle = "ID", ColumnName = nameof(Role.RoleID), HasSort = true },
-            new() { ColumnTitle = "Key", ColumnName = nameof(Role.RoleKey), HasSort = true, HasSearch = true },
-            new() { ColumnTitle = "Description", ColumnName = nameof(Role.Description), HasSearch = true },
-            new()
-            {
-                ColumnTitle = "Status",
-                ColumnName = nameof(Role.Active),
-                HasSearch = true,
-                SearchType = SearchColumnType.DropDown,
-                OtherDropDownValues = new() { ["Active"] = "true", ["Inactive"] = "false" }
-            },
-        }
-    };
+    private GridViewHeaderParameters _grid = new();
 
     private async Task ToggleActiveAsync(Role r, bool value)
     {
@@ -85,7 +68,32 @@
         finally { _toggling.Remove(r.RoleID); }
     }
 
-    protected override Task OnInitializedAsync() => LoadAsync();
+    protected override async Task OnInitializedAsync()
+    {
+        await L.EnsureLoadedAsync();
+
+        _grid = new GridViewHeaderParameters
+        {
+            Pagination = new PaginationModel { PageSize = 25 },
+            HeaderItems = new()
+            {
+                new() { ColumnTitle = "", ColumnName = "" },
+                new() { ColumnTitle = L["id", "ID"], ColumnName = nameof(Role.RoleID), HasSort = true },
+                new() { ColumnTitle = L["key", "Key"], ColumnName = nameof(Role.RoleKey), HasSort = true, HasSearch = true },
+                new() { ColumnTitle = L["description", "Description"], ColumnName = nameof(Role.Description), HasSearch = true },
+                new()
+                {
+                    ColumnTitle = L["status", "Status"],
+                    ColumnName = nameof(Role.Active),
+                    HasSearch = true,
+                    SearchType = SearchColumnType.DropDown,
+                    OtherDropDownValues = new() { [L["active", "Active"]] = "true", [L["inactive", "Inactive"]] = "false" }
+                },
+            }
+        };
+
+        await LoadAsync();
+    }
 
     private Task OnGridChanged(GridViewHeaderParameters _) => LoadAsync();
 

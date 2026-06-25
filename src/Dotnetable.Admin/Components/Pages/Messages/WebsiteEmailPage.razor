@@ -4,20 +4,21 @@
 @inject IWebsiteService WebsiteService
 @inject AuthenticationStateProvider AuthState
 @inject ISnackbar Snackbar
+@inject IPageLocalizer L
 
-<PageTitle>Website Email Settings — Dotnetable</PageTitle>
+<DNPageTitle Title=@L["website_email_settings", "Website Email Settings"] />
 
 <MudStack Spacing="0" Class="mb-6">
     <MudStack Row="true" AlignItems="AlignItems.Center" Justify="Justify.SpaceBetween">
         <MudStack Spacing="0">
-            <MudText Typo="Typo.h5" Class="fw-bold">Website Email Settings</MudText>
+            <MudText Typo="Typo.h5" Class="fw-bold">@L["website_email_settings", "Website Email Settings"]</MudText>
             <MudText Typo="Typo.body2" Color="Color.Secondary">
-                SMTP configuration for outgoing emails from this website (contact replies, notifications, etc.)
+                @L["email.subtitle", "SMTP configuration for outgoing emails from this website (contact replies, notifications, etc.)"]
             </MudText>
         </MudStack>
         @if (_isMaster)
         {
-            <MudSelect T="int" @bind-Value="_websiteId" Label="Website" Variant="Variant.Outlined"
+            <MudSelect T="int" @bind-Value="_websiteId" Label="@L["website", "Website"]" Variant="Variant.Outlined"
                        Dense="true" Style="min-width:180px"
                        SelectedValuesChanged="OnWebsiteChanged">
                 @foreach (var w in _websites)
@@ -40,30 +41,30 @@ else
             <MudPaper Elevation="0" Class="border rounded-lg pa-6">
                 <MudStack Row="true" AlignItems="AlignItems.Center" Spacing="2" Class="mb-4">
                     <MudIcon Icon="@Icons.Material.Filled.Email" Color="Color.Primary" />
-                    <MudText Typo="Typo.subtitle1" Class="fw-bold">SMTP Configuration</MudText>
+                    <MudText Typo="Typo.subtitle1" Class="fw-bold">@L["email.smtp_config", "SMTP Configuration"]</MudText>
                 </MudStack>
 
                 <MudGrid Spacing="2" Class="mb-2">
                     <MudItem xs="12" sm="8">
-                        <MudTextField @bind-Value="_email.MailServer" Label="SMTP Server"
+                        <MudTextField @bind-Value="_email.MailServer" Label="@L["email.smtp_server", "SMTP Server"]"
                                       Variant="Variant.Outlined"
                                       Adornment="Adornment.Start" AdornmentIcon="@Icons.Material.Filled.Dns" />
                     </MudItem>
                     <MudItem xs="12" sm="4">
-                        <MudNumericField @bind-Value="_email.SmtpPort" Label="Port"
+                        <MudNumericField @bind-Value="_email.SmtpPort" Label="@L["port", "Port"]"
                                          Min="1" Max="65535" Variant="Variant.Outlined" />
                     </MudItem>
                 </MudGrid>
 
-                <MudCheckBox T="bool" @bind-Value="_email.EnableSSL" Label="Enable SSL / TLS"
+                <MudCheckBox T="bool" @bind-Value="_email.EnableSSL" Label="@L["email.enable_ssl", "Enable SSL / TLS"]"
                              Color="Color.Primary" Class="mb-2" />
 
-                <MudTextField @bind-Value="_email.EmailAddress" Label="From Address / Username"
+                <MudTextField @bind-Value="_email.EmailAddress" Label="@L["email.from_address", "From Address / Username"]"
                               Variant="Variant.Outlined" Class="mb-2" InputType="InputType.Email"
                               Adornment="Adornment.Start" AdornmentIcon="@Icons.Material.Filled.AlternateEmail" />
-                <MudTextField @bind-Value="_email.Password" Label="Password"
+                <MudTextField @bind-Value="_email.Password" Label="@L["password", "Password"]"
                               Variant="Variant.Outlined" Class="mb-2" InputType="InputType.Password" />
-                <MudTextField @bind-Value="_email.MailName" Label="From Display Name"
+                <MudTextField @bind-Value="_email.MailName" Label="@L["email.from_name", "From Display Name"]"
                               Variant="Variant.Outlined" Class="mb-4" />
 
                 <MudButton Variant="Variant.Filled" Color="Color.Primary"
@@ -73,7 +74,7 @@ else
                     {
                         <MudProgressCircular Size="Size.Small" Indeterminate="true" Class="me-2" />
                     }
-                    Save Email Settings
+                    @L["email.save", "Save Email Settings"]
                 </MudButton>
             </MudPaper>
         </MudItem>
@@ -82,14 +83,13 @@ else
             <MudPaper Elevation="0" Class="border rounded-lg pa-6">
                 <MudStack Row="true" AlignItems="AlignItems.Center" Spacing="2" Class="mb-3">
                     <MudIcon Icon="@Icons.Material.Filled.Info" Color="Color.Secondary" />
-                    <MudText Typo="Typo.subtitle1" Class="fw-bold">How it works</MudText>
+                    <MudText Typo="Typo.subtitle1" Class="fw-bold">@L["email.how_it_works", "How it works"]</MudText>
                 </MudStack>
                 <MudText Typo="Typo.body2" Color="Color.Secondary">
-                    These SMTP settings are used when sending emails on behalf of this specific website:
-                    contact form auto-replies, order confirmations, notifications, etc.
+                    @L["email.how_body1", "These SMTP settings are used when sending emails on behalf of this specific website: contact form auto-replies, order confirmations, notifications, etc."]
                 </MudText>
                 <MudText Typo="Typo.body2" Color="Color.Secondary" Class="mt-2">
-                    Leave empty to use the system-wide email configuration (configured in System → Settings).
+                    @L["email.how_body2", "Leave empty to use the system-wide email configuration (configured in System → Settings)."]
                 </MudText>
             </MudPaper>
         </MudItem>
@@ -106,6 +106,8 @@ else
 
     protected override async Task OnInitializedAsync()
     {
+        await L.EnsureLoadedAsync();
+
         var state = await AuthState.GetAuthenticationStateAsync();
         var user = state.User;
         _isMaster = user.HasClaim(AdminClaimTypes.Master, "true");
@@ -132,11 +134,11 @@ else
         try
         {
             await EmailService.SaveWebsiteEmailAsync(_websiteId, _email);
-            Snackbar.Add("Email settings saved.", Severity.Success);
+            Snackbar.Add(L["email.saved", "Email settings saved."], Severity.Success);
         }
         catch (Exception ex)
         {
-            Snackbar.Add($"Save failed: {ex.Message}", Severity.Error);
+            Snackbar.Add($"{L["save_failed", "Save failed"]}: {ex.Message}", Severity.Error);
         }
         finally { _saving = false; }
     }

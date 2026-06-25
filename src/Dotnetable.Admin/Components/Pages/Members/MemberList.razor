@@ -2,21 +2,22 @@
 @attribute [Authorize(Policy = AdminPolicies.WebsiteAdminOrAbove)]
 @inject IMemberService MemberService
 @inject AuthenticationStateProvider AuthState
+@inject IPageLocalizer L
 
-<PageTitle>Members — Dotnetable</PageTitle>
+<DNPageTitle Title=@L["members", "Members"] />
 
 @* ── Page header ──────────────────────────────────────────────── *@
 <MudStack Row="true" AlignItems="AlignItems.Center" Justify="Justify.SpaceBetween" Class="mb-4">
     <MudStack Spacing="0">
-        <MudText Typo="Typo.h5" Class="fw-bold">Members</MudText>
+        <MudText Typo="Typo.h5" Class="fw-bold">@L["members", "Members"]</MudText>
         <MudText Typo="Typo.body2" Color="Color.Secondary">
-            @(_isMaster ? "All members across all websites" : "Members of your website")
+            @(_isMaster ? L["members.subtitle_all", "All members across all websites"] : L["members.subtitle_own", "Members of your website"])
         </MudText>
     </MudStack>
     <MudButton Variant="Variant.Filled" Color="Color.Primary"
                StartIcon="@Icons.Material.Filled.Add"
                Href="/members/new">
-        New Member
+        @L["members.new", "New Member"]
     </MudButton>
 </MudStack>
 
@@ -30,7 +31,7 @@
         {
             <tr>
                 <td colspan="@_colCount" style="text-align:center; padding:32px;">
-                    <MudText Color="Color.Secondary">No members found.</MudText>
+                    <MudText Color="Color.Secondary">@L["members.empty", "No members found."]</MudText>
                 </td>
             </tr>
         }
@@ -82,6 +83,8 @@
 
     protected override async Task OnInitializedAsync()
     {
+        await L.EnsureLoadedAsync();
+
         var state = await AuthState.GetAuthenticationStateAsync();
         var user = state.User;
         _isMaster = user.HasClaim(AdminClaimTypes.Master, "true");
@@ -93,22 +96,22 @@
             HeaderItems = new()
             {
                 new() { ColumnTitle = "", ColumnName = "" },
-                new() { ColumnTitle = "ID", ColumnName = nameof(Member.MemberID), HasSort = true },
-                new() { ColumnTitle = "Username", ColumnName = nameof(Member.Username), HasSort = true, HasSearch = true },
-                new() { ColumnTitle = "Email", ColumnName = nameof(Member.Email), HasSort = true, HasSearch = true },
-                new() { ColumnTitle = "Full Name", ColumnName = "Fullname", HasSearch = true },
+                new() { ColumnTitle = L["id", "ID"], ColumnName = nameof(Member.MemberID), HasSort = true },
+                new() { ColumnTitle = L["username", "Username"], ColumnName = nameof(Member.Username), HasSort = true, HasSearch = true },
+                new() { ColumnTitle = L["email", "Email"], ColumnName = nameof(Member.Email), HasSort = true, HasSearch = true },
+                new() { ColumnTitle = L["full_name", "Full Name"], ColumnName = "Fullname", HasSearch = true },
             }
         };
         if (_isMaster)
-            _grid.HeaderItems.Add(new() { ColumnTitle = "Website", ColumnName = nameof(Member.WebsiteID), HasSort = true });
-        _grid.HeaderItems.Add(new() { ColumnTitle = "Registered", ColumnName = nameof(Member.RegisterDate), HasSort = true });
+            _grid.HeaderItems.Add(new() { ColumnTitle = L["website", "Website"], ColumnName = nameof(Member.WebsiteID), HasSort = true });
+        _grid.HeaderItems.Add(new() { ColumnTitle = L["registered", "Registered"], ColumnName = nameof(Member.RegisterDate), HasSort = true });
         _grid.HeaderItems.Add(new()
         {
-            ColumnTitle = "Status",
+            ColumnTitle = L["status", "Status"],
             ColumnName = nameof(Member.Active),
             HasSearch = true,
             SearchType = SearchColumnType.DropDown,
-            OtherDropDownValues = new() { ["Active"] = "true", ["Inactive"] = "false" }
+            OtherDropDownValues = new() { [L["active", "Active"]] = "true", [L["inactive", "Inactive"]] = "false" }
         });
 
         await LoadAsync();
