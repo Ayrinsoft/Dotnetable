@@ -2,19 +2,20 @@
 @attribute [Authorize(Policy = AdminPolicies.SuperAdminOnly)]
 @inject IWebsiteService WebsiteService
 @inject ISnackbar Snackbar
+@inject IPageLocalizer L
 
-<PageTitle>Websites — Dotnetable</PageTitle>
+<DNPageTitle Title=@L["websites", "Websites"] />
 
 @* ── Page header ──────────────────────────────────────────────── *@
 <MudStack Row="true" AlignItems="AlignItems.Center" Justify="Justify.SpaceBetween" Class="mb-4">
     <MudStack Spacing="0">
-        <MudText Typo="Typo.h5" Class="fw-bold">Websites</MudText>
-        <MudText Typo="Typo.body2" Color="Color.Secondary">Manage all registered websites</MudText>
+        <MudText Typo="Typo.h5" Class="fw-bold">@L["websites", "Websites"]</MudText>
+        <MudText Typo="Typo.body2" Color="Color.Secondary">@L["website.subtitle", "Manage all registered websites"]</MudText>
     </MudStack>
     <MudButton Variant="Variant.Filled" Color="Color.Primary"
                StartIcon="@Icons.Material.Filled.Add"
                Href="/websites/new">
-        New Website
+        @L["website.new", "New Website"]
     </MudButton>
 </MudStack>
 
@@ -28,7 +29,7 @@
         {
             <tr>
                 <td colspan="8" style="text-align:center; padding:32px;">
-                    <MudText Color="Color.Secondary">No websites found.</MudText>
+                    <MudText Color="Color.Secondary">@L["website.empty", "No websites found."]</MudText>
                 </td>
             </tr>
         }
@@ -49,11 +50,11 @@
                     <td>
                         @if (w.WebsiteType == 1)
                         {
-                            <MudChip T="string" Color="Color.Warning" Size="Size.Small" Variant="Variant.Outlined">Store</MudChip>
+                            <MudChip T="string" Color="Color.Warning" Size="Size.Small" Variant="Variant.Outlined">@L["store", "Store"]</MudChip>
                         }
                         else
                         {
-                            <MudChip T="string" Color="Color.Primary" Size="Size.Small" Variant="Variant.Outlined">Website</MudChip>
+                            <MudChip T="string" Color="Color.Primary" Size="Size.Small" Variant="Variant.Outlined">@L["website", "Website"]</MudChip>
                         }
                     </td>
                     <td>
@@ -71,28 +72,7 @@
     private bool _loading = true;
     private List<Website> _websites = new();
     private HashSet<int> _toggling = new();
-    private GridViewHeaderParameters _grid = new()
-    {
-        Pagination = new PaginationModel { PageSize = 25 },
-        HeaderItems = new()
-        {
-            new() { ColumnTitle = "", ColumnName = "" },
-            new() { ColumnTitle = "ID", ColumnName = nameof(Website.WebsiteID), HasSort = true },
-            new() { ColumnTitle = "Trade Name", ColumnName = nameof(Website.TradeName), HasSort = true, HasSearch = true },
-            new() { ColumnTitle = "Brand", ColumnName = nameof(Website.BrandName), HasSort = true, HasSearch = true },
-            new() { ColumnTitle = "Address", ColumnName = nameof(Website.WebsiteAddress), HasSearch = true },
-            new() { ColumnTitle = "Manager", ColumnName = nameof(Website.Manager), HasSearch = true },
-            new() { ColumnTitle = "Type", ColumnName = nameof(Website.WebsiteType), HasSort = true },
-            new()
-            {
-                ColumnTitle = "Status",
-                ColumnName = nameof(Website.Active),
-                HasSearch = true,
-                SearchType = SearchColumnType.DropDown,
-                OtherDropDownValues = new() { ["Active"] = "true", ["Inactive"] = "false" }
-            },
-        }
-    };
+    private GridViewHeaderParameters _grid = new();
 
     private async Task ToggleActiveAsync(Website w, bool value)
     {
@@ -102,7 +82,35 @@
         finally { _toggling.Remove(w.WebsiteID); }
     }
 
-    protected override Task OnInitializedAsync() => LoadAsync();
+    protected override async Task OnInitializedAsync()
+    {
+        await L.EnsureLoadedAsync();
+
+        _grid = new GridViewHeaderParameters
+        {
+            Pagination = new PaginationModel { PageSize = 25 },
+            HeaderItems = new()
+            {
+                new() { ColumnTitle = "", ColumnName = "" },
+                new() { ColumnTitle = L["id", "ID"], ColumnName = nameof(Website.WebsiteID), HasSort = true },
+                new() { ColumnTitle = L["trade_name", "Trade Name"], ColumnName = nameof(Website.TradeName), HasSort = true, HasSearch = true },
+                new() { ColumnTitle = L["brand", "Brand"], ColumnName = nameof(Website.BrandName), HasSort = true, HasSearch = true },
+                new() { ColumnTitle = L["address", "Address"], ColumnName = nameof(Website.WebsiteAddress), HasSearch = true },
+                new() { ColumnTitle = L["manager", "Manager"], ColumnName = nameof(Website.Manager), HasSearch = true },
+                new() { ColumnTitle = L["type", "Type"], ColumnName = nameof(Website.WebsiteType), HasSort = true },
+                new()
+                {
+                    ColumnTitle = L["status", "Status"],
+                    ColumnName = nameof(Website.Active),
+                    HasSearch = true,
+                    SearchType = SearchColumnType.DropDown,
+                    OtherDropDownValues = new() { [L["active", "Active"]] = "true", [L["inactive", "Inactive"]] = "false" }
+                },
+            }
+        };
+
+        await LoadAsync();
+    }
 
     private Task OnGridChanged(GridViewHeaderParameters _) => LoadAsync();
 

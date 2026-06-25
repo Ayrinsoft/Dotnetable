@@ -5,16 +5,17 @@
 @inject AuthenticationStateProvider AuthState
 @inject NavigationManager Nav
 @inject ISnackbar Snackbar
+@inject IPageLocalizer L
 
-<PageTitle>@(_isNew ? "New Script" : "Edit Script") — Dotnetable</PageTitle>
+<DNPageTitle Title=@(_isNew ? L["script.new", "New Script"] : L["script.edit", "Edit Script"]) />
 
 <MudBreadcrumbs Items="_breadcrumbs" Class="px-0 pb-2" />
 
 <MudStack Row="true" AlignItems="AlignItems.Center" Justify="Justify.SpaceBetween" Class="mb-4">
     <MudStack Spacing="0">
-        <MudText Typo="Typo.h5" Class="fw-bold">@(_isNew ? "New Script" : "Edit Script")</MudText>
+        <MudText Typo="Typo.h5" Class="fw-bold">@(_isNew ? L["script.new", "New Script"] : L["script.edit", "Edit Script"])</MudText>
         <MudText Typo="Typo.body2" Color="Color.Secondary">
-            @(_isNew ? "Add a custom script to your website" : $"Editing script #{Id}")
+            @(_isNew ? L["script.new_subtitle", "Add a custom script to your website"] : $"{L["script.editing", "Editing script"]} #{Id}")
         </MudText>
     </MudStack>
 </MudStack>
@@ -31,42 +32,42 @@ else if (_item is not null)
                 <MudPaper Elevation="0" Class="border rounded-lg pa-6">
                     <MudGrid Spacing="3">
                         <MudItem xs="12" sm="6">
-                            <MudTextField @bind-Value="_item.Name" Label="Script Name"
+                            <MudTextField @bind-Value="_item.Name" Label="@L["script.name", "Script Name"]"
                                           Variant="Variant.Outlined" Required="true"
-                                          RequiredError="Name is required."
+                                          RequiredError="@L["required", "This field is required."]"
                                           Placeholder="Google Analytics" />
                         </MudItem>
                         <MudItem xs="12" sm="3">
-                            <MudSelect T="byte" @bind-Value="_item.ScriptPosition" Label="Position"
+                            <MudSelect T="byte" @bind-Value="_item.ScriptPosition" Label="@L["position", "Position"]"
                                        Variant="Variant.Outlined">
-                                <MudSelectItem T="byte" Value="@((byte)0)">Head</MudSelectItem>
-                                <MudSelectItem T="byte" Value="@((byte)1)">Body Start</MudSelectItem>
-                                <MudSelectItem T="byte" Value="@((byte)2)">Body End</MudSelectItem>
+                                <MudSelectItem T="byte" Value="@((byte)0)">@L["script.pos_head", "Head"]</MudSelectItem>
+                                <MudSelectItem T="byte" Value="@((byte)1)">@L["script.pos_body_start", "Body Start"]</MudSelectItem>
+                                <MudSelectItem T="byte" Value="@((byte)2)">@L["script.pos_body_end", "Body End"]</MudSelectItem>
                             </MudSelect>
                         </MudItem>
                         <MudItem xs="12" sm="3">
-                            <MudSelect T="byte" @bind-Value="_item.ScriptLoadCondition" Label="Load Condition"
+                            <MudSelect T="byte" @bind-Value="_item.ScriptLoadCondition" Label="@L["script.load_condition", "Load Condition"]"
                                        Variant="Variant.Outlined">
-                                <MudSelectItem T="byte" Value="@((byte)0)">Always</MudSelectItem>
-                                <MudSelectItem T="byte" Value="@((byte)1)">Logged In Only</MudSelectItem>
-                                <MudSelectItem T="byte" Value="@((byte)2)">Logged Out Only</MudSelectItem>
+                                <MudSelectItem T="byte" Value="@((byte)0)">@L["script.cond_always", "Always"]</MudSelectItem>
+                                <MudSelectItem T="byte" Value="@((byte)1)">@L["script.cond_in", "Logged In Only"]</MudSelectItem>
+                                <MudSelectItem T="byte" Value="@((byte)2)">@L["script.cond_out", "Logged Out Only"]</MudSelectItem>
                             </MudSelect>
                         </MudItem>
                         <MudItem xs="12" sm="2">
-                            <MudNumericField T="byte?" @bind-Value="_item.Priority" Label="Priority"
+                            <MudNumericField T="byte?" @bind-Value="_item.Priority" Label="@L["priority", "Priority"]"
                                              Variant="Variant.Outlined" Min="0" Max="255"
-                                             HelperText="Lower = earlier" />
+                                             HelperText="@L["script.priority_hint", "Lower = earlier"]" />
                         </MudItem>
                         <MudItem xs="12">
-                            <MudTextField @bind-Value="_item.RawContent" Label="Script Content"
+                            <MudTextField @bind-Value="_item.RawContent" Label="@L["script.content", "Script Content"]"
                                           Variant="Variant.Outlined" Lines="10"
-                                          Required="true" RequiredError="Script content is required."
+                                          Required="true" RequiredError="@L["required", "This field is required."]"
                                           Placeholder="@("<script>...</script>")"
                                           Style="font-family: monospace; font-size: 13px;" />
                         </MudItem>
                         <MudItem xs="12">
                             <MudSwitch T="bool" @bind-Value="_item.Active" Color="Color.Primary"
-                                       Label="@(_item.Active ? "Active — will be injected" : "Inactive — will not be injected")" />
+                                       Label="@(_item.Active ? L["script.active_on", "Active — will be injected"] : L["script.active_off", "Inactive — will not be injected"])" />
                         </MudItem>
                     </MudGrid>
                 </MudPaper>
@@ -81,11 +82,11 @@ else if (_item is not null)
                 {
                     <MudProgressCircular Size="Size.Small" Indeterminate="true" Class="me-2" />
                 }
-                @(_isNew ? "Create Script" : "Save Changes")
+                @(_isNew ? L["script.create", "Create Script"] : L["save", "Save Changes"])
             </MudButton>
             <MudButton Variant="Variant.Outlined" Color="Color.Default"
                        StartIcon="@Icons.Material.Filled.ArrowBack" Href="/website/scripts">
-                Cancel
+                @L["cancel", "Cancel"]
             </MudButton>
         </MudStack>
     </MudForm>
@@ -103,13 +104,15 @@ else if (_item is not null)
 
     private List<BreadcrumbItem> _breadcrumbs => new()
     {
-        new("Dashboard", "/"),
-        new("Scripts", "/website/scripts"),
-        new(_isNew ? "New" : $"#{Id}", null, true),
+        new(L["dashboard", "Dashboard"], "/"),
+        new(L["scripts", "Scripts"], "/website/scripts"),
+        new(_isNew ? L["new", "New"] : $"#{Id}", null, true),
     };
 
     protected override async Task OnInitializedAsync()
     {
+        await L.EnsureLoadedAsync();
+
         var state = await AuthState.GetAuthenticationStateAsync();
         int.TryParse(state.User.FindFirst(AdminClaimTypes.WebsiteId)?.Value, out _websiteId);
 
@@ -146,18 +149,18 @@ else if (_item is not null)
             if (_isNew)
             {
                 await SettingService.CreateScriptAsync(_item!);
-                Snackbar.Add("Script created.", Severity.Success);
+                Snackbar.Add(L["script.created", "Script created."], Severity.Success);
             }
             else
             {
                 await SettingService.UpdateScriptAsync(_item!);
-                Snackbar.Add("Script updated.", Severity.Success);
+                Snackbar.Add(L["script.updated", "Script updated."], Severity.Success);
             }
             Nav.NavigateTo("/website/scripts");
         }
         catch (Exception ex)
         {
-            Snackbar.Add($"Save failed: {ex.Message}", Severity.Error);
+            Snackbar.Add($"{L["save_failed", "Save failed"]}: {ex.Message}", Severity.Error);
         }
         finally { _saving = false; }
     }

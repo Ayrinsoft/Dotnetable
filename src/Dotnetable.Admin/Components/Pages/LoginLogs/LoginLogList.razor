@@ -2,14 +2,15 @@
 @attribute [Authorize(Policy = AdminPolicies.WebsiteAdminOrAbove)]
 @inject ILoginLogService LoginLogService
 @inject AuthenticationStateProvider AuthState
+@inject IPageLocalizer L
 
-<PageTitle>Login Logs — Dotnetable</PageTitle>
+<DNPageTitle Title=@L["login_logs", "Login Logs"] />
 
 <MudStack Row="true" AlignItems="AlignItems.Center" Justify="Justify.SpaceBetween" Class="mb-4">
     <MudStack Spacing="0">
-        <MudText Typo="Typo.h5" Class="fw-bold">Login Logs</MudText>
+        <MudText Typo="Typo.h5" Class="fw-bold">@L["login_logs", "Login Logs"]</MudText>
         <MudText Typo="Typo.body2" Color="Color.Secondary">
-            @(_isMaster ? "Login attempts across all websites" : "Login attempts for your website")
+            @(_isMaster ? L["loginlog.subtitle_all", "Login attempts across all websites"] : L["loginlog.subtitle_own", "Login attempts for your website"])
         </MudText>
     </MudStack>
 </MudStack>
@@ -24,7 +25,7 @@
         {
             <tr>
                 <td colspan="@_colCount" style="text-align:center; padding:32px;">
-                    <MudText Color="Color.Secondary">No login attempts found.</MudText>
+                    <MudText Color="Color.Secondary">@L["loginlog.empty", "No login attempts found."]</MudText>
                 </td>
             </tr>
         }
@@ -44,11 +45,11 @@
                     <td>
                         @if (l.IsSuccess)
                         {
-                            <MudChip T="string" Color="Color.Success" Size="Size.Small" Variant="Variant.Filled">Success</MudChip>
+                            <MudChip T="string" Color="Color.Success" Size="Size.Small" Variant="Variant.Filled">@L["success", "Success"]</MudChip>
                         }
                         else
                         {
-                            <MudChip T="string" Color="Color.Error" Size="Size.Small" Variant="Variant.Outlined">Failed</MudChip>
+                            <MudChip T="string" Color="Color.Error" Size="Size.Small" Variant="Variant.Outlined">@L["failed", "Failed"]</MudChip>
                         }
                     </td>
                 </tr>
@@ -68,6 +69,8 @@
 
     protected override async Task OnInitializedAsync()
     {
+        await L.EnsureLoadedAsync();
+
         var state = await AuthState.GetAuthenticationStateAsync();
         var user = state.User;
         _isMaster = user.HasClaim(AdminClaimTypes.Master, "true");
@@ -78,21 +81,21 @@
             Pagination = new PaginationModel { PageSize = 25 },
             HeaderItems = new()
             {
-                new() { ColumnTitle = "ID", ColumnName = nameof(LoginTry.LoginTryID), HasSort = true },
-                new() { ColumnTitle = "Username", ColumnName = nameof(LoginTry.Username), HasSort = true, HasSearch = true },
-                new() { ColumnTitle = "Time", ColumnName = nameof(LoginTry.LogTime), HasSort = true },
-                new() { ColumnTitle = "IP", ColumnName = nameof(LoginTry.TryIP), HasSearch = true },
+                new() { ColumnTitle = L["id", "ID"], ColumnName = nameof(LoginTry.LoginTryID), HasSort = true },
+                new() { ColumnTitle = L["username", "Username"], ColumnName = nameof(LoginTry.Username), HasSort = true, HasSearch = true },
+                new() { ColumnTitle = L["time", "Time"], ColumnName = nameof(LoginTry.LogTime), HasSort = true },
+                new() { ColumnTitle = L["ip", "IP"], ColumnName = nameof(LoginTry.TryIP), HasSearch = true },
             }
         };
         if (_isMaster)
-            _grid.HeaderItems.Add(new() { ColumnTitle = "Website", ColumnName = nameof(LoginTry.WebsiteID), HasSort = true });
+            _grid.HeaderItems.Add(new() { ColumnTitle = L["website", "Website"], ColumnName = nameof(LoginTry.WebsiteID), HasSort = true });
         _grid.HeaderItems.Add(new()
         {
-            ColumnTitle = "Result",
+            ColumnTitle = L["result", "Result"],
             ColumnName = nameof(LoginTry.IsSuccess),
             HasSearch = true,
             SearchType = SearchColumnType.DropDown,
-            OtherDropDownValues = new() { ["Success"] = "true", ["Failed"] = "false" }
+            OtherDropDownValues = new() { [L["success", "Success"]] = "true", [L["failed", "Failed"]] = "false" }
         });
 
         await LoadAsync();

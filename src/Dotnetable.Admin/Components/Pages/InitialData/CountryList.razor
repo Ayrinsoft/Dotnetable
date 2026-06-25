@@ -2,18 +2,19 @@
 @attribute [Authorize(Policy = AdminPolicies.SuperAdminOnly)]
 @inject ILocationService LocationService
 @inject ISnackbar Snackbar
+@inject IPageLocalizer L
 
-<PageTitle>Countries — Dotnetable</PageTitle>
+<DNPageTitle Title=@L["countries", "Countries"] />
 
 <MudStack Row="true" AlignItems="AlignItems.Center" Justify="Justify.SpaceBetween" Class="mb-4">
     <MudStack Spacing="0">
-        <MudText Typo="Typo.h5" Class="fw-bold">Countries</MudText>
-        <MudText Typo="Typo.body2" Color="Color.Secondary">Manage country reference data</MudText>
+        <MudText Typo="Typo.h5" Class="fw-bold">@L["countries", "Countries"]</MudText>
+        <MudText Typo="Typo.body2" Color="Color.Secondary">@L["country.subtitle", "Manage country reference data"]</MudText>
     </MudStack>
     <MudButton Variant="Variant.Filled" Color="Color.Primary"
                StartIcon="@Icons.Material.Filled.Add"
                Href="/initial-data/countries/new">
-        New Country
+        @L["country.new", "New Country"]
     </MudButton>
 </MudStack>
 
@@ -27,7 +28,7 @@
         {
             <tr>
                 <td colspan="6" style="text-align:center; padding:32px;">
-                    <MudText Color="Color.Secondary">No countries found.</MudText>
+                    <MudText Color="Color.Secondary">@L["country.empty", "No countries found."]</MudText>
                 </td>
             </tr>
         }
@@ -58,17 +59,19 @@
 
     protected override async Task OnInitializedAsync()
     {
+        await L.EnsureLoadedAsync();
+
         _grid = new GridViewHeaderParameters
         {
             Pagination = new PaginationModel { PageSize = 25 },
             HeaderItems = new()
             {
                 new() { ColumnTitle = "", ColumnName = "" },
-                new() { ColumnTitle = "ID", ColumnName = nameof(Country.CountryID), HasSort = true },
-                new() { ColumnTitle = "Code", ColumnName = nameof(Country.CountryCode), HasSort = true, HasSearch = true },
-                new() { ColumnTitle = "Title", ColumnName = nameof(Country.Title), HasSort = true, HasSearch = true },
-                new() { ColumnTitle = "Phone Prefix", ColumnName = nameof(Country.PhonePerfix) },
-                new() { ColumnTitle = "Language", ColumnName = nameof(Country.LanguageCode) },
+                new() { ColumnTitle = L["id", "ID"], ColumnName = nameof(Country.CountryID), HasSort = true },
+                new() { ColumnTitle = L["code", "Code"], ColumnName = nameof(Country.CountryCode), HasSort = true, HasSearch = true },
+                new() { ColumnTitle = L["title", "Title"], ColumnName = nameof(Country.Title), HasSort = true, HasSearch = true },
+                new() { ColumnTitle = L["phone_prefix", "Phone Prefix"], ColumnName = nameof(Country.PhonePerfix) },
+                new() { ColumnTitle = L["language", "Language"], ColumnName = nameof(Country.LanguageCode) },
             }
         };
 

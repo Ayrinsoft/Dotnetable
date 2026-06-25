@@ -7,16 +7,17 @@
 @inject AuthenticationStateProvider AuthState
 @inject NavigationManager Nav
 @inject ISnackbar Snackbar
+@inject IPageLocalizer L
 
-<PageTitle>@(_isNew ? "New Member" : "Edit Member") — Dotnetable</PageTitle>
+<DNPageTitle Title=@(_isNew ? L["members.new", "New Member"] : L["members.edit", "Edit Member"]) />
 
 <MudBreadcrumbs Items="_breadcrumbs" Class="px-0 pb-2" />
 
 <MudStack Row="true" AlignItems="AlignItems.Center" Justify="Justify.SpaceBetween" Class="mb-4">
     <MudStack Spacing="0">
-        <MudText Typo="Typo.h5" Class="fw-bold">@(_isNew ? "New Member" : "Edit Member")</MudText>
+        <MudText Typo="Typo.h5" Class="fw-bold">@(_isNew ? L["members.new", "New Member"] : L["members.edit", "Edit Member"])</MudText>
         <MudText Typo="Typo.body2" Color="Color.Secondary">
-            @(_isNew ? "Create a new member account" : $"Editing member #{Id}")
+            @(_isNew ? L["members.new_subtitle", "Create a new member account"] : $"{L["members.editing", "Editing member"]} #{Id}")
         </MudText>
     </MudStack>
 </MudStack>
@@ -33,28 +34,28 @@ else if (_member is not null)
                 <MudPaper Elevation="0" Class="border rounded-lg pa-6">
                     <MudText Typo="Typo.subtitle1" Class="fw-bold mb-4">
                         <MudIcon Icon="@Icons.Material.Filled.Person" Size="Size.Small" Class="me-1" />
-                        Account
+                        @L["account", "Account"]
                     </MudText>
                     <MudGrid Spacing="3">
                         <MudItem xs="12" sm="6">
-                            <MudTextField @bind-Value="_member.Username" Label="Username"
+                            <MudTextField @bind-Value="_member.Username" Label="@L["username", "Username"]"
                                           Variant="Variant.Outlined" Required="true"
-                                          RequiredError="Username is required." />
+                                          RequiredError="@L["required", "This field is required."]" />
                         </MudItem>
                         <MudItem xs="12" sm="6">
-                            <MudTextField @bind-Value="_member.Email" Label="Email"
+                            <MudTextField @bind-Value="_member.Email" Label="@L["email", "Email"]"
                                           Variant="Variant.Outlined" InputType="InputType.Email" Required="true"
-                                          RequiredError="Email is required." />
+                                          RequiredError="@L["required", "This field is required."]" />
                         </MudItem>
                         <MudItem xs="12" sm="6">
-                            <MudTextField @bind-Value="_password" Label="@(_isNew ? "Password" : "New Password (leave blank to keep)")"
+                            <MudTextField @bind-Value="_password" Label="@(_isNew ? L["password", "Password"] : L["password_change", "New Password (leave blank to keep)"])"
                                           Variant="Variant.Outlined" InputType="InputType.Password"
-                                          Required="@_isNew" RequiredError="Password is required." />
+                                          Required="@_isNew" RequiredError="@L["required", "This field is required."]" />
                         </MudItem>
                         <MudItem xs="12" sm="6">
                             @if (_isMaster && _isNew)
                             {
-                                <MudSelect T="int" @bind-Value="_member.WebsiteID" Label="Website"
+                                <MudSelect T="int" @bind-Value="_member.WebsiteID" Label="@L["website", "Website"]"
                                            Variant="Variant.Outlined" Required="true"
                                            SelectedValuesChanged="OnWebsiteChanged">
                                     @foreach (var w in _websites)
@@ -65,15 +66,15 @@ else if (_member is not null)
                             }
                             else
                             {
-                                <MudTextField Value="@($"#{_member.WebsiteID}")" Label="Website"
+                                <MudTextField Value="@($"#{_member.WebsiteID}")" Label="@L["website", "Website"]"
                                               Variant="Variant.Outlined" ReadOnly="true" Disabled="true" />
                             }
                         </MudItem>
                         <MudItem xs="12" sm="6">
-                            <MudSelect T="int" @bind-Value="_member.PolicyID" Label="Access Level"
+                            <MudSelect T="int" @bind-Value="_member.PolicyID" Label="@L["access_level", "Access Level"]"
                                        Variant="Variant.Outlined" Required="true"
-                                       RequiredError="Access level is required."
-                                       HelperText="@(_policies.Count == 0 ? "This website has no access levels yet." : null)">
+                                       RequiredError="@L["required", "This field is required."]"
+                                       HelperText="@(_policies.Count == 0 ? L["members.no_access_levels", "This website has no access levels yet."] : null)">
                                 @foreach (var p in _policies)
                                 {
                                     <MudSelectItem T="int" Value="@p.PolicyID">@p.Title</MudSelectItem>
@@ -88,32 +89,32 @@ else if (_member is not null)
                 <MudPaper Elevation="0" Class="border rounded-lg pa-6">
                     <MudText Typo="Typo.subtitle1" Class="fw-bold mb-4">
                         <MudIcon Icon="@Icons.Material.Filled.Badge" Size="Size.Small" Class="me-1" />
-                        Profile
+                        @L["profile", "Profile"]
                     </MudText>
                     <MudGrid Spacing="3">
                         <MudItem xs="12" sm="6">
-                            <MudTextField @bind-Value="_member.Givenname" Label="Given Name"
+                            <MudTextField @bind-Value="_member.Givenname" Label="@L["given_name", "Given Name"]"
                                           Variant="Variant.Outlined" Required="true"
-                                          RequiredError="Given name is required." />
+                                          RequiredError="@L["required", "This field is required."]" />
                         </MudItem>
                         <MudItem xs="12" sm="6">
-                            <MudTextField @bind-Value="_member.Surname" Label="Surname"
+                            <MudTextField @bind-Value="_member.Surname" Label="@L["surname", "Surname"]"
                                           Variant="Variant.Outlined" Required="true"
-                                          RequiredError="Surname is required." />
+                                          RequiredError="@L["required", "This field is required."]" />
                         </MudItem>
                         <MudItem xs="12" sm="4">
-                            <MudTextField @bind-Value="_member.CountryCode" Label="Country Code"
+                            <MudTextField @bind-Value="_member.CountryCode" Label="@L["country_code", "Country Code"]"
                                           Variant="Variant.Outlined" MaxLength="3" Placeholder="98" />
                         </MudItem>
                         <MudItem xs="12" sm="4">
-                            <MudTextField @bind-Value="_member.CellphoneNumber" Label="Cellphone"
+                            <MudTextField @bind-Value="_member.CellphoneNumber" Label="@L["cellphone", "Cellphone"]"
                                           Variant="Variant.Outlined" MaxLength="12" />
                         </MudItem>
                         <MudItem xs="12" sm="4">
-                            <MudSelect T="bool?" @bind-Value="_member.Gender" Label="Gender" Variant="Variant.Outlined">
+                            <MudSelect T="bool?" @bind-Value="_member.Gender" Label="@L["gender", "Gender"]" Variant="Variant.Outlined">
                                 <MudSelectItem T="bool?" Value="@((bool?)null)">—</MudSelectItem>
-                                <MudSelectItem T="bool?" Value="@((bool?)true)">Male</MudSelectItem>
-                                <MudSelectItem T="bool?" Value="@((bool?)false)">Female</MudSelectItem>
+                                <MudSelectItem T="bool?" Value="@((bool?)true)">@L["male", "Male"]</MudSelectItem>
+                                <MudSelectItem T="bool?" Value="@((bool?)false)">@L["female", "Female"]</MudSelectItem>
                             </MudSelect>
                         </MudItem>
                     </MudGrid>
@@ -123,7 +124,7 @@ else if (_member is not null)
             <MudItem xs="12">
                 <MudPaper Elevation="0" Class="border rounded-lg pa-6">
                     <MudSwitch T="bool" @bind-Value="_member.Active" Color="Color.Primary"
-                               Label="@(_member.Active ? "Active — can sign in" : "Inactive — cannot sign in")" />
+                               Label="@(_member.Active ? L["active_hint", "Active — can sign in"] : L["inactive_hint", "Inactive — cannot sign in"])" />
                 </MudPaper>
             </MudItem>
         </MudGrid>
@@ -136,11 +137,11 @@ else if (_member is not null)
                 {
                     <MudProgressCircular Size="Size.Small" Indeterminate="true" Class="me-2" />
                 }
-                @(_isNew ? "Create Member" : "Save Changes")
+                @(_isNew ? L["members.create", "Create Member"] : L["save", "Save Changes"])
             </MudButton>
             <MudButton Variant="Variant.Outlined" Color="Color.Default"
                        StartIcon="@Icons.Material.Filled.ArrowBack" Href="/members">
-                Cancel
+                @L["cancel", "Cancel"]
             </MudButton>
         </MudStack>
     </MudForm>
@@ -162,13 +163,15 @@ else if (_member is not null)
 
     private List<BreadcrumbItem> _breadcrumbs => new()
     {
-        new("Dashboard", "/"),
-        new("Members", "/members"),
-        new(_isNew ? "New" : $"#{Id}", null, true),
+        new(L["dashboard", "Dashboard"], "/"),
+        new(L["members", "Members"], "/members"),
+        new(_isNew ? L["new", "New"] : $"#{Id}", null, true),
     };
 
     protected override async Task OnInitializedAsync()
     {
+        await L.EnsureLoadedAsync();
+
         var state = await AuthState.GetAuthenticationStateAsync();
         var user = state.User;
         _isMaster = user.HasClaim(AdminClaimTypes.Master, "true");
@@ -220,7 +223,7 @@ else if (_member is not null)
 
         if (_member!.PolicyID == 0)
         {
-            Snackbar.Add("Select an access level. This website has none — create one first.", Severity.Warning);
+            Snackbar.Add(L["members.select_access_level", "Select an access level. This website has none — create one first."], Severity.Warning);
             return;
         }
 
@@ -230,20 +233,20 @@ else if (_member is not null)
             if (_isNew)
             {
                 await MemberService.CreateAsync(_member, _password);
-                Snackbar.Add("Member created successfully.", Severity.Success);
+                Snackbar.Add(L["members.created", "Member created successfully."], Severity.Success);
             }
             else
             {
                 await MemberService.UpdateAsync(_member);
                 if (!string.IsNullOrWhiteSpace(_password))
                     await MemberService.ChangePasswordAsync(_member.MemberID, _password);
-                Snackbar.Add("Changes saved successfully.", Severity.Success);
+                Snackbar.Add(L["saved", "Changes saved successfully."], Severity.Success);
             }
             Nav.NavigateTo("/members");
         }
         catch (Exception ex)
         {
-            Snackbar.Add($"Save failed: {ex.Message}", Severity.Error);
+            Snackbar.Add($"{L["save_failed", "Save failed"]}: {ex.Message}", Severity.Error);
         }
         finally
         {

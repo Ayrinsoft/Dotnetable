@@ -4,16 +4,17 @@
 @inject ILocationService LocationService
 @inject NavigationManager Nav
 @inject ISnackbar Snackbar
+@inject IPageLocalizer L
 
-<PageTitle>@(_isNew ? "New Country" : "Edit Country") — Dotnetable</PageTitle>
+<DNPageTitle Title=@(_isNew ? L["country.new", "New Country"] : L["country.edit", "Edit Country"]) />
 
 <MudBreadcrumbs Items="_breadcrumbs" Class="px-0 pb-2" />
 
 <MudStack Row="true" AlignItems="AlignItems.Center" Justify="Justify.SpaceBetween" Class="mb-4">
     <MudStack Spacing="0">
-        <MudText Typo="Typo.h5" Class="fw-bold">@(_isNew ? "New Country" : "Edit Country")</MudText>
+        <MudText Typo="Typo.h5" Class="fw-bold">@(_isNew ? L["country.new", "New Country"] : L["country.edit", "Edit Country"])</MudText>
         <MudText Typo="Typo.body2" Color="Color.Secondary">
-            @(_isNew ? "Add a new country to reference data" : $"Editing country #{Id}")
+            @(_isNew ? L["country.new_subtitle", "Add a new country to reference data"] : $"{L["country.editing", "Editing country"]} #{Id}")
         </MudText>
     </MudStack>
 </MudStack>
@@ -28,20 +29,20 @@ else if (_item is not null)
         <MudPaper Elevation="0" Class="border rounded-lg pa-6 mb-4">
             <MudGrid Spacing="3">
                 <MudItem xs="12" sm="4">
-                    <MudTextField @bind-Value="_item.Title" Label="Title" Variant="Variant.Outlined"
-                                  Required="true" RequiredError="Title is required." />
+                    <MudTextField @bind-Value="_item.Title" Label="@L["title", "Title"]" Variant="Variant.Outlined"
+                                  Required="true" RequiredError="@L["required", "This field is required."]" />
                 </MudItem>
                 <MudItem xs="12" sm="2">
-                    <MudTextField @bind-Value="_item.CountryCode" Label="Country Code (ISO 2)"
+                    <MudTextField @bind-Value="_item.CountryCode" Label="@L["country.code_iso", "Country Code (ISO 2)"]"
                                   Variant="Variant.Outlined" MaxLength="2" Required="true"
-                                  RequiredError="Country code is required." Placeholder="IR" />
+                                  RequiredError="@L["required", "This field is required."]" Placeholder="IR" />
                 </MudItem>
                 <MudItem xs="12" sm="2">
-                    <MudTextField @bind-Value="_item.LanguageCode" Label="Language Code"
+                    <MudTextField @bind-Value="_item.LanguageCode" Label="@L["language_code", "Language Code"]"
                                   Variant="Variant.Outlined" MaxLength="2" Placeholder="fa" />
                 </MudItem>
                 <MudItem xs="12" sm="2">
-                    <MudTextField @bind-Value="_item.PhonePerfix" Label="Phone Prefix"
+                    <MudTextField @bind-Value="_item.PhonePerfix" Label="@L["phone_prefix", "Phone Prefix"]"
                                   Variant="Variant.Outlined" MaxLength="3" Placeholder="98" />
                 </MudItem>
             </MudGrid>
@@ -55,12 +56,12 @@ else if (_item is not null)
                 {
                     <MudProgressCircular Size="Size.Small" Indeterminate="true" Class="me-2" />
                 }
-                @(_isNew ? "Create Country" : "Save Changes")
+                @(_isNew ? L["country.create", "Create Country"] : L["save", "Save Changes"])
             </MudButton>
             <MudButton Variant="Variant.Outlined" Color="Color.Default"
                        StartIcon="@Icons.Material.Filled.ArrowBack"
                        Href="/initial-data/countries">
-                Cancel
+                @L["cancel", "Cancel"]
             </MudButton>
         </MudStack>
     </MudForm>
@@ -77,13 +78,15 @@ else if (_item is not null)
 
     private List<BreadcrumbItem> _breadcrumbs => new()
     {
-        new("Dashboard", "/"),
-        new("Countries", "/initial-data/countries"),
-        new(_isNew ? "New" : $"#{Id}", null, true),
+        new(L["dashboard", "Dashboard"], "/"),
+        new(L["countries", "Countries"], "/initial-data/countries"),
+        new(_isNew ? L["new", "New"] : $"#{Id}", null, true),
     };
 
     protected override async Task OnInitializedAsync()
     {
+        await L.EnsureLoadedAsync();
+
         if (_isNew)
         {
             _item = new Country { CountryCode = string.Empty, LanguageCode = string.Empty, Title = string.Empty, PhonePerfix = string.Empty };
@@ -107,18 +110,18 @@ else if (_item is not null)
             if (_isNew)
             {
                 await LocationService.CreateCountryAsync(_item!);
-                Snackbar.Add("Country created successfully.", Severity.Success);
+                Snackbar.Add(L["country.created", "Country created successfully."], Severity.Success);
             }
             else
             {
                 await LocationService.UpdateCountryAsync(_item!);
-                Snackbar.Add("Changes saved successfully.", Severity.Success);
+                Snackbar.Add(L["saved", "Changes saved successfully."], Severity.Success);
             }
             Nav.NavigateTo("/initial-data/countries");
         }
         catch (Exception ex)
         {
-            Snackbar.Add($"Save failed: {ex.Message}", Severity.Error);
+            Snackbar.Add($"{L["save_failed", "Save failed"]}: {ex.Message}", Severity.Error);
         }
         finally { _saving = false; }
     }

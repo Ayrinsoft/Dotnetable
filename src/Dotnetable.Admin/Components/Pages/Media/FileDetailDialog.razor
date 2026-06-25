@@ -1,10 +1,11 @@
 @inject IFileService FileService
 @inject ISnackbar Snackbar
 @inject IJSRuntime JS
+@inject IPageLocalizer L
 
 <MudDialog>
     <TitleContent>
-        <MudText Typo="Typo.h6">File details</MudText>
+        <MudText Typo="Typo.h6">@L["media.file_details", "File details"]</MudText>
     </TitleContent>
     <DialogContent>
         @if (_file is null)
@@ -31,15 +32,15 @@
                     </MudText>
                 </MudItem>
                 <MudItem xs="12" sm="7">
-                    <MudTextField @bind-Value="_title" Label="Title" Variant="Variant.Outlined" Class="mb-3" />
-                    <MudTextField @bind-Value="_alt" Label="Alt text" Variant="Variant.Outlined" Class="mb-3" />
-                    <MudSelect T="int?" @bind-Value="_albumId" Label="Album" Variant="Variant.Outlined" Clearable="true" Class="mb-3">
+                    <MudTextField @bind-Value="_title" Label="@L["title", "Title"]" Variant="Variant.Outlined" Class="mb-3" />
+                    <MudTextField @bind-Value="_alt" Label="@L["media.alt_text", "Alt text"]" Variant="Variant.Outlined" Class="mb-3" />
+                    <MudSelect T="int?" @bind-Value="_albumId" Label="@L["media.album", "Album"]" Variant="Variant.Outlined" Clearable="true" Class="mb-3">
                         @foreach (var a in _albums)
                         {
                             <MudSelectItem T="int?" Value="a.FileAlbumID">@a.Name</MudSelectItem>
                         }
                     </MudSelect>
-                    <MudSelect T="int" @bind-SelectedValues="_tagIds" Label="Tags" Variant="Variant.Outlined"
+                    <MudSelect T="int" @bind-SelectedValues="_tagIds" Label="@L["media.tags", "Tags"]" Variant="Variant.Outlined"
                                MultiSelection="true" SelectAll="false">
                         @foreach (var t in _tags)
                         {
@@ -49,7 +50,7 @@
 
                     @if (!string.IsNullOrEmpty(_file.CNDUrl))
                     {
-                        <MudTextField Value="_file.CNDUrl" Label="CDN URL" Variant="Variant.Outlined" ReadOnly="true"
+                        <MudTextField Value="_file.CNDUrl" Label="@L["media.cdn_url", "CDN URL"]" Variant="Variant.Outlined" ReadOnly="true"
                                       Class="mt-3" Adornment="Adornment.End"
                                       AdornmentIcon="@Icons.Material.Filled.ContentCopy"
                                       OnAdornmentClick="CopyUrlAsync" />
@@ -59,10 +60,10 @@
         }
     </DialogContent>
     <DialogActions>
-        <MudButton Color="Color.Error" StartIcon="@Icons.Material.Filled.Delete" OnClick="DeleteAsync">Delete</MudButton>
+        <MudButton Color="Color.Error" StartIcon="@Icons.Material.Filled.Delete" OnClick="DeleteAsync">@L["delete", "Delete"]</MudButton>
         <MudSpacer />
-        <MudButton OnClick="Cancel">Cancel</MudButton>
-        <MudButton Color="Color.Primary" Variant="Variant.Filled" OnClick="SaveAsync" Disabled="@_busy">Save</MudButton>
+        <MudButton OnClick="Cancel">@L["cancel", "Cancel"]</MudButton>
+        <MudButton Color="Color.Primary" Variant="Variant.Filled" OnClick="SaveAsync" Disabled="@_busy">@L["save_short", "Save"]</MudButton>
     </DialogActions>
 </MudDialog>
 
@@ -82,6 +83,7 @@
 
     protected override async Task OnInitializedAsync()
     {
+        await L.EnsureLoadedAsync();
         _albums = await FileService.GetAlbumsAsync(WebsiteId);
         _tags = await FileService.GetTagsAsync(WebsiteId);
         _file = await FileService.GetByIdAsync(FileId);
@@ -101,10 +103,10 @@
         try
         {
             await FileService.UpdateMetadataAsync(_file.FileRecordID, _title, _alt, _albumId, _tagIds.ToList());
-            Snackbar.Add("Saved.", Severity.Success);
+            Snackbar.Add(L["saved_short", "Saved."], Severity.Success);
             MudDialog.Close(DialogResult.Ok(true));
         }
-        catch (Exception ex) { Snackbar.Add($"Save failed: {ex.Message}", Severity.Error); }
+        catch (Exception ex) { Snackbar.Add($"{L["save_failed", "Save failed"]}: {ex.Message}", Severity.Error); }
         finally { _busy = false; }
     }
 
@@ -112,7 +114,7 @@
     {
         if (_file is null) return;
         await FileService.SoftDeleteAsync(_file.FileRecordID);
-        Snackbar.Add("File removed.", Severity.Success);
+        Snackbar.Add(L["media.file_removed", "File removed."], Severity.Success);
         MudDialog.Close(DialogResult.Ok(true));
     }
 
@@ -121,7 +123,7 @@
         try
         {
             await JS.InvokeVoidAsync("navigator.clipboard.writeText", _file?.CNDUrl ?? "");
-            Snackbar.Add("URL copied.", Severity.Info);
+            Snackbar.Add(L["media.url_copied", "URL copied."], Severity.Info);
         }
         catch { /* clipboard unavailable */ }
     }

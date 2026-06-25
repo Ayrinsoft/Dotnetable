@@ -3,19 +3,20 @@
 @inject IPolicyService PolicyService
 @inject AuthenticationStateProvider AuthState
 @inject ISnackbar Snackbar
+@inject IPageLocalizer L
 
-<PageTitle>Access Levels — Dotnetable</PageTitle>
+<DNPageTitle Title=@L["access_levels", "Access Levels"] />
 
 <MudStack Row="true" AlignItems="AlignItems.Center" Justify="Justify.SpaceBetween" Class="mb-4">
     <MudStack Spacing="0">
-        <MudText Typo="Typo.h5" Class="fw-bold">Access Levels</MudText>
+        <MudText Typo="Typo.h5" Class="fw-bold">@L["access_levels", "Access Levels"]</MudText>
         <MudText Typo="Typo.body2" Color="Color.Secondary">
-            @(_isMaster ? "Access levels across all websites" : "Access levels of your website")
+            @(_isMaster ? L["policy.subtitle_all", "Access levels across all websites"] : L["policy.subtitle_own", "Access levels of your website"])
         </MudText>
     </MudStack>
     <MudButton Variant="Variant.Filled" Color="Color.Primary"
                StartIcon="@Icons.Material.Filled.Add" Href="/policies/new">
-        New Access Level
+        @L["policy.new", "New Access Level"]
     </MudButton>
 </MudStack>
 
@@ -29,7 +30,7 @@
         {
             <tr>
                 <td colspan="@_colCount" style="text-align:center; padding:32px;">
-                    <MudText Color="Color.Secondary">No access levels found.</MudText>
+                    <MudText Color="Color.Secondary">@L["policy.empty", "No access levels found."]</MudText>
                 </td>
             </tr>
         }
@@ -71,6 +72,8 @@
 
     protected override async Task OnInitializedAsync()
     {
+        await L.EnsureLoadedAsync();
+
         var state = await AuthState.GetAuthenticationStateAsync();
         var user = state.User;
         _isMaster = user.HasClaim(AdminClaimTypes.Master, "true");
@@ -82,19 +85,19 @@
             HeaderItems = new()
             {
                 new() { ColumnTitle = "", ColumnName = "" },
-                new() { ColumnTitle = "ID", ColumnName = nameof(Policy.PolicyID), HasSort = true },
-                new() { ColumnTitle = "Title", ColumnName = nameof(Policy.Title), HasSort = true, HasSearch = true },
+                new() { ColumnTitle = L["id", "ID"], ColumnName = nameof(Policy.PolicyID), HasSort = true },
+                new() { ColumnTitle = L["title", "Title"], ColumnName = nameof(Policy.Title), HasSort = true, HasSearch = true },
             }
         };
         if (_isMaster)
-            _grid.HeaderItems.Add(new() { ColumnTitle = "Website", ColumnName = nameof(Policy.WebsiteID), HasSort = true });
+            _grid.HeaderItems.Add(new() { ColumnTitle = L["website", "Website"], ColumnName = nameof(Policy.WebsiteID), HasSort = true });
         _grid.HeaderItems.Add(new()
         {
-            ColumnTitle = "Status",
+            ColumnTitle = L["status", "Status"],
             ColumnName = nameof(Policy.Active),
             HasSearch = true,
             SearchType = SearchColumnType.DropDown,
-            OtherDropDownValues = new() { ["Active"] = "true", ["Inactive"] = "false" }
+            OtherDropDownValues = new() { [L["active", "Active"]] = "true", [L["inactive", "Inactive"]] = "false" }
         });
 
         await LoadAsync();

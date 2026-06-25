@@ -4,24 +4,44 @@
 @inject ILocalizationService LocalizationService
 @inject AuthenticationStateProvider AuthState
 @inject ISnackbar Snackbar
+@inject IJSRuntime JS
+@inject IPageLocalizer L
 
-<PageTitle>Translations — Dotnetable</PageTitle>
+<DNPageTitle Title=@L["translations", "Translations"] />
 
 @* ── Page header ──────────────────────────────────────────────── *@
 <MudStack Row="true" AlignItems="AlignItems.Center" Justify="Justify.SpaceBetween" Class="mb-4">
     <MudStack Spacing="0">
-        <MudText Typo="Typo.h5" Class="fw-bold">Translations</MudText>
-        <MudText Typo="Typo.body2" Color="Color.Secondary">Edit UI text for each language</MudText>
+        <MudText Typo="Typo.h5" Class="fw-bold">@L["translations", "Translations"]</MudText>
+        <MudText Typo="Typo.body2" Color="Color.Secondary">@L["translation.subtitle", "Edit UI text for each language"]</MudText>
     </MudStack>
-    <MudSelect T="string" Value="_languageCode" ValueChanged="OnLanguageChanged" Label="Language"
-               Variant="Variant.Outlined" Margin="Margin.Dense"
-               Style="width:150px;" AnchorOrigin="Origin.BottomLeft">
-        @foreach (var lang in _languages)
-        {
-            <MudSelectItem T="string" Value="@lang.Code">@lang.Label</MudSelectItem>
-        }
-    </MudSelect>
+    <MudStack Row="true" AlignItems="AlignItems.Center" Spacing="2">
+        <MudSelect T="string" Value="_languageCode" ValueChanged="OnLanguageChanged" Label="@L["language", "Language"]"
+                   Variant="Variant.Outlined" Margin="Margin.Dense"
+                   Style="width:150px;" AnchorOrigin="Origin.BottomLeft">
+            @foreach (var lang in _languages)
+            {
+                <MudSelectItem T="string" Value="@lang.Code">@lang.Label</MudSelectItem>
+            }
+        </MudSelect>
+        <MudMenu Label="@L["translation.export", "Export CSV"]" Variant="Variant.Outlined" Color="Color.Primary"
+                 StartIcon="@Icons.Material.Filled.Download" EndIcon="@Icons.Material.Filled.ArrowDropDown"
+                 Disabled="_busy">
+            <MudMenuItem OnClick="@(() => ExportAsync(false))">@L["translation.export_all", "All keys"]</MudMenuItem>
+            <MudMenuItem OnClick="@(() => ExportAsync(true))">@L["translation.export_untranslated", "Untranslated only"]</MudMenuItem>
+        </MudMenu>
+        <MudFileUpload T="IBrowserFile" FilesChanged="ImportAsync" Accept=".csv" Class="d-inline-flex">
+            <ActivatorContent>
+                <MudButton Variant="Variant.Filled" Color="Color.Primary" StartIcon="@Icons.Material.Filled.Upload"
+                           Disabled="_busy">@L["translation.import", "Import CSV"]</MudButton>
+            </ActivatorContent>
+        </MudFileUpload>
+    </MudStack>
 </MudStack>
+
+<MudText Typo="Typo.caption" Color="Color.Secondary" Class="d-block mb-3">
+    @L["translation.hint", "Export downloads a Key,Default,Value CSV for the selected language. Translate the Value column (e.g. with Google Translate or in a spreadsheet), keep the Key column unchanged, then import it back here."]
+</MudText>
 
 <MudPaper Elevation="0" Class="app-card rounded-lg pa-4">
     @if (_loading)
@@ -33,7 +53,7 @@
         {
             <tr>
                 <td colspan="2" style="text-align:center; padding:32px;">
-                    <MudText Color="Color.Secondary">No translations found for "<b>@_languageCode</b>".</MudText>
+                    <MudText Color="Color.Secondary">@($"{L["translation.empty", "No translations found for"]} \"{_languageCode}\".")</MudText>
                 </td>
             </tr>
         }
@@ -56,19 +76,14 @@
 
 @code {
     private bool _loading = true;
+    private bool _busy;
     private int _websiteId;
     private string _languageCode = "en";
     private List<TranslationEntry> _translations = new();
 
-    private GridViewHeaderParameters _grid = new()
-    {
-        Pagination = new PaginationModel { PageSize = 25 },
-        HeaderItems = new()
-        {
-            new() { ColumnTitle = "Key", ColumnName = "Key", HasSort = true, HasSearch = true },
-            new() { ColumnTitle = "Value", ColumnName = "Value", HasSearch = true },
-        }
-    };
+    private const long MaxImportBytes = 16L * 1024 * 1024; // 16 MB
+
+    private GridViewHeaderParameters _grid = new();
 
     private static readonly (string Code, string Label)[] _languages =
     [
@@ -83,6 +98,18 @@
 
     protected override async Task OnInitializedAsync()
     {
+        await L.EnsureLoadedAsync();
+
+        _grid = new GridViewHeaderParameters
+        {
+            Pagination = new PaginationModel { PageSize = 25 },
+            HeaderItems = new()
+            {
+                new() { ColumnTitle = L["key", "Key"], ColumnName = "Key", HasSort = true, HasSearch = true },
+                new() { ColumnTitle = L["value", "Value"], ColumnName = "Value", HasSearch = true },
+            }
+        };
+
         var state = await AuthState.GetAuthenticationStateAsync();
         int.TryParse(state.User.FindFirst(AdminClaimTypes.WebsiteId)?.Value, out _websiteId);
         await LoadAsync();
@@ -104,6 +131,55 @@
         _translations = result.Items.ToList();
         _grid.Pagination.MaxLength = result.TotalCount;
         _loading = false;
+    }
+
+    private async Task ExportAsync(bool untranslatedOnly)
+    {
+        _busy = true;
+        try
+        {
+            var bytes = await LocalizationService.ExportCsvAsync(_websiteId, _languageCode, untranslatedOnly);
+            var suffix = untranslatedOnly ? "-untranslated" : "";
+            var fileName = $"translations-{_languageCode}{suffix}.csv";
+            await JS.InvokeVoidAsync("dotnetableFile.download", fileName, Convert.ToBase64String(bytes), "text/csv");
+        }
+        catch (Exception ex)
+        {
+            Snackbar.Add($"Export failed: {ex.Message}", Severity.Error);
+        }
+        finally { _busy = false; }
+    }
+
+    private async Task ImportAsync(IBrowserFile? file)
+    {
+        if (file is null) return;
+        _busy = true;
+        try
+        {
+            await using var stream = file.OpenReadStream(MaxImportBytes);
+            // Buffer to a seekable stream so the parser can read it fully.
+            using var buffer = new MemoryStream();
+            await stream.CopyToAsync(buffer);
+            buffer.Position = 0;
+
+            var result = await LocalizationService.ImportCsvAsync(_websiteId, _languageCode, buffer);
+
+            var summary = $"Imported \"{_languageCode}\": {result.Added} added, {result.Updated} updated, "
+                        + $"{result.Unchanged} unchanged, {result.Skipped} skipped.";
+            Snackbar.Add(summary, result.HasErrors ? Severity.Warning : Severity.Success);
+            foreach (var error in result.Errors.Take(5))
+                Snackbar.Add(error, Severity.Warning);
+            if (result.Errors.Count > 5)
+                Snackbar.Add($"…and {result.Errors.Count - 5} more issue(s).", Severity.Warning);
+
+            _grid.Pagination.PageIndex = 1;
+            await LoadAsync();
+        }
+        catch (Exception ex)
+        {
+            Snackbar.Add($"Import failed: {ex.Message}", Severity.Error);
+        }
+        finally { _busy = false; }
     }
 
     private async Task SaveAsync(string key, string value)

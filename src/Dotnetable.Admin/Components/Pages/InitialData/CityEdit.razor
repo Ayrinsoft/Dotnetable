@@ -4,16 +4,17 @@
 @inject ILocationService LocationService
 @inject NavigationManager Nav
 @inject ISnackbar Snackbar
+@inject IPageLocalizer L
 
-<PageTitle>@(_isNew ? "New City" : "Edit City") — Dotnetable</PageTitle>
+<DNPageTitle Title=@(_isNew ? L["city.new", "New City"] : L["city.edit", "Edit City"]) />
 
 <MudBreadcrumbs Items="_breadcrumbs" Class="px-0 pb-2" />
 
 <MudStack Row="true" AlignItems="AlignItems.Center" Justify="Justify.SpaceBetween" Class="mb-4">
     <MudStack Spacing="0">
-        <MudText Typo="Typo.h5" Class="fw-bold">@(_isNew ? "New City" : "Edit City")</MudText>
+        <MudText Typo="Typo.h5" Class="fw-bold">@(_isNew ? L["city.new", "New City"] : L["city.edit", "Edit City"])</MudText>
         <MudText Typo="Typo.body2" Color="Color.Secondary">
-            @(_isNew ? "Add a new city to reference data" : $"Editing city #{Id}")
+            @(_isNew ? L["city.new_subtitle", "Add a new city to reference data"] : $"{L["city.editing", "Editing city"]} #{Id}")
         </MudText>
     </MudStack>
 </MudStack>
@@ -28,11 +29,11 @@ else if (_item is not null)
         <MudPaper Elevation="0" Class="border rounded-lg pa-6 mb-4">
             <MudGrid Spacing="3">
                 <MudItem xs="12" sm="4">
-                    <MudTextField @bind-Value="_item.Title" Label="City Name" Variant="Variant.Outlined"
-                                  Required="true" RequiredError="City name is required." />
+                    <MudTextField @bind-Value="_item.Title" Label="@L["city.name", "City Name"]" Variant="Variant.Outlined"
+                                  Required="true" RequiredError="@L["required", "This field is required."]" />
                 </MudItem>
                 <MudItem xs="12" sm="3">
-                    <MudSelect T="int" @bind-Value="_item.CountryID" Label="Country"
+                    <MudSelect T="int" @bind-Value="_item.CountryID" Label="@L["country", "Country"]"
                                Variant="Variant.Outlined" Required="true"
                                SelectedValuesChanged="OnCountryChanged">
                         @foreach (var c in _countries)
@@ -42,7 +43,7 @@ else if (_item is not null)
                     </MudSelect>
                 </MudItem>
                 <MudItem xs="12" sm="3">
-                    <MudSelect T="int?" @bind-Value="_item.StateID" Label="State (optional)"
+                    <MudSelect T="int?" @bind-Value="_item.StateID" Label="@L["city.state_optional", "State (optional)"]"
                                Variant="Variant.Outlined" Clearable="true">
                         @foreach (var s in _states)
                         {
@@ -51,20 +52,20 @@ else if (_item is not null)
                     </MudSelect>
                 </MudItem>
                 <MudItem xs="12" sm="2">
-                    <MudTextField @bind-Value="_item.LanguageCode" Label="Language Code"
+                    <MudTextField @bind-Value="_item.LanguageCode" Label="@L["language_code", "Language Code"]"
                                   Variant="Variant.Outlined" MaxLength="2" Placeholder="fa" />
                 </MudItem>
                 <MudItem xs="12" sm="3">
-                    <MudNumericField T="double?" @bind-Value="_item.Latitude" Label="Latitude"
+                    <MudNumericField T="double?" @bind-Value="_item.Latitude" Label="@L["latitude", "Latitude"]"
                                      Variant="Variant.Outlined" />
                 </MudItem>
                 <MudItem xs="12" sm="3">
-                    <MudNumericField T="double" @bind-Value="_item.Longitude" Label="Longitude"
+                    <MudNumericField T="double" @bind-Value="_item.Longitude" Label="@L["longitude", "Longitude"]"
                                      Variant="Variant.Outlined" />
                 </MudItem>
                 <MudItem xs="12" sm="2">
                     <MudSwitch T="bool" @bind-Value="_item.Active" Color="Color.Primary"
-                               Label="@(_item.Active ? "Active" : "Inactive")" />
+                               Label="@(_item.Active ? L["active", "Active"] : L["inactive", "Inactive"])" />
                 </MudItem>
             </MudGrid>
         </MudPaper>
@@ -77,12 +78,12 @@ else if (_item is not null)
                 {
                     <MudProgressCircular Size="Size.Small" Indeterminate="true" Class="me-2" />
                 }
-                @(_isNew ? "Create City" : "Save Changes")
+                @(_isNew ? L["city.create", "Create City"] : L["save", "Save Changes"])
             </MudButton>
             <MudButton Variant="Variant.Outlined" Color="Color.Default"
                        StartIcon="@Icons.Material.Filled.ArrowBack"
                        Href="/initial-data/cities">
-                Cancel
+                @L["cancel", "Cancel"]
             </MudButton>
         </MudStack>
     </MudForm>
@@ -101,13 +102,15 @@ else if (_item is not null)
 
     private List<BreadcrumbItem> _breadcrumbs => new()
     {
-        new("Dashboard", "/"),
-        new("Cities", "/initial-data/cities"),
-        new(_isNew ? "New" : $"#{Id}", null, true),
+        new(L["dashboard", "Dashboard"], "/"),
+        new(L["cities", "Cities"], "/initial-data/cities"),
+        new(_isNew ? L["new", "New"] : $"#{Id}", null, true),
     };
 
     protected override async Task OnInitializedAsync()
     {
+        await L.EnsureLoadedAsync();
+
         _countries = (await LocationService.GetAllCountriesAsync()).ToList();
 
         if (_isNew)
@@ -150,18 +153,18 @@ else if (_item is not null)
             if (_isNew)
             {
                 await LocationService.CreateCityAsync(_item!);
-                Snackbar.Add("City created successfully.", Severity.Success);
+                Snackbar.Add(L["city.created", "City created successfully."], Severity.Success);
             }
             else
             {
                 await LocationService.UpdateCityAsync(_item!);
-                Snackbar.Add("Changes saved successfully.", Severity.Success);
+                Snackbar.Add(L["saved", "Changes saved successfully."], Severity.Success);
             }
             Nav.NavigateTo("/initial-data/cities");
         }
         catch (Exception ex)
         {
-            Snackbar.Add($"Save failed: {ex.Message}", Severity.Error);
+            Snackbar.Add($"{L["save_failed", "Save failed"]}: {ex.Message}", Severity.Error);
         }
         finally { _saving = false; }
     }

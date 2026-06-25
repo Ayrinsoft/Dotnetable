@@ -45,6 +45,9 @@ public static class ServiceCollectionExtensions
             sp.GetRequiredService<IDbContextFactory<AppDbContext>>().CreateDbContext());
 
         services.AddSingleton<TranslationCache>();
+        // Self-registering localization keys: pages buffer unknown keys, a background service inserts them.
+        services.AddSingleton<PendingTranslationKeys>();
+        services.AddHostedService<TranslationKeyFlushService>();
         services.AddScoped(typeof(IRepository<>), typeof(GenericRepository<>));
         services.AddScoped<IUnitOfWork, UnitOfWork>();
         services.AddScoped<ILocalizationService, LocalizationService>();

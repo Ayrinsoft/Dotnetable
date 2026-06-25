@@ -1,91 +1,97 @@
+@inject IPageLocalizer L
+
 <MudNavMenu Class="pt-1">
 
-    <span class="app-nav-label">Navigation</span>
+    <span class="app-nav-label">@L["nav.navigation", "Navigation"]</span>
     <MudNavLink Href="/" Match="NavLinkMatch.All" Icon="@Icons.Material.Filled.Dashboard">
-        Dashboard
+        @L["dashboard", "Dashboard"]
     </MudNavLink>
 
     <AuthorizeView Policy="@AdminPolicies.WebsiteAdminOrAbove">
-        <span class="app-nav-label">Management</span>
-        <MudNavGroup Title="User Management" Icon="@Icons.Material.Filled.People" Expanded="true">
+        <span class="app-nav-label">@L["nav.management", "Management"]</span>
+        <MudNavGroup Title="@L["nav.user_management", "User Management"]" Icon="@Icons.Material.Filled.People" Expanded="true">
             <MudNavLink Href="/members" Icon="@Icons.Material.Filled.PersonOutline">
-                Members
+                @L["members", "Members"]
             </MudNavLink>
             <MudNavLink Href="/policies" Icon="@Icons.Material.Filled.Shield">
-                Access Levels
+                @L["access_levels", "Access Levels"]
             </MudNavLink>
             <AuthorizeView Policy="@AdminPolicies.SuperAdminOnly" Context="roles">
                 <MudNavLink Href="/roles" Icon="@Icons.Material.Filled.VpnKey">
-                    Roles
+                    @L["roles", "Roles"]
                 </MudNavLink>
             </AuthorizeView>
             <MudNavLink Href="/login-logs" Icon="@Icons.Material.Filled.History">
-                Login Logs
+                @L["login_logs", "Login Logs"]
             </MudNavLink>
         </MudNavGroup>
 
-        <MudNavGroup Title="Website" Icon="@Icons.Material.Filled.WebAsset">
+        <MudNavGroup Title="@L["website", "Website"]" Icon="@Icons.Material.Filled.WebAsset">
             <MudNavLink Href="/website/ips" Icon="@Icons.Material.Filled.Security">
-                IP Whitelist
+                @L["ip_whitelist", "IP Whitelist"]
             </MudNavLink>
             <MudNavLink Href="/website/scripts" Icon="@Icons.Material.Filled.Code">
-                Scripts
+                @L["scripts", "Scripts"]
             </MudNavLink>
             <MudNavLink Href="/website/seo" Icon="@Icons.Material.Filled.Search">
-                SEO Settings
+                @L["seo_settings", "SEO Settings"]
             </MudNavLink>
             <MudNavLink Href="/website/social" Icon="@Icons.Material.Filled.Share">
-                Social Links
+                @L["social_links", "Social Links"]
             </MudNavLink>
         </MudNavGroup>
 
-        <MudNavGroup Title="Messages" Icon="@Icons.Material.Filled.Message">
+        <MudNavGroup Title="@L["messages", "Messages"]" Icon="@Icons.Material.Filled.Message">
             <MudNavLink Href="/messages/contacts" Icon="@Icons.Material.Filled.ContactMail">
-                Contact Messages
+                @L["contact_messages", "Contact Messages"]
             </MudNavLink>
             <MudNavLink Href="/messages/email" Icon="@Icons.Material.Filled.Email">
-                Email Settings
+                @L["email_settings", "Email Settings"]
             </MudNavLink>
         </MudNavGroup>
 
         <MudNavLink Href="/translations" Icon="@Icons.Material.Filled.Translate">
-            Translations
+            @L["translations", "Translations"]
         </MudNavLink>
-        <MudNavGroup Title="Media" Icon="@Icons.Material.Filled.PermMedia">
+        <MudNavGroup Title="@L["media", "Media"]" Icon="@Icons.Material.Filled.PermMedia">
             <MudNavLink Href="/media" Icon="@Icons.Material.Filled.PhotoLibrary">
-                Media Library
+                @L["media_library", "Media Library"]
             </MudNavLink>
             <MudNavLink Href="/media/storage" Icon="@Icons.Material.Filled.Cloud">
-                Storage
+                @L["storage", "Storage"]
             </MudNavLink>
         </MudNavGroup>
     </AuthorizeView>
 
     <AuthorizeView Policy="@AdminPolicies.SuperAdminOnly">
-        <span class="app-nav-label">Administration</span>
+        <span class="app-nav-label">@L["nav.administration", "Administration"]</span>
         <MudNavLink Href="/websites" Icon="@Icons.Material.Filled.Language">
-            Websites
+            @L["websites", "Websites"]
         </MudNavLink>
 
-        <MudNavGroup Title="Initial Data" Icon="@Icons.Material.Filled.Storage">
+        <MudNavGroup Title="@L["initial_data", "Initial Data"]" Icon="@Icons.Material.Filled.Storage">
             <MudNavLink Href="/initial-data/countries" Icon="@Icons.Material.Filled.Flag">
-                Countries
+                @L["countries", "Countries"]
             </MudNavLink>
             <MudNavLink Href="/initial-data/states" Icon="@Icons.Material.Filled.Map">
-                States / Provinces
+                @L["states", "States / Provinces"]
             </MudNavLink>
             <MudNavLink Href="/initial-data/cities" Icon="@Icons.Material.Filled.LocationCity">
-                Cities
+                @L["cities", "Cities"]
             </MudNavLink>
         </MudNavGroup>
 
-        <span class="app-nav-label">System</span>
+        <span class="app-nav-label">@L["nav.system", "System"]</span>
         <MudNavLink Href="/system/updates" Icon="@Icons.Material.Filled.SystemUpdateAlt">
-            DB Updates
+            @L["db_updates", "DB Updates"]
         </MudNavLink>
         <MudNavLink Href="/settings" Icon="@Icons.Material.Filled.Settings">
-            Settings
+            @L["settings", "Settings"]
         </MudNavLink>
     </AuthorizeView>
 
 </MudNavMenu>
+
+@code {
+    protected override async Task OnInitializedAsync() => await L.EnsureLoadedAsync();
+}

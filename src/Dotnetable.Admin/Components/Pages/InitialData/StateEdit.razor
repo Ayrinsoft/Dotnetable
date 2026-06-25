@@ -4,16 +4,17 @@
 @inject ILocationService LocationService
 @inject NavigationManager Nav
 @inject ISnackbar Snackbar
+@inject IPageLocalizer L
 
-<PageTitle>@(_isNew ? "New State" : "Edit State") — Dotnetable</PageTitle>
+<DNPageTitle Title=@(_isNew ? L["state.new", "New State"] : L["state.edit", "Edit State"]) />
 
 <MudBreadcrumbs Items="_breadcrumbs" Class="px-0 pb-2" />
 
 <MudStack Row="true" AlignItems="AlignItems.Center" Justify="Justify.SpaceBetween" Class="mb-4">
     <MudStack Spacing="0">
-        <MudText Typo="Typo.h5" Class="fw-bold">@(_isNew ? "New State" : "Edit State")</MudText>
+        <MudText Typo="Typo.h5" Class="fw-bold">@(_isNew ? L["state.new", "New State"] : L["state.edit", "Edit State"])</MudText>
         <MudText Typo="Typo.body2" Color="Color.Secondary">
-            @(_isNew ? "Add a new state or province" : $"Editing state #{Id}")
+            @(_isNew ? L["state.new_subtitle", "Add a new state or province"] : $"{L["state.editing", "Editing state"]} #{Id}")
         </MudText>
     </MudStack>
 </MudStack>
@@ -28,12 +29,12 @@ else if (_item is not null)
         <MudPaper Elevation="0" Class="border rounded-lg pa-6 mb-4">
             <MudGrid Spacing="3">
                 <MudItem xs="12" sm="5">
-                    <MudTextField @bind-Value="_item.Tile" Label="Name" Variant="Variant.Outlined"
-                                  Required="true" RequiredError="Name is required." />
+                    <MudTextField @bind-Value="_item.Tile" Label="@L["name", "Name"]" Variant="Variant.Outlined"
+                                  Required="true" RequiredError="@L["required", "This field is required."]" />
                 </MudItem>
                 <MudItem xs="12" sm="3">
-                    <MudSelect T="int" @bind-Value="_item.CountryID" Label="Country"
-                               Variant="Variant.Outlined" Required="true" RequiredError="Country is required.">
+                    <MudSelect T="int" @bind-Value="_item.CountryID" Label="@L["country", "Country"]"
+                               Variant="Variant.Outlined" Required="true" RequiredError="@L["required", "This field is required."]">
                         @foreach (var c in _countries)
                         {
                             <MudSelectItem T="int" Value="@c.CountryID">@c.Title</MudSelectItem>
@@ -41,12 +42,12 @@ else if (_item is not null)
                     </MudSelect>
                 </MudItem>
                 <MudItem xs="12" sm="2">
-                    <MudTextField @bind-Value="_item.LanguageCode" Label="Language Code"
+                    <MudTextField @bind-Value="_item.LanguageCode" Label="@L["language_code", "Language Code"]"
                                   Variant="Variant.Outlined" MaxLength="2" Placeholder="fa" />
                 </MudItem>
                 <MudItem xs="12" sm="2">
                     <MudSwitch T="bool" @bind-Value="_item.Active" Color="Color.Primary"
-                               Label="@(_item.Active ? "Active" : "Inactive")" />
+                               Label="@(_item.Active ? L["active", "Active"] : L["inactive", "Inactive"])" />
                 </MudItem>
             </MudGrid>
         </MudPaper>
@@ -59,12 +60,12 @@ else if (_item is not null)
                 {
                     <MudProgressCircular Size="Size.Small" Indeterminate="true" Class="me-2" />
                 }
-                @(_isNew ? "Create State" : "Save Changes")
+                @(_isNew ? L["state.create", "Create State"] : L["save", "Save Changes"])
             </MudButton>
             <MudButton Variant="Variant.Outlined" Color="Color.Default"
                        StartIcon="@Icons.Material.Filled.ArrowBack"
                        Href="/initial-data/states">
-                Cancel
+                @L["cancel", "Cancel"]
             </MudButton>
         </MudStack>
     </MudForm>
@@ -82,13 +83,15 @@ else if (_item is not null)
 
     private List<BreadcrumbItem> _breadcrumbs => new()
     {
-        new("Dashboard", "/"),
-        new("States", "/initial-data/states"),
-        new(_isNew ? "New" : $"#{Id}", null, true),
+        new(L["dashboard", "Dashboard"], "/"),
+        new(L["states", "States / Provinces"], "/initial-data/states"),
+        new(_isNew ? L["new", "New"] : $"#{Id}", null, true),
     };
 
     protected override async Task OnInitializedAsync()
     {
+        await L.EnsureLoadedAsync();
+
         _countries = (await LocationService.GetAllCountriesAsync()).ToList();
 
         if (_isNew)
@@ -120,18 +123,18 @@ else if (_item is not null)
             if (_isNew)
             {
                 await LocationService.CreateStateAsync(_item!);
-                Snackbar.Add("State created successfully.", Severity.Success);
+                Snackbar.Add(L["state.created", "State created successfully."], Severity.Success);
             }
             else
             {
                 await LocationService.UpdateStateAsync(_item!);
-                Snackbar.Add("Changes saved successfully.", Severity.Success);
+                Snackbar.Add(L["saved", "Changes saved successfully."], Severity.Success);
             }
             Nav.NavigateTo("/initial-data/states");
         }
         catch (Exception ex)
         {
-            Snackbar.Add($"Save failed: {ex.Message}", Severity.Error);
+            Snackbar.Add($"{L["save_failed", "Save failed"]}: {ex.Message}", Severity.Error);
         }
         finally { _saving = false; }
     }

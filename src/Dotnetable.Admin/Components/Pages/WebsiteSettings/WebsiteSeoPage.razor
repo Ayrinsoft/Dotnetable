@@ -4,18 +4,19 @@
 @inject IWebsiteService WebsiteService
 @inject AuthenticationStateProvider AuthState
 @inject ISnackbar Snackbar
+@inject IPageLocalizer L
 
-<PageTitle>SEO Settings — Dotnetable</PageTitle>
+<DNPageTitle Title=@L["seo_settings", "SEO Settings"] />
 
 <MudStack Spacing="0" Class="mb-6">
     <MudStack Row="true" AlignItems="AlignItems.Center" Justify="Justify.SpaceBetween">
         <MudStack Spacing="0">
-            <MudText Typo="Typo.h5" Class="fw-bold">SEO Settings</MudText>
-            <MudText Typo="Typo.body2" Color="Color.Secondary">Search engine optimization configuration</MudText>
+            <MudText Typo="Typo.h5" Class="fw-bold">@L["seo_settings", "SEO Settings"]</MudText>
+            <MudText Typo="Typo.body2" Color="Color.Secondary">@L["seo.subtitle", "Search engine optimization configuration"]</MudText>
         </MudStack>
         @if (_isMaster)
         {
-            <MudSelect T="int" @bind-Value="_websiteId" Label="Website" Variant="Variant.Outlined"
+            <MudSelect T="int" @bind-Value="_websiteId" Label="@L["website", "Website"]" Variant="Variant.Outlined"
                        Dense="true" Style="min-width:180px"
                        SelectedValuesChanged="OnWebsiteChanged">
                 @foreach (var w in _websites)
@@ -38,23 +39,23 @@ else
             <MudPaper Elevation="0" Class="border rounded-lg pa-6">
                 <MudText Typo="Typo.subtitle1" Class="fw-bold mb-4">
                     <MudIcon Icon="@Icons.Material.Filled.Search" Size="Size.Small" Class="me-1" />
-                    Meta Tags
+                    @L["seo.section.meta", "Meta Tags"]
                 </MudText>
                 <MudGrid Spacing="3">
                     <MudItem xs="12" sm="8">
-                        <MudTextField @bind-Value="_setting.DefaultMetaTitle" Label="Default Meta Title"
+                        <MudTextField @bind-Value="_setting.DefaultMetaTitle" Label="@L["seo.meta_title", "Default Meta Title"]"
                                       Variant="Variant.Outlined" MaxLength="40"
-                                      HelperText="Used when page has no title. E.g. 'Page | SiteName'" />
+                                      HelperText="@L["seo.meta_title_hint", "Used when page has no title. E.g. 'Page | SiteName'"]" />
                     </MudItem>
                     <MudItem xs="12" sm="4">
-                        <MudTextField @bind-Value="_setting.TitleSeparator" Label="Title Separator"
+                        <MudTextField @bind-Value="_setting.TitleSeparator" Label="@L["seo.title_separator", "Title Separator"]"
                                       Variant="Variant.Outlined" MaxLength="3"
-                                      Placeholder=" | " HelperText="Between page and site name" />
+                                      Placeholder=" | " HelperText="@L["seo.title_separator_hint", "Between page and site name"]" />
                     </MudItem>
                     <MudItem xs="12">
-                        <MudTextField @bind-Value="_setting.DefaultMetaDescription" Label="Default Meta Description"
+                        <MudTextField @bind-Value="_setting.DefaultMetaDescription" Label="@L["seo.meta_description", "Default Meta Description"]"
                                       Variant="Variant.Outlined" Lines="3" MaxLength="158"
-                                      HelperText="Shown in search results when page has no description (max 158 chars)" />
+                                      HelperText="@L["seo.meta_description_hint", "Shown in search results when page has no description (max 158 chars)"]" />
                     </MudItem>
                 </MudGrid>
             </MudPaper>
@@ -64,12 +65,12 @@ else
             <MudPaper Elevation="0" Class="border rounded-lg pa-6">
                 <MudText Typo="Typo.subtitle1" Class="fw-bold mb-4">
                     <MudIcon Icon="@Icons.Material.Filled.Settings" Size="Size.Small" Class="me-1" />
-                    Options
+                    @L["options", "Options"]
                 </MudText>
                 <MudSwitch T="bool" @bind-Value="_setting.SitemapEnabled" Color="Color.Primary"
-                           Label="Enable Sitemap (sitemap.xml)" Class="mb-2" />
+                           Label="@L["seo.enable_sitemap", "Enable Sitemap (sitemap.xml)"]" Class="mb-2" />
                 <MudSwitch T="bool" @bind-Value="_setting.RobotsEnabled" Color="Color.Primary"
-                           Label="Enable Robots.txt" />
+                           Label="@L["seo.enable_robots", "Enable Robots.txt"]" />
             </MudPaper>
         </MudItem>
 
@@ -77,9 +78,9 @@ else
             <MudPaper Elevation="0" Class="border rounded-lg pa-6">
                 <MudText Typo="Typo.subtitle1" Class="fw-bold mb-3">
                     <MudIcon Icon="@Icons.Material.Filled.SmartToy" Size="Size.Small" Class="me-1" />
-                    Custom robots.txt
+                    @L["seo.custom_robots", "Custom robots.txt"]
                 </MudText>
-                <MudTextField @bind-Value="_setting.CustomRobotsTxt" Label="robots.txt content"
+                <MudTextField @bind-Value="_setting.CustomRobotsTxt" Label="@L["seo.robots_content", "robots.txt content"]"
                               Variant="Variant.Outlined" Lines="6"
                               Style="font-family: monospace; font-size: 13px;"
                               Placeholder="User-agent: *&#10;Disallow: /admin/" />
@@ -95,7 +96,7 @@ else
             {
                 <MudProgressCircular Size="Size.Small" Indeterminate="true" Class="me-2" />
             }
-            Save SEO Settings
+            @L["seo.save", "Save SEO Settings"]
         </MudButton>
     </MudStack>
 }
@@ -110,6 +111,8 @@ else
 
     protected override async Task OnInitializedAsync()
     {
+        await L.EnsureLoadedAsync();
+
         var state = await AuthState.GetAuthenticationStateAsync();
         var user = state.User;
         _isMaster = user.HasClaim(AdminClaimTypes.Master, "true");
@@ -138,11 +141,11 @@ else
         {
             _setting.WebsiteID = _websiteId;
             await SettingService.SaveSeoSettingAsync(_setting);
-            Snackbar.Add("SEO settings saved.", Severity.Success);
+            Snackbar.Add(L["seo.saved", "SEO settings saved."], Severity.Success);
         }
         catch (Exception ex)
         {
-            Snackbar.Add($"Save failed: {ex.Message}", Severity.Error);
+            Snackbar.Add($"{L["save_failed", "Save failed"]}: {ex.Message}", Severity.Error);
         }
         finally { _saving = false; }
     }
