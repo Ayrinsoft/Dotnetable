@@ -1,5 +1,5 @@
 @page "/translations"
-@attribute [Authorize(Policy = AdminPolicies.WebsiteAdminOrAbove)]
+@attribute [Authorize(Policy = RoleKeys.LocalizationEdit)]
 @using Dotnetable.Application.DTOs
 @inject ILocalizationService LocalizationService
 @inject AuthenticationStateProvider AuthState

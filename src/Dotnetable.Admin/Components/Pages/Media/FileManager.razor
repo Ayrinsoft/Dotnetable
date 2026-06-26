@@ -1,5 +1,5 @@
 @page "/media"
-@attribute [Authorize(Policy = AdminPolicies.WebsiteAdminOrAbove)]
+@attribute [Authorize(Policy = RoleKeys.MediaView)]
 @inject IFileService FileService
 @inject IWebsiteService WebsiteService
 @inject IDialogService DialogService

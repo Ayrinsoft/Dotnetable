@@ -13,5 +13,8 @@ public partial class Role
 
     public bool Active { get; set; }
 
+    /// <summary>Permission scope: 0 = admin panel, 1 = website customer (client). See RoleCategory.</summary>
+    public byte Category { get; set; }
+
     public virtual ICollection<PolicyRole> PolicyRoles { get; set; } = new List<PolicyRole>();
 }

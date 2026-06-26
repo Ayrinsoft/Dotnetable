@@ -1,5 +1,5 @@
 @page "/members"
-@attribute [Authorize(Policy = AdminPolicies.WebsiteAdminOrAbove)]
+@attribute [Authorize(Policy = RoleKeys.MembersView)]
 @inject IMemberService MemberService
 @inject AuthenticationStateProvider AuthState
 @inject IPageLocalizer L
@@ -14,11 +14,13 @@
             @(_isMaster ? L["members.subtitle_all", "All members across all websites"] : L["members.subtitle_own", "Members of your website"])
         </MudText>
     </MudStack>
-    <MudButton Variant="Variant.Filled" Color="Color.Primary"
-               StartIcon="@Icons.Material.Filled.Add"
-               Href="/members/new">
-        @L["members.new", "New Member"]
-    </MudButton>
+    <AuthorizeView Policy="@RoleKeys.MembersInsert" Context="ins">
+        <MudButton Variant="Variant.Filled" Color="Color.Primary"
+                   StartIcon="@Icons.Material.Filled.Add"
+                   Href="/members/new">
+            @L["members.new", "New Member"]
+        </MudButton>
+    </AuthorizeView>
 </MudStack>
 
 <MudPaper Elevation="0" Class="app-card rounded-lg pa-4">
@@ -62,7 +64,7 @@
                     <td>@m.RegisterDate.ToString("yyyy-MM-dd")</td>
                     <td>
                         <MudSwitch T="bool" Value="m.Active" Color="Color.Success"
-                                   Disabled="_toggling.Contains(m.MemberID)"
+                                   Disabled="@(!_canEdit || _toggling.Contains(m.MemberID))"
                                    ValueChanged="@(v => ToggleActiveAsync(m, v))" />
                     </td>
                 </tr>
@@ -74,6 +76,7 @@
 @code {
     private bool _loading = true;
     private bool _isMaster;
+    private bool _canEdit;
     private int _websiteId;
     private List<Member> _members = new();
     private HashSet<int> _toggling = new();
@@ -88,6 +91,7 @@
         var state = await AuthState.GetAuthenticationStateAsync();
         var user = state.User;
         _isMaster = user.HasClaim(AdminClaimTypes.Master, "true");
+        _canEdit = AdminPolicies.Allows(user, RoleKeys.MembersEdit);
         int.TryParse(user.FindFirst(AdminClaimTypes.WebsiteId)?.Value, out _websiteId);
 
         _grid = new GridViewHeaderParameters

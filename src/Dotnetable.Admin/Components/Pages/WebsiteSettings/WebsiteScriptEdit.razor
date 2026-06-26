@@ -1,6 +1,6 @@
 @page "/website/scripts/new"
 @page "/website/scripts/{Id:int}"
-@attribute [Authorize(Policy = AdminPolicies.WebsiteAdminOrAbove)]
+@attribute [Authorize(Policy = RoleKeys.WebsiteEdit)]
 @inject IWebsiteSettingService SettingService
 @inject AuthenticationStateProvider AuthState
 @inject NavigationManager Nav

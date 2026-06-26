@@ -89,10 +89,12 @@ else
                     <MudText Typo="Typo.subtitle2" Class="fw-bold">@L["dashboard.quick_actions", "Quick Actions"]</MudText>
                 </div>
                 <MudList T="string" Class="py-1">
-                    <AuthorizeView Policy="@AdminPolicies.WebsiteAdminOrAbove" Context="_">
+                    <AuthorizeView Policy="@RoleKeys.MembersView" Context="_">
                         <MudListItem T="string" Icon="@Icons.Material.Filled.People" OnClick='() => Nav.NavigateTo("/members")'>
                             @L["dashboard.manage_members", "Manage Members"]
                         </MudListItem>
+                    </AuthorizeView>
+                    <AuthorizeView Policy="@RoleKeys.LocalizationEdit" Context="_">
                         <MudListItem T="string" Icon="@Icons.Material.Filled.Translate" OnClick='() => Nav.NavigateTo("/translations")'>
                             @L["translations", "Translations"]
                         </MudListItem>

@@ -427,6 +427,8 @@ public partial class AppDbContext : DbContext
             entity.Property(e => e.RoleKey)
                 .HasMaxLength(42)
                 .IsUnicode(false);
+            entity.Property(e => e.Category)
+                .HasDefaultValue((byte)0);
         });
 
         modelBuilder.Entity<State>(entity =>

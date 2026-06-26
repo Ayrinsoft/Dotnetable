@@ -1,3 +1,4 @@
+using Dotnetable.Application.Authorization;
 using Dotnetable.Application.DTOs;
 using Dotnetable.Application.Interfaces;
 using Dotnetable.Domain.Entities;
@@ -92,9 +93,13 @@ public class PolicyService : IPolicyService
 
     public async Task<IReadOnlyList<Role>> GetAssignableRolesAsync(int memberId, bool isMaster, CancellationToken ct = default)
     {
+        // The admin policy editor only deals with admin-panel permissions; client permissions
+        // (Category 1) belong to website customers and are managed elsewhere.
+        const byte adminCategory = (byte)RoleCategory.Admin;
+
         if (isMaster)
             return await _context.Roles.AsNoTracking()
-                .Where(r => r.Active)
+                .Where(r => r.Active && r.Category == adminCategory)
                 .OrderBy(r => r.RoleKey)
                 .ToListAsync(ct);
 
@@ -107,7 +112,7 @@ public class PolicyService : IPolicyService
             .ToListAsync(ct);
 
         return await _context.Roles.AsNoTracking()
-            .Where(r => r.Active && heldRoleIds.Contains(r.RoleID))
+            .Where(r => r.Active && r.Category == adminCategory && heldRoleIds.Contains(r.RoleID))
             .OrderBy(r => r.RoleKey)
             .ToListAsync(ct);
     }

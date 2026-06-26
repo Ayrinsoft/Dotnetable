@@ -143,7 +143,12 @@ namespace Dotnetable.Migrations.PostgreSql.Migrations
                         .HasMaxLength(64)
                         .HasColumnType("character varying(64)");
 
+                    b.Property<int?>("WebsiteID")
+                        .HasColumnType("integer");
+
                     b.HasKey("ContactUsMessagesID");
+
+                    b.HasIndex("WebsiteID");
 
                     b.ToTable("ContactUsMessage", (string)null);
                 });
@@ -261,7 +266,12 @@ namespace Dotnetable.Migrations.PostgreSql.Migrations
                     b.Property<int>("SMTPPort")
                         .HasColumnType("integer");
 
+                    b.Property<int?>("WebsiteID")
+                        .HasColumnType("integer");
+
                     b.HasKey("EmailSettingID");
+
+                    b.HasIndex("WebsiteID");
 
                     b.ToTable("EmailSetting", (string)null);
                 });
@@ -777,6 +787,11 @@ namespace Dotnetable.Migrations.PostgreSql.Migrations
                     b.Property<bool>("Active")
                         .HasColumnType("boolean");
 
+                    b.Property<byte>("Category")
+                        .ValueGeneratedOnAdd()
+                        .HasColumnType("smallint")
+                        .HasDefaultValue((byte)0);
+
                     b.Property<string>("Description")
                         .IsRequired()
                         .HasMaxLength(128)
@@ -1171,6 +1186,16 @@ namespace Dotnetable.Migrations.PostgreSql.Migrations
                     b.Navigation("City");
                 });
 
+            modelBuilder.Entity("Dotnetable.Domain.Entities.ContactUsMessage", b =>
+                {
+                    b.HasOne("Dotnetable.Domain.Entities.Website", "Website")
+                        .WithMany("ContactUsMessages")
+                        .HasForeignKey("WebsiteID")
+                        .HasConstraintName("FK_ContactUsMessage_Website");
+
+                    b.Navigation("Website");
+                });
+
             modelBuilder.Entity("Dotnetable.Domain.Entities.CountryTranslation", b =>
                 {
                     b.HasOne("Dotnetable.Domain.Entities.Country", "Country")
@@ -1180,6 +1205,16 @@ namespace Dotnetable.Migrations.PostgreSql.Migrations
                         .HasConstraintName("FK_CountryTranslation_Country");
 
                     b.Navigation("Country");
+                });
+
+            modelBuilder.Entity("Dotnetable.Domain.Entities.EmailSetting", b =>
+                {
+                    b.HasOne("Dotnetable.Domain.Entities.Website", "Website")
+                        .WithMany("EmailSettings")
+                        .HasForeignKey("WebsiteID")
+                        .HasConstraintName("FK_EmailSetting_Website");
+
+                    b.Navigation("Website");
                 });
 
             modelBuilder.Entity("Dotnetable.Domain.Entities.EmailSubscribe", b =>
@@ -1509,6 +1544,10 @@ namespace Dotnetable.Migrations.PostgreSql.Migrations
 
             modelBuilder.Entity("Dotnetable.Domain.Entities.Website", b =>
                 {
+                    b.Navigation("ContactUsMessages");
+
+                    b.Navigation("EmailSettings");
+
                     b.Navigation("FileAlbums");
 
                     b.Navigation("FileTags");

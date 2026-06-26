@@ -1,5 +1,5 @@
 @page "/policies"
-@attribute [Authorize(Policy = AdminPolicies.WebsiteAdminOrAbove)]
+@attribute [Authorize(Policy = RoleKeys.PoliciesView)]
 @inject IPolicyService PolicyService
 @inject AuthenticationStateProvider AuthState
 @inject ISnackbar Snackbar
@@ -14,10 +14,12 @@
             @(_isMaster ? L["policy.subtitle_all", "Access levels across all websites"] : L["policy.subtitle_own", "Access levels of your website"])
         </MudText>
     </MudStack>
-    <MudButton Variant="Variant.Filled" Color="Color.Primary"
-               StartIcon="@Icons.Material.Filled.Add" Href="/policies/new">
-        @L["policy.new", "New Access Level"]
-    </MudButton>
+    <AuthorizeView Policy="@RoleKeys.PoliciesInsert" Context="ins">
+        <MudButton Variant="Variant.Filled" Color="Color.Primary"
+                   StartIcon="@Icons.Material.Filled.Add" Href="/policies/new">
+            @L["policy.new", "New Access Level"]
+        </MudButton>
+    </AuthorizeView>
 </MudStack>
 
 <MudPaper Elevation="0" Class="app-card rounded-lg pa-4">
@@ -51,7 +53,7 @@
                     }
                     <td>
                         <MudSwitch T="bool" Value="p.Active" Color="Color.Success"
-                                   Disabled="_toggling.Contains(p.PolicyID)"
+                                   Disabled="@(!_canEdit || _toggling.Contains(p.PolicyID))"
                                    ValueChanged="@(v => ToggleActiveAsync(p, v))" />
                     </td>
                 </tr>
@@ -63,6 +65,7 @@
 @code {
     private bool _loading = true;
     private bool _isMaster;
+    private bool _canEdit;
     private int _websiteId;
     private List<Policy> _policies = new();
     private HashSet<int> _toggling = new();
@@ -77,6 +80,7 @@
         var state = await AuthState.GetAuthenticationStateAsync();
         var user = state.User;
         _isMaster = user.HasClaim(AdminClaimTypes.Master, "true");
+        _canEdit = AdminPolicies.Allows(user, RoleKeys.PoliciesEdit);
         int.TryParse(user.FindFirst(AdminClaimTypes.WebsiteId)?.Value, out _websiteId);
 
         _grid = new GridViewHeaderParameters
