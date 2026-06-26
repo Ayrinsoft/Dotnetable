@@ -88,10 +88,10 @@ else if (_policy is not null)
                             {
                                 <MudItem xs="12" sm="6" md="4">
                                     <MudPaper Elevation="0" Class="border rounded-lg pa-3 h-100">
-                                        @* Parent: selecting it grants every child; partial selection shows indeterminate. *@
-                                        <MudCheckBox T="bool" Value="GroupAllSelected(group)"
-                                                     Indeterminate="GroupPartiallySelected(group)"
-                                                     ValueChanged="@(v => ToggleGroup(group, v))"
+                                        @* Parent: tri-state — null shows indeterminate when only some children are granted.
+                                           Clicking always toggles between all-selected and none. *@
+                                        <MudCheckBox T="bool?" TriState="true" Value="GroupValue(group)"
+                                                     ValueChanged="@(_ => ToggleGroup(group, !GroupAllSelected(group)))"
                                                      Color="Color.Primary" Dense="true"
                                                      Class="fw-bold"
                                                      Label="@GroupTitle(group.Key)" />
@@ -210,8 +210,14 @@ else if (_policy is not null)
     private bool GroupAllSelected(IGrouping<string, Role> group) =>
         group.All(r => _selected.Contains(r.RoleID));
 
-    private bool GroupPartiallySelected(IGrouping<string, Role> group) =>
-        group.Any(r => _selected.Contains(r.RoleID)) && !GroupAllSelected(group);
+    // true = all granted, false = none, null = some (indeterminate).
+    private bool? GroupValue(IGrouping<string, Role> group)
+    {
+        var selected = group.Count(r => _selected.Contains(r.RoleID));
+        if (selected == 0) return false;
+        if (selected == group.Count()) return true;
+        return null;
+    }
 
     private void ToggleGroup(IGrouping<string, Role> group, bool isChecked)
     {

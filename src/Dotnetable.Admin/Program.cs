@@ -55,6 +55,10 @@ using (var scope = app.Services.CreateScope())
                     pending.Count, string.Join(", ", pending));
                 await updater.ApplyUpdatesAsync();
             }
+
+            // Top up any permission keys a prior version did not seed (additive, idempotent).
+            var setup = scope.ServiceProvider.GetRequiredService<ISetupService>();
+            await setup.SyncRoleCatalogAsync();
         }
         catch (Exception ex)
         {

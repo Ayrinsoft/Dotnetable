@@ -90,6 +90,27 @@ public class SetupService : ISetupService
         await SeedInitialDataAsync(context, request, ct);
     }
 
+    public async Task SyncRoleCatalogAsync(CancellationToken ct = default)
+    {
+        if (!_configStore.IsConfigured) return;
+
+        await using var context = await _contextFactory.CreateDbContextAsync(ct);
+        if (!await context.Database.CanConnectAsync(ct)) return;
+
+        var existing = (await context.Roles.Select(r => r.RoleKey).ToListAsync(ct)).ToHashSet();
+        var missing = RoleCatalog.All.Where(def => !existing.Contains(def.Key)).ToList();
+        if (missing.Count == 0) return;
+
+        context.Roles.AddRange(missing.Select(def => new Role
+        {
+            RoleKey = def.Key,
+            Description = def.Description,
+            Category = (byte)def.Category,
+            Active = true,
+        }));
+        await context.SaveChangesAsync(ct);
+    }
+
     private async Task SeedInitialDataAsync(AppDbContext context, SetupRequest request, CancellationToken ct)
     {
         // Providers are configured with EnableRetryOnFailure, so a user-initiated transaction must

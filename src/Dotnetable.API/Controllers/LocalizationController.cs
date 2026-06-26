@@ -1,4 +1,6 @@
+using Dotnetable.Application.Authorization;
 using Dotnetable.Application.Interfaces;
+using Microsoft.AspNetCore.Authorization;
 using Microsoft.AspNetCore.Mvc;
 
 namespace Dotnetable.API.Controllers;
@@ -20,6 +22,7 @@ public class LocalizationController : BaseController
     }
 
     [HttpPut("{languageCode}/{key}")]
+    [Authorize(Policy = RoleKeys.LocalizationEdit)]
     public async Task<IActionResult> Set(string languageCode, string key, [FromBody] string value, CancellationToken ct = default)
     {
         await _localizationService.SetAsync(CurrentWebsiteId, languageCode, key, value, ct);
