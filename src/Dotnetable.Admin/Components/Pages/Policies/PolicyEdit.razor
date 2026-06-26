@@ -1,6 +1,6 @@
 @page "/policies/new"
 @page "/policies/{Id:int}"
-@attribute [Authorize(Policy = AdminPolicies.WebsiteAdminOrAbove)]
+@attribute [Authorize(Policy = RoleKeys.PoliciesView)]
 @inject IPolicyService PolicyService
 @inject IWebsiteService WebsiteService
 @inject AuthenticationStateProvider AuthState
@@ -83,15 +83,30 @@ else if (_policy is not null)
                     }
                     else
                     {
-                        <MudGrid Spacing="2">
-                            @foreach (var role in _assignableRoles)
+                        <MudGrid Spacing="3">
+                            @foreach (var group in _roleGroups)
                             {
                                 <MudItem xs="12" sm="6" md="4">
-                                    <MudCheckBox T="bool" Value="_selected.Contains(role.RoleID)"
-                                                 ValueChanged="@(v => ToggleRole(role.RoleID, v))"
-                                                 Color="Color.Primary"
-                                                 Label="@role.RoleKey" />
-                                    <MudText Typo="Typo.caption" Color="Color.Secondary" Class="ms-8">@role.Description</MudText>
+                                    <MudPaper Elevation="0" Class="border rounded-lg pa-3 h-100">
+                                        @* Parent: selecting it grants every child; partial selection shows indeterminate. *@
+                                        <MudCheckBox T="bool" Value="GroupAllSelected(group)"
+                                                     Indeterminate="GroupPartiallySelected(group)"
+                                                     ValueChanged="@(v => ToggleGroup(group, v))"
+                                                     Color="Color.Primary" Dense="true"
+                                                     Class="fw-bold"
+                                                     Label="@GroupTitle(group.Key)" />
+                                        <MudDivider Class="my-1" />
+                                        @foreach (var role in group)
+                                        {
+                                            <div class="ms-4">
+                                                <MudCheckBox T="bool" Value="_selected.Contains(role.RoleID)"
+                                                             ValueChanged="@(v => ToggleRole(role.RoleID, v))"
+                                                             Color="Color.Primary" Dense="true"
+                                                             Label="@RoleActionLabel(role.RoleKey)" />
+                                                <MudText Typo="Typo.caption" Color="Color.Secondary" Class="ms-8 d-block">@role.Description</MudText>
+                                            </div>
+                                        }
+                                    </MudPaper>
                                 </MudItem>
                             }
                         </MudGrid>
@@ -101,15 +116,18 @@ else if (_policy is not null)
         </MudGrid>
 
         <MudStack Row="true" Class="mt-4" Spacing="2">
-            <MudButton Variant="Variant.Filled" Color="Color.Primary"
-                       StartIcon="@Icons.Material.Filled.Save"
-                       OnClick="SaveAsync" Disabled="@_saving">
-                @if (_saving)
-                {
-                    <MudProgressCircular Size="Size.Small" Indeterminate="true" Class="me-2" />
-                }
-                @(_isNew ? L["policy.create", "Create Access Level"] : L["save", "Save Changes"])
-            </MudButton>
+            @if (_canSave)
+            {
+                <MudButton Variant="Variant.Filled" Color="Color.Primary"
+                           StartIcon="@Icons.Material.Filled.Save"
+                           OnClick="SaveAsync" Disabled="@_saving">
+                    @if (_saving)
+                    {
+                        <MudProgressCircular Size="Size.Small" Indeterminate="true" Class="me-2" />
+                    }
+                    @(_isNew ? L["policy.create", "Create Access Level"] : L["save", "Save Changes"])
+                </MudButton>
+            }
             <MudButton Variant="Variant.Outlined" Color="Color.Default"
                        StartIcon="@Icons.Material.Filled.ArrowBack" Href="/policies">
                 @L["cancel", "Cancel"]
@@ -126,10 +144,12 @@ else if (_policy is not null)
     private bool _loading = true;
     private bool _saving;
     private bool _isMaster;
+    private bool _canSave;
     private int _websiteId;
     private int _memberId;
     private List<Website> _websites = new();
     private List<Role> _assignableRoles = new();
+    private List<IGrouping<string, Role>> _roleGroups = new();
     private HashSet<short> _selected = new();
     private bool _isNew => Id == 0;
 
@@ -147,10 +167,16 @@ else if (_policy is not null)
         var state = await AuthState.GetAuthenticationStateAsync();
         var user = state.User;
         _isMaster = user.HasClaim(AdminClaimTypes.Master, "true");
+        _canSave = AdminPolicies.Allows(user, _isNew ? RoleKeys.PoliciesInsert : RoleKeys.PoliciesEdit);
         int.TryParse(user.FindFirst(AdminClaimTypes.WebsiteId)?.Value, out _websiteId);
         int.TryParse(user.FindFirst(AdminClaimTypes.MemberId)?.Value, out _memberId);
 
         _assignableRoles = (await PolicyService.GetAssignableRolesAsync(_memberId, _isMaster)).ToList();
+        // Group by the "area" segment of the key (text before the first dot) to render a tree.
+        _roleGroups = _assignableRoles
+            .GroupBy(r => r.RoleKey.Split('.', 2)[0])
+            .OrderBy(g => g.Key)
+            .ToList();
 
         if (_isNew)
         {
@@ -181,8 +207,40 @@ else if (_policy is not null)
         else _selected.Remove(roleId);
     }
 
+    private bool GroupAllSelected(IGrouping<string, Role> group) =>
+        group.All(r => _selected.Contains(r.RoleID));
+
+    private bool GroupPartiallySelected(IGrouping<string, Role> group) =>
+        group.Any(r => _selected.Contains(r.RoleID)) && !GroupAllSelected(group);
+
+    private void ToggleGroup(IGrouping<string, Role> group, bool isChecked)
+    {
+        foreach (var role in group)
+        {
+            if (isChecked) _selected.Add(role.RoleID);
+            else _selected.Remove(role.RoleID);
+        }
+    }
+
+    // "members" -> localized "Members" (falls back to a title-cased key).
+    private string GroupTitle(string groupKey) =>
+        L[$"roles.group.{groupKey}", Capitalize(groupKey)];
+
+    // "members.edit" -> localized "Edit" action label.
+    private string RoleActionLabel(string roleKey)
+    {
+        var parts = roleKey.Split('.', 2);
+        var action = parts.Length > 1 ? parts[1] : roleKey;
+        return L[$"roles.action.{action}", Capitalize(action)];
+    }
+
+    private static string Capitalize(string value) =>
+        string.IsNullOrEmpty(value) ? value : char.ToUpperInvariant(value[0]) + value[1..];
+
     private async Task SaveAsync()
     {
+        if (!_canSave) return; // Guard against a stale/forged client state.
+
         await _form.ValidateAsync();
         if (!_form.IsValid) return;
 

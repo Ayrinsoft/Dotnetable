@@ -1,5 +1,5 @@
 @page "/media/storage"
-@attribute [Authorize(Policy = AdminPolicies.WebsiteAdminOrAbove)]
+@attribute [Authorize(Policy = RoleKeys.MediaUpload)]
 @inject IStorageSettingService StorageService
 @inject IWebsiteService WebsiteService
 @inject IDialogService DialogService

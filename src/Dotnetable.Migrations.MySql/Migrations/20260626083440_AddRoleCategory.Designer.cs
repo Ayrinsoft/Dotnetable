@@ -3,59 +3,57 @@ using System;
 using Dotnetable.Infrastructure.Data;
 using Microsoft.EntityFrameworkCore;
 using Microsoft.EntityFrameworkCore.Infrastructure;
+using Microsoft.EntityFrameworkCore.Migrations;
 using Microsoft.EntityFrameworkCore.Storage.ValueConversion;
-using Npgsql.EntityFrameworkCore.PostgreSQL.Metadata;
 
 #nullable disable
 
-namespace Dotnetable.Migrations.PostgreSql.Migrations
+namespace Dotnetable.Migrations.MySql.Migrations
 {
     [DbContext(typeof(AppDbContext))]
-    partial class AppDbContextModelSnapshot : ModelSnapshot
+    [Migration("20260626083440_AddRoleCategory")]
+    partial class AddRoleCategory
     {
-        protected override void BuildModel(ModelBuilder modelBuilder)
+        /// <inheritdoc />
+        protected override void BuildTargetModel(ModelBuilder modelBuilder)
         {
 #pragma warning disable 612, 618
             modelBuilder
                 .HasAnnotation("ProductVersion", "10.0.9")
-                .HasAnnotation("Relational:MaxIdentifierLength", 63);
-
-            NpgsqlModelBuilderExtensions.UseIdentityByDefaultColumns(modelBuilder);
+                .HasAnnotation("Relational:MaxIdentifierLength", 64);
 
             modelBuilder.Entity("Dotnetable.Domain.Entities.City", b =>
                 {
                     b.Property<int>("CityID")
                         .ValueGeneratedOnAdd()
-                        .HasColumnType("integer");
-
-                    NpgsqlPropertyBuilderExtensions.UseIdentityByDefaultColumn(b.Property<int>("CityID"));
+                        .HasColumnType("int");
 
                     b.Property<bool>("Active")
-                        .HasColumnType("boolean");
+                        .HasColumnType("tinyint(1)");
 
                     b.Property<int>("CountryID")
-                        .HasColumnType("integer");
+                        .HasColumnType("int");
 
                     b.Property<string>("LanguageCode")
                         .IsRequired()
                         .HasMaxLength(2)
                         .IsUnicode(false)
-                        .HasColumnType("character(2)")
+                        .HasColumnType("char(2)")
                         .IsFixedLength();
 
                     b.Property<double?>("Latitude")
-                        .HasColumnType("double precision");
+                        .HasColumnType("double");
 
                     b.Property<double>("Longitude")
-                        .HasColumnType("double precision");
+                        .HasColumnType("double");
 
                     b.Property<int?>("StateID")
-                        .HasColumnType("integer");
+                        .HasColumnType("int");
 
                     b.Property<string>("Title")
                         .IsRequired()
                         .HasMaxLength(48)
-                        .HasColumnType("character varying(48)");
+                        .HasColumnType("varchar(48)");
 
                     b.HasKey("CityID");
 
@@ -70,24 +68,22 @@ namespace Dotnetable.Migrations.PostgreSql.Migrations
                 {
                     b.Property<int>("CityTranslationID")
                         .ValueGeneratedOnAdd()
-                        .HasColumnType("integer");
-
-                    NpgsqlPropertyBuilderExtensions.UseIdentityByDefaultColumn(b.Property<int>("CityTranslationID"));
+                        .HasColumnType("int");
 
                     b.Property<int>("CityID")
-                        .HasColumnType("integer");
+                        .HasColumnType("int");
 
                     b.Property<string>("LanguageCode")
                         .IsRequired()
                         .HasMaxLength(2)
                         .IsUnicode(false)
-                        .HasColumnType("character(2)")
+                        .HasColumnType("char(2)")
                         .IsFixedLength();
 
                     b.Property<string>("Title")
                         .IsRequired()
                         .HasMaxLength(48)
-                        .HasColumnType("character varying(48)");
+                        .HasColumnType("varchar(48)");
 
                     b.HasKey("CityTranslationID");
 
@@ -100,24 +96,22 @@ namespace Dotnetable.Migrations.PostgreSql.Migrations
                 {
                     b.Property<int>("ContactUsMessagesID")
                         .ValueGeneratedOnAdd()
-                        .HasColumnType("integer");
-
-                    NpgsqlPropertyBuilderExtensions.UseIdentityByDefaultColumn(b.Property<int>("ContactUsMessagesID"));
+                        .HasColumnType("int");
 
                     b.Property<bool>("Archive")
-                        .HasColumnType("boolean");
+                        .HasColumnType("tinyint(1)");
 
                     b.Property<string>("CellphoneNumber")
                         .IsRequired()
                         .HasMaxLength(15)
                         .IsUnicode(false)
-                        .HasColumnType("character varying(15)");
+                        .HasColumnType("varchar(15)");
 
                     b.Property<string>("EmailAddress")
                         .IsRequired()
                         .HasMaxLength(64)
                         .IsUnicode(false)
-                        .HasColumnType("character varying(64)");
+                        .HasColumnType("varchar(64)");
 
                     b.Property<DateTime>("LogTime")
                         .HasColumnType("datetime");
@@ -125,26 +119,26 @@ namespace Dotnetable.Migrations.PostgreSql.Migrations
                     b.Property<string>("MessageBody")
                         .IsRequired()
                         .HasMaxLength(4000)
-                        .HasColumnType("character varying(4000)");
+                        .HasColumnType("varchar(4000)");
 
                     b.Property<string>("MessageSubject")
                         .IsRequired()
                         .HasMaxLength(512)
-                        .HasColumnType("character varying(512)");
+                        .HasColumnType("varchar(512)");
 
                     b.Property<string>("SenderIPAddress")
                         .IsRequired()
                         .HasMaxLength(15)
                         .IsUnicode(false)
-                        .HasColumnType("character varying(15)");
+                        .HasColumnType("varchar(15)");
 
                     b.Property<string>("SenderName")
                         .IsRequired()
                         .HasMaxLength(64)
-                        .HasColumnType("character varying(64)");
+                        .HasColumnType("varchar(64)");
 
                     b.Property<int?>("WebsiteID")
-                        .HasColumnType("integer");
+                        .HasColumnType("int");
 
                     b.HasKey("ContactUsMessagesID");
 
@@ -157,34 +151,32 @@ namespace Dotnetable.Migrations.PostgreSql.Migrations
                 {
                     b.Property<int>("CountryID")
                         .ValueGeneratedOnAdd()
-                        .HasColumnType("integer");
-
-                    NpgsqlPropertyBuilderExtensions.UseIdentityByDefaultColumn(b.Property<int>("CountryID"));
+                        .HasColumnType("int");
 
                     b.Property<string>("CountryCode")
                         .IsRequired()
                         .HasMaxLength(2)
                         .IsUnicode(false)
-                        .HasColumnType("character(2)")
+                        .HasColumnType("char(2)")
                         .IsFixedLength();
 
                     b.Property<string>("LanguageCode")
                         .IsRequired()
                         .HasMaxLength(2)
                         .IsUnicode(false)
-                        .HasColumnType("character(2)")
+                        .HasColumnType("char(2)")
                         .IsFixedLength();
 
                     b.Property<string>("PhonePerfix")
                         .IsRequired()
                         .HasMaxLength(3)
                         .IsUnicode(false)
-                        .HasColumnType("character varying(3)");
+                        .HasColumnType("varchar(3)");
 
                     b.Property<string>("Title")
                         .IsRequired()
                         .HasMaxLength(42)
-                        .HasColumnType("character varying(42)");
+                        .HasColumnType("varchar(42)");
 
                     b.HasKey("CountryID");
 
@@ -195,24 +187,22 @@ namespace Dotnetable.Migrations.PostgreSql.Migrations
                 {
                     b.Property<int>("CountryTranslationID")
                         .ValueGeneratedOnAdd()
-                        .HasColumnType("integer");
-
-                    NpgsqlPropertyBuilderExtensions.UseIdentityByDefaultColumn(b.Property<int>("CountryTranslationID"));
+                        .HasColumnType("int");
 
                     b.Property<int>("CountryID")
-                        .HasColumnType("integer");
+                        .HasColumnType("int");
 
                     b.Property<string>("LanguageCode")
                         .IsRequired()
                         .HasMaxLength(2)
                         .IsUnicode(false)
-                        .HasColumnType("character(2)")
+                        .HasColumnType("char(2)")
                         .IsFixedLength();
 
                     b.Property<string>("Title")
                         .IsRequired()
                         .HasMaxLength(42)
-                        .HasColumnType("character varying(42)");
+                        .HasColumnType("varchar(42)");
 
                     b.HasKey("CountryTranslationID");
 
@@ -225,49 +215,47 @@ namespace Dotnetable.Migrations.PostgreSql.Migrations
                 {
                     b.Property<int>("EmailSettingID")
                         .ValueGeneratedOnAdd()
-                        .HasColumnType("integer");
-
-                    NpgsqlPropertyBuilderExtensions.UseIdentityByDefaultColumn(b.Property<int>("EmailSettingID"));
+                        .HasColumnType("int");
 
                     b.Property<bool>("Active")
-                        .HasColumnType("boolean");
+                        .HasColumnType("tinyint(1)");
 
                     b.Property<bool>("DefaultEMail")
-                        .HasColumnType("boolean");
+                        .HasColumnType("tinyint(1)");
 
                     b.Property<string>("EmailAddress")
                         .IsRequired()
                         .HasMaxLength(64)
                         .IsUnicode(false)
-                        .HasColumnType("character varying(64)");
+                        .HasColumnType("varchar(64)");
 
                     b.Property<byte>("EmailTypeID")
-                        .HasColumnType("smallint");
+                        .HasColumnType("tinyint unsigned");
 
                     b.Property<bool>("EnableSSL")
-                        .HasColumnType("boolean");
+                        .HasColumnType("tinyint(1)");
 
                     b.Property<string>("MailName")
                         .IsRequired()
                         .HasMaxLength(64)
-                        .HasColumnType("character varying(64)");
+                        .HasColumnType("varchar(64)");
 
                     b.Property<string>("MailServer")
                         .IsRequired()
                         .HasMaxLength(64)
                         .IsUnicode(false)
-                        .HasColumnType("character varying(64)");
+                        .HasColumnType("varchar(64)");
 
                     b.Property<string>("Password")
                         .IsRequired()
                         .HasMaxLength(256)
-                        .HasColumnType("character varying(256)");
+                        .HasColumnType("varchar(256)");
 
                     b.Property<int>("SMTPPort")
-                        .HasColumnType("integer");
+                        .HasColumnType("int");
 
                     b.Property<int?>("WebsiteID")
-                        .HasColumnType("integer");
+                        .HasColumnType("int");
 
                     b.HasKey("EmailSettingID");
 
@@ -280,27 +268,25 @@ namespace Dotnetable.Migrations.PostgreSql.Migrations
                 {
                     b.Property<int>("EmailSubscribeID")
                         .ValueGeneratedOnAdd()
-                        .HasColumnType("integer");
-
-                    NpgsqlPropertyBuilderExtensions.UseIdentityByDefaultColumn(b.Property<int>("EmailSubscribeID"));
+                        .HasColumnType("int");
 
                     b.Property<bool>("Active")
-                        .HasColumnType("boolean");
+                        .HasColumnType("tinyint(1)");
 
                     b.Property<bool>("Approved")
-                        .HasColumnType("boolean");
+                        .HasColumnType("tinyint(1)");
 
                     b.Property<string>("Email")
                         .IsRequired()
                         .HasMaxLength(64)
                         .IsUnicode(false)
-                        .HasColumnType("character varying(64)");
+                        .HasColumnType("varchar(64)");
 
                     b.Property<DateTime>("LogTime")
                         .HasColumnType("datetime");
 
                     b.Property<int?>("MemberID")
-                        .HasColumnType("integer");
+                        .HasColumnType("int");
 
                     b.HasKey("EmailSubscribeID");
 
@@ -313,24 +299,22 @@ namespace Dotnetable.Migrations.PostgreSql.Migrations
                 {
                     b.Property<int>("FileAlbumID")
                         .ValueGeneratedOnAdd()
-                        .HasColumnType("integer");
-
-                    NpgsqlPropertyBuilderExtensions.UseIdentityByDefaultColumn(b.Property<int>("FileAlbumID"));
+                        .HasColumnType("int");
 
                     b.Property<DateTime>("CreateDate")
                         .HasColumnType("datetime");
 
                     b.Property<string>("Description")
                         .HasMaxLength(400)
-                        .HasColumnType("character varying(400)");
+                        .HasColumnType("varchar(400)");
 
                     b.Property<string>("Name")
                         .IsRequired()
                         .HasMaxLength(120)
-                        .HasColumnType("character varying(120)");
+                        .HasColumnType("varchar(120)");
 
                     b.Property<int>("WebsiteID")
-                        .HasColumnType("integer");
+                        .HasColumnType("int");
 
                     b.HasKey("FileAlbumID");
 
@@ -343,53 +327,51 @@ namespace Dotnetable.Migrations.PostgreSql.Migrations
                 {
                     b.Property<int>("FileRecordID")
                         .ValueGeneratedOnAdd()
-                        .HasColumnType("integer");
-
-                    NpgsqlPropertyBuilderExtensions.UseIdentityByDefaultColumn(b.Property<int>("FileRecordID"));
+                        .HasColumnType("int");
 
                     b.Property<string>("AltText")
                         .HasMaxLength(120)
-                        .HasColumnType("character varying(120)");
+                        .HasColumnType("varchar(120)");
 
                     b.Property<string>("CDNFileCode")
                         .HasMaxLength(80)
                         .IsUnicode(false)
-                        .HasColumnType("character varying(80)");
+                        .HasColumnType("varchar(80)");
 
                     b.Property<string>("CNDUrl")
                         .HasMaxLength(450)
-                        .HasColumnType("character varying(450)");
+                        .HasColumnType("varchar(450)");
 
                     b.Property<int?>("FileAlbumID")
-                        .HasColumnType("integer");
+                        .HasColumnType("int");
 
                     b.Property<byte>("FileCategory")
-                        .HasColumnType("smallint");
+                        .HasColumnType("tinyint unsigned");
 
                     b.Property<int>("FileSizeKB")
-                        .HasColumnType("integer");
+                        .HasColumnType("int");
 
                     b.Property<bool>("IsDeleted")
-                        .HasColumnType("boolean");
+                        .HasColumnType("tinyint(1)");
 
                     b.Property<string>("MetadataJSON")
                         .HasMaxLength(2000)
-                        .HasColumnType("character varying(2000)");
+                        .HasColumnType("varchar(2000)");
 
                     b.Property<string>("MimeType")
                         .IsRequired()
                         .HasMaxLength(74)
                         .IsUnicode(false)
-                        .HasColumnType("character varying(74)");
+                        .HasColumnType("varchar(74)");
 
                     b.Property<string>("OriginalFileName")
                         .IsRequired()
                         .HasMaxLength(120)
-                        .HasColumnType("character varying(120)");
+                        .HasColumnType("varchar(120)");
 
                     b.Property<string>("StoragePath")
                         .HasMaxLength(350)
-                        .HasColumnType("character varying(350)");
+                        .HasColumnType("varchar(350)");
 
                     b.Property<short>("StorageProvider")
                         .HasColumnType("smallint");
@@ -398,25 +380,25 @@ namespace Dotnetable.Migrations.PostgreSql.Migrations
                         .IsRequired()
                         .HasMaxLength(40)
                         .IsUnicode(false)
-                        .HasColumnType("character varying(40)");
+                        .HasColumnType("varchar(40)");
 
                     b.Property<string>("ThumbnailCDN")
                         .HasMaxLength(450)
-                        .HasColumnType("character varying(450)");
+                        .HasColumnType("varchar(450)");
 
                     b.Property<string>("ThumbnailStorage")
                         .HasMaxLength(350)
-                        .HasColumnType("character varying(350)");
+                        .HasColumnType("varchar(350)");
 
                     b.Property<string>("Title")
                         .HasMaxLength(50)
-                        .HasColumnType("character varying(50)");
+                        .HasColumnType("varchar(50)");
 
                     b.Property<DateTime>("UploadDate")
                         .HasColumnType("datetime");
 
                     b.Property<int>("WebsiteStorageSettingsID")
-                        .HasColumnType("integer");
+                        .HasColumnType("int");
 
                     b.HasKey("FileRecordID");
 
@@ -431,15 +413,13 @@ namespace Dotnetable.Migrations.PostgreSql.Migrations
                 {
                     b.Property<int>("FileRecordTagID")
                         .ValueGeneratedOnAdd()
-                        .HasColumnType("integer");
-
-                    NpgsqlPropertyBuilderExtensions.UseIdentityByDefaultColumn(b.Property<int>("FileRecordTagID"));
+                        .HasColumnType("int");
 
                     b.Property<int>("FileRecordID")
-                        .HasColumnType("integer");
+                        .HasColumnType("int");
 
                     b.Property<int>("FileTagID")
-                        .HasColumnType("integer");
+                        .HasColumnType("int");
 
                     b.HasKey("FileRecordTagID");
 
@@ -454,17 +434,15 @@ namespace Dotnetable.Migrations.PostgreSql.Migrations
                 {
                     b.Property<int>("FileTagID")
                         .ValueGeneratedOnAdd()
-                        .HasColumnType("integer");
-
-                    NpgsqlPropertyBuilderExtensions.UseIdentityByDefaultColumn(b.Property<int>("FileTagID"));
+                        .HasColumnType("int");
 
                     b.Property<string>("Name")
                         .IsRequired()
                         .HasMaxLength(60)
-                        .HasColumnType("character varying(60)");
+                        .HasColumnType("varchar(60)");
 
                     b.Property<int>("WebsiteID")
-                        .HasColumnType("integer");
+                        .HasColumnType("int");
 
                     b.HasKey("FileTagID");
 
@@ -477,44 +455,42 @@ namespace Dotnetable.Migrations.PostgreSql.Migrations
                 {
                     b.Property<int>("LangaugeID")
                         .ValueGeneratedOnAdd()
-                        .HasColumnType("integer");
-
-                    NpgsqlPropertyBuilderExtensions.UseIdentityByDefaultColumn(b.Property<int>("LangaugeID"));
+                        .HasColumnType("int");
 
                     b.Property<bool>("Active")
-                        .HasColumnType("boolean");
+                        .HasColumnType("tinyint(1)");
 
                     b.Property<bool>("IsDefault")
-                        .HasColumnType("boolean");
+                        .HasColumnType("tinyint(1)");
 
                     b.Property<string>("LanguageCode")
                         .IsRequired()
                         .HasMaxLength(2)
                         .IsUnicode(false)
-                        .HasColumnType("character(2)")
+                        .HasColumnType("char(2)")
                         .IsFixedLength();
 
                     b.Property<string>("LanguageCodeISO")
                         .IsRequired()
                         .HasMaxLength(5)
                         .IsUnicode(false)
-                        .HasColumnType("character(5)")
+                        .HasColumnType("char(5)")
                         .IsFixedLength();
 
                     b.Property<string>("Name")
                         .IsRequired()
                         .HasMaxLength(32)
                         .IsUnicode(false)
-                        .HasColumnType("character varying(32)");
+                        .HasColumnType("varchar(32)");
 
                     b.Property<int>("Priority")
-                        .HasColumnType("integer");
+                        .HasColumnType("int");
 
                     b.Property<bool>("RTLDesign")
-                        .HasColumnType("boolean");
+                        .HasColumnType("tinyint(1)");
 
                     b.Property<int>("WebsiteID")
-                        .HasColumnType("integer");
+                        .HasColumnType("int");
 
                     b.HasKey("LangaugeID");
 
@@ -527,23 +503,21 @@ namespace Dotnetable.Migrations.PostgreSql.Migrations
                 {
                     b.Property<int>("LocalizationKeyID")
                         .ValueGeneratedOnAdd()
-                        .HasColumnType("integer");
-
-                    NpgsqlPropertyBuilderExtensions.UseIdentityByDefaultColumn(b.Property<int>("LocalizationKeyID"));
+                        .HasColumnType("int");
 
                     b.Property<string>("DefaultValue")
                         .IsRequired()
                         .HasMaxLength(2000)
-                        .HasColumnType("character varying(2000)");
+                        .HasColumnType("varchar(2000)");
 
                     b.Property<string>("ItemKey")
                         .IsRequired()
                         .HasMaxLength(72)
                         .IsUnicode(false)
-                        .HasColumnType("character varying(72)");
+                        .HasColumnType("varchar(72)");
 
                     b.Property<int>("WebsiteID")
-                        .HasColumnType("integer");
+                        .HasColumnType("int");
 
                     b.HasKey("LocalizationKeyID");
 
@@ -556,24 +530,22 @@ namespace Dotnetable.Migrations.PostgreSql.Migrations
                 {
                     b.Property<int>("LocalizationValueID")
                         .ValueGeneratedOnAdd()
-                        .HasColumnType("integer");
-
-                    NpgsqlPropertyBuilderExtensions.UseIdentityByDefaultColumn(b.Property<int>("LocalizationValueID"));
+                        .HasColumnType("int");
 
                     b.Property<string>("ItemValue")
                         .IsRequired()
                         .HasMaxLength(2000)
-                        .HasColumnType("character varying(2000)");
+                        .HasColumnType("varchar(2000)");
 
                     b.Property<string>("LanguageCode")
                         .IsRequired()
                         .HasMaxLength(2)
                         .IsUnicode(false)
-                        .HasColumnType("character(2)")
+                        .HasColumnType("char(2)")
                         .IsFixedLength();
 
                     b.Property<int>("LocalizationKeyID")
-                        .HasColumnType("integer");
+                        .HasColumnType("int");
 
                     b.HasKey("LocalizationValueID");
 
@@ -586,12 +558,10 @@ namespace Dotnetable.Migrations.PostgreSql.Migrations
                 {
                     b.Property<int>("LoginTryID")
                         .ValueGeneratedOnAdd()
-                        .HasColumnType("integer");
-
-                    NpgsqlPropertyBuilderExtensions.UseIdentityByDefaultColumn(b.Property<int>("LoginTryID"));
+                        .HasColumnType("int");
 
                     b.Property<bool>("IsSuccess")
-                        .HasColumnType("boolean");
+                        .HasColumnType("tinyint(1)");
 
                     b.Property<DateTime>("LogTime")
                         .HasColumnType("datetime");
@@ -600,16 +570,16 @@ namespace Dotnetable.Migrations.PostgreSql.Migrations
                         .IsRequired()
                         .HasMaxLength(15)
                         .IsUnicode(false)
-                        .HasColumnType("character varying(15)");
+                        .HasColumnType("varchar(15)");
 
                     b.Property<string>("Username")
                         .IsRequired()
                         .HasMaxLength(64)
                         .IsUnicode(false)
-                        .HasColumnType("character varying(64)");
+                        .HasColumnType("varchar(64)");
 
                     b.Property<int>("WebsiteID")
-                        .HasColumnType("integer");
+                        .HasColumnType("int");
 
                     b.HasKey("LoginTryID");
 
@@ -620,53 +590,51 @@ namespace Dotnetable.Migrations.PostgreSql.Migrations
                 {
                     b.Property<int>("MemberID")
                         .ValueGeneratedOnAdd()
-                        .HasColumnType("integer");
-
-                    NpgsqlPropertyBuilderExtensions.UseIdentityByDefaultColumn(b.Property<int>("MemberID"));
+                        .HasColumnType("int");
 
                     b.Property<bool>("Active")
-                        .HasColumnType("boolean");
+                        .HasColumnType("tinyint(1)");
 
                     b.Property<Guid?>("AvatarID")
-                        .HasColumnType("uuid");
+                        .HasColumnType("char(36)");
 
                     b.Property<string>("CellphoneNumber")
                         .IsRequired()
                         .HasMaxLength(12)
                         .IsUnicode(false)
-                        .HasColumnType("character varying(12)");
+                        .HasColumnType("varchar(12)");
 
                     b.Property<string>("CountryCode")
                         .IsRequired()
                         .HasMaxLength(3)
                         .IsUnicode(false)
-                        .HasColumnType("character varying(3)");
+                        .HasColumnType("varchar(3)");
 
                     b.Property<string>("Email")
                         .IsRequired()
                         .HasMaxLength(64)
                         .IsUnicode(false)
-                        .HasColumnType("character varying(64)");
+                        .HasColumnType("varchar(64)");
 
                     b.Property<bool?>("Gender")
-                        .HasColumnType("boolean");
+                        .HasColumnType("tinyint(1)");
 
                     b.Property<string>("Givenname")
                         .IsRequired()
                         .HasMaxLength(64)
-                        .HasColumnType("character varying(64)");
+                        .HasColumnType("varchar(64)");
 
                     b.Property<Guid>("HashKey")
-                        .HasColumnType("uuid");
+                        .HasColumnType("char(36)");
 
                     b.Property<string>("Password")
                         .IsRequired()
                         .HasMaxLength(256)
                         .IsUnicode(false)
-                        .HasColumnType("character varying(256)");
+                        .HasColumnType("varchar(256)");
 
                     b.Property<int>("PolicyID")
-                        .HasColumnType("integer");
+                        .HasColumnType("int");
 
                     b.Property<DateOnly>("RegisterDate")
                         .HasColumnType("date");
@@ -674,16 +642,16 @@ namespace Dotnetable.Migrations.PostgreSql.Migrations
                     b.Property<string>("Surname")
                         .IsRequired()
                         .HasMaxLength(64)
-                        .HasColumnType("character varying(64)");
+                        .HasColumnType("varchar(64)");
 
                     b.Property<string>("Username")
                         .IsRequired()
                         .HasMaxLength(64)
                         .IsUnicode(false)
-                        .HasColumnType("character varying(64)");
+                        .HasColumnType("varchar(64)");
 
                     b.Property<int>("WebsiteID")
-                        .HasColumnType("integer");
+                        .HasColumnType("int");
 
                     b.HasKey("MemberID");
 
@@ -698,21 +666,19 @@ namespace Dotnetable.Migrations.PostgreSql.Migrations
                 {
                     b.Property<int>("MemberForgetPasswordID")
                         .ValueGeneratedOnAdd()
-                        .HasColumnType("integer");
-
-                    NpgsqlPropertyBuilderExtensions.UseIdentityByDefaultColumn(b.Property<int>("MemberForgetPasswordID"));
+                        .HasColumnType("int");
 
                     b.Property<string>("ForgetKey")
                         .IsRequired()
                         .HasMaxLength(8)
                         .IsUnicode(false)
-                        .HasColumnType("character varying(8)");
+                        .HasColumnType("varchar(8)");
 
                     b.Property<DateTime>("LogTime")
                         .HasColumnType("datetime");
 
                     b.Property<int>("MemberID")
-                        .HasColumnType("integer");
+                        .HasColumnType("int");
 
                     b.HasKey("MemberForgetPasswordID");
 
@@ -725,22 +691,20 @@ namespace Dotnetable.Migrations.PostgreSql.Migrations
                 {
                     b.Property<int>("PolicyID")
                         .ValueGeneratedOnAdd()
-                        .HasColumnType("integer");
-
-                    NpgsqlPropertyBuilderExtensions.UseIdentityByDefaultColumn(b.Property<int>("PolicyID"));
+                        .HasColumnType("int");
 
                     b.Property<bool>("Active")
-                        .HasColumnType("boolean");
+                        .HasColumnType("tinyint(1)");
 
                     b.Property<string>("Title")
                         .IsRequired()
                         .HasMaxLength(64)
                         .IsUnicode(false)
-                        .HasColumnType("character varying(64)");
+                        .HasColumnType("varchar(64)");
 
                     b.Property<int>("WebsiteID")
                         .ValueGeneratedOnAdd()
-                        .HasColumnType("integer")
+                        .HasColumnType("int")
                         .HasDefaultValue(1);
 
                     b.HasKey("PolicyID");
@@ -754,15 +718,13 @@ namespace Dotnetable.Migrations.PostgreSql.Migrations
                 {
                     b.Property<int>("PolicyRoleID")
                         .ValueGeneratedOnAdd()
-                        .HasColumnType("integer");
-
-                    NpgsqlPropertyBuilderExtensions.UseIdentityByDefaultColumn(b.Property<int>("PolicyRoleID"));
+                        .HasColumnType("int");
 
                     b.Property<bool>("Active")
-                        .HasColumnType("boolean");
+                        .HasColumnType("tinyint(1)");
 
                     b.Property<int>("PolicyID")
-                        .HasColumnType("integer");
+                        .HasColumnType("int");
 
                     b.Property<short>("RoleID")
                         .HasColumnType("smallint");
@@ -782,27 +744,25 @@ namespace Dotnetable.Migrations.PostgreSql.Migrations
                         .ValueGeneratedOnAdd()
                         .HasColumnType("smallint");
 
-                    NpgsqlPropertyBuilderExtensions.UseIdentityByDefaultColumn(b.Property<short>("RoleID"));
-
                     b.Property<bool>("Active")
-                        .HasColumnType("boolean");
+                        .HasColumnType("tinyint(1)");
 
                     b.Property<byte>("Category")
                         .ValueGeneratedOnAdd()
-                        .HasColumnType("smallint")
+                        .HasColumnType("tinyint unsigned")
                         .HasDefaultValue((byte)0);
 
                     b.Property<string>("Description")
                         .IsRequired()
                         .HasMaxLength(128)
                         .IsUnicode(false)
-                        .HasColumnType("character varying(128)");
+                        .HasColumnType("varchar(128)");
 
                     b.Property<string>("RoleKey")
                         .IsRequired()
                         .HasMaxLength(42)
                         .IsUnicode(false)
-                        .HasColumnType("character varying(42)");
+                        .HasColumnType("varchar(42)");
 
                     b.HasKey("RoleID");
 
@@ -813,27 +773,25 @@ namespace Dotnetable.Migrations.PostgreSql.Migrations
                 {
                     b.Property<int>("StateID")
                         .ValueGeneratedOnAdd()
-                        .HasColumnType("integer");
-
-                    NpgsqlPropertyBuilderExtensions.UseIdentityByDefaultColumn(b.Property<int>("StateID"));
+                        .HasColumnType("int");
 
                     b.Property<bool>("Active")
-                        .HasColumnType("boolean");
+                        .HasColumnType("tinyint(1)");
 
                     b.Property<int>("CountryID")
-                        .HasColumnType("integer");
+                        .HasColumnType("int");
 
                     b.Property<string>("LanguageCode")
                         .IsRequired()
                         .HasMaxLength(2)
                         .IsUnicode(false)
-                        .HasColumnType("character(2)")
+                        .HasColumnType("char(2)")
                         .IsFixedLength();
 
                     b.Property<string>("Tile")
                         .IsRequired()
                         .HasMaxLength(48)
-                        .HasColumnType("character varying(48)");
+                        .HasColumnType("varchar(48)");
 
                     b.HasKey("StateID");
 
@@ -846,24 +804,22 @@ namespace Dotnetable.Migrations.PostgreSql.Migrations
                 {
                     b.Property<int>("StateTranslationID")
                         .ValueGeneratedOnAdd()
-                        .HasColumnType("integer");
-
-                    NpgsqlPropertyBuilderExtensions.UseIdentityByDefaultColumn(b.Property<int>("StateTranslationID"));
+                        .HasColumnType("int");
 
                     b.Property<string>("LanguageCode")
                         .IsRequired()
                         .HasMaxLength(2)
                         .IsUnicode(false)
-                        .HasColumnType("character(2)")
+                        .HasColumnType("char(2)")
                         .IsFixedLength();
 
                     b.Property<int>("StateID")
-                        .HasColumnType("integer");
+                        .HasColumnType("int");
 
                     b.Property<string>("Tile")
                         .IsRequired()
                         .HasMaxLength(48)
-                        .HasColumnType("character varying(48)");
+                        .HasColumnType("varchar(48)");
 
                     b.HasKey("StateTranslationID");
 
@@ -876,54 +832,52 @@ namespace Dotnetable.Migrations.PostgreSql.Migrations
                 {
                     b.Property<int>("WebsiteID")
                         .ValueGeneratedOnAdd()
-                        .HasColumnType("integer");
-
-                    NpgsqlPropertyBuilderExtensions.UseIdentityByDefaultColumn(b.Property<int>("WebsiteID"));
+                        .HasColumnType("int");
 
                     b.Property<bool>("Active")
-                        .HasColumnType("boolean");
+                        .HasColumnType("tinyint(1)");
 
                     b.Property<bool>("AllowAllIP")
-                        .HasColumnType("boolean");
+                        .HasColumnType("tinyint(1)");
 
                     b.Property<Guid>("AuthCode")
-                        .HasColumnType("uuid");
+                        .HasColumnType("char(36)");
 
                     b.Property<string>("BrandName")
                         .IsRequired()
                         .HasMaxLength(60)
-                        .HasColumnType("character varying(60)")
+                        .HasColumnType("varchar(60)")
                         .HasComment("show in title of pages");
 
                     b.Property<string>("DefaultLanguageCode")
                         .IsRequired()
                         .HasMaxLength(2)
                         .IsUnicode(false)
-                        .HasColumnType("character(2)")
+                        .HasColumnType("char(2)")
                         .IsFixedLength();
 
                     b.Property<string>("Email")
                         .IsRequired()
                         .HasMaxLength(60)
                         .IsUnicode(false)
-                        .HasColumnType("character varying(60)");
+                        .HasColumnType("varchar(60)");
 
                     b.Property<int?>("FaveIconFileID")
-                        .HasColumnType("integer");
+                        .HasColumnType("int");
 
                     b.Property<int?>("LogoFileID")
-                        .HasColumnType("integer");
+                        .HasColumnType("int");
 
                     b.Property<string>("Manager")
                         .IsRequired()
                         .HasMaxLength(30)
-                        .HasColumnType("character varying(30)");
+                        .HasColumnType("varchar(30)");
 
                     b.Property<string>("Mobile")
                         .IsRequired()
                         .HasMaxLength(15)
                         .IsUnicode(false)
-                        .HasColumnType("character varying(15)");
+                        .HasColumnType("varchar(15)");
 
                     b.Property<DateOnly>("RegisterDate")
                         .HasColumnType("date");
@@ -931,16 +885,16 @@ namespace Dotnetable.Migrations.PostgreSql.Migrations
                     b.Property<string>("TradeName")
                         .IsRequired()
                         .HasMaxLength(32)
-                        .HasColumnType("character varying(32)");
+                        .HasColumnType("varchar(32)");
 
                     b.Property<string>("WebsiteAddress")
                         .IsRequired()
                         .HasMaxLength(60)
                         .IsUnicode(false)
-                        .HasColumnType("character varying(60)");
+                        .HasColumnType("varchar(60)");
 
                     b.Property<byte>("WebsiteType")
-                        .HasColumnType("smallint");
+                        .HasColumnType("tinyint unsigned");
 
                     b.HasKey("WebsiteID");
 
@@ -955,34 +909,32 @@ namespace Dotnetable.Migrations.PostgreSql.Migrations
                 {
                     b.Property<int>("WebsiteIPID")
                         .ValueGeneratedOnAdd()
-                        .HasColumnType("integer");
-
-                    NpgsqlPropertyBuilderExtensions.UseIdentityByDefaultColumn(b.Property<int>("WebsiteIPID"));
+                        .HasColumnType("int");
 
                     b.Property<bool>("Active")
-                        .HasColumnType("boolean");
+                        .HasColumnType("tinyint(1)");
 
                     b.Property<int?>("CidrPrefix")
-                        .HasColumnType("integer");
+                        .HasColumnType("int");
 
                     b.Property<string>("EndIP")
                         .HasMaxLength(45)
                         .IsUnicode(false)
-                        .HasColumnType("character varying(45)");
+                        .HasColumnType("varchar(45)");
 
                     b.Property<string>("Label")
                         .IsRequired()
                         .HasMaxLength(30)
-                        .HasColumnType("character varying(30)");
+                        .HasColumnType("varchar(30)");
 
                     b.Property<string>("StartIP")
                         .IsRequired()
                         .HasMaxLength(45)
                         .IsUnicode(false)
-                        .HasColumnType("character varying(45)");
+                        .HasColumnType("varchar(45)");
 
                     b.Property<int>("WebsiteID")
-                        .HasColumnType("integer");
+                        .HasColumnType("int");
 
                     b.HasKey("WebsiteIPID");
 
@@ -995,12 +947,10 @@ namespace Dotnetable.Migrations.PostgreSql.Migrations
                 {
                     b.Property<int>("WebsiteScriptID")
                         .ValueGeneratedOnAdd()
-                        .HasColumnType("integer");
-
-                    NpgsqlPropertyBuilderExtensions.UseIdentityByDefaultColumn(b.Property<int>("WebsiteScriptID"));
+                        .HasColumnType("int");
 
                     b.Property<bool>("Active")
-                        .HasColumnType("boolean");
+                        .HasColumnType("tinyint(1)");
 
                     b.Property<DateTime>("LogTime")
                         .HasColumnType("datetime");
@@ -1009,24 +959,24 @@ namespace Dotnetable.Migrations.PostgreSql.Migrations
                         .IsRequired()
                         .HasMaxLength(50)
                         .IsUnicode(false)
-                        .HasColumnType("character varying(50)");
+                        .HasColumnType("varchar(50)");
 
                     b.Property<byte?>("Priority")
-                        .HasColumnType("smallint");
+                        .HasColumnType("tinyint unsigned");
 
                     b.Property<string>("RawContent")
                         .IsRequired()
                         .HasMaxLength(4000)
-                        .HasColumnType("character varying(4000)");
+                        .HasColumnType("varchar(4000)");
 
                     b.Property<byte>("ScriptLoadCondition")
-                        .HasColumnType("smallint");
+                        .HasColumnType("tinyint unsigned");
 
                     b.Property<byte>("ScriptPosition")
-                        .HasColumnType("smallint");
+                        .HasColumnType("tinyint unsigned");
 
                     b.Property<int>("WebsiteID")
-                        .HasColumnType("integer");
+                        .HasColumnType("int");
 
                     b.HasKey("WebsiteScriptID");
 
@@ -1039,41 +989,39 @@ namespace Dotnetable.Migrations.PostgreSql.Migrations
                 {
                     b.Property<int>("WebsiteSeoSettingID")
                         .ValueGeneratedOnAdd()
-                        .HasColumnType("integer");
-
-                    NpgsqlPropertyBuilderExtensions.UseIdentityByDefaultColumn(b.Property<int>("WebsiteSeoSettingID"));
+                        .HasColumnType("int");
 
                     b.Property<string>("CustomRobotsTxt")
                         .IsRequired()
-                        .HasColumnType("text");
+                        .HasColumnType("longtext");
 
                     b.Property<string>("DefaultMetaDescription")
                         .HasMaxLength(158)
-                        .HasColumnType("character varying(158)");
+                        .HasColumnType("varchar(158)");
 
                     b.Property<string>("DefaultMetaTitle")
                         .HasMaxLength(40)
                         .IsUnicode(false)
-                        .HasColumnType("character varying(40)")
+                        .HasColumnType("varchar(40)")
                         .HasComment("Page | {SiteName}");
 
                     b.Property<bool>("RobotsEnabled")
-                        .HasColumnType("boolean");
+                        .HasColumnType("tinyint(1)");
 
                     b.Property<bool>("SitemapEnabled")
-                        .HasColumnType("boolean");
+                        .HasColumnType("tinyint(1)");
 
                     b.Property<string>("TitleSeparator")
                         .ValueGeneratedOnAdd()
                         .HasMaxLength(3)
                         .IsUnicode(false)
-                        .HasColumnType("character(3)")
+                        .HasColumnType("char(3)")
                         .HasDefaultValue(" | \" or \" - \" or \" › ")
                         .IsFixedLength()
                         .HasAnnotation("Relational:DefaultConstraintName", "DF_WebsiteSeoSetting_TitleSeparator");
 
                     b.Property<int>("WebsiteID")
-                        .HasColumnType("integer");
+                        .HasColumnType("int");
 
                     b.HasKey("WebsiteSeoSettingID");
 
@@ -1086,29 +1034,27 @@ namespace Dotnetable.Migrations.PostgreSql.Migrations
                 {
                     b.Property<int>("WebsiteSocialLinkID")
                         .ValueGeneratedOnAdd()
-                        .HasColumnType("integer");
-
-                    NpgsqlPropertyBuilderExtensions.UseIdentityByDefaultColumn(b.Property<int>("WebsiteSocialLinkID"));
+                        .HasColumnType("int");
 
                     b.Property<string>("SocialIcon")
                         .HasMaxLength(64)
                         .IsUnicode(false)
-                        .HasColumnType("character varying(64)");
+                        .HasColumnType("varchar(64)");
 
                     b.Property<string>("SocialName")
                         .HasMaxLength(64)
-                        .HasColumnType("character varying(64)");
+                        .HasColumnType("varchar(64)");
 
                     b.Property<byte>("SocialType")
-                        .HasColumnType("smallint");
+                        .HasColumnType("tinyint unsigned");
 
                     b.Property<string>("UrlAddress")
                         .IsRequired()
                         .HasMaxLength(80)
-                        .HasColumnType("character varying(80)");
+                        .HasColumnType("varchar(80)");
 
                     b.Property<int>("WebsiteID")
-                        .HasColumnType("integer");
+                        .HasColumnType("int");
 
                     b.HasKey("WebsiteSocialLinkID");
 
@@ -1121,20 +1067,18 @@ namespace Dotnetable.Migrations.PostgreSql.Migrations
                 {
                     b.Property<int>("WebsiteStorageSettingsID")
                         .ValueGeneratedOnAdd()
-                        .HasColumnType("integer");
-
-                    NpgsqlPropertyBuilderExtensions.UseIdentityByDefaultColumn(b.Property<int>("WebsiteStorageSettingsID"));
+                        .HasColumnType("int");
 
                     b.Property<bool>("Active")
-                        .HasColumnType("boolean");
+                        .HasColumnType("tinyint(1)");
 
                     b.Property<string>("AllowedExtensions")
                         .HasMaxLength(710)
                         .IsUnicode(false)
-                        .HasColumnType("character varying(710)");
+                        .HasColumnType("varchar(710)");
 
                     b.Property<bool>("AutoGenerateThumbnails")
-                        .HasColumnType("boolean");
+                        .HasColumnType("tinyint(1)");
 
                     b.Property<long>("MaxFileSizeKB")
                         .HasColumnType("bigint");
@@ -1145,10 +1089,10 @@ namespace Dotnetable.Migrations.PostgreSql.Migrations
                     b.Property<string>("StorageSettingsJSON")
                         .IsRequired()
                         .HasMaxLength(2000)
-                        .HasColumnType("character varying(2000)");
+                        .HasColumnType("varchar(2000)");
 
                     b.Property<int>("WebsiteID")
-                        .HasColumnType("integer");
+                        .HasColumnType("int");
 
                     b.HasKey("WebsiteStorageSettingsID");
 

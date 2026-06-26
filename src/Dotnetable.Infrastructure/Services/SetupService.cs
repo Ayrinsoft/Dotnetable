@@ -118,24 +118,32 @@ public class SetupService : ISetupService
         context.Websites.Add(website);
         await context.SaveChangesAsync(ct);
 
-        // 2. Seed permission roles.
-        var roles = RoleKeys.All
-            .Select(key => new Role { RoleKey = key, Description = key, Active = true })
+        // 2. Seed every permission (admin + client) from the catalog.
+        var roles = RoleCatalog.All
+            .Select(def => new Role
+            {
+                RoleKey = def.Key,
+                Description = def.Description,
+                Category = (byte)def.Category,
+                Active = true,
+            })
             .ToList();
         context.Roles.AddRange(roles);
         await context.SaveChangesAsync(ct);
 
-        // 3. Administrator policy with full access (every seeded role).
+        // 3. Administrator policy granted every admin permission (client permissions are not admin roles).
         var policy = new Policy { Title = "Administrators", Active = true, WebsiteID = website.WebsiteID };
         context.Policies.Add(policy);
         await context.SaveChangesAsync(ct);
 
-        context.PolicyRoles.AddRange(roles.Select(r => new PolicyRole
-        {
-            PolicyID = policy.PolicyID,
-            RoleID = r.RoleID,
-            Active = true,
-        }));
+        context.PolicyRoles.AddRange(roles
+            .Where(r => r.Category == (byte)RoleCategory.Admin)
+            .Select(r => new PolicyRole
+            {
+                PolicyID = policy.PolicyID,
+                RoleID = r.RoleID,
+                Active = true,
+            }));
         await context.SaveChangesAsync(ct);
 
         // 4. First administrator member, bound to the master website.

@@ -38,6 +38,13 @@ else if (_role is not null)
                                   Variant="Variant.Outlined" Required="true" MaxLength="128"
                                   RequiredError="@L["required", "This field is required."]" />
                 </MudItem>
+                <MudItem xs="12" sm="6">
+                    <MudSelect T="byte" @bind-Value="_role.Category" Label="@L["role.category", "Category"]"
+                               Variant="Variant.Outlined">
+                        <MudSelectItem T="byte" Value="@((byte)RoleCategory.Admin)">@L["role.category.admin", "Admin panel"]</MudSelectItem>
+                        <MudSelectItem T="byte" Value="@((byte)RoleCategory.Client)">@L["role.category.client", "Website client"]</MudSelectItem>
+                    </MudSelect>
+                </MudItem>
                 <MudItem xs="12">
                     <MudSwitch T="bool" @bind-Value="_role.Active" Color="Color.Primary"
                                Label="@(_role.Active ? L["active", "Active"] : L["inactive", "Inactive"])" />

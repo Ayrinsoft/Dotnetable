@@ -1,5 +1,5 @@
 @page "/website/seo"
-@attribute [Authorize(Policy = AdminPolicies.WebsiteAdminOrAbove)]
+@attribute [Authorize(Policy = RoleKeys.WebsiteEdit)]
 @inject IWebsiteSettingService SettingService
 @inject IWebsiteService WebsiteService
 @inject AuthenticationStateProvider AuthState

@@ -7,25 +7,35 @@
         @L["dashboard", "Dashboard"]
     </MudNavLink>
 
-    <AuthorizeView Policy="@AdminPolicies.WebsiteAdminOrAbove">
+    @if (_canMembers || _canPolicies || _canLoginLogs || _canMessages || _canWebsite || _isMaster)
+    {
         <span class="app-nav-label">@L["nav.management", "Management"]</span>
-        <MudNavGroup Title="@L["nav.user_management", "User Management"]" Icon="@Icons.Material.Filled.People" Expanded="true">
+    }
+    <MudNavGroup Title="@L["nav.user_management", "User Management"]" Icon="@Icons.Material.Filled.People" Expanded="true"
+                 Hidden="@(!_canMembers && !_canPolicies && !_canLoginLogs && !_isMaster)">
+        <AuthorizeView Policy="@RoleKeys.MembersView" Context="m">
             <MudNavLink Href="/members" Icon="@Icons.Material.Filled.PersonOutline">
                 @L["members", "Members"]
             </MudNavLink>
+        </AuthorizeView>
+        <AuthorizeView Policy="@RoleKeys.PoliciesView" Context="p">
             <MudNavLink Href="/policies" Icon="@Icons.Material.Filled.Shield">
                 @L["access_levels", "Access Levels"]
             </MudNavLink>
-            <AuthorizeView Policy="@AdminPolicies.SuperAdminOnly" Context="roles">
-                <MudNavLink Href="/roles" Icon="@Icons.Material.Filled.VpnKey">
-                    @L["roles", "Roles"]
-                </MudNavLink>
-            </AuthorizeView>
+        </AuthorizeView>
+        <AuthorizeView Policy="@AdminPolicies.SuperAdminOnly" Context="roles">
+            <MudNavLink Href="/roles" Icon="@Icons.Material.Filled.VpnKey">
+                @L["roles", "Roles"]
+            </MudNavLink>
+        </AuthorizeView>
+        <AuthorizeView Policy="@RoleKeys.LoginLogsView" Context="ll">
             <MudNavLink Href="/login-logs" Icon="@Icons.Material.Filled.History">
                 @L["login_logs", "Login Logs"]
             </MudNavLink>
-        </MudNavGroup>
+        </AuthorizeView>
+    </MudNavGroup>
 
+    <AuthorizeView Policy="@RoleKeys.WebsiteEdit" Context="ws">
         <MudNavGroup Title="@L["website", "Website"]" Icon="@Icons.Material.Filled.WebAsset">
             <MudNavLink Href="/website/ips" Icon="@Icons.Material.Filled.Security">
                 @L["ip_whitelist", "IP Whitelist"]
@@ -40,26 +50,37 @@
                 @L["social_links", "Social Links"]
             </MudNavLink>
         </MudNavGroup>
+    </AuthorizeView>
 
-        <MudNavGroup Title="@L["messages", "Messages"]" Icon="@Icons.Material.Filled.Message">
+    <MudNavGroup Title="@L["messages", "Messages"]" Icon="@Icons.Material.Filled.Message"
+                 Hidden="@(!_canMessages && !_canWebsite && !_isMaster)">
+        <AuthorizeView Policy="@RoleKeys.MessagesView" Context="cm">
             <MudNavLink Href="/messages/contacts" Icon="@Icons.Material.Filled.ContactMail">
                 @L["contact_messages", "Contact Messages"]
             </MudNavLink>
+        </AuthorizeView>
+        <AuthorizeView Policy="@RoleKeys.WebsiteEdit" Context="em">
             <MudNavLink Href="/messages/email" Icon="@Icons.Material.Filled.Email">
                 @L["email_settings", "Email Settings"]
             </MudNavLink>
-        </MudNavGroup>
+        </AuthorizeView>
+    </MudNavGroup>
 
+    <AuthorizeView Policy="@RoleKeys.LocalizationEdit" Context="tr">
         <MudNavLink Href="/translations" Icon="@Icons.Material.Filled.Translate">
             @L["translations", "Translations"]
         </MudNavLink>
+    </AuthorizeView>
+    <AuthorizeView Policy="@RoleKeys.MediaView" Context="md">
         <MudNavGroup Title="@L["media", "Media"]" Icon="@Icons.Material.Filled.PermMedia">
             <MudNavLink Href="/media" Icon="@Icons.Material.Filled.PhotoLibrary">
                 @L["media_library", "Media Library"]
             </MudNavLink>
-            <MudNavLink Href="/media/storage" Icon="@Icons.Material.Filled.Cloud">
-                @L["storage", "Storage"]
-            </MudNavLink>
+            <AuthorizeView Policy="@RoleKeys.MediaUpload" Context="ms">
+                <MudNavLink Href="/media/storage" Icon="@Icons.Material.Filled.Cloud">
+                    @L["storage", "Storage"]
+                </MudNavLink>
+            </AuthorizeView>
         </MudNavGroup>
     </AuthorizeView>
 
@@ -93,5 +114,28 @@
 </MudNavMenu>
 
 @code {
-    protected override async Task OnInitializedAsync() => await L.EnsureLoadedAsync();
+    [CascadingParameter] private Task<AuthenticationState>? AuthState { get; set; }
+
+    private bool _isMaster;
+    private bool _canMembers;
+    private bool _canPolicies;
+    private bool _canLoginLogs;
+    private bool _canMessages;
+    private bool _canWebsite;
+
+    protected override async Task OnInitializedAsync()
+    {
+        await L.EnsureLoadedAsync();
+
+        if (AuthState is not null)
+        {
+            var user = (await AuthState).User;
+            _isMaster = user.HasClaim(AdminClaimTypes.Master, "true");
+            _canMembers = AdminPolicies.Allows(user, RoleKeys.MembersView);
+            _canPolicies = AdminPolicies.Allows(user, RoleKeys.PoliciesView);
+            _canLoginLogs = AdminPolicies.Allows(user, RoleKeys.LoginLogsView);
+            _canMessages = AdminPolicies.Allows(user, RoleKeys.MessagesView);
+            _canWebsite = AdminPolicies.Allows(user, RoleKeys.WebsiteEdit);
+        }
+    }
 }

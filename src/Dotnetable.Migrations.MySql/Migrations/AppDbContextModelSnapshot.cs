@@ -744,6 +744,11 @@ namespace Dotnetable.Migrations.MySql.Migrations
                     b.Property<bool>("Active")
                         .HasColumnType("tinyint(1)");
 
+                    b.Property<byte>("Category")
+                        .ValueGeneratedOnAdd()
+                        .HasColumnType("tinyint unsigned")
+                        .HasDefaultValue((byte)0);
+
                     b.Property<string>("Description")
                         .IsRequired()
                         .HasMaxLength(128)

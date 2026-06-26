@@ -1,6 +1,6 @@
 @page "/members/new"
 @page "/members/{Id:int}"
-@attribute [Authorize(Policy = AdminPolicies.WebsiteAdminOrAbove)]
+@attribute [Authorize(Policy = RoleKeys.MembersView)]
 @inject IMemberService MemberService
 @inject IPolicyService PolicyService
 @inject IWebsiteService WebsiteService
@@ -130,15 +130,18 @@ else if (_member is not null)
         </MudGrid>
 
         <MudStack Row="true" Class="mt-4" Spacing="2">
-            <MudButton Variant="Variant.Filled" Color="Color.Primary"
-                       StartIcon="@Icons.Material.Filled.Save"
-                       OnClick="SaveAsync" Disabled="@_saving">
-                @if (_saving)
-                {
-                    <MudProgressCircular Size="Size.Small" Indeterminate="true" Class="me-2" />
-                }
-                @(_isNew ? L["members.create", "Create Member"] : L["save", "Save Changes"])
-            </MudButton>
+            @if (_canSave)
+            {
+                <MudButton Variant="Variant.Filled" Color="Color.Primary"
+                           StartIcon="@Icons.Material.Filled.Save"
+                           OnClick="SaveAsync" Disabled="@_saving">
+                    @if (_saving)
+                    {
+                        <MudProgressCircular Size="Size.Small" Indeterminate="true" Class="me-2" />
+                    }
+                    @(_isNew ? L["members.create", "Create Member"] : L["save", "Save Changes"])
+                </MudButton>
+            }
             <MudButton Variant="Variant.Outlined" Color="Color.Default"
                        StartIcon="@Icons.Material.Filled.ArrowBack" Href="/members">
                 @L["cancel", "Cancel"]
@@ -156,6 +159,7 @@ else if (_member is not null)
     private bool _loading = true;
     private bool _saving;
     private bool _isMaster;
+    private bool _canSave;
     private int _websiteId;
     private List<Website> _websites = new();
     private List<Policy> _policies = new();
@@ -175,6 +179,8 @@ else if (_member is not null)
         var state = await AuthState.GetAuthenticationStateAsync();
         var user = state.User;
         _isMaster = user.HasClaim(AdminClaimTypes.Master, "true");
+        // Creating requires the insert permission; editing an existing member requires edit.
+        _canSave = AdminPolicies.Allows(user, _isNew ? RoleKeys.MembersInsert : RoleKeys.MembersEdit);
         int.TryParse(user.FindFirst(AdminClaimTypes.WebsiteId)?.Value, out _websiteId);
 
         if (_isNew)
@@ -218,6 +224,8 @@ else if (_member is not null)
 
     private async Task SaveAsync()
     {
+        if (!_canSave) return; // Guard against a stale/forged client state.
+
         await _form.ValidateAsync();
         if (!_form.IsValid) return;
 

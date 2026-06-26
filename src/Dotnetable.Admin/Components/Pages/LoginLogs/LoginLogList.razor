@@ -1,5 +1,5 @@
 @page "/login-logs"
-@attribute [Authorize(Policy = AdminPolicies.WebsiteAdminOrAbove)]
+@attribute [Authorize(Policy = RoleKeys.LoginLogsView)]
 @inject ILoginLogService LoginLogService
 @inject AuthenticationStateProvider AuthState
 @inject IPageLocalizer L

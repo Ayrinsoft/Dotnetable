@@ -1,5 +1,5 @@
 @page "/messages/contacts/{Id:int}"
-@attribute [Authorize(Policy = AdminPolicies.WebsiteAdminOrAbove)]
+@attribute [Authorize(Policy = RoleKeys.MessagesView)]
 @inject IContactMessageService MessageService
 @inject NavigationManager Nav
 @inject ISnackbar Snackbar
