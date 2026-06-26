@@ -1,3 +1,7 @@
+@using Dotnetable.Web.Services
+@{
+    var isLoggedIn = Context.Request.Cookies.ContainsKey(ClientAuth.TokenCookie);
+}
 <!DOCTYPE html>
 <html lang="en">
 <head>
@@ -5,11 +9,40 @@
     <meta name="viewport" content="width=device-width, initial-scale=1.0" />
     <title>@ViewData["Title"] - Dotnetable</title>
     <link rel="stylesheet" href="~/css/site.css" asp-append-version="true" />
+    <style>
+        .dn-nav { display: flex; align-items: center; gap: 1rem; }
+        .dn-nav .dn-spacer { flex: 1; }
+        .dn-btn { cursor: pointer; padding: .45rem .9rem; border: 1px solid #d0d5dd; border-radius: 8px;
+                  background: #fff; font-size: .9rem; }
+        .dn-btn-primary { background: #2563eb; color: #fff; border-color: #2563eb; }
+        .dn-modal-backdrop { position: fixed; inset: 0; background: rgba(0,0,0,.45); display: none;
+                             align-items: center; justify-content: center; z-index: 1000; }
+        .dn-modal-backdrop.open { display: flex; }
+        .dn-modal { background: #fff; width: 100%; max-width: 360px; border-radius: 12px; padding: 1.5rem;
+                    box-shadow: 0 20px 60px rgba(0,0,0,.25); }
+        .dn-modal h2 { margin: 0 0 1rem; font-size: 1.25rem; }
+        .dn-field { margin-bottom: .85rem; }
+        .dn-field label { display: block; font-size: .8rem; margin-bottom: .25rem; color: #475467; }
+        .dn-field input { width: 100%; box-sizing: border-box; padding: .55rem .7rem; border: 1px solid #d0d5dd;
+                          border-radius: 8px; font-size: .95rem; }
+        .dn-modal-actions { display: flex; gap: .5rem; margin-top: 1rem; }
+        .dn-modal-actions .dn-btn { flex: 1; }
+        .dn-error { color: #d92d20; font-size: .85rem; margin: .25rem 0 0; min-height: 1.1em; }
+    </style>
 </head>
 <body>
     <header>
-        <nav>
+        <nav class="dn-nav">
             <a asp-controller="Home" asp-action="Index">Home</a>
+            <span class="dn-spacer"></span>
+            @if (isLoggedIn)
+            {
+                <button type="button" class="dn-btn" onclick="dnLogout()">Logout</button>
+            }
+            else
+            {
+                <button type="button" class="dn-btn dn-btn-primary" onclick="dnOpenLogin()">Login</button>
+            }
         </nav>
     </header>
     <main>
@@ -18,6 +51,72 @@
     <footer>
         <p>&copy; @DateTime.Now.Year - Dotnetable</p>
     </footer>
+
+    @* ── Popup login modal ───────────────────────────────────────── *@
+    <div class="dn-modal-backdrop" id="dnLoginBackdrop" onclick="if(event.target===this) dnCloseLogin()">
+        <div class="dn-modal" role="dialog" aria-modal="true" aria-labelledby="dnLoginTitle">
+            <h2 id="dnLoginTitle">Sign in</h2>
+            <form id="dnLoginForm" onsubmit="return dnSubmitLogin(event)">
+                <div class="dn-field">
+                    <label for="dnUsername">Username</label>
+                    <input id="dnUsername" name="username" autocomplete="username" required />
+                </div>
+                <div class="dn-field">
+                    <label for="dnPassword">Password</label>
+                    <input id="dnPassword" name="password" type="password" autocomplete="current-password" required />
+                </div>
+                <p class="dn-error" id="dnLoginError"></p>
+                <div class="dn-modal-actions">
+                    <button type="button" class="dn-btn" onclick="dnCloseLogin()">Cancel</button>
+                    <button type="submit" class="dn-btn dn-btn-primary" id="dnLoginSubmit">Sign in</button>
+                </div>
+            </form>
+        </div>
+    </div>
+
+    <script>
+        function dnOpenLogin() {
+            document.getElementById('dnLoginError').textContent = '';
+            document.getElementById('dnLoginForm').reset();
+            document.getElementById('dnLoginBackdrop').classList.add('open');
+            document.getElementById('dnUsername').focus();
+        }
+        function dnCloseLogin() {
+            document.getElementById('dnLoginBackdrop').classList.remove('open');
+        }
+        async function dnSubmitLogin(e) {
+            e.preventDefault();
+            var btn = document.getElementById('dnLoginSubmit');
+            var err = document.getElementById('dnLoginError');
+            err.textContent = '';
+            btn.disabled = true;
+            try {
+                var res = await fetch('/Account/Login', {
+                    method: 'POST',
+                    headers: { 'Content-Type': 'application/json' },
+                    body: JSON.stringify({
+                        username: document.getElementById('dnUsername').value,
+                        password: document.getElementById('dnPassword').value
+                    })
+                });
+                if (res.ok) {
+                    window.location.reload();
+                    return false;
+                }
+                var data = await res.json().catch(function () { return {}; });
+                err.textContent = data.message || 'Sign in failed.';
+            } catch {
+                err.textContent = 'Network error. Please try again.';
+            } finally {
+                btn.disabled = false;
+            }
+            return false;
+        }
+        async function dnLogout() {
+            await fetch('/Account/Logout', { method: 'POST' });
+            window.location.reload();
+        }
+    </script>
     @await RenderSectionAsync("Scripts", required: false)
 </body>
 </html>

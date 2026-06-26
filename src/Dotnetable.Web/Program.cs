@@ -15,6 +15,9 @@ builder.Services.Configure<Microsoft.AspNetCore.Mvc.Razor.RazorViewEngineOptions
 builder.Services.AddSingleton<IThemeService, ThemeService>();
 builder.Services.AddSingleton<WebLocalizationService>();
 
+builder.Services.AddHttpContextAccessor();
+builder.Services.AddTransient<BearerTokenHandler>();
+
 builder.Services.AddHttpClient<ApiClient>(client =>
 {
     client.BaseAddress = new Uri(builder.Configuration["Api:BaseUrl"]
@@ -22,9 +25,8 @@ builder.Services.AddHttpClient<ApiClient>(client =>
     client.DefaultRequestHeaders.Add("X-Api-Key",
         builder.Configuration["Api:Key"]
         ?? throw new InvalidOperationException("Api:Key is not configured."));
-});
-
-builder.Services.AddHttpContextAccessor();
+})
+.AddHttpMessageHandler<BearerTokenHandler>();
 
 var app = builder.Build();
 

@@ -16,4 +16,11 @@ public interface ISetupService
     /// and the first administrator member. Throws if setup has already been completed.
     /// </summary>
     Task CompleteSetupAsync(SetupRequest request, CancellationToken ct = default);
+
+    /// <summary>
+    /// Inserts any permission keys from the role catalog that a configured database is missing
+    /// (e.g. after a version upgrade that introduced new permissions). Additive and idempotent;
+    /// existing roles and policy grants are left untouched. No-op when not yet configured.
+    /// </summary>
+    Task SyncRoleCatalogAsync(CancellationToken ct = default);
 }

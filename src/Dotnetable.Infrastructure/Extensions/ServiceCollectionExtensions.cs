@@ -1,3 +1,4 @@
+using Dotnetable.Application.Authorization;
 using Dotnetable.Application.Extensions;
 using Dotnetable.Application.Interfaces;
 using Dotnetable.Domain.Entities;
@@ -59,6 +60,13 @@ public static class ServiceCollectionExtensions
         services.AddScoped<ISetupService, SetupService>();
         services.AddScoped<IDatabaseUpdateService, DatabaseUpdateService>();
         services.AddScoped<IPasswordHasher<Member>, PasswordHasher<Member>>();
+
+        // JWT issuance for API / website-client logins. Bound from the "Jwt" config section; the
+        // signing key is only required by hosts that actually issue or validate tokens (the API).
+        var jwtSettings = new JwtSettings();
+        configuration.GetSection(JwtSettings.SectionName).Bind(jwtSettings);
+        services.AddSingleton(jwtSettings);
+        services.AddScoped<IJwtTokenService, JwtTokenService>();
 
         // Media library: pluggable CDN storage backends + file/album/tag management.
         services.AddScoped<IFileStorageProvider, Storage.ArvanStorageProvider>();
