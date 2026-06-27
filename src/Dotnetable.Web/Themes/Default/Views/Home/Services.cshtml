@@ -1,0 +1,49 @@
+@{
+    ViewData["Title"] = "Services";
+    Layout = "/Themes/Default/Views/Shared/_Layout.cshtml";
+}
+
+@await Html.PartialAsync("_PageHeader", ("Our services", "Services"))
+
+<section class="site-section">
+    <div class="container">
+        <div class="text-center mb-5">
+            <span class="site-eyebrow">What we do</span>
+            <h2 class="site-section-title">Services built around your needs</h2>
+            <p class="site-section-sub">From first concept to ongoing growth, we cover every stage of your digital journey.</p>
+        </div>
+        <div class="row g-4">
+            @{
+                var services = new[]
+                {
+                    ("bi-code-slash", "Web development", "Custom websites and web apps built on solid, scalable foundations."),
+                    ("bi-phone", "Mobile experiences", "Responsive interfaces that feel native on every device."),
+                    ("bi-palette", "UI / UX design", "Intuitive, attractive designs that put your users first."),
+                    ("bi-search", "SEO & marketing", "Get found and grow your audience with proven strategies."),
+                    ("bi-cloud", "Cloud & hosting", "Reliable, secure infrastructure that scales as you grow."),
+                    ("bi-gear", "Maintenance", "Ongoing care, updates, and support to keep things running."),
+                };
+            }
+            @foreach (var (icon, title, text) in services)
+            {
+                <div class="col-md-6 col-lg-4">
+                    <div class="site-card">
+                        <div class="icon"><i class="bi @icon"></i></div>
+                        <h3 class="h5 fw-bold">@title</h3>
+                        <p class="text-muted mb-0">@text</p>
+                    </div>
+                </div>
+            }
+        </div>
+    </div>
+</section>
+
+<section class="site-section bg-light">
+    <div class="container">
+        <div class="site-cta text-center">
+            <h2 class="fw-bold mb-2">Have a project in mind?</h2>
+            <p class="mb-4 opacity-75">Let's talk about how we can help you reach your goals.</p>
+            <a class="btn btn-light btn-lg fw-bold text-primary" asp-controller="Home" asp-action="Contact">Contact us</a>
+        </div>
+    </div>
+</section>

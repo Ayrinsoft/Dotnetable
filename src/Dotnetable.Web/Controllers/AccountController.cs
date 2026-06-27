@@ -37,6 +37,38 @@ public class AccountController : Controller
         return Ok(new { success = true });
     }
 
+    public sealed class RegisterInput
+    {
+        public string GivenName { get; set; } = string.Empty;
+        public string Surname { get; set; } = string.Empty;
+        public string Email { get; set; } = string.Empty;
+        public string Username { get; set; } = string.Empty;
+        public string Password { get; set; } = string.Empty;
+    }
+
+    /// <summary>
+    /// Drives the popup register form. Public self-registration needs a target website and
+    /// member access level (PolicyID) decided at the API; until that endpoint exists this
+    /// validates the input and returns a clear message rather than creating a half-formed member.
+    /// </summary>
+    [HttpPost]
+    public IActionResult Register([FromBody] RegisterInput input)
+    {
+        if (string.IsNullOrWhiteSpace(input.Username) ||
+            string.IsNullOrWhiteSpace(input.Password) ||
+            string.IsNullOrWhiteSpace(input.Email) ||
+            string.IsNullOrWhiteSpace(input.GivenName) ||
+            string.IsNullOrWhiteSpace(input.Surname))
+        {
+            return BadRequest(new { message = "Please fill in all fields." });
+        }
+
+        // TODO: call _api.RegisterAsync(...) once the API exposes public self-registration
+        // (it must resolve the target website and a default member access level).
+        return StatusCode(StatusCodes.Status501NotImplemented,
+            new { message = "Online registration isn't available yet. Please contact us to create an account." });
+    }
+
     [HttpPost]
     public IActionResult Logout()
     {
