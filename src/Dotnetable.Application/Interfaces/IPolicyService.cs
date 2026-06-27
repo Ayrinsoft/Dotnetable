@@ -14,6 +14,9 @@ public interface IPolicyService
     /// <summary>Active access levels belonging to a website (for member assignment dropdowns).</summary>
     Task<IReadOnlyList<Policy>> GetByWebsiteAsync(int websiteId, CancellationToken ct = default);
 
+    /// <summary>The active access level a website assigns to self-registered customers (the "Users" policy), or null.</summary>
+    Task<Policy?> GetDefaultMemberPolicyAsync(int websiteId, CancellationToken ct = default);
+
     /// <summary>Creates the access level and its active <see cref="PolicyRole"/> rows for the given roles.</summary>
     Task<Policy> CreateAsync(Policy policy, IEnumerable<short> roleIds, CancellationToken ct = default);
 

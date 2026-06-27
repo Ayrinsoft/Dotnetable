@@ -122,6 +122,30 @@ public class MemberServiceTests : IDisposable
     }
 
     [Fact]
+    public async Task ExistsAsync_MatchingUsername_ReturnsTrue()
+    {
+        var m = NewMember("taken"); _context.Members.Add(m); await _context.SaveChangesAsync();
+
+        (await _service.ExistsAsync("taken", "fresh@test.com")).Should().BeTrue();
+    }
+
+    [Fact]
+    public async Task ExistsAsync_MatchingEmail_ReturnsTrue()
+    {
+        var m = NewMember("someone"); _context.Members.Add(m); await _context.SaveChangesAsync();
+
+        (await _service.ExistsAsync("freshname", "someone@test.com")).Should().BeTrue();
+    }
+
+    [Fact]
+    public async Task ExistsAsync_NoMatch_ReturnsFalse()
+    {
+        var m = NewMember("someone"); _context.Members.Add(m); await _context.SaveChangesAsync();
+
+        (await _service.ExistsAsync("nobody", "nobody@test.com")).Should().BeFalse();
+    }
+
+    [Fact]
     public async Task GetByWebsiteAsync_ReturnsOnlyMembersForWebsite()
     {
         var other = new Website

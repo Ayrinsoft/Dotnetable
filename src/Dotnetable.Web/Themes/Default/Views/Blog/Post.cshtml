@@ -1,0 +1,32 @@
+@model Dotnetable.Web.Controllers.BlogController.PostView
+@{
+    ViewData["Title"] = Model.Title;
+    Layout = "/Themes/Default/Views/Shared/_Layout.cshtml";
+}
+
+@await Html.PartialAsync("_PageHeader", (Model.Title, "Blog"))
+
+<section class="site-section">
+    <div class="container">
+        <div class="row justify-content-center">
+            <div class="col-lg-8">
+                <div class="d-flex gap-3 align-items-center mb-4">
+                    <span class="tag text-primary fw-bold text-uppercase">@Model.Category</span>
+                    <span class="text-muted"><i class="bi bi-calendar3 me-1"></i>@Model.Date.ToString("MMMM d, yyyy")</span>
+                    <span class="text-muted"><i class="bi bi-person me-1"></i>@Model.Author</span>
+                </div>
+
+                <div class="ratio ratio-21x9 rounded-4 bg-dark-section mb-4" style="background:linear-gradient(135deg,#1d2433,#2a3346);"></div>
+
+                <p class="lead">@Model.Excerpt</p>
+                <p>@Model.Body</p>
+                <p class="text-muted">More content for this article will appear here once the blog is connected to live content.</p>
+
+                <hr class="my-4" />
+                <a class="btn btn-outline-secondary" asp-controller="Blog" asp-action="Index">
+                    <i class="bi bi-arrow-left me-1"></i>Back to blog
+                </a>
+            </div>
+        </div>
+    </div>
+</section>

@@ -59,6 +59,7 @@ public static class RoleCatalog
         new(RoleKeys.LoginLogsView, "View login logs", RoleCategory.Admin),
 
         // Client (website customers)
+        new(RoleKeys.ClientAccess, "Sign in and general site access", RoleCategory.Client),
         new(RoleKeys.ClientPurchase, "Place orders / purchase", RoleCategory.Client),
         new(RoleKeys.ClientReview, "Post product reviews / comments", RoleCategory.Client),
         new(RoleKeys.ClientProfile, "Manage own profile", RoleCategory.Client),

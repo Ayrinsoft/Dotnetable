@@ -1,0 +1,189 @@
+/* =====================================================================
+   Theme styles — generic, Bootstrap 5 based. Inspired by a modern
+   corporate/agency layout. No third-party proprietary class names.
+   Tune the palette below to re-skin the whole site.
+   ===================================================================== */
+:root {
+    --site-primary: #ff5e3a;
+    --site-primary-dark: #e8431f;
+    --site-dark: #1d2433;
+    --site-darker: #141a26;
+    --site-muted: #6b7280;
+    --site-light: #f6f7fb;
+    --site-border: #e6e8ef;
+    --site-radius: 14px;
+    --site-shadow: 0 18px 50px rgba(20, 26, 38, .12);
+}
+
+body {
+    font-family: "Segoe UI", Tahoma, system-ui, -apple-system, sans-serif;
+    color: var(--site-dark);
+    background: #fff;
+}
+
+a { text-decoration: none; }
+
+.btn-primary {
+    --bs-btn-bg: var(--site-primary);
+    --bs-btn-border-color: var(--site-primary);
+    --bs-btn-hover-bg: var(--site-primary-dark);
+    --bs-btn-hover-border-color: var(--site-primary-dark);
+    --bs-btn-active-bg: var(--site-primary-dark);
+    --bs-btn-active-border-color: var(--site-primary-dark);
+}
+
+.text-primary { color: var(--site-primary) !important; }
+.bg-dark-section { background: var(--site-dark); color: #fff; }
+
+/* ---------- Navbar ---------- */
+.site-navbar {
+    background: rgba(255, 255, 255, .96);
+    backdrop-filter: blur(8px);
+    box-shadow: 0 2px 14px rgba(20, 26, 38, .06);
+    transition: box-shadow .25s ease;
+}
+.site-navbar .navbar-brand {
+    font-weight: 800;
+    letter-spacing: -.5px;
+    font-size: 1.4rem;
+    color: var(--site-dark);
+}
+.site-navbar .navbar-brand span { color: var(--site-primary); }
+.site-navbar .nav-link {
+    font-weight: 600;
+    color: var(--site-dark);
+    padding: .5rem .9rem !important;
+}
+.site-navbar .nav-link:hover,
+.site-navbar .nav-link.active { color: var(--site-primary); }
+
+/* ---------- Hero ---------- */
+.site-hero {
+    position: relative;
+    background: linear-gradient(135deg, var(--site-darker) 0%, var(--site-dark) 60%, #2a3346 100%);
+    color: #fff;
+    padding: 7rem 0 6rem;
+    overflow: hidden;
+}
+.site-hero::after {
+    content: "";
+    position: absolute;
+    top: -120px; right: -120px;
+    width: 420px; height: 420px;
+    background: radial-gradient(circle, rgba(255,94,58,.35), transparent 70%);
+    border-radius: 50%;
+}
+.site-hero h1 {
+    font-weight: 800;
+    font-size: clamp(2.1rem, 4vw, 3.4rem);
+    line-height: 1.1;
+    margin-bottom: 1.2rem;
+}
+.site-hero p.lead { color: rgba(255, 255, 255, .8); max-width: 540px; }
+.site-hero .badge-pill {
+    display: inline-block;
+    background: rgba(255, 94, 58, .15);
+    color: var(--site-primary);
+    border: 1px solid rgba(255, 94, 58, .3);
+    padding: .4rem 1rem;
+    border-radius: 999px;
+    font-weight: 600;
+    font-size: .85rem;
+    margin-bottom: 1.5rem;
+}
+
+/* ---------- Section helpers ---------- */
+.site-section { padding: 5rem 0; }
+.site-section-title { font-weight: 800; font-size: 2rem; margin-bottom: .5rem; }
+.site-section-sub { color: var(--site-muted); max-width: 620px; margin: 0 auto; }
+.site-eyebrow {
+    text-transform: uppercase;
+    letter-spacing: 2px;
+    font-size: .78rem;
+    font-weight: 700;
+    color: var(--site-primary);
+}
+
+/* ---------- Cards ---------- */
+.site-card {
+    background: #fff;
+    border: 1px solid var(--site-border);
+    border-radius: var(--site-radius);
+    padding: 2rem;
+    height: 100%;
+    transition: transform .25s ease, box-shadow .25s ease;
+}
+.site-card:hover { transform: translateY(-6px); box-shadow: var(--site-shadow); }
+.site-card .icon {
+    width: 56px; height: 56px;
+    display: grid; place-items: center;
+    border-radius: 12px;
+    background: rgba(255, 94, 58, .12);
+    color: var(--site-primary);
+    font-size: 1.5rem;
+    margin-bottom: 1.2rem;
+}
+
+/* ---------- Stats ---------- */
+.site-stat .num { font-size: 2.4rem; font-weight: 800; color: var(--site-primary); }
+.site-stat .label { color: var(--site-muted); font-weight: 600; }
+
+/* ---------- Blog ---------- */
+.blog-card {
+    background: #fff;
+    border: 1px solid var(--site-border);
+    border-radius: var(--site-radius);
+    overflow: hidden;
+    height: 100%;
+    transition: transform .25s ease, box-shadow .25s ease;
+}
+.blog-card:hover { transform: translateY(-6px); box-shadow: var(--site-shadow); }
+.blog-card .thumb {
+    height: 200px;
+    background-size: cover;
+    background-position: center;
+    background-color: var(--site-light);
+}
+.blog-card .body { padding: 1.5rem; }
+.blog-card .tag {
+    color: var(--site-primary);
+    font-weight: 700;
+    font-size: .78rem;
+    text-transform: uppercase;
+    letter-spacing: 1px;
+}
+.blog-card h3 { font-size: 1.2rem; font-weight: 700; margin: .5rem 0; }
+.blog-card .meta { color: var(--site-muted); font-size: .85rem; }
+
+/* ---------- CTA ---------- */
+.site-cta {
+    background: linear-gradient(135deg, var(--site-primary) 0%, var(--site-primary-dark) 100%);
+    border-radius: var(--site-radius);
+    color: #fff;
+    padding: 3rem;
+}
+
+/* ---------- Footer ---------- */
+.site-footer { background: var(--site-darker); color: rgba(255, 255, 255, .7); padding: 4rem 0 1.5rem; }
+.site-footer h5 { color: #fff; font-weight: 700; margin-bottom: 1.2rem; }
+.site-footer a { color: rgba(255, 255, 255, .7); }
+.site-footer a:hover { color: var(--site-primary); }
+.site-footer .footer-bottom { border-top: 1px solid rgba(255, 255, 255, .1); margin-top: 2.5rem; padding-top: 1.5rem; }
+
+/* ---------- Auth modal ---------- */
+.auth-modal .modal-content { border: none; border-radius: 18px; overflow: hidden; }
+.auth-modal .nav-pills .nav-link { border-radius: 10px; font-weight: 700; color: var(--site-muted); }
+.auth-modal .nav-pills .nav-link.active { background: var(--site-primary); color: #fff; }
+.auth-modal .form-control { padding: .65rem .9rem; border-radius: 10px; }
+.auth-feedback { min-height: 1.2em; font-size: .85rem; }
+
+/* ---------- Page header (inner pages) ---------- */
+.page-header {
+    background: linear-gradient(135deg, var(--site-darker), var(--site-dark));
+    color: #fff;
+    padding: 4.5rem 0 3.5rem;
+}
+.page-header h1 { font-weight: 800; }
+.page-header .breadcrumb { --bs-breadcrumb-divider-color: rgba(255,255,255,.5); }
+.page-header .breadcrumb a { color: rgba(255, 255, 255, .8); }
+.page-header .breadcrumb .active { color: var(--site-primary); }

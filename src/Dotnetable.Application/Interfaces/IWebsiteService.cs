@@ -7,6 +7,10 @@ public interface IWebsiteService
 {
     Task<Website?> GetByIdAsync(int id, CancellationToken ct = default);
     Task<Website?> GetByAddressAsync(string websiteAddress, CancellationToken ct = default);
+
+    /// <summary>Resolves a website by its per-site key (<see cref="Website.AuthCode"/>), or null if no match.</summary>
+    Task<Website?> GetByAuthCodeAsync(Guid authCode, CancellationToken ct = default);
+
     Task<IEnumerable<Website>> GetAllAsync(CancellationToken ct = default);
 
     /// <summary>Server-side paged/sorted/searched websites.</summary>
