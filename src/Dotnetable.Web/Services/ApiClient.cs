@@ -29,4 +29,23 @@ public class ApiClient
             return null;
         return await response.Content.ReadFromJsonAsync<LoginResult>(cancellationToken: ct);
     }
+
+    /// <summary>Outcome of a registration attempt: the API's HTTP success flag and its message.</summary>
+    public sealed record ApiResult(bool Success, string? Message);
+
+    /// <summary>Registers a new customer. The website is resolved by the API from the configured website key header.</summary>
+    public async Task<ApiResult> RegisterAsync(object payload, CancellationToken ct = default)
+    {
+        var response = await _http.PostAsJsonAsync("api/auth/register", payload, ct);
+        string? message = null;
+        try
+        {
+            var body = await response.Content.ReadFromJsonAsync<Dictionary<string, object>>(cancellationToken: ct);
+            if (body is not null && body.TryGetValue("message", out var m))
+                message = m?.ToString();
+        }
+        catch { /* non-JSON body — fall back to a generic message below */ }
+
+        return new ApiResult(response.IsSuccessStatusCode, message);
+    }
 }
