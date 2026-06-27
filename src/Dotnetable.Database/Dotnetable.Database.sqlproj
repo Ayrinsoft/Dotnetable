@@ -47,6 +47,11 @@
     <Folder Include="Views\" />
     <Folder Include="StoredProcedures\" />
     <Folder Include="Security\" />
+    <Folder Include="Seed\" />
+  </ItemGroup>
+  <ItemGroup>
+    <!-- Data seed scripts (DML), not part of the schema model. Run manually as needed. -->
+    <None Include="Seed\SeedDefaultAccess.sql" />
   </ItemGroup>
   <ItemGroup>
     <Build Include="FileAlbum.sql" />

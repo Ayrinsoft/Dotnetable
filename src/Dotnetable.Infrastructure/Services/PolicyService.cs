@@ -46,6 +46,10 @@ public class PolicyService : IPolicyService
             .OrderBy(p => p.Title)
             .ToListAsync(ct);
 
+    public async Task<Policy?> GetDefaultMemberPolicyAsync(int websiteId, CancellationToken ct = default) =>
+        await _context.Policies.AsNoTracking()
+            .FirstOrDefaultAsync(p => p.WebsiteID == websiteId && p.Active && p.Title == DefaultPolicies.Users, ct);
+
     public async Task<Policy> CreateAsync(Policy policy, IEnumerable<short> roleIds, CancellationToken ct = default)
     {
         _context.Policies.Add(policy);

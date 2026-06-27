@@ -71,6 +71,25 @@ public class WebsiteServiceTests : IDisposable
     }
 
     [Fact]
+    public async Task GetByAuthCodeAsync_MatchingKey_ReturnsWebsite()
+    {
+        var w = NewWebsite(); _context.Websites.Add(w); await _context.SaveChangesAsync();
+
+        var result = await _service.GetByAuthCodeAsync(w.AuthCode);
+
+        result.Should().NotBeNull();
+        result!.WebsiteID.Should().Be(w.WebsiteID);
+    }
+
+    [Fact]
+    public async Task GetByAuthCodeAsync_NoMatch_ReturnsNull()
+    {
+        var w = NewWebsite(); _context.Websites.Add(w); await _context.SaveChangesAsync();
+
+        (await _service.GetByAuthCodeAsync(Guid.NewGuid())).Should().BeNull();
+    }
+
+    [Fact]
     public async Task GetAllAsync_ReturnsAllWebsitesOrderedById()
     {
         _context.Websites.AddRange(NewWebsite("A"), NewWebsite("B"), NewWebsite("C"));

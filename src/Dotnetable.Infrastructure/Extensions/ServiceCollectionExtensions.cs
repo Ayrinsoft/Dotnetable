@@ -57,6 +57,7 @@ public static class ServiceCollectionExtensions
         services.AddScoped<IPolicyService, PolicyService>();
         services.AddScoped<IRoleService, RoleService>();
         services.AddScoped<ILoginLogService, LoginLogService>();
+        services.AddScoped<IInitialDataSeeder, InitialDataSeeder>();
         services.AddScoped<ISetupService, SetupService>();
         services.AddScoped<IDatabaseUpdateService, DatabaseUpdateService>();
         services.AddScoped<IPasswordHasher<Member>, PasswordHasher<Member>>();
