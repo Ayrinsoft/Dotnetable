@@ -37,6 +37,46 @@ public class AccountController : Controller
         return Ok(new { success = true });
     }
 
+    public sealed class RegisterInput
+    {
+        public string GivenName { get; set; } = string.Empty;
+        public string Surname { get; set; } = string.Empty;
+        public string Email { get; set; } = string.Empty;
+        public string Username { get; set; } = string.Empty;
+        public string Password { get; set; } = string.Empty;
+    }
+
+    /// <summary>
+    /// Drives the popup register form. The API resolves the target website from the configured
+    /// website key and assigns the website's default "Users" access level to the new member.
+    /// </summary>
+    [HttpPost]
+    public async Task<IActionResult> Register([FromBody] RegisterInput input, CancellationToken ct = default)
+    {
+        if (string.IsNullOrWhiteSpace(input.Username) ||
+            string.IsNullOrWhiteSpace(input.Password) ||
+            string.IsNullOrWhiteSpace(input.Email) ||
+            string.IsNullOrWhiteSpace(input.GivenName) ||
+            string.IsNullOrWhiteSpace(input.Surname))
+        {
+            return BadRequest(new { message = "Please fill in all fields." });
+        }
+
+        var result = await _api.RegisterAsync(new
+        {
+            givenName = input.GivenName.Trim(),
+            surname = input.Surname.Trim(),
+            email = input.Email.Trim(),
+            username = input.Username.Trim(),
+            password = input.Password,
+        }, ct);
+
+        if (result.Success)
+            return Ok(new { success = true, message = result.Message ?? "Account created. You can sign in now." });
+
+        return BadRequest(new { message = result.Message ?? "Registration failed. Please try again." });
+    }
+
     [HttpPost]
     public IActionResult Logout()
     {

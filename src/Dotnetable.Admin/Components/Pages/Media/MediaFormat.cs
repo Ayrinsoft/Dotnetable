@@ -30,6 +30,14 @@ public static class MediaFormat
     {
         StorageProviderType.Arvan => "ArvanCloud",
         StorageProviderType.Dropbox => "Dropbox",
+        StorageProviderType.LocalHost => "Local (API host)",
+        StorageProviderType.AwsS3 => "AWS S3",
+        StorageProviderType.CloudflareR2 => "Cloudflare R2",
+        StorageProviderType.BackBlaze => "Backblaze B2",
+        StorageProviderType.MinIO => "MinIO",
+        StorageProviderType.Azure => "Azure Blob",
+        StorageProviderType.Cloudinary => "Cloudinary",
+        StorageProviderType.BunnyCDN => "BunnyCDN",
         _ => p.ToString(),
     };
 

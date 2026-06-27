@@ -43,6 +43,7 @@ public static class RoleKeys
     public const string LoginLogsView = "loginlogs.view";
 
     // ── Client (website customers) — never used in the admin panel ──
+    public const string ClientAccess = "client.access";
     public const string ClientPurchase = "client.purchase";
     public const string ClientReview = "client.review";
     public const string ClientProfile = "client.profile";

@@ -1,0 +1,12 @@
+@model (string Title, string Current)
+<section class="page-header">
+    <div class="container">
+        <h1 class="mb-2">@Model.Title</h1>
+        <nav aria-label="breadcrumb">
+            <ol class="breadcrumb mb-0">
+                <li class="breadcrumb-item"><a asp-controller="Home" asp-action="Index">Home</a></li>
+                <li class="breadcrumb-item active" aria-current="page">@Model.Current</li>
+            </ol>
+        </nav>
+    </div>
+</section>
