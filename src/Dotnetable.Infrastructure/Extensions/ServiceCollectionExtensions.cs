@@ -69,8 +69,19 @@ public static class ServiceCollectionExtensions
         services.AddScoped<IJwtTokenService, JwtTokenService>();
 
         // Media library: pluggable CDN storage backends + file/album/tag management.
+        services.AddHttpClient(); // used by HTTP-based providers (BunnyCDN)
         services.AddScoped<IFileStorageProvider, Storage.ArvanStorageProvider>();
         services.AddScoped<IFileStorageProvider, Storage.DropboxStorageProvider>();
+        // On-host disk storage needs the content root to resolve its upload directory.
+        services.AddScoped<IFileStorageProvider>(_ => new Storage.LocalStorageProvider(contentRootPath));
+        // S3-compatible family (one shared implementation, distinct selectable providers).
+        services.AddScoped<IFileStorageProvider, Storage.AwsS3StorageProvider>();
+        services.AddScoped<IFileStorageProvider, Storage.CloudflareR2StorageProvider>();
+        services.AddScoped<IFileStorageProvider, Storage.BackBlazeStorageProvider>();
+        services.AddScoped<IFileStorageProvider, Storage.MinioStorageProvider>();
+        services.AddScoped<IFileStorageProvider, Storage.AzureBlobStorageProvider>();
+        services.AddScoped<IFileStorageProvider, Storage.CloudinaryStorageProvider>();
+        services.AddScoped<IFileStorageProvider, Storage.BunnyStorageProvider>();
         services.AddScoped<IFileStorageProviderRegistry, Storage.FileStorageProviderRegistry>();
         services.AddScoped<IStorageSettingService, StorageSettingService>();
         services.AddScoped<IFileService, FileService>();

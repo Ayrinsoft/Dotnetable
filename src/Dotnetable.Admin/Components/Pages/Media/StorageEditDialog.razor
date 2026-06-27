@@ -18,6 +18,14 @@
                                Variant="Variant.Outlined" Disabled="@(!_isNew)">
                         <MudSelectItem T="StorageProviderType" Value="StorageProviderType.Arvan">ArvanCloud (S3)</MudSelectItem>
                         <MudSelectItem T="StorageProviderType" Value="StorageProviderType.Dropbox">Dropbox</MudSelectItem>
+                        <MudSelectItem T="StorageProviderType" Value="StorageProviderType.LocalHost">Local (API host)</MudSelectItem>
+                        <MudSelectItem T="StorageProviderType" Value="StorageProviderType.AwsS3">AWS S3</MudSelectItem>
+                        <MudSelectItem T="StorageProviderType" Value="StorageProviderType.CloudflareR2">Cloudflare R2</MudSelectItem>
+                        <MudSelectItem T="StorageProviderType" Value="StorageProviderType.BackBlaze">Backblaze B2</MudSelectItem>
+                        <MudSelectItem T="StorageProviderType" Value="StorageProviderType.MinIO">MinIO</MudSelectItem>
+                        <MudSelectItem T="StorageProviderType" Value="StorageProviderType.Azure">Azure Blob</MudSelectItem>
+                        <MudSelectItem T="StorageProviderType" Value="StorageProviderType.Cloudinary">Cloudinary</MudSelectItem>
+                        <MudSelectItem T="StorageProviderType" Value="StorageProviderType.BunnyCDN">BunnyCDN</MudSelectItem>
                     </MudSelect>
                 </MudItem>
                 <MudItem xs="12" sm="6" Class="d-flex align-center">
@@ -49,7 +57,7 @@
                                          Variant="Variant.Outlined" HelperText="@L["storage.capacity_hint", "Plan size for the quota bar"]" />
                     </MudItem>
                 }
-                else
+                else if (_provider == StorageProviderType.Dropbox)
                 {
                     <MudItem xs="12">
                         <MudTextField @bind-Value="_dropbox.AccessToken" Label="@L["storage.access_token", "Access Token"]" Variant="Variant.Outlined"
@@ -68,6 +76,123 @@
                                               InputType="InputType.Password" />
                             </MudExpansionPanel>
                         </MudExpansionPanels>
+                    </MudItem>
+                }
+                else if (_provider == StorageProviderType.LocalHost)
+                {
+                    <MudItem xs="12" sm="6">
+                        <MudTextField @bind-Value="_local.BasePath" Label="@L["storage.base_path", "Base Path"]" Variant="Variant.Outlined"
+                                      Placeholder="App_Data/uploads"
+                                      HelperText="@L["storage.base_path_hint", "Folder on the API host (absolute or relative to the content root)."]" />
+                    </MudItem>
+                    <MudItem xs="12" sm="6">
+                        <MudTextField @bind-Value="_local.PublicBaseUrl" Label="@L["storage.public_url", "Public Base URL"]" Variant="Variant.Outlined"
+                                      Placeholder="https://api.mysite.com/api/files"
+                                      HelperText="@L["storage.local_url_hint", "API download endpoint base (blank uses /api/files)."]" />
+                    </MudItem>
+                    <MudItem xs="12" sm="4">
+                        <MudNumericField T="long?" @bind-Value="_local.CapacityKB" Label="@L["storage.capacity", "Capacity (KB)"]"
+                                         Variant="Variant.Outlined" HelperText="@L["storage.capacity_hint", "Plan size for the quota bar"]" />
+                    </MudItem>
+                }
+                else if (IsS3(_provider))
+                {
+                    <MudItem xs="12">
+                        <MudAlert Severity="Severity.Info" Variant="Variant.Outlined" Dense="true" Icon="@Icons.Material.Filled.Cloud">
+                            @L["storage.s3_family_supported", "S3-compatible storages supported here: AWS S3, Cloudflare R2, Backblaze B2 and MinIO."]
+                        </MudAlert>
+                    </MudItem>
+                    <MudItem xs="12" sm="6">
+                        <MudTextField @bind-Value="_s3.Endpoint" Label="@L["storage.endpoint", "Endpoint"]" Variant="Variant.Outlined"
+                                      Placeholder="https://<account>.r2.cloudflarestorage.com"
+                                      HelperText="@L["storage.s3_endpoint_hint", "Required for R2 / Backblaze / MinIO. Leave blank for AWS S3 and set Region."]" />
+                    </MudItem>
+                    <MudItem xs="12" sm="6">
+                        <MudTextField @bind-Value="_s3.Region" Label="@L["storage.region", "Region"]" Variant="Variant.Outlined"
+                                      Placeholder="eu-central-1" />
+                    </MudItem>
+                    <MudItem xs="12" sm="6">
+                        <MudTextField @bind-Value="_s3.BucketName" Label="@L["storage.bucket", "Bucket"]" Variant="Variant.Outlined" Required="true" />
+                    </MudItem>
+                    <MudItem xs="12" sm="6">
+                        <MudTextField @bind-Value="_s3.AccessKey" Label="@L["storage.access_key", "Access Key"]" Variant="Variant.Outlined" Required="true" />
+                    </MudItem>
+                    <MudItem xs="12" sm="6">
+                        <MudTextField @bind-Value="_s3.SecretKey" Label="@L["storage.secret_key", "Secret Key"]" Variant="Variant.Outlined"
+                                      InputType="InputType.Password" Required="true" />
+                    </MudItem>
+                    <MudItem xs="12" sm="6">
+                        <MudTextField @bind-Value="_s3.PublicBaseUrl" Label="@L["storage.public_url", "Public Base URL"]" Variant="Variant.Outlined"
+                                      Placeholder="https://my-bucket.r2.dev" Required="true" />
+                    </MudItem>
+                    <MudItem xs="12" sm="8" Class="d-flex align-center">
+                        <MudSwitch T="bool" @bind-Value="_s3.ForcePathStyle" Color="Color.Primary"
+                                   Label="@L["storage.force_path_style", "Path-style addressing (required for R2/Backblaze/MinIO)"]" />
+                    </MudItem>
+                    <MudItem xs="12" sm="4">
+                        <MudNumericField T="long?" @bind-Value="_s3.CapacityKB" Label="@L["storage.capacity", "Capacity (KB)"]"
+                                         Variant="Variant.Outlined" HelperText="@L["storage.capacity_hint", "Plan size for the quota bar"]" />
+                    </MudItem>
+                }
+                else if (_provider == StorageProviderType.Azure)
+                {
+                    <MudItem xs="12">
+                        <MudTextField @bind-Value="_azure.ConnectionString" Label="@L["storage.connection_string", "Connection String"]" Variant="Variant.Outlined"
+                                      InputType="InputType.Password" Required="true" />
+                    </MudItem>
+                    <MudItem xs="12" sm="6">
+                        <MudTextField @bind-Value="_azure.ContainerName" Label="@L["storage.container", "Container"]" Variant="Variant.Outlined" Required="true" />
+                    </MudItem>
+                    <MudItem xs="12" sm="6">
+                        <MudTextField @bind-Value="_azure.PublicBaseUrl" Label="@L["storage.public_url", "Public Base URL"]" Variant="Variant.Outlined"
+                                      Placeholder="https://account.blob.core.windows.net/container"
+                                      HelperText="@L["storage.azure_url_hint", "Optional CDN base; blank uses the blob URL."]" />
+                    </MudItem>
+                    <MudItem xs="12" sm="4">
+                        <MudNumericField T="long?" @bind-Value="_azure.CapacityKB" Label="@L["storage.capacity", "Capacity (KB)"]"
+                                         Variant="Variant.Outlined" HelperText="@L["storage.capacity_hint", "Plan size for the quota bar"]" />
+                    </MudItem>
+                }
+                else if (_provider == StorageProviderType.Cloudinary)
+                {
+                    <MudItem xs="12" sm="6">
+                        <MudTextField @bind-Value="_cloudinary.CloudName" Label="@L["storage.cloud_name", "Cloud Name"]" Variant="Variant.Outlined" Required="true" />
+                    </MudItem>
+                    <MudItem xs="12" sm="6">
+                        <MudTextField @bind-Value="_cloudinary.Folder" Label="@L["storage.folder", "Folder"]" Variant="Variant.Outlined" Placeholder="media" />
+                    </MudItem>
+                    <MudItem xs="12" sm="6">
+                        <MudTextField @bind-Value="_cloudinary.ApiKey" Label="@L["storage.api_key", "API Key"]" Variant="Variant.Outlined" Required="true" />
+                    </MudItem>
+                    <MudItem xs="12" sm="6">
+                        <MudTextField @bind-Value="_cloudinary.ApiSecret" Label="@L["storage.api_secret", "API Secret"]" Variant="Variant.Outlined"
+                                      InputType="InputType.Password" Required="true" />
+                    </MudItem>
+                    <MudItem xs="12" sm="4">
+                        <MudNumericField T="long?" @bind-Value="_cloudinary.CapacityKB" Label="@L["storage.capacity", "Capacity (KB)"]"
+                                         Variant="Variant.Outlined" HelperText="@L["storage.capacity_hint", "Plan size for the quota bar"]" />
+                    </MudItem>
+                }
+                else if (_provider == StorageProviderType.BunnyCDN)
+                {
+                    <MudItem xs="12" sm="6">
+                        <MudTextField @bind-Value="_bunny.StorageZoneName" Label="@L["storage.zone", "Storage Zone"]" Variant="Variant.Outlined" Required="true" />
+                    </MudItem>
+                    <MudItem xs="12" sm="6">
+                        <MudTextField @bind-Value="_bunny.Region" Label="@L["storage.region", "Region"]" Variant="Variant.Outlined"
+                                      Placeholder="ny, la, sg, de…  (blank = main)" />
+                    </MudItem>
+                    <MudItem xs="12" sm="6">
+                        <MudTextField @bind-Value="_bunny.AccessKey" Label="@L["storage.access_key", "Access Key"]" Variant="Variant.Outlined"
+                                      InputType="InputType.Password" Required="true" />
+                    </MudItem>
+                    <MudItem xs="12" sm="6">
+                        <MudTextField @bind-Value="_bunny.PullZoneUrl" Label="@L["storage.pull_zone_url", "Pull Zone URL"]" Variant="Variant.Outlined"
+                                      Placeholder="https://my-zone.b-cdn.net" Required="true" />
+                    </MudItem>
+                    <MudItem xs="12" sm="4">
+                        <MudNumericField T="long?" @bind-Value="_bunny.CapacityKB" Label="@L["storage.capacity", "Capacity (KB)"]"
+                                         Variant="Variant.Outlined" HelperText="@L["storage.capacity_hint", "Plan size for the quota bar"]" />
                     </MudItem>
                 }
 
@@ -109,27 +234,50 @@
 
     private ArvanStorageSettings _arvan = new();
     private DropboxStorageSettings _dropbox = new();
+    private LocalStorageSettings _local = new();
+    private S3StorageSettings _s3 = new();
+    private AzureStorageSettings _azure = new();
+    private CloudinaryStorageSettings _cloudinary = new();
+    private BunnyStorageSettings _bunny = new();
+
+    private static bool IsS3(StorageProviderType p) => p is StorageProviderType.AwsS3
+        or StorageProviderType.CloudflareR2 or StorageProviderType.BackBlaze or StorageProviderType.MinIO;
 
     protected override void OnInitialized()
     {
-        if (Setting is not null)
-        {
-            _provider = (StorageProviderType)Setting.StorageProvider;
-            _active = Setting.Active;
-            _maxFileSizeKB = Setting.MaxFileSizeKB;
-            _allowedExtensions = Setting.AllowedExtensions;
-            _autoThumbnails = Setting.AutoGenerateThumbnails;
+        if (Setting is null) return;
 
-            if (_provider == StorageProviderType.Arvan)
-                _arvan = JsonSerializer.Deserialize<ArvanStorageSettings>(Setting.StorageSettingsJSON) ?? new();
-            else
-                _dropbox = JsonSerializer.Deserialize<DropboxStorageSettings>(Setting.StorageSettingsJSON) ?? new();
+        _provider = (StorageProviderType)Setting.StorageProvider;
+        _active = Setting.Active;
+        _maxFileSizeKB = Setting.MaxFileSizeKB;
+        _allowedExtensions = Setting.AllowedExtensions;
+        _autoThumbnails = Setting.AutoGenerateThumbnails;
+
+        var json = Setting.StorageSettingsJSON;
+        switch (_provider)
+        {
+            case StorageProviderType.Arvan: _arvan = JsonSerializer.Deserialize<ArvanStorageSettings>(json) ?? new(); break;
+            case StorageProviderType.Dropbox: _dropbox = JsonSerializer.Deserialize<DropboxStorageSettings>(json) ?? new(); break;
+            case StorageProviderType.LocalHost: _local = JsonSerializer.Deserialize<LocalStorageSettings>(json) ?? new(); break;
+            case StorageProviderType.Azure: _azure = JsonSerializer.Deserialize<AzureStorageSettings>(json) ?? new(); break;
+            case StorageProviderType.Cloudinary: _cloudinary = JsonSerializer.Deserialize<CloudinaryStorageSettings>(json) ?? new(); break;
+            case StorageProviderType.BunnyCDN: _bunny = JsonSerializer.Deserialize<BunnyStorageSettings>(json) ?? new(); break;
+            default:
+                if (IsS3(_provider)) _s3 = JsonSerializer.Deserialize<S3StorageSettings>(json) ?? new();
+                break;
         }
     }
 
-    private string BuildJson() => _provider == StorageProviderType.Arvan
-        ? JsonSerializer.Serialize(_arvan)
-        : JsonSerializer.Serialize(_dropbox);
+    private string BuildJson() => _provider switch
+    {
+        StorageProviderType.Arvan => JsonSerializer.Serialize(_arvan),
+        StorageProviderType.Dropbox => JsonSerializer.Serialize(_dropbox),
+        StorageProviderType.LocalHost => JsonSerializer.Serialize(_local),
+        StorageProviderType.Azure => JsonSerializer.Serialize(_azure),
+        StorageProviderType.Cloudinary => JsonSerializer.Serialize(_cloudinary),
+        StorageProviderType.BunnyCDN => JsonSerializer.Serialize(_bunny),
+        _ => JsonSerializer.Serialize(_s3),
+    };
 
     private StorageSettingContext BuildContext() => new()
     {
