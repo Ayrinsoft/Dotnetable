@@ -25,6 +25,13 @@ builder.Services.AddHttpClient<ApiClient>(client =>
     client.DefaultRequestHeaders.Add("X-Api-Key",
         builder.Configuration["Api:Key"]
         ?? throw new InvalidOperationException("Api:Key is not configured."));
+
+    // Per-site key (the Website.AuthCode of this deployment). The API resolves the website
+    // from it — e.g. to scope customer self-registration. Optional so unconfigured dev
+    // instances still start; registration just won't have a website to attach to.
+    var websiteKey = builder.Configuration["Api:WebsiteKey"];
+    if (!string.IsNullOrWhiteSpace(websiteKey))
+        client.DefaultRequestHeaders.Add("X-Website-Key", websiteKey);
 })
 .AddHttpMessageHandler<BearerTokenHandler>();
 

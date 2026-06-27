@@ -4,7 +4,6 @@ using Dotnetable.Application.Interfaces;
 using Dotnetable.Domain.Entities;
 using Dotnetable.Infrastructure.Data;
 using Dotnetable.Infrastructure.Extensions;
-using Microsoft.AspNetCore.Identity;
 using Microsoft.EntityFrameworkCore;
 
 namespace Dotnetable.Infrastructure.Services;
@@ -15,20 +14,20 @@ public class SetupService : ISetupService
     private readonly IDatabaseConfigStore _configStore;
     private readonly IAppSettingsStore _appSettings;
     private readonly IDatabaseProvisionerRegistry _provisioners;
-    private readonly IPasswordHasher<Member> _hasher;
+    private readonly IInitialDataSeeder _seeder;
 
     public SetupService(
         IDbContextFactory<AppDbContext> contextFactory,
         IDatabaseConfigStore configStore,
         IAppSettingsStore appSettings,
         IDatabaseProvisionerRegistry provisioners,
-        IPasswordHasher<Member> hasher)
+        IInitialDataSeeder seeder)
     {
         _contextFactory = contextFactory;
         _configStore = configStore;
         _appSettings = appSettings;
         _provisioners = provisioners;
-        _hasher = hasher;
+        _seeder = seeder;
     }
 
     public async Task<bool> IsSetupCompletedAsync(CancellationToken ct = default)
@@ -87,7 +86,7 @@ public class SetupService : ISetupService
 
         // Build/upgrade the schema, then seed initial data in one transaction.
         await context.Database.MigrateAsync(ct);
-        await SeedInitialDataAsync(context, request, ct);
+        await _seeder.SeedAsync(context, request, ct);
     }
 
     public async Task SyncRoleCatalogAsync(CancellationToken ct = default)
@@ -109,102 +108,5 @@ public class SetupService : ISetupService
             Active = true,
         }));
         await context.SaveChangesAsync(ct);
-    }
-
-    private async Task SeedInitialDataAsync(AppDbContext context, SetupRequest request, CancellationToken ct)
-    {
-        // Providers are configured with EnableRetryOnFailure, so a user-initiated transaction must
-        // run inside the execution strategy as a single retriable unit — otherwise EF throws.
-        var strategy = context.Database.CreateExecutionStrategy();
-        await strategy.ExecuteAsync(async () =>
-        {
-            await using var transaction = await context.Database.BeginTransactionAsync(ct);
-
-            // 1. Master website. As the first row inserted into an empty table it receives WebsiteID 1.
-        var website = new Website
-        {
-            TradeName = request.TradeName,
-            BrandName = request.BrandName,
-            WebsiteAddress = request.WebsiteAddress,
-            Manager = request.Manager,
-            Mobile = request.Mobile,
-            Email = request.WebsiteEmail,
-            DefaultLanguageCode = request.DefaultLanguageCode,
-            RegisterDate = DateOnly.FromDateTime(DateTime.UtcNow),
-            AuthCode = Guid.NewGuid(),
-            Active = true,
-            AllowAllIP = true,
-            WebsiteType = 0,
-        };
-        context.Websites.Add(website);
-        await context.SaveChangesAsync(ct);
-
-        // 2. Seed every permission (admin + client) from the catalog.
-        var roles = RoleCatalog.All
-            .Select(def => new Role
-            {
-                RoleKey = def.Key,
-                Description = def.Description,
-                Category = (byte)def.Category,
-                Active = true,
-            })
-            .ToList();
-        context.Roles.AddRange(roles);
-        await context.SaveChangesAsync(ct);
-
-        // 3. Administrator policy granted every admin permission (client permissions are not admin roles).
-        var policy = new Policy { Title = "Administrators", Active = true, WebsiteID = website.WebsiteID };
-        context.Policies.Add(policy);
-        await context.SaveChangesAsync(ct);
-
-        context.PolicyRoles.AddRange(roles
-            .Where(r => r.Category == (byte)RoleCategory.Admin)
-            .Select(r => new PolicyRole
-            {
-                PolicyID = policy.PolicyID,
-                RoleID = r.RoleID,
-                Active = true,
-            }));
-        await context.SaveChangesAsync(ct);
-
-        // 4. First administrator member, bound to the master website.
-        var member = new Member
-        {
-            WebsiteID = website.WebsiteID,
-            PolicyID = policy.PolicyID,
-            Username = request.Username,
-            Email = request.Email,
-            Givenname = request.Givenname,
-            Surname = request.Surname,
-            CellphoneNumber = string.Empty,
-            CountryCode = string.Empty,
-            RegisterDate = DateOnly.FromDateTime(DateTime.UtcNow),
-            HashKey = Guid.NewGuid(),
-            Active = true,
-        };
-        member.Password = _hasher.HashPassword(member, request.Password);
-        context.Members.Add(member);
-        await context.SaveChangesAsync(ct);
-
-        // 5. Optional default SMTP settings so forgot-password email works from first run.
-        if (!string.IsNullOrWhiteSpace(request.MailServer) && !string.IsNullOrWhiteSpace(request.MailAddress))
-        {
-            context.EmailSettings.Add(new EmailSetting
-            {
-                MailServer = request.MailServer.Trim(),
-                SMTPPort = request.SmtpPort,
-                EnableSSL = request.MailEnableSSL,
-                EmailAddress = request.MailAddress.Trim(),
-                Password = request.MailPassword,
-                MailName = string.IsNullOrWhiteSpace(request.MailName) ? request.MailAddress.Trim() : request.MailName.Trim(),
-                EmailTypeID = 0,
-                DefaultEMail = true,
-                Active = true,
-            });
-            await context.SaveChangesAsync(ct);
-        }
-
-            await transaction.CommitAsync(ct);
-        });
     }
 }

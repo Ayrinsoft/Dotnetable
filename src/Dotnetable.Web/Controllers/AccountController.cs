@@ -47,12 +47,11 @@ public class AccountController : Controller
     }
 
     /// <summary>
-    /// Drives the popup register form. Public self-registration needs a target website and
-    /// member access level (PolicyID) decided at the API; until that endpoint exists this
-    /// validates the input and returns a clear message rather than creating a half-formed member.
+    /// Drives the popup register form. The API resolves the target website from the configured
+    /// website key and assigns the website's default "Users" access level to the new member.
     /// </summary>
     [HttpPost]
-    public IActionResult Register([FromBody] RegisterInput input)
+    public async Task<IActionResult> Register([FromBody] RegisterInput input, CancellationToken ct = default)
     {
         if (string.IsNullOrWhiteSpace(input.Username) ||
             string.IsNullOrWhiteSpace(input.Password) ||
@@ -63,10 +62,19 @@ public class AccountController : Controller
             return BadRequest(new { message = "Please fill in all fields." });
         }
 
-        // TODO: call _api.RegisterAsync(...) once the API exposes public self-registration
-        // (it must resolve the target website and a default member access level).
-        return StatusCode(StatusCodes.Status501NotImplemented,
-            new { message = "Online registration isn't available yet. Please contact us to create an account." });
+        var result = await _api.RegisterAsync(new
+        {
+            givenName = input.GivenName.Trim(),
+            surname = input.Surname.Trim(),
+            email = input.Email.Trim(),
+            username = input.Username.Trim(),
+            password = input.Password,
+        }, ct);
+
+        if (result.Success)
+            return Ok(new { success = true, message = result.Message ?? "Account created. You can sign in now." });
+
+        return BadRequest(new { message = result.Message ?? "Registration failed. Please try again." });
     }
 
     [HttpPost]

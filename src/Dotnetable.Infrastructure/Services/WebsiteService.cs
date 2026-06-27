@@ -19,6 +19,9 @@ public class WebsiteService : IWebsiteService
     public async Task<Website?> GetByAddressAsync(string websiteAddress, CancellationToken ct = default) =>
         await _context.Websites.FirstOrDefaultAsync(w => w.WebsiteAddress == websiteAddress, ct);
 
+    public async Task<Website?> GetByAuthCodeAsync(Guid authCode, CancellationToken ct = default) =>
+        await _context.Websites.FirstOrDefaultAsync(w => w.AuthCode == authCode, ct);
+
     public async Task<IEnumerable<Website>> GetAllAsync(CancellationToken ct = default) =>
         await _context.Websites.OrderBy(w => w.WebsiteID).ToListAsync(ct);
 
