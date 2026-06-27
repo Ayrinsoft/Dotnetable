@@ -1,3 +1,4 @@
+using Dotnetable.Application.Authorization;
 using Dotnetable.Application.DTOs;
 using Dotnetable.Domain.Entities;
 using Dotnetable.Infrastructure.Data;
@@ -253,6 +254,46 @@ public class PolicyServiceTests : IDisposable
         var result = await _service.GetAssignableRolesAsync(member.MemberID, isMaster: false);
 
         result.Should().ContainSingle(r => r.RoleKey == "held.role");
+    }
+
+    [Fact]
+    public async Task GetDefaultMemberPolicyAsync_ReturnsActiveUsersPolicyForWebsite()
+    {
+        _context.Policies.Add(NewPolicy(DefaultPolicies.Users));
+        _context.Policies.Add(NewPolicy(DefaultPolicies.Administrators));
+        await _context.SaveChangesAsync();
+
+        var result = await _service.GetDefaultMemberPolicyAsync(_website.WebsiteID);
+
+        result.Should().NotBeNull();
+        result!.Title.Should().Be(DefaultPolicies.Users);
+    }
+
+    [Fact]
+    public async Task GetDefaultMemberPolicyAsync_NoUsersPolicy_ReturnsNull()
+    {
+        _context.Policies.Add(NewPolicy(DefaultPolicies.Administrators));
+        await _context.SaveChangesAsync();
+
+        (await _service.GetDefaultMemberPolicyAsync(_website.WebsiteID)).Should().BeNull();
+    }
+
+    [Fact]
+    public async Task GetDefaultMemberPolicyAsync_InactiveUsersPolicy_ReturnsNull()
+    {
+        _context.Policies.Add(NewPolicy(DefaultPolicies.Users, active: false));
+        await _context.SaveChangesAsync();
+
+        (await _service.GetDefaultMemberPolicyAsync(_website.WebsiteID)).Should().BeNull();
+    }
+
+    [Fact]
+    public async Task GetDefaultMemberPolicyAsync_OtherWebsite_ReturnsNull()
+    {
+        _context.Policies.Add(NewPolicy(DefaultPolicies.Users));
+        await _context.SaveChangesAsync();
+
+        (await _service.GetDefaultMemberPolicyAsync(_website.WebsiteID + 999)).Should().BeNull();
     }
 
     public void Dispose() => _context.Dispose();

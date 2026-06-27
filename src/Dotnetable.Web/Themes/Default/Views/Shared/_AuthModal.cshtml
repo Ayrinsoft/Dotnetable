@@ -1,0 +1,82 @@
+@* Popup login / register — a single Bootstrap modal with two tabs. *@
+<div class="modal fade auth-modal" id="authModal" tabindex="-1" aria-labelledby="authModalLabel" aria-hidden="true">
+    <div class="modal-dialog modal-dialog-centered">
+        <div class="modal-content">
+            <div class="modal-header border-0 pb-0">
+                <ul class="nav nav-pills gap-2" role="tablist">
+                    <li class="nav-item" role="presentation">
+                        <button class="nav-link active" id="loginTabBtn" data-bs-toggle="pill"
+                                data-bs-target="#loginPane" type="button" role="tab">Sign in</button>
+                    </li>
+                    <li class="nav-item" role="presentation">
+                        <button class="nav-link" id="registerTabBtn" data-bs-toggle="pill"
+                                data-bs-target="#registerPane" type="button" role="tab">Register</button>
+                    </li>
+                </ul>
+                <button type="button" class="btn-close" data-bs-dismiss="modal" aria-label="Close"></button>
+            </div>
+            <div class="modal-body p-4">
+                <div class="tab-content">
+                    <!-- Sign in -->
+                    <div class="tab-pane fade show active" id="loginPane" role="tabpanel">
+                        <p class="text-muted mb-3">Welcome back. Sign in to your account.</p>
+                        <form id="loginForm" novalidate>
+                            <div class="mb-3">
+                                <label class="form-label" for="loginUsername">Username</label>
+                                <input class="form-control" id="loginUsername" name="username"
+                                       autocomplete="username" required />
+                            </div>
+                            <div class="mb-2">
+                                <label class="form-label" for="loginPassword">Password</label>
+                                <input class="form-control" id="loginPassword" name="password" type="password"
+                                       autocomplete="current-password" required />
+                            </div>
+                            <p class="auth-feedback text-danger" id="loginFeedback"></p>
+                            <button type="submit" class="btn btn-primary w-100" id="loginSubmit">Sign in</button>
+                        </form>
+                    </div>
+                    <!-- Register -->
+                    <div class="tab-pane fade" id="registerPane" role="tabpanel">
+                        <p class="text-muted mb-3">Create a new account in a few seconds.</p>
+                        <form id="registerForm" novalidate>
+                            <div class="row g-2 mb-3">
+                                <div class="col">
+                                    <label class="form-label" for="regGivenName">First name</label>
+                                    <input class="form-control" id="regGivenName" name="givenName" required />
+                                </div>
+                                <div class="col">
+                                    <label class="form-label" for="regSurname">Last name</label>
+                                    <input class="form-control" id="regSurname" name="surname" required />
+                                </div>
+                            </div>
+                            <div class="mb-3">
+                                <label class="form-label" for="regEmail">Email</label>
+                                <input class="form-control" id="regEmail" name="email" type="email"
+                                       autocomplete="email" required />
+                            </div>
+                            <div class="mb-3">
+                                <label class="form-label" for="regUsername">Username</label>
+                                <input class="form-control" id="regUsername" name="username"
+                                       autocomplete="username" required />
+                            </div>
+                            <div class="row g-2 mb-2">
+                                <div class="col">
+                                    <label class="form-label" for="regPassword">Password</label>
+                                    <input class="form-control" id="regPassword" name="password" type="password"
+                                           autocomplete="new-password" required />
+                                </div>
+                                <div class="col">
+                                    <label class="form-label" for="regPasswordConfirm">Confirm</label>
+                                    <input class="form-control" id="regPasswordConfirm" type="password"
+                                           autocomplete="new-password" required />
+                                </div>
+                            </div>
+                            <p class="auth-feedback text-danger" id="registerFeedback"></p>
+                            <button type="submit" class="btn btn-primary w-100" id="registerSubmit">Create account</button>
+                        </form>
+                    </div>
+                </div>
+            </div>
+        </div>
+    </div>
+</div>
