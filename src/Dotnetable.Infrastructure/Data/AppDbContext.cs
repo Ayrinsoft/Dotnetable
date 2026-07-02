@@ -26,13 +26,13 @@ public partial class AppDbContext : DbContext
 
     public virtual DbSet<EmailSubscribe> EmailSubscribes { get; set; }
 
-    public virtual DbSet<FileRecord> FileRecords { get; set; }
-
     public virtual DbSet<FileAlbum> FileAlbums { get; set; }
 
-    public virtual DbSet<FileTag> FileTags { get; set; }
+    public virtual DbSet<FileRecord> FileRecords { get; set; }
 
     public virtual DbSet<FileRecordTag> FileRecordTags { get; set; }
+
+    public virtual DbSet<FileTag> FileTags { get; set; }
 
     public virtual DbSet<Language> Languages { get; set; }
 
@@ -57,6 +57,10 @@ public partial class AppDbContext : DbContext
     public virtual DbSet<StateTranslation> StateTranslations { get; set; }
 
     public virtual DbSet<Website> Websites { get; set; }
+
+    public virtual DbSet<WebsiteClient> WebsiteClients { get; set; }
+
+    public virtual DbSet<WebsiteClientForgetPassword> WebsiteClientForgetPasswords { get; set; }
 
     public virtual DbSet<WebsiteIP> WebsiteIPs { get; set; }
 
@@ -128,6 +132,7 @@ public partial class AppDbContext : DbContext
 
             entity.HasOne(d => d.Website).WithMany(p => p.ContactUsMessages)
                 .HasForeignKey(d => d.WebsiteID)
+                .OnDelete(DeleteBehavior.ClientSetNull)
                 .HasConstraintName("FK_ContactUsMessage_Website");
         });
 
@@ -180,6 +185,7 @@ public partial class AppDbContext : DbContext
 
             entity.HasOne(d => d.Website).WithMany(p => p.EmailSettings)
                 .HasForeignKey(d => d.WebsiteID)
+                .OnDelete(DeleteBehavior.ClientSetNull)
                 .HasConstraintName("FK_EmailSetting_Website");
         });
 
@@ -195,6 +201,20 @@ public partial class AppDbContext : DbContext
             entity.HasOne(d => d.Member).WithMany(p => p.EmailSubscribes)
                 .HasForeignKey(d => d.MemberID)
                 .HasConstraintName("FK_EmailSubscribe_Member");
+        });
+
+        modelBuilder.Entity<FileAlbum>(entity =>
+        {
+            entity.ToTable("FileAlbum");
+
+            entity.Property(e => e.CreateDate).HasColumnType("datetime");
+            entity.Property(e => e.Description).HasMaxLength(400);
+            entity.Property(e => e.Name).HasMaxLength(120);
+
+            entity.HasOne(d => d.Website).WithMany(p => p.FileAlbums)
+                .HasForeignKey(d => d.WebsiteID)
+                .OnDelete(DeleteBehavior.ClientSetNull)
+                .HasConstraintName("FK_FileAlbum_Website");
         });
 
         modelBuilder.Entity<FileRecord>(entity =>
@@ -220,40 +240,14 @@ public partial class AppDbContext : DbContext
             entity.Property(e => e.Title).HasMaxLength(50);
             entity.Property(e => e.UploadDate).HasColumnType("datetime");
 
+            entity.HasOne(d => d.FileAlbum).WithMany(p => p.FileRecords)
+                .HasForeignKey(d => d.FileAlbumID)
+                .HasConstraintName("FK_FileRecord_FileAlbum");
+
             entity.HasOne(d => d.WebsiteStorageSettings).WithMany(p => p.FileRecords)
                 .HasForeignKey(d => d.WebsiteStorageSettingsID)
                 .OnDelete(DeleteBehavior.ClientSetNull)
                 .HasConstraintName("FK_FileRecord_WebstieStorageSettings");
-
-            entity.HasOne(d => d.FileAlbum).WithMany(p => p.FileRecords)
-                .HasForeignKey(d => d.FileAlbumID)
-                .HasConstraintName("FK_FileRecord_FileAlbum");
-        });
-
-        modelBuilder.Entity<FileAlbum>(entity =>
-        {
-            entity.ToTable("FileAlbum");
-
-            entity.Property(e => e.Name).HasMaxLength(120);
-            entity.Property(e => e.Description).HasMaxLength(400);
-            entity.Property(e => e.CreateDate).HasColumnType("datetime");
-
-            entity.HasOne(d => d.Website).WithMany(p => p.FileAlbums)
-                .HasForeignKey(d => d.WebsiteID)
-                .OnDelete(DeleteBehavior.ClientSetNull)
-                .HasConstraintName("FK_FileAlbum_Website");
-        });
-
-        modelBuilder.Entity<FileTag>(entity =>
-        {
-            entity.ToTable("FileTag");
-
-            entity.Property(e => e.Name).HasMaxLength(60);
-
-            entity.HasOne(d => d.Website).WithMany(p => p.FileTags)
-                .HasForeignKey(d => d.WebsiteID)
-                .OnDelete(DeleteBehavior.ClientSetNull)
-                .HasConstraintName("FK_FileTag_Website");
         });
 
         modelBuilder.Entity<FileRecordTag>(entity =>
@@ -269,6 +263,18 @@ public partial class AppDbContext : DbContext
                 .HasForeignKey(d => d.FileTagID)
                 .OnDelete(DeleteBehavior.ClientSetNull)
                 .HasConstraintName("FK_FileRecordTag_FileTag");
+        });
+
+        modelBuilder.Entity<FileTag>(entity =>
+        {
+            entity.ToTable("FileTag");
+
+            entity.Property(e => e.Name).HasMaxLength(60);
+
+            entity.HasOne(d => d.Website).WithMany(p => p.FileTags)
+                .HasForeignKey(d => d.WebsiteID)
+                .OnDelete(DeleteBehavior.ClientSetNull)
+                .HasConstraintName("FK_FileTag_Website");
         });
 
         modelBuilder.Entity<Language>(entity =>
@@ -337,6 +343,11 @@ public partial class AppDbContext : DbContext
             entity.Property(e => e.Username)
                 .HasMaxLength(64)
                 .IsUnicode(false);
+
+            entity.HasOne(d => d.Website).WithMany(p => p.LoginTries)
+                .HasForeignKey(d => d.WebsiteID)
+                .OnDelete(DeleteBehavior.ClientSetNull)
+                .HasConstraintName("FK_LoginTry_Website");
         });
 
         modelBuilder.Entity<Member>(entity =>
@@ -391,12 +402,14 @@ public partial class AppDbContext : DbContext
         {
             entity.ToTable("Policy");
 
+            entity.HasIndex(e => e.WebsiteID, "IX_Policy_WebsiteID");
+
             entity.Property(e => e.Title)
                 .HasMaxLength(64)
                 .IsUnicode(false);
             entity.Property(e => e.WebsiteID).HasDefaultValue(1);
 
-            entity.HasOne(d => d.Website).WithMany()
+            entity.HasOne(d => d.Website).WithMany(p => p.Policies)
                 .HasForeignKey(d => d.WebsiteID)
                 .OnDelete(DeleteBehavior.ClientSetNull)
                 .HasConstraintName("FK_Policy_Website");
@@ -427,8 +440,6 @@ public partial class AppDbContext : DbContext
             entity.Property(e => e.RoleKey)
                 .HasMaxLength(42)
                 .IsUnicode(false);
-            entity.Property(e => e.Category)
-                .HasDefaultValue((byte)0);
         });
 
         modelBuilder.Entity<State>(entity =>
@@ -493,6 +504,50 @@ public partial class AppDbContext : DbContext
             entity.HasOne(d => d.LogoFile).WithMany(p => p.WebsiteLogoFiles)
                 .HasForeignKey(d => d.LogoFileID)
                 .HasConstraintName("FK_Website_FileRecord");
+        });
+
+        modelBuilder.Entity<WebsiteClient>(entity =>
+        {
+            entity.ToTable("WebsiteClient");
+
+            entity.Property(e => e.Cellphone)
+                .HasMaxLength(16)
+                .IsUnicode(false);
+            entity.Property(e => e.CountryCode)
+                .HasMaxLength(3)
+                .IsUnicode(false);
+            entity.Property(e => e.Email)
+                .HasMaxLength(60)
+                .IsUnicode(false);
+            entity.Property(e => e.Givenname).HasMaxLength(42);
+            entity.Property(e => e.Password)
+                .HasMaxLength(256)
+                .IsUnicode(false);
+            entity.Property(e => e.Surname).HasMaxLength(42);
+
+            entity.HasOne(d => d.Avatar).WithMany(p => p.WebsiteClients)
+                .HasForeignKey(d => d.AvatarID)
+                .HasConstraintName("FK_WebsiteClient_FileRecord");
+
+            entity.HasOne(d => d.Website).WithMany(p => p.WebsiteClients)
+                .HasForeignKey(d => d.WebsiteID)
+                .OnDelete(DeleteBehavior.ClientSetNull)
+                .HasConstraintName("FK_WebsiteClient_Website");
+        });
+
+        modelBuilder.Entity<WebsiteClientForgetPassword>(entity =>
+        {
+            entity.ToTable("WebsiteClientForgetPassword");
+
+            entity.Property(e => e.ForgetKey)
+                .HasMaxLength(8)
+                .IsUnicode(false);
+            entity.Property(e => e.LogTime).HasColumnType("datetime");
+
+            entity.HasOne(d => d.WebsiteClient).WithMany(p => p.WebsiteClientForgetPasswords)
+                .HasForeignKey(d => d.WebsiteClientID)
+                .OnDelete(DeleteBehavior.ClientSetNull)
+                .HasConstraintName("FK_WebsiteClientForgetPassword_WebsiteClient");
         });
 
         modelBuilder.Entity<WebsiteIP>(entity =>

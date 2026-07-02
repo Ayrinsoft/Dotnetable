@@ -16,4 +16,6 @@ public partial class LoginTry
     public string TryIP { get; set; } = null!;
 
     public int WebsiteID { get; set; }
+
+    public virtual Website Website { get; set; } = null!;
 }
