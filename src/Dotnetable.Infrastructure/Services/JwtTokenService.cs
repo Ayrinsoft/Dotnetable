@@ -14,7 +14,13 @@ public class JwtTokenService : IJwtTokenService
 
     public JwtTokenService(JwtSettings settings) => _settings = settings;
 
-    public JwtTokenResult CreateToken(Member member)
+    public JwtTokenResult CreateToken(Member member) =>
+        BuildToken(new List<Claim>(MemberClaims.Build(member)));
+
+    public JwtTokenResult CreateToken(WebsiteClient client) =>
+        BuildToken(new List<Claim>(ClientClaims.Build(client)));
+
+    private JwtTokenResult BuildToken(List<Claim> identityClaims)
     {
         if (string.IsNullOrWhiteSpace(_settings.SigningKey))
             throw new InvalidOperationException("Jwt:SigningKey is not configured.");
@@ -22,10 +28,8 @@ public class JwtTokenService : IJwtTokenService
         var expires = DateTime.UtcNow.AddMinutes(_settings.AccessTokenMinutes);
 
         // Identity + role claims are shared with the admin cookie sign-in so a token means the same thing.
-        var claims = new List<Claim>(MemberClaims.Build(member))
-        {
-            new(JwtRegisteredClaimNames.Jti, Guid.NewGuid().ToString()),
-        };
+        var claims = identityClaims;
+        claims.Add(new Claim(JwtRegisteredClaimNames.Jti, Guid.NewGuid().ToString()));
 
         var key = new SymmetricSecurityKey(Encoding.UTF8.GetBytes(_settings.SigningKey));
         var credentials = new SigningCredentials(key, SecurityAlgorithms.HmacSha256);

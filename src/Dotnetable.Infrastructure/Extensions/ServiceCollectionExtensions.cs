@@ -53,6 +53,8 @@ public static class ServiceCollectionExtensions
         services.AddScoped<IUnitOfWork, UnitOfWork>();
         services.AddScoped<ILocalizationService, LocalizationService>();
         services.AddScoped<IMemberService, MemberService>();
+        services.AddScoped<IWebsiteClientService, WebsiteClientService>();
+        services.AddScoped<IWebsiteClientAuthService, WebsiteClientAuthService>();
         services.AddScoped<IWebsiteService, WebsiteService>();
         services.AddScoped<IPolicyService, PolicyService>();
         services.AddScoped<IRoleService, RoleService>();
@@ -61,6 +63,7 @@ public static class ServiceCollectionExtensions
         services.AddScoped<ISetupService, SetupService>();
         services.AddScoped<IDatabaseUpdateService, DatabaseUpdateService>();
         services.AddScoped<IPasswordHasher<Member>, PasswordHasher<Member>>();
+        services.AddScoped<IPasswordHasher<WebsiteClient>, PasswordHasher<WebsiteClient>>();
 
         // JWT issuance for API / website-client logins. Bound from the "Jwt" config section; the
         // signing key is only required by hosts that actually issue or validate tokens (the API).
@@ -95,6 +98,8 @@ public static class ServiceCollectionExtensions
         services.AddSingleton<IHumanVerificationService, HumanVerificationService>();
         services.AddScoped<IEmailService, EmailService>();
         services.AddScoped<IPasswordResetService, PasswordResetService>();
+        // SMS delivery for customer OTP/reset codes. No real gateway yet — the stub logs the message.
+        services.AddSingleton<ISmsSender, NoOpSmsSender>();
 
         // Provider-specific connection test / database creation used by the Setup page.
         services.AddSingleton<IDatabaseProvisioner, SqlServerProvisioner>();

@@ -32,6 +32,11 @@ public static class RoleCatalog
         new(RoleKeys.MembersEdit, "Edit members", RoleCategory.Admin),
         new(RoleKeys.MembersDelete, "Delete members", RoleCategory.Admin),
 
+        // Website customers (client management)
+        new(RoleKeys.ClientsView, "View website customers", RoleCategory.Admin),
+        new(RoleKeys.ClientsEdit, "Edit website customers", RoleCategory.Admin),
+        new(RoleKeys.ClientsDelete, "Delete website customers", RoleCategory.Admin),
+
         // Access levels (policies)
         new(RoleKeys.PoliciesView, "View access levels", RoleCategory.Admin),
         new(RoleKeys.PoliciesInsert, "Create access levels", RoleCategory.Admin),

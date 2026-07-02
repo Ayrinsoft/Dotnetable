@@ -7,15 +7,20 @@
         @L["dashboard", "Dashboard"]
     </MudNavLink>
 
-    @if (_canMembers || _canPolicies || _canLoginLogs || _canMessages || _canWebsite || _isMaster)
+    @if (_canMembers || _canClients || _canPolicies || _canLoginLogs || _canMessages || _canWebsite || _isMaster)
     {
         <span class="app-nav-label">@L["nav.management", "Management"]</span>
     }
     <MudNavGroup Title="@L["nav.user_management", "User Management"]" Icon="@Icons.Material.Filled.People" Expanded="true"
-                 Hidden="@(!_canMembers && !_canPolicies && !_canLoginLogs && !_isMaster)">
+                 Hidden="@(!_canMembers && !_canClients && !_canPolicies && !_canLoginLogs && !_isMaster)">
         <AuthorizeView Policy="@RoleKeys.MembersView" Context="m">
             <MudNavLink Href="/members" Icon="@Icons.Material.Filled.PersonOutline">
                 @L["members", "Members"]
+            </MudNavLink>
+        </AuthorizeView>
+        <AuthorizeView Policy="@RoleKeys.ClientsView" Context="c">
+            <MudNavLink Href="/clients" Icon="@Icons.Material.Filled.People">
+                @L["clients", "Customers"]
             </MudNavLink>
         </AuthorizeView>
         <AuthorizeView Policy="@RoleKeys.PoliciesView" Context="p">
@@ -118,6 +123,7 @@
 
     private bool _isMaster;
     private bool _canMembers;
+    private bool _canClients;
     private bool _canPolicies;
     private bool _canLoginLogs;
     private bool _canMessages;
@@ -132,6 +138,7 @@
             var user = (await AuthState).User;
             _isMaster = user.HasClaim(AdminClaimTypes.Master, "true");
             _canMembers = AdminPolicies.Allows(user, RoleKeys.MembersView);
+            _canClients = AdminPolicies.Allows(user, RoleKeys.ClientsView);
             _canPolicies = AdminPolicies.Allows(user, RoleKeys.PoliciesView);
             _canLoginLogs = AdminPolicies.Allows(user, RoleKeys.LoginLogsView);
             _canMessages = AdminPolicies.Allows(user, RoleKeys.MessagesView);

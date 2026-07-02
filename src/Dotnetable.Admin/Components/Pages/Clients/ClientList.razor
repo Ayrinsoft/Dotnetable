@@ -1,0 +1,158 @@
+@page "/clients"
+@attribute [Authorize(Policy = RoleKeys.ClientsView)]
+@inject IWebsiteClientService ClientService
+@inject AuthenticationStateProvider AuthState
+@inject IPageLocalizer L
+
+<DNPageTitle Title=@L["clients", "Customers"] />
+
+@* ── Page header ──────────────────────────────────────────────── *@
+<MudStack Row="true" AlignItems="AlignItems.Center" Justify="Justify.SpaceBetween" Class="mb-4">
+    <MudStack Spacing="0">
+        <MudText Typo="Typo.h5" Class="fw-bold">@L["clients", "Customers"]</MudText>
+        <MudText Typo="Typo.body2" Color="Color.Secondary">
+            @(_isMaster ? L["clients.subtitle_all", "All customers across all websites"] : L["clients.subtitle_own", "Customers of your website"])
+        </MudText>
+    </MudStack>
+</MudStack>
+
+<MudPaper Elevation="0" Class="app-card rounded-lg pa-4">
+    @if (_loading)
+    {
+        <MudProgressLinear Indeterminate="true" Color="Color.Primary" Class="mb-3" />
+    }
+    <DNGridView GridHeaderParams="_grid" OnSearchChanged="OnGridChanged">
+        @if (_clients.Count == 0)
+        {
+            <tr>
+                <td colspan="@_colCount" style="text-align:center; padding:32px;">
+                    <MudText Color="Color.Secondary">@L["clients.empty", "No customers found."]</MudText>
+                </td>
+            </tr>
+        }
+        else
+        {
+            @foreach (var c in _clients)
+            {
+                <tr>
+                    <td>
+                        <MudIconButton Icon="@Icons.Material.Filled.Edit" Size="Size.Small"
+                                       Color="Color.Primary" Href="@($"/clients/{c.WebsiteClientID}")" />
+                    </td>
+                    <td>@c.WebsiteClientID</td>
+                    <td>@(string.IsNullOrWhiteSpace(c.Email) ? "—" : c.Email)</td>
+                    <td>@(string.IsNullOrWhiteSpace(c.Cellphone) ? "—" : $"+{c.CountryCode} {c.Cellphone}")</td>
+                    <td>
+                        <MudStack Row="true" AlignItems="AlignItems.Center" Spacing="2">
+                            <MudAvatar Color="Color.Secondary" Size="Size.Small">
+                                @(string.IsNullOrWhiteSpace(c.Givenname) ? "?" : c.Givenname.Trim()[..1].ToUpper())
+                            </MudAvatar>
+                            <span>@c.Givenname @c.Surname</span>
+                        </MudStack>
+                    </td>
+                    @if (_isMaster)
+                    {
+                        <td>@c.WebsiteID</td>
+                    }
+                    <td>
+                        <MudChip T="string" Size="Size.Small" Color="@LevelColor(c.ClientLevel)" Variant="Variant.Text">
+                            @c.ClientLevel
+                        </MudChip>
+                    </td>
+                    <td>@c.RegisterDate.ToString("yyyy-MM-dd")</td>
+                    <td>
+                        <MudSwitch T="bool" Value="c.Active" Color="Color.Success"
+                                   Disabled="@(!_canEdit || _toggling.Contains(c.WebsiteClientID))"
+                                   ValueChanged="@(v => ToggleActiveAsync(c, v))" />
+                    </td>
+                </tr>
+            }
+        }
+    </DNGridView>
+</MudPaper>
+
+@code {
+    private bool _loading = true;
+    private bool _isMaster;
+    private bool _canEdit;
+    private int _websiteId;
+    private List<WebsiteClient> _clients = new();
+    private HashSet<int> _toggling = new();
+    private GridViewHeaderParameters _grid = new();
+
+    private int _colCount => 8 + (_isMaster ? 1 : 0);
+
+    private static Color LevelColor(ClientLevel level) => level switch
+    {
+        ClientLevel.VIP => Color.Error,
+        ClientLevel.Gold => Color.Warning,
+        ClientLevel.Silver => Color.Info,
+        ClientLevel.Bronze => Color.Success,
+        _ => Color.Default,
+    };
+
+    protected override async Task OnInitializedAsync()
+    {
+        await L.EnsureLoadedAsync();
+
+        var state = await AuthState.GetAuthenticationStateAsync();
+        var user = state.User;
+        _isMaster = user.HasClaim(AdminClaimTypes.Master, "true");
+        _canEdit = AdminPolicies.Allows(user, RoleKeys.ClientsEdit);
+        int.TryParse(user.FindFirst(AdminClaimTypes.WebsiteId)?.Value, out _websiteId);
+
+        _grid = new GridViewHeaderParameters
+        {
+            Pagination = new PaginationModel { PageSize = 25 },
+            HeaderItems = new()
+            {
+                new() { ColumnTitle = "", ColumnName = "" },
+                new() { ColumnTitle = L["id", "ID"], ColumnName = nameof(WebsiteClient.WebsiteClientID), HasSort = true },
+                new() { ColumnTitle = L["email", "Email"], ColumnName = nameof(WebsiteClient.Email), HasSort = true, HasSearch = true },
+                new() { ColumnTitle = L["cellphone", "Cellphone"], ColumnName = nameof(WebsiteClient.Cellphone), HasSearch = true },
+                new() { ColumnTitle = L["full_name", "Full Name"], ColumnName = "Fullname", HasSearch = true },
+            }
+        };
+        if (_isMaster)
+            _grid.HeaderItems.Add(new() { ColumnTitle = L["website", "Website"], ColumnName = nameof(WebsiteClient.WebsiteID), HasSort = true });
+        _grid.HeaderItems.Add(new()
+        {
+            ColumnTitle = L["client_level", "Level"],
+            ColumnName = nameof(WebsiteClient.ClientLevel),
+            HasSort = true,
+            HasSearch = true,
+            SearchType = SearchColumnType.DropDown,
+            OtherDropDownValues = Enum.GetValues<ClientLevel>().ToDictionary(v => v.ToString(), v => ((byte)v).ToString())
+        });
+        _grid.HeaderItems.Add(new() { ColumnTitle = L["registered", "Registered"], ColumnName = nameof(WebsiteClient.RegisterDate), HasSort = true });
+        _grid.HeaderItems.Add(new()
+        {
+            ColumnTitle = L["status", "Status"],
+            ColumnName = nameof(WebsiteClient.Active),
+            HasSearch = true,
+            SearchType = SearchColumnType.DropDown,
+            OtherDropDownValues = new() { [L["active", "Active"]] = "true", [L["inactive", "Inactive"]] = "false" }
+        });
+
+        await LoadAsync();
+    }
+
+    private Task OnGridChanged(GridViewHeaderParameters _) => LoadAsync();
+
+    private async Task ToggleActiveAsync(WebsiteClient c, bool value)
+    {
+        if (!_toggling.Add(c.WebsiteClientID)) return;
+        c.Active = value;
+        try { await ClientService.SetActiveAsync(c.WebsiteClientID, value); }
+        finally { _toggling.Remove(c.WebsiteClientID); }
+    }
+
+    private async Task LoadAsync()
+    {
+        _loading = true;
+        var result = await ClientService.GetPagedAsync(_isMaster ? null : _websiteId, _grid.ToQuery());
+        _clients = result.Items.ToList();
+        _grid.Pagination.MaxLength = result.TotalCount;
+        _loading = false;
+    }
+}

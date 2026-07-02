@@ -10,6 +10,12 @@ public interface IJwtTokenService
     /// have its Policy → PolicyRoles → Role graph loaded so role claims are populated.
     /// </summary>
     JwtTokenResult CreateToken(Member member);
+
+    /// <summary>
+    /// Creates a signed access token for a website customer, carrying the fixed client permission
+    /// keys and the customer's loyalty level.
+    /// </summary>
+    JwtTokenResult CreateToken(WebsiteClient client);
 }
 
 /// <summary>A freshly issued access token and its absolute expiry (UTC).</summary>

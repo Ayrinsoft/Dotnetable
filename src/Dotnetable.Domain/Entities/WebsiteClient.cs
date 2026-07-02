@@ -1,5 +1,6 @@
 ﻿using System;
 using System.Collections.Generic;
+using Dotnetable.Domain.Enums;
 
 namespace Dotnetable.Domain.Entities;
 
@@ -31,7 +32,7 @@ public partial class WebsiteClient
 
     public Guid HashKey { get; set; }
 
-    public byte ClientLevel { get; set; }
+    public ClientLevel ClientLevel { get; set; }
 
     public virtual FileRecord? Avatar { get; set; }
 

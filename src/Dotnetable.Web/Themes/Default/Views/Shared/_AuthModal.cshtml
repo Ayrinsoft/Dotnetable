@@ -1,81 +1,145 @@
-@* Popup login / register — a single Bootstrap modal with two tabs. *@
+@* Popup auth — sign in, register (email or mobile), OTP activation, and password reset. *@
 <div class="modal fade auth-modal" id="authModal" tabindex="-1" aria-labelledby="authModalLabel" aria-hidden="true">
     <div class="modal-dialog modal-dialog-centered">
         <div class="modal-content">
             <div class="modal-header border-0 pb-0">
-                <ul class="nav nav-pills gap-2" role="tablist">
+                <ul class="nav nav-pills gap-2" role="tablist" id="authTabs">
                     <li class="nav-item" role="presentation">
-                        <button class="nav-link active" id="loginTabBtn" data-bs-toggle="pill"
-                                data-bs-target="#loginPane" type="button" role="tab">Sign in</button>
+                        <button class="nav-link active" id="loginTabBtn" type="button" onclick="showAuthView('login')">Sign in</button>
                     </li>
                     <li class="nav-item" role="presentation">
-                        <button class="nav-link" id="registerTabBtn" data-bs-toggle="pill"
-                                data-bs-target="#registerPane" type="button" role="tab">Register</button>
+                        <button class="nav-link" id="registerTabBtn" type="button" onclick="showAuthView('register')">Register</button>
                     </li>
                 </ul>
                 <button type="button" class="btn-close" data-bs-dismiss="modal" aria-label="Close"></button>
             </div>
             <div class="modal-body p-4">
-                <div class="tab-content">
-                    <!-- Sign in -->
-                    <div class="tab-pane fade show active" id="loginPane" role="tabpanel">
-                        <p class="text-muted mb-3">Welcome back. Sign in to your account.</p>
-                        <form id="loginForm" novalidate>
-                            <div class="mb-3">
-                                <label class="form-label" for="loginUsername">Username</label>
-                                <input class="form-control" id="loginUsername" name="username"
-                                       autocomplete="username" required />
-                            </div>
-                            <div class="mb-2">
-                                <label class="form-label" for="loginPassword">Password</label>
-                                <input class="form-control" id="loginPassword" name="password" type="password"
-                                       autocomplete="current-password" required />
-                            </div>
-                            <p class="auth-feedback text-danger" id="loginFeedback"></p>
-                            <button type="submit" class="btn btn-primary w-100" id="loginSubmit">Sign in</button>
-                        </form>
-                    </div>
-                    <!-- Register -->
-                    <div class="tab-pane fade" id="registerPane" role="tabpanel">
-                        <p class="text-muted mb-3">Create a new account in a few seconds.</p>
-                        <form id="registerForm" novalidate>
-                            <div class="row g-2 mb-3">
-                                <div class="col">
-                                    <label class="form-label" for="regGivenName">First name</label>
-                                    <input class="form-control" id="regGivenName" name="givenName" required />
-                                </div>
-                                <div class="col">
-                                    <label class="form-label" for="regSurname">Last name</label>
-                                    <input class="form-control" id="regSurname" name="surname" required />
-                                </div>
-                            </div>
-                            <div class="mb-3">
-                                <label class="form-label" for="regEmail">Email</label>
-                                <input class="form-control" id="regEmail" name="email" type="email"
-                                       autocomplete="email" required />
-                            </div>
-                            <div class="mb-3">
-                                <label class="form-label" for="regUsername">Username</label>
-                                <input class="form-control" id="regUsername" name="username"
-                                       autocomplete="username" required />
-                            </div>
-                            <div class="row g-2 mb-2">
-                                <div class="col">
-                                    <label class="form-label" for="regPassword">Password</label>
-                                    <input class="form-control" id="regPassword" name="password" type="password"
-                                           autocomplete="new-password" required />
-                                </div>
-                                <div class="col">
-                                    <label class="form-label" for="regPasswordConfirm">Confirm</label>
-                                    <input class="form-control" id="regPasswordConfirm" type="password"
-                                           autocomplete="new-password" required />
-                                </div>
-                            </div>
-                            <p class="auth-feedback text-danger" id="registerFeedback"></p>
-                            <button type="submit" class="btn btn-primary w-100" id="registerSubmit">Create account</button>
-                        </form>
-                    </div>
+
+                <!-- ── Sign in ─────────────────────────────────────── -->
+                <div class="auth-view" id="view-login">
+                    <p class="text-muted mb-3">Welcome back. Sign in to your account.</p>
+                    <form id="loginForm" novalidate>
+                        <div class="mb-3">
+                            <label class="form-label" for="loginIdentifier">Email or mobile</label>
+                            <input class="form-control" id="loginIdentifier" name="identifier"
+                                   autocomplete="username" required />
+                        </div>
+                        <div class="mb-2">
+                            <label class="form-label" for="loginPassword">Password</label>
+                            <input class="form-control" id="loginPassword" name="password" type="password"
+                                   autocomplete="current-password" required />
+                        </div>
+                        <div class="d-flex justify-content-end mb-2">
+                            <button type="button" class="btn btn-link btn-sm p-0" onclick="showAuthView('forgot')">Forgot password?</button>
+                        </div>
+                        <p class="auth-feedback text-danger" id="loginFeedback"></p>
+                        <button type="submit" class="btn btn-primary w-100" id="loginSubmit">Sign in</button>
+                    </form>
                 </div>
+
+                <!-- ── Register ────────────────────────────────────── -->
+                <div class="auth-view d-none" id="view-register">
+                    <p class="text-muted mb-3">Create an account with your email or mobile number.</p>
+                    <form id="registerForm" novalidate>
+                        <div class="row g-2 mb-3">
+                            <div class="col">
+                                <label class="form-label" for="regGivenName">First name</label>
+                                <input class="form-control" id="regGivenName" name="givenName" required />
+                            </div>
+                            <div class="col">
+                                <label class="form-label" for="regSurname">Last name</label>
+                                <input class="form-control" id="regSurname" name="surname" required />
+                            </div>
+                        </div>
+                        <div class="mb-3">
+                            <label class="form-label" for="regEmail">Email</label>
+                            <input class="form-control" id="regEmail" name="email" type="email" autocomplete="email" />
+                        </div>
+                        <div class="text-center text-muted small mb-2">— or —</div>
+                        <div class="row g-2 mb-3">
+                            <div class="col-4">
+                                <label class="form-label" for="regCountryCode">Code</label>
+                                <input class="form-control" id="regCountryCode" name="countryCode" placeholder="98" maxlength="3" />
+                            </div>
+                            <div class="col-8">
+                                <label class="form-label" for="regCellphone">Mobile</label>
+                                <input class="form-control" id="regCellphone" name="cellphone" inputmode="tel" autocomplete="tel" />
+                            </div>
+                        </div>
+                        <div class="row g-2 mb-2">
+                            <div class="col">
+                                <label class="form-label" for="regPassword">Password</label>
+                                <input class="form-control" id="regPassword" name="password" type="password"
+                                       autocomplete="new-password" required />
+                            </div>
+                            <div class="col">
+                                <label class="form-label" for="regPasswordConfirm">Confirm</label>
+                                <input class="form-control" id="regPasswordConfirm" type="password"
+                                       autocomplete="new-password" required />
+                            </div>
+                        </div>
+                        <p class="auth-feedback text-danger" id="registerFeedback"></p>
+                        <button type="submit" class="btn btn-primary w-100" id="registerSubmit">Create account</button>
+                    </form>
+                </div>
+
+                <!-- ── Verify OTP ──────────────────────────────────── -->
+                <div class="auth-view d-none" id="view-verify">
+                    <p class="text-muted mb-3">Enter the verification code we sent to
+                        <strong id="verifyTarget"></strong>.</p>
+                    <form id="verifyForm" novalidate>
+                        <div class="mb-2">
+                            <label class="form-label" for="verifyCode">Verification code</label>
+                            <input class="form-control text-center" id="verifyCode" inputmode="numeric"
+                                   maxlength="6" autocomplete="one-time-code" required />
+                        </div>
+                        <p class="auth-feedback text-danger" id="verifyFeedback"></p>
+                        <button type="submit" class="btn btn-primary w-100 mb-2" id="verifySubmit">Verify &amp; sign in</button>
+                        <div class="d-flex justify-content-between">
+                            <button type="button" class="btn btn-link btn-sm p-0" onclick="resendOtp()">Resend code</button>
+                            <button type="button" class="btn btn-link btn-sm p-0" onclick="showAuthView('login')">Back to sign in</button>
+                        </div>
+                    </form>
+                </div>
+
+                <!-- ── Forgot password ─────────────────────────────── -->
+                <div class="auth-view d-none" id="view-forgot">
+                    <p class="text-muted mb-3">Enter your email or mobile and we'll send a reset code.</p>
+                    <form id="forgotForm" novalidate>
+                        <div class="mb-2">
+                            <label class="form-label" for="forgotIdentifier">Email or mobile</label>
+                            <input class="form-control" id="forgotIdentifier" required />
+                        </div>
+                        <p class="auth-feedback text-danger" id="forgotFeedback"></p>
+                        <button type="submit" class="btn btn-primary w-100 mb-2" id="forgotSubmit">Send reset code</button>
+                        <button type="button" class="btn btn-link btn-sm p-0" onclick="showAuthView('login')">Back to sign in</button>
+                    </form>
+                </div>
+
+                <!-- ── Reset password ──────────────────────────────── -->
+                <div class="auth-view d-none" id="view-reset">
+                    <p class="text-muted mb-3">Enter the code sent to <strong id="resetTarget"></strong> and choose a new password.</p>
+                    <form id="resetForm" novalidate>
+                        <div class="mb-2">
+                            <label class="form-label" for="resetCode">Reset code</label>
+                            <input class="form-control text-center" id="resetCode" inputmode="numeric"
+                                   maxlength="6" autocomplete="one-time-code" required />
+                        </div>
+                        <div class="row g-2 mb-2">
+                            <div class="col">
+                                <label class="form-label" for="resetPassword">New password</label>
+                                <input class="form-control" id="resetPassword" type="password" autocomplete="new-password" required />
+                            </div>
+                            <div class="col">
+                                <label class="form-label" for="resetPasswordConfirm">Confirm</label>
+                                <input class="form-control" id="resetPasswordConfirm" type="password" autocomplete="new-password" required />
+                            </div>
+                        </div>
+                        <p class="auth-feedback text-danger" id="resetFeedback"></p>
+                        <button type="submit" class="btn btn-primary w-100" id="resetSubmit">Reset password</button>
+                    </form>
+                </div>
+
             </div>
         </div>
     </div>
