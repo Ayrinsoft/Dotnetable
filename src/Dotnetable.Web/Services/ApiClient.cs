@@ -1,9 +1,22 @@
+using System.Net;
 using System.Net.Http.Json;
+using System.Text.Json;
 
 namespace Dotnetable.Web.Services;
 
 /// <summary>A JWT access token issued by the API for a website customer.</summary>
 public sealed record LoginResult(string AccessToken, DateTime ExpiresAtUtc, string TokenType);
+
+/// <summary>
+/// Result of a customer auth API call: the HTTP status, a parsed <c>message</c>, any extra string
+/// fields the endpoint returned (channel, identifier, status, …), and the issued token when present.
+/// </summary>
+public sealed record AuthApiResult(
+    bool Ok,
+    HttpStatusCode Status,
+    string? Message,
+    IReadOnlyDictionary<string, string> Fields,
+    LoginResult? Token);
 
 public class ApiClient
 {
@@ -21,31 +34,66 @@ public class ApiClient
         await _http.GetFromJsonAsync<Dictionary<string, string>>($"api/localization/{languageCode}", ct)
         ?? new Dictionary<string, string>();
 
-    /// <summary>Authenticates a customer against the API. Returns the issued token, or null on bad credentials.</summary>
-    public async Task<LoginResult?> LoginAsync(string username, string password, CancellationToken ct = default)
-    {
-        var response = await _http.PostAsJsonAsync("api/auth/login", new { username, password }, ct);
-        if (!response.IsSuccessStatusCode)
-            return null;
-        return await response.Content.ReadFromJsonAsync<LoginResult>(cancellationToken: ct);
-    }
+    public Task<AuthApiResult> LoginAsync(string identifier, string password, CancellationToken ct = default) =>
+        PostAsync("api/auth/login", new { identifier, password }, ct);
 
-    /// <summary>Outcome of a registration attempt: the API's HTTP success flag and its message.</summary>
-    public sealed record ApiResult(bool Success, string? Message);
+    public Task<AuthApiResult> RegisterAsync(object payload, CancellationToken ct = default) =>
+        PostAsync("api/auth/register", payload, ct);
 
-    /// <summary>Registers a new customer. The website is resolved by the API from the configured website key header.</summary>
-    public async Task<ApiResult> RegisterAsync(object payload, CancellationToken ct = default)
+    public Task<AuthApiResult> VerifyOtpAsync(string identifier, string code, CancellationToken ct = default) =>
+        PostAsync("api/auth/verify-otp", new { identifier, code }, ct);
+
+    public Task<AuthApiResult> ResendOtpAsync(string identifier, CancellationToken ct = default) =>
+        PostAsync("api/auth/resend-otp", new { identifier }, ct);
+
+    public Task<AuthApiResult> ForgotPasswordAsync(string identifier, CancellationToken ct = default) =>
+        PostAsync("api/auth/forgot-password", new { identifier }, ct);
+
+    public Task<AuthApiResult> ResetPasswordAsync(string identifier, string code, string newPassword, CancellationToken ct = default) =>
+        PostAsync("api/auth/reset-password", new { identifier, code, newPassword }, ct);
+
+    /// <summary>POSTs JSON and normalizes the response into an <see cref="AuthApiResult"/>.</summary>
+    private async Task<AuthApiResult> PostAsync(string path, object payload, CancellationToken ct)
     {
-        var response = await _http.PostAsJsonAsync("api/auth/register", payload, ct);
-        string? message = null;
+        HttpResponseMessage response;
         try
         {
-            var body = await response.Content.ReadFromJsonAsync<Dictionary<string, object>>(cancellationToken: ct);
-            if (body is not null && body.TryGetValue("message", out var m))
-                message = m?.ToString();
+            response = await _http.PostAsJsonAsync(path, payload, ct);
         }
-        catch { /* non-JSON body — fall back to a generic message below */ }
+        catch (HttpRequestException)
+        {
+            return new AuthApiResult(false, HttpStatusCode.ServiceUnavailable,
+                "Service is unavailable. Please try again later.",
+                new Dictionary<string, string>(), null);
+        }
 
-        return new ApiResult(response.IsSuccessStatusCode, message);
+        string? message = null;
+        var fields = new Dictionary<string, string>(StringComparer.OrdinalIgnoreCase);
+        LoginResult? token = null;
+
+        try
+        {
+            using var doc = await response.Content.ReadFromJsonAsync<JsonDocument>(cancellationToken: ct);
+            if (doc is not null && doc.RootElement.ValueKind == JsonValueKind.Object)
+            {
+                foreach (var prop in doc.RootElement.EnumerateObject())
+                {
+                    if (prop.Value.ValueKind == JsonValueKind.String)
+                        fields[prop.Name] = prop.Value.GetString()!;
+                }
+
+                fields.TryGetValue("message", out message);
+
+                if (fields.TryGetValue("accessToken", out var accessToken) &&
+                    doc.RootElement.TryGetProperty("expiresAtUtc", out var exp) &&
+                    exp.TryGetDateTime(out var expiresAt))
+                {
+                    token = new LoginResult(accessToken, expiresAt, "Bearer");
+                }
+            }
+        }
+        catch { /* non-JSON body — fall back to the generic message below */ }
+
+        return new AuthApiResult(response.IsSuccessStatusCode, response.StatusCode, message, fields, token);
     }
 }

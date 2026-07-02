@@ -1,5 +1,6 @@
 using System.ComponentModel.DataAnnotations;
 using Dotnetable.Application.Authorization;
+using Dotnetable.Application.DTOs;
 using Dotnetable.Application.Interfaces;
 using Dotnetable.Domain.Entities;
 using Microsoft.AspNetCore.Authorization;
@@ -8,134 +9,230 @@ using Microsoft.AspNetCore.Mvc;
 namespace Dotnetable.API.Controllers;
 
 /// <summary>
-/// Token endpoint for website clients (customers). They authenticate with their member credentials
-/// and receive a JWT carrying their role claims; subsequent API calls send it as a bearer token.
+/// Authentication for website customers (<see cref="WebsiteClient"/>). Customers self-register with an
+/// email or mobile number, activate with a one-time code, then sign in for a JWT bearer token. The
+/// target website is resolved from the <c>X-Website-Key</c> header (the site's <see cref="Website.AuthCode"/>).
 /// </summary>
 public class AuthController : BaseController
 {
     /// <summary>Header carrying the caller website's per-site key (<see cref="Website.AuthCode"/>).</summary>
     public const string WebsiteKeyHeader = "X-Website-Key";
 
-    private readonly IMemberService _memberService;
+    private readonly IWebsiteClientAuthService _auth;
     private readonly IJwtTokenService _tokenService;
     private readonly ILoginLogService _loginLog;
     private readonly IWebsiteService _websiteService;
-    private readonly IPolicyService _policyService;
 
     public AuthController(
-        IMemberService memberService,
+        IWebsiteClientAuthService auth,
         IJwtTokenService tokenService,
         ILoginLogService loginLog,
-        IWebsiteService websiteService,
-        IPolicyService policyService)
+        IWebsiteService websiteService)
     {
-        _memberService = memberService;
+        _auth = auth;
         _tokenService = tokenService;
         _loginLog = loginLog;
         _websiteService = websiteService;
-        _policyService = policyService;
+    }
+
+    // ── Request bodies ──────────────────────────────────────────────
+
+    public sealed class RegisterRequest
+    {
+        public string? GivenName { get; set; }
+        public string? Surname { get; set; }
+        public string? Email { get; set; }
+        public string? CountryCode { get; set; }
+        public string? Cellphone { get; set; }
+        [Required, MinLength(6)] public string Password { get; set; } = string.Empty;
+    }
+
+    public sealed class IdentifierRequest
+    {
+        /// <summary>Email address or mobile number the customer registered with.</summary>
+        [Required] public string Identifier { get; set; } = string.Empty;
+    }
+
+    public sealed class VerifyRequest
+    {
+        [Required] public string Identifier { get; set; } = string.Empty;
+        [Required] public string Code { get; set; } = string.Empty;
     }
 
     public sealed class LoginRequest
     {
-        [Required] public string Username { get; set; } = string.Empty;
+        [Required] public string Identifier { get; set; } = string.Empty;
         [Required] public string Password { get; set; } = string.Empty;
     }
 
-    public sealed class RegisterRequest
+    public sealed class ResetRequest
     {
-        [Required] public string GivenName { get; set; } = string.Empty;
-        [Required] public string Surname { get; set; } = string.Empty;
-        [Required, EmailAddress] public string Email { get; set; } = string.Empty;
-        [Required] public string Username { get; set; } = string.Empty;
-        [Required, MinLength(6)] public string Password { get; set; } = string.Empty;
+        [Required] public string Identifier { get; set; } = string.Empty;
+        [Required] public string Code { get; set; } = string.Empty;
+        [Required, MinLength(6)] public string NewPassword { get; set; } = string.Empty;
+    }
+
+    // ── Endpoints ───────────────────────────────────────────────────
+
+    [HttpPost("register")]
+    [AllowAnonymous]
+    public async Task<IActionResult> Register([FromBody] RegisterRequest request, CancellationToken ct = default)
+    {
+        if (await ResolveWebsiteAsync(ct) is not { } website)
+            return BadRequest(new { message = "Unknown or missing website." });
+
+        var response = await _auth.RegisterAsync(new ClientRegistration(
+            website.WebsiteID, request.GivenName, request.Surname,
+            request.Email, request.CountryCode, request.Cellphone, request.Password), ct);
+
+        return response.Result switch
+        {
+            ClientRegisterResult.OtpSent => Ok(new
+            {
+                success = true,
+                channel = response.Channel.ToString(),
+                identifier = response.Identifier,
+                message = response.Channel == OtpChannel.Email
+                    ? "We sent a verification code to your email."
+                    : "We sent a verification code to your mobile.",
+            }),
+            ClientRegisterResult.AlreadyRegistered => Conflict(new
+            {
+                message = "An account with this email or mobile already exists. Please sign in.",
+            }),
+            ClientRegisterResult.DeliveryNotConfigured => StatusCode(StatusCodes.Status503ServiceUnavailable, new
+            {
+                message = "Verification email cannot be sent — email is not configured for this website.",
+            }),
+            _ => BadRequest(new { message = "Please provide a valid email or mobile number and a password." }),
+        };
+    }
+
+    [HttpPost("verify-otp")]
+    [AllowAnonymous]
+    public async Task<IActionResult> VerifyOtp([FromBody] VerifyRequest request, CancellationToken ct = default)
+    {
+        if (await ResolveWebsiteAsync(ct) is not { } website)
+            return BadRequest(new { message = "Unknown or missing website." });
+
+        var (result, client) = await _auth.VerifyOtpAsync(website.WebsiteID, request.Identifier, request.Code, ct);
+        if (result == ClientVerifyResult.Success && client is not null)
+            return Ok(IssueToken(client));
+
+        return result switch
+        {
+            ClientVerifyResult.AlreadyActive => Ok(new { success = true, message = "Account already activated. Please sign in." }),
+            ClientVerifyResult.NotFound => NotFound(new { message = "No pending registration found for this account." }),
+            _ => BadRequest(new { message = "The code is invalid or has expired." }),
+        };
+    }
+
+    [HttpPost("resend-otp")]
+    [AllowAnonymous]
+    public async Task<IActionResult> ResendOtp([FromBody] IdentifierRequest request, CancellationToken ct = default)
+    {
+        if (await ResolveWebsiteAsync(ct) is not { } website)
+            return BadRequest(new { message = "Unknown or missing website." });
+
+        var result = await _auth.ResendOtpAsync(website.WebsiteID, request.Identifier, ct);
+        return result switch
+        {
+            ClientResendResult.OtpSent => Ok(new { success = true, message = "A new code has been sent." }),
+            ClientResendResult.AlreadyActive => Ok(new { success = true, message = "Account already activated. Please sign in." }),
+            ClientResendResult.NotFound => NotFound(new { message = "No pending registration found for this account." }),
+            _ => StatusCode(StatusCodes.Status503ServiceUnavailable, new { message = "Code cannot be sent right now." }),
+        };
     }
 
     [HttpPost("login")]
     [AllowAnonymous]
     public async Task<IActionResult> Login([FromBody] LoginRequest request, CancellationToken ct = default)
     {
+        if (await ResolveWebsiteAsync(ct) is not { } website)
+            return BadRequest(new { message = "Unknown or missing website." });
+
         var ip = HttpContext.Connection.RemoteIpAddress?.ToString() ?? string.Empty;
+        var (status, client) = await _auth.ValidateCredentialsAsync(
+            website.WebsiteID, request.Identifier, request.Password, ct);
 
-        var member = await _memberService.ValidateCredentialsAsync(request.Username, request.Password, ct);
-        if (member is null)
+        await _loginLog.RecordAsync(request.Identifier, website.WebsiteID, status == ClientLoginStatus.Success, ip, ct);
+
+        return status switch
         {
-            var websiteId = await _memberService.GetWebsiteIdByUsernameAsync(request.Username, ct) ?? 0;
-            await _loginLog.RecordAsync(request.Username, websiteId, false, ip, ct);
-            return Unauthorized(new { message = "Invalid username or password." });
-        }
-
-        await _loginLog.RecordAsync(member.Username, member.WebsiteID, true, ip, ct);
-
-        var token = _tokenService.CreateToken(member);
-        return Ok(new
-        {
-            accessToken = token.AccessToken,
-            expiresAtUtc = token.ExpiresAtUtc,
-            tokenType = "Bearer",
-        });
+            ClientLoginStatus.Success when client is not null => Ok(IssueToken(client)),
+            ClientLoginStatus.NotActivated => StatusCode(StatusCodes.Status403Forbidden, new
+            {
+                status = "NotActivated",
+                identifier = request.Identifier,
+                message = "Your account is not activated yet. Please enter the code we sent you.",
+            }),
+            _ => Unauthorized(new { message = "Invalid credentials." }),
+        };
     }
 
-    /// <summary>
-    /// Public self-registration for website customers. The target website is resolved from the
-    /// <c>X-Website-Key</c> header (the site's <see cref="Website.AuthCode"/>); the new member is
-    /// assigned that website's default "Users" access level.
-    /// </summary>
-    [HttpPost("register")]
+    [HttpPost("forgot-password")]
     [AllowAnonymous]
-    public async Task<IActionResult> Register([FromBody] RegisterRequest request, CancellationToken ct = default)
+    public async Task<IActionResult> ForgotPassword([FromBody] IdentifierRequest request, CancellationToken ct = default)
+    {
+        if (await ResolveWebsiteAsync(ct) is not { } website)
+            return BadRequest(new { message = "Unknown or missing website." });
+
+        var result = await _auth.RequestPasswordResetAsync(website.WebsiteID, request.Identifier, ct);
+        // Don't reveal whether the account exists; report a generic success unless delivery is impossible.
+        return result switch
+        {
+            ClientResetRequestResult.DeliveryNotConfigured => StatusCode(StatusCodes.Status503ServiceUnavailable, new
+            {
+                message = "Reset email cannot be sent — email is not configured for this website.",
+            }),
+            _ => Ok(new { success = true, message = "If the account exists, a reset code has been sent." }),
+        };
+    }
+
+    [HttpPost("reset-password")]
+    [AllowAnonymous]
+    public async Task<IActionResult> ResetPassword([FromBody] ResetRequest request, CancellationToken ct = default)
+    {
+        if (await ResolveWebsiteAsync(ct) is not { } website)
+            return BadRequest(new { message = "Unknown or missing website." });
+
+        var result = await _auth.ResetPasswordAsync(
+            website.WebsiteID, request.Identifier, request.Code, request.NewPassword, ct);
+
+        return result switch
+        {
+            ClientResetResult.Success => Ok(new { success = true, message = "Your password has been reset. You can sign in now." }),
+            ClientResetResult.NotFound => NotFound(new { message = "No account found for this email or mobile." }),
+            _ => BadRequest(new { message = "The code is invalid or has expired." }),
+        };
+    }
+
+    /// <summary>Returns the identity and level of the bearer-token caller.</summary>
+    [HttpGet("me")]
+    [Authorize]
+    public IActionResult Me() => Ok(new
+    {
+        clientId = User.FindFirst(ClientClaims.ClientId)?.Value,
+        websiteId = User.FindFirst(MemberClaims.WebsiteId)?.Value,
+        level = User.FindFirst(ClientClaims.ClientLevel)?.Value,
+        name = User.Identity?.Name,
+    });
+
+    // ── Helpers ─────────────────────────────────────────────────────
+
+    private object IssueToken(WebsiteClient client)
+    {
+        var token = _tokenService.CreateToken(client);
+        return new { accessToken = token.AccessToken, expiresAtUtc = token.ExpiresAtUtc, tokenType = "Bearer" };
+    }
+
+    private async Task<Website?> ResolveWebsiteAsync(CancellationToken ct)
     {
         if (!Request.Headers.TryGetValue(WebsiteKeyHeader, out var keyValue) ||
             !Guid.TryParse(keyValue.ToString(), out var authCode))
-        {
-            return BadRequest(new { message = "Missing or invalid website key." });
-        }
+            return null;
 
         var website = await _websiteService.GetByAuthCodeAsync(authCode, ct);
-        if (website is null || !website.Active)
-            return BadRequest(new { message = "Unknown website." });
-
-        var username = request.Username.Trim();
-        var email = request.Email.Trim();
-
-        if (await _memberService.ExistsAsync(username, email, ct))
-            return Conflict(new { message = "An account with this username or email already exists." });
-
-        var policy = await _policyService.GetDefaultMemberPolicyAsync(website.WebsiteID, ct);
-        if (policy is null)
-            return StatusCode(StatusCodes.Status500InternalServerError,
-                new { message = "Registration is not configured for this website." });
-
-        var member = new Member
-        {
-            WebsiteID = website.WebsiteID,
-            PolicyID = policy.PolicyID,
-            Username = username,
-            Email = email,
-            Givenname = request.GivenName.Trim(),
-            Surname = request.Surname.Trim(),
-            CellphoneNumber = string.Empty,
-            CountryCode = string.Empty,
-            RegisterDate = DateOnly.FromDateTime(DateTime.UtcNow),
-            HashKey = Guid.NewGuid(),
-            Active = true,
-        };
-        await _memberService.CreateAsync(member, request.Password, ct);
-
-        return Ok(new { success = true, message = "Account created. You can sign in now." });
-    }
-
-    /// <summary>Returns the identity and granted role keys of the bearer-token caller.</summary>
-    [HttpGet("me")]
-    [Authorize]
-    public IActionResult Me()
-    {
-        return Ok(new
-        {
-            username = User.Identity?.Name,
-            websiteId = User.FindFirst(MemberClaims.WebsiteId)?.Value,
-            isMaster = User.HasClaim(MemberClaims.Master, "true"),
-            roles = User.FindAll(System.Security.Claims.ClaimTypes.Role).Select(c => c.Value).ToArray(),
-        });
+        return website is { Active: true } ? website : null;
     }
 }

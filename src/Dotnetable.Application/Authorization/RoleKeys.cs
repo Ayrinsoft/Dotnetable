@@ -16,6 +16,11 @@ public static class RoleKeys
     public const string MembersEdit = "members.edit";
     public const string MembersDelete = "members.delete";
 
+    // ── Website customers / clients (admin management) ──────────────
+    public const string ClientsView = "clients.view";
+    public const string ClientsEdit = "clients.edit";
+    public const string ClientsDelete = "clients.delete";
+
     // ── Access levels / policies (admin) ────────────────────────────
     public const string PoliciesView = "policies.view";
     public const string PoliciesInsert = "policies.insert";
