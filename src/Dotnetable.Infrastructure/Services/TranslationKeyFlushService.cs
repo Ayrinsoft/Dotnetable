@@ -1,6 +1,7 @@
-using Dotnetable.Domain.Entities;
+﻿using Dotnetable.Domain.Entities;
 using Dotnetable.Infrastructure.Data;
 using Microsoft.EntityFrameworkCore;
+using Microsoft.Extensions.DependencyInjection;
 using Microsoft.Extensions.Hosting;
 using Microsoft.Extensions.Logging;
 
@@ -18,16 +19,16 @@ public sealed class TranslationKeyFlushService : BackgroundService
     private static readonly TimeSpan Interval = TimeSpan.FromSeconds(10);
 
     private readonly PendingTranslationKeys _pending;
-    private readonly IDbContextFactory<AppDbContext> _factory;
+    private readonly IServiceScopeFactory _scopeFactory;
     private readonly ILogger<TranslationKeyFlushService> _logger;
 
     public TranslationKeyFlushService(
         PendingTranslationKeys pending,
-        IDbContextFactory<AppDbContext> factory,
+        IServiceScopeFactory scopeFactory,
         ILogger<TranslationKeyFlushService> logger)
     {
         _pending = pending;
-        _factory = factory;
+        _scopeFactory = scopeFactory;
         _logger = logger;
     }
 
@@ -57,7 +58,9 @@ public sealed class TranslationKeyFlushService : BackgroundService
         var batch = _pending.Drain();
         if (batch.Count == 0) return;
 
-        await using var db = await _factory.CreateDbContextAsync(ct);
+        await using var scope = _scopeFactory.CreateAsyncScope();
+        var factory = scope.ServiceProvider.GetRequiredService<IDbContextFactory<AppDbContext>>();
+        await using var db = await factory.CreateDbContextAsync(ct);
 
         foreach (var byWebsite in batch.GroupBy(b => b.WebsiteId))
         {
