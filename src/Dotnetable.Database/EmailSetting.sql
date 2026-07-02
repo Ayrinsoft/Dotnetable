@@ -9,6 +9,8 @@
     [EmailTypeID]    TINYINT        NOT NULL,
     [DefaultEMail]   BIT            NOT NULL,
     [Active]         BIT            NOT NULL,
-    CONSTRAINT [PK_EmailSetting] PRIMARY KEY CLUSTERED ([EmailSettingID] ASC)
+    [WebsiteID]      INT            NOT NULL,
+    CONSTRAINT [PK_EmailSetting] PRIMARY KEY CLUSTERED ([EmailSettingID] ASC),
+    CONSTRAINT [FK_EmailSetting_Website] FOREIGN KEY ([WebsiteID]) REFERENCES [dbo].[Website] ([WebsiteID])
 );
 

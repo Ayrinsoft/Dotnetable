@@ -8,6 +8,8 @@
     [Archive]             BIT             NOT NULL,
     [LogTime]             DATETIME        NOT NULL,
     [SenderIPAddress]     VARCHAR (15)    NOT NULL,
-    CONSTRAINT [PK_ContactUsMessage] PRIMARY KEY CLUSTERED ([ContactUsMessagesID] ASC)
+    [WebsiteID]           INT             NOT NULL,
+    CONSTRAINT [PK_ContactUsMessage] PRIMARY KEY CLUSTERED ([ContactUsMessagesID] ASC),
+    CONSTRAINT [FK_ContactUsMessage_Website] FOREIGN KEY ([WebsiteID]) REFERENCES [dbo].[Website] ([WebsiteID])
 );
 

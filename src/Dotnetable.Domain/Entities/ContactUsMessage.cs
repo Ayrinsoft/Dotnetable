@@ -23,7 +23,7 @@ public partial class ContactUsMessage
 
     public string SenderIPAddress { get; set; } = null!;
 
-    public int? WebsiteID { get; set; }
+    public int WebsiteID { get; set; }
 
-    public virtual Website? Website { get; set; }
+    public virtual Website Website { get; set; } = null!;
 }

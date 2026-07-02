@@ -47,6 +47,8 @@ public partial class FileRecord
 
     public virtual ICollection<FileRecordTag> FileRecordTags { get; set; } = new List<FileRecordTag>();
 
+    public virtual ICollection<WebsiteClient> WebsiteClients { get; set; } = new List<WebsiteClient>();
+
     public virtual ICollection<Website> WebsiteFaveIconFiles { get; set; } = new List<Website>();
 
     public virtual ICollection<Website> WebsiteLogoFiles { get; set; } = new List<Website>();

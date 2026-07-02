@@ -38,6 +38,10 @@ public partial class Website
 
     public int? FaveIconFileID { get; set; }
 
+    public virtual ICollection<ContactUsMessage> ContactUsMessages { get; set; } = new List<ContactUsMessage>();
+
+    public virtual ICollection<EmailSetting> EmailSettings { get; set; } = new List<EmailSetting>();
+
     public virtual FileRecord? FaveIconFile { get; set; }
 
     public virtual ICollection<FileAlbum> FileAlbums { get; set; } = new List<FileAlbum>();
@@ -46,9 +50,15 @@ public partial class Website
 
     public virtual ICollection<Language> Languages { get; set; } = new List<Language>();
 
+    public virtual ICollection<LoginTry> LoginTries { get; set; } = new List<LoginTry>();
+
     public virtual FileRecord? LogoFile { get; set; }
 
     public virtual ICollection<Member> Members { get; set; } = new List<Member>();
+
+    public virtual ICollection<Policy> Policies { get; set; } = new List<Policy>();
+
+    public virtual ICollection<WebsiteClient> WebsiteClients { get; set; } = new List<WebsiteClient>();
 
     public virtual ICollection<WebsiteIP> WebsiteIPs { get; set; } = new List<WebsiteIP>();
 
@@ -59,8 +69,4 @@ public partial class Website
     public virtual ICollection<WebsiteSocialLink> WebsiteSocialLinks { get; set; } = new List<WebsiteSocialLink>();
 
     public virtual ICollection<WebstieStorageSetting> WebstieStorageSettings { get; set; } = new List<WebstieStorageSetting>();
-
-    public virtual ICollection<ContactUsMessage> ContactUsMessages { get; set; } = new List<ContactUsMessage>();
-
-    public virtual ICollection<EmailSetting> EmailSettings { get; set; } = new List<EmailSetting>();
 }
