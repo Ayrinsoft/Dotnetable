@@ -38,13 +38,27 @@ public partial class Website
 
     public int? FaveIconFileID { get; set; }
 
+    public string DefaultCurrencyCode { get; set; } = null!;
+
+    public virtual ICollection<AttributeDefinition> AttributeDefinitions { get; set; } = new List<AttributeDefinition>();
+
+    public virtual ICollection<BankAccount> BankAccounts { get; set; } = new List<BankAccount>();
+
+    public virtual ICollection<Bank> Banks { get; set; } = new List<Bank>();
+
+    public virtual ICollection<Category> Categories { get; set; } = new List<Category>();
+
     public virtual ICollection<ContactUsMessage> ContactUsMessages { get; set; } = new List<ContactUsMessage>();
+
+    public virtual ICollection<CurrencyRate> CurrencyRates { get; set; } = new List<CurrencyRate>();
 
     public virtual ICollection<EmailSetting> EmailSettings { get; set; } = new List<EmailSetting>();
 
     public virtual FileRecord? FaveIconFile { get; set; }
 
     public virtual ICollection<FileAlbum> FileAlbums { get; set; } = new List<FileAlbum>();
+
+    public virtual ICollection<FileRecord> FileRecords { get; set; } = new List<FileRecord>();
 
     public virtual ICollection<FileTag> FileTags { get; set; } = new List<FileTag>();
 
@@ -56,7 +70,15 @@ public partial class Website
 
     public virtual ICollection<Member> Members { get; set; } = new List<Member>();
 
+    public virtual ICollection<Menu> Menus { get; set; } = new List<Menu>();
+
     public virtual ICollection<Policy> Policies { get; set; } = new List<Policy>();
+
+    public virtual ICollection<PostType> PostTypes { get; set; } = new List<PostType>();
+
+    public virtual ICollection<Post> Posts { get; set; } = new List<Post>();
+
+    public virtual ICollection<Tag> Tags { get; set; } = new List<Tag>();
 
     public virtual ICollection<WebsiteClient> WebsiteClients { get; set; } = new List<WebsiteClient>();
 
