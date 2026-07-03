@@ -41,7 +41,7 @@ else if (_client is not null)
                                           Label="@L["cellphone", "Cellphone"]" Variant="Variant.Outlined" ReadOnly="true" Disabled="true" />
                         </MudItem>
                         <MudItem xs="12" sm="6">
-                            <MudSelect T="ClientLevel" @bind-Value="_client.ClientLevel" Label="@L["client_level", "Level"]"
+                            <MudSelect T="ClientLevel" @bind-Value="ClientLevelValue" Label="@L["client_level", "Level"]"
                                        Variant="Variant.Outlined" Disabled="@(!_canEdit)">
                                 @foreach (var level in Enum.GetValues<ClientLevel>())
                                 {
@@ -122,6 +122,12 @@ else if (_client is not null)
     private bool _isMaster;
     private bool _canEdit;
     private int _websiteId;
+
+    private ClientLevel ClientLevelValue
+    {
+        get => _client!.ClientLevel.ToEnum<ClientLevel>();
+        set => _client!.ClientLevel = value.ToByte();
+    }
 
     private List<BreadcrumbItem> _breadcrumbs => new()
     {
