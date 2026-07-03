@@ -7,4 +7,7 @@ public static class AppConstants
     /// access to every other website. Any other member can only see its own website's data.
     /// </summary>
     public const int MasterWebsiteId = 1;
+
+    /// <summary>Maximum number of addresses a single website customer may save.</summary>
+    public const int MaxClientAddresses = 10;
 }

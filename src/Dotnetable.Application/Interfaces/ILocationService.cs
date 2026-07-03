@@ -22,6 +22,8 @@ public interface ILocationService
     Task DeleteStateAsync(int id, CancellationToken ct = default);
 
     // Cities
+    /// <summary>All active cities for a country, unpaged — for populating a dependent dropdown.</summary>
+    Task<IEnumerable<City>> GetCitiesByCountryAsync(int countryId, CancellationToken ct = default);
     Task<PagedResult<City>> GetCitiesPagedAsync(int? countryId, int? stateId, GridQuery query, CancellationToken ct = default);
     Task<City?> GetCityByIdAsync(int id, CancellationToken ct = default);
     Task<City> CreateCityAsync(City city, CancellationToken ct = default);

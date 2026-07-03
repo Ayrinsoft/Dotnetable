@@ -114,6 +114,12 @@ public class LocationService : ILocationService
 
     // ── Cities ───────────────────────────────────────────────────────
 
+    public async Task<IEnumerable<City>> GetCitiesByCountryAsync(int countryId, CancellationToken ct = default) =>
+        await _context.Cities.AsNoTracking()
+            .Where(c => c.CountryID == countryId && c.Active)
+            .OrderBy(c => c.Title)
+            .ToListAsync(ct);
+
     public async Task<PagedResult<City>> GetCitiesPagedAsync(int? countryId, int? stateId, GridQuery query, CancellationToken ct = default)
     {
         IQueryable<City> q = _context.Cities.AsNoTracking()

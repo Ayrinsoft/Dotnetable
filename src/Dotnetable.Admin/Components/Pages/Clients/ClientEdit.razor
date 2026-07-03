@@ -1,6 +1,8 @@
 @page "/clients/{Id:int}"
 @attribute [Authorize(Policy = RoleKeys.ClientsView)]
 @inject IWebsiteClientService ClientService
+@inject IWebsiteClientAddressService AddressService
+@inject ILocationService LocationService
 @inject AuthenticationStateProvider AuthState
 @inject NavigationManager Nav
 @inject ISnackbar Snackbar
@@ -110,6 +112,157 @@ else if (_client is not null)
             </MudButton>
         </MudStack>
     </MudForm>
+
+    <MudPaper Elevation="0" Class="border rounded-lg pa-6 mt-4">
+        <MudStack Row="true" AlignItems="AlignItems.Center" Justify="Justify.SpaceBetween" Class="mb-4">
+            <MudText Typo="Typo.subtitle1" Class="fw-bold">
+                <MudIcon Icon="@Icons.Material.Filled.LocationOn" Size="Size.Small" Class="me-1" />
+                @L["clients.addresses", "Addresses"]
+            </MudText>
+            @if (_canEdit)
+            {
+                <MudButton Variant="Variant.Filled" Color="Color.Primary" Size="Size.Small"
+                           StartIcon="@Icons.Material.Filled.Add" OnClick="OpenAddAddressDialog"
+                           Disabled="@(_addresses.Count >= AppConstants.MaxClientAddresses)">
+                    @L["clients.addresses.add", "Add Address"]
+                </MudButton>
+            }
+        </MudStack>
+
+        @if (_addresses.Count >= AppConstants.MaxClientAddresses)
+        {
+            <MudAlert Severity="Severity.Warning" Dense="true" Class="mb-3">
+                @L["clients.addresses.max_reached", $"This customer has reached the maximum of {AppConstants.MaxClientAddresses} addresses."]
+            </MudAlert>
+        }
+
+        @if (_addressesLoading)
+        {
+            <MudProgressLinear Indeterminate="true" Color="Color.Primary" Class="mb-3" />
+        }
+        else if (_addresses.Count == 0)
+        {
+            <div style="text-align:center; padding:24px;">
+                <MudText Color="Color.Secondary">@L["clients.addresses.empty", "No addresses saved."]</MudText>
+            </div>
+        }
+        else
+        {
+            <MudSimpleTable Dense="true" Hover="true" Elevation="0">
+                <thead>
+                    <tr>
+                        <th>@L["clients.addresses.title_col", "Title"]</th>
+                        <th>@L["clients.addresses.receiver", "Receiver"]</th>
+                        <th>@L["clients.addresses.location", "Location"]</th>
+                        <th>@L["clients.addresses.address_line", "Address"]</th>
+                        <th>@L["clients.addresses.phone", "Phone"]</th>
+                        <th>@L["clients.addresses.default", "Default"]</th>
+                        <th style="width:1%"></th>
+                    </tr>
+                </thead>
+                <tbody>
+                    @foreach (var a in _addresses)
+                    {
+                        <tr>
+                            <td>@(a.Title ?? "—")</td>
+                            <td>@(a.ReceiverName ?? "—")</td>
+                            <td>@(string.Join(", ", new[] { a.City?.Title, a.Country?.Title }.Where(s => !string.IsNullOrWhiteSpace(s))))</td>
+                            <td>@a.AddressLine</td>
+                            <td>@(a.Phone ?? "—")</td>
+                            <td>
+                                @if (a.IsDefault)
+                                {
+                                    <MudChip T="string" Color="Color.Primary" Size="Size.Small">@L["clients.addresses.default", "Default"]</MudChip>
+                                }
+                                else if (_canEdit)
+                                {
+                                    <MudButton Size="Size.Small" Variant="Variant.Text" OnClick="@(() => SetDefaultAddressAsync(a))">
+                                        @L["clients.addresses.set_default", "Set default"]
+                                    </MudButton>
+                                }
+                            </td>
+                            <td>
+                                @if (_canEdit)
+                                {
+                                    <MudStack Row="true" Spacing="0">
+                                        <MudIconButton Icon="@Icons.Material.Filled.Edit" Size="Size.Small" OnClick="@(() => OpenEditAddressDialog(a))" />
+                                        <MudIconButton Icon="@Icons.Material.Filled.Delete" Size="Size.Small" Color="Color.Error" OnClick="@(() => DeleteAddressAsync(a))" />
+                                    </MudStack>
+                                }
+                            </td>
+                        </tr>
+                    }
+                </tbody>
+            </MudSimpleTable>
+        }
+    </MudPaper>
+
+    <MudDialog @bind-Visible="_addressDialogOpen" Options="@(new DialogOptions { MaxWidth = MaxWidth.Small, FullWidth = true })">
+        <TitleContent>
+            <MudText Typo="Typo.h6">
+                @(_editAddress?.WebsiteClientAddressID == 0
+                    ? L["clients.addresses.dialog_add", "Add Address"]
+                    : L["clients.addresses.dialog_edit", "Edit Address"])
+            </MudText>
+        </TitleContent>
+        <DialogContent>
+            @if (_editAddress is not null)
+            {
+                <MudForm @ref="_addressForm">
+                    <MudGrid Spacing="2">
+                        <MudItem xs="12" sm="6">
+                            <MudTextField @bind-Value="_editAddress.Title" Label="@L["clients.addresses.title_col", "Title"]" Variant="Variant.Outlined" />
+                        </MudItem>
+                        <MudItem xs="12" sm="6">
+                            <MudTextField @bind-Value="_editAddress.ReceiverName" Label="@L["clients.addresses.receiver", "Receiver"]" Variant="Variant.Outlined" />
+                        </MudItem>
+                        <MudItem xs="12" sm="6">
+                            <MudSelect T="int?" @bind-Value="_editAddress.CountryId" Label="@L["country", "Country"]"
+                                       Variant="Variant.Outlined" Clearable="true" SelectedValuesChanged="OnAddressCountryChanged">
+                                @foreach (var c in _countries)
+                                {
+                                    <MudSelectItem T="int?" Value="@((int?)c.CountryID)">@c.Title</MudSelectItem>
+                                }
+                            </MudSelect>
+                        </MudItem>
+                        <MudItem xs="12" sm="6">
+                            <MudSelect T="int?" @bind-Value="_editAddress.CityId" Label="@L["city", "City"]"
+                                       Variant="Variant.Outlined" Clearable="true" Disabled="@(_editAddress.CountryId is null)">
+                                @foreach (var c in _addressCities)
+                                {
+                                    <MudSelectItem T="int?" Value="@((int?)c.CityID)">@c.Title</MudSelectItem>
+                                }
+                            </MudSelect>
+                        </MudItem>
+                        <MudItem xs="12">
+                            <MudTextField @bind-Value="_editAddress.AddressLine" Label="@L["clients.addresses.address_line", "Address"]"
+                                          Variant="Variant.Outlined" Lines="2" Required="true"
+                                          RequiredError="@L["required", "This field is required."]" />
+                        </MudItem>
+                        <MudItem xs="12" sm="6">
+                            <MudTextField @bind-Value="_editAddress.PostalCode" Label="@L["clients.addresses.postal_code", "Postal Code"]" Variant="Variant.Outlined" />
+                        </MudItem>
+                        <MudItem xs="12" sm="6">
+                            <MudTextField @bind-Value="_editAddress.Phone" Label="@L["clients.addresses.phone", "Phone"]" Variant="Variant.Outlined" />
+                        </MudItem>
+                        <MudItem xs="12">
+                            <MudSwitch T="bool" @bind-Value="_editAddress.IsDefault" Color="Color.Primary" Label="@L["clients.addresses.default", "Default"]" />
+                        </MudItem>
+                    </MudGrid>
+                </MudForm>
+            }
+        </DialogContent>
+        <DialogActions>
+            <MudButton OnClick="@(() => _addressDialogOpen = false)" Variant="Variant.Text">@L["cancel", "Cancel"]</MudButton>
+            <MudButton Color="Color.Primary" Variant="Variant.Filled" OnClick="SaveAddressAsync" Disabled="@_addressSaving">
+                @if (_addressSaving)
+                {
+                    <MudProgressCircular Size="Size.Small" Indeterminate="true" Class="me-2" />
+                }
+                @L["save_short", "Save"]
+            </MudButton>
+        </DialogActions>
+    </MudDialog>
 }
 
 @code {
@@ -122,6 +275,15 @@ else if (_client is not null)
     private bool _isMaster;
     private bool _canEdit;
     private int _websiteId;
+
+    private List<WebsiteClientAddress> _addresses = new();
+    private bool _addressesLoading = true;
+    private List<Country> _countries = new();
+    private List<City> _addressCities = new();
+    private bool _addressDialogOpen;
+    private bool _addressSaving;
+    private WebsiteClientAddress? _editAddress;
+    private MudForm _addressForm = null!;
 
     private ClientLevel ClientLevelValue
     {
@@ -153,7 +315,107 @@ else if (_client is not null)
             return;
         }
 
+        _countries = (await LocationService.GetAllCountriesAsync()).ToList();
         _loading = false;
+
+        await LoadAddressesAsync();
+    }
+
+    private async Task LoadAddressesAsync()
+    {
+        _addressesLoading = true;
+        _addresses = await AddressService.GetByClientIdAsync(Id);
+        _addressesLoading = false;
+    }
+
+    private async Task OnAddressCountryChanged(IEnumerable<int?> _)
+    {
+        _editAddress!.CityId = null;
+        _addressCities = _editAddress.CountryId is int countryId
+            ? (await LocationService.GetCitiesByCountryAsync(countryId)).ToList()
+            : new();
+    }
+
+    private void OpenAddAddressDialog()
+    {
+        _editAddress = new WebsiteClientAddress { WebsiteClientAddressID = 0, WebsiteClientID = Id, AddressLine = string.Empty };
+        _addressCities = new();
+        _addressDialogOpen = true;
+    }
+
+    private async Task OpenEditAddressDialog(WebsiteClientAddress a)
+    {
+        _editAddress = new WebsiteClientAddress
+        {
+            WebsiteClientAddressID = a.WebsiteClientAddressID,
+            WebsiteClientID = Id,
+            Title = a.Title,
+            ReceiverName = a.ReceiverName,
+            CountryId = a.CountryId,
+            CityId = a.CityId,
+            AddressLine = a.AddressLine,
+            PostalCode = a.PostalCode,
+            Phone = a.Phone,
+            IsDefault = a.IsDefault,
+        };
+        _addressCities = a.CountryId is int countryId
+            ? (await LocationService.GetCitiesByCountryAsync(countryId)).ToList()
+            : new();
+        _addressDialogOpen = true;
+    }
+
+    private async Task SaveAddressAsync()
+    {
+        if (!_canEdit) return; // Guard against a stale/forged client state.
+
+        await _addressForm.ValidateAsync();
+        if (!_addressForm.IsValid) return;
+
+        _addressSaving = true;
+        try
+        {
+            var result = _editAddress!.WebsiteClientAddressID == 0
+                ? await AddressService.CreateAsync(_editAddress)
+                : await AddressService.UpdateAsync(_editAddress);
+
+            switch (result)
+            {
+                case AddressSaveResult.LimitReached:
+                    Snackbar.Add(L["clients.addresses.max_reached", $"This customer has reached the maximum of {AppConstants.MaxClientAddresses} addresses."], Severity.Warning);
+                    break;
+                case AddressSaveResult.NotFound:
+                    Snackbar.Add(L["clients.addresses.not_found", "Address not found."], Severity.Error);
+                    break;
+                default:
+                    Snackbar.Add(L["saved", "Changes saved successfully."], Severity.Success);
+                    _addressDialogOpen = false;
+                    await LoadAddressesAsync();
+                    break;
+            }
+        }
+        catch (Exception ex)
+        {
+            Snackbar.Add($"{L["save_failed", "Save failed"]}: {ex.Message}", Severity.Error);
+        }
+        finally
+        {
+            _addressSaving = false;
+        }
+    }
+
+    private async Task DeleteAddressAsync(WebsiteClientAddress a)
+    {
+        if (!_canEdit) return;
+        await AddressService.DeleteAsync(a.WebsiteClientAddressID, Id);
+        Snackbar.Add(L["deleted", "Deleted."], Severity.Success);
+        await LoadAddressesAsync();
+    }
+
+    private async Task SetDefaultAddressAsync(WebsiteClientAddress a)
+    {
+        if (!_canEdit) return;
+        await AddressService.SetDefaultAsync(a.WebsiteClientAddressID, Id);
+        await LoadAddressesAsync();
     }
 
     private async Task SaveAsync()
