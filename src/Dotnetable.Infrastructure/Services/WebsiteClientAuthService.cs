@@ -40,40 +40,45 @@ public class WebsiteClientAuthService : IWebsiteClientAuthService
         var cellphone = Normalize(registration.Cellphone);
         var countryCode = Normalize(registration.CountryCode);
 
-        // Choose the channel: email takes precedence when both are supplied.
-        OtpChannel channel;
-        string identifier;
-        if (email is not null && LooksLikeEmail(email))
+        // Ignore a malformed email; keep only real identifiers.
+        if (email is not null && !LooksLikeEmail(email)) email = null;
+
+        // At least one identifier and a password are required.
+        if ((email is null && cellphone is null) || string.IsNullOrWhiteSpace(registration.Password))
         {
-            channel = OtpChannel.Email;
-            identifier = email;
-        }
-        else if (cellphone is not null)
-        {
-            channel = OtpChannel.Sms;
-            identifier = cellphone;
-        }
-        else
-        {
-            return new ClientRegisterResponse(ClientRegisterResult.InvalidInput, OtpChannel.Email, string.Empty);
+            var badChannel = email is not null ? OtpChannel.Email : OtpChannel.Sms;
+            return new ClientRegisterResponse(
+                ClientRegisterResult.InvalidInput, badChannel, email ?? cellphone ?? string.Empty);
         }
 
-        if (string.IsNullOrWhiteSpace(registration.Password))
-            return new ClientRegisterResponse(ClientRegisterResult.InvalidInput, channel, identifier);
+        // The activation code goes to the email when present, otherwise the mobile — but BOTH
+        // identifiers are stored and reserved so no one else can take either of them.
+        var channel = email is not null ? OtpChannel.Email : OtpChannel.Sms;
+        var identifier = email ?? cellphone!;
 
         // Email must be truly deliverable; the SMS stub always "delivers" (it logs the code).
         if (channel == OtpChannel.Email && !await _email.IsConfiguredAsync(ct))
             return new ClientRegisterResponse(ClientRegisterResult.DeliveryNotConfigured, channel, identifier);
 
-        var existing = await FindAsync(registration.WebsiteId, identifier, ct);
-        if (existing is { Active: true })
+        // Every existing customer in this website that already owns the email or the mobile.
+        var matches = await _context.WebsiteClients
+            .Where(c => c.WebsiteID == registration.WebsiteId &&
+                        ((email != null && c.Email == email) || (cellphone != null && c.Cellphone == cellphone)))
+            .ToListAsync(ct);
+
+        // Taken if any owner is active, or the two identifiers already belong to two different accounts.
+        if (matches.Any(c => c.Active) ||
+            matches.Select(c => c.WebsiteClientID).Distinct().Count() > 1)
             return new ClientRegisterResponse(ClientRegisterResult.AlreadyRegistered, channel, identifier);
 
         WebsiteClient client;
-        if (existing is not null)
+        if (matches.Count == 1)
         {
-            // Re-registering an inactive account: refresh details, don't create a new record.
-            client = existing;
+            // Re-registering a single inactive account: refresh its details, don't create a new record.
+            client = matches[0];
+            client.Email = email ?? client.Email;
+            client.Cellphone = cellphone ?? client.Cellphone;
+            if (cellphone is not null) client.CountryCode = countryCode;
             client.Givenname = Normalize(registration.GivenName);
             client.Surname = Normalize(registration.Surname);
             client.Password = _hasher.HashPassword(client, registration.Password);
@@ -83,9 +88,9 @@ public class WebsiteClientAuthService : IWebsiteClientAuthService
             client = new WebsiteClient
             {
                 WebsiteID = registration.WebsiteId,
-                Email = channel == OtpChannel.Email ? email : null,
-                Cellphone = channel == OtpChannel.Sms ? cellphone : null,
-                CountryCode = channel == OtpChannel.Sms ? countryCode : null,
+                Email = email,
+                Cellphone = cellphone,
+                CountryCode = cellphone is not null ? countryCode : null,
                 Givenname = Normalize(registration.GivenName),
                 Surname = Normalize(registration.Surname),
                 Active = false,
@@ -97,7 +102,16 @@ public class WebsiteClientAuthService : IWebsiteClientAuthService
             _context.WebsiteClients.Add(client);
         }
 
-        await _context.SaveChangesAsync(ct);
+        try
+        {
+            await _context.SaveChangesAsync(ct);
+        }
+        catch (DbUpdateException)
+        {
+            // Lost a race against a concurrent registration for the same email/mobile
+            // (the per-website unique index rejected the insert).
+            return new ClientRegisterResponse(ClientRegisterResult.AlreadyRegistered, channel, identifier);
+        }
 
         var code = await IssueCodeAsync(client.WebsiteClientID, ct);
         await SendCodeAsync(channel, identifier, countryCode, code, isActivation: true, ct);
