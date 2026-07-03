@@ -27,8 +27,6 @@ public partial class BankAccount
 
     public int CreatedByMemberId { get; set; }
 
-    public string JSONSettings { get; set; } = null!;
-
     public virtual Bank Bank { get; set; } = null!;
 
     public virtual Member CreatedByMember { get; set; } = null!;

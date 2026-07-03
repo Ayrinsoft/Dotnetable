@@ -1,4 +1,4 @@
-using System.Security.Cryptography;
+﻿using System.Security.Cryptography;
 using Dotnetable.Application.DTOs;
 using Dotnetable.Application.Interfaces;
 using Dotnetable.Domain.Entities;
@@ -96,7 +96,7 @@ public class WebsiteClientAuthService : IWebsiteClientAuthService
                 Active = false,
                 RegisterDate = DateOnly.FromDateTime(DateTime.UtcNow),
                 HashKey = Guid.NewGuid(),
-                ClientLevel = ClientLevel.Normal,
+                ClientLevel = (byte)ClientLevel.Normal,
             };
             client.Password = _hasher.HashPassword(client, registration.Password);
             _context.WebsiteClients.Add(client);

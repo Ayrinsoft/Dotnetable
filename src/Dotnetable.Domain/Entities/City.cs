@@ -26,4 +26,6 @@ public partial class City
     public virtual Country Country { get; set; } = null!;
 
     public virtual State? State { get; set; }
+
+    public virtual ICollection<WebsiteClientAddress> WebsiteClientAddresses { get; set; } = new List<WebsiteClientAddress>();
 }
