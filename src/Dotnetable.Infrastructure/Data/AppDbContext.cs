@@ -510,6 +510,12 @@ public partial class AppDbContext : DbContext
         {
             entity.ToTable("WebsiteClient");
 
+            // A customer's email and mobile must each be unique within a website (many NULLs allowed
+            // since a customer registers with only one of them). MariaDB/PostgreSQL treat multiple
+            // NULLs as distinct in a unique index, which is the behaviour we want here.
+            entity.HasIndex(e => new { e.WebsiteID, e.Email }, "UX_WebsiteClient_Website_Email").IsUnique();
+            entity.HasIndex(e => new { e.WebsiteID, e.Cellphone }, "UX_WebsiteClient_Website_Cellphone").IsUnique();
+
             entity.Property(e => e.Cellphone)
                 .HasMaxLength(16)
                 .IsUnicode(false);
