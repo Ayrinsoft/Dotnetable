@@ -100,6 +100,8 @@ public partial class AppDbContext : DbContext
 
     public virtual DbSet<WebsiteClient> WebsiteClients { get; set; }
 
+    public virtual DbSet<WebsiteClientAddress> WebsiteClientAddresses { get; set; }
+
     public virtual DbSet<WebsiteClientForgetPassword> WebsiteClientForgetPasswords { get; set; }
 
     public virtual DbSet<WebsiteIP> WebsiteIPs { get; set; }
@@ -199,8 +201,6 @@ public partial class AppDbContext : DbContext
 
         modelBuilder.Entity<BankAccount>(entity =>
         {
-            entity.ToTable("BankAccount");
-
             entity.Property(e => e.AccountNumber)
                 .HasMaxLength(30)
                 .IsUnicode(false);
@@ -210,28 +210,25 @@ public partial class AppDbContext : DbContext
             entity.Property(e => e.IBAN)
                 .HasMaxLength(34)
                 .IsUnicode(false);
-            entity.Property(e => e.IsActive).HasDefaultValue(true, "DF_BankAccount_IsActive");
-            entity.Property(e => e.IsForOfflinePayment).HasDefaultValue(true, "DF_BankAccount_IsForOfflinePayment");
-            entity.Property(e => e.JSONSettings)
-                .HasMaxLength(2000)
-                .IsUnicode(false);
+            entity.Property(e => e.IsActive).HasDefaultValue(true, "DF_BankAccounts_IsActive");
+            entity.Property(e => e.IsForOfflinePayment).HasDefaultValue(true, "DF_BankAccounts_IsForOfflinePayment");
             entity.Property(e => e.OwnerName).HasMaxLength(90);
             entity.Property(e => e.Title).HasMaxLength(70);
 
             entity.HasOne(d => d.Bank).WithMany(p => p.BankAccounts)
                 .HasForeignKey(d => d.BankID)
                 .OnDelete(DeleteBehavior.ClientSetNull)
-                .HasConstraintName("FK_BankAccount_Bank");
+                .HasConstraintName("FK_BankAccounts_Bank");
 
             entity.HasOne(d => d.CreatedByMember).WithMany(p => p.BankAccounts)
                 .HasForeignKey(d => d.CreatedByMemberId)
                 .OnDelete(DeleteBehavior.ClientSetNull)
-                .HasConstraintName("FK_BankAccount_Member");
+                .HasConstraintName("FK_BankAccounts_Member");
 
             entity.HasOne(d => d.Website).WithMany(p => p.BankAccounts)
                 .HasForeignKey(d => d.WebsiteID)
                 .OnDelete(DeleteBehavior.ClientSetNull)
-                .HasConstraintName("FK_BankAccount_Website");
+                .HasConstraintName("FK_BankAccounts_Website");
         });
 
         modelBuilder.Entity<Category>(entity =>
@@ -999,6 +996,28 @@ public partial class AppDbContext : DbContext
                 .HasForeignKey(d => d.WebsiteID)
                 .OnDelete(DeleteBehavior.ClientSetNull)
                 .HasConstraintName("FK_WebsiteClient_Website");
+        });
+
+        modelBuilder.Entity<WebsiteClientAddress>(entity =>
+        {
+            entity.Property(e => e.AddressLine).HasMaxLength(500);
+            entity.Property(e => e.Phone).HasMaxLength(20);
+            entity.Property(e => e.PostalCode).HasMaxLength(20);
+            entity.Property(e => e.ReceiverName).HasMaxLength(200);
+            entity.Property(e => e.Title).HasMaxLength(100);
+
+            entity.HasOne(d => d.City).WithMany(p => p.WebsiteClientAddresses)
+                .HasForeignKey(d => d.CityId)
+                .HasConstraintName("FK_WebsiteClientAddresses_City");
+
+            entity.HasOne(d => d.Country).WithMany(p => p.WebsiteClientAddresses)
+                .HasForeignKey(d => d.CountryId)
+                .HasConstraintName("FK_WebsiteClientAddresses_Country");
+
+            entity.HasOne(d => d.WebsiteClient).WithMany(p => p.WebsiteClientAddresses)
+                .HasForeignKey(d => d.WebsiteClientID)
+                .OnDelete(DeleteBehavior.ClientSetNull)
+                .HasConstraintName("FK_WebsiteClientAddresses_WebsiteClient");
         });
 
         modelBuilder.Entity<WebsiteClientForgetPassword>(entity =>

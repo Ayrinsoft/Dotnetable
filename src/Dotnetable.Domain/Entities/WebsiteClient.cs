@@ -31,13 +31,15 @@ public partial class WebsiteClient
 
     public Guid HashKey { get; set; }
 
-    public Dotnetable.Domain.Enums.ClientLevel ClientLevel { get; set; }
+    public byte ClientLevel { get; set; }
 
     public virtual FileRecord? Avatar { get; set; }
 
     public virtual ICollection<FileRecord> FileRecords { get; set; } = new List<FileRecord>();
 
     public virtual Website Website { get; set; } = null!;
+
+    public virtual ICollection<WebsiteClientAddress> WebsiteClientAddresses { get; set; } = new List<WebsiteClientAddress>();
 
     public virtual ICollection<WebsiteClientForgetPassword> WebsiteClientForgetPasswords { get; set; } = new List<WebsiteClientForgetPassword>();
 }

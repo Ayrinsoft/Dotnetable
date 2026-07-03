@@ -1,4 +1,4 @@
-using Dotnetable.Application.DTOs;
+﻿using Dotnetable.Application.DTOs;
 using Dotnetable.Application.Interfaces;
 using Dotnetable.Domain.Entities;
 using Dotnetable.Domain.Enums;
@@ -33,7 +33,7 @@ public class WebsiteClientService : IWebsiteClientService
         if (query.GetSearch("Active") is string active && bool.TryParse(active, out var isActive))
             q = q.Where(c => c.Active == isActive);
         if (query.GetSearch("ClientLevel") is string levelText && byte.TryParse(levelText, out var levelByte))
-            q = q.Where(c => c.ClientLevel == (ClientLevel)levelByte);
+            q = q.Where(c => c.ClientLevel == (byte)(ClientLevel)levelByte);
 
         var total = await q.CountAsync(ct);
         var items = await q
@@ -50,7 +50,7 @@ public class WebsiteClientService : IWebsiteClientService
 
     public async Task SetLevelAsync(int id, ClientLevel level, CancellationToken ct = default) =>
         await _context.WebsiteClients.Where(c => c.WebsiteClientID == id)
-            .ExecuteUpdateAsync(s => s.SetProperty(c => c.ClientLevel, level), ct);
+            .ExecuteUpdateAsync(s => s.SetProperty(c => c.ClientLevel, (byte)level), ct);
 
     public async Task UpdateAsync(WebsiteClient client, CancellationToken ct = default)
     {
