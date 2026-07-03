@@ -18,8 +18,14 @@
     [FileCategory]             TINYINT         NOT NULL,
     [CDNFileCode]              VARCHAR (80)    NULL,
     [FileAlbumID]              INT             NULL,
+    [WebsiteID]                INT             NOT NULL,
+    [UploaderMemberID]         INT             NULL,
+    [WebsiteClientID]          INT             NULL,
     CONSTRAINT [PK_FileRecord] PRIMARY KEY CLUSTERED ([FileRecordID] ASC),
-    CONSTRAINT [FK_FileRecord_WebstieStorageSettings] FOREIGN KEY ([WebsiteStorageSettingsID]) REFERENCES [dbo].[WebstieStorageSettings] ([WebsiteStorageSettingsID]),
-    CONSTRAINT [FK_FileRecord_FileAlbum] FOREIGN KEY ([FileAlbumID]) REFERENCES [dbo].[FileAlbum] ([FileAlbumID])
+    CONSTRAINT [FK_FileRecord_FileAlbum] FOREIGN KEY ([FileAlbumID]) REFERENCES [dbo].[FileAlbum] ([FileAlbumID]),
+    CONSTRAINT [FK_FileRecord_Member] FOREIGN KEY ([UploaderMemberID]) REFERENCES [dbo].[Member] ([MemberID]),
+    CONSTRAINT [FK_FileRecord_Website] FOREIGN KEY ([WebsiteID]) REFERENCES [dbo].[Website] ([WebsiteID]),
+    CONSTRAINT [FK_FileRecord_WebsiteClient] FOREIGN KEY ([WebsiteClientID]) REFERENCES [dbo].[WebsiteClient] ([WebsiteClientID]),
+    CONSTRAINT [FK_FileRecord_WebstieStorageSettings] FOREIGN KEY ([WebsiteStorageSettingsID]) REFERENCES [dbo].[WebstieStorageSettings] ([WebsiteStorageSettingsID])
 );
 

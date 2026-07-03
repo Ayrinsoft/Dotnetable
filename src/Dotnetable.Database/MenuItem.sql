@@ -1,0 +1,26 @@
+﻿CREATE TABLE [dbo].[MenuItem] (
+    [MenuItemID]        INT            IDENTITY (1, 1) NOT NULL,
+    [MenuID]            INT            NOT NULL,
+    [ParentItemID]      INT            NULL,
+    [ItemType]          TINYINT        NOT NULL,
+    [PageID]            INT            NULL,
+    [PostID]            INT            NULL,
+    [CategoryID]        INT            NULL,
+    [ProductID]         INT            NULL,
+    [ProductCategoryID] INT            NULL,
+    [BrandID]           INT            NULL,
+    [VendorID]          INT            NULL,
+    [Url]               NVARCHAR (500) NULL,
+    [Title]             NVARCHAR (200) NOT NULL,
+    [Icon]              NVARCHAR (100) NULL,
+    [CssClass]          NVARCHAR (100) NULL,
+    [OpenInNewTab]      BIT            CONSTRAINT [DF_MenuItem_OpenInNewTab] DEFAULT ((0)) NOT NULL,
+    [SortOrder]         INT            CONSTRAINT [DF_MenuItem_SortOrder] DEFAULT ((0)) NOT NULL,
+    [IsActive]          BIT            CONSTRAINT [DF_MenuItem_IsActive] DEFAULT ((1)) NOT NULL,
+    CONSTRAINT [PK_MenuItem] PRIMARY KEY CLUSTERED ([MenuItemID] ASC),
+    CONSTRAINT [FK_MenuItem_Category] FOREIGN KEY ([CategoryID]) REFERENCES [dbo].[Category] ([CategoryID]),
+    CONSTRAINT [FK_MenuItem_Menu] FOREIGN KEY ([MenuID]) REFERENCES [dbo].[Menu] ([MenuID]),
+    CONSTRAINT [FK_MenuItem_MenuItem] FOREIGN KEY ([ParentItemID]) REFERENCES [dbo].[MenuItem] ([MenuItemID]),
+    CONSTRAINT [FK_MenuItem_Posts] FOREIGN KEY ([PostID]) REFERENCES [dbo].[Posts] ([PostID])
+);
+

@@ -14,10 +14,13 @@
     [BrandName]           NVARCHAR (60)    NOT NULL,
     [LogoFileID]          INT              NULL,
     [FaveIconFileID]      INT              NULL,
+    [DefaultCurrencyCode] CHAR (3)         NOT NULL,
     CONSTRAINT [PK_Website] PRIMARY KEY CLUSTERED ([WebsiteID] ASC),
     CONSTRAINT [FK_Website_FileRecord] FOREIGN KEY ([LogoFileID]) REFERENCES [dbo].[FileRecord] ([FileRecordID]),
     CONSTRAINT [FK_Website_FileRecord1] FOREIGN KEY ([FaveIconFileID]) REFERENCES [dbo].[FileRecord] ([FileRecordID])
 );
+
+
 
 
 GO
