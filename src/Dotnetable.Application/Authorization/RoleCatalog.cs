@@ -66,6 +66,30 @@ public static class RoleCatalog
         new(RoleKeys.MediaUpload, "Upload media & manage storage", RoleCategory.Admin),
         new(RoleKeys.MediaDelete, "Delete media", RoleCategory.Admin),
 
+        // Content — posts
+        new(RoleKeys.PostsView, "View posts", RoleCategory.Admin),
+        new(RoleKeys.PostsInsert, "Create posts", RoleCategory.Admin),
+        new(RoleKeys.PostsEdit, "Edit posts", RoleCategory.Admin),
+        new(RoleKeys.PostsDelete, "Delete posts", RoleCategory.Admin),
+
+        // Content — pages
+        new(RoleKeys.PagesView, "View pages", RoleCategory.Admin),
+        new(RoleKeys.PagesInsert, "Create pages", RoleCategory.Admin),
+        new(RoleKeys.PagesEdit, "Edit pages", RoleCategory.Admin),
+        new(RoleKeys.PagesDelete, "Delete pages", RoleCategory.Admin),
+
+        // Content — taxonomy (categories, tags, post types)
+        new(RoleKeys.TaxonomyView, "View categories, tags & post types", RoleCategory.Admin),
+        new(RoleKeys.TaxonomyInsert, "Create categories, tags & post types", RoleCategory.Admin),
+        new(RoleKeys.TaxonomyEdit, "Edit categories, tags & post types", RoleCategory.Admin),
+        new(RoleKeys.TaxonomyDelete, "Delete categories, tags & post types", RoleCategory.Admin),
+
+        // Website redirects
+        new(RoleKeys.RedirectsView, "View website redirects", RoleCategory.Admin),
+        new(RoleKeys.RedirectsInsert, "Create website redirects", RoleCategory.Admin),
+        new(RoleKeys.RedirectsEdit, "Edit website redirects", RoleCategory.Admin),
+        new(RoleKeys.RedirectsDelete, "Delete website redirects", RoleCategory.Admin),
+
         // Login logs
         new(RoleKeys.LoginLogsView, "View login logs", RoleCategory.Admin),
 

@@ -14,7 +14,12 @@ public class HomeController : Controller
         _localization = localization;
     }
 
-    public IActionResult Index() => View();
+    public async Task<IActionResult> Index(CancellationToken ct = default)
+    {
+        var lang = Request.Cookies["lang"];
+        var latest = await _api.GetPostsAsync(page: 1, pageSize: 3, lang: string.IsNullOrWhiteSpace(lang) ? null : lang, ct: ct);
+        return View(latest.Items);
+    }
 
     public IActionResult About() => View();
 

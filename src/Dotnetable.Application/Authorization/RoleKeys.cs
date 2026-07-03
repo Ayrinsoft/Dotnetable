@@ -50,6 +50,30 @@ public static class RoleKeys
     public const string MediaUpload = "media.upload";
     public const string MediaDelete = "media.delete";
 
+    // ── Content: posts (admin) ──────────────────────────────────────
+    public const string PostsView = "posts.view";
+    public const string PostsInsert = "posts.insert";
+    public const string PostsEdit = "posts.edit";
+    public const string PostsDelete = "posts.delete";
+
+    // ── Content: pages (admin) ──────────────────────────────────────
+    public const string PagesView = "pages.view";
+    public const string PagesInsert = "pages.insert";
+    public const string PagesEdit = "pages.edit";
+    public const string PagesDelete = "pages.delete";
+
+    // ── Content: taxonomy — categories, tags, post types (admin) ────
+    public const string TaxonomyView = "taxonomy.view";
+    public const string TaxonomyInsert = "taxonomy.insert";
+    public const string TaxonomyEdit = "taxonomy.edit";
+    public const string TaxonomyDelete = "taxonomy.delete";
+
+    // ── Website redirects (admin) ───────────────────────────────────
+    public const string RedirectsView = "redirects.view";
+    public const string RedirectsInsert = "redirects.insert";
+    public const string RedirectsEdit = "redirects.edit";
+    public const string RedirectsDelete = "redirects.delete";
+
     // ── Login logs (admin) ──────────────────────────────────────────
     public const string LoginLogsView = "loginlogs.view";
 

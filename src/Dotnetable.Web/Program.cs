@@ -48,6 +48,15 @@ app.UseStaticFiles();
 app.UseRouting();
 app.UseAuthorization();
 
+// After routing: any GET that still 404s is offered to the redirect-rule resolver.
+app.UseMiddleware<Dotnetable.Web.Infrastructure.RedirectMiddleware>();
+
+// Friendly CMS page URLs: /page/{slug}
+app.MapControllerRoute(
+    name: "cms-page",
+    pattern: "page/{slug}",
+    defaults: new { controller = "Page", action = "View" });
+
 app.MapControllerRoute(
     name: "default",
     pattern: "{controller=Home}/{action=Index}/{id?}");

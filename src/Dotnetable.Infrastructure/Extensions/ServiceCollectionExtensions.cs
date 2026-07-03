@@ -94,6 +94,14 @@ public static class ServiceCollectionExtensions
         services.AddScoped<IContactMessageService, ContactMessageService>();
         services.AddScoped<IMenuService, MenuService>();
 
+        // Content: posts, pages, taxonomy (categories/tags/post types) and redirects.
+        services.AddScoped<IPostTypeService, PostTypeService>();
+        services.AddScoped<ITagService, TagService>();
+        services.AddScoped<ICategoryService, CategoryService>();
+        services.AddScoped<IPostService, PostService>();
+        services.AddScoped<IPageService, PageService>();
+        services.AddScoped<IRedirectService, RedirectService>();
+
         // Login/forgot-password protection + email.
         services.AddMemoryCache();
         services.AddSingleton<IHumanVerificationService, HumanVerificationService>();

@@ -31,7 +31,7 @@ public partial class WebsiteClient
 
     public Guid HashKey { get; set; }
 
-    public byte ClientLevel { get; set; }
+    public Dotnetable.Domain.Enums.ClientLevel ClientLevel { get; set; }
 
     public virtual FileRecord? Avatar { get; set; }
 

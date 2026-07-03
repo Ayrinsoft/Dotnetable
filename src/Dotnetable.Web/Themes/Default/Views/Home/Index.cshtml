@@ -103,16 +103,31 @@
             <a class="btn btn-outline-secondary" asp-controller="Blog" asp-action="Index">View all posts</a>
         </div>
         <div class="row g-4">
-            @foreach (var post in Dotnetable.Web.Controllers.BlogController.SamplePosts.Take(3))
+            @{
+                var latestPosts = ViewData.Model as IReadOnlyList<Dotnetable.Application.DTOs.PostSummaryDto>
+                    ?? System.Array.Empty<Dotnetable.Application.DTOs.PostSummaryDto>();
+            }
+            @foreach (var post in latestPosts)
             {
+                var primaryCategory = post.Categories.FirstOrDefault();
                 <div class="col-md-6 col-lg-4">
                     <article class="blog-card">
-                        <div class="thumb" style="background-image:linear-gradient(135deg,#1d2433,#2a3346);"></div>
+                        @if (!string.IsNullOrEmpty(post.FeaturedImageUrl))
+                        {
+                            <div class="thumb" style="background-image:url('@post.FeaturedImageUrl'); background-size:cover; background-position:center;"></div>
+                        }
+                        else
+                        {
+                            <div class="thumb" style="background-image:linear-gradient(135deg,#1d2433,#2a3346);"></div>
+                        }
                         <div class="body">
-                            <span class="tag">@post.Category</span>
+                            @if (primaryCategory is not null)
+                            {
+                                <span class="tag">@primaryCategory.Name</span>
+                            }
                             <h3><a class="text-reset" asp-controller="Blog" asp-action="Post" asp-route-slug="@post.Slug">@post.Title</a></h3>
                             <p class="text-muted">@post.Excerpt</p>
-                            <div class="meta"><i class="bi bi-calendar3 me-1"></i>@post.Date.ToString("MMM d, yyyy")</div>
+                            <div class="meta"><i class="bi bi-calendar3 me-1"></i>@(post.PublishedAt?.ToString("MMM d, yyyy") ?? "")</div>
                         </div>
                     </article>
                 </div>
