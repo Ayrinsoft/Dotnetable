@@ -1,0 +1,70 @@
+@inject IRedirectService RedirectService
+@inject ISnackbar Snackbar
+@inject IPageLocalizer L
+
+<MudDialog>
+    <DialogContent>
+        <MudForm @ref="_form">
+            <MudTextField @bind-Value="Model.SourcePath" Label="@L["redirects.source", "Source path"]"
+                          Variant="Variant.Outlined" Required="true" Class="mb-3"
+                          HelperText="@(Model.IsRegex ? L["redirects.source_regex_hint", "A regular expression matched against the request path."] : L["redirects.source_hint", "e.g. /old-page"])" />
+
+            <MudTextField @bind-Value="Model.TargetPath" Label="@L["redirects.target", "Target path"]"
+                          Variant="Variant.Outlined" Required="true" Class="mb-3"
+                          HelperText="@L["redirects.target_hint", "e.g. /new-page or https://example.com/x"]" />
+
+            <MudGrid Spacing="3">
+                <MudItem xs="6">
+                    <MudSelect T="int" @bind-Value="Model.StatusCode" Label="@L["redirects.status", "Status code"]" Variant="Variant.Outlined">
+                        <MudSelectItem T="int" Value="301">301 — @L["redirects.permanent", "Permanent"]</MudSelectItem>
+                        <MudSelectItem T="int" Value="302">302 — @L["redirects.temporary", "Temporary"]</MudSelectItem>
+                        <MudSelectItem T="int" Value="307">307 — @L["redirects.temporary", "Temporary"]</MudSelectItem>
+                        <MudSelectItem T="int" Value="308">308 — @L["redirects.permanent", "Permanent"]</MudSelectItem>
+                    </MudSelect>
+                </MudItem>
+                <MudItem xs="6" Class="d-flex align-center">
+                    <MudSwitch T="bool" @bind-Value="Model.IsRegex" Color="Color.Primary" Label="@L["redirects.regex", "Regex"]" />
+                </MudItem>
+            </MudGrid>
+
+            <MudSwitch T="bool" @bind-Value="Model.IsActive" Color="Color.Success"
+                       Label="@(Model.IsActive ? L["active", "Active"] : L["inactive", "Inactive"])" Class="mt-2" />
+        </MudForm>
+    </DialogContent>
+    <DialogActions>
+        <MudButton OnClick="Cancel">@L["cancel", "Cancel"]</MudButton>
+        <MudButton Variant="Variant.Filled" Color="Color.Primary" OnClick="SaveAsync" Disabled="@_saving">@L["save", "Save"]</MudButton>
+    </DialogActions>
+</MudDialog>
+
+@code {
+    [CascadingParameter] private IMudDialogInstance MudDialog { get; set; } = null!;
+    [Parameter] public WebsiteRedirect Model { get; set; } = new();
+    [Parameter] public bool IsNew { get; set; }
+
+    private MudForm _form = null!;
+    private bool _saving;
+
+    private void Cancel() => MudDialog.Cancel();
+
+    private async Task SaveAsync()
+    {
+        await _form.Validate();
+        if (!_form.IsValid) return;
+        if (string.IsNullOrWhiteSpace(Model.SourcePath) || string.IsNullOrWhiteSpace(Model.TargetPath)) return;
+
+        _saving = true;
+        try
+        {
+            if (IsNew) await RedirectService.CreateAsync(Model);
+            else await RedirectService.UpdateAsync(Model);
+            Snackbar.Add(L["saved", "Saved."], Severity.Success);
+            MudDialog.Close(DialogResult.Ok(true));
+        }
+        catch (Exception ex)
+        {
+            Snackbar.Add($"{L["save_failed", "Save failed"]}: {ex.Message}", Severity.Error);
+        }
+        finally { _saving = false; }
+    }
+}

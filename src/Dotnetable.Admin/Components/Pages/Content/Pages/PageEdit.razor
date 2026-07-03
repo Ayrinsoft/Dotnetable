@@ -1,0 +1,182 @@
+@page "/content/pages/new"
+@page "/content/pages/{Id:int}"
+@using Page = Dotnetable.Domain.Entities.Page
+@attribute [Authorize(Policy = RoleKeys.PagesView)]
+@inject IPageService PageService
+@inject AuthenticationStateProvider AuthState
+@inject NavigationManager Nav
+@inject ISnackbar Snackbar
+@inject IPageLocalizer L
+
+<DNPageTitle Title=@(_isNew ? L["pages.new", "New Page"] : L["pages.edit", "Edit Page"]) />
+
+<MudStack Row="true" AlignItems="AlignItems.Center" Justify="Justify.SpaceBetween" Class="mb-4">
+    <MudStack Spacing="0">
+        <MudText Typo="Typo.h5" Class="fw-bold">@(_isNew ? L["pages.new", "New Page"] : L["pages.edit", "Edit Page"])</MudText>
+    </MudStack>
+    <MudButton Variant="Variant.Text" StartIcon="@Icons.Material.Filled.ArrowBack" Href="/content/pages">@L["back", "Back"]</MudButton>
+</MudStack>
+
+@if (_loading)
+{
+    <MudProgressLinear Indeterminate="true" Color="Color.Primary" Class="mb-4" />
+}
+else if (_model is not null)
+{
+    <MudForm @ref="_form">
+        <MudGrid Spacing="4">
+            <MudItem xs="12" md="8">
+                <MudPaper Elevation="0" Class="app-card rounded-lg pa-4">
+                    <MudTextField @bind-Value="_model.Title" Label="@L["title", "Title"]" Variant="Variant.Outlined"
+                                  Required="true" Class="mb-3" />
+                    <MudTextField @bind-Value="_model.Slug" Label="@L["slug", "Slug"]" Variant="Variant.Outlined" Required="true" Class="mb-3" />
+                    <MudTextField @bind-Value="_model.Content" Label="@L["pages.content", "Content"]" Variant="Variant.Outlined"
+                                  Lines="12" AutoGrow="true" />
+                </MudPaper>
+
+                <MudExpansionPanels Elevation="0" Class="mt-4">
+                    <MudExpansionPanel Text="@L["translations", "Translations"]">
+                        @foreach (var (code, label) in ContentLanguages.All)
+                        {
+                            var t = Translation(code);
+                            <MudPaper Elevation="0" Class="pa-3 mb-2" Style="border:1px solid var(--mud-palette-lines-default); border-radius:8px;">
+                                <MudText Typo="Typo.subtitle2" Class="mb-2">@label</MudText>
+                                <MudGrid Spacing="2">
+                                    <MudItem xs="12" sm="7">
+                                        <MudTextField T="string" Value="@t.Title" ValueChanged="@(v => { t.Title = v; })"
+                                                      Label="@L["title", "Title"]" Variant="Variant.Outlined" Margin="Margin.Dense" />
+                                    </MudItem>
+                                    <MudItem xs="12" sm="5">
+                                        <MudTextField T="string" Value="@t.Slug" ValueChanged="@(v => { t.Slug = v; })"
+                                                      Label="@L["slug", "Slug"]" Variant="Variant.Outlined" Margin="Margin.Dense" />
+                                    </MudItem>
+                                    <MudItem xs="12">
+                                        <MudTextField T="string" Value="@t.Content" ValueChanged="@(v => { t.Content = v; })"
+                                                      Label="@L["pages.content", "Content"]" Variant="Variant.Outlined" Lines="6" AutoGrow="true" Margin="Margin.Dense" />
+                                    </MudItem>
+                                </MudGrid>
+                            </MudPaper>
+                        }
+                    </MudExpansionPanel>
+                </MudExpansionPanels>
+            </MudItem>
+
+            <MudItem xs="12" md="4">
+                <MudPaper Elevation="0" Class="app-card rounded-lg pa-4">
+                    <MudText Typo="Typo.subtitle1" Class="mb-3 fw-bold">@L["pages.settings", "Settings"]</MudText>
+
+                    <MudSelect T="byte" @bind-Value="_model.Status" Label="@L["status", "Status"]" Variant="Variant.Outlined" Class="mb-3">
+                        <MudSelectItem T="byte" Value="@((byte)0)">@L["pages.draft", "Draft"]</MudSelectItem>
+                        <MudSelectItem T="byte" Value="@((byte)1)">@L["pages.published", "Published"]</MudSelectItem>
+                    </MudSelect>
+
+                    <MudSelect T="int?" @bind-Value="_model.ParentPageID" Label="@L["pages.parent", "Parent page"]"
+                               Variant="Variant.Outlined" Clearable="true" Class="mb-3">
+                        <MudSelectItem T="int?" Value="@((int?)null)">@L["pages.top_level", "— Top level —"]</MudSelectItem>
+                        @foreach (var p in ParentCandidates)
+                        {
+                            <MudSelectItem T="int?" Value="@p.PageID">@p.Title</MudSelectItem>
+                        }
+                    </MudSelect>
+
+                    <MudTextField @bind-Value="_model.Template" Label="@L["pages.template", "Template (optional)"]" Variant="Variant.Outlined" Class="mb-3" />
+                    <MudNumericField T="int" @bind-Value="_model.SortOrder" Label="@L["pages.sort", "Sort order"]" Variant="Variant.Outlined" Class="mb-3" />
+
+                    @if (_isMaster && _isNew)
+                    {
+                        <MudNumericField T="int" @bind-Value="_model.WebsiteID" Label="@L["website_id", "Website ID"]" Variant="Variant.Outlined" Min="1" Class="mb-3" />
+                    }
+
+                    <MudSwitch T="bool" @bind-Value="_model.IsHomepage" Color="Color.Primary" Label="@L["pages.homepage", "Homepage"]" />
+                    <MudSwitch T="bool" @bind-Value="_model.IsActive" Color="Color.Success"
+                               Label="@(_model.IsActive ? L["active", "Active"] : L["inactive", "Inactive"])" />
+
+                    <MudButton Variant="Variant.Filled" Color="Color.Primary" FullWidth="true" Class="mt-4"
+                               OnClick="SaveAsync" Disabled="@(_saving || !_canEdit)">@L["save", "Save"]</MudButton>
+                </MudPaper>
+            </MudItem>
+        </MudGrid>
+    </MudForm>
+}
+
+@code {
+    [Parameter] public int? Id { get; set; }
+
+    private bool _loading = true;
+    private bool _isNew;
+    private bool _isMaster;
+    private bool _canEdit;
+    private bool _saving;
+    private int _websiteId;
+    private Page? _model;
+    private MudForm _form = null!;
+    private List<Page> _allPages = new();
+
+    private sealed class TranslationModel { public string Title = ""; public string Slug = ""; public string Content = ""; }
+    private readonly Dictionary<string, TranslationModel> _translations = new(StringComparer.OrdinalIgnoreCase);
+
+    private IEnumerable<Page> ParentCandidates => _allPages.Where(p => p.PageID != (Id ?? 0));
+
+    protected override async Task OnInitializedAsync()
+    {
+        await L.EnsureLoadedAsync();
+        var user = (await AuthState.GetAuthenticationStateAsync()).User;
+        _isMaster = user.HasClaim(AdminClaimTypes.Master, "true");
+        _canEdit = AdminPolicies.Allows(user, _isNew ? RoleKeys.PagesInsert : RoleKeys.PagesEdit);
+        int.TryParse(user.FindFirst(AdminClaimTypes.WebsiteId)?.Value, out _websiteId);
+
+        _isNew = Id is null;
+        _canEdit = AdminPolicies.Allows(user, _isNew ? RoleKeys.PagesInsert : RoleKeys.PagesEdit);
+
+        if (_isNew)
+        {
+            _model = new Page { WebsiteID = _websiteId, Status = 1, IsActive = true };
+        }
+        else
+        {
+            _model = await PageService.GetByIdAsync(Id!.Value);
+            if (_model is not null)
+                foreach (var t in await PageService.GetTranslationsAsync(_model.PageID))
+                    _translations[t.LanguageCode] = new TranslationModel { Title = t.Title, Slug = t.Slug, Content = t.Content ?? "" };
+        }
+
+        if (_model is not null)
+            _allPages = await PageService.GetAllAsync(_model.WebsiteID);
+
+        _loading = false;
+    }
+
+    private TranslationModel Translation(string code)
+    {
+        if (!_translations.TryGetValue(code, out var t)) { t = new TranslationModel(); _translations[code] = t; }
+        return t;
+    }
+
+    private async Task SaveAsync()
+    {
+        await _form.Validate();
+        if (!_form.IsValid || _model is null) return;
+        if (string.IsNullOrWhiteSpace(_model.Slug)) _model.Slug = _model.Title.Trim();
+
+        _saving = true;
+        try
+        {
+            if (_isNew) await PageService.CreateAsync(_model);
+            else await PageService.UpdateAsync(_model);
+
+            var translations = _translations
+                .Where(kv => !string.IsNullOrWhiteSpace(kv.Value.Title))
+                .Select(kv => new PageTranslation
+                {
+                    PageID = _model.PageID, LanguageCode = kv.Key,
+                    Title = kv.Value.Title, Slug = kv.Value.Slug, Content = kv.Value.Content,
+                }).ToList();
+            await PageService.SetTranslationsAsync(_model.PageID, translations);
+
+            Snackbar.Add(L["saved", "Saved."], Severity.Success);
+            Nav.NavigateTo("/content/pages");
+        }
+        catch (Exception ex) { Snackbar.Add($"{L["save_failed", "Save failed"]}: {ex.Message}", Severity.Error); }
+        finally { _saving = false; }
+    }
+}

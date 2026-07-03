@@ -1,0 +1,88 @@
+@inject ITagService TagService
+@inject ISnackbar Snackbar
+@inject IPageLocalizer L
+
+<MudDialog>
+    <DialogContent>
+        <MudForm @ref="_form">
+            <MudGrid Spacing="3">
+                <MudItem xs="12" sm="7">
+                    <MudTextField @bind-Value="Model.Name" Label="@L["name", "Name"]" Variant="Variant.Outlined" Required="true" />
+                </MudItem>
+                <MudItem xs="12" sm="5">
+                    <MudTextField @bind-Value="Model.Slug" Label="@L["slug", "Slug"]" Variant="Variant.Outlined" Required="true" />
+                </MudItem>
+                <MudItem xs="12">
+                    <MudExpansionPanels Elevation="0">
+                        <MudExpansionPanel Text="@L["translations", "Translations"]">
+                            <MudText Typo="Typo.body2" Color="Color.Secondary" Class="mb-2">
+                                @L["translations.hint", "Leave a name blank to fall back to the default for that language."]
+                            </MudText>
+                            @foreach (var (code, label) in ContentLanguages.All)
+                            {
+                                <MudGrid Spacing="2" Class="mb-1">
+                                    <MudItem xs="7">
+                                        <MudTextField T="string" Value="@Name(code)" ValueChanged="@(v => SetName(code, v))"
+                                                      Label="@($"{label} — {L["name", "Name"]}")" Variant="Variant.Outlined" Margin="Margin.Dense" />
+                                    </MudItem>
+                                    <MudItem xs="5">
+                                        <MudTextField T="string" Value="@Slug(code)" ValueChanged="@(v => SetSlug(code, v))"
+                                                      Label="@L["slug", "Slug"]" Variant="Variant.Outlined" Margin="Margin.Dense" />
+                                    </MudItem>
+                                </MudGrid>
+                            }
+                        </MudExpansionPanel>
+                    </MudExpansionPanels>
+                </MudItem>
+            </MudGrid>
+        </MudForm>
+    </DialogContent>
+    <DialogActions>
+        <MudButton OnClick="Cancel">@L["cancel", "Cancel"]</MudButton>
+        <MudButton Variant="Variant.Filled" Color="Color.Primary" OnClick="SaveAsync" Disabled="@_saving">@L["save", "Save"]</MudButton>
+    </DialogActions>
+</MudDialog>
+
+@code {
+    [CascadingParameter] private IMudDialogInstance MudDialog { get; set; } = null!;
+    [Parameter] public Tag Model { get; set; } = new();
+    [Parameter] public bool IsNew { get; set; }
+
+    private MudForm _form = null!;
+    private bool _saving;
+    private readonly Dictionary<string, (string Name, string Slug)> _tr = new(StringComparer.OrdinalIgnoreCase);
+
+    protected override async Task OnInitializedAsync()
+    {
+        if (!IsNew)
+            foreach (var t in await TagService.GetTranslationsAsync(Model.TagID))
+                _tr[t.LanguageCode] = (t.Name, t.Slug);
+    }
+
+    private string Name(string code) => _tr.TryGetValue(code, out var v) ? v.Name : string.Empty;
+    private string Slug(string code) => _tr.TryGetValue(code, out var v) ? v.Slug : string.Empty;
+    private void SetName(string code, string v) { var c = _tr.GetValueOrDefault(code); _tr[code] = (v ?? string.Empty, c.Slug ?? string.Empty); }
+    private void SetSlug(string code, string v) { var c = _tr.GetValueOrDefault(code); _tr[code] = (c.Name ?? string.Empty, v ?? string.Empty); }
+
+    private void Cancel() => MudDialog.Cancel();
+
+    private async Task SaveAsync()
+    {
+        await _form.Validate();
+        if (!_form.IsValid) return;
+        if (string.IsNullOrWhiteSpace(Model.Name)) return;
+        if (string.IsNullOrWhiteSpace(Model.Slug)) Model.Slug = Model.Name.Trim();
+
+        _saving = true;
+        try
+        {
+            if (IsNew) await TagService.CreateAsync(Model);
+            else await TagService.UpdateAsync(Model);
+            await TagService.SetTranslationsAsync(Model.TagID, _tr);
+            Snackbar.Add(L["saved", "Saved."], Severity.Success);
+            MudDialog.Close(DialogResult.Ok(true));
+        }
+        catch (Exception ex) { Snackbar.Add($"{L["save_failed", "Save failed"]}: {ex.Message}", Severity.Error); }
+        finally { _saving = false; }
+    }
+}

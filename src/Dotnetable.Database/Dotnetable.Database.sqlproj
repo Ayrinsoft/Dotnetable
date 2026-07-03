@@ -97,7 +97,6 @@
     <Build Include="CurrencyRate.sql" />
     <Build Include="CategoryTranslation.sql" />
     <Build Include="Category.sql" />
-    <Build Include="BankAccount.sql" />
     <Build Include="Bank.sql" />
     <Build Include="AttributeOptionTranslation.sql" />
     <Build Include="AttributeOption.sql" />
@@ -106,6 +105,8 @@
     <Build Include="WebsiteRedirects.sql" />
     <Build Include="PageTranslations.sql" />
     <Build Include="Pages.sql" />
+    <Build Include="WebsiteClientAddresses.sql" />
+    <Build Include="BankAccounts.sql" />
   </ItemGroup>
   <Import Project="$(MSBuildExtensionsPath)\Microsoft\VisualStudio\v$(VisualStudioVersion)\SSDT\Microsoft.Data.Tools.Schema.SqlTasks.targets" Condition="'$(VisualStudioVersion)' != '' And Exists('$(MSBuildExtensionsPath)\Microsoft\VisualStudio\v$(VisualStudioVersion)\SSDT\Microsoft.Data.Tools.Schema.SqlTasks.targets')" />
   <Import Project="$(MSBuildExtensionsPath)\Microsoft\VisualStudio\SSDT\Microsoft.Data.Tools.Schema.SqlTasks.targets" Condition="'$(VisualStudioVersion)' == '' And Exists('$(MSBuildExtensionsPath)\Microsoft\VisualStudio\SSDT\Microsoft.Data.Tools.Schema.SqlTasks.targets')" />

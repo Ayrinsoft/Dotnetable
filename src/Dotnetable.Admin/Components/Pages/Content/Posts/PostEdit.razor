@@ -1,0 +1,259 @@
+@page "/content/posts/new"
+@page "/content/posts/{Id:int}"
+@attribute [Authorize(Policy = RoleKeys.PostsView)]
+@inject IPostService PostService
+@inject IPostTypeService PostTypeService
+@inject ICategoryService CategoryService
+@inject ITagService TagService
+@inject AuthenticationStateProvider AuthState
+@inject IDialogService DialogService
+@inject NavigationManager Nav
+@inject ISnackbar Snackbar
+@inject IPageLocalizer L
+
+<DNPageTitle Title=@(_isNew ? L["posts.new", "New Post"] : L["posts.edit", "Edit Post"]) />
+
+<MudStack Row="true" AlignItems="AlignItems.Center" Justify="Justify.SpaceBetween" Class="mb-4">
+    <MudText Typo="Typo.h5" Class="fw-bold">@(_isNew ? L["posts.new", "New Post"] : L["posts.edit", "Edit Post"])</MudText>
+    <MudButton Variant="Variant.Text" StartIcon="@Icons.Material.Filled.ArrowBack" Href="/content/posts">@L["back", "Back"]</MudButton>
+</MudStack>
+
+@if (_loading)
+{
+    <MudProgressLinear Indeterminate="true" Color="Color.Primary" Class="mb-4" />
+}
+else if (_model is not null)
+{
+    <MudForm @ref="_form">
+        <MudGrid Spacing="4">
+            <MudItem xs="12" md="8">
+                <MudPaper Elevation="0" Class="app-card rounded-lg pa-4">
+                    <MudTextField @bind-Value="_model.Title" Label="@L["title", "Title"]" Variant="Variant.Outlined" Required="true" Class="mb-3" />
+                    <MudTextField @bind-Value="_model.Slug" Label="@L["slug", "Slug"]" Variant="Variant.Outlined" Required="true" Class="mb-3" />
+                    <MudTextField @bind-Value="_model.Excerpt" Label="@L["posts.excerpt", "Excerpt"]" Variant="Variant.Outlined"
+                                  Lines="2" AutoGrow="true" Class="mb-3" />
+                    <MudTextField @bind-Value="_model.Content" Label="@L["posts.content", "Content"]" Variant="Variant.Outlined"
+                                  Lines="14" AutoGrow="true" />
+                </MudPaper>
+
+                <MudExpansionPanels Elevation="0" Class="mt-4">
+                    <MudExpansionPanel Text="@L["translations", "Translations"]">
+                        @foreach (var (code, label) in ContentLanguages.All)
+                        {
+                            var t = Translation(code);
+                            <MudPaper Elevation="0" Class="pa-3 mb-2" Style="border:1px solid var(--mud-palette-lines-default); border-radius:8px;">
+                                <MudText Typo="Typo.subtitle2" Class="mb-2">@label</MudText>
+                                <MudGrid Spacing="2">
+                                    <MudItem xs="12" sm="7"><MudTextField T="string" Value="@t.Title" ValueChanged="@(v => { t.Title = v; })" Label="@L["title", "Title"]" Variant="Variant.Outlined" Margin="Margin.Dense" /></MudItem>
+                                    <MudItem xs="12" sm="5"><MudTextField T="string" Value="@t.Slug" ValueChanged="@(v => { t.Slug = v; })" Label="@L["slug", "Slug"]" Variant="Variant.Outlined" Margin="Margin.Dense" /></MudItem>
+                                    <MudItem xs="12"><MudTextField T="string" Value="@t.Excerpt" ValueChanged="@(v => { t.Excerpt = v; })" Label="@L["posts.excerpt", "Excerpt"]" Variant="Variant.Outlined" Lines="2" AutoGrow="true" Margin="Margin.Dense" /></MudItem>
+                                    <MudItem xs="12"><MudTextField T="string" Value="@t.Content" ValueChanged="@(v => { t.Content = v; })" Label="@L["posts.content", "Content"]" Variant="Variant.Outlined" Lines="6" AutoGrow="true" Margin="Margin.Dense" /></MudItem>
+                                </MudGrid>
+                            </MudPaper>
+                        }
+                    </MudExpansionPanel>
+                </MudExpansionPanels>
+            </MudItem>
+
+            <MudItem xs="12" md="4">
+                <MudPaper Elevation="0" Class="app-card rounded-lg pa-4 mb-4">
+                    <MudText Typo="Typo.subtitle1" Class="mb-3 fw-bold">@L["posts.publish", "Publish"]</MudText>
+                    <MudSelect T="byte" @bind-Value="_model.Status" Label="@L["status", "Status"]" Variant="Variant.Outlined" Class="mb-3">
+                        <MudSelectItem T="byte" Value="@((byte)0)">@L["posts.draft", "Draft"]</MudSelectItem>
+                        <MudSelectItem T="byte" Value="@((byte)1)">@L["posts.published", "Published"]</MudSelectItem>
+                        <MudSelectItem T="byte" Value="@((byte)2)">@L["posts.scheduled", "Scheduled"]</MudSelectItem>
+                        <MudSelectItem T="byte" Value="@((byte)3)">@L["posts.archived", "Archived"]</MudSelectItem>
+                    </MudSelect>
+                    <MudDatePicker @bind-Date="_publishedAt" Label="@L["posts.published_at", "Published at"]" Variant="Variant.Outlined" Class="mb-3" Clearable="true" />
+                    <MudDatePicker @bind-Date="_scheduledAt" Label="@L["posts.scheduled_at", "Scheduled at"]" Variant="Variant.Outlined" Class="mb-3" Clearable="true" />
+                    <MudSwitch T="bool" @bind-Value="_model.IsFeatured" Color="Color.Primary" Label="@L["posts.featured", "Featured"]" />
+                    <MudSwitch T="bool" @bind-Value="_model.CommentsEnabled" Color="Color.Primary" Label="@L["posts.comments", "Comments enabled"]" />
+                    <MudSwitch T="bool" @bind-Value="_model.IsActive" Color="Color.Success" Label="@(_model.IsActive ? L["active", "Active"] : L["inactive", "Inactive"])" />
+                    <MudButton Variant="Variant.Filled" Color="Color.Primary" FullWidth="true" Class="mt-4"
+                               OnClick="SaveAsync" Disabled="@(_saving || !_canEdit)">@L["save", "Save"]</MudButton>
+                </MudPaper>
+
+                <MudPaper Elevation="0" Class="app-card rounded-lg pa-4 mb-4">
+                    <MudText Typo="Typo.subtitle1" Class="mb-3 fw-bold">@L["posts.organize", "Organize"]</MudText>
+                    <MudSelect T="int" @bind-Value="_model.PostTypeID" Label="@L["post_type", "Post Type"]" Variant="Variant.Outlined" Required="true" Class="mb-3">
+                        @foreach (var t in _postTypes)
+                        {
+                            <MudSelectItem T="int" Value="@t.PostTypeID">@t.Name</MudSelectItem>
+                        }
+                    </MudSelect>
+
+                    <MudSelect T="int" MultiSelection="true" @bind-SelectedValues="_selectedCategoryIds"
+                               Label="@L["categories", "Categories"]" Variant="Variant.Outlined" Class="mb-3"
+                               MultiSelectionTextFunc="@(v => $"{v.Count} {L["posts.selected", "selected"]}")">
+                        @foreach (var c in _categories)
+                        {
+                            <MudSelectItem T="int" Value="@c.CategoryID">@c.Name</MudSelectItem>
+                        }
+                    </MudSelect>
+
+                    @if (_selectedCategoryIds.Any())
+                    {
+                        <MudSelect T="int?" @bind-Value="_primaryCategoryId" Label="@L["posts.primary_category", "Primary category"]" Variant="Variant.Outlined" Clearable="true" Class="mb-3">
+                            @foreach (var c in _categories.Where(c => _selectedCategoryIds.Contains(c.CategoryID)))
+                            {
+                                <MudSelectItem T="int?" Value="@c.CategoryID">@c.Name</MudSelectItem>
+                            }
+                        </MudSelect>
+                    }
+
+                    <MudSelect T="int" MultiSelection="true" @bind-SelectedValues="_selectedTagIds"
+                               Label="@L["tags", "Tags"]" Variant="Variant.Outlined"
+                               MultiSelectionTextFunc="@(v => $"{v.Count} {L["posts.selected", "selected"]}")">
+                        @foreach (var tag in _tags)
+                        {
+                            <MudSelectItem T="int" Value="@tag.TagID">@tag.Name</MudSelectItem>
+                        }
+                    </MudSelect>
+                </MudPaper>
+
+                <MudPaper Elevation="0" Class="app-card rounded-lg pa-4">
+                    <MudText Typo="Typo.subtitle1" Class="mb-3 fw-bold">@L["posts.featured_image", "Featured Image"]</MudText>
+                    @if (_featuredFile is not null && !string.IsNullOrEmpty(_featuredFile.CNDUrl))
+                    {
+                        <img src="@(_featuredFile.ThumbnailCDN ?? _featuredFile.CNDUrl)" alt="" style="max-width:100%; border-radius:8px;" class="mb-2" />
+                    }
+                    <MudStack Row="true" Spacing="2">
+                        <MudButton Variant="Variant.Outlined" StartIcon="@Icons.Material.Filled.Image" OnClick="PickImageAsync">@L["posts.choose_image", "Choose"]</MudButton>
+                        @if (_model.FeaturedImageFileID is not null)
+                        {
+                            <MudButton Variant="Variant.Text" Color="Color.Error" OnClick="ClearImage">@L["clear", "Clear"]</MudButton>
+                        }
+                    </MudStack>
+                </MudPaper>
+            </MudItem>
+        </MudGrid>
+    </MudForm>
+}
+
+@code {
+    [Parameter] public int? Id { get; set; }
+
+    private bool _loading = true;
+    private bool _isNew;
+    private bool _isMaster;
+    private bool _canEdit;
+    private bool _saving;
+    private int _websiteId;
+    private int _memberId;
+    private Post? _model;
+    private MudForm _form = null!;
+    private FileRecord? _featuredFile;
+
+    private DateTime? _publishedAt;
+    private DateTime? _scheduledAt;
+
+    private List<PostType> _postTypes = new();
+    private List<Category> _categories = new();
+    private List<Tag> _tags = new();
+    private IReadOnlyCollection<int> _selectedCategoryIds = new HashSet<int>();
+    private IReadOnlyCollection<int> _selectedTagIds = new HashSet<int>();
+    private int? _primaryCategoryId;
+
+    private sealed class TranslationModel { public string Title = ""; public string Slug = ""; public string Excerpt = ""; public string Content = ""; }
+    private readonly Dictionary<string, TranslationModel> _translations = new(StringComparer.OrdinalIgnoreCase);
+
+    protected override async Task OnInitializedAsync()
+    {
+        await L.EnsureLoadedAsync();
+        var user = (await AuthState.GetAuthenticationStateAsync()).User;
+        _isMaster = user.HasClaim(AdminClaimTypes.Master, "true");
+        int.TryParse(user.FindFirst(AdminClaimTypes.WebsiteId)?.Value, out _websiteId);
+        int.TryParse(user.FindFirst(AdminClaimTypes.MemberId)?.Value, out _memberId);
+        _isNew = Id is null;
+        _canEdit = AdminPolicies.Allows(user, _isNew ? RoleKeys.PostsInsert : RoleKeys.PostsEdit);
+
+        if (_isNew)
+        {
+            _model = new Post { WebsiteID = _websiteId, Status = 1, IsActive = true, CommentsEnabled = true, AuthorMemberID = _memberId };
+        }
+        else
+        {
+            _model = await PostService.GetByIdAsync(Id!.Value);
+            if (_model is not null)
+            {
+                _featuredFile = _model.FeaturedImageFile;
+                _publishedAt = _model.PublishedAt;
+                _scheduledAt = _model.ScheduledAt;
+                _selectedCategoryIds = (await PostService.GetCategoryIdsAsync(_model.PostID)).ToHashSet();
+                _selectedTagIds = (await PostService.GetTagIdsAsync(_model.PostID)).ToHashSet();
+                _primaryCategoryId = _model.PostCategories.FirstOrDefault(pc => pc.IsPrimary)?.CategoryID;
+                foreach (var t in _model.PostTranslations)
+                    _translations[t.LanguageCode] = new TranslationModel { Title = t.Title, Slug = t.Slug, Excerpt = t.Excerpt ?? "", Content = t.Content ?? "" };
+            }
+        }
+
+        var wid = _model?.WebsiteID ?? _websiteId;
+        _postTypes = await PostTypeService.GetAllAsync(wid);
+        _categories = await CategoryService.GetAllAsync(wid);
+        _tags = await TagService.GetAllAsync(wid);
+        if (_isNew && _model is not null && _postTypes.Count > 0)
+            _model.PostTypeID = _postTypes[0].PostTypeID;
+
+        _loading = false;
+    }
+
+    private TranslationModel Translation(string code)
+    {
+        if (!_translations.TryGetValue(code, out var t)) { t = new TranslationModel(); _translations[code] = t; }
+        return t;
+    }
+
+    private async Task PickImageAsync()
+    {
+        var parameters = new DialogParameters
+        {
+            [nameof(FilePickerDialog.WebsiteId)] = _model!.WebsiteID,
+            [nameof(FilePickerDialog.Category)] = FileCategory.Image,
+        };
+        var dialog = await DialogService.ShowAsync<FilePickerDialog>(L["select_file", "Select a file"], parameters,
+            new DialogOptions { MaxWidth = MaxWidth.Medium, FullWidth = true });
+        var result = await dialog.Result;
+        if (result is { Canceled: false, Data: FileRecord file })
+        {
+            _model.FeaturedImageFileID = file.FileRecordID;
+            _featuredFile = file;
+        }
+    }
+
+    private void ClearImage() { _model!.FeaturedImageFileID = null; _featuredFile = null; }
+
+    private async Task SaveAsync()
+    {
+        await _form.Validate();
+        if (!_form.IsValid || _model is null) return;
+        if (string.IsNullOrWhiteSpace(_model.Slug)) _model.Slug = _model.Title.Trim();
+        _model.PublishedAt = _publishedAt;
+        _model.ScheduledAt = _scheduledAt;
+
+        _saving = true;
+        try
+        {
+            if (_isNew) await PostService.CreateAsync(_model);
+            else await PostService.UpdateAsync(_model);
+
+            var translations = _translations
+                .Where(kv => !string.IsNullOrWhiteSpace(kv.Value.Title))
+                .Select(kv => new PostTranslation
+                {
+                    PostID = _model.PostID, LanguageCode = kv.Key,
+                    Title = kv.Value.Title, Slug = kv.Value.Slug, Excerpt = kv.Value.Excerpt, Content = kv.Value.Content,
+                }).ToList();
+            await PostService.SetTranslationsAsync(_model.PostID, translations);
+
+            var categoryIds = _selectedCategoryIds.ToList();
+            var primary = _primaryCategoryId is int pid && categoryIds.Contains(pid) ? pid : (int?)null;
+            await PostService.SetCategoriesAsync(_model.PostID, categoryIds, primary);
+            await PostService.SetTagsAsync(_model.PostID, _selectedTagIds.ToList());
+
+            Snackbar.Add(L["saved", "Saved."], Severity.Success);
+            Nav.NavigateTo("/content/posts");
+        }
+        catch (Exception ex) { Snackbar.Add($"{L["save_failed", "Save failed"]}: {ex.Message}", Severity.Error); }
+        finally { _saving = false; }
+    }
+}

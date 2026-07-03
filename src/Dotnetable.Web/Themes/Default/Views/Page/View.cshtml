@@ -1,0 +1,19 @@
+@model Dotnetable.Application.DTOs.PageDto
+@{
+    ViewData["Title"] = Model.Title;
+    Layout = "/Themes/Default/Views/Shared/_Layout.cshtml";
+}
+
+@await Html.PartialAsync("_PageHeader", (Model.Title, Model.Title))
+
+<section class="site-section">
+    <div class="container">
+        <div class="row justify-content-center">
+            <div class="col-lg-8">
+                <div class="page-content">
+                    @Html.Raw(Model.Content)
+                </div>
+            </div>
+        </div>
+    </div>
+</section>

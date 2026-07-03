@@ -1,0 +1,54 @@
+@inject IPostTypeService PostTypeService
+@inject ISnackbar Snackbar
+@inject IPageLocalizer L
+
+<MudDialog>
+    <DialogContent>
+        <MudForm @ref="_form">
+            <MudTextField @bind-Value="Model.Name" Label="@L["name", "Name"]" Variant="Variant.Outlined"
+                          Required="true" Class="mb-3" Immediate="true" />
+            <MudTextField @bind-Value="Model.Slug" Label="@L["slug", "Slug"]" Variant="Variant.Outlined"
+                          Required="true" Class="mb-3"
+                          HelperText="@L["post_types.slug_hint", "Used in URLs (e.g. blog, news)."]" />
+
+            <MudSwitch T="bool" @bind-Value="Model.HasCategories" Color="Color.Primary" Label="@L["post_types.categories", "Has categories"]" />
+            <MudSwitch T="bool" @bind-Value="Model.HasTags" Color="Color.Primary" Label="@L["post_types.tags", "Has tags"]" />
+            <MudSwitch T="bool" @bind-Value="Model.HasAuthor" Color="Color.Primary" Label="@L["post_types.author", "Has author"]" />
+            <MudSwitch T="bool" @bind-Value="Model.CommentsEnabled" Color="Color.Primary" Label="@L["post_types.comments", "Comments enabled"]" />
+        </MudForm>
+    </DialogContent>
+    <DialogActions>
+        <MudButton OnClick="Cancel">@L["cancel", "Cancel"]</MudButton>
+        <MudButton Variant="Variant.Filled" Color="Color.Primary" OnClick="SaveAsync" Disabled="@_saving">@L["save", "Save"]</MudButton>
+    </DialogActions>
+</MudDialog>
+
+@code {
+    [CascadingParameter] private IMudDialogInstance MudDialog { get; set; } = null!;
+    [Parameter] public PostType Model { get; set; } = new();
+    [Parameter] public bool IsNew { get; set; }
+
+    private MudForm _form = null!;
+    private bool _saving;
+
+    private void Cancel() => MudDialog.Cancel();
+
+    private async Task SaveAsync()
+    {
+        await _form.Validate();
+        if (!_form.IsValid) return;
+        if (string.IsNullOrWhiteSpace(Model.Name) || string.IsNullOrWhiteSpace(Model.Slug)) return;
+
+        _saving = true;
+        try
+        {
+            Model.Slug = Model.Slug.Trim().ToLowerInvariant();
+            if (IsNew) await PostTypeService.CreateAsync(Model);
+            else await PostTypeService.UpdateAsync(Model);
+            Snackbar.Add(L["saved", "Saved."], Severity.Success);
+            MudDialog.Close(DialogResult.Ok(true));
+        }
+        catch (Exception ex) { Snackbar.Add($"{L["save_failed", "Save failed"]}: {ex.Message}", Severity.Error); }
+        finally { _saving = false; }
+    }
+}

@@ -57,6 +57,40 @@
         </MudNavGroup>
     </AuthorizeView>
 
+    @if (_canPosts || _canPages || _canTaxonomy || _canRedirects)
+    {
+        <span class="app-nav-label">@L["nav.content", "Content"]</span>
+    }
+    <MudNavGroup Title="@L["content", "Content"]" Icon="@Icons.Material.Filled.Article"
+                 Hidden="@(!_canPosts && !_canPages && !_canTaxonomy && !_canRedirects)">
+        <AuthorizeView Policy="@RoleKeys.PostsView" Context="po">
+            <MudNavLink Href="/content/posts" Icon="@Icons.Material.Filled.Article">
+                @L["posts", "Posts"]
+            </MudNavLink>
+        </AuthorizeView>
+        <AuthorizeView Policy="@RoleKeys.PagesView" Context="pg">
+            <MudNavLink Href="/content/pages" Icon="@Icons.Material.Filled.Description">
+                @L["pages", "Pages"]
+            </MudNavLink>
+        </AuthorizeView>
+        <AuthorizeView Policy="@RoleKeys.TaxonomyView" Context="tx">
+            <MudNavLink Href="/content/categories" Icon="@Icons.Material.Filled.Category">
+                @L["categories", "Categories"]
+            </MudNavLink>
+            <MudNavLink Href="/content/tags" Icon="@Icons.Material.Filled.Label">
+                @L["tags", "Tags"]
+            </MudNavLink>
+            <MudNavLink Href="/content/post-types" Icon="@Icons.Material.Filled.Dashboard">
+                @L["post_types", "Post Types"]
+            </MudNavLink>
+        </AuthorizeView>
+        <AuthorizeView Policy="@RoleKeys.RedirectsView" Context="rd">
+            <MudNavLink Href="/content/redirects" Icon="@Icons.Material.Filled.CallSplit">
+                @L["redirects", "Redirects"]
+            </MudNavLink>
+        </AuthorizeView>
+    </MudNavGroup>
+
     <AuthorizeView Policy="@RoleKeys.MenusView" Context="mn">
         <MudNavLink Href="/menus" Icon="@Icons.Material.Filled.Menu">
             @L["menus", "Menus"]
@@ -134,6 +168,10 @@
     private bool _canLoginLogs;
     private bool _canMessages;
     private bool _canWebsite;
+    private bool _canPosts;
+    private bool _canPages;
+    private bool _canTaxonomy;
+    private bool _canRedirects;
 
     protected override async Task OnInitializedAsync()
     {
@@ -149,6 +187,10 @@
             _canLoginLogs = AdminPolicies.Allows(user, RoleKeys.LoginLogsView);
             _canMessages = AdminPolicies.Allows(user, RoleKeys.MessagesView);
             _canWebsite = AdminPolicies.Allows(user, RoleKeys.WebsiteEdit);
+            _canPosts = AdminPolicies.Allows(user, RoleKeys.PostsView);
+            _canPages = AdminPolicies.Allows(user, RoleKeys.PagesView);
+            _canTaxonomy = AdminPolicies.Allows(user, RoleKeys.TaxonomyView);
+            _canRedirects = AdminPolicies.Allows(user, RoleKeys.RedirectsView);
         }
     }
 }

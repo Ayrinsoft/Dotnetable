@@ -52,6 +52,83 @@ public class ApiClient
         catch (NotSupportedException) { return null; }
     }
 
+    // ── Content (posts, pages, categories, redirects) ───────────────
+
+    /// <summary>Published posts (paged), optionally filtered by post type / category / tag slug.</summary>
+    public async Task<PagedResult<PostSummaryDto>> GetPostsAsync(
+        string? type = null, string? category = null, string? tag = null,
+        int page = 1, int pageSize = 12, string? lang = null, CancellationToken ct = default)
+    {
+        var query = new List<string> { $"page={page}", $"pageSize={pageSize}" };
+        if (!string.IsNullOrWhiteSpace(type)) query.Add($"type={Uri.EscapeDataString(type)}");
+        if (!string.IsNullOrWhiteSpace(category)) query.Add($"category={Uri.EscapeDataString(category)}");
+        if (!string.IsNullOrWhiteSpace(tag)) query.Add($"tag={Uri.EscapeDataString(tag)}");
+        if (!string.IsNullOrWhiteSpace(lang)) query.Add($"lang={Uri.EscapeDataString(lang)}");
+
+        try
+        {
+            return await _http.GetFromJsonAsync<PagedResult<PostSummaryDto>>($"api/posts?{string.Join('&', query)}", ct)
+                ?? new PagedResult<PostSummaryDto>();
+        }
+        catch (HttpRequestException) { return new PagedResult<PostSummaryDto>(); }
+        catch (NotSupportedException) { return new PagedResult<PostSummaryDto>(); }
+    }
+
+    /// <summary>A single published post by slug, or null when not found / unreachable.</summary>
+    public async Task<PostDetailDto?> GetPostAsync(string slug, string? lang = null, CancellationToken ct = default)
+    {
+        var path = $"api/posts/{Uri.EscapeDataString(slug)}";
+        if (!string.IsNullOrWhiteSpace(lang)) path += $"?lang={Uri.EscapeDataString(lang)}";
+        try { return await _http.GetFromJsonAsync<PostDetailDto>(path, ct); }
+        catch (HttpRequestException) { return null; }
+        catch (NotSupportedException) { return null; }
+    }
+
+    /// <summary>Featured published posts.</summary>
+    public async Task<IReadOnlyList<PostSummaryDto>> GetFeaturedPostsAsync(int take = 4, string? lang = null, CancellationToken ct = default)
+    {
+        var path = $"api/posts/featured?take={take}";
+        if (!string.IsNullOrWhiteSpace(lang)) path += $"&lang={Uri.EscapeDataString(lang)}";
+        try { return await _http.GetFromJsonAsync<List<PostSummaryDto>>(path, ct) ?? new(); }
+        catch (HttpRequestException) { return Array.Empty<PostSummaryDto>(); }
+        catch (NotSupportedException) { return Array.Empty<PostSummaryDto>(); }
+    }
+
+    /// <summary>Active category tree (optionally for a post type).</summary>
+    public async Task<IReadOnlyList<CategoryDto>> GetCategoriesAsync(int? postTypeId = null, string? lang = null, CancellationToken ct = default)
+    {
+        var query = new List<string>();
+        if (postTypeId is int id) query.Add($"postTypeId={id}");
+        if (!string.IsNullOrWhiteSpace(lang)) query.Add($"lang={Uri.EscapeDataString(lang)}");
+        var path = "api/categories" + (query.Count > 0 ? $"?{string.Join('&', query)}" : "");
+        try { return await _http.GetFromJsonAsync<List<CategoryDto>>(path, ct) ?? new(); }
+        catch (HttpRequestException) { return Array.Empty<CategoryDto>(); }
+        catch (NotSupportedException) { return Array.Empty<CategoryDto>(); }
+    }
+
+    /// <summary>A single active CMS page by slug, or null.</summary>
+    public async Task<PageDto?> GetPageAsync(string slug, string? lang = null, CancellationToken ct = default)
+    {
+        var path = $"api/pages/{Uri.EscapeDataString(slug)}";
+        if (!string.IsNullOrWhiteSpace(lang)) path += $"?lang={Uri.EscapeDataString(lang)}";
+        try { return await _http.GetFromJsonAsync<PageDto>(path, ct); }
+        catch (HttpRequestException) { return null; }
+        catch (NotSupportedException) { return null; }
+    }
+
+    /// <summary>Resolves a request path to a redirect target, or null when no rule matches / unreachable.</summary>
+    public async Task<RedirectResultDto?> ResolveRedirectAsync(string path, CancellationToken ct = default)
+    {
+        try
+        {
+            var response = await _http.GetAsync($"api/redirects/resolve?path={Uri.EscapeDataString(path)}", ct);
+            if (response.StatusCode == HttpStatusCode.NoContent || !response.IsSuccessStatusCode) return null;
+            return await response.Content.ReadFromJsonAsync<RedirectResultDto>(cancellationToken: ct);
+        }
+        catch (HttpRequestException) { return null; }
+        catch (NotSupportedException) { return null; }
+    }
+
     public Task<AuthApiResult> LoginAsync(string identifier, string password, CancellationToken ct = default) =>
         PostAsync("api/auth/login", new { identifier, password }, ct);
 

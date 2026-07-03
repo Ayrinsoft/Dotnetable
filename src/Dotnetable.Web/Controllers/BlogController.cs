@@ -1,50 +1,61 @@
+using Dotnetable.Application.DTOs;
+using Dotnetable.Web.Services;
 using Microsoft.AspNetCore.Mvc;
 
 namespace Dotnetable.Web.Controllers;
 
-/// <summary>
-/// Public blog. Posts are placeholder content for now; swap <see cref="SamplePosts"/>
-/// for an API-backed source when the blog content service is ready.
-/// </summary>
+/// <summary>Public blog / content pages, backed by the API's post endpoints.</summary>
 public class BlogController : Controller
 {
-    /// <summary>A blog post for display. Replace with an API DTO once content is live.</summary>
-    public sealed record PostView(
-        string Slug,
-        string Title,
-        string Category,
-        string Excerpt,
-        DateOnly Date,
-        string Author,
-        string Body);
+    private const int PageSize = 9;
 
-    /// <summary>Demo posts used until the blog is wired to real content.</summary>
-    public static readonly IReadOnlyList<PostView> SamplePosts =
-    [
-        new("getting-started", "Getting started with our platform", "Guides",
-            "A quick tour of everything you need to launch your first project with confidence.",
-            new DateOnly(2026, 6, 20), "The Team",
-            "Welcome aboard! In this post we walk through the essentials so you can hit the ground running."),
-        new("design-trends-2026", "Design trends to watch in 2026", "Design",
-            "From bold typography to immersive motion, here are the trends shaping the web this year.",
-            new DateOnly(2026, 6, 12), "The Team",
-            "Design moves fast. We rounded up the directions we think matter most for the year ahead."),
-        new("scaling-your-app", "Scaling your app without the headaches", "Engineering",
-            "Practical tips for growing your product smoothly as traffic and demand increase.",
-            new DateOnly(2026, 6, 3), "The Team",
-            "Scaling is a journey, not a switch. Here is how to plan for growth from day one."),
-        new("seo-fundamentals", "SEO fundamentals every site needs", "Marketing",
-            "The foundational steps that help search engines — and customers — find you.",
-            new DateOnly(2026, 5, 25), "The Team",
-            "Search visibility starts with the basics. Get these right before anything else."),
-    ];
+    private readonly ApiClient _api;
 
-    public IActionResult Index() => View(SamplePosts);
+    public BlogController(ApiClient api) => _api = api;
 
-    public IActionResult Post(string slug)
+    /// <summary>View model for a blog listing: the current page of posts plus paging state.</summary>
+    public sealed record BlogListView(
+        IReadOnlyList<PostSummaryDto> Posts,
+        int Page,
+        int TotalCount,
+        int PageSize,
+        string? Category,
+        string? Tag,
+        string? Heading)
     {
-        var post = SamplePosts.FirstOrDefault(p =>
-            string.Equals(p.Slug, slug, StringComparison.OrdinalIgnoreCase));
+        public int TotalPages => (int)Math.Ceiling((double)TotalCount / PageSize);
+    }
+
+    public async Task<IActionResult> Index(int page = 1, string? category = null, string? tag = null, CancellationToken ct = default)
+    {
+        var lang = CurrentLang();
+        var result = await _api.GetPostsAsync(category: category, tag: tag, page: page, pageSize: PageSize, lang: lang, ct: ct);
+
+        var heading = !string.IsNullOrWhiteSpace(category)
+            ? result.Items.SelectMany(p => p.Categories).FirstOrDefault(c => c.Slug == category)?.Name
+            : !string.IsNullOrWhiteSpace(tag)
+                ? result.Items.SelectMany(p => p.Tags).FirstOrDefault(t => t.Slug == tag)?.Name
+                : null;
+
+        return View("Index", new BlogListView(result.Items, page, result.TotalCount, PageSize, category, tag, heading));
+    }
+
+    public Task<IActionResult> Category(string slug, int page = 1, CancellationToken ct = default) =>
+        Index(page, category: slug, tag: null, ct);
+
+    public Task<IActionResult> Tag(string slug, int page = 1, CancellationToken ct = default) =>
+        Index(page, category: null, tag: slug, ct);
+
+    public async Task<IActionResult> Post(string slug, CancellationToken ct = default)
+    {
+        var post = await _api.GetPostAsync(slug, CurrentLang(), ct);
         return post is null ? NotFound() : View(post);
+    }
+
+    /// <summary>Current UI language from the <c>lang</c> cookie, or null for the site default.</summary>
+    private string? CurrentLang()
+    {
+        var lang = Request.Cookies["lang"];
+        return string.IsNullOrWhiteSpace(lang) ? null : lang;
     }
 }

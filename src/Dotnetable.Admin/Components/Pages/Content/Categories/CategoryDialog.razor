@@ -1,0 +1,140 @@
+@inject ICategoryService CategoryService
+@inject ISnackbar Snackbar
+@inject IPageLocalizer L
+
+<MudDialog>
+    <DialogContent>
+        <MudForm @ref="_form">
+            <MudGrid Spacing="3">
+                <MudItem xs="12" sm="7">
+                    <MudTextField @bind-Value="Model.Name" Label="@L["name", "Name"]" Variant="Variant.Outlined" Required="true" />
+                </MudItem>
+                <MudItem xs="12" sm="5">
+                    <MudTextField @bind-Value="Model.Slug" Label="@L["slug", "Slug"]" Variant="Variant.Outlined" Required="true" />
+                </MudItem>
+                <MudItem xs="12" sm="6">
+                    <MudSelect T="int?" @bind-Value="Model.ParentCategoryID" Label="@L["categories.parent", "Parent"]"
+                               Variant="Variant.Outlined" Clearable="true">
+                        <MudSelectItem T="int?" Value="@((int?)null)">@L["categories.top_level", "— Top level —"]</MudSelectItem>
+                        @foreach (var c in ParentCandidates)
+                        {
+                            <MudSelectItem T="int?" Value="@c.CategoryID">@c.Name</MudSelectItem>
+                        }
+                    </MudSelect>
+                </MudItem>
+                <MudItem xs="12" sm="6">
+                    <MudSelect T="int?" @bind-Value="Model.PostTypeID" Label="@L["post_type", "Post Type"]"
+                               Variant="Variant.Outlined" Clearable="true">
+                        <MudSelectItem T="int?" Value="@((int?)null)">@L["categories.any_type", "— Any —"]</MudSelectItem>
+                        @foreach (var t in PostTypes)
+                        {
+                            <MudSelectItem T="int?" Value="@t.PostTypeID">@t.Name</MudSelectItem>
+                        }
+                    </MudSelect>
+                </MudItem>
+                <MudItem xs="6">
+                    <MudNumericField T="int" @bind-Value="Model.SortOrder" Label="@L["categories.sort", "Sort order"]" Variant="Variant.Outlined" />
+                </MudItem>
+                <MudItem xs="6" Class="d-flex align-center">
+                    <MudSwitch T="bool" @bind-Value="Model.IsActive" Color="Color.Success"
+                               Label="@(Model.IsActive ? L["active", "Active"] : L["inactive", "Inactive"])" />
+                </MudItem>
+                <MudItem xs="12">
+                    <MudExpansionPanels Elevation="0">
+                        <MudExpansionPanel Text="@L["translations", "Translations"]">
+                            @foreach (var (code, label) in ContentLanguages.All)
+                            {
+                                <MudGrid Spacing="2" Class="mb-1">
+                                    <MudItem xs="7">
+                                        <MudTextField T="string" Value="@Name(code)" ValueChanged="@(v => SetName(code, v))"
+                                                      Label="@($"{label} — {L["name", "Name"]}")" Variant="Variant.Outlined" Margin="Margin.Dense" />
+                                    </MudItem>
+                                    <MudItem xs="5">
+                                        <MudTextField T="string" Value="@Slug(code)" ValueChanged="@(v => SetSlug(code, v))"
+                                                      Label="@L["slug", "Slug"]" Variant="Variant.Outlined" Margin="Margin.Dense" />
+                                    </MudItem>
+                                </MudGrid>
+                            }
+                        </MudExpansionPanel>
+                    </MudExpansionPanels>
+                </MudItem>
+            </MudGrid>
+        </MudForm>
+    </DialogContent>
+    <DialogActions>
+        <MudButton OnClick="Cancel">@L["cancel", "Cancel"]</MudButton>
+        <MudButton Variant="Variant.Filled" Color="Color.Primary" OnClick="SaveAsync" Disabled="@_saving">@L["save", "Save"]</MudButton>
+    </DialogActions>
+</MudDialog>
+
+@code {
+    [CascadingParameter] private IMudDialogInstance MudDialog { get; set; } = null!;
+    [Parameter] public Category Model { get; set; } = new();
+    [Parameter] public bool IsNew { get; set; }
+    [Parameter] public IReadOnlyList<Category> AllCategories { get; set; } = Array.Empty<Category>();
+    [Parameter] public IReadOnlyList<PostType> PostTypes { get; set; } = Array.Empty<PostType>();
+
+    private MudForm _form = null!;
+    private bool _saving;
+    private readonly Dictionary<string, (string Name, string Slug)> _tr = new(StringComparer.OrdinalIgnoreCase);
+
+    // Exclude self and descendants as parent candidates.
+    private IEnumerable<Category> ParentCandidates
+    {
+        get
+        {
+            var forbidden = DescendantIds(Model.CategoryID);
+            forbidden.Add(Model.CategoryID);
+            return AllCategories.Where(c => !forbidden.Contains(c.CategoryID));
+        }
+    }
+
+    protected override async Task OnInitializedAsync()
+    {
+        if (!IsNew)
+            foreach (var t in await CategoryService.GetTranslationsAsync(Model.CategoryID))
+                _tr[t.LanguageCode] = (t.Name, t.Slug);
+    }
+
+    private string Name(string code) => _tr.TryGetValue(code, out var v) ? v.Name : string.Empty;
+    private string Slug(string code) => _tr.TryGetValue(code, out var v) ? v.Slug : string.Empty;
+    private void SetName(string code, string v) { var c = _tr.GetValueOrDefault(code); _tr[code] = (v ?? string.Empty, c.Slug ?? string.Empty); }
+    private void SetSlug(string code, string v) { var c = _tr.GetValueOrDefault(code); _tr[code] = (c.Name ?? string.Empty, v ?? string.Empty); }
+
+    private HashSet<int> DescendantIds(int rootId)
+    {
+        var result = new HashSet<int>();
+        if (rootId == 0) return result;
+        var queue = new Queue<int>();
+        queue.Enqueue(rootId);
+        while (queue.Count > 0)
+        {
+            var id = queue.Dequeue();
+            foreach (var child in AllCategories.Where(c => c.ParentCategoryID == id))
+                if (result.Add(child.CategoryID)) queue.Enqueue(child.CategoryID);
+        }
+        return result;
+    }
+
+    private void Cancel() => MudDialog.Cancel();
+
+    private async Task SaveAsync()
+    {
+        await _form.Validate();
+        if (!_form.IsValid) return;
+        if (string.IsNullOrWhiteSpace(Model.Name)) return;
+        if (string.IsNullOrWhiteSpace(Model.Slug)) Model.Slug = Model.Name.Trim();
+
+        _saving = true;
+        try
+        {
+            if (IsNew) await CategoryService.CreateAsync(Model);
+            else await CategoryService.UpdateAsync(Model);
+            await CategoryService.SetTranslationsAsync(Model.CategoryID, _tr);
+            Snackbar.Add(L["saved", "Saved."], Severity.Success);
+            MudDialog.Close(DialogResult.Ok(true));
+        }
+        catch (Exception ex) { Snackbar.Add($"{L["save_failed", "Save failed"]}: {ex.Message}", Severity.Error); }
+        finally { _saving = false; }
+    }
+}
