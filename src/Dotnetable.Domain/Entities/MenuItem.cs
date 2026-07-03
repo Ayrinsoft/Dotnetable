@@ -49,6 +49,8 @@ public partial class MenuItem
 
     public virtual ICollection<MenuItemTranslation> MenuItemTranslations { get; set; } = new List<MenuItemTranslation>();
 
+    public virtual Page? Page { get; set; }
+
     public virtual MenuItem? ParentItem { get; set; }
 
     public virtual Post? Post { get; set; }

@@ -1,0 +1,84 @@
+@inject IMenuService MenuService
+@inject ISnackbar Snackbar
+@inject IPageLocalizer L
+
+<MudDialog>
+    <DialogContent>
+        <MudForm @ref="_form">
+            <MudTextField @bind-Value="Model.Name" Label="@L["name", "Name"]"
+                          Variant="Variant.Outlined" Required="true"
+                          RequiredError="@L["menus.name_required", "Name is required."]" Class="mb-3" />
+
+            <MudSelect T="MenuLocation" Value="_location" ValueChanged="OnLocationChanged"
+                       Label="@L["menus.location", "Location"]" Variant="Variant.Outlined" Class="mb-3">
+                @foreach (var loc in Enum.GetValues<MenuLocation>())
+                {
+                    <MudSelectItem T="MenuLocation" Value="@loc">@loc</MudSelectItem>
+                }
+            </MudSelect>
+
+            @if (AllowWebsiteEdit)
+            {
+                <MudNumericField T="int" @bind-Value="Model.WebsiteID" Label="@L["website_id", "Website ID"]"
+                                 Variant="Variant.Outlined" Min="1" Class="mb-3" />
+            }
+
+            <MudSwitch T="bool" @bind-Value="Model.IsActive" Color="Color.Primary"
+                       Label="@(Model.IsActive ? L["active", "Active"] : L["inactive", "Inactive"])" />
+        </MudForm>
+    </DialogContent>
+    <DialogActions>
+        <MudButton OnClick="Cancel">@L["cancel", "Cancel"]</MudButton>
+        <MudButton Variant="Variant.Filled" Color="Color.Primary" OnClick="SaveAsync" Disabled="@_saving">
+            @L["save", "Save"]
+        </MudButton>
+    </DialogActions>
+</MudDialog>
+
+@code {
+    [CascadingParameter] private IMudDialogInstance MudDialog { get; set; } = null!;
+
+    [Parameter] public Menu Model { get; set; } = new();
+    [Parameter] public bool IsNew { get; set; }
+    [Parameter] public bool AllowWebsiteEdit { get; set; }
+
+    private MudForm _form = null!;
+    private bool _saving;
+    private MenuLocation _location;
+
+    protected override void OnInitialized() => _location = (MenuLocation)Model.Location;
+
+    private void OnLocationChanged(MenuLocation value)
+    {
+        _location = value;
+        Model.Location = (byte)value;
+    }
+
+    private void Cancel() => MudDialog.Cancel();
+
+    private async Task SaveAsync()
+    {
+        await _form.Validate();
+        if (!_form.IsValid) return;
+
+        _saving = true;
+        try
+        {
+            if (IsNew)
+                await MenuService.CreateMenuAsync(Model);
+            else
+                await MenuService.UpdateMenuAsync(Model);
+
+            Snackbar.Add(L["saved", "Saved."], Severity.Success);
+            MudDialog.Close(DialogResult.Ok(true));
+        }
+        catch (Exception ex)
+        {
+            Snackbar.Add($"{L["save_failed", "Save failed"]}: {ex.Message}", Severity.Error);
+        }
+        finally
+        {
+            _saving = false;
+        }
+    }
+}

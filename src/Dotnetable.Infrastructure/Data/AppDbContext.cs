@@ -70,6 +70,10 @@ public partial class AppDbContext : DbContext
 
     public virtual DbSet<MenuItemTranslation> MenuItemTranslations { get; set; }
 
+    public virtual DbSet<Page> Pages { get; set; }
+
+    public virtual DbSet<PageTranslation> PageTranslations { get; set; }
+
     public virtual DbSet<Policy> Policies { get; set; }
 
     public virtual DbSet<PolicyRole> PolicyRoles { get; set; }
@@ -99,6 +103,8 @@ public partial class AppDbContext : DbContext
     public virtual DbSet<WebsiteClientForgetPassword> WebsiteClientForgetPasswords { get; set; }
 
     public virtual DbSet<WebsiteIP> WebsiteIPs { get; set; }
+
+    public virtual DbSet<WebsiteRedirect> WebsiteRedirects { get; set; }
 
     public virtual DbSet<WebsiteScript> WebsiteScripts { get; set; }
 
@@ -653,6 +659,10 @@ public partial class AppDbContext : DbContext
                 .OnDelete(DeleteBehavior.ClientSetNull)
                 .HasConstraintName("FK_MenuItem_Menu");
 
+            entity.HasOne(d => d.Page).WithMany(p => p.MenuItems)
+                .HasForeignKey(d => d.PageID)
+                .HasConstraintName("FK_MenuItem_Pages");
+
             entity.HasOne(d => d.ParentItem).WithMany(p => p.InverseParentItem)
                 .HasForeignKey(d => d.ParentItemID)
                 .HasConstraintName("FK_MenuItem_MenuItem");
@@ -676,6 +686,49 @@ public partial class AppDbContext : DbContext
                 .HasForeignKey(d => d.MenuItemID)
                 .OnDelete(DeleteBehavior.ClientSetNull)
                 .HasConstraintName("FK_MenuItemTranslation_MenuItem");
+        });
+
+        modelBuilder.Entity<Page>(entity =>
+        {
+            entity.Property(e => e.CreatedAt)
+                .HasPrecision(0)
+                .HasDefaultValueSql("(sysutcdatetime())", "DF_Pages_CreatedAt_1");
+            entity.Property(e => e.IsActive).HasDefaultValue(true, "DF_Pages_IsActive_1");
+            entity.Property(e => e.Slug).HasMaxLength(300);
+            entity.Property(e => e.Status).HasDefaultValue((byte)1, "DF_Pages_Status_1");
+            entity.Property(e => e.Template).HasMaxLength(100);
+            entity.Property(e => e.Title).HasMaxLength(300);
+            entity.Property(e => e.UpdatedAt)
+                .HasPrecision(0)
+                .HasDefaultValueSql("(sysutcdatetime())", "DF_Pages_UpdatedAt_1");
+
+            entity.HasOne(d => d.CreatedByMember).WithMany(p => p.Pages)
+                .HasForeignKey(d => d.CreatedByMemberID)
+                .HasConstraintName("FK_Pages_Member");
+
+            entity.HasOne(d => d.ParentPage).WithMany(p => p.InverseParentPage)
+                .HasForeignKey(d => d.ParentPageID)
+                .HasConstraintName("FK_Pages_Pages");
+
+            entity.HasOne(d => d.Website).WithMany(p => p.Pages)
+                .HasForeignKey(d => d.WebsiteID)
+                .OnDelete(DeleteBehavior.ClientSetNull)
+                .HasConstraintName("FK_Pages_Website");
+        });
+
+        modelBuilder.Entity<PageTranslation>(entity =>
+        {
+            entity.Property(e => e.LanguageCode)
+                .HasMaxLength(2)
+                .IsUnicode(false)
+                .IsFixedLength();
+            entity.Property(e => e.Slug).HasMaxLength(300);
+            entity.Property(e => e.Title).HasMaxLength(300);
+
+            entity.HasOne(d => d.Page).WithMany(p => p.PageTranslations)
+                .HasForeignKey(d => d.PageID)
+                .OnDelete(DeleteBehavior.ClientSetNull)
+                .HasConstraintName("FK_PageTranslations_Pages");
         });
 
         modelBuilder.Entity<Policy>(entity =>
@@ -979,6 +1032,22 @@ public partial class AppDbContext : DbContext
                 .HasForeignKey(d => d.WebsiteID)
                 .OnDelete(DeleteBehavior.ClientSetNull)
                 .HasConstraintName("FK_WebsiteIP_Website");
+        });
+
+        modelBuilder.Entity<WebsiteRedirect>(entity =>
+        {
+            entity.Property(e => e.CreatedAt)
+                .HasDefaultValueSql("(sysutcdatetime())", "DF_WebsiteRedirects_CreatedAt")
+                .HasColumnType("datetime");
+            entity.Property(e => e.IsActive).HasDefaultValue(true, "DF_WebsiteRedirects_IsActive");
+            entity.Property(e => e.SourcePath).HasMaxLength(500);
+            entity.Property(e => e.StatusCode).HasDefaultValue(301, "DF_WebsiteRedirects_StatusCode");
+            entity.Property(e => e.TargetPath).HasMaxLength(500);
+
+            entity.HasOne(d => d.Website).WithMany(p => p.WebsiteRedirects)
+                .HasForeignKey(d => d.WebsiteID)
+                .OnDelete(DeleteBehavior.ClientSetNull)
+                .HasConstraintName("FK_WebsiteRedirects_Website");
         });
 
         modelBuilder.Entity<WebsiteScript>(entity =>

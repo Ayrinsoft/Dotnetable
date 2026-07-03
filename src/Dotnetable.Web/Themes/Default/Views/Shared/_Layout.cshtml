@@ -1,9 +1,15 @@
 @using Dotnetable.Web.Services
+@using Dotnetable.Application.DTOs
+@inject ApiClient Api
 @{
     var isLoggedIn = Context.Request.Cookies.ContainsKey(ClientAuth.TokenCookie);
     string Active(string controller) =>
         string.Equals(ViewContext.RouteData.Values["controller"]?.ToString(), controller, StringComparison.OrdinalIgnoreCase)
             ? "active" : "";
+
+    // Header navigation is driven by the admin-managed menu when one is configured; otherwise the
+    // static links below are shown so the site always has navigation.
+    MenuDto? headerMenu = await Api.GetMenuAsync("Header");
 }
 <!DOCTYPE html>
 <html lang="en">
@@ -27,11 +33,56 @@
             </button>
             <div class="collapse navbar-collapse" id="mainNav">
                 <ul class="navbar-nav mx-auto mb-2 mb-lg-0">
-                    <li class="nav-item"><a class="nav-link @Active("Home")" asp-controller="Home" asp-action="Index">Home</a></li>
-                    <li class="nav-item"><a class="nav-link" asp-controller="Home" asp-action="About">About</a></li>
-                    <li class="nav-item"><a class="nav-link" asp-controller="Home" asp-action="Services">Services</a></li>
-                    <li class="nav-item"><a class="nav-link @Active("Blog")" asp-controller="Blog" asp-action="Index">Blog</a></li>
-                    <li class="nav-item"><a class="nav-link" asp-controller="Home" asp-action="Contact">Contact</a></li>
+                    @if (headerMenu is not null && headerMenu.Items.Count > 0)
+                    {
+                        @foreach (var item in headerMenu.Items)
+                        {
+                            @if (item.Children.Count > 0)
+                            {
+                                <li class="nav-item dropdown">
+                                    <a class="nav-link dropdown-toggle @item.CssClass" href="@item.Url" role="button"
+                                       data-bs-toggle="dropdown" aria-expanded="false"
+                                       target="@(item.OpenInNewTab ? "_blank" : null)">
+                                        @if (!string.IsNullOrEmpty(item.Icon))
+                                        {
+                                            <i class="@item.Icon me-1"></i>
+                                        }
+                                        @item.Title
+                                    </a>
+                                    <ul class="dropdown-menu">
+                                        @foreach (var child in item.Children)
+                                        {
+                                            <li>
+                                                <a class="dropdown-item @child.CssClass" href="@child.Url"
+                                                   target="@(child.OpenInNewTab ? "_blank" : null)">@child.Title</a>
+                                            </li>
+                                        }
+                                    </ul>
+                                </li>
+                            }
+                            else
+                            {
+                                <li class="nav-item">
+                                    <a class="nav-link @item.CssClass" href="@item.Url"
+                                       target="@(item.OpenInNewTab ? "_blank" : null)">
+                                        @if (!string.IsNullOrEmpty(item.Icon))
+                                        {
+                                            <i class="@item.Icon me-1"></i>
+                                        }
+                                        @item.Title
+                                    </a>
+                                </li>
+                            }
+                        }
+                    }
+                    else
+                    {
+                        <li class="nav-item"><a class="nav-link @Active("Home")" asp-controller="Home" asp-action="Index">Home</a></li>
+                        <li class="nav-item"><a class="nav-link" asp-controller="Home" asp-action="About">About</a></li>
+                        <li class="nav-item"><a class="nav-link" asp-controller="Home" asp-action="Services">Services</a></li>
+                        <li class="nav-item"><a class="nav-link @Active("Blog")" asp-controller="Blog" asp-action="Index">Blog</a></li>
+                        <li class="nav-item"><a class="nav-link" asp-controller="Home" asp-action="Contact">Contact</a></li>
+                    }
                 </ul>
                 <div class="d-flex gap-2">
                     @if (isLoggedIn)

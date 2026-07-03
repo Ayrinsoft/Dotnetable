@@ -57,6 +57,12 @@
         </MudNavGroup>
     </AuthorizeView>
 
+    <AuthorizeView Policy="@RoleKeys.MenusView" Context="mn">
+        <MudNavLink Href="/menus" Icon="@Icons.Material.Filled.Menu">
+            @L["menus", "Menus"]
+        </MudNavLink>
+    </AuthorizeView>
+
     <MudNavGroup Title="@L["messages", "Messages"]" Icon="@Icons.Material.Filled.Message"
                  Hidden="@(!_canMessages && !_canWebsite && !_isMaster)">
         <AuthorizeView Policy="@RoleKeys.MessagesView" Context="cm">

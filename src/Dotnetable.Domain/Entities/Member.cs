@@ -43,6 +43,8 @@ public partial class Member
 
     public virtual ICollection<MemberForgetPassword> MemberForgetPasswords { get; set; } = new List<MemberForgetPassword>();
 
+    public virtual ICollection<Page> Pages { get; set; } = new List<Page>();
+
     public virtual Policy Policy { get; set; } = null!;
 
     public virtual ICollection<Post> Posts { get; set; } = new List<Post>();

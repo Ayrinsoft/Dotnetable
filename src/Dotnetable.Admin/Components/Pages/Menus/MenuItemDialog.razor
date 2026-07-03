@@ -1,0 +1,231 @@
+@inject IMenuService MenuService
+@inject ISnackbar Snackbar
+@inject IPageLocalizer L
+
+<MudDialog>
+    <DialogContent>
+        <MudForm @ref="_form">
+            <MudGrid Spacing="3">
+                <MudItem xs="12" sm="8">
+                    <MudTextField @bind-Value="Model.Title" Label="@L["menus.item_title", "Title"]"
+                                  Variant="Variant.Outlined" Required="true"
+                                  RequiredError="@L["menus.title_required", "Title is required."]" />
+                </MudItem>
+                <MudItem xs="12" sm="4">
+                    <MudNumericField T="int" @bind-Value="Model.SortOrder" Label="@L["menus.sort", "Sort"]"
+                                     Variant="Variant.Outlined" />
+                </MudItem>
+
+                <MudItem xs="12" sm="6">
+                    <MudSelect T="MenuItemType" Value="_type" ValueChanged="OnTypeChanged"
+                               Label="@L["menus.item_type", "Type"]" Variant="Variant.Outlined">
+                        @foreach (var t in Enum.GetValues<MenuItemType>())
+                        {
+                            <MudSelectItem T="MenuItemType" Value="@t">@t</MudSelectItem>
+                        }
+                    </MudSelect>
+                </MudItem>
+                <MudItem xs="12" sm="6">
+                    <MudSelect T="int?" @bind-Value="_parentId" Label="@L["menus.parent", "Parent"]"
+                               Variant="Variant.Outlined" Clearable="true">
+                        <MudSelectItem T="int?" Value="@((int?)null)">@L["menus.top_level", "— Top level —"]</MudSelectItem>
+                        @foreach (var candidate in ParentCandidates)
+                        {
+                            <MudSelectItem T="int?" Value="@candidate.MenuItemID">@candidate.Title</MudSelectItem>
+                        }
+                    </MudSelect>
+                </MudItem>
+
+                @if (_type != MenuItemType.Custom)
+                {
+                    <MudItem xs="12" sm="6">
+                        <MudNumericField T="int?" @bind-Value="_targetId"
+                                         Label="@($"{_type} {L["menus.target_id", "ID"]}")"
+                                         Variant="Variant.Outlined" Clearable="true" />
+                    </MudItem>
+                }
+                <MudItem xs="12" sm="@(_type == MenuItemType.Custom ? 12 : 6)">
+                    <MudTextField @bind-Value="Model.Url"
+                                  Label="@(_type == MenuItemType.Custom ? L["menus.url", "URL"] : L["menus.url_override", "URL override (optional)"])"
+                                  Variant="Variant.Outlined" />
+                </MudItem>
+
+                <MudItem xs="12" sm="6">
+                    <MudTextField @bind-Value="Model.Icon" Label="@L["menus.icon", "Icon (optional)"]"
+                                  Variant="Variant.Outlined" />
+                </MudItem>
+                <MudItem xs="12" sm="6">
+                    <MudTextField @bind-Value="Model.CssClass" Label="@L["menus.css", "CSS class (optional)"]"
+                                  Variant="Variant.Outlined" />
+                </MudItem>
+
+                <MudItem xs="12" sm="6">
+                    <MudSwitch T="bool" @bind-Value="Model.OpenInNewTab" Color="Color.Primary"
+                               Label="@L["menus.new_tab", "Open in new tab"]" />
+                </MudItem>
+                <MudItem xs="12" sm="6">
+                    <MudSwitch T="bool" @bind-Value="Model.IsActive" Color="Color.Success"
+                               Label="@(Model.IsActive ? L["active", "Active"] : L["inactive", "Inactive"])" />
+                </MudItem>
+
+                <MudItem xs="12">
+                    <MudExpansionPanels Elevation="0">
+                        <MudExpansionPanel Text="@L["menus.translations", "Translations"]">
+                            <MudText Typo="Typo.body2" Color="Color.Secondary" Class="mb-2">
+                                @L["menus.translations_hint", "Leave a field blank to use the default title for that language."]
+                            </MudText>
+                            @foreach (var (code, label) in _languages)
+                            {
+                                <MudTextField T="string" Value="@GetTranslation(code)"
+                                              ValueChanged="@(v => SetTranslation(code, v))"
+                                              Label="@label" Variant="Variant.Outlined" Class="mb-2" />
+                            }
+                        </MudExpansionPanel>
+                    </MudExpansionPanels>
+                </MudItem>
+            </MudGrid>
+        </MudForm>
+    </DialogContent>
+    <DialogActions>
+        <MudButton OnClick="Cancel">@L["cancel", "Cancel"]</MudButton>
+        <MudButton Variant="Variant.Filled" Color="Color.Primary" OnClick="SaveAsync" Disabled="@_saving">
+            @L["save", "Save"]
+        </MudButton>
+    </DialogActions>
+</MudDialog>
+
+@code {
+    [CascadingParameter] private IMudDialogInstance MudDialog { get; set; } = null!;
+
+    [Parameter] public MenuItem Model { get; set; } = new();
+    [Parameter] public bool IsNew { get; set; }
+
+    /// <summary>Every item of the menu, used to offer valid parents (self + descendants excluded).</summary>
+    [Parameter] public IReadOnlyList<MenuItem> AllItems { get; set; } = Array.Empty<MenuItem>();
+
+    private MudForm _form = null!;
+    private bool _saving;
+    private MenuItemType _type;
+    private int? _parentId;
+    private int? _targetId;
+    private readonly Dictionary<string, string> _translations = new(StringComparer.OrdinalIgnoreCase);
+
+    private static readonly (string Code, string Label)[] _languages =
+    [
+        ("en", "English"),
+        ("de", "Deutsch"),
+        ("fr", "Français"),
+        ("ru", "Русский"),
+        ("zh", "中文"),
+        ("fa", "فارسی"),
+        ("ar", "العربية"),
+    ];
+
+    /// <summary>Items that may be chosen as the parent — excludes this item and any of its descendants.</summary>
+    private IEnumerable<MenuItem> ParentCandidates
+    {
+        get
+        {
+            var forbidden = DescendantIds(Model.MenuItemID);
+            forbidden.Add(Model.MenuItemID);
+            return AllItems.Where(i => !forbidden.Contains(i.MenuItemID));
+        }
+    }
+
+    protected override async Task OnInitializedAsync()
+    {
+        _type = (MenuItemType)Model.ItemType;
+        _parentId = Model.ParentItemID;
+        _targetId = CurrentTargetId();
+
+        if (!IsNew)
+        {
+            foreach (var t in await MenuService.GetItemTranslationsAsync(Model.MenuItemID))
+                _translations[t.LanguageCode] = t.Title;
+        }
+    }
+
+    private string GetTranslation(string code) => _translations.TryGetValue(code, out var v) ? v : string.Empty;
+    private void SetTranslation(string code, string value) => _translations[code] = value ?? string.Empty;
+
+    private void OnTypeChanged(MenuItemType value)
+    {
+        _type = value;
+        Model.ItemType = (byte)value;
+        _targetId = CurrentTargetId();
+    }
+
+    private int? CurrentTargetId() => _type switch
+    {
+        MenuItemType.Page => Model.PageID,
+        MenuItemType.Post => Model.PostID,
+        MenuItemType.Category => Model.CategoryID,
+        MenuItemType.Product => Model.ProductID,
+        MenuItemType.ProductCategory => Model.ProductCategoryID,
+        MenuItemType.Brand => Model.BrandID,
+        MenuItemType.Vendor => Model.VendorID,
+        _ => null,
+    };
+
+    /// <summary>Writes the target-id field into the matching column and clears the others.</summary>
+    private void ApplyTargetId()
+    {
+        Model.PageID = _type == MenuItemType.Page ? _targetId : null;
+        Model.PostID = _type == MenuItemType.Post ? _targetId : null;
+        Model.CategoryID = _type == MenuItemType.Category ? _targetId : null;
+        Model.ProductID = _type == MenuItemType.Product ? _targetId : null;
+        Model.ProductCategoryID = _type == MenuItemType.ProductCategory ? _targetId : null;
+        Model.BrandID = _type == MenuItemType.Brand ? _targetId : null;
+        Model.VendorID = _type == MenuItemType.Vendor ? _targetId : null;
+    }
+
+    private HashSet<int> DescendantIds(int rootId)
+    {
+        var result = new HashSet<int>();
+        if (rootId == 0) return result;
+        var queue = new Queue<int>();
+        queue.Enqueue(rootId);
+        while (queue.Count > 0)
+        {
+            var id = queue.Dequeue();
+            foreach (var child in AllItems.Where(i => i.ParentItemID == id))
+                if (result.Add(child.MenuItemID))
+                    queue.Enqueue(child.MenuItemID);
+        }
+        return result;
+    }
+
+    private void Cancel() => MudDialog.Cancel();
+
+    private async Task SaveAsync()
+    {
+        await _form.Validate();
+        if (!_form.IsValid) return;
+
+        _saving = true;
+        try
+        {
+            Model.ParentItemID = _parentId;
+            Model.ItemType = (byte)_type;
+            ApplyTargetId();
+
+            if (IsNew)
+                await MenuService.CreateItemAsync(Model);
+            else
+                await MenuService.UpdateItemAsync(Model);
+
+            await MenuService.SetItemTranslationsAsync(Model.MenuItemID, _translations);
+
+            Snackbar.Add(L["saved", "Saved."], Severity.Success);
+            MudDialog.Close(DialogResult.Ok(true));
+        }
+        catch (Exception ex)
+        {
+            Snackbar.Add($"{L["save_failed", "Save failed"]}: {ex.Message}", Severity.Error);
+        }
+        finally
+        {
+            _saving = false;
+        }
+    }
+}
