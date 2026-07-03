@@ -55,8 +55,8 @@
                         <td>@c.WebsiteID</td>
                     }
                     <td>
-                        <MudChip T="string" Size="Size.Small" Color="@LevelColor(c.ClientLevel)" Variant="Variant.Text">
-                            @c.ClientLevel
+                        <MudChip T="string" Size="Size.Small" Color="@LevelColor(c.ClientLevel.ToEnum<ClientLevel>())" Variant="Variant.Text">
+                            @(c.ClientLevel.ToEnum<ClientLevel>())
                         </MudChip>
                     </td>
                     <td>@c.RegisterDate.ToString("yyyy-MM-dd")</td>
