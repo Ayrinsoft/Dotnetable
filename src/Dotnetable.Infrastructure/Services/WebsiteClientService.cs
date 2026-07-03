@@ -62,9 +62,11 @@ public class WebsiteClientService : IWebsiteClientService
     {
         var client = await _context.WebsiteClients.FindAsync([id], ct);
         if (client is null) return;
-        // Remove any outstanding activation / reset codes first (FK to WebsiteClient).
+        // Remove dependent rows first (FK to WebsiteClient): activation/reset codes and saved addresses.
         var codes = _context.WebsiteClientForgetPasswords.Where(f => f.WebsiteClientID == id);
         _context.WebsiteClientForgetPasswords.RemoveRange(codes);
+        var addresses = _context.WebsiteClientAddresses.Where(a => a.WebsiteClientID == id);
+        _context.WebsiteClientAddresses.RemoveRange(addresses);
         _context.WebsiteClients.Remove(client);
         await _context.SaveChangesAsync(ct);
     }

@@ -54,6 +54,7 @@ public static class ServiceCollectionExtensions
         services.AddScoped<ILocalizationService, LocalizationService>();
         services.AddScoped<IMemberService, MemberService>();
         services.AddScoped<IWebsiteClientService, WebsiteClientService>();
+        services.AddScoped<IWebsiteClientAddressService, WebsiteClientAddressService>();
         services.AddScoped<IWebsiteClientAuthService, WebsiteClientAuthService>();
         services.AddScoped<IWebsiteService, WebsiteService>();
         services.AddScoped<IPolicyService, PolicyService>();

@@ -147,6 +147,71 @@ public class ApiClient
     public Task<AuthApiResult> ResetPasswordAsync(string identifier, string code, string newPassword, CancellationToken ct = default) =>
         PostAsync("api/auth/reset-password", new { identifier, code, newPassword }, ct);
 
+    // ── Location reference data ─────────────────────────────────────
+
+    public async Task<IReadOnlyList<LocationOptionDto>> GetCountriesAsync(CancellationToken ct = default)
+    {
+        try { return await _http.GetFromJsonAsync<List<LocationOptionDto>>("api/locations/countries", ct) ?? new(); }
+        catch (HttpRequestException) { return Array.Empty<LocationOptionDto>(); }
+        catch (NotSupportedException) { return Array.Empty<LocationOptionDto>(); }
+    }
+
+    public async Task<IReadOnlyList<LocationOptionDto>> GetCitiesAsync(int countryId, CancellationToken ct = default)
+    {
+        try { return await _http.GetFromJsonAsync<List<LocationOptionDto>>($"api/locations/countries/{countryId}/cities", ct) ?? new(); }
+        catch (HttpRequestException) { return Array.Empty<LocationOptionDto>(); }
+        catch (NotSupportedException) { return Array.Empty<LocationOptionDto>(); }
+    }
+
+    // ── Customer addresses (requires the caller's JWT cookie — see BearerTokenHandler) ──
+
+    /// <summary>The signed-in customer's saved addresses, or an empty list when unreachable/unauthorized.</summary>
+    public async Task<IReadOnlyList<AddressDto>> GetAddressesAsync(CancellationToken ct = default)
+    {
+        try { return await _http.GetFromJsonAsync<List<AddressDto>>("api/addresses", ct) ?? new(); }
+        catch (HttpRequestException) { return Array.Empty<AddressDto>(); }
+        catch (NotSupportedException) { return Array.Empty<AddressDto>(); }
+    }
+
+    public Task<AuthApiResult> CreateAddressAsync(AddressRequest request, CancellationToken ct = default) =>
+        PostAsync("api/addresses", request, ct);
+
+    public async Task<AuthApiResult> UpdateAddressAsync(int id, AddressRequest request, CancellationToken ct = default)
+    {
+        HttpResponseMessage response;
+        try { response = await _http.PutAsJsonAsync($"api/addresses/{id}", request, ct); }
+        catch (HttpRequestException)
+        {
+            return new AuthApiResult(false, HttpStatusCode.ServiceUnavailable,
+                "Service is unavailable. Please try again later.", new Dictionary<string, string>(), null);
+        }
+        return await ToResultAsync(response, ct);
+    }
+
+    public async Task<AuthApiResult> DeleteAddressAsync(int id, CancellationToken ct = default)
+    {
+        HttpResponseMessage response;
+        try { response = await _http.DeleteAsync($"api/addresses/{id}", ct); }
+        catch (HttpRequestException)
+        {
+            return new AuthApiResult(false, HttpStatusCode.ServiceUnavailable,
+                "Service is unavailable. Please try again later.", new Dictionary<string, string>(), null);
+        }
+        return await ToResultAsync(response, ct);
+    }
+
+    public async Task<AuthApiResult> SetDefaultAddressAsync(int id, CancellationToken ct = default)
+    {
+        HttpResponseMessage response;
+        try { response = await _http.PostAsync($"api/addresses/{id}/default", null, ct); }
+        catch (HttpRequestException)
+        {
+            return new AuthApiResult(false, HttpStatusCode.ServiceUnavailable,
+                "Service is unavailable. Please try again later.", new Dictionary<string, string>(), null);
+        }
+        return await ToResultAsync(response, ct);
+    }
+
     /// <summary>POSTs JSON and normalizes the response into an <see cref="AuthApiResult"/>.</summary>
     private async Task<AuthApiResult> PostAsync(string path, object payload, CancellationToken ct)
     {
@@ -162,6 +227,12 @@ public class ApiClient
                 new Dictionary<string, string>(), null);
         }
 
+        return await ToResultAsync(response, ct);
+    }
+
+    /// <summary>Normalizes an API response into an <see cref="AuthApiResult"/>.</summary>
+    private static async Task<AuthApiResult> ToResultAsync(HttpResponseMessage response, CancellationToken ct)
+    {
         string? message = null;
         var fields = new Dictionary<string, string>(StringComparer.OrdinalIgnoreCase);
         LoginResult? token = null;

@@ -1,4 +1,5 @@
 using System.Net;
+using Dotnetable.Application.DTOs;
 using Dotnetable.Web.Services;
 using Microsoft.AspNetCore.Mvc;
 
@@ -182,4 +183,87 @@ public class AccountController : Controller
         Response.Cookies.Delete(ClientAuth.TokenCookie);
         return Ok(new { success = true });
     }
+
+    // ── Addresses ────────────────────────────────────────────────────
+
+    [HttpGet]
+    public async Task<IActionResult> Addresses(CancellationToken ct = default)
+    {
+        if (!Request.Cookies.ContainsKey(ClientAuth.TokenCookie))
+            return RedirectToAction(nameof(HomeController.Index), "Home");
+
+        var addresses = await _api.GetAddressesAsync(ct);
+        ViewBag.Countries = await _api.GetCountriesAsync(ct);
+        return View(addresses);
+    }
+
+    [HttpGet]
+    public async Task<IActionResult> Cities(int countryId, CancellationToken ct = default) =>
+        Ok(await _api.GetCitiesAsync(countryId, ct));
+
+    public sealed class AddressInput
+    {
+        public string? Title { get; set; }
+        public string? ReceiverName { get; set; }
+        public int? CountryId { get; set; }
+        public int? CityId { get; set; }
+        public string AddressLine { get; set; } = string.Empty;
+        public string? PostalCode { get; set; }
+        public string? Phone { get; set; }
+        public bool IsDefault { get; set; }
+    }
+
+    [HttpPost]
+    public async Task<IActionResult> AddAddress([FromBody] AddressInput input, CancellationToken ct = default)
+    {
+        if (string.IsNullOrWhiteSpace(input.AddressLine))
+            return BadRequest(new { message = "Address line is required." });
+
+        var result = await _api.CreateAddressAsync(ToRequest(input), ct);
+        return result.Ok
+            ? Ok(new { success = true })
+            : StatusCode((int)result.Status, new { message = result.Message ?? "Could not save the address." });
+    }
+
+    [HttpPost]
+    public async Task<IActionResult> UpdateAddress(int id, [FromBody] AddressInput input, CancellationToken ct = default)
+    {
+        if (string.IsNullOrWhiteSpace(input.AddressLine))
+            return BadRequest(new { message = "Address line is required." });
+
+        var result = await _api.UpdateAddressAsync(id, ToRequest(input), ct);
+        return result.Ok
+            ? Ok(new { success = true })
+            : StatusCode((int)result.Status, new { message = result.Message ?? "Could not save the address." });
+    }
+
+    [HttpPost]
+    public async Task<IActionResult> DeleteAddress(int id, CancellationToken ct = default)
+    {
+        var result = await _api.DeleteAddressAsync(id, ct);
+        return result.Ok
+            ? Ok(new { success = true })
+            : StatusCode((int)result.Status, new { message = result.Message ?? "Could not delete the address." });
+    }
+
+    [HttpPost]
+    public async Task<IActionResult> SetDefaultAddress(int id, CancellationToken ct = default)
+    {
+        var result = await _api.SetDefaultAddressAsync(id, ct);
+        return result.Ok
+            ? Ok(new { success = true })
+            : StatusCode((int)result.Status, new { message = result.Message ?? "Could not update the address." });
+    }
+
+    private static AddressRequest ToRequest(AddressInput input) => new()
+    {
+        Title = input.Title?.Trim(),
+        ReceiverName = input.ReceiverName?.Trim(),
+        CountryId = input.CountryId,
+        CityId = input.CityId,
+        AddressLine = input.AddressLine.Trim(),
+        PostalCode = input.PostalCode?.Trim(),
+        Phone = input.Phone?.Trim(),
+        IsDefault = input.IsDefault,
+    };
 }

@@ -1,0 +1,140 @@
+@{
+    ViewData["Title"] = "My Addresses";
+    Layout = "/Themes/Default/Views/Shared/_Layout.cshtml";
+    var addresses = ViewData.Model as IReadOnlyList<Dotnetable.Application.DTOs.AddressDto>
+        ?? System.Array.Empty<Dotnetable.Application.DTOs.AddressDto>();
+    var countries = ViewBag.Countries as IReadOnlyList<Dotnetable.Application.DTOs.LocationOptionDto>
+        ?? System.Array.Empty<Dotnetable.Application.DTOs.LocationOptionDto>();
+    const int maxAddresses = 10;
+}
+
+@await Html.PartialAsync("_PageHeader", ("My Addresses", "Addresses"))
+
+<section class="site-section">
+    <div class="container">
+        <div class="d-flex justify-content-between align-items-center flex-wrap gap-2 mb-4">
+            <p class="text-muted mb-0">You can save up to @maxAddresses addresses. (<span id="addressCount">@addresses.Count</span>/@maxAddresses)</p>
+            <button type="button" class="btn btn-primary" id="addAddressBtn" @(addresses.Count >= maxAddresses ? "disabled" : "")>
+                <i class="bi bi-plus-lg me-1"></i>Add address
+            </button>
+        </div>
+
+        <div id="addressList" class="row g-3">
+            @if (addresses.Count == 0)
+            {
+                <div class="col-12">
+                    <p class="text-muted text-center py-5" id="addressEmpty">No addresses saved yet.</p>
+                </div>
+            }
+            @foreach (var a in addresses)
+            {
+                <div class="col-md-6" data-address-card="@a.WebsiteClientAddressID">
+                    <div class="site-card h-100">
+                        <div class="d-flex justify-content-between align-items-start mb-2">
+                            <h3 class="h6 fw-bold mb-0">@(a.Title ?? "Address")</h3>
+                            @if (a.IsDefault)
+                            {
+                                <span class="badge text-bg-primary">Default</span>
+                            }
+                        </div>
+                        <p class="mb-1">@a.ReceiverName</p>
+                        <p class="text-muted mb-1">@a.AddressLine</p>
+                        <p class="text-muted mb-1">@(string.Join(", ", new[] { a.CityName, a.CountryName }.Where(s => !string.IsNullOrWhiteSpace(s))))</p>
+                        @if (!string.IsNullOrWhiteSpace(a.PostalCode))
+                        {
+                            <p class="text-muted mb-1">Postal code: @a.PostalCode</p>
+                        }
+                        @if (!string.IsNullOrWhiteSpace(a.Phone))
+                        {
+                            <p class="text-muted mb-1">@a.Phone</p>
+                        }
+                        <div class="d-flex gap-2 mt-3">
+                            <button type="button" class="btn btn-outline-secondary btn-sm address-edit"
+                                    data-id="@a.WebsiteClientAddressID" data-title="@a.Title" data-receiver="@a.ReceiverName"
+                                    data-country="@a.CountryId" data-city="@a.CityId" data-line="@a.AddressLine"
+                                    data-postal="@a.PostalCode" data-phone="@a.Phone" data-default="@a.IsDefault.ToString().ToLowerInvariant()">
+                                Edit
+                            </button>
+                            @if (!a.IsDefault)
+                            {
+                                <button type="button" class="btn btn-outline-secondary btn-sm address-set-default" data-id="@a.WebsiteClientAddressID">
+                                    Set default
+                                </button>
+                            }
+                            <button type="button" class="btn btn-outline-danger btn-sm address-delete" data-id="@a.WebsiteClientAddressID">
+                                Delete
+                            </button>
+                        </div>
+                    </div>
+                </div>
+            }
+        </div>
+    </div>
+</section>
+
+<!-- ── Add / edit address modal ─────────────────────────────────── -->
+<div class="modal fade" id="addressModal" tabindex="-1" aria-hidden="true">
+    <div class="modal-dialog modal-dialog-centered">
+        <div class="modal-content">
+            <div class="modal-header">
+                <h5 class="modal-title" id="addressModalTitle">Add address</h5>
+                <button type="button" class="btn-close" data-bs-dismiss="modal" aria-label="Close"></button>
+            </div>
+            <div class="modal-body">
+                <form id="addressForm" novalidate>
+                    <input type="hidden" id="addrId" value="0" />
+                    <div class="mb-3">
+                        <label class="form-label" for="addrTitle">Title</label>
+                        <input class="form-control" id="addrTitle" placeholder="Home, Office, ..." />
+                    </div>
+                    <div class="mb-3">
+                        <label class="form-label" for="addrReceiver">Receiver name</label>
+                        <input class="form-control" id="addrReceiver" />
+                    </div>
+                    <div class="row g-2 mb-3">
+                        <div class="col">
+                            <label class="form-label" for="addrCountry">Country</label>
+                            <select class="form-select" id="addrCountry">
+                                <option value="">—</option>
+                                @foreach (var c in countries)
+                                {
+                                    <option value="@c.Id">@c.Title</option>
+                                }
+                            </select>
+                        </div>
+                        <div class="col">
+                            <label class="form-label" for="addrCity">City</label>
+                            <select class="form-select" id="addrCity" disabled>
+                                <option value="">—</option>
+                            </select>
+                        </div>
+                    </div>
+                    <div class="mb-3">
+                        <label class="form-label" for="addrLine">Address</label>
+                        <textarea class="form-control" id="addrLine" rows="2" required></textarea>
+                    </div>
+                    <div class="row g-2 mb-3">
+                        <div class="col">
+                            <label class="form-label" for="addrPostal">Postal code</label>
+                            <input class="form-control" id="addrPostal" />
+                        </div>
+                        <div class="col">
+                            <label class="form-label" for="addrPhone">Phone</label>
+                            <input class="form-control" id="addrPhone" />
+                        </div>
+                    </div>
+                    <div class="form-check mb-2">
+                        <input class="form-check-input" type="checkbox" id="addrDefault" />
+                        <label class="form-check-label" for="addrDefault">Set as default</label>
+                    </div>
+                    <p class="text-danger small" id="addressFeedback"></p>
+                    <button type="submit" class="btn btn-primary w-100" id="addressSubmit">Save address</button>
+                </form>
+            </div>
+        </div>
+    </div>
+</div>
+
+@section Scripts {
+    <script src="~/js/addresses.js" asp-append-version="true"></script>
+}
