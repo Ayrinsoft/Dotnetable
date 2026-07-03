@@ -43,9 +43,25 @@ public partial class FileRecord
 
     public int? FileAlbumID { get; set; }
 
+    public int WebsiteID { get; set; }
+
+    public int? UploaderMemberID { get; set; }
+
+    public int? WebsiteClientID { get; set; }
+
+    public virtual ICollection<Bank> Banks { get; set; } = new List<Bank>();
+
     public virtual FileAlbum? FileAlbum { get; set; }
 
     public virtual ICollection<FileRecordTag> FileRecordTags { get; set; } = new List<FileRecordTag>();
+
+    public virtual ICollection<Post> Posts { get; set; } = new List<Post>();
+
+    public virtual Member? UploaderMember { get; set; }
+
+    public virtual Website Website { get; set; } = null!;
+
+    public virtual WebsiteClient? WebsiteClient { get; set; }
 
     public virtual ICollection<WebsiteClient> WebsiteClients { get; set; } = new List<WebsiteClient>();
 

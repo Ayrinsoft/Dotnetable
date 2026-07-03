@@ -35,11 +35,17 @@ public partial class Member
 
     public int WebsiteID { get; set; }
 
+    public virtual ICollection<BankAccount> BankAccounts { get; set; } = new List<BankAccount>();
+
     public virtual ICollection<EmailSubscribe> EmailSubscribes { get; set; } = new List<EmailSubscribe>();
+
+    public virtual ICollection<FileRecord> FileRecords { get; set; } = new List<FileRecord>();
 
     public virtual ICollection<MemberForgetPassword> MemberForgetPasswords { get; set; } = new List<MemberForgetPassword>();
 
     public virtual Policy Policy { get; set; } = null!;
+
+    public virtual ICollection<Post> Posts { get; set; } = new List<Post>();
 
     public virtual Website Website { get; set; } = null!;
 }
