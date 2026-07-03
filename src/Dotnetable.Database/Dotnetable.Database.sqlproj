@@ -84,6 +84,25 @@
     <Build Include="City.sql" />
     <Build Include="WebsiteClient.sql" />
     <Build Include="WebsiteClientForgetPassword.sql" />
+    <Build Include="TagTranslations.sql" />
+    <Build Include="Tags.sql" />
+    <Build Include="PostType.sql" />
+    <Build Include="PostTranslations.sql" />
+    <Build Include="PostTags.sql" />
+    <Build Include="Posts.sql" />
+    <Build Include="PostCategory.sql" />
+    <Build Include="MenuItemTranslation.sql" />
+    <Build Include="MenuItem.sql" />
+    <Build Include="Menu.sql" />
+    <Build Include="CurrencyRate.sql" />
+    <Build Include="CategoryTranslation.sql" />
+    <Build Include="Category.sql" />
+    <Build Include="BankAccount.sql" />
+    <Build Include="Bank.sql" />
+    <Build Include="AttributeOptionTranslation.sql" />
+    <Build Include="AttributeOption.sql" />
+    <Build Include="AttributeDefinitionTranslation.sql" />
+    <Build Include="AttributeDefinition.sql" />
   </ItemGroup>
   <Import Project="$(MSBuildExtensionsPath)\Microsoft\VisualStudio\v$(VisualStudioVersion)\SSDT\Microsoft.Data.Tools.Schema.SqlTasks.targets" Condition="'$(VisualStudioVersion)' != '' And Exists('$(MSBuildExtensionsPath)\Microsoft\VisualStudio\v$(VisualStudioVersion)\SSDT\Microsoft.Data.Tools.Schema.SqlTasks.targets')" />
   <Import Project="$(MSBuildExtensionsPath)\Microsoft\VisualStudio\SSDT\Microsoft.Data.Tools.Schema.SqlTasks.targets" Condition="'$(VisualStudioVersion)' == '' And Exists('$(MSBuildExtensionsPath)\Microsoft\VisualStudio\SSDT\Microsoft.Data.Tools.Schema.SqlTasks.targets')" />

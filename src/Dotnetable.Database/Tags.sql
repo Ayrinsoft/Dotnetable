@@ -1,0 +1,9 @@
+﻿CREATE TABLE [dbo].[Tags] (
+    [TagID]     INT            IDENTITY (1, 1) NOT NULL,
+    [WebsiteID] INT            NOT NULL,
+    [Name]      NVARCHAR (150) NOT NULL,
+    [Slug]      NVARCHAR (150) NOT NULL,
+    CONSTRAINT [PK_Tags] PRIMARY KEY CLUSTERED ([TagID] ASC),
+    CONSTRAINT [FK_Tags_Website] FOREIGN KEY ([WebsiteID]) REFERENCES [dbo].[Website] ([WebsiteID])
+);
+

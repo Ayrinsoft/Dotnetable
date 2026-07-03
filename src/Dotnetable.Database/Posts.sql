@@ -1,0 +1,26 @@
+﻿CREATE TABLE [dbo].[Posts] (
+    [PostID]              INT             IDENTITY (1, 1) NOT NULL,
+    [WebsiteID]           INT             NOT NULL,
+    [PostTypeID]          INT             NOT NULL,
+    [AuthorMemberID]      INT             NULL,
+    [Slug]                NVARCHAR (300)  NOT NULL,
+    [Title]               NVARCHAR (300)  NOT NULL,
+    [Excerpt]             NVARCHAR (1000) NULL,
+    [Content]             NVARCHAR (MAX)  NULL,
+    [FeaturedImageFileID] INT             NULL,
+    [Status]              TINYINT         CONSTRAINT [DF_Posts_Status_1] DEFAULT ((1)) NOT NULL,
+    [PublishedAt]         DATETIME        NULL,
+    [ScheduledAt]         DATETIME        NULL,
+    [IsFeatured]          BIT             CONSTRAINT [DF_Posts_IsFeatured_1] DEFAULT ((0)) NOT NULL,
+    [ViewCount]           INT             CONSTRAINT [DF_Posts_ViewCount_1] DEFAULT ((0)) NOT NULL,
+    [CommentsEnabled]     BIT             CONSTRAINT [DF_Posts_CommentsEnabled] DEFAULT ((1)) NOT NULL,
+    [IsActive]            BIT             CONSTRAINT [DF_Posts_IsActive_1] DEFAULT ((1)) NOT NULL,
+    [CreatedAt]           DATETIME        CONSTRAINT [DF_Posts_CreatedAt_1] DEFAULT (sysutcdatetime()) NOT NULL,
+    [UpdatedAt]           DATETIME        CONSTRAINT [DF_Posts_UpdatedAt_1] DEFAULT (sysutcdatetime()) NOT NULL,
+    CONSTRAINT [PK_Posts] PRIMARY KEY CLUSTERED ([PostID] ASC),
+    CONSTRAINT [FK_Posts_FileRecord] FOREIGN KEY ([FeaturedImageFileID]) REFERENCES [dbo].[FileRecord] ([FileRecordID]),
+    CONSTRAINT [FK_Posts_Member] FOREIGN KEY ([AuthorMemberID]) REFERENCES [dbo].[Member] ([MemberID]),
+    CONSTRAINT [FK_Posts_PostType] FOREIGN KEY ([PostTypeID]) REFERENCES [dbo].[PostType] ([PostTypeID]),
+    CONSTRAINT [FK_Posts_Website] FOREIGN KEY ([WebsiteID]) REFERENCES [dbo].[Website] ([WebsiteID])
+);
+

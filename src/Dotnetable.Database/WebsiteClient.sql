@@ -17,15 +17,13 @@
     CONSTRAINT [FK_WebsiteClient_FileRecord] FOREIGN KEY ([AvatarID]) REFERENCES [dbo].[FileRecord] ([FileRecordID]),
     CONSTRAINT [FK_WebsiteClient_Website] FOREIGN KEY ([WebsiteID]) REFERENCES [dbo].[Website] ([WebsiteID])
 );
+
+
 GO
 
 -- A customer's email / mobile must be unique per website. Filtered so multiple customers who
 -- registered with only the other identifier (NULL here) don't collide under SQL Server's
 -- "NULLs are equal" unique-index rule.
-CREATE UNIQUE NONCLUSTERED INDEX [UX_WebsiteClient_Website_Email]
-    ON [dbo].[WebsiteClient] ([WebsiteID] ASC, [Email] ASC) WHERE [Email] IS NOT NULL;
-GO
 
-CREATE UNIQUE NONCLUSTERED INDEX [UX_WebsiteClient_Website_Cellphone]
-    ON [dbo].[WebsiteClient] ([WebsiteID] ASC, [Cellphone] ASC) WHERE [Cellphone] IS NOT NULL;
+GO
 
