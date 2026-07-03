@@ -55,6 +55,12 @@ public static class RoleCatalog
         new(RoleKeys.LocalizationView, "View translations", RoleCategory.Admin),
         new(RoleKeys.LocalizationEdit, "Edit translations", RoleCategory.Admin),
 
+        // Navigation menus
+        new(RoleKeys.MenusView, "View navigation menus", RoleCategory.Admin),
+        new(RoleKeys.MenusInsert, "Create navigation menus", RoleCategory.Admin),
+        new(RoleKeys.MenusEdit, "Edit navigation menus", RoleCategory.Admin),
+        new(RoleKeys.MenusDelete, "Delete navigation menus", RoleCategory.Admin),
+
         // Media
         new(RoleKeys.MediaView, "View media library", RoleCategory.Admin),
         new(RoleKeys.MediaUpload, "Upload media & manage storage", RoleCategory.Admin),

@@ -1,6 +1,7 @@
 using System.Net;
 using System.Net.Http.Json;
 using System.Text.Json;
+using Dotnetable.Application.DTOs;
 
 namespace Dotnetable.Web.Services;
 
@@ -33,6 +34,23 @@ public class ApiClient
     public async Task<IReadOnlyDictionary<string, string>> GetTranslationsAsync(string languageCode, CancellationToken ct = default) =>
         await _http.GetFromJsonAsync<Dictionary<string, string>>($"api/localization/{languageCode}", ct)
         ?? new Dictionary<string, string>();
+
+    /// <summary>Fetches the active navigation menu for a location (e.g. "Header", "Footer"), or null
+    /// when none is configured or the API is unreachable — callers fall back to static navigation.</summary>
+    public async Task<MenuDto?> GetMenuAsync(string location, string? lang = null, CancellationToken ct = default)
+    {
+        var path = $"api/menu/{Uri.EscapeDataString(location)}";
+        if (!string.IsNullOrWhiteSpace(lang))
+            path += $"?lang={Uri.EscapeDataString(lang)}";
+
+        try
+        {
+            // 204 No Content (no menu assigned) deserializes to null, which is exactly what we want.
+            return await _http.GetFromJsonAsync<MenuDto>(path, ct);
+        }
+        catch (HttpRequestException) { return null; }
+        catch (NotSupportedException) { return null; }
+    }
 
     public Task<AuthApiResult> LoginAsync(string identifier, string password, CancellationToken ct = default) =>
         PostAsync("api/auth/login", new { identifier, password }, ct);

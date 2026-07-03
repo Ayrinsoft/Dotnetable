@@ -72,6 +72,8 @@ public partial class Website
 
     public virtual ICollection<Menu> Menus { get; set; } = new List<Menu>();
 
+    public virtual ICollection<Page> Pages { get; set; } = new List<Page>();
+
     public virtual ICollection<Policy> Policies { get; set; } = new List<Policy>();
 
     public virtual ICollection<PostType> PostTypes { get; set; } = new List<PostType>();
@@ -83,6 +85,8 @@ public partial class Website
     public virtual ICollection<WebsiteClient> WebsiteClients { get; set; } = new List<WebsiteClient>();
 
     public virtual ICollection<WebsiteIP> WebsiteIPs { get; set; } = new List<WebsiteIP>();
+
+    public virtual ICollection<WebsiteRedirect> WebsiteRedirects { get; set; } = new List<WebsiteRedirect>();
 
     public virtual ICollection<WebsiteScript> WebsiteScripts { get; set; } = new List<WebsiteScript>();
 

@@ -21,6 +21,7 @@
     CONSTRAINT [FK_MenuItem_Category] FOREIGN KEY ([CategoryID]) REFERENCES [dbo].[Category] ([CategoryID]),
     CONSTRAINT [FK_MenuItem_Menu] FOREIGN KEY ([MenuID]) REFERENCES [dbo].[Menu] ([MenuID]),
     CONSTRAINT [FK_MenuItem_MenuItem] FOREIGN KEY ([ParentItemID]) REFERENCES [dbo].[MenuItem] ([MenuItemID]),
+    CONSTRAINT [FK_MenuItem_Pages] FOREIGN KEY ([PageID]) REFERENCES [dbo].[Pages] ([PageID]),
     CONSTRAINT [FK_MenuItem_Posts] FOREIGN KEY ([PostID]) REFERENCES [dbo].[Posts] ([PostID])
 );
 

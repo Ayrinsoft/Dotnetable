@@ -39,6 +39,12 @@ public static class RoleKeys
     public const string LocalizationView = "localization.view";
     public const string LocalizationEdit = "localization.edit";
 
+    // ── Navigation menus (admin) ────────────────────────────────────
+    public const string MenusView = "menus.view";
+    public const string MenusInsert = "menus.insert";
+    public const string MenusEdit = "menus.edit";
+    public const string MenusDelete = "menus.delete";
+
     // ── Media library (admin) ───────────────────────────────────────
     public const string MediaView = "media.view";
     public const string MediaUpload = "media.upload";

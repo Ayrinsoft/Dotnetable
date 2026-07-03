@@ -92,6 +92,7 @@ public static class ServiceCollectionExtensions
         services.AddScoped<ILocationService, LocationService>();
         services.AddScoped<IWebsiteSettingService, WebsiteSettingService>();
         services.AddScoped<IContactMessageService, ContactMessageService>();
+        services.AddScoped<IMenuService, MenuService>();
 
         // Login/forgot-password protection + email.
         services.AddMemoryCache();

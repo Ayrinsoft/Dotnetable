@@ -1,0 +1,201 @@
+@page "/menus"
+@attribute [Authorize(Policy = RoleKeys.MenusView)]
+@inject IMenuService MenuService
+@inject AuthenticationStateProvider AuthState
+@inject IDialogService DialogService
+@inject ISnackbar Snackbar
+@inject NavigationManager Nav
+@inject IPageLocalizer L
+
+<DNPageTitle Title=@L["menus", "Menus"] />
+
+@* ── Page header ──────────────────────────────────────────────── *@
+<MudStack Row="true" AlignItems="AlignItems.Center" Justify="Justify.SpaceBetween" Class="mb-4">
+    <MudStack Spacing="0">
+        <MudText Typo="Typo.h5" Class="fw-bold">@L["menus", "Menus"]</MudText>
+        <MudText Typo="Typo.body2" Color="Color.Secondary">
+            @(_isMaster ? L["menus.subtitle_all", "Navigation menus across all websites"] : L["menus.subtitle_own", "Navigation menus for your website"])
+        </MudText>
+    </MudStack>
+    @if (_canInsert)
+    {
+        <MudButton Variant="Variant.Filled" Color="Color.Primary"
+                   StartIcon="@Icons.Material.Filled.Add" OnClick="CreateAsync">
+            @L["menus.new", "New Menu"]
+        </MudButton>
+    }
+</MudStack>
+
+<MudPaper Elevation="0" Class="app-card rounded-lg pa-4">
+    @if (_loading)
+    {
+        <MudProgressLinear Indeterminate="true" Color="Color.Primary" Class="mb-3" />
+    }
+    else if (_menus.Count == 0)
+    {
+        <div style="text-align:center; padding:32px;">
+            <MudText Color="Color.Secondary">@L["menus.empty", "No menus yet."]</MudText>
+        </div>
+    }
+    else
+    {
+        <MudSimpleTable Dense="true" Hover="true" Elevation="0">
+            <thead>
+                <tr>
+                    <th style="width:1%"></th>
+                    <th>@L["id", "ID"]</th>
+                    <th>@L["name", "Name"]</th>
+                    <th>@L["menus.location", "Location"]</th>
+                    @if (_isMaster)
+                    {
+                        <th>@L["website", "Website"]</th>
+                    }
+                    <th>@L["menus.items", "Items"]</th>
+                    <th>@L["status", "Status"]</th>
+                    <th style="width:1%"></th>
+                </tr>
+            </thead>
+            <tbody>
+                @foreach (var m in _menus)
+                {
+                    <tr>
+                        <td>
+                            <MudIconButton Icon="@Icons.Material.Filled.FormatListBulleted" Size="Size.Small"
+                                           Color="Color.Primary" Title="@L["menus.manage_items", "Manage items"]"
+                                           Href="@($"/menus/{m.MenuID}")" />
+                        </td>
+                        <td>@m.MenuID</td>
+                        <td>@m.Name</td>
+                        <td>
+                            <MudChip T="string" Size="Size.Small" Variant="Variant.Text" Color="Color.Info">
+                                @((MenuLocation)m.Location)
+                            </MudChip>
+                        </td>
+                        @if (_isMaster)
+                        {
+                            <td>#@m.WebsiteID</td>
+                        }
+                        <td>@(m.MenuItems?.Count ?? 0)</td>
+                        <td>
+                            <MudSwitch T="bool" Value="m.IsActive" Color="Color.Success"
+                                       Disabled="@(!_canEdit || _busy.Contains(m.MenuID))"
+                                       ValueChanged="@(v => ToggleActiveAsync(m, v))" />
+                        </td>
+                        <td>
+                            <MudStack Row="true" Spacing="0">
+                                @if (_canEdit)
+                                {
+                                    <MudIconButton Icon="@Icons.Material.Filled.Edit" Size="Size.Small"
+                                                   Color="Color.Default" OnClick="@(() => EditAsync(m))" />
+                                }
+                                @if (_canDelete)
+                                {
+                                    <MudIconButton Icon="@Icons.Material.Filled.Delete" Size="Size.Small"
+                                                   Color="Color.Error" OnClick="@(() => DeleteAsync(m))" />
+                                }
+                            </MudStack>
+                        </td>
+                    </tr>
+                }
+            </tbody>
+        </MudSimpleTable>
+    }
+</MudPaper>
+
+@code {
+    private bool _loading = true;
+    private bool _isMaster;
+    private bool _canInsert;
+    private bool _canEdit;
+    private bool _canDelete;
+    private int _websiteId;
+    private List<Menu> _menus = new();
+    private HashSet<int> _busy = new();
+
+    protected override async Task OnInitializedAsync()
+    {
+        await L.EnsureLoadedAsync();
+
+        var user = (await AuthState.GetAuthenticationStateAsync()).User;
+        _isMaster = user.HasClaim(AdminClaimTypes.Master, "true");
+        _canInsert = AdminPolicies.Allows(user, RoleKeys.MenusInsert);
+        _canEdit = AdminPolicies.Allows(user, RoleKeys.MenusEdit);
+        _canDelete = AdminPolicies.Allows(user, RoleKeys.MenusDelete);
+        int.TryParse(user.FindFirst(AdminClaimTypes.WebsiteId)?.Value, out _websiteId);
+
+        await LoadAsync();
+    }
+
+    private async Task LoadAsync()
+    {
+        _loading = true;
+        _menus = await MenuService.GetMenusAsync(_isMaster ? null : _websiteId);
+        _loading = false;
+    }
+
+    private async Task ToggleActiveAsync(Menu m, bool value)
+    {
+        if (!_busy.Add(m.MenuID)) return;
+        m.IsActive = value;
+        try { await MenuService.UpdateMenuAsync(m); }
+        finally { _busy.Remove(m.MenuID); }
+    }
+
+    private async Task CreateAsync()
+    {
+        var result = await ShowDialogAsync(new Menu
+        {
+            WebsiteID = _websiteId,
+            Location = (byte)MenuLocation.Header,
+            IsActive = true,
+        }, isNew: true);
+        if (result) await LoadAsync();
+    }
+
+    private async Task EditAsync(Menu m)
+    {
+        var result = await ShowDialogAsync(new Menu
+        {
+            MenuID = m.MenuID,
+            WebsiteID = m.WebsiteID,
+            Name = m.Name,
+            Location = m.Location,
+            IsActive = m.IsActive,
+        }, isNew: false);
+        if (result) await LoadAsync();
+    }
+
+    private async Task<bool> ShowDialogAsync(Menu menu, bool isNew)
+    {
+        var parameters = new DialogParameters<MenuDialog>
+        {
+            { x => x.Model, menu },
+            { x => x.IsNew, isNew },
+            { x => x.AllowWebsiteEdit, _isMaster },
+        };
+        var dialog = await DialogService.ShowAsync<MenuDialog>(
+            isNew ? L["menus.new", "New Menu"] : L["menus.edit", "Edit Menu"], parameters);
+        var result = await dialog.Result;
+        return result is not null && !result.Canceled;
+    }
+
+    private async Task DeleteAsync(Menu m)
+    {
+        var confirmed = await DialogService.ShowMessageBoxAsync(
+            L["menus.delete", "Delete menu"],
+            L["menus.delete_confirm", "This deletes the menu and all its items. Continue?"],
+            yesText: L["delete", "Delete"], cancelText: L["cancel", "Cancel"]);
+        if (confirmed != true) return;
+
+        try
+        {
+            await MenuService.DeleteMenuAsync(m.MenuID);
+            Snackbar.Add(L["deleted", "Deleted."], Severity.Success);
+            await LoadAsync();
+        }
+        catch (Exception ex)
+        {
+            Snackbar.Add($"{L["delete_failed", "Delete failed"]}: {ex.Message}", Severity.Error);
+        }
+    }
+}
