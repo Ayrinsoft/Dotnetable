@@ -1,0 +1,13 @@
+﻿CREATE TABLE [dbo].[MediaSetItems] (
+    [MediaSetItemID]       INT            IDENTITY (1, 1) NOT NULL,
+    [MediaSetID]           INT            NOT NULL,
+    [FileID]               INT            NULL,
+    [VideoThumbnailFileID] INT            NULL,
+    [ExternalVideoUrl]     NVARCHAR (500) NULL,
+    [SortOrder]            INT            CONSTRAINT [DF_MediaSetItems_SortOrder] DEFAULT ((0)) NOT NULL,
+    CONSTRAINT [PK_MediaSetItems] PRIMARY KEY CLUSTERED ([MediaSetItemID] ASC),
+    CONSTRAINT [FK_MediaSetItems_FileRecord] FOREIGN KEY ([FileID]) REFERENCES [dbo].[FileRecord] ([FileRecordID]),
+    CONSTRAINT [FK_MediaSetItems_FileRecord1] FOREIGN KEY ([VideoThumbnailFileID]) REFERENCES [dbo].[FileRecord] ([FileRecordID]),
+    CONSTRAINT [FK_MediaSetItems_MediaSets] FOREIGN KEY ([MediaSetID]) REFERENCES [dbo].[MediaSets] ([MediaSetID])
+);
+

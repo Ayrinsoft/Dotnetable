@@ -107,6 +107,46 @@
     <Build Include="Pages.sql" />
     <Build Include="WebsiteClientAddresses.sql" />
     <Build Include="BankAccounts.sql" />
+    <Build Include="VendorTranslations.sql" />
+    <Build Include="Vendors.sql" />
+    <Build Include="VendorProducts.sql" />
+    <Build Include="VariantAttributeValues.sql" />
+    <Build Include="Suppliers.sql" />
+    <Build Include="StockMovements.sql" />
+    <Build Include="Settlements.sql" />
+    <Build Include="SettlementItems.sql" />
+    <Build Include="ProductWarningTranslations.sql" />
+    <Build Include="ProductWarnings.sql" />
+    <Build Include="ProductVariants.sql" />
+    <Build Include="ProductTranslations.sql" />
+    <Build Include="Products.sql" />
+    <Build Include="ProductReviews.sql" />
+    <Build Include="ProductRelations.sql" />
+    <Build Include="ProductQuestions.sql" />
+    <Build Include="ProductMedia.sql" />
+    <Build Include="ProductContentSectionTranslations.sql" />
+    <Build Include="ProductContentSections.sql" />
+    <Build Include="ProductCategoryTranslations.sql" />
+    <Build Include="ProductCategoryRelations.sql" />
+    <Build Include="ProductCategoryMaps.sql" />
+    <Build Include="ProductCategories.sql" />
+    <Build Include="ProductAttributeValueTranslations.sql" />
+    <Build Include="ProductAttributeValues.sql" />
+    <Build Include="ProductAnswers.sql" />
+    <Build Include="Payments.sql" />
+    <Build Include="PaymentRefunds.sql" />
+    <Build Include="PaymentGateways.sql" />
+    <Build Include="OrderStatusHistories.sql" />
+    <Build Include="Orders.sql" />
+    <Build Include="OrderItems.sql" />
+    <Build Include="MediaSets.sql" />
+    <Build Include="MediaSetItems.sql" />
+    <Build Include="JournalEntryLines.sql" />
+    <Build Include="JournalEntries.sql" />
+    <Build Include="InventoryItems.sql" />
+    <Build Include="ChartOfAccounts.sql" />
+    <Build Include="BrandTranslations.sql" />
+    <Build Include="Brands.sql" />
   </ItemGroup>
   <Import Project="$(MSBuildExtensionsPath)\Microsoft\VisualStudio\v$(VisualStudioVersion)\SSDT\Microsoft.Data.Tools.Schema.SqlTasks.targets" Condition="'$(VisualStudioVersion)' != '' And Exists('$(MSBuildExtensionsPath)\Microsoft\VisualStudio\v$(VisualStudioVersion)\SSDT\Microsoft.Data.Tools.Schema.SqlTasks.targets')" />
   <Import Project="$(MSBuildExtensionsPath)\Microsoft\VisualStudio\SSDT\Microsoft.Data.Tools.Schema.SqlTasks.targets" Condition="'$(VisualStudioVersion)' == '' And Exists('$(MSBuildExtensionsPath)\Microsoft\VisualStudio\SSDT\Microsoft.Data.Tools.Schema.SqlTasks.targets')" />
