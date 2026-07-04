@@ -41,6 +41,8 @@ public partial class MenuItem
 
     public bool IsActive { get; set; }
 
+    public virtual Brand? Brand { get; set; }
+
     public virtual Category? Category { get; set; }
 
     public virtual ICollection<MenuItem> InverseParentItem { get; set; } = new List<MenuItem>();
@@ -54,4 +56,10 @@ public partial class MenuItem
     public virtual MenuItem? ParentItem { get; set; }
 
     public virtual Post? Post { get; set; }
+
+    public virtual Product? Product { get; set; }
+
+    public virtual ProductCategory? ProductCategory { get; set; }
+
+    public virtual Vendor? Vendor { get; set; }
 }

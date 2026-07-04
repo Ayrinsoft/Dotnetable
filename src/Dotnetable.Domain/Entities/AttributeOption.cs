@@ -18,4 +18,8 @@ public partial class AttributeOption
     public virtual AttributeDefinition AttributeDefinition { get; set; } = null!;
 
     public virtual ICollection<AttributeOptionTranslation> AttributeOptionTranslations { get; set; } = new List<AttributeOptionTranslation>();
+
+    public virtual ICollection<ProductAttributeValue> ProductAttributeValues { get; set; } = new List<ProductAttributeValue>();
+
+    public virtual ICollection<VariantAttributeValue> VariantAttributeValues { get; set; } = new List<VariantAttributeValue>();
 }

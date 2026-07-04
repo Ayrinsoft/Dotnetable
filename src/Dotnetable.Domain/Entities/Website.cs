@@ -46,7 +46,11 @@ public partial class Website
 
     public virtual ICollection<Bank> Banks { get; set; } = new List<Bank>();
 
+    public virtual ICollection<Brand> Brands { get; set; } = new List<Brand>();
+
     public virtual ICollection<Category> Categories { get; set; } = new List<Category>();
+
+    public virtual ICollection<ChartOfAccount> ChartOfAccounts { get; set; } = new List<ChartOfAccount>();
 
     public virtual ICollection<ContactUsMessage> ContactUsMessages { get; set; } = new List<ContactUsMessage>();
 
@@ -62,17 +66,33 @@ public partial class Website
 
     public virtual ICollection<FileTag> FileTags { get; set; } = new List<FileTag>();
 
+    public virtual ICollection<InventoryItem> InventoryItems { get; set; } = new List<InventoryItem>();
+
+    public virtual ICollection<JournalEntry> JournalEntries { get; set; } = new List<JournalEntry>();
+
     public virtual ICollection<Language> Languages { get; set; } = new List<Language>();
 
     public virtual ICollection<LoginTry> LoginTries { get; set; } = new List<LoginTry>();
 
     public virtual FileRecord? LogoFile { get; set; }
 
+    public virtual ICollection<MediaSet> MediaSets { get; set; } = new List<MediaSet>();
+
     public virtual ICollection<Member> Members { get; set; } = new List<Member>();
 
     public virtual ICollection<Menu> Menus { get; set; } = new List<Menu>();
 
+    public virtual ICollection<OrderItem> OrderItemSourceWebsites { get; set; } = new List<OrderItem>();
+
+    public virtual ICollection<OrderItem> OrderItemWebsites { get; set; } = new List<OrderItem>();
+
+    public virtual ICollection<Order> Orders { get; set; } = new List<Order>();
+
     public virtual ICollection<Page> Pages { get; set; } = new List<Page>();
+
+    public virtual ICollection<PaymentGateway> PaymentGateways { get; set; } = new List<PaymentGateway>();
+
+    public virtual ICollection<Payment> Payments { get; set; } = new List<Payment>();
 
     public virtual ICollection<Policy> Policies { get; set; } = new List<Policy>();
 
@@ -80,7 +100,29 @@ public partial class Website
 
     public virtual ICollection<Post> Posts { get; set; } = new List<Post>();
 
+    public virtual ICollection<ProductCategory> ProductCategories { get; set; } = new List<ProductCategory>();
+
+    public virtual ICollection<ProductQuestion> ProductQuestions { get; set; } = new List<ProductQuestion>();
+
+    public virtual ICollection<ProductReview> ProductReviews { get; set; } = new List<ProductReview>();
+
+    public virtual ICollection<ProductVariant> ProductVariants { get; set; } = new List<ProductVariant>();
+
+    public virtual ICollection<Product> Products { get; set; } = new List<Product>();
+
+    public virtual ICollection<Settlement> SettlementTargetWebsites { get; set; } = new List<Settlement>();
+
+    public virtual ICollection<Settlement> SettlementWebsites { get; set; } = new List<Settlement>();
+
+    public virtual ICollection<StockMovement> StockMovements { get; set; } = new List<StockMovement>();
+
+    public virtual ICollection<Supplier> Suppliers { get; set; } = new List<Supplier>();
+
     public virtual ICollection<Tag> Tags { get; set; } = new List<Tag>();
+
+    public virtual ICollection<VendorProduct> VendorProducts { get; set; } = new List<VendorProduct>();
+
+    public virtual ICollection<Vendor> Vendors { get; set; } = new List<Vendor>();
 
     public virtual ICollection<WebsiteClient> WebsiteClients { get; set; } = new List<WebsiteClient>();
 
