@@ -15,6 +15,9 @@ builder.Services.Configure<Microsoft.AspNetCore.Mvc.Razor.RazorViewEngineOptions
 builder.Services.AddSingleton<IThemeService, ThemeService>();
 builder.Services.AddSingleton<WebLocalizationService>();
 
+// Short-TTL read-through cache for ApiClient's public content reads (menu/categories/pages/posts).
+builder.Services.AddMemoryCache();
+
 builder.Services.AddHttpContextAccessor();
 builder.Services.AddTransient<BearerTokenHandler>();
 

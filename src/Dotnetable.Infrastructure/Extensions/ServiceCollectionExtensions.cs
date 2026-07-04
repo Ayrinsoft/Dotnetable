@@ -3,14 +3,17 @@ using Dotnetable.Application.Extensions;
 using Dotnetable.Application.Interfaces;
 using Dotnetable.Domain.Entities;
 using Dotnetable.Domain.Interfaces;
+using Dotnetable.Infrastructure.Caching;
 using Dotnetable.Infrastructure.Data;
 using Dotnetable.Infrastructure.Provisioning;
 using Dotnetable.Infrastructure.Repositories;
 using Dotnetable.Infrastructure.Services;
+using Dotnetable.Infrastructure.Services.Caching;
 using Microsoft.AspNetCore.Identity;
 using Microsoft.EntityFrameworkCore;
 using Microsoft.Extensions.Configuration;
 using Microsoft.Extensions.DependencyInjection;
+using Microsoft.Extensions.DependencyInjection.Extensions;
 
 namespace Dotnetable.Infrastructure.Extensions;
 
@@ -93,18 +96,44 @@ public static class ServiceCollectionExtensions
         services.AddScoped<ILocationService, LocationService>();
         services.AddScoped<IWebsiteSettingService, WebsiteSettingService>();
         services.AddScoped<IContactMessageService, ContactMessageService>();
-        services.AddScoped<IMenuService, MenuService>();
+
+        // Content read caching: IMemoryCache-backed, tag-invalidated on write (menu/category/page/post).
+        // Menu/Category/Page/Post are registered under their concrete type too so the Cached* decorator
+        // can hold the real implementation while IxxxService resolves to the decorator.
+        services.AddMemoryCache();
+        var cacheOptions = new CacheOptions();
+        configuration.GetSection(CacheOptions.SectionName).Bind(cacheOptions);
+        services.AddSingleton(cacheOptions);
+        services.AddSingleton<ICacheService, MemoryCacheService>();
+        services.TryAddSingleton<ICacheInvalidationNotifier, NoOpCacheInvalidationNotifier>();
+
+        services.AddScoped<MenuService>();
+        services.AddScoped<IMenuService>(sp => new CachedMenuService(
+            sp.GetRequiredService<MenuService>(), sp.GetRequiredService<ICacheService>(),
+            sp.GetRequiredService<ICacheInvalidationNotifier>(), sp.GetRequiredService<CacheOptions>()));
 
         // Content: posts, pages, taxonomy (categories/tags/post types) and redirects.
         services.AddScoped<IPostTypeService, PostTypeService>();
         services.AddScoped<ITagService, TagService>();
-        services.AddScoped<ICategoryService, CategoryService>();
-        services.AddScoped<IPostService, PostService>();
-        services.AddScoped<IPageService, PageService>();
+
+        services.AddScoped<CategoryService>();
+        services.AddScoped<ICategoryService>(sp => new CachedCategoryService(
+            sp.GetRequiredService<CategoryService>(), sp.GetRequiredService<ICacheService>(),
+            sp.GetRequiredService<ICacheInvalidationNotifier>(), sp.GetRequiredService<CacheOptions>()));
+
+        services.AddScoped<PostService>();
+        services.AddScoped<IPostService>(sp => new CachedPostService(
+            sp.GetRequiredService<PostService>(), sp.GetRequiredService<ICacheService>(),
+            sp.GetRequiredService<ICacheInvalidationNotifier>(), sp.GetRequiredService<CacheOptions>()));
+
+        services.AddScoped<PageService>();
+        services.AddScoped<IPageService>(sp => new CachedPageService(
+            sp.GetRequiredService<PageService>(), sp.GetRequiredService<ICacheService>(),
+            sp.GetRequiredService<ICacheInvalidationNotifier>(), sp.GetRequiredService<CacheOptions>()));
+
         services.AddScoped<IRedirectService, RedirectService>();
 
         // Login/forgot-password protection + email.
-        services.AddMemoryCache();
         services.AddSingleton<IHumanVerificationService, HumanVerificationService>();
         services.AddScoped<IEmailService, EmailService>();
         services.AddScoped<IPasswordResetService, PasswordResetService>();

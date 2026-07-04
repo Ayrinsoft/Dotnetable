@@ -2,6 +2,7 @@ using System.Net;
 using System.Net.Http.Json;
 using System.Text.Json;
 using Dotnetable.Application.DTOs;
+using Microsoft.Extensions.Caching.Memory;
 
 namespace Dotnetable.Web.Services;
 
@@ -22,11 +23,25 @@ public sealed record AuthApiResult(
 public class ApiClient
 {
     private readonly HttpClient _http;
+    private readonly IMemoryCache _cache;
+    private readonly TimeSpan _ttl;
 
-    public ApiClient(HttpClient http)
+    public ApiClient(HttpClient http, IMemoryCache cache, IConfiguration configuration)
     {
         _http = http;
+        _cache = cache;
+        _ttl = TimeSpan.FromSeconds(configuration.GetValue("Cache:WebTtlSeconds", 60));
     }
+
+    /// <summary>Short-TTL read-through cache for public content reads (menu/categories/pages/posts).
+    /// There's no push-invalidation from Admin/API into Web — this instance is one of potentially many
+    /// per-site deployments — so the TTL alone bounds staleness after an edit.</summary>
+    private Task<T?> CachedGetAsync<T>(string key, Func<Task<T?>> factory) =>
+        _cache.GetOrCreateAsync(key, async entry =>
+        {
+            entry.AbsoluteExpirationRelativeToNow = _ttl;
+            return await factory();
+        });
 
     public async Task<T?> GetAsync<T>(string path, CancellationToken ct = default) =>
         await _http.GetFromJsonAsync<T>(path, ct);
@@ -37,20 +52,21 @@ public class ApiClient
 
     /// <summary>Fetches the active navigation menu for a location (e.g. "Header", "Footer"), or null
     /// when none is configured or the API is unreachable — callers fall back to static navigation.</summary>
-    public async Task<MenuDto?> GetMenuAsync(string location, string? lang = null, CancellationToken ct = default)
-    {
-        var path = $"api/menu/{Uri.EscapeDataString(location)}";
-        if (!string.IsNullOrWhiteSpace(lang))
-            path += $"?lang={Uri.EscapeDataString(lang)}";
-
-        try
+    public Task<MenuDto?> GetMenuAsync(string location, string? lang = null, CancellationToken ct = default) =>
+        CachedGetAsync($"menu:{location}:{lang}", async () =>
         {
-            // 204 No Content (no menu assigned) deserializes to null, which is exactly what we want.
-            return await _http.GetFromJsonAsync<MenuDto>(path, ct);
-        }
-        catch (HttpRequestException) { return null; }
-        catch (NotSupportedException) { return null; }
-    }
+            var path = $"api/menu/{Uri.EscapeDataString(location)}";
+            if (!string.IsNullOrWhiteSpace(lang))
+                path += $"?lang={Uri.EscapeDataString(lang)}";
+
+            try
+            {
+                // 204 No Content (no menu assigned) deserializes to null, which is exactly what we want.
+                return await _http.GetFromJsonAsync<MenuDto>(path, ct);
+            }
+            catch (HttpRequestException) { return null; }
+            catch (NotSupportedException) { return null; }
+        });
 
     // ── Content (posts, pages, categories, redirects) ───────────────
 
@@ -64,17 +80,22 @@ public class ApiClient
         if (!string.IsNullOrWhiteSpace(category)) query.Add($"category={Uri.EscapeDataString(category)}");
         if (!string.IsNullOrWhiteSpace(tag)) query.Add($"tag={Uri.EscapeDataString(tag)}");
         if (!string.IsNullOrWhiteSpace(lang)) query.Add($"lang={Uri.EscapeDataString(lang)}");
+        var cacheKey = $"posts:{string.Join('&', query)}";
 
-        try
+        return await CachedGetAsync<PagedResult<PostSummaryDto>>(cacheKey, async () =>
         {
-            return await _http.GetFromJsonAsync<PagedResult<PostSummaryDto>>($"api/posts?{string.Join('&', query)}", ct)
-                ?? new PagedResult<PostSummaryDto>();
-        }
-        catch (HttpRequestException) { return new PagedResult<PostSummaryDto>(); }
-        catch (NotSupportedException) { return new PagedResult<PostSummaryDto>(); }
+            try
+            {
+                return await _http.GetFromJsonAsync<PagedResult<PostSummaryDto>>($"api/posts?{string.Join('&', query)}", ct)
+                    ?? new PagedResult<PostSummaryDto>();
+            }
+            catch (HttpRequestException) { return new PagedResult<PostSummaryDto>(); }
+            catch (NotSupportedException) { return new PagedResult<PostSummaryDto>(); }
+        }) ?? new PagedResult<PostSummaryDto>();
     }
 
-    /// <summary>A single published post by slug, or null when not found / unreachable.</summary>
+    /// <summary>A single published post by slug, or null when not found / unreachable. Not cached —
+    /// the API increments the post's view count as part of this read.</summary>
     public async Task<PostDetailDto?> GetPostAsync(string slug, string? lang = null, CancellationToken ct = default)
     {
         var path = $"api/posts/{Uri.EscapeDataString(slug)}";
@@ -85,36 +106,39 @@ public class ApiClient
     }
 
     /// <summary>Featured published posts.</summary>
-    public async Task<IReadOnlyList<PostSummaryDto>> GetFeaturedPostsAsync(int take = 4, string? lang = null, CancellationToken ct = default)
-    {
-        var path = $"api/posts/featured?take={take}";
-        if (!string.IsNullOrWhiteSpace(lang)) path += $"&lang={Uri.EscapeDataString(lang)}";
-        try { return await _http.GetFromJsonAsync<List<PostSummaryDto>>(path, ct) ?? new(); }
-        catch (HttpRequestException) { return Array.Empty<PostSummaryDto>(); }
-        catch (NotSupportedException) { return Array.Empty<PostSummaryDto>(); }
-    }
+    public async Task<IReadOnlyList<PostSummaryDto>> GetFeaturedPostsAsync(int take = 4, string? lang = null, CancellationToken ct = default) =>
+        await CachedGetAsync<IReadOnlyList<PostSummaryDto>>($"posts:featured:{take}:{lang}", async () =>
+        {
+            var path = $"api/posts/featured?take={take}";
+            if (!string.IsNullOrWhiteSpace(lang)) path += $"&lang={Uri.EscapeDataString(lang)}";
+            try { return await _http.GetFromJsonAsync<List<PostSummaryDto>>(path, ct) ?? new(); }
+            catch (HttpRequestException) { return Array.Empty<PostSummaryDto>(); }
+            catch (NotSupportedException) { return Array.Empty<PostSummaryDto>(); }
+        }) ?? Array.Empty<PostSummaryDto>();
 
     /// <summary>Active category tree (optionally for a post type).</summary>
-    public async Task<IReadOnlyList<CategoryDto>> GetCategoriesAsync(int? postTypeId = null, string? lang = null, CancellationToken ct = default)
-    {
-        var query = new List<string>();
-        if (postTypeId is int id) query.Add($"postTypeId={id}");
-        if (!string.IsNullOrWhiteSpace(lang)) query.Add($"lang={Uri.EscapeDataString(lang)}");
-        var path = "api/categories" + (query.Count > 0 ? $"?{string.Join('&', query)}" : "");
-        try { return await _http.GetFromJsonAsync<List<CategoryDto>>(path, ct) ?? new(); }
-        catch (HttpRequestException) { return Array.Empty<CategoryDto>(); }
-        catch (NotSupportedException) { return Array.Empty<CategoryDto>(); }
-    }
+    public async Task<IReadOnlyList<CategoryDto>> GetCategoriesAsync(int? postTypeId = null, string? lang = null, CancellationToken ct = default) =>
+        await CachedGetAsync<IReadOnlyList<CategoryDto>>($"categories:{postTypeId}:{lang}", async () =>
+        {
+            var query = new List<string>();
+            if (postTypeId is int id) query.Add($"postTypeId={id}");
+            if (!string.IsNullOrWhiteSpace(lang)) query.Add($"lang={Uri.EscapeDataString(lang)}");
+            var path = "api/categories" + (query.Count > 0 ? $"?{string.Join('&', query)}" : "");
+            try { return await _http.GetFromJsonAsync<List<CategoryDto>>(path, ct) ?? new(); }
+            catch (HttpRequestException) { return Array.Empty<CategoryDto>(); }
+            catch (NotSupportedException) { return Array.Empty<CategoryDto>(); }
+        }) ?? Array.Empty<CategoryDto>();
 
     /// <summary>A single active CMS page by slug, or null.</summary>
-    public async Task<PageDto?> GetPageAsync(string slug, string? lang = null, CancellationToken ct = default)
-    {
-        var path = $"api/pages/{Uri.EscapeDataString(slug)}";
-        if (!string.IsNullOrWhiteSpace(lang)) path += $"?lang={Uri.EscapeDataString(lang)}";
-        try { return await _http.GetFromJsonAsync<PageDto>(path, ct); }
-        catch (HttpRequestException) { return null; }
-        catch (NotSupportedException) { return null; }
-    }
+    public Task<PageDto?> GetPageAsync(string slug, string? lang = null, CancellationToken ct = default) =>
+        CachedGetAsync($"page:{slug}:{lang}", async () =>
+        {
+            var path = $"api/pages/{Uri.EscapeDataString(slug)}";
+            if (!string.IsNullOrWhiteSpace(lang)) path += $"?lang={Uri.EscapeDataString(lang)}";
+            try { return await _http.GetFromJsonAsync<PageDto>(path, ct); }
+            catch (HttpRequestException) { return null; }
+            catch (NotSupportedException) { return null; }
+        });
 
     /// <summary>Resolves a request path to a redirect target, or null when no rule matches / unreachable.</summary>
     public async Task<RedirectResultDto?> ResolveRedirectAsync(string path, CancellationToken ct = default)

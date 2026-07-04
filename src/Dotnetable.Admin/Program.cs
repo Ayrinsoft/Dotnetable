@@ -1,6 +1,7 @@
 using Dotnetable.Admin.Auth;
 using Dotnetable.Admin.Localization;
 using Dotnetable.Admin.Middleware;
+using Dotnetable.Admin.Services;
 using Dotnetable.Application;
 using Dotnetable.Application.Interfaces;
 using Dotnetable.Infrastructure.Extensions;
@@ -14,6 +15,17 @@ AppBranding.Name = builder.Configuration["Branding:AppName"] ?? AppBranding.Name
 
 builder.Services.AddInfrastructure(builder.Configuration, builder.Environment.ContentRootPath);
 builder.Services.AddScoped<IPageLocalizer, PageLocalizer>();
+
+// Admin writes content directly against the DB (bypassing the API), so its own cache invalidation
+// never reaches the API process on its own — push it over HTTP. Overrides the no-op default that
+// AddInfrastructure registers.
+builder.Services.AddHttpClient<RemoteCacheInvalidationNotifier>(client =>
+{
+    client.BaseAddress = new Uri(builder.Configuration["Api:BaseUrl"]
+        ?? throw new InvalidOperationException("Api:BaseUrl is not configured."));
+});
+builder.Services.AddScoped<ICacheInvalidationNotifier>(sp =>
+    sp.GetRequiredService<RemoteCacheInvalidationNotifier>());
 
 builder.Services
     .AddAuthentication(CookieAuthenticationDefaults.AuthenticationScheme)
