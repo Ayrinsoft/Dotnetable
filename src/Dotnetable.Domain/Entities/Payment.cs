@@ -19,6 +19,8 @@ public partial class Payment
 
     public int? BankAccountID { get; set; }
 
+    public int? ClientWalletTransactionID { get; set; }
+
     public decimal Amount { get; set; }
 
     public string CurrencyCode { get; set; } = null!;
@@ -42,6 +44,8 @@ public partial class Payment
     public DateTime CreatedAt { get; set; }
 
     public virtual BankAccount? BankAccount { get; set; }
+
+    public virtual ClientWalletTransaction? ClientWalletTransaction { get; set; }
 
     public virtual Order? Order { get; set; }
 

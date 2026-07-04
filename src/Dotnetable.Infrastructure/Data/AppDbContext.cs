@@ -38,6 +38,14 @@ public partial class AppDbContext : DbContext
 
     public virtual DbSet<CityTranslation> CityTranslations { get; set; }
 
+    public virtual DbSet<ClientBankAccount> ClientBankAccounts { get; set; }
+
+    public virtual DbSet<ClientWallet> ClientWallets { get; set; }
+
+    public virtual DbSet<ClientWalletTransaction> ClientWalletTransactions { get; set; }
+
+    public virtual DbSet<ClientWalletWithdrawal> ClientWalletWithdrawals { get; set; }
+
     public virtual DbSet<ContactUsMessage> ContactUsMessages { get; set; }
 
     public virtual DbSet<Country> Countries { get; set; }
@@ -194,14 +202,12 @@ public partial class AppDbContext : DbContext
 
     public virtual DbSet<WebsiteSocialLink> WebsiteSocialLinks { get; set; }
 
-    public virtual DbSet<WebstieStorageSetting> WebstieStorageSettings { get; set; }
+    public virtual DbSet<WebsiteStorageSetting> WebsiteStorageSettings { get; set; }
 
     protected override void OnModelCreating(ModelBuilder modelBuilder)
     {
         modelBuilder.Entity<AttributeDefinition>(entity =>
         {
-            entity.ToTable("AttributeDefinition");
-
             entity.Property(e => e.Code).HasMaxLength(100);
             entity.Property(e => e.Name).HasMaxLength(200);
             entity.Property(e => e.Unit).HasMaxLength(30);
@@ -209,13 +215,11 @@ public partial class AppDbContext : DbContext
             entity.HasOne(d => d.Website).WithMany(p => p.AttributeDefinitions)
                 .HasForeignKey(d => d.WebsiteID)
                 .OnDelete(DeleteBehavior.ClientSetNull)
-                .HasConstraintName("FK_AttributeDefinition_Website");
+                .HasConstraintName("FK_AttributeDefinitions_Websites");
         });
 
         modelBuilder.Entity<AttributeDefinitionTranslation>(entity =>
         {
-            entity.ToTable("AttributeDefinitionTranslation");
-
             entity.Property(e => e.LanguageCode)
                 .HasMaxLength(2)
                 .IsUnicode(false)
@@ -226,13 +230,11 @@ public partial class AppDbContext : DbContext
             entity.HasOne(d => d.AttributeDefinition).WithMany(p => p.AttributeDefinitionTranslations)
                 .HasForeignKey(d => d.AttributeDefinitionID)
                 .OnDelete(DeleteBehavior.ClientSetNull)
-                .HasConstraintName("FK_AttributeDefinitionTranslation_AttributeDefinition");
+                .HasConstraintName("FK_AttributeDefinitionTranslations_AttributeDefinitions");
         });
 
         modelBuilder.Entity<AttributeOption>(entity =>
         {
-            entity.ToTable("AttributeOption");
-
             entity.Property(e => e.ColorHex)
                 .HasMaxLength(7)
                 .IsUnicode(false)
@@ -242,13 +244,11 @@ public partial class AppDbContext : DbContext
             entity.HasOne(d => d.AttributeDefinition).WithMany(p => p.AttributeOptions)
                 .HasForeignKey(d => d.AttributeDefinitionID)
                 .OnDelete(DeleteBehavior.ClientSetNull)
-                .HasConstraintName("FK_AttributeOption_AttributeDefinition");
+                .HasConstraintName("FK_AttributeOptions_AttributeDefinitions");
         });
 
         modelBuilder.Entity<AttributeOptionTranslation>(entity =>
         {
-            entity.ToTable("AttributeOptionTranslation");
-
             entity.Property(e => e.LanguageCode)
                 .HasMaxLength(2)
                 .IsUnicode(false)
@@ -258,13 +258,11 @@ public partial class AppDbContext : DbContext
             entity.HasOne(d => d.AttributeOption).WithMany(p => p.AttributeOptionTranslations)
                 .HasForeignKey(d => d.AttributeOptionID)
                 .OnDelete(DeleteBehavior.ClientSetNull)
-                .HasConstraintName("FK_AttributeOptionTranslation_AttributeOption");
+                .HasConstraintName("FK_AttributeOptionTranslations_AttributeOptions");
         });
 
         modelBuilder.Entity<Bank>(entity =>
         {
-            entity.ToTable("Bank");
-
             entity.Property(e => e.BankCode)
                 .HasMaxLength(10)
                 .IsUnicode(false);
@@ -272,11 +270,11 @@ public partial class AppDbContext : DbContext
 
             entity.HasOne(d => d.LogoFile).WithMany(p => p.Banks)
                 .HasForeignKey(d => d.LogoFileID)
-                .HasConstraintName("FK_Bank_FileRecord");
+                .HasConstraintName("FK_Banks_FileRecords");
 
             entity.HasOne(d => d.Website).WithMany(p => p.Banks)
                 .HasForeignKey(d => d.WebsiteID)
-                .HasConstraintName("FK_Bank_Website");
+                .HasConstraintName("FK_Banks_Websites");
         });
 
         modelBuilder.Entity<BankAccount>(entity =>
@@ -298,17 +296,17 @@ public partial class AppDbContext : DbContext
             entity.HasOne(d => d.Bank).WithMany(p => p.BankAccounts)
                 .HasForeignKey(d => d.BankID)
                 .OnDelete(DeleteBehavior.ClientSetNull)
-                .HasConstraintName("FK_BankAccounts_Bank");
+                .HasConstraintName("FK_BankAccounts_Banks");
 
             entity.HasOne(d => d.CreatedByMember).WithMany(p => p.BankAccounts)
                 .HasForeignKey(d => d.CreatedByMemberId)
                 .OnDelete(DeleteBehavior.ClientSetNull)
-                .HasConstraintName("FK_BankAccounts_Member");
+                .HasConstraintName("FK_BankAccounts_Members");
 
             entity.HasOne(d => d.Website).WithMany(p => p.BankAccounts)
                 .HasForeignKey(d => d.WebsiteID)
                 .OnDelete(DeleteBehavior.ClientSetNull)
-                .HasConstraintName("FK_BankAccounts_Website");
+                .HasConstraintName("FK_BankAccounts_Websites");
         });
 
         modelBuilder.Entity<Brand>(entity =>
@@ -319,12 +317,12 @@ public partial class AppDbContext : DbContext
 
             entity.HasOne(d => d.LogoFile).WithMany(p => p.Brands)
                 .HasForeignKey(d => d.LogoFileID)
-                .HasConstraintName("FK_Brands_FileRecord");
+                .HasConstraintName("FK_Brands_FileRecords");
 
             entity.HasOne(d => d.Website).WithMany(p => p.Brands)
                 .HasForeignKey(d => d.WebsiteID)
                 .OnDelete(DeleteBehavior.ClientSetNull)
-                .HasConstraintName("FK_Brands_Website");
+                .HasConstraintName("FK_Brands_Websites");
         });
 
         modelBuilder.Entity<BrandTranslation>(entity =>
@@ -344,30 +342,26 @@ public partial class AppDbContext : DbContext
 
         modelBuilder.Entity<Category>(entity =>
         {
-            entity.ToTable("Category");
-
-            entity.Property(e => e.IsActive).HasDefaultValue(true, "DF_Category_IsActive");
+            entity.Property(e => e.IsActive).HasDefaultValue(true, "DF_Categories_IsActive");
             entity.Property(e => e.Name).HasMaxLength(200);
             entity.Property(e => e.Slug).HasMaxLength(200);
 
             entity.HasOne(d => d.ParentCategory).WithMany(p => p.InverseParentCategory)
                 .HasForeignKey(d => d.ParentCategoryID)
-                .HasConstraintName("FK_Category_Category");
+                .HasConstraintName("FK_Categories_Categories");
 
             entity.HasOne(d => d.PostType).WithMany(p => p.Categories)
                 .HasForeignKey(d => d.PostTypeID)
-                .HasConstraintName("FK_Category_PostType");
+                .HasConstraintName("FK_Categories_PostTypes");
 
             entity.HasOne(d => d.Website).WithMany(p => p.Categories)
                 .HasForeignKey(d => d.WebsiteID)
                 .OnDelete(DeleteBehavior.ClientSetNull)
-                .HasConstraintName("FK_Category_Website");
+                .HasConstraintName("FK_Categories_Websites");
         });
 
         modelBuilder.Entity<CategoryTranslation>(entity =>
         {
-            entity.ToTable("CategoryTranslation");
-
             entity.Property(e => e.LanguageCode)
                 .HasMaxLength(2)
                 .IsUnicode(false)
@@ -378,7 +372,7 @@ public partial class AppDbContext : DbContext
             entity.HasOne(d => d.Category).WithMany(p => p.CategoryTranslations)
                 .HasForeignKey(d => d.CategoryID)
                 .OnDelete(DeleteBehavior.ClientSetNull)
-                .HasConstraintName("FK_CategoryTranslation_Category");
+                .HasConstraintName("FK_CategoryTranslations_Categories");
         });
 
         modelBuilder.Entity<ChartOfAccount>(entity =>
@@ -394,13 +388,11 @@ public partial class AppDbContext : DbContext
             entity.HasOne(d => d.Website).WithMany(p => p.ChartOfAccounts)
                 .HasForeignKey(d => d.WebsiteID)
                 .OnDelete(DeleteBehavior.ClientSetNull)
-                .HasConstraintName("FK_ChartOfAccounts_Website");
+                .HasConstraintName("FK_ChartOfAccounts_Websites");
         });
 
         modelBuilder.Entity<City>(entity =>
         {
-            entity.ToTable("City");
-
             entity.Property(e => e.LanguageCode)
                 .HasMaxLength(2)
                 .IsUnicode(false)
@@ -410,17 +402,15 @@ public partial class AppDbContext : DbContext
             entity.HasOne(d => d.Country).WithMany(p => p.Cities)
                 .HasForeignKey(d => d.CountryID)
                 .OnDelete(DeleteBehavior.ClientSetNull)
-                .HasConstraintName("FK_City_Country");
+                .HasConstraintName("FK_Cities_Countries");
 
             entity.HasOne(d => d.State).WithMany(p => p.Cities)
                 .HasForeignKey(d => d.StateID)
-                .HasConstraintName("FK_City_State");
+                .HasConstraintName("FK_Cities_States");
         });
 
         modelBuilder.Entity<CityTranslation>(entity =>
         {
-            entity.ToTable("CityTranslation");
-
             entity.Property(e => e.LanguageCode)
                 .HasMaxLength(2)
                 .IsUnicode(false)
@@ -430,14 +420,129 @@ public partial class AppDbContext : DbContext
             entity.HasOne(d => d.City).WithMany(p => p.CityTranslations)
                 .HasForeignKey(d => d.CityID)
                 .OnDelete(DeleteBehavior.ClientSetNull)
-                .HasConstraintName("FK_City_Translation_City");
+                .HasConstraintName("FK_CityTranslations_Cities");
+        });
+
+        modelBuilder.Entity<ClientBankAccount>(entity =>
+        {
+            entity.Property(e => e.AccountNumber)
+                .HasMaxLength(30)
+                .IsUnicode(false);
+            entity.Property(e => e.CardNumber)
+                .HasMaxLength(20)
+                .IsUnicode(false);
+            entity.Property(e => e.CreatedAt)
+                .HasPrecision(0)
+                .HasDefaultValueSql("(sysutcdatetime())", "DF_ClientBankAccounts_CreatedAt");
+            entity.Property(e => e.IBAN)
+                .HasMaxLength(34)
+                .IsUnicode(false);
+            entity.Property(e => e.IsActive).HasDefaultValue(true, "DF_ClientBankAccounts_IsActive");
+            entity.Property(e => e.OwnerName).HasMaxLength(90);
+
+            entity.HasOne(d => d.Bank).WithMany(p => p.ClientBankAccounts)
+                .HasForeignKey(d => d.BankID)
+                .HasConstraintName("FK_ClientBankAccounts_Banks");
+
+            entity.HasOne(d => d.WebsiteClient).WithMany(p => p.ClientBankAccounts)
+                .HasForeignKey(d => d.WebsiteClientID)
+                .OnDelete(DeleteBehavior.ClientSetNull)
+                .HasConstraintName("FK_ClientBankAccounts_WebsiteClients");
+
+            entity.HasOne(d => d.Website).WithMany(p => p.ClientBankAccounts)
+                .HasForeignKey(d => d.WebsiteID)
+                .OnDelete(DeleteBehavior.ClientSetNull)
+                .HasConstraintName("FK_ClientBankAccounts_Websites");
+        });
+
+        modelBuilder.Entity<ClientWallet>(entity =>
+        {
+            entity.HasIndex(e => e.WebsiteClientID, "UQ_ClientWallets_WebsiteClientID").IsUnique();
+
+            entity.Property(e => e.BalanceUsd).HasColumnType("decimal(18, 4)");
+            entity.Property(e => e.CreatedAt)
+                .HasPrecision(0)
+                .HasDefaultValueSql("(sysutcdatetime())", "DF_ClientWallets_CreatedAt");
+            entity.Property(e => e.IsActive).HasDefaultValue(true, "DF_ClientWallets_IsActive");
+            entity.Property(e => e.RowVersion)
+                .IsRowVersion()
+                .IsConcurrencyToken();
+
+            entity.HasOne(d => d.WebsiteClient).WithOne(p => p.ClientWallet)
+                .HasForeignKey<ClientWallet>(d => d.WebsiteClientID)
+                .OnDelete(DeleteBehavior.ClientSetNull)
+                .HasConstraintName("FK_ClientWallets_WebsiteClients");
+
+            entity.HasOne(d => d.Website).WithMany(p => p.ClientWallets)
+                .HasForeignKey(d => d.WebsiteID)
+                .OnDelete(DeleteBehavior.ClientSetNull)
+                .HasConstraintName("FK_ClientWallets_Websites");
+        });
+
+        modelBuilder.Entity<ClientWalletTransaction>(entity =>
+        {
+            entity.Property(e => e.AmountUsd).HasColumnType("decimal(18, 4)");
+            entity.Property(e => e.BalanceAfterUsd).HasColumnType("decimal(18, 4)");
+            entity.Property(e => e.CreatedAt)
+                .HasPrecision(0)
+                .HasDefaultValueSql("(sysutcdatetime())", "DF_ClientWalletTransactions_CreatedAt");
+            entity.Property(e => e.Note).HasMaxLength(500);
+
+            entity.HasOne(d => d.ClientWallet).WithMany(p => p.ClientWalletTransactions)
+                .HasForeignKey(d => d.ClientWalletID)
+                .OnDelete(DeleteBehavior.ClientSetNull)
+                .HasConstraintName("FK_ClientWalletTransactions_ClientWallets");
+
+            entity.HasOne(d => d.CreatedByMember).WithMany(p => p.ClientWalletTransactions)
+                .HasForeignKey(d => d.CreatedByMemberID)
+                .HasConstraintName("FK_ClientWalletTransactions_Members");
+
+            entity.HasOne(d => d.Website).WithMany(p => p.ClientWalletTransactions)
+                .HasForeignKey(d => d.WebsiteID)
+                .OnDelete(DeleteBehavior.ClientSetNull)
+                .HasConstraintName("FK_ClientWalletTransactions_Websites");
+        });
+
+        modelBuilder.Entity<ClientWalletWithdrawal>(entity =>
+        {
+            entity.Property(e => e.AmountUsd).HasColumnType("decimal(18, 4)");
+            entity.Property(e => e.PaidAt).HasPrecision(0);
+            entity.Property(e => e.PaymentRefNumber).HasMaxLength(100);
+            entity.Property(e => e.RejectReason).HasMaxLength(500);
+            entity.Property(e => e.RequestedAt)
+                .HasPrecision(0)
+                .HasDefaultValueSql("(sysutcdatetime())", "DF_ClientWalletWithdrawals_RequestedAt");
+            entity.Property(e => e.ReviewedAt).HasPrecision(0);
+            entity.Property(e => e.Status).HasDefaultValue((byte)1, "DF_ClientWalletWithdrawals_Status");
+
+            entity.HasOne(d => d.ClientBankAccount).WithMany(p => p.ClientWalletWithdrawals)
+                .HasForeignKey(d => d.ClientBankAccountID)
+                .OnDelete(DeleteBehavior.ClientSetNull)
+                .HasConstraintName("FK_ClientWalletWithdrawals_ClientBankAccounts");
+
+            entity.HasOne(d => d.ClientWallet).WithMany(p => p.ClientWalletWithdrawals)
+                .HasForeignKey(d => d.ClientWalletID)
+                .OnDelete(DeleteBehavior.ClientSetNull)
+                .HasConstraintName("FK_ClientWalletWithdrawals_ClientWallets");
+
+            entity.HasOne(d => d.ReviewedByMember).WithMany(p => p.ClientWalletWithdrawals)
+                .HasForeignKey(d => d.ReviewedByMemberID)
+                .HasConstraintName("FK_ClientWalletWithdrawals_Members");
+
+            entity.HasOne(d => d.WebsiteClient).WithMany(p => p.ClientWalletWithdrawals)
+                .HasForeignKey(d => d.WebsiteClientID)
+                .OnDelete(DeleteBehavior.ClientSetNull)
+                .HasConstraintName("FK_ClientWalletWithdrawals_WebsiteClients");
+
+            entity.HasOne(d => d.Website).WithMany(p => p.ClientWalletWithdrawals)
+                .HasForeignKey(d => d.WebsiteID)
+                .OnDelete(DeleteBehavior.ClientSetNull)
+                .HasConstraintName("FK_ClientWalletWithdrawals_Websites");
         });
 
         modelBuilder.Entity<ContactUsMessage>(entity =>
         {
             entity.HasKey(e => e.ContactUsMessagesID);
-
-            entity.ToTable("ContactUsMessage");
 
             entity.Property(e => e.CellphoneNumber)
                 .HasMaxLength(15)
@@ -456,13 +561,11 @@ public partial class AppDbContext : DbContext
             entity.HasOne(d => d.Website).WithMany(p => p.ContactUsMessages)
                 .HasForeignKey(d => d.WebsiteID)
                 .OnDelete(DeleteBehavior.ClientSetNull)
-                .HasConstraintName("FK_ContactUsMessage_Website");
+                .HasConstraintName("FK_ContactUsMessages_Websites");
         });
 
         modelBuilder.Entity<Country>(entity =>
         {
-            entity.ToTable("Country");
-
             entity.Property(e => e.CountryCode)
                 .HasMaxLength(2)
                 .IsUnicode(false)
@@ -479,8 +582,6 @@ public partial class AppDbContext : DbContext
 
         modelBuilder.Entity<CountryTranslation>(entity =>
         {
-            entity.ToTable("CountryTranslation");
-
             entity.Property(e => e.LanguageCode)
                 .HasMaxLength(2)
                 .IsUnicode(false)
@@ -490,13 +591,11 @@ public partial class AppDbContext : DbContext
             entity.HasOne(d => d.Country).WithMany(p => p.CountryTranslations)
                 .HasForeignKey(d => d.CountryID)
                 .OnDelete(DeleteBehavior.ClientSetNull)
-                .HasConstraintName("FK_CountryTranslation_Country");
+                .HasConstraintName("FK_CountryTranslations_Countries");
         });
 
         modelBuilder.Entity<CurrencyRate>(entity =>
         {
-            entity.ToTable("CurrencyRate");
-
             entity.Property(e => e.CurrencyCode)
                 .HasMaxLength(3)
                 .IsUnicode(false)
@@ -507,13 +606,11 @@ public partial class AppDbContext : DbContext
             entity.HasOne(d => d.Website).WithMany(p => p.CurrencyRates)
                 .HasForeignKey(d => d.WebsiteID)
                 .OnDelete(DeleteBehavior.ClientSetNull)
-                .HasConstraintName("FK_CurrencyRate_Website");
+                .HasConstraintName("FK_CurrencyRates_Websites");
         });
 
         modelBuilder.Entity<EmailSetting>(entity =>
         {
-            entity.ToTable("EmailSetting");
-
             entity.Property(e => e.EmailAddress)
                 .HasMaxLength(64)
                 .IsUnicode(false);
@@ -526,13 +623,11 @@ public partial class AppDbContext : DbContext
             entity.HasOne(d => d.Website).WithMany(p => p.EmailSettings)
                 .HasForeignKey(d => d.WebsiteID)
                 .OnDelete(DeleteBehavior.ClientSetNull)
-                .HasConstraintName("FK_EmailSetting_Website");
+                .HasConstraintName("FK_EmailSettings_Websites");
         });
 
         modelBuilder.Entity<EmailSubscribe>(entity =>
         {
-            entity.ToTable("EmailSubscribe");
-
             entity.Property(e => e.Email)
                 .HasMaxLength(64)
                 .IsUnicode(false);
@@ -540,13 +635,16 @@ public partial class AppDbContext : DbContext
 
             entity.HasOne(d => d.Member).WithMany(p => p.EmailSubscribes)
                 .HasForeignKey(d => d.MemberID)
-                .HasConstraintName("FK_EmailSubscribe_Member");
+                .HasConstraintName("FK_EmailSubscribes_Members");
+
+            entity.HasOne(d => d.Website).WithMany(p => p.EmailSubscribes)
+                .HasForeignKey(d => d.WebsiteID)
+                .OnDelete(DeleteBehavior.ClientSetNull)
+                .HasConstraintName("FK_EmailSubscribes_Websites");
         });
 
         modelBuilder.Entity<FileAlbum>(entity =>
         {
-            entity.ToTable("FileAlbum");
-
             entity.Property(e => e.CreateDate).HasColumnType("datetime");
             entity.Property(e => e.Description).HasMaxLength(400);
             entity.Property(e => e.Name).HasMaxLength(120);
@@ -554,13 +652,11 @@ public partial class AppDbContext : DbContext
             entity.HasOne(d => d.Website).WithMany(p => p.FileAlbums)
                 .HasForeignKey(d => d.WebsiteID)
                 .OnDelete(DeleteBehavior.ClientSetNull)
-                .HasConstraintName("FK_FileAlbum_Website");
+                .HasConstraintName("FK_FileAlbums_Websites");
         });
 
         modelBuilder.Entity<FileRecord>(entity =>
         {
-            entity.ToTable("FileRecord");
-
             entity.Property(e => e.AltText).HasMaxLength(120);
             entity.Property(e => e.CDNFileCode)
                 .HasMaxLength(80)
@@ -582,52 +678,48 @@ public partial class AppDbContext : DbContext
 
             entity.HasOne(d => d.FileAlbum).WithMany(p => p.FileRecords)
                 .HasForeignKey(d => d.FileAlbumID)
-                .HasConstraintName("FK_FileRecord_FileAlbum");
+                .HasConstraintName("FK_FileRecords_FileAlbums");
 
             entity.HasOne(d => d.UploaderMember).WithMany(p => p.FileRecords)
                 .HasForeignKey(d => d.UploaderMemberID)
-                .HasConstraintName("FK_FileRecord_Member");
+                .HasConstraintName("FK_FileRecords_Members");
 
             entity.HasOne(d => d.WebsiteClient).WithMany(p => p.FileRecords)
                 .HasForeignKey(d => d.WebsiteClientID)
-                .HasConstraintName("FK_FileRecord_WebsiteClient");
+                .HasConstraintName("FK_FileRecords_WebsiteClients");
 
             entity.HasOne(d => d.Website).WithMany(p => p.FileRecords)
                 .HasForeignKey(d => d.WebsiteID)
                 .OnDelete(DeleteBehavior.ClientSetNull)
-                .HasConstraintName("FK_FileRecord_Website");
+                .HasConstraintName("FK_FileRecords_Websites");
 
             entity.HasOne(d => d.WebsiteStorageSettings).WithMany(p => p.FileRecords)
                 .HasForeignKey(d => d.WebsiteStorageSettingsID)
                 .OnDelete(DeleteBehavior.ClientSetNull)
-                .HasConstraintName("FK_FileRecord_WebstieStorageSettings");
+                .HasConstraintName("FK_FileRecords_WebsiteStorageSettings");
         });
 
         modelBuilder.Entity<FileRecordTag>(entity =>
         {
-            entity.ToTable("FileRecordTag");
-
             entity.HasOne(d => d.FileRecord).WithMany(p => p.FileRecordTags)
                 .HasForeignKey(d => d.FileRecordID)
                 .OnDelete(DeleteBehavior.ClientSetNull)
-                .HasConstraintName("FK_FileRecordTag_FileRecord");
+                .HasConstraintName("FK_FileRecordTags_FileRecords");
 
             entity.HasOne(d => d.FileTag).WithMany(p => p.FileRecordTags)
                 .HasForeignKey(d => d.FileTagID)
                 .OnDelete(DeleteBehavior.ClientSetNull)
-                .HasConstraintName("FK_FileRecordTag_FileTag");
+                .HasConstraintName("FK_FileRecordTags_FileTags");
         });
 
         modelBuilder.Entity<FileTag>(entity =>
         {
-            entity.ToTable("FileTag");
-
             entity.Property(e => e.Name).HasMaxLength(60);
 
             entity.HasOne(d => d.Website).WithMany(p => p.FileTags)
                 .HasForeignKey(d => d.WebsiteID)
                 .OnDelete(DeleteBehavior.ClientSetNull)
-                .HasConstraintName("FK_FileTag_Website");
+                .HasConstraintName("FK_FileTags_Websites");
         });
 
         modelBuilder.Entity<InventoryItem>(entity =>
@@ -645,13 +737,11 @@ public partial class AppDbContext : DbContext
             entity.HasOne(d => d.Website).WithMany(p => p.InventoryItems)
                 .HasForeignKey(d => d.WebsiteID)
                 .OnDelete(DeleteBehavior.ClientSetNull)
-                .HasConstraintName("FK_InventoryItems_Website");
+                .HasConstraintName("FK_InventoryItems_Websites");
         });
 
         modelBuilder.Entity<JournalEntry>(entity =>
         {
-            entity.HasKey(e => e.JournalEntrieID);
-
             entity.Property(e => e.CreatedAt)
                 .HasDefaultValueSql("(sysutcdatetime())", "DF_JournalEntries_CreatedAt")
                 .HasColumnType("datetime");
@@ -661,7 +751,7 @@ public partial class AppDbContext : DbContext
             entity.HasOne(d => d.Website).WithMany(p => p.JournalEntries)
                 .HasForeignKey(d => d.WebsiteID)
                 .OnDelete(DeleteBehavior.ClientSetNull)
-                .HasConstraintName("FK_JournalEntries_Website");
+                .HasConstraintName("FK_JournalEntries_Websites");
         });
 
         modelBuilder.Entity<JournalEntryLine>(entity =>
@@ -683,9 +773,7 @@ public partial class AppDbContext : DbContext
 
         modelBuilder.Entity<Language>(entity =>
         {
-            entity.HasKey(e => e.LangaugeID);
-
-            entity.ToTable("Language");
+            entity.HasIndex(e => new { e.WebsiteID, e.LanguageCode }, "UQ_Languages_WebsiteID_LanguageCode").IsUnique();
 
             entity.Property(e => e.LanguageCode)
                 .HasMaxLength(2)
@@ -702,13 +790,11 @@ public partial class AppDbContext : DbContext
             entity.HasOne(d => d.Website).WithMany(p => p.Languages)
                 .HasForeignKey(d => d.WebsiteID)
                 .OnDelete(DeleteBehavior.ClientSetNull)
-                .HasConstraintName("FK_Language_Website");
+                .HasConstraintName("FK_Languages_Websites");
         });
 
         modelBuilder.Entity<LocalizationKey>(entity =>
         {
-            entity.ToTable("LocalizationKey");
-
             entity.Property(e => e.DefaultValue).HasMaxLength(2000);
             entity.Property(e => e.ItemKey)
                 .HasMaxLength(72)
@@ -717,13 +803,11 @@ public partial class AppDbContext : DbContext
             entity.HasOne(d => d.Website).WithMany(p => p.LocalizationKeys)
                 .HasForeignKey(d => d.WebsiteID)
                 .OnDelete(DeleteBehavior.ClientSetNull)
-                .HasConstraintName("FK_LocalizationKey_Language");
+                .HasConstraintName("FK_LocalizationKeys_Websites");
         });
 
         modelBuilder.Entity<LocalizationValue>(entity =>
         {
-            entity.ToTable("LocalizationValue");
-
             entity.Property(e => e.ItemValue).HasMaxLength(2000);
             entity.Property(e => e.LanguageCode)
                 .HasMaxLength(2)
@@ -733,13 +817,11 @@ public partial class AppDbContext : DbContext
             entity.HasOne(d => d.LocalizationKey).WithMany(p => p.LocalizationValues)
                 .HasForeignKey(d => d.LocalizationKeyID)
                 .OnDelete(DeleteBehavior.ClientSetNull)
-                .HasConstraintName("FK_LocalizationValue_LocalizationKey");
+                .HasConstraintName("FK_LocalizationValues_LocalizationKeys");
         });
 
         modelBuilder.Entity<LoginTry>(entity =>
         {
-            entity.ToTable("LoginTry");
-
             entity.Property(e => e.LogTime).HasColumnType("datetime");
             entity.Property(e => e.TryIP)
                 .HasMaxLength(15)
@@ -747,11 +829,12 @@ public partial class AppDbContext : DbContext
             entity.Property(e => e.Username)
                 .HasMaxLength(64)
                 .IsUnicode(false);
+            entity.Property(e => e.WebsiteID).HasDefaultValue(1, "DF_LoginTries_WebsiteID");
 
             entity.HasOne(d => d.Website).WithMany(p => p.LoginTries)
                 .HasForeignKey(d => d.WebsiteID)
                 .OnDelete(DeleteBehavior.ClientSetNull)
-                .HasConstraintName("FK_LoginTry_Website");
+                .HasConstraintName("FK_LoginTries_Websites");
         });
 
         modelBuilder.Entity<MediaSet>(entity =>
@@ -764,7 +847,7 @@ public partial class AppDbContext : DbContext
             entity.HasOne(d => d.Website).WithMany(p => p.MediaSets)
                 .HasForeignKey(d => d.WebsiteID)
                 .OnDelete(DeleteBehavior.ClientSetNull)
-                .HasConstraintName("FK_MediaSets_Website");
+                .HasConstraintName("FK_MediaSets_Websites");
         });
 
         modelBuilder.Entity<MediaSetItem>(entity =>
@@ -773,7 +856,7 @@ public partial class AppDbContext : DbContext
 
             entity.HasOne(d => d.File).WithMany(p => p.MediaSetItemFiles)
                 .HasForeignKey(d => d.FileID)
-                .HasConstraintName("FK_MediaSetItems_FileRecord");
+                .HasConstraintName("FK_MediaSetItems_FileRecords");
 
             entity.HasOne(d => d.MediaSet).WithMany(p => p.MediaSetItems)
                 .HasForeignKey(d => d.MediaSetID)
@@ -787,8 +870,6 @@ public partial class AppDbContext : DbContext
 
         modelBuilder.Entity<Member>(entity =>
         {
-            entity.ToTable("Member");
-
             entity.Property(e => e.CellphoneNumber)
                 .HasMaxLength(12)
                 .IsUnicode(false);
@@ -807,21 +888,23 @@ public partial class AppDbContext : DbContext
                 .HasMaxLength(64)
                 .IsUnicode(false);
 
+            entity.HasOne(d => d.Avatar).WithMany(p => p.Members)
+                .HasForeignKey(d => d.AvatarID)
+                .HasConstraintName("FK_Members_FileRecords");
+
             entity.HasOne(d => d.Policy).WithMany(p => p.Members)
                 .HasForeignKey(d => d.PolicyID)
                 .OnDelete(DeleteBehavior.ClientSetNull)
-                .HasConstraintName("FK_Member_Policy");
+                .HasConstraintName("FK_Members_Policies");
 
             entity.HasOne(d => d.Website).WithMany(p => p.Members)
                 .HasForeignKey(d => d.WebsiteID)
                 .OnDelete(DeleteBehavior.ClientSetNull)
-                .HasConstraintName("FK_Member_Website");
+                .HasConstraintName("FK_Members_Websites");
         });
 
         modelBuilder.Entity<MemberForgetPassword>(entity =>
         {
-            entity.ToTable("MemberForgetPassword");
-
             entity.Property(e => e.ForgetKey)
                 .HasMaxLength(8)
                 .IsUnicode(false);
@@ -830,74 +913,68 @@ public partial class AppDbContext : DbContext
             entity.HasOne(d => d.Member).WithMany(p => p.MemberForgetPasswords)
                 .HasForeignKey(d => d.MemberID)
                 .OnDelete(DeleteBehavior.ClientSetNull)
-                .HasConstraintName("FK_MemberForgetPassword_Member");
+                .HasConstraintName("FK_MemberForgetPasswords_Members");
         });
 
         modelBuilder.Entity<Menu>(entity =>
         {
-            entity.ToTable("Menu");
-
-            entity.Property(e => e.IsActive).HasDefaultValue(true, "DF_Menu_IsActive");
+            entity.Property(e => e.IsActive).HasDefaultValue(true, "DF_Menus_IsActive");
             entity.Property(e => e.Name).HasMaxLength(100);
 
             entity.HasOne(d => d.Website).WithMany(p => p.Menus)
                 .HasForeignKey(d => d.WebsiteID)
                 .OnDelete(DeleteBehavior.ClientSetNull)
-                .HasConstraintName("FK_Menu_Website");
+                .HasConstraintName("FK_Menus_Websites");
         });
 
         modelBuilder.Entity<MenuItem>(entity =>
         {
-            entity.ToTable("MenuItem");
-
             entity.Property(e => e.CssClass).HasMaxLength(100);
             entity.Property(e => e.Icon).HasMaxLength(100);
-            entity.Property(e => e.IsActive).HasDefaultValue(true, "DF_MenuItem_IsActive");
+            entity.Property(e => e.IsActive).HasDefaultValue(true, "DF_MenuItems_IsActive");
             entity.Property(e => e.Title).HasMaxLength(200);
             entity.Property(e => e.Url).HasMaxLength(500);
 
             entity.HasOne(d => d.Brand).WithMany(p => p.MenuItems)
                 .HasForeignKey(d => d.BrandID)
-                .HasConstraintName("FK_MenuItem_Brands");
+                .HasConstraintName("FK_MenuItems_Brands");
 
             entity.HasOne(d => d.Category).WithMany(p => p.MenuItems)
                 .HasForeignKey(d => d.CategoryID)
-                .HasConstraintName("FK_MenuItem_Category");
+                .HasConstraintName("FK_MenuItems_Categories");
 
             entity.HasOne(d => d.Menu).WithMany(p => p.MenuItems)
                 .HasForeignKey(d => d.MenuID)
                 .OnDelete(DeleteBehavior.ClientSetNull)
-                .HasConstraintName("FK_MenuItem_Menu");
+                .HasConstraintName("FK_MenuItems_Menus");
 
             entity.HasOne(d => d.Page).WithMany(p => p.MenuItems)
                 .HasForeignKey(d => d.PageID)
-                .HasConstraintName("FK_MenuItem_Pages");
+                .HasConstraintName("FK_MenuItems_Pages");
 
             entity.HasOne(d => d.ParentItem).WithMany(p => p.InverseParentItem)
                 .HasForeignKey(d => d.ParentItemID)
-                .HasConstraintName("FK_MenuItem_MenuItem");
+                .HasConstraintName("FK_MenuItems_MenuItems");
 
             entity.HasOne(d => d.Post).WithMany(p => p.MenuItems)
                 .HasForeignKey(d => d.PostID)
-                .HasConstraintName("FK_MenuItem_Posts");
+                .HasConstraintName("FK_MenuItems_Posts");
 
             entity.HasOne(d => d.ProductCategory).WithMany(p => p.MenuItems)
                 .HasForeignKey(d => d.ProductCategoryID)
-                .HasConstraintName("FK_MenuItem_ProductCategories");
+                .HasConstraintName("FK_MenuItems_ProductCategories");
 
             entity.HasOne(d => d.Product).WithMany(p => p.MenuItems)
                 .HasForeignKey(d => d.ProductID)
-                .HasConstraintName("FK_MenuItem_Products");
+                .HasConstraintName("FK_MenuItems_Products");
 
             entity.HasOne(d => d.Vendor).WithMany(p => p.MenuItems)
                 .HasForeignKey(d => d.VendorID)
-                .HasConstraintName("FK_MenuItem_Vendors");
+                .HasConstraintName("FK_MenuItems_Vendors");
         });
 
         modelBuilder.Entity<MenuItemTranslation>(entity =>
         {
-            entity.ToTable("MenuItemTranslation");
-
             entity.Property(e => e.LanguageCode)
                 .HasMaxLength(2)
                 .IsUnicode(false)
@@ -907,7 +984,7 @@ public partial class AppDbContext : DbContext
             entity.HasOne(d => d.MenuItem).WithMany(p => p.MenuItemTranslations)
                 .HasForeignKey(d => d.MenuItemID)
                 .OnDelete(DeleteBehavior.ClientSetNull)
-                .HasConstraintName("FK_MenuItemTranslation_MenuItem");
+                .HasConstraintName("FK_MenuItemTranslations_MenuItems");
         });
 
         modelBuilder.Entity<Order>(entity =>
@@ -934,7 +1011,7 @@ public partial class AppDbContext : DbContext
 
             entity.HasOne(d => d.CreatedByMember).WithMany(p => p.Orders)
                 .HasForeignKey(d => d.CreatedByMemberID)
-                .HasConstraintName("FK_Orders_Member");
+                .HasConstraintName("FK_Orders_Members");
 
             entity.HasOne(d => d.WebsiteClientAddress).WithMany(p => p.Orders)
                 .HasForeignKey(d => d.WebsiteClientAddressID)
@@ -943,12 +1020,12 @@ public partial class AppDbContext : DbContext
             entity.HasOne(d => d.WebsiteClient).WithMany(p => p.Orders)
                 .HasForeignKey(d => d.WebsiteClientID)
                 .OnDelete(DeleteBehavior.ClientSetNull)
-                .HasConstraintName("FK_Orders_WebsiteClient");
+                .HasConstraintName("FK_Orders_WebsiteClients");
 
             entity.HasOne(d => d.Website).WithMany(p => p.Orders)
                 .HasForeignKey(d => d.WebsiteID)
                 .OnDelete(DeleteBehavior.ClientSetNull)
-                .HasConstraintName("FK_Orders_Website");
+                .HasConstraintName("FK_Orders_Websites");
         });
 
         modelBuilder.Entity<OrderItem>(entity =>
@@ -976,10 +1053,18 @@ public partial class AppDbContext : DbContext
                 .OnDelete(DeleteBehavior.ClientSetNull)
                 .HasConstraintName("FK_OrderItems_Website1");
 
+            entity.HasOne(d => d.Vendor).WithMany(p => p.OrderItems)
+                .HasForeignKey(d => d.VendorID)
+                .HasConstraintName("FK_OrderItems_Vendors");
+
+            entity.HasOne(d => d.VendorProduct).WithMany(p => p.OrderItems)
+                .HasForeignKey(d => d.VendorProductID)
+                .HasConstraintName("FK_OrderItems_VendorProducts");
+
             entity.HasOne(d => d.Website).WithMany(p => p.OrderItemWebsites)
                 .HasForeignKey(d => d.WebsiteID)
                 .OnDelete(DeleteBehavior.ClientSetNull)
-                .HasConstraintName("FK_OrderItems_Website");
+                .HasConstraintName("FK_OrderItems_Websites");
         });
 
         modelBuilder.Entity<OrderStatusHistory>(entity =>
@@ -991,7 +1076,7 @@ public partial class AppDbContext : DbContext
 
             entity.HasOne(d => d.CreatedByMember).WithMany(p => p.OrderStatusHistories)
                 .HasForeignKey(d => d.CreatedByMemberID)
-                .HasConstraintName("FK_OrderStatusHistories_Member");
+                .HasConstraintName("FK_OrderStatusHistories_Members");
 
             entity.HasOne(d => d.Order).WithMany(p => p.OrderStatusHistories)
                 .HasForeignKey(d => d.OrderID)
@@ -1015,7 +1100,7 @@ public partial class AppDbContext : DbContext
 
             entity.HasOne(d => d.CreatedByMember).WithMany(p => p.Pages)
                 .HasForeignKey(d => d.CreatedByMemberID)
-                .HasConstraintName("FK_Pages_Member");
+                .HasConstraintName("FK_Pages_Members");
 
             entity.HasOne(d => d.ParentPage).WithMany(p => p.InverseParentPage)
                 .HasForeignKey(d => d.ParentPageID)
@@ -1024,7 +1109,7 @@ public partial class AppDbContext : DbContext
             entity.HasOne(d => d.Website).WithMany(p => p.Pages)
                 .HasForeignKey(d => d.WebsiteID)
                 .OnDelete(DeleteBehavior.ClientSetNull)
-                .HasConstraintName("FK_Pages_Website");
+                .HasConstraintName("FK_Pages_Websites");
         });
 
         modelBuilder.Entity<PageTranslation>(entity =>
@@ -1063,6 +1148,10 @@ public partial class AppDbContext : DbContext
                 .HasForeignKey(d => d.BankAccountID)
                 .HasConstraintName("FK_Payments_BankAccounts");
 
+            entity.HasOne(d => d.ClientWalletTransaction).WithMany(p => p.Payments)
+                .HasForeignKey(d => d.ClientWalletTransactionID)
+                .HasConstraintName("FK_Payments_ClientWalletTransactions");
+
             entity.HasOne(d => d.Order).WithMany(p => p.Payments)
                 .HasForeignKey(d => d.OrderID)
                 .HasConstraintName("FK_Payments_Orders");
@@ -1073,21 +1162,21 @@ public partial class AppDbContext : DbContext
 
             entity.HasOne(d => d.ReceiptFile).WithMany(p => p.Payments)
                 .HasForeignKey(d => d.ReceiptFileID)
-                .HasConstraintName("FK_Payments_FileRecord");
+                .HasConstraintName("FK_Payments_FileRecords");
 
             entity.HasOne(d => d.VerifiedByMember).WithMany(p => p.Payments)
                 .HasForeignKey(d => d.VerifiedByMemberID)
-                .HasConstraintName("FK_Payments_Member");
+                .HasConstraintName("FK_Payments_Members");
 
             entity.HasOne(d => d.WebsiteClient).WithMany(p => p.Payments)
                 .HasForeignKey(d => d.WebsiteClientID)
                 .OnDelete(DeleteBehavior.ClientSetNull)
-                .HasConstraintName("FK_Payments_WebsiteClient");
+                .HasConstraintName("FK_Payments_WebsiteClients");
 
             entity.HasOne(d => d.Website).WithMany(p => p.Payments)
                 .HasForeignKey(d => d.WebsiteID)
                 .OnDelete(DeleteBehavior.ClientSetNull)
-                .HasConstraintName("FK_Payments_Website");
+                .HasConstraintName("FK_Payments_Websites");
         });
 
         modelBuilder.Entity<PaymentGateway>(entity =>
@@ -1102,7 +1191,7 @@ public partial class AppDbContext : DbContext
             entity.HasOne(d => d.Website).WithMany(p => p.PaymentGateways)
                 .HasForeignKey(d => d.WebsiteID)
                 .OnDelete(DeleteBehavior.ClientSetNull)
-                .HasConstraintName("FK_PaymentGateways_Website");
+                .HasConstraintName("FK_PaymentGateways_Websites");
         });
 
         modelBuilder.Entity<PaymentRefund>(entity =>
@@ -1119,9 +1208,13 @@ public partial class AppDbContext : DbContext
                 .HasForeignKey(d => d.BankAccountID)
                 .HasConstraintName("FK_PaymentRefunds_BankAccounts");
 
+            entity.HasOne(d => d.ClientWalletTransaction).WithMany(p => p.PaymentRefunds)
+                .HasForeignKey(d => d.ClientWalletTransactionID)
+                .HasConstraintName("FK_PaymentRefunds_ClientWalletTransactions");
+
             entity.HasOne(d => d.CreatedByMember).WithMany(p => p.PaymentRefunds)
                 .HasForeignKey(d => d.CreatedByMemberID)
-                .HasConstraintName("FK_PaymentRefunds_Member");
+                .HasConstraintName("FK_PaymentRefunds_Members");
 
             entity.HasOne(d => d.Payment).WithMany(p => p.PaymentRefunds)
                 .HasForeignKey(d => d.PaymentID)
@@ -1131,9 +1224,7 @@ public partial class AppDbContext : DbContext
 
         modelBuilder.Entity<Policy>(entity =>
         {
-            entity.ToTable("Policy");
-
-            entity.HasIndex(e => e.WebsiteID, "IX_Policy_WebsiteID");
+            entity.HasIndex(e => e.WebsiteID, "IX_Policies_WebsiteID");
 
             entity.Property(e => e.Title)
                 .HasMaxLength(64)
@@ -1143,22 +1234,20 @@ public partial class AppDbContext : DbContext
             entity.HasOne(d => d.Website).WithMany(p => p.Policies)
                 .HasForeignKey(d => d.WebsiteID)
                 .OnDelete(DeleteBehavior.ClientSetNull)
-                .HasConstraintName("FK_Policy_Website");
+                .HasConstraintName("FK_Policies_Websites");
         });
 
         modelBuilder.Entity<PolicyRole>(entity =>
         {
-            entity.ToTable("PolicyRole");
-
             entity.HasOne(d => d.Policy).WithMany(p => p.PolicyRoles)
                 .HasForeignKey(d => d.PolicyID)
                 .OnDelete(DeleteBehavior.ClientSetNull)
-                .HasConstraintName("FK_PolicyRole_Policy");
+                .HasConstraintName("FK_PolicyRoles_Policies");
 
             entity.HasOne(d => d.Role).WithMany(p => p.PolicyRoles)
                 .HasForeignKey(d => d.RoleID)
                 .OnDelete(DeleteBehavior.ClientSetNull)
-                .HasConstraintName("FK_PolicyRole_Role");
+                .HasConstraintName("FK_PolicyRoles_Roles");
         });
 
         modelBuilder.Entity<Post>(entity =>
@@ -1180,23 +1269,23 @@ public partial class AppDbContext : DbContext
 
             entity.HasOne(d => d.AuthorMember).WithMany(p => p.Posts)
                 .HasForeignKey(d => d.AuthorMemberID)
-                .HasConstraintName("FK_Posts_Member");
+                .HasConstraintName("FK_Posts_Members");
 
             entity.HasOne(d => d.FeaturedImageFile).WithMany(p => p.Posts)
                 .HasForeignKey(d => d.FeaturedImageFileID)
-                .HasConstraintName("FK_Posts_FileRecord");
+                .HasConstraintName("FK_Posts_FileRecords");
 
             entity.HasOne(d => d.PostType).WithMany(p => p.Posts)
                 .HasForeignKey(d => d.PostTypeID)
                 .OnDelete(DeleteBehavior.ClientSetNull)
-                .HasConstraintName("FK_Posts_PostType");
+                .HasConstraintName("FK_Posts_PostTypes");
 
             entity.HasOne(d => d.Website).WithMany(p => p.Posts)
                 .HasForeignKey(d => d.WebsiteID)
                 .OnDelete(DeleteBehavior.ClientSetNull)
-                .HasConstraintName("FK_Posts_Website");
+                .HasConstraintName("FK_Posts_Websites");
 
-            entity.HasMany(d => d.Tags).WithMany(p => p.Pos)
+            entity.HasMany(d => d.Tags).WithMany(p => p.Posts)
                 .UsingEntity<Dictionary<string, object>>(
                     "PostTag",
                     r => r.HasOne<Tag>().WithMany()
@@ -1204,12 +1293,12 @@ public partial class AppDbContext : DbContext
                         .OnDelete(DeleteBehavior.ClientSetNull)
                         .HasConstraintName("FK_PostTags_Tags"),
                     l => l.HasOne<Post>().WithMany()
-                        .HasForeignKey("PosID")
+                        .HasForeignKey("PostID")
                         .OnDelete(DeleteBehavior.ClientSetNull)
                         .HasConstraintName("FK_PostTags_Posts"),
                     j =>
                     {
-                        j.HasKey("PosID", "TagID");
+                        j.HasKey("PostID", "TagID");
                         j.ToTable("PostTags");
                     });
         });
@@ -1218,17 +1307,15 @@ public partial class AppDbContext : DbContext
         {
             entity.HasKey(e => new { e.PostID, e.CategoryID });
 
-            entity.ToTable("PostCategory");
-
             entity.HasOne(d => d.Category).WithMany(p => p.PostCategories)
                 .HasForeignKey(d => d.CategoryID)
                 .OnDelete(DeleteBehavior.ClientSetNull)
-                .HasConstraintName("FK_PostCategory_Category");
+                .HasConstraintName("FK_PostCategories_Categories");
 
             entity.HasOne(d => d.Post).WithMany(p => p.PostCategories)
                 .HasForeignKey(d => d.PostID)
                 .OnDelete(DeleteBehavior.ClientSetNull)
-                .HasConstraintName("FK_PostCategory_Posts");
+                .HasConstraintName("FK_PostCategories_Posts");
         });
 
         modelBuilder.Entity<PostTranslation>(entity =>
@@ -1249,19 +1336,17 @@ public partial class AppDbContext : DbContext
 
         modelBuilder.Entity<PostType>(entity =>
         {
-            entity.ToTable("PostType");
-
-            entity.Property(e => e.CommentsEnabled).HasDefaultValue(true, "DF_PostType_CommentsEnabled");
-            entity.Property(e => e.HasAuthor).HasDefaultValue(true, "DF_PostType_HasAuthor");
-            entity.Property(e => e.HasCategories).HasDefaultValue(true, "DF_PostType_HasCategories");
-            entity.Property(e => e.HasTags).HasDefaultValue(true, "DF_PostType_HasTags");
+            entity.Property(e => e.CommentsEnabled).HasDefaultValue(true, "DF_PostTypes_CommentsEnabled");
+            entity.Property(e => e.HasAuthor).HasDefaultValue(true, "DF_PostTypes_HasAuthor");
+            entity.Property(e => e.HasCategories).HasDefaultValue(true, "DF_PostTypes_HasCategories");
+            entity.Property(e => e.HasTags).HasDefaultValue(true, "DF_PostTypes_HasTags");
             entity.Property(e => e.Name).HasMaxLength(100);
             entity.Property(e => e.Slug).HasMaxLength(100);
 
             entity.HasOne(d => d.Website).WithMany(p => p.PostTypes)
                 .HasForeignKey(d => d.WebsiteID)
                 .OnDelete(DeleteBehavior.ClientSetNull)
-                .HasConstraintName("FK_PostType_Website");
+                .HasConstraintName("FK_PostTypes_Websites");
         });
 
         modelBuilder.Entity<Product>(entity =>
@@ -1283,10 +1368,18 @@ public partial class AppDbContext : DbContext
                 .HasForeignKey(d => d.BrandID)
                 .HasConstraintName("FK_Products_Brands");
 
+            entity.HasOne(d => d.CreatedByMember).WithMany(p => p.Products)
+                .HasForeignKey(d => d.CreatedByMemberId)
+                .HasConstraintName("FK_Products_Members");
+
+            entity.HasOne(d => d.FeaturedImageFile).WithMany(p => p.Products)
+                .HasForeignKey(d => d.FeaturedImageFileID)
+                .HasConstraintName("FK_Products_FileRecords");
+
             entity.HasOne(d => d.Website).WithMany(p => p.Products)
                 .HasForeignKey(d => d.WebsiteID)
                 .OnDelete(DeleteBehavior.ClientSetNull)
-                .HasConstraintName("FK_Products_Website");
+                .HasConstraintName("FK_Products_Websites");
         });
 
         modelBuilder.Entity<ProductAnswer>(entity =>
@@ -1308,7 +1401,7 @@ public partial class AppDbContext : DbContext
 
             entity.HasOne(d => d.WebsiteClient).WithMany(p => p.ProductAnswers)
                 .HasForeignKey(d => d.WebsiteClientID)
-                .HasConstraintName("FK_ProductAnswers_WebsiteClient");
+                .HasConstraintName("FK_ProductAnswers_WebsiteClients");
         });
 
         modelBuilder.Entity<ProductAttributeValue>(entity =>
@@ -1319,11 +1412,11 @@ public partial class AppDbContext : DbContext
             entity.HasOne(d => d.AttributeDefinition).WithMany(p => p.ProductAttributeValues)
                 .HasForeignKey(d => d.AttributeDefinitionID)
                 .OnDelete(DeleteBehavior.ClientSetNull)
-                .HasConstraintName("FK_ProductAttributeValues_AttributeDefinition");
+                .HasConstraintName("FK_ProductAttributeValues_AttributeDefinitions");
 
             entity.HasOne(d => d.AttributeOption).WithMany(p => p.ProductAttributeValues)
                 .HasForeignKey(d => d.AttributeOptionID)
-                .HasConstraintName("FK_ProductAttributeValues_AttributeOption");
+                .HasConstraintName("FK_ProductAttributeValues_AttributeOptions");
 
             entity.HasOne(d => d.Product).WithMany(p => p.ProductAttributeValues)
                 .HasForeignKey(d => d.ProductID)
@@ -1353,7 +1446,7 @@ public partial class AppDbContext : DbContext
 
             entity.HasOne(d => d.ImageFile).WithMany(p => p.ProductCategories)
                 .HasForeignKey(d => d.ImageFileID)
-                .HasConstraintName("FK_ProductCategories_FileRecord");
+                .HasConstraintName("FK_ProductCategories_FileRecords");
 
             entity.HasOne(d => d.ParentCategory).WithMany(p => p.InverseParentCategory)
                 .HasForeignKey(d => d.ParentCategoryID)
@@ -1362,7 +1455,7 @@ public partial class AppDbContext : DbContext
             entity.HasOne(d => d.Website).WithMany(p => p.ProductCategories)
                 .HasForeignKey(d => d.WebsiteID)
                 .OnDelete(DeleteBehavior.ClientSetNull)
-                .HasConstraintName("FK_ProductCategories_Website");
+                .HasConstraintName("FK_ProductCategories_Websites");
         });
 
         modelBuilder.Entity<ProductCategoryMap>(entity =>
@@ -1415,6 +1508,10 @@ public partial class AppDbContext : DbContext
         modelBuilder.Entity<ProductContentSection>(entity =>
         {
             entity.Property(e => e.IsActive).HasDefaultValue(true, "DF_ProductContentSections_IsActive");
+
+            entity.HasOne(d => d.File).WithMany(p => p.ProductContentSections)
+                .HasForeignKey(d => d.FileId)
+                .HasConstraintName("FK_ProductContentSections_FileRecords");
 
             entity.HasOne(d => d.MediaSet).WithMany(p => p.ProductContentSections)
                 .HasForeignKey(d => d.MediaSetID)
@@ -1470,12 +1567,12 @@ public partial class AppDbContext : DbContext
             entity.HasOne(d => d.WebsiteClient).WithMany(p => p.ProductQuestions)
                 .HasForeignKey(d => d.WebsiteClientID)
                 .OnDelete(DeleteBehavior.ClientSetNull)
-                .HasConstraintName("FK_ProductQuestions_WebsiteClient");
+                .HasConstraintName("FK_ProductQuestions_WebsiteClients");
 
             entity.HasOne(d => d.Website).WithMany(p => p.ProductQuestions)
                 .HasForeignKey(d => d.WebsiteID)
                 .OnDelete(DeleteBehavior.ClientSetNull)
-                .HasConstraintName("FK_ProductQuestions_Website");
+                .HasConstraintName("FK_ProductQuestions_Websites");
         });
 
         modelBuilder.Entity<ProductRelation>(entity =>
@@ -1515,12 +1612,12 @@ public partial class AppDbContext : DbContext
             entity.HasOne(d => d.WebsiteClient).WithMany(p => p.ProductReviews)
                 .HasForeignKey(d => d.WebsiteClientID)
                 .OnDelete(DeleteBehavior.ClientSetNull)
-                .HasConstraintName("FK_ProductReviews_WebsiteClient");
+                .HasConstraintName("FK_ProductReviews_WebsiteClients");
 
             entity.HasOne(d => d.Website).WithMany(p => p.ProductReviews)
                 .HasForeignKey(d => d.WebsiteID)
                 .OnDelete(DeleteBehavior.ClientSetNull)
-                .HasConstraintName("FK_ProductReviews_Website");
+                .HasConstraintName("FK_ProductReviews_Websites");
         });
 
         modelBuilder.Entity<ProductTranslation>(entity =>
@@ -1554,7 +1651,7 @@ public partial class AppDbContext : DbContext
 
             entity.HasOne(d => d.ImageFile).WithMany(p => p.ProductVariants)
                 .HasForeignKey(d => d.ImageFileID)
-                .HasConstraintName("FK_ProductVariants_FileRecord");
+                .HasConstraintName("FK_ProductVariants_FileRecords");
 
             entity.HasOne(d => d.Product).WithMany(p => p.ProductVariants)
                 .HasForeignKey(d => d.ProductID)
@@ -1564,7 +1661,7 @@ public partial class AppDbContext : DbContext
             entity.HasOne(d => d.Website).WithMany(p => p.ProductVariants)
                 .HasForeignKey(d => d.WebsiteID)
                 .OnDelete(DeleteBehavior.ClientSetNull)
-                .HasConstraintName("FK_ProductVariants_Website");
+                .HasConstraintName("FK_ProductVariants_Websites");
         });
 
         modelBuilder.Entity<ProductWarning>(entity =>
@@ -1597,8 +1694,6 @@ public partial class AppDbContext : DbContext
 
         modelBuilder.Entity<Role>(entity =>
         {
-            entity.ToTable("Role");
-
             entity.Property(e => e.Description)
                 .HasMaxLength(128)
                 .IsUnicode(false);
@@ -1632,7 +1727,7 @@ public partial class AppDbContext : DbContext
 
             entity.HasOne(d => d.CreatedByMember).WithMany(p => p.SettlementCreatedByMembers)
                 .HasForeignKey(d => d.CreatedByMemberID)
-                .HasConstraintName("FK_Settlements_Member");
+                .HasConstraintName("FK_Settlements_Members");
 
             entity.HasOne(d => d.Supplier).WithMany(p => p.Settlements)
                 .HasForeignKey(d => d.SupplierID)
@@ -1649,7 +1744,7 @@ public partial class AppDbContext : DbContext
             entity.HasOne(d => d.Website).WithMany(p => p.SettlementWebsites)
                 .HasForeignKey(d => d.WebsiteID)
                 .OnDelete(DeleteBehavior.ClientSetNull)
-                .HasConstraintName("FK_Settlements_Website");
+                .HasConstraintName("FK_Settlements_Websites");
         });
 
         modelBuilder.Entity<SettlementItem>(entity =>
@@ -1677,34 +1772,30 @@ public partial class AppDbContext : DbContext
 
         modelBuilder.Entity<State>(entity =>
         {
-            entity.ToTable("State");
-
             entity.Property(e => e.LanguageCode)
                 .HasMaxLength(2)
                 .IsUnicode(false)
                 .IsFixedLength();
-            entity.Property(e => e.Tile).HasMaxLength(48);
+            entity.Property(e => e.Title).HasMaxLength(48);
 
             entity.HasOne(d => d.Country).WithMany(p => p.States)
                 .HasForeignKey(d => d.CountryID)
                 .OnDelete(DeleteBehavior.ClientSetNull)
-                .HasConstraintName("FK_State_Country");
+                .HasConstraintName("FK_States_Countries");
         });
 
         modelBuilder.Entity<StateTranslation>(entity =>
         {
-            entity.ToTable("StateTranslation");
-
             entity.Property(e => e.LanguageCode)
                 .HasMaxLength(2)
                 .IsUnicode(false)
                 .IsFixedLength();
-            entity.Property(e => e.Tile).HasMaxLength(48);
+            entity.Property(e => e.Title).HasMaxLength(48);
 
             entity.HasOne(d => d.State).WithMany(p => p.StateTranslations)
                 .HasForeignKey(d => d.StateID)
                 .OnDelete(DeleteBehavior.ClientSetNull)
-                .HasConstraintName("FK_StateTranslation_State");
+                .HasConstraintName("FK_StateTranslations_States");
         });
 
         modelBuilder.Entity<StockMovement>(entity =>
@@ -1718,7 +1809,7 @@ public partial class AppDbContext : DbContext
 
             entity.HasOne(d => d.CreatedByMember).WithMany(p => p.StockMovements)
                 .HasForeignKey(d => d.CreatedByMemberID)
-                .HasConstraintName("FK_StockMovements_Member");
+                .HasConstraintName("FK_StockMovements_Members");
 
             entity.HasOne(d => d.Order).WithMany(p => p.StockMovements)
                 .HasForeignKey(d => d.OrderID)
@@ -1740,7 +1831,7 @@ public partial class AppDbContext : DbContext
             entity.HasOne(d => d.Website).WithMany(p => p.StockMovements)
                 .HasForeignKey(d => d.WebsiteID)
                 .OnDelete(DeleteBehavior.ClientSetNull)
-                .HasConstraintName("FK_StockMovements_Website");
+                .HasConstraintName("FK_StockMovements_Websites");
         });
 
         modelBuilder.Entity<Supplier>(entity =>
@@ -1752,7 +1843,7 @@ public partial class AppDbContext : DbContext
             entity.HasOne(d => d.Website).WithMany(p => p.Suppliers)
                 .HasForeignKey(d => d.WebsiteID)
                 .OnDelete(DeleteBehavior.ClientSetNull)
-                .HasConstraintName("FK_Suppliers_Website");
+                .HasConstraintName("FK_Suppliers_Websites");
         });
 
         modelBuilder.Entity<Tag>(entity =>
@@ -1763,7 +1854,7 @@ public partial class AppDbContext : DbContext
             entity.HasOne(d => d.Website).WithMany(p => p.Tags)
                 .HasForeignKey(d => d.WebsiteID)
                 .OnDelete(DeleteBehavior.ClientSetNull)
-                .HasConstraintName("FK_Tags_Website");
+                .HasConstraintName("FK_Tags_Websites");
         });
 
         modelBuilder.Entity<TagTranslation>(entity =>
@@ -1788,12 +1879,12 @@ public partial class AppDbContext : DbContext
             entity.HasOne(d => d.AttributeDefinition).WithMany(p => p.VariantAttributeValues)
                 .HasForeignKey(d => d.AttributeDefinitionID)
                 .OnDelete(DeleteBehavior.ClientSetNull)
-                .HasConstraintName("FK_VariantAttributeValues_AttributeDefinition");
+                .HasConstraintName("FK_VariantAttributeValues_AttributeDefinitions");
 
             entity.HasOne(d => d.AttributeOption).WithMany(p => p.VariantAttributeValues)
                 .HasForeignKey(d => d.AttributeOptionID)
                 .OnDelete(DeleteBehavior.ClientSetNull)
-                .HasConstraintName("FK_VariantAttributeValues_AttributeOption");
+                .HasConstraintName("FK_VariantAttributeValues_AttributeOptions");
 
             entity.HasOne(d => d.ProductVariant).WithMany(p => p.VariantAttributeValues)
                 .HasForeignKey(d => d.ProductVariantID)
@@ -1810,12 +1901,12 @@ public partial class AppDbContext : DbContext
 
             entity.HasOne(d => d.LogoFile).WithMany(p => p.Vendors)
                 .HasForeignKey(d => d.LogoFileID)
-                .HasConstraintName("FK_Vendors_FileRecord");
+                .HasConstraintName("FK_Vendors_FileRecords");
 
             entity.HasOne(d => d.Website).WithMany(p => p.Vendors)
                 .HasForeignKey(d => d.WebsiteID)
                 .OnDelete(DeleteBehavior.ClientSetNull)
-                .HasConstraintName("FK_Vendors_Website");
+                .HasConstraintName("FK_Vendors_Websites");
         });
 
         modelBuilder.Entity<VendorProduct>(entity =>
@@ -1838,7 +1929,7 @@ public partial class AppDbContext : DbContext
             entity.HasOne(d => d.Website).WithMany(p => p.VendorProducts)
                 .HasForeignKey(d => d.WebsiteID)
                 .OnDelete(DeleteBehavior.ClientSetNull)
-                .HasConstraintName("FK_VendorProducts_Website");
+                .HasConstraintName("FK_VendorProducts_Websites");
         });
 
         modelBuilder.Entity<VendorTranslation>(entity =>
@@ -1857,8 +1948,6 @@ public partial class AppDbContext : DbContext
 
         modelBuilder.Entity<Website>(entity =>
         {
-            entity.ToTable("Website");
-
             entity.Property(e => e.BrandName)
                 .HasMaxLength(60)
                 .HasComment("show in title of pages");
@@ -1884,17 +1973,15 @@ public partial class AppDbContext : DbContext
 
             entity.HasOne(d => d.FaveIconFile).WithMany(p => p.WebsiteFaveIconFiles)
                 .HasForeignKey(d => d.FaveIconFileID)
-                .HasConstraintName("FK_Website_FileRecord1");
+                .HasConstraintName("FK_Websites_FileRecord1");
 
             entity.HasOne(d => d.LogoFile).WithMany(p => p.WebsiteLogoFiles)
                 .HasForeignKey(d => d.LogoFileID)
-                .HasConstraintName("FK_Website_FileRecord");
+                .HasConstraintName("FK_Websites_FileRecords");
         });
 
         modelBuilder.Entity<WebsiteClient>(entity =>
         {
-            entity.ToTable("WebsiteClient");
-
             entity.Property(e => e.Cellphone)
                 .HasMaxLength(16)
                 .IsUnicode(false);
@@ -1912,12 +1999,12 @@ public partial class AppDbContext : DbContext
 
             entity.HasOne(d => d.Avatar).WithMany(p => p.WebsiteClients)
                 .HasForeignKey(d => d.AvatarID)
-                .HasConstraintName("FK_WebsiteClient_FileRecord");
+                .HasConstraintName("FK_WebsiteClients_FileRecords");
 
             entity.HasOne(d => d.Website).WithMany(p => p.WebsiteClients)
                 .HasForeignKey(d => d.WebsiteID)
                 .OnDelete(DeleteBehavior.ClientSetNull)
-                .HasConstraintName("FK_WebsiteClient_Website");
+                .HasConstraintName("FK_WebsiteClients_Websites");
         });
 
         modelBuilder.Entity<WebsiteClientAddress>(entity =>
@@ -1930,22 +2017,20 @@ public partial class AppDbContext : DbContext
 
             entity.HasOne(d => d.City).WithMany(p => p.WebsiteClientAddresses)
                 .HasForeignKey(d => d.CityId)
-                .HasConstraintName("FK_WebsiteClientAddresses_City");
+                .HasConstraintName("FK_WebsiteClientAddresses_Cities");
 
             entity.HasOne(d => d.Country).WithMany(p => p.WebsiteClientAddresses)
                 .HasForeignKey(d => d.CountryId)
-                .HasConstraintName("FK_WebsiteClientAddresses_Country");
+                .HasConstraintName("FK_WebsiteClientAddresses_Countries");
 
             entity.HasOne(d => d.WebsiteClient).WithMany(p => p.WebsiteClientAddresses)
                 .HasForeignKey(d => d.WebsiteClientID)
                 .OnDelete(DeleteBehavior.ClientSetNull)
-                .HasConstraintName("FK_WebsiteClientAddresses_WebsiteClient");
+                .HasConstraintName("FK_WebsiteClientAddresses_WebsiteClients");
         });
 
         modelBuilder.Entity<WebsiteClientForgetPassword>(entity =>
         {
-            entity.ToTable("WebsiteClientForgetPassword");
-
             entity.Property(e => e.ForgetKey)
                 .HasMaxLength(8)
                 .IsUnicode(false);
@@ -1954,13 +2039,11 @@ public partial class AppDbContext : DbContext
             entity.HasOne(d => d.WebsiteClient).WithMany(p => p.WebsiteClientForgetPasswords)
                 .HasForeignKey(d => d.WebsiteClientID)
                 .OnDelete(DeleteBehavior.ClientSetNull)
-                .HasConstraintName("FK_WebsiteClientForgetPassword_WebsiteClient");
+                .HasConstraintName("FK_WebsiteClientForgetPasswords_WebsiteClients");
         });
 
         modelBuilder.Entity<WebsiteIP>(entity =>
         {
-            entity.ToTable("WebsiteIP");
-
             entity.Property(e => e.EndIP)
                 .HasMaxLength(45)
                 .IsUnicode(false);
@@ -1972,7 +2055,7 @@ public partial class AppDbContext : DbContext
             entity.HasOne(d => d.Website).WithMany(p => p.WebsiteIPs)
                 .HasForeignKey(d => d.WebsiteID)
                 .OnDelete(DeleteBehavior.ClientSetNull)
-                .HasConstraintName("FK_WebsiteIP_Website");
+                .HasConstraintName("FK_WebsiteIPs_Websites");
         });
 
         modelBuilder.Entity<WebsiteRedirect>(entity =>
@@ -1988,13 +2071,11 @@ public partial class AppDbContext : DbContext
             entity.HasOne(d => d.Website).WithMany(p => p.WebsiteRedirects)
                 .HasForeignKey(d => d.WebsiteID)
                 .OnDelete(DeleteBehavior.ClientSetNull)
-                .HasConstraintName("FK_WebsiteRedirects_Website");
+                .HasConstraintName("FK_WebsiteRedirects_Websites");
         });
 
         modelBuilder.Entity<WebsiteScript>(entity =>
         {
-            entity.ToTable("WebsiteScript");
-
             entity.Property(e => e.LogTime).HasColumnType("datetime");
             entity.Property(e => e.Name)
                 .HasMaxLength(50)
@@ -2004,13 +2085,11 @@ public partial class AppDbContext : DbContext
             entity.HasOne(d => d.Website).WithMany(p => p.WebsiteScripts)
                 .HasForeignKey(d => d.WebsiteID)
                 .OnDelete(DeleteBehavior.ClientSetNull)
-                .HasConstraintName("FK_WebsiteScript_Website");
+                .HasConstraintName("FK_WebsiteScripts_Websites");
         });
 
         modelBuilder.Entity<WebsiteSeoSetting>(entity =>
         {
-            entity.ToTable("WebsiteSeoSetting");
-
             entity.Property(e => e.DefaultMetaDescription).HasMaxLength(158);
             entity.Property(e => e.DefaultMetaTitle)
                 .HasMaxLength(40)
@@ -2020,18 +2099,16 @@ public partial class AppDbContext : DbContext
                 .HasMaxLength(3)
                 .IsUnicode(false)
                 .IsFixedLength()
-                .HasDefaultValue(" | \" or \" - \" or \" › ", "DF_WebsiteSeoSetting_TitleSeparator");
+                .HasDefaultValue(" | ", "DF_WebsiteSeoSettings_TitleSeparator");
 
             entity.HasOne(d => d.Website).WithMany(p => p.WebsiteSeoSettings)
                 .HasForeignKey(d => d.WebsiteID)
                 .OnDelete(DeleteBehavior.ClientSetNull)
-                .HasConstraintName("FK_WebsiteSeoSetting_Website");
+                .HasConstraintName("FK_WebsiteSeoSettings_Websites");
         });
 
         modelBuilder.Entity<WebsiteSocialLink>(entity =>
         {
-            entity.ToTable("WebsiteSocialLink");
-
             entity.Property(e => e.SocialIcon)
                 .HasMaxLength(64)
                 .IsUnicode(false);
@@ -2041,10 +2118,10 @@ public partial class AppDbContext : DbContext
             entity.HasOne(d => d.Website).WithMany(p => p.WebsiteSocialLinks)
                 .HasForeignKey(d => d.WebsiteID)
                 .OnDelete(DeleteBehavior.ClientSetNull)
-                .HasConstraintName("FK_WebsiteSocialLink_Website");
+                .HasConstraintName("FK_WebsiteSocialLinks_Websites");
         });
 
-        modelBuilder.Entity<WebstieStorageSetting>(entity =>
+        modelBuilder.Entity<WebsiteStorageSetting>(entity =>
         {
             entity.HasKey(e => e.WebsiteStorageSettingsID);
 
@@ -2053,10 +2130,10 @@ public partial class AppDbContext : DbContext
                 .IsUnicode(false);
             entity.Property(e => e.StorageSettingsJSON).HasMaxLength(2000);
 
-            entity.HasOne(d => d.Website).WithMany(p => p.WebstieStorageSettings)
+            entity.HasOne(d => d.Website).WithMany(p => p.WebsiteStorageSettings)
                 .HasForeignKey(d => d.WebsiteID)
                 .OnDelete(DeleteBehavior.ClientSetNull)
-                .HasConstraintName("FK_WebstieStorageSettings_Website");
+                .HasConstraintName("FK_WebsiteStorageSettings_Websites");
         });
 
         OnModelCreatingPartial(modelBuilder);

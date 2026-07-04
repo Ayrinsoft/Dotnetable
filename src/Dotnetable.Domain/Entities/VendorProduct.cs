@@ -23,6 +23,8 @@ public partial class VendorProduct
 
     public bool IsActive { get; set; }
 
+    public virtual ICollection<OrderItem> OrderItems { get; set; } = new List<OrderItem>();
+
     public virtual ProductVariant ProductVariant { get; set; } = null!;
 
     public virtual Vendor Vendor { get; set; } = null!;

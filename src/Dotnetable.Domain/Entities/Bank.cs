@@ -19,6 +19,8 @@ public partial class Bank
 
     public virtual ICollection<BankAccount> BankAccounts { get; set; } = new List<BankAccount>();
 
+    public virtual ICollection<ClientBankAccount> ClientBankAccounts { get; set; } = new List<ClientBankAccount>();
+
     public virtual FileRecord? LogoFile { get; set; }
 
     public virtual Website? Website { get; set; }

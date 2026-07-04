@@ -41,6 +41,10 @@ public partial class Product
 
     public virtual Brand? Brand { get; set; }
 
+    public virtual Member? CreatedByMember { get; set; }
+
+    public virtual FileRecord? FeaturedImageFile { get; set; }
+
     public virtual ICollection<MenuItem> MenuItems { get; set; } = new List<MenuItem>();
 
     public virtual ICollection<ProductAttributeValue> ProductAttributeValues { get; set; } = new List<ProductAttributeValue>();

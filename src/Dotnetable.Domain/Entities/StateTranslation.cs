@@ -7,7 +7,7 @@ public partial class StateTranslation
 {
     public int StateTranslationID { get; set; }
 
-    public string Tile { get; set; } = null!;
+    public string Title { get; set; } = null!;
 
     public string LanguageCode { get; set; } = null!;
 

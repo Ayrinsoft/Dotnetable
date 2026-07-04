@@ -5,7 +5,7 @@ namespace Dotnetable.Domain.Entities;
 
 public partial class JournalEntry
 {
-    public int JournalEntrieID { get; set; }
+    public int JournalEntryID { get; set; }
 
     public int WebsiteID { get; set; }
 

@@ -21,6 +21,8 @@ public partial class ProductContentSection
 
     public bool IsActive { get; set; }
 
+    public virtual FileRecord? File { get; set; }
+
     public virtual MediaSet? MediaSet { get; set; }
 
     public virtual Product Product { get; set; } = null!;
