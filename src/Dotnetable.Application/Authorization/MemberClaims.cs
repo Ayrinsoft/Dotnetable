@@ -16,6 +16,9 @@ public static class MemberClaims
     /// <summary>"true" for members of the master website (full cross-site access).</summary>
     public const string Master = "master";
 
+    /// <summary>The member's <see cref="Member.AdminUIMode"/> (0 = Basic, 1 = General, 2 = Advanced), as a string digit.</summary>
+    public const string AdminUiMode = "auimode";
+
     /// <summary>
     /// Builds the identity + role claims for <paramref name="member"/>. The member must have its
     /// Policy → PolicyRoles → Role graph loaded for the role claims to be populated.
@@ -30,6 +33,7 @@ public static class MemberClaims
             new(MemberId, member.MemberID.ToString()),
             new(WebsiteId, member.WebsiteID.ToString()),
             new(PolicyId, member.PolicyID.ToString()),
+            new(AdminUiMode, member.AdminUIMode.ToString()),
         };
 
         if (member.WebsiteID == AppConstants.MasterWebsiteId)

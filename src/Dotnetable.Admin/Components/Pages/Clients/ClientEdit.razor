@@ -245,6 +245,12 @@ else if (_client is not null)
                         <MudItem xs="12" sm="6">
                             <MudTextField @bind-Value="_editAddress.Phone" Label="@L["clients.addresses.phone", "Phone"]" Variant="Variant.Outlined" />
                         </MudItem>
+                        <MudItem xs="12" sm="6">
+                            <MudNumericField T="decimal?" @bind-Value="_editAddress.Latitude" Label="@L["clients.addresses.latitude", "Latitude"]" Variant="Variant.Outlined" />
+                        </MudItem>
+                        <MudItem xs="12" sm="6">
+                            <MudNumericField T="decimal?" @bind-Value="_editAddress.Longitude" Label="@L["clients.addresses.longitude", "Longitude"]" Variant="Variant.Outlined" />
+                        </MudItem>
                         <MudItem xs="12">
                             <MudSwitch T="bool" @bind-Value="_editAddress.IsDefault" Color="Color.Primary" Label="@L["clients.addresses.default", "Default"]" />
                         </MudItem>
@@ -356,6 +362,8 @@ else if (_client is not null)
             AddressLine = a.AddressLine,
             PostalCode = a.PostalCode,
             Phone = a.Phone,
+            Latitude = a.Latitude,
+            Longitude = a.Longitude,
             IsDefault = a.IsDefault,
         };
         _addressCities = a.CountryId is int countryId

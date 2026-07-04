@@ -32,10 +32,12 @@ else if (_model is not null)
                     <MudTextField @bind-Value="_model.Slug" Label="@L["slug", "Slug"]" Variant="Variant.Outlined" Required="true" Class="mb-3" />
                     <MudTextField @bind-Value="_model.Excerpt" Label="@L["posts.excerpt", "Excerpt"]" Variant="Variant.Outlined"
                                   Lines="2" AutoGrow="true" Class="mb-3" />
-                    <MudTextField @bind-Value="_model.Content" Label="@L["posts.content", "Content"]" Variant="Variant.Outlined"
-                                  Lines="14" AutoGrow="true" />
+                    <MudText Typo="Typo.body2" Class="mb-1" Color="Color.Secondary">@L["posts.content", "Content"]</MudText>
+                    <CkEditor Value="@(_model.Content ?? "")" OnValueChanged="@(v => _model!.Content = v)" />
                 </MudPaper>
 
+                @if (_showTranslations)
+                {
                 <MudExpansionPanels Elevation="0" Class="mt-4">
                     <MudExpansionPanel Text="@L["translations", "Translations"]">
                         @foreach (var (code, label) in ContentLanguages.All)
@@ -47,12 +49,16 @@ else if (_model is not null)
                                     <MudItem xs="12" sm="7"><MudTextField T="string" Value="@t.Title" ValueChanged="@(v => { t.Title = v; })" Label="@L["title", "Title"]" Variant="Variant.Outlined" Margin="Margin.Dense" /></MudItem>
                                     <MudItem xs="12" sm="5"><MudTextField T="string" Value="@t.Slug" ValueChanged="@(v => { t.Slug = v; })" Label="@L["slug", "Slug"]" Variant="Variant.Outlined" Margin="Margin.Dense" /></MudItem>
                                     <MudItem xs="12"><MudTextField T="string" Value="@t.Excerpt" ValueChanged="@(v => { t.Excerpt = v; })" Label="@L["posts.excerpt", "Excerpt"]" Variant="Variant.Outlined" Lines="2" AutoGrow="true" Margin="Margin.Dense" /></MudItem>
-                                    <MudItem xs="12"><MudTextField T="string" Value="@t.Content" ValueChanged="@(v => { t.Content = v; })" Label="@L["posts.content", "Content"]" Variant="Variant.Outlined" Lines="6" AutoGrow="true" Margin="Margin.Dense" /></MudItem>
+                                    <MudItem xs="12">
+                                        <MudText Typo="Typo.caption" Class="mb-1" Color="Color.Secondary">@L["posts.content", "Content"]</MudText>
+                                        <CkEditor Value="@(t.Content ?? "")" OnValueChanged="@(v => t.Content = v)" />
+                                    </MudItem>
                                 </MudGrid>
                             </MudPaper>
                         }
                     </MudExpansionPanel>
                 </MudExpansionPanels>
+                }
             </MudItem>
 
             <MudItem xs="12" md="4">
@@ -138,6 +144,7 @@ else if (_model is not null)
     private bool _isMaster;
     private bool _canEdit;
     private bool _saving;
+    private bool _showTranslations;
     private int _websiteId;
     private int _memberId;
     private Post? _model;
@@ -164,6 +171,7 @@ else if (_model is not null)
         _isMaster = user.HasClaim(AdminClaimTypes.Master, "true");
         int.TryParse(user.FindFirst(AdminClaimTypes.WebsiteId)?.Value, out _websiteId);
         int.TryParse(user.FindFirst(AdminClaimTypes.MemberId)?.Value, out _memberId);
+        _showTranslations = AdminClaimTypes.GetUiMode(user) == AdminUiMode.Advanced;
         _isNew = Id is null;
         _canEdit = AdminPolicies.Allows(user, _isNew ? RoleKeys.PostsInsert : RoleKeys.PostsEdit);
 

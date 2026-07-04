@@ -2311,6 +2311,8 @@ public partial class AppDbContext : DbContext
             entity.Property(e => e.PostalCode).HasMaxLength(20);
             entity.Property(e => e.ReceiverName).HasMaxLength(200);
             entity.Property(e => e.Title).HasMaxLength(100);
+            entity.Property(e => e.Latitude).HasColumnType("decimal(9, 6)");
+            entity.Property(e => e.Longitude).HasColumnType("decimal(9, 6)");
 
             entity.HasOne(d => d.City).WithMany(p => p.WebsiteClientAddresses)
                 .HasForeignKey(d => d.CityId)
