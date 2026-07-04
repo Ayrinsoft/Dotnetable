@@ -7,9 +7,9 @@ namespace Dotnetable.Application.Interfaces;
 public interface IStorageSettingService
 {
     /// <summary>All storage settings for a website (raw rows, for the management grid).</summary>
-    Task<IReadOnlyList<WebstieStorageSetting>> GetForWebsiteAsync(int websiteId, CancellationToken ct = default);
+    Task<IReadOnlyList<WebsiteStorageSetting>> GetForWebsiteAsync(int websiteId, CancellationToken ct = default);
 
-    Task<WebstieStorageSetting?> GetByIdAsync(int id, CancellationToken ct = default);
+    Task<WebsiteStorageSetting?> GetByIdAsync(int id, CancellationToken ct = default);
 
     /// <summary>Active storages for a website with a live quota snapshot (for the upload selector).</summary>
     Task<IReadOnlyList<StorageSettingInfo>> GetActiveForWebsiteAsync(int websiteId, CancellationToken ct = default);
@@ -17,8 +17,8 @@ public interface IStorageSettingService
     /// <summary>Quota snapshot for a single storage (live provider call + DB usage).</summary>
     Task<StorageQuota> GetQuotaAsync(int id, CancellationToken ct = default);
 
-    Task<WebstieStorageSetting> CreateAsync(WebstieStorageSetting setting, CancellationToken ct = default);
-    Task UpdateAsync(WebstieStorageSetting setting, CancellationToken ct = default);
+    Task<WebsiteStorageSetting> CreateAsync(WebsiteStorageSetting setting, CancellationToken ct = default);
+    Task UpdateAsync(WebsiteStorageSetting setting, CancellationToken ct = default);
     Task SetActiveAsync(int id, bool active, CancellationToken ct = default);
     Task DeleteAsync(int id, CancellationToken ct = default);
 

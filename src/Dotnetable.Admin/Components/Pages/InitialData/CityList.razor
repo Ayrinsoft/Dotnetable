@@ -25,7 +25,7 @@
                    Clearable="true" Disabled="@(!_filterCountryId.HasValue)">
             @foreach (var s in _states)
             {
-                <MudSelectItem T="int?" Value="@((int?)s.StateID)">@s.Tile</MudSelectItem>
+                <MudSelectItem T="int?" Value="@((int?)s.StateID)">@s.Title</MudSelectItem>
             }
         </MudSelect>
         <MudButton Variant="Variant.Filled" Color="Color.Primary"
@@ -62,7 +62,7 @@
                     <td>@c.CityID</td>
                     <td>@c.Title</td>
                     <td>@(c.Country?.Title ?? c.CountryID.ToString())</td>
-                    <td>@(c.State?.Tile ?? "-")</td>
+                    <td>@(c.State?.Title ?? "-")</td>
                     <td>@c.LanguageCode</td>
                     <td>
                         <MudSwitch T="bool" Value="c.Active" Color="Color.Success"

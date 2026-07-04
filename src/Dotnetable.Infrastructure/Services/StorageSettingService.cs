@@ -18,18 +18,18 @@ public class StorageSettingService : IStorageSettingService
         _providers = providers;
     }
 
-    public async Task<IReadOnlyList<WebstieStorageSetting>> GetForWebsiteAsync(int websiteId, CancellationToken ct = default) =>
-        await _context.WebstieStorageSettings.AsNoTracking()
+    public async Task<IReadOnlyList<WebsiteStorageSetting>> GetForWebsiteAsync(int websiteId, CancellationToken ct = default) =>
+        await _context.WebsiteStorageSettings.AsNoTracking()
             .Where(s => s.WebsiteID == websiteId)
             .OrderBy(s => s.WebsiteStorageSettingsID)
             .ToListAsync(ct);
 
-    public async Task<WebstieStorageSetting?> GetByIdAsync(int id, CancellationToken ct = default) =>
-        await _context.WebstieStorageSettings.FindAsync([id], ct);
+    public async Task<WebsiteStorageSetting?> GetByIdAsync(int id, CancellationToken ct = default) =>
+        await _context.WebsiteStorageSettings.FindAsync([id], ct);
 
     public async Task<IReadOnlyList<StorageSettingInfo>> GetActiveForWebsiteAsync(int websiteId, CancellationToken ct = default)
     {
-        var settings = await _context.WebstieStorageSettings.AsNoTracking()
+        var settings = await _context.WebsiteStorageSettings.AsNoTracking()
             .Where(s => s.WebsiteID == websiteId && s.Active)
             .OrderBy(s => s.WebsiteStorageSettingsID)
             .ToListAsync(ct);
@@ -42,31 +42,31 @@ public class StorageSettingService : IStorageSettingService
 
     public async Task<StorageQuota> GetQuotaAsync(int id, CancellationToken ct = default)
     {
-        var setting = await _context.WebstieStorageSettings.AsNoTracking()
+        var setting = await _context.WebsiteStorageSettings.AsNoTracking()
             .FirstOrDefaultAsync(s => s.WebsiteStorageSettingsID == id, ct)
             ?? throw new InvalidOperationException($"Storage setting {id} not found.");
         return await ResolveQuotaAsync(setting, ct);
     }
 
-    public async Task<WebstieStorageSetting> CreateAsync(WebstieStorageSetting setting, CancellationToken ct = default)
+    public async Task<WebsiteStorageSetting> CreateAsync(WebsiteStorageSetting setting, CancellationToken ct = default)
     {
-        _context.WebstieStorageSettings.Add(setting);
+        _context.WebsiteStorageSettings.Add(setting);
         await _context.SaveChangesAsync(ct);
         return setting;
     }
 
-    public async Task UpdateAsync(WebstieStorageSetting setting, CancellationToken ct = default)
+    public async Task UpdateAsync(WebsiteStorageSetting setting, CancellationToken ct = default)
     {
-        _context.WebstieStorageSettings.Update(setting);
+        _context.WebsiteStorageSettings.Update(setting);
         await _context.SaveChangesAsync(ct);
     }
 
     public async Task SetActiveAsync(int id, bool active, CancellationToken ct = default) =>
-        await _context.WebstieStorageSettings.Where(s => s.WebsiteStorageSettingsID == id)
+        await _context.WebsiteStorageSettings.Where(s => s.WebsiteStorageSettingsID == id)
             .ExecuteUpdateAsync(s => s.SetProperty(x => x.Active, active), ct);
 
     public async Task DeleteAsync(int id, CancellationToken ct = default) =>
-        await _context.WebstieStorageSettings.Where(s => s.WebsiteStorageSettingsID == id)
+        await _context.WebsiteStorageSettings.Where(s => s.WebsiteStorageSettingsID == id)
             .ExecuteDeleteAsync(ct);
 
     public async Task<bool> TestAsync(int id, CancellationToken ct = default)
@@ -79,7 +79,7 @@ public class StorageSettingService : IStorageSettingService
         await _providers.Get(ctx.Provider).TestConnectionAsync(ctx, ct);
 
     /// <summary>Live quota: provider value, falling back to summed DB usage when the backend reports none.</summary>
-    private async Task<StorageQuota> ResolveQuotaAsync(WebstieStorageSetting setting, CancellationToken ct)
+    private async Task<StorageQuota> ResolveQuotaAsync(WebsiteStorageSetting setting, CancellationToken ct)
     {
         StorageQuota providerQuota;
         try
@@ -103,7 +103,7 @@ public class StorageSettingService : IStorageSettingService
         return new StorageQuota { UsedKB = usedKb, TotalKB = providerQuota.TotalKB };
     }
 
-    private async Task<StorageSettingInfo> ToInfoAsync(WebstieStorageSetting s, CancellationToken ct)
+    private async Task<StorageSettingInfo> ToInfoAsync(WebsiteStorageSetting s, CancellationToken ct)
     {
         var provider = (StorageProviderType)s.StorageProvider;
         StorageQuota? quota = null;
@@ -123,7 +123,7 @@ public class StorageSettingService : IStorageSettingService
         };
     }
 
-    private static StorageSettingContext ToContext(WebstieStorageSetting s) => new()
+    private static StorageSettingContext ToContext(WebsiteStorageSetting s) => new()
     {
         WebsiteStorageSettingsID = s.WebsiteStorageSettingsID,
         WebsiteID = s.WebsiteID,

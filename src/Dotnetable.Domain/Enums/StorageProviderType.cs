@@ -2,7 +2,7 @@ namespace Dotnetable.Domain.Enums;
 
 /// <summary>
 /// Storage backends a website can register for file uploads.
-/// Stored in <c>WebstieStorageSetting.StorageProvider</c> and <c>FileRecord.StorageProvider</c>.
+/// Stored in <c>WebsiteStorageSetting.StorageProvider</c> and <c>FileRecord.StorageProvider</c>.
 /// </summary>
 public enum StorageProviderType : short
 {

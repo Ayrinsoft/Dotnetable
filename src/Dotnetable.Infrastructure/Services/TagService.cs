@@ -39,12 +39,12 @@ public class TagService : ITagService
     {
         var tag = await _context.Tags
             .Include(t => t.TagTranslations)
-            .Include(t => t.Pos)
+            .Include(t => t.Posts)
             .FirstOrDefaultAsync(t => t.TagID == tagId, ct);
         if (tag is null) return;
 
         // Drop the post↔tag links and translations before removing the tag itself.
-        tag.Pos.Clear();
+        tag.Posts.Clear();
         _context.TagTranslations.RemoveRange(tag.TagTranslations);
         _context.Tags.Remove(tag);
         await _context.SaveChangesAsync(ct);

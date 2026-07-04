@@ -8,3 +8,5 @@
     CONSTRAINT [FK_States_Countries] FOREIGN KEY ([CountryID]) REFERENCES [dbo].[Countries] ([CountryID])
 );
 
+-- Global master data, same rule as [dbo].[Countries]: only the master website (WebsiteID = 1) edits this.
+

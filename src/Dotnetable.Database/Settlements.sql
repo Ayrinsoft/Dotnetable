@@ -19,6 +19,7 @@
     [CreatedAt]          DATETIME        CONSTRAINT [DF_Settlements_CreatedAt_1] DEFAULT (sysutcdatetime()) NOT NULL,
     CONSTRAINT [PK_Settlements] PRIMARY KEY CLUSTERED ([SettlementID] ASC),
     CONSTRAINT [FK_Settlements_BankAccounts] FOREIGN KEY ([BankAccountID]) REFERENCES [dbo].[BankAccounts] ([BankAccountID]),
+    CONSTRAINT [FK_Settlements_Currencies] FOREIGN KEY ([CurrencyCode]) REFERENCES [dbo].[Currencies] ([CurrencyCode]),
     CONSTRAINT [FK_Settlements_Members] FOREIGN KEY ([CreatedByMemberID]) REFERENCES [dbo].[Members] ([MemberID]),
     CONSTRAINT [FK_Settlements_Member1] FOREIGN KEY ([ApprovedByMemberID]) REFERENCES [dbo].[Members] ([MemberID]),
     CONSTRAINT [FK_Settlements_Suppliers] FOREIGN KEY ([SupplierID]) REFERENCES [dbo].[Suppliers] ([SupplierID]),

@@ -103,7 +103,7 @@ else
     private int _websiteId;
     private bool _loading = true;
     private List<Website> _websites = new();
-    private List<WebstieStorageSetting> _items = new();
+    private List<WebsiteStorageSetting> _items = new();
     private Dictionary<int, StorageQuota> _quotas = new();
 
     protected override async Task OnInitializedAsync()
@@ -145,7 +145,7 @@ else
         }
     }
 
-    private async Task OpenEditAsync(WebstieStorageSetting? setting)
+    private async Task OpenEditAsync(WebsiteStorageSetting? setting)
     {
         var parameters = new DialogParameters
         {
