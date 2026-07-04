@@ -1,4 +1,4 @@
-﻿CREATE TABLE [dbo].[FileRecord] (
+﻿CREATE TABLE [dbo].[FileRecords] (
     [FileRecordID]             INT             IDENTITY (1, 1) NOT NULL,
     [WebsiteStorageSettingsID] INT             NOT NULL,
     [StorageProvider]          SMALLINT        NOT NULL,
@@ -21,11 +21,11 @@
     [WebsiteID]                INT             NOT NULL,
     [UploaderMemberID]         INT             NULL,
     [WebsiteClientID]          INT             NULL,
-    CONSTRAINT [PK_FileRecord] PRIMARY KEY CLUSTERED ([FileRecordID] ASC),
-    CONSTRAINT [FK_FileRecord_FileAlbum] FOREIGN KEY ([FileAlbumID]) REFERENCES [dbo].[FileAlbum] ([FileAlbumID]),
-    CONSTRAINT [FK_FileRecord_Member] FOREIGN KEY ([UploaderMemberID]) REFERENCES [dbo].[Member] ([MemberID]),
-    CONSTRAINT [FK_FileRecord_Website] FOREIGN KEY ([WebsiteID]) REFERENCES [dbo].[Website] ([WebsiteID]),
-    CONSTRAINT [FK_FileRecord_WebsiteClient] FOREIGN KEY ([WebsiteClientID]) REFERENCES [dbo].[WebsiteClient] ([WebsiteClientID]),
-    CONSTRAINT [FK_FileRecord_WebstieStorageSettings] FOREIGN KEY ([WebsiteStorageSettingsID]) REFERENCES [dbo].[WebstieStorageSettings] ([WebsiteStorageSettingsID])
+    CONSTRAINT [PK_FileRecords] PRIMARY KEY CLUSTERED ([FileRecordID] ASC),
+    CONSTRAINT [FK_FileRecords_FileAlbums] FOREIGN KEY ([FileAlbumID]) REFERENCES [dbo].[FileAlbums] ([FileAlbumID]),
+    CONSTRAINT [FK_FileRecords_Members] FOREIGN KEY ([UploaderMemberID]) REFERENCES [dbo].[Members] ([MemberID]),
+    CONSTRAINT [FK_FileRecords_Websites] FOREIGN KEY ([WebsiteID]) REFERENCES [dbo].[Websites] ([WebsiteID]),
+    CONSTRAINT [FK_FileRecords_WebsiteClients] FOREIGN KEY ([WebsiteClientID]) REFERENCES [dbo].[WebsiteClients] ([WebsiteClientID]),
+    CONSTRAINT [FK_FileRecords_WebsiteStorageSettings] FOREIGN KEY ([WebsiteStorageSettingsID]) REFERENCES [dbo].[WebsiteStorageSettings] ([WebsiteStorageSettingsID])
 );
 

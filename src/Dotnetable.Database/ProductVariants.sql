@@ -13,8 +13,8 @@
     [IsActive]          BIT             CONSTRAINT [DF_ProductVariants_IsActive] DEFAULT ((1)) NOT NULL,
     [CreatedAt]         DATETIME        CONSTRAINT [DF_ProductVariants_CreatedAt] DEFAULT (sysutcdatetime()) NOT NULL,
     CONSTRAINT [PK_ProductVariants] PRIMARY KEY CLUSTERED ([ProductVariantID] ASC),
-    CONSTRAINT [FK_ProductVariants_FileRecord] FOREIGN KEY ([ImageFileID]) REFERENCES [dbo].[FileRecord] ([FileRecordID]),
+    CONSTRAINT [FK_ProductVariants_FileRecords] FOREIGN KEY ([ImageFileID]) REFERENCES [dbo].[FileRecords] ([FileRecordID]),
     CONSTRAINT [FK_ProductVariants_Products] FOREIGN KEY ([ProductID]) REFERENCES [dbo].[Products] ([ProductID]),
-    CONSTRAINT [FK_ProductVariants_Website] FOREIGN KEY ([WebsiteID]) REFERENCES [dbo].[Website] ([WebsiteID])
+    CONSTRAINT [FK_ProductVariants_Websites] FOREIGN KEY ([WebsiteID]) REFERENCES [dbo].[Websites] ([WebsiteID])
 );
 

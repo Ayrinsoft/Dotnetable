@@ -13,11 +13,13 @@
     [Status]              TINYINT         CONSTRAINT [DF_Products_Status_1] DEFAULT ((1)) NOT NULL,
     [SortOrder]           INT             CONSTRAINT [DF_Products_SortOrder] DEFAULT ((0)) NOT NULL,
     [IsActive]            BIT             CONSTRAINT [DF_Products_IsActive_1] DEFAULT ((1)) NOT NULL,
-    [CreatedByMemberId]   INT             NULL,
+    [CreatedByMemberID]   INT             NULL,
     [CreatedAt]           DATETIME        CONSTRAINT [DF_Products_CreatedAt_1] DEFAULT (sysutcdatetime()) NOT NULL,
     [UpdatedAt]           DATETIME        CONSTRAINT [DF_Products_UpdatedAt_1] DEFAULT (sysutcdatetime()) NOT NULL,
     CONSTRAINT [PK_Products] PRIMARY KEY CLUSTERED ([ProductID] ASC),
     CONSTRAINT [FK_Products_Brands] FOREIGN KEY ([BrandID]) REFERENCES [dbo].[Brands] ([BrandID]),
-    CONSTRAINT [FK_Products_Website] FOREIGN KEY ([WebsiteID]) REFERENCES [dbo].[Website] ([WebsiteID])
+    CONSTRAINT [FK_Products_FileRecords] FOREIGN KEY ([FeaturedImageFileID]) REFERENCES [dbo].[FileRecords] ([FileRecordID]),
+    CONSTRAINT [FK_Products_Members] FOREIGN KEY ([CreatedByMemberID]) REFERENCES [dbo].[Members] ([MemberID]),
+    CONSTRAINT [FK_Products_Websites] FOREIGN KEY ([WebsiteID]) REFERENCES [dbo].[Websites] ([WebsiteID])
 );
 

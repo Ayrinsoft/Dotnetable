@@ -1,4 +1,4 @@
-﻿CREATE TABLE [dbo].[WebstieStorageSettings] (
+﻿CREATE TABLE [dbo].[WebsiteStorageSettings] (
     [WebsiteStorageSettingsID] INT             IDENTITY (1, 1) NOT NULL,
     [WebsiteID]                INT             NOT NULL,
     [StorageProvider]          SMALLINT        NOT NULL,
@@ -7,7 +7,7 @@
     [MaxFileSizeKB]            BIGINT          NOT NULL,
     [AllowedExtensions]        VARCHAR (710)   NULL,
     [AutoGenerateThumbnails]   BIT             NOT NULL,
-    CONSTRAINT [PK_WebstieStorageSettings] PRIMARY KEY CLUSTERED ([WebsiteStorageSettingsID] ASC),
-    CONSTRAINT [FK_WebstieStorageSettings_Website] FOREIGN KEY ([WebsiteID]) REFERENCES [dbo].[Website] ([WebsiteID])
+    CONSTRAINT [PK_WebsiteStorageSettings] PRIMARY KEY CLUSTERED ([WebsiteStorageSettingsID] ASC),
+    CONSTRAINT [FK_WebsiteStorageSettings_Websites] FOREIGN KEY ([WebsiteID]) REFERENCES [dbo].[Websites] ([WebsiteID])
 );
 

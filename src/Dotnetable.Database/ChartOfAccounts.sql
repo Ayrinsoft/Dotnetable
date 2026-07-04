@@ -8,6 +8,6 @@
     [IsActive]         BIT            CONSTRAINT [DF_ChartOfAccounts_IsActive] DEFAULT ((1)) NOT NULL,
     CONSTRAINT [PK_ChartOfAccounts] PRIMARY KEY CLUSTERED ([ChartOfAccountID] ASC),
     CONSTRAINT [FK_ChartOfAccounts_ChartOfAccounts] FOREIGN KEY ([ParentAccountID]) REFERENCES [dbo].[ChartOfAccounts] ([ChartOfAccountID]),
-    CONSTRAINT [FK_ChartOfAccounts_Website] FOREIGN KEY ([WebsiteID]) REFERENCES [dbo].[Website] ([WebsiteID])
+    CONSTRAINT [FK_ChartOfAccounts_Websites] FOREIGN KEY ([WebsiteID]) REFERENCES [dbo].[Websites] ([WebsiteID])
 );
 

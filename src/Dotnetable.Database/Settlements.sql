@@ -19,11 +19,11 @@
     [CreatedAt]          DATETIME        CONSTRAINT [DF_Settlements_CreatedAt_1] DEFAULT (sysutcdatetime()) NOT NULL,
     CONSTRAINT [PK_Settlements] PRIMARY KEY CLUSTERED ([SettlementID] ASC),
     CONSTRAINT [FK_Settlements_BankAccounts] FOREIGN KEY ([BankAccountID]) REFERENCES [dbo].[BankAccounts] ([BankAccountID]),
-    CONSTRAINT [FK_Settlements_Member] FOREIGN KEY ([CreatedByMemberID]) REFERENCES [dbo].[Member] ([MemberID]),
-    CONSTRAINT [FK_Settlements_Member1] FOREIGN KEY ([ApprovedByMemberID]) REFERENCES [dbo].[Member] ([MemberID]),
+    CONSTRAINT [FK_Settlements_Members] FOREIGN KEY ([CreatedByMemberID]) REFERENCES [dbo].[Members] ([MemberID]),
+    CONSTRAINT [FK_Settlements_Member1] FOREIGN KEY ([ApprovedByMemberID]) REFERENCES [dbo].[Members] ([MemberID]),
     CONSTRAINT [FK_Settlements_Suppliers] FOREIGN KEY ([SupplierID]) REFERENCES [dbo].[Suppliers] ([SupplierID]),
     CONSTRAINT [FK_Settlements_Vendors] FOREIGN KEY ([VendorID]) REFERENCES [dbo].[Vendors] ([VendorID]),
-    CONSTRAINT [FK_Settlements_Website] FOREIGN KEY ([WebsiteID]) REFERENCES [dbo].[Website] ([WebsiteID]),
-    CONSTRAINT [FK_Settlements_Website1] FOREIGN KEY ([TargetWebsiteID]) REFERENCES [dbo].[Website] ([WebsiteID])
+    CONSTRAINT [FK_Settlements_Websites] FOREIGN KEY ([WebsiteID]) REFERENCES [dbo].[Websites] ([WebsiteID]),
+    CONSTRAINT [FK_Settlements_Website1] FOREIGN KEY ([TargetWebsiteID]) REFERENCES [dbo].[Websites] ([WebsiteID])
 );
 

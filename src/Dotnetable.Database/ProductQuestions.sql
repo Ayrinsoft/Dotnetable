@@ -9,7 +9,7 @@
     [Approved]          BIT             NOT NULL,
     CONSTRAINT [PK_ProductQuestions] PRIMARY KEY CLUSTERED ([ProductQuestionID] ASC),
     CONSTRAINT [FK_ProductQuestions_Products] FOREIGN KEY ([ProductID]) REFERENCES [dbo].[Products] ([ProductID]),
-    CONSTRAINT [FK_ProductQuestions_Website] FOREIGN KEY ([WebsiteID]) REFERENCES [dbo].[Website] ([WebsiteID]),
-    CONSTRAINT [FK_ProductQuestions_WebsiteClient] FOREIGN KEY ([WebsiteClientID]) REFERENCES [dbo].[WebsiteClient] ([WebsiteClientID])
+    CONSTRAINT [FK_ProductQuestions_Websites] FOREIGN KEY ([WebsiteID]) REFERENCES [dbo].[Websites] ([WebsiteID]),
+    CONSTRAINT [FK_ProductQuestions_WebsiteClients] FOREIGN KEY ([WebsiteClientID]) REFERENCES [dbo].[WebsiteClients] ([WebsiteClientID])
 );
 

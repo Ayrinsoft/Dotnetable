@@ -17,7 +17,9 @@
     CONSTRAINT [PK_OrderItems] PRIMARY KEY CLUSTERED ([OrderItemID] ASC),
     CONSTRAINT [FK_OrderItems_Orders] FOREIGN KEY ([OrderID]) REFERENCES [dbo].[Orders] ([OrderID]),
     CONSTRAINT [FK_OrderItems_ProductVariants] FOREIGN KEY ([ProductVariantID]) REFERENCES [dbo].[ProductVariants] ([ProductVariantID]),
-    CONSTRAINT [FK_OrderItems_Website] FOREIGN KEY ([WebsiteID]) REFERENCES [dbo].[Website] ([WebsiteID]),
-    CONSTRAINT [FK_OrderItems_Website1] FOREIGN KEY ([SourceWebsiteID]) REFERENCES [dbo].[Website] ([WebsiteID])
+    CONSTRAINT [FK_OrderItems_VendorProducts] FOREIGN KEY ([VendorProductID]) REFERENCES [dbo].[VendorProducts] ([VendorProductID]),
+    CONSTRAINT [FK_OrderItems_Vendors] FOREIGN KEY ([VendorID]) REFERENCES [dbo].[Vendors] ([VendorID]),
+    CONSTRAINT [FK_OrderItems_Websites] FOREIGN KEY ([WebsiteID]) REFERENCES [dbo].[Websites] ([WebsiteID]),
+    CONSTRAINT [FK_OrderItems_Website1] FOREIGN KEY ([SourceWebsiteID]) REFERENCES [dbo].[Websites] ([WebsiteID])
 );
 

@@ -18,9 +18,9 @@
     [CreatedAt]           DATETIME        CONSTRAINT [DF_Posts_CreatedAt_1] DEFAULT (sysutcdatetime()) NOT NULL,
     [UpdatedAt]           DATETIME        CONSTRAINT [DF_Posts_UpdatedAt_1] DEFAULT (sysutcdatetime()) NOT NULL,
     CONSTRAINT [PK_Posts] PRIMARY KEY CLUSTERED ([PostID] ASC),
-    CONSTRAINT [FK_Posts_FileRecord] FOREIGN KEY ([FeaturedImageFileID]) REFERENCES [dbo].[FileRecord] ([FileRecordID]),
-    CONSTRAINT [FK_Posts_Member] FOREIGN KEY ([AuthorMemberID]) REFERENCES [dbo].[Member] ([MemberID]),
-    CONSTRAINT [FK_Posts_PostType] FOREIGN KEY ([PostTypeID]) REFERENCES [dbo].[PostType] ([PostTypeID]),
-    CONSTRAINT [FK_Posts_Website] FOREIGN KEY ([WebsiteID]) REFERENCES [dbo].[Website] ([WebsiteID])
+    CONSTRAINT [FK_Posts_FileRecords] FOREIGN KEY ([FeaturedImageFileID]) REFERENCES [dbo].[FileRecords] ([FileRecordID]),
+    CONSTRAINT [FK_Posts_Members] FOREIGN KEY ([AuthorMemberID]) REFERENCES [dbo].[Members] ([MemberID]),
+    CONSTRAINT [FK_Posts_PostTypes] FOREIGN KEY ([PostTypeID]) REFERENCES [dbo].[PostTypes] ([PostTypeID]),
+    CONSTRAINT [FK_Posts_Websites] FOREIGN KEY ([WebsiteID]) REFERENCES [dbo].[Websites] ([WebsiteID])
 );
 

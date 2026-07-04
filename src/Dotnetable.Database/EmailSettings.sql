@@ -1,4 +1,4 @@
-﻿CREATE TABLE [dbo].[EmailSetting] (
+﻿CREATE TABLE [dbo].[EmailSettings] (
     [EmailSettingID] INT            IDENTITY (1, 1) NOT NULL,
     [EmailAddress]   VARCHAR (64)   NOT NULL,
     [Password]       NVARCHAR (256) NOT NULL,
@@ -10,7 +10,7 @@
     [DefaultEMail]   BIT            NOT NULL,
     [Active]         BIT            NOT NULL,
     [WebsiteID]      INT            NOT NULL,
-    CONSTRAINT [PK_EmailSetting] PRIMARY KEY CLUSTERED ([EmailSettingID] ASC),
-    CONSTRAINT [FK_EmailSetting_Website] FOREIGN KEY ([WebsiteID]) REFERENCES [dbo].[Website] ([WebsiteID])
+    CONSTRAINT [PK_EmailSettings] PRIMARY KEY CLUSTERED ([EmailSettingID] ASC),
+    CONSTRAINT [FK_EmailSettings_Websites] FOREIGN KEY ([WebsiteID]) REFERENCES [dbo].[Websites] ([WebsiteID])
 );
 

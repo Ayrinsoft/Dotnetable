@@ -1,4 +1,4 @@
-﻿CREATE TABLE [dbo].[MenuItem] (
+﻿CREATE TABLE [dbo].[MenuItems] (
     [MenuItemID]        INT            IDENTITY (1, 1) NOT NULL,
     [MenuID]            INT            NOT NULL,
     [ParentItemID]      INT            NULL,
@@ -14,18 +14,18 @@
     [Title]             NVARCHAR (200) NOT NULL,
     [Icon]              NVARCHAR (100) NULL,
     [CssClass]          NVARCHAR (100) NULL,
-    [OpenInNewTab]      BIT            CONSTRAINT [DF_MenuItem_OpenInNewTab] DEFAULT ((0)) NOT NULL,
-    [SortOrder]         INT            CONSTRAINT [DF_MenuItem_SortOrder] DEFAULT ((0)) NOT NULL,
-    [IsActive]          BIT            CONSTRAINT [DF_MenuItem_IsActive] DEFAULT ((1)) NOT NULL,
-    CONSTRAINT [PK_MenuItem] PRIMARY KEY CLUSTERED ([MenuItemID] ASC),
-    CONSTRAINT [FK_MenuItem_Brands] FOREIGN KEY ([BrandID]) REFERENCES [dbo].[Brands] ([BrandID]),
-    CONSTRAINT [FK_MenuItem_Category] FOREIGN KEY ([CategoryID]) REFERENCES [dbo].[Category] ([CategoryID]),
-    CONSTRAINT [FK_MenuItem_Menu] FOREIGN KEY ([MenuID]) REFERENCES [dbo].[Menu] ([MenuID]),
-    CONSTRAINT [FK_MenuItem_MenuItem] FOREIGN KEY ([ParentItemID]) REFERENCES [dbo].[MenuItem] ([MenuItemID]),
-    CONSTRAINT [FK_MenuItem_Pages] FOREIGN KEY ([PageID]) REFERENCES [dbo].[Pages] ([PageID]),
-    CONSTRAINT [FK_MenuItem_Posts] FOREIGN KEY ([PostID]) REFERENCES [dbo].[Posts] ([PostID]),
-    CONSTRAINT [FK_MenuItem_ProductCategories] FOREIGN KEY ([ProductCategoryID]) REFERENCES [dbo].[ProductCategories] ([ProductCategoryID]),
-    CONSTRAINT [FK_MenuItem_Products] FOREIGN KEY ([ProductID]) REFERENCES [dbo].[Products] ([ProductID]),
-    CONSTRAINT [FK_MenuItem_Vendors] FOREIGN KEY ([VendorID]) REFERENCES [dbo].[Vendors] ([VendorID])
+    [OpenInNewTab]      BIT            CONSTRAINT [DF_MenuItems_OpenInNewTab] DEFAULT ((0)) NOT NULL,
+    [SortOrder]         INT            CONSTRAINT [DF_MenuItems_SortOrder] DEFAULT ((0)) NOT NULL,
+    [IsActive]          BIT            CONSTRAINT [DF_MenuItems_IsActive] DEFAULT ((1)) NOT NULL,
+    CONSTRAINT [PK_MenuItems] PRIMARY KEY CLUSTERED ([MenuItemID] ASC),
+    CONSTRAINT [FK_MenuItems_Brands] FOREIGN KEY ([BrandID]) REFERENCES [dbo].[Brands] ([BrandID]),
+    CONSTRAINT [FK_MenuItems_Categories] FOREIGN KEY ([CategoryID]) REFERENCES [dbo].[Categories] ([CategoryID]),
+    CONSTRAINT [FK_MenuItems_Menus] FOREIGN KEY ([MenuID]) REFERENCES [dbo].[Menus] ([MenuID]),
+    CONSTRAINT [FK_MenuItems_MenuItems] FOREIGN KEY ([ParentItemID]) REFERENCES [dbo].[MenuItems] ([MenuItemID]),
+    CONSTRAINT [FK_MenuItems_Pages] FOREIGN KEY ([PageID]) REFERENCES [dbo].[Pages] ([PageID]),
+    CONSTRAINT [FK_MenuItems_Posts] FOREIGN KEY ([PostID]) REFERENCES [dbo].[Posts] ([PostID]),
+    CONSTRAINT [FK_MenuItems_ProductCategories] FOREIGN KEY ([ProductCategoryID]) REFERENCES [dbo].[ProductCategories] ([ProductCategoryID]),
+    CONSTRAINT [FK_MenuItems_Products] FOREIGN KEY ([ProductID]) REFERENCES [dbo].[Products] ([ProductID]),
+    CONSTRAINT [FK_MenuItems_Vendors] FOREIGN KEY ([VendorID]) REFERENCES [dbo].[Vendors] ([VendorID])
 );
 
