@@ -19,6 +19,10 @@ public partial class StockMovement
 
     public decimal? UnitSalePriceUsd { get; set; }
 
+    public string CurrencyCode { get; set; } = null!;
+
+    public decimal ExchangeRateToUsd { get; set; }
+
     public int? SupplierID { get; set; }
 
     public int? OrderID { get; set; }
@@ -32,6 +36,8 @@ public partial class StockMovement
     public DateTime CreatedAt { get; set; }
 
     public virtual Member? CreatedByMember { get; set; }
+
+    public virtual Currency CurrencyCodeNavigation { get; set; } = null!;
 
     public virtual Order? Order { get; set; }
 

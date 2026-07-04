@@ -1011,6 +1011,7 @@ public partial class AppDbContext : DbContext
 
         modelBuilder.Entity<Member>(entity =>
         {
+            entity.Property(e => e.AdminUIMode).HasDefaultValue((byte)1, "DF_Members_AdminUIMode");
             entity.Property(e => e.CellphoneNumber)
                 .HasMaxLength(12)
                 .IsUnicode(false);
@@ -2005,6 +2006,13 @@ public partial class AppDbContext : DbContext
             entity.Property(e => e.CreatedAt)
                 .HasPrecision(0)
                 .HasDefaultValueSql("(sysutcdatetime())", "DF_StockMovements_CreatedAt");
+            entity.Property(e => e.CurrencyCode)
+                .HasMaxLength(3)
+                .IsUnicode(false)
+                .IsFixedLength();
+            entity.Property(e => e.ExchangeRateToUsd)
+                .HasColumnType("decimal(18, 6)")
+                .HasDefaultValue(1m, "DF_StockMovements_ExchangeRateToUsd");
             entity.Property(e => e.Note).HasMaxLength(500);
             entity.Property(e => e.UnitCostUsd).HasColumnType("decimal(18, 4)");
             entity.Property(e => e.UnitSalePriceUsd).HasColumnType("decimal(18, 4)");
@@ -2012,6 +2020,11 @@ public partial class AppDbContext : DbContext
             entity.HasOne(d => d.CreatedByMember).WithMany(p => p.StockMovements)
                 .HasForeignKey(d => d.CreatedByMemberID)
                 .HasConstraintName("FK_StockMovements_Members");
+
+            entity.HasOne(d => d.CurrencyCodeNavigation).WithMany(p => p.StockMovements)
+                .HasForeignKey(d => d.CurrencyCode)
+                .OnDelete(DeleteBehavior.ClientSetNull)
+                .HasConstraintName("FK_StockMovements_Currencies");
 
             entity.HasOne(d => d.Order).WithMany(p => p.StockMovements)
                 .HasForeignKey(d => d.OrderID)
@@ -2116,9 +2129,11 @@ public partial class AppDbContext : DbContext
 
         modelBuilder.Entity<Vendor>(entity =>
         {
+            entity.Property(e => e.CreditLimitUsd).HasColumnType("decimal(18, 4)");
             entity.Property(e => e.IsActive).HasDefaultValue(true, "DF_Vendors_IsActive_1");
             entity.Property(e => e.Name).HasMaxLength(200);
             entity.Property(e => e.Rating).HasColumnType("decimal(3, 2)");
+            entity.Property(e => e.SettlementMode).HasDefaultValue((byte)0, "DF_Vendors_SettlementMode");
             entity.Property(e => e.Slug).HasMaxLength(200);
 
             entity.HasOne(d => d.LogoFile).WithMany(p => p.Vendors)

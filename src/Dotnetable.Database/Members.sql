@@ -14,9 +14,14 @@
     [PolicyID]        INT              NOT NULL,
     [Gender]          BIT              NULL,
     [WebsiteID]       INT              NOT NULL,
+    [AdminUIMode]     TINYINT          CONSTRAINT [DF_Members_AdminUIMode] DEFAULT ((1)) NOT NULL,
     CONSTRAINT [PK_Members] PRIMARY KEY CLUSTERED ([MemberID] ASC),
     CONSTRAINT [FK_Members_FileRecords] FOREIGN KEY ([AvatarID]) REFERENCES [dbo].[FileRecords] ([FileRecordID]),
     CONSTRAINT [FK_Members_Policies] FOREIGN KEY ([PolicyID]) REFERENCES [dbo].[Policies] ([PolicyID]),
     CONSTRAINT [FK_Members_Websites] FOREIGN KEY ([WebsiteID]) REFERENCES [dbo].[Websites] ([WebsiteID])
 );
+
+
+GO
+EXECUTE sp_addextendedproperty @name = N'MS_Description', @value = N'0 = Basic (admin surface reduced to what this member''s Website.WebsiteType needs), 1 = General (same admin surface regardless of website type), 2 = Advanced (full surface, e.g. extra-language pages/buttons on an otherwise single-language site)', @level0type = N'SCHEMA', @level0name = N'dbo', @level1type = N'TABLE', @level1name = N'Members', @level2type = N'COLUMN', @level2name = N'AdminUIMode';
 
