@@ -66,6 +66,12 @@ public static class RoleCatalog
         new(RoleKeys.MediaUpload, "Upload media & manage storage", RoleCategory.Admin),
         new(RoleKeys.MediaDelete, "Delete media", RoleCategory.Admin),
 
+        // Slideshows
+        new(RoleKeys.SlideshowsView, "View slideshows", RoleCategory.Admin),
+        new(RoleKeys.SlideshowsInsert, "Create slideshows", RoleCategory.Admin),
+        new(RoleKeys.SlideshowsEdit, "Edit slideshows", RoleCategory.Admin),
+        new(RoleKeys.SlideshowsDelete, "Delete slideshows", RoleCategory.Admin),
+
         // Content — posts
         new(RoleKeys.PostsView, "View posts", RoleCategory.Admin),
         new(RoleKeys.PostsInsert, "Create posts", RoleCategory.Admin),

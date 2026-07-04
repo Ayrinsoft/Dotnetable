@@ -75,6 +75,10 @@ public partial class FileRecord
 
     public virtual ICollection<Product> Products { get; set; } = new List<Product>();
 
+    public virtual ICollection<SlideshowSlide> SlideshowSlideFiles { get; set; } = new List<SlideshowSlide>();
+
+    public virtual ICollection<SlideshowSlide> SlideshowSlideMobileFiles { get; set; } = new List<SlideshowSlide>();
+
     public virtual Member? UploaderMember { get; set; }
 
     public virtual ICollection<Vendor> Vendors { get; set; } = new List<Vendor>();

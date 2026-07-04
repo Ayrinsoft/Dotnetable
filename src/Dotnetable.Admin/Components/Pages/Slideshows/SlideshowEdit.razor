@@ -1,0 +1,253 @@
+@page "/slideshows/{Id:int}"
+@attribute [Authorize(Policy = RoleKeys.SlideshowsView)]
+@inject ISlideshowService SlideshowService
+@inject AuthenticationStateProvider AuthState
+@inject IDialogService DialogService
+@inject ISnackbar Snackbar
+@inject IJSRuntime JS
+@inject NavigationManager Nav
+@inject IPageLocalizer L
+
+<DNPageTitle Title=@L["slideshows.manage_slides", "Manage slides"] />
+
+<MudBreadcrumbs Items="_breadcrumbs" Class="px-0 pb-2" />
+
+@if (_loading)
+{
+    <MudProgressLinear Indeterminate="true" Color="Color.Primary" Class="mb-4" />
+}
+else if (_slideshow is not null)
+{
+    <MudStack Row="true" AlignItems="AlignItems.Center" Justify="Justify.SpaceBetween" Class="mb-4" Wrap="Wrap.Wrap">
+        <MudStack Spacing="0">
+            <MudText Typo="Typo.h5" Class="fw-bold">@_slideshow.Name</MudText>
+            <MudText Typo="Typo.body2" Color="Color.Secondary">
+                @(string.IsNullOrWhiteSpace(_slideshow.PlacementKey) ? L["slideshows.no_placement", "No fixed placement"] : _slideshow.PlacementKey)
+                · @(_slideshow.IsActive ? L["active", "Active"] : L["inactive", "Inactive"])
+            </MudText>
+        </MudStack>
+        <MudStack Row="true" Spacing="2" AlignItems="AlignItems.Center">
+            <MudText Typo="Typo.body2" Style="font-family:monospace;">[slideshow:@_slideshow.SlideshowID]</MudText>
+            <MudIconButton Icon="@Icons.Material.Filled.ContentCopy" Size="Size.Small"
+                           Title="@L["slideshows.copy_shortcode", "Copy shortcode"]" OnClick="CopyShortcodeAsync" />
+            @if (_canEdit)
+            {
+                <MudButton Variant="Variant.Filled" Color="Color.Primary"
+                           StartIcon="@Icons.Material.Filled.Add" OnClick="AddSlideAsync">
+                    @L["slideshows.add_slide", "Add Slide"]
+                </MudButton>
+            }
+        </MudStack>
+    </MudStack>
+
+    <MudPaper Elevation="0" Class="app-card rounded-lg pa-4">
+        @if (_slides.Count == 0)
+        {
+            <div style="text-align:center; padding:32px;">
+                <MudText Color="Color.Secondary">@L["slideshows.no_slides", "No slides yet. Add the first one."]</MudText>
+            </div>
+        }
+        else
+        {
+            <MudSimpleTable Dense="true" Hover="true" Elevation="0">
+                <thead>
+                    <tr>
+                        <th style="width:1%"></th>
+                        <th>@L["slideshows.slide_title", "Title"]</th>
+                        <th>@L["slideshows.link", "Link"]</th>
+                        <th>@L["status", "Status"]</th>
+                        <th style="width:1%; white-space:nowrap"></th>
+                    </tr>
+                </thead>
+                <tbody>
+                    @foreach (var slide in _slides)
+                    {
+                        <tr>
+                            <td>
+                                <div style="width:64px; height:40px; border-radius:6px; overflow:hidden; background:var(--mud-palette-background-grey);">
+                                    @if (!string.IsNullOrEmpty(slide.File?.CNDUrl))
+                                    {
+                                        <img src="@(slide.File.ThumbnailCDN ?? slide.File.CNDUrl)" alt="" style="width:100%; height:100%; object-fit:cover;" />
+                                    }
+                                </div>
+                            </td>
+                            <td>@(string.IsNullOrWhiteSpace(slide.Title) ? "—" : slide.Title)</td>
+                            <td>
+                                @if (string.IsNullOrWhiteSpace(slide.LinkUrl))
+                                {
+                                    <MudText Typo="Typo.caption" Color="Color.Secondary">—</MudText>
+                                }
+                                else
+                                {
+                                    <MudText Typo="Typo.caption">@slide.LinkUrl</MudText>
+                                }
+                            </td>
+                            <td>
+                                <MudSwitch T="bool" Value="slide.IsActive" Color="Color.Success"
+                                           Disabled="@(!_canEdit || _busy.Contains(slide.SlideshowSlideID))"
+                                           ValueChanged="@(v => ToggleActiveAsync(slide, v))" />
+                            </td>
+                            <td>
+                                <MudStack Row="true" Spacing="0">
+                                    <MudIconButton Icon="@Icons.Material.Filled.ArrowUpward" Size="Size.Small"
+                                                   Disabled="@(!_canEdit || _busy.Count > 0)" OnClick="@(() => MoveAsync(slide, -1))" />
+                                    <MudIconButton Icon="@Icons.Material.Filled.ArrowDownward" Size="Size.Small"
+                                                   Disabled="@(!_canEdit || _busy.Count > 0)" OnClick="@(() => MoveAsync(slide, 1))" />
+                                    @if (_canEdit)
+                                    {
+                                        <MudIconButton Icon="@Icons.Material.Filled.Edit" Size="Size.Small"
+                                                       OnClick="@(() => EditSlideAsync(slide))" />
+                                    }
+                                    @if (_canDelete)
+                                    {
+                                        <MudIconButton Icon="@Icons.Material.Filled.Delete" Size="Size.Small" Color="Color.Error"
+                                                       OnClick="@(() => DeleteSlideAsync(slide))" />
+                                    }
+                                </MudStack>
+                            </td>
+                        </tr>
+                    }
+                </tbody>
+            </MudSimpleTable>
+        }
+    </MudPaper>
+}
+
+@code {
+    [Parameter] public int Id { get; set; }
+
+    private bool _loading = true;
+    private bool _isMaster;
+    private bool _canEdit;
+    private bool _canDelete;
+    private int _websiteId;
+    private Slideshow? _slideshow;
+    private List<SlideshowSlide> _slides = new();
+    private HashSet<int> _busy = new();
+
+    private List<BreadcrumbItem> _breadcrumbs => new()
+    {
+        new(L["dashboard", "Dashboard"], "/"),
+        new(L["slideshows", "Slideshows"], "/slideshows"),
+        new(_slideshow?.Name ?? $"#{Id}", null, true),
+    };
+
+    protected override async Task OnInitializedAsync()
+    {
+        await L.EnsureLoadedAsync();
+
+        var user = (await AuthState.GetAuthenticationStateAsync()).User;
+        _isMaster = user.HasClaim(AdminClaimTypes.Master, "true");
+        _canEdit = AdminPolicies.Allows(user, RoleKeys.SlideshowsEdit);
+        _canDelete = AdminPolicies.Allows(user, RoleKeys.SlideshowsDelete);
+        int.TryParse(user.FindFirst(AdminClaimTypes.WebsiteId)?.Value, out _websiteId);
+
+        _slideshow = await SlideshowService.GetSlideshowAsync(Id);
+        if (_slideshow is null || (!_isMaster && _slideshow.WebsiteID != _websiteId))
+        {
+            Nav.NavigateTo("/slideshows");
+            return;
+        }
+
+        await LoadSlidesAsync();
+        _loading = false;
+    }
+
+    private async Task LoadSlidesAsync() => _slides = await SlideshowService.GetSlidesAsync(Id);
+
+    private async Task CopyShortcodeAsync()
+    {
+        try
+        {
+            await JS.InvokeVoidAsync("navigator.clipboard.writeText", $"[slideshow:{Id}]");
+            Snackbar.Add(L["slideshows.shortcode_copied", "Shortcode copied."], Severity.Info);
+        }
+        catch { /* clipboard unavailable */ }
+    }
+
+    private async Task ToggleActiveAsync(SlideshowSlide slide, bool value)
+    {
+        if (!_busy.Add(slide.SlideshowSlideID)) return;
+        slide.IsActive = value;
+        try { await SlideshowService.UpdateSlideAsync(slide); }
+        finally { _busy.Remove(slide.SlideshowSlideID); }
+    }
+
+    private async Task AddSlideAsync()
+    {
+        var slide = new SlideshowSlide
+        {
+            SlideshowID = Id,
+            IsActive = true,
+            SortOrder = _slides.Count == 0 ? 0 : _slides.Max(s => s.SortOrder) + 1,
+        };
+        if (await ShowSlideDialogAsync(slide, isNew: true)) await LoadSlidesAsync();
+    }
+
+    private async Task EditSlideAsync(SlideshowSlide slide)
+    {
+        if (await ShowSlideDialogAsync(slide, isNew: false)) await LoadSlidesAsync();
+    }
+
+    private async Task<bool> ShowSlideDialogAsync(SlideshowSlide slide, bool isNew)
+    {
+        var parameters = new DialogParameters<SlideDialog>
+        {
+            { x => x.Model, slide },
+            { x => x.IsNew, isNew },
+            { x => x.WebsiteId, _slideshow!.WebsiteID },
+        };
+        var dialog = await DialogService.ShowAsync<SlideDialog>(
+            isNew ? L["slideshows.add_slide", "Add Slide"] : L["slideshows.edit_slide", "Edit Slide"],
+            parameters,
+            new DialogOptions { MaxWidth = MaxWidth.Medium, FullWidth = true });
+        var result = await dialog.Result;
+        return result is not null && !result.Canceled;
+    }
+
+    private async Task DeleteSlideAsync(SlideshowSlide slide)
+    {
+        var confirmed = await DialogService.ShowMessageBoxAsync(
+            L["slideshows.delete_slide", "Delete slide"],
+            L["slideshows.delete_slide_confirm", "Delete this slide?"],
+            yesText: L["delete", "Delete"], cancelText: L["cancel", "Cancel"]);
+        if (confirmed != true) return;
+
+        try
+        {
+            await SlideshowService.DeleteSlideAsync(slide.SlideshowSlideID);
+            Snackbar.Add(L["deleted", "Deleted."], Severity.Success);
+            await LoadSlidesAsync();
+        }
+        catch (Exception ex)
+        {
+            Snackbar.Add($"{L["delete_failed", "Delete failed"]}: {ex.Message}", Severity.Error);
+        }
+    }
+
+    /// <summary>Moves a slide one place up (-1) or down (+1), then rewrites the whole group to
+    /// contiguous sort orders so ordering is always well-defined.</summary>
+    private async Task MoveAsync(SlideshowSlide slide, int direction)
+    {
+        var ordered = _slides.OrderBy(s => s.SortOrder).ThenBy(s => s.SlideshowSlideID).ToList();
+        var index = ordered.FindIndex(s => s.SlideshowSlideID == slide.SlideshowSlideID);
+        var target = index + direction;
+        if (index < 0 || target < 0 || target >= ordered.Count) return;
+
+        ordered.RemoveAt(index);
+        ordered.Insert(target, slide);
+
+        _busy.Add(slide.SlideshowSlideID);
+        try
+        {
+            for (var i = 0; i < ordered.Count; i++)
+            {
+                if (ordered[i].SortOrder == i) continue;
+                ordered[i].SortOrder = i;
+                await SlideshowService.UpdateSlideAsync(ordered[i]);
+            }
+            await LoadSlidesAsync();
+        }
+        finally { _busy.Remove(slide.SlideshowSlideID); }
+    }
+}

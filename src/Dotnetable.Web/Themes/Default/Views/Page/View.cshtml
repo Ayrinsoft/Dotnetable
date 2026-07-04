@@ -1,7 +1,10 @@
+@using Dotnetable.Web.Services
 @model Dotnetable.Application.DTOs.PageDto
+@inject ContentShortcodeProcessor Shortcodes
 @{
     ViewData["Title"] = Model.Title;
     Layout = "/Themes/Default/Views/Shared/_Layout.cshtml";
+    var content = await Shortcodes.ExpandAsync(Model.Content);
 }
 
 @await Html.PartialAsync("_PageHeader", (Model.Title, Model.Title))
@@ -11,7 +14,7 @@
         <div class="row justify-content-center">
             <div class="col-lg-8">
                 <div class="page-content">
-                    @Html.Raw(Model.Content)
+                    @Html.Raw(content)
                 </div>
             </div>
         </div>

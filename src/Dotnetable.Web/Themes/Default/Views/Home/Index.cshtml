@@ -1,6 +1,18 @@
+@using Dotnetable.Web.Services
+@inject ApiClient Api
 @{
     ViewData["Title"] = "Home";
     Layout = "/Themes/Default/Views/Shared/_Layout.cshtml";
+
+    // Renders the slideshow assigned to the "home_top" placement key in the admin panel, if any.
+    var topSlideshow = await Api.GetSlideshowByPlacementAsync("home_top");
+}
+
+@if (topSlideshow is not null)
+{
+    <section class="container mt-4">
+        <partial name="_Slideshow" model="topSlideshow" />
+    </section>
 }
 
 <!-- ── Hero ───────────────────────────────────────────────────── -->

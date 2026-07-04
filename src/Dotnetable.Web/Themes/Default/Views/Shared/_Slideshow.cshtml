@@ -1,0 +1,7 @@
+@using Dotnetable.Web.Services
+@model Dotnetable.Application.DTOs.SlideshowDto?
+@* Renders a slideshow fetched by placement zone, e.g.:
+   @{ var top = await Api.GetSlideshowByPlacementAsync("home_top"); }
+   <partial name="_Slideshow" model="top" />
+   Renders nothing when no slideshow is assigned to the zone. *@
+@Html.Raw(SlideshowHtmlRenderer.Render(Model))

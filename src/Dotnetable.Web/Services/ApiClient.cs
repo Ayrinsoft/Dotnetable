@@ -68,6 +68,28 @@ public class ApiClient
             catch (NotSupportedException) { return null; }
         });
 
+    /// <summary>Fetches the active slideshow assigned to a placement key (e.g. "home_top"), or null
+    /// when none is configured / the API is unreachable — callers simply render nothing.</summary>
+    public Task<SlideshowDto?> GetSlideshowByPlacementAsync(string placementKey, CancellationToken ct = default) =>
+        CachedGetAsync($"slideshow:placement:{placementKey}", async () =>
+        {
+            var path = $"api/slideshow/placement/{Uri.EscapeDataString(placementKey)}";
+            try { return await _http.GetFromJsonAsync<SlideshowDto>(path, ct); }
+            catch (HttpRequestException) { return null; }
+            catch (NotSupportedException) { return null; }
+        });
+
+    /// <summary>Fetches a single active slideshow by id — used to resolve a <c>[slideshow:ID]</c>
+    /// shortcode embedded inside a Post/Page body.</summary>
+    public Task<SlideshowDto?> GetSlideshowByIdAsync(int slideshowId, CancellationToken ct = default) =>
+        CachedGetAsync($"slideshow:id:{slideshowId}", async () =>
+        {
+            var path = $"api/slideshow/{slideshowId}";
+            try { return await _http.GetFromJsonAsync<SlideshowDto>(path, ct); }
+            catch (HttpRequestException) { return null; }
+            catch (NotSupportedException) { return null; }
+        });
+
     // ── Content (posts, pages, categories, redirects) ───────────────
 
     /// <summary>Published posts (paged), optionally filtered by post type / category / tag slug.</summary>

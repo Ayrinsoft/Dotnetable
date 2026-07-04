@@ -97,6 +97,12 @@
         </MudNavLink>
     </AuthorizeView>
 
+    <AuthorizeView Policy="@RoleKeys.SlideshowsView" Context="sl">
+        <MudNavLink Href="/slideshows" Icon="@Icons.Material.Filled.ViewCarousel">
+            @L["slideshows", "Slideshows"]
+        </MudNavLink>
+    </AuthorizeView>
+
     <MudNavGroup Title="@L["messages", "Messages"]" Icon="@Icons.Material.Filled.Message"
                  Hidden="@(!_canMessages && !_canWebsite && !_isMaster)">
         <AuthorizeView Policy="@RoleKeys.MessagesView" Context="cm">

@@ -1,8 +1,11 @@
+@using Dotnetable.Web.Services
 @model Dotnetable.Application.DTOs.PostDetailDto
+@inject ContentShortcodeProcessor Shortcodes
 @{
     ViewData["Title"] = Model.Title;
     Layout = "/Themes/Default/Views/Shared/_Layout.cshtml";
     var primaryCategory = Model.Categories.FirstOrDefault();
+    var content = await Shortcodes.ExpandAsync(Model.Content);
 }
 
 @await Html.PartialAsync("_PageHeader", (Model.Title, "Blog"))
@@ -39,7 +42,7 @@
                 }
 
                 <div class="post-content">
-                    @Html.Raw(Model.Content)
+                    @Html.Raw(content)
                 </div>
 
                 @if (Model.Tags.Any())
