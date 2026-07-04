@@ -1,9 +1,8 @@
-using SixLabors.ImageSharp;
-using SixLabors.ImageSharp.Processing;
+using SkiaSharp;
 
 namespace Dotnetable.Infrastructure.Storage;
 
-/// <summary>Generates downscaled JPEG/PNG thumbnails for image uploads using ImageSharp.</summary>
+/// <summary>Generates downscaled JPEG thumbnails for image uploads using SkiaSharp.</summary>
 public static class ImageThumbnailer
 {
     public const int MaxEdge = 320;
@@ -12,26 +11,32 @@ public static class ImageThumbnailer
     /// Returns a thumbnail stream for <paramref name="source"/>, or null when the bytes are not a
     /// decodable image. The source stream position is reset on entry.
     /// </summary>
-    public static async Task<MemoryStream?> TryCreateAsync(Stream source, CancellationToken ct = default)
+    public static Task<MemoryStream?> TryCreateAsync(Stream source, CancellationToken ct = default)
     {
         if (source.CanSeek) source.Position = 0;
         try
         {
-            using var image = await Image.LoadAsync(source, ct);
-            image.Mutate(x => x.Resize(new ResizeOptions
-            {
-                Mode = ResizeMode.Max,
-                Size = new Size(MaxEdge, MaxEdge),
-            }));
+            using var original = SKBitmap.Decode(source);
+            if (original is null) return Task.FromResult<MemoryStream?>(null);
+
+            var scale = Math.Min(1f, Math.Min((float)MaxEdge / original.Width, (float)MaxEdge / original.Height));
+            var width = Math.Max(1, (int)Math.Round(original.Width * scale));
+            var height = Math.Max(1, (int)Math.Round(original.Height * scale));
+
+            using var resized = original.Resize(new SKImageInfo(width, height), new SKSamplingOptions(SKFilterMode.Linear, SKMipmapMode.Linear));
+            if (resized is null) return Task.FromResult<MemoryStream?>(null);
+
+            using var image = SKImage.FromBitmap(resized);
+            using var data = image.Encode(SKEncodedImageFormat.Jpeg, 85);
 
             var output = new MemoryStream();
-            await image.SaveAsJpegAsync(output, ct);
+            data.SaveTo(output);
             output.Position = 0;
-            return output;
+            return Task.FromResult<MemoryStream?>(output);
         }
         catch
         {
-            return null;
+            return Task.FromResult<MemoryStream?>(null);
         }
         finally
         {
