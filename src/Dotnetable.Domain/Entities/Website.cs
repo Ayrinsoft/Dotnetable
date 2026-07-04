@@ -136,6 +136,8 @@ public partial class Website
 
     public virtual ICollection<ShippingMethod> ShippingMethods { get; set; } = new List<ShippingMethod>();
 
+    public virtual ICollection<Slideshow> Slideshows { get; set; } = new List<Slideshow>();
+
     public virtual ICollection<StockMovement> StockMovements { get; set; } = new List<StockMovement>();
 
     public virtual ICollection<Supplier> Suppliers { get; set; } = new List<Supplier>();

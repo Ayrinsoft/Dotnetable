@@ -178,6 +178,10 @@ public partial class AppDbContext : DbContext
 
     public virtual DbSet<ShippingRate> ShippingRates { get; set; }
 
+    public virtual DbSet<Slideshow> Slideshows { get; set; }
+
+    public virtual DbSet<SlideshowSlide> SlideshowSlides { get; set; }
+
     public virtual DbSet<State> States { get; set; }
 
     public virtual DbSet<StateTranslation> StateTranslations { get; set; }
@@ -1973,6 +1977,51 @@ public partial class AppDbContext : DbContext
             entity.HasOne(d => d.State).WithMany(p => p.ShippingRates)
                 .HasForeignKey(d => d.StateID)
                 .HasConstraintName("FK_ShippingRates_States");
+        });
+
+        modelBuilder.Entity<Slideshow>(entity =>
+        {
+            entity.Property(e => e.AspectRatio).HasMaxLength(20);
+            entity.Property(e => e.AutoPlay).HasDefaultValue(true, "DF_Slideshows_AutoPlay");
+            entity.Property(e => e.CreatedAt).HasDefaultValueSql("(sysutcdatetime())", "DF_Slideshows_CreatedAt");
+            entity.Property(e => e.EnableLightbox).HasDefaultValue(true, "DF_Slideshows_EnableLightbox");
+            entity.Property(e => e.IntervalMs).HasDefaultValue(5000, "DF_Slideshows_IntervalMs");
+            entity.Property(e => e.IsActive).HasDefaultValue(true, "DF_Slideshows_IsActive");
+            entity.Property(e => e.Name).HasMaxLength(150);
+            entity.Property(e => e.PlacementKey).HasMaxLength(100);
+            entity.Property(e => e.ShowArrows).HasDefaultValue(true, "DF_Slideshows_ShowArrows");
+            entity.Property(e => e.ShowDots).HasDefaultValue(true, "DF_Slideshows_ShowDots");
+            entity.Property(e => e.TransitionEffect).HasDefaultValue((byte)1, "DF_Slideshows_TransitionEffect");
+
+            entity.HasOne(d => d.Website).WithMany(p => p.Slideshows)
+                .HasForeignKey(d => d.WebsiteID)
+                .OnDelete(DeleteBehavior.ClientSetNull)
+                .HasConstraintName("FK_Slideshows_Websites");
+        });
+
+        modelBuilder.Entity<SlideshowSlide>(entity =>
+        {
+            entity.Property(e => e.ButtonText).HasMaxLength(100);
+            entity.Property(e => e.Caption).HasMaxLength(500);
+            entity.Property(e => e.IsActive).HasDefaultValue(true, "DF_SlideshowSlides_IsActive");
+            entity.Property(e => e.LinkUrl).HasMaxLength(500);
+            entity.Property(e => e.OpenInNewTab).HasDefaultValue(false, "DF_SlideshowSlides_OpenInNewTab");
+            entity.Property(e => e.SortOrder).HasDefaultValue(0, "DF_SlideshowSlides_SortOrder");
+            entity.Property(e => e.Title).HasMaxLength(200);
+
+            entity.HasOne(d => d.File).WithMany(p => p.SlideshowSlideFiles)
+                .HasForeignKey(d => d.FileID)
+                .OnDelete(DeleteBehavior.ClientSetNull)
+                .HasConstraintName("FK_SlideshowSlides_FileRecords");
+
+            entity.HasOne(d => d.MobileFile).WithMany(p => p.SlideshowSlideMobileFiles)
+                .HasForeignKey(d => d.MobileFileID)
+                .HasConstraintName("FK_SlideshowSlides_FileRecord1");
+
+            entity.HasOne(d => d.Slideshow).WithMany(p => p.SlideshowSlides)
+                .HasForeignKey(d => d.SlideshowID)
+                .OnDelete(DeleteBehavior.ClientSetNull)
+                .HasConstraintName("FK_SlideshowSlides_Slideshows");
         });
 
         modelBuilder.Entity<State>(entity =>

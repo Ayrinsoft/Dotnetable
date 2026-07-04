@@ -38,6 +38,8 @@ builder.Services.AddHttpClient<ApiClient>(client =>
 })
 .AddHttpMessageHandler<BearerTokenHandler>();
 
+builder.Services.AddScoped<ContentShortcodeProcessor>();
+
 var app = builder.Build();
 
 if (!app.Environment.IsDevelopment())

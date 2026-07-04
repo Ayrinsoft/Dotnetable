@@ -1,0 +1,140 @@
+@inject ISlideshowService SlideshowService
+@inject ISnackbar Snackbar
+@inject IPageLocalizer L
+
+<MudDialog>
+    <DialogContent>
+        <MudForm @ref="_form">
+            <MudGrid Spacing="3">
+                <MudItem xs="12">
+                    <MudTextField @bind-Value="Model.Name" Label="@L["name", "Name"]"
+                                  Variant="Variant.Outlined" Required="true"
+                                  RequiredError="@L["slideshows.name_required", "Name is required."]" />
+                </MudItem>
+
+                <MudItem xs="12">
+                    <MudTextField @bind-Value="Model.PlacementKey" Label="@L["slideshows.placement", "Placement key (optional)"]"
+                                  Variant="Variant.Outlined"
+                                  HelperText="@L["slideshows.placement_help", "A zone name your theme renders (e.g. home_top). Leave blank to embed only via the [slideshow:ID] shortcode."]" />
+                    <MudStack Row="true" Spacing="1" Class="mt-1" Wrap="Wrap.Wrap">
+                        @foreach (var key in _suggestedKeys)
+                        {
+                            <MudChip T="string" Size="Size.Small" Variant="Variant.Outlined"
+                                     OnClick="@(() => Model.PlacementKey = key)">@key</MudChip>
+                        }
+                    </MudStack>
+                </MudItem>
+
+                @if (AllowWebsiteEdit)
+                {
+                    <MudItem xs="12" sm="6">
+                        <MudNumericField T="int" @bind-Value="Model.WebsiteID" Label="@L["website_id", "Website ID"]"
+                                         Variant="Variant.Outlined" Min="1" />
+                    </MudItem>
+                }
+
+                <MudItem xs="12" sm="6">
+                    <MudSelect T="SlideTransitionEffect" Value="_transition" ValueChanged="OnTransitionChanged"
+                               Label="@L["slideshows.transition", "Transition effect"]" Variant="Variant.Outlined">
+                        @foreach (var t in Enum.GetValues<SlideTransitionEffect>())
+                        {
+                            <MudSelectItem T="SlideTransitionEffect" Value="@t">@t</MudSelectItem>
+                        }
+                    </MudSelect>
+                </MudItem>
+                <MudItem xs="12" sm="6">
+                    <MudTextField @bind-Value="Model.AspectRatio" Label="@L["slideshows.aspect_ratio", "Aspect ratio (optional, e.g. 16:9)"]"
+                                  Variant="Variant.Outlined" />
+                </MudItem>
+
+                <MudItem xs="12" sm="6">
+                    <MudSwitch T="bool" @bind-Value="Model.AutoPlay" Color="Color.Primary"
+                               Label="@L["slideshows.autoplay", "Auto-play"]" />
+                </MudItem>
+                <MudItem xs="12" sm="6">
+                    <MudNumericField T="int" @bind-Value="Model.IntervalMs" Label="@L["slideshows.interval", "Interval (ms)"]"
+                                     Variant="Variant.Outlined" Min="1000" Step="500" Disabled="@(!Model.AutoPlay)" />
+                </MudItem>
+
+                <MudItem xs="12" sm="4">
+                    <MudSwitch T="bool" @bind-Value="Model.ShowArrows" Color="Color.Primary"
+                               Label="@L["slideshows.show_arrows", "Show arrows"]" />
+                </MudItem>
+                <MudItem xs="12" sm="4">
+                    <MudSwitch T="bool" @bind-Value="Model.ShowDots" Color="Color.Primary"
+                               Label="@L["slideshows.show_dots", "Show dots"]" />
+                </MudItem>
+                <MudItem xs="12" sm="4">
+                    <MudSwitch T="bool" @bind-Value="Model.EnableLightbox" Color="Color.Primary"
+                               Label="@L["slideshows.enable_lightbox", "Click to zoom (lightbox)"]" />
+                </MudItem>
+
+                <MudItem xs="12">
+                    <MudSwitch T="bool" @bind-Value="Model.IsActive" Color="Color.Success"
+                               Label="@(Model.IsActive ? L["active", "Active"] : L["inactive", "Inactive"])" />
+                </MudItem>
+            </MudGrid>
+        </MudForm>
+    </DialogContent>
+    <DialogActions>
+        <MudButton OnClick="Cancel">@L["cancel", "Cancel"]</MudButton>
+        <MudButton Variant="Variant.Filled" Color="Color.Primary" OnClick="SaveAsync" Disabled="@_saving">
+            @L["save", "Save"]
+        </MudButton>
+    </DialogActions>
+</MudDialog>
+
+@code {
+    [CascadingParameter] private IMudDialogInstance MudDialog { get; set; } = null!;
+
+    [Parameter] public Slideshow Model { get; set; } = new();
+    [Parameter] public bool IsNew { get; set; }
+    [Parameter] public bool AllowWebsiteEdit { get; set; }
+
+    private MudForm _form = null!;
+    private bool _saving;
+    private SlideTransitionEffect _transition;
+
+    private static readonly string[] _suggestedKeys =
+    [
+        "header_top", "home_top", "home_bottom", "category_sidebar", "footer_top",
+    ];
+
+    protected override void OnInitialized() => _transition = (SlideTransitionEffect)Model.TransitionEffect;
+
+    private void OnTransitionChanged(SlideTransitionEffect value)
+    {
+        _transition = value;
+        Model.TransitionEffect = (byte)value;
+    }
+
+    private void Cancel() => MudDialog.Cancel();
+
+    private async Task SaveAsync()
+    {
+        await _form.Validate();
+        if (!_form.IsValid) return;
+
+        _saving = true;
+        try
+        {
+            Model.PlacementKey = string.IsNullOrWhiteSpace(Model.PlacementKey) ? null : Model.PlacementKey.Trim();
+
+            if (IsNew)
+                await SlideshowService.CreateSlideshowAsync(Model);
+            else
+                await SlideshowService.UpdateSlideshowAsync(Model);
+
+            Snackbar.Add(L["saved", "Saved."], Severity.Success);
+            MudDialog.Close(DialogResult.Ok(true));
+        }
+        catch (Exception ex)
+        {
+            Snackbar.Add($"{L["save_failed", "Save failed"]}: {ex.Message}", Severity.Error);
+        }
+        finally
+        {
+            _saving = false;
+        }
+    }
+}

@@ -1,0 +1,242 @@
+@page "/slideshows"
+@attribute [Authorize(Policy = RoleKeys.SlideshowsView)]
+@inject ISlideshowService SlideshowService
+@inject AuthenticationStateProvider AuthState
+@inject IDialogService DialogService
+@inject ISnackbar Snackbar
+@inject IJSRuntime JS
+@inject IPageLocalizer L
+
+<DNPageTitle Title=@L["slideshows", "Slideshows"] />
+
+@* ── Page header ──────────────────────────────────────────────── *@
+<MudStack Row="true" AlignItems="AlignItems.Center" Justify="Justify.SpaceBetween" Class="mb-4">
+    <MudStack Spacing="0">
+        <MudText Typo="Typo.h5" Class="fw-bold">@L["slideshows", "Slideshows"]</MudText>
+        <MudText Typo="Typo.body2" Color="Color.Secondary">
+            @(_isMaster ? L["slideshows.subtitle_all", "Image slideshows across all websites"] : L["slideshows.subtitle_own", "Image slideshows for your website"])
+        </MudText>
+    </MudStack>
+    @if (_canInsert)
+    {
+        <MudButton Variant="Variant.Filled" Color="Color.Primary"
+                   StartIcon="@Icons.Material.Filled.Add" OnClick="CreateAsync">
+            @L["slideshows.new", "New Slideshow"]
+        </MudButton>
+    }
+</MudStack>
+
+<MudAlert Severity="Severity.Info" Variant="Variant.Text" Icon="@Icons.Material.Filled.Info" Class="mb-4">
+    @L["slideshows.placement_hint", "Assign a placement key to render a slideshow in a fixed zone (e.g. \"home_top\"), or copy its shortcode and paste it anywhere inside a Post or Page body to embed it there."]
+</MudAlert>
+
+<MudPaper Elevation="0" Class="app-card rounded-lg pa-4">
+    @if (_loading)
+    {
+        <MudProgressLinear Indeterminate="true" Color="Color.Primary" Class="mb-3" />
+    }
+    else if (_slideshows.Count == 0)
+    {
+        <div style="text-align:center; padding:32px;">
+            <MudText Color="Color.Secondary">@L["slideshows.empty", "No slideshows yet."]</MudText>
+        </div>
+    }
+    else
+    {
+        <MudSimpleTable Dense="true" Hover="true" Elevation="0">
+            <thead>
+                <tr>
+                    <th style="width:1%"></th>
+                    <th>@L["id", "ID"]</th>
+                    <th>@L["name", "Name"]</th>
+                    <th>@L["slideshows.placement", "Placement"]</th>
+                    <th>@L["slideshows.shortcode", "Shortcode"]</th>
+                    @if (_isMaster)
+                    {
+                        <th>@L["website", "Website"]</th>
+                    }
+                    <th>@L["slideshows.slides", "Slides"]</th>
+                    <th>@L["status", "Status"]</th>
+                    <th style="width:1%"></th>
+                </tr>
+            </thead>
+            <tbody>
+                @foreach (var s in _slideshows)
+                {
+                    <tr>
+                        <td>
+                            <MudIconButton Icon="@Icons.Material.Filled.Collections" Size="Size.Small"
+                                           Color="Color.Primary" Title="@L["slideshows.manage_slides", "Manage slides"]"
+                                           Href="@($"/slideshows/{s.SlideshowID}")" />
+                        </td>
+                        <td>@s.SlideshowID</td>
+                        <td>@s.Name</td>
+                        <td>
+                            @if (string.IsNullOrWhiteSpace(s.PlacementKey))
+                            {
+                                <MudText Typo="Typo.caption" Color="Color.Secondary">—</MudText>
+                            }
+                            else
+                            {
+                                <MudChip T="string" Size="Size.Small" Variant="Variant.Text" Color="Color.Info">@s.PlacementKey</MudChip>
+                            }
+                        </td>
+                        <td>
+                            <MudStack Row="true" Spacing="1" AlignItems="AlignItems.Center">
+                                <MudText Typo="Typo.caption" Style="font-family:monospace;">[slideshow:@s.SlideshowID]</MudText>
+                                <MudIconButton Icon="@Icons.Material.Filled.ContentCopy" Size="Size.Small"
+                                               Title="@L["slideshows.copy_shortcode", "Copy shortcode"]"
+                                               OnClick="@(() => CopyShortcodeAsync(s.SlideshowID))" />
+                            </MudStack>
+                        </td>
+                        @if (_isMaster)
+                        {
+                            <td>#@s.WebsiteID</td>
+                        }
+                        <td>@(s.SlideshowSlides?.Count ?? 0)</td>
+                        <td>
+                            <MudSwitch T="bool" Value="s.IsActive" Color="Color.Success"
+                                       Disabled="@(!_canEdit || _busy.Contains(s.SlideshowID))"
+                                       ValueChanged="@(v => ToggleActiveAsync(s, v))" />
+                        </td>
+                        <td>
+                            <MudStack Row="true" Spacing="0">
+                                @if (_canEdit)
+                                {
+                                    <MudIconButton Icon="@Icons.Material.Filled.Edit" Size="Size.Small"
+                                                   Color="Color.Default" OnClick="@(() => EditAsync(s))" />
+                                }
+                                @if (_canDelete)
+                                {
+                                    <MudIconButton Icon="@Icons.Material.Filled.Delete" Size="Size.Small"
+                                                   Color="Color.Error" OnClick="@(() => DeleteAsync(s))" />
+                                }
+                            </MudStack>
+                        </td>
+                    </tr>
+                }
+            </tbody>
+        </MudSimpleTable>
+    }
+</MudPaper>
+
+@code {
+    private bool _loading = true;
+    private bool _isMaster;
+    private bool _canInsert;
+    private bool _canEdit;
+    private bool _canDelete;
+    private int _websiteId;
+    private List<Slideshow> _slideshows = new();
+    private HashSet<int> _busy = new();
+
+    protected override async Task OnInitializedAsync()
+    {
+        await L.EnsureLoadedAsync();
+
+        var user = (await AuthState.GetAuthenticationStateAsync()).User;
+        _isMaster = user.HasClaim(AdminClaimTypes.Master, "true");
+        _canInsert = AdminPolicies.Allows(user, RoleKeys.SlideshowsInsert);
+        _canEdit = AdminPolicies.Allows(user, RoleKeys.SlideshowsEdit);
+        _canDelete = AdminPolicies.Allows(user, RoleKeys.SlideshowsDelete);
+        int.TryParse(user.FindFirst(AdminClaimTypes.WebsiteId)?.Value, out _websiteId);
+
+        await LoadAsync();
+    }
+
+    private async Task LoadAsync()
+    {
+        _loading = true;
+        _slideshows = await SlideshowService.GetSlideshowsAsync(_isMaster ? null : _websiteId);
+        _loading = false;
+    }
+
+    private async Task ToggleActiveAsync(Slideshow s, bool value)
+    {
+        if (!_busy.Add(s.SlideshowID)) return;
+        s.IsActive = value;
+        try { await SlideshowService.UpdateSlideshowAsync(s); }
+        finally { _busy.Remove(s.SlideshowID); }
+    }
+
+    private async Task CopyShortcodeAsync(int id)
+    {
+        try
+        {
+            await JS.InvokeVoidAsync("navigator.clipboard.writeText", $"[slideshow:{id}]");
+            Snackbar.Add(L["slideshows.shortcode_copied", "Shortcode copied."], Severity.Info);
+        }
+        catch { /* clipboard unavailable */ }
+    }
+
+    private async Task CreateAsync()
+    {
+        var result = await ShowDialogAsync(new Slideshow
+        {
+            WebsiteID = _websiteId,
+            TransitionEffect = (byte)SlideTransitionEffect.Slide,
+            AutoPlay = true,
+            IntervalMs = 5000,
+            ShowArrows = true,
+            ShowDots = true,
+            EnableLightbox = true,
+            IsActive = true,
+        }, isNew: true);
+        if (result) await LoadAsync();
+    }
+
+    private async Task EditAsync(Slideshow s)
+    {
+        var result = await ShowDialogAsync(new Slideshow
+        {
+            SlideshowID = s.SlideshowID,
+            WebsiteID = s.WebsiteID,
+            Name = s.Name,
+            PlacementKey = s.PlacementKey,
+            TransitionEffect = s.TransitionEffect,
+            AutoPlay = s.AutoPlay,
+            IntervalMs = s.IntervalMs,
+            ShowArrows = s.ShowArrows,
+            ShowDots = s.ShowDots,
+            EnableLightbox = s.EnableLightbox,
+            AspectRatio = s.AspectRatio,
+            IsActive = s.IsActive,
+        }, isNew: false);
+        if (result) await LoadAsync();
+    }
+
+    private async Task<bool> ShowDialogAsync(Slideshow slideshow, bool isNew)
+    {
+        var parameters = new DialogParameters<SlideshowDialog>
+        {
+            { x => x.Model, slideshow },
+            { x => x.IsNew, isNew },
+            { x => x.AllowWebsiteEdit, _isMaster },
+        };
+        var dialog = await DialogService.ShowAsync<SlideshowDialog>(
+            isNew ? L["slideshows.new", "New Slideshow"] : L["slideshows.edit", "Edit Slideshow"], parameters,
+            new DialogOptions { MaxWidth = MaxWidth.Medium, FullWidth = true });
+        var result = await dialog.Result;
+        return result is not null && !result.Canceled;
+    }
+
+    private async Task DeleteAsync(Slideshow s)
+    {
+        var confirmed = await DialogService.ShowMessageBoxAsync(
+            L["slideshows.delete", "Delete slideshow"],
+            L["slideshows.delete_confirm", "This deletes the slideshow and all its slides. Continue?"],
+            yesText: L["delete", "Delete"], cancelText: L["cancel", "Cancel"]);
+        if (confirmed != true) return;
+
+        try
+        {
+            await SlideshowService.DeleteSlideshowAsync(s.SlideshowID);
+            Snackbar.Add(L["deleted", "Deleted."], Severity.Success);
+            await LoadAsync();
+        }
+        catch (Exception ex)
+        {
+            Snackbar.Add($"{L["delete_failed", "Delete failed"]}: {ex.Message}", Severity.Error);
+        }
+    }
+}

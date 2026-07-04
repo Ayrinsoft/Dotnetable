@@ -1,0 +1,171 @@
+@inject ISlideshowService SlideshowService
+@inject IDialogService DialogService
+@inject ISnackbar Snackbar
+@inject IPageLocalizer L
+
+<MudDialog>
+    <DialogContent>
+        <MudForm @ref="_form">
+            <MudGrid Spacing="3">
+                <MudItem xs="12" sm="6">
+                    <MudText Typo="Typo.body2" Class="mb-1">@L["slideshows.image", "Image"]</MudText>
+                    <MudPaper Elevation="0" Class="border rounded-lg pa-2" Style="cursor:pointer;" @onclick="PickImageAsync">
+                        <div style="aspect-ratio:16/9; display:flex; align-items:center; justify-content:center; background:var(--mud-palette-background-grey); border-radius:8px; overflow:hidden;">
+                            @if (!string.IsNullOrEmpty(_file?.CNDUrl))
+                            {
+                                <img src="@(_file.ThumbnailCDN ?? _file.CNDUrl)" alt="" style="width:100%; height:100%; object-fit:cover;" />
+                            }
+                            else
+                            {
+                                <MudIcon Icon="@Icons.Material.Filled.AddPhotoAlternate" Color="Color.Secondary" Size="Size.Large" />
+                            }
+                        </div>
+                    </MudPaper>
+                    @if (_imageRequired)
+                    {
+                        <MudText Typo="Typo.caption" Color="Color.Error">@L["slideshows.image_required", "An image is required."]</MudText>
+                    }
+                </MudItem>
+                <MudItem xs="12" sm="6">
+                    <MudText Typo="Typo.body2" Class="mb-1">@L["slideshows.mobile_image", "Mobile image (optional)"]</MudText>
+                    <MudPaper Elevation="0" Class="border rounded-lg pa-2" Style="cursor:pointer;" @onclick="PickMobileImageAsync">
+                        <div style="aspect-ratio:16/9; display:flex; align-items:center; justify-content:center; background:var(--mud-palette-background-grey); border-radius:8px; overflow:hidden;">
+                            @if (!string.IsNullOrEmpty(_mobileFile?.CNDUrl))
+                            {
+                                <img src="@(_mobileFile.ThumbnailCDN ?? _mobileFile.CNDUrl)" alt="" style="width:100%; height:100%; object-fit:cover;" />
+                            }
+                            else
+                            {
+                                <MudIcon Icon="@Icons.Material.Filled.AddPhotoAlternate" Color="Color.Secondary" Size="Size.Large" />
+                            }
+                        </div>
+                    </MudPaper>
+                    @if (_mobileFile is not null)
+                    {
+                        <MudButton Size="Size.Small" StartIcon="@Icons.Material.Filled.Clear" OnClick="@(() => _mobileFile = null)">
+                            @L["slideshows.remove_mobile_image", "Remove"]
+                        </MudButton>
+                    }
+                </MudItem>
+
+                <MudItem xs="12" sm="6">
+                    <MudTextField @bind-Value="Model.Title" Label="@L["slideshows.slide_title", "Title (optional)"]" Variant="Variant.Outlined" />
+                </MudItem>
+                <MudItem xs="12" sm="6">
+                    <MudTextField @bind-Value="Model.ButtonText" Label="@L["slideshows.button_text", "Button text (optional)"]" Variant="Variant.Outlined" />
+                </MudItem>
+
+                <MudItem xs="12">
+                    <MudTextField @bind-Value="Model.Caption" Label="@L["slideshows.caption", "Caption (optional)"]"
+                                  Variant="Variant.Outlined" Lines="2" AutoGrow="true" />
+                </MudItem>
+
+                <MudItem xs="12" sm="8">
+                    <MudTextField @bind-Value="Model.LinkUrl" Label="@L["slideshows.link", "Link URL (optional)"]" Variant="Variant.Outlined" />
+                </MudItem>
+                <MudItem xs="12" sm="4">
+                    <MudSwitch T="bool" @bind-Value="Model.OpenInNewTab" Color="Color.Primary"
+                               Label="@L["menus.new_tab", "Open in new tab"]" />
+                </MudItem>
+
+                <MudItem xs="12">
+                    <MudSwitch T="bool" @bind-Value="Model.IsActive" Color="Color.Success"
+                               Label="@(Model.IsActive ? L["active", "Active"] : L["inactive", "Inactive"])" />
+                </MudItem>
+            </MudGrid>
+        </MudForm>
+    </DialogContent>
+    <DialogActions>
+        <MudButton OnClick="Cancel">@L["cancel", "Cancel"]</MudButton>
+        <MudButton Variant="Variant.Filled" Color="Color.Primary" OnClick="SaveAsync" Disabled="@_saving">
+            @L["save", "Save"]
+        </MudButton>
+    </DialogActions>
+</MudDialog>
+
+@code {
+    [CascadingParameter] private IMudDialogInstance MudDialog { get; set; } = null!;
+
+    [Parameter] public SlideshowSlide Model { get; set; } = new();
+    [Parameter] public bool IsNew { get; set; }
+    [Parameter] public int WebsiteId { get; set; }
+
+    private MudForm _form = null!;
+    private bool _saving;
+    private bool _imageRequired;
+    private FileRecord? _file;
+    private FileRecord? _mobileFile;
+
+    protected override void OnInitialized()
+    {
+        _file = Model.File;
+        _mobileFile = Model.MobileFile;
+    }
+
+    private async Task PickImageAsync()
+    {
+        var parameters = new DialogParameters
+        {
+            [nameof(FilePickerDialog.WebsiteId)] = WebsiteId,
+            [nameof(FilePickerDialog.Category)] = FileCategory.Image,
+        };
+        var dialog = await DialogService.ShowAsync<FilePickerDialog>(L["select_file", "Select a file"], parameters,
+            new DialogOptions { MaxWidth = MaxWidth.Medium, FullWidth = true });
+        var result = await dialog.Result;
+        if (result is { Canceled: false, Data: FileRecord file })
+        {
+            _file = file;
+            _imageRequired = false;
+        }
+    }
+
+    private async Task PickMobileImageAsync()
+    {
+        var parameters = new DialogParameters
+        {
+            [nameof(FilePickerDialog.WebsiteId)] = WebsiteId,
+            [nameof(FilePickerDialog.Category)] = FileCategory.Image,
+        };
+        var dialog = await DialogService.ShowAsync<FilePickerDialog>(L["select_file", "Select a file"], parameters,
+            new DialogOptions { MaxWidth = MaxWidth.Medium, FullWidth = true });
+        var result = await dialog.Result;
+        if (result is { Canceled: false, Data: FileRecord file })
+            _mobileFile = file;
+    }
+
+    private void Cancel() => MudDialog.Cancel();
+
+    private async Task SaveAsync()
+    {
+        await _form.Validate();
+        if (_file is null)
+        {
+            _imageRequired = true;
+            return;
+        }
+        if (!_form.IsValid) return;
+
+        _saving = true;
+        try
+        {
+            Model.FileID = _file.FileRecordID;
+            Model.MobileFileID = _mobileFile?.FileRecordID;
+
+            if (IsNew)
+                await SlideshowService.CreateSlideAsync(Model);
+            else
+                await SlideshowService.UpdateSlideAsync(Model);
+
+            Snackbar.Add(L["saved", "Saved."], Severity.Success);
+            MudDialog.Close(DialogResult.Ok(true));
+        }
+        catch (Exception ex)
+        {
+            Snackbar.Add($"{L["save_failed", "Save failed"]}: {ex.Message}", Severity.Error);
+        }
+        finally
+        {
+            _saving = false;
+        }
+    }
+}

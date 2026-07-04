@@ -50,6 +50,12 @@ public static class RoleKeys
     public const string MediaUpload = "media.upload";
     public const string MediaDelete = "media.delete";
 
+    // ── Slideshows (admin) ───────────────────────────────────────────
+    public const string SlideshowsView = "slideshows.view";
+    public const string SlideshowsInsert = "slideshows.insert";
+    public const string SlideshowsEdit = "slideshows.edit";
+    public const string SlideshowsDelete = "slideshows.delete";
+
     // ── Content: posts (admin) ──────────────────────────────────────
     public const string PostsView = "posts.view";
     public const string PostsInsert = "posts.insert";
