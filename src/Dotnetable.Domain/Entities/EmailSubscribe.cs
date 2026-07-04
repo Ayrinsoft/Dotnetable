@@ -7,6 +7,8 @@ public partial class EmailSubscribe
 {
     public int EmailSubscribeID { get; set; }
 
+    public int WebsiteID { get; set; }
+
     public string Email { get; set; } = null!;
 
     public DateTime LogTime { get; set; }
@@ -18,4 +20,6 @@ public partial class EmailSubscribe
     public bool Approved { get; set; }
 
     public virtual Member? Member { get; set; }
+
+    public virtual Website Website { get; set; } = null!;
 }

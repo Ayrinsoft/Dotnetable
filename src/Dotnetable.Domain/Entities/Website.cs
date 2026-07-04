@@ -29,6 +29,8 @@ public partial class Website
 
     public byte WebsiteType { get; set; }
 
+    public bool IsHub { get; set; }
+
     /// <summary>
     /// show in title of pages
     /// </summary>
@@ -52,11 +54,21 @@ public partial class Website
 
     public virtual ICollection<ChartOfAccount> ChartOfAccounts { get; set; } = new List<ChartOfAccount>();
 
+    public virtual ICollection<ClientBankAccount> ClientBankAccounts { get; set; } = new List<ClientBankAccount>();
+
+    public virtual ICollection<ClientWalletTransaction> ClientWalletTransactions { get; set; } = new List<ClientWalletTransaction>();
+
+    public virtual ICollection<ClientWalletWithdrawal> ClientWalletWithdrawals { get; set; } = new List<ClientWalletWithdrawal>();
+
+    public virtual ICollection<ClientWallet> ClientWallets { get; set; } = new List<ClientWallet>();
+
     public virtual ICollection<ContactUsMessage> ContactUsMessages { get; set; } = new List<ContactUsMessage>();
 
     public virtual ICollection<CurrencyRate> CurrencyRates { get; set; } = new List<CurrencyRate>();
 
     public virtual ICollection<EmailSetting> EmailSettings { get; set; } = new List<EmailSetting>();
+
+    public virtual ICollection<EmailSubscribe> EmailSubscribes { get; set; } = new List<EmailSubscribe>();
 
     public virtual FileRecord? FaveIconFile { get; set; }
 
@@ -71,6 +83,8 @@ public partial class Website
     public virtual ICollection<JournalEntry> JournalEntries { get; set; } = new List<JournalEntry>();
 
     public virtual ICollection<Language> Languages { get; set; } = new List<Language>();
+
+    public virtual ICollection<LocalizationKey> LocalizationKeys { get; set; } = new List<LocalizationKey>();
 
     public virtual ICollection<LoginTry> LoginTries { get; set; } = new List<LoginTry>();
 
@@ -136,5 +150,5 @@ public partial class Website
 
     public virtual ICollection<WebsiteSocialLink> WebsiteSocialLinks { get; set; } = new List<WebsiteSocialLink>();
 
-    public virtual ICollection<WebstieStorageSetting> WebstieStorageSettings { get; set; } = new List<WebstieStorageSetting>();
+    public virtual ICollection<WebsiteStorageSetting> WebsiteStorageSettings { get; set; } = new List<WebsiteStorageSetting>();
 }

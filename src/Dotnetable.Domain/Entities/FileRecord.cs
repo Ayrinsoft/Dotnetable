@@ -61,13 +61,19 @@ public partial class FileRecord
 
     public virtual ICollection<MediaSetItem> MediaSetItemVideoThumbnailFiles { get; set; } = new List<MediaSetItem>();
 
+    public virtual ICollection<Member> Members { get; set; } = new List<Member>();
+
     public virtual ICollection<Payment> Payments { get; set; } = new List<Payment>();
 
     public virtual ICollection<Post> Posts { get; set; } = new List<Post>();
 
     public virtual ICollection<ProductCategory> ProductCategories { get; set; } = new List<ProductCategory>();
 
+    public virtual ICollection<ProductContentSection> ProductContentSections { get; set; } = new List<ProductContentSection>();
+
     public virtual ICollection<ProductVariant> ProductVariants { get; set; } = new List<ProductVariant>();
+
+    public virtual ICollection<Product> Products { get; set; } = new List<Product>();
 
     public virtual Member? UploaderMember { get; set; }
 
@@ -83,5 +89,5 @@ public partial class FileRecord
 
     public virtual ICollection<Website> WebsiteLogoFiles { get; set; } = new List<Website>();
 
-    public virtual WebstieStorageSetting WebsiteStorageSettings { get; set; } = null!;
+    public virtual WebsiteStorageSetting WebsiteStorageSettings { get; set; } = null!;
 }

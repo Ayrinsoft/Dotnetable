@@ -35,6 +35,12 @@ public partial class WebsiteClient
 
     public virtual FileRecord? Avatar { get; set; }
 
+    public virtual ICollection<ClientBankAccount> ClientBankAccounts { get; set; } = new List<ClientBankAccount>();
+
+    public virtual ClientWallet? ClientWallet { get; set; }
+
+    public virtual ICollection<ClientWalletWithdrawal> ClientWalletWithdrawals { get; set; } = new List<ClientWalletWithdrawal>();
+
     public virtual ICollection<FileRecord> FileRecords { get; set; } = new List<FileRecord>();
 
     public virtual ICollection<Order> Orders { get; set; } = new List<Order>();

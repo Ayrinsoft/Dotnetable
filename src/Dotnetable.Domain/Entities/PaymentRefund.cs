@@ -17,6 +17,8 @@ public partial class PaymentRefund
 
     public int? BankAccountID { get; set; }
 
+    public int? ClientWalletTransactionID { get; set; }
+
     public DateTime? RefundedAt { get; set; }
 
     public int? CreatedByMemberID { get; set; }
@@ -24,6 +26,8 @@ public partial class PaymentRefund
     public DateTime CreatedAt { get; set; }
 
     public virtual BankAccount? BankAccount { get; set; }
+
+    public virtual ClientWalletTransaction? ClientWalletTransaction { get; set; }
 
     public virtual Member? CreatedByMember { get; set; }
 

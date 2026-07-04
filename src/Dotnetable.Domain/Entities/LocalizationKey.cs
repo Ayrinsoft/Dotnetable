@@ -15,5 +15,5 @@ public partial class LocalizationKey
 
     public virtual ICollection<LocalizationValue> LocalizationValues { get; set; } = new List<LocalizationValue>();
 
-    public virtual Language Website { get; set; } = null!;
+    public virtual Website Website { get; set; } = null!;
 }

@@ -25,7 +25,7 @@ public partial class Member
 
     public string Surname { get; set; } = null!;
 
-    public Guid? AvatarID { get; set; }
+    public int? AvatarID { get; set; }
 
     public Guid HashKey { get; set; }
 
@@ -35,7 +35,13 @@ public partial class Member
 
     public int WebsiteID { get; set; }
 
+    public virtual FileRecord? Avatar { get; set; }
+
     public virtual ICollection<BankAccount> BankAccounts { get; set; } = new List<BankAccount>();
+
+    public virtual ICollection<ClientWalletTransaction> ClientWalletTransactions { get; set; } = new List<ClientWalletTransaction>();
+
+    public virtual ICollection<ClientWalletWithdrawal> ClientWalletWithdrawals { get; set; } = new List<ClientWalletWithdrawal>();
 
     public virtual ICollection<EmailSubscribe> EmailSubscribes { get; set; } = new List<EmailSubscribe>();
 
@@ -56,6 +62,8 @@ public partial class Member
     public virtual Policy Policy { get; set; } = null!;
 
     public virtual ICollection<Post> Posts { get; set; } = new List<Post>();
+
+    public virtual ICollection<Product> Products { get; set; } = new List<Product>();
 
     public virtual ICollection<Settlement> SettlementApprovedByMembers { get; set; } = new List<Settlement>();
 

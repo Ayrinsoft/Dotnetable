@@ -17,5 +17,5 @@ public partial class Tag
 
     public virtual Website Website { get; set; } = null!;
 
-    public virtual ICollection<Post> Pos { get; set; } = new List<Post>();
+    public virtual ICollection<Post> Posts { get; set; } = new List<Post>();
 }

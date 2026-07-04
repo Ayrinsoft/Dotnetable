@@ -5,7 +5,7 @@ namespace Dotnetable.Domain.Entities;
 
 public partial class Language
 {
-    public int LangaugeID { get; set; }
+    public int LanguageID { get; set; }
 
     public string LanguageCode { get; set; } = null!;
 
@@ -22,8 +22,6 @@ public partial class Language
     public bool RTLDesign { get; set; }
 
     public int WebsiteID { get; set; }
-
-    public virtual ICollection<LocalizationKey> LocalizationKeys { get; set; } = new List<LocalizationKey>();
 
     public virtual Website Website { get; set; } = null!;
 }
