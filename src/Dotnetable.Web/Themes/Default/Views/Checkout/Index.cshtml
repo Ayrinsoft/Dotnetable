@@ -1,0 +1,71 @@
+@model Dotnetable.Web.Controllers.CheckoutController.CheckoutView
+@{
+    ViewData["Title"] = "Checkout";
+    Layout = "/Themes/Default/Views/Shared/_Layout.cshtml";
+}
+
+@await Html.PartialAsync("_PageHeader", ("Checkout", "Checkout"))
+
+<section class="site-section">
+    <div class="container">
+        @if (TempData["CheckoutError"] is string err)
+        {
+            <div class="alert alert-danger">@err</div>
+        }
+        @if (Model.Addresses.Count == 0)
+        {
+            <div class="alert alert-warning">
+                You need a saved address before checking out.
+                <a asp-controller="Account" asp-action="Addresses">Add one now</a>.
+            </div>
+        }
+        else if (Model.ShippingOptions.Count == 0)
+        {
+            <div class="alert alert-warning">No shipping methods are available for your address yet.</div>
+        }
+        else
+        {
+            <form asp-controller="Checkout" asp-action="Place" method="post">
+                <div class="row g-4">
+                    <div class="col-lg-7">
+                        <h6>Shipping address</h6>
+                        @foreach (var a in Model.Addresses)
+                        {
+                            <div class="form-check border rounded p-3 mb-2">
+                                <input class="form-check-input" type="radio" name="addressId" value="@a.WebsiteClientAddressID" id="addr-@a.WebsiteClientAddressID" checked="@a.IsDefault" />
+                                <label class="form-check-label" for="addr-@a.WebsiteClientAddressID">
+                                    <strong>@a.ReceiverName</strong> — @a.AddressLine, @a.CityName, @a.CountryName
+                                </label>
+                            </div>
+                        }
+
+                        <h6 class="mt-4">Shipping method</h6>
+                        @foreach (var s in Model.ShippingOptions)
+                        {
+                            <div class="form-check border rounded p-3 mb-2">
+                                <input class="form-check-input" type="radio" name="shippingMethodId" value="@s.ShippingMethodID" id="ship-@s.ShippingMethodID" checked="@(s == Model.ShippingOptions.First())" />
+                                <label class="form-check-label" for="ship-@s.ShippingMethodID">
+                                    @s.Title (@s.CarrierName) — @s.PriceUsd.ToString("0.##") USD
+                                </label>
+                            </div>
+                        }
+                    </div>
+                    <div class="col-lg-5">
+                        <div class="card">
+                            <div class="card-body">
+                                <h6 class="card-title">Order summary</h6>
+                                <div class="d-flex justify-content-between"><span>Subtotal</span><span>@Model.Cart.SubTotal.Amount.ToString("0.##") @Model.Cart.SubTotal.CurrencyCode</span></div>
+                                @if (Model.Cart.DiscountAmount is not null)
+                                {
+                                    <div class="d-flex justify-content-between text-success"><span>Discount</span><span>-@Model.Cart.DiscountAmount.Amount.ToString("0.##")</span></div>
+                                }
+                                <hr />
+                                <button type="submit" class="btn btn-primary w-100">Place order</button>
+                            </div>
+                        </div>
+                    </div>
+                </div>
+            </form>
+        }
+    </div>
+</section>

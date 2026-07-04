@@ -2,9 +2,43 @@ using System.Net;
 using System.Net.Http.Json;
 using System.Text.Json;
 using Dotnetable.Application.DTOs;
+using Dotnetable.Domain.Entities;
+using Microsoft.AspNetCore.Http;
 using Microsoft.Extensions.Caching.Memory;
 
 namespace Dotnetable.Web.Services;
+
+/// <summary>A shipping method resolved with its computed price for the current cart/address.</summary>
+public sealed class ShippingOptionDto
+{
+    public int ShippingMethodID { get; set; }
+    public string Title { get; set; } = string.Empty;
+    public string? CarrierName { get; set; }
+    public decimal PriceUsd { get; set; }
+}
+
+/// <summary>The website's own bank account, for manual/offline customer transfers.</summary>
+public sealed class OfflineBankAccountDto
+{
+    public int BankAccountID { get; set; }
+    public string? BankName { get; set; }
+    public string Title { get; set; } = string.Empty;
+    public string? OwnerName { get; set; }
+    public string? IBAN { get; set; }
+    public string? CardNumber { get; set; }
+}
+
+/// <summary>A flattened wishlist row as returned by the API.</summary>
+public sealed class WishlistItemView
+{
+    public int WishlistItemID { get; set; }
+    public int ProductVariantID { get; set; }
+    public int ProductID { get; set; }
+    public string Title { get; set; } = string.Empty;
+    public string Sku { get; set; } = string.Empty;
+    public string? ImageUrl { get; set; }
+    public decimal PriceUsd { get; set; }
+}
 
 /// <summary>A JWT access token issued by the API for a website customer.</summary>
 public sealed record LoginResult(string AccessToken, DateTime ExpiresAtUtc, string TokenType);
@@ -261,6 +295,279 @@ public class ApiClient
         }
         return await ToResultAsync(response, ct);
     }
+
+    // ── Catalog ──────────────────────────────────────────────────────
+
+    public async Task<PagedResult<ProductSummaryDto>> GetProductsAsync(
+        string? category = null, string? brand = null, string? search = null,
+        decimal? minPrice = null, decimal? maxPrice = null, int page = 1, int pageSize = 20,
+        string? lang = null, string? currency = null, CancellationToken ct = default)
+    {
+        var query = new List<string> { $"page={page}", $"pageSize={pageSize}" };
+        if (!string.IsNullOrWhiteSpace(category)) query.Add($"categorySlug={Uri.EscapeDataString(category)}");
+        if (!string.IsNullOrWhiteSpace(brand)) query.Add($"brandSlug={Uri.EscapeDataString(brand)}");
+        if (!string.IsNullOrWhiteSpace(search)) query.Add($"search={Uri.EscapeDataString(search)}");
+        if (minPrice is decimal min) query.Add($"minPrice={min}");
+        if (maxPrice is decimal max) query.Add($"maxPrice={max}");
+        if (!string.IsNullOrWhiteSpace(lang)) query.Add($"lang={Uri.EscapeDataString(lang)}");
+        if (!string.IsNullOrWhiteSpace(currency)) query.Add($"currency={Uri.EscapeDataString(currency)}");
+
+        try
+        {
+            return await _http.GetFromJsonAsync<PagedResult<ProductSummaryDto>>($"api/products?{string.Join('&', query)}", ct)
+                ?? new PagedResult<ProductSummaryDto>();
+        }
+        catch (HttpRequestException) { return new PagedResult<ProductSummaryDto>(); }
+    }
+
+    public async Task<ProductDetailDto?> GetProductAsync(string slug, string? lang = null, string? currency = null, CancellationToken ct = default)
+    {
+        var path = $"api/products/{Uri.EscapeDataString(slug)}";
+        var query = new List<string>();
+        if (!string.IsNullOrWhiteSpace(lang)) query.Add($"lang={Uri.EscapeDataString(lang)}");
+        if (!string.IsNullOrWhiteSpace(currency)) query.Add($"currency={Uri.EscapeDataString(currency)}");
+        if (query.Count > 0) path += $"?{string.Join('&', query)}";
+        try { return await _http.GetFromJsonAsync<ProductDetailDto>(path, ct); }
+        catch (HttpRequestException) { return null; }
+    }
+
+    public async Task<IReadOnlyList<ProductCategoryDto>> GetProductCategoryTreeAsync(string? lang = null, CancellationToken ct = default)
+    {
+        var path = "api/productcategories/tree" + (string.IsNullOrWhiteSpace(lang) ? "" : $"?lang={Uri.EscapeDataString(lang)}");
+        try { return await _http.GetFromJsonAsync<List<ProductCategoryDto>>(path, ct) ?? new(); }
+        catch (HttpRequestException) { return Array.Empty<ProductCategoryDto>(); }
+    }
+
+    public async Task<IReadOnlyList<BrandDto>> GetBrandsAsync(string? lang = null, CancellationToken ct = default)
+    {
+        var path = "api/brands" + (string.IsNullOrWhiteSpace(lang) ? "" : $"?lang={Uri.EscapeDataString(lang)}");
+        try { return await _http.GetFromJsonAsync<List<BrandDto>>(path, ct) ?? new(); }
+        catch (HttpRequestException) { return Array.Empty<BrandDto>(); }
+    }
+
+    // ── Cart ─────────────────────────────────────────────────────────
+
+    public async Task<CartViewDto?> GetCartAsync(string? currency = null, CancellationToken ct = default)
+    {
+        var path = "api/cart" + (string.IsNullOrWhiteSpace(currency) ? "" : $"?currency={Uri.EscapeDataString(currency)}");
+        try { return await _http.GetFromJsonAsync<CartViewDto>(path, ct); }
+        catch (HttpRequestException) { return null; }
+    }
+
+    public Task<AuthApiResult> AddToCartAsync(int variantId, int quantity, CancellationToken ct = default) =>
+        PostAsync("api/cart/items", new { variantId, quantity }, ct);
+
+    public async Task<AuthApiResult> UpdateCartItemAsync(int cartItemId, int quantity, CancellationToken ct = default)
+    {
+        HttpResponseMessage response;
+        try { response = await _http.PutAsJsonAsync($"api/cart/items/{cartItemId}", new { quantity }, ct); }
+        catch (HttpRequestException) { return Unreachable(); }
+        return await ToResultAsync(response, ct);
+    }
+
+    public async Task<AuthApiResult> RemoveCartItemAsync(int cartItemId, CancellationToken ct = default)
+    {
+        HttpResponseMessage response;
+        try { response = await _http.DeleteAsync($"api/cart/items/{cartItemId}", ct); }
+        catch (HttpRequestException) { return Unreachable(); }
+        return await ToResultAsync(response, ct);
+    }
+
+    public Task<AuthApiResult> ApplyCouponAsync(string code, CancellationToken ct = default) =>
+        PostAsync("api/cart/coupon", new { code }, ct);
+
+    public async Task<AuthApiResult> RemoveCouponAsync(CancellationToken ct = default)
+    {
+        HttpResponseMessage response;
+        try { response = await _http.DeleteAsync("api/cart/coupon", ct); }
+        catch (HttpRequestException) { return Unreachable(); }
+        return await ToResultAsync(response, ct);
+    }
+
+    /// <summary>
+    /// Folds the guest cart into the signed-in customer's cart — call right after login. Takes the
+    /// freshly-issued token explicitly (rather than relying on <see cref="BearerTokenHandler"/>'s
+    /// cookie read) because the session cookie set on the Response isn't visible on the current
+    /// Request yet.
+    /// </summary>
+    public async Task<AuthApiResult> MergeCartAsync(string accessToken, CancellationToken ct = default)
+    {
+        using var request = new HttpRequestMessage(HttpMethod.Post, "api/cart/merge");
+        request.Headers.Authorization = new System.Net.Http.Headers.AuthenticationHeaderValue("Bearer", accessToken);
+        HttpResponseMessage response;
+        try { response = await _http.SendAsync(request, ct); }
+        catch (HttpRequestException) { return Unreachable(); }
+        return await ToResultAsync(response, ct);
+    }
+
+    // ── Shipping ─────────────────────────────────────────────────────
+
+    public async Task<IReadOnlyList<ShippingOptionDto>> GetShippingOptionsAsync(int? countryId, int? cityId, decimal weightKg, CancellationToken ct = default)
+    {
+        var query = new List<string> { $"weightKg={weightKg}" };
+        if (countryId is int c) query.Add($"countryId={c}");
+        if (cityId is int ci) query.Add($"cityId={ci}");
+        try { return await _http.GetFromJsonAsync<List<ShippingOptionDto>>($"api/shipping/methods?{string.Join('&', query)}", ct) ?? new(); }
+        catch (HttpRequestException) { return Array.Empty<ShippingOptionDto>(); }
+    }
+
+    // ── Checkout / Orders ────────────────────────────────────────────
+
+    public async Task<(bool Success, string? Error, int? OrderId, string? OrderNumber)> CheckoutAsync(
+        int cartId, int addressId, int shippingMethodId, string? currency, CancellationToken ct = default)
+    {
+        HttpResponseMessage response;
+        try
+        {
+            response = await _http.PostAsJsonAsync("api/checkout", new { cartId, addressId, shippingMethodId, currency }, ct);
+        }
+        catch (HttpRequestException) { return (false, "Service is unavailable.", null, null); }
+
+        if (!response.IsSuccessStatusCode)
+        {
+            var err = await response.Content.ReadFromJsonAsync<Dictionary<string, string>>(cancellationToken: ct);
+            return (false, err?.GetValueOrDefault("message"), null, null);
+        }
+
+        var ok = await response.Content.ReadFromJsonAsync<Dictionary<string, JsonElement>>(cancellationToken: ct);
+        return (true, null, ok?["orderId"].GetInt32(), ok?["orderNumber"].GetString());
+    }
+
+    public async Task<PagedResult<Order>> GetOrdersAsync(int page = 1, int pageSize = 10, CancellationToken ct = default)
+    {
+        try
+        {
+            return await _http.GetFromJsonAsync<PagedResult<Order>>($"api/orders?page={page}&pageSize={pageSize}", ct)
+                ?? new PagedResult<Order>();
+        }
+        catch (HttpRequestException) { return new PagedResult<Order>(); }
+    }
+
+    public async Task<Order?> GetOrderAsync(int id, CancellationToken ct = default)
+    {
+        try { return await _http.GetFromJsonAsync<Order>($"api/orders/{id}", ct); }
+        catch (HttpRequestException) { return null; }
+    }
+
+    // ── Payments ─────────────────────────────────────────────────────
+
+    public Task<AuthApiResult> PayWithWalletAsync(int orderId, CancellationToken ct = default) =>
+        PostAsync("api/payments/wallet", new { orderId }, ct);
+
+    public Task<AuthApiResult> SubmitBankReceiptAsync(int orderId, int bankAccountId, int receiptFileId, CancellationToken ct = default) =>
+        PostAsync("api/payments/receipt", new { orderId, bankAccountId, receiptFileId }, ct);
+
+    public async Task<IReadOnlyList<OfflineBankAccountDto>> GetOfflineBankAccountsAsync(CancellationToken ct = default)
+    {
+        try { return await _http.GetFromJsonAsync<List<OfflineBankAccountDto>>("api/payments/bank-accounts", ct) ?? new(); }
+        catch (HttpRequestException) { return Array.Empty<OfflineBankAccountDto>(); }
+    }
+
+    public async Task<(bool Ok, int? FileId, string? Error)> UploadReceiptAsync(IFormFile file, CancellationToken ct = default)
+    {
+        using var content = new MultipartFormDataContent();
+        using var stream = file.OpenReadStream();
+        using var streamContent = new StreamContent(stream);
+        if (!string.IsNullOrEmpty(file.ContentType))
+            streamContent.Headers.ContentType = System.Net.Http.Headers.MediaTypeHeaderValue.Parse(file.ContentType);
+        content.Add(streamContent, "file", file.FileName);
+
+        HttpResponseMessage response;
+        try { response = await _http.PostAsync("api/payments/receipt-upload", content, ct); }
+        catch (HttpRequestException) { return (false, null, "Service is unavailable."); }
+
+        if (!response.IsSuccessStatusCode)
+        {
+            var err = await response.Content.ReadFromJsonAsync<Dictionary<string, string>>(cancellationToken: ct);
+            return (false, null, err?.GetValueOrDefault("message"));
+        }
+
+        var ok = await response.Content.ReadFromJsonAsync<Dictionary<string, int>>(cancellationToken: ct);
+        return (true, ok?.GetValueOrDefault("fileId"), null);
+    }
+
+    // ── Wallet ───────────────────────────────────────────────────────
+
+    public async Task<WalletBalanceDto> GetWalletBalanceAsync(CancellationToken ct = default)
+    {
+        try { return await _http.GetFromJsonAsync<WalletBalanceDto>("api/wallet", ct) ?? new(); }
+        catch (HttpRequestException) { return new(); }
+    }
+
+    public async Task<PagedResult<WalletTransactionDto>> GetWalletTransactionsAsync(int page = 1, int pageSize = 20, CancellationToken ct = default)
+    {
+        try
+        {
+            return await _http.GetFromJsonAsync<PagedResult<WalletTransactionDto>>($"api/wallet/transactions?pageIndex={page}&pageSize={pageSize}", ct)
+                ?? new PagedResult<WalletTransactionDto>();
+        }
+        catch (HttpRequestException) { return new PagedResult<WalletTransactionDto>(); }
+    }
+
+    public Task<AuthApiResult> RequestWithdrawalAsync(int clientBankAccountId, decimal amountUsd, CancellationToken ct = default) =>
+        PostAsync("api/wallet/withdrawals", new { clientBankAccountId, amountUsd }, ct);
+
+    public async Task<IReadOnlyList<ClientBankAccountDto>> GetClientBankAccountsAsync(CancellationToken ct = default)
+    {
+        try { return await _http.GetFromJsonAsync<List<ClientBankAccountDto>>("api/clientbankaccounts", ct) ?? new(); }
+        catch (HttpRequestException) { return Array.Empty<ClientBankAccountDto>(); }
+    }
+
+    public Task<AuthApiResult> CreateClientBankAccountAsync(ClientBankAccountRequest request, CancellationToken ct = default) =>
+        PostAsync("api/clientbankaccounts", request, ct);
+
+    // ── Wishlist ─────────────────────────────────────────────────────
+
+    public async Task<IReadOnlyList<WishlistItemView>> GetWishlistAsync(CancellationToken ct = default)
+    {
+        try { return await _http.GetFromJsonAsync<List<WishlistItemView>>("api/wishlist", ct) ?? new(); }
+        catch (HttpRequestException) { return Array.Empty<WishlistItemView>(); }
+    }
+
+    public Task<AuthApiResult> AddToWishlistAsync(int variantId, CancellationToken ct = default) =>
+        PostAsync("api/wishlist/items", new { variantId }, ct);
+
+    public async Task<AuthApiResult> RemoveFromWishlistAsync(int variantId, CancellationToken ct = default)
+    {
+        HttpResponseMessage response;
+        try { response = await _http.DeleteAsync($"api/wishlist/items/{variantId}", ct); }
+        catch (HttpRequestException) { return Unreachable(); }
+        return await ToResultAsync(response, ct);
+    }
+
+    // ── Reviews & Q&A ────────────────────────────────────────────────
+
+    public async Task<PagedResult<ProductReview>> GetProductReviewsAsync(int productId, int page = 1, int pageSize = 10, CancellationToken ct = default)
+    {
+        try
+        {
+            return await _http.GetFromJsonAsync<PagedResult<ProductReview>>($"api/products/{productId}/reviews?page={page}&pageSize={pageSize}", ct)
+                ?? new PagedResult<ProductReview>();
+        }
+        catch (HttpRequestException) { return new PagedResult<ProductReview>(); }
+    }
+
+    public Task<AuthApiResult> SubmitReviewAsync(int productId, byte rating, string? title, string body, CancellationToken ct = default) =>
+        PostAsync($"api/products/{productId}/reviews", new { rating, title, body }, ct);
+
+    public async Task<PagedResult<ProductQuestion>> GetProductQuestionsAsync(int productId, int page = 1, int pageSize = 10, CancellationToken ct = default)
+    {
+        try
+        {
+            return await _http.GetFromJsonAsync<PagedResult<ProductQuestion>>($"api/products/{productId}/questions?page={page}&pageSize={pageSize}", ct)
+                ?? new PagedResult<ProductQuestion>();
+        }
+        catch (HttpRequestException) { return new PagedResult<ProductQuestion>(); }
+    }
+
+    public Task<AuthApiResult> AskQuestionAsync(int productId, string body, CancellationToken ct = default) =>
+        PostAsync($"api/products/{productId}/questions", new { body }, ct);
+
+    public Task<AuthApiResult> AnswerQuestionAsync(int questionId, string body, CancellationToken ct = default) =>
+        PostAsync($"api/questions/{questionId}/answers", new { body }, ct);
+
+    private static AuthApiResult Unreachable() => new(false, HttpStatusCode.ServiceUnavailable,
+        "Service is unavailable. Please try again later.", new Dictionary<string, string>(), null);
 
     /// <summary>POSTs JSON and normalizes the response into an <see cref="AuthApiResult"/>.</summary>
     private async Task<AuthApiResult> PostAsync(string path, object payload, CancellationToken ct)

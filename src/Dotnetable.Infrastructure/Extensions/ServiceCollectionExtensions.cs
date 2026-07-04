@@ -124,6 +124,26 @@ public static class ServiceCollectionExtensions
         services.AddScoped<IShippingService, ShippingService>();
         services.AddScoped<ITaxService, TaxService>();
 
+        // E-commerce: the website's own banks/bank accounts (manual/offline payment receiving).
+        services.AddScoped<IBankService, BankService>();
+        services.AddScoped<IBankAccountService, BankAccountService>();
+
+        // E-commerce: shopping cart (guest + signed-in customer).
+        services.AddScoped<ICartService, CartService>();
+
+        // E-commerce: checkout orchestration + order lifecycle.
+        services.AddScoped<IOrderService, OrderService>();
+
+        // E-commerce: payments (wallet debit + manual bank transfer) and refunds.
+        services.AddScoped<IPaymentService, PaymentService>();
+
+        // E-commerce: product reviews and Q&A.
+        services.AddScoped<IProductReviewService, ProductReviewService>();
+        services.AddScoped<IProductQuestionService, ProductQuestionService>();
+
+        // E-commerce: customer wishlist.
+        services.AddScoped<IWishlistService, WishlistService>();
+
         // Content read caching: IMemoryCache-backed, tag-invalidated on write (menu/category/page/post).
         // Menu/Category/Page/Post are registered under their concrete type too so the Cached* decorator
         // can hold the real implementation while IxxxService resolves to the decorator.

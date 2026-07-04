@@ -1,0 +1,114 @@
+@page "/moderation/questions"
+@attribute [Authorize(Policy = RoleKeys.ModerationView)]
+@inject IProductQuestionService QuestionService
+@inject IWebsiteService WebsiteService
+@inject AuthenticationStateProvider AuthState
+@inject ISnackbar Snackbar
+@inject IPageLocalizer L
+
+<DNPageTitle Title=@L["moderation.questions", "Questions"] />
+
+<MudStack Row="true" AlignItems="AlignItems.Center" Justify="Justify.SpaceBetween" Class="mb-4">
+    <MudText Typo="Typo.h5" Class="fw-bold">@L["moderation.questions", "Questions"]</MudText>
+    @if (_isMaster)
+    {
+        <MudSelect T="int" @bind-Value="_websiteId" Label="@L["website", "Website"]" Variant="Variant.Outlined"
+                   Dense="true" Style="min-width:180px" SelectedValuesChanged="OnWebsiteChanged">
+            @foreach (var w in _websites)
+            {
+                <MudSelectItem T="int" Value="@w.WebsiteID">@w.TradeName</MudSelectItem>
+            }
+        </MudSelect>
+    }
+</MudStack>
+
+<MudPaper Elevation="0" Class="app-card rounded-lg pa-4">
+    @if (_loading)
+    {
+        <MudProgressLinear Indeterminate="true" Color="Color.Primary" Class="mb-3" />
+    }
+    else if (_items.Count == 0)
+    {
+        <div style="text-align:center; padding:32px;"><MudText Color="Color.Secondary">@L["moderation.empty", "Nothing pending."]</MudText></div>
+    }
+    else
+    {
+        @foreach (var q in _items)
+        {
+            <MudPaper Elevation="0" Class="border rounded-lg pa-3 mb-2">
+                <MudStack Row="true" Justify="Justify.SpaceBetween" AlignItems="AlignItems.Start">
+                    <MudStack Spacing="0">
+                        <MudText Typo="Typo.subtitle2">@q.Product.Title</MudText>
+                        <MudText Typo="Typo.body2">@q.Body</MudText>
+                        <MudText Typo="Typo.caption" Color="Color.Secondary">@q.WebsiteClient.Givenname @q.WebsiteClient.Surname — @q.CreatedAt.ToLocalTime().ToString("g")</MudText>
+                    </MudStack>
+                    @if (_canReview && q.Status == (byte)ModerationStatus.Pending)
+                    {
+                        <MudStack Row="true" Spacing="1">
+                            <MudButton Size="Size.Small" Color="Color.Success" Variant="Variant.Filled" OnClick="@(() => ModerateQuestionAsync(q.ProductQuestionID, true))">@L["approve", "Approve"]</MudButton>
+                            <MudButton Size="Size.Small" Color="Color.Error" OnClick="@(() => ModerateQuestionAsync(q.ProductQuestionID, false))">@L["reject", "Reject"]</MudButton>
+                        </MudStack>
+                    }
+                </MudStack>
+                @foreach (var a in q.ProductAnswers.Where(a => a.Status == (byte)ModerationStatus.Pending))
+                {
+                    <MudPaper Elevation="0" Class="border rounded-lg pa-2 mt-2 ml-4">
+                        <MudStack Row="true" Justify="Justify.SpaceBetween" AlignItems="AlignItems.Start">
+                            <MudText Typo="Typo.body2">@a.Body</MudText>
+                            @if (_canReview)
+                            {
+                                <MudStack Row="true" Spacing="1">
+                                    <MudButton Size="Size.Small" Color="Color.Success" Variant="Variant.Filled" OnClick="@(() => ModerateAnswerAsync(a.ProductAnswerID, true))">@L["approve", "Approve"]</MudButton>
+                                    <MudButton Size="Size.Small" Color="Color.Error" OnClick="@(() => ModerateAnswerAsync(a.ProductAnswerID, false))">@L["reject", "Reject"]</MudButton>
+                                </MudStack>
+                            }
+                        </MudStack>
+                    </MudPaper>
+                }
+            </MudPaper>
+        }
+    }
+</MudPaper>
+
+@code {
+    private bool _loading = true;
+    private bool _isMaster, _canReview;
+    private int _websiteId;
+    private List<ProductQuestion> _items = new();
+    private List<Website> _websites = new();
+
+    protected override async Task OnInitializedAsync()
+    {
+        await L.EnsureLoadedAsync();
+        var user = (await AuthState.GetAuthenticationStateAsync()).User;
+        _isMaster = user.HasClaim(AdminClaimTypes.Master, "true");
+        _canReview = AdminPolicies.Allows(user, RoleKeys.ModerationReview);
+        int.TryParse(user.FindFirst(AdminClaimTypes.WebsiteId)?.Value, out _websiteId);
+        if (_isMaster) _websites = (await WebsiteService.GetAllAsync()).ToList();
+        await LoadAsync();
+    }
+
+    private async Task OnWebsiteChanged(IEnumerable<int> _) => await LoadAsync();
+
+    private async Task LoadAsync()
+    {
+        _loading = true;
+        var result = await QuestionService.GetPendingAsync(_websiteId, new GridQuery { PageIndex = 1, PageSize = 50 });
+        _items = result.Items.ToList();
+        _loading = false;
+    }
+
+    private async Task ModerateQuestionAsync(int questionId, bool approve)
+    {
+        await QuestionService.ModerateQuestionAsync(questionId, approve);
+        Snackbar.Add(L["saved", "Saved."], Severity.Success);
+        await LoadAsync();
+    }
+
+    private async Task ModerateAnswerAsync(int answerId, bool approve)
+    {
+        await QuestionService.ModerateAnswerAsync(answerId, approve);
+        Snackbar.Add(L["saved", "Saved."], Severity.Success);
+        await LoadAsync();
+    }
+}

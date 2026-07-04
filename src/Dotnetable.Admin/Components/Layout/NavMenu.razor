@@ -123,9 +123,28 @@
         </MudNavGroup>
     </AuthorizeView>
 
-    <AuthorizeView Policy="@RoleKeys.WalletsView" Context="wal">
-        <MudNavLink Href="/wallets/withdrawals" Icon="@Icons.Material.Filled.AccountBalanceWallet">@L["wallets.withdrawals", "Withdrawals"]</MudNavLink>
+    <AuthorizeView Policy="@RoleKeys.OrdersView" Context="ord">
+        <MudNavLink Href="/orders" Icon="@Icons.Material.Filled.ReceiptLong">@L["orders", "Orders"]</MudNavLink>
     </AuthorizeView>
+
+    <MudNavGroup Title="@L["nav.finance", "Finance"]" Icon="@Icons.Material.Filled.Payments">
+        <AuthorizeView Policy="@RoleKeys.PaymentsView" Context="pay">
+            <MudNavLink Href="/payments" Icon="@Icons.Material.Filled.CreditCard">@L["payments", "Payments"]</MudNavLink>
+        </AuthorizeView>
+        <AuthorizeView Policy="@RoleKeys.WalletsView" Context="wal">
+            <MudNavLink Href="/wallets/withdrawals" Icon="@Icons.Material.Filled.AccountBalanceWallet">@L["wallets.withdrawals", "Withdrawals"]</MudNavLink>
+        </AuthorizeView>
+        <AuthorizeView Policy="@RoleKeys.BankAccountsView" Context="bnk">
+            <MudNavLink Href="/finance/bank-accounts" Icon="@Icons.Material.Filled.AccountBalance">@L["bank_accounts", "Bank Accounts"]</MudNavLink>
+        </AuthorizeView>
+        <AuthorizeView Policy="@RoleKeys.CurrencyView" Context="cur">
+            <MudNavLink Href="/finance/currency-rates" Icon="@Icons.Material.Filled.CurrencyExchange">@L["currency_rates", "Exchange Rates"]</MudNavLink>
+        </AuthorizeView>
+        <AuthorizeView Policy="@AdminPolicies.SuperAdminOnly" Context="bnkm">
+            <MudNavLink Href="/finance/banks" Icon="@Icons.Material.Filled.AccountBalance">@L["banks", "Banks"]</MudNavLink>
+            <MudNavLink Href="/finance/currencies" Icon="@Icons.Material.Filled.CurrencyExchange">@L["currencies", "Currencies"]</MudNavLink>
+        </AuthorizeView>
+    </MudNavGroup>
 
     <MudNavGroup Title="@L["nav.promotions", "Promotions & Shipping"]" Icon="@Icons.Material.Filled.LocalOffer">
         <AuthorizeView Policy="@RoleKeys.CouponsView" Context="cpn">
@@ -138,6 +157,13 @@
             <MudNavLink Href="/sales/tax" Icon="@Icons.Material.Filled.Percent">@L["tax", "Tax"]</MudNavLink>
         </AuthorizeView>
     </MudNavGroup>
+
+    <AuthorizeView Policy="@RoleKeys.ModerationView" Context="mod">
+        <MudNavGroup Title="@L["nav.moderation", "Reviews & Q&A"]" Icon="@Icons.Material.Filled.RateReview">
+            <MudNavLink Href="/moderation/reviews" Icon="@Icons.Material.Filled.Star">@L["moderation.reviews", "Reviews"]</MudNavLink>
+            <MudNavLink Href="/moderation/questions" Icon="@Icons.Material.Filled.QuestionAnswer">@L["moderation.questions", "Questions"]</MudNavLink>
+        </MudNavGroup>
+    </AuthorizeView>
 
     <AuthorizeView Policy="@RoleKeys.MenusView" Context="mn">
         <MudNavLink Href="/menus" Icon="@Icons.Material.Filled.Menu">

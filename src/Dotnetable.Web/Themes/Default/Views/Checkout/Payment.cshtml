@@ -1,0 +1,58 @@
+@using Dotnetable.Domain.Entities
+@using Dotnetable.Web.Services
+@model Order
+@{
+    ViewData["Title"] = "Payment";
+    Layout = "/Themes/Default/Views/Shared/_Layout.cshtml";
+    var walletBalance = (decimal)ViewBag.WalletBalance;
+    var bankAccounts = ViewBag.BankAccounts as IReadOnlyList<OfflineBankAccountDto> ?? new List<OfflineBankAccountDto>();
+}
+
+@await Html.PartialAsync("_PageHeader", ("Payment", "Checkout"))
+
+<section class="site-section">
+    <div class="container" style="max-width:640px">
+        @if (TempData["PaymentError"] is string err)
+        {
+            <div class="alert alert-danger">@err</div>
+        }
+        <div class="card mb-4">
+            <div class="card-body">
+                <h6>Order @Model.OrderNumber</h6>
+                <div class="fs-4 fw-bold">@Model.GrandTotal.ToString("0.##") @Model.CurrencyCode</div>
+            </div>
+        </div>
+
+        <div class="card mb-3">
+            <div class="card-body">
+                <h6 class="card-title">Pay with wallet balance</h6>
+                <p class="text-muted">Available: @walletBalance.ToString("0.##") USD</p>
+                <form asp-controller="Checkout" asp-action="PayWithWallet" method="post">
+                    <input type="hidden" name="orderId" value="@Model.OrderID" />
+                    <button type="submit" class="btn btn-primary" @(walletBalance < Model.GrandTotalUsd ? "disabled" : "")>Pay with wallet</button>
+                </form>
+            </div>
+        </div>
+
+        @if (bankAccounts.Count > 0)
+        {
+            <div class="card">
+                <div class="card-body">
+                    <h6 class="card-title">Bank transfer</h6>
+                    <form asp-controller="Checkout" asp-action="SubmitReceipt" method="post" enctype="multipart/form-data">
+                        <input type="hidden" name="orderId" value="@Model.OrderID" />
+                        <select name="bankAccountId" class="form-select mb-2">
+                            @foreach (var b in bankAccounts)
+                            {
+                                <option value="@b.BankAccountID">@b.BankName — @b.Title — @(b.IBAN ?? b.CardNumber)</option>
+                            }
+                        </select>
+                        <label class="form-label">Upload transfer receipt</label>
+                        <input type="file" name="receipt" class="form-control mb-2" accept="image/*" required />
+                        <button type="submit" class="btn btn-outline-primary">Submit receipt for verification</button>
+                    </form>
+                </div>
+            </div>
+        }
+    </div>
+</section>

@@ -1,0 +1,165 @@
+@page "/orders/{OrderId:int}"
+@attribute [Authorize(Policy = RoleKeys.OrdersView)]
+@inject IOrderService OrderService
+@inject IPaymentService PaymentService
+@inject AuthenticationStateProvider AuthState
+@inject IDialogService DialogService
+@inject ISnackbar Snackbar
+@inject NavigationManager Nav
+@inject IPageLocalizer L
+
+<DNPageTitle Title="@(_order is null ? "" : $"{L["orders.order", "Order"]} {_order.OrderNumber}")" />
+
+@if (_loading)
+{
+    <MudProgressLinear Indeterminate="true" Color="Color.Primary" />
+}
+else if (_order is null)
+{
+    <MudText Color="Color.Error">@L["orders.not_found", "Order not found."]</MudText>
+}
+else
+{
+    <MudStack Row="true" AlignItems="AlignItems.Center" Justify="Justify.SpaceBetween" Class="mb-4">
+        <MudText Typo="Typo.h5" Class="fw-bold">@_order.OrderNumber</MudText>
+        <MudStack Row="true" Spacing="2" AlignItems="AlignItems.Center">
+            <MudChip T="string" Color="Color.Primary">@((OrderStatus)_order.Status)</MudChip>
+            <MudButton OnClick="@(() => Nav.NavigateTo("/orders"))">@L["back", "Back"]</MudButton>
+        </MudStack>
+    </MudStack>
+
+    <MudGrid Spacing="3">
+        <MudItem xs="12" md="8">
+            <MudPaper Elevation="0" Class="app-card rounded-lg pa-4 mb-3">
+                <MudText Typo="Typo.subtitle1" Class="mb-2">@L["orders.items", "Items"]</MudText>
+                <MudSimpleTable Dense="true" Elevation="0">
+                    <thead><tr><th>@L["title", "Title"]</th><th>@L["variants.sku", "SKU"]</th><th>@L["quantity", "Qty"]</th><th>@L["variants.price", "Price"]</th><th>@L["orders.line_total", "Total"]</th></tr></thead>
+                    <tbody>
+                        @foreach (var item in _order.OrderItems)
+                        {
+                            <tr>
+                                <td>@item.TitleSnapshot</td>
+                                <td><code>@item.SkuSnapshot</code></td>
+                                <td>@item.Quantity</td>
+                                <td>@item.UnitPrice.ToString("0.##")</td>
+                                <td>@item.TotalPrice.ToString("0.##")</td>
+                            </tr>
+                        }
+                    </tbody>
+                </MudSimpleTable>
+            </MudPaper>
+
+            <MudPaper Elevation="0" Class="app-card rounded-lg pa-4">
+                <MudText Typo="Typo.subtitle1" Class="mb-2">@L["orders.history", "Status History"]</MudText>
+                <MudTimeline>
+                    @foreach (var h in _order.OrderStatusHistories.OrderBy(h => h.CreatedAt))
+                    {
+                        <MudTimelineItem Size="Size.Small">
+                            <MudText Typo="Typo.body2">@((OrderStatus)h.ToStatus) — @h.CreatedAt.ToLocalTime().ToString("g")</MudText>
+                            @if (!string.IsNullOrEmpty(h.Note))
+                            {
+                                <MudText Typo="Typo.caption" Color="Color.Secondary">@h.Note</MudText>
+                            }
+                        </MudTimelineItem>
+                    }
+                </MudTimeline>
+            </MudPaper>
+        </MudItem>
+
+        <MudItem xs="12" md="4">
+            <MudPaper Elevation="0" Class="app-card rounded-lg pa-4 mb-3">
+                <MudText Typo="Typo.subtitle1" Class="mb-2">@L["orders.totals", "Totals"]</MudText>
+                <MudStack Spacing="1">
+                    <MudStack Row="true" Justify="Justify.SpaceBetween"><MudText>@L["orders.subtotal", "Subtotal"]</MudText><MudText>@_order.SubTotal.ToString("0.##") @_order.CurrencyCode</MudText></MudStack>
+                    <MudStack Row="true" Justify="Justify.SpaceBetween"><MudText>@L["orders.discount", "Discount"]</MudText><MudText>-@_order.DiscountTotal.ToString("0.##")</MudText></MudStack>
+                    <MudStack Row="true" Justify="Justify.SpaceBetween"><MudText>@L["shipping", "Shipping"]</MudText><MudText>@_order.ShippingTotal.ToString("0.##")</MudText></MudStack>
+                    <MudStack Row="true" Justify="Justify.SpaceBetween"><MudText>@L["tax", "Tax"]</MudText><MudText>@_order.TaxTotal.ToString("0.##")</MudText></MudStack>
+                    <MudDivider />
+                    <MudStack Row="true" Justify="Justify.SpaceBetween"><MudText Typo="Typo.subtitle2">@L["orders.grand_total", "Grand Total"]</MudText><MudText Typo="Typo.subtitle2">@_order.GrandTotal.ToString("0.##") @_order.CurrencyCode</MudText></MudStack>
+                </MudStack>
+            </MudPaper>
+
+            <MudPaper Elevation="0" Class="app-card rounded-lg pa-4 mb-3">
+                <MudText Typo="Typo.subtitle1" Class="mb-2">@L["orders.address", "Shipping Address"]</MudText>
+                <MudText Typo="Typo.body2">@_order.AddressSnapshot</MudText>
+            </MudPaper>
+
+            @if (_canEdit)
+            {
+                <MudPaper Elevation="0" Class="app-card rounded-lg pa-4">
+                    <MudText Typo="Typo.subtitle1" Class="mb-2">@L["orders.transition", "Change Status"]</MudText>
+                    <MudSelect T="OrderStatus" @bind-Value="_newStatus" Variant="Variant.Outlined" Dense="true" Class="mb-2">
+                        @foreach (OrderStatus s in Enum.GetValues<OrderStatus>())
+                        {
+                            <MudSelectItem T="OrderStatus" Value="@s">@s</MudSelectItem>
+                        }
+                    </MudSelect>
+                    <MudTextField @bind-Value="_note" Label="@L["orders.note", "Note (optional)"]" Variant="Variant.Outlined" Dense="true" Class="mb-2" />
+                    <MudButton Variant="Variant.Filled" Color="Color.Primary" FullWidth="true" OnClick="TransitionAsync">@L["save", "Save"]</MudButton>
+                </MudPaper>
+            }
+
+            @if (_canRefund && _order.Status == (byte)OrderStatus.Paid && _order.Payments.Any(p => p.Status == (byte)PaymentStatus.Paid))
+            {
+                <MudPaper Elevation="0" Class="app-card rounded-lg pa-4 mt-3">
+                    <MudText Typo="Typo.subtitle1" Class="mb-2">@L["payments.refund", "Refund"]</MudText>
+                    <MudNumericField T="decimal" @bind-Value="_refundAmount" Label="@L["orders.total", "Amount (USD)"]" Variant="Variant.Outlined" Dense="true" Min="0" Class="mb-2" />
+                    <MudTextField @bind-Value="_refundReason" Label="@L["payments.reason", "Reason"]" Variant="Variant.Outlined" Dense="true" Class="mb-2" />
+                    <MudSwitch T="bool" @bind-Value="_refundToWallet" Label="@L["payments.refund_to_wallet", "Refund to wallet"]" Color="Color.Primary" Class="mb-2" />
+                    <MudButton Variant="Variant.Filled" Color="Color.Error" FullWidth="true" OnClick="RefundAsync">@L["payments.refund", "Refund"]</MudButton>
+                </MudPaper>
+            }
+        </MudItem>
+    </MudGrid>
+}
+
+@code {
+    [Parameter] public int OrderId { get; set; }
+
+    private bool _loading = true, _canEdit, _canRefund;
+    private Order? _order;
+    private OrderStatus _newStatus;
+    private string? _note;
+    private int? _currentMemberId;
+    private decimal _refundAmount;
+    private string? _refundReason;
+    private bool _refundToWallet = true;
+
+    protected override async Task OnInitializedAsync()
+    {
+        await L.EnsureLoadedAsync();
+        var user = (await AuthState.GetAuthenticationStateAsync()).User;
+        _canEdit = AdminPolicies.Allows(user, RoleKeys.OrdersEdit);
+        _canRefund = AdminPolicies.Allows(user, RoleKeys.PaymentsRefund);
+        if (int.TryParse(user.FindFirst(AdminClaimTypes.MemberId)?.Value, out var mid)) _currentMemberId = mid;
+        await LoadAsync();
+    }
+
+    private async Task RefundAsync()
+    {
+        if (_order is null || _currentMemberId is null) return;
+        var payment = _order.Payments.FirstOrDefault(p => p.Status == (byte)PaymentStatus.Paid);
+        if (payment is null) return;
+
+        var (success, error, _) = await PaymentService.RefundAsync(
+            payment.PaymentID, _refundAmount, _refundReason, _refundToWallet, null, _currentMemberId.Value);
+        if (success) { Snackbar.Add(L["saved", "Saved."], Severity.Success); await LoadAsync(); }
+        else Snackbar.Add(error ?? L["save_failed", "Save failed"], Severity.Error);
+    }
+
+    private async Task LoadAsync()
+    {
+        _loading = true;
+        _order = await OrderService.GetByIdAsync(OrderId);
+        if (_order is not null) _newStatus = (OrderStatus)_order.Status;
+        _loading = false;
+    }
+
+    private async Task TransitionAsync()
+    {
+        if (_order is null) return;
+        var ok = await OrderService.TransitionStatusAsync(_order.OrderID, _newStatus, _currentMemberId, _note);
+        if (ok) { Snackbar.Add(L["saved", "Saved."], Severity.Success); _note = null; await LoadAsync(); }
+        else Snackbar.Add(L["save_failed", "Save failed"], Severity.Error);
+    }
+}

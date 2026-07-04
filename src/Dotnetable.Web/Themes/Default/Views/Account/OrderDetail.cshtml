@@ -1,0 +1,29 @@
+@using Dotnetable.Domain.Entities
+@model Order
+@{
+    ViewData["Title"] = $"Order {Model.OrderNumber}";
+    Layout = "/Themes/Default/Views/Shared/_Layout.cshtml";
+}
+
+@await Html.PartialAsync("_PageHeader", ($"Order {Model.OrderNumber}", "Account"))
+
+<section class="site-section">
+    <div class="container" style="max-width:720px">
+        <p><strong>Status:</strong> @((Dotnetable.Application.Interfaces.OrderStatus)Model.Status)</p>
+        <table class="table">
+            <thead><tr><th>Item</th><th>Qty</th><th>Total</th></tr></thead>
+            <tbody>
+                @foreach (var item in Model.OrderItems)
+                {
+                    <tr><td>@item.TitleSnapshot</td><td>@item.Quantity</td><td>@item.TotalPrice.ToString("0.##")</td></tr>
+                }
+            </tbody>
+        </table>
+        <div class="text-end fs-5 fw-bold">Total: @Model.GrandTotal.ToString("0.##") @Model.CurrencyCode</div>
+
+        @if (Model.Status == (byte)Dotnetable.Application.Interfaces.OrderStatus.PendingPayment)
+        {
+            <a asp-controller="Checkout" asp-action="Payment" asp-route-orderId="@Model.OrderID" class="btn btn-primary mt-3">Complete payment</a>
+        }
+    </div>
+</section>
