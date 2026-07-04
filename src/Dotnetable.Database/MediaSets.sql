@@ -5,6 +5,6 @@
     [IsShared]   BIT            CONSTRAINT [DF_MediaSets_IsShared_1] DEFAULT ((0)) NOT NULL,
     [CreatedAt]  DATETIME       CONSTRAINT [DF_MediaSets_CreatedAt_1] DEFAULT (sysutcdatetime()) NOT NULL,
     CONSTRAINT [PK_MediaSets] PRIMARY KEY CLUSTERED ([MediaSetID] ASC),
-    CONSTRAINT [FK_MediaSets_Website] FOREIGN KEY ([WebsiteID]) REFERENCES [dbo].[Website] ([WebsiteID])
+    CONSTRAINT [FK_MediaSets_Websites] FOREIGN KEY ([WebsiteID]) REFERENCES [dbo].[Websites] ([WebsiteID])
 );
 

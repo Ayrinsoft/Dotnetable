@@ -11,6 +11,6 @@
     CONSTRAINT [PK_ProductAnswers] PRIMARY KEY CLUSTERED ([ProductAnswerID] ASC),
     CONSTRAINT [FK_ProductAnswers_ProductQuestions] FOREIGN KEY ([ProductQuestionID]) REFERENCES [dbo].[ProductQuestions] ([ProductQuestionID]),
     CONSTRAINT [FK_ProductAnswers_Vendors] FOREIGN KEY ([VendorID]) REFERENCES [dbo].[Vendors] ([VendorID]),
-    CONSTRAINT [FK_ProductAnswers_WebsiteClient] FOREIGN KEY ([WebsiteClientID]) REFERENCES [dbo].[WebsiteClient] ([WebsiteClientID])
+    CONSTRAINT [FK_ProductAnswers_WebsiteClients] FOREIGN KEY ([WebsiteClientID]) REFERENCES [dbo].[WebsiteClients] ([WebsiteClientID])
 );
 

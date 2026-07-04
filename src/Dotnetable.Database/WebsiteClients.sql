@@ -1,4 +1,4 @@
-﻿CREATE TABLE [dbo].[WebsiteClient] (
+﻿CREATE TABLE [dbo].[WebsiteClients] (
     [WebsiteClientID] INT              IDENTITY (1, 1) NOT NULL,
     [WebsiteID]       INT              NOT NULL,
     [AvatarID]        INT              NULL,
@@ -13,9 +13,9 @@
     [Surname]         NVARCHAR (42)    NULL,
     [HashKey]         UNIQUEIDENTIFIER NOT NULL,
     [ClientLevel]     TINYINT          NOT NULL,
-    CONSTRAINT [PK_WebsiteClient] PRIMARY KEY CLUSTERED ([WebsiteClientID] ASC),
-    CONSTRAINT [FK_WebsiteClient_FileRecord] FOREIGN KEY ([AvatarID]) REFERENCES [dbo].[FileRecord] ([FileRecordID]),
-    CONSTRAINT [FK_WebsiteClient_Website] FOREIGN KEY ([WebsiteID]) REFERENCES [dbo].[Website] ([WebsiteID])
+    CONSTRAINT [PK_WebsiteClients] PRIMARY KEY CLUSTERED ([WebsiteClientID] ASC),
+    CONSTRAINT [FK_WebsiteClients_FileRecords] FOREIGN KEY ([AvatarID]) REFERENCES [dbo].[FileRecords] ([FileRecordID]),
+    CONSTRAINT [FK_WebsiteClients_Websites] FOREIGN KEY ([WebsiteID]) REFERENCES [dbo].[Websites] ([WebsiteID])
 );
 
 

@@ -9,6 +9,6 @@
     [IsActive]          BIT            CONSTRAINT [DF_WebsiteRedirects_IsActive] DEFAULT ((1)) NOT NULL,
     [CreatedAt]         DATETIME       CONSTRAINT [DF_WebsiteRedirects_CreatedAt] DEFAULT (sysutcdatetime()) NOT NULL,
     CONSTRAINT [PK_WebsiteRedirects] PRIMARY KEY CLUSTERED ([WebsiteRedirectID] ASC),
-    CONSTRAINT [FK_WebsiteRedirects_Website] FOREIGN KEY ([WebsiteID]) REFERENCES [dbo].[Website] ([WebsiteID])
+    CONSTRAINT [FK_WebsiteRedirects_Websites] FOREIGN KEY ([WebsiteID]) REFERENCES [dbo].[Websites] ([WebsiteID])
 );
 

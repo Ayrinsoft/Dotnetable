@@ -8,8 +8,8 @@
     [SortOrder]         INT            CONSTRAINT [DF_ProductCategories_SortOrder] DEFAULT ((0)) NOT NULL,
     [IsActive]          BIT            CONSTRAINT [DF_ProductCategories_IsActive] DEFAULT ((1)) NOT NULL,
     CONSTRAINT [PK_ProductCategories] PRIMARY KEY CLUSTERED ([ProductCategoryID] ASC),
-    CONSTRAINT [FK_ProductCategories_FileRecord] FOREIGN KEY ([ImageFileID]) REFERENCES [dbo].[FileRecord] ([FileRecordID]),
+    CONSTRAINT [FK_ProductCategories_FileRecords] FOREIGN KEY ([ImageFileID]) REFERENCES [dbo].[FileRecords] ([FileRecordID]),
     CONSTRAINT [FK_ProductCategories_ProductCategories] FOREIGN KEY ([ParentCategoryID]) REFERENCES [dbo].[ProductCategories] ([ProductCategoryID]),
-    CONSTRAINT [FK_ProductCategories_Website] FOREIGN KEY ([WebsiteID]) REFERENCES [dbo].[Website] ([WebsiteID])
+    CONSTRAINT [FK_ProductCategories_Websites] FOREIGN KEY ([WebsiteID]) REFERENCES [dbo].[Websites] ([WebsiteID])
 );
 

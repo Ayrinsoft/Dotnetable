@@ -1,4 +1,4 @@
-﻿CREATE TABLE [dbo].[City] (
+﻿CREATE TABLE [dbo].[Cities] (
     [CityID]       INT           IDENTITY (1, 1) NOT NULL,
     [CountryID]    INT           NOT NULL,
     [StateID]      INT           NULL,
@@ -7,8 +7,8 @@
     [Latitude]     FLOAT (53)    NULL,
     [Longitude]    FLOAT (53)    NOT NULL,
     [Active]       BIT           NOT NULL,
-    CONSTRAINT [PK_City] PRIMARY KEY CLUSTERED ([CityID] ASC),
-    CONSTRAINT [FK_City_Country] FOREIGN KEY ([CountryID]) REFERENCES [dbo].[Country] ([CountryID]),
-    CONSTRAINT [FK_City_State] FOREIGN KEY ([StateID]) REFERENCES [dbo].[State] ([StateID])
+    CONSTRAINT [PK_Cities] PRIMARY KEY CLUSTERED ([CityID] ASC),
+    CONSTRAINT [FK_Cities_Countries] FOREIGN KEY ([CountryID]) REFERENCES [dbo].[Countries] ([CountryID]),
+    CONSTRAINT [FK_Cities_States] FOREIGN KEY ([StateID]) REFERENCES [dbo].[States] ([StateID])
 );
 

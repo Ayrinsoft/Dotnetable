@@ -10,6 +10,6 @@
     [SortOrder]        INT            CONSTRAINT [DF_PaymentGateways_SortOrder] DEFAULT ((0)) NOT NULL,
     [IsActive]         BIT            CONSTRAINT [DF_PaymentGateways_IsActive] DEFAULT ((1)) NOT NULL,
     CONSTRAINT [PK_PaymentGateways] PRIMARY KEY CLUSTERED ([PaymentGatewayID] ASC),
-    CONSTRAINT [FK_PaymentGateways_Website] FOREIGN KEY ([WebsiteID]) REFERENCES [dbo].[Website] ([WebsiteID])
+    CONSTRAINT [FK_PaymentGateways_Websites] FOREIGN KEY ([WebsiteID]) REFERENCES [dbo].[Websites] ([WebsiteID])
 );
 

@@ -14,8 +14,8 @@
     [CreatedAt]         DATETIME2 (0)  CONSTRAINT [DF_Pages_CreatedAt_1] DEFAULT (sysutcdatetime()) NOT NULL,
     [UpdatedAt]         DATETIME2 (0)  CONSTRAINT [DF_Pages_UpdatedAt_1] DEFAULT (sysutcdatetime()) NOT NULL,
     CONSTRAINT [PK_Pages] PRIMARY KEY CLUSTERED ([PageID] ASC),
-    CONSTRAINT [FK_Pages_Member] FOREIGN KEY ([CreatedByMemberID]) REFERENCES [dbo].[Member] ([MemberID]),
+    CONSTRAINT [FK_Pages_Members] FOREIGN KEY ([CreatedByMemberID]) REFERENCES [dbo].[Members] ([MemberID]),
     CONSTRAINT [FK_Pages_Pages] FOREIGN KEY ([ParentPageID]) REFERENCES [dbo].[Pages] ([PageID]),
-    CONSTRAINT [FK_Pages_Website] FOREIGN KEY ([WebsiteID]) REFERENCES [dbo].[Website] ([WebsiteID])
+    CONSTRAINT [FK_Pages_Websites] FOREIGN KEY ([WebsiteID]) REFERENCES [dbo].[Websites] ([WebsiteID])
 );
 

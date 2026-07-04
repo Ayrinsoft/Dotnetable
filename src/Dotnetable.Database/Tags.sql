@@ -4,6 +4,6 @@
     [Name]      NVARCHAR (150) NOT NULL,
     [Slug]      NVARCHAR (150) NOT NULL,
     CONSTRAINT [PK_Tags] PRIMARY KEY CLUSTERED ([TagID] ASC),
-    CONSTRAINT [FK_Tags_Website] FOREIGN KEY ([WebsiteID]) REFERENCES [dbo].[Website] ([WebsiteID])
+    CONSTRAINT [FK_Tags_Websites] FOREIGN KEY ([WebsiteID]) REFERENCES [dbo].[Websites] ([WebsiteID])
 );
 

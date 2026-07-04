@@ -1,4 +1,4 @@
-﻿CREATE TABLE [dbo].[WebsiteScript] (
+﻿CREATE TABLE [dbo].[WebsiteScripts] (
     [WebsiteScriptID]     INT             IDENTITY (1, 1) NOT NULL,
     [WebsiteID]           INT             NOT NULL,
     [Name]                VARCHAR (50)    NOT NULL,
@@ -8,7 +8,7 @@
     [LogTime]             DATETIME        NOT NULL,
     [Active]              BIT             NOT NULL,
     [Priority]            TINYINT         NULL,
-    CONSTRAINT [PK_WebsiteScript] PRIMARY KEY CLUSTERED ([WebsiteScriptID] ASC),
-    CONSTRAINT [FK_WebsiteScript_Website] FOREIGN KEY ([WebsiteID]) REFERENCES [dbo].[Website] ([WebsiteID])
+    CONSTRAINT [PK_WebsiteScripts] PRIMARY KEY CLUSTERED ([WebsiteScriptID] ASC),
+    CONSTRAINT [FK_WebsiteScripts_Websites] FOREIGN KEY ([WebsiteID]) REFERENCES [dbo].[Websites] ([WebsiteID])
 );
 

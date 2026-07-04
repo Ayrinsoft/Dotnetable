@@ -5,6 +5,6 @@
     [Phone]      NVARCHAR (20)  NULL,
     [IsActive]   BIT            CONSTRAINT [DF_Suppliers_IsActive_1] DEFAULT ((1)) NOT NULL,
     CONSTRAINT [PK_Suppliers] PRIMARY KEY CLUSTERED ([SupplierID] ASC),
-    CONSTRAINT [FK_Suppliers_Website] FOREIGN KEY ([WebsiteID]) REFERENCES [dbo].[Website] ([WebsiteID])
+    CONSTRAINT [FK_Suppliers_Websites] FOREIGN KEY ([WebsiteID]) REFERENCES [dbo].[Websites] ([WebsiteID])
 );
 

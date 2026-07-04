@@ -19,9 +19,9 @@
     [CreatedAt]              DATETIME        CONSTRAINT [DF_Orders_CreatedAt_1] DEFAULT (sysutcdatetime()) NOT NULL,
     [PaidAt]                 DATETIME        NULL,
     CONSTRAINT [PK_Orders] PRIMARY KEY CLUSTERED ([OrderID] ASC),
-    CONSTRAINT [FK_Orders_Member] FOREIGN KEY ([CreatedByMemberID]) REFERENCES [dbo].[Member] ([MemberID]),
-    CONSTRAINT [FK_Orders_Website] FOREIGN KEY ([WebsiteID]) REFERENCES [dbo].[Website] ([WebsiteID]),
-    CONSTRAINT [FK_Orders_WebsiteClient] FOREIGN KEY ([WebsiteClientID]) REFERENCES [dbo].[WebsiteClient] ([WebsiteClientID]),
+    CONSTRAINT [FK_Orders_Members] FOREIGN KEY ([CreatedByMemberID]) REFERENCES [dbo].[Members] ([MemberID]),
+    CONSTRAINT [FK_Orders_Websites] FOREIGN KEY ([WebsiteID]) REFERENCES [dbo].[Websites] ([WebsiteID]),
+    CONSTRAINT [FK_Orders_WebsiteClients] FOREIGN KEY ([WebsiteClientID]) REFERENCES [dbo].[WebsiteClients] ([WebsiteClientID]),
     CONSTRAINT [FK_Orders_WebsiteClientAddresses] FOREIGN KEY ([WebsiteClientAddressID]) REFERENCES [dbo].[WebsiteClientAddresses] ([WebsiteClientAddressID])
 );
 

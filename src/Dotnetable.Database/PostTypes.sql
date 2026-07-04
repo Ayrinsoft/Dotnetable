@@ -1,13 +1,13 @@
-﻿CREATE TABLE [dbo].[PostType] (
+﻿CREATE TABLE [dbo].[PostTypes] (
     [PostTypeID]      INT            IDENTITY (1, 1) NOT NULL,
     [WebsiteID]       INT            NOT NULL,
     [Name]            NVARCHAR (100) NOT NULL,
     [Slug]            NVARCHAR (100) NOT NULL,
-    [HasCategories]   BIT            CONSTRAINT [DF_PostType_HasCategories] DEFAULT ((1)) NOT NULL,
-    [HasTags]         BIT            CONSTRAINT [DF_PostType_HasTags] DEFAULT ((1)) NOT NULL,
-    [HasAuthor]       BIT            CONSTRAINT [DF_PostType_HasAuthor] DEFAULT ((1)) NOT NULL,
-    [CommentsEnabled] BIT            CONSTRAINT [DF_PostType_CommentsEnabled] DEFAULT ((1)) NOT NULL,
-    CONSTRAINT [PK_PostType] PRIMARY KEY CLUSTERED ([PostTypeID] ASC),
-    CONSTRAINT [FK_PostType_Website] FOREIGN KEY ([WebsiteID]) REFERENCES [dbo].[Website] ([WebsiteID])
+    [HasCategories]   BIT            CONSTRAINT [DF_PostTypes_HasCategories] DEFAULT ((1)) NOT NULL,
+    [HasTags]         BIT            CONSTRAINT [DF_PostTypes_HasTags] DEFAULT ((1)) NOT NULL,
+    [HasAuthor]       BIT            CONSTRAINT [DF_PostTypes_HasAuthor] DEFAULT ((1)) NOT NULL,
+    [CommentsEnabled] BIT            CONSTRAINT [DF_PostTypes_CommentsEnabled] DEFAULT ((1)) NOT NULL,
+    CONSTRAINT [PK_PostTypes] PRIMARY KEY CLUSTERED ([PostTypeID] ASC),
+    CONSTRAINT [FK_PostTypes_Websites] FOREIGN KEY ([WebsiteID]) REFERENCES [dbo].[Websites] ([WebsiteID])
 );
 

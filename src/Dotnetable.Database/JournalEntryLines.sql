@@ -7,6 +7,6 @@
     [Description]        NVARCHAR (300)  NULL,
     CONSTRAINT [PK_JournalEntryLines] PRIMARY KEY CLUSTERED ([JournalEntryLineID] ASC),
     CONSTRAINT [FK_JournalEntryLines_ChartOfAccounts] FOREIGN KEY ([ChartOfAccountID]) REFERENCES [dbo].[ChartOfAccounts] ([ChartOfAccountID]),
-    CONSTRAINT [FK_JournalEntryLines_JournalEntries] FOREIGN KEY ([JournalEntryID]) REFERENCES [dbo].[JournalEntries] ([JournalEntrieID])
+    CONSTRAINT [FK_JournalEntryLines_JournalEntries] FOREIGN KEY ([JournalEntryID]) REFERENCES [dbo].[JournalEntries] ([JournalEntryID])
 );
 

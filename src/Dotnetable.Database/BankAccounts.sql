@@ -9,10 +9,10 @@
     [CardNumber]          VARCHAR (20)  NULL,
     [IsForOfflinePayment] BIT           CONSTRAINT [DF_BankAccounts_IsForOfflinePayment] DEFAULT ((1)) NOT NULL,
     [IsActive]            BIT           CONSTRAINT [DF_BankAccounts_IsActive] DEFAULT ((1)) NOT NULL,
-    [CreatedByMemberId]   INT           NOT NULL,
+    [CreatedByMemberID]   INT           NOT NULL,
     CONSTRAINT [PK_BankAccounts] PRIMARY KEY CLUSTERED ([BankAccountID] ASC),
-    CONSTRAINT [FK_BankAccounts_Bank] FOREIGN KEY ([BankID]) REFERENCES [dbo].[Bank] ([BankID]),
-    CONSTRAINT [FK_BankAccounts_Member] FOREIGN KEY ([CreatedByMemberId]) REFERENCES [dbo].[Member] ([MemberID]),
-    CONSTRAINT [FK_BankAccounts_Website] FOREIGN KEY ([WebsiteID]) REFERENCES [dbo].[Website] ([WebsiteID])
+    CONSTRAINT [FK_BankAccounts_Banks] FOREIGN KEY ([BankID]) REFERENCES [dbo].[Banks] ([BankID]),
+    CONSTRAINT [FK_BankAccounts_Members] FOREIGN KEY ([CreatedByMemberID]) REFERENCES [dbo].[Members] ([MemberID]),
+    CONSTRAINT [FK_BankAccounts_Websites] FOREIGN KEY ([WebsiteID]) REFERENCES [dbo].[Websites] ([WebsiteID])
 );
 

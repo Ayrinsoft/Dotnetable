@@ -18,7 +18,7 @@
     CONSTRAINT [PK_ProductReviews] PRIMARY KEY CLUSTERED ([ProductReviewID] ASC),
     CONSTRAINT [FK_ProductReviews_Products] FOREIGN KEY ([ProductID]) REFERENCES [dbo].[Products] ([ProductID]),
     CONSTRAINT [FK_ProductReviews_ProductVariants] FOREIGN KEY ([ProductVariantID]) REFERENCES [dbo].[ProductVariants] ([ProductVariantID]),
-    CONSTRAINT [FK_ProductReviews_Website] FOREIGN KEY ([WebsiteID]) REFERENCES [dbo].[Website] ([WebsiteID]),
-    CONSTRAINT [FK_ProductReviews_WebsiteClient] FOREIGN KEY ([WebsiteClientID]) REFERENCES [dbo].[WebsiteClient] ([WebsiteClientID])
+    CONSTRAINT [FK_ProductReviews_Websites] FOREIGN KEY ([WebsiteID]) REFERENCES [dbo].[Websites] ([WebsiteID]),
+    CONSTRAINT [FK_ProductReviews_WebsiteClients] FOREIGN KEY ([WebsiteClientID]) REFERENCES [dbo].[WebsiteClients] ([WebsiteClientID])
 );
 

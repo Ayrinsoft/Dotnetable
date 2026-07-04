@@ -1,4 +1,4 @@
-﻿CREATE TABLE [dbo].[WebsiteIP] (
+﻿CREATE TABLE [dbo].[WebsiteIPs] (
     [WebsiteIPID] INT           IDENTITY (1, 1) NOT NULL,
     [WebsiteID]   INT           NOT NULL,
     [StartIP]     VARCHAR (45)  NOT NULL,
@@ -6,7 +6,7 @@
     [CidrPrefix]  INT           NULL,
     [Label]       NVARCHAR (30) NOT NULL,
     [Active]      BIT           NOT NULL,
-    CONSTRAINT [PK_WebsiteIP] PRIMARY KEY CLUSTERED ([WebsiteIPID] ASC),
-    CONSTRAINT [FK_WebsiteIP_Website] FOREIGN KEY ([WebsiteID]) REFERENCES [dbo].[Website] ([WebsiteID])
+    CONSTRAINT [PK_WebsiteIPs] PRIMARY KEY CLUSTERED ([WebsiteIPID] ASC),
+    CONSTRAINT [FK_WebsiteIPs_Websites] FOREIGN KEY ([WebsiteID]) REFERENCES [dbo].[Websites] ([WebsiteID])
 );
 

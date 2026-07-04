@@ -8,8 +8,8 @@
     [IsFeatured]              BIT             CONSTRAINT [DF_ProductAttributeValues_IsFeatured] DEFAULT ((0)) NOT NULL,
     [SortOrder]               INT             CONSTRAINT [DF_ProductAttributeValues_SortOrder] DEFAULT ((0)) NOT NULL,
     CONSTRAINT [PK_ProductAttributeValues] PRIMARY KEY CLUSTERED ([ProductAttributeValueID] ASC),
-    CONSTRAINT [FK_ProductAttributeValues_AttributeDefinition] FOREIGN KEY ([AttributeDefinitionID]) REFERENCES [dbo].[AttributeDefinition] ([AttributeDefinitionID]),
-    CONSTRAINT [FK_ProductAttributeValues_AttributeOption] FOREIGN KEY ([AttributeOptionID]) REFERENCES [dbo].[AttributeOption] ([AttributeOptionID]),
+    CONSTRAINT [FK_ProductAttributeValues_AttributeDefinitions] FOREIGN KEY ([AttributeDefinitionID]) REFERENCES [dbo].[AttributeDefinitions] ([AttributeDefinitionID]),
+    CONSTRAINT [FK_ProductAttributeValues_AttributeOptions] FOREIGN KEY ([AttributeOptionID]) REFERENCES [dbo].[AttributeOptions] ([AttributeOptionID]),
     CONSTRAINT [FK_ProductAttributeValues_Products] FOREIGN KEY ([ProductID]) REFERENCES [dbo].[Products] ([ProductID])
 );
 

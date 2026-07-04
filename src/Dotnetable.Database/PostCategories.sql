@@ -1,9 +1,9 @@
-﻿CREATE TABLE [dbo].[PostCategory] (
+﻿CREATE TABLE [dbo].[PostCategories] (
     [PostID]     INT NOT NULL,
     [CategoryID] INT NOT NULL,
-    [IsPrimary]  BIT CONSTRAINT [DF_PostCategory_IsPrimary] DEFAULT ((0)) NOT NULL,
-    CONSTRAINT [PK_PostCategory] PRIMARY KEY CLUSTERED ([PostID] ASC, [CategoryID] ASC),
-    CONSTRAINT [FK_PostCategory_Category] FOREIGN KEY ([CategoryID]) REFERENCES [dbo].[Category] ([CategoryID]),
-    CONSTRAINT [FK_PostCategory_Posts] FOREIGN KEY ([PostID]) REFERENCES [dbo].[Posts] ([PostID])
+    [IsPrimary]  BIT CONSTRAINT [DF_PostCategories_IsPrimary] DEFAULT ((0)) NOT NULL,
+    CONSTRAINT [PK_PostCategories] PRIMARY KEY CLUSTERED ([PostID] ASC, [CategoryID] ASC),
+    CONSTRAINT [FK_PostCategories_Categories] FOREIGN KEY ([CategoryID]) REFERENCES [dbo].[Categories] ([CategoryID]),
+    CONSTRAINT [FK_PostCategories_Posts] FOREIGN KEY ([PostID]) REFERENCES [dbo].[Posts] ([PostID])
 );
 

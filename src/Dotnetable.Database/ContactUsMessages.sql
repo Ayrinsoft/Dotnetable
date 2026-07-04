@@ -1,4 +1,4 @@
-﻿CREATE TABLE [dbo].[ContactUsMessage] (
+﻿CREATE TABLE [dbo].[ContactUsMessages] (
     [ContactUsMessagesID] INT             IDENTITY (1, 1) NOT NULL,
     [SenderName]          NVARCHAR (64)   NOT NULL,
     [EmailAddress]        VARCHAR (64)    NOT NULL,
@@ -9,7 +9,7 @@
     [LogTime]             DATETIME        NOT NULL,
     [SenderIPAddress]     VARCHAR (15)    NOT NULL,
     [WebsiteID]           INT             NOT NULL,
-    CONSTRAINT [PK_ContactUsMessage] PRIMARY KEY CLUSTERED ([ContactUsMessagesID] ASC),
-    CONSTRAINT [FK_ContactUsMessage_Website] FOREIGN KEY ([WebsiteID]) REFERENCES [dbo].[Website] ([WebsiteID])
+    CONSTRAINT [PK_ContactUsMessages] PRIMARY KEY CLUSTERED ([ContactUsMessagesID] ASC),
+    CONSTRAINT [FK_ContactUsMessages_Websites] FOREIGN KEY ([WebsiteID]) REFERENCES [dbo].[Websites] ([WebsiteID])
 );
 
