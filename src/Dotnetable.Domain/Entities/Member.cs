@@ -35,6 +35,8 @@ public partial class Member
 
     public int WebsiteID { get; set; }
 
+    public byte AdminUIMode { get; set; }
+
     public virtual FileRecord? Avatar { get; set; }
 
     public virtual ICollection<BankAccount> BankAccounts { get; set; } = new List<BankAccount>();

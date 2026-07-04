@@ -19,6 +19,12 @@ public partial class Vendor
 
     public bool IsActive { get; set; }
 
+    public byte SettlementMode { get; set; }
+
+    public int? CreditDays { get; set; }
+
+    public decimal? CreditLimitUsd { get; set; }
+
     public virtual FileRecord? LogoFile { get; set; }
 
     public virtual ICollection<MenuItem> MenuItems { get; set; } = new List<MenuItem>();
