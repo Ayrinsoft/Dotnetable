@@ -120,6 +120,38 @@ public class InitialDataSeeder : IInitialDataSeeder
                 await context.SaveChangesAsync(ct);
             }
 
+            // 6. Default CMS pages so a fresh install has real, admin-editable About/Contact/Services
+            // pages instead of the hardcoded demo views the site theme used to render.
+            context.Pages.AddRange(
+                new Page
+                {
+                    WebsiteID = website.WebsiteID,
+                    Slug = "about-us",
+                    Title = "About Us",
+                    Content = "<p>Tell visitors who you are and what you do. Edit this page any time from Content → Pages.</p>",
+                    Status = 1,
+                    IsActive = true,
+                },
+                new Page
+                {
+                    WebsiteID = website.WebsiteID,
+                    Slug = "contact-us",
+                    Title = "Contact Us",
+                    Content = "<p>Share how visitors can reach you. A contact form is shown automatically below this content.</p>",
+                    Status = 1,
+                    IsActive = true,
+                },
+                new Page
+                {
+                    WebsiteID = website.WebsiteID,
+                    Slug = "services",
+                    Title = "Services",
+                    Content = "<p>Describe what you offer. Edit this page any time from Content → Pages.</p>",
+                    Status = 1,
+                    IsActive = true,
+                });
+            await context.SaveChangesAsync(ct);
+
             await transaction.CommitAsync(ct);
         });
     }

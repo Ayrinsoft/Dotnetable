@@ -1,4 +1,5 @@
 @inject IPageLocalizer L
+@inject IWebsiteService WebsiteService
 
 <MudNavMenu Class="pt-1">
 
@@ -63,27 +64,33 @@
     }
     <MudNavGroup Title="@L["content", "Content"]" Icon="@Icons.Material.Filled.Article"
                  Hidden="@(!_canPosts && !_canPages && !_canTaxonomy && !_canRedirects)">
-        <AuthorizeView Policy="@RoleKeys.PostsView" Context="po">
-            <MudNavLink Href="/content/posts" Icon="@Icons.Material.Filled.Article">
-                @L["posts", "Posts"]
-            </MudNavLink>
-        </AuthorizeView>
+        @if (!_hideBlogNavForBasicStore)
+        {
+            <AuthorizeView Policy="@RoleKeys.PostsView" Context="po">
+                <MudNavLink Href="/content/posts" Icon="@Icons.Material.Filled.Article">
+                    @L["posts", "Posts"]
+                </MudNavLink>
+            </AuthorizeView>
+        }
         <AuthorizeView Policy="@RoleKeys.PagesView" Context="pg">
             <MudNavLink Href="/content/pages" Icon="@Icons.Material.Filled.Description">
                 @L["pages", "Pages"]
             </MudNavLink>
         </AuthorizeView>
-        <AuthorizeView Policy="@RoleKeys.TaxonomyView" Context="tx">
-            <MudNavLink Href="/content/categories" Icon="@Icons.Material.Filled.Category">
-                @L["categories", "Categories"]
-            </MudNavLink>
-            <MudNavLink Href="/content/tags" Icon="@Icons.Material.Filled.Label">
-                @L["tags", "Tags"]
-            </MudNavLink>
-            <MudNavLink Href="/content/post-types" Icon="@Icons.Material.Filled.Dashboard">
-                @L["post_types", "Post Types"]
-            </MudNavLink>
-        </AuthorizeView>
+        @if (!_hideBlogNavForBasicStore)
+        {
+            <AuthorizeView Policy="@RoleKeys.TaxonomyView" Context="tx">
+                <MudNavLink Href="/content/categories" Icon="@Icons.Material.Filled.Category">
+                    @L["categories", "Categories"]
+                </MudNavLink>
+                <MudNavLink Href="/content/tags" Icon="@Icons.Material.Filled.Label">
+                    @L["tags", "Tags"]
+                </MudNavLink>
+                <MudNavLink Href="/content/post-types" Icon="@Icons.Material.Filled.Dashboard">
+                    @L["post_types", "Post Types"]
+                </MudNavLink>
+            </AuthorizeView>
+        }
         <AuthorizeView Policy="@RoleKeys.RedirectsView" Context="rd">
             <MudNavLink Href="/content/redirects" Icon="@Icons.Material.Filled.CallSplit">
                 @L["redirects", "Redirects"]
@@ -178,6 +185,7 @@
     private bool _canPages;
     private bool _canTaxonomy;
     private bool _canRedirects;
+    private bool _hideBlogNavForBasicStore;
 
     protected override async Task OnInitializedAsync()
     {
@@ -197,6 +205,15 @@
             _canPages = AdminPolicies.Allows(user, RoleKeys.PagesView);
             _canTaxonomy = AdminPolicies.Allows(user, RoleKeys.TaxonomyView);
             _canRedirects = AdminPolicies.Allows(user, RoleKeys.RedirectsView);
+
+            // Basic mode: trim the admin surface to what this member's Website.WebsiteType needs —
+            // a pure store rarely needs blog taxonomy (Posts/Categories/Tags/Post Types).
+            var uiMode = AdminClaimTypes.GetUiMode(user);
+            if (uiMode == AdminUiMode.Basic && !_isMaster && int.TryParse(user.FindFirst(AdminClaimTypes.WebsiteId)?.Value, out var websiteId))
+            {
+                var site = await WebsiteService.GetByIdAsync(websiteId);
+                _hideBlogNavForBasicStore = site?.WebsiteType == 1;
+            }
         }
     }
 }

@@ -30,10 +30,12 @@ else if (_model is not null)
                     <MudTextField @bind-Value="_model.Title" Label="@L["title", "Title"]" Variant="Variant.Outlined"
                                   Required="true" Class="mb-3" />
                     <MudTextField @bind-Value="_model.Slug" Label="@L["slug", "Slug"]" Variant="Variant.Outlined" Required="true" Class="mb-3" />
-                    <MudTextField @bind-Value="_model.Content" Label="@L["pages.content", "Content"]" Variant="Variant.Outlined"
-                                  Lines="12" AutoGrow="true" />
+                    <MudText Typo="Typo.body2" Class="mb-1" Color="Color.Secondary">@L["pages.content", "Content"]</MudText>
+                    <CkEditor Value="@(_model.Content ?? "")" OnValueChanged="@(v => _model!.Content = v)" />
                 </MudPaper>
 
+                @if (_showTranslations)
+                {
                 <MudExpansionPanels Elevation="0" Class="mt-4">
                     <MudExpansionPanel Text="@L["translations", "Translations"]">
                         @foreach (var (code, label) in ContentLanguages.All)
@@ -51,14 +53,15 @@ else if (_model is not null)
                                                       Label="@L["slug", "Slug"]" Variant="Variant.Outlined" Margin="Margin.Dense" />
                                     </MudItem>
                                     <MudItem xs="12">
-                                        <MudTextField T="string" Value="@t.Content" ValueChanged="@(v => { t.Content = v; })"
-                                                      Label="@L["pages.content", "Content"]" Variant="Variant.Outlined" Lines="6" AutoGrow="true" Margin="Margin.Dense" />
+                                        <MudText Typo="Typo.caption" Class="mb-1" Color="Color.Secondary">@L["pages.content", "Content"]</MudText>
+                                        <CkEditor Value="@(t.Content ?? "")" OnValueChanged="@(v => t.Content = v)" />
                                     </MudItem>
                                 </MudGrid>
                             </MudPaper>
                         }
                     </MudExpansionPanel>
                 </MudExpansionPanels>
+                }
             </MudItem>
 
             <MudItem xs="12" md="4">
@@ -107,6 +110,7 @@ else if (_model is not null)
     private bool _isMaster;
     private bool _canEdit;
     private bool _saving;
+    private bool _showTranslations;
     private int _websiteId;
     private Page? _model;
     private MudForm _form = null!;
@@ -127,6 +131,7 @@ else if (_model is not null)
 
         _isNew = Id is null;
         _canEdit = AdminPolicies.Allows(user, _isNew ? RoleKeys.PagesInsert : RoleKeys.PagesEdit);
+        _showTranslations = AdminClaimTypes.GetUiMode(user) == AdminUiMode.Advanced;
 
         if (_isNew)
         {

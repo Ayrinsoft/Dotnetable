@@ -162,6 +162,10 @@ public class ApiClient
             catch (NotSupportedException) { return null; }
         });
 
+    /// <summary>Submits a visitor-filled contact form to the API's contact inbox.</summary>
+    public Task<AuthApiResult> SubmitContactMessageAsync(ContactMessageRequest request, CancellationToken ct = default) =>
+        PostAsync("api/contact", request, ct);
+
     /// <summary>Resolves a request path to a redirect target, or null when no rule matches / unreachable.</summary>
     public async Task<RedirectResultDto?> ResolveRedirectAsync(string path, CancellationToken ct = default)
     {

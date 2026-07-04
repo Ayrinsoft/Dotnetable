@@ -41,6 +41,14 @@ public class ContactMessageService : IContactMessageService
     public async Task<ContactUsMessage?> GetByIdAsync(int id, CancellationToken ct = default) =>
         await _context.ContactUsMessages.FindAsync([id], ct);
 
+    public async Task<ContactUsMessage> CreateAsync(ContactUsMessage message, CancellationToken ct = default)
+    {
+        message.LogTime = DateTime.UtcNow;
+        _context.ContactUsMessages.Add(message);
+        await _context.SaveChangesAsync(ct);
+        return message;
+    }
+
     public async Task SetArchiveAsync(int id, bool archive, CancellationToken ct = default) =>
         await _context.ContactUsMessages.Where(m => m.ContactUsMessagesID == id)
             .ExecuteUpdateAsync(s => s.SetProperty(m => m.Archive, archive), ct);

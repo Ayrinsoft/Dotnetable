@@ -25,6 +25,10 @@ public partial class WebsiteClientAddress
 
     public bool IsDefault { get; set; }
 
+    public decimal? Latitude { get; set; }
+
+    public decimal? Longitude { get; set; }
+
     public virtual City? City { get; set; }
 
     public virtual Country? Country { get; set; }
