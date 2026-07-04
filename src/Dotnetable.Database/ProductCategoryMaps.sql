@@ -1,0 +1,9 @@
+﻿CREATE TABLE [dbo].[ProductCategoryMaps] (
+    [ProductID]         INT NOT NULL,
+    [ProductCategoryID] INT NOT NULL,
+    [IsPrimary]         BIT CONSTRAINT [DF_ProductCategoryMaps_IsPrimary] DEFAULT ((0)) NOT NULL,
+    CONSTRAINT [PK_ProductCategoryMaps] PRIMARY KEY CLUSTERED ([ProductID] ASC, [ProductCategoryID] ASC),
+    CONSTRAINT [FK_ProductCategoryMaps_ProductCategories] FOREIGN KEY ([ProductCategoryID]) REFERENCES [dbo].[ProductCategories] ([ProductCategoryID]),
+    CONSTRAINT [FK_ProductCategoryMaps_Products] FOREIGN KEY ([ProductID]) REFERENCES [dbo].[Products] ([ProductID])
+);
+

@@ -1,0 +1,27 @@
+﻿CREATE TABLE [dbo].[Orders] (
+    [OrderID]                INT             IDENTITY (1, 1) NOT NULL,
+    [WebsiteID]              INT             NOT NULL,
+    [OrderNumber]            NVARCHAR (30)   NOT NULL,
+    [WebsiteClientID]        INT             NOT NULL,
+    [Status]                 TINYINT         CONSTRAINT [DF_Orders_Status_1] DEFAULT ((1)) NOT NULL,
+    [CurrencyCode]           CHAR (3)        NOT NULL,
+    [ExchangeRateToUsd]      DECIMAL (18, 6) NOT NULL,
+    [SubTotal]               DECIMAL (18, 4) CONSTRAINT [DF_Orders_SubTotal_1] DEFAULT ((0)) NOT NULL,
+    [DiscountTotal]          DECIMAL (18, 4) CONSTRAINT [DF_Orders_DiscountTotal] DEFAULT ((0)) NOT NULL,
+    [ShippingTotal]          DECIMAL (18, 4) CONSTRAINT [DF_Orders_ShippingTotal] DEFAULT ((0)) NOT NULL,
+    [TaxTotal]               DECIMAL (18, 4) CONSTRAINT [DF_Orders_TaxTotal] DEFAULT ((0)) NOT NULL,
+    [GrandTotal]             DECIMAL (18, 4) CONSTRAINT [DF_Orders_GrandTotal_1] DEFAULT ((0)) NOT NULL,
+    [GrandTotalUsd]          DECIMAL (18, 4) CONSTRAINT [DF_Orders_GrandTotalUsd_1] DEFAULT ((0)) NOT NULL,
+    [WebsiteClientAddressID] INT             NULL,
+    [AddressSnapshot]        NVARCHAR (1000) NULL,
+    [Note]                   NVARCHAR (1000) NULL,
+    [CreatedByMemberID]      INT             NULL,
+    [CreatedAt]              DATETIME        CONSTRAINT [DF_Orders_CreatedAt_1] DEFAULT (sysutcdatetime()) NOT NULL,
+    [PaidAt]                 DATETIME        NULL,
+    CONSTRAINT [PK_Orders] PRIMARY KEY CLUSTERED ([OrderID] ASC),
+    CONSTRAINT [FK_Orders_Member] FOREIGN KEY ([CreatedByMemberID]) REFERENCES [dbo].[Member] ([MemberID]),
+    CONSTRAINT [FK_Orders_Website] FOREIGN KEY ([WebsiteID]) REFERENCES [dbo].[Website] ([WebsiteID]),
+    CONSTRAINT [FK_Orders_WebsiteClient] FOREIGN KEY ([WebsiteClientID]) REFERENCES [dbo].[WebsiteClient] ([WebsiteClientID]),
+    CONSTRAINT [FK_Orders_WebsiteClientAddresses] FOREIGN KEY ([WebsiteClientAddressID]) REFERENCES [dbo].[WebsiteClientAddresses] ([WebsiteClientAddressID])
+);
+
