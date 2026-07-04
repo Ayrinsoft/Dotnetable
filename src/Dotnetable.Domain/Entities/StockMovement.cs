@@ -21,6 +21,9 @@ public partial class StockMovement
 
     public string CurrencyCode { get; set; } = null!;
 
+    /// <summary>
+    /// website&apos;s local currency rate snapshotted at the moment of this stock entry/exit, so accounting and reports can be reconstructed in local currency at that point in time
+    /// </summary>
     public decimal ExchangeRateToUsd { get; set; }
 
     public int? SupplierID { get; set; }
