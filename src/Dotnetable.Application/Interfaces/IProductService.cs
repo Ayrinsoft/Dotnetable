@@ -34,6 +34,9 @@ public interface IProductService
     // ── Media (ordered ProductMedium rows referencing MediaSet ids) ──
     Task SetMediaAsync(int productId, IReadOnlyList<int> mediaSetIds, CancellationToken ct = default);
 
+    /// <summary>Wraps a single already-uploaded file in a new single-item MediaSet, for use as a gallery entry.</summary>
+    Task<int> CreateSimpleMediaSetAsync(int websiteId, int fileId, CancellationToken ct = default);
+
     // ── Attribute values (product-level, non-variant) ────────────────
     Task SetAttributeValuesAsync(int productId, IReadOnlyList<ProductAttributeValue> values, CancellationToken ct = default);
 

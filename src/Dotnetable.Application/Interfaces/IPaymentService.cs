@@ -57,4 +57,7 @@ public interface IPaymentService
         int paymentId, decimal amountUsd, string? reason, bool toWallet, int? bankAccountId, int memberId, CancellationToken ct = default);
 
     Task<bool> CompleteBankRefundAsync(int paymentRefundId, int memberId, CancellationToken ct = default);
+
+    /// <summary>Bank refunds awaiting the admin to perform the manual outgoing transfer and mark it done.</summary>
+    Task<Application.DTOs.PagedResult<PaymentRefund>> GetPendingRefundsAsync(int? websiteId, Application.DTOs.GridQuery query, CancellationToken ct = default);
 }

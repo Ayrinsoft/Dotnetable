@@ -72,13 +72,25 @@ public class ProductService : IProductService
             .Include(p => p.ProductTranslations)
             .Include(p => p.ProductVariants).ThenInclude(v => v.VariantAttributeValues)
             .Include(p => p.ProductCategoryMaps)
-            .Include(p => p.ProductMedia)
-            .Include(p => p.ProductAttributeValues).ThenInclude(v => v.ProductAttributeValueTranslations)
+            .Include(p => p.ProductMedia).ThenInclude(m => m.MediaSet).ThenInclude(ms => ms.MediaSetItems).ThenInclude(i => i.File)
+            .Include(p => p.ProductAttributeValues).ThenInclude(v => v.AttributeDefinition)
+            .Include(p => p.ProductAttributeValues).ThenInclude(v => v.AttributeOption)
             .Include(p => p.ProductContentSections).ThenInclude(s => s.ProductContentSectionTranslations)
+            .Include(p => p.ProductContentSections).ThenInclude(s => s.File)
             .Include(p => p.ProductWarnings).ThenInclude(w => w.ProductWarningTranslations)
-            .Include(p => p.ProductRelationProducts)
+            .Include(p => p.ProductRelationProducts).ThenInclude(r => r.RelatedProduct)
             .Include(p => p.FeaturedImageFile)
             .FirstOrDefaultAsync(p => p.ProductID == productId, ct);
+
+    public async Task<int> CreateSimpleMediaSetAsync(int websiteId, int fileId, CancellationToken ct = default)
+    {
+        var set = new MediaSet { WebsiteID = websiteId, Name = "Product gallery item", IsShared = false, CreatedAt = DateTime.UtcNow };
+        _context.MediaSets.Add(set);
+        await _context.SaveChangesAsync(ct);
+        _context.MediaSetItems.Add(new MediaSetItem { MediaSetID = set.MediaSetID, FileID = fileId, SortOrder = 0 });
+        await _context.SaveChangesAsync(ct);
+        return set.MediaSetID;
+    }
 
     public async Task<Product> CreateAsync(Product product, CancellationToken ct = default)
     {

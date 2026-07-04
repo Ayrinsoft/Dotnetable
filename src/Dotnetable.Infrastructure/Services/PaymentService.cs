@@ -177,4 +177,18 @@ public class PaymentService : IPaymentService
         await _context.SaveChangesAsync(ct);
         return true;
     }
+
+    public async Task<PagedResult<PaymentRefund>> GetPendingRefundsAsync(int? websiteId, GridQuery query, CancellationToken ct = default)
+    {
+        var q = _context.PaymentRefunds.AsNoTracking()
+            .Include(r => r.Payment).ThenInclude(p => p.Order)
+            .Include(r => r.Payment).ThenInclude(p => p.WebsiteClient)
+            .Include(r => r.BankAccount).ThenInclude(a => a!.Bank)
+            .Where(r => r.Status == (byte)PaymentRefundStatus.Pending && r.BankAccountID != null);
+        if (websiteId is int wid) q = q.Where(r => r.Payment.WebsiteID == wid);
+
+        var total = await q.CountAsync(ct);
+        var items = await q.OrderBy(r => r.CreatedAt).Skip(query.Skip).Take(query.Take).ToListAsync(ct);
+        return new PagedResult<PaymentRefund> { Items = items, TotalCount = total };
+    }
 }

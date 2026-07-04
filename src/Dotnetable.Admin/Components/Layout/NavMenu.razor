@@ -131,6 +131,9 @@
         <AuthorizeView Policy="@RoleKeys.PaymentsView" Context="pay">
             <MudNavLink Href="/payments" Icon="@Icons.Material.Filled.CreditCard">@L["payments", "Payments"]</MudNavLink>
         </AuthorizeView>
+        <AuthorizeView Policy="@RoleKeys.PaymentsRefund" Context="rfnd">
+            <MudNavLink Href="/payments/refunds" Icon="@Icons.Material.Filled.AssignmentReturn">@L["payments.refunds", "Bank Refunds"]</MudNavLink>
+        </AuthorizeView>
         <AuthorizeView Policy="@RoleKeys.WalletsView" Context="wal">
             <MudNavLink Href="/wallets/withdrawals" Icon="@Icons.Material.Filled.AccountBalanceWallet">@L["wallets.withdrawals", "Withdrawals"]</MudNavLink>
         </AuthorizeView>
