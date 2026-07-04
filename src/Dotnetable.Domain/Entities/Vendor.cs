@@ -19,10 +19,19 @@ public partial class Vendor
 
     public bool IsActive { get; set; }
 
+    /// <summary>
+    /// 0 = Immediate: every purchase from this vendor is settled instantly like a normal cash purchase. 1 = Credit: purchases accrue as credit and are batched into a periodic Settlements record due on CreditDays
+    /// </summary>
     public byte SettlementMode { get; set; }
 
+    /// <summary>
+    /// number of days after the settlement period ends before payment is due; only meaningful when SettlementMode = Credit
+    /// </summary>
     public int? CreditDays { get; set; }
 
+    /// <summary>
+    /// maximum outstanding credit balance allowed for this vendor, in USD; only meaningful when SettlementMode = Credit
+    /// </summary>
     public decimal? CreditLimitUsd { get; set; }
 
     public virtual FileRecord? LogoFile { get; set; }

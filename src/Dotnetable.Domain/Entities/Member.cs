@@ -35,6 +35,9 @@ public partial class Member
 
     public int WebsiteID { get; set; }
 
+    /// <summary>
+    /// 0 = Basic (admin surface reduced to what this member&apos;s Website.WebsiteType needs), 1 = General (same admin surface regardless of website type), 2 = Advanced (full surface, e.g. extra-language pages/buttons on an otherwise single-language site)
+    /// </summary>
     public byte AdminUIMode { get; set; }
 
     public virtual FileRecord? Avatar { get; set; }
