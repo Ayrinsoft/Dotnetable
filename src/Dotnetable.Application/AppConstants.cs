@@ -10,4 +10,7 @@ public static class AppConstants
 
     /// <summary>Maximum number of addresses a single website customer may save.</summary>
     public const int MaxClientAddresses = 10;
+
+    /// <summary>Maximum number of bank accounts a single website customer may save.</summary>
+    public const int MaxClientBankAccounts = 5;
 }

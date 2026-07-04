@@ -1,0 +1,135 @@
+@using Dotnetable.Admin.Components.Pages.Media
+@inject IVendorService VendorService
+@inject IFileService FileService
+@inject IDialogService DialogService
+@inject ISnackbar Snackbar
+@inject IPageLocalizer L
+
+<MudDialog>
+    <DialogContent>
+        <MudForm @ref="_form">
+            <MudGrid Spacing="3">
+                <MudItem xs="12" sm="3">
+                    <MudText Typo="Typo.body2" Class="mb-1">@L["vendors.logo", "Logo"]</MudText>
+                    <MudPaper Elevation="0" Class="border rounded-lg pa-2" Style="cursor:pointer;" @onclick="PickLogoAsync">
+                        <div style="aspect-ratio:1/1; display:flex; align-items:center; justify-content:center; background:var(--mud-palette-background-grey); border-radius:8px; overflow:hidden;">
+                            @if (!string.IsNullOrEmpty(_logo?.CNDUrl))
+                            {
+                                <img src="@(_logo.ThumbnailCDN ?? _logo.CNDUrl)" alt="" style="width:100%; height:100%; object-fit:contain;" />
+                            }
+                            else
+                            {
+                                <MudIcon Icon="@Icons.Material.Filled.AddPhotoAlternate" Color="Color.Secondary" Size="Size.Large" />
+                            }
+                        </div>
+                    </MudPaper>
+                </MudItem>
+                <MudItem xs="12" sm="9">
+                    <MudGrid Spacing="3">
+                        <MudItem xs="12" sm="7">
+                            <MudTextField @bind-Value="Model.Name" Label="@L["name", "Name"]" Variant="Variant.Outlined" Required="true" />
+                        </MudItem>
+                        <MudItem xs="12" sm="5">
+                            <MudTextField @bind-Value="Model.Slug" Label="@L["slug", "Slug"]" Variant="Variant.Outlined" />
+                        </MudItem>
+                        <MudItem xs="12" sm="6">
+                            <MudSelect T="byte" @bind-Value="Model.SettlementMode" Label="@L["vendors.settlement", "Settlement mode"]" Variant="Variant.Outlined">
+                                <MudSelectItem T="byte" Value="(byte)0">@L["vendors.immediate", "Immediate"]</MudSelectItem>
+                                <MudSelectItem T="byte" Value="(byte)1">@L["vendors.credit", "Credit"]</MudSelectItem>
+                            </MudSelect>
+                        </MudItem>
+                        <MudItem xs="12" sm="6">
+                            <MudSwitch T="bool" @bind-Value="Model.IsActive" Label="@L["active", "Active"]" Color="Color.Primary" />
+                        </MudItem>
+                        @if (Model.SettlementMode == 1)
+                        {
+                            <MudItem xs="12" sm="6">
+                                <MudNumericField T="int?" @bind-Value="Model.CreditDays" Label="@L["vendors.credit_days", "Credit days"]" Variant="Variant.Outlined" Min="1" />
+                            </MudItem>
+                            <MudItem xs="12" sm="6">
+                                <MudNumericField T="decimal?" @bind-Value="Model.CreditLimitUsd" Label="@L["vendors.credit_limit", "Credit limit (USD)"]" Variant="Variant.Outlined" Min="0" />
+                            </MudItem>
+                        }
+                    </MudGrid>
+                </MudItem>
+                <MudItem xs="12">
+                    <MudExpansionPanels Elevation="0">
+                        <MudExpansionPanel Text="@L["translations", "Translations"]">
+                            @foreach (var (code, label) in ContentLanguages.All)
+                            {
+                                <MudTextField T="string" Value="@Name(code)" ValueChanged="@(v => SetName(code, v))"
+                                              Label="@($"{label} — {L["name", "Name"]}")" Variant="Variant.Outlined" Margin="Margin.Dense" Class="mb-1" />
+                            }
+                        </MudExpansionPanel>
+                    </MudExpansionPanels>
+                </MudItem>
+            </MudGrid>
+        </MudForm>
+    </DialogContent>
+    <DialogActions>
+        <MudButton OnClick="Cancel">@L["cancel", "Cancel"]</MudButton>
+        <MudButton Variant="Variant.Filled" Color="Color.Primary" OnClick="SaveAsync" Disabled="@_saving">@L["save", "Save"]</MudButton>
+    </DialogActions>
+</MudDialog>
+
+@code {
+    [CascadingParameter] private IMudDialogInstance MudDialog { get; set; } = null!;
+    [Parameter] public Vendor Model { get; set; } = new();
+    [Parameter] public bool IsNew { get; set; }
+
+    private MudForm _form = null!;
+    private bool _saving;
+    private FileRecord? _logo;
+    private readonly Dictionary<string, string> _tr = new(StringComparer.OrdinalIgnoreCase);
+
+    protected override async Task OnInitializedAsync()
+    {
+        if (Model.LogoFileID is int fid)
+            _logo = await FileService.GetByIdAsync(fid);
+        if (!IsNew)
+            foreach (var t in await VendorService.GetTranslationsAsync(Model.VendorID))
+                _tr[t.LanguageCode] = t.Name;
+    }
+
+    private string Name(string code) => _tr.TryGetValue(code, out var v) ? v : string.Empty;
+    private void SetName(string code, string v) => _tr[code] = v ?? string.Empty;
+
+    private async Task PickLogoAsync()
+    {
+        var parameters = new DialogParameters
+        {
+            [nameof(FilePickerDialog.WebsiteId)] = Model.WebsiteID,
+            [nameof(FilePickerDialog.Category)] = FileCategory.Image,
+        };
+        var dialog = await DialogService.ShowAsync<FilePickerDialog>(L["select_file", "Select a file"], parameters,
+            new DialogOptions { MaxWidth = MaxWidth.Medium, FullWidth = true });
+        var result = await dialog.Result;
+        if (result is { Canceled: false, Data: FileRecord file })
+        {
+            _logo = file;
+            Model.LogoFileID = file.FileRecordID;
+        }
+    }
+
+    private void Cancel() => MudDialog.Cancel();
+
+    private async Task SaveAsync()
+    {
+        await _form.Validate();
+        if (!_form.IsValid) return;
+        if (string.IsNullOrWhiteSpace(Model.Slug)) Model.Slug = Model.Name.Trim();
+        if (Model.SettlementMode != 1) { Model.CreditDays = null; Model.CreditLimitUsd = null; }
+
+        _saving = true;
+        try
+        {
+            if (IsNew) await VendorService.CreateAsync(Model);
+            else await VendorService.UpdateAsync(Model);
+            await VendorService.SetTranslationsAsync(Model.VendorID, _tr);
+            Snackbar.Add(L["saved", "Saved."], Severity.Success);
+            MudDialog.Close(DialogResult.Ok(true));
+        }
+        catch (Exception ex) { Snackbar.Add($"{L["save_failed", "Save failed"]}: {ex.Message}", Severity.Error); }
+        finally { _saving = false; }
+    }
+}

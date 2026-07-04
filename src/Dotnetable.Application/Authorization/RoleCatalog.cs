@@ -99,6 +99,80 @@ public static class RoleCatalog
         // Login logs
         new(RoleKeys.LoginLogsView, "View login logs", RoleCategory.Admin),
 
+        // Catalog — products
+        new(RoleKeys.ProductsView, "View products", RoleCategory.Admin),
+        new(RoleKeys.ProductsInsert, "Create products", RoleCategory.Admin),
+        new(RoleKeys.ProductsEdit, "Edit products", RoleCategory.Admin),
+        new(RoleKeys.ProductsDelete, "Delete products", RoleCategory.Admin),
+
+        // Catalog taxonomy — categories, attributes, brands
+        new(RoleKeys.CatalogTaxonomyView, "View catalog categories, attributes & brands", RoleCategory.Admin),
+        new(RoleKeys.CatalogTaxonomyInsert, "Create catalog categories, attributes & brands", RoleCategory.Admin),
+        new(RoleKeys.CatalogTaxonomyEdit, "Edit catalog categories, attributes & brands", RoleCategory.Admin),
+        new(RoleKeys.CatalogTaxonomyDelete, "Delete catalog categories, attributes & brands", RoleCategory.Admin),
+
+        // Vendors
+        new(RoleKeys.VendorsView, "View vendors", RoleCategory.Admin),
+        new(RoleKeys.VendorsInsert, "Create vendors", RoleCategory.Admin),
+        new(RoleKeys.VendorsEdit, "Edit vendors", RoleCategory.Admin),
+        new(RoleKeys.VendorsDelete, "Delete vendors", RoleCategory.Admin),
+
+        // Inventory
+        new(RoleKeys.InventoryView, "View inventory / stock", RoleCategory.Admin),
+        new(RoleKeys.InventoryEdit, "Adjust inventory / stock", RoleCategory.Admin),
+
+        // Suppliers
+        new(RoleKeys.SuppliersView, "View suppliers", RoleCategory.Admin),
+        new(RoleKeys.SuppliersInsert, "Create suppliers", RoleCategory.Admin),
+        new(RoleKeys.SuppliersEdit, "Edit suppliers", RoleCategory.Admin),
+        new(RoleKeys.SuppliersDelete, "Delete suppliers", RoleCategory.Admin),
+
+        // Customer wallets
+        new(RoleKeys.WalletsView, "View customer wallets", RoleCategory.Admin),
+        new(RoleKeys.WalletsApprove, "Approve / reject wallet withdrawals", RoleCategory.Admin),
+        new(RoleKeys.WalletsAdjust, "Manually adjust wallet balances", RoleCategory.Admin),
+
+        // Coupons
+        new(RoleKeys.CouponsView, "View coupons", RoleCategory.Admin),
+        new(RoleKeys.CouponsInsert, "Create coupons", RoleCategory.Admin),
+        new(RoleKeys.CouponsEdit, "Edit coupons", RoleCategory.Admin),
+        new(RoleKeys.CouponsDelete, "Delete coupons", RoleCategory.Admin),
+
+        // Shipping
+        new(RoleKeys.ShippingView, "View shipping methods & rates", RoleCategory.Admin),
+        new(RoleKeys.ShippingInsert, "Create shipping methods & rates", RoleCategory.Admin),
+        new(RoleKeys.ShippingEdit, "Edit shipping methods & rates", RoleCategory.Admin),
+        new(RoleKeys.ShippingDelete, "Delete shipping methods & rates", RoleCategory.Admin),
+
+        // Tax
+        new(RoleKeys.TaxView, "View tax rates", RoleCategory.Admin),
+        new(RoleKeys.TaxInsert, "Create tax rates", RoleCategory.Admin),
+        new(RoleKeys.TaxEdit, "Edit tax rates", RoleCategory.Admin),
+        new(RoleKeys.TaxDelete, "Delete tax rates", RoleCategory.Admin),
+
+        // Currency
+        new(RoleKeys.CurrencyView, "View currencies & exchange rates", RoleCategory.Admin),
+        new(RoleKeys.CurrencyEdit, "Edit currencies & exchange rates", RoleCategory.Admin),
+
+        // Orders
+        new(RoleKeys.OrdersView, "View orders", RoleCategory.Admin),
+        new(RoleKeys.OrdersEdit, "Edit orders / transition status", RoleCategory.Admin),
+
+        // Payments
+        new(RoleKeys.PaymentsView, "View payments", RoleCategory.Admin),
+        new(RoleKeys.PaymentsVerify, "Verify manual payments", RoleCategory.Admin),
+        new(RoleKeys.PaymentsRefund, "Process refunds", RoleCategory.Admin),
+
+        // Website's own bank accounts
+        new(RoleKeys.BankAccountsView, "View website bank accounts", RoleCategory.Admin),
+        new(RoleKeys.BankAccountsInsert, "Create website bank accounts", RoleCategory.Admin),
+        new(RoleKeys.BankAccountsEdit, "Edit website bank accounts", RoleCategory.Admin),
+        new(RoleKeys.BankAccountsDelete, "Delete website bank accounts", RoleCategory.Admin),
+
+        // Product review / Q&A moderation
+        new(RoleKeys.ModerationView, "View product reviews & questions", RoleCategory.Admin),
+        new(RoleKeys.ModerationReview, "Approve / reject reviews & questions", RoleCategory.Admin),
+
         // Client (website customers)
         new(RoleKeys.ClientAccess, "Sign in and general site access", RoleCategory.Client),
         new(RoleKeys.ClientPurchase, "Place orders / purchase", RoleCategory.Client),

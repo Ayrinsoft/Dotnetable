@@ -1,0 +1,119 @@
+@inject IShippingService ShippingService
+@inject ILocationService LocationService
+@inject ISnackbar Snackbar
+@inject IPageLocalizer L
+
+<MudDialog>
+    <DialogContent>
+        <MudForm @ref="_form">
+            <MudGrid Spacing="3">
+                <MudItem xs="12" sm="4">
+                    <MudSelect T="int?" @bind-Value="Model.CountryID" Label="@L["country", "Country"]" Variant="Variant.Outlined"
+                               Clearable="true" SelectedValuesChanged="OnCountryChanged">
+                        @foreach (var c in _countries)
+                        {
+                            <MudSelectItem T="int?" Value="@((int?)c.CountryID)">@c.Title</MudSelectItem>
+                        }
+                    </MudSelect>
+                </MudItem>
+                <MudItem xs="12" sm="4">
+                    <MudSelect T="int?" @bind-Value="Model.StateID" Label="@L["state", "State"]" Variant="Variant.Outlined"
+                               Clearable="true" Disabled="@(Model.CountryID is null)" SelectedValuesChanged="OnStateChanged">
+                        @foreach (var s in _states)
+                        {
+                            <MudSelectItem T="int?" Value="@((int?)s.StateID)">@s.Title</MudSelectItem>
+                        }
+                    </MudSelect>
+                </MudItem>
+                <MudItem xs="12" sm="4">
+                    <MudSelect T="int?" @bind-Value="Model.CityID" Label="@L["city", "City"]" Variant="Variant.Outlined"
+                               Clearable="true" Disabled="@(Model.CountryID is null)">
+                        @foreach (var c in _cities)
+                        {
+                            <MudSelectItem T="int?" Value="@((int?)c.CityID)">@c.Title</MudSelectItem>
+                        }
+                    </MudSelect>
+                </MudItem>
+                <MudItem xs="12" sm="4">
+                    <MudNumericField T="decimal?" @bind-Value="Model.MinWeightKg" Label="@L["min_weight", "Min Weight (kg)"]" Variant="Variant.Outlined" Min="0" />
+                </MudItem>
+                <MudItem xs="12" sm="4">
+                    <MudNumericField T="decimal?" @bind-Value="Model.MaxWeightKg" Label="@L["max_weight", "Max Weight (kg)"]" Variant="Variant.Outlined" Min="0" />
+                </MudItem>
+                <MudItem xs="12" sm="4">
+                    <MudNumericField T="decimal" @bind-Value="Model.PriceUsd" Label="@L["price", "Price (USD)"]" Variant="Variant.Outlined" Min="0" Required="true" />
+                </MudItem>
+                <MudItem xs="12">
+                    <MudSwitch T="bool" @bind-Value="Model.IsActive" Label="@L["active", "Active"]" Color="Color.Primary" />
+                </MudItem>
+            </MudGrid>
+        </MudForm>
+    </DialogContent>
+    <DialogActions>
+        <MudButton OnClick="Cancel">@L["cancel", "Cancel"]</MudButton>
+        <MudButton Variant="Variant.Filled" Color="Color.Primary" OnClick="SaveAsync" Disabled="@_saving">@L["save", "Save"]</MudButton>
+    </DialogActions>
+</MudDialog>
+
+@code {
+    [CascadingParameter] private IMudDialogInstance MudDialog { get; set; } = null!;
+    [Parameter] public ShippingRate Model { get; set; } = new();
+    [Parameter] public bool IsNew { get; set; }
+
+    private MudForm _form = null!;
+    private bool _saving;
+    private List<Country> _countries = new();
+    private List<State> _states = new();
+    private List<City> _cities = new();
+
+    protected override async Task OnInitializedAsync()
+    {
+        _countries = (await LocationService.GetAllCountriesAsync()).ToList();
+        if (Model.CountryID is int countryId)
+        {
+            _states = (await LocationService.GetStatesByCountryAsync(countryId)).ToList();
+            _cities = (await LocationService.GetCitiesByCountryAsync(countryId)).ToList();
+        }
+    }
+
+    private async Task OnCountryChanged(IEnumerable<int?> _)
+    {
+        Model.StateID = null;
+        Model.CityID = null;
+        if (Model.CountryID is int countryId)
+        {
+            _states = (await LocationService.GetStatesByCountryAsync(countryId)).ToList();
+            _cities = (await LocationService.GetCitiesByCountryAsync(countryId)).ToList();
+        }
+        else
+        {
+            _states = new();
+            _cities = new();
+        }
+    }
+
+    private Task OnStateChanged(IEnumerable<int?> _)
+    {
+        Model.CityID = null;
+        return Task.CompletedTask;
+    }
+
+    private void Cancel() => MudDialog.Cancel();
+
+    private async Task SaveAsync()
+    {
+        await _form.Validate();
+        if (!_form.IsValid) return;
+
+        _saving = true;
+        try
+        {
+            if (IsNew) await ShippingService.CreateRateAsync(Model);
+            else await ShippingService.UpdateRateAsync(Model);
+            Snackbar.Add(L["saved", "Saved."], Severity.Success);
+            MudDialog.Close(DialogResult.Ok(true));
+        }
+        catch (Exception ex) { Snackbar.Add($"{L["save_failed", "Save failed"]}: {ex.Message}", Severity.Error); }
+        finally { _saving = false; }
+    }
+}

@@ -1,0 +1,137 @@
+@inject IAttributeDefinitionService AttributeService
+@inject ISnackbar Snackbar
+@inject IPageLocalizer L
+
+<MudDialog>
+    <DialogContent>
+        <MudForm @ref="_form">
+            <MudGrid Spacing="3">
+                <MudItem xs="12" sm="6">
+                    <MudTextField @bind-Value="Model.Name" Label="@L["name", "Name"]" Variant="Variant.Outlined" Required="true" />
+                </MudItem>
+                <MudItem xs="12" sm="6">
+                    <MudTextField @bind-Value="Model.Code" Label="@L["attributes.code", "Code"]" Variant="Variant.Outlined" Required="true" />
+                </MudItem>
+                <MudItem xs="12" sm="4">
+                    <MudSelect T="byte" @bind-Value="Model.InputType" Label="@L["attributes.input_type", "Input type"]" Variant="Variant.Outlined">
+                        <MudSelectItem T="byte" Value="(byte)1">@L["attributes.select", "Select"]</MudSelectItem>
+                        <MudSelectItem T="byte" Value="(byte)2">@L["attributes.color", "Color"]</MudSelectItem>
+                        <MudSelectItem T="byte" Value="(byte)3">@L["attributes.numeric", "Numeric"]</MudSelectItem>
+                        <MudSelectItem T="byte" Value="(byte)4">@L["attributes.text", "Text"]</MudSelectItem>
+                    </MudSelect>
+                </MudItem>
+                <MudItem xs="12" sm="4">
+                    <MudTextField @bind-Value="Model.Unit" Label="@L["attributes.unit", "Unit (optional)"]" Variant="Variant.Outlined" />
+                </MudItem>
+                <MudItem xs="12" sm="4">
+                    <MudNumericField T="int" @bind-Value="Model.SortOrder" Label="@L["categories.sort", "Sort"]" Variant="Variant.Outlined" />
+                </MudItem>
+                <MudItem xs="12" sm="3">
+                    <MudSwitch T="bool" @bind-Value="Model.IsFilterable" Label="@L["attributes.filterable", "Filterable"]" Color="Color.Primary" />
+                </MudItem>
+                <MudItem xs="12" sm="3">
+                    <MudSwitch T="bool" @bind-Value="Model.IsVariantAttribute" Label="@L["attributes.variant", "Variant attribute"]" Color="Color.Primary" />
+                </MudItem>
+                <MudItem xs="12" sm="3">
+                    <MudSwitch T="bool" @bind-Value="Model.IsComparable" Label="@L["attributes.comparable", "Comparable"]" Color="Color.Primary" />
+                </MudItem>
+                <MudItem xs="12" sm="3">
+                    <MudSwitch T="bool" @bind-Value="Model.Active" Label="@L["active", "Active"]" Color="Color.Primary" />
+                </MudItem>
+
+                @if (Model.InputType is 1 or 2)
+                {
+                    <MudItem xs="12">
+                        <MudText Typo="Typo.subtitle2" Class="mb-2">@L["attributes.options", "Options"]</MudText>
+                        @foreach (var (option, index) in _options.Select((o, i) => (o, i)))
+                        {
+                            <MudGrid Spacing="2" Class="mb-1" AlignItems="AlignItems.Center">
+                                <MudItem xs="@(Model.InputType == 2 ? 5 : 10)">
+                                    <MudTextField T="string" @bind-Value="option.Value" Label="@L["value", "Value"]" Variant="Variant.Outlined" Margin="Margin.Dense" />
+                                </MudItem>
+                                @if (Model.InputType == 2)
+                                {
+                                    <MudItem xs="5">
+                                        <MudTextField T="string" @bind-Value="option.ColorHex" Label="@L["attributes.color_hex", "Color (#hex)"]"
+                                                      Variant="Variant.Outlined" Margin="Margin.Dense" Adornment="Adornment.End"
+                                                      AdornmentColor="Color.Default" AdornmentIcon="@Icons.Material.Filled.Circle" />
+                                    </MudItem>
+                                }
+                                <MudItem xs="2">
+                                    <MudIconButton Icon="@Icons.Material.Filled.Delete" Size="Size.Small" Color="Color.Error"
+                                                   OnClick="@(() => _options.RemoveAt(index))" />
+                                </MudItem>
+                            </MudGrid>
+                        }
+                        <MudButton StartIcon="@Icons.Material.Filled.Add" Size="Size.Small" OnClick="@(() => _options.Add(new AttributeOption { Value = string.Empty }))">
+                            @L["attributes.add_option", "Add option"]
+                        </MudButton>
+                    </MudItem>
+                }
+
+                <MudItem xs="12">
+                    <MudExpansionPanels Elevation="0">
+                        <MudExpansionPanel Text="@L["translations", "Translations"]">
+                            @foreach (var (code, label) in ContentLanguages.All)
+                            {
+                                <MudTextField T="string" Value="@Name(code)" ValueChanged="@(v => SetName(code, v))"
+                                              Label="@($"{label} — {L["name", "Name"]}")" Variant="Variant.Outlined" Margin="Margin.Dense" Class="mb-1" />
+                            }
+                        </MudExpansionPanel>
+                    </MudExpansionPanels>
+                </MudItem>
+            </MudGrid>
+        </MudForm>
+    </DialogContent>
+    <DialogActions>
+        <MudButton OnClick="Cancel">@L["cancel", "Cancel"]</MudButton>
+        <MudButton Variant="Variant.Filled" Color="Color.Primary" OnClick="SaveAsync" Disabled="@_saving">@L["save", "Save"]</MudButton>
+    </DialogActions>
+</MudDialog>
+
+@code {
+    [CascadingParameter] private IMudDialogInstance MudDialog { get; set; } = null!;
+    [Parameter] public AttributeDefinition Model { get; set; } = new();
+    [Parameter] public bool IsNew { get; set; }
+
+    private MudForm _form = null!;
+    private bool _saving;
+    private List<AttributeOption> _options = new();
+    private readonly Dictionary<string, (string Name, string? Unit)> _tr = new(StringComparer.OrdinalIgnoreCase);
+
+    protected override async Task OnInitializedAsync()
+    {
+        _options = Model.AttributeOptions?.OrderBy(o => o.SortOrder).ToList() ?? new List<AttributeOption>();
+        if (!IsNew)
+        {
+            if (_options.Count == 0)
+                _options = await AttributeService.GetOptionsAsync(Model.AttributeDefinitionID);
+            foreach (var t in await AttributeService.GetTranslationsAsync(Model.AttributeDefinitionID))
+                _tr[t.LanguageCode] = (t.Name, t.Unit);
+        }
+    }
+
+    private string Name(string code) => _tr.TryGetValue(code, out var v) ? v.Name : string.Empty;
+    private void SetName(string code, string v) { var c = _tr.GetValueOrDefault(code); _tr[code] = (v ?? string.Empty, c.Unit); }
+
+    private void Cancel() => MudDialog.Cancel();
+
+    private async Task SaveAsync()
+    {
+        await _form.Validate();
+        if (!_form.IsValid) return;
+
+        _saving = true;
+        try
+        {
+            if (IsNew) Model = await AttributeService.CreateAsync(Model);
+            else await AttributeService.UpdateAsync(Model);
+            await AttributeService.SetOptionsAsync(Model.AttributeDefinitionID, _options);
+            await AttributeService.SetTranslationsAsync(Model.AttributeDefinitionID, _tr);
+            Snackbar.Add(L["saved", "Saved."], Severity.Success);
+            MudDialog.Close(DialogResult.Ok(true));
+        }
+        catch (Exception ex) { Snackbar.Add($"{L["save_failed", "Save failed"]}: {ex.Message}", Severity.Error); }
+        finally { _saving = false; }
+    }
+}

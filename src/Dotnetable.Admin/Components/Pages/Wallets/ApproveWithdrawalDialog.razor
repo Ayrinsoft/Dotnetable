@@ -1,0 +1,25 @@
+@inject IPageLocalizer L
+
+<MudDialog>
+    <DialogContent>
+        <MudText Typo="Typo.body1" Class="mb-3">
+            @L["wallets.approve_confirm", "Confirm this withdrawal has been paid out and record the payment reference."]
+            <b>@AmountUsd.ToString("N2") USD</b>
+        </MudText>
+        <MudTextField @bind-Value="_refNumber" Label="@L["wallets.payment_ref", "Payment reference (optional)"]" Variant="Variant.Outlined" />
+    </DialogContent>
+    <DialogActions>
+        <MudButton OnClick="Cancel">@L["cancel", "Cancel"]</MudButton>
+        <MudButton Variant="Variant.Filled" Color="Color.Success" OnClick="Confirm">@L["wallets.approve", "Approve"]</MudButton>
+    </DialogActions>
+</MudDialog>
+
+@code {
+    [CascadingParameter] private IMudDialogInstance MudDialog { get; set; } = null!;
+    [Parameter] public decimal AmountUsd { get; set; }
+
+    private string? _refNumber;
+
+    private void Cancel() => MudDialog.Cancel();
+    private void Confirm() => MudDialog.Close(DialogResult.Ok<string?>(_refNumber));
+}

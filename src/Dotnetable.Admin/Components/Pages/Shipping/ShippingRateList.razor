@@ -1,0 +1,162 @@
+@page "/sales/shipping/{MethodId:int}/rates"
+@attribute [Authorize(Policy = RoleKeys.ShippingView)]
+@inject IShippingService ShippingService
+@inject ILocationService LocationService
+@inject AuthenticationStateProvider AuthState
+@inject IDialogService DialogService
+@inject ISnackbar Snackbar
+@inject IPageLocalizer L
+@inject NavigationManager Nav
+
+<DNPageTitle Title=@L["shipping.rates", "Shipping Rates"] />
+
+<MudStack Row="true" AlignItems="AlignItems.Center" Justify="Justify.SpaceBetween" Class="mb-4">
+    <MudStack Spacing="0">
+        <MudText Typo="Typo.h5" Class="fw-bold">@(_method?.Title ?? L["shipping.rates", "Shipping Rates"])</MudText>
+        <MudText Typo="Typo.body2" Color="Color.Secondary">@L["shipping.rates.subtitle", "Prices by destination and weight for this method."]</MudText>
+    </MudStack>
+    <MudStack Row="true" Spacing="2">
+        <MudButton Variant="Variant.Text" StartIcon="@Icons.Material.Filled.ArrowBack" OnClick="@(() => Nav.NavigateTo("/sales/shipping"))">
+            @L["back", "Back"]
+        </MudButton>
+        @if (_canInsert)
+        {
+            <MudButton Variant="Variant.Filled" Color="Color.Primary" StartIcon="@Icons.Material.Filled.Add" OnClick="CreateAsync">
+                @L["shipping.rates.new", "New Rate"]
+            </MudButton>
+        }
+    </MudStack>
+</MudStack>
+
+<MudPaper Elevation="0" Class="app-card rounded-lg pa-4">
+    @if (_loading)
+    {
+        <MudProgressLinear Indeterminate="true" Color="Color.Primary" Class="mb-3" />
+    }
+    else if (_items.Count == 0)
+    {
+        <div style="text-align:center; padding:32px;"><MudText Color="Color.Secondary">@L["shipping.rates.empty", "No rates yet."]</MudText></div>
+    }
+    else
+    {
+        <MudSimpleTable Dense="true" Hover="true" Elevation="0">
+            <thead>
+                <tr>
+                    <th>@L["country", "Country"]</th>
+                    <th>@L["state", "State"]</th>
+                    <th>@L["city", "City"]</th>
+                    <th>@L["weight_range", "Weight (kg)"]</th>
+                    <th>@L["price", "Price (USD)"]</th>
+                    <th>@L["status", "Status"]</th>
+                    <th style="width:1%"></th>
+                </tr>
+            </thead>
+            <tbody>
+                @foreach (var r in _items)
+                {
+                    <tr>
+                        <td>@(r.Country?.Title ?? L["any", "Any"])</td>
+                        <td>@(r.State?.Title ?? L["any", "Any"])</td>
+                        <td>@(r.City?.Title ?? L["any", "Any"])</td>
+                        <td>@(r.MinWeightKg?.ToString("0.##") ?? "0") - @(r.MaxWeightKg?.ToString("0.##") ?? "∞")</td>
+                        <td>@r.PriceUsd.ToString("0.00")</td>
+                        <td>
+                            <MudChip T="string" Size="Size.Small" Color="@(r.IsActive ? Color.Success : Color.Default)">
+                                @(r.IsActive ? L["active", "Active"] : L["inactive", "Inactive"])
+                            </MudChip>
+                        </td>
+                        <td>
+                            <MudStack Row="true" Spacing="0">
+                                @if (_canEdit)
+                                {
+                                    <MudIconButton Icon="@Icons.Material.Filled.Edit" Size="Size.Small" OnClick="@(() => EditAsync(r))" />
+                                }
+                                @if (_canDelete)
+                                {
+                                    <MudIconButton Icon="@Icons.Material.Filled.Delete" Size="Size.Small" Color="Color.Error" OnClick="@(() => DeleteAsync(r))" />
+                                }
+                            </MudStack>
+                        </td>
+                    </tr>
+                }
+            </tbody>
+        </MudSimpleTable>
+    }
+</MudPaper>
+
+@code {
+    [Parameter] public int MethodId { get; set; }
+
+    private bool _loading = true;
+    private bool _canInsert, _canEdit, _canDelete;
+    private ShippingMethod? _method;
+    private List<ShippingRate> _items = new();
+
+    protected override async Task OnInitializedAsync()
+    {
+        await L.EnsureLoadedAsync();
+        var user = (await AuthState.GetAuthenticationStateAsync()).User;
+        _canInsert = AdminPolicies.Allows(user, RoleKeys.ShippingInsert);
+        _canEdit = AdminPolicies.Allows(user, RoleKeys.ShippingEdit);
+        _canDelete = AdminPolicies.Allows(user, RoleKeys.ShippingDelete);
+
+        _method = await ShippingService.GetByIdAsync(MethodId);
+        if (_method is null)
+        {
+            Nav.NavigateTo("/sales/shipping");
+            return;
+        }
+
+        await LoadAsync();
+    }
+
+    private async Task LoadAsync()
+    {
+        _loading = true;
+        _items = await ShippingService.GetRatesAsync(MethodId);
+        _loading = false;
+    }
+
+    private async Task CreateAsync()
+    {
+        if (await ShowDialogAsync(new ShippingRate { ShippingMethodID = MethodId, IsActive = true }, true)) await LoadAsync();
+    }
+
+    private async Task EditAsync(ShippingRate r)
+    {
+        var copy = new ShippingRate
+        {
+            ShippingRateID = r.ShippingRateID,
+            ShippingMethodID = r.ShippingMethodID,
+            CountryID = r.CountryID,
+            StateID = r.StateID,
+            CityID = r.CityID,
+            MinWeightKg = r.MinWeightKg,
+            MaxWeightKg = r.MaxWeightKg,
+            PriceUsd = r.PriceUsd,
+            IsActive = r.IsActive,
+        };
+        if (await ShowDialogAsync(copy, false)) await LoadAsync();
+    }
+
+    private async Task<bool> ShowDialogAsync(ShippingRate model, bool isNew)
+    {
+        var parameters = new DialogParameters<ShippingRateDialog> { { x => x.Model, model }, { x => x.IsNew, isNew } };
+        var dialog = await DialogService.ShowAsync<ShippingRateDialog>(
+            isNew ? L["shipping.rates.new", "New Rate"] : L["shipping.rates.edit", "Edit Rate"], parameters);
+        var result = await dialog.Result;
+        return result is not null && !result.Canceled;
+    }
+
+    private async Task DeleteAsync(ShippingRate r)
+    {
+        var confirmed = await DialogService.ShowMessageBoxAsync(
+            L["shipping.rates.delete", "Delete rate"],
+            L["shipping.rates.delete_confirm", "Delete this shipping rate?"],
+            yesText: L["delete", "Delete"], cancelText: L["cancel", "Cancel"]);
+        if (confirmed != true) return;
+        await ShippingService.DeleteRateAsync(r.ShippingRateID);
+        Snackbar.Add(L["deleted", "Deleted."], Severity.Success);
+        await LoadAsync();
+    }
+}

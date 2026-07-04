@@ -1,0 +1,64 @@
+@inject IClientWalletService WalletService
+@inject AuthenticationStateProvider AuthState
+@inject ISnackbar Snackbar
+@inject IPageLocalizer L
+
+<MudDialog>
+    <DialogContent>
+        <MudForm @ref="_form">
+            <MudGrid Spacing="3">
+                <MudItem xs="12">
+                    <MudNumericField @bind-Value="_delta" Label="@L["wallets.adjust.delta", "Amount change (USD, +/-)"]"
+                                     Variant="Variant.Outlined" Format="F2" Required="true" />
+                </MudItem>
+                <MudItem xs="12">
+                    <MudTextField @bind-Value="_note" Label="@L["note", "Note"]" Variant="Variant.Outlined" Lines="2" Required="true"
+                                  RequiredError="@L["required", "This field is required."]" />
+                </MudItem>
+            </MudGrid>
+        </MudForm>
+    </DialogContent>
+    <DialogActions>
+        <MudButton OnClick="Cancel">@L["cancel", "Cancel"]</MudButton>
+        <MudButton Variant="Variant.Filled" Color="Color.Primary" OnClick="SaveAsync" Disabled="@_saving">@L["save", "Save"]</MudButton>
+    </DialogActions>
+</MudDialog>
+
+@code {
+    [CascadingParameter] private IMudDialogInstance MudDialog { get; set; } = null!;
+    [Parameter] public int WebsiteId { get; set; }
+    [Parameter] public int ClientId { get; set; }
+
+    private MudForm _form = null!;
+    private bool _saving;
+    private decimal _delta;
+    private string? _note;
+
+    private void Cancel() => MudDialog.Cancel();
+
+    private async Task SaveAsync()
+    {
+        await _form.Validate();
+        if (!_form.IsValid || _delta == 0 || string.IsNullOrWhiteSpace(_note)) return;
+
+        _saving = true;
+        try
+        {
+            var user = (await AuthState.GetAuthenticationStateAsync()).User;
+            int.TryParse(user.FindFirst(AdminClaimTypes.MemberId)?.Value, out var memberId);
+
+            await WalletService.ApplyAsync(
+                WebsiteId, ClientId,
+                (byte)ClientWalletTransactionType.AdminAdjustment,
+                _delta,
+                (byte)ClientWalletSourceType.AdminManual,
+                null,
+                _note,
+                memberId);
+
+            MudDialog.Close(DialogResult.Ok(true));
+        }
+        catch (Exception ex) { Snackbar.Add($"{L["save_failed", "Save failed"]}: {ex.Message}", Severity.Error); }
+        finally { _saving = false; }
+    }
+}

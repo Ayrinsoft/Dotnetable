@@ -1,0 +1,161 @@
+@page "/wallets/client"
+@attribute [Authorize(Policy = RoleKeys.WalletsView)]
+@inject IClientWalletService WalletService
+@inject IWebsiteClientService ClientService
+@inject AuthenticationStateProvider AuthState
+@inject NavigationManager Nav
+@inject IDialogService DialogService
+@inject ISnackbar Snackbar
+@inject IPageLocalizer L
+
+<DNPageTitle Title=@L["wallets.client_wallet", "Customer Wallet"] />
+
+<MudBreadcrumbs Items="_breadcrumbs" Class="px-0 pb-2" />
+
+@if (_loading)
+{
+    <MudProgressLinear Indeterminate="true" Color="Color.Primary" Class="mb-4" />
+}
+else if (_client is null)
+{
+    <MudAlert Severity="Severity.Error">@L["clients.not_found", "Customer not found."]</MudAlert>
+}
+else
+{
+    <MudStack Row="true" AlignItems="AlignItems.Center" Justify="Justify.SpaceBetween" Class="mb-4">
+        <MudStack Spacing="0">
+            <MudText Typo="Typo.h5" Class="fw-bold">@(_client.Email ?? _client.Cellphone ?? $"#{_client.WebsiteClientID}")</MudText>
+            <MudText Typo="Typo.body2" Color="Color.Secondary">@L["wallets.client_wallet", "Customer Wallet"]</MudText>
+        </MudStack>
+        @if (_canAdjust)
+        {
+            <MudButton Variant="Variant.Filled" Color="Color.Primary" StartIcon="@Icons.Material.Filled.Tune" OnClick="OpenAdjustDialog">
+                @L["wallets.adjust", "Adjust Balance"]
+            </MudButton>
+        }
+    </MudStack>
+
+    <MudPaper Elevation="0" Class="border rounded-lg pa-6 mb-4">
+        <MudText Typo="Typo.body2" Color="Color.Secondary">@L["wallets.balance", "Current Balance"]</MudText>
+        <MudText Typo="Typo.h4" Class="fw-bold">@_balance.ToString("N2") <small>USD</small></MudText>
+    </MudPaper>
+
+    <MudPaper Elevation="0" Class="app-card rounded-lg pa-4">
+        <MudText Typo="Typo.subtitle1" Class="fw-bold mb-3">@L["wallets.history", "Transaction History"]</MudText>
+        @if (_historyLoading)
+        {
+            <MudProgressLinear Indeterminate="true" Color="Color.Primary" Class="mb-3" />
+        }
+        <DNGridView GridHeaderParams="_grid" OnSearchChanged="OnGridChanged">
+            @if (_transactions.Count == 0)
+            {
+                <tr>
+                    <td colspan="6" style="text-align:center; padding:32px;">
+                        <MudText Color="Color.Secondary">@L["wallets.history.empty", "No transactions yet."]</MudText>
+                    </td>
+                </tr>
+            }
+            else
+            {
+                @foreach (var t in _transactions)
+                {
+                    <tr>
+                        <td>@t.ClientWalletTransactionID</td>
+                        <td>@TypeName(t.Type)</td>
+                        <td style="color:@(t.AmountUsd < 0 ? "var(--mud-palette-error)" : "var(--mud-palette-success)")">
+                            @(t.AmountUsd < 0 ? "" : "+")@t.AmountUsd.ToString("N2")
+                        </td>
+                        <td>@t.BalanceAfterUsd.ToString("N2")</td>
+                        <td>@(t.Note ?? "—")</td>
+                        <td>@t.CreatedAt.ToString("yyyy-MM-dd HH:mm")</td>
+                    </tr>
+                }
+            }
+        </DNGridView>
+    </MudPaper>
+}
+
+@code {
+    [SupplyParameterFromQuery] public int ClientId { get; set; }
+
+    private bool _loading = true;
+    private bool _historyLoading = true;
+    private bool _canAdjust;
+    private WebsiteClient? _client;
+    private decimal _balance;
+    private List<ClientWalletTransaction> _transactions = new();
+    private GridViewHeaderParameters _grid = new();
+
+    private List<BreadcrumbItem> _breadcrumbs => new()
+    {
+        new(L["dashboard", "Dashboard"], "/"),
+        new(L["wallets.withdrawals", "Withdrawal Requests"], "/wallets/withdrawals"),
+        new($"#{ClientId}", null, true),
+    };
+
+    protected override async Task OnInitializedAsync()
+    {
+        await L.EnsureLoadedAsync();
+
+        var user = (await AuthState.GetAuthenticationStateAsync()).User;
+        _canAdjust = AdminPolicies.Allows(user, RoleKeys.WalletsAdjust);
+
+        _client = await ClientService.GetByIdAsync(ClientId);
+        _loading = false;
+        if (_client is null) return;
+
+        _grid = new GridViewHeaderParameters
+        {
+            Pagination = new PaginationModel { PageSize = 20 },
+            HeaderItems = new()
+            {
+                new() { ColumnTitle = L["id", "ID"], ColumnName = nameof(ClientWalletTransaction.ClientWalletTransactionID), HasSort = true },
+                new() { ColumnTitle = L["type", "Type"], ColumnName = nameof(ClientWalletTransaction.Type) },
+                new() { ColumnTitle = L["amount", "Amount"], ColumnName = nameof(ClientWalletTransaction.AmountUsd) },
+                new() { ColumnTitle = L["wallets.balance_after", "Balance After"], ColumnName = nameof(ClientWalletTransaction.BalanceAfterUsd) },
+                new() { ColumnTitle = L["note", "Note"], ColumnName = nameof(ClientWalletTransaction.Note) },
+                new() { ColumnTitle = L["wallets.date", "Date"], ColumnName = nameof(ClientWalletTransaction.CreatedAt), HasSort = true },
+            }
+        };
+
+        _balance = await WalletService.GetBalanceAsync(ClientId);
+        await LoadHistoryAsync();
+    }
+
+    private Task OnGridChanged(GridViewHeaderParameters _) => LoadHistoryAsync();
+
+    private async Task LoadHistoryAsync()
+    {
+        _historyLoading = true;
+        var result = await WalletService.GetHistoryAsync(ClientId, _grid.ToQuery());
+        _transactions = result.Items.ToList();
+        _grid.Pagination.MaxLength = result.TotalCount;
+        _historyLoading = false;
+    }
+
+    private string TypeName(byte type) => (ClientWalletTransactionType)type switch
+    {
+        ClientWalletTransactionType.RefundCredit => L["wallets.type.refund_credit", "Refund Credit"],
+        ClientWalletTransactionType.PurchaseUse => L["wallets.type.purchase_use", "Purchase Use"],
+        ClientWalletTransactionType.WithdrawalHold => L["wallets.type.withdrawal_hold", "Withdrawal Hold"],
+        ClientWalletTransactionType.WithdrawalReversed => L["wallets.type.withdrawal_reversed", "Withdrawal Reversed"],
+        ClientWalletTransactionType.AdminAdjustment => L["wallets.type.admin_adjustment", "Admin Adjustment"],
+        _ => type.ToString(),
+    };
+
+    private async Task OpenAdjustDialog()
+    {
+        var parameters = new DialogParameters<AdjustWalletDialog>
+        {
+            { x => x.WebsiteId, _client!.WebsiteID },
+            { x => x.ClientId, ClientId },
+        };
+        var dialog = await DialogService.ShowAsync<AdjustWalletDialog>(L["wallets.adjust", "Adjust Balance"], parameters);
+        var result = await dialog.Result;
+        if (result is null || result.Canceled) return;
+
+        Snackbar.Add(L["saved", "Saved."], Severity.Success);
+        _balance = await WalletService.GetBalanceAsync(ClientId);
+        await LoadHistoryAsync();
+    }
+}

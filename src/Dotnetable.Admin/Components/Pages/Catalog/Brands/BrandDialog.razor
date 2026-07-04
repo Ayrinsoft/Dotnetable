@@ -1,0 +1,130 @@
+@using Dotnetable.Admin.Components.Pages.Media
+@inject IBrandService BrandService
+@inject IFileService FileService
+@inject ISnackbar Snackbar
+@inject IPageLocalizer L
+
+<MudDialog>
+    <DialogContent>
+        <MudForm @ref="_form">
+            <MudGrid Spacing="3">
+                <MudItem xs="12" sm="3">
+                    <MudText Typo="Typo.body2" Class="mb-1">@L["brands.logo", "Logo"]</MudText>
+                    <MudPaper Elevation="0" Class="border rounded-lg pa-2" Style="cursor:pointer;" @onclick="PickLogoAsync">
+                        <div style="aspect-ratio:1/1; display:flex; align-items:center; justify-content:center; background:var(--mud-palette-background-grey); border-radius:8px; overflow:hidden;">
+                            @if (!string.IsNullOrEmpty(_logo?.CNDUrl))
+                            {
+                                <img src="@(_logo.ThumbnailCDN ?? _logo.CNDUrl)" alt="" style="width:100%; height:100%; object-fit:contain;" />
+                            }
+                            else
+                            {
+                                <MudIcon Icon="@Icons.Material.Filled.AddPhotoAlternate" Color="Color.Secondary" Size="Size.Large" />
+                            }
+                        </div>
+                    </MudPaper>
+                </MudItem>
+                <MudItem xs="12" sm="9">
+                    <MudGrid Spacing="3">
+                        <MudItem xs="12" sm="7">
+                            <MudTextField @bind-Value="Model.Name" Label="@L["name", "Name"]" Variant="Variant.Outlined" Required="true" />
+                        </MudItem>
+                        <MudItem xs="12" sm="5">
+                            <MudTextField @bind-Value="Model.Slug" Label="@L["slug", "Slug"]" Variant="Variant.Outlined" />
+                        </MudItem>
+                        <MudItem xs="12">
+                            <MudSwitch T="bool" @bind-Value="Model.IsActive" Label="@L["active", "Active"]" Color="Color.Primary" />
+                        </MudItem>
+                    </MudGrid>
+                </MudItem>
+                <MudItem xs="12">
+                    <MudExpansionPanels Elevation="0">
+                        <MudExpansionPanel Text="@L["translations", "Translations"]">
+                            @foreach (var (code, label) in ContentLanguages.All)
+                            {
+                                <MudGrid Spacing="2" Class="mb-1">
+                                    <MudItem xs="7">
+                                        <MudTextField T="string" Value="@Name(code)" ValueChanged="@(v => SetName(code, v))"
+                                                      Label="@($"{label} — {L["name", "Name"]}")" Variant="Variant.Outlined" Margin="Margin.Dense" />
+                                    </MudItem>
+                                    <MudItem xs="5">
+                                        <MudTextField T="string" Value="@Slug(code)" ValueChanged="@(v => SetSlug(code, v))"
+                                                      Label="@L["slug", "Slug"]" Variant="Variant.Outlined" Margin="Margin.Dense" />
+                                    </MudItem>
+                                </MudGrid>
+                            }
+                        </MudExpansionPanel>
+                    </MudExpansionPanels>
+                </MudItem>
+            </MudGrid>
+        </MudForm>
+    </DialogContent>
+    <DialogActions>
+        <MudButton OnClick="Cancel">@L["cancel", "Cancel"]</MudButton>
+        <MudButton Variant="Variant.Filled" Color="Color.Primary" OnClick="SaveAsync" Disabled="@_saving">@L["save", "Save"]</MudButton>
+    </DialogActions>
+</MudDialog>
+
+@code {
+    [CascadingParameter] private IMudDialogInstance MudDialog { get; set; } = null!;
+    [Parameter] public Brand Model { get; set; } = new();
+    [Parameter] public bool IsNew { get; set; }
+
+    private MudForm _form = null!;
+    private bool _saving;
+    private FileRecord? _logo;
+    private readonly Dictionary<string, (string Name, string Slug)> _tr = new(StringComparer.OrdinalIgnoreCase);
+
+    protected override async Task OnInitializedAsync()
+    {
+        if (Model.LogoFileID is int fid)
+            _logo = await FileService.GetByIdAsync(fid);
+        if (!IsNew)
+            foreach (var t in await BrandService.GetTranslationsAsync(Model.BrandID))
+                _tr[t.LanguageCode] = (t.Name, t.Slug);
+    }
+
+    private string Name(string code) => _tr.TryGetValue(code, out var v) ? v.Name : string.Empty;
+    private string Slug(string code) => _tr.TryGetValue(code, out var v) ? v.Slug : string.Empty;
+    private void SetName(string code, string v) { var c = _tr.GetValueOrDefault(code); _tr[code] = (v ?? string.Empty, c.Slug ?? string.Empty); }
+    private void SetSlug(string code, string v) { var c = _tr.GetValueOrDefault(code); _tr[code] = (c.Name ?? string.Empty, v ?? string.Empty); }
+
+    private async Task PickLogoAsync()
+    {
+        var parameters = new DialogParameters
+        {
+            [nameof(FilePickerDialog.WebsiteId)] = Model.WebsiteID,
+            [nameof(FilePickerDialog.Category)] = FileCategory.Image,
+        };
+        var dialog = await DialogService.ShowAsync<FilePickerDialog>(L["select_file", "Select a file"], parameters,
+            new DialogOptions { MaxWidth = MaxWidth.Medium, FullWidth = true });
+        var result = await dialog.Result;
+        if (result is { Canceled: false, Data: FileRecord file })
+        {
+            _logo = file;
+            Model.LogoFileID = file.FileRecordID;
+        }
+    }
+
+    [Inject] private IDialogService DialogService { get; set; } = null!;
+
+    private void Cancel() => MudDialog.Cancel();
+
+    private async Task SaveAsync()
+    {
+        await _form.Validate();
+        if (!_form.IsValid) return;
+        if (string.IsNullOrWhiteSpace(Model.Slug)) Model.Slug = Model.Name.Trim();
+
+        _saving = true;
+        try
+        {
+            if (IsNew) await BrandService.CreateAsync(Model);
+            else await BrandService.UpdateAsync(Model);
+            await BrandService.SetTranslationsAsync(Model.BrandID, _tr);
+            Snackbar.Add(L["saved", "Saved."], Severity.Success);
+            MudDialog.Close(DialogResult.Ok(true));
+        }
+        catch (Exception ex) { Snackbar.Add($"{L["save_failed", "Save failed"]}: {ex.Message}", Severity.Error); }
+        finally { _saving = false; }
+    }
+}
