@@ -50,6 +50,8 @@ public partial class Website
 
     public virtual ICollection<Brand> Brands { get; set; } = new List<Brand>();
 
+    public virtual ICollection<Cart> Carts { get; set; } = new List<Cart>();
+
     public virtual ICollection<Category> Categories { get; set; } = new List<Category>();
 
     public virtual ICollection<ChartOfAccount> ChartOfAccounts { get; set; } = new List<ChartOfAccount>();
@@ -64,7 +66,11 @@ public partial class Website
 
     public virtual ICollection<ContactUsMessage> ContactUsMessages { get; set; } = new List<ContactUsMessage>();
 
+    public virtual ICollection<Coupon> Coupons { get; set; } = new List<Coupon>();
+
     public virtual ICollection<CurrencyRate> CurrencyRates { get; set; } = new List<CurrencyRate>();
+
+    public virtual Currency DefaultCurrencyCodeNavigation { get; set; } = null!;
 
     public virtual ICollection<EmailSetting> EmailSettings { get; set; } = new List<EmailSetting>();
 
@@ -128,11 +134,15 @@ public partial class Website
 
     public virtual ICollection<Settlement> SettlementWebsites { get; set; } = new List<Settlement>();
 
+    public virtual ICollection<ShippingMethod> ShippingMethods { get; set; } = new List<ShippingMethod>();
+
     public virtual ICollection<StockMovement> StockMovements { get; set; } = new List<StockMovement>();
 
     public virtual ICollection<Supplier> Suppliers { get; set; } = new List<Supplier>();
 
     public virtual ICollection<Tag> Tags { get; set; } = new List<Tag>();
+
+    public virtual ICollection<TaxRate> TaxRates { get; set; } = new List<TaxRate>();
 
     public virtual ICollection<VendorProduct> VendorProducts { get; set; } = new List<VendorProduct>();
 
@@ -151,4 +161,6 @@ public partial class Website
     public virtual ICollection<WebsiteSocialLink> WebsiteSocialLinks { get; set; } = new List<WebsiteSocialLink>();
 
     public virtual ICollection<WebsiteStorageSetting> WebsiteStorageSettings { get; set; } = new List<WebsiteStorageSetting>();
+
+    public virtual ICollection<Wishlist> Wishlists { get; set; } = new List<Wishlist>();
 }

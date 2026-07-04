@@ -47,6 +47,8 @@ public partial class Settlement
 
     public virtual Member? CreatedByMember { get; set; }
 
+    public virtual Currency CurrencyCodeNavigation { get; set; } = null!;
+
     public virtual ICollection<SettlementItem> SettlementItems { get; set; } = new List<SettlementItem>();
 
     public virtual Supplier? Supplier { get; set; }

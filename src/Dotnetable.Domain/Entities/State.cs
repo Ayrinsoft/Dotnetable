@@ -19,5 +19,9 @@ public partial class State
 
     public virtual Country Country { get; set; } = null!;
 
+    public virtual ICollection<ShippingRate> ShippingRates { get; set; } = new List<ShippingRate>();
+
     public virtual ICollection<StateTranslation> StateTranslations { get; set; } = new List<StateTranslation>();
+
+    public virtual ICollection<TaxRate> TaxRates { get; set; } = new List<TaxRate>();
 }

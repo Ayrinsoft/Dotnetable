@@ -35,11 +35,15 @@ public partial class WebsiteClient
 
     public virtual FileRecord? Avatar { get; set; }
 
+    public virtual ICollection<Cart> Carts { get; set; } = new List<Cart>();
+
     public virtual ICollection<ClientBankAccount> ClientBankAccounts { get; set; } = new List<ClientBankAccount>();
 
     public virtual ClientWallet? ClientWallet { get; set; }
 
     public virtual ICollection<ClientWalletWithdrawal> ClientWalletWithdrawals { get; set; } = new List<ClientWalletWithdrawal>();
+
+    public virtual ICollection<CouponRedemption> CouponRedemptions { get; set; } = new List<CouponRedemption>();
 
     public virtual ICollection<FileRecord> FileRecords { get; set; } = new List<FileRecord>();
 
@@ -58,4 +62,6 @@ public partial class WebsiteClient
     public virtual ICollection<WebsiteClientAddress> WebsiteClientAddresses { get; set; } = new List<WebsiteClientAddress>();
 
     public virtual ICollection<WebsiteClientForgetPassword> WebsiteClientForgetPasswords { get; set; } = new List<WebsiteClientForgetPassword>();
+
+    public virtual Wishlist? Wishlist { get; set; }
 }

@@ -35,6 +35,10 @@ public partial class Order
 
     public string? AddressSnapshot { get; set; }
 
+    public int? CouponID { get; set; }
+
+    public int? ShippingMethodID { get; set; }
+
     public string? Note { get; set; }
 
     public int? CreatedByMemberID { get; set; }
@@ -43,13 +47,21 @@ public partial class Order
 
     public DateTime? PaidAt { get; set; }
 
+    public virtual Coupon? Coupon { get; set; }
+
+    public virtual CouponRedemption? CouponRedemption { get; set; }
+
     public virtual Member? CreatedByMember { get; set; }
+
+    public virtual Currency CurrencyCodeNavigation { get; set; } = null!;
 
     public virtual ICollection<OrderItem> OrderItems { get; set; } = new List<OrderItem>();
 
     public virtual ICollection<OrderStatusHistory> OrderStatusHistories { get; set; } = new List<OrderStatusHistory>();
 
     public virtual ICollection<Payment> Payments { get; set; } = new List<Payment>();
+
+    public virtual ShippingMethod? ShippingMethod { get; set; }
 
     public virtual ICollection<StockMovement> StockMovements { get; set; } = new List<StockMovement>();
 
