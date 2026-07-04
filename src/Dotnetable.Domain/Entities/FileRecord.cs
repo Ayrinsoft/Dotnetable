@@ -51,13 +51,27 @@ public partial class FileRecord
 
     public virtual ICollection<Bank> Banks { get; set; } = new List<Bank>();
 
+    public virtual ICollection<Brand> Brands { get; set; } = new List<Brand>();
+
     public virtual FileAlbum? FileAlbum { get; set; }
 
     public virtual ICollection<FileRecordTag> FileRecordTags { get; set; } = new List<FileRecordTag>();
 
+    public virtual ICollection<MediaSetItem> MediaSetItemFiles { get; set; } = new List<MediaSetItem>();
+
+    public virtual ICollection<MediaSetItem> MediaSetItemVideoThumbnailFiles { get; set; } = new List<MediaSetItem>();
+
+    public virtual ICollection<Payment> Payments { get; set; } = new List<Payment>();
+
     public virtual ICollection<Post> Posts { get; set; } = new List<Post>();
 
+    public virtual ICollection<ProductCategory> ProductCategories { get; set; } = new List<ProductCategory>();
+
+    public virtual ICollection<ProductVariant> ProductVariants { get; set; } = new List<ProductVariant>();
+
     public virtual Member? UploaderMember { get; set; }
+
+    public virtual ICollection<Vendor> Vendors { get; set; } = new List<Vendor>();
 
     public virtual Website Website { get; set; } = null!;
 

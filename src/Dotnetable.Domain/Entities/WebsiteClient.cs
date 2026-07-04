@@ -37,6 +37,16 @@ public partial class WebsiteClient
 
     public virtual ICollection<FileRecord> FileRecords { get; set; } = new List<FileRecord>();
 
+    public virtual ICollection<Order> Orders { get; set; } = new List<Order>();
+
+    public virtual ICollection<Payment> Payments { get; set; } = new List<Payment>();
+
+    public virtual ICollection<ProductAnswer> ProductAnswers { get; set; } = new List<ProductAnswer>();
+
+    public virtual ICollection<ProductQuestion> ProductQuestions { get; set; } = new List<ProductQuestion>();
+
+    public virtual ICollection<ProductReview> ProductReviews { get; set; } = new List<ProductReview>();
+
     public virtual Website Website { get; set; } = null!;
 
     public virtual ICollection<WebsiteClientAddress> WebsiteClientAddresses { get; set; } = new List<WebsiteClientAddress>();

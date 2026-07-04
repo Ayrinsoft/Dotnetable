@@ -43,11 +43,25 @@ public partial class Member
 
     public virtual ICollection<MemberForgetPassword> MemberForgetPasswords { get; set; } = new List<MemberForgetPassword>();
 
+    public virtual ICollection<OrderStatusHistory> OrderStatusHistories { get; set; } = new List<OrderStatusHistory>();
+
+    public virtual ICollection<Order> Orders { get; set; } = new List<Order>();
+
     public virtual ICollection<Page> Pages { get; set; } = new List<Page>();
+
+    public virtual ICollection<PaymentRefund> PaymentRefunds { get; set; } = new List<PaymentRefund>();
+
+    public virtual ICollection<Payment> Payments { get; set; } = new List<Payment>();
 
     public virtual Policy Policy { get; set; } = null!;
 
     public virtual ICollection<Post> Posts { get; set; } = new List<Post>();
+
+    public virtual ICollection<Settlement> SettlementApprovedByMembers { get; set; } = new List<Settlement>();
+
+    public virtual ICollection<Settlement> SettlementCreatedByMembers { get; set; } = new List<Settlement>();
+
+    public virtual ICollection<StockMovement> StockMovements { get; set; } = new List<StockMovement>();
 
     public virtual Website Website { get; set; } = null!;
 }

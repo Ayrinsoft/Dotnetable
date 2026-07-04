@@ -29,5 +29,7 @@ public partial class WebsiteClientAddress
 
     public virtual Country? Country { get; set; }
 
+    public virtual ICollection<Order> Orders { get; set; } = new List<Order>();
+
     public virtual WebsiteClient WebsiteClient { get; set; } = null!;
 }

@@ -31,5 +31,11 @@ public partial class BankAccount
 
     public virtual Member CreatedByMember { get; set; } = null!;
 
+    public virtual ICollection<PaymentRefund> PaymentRefunds { get; set; } = new List<PaymentRefund>();
+
+    public virtual ICollection<Payment> Payments { get; set; } = new List<Payment>();
+
+    public virtual ICollection<Settlement> Settlements { get; set; } = new List<Settlement>();
+
     public virtual Website Website { get; set; } = null!;
 }

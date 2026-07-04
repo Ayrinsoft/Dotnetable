@@ -33,5 +33,9 @@ public partial class AttributeDefinition
 
     public virtual ICollection<AttributeOption> AttributeOptions { get; set; } = new List<AttributeOption>();
 
+    public virtual ICollection<ProductAttributeValue> ProductAttributeValues { get; set; } = new List<ProductAttributeValue>();
+
+    public virtual ICollection<VariantAttributeValue> VariantAttributeValues { get; set; } = new List<VariantAttributeValue>();
+
     public virtual Website Website { get; set; } = null!;
 }
