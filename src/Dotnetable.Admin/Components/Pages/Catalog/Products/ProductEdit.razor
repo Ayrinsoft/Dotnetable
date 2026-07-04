@@ -5,6 +5,7 @@
 @inject IProductService ProductService
 @inject IProductCategoryService CategoryService
 @inject IBrandService BrandService
+@inject IAttributeDefinitionService AttributeDefinitionService
 @inject IWebsiteService WebsiteService
 @inject AuthenticationStateProvider AuthState
 @inject IDialogService DialogService
@@ -155,6 +156,182 @@ else
                     <MudButton StartIcon="@Icons.Material.Filled.Add" OnClick="AddVariant">@L["variants.add", "Add variant"]</MudButton>
                 </div>
             </MudTabPanel>
+
+            <MudTabPanel Text="@L["products.gallery", "Gallery"]">
+                <div class="pa-2">
+                    <MudGrid Spacing="2">
+                        @foreach (var (entry, idx) in _gallery.Select((g, i) => (g, i)))
+                        {
+                            <MudItem xs="6" sm="3" md="2">
+                                <MudPaper Elevation="0" Class="border rounded-lg pa-1">
+                                    <div style="aspect-ratio:1/1; position:relative; overflow:hidden; border-radius:6px;">
+                                        <img src="@(entry.File.ThumbnailCDN ?? entry.File.CNDUrl)" alt="" style="width:100%; height:100%; object-fit:cover;" />
+                                        <MudIconButton Icon="@Icons.Material.Filled.Delete" Size="Size.Small" Color="Color.Error"
+                                                       Style="position:absolute; top:2px; right:2px; background:rgba(255,255,255,.8);"
+                                                       OnClick="@(() => _gallery.RemoveAt(idx))" />
+                                    </div>
+                                </MudPaper>
+                            </MudItem>
+                        }
+                        <MudItem xs="6" sm="3" md="2">
+                            <MudPaper Elevation="0" Class="border rounded-lg pa-2" Style="cursor:pointer; aspect-ratio:1/1; display:flex; align-items:center; justify-content:center;" @onclick="AddGalleryImageAsync">
+                                <MudIcon Icon="@Icons.Material.Filled.AddPhotoAlternate" Color="Color.Secondary" Size="Size.Large" />
+                            </MudPaper>
+                        </MudItem>
+                    </MudGrid>
+                </div>
+            </MudTabPanel>
+
+            <MudTabPanel Text="@L["products.attributes", "Attributes"]">
+                <div class="pa-2">
+                    @foreach (var def in _nonVariantAttributes)
+                    {
+                        var value = _attrValues.TryGetValue(def.AttributeDefinitionID, out var v) ? v : null;
+                        <MudGrid Spacing="2" Class="mb-1" AlignItems="AlignItems.Center">
+                            <MudItem xs="12" sm="3">
+                                <MudText Typo="Typo.body2">@def.Name @(string.IsNullOrEmpty(def.Unit) ? "" : $"({def.Unit})")</MudText>
+                            </MudItem>
+                            <MudItem xs="12" sm="7">
+                                @if (def.InputType is 1 or 2)
+                                {
+                                    <MudSelect T="int?" Value="@(value?.AttributeOptionID)" ValueChanged="@(o => SetAttrOption(def.AttributeDefinitionID, o))"
+                                               Variant="Variant.Outlined" Margin="Margin.Dense" Clearable="true">
+                                        @foreach (var opt in def.AttributeOptions)
+                                        {
+                                            <MudSelectItem T="int?" Value="@((int?)opt.AttributeOptionID)">@opt.Value</MudSelectItem>
+                                        }
+                                    </MudSelect>
+                                }
+                                else if (def.InputType == 3)
+                                {
+                                    <MudNumericField T="decimal?" Value="@(value?.NumericValue)" ValueChanged="@(n => SetAttrNumeric(def.AttributeDefinitionID, n))"
+                                                      Variant="Variant.Outlined" Margin="Margin.Dense" />
+                                }
+                                else
+                                {
+                                    <MudTextField T="string" Value="@(value?.CustomValue)" ValueChanged="@(s => SetAttrText(def.AttributeDefinitionID, s))"
+                                                  Variant="Variant.Outlined" Margin="Margin.Dense" />
+                                }
+                            </MudItem>
+                            <MudItem xs="12" sm="2">
+                                <MudCheckBox T="bool" Value="@(value?.IsFeatured ?? false)" ValueChanged="@(f => SetAttrFeatured(def.AttributeDefinitionID, f))"
+                                             Label="@L["attributes.featured", "Featured"]" Color="Color.Primary" />
+                            </MudItem>
+                        </MudGrid>
+                    }
+                    @if (_nonVariantAttributes.Count == 0)
+                    {
+                        <MudText Color="Color.Secondary">@L["products.no_attributes", "No product-level attributes defined for this website."]</MudText>
+                    }
+                </div>
+            </MudTabPanel>
+
+            <MudTabPanel Text="@L["products.content_sections", "Content"]">
+                <div class="pa-2">
+                    @foreach (var (section, idx) in _contentSections.Select((s, i) => (s, i)))
+                    {
+                        <MudPaper Elevation="0" Class="border rounded-lg pa-3 mb-2">
+                            <MudGrid Spacing="2" AlignItems="AlignItems.Center">
+                                <MudItem xs="12" sm="2">
+                                    <MudSelect T="byte" @bind-Value="section.SectionType" Variant="Variant.Outlined" Margin="Margin.Dense" Label="@L["products.section_type", "Type"]">
+                                        <MudSelectItem T="byte" Value="(byte)0">@L["products.section_text", "Text"]</MudSelectItem>
+                                        <MudSelectItem T="byte" Value="(byte)1">@L["products.section_image", "Image"]</MudSelectItem>
+                                    </MudSelect>
+                                </MudItem>
+                                @if (section.SectionType == 1)
+                                {
+                                    <MudItem xs="12" sm="8">
+                                        <MudButton StartIcon="@Icons.Material.Filled.Image" OnClick="@(() => PickContentImageAsync(section))">
+                                            @(section.File?.CNDUrl is null ? L["select_file", "Select a file"] : L["change", "Change"])
+                                        </MudButton>
+                                        @if (section.File?.ThumbnailCDN is not null || section.File?.CNDUrl is not null)
+                                        {
+                                            <img src="@(section.File.ThumbnailCDN ?? section.File.CNDUrl)" style="height:48px; margin-left:8px; border-radius:4px; vertical-align:middle;" />
+                                        }
+                                    </MudItem>
+                                }
+                                else
+                                {
+                                    <MudItem xs="12" sm="8">
+                                        <MudTextField @bind-Value="section.HtmlContent" Label="@L["products.html_content", "Content (HTML)"]" Variant="Variant.Outlined" Margin="Margin.Dense" Lines="3" AutoGrow="true" />
+                                    </MudItem>
+                                }
+                                <MudItem xs="6" sm="1">
+                                    <MudCheckBox T="bool" @bind-Value="section.IsActive" Label="@L["active", "Active"]" Color="Color.Primary" />
+                                </MudItem>
+                                <MudItem xs="6" sm="1">
+                                    <MudIconButton Icon="@Icons.Material.Filled.Delete" Color="Color.Error" OnClick="@(() => _contentSections.RemoveAt(idx))" />
+                                </MudItem>
+                            </MudGrid>
+                        </MudPaper>
+                    }
+                    <MudButton StartIcon="@Icons.Material.Filled.Add" OnClick="@(() => _contentSections.Add(new ProductContentSection { IsActive = true, SortOrder = _contentSections.Count }))">
+                        @L["products.add_section", "Add section"]
+                    </MudButton>
+                </div>
+            </MudTabPanel>
+
+            <MudTabPanel Text="@L["products.warnings", "Warnings"]">
+                <div class="pa-2">
+                    @foreach (var (warning, idx) in _warnings.Select((w, i) => (w, i)))
+                    {
+                        <MudPaper Elevation="0" Class="border rounded-lg pa-3 mb-2">
+                            <MudGrid Spacing="2" AlignItems="AlignItems.Center">
+                                <MudItem xs="12" sm="2">
+                                    <MudSelect T="string" @bind-Value="warning.Severity" Variant="Variant.Outlined" Margin="Margin.Dense" Label="@L["products.severity", "Severity"]">
+                                        <MudSelectItem T="string" Value="@("info")">@L["products.severity_info", "Info"]</MudSelectItem>
+                                        <MudSelectItem T="string" Value="@("warning")">@L["products.severity_warning", "Warning"]</MudSelectItem>
+                                        <MudSelectItem T="string" Value="@("danger")">@L["products.severity_danger", "Danger"]</MudSelectItem>
+                                    </MudSelect>
+                                </MudItem>
+                                <MudItem xs="12" sm="7">
+                                    <MudTextField @bind-Value="warning.Text" Label="@L["products.warning_text", "Text"]" Variant="Variant.Outlined" Margin="Margin.Dense" />
+                                </MudItem>
+                                <MudItem xs="6" sm="2">
+                                    <MudCheckBox T="bool" @bind-Value="warning.IsActive" Label="@L["active", "Active"]" Color="Color.Primary" />
+                                </MudItem>
+                                <MudItem xs="6" sm="1">
+                                    <MudIconButton Icon="@Icons.Material.Filled.Delete" Color="Color.Error" OnClick="@(() => _warnings.RemoveAt(idx))" />
+                                </MudItem>
+                            </MudGrid>
+                        </MudPaper>
+                    }
+                    <MudButton StartIcon="@Icons.Material.Filled.Add" OnClick="@(() => _warnings.Add(new ProductWarning { Severity = "info", Text = string.Empty, IsActive = true }))">
+                        @L["products.add_warning", "Add warning"]
+                    </MudButton>
+                </div>
+            </MudTabPanel>
+
+            <MudTabPanel Text="@L["products.related", "Related Products"]">
+                <div class="pa-2">
+                    <MudGrid Spacing="2" AlignItems="AlignItems.Center" Class="mb-3">
+                        <MudItem xs="12" sm="8">
+                            <MudAutocomplete T="ProductListItemDto" Label="@L["products.search_to_add", "Search a product to add"]" Variant="Variant.Outlined"
+                                             SearchFunc="SearchProductsAsync" ToStringFunc="@(p => p?.Title ?? string.Empty)"
+                                             ValueChanged="AddRelatedProduct" ResetValueOnEmptyText="true" CoerceText="true" />
+                        </MudItem>
+                    </MudGrid>
+                    <MudSimpleTable Dense="true" Elevation="0">
+                        <thead><tr><th>@L["title", "Title"]</th><th>@L["products.relation_type", "Relation"]</th><th style="width:1%"></th></tr></thead>
+                        <tbody>
+                            @foreach (var (rel, idx) in _relatedProducts.Select((r, i) => (r, i)))
+                            {
+                                <tr>
+                                    <td>@RelatedTitle(rel.RelatedProductID)</td>
+                                    <td>
+                                        <MudSelect T="byte" Value="@rel.RelationType" ValueChanged="@(t => { rel.RelationType = t; })" Variant="Variant.Outlined" Margin="Margin.Dense">
+                                            <MudSelectItem T="byte" Value="(byte)0">@L["products.relation_related", "Related"]</MudSelectItem>
+                                            <MudSelectItem T="byte" Value="(byte)1">@L["products.relation_upsell", "Up-sell"]</MudSelectItem>
+                                            <MudSelectItem T="byte" Value="(byte)2">@L["products.relation_crosssell", "Cross-sell"]</MudSelectItem>
+                                        </MudSelect>
+                                    </td>
+                                    <td><MudIconButton Icon="@Icons.Material.Filled.Delete" Color="Color.Error" OnClick="@(() => _relatedProducts.RemoveAt(idx))" /></td>
+                                </tr>
+                            }
+                        </tbody>
+                    </MudSimpleTable>
+                </div>
+            </MudTabPanel>
         </MudTabs>
     </MudPaper>
 }
@@ -175,6 +352,14 @@ else
     private HashSet<int> _selectedCategoryIds = new();
     private int? _primaryCategoryId;
     private readonly Dictionary<string, (string Title, string Slug, string? Short)> _tr = new(StringComparer.OrdinalIgnoreCase);
+
+    private List<(int MediaSetId, FileRecord File)> _gallery = new();
+    private List<AttributeDefinition> _nonVariantAttributes = new();
+    private Dictionary<int, ProductAttributeValue> _attrValues = new();
+    private List<ProductContentSection> _contentSections = new();
+    private List<ProductWarning> _warnings = new();
+    private List<ProductRelation> _relatedProducts = new();
+    private Dictionary<int, string> _relatedTitles = new();
 
     protected override async Task OnInitializedAsync()
     {
@@ -199,6 +384,19 @@ else
                 _featuredImage = product.FeaturedImageFile;
             foreach (var t in product.ProductTranslations)
                 _tr[t.LanguageCode] = (t.Title, t.Slug, t.ShortDescription);
+
+            _gallery = product.ProductMedia.OrderBy(m => m.SortOrder)
+                .Select(m => (m.MediaSetID, m.MediaSet.MediaSetItems.OrderBy(i => i.SortOrder).FirstOrDefault()?.File))
+                .Where(e => e.File is not null)
+                .Select(e => (e.MediaSetID, e.File!))
+                .ToList();
+            foreach (var v in product.ProductAttributeValues)
+                _attrValues[v.AttributeDefinitionID] = v;
+            _contentSections = product.ProductContentSections.OrderBy(s => s.SortOrder).ToList();
+            _warnings = product.ProductWarnings.ToList();
+            _relatedProducts = product.ProductRelationProducts.ToList();
+            foreach (var r in product.ProductRelationProducts)
+                if (r.RelatedProduct is not null) _relatedTitles[r.RelatedProductID] = r.RelatedProduct.Title;
         }
         else
         {
@@ -207,6 +405,16 @@ else
 
         _brands = await BrandService.GetAllAsync(_websiteId);
         _categories = await CategoryService.GetAllAsync(_websiteId);
+
+        var allAttrs = await AttributeDefinitionService.GetAllAsync(_websiteId);
+        var withOptions = new List<AttributeDefinition>();
+        foreach (var a in allAttrs.Where(a => !a.IsVariantAttribute && a.Active))
+        {
+            var full = await AttributeDefinitionService.GetByIdAsync(a.AttributeDefinitionID);
+            withOptions.Add(full ?? a);
+        }
+        _nonVariantAttributes = withOptions;
+
         _loading = false;
     }
 
@@ -270,6 +478,71 @@ else
         }
     }
 
+    private async Task AddGalleryImageAsync()
+    {
+        var parameters = new DialogParameters
+        {
+            [nameof(FilePickerDialog.WebsiteId)] = _websiteId,
+            [nameof(FilePickerDialog.Category)] = FileCategory.Image,
+        };
+        var dialog = await DialogService.ShowAsync<FilePickerDialog>(L["select_file", "Select a file"], parameters,
+            new DialogOptions { MaxWidth = MaxWidth.Medium, FullWidth = true });
+        var result = await dialog.Result;
+        if (result is { Canceled: false, Data: FileRecord file })
+        {
+            var mediaSetId = await ProductService.CreateSimpleMediaSetAsync(_websiteId, file.FileRecordID);
+            _gallery.Add((mediaSetId, file));
+        }
+    }
+
+    private ProductAttributeValue GetOrCreateAttrValue(int attributeDefinitionId)
+    {
+        if (!_attrValues.TryGetValue(attributeDefinitionId, out var v))
+        {
+            v = new ProductAttributeValue { ProductID = Model.ProductID, AttributeDefinitionID = attributeDefinitionId };
+            _attrValues[attributeDefinitionId] = v;
+        }
+        return v;
+    }
+
+    private void SetAttrOption(int attributeDefinitionId, int? optionId) => GetOrCreateAttrValue(attributeDefinitionId).AttributeOptionID = optionId;
+    private void SetAttrNumeric(int attributeDefinitionId, decimal? value) => GetOrCreateAttrValue(attributeDefinitionId).NumericValue = value;
+    private void SetAttrText(int attributeDefinitionId, string? value) => GetOrCreateAttrValue(attributeDefinitionId).CustomValue = value;
+    private void SetAttrFeatured(int attributeDefinitionId, bool featured) => GetOrCreateAttrValue(attributeDefinitionId).IsFeatured = featured;
+
+    private async Task PickContentImageAsync(ProductContentSection section)
+    {
+        var parameters = new DialogParameters
+        {
+            [nameof(FilePickerDialog.WebsiteId)] = _websiteId,
+            [nameof(FilePickerDialog.Category)] = FileCategory.Image,
+        };
+        var dialog = await DialogService.ShowAsync<FilePickerDialog>(L["select_file", "Select a file"], parameters,
+            new DialogOptions { MaxWidth = MaxWidth.Medium, FullWidth = true });
+        var result = await dialog.Result;
+        if (result is { Canceled: false, Data: FileRecord file })
+        {
+            section.FileId = file.FileRecordID;
+            section.File = file;
+        }
+    }
+
+    private string RelatedTitle(int productId) => _relatedTitles.TryGetValue(productId, out var t) ? t : $"#{productId}";
+
+    private async Task<IEnumerable<ProductListItemDto>> SearchProductsAsync(string search, CancellationToken ct)
+    {
+        if (string.IsNullOrWhiteSpace(search)) return Array.Empty<ProductListItemDto>();
+        var result = await ProductService.GetPagedAsync(_websiteId, new ProductFilter(), new GridQuery { PageIndex = 1, PageSize = 10 }, search, ct);
+        return result.Items.Where(p => p.ProductID != Model.ProductID);
+    }
+
+    private void AddRelatedProduct(ProductListItemDto? product)
+    {
+        if (product is null || _relatedProducts.Any(r => r.RelatedProductID == product.ProductID)) return;
+        _relatedProducts.Add(new ProductRelation { ProductID = Model.ProductID, RelatedProductID = product.ProductID, RelationType = 0, SortOrder = _relatedProducts.Count });
+        _relatedTitles[product.ProductID] = product.Title;
+    }
+
     private async Task SaveAsync()
     {
         if (string.IsNullOrWhiteSpace(Model.Title)) { Snackbar.Add(L["products.title_required", "Title is required."], Severity.Warning); return; }
@@ -299,6 +572,12 @@ else
                 }).ToList());
             await ProductService.SetCategoriesAsync(Model.ProductID, _selectedCategoryIds.ToList(), _primaryCategoryId);
             await ProductService.SetVariantsAsync(Model.ProductID, _variants);
+            await ProductService.SetMediaAsync(Model.ProductID, _gallery.Select(g => g.MediaSetId).ToList());
+            await ProductService.SetAttributeValuesAsync(Model.ProductID, _attrValues.Values.ToList());
+            await ProductService.SetContentSectionsAsync(Model.ProductID, _contentSections);
+            await ProductService.SetWarningsAsync(Model.ProductID, _warnings);
+            await ProductService.SetRelatedProductsAsync(Model.ProductID,
+                _relatedProducts.Select(r => (r.RelatedProductID, r.RelationType, r.SortOrder)).ToList());
 
             Snackbar.Add(L["saved", "Saved."], Severity.Success);
             if (_isNew) Nav.NavigateTo($"/catalog/products/{Model.ProductID}");

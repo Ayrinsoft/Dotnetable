@@ -2,6 +2,7 @@
 @attribute [Authorize(Policy = RoleKeys.OrdersView)]
 @inject IOrderService OrderService
 @inject IPaymentService PaymentService
+@inject IBankAccountService BankAccountService
 @inject AuthenticationStateProvider AuthState
 @inject IDialogService DialogService
 @inject ISnackbar Snackbar
@@ -106,6 +107,16 @@ else
                     <MudNumericField T="decimal" @bind-Value="_refundAmount" Label="@L["orders.total", "Amount (USD)"]" Variant="Variant.Outlined" Dense="true" Min="0" Class="mb-2" />
                     <MudTextField @bind-Value="_refundReason" Label="@L["payments.reason", "Reason"]" Variant="Variant.Outlined" Dense="true" Class="mb-2" />
                     <MudSwitch T="bool" @bind-Value="_refundToWallet" Label="@L["payments.refund_to_wallet", "Refund to wallet"]" Color="Color.Primary" Class="mb-2" />
+                    @if (!_refundToWallet)
+                    {
+                        <MudSelect T="int?" @bind-Value="_refundBankAccountId" Label="@L["bank_accounts", "Bank Account"]" Variant="Variant.Outlined" Dense="true" Class="mb-2">
+                            @foreach (var b in _bankAccounts)
+                            {
+                                <MudSelectItem T="int?" Value="@((int?)b.BankAccountID)">@b.Bank.Name — @b.Title</MudSelectItem>
+                            }
+                        </MudSelect>
+                        <MudText Typo="Typo.caption" Color="Color.Secondary" Class="mb-2">@L["payments.bank_refund_hint", "The transfer must be performed manually outside the system; this only records the refund as pending until you mark it completed on the Bank Refunds queue."]</MudText>
+                    }
                     <MudButton Variant="Variant.Filled" Color="Color.Error" FullWidth="true" OnClick="RefundAsync">@L["payments.refund", "Refund"]</MudButton>
                 </MudPaper>
             }
@@ -124,6 +135,8 @@ else
     private decimal _refundAmount;
     private string? _refundReason;
     private bool _refundToWallet = true;
+    private int? _refundBankAccountId;
+    private List<BankAccount> _bankAccounts = new();
 
     protected override async Task OnInitializedAsync()
     {
@@ -133,6 +146,8 @@ else
         _canRefund = AdminPolicies.Allows(user, RoleKeys.PaymentsRefund);
         if (int.TryParse(user.FindFirst(AdminClaimTypes.MemberId)?.Value, out var mid)) _currentMemberId = mid;
         await LoadAsync();
+        if (_canRefund && _order is not null)
+            _bankAccounts = await BankAccountService.GetByWebsiteAsync(_order.WebsiteID);
     }
 
     private async Task RefundAsync()
@@ -140,9 +155,15 @@ else
         if (_order is null || _currentMemberId is null) return;
         var payment = _order.Payments.FirstOrDefault(p => p.Status == (byte)PaymentStatus.Paid);
         if (payment is null) return;
+        if (!_refundToWallet && _refundBankAccountId is null)
+        {
+            Snackbar.Add(L["payments.bank_account_required", "Select a bank account."], Severity.Warning);
+            return;
+        }
 
         var (success, error, _) = await PaymentService.RefundAsync(
-            payment.PaymentID, _refundAmount, _refundReason, _refundToWallet, null, _currentMemberId.Value);
+            payment.PaymentID, _refundAmount, _refundReason, _refundToWallet,
+            _refundToWallet ? null : _refundBankAccountId, _currentMemberId.Value);
         if (success) { Snackbar.Add(L["saved", "Saved."], Severity.Success); await LoadAsync(); }
         else Snackbar.Add(error ?? L["save_failed", "Save failed"], Severity.Error);
     }
