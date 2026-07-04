@@ -29,7 +29,7 @@ else if (_item is not null)
         <MudPaper Elevation="0" Class="border rounded-lg pa-6 mb-4">
             <MudGrid Spacing="3">
                 <MudItem xs="12" sm="5">
-                    <MudTextField @bind-Value="_item.Tile" Label="@L["name", "Name"]" Variant="Variant.Outlined"
+                    <MudTextField @bind-Value="_item.Title" Label="@L["name", "Name"]" Variant="Variant.Outlined"
                                   Required="true" RequiredError="@L["required", "This field is required."]" />
                 </MudItem>
                 <MudItem xs="12" sm="3">
@@ -98,7 +98,7 @@ else if (_item is not null)
         {
             _item = new State
             {
-                Tile = string.Empty,
+                Title = string.Empty,
                 LanguageCode = "en",
                 Active = true,
                 CountryID = _countries.FirstOrDefault()?.CountryID ?? 0,

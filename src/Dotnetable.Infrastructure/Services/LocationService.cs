@@ -68,8 +68,8 @@ public class LocationService : ILocationService
 
         if (countryId.HasValue)
             q = q.Where(s => s.CountryID == countryId.Value);
-        if (query.GetSearch(nameof(State.Tile)) is string tile)
-            q = q.Where(s => s.Tile.Contains(tile));
+        if (query.GetSearch(nameof(State.Title)) is string title)
+            q = q.Where(s => s.Title.Contains(title));
         if (query.GetSearch(nameof(State.Active)) is string active && bool.TryParse(active, out var isActive))
             q = q.Where(s => s.Active == isActive);
 
@@ -85,7 +85,7 @@ public class LocationService : ILocationService
     public async Task<IEnumerable<State>> GetStatesByCountryAsync(int countryId, CancellationToken ct = default) =>
         await _context.States.AsNoTracking()
             .Where(s => s.CountryID == countryId && s.Active)
-            .OrderBy(s => s.Tile)
+            .OrderBy(s => s.Title)
             .ToListAsync(ct);
 
     public async Task<State?> GetStateByIdAsync(int id, CancellationToken ct = default) =>

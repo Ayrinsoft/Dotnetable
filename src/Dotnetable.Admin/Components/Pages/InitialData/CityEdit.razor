@@ -47,7 +47,7 @@ else if (_item is not null)
                                Variant="Variant.Outlined" Clearable="true">
                         @foreach (var s in _states)
                         {
-                            <MudSelectItem T="int?" Value="@((int?)s.StateID)">@s.Tile</MudSelectItem>
+                            <MudSelectItem T="int?" Value="@((int?)s.StateID)">@s.Title</MudSelectItem>
                         }
                     </MudSelect>
                 </MudItem>

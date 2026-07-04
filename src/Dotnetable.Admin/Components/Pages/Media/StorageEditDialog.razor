@@ -220,7 +220,7 @@
 @code {
     [CascadingParameter] private IMudDialogInstance MudDialog { get; set; } = null!;
     [Parameter] public int WebsiteID { get; set; }
-    [Parameter] public WebstieStorageSetting? Setting { get; set; }
+    [Parameter] public WebsiteStorageSetting? Setting { get; set; }
 
     private MudForm _form = null!;
     private bool _busy;
@@ -313,7 +313,7 @@
         {
             if (_isNew)
             {
-                await StorageService.CreateAsync(new WebstieStorageSetting
+                await StorageService.CreateAsync(new WebsiteStorageSetting
                 {
                     WebsiteID = WebsiteID,
                     StorageProvider = (short)_provider,

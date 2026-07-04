@@ -52,7 +52,7 @@
                                        Color="Color.Primary" Href="@($"/initial-data/states/{s.StateID}")" />
                     </td>
                     <td>@s.StateID</td>
-                    <td>@s.Tile</td>
+                    <td>@s.Title</td>
                     <td>@(s.Country?.Title ?? s.CountryID.ToString())</td>
                     <td>@s.LanguageCode</td>
                     <td>
@@ -87,7 +87,7 @@
             {
                 new() { ColumnTitle = "", ColumnName = "" },
                 new() { ColumnTitle = L["id", "ID"], ColumnName = nameof(State.StateID), HasSort = true },
-                new() { ColumnTitle = L["name", "Name"], ColumnName = nameof(State.Tile), HasSort = true, HasSearch = true },
+                new() { ColumnTitle = L["name", "Name"], ColumnName = nameof(State.Title), HasSort = true, HasSearch = true },
                 new() { ColumnTitle = L["country", "Country"], ColumnName = "" },
                 new() { ColumnTitle = L["language", "Language"], ColumnName = nameof(State.LanguageCode) },
                 new() { ColumnTitle = L["active", "Active"], ColumnName = nameof(State.Active), HasSearch = true,

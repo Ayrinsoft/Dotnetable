@@ -2,7 +2,7 @@ using Dotnetable.Domain.Enums;
 
 namespace Dotnetable.Application.DTOs;
 
-/// <summary>Strongly-typed view of a <c>WebstieStorageSetting</c> row used by the providers at runtime.</summary>
+/// <summary>Strongly-typed view of a <c>WebsiteStorageSetting</c> row used by the providers at runtime.</summary>
 public sealed class StorageSettingContext
 {
     public int WebsiteStorageSettingsID { get; init; }

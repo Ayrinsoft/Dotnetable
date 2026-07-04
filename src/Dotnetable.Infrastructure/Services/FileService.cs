@@ -59,7 +59,7 @@ public class FileService : IFileService
 
     public async Task<FileRecord> UploadAsync(FileUploadRequest request, CancellationToken ct = default)
     {
-        var setting = await _context.WebstieStorageSettings.AsNoTracking()
+        var setting = await _context.WebsiteStorageSettings.AsNoTracking()
             .FirstOrDefaultAsync(s => s.WebsiteStorageSettingsID == request.StorageSettingID
                 && s.WebsiteID == request.WebsiteID, ct)
             ?? throw new InvalidOperationException("Storage setting not found for this website.");
@@ -240,7 +240,7 @@ public class FileService : IFileService
     private static string? Truncate(string? value, int max) =>
         string.IsNullOrEmpty(value) ? value : (value.Length <= max ? value : value[..max]);
 
-    private static StorageSettingContext ToContext(WebstieStorageSetting s) => new()
+    private static StorageSettingContext ToContext(WebsiteStorageSetting s) => new()
     {
         WebsiteStorageSettingsID = s.WebsiteStorageSettingsID,
         WebsiteID = s.WebsiteID,

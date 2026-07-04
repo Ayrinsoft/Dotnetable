@@ -6,6 +6,7 @@
     [IsDefault]      BIT             NOT NULL,
     [LastUpdate]     DATETIME        NOT NULL,
     CONSTRAINT [PK_CurrencyRates] PRIMARY KEY CLUSTERED ([CurrencyRateID] ASC),
+    CONSTRAINT [FK_CurrencyRates_Currencies] FOREIGN KEY ([CurrencyCode]) REFERENCES [dbo].[Currencies] ([CurrencyCode]),
     CONSTRAINT [FK_CurrencyRates_Websites] FOREIGN KEY ([WebsiteID]) REFERENCES [dbo].[Websites] ([WebsiteID])
 );
 

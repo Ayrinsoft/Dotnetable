@@ -7,3 +7,6 @@
     CONSTRAINT [PK_Countries] PRIMARY KEY CLUSTERED ([CountryID] ASC)
 );
 
+-- Global master data (no WebsiteID): shared across every website and only editable from the
+-- master website (WebsiteID = 1) - enforced at the application layer, not by this table alone.
+
