@@ -41,9 +41,11 @@ public class OrderService : IOrderService
             return new CheckoutResult(false, "Cart is empty.", null, null);
 
         var address = await _context.WebsiteClientAddresses
+            .Include(a => a.City)
             .FirstOrDefaultAsync(a => a.WebsiteClientAddressID == addressId && a.WebsiteClientID == clientId, ct);
         if (address is null)
             return new CheckoutResult(false, "Address not found.", null, null);
+        var stateId = address.City?.StateID;
 
         // Stock re-validation: fail fast before touching anything.
         foreach (var item in cart.CartItems)
@@ -54,13 +56,13 @@ public class OrderService : IOrderService
         }
 
         var totalWeight = cart.CartItems.Sum(i => (i.ProductVariant.Weight ?? 0) * i.Quantity);
-        var shippingOptions = await _shipping.GetAvailableWithPricesAsync(websiteId, address.CountryId, null, address.CityId, totalWeight, ct);
+        var shippingOptions = await _shipping.GetAvailableWithPricesAsync(websiteId, address.CountryId, stateId, address.CityId, totalWeight, ct);
         var shippingOption = shippingOptions.FirstOrDefault(o => o.Method.ShippingMethodID == shippingMethodId);
         if (shippingOption.Method is null)
             return new CheckoutResult(false, "Selected shipping method is not available for this address.", null, null);
 
         var subtotalUsd = cart.CartItems.Sum(i => (i.ProductVariant.OverridePrice ?? i.ProductVariant.ReferencePriceUsd) * i.Quantity);
-        var taxUsd = await _tax.ComputeTaxAsync(websiteId, address.CountryId, null, subtotalUsd, ct);
+        var taxUsd = await _tax.ComputeTaxAsync(websiteId, address.CountryId, stateId, subtotalUsd, ct);
         var shippingUsd = shippingOption.PriceUsd;
 
         decimal discountUsd = 0;

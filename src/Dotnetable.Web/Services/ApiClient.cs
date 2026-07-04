@@ -402,10 +402,11 @@ public class ApiClient
 
     // ── Shipping ─────────────────────────────────────────────────────
 
-    public async Task<IReadOnlyList<ShippingOptionDto>> GetShippingOptionsAsync(int? countryId, int? cityId, decimal weightKg, CancellationToken ct = default)
+    public async Task<IReadOnlyList<ShippingOptionDto>> GetShippingOptionsAsync(int? countryId, int? stateId, int? cityId, decimal weightKg, CancellationToken ct = default)
     {
         var query = new List<string> { $"weightKg={weightKg}" };
         if (countryId is int c) query.Add($"countryId={c}");
+        if (stateId is int s) query.Add($"stateId={s}");
         if (cityId is int ci) query.Add($"cityId={ci}");
         try { return await _http.GetFromJsonAsync<List<ShippingOptionDto>>($"api/shipping/methods?{string.Join('&', query)}", ct) ?? new(); }
         catch (HttpRequestException) { return Array.Empty<ShippingOptionDto>(); }
