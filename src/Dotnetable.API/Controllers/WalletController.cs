@@ -17,11 +17,13 @@ public class WalletController : BaseController
 {
     private readonly IClientWalletService _wallet;
     private readonly IClientWalletWithdrawalService _withdrawals;
+    private readonly IWebsiteService _websiteService;
 
-    public WalletController(IClientWalletService wallet, IClientWalletWithdrawalService withdrawals)
+    public WalletController(IClientWalletService wallet, IClientWalletWithdrawalService withdrawals, IWebsiteService websiteService)
     {
         _wallet = wallet;
         _withdrawals = withdrawals;
+        _websiteService = websiteService;
     }
 
     [HttpGet]
@@ -49,9 +51,12 @@ public class WalletController : BaseController
         if (request.AmountUsd <= 0)
             return BadRequest(new { message = "Amount must be greater than zero." });
 
+        var website = await ResolveWebsiteAsync(_websiteService, ct);
+        if (website is null) return NotFound(new { message = "Website could not be resolved." });
+
         try
         {
-            var withdrawal = await _withdrawals.RequestAsync(CurrentWebsiteId, CurrentClientId, request.ClientBankAccountId, request.AmountUsd, ct);
+            var withdrawal = await _withdrawals.RequestAsync(website.WebsiteID, CurrentClientId, request.ClientBankAccountId, request.AmountUsd, ct);
             return Ok(ToDto(withdrawal, null));
         }
         catch (InvalidOperationException ex)

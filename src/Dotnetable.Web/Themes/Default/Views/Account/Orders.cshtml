@@ -1,0 +1,36 @@
+@using Dotnetable.Application.DTOs
+@using Dotnetable.Domain.Entities
+@model PagedResult<Order>
+@{
+    ViewData["Title"] = "My Orders";
+    Layout = "/Themes/Default/Views/Shared/_Layout.cshtml";
+}
+
+@await Html.PartialAsync("_PageHeader", ("My Orders", "Account"))
+
+<section class="site-section">
+    <div class="container">
+        @if (Model.Items.Count == 0)
+        {
+            <p class="text-muted">You haven't placed any orders yet.</p>
+        }
+        else
+        {
+            <table class="table">
+                <thead><tr><th>Order #</th><th>Date</th><th>Status</th><th>Total</th><th></th></tr></thead>
+                <tbody>
+                    @foreach (var o in Model.Items)
+                    {
+                        <tr>
+                            <td>@o.OrderNumber</td>
+                            <td>@o.CreatedAt.ToLocalTime().ToString("MMM d, yyyy")</td>
+                            <td>@((Dotnetable.Application.Interfaces.OrderStatus)o.Status)</td>
+                            <td>@o.GrandTotal.ToString("0.##") @o.CurrencyCode</td>
+                            <td><a asp-controller="Account" asp-action="OrderDetail" asp-route-id="@o.OrderID" class="btn btn-sm btn-outline-primary">View</a></td>
+                        </tr>
+                    }
+                </tbody>
+            </table>
+        }
+    </div>
+</section>

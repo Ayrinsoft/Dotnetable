@@ -17,8 +17,13 @@ namespace Dotnetable.API.Controllers;
 public class ClientBankAccountsController : BaseController
 {
     private readonly IClientBankAccountService _accounts;
+    private readonly IWebsiteService _websiteService;
 
-    public ClientBankAccountsController(IClientBankAccountService accounts) => _accounts = accounts;
+    public ClientBankAccountsController(IClientBankAccountService accounts, IWebsiteService websiteService)
+    {
+        _accounts = accounts;
+        _websiteService = websiteService;
+    }
 
     [HttpGet]
     public async Task<IActionResult> GetAll(CancellationToken ct = default)
@@ -41,9 +46,12 @@ public class ClientBankAccountsController : BaseController
         if (string.IsNullOrWhiteSpace(request.OwnerName))
             return BadRequest(new { message = "Owner name is required." });
 
+        var website = await ResolveWebsiteAsync(_websiteService, ct);
+        if (website is null) return NotFound(new { message = "Website could not be resolved." });
+
         var account = new ClientBankAccount
         {
-            WebsiteID = CurrentWebsiteId,
+            WebsiteID = website.WebsiteID,
             WebsiteClientID = CurrentClientId,
             BankID = request.BankID,
             OwnerName = request.OwnerName,
@@ -74,7 +82,6 @@ public class ClientBankAccountsController : BaseController
         var account = new ClientBankAccount
         {
             ClientBankAccountID = id,
-            WebsiteID = CurrentWebsiteId,
             WebsiteClientID = CurrentClientId,
             BankID = request.BankID,
             OwnerName = request.OwnerName,

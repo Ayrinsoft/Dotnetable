@@ -1,0 +1,81 @@
+@model Dotnetable.Web.Controllers.ShopController.ShopListView
+@{
+    var title = "Shop";
+    ViewData["Title"] = title;
+    Layout = "/Themes/Default/Views/Shared/_Layout.cshtml";
+}
+
+@await Html.PartialAsync("_PageHeader", (title, "Shop"))
+
+<section class="site-section">
+    <div class="container">
+        <div class="row g-4">
+            <div class="col-lg-3">
+                <h6 class="mb-3">Categories</h6>
+                <ul class="list-unstyled d-grid gap-2">
+                    <li><a asp-controller="Shop" asp-action="Index" class="@(Model.Category is null ? "fw-bold" : "")">All</a></li>
+                    @foreach (var c in Model.Categories)
+                    {
+                        <li><a asp-controller="Shop" asp-action="Category" asp-route-slug="@c.Slug" class="@(Model.Category == c.Slug ? "fw-bold" : "")">@c.Name</a></li>
+                    }
+                </ul>
+            </div>
+            <div class="col-lg-9">
+                <form method="get" class="d-flex mb-4 gap-2">
+                    <input type="text" name="search" value="@Model.Search" class="form-control" placeholder="Search products..." />
+                    <button class="btn btn-primary" type="submit">Search</button>
+                </form>
+
+                @if (Model.Products.Count == 0)
+                {
+                    <div class="text-center py-5"><p class="text-muted mb-0">No products to show yet.</p></div>
+                }
+                else
+                {
+                    <div class="row g-4">
+                        @foreach (var p in Model.Products)
+                        {
+                            <div class="col-md-6 col-lg-4">
+                                <div class="card h-100">
+                                    <a asp-controller="Shop" asp-action="Product" asp-route-slug="@p.Slug">
+                                        @if (!string.IsNullOrEmpty(p.FeaturedImageUrl))
+                                        {
+                                            <img src="@p.FeaturedImageUrl" class="card-img-top" alt="@p.Title" style="height:220px;object-fit:cover" />
+                                        }
+                                        else
+                                        {
+                                            <div style="height:220px;background:#1d2433"></div>
+                                        }
+                                    </a>
+                                    <div class="card-body">
+                                        <h6 class="card-title"><a asp-controller="Shop" asp-action="Product" asp-route-slug="@p.Slug" class="text-reset text-decoration-none">@p.Title</a></h6>
+                                        @if (!string.IsNullOrEmpty(p.BrandName))
+                                        {
+                                            <div class="text-muted small">@p.BrandName</div>
+                                        }
+                                        <div class="fw-bold mt-2">@p.MinPrice.Amount.ToString("0.##") @p.MinPrice.CurrencyCode</div>
+                                    </div>
+                                </div>
+                            </div>
+                        }
+                    </div>
+
+                    @if (Model.TotalPages > 1)
+                    {
+                        <nav class="mt-5" aria-label="Shop pages">
+                            <ul class="pagination justify-content-center">
+                                @for (var i = 1; i <= Model.TotalPages; i++)
+                                {
+                                    <li class="page-item @(i == Model.Page ? "active" : "")">
+                                        <a class="page-link" asp-controller="Shop" asp-action="Index"
+                                           asp-route-page="@i" asp-route-category="@Model.Category" asp-route-search="@Model.Search">@i</a>
+                                    </li>
+                                }
+                            </ul>
+                        </nav>
+                    }
+                }
+            </div>
+        </div>
+    </div>
+</section>

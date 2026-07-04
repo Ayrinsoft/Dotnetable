@@ -15,7 +15,8 @@ public class AccountController : Controller
 
     public AccountController(ApiClient api) => _api = api;
 
-    private void IssueSession(LoginResult token) =>
+    private async Task IssueSessionAsync(LoginResult token, CancellationToken ct)
+    {
         Response.Cookies.Append(ClientAuth.TokenCookie, token.AccessToken, new CookieOptions
         {
             HttpOnly = true,
@@ -23,6 +24,10 @@ public class AccountController : Controller
             SameSite = SameSiteMode.Lax,
             Expires = token.ExpiresAtUtc,
         });
+
+        // Fold any guest-cart items added before sign-in into the customer's own cart.
+        await _api.MergeCartAsync(token.AccessToken, ct);
+    }
 
     public sealed class LoginInput
     {
@@ -40,7 +45,7 @@ public class AccountController : Controller
 
         if (result.Ok && result.Token is not null)
         {
-            IssueSession(result.Token);
+            await IssueSessionAsync(result.Token, ct);
             return Ok(new { success = true });
         }
 
@@ -117,7 +122,7 @@ public class AccountController : Controller
 
         if (result.Ok && result.Token is not null)
         {
-            IssueSession(result.Token);
+            await IssueSessionAsync(result.Token, ct);
             return Ok(new { success = true });
         }
 
@@ -266,4 +271,101 @@ public class AccountController : Controller
         Phone = input.Phone?.Trim(),
         IsDefault = input.IsDefault,
     };
+
+    // ── Orders ───────────────────────────────────────────────────────
+
+    [HttpGet]
+    public async Task<IActionResult> Orders(int page = 1, CancellationToken ct = default)
+    {
+        if (!Request.Cookies.ContainsKey(ClientAuth.TokenCookie))
+            return RedirectToAction(nameof(HomeController.Index), "Home");
+
+        return View(await _api.GetOrdersAsync(page, 10, ct));
+    }
+
+    [HttpGet]
+    public async Task<IActionResult> OrderDetail(int id, CancellationToken ct = default)
+    {
+        if (!Request.Cookies.ContainsKey(ClientAuth.TokenCookie))
+            return RedirectToAction(nameof(HomeController.Index), "Home");
+
+        var order = await _api.GetOrderAsync(id, ct);
+        return order is null ? NotFound() : View(order);
+    }
+
+    // ── Wallet ───────────────────────────────────────────────────────
+
+    public sealed record WalletView(WalletBalanceDto Balance, PagedResult<WalletTransactionDto> Transactions, IReadOnlyList<ClientBankAccountDto> BankAccounts);
+
+    [HttpGet]
+    public async Task<IActionResult> Wallet(int page = 1, CancellationToken ct = default)
+    {
+        if (!Request.Cookies.ContainsKey(ClientAuth.TokenCookie))
+            return RedirectToAction(nameof(HomeController.Index), "Home");
+
+        var balance = await _api.GetWalletBalanceAsync(ct);
+        var transactions = await _api.GetWalletTransactionsAsync(page, 20, ct);
+        var bankAccounts = await _api.GetClientBankAccountsAsync(ct);
+        return View(new WalletView(balance, transactions, bankAccounts));
+    }
+
+    [HttpPost]
+    public async Task<IActionResult> RequestWithdrawal(int clientBankAccountId, decimal amountUsd, CancellationToken ct = default)
+    {
+        var result = await _api.RequestWithdrawalAsync(clientBankAccountId, amountUsd, ct);
+        if (!result.Ok) TempData["WalletError"] = result.Message ?? "Could not submit the withdrawal request.";
+        return RedirectToAction(nameof(Wallet));
+    }
+
+    public sealed class ClientBankAccountInput
+    {
+        public int? BankID { get; set; }
+        public string OwnerName { get; set; } = string.Empty;
+        public string? AccountNumber { get; set; }
+        public string? IBAN { get; set; }
+        public string? CardNumber { get; set; }
+        public bool IsDefault { get; set; }
+    }
+
+    [HttpPost]
+    public async Task<IActionResult> AddBankAccount([FromBody] ClientBankAccountInput input, CancellationToken ct = default)
+    {
+        var result = await _api.CreateClientBankAccountAsync(new ClientBankAccountRequest
+        {
+            BankID = input.BankID,
+            OwnerName = input.OwnerName.Trim(),
+            AccountNumber = input.AccountNumber,
+            IBAN = input.IBAN,
+            CardNumber = input.CardNumber,
+            IsDefault = input.IsDefault,
+        }, ct);
+        return result.Ok
+            ? Ok(new { success = true })
+            : StatusCode((int)result.Status, new { message = result.Message ?? "Could not save the bank account." });
+    }
+
+    // ── Wishlist ─────────────────────────────────────────────────────
+
+    [HttpGet]
+    public async Task<IActionResult> Wishlist(CancellationToken ct = default)
+    {
+        if (!Request.Cookies.ContainsKey(ClientAuth.TokenCookie))
+            return RedirectToAction(nameof(HomeController.Index), "Home");
+
+        return View(await _api.GetWishlistAsync(ct));
+    }
+
+    [HttpPost]
+    public async Task<IActionResult> AddToWishlist(int variantId, CancellationToken ct = default)
+    {
+        var result = await _api.AddToWishlistAsync(variantId, ct);
+        return result.Ok ? Ok(new { success = true }) : StatusCode((int)result.Status, new { message = result.Message });
+    }
+
+    [HttpPost]
+    public async Task<IActionResult> RemoveFromWishlist(int variantId, CancellationToken ct = default)
+    {
+        await _api.RemoveFromWishlistAsync(variantId, ct);
+        return RedirectToAction(nameof(Wishlist));
+    }
 }

@@ -20,6 +20,7 @@ builder.Services.AddMemoryCache();
 
 builder.Services.AddHttpContextAccessor();
 builder.Services.AddTransient<BearerTokenHandler>();
+builder.Services.AddTransient<CartSessionHandler>();
 
 builder.Services.AddHttpClient<ApiClient>(client =>
 {
@@ -36,7 +37,8 @@ builder.Services.AddHttpClient<ApiClient>(client =>
     if (!string.IsNullOrWhiteSpace(websiteKey))
         client.DefaultRequestHeaders.Add("X-Website-Key", websiteKey);
 })
-.AddHttpMessageHandler<BearerTokenHandler>();
+.AddHttpMessageHandler<BearerTokenHandler>()
+.AddHttpMessageHandler<CartSessionHandler>();
 
 builder.Services.AddScoped<ContentShortcodeProcessor>();
 

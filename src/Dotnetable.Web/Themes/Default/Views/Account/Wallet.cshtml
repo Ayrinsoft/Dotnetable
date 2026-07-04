@@ -1,0 +1,67 @@
+@model Dotnetable.Web.Controllers.AccountController.WalletView
+@{
+    ViewData["Title"] = "My Wallet";
+    Layout = "/Themes/Default/Views/Shared/_Layout.cshtml";
+}
+
+@await Html.PartialAsync("_PageHeader", ("My Wallet", "Account"))
+
+<section class="site-section">
+    <div class="container" style="max-width:720px">
+        @if (TempData["WalletError"] is string err)
+        {
+            <div class="alert alert-danger">@err</div>
+        }
+        <div class="card mb-4">
+            <div class="card-body">
+                <h6 class="card-title">Balance</h6>
+                <div class="fs-3 fw-bold">@Model.Balance.BalanceUsd.ToString("0.##") USD</div>
+            </div>
+        </div>
+
+        @if (Model.BankAccounts.Count > 0)
+        {
+            <div class="card mb-4">
+                <div class="card-body">
+                    <h6 class="card-title">Request a withdrawal</h6>
+                    <form asp-controller="Account" asp-action="RequestWithdrawal" method="post" class="row g-2">
+                        <div class="col-6">
+                            <select name="clientBankAccountId" class="form-select">
+                                @foreach (var b in Model.BankAccounts)
+                                {
+                                    <option value="@b.ClientBankAccountID">@b.BankName — @(b.IBAN ?? b.CardNumber)</option>
+                                }
+                            </select>
+                        </div>
+                        <div class="col-4">
+                            <input type="number" step="0.01" name="amountUsd" class="form-control" placeholder="Amount (USD)" />
+                        </div>
+                        <div class="col-2">
+                            <button type="submit" class="btn btn-outline-primary w-100">Request</button>
+                        </div>
+                    </form>
+                </div>
+            </div>
+        }
+        else
+        {
+            <div class="alert alert-info">Add a bank account from your profile to request withdrawals.</div>
+        }
+
+        <h6>Transaction history</h6>
+        <table class="table">
+            <thead><tr><th>Date</th><th>Type</th><th>Amount</th><th>Balance after</th></tr></thead>
+            <tbody>
+                @foreach (var t in Model.Transactions.Items)
+                {
+                    <tr>
+                        <td>@t.CreatedAt.ToLocalTime().ToString("MMM d, yyyy")</td>
+                        <td>@((Dotnetable.Application.DTOs.ClientWalletTransactionType)t.Type)</td>
+                        <td class="@(t.AmountUsd >= 0 ? "text-success" : "text-danger")">@t.AmountUsd.ToString("+0.##;-0.##")</td>
+                        <td>@t.BalanceAfterUsd.ToString("0.##")</td>
+                    </tr>
+                }
+            </tbody>
+        </table>
+    </div>
+</section>

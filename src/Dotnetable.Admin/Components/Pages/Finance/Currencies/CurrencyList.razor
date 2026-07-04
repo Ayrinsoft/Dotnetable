@@ -1,0 +1,98 @@
+@page "/finance/currencies"
+@attribute [Authorize(Policy = AdminPolicies.SuperAdminOnly)]
+@inject ICurrencyService CurrencyService
+@inject IDialogService DialogService
+@inject ISnackbar Snackbar
+@inject IPageLocalizer L
+
+<DNPageTitle Title=@L["currencies", "Currencies"] />
+
+<MudStack Row="true" AlignItems="AlignItems.Center" Justify="Justify.SpaceBetween" Class="mb-4">
+    <MudStack Spacing="0">
+        <MudText Typo="Typo.h5" Class="fw-bold">@L["currencies", "Currencies"]</MudText>
+        <MudText Typo="Typo.body2" Color="Color.Secondary">@L["currencies.subtitle", "Global currency master list. Per-website exchange rates are managed on each website's settings."]</MudText>
+    </MudStack>
+    <MudButton Variant="Variant.Filled" Color="Color.Primary" StartIcon="@Icons.Material.Filled.Add" OnClick="CreateAsync">
+        @L["currencies.new", "New Currency"]
+    </MudButton>
+</MudStack>
+
+<MudPaper Elevation="0" Class="app-card rounded-lg pa-4">
+    @if (_loading)
+    {
+        <MudProgressLinear Indeterminate="true" Color="Color.Primary" Class="mb-3" />
+    }
+    else
+    {
+        <MudSimpleTable Dense="true" Hover="true" Elevation="0">
+            <thead><tr><th>@L["currencies.code", "Code"]</th><th>@L["name", "Name"]</th><th>@L["currencies.symbol", "Symbol"]</th><th>@L["currencies.decimals", "Decimals"]</th><th>@L["active", "Active"]</th><th style="width:1%"></th></tr></thead>
+            <tbody>
+                @foreach (var c in _items)
+                {
+                    <tr>
+                        <td><code>@c.CurrencyCode</code></td>
+                        <td>@c.Name</td>
+                        <td>@c.Symbol</td>
+                        <td>@c.DecimalDigits</td>
+                        <td>@(c.IsActive ? L["yes", "Yes"] : L["no", "No"])</td>
+                        <td>
+                            <MudStack Row="true" Spacing="0">
+                                <MudIconButton Icon="@Icons.Material.Filled.Edit" Size="Size.Small" OnClick="@(() => EditAsync(c))" />
+                                <MudIconButton Icon="@Icons.Material.Filled.Delete" Size="Size.Small" Color="Color.Error" OnClick="@(() => DeleteAsync(c))" />
+                            </MudStack>
+                        </td>
+                    </tr>
+                }
+            </tbody>
+        </MudSimpleTable>
+    }
+</MudPaper>
+
+@code {
+    private bool _loading = true;
+    private List<Currency> _items = new();
+
+    protected override async Task OnInitializedAsync()
+    {
+        await L.EnsureLoadedAsync();
+        await LoadAsync();
+    }
+
+    private async Task LoadAsync()
+    {
+        _loading = true;
+        _items = await CurrencyService.GetAllAsync();
+        _loading = false;
+    }
+
+    private async Task CreateAsync()
+    {
+        if (await ShowDialogAsync(new Currency { IsActive = true, DecimalDigits = 2 }, true)) await LoadAsync();
+    }
+
+    private async Task EditAsync(Currency c)
+    {
+        var copy = new Currency { CurrencyCode = c.CurrencyCode, Name = c.Name, Symbol = c.Symbol, DecimalDigits = c.DecimalDigits, IsActive = c.IsActive };
+        if (await ShowDialogAsync(copy, false)) await LoadAsync();
+    }
+
+    private async Task<bool> ShowDialogAsync(Currency model, bool isNew)
+    {
+        var parameters = new DialogParameters<CurrencyDialog> { { x => x.Model, model }, { x => x.IsNew, isNew } };
+        var dialog = await DialogService.ShowAsync<CurrencyDialog>(
+            isNew ? L["currencies.new", "New Currency"] : L["currencies.edit", "Edit Currency"], parameters);
+        var result = await dialog.Result;
+        return result is not null && !result.Canceled;
+    }
+
+    private async Task DeleteAsync(Currency c)
+    {
+        var confirmed = await DialogService.ShowMessageBoxAsync(
+            L["currencies.delete", "Delete currency"], L["currencies.delete_confirm", "Delete this currency?"],
+            yesText: L["delete", "Delete"], cancelText: L["cancel", "Cancel"]);
+        if (confirmed != true) return;
+        await CurrencyService.DeleteAsync(c.CurrencyCode);
+        Snackbar.Add(L["deleted", "Deleted."], Severity.Success);
+        await LoadAsync();
+    }
+}

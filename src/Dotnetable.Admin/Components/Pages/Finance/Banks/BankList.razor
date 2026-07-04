@@ -1,0 +1,96 @@
+@page "/finance/banks"
+@attribute [Authorize(Policy = AdminPolicies.SuperAdminOnly)]
+@inject IBankService BankService
+@inject IDialogService DialogService
+@inject ISnackbar Snackbar
+@inject IPageLocalizer L
+
+<DNPageTitle Title=@L["banks", "Banks"] />
+
+<MudStack Row="true" AlignItems="AlignItems.Center" Justify="Justify.SpaceBetween" Class="mb-4">
+    <MudStack Spacing="0">
+        <MudText Typo="Typo.h5" Class="fw-bold">@L["banks", "Banks"]</MudText>
+        <MudText Typo="Typo.body2" Color="Color.Secondary">@L["banks.subtitle", "Global bank list shared by every website's bank accounts."]</MudText>
+    </MudStack>
+    <MudButton Variant="Variant.Filled" Color="Color.Primary" StartIcon="@Icons.Material.Filled.Add" OnClick="CreateAsync">
+        @L["banks.new", "New Bank"]
+    </MudButton>
+</MudStack>
+
+<MudPaper Elevation="0" Class="app-card rounded-lg pa-4">
+    @if (_loading)
+    {
+        <MudProgressLinear Indeterminate="true" Color="Color.Primary" Class="mb-3" />
+    }
+    else
+    {
+        <MudSimpleTable Dense="true" Hover="true" Elevation="0">
+            <thead><tr><th>@L["name", "Name"]</th><th>@L["banks.code", "Code"]</th><th>@L["active", "Active"]</th><th style="width:1%"></th></tr></thead>
+            <tbody>
+                @foreach (var b in _items)
+                {
+                    <tr>
+                        <td>@b.Name</td>
+                        <td><code>@b.BankCode</code></td>
+                        <td>@(b.Active ? L["yes", "Yes"] : L["no", "No"])</td>
+                        <td>
+                            <MudStack Row="true" Spacing="0">
+                                <MudIconButton Icon="@Icons.Material.Filled.Edit" Size="Size.Small" OnClick="@(() => EditAsync(b))" />
+                                <MudIconButton Icon="@Icons.Material.Filled.Delete" Size="Size.Small" Color="Color.Error" OnClick="@(() => DeleteAsync(b))" />
+                            </MudStack>
+                        </td>
+                    </tr>
+                }
+            </tbody>
+        </MudSimpleTable>
+    }
+</MudPaper>
+
+@code {
+    private bool _loading = true;
+    private List<Bank> _items = new();
+
+    protected override async Task OnInitializedAsync()
+    {
+        await L.EnsureLoadedAsync();
+        await LoadAsync();
+    }
+
+    private async Task LoadAsync()
+    {
+        _loading = true;
+        _items = await BankService.GetAllAsync();
+        _loading = false;
+    }
+
+    private async Task CreateAsync()
+    {
+        if (await ShowDialogAsync(new Bank { Active = true }, true)) await LoadAsync();
+    }
+
+    private async Task EditAsync(Bank b)
+    {
+        var copy = new Bank { BankID = b.BankID, Name = b.Name, BankCode = b.BankCode, LogoFileID = b.LogoFileID, Active = b.Active };
+        if (await ShowDialogAsync(copy, false)) await LoadAsync();
+    }
+
+    private async Task<bool> ShowDialogAsync(Bank model, bool isNew)
+    {
+        var parameters = new DialogParameters<BankDialog> { { x => x.Model, model }, { x => x.IsNew, isNew } };
+        var dialog = await DialogService.ShowAsync<BankDialog>(
+            isNew ? L["banks.new", "New Bank"] : L["banks.edit", "Edit Bank"], parameters);
+        var result = await dialog.Result;
+        return result is not null && !result.Canceled;
+    }
+
+    private async Task DeleteAsync(Bank b)
+    {
+        var confirmed = await DialogService.ShowMessageBoxAsync(
+            L["banks.delete", "Delete bank"], L["banks.delete_confirm", "Delete this bank?"],
+            yesText: L["delete", "Delete"], cancelText: L["cancel", "Cancel"]);
+        if (confirmed != true) return;
+        await BankService.DeleteAsync(b.BankID);
+        Snackbar.Add(L["deleted", "Deleted."], Severity.Success);
+        await LoadAsync();
+    }
+}

@@ -1,0 +1,95 @@
+@using Dotnetable.Application.DTOs
+@model CartViewDto?
+@{
+    ViewData["Title"] = "Cart";
+    Layout = "/Themes/Default/Views/Shared/_Layout.cshtml";
+}
+
+@await Html.PartialAsync("_PageHeader", ("Your Cart", "Cart"))
+
+<section class="site-section">
+    <div class="container">
+        @if (Model is null || Model.Items.Count == 0)
+        {
+            <div class="text-center py-5">
+                <p class="text-muted mb-3">Your cart is empty.</p>
+                <a asp-controller="Shop" asp-action="Index" class="btn btn-primary">Continue shopping</a>
+            </div>
+        }
+        else
+        {
+            @if (TempData["CouponError"] is string couponError)
+            {
+                <div class="alert alert-danger">@couponError</div>
+            }
+            <div class="row g-4">
+                <div class="col-lg-8">
+                    <table class="table align-middle">
+                        <thead><tr><th>Product</th><th>Price</th><th>Qty</th><th>Total</th><th></th></tr></thead>
+                        <tbody>
+                            @foreach (var item in Model.Items)
+                            {
+                                <tr>
+                                    <td class="d-flex align-items-center gap-2">
+                                        @if (!string.IsNullOrEmpty(item.ImageUrl))
+                                        {
+                                            <img src="@item.ImageUrl" style="width:50px;height:50px;object-fit:cover" class="rounded" />
+                                        }
+                                        <div>
+                                            @item.Title
+                                            @if (!item.IsAvailable)
+                                            {
+                                                <div class="text-danger small">Only @item.MaxPurchasable available</div>
+                                            }
+                                        </div>
+                                    </td>
+                                    <td>@item.UnitPrice.Amount.ToString("0.##") @item.UnitPrice.CurrencyCode</td>
+                                    <td style="width:120px">
+                                        <form asp-controller="Cart" asp-action="UpdateQuantity" method="post" class="d-flex gap-1">
+                                            <input type="hidden" name="cartItemId" value="@item.CartItemID" />
+                                            <input type="number" name="quantity" value="@item.Quantity" min="1" class="form-control form-control-sm" />
+                                            <button type="submit" class="btn btn-sm btn-outline-secondary">↻</button>
+                                        </form>
+                                    </td>
+                                    <td>@item.LineTotal.Amount.ToString("0.##") @item.LineTotal.CurrencyCode</td>
+                                    <td>
+                                        <form asp-controller="Cart" asp-action="RemoveItem" method="post">
+                                            <input type="hidden" name="cartItemId" value="@item.CartItemID" />
+                                            <button type="submit" class="btn btn-sm btn-outline-danger"><i class="bi bi-trash"></i></button>
+                                        </form>
+                                    </td>
+                                </tr>
+                            }
+                        </tbody>
+                    </table>
+                </div>
+                <div class="col-lg-4">
+                    <div class="card">
+                        <div class="card-body">
+                            <h6 class="card-title">Summary</h6>
+                            <div class="d-flex justify-content-between"><span>Subtotal</span><span>@Model.SubTotal.Amount.ToString("0.##") @Model.SubTotal.CurrencyCode</span></div>
+                            @if (Model.DiscountAmount is not null)
+                            {
+                                <div class="d-flex justify-content-between text-success">
+                                    <span>Coupon (@Model.CouponCode)</span><span>-@Model.DiscountAmount.Amount.ToString("0.##")</span>
+                                </div>
+                                <form asp-controller="Cart" asp-action="RemoveCoupon" method="post" class="mt-1">
+                                    <button type="submit" class="btn btn-link btn-sm p-0">Remove coupon</button>
+                                </form>
+                            }
+                            else
+                            {
+                                <form asp-controller="Cart" asp-action="ApplyCoupon" method="post" class="d-flex gap-1 mt-2">
+                                    <input type="text" name="code" class="form-control form-control-sm" placeholder="Coupon code" />
+                                    <button type="submit" class="btn btn-sm btn-outline-secondary">Apply</button>
+                                </form>
+                            }
+                            <hr />
+                            <a asp-controller="Checkout" asp-action="Index" class="btn btn-primary w-100">Checkout</a>
+                        </div>
+                    </div>
+                </div>
+            </div>
+        }
+    </div>
+</section>

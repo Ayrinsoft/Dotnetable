@@ -1,0 +1,59 @@
+@inject ICurrencyRateService CurrencyRateService
+@inject ISnackbar Snackbar
+@inject IPageLocalizer L
+
+<MudDialog>
+    <DialogContent>
+        <MudForm @ref="_form">
+            <MudGrid Spacing="3">
+                <MudItem xs="12">
+                    <MudSelect T="string" @bind-Value="Model.CurrencyCode" Label="@L["currencies.code", "Currency"]" Variant="Variant.Outlined" Required="true" Disabled="@(!IsNew)">
+                        @foreach (var c in Currencies)
+                        {
+                            <MudSelectItem T="string" Value="@c.CurrencyCode">@c.CurrencyCode — @c.Name</MudSelectItem>
+                        }
+                    </MudSelect>
+                </MudItem>
+                <MudItem xs="12">
+                    <MudNumericField T="decimal" @bind-Value="Model.USDToCurrency" Label="@L["currency_rates.rate", "1 USD = ? currency"]" Variant="Variant.Outlined" Min="0" Format="0.####" />
+                </MudItem>
+                <MudItem xs="12">
+                    <MudSwitch T="bool" @bind-Value="Model.IsDefault" Label="@L["currency_rates.default", "Default display currency"]" Color="Color.Primary" />
+                </MudItem>
+            </MudGrid>
+        </MudForm>
+    </DialogContent>
+    <DialogActions>
+        <MudButton OnClick="Cancel">@L["cancel", "Cancel"]</MudButton>
+        <MudButton Variant="Variant.Filled" Color="Color.Primary" OnClick="SaveAsync" Disabled="@_saving">@L["save", "Save"]</MudButton>
+    </DialogActions>
+</MudDialog>
+
+@code {
+    [CascadingParameter] private IMudDialogInstance MudDialog { get; set; } = null!;
+    [Parameter] public CurrencyRate Model { get; set; } = new();
+    [Parameter] public bool IsNew { get; set; }
+    [Parameter] public List<Currency> Currencies { get; set; } = new();
+
+    private MudForm _form = null!;
+    private bool _saving;
+
+    private void Cancel() => MudDialog.Cancel();
+
+    private async Task SaveAsync()
+    {
+        await _form.Validate();
+        if (!_form.IsValid || string.IsNullOrEmpty(Model.CurrencyCode)) return;
+
+        _saving = true;
+        try
+        {
+            if (IsNew) await CurrencyRateService.CreateAsync(Model);
+            else await CurrencyRateService.UpdateAsync(Model);
+            Snackbar.Add(L["saved", "Saved."], Severity.Success);
+            MudDialog.Close(DialogResult.Ok(true));
+        }
+        catch (Exception ex) { Snackbar.Add($"{L["save_failed", "Save failed"]}: {ex.Message}", Severity.Error); }
+        finally { _saving = false; }
+    }
+}

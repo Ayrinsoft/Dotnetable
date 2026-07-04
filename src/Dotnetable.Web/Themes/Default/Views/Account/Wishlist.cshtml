@@ -1,0 +1,48 @@
+@using Dotnetable.Web.Services
+@model IReadOnlyList<WishlistItemView>
+@{
+    ViewData["Title"] = "My Wishlist";
+    Layout = "/Themes/Default/Views/Shared/_Layout.cshtml";
+}
+
+@await Html.PartialAsync("_PageHeader", ("My Wishlist", "Account"))
+
+<section class="site-section">
+    <div class="container">
+        @if (Model.Count == 0)
+        {
+            <p class="text-muted">Your wishlist is empty.</p>
+        }
+        else
+        {
+            <div class="row g-4">
+                @foreach (var item in Model)
+                {
+                    <div class="col-md-3">
+                        <div class="card h-100">
+                            @if (!string.IsNullOrEmpty(item.ImageUrl))
+                            {
+                                <img src="@item.ImageUrl" class="card-img-top" style="height:160px;object-fit:cover" />
+                            }
+                            <div class="card-body">
+                                <h6 class="card-title">@item.Title</h6>
+                                <div class="fw-bold">@item.PriceUsd.ToString("0.##") USD</div>
+                                <div class="d-flex gap-2 mt-2">
+                                    <form asp-controller="Shop" asp-action="AddToCart" method="post">
+                                        <input type="hidden" name="variantId" value="@item.ProductVariantID" />
+                                        <input type="hidden" name="quantity" value="1" />
+                                        <button type="submit" class="btn btn-sm btn-primary">Add to cart</button>
+                                    </form>
+                                    <form asp-controller="Account" asp-action="RemoveFromWishlist" method="post">
+                                        <input type="hidden" name="variantId" value="@item.ProductVariantID" />
+                                        <button type="submit" class="btn btn-sm btn-outline-danger"><i class="bi bi-trash"></i></button>
+                                    </form>
+                                </div>
+                            </div>
+                        </div>
+                    </div>
+                }
+            </div>
+        }
+    </div>
+</section>

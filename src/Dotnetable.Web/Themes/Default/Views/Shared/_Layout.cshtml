@@ -79,21 +79,31 @@
                     else
                     {
                         <li class="nav-item"><a class="nav-link @Active("Home")" asp-controller="Home" asp-action="Index">Home</a></li>
+                        <li class="nav-item"><a class="nav-link @Active("Shop")" asp-controller="Shop" asp-action="Index">Shop</a></li>
                         <li class="nav-item"><a class="nav-link" asp-controller="Home" asp-action="About">About</a></li>
-                        <li class="nav-item"><a class="nav-link" asp-controller="Home" asp-action="Services">Services</a></li>
                         <li class="nav-item"><a class="nav-link @Active("Blog")" asp-controller="Blog" asp-action="Index">Blog</a></li>
                         <li class="nav-item"><a class="nav-link" asp-controller="Home" asp-action="Contact">Contact</a></li>
                     }
                 </ul>
-                <div class="d-flex gap-2">
+                <div class="d-flex gap-2 align-items-center">
+                    <a class="btn btn-outline-secondary" asp-controller="Cart" asp-action="Index" title="Cart">
+                        <i class="bi bi-cart3"></i>
+                    </a>
                     @if (isLoggedIn)
                     {
-                        <a class="btn btn-outline-secondary" asp-controller="Account" asp-action="Addresses">
-                            <i class="bi bi-geo-alt me-1"></i>My Addresses
-                        </a>
-                        <button type="button" class="btn btn-outline-secondary" onclick="doLogout()">
-                            <i class="bi bi-box-arrow-right me-1"></i>Logout
-                        </button>
+                        <div class="dropdown">
+                            <button class="btn btn-outline-secondary dropdown-toggle" type="button" data-bs-toggle="dropdown">
+                                <i class="bi bi-person me-1"></i>My Account
+                            </button>
+                            <ul class="dropdown-menu dropdown-menu-end">
+                                <li><a class="dropdown-item" asp-controller="Account" asp-action="Orders">My Orders</a></li>
+                                <li><a class="dropdown-item" asp-controller="Account" asp-action="Wallet">My Wallet</a></li>
+                                <li><a class="dropdown-item" asp-controller="Account" asp-action="Wishlist">My Wishlist</a></li>
+                                <li><a class="dropdown-item" asp-controller="Account" asp-action="Addresses">My Addresses</a></li>
+                                <li><hr class="dropdown-divider" /></li>
+                                <li><button type="button" class="dropdown-item" onclick="doLogout()">Logout</button></li>
+                            </ul>
+                        </div>
                     }
                     else
                     {
