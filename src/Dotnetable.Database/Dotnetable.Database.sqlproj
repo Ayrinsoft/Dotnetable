@@ -154,6 +154,16 @@
     <Build Include="PolicyRoles.sql" />
     <Build Include="PostTypes.sql" />
     <Build Include="Policies.sql" />
+    <Build Include="Currencies.sql" />
+    <Build Include="Coupons.sql" />
+    <Build Include="CouponRedemptions.sql" />
+    <Build Include="Carts.sql" />
+    <Build Include="CartItems.sql" />
+    <Build Include="ShippingMethods.sql" />
+    <Build Include="ShippingRates.sql" />
+    <Build Include="TaxRates.sql" />
+    <Build Include="WishlistItems.sql" />
+    <Build Include="Wishlists.sql" />
   </ItemGroup>
   <Import Project="$(MSBuildExtensionsPath)\Microsoft\VisualStudio\v$(VisualStudioVersion)\SSDT\Microsoft.Data.Tools.Schema.SqlTasks.targets" Condition="'$(VisualStudioVersion)' != '' And Exists('$(MSBuildExtensionsPath)\Microsoft\VisualStudio\v$(VisualStudioVersion)\SSDT\Microsoft.Data.Tools.Schema.SqlTasks.targets')" />
   <Import Project="$(MSBuildExtensionsPath)\Microsoft\VisualStudio\SSDT\Microsoft.Data.Tools.Schema.SqlTasks.targets" Condition="'$(VisualStudioVersion)' == '' And Exists('$(MSBuildExtensionsPath)\Microsoft\VisualStudio\SSDT\Microsoft.Data.Tools.Schema.SqlTasks.targets')" />

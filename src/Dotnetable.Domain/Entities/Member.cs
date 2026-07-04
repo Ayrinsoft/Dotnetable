@@ -43,6 +43,8 @@ public partial class Member
 
     public virtual ICollection<ClientWalletWithdrawal> ClientWalletWithdrawals { get; set; } = new List<ClientWalletWithdrawal>();
 
+    public virtual ICollection<Coupon> Coupons { get; set; } = new List<Coupon>();
+
     public virtual ICollection<EmailSubscribe> EmailSubscribes { get; set; } = new List<EmailSubscribe>();
 
     public virtual ICollection<FileRecord> FileRecords { get; set; } = new List<FileRecord>();

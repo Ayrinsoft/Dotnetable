@@ -19,7 +19,11 @@ public partial class Country
 
     public virtual ICollection<CountryTranslation> CountryTranslations { get; set; } = new List<CountryTranslation>();
 
+    public virtual ICollection<ShippingRate> ShippingRates { get; set; } = new List<ShippingRate>();
+
     public virtual ICollection<State> States { get; set; } = new List<State>();
+
+    public virtual ICollection<TaxRate> TaxRates { get; set; } = new List<TaxRate>();
 
     public virtual ICollection<WebsiteClientAddress> WebsiteClientAddresses { get; set; } = new List<WebsiteClientAddress>();
 }

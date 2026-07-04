@@ -47,6 +47,8 @@ public partial class Payment
 
     public virtual ClientWalletTransaction? ClientWalletTransaction { get; set; }
 
+    public virtual Currency CurrencyCodeNavigation { get; set; } = null!;
+
     public virtual Order? Order { get; set; }
 
     public virtual PaymentGateway? PaymentGateway { get; set; }

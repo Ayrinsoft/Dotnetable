@@ -28,6 +28,10 @@ public partial class AppDbContext : DbContext
 
     public virtual DbSet<BrandTranslation> BrandTranslations { get; set; }
 
+    public virtual DbSet<Cart> Carts { get; set; }
+
+    public virtual DbSet<CartItem> CartItems { get; set; }
+
     public virtual DbSet<Category> Categories { get; set; }
 
     public virtual DbSet<CategoryTranslation> CategoryTranslations { get; set; }
@@ -51,6 +55,12 @@ public partial class AppDbContext : DbContext
     public virtual DbSet<Country> Countries { get; set; }
 
     public virtual DbSet<CountryTranslation> CountryTranslations { get; set; }
+
+    public virtual DbSet<Coupon> Coupons { get; set; }
+
+    public virtual DbSet<CouponRedemption> CouponRedemptions { get; set; }
+
+    public virtual DbSet<Currency> Currencies { get; set; }
 
     public virtual DbSet<CurrencyRate> CurrencyRates { get; set; }
 
@@ -164,6 +174,10 @@ public partial class AppDbContext : DbContext
 
     public virtual DbSet<SettlementItem> SettlementItems { get; set; }
 
+    public virtual DbSet<ShippingMethod> ShippingMethods { get; set; }
+
+    public virtual DbSet<ShippingRate> ShippingRates { get; set; }
+
     public virtual DbSet<State> States { get; set; }
 
     public virtual DbSet<StateTranslation> StateTranslations { get; set; }
@@ -175,6 +189,8 @@ public partial class AppDbContext : DbContext
     public virtual DbSet<Tag> Tags { get; set; }
 
     public virtual DbSet<TagTranslation> TagTranslations { get; set; }
+
+    public virtual DbSet<TaxRate> TaxRates { get; set; }
 
     public virtual DbSet<VariantAttributeValue> VariantAttributeValues { get; set; }
 
@@ -203,6 +219,10 @@ public partial class AppDbContext : DbContext
     public virtual DbSet<WebsiteSocialLink> WebsiteSocialLinks { get; set; }
 
     public virtual DbSet<WebsiteStorageSetting> WebsiteStorageSettings { get; set; }
+
+    public virtual DbSet<Wishlist> Wishlists { get; set; }
+
+    public virtual DbSet<WishlistItem> WishlistItems { get; set; }
 
     protected override void OnModelCreating(ModelBuilder modelBuilder)
     {
@@ -338,6 +358,56 @@ public partial class AppDbContext : DbContext
                 .HasForeignKey(d => d.BrandID)
                 .OnDelete(DeleteBehavior.ClientSetNull)
                 .HasConstraintName("FK_BrandTranslations_Brands");
+        });
+
+        modelBuilder.Entity<Cart>(entity =>
+        {
+            entity.Property(e => e.CreatedAt)
+                .HasPrecision(0)
+                .HasDefaultValueSql("(sysutcdatetime())", "DF_Carts_CreatedAt");
+            entity.Property(e => e.SessionKey)
+                .HasMaxLength(64)
+                .IsUnicode(false);
+            entity.Property(e => e.UpdatedAt)
+                .HasPrecision(0)
+                .HasDefaultValueSql("(sysutcdatetime())", "DF_Carts_UpdatedAt");
+
+            entity.HasOne(d => d.Coupon).WithMany(p => p.Carts)
+                .HasForeignKey(d => d.CouponID)
+                .HasConstraintName("FK_Carts_Coupons");
+
+            entity.HasOne(d => d.WebsiteClient).WithMany(p => p.Carts)
+                .HasForeignKey(d => d.WebsiteClientID)
+                .HasConstraintName("FK_Carts_WebsiteClients");
+
+            entity.HasOne(d => d.Website).WithMany(p => p.Carts)
+                .HasForeignKey(d => d.WebsiteID)
+                .OnDelete(DeleteBehavior.ClientSetNull)
+                .HasConstraintName("FK_Carts_Websites");
+        });
+
+        modelBuilder.Entity<CartItem>(entity =>
+        {
+            entity.HasIndex(e => new { e.CartID, e.ProductVariantID, e.VendorProductID }, "UQ_CartItems_CartID_ProductVariantID_VendorProductID").IsUnique();
+
+            entity.Property(e => e.AddedAt)
+                .HasPrecision(0)
+                .HasDefaultValueSql("(sysutcdatetime())", "DF_CartItems_AddedAt");
+            entity.Property(e => e.Quantity).HasDefaultValue(1, "DF_CartItems_Quantity");
+
+            entity.HasOne(d => d.Cart).WithMany(p => p.CartItems)
+                .HasForeignKey(d => d.CartID)
+                .OnDelete(DeleteBehavior.ClientSetNull)
+                .HasConstraintName("FK_CartItems_Carts");
+
+            entity.HasOne(d => d.ProductVariant).WithMany(p => p.CartItems)
+                .HasForeignKey(d => d.ProductVariantID)
+                .OnDelete(DeleteBehavior.ClientSetNull)
+                .HasConstraintName("FK_CartItems_ProductVariants");
+
+            entity.HasOne(d => d.VendorProduct).WithMany(p => p.CartItems)
+                .HasForeignKey(d => d.VendorProductID)
+                .HasConstraintName("FK_CartItems_VendorProducts");
         });
 
         modelBuilder.Entity<Category>(entity =>
@@ -594,6 +664,72 @@ public partial class AppDbContext : DbContext
                 .HasConstraintName("FK_CountryTranslations_Countries");
         });
 
+        modelBuilder.Entity<Coupon>(entity =>
+        {
+            entity.HasIndex(e => new { e.WebsiteID, e.Code }, "UQ_Coupons_WebsiteID_Code").IsUnique();
+
+            entity.Property(e => e.Code)
+                .HasMaxLength(40)
+                .IsUnicode(false);
+            entity.Property(e => e.CreatedAt)
+                .HasPrecision(0)
+                .HasDefaultValueSql("(sysutcdatetime())", "DF_Coupons_CreatedAt");
+            entity.Property(e => e.DiscountValue).HasColumnType("decimal(18, 4)");
+            entity.Property(e => e.EndsAt).HasPrecision(0);
+            entity.Property(e => e.IsActive).HasDefaultValue(true, "DF_Coupons_IsActive");
+            entity.Property(e => e.MaxDiscountAmountUsd).HasColumnType("decimal(18, 4)");
+            entity.Property(e => e.MinOrderAmountUsd).HasColumnType("decimal(18, 4)");
+            entity.Property(e => e.StartsAt).HasPrecision(0);
+
+            entity.HasOne(d => d.CreatedByMember).WithMany(p => p.Coupons)
+                .HasForeignKey(d => d.CreatedByMemberID)
+                .HasConstraintName("FK_Coupons_Members");
+
+            entity.HasOne(d => d.Website).WithMany(p => p.Coupons)
+                .HasForeignKey(d => d.WebsiteID)
+                .OnDelete(DeleteBehavior.ClientSetNull)
+                .HasConstraintName("FK_Coupons_Websites");
+        });
+
+        modelBuilder.Entity<CouponRedemption>(entity =>
+        {
+            entity.HasIndex(e => e.OrderID, "UQ_CouponRedemptions_OrderID").IsUnique();
+
+            entity.Property(e => e.DiscountAmountUsd).HasColumnType("decimal(18, 4)");
+            entity.Property(e => e.RedeemedAt)
+                .HasPrecision(0)
+                .HasDefaultValueSql("(sysutcdatetime())", "DF_CouponRedemptions_RedeemedAt");
+
+            entity.HasOne(d => d.Coupon).WithMany(p => p.CouponRedemptions)
+                .HasForeignKey(d => d.CouponID)
+                .OnDelete(DeleteBehavior.ClientSetNull)
+                .HasConstraintName("FK_CouponRedemptions_Coupons");
+
+            entity.HasOne(d => d.Order).WithOne(p => p.CouponRedemption)
+                .HasForeignKey<CouponRedemption>(d => d.OrderID)
+                .OnDelete(DeleteBehavior.ClientSetNull)
+                .HasConstraintName("FK_CouponRedemptions_Orders");
+
+            entity.HasOne(d => d.WebsiteClient).WithMany(p => p.CouponRedemptions)
+                .HasForeignKey(d => d.WebsiteClientID)
+                .OnDelete(DeleteBehavior.ClientSetNull)
+                .HasConstraintName("FK_CouponRedemptions_WebsiteClients");
+        });
+
+        modelBuilder.Entity<Currency>(entity =>
+        {
+            entity.HasKey(e => e.CurrencyCode);
+
+            entity.Property(e => e.CurrencyCode)
+                .HasMaxLength(3)
+                .IsUnicode(false)
+                .IsFixedLength();
+            entity.Property(e => e.DecimalDigits).HasDefaultValue((byte)2, "DF_Currencies_DecimalDigits");
+            entity.Property(e => e.IsActive).HasDefaultValue(true, "DF_Currencies_IsActive");
+            entity.Property(e => e.Name).HasMaxLength(50);
+            entity.Property(e => e.Symbol).HasMaxLength(10);
+        });
+
         modelBuilder.Entity<CurrencyRate>(entity =>
         {
             entity.Property(e => e.CurrencyCode)
@@ -602,6 +738,11 @@ public partial class AppDbContext : DbContext
                 .IsFixedLength();
             entity.Property(e => e.LastUpdate).HasColumnType("datetime");
             entity.Property(e => e.USDToCurrency).HasColumnType("decimal(18, 6)");
+
+            entity.HasOne(d => d.CurrencyCodeNavigation).WithMany(p => p.CurrencyRates)
+                .HasForeignKey(d => d.CurrencyCode)
+                .OnDelete(DeleteBehavior.ClientSetNull)
+                .HasConstraintName("FK_CurrencyRates_Currencies");
 
             entity.HasOne(d => d.Website).WithMany(p => p.CurrencyRates)
                 .HasForeignKey(d => d.WebsiteID)
@@ -1009,9 +1150,22 @@ public partial class AppDbContext : DbContext
             entity.Property(e => e.SubTotal).HasColumnType("decimal(18, 4)");
             entity.Property(e => e.TaxTotal).HasColumnType("decimal(18, 4)");
 
+            entity.HasOne(d => d.Coupon).WithMany(p => p.Orders)
+                .HasForeignKey(d => d.CouponID)
+                .HasConstraintName("FK_Orders_Coupons");
+
             entity.HasOne(d => d.CreatedByMember).WithMany(p => p.Orders)
                 .HasForeignKey(d => d.CreatedByMemberID)
                 .HasConstraintName("FK_Orders_Members");
+
+            entity.HasOne(d => d.CurrencyCodeNavigation).WithMany(p => p.Orders)
+                .HasForeignKey(d => d.CurrencyCode)
+                .OnDelete(DeleteBehavior.ClientSetNull)
+                .HasConstraintName("FK_Orders_Currencies");
+
+            entity.HasOne(d => d.ShippingMethod).WithMany(p => p.Orders)
+                .HasForeignKey(d => d.ShippingMethodID)
+                .HasConstraintName("FK_Orders_ShippingMethods");
 
             entity.HasOne(d => d.WebsiteClientAddress).WithMany(p => p.Orders)
                 .HasForeignKey(d => d.WebsiteClientAddressID)
@@ -1151,6 +1305,11 @@ public partial class AppDbContext : DbContext
             entity.HasOne(d => d.ClientWalletTransaction).WithMany(p => p.Payments)
                 .HasForeignKey(d => d.ClientWalletTransactionID)
                 .HasConstraintName("FK_Payments_ClientWalletTransactions");
+
+            entity.HasOne(d => d.CurrencyCodeNavigation).WithMany(p => p.Payments)
+                .HasForeignKey(d => d.CurrencyCode)
+                .OnDelete(DeleteBehavior.ClientSetNull)
+                .HasConstraintName("FK_Payments_Currencies");
 
             entity.HasOne(d => d.Order).WithMany(p => p.Payments)
                 .HasForeignKey(d => d.OrderID)
@@ -1592,6 +1751,7 @@ public partial class AppDbContext : DbContext
 
         modelBuilder.Entity<ProductReview>(entity =>
         {
+            entity.Property(e => e.Body).HasMaxLength(4000);
             entity.Property(e => e.ConsJson).HasMaxLength(2000);
             entity.Property(e => e.CreatedAt)
                 .HasPrecision(0)
@@ -1729,6 +1889,11 @@ public partial class AppDbContext : DbContext
                 .HasForeignKey(d => d.CreatedByMemberID)
                 .HasConstraintName("FK_Settlements_Members");
 
+            entity.HasOne(d => d.CurrencyCodeNavigation).WithMany(p => p.Settlements)
+                .HasForeignKey(d => d.CurrencyCode)
+                .OnDelete(DeleteBehavior.ClientSetNull)
+                .HasConstraintName("FK_Settlements_Currencies");
+
             entity.HasOne(d => d.Supplier).WithMany(p => p.Settlements)
                 .HasForeignKey(d => d.SupplierID)
                 .HasConstraintName("FK_Settlements_Suppliers");
@@ -1768,6 +1933,43 @@ public partial class AppDbContext : DbContext
             entity.HasOne(d => d.StockMovement).WithMany(p => p.SettlementItems)
                 .HasForeignKey(d => d.StockMovementID)
                 .HasConstraintName("FK_SettlementItems_StockMovements");
+        });
+
+        modelBuilder.Entity<ShippingMethod>(entity =>
+        {
+            entity.Property(e => e.CarrierName).HasMaxLength(100);
+            entity.Property(e => e.IsActive).HasDefaultValue(true, "DF_ShippingMethods_IsActive");
+            entity.Property(e => e.Title).HasMaxLength(100);
+
+            entity.HasOne(d => d.Website).WithMany(p => p.ShippingMethods)
+                .HasForeignKey(d => d.WebsiteID)
+                .OnDelete(DeleteBehavior.ClientSetNull)
+                .HasConstraintName("FK_ShippingMethods_Websites");
+        });
+
+        modelBuilder.Entity<ShippingRate>(entity =>
+        {
+            entity.Property(e => e.IsActive).HasDefaultValue(true, "DF_ShippingRates_IsActive");
+            entity.Property(e => e.MaxWeightKg).HasColumnType("decimal(10, 3)");
+            entity.Property(e => e.MinWeightKg).HasColumnType("decimal(10, 3)");
+            entity.Property(e => e.PriceUsd).HasColumnType("decimal(18, 4)");
+
+            entity.HasOne(d => d.City).WithMany(p => p.ShippingRates)
+                .HasForeignKey(d => d.CityID)
+                .HasConstraintName("FK_ShippingRates_Cities");
+
+            entity.HasOne(d => d.Country).WithMany(p => p.ShippingRates)
+                .HasForeignKey(d => d.CountryID)
+                .HasConstraintName("FK_ShippingRates_Countries");
+
+            entity.HasOne(d => d.ShippingMethod).WithMany(p => p.ShippingRates)
+                .HasForeignKey(d => d.ShippingMethodID)
+                .OnDelete(DeleteBehavior.ClientSetNull)
+                .HasConstraintName("FK_ShippingRates_ShippingMethods");
+
+            entity.HasOne(d => d.State).WithMany(p => p.ShippingRates)
+                .HasForeignKey(d => d.StateID)
+                .HasConstraintName("FK_ShippingRates_States");
         });
 
         modelBuilder.Entity<State>(entity =>
@@ -1872,6 +2074,26 @@ public partial class AppDbContext : DbContext
                 .HasConstraintName("FK_TagTranslations_Tags");
         });
 
+        modelBuilder.Entity<TaxRate>(entity =>
+        {
+            entity.Property(e => e.IsActive).HasDefaultValue(true, "DF_TaxRates_IsActive");
+            entity.Property(e => e.Rate).HasColumnType("decimal(9, 6)");
+            entity.Property(e => e.Title).HasMaxLength(100);
+
+            entity.HasOne(d => d.Country).WithMany(p => p.TaxRates)
+                .HasForeignKey(d => d.CountryID)
+                .HasConstraintName("FK_TaxRates_Countries");
+
+            entity.HasOne(d => d.State).WithMany(p => p.TaxRates)
+                .HasForeignKey(d => d.StateID)
+                .HasConstraintName("FK_TaxRates_States");
+
+            entity.HasOne(d => d.Website).WithMany(p => p.TaxRates)
+                .HasForeignKey(d => d.WebsiteID)
+                .OnDelete(DeleteBehavior.ClientSetNull)
+                .HasConstraintName("FK_TaxRates_Websites");
+        });
+
         modelBuilder.Entity<VariantAttributeValue>(entity =>
         {
             entity.HasKey(e => new { e.ProductVariantID, e.AttributeDefinitionID });
@@ -1970,6 +2192,11 @@ public partial class AppDbContext : DbContext
             entity.Property(e => e.WebsiteAddress)
                 .HasMaxLength(60)
                 .IsUnicode(false);
+
+            entity.HasOne(d => d.DefaultCurrencyCodeNavigation).WithMany(p => p.Websites)
+                .HasForeignKey(d => d.DefaultCurrencyCode)
+                .OnDelete(DeleteBehavior.ClientSetNull)
+                .HasConstraintName("FK_Websites_Currencies");
 
             entity.HasOne(d => d.FaveIconFile).WithMany(p => p.WebsiteFaveIconFiles)
                 .HasForeignKey(d => d.FaveIconFileID)
@@ -2134,6 +2361,44 @@ public partial class AppDbContext : DbContext
                 .HasForeignKey(d => d.WebsiteID)
                 .OnDelete(DeleteBehavior.ClientSetNull)
                 .HasConstraintName("FK_WebsiteStorageSettings_Websites");
+        });
+
+        modelBuilder.Entity<Wishlist>(entity =>
+        {
+            entity.HasIndex(e => e.WebsiteClientID, "UQ_Wishlists_WebsiteClientID").IsUnique();
+
+            entity.Property(e => e.CreatedAt)
+                .HasPrecision(0)
+                .HasDefaultValueSql("(sysutcdatetime())", "DF_Wishlists_CreatedAt");
+
+            entity.HasOne(d => d.WebsiteClient).WithOne(p => p.Wishlist)
+                .HasForeignKey<Wishlist>(d => d.WebsiteClientID)
+                .OnDelete(DeleteBehavior.ClientSetNull)
+                .HasConstraintName("FK_Wishlists_WebsiteClients");
+
+            entity.HasOne(d => d.Website).WithMany(p => p.Wishlists)
+                .HasForeignKey(d => d.WebsiteID)
+                .OnDelete(DeleteBehavior.ClientSetNull)
+                .HasConstraintName("FK_Wishlists_Websites");
+        });
+
+        modelBuilder.Entity<WishlistItem>(entity =>
+        {
+            entity.HasIndex(e => new { e.WishlistID, e.ProductVariantID }, "UQ_WishlistItems_WishlistID_ProductVariantID").IsUnique();
+
+            entity.Property(e => e.AddedAt)
+                .HasPrecision(0)
+                .HasDefaultValueSql("(sysutcdatetime())", "DF_WishlistItems_AddedAt");
+
+            entity.HasOne(d => d.ProductVariant).WithMany(p => p.WishlistItems)
+                .HasForeignKey(d => d.ProductVariantID)
+                .OnDelete(DeleteBehavior.ClientSetNull)
+                .HasConstraintName("FK_WishlistItems_ProductVariants");
+
+            entity.HasOne(d => d.Wishlist).WithMany(p => p.WishlistItems)
+                .HasForeignKey(d => d.WishlistID)
+                .OnDelete(DeleteBehavior.ClientSetNull)
+                .HasConstraintName("FK_WishlistItems_Wishlists");
         });
 
         OnModelCreatingPartial(modelBuilder);

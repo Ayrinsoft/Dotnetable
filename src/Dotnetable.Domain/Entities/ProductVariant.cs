@@ -31,6 +31,8 @@ public partial class ProductVariant
 
     public DateTime CreatedAt { get; set; }
 
+    public virtual ICollection<CartItem> CartItems { get; set; } = new List<CartItem>();
+
     public virtual FileRecord? ImageFile { get; set; }
 
     public virtual ICollection<InventoryItem> InventoryItems { get; set; } = new List<InventoryItem>();
@@ -48,4 +50,6 @@ public partial class ProductVariant
     public virtual ICollection<VendorProduct> VendorProducts { get; set; } = new List<VendorProduct>();
 
     public virtual Website Website { get; set; } = null!;
+
+    public virtual ICollection<WishlistItem> WishlistItems { get; set; } = new List<WishlistItem>();
 }

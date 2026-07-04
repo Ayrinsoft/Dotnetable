@@ -17,5 +17,7 @@ public partial class CurrencyRate
 
     public DateTime LastUpdate { get; set; }
 
+    public virtual Currency CurrencyCodeNavigation { get; set; } = null!;
+
     public virtual Website Website { get; set; } = null!;
 }
