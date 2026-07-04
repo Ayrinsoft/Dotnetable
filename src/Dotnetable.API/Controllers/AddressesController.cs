@@ -114,6 +114,8 @@ public class AddressesController : BaseController
         CountryName = a.Country?.Title,
         CityId = a.CityId,
         CityName = a.City?.Title,
+        StateId = a.City?.StateID,
+        StateName = a.City?.State?.Title,
         AddressLine = a.AddressLine,
         PostalCode = a.PostalCode,
         Phone = a.Phone,

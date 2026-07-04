@@ -15,7 +15,7 @@ public class WebsiteClientAddressService : IWebsiteClientAddressService
     public async Task<List<WebsiteClientAddress>> GetByClientIdAsync(int clientId, CancellationToken ct = default) =>
         await _context.WebsiteClientAddresses.AsNoTracking()
             .Include(a => a.Country)
-            .Include(a => a.City)
+            .Include(a => a.City).ThenInclude(c => c!.State)
             .Where(a => a.WebsiteClientID == clientId)
             .OrderByDescending(a => a.IsDefault)
             .ThenBy(a => a.WebsiteClientAddressID)
@@ -24,7 +24,7 @@ public class WebsiteClientAddressService : IWebsiteClientAddressService
     public async Task<WebsiteClientAddress?> GetByIdAsync(int addressId, int clientId, CancellationToken ct = default) =>
         await _context.WebsiteClientAddresses.AsNoTracking()
             .Include(a => a.Country)
-            .Include(a => a.City)
+            .Include(a => a.City).ThenInclude(c => c!.State)
             .FirstOrDefaultAsync(a => a.WebsiteClientAddressID == addressId && a.WebsiteClientID == clientId, ct);
 
     public async Task<AddressSaveResult> CreateAsync(WebsiteClientAddress address, CancellationToken ct = default)
