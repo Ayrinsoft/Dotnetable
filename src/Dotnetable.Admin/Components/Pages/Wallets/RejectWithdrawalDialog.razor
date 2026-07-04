@@ -1,0 +1,30 @@
+@inject IPageLocalizer L
+
+<MudDialog>
+    <DialogContent>
+        <MudForm @ref="_form">
+            <MudTextField @bind-Value="_reason" Label="@L["wallets.reject_reason", "Rejection reason"]" Variant="Variant.Outlined"
+                          Lines="3" Required="true" RequiredError="@L["required", "This field is required."]" />
+        </MudForm>
+    </DialogContent>
+    <DialogActions>
+        <MudButton OnClick="Cancel">@L["cancel", "Cancel"]</MudButton>
+        <MudButton Variant="Variant.Filled" Color="Color.Error" OnClick="Confirm">@L["wallets.reject", "Reject"]</MudButton>
+    </DialogActions>
+</MudDialog>
+
+@code {
+    [CascadingParameter] private IMudDialogInstance MudDialog { get; set; } = null!;
+
+    private MudForm _form = null!;
+    private string _reason = string.Empty;
+
+    private void Cancel() => MudDialog.Cancel();
+
+    private async Task Confirm()
+    {
+        await _form.Validate();
+        if (!_form.IsValid || string.IsNullOrWhiteSpace(_reason)) return;
+        MudDialog.Close(DialogResult.Ok(_reason));
+    }
+}

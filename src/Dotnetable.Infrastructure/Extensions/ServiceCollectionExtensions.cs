@@ -97,6 +97,33 @@ public static class ServiceCollectionExtensions
         services.AddScoped<IWebsiteSettingService, WebsiteSettingService>();
         services.AddScoped<IContactMessageService, ContactMessageService>();
 
+        // E-commerce: currency master list + per-website exchange rates + USD conversion helper.
+        services.AddScoped<ICurrencyService, CurrencyService>();
+        services.AddScoped<ICurrencyRateService, CurrencyRateService>();
+        services.AddScoped<ICurrencyConversionService, CurrencyConversionService>();
+
+        // E-commerce: catalog (categories, attributes, brands, vendors, products+variants).
+        services.AddScoped<IProductCategoryService, ProductCategoryService>();
+        services.AddScoped<IAttributeDefinitionService, AttributeDefinitionService>();
+        services.AddScoped<IBrandService, BrandService>();
+        services.AddScoped<IVendorService, VendorService>();
+        services.AddScoped<IProductService, ProductService>();
+
+        // E-commerce: inventory / stock / suppliers.
+        services.AddScoped<IInventoryService, InventoryService>();
+        services.AddScoped<IStockMovementService, StockMovementService>();
+        services.AddScoped<ISupplierService, SupplierService>();
+
+        // E-commerce: customer wallets, withdrawals, bank accounts.
+        services.AddScoped<IClientWalletService, ClientWalletService>();
+        services.AddScoped<IClientWalletWithdrawalService, ClientWalletWithdrawalService>();
+        services.AddScoped<IClientBankAccountService, ClientBankAccountService>();
+
+        // E-commerce: coupons, shipping, tax.
+        services.AddScoped<ICouponService, CouponService>();
+        services.AddScoped<IShippingService, ShippingService>();
+        services.AddScoped<ITaxService, TaxService>();
+
         // Content read caching: IMemoryCache-backed, tag-invalidated on write (menu/category/page/post).
         // Menu/Category/Page/Post are registered under their concrete type too so the Cached* decorator
         // can hold the real implementation while IxxxService resolves to the decorator.

@@ -1,0 +1,309 @@
+@page "/catalog/products/new"
+@page "/catalog/products/{ProductId:int}"
+@using Dotnetable.Admin.Components.Pages.Media
+@attribute [Authorize(Policy = RoleKeys.ProductsView)]
+@inject IProductService ProductService
+@inject IProductCategoryService CategoryService
+@inject IBrandService BrandService
+@inject IWebsiteService WebsiteService
+@inject AuthenticationStateProvider AuthState
+@inject IDialogService DialogService
+@inject ISnackbar Snackbar
+@inject NavigationManager Nav
+@inject IPageLocalizer L
+
+<DNPageTitle Title="@(_isNew ? L["products.new", "New Product"] : L["products.edit", "Edit Product"])" />
+
+@if (_loading)
+{
+    <MudProgressLinear Indeterminate="true" Color="Color.Primary" Class="mb-3" />
+}
+else
+{
+    <MudStack Row="true" AlignItems="AlignItems.Center" Justify="Justify.SpaceBetween" Class="mb-4">
+        <MudText Typo="Typo.h5" Class="fw-bold">@(_isNew ? L["products.new", "New Product"] : Model.Title)</MudText>
+        <MudStack Row="true" Spacing="2">
+            <MudButton OnClick="@(() => Nav.NavigateTo("/catalog/products"))">@L["back", "Back"]</MudButton>
+            @if (_canEdit)
+            {
+                <MudButton Variant="Variant.Filled" Color="Color.Primary" OnClick="SaveAsync" Disabled="@_saving">@L["save", "Save"]</MudButton>
+            }
+        </MudStack>
+    </MudStack>
+
+    <MudPaper Elevation="0" Class="app-card rounded-lg pa-4">
+        <MudTabs Elevation="0" Rounded="true">
+            <MudTabPanel Text="@L["products.general", "General"]">
+                <MudGrid Spacing="3" Class="pa-2">
+                    <MudItem xs="12" sm="3">
+                        <MudText Typo="Typo.body2" Class="mb-1">@L["products.featured_image", "Featured image"]</MudText>
+                        <MudPaper Elevation="0" Class="border rounded-lg pa-2" Style="cursor:pointer;" @onclick="PickFeaturedImageAsync">
+                            <div style="aspect-ratio:1/1; display:flex; align-items:center; justify-content:center; background:var(--mud-palette-background-grey); border-radius:8px; overflow:hidden;">
+                                @if (!string.IsNullOrEmpty(_featuredImage?.CNDUrl))
+                                {
+                                    <img src="@(_featuredImage.ThumbnailCDN ?? _featuredImage.CNDUrl)" alt="" style="width:100%; height:100%; object-fit:cover;" />
+                                }
+                                else
+                                {
+                                    <MudIcon Icon="@Icons.Material.Filled.AddPhotoAlternate" Color="Color.Secondary" Size="Size.Large" />
+                                }
+                            </div>
+                        </MudPaper>
+                    </MudItem>
+                    <MudItem xs="12" sm="9">
+                        <MudGrid Spacing="3">
+                            <MudItem xs="12" sm="7">
+                                <MudTextField @bind-Value="Model.Title" Label="@L["title", "Title"]" Variant="Variant.Outlined" Required="true" />
+                            </MudItem>
+                            <MudItem xs="12" sm="5">
+                                <MudTextField @bind-Value="Model.Slug" Label="@L["slug", "Slug"]" Variant="Variant.Outlined" />
+                            </MudItem>
+                            <MudItem xs="12" sm="6">
+                                <MudSelect T="int?" @bind-Value="_brandId" Label="@L["brand", "Brand"]" Variant="Variant.Outlined" Clearable="true">
+                                    @foreach (var b in _brands)
+                                    {
+                                        <MudSelectItem T="int?" Value="@((int?)b.BrandID)">@b.Name</MudSelectItem>
+                                    }
+                                </MudSelect>
+                            </MudItem>
+                            <MudItem xs="12" sm="6">
+                                <MudSelect T="byte" @bind-Value="Model.Status" Label="@L["status", "Status"]" Variant="Variant.Outlined">
+                                    <MudSelectItem T="byte" Value="(byte)0">@L["products.draft", "Draft"]</MudSelectItem>
+                                    <MudSelectItem T="byte" Value="(byte)1">@L["products.published", "Published"]</MudSelectItem>
+                                </MudSelect>
+                            </MudItem>
+                            <MudItem xs="12">
+                                <MudTextField @bind-Value="Model.ShortDescription" Label="@L["products.short_description", "Short description"]"
+                                              Variant="Variant.Outlined" Lines="3" AutoGrow="true" />
+                            </MudItem>
+                            <MudItem xs="12" sm="4">
+                                <MudSwitch T="bool" @bind-Value="Model.IsActive" Label="@L["active", "Active"]" Color="Color.Primary" />
+                            </MudItem>
+                            <MudItem xs="12" sm="4">
+                                <MudSwitch T="bool" @bind-Value="Model.IsCatalogOnly" Label="@L["products.catalog_only", "Catalog only (not purchasable)"]" Color="Color.Primary" />
+                            </MudItem>
+                            <MudItem xs="12" sm="4">
+                                <MudSwitch T="bool" Value="@(_variants.Count > 1)" Disabled="true" Label="@L["products.has_variants", "Has variants"]" Color="Color.Primary" />
+                            </MudItem>
+                        </MudGrid>
+                    </MudItem>
+                    <MudItem xs="12">
+                        <MudExpansionPanels Elevation="0">
+                            <MudExpansionPanel Text="@L["translations", "Translations"]">
+                                @foreach (var (code, label) in ContentLanguages.All)
+                                {
+                                    <MudGrid Spacing="2" Class="mb-1">
+                                        <MudItem xs="6">
+                                            <MudTextField T="string" Value="@TrTitle(code)" ValueChanged="@(v => SetTrTitle(code, v))"
+                                                          Label="@($"{label} — {L["title", "Title"]}")" Variant="Variant.Outlined" Margin="Margin.Dense" />
+                                        </MudItem>
+                                        <MudItem xs="3">
+                                            <MudTextField T="string" Value="@TrSlug(code)" ValueChanged="@(v => SetTrSlug(code, v))"
+                                                          Label="@L["slug", "Slug"]" Variant="Variant.Outlined" Margin="Margin.Dense" />
+                                        </MudItem>
+                                        <MudItem xs="3">
+                                            <MudTextField T="string" Value="@TrShort(code)" ValueChanged="@(v => SetTrShort(code, v))"
+                                                          Label="@L["products.short_description", "Short description"]" Variant="Variant.Outlined" Margin="Margin.Dense" />
+                                        </MudItem>
+                                    </MudGrid>
+                                }
+                            </MudExpansionPanel>
+                        </MudExpansionPanels>
+                    </MudItem>
+                </MudGrid>
+            </MudTabPanel>
+
+            <MudTabPanel Text="@L["products.categories", "Categories"]">
+                <MudList T="int" Class="pa-2">
+                    @foreach (var c in RootCategories())
+                    {
+                        @CategoryNode(c, 0)
+                    }
+                </MudList>
+            </MudTabPanel>
+
+            <MudTabPanel Text="@L["products.variants", "Variants"]">
+                <div class="pa-2">
+                    @foreach (var (v, idx) in _variants.Select((v, i) => (v, i)))
+                    {
+                        <MudPaper Elevation="0" Class="border rounded-lg pa-3 mb-2">
+                            <MudGrid Spacing="2" AlignItems="AlignItems.Center">
+                                <MudItem xs="12" sm="2">
+                                    <MudTextField T="string" @bind-Value="v.Sku" Label="@L["variants.sku", "SKU"]" Variant="Variant.Outlined" Margin="Margin.Dense" />
+                                </MudItem>
+                                <MudItem xs="6" sm="2">
+                                    <MudNumericField T="decimal" @bind-Value="v.ReferencePriceUsd" Label="@L["variants.price", "Price (USD)"]" Variant="Variant.Outlined" Margin="Margin.Dense" Min="0" />
+                                </MudItem>
+                                <MudItem xs="6" sm="2">
+                                    <MudNumericField T="decimal?" @bind-Value="v.CompareAtPriceUsd" Label="@L["variants.compare_price", "Compare at (USD)"]" Variant="Variant.Outlined" Margin="Margin.Dense" Min="0" />
+                                </MudItem>
+                                <MudItem xs="6" sm="2">
+                                    <MudNumericField T="decimal?" @bind-Value="v.Weight" Label="@L["variants.weight", "Weight (kg)"]" Variant="Variant.Outlined" Margin="Margin.Dense" Min="0" />
+                                </MudItem>
+                                <MudItem xs="6" sm="2">
+                                    <MudTextField T="string" @bind-Value="v.Barcode" Label="@L["variants.barcode", "Barcode"]" Variant="Variant.Outlined" Margin="Margin.Dense" />
+                                </MudItem>
+                                <MudItem xs="6" sm="1">
+                                    <MudCheckBox T="bool" @bind-Value="v.IsDefault" Label="@L["variants.default", "Default"]" Color="Color.Primary" />
+                                </MudItem>
+                                <MudItem xs="6" sm="1">
+                                    <MudIconButton Icon="@Icons.Material.Filled.Delete" Color="Color.Error" OnClick="@(() => _variants.RemoveAt(idx))" />
+                                </MudItem>
+                            </MudGrid>
+                        </MudPaper>
+                    }
+                    <MudButton StartIcon="@Icons.Material.Filled.Add" OnClick="AddVariant">@L["variants.add", "Add variant"]</MudButton>
+                </div>
+            </MudTabPanel>
+        </MudTabs>
+    </MudPaper>
+}
+
+@code {
+    [Parameter] public int? ProductId { get; set; }
+
+    private bool _loading = true, _saving;
+    private bool _isNew;
+    private bool _isMaster, _canEdit;
+    private int _websiteId;
+    private int? _brandId;
+    private Product Model { get; set; } = new() { IsActive = true };
+    private FileRecord? _featuredImage;
+    private List<Brand> _brands = new();
+    private List<ProductCategory> _categories = new();
+    private List<ProductVariant> _variants = new();
+    private HashSet<int> _selectedCategoryIds = new();
+    private int? _primaryCategoryId;
+    private readonly Dictionary<string, (string Title, string Slug, string? Short)> _tr = new(StringComparer.OrdinalIgnoreCase);
+
+    protected override async Task OnInitializedAsync()
+    {
+        await L.EnsureLoadedAsync();
+        var user = (await AuthState.GetAuthenticationStateAsync()).User;
+        _isMaster = user.HasClaim(AdminClaimTypes.Master, "true");
+        _canEdit = AdminPolicies.Allows(user, ProductId is null ? RoleKeys.ProductsInsert : RoleKeys.ProductsEdit);
+        int.TryParse(user.FindFirst(AdminClaimTypes.WebsiteId)?.Value, out _websiteId);
+        _isNew = ProductId is null;
+
+        if (!_isNew)
+        {
+            var product = await ProductService.GetByIdAsync(ProductId!.Value);
+            if (product is null) { Nav.NavigateTo("/catalog/products"); return; }
+            Model = product;
+            _websiteId = product.WebsiteID;
+            _brandId = product.BrandID;
+            _variants = product.ProductVariants.ToList();
+            _selectedCategoryIds = product.ProductCategoryMaps.Select(m => m.ProductCategoryID).ToHashSet();
+            _primaryCategoryId = product.ProductCategoryMaps.FirstOrDefault(m => m.IsPrimary)?.ProductCategoryID;
+            if (product.FeaturedImageFileID is int fid)
+                _featuredImage = product.FeaturedImageFile;
+            foreach (var t in product.ProductTranslations)
+                _tr[t.LanguageCode] = (t.Title, t.Slug, t.ShortDescription);
+        }
+        else
+        {
+            Model.WebsiteID = _websiteId;
+        }
+
+        _brands = await BrandService.GetAllAsync(_websiteId);
+        _categories = await CategoryService.GetAllAsync(_websiteId);
+        _loading = false;
+    }
+
+    private IEnumerable<ProductCategory> RootCategories() => _categories.Where(c => c.ParentCategoryID is null).OrderBy(c => c.SortOrder);
+    private IEnumerable<ProductCategory> Children(int parentId) => _categories.Where(c => c.ParentCategoryID == parentId).OrderBy(c => c.SortOrder);
+
+    private RenderFragment CategoryNode(ProductCategory c, int depth) => builder =>
+    {
+        builder.OpenComponent<MudListItem<int>>(0);
+        builder.AddAttribute(1, "ChildContent", (RenderFragment)(b =>
+        {
+            b.OpenElement(0, "div");
+            b.AddAttribute(1, "style", $"display:flex;align-items:center;gap:8px;padding-left:{depth * 20}px");
+            b.OpenComponent<MudCheckBox<bool>>(2);
+            b.AddAttribute(3, "Value", _selectedCategoryIds.Contains(c.ProductCategoryID));
+            b.AddAttribute(4, "ValueChanged", EventCallback.Factory.Create<bool>(this, v => ToggleCategory(c.ProductCategoryID, v)));
+            b.CloseComponent();
+            b.OpenComponent<MudRadio<int>>(5);
+            b.AddAttribute(6, "Value", c.ProductCategoryID);
+            b.AddAttribute(7, "Color", Color.Primary);
+            b.CloseComponent();
+            b.OpenElement(8, "span");
+            b.AddContent(9, c.Name);
+            b.CloseElement();
+            b.CloseElement();
+        }));
+        builder.CloseComponent();
+        foreach (var child in Children(c.ProductCategoryID))
+            builder.AddContent(2, CategoryNode(child, depth + 1));
+    };
+
+    private void ToggleCategory(int categoryId, bool selected)
+    {
+        if (selected) { _selectedCategoryIds.Add(categoryId); _primaryCategoryId ??= categoryId; }
+        else { _selectedCategoryIds.Remove(categoryId); if (_primaryCategoryId == categoryId) _primaryCategoryId = _selectedCategoryIds.FirstOrDefault(); }
+    }
+
+    private void AddVariant() => _variants.Add(new ProductVariant { IsActive = true, IsDefault = _variants.Count == 0 });
+
+    private string TrTitle(string c) => _tr.TryGetValue(c, out var v) ? v.Title : string.Empty;
+    private string TrSlug(string c) => _tr.TryGetValue(c, out var v) ? v.Slug : string.Empty;
+    private string TrShort(string c) => _tr.TryGetValue(c, out var v) ? v.Short ?? string.Empty : string.Empty;
+    private void SetTrTitle(string c, string v) { var cur = _tr.GetValueOrDefault(c); _tr[c] = (v ?? string.Empty, cur.Slug ?? string.Empty, cur.Short); }
+    private void SetTrSlug(string c, string v) { var cur = _tr.GetValueOrDefault(c); _tr[c] = (cur.Title ?? string.Empty, v ?? string.Empty, cur.Short); }
+    private void SetTrShort(string c, string v) { var cur = _tr.GetValueOrDefault(c); _tr[c] = (cur.Title ?? string.Empty, cur.Slug ?? string.Empty, v); }
+
+    private async Task PickFeaturedImageAsync()
+    {
+        var parameters = new DialogParameters
+        {
+            [nameof(FilePickerDialog.WebsiteId)] = _websiteId,
+            [nameof(FilePickerDialog.Category)] = FileCategory.Image,
+        };
+        var dialog = await DialogService.ShowAsync<FilePickerDialog>(L["select_file", "Select a file"], parameters,
+            new DialogOptions { MaxWidth = MaxWidth.Medium, FullWidth = true });
+        var result = await dialog.Result;
+        if (result is { Canceled: false, Data: FileRecord file })
+        {
+            _featuredImage = file;
+            Model.FeaturedImageFileID = file.FileRecordID;
+        }
+    }
+
+    private async Task SaveAsync()
+    {
+        if (string.IsNullOrWhiteSpace(Model.Title)) { Snackbar.Add(L["products.title_required", "Title is required."], Severity.Warning); return; }
+        if (string.IsNullOrWhiteSpace(Model.Slug)) Model.Slug = Model.Title.Trim();
+        Model.WebsiteID = _websiteId;
+        Model.BrandID = _brandId;
+        Model.HasVariants = _variants.Count > 1;
+
+        _saving = true;
+        try
+        {
+            if (_isNew)
+            {
+                var created = await ProductService.CreateAsync(Model);
+                Model = created;
+            }
+            else
+            {
+                await ProductService.UpdateAsync(Model);
+            }
+
+            await ProductService.SetTranslationsAsync(Model.ProductID,
+                _tr.Select(kv => new ProductTranslation
+                {
+                    ProductID = Model.ProductID, LanguageCode = kv.Key,
+                    Title = kv.Value.Title, Slug = kv.Value.Slug, ShortDescription = kv.Value.Short,
+                }).ToList());
+            await ProductService.SetCategoriesAsync(Model.ProductID, _selectedCategoryIds.ToList(), _primaryCategoryId);
+            await ProductService.SetVariantsAsync(Model.ProductID, _variants);
+
+            Snackbar.Add(L["saved", "Saved."], Severity.Success);
+            if (_isNew) Nav.NavigateTo($"/catalog/products/{Model.ProductID}");
+        }
+        catch (Exception ex) { Snackbar.Add($"{L["save_failed", "Save failed"]}: {ex.Message}", Severity.Error); }
+        finally { _saving = false; }
+    }
+}

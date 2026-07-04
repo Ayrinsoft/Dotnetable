@@ -1,0 +1,161 @@
+@page "/wallets/withdrawals"
+@attribute [Authorize(Policy = RoleKeys.WalletsView)]
+@inject IClientWalletWithdrawalService WithdrawalService
+@inject AuthenticationStateProvider AuthState
+@inject IDialogService DialogService
+@inject ISnackbar Snackbar
+@inject IPageLocalizer L
+
+<DNPageTitle Title=@L["wallets.withdrawals", "Withdrawal Requests"] />
+
+<MudStack Row="true" AlignItems="AlignItems.Center" Justify="Justify.SpaceBetween" Class="mb-4">
+    <MudStack Spacing="0">
+        <MudText Typo="Typo.h5" Class="fw-bold">@L["wallets.withdrawals", "Withdrawal Requests"]</MudText>
+        <MudText Typo="Typo.body2" Color="Color.Secondary">@L["wallets.withdrawals.subtitle", "Review and settle customer cash-out requests."]</MudText>
+    </MudStack>
+    <MudSelect T="byte?" @bind-Value="_statusFilter" Label="@L["status", "Status"]" Variant="Variant.Outlined"
+               Dense="true" Style="min-width:180px" SelectedValuesChanged="OnFilterChanged">
+        <MudSelectItem T="byte?" Value="@((byte?)null)">@L["all", "All"]</MudSelectItem>
+        <MudSelectItem T="byte?" Value="@((byte?)ClientWalletWithdrawalStatus.Pending)">@L["wallets.status.pending", "Pending"]</MudSelectItem>
+        <MudSelectItem T="byte?" Value="@((byte?)ClientWalletWithdrawalStatus.Paid)">@L["wallets.status.paid", "Paid"]</MudSelectItem>
+        <MudSelectItem T="byte?" Value="@((byte?)ClientWalletWithdrawalStatus.Rejected)">@L["wallets.status.rejected", "Rejected"]</MudSelectItem>
+    </MudSelect>
+</MudStack>
+
+<MudPaper Elevation="0" Class="app-card rounded-lg pa-4">
+    @if (_loading)
+    {
+        <MudProgressLinear Indeterminate="true" Color="Color.Primary" Class="mb-3" />
+    }
+    <DNGridView GridHeaderParams="_grid" OnSearchChanged="OnGridChanged">
+        @if (_items.Count == 0)
+        {
+            <tr>
+                <td colspan="7" style="text-align:center; padding:32px;">
+                    <MudText Color="Color.Secondary">@L["wallets.withdrawals.empty", "No withdrawal requests found."]</MudText>
+                </td>
+            </tr>
+        }
+        else
+        {
+            @foreach (var w in _items)
+            {
+                <tr>
+                    <td>@w.ClientWalletWithdrawalID</td>
+                    <td>
+                        <MudLink Href="@($"/wallets/client?ClientId={w.WebsiteClientID}")">
+                            @(w.WebsiteClient is { } c ? (c.Email ?? c.Cellphone ?? $"#{c.WebsiteClientID}") : $"#{w.WebsiteClientID}")
+                        </MudLink>
+                    </td>
+                    <td>@w.AmountUsd.ToString("N2")</td>
+                    <td>@(w.ClientBankAccount is { } b ? $"{b.OwnerName} — {b.IBAN ?? b.AccountNumber ?? b.CardNumber}" : "—")</td>
+                    <td>
+                        @{ var (statusColor, statusText) = StatusInfo(w.Status); }
+                        <MudChip T="string" Color="statusColor" Size="Size.Small">@statusText</MudChip>
+                    </td>
+                    <td>@w.RequestedAt.ToString("yyyy-MM-dd HH:mm")</td>
+                    <td>
+                        @if (w.Status == (byte)ClientWalletWithdrawalStatus.Pending && _canApprove)
+                        {
+                            <MudStack Row="true" Spacing="1">
+                                <MudButton Size="Size.Small" Variant="Variant.Filled" Color="Color.Success" OnClick="@(() => ApproveAsync(w))">
+                                    @L["wallets.approve", "Approve"]
+                                </MudButton>
+                                <MudButton Size="Size.Small" Variant="Variant.Outlined" Color="Color.Error" OnClick="@(() => RejectAsync(w))">
+                                    @L["wallets.reject", "Reject"]
+                                </MudButton>
+                            </MudStack>
+                        }
+                    </td>
+                </tr>
+            }
+        }
+    </DNGridView>
+</MudPaper>
+
+@code {
+    private bool _loading = true;
+    private bool _isMaster;
+    private bool _canApprove;
+    private int _memberId;
+    private int _websiteId;
+    private byte? _statusFilter = (byte)ClientWalletWithdrawalStatus.Pending;
+    private List<ClientWalletWithdrawal> _items = new();
+    private GridViewHeaderParameters _grid = new();
+
+    protected override async Task OnInitializedAsync()
+    {
+        await L.EnsureLoadedAsync();
+
+        var user = (await AuthState.GetAuthenticationStateAsync()).User;
+        _isMaster = user.HasClaim(AdminClaimTypes.Master, "true");
+        _canApprove = AdminPolicies.Allows(user, RoleKeys.WalletsApprove);
+        int.TryParse(user.FindFirst(AdminClaimTypes.WebsiteId)?.Value, out _websiteId);
+        int.TryParse(user.FindFirst(AdminClaimTypes.MemberId)?.Value, out _memberId);
+
+        _grid = new GridViewHeaderParameters
+        {
+            Pagination = new PaginationModel { PageSize = 20 },
+            HeaderItems = new()
+            {
+                new() { ColumnTitle = L["id", "ID"], ColumnName = nameof(ClientWalletWithdrawal.ClientWalletWithdrawalID), HasSort = true },
+                new() { ColumnTitle = L["clients", "Customer"], ColumnName = "Client" },
+                new() { ColumnTitle = L["amount", "Amount"], ColumnName = nameof(ClientWalletWithdrawal.AmountUsd), HasSort = true },
+                new() { ColumnTitle = L["wallets.bank_account", "Bank Account"], ColumnName = "BankAccount" },
+                new() { ColumnTitle = L["status", "Status"], ColumnName = nameof(ClientWalletWithdrawal.Status) },
+                new() { ColumnTitle = L["wallets.requested_at", "Requested"], ColumnName = nameof(ClientWalletWithdrawal.RequestedAt), HasSort = true },
+            }
+        };
+
+        await LoadAsync();
+    }
+
+    private Task OnFilterChanged(IEnumerable<byte?> _) => LoadAsync();
+
+    private Task OnGridChanged(GridViewHeaderParameters _) => LoadAsync();
+
+    private async Task LoadAsync()
+    {
+        _loading = true;
+        var result = await WithdrawalService.GetPagedAsync(_isMaster ? null : _websiteId, _statusFilter, _grid.ToQuery());
+        _items = result.Items.ToList();
+        _grid.Pagination.MaxLength = result.TotalCount;
+        _loading = false;
+    }
+
+    private (Color Color, string Text) StatusInfo(byte status) => (ClientWalletWithdrawalStatus)status switch
+    {
+        ClientWalletWithdrawalStatus.Pending => (Color.Warning, L["wallets.status.pending", "Pending"]),
+        ClientWalletWithdrawalStatus.Approved => (Color.Info, L["wallets.status.approved", "Approved"]),
+        ClientWalletWithdrawalStatus.Paid => (Color.Success, L["wallets.status.paid", "Paid"]),
+        ClientWalletWithdrawalStatus.Rejected => (Color.Error, L["wallets.status.rejected", "Rejected"]),
+        _ => (Color.Default, status.ToString()),
+    };
+
+    private async Task ApproveAsync(ClientWalletWithdrawal w)
+    {
+        var parameters = new DialogParameters<ApproveWithdrawalDialog> { { x => x.AmountUsd, w.AmountUsd } };
+        var dialog = await DialogService.ShowAsync<ApproveWithdrawalDialog>(L["wallets.approve", "Approve"], parameters);
+        var result = await dialog.Result;
+        if (result is null || result.Canceled) return;
+
+        var refNumber = result.Data as string;
+        var ok = await WithdrawalService.ApproveAsync(w.ClientWalletWithdrawalID, _memberId, refNumber);
+        Snackbar.Add(ok ? L["saved", "Saved."] : L["wallets.approve_failed", "Could not approve — it may already be reviewed."],
+            ok ? Severity.Success : Severity.Error);
+        await LoadAsync();
+    }
+
+    private async Task RejectAsync(ClientWalletWithdrawal w)
+    {
+        var dialog = await DialogService.ShowAsync<RejectWithdrawalDialog>(L["wallets.reject", "Reject"]);
+        var result = await dialog.Result;
+        if (result is null || result.Canceled) return;
+
+        var reason = result.Data as string ?? string.Empty;
+        var ok = await WithdrawalService.RejectAsync(w.ClientWalletWithdrawalID, _memberId, reason);
+        Snackbar.Add(ok ? L["saved", "Saved."] : L["wallets.reject_failed", "Could not reject — it may already be reviewed."],
+            ok ? Severity.Success : Severity.Error);
+        await LoadAsync();
+    }
+}

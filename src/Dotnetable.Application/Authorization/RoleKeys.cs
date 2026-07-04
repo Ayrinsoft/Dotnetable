@@ -83,6 +83,80 @@ public static class RoleKeys
     // ── Login logs (admin) ──────────────────────────────────────────
     public const string LoginLogsView = "loginlogs.view";
 
+    // ── Catalog: products (admin) ────────────────────────────────────
+    public const string ProductsView = "products.view";
+    public const string ProductsInsert = "products.insert";
+    public const string ProductsEdit = "products.edit";
+    public const string ProductsDelete = "products.delete";
+
+    // ── Catalog taxonomy: categories, attributes, brands (admin) ────
+    public const string CatalogTaxonomyView = "catalogtaxonomy.view";
+    public const string CatalogTaxonomyInsert = "catalogtaxonomy.insert";
+    public const string CatalogTaxonomyEdit = "catalogtaxonomy.edit";
+    public const string CatalogTaxonomyDelete = "catalogtaxonomy.delete";
+
+    // ── Vendors (admin) ──────────────────────────────────────────────
+    public const string VendorsView = "vendors.view";
+    public const string VendorsInsert = "vendors.insert";
+    public const string VendorsEdit = "vendors.edit";
+    public const string VendorsDelete = "vendors.delete";
+
+    // ── Inventory / stock (admin) ────────────────────────────────────
+    public const string InventoryView = "inventory.view";
+    public const string InventoryEdit = "inventory.edit";
+
+    // ── Suppliers (admin) ─────────────────────────────────────────────
+    public const string SuppliersView = "suppliers.view";
+    public const string SuppliersInsert = "suppliers.insert";
+    public const string SuppliersEdit = "suppliers.edit";
+    public const string SuppliersDelete = "suppliers.delete";
+
+    // ── Customer wallets (admin) ─────────────────────────────────────
+    public const string WalletsView = "wallets.view";
+    public const string WalletsApprove = "wallets.approve";
+    public const string WalletsAdjust = "wallets.adjust";
+
+    // ── Coupons (admin) ───────────────────────────────────────────────
+    public const string CouponsView = "coupons.view";
+    public const string CouponsInsert = "coupons.insert";
+    public const string CouponsEdit = "coupons.edit";
+    public const string CouponsDelete = "coupons.delete";
+
+    // ── Shipping methods & rates (admin) ─────────────────────────────
+    public const string ShippingView = "shipping.view";
+    public const string ShippingInsert = "shipping.insert";
+    public const string ShippingEdit = "shipping.edit";
+    public const string ShippingDelete = "shipping.delete";
+
+    // ── Tax rates (admin) ─────────────────────────────────────────────
+    public const string TaxView = "tax.view";
+    public const string TaxInsert = "tax.insert";
+    public const string TaxEdit = "tax.edit";
+    public const string TaxDelete = "tax.delete";
+
+    // ── Currency master list + per-website rates (admin) ─────────────
+    public const string CurrencyView = "currency.view";
+    public const string CurrencyEdit = "currency.edit";
+
+    // ── Orders (admin) ────────────────────────────────────────────────
+    public const string OrdersView = "orders.view";
+    public const string OrdersEdit = "orders.edit";
+
+    // ── Payments & refunds (admin) ────────────────────────────────────
+    public const string PaymentsView = "payments.view";
+    public const string PaymentsVerify = "payments.verify";
+    public const string PaymentsRefund = "payments.refund";
+
+    // ── Website's own bank accounts (admin) ──────────────────────────
+    public const string BankAccountsView = "bankaccounts.view";
+    public const string BankAccountsInsert = "bankaccounts.insert";
+    public const string BankAccountsEdit = "bankaccounts.edit";
+    public const string BankAccountsDelete = "bankaccounts.delete";
+
+    // ── Product review / Q&A moderation (admin) ──────────────────────
+    public const string ModerationView = "moderation.view";
+    public const string ModerationReview = "moderation.review";
+
     // ── Client (website customers) — never used in the admin panel ──
     public const string ClientAccess = "client.access";
     public const string ClientPurchase = "client.purchase";

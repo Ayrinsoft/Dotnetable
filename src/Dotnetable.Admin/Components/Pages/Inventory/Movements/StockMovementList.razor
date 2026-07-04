@@ -1,0 +1,114 @@
+@page "/inventory/movements"
+@attribute [Authorize(Policy = RoleKeys.InventoryView)]
+@inject IStockMovementService StockMovementService
+@inject IWebsiteService WebsiteService
+@inject AuthenticationStateProvider AuthState
+@inject IPageLocalizer L
+
+<DNPageTitle Title=@L["inventory.movements", "Stock Ledger"] />
+
+<MudStack Row="true" AlignItems="AlignItems.Center" Justify="Justify.SpaceBetween" Class="mb-4">
+    <MudStack Spacing="0">
+        <MudText Typo="Typo.h5" Class="fw-bold">@L["inventory.movements", "Stock Ledger"]</MudText>
+        <MudText Typo="Typo.body2" Color="Color.Secondary">@L["inventory.movements.subtitle", "Read-only history of every stock entry and exit."]</MudText>
+    </MudStack>
+    @if (_isMaster)
+    {
+        <MudSelect T="int" @bind-Value="_websiteId" Label="@L["website", "Website"]" Variant="Variant.Outlined"
+                   Dense="true" Style="min-width:180px" SelectedValuesChanged="OnWebsiteChanged">
+            @foreach (var w in _websites)
+            {
+                <MudSelectItem T="int" Value="@w.WebsiteID">@w.TradeName</MudSelectItem>
+            }
+        </MudSelect>
+    }
+</MudStack>
+
+<MudPaper Elevation="0" Class="app-card rounded-lg pa-4">
+    @if (_loading)
+    {
+        <MudProgressLinear Indeterminate="true" Color="Color.Primary" Class="mb-3" />
+    }
+    <DNGridView GridHeaderParams="_grid" OnSearchChanged="OnGridChanged">
+        @if (_items.Count == 0)
+        {
+            <tr><td colspan="7" style="text-align:center; padding:32px;">
+                <MudText Color="Color.Secondary">@L["inventory.movements.empty", "No stock movements yet."]</MudText>
+            </td></tr>
+        }
+        else
+        {
+            @foreach (var m in _items)
+            {
+                <tr>
+                    <td>@m.CreatedAt.ToLocalTime().ToString("g")</td>
+                    <td>@m.ProductVariant.Product.Title</td>
+                    <td><code>@m.ProductVariant.Sku</code></td>
+                    <td>@TypeLabel(m.Type)</td>
+                    <td>@m.Quantity</td>
+                    <td>@m.Supplier?.Name</td>
+                    <td>@m.Note</td>
+                </tr>
+            }
+        }
+    </DNGridView>
+</MudPaper>
+
+@code {
+    private bool _loading = true;
+    private bool _isMaster;
+    private int _websiteId;
+    private List<StockMovement> _items = new();
+    private List<Website> _websites = new();
+    private GridViewHeaderParameters _grid = new();
+
+    protected override async Task OnInitializedAsync()
+    {
+        await L.EnsureLoadedAsync();
+
+        var user = (await AuthState.GetAuthenticationStateAsync()).User;
+        _isMaster = user.HasClaim(AdminClaimTypes.Master, "true");
+        int.TryParse(user.FindFirst(AdminClaimTypes.WebsiteId)?.Value, out _websiteId);
+
+        if (_isMaster)
+            _websites = (await WebsiteService.GetAllAsync()).ToList();
+
+        _grid = new GridViewHeaderParameters
+        {
+            Pagination = new PaginationModel { PageSize = 25 },
+            HeaderItems = new()
+            {
+                new() { ColumnTitle = L["date", "Date"], ColumnName = nameof(StockMovement.CreatedAt), HasSort = true },
+                new() { ColumnTitle = L["product", "Product"], ColumnName = "" },
+                new() { ColumnTitle = L["sku", "SKU"], ColumnName = "" },
+                new() { ColumnTitle = L["type", "Type"], ColumnName = "" },
+                new() { ColumnTitle = L["quantity", "Quantity"], ColumnName = nameof(StockMovement.Quantity), HasSort = true },
+                new() { ColumnTitle = L["suppliers", "Supplier"], ColumnName = "" },
+                new() { ColumnTitle = L["note", "Note"], ColumnName = "" },
+            }
+        };
+
+        await LoadAsync();
+    }
+
+    private Task OnGridChanged(GridViewHeaderParameters _) => LoadAsync();
+    private async Task OnWebsiteChanged(IEnumerable<int> _) => await LoadAsync();
+
+    private async Task LoadAsync()
+    {
+        _loading = true;
+        var result = await StockMovementService.GetPagedAsync(_websiteId, _grid.ToQuery(), null);
+        _items = result.Items.ToList();
+        _grid.Pagination.MaxLength = result.TotalCount;
+        _loading = false;
+    }
+
+    private string TypeLabel(byte type) => (StockMovementType)type switch
+    {
+        StockMovementType.Purchase => L["inventory.type.purchase", "Purchase"],
+        StockMovementType.Sale => L["inventory.type.sale", "Sale"],
+        StockMovementType.Adjustment => L["inventory.type.adjustment", "Adjustment"],
+        StockMovementType.Return => L["inventory.type.return", "Return"],
+        _ => type.ToString(),
+    };
+}

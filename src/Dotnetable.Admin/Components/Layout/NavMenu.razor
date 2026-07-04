@@ -98,6 +98,47 @@
         </AuthorizeView>
     </MudNavGroup>
 
+    <span class="app-nav-label">@L["nav.commerce", "Commerce"]</span>
+    <MudNavGroup Title="@L["nav.catalog", "Catalog"]" Icon="@Icons.Material.Filled.Inventory2">
+        <AuthorizeView Policy="@RoleKeys.ProductsView" Context="pr">
+            <MudNavLink Href="/catalog/products" Icon="@Icons.Material.Filled.ShoppingBag">@L["products", "Products"]</MudNavLink>
+        </AuthorizeView>
+        <AuthorizeView Policy="@RoleKeys.CatalogTaxonomyView" Context="pcat">
+            <MudNavLink Href="/catalog/categories" Icon="@Icons.Material.Filled.Category">@L["categories", "Categories"]</MudNavLink>
+            <MudNavLink Href="/catalog/attributes" Icon="@Icons.Material.Filled.Tune">@L["attributes", "Attributes"]</MudNavLink>
+            <MudNavLink Href="/catalog/brands" Icon="@Icons.Material.Filled.BrandingWatermark">@L["brands", "Brands"]</MudNavLink>
+        </AuthorizeView>
+        <AuthorizeView Policy="@RoleKeys.VendorsView" Context="vd">
+            <MudNavLink Href="/catalog/vendors" Icon="@Icons.Material.Filled.Store">@L["vendors", "Vendors"]</MudNavLink>
+        </AuthorizeView>
+    </MudNavGroup>
+
+    <AuthorizeView Policy="@RoleKeys.InventoryView" Context="inv">
+        <MudNavGroup Title="@L["nav.inventory", "Inventory"]" Icon="@Icons.Material.Filled.Warehouse">
+            <MudNavLink Href="/inventory" Icon="@Icons.Material.Filled.Numbers">@L["inventory.stock", "Stock"]</MudNavLink>
+            <MudNavLink Href="/inventory/movements" Icon="@Icons.Material.Filled.History">@L["inventory.movements", "Movements"]</MudNavLink>
+            <AuthorizeView Policy="@RoleKeys.SuppliersView" Context="sup">
+                <MudNavLink Href="/inventory/suppliers" Icon="@Icons.Material.Filled.LocalShipping">@L["suppliers", "Suppliers"]</MudNavLink>
+            </AuthorizeView>
+        </MudNavGroup>
+    </AuthorizeView>
+
+    <AuthorizeView Policy="@RoleKeys.WalletsView" Context="wal">
+        <MudNavLink Href="/wallets/withdrawals" Icon="@Icons.Material.Filled.AccountBalanceWallet">@L["wallets.withdrawals", "Withdrawals"]</MudNavLink>
+    </AuthorizeView>
+
+    <MudNavGroup Title="@L["nav.promotions", "Promotions & Shipping"]" Icon="@Icons.Material.Filled.LocalOffer">
+        <AuthorizeView Policy="@RoleKeys.CouponsView" Context="cpn">
+            <MudNavLink Href="/sales/coupons" Icon="@Icons.Material.Filled.Discount">@L["coupons", "Coupons"]</MudNavLink>
+        </AuthorizeView>
+        <AuthorizeView Policy="@RoleKeys.ShippingView" Context="shp">
+            <MudNavLink Href="/sales/shipping" Icon="@Icons.Material.Filled.LocalShipping">@L["shipping", "Shipping"]</MudNavLink>
+        </AuthorizeView>
+        <AuthorizeView Policy="@RoleKeys.TaxView" Context="tax">
+            <MudNavLink Href="/sales/tax" Icon="@Icons.Material.Filled.Percent">@L["tax", "Tax"]</MudNavLink>
+        </AuthorizeView>
+    </MudNavGroup>
+
     <AuthorizeView Policy="@RoleKeys.MenusView" Context="mn">
         <MudNavLink Href="/menus" Icon="@Icons.Material.Filled.Menu">
             @L["menus", "Menus"]

@@ -1,0 +1,91 @@
+@inject ISnackbar Snackbar
+@inject IPageLocalizer L
+
+<MudDialog>
+    <DialogContent>
+        <MudForm @ref="_form">
+            <MudGrid Spacing="3">
+                <MudItem xs="12" sm="6">
+                    <MudTextField @bind-Value="Model.Code" Label="@L["code", "Code"]" Variant="Variant.Outlined" Required="true" />
+                </MudItem>
+                <MudItem xs="12" sm="6">
+                    <MudSwitch T="bool" @bind-Value="Model.IsActive" Label="@L["active", "Active"]" Color="Color.Primary" />
+                </MudItem>
+                <MudItem xs="12" sm="4">
+                    <MudSelect T="byte" @bind-Value="Model.DiscountType" Label="@L["discount_type", "Discount Type"]" Variant="Variant.Outlined">
+                        <MudSelectItem T="byte" Value="@DiscountTypes.Percent">@L["percent", "Percent"]</MudSelectItem>
+                        <MudSelectItem T="byte" Value="@DiscountTypes.FixedAmountUsd">@L["fixed_amount", "Fixed Amount (USD)"]</MudSelectItem>
+                    </MudSelect>
+                </MudItem>
+                <MudItem xs="12" sm="4">
+                    <MudNumericField T="decimal" @bind-Value="Model.DiscountValue" Label="@L["discount_value", "Discount Value"]" Variant="Variant.Outlined" Min="0" />
+                </MudItem>
+                <MudItem xs="12" sm="4">
+                    <MudNumericField T="decimal?" @bind-Value="Model.MaxDiscountAmountUsd" Label="@L["max_discount", "Max Discount (USD)"]" Variant="Variant.Outlined" Min="0"
+                                     Disabled="@(Model.DiscountType != DiscountTypes.Percent)" />
+                </MudItem>
+                <MudItem xs="12" sm="6">
+                    <MudNumericField T="decimal" @bind-Value="Model.MinOrderAmountUsd" Label="@L["min_order", "Minimum Order (USD)"]" Variant="Variant.Outlined" Min="0" />
+                </MudItem>
+                <MudItem xs="12" sm="6" />
+                <MudItem xs="12" sm="6">
+                    <MudNumericField T="int?" @bind-Value="Model.UsageLimitTotal" Label="@L["usage_limit_total", "Total Usage Limit"]" Variant="Variant.Outlined" Min="0" />
+                </MudItem>
+                <MudItem xs="12" sm="6">
+                    <MudNumericField T="int?" @bind-Value="Model.UsageLimitPerClient" Label="@L["usage_limit_per_client", "Usage Limit Per Client"]" Variant="Variant.Outlined" Min="0" />
+                </MudItem>
+                <MudItem xs="12" sm="6">
+                    <MudDatePicker @bind-Date="_startsAt" Label="@L["starts_at", "Starts At"]" Variant="Variant.Outlined" Clearable="true" />
+                </MudItem>
+                <MudItem xs="12" sm="6">
+                    <MudDatePicker @bind-Date="_endsAt" Label="@L["ends_at", "Ends At"]" Variant="Variant.Outlined" Clearable="true" />
+                </MudItem>
+            </MudGrid>
+        </MudForm>
+    </DialogContent>
+    <DialogActions>
+        <MudButton OnClick="Cancel">@L["cancel", "Cancel"]</MudButton>
+        <MudButton Variant="Variant.Filled" Color="Color.Primary" OnClick="SaveAsync" Disabled="@_saving">@L["save", "Save"]</MudButton>
+    </DialogActions>
+</MudDialog>
+
+@code {
+    [CascadingParameter] private IMudDialogInstance MudDialog { get; set; } = null!;
+    [Parameter] public Coupon Model { get; set; } = new();
+    [Parameter] public bool IsNew { get; set; }
+    [Inject] private ICouponService CouponService { get; set; } = null!;
+
+    private MudForm _form = null!;
+    private bool _saving;
+    private DateTime? _startsAt;
+    private DateTime? _endsAt;
+
+    protected override void OnInitialized()
+    {
+        _startsAt = Model.StartsAt;
+        _endsAt = Model.EndsAt;
+    }
+
+    private void Cancel() => MudDialog.Cancel();
+
+    private async Task SaveAsync()
+    {
+        await _form.Validate();
+        if (!_form.IsValid) return;
+        if (string.IsNullOrWhiteSpace(Model.Code)) return;
+
+        Model.StartsAt = _startsAt;
+        Model.EndsAt = _endsAt;
+
+        _saving = true;
+        try
+        {
+            if (IsNew) await CouponService.CreateAsync(Model);
+            else await CouponService.UpdateAsync(Model);
+            Snackbar.Add(L["saved", "Saved."], Severity.Success);
+            MudDialog.Close(DialogResult.Ok(true));
+        }
+        catch (Exception ex) { Snackbar.Add($"{L["save_failed", "Save failed"]}: {ex.Message}", Severity.Error); }
+        finally { _saving = false; }
+    }
+}
