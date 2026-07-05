@@ -1983,7 +1983,9 @@ public partial class AppDbContext : DbContext
         {
             entity.Property(e => e.AspectRatio).HasMaxLength(20);
             entity.Property(e => e.AutoPlay).HasDefaultValue(true, "DF_Slideshows_AutoPlay");
-            entity.Property(e => e.CreatedAt).HasDefaultValueSql("(sysutcdatetime())", "DF_Slideshows_CreatedAt");
+            entity.Property(e => e.CreatedAt)
+                .HasDefaultValueSql("(sysutcdatetime())", "DF_Slideshows_CreatedAt")
+                .HasColumnType("datetime");
             entity.Property(e => e.EnableLightbox).HasDefaultValue(true, "DF_Slideshows_EnableLightbox");
             entity.Property(e => e.IntervalMs).HasDefaultValue(5000, "DF_Slideshows_IntervalMs");
             entity.Property(e => e.IsActive).HasDefaultValue(true, "DF_Slideshows_IsActive");
@@ -2005,8 +2007,6 @@ public partial class AppDbContext : DbContext
             entity.Property(e => e.Caption).HasMaxLength(500);
             entity.Property(e => e.IsActive).HasDefaultValue(true, "DF_SlideshowSlides_IsActive");
             entity.Property(e => e.LinkUrl).HasMaxLength(500);
-            entity.Property(e => e.OpenInNewTab).HasDefaultValue(false, "DF_SlideshowSlides_OpenInNewTab");
-            entity.Property(e => e.SortOrder).HasDefaultValue(0, "DF_SlideshowSlides_SortOrder");
             entity.Property(e => e.Title).HasMaxLength(200);
 
             entity.HasOne(d => d.File).WithMany(p => p.SlideshowSlideFiles)
@@ -2307,12 +2307,12 @@ public partial class AppDbContext : DbContext
         modelBuilder.Entity<WebsiteClientAddress>(entity =>
         {
             entity.Property(e => e.AddressLine).HasMaxLength(500);
+            entity.Property(e => e.Latitude).HasColumnType("decimal(9, 6)");
+            entity.Property(e => e.Longitude).HasColumnType("decimal(9, 6)");
             entity.Property(e => e.Phone).HasMaxLength(20);
             entity.Property(e => e.PostalCode).HasMaxLength(20);
             entity.Property(e => e.ReceiverName).HasMaxLength(200);
             entity.Property(e => e.Title).HasMaxLength(100);
-            entity.Property(e => e.Latitude).HasColumnType("decimal(9, 6)");
-            entity.Property(e => e.Longitude).HasColumnType("decimal(9, 6)");
 
             entity.HasOne(d => d.City).WithMany(p => p.WebsiteClientAddresses)
                 .HasForeignKey(d => d.CityId)
