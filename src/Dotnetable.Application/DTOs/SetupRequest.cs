@@ -16,6 +16,10 @@ public class SetupRequest
     public string Mobile { get; set; } = string.Empty;
     public string WebsiteEmail { get; set; } = string.Empty;
     public string DefaultLanguageCode { get; set; } = "en";
+    public string DefaultCurrencyCode { get; set; } = "USD";
+    public string CurrencyName { get; set; } = "US Dollar";
+    public string CurrencySymbol { get; set; } = "$";
+    public byte CurrencyDecimalDigits { get; set; } = 2;
 
     // Administrator member
     public string Username { get; set; } = string.Empty;

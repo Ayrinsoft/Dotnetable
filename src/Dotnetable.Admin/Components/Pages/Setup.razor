@@ -182,6 +182,41 @@
                               Class="mb-3"
                               MaxLength="2" />
 
+                <MudGrid Spacing="3" Class="mb-3">
+                    <MudItem xs="12" sm="3">
+                        <MudTextField T="string"
+                                      @bind-Value="_req.DefaultCurrencyCode"
+                                      Label="@_s.DefaultCurrencyCode"
+                                      Variant="Variant.Outlined"
+                                      MaxLength="3"
+                                      Required="true"
+                                      RequiredError="@_s.Required" />
+                    </MudItem>
+                    <MudItem xs="12" sm="5">
+                        <MudTextField T="string"
+                                      @bind-Value="_req.CurrencyName"
+                                      Label="@_s.CurrencyName"
+                                      Variant="Variant.Outlined"
+                                      Required="true"
+                                      RequiredError="@_s.Required" />
+                    </MudItem>
+                    <MudItem xs="6" sm="2">
+                        <MudTextField T="string"
+                                      @bind-Value="_req.CurrencySymbol"
+                                      Label="@_s.CurrencySymbol"
+                                      Variant="Variant.Outlined"
+                                      Required="true"
+                                      RequiredError="@_s.Required" />
+                    </MudItem>
+                    <MudItem xs="6" sm="2">
+                        <MudNumericField T="byte"
+                                         @bind-Value="_req.CurrencyDecimalDigits"
+                                         Label="@_s.CurrencyDecimalDigits"
+                                         Variant="Variant.Outlined"
+                                         Min="0" Max="6" />
+                    </MudItem>
+                </MudGrid>
+
                 @* ── Administrator ─────────────────────────────────────── *@
                 <MudText Typo="Typo.h6" Class="mt-6">@_s.AdminSection</MudText>
                 <MudDivider Class="mb-4" />
