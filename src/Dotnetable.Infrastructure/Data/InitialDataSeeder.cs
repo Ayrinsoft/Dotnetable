@@ -22,7 +22,25 @@ public class InitialDataSeeder : IInitialDataSeeder
         {
             await using var transaction = await context.Database.BeginTransactionAsync(ct);
 
-            // 1. Master website. As the first row inserted into an empty table it receives WebsiteID 1.
+            // 1. Default currency. Websites.DefaultCurrencyCode is a required FK into Currencies,
+            // so the chosen currency must exist before the website row is inserted.
+            var currencyCode = request.DefaultCurrencyCode.Trim().ToUpperInvariant();
+            var currency = await context.Currencies.FindAsync(new object[] { currencyCode }, ct);
+            if (currency is null)
+            {
+                currency = new Currency
+                {
+                    CurrencyCode = currencyCode,
+                    Name = request.CurrencyName,
+                    Symbol = request.CurrencySymbol,
+                    DecimalDigits = request.CurrencyDecimalDigits,
+                    IsActive = true,
+                };
+                context.Currencies.Add(currency);
+                await context.SaveChangesAsync(ct);
+            }
+
+            // 2. Master website. As the first row inserted into an empty table it receives WebsiteID 1.
             var website = new Website
             {
                 TradeName = request.TradeName,
@@ -32,6 +50,7 @@ public class InitialDataSeeder : IInitialDataSeeder
                 Mobile = request.Mobile,
                 Email = request.WebsiteEmail,
                 DefaultLanguageCode = request.DefaultLanguageCode,
+                DefaultCurrencyCode = currencyCode,
                 RegisterDate = DateOnly.FromDateTime(DateTime.UtcNow),
                 AuthCode = Guid.NewGuid(),
                 Active = true,
@@ -41,7 +60,7 @@ public class InitialDataSeeder : IInitialDataSeeder
             context.Websites.Add(website);
             await context.SaveChangesAsync(ct);
 
-            // 2. Seed every permission (admin + client) from the catalog.
+            // 4. Seed every permission (admin + client) from the catalog.
             var roles = RoleCatalog.All
                 .Select(def => new Role
                 {
@@ -54,7 +73,7 @@ public class InitialDataSeeder : IInitialDataSeeder
             context.Roles.AddRange(roles);
             await context.SaveChangesAsync(ct);
 
-            // 3a. Super-administrator policy for the master website — granted every permission (full access).
+            // 4a. Super-administrator policy for the master website — granted every permission (full access).
             var policy = new Policy { Title = DefaultPolicies.Administrators, Active = true, WebsiteID = website.WebsiteID };
             context.Policies.Add(policy);
             await context.SaveChangesAsync(ct);
@@ -67,7 +86,7 @@ public class InitialDataSeeder : IInitialDataSeeder
             }));
             await context.SaveChangesAsync(ct);
 
-            // 3b. Default customer ("Users") policy — sign-in/general access, commenting and purchasing.
+            // 4b. Default customer ("Users") policy — sign-in/general access, commenting and purchasing.
             // Self-registered members on this website receive this policy.
             var usersPolicy = new Policy { Title = DefaultPolicies.Users, Active = true, WebsiteID = website.WebsiteID };
             context.Policies.Add(usersPolicy);
@@ -83,7 +102,7 @@ public class InitialDataSeeder : IInitialDataSeeder
                 }));
             await context.SaveChangesAsync(ct);
 
-            // 4. First administrator member, bound to the master website.
+            // 5. First administrator member, bound to the master website.
             var member = new Member
             {
                 WebsiteID = website.WebsiteID,
@@ -102,7 +121,7 @@ public class InitialDataSeeder : IInitialDataSeeder
             context.Members.Add(member);
             await context.SaveChangesAsync(ct);
 
-            // 5. Optional default SMTP settings so forgot-password email works from first run.
+            // 6. Optional default SMTP settings so forgot-password email works from first run.
             if (!string.IsNullOrWhiteSpace(request.MailServer) && !string.IsNullOrWhiteSpace(request.MailAddress))
             {
                 context.EmailSettings.Add(new EmailSetting
@@ -120,7 +139,7 @@ public class InitialDataSeeder : IInitialDataSeeder
                 await context.SaveChangesAsync(ct);
             }
 
-            // 6. Default CMS pages so a fresh install has real, admin-editable About/Contact/Services
+            // 7. Default CMS pages so a fresh install has real, admin-editable About/Contact/Services
             // pages instead of the hardcoded demo views the site theme used to render.
             context.Pages.AddRange(
                 new Page
