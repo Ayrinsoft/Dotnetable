@@ -1,4 +1,4 @@
-using System;
+﻿using System;
 using System.Collections.Generic;
 
 namespace Dotnetable.Domain.Entities;
@@ -11,8 +11,6 @@ public partial class Slideshow
 
     public string Name { get; set; } = null!;
 
-    /// <summary>Named placement zone (e.g. "home_top", "category_sidebar"), or null when the
-    /// slideshow is only embedded manually via its <c>[slideshow:ID]</c> shortcode.</summary>
     public string? PlacementKey { get; set; }
 
     public byte TransitionEffect { get; set; }
