@@ -16,7 +16,9 @@ public sealed class PageLocalizer : IPageLocalizer
     private readonly ILocalizationService _localization;
     private readonly PendingTranslationKeys _pending;
     private readonly AuthenticationStateProvider _authState;
-    private bool _loaded;
+    private readonly object _loadLock = new();
+    private volatile bool _loaded;
+    private Task? _loadTask;
 
     public PageLocalizer(
         TranslationCache cache,
@@ -33,10 +35,25 @@ public sealed class PageLocalizer : IPageLocalizer
     public int WebsiteId { get; private set; } = AppConstants.MasterWebsiteId;
     public string LanguageCode { get; private set; } = DefaultLanguage;
 
-    public async Task EnsureLoadedAsync(CancellationToken ct = default)
+    // This instance is scoped per circuit, but several components can call EnsureLoadedAsync
+    // concurrently from their own OnInitializedAsync. Without coordination, two callers would both
+    // see _loaded == false and both drive the same scoped AppDbContext at once, throwing
+    // "A second operation was started on this context instance before a previous operation
+    // completed." Cache the in-flight task so concurrent callers await the same load.
+    public Task EnsureLoadedAsync(CancellationToken ct = default)
     {
-        if (_loaded) return;
+        if (_loaded) return Task.CompletedTask;
 
+        lock (_loadLock)
+        {
+            if (_loaded) return Task.CompletedTask;
+            _loadTask ??= LoadCoreAsync(ct);
+            return _loadTask;
+        }
+    }
+
+    private async Task LoadCoreAsync(CancellationToken ct)
+    {
         var state = await _authState.GetAuthenticationStateAsync();
         if (int.TryParse(state.User.FindFirst(AdminClaimTypes.WebsiteId)?.Value, out var websiteId) && websiteId > 0)
             WebsiteId = websiteId;
