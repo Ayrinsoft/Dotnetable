@@ -27,6 +27,10 @@ public partial class SlideshowSlide
 
     public bool IsActive { get; set; }
 
+    public DateTime? StartAt { get; set; }
+
+    public DateTime? EndAt { get; set; }
+
     public virtual FileRecord File { get; set; } = null!;
 
     public virtual FileRecord? MobileFile { get; set; }

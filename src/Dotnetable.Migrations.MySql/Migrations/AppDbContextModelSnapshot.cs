@@ -3989,6 +3989,9 @@ namespace Dotnetable.Migrations.MySql.Migrations
                         .HasMaxLength(500)
                         .HasColumnType("varchar(500)");
 
+                    b.Property<DateTime?>("EndAt")
+                        .HasColumnType("datetime(6)");
+
                     b.Property<int>("FileID")
                         .HasColumnType("int");
 
@@ -4013,6 +4016,9 @@ namespace Dotnetable.Migrations.MySql.Migrations
 
                     b.Property<int>("SortOrder")
                         .HasColumnType("int");
+
+                    b.Property<DateTime?>("StartAt")
+                        .HasColumnType("datetime(6)");
 
                     b.Property<string>("Title")
                         .HasMaxLength(200)

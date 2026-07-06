@@ -1,9 +1,13 @@
 import { useEffect, useState } from 'react';
 
-/** Minimal slideshow player for the admin-managed slideshows (auto-play + dots). */
+/** Slideshow player for the admin-managed slideshows (auto-play, arrows, dots). */
 export default function Slideshow({ slideshow }) {
   const slides = slideshow?.slides ?? [];
   const [index, setIndex] = useState(0);
+
+  useEffect(() => {
+    if (index >= slides.length) setIndex(0);
+  }, [slides.length, index]);
 
   useEffect(() => {
     if (!slideshow?.autoPlay || slides.length < 2) return;
@@ -15,35 +19,49 @@ export default function Slideshow({ slideshow }) {
   }, [slideshow, slides.length]);
 
   if (slides.length === 0) return null;
-  const slide = slides[index];
+  const slide = slides[index] ?? slides[0];
+  const multi = slides.length > 1;
+  const goTo = (i) => setIndex((i + slides.length) % slides.length);
 
   const image = (
     <img src={slide.imageUrl} alt={slide.altText || slide.title || ''} />
   );
 
   return (
-    <div className="slideshow" style={{ position: 'relative' }}>
-      {slide.linkUrl ? (
-        <a href={slide.linkUrl} target={slide.openInNewTab ? '_blank' : undefined} rel="noreferrer">
-          {image}
-        </a>
-      ) : image}
+    <div className="slideshow" style={{ '--slideshow-ratio': (slideshow.aspectRatio || '21:9').replace(':', '/') }}>
+      <div className="slideshow-viewport">
+        {slide.linkUrl ? (
+          <a href={slide.linkUrl} target={slide.openInNewTab ? '_blank' : undefined} rel="noreferrer">
+            {image}
+          </a>
+        ) : image}
 
-      {(slide.title || slide.caption) && (
-        <div style={{ position: 'absolute', left: 24, bottom: 24, color: '#fff', textShadow: '0 1px 6px rgba(0,0,0,.6)' }}>
-          {slide.title && <h3 style={{ margin: 0 }}>{slide.title}</h3>}
-          {slide.caption && <p style={{ margin: 0 }}>{slide.caption}</p>}
-        </div>
-      )}
+        {(slide.title || slide.caption) && (
+          <div className="slideshow-caption">
+            {slide.title && <h3>{slide.title}</h3>}
+            {slide.caption && <p>{slide.caption}</p>}
+          </div>
+        )}
 
-      {slideshow.showDots && slides.length > 1 && (
-        <div style={{ display: 'flex', gap: 8, justifyContent: 'center', marginTop: 10 }}>
+        {slideshow.showArrows && multi && (
+          <>
+            <button type="button" className="slideshow-arrow slideshow-arrow-prev"
+                    aria-label="Previous slide" onClick={() => goTo(index - 1)}>
+              ‹
+            </button>
+            <button type="button" className="slideshow-arrow slideshow-arrow-next"
+                    aria-label="Next slide" onClick={() => goTo(index + 1)}>
+              ›
+            </button>
+          </>
+        )}
+      </div>
+
+      {slideshow.showDots && multi && (
+        <div className="slideshow-dots">
           {slides.map((_, i) => (
-            <button key={i} onClick={() => setIndex(i)} aria-label={`Slide ${i + 1}`}
-                    style={{
-                      width: 10, height: 10, borderRadius: '50%', border: 0, cursor: 'pointer',
-                      background: i === index ? 'var(--color-primary)' : 'var(--color-muted)',
-                    }} />
+            <button key={i} type="button" className={i === index ? 'active' : ''}
+                    onClick={() => goTo(i)} aria-label={`Slide ${i + 1}`} />
           ))}
         </div>
       )}

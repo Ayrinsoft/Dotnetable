@@ -4160,6 +4160,9 @@ namespace Dotnetable.Migrations.PostgreSql.Migrations
                         .HasMaxLength(500)
                         .HasColumnType("character varying(500)");
 
+                    b.Property<DateTime?>("EndAt")
+                        .HasColumnType("timestamp with time zone");
+
                     b.Property<int>("FileID")
                         .HasColumnType("integer");
 
@@ -4184,6 +4187,9 @@ namespace Dotnetable.Migrations.PostgreSql.Migrations
 
                     b.Property<int>("SortOrder")
                         .HasColumnType("integer");
+
+                    b.Property<DateTime?>("StartAt")
+                        .HasColumnType("timestamp with time zone");
 
                     b.Property<string>("Title")
                         .HasMaxLength(200)
