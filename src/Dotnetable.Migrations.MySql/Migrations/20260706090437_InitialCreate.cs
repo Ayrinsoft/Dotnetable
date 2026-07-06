@@ -1269,6 +1269,28 @@ namespace Dotnetable.Migrations.MySql.Migrations
                 .Annotation("MySQL:Charset", "utf8mb4");
 
             migrationBuilder.CreateTable(
+                name: "WebsiteFeatures",
+                columns: table => new
+                {
+                    WebsiteFeatureID = table.Column<int>(type: "int", nullable: false)
+                        .Annotation("MySQL:ValueGenerationStrategy", MySQLValueGenerationStrategy.IdentityColumn),
+                    WebsiteID = table.Column<int>(type: "int", nullable: false),
+                    FeatureKey = table.Column<byte>(type: "tinyint unsigned", nullable: false),
+                    Enabled = table.Column<bool>(type: "tinyint(1)", nullable: false, defaultValue: true),
+                    CreatedAt = table.Column<DateTime>(type: "datetime2(6)", nullable: false, defaultValueSql: "(sysutcdatetime())")
+                },
+                constraints: table =>
+                {
+                    table.PrimaryKey("PK_WebsiteFeatures", x => x.WebsiteFeatureID);
+                    table.ForeignKey(
+                        name: "FK_WebsiteFeatures_Websites",
+                        column: x => x.WebsiteID,
+                        principalTable: "Websites",
+                        principalColumn: "WebsiteID");
+                })
+                .Annotation("MySQL:Charset", "utf8mb4");
+
+            migrationBuilder.CreateTable(
                 name: "WebsiteIPs",
                 columns: table => new
                 {
@@ -4275,6 +4297,12 @@ namespace Dotnetable.Migrations.MySql.Migrations
                 column: "WebsiteID");
 
             migrationBuilder.CreateIndex(
+                name: "UQ_WebsiteFeatures_WebsiteID_FeatureKey",
+                table: "WebsiteFeatures",
+                columns: new[] { "WebsiteID", "FeatureKey" },
+                unique: true);
+
+            migrationBuilder.CreateIndex(
                 name: "IX_WebsiteIPs_WebsiteID",
                 table: "WebsiteIPs",
                 column: "WebsiteID");
@@ -4810,6 +4838,9 @@ namespace Dotnetable.Migrations.MySql.Migrations
 
             migrationBuilder.DropTable(
                 name: "WebsiteClientForgetPasswords");
+
+            migrationBuilder.DropTable(
+                name: "WebsiteFeatures");
 
             migrationBuilder.DropTable(
                 name: "WebsiteIPs");
