@@ -12,13 +12,9 @@
     <MudText Typo="Typo.h5" Class="fw-bold">@L["moderation.questions", "Questions"]</MudText>
     @if (_isMaster)
     {
-        <MudSelect T="int" @bind-Value="_websiteId" Label="@L["website", "Website"]" Variant="Variant.Outlined"
-                   Dense="true" Style="min-width:180px" SelectedValuesChanged="OnWebsiteChanged">
-            @foreach (var w in _websites)
-            {
-                <MudSelectItem T="int" Value="@w.WebsiteID">@w.TradeName</MudSelectItem>
-            }
-        </MudSelect>
+        <WebsiteSelector Value="_websiteId" ValueChanged="OnWebsiteChanged" Websites="_websites"
+                         Label="@L["website", "Website"]" Variant="Variant.Outlined"
+                         Dense="true" Style="min-width:180px" />
     }
 </MudStack>
 
@@ -88,7 +84,7 @@
         await LoadAsync();
     }
 
-    private async Task OnWebsiteChanged(IEnumerable<int> _) => await LoadAsync();
+    private async Task OnWebsiteChanged(int id) { _websiteId = id; await LoadAsync(); }
 
     private async Task LoadAsync()
     {
