@@ -3,6 +3,10 @@ using Dotnetable.Web.Services;
 
 var builder = WebApplication.CreateBuilder(args);
 
+// Machine-local overrides (gitignored), same convention as Admin/API: holds the real
+// Api:BaseUrl + Api:WebsiteKey for this deployment so they never live in source control.
+builder.Configuration.AddJsonFile("localsettings.json", optional: true, reloadOnChange: true);
+
 builder.Services
     .AddControllersWithViews()
     .AddRazorRuntimeCompilation();
