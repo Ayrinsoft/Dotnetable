@@ -48,14 +48,9 @@
                     <td>@w.WebsiteAddress</td>
                     <td>@w.Manager</td>
                     <td>
-                        @if (w.WebsiteType == 1)
-                        {
-                            <MudChip T="string" Color="Color.Warning" Size="Size.Small" Variant="Variant.Outlined">@L["store", "Store"]</MudChip>
-                        }
-                        else
-                        {
-                            <MudChip T="string" Color="Color.Primary" Size="Size.Small" Variant="Variant.Outlined">@L["website", "Website"]</MudChip>
-                        }
+                        <MudChip T="string" Color="@TypeChipColor(w.WebsiteType)" Size="Size.Small" Variant="Variant.Outlined">
+                            @L[w.WebsiteType.GetDisplayText().Key, w.WebsiteType.GetDisplayText().Fallback]
+                        </MudChip>
                     </td>
                     <td>
                         <MudSwitch T="bool" Value="w.Active" Color="Color.Success"
@@ -122,4 +117,12 @@
         _grid.Pagination.MaxLength = result.TotalCount;
         _loading = false;
     }
+
+    private static Color TypeChipColor(byte websiteType) => websiteType.GetCategory() switch
+    {
+        WebsiteCategory.Commerce => Color.Warning,
+        WebsiteCategory.Content => Color.Info,
+        WebsiteCategory.Educational => Color.Success,
+        _ => Color.Primary,
+    };
 }

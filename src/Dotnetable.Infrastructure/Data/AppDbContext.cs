@@ -212,6 +212,8 @@ public partial class AppDbContext : DbContext
 
     public virtual DbSet<WebsiteClientForgetPassword> WebsiteClientForgetPasswords { get; set; }
 
+    public virtual DbSet<WebsiteFeature> WebsiteFeatures { get; set; }
+
     public virtual DbSet<WebsiteIP> WebsiteIPs { get; set; }
 
     public virtual DbSet<WebsiteRedirect> WebsiteRedirects { get; set; }
@@ -2339,6 +2341,21 @@ public partial class AppDbContext : DbContext
                 .HasForeignKey(d => d.WebsiteClientID)
                 .OnDelete(DeleteBehavior.ClientSetNull)
                 .HasConstraintName("FK_WebsiteClientForgetPasswords_WebsiteClients");
+        });
+
+        modelBuilder.Entity<WebsiteFeature>(entity =>
+        {
+            entity.Property(e => e.CreatedAt)
+                .HasDefaultValueSql("(sysutcdatetime())", "DF_WebsiteFeatures_CreatedAt")
+                .HasColumnType("datetime2");
+            entity.Property(e => e.Enabled).HasDefaultValue(true, "DF_WebsiteFeatures_Enabled");
+
+            entity.HasIndex(e => new { e.WebsiteID, e.FeatureKey }, "UQ_WebsiteFeatures_WebsiteID_FeatureKey").IsUnique();
+
+            entity.HasOne(d => d.Website).WithMany(p => p.WebsiteFeatures)
+                .HasForeignKey(d => d.WebsiteID)
+                .OnDelete(DeleteBehavior.ClientSetNull)
+                .HasConstraintName("FK_WebsiteFeatures_Websites");
         });
 
         modelBuilder.Entity<WebsiteIP>(entity =>

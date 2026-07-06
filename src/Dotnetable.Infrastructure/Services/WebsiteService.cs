@@ -1,6 +1,7 @@
 using Dotnetable.Application.DTOs;
 using Dotnetable.Application.Interfaces;
 using Dotnetable.Domain.Entities;
+using Dotnetable.Domain.Enums;
 using Dotnetable.Infrastructure.Data;
 using Dotnetable.Infrastructure.Extensions;
 using Microsoft.EntityFrameworkCore;
@@ -58,6 +59,18 @@ public class WebsiteService : IWebsiteService
     public async Task<Website> CreateAsync(Website website, CancellationToken ct = default)
     {
         _context.Websites.Add(website);
+
+        var defaults = ((WebsiteType)website.WebsiteType).GetDefaultFeatures();
+        foreach (var featureKey in defaults)
+        {
+            _context.WebsiteFeatures.Add(new WebsiteFeature
+            {
+                Website = website,
+                FeatureKey = (byte)featureKey,
+                Enabled = true,
+            });
+        }
+
         await _context.SaveChangesAsync(ct);
         return website;
     }
@@ -73,6 +86,31 @@ public class WebsiteService : IWebsiteService
         var website = await _context.Websites.FindAsync([id], ct);
         if (website is null) return;
         _context.Websites.Remove(website);
+        await _context.SaveChangesAsync(ct);
+    }
+
+    public async Task<IEnumerable<WebsiteFeature>> GetFeaturesAsync(int websiteId, CancellationToken ct = default) =>
+        await _context.WebsiteFeatures.AsNoTracking().Where(f => f.WebsiteID == websiteId).ToListAsync(ct);
+
+    public async Task SetFeatureAsync(int websiteId, WebsiteFeatureKey featureKey, bool enabled, CancellationToken ct = default)
+    {
+        var existing = await _context.WebsiteFeatures
+            .FirstOrDefaultAsync(f => f.WebsiteID == websiteId && f.FeatureKey == (byte)featureKey, ct);
+
+        if (existing is not null)
+        {
+            existing.Enabled = enabled;
+        }
+        else
+        {
+            _context.WebsiteFeatures.Add(new WebsiteFeature
+            {
+                WebsiteID = websiteId,
+                FeatureKey = (byte)featureKey,
+                Enabled = enabled,
+            });
+        }
+
         await _context.SaveChangesAsync(ct);
     }
 }

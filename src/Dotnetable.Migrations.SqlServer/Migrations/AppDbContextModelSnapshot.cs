@@ -4556,6 +4556,38 @@ namespace Dotnetable.Migrations.SqlServer.Migrations
                     b.ToTable("WebsiteClientForgetPasswords");
                 });
 
+            modelBuilder.Entity("Dotnetable.Domain.Entities.WebsiteFeature", b =>
+                {
+                    b.Property<int>("WebsiteFeatureID")
+                        .ValueGeneratedOnAdd()
+                        .HasColumnType("int");
+
+                    SqlServerPropertyBuilderExtensions.UseIdentityColumn(b.Property<int>("WebsiteFeatureID"));
+
+                    b.Property<DateTime>("CreatedAt")
+                        .ValueGeneratedOnAdd()
+                        .HasColumnType("datetime2")
+                        .HasDefaultValueSql("(sysutcdatetime())", "DF_WebsiteFeatures_CreatedAt");
+
+                    b.Property<bool>("Enabled")
+                        .ValueGeneratedOnAdd()
+                        .HasColumnType("bit")
+                        .HasDefaultValue(true, "DF_WebsiteFeatures_Enabled");
+
+                    b.Property<byte>("FeatureKey")
+                        .HasColumnType("tinyint");
+
+                    b.Property<int>("WebsiteID")
+                        .HasColumnType("int");
+
+                    b.HasKey("WebsiteFeatureID");
+
+                    b.HasIndex(new[] { "WebsiteID", "FeatureKey" }, "UQ_WebsiteFeatures_WebsiteID_FeatureKey")
+                        .IsUnique();
+
+                    b.ToTable("WebsiteFeatures");
+                });
+
             modelBuilder.Entity("Dotnetable.Domain.Entities.WebsiteIP", b =>
                 {
                     b.Property<int>("WebsiteIPID")
@@ -6906,6 +6938,17 @@ namespace Dotnetable.Migrations.SqlServer.Migrations
                     b.Navigation("WebsiteClient");
                 });
 
+            modelBuilder.Entity("Dotnetable.Domain.Entities.WebsiteFeature", b =>
+                {
+                    b.HasOne("Dotnetable.Domain.Entities.Website", "Website")
+                        .WithMany("WebsiteFeatures")
+                        .HasForeignKey("WebsiteID")
+                        .IsRequired()
+                        .HasConstraintName("FK_WebsiteFeatures_Websites");
+
+                    b.Navigation("Website");
+                });
+
             modelBuilder.Entity("Dotnetable.Domain.Entities.WebsiteIP", b =>
                 {
                     b.HasOne("Dotnetable.Domain.Entities.Website", "Website")
@@ -7599,6 +7642,8 @@ namespace Dotnetable.Migrations.SqlServer.Migrations
                     b.Navigation("Vendors");
 
                     b.Navigation("WebsiteClients");
+
+                    b.Navigation("WebsiteFeatures");
 
                     b.Navigation("WebsiteIPs");
 

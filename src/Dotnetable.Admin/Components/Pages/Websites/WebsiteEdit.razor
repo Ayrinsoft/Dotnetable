@@ -64,9 +64,33 @@ else if (_website is not null)
                         <MudItem xs="12" sm="6">
                             <MudSelect T="byte" @bind-Value="_website.WebsiteType" Label="@L["website_type", "Website Type"]"
                                        Variant="Variant.Outlined"
-                                       HelperText="@L["website.type_hint", "Stores get the e-commerce dashboard."]">
-                                <MudSelectItem T="byte" Value="@((byte)0)">@L["website", "Website"]</MudSelectItem>
-                                <MudSelectItem T="byte" Value="@((byte)1)">@L["store", "Store"]</MudSelectItem>
+                                       HelperText="@L["website.type_hint", "Determines the default features suggested for this site — always changeable later."]">
+                                <MudListSubheader>@L["website.category.informational", "Informational / Brochure"]</MudListSubheader>
+                                <MudSelectItem T="byte" Value="@((byte)WebsiteType.Corporate)">@L["website.type.corporate", "Corporate Website"]</MudSelectItem>
+                                <MudSelectItem T="byte" Value="@((byte)WebsiteType.Personal)">@L["website.type.personal", "Personal Website"]</MudSelectItem>
+                                <MudSelectItem T="byte" Value="@((byte)WebsiteType.LandingPage)">@L["website.type.landing_page", "Landing Page"]</MudSelectItem>
+                                <MudSelectItem T="byte" Value="@((byte)WebsiteType.Resume)">@L["website.type.resume", "Resume / CV Site"]</MudSelectItem>
+
+                                <MudListSubheader>@L["website.category.commerce", "Commerce"]</MudListSubheader>
+                                <MudSelectItem T="byte" Value="@((byte)WebsiteType.ECommerce)">@L["website.type.ecommerce", "Online Store (E-commerce)"]</MudSelectItem>
+                                <MudSelectItem T="byte" Value="@((byte)WebsiteType.DigitalCatalog)">@L["website.type.digital_catalog", "Digital Catalog"]</MudSelectItem>
+                                <MudSelectItem T="byte" Value="@((byte)WebsiteType.Auction)">@L["website.type.auction", "Auction Site"]</MudSelectItem>
+                                <MudSelectItem T="byte" Value="@((byte)WebsiteType.Crowdfunding)">@L["website.type.crowdfunding", "Crowdfunding"]</MudSelectItem>
+                                <MudSelectItem T="byte" Value="@((byte)WebsiteType.RealEstate)">@L["website.type.real_estate", "Real Estate Listing"]</MudSelectItem>
+                                <MudSelectItem T="byte" Value="@((byte)WebsiteType.Restaurant)">@L["website.type.restaurant", "Restaurant / Online Menu"]</MudSelectItem>
+
+                                <MudListSubheader>@L["website.category.content", "Content Showcase"]</MudListSubheader>
+                                <MudSelectItem T="byte" Value="@((byte)WebsiteType.Gallery)">@L["website.type.gallery", "Photo & Video Gallery"]</MudSelectItem>
+                                <MudSelectItem T="byte" Value="@((byte)WebsiteType.Portfolio)">@L["website.type.portfolio", "Portfolio"]</MudSelectItem>
+                                <MudSelectItem T="byte" Value="@((byte)WebsiteType.Blog)">@L["website.type.blog", "Blog"]</MudSelectItem>
+                                <MudSelectItem T="byte" Value="@((byte)WebsiteType.News)">@L["website.type.news", "News / Magazine"]</MudSelectItem>
+
+                                <MudListSubheader>@L["website.category.educational", "Educational / Professional"]</MudListSubheader>
+                                <MudSelectItem T="byte" Value="@((byte)WebsiteType.ELearning)">@L["website.type.elearning", "E-learning / Online Courses"]</MudSelectItem>
+                                <MudSelectItem T="byte" Value="@((byte)WebsiteType.Membership)">@L["website.type.membership", "Membership / Subscription Site"]</MudSelectItem>
+                                <MudSelectItem T="byte" Value="@((byte)WebsiteType.Booking)">@L["website.type.booking", "Booking / Reservation (hotel, ticket, ...)"]</MudSelectItem>
+                                <MudSelectItem T="byte" Value="@((byte)WebsiteType.MedicalBooking)">@L["website.type.medical_booking", "Medical Appointment Booking"]</MudSelectItem>
+                                <MudSelectItem T="byte" Value="@((byte)WebsiteType.BeautyBooking)">@L["website.type.beauty_booking", "Beauty / Salon Appointment Booking"]</MudSelectItem>
                             </MudSelect>
                         </MudItem>
                         <MudItem xs="12" sm="6">
