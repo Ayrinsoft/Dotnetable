@@ -1,0 +1,218 @@
+@page "/forms"
+@attribute [Authorize(Policy = RoleKeys.FormsView)]
+@inject IFormService FormService
+@inject AuthenticationStateProvider AuthState
+@inject IDialogService DialogService
+@inject ISnackbar Snackbar
+@inject IPageLocalizer L
+
+<DNPageTitle Title=@L["forms", "Forms & Surveys"] />
+
+@* ── Page header ──────────────────────────────────────────────── *@
+<MudStack Row="true" AlignItems="AlignItems.Center" Justify="Justify.SpaceBetween" Class="mb-4">
+    <MudStack Spacing="0">
+        <MudText Typo="Typo.h5" Class="fw-bold">@L["forms", "Forms & Surveys"]</MudText>
+        <MudText Typo="Typo.body2" Color="Color.Secondary">
+            @L["forms.subtitle", "Build dynamic forms and surveys, embed them in any page with a shortcode, and track responses."]
+        </MudText>
+    </MudStack>
+    @if (_canInsert)
+    {
+        <MudButton Variant="Variant.Filled" Color="Color.Primary"
+                   StartIcon="@Icons.Material.Filled.Add" OnClick="CreateAsync">
+            @L["forms.new", "New Form"]
+        </MudButton>
+    }
+</MudStack>
+
+<MudPaper Elevation="0" Class="app-card rounded-lg pa-4">
+    @if (_loading)
+    {
+        <MudProgressLinear Indeterminate="true" Color="Color.Primary" Class="mb-3" />
+    }
+    else if (_forms.Count == 0)
+    {
+        <div style="text-align:center; padding:32px;">
+            <MudText Color="Color.Secondary">@L["forms.empty", "No forms yet. Create one and add fields to it."]</MudText>
+        </div>
+    }
+    else
+    {
+        <MudSimpleTable Dense="true" Hover="true" Elevation="0">
+            <thead>
+                <tr>
+                    <th style="width:1%"></th>
+                    <th>@L["id", "ID"]</th>
+                    <th>@L["title", "Title"]</th>
+                    <th>@L["forms.type", "Type"]</th>
+                    @if (_isMaster)
+                    {
+                        <th>@L["website", "Website"]</th>
+                    }
+                    <th>@L["forms.shortcode", "Shortcode"]</th>
+                    <th>@L["forms.fields", "Fields"]</th>
+                    <th>@L["forms.responses", "Responses"]</th>
+                    <th>@L["status", "Status"]</th>
+                    <th style="width:1%"></th>
+                </tr>
+            </thead>
+            <tbody>
+                @foreach (var f in _forms)
+                {
+                    <tr>
+                        <td>
+                            <MudIconButton Icon="@Icons.Material.Filled.Handyman" Size="Size.Small"
+                                           Color="Color.Primary" Title="@L["forms.manage_fields", "Form builder"]"
+                                           Href="@($"/forms/{f.FormID}")" />
+                        </td>
+                        <td>@f.FormID</td>
+                        <td>@f.Title</td>
+                        <td>
+                            <MudChip T="string" Size="Size.Small" Variant="Variant.Text"
+                                     Color="@((FormType)f.FormType == FormType.Survey ? Color.Tertiary : Color.Info)">
+                                @((FormType)f.FormType == FormType.Survey ? L["forms.survey", "Survey"] : L["forms.form", "Form"])
+                            </MudChip>
+                        </td>
+                        @if (_isMaster)
+                        {
+                            <td>#@f.WebsiteID</td>
+                        }
+                        <td><code>[form:@f.FormID]</code></td>
+                        <td>@(f.FormFields?.Count ?? 0)</td>
+                        <td>@(f.FormResponses?.Count ?? 0)</td>
+                        <td>
+                            <MudSwitch T="bool" Value="f.IsActive" Color="Color.Success"
+                                       Disabled="@(!_canEdit || _busy.Contains(f.FormID))"
+                                       ValueChanged="@(v => ToggleActiveAsync(f, v))" />
+                        </td>
+                        <td>
+                            <MudStack Row="true" Spacing="0">
+                                @if (_canReport)
+                                {
+                                    <MudIconButton Icon="@Icons.Material.Filled.BarChart" Size="Size.Small"
+                                                   Color="Color.Default" Title="@L["forms.report", "Report"]"
+                                                   Href="@($"/forms/{f.FormID}/report")" />
+                                }
+                                @if (_canEdit)
+                                {
+                                    <MudIconButton Icon="@Icons.Material.Filled.Edit" Size="Size.Small"
+                                                   Color="Color.Default" OnClick="@(() => EditAsync(f))" />
+                                }
+                                @if (_canDelete)
+                                {
+                                    <MudIconButton Icon="@Icons.Material.Filled.Delete" Size="Size.Small"
+                                                   Color="Color.Error" OnClick="@(() => DeleteAsync(f))" />
+                                }
+                            </MudStack>
+                        </td>
+                    </tr>
+                }
+            </tbody>
+        </MudSimpleTable>
+    }
+</MudPaper>
+
+@code {
+    private bool _loading = true;
+    private bool _isMaster;
+    private bool _canInsert;
+    private bool _canEdit;
+    private bool _canDelete;
+    private bool _canReport;
+    private int _websiteId;
+    private List<Form> _forms = new();
+    private HashSet<int> _busy = new();
+
+    protected override async Task OnInitializedAsync()
+    {
+        await L.EnsureLoadedAsync();
+
+        var user = (await AuthState.GetAuthenticationStateAsync()).User;
+        _isMaster = user.HasClaim(AdminClaimTypes.Master, "true");
+        _canInsert = AdminPolicies.Allows(user, RoleKeys.FormsInsert);
+        _canEdit = AdminPolicies.Allows(user, RoleKeys.FormsEdit);
+        _canDelete = AdminPolicies.Allows(user, RoleKeys.FormsDelete);
+        _canReport = AdminPolicies.Allows(user, RoleKeys.FormsReport);
+        int.TryParse(user.FindFirst(AdminClaimTypes.WebsiteId)?.Value, out _websiteId);
+
+        await LoadAsync();
+    }
+
+    private async Task LoadAsync()
+    {
+        _loading = true;
+        _forms = await FormService.GetFormsAsync(_isMaster ? null : _websiteId);
+        _loading = false;
+    }
+
+    private async Task ToggleActiveAsync(Form f, bool value)
+    {
+        if (!_busy.Add(f.FormID)) return;
+        try
+        {
+            var form = await FormService.GetFormAsync(f.FormID);
+            if (form is null) return;
+            form.IsActive = value;
+            form.FormFields = new List<FormField>();
+            await FormService.UpdateFormAsync(form);
+            f.IsActive = value;
+        }
+        finally { _busy.Remove(f.FormID); }
+    }
+
+    private async Task CreateAsync()
+    {
+        var result = await ShowDialogAsync(new Form
+        {
+            WebsiteID = _websiteId,
+            FormType = (byte)FormType.Form,
+            AllowMultipleSubmissions = true,
+            IsActive = true,
+        }, isNew: true);
+        if (result) await LoadAsync();
+    }
+
+    private async Task EditAsync(Form f)
+    {
+        var form = await FormService.GetFormAsync(f.FormID);
+        if (form is null) return;
+        form.FormFields = new List<FormField>();
+        var result = await ShowDialogAsync(form, isNew: false);
+        if (result) await LoadAsync();
+    }
+
+    private async Task<bool> ShowDialogAsync(Form form, bool isNew)
+    {
+        var parameters = new DialogParameters<FormDialog>
+        {
+            { x => x.Model, form },
+            { x => x.IsNew, isNew },
+            { x => x.AllowWebsiteEdit, _isMaster },
+        };
+        var dialog = await DialogService.ShowAsync<FormDialog>(
+            isNew ? L["forms.new", "New Form"] : L["forms.edit", "Edit Form"], parameters,
+            new DialogOptions { MaxWidth = MaxWidth.Medium, FullWidth = true });
+        var result = await dialog.Result;
+        return result is not null && !result.Canceled;
+    }
+
+    private async Task DeleteAsync(Form f)
+    {
+        var confirmed = await DialogService.ShowMessageBoxAsync(
+            L["forms.delete", "Delete form"],
+            L["forms.delete_confirm", "This deletes the form, its fields AND all collected responses. Continue?"],
+            yesText: L["delete", "Delete"], cancelText: L["cancel", "Cancel"]);
+        if (confirmed != true) return;
+
+        try
+        {
+            await FormService.DeleteFormAsync(f.FormID);
+            Snackbar.Add(L["deleted", "Deleted."], Severity.Success);
+            await LoadAsync();
+        }
+        catch (Exception ex)
+        {
+            Snackbar.Add($"{L["delete_failed", "Delete failed"]}: {ex.Message}", Severity.Error);
+        }
+    }
+}

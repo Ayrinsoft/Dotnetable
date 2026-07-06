@@ -76,6 +76,16 @@ public partial class AppDbContext : DbContext
 
     public virtual DbSet<FileTag> FileTags { get; set; }
 
+    public virtual DbSet<Form> Forms { get; set; }
+
+    public virtual DbSet<FormField> FormFields { get; set; }
+
+    public virtual DbSet<FormFieldOption> FormFieldOptions { get; set; }
+
+    public virtual DbSet<FormResponse> FormResponses { get; set; }
+
+    public virtual DbSet<FormResponseValue> FormResponseValues { get; set; }
+
     public virtual DbSet<InventoryItem> InventoryItems { get; set; }
 
     public virtual DbSet<JournalEntry> JournalEntries { get; set; }
@@ -225,6 +235,8 @@ public partial class AppDbContext : DbContext
     public virtual DbSet<WebsiteSocialLink> WebsiteSocialLinks { get; set; }
 
     public virtual DbSet<WebsiteStorageSetting> WebsiteStorageSettings { get; set; }
+
+    public virtual DbSet<WebsiteTheme> WebsiteThemes { get; set; }
 
     public virtual DbSet<Wishlist> Wishlists { get; set; }
 
@@ -867,6 +879,91 @@ public partial class AppDbContext : DbContext
                 .HasForeignKey(d => d.WebsiteID)
                 .OnDelete(DeleteBehavior.ClientSetNull)
                 .HasConstraintName("FK_FileTags_Websites");
+        });
+
+        modelBuilder.Entity<Form>(entity =>
+        {
+            entity.Property(e => e.Title).HasMaxLength(200);
+            entity.Property(e => e.Slug).HasMaxLength(200);
+            entity.Property(e => e.Description).HasMaxLength(1000);
+            entity.Property(e => e.FormType).HasDefaultValue((byte)0, "DF_Forms_FormType");
+            entity.Property(e => e.SubmitButtonText).HasMaxLength(100);
+            entity.Property(e => e.SuccessMessage).HasMaxLength(500);
+            entity.Property(e => e.NotifyEmail).HasMaxLength(200);
+            entity.Property(e => e.RequireLogin).HasDefaultValue(false, "DF_Forms_RequireLogin");
+            entity.Property(e => e.AllowMultipleSubmissions).HasDefaultValue(true, "DF_Forms_AllowMultipleSubmissions");
+            entity.Property(e => e.ShowResults).HasDefaultValue(false, "DF_Forms_ShowResults");
+            entity.Property(e => e.IsActive).HasDefaultValue(true, "DF_Forms_IsActive");
+            entity.Property(e => e.StartAt).HasColumnType("datetime");
+            entity.Property(e => e.EndAt).HasColumnType("datetime");
+            entity.Property(e => e.CreatedAt)
+                .HasDefaultValueSql("(sysutcdatetime())", "DF_Forms_CreatedAt")
+                .HasColumnType("datetime");
+
+            entity.HasOne(d => d.Website).WithMany(p => p.Forms)
+                .HasForeignKey(d => d.WebsiteID)
+                .OnDelete(DeleteBehavior.ClientSetNull)
+                .HasConstraintName("FK_Forms_Websites");
+        });
+
+        modelBuilder.Entity<FormField>(entity =>
+        {
+            entity.Property(e => e.Label).HasMaxLength(300);
+            entity.Property(e => e.FieldType).HasDefaultValue((byte)0, "DF_FormFields_FieldType");
+            entity.Property(e => e.Placeholder).HasMaxLength(200);
+            entity.Property(e => e.HelpText).HasMaxLength(500);
+            entity.Property(e => e.IsRequired).HasDefaultValue(false, "DF_FormFields_IsRequired");
+            entity.Property(e => e.SortOrder).HasDefaultValue(0, "DF_FormFields_SortOrder");
+            entity.Property(e => e.IsActive).HasDefaultValue(true, "DF_FormFields_IsActive");
+
+            entity.HasOne(d => d.Form).WithMany(p => p.FormFields)
+                .HasForeignKey(d => d.FormID)
+                .OnDelete(DeleteBehavior.ClientSetNull)
+                .HasConstraintName("FK_FormFields_Forms");
+        });
+
+        modelBuilder.Entity<FormFieldOption>(entity =>
+        {
+            entity.Property(e => e.Label).HasMaxLength(300);
+            entity.Property(e => e.Value).HasMaxLength(200);
+            entity.Property(e => e.SortOrder).HasDefaultValue(0, "DF_FormFieldOptions_SortOrder");
+
+            entity.HasOne(d => d.FormField).WithMany(p => p.FormFieldOptions)
+                .HasForeignKey(d => d.FormFieldID)
+                .OnDelete(DeleteBehavior.ClientSetNull)
+                .HasConstraintName("FK_FormFieldOptions_FormFields");
+        });
+
+        modelBuilder.Entity<FormResponse>(entity =>
+        {
+            entity.Property(e => e.SenderIPAddress)
+                .HasMaxLength(45)
+                .IsUnicode(false);
+            entity.Property(e => e.SubmittedAt)
+                .HasDefaultValueSql("(sysutcdatetime())", "DF_FormResponses_SubmittedAt")
+                .HasColumnType("datetime");
+
+            entity.HasOne(d => d.Form).WithMany(p => p.FormResponses)
+                .HasForeignKey(d => d.FormID)
+                .OnDelete(DeleteBehavior.ClientSetNull)
+                .HasConstraintName("FK_FormResponses_Forms");
+
+            entity.HasOne(d => d.WebsiteClient).WithMany(p => p.FormResponses)
+                .HasForeignKey(d => d.WebsiteClientID)
+                .HasConstraintName("FK_FormResponses_WebsiteClients");
+        });
+
+        modelBuilder.Entity<FormResponseValue>(entity =>
+        {
+            entity.HasOne(d => d.FormResponse).WithMany(p => p.FormResponseValues)
+                .HasForeignKey(d => d.FormResponseID)
+                .OnDelete(DeleteBehavior.ClientSetNull)
+                .HasConstraintName("FK_FormResponseValues_FormResponses");
+
+            entity.HasOne(d => d.FormField).WithMany(p => p.FormResponseValues)
+                .HasForeignKey(d => d.FormFieldID)
+                .OnDelete(DeleteBehavior.ClientSetNull)
+                .HasConstraintName("FK_FormResponseValues_FormFields");
         });
 
         modelBuilder.Entity<InventoryItem>(entity =>
@@ -2435,6 +2532,20 @@ public partial class AppDbContext : DbContext
                 .HasForeignKey(d => d.WebsiteID)
                 .OnDelete(DeleteBehavior.ClientSetNull)
                 .HasConstraintName("FK_WebsiteSocialLinks_Websites");
+        });
+
+        modelBuilder.Entity<WebsiteTheme>(entity =>
+        {
+            entity.Property(e => e.Name).HasMaxLength(100);
+            entity.Property(e => e.IsActive).HasDefaultValue(false, "DF_WebsiteThemes_IsActive");
+            entity.Property(e => e.CreatedAt)
+                .HasDefaultValueSql("(sysutcdatetime())", "DF_WebsiteThemes_CreatedAt")
+                .HasColumnType("datetime");
+
+            entity.HasOne(d => d.Website).WithMany(p => p.WebsiteThemes)
+                .HasForeignKey(d => d.WebsiteID)
+                .OnDelete(DeleteBehavior.ClientSetNull)
+                .HasConstraintName("FK_WebsiteThemes_Websites");
         });
 
         modelBuilder.Entity<WebsiteStorageSetting>(entity =>

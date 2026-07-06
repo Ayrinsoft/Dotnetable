@@ -1,0 +1,224 @@
+@page "/forms/{FormId:int}/report"
+@attribute [Authorize(Policy = RoleKeys.FormsReport)]
+@inject IFormService FormService
+@inject IDialogService DialogService
+@inject ISnackbar Snackbar
+@inject IJSRuntime JS
+@inject IPageLocalizer L
+
+<DNPageTitle Title=@($"{L["forms.report", "Report"]} · {_report?.Title}") />
+
+<MudStack Row="true" AlignItems="AlignItems.Center" Justify="Justify.SpaceBetween" Class="mb-4">
+    <MudStack Spacing="0">
+        <MudStack Row="true" AlignItems="AlignItems.Center" Spacing="2">
+            <MudIconButton Icon="@Icons.Material.Filled.ArrowBack" Size="Size.Small" Href="/forms" />
+            <MudText Typo="Typo.h5" Class="fw-bold">@(_report?.Title ?? $"#{FormId}")</MudText>
+        </MudStack>
+        <MudText Typo="Typo.body2" Color="Color.Secondary">@L["forms.report_subtitle", "Aggregate results and individual responses"]</MudText>
+    </MudStack>
+    <MudButton Variant="Variant.Outlined" Color="Color.Primary" Disabled="@(_report is null || _report.ResponseCount == 0)"
+               StartIcon="@Icons.Material.Filled.Download" OnClick="ExportCsvAsync">
+        @L["forms.export_csv", "Export CSV"]
+    </MudButton>
+</MudStack>
+
+@if (_loading)
+{
+    <MudProgressLinear Indeterminate="true" Color="Color.Primary" Class="mb-3" />
+}
+else if (_report is null)
+{
+    <MudPaper Elevation="0" Class="app-card rounded-lg pa-6">
+        <MudText Color="Color.Secondary">@L["forms.not_found", "Form not found."]</MudText>
+    </MudPaper>
+}
+else
+{
+    @* ── Totals ───────────────────────────────────────────────── *@
+    <MudGrid Spacing="3" Class="mb-1">
+        <MudItem xs="12" sm="4">
+            <MudPaper Elevation="0" Class="app-card rounded-lg pa-4">
+                <MudText Typo="Typo.overline" Color="Color.Secondary">@L["forms.responses", "Responses"]</MudText>
+                <MudText Typo="Typo.h4" Class="fw-bold">@_report.ResponseCount</MudText>
+            </MudPaper>
+        </MudItem>
+        <MudItem xs="12" sm="4">
+            <MudPaper Elevation="0" Class="app-card rounded-lg pa-4">
+                <MudText Typo="Typo.overline" Color="Color.Secondary">@L["forms.first_response", "First response"]</MudText>
+                <MudText Typo="Typo.h6">@(_report.FirstResponseAt?.ToString("yyyy-MM-dd HH:mm") ?? "—")</MudText>
+            </MudPaper>
+        </MudItem>
+        <MudItem xs="12" sm="4">
+            <MudPaper Elevation="0" Class="app-card rounded-lg pa-4">
+                <MudText Typo="Typo.overline" Color="Color.Secondary">@L["forms.last_response", "Last response"]</MudText>
+                <MudText Typo="Typo.h6">@(_report.LastResponseAt?.ToString("yyyy-MM-dd HH:mm") ?? "—")</MudText>
+            </MudPaper>
+        </MudItem>
+    </MudGrid>
+
+    @* ── Per-field aggregates ─────────────────────────────────── *@
+    <MudGrid Spacing="3">
+        @foreach (var field in _report.Fields)
+        {
+            <MudItem xs="12" md="6">
+                <MudPaper Elevation="0" Class="app-card rounded-lg pa-4" Style="height:100%">
+                    <MudStack Row="true" AlignItems="AlignItems.Center" Justify="Justify.SpaceBetween" Class="mb-2">
+                        <MudText Typo="Typo.subtitle1" Class="fw-bold">@field.Label</MudText>
+                        <MudChip T="string" Size="Size.Small" Variant="Variant.Text" Color="Color.Info">@field.FieldType</MudChip>
+                    </MudStack>
+                    <MudText Typo="Typo.body2" Color="Color.Secondary" Class="mb-2">
+                        @field.AnswerCount @L["forms.answers", "answers"]
+                        @if (field.Average is double avg)
+                        {
+                            <text> · @L["forms.average", "average"]: <b>@avg</b></text>
+                        }
+                    </MudText>
+
+                    @if (field.OptionCounts.Count > 0)
+                    {
+                        @foreach (var option in field.OptionCounts)
+                        {
+                            <MudStack Row="true" AlignItems="AlignItems.Center" Justify="Justify.SpaceBetween" Spacing="1">
+                                <MudText Typo="Typo.body2">@option.Label</MudText>
+                                <MudText Typo="Typo.body2" Color="Color.Secondary">@option.Count (@option.Percent%)</MudText>
+                            </MudStack>
+                            <MudProgressLinear Value="@option.Percent" Color="Color.Primary" Class="mb-2" Rounded="true" />
+                        }
+                    }
+                    else if (field.LatestTextAnswers.Count > 0)
+                    {
+                        <MudText Typo="Typo.caption" Color="Color.Secondary">@L["forms.latest_answers", "Latest answers"]</MudText>
+                        <ul style="margin:4px 0 0 16px; padding:0;">
+                            @foreach (var answer in field.LatestTextAnswers)
+                            {
+                                <li><MudText Typo="Typo.body2">@answer</MudText></li>
+                            }
+                        </ul>
+                    }
+                    else
+                    {
+                        <MudText Typo="Typo.body2" Color="Color.Secondary">@L["forms.no_answers", "No answers yet."]</MudText>
+                    }
+                </MudPaper>
+            </MudItem>
+        }
+    </MudGrid>
+
+    @* ── Individual responses ─────────────────────────────────── *@
+    <MudPaper Elevation="0" Class="app-card rounded-lg pa-4 mt-4">
+        <MudText Typo="Typo.subtitle1" Class="fw-bold mb-3">@L["forms.responses", "Responses"]</MudText>
+        @if (_responses.Count == 0)
+        {
+            <MudText Color="Color.Secondary">@L["forms.no_responses", "No responses yet."]</MudText>
+        }
+        else
+        {
+            <div style="overflow-x:auto;">
+                <MudSimpleTable Dense="true" Hover="true" Elevation="0">
+                    <thead>
+                        <tr>
+                            <th>@L["id", "ID"]</th>
+                            <th>@L["forms.submitted_at", "Submitted (UTC)"]</th>
+                            <th>@L["forms.client", "Client"]</th>
+                            <th>IP</th>
+                            @foreach (var field in _report.Fields)
+                            {
+                                <th>@field.Label</th>
+                            }
+                            <th style="width:1%"></th>
+                        </tr>
+                    </thead>
+                    <tbody>
+                        @foreach (var response in _responses)
+                        {
+                            <tr>
+                                <td>@response.FormResponseID</td>
+                                <td>@response.SubmittedAt.ToString("yyyy-MM-dd HH:mm")</td>
+                                <td>@(response.ClientDisplayName ?? L["forms.anonymous", "Anonymous"])</td>
+                                <td>@response.SenderIPAddress</td>
+                                @foreach (var field in _report.Fields)
+                                {
+                                    <td>@(response.Answers.TryGetValue(field.FormFieldID, out var v) ? v : "")</td>
+                                }
+                                <td>
+                                    <MudIconButton Icon="@Icons.Material.Filled.Delete" Size="Size.Small"
+                                                   Color="Color.Error" OnClick="@(() => DeleteResponseAsync(response))" />
+                                </td>
+                            </tr>
+                        }
+                    </tbody>
+                </MudSimpleTable>
+            </div>
+            <MudStack Row="true" Justify="Justify.Center" Class="mt-3">
+                <MudPagination Count="@_pageCount" Selected="@_page" SelectedChanged="OnPageChangedAsync" />
+            </MudStack>
+        }
+    </MudPaper>
+}
+
+@code {
+    private const int PageSize = 20;
+
+    [Parameter] public int FormId { get; set; }
+
+    private bool _loading = true;
+    private FormReportDto? _report;
+    private List<FormResponseListItemDto> _responses = new();
+    private int _page = 1;
+    private int _pageCount = 1;
+
+    protected override async Task OnInitializedAsync()
+    {
+        await L.EnsureLoadedAsync();
+        await LoadAsync();
+    }
+
+    private async Task LoadAsync()
+    {
+        _loading = true;
+        _report = await FormService.GetReportAsync(FormId);
+        if (_report is not null)
+            await LoadResponsesAsync();
+        _loading = false;
+    }
+
+    private async Task LoadResponsesAsync()
+    {
+        var page = await FormService.GetResponsesAsync(FormId, _page, PageSize);
+        _responses = page.Items.ToList();
+        _pageCount = Math.Max(1, (int)Math.Ceiling(page.TotalCount / (double)PageSize));
+    }
+
+    private async Task OnPageChangedAsync(int page)
+    {
+        _page = page;
+        await LoadResponsesAsync();
+    }
+
+    private async Task DeleteResponseAsync(FormResponseListItemDto response)
+    {
+        var confirmed = await DialogService.ShowMessageBoxAsync(
+            L["forms.delete_response", "Delete response"],
+            L["forms.delete_response_confirm", "Delete this response permanently?"],
+            yesText: L["delete", "Delete"], cancelText: L["cancel", "Cancel"]);
+        if (confirmed != true) return;
+
+        await FormService.DeleteResponseAsync(response.FormResponseID);
+        Snackbar.Add(L["deleted", "Deleted."], Severity.Success);
+        await LoadAsync();
+    }
+
+    private async Task ExportCsvAsync()
+    {
+        try
+        {
+            var bytes = await FormService.ExportResponsesCsvAsync(FormId);
+            var fileName = $"form-{FormId}-responses-{DateTime.UtcNow:yyyyMMdd-HHmm}.csv";
+            await JS.InvokeVoidAsync("dotnetableFile.download", fileName, Convert.ToBase64String(bytes), "text/csv");
+        }
+        catch (Exception ex)
+        {
+            Snackbar.Add($"{L["forms.export_failed", "Export failed"]}: {ex.Message}", Severity.Error);
+        }
+    }
+}

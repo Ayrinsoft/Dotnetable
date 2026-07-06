@@ -822,6 +822,39 @@ namespace Dotnetable.Migrations.MySql.Migrations
                 .Annotation("MySQL:Charset", "utf8mb4");
 
             migrationBuilder.CreateTable(
+                name: "Forms",
+                columns: table => new
+                {
+                    FormID = table.Column<int>(type: "int", nullable: false)
+                        .Annotation("MySQL:ValueGenerationStrategy", MySQLValueGenerationStrategy.IdentityColumn),
+                    WebsiteID = table.Column<int>(type: "int", nullable: false),
+                    Title = table.Column<string>(type: "varchar(200)", maxLength: 200, nullable: false),
+                    Slug = table.Column<string>(type: "varchar(200)", maxLength: 200, nullable: false),
+                    Description = table.Column<string>(type: "varchar(1000)", maxLength: 1000, nullable: true),
+                    FormType = table.Column<byte>(type: "tinyint unsigned", nullable: false, defaultValue: (byte)0),
+                    SubmitButtonText = table.Column<string>(type: "varchar(100)", maxLength: 100, nullable: true),
+                    SuccessMessage = table.Column<string>(type: "varchar(500)", maxLength: 500, nullable: true),
+                    RequireLogin = table.Column<bool>(type: "tinyint(1)", nullable: false, defaultValue: false),
+                    AllowMultipleSubmissions = table.Column<bool>(type: "tinyint(1)", nullable: false, defaultValue: true),
+                    ShowResults = table.Column<bool>(type: "tinyint(1)", nullable: false, defaultValue: false),
+                    NotifyEmail = table.Column<string>(type: "varchar(200)", maxLength: 200, nullable: true),
+                    StartAt = table.Column<DateTime>(type: "datetime", nullable: true),
+                    EndAt = table.Column<DateTime>(type: "datetime", nullable: true),
+                    IsActive = table.Column<bool>(type: "tinyint(1)", nullable: false, defaultValue: true),
+                    CreatedAt = table.Column<DateTime>(type: "datetime", nullable: false, defaultValueSql: "(sysutcdatetime())")
+                },
+                constraints: table =>
+                {
+                    table.PrimaryKey("PK_Forms", x => x.FormID);
+                    table.ForeignKey(
+                        name: "FK_Forms_Websites",
+                        column: x => x.WebsiteID,
+                        principalTable: "Websites",
+                        principalColumn: "WebsiteID");
+                })
+                .Annotation("MySQL:Charset", "utf8mb4");
+
+            migrationBuilder.CreateTable(
                 name: "JournalEntries",
                 columns: table => new
                 {
@@ -1440,6 +1473,29 @@ namespace Dotnetable.Migrations.MySql.Migrations
                 .Annotation("MySQL:Charset", "utf8mb4");
 
             migrationBuilder.CreateTable(
+                name: "WebsiteThemes",
+                columns: table => new
+                {
+                    WebsiteThemeID = table.Column<int>(type: "int", nullable: false)
+                        .Annotation("MySQL:ValueGenerationStrategy", MySQLValueGenerationStrategy.IdentityColumn),
+                    WebsiteID = table.Column<int>(type: "int", nullable: false),
+                    Name = table.Column<string>(type: "varchar(100)", maxLength: 100, nullable: false),
+                    SettingsJson = table.Column<string>(type: "longtext", nullable: false),
+                    IsActive = table.Column<bool>(type: "tinyint(1)", nullable: false, defaultValue: false),
+                    CreatedAt = table.Column<DateTime>(type: "datetime", nullable: false, defaultValueSql: "(sysutcdatetime())")
+                },
+                constraints: table =>
+                {
+                    table.PrimaryKey("PK_WebsiteThemes", x => x.WebsiteThemeID);
+                    table.ForeignKey(
+                        name: "FK_WebsiteThemes_Websites",
+                        column: x => x.WebsiteID,
+                        principalTable: "Websites",
+                        principalColumn: "WebsiteID");
+                })
+                .Annotation("MySQL:Charset", "utf8mb4");
+
+            migrationBuilder.CreateTable(
                 name: "FileRecordTags",
                 columns: table => new
                 {
@@ -1461,6 +1517,34 @@ namespace Dotnetable.Migrations.MySql.Migrations
                         column: x => x.FileTagID,
                         principalTable: "FileTags",
                         principalColumn: "FileTagID");
+                })
+                .Annotation("MySQL:Charset", "utf8mb4");
+
+            migrationBuilder.CreateTable(
+                name: "FormFields",
+                columns: table => new
+                {
+                    FormFieldID = table.Column<int>(type: "int", nullable: false)
+                        .Annotation("MySQL:ValueGenerationStrategy", MySQLValueGenerationStrategy.IdentityColumn),
+                    FormID = table.Column<int>(type: "int", nullable: false),
+                    Label = table.Column<string>(type: "varchar(300)", maxLength: 300, nullable: false),
+                    FieldType = table.Column<byte>(type: "tinyint unsigned", nullable: false, defaultValue: (byte)0),
+                    Placeholder = table.Column<string>(type: "varchar(200)", maxLength: 200, nullable: true),
+                    HelpText = table.Column<string>(type: "varchar(500)", maxLength: 500, nullable: true),
+                    IsRequired = table.Column<bool>(type: "tinyint(1)", nullable: false, defaultValue: false),
+                    MinValue = table.Column<int>(type: "int", nullable: true),
+                    MaxValue = table.Column<int>(type: "int", nullable: true),
+                    SortOrder = table.Column<int>(type: "int", nullable: false, defaultValue: 0),
+                    IsActive = table.Column<bool>(type: "tinyint(1)", nullable: false, defaultValue: true)
+                },
+                constraints: table =>
+                {
+                    table.PrimaryKey("PK_FormFields", x => x.FormFieldID);
+                    table.ForeignKey(
+                        name: "FK_FormFields_Forms",
+                        column: x => x.FormID,
+                        principalTable: "Forms",
+                        principalColumn: "FormID");
                 })
                 .Annotation("MySQL:Charset", "utf8mb4");
 
@@ -1760,6 +1844,33 @@ namespace Dotnetable.Migrations.MySql.Migrations
                 .Annotation("MySQL:Charset", "utf8mb4");
 
             migrationBuilder.CreateTable(
+                name: "FormResponses",
+                columns: table => new
+                {
+                    FormResponseID = table.Column<int>(type: "int", nullable: false)
+                        .Annotation("MySQL:ValueGenerationStrategy", MySQLValueGenerationStrategy.IdentityColumn),
+                    FormID = table.Column<int>(type: "int", nullable: false),
+                    WebsiteClientID = table.Column<int>(type: "int", nullable: true),
+                    SenderIPAddress = table.Column<string>(type: "varchar(45)", unicode: false, maxLength: 45, nullable: false),
+                    SubmittedAt = table.Column<DateTime>(type: "datetime", nullable: false, defaultValueSql: "(sysutcdatetime())")
+                },
+                constraints: table =>
+                {
+                    table.PrimaryKey("PK_FormResponses", x => x.FormResponseID);
+                    table.ForeignKey(
+                        name: "FK_FormResponses_Forms",
+                        column: x => x.FormID,
+                        principalTable: "Forms",
+                        principalColumn: "FormID");
+                    table.ForeignKey(
+                        name: "FK_FormResponses_WebsiteClients",
+                        column: x => x.WebsiteClientID,
+                        principalTable: "WebsiteClients",
+                        principalColumn: "WebsiteClientID");
+                })
+                .Annotation("MySQL:Charset", "utf8mb4");
+
+            migrationBuilder.CreateTable(
                 name: "WebsiteClientAddresses",
                 columns: table => new
                 {
@@ -1842,6 +1953,28 @@ namespace Dotnetable.Migrations.MySql.Migrations
                         column: x => x.WebsiteID,
                         principalTable: "Websites",
                         principalColumn: "WebsiteID");
+                })
+                .Annotation("MySQL:Charset", "utf8mb4");
+
+            migrationBuilder.CreateTable(
+                name: "FormFieldOptions",
+                columns: table => new
+                {
+                    FormFieldOptionID = table.Column<int>(type: "int", nullable: false)
+                        .Annotation("MySQL:ValueGenerationStrategy", MySQLValueGenerationStrategy.IdentityColumn),
+                    FormFieldID = table.Column<int>(type: "int", nullable: false),
+                    Label = table.Column<string>(type: "varchar(300)", maxLength: 300, nullable: false),
+                    Value = table.Column<string>(type: "varchar(200)", maxLength: 200, nullable: true),
+                    SortOrder = table.Column<int>(type: "int", nullable: false, defaultValue: 0)
+                },
+                constraints: table =>
+                {
+                    table.PrimaryKey("PK_FormFieldOptions", x => x.FormFieldOptionID);
+                    table.ForeignKey(
+                        name: "FK_FormFieldOptions_FormFields",
+                        column: x => x.FormFieldID,
+                        principalTable: "FormFields",
+                        principalColumn: "FormFieldID");
                 })
                 .Annotation("MySQL:Charset", "utf8mb4");
 
@@ -2073,6 +2206,32 @@ namespace Dotnetable.Migrations.MySql.Migrations
                         column: x => x.WebsiteID,
                         principalTable: "Websites",
                         principalColumn: "WebsiteID");
+                })
+                .Annotation("MySQL:Charset", "utf8mb4");
+
+            migrationBuilder.CreateTable(
+                name: "FormResponseValues",
+                columns: table => new
+                {
+                    FormResponseValueID = table.Column<int>(type: "int", nullable: false)
+                        .Annotation("MySQL:ValueGenerationStrategy", MySQLValueGenerationStrategy.IdentityColumn),
+                    FormResponseID = table.Column<int>(type: "int", nullable: false),
+                    FormFieldID = table.Column<int>(type: "int", nullable: false),
+                    Value = table.Column<string>(type: "longtext", nullable: true)
+                },
+                constraints: table =>
+                {
+                    table.PrimaryKey("PK_FormResponseValues", x => x.FormResponseValueID);
+                    table.ForeignKey(
+                        name: "FK_FormResponseValues_FormFields",
+                        column: x => x.FormFieldID,
+                        principalTable: "FormFields",
+                        principalColumn: "FormFieldID");
+                    table.ForeignKey(
+                        name: "FK_FormResponseValues_FormResponses",
+                        column: x => x.FormResponseID,
+                        principalTable: "FormResponses",
+                        principalColumn: "FormResponseID");
                 })
                 .Annotation("MySQL:Charset", "utf8mb4");
 
@@ -3506,6 +3665,41 @@ namespace Dotnetable.Migrations.MySql.Migrations
                 column: "WebsiteID");
 
             migrationBuilder.CreateIndex(
+                name: "IX_FormFieldOptions_FormFieldID",
+                table: "FormFieldOptions",
+                column: "FormFieldID");
+
+            migrationBuilder.CreateIndex(
+                name: "IX_FormFields_FormID",
+                table: "FormFields",
+                column: "FormID");
+
+            migrationBuilder.CreateIndex(
+                name: "IX_FormResponses_FormID",
+                table: "FormResponses",
+                column: "FormID");
+
+            migrationBuilder.CreateIndex(
+                name: "IX_FormResponses_WebsiteClientID",
+                table: "FormResponses",
+                column: "WebsiteClientID");
+
+            migrationBuilder.CreateIndex(
+                name: "IX_FormResponseValues_FormFieldID",
+                table: "FormResponseValues",
+                column: "FormFieldID");
+
+            migrationBuilder.CreateIndex(
+                name: "IX_FormResponseValues_FormResponseID",
+                table: "FormResponseValues",
+                column: "FormResponseID");
+
+            migrationBuilder.CreateIndex(
+                name: "IX_Forms_WebsiteID",
+                table: "Forms",
+                column: "WebsiteID");
+
+            migrationBuilder.CreateIndex(
                 name: "IX_InventoryItems_ProductVariantID",
                 table: "InventoryItems",
                 column: "ProductVariantID");
@@ -4348,6 +4542,11 @@ namespace Dotnetable.Migrations.MySql.Migrations
                 column: "WebsiteID");
 
             migrationBuilder.CreateIndex(
+                name: "IX_WebsiteThemes_WebsiteID",
+                table: "WebsiteThemes",
+                column: "WebsiteID");
+
+            migrationBuilder.CreateIndex(
                 name: "IX_WishlistItems_ProductVariantID",
                 table: "WishlistItems",
                 column: "ProductVariantID");
@@ -4735,6 +4934,12 @@ namespace Dotnetable.Migrations.MySql.Migrations
                 name: "FileRecordTags");
 
             migrationBuilder.DropTable(
+                name: "FormFieldOptions");
+
+            migrationBuilder.DropTable(
+                name: "FormResponseValues");
+
+            migrationBuilder.DropTable(
                 name: "InventoryItems");
 
             migrationBuilder.DropTable(
@@ -4858,6 +5063,9 @@ namespace Dotnetable.Migrations.MySql.Migrations
                 name: "WebsiteSocialLinks");
 
             migrationBuilder.DropTable(
+                name: "WebsiteThemes");
+
+            migrationBuilder.DropTable(
                 name: "WishlistItems");
 
             migrationBuilder.DropTable(
@@ -4868,6 +5076,12 @@ namespace Dotnetable.Migrations.MySql.Migrations
 
             migrationBuilder.DropTable(
                 name: "FileTags");
+
+            migrationBuilder.DropTable(
+                name: "FormFields");
+
+            migrationBuilder.DropTable(
+                name: "FormResponses");
 
             migrationBuilder.DropTable(
                 name: "ChartOfAccounts");
@@ -4913,6 +5127,9 @@ namespace Dotnetable.Migrations.MySql.Migrations
 
             migrationBuilder.DropTable(
                 name: "Wishlists");
+
+            migrationBuilder.DropTable(
+                name: "Forms");
 
             migrationBuilder.DropTable(
                 name: "Categories");

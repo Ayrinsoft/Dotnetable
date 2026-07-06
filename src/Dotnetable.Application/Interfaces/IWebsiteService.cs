@@ -29,4 +29,8 @@ public interface IWebsiteService
 
     /// <summary>Enables/disables a single feature for a website, inserting the row if it doesn't exist yet.</summary>
     Task SetFeatureAsync(int websiteId, WebsiteFeatureKey featureKey, bool enabled, CancellationToken ct = default);
+
+    /// <summary>Public branding/identity bundle (brand, logo, contact, socials, SEO defaults) the
+    /// front-ends render the layout from.</summary>
+    Task<SiteInfoDto?> GetSiteInfoAsync(int websiteId, CancellationToken ct = default);
 }

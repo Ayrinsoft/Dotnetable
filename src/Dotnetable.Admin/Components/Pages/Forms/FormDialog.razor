@@ -1,0 +1,133 @@
+@inject IFormService FormService
+@inject ISnackbar Snackbar
+@inject IPageLocalizer L
+
+<MudDialog>
+    <DialogContent>
+        <MudForm @ref="_form">
+            <MudGrid Spacing="3">
+                <MudItem xs="12" sm="8">
+                    <MudTextField @bind-Value="Model.Title" Label="@L["title", "Title"]"
+                                  Variant="Variant.Outlined" Required="true"
+                                  RequiredError="@L["forms.title_required", "Title is required."]" />
+                </MudItem>
+                <MudItem xs="12" sm="4">
+                    <MudSelect T="byte" @bind-Value="Model.FormType" Label="@L["forms.type", "Type"]"
+                               Variant="Variant.Outlined">
+                        <MudSelectItem T="byte" Value="@((byte)FormType.Form)">@L["forms.form", "Form"]</MudSelectItem>
+                        <MudSelectItem T="byte" Value="@((byte)FormType.Survey)">@L["forms.survey", "Survey"]</MudSelectItem>
+                    </MudSelect>
+                </MudItem>
+
+                <MudItem xs="12" sm="8">
+                    <MudTextField @bind-Value="Model.Slug" Label="@L["forms.slug", "Slug (public URL, blank = from title)"]"
+                                  Variant="Variant.Outlined" />
+                </MudItem>
+                @if (AllowWebsiteEdit)
+                {
+                    <MudItem xs="12" sm="4">
+                        <MudNumericField T="int" @bind-Value="Model.WebsiteID" Label="@L["website", "Website"]"
+                                         Variant="Variant.Outlined" />
+                    </MudItem>
+                }
+
+                <MudItem xs="12">
+                    <MudTextField @bind-Value="Model.Description" Label="@L["forms.description", "Description (shown above the form)"]"
+                                  Variant="Variant.Outlined" Lines="2" />
+                </MudItem>
+
+                <MudItem xs="12" sm="6">
+                    <MudTextField @bind-Value="Model.SubmitButtonText" Label="@L["forms.submit_text", "Submit button text (optional)"]"
+                                  Variant="Variant.Outlined" />
+                </MudItem>
+                <MudItem xs="12" sm="6">
+                    <MudTextField @bind-Value="Model.NotifyEmail" Label="@L["forms.notify_email", "Notify email (optional)"]"
+                                  Variant="Variant.Outlined" InputType="InputType.Email" />
+                </MudItem>
+
+                <MudItem xs="12">
+                    <MudTextField @bind-Value="Model.SuccessMessage" Label="@L["forms.success_message", "Success message (optional)"]"
+                                  Variant="Variant.Outlined" Lines="2" />
+                </MudItem>
+
+                <MudItem xs="12" sm="6">
+                    <MudDatePicker Label="@L["forms.start_at", "Open from (UTC, optional)"]"
+                                   @bind-Date="_startAt" Variant="Variant.Outlined" Clearable="true" />
+                </MudItem>
+                <MudItem xs="12" sm="6">
+                    <MudDatePicker Label="@L["forms.end_at", "Open until (UTC, optional)"]"
+                                   @bind-Date="_endAt" Variant="Variant.Outlined" Clearable="true" />
+                </MudItem>
+
+                <MudItem xs="12" sm="6">
+                    <MudSwitch T="bool" @bind-Value="Model.RequireLogin" Color="Color.Primary"
+                               Label="@L["forms.require_login", "Require sign-in to submit"]" />
+                </MudItem>
+                <MudItem xs="12" sm="6">
+                    <MudSwitch T="bool" @bind-Value="Model.AllowMultipleSubmissions" Color="Color.Primary"
+                               Label="@L["forms.allow_multiple", "Allow multiple submissions per client"]" />
+                </MudItem>
+                <MudItem xs="12" sm="6">
+                    <MudSwitch T="bool" @bind-Value="Model.ShowResults" Color="Color.Primary"
+                               Label="@L["forms.show_results", "Show aggregate results publicly (surveys)"]" />
+                </MudItem>
+                <MudItem xs="12" sm="6">
+                    <MudSwitch T="bool" @bind-Value="Model.IsActive" Color="Color.Success"
+                               Label="@(Model.IsActive ? L["active", "Active"] : L["inactive", "Inactive"])" />
+                </MudItem>
+            </MudGrid>
+        </MudForm>
+    </DialogContent>
+    <DialogActions>
+        <MudButton OnClick="Cancel">@L["cancel", "Cancel"]</MudButton>
+        <MudButton Variant="Variant.Filled" Color="Color.Primary" OnClick="SaveAsync" Disabled="@_saving">
+            @L["save", "Save"]
+        </MudButton>
+    </DialogActions>
+</MudDialog>
+
+@code {
+    [CascadingParameter] private IMudDialogInstance MudDialog { get; set; } = null!;
+
+    [Parameter] public Form Model { get; set; } = new();
+    [Parameter] public bool IsNew { get; set; }
+    [Parameter] public bool AllowWebsiteEdit { get; set; }
+
+    private MudForm _form = null!;
+    private bool _saving;
+    private DateTime? _startAt;
+    private DateTime? _endAt;
+
+    protected override void OnInitialized()
+    {
+        _startAt = Model.StartAt;
+        _endAt = Model.EndAt;
+    }
+
+    private void Cancel() => MudDialog.Cancel();
+
+    private async Task SaveAsync()
+    {
+        await _form.Validate();
+        if (!_form.IsValid) return;
+
+        _saving = true;
+        try
+        {
+            Model.StartAt = _startAt;
+            Model.EndAt = _endAt;
+            if (IsNew)
+                await FormService.CreateFormAsync(Model);
+            else
+                await FormService.UpdateFormAsync(Model);
+
+            Snackbar.Add(L["saved", "Saved."], Severity.Success);
+            MudDialog.Close(DialogResult.Ok(Model.FormID));
+        }
+        catch (Exception ex)
+        {
+            Snackbar.Add($"{L["save_failed", "Save failed"]}: {ex.Message}", Severity.Error);
+        }
+        finally { _saving = false; }
+    }
+}

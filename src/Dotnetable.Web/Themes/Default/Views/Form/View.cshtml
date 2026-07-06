@@ -1,0 +1,37 @@
+@using Dotnetable.Application.DTOs
+@using Dotnetable.Web.Services
+@{
+    Layout = "/Themes/Default/Views/Shared/_Layout.cshtml";
+    var form = ViewData["Form"] as FormDto;
+    var submitted = ViewData["Submitted"] as string;
+    var error = ViewData["Error"] as string;
+    var results = ViewData["Results"] as FormPublicResultsDto;
+}
+
+<section class="site-section">
+    <div class="container" style="max-width: 760px;">
+        @if (!string.IsNullOrEmpty(submitted))
+        {
+            <div class="alert alert-success shadow-sm">@submitted</div>
+        }
+        @if (!string.IsNullOrEmpty(error))
+        {
+            <div class="alert alert-danger shadow-sm">@error</div>
+        }
+
+        @if (results is not null)
+        {
+            @Html.Raw(FormHtmlRenderer.RenderResults(results))
+        }
+        else if (string.IsNullOrEmpty(submitted))
+        {
+            @Html.Raw(FormHtmlRenderer.Render(form))
+        }
+        else if (form is not null && form.AllowMultipleSubmissions)
+        {
+            <div class="text-center mt-3">
+                <a class="btn btn-outline-primary" href="/form/@form.Slug">Submit another response</a>
+            </div>
+        }
+    </div>
+</section>

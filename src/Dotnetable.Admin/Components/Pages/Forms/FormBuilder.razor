@@ -1,0 +1,225 @@
+@page "/forms/{FormId:int}"
+@attribute [Authorize(Policy = RoleKeys.FormsView)]
+@inject IFormService FormService
+@inject AuthenticationStateProvider AuthState
+@inject IDialogService DialogService
+@inject ISnackbar Snackbar
+@inject IPageLocalizer L
+
+<DNPageTitle Title=@($"{L["forms.builder", "Form Builder"]} · {_formTitle}") />
+
+<MudStack Row="true" AlignItems="AlignItems.Center" Justify="Justify.SpaceBetween" Class="mb-4">
+    <MudStack Spacing="0">
+        <MudStack Row="true" AlignItems="AlignItems.Center" Spacing="2">
+            <MudIconButton Icon="@Icons.Material.Filled.ArrowBack" Size="Size.Small" Href="/forms" />
+            <MudText Typo="Typo.h5" Class="fw-bold">@_formTitle</MudText>
+        </MudStack>
+        <MudText Typo="Typo.body2" Color="Color.Secondary">
+            @L["forms.builder_hint", "Add fields in the order visitors should see them. Embed anywhere with"]
+            <code>[form:@FormId]</code>
+        </MudText>
+    </MudStack>
+    @if (_canEdit)
+    {
+        <MudButton Variant="Variant.Filled" Color="Color.Primary"
+                   StartIcon="@Icons.Material.Filled.Add" OnClick="AddFieldAsync">
+            @L["forms.add_field", "Add Field"]
+        </MudButton>
+    }
+</MudStack>
+
+<MudPaper Elevation="0" Class="app-card rounded-lg pa-4">
+    @if (_loading)
+    {
+        <MudProgressLinear Indeterminate="true" Color="Color.Primary" Class="mb-3" />
+    }
+    else if (_fields.Count == 0)
+    {
+        <div style="text-align:center; padding:32px;">
+            <MudText Color="Color.Secondary">@L["forms.no_fields", "No fields yet — add the first one."]</MudText>
+        </div>
+    }
+    else
+    {
+        <MudSimpleTable Dense="true" Hover="true" Elevation="0">
+            <thead>
+                <tr>
+                    <th style="width:1%">#</th>
+                    <th>@L["forms.field_label", "Label"]</th>
+                    <th>@L["forms.field_type", "Type"]</th>
+                    <th>@L["forms.field_options", "Options"]</th>
+                    <th>@L["forms.required", "Required"]</th>
+                    <th>@L["status", "Status"]</th>
+                    <th style="width:1%"></th>
+                </tr>
+            </thead>
+            <tbody>
+                @for (int i = 0; i < _fields.Count; i++)
+                {
+                    var index = i;
+                    var field = _fields[index];
+                    <tr>
+                        <td>
+                            <MudStack Row="true" Spacing="0">
+                                <MudIconButton Icon="@Icons.Material.Filled.KeyboardArrowUp" Size="Size.Small"
+                                               Disabled="@(!_canEdit || index == 0)" OnClick="@(() => MoveAsync(index, -1))" />
+                                <MudIconButton Icon="@Icons.Material.Filled.KeyboardArrowDown" Size="Size.Small"
+                                               Disabled="@(!_canEdit || index == _fields.Count - 1)" OnClick="@(() => MoveAsync(index, +1))" />
+                            </MudStack>
+                        </td>
+                        <td>@field.Label</td>
+                        <td>
+                            <MudChip T="string" Size="Size.Small" Variant="Variant.Text" Color="Color.Info">
+                                @((FormFieldType)field.FieldType)
+                            </MudChip>
+                        </td>
+                        <td>
+                            @if (field.FormFieldOptions.Count > 0)
+                            {
+                                @string.Join(", ", field.FormFieldOptions.OrderBy(o => o.SortOrder).Select(o => o.Label).Take(4))
+                                @(field.FormFieldOptions.Count > 4 ? " …" : "")
+                            }
+                            else if ((FormFieldType)field.FieldType == FormFieldType.Rating)
+                            {
+                                @($"{field.MinValue ?? 1} – {field.MaxValue ?? 5}")
+                            }
+                        </td>
+                        <td>
+                            @if (field.IsRequired)
+                            {
+                                <MudIcon Icon="@Icons.Material.Filled.Check" Size="Size.Small" Color="Color.Success" />
+                            }
+                        </td>
+                        <td>
+                            <MudChip T="string" Size="Size.Small" Variant="Variant.Text"
+                                     Color="@(field.IsActive ? Color.Success : Color.Default)">
+                                @(field.IsActive ? L["active", "Active"] : L["inactive", "Inactive"])
+                            </MudChip>
+                        </td>
+                        <td>
+                            <MudStack Row="true" Spacing="0">
+                                @if (_canEdit)
+                                {
+                                    <MudIconButton Icon="@Icons.Material.Filled.Edit" Size="Size.Small"
+                                                   Color="Color.Default" OnClick="@(() => EditFieldAsync(field))" />
+                                    <MudIconButton Icon="@Icons.Material.Filled.Delete" Size="Size.Small"
+                                                   Color="Color.Error" OnClick="@(() => DeleteFieldAsync(field))" />
+                                }
+                            </MudStack>
+                        </td>
+                    </tr>
+                }
+            </tbody>
+        </MudSimpleTable>
+    }
+</MudPaper>
+
+@code {
+    [Parameter] public int FormId { get; set; }
+
+    private bool _loading = true;
+    private bool _canEdit;
+    private string _formTitle = string.Empty;
+    private List<FormField> _fields = new();
+
+    protected override async Task OnInitializedAsync()
+    {
+        await L.EnsureLoadedAsync();
+
+        var user = (await AuthState.GetAuthenticationStateAsync()).User;
+        _canEdit = AdminPolicies.Allows(user, RoleKeys.FormsEdit);
+
+        var form = await FormService.GetFormAsync(FormId);
+        _formTitle = form?.Title ?? $"#{FormId}";
+
+        await LoadAsync();
+    }
+
+    private async Task LoadAsync()
+    {
+        _loading = true;
+        _fields = await FormService.GetFieldsAsync(FormId);
+        _loading = false;
+    }
+
+    private async Task AddFieldAsync()
+    {
+        var result = await ShowFieldDialogAsync(new FormField
+        {
+            FormID = FormId,
+            FieldType = (byte)FormFieldType.Text,
+            IsActive = true,
+        }, isNew: true);
+        if (result) await LoadAsync();
+    }
+
+    private async Task EditFieldAsync(FormField field)
+    {
+        // Work on a copy so cancelling the dialog leaves the grid untouched.
+        var model = new FormField
+        {
+            FormFieldID = field.FormFieldID,
+            FormID = field.FormID,
+            Label = field.Label,
+            FieldType = field.FieldType,
+            Placeholder = field.Placeholder,
+            HelpText = field.HelpText,
+            IsRequired = field.IsRequired,
+            MinValue = field.MinValue,
+            MaxValue = field.MaxValue,
+            SortOrder = field.SortOrder,
+            IsActive = field.IsActive,
+        };
+        var options = field.FormFieldOptions
+            .OrderBy(o => o.SortOrder)
+            .Select(o => new FormFieldOption { Label = o.Label, Value = o.Value })
+            .ToList();
+
+        var result = await ShowFieldDialogAsync(model, isNew: false, options);
+        if (result) await LoadAsync();
+    }
+
+    private async Task<bool> ShowFieldDialogAsync(FormField field, bool isNew, List<FormFieldOption>? options = null)
+    {
+        var parameters = new DialogParameters<FormFieldDialog>
+        {
+            { x => x.Model, field },
+            { x => x.IsNew, isNew },
+            { x => x.Options, options ?? new List<FormFieldOption>() },
+        };
+        var dialog = await DialogService.ShowAsync<FormFieldDialog>(
+            isNew ? L["forms.add_field", "Add Field"] : L["forms.edit_field", "Edit Field"], parameters,
+            new DialogOptions { MaxWidth = MaxWidth.Medium, FullWidth = true });
+        var result = await dialog.Result;
+        return result is not null && !result.Canceled;
+    }
+
+    private async Task DeleteFieldAsync(FormField field)
+    {
+        var confirmed = await DialogService.ShowMessageBoxAsync(
+            L["forms.delete_field", "Delete field"],
+            L["forms.delete_field_confirm", "This deletes the field and its collected answers. Continue?"],
+            yesText: L["delete", "Delete"], cancelText: L["cancel", "Cancel"]);
+        if (confirmed != true) return;
+
+        try
+        {
+            await FormService.DeleteFieldAsync(field.FormFieldID);
+            Snackbar.Add(L["deleted", "Deleted."], Severity.Success);
+            await LoadAsync();
+        }
+        catch (Exception ex)
+        {
+            Snackbar.Add($"{L["delete_failed", "Delete failed"]}: {ex.Message}", Severity.Error);
+        }
+    }
+
+    private async Task MoveAsync(int index, int delta)
+    {
+        var target = index + delta;
+        if (target < 0 || target >= _fields.Count) return;
+
+        (_fields[index], _fields[target]) = (_fields[target], _fields[index]);
+        await FormService.ReorderFieldsAsync(FormId, _fields.Select(f => f.FormFieldID).ToList());
+    }
+}

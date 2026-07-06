@@ -104,6 +104,18 @@
             </MudNavLink>
         </AuthorizeView>
 
+        <AuthorizeView Policy="@RoleKeys.FormsView" Context="fm">
+            <MudNavLink Href="/forms" Icon="@Icons.Material.Filled.DynamicForm">
+                @L["forms", "Forms & Surveys"]
+            </MudNavLink>
+        </AuthorizeView>
+
+        <AuthorizeView Policy="@RoleKeys.ThemesView" Context="th">
+            <MudNavLink Href="/themes" Icon="@Icons.Material.Filled.Palette">
+                @L["themes", "Themes"]
+            </MudNavLink>
+        </AuthorizeView>
+
         @if (!_hideBlogNavForBasicStore)
         {
             <AuthorizeView Policy="@RoleKeys.TaxonomyView" Context="tx">

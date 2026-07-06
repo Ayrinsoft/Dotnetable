@@ -113,4 +113,39 @@ public class WebsiteService : IWebsiteService
 
         await _context.SaveChangesAsync(ct);
     }
+
+    public async Task<SiteInfoDto?> GetSiteInfoAsync(int websiteId, CancellationToken ct = default)
+    {
+        var website = await _context.Websites.AsNoTracking()
+            .Include(w => w.LogoFile)
+            .Include(w => w.FaveIconFile)
+            .Include(w => w.WebsiteSocialLinks)
+            .Include(w => w.WebsiteSeoSettings)
+            .FirstOrDefaultAsync(w => w.WebsiteID == websiteId, ct);
+        if (website is null) return null;
+
+        var seo = website.WebsiteSeoSettings.FirstOrDefault();
+        return new SiteInfoDto
+        {
+            BrandName = website.BrandName,
+            TradeName = website.TradeName,
+            LogoUrl = website.LogoFile?.CNDUrl,
+            FavIconUrl = website.FaveIconFile?.CNDUrl,
+            Email = website.Email,
+            Phone = website.Mobile,
+            DefaultLanguageCode = website.DefaultLanguageCode,
+            DefaultMetaTitle = seo?.DefaultMetaTitle,
+            DefaultMetaDescription = seo?.DefaultMetaDescription,
+            TitleSeparator = string.IsNullOrWhiteSpace(seo?.TitleSeparator) ? "·" : seo.TitleSeparator,
+            SocialLinks = website.WebsiteSocialLinks
+                .OrderBy(s => s.WebsiteSocialLinkID)
+                .Select(s => new SocialLinkDto
+                {
+                    Name = s.SocialName,
+                    Icon = s.SocialIcon,
+                    Url = s.UrlAddress,
+                })
+                .ToList(),
+        };
+    }
 }

@@ -185,6 +185,12 @@ public static class ServiceCollectionExtensions
 
         services.AddScoped<IRedirectService, RedirectService>();
 
+        // Dynamic form / survey builder with response collection and reporting.
+        services.AddScoped<IFormService, FormService>();
+
+        // Admin-managed visual themes (design tokens served to the React SPA at runtime).
+        services.AddScoped<IThemeService, ThemeService>();
+
         // Login/forgot-password protection + email.
         services.AddSingleton<IHumanVerificationService, HumanVerificationService>();
         services.AddScoped<IEmailService, EmailService>();

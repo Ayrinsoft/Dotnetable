@@ -15,7 +15,18 @@
     </section>
 }
 
-<!-- ── Hero ───────────────────────────────────────────────────── -->
+@if (ViewData["HomeContentHtml"] is string homeContent && !string.IsNullOrWhiteSpace(homeContent))
+{
+    @* Admin-managed homepage: CMS page with slug "home" (supports [slideshow:ID] / [form:ID] shortcodes). *@
+    <section class="site-section">
+        <div class="container">
+            @Html.Raw(homeContent)
+        </div>
+    </section>
+}
+else
+{
+<!-- ── Hero (fallback until a CMS page with slug "home" exists) ── -->
 <section class="site-hero">
     <div class="container">
         <div class="row align-items-center">
@@ -103,6 +114,7 @@
         </div>
     </div>
 </section>
+}
 
 <!-- ── Latest from blog ───────────────────────────────────────── -->
 <section class="site-section bg-light">
