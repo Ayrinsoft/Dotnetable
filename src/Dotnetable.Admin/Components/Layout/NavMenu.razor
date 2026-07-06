@@ -1,4 +1,4 @@
-@inject IPageLocalizer L
+﻿@inject IPageLocalizer L
 @inject IWebsiteService WebsiteService
 
 <MudNavMenu Class="pt-1">
@@ -43,6 +43,9 @@
 
     <AuthorizeView Policy="@RoleKeys.WebsiteEdit" Context="ws">
         <MudNavGroup Title="@L["website", "Website"]" Icon="@Icons.Material.Filled.WebAsset">
+            <MudNavLink Href="/websites" Icon="@Icons.Material.Filled.Language">
+                @L["websites", "Websites"]
+            </MudNavLink>
             <MudNavLink Href="/website/ips" Icon="@Icons.Material.Filled.Security">
                 @L["ip_whitelist", "IP Whitelist"]
             </MudNavLink>
@@ -77,6 +80,26 @@
                 @L["pages", "Pages"]
             </MudNavLink>
         </AuthorizeView>
+
+        <AuthorizeView Policy="@RoleKeys.ModerationView" Context="mod">
+            <MudNavGroup Title="@L["nav.moderation", "Reviews & Q&A"]" Icon="@Icons.Material.Filled.RateReview">
+                <MudNavLink Href="/moderation/reviews" Icon="@Icons.Material.Filled.Star">@L["moderation.reviews", "Reviews"]</MudNavLink>
+                <MudNavLink Href="/moderation/questions" Icon="@Icons.Material.Filled.QuestionAnswer">@L["moderation.questions", "Questions"]</MudNavLink>
+            </MudNavGroup>
+        </AuthorizeView>
+
+        <AuthorizeView Policy="@RoleKeys.MenusView" Context="mn">
+            <MudNavLink Href="/menus" Icon="@Icons.Material.Filled.Menu">
+                @L["menus", "Menus"]
+            </MudNavLink>
+        </AuthorizeView>
+
+        <AuthorizeView Policy="@RoleKeys.SlideshowsView" Context="sl">
+            <MudNavLink Href="/slideshows" Icon="@Icons.Material.Filled.ViewCarousel">
+                @L["slideshows", "Slideshows"]
+            </MudNavLink>
+        </AuthorizeView>
+
         @if (!_hideBlogNavForBasicStore)
         {
             <AuthorizeView Policy="@RoleKeys.TaxonomyView" Context="tx">
@@ -161,24 +184,6 @@
         </AuthorizeView>
     </MudNavGroup>
 
-    <AuthorizeView Policy="@RoleKeys.ModerationView" Context="mod">
-        <MudNavGroup Title="@L["nav.moderation", "Reviews & Q&A"]" Icon="@Icons.Material.Filled.RateReview">
-            <MudNavLink Href="/moderation/reviews" Icon="@Icons.Material.Filled.Star">@L["moderation.reviews", "Reviews"]</MudNavLink>
-            <MudNavLink Href="/moderation/questions" Icon="@Icons.Material.Filled.QuestionAnswer">@L["moderation.questions", "Questions"]</MudNavLink>
-        </MudNavGroup>
-    </AuthorizeView>
-
-    <AuthorizeView Policy="@RoleKeys.MenusView" Context="mn">
-        <MudNavLink Href="/menus" Icon="@Icons.Material.Filled.Menu">
-            @L["menus", "Menus"]
-        </MudNavLink>
-    </AuthorizeView>
-
-    <AuthorizeView Policy="@RoleKeys.SlideshowsView" Context="sl">
-        <MudNavLink Href="/slideshows" Icon="@Icons.Material.Filled.ViewCarousel">
-            @L["slideshows", "Slideshows"]
-        </MudNavLink>
-    </AuthorizeView>
 
     <MudNavGroup Title="@L["messages", "Messages"]" Icon="@Icons.Material.Filled.Message"
                  Hidden="@(!_canMessages && !_canWebsite && !_isMaster)">
@@ -214,10 +219,6 @@
 
     <AuthorizeView Policy="@AdminPolicies.SuperAdminOnly">
         <span class="app-nav-label">@L["nav.administration", "Administration"]</span>
-        <MudNavLink Href="/websites" Icon="@Icons.Material.Filled.Language">
-            @L["websites", "Websites"]
-        </MudNavLink>
-
         <MudNavGroup Title="@L["initial_data", "Initial Data"]" Icon="@Icons.Material.Filled.Storage">
             <MudNavLink Href="/initial-data/countries" Icon="@Icons.Material.Filled.Flag">
                 @L["countries", "Countries"]
