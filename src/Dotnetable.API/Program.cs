@@ -1,3 +1,4 @@
+using System.Data.Common;
 using System.Security.Claims;
 using System.Text;
 using Asp.Versioning;
@@ -5,6 +6,8 @@ using Dotnetable.API.Auth;
 using Dotnetable.Application.Authorization;
 using Dotnetable.Infrastructure.Extensions;
 using Microsoft.AspNetCore.Authentication.JwtBearer;
+using Microsoft.AspNetCore.Diagnostics;
+using Microsoft.EntityFrameworkCore.Storage;
 using Microsoft.IdentityModel.Tokens;
 
 var builder = WebApplication.CreateBuilder(args);
@@ -80,6 +83,32 @@ if (app.Environment.IsDevelopment())
     app.UseSwagger();
     app.UseSwaggerUI();
 }
+
+// Surfaces DB connectivity/config failures (bad connection string, unreachable server, cert
+// mismatch, etc.) as a clear 503 instead of a cryptic RetryLimitExceededException/SqlException
+// stack trace — this is exactly what a misconfigured localsettings.json produces.
+app.UseExceptionHandler(errorApp => errorApp.Run(async context =>
+{
+    var error = context.Features.Get<IExceptionHandlerFeature>()?.Error;
+    if (error is DbException or RetryLimitExceededException)
+    {
+        context.Response.StatusCode = StatusCodes.Status503ServiceUnavailable;
+        await context.Response.WriteAsJsonAsync(new
+        {
+            error = "database_unavailable",
+            message = "Could not connect to the database. Check the Database section in this app's localsettings.json (provider, connection string, credentials).",
+            detail = app.Environment.IsDevelopment() ? error.Message : null,
+        });
+        return;
+    }
+
+    context.Response.StatusCode = StatusCodes.Status500InternalServerError;
+    await context.Response.WriteAsJsonAsync(new
+    {
+        error = "server_error",
+        detail = app.Environment.IsDevelopment() ? error?.Message : null,
+    });
+}));
 
 app.UseHttpsRedirection();
 app.UseCors();
