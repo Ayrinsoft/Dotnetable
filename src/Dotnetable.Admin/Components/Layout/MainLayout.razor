@@ -5,6 +5,7 @@
 @inject IJSRuntime JS
 @inject AdminUiModeState UiModeState
 @inject AuthenticationStateProvider AuthStateProvider
+@inject IDialogService DialogService
 
 <MudPopoverProvider />
 <MudThemeProvider Theme="_theme" @bind-IsDarkMode="_isDarkMode" />
@@ -17,6 +18,9 @@
             <MudAppBar Elevation="0" Dense="true" Color="Color.Surface">
                 <MudIconButton Icon="@Icons.Material.Filled.Menu" Color="Color.Default" Edge="Edge.Start"
                                OnClick="@(() => _drawerOpen = !_drawerOpen)" />
+                <MudTooltip Text="Search">
+                    <MudIconButton Icon="@Icons.Material.Filled.Search" Color="Color.Default" OnClick="OpenSearchPalette" />
+                </MudTooltip>
                 <MudSpacer />
                 <MudText Typo="Typo.body2" Class="me-2 d-none d-sm-flex" Style="color:#4c4c5c;">
                     @authCtx.User.Identity?.Name
@@ -101,6 +105,16 @@
             if (Enum.TryParse<AdminUiMode>(storedMode, out var mode))
                 UiModeState.Set(mode);
         }
+    }
+
+    private async Task OpenSearchPalette()
+    {
+        await DialogService.ShowAsync<SearchPaletteDialog>(null, new DialogOptions
+        {
+            MaxWidth = MaxWidth.Small,
+            FullWidth = true,
+            CloseOnEscapeKey = true
+        });
     }
 
     private async Task ToggleDarkMode()
