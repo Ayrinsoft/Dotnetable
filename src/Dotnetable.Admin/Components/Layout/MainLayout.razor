@@ -24,16 +24,19 @@
                 <MudAvatar Color="Color.Primary" Size="Size.Small" Class="me-1">
                     @(_initials(authCtx.User.Identity?.Name))
                 </MudAvatar>
-                <MudTooltip Text="View mode (this browser only)">
-                    <MudMenu Icon="@Icons.Material.Filled.Tune" Color="Color.Default">
-                        @foreach (var mode in _uiModes)
-                        {
-                            <MudMenuItem OnClick="@(() => SetUiMode(mode))" Class="@(UiModeState.Current == mode ? "fw-bold" : null)">
-                                @mode
-                            </MudMenuItem>
-                        }
-                    </MudMenu>
-                </MudTooltip>
+                @if (!_isMaster)
+                {
+                    <MudTooltip Text="View mode (this browser only)">
+                        <MudMenu Icon="@Icons.Material.Filled.Tune" Color="Color.Default">
+                            @foreach (var mode in _uiModes)
+                            {
+                                <MudMenuItem OnClick="@(() => SetUiMode(mode))" Class="@(UiModeState.Current == mode ? "fw-bold" : null)">
+                                    @mode
+                                </MudMenuItem>
+                            }
+                        </MudMenu>
+                    </MudTooltip>
+                }
                 <MudTooltip Text="@(_isDarkMode ? "Light mode" : "Dark mode")">
                     <MudIconButton Icon="@(_isDarkMode ? Icons.Material.Filled.LightMode : Icons.Material.Filled.DarkMode)"
                                    Color="Color.Default" OnClick="ToggleDarkMode" />
@@ -72,11 +75,13 @@
 @code {
     private bool _drawerOpen = true;
     private bool _isDarkMode;
+    private bool _isMaster;
     private static readonly AdminUiMode[] _uiModes = Enum.GetValues<AdminUiMode>();
 
     protected override async Task OnInitializedAsync()
     {
         var user = (await AuthStateProvider.GetAuthenticationStateAsync()).User;
+        _isMaster = user.HasClaim(AdminClaimTypes.Master, "true");
         UiModeState.Initialize(AdminClaimTypes.GetUiMode(user));
         UiModeState.Changed += StateHasChanged;
     }
