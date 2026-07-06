@@ -26,9 +26,6 @@ builder.Services.AddHttpClient<ApiClient>(client =>
 {
     client.BaseAddress = new Uri(builder.Configuration["Api:BaseUrl"]
         ?? throw new InvalidOperationException("Api:BaseUrl is not configured."));
-    client.DefaultRequestHeaders.Add("X-Api-Key",
-        builder.Configuration["Api:Key"]
-        ?? throw new InvalidOperationException("Api:Key is not configured."));
 
     // Per-site key (the Website.AuthCode of this deployment). The API resolves the website
     // from it — e.g. to scope customer self-registration. Optional so unconfigured dev
