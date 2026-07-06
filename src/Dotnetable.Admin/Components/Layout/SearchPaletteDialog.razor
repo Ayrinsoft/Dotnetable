@@ -1,0 +1,86 @@
+@inject NavigationManager Nav
+@inject AuthenticationStateProvider AuthStateProvider
+@inject IPageLocalizer L
+
+<MudDialog>
+    <TitleContent>
+        <MudText Typo="Typo.h6">
+            <MudIcon Icon="@Icons.Material.Filled.Search" Class="me-2" />
+            @L["search.title", "Search pages"]
+        </MudText>
+    </TitleContent>
+    <DialogContent>
+        <MudTextField @bind-Value="_query" @bind-Value:after="OnQueryChanged" Placeholder="@L["search.placeholder", "Type a page name…"]"
+                      Variant="Variant.Outlined" Margin="Margin.Dense" Immediate="true" AutoFocus="true"
+                      Adornment="Adornment.Start" AdornmentIcon="@Icons.Material.Filled.Search" Class="mb-3" />
+
+        @if (_results.Count == 0)
+        {
+            <MudText Color="Color.Secondary" Class="pa-4" Align="Align.Center">
+                @(string.IsNullOrWhiteSpace(_query)
+                    ? L["search.hint", "Start typing to find a page…"]
+                    : L["search.empty", "No pages match your search."])
+            </MudText>
+        }
+        else
+        {
+            <MudList T="AdminSearchPage" Clickable="true" Class="pa-0" Style="max-height:420px; overflow:auto;">
+                @foreach (var item in _results)
+                {
+                    <MudListItem T="AdminSearchPage" Icon="@item.Icon" OnClick="@(() => GoTo(item))">
+                        <div>
+                            <MudText>@L[item.TitleKey, item.TitleDefault]</MudText>
+                            <MudText Typo="Typo.caption" Color="Color.Secondary">@L[item.GroupKey, item.GroupDefault]</MudText>
+                        </div>
+                    </MudListItem>
+                }
+            </MudList>
+        }
+    </DialogContent>
+</MudDialog>
+
+@code {
+    [CascadingParameter] private IMudDialogInstance MudDialog { get; set; } = default!;
+
+    private string _query = string.Empty;
+    private bool _isMaster;
+    private HashSet<string> _grantedRoleKeys = new();
+    private List<AdminSearchPage> _results = new();
+
+    protected override async Task OnInitializedAsync()
+    {
+        await L.EnsureLoadedAsync();
+
+        var user = (await AuthStateProvider.GetAuthenticationStateAsync()).User;
+        _isMaster = user.HasClaim(AdminClaimTypes.Master, "true");
+        _grantedRoleKeys = user.FindAll(System.Security.Claims.ClaimTypes.Role).Select(c => c.Value).ToHashSet();
+    }
+
+    private bool CanSee(AdminSearchPage page)
+    {
+        if (_isMaster) return true;
+        if (page.SuperAdminOnly) return false;
+        return page.RoleKey is null || _grantedRoleKeys.Contains(page.RoleKey);
+    }
+
+    private void OnQueryChanged()
+    {
+        if (string.IsNullOrWhiteSpace(_query))
+        {
+            _results = new();
+            return;
+        }
+
+        _results = AdminSearchCatalog.Pages
+            .Where(CanSee)
+            .Where(p => L[p.TitleKey, p.TitleDefault].Contains(_query, StringComparison.OrdinalIgnoreCase)
+                        || p.TitleDefault.Contains(_query, StringComparison.OrdinalIgnoreCase))
+            .ToList();
+    }
+
+    private void GoTo(AdminSearchPage page)
+    {
+        MudDialog.Close(DialogResult.Ok(true));
+        Nav.NavigateTo(page.Href);
+    }
+}
