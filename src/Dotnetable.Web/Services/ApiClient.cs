@@ -80,6 +80,25 @@ public class ApiClient
     public async Task<T?> GetAsync<T>(string path, CancellationToken ct = default) =>
         await _http.GetFromJsonAsync<T>(path, ct);
 
+    /// <summary>GET that yields null for "no content" responses instead of throwing: the API answers
+    /// 204 (nothing assigned/found) and 404 (unknown slug / unresolved website) on public content
+    /// reads, and <c>GetFromJsonAsync</c> would throw a <see cref="JsonException"/> on the empty
+    /// body. Unreachable-service and malformed-body errors also fold into null so pages degrade
+    /// gracefully instead of surfacing a 500.</summary>
+    private async Task<T?> GetOrNullAsync<T>(string path, CancellationToken ct) where T : class
+    {
+        try
+        {
+            using var response = await _http.GetAsync(path, ct);
+            if (response.StatusCode == HttpStatusCode.NoContent || !response.IsSuccessStatusCode)
+                return null;
+            return await response.Content.ReadFromJsonAsync<T>(cancellationToken: ct);
+        }
+        catch (HttpRequestException) { return null; }
+        catch (NotSupportedException) { return null; }
+        catch (JsonException) { return null; }
+    }
+
     public async Task<IReadOnlyDictionary<string, string>> GetTranslationsAsync(string languageCode, CancellationToken ct = default) =>
         await _http.GetFromJsonAsync<Dictionary<string, string>>($"api/localization/{languageCode}", ct)
         ?? new Dictionary<string, string>();
@@ -93,13 +112,8 @@ public class ApiClient
             if (!string.IsNullOrWhiteSpace(lang))
                 path += $"?lang={Uri.EscapeDataString(lang)}";
 
-            try
-            {
-                // 204 No Content (no menu assigned) deserializes to null, which is exactly what we want.
-                return await _http.GetFromJsonAsync<MenuDto>(path, ct);
-            }
-            catch (HttpRequestException) { return null; }
-            catch (NotSupportedException) { return null; }
+            // 204 No Content (no menu assigned) folds into null, which is exactly what we want.
+            return await GetOrNullAsync<MenuDto>(path, ct);
         });
 
     /// <summary>Fetches the active slideshow assigned to a placement key (e.g. "home_top"), or null
@@ -108,9 +122,7 @@ public class ApiClient
         CachedGetAsync($"slideshow:placement:{placementKey}", async () =>
         {
             var path = $"api/slideshow/placement/{Uri.EscapeDataString(placementKey)}";
-            try { return await _http.GetFromJsonAsync<SlideshowDto>(path, ct); }
-            catch (HttpRequestException) { return null; }
-            catch (NotSupportedException) { return null; }
+            return await GetOrNullAsync<SlideshowDto>(path, ct);
         });
 
     /// <summary>Fetches a single active slideshow by id — used to resolve a <c>[slideshow:ID]</c>
@@ -119,9 +131,7 @@ public class ApiClient
         CachedGetAsync($"slideshow:id:{slideshowId}", async () =>
         {
             var path = $"api/slideshow/{slideshowId}";
-            try { return await _http.GetFromJsonAsync<SlideshowDto>(path, ct); }
-            catch (HttpRequestException) { return null; }
-            catch (NotSupportedException) { return null; }
+            return await GetOrNullAsync<SlideshowDto>(path, ct);
         });
 
     // ── Content (posts, pages, categories, redirects) ───────────────
@@ -156,9 +166,7 @@ public class ApiClient
     {
         var path = $"api/posts/{Uri.EscapeDataString(slug)}";
         if (!string.IsNullOrWhiteSpace(lang)) path += $"?lang={Uri.EscapeDataString(lang)}";
-        try { return await _http.GetFromJsonAsync<PostDetailDto>(path, ct); }
-        catch (HttpRequestException) { return null; }
-        catch (NotSupportedException) { return null; }
+        return await GetOrNullAsync<PostDetailDto>(path, ct);
     }
 
     /// <summary>Featured published posts.</summary>
@@ -191,9 +199,7 @@ public class ApiClient
         {
             var path = $"api/pages/{Uri.EscapeDataString(slug)}";
             if (!string.IsNullOrWhiteSpace(lang)) path += $"?lang={Uri.EscapeDataString(lang)}";
-            try { return await _http.GetFromJsonAsync<PageDto>(path, ct); }
-            catch (HttpRequestException) { return null; }
-            catch (NotSupportedException) { return null; }
+            return await GetOrNullAsync<PageDto>(path, ct);
         });
 
     /// <summary>Submits a visitor-filled contact form to the API's contact inbox.</summary>
@@ -203,32 +209,17 @@ public class ApiClient
     /// <summary>Site branding/identity (brand, logo, contact, socials, SEO defaults) used by the
     /// layout. Null when the API is unreachable — the layout falls back to neutral defaults.</summary>
     public Task<SiteInfoDto?> GetSiteInfoAsync(CancellationToken ct = default) =>
-        CachedGetAsync("siteinfo", async () =>
-        {
-            try { return await _http.GetFromJsonAsync<SiteInfoDto>("api/siteinfo", ct); }
-            catch (HttpRequestException) { return null; }
-            catch (NotSupportedException) { return null; }
-        });
+        CachedGetAsync("siteinfo", () => GetOrNullAsync<SiteInfoDto>("api/siteinfo", ct));
 
     // ── Dynamic forms & surveys ─────────────────────────────────────
 
     /// <summary>An active dynamic form/survey by public slug, or null.</summary>
     public Task<FormDto?> GetFormBySlugAsync(string slug, CancellationToken ct = default) =>
-        CachedGetAsync($"form:slug:{slug}", async () =>
-        {
-            try { return await _http.GetFromJsonAsync<FormDto>($"api/forms/{Uri.EscapeDataString(slug)}", ct); }
-            catch (HttpRequestException) { return null; }
-            catch (NotSupportedException) { return null; }
-        });
+        CachedGetAsync($"form:slug:{slug}", () => GetOrNullAsync<FormDto>($"api/forms/{Uri.EscapeDataString(slug)}", ct));
 
     /// <summary>An active dynamic form/survey by id — resolves a <c>[form:ID]</c> shortcode.</summary>
     public Task<FormDto?> GetFormByIdAsync(int formId, CancellationToken ct = default) =>
-        CachedGetAsync($"form:id:{formId}", async () =>
-        {
-            try { return await _http.GetFromJsonAsync<FormDto>($"api/forms/id/{formId}", ct); }
-            catch (HttpRequestException) { return null; }
-            catch (NotSupportedException) { return null; }
-        });
+        CachedGetAsync($"form:id:{formId}", () => GetOrNullAsync<FormDto>($"api/forms/id/{formId}", ct));
 
     /// <summary>Submits a visitor's answers to a dynamic form. Validation happens server-side; a
     /// failed submission returns Ok=false with a user-displayable message.</summary>
@@ -386,8 +377,7 @@ public class ApiClient
         if (!string.IsNullOrWhiteSpace(lang)) query.Add($"lang={Uri.EscapeDataString(lang)}");
         if (!string.IsNullOrWhiteSpace(currency)) query.Add($"currency={Uri.EscapeDataString(currency)}");
         if (query.Count > 0) path += $"?{string.Join('&', query)}";
-        try { return await _http.GetFromJsonAsync<ProductDetailDto>(path, ct); }
-        catch (HttpRequestException) { return null; }
+        return await GetOrNullAsync<ProductDetailDto>(path, ct);
     }
 
     public async Task<IReadOnlyList<ProductCategoryDto>> GetProductCategoryTreeAsync(string? lang = null, CancellationToken ct = default)
@@ -409,8 +399,7 @@ public class ApiClient
     public async Task<CartViewDto?> GetCartAsync(string? currency = null, CancellationToken ct = default)
     {
         var path = "api/cart" + (string.IsNullOrWhiteSpace(currency) ? "" : $"?currency={Uri.EscapeDataString(currency)}");
-        try { return await _http.GetFromJsonAsync<CartViewDto>(path, ct); }
-        catch (HttpRequestException) { return null; }
+        return await GetOrNullAsync<CartViewDto>(path, ct);
     }
 
     public Task<AuthApiResult> AddToCartAsync(int variantId, int quantity, CancellationToken ct = default) =>
@@ -505,8 +494,7 @@ public class ApiClient
 
     public async Task<Order?> GetOrderAsync(int id, CancellationToken ct = default)
     {
-        try { return await _http.GetFromJsonAsync<Order>($"api/orders/{id}", ct); }
-        catch (HttpRequestException) { return null; }
+        return await GetOrNullAsync<Order>($"api/orders/{id}", ct);
     }
 
     // ── Payments ─────────────────────────────────────────────────────
