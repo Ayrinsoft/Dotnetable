@@ -123,6 +123,8 @@ else if (_member is not null)
             </MudItem>
         </MudGrid>
 
+        <DNValidationSummary Errors="_formErrors" />
+
         <MudStack Row="true" Class="mt-4" Spacing="2">
             @if (_canSave)
             {
@@ -157,6 +159,7 @@ else if (_member is not null)
     private int _websiteId;
     private List<Website> _websites = new();
     private List<Policy> _policies = new();
+    private string[]? _formErrors;
     private bool _isNew => Id == 0;
 
     private List<BreadcrumbItem> _breadcrumbs => new()
@@ -238,6 +241,7 @@ else if (_member is not null)
         if (!_canSave) return; // Guard against a stale/forged client state.
 
         await _form.ValidateAsync();
+        _formErrors = _form.Errors;
         if (!_form.IsValid) return;
 
         if (_member!.PolicyID == 0)

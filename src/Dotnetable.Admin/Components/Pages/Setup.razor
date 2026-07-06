@@ -334,6 +334,8 @@
                     @_s.BtnCreate
                 </MudButton>
 
+                <DNValidationSummary Errors="_formErrors" />
+
             </MudForm>
         </MudPaper>
     </MudContainer>
@@ -345,6 +347,7 @@
     private string _lang = "en";
     private bool _testLoading;
     private bool _createLoading;
+    private string[]? _formErrors;
 
     private SetupStrings _s => SetupL10n.Get(_lang);
     private bool _isRtl => _lang is "fa" or "ar";
@@ -413,6 +416,7 @@
     private async Task CreateSetup()
     {
         await _form.ValidateAsync();
+        _formErrors = _form.Errors;
         if (!_form.IsValid) return;
 
         _createLoading = true;

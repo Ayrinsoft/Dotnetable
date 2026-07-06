@@ -41,6 +41,8 @@
                     <MudDatePicker @bind-Date="_endsAt" Label="@L["ends_at", "Ends At"]" Variant="Variant.Outlined" Clearable="true" />
                 </MudItem>
             </MudGrid>
+
+            <DNValidationSummary Errors="_formErrors" />
         </MudForm>
     </DialogContent>
     <DialogActions>
@@ -57,6 +59,7 @@
 
     private MudForm _form = null!;
     private bool _saving;
+    private string[]? _formErrors;
     private DateTime? _startsAt;
     private DateTime? _endsAt;
 
@@ -71,6 +74,7 @@
     private async Task SaveAsync()
     {
         await _form.Validate();
+        _formErrors = _form.Errors;
         if (!_form.IsValid) return;
         if (string.IsNullOrWhiteSpace(Model.Code)) return;
 

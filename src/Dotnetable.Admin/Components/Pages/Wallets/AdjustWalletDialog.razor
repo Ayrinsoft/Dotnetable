@@ -16,6 +16,8 @@
                                   RequiredError="@L["required", "This field is required."]" />
                 </MudItem>
             </MudGrid>
+
+            <DNValidationSummary Errors="_formErrors" />
         </MudForm>
     </DialogContent>
     <DialogActions>
@@ -31,6 +33,7 @@
 
     private MudForm _form = null!;
     private bool _saving;
+    private string[]? _formErrors;
     private decimal _delta;
     private string? _note;
 
@@ -39,6 +42,7 @@
     private async Task SaveAsync()
     {
         await _form.Validate();
+        _formErrors = _form.Errors;
         if (!_form.IsValid || _delta == 0 || string.IsNullOrWhiteSpace(_note)) return;
 
         _saving = true;

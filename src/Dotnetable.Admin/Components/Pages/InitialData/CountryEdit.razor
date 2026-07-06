@@ -48,6 +48,8 @@ else if (_item is not null)
             </MudGrid>
         </MudPaper>
 
+        <DNValidationSummary Errors="_formErrors" />
+
         <MudStack Row="true" Spacing="2">
             <MudButton Variant="Variant.Filled" Color="Color.Primary"
                        StartIcon="@Icons.Material.Filled.Save"
@@ -74,6 +76,7 @@ else if (_item is not null)
     private Country? _item;
     private bool _loading = true;
     private bool _saving;
+    private string[]? _formErrors;
     private bool _isNew => Id == 0;
 
     private List<BreadcrumbItem> _breadcrumbs => new()
@@ -102,6 +105,7 @@ else if (_item is not null)
     private async Task SaveAsync()
     {
         await _form.ValidateAsync();
+        _formErrors = _form.Errors;
         if (!_form.IsValid) return;
 
         _saving = true;

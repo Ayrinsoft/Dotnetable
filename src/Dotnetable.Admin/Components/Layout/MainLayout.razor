@@ -1,6 +1,10 @@
 @inherits LayoutComponentBase
+@implements IDisposable
 @using Microsoft.JSInterop
+@using Dotnetable.Admin.Auth
 @inject IJSRuntime JS
+@inject AdminUiModeState UiModeState
+@inject AuthenticationStateProvider AuthStateProvider
 
 <MudPopoverProvider />
 <MudThemeProvider Theme="_theme" @bind-IsDarkMode="_isDarkMode" />
@@ -20,6 +24,16 @@
                 <MudAvatar Color="Color.Primary" Size="Size.Small" Class="me-1">
                     @(_initials(authCtx.User.Identity?.Name))
                 </MudAvatar>
+                <MudTooltip Text="View mode (this browser only)">
+                    <MudMenu Icon="@Icons.Material.Filled.Tune" Color="Color.Default">
+                        @foreach (var mode in _uiModes)
+                        {
+                            <MudMenuItem OnClick="@(() => SetUiMode(mode))" Class="@(UiModeState.Current == mode ? "fw-bold" : null)">
+                                @mode
+                            </MudMenuItem>
+                        }
+                    </MudMenu>
+                </MudTooltip>
                 <MudTooltip Text="@(_isDarkMode ? "Light mode" : "Dark mode")">
                     <MudIconButton Icon="@(_isDarkMode ? Icons.Material.Filled.LightMode : Icons.Material.Filled.DarkMode)"
                                    Color="Color.Default" OnClick="ToggleDarkMode" />
@@ -58,6 +72,14 @@
 @code {
     private bool _drawerOpen = true;
     private bool _isDarkMode;
+    private static readonly AdminUiMode[] _uiModes = Enum.GetValues<AdminUiMode>();
+
+    protected override async Task OnInitializedAsync()
+    {
+        var user = (await AuthStateProvider.GetAuthenticationStateAsync()).User;
+        UiModeState.Initialize(AdminClaimTypes.GetUiMode(user));
+        UiModeState.Changed += StateHasChanged;
+    }
 
     protected override async Task OnAfterRenderAsync(bool firstRender)
     {
@@ -69,6 +91,10 @@
                 _isDarkMode = true;
                 StateHasChanged();
             }
+
+            var storedMode = await JS.InvokeAsync<string>("dotnetableUiMode.get");
+            if (Enum.TryParse<AdminUiMode>(storedMode, out var mode))
+                UiModeState.Set(mode);
         }
     }
 
@@ -77,6 +103,14 @@
         _isDarkMode = !_isDarkMode;
         await JS.InvokeVoidAsync("dotnetableTheme.set", _isDarkMode ? "dark" : "light");
     }
+
+    private async Task SetUiMode(AdminUiMode mode)
+    {
+        UiModeState.Set(mode);
+        await JS.InvokeVoidAsync("dotnetableUiMode.set", mode.ToString());
+    }
+
+    public void Dispose() => UiModeState.Changed -= StateHasChanged;
 
     private static string _initials(string? name) =>
         string.IsNullOrWhiteSpace(name) ? "?" : name.Trim()[0].ToString().ToUpper();

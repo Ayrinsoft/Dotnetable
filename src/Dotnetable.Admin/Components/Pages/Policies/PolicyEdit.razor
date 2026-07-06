@@ -78,6 +78,12 @@ else if (_policy is not null)
                     }
                     else
                     {
+                        <MudCheckBox T="bool?" TriState="true" Value="AllValue()"
+                                     ValueChanged="@(_ => ToggleAll(!AllSelected()))"
+                                     Color="Color.Primary" Dense="true"
+                                     Class="fw-bold mb-2"
+                                     Label="@L["policy.select_all", "Select All"]" />
+                        <MudDivider Class="mb-3" />
                         <MudGrid Spacing="3">
                             @foreach (var group in _roleGroups)
                             {
@@ -109,6 +115,8 @@ else if (_policy is not null)
                 </MudPaper>
             </MudItem>
         </MudGrid>
+
+        <DNValidationSummary Errors="_formErrors" />
 
         <MudStack Row="true" Class="mt-4" Spacing="2">
             @if (_canSave)
@@ -146,6 +154,7 @@ else if (_policy is not null)
     private List<Role> _assignableRoles = new();
     private List<IGrouping<string, Role>> _roleGroups = new();
     private HashSet<short> _selected = new();
+    private string[]? _formErrors;
     private bool _isNew => Id == 0;
 
     private List<BreadcrumbItem> _breadcrumbs => new()
@@ -205,6 +214,27 @@ else if (_policy is not null)
     private bool GroupAllSelected(IGrouping<string, Role> group) =>
         group.All(r => _selected.Contains(r.RoleID));
 
+    private bool AllSelected() =>
+        _assignableRoles.All(r => _selected.Contains(r.RoleID));
+
+    // true = all granted, false = none, null = some (indeterminate).
+    private bool? AllValue()
+    {
+        var selected = _assignableRoles.Count(r => _selected.Contains(r.RoleID));
+        if (selected == 0) return false;
+        if (selected == _assignableRoles.Count) return true;
+        return null;
+    }
+
+    private void ToggleAll(bool isChecked)
+    {
+        foreach (var role in _assignableRoles)
+        {
+            if (isChecked) _selected.Add(role.RoleID);
+            else _selected.Remove(role.RoleID);
+        }
+    }
+
     // true = all granted, false = none, null = some (indeterminate).
     private bool? GroupValue(IGrouping<string, Role> group)
     {
@@ -243,6 +273,7 @@ else if (_policy is not null)
         if (!_canSave) return; // Guard against a stale/forged client state.
 
         await _form.ValidateAsync();
+        _formErrors = _form.Errors;
         if (!_form.IsValid) return;
 
         // Only roles the current user may assign are taken from the checkboxes; any role already on the

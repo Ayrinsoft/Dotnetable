@@ -18,6 +18,18 @@ window.dotnetableTheme = {
     }
 };
 
+// Session-local override of the admin UI mode (Basic/General/Advanced) — display-only, never
+// synced back to the member's stored AdminUIMode. Persisted in localStorage so it survives a
+// reload of the same browser but is otherwise independent per device.
+window.dotnetableUiMode = {
+    get: function () {
+        try { return localStorage.getItem('dn-uimode') || ''; } catch { return ''; }
+    },
+    set: function (value) {
+        try { localStorage.setItem('dn-uimode', value); } catch (e) { }
+    }
+};
+
 // Triggers a browser download of base64 content produced server-side
 // (used by the Translations page to export a CSV file).
 window.dotnetableFile = {
