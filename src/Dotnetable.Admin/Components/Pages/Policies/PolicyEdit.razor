@@ -44,13 +44,8 @@ else if (_policy is not null)
                         <MudItem xs="12" sm="6">
                             @if (_isMaster && _isNew)
                             {
-                                <MudSelect T="int" @bind-Value="_policy.WebsiteID" Label="@L["website", "Website"]"
-                                           Variant="Variant.Outlined" Required="true">
-                                    @foreach (var w in _websites)
-                                    {
-                                        <MudSelectItem T="int" Value="@w.WebsiteID">@w.TradeName (#@w.WebsiteID)</MudSelectItem>
-                                    }
-                                </MudSelect>
+                                <WebsiteSelector Value="_policy.WebsiteID" ValueChanged="@(id => _policy.WebsiteID = id)" Websites="_websites"
+                                                 Label="@L["website", "Website"]" Variant="Variant.Outlined" Required="true" />
                             }
                             else
                             {
