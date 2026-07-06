@@ -106,6 +106,8 @@
                                       Placeholder="fab fa-instagram" />
                     </MudItem>
                 </MudGrid>
+
+                <DNValidationSummary Errors="_formErrors" />
             </MudForm>
         }
     </DialogContent>
@@ -131,6 +133,7 @@
     private bool _saving;
     private WebsiteSocialLink? _editItem;
     private MudForm _form = null!;
+    private string[]? _formErrors;
 
     protected override async Task OnInitializedAsync()
     {
@@ -186,6 +189,7 @@
     private async Task SaveDialogAsync()
     {
         await _form.ValidateAsync();
+        _formErrors = _form.Errors;
         if (!_form.IsValid) return;
 
         _saving = true;

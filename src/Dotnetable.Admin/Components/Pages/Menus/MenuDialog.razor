@@ -25,6 +25,8 @@
 
             <MudSwitch T="bool" @bind-Value="Model.IsActive" Color="Color.Primary"
                        Label="@(Model.IsActive ? L["active", "Active"] : L["inactive", "Inactive"])" />
+
+            <DNValidationSummary Errors="_formErrors" />
         </MudForm>
     </DialogContent>
     <DialogActions>
@@ -44,6 +46,7 @@
 
     private MudForm _form = null!;
     private bool _saving;
+    private string[]? _formErrors;
     private MenuLocation _location;
 
     protected override void OnInitialized() => _location = (MenuLocation)Model.Location;
@@ -59,6 +62,7 @@
     private async Task SaveAsync()
     {
         await _form.Validate();
+        _formErrors = _form.Errors;
         if (!_form.IsValid) return;
 
         _saving = true;

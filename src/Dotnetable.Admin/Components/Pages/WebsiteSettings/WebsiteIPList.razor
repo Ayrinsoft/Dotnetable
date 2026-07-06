@@ -113,6 +113,8 @@
                         <MudSwitch T="bool" @bind-Value="_editItem.Active" Color="Color.Primary" Label="@L["active", "Active"]" />
                     </MudItem>
                 </MudGrid>
+
+                <DNValidationSummary Errors="_formErrors" />
             </MudForm>
         }
     </DialogContent>
@@ -140,6 +142,7 @@
     private bool _saving;
     private WebsiteIP? _editItem;
     private MudForm _form = null!;
+    private string[]? _formErrors;
 
     protected override async Task OnInitializedAsync()
     {
@@ -208,6 +211,7 @@
     private async Task SaveDialogAsync()
     {
         await _form.ValidateAsync();
+        _formErrors = _form.Errors;
         if (!_form.IsValid) return;
 
         _saving = true;

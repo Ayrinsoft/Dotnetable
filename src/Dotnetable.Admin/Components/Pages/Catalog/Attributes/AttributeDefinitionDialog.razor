@@ -81,6 +81,8 @@
                     </MudExpansionPanels>
                 </MudItem>
             </MudGrid>
+
+            <DNValidationSummary Errors="_formErrors" />
         </MudForm>
     </DialogContent>
     <DialogActions>
@@ -96,6 +98,7 @@
 
     private MudForm _form = null!;
     private bool _saving;
+    private string[]? _formErrors;
     private List<AttributeOption> _options = new();
     private readonly Dictionary<string, (string Name, string? Unit)> _tr = new(StringComparer.OrdinalIgnoreCase);
 
@@ -119,6 +122,7 @@
     private async Task SaveAsync()
     {
         await _form.Validate();
+        _formErrors = _form.Errors;
         if (!_form.IsValid) return;
 
         _saving = true;

@@ -94,6 +94,8 @@ else if (_client is not null)
             </MudItem>
         </MudGrid>
 
+        <DNValidationSummary Errors="_formErrors" />
+
         <MudStack Row="true" Class="mt-4" Spacing="2">
             @if (_canEdit)
             {
@@ -281,6 +283,7 @@ else if (_client is not null)
     private bool _isMaster;
     private bool _canEdit;
     private int _websiteId;
+    private string[]? _formErrors;
 
     private List<WebsiteClientAddress> _addresses = new();
     private bool _addressesLoading = true;
@@ -429,6 +432,10 @@ else if (_client is not null)
     private async Task SaveAsync()
     {
         if (!_canEdit) return; // Guard against a stale/forged client state.
+
+        await _form.ValidateAsync();
+        _formErrors = _form.Errors;
+        if (!_form.IsValid) return;
 
         _saving = true;
         try

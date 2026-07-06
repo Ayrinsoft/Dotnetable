@@ -207,6 +207,8 @@
                     <MudSwitch T="bool" @bind-Value="_autoThumbnails" Color="Color.Primary" Label="@L["storage.thumbnails", "Thumbnails"]" />
                 </MudItem>
             </MudGrid>
+
+            <DNValidationSummary Errors="_formErrors" />
         </MudForm>
     </DialogContent>
     <DialogActions>
@@ -224,6 +226,7 @@
 
     private MudForm _form = null!;
     private bool _busy;
+    private string[]? _formErrors;
     private bool _isNew => Setting is null;
 
     private StorageProviderType _provider = StorageProviderType.Arvan;
@@ -306,6 +309,7 @@
     private async Task SaveAsync()
     {
         await _form.ValidateAsync();
+        _formErrors = _form.Errors;
         if (!_form.IsValid) return;
 
         _busy = true;

@@ -47,6 +47,8 @@
                     <MudSwitch T="bool" @bind-Value="Model.IsActive" Label="@L["active", "Active"]" Color="Color.Primary" />
                 </MudItem>
             </MudGrid>
+
+            <DNValidationSummary Errors="_formErrors" />
         </MudForm>
     </DialogContent>
     <DialogActions>
@@ -62,6 +64,7 @@
 
     private MudForm _form = null!;
     private bool _saving;
+    private string[]? _formErrors;
     private List<Country> _countries = new();
     private List<State> _states = new();
     private List<City> _cities = new();
@@ -103,6 +106,7 @@
     private async Task SaveAsync()
     {
         await _form.Validate();
+        _formErrors = _form.Errors;
         if (!_form.IsValid) return;
 
         _saving = true;

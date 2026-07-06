@@ -64,6 +64,8 @@
                     </MudExpansionPanels>
                 </MudItem>
             </MudGrid>
+
+            <DNValidationSummary Errors="_formErrors" />
         </MudForm>
     </DialogContent>
     <DialogActions>
@@ -79,6 +81,7 @@
 
     private MudForm _form = null!;
     private bool _saving;
+    private string[]? _formErrors;
     private FileRecord? _logo;
     private readonly Dictionary<string, string> _tr = new(StringComparer.OrdinalIgnoreCase);
 
@@ -116,6 +119,7 @@
     private async Task SaveAsync()
     {
         await _form.Validate();
+        _formErrors = _form.Errors;
         if (!_form.IsValid) return;
         if (string.IsNullOrWhiteSpace(Model.Slug)) Model.Slug = Model.Name.Trim();
         if (Model.SettlementMode != 1) { Model.CreditDays = null; Model.CreditLimitUsd = null; }

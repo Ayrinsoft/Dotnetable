@@ -10,6 +10,7 @@
 @inject NavigationManager Nav
 @inject ISnackbar Snackbar
 @inject IPageLocalizer L
+@inject AdminUiModeState UiModeState
 
 <DNPageTitle Title=@(_isNew ? L["posts.new", "New Post"] : L["posts.edit", "Edit Post"]) />
 
@@ -133,6 +134,8 @@ else if (_model is not null)
                 </MudPaper>
             </MudItem>
         </MudGrid>
+
+        <DNValidationSummary Errors="_formErrors" />
     </MudForm>
 }
 
@@ -150,6 +153,7 @@ else if (_model is not null)
     private Post? _model;
     private MudForm _form = null!;
     private FileRecord? _featuredFile;
+    private string[]? _formErrors;
 
     private DateTime? _publishedAt;
     private DateTime? _scheduledAt;
@@ -171,7 +175,7 @@ else if (_model is not null)
         _isMaster = user.HasClaim(AdminClaimTypes.Master, "true");
         int.TryParse(user.FindFirst(AdminClaimTypes.WebsiteId)?.Value, out _websiteId);
         int.TryParse(user.FindFirst(AdminClaimTypes.MemberId)?.Value, out _memberId);
-        _showTranslations = AdminClaimTypes.GetUiMode(user) == AdminUiMode.Advanced;
+        _showTranslations = UiModeState.Current == AdminUiMode.Advanced;
         _isNew = Id is null;
         _canEdit = AdminPolicies.Allows(user, _isNew ? RoleKeys.PostsInsert : RoleKeys.PostsEdit);
 
@@ -233,6 +237,7 @@ else if (_model is not null)
     private async Task SaveAsync()
     {
         await _form.Validate();
+        _formErrors = _form.Errors;
         if (!_form.IsValid || _model is null) return;
         if (string.IsNullOrWhiteSpace(_model.Slug)) _model.Slug = _model.Title.Trim();
         _model.PublishedAt = _publishedAt;

@@ -7,6 +7,7 @@
 @inject NavigationManager Nav
 @inject ISnackbar Snackbar
 @inject IPageLocalizer L
+@inject AdminUiModeState UiModeState
 
 <DNPageTitle Title=@(_isNew ? L["pages.new", "New Page"] : L["pages.edit", "Edit Page"]) />
 
@@ -99,6 +100,8 @@ else if (_model is not null)
                 </MudPaper>
             </MudItem>
         </MudGrid>
+
+        <DNValidationSummary Errors="_formErrors" />
     </MudForm>
 }
 
@@ -115,6 +118,7 @@ else if (_model is not null)
     private Page? _model;
     private MudForm _form = null!;
     private List<Page> _allPages = new();
+    private string[]? _formErrors;
 
     private sealed class TranslationModel { public string Title = ""; public string Slug = ""; public string Content = ""; }
     private readonly Dictionary<string, TranslationModel> _translations = new(StringComparer.OrdinalIgnoreCase);
@@ -131,7 +135,7 @@ else if (_model is not null)
 
         _isNew = Id is null;
         _canEdit = AdminPolicies.Allows(user, _isNew ? RoleKeys.PagesInsert : RoleKeys.PagesEdit);
-        _showTranslations = AdminClaimTypes.GetUiMode(user) == AdminUiMode.Advanced;
+        _showTranslations = UiModeState.Current == AdminUiMode.Advanced;
 
         if (_isNew)
         {
@@ -160,6 +164,7 @@ else if (_model is not null)
     private async Task SaveAsync()
     {
         await _form.Validate();
+        _formErrors = _form.Errors;
         if (!_form.IsValid || _model is null) return;
         if (string.IsNullOrWhiteSpace(_model.Slug)) _model.Slug = _model.Title.Trim();
 

@@ -1,0 +1,21 @@
+@* Collects all messages from a MudForm's Errors array so a failed field further up the form is
+   never silently missed when its own inline message has scrolled out of view. Render right after
+   the SaveAsync() call sets Errors from _form.Errors post-validation. *@
+@inject IPageLocalizer L
+@if (Errors is { Count: > 0 })
+{
+    <MudAlert Severity="Severity.Error" Variant="Variant.Outlined" Dense="true" Class="mt-3">
+        <MudText Typo="Typo.body2" Class="fw-bold mb-1">@(Title ?? L["validation.summary_title", "Please fix the following:"])</MudText>
+        <ul class="ps-4 mb-0">
+            @foreach (var error in Errors)
+            {
+                <li>@error</li>
+            }
+        </ul>
+    </MudAlert>
+}
+
+@code {
+    [Parameter] public IReadOnlyCollection<string>? Errors { get; set; }
+    [Parameter] public string? Title { get; set; }
+}
