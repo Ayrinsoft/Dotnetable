@@ -1,5 +1,6 @@
 using System.Net;
 using System.Net.Mail;
+using Dotnetable.Application;
 using Dotnetable.Application.DTOs;
 using Dotnetable.Application.Interfaces;
 using Dotnetable.Domain.Entities;
@@ -39,7 +40,7 @@ public class EmailService : IEmailService
         var row = await GetDefaultRowAsync(ct);
         if (row is null)
         {
-            row = new EmailSetting { DefaultEMail = true, EmailTypeID = 0 };
+            row = new EmailSetting { DefaultEMail = true, EmailTypeID = 0, WebsiteID = AppConstants.MasterWebsiteId };
             _context.EmailSettings.Add(row);
         }
 
@@ -128,9 +129,11 @@ public class EmailService : IEmailService
         await _context.SaveChangesAsync(ct);
     }
 
+    // The platform-wide default SMTP row belongs to the master website (WebsiteID is NOT NULL in
+    // the schema). Rows written before this rule existed carry WebsiteID 0, so they match too.
     private async Task<EmailSetting?> GetDefaultRowAsync(CancellationToken ct) =>
         await _context.EmailSettings
-            .Where(e => e.WebsiteID == null)
+            .Where(e => e.WebsiteID == AppConstants.MasterWebsiteId || e.WebsiteID == 0)
             .OrderByDescending(e => e.DefaultEMail)
             .ThenByDescending(e => e.EmailSettingID)
             .FirstOrDefaultAsync(ct);

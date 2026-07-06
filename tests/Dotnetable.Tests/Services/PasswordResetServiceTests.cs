@@ -44,7 +44,7 @@ public class PasswordResetServiceTests : IDisposable
         {
             TradeName = "T", WebsiteAddress = "t.com", AuthCode = Guid.NewGuid(), Active = true,
             Manager = "M", Mobile = "1", Email = "a@t.com",
-            RegisterDate = DateOnly.FromDateTime(DateTime.Today), DefaultLanguageCode = "en", BrandName = "T"
+            RegisterDate = DateOnly.FromDateTime(DateTime.Today), DefaultLanguageCode = "en", DefaultCurrencyCode = "USD", BrandName = "T"
         };
         _context.Websites.Add(website);
         await _context.SaveChangesAsync();

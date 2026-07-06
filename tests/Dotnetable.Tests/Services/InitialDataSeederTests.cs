@@ -36,7 +36,7 @@ public class InitialDataSeederTests : IDisposable
     private static SetupRequest NewRequest() => new()
     {
         TradeName = "Acme", BrandName = "Acme", WebsiteAddress = "acme.com",
-        Manager = "Mgr", Mobile = "123", WebsiteEmail = "site@acme.com", DefaultLanguageCode = "en",
+        Manager = "Mgr", Mobile = "123", WebsiteEmail = "site@acme.com", DefaultLanguageCode = "en", DefaultCurrencyCode = "USD",
         Username = "admin", Password = "secret", Email = "admin@acme.com",
         Givenname = "Ada", Surname = "Min",
     };
