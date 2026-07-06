@@ -210,6 +210,23 @@ else if (_member is not null)
     private async Task LoadPoliciesAsync()
     {
         _policies = (await PolicyService.GetByWebsiteAsync(_member!.WebsiteID)).ToList();
+
+        // Master can also grant access levels defined on the master website itself,
+        // even when creating/editing a member on another site. A non-master admin
+        // is restricted to policies belonging to its own website only.
+        if (_isMaster && _member.WebsiteID != AppConstants.MasterWebsiteId)
+        {
+            var masterPolicies = await PolicyService.GetByWebsiteAsync(AppConstants.MasterWebsiteId);
+            _policies.AddRange(masterPolicies.Where(mp => _policies.All(p => p.PolicyID != mp.PolicyID)));
+        }
+
+        if (!_isNew && !_policies.Any(p => p.PolicyID == _member.PolicyID))
+        {
+            // Keep an out-of-scope policy (e.g. a master-only access level granted earlier)
+            // visible and selected rather than silently reassigning it on save.
+            var current = await PolicyService.GetByIdAsync(_member.PolicyID);
+            if (current is not null) _policies.Add(current);
+        }
         if (!_policies.Any(p => p.PolicyID == _member.PolicyID))
             _member.PolicyID = _policies.FirstOrDefault()?.PolicyID ?? 0;
     }
