@@ -2,6 +2,7 @@
 @attribute [Authorize(Policy = AdminPolicies.SuperAdminOnly)]
 @inject IWebsiteService WebsiteService
 @inject ISnackbar Snackbar
+@inject IDialogService DialogService
 @inject IPageLocalizer L
 
 <DNPageTitle Title=@L["websites", "Websites"] />
@@ -41,6 +42,9 @@
                     <td>
                         <MudIconButton Icon="@Icons.Material.Filled.Edit" Size="Size.Small"
                                        Color="Color.Primary" Href="@($"/websites/{w.WebsiteID}")" />
+                        <MudIconButton Icon="@Icons.Material.Filled.VpnKey" Size="Size.Small"
+                                       Color="Color.Secondary" Title="@L["website_api_key", "Website API Key"]"
+                                       OnClick="@(() => ShowApiKeyAsync(w))" />
                     </td>
                     <td>@w.WebsiteID</td>
                     <td>@w.TradeName</td>
@@ -68,6 +72,14 @@
     private List<Website> _websites = new();
     private HashSet<int> _toggling = new();
     private GridViewHeaderParameters _grid = new();
+
+    private async Task ShowApiKeyAsync(Website w)
+    {
+        var parameters = new DialogParameters { [nameof(WebsiteApiKeyDialog.Model)] = w };
+        await DialogService.ShowAsync<WebsiteApiKeyDialog>(
+            $"{L["website_api_key", "Website API Key"]} — {w.TradeName}", parameters,
+            new DialogOptions { MaxWidth = MaxWidth.Small, FullWidth = true });
+    }
 
     private async Task ToggleActiveAsync(Website w, bool value)
     {

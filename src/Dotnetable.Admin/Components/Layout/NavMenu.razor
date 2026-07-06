@@ -62,6 +62,12 @@
             <MudNavLink Href="/website/social" Icon="@Icons.Material.Filled.Share">
                 @L["social_links", "Social Links"]
             </MudNavLink>
+            @if (_isMaster || _websiteIdForUiMode != AppConstants.MasterWebsiteId)
+            {
+                <MudNavLink Href="/website/api-key" Icon="@Icons.Material.Filled.VpnKey">
+                    @L["website_api_key", "Website API Key"]
+                </MudNavLink>
+            }
         </MudNavGroup>
     </AuthorizeView>
 

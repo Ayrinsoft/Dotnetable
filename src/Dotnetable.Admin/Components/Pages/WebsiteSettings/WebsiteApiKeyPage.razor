@@ -1,0 +1,124 @@
+@page "/website/api-key"
+@attribute [Authorize(Policy = RoleKeys.WebsiteEdit)]
+@inject IWebsiteService WebsiteService
+@inject AuthenticationStateProvider AuthState
+@inject IJSRuntime JS
+@inject ISnackbar Snackbar
+@inject IPageLocalizer L
+
+<DNPageTitle Title=@L["website_api_key", "Website API Key"] />
+
+<MudStack Spacing="0" Class="mb-6">
+    <MudStack Row="true" AlignItems="AlignItems.Center" Justify="Justify.SpaceBetween">
+        <MudStack Spacing="0">
+            <MudText Typo="Typo.h5" Class="fw-bold">@L["website_api_key", "Website API Key"]</MudText>
+            <MudText Typo="Typo.body2" Color="Color.Secondary">@L["website_api_key.subtitle", "The key this site uses to call the public API"]</MudText>
+        </MudStack>
+        @if (_isMaster)
+        {
+            <WebsiteSelector Value="_websiteId" ValueChanged="OnWebsiteChanged" Websites="_websites"
+                             Label="@L["website", "Website"]" Variant="Variant.Outlined"
+                             Dense="true" Style="min-width:180px" />
+        }
+    </MudStack>
+</MudStack>
+
+@if (_loading)
+{
+    <MudProgressLinear Indeterminate="true" Color="Color.Primary" Class="mb-4" />
+}
+else if (_websiteId == AppConstants.MasterWebsiteId)
+{
+    <MudAlert Severity="Severity.Info">
+        @L["website_api_key.master_hint", "The master website doesn't call the public API with a site key. Pick another website above to see its API key."]
+    </MudAlert>
+}
+else
+{
+    <MudGrid Spacing="4">
+        <MudItem xs="12" md="7">
+            <MudPaper Elevation="0" Class="border rounded-lg pa-6">
+                <MudText Typo="Typo.subtitle1" Class="fw-bold mb-2">
+                    <MudIcon Icon="@Icons.Material.Filled.VpnKey" Size="Size.Small" Class="me-1" />
+                    @L["website_api_key.about", "What is this?"]
+                </MudText>
+                <MudText Typo="Typo.body2" Color="Color.Secondary" Class="mb-4">
+                    @L["website_api_key.about_text", "Every website has a unique key. Front-ends (like the React app) send it as the X-Website-Key header on every request so the API knows which site is calling and returns that site's content, products and settings. Keep it out of public source control if the site is not meant to be publicly readable."]
+                </MudText>
+
+                <MudTextField Value="@_authCode" Label="@L["website_api_key.key", "API Key (AuthCode)"]"
+                              Variant="Variant.Outlined" ReadOnly="true"
+                              Style="font-family: monospace;"
+                              Adornment="Adornment.End" AdornmentIcon="@Icons.Material.Filled.ContentCopy"
+                              OnAdornmentClick="@(() => CopyAsync(_authCode))" AdornmentAriaLabel="@L["copy", "Copy"]" />
+            </MudPaper>
+        </MudItem>
+
+        <MudItem xs="12" md="5">
+            <MudPaper Elevation="0" Class="border rounded-lg pa-6" Style="height:100%">
+                <MudText Typo="Typo.subtitle1" Class="fw-bold mb-2">
+                    <MudIcon Icon="@Icons.Material.Filled.Code" Size="Size.Small" Class="me-1" />
+                    @L["website_api_key.sample", "Sample Request"]
+                </MudText>
+                <MudTextField Value="@_sampleRequest" T="string" Lines="7" ReadOnly="true"
+                              Variant="Variant.Outlined" Style="font-family: monospace; font-size: 13px;" />
+                <MudButton Variant="Variant.Text" Color="Color.Primary" Size="Size.Small" Class="mt-2"
+                           StartIcon="@Icons.Material.Filled.ContentCopy"
+                           OnClick="@(() => CopyAsync(_sampleRequest))">
+                    @L["website_api_key.copy_sample", "Copy Sample"]
+                </MudButton>
+            </MudPaper>
+        </MudItem>
+    </MudGrid>
+}
+
+@code {
+    private bool _loading = true;
+    private bool _isMaster;
+    private int _websiteId;
+    private List<Website> _websites = new();
+    private string _authCode = string.Empty;
+    private string _sampleRequest = string.Empty;
+
+    protected override async Task OnInitializedAsync()
+    {
+        await L.EnsureLoadedAsync();
+
+        var state = await AuthState.GetAuthenticationStateAsync();
+        var user = state.User;
+        _isMaster = user.HasClaim(AdminClaimTypes.Master, "true");
+        int.TryParse(user.FindFirst(AdminClaimTypes.WebsiteId)?.Value, out _websiteId);
+
+        if (_isMaster)
+            _websites = (await WebsiteService.GetAllAsync()).ToList();
+
+        await LoadAsync();
+    }
+
+    private async Task OnWebsiteChanged(int id) { _websiteId = id; await LoadAsync(); }
+
+    private async Task LoadAsync()
+    {
+        _loading = true;
+        if (_websiteId != AppConstants.MasterWebsiteId)
+        {
+            var website = await WebsiteService.GetByIdAsync(_websiteId);
+            _authCode = website?.AuthCode.ToString() ?? string.Empty;
+            _sampleRequest = $"curl \"https://your-api-domain/api/siteinfo\" \\\n  -H \"X-Website-Key: {_authCode}\"";
+        }
+        _loading = false;
+    }
+
+    private async Task CopyAsync(string text)
+    {
+        try
+        {
+            await JS.InvokeVoidAsync("navigator.clipboard.writeText", text);
+            Snackbar.Add(L["copied", "Copied to clipboard."], Severity.Info);
+        }
+        catch
+        {
+            Snackbar.Add(L["copy_failed", "Copy failed."], Severity.Warning);
+        }
+    }
+}
