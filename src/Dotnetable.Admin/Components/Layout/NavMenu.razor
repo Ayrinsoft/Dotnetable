@@ -303,7 +303,7 @@
         if (UiModeState.Current == AdminUiMode.Basic && !_isMaster && _websiteIdForUiMode is { } websiteId)
         {
             var site = await WebsiteService.GetByIdAsync(websiteId);
-            _hideBlogNavForBasicStore = site?.WebsiteType == 1;
+            _hideBlogNavForBasicStore = site?.WebsiteType.GetCategory() == WebsiteCategory.Commerce;
         }
     }
 

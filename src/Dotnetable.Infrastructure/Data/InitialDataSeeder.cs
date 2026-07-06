@@ -1,6 +1,7 @@
 using Dotnetable.Application.Authorization;
 using Dotnetable.Application.DTOs;
 using Dotnetable.Domain.Entities;
+using Dotnetable.Domain.Enums;
 using Microsoft.AspNetCore.Identity;
 using Microsoft.EntityFrameworkCore;
 
@@ -55,9 +56,15 @@ public class InitialDataSeeder : IInitialDataSeeder
                 AuthCode = Guid.NewGuid(),
                 Active = true,
                 AllowAllIP = true,
-                WebsiteType = 0,
+                WebsiteType = (byte)WebsiteType.Corporate,
             };
             context.Websites.Add(website);
+
+            foreach (var featureKey in WebsiteType.Corporate.GetDefaultFeatures())
+            {
+                context.WebsiteFeatures.Add(new WebsiteFeature { Website = website, FeatureKey = (byte)featureKey, Enabled = true });
+            }
+
             await context.SaveChangesAsync(ct);
 
             // 4. Seed every permission (admin + client) from the catalog.

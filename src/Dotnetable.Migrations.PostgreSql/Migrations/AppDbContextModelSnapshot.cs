@@ -4640,6 +4640,40 @@ namespace Dotnetable.Migrations.PostgreSql.Migrations
                     b.ToTable("WebsiteClientForgetPasswords");
                 });
 
+            modelBuilder.Entity("Dotnetable.Domain.Entities.WebsiteFeature", b =>
+                {
+                    b.Property<int>("WebsiteFeatureID")
+                        .ValueGeneratedOnAdd()
+                        .HasColumnType("integer");
+
+                    NpgsqlPropertyBuilderExtensions.UseIdentityByDefaultColumn(b.Property<int>("WebsiteFeatureID"));
+
+                    b.Property<DateTime>("CreatedAt")
+                        .ValueGeneratedOnAdd()
+                        .HasColumnType("datetime2")
+                        .HasDefaultValueSql("(sysutcdatetime())")
+                        .HasAnnotation("Relational:DefaultConstraintName", "DF_WebsiteFeatures_CreatedAt");
+
+                    b.Property<bool>("Enabled")
+                        .ValueGeneratedOnAdd()
+                        .HasColumnType("boolean")
+                        .HasDefaultValue(true)
+                        .HasAnnotation("Relational:DefaultConstraintName", "DF_WebsiteFeatures_Enabled");
+
+                    b.Property<byte>("FeatureKey")
+                        .HasColumnType("smallint");
+
+                    b.Property<int>("WebsiteID")
+                        .HasColumnType("integer");
+
+                    b.HasKey("WebsiteFeatureID");
+
+                    b.HasIndex(new[] { "WebsiteID", "FeatureKey" }, "UQ_WebsiteFeatures_WebsiteID_FeatureKey")
+                        .IsUnique();
+
+                    b.ToTable("WebsiteFeatures");
+                });
+
             modelBuilder.Entity("Dotnetable.Domain.Entities.WebsiteIP", b =>
                 {
                     b.Property<int>("WebsiteIPID")
@@ -6996,6 +7030,17 @@ namespace Dotnetable.Migrations.PostgreSql.Migrations
                     b.Navigation("WebsiteClient");
                 });
 
+            modelBuilder.Entity("Dotnetable.Domain.Entities.WebsiteFeature", b =>
+                {
+                    b.HasOne("Dotnetable.Domain.Entities.Website", "Website")
+                        .WithMany("WebsiteFeatures")
+                        .HasForeignKey("WebsiteID")
+                        .IsRequired()
+                        .HasConstraintName("FK_WebsiteFeatures_Websites");
+
+                    b.Navigation("Website");
+                });
+
             modelBuilder.Entity("Dotnetable.Domain.Entities.WebsiteIP", b =>
                 {
                     b.HasOne("Dotnetable.Domain.Entities.Website", "Website")
@@ -7689,6 +7734,8 @@ namespace Dotnetable.Migrations.PostgreSql.Migrations
                     b.Navigation("Vendors");
 
                     b.Navigation("WebsiteClients");
+
+                    b.Navigation("WebsiteFeatures");
 
                     b.Navigation("WebsiteIPs");
 

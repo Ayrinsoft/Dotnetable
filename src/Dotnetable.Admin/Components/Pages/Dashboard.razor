@@ -132,7 +132,7 @@ else
         if (!_isMaster && _websiteId > 0)
         {
             var site = await WebsiteService.GetByIdAsync(_websiteId);
-            _isShop = site?.WebsiteType == 1;
+            _isShop = site?.WebsiteType.GetCategory() == WebsiteCategory.Commerce;
         }
     }
 
