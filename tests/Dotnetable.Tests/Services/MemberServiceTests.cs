@@ -38,7 +38,7 @@ public class MemberServiceTests : IDisposable
         {
             TradeName = "Test", WebsiteAddress = "test.com", AuthCode = Guid.NewGuid(),
             Active = true, Manager = "Mgr", Mobile = "123", Email = "admin@test.com",
-            RegisterDate = DateOnly.FromDateTime(DateTime.Today), DefaultLanguageCode = "en", BrandName = "Test"
+            RegisterDate = DateOnly.FromDateTime(DateTime.Today), DefaultLanguageCode = "en", DefaultCurrencyCode = "USD", BrandName = "Test"
         };
         _context.Websites.Add(_website);
         _context.SaveChanges();
@@ -152,7 +152,7 @@ public class MemberServiceTests : IDisposable
         {
             TradeName = "Other", WebsiteAddress = "other.com", AuthCode = Guid.NewGuid(),
             Active = true, Manager = "Mgr", Mobile = "123", Email = "x@x.com",
-            RegisterDate = DateOnly.FromDateTime(DateTime.Today), DefaultLanguageCode = "en", BrandName = "Other"
+            RegisterDate = DateOnly.FromDateTime(DateTime.Today), DefaultLanguageCode = "en", DefaultCurrencyCode = "USD", BrandName = "Other"
         };
         _context.Websites.Add(other);
         await _context.SaveChangesAsync();
@@ -212,7 +212,7 @@ public class MemberServiceTests : IDisposable
         {
             TradeName = "Other", WebsiteAddress = "other.com", AuthCode = Guid.NewGuid(),
             Active = true, Manager = "Mgr", Mobile = "123", Email = "x@x.com",
-            RegisterDate = DateOnly.FromDateTime(DateTime.Today), DefaultLanguageCode = "en", BrandName = "Other"
+            RegisterDate = DateOnly.FromDateTime(DateTime.Today), DefaultLanguageCode = "en", DefaultCurrencyCode = "USD", BrandName = "Other"
         };
         _context.Websites.Add(other);
         await _context.SaveChangesAsync();

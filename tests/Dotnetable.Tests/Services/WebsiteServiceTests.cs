@@ -35,7 +35,7 @@ public class WebsiteServiceTests : IDisposable
         Mobile = "123",
         Email = $"admin@{address}",
         RegisterDate = DateOnly.FromDateTime(DateTime.Today),
-        DefaultLanguageCode = "en"
+        DefaultLanguageCode = "en", DefaultCurrencyCode = "USD"
     };
 
     [Fact]
@@ -125,13 +125,13 @@ public class WebsiteServiceTests : IDisposable
             {
                 TradeName = "X", BrandName = "BrandX", WebsiteAddress = "x.com", AuthCode = Guid.NewGuid(),
                 Active = true, Manager = "Mgr", Mobile = "1", Email = "x@x.com",
-                RegisterDate = DateOnly.FromDateTime(DateTime.Today), DefaultLanguageCode = "en"
+                RegisterDate = DateOnly.FromDateTime(DateTime.Today), DefaultLanguageCode = "en", DefaultCurrencyCode = "USD"
             },
             new Website
             {
                 TradeName = "Y", BrandName = "BrandY", WebsiteAddress = "y.com", AuthCode = Guid.NewGuid(),
                 Active = true, Manager = "Mgr", Mobile = "1", Email = "y@y.com",
-                RegisterDate = DateOnly.FromDateTime(DateTime.Today), DefaultLanguageCode = "en"
+                RegisterDate = DateOnly.FromDateTime(DateTime.Today), DefaultLanguageCode = "en", DefaultCurrencyCode = "USD"
             });
         await _context.SaveChangesAsync();
 
@@ -230,6 +230,87 @@ public class WebsiteServiceTests : IDisposable
     public async Task DeleteAsync_MissingId_DoesNotThrow()
     {
         await _service.Invoking(s => s.DeleteAsync(999)).Should().NotThrowAsync();
+    }
+
+    // ── GetSiteInfoAsync ────────────────────────────────────────────
+
+    [Fact]
+    public async Task GetSiteInfoAsync_MissingWebsite_ReturnsNull()
+    {
+        (await _service.GetSiteInfoAsync(999)).Should().BeNull();
+    }
+
+    [Fact]
+    public async Task GetSiteInfoAsync_ReturnsBrandingWithDefaults()
+    {
+        var w = NewWebsite("Acme", "acme.com");
+        _context.Websites.Add(w); await _context.SaveChangesAsync();
+
+        var info = await _service.GetSiteInfoAsync(w.WebsiteID);
+
+        info.Should().NotBeNull();
+        info!.BrandName.Should().Be("Acme");
+        info.TradeName.Should().Be("Acme");
+        info.Email.Should().Be("admin@acme.com");
+        info.Phone.Should().Be("123");
+        info.DefaultLanguageCode.Should().Be("en");
+        info.TitleSeparator.Should().Be("·"); // default when no SEO row exists
+        info.LogoUrl.Should().BeNull();
+        info.SocialLinks.Should().BeEmpty();
+    }
+
+    [Fact]
+    public async Task GetSiteInfoAsync_IncludesSeoDefaultsAndSocialLinks()
+    {
+        var w = NewWebsite("Acme", "acme.com");
+        _context.Websites.Add(w);
+        await _context.SaveChangesAsync();
+
+        _context.WebsiteSeoSettings.Add(new WebsiteSeoSetting
+        {
+            WebsiteID = w.WebsiteID,
+            DefaultMetaTitle = "Acme — Home",
+            DefaultMetaDescription = "We build things.",
+            TitleSeparator = "|",
+            CustomRobotsTxt = string.Empty,
+        });
+        _context.WebsiteSocialLinks.AddRange(
+            new WebsiteSocialLink
+            {
+                WebsiteID = w.WebsiteID, SocialType = 1, SocialName = "Instagram",
+                SocialIcon = "bi bi-instagram", UrlAddress = "https://instagram.com/acme",
+            },
+            new WebsiteSocialLink
+            {
+                WebsiteID = w.WebsiteID, SocialType = 2, SocialName = "X",
+                UrlAddress = "https://x.com/acme",
+            });
+        await _context.SaveChangesAsync();
+
+        var info = await _service.GetSiteInfoAsync(w.WebsiteID);
+
+        info!.DefaultMetaTitle.Should().Be("Acme — Home");
+        info.DefaultMetaDescription.Should().Be("We build things.");
+        info.TitleSeparator.Should().Be("|");
+        info.SocialLinks.Should().HaveCount(2);
+        info.SocialLinks[0].Name.Should().Be("Instagram");
+        info.SocialLinks[0].Icon.Should().Be("bi bi-instagram");
+        info.SocialLinks[1].Url.Should().Be("https://x.com/acme");
+    }
+
+    [Fact]
+    public async Task GetSiteInfoAsync_BlankTitleSeparator_FallsBackToDefault()
+    {
+        var w = NewWebsite("Acme", "acme.com");
+        _context.Websites.Add(w);
+        await _context.SaveChangesAsync();
+        _context.WebsiteSeoSettings.Add(new WebsiteSeoSetting
+        {
+            WebsiteID = w.WebsiteID, TitleSeparator = "  ", CustomRobotsTxt = string.Empty,
+        });
+        await _context.SaveChangesAsync();
+
+        (await _service.GetSiteInfoAsync(w.WebsiteID))!.TitleSeparator.Should().Be("·");
     }
 
     public void Dispose() => _context.Dispose();
