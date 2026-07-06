@@ -102,6 +102,7 @@ public class FileService : IFileService
 
         var record = new FileRecord
         {
+            WebsiteID = request.WebsiteID,
             WebsiteStorageSettingsID = setting.WebsiteStorageSettingsID,
             StorageProvider = setting.StorageProvider,
             StoragePath = uploaded.StoragePath,
