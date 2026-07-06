@@ -200,6 +200,65 @@ public class ApiClient
     public Task<AuthApiResult> SubmitContactMessageAsync(ContactMessageRequest request, CancellationToken ct = default) =>
         PostAsync("api/contact", request, ct);
 
+    /// <summary>Site branding/identity (brand, logo, contact, socials, SEO defaults) used by the
+    /// layout. Null when the API is unreachable — the layout falls back to neutral defaults.</summary>
+    public Task<SiteInfoDto?> GetSiteInfoAsync(CancellationToken ct = default) =>
+        CachedGetAsync("siteinfo", async () =>
+        {
+            try { return await _http.GetFromJsonAsync<SiteInfoDto>("api/siteinfo", ct); }
+            catch (HttpRequestException) { return null; }
+            catch (NotSupportedException) { return null; }
+        });
+
+    // ── Dynamic forms & surveys ─────────────────────────────────────
+
+    /// <summary>An active dynamic form/survey by public slug, or null.</summary>
+    public Task<FormDto?> GetFormBySlugAsync(string slug, CancellationToken ct = default) =>
+        CachedGetAsync($"form:slug:{slug}", async () =>
+        {
+            try { return await _http.GetFromJsonAsync<FormDto>($"api/forms/{Uri.EscapeDataString(slug)}", ct); }
+            catch (HttpRequestException) { return null; }
+            catch (NotSupportedException) { return null; }
+        });
+
+    /// <summary>An active dynamic form/survey by id — resolves a <c>[form:ID]</c> shortcode.</summary>
+    public Task<FormDto?> GetFormByIdAsync(int formId, CancellationToken ct = default) =>
+        CachedGetAsync($"form:id:{formId}", async () =>
+        {
+            try { return await _http.GetFromJsonAsync<FormDto>($"api/forms/id/{formId}", ct); }
+            catch (HttpRequestException) { return null; }
+            catch (NotSupportedException) { return null; }
+        });
+
+    /// <summary>Submits a visitor's answers to a dynamic form. Validation happens server-side; a
+    /// failed submission returns Ok=false with a user-displayable message.</summary>
+    public async Task<FormSubmissionResult> SubmitFormAsync(int formId, FormSubmissionRequest request, CancellationToken ct = default)
+    {
+        try
+        {
+            var response = await _http.PostAsJsonAsync($"api/forms/{formId}/submit", request, ct);
+            var result = await response.Content.ReadFromJsonAsync<FormSubmissionResult>(cancellationToken: ct);
+            return result ?? (response.IsSuccessStatusCode
+                ? FormSubmissionResult.Success()
+                : FormSubmissionResult.Fail("Could not submit the form. Please try again."));
+        }
+        catch (HttpRequestException) { return FormSubmissionResult.Fail("Could not submit the form. Please try again."); }
+        catch (NotSupportedException) { return FormSubmissionResult.Fail("Could not submit the form. Please try again."); }
+    }
+
+    /// <summary>Public aggregate survey results (only for forms with public results enabled), or null.</summary>
+    public async Task<FormPublicResultsDto?> GetFormResultsAsync(int formId, CancellationToken ct = default)
+    {
+        try
+        {
+            var response = await _http.GetAsync($"api/forms/{formId}/results", ct);
+            if (response.StatusCode == HttpStatusCode.NoContent || !response.IsSuccessStatusCode) return null;
+            return await response.Content.ReadFromJsonAsync<FormPublicResultsDto>(cancellationToken: ct);
+        }
+        catch (HttpRequestException) { return null; }
+        catch (NotSupportedException) { return null; }
+    }
+
     /// <summary>Resolves a request path to a redirect target, or null when no rule matches / unreachable.</summary>
     public async Task<RedirectResultDto?> ResolveRedirectAsync(string path, CancellationToken ct = default)
     {

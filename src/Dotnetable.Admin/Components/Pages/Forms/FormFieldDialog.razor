@@ -1,0 +1,155 @@
+@inject IFormService FormService
+@inject ISnackbar Snackbar
+@inject IPageLocalizer L
+
+<MudDialog>
+    <DialogContent>
+        <MudForm @ref="_form">
+            <MudGrid Spacing="3">
+                <MudItem xs="12" sm="8">
+                    <MudTextField @bind-Value="Model.Label" Label="@L["forms.field_label", "Label"]"
+                                  Variant="Variant.Outlined" Required="true"
+                                  RequiredError="@L["forms.label_required", "Label is required."]" />
+                </MudItem>
+                <MudItem xs="12" sm="4">
+                    <MudSelect T="byte" Value="Model.FieldType" ValueChanged="OnTypeChanged"
+                               Label="@L["forms.field_type", "Type"]" Variant="Variant.Outlined">
+                        @foreach (var t in Enum.GetValues<FormFieldType>())
+                        {
+                            <MudSelectItem T="byte" Value="@((byte)t)">@t</MudSelectItem>
+                        }
+                    </MudSelect>
+                </MudItem>
+
+                @if (FieldType is not FormFieldType.SectionTitle)
+                {
+                    <MudItem xs="12" sm="6">
+                        <MudTextField @bind-Value="Model.Placeholder" Label="@L["forms.placeholder", "Placeholder (optional)"]"
+                                      Variant="Variant.Outlined" />
+                    </MudItem>
+                    <MudItem xs="12" sm="6">
+                        <MudTextField @bind-Value="Model.HelpText" Label="@L["forms.help_text", "Help text (optional)"]"
+                                      Variant="Variant.Outlined" />
+                    </MudItem>
+                }
+
+                @if (IsChoiceType)
+                {
+                    <MudItem xs="12">
+                        <MudText Typo="Typo.subtitle2" Class="mb-1">@L["forms.field_options", "Options"]</MudText>
+                        <MudText Typo="Typo.body2" Color="Color.Secondary" Class="mb-2">
+                            @L["forms.options_hint", "One line per option the visitor can pick."]
+                        </MudText>
+                        @for (int i = 0; i < Options.Count; i++)
+                        {
+                            var index = i;
+                            <MudStack Row="true" AlignItems="AlignItems.Center" Spacing="1" Class="mb-1">
+                                <MudTextField T="string" @bind-Value="Options[index].Label"
+                                              Label="@($"{L["forms.option", "Option"]} {index + 1}")"
+                                              Variant="Variant.Outlined" Margin="Margin.Dense" />
+                                <MudIconButton Icon="@Icons.Material.Filled.Close" Size="Size.Small"
+                                               OnClick="@(() => Options.RemoveAt(index))" />
+                            </MudStack>
+                        }
+                        <MudButton StartIcon="@Icons.Material.Filled.Add" Size="Size.Small"
+                                   OnClick="@(() => Options.Add(new FormFieldOption { Label = string.Empty }))">
+                            @L["forms.add_option", "Add option"]
+                        </MudButton>
+                    </MudItem>
+                }
+
+                @if (FieldType is FormFieldType.Rating or FormFieldType.Number)
+                {
+                    <MudItem xs="12" sm="6">
+                        <MudNumericField T="int?" @bind-Value="Model.MinValue"
+                                         Label="@(FieldType == FormFieldType.Rating ? L["forms.scale_min", "Scale from (default 1)"] : L["forms.min", "Minimum (optional)"])"
+                                         Variant="Variant.Outlined" Clearable="true" />
+                    </MudItem>
+                    <MudItem xs="12" sm="6">
+                        <MudNumericField T="int?" @bind-Value="Model.MaxValue"
+                                         Label="@(FieldType == FormFieldType.Rating ? L["forms.scale_max", "Scale to (default 5)"] : L["forms.max", "Maximum (optional)"])"
+                                         Variant="Variant.Outlined" Clearable="true" />
+                    </MudItem>
+                }
+                else if (FieldType is FormFieldType.Text or FormFieldType.TextArea)
+                {
+                    <MudItem xs="12" sm="6">
+                        <MudNumericField T="int?" @bind-Value="Model.MaxValue" Label="@L["forms.max_length", "Max length (optional)"]"
+                                         Variant="Variant.Outlined" Clearable="true" />
+                    </MudItem>
+                }
+
+                @if (FieldType is not FormFieldType.SectionTitle)
+                {
+                    <MudItem xs="12" sm="6">
+                        <MudSwitch T="bool" @bind-Value="Model.IsRequired" Color="Color.Primary"
+                                   Label="@L["forms.required", "Required"]" />
+                    </MudItem>
+                }
+                <MudItem xs="12" sm="6">
+                    <MudSwitch T="bool" @bind-Value="Model.IsActive" Color="Color.Success"
+                               Label="@(Model.IsActive ? L["active", "Active"] : L["inactive", "Inactive"])" />
+                </MudItem>
+            </MudGrid>
+        </MudForm>
+    </DialogContent>
+    <DialogActions>
+        <MudButton OnClick="Cancel">@L["cancel", "Cancel"]</MudButton>
+        <MudButton Variant="Variant.Filled" Color="Color.Primary" OnClick="SaveAsync" Disabled="@_saving">
+            @L["save", "Save"]
+        </MudButton>
+    </DialogActions>
+</MudDialog>
+
+@code {
+    [CascadingParameter] private IMudDialogInstance MudDialog { get; set; } = null!;
+
+    [Parameter] public FormField Model { get; set; } = new();
+    [Parameter] public bool IsNew { get; set; }
+    [Parameter] public List<FormFieldOption> Options { get; set; } = new();
+
+    private MudForm _form = null!;
+    private bool _saving;
+
+    private FormFieldType FieldType => (FormFieldType)Model.FieldType;
+
+    private bool IsChoiceType =>
+        FieldType is FormFieldType.Select or FormFieldType.Radio or FormFieldType.Checkbox;
+
+    private void OnTypeChanged(byte value)
+    {
+        Model.FieldType = value;
+        if (IsChoiceType && Options.Count == 0)
+            Options.Add(new FormFieldOption { Label = string.Empty });
+    }
+
+    private void Cancel() => MudDialog.Cancel();
+
+    private async Task SaveAsync()
+    {
+        await _form.Validate();
+        if (!_form.IsValid) return;
+
+        var options = IsChoiceType
+            ? Options.Where(o => !string.IsNullOrWhiteSpace(o.Label)).ToList()
+            : new List<FormFieldOption>();
+        if (IsChoiceType && options.Count == 0)
+        {
+            Snackbar.Add(L["forms.options_required", "Choice fields need at least one option."], Severity.Warning);
+            return;
+        }
+
+        _saving = true;
+        try
+        {
+            await FormService.SaveFieldAsync(Model, options);
+            Snackbar.Add(L["saved", "Saved."], Severity.Success);
+            MudDialog.Close(DialogResult.Ok(Model.FormFieldID));
+        }
+        catch (Exception ex)
+        {
+            Snackbar.Add($"{L["save_failed", "Save failed"]}: {ex.Message}", Severity.Error);
+        }
+        finally { _saving = false; }
+    }
+}

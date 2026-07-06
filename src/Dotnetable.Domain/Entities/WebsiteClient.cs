@@ -47,6 +47,8 @@ public partial class WebsiteClient
 
     public virtual ICollection<FileRecord> FileRecords { get; set; } = new List<FileRecord>();
 
+    public virtual ICollection<FormResponse> FormResponses { get; set; } = new List<FormResponse>();
+
     public virtual ICollection<Order> Orders { get; set; } = new List<Order>();
 
     public virtual ICollection<Payment> Payments { get; set; } = new List<Payment>();

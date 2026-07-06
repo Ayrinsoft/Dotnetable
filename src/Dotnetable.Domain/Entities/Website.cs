@@ -102,6 +102,8 @@ public partial class Website
 
     public virtual ICollection<Menu> Menus { get; set; } = new List<Menu>();
 
+    public virtual ICollection<Form> Forms { get; set; } = new List<Form>();
+
     public virtual ICollection<OrderItem> OrderItemSourceWebsites { get; set; } = new List<OrderItem>();
 
     public virtual ICollection<OrderItem> OrderItemWebsites { get; set; } = new List<OrderItem>();
@@ -163,6 +165,8 @@ public partial class Website
     public virtual ICollection<WebsiteSeoSetting> WebsiteSeoSettings { get; set; } = new List<WebsiteSeoSetting>();
 
     public virtual ICollection<WebsiteSocialLink> WebsiteSocialLinks { get; set; } = new List<WebsiteSocialLink>();
+
+    public virtual ICollection<WebsiteTheme> WebsiteThemes { get; set; } = new List<WebsiteTheme>();
 
     public virtual ICollection<WebsiteStorageSetting> WebsiteStorageSettings { get; set; } = new List<WebsiteStorageSetting>();
 

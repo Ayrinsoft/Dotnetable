@@ -1,0 +1,20 @@
+CREATE TABLE [dbo].[Forms] (
+    [FormID]                   INT            IDENTITY (1, 1) NOT NULL,
+    [WebsiteID]                INT            NOT NULL,
+    [Title]                    NVARCHAR (200) NOT NULL,
+    [Slug]                     NVARCHAR (200) NOT NULL,
+    [Description]              NVARCHAR (1000) NULL,
+    [FormType]                 TINYINT        CONSTRAINT [DF_Forms_FormType] DEFAULT ((0)) NOT NULL,
+    [SubmitButtonText]         NVARCHAR (100) NULL,
+    [SuccessMessage]           NVARCHAR (500) NULL,
+    [RequireLogin]             BIT            CONSTRAINT [DF_Forms_RequireLogin] DEFAULT ((0)) NOT NULL,
+    [AllowMultipleSubmissions] BIT            CONSTRAINT [DF_Forms_AllowMultipleSubmissions] DEFAULT ((1)) NOT NULL,
+    [ShowResults]              BIT            CONSTRAINT [DF_Forms_ShowResults] DEFAULT ((0)) NOT NULL,
+    [NotifyEmail]              NVARCHAR (200) NULL,
+    [StartAt]                  DATETIME       NULL,
+    [EndAt]                    DATETIME       NULL,
+    [IsActive]                 BIT            CONSTRAINT [DF_Forms_IsActive] DEFAULT ((1)) NOT NULL,
+    [CreatedAt]                DATETIME       CONSTRAINT [DF_Forms_CreatedAt] DEFAULT (sysutcdatetime()) NOT NULL,
+    CONSTRAINT [PK_Forms] PRIMARY KEY CLUSTERED ([FormID] ASC),
+    CONSTRAINT [FK_Forms_Websites] FOREIGN KEY ([WebsiteID]) REFERENCES [dbo].[Websites] ([WebsiteID])
+);

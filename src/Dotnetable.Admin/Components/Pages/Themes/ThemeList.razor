@@ -1,0 +1,213 @@
+@page "/themes"
+@attribute [Authorize(Policy = RoleKeys.ThemesView)]
+@inject IThemeService ThemeService
+@inject AuthenticationStateProvider AuthState
+@inject IDialogService DialogService
+@inject ISnackbar Snackbar
+@inject IPageLocalizer L
+
+<DNPageTitle Title=@L["themes", "Themes"] />
+
+<MudStack Row="true" AlignItems="AlignItems.Center" Justify="Justify.SpaceBetween" Class="mb-4">
+    <MudStack Spacing="0">
+        <MudText Typo="Typo.h5" Class="fw-bold">@L["themes", "Themes"]</MudText>
+        <MudText Typo="Typo.body2" Color="Color.Secondary">
+            @L["themes.subtitle", "Design tokens the public front-end applies at runtime — activate a theme to restyle the site without redeploying."]
+        </MudText>
+    </MudStack>
+    @if (_canEdit)
+    {
+        <MudButton Variant="Variant.Filled" Color="Color.Primary"
+                   StartIcon="@Icons.Material.Filled.Add" OnClick="CreateAsync">
+            @L["themes.new", "New Theme"]
+        </MudButton>
+    }
+</MudStack>
+
+<MudPaper Elevation="0" Class="app-card rounded-lg pa-4">
+    @if (_loading)
+    {
+        <MudProgressLinear Indeterminate="true" Color="Color.Primary" Class="mb-3" />
+    }
+    else if (_themes.Count == 0)
+    {
+        <div style="text-align:center; padding:32px;">
+            <MudText Color="Color.Secondary">@L["themes.empty", "No themes yet. The front-end uses its built-in defaults."]</MudText>
+        </div>
+    }
+    else
+    {
+        <MudSimpleTable Dense="true" Hover="true" Elevation="0">
+            <thead>
+                <tr>
+                    <th>@L["id", "ID"]</th>
+                    <th>@L["name", "Name"]</th>
+                    @if (_isMaster)
+                    {
+                        <th>@L["website", "Website"]</th>
+                    }
+                    <th>@L["themes.preview", "Preview"]</th>
+                    <th>@L["themes.active", "Active"]</th>
+                    <th style="width:1%"></th>
+                </tr>
+            </thead>
+            <tbody>
+                @foreach (var t in _themes)
+                {
+                    <tr>
+                        <td>@t.WebsiteThemeID</td>
+                        <td>@t.Name</td>
+                        @if (_isMaster)
+                        {
+                            <td>#@t.WebsiteID</td>
+                        }
+                        <td>
+                            <MudStack Row="true" Spacing="1">
+                                @foreach (var color in PreviewColors(t))
+                                {
+                                    <div style="width:20px;height:20px;border-radius:4px;border:1px solid rgba(128,128,128,.35);background:@color"></div>
+                                }
+                            </MudStack>
+                        </td>
+                        <td>
+                            @if (t.IsActive)
+                            {
+                                <MudChip T="string" Size="Size.Small" Color="Color.Success" Variant="Variant.Text">
+                                    @L["themes.active", "Active"]
+                                </MudChip>
+                            }
+                            else if (_canEdit)
+                            {
+                                <MudButton Size="Size.Small" Variant="Variant.Outlined" Color="Color.Primary"
+                                           OnClick="@(() => ActivateAsync(t))">
+                                    @L["themes.activate", "Activate"]
+                                </MudButton>
+                            }
+                        </td>
+                        <td>
+                            <MudStack Row="true" Spacing="0">
+                                @if (_canEdit)
+                                {
+                                    <MudIconButton Icon="@Icons.Material.Filled.Edit" Size="Size.Small"
+                                                   Color="Color.Default" OnClick="@(() => EditAsync(t))" />
+                                    <MudIconButton Icon="@Icons.Material.Filled.Delete" Size="Size.Small"
+                                                   Color="Color.Error" Disabled="@t.IsActive"
+                                                   OnClick="@(() => DeleteAsync(t))" />
+                                }
+                            </MudStack>
+                        </td>
+                    </tr>
+                }
+            </tbody>
+        </MudSimpleTable>
+    }
+</MudPaper>
+
+@code {
+    private bool _loading = true;
+    private bool _isMaster;
+    private bool _canEdit;
+    private int _websiteId;
+    private List<WebsiteTheme> _themes = new();
+
+    protected override async Task OnInitializedAsync()
+    {
+        await L.EnsureLoadedAsync();
+
+        var user = (await AuthState.GetAuthenticationStateAsync()).User;
+        _isMaster = user.HasClaim(AdminClaimTypes.Master, "true");
+        _canEdit = AdminPolicies.Allows(user, RoleKeys.ThemesEdit);
+        int.TryParse(user.FindFirst(AdminClaimTypes.WebsiteId)?.Value, out _websiteId);
+
+        await LoadAsync();
+    }
+
+    private async Task LoadAsync()
+    {
+        _loading = true;
+        _themes = await ThemeService.GetThemesAsync(_isMaster ? null : _websiteId);
+        _loading = false;
+    }
+
+    /// <summary>Color swatches parsed out of the theme JSON for the list preview.</summary>
+    private static IEnumerable<string> PreviewColors(WebsiteTheme theme)
+    {
+        var colors = new List<string>();
+        try
+        {
+            using var doc = global::System.Text.Json.JsonDocument.Parse(theme.SettingsJson);
+            if (doc.RootElement.TryGetProperty("colors", out var colorMap) &&
+                colorMap.ValueKind == global::System.Text.Json.JsonValueKind.Object)
+            {
+                foreach (var color in colorMap.EnumerateObject())
+                {
+                    if (color.Value.ValueKind == global::System.Text.Json.JsonValueKind.String)
+                        colors.Add(color.Value.GetString()!);
+                    if (colors.Count == 5) break;
+                }
+            }
+        }
+        catch (global::System.Text.Json.JsonException) { /* malformed JSON — no preview */ }
+        return colors;
+    }
+
+    private async Task ActivateAsync(WebsiteTheme theme)
+    {
+        await ThemeService.ActivateThemeAsync(theme.WebsiteThemeID);
+        Snackbar.Add(L["themes.activated", "Theme activated."], Severity.Success);
+        await LoadAsync();
+    }
+
+    private async Task CreateAsync()
+    {
+        var result = await ShowDialogAsync(new WebsiteTheme
+        {
+            WebsiteID = _websiteId,
+            SettingsJson = ThemeDialog.DefaultSettingsJson,
+        }, isNew: true);
+        if (result) await LoadAsync();
+    }
+
+    private async Task EditAsync(WebsiteTheme theme)
+    {
+        var model = new WebsiteTheme
+        {
+            WebsiteThemeID = theme.WebsiteThemeID,
+            WebsiteID = theme.WebsiteID,
+            Name = theme.Name,
+            SettingsJson = theme.SettingsJson,
+            IsActive = theme.IsActive,
+            CreatedAt = theme.CreatedAt,
+        };
+        var result = await ShowDialogAsync(model, isNew: false);
+        if (result) await LoadAsync();
+    }
+
+    private async Task<bool> ShowDialogAsync(WebsiteTheme theme, bool isNew)
+    {
+        var parameters = new DialogParameters<ThemeDialog>
+        {
+            { x => x.Model, theme },
+            { x => x.IsNew, isNew },
+            { x => x.AllowWebsiteEdit, _isMaster },
+        };
+        var dialog = await DialogService.ShowAsync<ThemeDialog>(
+            isNew ? L["themes.new", "New Theme"] : L["themes.edit", "Edit Theme"], parameters,
+            new DialogOptions { MaxWidth = MaxWidth.Medium, FullWidth = true });
+        var result = await dialog.Result;
+        return result is not null && !result.Canceled;
+    }
+
+    private async Task DeleteAsync(WebsiteTheme theme)
+    {
+        var confirmed = await DialogService.ShowMessageBoxAsync(
+            L["themes.delete", "Delete theme"],
+            L["themes.delete_confirm", "Delete this theme?"],
+            yesText: L["delete", "Delete"], cancelText: L["cancel", "Cancel"]);
+        if (confirmed != true) return;
+
+        await ThemeService.DeleteThemeAsync(theme.WebsiteThemeID);
+        Snackbar.Add(L["deleted", "Deleted."], Severity.Success);
+        await LoadAsync();
+    }
+}

@@ -59,6 +59,18 @@ builder.Services.AddSwaggerGen(c =>
     c.SwaggerDoc("v1", new() { Title = "Dotnetable API", Version = "v1" });
 });
 
+// CORS for browser-based front-ends (the React SPA in serverless mode calls the API directly).
+// Allowed origins come from configuration; when none are configured any origin is accepted, since
+// every request is already scoped/authenticated by the X-Website-Key header + client JWTs.
+var corsOrigins = builder.Configuration.GetSection("Cors:AllowedOrigins").Get<string[]>() ?? [];
+builder.Services.AddCors(options => options.AddDefaultPolicy(policy =>
+{
+    if (corsOrigins.Length > 0)
+        policy.WithOrigins(corsOrigins).AllowAnyHeader().AllowAnyMethod();
+    else
+        policy.AllowAnyOrigin().AllowAnyHeader().AllowAnyMethod();
+}));
+
 builder.Services.AddInfrastructure(builder.Configuration, builder.Environment.ContentRootPath);
 
 var app = builder.Build();
@@ -70,6 +82,7 @@ if (app.Environment.IsDevelopment())
 }
 
 app.UseHttpsRedirection();
+app.UseCors();
 app.UseAuthentication();
 app.UseAuthorization();
 app.MapControllers();

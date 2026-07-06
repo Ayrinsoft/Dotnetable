@@ -21,7 +21,16 @@ public class HomeController : Controller
     public async Task<IActionResult> Index(CancellationToken ct = default)
     {
         var lang = Request.Cookies["lang"];
-        var latest = await _api.GetPostsAsync(page: 1, pageSize: 3, lang: string.IsNullOrWhiteSpace(lang) ? null : lang, ct: ct);
+        var langOrNull = string.IsNullOrWhiteSpace(lang) ? null : lang;
+
+        // The homepage body is a regular CMS page (slug "home", editable in Admin → Content →
+        // Pages, shortcodes supported). The generic hero/features markup in the view is only the
+        // fallback until that page is created.
+        var homePage = await _api.GetPageAsync("home", langOrNull, ct);
+        if (homePage is not null)
+            ViewData["HomeContentHtml"] = await _shortcodes.ExpandAsync(homePage.Content, ct);
+
+        var latest = await _api.GetPostsAsync(page: 1, pageSize: 3, lang: langOrNull, ct: ct);
         return View(latest.Items);
     }
 

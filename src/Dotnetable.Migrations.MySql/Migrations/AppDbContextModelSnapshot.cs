@@ -1381,6 +1381,237 @@ namespace Dotnetable.Migrations.MySql.Migrations
                     b.ToTable("FileTags");
                 });
 
+            modelBuilder.Entity("Dotnetable.Domain.Entities.Form", b =>
+                {
+                    b.Property<int>("FormID")
+                        .ValueGeneratedOnAdd()
+                        .HasColumnType("int");
+
+                    b.Property<bool>("AllowMultipleSubmissions")
+                        .ValueGeneratedOnAdd()
+                        .HasColumnType("tinyint(1)")
+                        .HasDefaultValue(true)
+                        .HasAnnotation("Relational:DefaultConstraintName", "DF_Forms_AllowMultipleSubmissions");
+
+                    b.Property<DateTime>("CreatedAt")
+                        .ValueGeneratedOnAdd()
+                        .HasColumnType("datetime")
+                        .HasDefaultValueSql("(sysutcdatetime())")
+                        .HasAnnotation("Relational:DefaultConstraintName", "DF_Forms_CreatedAt");
+
+                    b.Property<string>("Description")
+                        .HasMaxLength(1000)
+                        .HasColumnType("varchar(1000)");
+
+                    b.Property<DateTime?>("EndAt")
+                        .HasColumnType("datetime");
+
+                    b.Property<byte>("FormType")
+                        .ValueGeneratedOnAdd()
+                        .HasColumnType("tinyint unsigned")
+                        .HasDefaultValue((byte)0)
+                        .HasAnnotation("Relational:DefaultConstraintName", "DF_Forms_FormType");
+
+                    b.Property<bool>("IsActive")
+                        .ValueGeneratedOnAdd()
+                        .HasColumnType("tinyint(1)")
+                        .HasDefaultValue(true)
+                        .HasAnnotation("Relational:DefaultConstraintName", "DF_Forms_IsActive");
+
+                    b.Property<string>("NotifyEmail")
+                        .HasMaxLength(200)
+                        .HasColumnType("varchar(200)");
+
+                    b.Property<bool>("RequireLogin")
+                        .ValueGeneratedOnAdd()
+                        .HasColumnType("tinyint(1)")
+                        .HasDefaultValue(false)
+                        .HasAnnotation("Relational:DefaultConstraintName", "DF_Forms_RequireLogin");
+
+                    b.Property<bool>("ShowResults")
+                        .ValueGeneratedOnAdd()
+                        .HasColumnType("tinyint(1)")
+                        .HasDefaultValue(false)
+                        .HasAnnotation("Relational:DefaultConstraintName", "DF_Forms_ShowResults");
+
+                    b.Property<string>("Slug")
+                        .IsRequired()
+                        .HasMaxLength(200)
+                        .HasColumnType("varchar(200)");
+
+                    b.Property<DateTime?>("StartAt")
+                        .HasColumnType("datetime");
+
+                    b.Property<string>("SubmitButtonText")
+                        .HasMaxLength(100)
+                        .HasColumnType("varchar(100)");
+
+                    b.Property<string>("SuccessMessage")
+                        .HasMaxLength(500)
+                        .HasColumnType("varchar(500)");
+
+                    b.Property<string>("Title")
+                        .IsRequired()
+                        .HasMaxLength(200)
+                        .HasColumnType("varchar(200)");
+
+                    b.Property<int>("WebsiteID")
+                        .HasColumnType("int");
+
+                    b.HasKey("FormID");
+
+                    b.HasIndex("WebsiteID");
+
+                    b.ToTable("Forms");
+                });
+
+            modelBuilder.Entity("Dotnetable.Domain.Entities.FormField", b =>
+                {
+                    b.Property<int>("FormFieldID")
+                        .ValueGeneratedOnAdd()
+                        .HasColumnType("int");
+
+                    b.Property<byte>("FieldType")
+                        .ValueGeneratedOnAdd()
+                        .HasColumnType("tinyint unsigned")
+                        .HasDefaultValue((byte)0)
+                        .HasAnnotation("Relational:DefaultConstraintName", "DF_FormFields_FieldType");
+
+                    b.Property<int>("FormID")
+                        .HasColumnType("int");
+
+                    b.Property<string>("HelpText")
+                        .HasMaxLength(500)
+                        .HasColumnType("varchar(500)");
+
+                    b.Property<bool>("IsActive")
+                        .ValueGeneratedOnAdd()
+                        .HasColumnType("tinyint(1)")
+                        .HasDefaultValue(true)
+                        .HasAnnotation("Relational:DefaultConstraintName", "DF_FormFields_IsActive");
+
+                    b.Property<bool>("IsRequired")
+                        .ValueGeneratedOnAdd()
+                        .HasColumnType("tinyint(1)")
+                        .HasDefaultValue(false)
+                        .HasAnnotation("Relational:DefaultConstraintName", "DF_FormFields_IsRequired");
+
+                    b.Property<string>("Label")
+                        .IsRequired()
+                        .HasMaxLength(300)
+                        .HasColumnType("varchar(300)");
+
+                    b.Property<int?>("MaxValue")
+                        .HasColumnType("int");
+
+                    b.Property<int?>("MinValue")
+                        .HasColumnType("int");
+
+                    b.Property<string>("Placeholder")
+                        .HasMaxLength(200)
+                        .HasColumnType("varchar(200)");
+
+                    b.Property<int>("SortOrder")
+                        .ValueGeneratedOnAdd()
+                        .HasColumnType("int")
+                        .HasDefaultValue(0)
+                        .HasAnnotation("Relational:DefaultConstraintName", "DF_FormFields_SortOrder");
+
+                    b.HasKey("FormFieldID");
+
+                    b.HasIndex("FormID");
+
+                    b.ToTable("FormFields");
+                });
+
+            modelBuilder.Entity("Dotnetable.Domain.Entities.FormFieldOption", b =>
+                {
+                    b.Property<int>("FormFieldOptionID")
+                        .ValueGeneratedOnAdd()
+                        .HasColumnType("int");
+
+                    b.Property<int>("FormFieldID")
+                        .HasColumnType("int");
+
+                    b.Property<string>("Label")
+                        .IsRequired()
+                        .HasMaxLength(300)
+                        .HasColumnType("varchar(300)");
+
+                    b.Property<int>("SortOrder")
+                        .ValueGeneratedOnAdd()
+                        .HasColumnType("int")
+                        .HasDefaultValue(0)
+                        .HasAnnotation("Relational:DefaultConstraintName", "DF_FormFieldOptions_SortOrder");
+
+                    b.Property<string>("Value")
+                        .HasMaxLength(200)
+                        .HasColumnType("varchar(200)");
+
+                    b.HasKey("FormFieldOptionID");
+
+                    b.HasIndex("FormFieldID");
+
+                    b.ToTable("FormFieldOptions");
+                });
+
+            modelBuilder.Entity("Dotnetable.Domain.Entities.FormResponse", b =>
+                {
+                    b.Property<int>("FormResponseID")
+                        .ValueGeneratedOnAdd()
+                        .HasColumnType("int");
+
+                    b.Property<int>("FormID")
+                        .HasColumnType("int");
+
+                    b.Property<string>("SenderIPAddress")
+                        .IsRequired()
+                        .HasMaxLength(45)
+                        .IsUnicode(false)
+                        .HasColumnType("varchar(45)");
+
+                    b.Property<DateTime>("SubmittedAt")
+                        .ValueGeneratedOnAdd()
+                        .HasColumnType("datetime")
+                        .HasDefaultValueSql("(sysutcdatetime())")
+                        .HasAnnotation("Relational:DefaultConstraintName", "DF_FormResponses_SubmittedAt");
+
+                    b.Property<int?>("WebsiteClientID")
+                        .HasColumnType("int");
+
+                    b.HasKey("FormResponseID");
+
+                    b.HasIndex("FormID");
+
+                    b.HasIndex("WebsiteClientID");
+
+                    b.ToTable("FormResponses");
+                });
+
+            modelBuilder.Entity("Dotnetable.Domain.Entities.FormResponseValue", b =>
+                {
+                    b.Property<int>("FormResponseValueID")
+                        .ValueGeneratedOnAdd()
+                        .HasColumnType("int");
+
+                    b.Property<int>("FormFieldID")
+                        .HasColumnType("int");
+
+                    b.Property<int>("FormResponseID")
+                        .HasColumnType("int");
+
+                    b.Property<string>("Value")
+                        .HasColumnType("longtext");
+
+                    b.HasKey("FormResponseValueID");
+
+                    b.HasIndex("FormFieldID");
+
+                    b.HasIndex("FormResponseID");
+
+                    b.ToTable("FormResponseValues");
+                });
+
             modelBuilder.Entity("Dotnetable.Domain.Entities.InventoryItem", b =>
                 {
                     b.Property<int>("InventoryItemID")
@@ -4729,6 +4960,43 @@ namespace Dotnetable.Migrations.MySql.Migrations
                     b.ToTable("WebsiteStorageSettings");
                 });
 
+            modelBuilder.Entity("Dotnetable.Domain.Entities.WebsiteTheme", b =>
+                {
+                    b.Property<int>("WebsiteThemeID")
+                        .ValueGeneratedOnAdd()
+                        .HasColumnType("int");
+
+                    b.Property<DateTime>("CreatedAt")
+                        .ValueGeneratedOnAdd()
+                        .HasColumnType("datetime")
+                        .HasDefaultValueSql("(sysutcdatetime())")
+                        .HasAnnotation("Relational:DefaultConstraintName", "DF_WebsiteThemes_CreatedAt");
+
+                    b.Property<bool>("IsActive")
+                        .ValueGeneratedOnAdd()
+                        .HasColumnType("tinyint(1)")
+                        .HasDefaultValue(false)
+                        .HasAnnotation("Relational:DefaultConstraintName", "DF_WebsiteThemes_IsActive");
+
+                    b.Property<string>("Name")
+                        .IsRequired()
+                        .HasMaxLength(100)
+                        .HasColumnType("varchar(100)");
+
+                    b.Property<string>("SettingsJson")
+                        .IsRequired()
+                        .HasColumnType("longtext");
+
+                    b.Property<int>("WebsiteID")
+                        .HasColumnType("int");
+
+                    b.HasKey("WebsiteThemeID");
+
+                    b.HasIndex("WebsiteID");
+
+                    b.ToTable("WebsiteThemes");
+                });
+
             modelBuilder.Entity("Dotnetable.Domain.Entities.Wishlist", b =>
                 {
                     b.Property<int>("WishlistID")
@@ -5360,6 +5628,76 @@ namespace Dotnetable.Migrations.MySql.Migrations
                         .HasConstraintName("FK_FileTags_Websites");
 
                     b.Navigation("Website");
+                });
+
+            modelBuilder.Entity("Dotnetable.Domain.Entities.Form", b =>
+                {
+                    b.HasOne("Dotnetable.Domain.Entities.Website", "Website")
+                        .WithMany("Forms")
+                        .HasForeignKey("WebsiteID")
+                        .IsRequired()
+                        .HasConstraintName("FK_Forms_Websites");
+
+                    b.Navigation("Website");
+                });
+
+            modelBuilder.Entity("Dotnetable.Domain.Entities.FormField", b =>
+                {
+                    b.HasOne("Dotnetable.Domain.Entities.Form", "Form")
+                        .WithMany("FormFields")
+                        .HasForeignKey("FormID")
+                        .IsRequired()
+                        .HasConstraintName("FK_FormFields_Forms");
+
+                    b.Navigation("Form");
+                });
+
+            modelBuilder.Entity("Dotnetable.Domain.Entities.FormFieldOption", b =>
+                {
+                    b.HasOne("Dotnetable.Domain.Entities.FormField", "FormField")
+                        .WithMany("FormFieldOptions")
+                        .HasForeignKey("FormFieldID")
+                        .IsRequired()
+                        .HasConstraintName("FK_FormFieldOptions_FormFields");
+
+                    b.Navigation("FormField");
+                });
+
+            modelBuilder.Entity("Dotnetable.Domain.Entities.FormResponse", b =>
+                {
+                    b.HasOne("Dotnetable.Domain.Entities.Form", "Form")
+                        .WithMany("FormResponses")
+                        .HasForeignKey("FormID")
+                        .IsRequired()
+                        .HasConstraintName("FK_FormResponses_Forms");
+
+                    b.HasOne("Dotnetable.Domain.Entities.WebsiteClient", "WebsiteClient")
+                        .WithMany("FormResponses")
+                        .HasForeignKey("WebsiteClientID")
+                        .HasConstraintName("FK_FormResponses_WebsiteClients");
+
+                    b.Navigation("Form");
+
+                    b.Navigation("WebsiteClient");
+                });
+
+            modelBuilder.Entity("Dotnetable.Domain.Entities.FormResponseValue", b =>
+                {
+                    b.HasOne("Dotnetable.Domain.Entities.FormField", "FormField")
+                        .WithMany("FormResponseValues")
+                        .HasForeignKey("FormFieldID")
+                        .IsRequired()
+                        .HasConstraintName("FK_FormResponseValues_FormFields");
+
+                    b.HasOne("Dotnetable.Domain.Entities.FormResponse", "FormResponse")
+                        .WithMany("FormResponseValues")
+                        .HasForeignKey("FormResponseID")
+                        .IsRequired()
+                        .HasConstraintName("FK_FormResponseValues_FormResponses");
+
+                    b.Navigation("FormField");
+
+                    b.Navigation("FormResponse");
                 });
 
             modelBuilder.Entity("Dotnetable.Domain.Entities.InventoryItem", b =>
@@ -6900,6 +7238,17 @@ namespace Dotnetable.Migrations.MySql.Migrations
                     b.Navigation("Website");
                 });
 
+            modelBuilder.Entity("Dotnetable.Domain.Entities.WebsiteTheme", b =>
+                {
+                    b.HasOne("Dotnetable.Domain.Entities.Website", "Website")
+                        .WithMany("WebsiteThemes")
+                        .HasForeignKey("WebsiteID")
+                        .IsRequired()
+                        .HasConstraintName("FK_WebsiteThemes_Websites");
+
+                    b.Navigation("Website");
+                });
+
             modelBuilder.Entity("Dotnetable.Domain.Entities.Wishlist", b =>
                 {
                     b.HasOne("Dotnetable.Domain.Entities.WebsiteClient", "WebsiteClient")
@@ -7135,6 +7484,25 @@ namespace Dotnetable.Migrations.MySql.Migrations
             modelBuilder.Entity("Dotnetable.Domain.Entities.FileTag", b =>
                 {
                     b.Navigation("FileRecordTags");
+                });
+
+            modelBuilder.Entity("Dotnetable.Domain.Entities.Form", b =>
+                {
+                    b.Navigation("FormFields");
+
+                    b.Navigation("FormResponses");
+                });
+
+            modelBuilder.Entity("Dotnetable.Domain.Entities.FormField", b =>
+                {
+                    b.Navigation("FormFieldOptions");
+
+                    b.Navigation("FormResponseValues");
+                });
+
+            modelBuilder.Entity("Dotnetable.Domain.Entities.FormResponse", b =>
+                {
+                    b.Navigation("FormResponseValues");
                 });
 
             modelBuilder.Entity("Dotnetable.Domain.Entities.JournalEntry", b =>
@@ -7462,6 +7830,8 @@ namespace Dotnetable.Migrations.MySql.Migrations
 
                     b.Navigation("FileTags");
 
+                    b.Navigation("Forms");
+
                     b.Navigation("InventoryItems");
 
                     b.Navigation("JournalEntries");
@@ -7542,6 +7912,8 @@ namespace Dotnetable.Migrations.MySql.Migrations
 
                     b.Navigation("WebsiteStorageSettings");
 
+                    b.Navigation("WebsiteThemes");
+
                     b.Navigation("Wishlists");
                 });
 
@@ -7558,6 +7930,8 @@ namespace Dotnetable.Migrations.MySql.Migrations
                     b.Navigation("CouponRedemptions");
 
                     b.Navigation("FileRecords");
+
+                    b.Navigation("FormResponses");
 
                     b.Navigation("Orders");
 
