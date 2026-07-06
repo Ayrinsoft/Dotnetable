@@ -3,6 +3,7 @@
 @attribute [Authorize(Policy = AdminPolicies.SuperAdminOnly)]
 @inject IWebsiteService WebsiteService
 @inject IFileService FileService
+@inject ICurrencyService CurrencyService
 @inject IDialogService DialogService
 @inject NavigationManager Nav
 @inject ISnackbar Snackbar
@@ -66,6 +67,16 @@ else if (_website is not null)
                                        HelperText="@L["website.type_hint", "Stores get the e-commerce dashboard."]">
                                 <MudSelectItem T="byte" Value="@((byte)0)">@L["website", "Website"]</MudSelectItem>
                                 <MudSelectItem T="byte" Value="@((byte)1)">@L["store", "Store"]</MudSelectItem>
+                            </MudSelect>
+                        </MudItem>
+                        <MudItem xs="12" sm="6">
+                            <MudSelect T="string" @bind-Value="_website.DefaultCurrencyCode" Label="@L["default_currency_code", "Default Currency"]"
+                                       Variant="Variant.Outlined" Required="true"
+                                       RequiredError="@L["required", "This field is required."]">
+                                @foreach (var currency in _currencies)
+                                {
+                                    <MudSelectItem T="string" Value="@currency.CurrencyCode">@currency.CurrencyCode</MudSelectItem>
+                                }
                             </MudSelect>
                         </MudItem>
                     </MudGrid>
@@ -203,6 +214,7 @@ else if (_website is not null)
     private Website? _website;
     private FileRecord? _logoFile;
     private FileRecord? _faveFile;
+    private List<Currency> _currencies = new();
     private bool _loading = true;
     private bool _saving;
     private bool _isNew => Id == 0;
@@ -217,6 +229,7 @@ else if (_website is not null)
     protected override async Task OnInitializedAsync()
     {
         await L.EnsureLoadedAsync();
+        _currencies = await CurrencyService.GetAllAsync();
 
         if (_isNew)
         {
@@ -224,6 +237,7 @@ else if (_website is not null)
             {
                 Active = true,
                 DefaultLanguageCode = "en",
+                DefaultCurrencyCode = _currencies.FirstOrDefault()?.CurrencyCode ?? string.Empty,
             };
         }
         else
