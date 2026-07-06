@@ -1,0 +1,58 @@
+@inject IJSRuntime JS
+@inject ISnackbar Snackbar
+@inject IPageLocalizer L
+
+<MudDialog>
+    <DialogContent>
+        <MudText Typo="Typo.body2" Color="Color.Secondary" Class="mb-4">
+            @L["website_api_key.about_text", "Every website has a unique key. Front-ends (like the React app) send it as the X-Website-Key header on every request so the API knows which site is calling and returns that site's content, products and settings. Keep it out of public source control if the site is not meant to be publicly readable."]
+        </MudText>
+
+        <MudTextField Value="@_authCode" Label="@L["website_api_key.key", "API Key (AuthCode)"]"
+                      Variant="Variant.Outlined" ReadOnly="true"
+                      Style="font-family: monospace;" Class="mb-4"
+                      Adornment="Adornment.End" AdornmentIcon="@Icons.Material.Filled.ContentCopy"
+                      OnAdornmentClick="@(() => CopyAsync(_authCode))" AdornmentAriaLabel="@L["copy", "Copy"]" />
+
+        <MudText Typo="Typo.subtitle2" Class="fw-bold mb-2">@L["website_api_key.sample", "Sample Request"]</MudText>
+        <MudTextField Value="@_sampleRequest" T="string" Lines="4" ReadOnly="true"
+                      Variant="Variant.Outlined" Style="font-family: monospace; font-size: 13px;" />
+        <MudButton Variant="Variant.Text" Color="Color.Primary" Size="Size.Small" Class="mt-2"
+                   StartIcon="@Icons.Material.Filled.ContentCopy"
+                   OnClick="@(() => CopyAsync(_sampleRequest))">
+            @L["website_api_key.copy_sample", "Copy Sample"]
+        </MudButton>
+    </DialogContent>
+    <DialogActions>
+        <MudButton OnClick="Close">@L["close", "Close"]</MudButton>
+    </DialogActions>
+</MudDialog>
+
+@code {
+    [CascadingParameter] private IMudDialogInstance MudDialog { get; set; } = null!;
+    [Parameter] public Website Model { get; set; } = null!;
+
+    private string _authCode = string.Empty;
+    private string _sampleRequest = string.Empty;
+
+    protected override void OnInitialized()
+    {
+        _authCode = Model.AuthCode.ToString();
+        _sampleRequest = $"curl \"https://your-api-domain/api/siteinfo\" \\\n  -H \"X-Website-Key: {_authCode}\"";
+    }
+
+    private async Task CopyAsync(string text)
+    {
+        try
+        {
+            await JS.InvokeVoidAsync("navigator.clipboard.writeText", text);
+            Snackbar.Add(L["copied", "Copied to clipboard."], Severity.Info);
+        }
+        catch
+        {
+            Snackbar.Add(L["copy_failed", "Copy failed."], Severity.Warning);
+        }
+    }
+
+    private void Close() => MudDialog.Close();
+}
