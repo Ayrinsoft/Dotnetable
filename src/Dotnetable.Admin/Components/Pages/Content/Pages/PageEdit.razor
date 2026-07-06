@@ -28,11 +28,23 @@ else if (_model is not null)
         <MudGrid Spacing="4">
             <MudItem xs="12" md="8">
                 <MudPaper Elevation="0" Class="app-card rounded-lg pa-4">
+                    @if (_isNew)
+                    {
+                        <MudSelect T="string" Value="_presetKey" ValueChanged="ApplyPreset"
+                                   Label="@L["pages.preset", "Standard page"]" Variant="Variant.Outlined"
+                                   Clearable="true" Class="mb-3"
+                                   HelperText="@L["pages.preset_hint", "Pick one of the pages every site needs — it fills in the right title, slug and starter content (the front-end looks these pages up by these exact slugs)."]">
+                            @foreach (var p in Presets)
+                            {
+                                <MudSelectItem T="string" Value="@p.Slug">@L[$"pages.preset.{p.Slug}", p.Title]</MudSelectItem>
+                            }
+                        </MudSelect>
+                    }
                     <MudTextField @bind-Value="_model.Title" Label="@L["title", "Title"]" Variant="Variant.Outlined"
                                   Required="true" Class="mb-3" />
                     <MudTextField @bind-Value="_model.Slug" Label="@L["slug", "Slug"]" Variant="Variant.Outlined" Required="true" Class="mb-3" />
                     <MudText Typo="Typo.body2" Class="mb-1" Color="Color.Secondary">@L["pages.content", "Content"]</MudText>
-                    <CkEditor Value="@(_model.Content ?? "")" OnValueChanged="@(v => _model!.Content = v)" />
+                    <CkEditor @key="_editorVersion" Value="@(_model.Content ?? "")" OnValueChanged="@(v => _model!.Content = v)" />
                 </MudPaper>
 
                 @if (_showTranslations)
@@ -122,6 +134,45 @@ else if (_model is not null)
 
     private sealed class TranslationModel { public string Title = ""; public string Slug = ""; public string Content = ""; }
     private readonly Dictionary<string, TranslationModel> _translations = new(StringComparer.OrdinalIgnoreCase);
+
+    // ── Standard-page presets ───────────────────────────────────────
+    // The slugs are load-bearing: Dotnetable.Web and the React SPA look these pages up by exactly
+    // these slugs (the homepage body is the page with slug "home", the top nav links go to
+    // /page/about-us, /page/services, ...), so the preset guarantees admins land on the right one.
+    private sealed record PagePreset(string Slug, string Title, bool IsHomepage, string Content);
+
+    private static readonly PagePreset[] Presets =
+    {
+        new("home", "Home", IsHomepage: true,
+            "<h2>Welcome</h2><p>This content is shown on your site's homepage. Introduce your business in a sentence or two and tell visitors what they can do here.</p>"),
+        new("about-us", "About Us", IsHomepage: false,
+            "<h2>About Us</h2><p>Tell visitors who you are, what you do and why they should trust you.</p>"),
+        new("contact-us", "Contact Us", IsHomepage: false,
+            "<h2>Contact Us</h2><p>Add your address, phone number and working hours here. The contact form is shown below this content automatically.</p>"),
+        new("terms", "Terms & Conditions", IsHomepage: false,
+            "<h2>Terms &amp; Conditions</h2><p>Describe the rules for using your site and services: orders, payments, returns, privacy and liability.</p>"),
+        new("services", "Services", IsHomepage: false,
+            "<h2>Our Services</h2><p>List the services you offer, each with a short description.</p>"),
+    };
+
+    private string? _presetKey;
+    private int _editorVersion; // bumped when a preset fills Content so the CkEditor re-renders with it
+
+    private void ApplyPreset(string? slug)
+    {
+        _presetKey = slug;
+        var preset = Presets.FirstOrDefault(p => p.Slug == slug);
+        if (preset is null || _model is null) return;
+
+        _model.Title = L[$"pages.preset.{preset.Slug}", preset.Title];
+        _model.Slug = preset.Slug;
+        _model.IsHomepage = preset.IsHomepage;
+        _model.Content = L[$"pages.preset.{preset.Slug}.content", preset.Content];
+        _editorVersion++;
+
+        if (_allPages.Any(p => string.Equals(p.Slug, preset.Slug, StringComparison.OrdinalIgnoreCase)))
+            Snackbar.Add(L["pages.preset_exists", "A page with this slug already exists on this website — saving will create a duplicate. Consider editing the existing page instead."], Severity.Warning);
+    }
 
     private IEnumerable<Page> ParentCandidates => _allPages.Where(p => p.PageID != (Id ?? 0));
 
