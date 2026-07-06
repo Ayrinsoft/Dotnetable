@@ -53,12 +53,14 @@ public class LocalizationService : ILocalizationService
     {
         var projected = _context.LocalizationKeys
             .Where(k => k.WebsiteID == websiteId)
-            .Select(k => new TranslationEntry(
-                k.ItemKey,
-                k.LocalizationValues
+            .Select(k => new
+            {
+                Key = k.ItemKey,
+                Value = k.LocalizationValues
                     .Where(v => v.LanguageCode == languageCode)
                     .Select(v => v.ItemValue)
-                    .FirstOrDefault() ?? k.DefaultValue));
+                    .FirstOrDefault() ?? k.DefaultValue
+            });
 
         if (query.GetSearch("Key") is string key)
             projected = projected.Where(e => e.Key.Contains(key));
@@ -69,6 +71,7 @@ public class LocalizationService : ILocalizationService
         var items = await projected
             .ApplyOrderBy(query.OrderBy, nameof(TranslationEntry.Key))
             .Skip(query.Skip).Take(query.Take)
+            .Select(e => new TranslationEntry(e.Key, e.Value))
             .ToListAsync(ct);
 
         return new PagedResult<TranslationEntry> { Items = items, TotalCount = total };
