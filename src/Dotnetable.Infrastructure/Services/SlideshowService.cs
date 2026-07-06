@@ -102,13 +102,20 @@ public class SlideshowService : ISlideshowService
         return slideshow is null ? null : Project(slideshow);
     }
 
-    private IQueryable<Slideshow> LoadActiveSlideshowsQuery(int websiteId) =>
-        _context.Slideshows.AsNoTracking()
+    private IQueryable<Slideshow> LoadActiveSlideshowsQuery(int websiteId)
+    {
+        var now = DateTime.UtcNow;
+        return _context.Slideshows.AsNoTracking()
             .Where(s => s.WebsiteID == websiteId && s.IsActive)
-            .Include(s => s.SlideshowSlides.Where(i => i.IsActive))
+            .Include(s => s.SlideshowSlides.Where(i => i.IsActive
+                    && (i.StartAt == null || i.StartAt <= now)
+                    && (i.EndAt == null || i.EndAt >= now)))
                 .ThenInclude(i => i.File)
-            .Include(s => s.SlideshowSlides.Where(i => i.IsActive))
+            .Include(s => s.SlideshowSlides.Where(i => i.IsActive
+                    && (i.StartAt == null || i.StartAt <= now)
+                    && (i.EndAt == null || i.EndAt >= now)))
                 .ThenInclude(i => i.MobileFile);
+    }
 
     // ── Projection helpers ──────────────────────────────────────────
 

@@ -11,7 +11,7 @@ using Microsoft.EntityFrameworkCore.Storage.ValueConversion;
 namespace Dotnetable.Migrations.MySql.Migrations
 {
     [DbContext(typeof(AppDbContext))]
-    [Migration("20260706134002_InitialCreate")]
+    [Migration("20260706193959_InitialCreate")]
     partial class InitialCreate
     {
         /// <inheritdoc />
@@ -3992,6 +3992,9 @@ namespace Dotnetable.Migrations.MySql.Migrations
                         .HasMaxLength(500)
                         .HasColumnType("varchar(500)");
 
+                    b.Property<DateTime?>("EndAt")
+                        .HasColumnType("datetime(6)");
+
                     b.Property<int>("FileID")
                         .HasColumnType("int");
 
@@ -4016,6 +4019,9 @@ namespace Dotnetable.Migrations.MySql.Migrations
 
                     b.Property<int>("SortOrder")
                         .HasColumnType("int");
+
+                    b.Property<DateTime?>("StartAt")
+                        .HasColumnType("datetime(6)");
 
                     b.Property<string>("Title")
                         .HasMaxLength(200)

@@ -12,7 +12,7 @@ using Microsoft.EntityFrameworkCore.Storage.ValueConversion;
 namespace Dotnetable.Migrations.SqlServer.Migrations
 {
     [DbContext(typeof(AppDbContext))]
-    [Migration("20260706133948_InitialCreate")]
+    [Migration("20260706193931_InitialCreate")]
     partial class InitialCreate
     {
         /// <inheritdoc />
@@ -4075,6 +4075,9 @@ namespace Dotnetable.Migrations.SqlServer.Migrations
                         .HasMaxLength(500)
                         .HasColumnType("nvarchar(500)");
 
+                    b.Property<DateTime?>("EndAt")
+                        .HasColumnType("datetime2");
+
                     b.Property<int>("FileID")
                         .HasColumnType("int");
 
@@ -4098,6 +4101,9 @@ namespace Dotnetable.Migrations.SqlServer.Migrations
 
                     b.Property<int>("SortOrder")
                         .HasColumnType("int");
+
+                    b.Property<DateTime?>("StartAt")
+                        .HasColumnType("datetime2");
 
                     b.Property<string>("Title")
                         .HasMaxLength(200)

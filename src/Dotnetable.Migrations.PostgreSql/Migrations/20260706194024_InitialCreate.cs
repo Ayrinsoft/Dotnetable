@@ -1703,7 +1703,9 @@ namespace Dotnetable.Migrations.PostgreSql.Migrations
                     LinkUrl = table.Column<string>(type: "character varying(500)", maxLength: 500, nullable: true),
                     OpenInNewTab = table.Column<bool>(type: "boolean", nullable: false),
                     SortOrder = table.Column<int>(type: "integer", nullable: false),
-                    IsActive = table.Column<bool>(type: "boolean", nullable: false, defaultValue: true)
+                    IsActive = table.Column<bool>(type: "boolean", nullable: false, defaultValue: true),
+                    StartAt = table.Column<DateTime>(type: "timestamp with time zone", nullable: true),
+                    EndAt = table.Column<DateTime>(type: "timestamp with time zone", nullable: true)
                 },
                 constraints: table =>
                 {

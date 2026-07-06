@@ -68,6 +68,23 @@
                                Label="@L["menus.new_tab", "Open in new tab"]" />
                 </MudItem>
 
+                <MudItem xs="12" sm="6">
+                    <MudDatePicker @bind-Date="_startAt" Label="@L["slideshows.start_at", "Show from (optional)"]"
+                                   Variant="Variant.Outlined" Clearable="true" Editable="true" />
+                </MudItem>
+                <MudItem xs="12" sm="6">
+                    <MudDatePicker @bind-Date="_endAt" Label="@L["slideshows.end_at", "Show until (optional)"]"
+                                   Variant="Variant.Outlined" Clearable="true" Editable="true" />
+                </MudItem>
+                @if (_scheduleError)
+                {
+                    <MudItem xs="12">
+                        <MudText Typo="Typo.caption" Color="Color.Error">
+                            @L["slideshows.schedule_invalid", "\"Show until\" must be after \"Show from\"."]
+                        </MudText>
+                    </MudItem>
+                }
+
                 <MudItem xs="12">
                     <MudSwitch T="bool" @bind-Value="Model.IsActive" Color="Color.Success"
                                Label="@(Model.IsActive ? L["active", "Active"] : L["inactive", "Inactive"])" />
@@ -98,11 +115,16 @@
     private bool _imageRequired;
     private FileRecord? _file;
     private FileRecord? _mobileFile;
+    private DateTime? _startAt;
+    private DateTime? _endAt;
+    private bool _scheduleError;
 
     protected override void OnInitialized()
     {
         _file = Model.File;
         _mobileFile = Model.MobileFile;
+        _startAt = Model.StartAt;
+        _endAt = Model.EndAt;
     }
 
     private async Task PickImageAsync()
@@ -147,13 +169,16 @@
             _imageRequired = true;
             return;
         }
-        if (!_form.IsValid) return;
+        _scheduleError = _startAt is not null && _endAt is not null && _endAt < _startAt;
+        if (!_form.IsValid || _scheduleError) return;
 
         _saving = true;
         try
         {
             Model.FileID = _file.FileRecordID;
             Model.MobileFileID = _mobileFile?.FileRecordID;
+            Model.StartAt = _startAt;
+            Model.EndAt = _endAt;
 
             if (IsNew)
                 await SlideshowService.CreateSlideAsync(Model);
