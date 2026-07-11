@@ -54,4 +54,5 @@ export const api = {
 
   // ── Contact ───────────────────────────────────────────────────
   contact: (message) => request('api/contact', { method: 'POST', body: JSON.stringify(message) }),
+  captchaChallenge: () => request('api/captcha/challenge'),
 };

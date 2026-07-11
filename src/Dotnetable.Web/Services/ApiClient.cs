@@ -206,6 +206,11 @@ public class ApiClient
     public Task<AuthApiResult> SubmitContactMessageAsync(ContactMessageRequest request, CancellationToken ct = default) =>
         PostAsync("api/contact", request, ct);
 
+    /// <summary>Fetches a fresh captcha challenge (Turnstile site key or a math-captcha SVG) for
+    /// this website's public forms, or null when the API is unreachable.</summary>
+    public Task<CaptchaChallengeDto?> GetCaptchaChallengeAsync(CancellationToken ct = default) =>
+        GetOrNullAsync<CaptchaChallengeDto>("api/captcha/challenge", ct);
+
     /// <summary>Site branding/identity (brand, logo, contact, socials, SEO defaults) used by the
     /// layout. Null when the API is unreachable — the layout falls back to neutral defaults.</summary>
     public Task<SiteInfoDto?> GetSiteInfoAsync(CancellationToken ct = default) =>
