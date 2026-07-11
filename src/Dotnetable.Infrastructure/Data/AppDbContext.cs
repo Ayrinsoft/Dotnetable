@@ -216,6 +216,8 @@ public partial class AppDbContext : DbContext
 
     public virtual DbSet<Website> Websites { get; set; }
 
+    public virtual DbSet<WebsiteCaptchaSetting> WebsiteCaptchaSettings { get; set; }
+
     public virtual DbSet<WebsiteClient> WebsiteClients { get; set; }
 
     public virtual DbSet<WebsiteClientAddress> WebsiteClientAddresses { get; set; }
@@ -2374,6 +2376,20 @@ public partial class AppDbContext : DbContext
             entity.HasOne(d => d.LogoFile).WithMany(p => p.WebsiteLogoFiles)
                 .HasForeignKey(d => d.LogoFileID)
                 .HasConstraintName("FK_Websites_FileRecords");
+        });
+
+        modelBuilder.Entity<WebsiteCaptchaSetting>(entity =>
+        {
+            entity.Property(e => e.Provider).HasDefaultValue((byte)0, "DF_WebsiteCaptchaSettings_Provider");
+            entity.Property(e => e.TurnstileSiteKey).HasMaxLength(200);
+            entity.Property(e => e.TurnstileSecretKey).HasMaxLength(200);
+
+            entity.HasIndex(e => e.WebsiteID, "UQ_WebsiteCaptchaSettings_WebsiteID").IsUnique();
+
+            entity.HasOne(d => d.Website).WithMany(p => p.WebsiteCaptchaSettings)
+                .HasForeignKey(d => d.WebsiteID)
+                .OnDelete(DeleteBehavior.ClientSetNull)
+                .HasConstraintName("FK_WebsiteCaptchaSettings_Websites");
         });
 
         modelBuilder.Entity<WebsiteClient>(entity =>

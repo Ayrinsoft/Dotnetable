@@ -4640,6 +4640,38 @@ namespace Dotnetable.Migrations.SqlServer.Migrations
                     b.ToTable("Websites");
                 });
 
+            modelBuilder.Entity("Dotnetable.Domain.Entities.WebsiteCaptchaSetting", b =>
+                {
+                    b.Property<int>("WebsiteCaptchaSettingID")
+                        .ValueGeneratedOnAdd()
+                        .HasColumnType("int");
+
+                    SqlServerPropertyBuilderExtensions.UseIdentityColumn(b.Property<int>("WebsiteCaptchaSettingID"));
+
+                    b.Property<byte>("Provider")
+                        .ValueGeneratedOnAdd()
+                        .HasColumnType("tinyint")
+                        .HasDefaultValue((byte)0, "DF_WebsiteCaptchaSettings_Provider");
+
+                    b.Property<string>("TurnstileSecretKey")
+                        .HasMaxLength(200)
+                        .HasColumnType("nvarchar(200)");
+
+                    b.Property<string>("TurnstileSiteKey")
+                        .HasMaxLength(200)
+                        .HasColumnType("nvarchar(200)");
+
+                    b.Property<int>("WebsiteID")
+                        .HasColumnType("int");
+
+                    b.HasKey("WebsiteCaptchaSettingID");
+
+                    b.HasIndex(new[] { "WebsiteID" }, "UQ_WebsiteCaptchaSettings_WebsiteID")
+                        .IsUnique();
+
+                    b.ToTable("WebsiteCaptchaSettings");
+                });
+
             modelBuilder.Entity("Dotnetable.Domain.Entities.WebsiteClient", b =>
                 {
                     b.Property<int>("WebsiteClientID")
@@ -7226,6 +7258,17 @@ namespace Dotnetable.Migrations.SqlServer.Migrations
                     b.Navigation("LogoFile");
                 });
 
+            modelBuilder.Entity("Dotnetable.Domain.Entities.WebsiteCaptchaSetting", b =>
+                {
+                    b.HasOne("Dotnetable.Domain.Entities.Website", "Website")
+                        .WithMany("WebsiteCaptchaSettings")
+                        .HasForeignKey("WebsiteID")
+                        .IsRequired()
+                        .HasConstraintName("FK_WebsiteCaptchaSettings_Websites");
+
+                    b.Navigation("Website");
+                });
+
             modelBuilder.Entity("Dotnetable.Domain.Entities.WebsiteClient", b =>
                 {
                     b.HasOne("Dotnetable.Domain.Entities.FileRecord", "Avatar")
@@ -8014,6 +8057,8 @@ namespace Dotnetable.Migrations.SqlServer.Migrations
                     b.Navigation("VendorProducts");
 
                     b.Navigation("Vendors");
+
+                    b.Navigation("WebsiteCaptchaSettings");
 
                     b.Navigation("WebsiteClients");
 

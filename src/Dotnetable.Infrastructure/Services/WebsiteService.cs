@@ -148,4 +148,8 @@ public class WebsiteService : IWebsiteService
                 .ToList(),
         };
     }
+
+    public async Task<WebsiteCaptchaSetting?> GetCaptchaSettingAsync(int websiteId, CancellationToken ct = default) =>
+        await _context.WebsiteCaptchaSettings.AsNoTracking()
+            .FirstOrDefaultAsync(c => c.WebsiteID == websiteId, ct);
 }

@@ -33,4 +33,8 @@ public interface IWebsiteService
     /// <summary>Public branding/identity bundle (brand, logo, contact, socials, SEO defaults) the
     /// front-ends render the layout from.</summary>
     Task<SiteInfoDto?> GetSiteInfoAsync(int websiteId, CancellationToken ct = default);
+
+    /// <summary>The website's bot-protection choice for public forms, or null when never configured
+    /// (callers should fall back to the math captcha).</summary>
+    Task<WebsiteCaptchaSetting?> GetCaptchaSettingAsync(int websiteId, CancellationToken ct = default);
 }

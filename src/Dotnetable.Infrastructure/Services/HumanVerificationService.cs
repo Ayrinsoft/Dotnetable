@@ -6,6 +6,8 @@ using System.Text;
 using System.Text.Json.Serialization;
 using Dotnetable.Application.DTOs;
 using Dotnetable.Application.Interfaces;
+using Dotnetable.Domain.Entities;
+using Dotnetable.Domain.Enums;
 using Microsoft.Extensions.Caching.Memory;
 
 namespace Dotnetable.Infrastructure.Services;
@@ -71,9 +73,29 @@ public class HumanVerificationService : IHumanVerificationService
                && given == expected;
     }
 
-    public async Task<bool?> VerifyTurnstileAsync(string? token, string? remoteIp, CancellationToken ct = default)
+    public Task<bool?> VerifyTurnstileAsync(string? token, string? remoteIp, CancellationToken ct = default) =>
+        VerifyTurnstileAsync(token, remoteIp, _settings.Security.TurnstileSecretKey, ct);
+
+    public CaptchaResolution ResolveForWebsite(WebsiteCaptchaSetting? setting)
     {
-        var secret = _settings.Security.TurnstileSecretKey;
+        if (setting is { Provider: (byte)CaptchaProvider.Turnstile } &&
+            !string.IsNullOrWhiteSpace(setting.TurnstileSiteKey) &&
+            !string.IsNullOrWhiteSpace(setting.TurnstileSecretKey))
+        {
+            return new CaptchaResolution
+            {
+                UseTurnstile = true,
+                TurnstileSiteKey = setting.TurnstileSiteKey,
+                TurnstileSecretKey = setting.TurnstileSecretKey,
+            };
+        }
+
+        return new CaptchaResolution { UseTurnstile = false };
+    }
+
+    public async Task<bool?> VerifyTurnstileAsync(string? token, string? remoteIp, string secretKey, CancellationToken ct = default)
+    {
+        var secret = secretKey;
         if (string.IsNullOrWhiteSpace(secret) || string.IsNullOrWhiteSpace(token))
             return false;
 

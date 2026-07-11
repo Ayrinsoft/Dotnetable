@@ -54,30 +54,21 @@ public class HomeController : Controller
         return View(model);
     }
 
-    [HttpPost]
-    [ValidateAntiForgeryToken]
-    public async Task<IActionResult> Contact(ContactPageViewModel model, CancellationToken ct = default)
+    /// <summary>Fresh captcha challenge for the contact form's JS-driven submit (no page reload).</summary>
+    [HttpGet]
+    public async Task<IActionResult> ContactCaptcha(CancellationToken ct = default)
     {
-        if (!ModelState.IsValid)
-            return View(model);
+        var challenge = await _api.GetCaptchaChallengeAsync(ct);
+        if (challenge is null) return StatusCode(StatusCodes.Status503ServiceUnavailable);
+        return Json(challenge);
+    }
 
-        var result = await _api.SubmitContactMessageAsync(new ContactMessageRequest
-        {
-            SenderName = model.Name,
-            EmailAddress = model.Email,
-            CellphoneNumber = model.Phone ?? string.Empty,
-            MessageSubject = model.Subject ?? string.Empty,
-            MessageBody = model.Message,
-        }, ct);
-
-        if (!result.Ok)
-        {
-            ModelState.AddModelError(string.Empty, result.Message ?? "Could not send your message. Please try again.");
-            return View(model);
-        }
-
-        model.Submitted = true;
-        model.Name = model.Email = model.Phone = model.Subject = model.Message = string.Empty;
-        return View(model);
+    /// <summary>AJAX submit for the contact form: takes the same request shape the public API
+    /// expects (including the captcha fields) and forwards it, so the page never reloads.</summary>
+    [HttpPost]
+    public async Task<IActionResult> ContactSubmit([FromBody] ContactMessageRequest request, CancellationToken ct = default)
+    {
+        var result = await _api.SubmitContactMessageAsync(request, ct);
+        return StatusCode((int)result.Status, new { message = result.Message });
     }
 }

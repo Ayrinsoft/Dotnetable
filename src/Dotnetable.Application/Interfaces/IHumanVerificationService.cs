@@ -1,4 +1,5 @@
 using Dotnetable.Application.DTOs;
+using Dotnetable.Domain.Entities;
 
 namespace Dotnetable.Application.Interfaces;
 
@@ -22,4 +23,14 @@ public interface IHumanVerificationService
 
     /// <summary>Verifies a Turnstile response with Cloudflare. Returns null when Turnstile is unreachable.</summary>
     Task<bool?> VerifyTurnstileAsync(string? token, string? remoteIp, CancellationToken ct = default);
+
+    /// <summary>Verifies a Turnstile response using a per-website secret key (public storefront forms)
+    /// instead of the global admin secret. Returns null when Turnstile is unreachable.</summary>
+    Task<bool?> VerifyTurnstileAsync(string? token, string? remoteIp, string secretKey, CancellationToken ct = default);
+
+    /// <summary>
+    /// Decides which captcha a website's public form should render: Turnstile when the site opted
+    /// in and has both keys filled in, otherwise the built-in math captcha.
+    /// </summary>
+    CaptchaResolution ResolveForWebsite(WebsiteCaptchaSetting? setting);
 }

@@ -1210,6 +1210,27 @@ namespace Dotnetable.Migrations.PostgreSql.Migrations
                 });
 
             migrationBuilder.CreateTable(
+                name: "WebsiteCaptchaSettings",
+                columns: table => new
+                {
+                    WebsiteCaptchaSettingID = table.Column<int>(type: "integer", nullable: false)
+                        .Annotation("Npgsql:ValueGenerationStrategy", NpgsqlValueGenerationStrategy.IdentityByDefaultColumn),
+                    WebsiteID = table.Column<int>(type: "integer", nullable: false),
+                    Provider = table.Column<byte>(type: "smallint", nullable: false, defaultValue: (byte)0),
+                    TurnstileSiteKey = table.Column<string>(type: "character varying(200)", maxLength: 200, nullable: true),
+                    TurnstileSecretKey = table.Column<string>(type: "character varying(200)", maxLength: 200, nullable: true)
+                },
+                constraints: table =>
+                {
+                    table.PrimaryKey("PK_WebsiteCaptchaSettings", x => x.WebsiteCaptchaSettingID);
+                    table.ForeignKey(
+                        name: "FK_WebsiteCaptchaSettings_Websites",
+                        column: x => x.WebsiteID,
+                        principalTable: "Websites",
+                        principalColumn: "WebsiteID");
+                });
+
+            migrationBuilder.CreateTable(
                 name: "WebsiteClients",
                 columns: table => new
                 {
@@ -4342,6 +4363,12 @@ namespace Dotnetable.Migrations.PostgreSql.Migrations
                 column: "VendorID");
 
             migrationBuilder.CreateIndex(
+                name: "UQ_WebsiteCaptchaSettings_WebsiteID",
+                table: "WebsiteCaptchaSettings",
+                column: "WebsiteID",
+                unique: true);
+
+            migrationBuilder.CreateIndex(
                 name: "IX_WebsiteClientAddresses_CityId",
                 table: "WebsiteClientAddresses",
                 column: "CityId");
@@ -4921,6 +4948,9 @@ namespace Dotnetable.Migrations.PostgreSql.Migrations
 
             migrationBuilder.DropTable(
                 name: "VendorTranslations");
+
+            migrationBuilder.DropTable(
+                name: "WebsiteCaptchaSettings");
 
             migrationBuilder.DropTable(
                 name: "WebsiteClientForgetPasswords");
