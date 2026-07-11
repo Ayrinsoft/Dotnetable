@@ -27,12 +27,6 @@
 {
     <MudProgressLinear Indeterminate="true" Color="Color.Primary" Class="mb-4" />
 }
-else if (_websiteId == AppConstants.MasterWebsiteId)
-{
-    <MudAlert Severity="Severity.Info">
-        @L["website_api_key.master_hint", "The master website doesn't call the public API with a site key. Pick another website above to see its API key."]
-    </MudAlert>
-}
 else
 {
     <MudGrid Spacing="4">
@@ -100,12 +94,9 @@ else
     private async Task LoadAsync()
     {
         _loading = true;
-        if (_websiteId != AppConstants.MasterWebsiteId)
-        {
-            var website = await WebsiteService.GetByIdAsync(_websiteId);
-            _authCode = website?.AuthCode.ToString() ?? string.Empty;
-            _sampleRequest = $"curl \"https://your-api-domain/api/siteinfo\" \\\n  -H \"X-Website-Key: {_authCode}\"";
-        }
+        var website = await WebsiteService.GetByIdAsync(_websiteId);
+        _authCode = website?.AuthCode.ToString() ?? string.Empty;
+        _sampleRequest = $"curl \"https://your-api-domain/api/siteinfo\" \\\n  -H \"X-Website-Key: {_authCode}\"";
         _loading = false;
     }
 
