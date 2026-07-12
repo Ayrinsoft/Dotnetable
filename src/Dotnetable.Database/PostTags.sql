@@ -5,4 +5,7 @@
     CONSTRAINT [FK_PostTags_Posts] FOREIGN KEY ([PostID]) REFERENCES [dbo].[Posts] ([PostID]),
     CONSTRAINT [FK_PostTags_Tags] FOREIGN KEY ([TagID]) REFERENCES [dbo].[Tags] ([TagID])
 );
+GO
 
+CREATE NONCLUSTERED INDEX [IX_PostTags_TagID]
+    ON [dbo].[PostTags] ([TagID] ASC);

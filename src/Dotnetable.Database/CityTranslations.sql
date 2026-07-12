@@ -6,4 +6,7 @@
     CONSTRAINT [PK_CityTranslations] PRIMARY KEY CLUSTERED ([CityTranslationID] ASC),
     CONSTRAINT [FK_CityTranslations_Cities] FOREIGN KEY ([CityID]) REFERENCES [dbo].[Cities] ([CityID])
 );
+GO
 
+CREATE NONCLUSTERED INDEX [IX_CityTranslations_CityID]
+    ON [dbo].[CityTranslations] ([CityID] ASC);

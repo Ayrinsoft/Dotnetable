@@ -7,4 +7,7 @@
     CONSTRAINT [PK_TagTranslations] PRIMARY KEY CLUSTERED ([TagTranslationID] ASC),
     CONSTRAINT [FK_TagTranslations_Tags] FOREIGN KEY ([TagID]) REFERENCES [dbo].[Tags] ([TagID])
 );
+GO
 
+CREATE NONCLUSTERED INDEX [IX_TagTranslations_TagID]
+    ON [dbo].[TagTranslations] ([TagID] ASC);

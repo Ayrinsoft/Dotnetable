@@ -7,4 +7,7 @@
     CONSTRAINT [PK_Suppliers] PRIMARY KEY CLUSTERED ([SupplierID] ASC),
     CONSTRAINT [FK_Suppliers_Websites] FOREIGN KEY ([WebsiteID]) REFERENCES [dbo].[Websites] ([WebsiteID])
 );
+GO
 
+CREATE NONCLUSTERED INDEX [IX_Suppliers_WebsiteID]
+    ON [dbo].[Suppliers] ([WebsiteID] ASC);

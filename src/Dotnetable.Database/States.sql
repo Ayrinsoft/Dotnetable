@@ -9,4 +9,7 @@
 );
 
 -- Global master data, same rule as [dbo].[Countries]: only the master website (WebsiteID = 1) edits this.
+GO
 
+CREATE NONCLUSTERED INDEX [IX_States_CountryID]
+    ON [dbo].[States] ([CountryID] ASC);

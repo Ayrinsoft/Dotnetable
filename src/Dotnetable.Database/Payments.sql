@@ -32,4 +32,31 @@
 
 -- ClientWalletTransactionID is set when Method = Wallet: it points at the PurchaseUse ledger
 -- row (ClientWalletTransactions.Type=2) that debited the customer's wallet for this payment.
+GO
 
+CREATE NONCLUSTERED INDEX [IX_Payments_BankAccountID]
+    ON [dbo].[Payments] ([BankAccountID] ASC);
+
+CREATE NONCLUSTERED INDEX [IX_Payments_ClientWalletTransactionID]
+    ON [dbo].[Payments] ([ClientWalletTransactionID] ASC);
+
+CREATE NONCLUSTERED INDEX [IX_Payments_CurrencyCode]
+    ON [dbo].[Payments] ([CurrencyCode] ASC);
+
+CREATE NONCLUSTERED INDEX [IX_Payments_OrderID]
+    ON [dbo].[Payments] ([OrderID] ASC);
+
+CREATE NONCLUSTERED INDEX [IX_Payments_PaymentGatewayID]
+    ON [dbo].[Payments] ([PaymentGatewayID] ASC);
+
+CREATE NONCLUSTERED INDEX [IX_Payments_ReceiptFileID]
+    ON [dbo].[Payments] ([ReceiptFileID] ASC);
+
+CREATE NONCLUSTERED INDEX [IX_Payments_VerifiedByMemberID]
+    ON [dbo].[Payments] ([VerifiedByMemberID] ASC);
+
+CREATE NONCLUSTERED INDEX [IX_Payments_WebsiteClientID]
+    ON [dbo].[Payments] ([WebsiteClientID] ASC);
+
+CREATE NONCLUSTERED INDEX [IX_Payments_WebsiteID]
+    ON [dbo].[Payments] ([WebsiteID] ASC);

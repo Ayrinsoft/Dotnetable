@@ -1,4 +1,4 @@
-CREATE TABLE [dbo].[WishlistItems] (
+﻿CREATE TABLE [dbo].[WishlistItems] (
     [WishlistItemID]   INT           IDENTITY (1, 1) NOT NULL,
     [WishlistID]       INT           NOT NULL,
     [ProductVariantID] INT           NOT NULL,
@@ -8,3 +8,7 @@ CREATE TABLE [dbo].[WishlistItems] (
     CONSTRAINT [FK_WishlistItems_ProductVariants] FOREIGN KEY ([ProductVariantID]) REFERENCES [dbo].[ProductVariants] ([ProductVariantID]),
     CONSTRAINT [FK_WishlistItems_Wishlists] FOREIGN KEY ([WishlistID]) REFERENCES [dbo].[Wishlists] ([WishlistID])
 );
+GO
+
+CREATE NONCLUSTERED INDEX [IX_WishlistItems_ProductVariantID]
+    ON [dbo].[WishlistItems] ([ProductVariantID] ASC);

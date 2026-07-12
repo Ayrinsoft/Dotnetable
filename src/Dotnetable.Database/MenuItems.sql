@@ -28,4 +28,31 @@
     CONSTRAINT [FK_MenuItems_Products] FOREIGN KEY ([ProductID]) REFERENCES [dbo].[Products] ([ProductID]),
     CONSTRAINT [FK_MenuItems_Vendors] FOREIGN KEY ([VendorID]) REFERENCES [dbo].[Vendors] ([VendorID])
 );
+GO
 
+CREATE NONCLUSTERED INDEX [IX_MenuItems_BrandID]
+    ON [dbo].[MenuItems] ([BrandID] ASC);
+
+CREATE NONCLUSTERED INDEX [IX_MenuItems_CategoryID]
+    ON [dbo].[MenuItems] ([CategoryID] ASC);
+
+CREATE NONCLUSTERED INDEX [IX_MenuItems_MenuID]
+    ON [dbo].[MenuItems] ([MenuID] ASC);
+
+CREATE NONCLUSTERED INDEX [IX_MenuItems_PageID]
+    ON [dbo].[MenuItems] ([PageID] ASC);
+
+CREATE NONCLUSTERED INDEX [IX_MenuItems_ParentItemID]
+    ON [dbo].[MenuItems] ([ParentItemID] ASC);
+
+CREATE NONCLUSTERED INDEX [IX_MenuItems_PostID]
+    ON [dbo].[MenuItems] ([PostID] ASC);
+
+CREATE NONCLUSTERED INDEX [IX_MenuItems_ProductCategoryID]
+    ON [dbo].[MenuItems] ([ProductCategoryID] ASC);
+
+CREATE NONCLUSTERED INDEX [IX_MenuItems_ProductID]
+    ON [dbo].[MenuItems] ([ProductID] ASC);
+
+CREATE NONCLUSTERED INDEX [IX_MenuItems_VendorID]
+    ON [dbo].[MenuItems] ([VendorID] ASC);

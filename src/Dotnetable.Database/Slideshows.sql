@@ -15,3 +15,7 @@
     CONSTRAINT [PK_Slideshows] PRIMARY KEY CLUSTERED ([SlideshowID] ASC),
     CONSTRAINT [FK_Slideshows_Websites] FOREIGN KEY ([WebsiteID]) REFERENCES [dbo].[Websites] ([WebsiteID])
 );
+GO
+
+CREATE NONCLUSTERED INDEX [IX_Slideshows_WebsiteID]
+    ON [dbo].[Slideshows] ([WebsiteID] ASC);

@@ -16,4 +16,13 @@
     CONSTRAINT [FK_WebsiteClientAddresses_Countries] FOREIGN KEY ([CountryID]) REFERENCES [dbo].[Countries] ([CountryID]),
     CONSTRAINT [FK_WebsiteClientAddresses_WebsiteClients] FOREIGN KEY ([WebsiteClientID]) REFERENCES [dbo].[WebsiteClients] ([WebsiteClientID])
 );
+GO
 
+CREATE NONCLUSTERED INDEX [IX_WebsiteClientAddresses_CityId]
+    ON [dbo].[WebsiteClientAddresses] ([CityId] ASC);
+
+CREATE NONCLUSTERED INDEX [IX_WebsiteClientAddresses_CountryId]
+    ON [dbo].[WebsiteClientAddresses] ([CountryId] ASC);
+
+CREATE NONCLUSTERED INDEX [IX_WebsiteClientAddresses_WebsiteClientID]
+    ON [dbo].[WebsiteClientAddresses] ([WebsiteClientID] ASC);

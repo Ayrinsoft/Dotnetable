@@ -32,4 +32,8 @@ public interface IWebsiteSettingService
     Task<WebsiteSocialLink> CreateSocialLinkAsync(WebsiteSocialLink link, CancellationToken ct = default);
     Task UpdateSocialLinkAsync(WebsiteSocialLink link, CancellationToken ct = default);
     Task DeleteSocialLinkAsync(int id, CancellationToken ct = default);
+
+    // Watermark Settings (one row per website)
+    Task<WebsiteWatermarkSetting?> GetWatermarkSettingAsync(int websiteId, CancellationToken ct = default);
+    Task SaveWatermarkSettingAsync(WebsiteWatermarkSetting setting, CancellationToken ct = default);
 }

@@ -22,4 +22,10 @@ GO
 EXECUTE sp_addextendedproperty @name = N'MS_Description', @value = N'number of days after the settlement period ends before payment is due; only meaningful when SettlementMode = Credit', @level0type = N'SCHEMA', @level0name = N'dbo', @level1type = N'TABLE', @level1name = N'Vendors', @level2type = N'COLUMN', @level2name = N'CreditDays';
 GO
 EXECUTE sp_addextendedproperty @name = N'MS_Description', @value = N'maximum outstanding credit balance allowed for this vendor, in USD; only meaningful when SettlementMode = Credit', @level0type = N'SCHEMA', @level0name = N'dbo', @level1type = N'TABLE', @level1name = N'Vendors', @level2type = N'COLUMN', @level2name = N'CreditLimitUsd';
+GO
 
+CREATE NONCLUSTERED INDEX [IX_Vendors_LogoFileID]
+    ON [dbo].[Vendors] ([LogoFileID] ASC);
+
+CREATE NONCLUSTERED INDEX [IX_Vendors_WebsiteID]
+    ON [dbo].[Vendors] ([WebsiteID] ASC);

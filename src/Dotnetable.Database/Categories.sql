@@ -12,4 +12,13 @@
     CONSTRAINT [FK_Categories_PostTypes] FOREIGN KEY ([PostTypeID]) REFERENCES [dbo].[PostTypes] ([PostTypeID]),
     CONSTRAINT [FK_Categories_Websites] FOREIGN KEY ([WebsiteID]) REFERENCES [dbo].[Websites] ([WebsiteID])
 );
+GO
 
+CREATE NONCLUSTERED INDEX [IX_Categories_ParentCategoryID]
+    ON [dbo].[Categories] ([ParentCategoryID] ASC);
+
+CREATE NONCLUSTERED INDEX [IX_Categories_PostTypeID]
+    ON [dbo].[Categories] ([PostTypeID] ASC);
+
+CREATE NONCLUSTERED INDEX [IX_Categories_WebsiteID]
+    ON [dbo].[Categories] ([WebsiteID] ASC);

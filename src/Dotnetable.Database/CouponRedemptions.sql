@@ -1,4 +1,4 @@
-CREATE TABLE [dbo].[CouponRedemptions] (
+﻿CREATE TABLE [dbo].[CouponRedemptions] (
     [CouponRedemptionID] INT             IDENTITY (1, 1) NOT NULL,
     [CouponID]           INT             NOT NULL,
     [OrderID]            INT             NOT NULL,
@@ -14,3 +14,10 @@ CREATE TABLE [dbo].[CouponRedemptions] (
 
 -- One redemption row per order (an order uses at most one coupon). Enforces UsageLimitPerClient
 -- by counting rows here per (CouponID, WebsiteClientID).
+GO
+
+CREATE NONCLUSTERED INDEX [IX_CouponRedemptions_CouponID]
+    ON [dbo].[CouponRedemptions] ([CouponID] ASC);
+
+CREATE NONCLUSTERED INDEX [IX_CouponRedemptions_WebsiteClientID]
+    ON [dbo].[CouponRedemptions] ([WebsiteClientID] ASC);

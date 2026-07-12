@@ -17,3 +17,13 @@
     CONSTRAINT [FK_SlideshowSlides_FileRecords] FOREIGN KEY ([FileID]) REFERENCES [dbo].[FileRecords] ([FileRecordID]),
     CONSTRAINT [FK_SlideshowSlides_FileRecord1] FOREIGN KEY ([MobileFileID]) REFERENCES [dbo].[FileRecords] ([FileRecordID])
 );
+GO
+
+CREATE NONCLUSTERED INDEX [IX_SlideshowSlides_FileID]
+    ON [dbo].[SlideshowSlides] ([FileID] ASC);
+
+CREATE NONCLUSTERED INDEX [IX_SlideshowSlides_MobileFileID]
+    ON [dbo].[SlideshowSlides] ([MobileFileID] ASC);
+
+CREATE NONCLUSTERED INDEX [IX_SlideshowSlides_SlideshowID]
+    ON [dbo].[SlideshowSlides] ([SlideshowID] ASC);

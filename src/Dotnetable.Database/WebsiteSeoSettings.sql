@@ -14,4 +14,7 @@
 
 GO
 EXECUTE sp_addextendedproperty @name = N'MS_Description', @value = N'Page | {SiteName}', @level0type = N'SCHEMA', @level0name = N'dbo', @level1type = N'TABLE', @level1name = N'WebsiteSeoSettings', @level2type = N'COLUMN', @level2name = N'DefaultMetaTitle';
+GO
 
+CREATE NONCLUSTERED INDEX [IX_WebsiteSeoSettings_WebsiteID]
+    ON [dbo].[WebsiteSeoSettings] ([WebsiteID] ASC);

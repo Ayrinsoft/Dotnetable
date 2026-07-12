@@ -27,3 +27,8 @@ GO
 
 GO
 
+CREATE NONCLUSTERED INDEX [IX_WebsiteClients_AvatarID]
+    ON [dbo].[WebsiteClients] ([AvatarID] ASC);
+
+CREATE NONCLUSTERED INDEX [IX_WebsiteClients_WebsiteID]
+    ON [dbo].[WebsiteClients] ([WebsiteID] ASC);

@@ -7,4 +7,7 @@
     CONSTRAINT [PK_BrandTranslations] PRIMARY KEY CLUSTERED ([BrandTranslationID] ASC),
     CONSTRAINT [FK_BrandTranslations_Brands] FOREIGN KEY ([BrandID]) REFERENCES [dbo].[Brands] ([BrandID])
 );
+GO
 
+CREATE NONCLUSTERED INDEX [IX_BrandTranslations_BrandID]
+    ON [dbo].[BrandTranslations] ([BrandID] ASC);

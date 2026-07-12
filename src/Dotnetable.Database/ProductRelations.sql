@@ -7,4 +7,7 @@
     CONSTRAINT [FK_ProductRelations_Products] FOREIGN KEY ([ProductID]) REFERENCES [dbo].[Products] ([ProductID]),
     CONSTRAINT [FK_ProductRelations_Products1] FOREIGN KEY ([RelatedProductID]) REFERENCES [dbo].[Products] ([ProductID])
 );
+GO
 
+CREATE NONCLUSTERED INDEX [IX_ProductRelations_RelatedProductID]
+    ON [dbo].[ProductRelations] ([RelatedProductID] ASC);

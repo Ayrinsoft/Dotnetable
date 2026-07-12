@@ -12,4 +12,7 @@
     CONSTRAINT [PK_PaymentGateways] PRIMARY KEY CLUSTERED ([PaymentGatewayID] ASC),
     CONSTRAINT [FK_PaymentGateways_Websites] FOREIGN KEY ([WebsiteID]) REFERENCES [dbo].[Websites] ([WebsiteID])
 );
+GO
 
+CREATE NONCLUSTERED INDEX [IX_PaymentGateways_WebsiteID]
+    ON [dbo].[PaymentGateways] ([WebsiteID] ASC);

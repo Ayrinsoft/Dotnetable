@@ -12,7 +12,7 @@ using Microsoft.EntityFrameworkCore.Storage.ValueConversion;
 namespace Dotnetable.Migrations.SqlServer.Migrations
 {
     [DbContext(typeof(AppDbContext))]
-    [Migration("20260711082620_InitialCreate")]
+    [Migration("20260712081821_InitialCreate")]
     partial class InitialCreate
     {
         /// <inheritdoc />
@@ -45,13 +45,19 @@ namespace Dotnetable.Migrations.SqlServer.Migrations
                         .HasColumnType("tinyint");
 
                     b.Property<bool>("IsComparable")
-                        .HasColumnType("bit");
+                        .ValueGeneratedOnAdd()
+                        .HasColumnType("bit")
+                        .HasDefaultValue(false, "DF_AttributeDefinitions_IsComparable");
 
                     b.Property<bool>("IsFilterable")
-                        .HasColumnType("bit");
+                        .ValueGeneratedOnAdd()
+                        .HasColumnType("bit")
+                        .HasDefaultValue(false, "DF_AttributeDefinitions_IsFilterable");
 
                     b.Property<bool>("IsVariantAttribute")
-                        .HasColumnType("bit");
+                        .ValueGeneratedOnAdd()
+                        .HasColumnType("bit")
+                        .HasDefaultValue(false, "DF_AttributeDefinitions_IsVariantAttribute");
 
                     b.Property<string>("Name")
                         .IsRequired()
@@ -62,7 +68,9 @@ namespace Dotnetable.Migrations.SqlServer.Migrations
                         .HasColumnType("bit");
 
                     b.Property<int>("SortOrder")
-                        .HasColumnType("int");
+                        .ValueGeneratedOnAdd()
+                        .HasColumnType("int")
+                        .HasDefaultValue(0, "DF_AttributeDefinitions_SortOrder");
 
                     b.Property<string>("Unit")
                         .HasMaxLength(30)
@@ -130,7 +138,9 @@ namespace Dotnetable.Migrations.SqlServer.Migrations
                         .IsFixedLength();
 
                     b.Property<int>("SortOrder")
-                        .HasColumnType("int");
+                        .ValueGeneratedOnAdd()
+                        .HasColumnType("int")
+                        .HasDefaultValue(0, "DF_AttributeOptions_SortOrder");
 
                     b.Property<string>("Value")
                         .IsRequired()
@@ -426,8 +436,7 @@ namespace Dotnetable.Migrations.SqlServer.Migrations
                     b.HasIndex("VendorProductID");
 
                     b.HasIndex(new[] { "CartID", "ProductVariantID", "VendorProductID" }, "UQ_CartItems_CartID_ProductVariantID_VendorProductID")
-                        .IsUnique()
-                        .HasFilter("[VendorProductID] IS NOT NULL");
+                        .IsUnique();
 
                     b.ToTable("CartItems");
                 });
@@ -462,7 +471,9 @@ namespace Dotnetable.Migrations.SqlServer.Migrations
                         .HasColumnType("nvarchar(200)");
 
                     b.Property<int>("SortOrder")
-                        .HasColumnType("int");
+                        .ValueGeneratedOnAdd()
+                        .HasColumnType("int")
+                        .HasDefaultValue(0, "DF_Categories_SortOrder");
 
                     b.Property<int>("WebsiteID")
                         .HasColumnType("int");
@@ -666,7 +677,9 @@ namespace Dotnetable.Migrations.SqlServer.Migrations
                         .HasDefaultValue(true, "DF_ClientBankAccounts_IsActive");
 
                     b.Property<bool>("IsDefault")
-                        .HasColumnType("bit");
+                        .ValueGeneratedOnAdd()
+                        .HasColumnType("bit")
+                        .HasDefaultValue(false, "DF_ClientBankAccounts_IsDefault");
 
                     b.Property<string>("OwnerName")
                         .IsRequired()
@@ -699,7 +712,9 @@ namespace Dotnetable.Migrations.SqlServer.Migrations
                     SqlServerPropertyBuilderExtensions.UseIdentityColumn(b.Property<int>("ClientWalletID"));
 
                     b.Property<decimal>("BalanceUsd")
-                        .HasColumnType("decimal(18, 4)");
+                        .ValueGeneratedOnAdd()
+                        .HasColumnType("decimal(18, 4)")
+                        .HasDefaultValue(0m, "DF_ClientWallets_BalanceUsd");
 
                     b.Property<DateTime>("CreatedAt")
                         .ValueGeneratedOnAdd()
@@ -1022,14 +1037,18 @@ namespace Dotnetable.Migrations.SqlServer.Migrations
                         .HasColumnType("decimal(18, 4)");
 
                     b.Property<decimal>("MinOrderAmountUsd")
-                        .HasColumnType("decimal(18, 4)");
+                        .ValueGeneratedOnAdd()
+                        .HasColumnType("decimal(18, 4)")
+                        .HasDefaultValue(0m, "DF_Coupons_MinOrderAmountUsd");
 
                     b.Property<DateTime?>("StartsAt")
                         .HasPrecision(0)
                         .HasColumnType("datetime2(0)");
 
                     b.Property<int>("TimesUsed")
-                        .HasColumnType("int");
+                        .ValueGeneratedOnAdd()
+                        .HasColumnType("int")
+                        .HasDefaultValue(0, "DF_Coupons_TimesUsed");
 
                     b.Property<int?>("UsageLimitPerClient")
                         .HasColumnType("int");
@@ -1667,19 +1686,27 @@ namespace Dotnetable.Migrations.SqlServer.Migrations
                     SqlServerPropertyBuilderExtensions.UseIdentityColumn(b.Property<int>("InventoryItemID"));
 
                     b.Property<decimal>("AvgCostUsd")
-                        .HasColumnType("decimal(18, 4)");
+                        .ValueGeneratedOnAdd()
+                        .HasColumnType("decimal(18, 4)")
+                        .HasDefaultValue(0m, "DF_InventoryItems_AvgCostUsd");
 
                     b.Property<int>("ProductVariantID")
                         .HasColumnType("int");
 
                     b.Property<int>("QuantityOnHand")
-                        .HasColumnType("int");
+                        .ValueGeneratedOnAdd()
+                        .HasColumnType("int")
+                        .HasDefaultValue(0, "DF_InventoryItems_QuantityOnHand");
 
                     b.Property<int>("QuantityReserved")
-                        .HasColumnType("int");
+                        .ValueGeneratedOnAdd()
+                        .HasColumnType("int")
+                        .HasDefaultValue(0, "DF_InventoryItems_QuantityReserved");
 
                     b.Property<int>("ReorderLevel")
-                        .HasColumnType("int");
+                        .ValueGeneratedOnAdd()
+                        .HasColumnType("int")
+                        .HasDefaultValue(0, "DF_InventoryItems_ReorderLevel");
 
                     b.Property<byte[]>("RowVersion")
                         .IsConcurrencyToken()
@@ -1725,7 +1752,9 @@ namespace Dotnetable.Migrations.SqlServer.Migrations
                         .HasColumnType("nvarchar(30)");
 
                     b.Property<bool>("IsPosted")
-                        .HasColumnType("bit");
+                        .ValueGeneratedOnAdd()
+                        .HasColumnType("bit")
+                        .HasDefaultValue(false, "DF_JournalEntries_IsPosted");
 
                     b.Property<int?>("SourceId")
                         .HasColumnType("int");
@@ -1755,10 +1784,14 @@ namespace Dotnetable.Migrations.SqlServer.Migrations
                         .HasColumnType("int");
 
                     b.Property<decimal>("Credit")
-                        .HasColumnType("decimal(18, 4)");
+                        .ValueGeneratedOnAdd()
+                        .HasColumnType("decimal(18, 4)")
+                        .HasDefaultValue(0m, "DF_JournalEntryLines_Credit");
 
                     b.Property<decimal>("Debit")
-                        .HasColumnType("decimal(18, 4)");
+                        .ValueGeneratedOnAdd()
+                        .HasColumnType("decimal(18, 4)")
+                        .HasDefaultValue(0m, "DF_JournalEntryLines_Debit");
 
                     b.Property<string>("Description")
                         .HasMaxLength(300)
@@ -1938,7 +1971,9 @@ namespace Dotnetable.Migrations.SqlServer.Migrations
                         .HasDefaultValueSql("(sysutcdatetime())", "DF_MediaSets_CreatedAt_1");
 
                     b.Property<bool>("IsShared")
-                        .HasColumnType("bit");
+                        .ValueGeneratedOnAdd()
+                        .HasColumnType("bit")
+                        .HasDefaultValue(false, "DF_MediaSets_IsShared_1");
 
                     b.Property<string>("Name")
                         .IsRequired()
@@ -1974,7 +2009,9 @@ namespace Dotnetable.Migrations.SqlServer.Migrations
                         .HasColumnType("int");
 
                     b.Property<int>("SortOrder")
-                        .HasColumnType("int");
+                        .ValueGeneratedOnAdd()
+                        .HasColumnType("int")
+                        .HasDefaultValue(0, "DF_MediaSetItems_SortOrder");
 
                     b.Property<int?>("VideoThumbnailFileID")
                         .HasColumnType("int");
@@ -2168,7 +2205,9 @@ namespace Dotnetable.Migrations.SqlServer.Migrations
                         .HasColumnType("int");
 
                     b.Property<bool>("OpenInNewTab")
-                        .HasColumnType("bit");
+                        .ValueGeneratedOnAdd()
+                        .HasColumnType("bit")
+                        .HasDefaultValue(false, "DF_MenuItems_OpenInNewTab");
 
                     b.Property<int?>("PageID")
                         .HasColumnType("int");
@@ -2186,7 +2225,9 @@ namespace Dotnetable.Migrations.SqlServer.Migrations
                         .HasColumnType("int");
 
                     b.Property<int>("SortOrder")
-                        .HasColumnType("int");
+                        .ValueGeneratedOnAdd()
+                        .HasColumnType("int")
+                        .HasDefaultValue(0, "DF_MenuItems_SortOrder");
 
                     b.Property<string>("Title")
                         .IsRequired()
@@ -2284,16 +2325,22 @@ namespace Dotnetable.Migrations.SqlServer.Migrations
                         .IsFixedLength();
 
                     b.Property<decimal>("DiscountTotal")
-                        .HasColumnType("decimal(18, 4)");
+                        .ValueGeneratedOnAdd()
+                        .HasColumnType("decimal(18, 4)")
+                        .HasDefaultValue(0m, "DF_Orders_DiscountTotal");
 
                     b.Property<decimal>("ExchangeRateToUsd")
                         .HasColumnType("decimal(18, 6)");
 
                     b.Property<decimal>("GrandTotal")
-                        .HasColumnType("decimal(18, 4)");
+                        .ValueGeneratedOnAdd()
+                        .HasColumnType("decimal(18, 4)")
+                        .HasDefaultValue(0m, "DF_Orders_GrandTotal_1");
 
                     b.Property<decimal>("GrandTotalUsd")
-                        .HasColumnType("decimal(18, 4)");
+                        .ValueGeneratedOnAdd()
+                        .HasColumnType("decimal(18, 4)")
+                        .HasDefaultValue(0m, "DF_Orders_GrandTotalUsd_1");
 
                     b.Property<string>("Note")
                         .HasMaxLength(1000)
@@ -2311,7 +2358,9 @@ namespace Dotnetable.Migrations.SqlServer.Migrations
                         .HasColumnType("int");
 
                     b.Property<decimal>("ShippingTotal")
-                        .HasColumnType("decimal(18, 4)");
+                        .ValueGeneratedOnAdd()
+                        .HasColumnType("decimal(18, 4)")
+                        .HasDefaultValue(0m, "DF_Orders_ShippingTotal");
 
                     b.Property<byte>("Status")
                         .ValueGeneratedOnAdd()
@@ -2319,10 +2368,14 @@ namespace Dotnetable.Migrations.SqlServer.Migrations
                         .HasDefaultValue((byte)1, "DF_Orders_Status_1");
 
                     b.Property<decimal>("SubTotal")
-                        .HasColumnType("decimal(18, 4)");
+                        .ValueGeneratedOnAdd()
+                        .HasColumnType("decimal(18, 4)")
+                        .HasDefaultValue(0m, "DF_Orders_SubTotal_1");
 
                     b.Property<decimal>("TaxTotal")
-                        .HasColumnType("decimal(18, 4)");
+                        .ValueGeneratedOnAdd()
+                        .HasColumnType("decimal(18, 4)")
+                        .HasDefaultValue(0m, "DF_Orders_TaxTotal");
 
                     b.Property<int?>("WebsiteClientAddressID")
                         .HasColumnType("int");
@@ -2361,7 +2414,9 @@ namespace Dotnetable.Migrations.SqlServer.Migrations
                     SqlServerPropertyBuilderExtensions.UseIdentityColumn(b.Property<int>("OrderItemID"));
 
                     b.Property<decimal>("DiscountAmount")
-                        .HasColumnType("decimal(18, 4)");
+                        .ValueGeneratedOnAdd()
+                        .HasColumnType("decimal(18, 4)")
+                        .HasDefaultValue(0m, "DF_OrderItems_DiscountAmount");
 
                     b.Property<int>("OrderID")
                         .HasColumnType("int");
@@ -2389,7 +2444,9 @@ namespace Dotnetable.Migrations.SqlServer.Migrations
                         .HasColumnType("decimal(18, 4)");
 
                     b.Property<decimal>("UnitCostUsd")
-                        .HasColumnType("decimal(18, 4)");
+                        .ValueGeneratedOnAdd()
+                        .HasColumnType("decimal(18, 4)")
+                        .HasDefaultValue(0m, "DF_OrderItems_UnitCostUsd");
 
                     b.Property<decimal>("UnitPrice")
                         .HasColumnType("decimal(18, 4)");
@@ -2487,7 +2544,9 @@ namespace Dotnetable.Migrations.SqlServer.Migrations
                         .HasDefaultValue(true, "DF_Pages_IsActive_1");
 
                     b.Property<bool>("IsHomepage")
-                        .HasColumnType("bit");
+                        .ValueGeneratedOnAdd()
+                        .HasColumnType("bit")
+                        .HasDefaultValue(false, "DF_Pages_IsHomepage_1");
 
                     b.Property<int?>("ParentPageID")
                         .HasColumnType("int");
@@ -2498,7 +2557,9 @@ namespace Dotnetable.Migrations.SqlServer.Migrations
                         .HasColumnType("nvarchar(300)");
 
                     b.Property<int>("SortOrder")
-                        .HasColumnType("int");
+                        .ValueGeneratedOnAdd()
+                        .HasColumnType("int")
+                        .HasDefaultValue(0, "DF_Pages_SortOrder");
 
                     b.Property<byte>("Status")
                         .ValueGeneratedOnAdd()
@@ -2691,7 +2752,9 @@ namespace Dotnetable.Migrations.SqlServer.Migrations
                         .HasDefaultValue(true, "DF_PaymentGateways_IsActive");
 
                     b.Property<bool>("IsSandbox")
-                        .HasColumnType("bit");
+                        .ValueGeneratedOnAdd()
+                        .HasColumnType("bit")
+                        .HasDefaultValue(false, "DF_PaymentGateways_IsSandbox");
 
                     b.Property<string>("MerchantID")
                         .HasMaxLength(200)
@@ -2708,7 +2771,9 @@ namespace Dotnetable.Migrations.SqlServer.Migrations
                         .HasColumnType("nvarchar(50)");
 
                     b.Property<int>("SortOrder")
-                        .HasColumnType("int");
+                        .ValueGeneratedOnAdd()
+                        .HasColumnType("int")
+                        .HasDefaultValue(0, "DF_PaymentGateways_SortOrder");
 
                     b.Property<int>("WebsiteID")
                         .HasColumnType("int");
@@ -2865,7 +2930,9 @@ namespace Dotnetable.Migrations.SqlServer.Migrations
                         .HasDefaultValue(true, "DF_Posts_IsActive_1");
 
                     b.Property<bool>("IsFeatured")
-                        .HasColumnType("bit");
+                        .ValueGeneratedOnAdd()
+                        .HasColumnType("bit")
+                        .HasDefaultValue(false, "DF_Posts_IsFeatured_1");
 
                     b.Property<int>("PostTypeID")
                         .HasColumnType("int");
@@ -2897,7 +2964,9 @@ namespace Dotnetable.Migrations.SqlServer.Migrations
                         .HasDefaultValueSql("(sysutcdatetime())", "DF_Posts_UpdatedAt_1");
 
                     b.Property<int>("ViewCount")
-                        .HasColumnType("int");
+                        .ValueGeneratedOnAdd()
+                        .HasColumnType("int")
+                        .HasDefaultValue(0, "DF_Posts_ViewCount_1");
 
                     b.Property<int>("WebsiteID")
                         .HasColumnType("int");
@@ -2924,7 +2993,9 @@ namespace Dotnetable.Migrations.SqlServer.Migrations
                         .HasColumnType("int");
 
                     b.Property<bool>("IsPrimary")
-                        .HasColumnType("bit");
+                        .ValueGeneratedOnAdd()
+                        .HasColumnType("bit")
+                        .HasDefaultValue(false, "DF_PostCategories_IsPrimary");
 
                     b.HasKey("PostID", "CategoryID");
 
@@ -3032,7 +3103,9 @@ namespace Dotnetable.Migrations.SqlServer.Migrations
                     SqlServerPropertyBuilderExtensions.UseIdentityColumn(b.Property<int>("ProductID"));
 
                     b.Property<decimal>("AvgRating")
-                        .HasColumnType("decimal(3, 2)");
+                        .ValueGeneratedOnAdd()
+                        .HasColumnType("decimal(3, 2)")
+                        .HasDefaultValue(0m, "DF_Products_AvgRating_1");
 
                     b.Property<int?>("BrandID")
                         .HasColumnType("int");
@@ -3049,7 +3122,9 @@ namespace Dotnetable.Migrations.SqlServer.Migrations
                         .HasColumnType("int");
 
                     b.Property<bool>("HasVariants")
-                        .HasColumnType("bit");
+                        .ValueGeneratedOnAdd()
+                        .HasColumnType("bit")
+                        .HasDefaultValue(false, "DF_Products_HasVariants_1");
 
                     b.Property<bool>("IsActive")
                         .ValueGeneratedOnAdd()
@@ -3057,10 +3132,14 @@ namespace Dotnetable.Migrations.SqlServer.Migrations
                         .HasDefaultValue(true, "DF_Products_IsActive_1");
 
                     b.Property<bool>("IsCatalogOnly")
-                        .HasColumnType("bit");
+                        .ValueGeneratedOnAdd()
+                        .HasColumnType("bit")
+                        .HasDefaultValue(false, "DF_Products_IsCatalogOnly");
 
                     b.Property<int>("RatingCount")
-                        .HasColumnType("int");
+                        .ValueGeneratedOnAdd()
+                        .HasColumnType("int")
+                        .HasDefaultValue(0, "DF_Products_RatingCount_1");
 
                     b.Property<string>("ShortDescription")
                         .HasMaxLength(1000)
@@ -3072,7 +3151,9 @@ namespace Dotnetable.Migrations.SqlServer.Migrations
                         .HasColumnType("nvarchar(300)");
 
                     b.Property<int>("SortOrder")
-                        .HasColumnType("int");
+                        .ValueGeneratedOnAdd()
+                        .HasColumnType("int")
+                        .HasDefaultValue(0, "DF_Products_SortOrder");
 
                     b.Property<byte>("Status")
                         .ValueGeneratedOnAdd()
@@ -3127,7 +3208,9 @@ namespace Dotnetable.Migrations.SqlServer.Migrations
                         .HasDefaultValueSql("(sysutcdatetime())", "DF_ProductAnswers_CreatedAt");
 
                     b.Property<int>("LikeCount")
-                        .HasColumnType("int");
+                        .ValueGeneratedOnAdd()
+                        .HasColumnType("int")
+                        .HasDefaultValue(0, "DF_ProductAnswers_LikeCount");
 
                     b.Property<int>("ProductQuestionID")
                         .HasColumnType("int");
@@ -3173,7 +3256,9 @@ namespace Dotnetable.Migrations.SqlServer.Migrations
                         .HasColumnType("nvarchar(1000)");
 
                     b.Property<bool>("IsFeatured")
-                        .HasColumnType("bit");
+                        .ValueGeneratedOnAdd()
+                        .HasColumnType("bit")
+                        .HasDefaultValue(false, "DF_ProductAttributeValues_IsFeatured");
 
                     b.Property<decimal?>("NumericValue")
                         .HasColumnType("decimal(18, 4)");
@@ -3182,7 +3267,9 @@ namespace Dotnetable.Migrations.SqlServer.Migrations
                         .HasColumnType("int");
 
                     b.Property<int>("SortOrder")
-                        .HasColumnType("int");
+                        .ValueGeneratedOnAdd()
+                        .HasColumnType("int")
+                        .HasDefaultValue(0, "DF_ProductAttributeValues_SortOrder");
 
                     b.HasKey("ProductAttributeValueID");
 
@@ -3255,7 +3342,9 @@ namespace Dotnetable.Migrations.SqlServer.Migrations
                         .HasColumnType("nvarchar(200)");
 
                     b.Property<int>("SortOrder")
-                        .HasColumnType("int");
+                        .ValueGeneratedOnAdd()
+                        .HasColumnType("int")
+                        .HasDefaultValue(0, "DF_ProductCategories_SortOrder");
 
                     b.Property<int>("WebsiteID")
                         .HasColumnType("int");
@@ -3280,7 +3369,9 @@ namespace Dotnetable.Migrations.SqlServer.Migrations
                         .HasColumnType("int");
 
                     b.Property<bool>("IsPrimary")
-                        .HasColumnType("bit");
+                        .ValueGeneratedOnAdd()
+                        .HasColumnType("bit")
+                        .HasDefaultValue(false, "DF_ProductCategoryMaps_IsPrimary");
 
                     b.HasKey("ProductID", "ProductCategoryID");
 
@@ -3376,7 +3467,9 @@ namespace Dotnetable.Migrations.SqlServer.Migrations
                         .HasColumnType("tinyint");
 
                     b.Property<int>("SortOrder")
-                        .HasColumnType("int");
+                        .ValueGeneratedOnAdd()
+                        .HasColumnType("int")
+                        .HasDefaultValue(0, "DF_ProductContentSections_SortOrder");
 
                     b.HasKey("ProductContentSectionID");
 
@@ -3427,7 +3520,9 @@ namespace Dotnetable.Migrations.SqlServer.Migrations
                         .HasColumnType("int");
 
                     b.Property<int>("SortOrder")
-                        .HasColumnType("int");
+                        .ValueGeneratedOnAdd()
+                        .HasColumnType("int")
+                        .HasDefaultValue(0, "DF_ProductMedia_SortOrder");
 
                     b.HasKey("ProductID", "MediaSetID");
 
@@ -3494,7 +3589,9 @@ namespace Dotnetable.Migrations.SqlServer.Migrations
                         .HasColumnType("tinyint");
 
                     b.Property<int>("SortOrder")
-                        .HasColumnType("int");
+                        .ValueGeneratedOnAdd()
+                        .HasColumnType("int")
+                        .HasDefaultValue(0, "DF_ProductRelations_SortOrder");
 
                     b.HasKey("ProductID", "RelatedProductID", "RelationType");
 
@@ -3530,13 +3627,19 @@ namespace Dotnetable.Migrations.SqlServer.Migrations
                         .HasDefaultValueSql("(sysutcdatetime())", "DF_ProductReviews_CreatedAt");
 
                     b.Property<int>("DislikeCount")
-                        .HasColumnType("int");
+                        .ValueGeneratedOnAdd()
+                        .HasColumnType("int")
+                        .HasDefaultValue(0, "DF_ProductReviews_DislikeCount");
 
                     b.Property<bool>("IsVerifiedPurchase")
-                        .HasColumnType("bit");
+                        .ValueGeneratedOnAdd()
+                        .HasColumnType("bit")
+                        .HasDefaultValue(false, "DF_ProductReviews_IsVerifiedPurchase");
 
                     b.Property<int>("LikeCount")
-                        .HasColumnType("int");
+                        .ValueGeneratedOnAdd()
+                        .HasColumnType("int")
+                        .HasDefaultValue(0, "DF_ProductReviews_LikeCount");
 
                     b.Property<int>("ProductID")
                         .HasColumnType("int");
@@ -3647,7 +3750,9 @@ namespace Dotnetable.Migrations.SqlServer.Migrations
                         .HasDefaultValue(true, "DF_ProductVariants_IsActive");
 
                     b.Property<bool>("IsDefault")
-                        .HasColumnType("bit");
+                        .ValueGeneratedOnAdd()
+                        .HasColumnType("bit")
+                        .HasDefaultValue(false, "DF_ProductVariants_IsDefault");
 
                     b.Property<decimal?>("OverridePrice")
                         .HasColumnType("decimal(18, 4)");
@@ -3757,7 +3862,9 @@ namespace Dotnetable.Migrations.SqlServer.Migrations
                         .HasColumnType("bit");
 
                     b.Property<byte>("Category")
-                        .HasColumnType("tinyint");
+                        .ValueGeneratedOnAdd()
+                        .HasColumnType("tinyint")
+                        .HasDefaultValue((byte)0);
 
                     b.Property<string>("Description")
                         .IsRequired()
@@ -3924,7 +4031,9 @@ namespace Dotnetable.Migrations.SqlServer.Migrations
                         .HasDefaultValue(true, "DF_ShippingMethods_IsActive");
 
                     b.Property<int>("SortOrder")
-                        .HasColumnType("int");
+                        .ValueGeneratedOnAdd()
+                        .HasColumnType("int")
+                        .HasDefaultValue(0, "DF_ShippingMethods_SortOrder");
 
                     b.Property<string>("Title")
                         .IsRequired()
@@ -4094,13 +4203,17 @@ namespace Dotnetable.Migrations.SqlServer.Migrations
                         .HasColumnType("int");
 
                     b.Property<bool>("OpenInNewTab")
-                        .HasColumnType("bit");
+                        .ValueGeneratedOnAdd()
+                        .HasColumnType("bit")
+                        .HasDefaultValue(false, "DF_SlideshowSlides_OpenInNewTab");
 
                     b.Property<int>("SlideshowID")
                         .HasColumnType("int");
 
                     b.Property<int>("SortOrder")
-                        .HasColumnType("int");
+                        .ValueGeneratedOnAdd()
+                        .HasColumnType("int")
+                        .HasDefaultValue(0, "DF_SlideshowSlides_SortOrder");
 
                     b.Property<DateTime?>("StartAt")
                         .HasColumnType("datetime2");
@@ -4236,7 +4349,9 @@ namespace Dotnetable.Migrations.SqlServer.Migrations
                         .HasColumnType("tinyint");
 
                     b.Property<decimal>("UnitCostUsd")
-                        .HasColumnType("decimal(18, 4)");
+                        .ValueGeneratedOnAdd()
+                        .HasColumnType("decimal(18, 4)")
+                        .HasDefaultValue(0m, "DF_StockMovements_UnitCostUsd");
 
                     b.Property<decimal?>("UnitSalePriceUsd")
                         .HasColumnType("decimal(18, 4)");
@@ -4375,7 +4490,9 @@ namespace Dotnetable.Migrations.SqlServer.Migrations
                         .HasDefaultValue(true, "DF_TaxRates_IsActive");
 
                     b.Property<int>("Priority")
-                        .HasColumnType("int");
+                        .ValueGeneratedOnAdd()
+                        .HasColumnType("int")
+                        .HasDefaultValue(0, "DF_TaxRates_Priority");
 
                     b.Property<decimal>("Rate")
                         .HasColumnType("decimal(9, 6)");
@@ -4452,11 +4569,15 @@ namespace Dotnetable.Migrations.SqlServer.Migrations
                         .HasColumnType("nvarchar(200)");
 
                     b.Property<decimal>("Rating")
-                        .HasColumnType("decimal(3, 2)");
+                        .ValueGeneratedOnAdd()
+                        .HasColumnType("decimal(3, 2)")
+                        .HasDefaultValue(0m, "DF_Vendors_Rating_1");
 
                     b.Property<byte>("SettlementMode")
+                        .ValueGeneratedOnAdd()
                         .HasColumnType("tinyint")
-                        .HasComment("0 = Immediate: every purchase from this vendor is settled instantly like a normal cash purchase. 1 = Credit: purchases accrue as credit and are batched into a periodic Settlements record due on CreditDays");
+                        .HasComment("0 = Immediate: every purchase from this vendor is settled instantly like a normal cash purchase. 1 = Credit: purchases accrue as credit and are batched into a periodic Settlements record due on CreditDays")
+                        .HasDefaultValue((byte)0, "DF_Vendors_SettlementMode");
 
                     b.Property<string>("Slug")
                         .IsRequired()
@@ -4503,7 +4624,9 @@ namespace Dotnetable.Migrations.SqlServer.Migrations
                         .HasColumnType("decimal(18, 4)");
 
                     b.Property<int>("StockQuantity")
-                        .HasColumnType("int");
+                        .ValueGeneratedOnAdd()
+                        .HasColumnType("int")
+                        .HasDefaultValue(0, "DF_VendorProducts_StockQuantity");
 
                     b.Property<int>("VendorID")
                         .HasColumnType("int");
@@ -4599,7 +4722,9 @@ namespace Dotnetable.Migrations.SqlServer.Migrations
                         .HasColumnType("int");
 
                     b.Property<bool>("IsHub")
-                        .HasColumnType("bit");
+                        .ValueGeneratedOnAdd()
+                        .HasColumnType("bit")
+                        .HasDefaultValue(false, "DF_Websites_IsHub");
 
                     b.Property<int?>("LogoFileID")
                         .HasColumnType("int");
@@ -4761,7 +4886,9 @@ namespace Dotnetable.Migrations.SqlServer.Migrations
                         .HasColumnType("int");
 
                     b.Property<bool>("IsDefault")
-                        .HasColumnType("bit");
+                        .ValueGeneratedOnAdd()
+                        .HasColumnType("bit")
+                        .HasDefaultValue(false, "DF_WebsiteClientAddresses_IsDefault");
 
                     b.Property<decimal?>("Latitude")
                         .HasColumnType("decimal(9, 6)");
@@ -4912,7 +5039,9 @@ namespace Dotnetable.Migrations.SqlServer.Migrations
                         .HasDefaultValueSql("(sysutcdatetime())", "DF_WebsiteRedirects_CreatedAt");
 
                     b.Property<int>("HitCount")
-                        .HasColumnType("int");
+                        .ValueGeneratedOnAdd()
+                        .HasColumnType("int")
+                        .HasDefaultValue(0, "DF_WebsiteRedirects_HitCount");
 
                     b.Property<bool>("IsActive")
                         .ValueGeneratedOnAdd()
@@ -4920,7 +5049,9 @@ namespace Dotnetable.Migrations.SqlServer.Migrations
                         .HasDefaultValue(true, "DF_WebsiteRedirects_IsActive");
 
                     b.Property<bool>("IsRegex")
-                        .HasColumnType("bit");
+                        .ValueGeneratedOnAdd()
+                        .HasColumnType("bit")
+                        .HasDefaultValue(false, "DF_WebsiteRedirects_IsRegex");
 
                     b.Property<string>("SourcePath")
                         .IsRequired()
@@ -5147,6 +5278,47 @@ namespace Dotnetable.Migrations.SqlServer.Migrations
                     b.HasIndex("WebsiteID");
 
                     b.ToTable("WebsiteThemes");
+                });
+
+            modelBuilder.Entity("Dotnetable.Domain.Entities.WebsiteWatermarkSetting", b =>
+                {
+                    b.Property<int>("WebsiteWatermarkSettingID")
+                        .ValueGeneratedOnAdd()
+                        .HasColumnType("int");
+
+                    SqlServerPropertyBuilderExtensions.UseIdentityColumn(b.Property<int>("WebsiteWatermarkSettingID"));
+
+                    b.Property<bool>("Enabled")
+                        .HasColumnType("bit");
+
+                    b.Property<int>("Opacity")
+                        .ValueGeneratedOnAdd()
+                        .HasColumnType("int")
+                        .HasDefaultValue(80);
+
+                    b.Property<byte>("Position")
+                        .ValueGeneratedOnAdd()
+                        .HasColumnType("tinyint")
+                        .HasDefaultValue((byte)9);
+
+                    b.Property<int>("SizePercent")
+                        .ValueGeneratedOnAdd()
+                        .HasColumnType("int")
+                        .HasDefaultValue(20);
+
+                    b.Property<int?>("WatermarkFileID")
+                        .HasColumnType("int");
+
+                    b.Property<int>("WebsiteID")
+                        .HasColumnType("int");
+
+                    b.HasKey("WebsiteWatermarkSettingID");
+
+                    b.HasIndex("WatermarkFileID");
+
+                    b.HasIndex("WebsiteID");
+
+                    b.ToTable("WebsiteWatermarkSettings");
                 });
 
             modelBuilder.Entity("Dotnetable.Domain.Entities.Wishlist", b =>
@@ -7414,6 +7586,24 @@ namespace Dotnetable.Migrations.SqlServer.Migrations
                     b.Navigation("Website");
                 });
 
+            modelBuilder.Entity("Dotnetable.Domain.Entities.WebsiteWatermarkSetting", b =>
+                {
+                    b.HasOne("Dotnetable.Domain.Entities.FileRecord", "WatermarkFile")
+                        .WithMany("WebsiteWatermarkSettingWatermarkFiles")
+                        .HasForeignKey("WatermarkFileID")
+                        .HasConstraintName("FK_WebsiteWatermarkSettings_FileRecords");
+
+                    b.HasOne("Dotnetable.Domain.Entities.Website", "Website")
+                        .WithMany("WebsiteWatermarkSettings")
+                        .HasForeignKey("WebsiteID")
+                        .IsRequired()
+                        .HasConstraintName("FK_WebsiteWatermarkSettings_Websites");
+
+                    b.Navigation("WatermarkFile");
+
+                    b.Navigation("Website");
+                });
+
             modelBuilder.Entity("Dotnetable.Domain.Entities.Wishlist", b =>
                 {
                     b.HasOne("Dotnetable.Domain.Entities.WebsiteClient", "WebsiteClient")
@@ -7644,6 +7834,8 @@ namespace Dotnetable.Migrations.SqlServer.Migrations
                     b.Navigation("WebsiteFaveIconFiles");
 
                     b.Navigation("WebsiteLogoFiles");
+
+                    b.Navigation("WebsiteWatermarkSettingWatermarkFiles");
                 });
 
             modelBuilder.Entity("Dotnetable.Domain.Entities.FileTag", b =>
@@ -8080,6 +8272,8 @@ namespace Dotnetable.Migrations.SqlServer.Migrations
                     b.Navigation("WebsiteStorageSettings");
 
                     b.Navigation("WebsiteThemes");
+
+                    b.Navigation("WebsiteWatermarkSettings");
 
                     b.Navigation("Wishlists");
                 });

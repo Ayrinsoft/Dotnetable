@@ -6,4 +6,7 @@
     CONSTRAINT [PK_Tags] PRIMARY KEY CLUSTERED ([TagID] ASC),
     CONSTRAINT [FK_Tags_Websites] FOREIGN KEY ([WebsiteID]) REFERENCES [dbo].[Websites] ([WebsiteID])
 );
+GO
 
+CREATE NONCLUSTERED INDEX [IX_Tags_WebsiteID]
+    ON [dbo].[Tags] ([WebsiteID] ASC);

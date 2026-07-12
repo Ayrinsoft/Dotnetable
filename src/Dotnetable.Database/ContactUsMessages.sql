@@ -12,4 +12,7 @@
     CONSTRAINT [PK_ContactUsMessages] PRIMARY KEY CLUSTERED ([ContactUsMessagesID] ASC),
     CONSTRAINT [FK_ContactUsMessages_Websites] FOREIGN KEY ([WebsiteID]) REFERENCES [dbo].[Websites] ([WebsiteID])
 );
+GO
 
+CREATE NONCLUSTERED INDEX [IX_ContactUsMessages_WebsiteID]
+    ON [dbo].[ContactUsMessages] ([WebsiteID] ASC);

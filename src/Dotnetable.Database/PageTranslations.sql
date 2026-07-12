@@ -8,4 +8,7 @@
     CONSTRAINT [PK_PageTranslations] PRIMARY KEY CLUSTERED ([PageTranslationID] ASC),
     CONSTRAINT [FK_PageTranslations_Pages] FOREIGN KEY ([PageID]) REFERENCES [dbo].[Pages] ([PageID])
 );
+GO
 
+CREATE NONCLUSTERED INDEX [IX_PageTranslations_PageID]
+    ON [dbo].[PageTranslations] ([PageID] ASC);

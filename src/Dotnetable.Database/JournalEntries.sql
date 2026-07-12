@@ -11,4 +11,7 @@
     CONSTRAINT [PK_JournalEntries] PRIMARY KEY CLUSTERED ([JournalEntryID] ASC),
     CONSTRAINT [FK_JournalEntries_Websites] FOREIGN KEY ([WebsiteID]) REFERENCES [dbo].[Websites] ([WebsiteID])
 );
+GO
 
+CREATE NONCLUSTERED INDEX [IX_JournalEntries_WebsiteID]
+    ON [dbo].[JournalEntries] ([WebsiteID] ASC);

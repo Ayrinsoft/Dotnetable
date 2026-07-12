@@ -18,3 +18,13 @@
 
 -- The customer's own bank account, distinct from [dbo].[BankAccounts] (the website's accounts
 -- used to receive offline payments). Withdrawal payouts from ClientWallets are sent here.
+GO
+
+CREATE NONCLUSTERED INDEX [IX_ClientBankAccounts_BankID]
+    ON [dbo].[ClientBankAccounts] ([BankID] ASC);
+
+CREATE NONCLUSTERED INDEX [IX_ClientBankAccounts_WebsiteClientID]
+    ON [dbo].[ClientBankAccounts] ([WebsiteClientID] ASC);
+
+CREATE NONCLUSTERED INDEX [IX_ClientBankAccounts_WebsiteID]
+    ON [dbo].[ClientBankAccounts] ([WebsiteID] ASC);

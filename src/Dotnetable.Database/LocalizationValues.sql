@@ -6,4 +6,7 @@
     CONSTRAINT [PK_LocalizationValues] PRIMARY KEY CLUSTERED ([LocalizationValueID] ASC),
     CONSTRAINT [FK_LocalizationValues_LocalizationKeys] FOREIGN KEY ([LocalizationKeyID]) REFERENCES [dbo].[LocalizationKeys] ([LocalizationKeyID])
 );
+GO
 
+CREATE NONCLUSTERED INDEX [IX_LocalizationValues_LocalizationKeyID]
+    ON [dbo].[LocalizationValues] ([LocalizationKeyID] ASC);

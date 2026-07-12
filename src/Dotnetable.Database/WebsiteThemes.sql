@@ -1,4 +1,4 @@
-CREATE TABLE [dbo].[WebsiteThemes] (
+﻿CREATE TABLE [dbo].[WebsiteThemes] (
     [WebsiteThemeID] INT            IDENTITY (1, 1) NOT NULL,
     [WebsiteID]      INT            NOT NULL,
     [Name]           NVARCHAR (100) NOT NULL,
@@ -8,3 +8,7 @@ CREATE TABLE [dbo].[WebsiteThemes] (
     CONSTRAINT [PK_WebsiteThemes] PRIMARY KEY CLUSTERED ([WebsiteThemeID] ASC),
     CONSTRAINT [FK_WebsiteThemes_Websites] FOREIGN KEY ([WebsiteID]) REFERENCES [dbo].[Websites] ([WebsiteID])
 );
+GO
+
+CREATE NONCLUSTERED INDEX [IX_WebsiteThemes_WebsiteID]
+    ON [dbo].[WebsiteThemes] ([WebsiteID] ASC);

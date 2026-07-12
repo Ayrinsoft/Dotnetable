@@ -172,5 +172,7 @@ public partial class Website
 
     public virtual ICollection<WebsiteStorageSetting> WebsiteStorageSettings { get; set; } = new List<WebsiteStorageSetting>();
 
+    public virtual ICollection<WebsiteWatermarkSetting> WebsiteWatermarkSettings { get; set; } = new List<WebsiteWatermarkSetting>();
+
     public virtual ICollection<Wishlist> Wishlists { get; set; } = new List<Wishlist>();
 }

@@ -22,4 +22,16 @@
     CONSTRAINT [FK_Products_Members] FOREIGN KEY ([CreatedByMemberID]) REFERENCES [dbo].[Members] ([MemberID]),
     CONSTRAINT [FK_Products_Websites] FOREIGN KEY ([WebsiteID]) REFERENCES [dbo].[Websites] ([WebsiteID])
 );
+GO
 
+CREATE NONCLUSTERED INDEX [IX_Products_BrandID]
+    ON [dbo].[Products] ([BrandID] ASC);
+
+CREATE NONCLUSTERED INDEX [IX_Products_CreatedByMemberId]
+    ON [dbo].[Products] ([CreatedByMemberId] ASC);
+
+CREATE NONCLUSTERED INDEX [IX_Products_FeaturedImageFileID]
+    ON [dbo].[Products] ([FeaturedImageFileID] ASC);
+
+CREATE NONCLUSTERED INDEX [IX_Products_WebsiteID]
+    ON [dbo].[Products] ([WebsiteID] ASC);

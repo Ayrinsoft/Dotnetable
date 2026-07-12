@@ -24,3 +24,19 @@
 -- WithdrawalHold row (Type=3). Status: 1=Pending, 2=Approved, 3=Rejected, 4=Paid.
 -- Admin approval (Status=2/4) triggers the bank transfer to ClientBankAccounts; rejection
 -- (Status=3) reverses the hold with a WithdrawalReversed row (Type=4).
+GO
+
+CREATE NONCLUSTERED INDEX [IX_ClientWalletWithdrawals_ClientBankAccountID]
+    ON [dbo].[ClientWalletWithdrawals] ([ClientBankAccountID] ASC);
+
+CREATE NONCLUSTERED INDEX [IX_ClientWalletWithdrawals_ClientWalletID]
+    ON [dbo].[ClientWalletWithdrawals] ([ClientWalletID] ASC);
+
+CREATE NONCLUSTERED INDEX [IX_ClientWalletWithdrawals_ReviewedByMemberID]
+    ON [dbo].[ClientWalletWithdrawals] ([ReviewedByMemberID] ASC);
+
+CREATE NONCLUSTERED INDEX [IX_ClientWalletWithdrawals_WebsiteClientID]
+    ON [dbo].[ClientWalletWithdrawals] ([WebsiteClientID] ASC);
+
+CREATE NONCLUSTERED INDEX [IX_ClientWalletWithdrawals_WebsiteID]
+    ON [dbo].[ClientWalletWithdrawals] ([WebsiteID] ASC);

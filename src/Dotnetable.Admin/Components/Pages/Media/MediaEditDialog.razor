@@ -1,0 +1,132 @@
+@using Microsoft.AspNetCore.Components.Forms
+@inject IJSRuntime JS
+@inject IPageLocalizer L
+
+<MudDialog>
+    <TitleContent>
+        <MudText Typo="Typo.h6">@L["upload.edit_title", "Edit before upload"]</MudText>
+    </TitleContent>
+    <DialogContent>
+        <MudTextField @bind-Value="_fileName" Label="@L["upload.file_name", "File name"]" Variant="Variant.Outlined" Class="mb-3" />
+
+        @if (_previewDataUrl is not null)
+        {
+            <MudText Typo="Typo.caption" Color="Color.Secondary" Class="mb-1 d-block">
+                @L["upload.crop_hint", "Drag on the image to crop. Leave empty to keep the full image."]
+            </MudText>
+            <canvas id="@_canvasId" style="max-width:100%;border:1px solid var(--mud-palette-lines-default);border-radius:4px;cursor:crosshair;touch-action:none;"></canvas>
+            <MudButton Size="Size.Small" Variant="Variant.Text" OnClick="ClearCrop" Class="mt-1">
+                @L["upload.clear_crop", "Clear crop"]
+            </MudButton>
+        }
+        else if (_previewUnavailable)
+        {
+            <MudAlert Severity="Severity.Info" Dense="true" Class="mb-3">
+                @L["upload.preview_unavailable", "File too large for an interactive crop preview — resize/grayscale still apply."]
+            </MudAlert>
+        }
+
+        <MudGrid Spacing="2" Class="mt-2">
+            <MudItem xs="6">
+                <MudNumericField T="int?" @bind-Value="_resizeWidth" Label="@L["upload.width", "Width (px)"]" Variant="Variant.Outlined" Min="1" />
+            </MudItem>
+            <MudItem xs="6">
+                <MudNumericField T="int?" @bind-Value="_resizeHeight" Label="@L["upload.height", "Height (px)"]" Variant="Variant.Outlined" Min="1" />
+            </MudItem>
+        </MudGrid>
+
+        <MudCheckBox T="bool" @bind-Value="_grayscale" Label="@L["upload.grayscale", "Black & white"]" Class="mt-2" />
+
+        <MudSelect T="bool?" @bind-Value="_applyWatermark" Label="@L["upload.watermark", "Watermark"]" Variant="Variant.Outlined" Class="mt-2">
+            <MudSelectItem T="bool?" Value="null">@L["upload.watermark_default", "Use site default"]</MudSelectItem>
+            <MudSelectItem T="bool?" Value="true">@L["upload.watermark_apply", "Apply"]</MudSelectItem>
+            <MudSelectItem T="bool?" Value="false">@L["upload.watermark_skip", "Don't apply"]</MudSelectItem>
+        </MudSelect>
+    </DialogContent>
+    <DialogActions>
+        <MudButton OnClick="Cancel">@L["cancel", "Cancel"]</MudButton>
+        <MudButton Color="Color.Primary" Variant="Variant.Filled" OnClick="SaveAsync">@L["save", "Save"]</MudButton>
+    </DialogActions>
+</MudDialog>
+
+@code {
+    [CascadingParameter] private IMudDialogInstance MudDialog { get; set; } = null!;
+    [Parameter] public required IBrowserFile File { get; set; }
+    [Parameter] public FileEditSpec? Existing { get; set; }
+
+    private const int PreviewMaxBytes = 15 * 1024 * 1024;
+    private const int MaxUploadBytes = 200 * 1024 * 1024;
+
+    private readonly string _canvasId = "crop_" + Guid.NewGuid().ToString("N");
+    private string _fileName = "";
+    private int? _resizeWidth;
+    private int? _resizeHeight;
+    private bool _grayscale;
+    private bool? _applyWatermark;
+    private string? _previewDataUrl;
+    private bool _previewUnavailable;
+    private bool _initialized;
+
+    protected override void OnInitialized()
+    {
+        _fileName = Existing?.FileName ?? global::System.IO.Path.GetFileNameWithoutExtension(File.Name);
+        _resizeWidth = Existing?.ResizeWidth;
+        _resizeHeight = Existing?.ResizeHeight;
+        _grayscale = Existing?.Grayscale ?? false;
+        _applyWatermark = Existing?.ApplyWatermark;
+    }
+
+    protected override async Task OnAfterRenderAsync(bool firstRender)
+    {
+        if (!firstRender || _initialized) return;
+        _initialized = true;
+
+        var isImage = File.ContentType.StartsWith("image/", StringComparison.OrdinalIgnoreCase);
+        if (!isImage || File.Size > PreviewMaxBytes)
+        {
+            _previewUnavailable = isImage;
+            return;
+        }
+
+        await using var stream = File.OpenReadStream(MaxUploadBytes);
+        using var ms = new MemoryStream();
+        await stream.CopyToAsync(ms);
+        _previewDataUrl = $"data:{File.ContentType};base64,{Convert.ToBase64String(ms.ToArray())}";
+        StateHasChanged();
+        await Task.Yield();
+        await JS.InvokeVoidAsync("mediaEditor.init", _canvasId, _previewDataUrl, 480, 360);
+    }
+
+    private async Task ClearCrop() => await JS.InvokeVoidAsync("mediaEditor.clearCrop", _canvasId);
+
+    private async Task SaveAsync()
+    {
+        ImageCropRect? crop = null;
+        if (_previewDataUrl is not null)
+        {
+            var js = await JS.InvokeAsync<CropJsResult?>("mediaEditor.getCrop", _canvasId);
+            if (js is not null)
+                crop = new ImageCropRect { X = js.X, Y = js.Y, Width = js.Width, Height = js.Height };
+        }
+
+        MudDialog.Close(DialogResult.Ok(new FileEditSpec
+        {
+            FileName = string.IsNullOrWhiteSpace(_fileName) ? global::System.IO.Path.GetFileNameWithoutExtension(File.Name) : _fileName.Trim(),
+            Crop = crop,
+            ResizeWidth = _resizeWidth,
+            ResizeHeight = _resizeHeight,
+            Grayscale = _grayscale,
+            ApplyWatermark = _applyWatermark,
+        }));
+    }
+
+    private void Cancel() => MudDialog.Cancel();
+
+    private sealed class CropJsResult
+    {
+        public double X { get; set; }
+        public double Y { get; set; }
+        public double Width { get; set; }
+        public double Height { get; set; }
+    }
+}

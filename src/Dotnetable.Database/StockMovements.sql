@@ -28,4 +28,25 @@
 
 GO
 EXECUTE sp_addextendedproperty @name = N'MS_Description', @value = N'website''s local currency rate snapshotted at the moment of this stock entry/exit, so accounting and reports can be reconstructed in local currency at that point in time', @level0type = N'SCHEMA', @level0name = N'dbo', @level1type = N'TABLE', @level1name = N'StockMovements', @level2type = N'COLUMN', @level2name = N'ExchangeRateToUsd';
+GO
 
+CREATE NONCLUSTERED INDEX [IX_StockMovements_CreatedByMemberID]
+    ON [dbo].[StockMovements] ([CreatedByMemberID] ASC);
+
+CREATE NONCLUSTERED INDEX [IX_StockMovements_CurrencyCode]
+    ON [dbo].[StockMovements] ([CurrencyCode] ASC);
+
+CREATE NONCLUSTERED INDEX [IX_StockMovements_OrderID]
+    ON [dbo].[StockMovements] ([OrderID] ASC);
+
+CREATE NONCLUSTERED INDEX [IX_StockMovements_OrderItemID]
+    ON [dbo].[StockMovements] ([OrderItemID] ASC);
+
+CREATE NONCLUSTERED INDEX [IX_StockMovements_ProductVariantID]
+    ON [dbo].[StockMovements] ([ProductVariantID] ASC);
+
+CREATE NONCLUSTERED INDEX [IX_StockMovements_SupplierID]
+    ON [dbo].[StockMovements] ([SupplierID] ASC);
+
+CREATE NONCLUSTERED INDEX [IX_StockMovements_WebsiteID]
+    ON [dbo].[StockMovements] ([WebsiteID] ASC);

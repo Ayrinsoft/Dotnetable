@@ -15,3 +15,7 @@
 -- One wallet per WebsiteClient (already site-scoped). BalanceUsd is a cached total kept in
 -- sync with ClientWalletTransactions inside the same transaction (RowVersion guards concurrent
 -- spend/withdraw races) - it is never edited directly, only via a new ledger row.
+GO
+
+CREATE NONCLUSTERED INDEX [IX_ClientWallets_WebsiteID]
+    ON [dbo].[ClientWallets] ([WebsiteID] ASC);

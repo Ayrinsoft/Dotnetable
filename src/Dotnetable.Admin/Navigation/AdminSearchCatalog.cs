@@ -88,6 +88,7 @@ public static class AdminSearchCatalog
 
         new AdminSearchPage("media_library", "Media Library", "/media", Icons.Material.Filled.PhotoLibrary, "media", "Media", RoleKeys.MediaView),
         new AdminSearchPage("storage", "Storage", "/media/storage", Icons.Material.Filled.Cloud, "media", "Media", RoleKeys.MediaUpload),
+        new AdminSearchPage("watermark", "Watermark", "/media/watermark", Icons.Material.Filled.BrandingWatermark, "media", "Media", RoleKeys.MediaUpload),
 
         new AdminSearchPage("countries", "Countries", "/initial-data/countries", Icons.Material.Filled.Flag, "nav.administration", "Administration", null, SuperAdminOnly: true),
         new AdminSearchPage("states", "States / Provinces", "/initial-data/states", Icons.Material.Filled.Map, "nav.administration", "Administration", null, SuperAdminOnly: true),

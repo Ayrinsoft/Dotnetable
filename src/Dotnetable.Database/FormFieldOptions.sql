@@ -1,4 +1,4 @@
-CREATE TABLE [dbo].[FormFieldOptions] (
+﻿CREATE TABLE [dbo].[FormFieldOptions] (
     [FormFieldOptionID] INT            IDENTITY (1, 1) NOT NULL,
     [FormFieldID]       INT            NOT NULL,
     [Label]             NVARCHAR (300) NOT NULL,
@@ -7,3 +7,7 @@ CREATE TABLE [dbo].[FormFieldOptions] (
     CONSTRAINT [PK_FormFieldOptions] PRIMARY KEY CLUSTERED ([FormFieldOptionID] ASC),
     CONSTRAINT [FK_FormFieldOptions_FormFields] FOREIGN KEY ([FormFieldID]) REFERENCES [dbo].[FormFields] ([FormFieldID])
 );
+GO
+
+CREATE NONCLUSTERED INDEX [IX_FormFieldOptions_FormFieldID]
+    ON [dbo].[FormFieldOptions] ([FormFieldID] ASC);

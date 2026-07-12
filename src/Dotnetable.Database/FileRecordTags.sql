@@ -6,3 +6,10 @@
     CONSTRAINT [FK_FileRecordTags_FileRecords] FOREIGN KEY ([FileRecordID]) REFERENCES [dbo].[FileRecords] ([FileRecordID]),
     CONSTRAINT [FK_FileRecordTags_FileTags] FOREIGN KEY ([FileTagID]) REFERENCES [dbo].[FileTags] ([FileTagID])
 );
+GO
+
+CREATE NONCLUSTERED INDEX [IX_FileRecordTags_FileRecordID]
+    ON [dbo].[FileRecordTags] ([FileRecordID] ASC);
+
+CREATE NONCLUSTERED INDEX [IX_FileRecordTags_FileTagID]
+    ON [dbo].[FileRecordTags] ([FileTagID] ASC);

@@ -1,4 +1,4 @@
-CREATE TABLE [dbo].[Forms] (
+﻿CREATE TABLE [dbo].[Forms] (
     [FormID]                   INT            IDENTITY (1, 1) NOT NULL,
     [WebsiteID]                INT            NOT NULL,
     [Title]                    NVARCHAR (200) NOT NULL,
@@ -18,3 +18,7 @@ CREATE TABLE [dbo].[Forms] (
     CONSTRAINT [PK_Forms] PRIMARY KEY CLUSTERED ([FormID] ASC),
     CONSTRAINT [FK_Forms_Websites] FOREIGN KEY ([WebsiteID]) REFERENCES [dbo].[Websites] ([WebsiteID])
 );
+GO
+
+CREATE NONCLUSTERED INDEX [IX_Forms_WebsiteID]
+    ON [dbo].[Forms] ([WebsiteID] ASC);

@@ -18,4 +18,13 @@
     CONSTRAINT [FK_Pages_Pages] FOREIGN KEY ([ParentPageID]) REFERENCES [dbo].[Pages] ([PageID]),
     CONSTRAINT [FK_Pages_Websites] FOREIGN KEY ([WebsiteID]) REFERENCES [dbo].[Websites] ([WebsiteID])
 );
+GO
 
+CREATE NONCLUSTERED INDEX [IX_Pages_CreatedByMemberID]
+    ON [dbo].[Pages] ([CreatedByMemberID] ASC);
+
+CREATE NONCLUSTERED INDEX [IX_Pages_ParentPageID]
+    ON [dbo].[Pages] ([ParentPageID] ASC);
+
+CREATE NONCLUSTERED INDEX [IX_Pages_WebsiteID]
+    ON [dbo].[Pages] ([WebsiteID] ASC);

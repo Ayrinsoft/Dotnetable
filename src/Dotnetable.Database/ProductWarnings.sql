@@ -7,4 +7,7 @@
     CONSTRAINT [PK_ProductWarnings] PRIMARY KEY CLUSTERED ([ProductWarningID] ASC),
     CONSTRAINT [FK_ProductWarnings_Products] FOREIGN KEY ([ProductID]) REFERENCES [dbo].[Products] ([ProductID])
 );
+GO
 
+CREATE NONCLUSTERED INDEX [IX_ProductWarnings_ProductID]
+    ON [dbo].[ProductWarnings] ([ProductID] ASC);

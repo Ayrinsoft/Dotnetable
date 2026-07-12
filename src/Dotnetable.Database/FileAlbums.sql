@@ -7,3 +7,7 @@
     CONSTRAINT [PK_FileAlbums] PRIMARY KEY CLUSTERED ([FileAlbumID] ASC),
     CONSTRAINT [FK_FileAlbums_Websites] FOREIGN KEY ([WebsiteID]) REFERENCES [dbo].[Websites] ([WebsiteID])
 );
+GO
+
+CREATE NONCLUSTERED INDEX [IX_FileAlbums_WebsiteID]
+    ON [dbo].[FileAlbums] ([WebsiteID] ASC);

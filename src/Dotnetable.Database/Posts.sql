@@ -23,4 +23,16 @@
     CONSTRAINT [FK_Posts_PostTypes] FOREIGN KEY ([PostTypeID]) REFERENCES [dbo].[PostTypes] ([PostTypeID]),
     CONSTRAINT [FK_Posts_Websites] FOREIGN KEY ([WebsiteID]) REFERENCES [dbo].[Websites] ([WebsiteID])
 );
+GO
 
+CREATE NONCLUSTERED INDEX [IX_Posts_AuthorMemberID]
+    ON [dbo].[Posts] ([AuthorMemberID] ASC);
+
+CREATE NONCLUSTERED INDEX [IX_Posts_FeaturedImageFileID]
+    ON [dbo].[Posts] ([FeaturedImageFileID] ASC);
+
+CREATE NONCLUSTERED INDEX [IX_Posts_PostTypeID]
+    ON [dbo].[Posts] ([PostTypeID] ASC);
+
+CREATE NONCLUSTERED INDEX [IX_Posts_WebsiteID]
+    ON [dbo].[Posts] ([WebsiteID] ASC);

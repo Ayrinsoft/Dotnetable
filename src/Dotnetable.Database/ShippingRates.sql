@@ -1,4 +1,4 @@
-CREATE TABLE [dbo].[ShippingRates] (
+﻿CREATE TABLE [dbo].[ShippingRates] (
     [ShippingRateID]   INT             IDENTITY (1, 1) NOT NULL,
     [ShippingMethodID] INT             NOT NULL,
     [CountryID]        INT             NULL,
@@ -17,3 +17,16 @@ CREATE TABLE [dbo].[ShippingRates] (
 
 -- Zone match: NULL on CountryID/StateID/CityID means "any". At runtime pick the row for the
 -- destination address whose zone columns are the most specific non-null match.
+GO
+
+CREATE NONCLUSTERED INDEX [IX_ShippingRates_CityID]
+    ON [dbo].[ShippingRates] ([CityID] ASC);
+
+CREATE NONCLUSTERED INDEX [IX_ShippingRates_CountryID]
+    ON [dbo].[ShippingRates] ([CountryID] ASC);
+
+CREATE NONCLUSTERED INDEX [IX_ShippingRates_ShippingMethodID]
+    ON [dbo].[ShippingRates] ([ShippingMethodID] ASC);
+
+CREATE NONCLUSTERED INDEX [IX_ShippingRates_StateID]
+    ON [dbo].[ShippingRates] ([StateID] ASC);

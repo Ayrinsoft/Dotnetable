@@ -9,4 +9,7 @@
     CONSTRAINT [PK_WebsiteIPs] PRIMARY KEY CLUSTERED ([WebsiteIPID] ASC),
     CONSTRAINT [FK_WebsiteIPs_Websites] FOREIGN KEY ([WebsiteID]) REFERENCES [dbo].[Websites] ([WebsiteID])
 );
+GO
 
+CREATE NONCLUSTERED INDEX [IX_WebsiteIPs_WebsiteID]
+    ON [dbo].[WebsiteIPs] ([WebsiteID] ASC);

@@ -10,4 +10,7 @@
     CONSTRAINT [PK_WebsiteStorageSettings] PRIMARY KEY CLUSTERED ([WebsiteStorageSettingsID] ASC),
     CONSTRAINT [FK_WebsiteStorageSettings_Websites] FOREIGN KEY ([WebsiteID]) REFERENCES [dbo].[Websites] ([WebsiteID])
 );
+GO
 
+CREATE NONCLUSTERED INDEX [IX_WebsiteStorageSettings_WebsiteID]
+    ON [dbo].[WebsiteStorageSettings] ([WebsiteID] ASC);

@@ -7,4 +7,7 @@
     CONSTRAINT [PK_Menus] PRIMARY KEY CLUSTERED ([MenuID] ASC),
     CONSTRAINT [FK_Menus_Websites] FOREIGN KEY ([WebsiteID]) REFERENCES [dbo].[Websites] ([WebsiteID])
 );
+GO
 
+CREATE NONCLUSTERED INDEX [IX_Menus_WebsiteID]
+    ON [dbo].[Menus] ([WebsiteID] ASC);

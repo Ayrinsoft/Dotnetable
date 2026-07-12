@@ -7,4 +7,10 @@
     CONSTRAINT [FK_PolicyRoles_Policies] FOREIGN KEY ([PolicyID]) REFERENCES [dbo].[Policies] ([PolicyID]),
     CONSTRAINT [FK_PolicyRoles_Roles] FOREIGN KEY ([RoleID]) REFERENCES [dbo].[Roles] ([RoleID])
 );
+GO
 
+CREATE NONCLUSTERED INDEX [IX_PolicyRoles_PolicyID]
+    ON [dbo].[PolicyRoles] ([PolicyID] ASC);
+
+CREATE NONCLUSTERED INDEX [IX_PolicyRoles_RoleID]
+    ON [dbo].[PolicyRoles] ([RoleID] ASC);

@@ -1,4 +1,4 @@
-CREATE TABLE [dbo].[CartItems] (
+﻿CREATE TABLE [dbo].[CartItems] (
     [CartItemID]       INT           IDENTITY (1, 1) NOT NULL,
     [CartID]           INT           NOT NULL,
     [ProductVariantID] INT           NOT NULL,
@@ -14,3 +14,10 @@ CREATE TABLE [dbo].[CartItems] (
 
 -- No price columns: like everywhere pre-purchase, display price is always computed at runtime
 -- from ReferencePriceUsd * CurrencyRates, never stored, until it's snapshotted onto OrderItems.
+GO
+
+CREATE NONCLUSTERED INDEX [IX_CartItems_ProductVariantID]
+    ON [dbo].[CartItems] ([ProductVariantID] ASC);
+
+CREATE NONCLUSTERED INDEX [IX_CartItems_VendorProductID]
+    ON [dbo].[CartItems] ([VendorProductID] ASC);

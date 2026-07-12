@@ -5,3 +5,7 @@
     CONSTRAINT [PK_FileTags] PRIMARY KEY CLUSTERED ([FileTagID] ASC),
     CONSTRAINT [FK_FileTags_Websites] FOREIGN KEY ([WebsiteID]) REFERENCES [dbo].[Websites] ([WebsiteID])
 );
+GO
+
+CREATE NONCLUSTERED INDEX [IX_FileTags_WebsiteID]
+    ON [dbo].[FileTags] ([WebsiteID] ASC);

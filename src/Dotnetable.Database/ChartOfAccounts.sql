@@ -10,4 +10,10 @@
     CONSTRAINT [FK_ChartOfAccounts_ChartOfAccounts] FOREIGN KEY ([ParentAccountID]) REFERENCES [dbo].[ChartOfAccounts] ([ChartOfAccountID]),
     CONSTRAINT [FK_ChartOfAccounts_Websites] FOREIGN KEY ([WebsiteID]) REFERENCES [dbo].[Websites] ([WebsiteID])
 );
+GO
 
+CREATE NONCLUSTERED INDEX [IX_ChartOfAccounts_ParentAccountID]
+    ON [dbo].[ChartOfAccounts] ([ParentAccountID] ASC);
+
+CREATE NONCLUSTERED INDEX [IX_ChartOfAccounts_WebsiteID]
+    ON [dbo].[ChartOfAccounts] ([WebsiteID] ASC);

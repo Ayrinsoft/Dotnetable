@@ -1,6 +1,7 @@
 @inject IFileService FileService
 @inject IStorageSettingService StorageService
 @inject ISnackbar Snackbar
+@inject IDialogService DialogService
 @inject IPageLocalizer L
 
 <MudDialog>
@@ -80,7 +81,18 @@
                             @foreach (var f in _files)
                             {
                                 <MudListItem T="string" Icon="@Icons.Material.Filled.InsertDriveFile">
-                                    @f.Name <MudText Typo="Typo.caption" Color="Color.Secondary" Class="d-inline">(@MediaFormat.Size((long)Math.Ceiling(f.Size / 1024d)))</MudText>
+                                    <MudStack Row="true" AlignItems="AlignItems.Center" Justify="Justify.SpaceBetween">
+                                        <span>
+                                            @f.Name <MudText Typo="Typo.caption" Color="Color.Secondary" Class="d-inline">(@MediaFormat.Size((long)Math.Ceiling(f.Size / 1024d)))</MudText>
+                                            @if (_edits.TryGetValue(f, out var spec) && spec.HasEdits)
+                                            {
+                                                <MudChip T="string" Size="Size.Small" Color="Color.Info" Class="ms-2">@L["upload.edited", "edited"]</MudChip>
+                                            }
+                                        </span>
+                                        <MudIconButton Icon="@Icons.Material.Filled.Tune" Size="Size.Small"
+                                                       Title="@L["upload.edit", "Crop / resize / watermark"]"
+                                                       OnClick="@(() => EditFileAsync(f))" />
+                                    </MudStack>
                                 </MudListItem>
                             }
                         </MudList>
@@ -114,6 +126,7 @@
     private int? _albumId;
     private IReadOnlyCollection<int> _tagIds = new HashSet<int>();
     private IReadOnlyList<IBrowserFile>? _files;
+    private readonly Dictionary<IBrowserFile, FileEditSpec> _edits = new();
     private List<StorageSettingInfo> _storages = new();
     private IReadOnlyList<FileAlbum> _albums = Array.Empty<FileAlbum>();
     private IReadOnlyList<FileTag> _tags = Array.Empty<FileTag>();
@@ -128,6 +141,19 @@
         _tags = await FileService.GetTagsAsync(WebsiteId);
     }
 
+    private async Task EditFileAsync(IBrowserFile file)
+    {
+        var parameters = new DialogParameters<MediaEditDialog>
+        {
+            { x => x.File, file },
+            { x => x.Existing, _edits.GetValueOrDefault(file) },
+        };
+        var dialog = await DialogService.ShowAsync<MediaEditDialog>(L["upload.edit_title", "Edit before upload"], parameters);
+        var result = await dialog.Result;
+        if (result is { Canceled: false, Data: FileEditSpec spec })
+            _edits[file] = spec;
+    }
+
     private async Task UploadAsync()
     {
         if (_files is null || _files.Count == 0) return;
@@ -140,6 +166,7 @@
             {
                 try
                 {
+                    var spec = _edits.GetValueOrDefault(file);
                     await using var stream = file.OpenReadStream(MaxUploadBytes);
                     await FileService.UploadAsync(new FileUploadRequest
                     {
@@ -150,6 +177,12 @@
                         MimeType = file.ContentType,
                         AlbumID = _albumId,
                         TagIDs = tagIds,
+                        CustomFileName = spec?.FileName,
+                        Crop = spec?.Crop,
+                        ResizeWidth = spec?.ResizeWidth,
+                        ResizeHeight = spec?.ResizeHeight,
+                        Grayscale = spec?.Grayscale ?? false,
+                        ApplyWatermark = spec?.ApplyWatermark,
                     });
                     ok++;
                 }

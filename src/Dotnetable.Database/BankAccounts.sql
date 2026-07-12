@@ -15,4 +15,13 @@
     CONSTRAINT [FK_BankAccounts_Members] FOREIGN KEY ([CreatedByMemberID]) REFERENCES [dbo].[Members] ([MemberID]),
     CONSTRAINT [FK_BankAccounts_Websites] FOREIGN KEY ([WebsiteID]) REFERENCES [dbo].[Websites] ([WebsiteID])
 );
+GO
 
+CREATE NONCLUSTERED INDEX [IX_BankAccounts_BankID]
+    ON [dbo].[BankAccounts] ([BankID] ASC);
+
+CREATE NONCLUSTERED INDEX [IX_BankAccounts_CreatedByMemberId]
+    ON [dbo].[BankAccounts] ([CreatedByMemberId] ASC);
+
+CREATE NONCLUSTERED INDEX [IX_BankAccounts_WebsiteID]
+    ON [dbo].[BankAccounts] ([WebsiteID] ASC);

@@ -12,4 +12,16 @@
     CONSTRAINT [FK_SettlementItems_Settlements] FOREIGN KEY ([SettlementID]) REFERENCES [dbo].[Settlements] ([SettlementID]),
     CONSTRAINT [FK_SettlementItems_StockMovements] FOREIGN KEY ([StockMovementID]) REFERENCES [dbo].[StockMovements] ([StockMovementID])
 );
+GO
 
+CREATE NONCLUSTERED INDEX [IX_SettlementItems_OrderItemID]
+    ON [dbo].[SettlementItems] ([OrderItemID] ASC);
+
+CREATE NONCLUSTERED INDEX [IX_SettlementItems_PaymentID]
+    ON [dbo].[SettlementItems] ([PaymentID] ASC);
+
+CREATE NONCLUSTERED INDEX [IX_SettlementItems_SettlementID]
+    ON [dbo].[SettlementItems] ([SettlementID] ASC);
+
+CREATE NONCLUSTERED INDEX [IX_SettlementItems_StockMovementID]
+    ON [dbo].[SettlementItems] ([StockMovementID] ASC);

@@ -12,4 +12,13 @@
     CONSTRAINT [FK_ProductCategories_ProductCategories] FOREIGN KEY ([ParentCategoryID]) REFERENCES [dbo].[ProductCategories] ([ProductCategoryID]),
     CONSTRAINT [FK_ProductCategories_Websites] FOREIGN KEY ([WebsiteID]) REFERENCES [dbo].[Websites] ([WebsiteID])
 );
+GO
 
+CREATE NONCLUSTERED INDEX [IX_ProductCategories_ImageFileID]
+    ON [dbo].[ProductCategories] ([ImageFileID] ASC);
+
+CREATE NONCLUSTERED INDEX [IX_ProductCategories_ParentCategoryID]
+    ON [dbo].[ProductCategories] ([ParentCategoryID] ASC);
+
+CREATE NONCLUSTERED INDEX [IX_ProductCategories_WebsiteID]
+    ON [dbo].[ProductCategories] ([WebsiteID] ASC);

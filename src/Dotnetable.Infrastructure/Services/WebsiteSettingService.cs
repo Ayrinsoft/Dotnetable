@@ -181,4 +181,32 @@ public class WebsiteSettingService : IWebsiteSettingService
         _context.WebsiteSocialLinks.Remove(entity);
         await _context.SaveChangesAsync(ct);
     }
+
+    // ── Watermark ────────────────────────────────────────────────────
+
+    public async Task<WebsiteWatermarkSetting?> GetWatermarkSettingAsync(int websiteId, CancellationToken ct = default) =>
+        await _context.WebsiteWatermarkSettings
+            .Include(x => x.WatermarkFile)
+            .FirstOrDefaultAsync(x => x.WebsiteID == websiteId, ct);
+
+    public async Task SaveWatermarkSettingAsync(WebsiteWatermarkSetting setting, CancellationToken ct = default)
+    {
+        var existing = await _context.WebsiteWatermarkSettings
+            .FirstOrDefaultAsync(x => x.WebsiteID == setting.WebsiteID, ct);
+
+        if (existing is null)
+        {
+            _context.WebsiteWatermarkSettings.Add(setting);
+        }
+        else
+        {
+            existing.WatermarkFileID = setting.WatermarkFileID;
+            existing.Position = setting.Position;
+            existing.SizePercent = setting.SizePercent;
+            existing.Opacity = setting.Opacity;
+            existing.Enabled = setting.Enabled;
+        }
+
+        await _context.SaveChangesAsync(ct);
+    }
 }
