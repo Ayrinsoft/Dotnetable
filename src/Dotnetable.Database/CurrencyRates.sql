@@ -9,4 +9,10 @@
     CONSTRAINT [FK_CurrencyRates_Currencies] FOREIGN KEY ([CurrencyCode]) REFERENCES [dbo].[Currencies] ([CurrencyCode]),
     CONSTRAINT [FK_CurrencyRates_Websites] FOREIGN KEY ([WebsiteID]) REFERENCES [dbo].[Websites] ([WebsiteID])
 );
+GO
 
+CREATE NONCLUSTERED INDEX [IX_CurrencyRates_CurrencyCode]
+    ON [dbo].[CurrencyRates] ([CurrencyCode] ASC);
+
+CREATE NONCLUSTERED INDEX [IX_CurrencyRates_WebsiteID]
+    ON [dbo].[CurrencyRates] ([WebsiteID] ASC);

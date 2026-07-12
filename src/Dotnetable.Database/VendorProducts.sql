@@ -13,4 +13,13 @@
     CONSTRAINT [FK_VendorProducts_Vendors] FOREIGN KEY ([VendorID]) REFERENCES [dbo].[Vendors] ([VendorID]),
     CONSTRAINT [FK_VendorProducts_Websites] FOREIGN KEY ([WebsiteID]) REFERENCES [dbo].[Websites] ([WebsiteID])
 );
+GO
 
+CREATE NONCLUSTERED INDEX [IX_VendorProducts_ProductVariantID]
+    ON [dbo].[VendorProducts] ([ProductVariantID] ASC);
+
+CREATE NONCLUSTERED INDEX [IX_VendorProducts_VendorID]
+    ON [dbo].[VendorProducts] ([VendorID] ASC);
+
+CREATE NONCLUSTERED INDEX [IX_VendorProducts_WebsiteID]
+    ON [dbo].[VendorProducts] ([WebsiteID] ASC);

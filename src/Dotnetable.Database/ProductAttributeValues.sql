@@ -12,4 +12,13 @@
     CONSTRAINT [FK_ProductAttributeValues_AttributeOptions] FOREIGN KEY ([AttributeOptionID]) REFERENCES [dbo].[AttributeOptions] ([AttributeOptionID]),
     CONSTRAINT [FK_ProductAttributeValues_Products] FOREIGN KEY ([ProductID]) REFERENCES [dbo].[Products] ([ProductID])
 );
+GO
 
+CREATE NONCLUSTERED INDEX [IX_ProductAttributeValues_AttributeDefinitionID]
+    ON [dbo].[ProductAttributeValues] ([AttributeDefinitionID] ASC);
+
+CREATE NONCLUSTERED INDEX [IX_ProductAttributeValues_AttributeOptionID]
+    ON [dbo].[ProductAttributeValues] ([AttributeOptionID] ASC);
+
+CREATE NONCLUSTERED INDEX [IX_ProductAttributeValues_ProductID]
+    ON [dbo].[ProductAttributeValues] ([ProductID] ASC);

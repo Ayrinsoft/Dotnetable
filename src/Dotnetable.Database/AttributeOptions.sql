@@ -7,4 +7,7 @@
     CONSTRAINT [PK_AttributeOptions] PRIMARY KEY CLUSTERED ([AttributeOptionID] ASC),
     CONSTRAINT [FK_AttributeOptions_AttributeDefinitions] FOREIGN KEY ([AttributeDefinitionID]) REFERENCES [dbo].[AttributeDefinitions] ([AttributeDefinitionID])
 );
+GO
 
+CREATE NONCLUSTERED INDEX [IX_AttributeOptions_AttributeDefinitionID]
+    ON [dbo].[AttributeOptions] ([AttributeDefinitionID] ASC);

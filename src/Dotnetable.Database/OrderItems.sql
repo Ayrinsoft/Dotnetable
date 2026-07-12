@@ -22,4 +22,22 @@
     CONSTRAINT [FK_OrderItems_Websites] FOREIGN KEY ([WebsiteID]) REFERENCES [dbo].[Websites] ([WebsiteID]),
     CONSTRAINT [FK_OrderItems_Website1] FOREIGN KEY ([SourceWebsiteID]) REFERENCES [dbo].[Websites] ([WebsiteID])
 );
+GO
 
+CREATE NONCLUSTERED INDEX [IX_OrderItems_OrderID]
+    ON [dbo].[OrderItems] ([OrderID] ASC);
+
+CREATE NONCLUSTERED INDEX [IX_OrderItems_ProductVariantID]
+    ON [dbo].[OrderItems] ([ProductVariantID] ASC);
+
+CREATE NONCLUSTERED INDEX [IX_OrderItems_SourceWebsiteID]
+    ON [dbo].[OrderItems] ([SourceWebsiteID] ASC);
+
+CREATE NONCLUSTERED INDEX [IX_OrderItems_VendorID]
+    ON [dbo].[OrderItems] ([VendorID] ASC);
+
+CREATE NONCLUSTERED INDEX [IX_OrderItems_VendorProductID]
+    ON [dbo].[OrderItems] ([VendorProductID] ASC);
+
+CREATE NONCLUSTERED INDEX [IX_OrderItems_WebsiteID]
+    ON [dbo].[OrderItems] ([WebsiteID] ASC);

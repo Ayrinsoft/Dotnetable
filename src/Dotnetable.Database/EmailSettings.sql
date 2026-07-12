@@ -13,4 +13,7 @@
     CONSTRAINT [PK_EmailSettings] PRIMARY KEY CLUSTERED ([EmailSettingID] ASC),
     CONSTRAINT [FK_EmailSettings_Websites] FOREIGN KEY ([WebsiteID]) REFERENCES [dbo].[Websites] ([WebsiteID])
 );
+GO
 
+CREATE NONCLUSTERED INDEX [IX_EmailSettings_WebsiteID]
+    ON [dbo].[EmailSettings] ([WebsiteID] ASC);

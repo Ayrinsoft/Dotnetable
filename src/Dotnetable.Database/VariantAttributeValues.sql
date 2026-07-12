@@ -7,4 +7,10 @@
     CONSTRAINT [FK_VariantAttributeValues_AttributeOptions] FOREIGN KEY ([AttributeOptionID]) REFERENCES [dbo].[AttributeOptions] ([AttributeOptionID]),
     CONSTRAINT [FK_VariantAttributeValues_ProductVariants] FOREIGN KEY ([ProductVariantID]) REFERENCES [dbo].[ProductVariants] ([ProductVariantID])
 );
+GO
 
+CREATE NONCLUSTERED INDEX [IX_VariantAttributeValues_AttributeDefinitionID]
+    ON [dbo].[VariantAttributeValues] ([AttributeDefinitionID] ASC);
+
+CREATE NONCLUSTERED INDEX [IX_VariantAttributeValues_AttributeOptionID]
+    ON [dbo].[VariantAttributeValues] ([AttributeOptionID] ASC);

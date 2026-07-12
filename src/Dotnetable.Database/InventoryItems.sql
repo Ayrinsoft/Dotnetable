@@ -11,4 +11,10 @@
     CONSTRAINT [FK_InventoryItems_ProductVariants] FOREIGN KEY ([ProductVariantID]) REFERENCES [dbo].[ProductVariants] ([ProductVariantID]),
     CONSTRAINT [FK_InventoryItems_Websites] FOREIGN KEY ([WebsiteID]) REFERENCES [dbo].[Websites] ([WebsiteID])
 );
+GO
 
+CREATE NONCLUSTERED INDEX [IX_InventoryItems_ProductVariantID]
+    ON [dbo].[InventoryItems] ([ProductVariantID] ASC);
+
+CREATE NONCLUSTERED INDEX [IX_InventoryItems_WebsiteID]
+    ON [dbo].[InventoryItems] ([WebsiteID] ASC);

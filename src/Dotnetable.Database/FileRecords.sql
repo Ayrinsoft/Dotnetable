@@ -28,4 +28,19 @@
     CONSTRAINT [FK_FileRecords_WebsiteClients] FOREIGN KEY ([WebsiteClientID]) REFERENCES [dbo].[WebsiteClients] ([WebsiteClientID]),
     CONSTRAINT [FK_FileRecords_WebsiteStorageSettings] FOREIGN KEY ([WebsiteStorageSettingsID]) REFERENCES [dbo].[WebsiteStorageSettings] ([WebsiteStorageSettingsID])
 );
+GO
 
+CREATE NONCLUSTERED INDEX [IX_FileRecords_FileAlbumID]
+    ON [dbo].[FileRecords] ([FileAlbumID] ASC);
+
+CREATE NONCLUSTERED INDEX [IX_FileRecords_UploaderMemberID]
+    ON [dbo].[FileRecords] ([UploaderMemberID] ASC);
+
+CREATE NONCLUSTERED INDEX [IX_FileRecords_WebsiteClientID]
+    ON [dbo].[FileRecords] ([WebsiteClientID] ASC);
+
+CREATE NONCLUSTERED INDEX [IX_FileRecords_WebsiteID]
+    ON [dbo].[FileRecords] ([WebsiteID] ASC);
+
+CREATE NONCLUSTERED INDEX [IX_FileRecords_WebsiteStorageSettingsID]
+    ON [dbo].[FileRecords] ([WebsiteStorageSettingsID] ASC);

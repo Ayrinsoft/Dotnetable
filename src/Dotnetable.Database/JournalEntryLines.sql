@@ -9,4 +9,10 @@
     CONSTRAINT [FK_JournalEntryLines_ChartOfAccounts] FOREIGN KEY ([ChartOfAccountID]) REFERENCES [dbo].[ChartOfAccounts] ([ChartOfAccountID]),
     CONSTRAINT [FK_JournalEntryLines_JournalEntries] FOREIGN KEY ([JournalEntryID]) REFERENCES [dbo].[JournalEntries] ([JournalEntryID])
 );
+GO
 
+CREATE NONCLUSTERED INDEX [IX_JournalEntryLines_ChartOfAccountID]
+    ON [dbo].[JournalEntryLines] ([ChartOfAccountID] ASC);
+
+CREATE NONCLUSTERED INDEX [IX_JournalEntryLines_JournalEntryID]
+    ON [dbo].[JournalEntryLines] ([JournalEntryID] ASC);

@@ -12,4 +12,13 @@
     CONSTRAINT [FK_ProductQuestions_Websites] FOREIGN KEY ([WebsiteID]) REFERENCES [dbo].[Websites] ([WebsiteID]),
     CONSTRAINT [FK_ProductQuestions_WebsiteClients] FOREIGN KEY ([WebsiteClientID]) REFERENCES [dbo].[WebsiteClients] ([WebsiteClientID])
 );
+GO
 
+CREATE NONCLUSTERED INDEX [IX_ProductQuestions_ProductID]
+    ON [dbo].[ProductQuestions] ([ProductID] ASC);
+
+CREATE NONCLUSTERED INDEX [IX_ProductQuestions_WebsiteClientID]
+    ON [dbo].[ProductQuestions] ([WebsiteClientID] ASC);
+
+CREATE NONCLUSTERED INDEX [IX_ProductQuestions_WebsiteID]
+    ON [dbo].[ProductQuestions] ([WebsiteID] ASC);

@@ -8,4 +8,7 @@
     CONSTRAINT [PK_LoginTries] PRIMARY KEY CLUSTERED ([LoginTryID] ASC),
     CONSTRAINT [FK_LoginTries_Websites] FOREIGN KEY ([WebsiteID]) REFERENCES [dbo].[Websites] ([WebsiteID])
 );
+GO
 
+CREATE NONCLUSTERED INDEX [IX_LoginTries_WebsiteID]
+    ON [dbo].[LoginTries] ([WebsiteID] ASC);

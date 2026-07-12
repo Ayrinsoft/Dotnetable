@@ -24,4 +24,13 @@
 
 GO
 EXECUTE sp_addextendedproperty @name = N'MS_Description', @value = N'0 = Basic (admin surface reduced to what this member''s Website.WebsiteType needs), 1 = General (same admin surface regardless of website type), 2 = Advanced (full surface, e.g. extra-language pages/buttons on an otherwise single-language site)', @level0type = N'SCHEMA', @level0name = N'dbo', @level1type = N'TABLE', @level1name = N'Members', @level2type = N'COLUMN', @level2name = N'AdminUIMode';
+GO
 
+CREATE NONCLUSTERED INDEX [IX_Members_AvatarID]
+    ON [dbo].[Members] ([AvatarID] ASC);
+
+CREATE NONCLUSTERED INDEX [IX_Members_PolicyID]
+    ON [dbo].[Members] ([PolicyID] ASC);
+
+CREATE NONCLUSTERED INDEX [IX_Members_WebsiteID]
+    ON [dbo].[Members] ([WebsiteID] ASC);

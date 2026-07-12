@@ -14,4 +14,7 @@
     CONSTRAINT [PK_AttributeDefinitions] PRIMARY KEY CLUSTERED ([AttributeDefinitionID] ASC),
     CONSTRAINT [FK_AttributeDefinitions_Websites] FOREIGN KEY ([WebsiteID]) REFERENCES [dbo].[Websites] ([WebsiteID])
 );
+GO
 
+CREATE NONCLUSTERED INDEX [IX_AttributeDefinitions_WebsiteID]
+    ON [dbo].[AttributeDefinitions] ([WebsiteID] ASC);

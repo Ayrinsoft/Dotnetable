@@ -1,4 +1,4 @@
-CREATE TABLE [dbo].[Carts] (
+﻿CREATE TABLE [dbo].[Carts] (
     [CartID]          INT           IDENTITY (1, 1) NOT NULL,
     [WebsiteID]       INT           NOT NULL,
     [WebsiteClientID] INT           NULL,
@@ -13,3 +13,13 @@ CREATE TABLE [dbo].[Carts] (
 );
 
 -- Guest cart: WebsiteClientID NULL + SessionKey set; merged into the client's own cart on login.
+GO
+
+CREATE NONCLUSTERED INDEX [IX_Carts_CouponID]
+    ON [dbo].[Carts] ([CouponID] ASC);
+
+CREATE NONCLUSTERED INDEX [IX_Carts_WebsiteClientID]
+    ON [dbo].[Carts] ([WebsiteClientID] ASC);
+
+CREATE NONCLUSTERED INDEX [IX_Carts_WebsiteID]
+    ON [dbo].[Carts] ([WebsiteID] ASC);

@@ -9,4 +9,7 @@
     CONSTRAINT [PK_PostTranslations] PRIMARY KEY CLUSTERED ([PostTranslationID] ASC),
     CONSTRAINT [FK_PostTranslations_Posts] FOREIGN KEY ([PostID]) REFERENCES [dbo].[Posts] ([PostID])
 );
+GO
 
+CREATE NONCLUSTERED INDEX [IX_PostTranslations_PostID]
+    ON [dbo].[PostTranslations] ([PostID] ASC);

@@ -11,4 +11,7 @@
     CONSTRAINT [PK_WebsiteScripts] PRIMARY KEY CLUSTERED ([WebsiteScriptID] ASC),
     CONSTRAINT [FK_WebsiteScripts_Websites] FOREIGN KEY ([WebsiteID]) REFERENCES [dbo].[Websites] ([WebsiteID])
 );
+GO
 
+CREATE NONCLUSTERED INDEX [IX_WebsiteScripts_WebsiteID]
+    ON [dbo].[WebsiteScripts] ([WebsiteID] ASC);

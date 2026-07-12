@@ -10,4 +10,10 @@
     CONSTRAINT [FK_OrderStatusHistories_Members] FOREIGN KEY ([CreatedByMemberID]) REFERENCES [dbo].[Members] ([MemberID]),
     CONSTRAINT [FK_OrderStatusHistories_Orders] FOREIGN KEY ([OrderID]) REFERENCES [dbo].[Orders] ([OrderID])
 );
+GO
 
+CREATE NONCLUSTERED INDEX [IX_OrderStatusHistories_CreatedByMemberID]
+    ON [dbo].[OrderStatusHistories] ([CreatedByMemberID] ASC);
+
+CREATE NONCLUSTERED INDEX [IX_OrderStatusHistories_OrderID]
+    ON [dbo].[OrderStatusHistories] ([OrderID] ASC);

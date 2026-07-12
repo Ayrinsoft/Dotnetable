@@ -27,4 +27,28 @@
     CONSTRAINT [FK_Settlements_Websites] FOREIGN KEY ([WebsiteID]) REFERENCES [dbo].[Websites] ([WebsiteID]),
     CONSTRAINT [FK_Settlements_Website1] FOREIGN KEY ([TargetWebsiteID]) REFERENCES [dbo].[Websites] ([WebsiteID])
 );
+GO
 
+CREATE NONCLUSTERED INDEX [IX_Settlements_ApprovedByMemberID]
+    ON [dbo].[Settlements] ([ApprovedByMemberID] ASC);
+
+CREATE NONCLUSTERED INDEX [IX_Settlements_BankAccountID]
+    ON [dbo].[Settlements] ([BankAccountID] ASC);
+
+CREATE NONCLUSTERED INDEX [IX_Settlements_CreatedByMemberID]
+    ON [dbo].[Settlements] ([CreatedByMemberID] ASC);
+
+CREATE NONCLUSTERED INDEX [IX_Settlements_CurrencyCode]
+    ON [dbo].[Settlements] ([CurrencyCode] ASC);
+
+CREATE NONCLUSTERED INDEX [IX_Settlements_SupplierID]
+    ON [dbo].[Settlements] ([SupplierID] ASC);
+
+CREATE NONCLUSTERED INDEX [IX_Settlements_TargetWebsiteID]
+    ON [dbo].[Settlements] ([TargetWebsiteID] ASC);
+
+CREATE NONCLUSTERED INDEX [IX_Settlements_VendorID]
+    ON [dbo].[Settlements] ([VendorID] ASC);
+
+CREATE NONCLUSTERED INDEX [IX_Settlements_WebsiteID]
+    ON [dbo].[Settlements] ([WebsiteID] ASC);

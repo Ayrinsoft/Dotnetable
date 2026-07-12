@@ -1,4 +1,4 @@
-CREATE TABLE [dbo].[ShippingMethods] (
+﻿CREATE TABLE [dbo].[ShippingMethods] (
     [ShippingMethodID] INT            IDENTITY (1, 1) NOT NULL,
     [WebsiteID]        INT            NOT NULL,
     [Title]            NVARCHAR (100) NOT NULL,
@@ -8,3 +8,7 @@ CREATE TABLE [dbo].[ShippingMethods] (
     CONSTRAINT [PK_ShippingMethods] PRIMARY KEY CLUSTERED ([ShippingMethodID] ASC),
     CONSTRAINT [FK_ShippingMethods_Websites] FOREIGN KEY ([WebsiteID]) REFERENCES [dbo].[Websites] ([WebsiteID])
 );
+GO
+
+CREATE NONCLUSTERED INDEX [IX_ShippingMethods_WebsiteID]
+    ON [dbo].[ShippingMethods] ([WebsiteID] ASC);

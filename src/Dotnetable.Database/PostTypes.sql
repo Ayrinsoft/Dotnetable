@@ -10,4 +10,7 @@
     CONSTRAINT [PK_PostTypes] PRIMARY KEY CLUSTERED ([PostTypeID] ASC),
     CONSTRAINT [FK_PostTypes_Websites] FOREIGN KEY ([WebsiteID]) REFERENCES [dbo].[Websites] ([WebsiteID])
 );
+GO
 
+CREATE NONCLUSTERED INDEX [IX_PostTypes_WebsiteID]
+    ON [dbo].[PostTypes] ([WebsiteID] ASC);

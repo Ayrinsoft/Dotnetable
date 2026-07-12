@@ -21,3 +21,13 @@
 -- 4=WithdrawalReversed, 5=AdminAdjustment.
 -- SourceType/SourceId is a polymorphic pointer (unenforced, like JournalEntries.SourceType/SourceId):
 -- 1=PaymentRefund, 2=Payment, 3=ClientWalletWithdrawal, 4=AdminManual.
+GO
+
+CREATE NONCLUSTERED INDEX [IX_ClientWalletTransactions_ClientWalletID]
+    ON [dbo].[ClientWalletTransactions] ([ClientWalletID] ASC);
+
+CREATE NONCLUSTERED INDEX [IX_ClientWalletTransactions_CreatedByMemberID]
+    ON [dbo].[ClientWalletTransactions] ([CreatedByMemberID] ASC);
+
+CREATE NONCLUSTERED INDEX [IX_ClientWalletTransactions_WebsiteID]
+    ON [dbo].[ClientWalletTransactions] ([WebsiteID] ASC);

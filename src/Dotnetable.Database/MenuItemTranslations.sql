@@ -6,4 +6,7 @@
     CONSTRAINT [PK_MenuItemTranslations] PRIMARY KEY CLUSTERED ([MenuItemTranslationID] ASC),
     CONSTRAINT [FK_MenuItemTranslations_MenuItems] FOREIGN KEY ([MenuItemID]) REFERENCES [dbo].[MenuItems] ([MenuItemID])
 );
+GO
 
+CREATE NONCLUSTERED INDEX [IX_MenuItemTranslations_MenuItemID]
+    ON [dbo].[MenuItemTranslations] ([MenuItemID] ASC);

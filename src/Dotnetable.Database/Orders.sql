@@ -29,4 +29,25 @@
     CONSTRAINT [FK_Orders_WebsiteClients] FOREIGN KEY ([WebsiteClientID]) REFERENCES [dbo].[WebsiteClients] ([WebsiteClientID]),
     CONSTRAINT [FK_Orders_WebsiteClientAddresses] FOREIGN KEY ([WebsiteClientAddressID]) REFERENCES [dbo].[WebsiteClientAddresses] ([WebsiteClientAddressID])
 );
+GO
 
+CREATE NONCLUSTERED INDEX [IX_Orders_CouponID]
+    ON [dbo].[Orders] ([CouponID] ASC);
+
+CREATE NONCLUSTERED INDEX [IX_Orders_CreatedByMemberID]
+    ON [dbo].[Orders] ([CreatedByMemberID] ASC);
+
+CREATE NONCLUSTERED INDEX [IX_Orders_CurrencyCode]
+    ON [dbo].[Orders] ([CurrencyCode] ASC);
+
+CREATE NONCLUSTERED INDEX [IX_Orders_ShippingMethodID]
+    ON [dbo].[Orders] ([ShippingMethodID] ASC);
+
+CREATE NONCLUSTERED INDEX [IX_Orders_WebsiteClientAddressID]
+    ON [dbo].[Orders] ([WebsiteClientAddressID] ASC);
+
+CREATE NONCLUSTERED INDEX [IX_Orders_WebsiteClientID]
+    ON [dbo].[Orders] ([WebsiteClientID] ASC);
+
+CREATE NONCLUSTERED INDEX [IX_Orders_WebsiteID]
+    ON [dbo].[Orders] ([WebsiteID] ASC);

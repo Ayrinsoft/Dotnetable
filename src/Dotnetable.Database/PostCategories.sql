@@ -6,4 +6,7 @@
     CONSTRAINT [FK_PostCategories_Categories] FOREIGN KEY ([CategoryID]) REFERENCES [dbo].[Categories] ([CategoryID]),
     CONSTRAINT [FK_PostCategories_Posts] FOREIGN KEY ([PostID]) REFERENCES [dbo].[Posts] ([PostID])
 );
+GO
 
+CREATE NONCLUSTERED INDEX [IX_PostCategories_CategoryID]
+    ON [dbo].[PostCategories] ([CategoryID] ASC);

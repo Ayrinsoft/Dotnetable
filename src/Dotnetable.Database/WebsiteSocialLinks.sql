@@ -8,4 +8,7 @@
     CONSTRAINT [PK_WebsiteSocialLinks] PRIMARY KEY CLUSTERED ([WebsiteSocialLinkID] ASC),
     CONSTRAINT [FK_WebsiteSocialLinks_Websites] FOREIGN KEY ([WebsiteID]) REFERENCES [dbo].[Websites] ([WebsiteID])
 );
+GO
 
+CREATE NONCLUSTERED INDEX [IX_WebsiteSocialLinks_WebsiteID]
+    ON [dbo].[WebsiteSocialLinks] ([WebsiteID] ASC);

@@ -1,4 +1,4 @@
-CREATE TABLE [dbo].[TaxRates] (
+﻿CREATE TABLE [dbo].[TaxRates] (
     [TaxRateID] INT            IDENTITY (1, 1) NOT NULL,
     [WebsiteID] INT            NOT NULL,
     [Title]     NVARCHAR (100) NOT NULL,
@@ -15,3 +15,13 @@ CREATE TABLE [dbo].[TaxRates] (
 
 -- Rate is a fraction (0.09 = 9%). Multiple active rows can apply to the same order (stacked
 -- taxes); Priority only controls calculation order, not exclusivity.
+GO
+
+CREATE NONCLUSTERED INDEX [IX_TaxRates_CountryID]
+    ON [dbo].[TaxRates] ([CountryID] ASC);
+
+CREATE NONCLUSTERED INDEX [IX_TaxRates_StateID]
+    ON [dbo].[TaxRates] ([StateID] ASC);
+
+CREATE NONCLUSTERED INDEX [IX_TaxRates_WebsiteID]
+    ON [dbo].[TaxRates] ([WebsiteID] ASC);

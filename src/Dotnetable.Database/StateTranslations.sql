@@ -6,4 +6,7 @@
     CONSTRAINT [PK_StateTranslations] PRIMARY KEY CLUSTERED ([StateTranslationID] ASC),
     CONSTRAINT [FK_StateTranslations_States] FOREIGN KEY ([StateID]) REFERENCES [dbo].[States] ([StateID])
 );
+GO
 
+CREATE NONCLUSTERED INDEX [IX_StateTranslations_StateID]
+    ON [dbo].[StateTranslations] ([StateID] ASC);

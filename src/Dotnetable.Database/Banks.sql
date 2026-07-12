@@ -9,4 +9,10 @@
     CONSTRAINT [FK_Banks_FileRecords] FOREIGN KEY ([LogoFileID]) REFERENCES [dbo].[FileRecords] ([FileRecordID]),
     CONSTRAINT [FK_Banks_Websites] FOREIGN KEY ([WebsiteID]) REFERENCES [dbo].[Websites] ([WebsiteID])
 );
+GO
 
+CREATE NONCLUSTERED INDEX [IX_Banks_LogoFileID]
+    ON [dbo].[Banks] ([LogoFileID] ASC);
+
+CREATE NONCLUSTERED INDEX [IX_Banks_WebsiteID]
+    ON [dbo].[Banks] ([WebsiteID] ASC);

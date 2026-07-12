@@ -240,6 +240,8 @@ public partial class AppDbContext : DbContext
 
     public virtual DbSet<WebsiteTheme> WebsiteThemes { get; set; }
 
+    public virtual DbSet<WebsiteWatermarkSetting> WebsiteWatermarkSettings { get; set; }
+
     public virtual DbSet<Wishlist> Wishlists { get; set; }
 
     public virtual DbSet<WishlistItem> WishlistItems { get; set; }
@@ -249,7 +251,11 @@ public partial class AppDbContext : DbContext
         modelBuilder.Entity<AttributeDefinition>(entity =>
         {
             entity.Property(e => e.Code).HasMaxLength(100);
+            entity.Property(e => e.IsComparable).HasDefaultValue(false, "DF_AttributeDefinitions_IsComparable");
+            entity.Property(e => e.IsFilterable).HasDefaultValue(false, "DF_AttributeDefinitions_IsFilterable");
+            entity.Property(e => e.IsVariantAttribute).HasDefaultValue(false, "DF_AttributeDefinitions_IsVariantAttribute");
             entity.Property(e => e.Name).HasMaxLength(200);
+            entity.Property(e => e.SortOrder).HasDefaultValue(0, "DF_AttributeDefinitions_SortOrder");
             entity.Property(e => e.Unit).HasMaxLength(30);
 
             entity.HasOne(d => d.Website).WithMany(p => p.AttributeDefinitions)
@@ -279,6 +285,7 @@ public partial class AppDbContext : DbContext
                 .HasMaxLength(7)
                 .IsUnicode(false)
                 .IsFixedLength();
+            entity.Property(e => e.SortOrder).HasDefaultValue(0, "DF_AttributeOptions_SortOrder");
             entity.Property(e => e.Value).HasMaxLength(2000);
 
             entity.HasOne(d => d.AttributeDefinition).WithMany(p => p.AttributeOptions)
@@ -408,7 +415,9 @@ public partial class AppDbContext : DbContext
 
         modelBuilder.Entity<CartItem>(entity =>
         {
-            entity.HasIndex(e => new { e.CartID, e.ProductVariantID, e.VendorProductID }, "UQ_CartItems_CartID_ProductVariantID_VendorProductID").IsUnique();
+            entity.HasIndex(e => new { e.CartID, e.ProductVariantID, e.VendorProductID }, "UQ_CartItems_CartID_ProductVariantID_VendorProductID")
+                .IsUnique()
+                .HasFilter(null);
 
             entity.Property(e => e.AddedAt)
                 .HasPrecision(0)
@@ -435,6 +444,7 @@ public partial class AppDbContext : DbContext
             entity.Property(e => e.IsActive).HasDefaultValue(true, "DF_Categories_IsActive");
             entity.Property(e => e.Name).HasMaxLength(200);
             entity.Property(e => e.Slug).HasMaxLength(200);
+            entity.Property(e => e.SortOrder).HasDefaultValue(0, "DF_Categories_SortOrder");
 
             entity.HasOne(d => d.ParentCategory).WithMany(p => p.InverseParentCategory)
                 .HasForeignKey(d => d.ParentCategoryID)
@@ -528,6 +538,7 @@ public partial class AppDbContext : DbContext
                 .HasMaxLength(34)
                 .IsUnicode(false);
             entity.Property(e => e.IsActive).HasDefaultValue(true, "DF_ClientBankAccounts_IsActive");
+            entity.Property(e => e.IsDefault).HasDefaultValue(false, "DF_ClientBankAccounts_IsDefault");
             entity.Property(e => e.OwnerName).HasMaxLength(90);
 
             entity.HasOne(d => d.Bank).WithMany(p => p.ClientBankAccounts)
@@ -549,7 +560,9 @@ public partial class AppDbContext : DbContext
         {
             entity.HasIndex(e => e.WebsiteClientID, "UQ_ClientWallets_WebsiteClientID").IsUnique();
 
-            entity.Property(e => e.BalanceUsd).HasColumnType("decimal(18, 4)");
+            entity.Property(e => e.BalanceUsd)
+                .HasColumnType("decimal(18, 4)")
+                .HasDefaultValue(0m, "DF_ClientWallets_BalanceUsd");
             entity.Property(e => e.CreatedAt)
                 .HasPrecision(0)
                 .HasDefaultValueSql("(sysutcdatetime())", "DF_ClientWallets_CreatedAt");
@@ -698,8 +711,11 @@ public partial class AppDbContext : DbContext
             entity.Property(e => e.EndsAt).HasPrecision(0);
             entity.Property(e => e.IsActive).HasDefaultValue(true, "DF_Coupons_IsActive");
             entity.Property(e => e.MaxDiscountAmountUsd).HasColumnType("decimal(18, 4)");
-            entity.Property(e => e.MinOrderAmountUsd).HasColumnType("decimal(18, 4)");
+            entity.Property(e => e.MinOrderAmountUsd)
+                .HasColumnType("decimal(18, 4)")
+                .HasDefaultValue(0m, "DF_Coupons_MinOrderAmountUsd");
             entity.Property(e => e.StartsAt).HasPrecision(0);
+            entity.Property(e => e.TimesUsed).HasDefaultValue(0, "DF_Coupons_TimesUsed");
 
             entity.HasOne(d => d.CreatedByMember).WithMany(p => p.Coupons)
                 .HasForeignKey(d => d.CreatedByMemberID)
@@ -970,7 +986,12 @@ public partial class AppDbContext : DbContext
 
         modelBuilder.Entity<InventoryItem>(entity =>
         {
-            entity.Property(e => e.AvgCostUsd).HasColumnType("decimal(18, 4)");
+            entity.Property(e => e.AvgCostUsd)
+                .HasColumnType("decimal(18, 4)")
+                .HasDefaultValue(0m, "DF_InventoryItems_AvgCostUsd");
+            entity.Property(e => e.QuantityOnHand).HasDefaultValue(0, "DF_InventoryItems_QuantityOnHand");
+            entity.Property(e => e.QuantityReserved).HasDefaultValue(0, "DF_InventoryItems_QuantityReserved");
+            entity.Property(e => e.ReorderLevel).HasDefaultValue(0, "DF_InventoryItems_ReorderLevel");
             entity.Property(e => e.RowVersion)
                 .IsRowVersion()
                 .IsConcurrencyToken();
@@ -993,6 +1014,7 @@ public partial class AppDbContext : DbContext
                 .HasColumnType("datetime");
             entity.Property(e => e.Description).HasMaxLength(500);
             entity.Property(e => e.EntryNumber).HasMaxLength(30);
+            entity.Property(e => e.IsPosted).HasDefaultValue(false, "DF_JournalEntries_IsPosted");
 
             entity.HasOne(d => d.Website).WithMany(p => p.JournalEntries)
                 .HasForeignKey(d => d.WebsiteID)
@@ -1002,8 +1024,12 @@ public partial class AppDbContext : DbContext
 
         modelBuilder.Entity<JournalEntryLine>(entity =>
         {
-            entity.Property(e => e.Credit).HasColumnType("decimal(18, 4)");
-            entity.Property(e => e.Debit).HasColumnType("decimal(18, 4)");
+            entity.Property(e => e.Credit)
+                .HasColumnType("decimal(18, 4)")
+                .HasDefaultValue(0m, "DF_JournalEntryLines_Credit");
+            entity.Property(e => e.Debit)
+                .HasColumnType("decimal(18, 4)")
+                .HasDefaultValue(0m, "DF_JournalEntryLines_Debit");
             entity.Property(e => e.Description).HasMaxLength(300);
 
             entity.HasOne(d => d.ChartOfAccount).WithMany(p => p.JournalEntryLines)
@@ -1088,6 +1114,7 @@ public partial class AppDbContext : DbContext
             entity.Property(e => e.CreatedAt)
                 .HasDefaultValueSql("(sysutcdatetime())", "DF_MediaSets_CreatedAt_1")
                 .HasColumnType("datetime");
+            entity.Property(e => e.IsShared).HasDefaultValue(false, "DF_MediaSets_IsShared_1");
             entity.Property(e => e.Name).HasMaxLength(200);
 
             entity.HasOne(d => d.Website).WithMany(p => p.MediaSets)
@@ -1099,6 +1126,7 @@ public partial class AppDbContext : DbContext
         modelBuilder.Entity<MediaSetItem>(entity =>
         {
             entity.Property(e => e.ExternalVideoUrl).HasMaxLength(500);
+            entity.Property(e => e.SortOrder).HasDefaultValue(0, "DF_MediaSetItems_SortOrder");
 
             entity.HasOne(d => d.File).WithMany(p => p.MediaSetItemFiles)
                 .HasForeignKey(d => d.FileID)
@@ -1181,6 +1209,8 @@ public partial class AppDbContext : DbContext
             entity.Property(e => e.CssClass).HasMaxLength(100);
             entity.Property(e => e.Icon).HasMaxLength(100);
             entity.Property(e => e.IsActive).HasDefaultValue(true, "DF_MenuItems_IsActive");
+            entity.Property(e => e.OpenInNewTab).HasDefaultValue(false, "DF_MenuItems_OpenInNewTab");
+            entity.Property(e => e.SortOrder).HasDefaultValue(0, "DF_MenuItems_SortOrder");
             entity.Property(e => e.Title).HasMaxLength(200);
             entity.Property(e => e.Url).HasMaxLength(500);
 
@@ -1246,17 +1276,29 @@ public partial class AppDbContext : DbContext
                 .HasMaxLength(3)
                 .IsUnicode(false)
                 .IsFixedLength();
-            entity.Property(e => e.DiscountTotal).HasColumnType("decimal(18, 4)");
+            entity.Property(e => e.DiscountTotal)
+                .HasColumnType("decimal(18, 4)")
+                .HasDefaultValue(0m, "DF_Orders_DiscountTotal");
             entity.Property(e => e.ExchangeRateToUsd).HasColumnType("decimal(18, 6)");
-            entity.Property(e => e.GrandTotal).HasColumnType("decimal(18, 4)");
-            entity.Property(e => e.GrandTotalUsd).HasColumnType("decimal(18, 4)");
+            entity.Property(e => e.GrandTotal)
+                .HasColumnType("decimal(18, 4)")
+                .HasDefaultValue(0m, "DF_Orders_GrandTotal_1");
+            entity.Property(e => e.GrandTotalUsd)
+                .HasColumnType("decimal(18, 4)")
+                .HasDefaultValue(0m, "DF_Orders_GrandTotalUsd_1");
             entity.Property(e => e.Note).HasMaxLength(1000);
             entity.Property(e => e.OrderNumber).HasMaxLength(30);
             entity.Property(e => e.PaidAt).HasColumnType("datetime");
-            entity.Property(e => e.ShippingTotal).HasColumnType("decimal(18, 4)");
+            entity.Property(e => e.ShippingTotal)
+                .HasColumnType("decimal(18, 4)")
+                .HasDefaultValue(0m, "DF_Orders_ShippingTotal");
             entity.Property(e => e.Status).HasDefaultValue((byte)1, "DF_Orders_Status_1");
-            entity.Property(e => e.SubTotal).HasColumnType("decimal(18, 4)");
-            entity.Property(e => e.TaxTotal).HasColumnType("decimal(18, 4)");
+            entity.Property(e => e.SubTotal)
+                .HasColumnType("decimal(18, 4)")
+                .HasDefaultValue(0m, "DF_Orders_SubTotal_1");
+            entity.Property(e => e.TaxTotal)
+                .HasColumnType("decimal(18, 4)")
+                .HasDefaultValue(0m, "DF_Orders_TaxTotal");
 
             entity.HasOne(d => d.Coupon).WithMany(p => p.Orders)
                 .HasForeignKey(d => d.CouponID)
@@ -1292,11 +1334,15 @@ public partial class AppDbContext : DbContext
 
         modelBuilder.Entity<OrderItem>(entity =>
         {
-            entity.Property(e => e.DiscountAmount).HasColumnType("decimal(18, 4)");
+            entity.Property(e => e.DiscountAmount)
+                .HasColumnType("decimal(18, 4)")
+                .HasDefaultValue(0m, "DF_OrderItems_DiscountAmount");
             entity.Property(e => e.SkuSnapshot).HasMaxLength(100);
             entity.Property(e => e.TitleSnapshot).HasMaxLength(300);
             entity.Property(e => e.TotalPrice).HasColumnType("decimal(18, 4)");
-            entity.Property(e => e.UnitCostUsd).HasColumnType("decimal(18, 4)");
+            entity.Property(e => e.UnitCostUsd)
+                .HasColumnType("decimal(18, 4)")
+                .HasDefaultValue(0m, "DF_OrderItems_UnitCostUsd");
             entity.Property(e => e.UnitPrice).HasColumnType("decimal(18, 4)");
             entity.Property(e => e.UnitPriceUsd).HasColumnType("decimal(18, 4)");
 
@@ -1352,7 +1398,9 @@ public partial class AppDbContext : DbContext
                 .HasPrecision(0)
                 .HasDefaultValueSql("(sysutcdatetime())", "DF_Pages_CreatedAt_1");
             entity.Property(e => e.IsActive).HasDefaultValue(true, "DF_Pages_IsActive_1");
+            entity.Property(e => e.IsHomepage).HasDefaultValue(false, "DF_Pages_IsHomepage_1");
             entity.Property(e => e.Slug).HasMaxLength(300);
+            entity.Property(e => e.SortOrder).HasDefaultValue(0, "DF_Pages_SortOrder");
             entity.Property(e => e.Status).HasDefaultValue((byte)1, "DF_Pages_Status_1");
             entity.Property(e => e.Template).HasMaxLength(100);
             entity.Property(e => e.Title).HasMaxLength(300);
@@ -1451,9 +1499,11 @@ public partial class AppDbContext : DbContext
             entity.Property(e => e.ApiKey).HasMaxLength(500);
             entity.Property(e => e.ApiSecret).HasMaxLength(500);
             entity.Property(e => e.IsActive).HasDefaultValue(true, "DF_PaymentGateways_IsActive");
+            entity.Property(e => e.IsSandbox).HasDefaultValue(false, "DF_PaymentGateways_IsSandbox");
             entity.Property(e => e.MerchantID).HasMaxLength(200);
             entity.Property(e => e.Name).HasMaxLength(150);
             entity.Property(e => e.Provider).HasMaxLength(50);
+            entity.Property(e => e.SortOrder).HasDefaultValue(0, "DF_PaymentGateways_SortOrder");
 
             entity.HasOne(d => d.Website).WithMany(p => p.PaymentGateways)
                 .HasForeignKey(d => d.WebsiteID)
@@ -1525,6 +1575,7 @@ public partial class AppDbContext : DbContext
                 .HasColumnType("datetime");
             entity.Property(e => e.Excerpt).HasMaxLength(1000);
             entity.Property(e => e.IsActive).HasDefaultValue(true, "DF_Posts_IsActive_1");
+            entity.Property(e => e.IsFeatured).HasDefaultValue(false, "DF_Posts_IsFeatured_1");
             entity.Property(e => e.PublishedAt).HasColumnType("datetime");
             entity.Property(e => e.ScheduledAt).HasColumnType("datetime");
             entity.Property(e => e.Slug).HasMaxLength(300);
@@ -1533,6 +1584,7 @@ public partial class AppDbContext : DbContext
             entity.Property(e => e.UpdatedAt)
                 .HasDefaultValueSql("(sysutcdatetime())", "DF_Posts_UpdatedAt_1")
                 .HasColumnType("datetime");
+            entity.Property(e => e.ViewCount).HasDefaultValue(0, "DF_Posts_ViewCount_1");
 
             entity.HasOne(d => d.AuthorMember).WithMany(p => p.Posts)
                 .HasForeignKey(d => d.AuthorMemberID)
@@ -1573,6 +1625,8 @@ public partial class AppDbContext : DbContext
         modelBuilder.Entity<PostCategory>(entity =>
         {
             entity.HasKey(e => new { e.PostID, e.CategoryID });
+
+            entity.Property(e => e.IsPrimary).HasDefaultValue(false, "DF_PostCategories_IsPrimary");
 
             entity.HasOne(d => d.Category).WithMany(p => p.PostCategories)
                 .HasForeignKey(d => d.CategoryID)
@@ -1618,13 +1672,19 @@ public partial class AppDbContext : DbContext
 
         modelBuilder.Entity<Product>(entity =>
         {
-            entity.Property(e => e.AvgRating).HasColumnType("decimal(3, 2)");
+            entity.Property(e => e.AvgRating)
+                .HasColumnType("decimal(3, 2)")
+                .HasDefaultValue(0m, "DF_Products_AvgRating_1");
             entity.Property(e => e.CreatedAt)
                 .HasDefaultValueSql("(sysutcdatetime())", "DF_Products_CreatedAt_1")
                 .HasColumnType("datetime");
+            entity.Property(e => e.HasVariants).HasDefaultValue(false, "DF_Products_HasVariants_1");
             entity.Property(e => e.IsActive).HasDefaultValue(true, "DF_Products_IsActive_1");
+            entity.Property(e => e.IsCatalogOnly).HasDefaultValue(false, "DF_Products_IsCatalogOnly");
+            entity.Property(e => e.RatingCount).HasDefaultValue(0, "DF_Products_RatingCount_1");
             entity.Property(e => e.ShortDescription).HasMaxLength(1000);
             entity.Property(e => e.Slug).HasMaxLength(300);
+            entity.Property(e => e.SortOrder).HasDefaultValue(0, "DF_Products_SortOrder");
             entity.Property(e => e.Status).HasDefaultValue((byte)1, "DF_Products_Status_1");
             entity.Property(e => e.Title).HasMaxLength(300);
             entity.Property(e => e.UpdatedAt)
@@ -1655,6 +1715,7 @@ public partial class AppDbContext : DbContext
             entity.Property(e => e.CreatedAt)
                 .HasDefaultValueSql("(sysutcdatetime())", "DF_ProductAnswers_CreatedAt")
                 .HasColumnType("datetime");
+            entity.Property(e => e.LikeCount).HasDefaultValue(0, "DF_ProductAnswers_LikeCount");
             entity.Property(e => e.Status).HasDefaultValue((byte)1, "DF_ProductAnswers_Status");
 
             entity.HasOne(d => d.ProductQuestion).WithMany(p => p.ProductAnswers)
@@ -1674,7 +1735,9 @@ public partial class AppDbContext : DbContext
         modelBuilder.Entity<ProductAttributeValue>(entity =>
         {
             entity.Property(e => e.CustomValue).HasMaxLength(1000);
+            entity.Property(e => e.IsFeatured).HasDefaultValue(false, "DF_ProductAttributeValues_IsFeatured");
             entity.Property(e => e.NumericValue).HasColumnType("decimal(18, 4)");
+            entity.Property(e => e.SortOrder).HasDefaultValue(0, "DF_ProductAttributeValues_SortOrder");
 
             entity.HasOne(d => d.AttributeDefinition).WithMany(p => p.ProductAttributeValues)
                 .HasForeignKey(d => d.AttributeDefinitionID)
@@ -1710,6 +1773,7 @@ public partial class AppDbContext : DbContext
             entity.Property(e => e.IsActive).HasDefaultValue(true, "DF_ProductCategories_IsActive");
             entity.Property(e => e.Name).HasMaxLength(200);
             entity.Property(e => e.Slug).HasMaxLength(200);
+            entity.Property(e => e.SortOrder).HasDefaultValue(0, "DF_ProductCategories_SortOrder");
 
             entity.HasOne(d => d.ImageFile).WithMany(p => p.ProductCategories)
                 .HasForeignKey(d => d.ImageFileID)
@@ -1728,6 +1792,8 @@ public partial class AppDbContext : DbContext
         modelBuilder.Entity<ProductCategoryMap>(entity =>
         {
             entity.HasKey(e => new { e.ProductID, e.ProductCategoryID });
+
+            entity.Property(e => e.IsPrimary).HasDefaultValue(false, "DF_ProductCategoryMaps_IsPrimary");
 
             entity.HasOne(d => d.ProductCategory).WithMany(p => p.ProductCategoryMaps)
                 .HasForeignKey(d => d.ProductCategoryID)
@@ -1775,6 +1841,7 @@ public partial class AppDbContext : DbContext
         modelBuilder.Entity<ProductContentSection>(entity =>
         {
             entity.Property(e => e.IsActive).HasDefaultValue(true, "DF_ProductContentSections_IsActive");
+            entity.Property(e => e.SortOrder).HasDefaultValue(0, "DF_ProductContentSections_SortOrder");
 
             entity.HasOne(d => d.File).WithMany(p => p.ProductContentSections)
                 .HasForeignKey(d => d.FileId)
@@ -1806,6 +1873,8 @@ public partial class AppDbContext : DbContext
         modelBuilder.Entity<ProductMedium>(entity =>
         {
             entity.HasKey(e => new { e.ProductID, e.MediaSetID });
+
+            entity.Property(e => e.SortOrder).HasDefaultValue(0, "DF_ProductMedia_SortOrder");
 
             entity.HasOne(d => d.MediaSet).WithMany(p => p.ProductMedia)
                 .HasForeignKey(d => d.MediaSetID)
@@ -1846,6 +1915,8 @@ public partial class AppDbContext : DbContext
         {
             entity.HasKey(e => new { e.ProductID, e.RelatedProductID, e.RelationType });
 
+            entity.Property(e => e.SortOrder).HasDefaultValue(0, "DF_ProductRelations_SortOrder");
+
             entity.HasOne(d => d.Product).WithMany(p => p.ProductRelationProducts)
                 .HasForeignKey(d => d.ProductID)
                 .OnDelete(DeleteBehavior.ClientSetNull)
@@ -1864,6 +1935,9 @@ public partial class AppDbContext : DbContext
             entity.Property(e => e.CreatedAt)
                 .HasPrecision(0)
                 .HasDefaultValueSql("(sysutcdatetime())", "DF_ProductReviews_CreatedAt");
+            entity.Property(e => e.DislikeCount).HasDefaultValue(0, "DF_ProductReviews_DislikeCount");
+            entity.Property(e => e.IsVerifiedPurchase).HasDefaultValue(false, "DF_ProductReviews_IsVerifiedPurchase");
+            entity.Property(e => e.LikeCount).HasDefaultValue(0, "DF_ProductReviews_LikeCount");
             entity.Property(e => e.ProsJson).HasMaxLength(2000);
             entity.Property(e => e.Status).HasDefaultValue((byte)1, "DF_ProductReviews_Status");
             entity.Property(e => e.Title).HasMaxLength(200);
@@ -1912,6 +1986,7 @@ public partial class AppDbContext : DbContext
                 .HasDefaultValueSql("(sysutcdatetime())", "DF_ProductVariants_CreatedAt")
                 .HasColumnType("datetime");
             entity.Property(e => e.IsActive).HasDefaultValue(true, "DF_ProductVariants_IsActive");
+            entity.Property(e => e.IsDefault).HasDefaultValue(false, "DF_ProductVariants_IsDefault");
             entity.Property(e => e.OverridePrice).HasColumnType("decimal(18, 4)");
             entity.Property(e => e.ReferencePriceUsd).HasColumnType("decimal(18, 4)");
             entity.Property(e => e.Sku).HasMaxLength(100);
@@ -1962,6 +2037,7 @@ public partial class AppDbContext : DbContext
 
         modelBuilder.Entity<Role>(entity =>
         {
+            entity.Property(e => e.Category).HasDefaultValue((byte)0);
             entity.Property(e => e.Description)
                 .HasMaxLength(128)
                 .IsUnicode(false);
@@ -2047,6 +2123,7 @@ public partial class AppDbContext : DbContext
         {
             entity.Property(e => e.CarrierName).HasMaxLength(100);
             entity.Property(e => e.IsActive).HasDefaultValue(true, "DF_ShippingMethods_IsActive");
+            entity.Property(e => e.SortOrder).HasDefaultValue(0, "DF_ShippingMethods_SortOrder");
             entity.Property(e => e.Title).HasMaxLength(100);
 
             entity.HasOne(d => d.Website).WithMany(p => p.ShippingMethods)
@@ -2108,6 +2185,8 @@ public partial class AppDbContext : DbContext
             entity.Property(e => e.Caption).HasMaxLength(500);
             entity.Property(e => e.IsActive).HasDefaultValue(true, "DF_SlideshowSlides_IsActive");
             entity.Property(e => e.LinkUrl).HasMaxLength(500);
+            entity.Property(e => e.OpenInNewTab).HasDefaultValue(false, "DF_SlideshowSlides_OpenInNewTab");
+            entity.Property(e => e.SortOrder).HasDefaultValue(0, "DF_SlideshowSlides_SortOrder");
             entity.Property(e => e.Title).HasMaxLength(200);
 
             entity.HasOne(d => d.File).WithMany(p => p.SlideshowSlideFiles)
@@ -2167,7 +2246,9 @@ public partial class AppDbContext : DbContext
                 .HasDefaultValue(1m, "DF_StockMovements_ExchangeRateToUsd")
                 .HasColumnType("decimal(18, 6)");
             entity.Property(e => e.Note).HasMaxLength(500);
-            entity.Property(e => e.UnitCostUsd).HasColumnType("decimal(18, 4)");
+            entity.Property(e => e.UnitCostUsd)
+                .HasColumnType("decimal(18, 4)")
+                .HasDefaultValue(0m, "DF_StockMovements_UnitCostUsd");
             entity.Property(e => e.UnitSalePriceUsd).HasColumnType("decimal(18, 4)");
 
             entity.HasOne(d => d.CreatedByMember).WithMany(p => p.StockMovements)
@@ -2243,6 +2324,7 @@ public partial class AppDbContext : DbContext
         modelBuilder.Entity<TaxRate>(entity =>
         {
             entity.Property(e => e.IsActive).HasDefaultValue(true, "DF_TaxRates_IsActive");
+            entity.Property(e => e.Priority).HasDefaultValue(0, "DF_TaxRates_Priority");
             entity.Property(e => e.Rate).HasColumnType("decimal(9, 6)");
             entity.Property(e => e.Title).HasMaxLength(100);
 
@@ -2288,8 +2370,12 @@ public partial class AppDbContext : DbContext
                 .HasColumnType("decimal(18, 4)");
             entity.Property(e => e.IsActive).HasDefaultValue(true, "DF_Vendors_IsActive_1");
             entity.Property(e => e.Name).HasMaxLength(200);
-            entity.Property(e => e.Rating).HasColumnType("decimal(3, 2)");
-            entity.Property(e => e.SettlementMode).HasComment("0 = Immediate: every purchase from this vendor is settled instantly like a normal cash purchase. 1 = Credit: purchases accrue as credit and are batched into a periodic Settlements record due on CreditDays");
+            entity.Property(e => e.Rating)
+                .HasColumnType("decimal(3, 2)")
+                .HasDefaultValue(0m, "DF_Vendors_Rating_1");
+            entity.Property(e => e.SettlementMode)
+                .HasComment("0 = Immediate: every purchase from this vendor is settled instantly like a normal cash purchase. 1 = Credit: purchases accrue as credit and are batched into a periodic Settlements record due on CreditDays")
+                .HasDefaultValue((byte)0, "DF_Vendors_SettlementMode");
             entity.Property(e => e.Slug).HasMaxLength(200);
 
             entity.HasOne(d => d.LogoFile).WithMany(p => p.Vendors)
@@ -2308,6 +2394,7 @@ public partial class AppDbContext : DbContext
             entity.Property(e => e.IsActive).HasDefaultValue(true, "DF_VendorProducts_IsActive_1");
             entity.Property(e => e.OverridePrice).HasColumnType("decimal(18, 4)");
             entity.Property(e => e.ReferencePriceUsd).HasColumnType("decimal(18, 4)");
+            entity.Property(e => e.StockQuantity).HasDefaultValue(0, "DF_VendorProducts_StockQuantity");
 
             entity.HasOne(d => d.ProductVariant).WithMany(p => p.VendorProducts)
                 .HasForeignKey(d => d.ProductVariantID)
@@ -2355,6 +2442,7 @@ public partial class AppDbContext : DbContext
             entity.Property(e => e.Email)
                 .HasMaxLength(60)
                 .IsUnicode(false);
+            entity.Property(e => e.IsHub).HasDefaultValue(false, "DF_Websites_IsHub");
             entity.Property(e => e.Manager).HasMaxLength(30);
             entity.Property(e => e.Mobile)
                 .HasMaxLength(15)
@@ -2422,6 +2510,7 @@ public partial class AppDbContext : DbContext
         modelBuilder.Entity<WebsiteClientAddress>(entity =>
         {
             entity.Property(e => e.AddressLine).HasMaxLength(500);
+            entity.Property(e => e.IsDefault).HasDefaultValue(false, "DF_WebsiteClientAddresses_IsDefault");
             entity.Property(e => e.Latitude).HasColumnType("decimal(9, 6)");
             entity.Property(e => e.Longitude).HasColumnType("decimal(9, 6)");
             entity.Property(e => e.Phone).HasMaxLength(20);
@@ -2492,7 +2581,9 @@ public partial class AppDbContext : DbContext
             entity.Property(e => e.CreatedAt)
                 .HasDefaultValueSql("(sysutcdatetime())", "DF_WebsiteRedirects_CreatedAt")
                 .HasColumnType("datetime");
+            entity.Property(e => e.HitCount).HasDefaultValue(0, "DF_WebsiteRedirects_HitCount");
             entity.Property(e => e.IsActive).HasDefaultValue(true, "DF_WebsiteRedirects_IsActive");
+            entity.Property(e => e.IsRegex).HasDefaultValue(false, "DF_WebsiteRedirects_IsRegex");
             entity.Property(e => e.SourcePath).HasMaxLength(500);
             entity.Property(e => e.StatusCode).HasDefaultValue(301, "DF_WebsiteRedirects_StatusCode");
             entity.Property(e => e.TargetPath).HasMaxLength(500);
@@ -2534,6 +2625,22 @@ public partial class AppDbContext : DbContext
                 .HasForeignKey(d => d.WebsiteID)
                 .OnDelete(DeleteBehavior.ClientSetNull)
                 .HasConstraintName("FK_WebsiteSeoSettings_Websites");
+        });
+
+        modelBuilder.Entity<WebsiteWatermarkSetting>(entity =>
+        {
+            entity.Property(e => e.SizePercent).HasDefaultValue(20);
+            entity.Property(e => e.Opacity).HasDefaultValue(80);
+            entity.Property(e => e.Position).HasDefaultValue((byte)9);
+
+            entity.HasOne(d => d.Website).WithMany(p => p.WebsiteWatermarkSettings)
+                .HasForeignKey(d => d.WebsiteID)
+                .OnDelete(DeleteBehavior.ClientSetNull)
+                .HasConstraintName("FK_WebsiteWatermarkSettings_Websites");
+
+            entity.HasOne(d => d.WatermarkFile).WithMany(p => p.WebsiteWatermarkSettingWatermarkFiles)
+                .HasForeignKey(d => d.WatermarkFileID)
+                .HasConstraintName("FK_WebsiteWatermarkSettings_FileRecords");
         });
 
         modelBuilder.Entity<WebsiteSocialLink>(entity =>

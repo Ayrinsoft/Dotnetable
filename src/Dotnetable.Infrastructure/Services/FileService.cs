@@ -6,6 +6,7 @@ using Dotnetable.Infrastructure.Data;
 using Dotnetable.Infrastructure.Extensions;
 using Dotnetable.Infrastructure.Storage;
 using Microsoft.EntityFrameworkCore;
+using SkiaSharp;
 
 namespace Dotnetable.Infrastructure.Services;
 
@@ -13,11 +14,13 @@ public class FileService : IFileService
 {
     private readonly AppDbContext _context;
     private readonly IFileStorageProviderRegistry _providers;
+    private readonly IHttpClientFactory _httpClientFactory;
 
-    public FileService(AppDbContext context, IFileStorageProviderRegistry providers)
+    public FileService(AppDbContext context, IFileStorageProviderRegistry providers, IHttpClientFactory httpClientFactory)
     {
         _context = context;
         _providers = providers;
+        _httpClientFactory = httpClientFactory;
     }
 
     public async Task<PagedResult<FileRecord>> GetPagedAsync(int? websiteId, FileFilter filter, GridQuery query, CancellationToken ct = default)
@@ -83,14 +86,33 @@ public class FileService : IFileService
         var ctx = ToContext(setting);
         var provider = _providers.Get((StorageProviderType)setting.StorageProvider);
 
-        buffer.Position = 0;
-        var uploaded = await provider.UploadAsync(ctx, buffer, storedName, mime, ct);
+        // SkiaSharp takes ownership of the decoded stream, so processing always reads from `buffer`
+        // and yields a brand-new stream — `buffer` itself is never written to again afterwards.
+        Stream uploadSource = buffer;
+        if (category == FileCategory.Image)
+        {
+            var options = await BuildProcessingOptionsAsync(request, ct);
+            if (options.HasWork)
+            {
+                buffer.Position = 0;
+                var format = MimeToFormat(mime);
+                var processed = await ImageProcessor.TryProcessAsync(buffer, options, format, ct);
+                if (processed is not null)
+                {
+                    uploadSource = processed;
+                    sizeKb = (int)Math.Ceiling(processed.Length / 1024d);
+                }
+            }
+        }
+
+        uploadSource.Position = 0;
+        var uploaded = await provider.UploadAsync(ctx, uploadSource, storedName, mime, ct);
 
         string? thumbStorage = null, thumbCdn = null;
         if (setting.AutoGenerateThumbnails && category == FileCategory.Image)
         {
-            buffer.Position = 0;
-            await using var thumb = await ImageThumbnailer.TryCreateAsync(buffer, ct);
+            uploadSource.Position = 0;
+            await using var thumb = await ImageThumbnailer.TryCreateAsync(uploadSource, ct);
             if (thumb is not null)
             {
                 var thumbName = "t_" + storedName;
@@ -100,6 +122,9 @@ public class FileService : IFileService
             }
         }
 
+        if (!ReferenceEquals(uploadSource, buffer))
+            await uploadSource.DisposeAsync();
+
         var record = new FileRecord
         {
             WebsiteID = request.WebsiteID,
@@ -108,7 +133,7 @@ public class FileService : IFileService
             StoragePath = uploaded.StoragePath,
             CNDUrl = uploaded.CdnUrl,
             CDNFileCode = uploaded.CdnFileCode,
-            OriginalFileName = Truncate(request.OriginalFileName, 120)!,
+            OriginalFileName = Truncate(string.IsNullOrWhiteSpace(request.CustomFileName) ? request.OriginalFileName : request.CustomFileName, 120)!,
             StoredFileName = storedName,
             MimeType = Truncate(mime, 74)!,
             FileSizeKB = sizeKb,
@@ -212,6 +237,66 @@ public class FileService : IFileService
         await _context.FileRecordTags.Where(t => t.FileTagID == tagId).ExecuteDeleteAsync(ct);
         await _context.FileTags.Where(t => t.FileTagID == tagId).ExecuteDeleteAsync(ct);
     }
+
+    // ── Image processing ────────────────────────────────────────
+    private async Task<ImageProcessingOptions> BuildProcessingOptionsAsync(FileUploadRequest request, CancellationToken ct)
+    {
+        WatermarkOptions? watermark = null;
+
+        var setting = await _context.WebsiteWatermarkSettings.AsNoTracking()
+            .Include(s => s.WatermarkFile)
+            .FirstOrDefaultAsync(s => s.WebsiteID == request.WebsiteID, ct);
+
+        var shouldApply = setting is { WatermarkFile.CNDUrl: not null }
+            && (request.ApplyWatermark ?? setting.Enabled);
+
+        if (shouldApply)
+        {
+            var bytes = await TryDownloadAsync(setting!.WatermarkFile!.CNDUrl!, ct);
+            if (bytes is not null)
+            {
+                watermark = new WatermarkOptions
+                {
+                    ImageBytes = bytes,
+                    Position = (WatermarkPosition)setting.Position,
+                    SizePercent = setting.SizePercent,
+                    Opacity = setting.Opacity,
+                };
+            }
+        }
+
+        return new ImageProcessingOptions
+        {
+            Crop = request.Crop,
+            ResizeWidth = request.ResizeWidth,
+            ResizeHeight = request.ResizeHeight,
+            Grayscale = request.Grayscale,
+            Watermark = watermark,
+        };
+    }
+
+    private async Task<byte[]?> TryDownloadAsync(string url, CancellationToken ct)
+    {
+        if (!Uri.TryCreate(url, UriKind.Absolute, out var uri)) return null;
+        try
+        {
+            var client = _httpClientFactory.CreateClient();
+            return await client.GetByteArrayAsync(uri, ct);
+        }
+        catch
+        {
+            return null;
+        }
+    }
+
+    private static SKEncodedImageFormat MimeToFormat(string mime) => mime.ToLowerInvariant() switch
+    {
+        "image/png" => SKEncodedImageFormat.Png,
+        "image/webp" => SKEncodedImageFormat.Webp,
+        "image/gif" => SKEncodedImageFormat.Gif,
+        "image/bmp" => SKEncodedImageFormat.Bmp,
+        _ => SKEncodedImageFormat.Jpeg,
+    };
 
     // ── Helpers ──────────────────────────────────────────────
     private static FileCategory ClassifyMime(string mime)

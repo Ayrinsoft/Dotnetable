@@ -7,4 +7,7 @@
     CONSTRAINT [PK_CategoryTranslations] PRIMARY KEY CLUSTERED ([CategoryTranslationID] ASC),
     CONSTRAINT [FK_CategoryTranslations_Categories] FOREIGN KEY ([CategoryID]) REFERENCES [dbo].[Categories] ([CategoryID])
 );
+GO
 
+CREATE NONCLUSTERED INDEX [IX_CategoryTranslations_CategoryID]
+    ON [dbo].[CategoryTranslations] ([CategoryID] ASC);

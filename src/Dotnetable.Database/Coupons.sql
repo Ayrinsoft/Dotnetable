@@ -1,4 +1,4 @@
-CREATE TABLE [dbo].[Coupons] (
+﻿CREATE TABLE [dbo].[Coupons] (
     [CouponID]             INT             IDENTITY (1, 1) NOT NULL,
     [WebsiteID]            INT             NOT NULL,
     [Code]                 VARCHAR (40)    NOT NULL,
@@ -22,3 +22,7 @@ CREATE TABLE [dbo].[Coupons] (
 
 -- DiscountType: 1 = Percent (DiscountValue is a percentage, MaxDiscountAmountUsd caps it),
 -- 2 = FixedAmountUsd. TimesUsed is a cached counter kept in sync with CouponRedemptions.
+GO
+
+CREATE NONCLUSTERED INDEX [IX_Coupons_CreatedByMemberID]
+    ON [dbo].[Coupons] ([CreatedByMemberID] ASC);

@@ -6,4 +6,7 @@
     CONSTRAINT [FK_ProductMedia_MediaSets] FOREIGN KEY ([MediaSetID]) REFERENCES [dbo].[MediaSets] ([MediaSetID]),
     CONSTRAINT [FK_ProductMedia_Products] FOREIGN KEY ([ProductID]) REFERENCES [dbo].[Products] ([ProductID])
 );
+GO
 
+CREATE NONCLUSTERED INDEX [IX_ProductMedia_MediaSetID]
+    ON [dbo].[ProductMedia] ([MediaSetID] ASC);

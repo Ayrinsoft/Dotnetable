@@ -7,4 +7,7 @@
     CONSTRAINT [PK_MediaSets] PRIMARY KEY CLUSTERED ([MediaSetID] ASC),
     CONSTRAINT [FK_MediaSets_Websites] FOREIGN KEY ([WebsiteID]) REFERENCES [dbo].[Websites] ([WebsiteID])
 );
+GO
 
+CREATE NONCLUSTERED INDEX [IX_MediaSets_WebsiteID]
+    ON [dbo].[MediaSets] ([WebsiteID] ASC);

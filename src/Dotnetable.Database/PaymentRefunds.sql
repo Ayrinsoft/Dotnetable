@@ -19,4 +19,16 @@
 -- Exactly one of BankAccountID / ClientWalletTransactionID should be set once RefundedAt is
 -- populated: BankAccountID = refunded to the website's bank account (cash out),
 -- ClientWalletTransactionID = credited to the customer's ClientWallets balance instead.
+GO
 
+CREATE NONCLUSTERED INDEX [IX_PaymentRefunds_BankAccountID]
+    ON [dbo].[PaymentRefunds] ([BankAccountID] ASC);
+
+CREATE NONCLUSTERED INDEX [IX_PaymentRefunds_ClientWalletTransactionID]
+    ON [dbo].[PaymentRefunds] ([ClientWalletTransactionID] ASC);
+
+CREATE NONCLUSTERED INDEX [IX_PaymentRefunds_CreatedByMemberID]
+    ON [dbo].[PaymentRefunds] ([CreatedByMemberID] ASC);
+
+CREATE NONCLUSTERED INDEX [IX_PaymentRefunds_PaymentID]
+    ON [dbo].[PaymentRefunds] ([PaymentID] ASC);

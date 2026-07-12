@@ -27,4 +27,13 @@
 
 GO
 EXECUTE sp_addextendedproperty @name = N'MS_Description', @value = N'show in title of pages', @level0type = N'SCHEMA', @level0name = N'dbo', @level1type = N'TABLE', @level1name = N'Websites', @level2type = N'COLUMN', @level2name = N'BrandName';
+GO
 
+CREATE NONCLUSTERED INDEX [IX_Websites_DefaultCurrencyCode]
+    ON [dbo].[Websites] ([DefaultCurrencyCode] ASC);
+
+CREATE NONCLUSTERED INDEX [IX_Websites_FaveIconFileID]
+    ON [dbo].[Websites] ([FaveIconFileID] ASC);
+
+CREATE NONCLUSTERED INDEX [IX_Websites_LogoFileID]
+    ON [dbo].[Websites] ([LogoFileID] ASC);

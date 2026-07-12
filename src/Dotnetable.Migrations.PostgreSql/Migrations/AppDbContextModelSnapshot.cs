@@ -42,13 +42,22 @@ namespace Dotnetable.Migrations.PostgreSql.Migrations
                         .HasColumnType("smallint");
 
                     b.Property<bool>("IsComparable")
-                        .HasColumnType("boolean");
+                        .ValueGeneratedOnAdd()
+                        .HasColumnType("boolean")
+                        .HasDefaultValue(false)
+                        .HasAnnotation("Relational:DefaultConstraintName", "DF_AttributeDefinitions_IsComparable");
 
                     b.Property<bool>("IsFilterable")
-                        .HasColumnType("boolean");
+                        .ValueGeneratedOnAdd()
+                        .HasColumnType("boolean")
+                        .HasDefaultValue(false)
+                        .HasAnnotation("Relational:DefaultConstraintName", "DF_AttributeDefinitions_IsFilterable");
 
                     b.Property<bool>("IsVariantAttribute")
-                        .HasColumnType("boolean");
+                        .ValueGeneratedOnAdd()
+                        .HasColumnType("boolean")
+                        .HasDefaultValue(false)
+                        .HasAnnotation("Relational:DefaultConstraintName", "DF_AttributeDefinitions_IsVariantAttribute");
 
                     b.Property<string>("Name")
                         .IsRequired()
@@ -59,7 +68,10 @@ namespace Dotnetable.Migrations.PostgreSql.Migrations
                         .HasColumnType("boolean");
 
                     b.Property<int>("SortOrder")
-                        .HasColumnType("integer");
+                        .ValueGeneratedOnAdd()
+                        .HasColumnType("integer")
+                        .HasDefaultValue(0)
+                        .HasAnnotation("Relational:DefaultConstraintName", "DF_AttributeDefinitions_SortOrder");
 
                     b.Property<string>("Unit")
                         .HasMaxLength(30)
@@ -127,7 +139,10 @@ namespace Dotnetable.Migrations.PostgreSql.Migrations
                         .IsFixedLength();
 
                     b.Property<int>("SortOrder")
-                        .HasColumnType("integer");
+                        .ValueGeneratedOnAdd()
+                        .HasColumnType("integer")
+                        .HasDefaultValue(0)
+                        .HasAnnotation("Relational:DefaultConstraintName", "DF_AttributeOptions_SortOrder");
 
                     b.Property<string>("Value")
                         .IsRequired()
@@ -466,7 +481,10 @@ namespace Dotnetable.Migrations.PostgreSql.Migrations
                         .HasColumnType("character varying(200)");
 
                     b.Property<int>("SortOrder")
-                        .HasColumnType("integer");
+                        .ValueGeneratedOnAdd()
+                        .HasColumnType("integer")
+                        .HasDefaultValue(0)
+                        .HasAnnotation("Relational:DefaultConstraintName", "DF_Categories_SortOrder");
 
                     b.Property<int>("WebsiteID")
                         .HasColumnType("integer");
@@ -673,7 +691,10 @@ namespace Dotnetable.Migrations.PostgreSql.Migrations
                         .HasAnnotation("Relational:DefaultConstraintName", "DF_ClientBankAccounts_IsActive");
 
                     b.Property<bool>("IsDefault")
-                        .HasColumnType("boolean");
+                        .ValueGeneratedOnAdd()
+                        .HasColumnType("boolean")
+                        .HasDefaultValue(false)
+                        .HasAnnotation("Relational:DefaultConstraintName", "DF_ClientBankAccounts_IsDefault");
 
                     b.Property<string>("OwnerName")
                         .IsRequired()
@@ -706,7 +727,10 @@ namespace Dotnetable.Migrations.PostgreSql.Migrations
                     NpgsqlPropertyBuilderExtensions.UseIdentityByDefaultColumn(b.Property<int>("ClientWalletID"));
 
                     b.Property<decimal>("BalanceUsd")
-                        .HasColumnType("decimal(18, 4)");
+                        .ValueGeneratedOnAdd()
+                        .HasColumnType("decimal(18, 4)")
+                        .HasDefaultValue(0m)
+                        .HasAnnotation("Relational:DefaultConstraintName", "DF_ClientWallets_BalanceUsd");
 
                     b.Property<DateTime>("CreatedAt")
                         .ValueGeneratedOnAdd()
@@ -1036,14 +1060,20 @@ namespace Dotnetable.Migrations.PostgreSql.Migrations
                         .HasColumnType("decimal(18, 4)");
 
                     b.Property<decimal>("MinOrderAmountUsd")
-                        .HasColumnType("decimal(18, 4)");
+                        .ValueGeneratedOnAdd()
+                        .HasColumnType("decimal(18, 4)")
+                        .HasDefaultValue(0m)
+                        .HasAnnotation("Relational:DefaultConstraintName", "DF_Coupons_MinOrderAmountUsd");
 
                     b.Property<DateTime?>("StartsAt")
                         .HasPrecision(0)
                         .HasColumnType("timestamp(0) with time zone");
 
                     b.Property<int>("TimesUsed")
-                        .HasColumnType("integer");
+                        .ValueGeneratedOnAdd()
+                        .HasColumnType("integer")
+                        .HasDefaultValue(0)
+                        .HasAnnotation("Relational:DefaultConstraintName", "DF_Coupons_TimesUsed");
 
                     b.Property<int?>("UsageLimitPerClient")
                         .HasColumnType("integer");
@@ -1696,19 +1726,31 @@ namespace Dotnetable.Migrations.PostgreSql.Migrations
                     NpgsqlPropertyBuilderExtensions.UseIdentityByDefaultColumn(b.Property<int>("InventoryItemID"));
 
                     b.Property<decimal>("AvgCostUsd")
-                        .HasColumnType("decimal(18, 4)");
+                        .ValueGeneratedOnAdd()
+                        .HasColumnType("decimal(18, 4)")
+                        .HasDefaultValue(0m)
+                        .HasAnnotation("Relational:DefaultConstraintName", "DF_InventoryItems_AvgCostUsd");
 
                     b.Property<int>("ProductVariantID")
                         .HasColumnType("integer");
 
                     b.Property<int>("QuantityOnHand")
-                        .HasColumnType("integer");
+                        .ValueGeneratedOnAdd()
+                        .HasColumnType("integer")
+                        .HasDefaultValue(0)
+                        .HasAnnotation("Relational:DefaultConstraintName", "DF_InventoryItems_QuantityOnHand");
 
                     b.Property<int>("QuantityReserved")
-                        .HasColumnType("integer");
+                        .ValueGeneratedOnAdd()
+                        .HasColumnType("integer")
+                        .HasDefaultValue(0)
+                        .HasAnnotation("Relational:DefaultConstraintName", "DF_InventoryItems_QuantityReserved");
 
                     b.Property<int>("ReorderLevel")
-                        .HasColumnType("integer");
+                        .ValueGeneratedOnAdd()
+                        .HasColumnType("integer")
+                        .HasDefaultValue(0)
+                        .HasAnnotation("Relational:DefaultConstraintName", "DF_InventoryItems_ReorderLevel");
 
                     b.Property<byte[]>("RowVersion")
                         .IsConcurrencyToken()
@@ -1755,7 +1797,10 @@ namespace Dotnetable.Migrations.PostgreSql.Migrations
                         .HasColumnType("character varying(30)");
 
                     b.Property<bool>("IsPosted")
-                        .HasColumnType("boolean");
+                        .ValueGeneratedOnAdd()
+                        .HasColumnType("boolean")
+                        .HasDefaultValue(false)
+                        .HasAnnotation("Relational:DefaultConstraintName", "DF_JournalEntries_IsPosted");
 
                     b.Property<int?>("SourceId")
                         .HasColumnType("integer");
@@ -1785,10 +1830,16 @@ namespace Dotnetable.Migrations.PostgreSql.Migrations
                         .HasColumnType("integer");
 
                     b.Property<decimal>("Credit")
-                        .HasColumnType("decimal(18, 4)");
+                        .ValueGeneratedOnAdd()
+                        .HasColumnType("decimal(18, 4)")
+                        .HasDefaultValue(0m)
+                        .HasAnnotation("Relational:DefaultConstraintName", "DF_JournalEntryLines_Credit");
 
                     b.Property<decimal>("Debit")
-                        .HasColumnType("decimal(18, 4)");
+                        .ValueGeneratedOnAdd()
+                        .HasColumnType("decimal(18, 4)")
+                        .HasDefaultValue(0m)
+                        .HasAnnotation("Relational:DefaultConstraintName", "DF_JournalEntryLines_Debit");
 
                     b.Property<string>("Description")
                         .HasMaxLength(300)
@@ -1970,7 +2021,10 @@ namespace Dotnetable.Migrations.PostgreSql.Migrations
                         .HasAnnotation("Relational:DefaultConstraintName", "DF_MediaSets_CreatedAt_1");
 
                     b.Property<bool>("IsShared")
-                        .HasColumnType("boolean");
+                        .ValueGeneratedOnAdd()
+                        .HasColumnType("boolean")
+                        .HasDefaultValue(false)
+                        .HasAnnotation("Relational:DefaultConstraintName", "DF_MediaSets_IsShared_1");
 
                     b.Property<string>("Name")
                         .IsRequired()
@@ -2006,7 +2060,10 @@ namespace Dotnetable.Migrations.PostgreSql.Migrations
                         .HasColumnType("integer");
 
                     b.Property<int>("SortOrder")
-                        .HasColumnType("integer");
+                        .ValueGeneratedOnAdd()
+                        .HasColumnType("integer")
+                        .HasDefaultValue(0)
+                        .HasAnnotation("Relational:DefaultConstraintName", "DF_MediaSetItems_SortOrder");
 
                     b.Property<int?>("VideoThumbnailFileID")
                         .HasColumnType("integer");
@@ -2203,7 +2260,10 @@ namespace Dotnetable.Migrations.PostgreSql.Migrations
                         .HasColumnType("integer");
 
                     b.Property<bool>("OpenInNewTab")
-                        .HasColumnType("boolean");
+                        .ValueGeneratedOnAdd()
+                        .HasColumnType("boolean")
+                        .HasDefaultValue(false)
+                        .HasAnnotation("Relational:DefaultConstraintName", "DF_MenuItems_OpenInNewTab");
 
                     b.Property<int?>("PageID")
                         .HasColumnType("integer");
@@ -2221,7 +2281,10 @@ namespace Dotnetable.Migrations.PostgreSql.Migrations
                         .HasColumnType("integer");
 
                     b.Property<int>("SortOrder")
-                        .HasColumnType("integer");
+                        .ValueGeneratedOnAdd()
+                        .HasColumnType("integer")
+                        .HasDefaultValue(0)
+                        .HasAnnotation("Relational:DefaultConstraintName", "DF_MenuItems_SortOrder");
 
                     b.Property<string>("Title")
                         .IsRequired()
@@ -2320,16 +2383,25 @@ namespace Dotnetable.Migrations.PostgreSql.Migrations
                         .IsFixedLength();
 
                     b.Property<decimal>("DiscountTotal")
-                        .HasColumnType("decimal(18, 4)");
+                        .ValueGeneratedOnAdd()
+                        .HasColumnType("decimal(18, 4)")
+                        .HasDefaultValue(0m)
+                        .HasAnnotation("Relational:DefaultConstraintName", "DF_Orders_DiscountTotal");
 
                     b.Property<decimal>("ExchangeRateToUsd")
                         .HasColumnType("decimal(18, 6)");
 
                     b.Property<decimal>("GrandTotal")
-                        .HasColumnType("decimal(18, 4)");
+                        .ValueGeneratedOnAdd()
+                        .HasColumnType("decimal(18, 4)")
+                        .HasDefaultValue(0m)
+                        .HasAnnotation("Relational:DefaultConstraintName", "DF_Orders_GrandTotal_1");
 
                     b.Property<decimal>("GrandTotalUsd")
-                        .HasColumnType("decimal(18, 4)");
+                        .ValueGeneratedOnAdd()
+                        .HasColumnType("decimal(18, 4)")
+                        .HasDefaultValue(0m)
+                        .HasAnnotation("Relational:DefaultConstraintName", "DF_Orders_GrandTotalUsd_1");
 
                     b.Property<string>("Note")
                         .HasMaxLength(1000)
@@ -2347,7 +2419,10 @@ namespace Dotnetable.Migrations.PostgreSql.Migrations
                         .HasColumnType("integer");
 
                     b.Property<decimal>("ShippingTotal")
-                        .HasColumnType("decimal(18, 4)");
+                        .ValueGeneratedOnAdd()
+                        .HasColumnType("decimal(18, 4)")
+                        .HasDefaultValue(0m)
+                        .HasAnnotation("Relational:DefaultConstraintName", "DF_Orders_ShippingTotal");
 
                     b.Property<byte>("Status")
                         .ValueGeneratedOnAdd()
@@ -2356,10 +2431,16 @@ namespace Dotnetable.Migrations.PostgreSql.Migrations
                         .HasAnnotation("Relational:DefaultConstraintName", "DF_Orders_Status_1");
 
                     b.Property<decimal>("SubTotal")
-                        .HasColumnType("decimal(18, 4)");
+                        .ValueGeneratedOnAdd()
+                        .HasColumnType("decimal(18, 4)")
+                        .HasDefaultValue(0m)
+                        .HasAnnotation("Relational:DefaultConstraintName", "DF_Orders_SubTotal_1");
 
                     b.Property<decimal>("TaxTotal")
-                        .HasColumnType("decimal(18, 4)");
+                        .ValueGeneratedOnAdd()
+                        .HasColumnType("decimal(18, 4)")
+                        .HasDefaultValue(0m)
+                        .HasAnnotation("Relational:DefaultConstraintName", "DF_Orders_TaxTotal");
 
                     b.Property<int?>("WebsiteClientAddressID")
                         .HasColumnType("integer");
@@ -2398,7 +2479,10 @@ namespace Dotnetable.Migrations.PostgreSql.Migrations
                     NpgsqlPropertyBuilderExtensions.UseIdentityByDefaultColumn(b.Property<int>("OrderItemID"));
 
                     b.Property<decimal>("DiscountAmount")
-                        .HasColumnType("decimal(18, 4)");
+                        .ValueGeneratedOnAdd()
+                        .HasColumnType("decimal(18, 4)")
+                        .HasDefaultValue(0m)
+                        .HasAnnotation("Relational:DefaultConstraintName", "DF_OrderItems_DiscountAmount");
 
                     b.Property<int>("OrderID")
                         .HasColumnType("integer");
@@ -2426,7 +2510,10 @@ namespace Dotnetable.Migrations.PostgreSql.Migrations
                         .HasColumnType("decimal(18, 4)");
 
                     b.Property<decimal>("UnitCostUsd")
-                        .HasColumnType("decimal(18, 4)");
+                        .ValueGeneratedOnAdd()
+                        .HasColumnType("decimal(18, 4)")
+                        .HasDefaultValue(0m)
+                        .HasAnnotation("Relational:DefaultConstraintName", "DF_OrderItems_UnitCostUsd");
 
                     b.Property<decimal>("UnitPrice")
                         .HasColumnType("decimal(18, 4)");
@@ -2527,7 +2614,10 @@ namespace Dotnetable.Migrations.PostgreSql.Migrations
                         .HasAnnotation("Relational:DefaultConstraintName", "DF_Pages_IsActive_1");
 
                     b.Property<bool>("IsHomepage")
-                        .HasColumnType("boolean");
+                        .ValueGeneratedOnAdd()
+                        .HasColumnType("boolean")
+                        .HasDefaultValue(false)
+                        .HasAnnotation("Relational:DefaultConstraintName", "DF_Pages_IsHomepage_1");
 
                     b.Property<int?>("ParentPageID")
                         .HasColumnType("integer");
@@ -2538,7 +2628,10 @@ namespace Dotnetable.Migrations.PostgreSql.Migrations
                         .HasColumnType("character varying(300)");
 
                     b.Property<int>("SortOrder")
-                        .HasColumnType("integer");
+                        .ValueGeneratedOnAdd()
+                        .HasColumnType("integer")
+                        .HasDefaultValue(0)
+                        .HasAnnotation("Relational:DefaultConstraintName", "DF_Pages_SortOrder");
 
                     b.Property<byte>("Status")
                         .ValueGeneratedOnAdd()
@@ -2736,7 +2829,10 @@ namespace Dotnetable.Migrations.PostgreSql.Migrations
                         .HasAnnotation("Relational:DefaultConstraintName", "DF_PaymentGateways_IsActive");
 
                     b.Property<bool>("IsSandbox")
-                        .HasColumnType("boolean");
+                        .ValueGeneratedOnAdd()
+                        .HasColumnType("boolean")
+                        .HasDefaultValue(false)
+                        .HasAnnotation("Relational:DefaultConstraintName", "DF_PaymentGateways_IsSandbox");
 
                     b.Property<string>("MerchantID")
                         .HasMaxLength(200)
@@ -2753,7 +2849,10 @@ namespace Dotnetable.Migrations.PostgreSql.Migrations
                         .HasColumnType("character varying(50)");
 
                     b.Property<int>("SortOrder")
-                        .HasColumnType("integer");
+                        .ValueGeneratedOnAdd()
+                        .HasColumnType("integer")
+                        .HasDefaultValue(0)
+                        .HasAnnotation("Relational:DefaultConstraintName", "DF_PaymentGateways_SortOrder");
 
                     b.Property<int>("WebsiteID")
                         .HasColumnType("integer");
@@ -2915,7 +3014,10 @@ namespace Dotnetable.Migrations.PostgreSql.Migrations
                         .HasAnnotation("Relational:DefaultConstraintName", "DF_Posts_IsActive_1");
 
                     b.Property<bool>("IsFeatured")
-                        .HasColumnType("boolean");
+                        .ValueGeneratedOnAdd()
+                        .HasColumnType("boolean")
+                        .HasDefaultValue(false)
+                        .HasAnnotation("Relational:DefaultConstraintName", "DF_Posts_IsFeatured_1");
 
                     b.Property<int>("PostTypeID")
                         .HasColumnType("integer");
@@ -2949,7 +3051,10 @@ namespace Dotnetable.Migrations.PostgreSql.Migrations
                         .HasAnnotation("Relational:DefaultConstraintName", "DF_Posts_UpdatedAt_1");
 
                     b.Property<int>("ViewCount")
-                        .HasColumnType("integer");
+                        .ValueGeneratedOnAdd()
+                        .HasColumnType("integer")
+                        .HasDefaultValue(0)
+                        .HasAnnotation("Relational:DefaultConstraintName", "DF_Posts_ViewCount_1");
 
                     b.Property<int>("WebsiteID")
                         .HasColumnType("integer");
@@ -2976,7 +3081,10 @@ namespace Dotnetable.Migrations.PostgreSql.Migrations
                         .HasColumnType("integer");
 
                     b.Property<bool>("IsPrimary")
-                        .HasColumnType("boolean");
+                        .ValueGeneratedOnAdd()
+                        .HasColumnType("boolean")
+                        .HasDefaultValue(false)
+                        .HasAnnotation("Relational:DefaultConstraintName", "DF_PostCategories_IsPrimary");
 
                     b.HasKey("PostID", "CategoryID");
 
@@ -3088,7 +3196,10 @@ namespace Dotnetable.Migrations.PostgreSql.Migrations
                     NpgsqlPropertyBuilderExtensions.UseIdentityByDefaultColumn(b.Property<int>("ProductID"));
 
                     b.Property<decimal>("AvgRating")
-                        .HasColumnType("decimal(3, 2)");
+                        .ValueGeneratedOnAdd()
+                        .HasColumnType("decimal(3, 2)")
+                        .HasDefaultValue(0m)
+                        .HasAnnotation("Relational:DefaultConstraintName", "DF_Products_AvgRating_1");
 
                     b.Property<int?>("BrandID")
                         .HasColumnType("integer");
@@ -3106,7 +3217,10 @@ namespace Dotnetable.Migrations.PostgreSql.Migrations
                         .HasColumnType("integer");
 
                     b.Property<bool>("HasVariants")
-                        .HasColumnType("boolean");
+                        .ValueGeneratedOnAdd()
+                        .HasColumnType("boolean")
+                        .HasDefaultValue(false)
+                        .HasAnnotation("Relational:DefaultConstraintName", "DF_Products_HasVariants_1");
 
                     b.Property<bool>("IsActive")
                         .ValueGeneratedOnAdd()
@@ -3115,10 +3229,16 @@ namespace Dotnetable.Migrations.PostgreSql.Migrations
                         .HasAnnotation("Relational:DefaultConstraintName", "DF_Products_IsActive_1");
 
                     b.Property<bool>("IsCatalogOnly")
-                        .HasColumnType("boolean");
+                        .ValueGeneratedOnAdd()
+                        .HasColumnType("boolean")
+                        .HasDefaultValue(false)
+                        .HasAnnotation("Relational:DefaultConstraintName", "DF_Products_IsCatalogOnly");
 
                     b.Property<int>("RatingCount")
-                        .HasColumnType("integer");
+                        .ValueGeneratedOnAdd()
+                        .HasColumnType("integer")
+                        .HasDefaultValue(0)
+                        .HasAnnotation("Relational:DefaultConstraintName", "DF_Products_RatingCount_1");
 
                     b.Property<string>("ShortDescription")
                         .HasMaxLength(1000)
@@ -3130,7 +3250,10 @@ namespace Dotnetable.Migrations.PostgreSql.Migrations
                         .HasColumnType("character varying(300)");
 
                     b.Property<int>("SortOrder")
-                        .HasColumnType("integer");
+                        .ValueGeneratedOnAdd()
+                        .HasColumnType("integer")
+                        .HasDefaultValue(0)
+                        .HasAnnotation("Relational:DefaultConstraintName", "DF_Products_SortOrder");
 
                     b.Property<byte>("Status")
                         .ValueGeneratedOnAdd()
@@ -3188,7 +3311,10 @@ namespace Dotnetable.Migrations.PostgreSql.Migrations
                         .HasAnnotation("Relational:DefaultConstraintName", "DF_ProductAnswers_CreatedAt");
 
                     b.Property<int>("LikeCount")
-                        .HasColumnType("integer");
+                        .ValueGeneratedOnAdd()
+                        .HasColumnType("integer")
+                        .HasDefaultValue(0)
+                        .HasAnnotation("Relational:DefaultConstraintName", "DF_ProductAnswers_LikeCount");
 
                     b.Property<int>("ProductQuestionID")
                         .HasColumnType("integer");
@@ -3235,7 +3361,10 @@ namespace Dotnetable.Migrations.PostgreSql.Migrations
                         .HasColumnType("character varying(1000)");
 
                     b.Property<bool>("IsFeatured")
-                        .HasColumnType("boolean");
+                        .ValueGeneratedOnAdd()
+                        .HasColumnType("boolean")
+                        .HasDefaultValue(false)
+                        .HasAnnotation("Relational:DefaultConstraintName", "DF_ProductAttributeValues_IsFeatured");
 
                     b.Property<decimal?>("NumericValue")
                         .HasColumnType("decimal(18, 4)");
@@ -3244,7 +3373,10 @@ namespace Dotnetable.Migrations.PostgreSql.Migrations
                         .HasColumnType("integer");
 
                     b.Property<int>("SortOrder")
-                        .HasColumnType("integer");
+                        .ValueGeneratedOnAdd()
+                        .HasColumnType("integer")
+                        .HasDefaultValue(0)
+                        .HasAnnotation("Relational:DefaultConstraintName", "DF_ProductAttributeValues_SortOrder");
 
                     b.HasKey("ProductAttributeValueID");
 
@@ -3318,7 +3450,10 @@ namespace Dotnetable.Migrations.PostgreSql.Migrations
                         .HasColumnType("character varying(200)");
 
                     b.Property<int>("SortOrder")
-                        .HasColumnType("integer");
+                        .ValueGeneratedOnAdd()
+                        .HasColumnType("integer")
+                        .HasDefaultValue(0)
+                        .HasAnnotation("Relational:DefaultConstraintName", "DF_ProductCategories_SortOrder");
 
                     b.Property<int>("WebsiteID")
                         .HasColumnType("integer");
@@ -3343,7 +3478,10 @@ namespace Dotnetable.Migrations.PostgreSql.Migrations
                         .HasColumnType("integer");
 
                     b.Property<bool>("IsPrimary")
-                        .HasColumnType("boolean");
+                        .ValueGeneratedOnAdd()
+                        .HasColumnType("boolean")
+                        .HasDefaultValue(false)
+                        .HasAnnotation("Relational:DefaultConstraintName", "DF_ProductCategoryMaps_IsPrimary");
 
                     b.HasKey("ProductID", "ProductCategoryID");
 
@@ -3441,7 +3579,10 @@ namespace Dotnetable.Migrations.PostgreSql.Migrations
                         .HasColumnType("smallint");
 
                     b.Property<int>("SortOrder")
-                        .HasColumnType("integer");
+                        .ValueGeneratedOnAdd()
+                        .HasColumnType("integer")
+                        .HasDefaultValue(0)
+                        .HasAnnotation("Relational:DefaultConstraintName", "DF_ProductContentSections_SortOrder");
 
                     b.HasKey("ProductContentSectionID");
 
@@ -3492,7 +3633,10 @@ namespace Dotnetable.Migrations.PostgreSql.Migrations
                         .HasColumnType("integer");
 
                     b.Property<int>("SortOrder")
-                        .HasColumnType("integer");
+                        .ValueGeneratedOnAdd()
+                        .HasColumnType("integer")
+                        .HasDefaultValue(0)
+                        .HasAnnotation("Relational:DefaultConstraintName", "DF_ProductMedia_SortOrder");
 
                     b.HasKey("ProductID", "MediaSetID");
 
@@ -3561,7 +3705,10 @@ namespace Dotnetable.Migrations.PostgreSql.Migrations
                         .HasColumnType("smallint");
 
                     b.Property<int>("SortOrder")
-                        .HasColumnType("integer");
+                        .ValueGeneratedOnAdd()
+                        .HasColumnType("integer")
+                        .HasDefaultValue(0)
+                        .HasAnnotation("Relational:DefaultConstraintName", "DF_ProductRelations_SortOrder");
 
                     b.HasKey("ProductID", "RelatedProductID", "RelationType");
 
@@ -3598,13 +3745,22 @@ namespace Dotnetable.Migrations.PostgreSql.Migrations
                         .HasAnnotation("Relational:DefaultConstraintName", "DF_ProductReviews_CreatedAt");
 
                     b.Property<int>("DislikeCount")
-                        .HasColumnType("integer");
+                        .ValueGeneratedOnAdd()
+                        .HasColumnType("integer")
+                        .HasDefaultValue(0)
+                        .HasAnnotation("Relational:DefaultConstraintName", "DF_ProductReviews_DislikeCount");
 
                     b.Property<bool>("IsVerifiedPurchase")
-                        .HasColumnType("boolean");
+                        .ValueGeneratedOnAdd()
+                        .HasColumnType("boolean")
+                        .HasDefaultValue(false)
+                        .HasAnnotation("Relational:DefaultConstraintName", "DF_ProductReviews_IsVerifiedPurchase");
 
                     b.Property<int>("LikeCount")
-                        .HasColumnType("integer");
+                        .ValueGeneratedOnAdd()
+                        .HasColumnType("integer")
+                        .HasDefaultValue(0)
+                        .HasAnnotation("Relational:DefaultConstraintName", "DF_ProductReviews_LikeCount");
 
                     b.Property<int>("ProductID")
                         .HasColumnType("integer");
@@ -3718,7 +3874,10 @@ namespace Dotnetable.Migrations.PostgreSql.Migrations
                         .HasAnnotation("Relational:DefaultConstraintName", "DF_ProductVariants_IsActive");
 
                     b.Property<bool>("IsDefault")
-                        .HasColumnType("boolean");
+                        .ValueGeneratedOnAdd()
+                        .HasColumnType("boolean")
+                        .HasDefaultValue(false)
+                        .HasAnnotation("Relational:DefaultConstraintName", "DF_ProductVariants_IsDefault");
 
                     b.Property<decimal?>("OverridePrice")
                         .HasColumnType("decimal(18, 4)");
@@ -3830,7 +3989,9 @@ namespace Dotnetable.Migrations.PostgreSql.Migrations
                         .HasColumnType("boolean");
 
                     b.Property<byte>("Category")
-                        .HasColumnType("smallint");
+                        .ValueGeneratedOnAdd()
+                        .HasColumnType("smallint")
+                        .HasDefaultValue((byte)0);
 
                     b.Property<string>("Description")
                         .IsRequired()
@@ -4000,7 +4161,10 @@ namespace Dotnetable.Migrations.PostgreSql.Migrations
                         .HasAnnotation("Relational:DefaultConstraintName", "DF_ShippingMethods_IsActive");
 
                     b.Property<int>("SortOrder")
-                        .HasColumnType("integer");
+                        .ValueGeneratedOnAdd()
+                        .HasColumnType("integer")
+                        .HasDefaultValue(0)
+                        .HasAnnotation("Relational:DefaultConstraintName", "DF_ShippingMethods_SortOrder");
 
                     b.Property<string>("Title")
                         .IsRequired()
@@ -4180,13 +4344,19 @@ namespace Dotnetable.Migrations.PostgreSql.Migrations
                         .HasColumnType("integer");
 
                     b.Property<bool>("OpenInNewTab")
-                        .HasColumnType("boolean");
+                        .ValueGeneratedOnAdd()
+                        .HasColumnType("boolean")
+                        .HasDefaultValue(false)
+                        .HasAnnotation("Relational:DefaultConstraintName", "DF_SlideshowSlides_OpenInNewTab");
 
                     b.Property<int>("SlideshowID")
                         .HasColumnType("integer");
 
                     b.Property<int>("SortOrder")
-                        .HasColumnType("integer");
+                        .ValueGeneratedOnAdd()
+                        .HasColumnType("integer")
+                        .HasDefaultValue(0)
+                        .HasAnnotation("Relational:DefaultConstraintName", "DF_SlideshowSlides_SortOrder");
 
                     b.Property<DateTime?>("StartAt")
                         .HasColumnType("timestamp with time zone");
@@ -4324,7 +4494,10 @@ namespace Dotnetable.Migrations.PostgreSql.Migrations
                         .HasColumnType("smallint");
 
                     b.Property<decimal>("UnitCostUsd")
-                        .HasColumnType("decimal(18, 4)");
+                        .ValueGeneratedOnAdd()
+                        .HasColumnType("decimal(18, 4)")
+                        .HasDefaultValue(0m)
+                        .HasAnnotation("Relational:DefaultConstraintName", "DF_StockMovements_UnitCostUsd");
 
                     b.Property<decimal?>("UnitSalePriceUsd")
                         .HasColumnType("decimal(18, 4)");
@@ -4465,7 +4638,10 @@ namespace Dotnetable.Migrations.PostgreSql.Migrations
                         .HasAnnotation("Relational:DefaultConstraintName", "DF_TaxRates_IsActive");
 
                     b.Property<int>("Priority")
-                        .HasColumnType("integer");
+                        .ValueGeneratedOnAdd()
+                        .HasColumnType("integer")
+                        .HasDefaultValue(0)
+                        .HasAnnotation("Relational:DefaultConstraintName", "DF_TaxRates_Priority");
 
                     b.Property<decimal>("Rate")
                         .HasColumnType("decimal(9, 6)");
@@ -4543,11 +4719,17 @@ namespace Dotnetable.Migrations.PostgreSql.Migrations
                         .HasColumnType("character varying(200)");
 
                     b.Property<decimal>("Rating")
-                        .HasColumnType("decimal(3, 2)");
+                        .ValueGeneratedOnAdd()
+                        .HasColumnType("decimal(3, 2)")
+                        .HasDefaultValue(0m)
+                        .HasAnnotation("Relational:DefaultConstraintName", "DF_Vendors_Rating_1");
 
                     b.Property<byte>("SettlementMode")
+                        .ValueGeneratedOnAdd()
                         .HasColumnType("smallint")
-                        .HasComment("0 = Immediate: every purchase from this vendor is settled instantly like a normal cash purchase. 1 = Credit: purchases accrue as credit and are batched into a periodic Settlements record due on CreditDays");
+                        .HasDefaultValue((byte)0)
+                        .HasComment("0 = Immediate: every purchase from this vendor is settled instantly like a normal cash purchase. 1 = Credit: purchases accrue as credit and are batched into a periodic Settlements record due on CreditDays")
+                        .HasAnnotation("Relational:DefaultConstraintName", "DF_Vendors_SettlementMode");
 
                     b.Property<string>("Slug")
                         .IsRequired()
@@ -4596,7 +4778,10 @@ namespace Dotnetable.Migrations.PostgreSql.Migrations
                         .HasColumnType("decimal(18, 4)");
 
                     b.Property<int>("StockQuantity")
-                        .HasColumnType("integer");
+                        .ValueGeneratedOnAdd()
+                        .HasColumnType("integer")
+                        .HasDefaultValue(0)
+                        .HasAnnotation("Relational:DefaultConstraintName", "DF_VendorProducts_StockQuantity");
 
                     b.Property<int>("VendorID")
                         .HasColumnType("integer");
@@ -4692,7 +4877,10 @@ namespace Dotnetable.Migrations.PostgreSql.Migrations
                         .HasColumnType("integer");
 
                     b.Property<bool>("IsHub")
-                        .HasColumnType("boolean");
+                        .ValueGeneratedOnAdd()
+                        .HasColumnType("boolean")
+                        .HasDefaultValue(false)
+                        .HasAnnotation("Relational:DefaultConstraintName", "DF_Websites_IsHub");
 
                     b.Property<int?>("LogoFileID")
                         .HasColumnType("integer");
@@ -4855,7 +5043,10 @@ namespace Dotnetable.Migrations.PostgreSql.Migrations
                         .HasColumnType("integer");
 
                     b.Property<bool>("IsDefault")
-                        .HasColumnType("boolean");
+                        .ValueGeneratedOnAdd()
+                        .HasColumnType("boolean")
+                        .HasDefaultValue(false)
+                        .HasAnnotation("Relational:DefaultConstraintName", "DF_WebsiteClientAddresses_IsDefault");
 
                     b.Property<decimal?>("Latitude")
                         .HasColumnType("decimal(9, 6)");
@@ -5009,7 +5200,10 @@ namespace Dotnetable.Migrations.PostgreSql.Migrations
                         .HasAnnotation("Relational:DefaultConstraintName", "DF_WebsiteRedirects_CreatedAt");
 
                     b.Property<int>("HitCount")
-                        .HasColumnType("integer");
+                        .ValueGeneratedOnAdd()
+                        .HasColumnType("integer")
+                        .HasDefaultValue(0)
+                        .HasAnnotation("Relational:DefaultConstraintName", "DF_WebsiteRedirects_HitCount");
 
                     b.Property<bool>("IsActive")
                         .ValueGeneratedOnAdd()
@@ -5018,7 +5212,10 @@ namespace Dotnetable.Migrations.PostgreSql.Migrations
                         .HasAnnotation("Relational:DefaultConstraintName", "DF_WebsiteRedirects_IsActive");
 
                     b.Property<bool>("IsRegex")
-                        .HasColumnType("boolean");
+                        .ValueGeneratedOnAdd()
+                        .HasColumnType("boolean")
+                        .HasDefaultValue(false)
+                        .HasAnnotation("Relational:DefaultConstraintName", "DF_WebsiteRedirects_IsRegex");
 
                     b.Property<string>("SourcePath")
                         .IsRequired()
@@ -5249,6 +5446,47 @@ namespace Dotnetable.Migrations.PostgreSql.Migrations
                     b.HasIndex("WebsiteID");
 
                     b.ToTable("WebsiteThemes");
+                });
+
+            modelBuilder.Entity("Dotnetable.Domain.Entities.WebsiteWatermarkSetting", b =>
+                {
+                    b.Property<int>("WebsiteWatermarkSettingID")
+                        .ValueGeneratedOnAdd()
+                        .HasColumnType("integer");
+
+                    NpgsqlPropertyBuilderExtensions.UseIdentityByDefaultColumn(b.Property<int>("WebsiteWatermarkSettingID"));
+
+                    b.Property<bool>("Enabled")
+                        .HasColumnType("boolean");
+
+                    b.Property<int>("Opacity")
+                        .ValueGeneratedOnAdd()
+                        .HasColumnType("integer")
+                        .HasDefaultValue(80);
+
+                    b.Property<byte>("Position")
+                        .ValueGeneratedOnAdd()
+                        .HasColumnType("smallint")
+                        .HasDefaultValue((byte)9);
+
+                    b.Property<int>("SizePercent")
+                        .ValueGeneratedOnAdd()
+                        .HasColumnType("integer")
+                        .HasDefaultValue(20);
+
+                    b.Property<int?>("WatermarkFileID")
+                        .HasColumnType("integer");
+
+                    b.Property<int>("WebsiteID")
+                        .HasColumnType("integer");
+
+                    b.HasKey("WebsiteWatermarkSettingID");
+
+                    b.HasIndex("WatermarkFileID");
+
+                    b.HasIndex("WebsiteID");
+
+                    b.ToTable("WebsiteWatermarkSettings");
                 });
 
             modelBuilder.Entity("Dotnetable.Domain.Entities.Wishlist", b =>
@@ -7518,6 +7756,24 @@ namespace Dotnetable.Migrations.PostgreSql.Migrations
                     b.Navigation("Website");
                 });
 
+            modelBuilder.Entity("Dotnetable.Domain.Entities.WebsiteWatermarkSetting", b =>
+                {
+                    b.HasOne("Dotnetable.Domain.Entities.FileRecord", "WatermarkFile")
+                        .WithMany("WebsiteWatermarkSettingWatermarkFiles")
+                        .HasForeignKey("WatermarkFileID")
+                        .HasConstraintName("FK_WebsiteWatermarkSettings_FileRecords");
+
+                    b.HasOne("Dotnetable.Domain.Entities.Website", "Website")
+                        .WithMany("WebsiteWatermarkSettings")
+                        .HasForeignKey("WebsiteID")
+                        .IsRequired()
+                        .HasConstraintName("FK_WebsiteWatermarkSettings_Websites");
+
+                    b.Navigation("WatermarkFile");
+
+                    b.Navigation("Website");
+                });
+
             modelBuilder.Entity("Dotnetable.Domain.Entities.Wishlist", b =>
                 {
                     b.HasOne("Dotnetable.Domain.Entities.WebsiteClient", "WebsiteClient")
@@ -7748,6 +8004,8 @@ namespace Dotnetable.Migrations.PostgreSql.Migrations
                     b.Navigation("WebsiteFaveIconFiles");
 
                     b.Navigation("WebsiteLogoFiles");
+
+                    b.Navigation("WebsiteWatermarkSettingWatermarkFiles");
                 });
 
             modelBuilder.Entity("Dotnetable.Domain.Entities.FileTag", b =>
@@ -8184,6 +8442,8 @@ namespace Dotnetable.Migrations.PostgreSql.Migrations
                     b.Navigation("WebsiteStorageSettings");
 
                     b.Navigation("WebsiteThemes");
+
+                    b.Navigation("WebsiteWatermarkSettings");
 
                     b.Navigation("Wishlists");
                 });

@@ -10,4 +10,10 @@
     CONSTRAINT [FK_EmailSubscribes_Members] FOREIGN KEY ([MemberID]) REFERENCES [dbo].[Members] ([MemberID]),
     CONSTRAINT [FK_EmailSubscribes_Websites] FOREIGN KEY ([WebsiteID]) REFERENCES [dbo].[Websites] ([WebsiteID])
 );
+GO
 
+CREATE NONCLUSTERED INDEX [IX_EmailSubscribes_MemberID]
+    ON [dbo].[EmailSubscribes] ([MemberID] ASC);
+
+CREATE NONCLUSTERED INDEX [IX_EmailSubscribes_WebsiteID]
+    ON [dbo].[EmailSubscribes] ([WebsiteID] ASC);

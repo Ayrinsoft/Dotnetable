@@ -17,4 +17,13 @@
     CONSTRAINT [FK_ProductVariants_Products] FOREIGN KEY ([ProductID]) REFERENCES [dbo].[Products] ([ProductID]),
     CONSTRAINT [FK_ProductVariants_Websites] FOREIGN KEY ([WebsiteID]) REFERENCES [dbo].[Websites] ([WebsiteID])
 );
+GO
 
+CREATE NONCLUSTERED INDEX [IX_ProductVariants_ImageFileID]
+    ON [dbo].[ProductVariants] ([ImageFileID] ASC);
+
+CREATE NONCLUSTERED INDEX [IX_ProductVariants_ProductID]
+    ON [dbo].[ProductVariants] ([ProductID] ASC);
+
+CREATE NONCLUSTERED INDEX [IX_ProductVariants_WebsiteID]
+    ON [dbo].[ProductVariants] ([WebsiteID] ASC);
