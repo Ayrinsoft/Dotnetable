@@ -95,7 +95,11 @@ public static class ImageProcessor
         }
     }
 
-    /// <summary>Encodes with max PNG compression (zlib level 9, all filters) so output size stays close to source; other formats keep quality 90.</summary>
+    /// <summary>
+    /// Encodes with max PNG compression (zlib level 9, all filters) so output size stays close to source.
+    /// WebP uses lossless for images with transparency (pixel-perfect, still smaller than PNG) and high-quality
+    /// lossy (90) for opaque photos. Other formats keep quality 90.
+    /// </summary>
     private static SKData Encode(SKImage image, SKEncodedImageFormat format)
     {
         if (format == SKEncodedImageFormat.Png)
@@ -108,6 +112,21 @@ public static class ImageProcessor
                 if (encoded is not null) return encoded;
             }
         }
+
+        if (format == SKEncodedImageFormat.Webp)
+        {
+            var hasAlpha = image.AlphaType != SKAlphaType.Opaque;
+            using var pixmap = image.PeekPixels();
+            if (pixmap is not null)
+            {
+                var options = hasAlpha
+                    ? new SKWebpEncoderOptions(SKWebpEncoderCompression.Lossless, 100)
+                    : new SKWebpEncoderOptions(SKWebpEncoderCompression.Lossy, 90);
+                var encoded = pixmap.Encode(options);
+                if (encoded is not null) return encoded;
+            }
+        }
+
         return image.Encode(format, 90);
     }
 
