@@ -88,19 +88,31 @@ public class FileService : IFileService
 
         // SkiaSharp takes ownership of the decoded stream, so processing always reads from `buffer`
         // and yields a brand-new stream — `buffer` itself is never written to again afterwards.
+        // SVG (vector) and GIF (SkiaSharp only decodes its first frame, which would kill animation)
+        // are left untouched — every other raster format is converted to WebP for its smaller size.
         Stream uploadSource = buffer;
-        if (category == FileCategory.Image)
+        var webpApplied = false;
+        var isRasterProcessable = category == FileCategory.Image && ext is not (".svg" or ".gif");
+        if (isRasterProcessable)
         {
             var options = await BuildProcessingOptionsAsync(request, ct);
-            if (options.HasWork)
+            var convertToWebp = !string.Equals(mime, "image/webp", StringComparison.OrdinalIgnoreCase);
+            if (options.HasWork || convertToWebp)
             {
                 buffer.Position = 0;
-                var format = MimeToFormat(mime);
+                var format = convertToWebp ? SKEncodedImageFormat.Webp : MimeToFormat(mime);
                 var processed = await ImageProcessor.TryProcessAsync(buffer, options, format, ct);
                 if (processed is not null)
                 {
                     uploadSource = processed;
                     sizeKb = (int)Math.Ceiling(processed.Length / 1024d);
+                    if (convertToWebp)
+                    {
+                        mime = "image/webp";
+                        ext = ".webp";
+                        storedName = Path.GetFileNameWithoutExtension(storedName) + ext;
+                        webpApplied = true;
+                    }
                 }
             }
         }
@@ -133,7 +145,9 @@ public class FileService : IFileService
             StoragePath = uploaded.StoragePath,
             CNDUrl = uploaded.CdnUrl,
             CDNFileCode = uploaded.CdnFileCode,
-            OriginalFileName = Truncate(string.IsNullOrWhiteSpace(request.CustomFileName) ? request.OriginalFileName : request.CustomFileName, 120)!,
+            OriginalFileName = Truncate(webpApplied
+                ? WithExtension(string.IsNullOrWhiteSpace(request.CustomFileName) ? request.OriginalFileName : request.CustomFileName, ext)
+                : (string.IsNullOrWhiteSpace(request.CustomFileName) ? request.OriginalFileName : request.CustomFileName), 120)!,
             StoredFileName = storedName,
             MimeType = Truncate(mime, 74)!,
             FileSizeKB = sizeKb,
@@ -325,6 +339,12 @@ public class FileService : IFileService
 
     private static string? Truncate(string? value, int max) =>
         string.IsNullOrEmpty(value) ? value : (value.Length <= max ? value : value[..max]);
+
+    private static string WithExtension(string fileName, string ext)
+    {
+        var name = Path.GetFileNameWithoutExtension(fileName);
+        return string.IsNullOrEmpty(name) ? "file" + ext : name + ext;
+    }
 
     private static StorageSettingContext ToContext(WebsiteStorageSetting s) => new()
     {
