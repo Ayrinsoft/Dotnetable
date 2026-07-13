@@ -73,7 +73,7 @@ public static class ImageProcessor
                 }
 
                 using var image = SKImage.FromBitmap(current);
-                using var data = image.Encode(format, 90);
+                using var data = Encode(image, format);
 
                 var output = new MemoryStream();
                 data.SaveTo(output);
@@ -93,6 +93,22 @@ public static class ImageProcessor
         {
             if (source.CanSeek) source.Position = 0;
         }
+    }
+
+    /// <summary>Encodes with max PNG compression (zlib level 9, all filters) so output size stays close to source; other formats keep quality 90.</summary>
+    private static SKData Encode(SKImage image, SKEncodedImageFormat format)
+    {
+        if (format == SKEncodedImageFormat.Png)
+        {
+            using var pixmap = image.PeekPixels();
+            if (pixmap is not null)
+            {
+                var options = new SKPngEncoderOptions(SKPngEncoderFilterFlags.AllFilters, zLibLevel: 9);
+                var encoded = pixmap.Encode(options);
+                if (encoded is not null) return encoded;
+            }
+        }
+        return image.Encode(format, 90);
     }
 
     private static SKBitmap? ApplyCrop(SKBitmap source, ImageCropRect crop)
