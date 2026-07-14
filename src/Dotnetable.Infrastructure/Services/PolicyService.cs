@@ -120,4 +120,29 @@ public class PolicyService : IPolicyService
             .OrderBy(r => r.RoleKey)
             .ToListAsync(ct);
     }
+
+    public async Task<IReadOnlyList<Policy>> GetGrantablePoliciesAsync(int websiteId, int granterMemberId, bool isMaster, CancellationToken ct = default)
+    {
+        var policies = await GetByWebsiteAsync(websiteId, ct);
+        if (isMaster) return policies;
+
+        var heldRoleIds = (await _context.Members
+            .Where(m => m.MemberID == granterMemberId)
+            .SelectMany(m => m.Policy.PolicyRoles)
+            .Where(pr => pr.Active && pr.Role.Active)
+            .Select(pr => pr.RoleID)
+            .ToListAsync(ct)).ToHashSet();
+
+        var policyIds = policies.Select(p => p.PolicyID).ToList();
+        var policyRoles = await _context.PolicyRoles.AsNoTracking()
+            .Where(pr => policyIds.Contains(pr.PolicyID) && pr.Active && pr.Role.Active)
+            .Select(pr => new { pr.PolicyID, pr.RoleID })
+            .ToListAsync(ct);
+        var rolesByPolicy = policyRoles.ToLookup(x => x.PolicyID, x => x.RoleID);
+
+        // A policy with no active roles grants nothing, so it is always safe to assign.
+        return policies
+            .Where(p => rolesByPolicy[p.PolicyID].All(heldRoleIds.Contains))
+            .ToList();
+    }
 }

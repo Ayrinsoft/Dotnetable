@@ -64,7 +64,7 @@
                     <td>@m.RegisterDate.ToString("yyyy-MM-dd")</td>
                     <td>
                         <MudSwitch T="bool" Value="m.Active" Color="Color.Success"
-                                   Disabled="@(!_canEdit || _toggling.Contains(m.MemberID))"
+                                   Disabled="@(!_canEdit || m.MemberID == _currentMemberId || _toggling.Contains(m.MemberID))"
                                    ValueChanged="@(v => ToggleActiveAsync(m, v))" />
                     </td>
                 </tr>
@@ -78,6 +78,7 @@
     private bool _isMaster;
     private bool _canEdit;
     private int _websiteId;
+    private int _currentMemberId;
     private List<Member> _members = new();
     private HashSet<int> _toggling = new();
     private GridViewHeaderParameters _grid = new();
@@ -93,6 +94,7 @@
         _isMaster = user.HasClaim(AdminClaimTypes.Master, "true");
         _canEdit = AdminPolicies.Allows(user, RoleKeys.MembersEdit);
         int.TryParse(user.FindFirst(AdminClaimTypes.WebsiteId)?.Value, out _websiteId);
+        int.TryParse(user.FindFirst(AdminClaimTypes.MemberId)?.Value, out _currentMemberId);
 
         _grid = new GridViewHeaderParameters
         {
@@ -125,6 +127,7 @@
 
     private async Task ToggleActiveAsync(Member m, bool value)
     {
+        if (m.MemberID == _currentMemberId) return; // never let a member deactivate themselves
         if (!_toggling.Add(m.MemberID)) return;
         m.Active = value;
         try { await MemberService.SetActiveAsync(m.MemberID, value); }

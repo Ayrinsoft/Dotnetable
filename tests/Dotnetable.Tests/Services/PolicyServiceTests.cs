@@ -257,6 +257,52 @@ public class PolicyServiceTests : IDisposable
     }
 
     [Fact]
+    public async Task GetGrantablePoliciesAsync_Master_ReturnsAllActivePolicies()
+    {
+        _context.Policies.AddRange(NewPolicy("A"), NewPolicy("B"), NewPolicy("Off", active: false));
+        await _context.SaveChangesAsync();
+
+        var result = await _service.GetGrantablePoliciesAsync(_website.WebsiteID, granterMemberId: 1, isMaster: true);
+
+        result.Should().HaveCount(2);
+    }
+
+    [Fact]
+    public async Task GetGrantablePoliciesAsync_NonMaster_ExcludesPoliciesWithRolesTheGranterLacks()
+    {
+        var held = NewRole("files.view"); var notHeld = NewRole("files.delete");
+        _context.Roles.AddRange(held, notHeld);
+        var granterPolicy = NewPolicy("Granter");
+        var subsetPolicy = NewPolicy("Subset");       // only roles the granter holds
+        var escalationPolicy = NewPolicy("Escalation"); // includes a role the granter lacks
+        var emptyPolicy = NewPolicy("Empty");          // no roles at all
+        _context.Policies.AddRange(granterPolicy, subsetPolicy, escalationPolicy, emptyPolicy);
+        await _context.SaveChangesAsync();
+
+        _context.PolicyRoles.AddRange(
+            new PolicyRole { PolicyID = granterPolicy.PolicyID, RoleID = held.RoleID, Active = true },
+            new PolicyRole { PolicyID = subsetPolicy.PolicyID, RoleID = held.RoleID, Active = true },
+            new PolicyRole { PolicyID = escalationPolicy.PolicyID, RoleID = held.RoleID, Active = true },
+            new PolicyRole { PolicyID = escalationPolicy.PolicyID, RoleID = notHeld.RoleID, Active = true });
+        await _context.SaveChangesAsync();
+
+        var member = new Member
+        {
+            Username = "granter", Active = true, Password = "pw", Email = "g@x.com",
+            CellphoneNumber = "123", CountryCode = "US",
+            RegisterDate = DateOnly.FromDateTime(DateTime.Today),
+            Givenname = "G", Surname = "R", HashKey = Guid.NewGuid(),
+            PolicyID = granterPolicy.PolicyID, WebsiteID = _website.WebsiteID
+        };
+        _context.Members.Add(member);
+        await _context.SaveChangesAsync();
+
+        var result = await _service.GetGrantablePoliciesAsync(_website.WebsiteID, member.MemberID, isMaster: false);
+
+        result.Select(p => p.Title).Should().BeEquivalentTo("Granter", "Subset", "Empty");
+    }
+
+    [Fact]
     public async Task GetDefaultMemberPolicyAsync_ReturnsActiveUsersPolicyForWebsite()
     {
         _context.Policies.Add(NewPolicy(DefaultPolicies.Users));

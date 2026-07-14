@@ -28,4 +28,11 @@ public interface IPolicyService
 
     /// <summary>Roles a member is allowed to grant: every active role for master, otherwise only the roles the member already holds.</summary>
     Task<IReadOnlyList<Role>> GetAssignableRolesAsync(int memberId, bool isMaster, CancellationToken ct = default);
+
+    /// <summary>
+    /// Active access levels of a website that <paramref name="granterMemberId"/> may assign to members:
+    /// all of them for master, otherwise only policies whose active roles are a subset of the roles the
+    /// granter already holds — so nobody can hand out a permission they don't have themselves.
+    /// </summary>
+    Task<IReadOnlyList<Policy>> GetGrantablePoliciesAsync(int websiteId, int granterMemberId, bool isMaster, CancellationToken ct = default);
 }
