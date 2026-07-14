@@ -66,9 +66,10 @@ else if (_member is not null)
                         </MudItem>
                         <MudItem xs="12" sm="6">
                             <MudSelect T="int" @bind-Value="_member.PolicyID" Label="@L["access_level", "Access Level"]"
-                                       Variant="Variant.Outlined" Required="true"
+                                       Variant="Variant.Outlined" Required="true" Disabled="@_isSelf"
                                        RequiredError="@L["required", "This field is required."]"
-                                       HelperText="@(_policies.Count == 0 ? L["members.no_access_levels", "This website has no access levels yet."] : null)">
+                                       HelperText="@(_isSelf ? L["members.self_access_locked", "You cannot change your own access level."]
+                                                    : _policies.Count == 0 ? L["members.no_access_levels", "This website has no access levels you can assign."] : null)">
                                 @foreach (var p in _policies)
                                 {
                                     <MudSelectItem T="int" Value="@p.PolicyID">@p.Title</MudSelectItem>
@@ -117,8 +118,14 @@ else if (_member is not null)
 
             <MudItem xs="12">
                 <MudPaper Elevation="0" Class="border rounded-lg pa-6">
-                    <MudSwitch T="bool" @bind-Value="_member.Active" Color="Color.Primary"
+                    <MudSwitch T="bool" @bind-Value="_member.Active" Color="Color.Primary" Disabled="@_isSelf"
                                Label="@(_member.Active ? L["active_hint", "Active — can sign in"] : L["inactive_hint", "Inactive — cannot sign in"])" />
+                    @if (_isSelf)
+                    {
+                        <MudText Typo="Typo.caption" Color="Color.Secondary">
+                            @L["members.self_active_locked", "You cannot deactivate your own account."]
+                        </MudText>
+                    }
                 </MudPaper>
             </MudItem>
         </MudGrid>
@@ -156,9 +163,14 @@ else if (_member is not null)
     private bool _saving;
     private bool _isMaster;
     private bool _canSave;
+    private bool _isSelf;
     private int _websiteId;
+    private int _currentMemberId;
+    private int _originalPolicyId;
+    private bool _originalActive;
     private List<Website> _websites = new();
     private List<Policy> _policies = new();
+    private HashSet<int> _grantablePolicyIds = new();
     private string[]? _formErrors;
     private bool _isNew => Id == 0;
 
@@ -179,6 +191,7 @@ else if (_member is not null)
         // Creating requires the insert permission; editing an existing member requires edit.
         _canSave = AdminPolicies.Allows(user, _isNew ? RoleKeys.MembersInsert : RoleKeys.MembersEdit);
         int.TryParse(user.FindFirst(AdminClaimTypes.WebsiteId)?.Value, out _websiteId);
+        int.TryParse(user.FindFirst(AdminClaimTypes.MemberId)?.Value, out _currentMemberId);
 
         if (_isNew)
         {
@@ -204,6 +217,9 @@ else if (_member is not null)
                 Nav.NavigateTo("/members");
                 return;
             }
+            _isSelf = _member.MemberID == _currentMemberId;
+            _originalPolicyId = _member.PolicyID;
+            _originalActive = _member.Active;
         }
 
         await LoadPoliciesAsync();
@@ -212,7 +228,9 @@ else if (_member is not null)
 
     private async Task LoadPoliciesAsync()
     {
-        _policies = (await PolicyService.GetByWebsiteAsync(_member!.WebsiteID)).ToList();
+        // A non-master admin can only assign access levels whose roles they hold themselves,
+        // so they cannot escalate privileges through another (or a new) account.
+        _policies = (await PolicyService.GetGrantablePoliciesAsync(_member!.WebsiteID, _currentMemberId, _isMaster)).ToList();
 
         // Master can also grant access levels defined on the master website itself,
         // even when creating/editing a member on another site. A non-master admin
@@ -222,6 +240,8 @@ else if (_member is not null)
             var masterPolicies = await PolicyService.GetByWebsiteAsync(AppConstants.MasterWebsiteId);
             _policies.AddRange(masterPolicies.Where(mp => _policies.All(p => p.PolicyID != mp.PolicyID)));
         }
+
+        _grantablePolicyIds = _policies.Select(p => p.PolicyID).ToHashSet();
 
         if (!_isNew && !_policies.Any(p => p.PolicyID == _member.PolicyID))
         {
@@ -244,9 +264,24 @@ else if (_member is not null)
         _formErrors = _form.Errors;
         if (!_form.IsValid) return;
 
+        if (_isSelf)
+        {
+            // Members can never change their own access level or active flag,
+            // regardless of what a tampered UI state claims.
+            _member!.PolicyID = _originalPolicyId;
+            _member.Active = _originalActive;
+        }
+        else if (!_isMaster && _member!.PolicyID != _originalPolicyId && !_grantablePolicyIds.Contains(_member.PolicyID))
+        {
+            // Keeping an out-of-scope access level already on the member is fine;
+            // granting one whose roles the current admin doesn't hold is not.
+            Snackbar.Add(L["members.access_level_not_grantable", "You cannot assign an access level with permissions you don't have yourself."], Severity.Error);
+            return;
+        }
+
         if (_member!.PolicyID == 0)
         {
-            Snackbar.Add(L["members.select_access_level", "Select an access level. This website has none — create one first."], Severity.Warning);
+            Snackbar.Add(L["members.select_access_level", "Select an access level. This website has none you can assign — create one first."], Severity.Warning);
             return;
         }
 
