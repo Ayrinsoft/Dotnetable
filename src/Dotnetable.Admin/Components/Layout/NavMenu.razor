@@ -90,8 +90,15 @@
     {
         <span class="app-nav-label">@L["nav.content", "Content"]</span>
     }
-    <MudNavGroup Title="@L["content", "Content"]" Icon="@Icons.Material.Filled.Article"
-                 Hidden="@(!_canPosts && !_canPages && !_canTaxonomy && !_canRedirects)">
+    <MudNavGroup Title="@L["content", "Content"]" Icon="@Icons.Material.Filled.Article" hidden="@(!_canPosts && !_canPages && !_canTaxonomy && !_canRedirects)">
+
+        
+        <AuthorizeView Policy="@RoleKeys.MenusView" Context="mn">
+            <MudNavLink Href="/menus" Icon="@Icons.Material.Filled.Menu">
+                @L["menus", "Menus"]
+            </MudNavLink>
+        </AuthorizeView>
+
         @if (!_hideBlogNavForBasicStore)
         {
             <AuthorizeView Policy="@RoleKeys.PostsView" Context="po">
@@ -111,12 +118,6 @@
                 <MudNavLink Href="/moderation/reviews" Icon="@Icons.Material.Filled.Star">@L["moderation.reviews", "Reviews"]</MudNavLink>
                 <MudNavLink Href="/moderation/questions" Icon="@Icons.Material.Filled.QuestionAnswer">@L["moderation.questions", "Questions"]</MudNavLink>
             </MudNavGroup>
-        </AuthorizeView>
-
-        <AuthorizeView Policy="@RoleKeys.MenusView" Context="mn">
-            <MudNavLink Href="/menus" Icon="@Icons.Material.Filled.Menu">
-                @L["menus", "Menus"]
-            </MudNavLink>
         </AuthorizeView>
 
         <AuthorizeView Policy="@RoleKeys.SlideshowsView" Context="sl">
