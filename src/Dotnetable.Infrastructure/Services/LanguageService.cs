@@ -1,7 +1,9 @@
 using Dotnetable.Application;
+using Dotnetable.Application.DTOs;
 using Dotnetable.Application.Interfaces;
 using Dotnetable.Domain.Entities;
 using Dotnetable.Infrastructure.Data;
+using Dotnetable.Infrastructure.Extensions;
 using Microsoft.EntityFrameworkCore;
 
 namespace Dotnetable.Infrastructure.Services;
@@ -38,6 +40,23 @@ public class LanguageService : ILanguageService
     // completed."
     public Task<List<Language>> GetCatalogAsync(CancellationToken ct = default) =>
         _cache.GetOrLoadCatalogAsync(() => LoadCatalogAsync(ct));
+
+    public async Task<PagedResult<Language>> GetCatalogPagedAsync(GridQuery query, CancellationToken ct = default)
+    {
+        var q = (await GetCatalogAsync(ct)).AsQueryable();
+
+        if (query.GetSearch(nameof(Language.LanguageCode)) is string code)
+            q = q.Where(l => l.LanguageCode.Contains(code, StringComparison.OrdinalIgnoreCase));
+        if (query.GetSearch(nameof(Language.LanguageCodeISO)) is string iso)
+            q = q.Where(l => l.LanguageCodeISO.Contains(iso, StringComparison.OrdinalIgnoreCase));
+        if (query.GetSearch(nameof(Language.Name)) is string name)
+            q = q.Where(l => l.Name.Contains(name, StringComparison.OrdinalIgnoreCase));
+
+        var total = q.Count();
+        var items = q.ApplyOrderBy(query.OrderBy, nameof(Language.Priority)).Skip(query.Skip).Take(query.Take).ToList();
+
+        return new PagedResult<Language> { Items = items, TotalCount = total };
+    }
 
     private async Task<List<Language>> LoadCatalogAsync(CancellationToken ct)
     {

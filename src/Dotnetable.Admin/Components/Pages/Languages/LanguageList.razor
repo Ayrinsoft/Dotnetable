@@ -19,77 +19,81 @@
     </MudButton>
 </MudStack>
 
-<MudTextField T="string" @bind-Value="_search" Label="@L["search", "Search"]" Variant="Variant.Outlined"
-              Margin="Margin.Dense" Adornment="Adornment.Start" AdornmentIcon="@Icons.Material.Filled.Search"
-              Class="mb-3" Style="max-width:320px;" Immediate="true" Clearable="true" />
-
 <MudPaper Elevation="0" Class="app-card rounded-lg pa-4">
     @if (_loading)
     {
         <MudProgressLinear Indeterminate="true" Color="Color.Primary" Class="mb-3" />
     }
-    else
-    {
-        <MudSimpleTable Dense="true" Hover="true" Elevation="0">
-            <thead>
+    <DNGridView GridHeaderParams="_grid" OnSearchChanged="OnGridChanged">
+        @if (_items.Count == 0)
+        {
+            <tr>
+                <td colspan="7" style="text-align:center; padding:32px;">
+                    <MudText Color="Color.Secondary">@L["languages.empty", "No languages found."]</MudText>
+                </td>
+            </tr>
+        }
+        else
+        {
+            @foreach (var lang in _items)
+            {
                 <tr>
-                    <th>@L["languages.code", "Code"]</th>
-                    <th>@L["languages.iso_code", "ISO Code"]</th>
-                    <th>@L["name", "Name"]</th>
-                    <th>@L["languages.rtl", "RTL"]</th>
-                    <th>@L["languages.default", "Default"]</th>
-                    <th>@L["active", "Active"]</th>
-                    <th style="width:1%"></th>
+                    <td><code>@lang.LanguageCode</code></td>
+                    <td>@lang.LanguageCodeISO</td>
+                    <td>@lang.Name</td>
+                    <td>@(lang.RTLDesign ? L["yes", "Yes"] : L["no", "No"])</td>
+                    <td>@(lang.IsDefault ? L["yes", "Yes"] : L["no", "No"])</td>
+                    <td>@(lang.Active ? L["yes", "Yes"] : L["no", "No"])</td>
+                    <td>
+                        <MudStack Row="true" Spacing="0">
+                            <MudIconButton Icon="@Icons.Material.Filled.Edit" Size="Size.Small" OnClick="@(() => EditAsync(lang))" />
+                            <MudIconButton Icon="@(lang.Active ? Icons.Material.Filled.VisibilityOff : Icons.Material.Filled.Visibility)"
+                                           Size="Size.Small" Color="@(lang.Active ? Color.Error : Color.Success)"
+                                           OnClick="@(() => ToggleActiveAsync(lang))"
+                                           Title="@(lang.Active ? L["languages.deactivate", "Deactivate — hide from all language lists"] : L["languages.activate", "Activate"])" />
+                        </MudStack>
+                    </td>
                 </tr>
-            </thead>
-            <tbody>
-                @foreach (var lang in _filtered)
-                {
-                    <tr>
-                        <td><code>@lang.LanguageCode</code></td>
-                        <td>@lang.LanguageCodeISO</td>
-                        <td>@lang.Name</td>
-                        <td>@(lang.RTLDesign ? L["yes", "Yes"] : L["no", "No"])</td>
-                        <td>@(lang.IsDefault ? L["yes", "Yes"] : L["no", "No"])</td>
-                        <td>@(lang.Active ? L["yes", "Yes"] : L["no", "No"])</td>
-                        <td>
-                            <MudStack Row="true" Spacing="0">
-                                <MudIconButton Icon="@Icons.Material.Filled.Edit" Size="Size.Small" OnClick="@(() => EditAsync(lang))" />
-                                <MudIconButton Icon="@(lang.Active ? Icons.Material.Filled.VisibilityOff : Icons.Material.Filled.Visibility)"
-                                               Size="Size.Small" Color="@(lang.Active ? Color.Error : Color.Success)"
-                                               OnClick="@(() => ToggleActiveAsync(lang))"
-                                               Title="@(lang.Active ? L["languages.deactivate", "Deactivate — hide from all language lists"] : L["languages.activate", "Activate"])" />
-                            </MudStack>
-                        </td>
-                    </tr>
-                }
-            </tbody>
-        </MudSimpleTable>
-    }
+            }
+        }
+    </DNGridView>
 </MudPaper>
 
 @code {
     private bool _loading = true;
     private List<Language> _items = new();
-    private string _search = string.Empty;
-
-    private IEnumerable<Language> _filtered => string.IsNullOrWhiteSpace(_search)
-        ? _items
-        : _items.Where(l =>
-            l.LanguageCode.Contains(_search, StringComparison.OrdinalIgnoreCase) ||
-            l.LanguageCodeISO.Contains(_search, StringComparison.OrdinalIgnoreCase) ||
-            l.Name.Contains(_search, StringComparison.OrdinalIgnoreCase));
+    private GridViewHeaderParameters _grid = new();
 
     protected override async Task OnInitializedAsync()
     {
         await L.EnsureLoadedAsync();
+
+        _grid = new GridViewHeaderParameters
+        {
+            Pagination = new PaginationModel { PageSize = 25 },
+            HeaderItems = new()
+            {
+                new() { ColumnTitle = L["languages.code", "Code"], ColumnName = nameof(Language.LanguageCode), HasSort = true, HasSearch = true },
+                new() { ColumnTitle = L["languages.iso_code", "ISO Code"], ColumnName = nameof(Language.LanguageCodeISO), HasSort = true, HasSearch = true },
+                new() { ColumnTitle = L["name", "Name"], ColumnName = nameof(Language.Name), HasSort = true, HasSearch = true },
+                new() { ColumnTitle = L["languages.rtl", "RTL"], ColumnName = nameof(Language.RTLDesign) },
+                new() { ColumnTitle = L["languages.default", "Default"], ColumnName = nameof(Language.IsDefault) },
+                new() { ColumnTitle = L["active", "Active"], ColumnName = nameof(Language.Active) },
+                new() { ColumnTitle = "", ColumnName = "" },
+            }
+        };
+
         await LoadAsync();
     }
+
+    private Task OnGridChanged(GridViewHeaderParameters _) => LoadAsync();
 
     private async Task LoadAsync()
     {
         _loading = true;
-        _items = await LanguageService.GetCatalogAsync();
+        var result = await LanguageService.GetCatalogPagedAsync(_grid.ToQuery());
+        _items = result.Items.ToList();
+        _grid.Pagination.MaxLength = result.TotalCount;
         _loading = false;
     }
 

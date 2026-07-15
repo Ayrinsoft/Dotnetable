@@ -28,6 +28,13 @@ window.dotnetableLang = {
     set: function (value) {
         try { localStorage.setItem('dn-lang', value); } catch (e) { }
         document.cookie = 'dn-lang=' + value + ';path=/;max-age=31536000;samesite=lax';
+    },
+    // Sets dir/lang on the real <html> element so RTL reaches document.body-portaled content too
+    // (MudBlazor dialogs/menus/snackbars render outside the Blazor component's own DOM subtree).
+    // Called once the Blazor circuit has resolved the language from the DB (see MainLayout).
+    setDir: function (rtl, lang) {
+        document.documentElement.setAttribute('dir', rtl ? 'rtl' : 'ltr');
+        if (lang) document.documentElement.setAttribute('lang', lang);
     }
 };
 
