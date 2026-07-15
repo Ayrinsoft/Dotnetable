@@ -15,6 +15,7 @@ AppBranding.Name = builder.Configuration["Branding:AppName"] ?? AppBranding.Name
 
 builder.Services.AddInfrastructure(builder.Configuration, builder.Environment.ContentRootPath);
 builder.Services.AddScoped<IPageLocalizer, PageLocalizer>();
+builder.Services.AddScoped<IAuthLanguageResolver, AuthLanguageResolver>();
 builder.Services.AddScoped<AdminUiModeState>();
 
 // Admin writes content directly against the DB (bypassing the API), so its own cache invalidation

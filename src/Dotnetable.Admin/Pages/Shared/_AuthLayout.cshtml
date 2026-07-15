@@ -1,10 +1,12 @@
+@using Dotnetable.Admin.Localization
 @{
     Layout = null;
     var dir = (ViewData["Dir"] as string) ?? "ltr";
+    var currentLang = (ViewData["Lang"] as string) ?? SupportedLanguages.All[0].Code;
     var themeClass = Context.Request.Cookies["dn-theme"] == "dark" ? "dark" : "";
 }
 <!DOCTYPE html>
-<html lang="en" dir="@dir" class="@themeClass">
+<html lang="@currentLang" dir="@dir" class="@themeClass">
 <head>
     <meta charset="utf-8" />
     <meta name="viewport" content="width=device-width, initial-scale=1.0" />
@@ -99,6 +101,22 @@
         }
         .theme-toggle:hover { color: var(--accent); border-color: var(--accent); }
 
+        .auth-actions { display: flex; align-items: center; gap: 8px; }
+
+        .lang-select {
+            border: 1px solid var(--border);
+            background: var(--input-bg);
+            color: var(--text);
+            border-radius: .4rem;
+            height: 38px;
+            padding: 0 8px;
+            font-size: 13px;
+            cursor: pointer;
+            outline: none;
+            transition: border-color .15s;
+        }
+        .lang-select:hover, .lang-select:focus { border-color: var(--accent); }
+
         .field { margin-bottom: 18px; }
         .field label { display: block; font-size: 13px; font-weight: 600; margin-bottom: 6px; color: var(--text); }
 
@@ -167,13 +185,22 @@
                 <div class="auth-logo">D</div>
                 <h1>Dotnetable Admin</h1>
             </div>
-            <button type="button" class="theme-toggle" id="themeToggle"
-                    onclick="var n=window.dotnetableTheme.toggle();this.innerHTML=(n==='dark'?'&#9788;':'&#9790;');" title="Toggle theme">
-            </button>
+            <div class="auth-actions">
+                <select class="lang-select" id="langSelect" title="Language"
+                        onchange="window.dotnetableLang.set(this.value);location.reload();">
+                    @foreach (var lang in SupportedLanguages.All)
+                    {
+                        <option value="@lang.Code" selected="@(lang.Code == currentLang)">@lang.Flag @lang.Native</option>
+                    }
+                </select>
+                <button type="button" class="theme-toggle" id="themeToggle"
+                        onclick="var n=window.dotnetableTheme.toggle();this.innerHTML=(n==='dark'?'&#9788;':'&#9790;');" title="Toggle theme">
+                </button>
+            </div>
         </div>
         @RenderBody()
     </div>
-    <script src="js/theme.js?v=20260706"></script>
+    <script src="js/theme.js?v=20260715"></script>
     <script>
         (function () {
             var dark = document.documentElement.classList.contains('dark');

@@ -18,6 +18,19 @@ window.dotnetableTheme = {
     }
 };
 
+// Active UI language for both the Blazor admin and the Razor-Pages auth screens. Same
+// localStorage+cookie pattern as dotnetableTheme so pre-render (auth pages, PageLocalizer)
+// can read it server-side while the client keeps a fast local copy.
+window.dotnetableLang = {
+    get: function () {
+        try { return localStorage.getItem('dn-lang') || ''; } catch { return ''; }
+    },
+    set: function (value) {
+        try { localStorage.setItem('dn-lang', value); } catch (e) { }
+        document.cookie = 'dn-lang=' + value + ';path=/;max-age=31536000;samesite=lax';
+    }
+};
+
 // Session-local override of the admin UI mode (Basic/General/Advanced) — display-only, never
 // synced back to the member's stored AdminUIMode. Persisted in localStorage so it survives a
 // reload of the same browser but is otherwise independent per device.

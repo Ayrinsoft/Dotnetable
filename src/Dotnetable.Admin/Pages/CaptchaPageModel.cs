@@ -1,3 +1,5 @@
+using Dotnetable.Admin.Localization;
+using Dotnetable.Application;
 using Dotnetable.Application.Interfaces;
 using Microsoft.AspNetCore.Mvc;
 using Microsoft.AspNetCore.Mvc.RazorPages;
@@ -12,8 +14,27 @@ namespace Dotnetable.Admin.Pages;
 public abstract class CaptchaPageModel : PageModel, ICaptchaView
 {
     protected readonly IHumanVerificationService Human;
+    private readonly IAuthLanguageResolver _langResolver;
 
-    protected CaptchaPageModel(IHumanVerificationService human) => Human = human;
+    protected CaptchaPageModel(IHumanVerificationService human, IAuthLanguageResolver langResolver)
+    {
+        Human = human;
+        _langResolver = langResolver;
+    }
+
+    public string Lang { get; private set; } = SupportedLanguages.All[0].Code;
+    public AuthStrings S { get; private set; } = AuthL10n.Get(SupportedLanguages.All[0].Code);
+
+    /// <summary>Resolves the active language from the "dn-lang" cookie, falling back to the
+    /// master website's default language. Call once at the top of OnGet/OnPost.</summary>
+    protected async Task ResolveLanguageAsync(CancellationToken ct = default)
+    {
+        var cookie = Request.Cookies[SupportedLanguages.CookieName];
+        Lang = await _langResolver.ResolveAsync(cookie, AppConstants.MasterWebsiteId, ct);
+        S = AuthL10n.Get(Lang);
+        ViewData["Dir"] = SupportedLanguages.IsRtl(Lang) ? "rtl" : "ltr";
+        ViewData["Lang"] = Lang;
+    }
 
     public bool CaptchaUseTurnstile { get; private set; }
     public string? TurnstileSiteKey { get; private set; }

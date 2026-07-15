@@ -16,6 +16,8 @@ public sealed class PageLocalizer : IPageLocalizer
     private readonly ILocalizationService _localization;
     private readonly PendingTranslationKeys _pending;
     private readonly AuthenticationStateProvider _authState;
+    private readonly IHttpContextAccessor _httpContextAccessor;
+    private readonly IWebsiteService _websiteService;
     private readonly object _loadLock = new();
     private volatile bool _loaded;
     private Task? _loadTask;
@@ -24,12 +26,16 @@ public sealed class PageLocalizer : IPageLocalizer
         TranslationCache cache,
         ILocalizationService localization,
         PendingTranslationKeys pending,
-        AuthenticationStateProvider authState)
+        AuthenticationStateProvider authState,
+        IHttpContextAccessor httpContextAccessor,
+        IWebsiteService websiteService)
     {
         _cache = cache;
         _localization = localization;
         _pending = pending;
         _authState = authState;
+        _httpContextAccessor = httpContextAccessor;
+        _websiteService = websiteService;
     }
 
     public int WebsiteId { get; private set; } = AppConstants.MasterWebsiteId;
@@ -58,8 +64,24 @@ public sealed class PageLocalizer : IPageLocalizer
         if (int.TryParse(state.User.FindFirst(AdminClaimTypes.WebsiteId)?.Value, out var websiteId) && websiteId > 0)
             WebsiteId = websiteId;
 
+        LanguageCode = await ResolveLanguageAsync(ct);
+
         await _localization.LoadAsync(WebsiteId, LanguageCode, ct);
         _loaded = true;
+    }
+
+    // "dn-lang" cookie (set by the header switcher / auth pages) wins; otherwise fall back to the
+    // member's website default language.
+    private async Task<string> ResolveLanguageAsync(CancellationToken ct)
+    {
+        var cookie = _httpContextAccessor.HttpContext?.Request.Cookies[SupportedLanguages.CookieName];
+        if (SupportedLanguages.IsSupported(cookie))
+            return cookie!;
+
+        var website = await _websiteService.GetByIdAsync(WebsiteId, ct);
+        return SupportedLanguages.IsSupported(website?.DefaultLanguageCode)
+            ? website!.DefaultLanguageCode
+            : DefaultLanguage;
     }
 
     public string this[string key] => this[key, key];
