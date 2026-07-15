@@ -84,6 +84,8 @@ public partial class Website
 
     public virtual ICollection<FileTag> FileTags { get; set; } = new List<FileTag>();
 
+    public virtual ICollection<Form> Forms { get; set; } = new List<Form>();
+
     public virtual ICollection<InventoryItem> InventoryItems { get; set; } = new List<InventoryItem>();
 
     public virtual ICollection<JournalEntry> JournalEntries { get; set; } = new List<JournalEntry>();
@@ -101,8 +103,6 @@ public partial class Website
     public virtual ICollection<Member> Members { get; set; } = new List<Member>();
 
     public virtual ICollection<Menu> Menus { get; set; } = new List<Menu>();
-
-    public virtual ICollection<Form> Forms { get; set; } = new List<Form>();
 
     public virtual ICollection<OrderItem> OrderItemSourceWebsites { get; set; } = new List<OrderItem>();
 
@@ -152,7 +152,7 @@ public partial class Website
 
     public virtual ICollection<Vendor> Vendors { get; set; } = new List<Vendor>();
 
-    public virtual ICollection<WebsiteCaptchaSetting> WebsiteCaptchaSettings { get; set; } = new List<WebsiteCaptchaSetting>();
+    public virtual WebsiteCaptchaSetting? WebsiteCaptchaSetting { get; set; }
 
     public virtual ICollection<WebsiteClient> WebsiteClients { get; set; } = new List<WebsiteClient>();
 
@@ -168,9 +168,9 @@ public partial class Website
 
     public virtual ICollection<WebsiteSocialLink> WebsiteSocialLinks { get; set; } = new List<WebsiteSocialLink>();
 
-    public virtual ICollection<WebsiteTheme> WebsiteThemes { get; set; } = new List<WebsiteTheme>();
-
     public virtual ICollection<WebsiteStorageSetting> WebsiteStorageSettings { get; set; } = new List<WebsiteStorageSetting>();
+
+    public virtual ICollection<WebsiteTheme> WebsiteThemes { get; set; } = new List<WebsiteTheme>();
 
     public virtual ICollection<WebsiteWatermarkSetting> WebsiteWatermarkSettings { get; set; } = new List<WebsiteWatermarkSetting>();
 

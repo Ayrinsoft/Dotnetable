@@ -1,4 +1,4 @@
-using System;
+﻿using System;
 using System.Collections.Generic;
 
 namespace Dotnetable.Domain.Entities;
@@ -11,7 +11,6 @@ public partial class FormField
 
     public string Label { get; set; } = null!;
 
-    /// <summary>Maps to <see cref="Enums.FormFieldType"/>.</summary>
     public byte FieldType { get; set; }
 
     public string? Placeholder { get; set; }
@@ -20,10 +19,8 @@ public partial class FormField
 
     public bool IsRequired { get; set; }
 
-    /// <summary>Rating scale lower bound / minimum numeric value or text length.</summary>
     public int? MinValue { get; set; }
 
-    /// <summary>Rating scale upper bound / maximum numeric value or text length.</summary>
     public int? MaxValue { get; set; }
 
     public int SortOrder { get; set; }

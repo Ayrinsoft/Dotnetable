@@ -95,5 +95,5 @@ public partial class FileRecord
 
     public virtual WebsiteStorageSetting WebsiteStorageSettings { get; set; } = null!;
 
-    public virtual ICollection<WebsiteWatermarkSetting> WebsiteWatermarkSettingWatermarkFiles { get; set; } = new List<WebsiteWatermarkSetting>();
+    public virtual ICollection<WebsiteWatermarkSetting> WebsiteWatermarkSettings { get; set; } = new List<WebsiteWatermarkSetting>();
 }
