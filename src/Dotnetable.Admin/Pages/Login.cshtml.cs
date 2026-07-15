@@ -20,7 +20,7 @@ public class LoginModel : CaptchaPageModel
     private readonly ILoginLogService _loginLog;
 
     public LoginModel(IMemberService memberService, ILoginLogService loginLog, IHumanVerificationService human,
-        IAuthLanguageResolver langResolver) : base(human, langResolver)
+        IAuthLanguageResolver langResolver, ILanguageService languageService) : base(human, langResolver, languageService)
     {
         _memberService = memberService;
         _loginLog = loginLog;

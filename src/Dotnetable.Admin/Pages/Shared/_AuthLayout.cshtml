@@ -2,7 +2,8 @@
 @{
     Layout = null;
     var dir = (ViewData["Dir"] as string) ?? "ltr";
-    var currentLang = (ViewData["Lang"] as string) ?? SupportedLanguages.All[0].Code;
+    var languages = (ViewData["Languages"] as IReadOnlyList<LanguageOption>) ?? SupportedLanguages.Defaults;
+    var currentLang = (ViewData["Lang"] as string) ?? languages[0].Code;
     var themeClass = Context.Request.Cookies["dn-theme"] == "dark" ? "dark" : "";
 }
 <!DOCTYPE html>
@@ -188,7 +189,7 @@
             <div class="auth-actions">
                 <select class="lang-select" id="langSelect" title="Language"
                         onchange="window.dotnetableLang.set(this.value);location.reload();">
-                    @foreach (var lang in SupportedLanguages.All)
+                    @foreach (var lang in languages)
                     {
                         <option value="@lang.Code" selected="@(lang.Code == currentLang)">@lang.Flag @lang.Native</option>
                     }

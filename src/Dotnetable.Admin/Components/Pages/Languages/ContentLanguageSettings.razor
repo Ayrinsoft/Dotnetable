@@ -1,0 +1,85 @@
+@page "/content-languages"
+@attribute [Authorize(Policy = RoleKeys.LocalizationEdit)]
+@inject ILanguageService LanguageService
+@inject AuthenticationStateProvider AuthState
+@inject ISnackbar Snackbar
+@inject IPageLocalizer L
+
+<DNPageTitle Title=@L["content_languages", "Content Languages"] />
+
+<MudStack Spacing="0" Class="mb-4">
+    <MudText Typo="Typo.h5" Class="fw-bold">@L["content_languages", "Content Languages"]</MudText>
+    <MudText Typo="Typo.body2" Color="Color.Secondary">
+        @L["content_languages.subtitle", "Choose which languages your Posts, Pages and other content are offered in. The first one you enable is used when only one is selected; enabling more adds a translation tab for each when editing content."]
+    </MudText>
+</MudStack>
+
+<MudPaper Elevation="0" Class="app-card rounded-lg pa-4">
+    @if (_loading)
+    {
+        <MudProgressLinear Indeterminate="true" Color="Color.Primary" Class="mb-3" />
+    }
+    else
+    {
+        <MudList T="string" Dense="false">
+            @foreach (var lang in _catalog)
+            {
+                <MudListItem T="string">
+                    <MudSwitch T="bool" Value="@_selected.Contains(lang.LanguageCode)"
+                               ValueChanged="@(v => Toggle(lang.LanguageCode, v))"
+                               Color="Color.Primary"
+                               Label="@($"{lang.Name} ({lang.LanguageCode})")" />
+                </MudListItem>
+            }
+        </MudList>
+
+        <MudStack Row="true" Class="mt-4">
+            <MudButton Variant="Variant.Filled" Color="Color.Primary" OnClick="SaveAsync" Disabled="@_saving">
+                @if (_saving)
+                {
+                    <MudProgressCircular Size="Size.Small" Indeterminate="true" Class="me-2" />
+                }
+                @L["save", "Save Changes"]
+            </MudButton>
+        </MudStack>
+    }
+</MudPaper>
+
+@code {
+    private bool _loading = true;
+    private bool _saving;
+    private int _websiteId;
+    private List<Language> _catalog = new();
+    private HashSet<string> _selected = new();
+
+    protected override async Task OnInitializedAsync()
+    {
+        await L.EnsureLoadedAsync();
+        var state = await AuthState.GetAuthenticationStateAsync();
+        int.TryParse(state.User.FindFirst(AdminClaimTypes.WebsiteId)?.Value, out _websiteId);
+
+        _loading = true;
+        _catalog = await LanguageService.GetActiveCatalogAsync();
+        var active = await LanguageService.GetActiveForWebsiteAsync(_websiteId);
+        _selected = active.Select(l => l.LanguageCode).ToHashSet();
+        _loading = false;
+    }
+
+    private void Toggle(string code, bool value)
+    {
+        if (value) _selected.Add(code);
+        else _selected.Remove(code);
+    }
+
+    private async Task SaveAsync()
+    {
+        _saving = true;
+        try
+        {
+            await LanguageService.SetWebsiteLanguagesAsync(_websiteId, _selected);
+            Snackbar.Add(L["saved", "Changes saved successfully."], Severity.Success);
+        }
+        catch (Exception ex) { Snackbar.Add($"{L["save_failed", "Save failed"]}: {ex.Message}", Severity.Error); }
+        finally { _saving = false; }
+    }
+}

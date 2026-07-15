@@ -15,25 +15,32 @@ public abstract class CaptchaPageModel : PageModel, ICaptchaView
 {
     protected readonly IHumanVerificationService Human;
     private readonly IAuthLanguageResolver _langResolver;
+    private readonly ILanguageService _languageService;
 
-    protected CaptchaPageModel(IHumanVerificationService human, IAuthLanguageResolver langResolver)
+    protected CaptchaPageModel(IHumanVerificationService human, IAuthLanguageResolver langResolver, ILanguageService languageService)
     {
         Human = human;
         _langResolver = langResolver;
+        _languageService = languageService;
     }
 
-    public string Lang { get; private set; } = SupportedLanguages.All[0].Code;
-    public AuthStrings S { get; private set; } = AuthL10n.Get(SupportedLanguages.All[0].Code);
+    public string Lang { get; private set; } = SupportedLanguages.Defaults[0].Code;
+    public AuthStrings S { get; private set; } = AuthL10n.Get(SupportedLanguages.Defaults[0].Code);
+    public IReadOnlyList<LanguageOption> Languages { get; private set; } = SupportedLanguages.Defaults;
 
     /// <summary>Resolves the active language from the "dn-lang" cookie, falling back to the
     /// master website's default language. Call once at the top of OnGet/OnPost.</summary>
     protected async Task ResolveLanguageAsync(CancellationToken ct = default)
     {
+        var catalog = await _languageService.GetActiveCatalogAsync(ct);
+        Languages = catalog.Select(l => l.ToOption()).ToList();
+
         var cookie = Request.Cookies[SupportedLanguages.CookieName];
         Lang = await _langResolver.ResolveAsync(cookie, AppConstants.MasterWebsiteId, ct);
         S = AuthL10n.Get(Lang);
-        ViewData["Dir"] = SupportedLanguages.IsRtl(Lang) ? "rtl" : "ltr";
+        ViewData["Dir"] = Languages.IsRtl(Lang) ? "rtl" : "ltr";
         ViewData["Lang"] = Lang;
+        ViewData["Languages"] = Languages;
     }
 
     public bool CaptchaUseTurnstile { get; private set; }

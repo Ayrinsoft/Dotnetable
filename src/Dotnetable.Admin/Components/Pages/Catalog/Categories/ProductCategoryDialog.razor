@@ -1,6 +1,7 @@
 @inject IProductCategoryService ProductCategoryService
 @inject ISnackbar Snackbar
 @inject IPageLocalizer L
+@inject ILanguageService LanguageService
 
 <MudDialog>
     <DialogContent>
@@ -47,7 +48,7 @@
                 <MudItem xs="12">
                     <MudExpansionPanels Elevation="0">
                         <MudExpansionPanel Text="@L["translations", "Translations"]">
-                            @foreach (var (code, label) in ContentLanguages.All)
+                            @foreach (var (code, label) in _languages)
                             {
                                 <MudGrid Spacing="2" Class="mb-1">
                                     <MudItem xs="7">
@@ -98,8 +99,13 @@
         }
     }
 
+    private (string Code, string Label)[] _languages = Array.Empty<(string, string)>();
+
     protected override async Task OnInitializedAsync()
     {
+        _languages = (await LanguageService.GetActiveForWebsiteAsync(L.WebsiteId))
+            .Select(x => (x.LanguageCode, x.Name)).ToArray();
+
         _file = Model.ImageFile;
         if (!IsNew)
             foreach (var t in await ProductCategoryService.GetTranslationsAsync(Model.ProductCategoryID))

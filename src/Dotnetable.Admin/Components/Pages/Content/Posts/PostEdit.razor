@@ -11,6 +11,7 @@
 @inject ISnackbar Snackbar
 @inject IPageLocalizer L
 @inject AdminUiModeState UiModeState
+@inject ILanguageService LanguageService
 
 <DNPageTitle Title=@(_isNew ? L["posts.new", "New Post"] : L["posts.edit", "Edit Post"]) />
 
@@ -41,7 +42,7 @@ else if (_model is not null)
                 {
                 <MudExpansionPanels Elevation="0" Class="mt-4">
                     <MudExpansionPanel Text="@L["translations", "Translations"]">
-                        @foreach (var (code, label) in ContentLanguages.All)
+                        @foreach (var (code, label) in _languages)
                         {
                             var t = Translation(code);
                             <MudPaper Elevation="0" Class="pa-3 mb-2" Style="border:1px solid var(--mud-palette-lines-default); border-radius:8px;">
@@ -150,6 +151,7 @@ else if (_model is not null)
     private bool _showTranslations;
     private int _websiteId;
     private int _memberId;
+    private (string Code, string Label)[] _languages = Array.Empty<(string, string)>();
     private Post? _model;
     private MudForm _form = null!;
     private FileRecord? _featuredFile;
@@ -175,6 +177,8 @@ else if (_model is not null)
         _isMaster = user.HasClaim(AdminClaimTypes.Master, "true");
         int.TryParse(user.FindFirst(AdminClaimTypes.WebsiteId)?.Value, out _websiteId);
         int.TryParse(user.FindFirst(AdminClaimTypes.MemberId)?.Value, out _memberId);
+        _languages = (await LanguageService.GetActiveForWebsiteAsync(_websiteId))
+            .Select(x => (x.LanguageCode, x.Name)).ToArray();
         _showTranslations = UiModeState.Current == AdminUiMode.Advanced;
         _isNew = Id is null;
         _canEdit = AdminPolicies.Allows(user, _isNew ? RoleKeys.PostsInsert : RoleKeys.PostsEdit);

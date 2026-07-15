@@ -85,6 +85,7 @@ public static class AdminSearchCatalog
         new AdminSearchPage("email_settings", "Email Settings", "/messages/email", Icons.Material.Filled.Email, "messages", "Messages", RoleKeys.WebsiteEdit),
 
         new AdminSearchPage("translations", "Translations", "/translations", Icons.Material.Filled.Translate, "translations", "Translations", RoleKeys.LocalizationEdit),
+        new AdminSearchPage("content_languages", "Content Languages", "/content-languages", Icons.Material.Filled.GTranslate, "translations", "Translations", RoleKeys.LocalizationEdit),
 
         new AdminSearchPage("media_library", "Media Library", "/media", Icons.Material.Filled.PhotoLibrary, "media", "Media", RoleKeys.MediaView),
         new AdminSearchPage("storage", "Storage", "/media/storage", Icons.Material.Filled.Cloud, "media", "Media", RoleKeys.MediaUpload),
@@ -93,6 +94,7 @@ public static class AdminSearchCatalog
         new AdminSearchPage("countries", "Countries", "/initial-data/countries", Icons.Material.Filled.Flag, "nav.administration", "Administration", null, SuperAdminOnly: true),
         new AdminSearchPage("states", "States / Provinces", "/initial-data/states", Icons.Material.Filled.Map, "nav.administration", "Administration", null, SuperAdminOnly: true),
         new AdminSearchPage("cities", "Cities", "/initial-data/cities", Icons.Material.Filled.LocationCity, "nav.administration", "Administration", null, SuperAdminOnly: true),
+        new AdminSearchPage("languages", "Languages", "/languages", Icons.Material.Filled.Language, "nav.administration", "Administration", null, SuperAdminOnly: true),
 
         new AdminSearchPage("db_updates", "DB Updates", "/system/updates", Icons.Material.Filled.SystemUpdateAlt, "nav.system", "System", null, SuperAdminOnly: true),
         new AdminSearchPage("settings", "Settings", "/settings", Icons.Material.Filled.Settings, "nav.system", "System", null, SuperAdminOnly: true),

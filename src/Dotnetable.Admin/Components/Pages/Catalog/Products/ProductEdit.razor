@@ -12,6 +12,7 @@
 @inject ISnackbar Snackbar
 @inject NavigationManager Nav
 @inject IPageLocalizer L
+@inject ILanguageService LanguageService
 
 <DNPageTitle Title="@(_isNew ? L["products.new", "New Product"] : L["products.edit", "Edit Product"])" />
 
@@ -91,7 +92,7 @@ else
                     <MudItem xs="12">
                         <MudExpansionPanels Elevation="0">
                             <MudExpansionPanel Text="@L["translations", "Translations"]">
-                                @foreach (var (code, label) in ContentLanguages.All)
+                                @foreach (var (code, label) in _languages)
                                 {
                                     <MudGrid Spacing="2" Class="mb-1">
                                         <MudItem xs="6">
@@ -343,6 +344,7 @@ else
     private bool _isNew;
     private bool _isMaster, _canEdit;
     private int _websiteId;
+    private (string Code, string Label)[] _languages = Array.Empty<(string, string)>();
     private int? _brandId;
     private Product Model { get; set; } = new() { IsActive = true };
     private FileRecord? _featuredImage;
@@ -368,6 +370,8 @@ else
         _isMaster = user.HasClaim(AdminClaimTypes.Master, "true");
         _canEdit = AdminPolicies.Allows(user, ProductId is null ? RoleKeys.ProductsInsert : RoleKeys.ProductsEdit);
         int.TryParse(user.FindFirst(AdminClaimTypes.WebsiteId)?.Value, out _websiteId);
+        _languages = (await LanguageService.GetActiveForWebsiteAsync(_websiteId))
+            .Select(x => (x.LanguageCode, x.Name)).ToArray();
         _isNew = ProductId is null;
 
         if (!_isNew)

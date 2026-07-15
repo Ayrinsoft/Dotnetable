@@ -12,7 +12,7 @@ public class ForgotPasswordModel : CaptchaPageModel
     private readonly IPasswordResetService _resetService;
 
     public ForgotPasswordModel(IPasswordResetService resetService, IHumanVerificationService human,
-        IAuthLanguageResolver langResolver) : base(human, langResolver)
+        IAuthLanguageResolver langResolver, ILanguageService languageService) : base(human, langResolver, languageService)
     {
         _resetService = resetService;
     }

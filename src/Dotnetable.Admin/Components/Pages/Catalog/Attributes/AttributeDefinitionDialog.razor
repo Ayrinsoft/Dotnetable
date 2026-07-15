@@ -1,6 +1,7 @@
 @inject IAttributeDefinitionService AttributeService
 @inject ISnackbar Snackbar
 @inject IPageLocalizer L
+@inject ILanguageService LanguageService
 
 <MudDialog>
     <DialogContent>
@@ -72,7 +73,7 @@
                 <MudItem xs="12">
                     <MudExpansionPanels Elevation="0">
                         <MudExpansionPanel Text="@L["translations", "Translations"]">
-                            @foreach (var (code, label) in ContentLanguages.All)
+                            @foreach (var (code, label) in _languages)
                             {
                                 <MudTextField T="string" Value="@Name(code)" ValueChanged="@(v => SetName(code, v))"
                                               Label="@($"{label} — {L["name", "Name"]}")" Variant="Variant.Outlined" Margin="Margin.Dense" Class="mb-1" />
@@ -102,8 +103,13 @@
     private List<AttributeOption> _options = new();
     private readonly Dictionary<string, (string Name, string? Unit)> _tr = new(StringComparer.OrdinalIgnoreCase);
 
+    private (string Code, string Label)[] _languages = Array.Empty<(string, string)>();
+
     protected override async Task OnInitializedAsync()
     {
+        _languages = (await LanguageService.GetActiveForWebsiteAsync(L.WebsiteId))
+            .Select(x => (x.LanguageCode, x.Name)).ToArray();
+
         _options = Model.AttributeOptions?.OrderBy(o => o.SortOrder).ToList() ?? new List<AttributeOption>();
         if (!IsNew)
         {
