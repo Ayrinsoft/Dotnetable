@@ -2,10 +2,10 @@
 @model Dotnetable.Admin.Pages.LoginModel
 @{
     Layout = "_AuthLayout";
-    ViewData["Title"] = "Login";
+    ViewData["Title"] = Model.S.LoginTitle;
 }
 
-<p class="auth-subtitle">Let's get you signed in. Enter your credentials to continue.</p>
+<p class="auth-subtitle">@Model.S.LoginSubtitle</p>
 
 @if (!string.IsNullOrEmpty(Model.ErrorMessage))
 {
@@ -14,22 +14,22 @@
 
 <form method="post">
     <div class="field">
-        <label asp-for="Input.Username">Username</label>
+        <label asp-for="Input.Username">@Model.S.UsernameLabel</label>
         <input asp-for="Input.Username" type="text" autocomplete="username" autofocus />
         <span asp-validation-for="Input.Username" class="field-error"></span>
     </div>
 
     <div class="field">
-        <label asp-for="Input.Password">Password</label>
+        <label asp-for="Input.Password">@Model.S.PasswordLabel</label>
         <input asp-for="Input.Password" type="password" autocomplete="current-password" />
         <span asp-validation-for="Input.Password" class="field-error"></span>
     </div>
 
     <partial name="_Captcha" model="Model" />
 
-    <button type="submit" class="btn">Sign in</button>
+    <button type="submit" class="btn">@Model.S.SignIn</button>
 
     <div class="auth-links">
-        <a asp-page="/ForgotPassword">Forgot password?</a>
+        <a asp-page="/ForgotPassword">@Model.S.ForgotPasswordLink</a>
     </div>
 </form>

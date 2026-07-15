@@ -1,4 +1,5 @@
 using System.ComponentModel.DataAnnotations;
+using Dotnetable.Admin.Localization;
 using Dotnetable.Application.Interfaces;
 using Microsoft.AspNetCore.Authorization;
 using Microsoft.AspNetCore.Mvc;
@@ -10,7 +11,8 @@ public class ResetPasswordModel : CaptchaPageModel
 {
     private readonly IPasswordResetService _resetService;
 
-    public ResetPasswordModel(IPasswordResetService resetService, IHumanVerificationService human) : base(human)
+    public ResetPasswordModel(IPasswordResetService resetService, IHumanVerificationService human,
+        IAuthLanguageResolver langResolver) : base(human, langResolver)
     {
         _resetService = resetService;
     }
@@ -31,6 +33,7 @@ public class ResetPasswordModel : CaptchaPageModel
 
     public async Task<IActionResult> OnGetAsync(CancellationToken ct)
     {
+        await ResolveLanguageAsync(ct);
         KeyValid = await _resetService.IsKeyValidAsync(Key, ct);
         if (KeyValid) PrepareCaptcha();
         return Page();
@@ -38,6 +41,7 @@ public class ResetPasswordModel : CaptchaPageModel
 
     public async Task<IActionResult> OnPostAsync(CancellationToken ct)
     {
+        await ResolveLanguageAsync(ct);
         KeyValid = await _resetService.IsKeyValidAsync(Key, ct);
         if (!KeyValid) return Page();
 

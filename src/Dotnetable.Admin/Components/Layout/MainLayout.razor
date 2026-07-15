@@ -2,10 +2,13 @@
 @implements IDisposable
 @using Microsoft.JSInterop
 @using Dotnetable.Admin.Auth
+@using Dotnetable.Admin.Localization
 @inject IJSRuntime JS
 @inject AdminUiModeState UiModeState
 @inject AuthenticationStateProvider AuthStateProvider
 @inject IDialogService DialogService
+@inject IPageLocalizer Loc
+@inject NavigationManager Nav
 
 <MudPopoverProvider />
 <MudThemeProvider Theme="_theme" @bind-IsDarkMode="_isDarkMode" />
@@ -41,6 +44,16 @@
                         </MudMenu>
                     </MudTooltip>
                 }
+                <MudTooltip Text="Language">
+                    <MudMenu Icon="@Icons.Material.Filled.Language" Color="Color.Default">
+                        @foreach (var lang in SupportedLanguages.All)
+                        {
+                            <MudMenuItem OnClick="@(() => SetLanguage(lang.Code))" Class="@(Loc.LanguageCode == lang.Code ? "fw-bold" : null)">
+                                @lang.Flag @lang.Native
+                            </MudMenuItem>
+                        }
+                    </MudMenu>
+                </MudTooltip>
                 <MudTooltip Text="@(_isDarkMode ? "Light mode" : "Dark mode")">
                     <MudIconButton Icon="@(_isDarkMode ? Icons.Material.Filled.LightMode : Icons.Material.Filled.DarkMode)"
                                    Color="Color.Default" OnClick="ToggleDarkMode" />
@@ -127,6 +140,14 @@
     {
         UiModeState.Set(mode);
         await JS.InvokeVoidAsync("dotnetableUiMode.set", mode.ToString());
+    }
+
+    // Persists the choice, then does a full reload so the fresh circuit re-resolves
+    // PageLocalizer.LanguageCode from the cookie and re-loads every page's translations.
+    private async Task SetLanguage(string code)
+    {
+        await JS.InvokeVoidAsync("dotnetableLang.set", code);
+        Nav.NavigateTo(Nav.Uri, forceLoad: true);
     }
 
     public void Dispose() => UiModeState.Changed -= StateHasChanged;

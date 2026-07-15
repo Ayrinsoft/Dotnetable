@@ -1,4 +1,5 @@
 using System.ComponentModel.DataAnnotations;
+using Dotnetable.Admin.Localization;
 using Dotnetable.Application.Interfaces;
 using Microsoft.AspNetCore.Authorization;
 using Microsoft.AspNetCore.Mvc;
@@ -10,7 +11,8 @@ public class ForgotPasswordModel : CaptchaPageModel
 {
     private readonly IPasswordResetService _resetService;
 
-    public ForgotPasswordModel(IPasswordResetService resetService, IHumanVerificationService human) : base(human)
+    public ForgotPasswordModel(IPasswordResetService resetService, IHumanVerificationService human,
+        IAuthLanguageResolver langResolver) : base(human, langResolver)
     {
         _resetService = resetService;
     }
@@ -21,17 +23,17 @@ public class ForgotPasswordModel : CaptchaPageModel
     public string? ErrorMessage { get; set; }
     public string? SuccessMessage { get; set; }
 
-    private const string GenericSent =
-        "If an account matches, a password reset link has been sent to its email address.";
-
-    public IActionResult OnGet()
+    public async Task<IActionResult> OnGetAsync(CancellationToken ct)
     {
+        await ResolveLanguageAsync(ct);
         PrepareCaptcha();
         return Page();
     }
 
     public async Task<IActionResult> OnPostAsync(CancellationToken ct)
     {
+        await ResolveLanguageAsync(ct);
+
         if (!ModelState.IsValid)
         {
             PrepareCaptcha();
@@ -50,18 +52,18 @@ public class ForgotPasswordModel : CaptchaPageModel
 
             if (result == PasswordResetRequestResult.EmailNotConfigured)
             {
-                ErrorMessage = "Email sending is not configured. Please contact your administrator.";
+                ErrorMessage = S.EmailNotConfigured;
                 PrepareCaptcha();
                 return Page();
             }
 
             // Sent or MemberNotFound: identical generic response to avoid revealing which accounts exist.
-            SuccessMessage = GenericSent;
+            SuccessMessage = S.GenericSent;
             return Page();
         }
         catch
         {
-            ErrorMessage = "We couldn't send the email right now. Please try again later.";
+            ErrorMessage = S.TryAgainLater;
             PrepareCaptcha();
             return Page();
         }

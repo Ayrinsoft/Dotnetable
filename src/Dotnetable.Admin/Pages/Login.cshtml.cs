@@ -1,6 +1,7 @@
 using System.ComponentModel.DataAnnotations;
 using System.Security.Claims;
 using Dotnetable.Admin.Auth;
+using Dotnetable.Admin.Localization;
 using Dotnetable.Application;
 using Dotnetable.Application.Authorization;
 using Dotnetable.Application.Interfaces;
@@ -18,7 +19,8 @@ public class LoginModel : CaptchaPageModel
     private readonly IMemberService _memberService;
     private readonly ILoginLogService _loginLog;
 
-    public LoginModel(IMemberService memberService, ILoginLogService loginLog, IHumanVerificationService human) : base(human)
+    public LoginModel(IMemberService memberService, ILoginLogService loginLog, IHumanVerificationService human,
+        IAuthLanguageResolver langResolver) : base(human, langResolver)
     {
         _memberService = memberService;
         _loginLog = loginLog;
@@ -35,17 +37,20 @@ public class LoginModel : CaptchaPageModel
         [Required] public string Password { get; set; } = string.Empty;
     }
 
-    public IActionResult OnGet()
+    public async Task<IActionResult> OnGetAsync(CancellationToken ct)
     {
         if (User.Identity?.IsAuthenticated == true)
             return Redirect("/");
 
+        await ResolveLanguageAsync(ct);
         PrepareCaptcha();
         return Page();
     }
 
     public async Task<IActionResult> OnPostAsync(CancellationToken ct)
     {
+        await ResolveLanguageAsync(ct);
+
         if (!ModelState.IsValid)
         {
             PrepareCaptcha();
@@ -64,7 +69,7 @@ public class LoginModel : CaptchaPageModel
             var websiteId = await _memberService.GetWebsiteIdByUsernameAsync(Input.Username, ct) ?? 0;
             await _loginLog.RecordAsync(Input.Username, websiteId, false, ip, ct);
 
-            ErrorMessage = "Invalid username or password.";
+            ErrorMessage = S.InvalidCredentials;
             PrepareCaptcha();
             return Page();
         }

@@ -2,10 +2,13 @@
 @attribute [AllowAnonymous]
 @attribute [Layout(typeof(SetupLayout))]
 @using Dotnetable.Application.DTOs
+@using Dotnetable.Admin.Localization
+@using Microsoft.JSInterop
 @inject ISetupService SetupService
 @inject IDatabaseConfigStore ConfigStore
 @inject NavigationManager Nav
 @inject ISnackbar Snackbar
+@inject IJSRuntime JS
 
 <PageTitle>@_s.Title</PageTitle>
 
@@ -18,13 +21,13 @@
 
         @* Language selector – always LTR so buttons stay in a consistent row *@
         <div dir="ltr" class="d-flex justify-end flex-wrap gap-1 mb-4">
-            @foreach (var lang in _languages)
+            @foreach (var lang in SupportedLanguages.All)
             {
                 <MudButton Size="Size.Small"
                            Variant="@(_lang == lang.Code ? Variant.Filled : Variant.Outlined)"
                            Color="@(_lang == lang.Code ? Color.Primary : Color.Default)"
                            OnClick="@(() => SetLanguage(lang.Code))">
-                    @lang.Label
+                    @lang.Flag @lang.Native
                 </MudButton>
             }
         </div>
@@ -352,17 +355,6 @@
     private SetupStrings _s => SetupL10n.Get(_lang);
     private bool _isRtl => _lang is "fa" or "ar";
 
-    private static readonly (string Code, string Label)[] _languages =
-    [
-        ("en", "EN"),
-        ("de", "DE"),
-        ("fr", "FR"),
-        ("ru", "RU"),
-        ("zh", "中文"),
-        ("fa", "فا"),
-        ("ar", "عر"),
-    ];
-
     protected override Task OnInitializedAsync()
     {
         // If the connection is already configured (localsettings.json exists with a connection
@@ -373,7 +365,24 @@
         return Task.CompletedTask;
     }
 
-    private void SetLanguage(string lang) => _lang = lang;
+    protected override async Task OnAfterRenderAsync(bool firstRender)
+    {
+        if (firstRender)
+        {
+            var stored = await JS.InvokeAsync<string>("dotnetableLang.get");
+            if (SupportedLanguages.IsSupported(stored) && stored != _lang)
+            {
+                _lang = stored;
+                StateHasChanged();
+            }
+        }
+    }
+
+    private async Task SetLanguage(string lang)
+    {
+        _lang = lang;
+        await JS.InvokeVoidAsync("dotnetableLang.set", lang);
+    }
 
     private void OnProviderChanged(string provider)
     {
