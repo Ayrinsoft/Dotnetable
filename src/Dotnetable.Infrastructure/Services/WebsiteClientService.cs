@@ -4,6 +4,7 @@ using Dotnetable.Domain.Entities;
 using Dotnetable.Domain.Enums;
 using Dotnetable.Infrastructure.Data;
 using Dotnetable.Infrastructure.Extensions;
+using Microsoft.AspNetCore.Identity;
 using Microsoft.EntityFrameworkCore;
 
 namespace Dotnetable.Infrastructure.Services;
@@ -11,8 +12,13 @@ namespace Dotnetable.Infrastructure.Services;
 public class WebsiteClientService : IWebsiteClientService
 {
     private readonly AppDbContext _context;
+    private readonly IPasswordHasher<WebsiteClient> _hasher;
 
-    public WebsiteClientService(AppDbContext context) => _context = context;
+    public WebsiteClientService(AppDbContext context, IPasswordHasher<WebsiteClient> hasher)
+    {
+        _context = context;
+        _hasher = hasher;
+    }
 
     public async Task<WebsiteClient?> GetByIdAsync(int id, CancellationToken ct = default) =>
         await _context.WebsiteClients.FindAsync([id], ct);
@@ -51,6 +57,16 @@ public class WebsiteClientService : IWebsiteClientService
     public async Task SetLevelAsync(int id, ClientLevel level, CancellationToken ct = default) =>
         await _context.WebsiteClients.Where(c => c.WebsiteClientID == id)
             .ExecuteUpdateAsync(s => s.SetProperty(c => c.ClientLevel, (byte)level), ct);
+
+    public async Task<WebsiteClient> CreateAsync(WebsiteClient client, string password, CancellationToken ct = default)
+    {
+        client.HashKey = Guid.NewGuid();
+        client.RegisterDate = DateOnly.FromDateTime(DateTime.UtcNow);
+        client.Password = _hasher.HashPassword(client, password);
+        _context.WebsiteClients.Add(client);
+        await _context.SaveChangesAsync(ct);
+        return client;
+    }
 
     public async Task UpdateAsync(WebsiteClient client, CancellationToken ct = default)
     {

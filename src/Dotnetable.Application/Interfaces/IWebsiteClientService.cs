@@ -15,6 +15,9 @@ public interface IWebsiteClientService
     Task SetActiveAsync(int id, bool active, CancellationToken ct = default);
     Task SetLevelAsync(int id, ClientLevel level, CancellationToken ct = default);
 
+    /// <summary>Creates a customer from the admin panel with the given plaintext password.</summary>
+    Task<WebsiteClient> CreateAsync(WebsiteClient client, string password, CancellationToken ct = default);
+
     /// <summary>Updates the editable profile/level fields of a customer.</summary>
     Task UpdateAsync(WebsiteClient client, CancellationToken ct = default);
 
