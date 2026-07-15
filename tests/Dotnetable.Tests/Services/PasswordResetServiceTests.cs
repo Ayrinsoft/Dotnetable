@@ -1,3 +1,4 @@
+using Dotnetable.Application.Email;
 using Dotnetable.Application.Interfaces;
 using Dotnetable.Domain.Entities;
 using Dotnetable.Infrastructure.Data;
@@ -25,9 +26,9 @@ public class PasswordResetServiceTests : IDisposable
         _context = new AppDbContext(opts);
 
         _emailMock = new Mock<IEmailService>();
-        _emailMock.Setup(e => e.IsConfiguredAsync(It.IsAny<CancellationToken>())).ReturnsAsync(true);
-        _emailMock.Setup(e => e.SendAsync(
-            It.IsAny<string>(), It.IsAny<string>(), It.IsAny<string>(), It.IsAny<CancellationToken>()))
+        _emailMock.Setup(e => e.IsConfiguredAsync(It.IsAny<int>(), It.IsAny<CancellationToken>())).ReturnsAsync(true);
+        _emailMock.Setup(e => e.SendTemplateAsync(
+            It.IsAny<int>(), It.IsAny<string>(), It.IsAny<string>(), It.IsAny<IDictionary<string, string>>(), It.IsAny<CancellationToken>()))
             .Returns(Task.CompletedTask);
 
         _hasherMock = new Mock<IPasswordHasher<Member>>();
@@ -214,7 +215,7 @@ public class PasswordResetServiceTests : IDisposable
     [Fact]
     public async Task RequestResetAsync_EmailNotConfigured_ReturnsEmailNotConfigured()
     {
-        _emailMock.Setup(e => e.IsConfiguredAsync(It.IsAny<CancellationToken>())).ReturnsAsync(false);
+        _emailMock.Setup(e => e.IsConfiguredAsync(It.IsAny<int>(), It.IsAny<CancellationToken>())).ReturnsAsync(false);
         await SeedMemberAsync("alice", "alice@test.com");
 
         var result = await _service.RequestResetAsync("alice", k => $"https://app/reset?k={k}");
@@ -231,10 +232,11 @@ public class PasswordResetServiceTests : IDisposable
 
         result.Should().Be(PasswordResetRequestResult.Sent);
         _context.MemberForgetPasswords.Should().HaveCount(1);
-        _emailMock.Verify(e => e.SendAsync(
+        _emailMock.Verify(e => e.SendTemplateAsync(
+            It.IsAny<int>(),
+            EmailTemplateKeys.AdminForgotPassword,
             "alice@test.com",
-            It.IsAny<string>(),
-            It.Is<string>(b => b.Contains("https://app/reset?k=")),
+            It.Is<IDictionary<string, string>>(t => t["ResetUrl"].StartsWith("https://app/reset?k=")),
             It.IsAny<CancellationToken>()), Times.Once);
     }
 

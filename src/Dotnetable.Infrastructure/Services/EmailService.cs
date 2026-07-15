@@ -1,140 +1,94 @@
 using System.Net;
 using System.Net.Mail;
-using Dotnetable.Application;
-using Dotnetable.Application.DTOs;
+using System.Text.RegularExpressions;
 using Dotnetable.Application.Interfaces;
 using Dotnetable.Domain.Entities;
+using Dotnetable.Domain.Enums;
 using Dotnetable.Infrastructure.Data;
 using Microsoft.EntityFrameworkCore;
 
 namespace Dotnetable.Infrastructure.Services;
 
 /// <summary>
-/// Persists the single default SMTP configuration in the <c>EmailSetting</c> table and sends mail
-/// through it with <see cref="SmtpClient"/>.
+/// Sends mail through the <c>EmailAccount</c> resolved for a website/type, and renders
+/// <c>EmailTemplate</c>s ({{Token}} placeholders) before sending.
 /// </summary>
-public class EmailService : IEmailService
+public partial class EmailService : IEmailService
 {
     private readonly AppDbContext _context;
+    private readonly IEmailTemplateService _templates;
 
-    public EmailService(AppDbContext context) => _context = context;
-
-    public async Task<EmailSettingsInfo?> GetDefaultAsync(CancellationToken ct = default)
+    public EmailService(AppDbContext context, IEmailTemplateService templates)
     {
-        var row = await GetDefaultRowAsync(ct);
-        if (row is null) return null;
-
-        return new EmailSettingsInfo
-        {
-            MailServer = row.MailServer,
-            SmtpPort = row.SMTPPort,
-            EnableSSL = row.EnableSSL,
-            EmailAddress = row.EmailAddress,
-            Password = row.Password,
-            MailName = row.MailName,
-        };
+        _context = context;
+        _templates = templates;
     }
 
-    public async Task SaveDefaultAsync(EmailSettingsInfo settings, CancellationToken ct = default)
+    public async Task<bool> IsConfiguredAsync(int websiteId, CancellationToken ct = default)
     {
-        var row = await GetDefaultRowAsync(ct);
-        if (row is null)
-        {
-            row = new EmailSetting { DefaultEMail = true, EmailTypeID = 0, WebsiteID = AppConstants.MasterWebsiteId };
-            _context.EmailSettings.Add(row);
-        }
-
-        row.MailServer = settings.MailServer.Trim();
-        row.SMTPPort = settings.SmtpPort;
-        row.EnableSSL = settings.EnableSSL;
-        row.EmailAddress = settings.EmailAddress.Trim();
-        row.Password = settings.Password;
-        row.MailName = string.IsNullOrWhiteSpace(settings.MailName) ? settings.EmailAddress.Trim() : settings.MailName.Trim();
-        row.DefaultEMail = true;
-        row.Active = settings.IsConfigured;
-
-        await _context.SaveChangesAsync(ct);
-    }
-
-    public async Task<bool> IsConfiguredAsync(CancellationToken ct = default)
-    {
-        var row = await GetDefaultRowAsync(ct);
+        var row = await EmailAccountService.ResolveAsync(_context, websiteId, EmailAccountType.NoReply, ct);
         return row is not null && !string.IsNullOrWhiteSpace(row.MailServer) && !string.IsNullOrWhiteSpace(row.EmailAddress);
     }
 
-    public async Task SendAsync(string toAddress, string subject, string htmlBody, CancellationToken ct = default)
+    public async Task SendAsync(
+        int websiteId, EmailAccountType accountType, string toAddress, string subject, string htmlBody,
+        CancellationToken ct = default)
     {
-        var row = await GetDefaultRowAsync(ct)
+        var row = await EmailAccountService.ResolveAsync(_context, websiteId, accountType, ct)
             ?? throw new InvalidOperationException("Email has not been configured.");
         if (string.IsNullOrWhiteSpace(row.MailServer) || string.IsNullOrWhiteSpace(row.EmailAddress))
             throw new InvalidOperationException("Email has not been configured.");
 
+        await SendViaAsync(row, toAddress, subject, htmlBody, ct);
+    }
+
+    public async Task SendTemplateAsync(
+        int websiteId, string templateKey, string toAddress, IDictionary<string, string>? tokens = null,
+        CancellationToken ct = default)
+    {
+        var template = await _templates.GetAsync(websiteId, templateKey, ct)
+            ?? throw new InvalidOperationException($"Unknown email template '{templateKey}'.");
+
+        var website = await _context.Websites.FirstOrDefaultAsync(w => w.WebsiteID == websiteId, ct);
+        var all = new Dictionary<string, string>(tokens ?? new Dictionary<string, string>(), StringComparer.OrdinalIgnoreCase)
+        {
+            ["SiteName"] = website?.BrandName ?? website?.TradeName ?? string.Empty,
+            ["SiteUrl"] = website?.WebsiteAddress ?? string.Empty,
+        };
+
+        var subject = Render(template.Subject, all);
+        var body = Render(template.HtmlBody, all);
+
+        await SendAsync(websiteId, template.AccountType, toAddress, subject, body, ct);
+    }
+
+    private static async Task SendViaAsync(EmailAccount account, string toAddress, string subject, string htmlBody, CancellationToken ct)
+    {
         using var message = new MailMessage
         {
-            From = new MailAddress(row.EmailAddress, string.IsNullOrWhiteSpace(row.MailName) ? row.EmailAddress : row.MailName),
+            From = new MailAddress(account.EmailAddress, string.IsNullOrWhiteSpace(account.MailName) ? account.EmailAddress : account.MailName),
             Subject = subject,
             Body = htmlBody,
             IsBodyHtml = true,
         };
         message.To.Add(toAddress);
 
-        using var client = new SmtpClient(row.MailServer, row.SMTPPort)
+        using var client = new SmtpClient(account.MailServer, account.SMTPPort)
         {
-            EnableSsl = row.EnableSSL,
+            EnableSsl = account.EnableSSL,
             DeliveryMethod = SmtpDeliveryMethod.Network,
-            Credentials = string.IsNullOrWhiteSpace(row.Password)
+            Credentials = string.IsNullOrWhiteSpace(account.Password)
                 ? CredentialCache.DefaultNetworkCredentials
-                : new NetworkCredential(row.EmailAddress, row.Password),
+                : new NetworkCredential(account.EmailAddress, account.Password),
         };
 
         await client.SendMailAsync(message, ct);
     }
 
-    public async Task<EmailSettingsInfo?> GetWebsiteEmailAsync(int websiteId, CancellationToken ct = default)
-    {
-        var row = await _context.EmailSettings
-            .FirstOrDefaultAsync(e => e.WebsiteID == websiteId, ct);
-        if (row is null) return null;
+    private static string Render(string template, IDictionary<string, string> tokens) =>
+        TokenPattern().Replace(template, m =>
+            tokens.TryGetValue(m.Groups[1].Value, out var value) ? value : m.Value);
 
-        return new EmailSettingsInfo
-        {
-            MailServer = row.MailServer,
-            SmtpPort = row.SMTPPort,
-            EnableSSL = row.EnableSSL,
-            EmailAddress = row.EmailAddress,
-            Password = row.Password,
-            MailName = row.MailName,
-        };
-    }
-
-    public async Task SaveWebsiteEmailAsync(int websiteId, EmailSettingsInfo settings, CancellationToken ct = default)
-    {
-        var row = await _context.EmailSettings
-            .FirstOrDefaultAsync(e => e.WebsiteID == websiteId, ct);
-
-        if (row is null)
-        {
-            row = new EmailSetting { WebsiteID = websiteId, DefaultEMail = false, EmailTypeID = 0 };
-            _context.EmailSettings.Add(row);
-        }
-
-        row.MailServer = settings.MailServer.Trim();
-        row.SMTPPort = settings.SmtpPort;
-        row.EnableSSL = settings.EnableSSL;
-        row.EmailAddress = settings.EmailAddress.Trim();
-        row.Password = settings.Password;
-        row.MailName = string.IsNullOrWhiteSpace(settings.MailName) ? settings.EmailAddress.Trim() : settings.MailName.Trim();
-        row.Active = settings.IsConfigured;
-
-        await _context.SaveChangesAsync(ct);
-    }
-
-    // The platform-wide default SMTP row belongs to the master website (WebsiteID is NOT NULL in
-    // the schema). Rows written before this rule existed carry WebsiteID 0, so they match too.
-    private async Task<EmailSetting?> GetDefaultRowAsync(CancellationToken ct) =>
-        await _context.EmailSettings
-            .Where(e => e.WebsiteID == AppConstants.MasterWebsiteId || e.WebsiteID == 0)
-            .OrderByDescending(e => e.DefaultEMail)
-            .ThenByDescending(e => e.EmailSettingID)
-            .FirstOrDefaultAsync(ct);
+    [GeneratedRegex(@"\{\{(\w+)\}\}")]
+    private static partial Regex TokenPattern();
 }

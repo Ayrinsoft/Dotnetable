@@ -1,4 +1,5 @@
 using System.Security.Cryptography;
+using Dotnetable.Application.Email;
 using Dotnetable.Application.Interfaces;
 using Dotnetable.Domain.Entities;
 using Dotnetable.Infrastructure.Data;
@@ -38,7 +39,7 @@ public class PasswordResetService : IPasswordResetService
         if (member is null)
             return PasswordResetRequestResult.MemberNotFound;
 
-        if (!await _email.IsConfiguredAsync(ct))
+        if (!await _email.IsConfiguredAsync(member.WebsiteID, ct))
             return PasswordResetRequestResult.EmailNotConfigured;
 
         var key = GenerateKey();
@@ -51,14 +52,8 @@ public class PasswordResetService : IPasswordResetService
         await _context.SaveChangesAsync(ct);
 
         var resetUrl = resetUrlBuilder(key);
-        var body =
-            $"<p>Hello {System.Net.WebUtility.HtmlEncode(member.Givenname)},</p>" +
-            "<p>We received a request to reset your Dotnetable admin password. " +
-            "Click the link below to choose a new password. This link expires in 30 minutes.</p>" +
-            $"<p><a href=\"{resetUrl}\">{resetUrl}</a></p>" +
-            "<p>If you did not request this, you can safely ignore this email.</p>";
-
-        await _email.SendAsync(member.Email, "Reset your Dotnetable admin password", body, ct);
+        await _email.SendTemplateAsync(member.WebsiteID, EmailTemplateKeys.AdminForgotPassword, member.Email,
+            new Dictionary<string, string> { ["Name"] = member.Givenname, ["ResetUrl"] = resetUrl }, ct);
         return PasswordResetRequestResult.Sent;
     }
 

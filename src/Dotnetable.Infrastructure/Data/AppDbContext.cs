@@ -64,9 +64,11 @@ public partial class AppDbContext : DbContext
 
     public virtual DbSet<CurrencyRate> CurrencyRates { get; set; }
 
-    public virtual DbSet<EmailSetting> EmailSettings { get; set; }
+    public virtual DbSet<EmailAccount> EmailAccounts { get; set; }
 
     public virtual DbSet<EmailSubscribe> EmailSubscribes { get; set; }
+
+    public virtual DbSet<EmailTemplate> EmailTemplates { get; set; }
 
     public virtual DbSet<FileAlbum> FileAlbums { get; set; }
 
@@ -794,9 +796,10 @@ public partial class AppDbContext : DbContext
                 .HasConstraintName("FK_CurrencyRates_Websites");
         });
 
-        modelBuilder.Entity<EmailSetting>(entity =>
+        modelBuilder.Entity<EmailAccount>(entity =>
         {
-            entity.HasIndex(e => e.WebsiteID, "IX_EmailSettings_WebsiteID");
+            entity.HasIndex(e => e.WebsiteID, "IX_EmailAccounts_WebsiteID");
+            entity.Property(e => e.Name).HasMaxLength(64);
 
             entity.Property(e => e.EmailAddress)
                 .HasMaxLength(64)
@@ -807,10 +810,24 @@ public partial class AppDbContext : DbContext
                 .IsUnicode(false);
             entity.Property(e => e.Password).HasMaxLength(256);
 
-            entity.HasOne(d => d.Website).WithMany(p => p.EmailSettings)
+            entity.HasOne(d => d.Website).WithMany(p => p.EmailAccounts)
                 .HasForeignKey(d => d.WebsiteID)
                 .OnDelete(DeleteBehavior.ClientSetNull)
-                .HasConstraintName("FK_EmailSettings_Websites");
+                .HasConstraintName("FK_EmailAccounts_Websites");
+        });
+
+        modelBuilder.Entity<EmailTemplate>(entity =>
+        {
+            entity.HasIndex(e => new { e.WebsiteID, e.TemplateKey }, "IX_EmailTemplates_WebsiteID_TemplateKey").IsUnique();
+
+            entity.Property(e => e.TemplateKey).HasMaxLength(64).IsUnicode(false);
+            entity.Property(e => e.Name).HasMaxLength(128);
+            entity.Property(e => e.Subject).HasMaxLength(256);
+
+            entity.HasOne(d => d.Website).WithMany(p => p.EmailTemplates)
+                .HasForeignKey(d => d.WebsiteID)
+                .OnDelete(DeleteBehavior.ClientSetNull)
+                .HasConstraintName("FK_EmailTemplates_Websites");
         });
 
         modelBuilder.Entity<EmailSubscribe>(entity =>

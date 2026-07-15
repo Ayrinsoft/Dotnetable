@@ -82,7 +82,8 @@ public static class AdminSearchCatalog
         new AdminSearchPage("tax", "Tax", "/sales/tax", Icons.Material.Filled.Percent, "nav.promotions", "Promotions & Shipping", RoleKeys.TaxView),
 
         new AdminSearchPage("contact_messages", "Contact Messages", "/messages/contacts", Icons.Material.Filled.ContactMail, "messages", "Messages", RoleKeys.MessagesView),
-        new AdminSearchPage("email_settings", "Email Settings", "/messages/email", Icons.Material.Filled.Email, "messages", "Messages", RoleKeys.WebsiteEdit),
+        new AdminSearchPage("email_accounts", "Email Accounts", "/messages/email-accounts", Icons.Material.Filled.AlternateEmail, "messages", "Messages", RoleKeys.WebsiteEdit),
+        new AdminSearchPage("email_templates", "Email Templates", "/messages/email-templates", Icons.Material.Filled.Description, "messages", "Messages", RoleKeys.WebsiteEdit),
 
         new AdminSearchPage("content_languages", "Content Languages", "/content-languages", Icons.Material.Filled.GTranslate, "translations", "Translations", RoleKeys.LocalizationEdit),
 

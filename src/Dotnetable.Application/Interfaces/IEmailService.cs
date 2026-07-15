@@ -1,25 +1,29 @@
-using Dotnetable.Application.DTOs;
+using Dotnetable.Domain.Enums;
 
 namespace Dotnetable.Application.Interfaces;
 
-/// <summary>Reads/writes the default SMTP settings (the <c>EmailSetting</c> table) and sends mail.</summary>
+/// <summary>Sends mail for a website, picking the right <c>EmailAccount</c> and rendering <c>EmailTemplate</c>s.</summary>
 public interface IEmailService
 {
-    /// <summary>The default email settings, or null when none have been configured yet.</summary>
-    Task<EmailSettingsInfo?> GetDefaultAsync(CancellationToken ct = default);
+    /// <summary>True when the website (or the master website, as fallback) has a usable email account.</summary>
+    Task<bool> IsConfiguredAsync(int websiteId, CancellationToken ct = default);
 
-    /// <summary>Creates or updates the single default email setting row.</summary>
-    Task SaveDefaultAsync(EmailSettingsInfo settings, CancellationToken ct = default);
+    /// <summary>
+    /// Sends a raw email through the account resolved for (websiteId, accountType) — the website's own
+    /// account of that type, else its default account, else the master website's equivalent.
+    /// Throws when no usable account can be resolved.
+    /// </summary>
+    Task SendAsync(
+        int websiteId, EmailAccountType accountType, string toAddress, string subject, string htmlBody,
+        CancellationToken ct = default);
 
-    /// <summary>Sends an email through the default SMTP settings. Throws when email is not configured.</summary>
-    Task SendAsync(string toAddress, string subject, string htmlBody, CancellationToken ct = default);
-
-    /// <summary>True when a usable default email setting exists.</summary>
-    Task<bool> IsConfiguredAsync(CancellationToken ct = default);
-
-    /// <summary>Per-website SMTP settings, or null when not configured.</summary>
-    Task<EmailSettingsInfo?> GetWebsiteEmailAsync(int websiteId, CancellationToken ct = default);
-
-    /// <summary>Creates or updates the SMTP settings for a specific website.</summary>
-    Task SaveWebsiteEmailAsync(int websiteId, EmailSettingsInfo settings, CancellationToken ct = default);
+    /// <summary>
+    /// Resolves and renders the template for <paramref name="templateKey"/> (own override or master
+    /// default), substitutes <c>{{Token}}</c> placeholders from <paramref name="tokens"/> plus the
+    /// sending website's own SiteName/SiteUrl, and sends it through the template's preferred account.
+    /// Throws when the key is unknown or no usable account can be resolved.
+    /// </summary>
+    Task SendTemplateAsync(
+        int websiteId, string templateKey, string toAddress, IDictionary<string, string>? tokens = null,
+        CancellationToken ct = default);
 }

@@ -2,7 +2,6 @@
 @attribute [Authorize(Policy = AdminPolicies.SuperAdminOnly)]
 @using Dotnetable.Application.DTOs
 @inject IAppSettingsStore AppSettings
-@inject IEmailService EmailService
 @inject ISnackbar Snackbar
 @inject IPageLocalizer L
 
@@ -59,48 +58,27 @@
         </MudPaper>
     </MudItem>
 
-    @* ── Email / SMTP ─────────────────────────────────────────── *@
+    @* ── Email ─────────────────────────────────────────────────── *@
     <MudItem xs="12" md="6">
         <MudPaper Elevation="0" Class="border rounded-lg pa-6 h-100">
             <MudStack Row="true" AlignItems="AlignItems.Center" Spacing="2" Class="mb-1">
                 <MudIcon Icon="@Icons.Material.Filled.Email" Color="Color.Primary" />
-                <MudText Typo="Typo.subtitle1" Class="fw-bold">@L["settings.email_smtp", "Email (SMTP)"]</MudText>
+                <MudText Typo="Typo.subtitle1" Class="fw-bold">@L["settings.email", "Email"]</MudText>
             </MudStack>
             <MudText Typo="Typo.body2" Color="Color.Secondary" Class="mb-4">
-                @L["settings.email_hint", "Used to send forgot-password links. Leave empty to disable outgoing email."]
+                @L["settings.email_hint", "SMTP sender accounts (No-Reply, Support, Sales, ...) and the HTML templates sent from them now live on their own pages."]
             </MudText>
 
-            <MudGrid Spacing="2" Class="mb-2">
-                <MudItem xs="12" sm="8">
-                    <MudTextField @bind-Value="_email.MailServer" Label="@L["email.smtp_server", "SMTP Server"]"
-                                  Variant="Variant.Outlined"
-                                  Adornment="Adornment.Start" AdornmentIcon="@Icons.Material.Filled.Dns" />
-                </MudItem>
-                <MudItem xs="12" sm="4">
-                    <MudNumericField @bind-Value="_email.SmtpPort" Label="@L["port", "Port"]"
-                                     Min="1" Max="65535" Variant="Variant.Outlined" />
-                </MudItem>
-            </MudGrid>
-
-            <MudCheckBox T="bool" @bind-Value="_email.EnableSSL" Label="@L["email.enable_ssl", "Enable SSL / TLS"]" Color="Color.Primary" Class="mb-2" />
-
-            <MudTextField @bind-Value="_email.EmailAddress" Label="@L["email.from_address", "From Address / Username"]"
-                          Variant="Variant.Outlined" Class="mb-2" InputType="InputType.Email"
-                          Adornment="Adornment.Start" AdornmentIcon="@Icons.Material.Filled.AlternateEmail" />
-            <MudTextField @bind-Value="_email.Password" Label="@L["password", "Password"]"
-                          Variant="Variant.Outlined" Class="mb-2" InputType="InputType.Password" />
-            <MudTextField @bind-Value="_email.MailName" Label="@L["email.from_name", "From Display Name"]"
-                          Variant="Variant.Outlined" Class="mb-5" />
-
-            <MudButton Variant="Variant.Filled" Color="Color.Primary"
-                       StartIcon="@Icons.Material.Filled.Save"
-                       OnClick="SaveEmail" Disabled="@_savingEmail">
-                @if (_savingEmail)
-                {
-                    <MudProgressCircular Size="Size.Small" Indeterminate="true" Class="me-2" />
-                }
-                @L["settings.save_email", "Save Email"]
-            </MudButton>
+            <MudStack Spacing="2">
+                <MudButton Variant="Variant.Outlined" Color="Color.Primary" FullWidth="true"
+                           StartIcon="@Icons.Material.Filled.AlternateEmail" Href="/messages/email-accounts">
+                    @L["email_accounts", "Email Accounts"]
+                </MudButton>
+                <MudButton Variant="Variant.Outlined" Color="Color.Primary" FullWidth="true"
+                           StartIcon="@Icons.Material.Filled.Description" Href="/messages/email-templates">
+                    @L["email_templates", "Email Templates"]
+                </MudButton>
+            </MudStack>
         </MudPaper>
     </MudItem>
 
@@ -108,15 +86,12 @@
 
 @code {
     private SecuritySettings _security = new();
-    private EmailSettingsInfo _email = new();
     private bool _savingSecurity;
-    private bool _savingEmail;
 
     protected override async Task OnInitializedAsync()
     {
         await L.EnsureLoadedAsync();
         _security = AppSettings.Security;
-        _email = await EmailService.GetDefaultAsync() ?? new EmailSettingsInfo();
     }
 
     private async Task SaveSecurity()
@@ -132,20 +107,5 @@
             Snackbar.Add($"{L["save_failed", "Save failed"]}: {ex.Message}", Severity.Error);
         }
         finally { _savingSecurity = false; }
-    }
-
-    private async Task SaveEmail()
-    {
-        _savingEmail = true;
-        try
-        {
-            await EmailService.SaveDefaultAsync(_email);
-            Snackbar.Add(L["email.saved", "Email settings saved."], Severity.Success);
-        }
-        catch (Exception ex)
-        {
-            Snackbar.Add($"{L["save_failed", "Save failed"]}: {ex.Message}", Severity.Error);
-        }
-        finally { _savingEmail = false; }
     }
 }

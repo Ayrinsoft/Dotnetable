@@ -1,0 +1,116 @@
+@inject IEmailAccountService AccountService
+@inject ISnackbar Snackbar
+@inject IPageLocalizer L
+
+<MudDialog>
+    <DialogContent>
+        <MudForm @ref="_form">
+            <MudGrid Spacing="2">
+                <MudItem xs="12" sm="6">
+                    <MudSelect T="EmailAccountType" @bind-Value="_model.AccountType" Label="@L["email.account_type", "Type"]"
+                               Variant="Variant.Outlined">
+                        @foreach (var t in Enum.GetValues<EmailAccountType>())
+                        {
+                            <MudSelectItem T="EmailAccountType" Value="t">@AccountTypeLabel(t)</MudSelectItem>
+                        }
+                    </MudSelect>
+                </MudItem>
+                <MudItem xs="12" sm="6">
+                    <MudTextField @bind-Value="_model.Name" Label="@L["name", "Name"]"
+                                  Variant="Variant.Outlined" Required="true"
+                                  RequiredError="@L["required", "This field is required."]" />
+                </MudItem>
+
+                <MudItem xs="12" sm="8">
+                    <MudTextField @bind-Value="_model.MailServer" Label="@L["email.smtp_server", "SMTP Server"]"
+                                  Variant="Variant.Outlined" Required="true"
+                                  RequiredError="@L["required", "This field is required."]"
+                                  Adornment="Adornment.Start" AdornmentIcon="@Icons.Material.Filled.Dns" />
+                </MudItem>
+                <MudItem xs="12" sm="4">
+                    <MudNumericField @bind-Value="_model.SmtpPort" Label="@L["port", "Port"]"
+                                     Min="1" Max="65535" Variant="Variant.Outlined" />
+                </MudItem>
+
+                <MudItem xs="12">
+                    <MudCheckBox T="bool" @bind-Value="_model.EnableSSL" Label="@L["email.enable_ssl", "Enable SSL / TLS"]" Color="Color.Primary" />
+                </MudItem>
+
+                <MudItem xs="12" sm="6">
+                    <MudTextField @bind-Value="_model.EmailAddress" Label="@L["email.from_address", "From Address / Username"]"
+                                  Variant="Variant.Outlined" InputType="InputType.Email" Required="true"
+                                  RequiredError="@L["required", "This field is required."]"
+                                  Adornment="Adornment.Start" AdornmentIcon="@Icons.Material.Filled.AlternateEmail" />
+                </MudItem>
+                <MudItem xs="12" sm="6">
+                    <MudTextField @bind-Value="_model.Password" Label="@L["password", "Password"]"
+                                  Variant="Variant.Outlined" InputType="InputType.Password" />
+                </MudItem>
+
+                <MudItem xs="12">
+                    <MudTextField @bind-Value="_model.MailName" Label="@L["email.from_name", "From Display Name"]"
+                                  Variant="Variant.Outlined" />
+                </MudItem>
+
+                <MudItem xs="12" sm="6">
+                    <MudSwitch T="bool" @bind-Value="_model.IsDefault" Color="Color.Primary"
+                               Label="@L["email.is_default", "Default account (fallback for other types)"]" />
+                </MudItem>
+                <MudItem xs="12" sm="6">
+                    <MudSwitch T="bool" @bind-Value="_model.Active" Color="Color.Success" Label="@L["active", "Active"]" />
+                </MudItem>
+            </MudGrid>
+        </MudForm>
+    </DialogContent>
+    <DialogActions>
+        <MudButton OnClick="Cancel">@L["cancel", "Cancel"]</MudButton>
+        <MudButton Color="Color.Primary" Variant="Variant.Filled" OnClick="SaveAsync" Disabled="@_saving">
+            @if (_saving)
+            {
+                <MudProgressCircular Size="Size.Small" Indeterminate="true" Class="me-2" />
+            }
+            @L["save", "Save"]
+        </MudButton>
+    </DialogActions>
+</MudDialog>
+
+@code {
+    [CascadingParameter] private IMudDialogInstance MudDialog { get; set; } = null!;
+    [Parameter] public EmailAccountInfo Model { get; set; } = null!;
+
+    private MudForm _form = null!;
+    private EmailAccountInfo _model = null!;
+    private bool _saving;
+
+    protected override void OnInitialized() => _model = Model;
+
+    private string AccountTypeLabel(EmailAccountType t) => t switch
+    {
+        EmailAccountType.NoReply => L["email.type_noreply", "No-Reply (system, OTP, password reset)"],
+        EmailAccountType.Support => L["email.type_support", "Support (ticket replies)"],
+        EmailAccountType.Sales => L["email.type_sales", "Sales (orders, invoices)"],
+        EmailAccountType.Marketing => L["email.type_marketing", "Marketing (newsletters, campaigns)"],
+        EmailAccountType.Info => L["email.type_info", "Info (contact form, inquiries)"],
+        _ => L["email.type_custom", "Custom"],
+    };
+
+    private async Task SaveAsync()
+    {
+        await _form.ValidateAsync();
+        if (!_form.IsValid) return;
+
+        _saving = true;
+        try
+        {
+            await AccountService.SaveAsync(_model);
+            MudDialog.Close(DialogResult.Ok(true));
+        }
+        catch (Exception ex)
+        {
+            Snackbar.Add($"{L["save_failed", "Save failed"]}: {ex.Message}", Severity.Error);
+        }
+        finally { _saving = false; }
+    }
+
+    private void Cancel() => MudDialog.Cancel();
+}
