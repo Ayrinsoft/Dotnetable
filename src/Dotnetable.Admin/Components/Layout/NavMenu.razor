@@ -2,6 +2,7 @@
 @inject IPageLocalizer L
 @inject IWebsiteService WebsiteService
 @inject AdminUiModeState UiModeState
+@inject NavigationManager NavigationManager
 
 <MudNavMenu Class="pt-1">
 
@@ -14,7 +15,8 @@
     {
         <span class="app-nav-label">@L["nav.management", "Management"]</span>
     }
-    <MudNavGroup Title="@L["nav.user_management", "User Management"]" Icon="@Icons.Material.Filled.People" Expanded="true"
+    <MudNavGroup Title="@L["nav.user_management", "User Management"]" Icon="@Icons.Material.Filled.People"
+                 Expanded="@IsGroupActive("/members", "/clients", "/policies", "/roles", "/login-logs")"
                  Hidden="@(!_canMembers && !_canClients && !_canPolicies && !_canLoginLogs && !_isMaster)">
         <AuthorizeView Policy="@RoleKeys.MembersView" Context="m">
             <MudNavLink Href="/members" Icon="@Icons.Material.Filled.PersonOutline">
@@ -44,7 +46,8 @@
     </MudNavGroup>
 
     <AuthorizeView Policy="@RoleKeys.WebsiteEdit" Context="ws">
-        <MudNavGroup Title="@L["website", "Website"]" Icon="@Icons.Material.Filled.WebAsset">
+        <MudNavGroup Title="@L["website", "Website"]" Icon="@Icons.Material.Filled.WebAsset"
+                     Expanded="@IsGroupActive("/websites", "/website/")">
             <AuthorizeView Policy="@AdminPolicies.SuperAdminOnly" Context="wsm">
                 <MudNavLink Href="/websites" Icon="@Icons.Material.Filled.Language">
                     @L["websites", "Websites"]
@@ -72,6 +75,7 @@
     </AuthorizeView>
     
     <MudNavGroup Title="@L["messages", "Messages"]" Icon="@Icons.Material.Filled.Message"
+                 Expanded="@IsGroupActive("/messages/")"
                  Hidden="@(!_canMessages && !_canWebsite && !_isMaster)">
         <AuthorizeView Policy="@RoleKeys.MessagesView" Context="cm">
             <MudNavLink Href="/messages/contacts" Icon="@Icons.Material.Filled.ContactMail">
@@ -93,7 +97,9 @@
     {
         <span class="app-nav-label">@L["nav.content", "Content"]</span>
     }
-    <MudNavGroup Title="@L["content", "Content"]" Icon="@Icons.Material.Filled.Article" hidden="@(!_canPosts && !_canPages && !_canTaxonomy && !_canRedirects)">
+    <MudNavGroup Title="@L["content", "Content"]" Icon="@Icons.Material.Filled.Article"
+                 Expanded="@IsGroupActive("/menus", "/content/", "/moderation/", "/slideshows", "/forms", "/themes")"
+                 hidden="@(!_canPosts && !_canPages && !_canTaxonomy && !_canRedirects)">
 
         
         <AuthorizeView Policy="@RoleKeys.MenusView" Context="mn">
@@ -171,7 +177,8 @@
         </AuthorizeView>
     }
     <AuthorizeView Policy="@RoleKeys.MediaView" Context="md">
-        <MudNavGroup Title="@L["media", "Media"]" Icon="@Icons.Material.Filled.PermMedia">
+        <MudNavGroup Title="@L["media", "Media"]" Icon="@Icons.Material.Filled.PermMedia"
+                     Expanded="@IsGroupActive("/media")">
             <MudNavLink Href="/media" Icon="@Icons.Material.Filled.PhotoLibrary">
                 @L["media_library", "Media Library"]
             </MudNavLink>
@@ -188,7 +195,8 @@
 
 
     <span class="app-nav-label">@L["nav.commerce", "Commerce"]</span>
-    <MudNavGroup Title="@L["nav.catalog", "Catalog"]" Icon="@Icons.Material.Filled.Inventory2">
+    <MudNavGroup Title="@L["nav.catalog", "Catalog"]" Icon="@Icons.Material.Filled.Inventory2"
+                 Expanded="@IsGroupActive("/catalog/")">
         <AuthorizeView Policy="@RoleKeys.ProductsView" Context="pr">
             <MudNavLink Href="/catalog/products" Icon="@Icons.Material.Filled.ShoppingBag">@L["products", "Products"]</MudNavLink>
         </AuthorizeView>
@@ -203,7 +211,8 @@
     </MudNavGroup>
 
     <AuthorizeView Policy="@RoleKeys.InventoryView" Context="inv">
-        <MudNavGroup Title="@L["nav.inventory", "Inventory"]" Icon="@Icons.Material.Filled.Warehouse">
+        <MudNavGroup Title="@L["nav.inventory", "Inventory"]" Icon="@Icons.Material.Filled.Warehouse"
+                     Expanded="@IsGroupActive("/inventory")">
             <MudNavLink Href="/inventory" Icon="@Icons.Material.Filled.Numbers">@L["inventory.stock", "Stock"]</MudNavLink>
             <MudNavLink Href="/inventory/movements" Icon="@Icons.Material.Filled.History">@L["inventory.movements", "Movements"]</MudNavLink>
             <AuthorizeView Policy="@RoleKeys.SuppliersView" Context="sup">
@@ -216,7 +225,8 @@
         <MudNavLink Href="/orders" Icon="@Icons.Material.Filled.ReceiptLong">@L["orders", "Orders"]</MudNavLink>
     </AuthorizeView>
 
-    <MudNavGroup Title="@L["nav.finance", "Finance"]" Icon="@Icons.Material.Filled.Payments">
+    <MudNavGroup Title="@L["nav.finance", "Finance"]" Icon="@Icons.Material.Filled.Payments"
+                 Expanded="@IsGroupActive("/payments", "/wallets/", "/finance/")">
         <AuthorizeView Policy="@RoleKeys.PaymentsView" Context="pay">
             <MudNavLink Href="/payments" Icon="@Icons.Material.Filled.CreditCard">@L["payments", "Payments"]</MudNavLink>
         </AuthorizeView>
@@ -238,7 +248,8 @@
         </AuthorizeView>
     </MudNavGroup>
 
-    <MudNavGroup Title="@L["nav.promotions", "Promotions & Shipping"]" Icon="@Icons.Material.Filled.LocalOffer">
+    <MudNavGroup Title="@L["nav.promotions", "Promotions & Shipping"]" Icon="@Icons.Material.Filled.LocalOffer"
+                 Expanded="@IsGroupActive("/sales/")">
         <AuthorizeView Policy="@RoleKeys.CouponsView" Context="cpn">
             <MudNavLink Href="/sales/coupons" Icon="@Icons.Material.Filled.Discount">@L["coupons", "Coupons"]</MudNavLink>
         </AuthorizeView>
@@ -252,7 +263,8 @@
 
     <AuthorizeView Policy="@AdminPolicies.SuperAdminOnly">
         <span class="app-nav-label">@L["nav.administration", "Administration"]</span>
-        <MudNavGroup Title="@L["initial_data", "Initial Data"]" Icon="@Icons.Material.Filled.Storage">
+        <MudNavGroup Title="@L["initial_data", "Initial Data"]" Icon="@Icons.Material.Filled.Storage"
+                     Expanded="@IsGroupActive("/initial-data/", "/languages", "/translations")">
             <MudNavLink Href="/initial-data/countries" Icon="@Icons.Material.Filled.Flag">
                 @L["countries", "Countries"]
             </MudNavLink>
@@ -297,10 +309,14 @@
     private bool _canRedirects;
     private bool _hideBlogNavForBasicStore;
     private int? _websiteIdForUiMode;
+    private string _currentPath = "";
 
     protected override async Task OnInitializedAsync()
     {
         await L.EnsureLoadedAsync();
+
+        _currentPath = new Uri(NavigationManager.Uri).AbsolutePath;
+        NavigationManager.LocationChanged += OnLocationChanged;
 
         if (AuthState is not null)
         {
@@ -332,6 +348,15 @@
         StateHasChanged();
     }
 
+    private void OnLocationChanged(object? sender, LocationChangedEventArgs e)
+    {
+        _currentPath = new Uri(e.Location).AbsolutePath;
+        StateHasChanged();
+    }
+
+    private bool IsGroupActive(params string[] prefixes)
+        => prefixes.Any(p => _currentPath.StartsWith(p, StringComparison.OrdinalIgnoreCase));
+
     private async Task RefreshBlogNavVisibilityAsync()
     {
         _hideBlogNavForBasicStore = false;
@@ -342,5 +367,9 @@
         }
     }
 
-    public void Dispose() => UiModeState.Changed -= OnUiModeChanged;
+    public void Dispose()
+    {
+        UiModeState.Changed -= OnUiModeChanged;
+        NavigationManager.LocationChanged -= OnLocationChanged;
+    }
 }
