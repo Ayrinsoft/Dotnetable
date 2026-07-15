@@ -1,5 +1,6 @@
 using Dotnetable.Application.Authorization;
 using Dotnetable.Application.DTOs;
+using Dotnetable.Application.Email;
 using Dotnetable.Domain.Entities;
 using Dotnetable.Domain.Enums;
 using Microsoft.AspNetCore.Identity;
@@ -153,23 +154,40 @@ public class InitialDataSeeder : IInitialDataSeeder
             context.Members.Add(member);
             await context.SaveChangesAsync(ct);
 
-            // 6. Optional default SMTP settings so forgot-password email works from first run.
+            // 6. Optional default SMTP account so forgot-password email works from first run. Every
+            // other website falls back to this NoReply account until it registers its own.
             if (!string.IsNullOrWhiteSpace(request.MailServer) && !string.IsNullOrWhiteSpace(request.MailAddress))
             {
-                context.EmailSettings.Add(new EmailSetting
+                context.EmailAccounts.Add(new EmailAccount
                 {
+                    WebsiteID = website.WebsiteID,
+                    AccountType = (byte)EmailAccountType.NoReply,
+                    Name = "No-Reply",
                     MailServer = request.MailServer.Trim(),
                     SMTPPort = request.SmtpPort,
                     EnableSSL = request.MailEnableSSL,
                     EmailAddress = request.MailAddress.Trim(),
                     Password = request.MailPassword,
                     MailName = string.IsNullOrWhiteSpace(request.MailName) ? request.MailAddress.Trim() : request.MailName.Trim(),
-                    EmailTypeID = 0,
-                    DefaultEMail = true,
+                    IsDefault = true,
                     Active = true,
                 });
                 await context.SaveChangesAsync(ct);
             }
+
+            // 6a. Default email templates for the master website — every other website falls back to
+            // these (by TemplateKey) until it saves its own override.
+            context.EmailTemplates.AddRange(EmailTemplateDefaults.All.Select(def => new EmailTemplate
+            {
+                WebsiteID = website.WebsiteID,
+                TemplateKey = def.Key,
+                Name = def.Name,
+                Subject = def.Subject,
+                HtmlBody = def.HtmlBody,
+                AccountType = (byte)def.AccountType,
+                Active = true,
+            }));
+            await context.SaveChangesAsync(ct);
 
             // 7. Default CMS pages so a fresh install has real, admin-editable About/Contact/Services
             // pages instead of the hardcoded demo views the site theme used to render.

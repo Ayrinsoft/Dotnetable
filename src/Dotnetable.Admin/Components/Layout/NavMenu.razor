@@ -79,8 +79,11 @@
             </MudNavLink>
         </AuthorizeView>
         <AuthorizeView Policy="@RoleKeys.WebsiteEdit" Context="em">
-            <MudNavLink Href="/messages/email" Icon="@Icons.Material.Filled.Email">
-                @L["email_settings", "Email Settings"]
+            <MudNavLink Href="/messages/email-accounts" Icon="@Icons.Material.Filled.AlternateEmail">
+                @L["email_accounts", "Email Accounts"]
+            </MudNavLink>
+            <MudNavLink Href="/messages/email-templates" Icon="@Icons.Material.Filled.Description">
+                @L["email_templates", "Email Templates"]
             </MudNavLink>
         </AuthorizeView>
     </MudNavGroup>

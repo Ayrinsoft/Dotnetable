@@ -1,0 +1,98 @@
+@page "/messages/email-templates"
+@attribute [Authorize(Policy = RoleKeys.WebsiteEdit)]
+@inject IEmailTemplateService TemplateService
+@inject IWebsiteService WebsiteService
+@inject AuthenticationStateProvider AuthState
+@inject ISnackbar Snackbar
+@inject IPageLocalizer L
+
+<DNPageTitle Title=@L["email_templates", "Email Templates"] />
+
+<MudStack Row="true" AlignItems="AlignItems.Center" Justify="Justify.SpaceBetween" Class="mb-4">
+    <MudStack Spacing="0">
+        <MudText Typo="Typo.h5" Class="fw-bold">@L["email_templates", "Email Templates"]</MudText>
+        <MudText Typo="Typo.body2" Color="Color.Secondary">
+            @L["email_templates.subtitle", "Subject & HTML content sent for each system email. Edit one to customize it for this website — until then it uses the built-in default."]
+        </MudText>
+    </MudStack>
+    @if (_isMaster)
+    {
+        <WebsiteSelector Value="_websiteId" ValueChanged="OnWebsiteChanged" Websites="_websites"
+                         Label="@L["website", "Website"]" Variant="Variant.Outlined"
+                         Dense="true" Style="min-width:180px" />
+    }
+</MudStack>
+
+@if (_loading)
+{
+    <MudProgressLinear Indeterminate="true" Color="Color.Primary" Class="mb-4" />
+}
+else
+{
+    <MudGrid Spacing="3">
+        @foreach (var t in _items)
+        {
+            <MudItem xs="12" sm="6" md="4">
+                <MudPaper Elevation="0" Class="border rounded-lg pa-4 h-100" Style="cursor:pointer" @onclick="@(() => Nav.NavigateTo($"/messages/email-templates/{Uri.EscapeDataString(t.TemplateKey)}?websiteId={_websiteId}"))">
+                    <MudStack Row="true" Justify="Justify.SpaceBetween" AlignItems="AlignItems.Center" Class="mb-2">
+                        <MudText Typo="Typo.subtitle1" Class="fw-bold">@t.Name</MudText>
+                        @if (t.IsOverride)
+                        {
+                            <MudChip T="string" Size="Size.Small" Color="Color.Primary">@L["email_templates.customized", "Customized"]</MudChip>
+                        }
+                        else
+                        {
+                            <MudChip T="string" Size="Size.Small" Color="Color.Default">@L["email_templates.default", "Default"]</MudChip>
+                        }
+                    </MudStack>
+                    <MudText Typo="Typo.body2" Color="Color.Secondary" Class="mb-1">@t.Subject</MudText>
+                    <MudText Typo="Typo.caption" Color="Color.Secondary">@AccountTypeLabel(t.AccountType)</MudText>
+                </MudPaper>
+            </MudItem>
+        }
+    </MudGrid>
+}
+
+@code {
+    [Inject] private NavigationManager Nav { get; set; } = null!;
+
+    private bool _loading = true;
+    private bool _isMaster;
+    private int _websiteId;
+    private List<EmailTemplateInfo> _items = new();
+    private List<Website> _websites = new();
+
+    protected override async Task OnInitializedAsync()
+    {
+        await L.EnsureLoadedAsync();
+
+        var state = await AuthState.GetAuthenticationStateAsync();
+        var user = state.User;
+        _isMaster = user.HasClaim(AdminClaimTypes.Master, "true");
+        int.TryParse(user.FindFirst(AdminClaimTypes.WebsiteId)?.Value, out _websiteId);
+
+        if (_isMaster)
+            _websites = (await WebsiteService.GetAllAsync()).ToList();
+
+        await LoadAsync();
+    }
+
+    private async Task OnWebsiteChanged(int id) { _websiteId = id; await LoadAsync(); }
+
+    private async Task LoadAsync()
+    {
+        _loading = true;
+        _items = await TemplateService.GetForWebsiteAsync(_websiteId);
+        _loading = false;
+    }
+
+    private string AccountTypeLabel(EmailAccountType t) => t switch
+    {
+        EmailAccountType.NoReply => L["email.type_noreply_short", "No-Reply"],
+        EmailAccountType.Support => L["email.type_support_short", "Support"],
+        EmailAccountType.Sales => L["email.type_sales_short", "Sales"],
+        EmailAccountType.Marketing => L["email.type_marketing_short", "Marketing"],
+        EmailAccountType.Info => L["email.type_info_short", "Info"],
+        _ => L["email.type_custom", "Custom"],
+    };
+}

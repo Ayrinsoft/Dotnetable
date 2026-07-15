@@ -72,9 +72,11 @@ public partial class Website
 
     public virtual Currency DefaultCurrencyCodeNavigation { get; set; } = null!;
 
-    public virtual ICollection<EmailSetting> EmailSettings { get; set; } = new List<EmailSetting>();
+    public virtual ICollection<EmailAccount> EmailAccounts { get; set; } = new List<EmailAccount>();
 
     public virtual ICollection<EmailSubscribe> EmailSubscribes { get; set; } = new List<EmailSubscribe>();
+
+    public virtual ICollection<EmailTemplate> EmailTemplates { get; set; } = new List<EmailTemplate>();
 
     public virtual FileRecord? FaveIconFile { get; set; }
 

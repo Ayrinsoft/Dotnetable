@@ -1,0 +1,167 @@
+@page "/messages/email-templates/{TemplateKey}"
+@attribute [Authorize(Policy = RoleKeys.WebsiteEdit)]
+@inject IEmailTemplateService TemplateService
+@inject AuthenticationStateProvider AuthState
+@inject NavigationManager Nav
+@inject ISnackbar Snackbar
+@inject IPageLocalizer L
+
+<DNPageTitle Title=@(_item?.Name ?? TemplateKey) />
+
+<MudBreadcrumbs Items="_breadcrumbs" Class="px-0 pb-2" />
+
+<MudStack Row="true" AlignItems="AlignItems.Center" Justify="Justify.SpaceBetween" Class="mb-4">
+    <MudStack Spacing="0">
+        <MudText Typo="Typo.h5" Class="fw-bold">@(_item?.Name ?? TemplateKey)</MudText>
+        <MudText Typo="Typo.body2" Color="Color.Secondary">
+            @(_item?.IsOverride == true
+                ? L["email_templates.editing_own", "This website's own version of this template."]
+                : L["email_templates.editing_default", "Currently using the built-in default — saving creates this website's own version."])
+        </MudText>
+    </MudStack>
+</MudStack>
+
+@if (_loading)
+{
+    <MudProgressLinear Indeterminate="true" Color="Color.Primary" Class="mb-4" />
+}
+else if (_item is not null)
+{
+    <MudForm @ref="_form">
+        <MudGrid Spacing="4">
+            <MudItem xs="12">
+                <MudPaper Elevation="0" Class="border rounded-lg pa-6">
+                    <MudGrid Spacing="3" Class="mb-2">
+                        <MudItem xs="12" sm="8">
+                            <MudTextField @bind-Value="_item.Subject" Label="@L["email_templates.subject", "Subject"]"
+                                          Variant="Variant.Outlined" Required="true"
+                                          RequiredError="@L["required", "This field is required."]" />
+                        </MudItem>
+                        <MudItem xs="12" sm="4">
+                            <MudSelect T="EmailAccountType" @bind-Value="_item.AccountType" Label="@L["email_templates.sender", "Sender Account"]"
+                                       Variant="Variant.Outlined">
+                                @foreach (var t in Enum.GetValues<EmailAccountType>())
+                                {
+                                    <MudSelectItem T="EmailAccountType" Value="t">@AccountTypeLabel(t)</MudSelectItem>
+                                }
+                            </MudSelect>
+                        </MudItem>
+                    </MudGrid>
+
+                    <MudText Typo="Typo.body2" Class="mb-1" Color="Color.Secondary">@L["email_templates.body", "HTML Content"]</MudText>
+                    <CkEditor Value="@_item.HtmlBody" OnValueChanged="@(v => _item!.HtmlBody = v)" />
+
+                    <MudText Typo="Typo.caption" Color="Color.Secondary" Class="mt-2 d-block">
+                        @L["email_templates.tokens_hint", "Available placeholders depend on the email: {{SiteName}} and {{SiteUrl}} always work; others (e.g. {{Code}}, {{ResetUrl}}, {{Name}}, {{OrderNumber}}) are filled in when that specific email is sent."]
+                    </MudText>
+
+                    <MudSwitch T="bool" @bind-Value="_item.Active" Color="Color.Primary" Class="mt-3"
+                               Label="@(_item.Active ? L["email_templates.active_on", "Active — will be sent"] : L["email_templates.active_off", "Inactive — sending will fail"])" />
+                </MudPaper>
+            </MudItem>
+        </MudGrid>
+
+        <MudStack Row="true" Class="mt-4" Spacing="2">
+            <MudButton Variant="Variant.Filled" Color="Color.Primary"
+                       StartIcon="@Icons.Material.Filled.Save"
+                       OnClick="SaveAsync" Disabled="@_saving">
+                @if (_saving)
+                {
+                    <MudProgressCircular Size="Size.Small" Indeterminate="true" Class="me-2" />
+                }
+                @L["save", "Save Changes"]
+            </MudButton>
+            @if (_item.IsOverride)
+            {
+                <MudButton Variant="Variant.Outlined" Color="Color.Warning"
+                           StartIcon="@Icons.Material.Filled.RestartAlt"
+                           OnClick="ResetAsync" Disabled="@_saving">
+                    @L["email_templates.reset", "Reset to Default"]
+                </MudButton>
+            }
+            <MudButton Variant="Variant.Outlined" Color="Color.Default"
+                       StartIcon="@Icons.Material.Filled.ArrowBack" Href="/messages/email-templates">
+                @L["cancel", "Cancel"]
+            </MudButton>
+        </MudStack>
+    </MudForm>
+}
+
+@code {
+    [Parameter] public string TemplateKey { get; set; } = string.Empty;
+    [SupplyParameterFromQuery] public int? WebsiteId { get; set; }
+
+    private MudForm _form = null!;
+    private EmailTemplateInfo? _item;
+    private bool _loading = true;
+    private bool _saving;
+    private int _websiteId;
+
+    private List<BreadcrumbItem> _breadcrumbs => new()
+    {
+        new(L["dashboard", "Dashboard"], "/"),
+        new(L["email_templates", "Email Templates"], "/messages/email-templates"),
+        new(_item?.Name ?? TemplateKey, null, true),
+    };
+
+    protected override async Task OnInitializedAsync()
+    {
+        await L.EnsureLoadedAsync();
+
+        var state = await AuthState.GetAuthenticationStateAsync();
+        var user = state.User;
+        var isMaster = user.HasClaim(AdminClaimTypes.Master, "true");
+        int.TryParse(user.FindFirst(AdminClaimTypes.WebsiteId)?.Value, out var claimWebsiteId);
+
+        _websiteId = isMaster && WebsiteId.HasValue ? WebsiteId.Value : claimWebsiteId;
+
+        _item = await TemplateService.GetAsync(_websiteId, TemplateKey);
+        if (_item is null)
+        {
+            Nav.NavigateTo("/messages/email-templates");
+            return;
+        }
+        _loading = false;
+    }
+
+    private async Task SaveAsync()
+    {
+        await _form.ValidateAsync();
+        if (!_form.IsValid) return;
+
+        _saving = true;
+        try
+        {
+            await TemplateService.SaveAsync(_websiteId, _item!);
+            Snackbar.Add(L["email_templates.saved", "Template saved."], Severity.Success);
+            _item = await TemplateService.GetAsync(_websiteId, TemplateKey);
+        }
+        catch (Exception ex)
+        {
+            Snackbar.Add($"{L["save_failed", "Save failed"]}: {ex.Message}", Severity.Error);
+        }
+        finally { _saving = false; }
+    }
+
+    private async Task ResetAsync()
+    {
+        _saving = true;
+        try
+        {
+            await TemplateService.ResetToDefaultAsync(_websiteId, TemplateKey);
+            Snackbar.Add(L["email_templates.reset_done", "Reverted to the default template."], Severity.Success);
+            _item = await TemplateService.GetAsync(_websiteId, TemplateKey);
+        }
+        finally { _saving = false; }
+    }
+
+    private string AccountTypeLabel(EmailAccountType t) => t switch
+    {
+        EmailAccountType.NoReply => L["email.type_noreply_short", "No-Reply"],
+        EmailAccountType.Support => L["email.type_support_short", "Support"],
+        EmailAccountType.Sales => L["email.type_sales_short", "Sales"],
+        EmailAccountType.Marketing => L["email.type_marketing_short", "Marketing"],
+        EmailAccountType.Info => L["email.type_info_short", "Info"],
+        _ => L["email.type_custom", "Custom"],
+    };
+}

@@ -1,5 +1,6 @@
 ﻿using System.Security.Cryptography;
 using Dotnetable.Application.DTOs;
+using Dotnetable.Application.Email;
 using Dotnetable.Application.Interfaces;
 using Dotnetable.Domain.Entities;
 using Dotnetable.Domain.Enums;
@@ -57,7 +58,7 @@ public class WebsiteClientAuthService : IWebsiteClientAuthService
         var identifier = email ?? cellphone!;
 
         // Email must be truly deliverable; the SMS stub always "delivers" (it logs the code).
-        if (channel == OtpChannel.Email && !await _email.IsConfiguredAsync(ct))
+        if (channel == OtpChannel.Email && !await _email.IsConfiguredAsync(registration.WebsiteId, ct))
             return new ClientRegisterResponse(ClientRegisterResult.DeliveryNotConfigured, channel, identifier);
 
         // Every existing customer in this website that already owns the email or the mobile.
@@ -114,7 +115,7 @@ public class WebsiteClientAuthService : IWebsiteClientAuthService
         }
 
         var code = await IssueCodeAsync(client.WebsiteClientID, ct);
-        await SendCodeAsync(channel, identifier, countryCode, code, isActivation: true, ct);
+        await SendCodeAsync(client.WebsiteID, channel, identifier, countryCode, code, isActivation: true, ct);
 
         return new ClientRegisterResponse(ClientRegisterResult.OtpSent, channel, identifier);
     }
@@ -142,11 +143,11 @@ public class WebsiteClientAuthService : IWebsiteClientAuthService
         if (client.Active) return ClientResendResult.AlreadyActive;
 
         var (channel, target) = ChannelFor(client);
-        if (channel == OtpChannel.Email && !await _email.IsConfiguredAsync(ct))
+        if (channel == OtpChannel.Email && !await _email.IsConfiguredAsync(client.WebsiteID, ct))
             return ClientResendResult.DeliveryNotConfigured;
 
         var code = await IssueCodeAsync(client.WebsiteClientID, ct);
-        await SendCodeAsync(channel, target, client.CountryCode, code, isActivation: true, ct);
+        await SendCodeAsync(client.WebsiteID, channel, target, client.CountryCode, code, isActivation: true, ct);
         return ClientResendResult.OtpSent;
     }
 
@@ -172,11 +173,11 @@ public class WebsiteClientAuthService : IWebsiteClientAuthService
         if (client is null) return ClientResetRequestResult.NotFound;
 
         var (channel, target) = ChannelFor(client);
-        if (channel == OtpChannel.Email && !await _email.IsConfiguredAsync(ct))
+        if (channel == OtpChannel.Email && !await _email.IsConfiguredAsync(client.WebsiteID, ct))
             return ClientResetRequestResult.DeliveryNotConfigured;
 
         var code = await IssueCodeAsync(client.WebsiteClientID, ct);
-        await SendCodeAsync(channel, target, client.CountryCode, code, isActivation: false, ct);
+        await SendCodeAsync(client.WebsiteID, channel, target, client.CountryCode, code, isActivation: false, ct);
         return ClientResetRequestResult.OtpSent;
     }
 
@@ -241,19 +242,12 @@ public class WebsiteClientAuthService : IWebsiteClientAuthService
     }
 
     private async Task SendCodeAsync(
-        OtpChannel channel, string target, string? countryCode, string code, bool isActivation, CancellationToken ct)
+        int websiteId, OtpChannel channel, string target, string? countryCode, string code, bool isActivation, CancellationToken ct)
     {
         if (channel == OtpChannel.Email)
         {
-            var subject = isActivation ? "Your activation code" : "Your password reset code";
-            var intro = isActivation
-                ? "Use the code below to activate your account."
-                : "Use the code below to reset your password.";
-            var body =
-                $"<p>{intro}</p>" +
-                $"<p style=\"font-size:24px;font-weight:bold;letter-spacing:3px\">{code}</p>" +
-                "<p>This code expires in 30 minutes. If you didn't request it, you can ignore this message.</p>";
-            await _email.SendAsync(target, subject, body, ct);
+            var key = isActivation ? EmailTemplateKeys.ClientOtpActivation : EmailTemplateKeys.ClientOtpPasswordReset;
+            await _email.SendTemplateAsync(websiteId, key, target, new Dictionary<string, string> { ["Code"] = code }, ct);
         }
         else
         {
