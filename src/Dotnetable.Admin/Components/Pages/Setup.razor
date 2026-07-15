@@ -16,7 +16,7 @@
 <MudDialogProvider />
 <MudSnackbarProvider />
 
-<div dir="@(_isRtl ? "rtl" : "ltr")" style="min-height:100vh;background:var(--mud-palette-background-grey)">
+<div dir="@(_isRtl ? "rtl" : "ltr")" class="@(_lang == "fa" ? "lang-fa" : null)" style="min-height:100vh;background:var(--mud-palette-background-grey)">
     <MudContainer MaxWidth="MaxWidth.Small" Class="py-8">
 
         @* Language selector – always LTR so buttons stay in a consistent row *@

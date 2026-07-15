@@ -18,7 +18,7 @@
 
 <AuthorizeView>
     <Authorized Context="authCtx">
-        <MudLayout>
+        <MudLayout Class="@(Loc.LanguageCode == "fa" ? "lang-fa" : null)">
             <MudAppBar Elevation="0" Dense="true" Color="Color.Surface">
                 <MudIconButton Icon="@Icons.Material.Filled.Menu" Color="Color.Default" Edge="Edge.Start"
                                OnClick="@(() => _drawerOpen = !_drawerOpen)" />
@@ -107,6 +107,8 @@
 
         var catalog = await LanguageService.GetActiveCatalogAsync();
         _languages = catalog.Select(l => l.ToOption()).ToList();
+
+        await Loc.EnsureLoadedAsync();
     }
 
     protected override async Task OnAfterRenderAsync(bool firstRender)
