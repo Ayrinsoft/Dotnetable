@@ -1,3 +1,4 @@
+using Dotnetable.Application.DTOs;
 using Dotnetable.Domain.Entities;
 
 namespace Dotnetable.Application.Interfaces;
@@ -12,6 +13,10 @@ public interface ILanguageService
     /// <summary>The master catalog, ordered by Priority. Self-seeds the built-in defaults on first
     /// call if the table is still empty (e.g. an existing install predating this feature).</summary>
     Task<List<Language>> GetCatalogAsync(CancellationToken ct = default);
+
+    /// <summary>The master catalog, paged/sorted/searched per the admin grid's state (same
+    /// Code/ISO/Name search + sort convention as every other list page in the panel).</summary>
+    Task<PagedResult<Language>> GetCatalogPagedAsync(GridQuery query, CancellationToken ct = default);
 
     /// <summary>The active subset of the master catalog.</summary>
     Task<List<Language>> GetActiveCatalogAsync(CancellationToken ct = default);

@@ -125,17 +125,18 @@
         var current = GridHeaderParams!.HeaderItems.FirstOrDefault(i => i.ColumnName == columnName);
         if (current is null) return;
 
-        current.SortStatus = current.SortStatus == GridViewSortStatus.DESC
-            ? GridViewSortStatus.ASC
-            : GridViewSortStatus.DESC;
-
-        var clauses = new List<string>
+        // Three-state cycle: NoSort -> ASC -> DESC -> NoSort.
+        current.SortStatus = current.SortStatus switch
         {
-            $"{columnName} {(current.SortStatus == GridViewSortStatus.DESC ? "DESC" : "ASC")}"
+            GridViewSortStatus.NoSort => GridViewSortStatus.ASC,
+            GridViewSortStatus.ASC => GridViewSortStatus.DESC,
+            _ => GridViewSortStatus.NoSort,
         };
-        clauses.AddRange(GridHeaderParams.HeaderItems
-            .Where(i => i.HasSort && i.SortStatus != GridViewSortStatus.NoSort && i.ColumnName != columnName)
-            .Select(i => $"{i.ColumnName} {(i.SortStatus == GridViewSortStatus.DESC ? "DESC" : "ASC")}"));
+
+        var clauses = GridHeaderParams.HeaderItems
+            .Where(i => i.HasSort && i.SortStatus != GridViewSortStatus.NoSort)
+            .Select(i => $"{i.ColumnName} {(i.SortStatus == GridViewSortStatus.DESC ? "DESC" : "ASC")}")
+            .ToList();
 
         GridHeaderParams.OrderbyParams = string.Join(", ", clauses);
         await OnSearchChanged.InvokeAsync(GridHeaderParams);
