@@ -11,6 +11,16 @@
 }
 
 /* ---- Typography ---------------------------------------------------- */
+@font-face {
+    font-family: 'Sahel';
+    src: url('/font/sahel/sahel.woff') format('woff'),
+         url('/font/sahel/sahel.ttf') format('truetype'),
+         url('/font/sahel/sahel.eot') format('embedded-opentype');
+    font-weight: normal;
+    font-style: normal;
+    font-display: swap;
+}
+
 html, body {
     font-family: 'Open Sans', sans-serif !important;
     background-color: var(--mud-palette-background, #e4e7ea);
@@ -22,6 +32,16 @@ html, body {
 .mud-table,
 .mud-nav-link {
     font-family: 'Open Sans', sans-serif !important;
+}
+
+/* Persian UI: swap to the Sahel font wherever .lang-fa is applied (see MainLayout/Setup). */
+.lang-fa,
+.lang-fa .mud-typography,
+.lang-fa .mud-input-root,
+.lang-fa .mud-button-root,
+.lang-fa .mud-table,
+.lang-fa .mud-nav-link {
+    font-family: 'Sahel', 'Open Sans', sans-serif !important;
 }
 
 /* ---- Top bar ------------------------------------------------------- */

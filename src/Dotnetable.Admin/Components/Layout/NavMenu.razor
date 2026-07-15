@@ -159,17 +159,14 @@
         </AuthorizeView>
     </MudNavGroup>
 
-    <AuthorizeView Policy="@RoleKeys.LocalizationEdit" Context="tr">
-        <MudNavLink Href="/translations" Icon="@Icons.Material.Filled.Translate">
-            @L["translations", "Translations"]
-        </MudNavLink>
-        @if (!_isMaster)
-        {
+    @if (!_isMaster)
+    {
+        <AuthorizeView Policy="@RoleKeys.LocalizationEdit" Context="tr">
             <MudNavLink Href="/content-languages" Icon="@Icons.Material.Filled.GTranslate">
                 @L["content_languages", "Content Languages"]
             </MudNavLink>
-        }
-    </AuthorizeView>
+        </AuthorizeView>
+    }
     <AuthorizeView Policy="@RoleKeys.MediaView" Context="md">
         <MudNavGroup Title="@L["media", "Media"]" Icon="@Icons.Material.Filled.PermMedia">
             <MudNavLink Href="/media" Icon="@Icons.Material.Filled.PhotoLibrary">
@@ -264,6 +261,9 @@
             </MudNavLink>
             <MudNavLink Href="/languages" Icon="@Icons.Material.Filled.Language">
                 @L["languages", "Languages"]
+            </MudNavLink>
+            <MudNavLink Href="/translations" Icon="@Icons.Material.Filled.Translate">
+                @L["translations", "Translations"]
             </MudNavLink>
         </MudNavGroup>
 

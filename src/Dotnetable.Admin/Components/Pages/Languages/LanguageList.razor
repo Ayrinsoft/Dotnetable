@@ -19,6 +19,10 @@
     </MudButton>
 </MudStack>
 
+<MudTextField T="string" @bind-Value="_search" Label="@L["search", "Search"]" Variant="Variant.Outlined"
+              Margin="Margin.Dense" Adornment="Adornment.Start" AdornmentIcon="@Icons.Material.Filled.Search"
+              Class="mb-3" Style="max-width:320px;" Immediate="true" Clearable="true" />
+
 <MudPaper Elevation="0" Class="app-card rounded-lg pa-4">
     @if (_loading)
     {
@@ -39,7 +43,7 @@
                 </tr>
             </thead>
             <tbody>
-                @foreach (var lang in _items)
+                @foreach (var lang in _filtered)
                 {
                     <tr>
                         <td><code>@lang.LanguageCode</code></td>
@@ -67,6 +71,14 @@
 @code {
     private bool _loading = true;
     private List<Language> _items = new();
+    private string _search = string.Empty;
+
+    private IEnumerable<Language> _filtered => string.IsNullOrWhiteSpace(_search)
+        ? _items
+        : _items.Where(l =>
+            l.LanguageCode.Contains(_search, StringComparison.OrdinalIgnoreCase) ||
+            l.LanguageCodeISO.Contains(_search, StringComparison.OrdinalIgnoreCase) ||
+            l.Name.Contains(_search, StringComparison.OrdinalIgnoreCase));
 
     protected override async Task OnInitializedAsync()
     {

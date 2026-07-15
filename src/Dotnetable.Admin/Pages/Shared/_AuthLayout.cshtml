@@ -15,6 +15,20 @@
     <link rel="preconnect" href="https://fonts.googleapis.com" />
     <link rel="stylesheet" href="https://fonts.googleapis.com/css2?family=Open+Sans:wght@300;400;600;700&display=swap" />
     <style>
+        @@font-face {
+            font-family: 'Sahel';
+            src: url('/font/sahel/sahel.woff') format('woff'),
+                 url('/font/sahel/sahel.ttf') format('truetype'),
+                 url('/font/sahel/sahel.eot') format('embedded-opentype');
+            font-weight: normal;
+            font-style: normal;
+            font-display: swap;
+        }
+
+        html[lang="fa"] body {
+            font-family: 'Sahel', 'Open Sans', system-ui, -apple-system, sans-serif;
+        }
+
         :root {
             --accent: #348fe2;
             --accent-dark: #2f80c9;

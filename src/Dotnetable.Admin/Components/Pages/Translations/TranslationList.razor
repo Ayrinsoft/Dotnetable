@@ -17,14 +17,11 @@
         <MudText Typo="Typo.body2" Color="Color.Secondary">@L["translation.subtitle", "Edit UI text for each language"]</MudText>
     </MudStack>
     <MudStack Row="true" AlignItems="AlignItems.Center" Spacing="2">
-        <MudSelect T="string" Value="_languageCode" ValueChanged="OnLanguageChanged" Label="@L["language", "Language"]"
-                   Variant="Variant.Outlined" Margin="Margin.Dense"
-                   Style="width:150px;" AnchorOrigin="Origin.BottomLeft">
-            @foreach (var lang in _languages)
-            {
-                <MudSelectItem T="string" Value="@lang.Code">@lang.Label</MudSelectItem>
-            }
-        </MudSelect>
+        <MudAutocomplete T="string" Value="_languageCode" ValueChanged="OnLanguageChanged" Label="@L["language", "Language"]"
+                          SearchFunc="SearchLanguages" ToStringFunc="@(code => _languages.FirstOrDefault(l => l.Code == code).Label ?? code)"
+                          Variant="Variant.Outlined" Margin="Margin.Dense"
+                          Style="width:200px;" AnchorOrigin="Origin.BottomLeft"
+                          CoerceText="true" ResetValueOnEmptyText="false" />
         <MudMenu Label="@L["translation.export", "Export CSV"]" Variant="Variant.Outlined" Color="Color.Primary"
                  StartIcon="@Icons.Material.Filled.Download" EndIcon="@Icons.Material.Filled.ArrowDropDown"
                  Disabled="_busy">
@@ -114,9 +111,20 @@
 
     private async Task OnLanguageChanged(string code)
     {
+        if (string.IsNullOrEmpty(code) || !_languages.Any(l => l.Code == code)) return;
         _languageCode = code;
         _grid.Pagination.PageIndex = 1;
         await LoadAsync();
+    }
+
+    private Task<IEnumerable<string>> SearchLanguages(string value, CancellationToken ct)
+    {
+        var query = string.IsNullOrWhiteSpace(value)
+            ? _languages
+            : _languages.Where(l =>
+                l.Label.Contains(value, StringComparison.OrdinalIgnoreCase) ||
+                l.Code.Contains(value, StringComparison.OrdinalIgnoreCase));
+        return Task.FromResult(query.Select(l => l.Code));
     }
 
     private Task OnGridChanged(GridViewHeaderParameters _) => LoadAsync();
