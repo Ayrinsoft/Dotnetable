@@ -18,6 +18,7 @@ public sealed class PageLocalizer : IPageLocalizer
     private readonly AuthenticationStateProvider _authState;
     private readonly IHttpContextAccessor _httpContextAccessor;
     private readonly IWebsiteService _websiteService;
+    private readonly ILanguageService _languageService;
     private readonly object _loadLock = new();
     private volatile bool _loaded;
     private Task? _loadTask;
@@ -28,7 +29,8 @@ public sealed class PageLocalizer : IPageLocalizer
         PendingTranslationKeys pending,
         AuthenticationStateProvider authState,
         IHttpContextAccessor httpContextAccessor,
-        IWebsiteService websiteService)
+        IWebsiteService websiteService,
+        ILanguageService languageService)
     {
         _cache = cache;
         _localization = localization;
@@ -36,6 +38,7 @@ public sealed class PageLocalizer : IPageLocalizer
         _authState = authState;
         _httpContextAccessor = httpContextAccessor;
         _websiteService = websiteService;
+        _languageService = languageService;
     }
 
     public int WebsiteId { get; private set; } = AppConstants.MasterWebsiteId;
@@ -74,12 +77,14 @@ public sealed class PageLocalizer : IPageLocalizer
     // member's website default language.
     private async Task<string> ResolveLanguageAsync(CancellationToken ct)
     {
+        var options = (await _languageService.GetActiveCatalogAsync(ct)).Select(l => l.ToOption()).ToList();
+
         var cookie = _httpContextAccessor.HttpContext?.Request.Cookies[SupportedLanguages.CookieName];
-        if (SupportedLanguages.IsSupported(cookie))
+        if (options.IsSupported(cookie))
             return cookie!;
 
         var website = await _websiteService.GetByIdAsync(WebsiteId, ct);
-        return SupportedLanguages.IsSupported(website?.DefaultLanguageCode)
+        return options.IsSupported(website?.DefaultLanguageCode)
             ? website!.DefaultLanguageCode
             : DefaultLanguage;
     }

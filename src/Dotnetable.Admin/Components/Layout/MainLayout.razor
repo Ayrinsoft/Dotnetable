@@ -9,6 +9,7 @@
 @inject IDialogService DialogService
 @inject IPageLocalizer Loc
 @inject NavigationManager Nav
+@inject Dotnetable.Application.Interfaces.ILanguageService LanguageService
 
 <MudPopoverProvider />
 <MudThemeProvider Theme="_theme" @bind-IsDarkMode="_isDarkMode" />
@@ -46,7 +47,7 @@
                 }
                 <MudTooltip Text="Language">
                     <MudMenu Icon="@Icons.Material.Filled.Language" Color="Color.Default">
-                        @foreach (var lang in SupportedLanguages.All)
+                        @foreach (var lang in _languages)
                         {
                             <MudMenuItem OnClick="@(() => SetLanguage(lang.Code))" Class="@(Loc.LanguageCode == lang.Code ? "fw-bold" : null)">
                                 @lang.Flag @lang.Native
@@ -95,12 +96,17 @@
     private bool _isMaster;
     private static readonly AdminUiMode[] _uiModes = Enum.GetValues<AdminUiMode>();
 
+    private IReadOnlyList<LanguageOption> _languages = SupportedLanguages.Defaults;
+
     protected override async Task OnInitializedAsync()
     {
         var user = (await AuthStateProvider.GetAuthenticationStateAsync()).User;
         _isMaster = user.HasClaim(AdminClaimTypes.Master, "true");
         UiModeState.Initialize(AdminClaimTypes.GetUiMode(user));
         UiModeState.Changed += StateHasChanged;
+
+        var catalog = await LanguageService.GetActiveCatalogAsync();
+        _languages = catalog.Select(l => l.ToOption()).ToList();
     }
 
     protected override async Task OnAfterRenderAsync(bool firstRender)

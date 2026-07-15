@@ -1,14 +1,17 @@
+using Dotnetable.Domain.Entities;
+
 namespace Dotnetable.Admin.Localization;
 
 public sealed record LanguageOption(string Code, string Native, string Flag, bool Rtl);
 
-/// <summary>Single source of truth for the language list shown in the Setup wizard, the
-/// pre-login auth pages, and the admin header switcher.</summary>
+/// <summary>Cookie name shared by the header switcher, the auth pages, and the built-in defaults
+/// used to seed the master language catalog (see <see cref="ILanguageService"/>) and by the Setup
+/// wizard, which runs before any website — and therefore no catalog row — exists in the DB.</summary>
 public static class SupportedLanguages
 {
     public const string CookieName = "dn-lang";
 
-    public static readonly LanguageOption[] All =
+    public static readonly LanguageOption[] Defaults =
     [
         new("en", "English",  "🇬🇧", false),
         new("de", "Deutsch",  "🇩🇪", false),
@@ -19,11 +22,19 @@ public static class SupportedLanguages
         new("ar", "العربية",  "🇸🇦", true),
     ];
 
-    public static bool IsSupported(string? code) =>
-        !string.IsNullOrEmpty(code) && All.Any(l => l.Code == code);
+    private static readonly Dictionary<string, string> Flags = Defaults.ToDictionary(l => l.Code, l => l.Flag);
 
-    public static LanguageOption Get(string? code) =>
-        All.FirstOrDefault(l => l.Code == code) ?? All[0];
+    /// <summary>Maps a DB <see cref="Language"/> catalog row to the UI-facing option shape, reusing
+    /// a known flag emoji for the built-in codes and falling back to a globe for new ones.</summary>
+    public static LanguageOption ToOption(this Language language) =>
+        new(language.LanguageCode, language.Name, Flags.GetValueOrDefault(language.LanguageCode, "🌐"), language.RTLDesign);
 
-    public static bool IsRtl(string? code) => Get(code).Rtl;
+    public static bool IsSupported(this IReadOnlyCollection<LanguageOption> options, string? code) =>
+        !string.IsNullOrEmpty(code) && options.Any(l => l.Code == code);
+
+    public static LanguageOption Get(this IReadOnlyCollection<LanguageOption> options, string? code) =>
+        options.FirstOrDefault(l => l.Code == code) ?? options.FirstOrDefault() ?? Defaults[0];
+
+    public static bool IsRtl(this IReadOnlyCollection<LanguageOption> options, string? code) =>
+        options.Get(code).Rtl;
 }

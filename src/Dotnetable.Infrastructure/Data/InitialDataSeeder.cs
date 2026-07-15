@@ -67,6 +67,31 @@ public class InitialDataSeeder : IInitialDataSeeder
 
             await context.SaveChangesAsync(ct);
 
+            // 2a. Master language catalog — every other website picks a subset of these for its
+            // own content later, from the /languages admin page.
+            var languageDefaults = new (string Code, string Iso, string Name, bool Rtl)[]
+            {
+                ("en", "en-US", "English",  false),
+                ("de", "de-DE", "Deutsch",  false),
+                ("fr", "fr-FR", "Français", false),
+                ("ru", "ru-RU", "Русский",  false),
+                ("zh", "zh-CN", "中文",      false),
+                ("fa", "fa-IR", "فارسی",    true),
+                ("ar", "ar-SA", "العربية",  true),
+            };
+            context.Languages.AddRange(languageDefaults.Select((l, i) => new Language
+            {
+                WebsiteID = website.WebsiteID,
+                LanguageCode = l.Code,
+                LanguageCodeISO = l.Iso,
+                Name = l.Name,
+                Priority = i,
+                Active = true,
+                IsDefault = l.Code == request.DefaultLanguageCode || (l.Code == "en" && languageDefaults.All(d => d.Code != request.DefaultLanguageCode)),
+                RTLDesign = l.Rtl,
+            }));
+            await context.SaveChangesAsync(ct);
+
             // 4. Seed every permission (admin + client) from the catalog.
             var roles = RoleCatalog.All
                 .Select(def => new Role

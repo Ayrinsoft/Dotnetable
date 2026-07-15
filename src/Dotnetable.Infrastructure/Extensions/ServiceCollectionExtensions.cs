@@ -49,12 +49,14 @@ public static class ServiceCollectionExtensions
             sp.GetRequiredService<IDbContextFactory<AppDbContext>>().CreateDbContext());
 
         services.AddSingleton<TranslationCache>();
+        services.AddSingleton<LanguageCatalogCache>();
         // Self-registering localization keys: pages buffer unknown keys, a background service inserts them.
         services.AddSingleton<PendingTranslationKeys>();
         services.AddHostedService<TranslationKeyFlushService>();
         services.AddScoped(typeof(IRepository<>), typeof(GenericRepository<>));
         services.AddScoped<IUnitOfWork, UnitOfWork>();
         services.AddScoped<ILocalizationService, LocalizationService>();
+        services.AddScoped<ILanguageService, LanguageService>();
         services.AddScoped<IMemberService, MemberService>();
         services.AddScoped<IWebsiteClientService, WebsiteClientService>();
         services.AddScoped<IWebsiteClientAddressService, WebsiteClientAddressService>();

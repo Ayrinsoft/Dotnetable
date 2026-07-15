@@ -163,6 +163,12 @@
         <MudNavLink Href="/translations" Icon="@Icons.Material.Filled.Translate">
             @L["translations", "Translations"]
         </MudNavLink>
+        @if (!_isMaster)
+        {
+            <MudNavLink Href="/content-languages" Icon="@Icons.Material.Filled.GTranslate">
+                @L["content_languages", "Content Languages"]
+            </MudNavLink>
+        }
     </AuthorizeView>
     <AuthorizeView Policy="@RoleKeys.MediaView" Context="md">
         <MudNavGroup Title="@L["media", "Media"]" Icon="@Icons.Material.Filled.PermMedia">
@@ -255,6 +261,9 @@
             </MudNavLink>
             <MudNavLink Href="/initial-data/cities" Icon="@Icons.Material.Filled.LocationCity">
                 @L["cities", "Cities"]
+            </MudNavLink>
+            <MudNavLink Href="/languages" Icon="@Icons.Material.Filled.Language">
+                @L["languages", "Languages"]
             </MudNavLink>
         </MudNavGroup>
 

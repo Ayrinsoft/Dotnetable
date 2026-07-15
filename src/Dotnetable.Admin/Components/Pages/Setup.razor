@@ -21,7 +21,7 @@
 
         @* Language selector – always LTR so buttons stay in a consistent row *@
         <div dir="ltr" class="d-flex justify-end flex-wrap gap-1 mb-4">
-            @foreach (var lang in SupportedLanguages.All)
+            @foreach (var lang in SupportedLanguages.Defaults)
             {
                 <MudButton Size="Size.Small"
                            Variant="@(_lang == lang.Code ? Variant.Filled : Variant.Outlined)"
@@ -370,7 +370,7 @@
         if (firstRender)
         {
             var stored = await JS.InvokeAsync<string>("dotnetableLang.get");
-            if (SupportedLanguages.IsSupported(stored) && stored != _lang)
+            if (SupportedLanguages.Defaults.IsSupported(stored) && stored != _lang)
             {
                 _lang = stored;
                 StateHasChanged();

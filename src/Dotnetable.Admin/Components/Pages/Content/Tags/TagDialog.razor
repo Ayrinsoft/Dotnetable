@@ -1,6 +1,7 @@
 @inject ITagService TagService
 @inject ISnackbar Snackbar
 @inject IPageLocalizer L
+@inject ILanguageService LanguageService
 
 <MudDialog>
     <DialogContent>
@@ -18,7 +19,7 @@
                             <MudText Typo="Typo.body2" Color="Color.Secondary" Class="mb-2">
                                 @L["translations.hint", "Leave a name blank to fall back to the default for that language."]
                             </MudText>
-                            @foreach (var (code, label) in ContentLanguages.All)
+                            @foreach (var (code, label) in _languages)
                             {
                                 <MudGrid Spacing="2" Class="mb-1">
                                     <MudItem xs="7">
@@ -54,9 +55,13 @@
     private bool _saving;
     private string[]? _formErrors;
     private readonly Dictionary<string, (string Name, string Slug)> _tr = new(StringComparer.OrdinalIgnoreCase);
+    private (string Code, string Label)[] _languages = Array.Empty<(string, string)>();
 
     protected override async Task OnInitializedAsync()
     {
+        _languages = (await LanguageService.GetActiveForWebsiteAsync(L.WebsiteId))
+            .Select(x => (x.LanguageCode, x.Name)).ToArray();
+
         if (!IsNew)
             foreach (var t in await TagService.GetTranslationsAsync(Model.TagID))
                 _tr[t.LanguageCode] = (t.Name, t.Slug);

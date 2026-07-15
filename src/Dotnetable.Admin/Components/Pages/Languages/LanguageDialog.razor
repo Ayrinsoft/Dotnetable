@@ -1,0 +1,75 @@
+@inject ILanguageService LanguageService
+@inject ISnackbar Snackbar
+@inject IPageLocalizer L
+
+<MudDialog>
+    <DialogContent>
+        <MudForm @ref="_form">
+            <MudGrid Spacing="3">
+                <MudItem xs="12" sm="4">
+                    <MudTextField @bind-Value="Model.LanguageCode" Label="@L["languages.code", "Code (e.g. pt)"]" Variant="Variant.Outlined"
+                                  Required="true" MaxLength="2" Disabled="@(!IsNew)" />
+                </MudItem>
+                <MudItem xs="12" sm="8">
+                    <MudTextField @bind-Value="Model.LanguageCodeISO" Label="@L["languages.iso_code", "ISO Code (e.g. pt-PT)"]"
+                                  Variant="Variant.Outlined" Required="true" MaxLength="5" />
+                </MudItem>
+                <MudItem xs="12">
+                    <MudTextField @bind-Value="Model.Name" Label="@L["name", "Native Name"]" Variant="Variant.Outlined" Required="true" />
+                </MudItem>
+                <MudItem xs="12" sm="4">
+                    <MudNumericField T="int" @bind-Value="Model.Priority" Label="@L["languages.priority", "Priority (sort order)"]" Variant="Variant.Outlined" Min="0" />
+                </MudItem>
+                <MudItem xs="12" sm="4">
+                    <MudSwitch T="bool" @bind-Value="Model.RTLDesign" Label="@L["languages.rtl", "Right-to-left"]" Color="Color.Primary" />
+                </MudItem>
+                <MudItem xs="12" sm="4">
+                    <MudSwitch T="bool" @bind-Value="Model.IsDefault" Label="@L["languages.default", "Default language"]" Color="Color.Primary" />
+                </MudItem>
+                <MudItem xs="12">
+                    <MudSwitch T="bool" @bind-Value="Model.Active"
+                               Label="@(Model.Active ? L["languages.active_on", "Active — shown in every language list"] : L["languages.active_off", "Inactive — hidden from every language list"])"
+                               Color="Color.Primary" />
+                </MudItem>
+            </MudGrid>
+
+            <DNValidationSummary Errors="_formErrors" />
+        </MudForm>
+    </DialogContent>
+    <DialogActions>
+        <MudButton OnClick="Cancel">@L["cancel", "Cancel"]</MudButton>
+        <MudButton Variant="Variant.Filled" Color="Color.Primary" OnClick="SaveAsync" Disabled="@_saving">@L["save", "Save"]</MudButton>
+    </DialogActions>
+</MudDialog>
+
+@code {
+    [CascadingParameter] private IMudDialogInstance MudDialog { get; set; } = null!;
+    [Parameter] public Language Model { get; set; } = new();
+    [Parameter] public bool IsNew { get; set; }
+
+    private MudForm _form = null!;
+    private bool _saving;
+    private string[]? _formErrors;
+
+    private void Cancel() => MudDialog.Cancel();
+
+    private async Task SaveAsync()
+    {
+        await _form.Validate();
+        _formErrors = _form.Errors;
+        if (!_form.IsValid) return;
+        Model.LanguageCode = Model.LanguageCode.Trim().ToLowerInvariant();
+        Model.LanguageCodeISO = Model.LanguageCodeISO.Trim();
+
+        _saving = true;
+        try
+        {
+            if (IsNew) await LanguageService.CreateAsync(Model);
+            else await LanguageService.UpdateAsync(Model);
+            Snackbar.Add(L["saved", "Saved."], Severity.Success);
+            MudDialog.Close(DialogResult.Ok(true));
+        }
+        catch (Exception ex) { Snackbar.Add($"{L["save_failed", "Save failed"]}: {ex.Message}", Severity.Error); }
+        finally { _saving = false; }
+    }
+}

@@ -1,0 +1,120 @@
+@page "/languages"
+@attribute [Authorize(Policy = AdminPolicies.SuperAdminOnly)]
+@inject ILanguageService LanguageService
+@inject IDialogService DialogService
+@inject ISnackbar Snackbar
+@inject IPageLocalizer L
+
+<DNPageTitle Title=@L["languages", "Languages"] />
+
+<MudStack Row="true" AlignItems="AlignItems.Center" Justify="Justify.SpaceBetween" Class="mb-4">
+    <MudStack Spacing="0">
+        <MudText Typo="Typo.h5" Class="fw-bold">@L["languages", "Languages"]</MudText>
+        <MudText Typo="Typo.body2" Color="Color.Secondary">
+            @L["languages.subtitle", "The system-wide language catalog. Other websites pick which of these to offer for their own content from their Content Languages page."]
+        </MudText>
+    </MudStack>
+    <MudButton Variant="Variant.Filled" Color="Color.Primary" StartIcon="@Icons.Material.Filled.Add" OnClick="CreateAsync">
+        @L["languages.new", "New Language"]
+    </MudButton>
+</MudStack>
+
+<MudPaper Elevation="0" Class="app-card rounded-lg pa-4">
+    @if (_loading)
+    {
+        <MudProgressLinear Indeterminate="true" Color="Color.Primary" Class="mb-3" />
+    }
+    else
+    {
+        <MudSimpleTable Dense="true" Hover="true" Elevation="0">
+            <thead>
+                <tr>
+                    <th>@L["languages.code", "Code"]</th>
+                    <th>@L["languages.iso_code", "ISO Code"]</th>
+                    <th>@L["name", "Name"]</th>
+                    <th>@L["languages.rtl", "RTL"]</th>
+                    <th>@L["languages.default", "Default"]</th>
+                    <th>@L["active", "Active"]</th>
+                    <th style="width:1%"></th>
+                </tr>
+            </thead>
+            <tbody>
+                @foreach (var lang in _items)
+                {
+                    <tr>
+                        <td><code>@lang.LanguageCode</code></td>
+                        <td>@lang.LanguageCodeISO</td>
+                        <td>@lang.Name</td>
+                        <td>@(lang.RTLDesign ? L["yes", "Yes"] : L["no", "No"])</td>
+                        <td>@(lang.IsDefault ? L["yes", "Yes"] : L["no", "No"])</td>
+                        <td>@(lang.Active ? L["yes", "Yes"] : L["no", "No"])</td>
+                        <td>
+                            <MudStack Row="true" Spacing="0">
+                                <MudIconButton Icon="@Icons.Material.Filled.Edit" Size="Size.Small" OnClick="@(() => EditAsync(lang))" />
+                                <MudIconButton Icon="@(lang.Active ? Icons.Material.Filled.VisibilityOff : Icons.Material.Filled.Visibility)"
+                                               Size="Size.Small" Color="@(lang.Active ? Color.Error : Color.Success)"
+                                               OnClick="@(() => ToggleActiveAsync(lang))"
+                                               Title="@(lang.Active ? L["languages.deactivate", "Deactivate — hide from all language lists"] : L["languages.activate", "Activate"])" />
+                            </MudStack>
+                        </td>
+                    </tr>
+                }
+            </tbody>
+        </MudSimpleTable>
+    }
+</MudPaper>
+
+@code {
+    private bool _loading = true;
+    private List<Language> _items = new();
+
+    protected override async Task OnInitializedAsync()
+    {
+        await L.EnsureLoadedAsync();
+        await LoadAsync();
+    }
+
+    private async Task LoadAsync()
+    {
+        _loading = true;
+        _items = await LanguageService.GetCatalogAsync();
+        _loading = false;
+    }
+
+    private async Task CreateAsync()
+    {
+        if (await ShowDialogAsync(new Language { Active = true }, true)) await LoadAsync();
+    }
+
+    private async Task EditAsync(Language lang)
+    {
+        var copy = new Language
+        {
+            LanguageID = lang.LanguageID,
+            LanguageCode = lang.LanguageCode,
+            LanguageCodeISO = lang.LanguageCodeISO,
+            Name = lang.Name,
+            Priority = lang.Priority,
+            IsDefault = lang.IsDefault,
+            Active = lang.Active,
+            RTLDesign = lang.RTLDesign,
+        };
+        if (await ShowDialogAsync(copy, false)) await LoadAsync();
+    }
+
+    private async Task<bool> ShowDialogAsync(Language model, bool isNew)
+    {
+        var parameters = new DialogParameters<LanguageDialog> { { x => x.Model, model }, { x => x.IsNew, isNew } };
+        var dialog = await DialogService.ShowAsync<LanguageDialog>(
+            isNew ? L["languages.new", "New Language"] : L["languages.edit", "Edit Language"], parameters);
+        var result = await dialog.Result;
+        return result is not null && !result.Canceled;
+    }
+
+    private async Task ToggleActiveAsync(Language lang)
+    {
+        await LanguageService.SetActiveAsync(lang.LanguageID, !lang.Active);
+        Snackbar.Add(L["saved", "Saved."], Severity.Success);
+        await LoadAsync();
+    }
+}

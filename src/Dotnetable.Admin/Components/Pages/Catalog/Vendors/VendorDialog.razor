@@ -4,6 +4,7 @@
 @inject IDialogService DialogService
 @inject ISnackbar Snackbar
 @inject IPageLocalizer L
+@inject ILanguageService LanguageService
 
 <MudDialog>
     <DialogContent>
@@ -55,7 +56,7 @@
                 <MudItem xs="12">
                     <MudExpansionPanels Elevation="0">
                         <MudExpansionPanel Text="@L["translations", "Translations"]">
-                            @foreach (var (code, label) in ContentLanguages.All)
+                            @foreach (var (code, label) in _languages)
                             {
                                 <MudTextField T="string" Value="@Name(code)" ValueChanged="@(v => SetName(code, v))"
                                               Label="@($"{label} — {L["name", "Name"]}")" Variant="Variant.Outlined" Margin="Margin.Dense" Class="mb-1" />
@@ -85,8 +86,13 @@
     private FileRecord? _logo;
     private readonly Dictionary<string, string> _tr = new(StringComparer.OrdinalIgnoreCase);
 
+    private (string Code, string Label)[] _languages = Array.Empty<(string, string)>();
+
     protected override async Task OnInitializedAsync()
     {
+        _languages = (await LanguageService.GetActiveForWebsiteAsync(L.WebsiteId))
+            .Select(x => (x.LanguageCode, x.Name)).ToArray();
+
         if (Model.LogoFileID is int fid)
             _logo = await FileService.GetByIdAsync(fid);
         if (!IsNew)

@@ -2,6 +2,7 @@
 @attribute [Authorize(Policy = RoleKeys.LocalizationEdit)]
 @using Dotnetable.Application.DTOs
 @inject ILocalizationService LocalizationService
+@inject ILanguageService LanguageService
 @inject AuthenticationStateProvider AuthState
 @inject ISnackbar Snackbar
 @inject IJSRuntime JS
@@ -85,20 +86,18 @@
 
     private GridViewHeaderParameters _grid = new();
 
-    private static readonly (string Code, string Label)[] _languages =
-    [
-        ("en", "English"),
-        ("de", "Deutsch"),
-        ("fr", "Français"),
-        ("ru", "Русский"),
-        ("zh", "中文"),
-        ("fa", "فارسی"),
-        ("ar", "العربية"),
-    ];
+    private (string Code, string Label)[] _languages = Array.Empty<(string, string)>();
 
     protected override async Task OnInitializedAsync()
     {
         await L.EnsureLoadedAsync();
+
+        var state = await AuthState.GetAuthenticationStateAsync();
+        int.TryParse(state.User.FindFirst(AdminClaimTypes.WebsiteId)?.Value, out _websiteId);
+        _languages = (await LanguageService.GetActiveForWebsiteAsync(_websiteId))
+            .Select(x => (x.LanguageCode, x.Name)).ToArray();
+        if (_languages.Length > 0 && !_languages.Any(l => l.Code == _languageCode))
+            _languageCode = _languages[0].Code;
 
         _grid = new GridViewHeaderParameters
         {
@@ -110,8 +109,6 @@
             }
         };
 
-        var state = await AuthState.GetAuthenticationStateAsync();
-        int.TryParse(state.User.FindFirst(AdminClaimTypes.WebsiteId)?.Value, out _websiteId);
         await LoadAsync();
     }
 
