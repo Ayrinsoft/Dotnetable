@@ -18,6 +18,7 @@ public static class RoleKeys
 
     // ── Website customers / clients (admin management) ──────────────
     public const string ClientsView = "clients.view";
+    public const string ClientsInsert = "clients.insert";
     public const string ClientsEdit = "clients.edit";
     public const string ClientsDelete = "clients.delete";
 

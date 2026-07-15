@@ -34,6 +34,7 @@ public static class RoleCatalog
 
         // Website customers (client management)
         new(RoleKeys.ClientsView, "View website customers", RoleCategory.Admin),
+        new(RoleKeys.ClientsInsert, "Create website customers", RoleCategory.Admin),
         new(RoleKeys.ClientsEdit, "Edit website customers", RoleCategory.Admin),
         new(RoleKeys.ClientsDelete, "Delete website customers", RoleCategory.Admin),
 

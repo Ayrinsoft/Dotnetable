@@ -1,21 +1,25 @@
+@page "/clients/new"
 @page "/clients/{Id:int}"
 @attribute [Authorize(Policy = RoleKeys.ClientsView)]
 @inject IWebsiteClientService ClientService
 @inject IWebsiteClientAddressService AddressService
 @inject ILocationService LocationService
+@inject IWebsiteService WebsiteService
 @inject AuthenticationStateProvider AuthState
 @inject NavigationManager Nav
 @inject ISnackbar Snackbar
 @inject IPageLocalizer L
 
-<DNPageTitle Title=@L["clients.edit", "Edit Customer"] />
+<DNPageTitle Title=@(_isNew ? L["clients.new", "New Customer"] : L["clients.edit", "Edit Customer"]) />
 
 <MudBreadcrumbs Items="_breadcrumbs" Class="px-0 pb-2" />
 
 <MudStack Row="true" AlignItems="AlignItems.Center" Justify="Justify.SpaceBetween" Class="mb-4">
     <MudStack Spacing="0">
-        <MudText Typo="Typo.h5" Class="fw-bold">@L["clients.edit", "Edit Customer"]</MudText>
-        <MudText Typo="Typo.body2" Color="Color.Secondary">@($"{L["clients.editing", "Editing customer"]} #{Id}")</MudText>
+        <MudText Typo="Typo.h5" Class="fw-bold">@(_isNew ? L["clients.new", "New Customer"] : L["clients.edit", "Edit Customer"])</MudText>
+        <MudText Typo="Typo.body2" Color="Color.Secondary">
+            @(_isNew ? L["clients.new_subtitle", "Register a new customer"] : $"{L["clients.editing", "Editing customer"]} #{Id}")
+        </MudText>
     </MudStack>
 </MudStack>
 
@@ -34,14 +38,37 @@ else if (_client is not null)
                         @L["account", "Account"]
                     </MudText>
                     <MudGrid Spacing="3">
-                        <MudItem xs="12" sm="6">
-                            <MudTextField Value="@(_client.Email ?? "—")" Label="@L["email", "Email"]"
-                                          Variant="Variant.Outlined" ReadOnly="true" Disabled="true" />
-                        </MudItem>
-                        <MudItem xs="12" sm="6">
-                            <MudTextField Value="@(string.IsNullOrWhiteSpace(_client.Cellphone) ? "—" : $"+{_client.CountryCode} {_client.Cellphone}")"
-                                          Label="@L["cellphone", "Cellphone"]" Variant="Variant.Outlined" ReadOnly="true" Disabled="true" />
-                        </MudItem>
+                        @if (_isNew)
+                        {
+                            <MudItem xs="12" sm="6">
+                                <MudTextField @bind-Value="_client.Email" Label="@L["email", "Email"]"
+                                              Variant="Variant.Outlined" InputType="InputType.Email" />
+                            </MudItem>
+                            <MudItem xs="12" sm="3">
+                                <MudTextField @bind-Value="_client.CountryCode" Label="@L["country_code", "Country Code"]"
+                                              Variant="Variant.Outlined" MaxLength="3" Placeholder="98" />
+                            </MudItem>
+                            <MudItem xs="12" sm="3">
+                                <MudTextField @bind-Value="_client.Cellphone" Label="@L["cellphone", "Cellphone"]"
+                                              Variant="Variant.Outlined" MaxLength="12" />
+                            </MudItem>
+                            <MudItem xs="12" sm="6">
+                                <MudTextField @bind-Value="_password" Label="@L["password", "Password"]"
+                                              Variant="Variant.Outlined" InputType="InputType.Password" Required="true"
+                                              RequiredError="@L["required", "This field is required."]" />
+                            </MudItem>
+                        }
+                        else
+                        {
+                            <MudItem xs="12" sm="6">
+                                <MudTextField Value="@(_client.Email ?? "—")" Label="@L["email", "Email"]"
+                                              Variant="Variant.Outlined" ReadOnly="true" Disabled="true" />
+                            </MudItem>
+                            <MudItem xs="12" sm="6">
+                                <MudTextField Value="@(string.IsNullOrWhiteSpace(_client.Cellphone) ? "—" : $"+{_client.CountryCode} {_client.Cellphone}")"
+                                              Label="@L["cellphone", "Cellphone"]" Variant="Variant.Outlined" ReadOnly="true" Disabled="true" />
+                            </MudItem>
+                        }
                         <MudItem xs="12" sm="6">
                             <MudSelect T="ClientLevel" @bind-Value="ClientLevelValue" Label="@L["client_level", "Level"]"
                                        Variant="Variant.Outlined" Disabled="@(!_canEdit)">
@@ -52,8 +79,16 @@ else if (_client is not null)
                             </MudSelect>
                         </MudItem>
                         <MudItem xs="12" sm="6">
-                            <MudTextField Value="@($"#{_client.WebsiteID}")" Label="@L["website", "Website"]"
-                                          Variant="Variant.Outlined" ReadOnly="true" Disabled="true" />
+                            @if (_isMaster && _isNew)
+                            {
+                                <WebsiteSelector Value="_client.WebsiteID" ValueChanged="@(id => _client.WebsiteID = id)" Websites="_websites"
+                                                 Label="@L["website", "Website"]" Variant="Variant.Outlined" Required="true" />
+                            }
+                            else
+                            {
+                                <MudTextField Value="@($"#{_client.WebsiteID}")" Label="@L["website", "Website"]"
+                                              Variant="Variant.Outlined" ReadOnly="true" Disabled="true" />
+                            }
                         </MudItem>
                     </MudGrid>
                 </MudPaper>
@@ -105,7 +140,7 @@ else if (_client is not null)
                     {
                         <MudProgressCircular Size="Size.Small" Indeterminate="true" Class="me-2" />
                     }
-                    @L["save", "Save Changes"]
+                    @(_isNew ? L["clients.create", "Create Customer"] : L["save", "Save Changes"])
                 </MudButton>
             }
             <MudButton Variant="Variant.Outlined" Color="Color.Default"
@@ -115,6 +150,8 @@ else if (_client is not null)
         </MudStack>
     </MudForm>
 
+    @if (!_isNew)
+    {
     <MudPaper Elevation="0" Class="border rounded-lg pa-6 mt-4">
         <MudStack Row="true" AlignItems="AlignItems.Center" Justify="Justify.SpaceBetween" Class="mb-4">
             <MudText Typo="Typo.subtitle1" Class="fw-bold">
@@ -271,6 +308,7 @@ else if (_client is not null)
             </MudButton>
         </DialogActions>
     </MudDialog>
+    }
 }
 
 @code {
@@ -278,12 +316,15 @@ else if (_client is not null)
 
     private MudForm _form = null!;
     private WebsiteClient? _client;
+    private string _password = string.Empty;
     private bool _loading = true;
     private bool _saving;
     private bool _isMaster;
     private bool _canEdit;
     private int _websiteId;
+    private List<Website> _websites = new();
     private string[]? _formErrors;
+    private bool _isNew => Id == 0;
 
     private List<WebsiteClientAddress> _addresses = new();
     private bool _addressesLoading = true;
@@ -304,7 +345,7 @@ else if (_client is not null)
     {
         new(L["dashboard", "Dashboard"], "/"),
         new(L["clients", "Customers"], "/clients"),
-        new($"#{Id}", null, true),
+        new(_isNew ? L["new", "New"] : $"#{Id}", null, true),
     };
 
     protected override async Task OnInitializedAsync()
@@ -314,8 +355,26 @@ else if (_client is not null)
         var state = await AuthState.GetAuthenticationStateAsync();
         var user = state.User;
         _isMaster = user.HasClaim(AdminClaimTypes.Master, "true");
-        _canEdit = AdminPolicies.Allows(user, RoleKeys.ClientsEdit);
+        // Creating requires the insert permission; editing an existing customer requires edit.
+        _canEdit = AdminPolicies.Allows(user, _isNew ? RoleKeys.ClientsInsert : RoleKeys.ClientsEdit);
         int.TryParse(user.FindFirst(AdminClaimTypes.WebsiteId)?.Value, out _websiteId);
+
+        if (_isNew)
+        {
+            _client = new WebsiteClient
+            {
+                Active = true,
+                WebsiteID = _websiteId,
+                ClientLevel = (byte)ClientLevel.Normal,
+            };
+            if (_isMaster)
+            {
+                _websites = (await WebsiteService.GetAllAsync()).ToList();
+                _client.WebsiteID = _websites.FirstOrDefault()?.WebsiteID ?? AppConstants.MasterWebsiteId;
+            }
+            _loading = false;
+            return;
+        }
 
         _client = await ClientService.GetByIdAsync(Id);
         if (_client is null || (!_isMaster && _client.WebsiteID != _websiteId))
@@ -440,8 +499,16 @@ else if (_client is not null)
         _saving = true;
         try
         {
-            await ClientService.UpdateAsync(_client!);
-            Snackbar.Add(L["saved", "Changes saved successfully."], Severity.Success);
+            if (_isNew)
+            {
+                await ClientService.CreateAsync(_client!, _password);
+                Snackbar.Add(L["clients.created", "Customer created successfully."], Severity.Success);
+            }
+            else
+            {
+                await ClientService.UpdateAsync(_client!);
+                Snackbar.Add(L["saved", "Changes saved successfully."], Severity.Success);
+            }
             Nav.NavigateTo("/clients");
         }
         catch (Exception ex)
