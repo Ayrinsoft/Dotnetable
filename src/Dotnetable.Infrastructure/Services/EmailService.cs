@@ -54,6 +54,7 @@ public partial class EmailService : IEmailService
         {
             ["SiteName"] = website?.BrandName ?? website?.TradeName ?? string.Empty,
             ["SiteUrl"] = website?.WebsiteAddress ?? string.Empty,
+            ["Year"] = DateTime.UtcNow.Year.ToString(),
         };
 
         var subject = Render(template.Subject, all);
