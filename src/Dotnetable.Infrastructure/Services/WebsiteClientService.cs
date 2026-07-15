@@ -58,21 +58,34 @@ public class WebsiteClientService : IWebsiteClientService
         await _context.WebsiteClients.Where(c => c.WebsiteClientID == id)
             .ExecuteUpdateAsync(s => s.SetProperty(c => c.ClientLevel, (byte)level), ct);
 
-    public async Task<WebsiteClient> CreateAsync(WebsiteClient client, string password, CancellationToken ct = default)
+    public async Task<(ClientSaveResult Result, WebsiteClient Client)> CreateAsync(WebsiteClient client, string password, CancellationToken ct = default)
     {
+        if (await IsDuplicateAsync(client.WebsiteID, client.Email, client.Cellphone, excludeClientId: 0, ct))
+            return (ClientSaveResult.Duplicate, client);
+
         client.HashKey = Guid.NewGuid();
         client.RegisterDate = DateOnly.FromDateTime(DateTime.UtcNow);
         client.Password = _hasher.HashPassword(client, password);
         _context.WebsiteClients.Add(client);
         await _context.SaveChangesAsync(ct);
-        return client;
+        return (ClientSaveResult.Success, client);
     }
 
-    public async Task UpdateAsync(WebsiteClient client, CancellationToken ct = default)
+    public async Task<ClientSaveResult> UpdateAsync(WebsiteClient client, CancellationToken ct = default)
     {
+        if (await IsDuplicateAsync(client.WebsiteID, client.Email, client.Cellphone, client.WebsiteClientID, ct))
+            return ClientSaveResult.Duplicate;
+
         _context.WebsiteClients.Update(client);
         await _context.SaveChangesAsync(ct);
+        return ClientSaveResult.Success;
     }
+
+    /// <summary>True when another customer on the same website already owns the email or the cellphone.</summary>
+    private Task<bool> IsDuplicateAsync(int websiteId, string? email, string? cellphone, int excludeClientId, CancellationToken ct) =>
+        _context.WebsiteClients.AnyAsync(c =>
+            c.WebsiteID == websiteId && c.WebsiteClientID != excludeClientId &&
+            ((email != null && c.Email == email) || (cellphone != null && c.Cellphone == cellphone)), ct);
 
     public async Task DeleteAsync(int id, CancellationToken ct = default)
     {

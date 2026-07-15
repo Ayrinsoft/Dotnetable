@@ -38,35 +38,24 @@ else if (_client is not null)
                         @L["account", "Account"]
                     </MudText>
                     <MudGrid Spacing="3">
+                        <MudItem xs="12" sm="6">
+                            <MudTextField @bind-Value="_client.Email" Label="@L["email", "Email"]"
+                                          Variant="Variant.Outlined" InputType="InputType.Email" Disabled="@(!_canEdit)" />
+                        </MudItem>
+                        <MudItem xs="12" sm="3">
+                            <MudTextField @bind-Value="_client.CountryCode" Label="@L["country_code", "Country Code"]"
+                                          Variant="Variant.Outlined" MaxLength="3" Placeholder="98" Disabled="@(!_canEdit)" />
+                        </MudItem>
+                        <MudItem xs="12" sm="3">
+                            <MudTextField @bind-Value="_client.Cellphone" Label="@L["cellphone", "Cellphone"]"
+                                          Variant="Variant.Outlined" MaxLength="12" Disabled="@(!_canEdit)" />
+                        </MudItem>
                         @if (_isNew)
                         {
-                            <MudItem xs="12" sm="6">
-                                <MudTextField @bind-Value="_client.Email" Label="@L["email", "Email"]"
-                                              Variant="Variant.Outlined" InputType="InputType.Email" />
-                            </MudItem>
-                            <MudItem xs="12" sm="3">
-                                <MudTextField @bind-Value="_client.CountryCode" Label="@L["country_code", "Country Code"]"
-                                              Variant="Variant.Outlined" MaxLength="3" Placeholder="98" />
-                            </MudItem>
-                            <MudItem xs="12" sm="3">
-                                <MudTextField @bind-Value="_client.Cellphone" Label="@L["cellphone", "Cellphone"]"
-                                              Variant="Variant.Outlined" MaxLength="12" />
-                            </MudItem>
                             <MudItem xs="12" sm="6">
                                 <MudTextField @bind-Value="_password" Label="@L["password", "Password"]"
                                               Variant="Variant.Outlined" InputType="InputType.Password" Required="true"
                                               RequiredError="@L["required", "This field is required."]" />
-                            </MudItem>
-                        }
-                        else
-                        {
-                            <MudItem xs="12" sm="6">
-                                <MudTextField Value="@(_client.Email ?? "—")" Label="@L["email", "Email"]"
-                                              Variant="Variant.Outlined" ReadOnly="true" Disabled="true" />
-                            </MudItem>
-                            <MudItem xs="12" sm="6">
-                                <MudTextField Value="@(string.IsNullOrWhiteSpace(_client.Cellphone) ? "—" : $"+{_client.CountryCode} {_client.Cellphone}")"
-                                              Label="@L["cellphone", "Cellphone"]" Variant="Variant.Outlined" ReadOnly="true" Disabled="true" />
                             </MudItem>
                         }
                         <MudItem xs="12" sm="6">
@@ -496,19 +485,33 @@ else if (_client is not null)
         _formErrors = _form.Errors;
         if (!_form.IsValid) return;
 
+        _client!.Email = Normalize(_client.Email);
+        _client.Cellphone = Normalize(_client.Cellphone);
+        _client.CountryCode = _client.Cellphone is not null ? Normalize(_client.CountryCode) : null;
+
         _saving = true;
         try
         {
+            ClientSaveResult result;
             if (_isNew)
             {
-                await ClientService.CreateAsync(_client!, _password);
-                Snackbar.Add(L["clients.created", "Customer created successfully."], Severity.Success);
+                (result, _) = await ClientService.CreateAsync(_client, _password);
+                if (result == ClientSaveResult.Success)
+                    Snackbar.Add(L["clients.created", "Customer created successfully."], Severity.Success);
             }
             else
             {
-                await ClientService.UpdateAsync(_client!);
-                Snackbar.Add(L["saved", "Changes saved successfully."], Severity.Success);
+                result = await ClientService.UpdateAsync(_client);
+                if (result == ClientSaveResult.Success)
+                    Snackbar.Add(L["saved", "Changes saved successfully."], Severity.Success);
             }
+
+            if (result == ClientSaveResult.Duplicate)
+            {
+                Snackbar.Add(L["clients.duplicate", "This email or cellphone is already used by another customer on this website."], Severity.Error);
+                return;
+            }
+
             Nav.NavigateTo("/clients");
         }
         catch (Exception ex)
@@ -520,4 +523,7 @@ else if (_client is not null)
             _saving = false;
         }
     }
+
+    private static string? Normalize(string? value) =>
+        string.IsNullOrWhiteSpace(value) ? null : value.Trim();
 }
