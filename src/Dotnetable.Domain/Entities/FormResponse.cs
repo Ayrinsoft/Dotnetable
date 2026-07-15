@@ -1,4 +1,4 @@
-using System;
+﻿using System;
 using System.Collections.Generic;
 
 namespace Dotnetable.Domain.Entities;
@@ -17,7 +17,7 @@ public partial class FormResponse
 
     public virtual Form Form { get; set; } = null!;
 
-    public virtual WebsiteClient? WebsiteClient { get; set; }
-
     public virtual ICollection<FormResponseValue> FormResponseValues { get; set; } = new List<FormResponseValue>();
+
+    public virtual WebsiteClient? WebsiteClient { get; set; }
 }
