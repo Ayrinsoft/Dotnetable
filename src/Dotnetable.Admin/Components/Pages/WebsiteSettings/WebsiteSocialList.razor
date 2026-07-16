@@ -5,6 +5,7 @@
 @inject AuthenticationStateProvider AuthState
 @inject ISnackbar Snackbar
 @inject IPageLocalizer L
+@inject IDialogService DialogService
 
 <DNPageTitle Title=@L["social_links", "Social Links"] />
 
@@ -60,7 +61,17 @@
                     <td>
                         <MudLink Href="@s.UrlAddress" Target="_blank">@s.UrlAddress</MudLink>
                     </td>
-                    <td>@(s.SocialIcon ?? "-")</td>
+                    <td>
+                        @if (!string.IsNullOrWhiteSpace(s.SocialIcon))
+                        {
+                            <i class="@s.SocialIcon" style="font-size:1.15rem; margin-inline-end:6px;"></i>
+                            <MudText Typo="Typo.caption" Color="Color.Secondary" Style="display:inline">@s.SocialIcon</MudText>
+                        }
+                        else
+                        {
+                            @:-
+                        }
+                    </td>
                 </tr>
             }
         }
@@ -78,7 +89,7 @@
             <MudForm @ref="_form">
                 <MudGrid Spacing="2">
                     <MudItem xs="12" sm="6">
-                        <MudSelect T="byte" @bind-Value="_editItem.SocialType" Label="@L["type", "Type"]"
+                        <MudSelect T="byte" Value="_editItem.SocialType" ValueChanged="OnSocialTypeChanged" Label="@L["type", "Type"]"
                                    Variant="Variant.Outlined" Required="true">
                             <MudSelectItem T="byte" Value="@((byte)0)">@L["social.other", "Other"]</MudSelectItem>
                             <MudSelectItem T="byte" Value="@((byte)1)">@L["social.instagram", "Instagram"]</MudSelectItem>
@@ -101,9 +112,17 @@
                                       Placeholder="https://instagram.com/yourpage" />
                     </MudItem>
                     <MudItem xs="12">
-                        <MudTextField @bind-Value="_editItem.SocialIcon" Label="@L["social.icon", "Icon CSS Class (optional)"]"
-                                      Variant="Variant.Outlined"
-                                      Placeholder="fab fa-instagram" />
+                        <MudStack Row="true" AlignItems="AlignItems.Center" Spacing="2">
+                            @if (!string.IsNullOrWhiteSpace(_editItem.SocialIcon))
+                            {
+                                <i class="@_editItem.SocialIcon" style="font-size:1.4rem;"></i>
+                            }
+                            <MudTextField @bind-Value="_editItem.SocialIcon" Label="@L["social.icon", "Icon CSS Class (optional)"]"
+                                          Variant="Variant.Outlined" Class="flex-grow-1"
+                                          Placeholder="bi bi-instagram"
+                                          Adornment="Adornment.End" AdornmentIcon="@Icons.Material.Filled.EmojiSymbols"
+                                          OnAdornmentClick="PickIconAsync" AdornmentAriaLabel="@L["menus.pick_icon", "Select an icon"]" />
+                        </MudStack>
                     </MudItem>
                 </MudGrid>
 
@@ -134,6 +153,18 @@
     private WebsiteSocialLink? _editItem;
     private MudForm _form = null!;
     private string[]? _formErrors;
+
+    /// <summary>Bootstrap Icons class offered by default for each social type, used to pre-fill the Icon field.</summary>
+    private static readonly Dictionary<byte, string> _defaultIcons = new()
+    {
+        [1] = "bi bi-instagram",
+        [2] = "bi bi-telegram",
+        [3] = "bi bi-twitter-x",
+        [4] = "bi bi-facebook",
+        [5] = "bi bi-linkedin",
+        [6] = "bi bi-youtube",
+        [7] = "bi bi-whatsapp",
+    };
 
     protected override async Task OnInitializedAsync()
     {
@@ -170,6 +201,24 @@
     {
         _editItem = new WebsiteSocialLink { WebsiteSocialLinkID = 0, WebsiteID = _websiteId, UrlAddress = string.Empty, SocialType = 0 };
         _dialogOpen = true;
+    }
+
+    /// <summary>Auto-fills the Icon field with the type's default icon, unless the user already picked a custom one.</summary>
+    private void OnSocialTypeChanged(byte type)
+    {
+        var previousDefault = _defaultIcons.GetValueOrDefault(_editItem!.SocialType);
+        _editItem.SocialType = type;
+        if (string.IsNullOrWhiteSpace(_editItem.SocialIcon) || _editItem.SocialIcon == previousDefault)
+            _editItem.SocialIcon = _defaultIcons.GetValueOrDefault(type);
+    }
+
+    private async Task PickIconAsync()
+    {
+        var dialog = await DialogService.ShowAsync<IconPickerDialog>(L["menus.pick_icon", "Select an icon"],
+            new DialogOptions { MaxWidth = MaxWidth.Medium, FullWidth = true });
+        var result = await dialog.Result;
+        if (result is { Canceled: false, Data: string iconClass })
+            _editItem!.SocialIcon = iconClass;
     }
 
     private void OpenEditDialog(WebsiteSocialLink s)

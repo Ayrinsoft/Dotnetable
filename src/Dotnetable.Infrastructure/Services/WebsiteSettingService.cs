@@ -163,6 +163,7 @@ public class WebsiteSettingService : IWebsiteSettingService
 
     public async Task<WebsiteSocialLink> CreateSocialLinkAsync(WebsiteSocialLink link, CancellationToken ct = default)
     {
+        DetachTracked(_context.WebsiteSocialLinks, link.WebsiteSocialLinkID, x => x.WebsiteSocialLinkID);
         _context.WebsiteSocialLinks.Add(link);
         await _context.SaveChangesAsync(ct);
         return link;
@@ -170,6 +171,7 @@ public class WebsiteSettingService : IWebsiteSettingService
 
     public async Task UpdateSocialLinkAsync(WebsiteSocialLink link, CancellationToken ct = default)
     {
+        DetachTracked(_context.WebsiteSocialLinks, link.WebsiteSocialLinkID, x => x.WebsiteSocialLinkID);
         _context.WebsiteSocialLinks.Update(link);
         await _context.SaveChangesAsync(ct);
     }
@@ -208,5 +210,16 @@ public class WebsiteSettingService : IWebsiteSettingService
         }
 
         await _context.SaveChangesAsync(ct);
+    }
+
+    /// <summary>Detaches any stale tracked instance with the same key before an Add/Update. AppDbContext is
+    /// scoped per Blazor Server circuit (not per request), so an entity saved earlier in the same session
+    /// stays tracked and would otherwise collide with a fresh detached copy carrying the same primary key.</summary>
+    private void DetachTracked<TEntity>(DbSet<TEntity> set, int key, Func<TEntity, int> keySelector) where TEntity : class
+    {
+        if (key == 0) return; // 0 = not-yet-persisted; there's no real identity to collide on.
+        var local = set.Local.FirstOrDefault(e => keySelector(e) == key);
+        if (local is not null)
+            _context.Entry(local).State = EntityState.Detached;
     }
 }
