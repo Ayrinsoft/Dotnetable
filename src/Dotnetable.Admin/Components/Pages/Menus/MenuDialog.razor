@@ -19,8 +19,9 @@
 
             @if (AllowWebsiteEdit)
             {
-                <MudNumericField T="int" @bind-Value="Model.WebsiteID" Label="@L["website_id", "Website ID"]"
-                                 Variant="Variant.Outlined" Min="1" Class="mb-3" />
+                <WebsiteSelector Value="Model.WebsiteID" ValueChanged="@(id => Model.WebsiteID = id)"
+                                 Websites="Websites" Label="@L["website", "Website"]"
+                                 Variant="Variant.Outlined" Required="true" Class="mb-3" />
             }
 
             <MudSwitch T="bool" @bind-Value="Model.IsActive" Color="Color.Primary"
@@ -43,6 +44,7 @@
     [Parameter] public Menu Model { get; set; } = new();
     [Parameter] public bool IsNew { get; set; }
     [Parameter] public bool AllowWebsiteEdit { get; set; }
+    [Parameter] public List<Website> Websites { get; set; } = new();
 
     private MudForm _form = null!;
     private bool _saving;
