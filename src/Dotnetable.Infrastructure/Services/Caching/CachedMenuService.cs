@@ -33,6 +33,9 @@ public class CachedMenuService : IMenuService
     public Task<List<Menu>> GetMenusAsync(int? websiteId, CancellationToken ct = default) =>
         _inner.GetMenusAsync(websiteId, ct);
 
+    public Task<PagedResult<Menu>> GetMenusPagedAsync(int? websiteId, GridQuery query, CancellationToken ct = default) =>
+        _inner.GetMenusPagedAsync(websiteId, query, ct);
+
     public Task<Menu?> GetMenuAsync(int menuId, CancellationToken ct = default) =>
         _inner.GetMenuAsync(menuId, ct);
 

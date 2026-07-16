@@ -1,0 +1,48 @@
+@namespace Dotnetable.Admin.Components.Pages.Menus
+@using Dotnetable.Domain.Entities
+
+<CascadingValue Value="_ctx" IsFixed="false">
+    <ul class="dn-tree dn-tree-root">
+        @{ var roots = Items.Where(i => i.ParentItemID is null).OrderBy(i => i.SortOrder).ThenBy(i => i.MenuItemID).ToList(); }
+        @if (roots.Count == 0)
+        {
+            <li class="dn-tree-empty">@EmptyText</li>
+        }
+        else
+        {
+            @for (var i = 0; i < roots.Count; i++)
+            {
+                <MenuTreeNode Item="roots[i]" Depth="0" IsLastSibling="@(i == roots.Count - 1)" />
+            }
+        }
+    </ul>
+</CascadingValue>
+
+@code {
+    [Parameter, EditorRequired] public List<MenuItem> Items { get; set; } = new();
+    [Parameter] public bool CanEdit { get; set; }
+    [Parameter] public bool CanDelete { get; set; }
+    [Parameter] public string EmptyText { get; set; } = "No items.";
+    [Parameter] public EventCallback<MenuItem> OnEdit { get; set; }
+    [Parameter] public EventCallback<int?> OnAddChild { get; set; }
+    [Parameter] public EventCallback<MenuItem> OnDelete { get; set; }
+    [Parameter] public EventCallback<MenuItemActiveChange> OnToggleActive { get; set; }
+
+    /// <summary>Fired when a drag-drop reparent/reorder is requested.</summary>
+    [Parameter] public EventCallback<MenuItemMoveRequest> OnMove { get; set; }
+
+    private readonly MenuTreeContext _ctx = new();
+
+    protected override void OnParametersSet()
+    {
+        _ctx.AllItems = Items;
+        _ctx.CanEdit = CanEdit;
+        _ctx.CanDelete = CanDelete;
+        _ctx.OnEdit = OnEdit;
+        _ctx.OnAddChild = OnAddChild;
+        _ctx.OnDelete = OnDelete;
+        _ctx.OnToggleActive = OnToggleActive;
+        _ctx.MoveAsync = (draggedId, newParentId, index) => OnMove.InvokeAsync(new MenuItemMoveRequest(draggedId, newParentId, index));
+        _ctx.NotifyChanged = StateHasChanged;
+    }
+}
