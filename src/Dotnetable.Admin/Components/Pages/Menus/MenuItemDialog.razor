@@ -52,17 +52,16 @@
                 </MudItem>
 
                 <MudItem xs="12" sm="6">
-                    <MudTextField @bind-Value="Model.Icon" Label="@L["menus.icon", "Icon (optional)"]"
-                                  Variant="Variant.Outlined" Adornment="Adornment.End">
-                        <AdornmentContent>
-                            @if (!string.IsNullOrWhiteSpace(Model.Icon))
-                            {
-                                <i class="@Model.Icon" style="font-size:1.25rem;"></i>
-                            }
-                            <MudIconButton Icon="@Icons.Material.Filled.EmojiSymbols" Size="Size.Small"
-                                           OnClick="PickIconAsync" title="@L["menus.pick_icon", "Select an icon"]" />
-                        </AdornmentContent>
-                    </MudTextField>
+                    <MudStack Row="true" AlignItems="AlignItems.Center" Spacing="2">
+                        @if (!string.IsNullOrWhiteSpace(Model.Icon))
+                        {
+                            <i class="@Model.Icon" style="font-size:1.4rem;"></i>
+                        }
+                        <MudTextField @bind-Value="Model.Icon" Label="@L["menus.icon", "Icon (optional)"]"
+                                      Variant="Variant.Outlined" Class="flex-grow-1"
+                                      Adornment="Adornment.End" AdornmentIcon="@Icons.Material.Filled.EmojiSymbols"
+                                      OnAdornmentClick="PickIconAsync" AdornmentAriaLabel="@L["menus.pick_icon", "Select an icon"]" />
+                    </MudStack>
                 </MudItem>
                 <MudItem xs="12" sm="6">
                     <MudTextField @bind-Value="Model.CssClass" Label="@L["menus.css", "CSS class (optional)"]"

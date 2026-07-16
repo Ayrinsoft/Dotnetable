@@ -51,6 +51,7 @@ public class MenuService : IMenuService
 
     public async Task<Menu> CreateMenuAsync(Menu menu, CancellationToken ct = default)
     {
+        DetachTracked(_context.Menus, menu.MenuID, m => m.MenuID);
         _context.Menus.Add(menu);
         await _context.SaveChangesAsync(ct);
         return menu;
@@ -58,6 +59,7 @@ public class MenuService : IMenuService
 
     public async Task UpdateMenuAsync(Menu menu, CancellationToken ct = default)
     {
+        DetachTracked(_context.Menus, menu.MenuID, m => m.MenuID);
         _context.Menus.Update(menu);
         await _context.SaveChangesAsync(ct);
     }
@@ -90,6 +92,7 @@ public class MenuService : IMenuService
 
     public async Task<MenuItem> CreateItemAsync(MenuItem item, CancellationToken ct = default)
     {
+        DetachTracked(_context.MenuItems, item.MenuItemID, i => i.MenuItemID);
         _context.MenuItems.Add(item);
         await _context.SaveChangesAsync(ct);
         return item;
@@ -97,6 +100,7 @@ public class MenuService : IMenuService
 
     public async Task UpdateItemAsync(MenuItem item, CancellationToken ct = default)
     {
+        DetachTracked(_context.MenuItems, item.MenuItemID, i => i.MenuItemID);
         _context.MenuItems.Update(item);
         await _context.SaveChangesAsync(ct);
     }
@@ -243,5 +247,16 @@ public class MenuService : IMenuService
             MenuItemType.Vendor when item.VendorID is int v => $"/vendor/{v}",
             _ => "#",
         };
+    }
+
+    /// <summary>Detaches any stale tracked instance with the same key before an Add/Update. AppDbContext is
+    /// scoped per Blazor Server circuit (not per request), so an entity saved earlier in the same session
+    /// stays tracked and would otherwise collide with a fresh detached copy carrying the same primary key.</summary>
+    private void DetachTracked<TEntity>(DbSet<TEntity> set, int key, Func<TEntity, int> keySelector) where TEntity : class
+    {
+        if (key == 0) return; // 0 = not-yet-persisted; there's no real identity to collide on.
+        var local = set.Local.FirstOrDefault(e => keySelector(e) == key);
+        if (local is not null)
+            _context.Entry(local).State = EntityState.Detached;
     }
 }

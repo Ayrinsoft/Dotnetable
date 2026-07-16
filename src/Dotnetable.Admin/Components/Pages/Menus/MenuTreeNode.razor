@@ -20,6 +20,10 @@
                  @ondragleave="@(() => ClearHover(DropZone.Inside))"
                  @ondrop="@(() => Drop(DropZone.Inside))">
                 <MudIcon Icon="@Icons.Material.Filled.DragIndicator" Size="Size.Small" Class="dn-tree-handle" />
+                @if (!string.IsNullOrWhiteSpace(Item.Icon))
+                {
+                    <i class="@Item.Icon" style="font-size:1rem;"></i>
+                }
                 <span class="dn-tree-title">@Item.Title</span>
                 <MudChip T="string" Size="Size.Small" Variant="Variant.Text" Class="ms-2">@((MenuItemType)Item.ItemType)</MudChip>
                 <MudSpacer />
