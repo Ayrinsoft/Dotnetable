@@ -1,6 +1,7 @@
 @page "/menus"
 @attribute [Authorize(Policy = RoleKeys.MenusView)]
 @inject IMenuService MenuService
+@inject IWebsiteService WebsiteService
 @inject AuthenticationStateProvider AuthState
 @inject IDialogService DialogService
 @inject ISnackbar Snackbar
@@ -73,7 +74,7 @@
                         </td>
                         @if (_isMaster)
                         {
-                            <td>#@m.WebsiteID</td>
+                            <td>@GetWebsiteName(m.WebsiteID)</td>
                         }
                         <td>@(m.MenuItems?.Count ?? 0)</td>
                         <td>
@@ -110,6 +111,7 @@
     private bool _canDelete;
     private int _websiteId;
     private List<Menu> _menus = new();
+    private List<Website> _websites = new();
     private HashSet<int> _busy = new();
 
     protected override async Task OnInitializedAsync()
@@ -122,8 +124,15 @@
         _canEdit = AdminPolicies.Allows(user, RoleKeys.MenusEdit);
         _canDelete = AdminPolicies.Allows(user, RoleKeys.MenusDelete);
         int.TryParse(user.FindFirst(AdminClaimTypes.WebsiteId)?.Value, out _websiteId);
+        if (_isMaster) _websites = (await WebsiteService.GetAllAsync()).ToList();
 
         await LoadAsync();
+    }
+
+    private string GetWebsiteName(int websiteId)
+    {
+        var website = _websites.FirstOrDefault(w => w.WebsiteID == websiteId);
+        return website is null ? $"#{websiteId}" : $"{website.TradeName} (#{website.WebsiteID})";
     }
 
     private async Task LoadAsync()
@@ -172,6 +181,7 @@
             { x => x.Model, menu },
             { x => x.IsNew, isNew },
             { x => x.AllowWebsiteEdit, _isMaster },
+            { x => x.Websites, _websites },
         };
         var dialog = await DialogService.ShowAsync<MenuDialog>(
             isNew ? L["menus.new", "New Menu"] : L["menus.edit", "Edit Menu"], parameters);
