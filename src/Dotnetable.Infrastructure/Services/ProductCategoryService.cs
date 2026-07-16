@@ -111,9 +111,7 @@ public class ProductCategoryService : IProductCategoryService
             .OrderBy(c => c.SortOrder).ThenBy(c => c.Name)
             .ToListAsync(ct);
 
-        var byParent = categories
-            .GroupBy(c => c.ParentCategoryID)
-            .ToDictionary(g => g.Key, g => g.ToList());
+        var byParent = categories.ToLookup(c => c.ParentCategoryID);
 
         return BuildChildren(null, byParent, languageCode);
     }
@@ -132,13 +130,10 @@ public class ProductCategoryService : IProductCategoryService
 
     private static List<ProductCategoryDto> BuildChildren(
         int? parentId,
-        IReadOnlyDictionary<int?, List<ProductCategory>> byParent,
+        ILookup<int?, ProductCategory> byParent,
         string? languageCode)
     {
-        if (!byParent.TryGetValue(parentId, out var children))
-            return new List<ProductCategoryDto>();
-
-        return children
+        return byParent[parentId]
             .Select(c => Project(c, BuildChildren(c.ProductCategoryID, byParent, languageCode), languageCode))
             .ToList();
     }
