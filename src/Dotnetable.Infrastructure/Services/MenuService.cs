@@ -160,9 +160,7 @@ public class MenuService : IMenuService
     private static MenuDto Project(Menu menu, string? languageCode)
     {
         var items = menu.MenuItems.Where(i => i.IsActive).ToList();
-        var byParent = items
-            .GroupBy(i => i.ParentItemID)
-            .ToDictionary(g => g.Key, g => g.OrderBy(i => i.SortOrder).ThenBy(i => i.MenuItemID).ToList());
+        var byParent = items.ToLookup(i => i.ParentItemID);
 
         return new MenuDto
         {
@@ -175,11 +173,10 @@ public class MenuService : IMenuService
 
     private static IReadOnlyList<MenuItemDto> BuildChildren(
         int? parentId,
-        IReadOnlyDictionary<int?, List<MenuItem>> byParent,
+        ILookup<int?, MenuItem> byParent,
         string? languageCode)
     {
-        if (!byParent.TryGetValue(parentId, out var children))
-            return Array.Empty<MenuItemDto>();
+        var children = byParent[parentId].OrderBy(i => i.SortOrder).ThenBy(i => i.MenuItemID);
 
         return children.Select(item => new MenuItemDto
         {

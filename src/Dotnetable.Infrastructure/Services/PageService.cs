@@ -148,7 +148,7 @@ public class PageService : IPageService
             .OrderBy(p => p.SortOrder).ThenBy(p => p.Title)
             .ToListAsync(ct);
 
-        var byParent = pages.GroupBy(p => p.ParentPageID).ToDictionary(g => g.Key, g => g.ToList());
+        var byParent = pages.ToLookup(p => p.ParentPageID);
         return BuildChildren(null, byParent, languageCode);
     }
 
@@ -173,13 +173,10 @@ public class PageService : IPageService
 
     private static List<PageDto> BuildChildren(
         int? parentId,
-        IReadOnlyDictionary<int?, List<Page>> byParent,
+        ILookup<int?, Page> byParent,
         string? languageCode)
     {
-        if (!byParent.TryGetValue(parentId, out var children))
-            return new List<PageDto>();
-
-        return children
+        return byParent[parentId]
             .Select(p => Project(p, BuildChildren(p.PageID, byParent, languageCode), languageCode))
             .ToList();
     }

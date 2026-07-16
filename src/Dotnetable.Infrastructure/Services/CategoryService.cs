@@ -113,9 +113,7 @@ public class CategoryService : ICategoryService
 
         var categories = await q.OrderBy(c => c.SortOrder).ThenBy(c => c.Name).ToListAsync(ct);
 
-        var byParent = categories
-            .GroupBy(c => c.ParentCategoryID)
-            .ToDictionary(g => g.Key, g => g.ToList());
+        var byParent = categories.ToLookup(c => c.ParentCategoryID);
 
         return BuildChildren(null, byParent, languageCode);
     }
@@ -133,13 +131,10 @@ public class CategoryService : ICategoryService
 
     private static List<CategoryDto> BuildChildren(
         int? parentId,
-        IReadOnlyDictionary<int?, List<Category>> byParent,
+        ILookup<int?, Category> byParent,
         string? languageCode)
     {
-        if (!byParent.TryGetValue(parentId, out var children))
-            return new List<CategoryDto>();
-
-        return children
+        return byParent[parentId]
             .Select(c => Project(c, BuildChildren(c.CategoryID, byParent, languageCode), languageCode))
             .ToList();
     }
