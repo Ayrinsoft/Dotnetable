@@ -1,0 +1,127 @@
+@inject IPageLocalizer L
+
+<MudDialog>
+    <TitleContent>
+        <MudText Typo="Typo.h6">
+            <MudIcon Icon="@Icons.Material.Filled.EmojiSymbols" Class="me-2" />
+            @L["menus.pick_icon", "Select an icon"]
+        </MudText>
+    </TitleContent>
+    <DialogContent>
+        <MudTextField @bind-Value="_search" Placeholder="@L["search", "Search…"]" Variant="Variant.Outlined"
+                      Margin="Margin.Dense" Immediate="true" Class="mb-3"
+                      Adornment="Adornment.Start" AdornmentIcon="@Icons.Material.Filled.Search" />
+
+        @{
+            var filtered = Filtered;
+        }
+        @if (filtered.Count == 0)
+        {
+            <MudText Color="Color.Secondary" Class="pa-4" Align="Align.Center">@L["picker.empty", "No icons found."]</MudText>
+        }
+        else
+        {
+            <div style="display:grid; grid-template-columns:repeat(auto-fill,minmax(90px,1fr)); gap:8px; max-height:420px; overflow:auto;">
+                @foreach (var name in filtered)
+                {
+                    var cssClass = $"bi bi-{name}";
+                    <MudPaper Elevation="0" Class="border rounded-lg pa-2 d-flex flex-column align-center"
+                              Style="cursor:pointer; text-align:center;" @onclick="@(() => Select(cssClass))">
+                        <i class="@cssClass" style="font-size:1.5rem;"></i>
+                        <MudText Typo="Typo.caption" Class="d-block text-truncate" Style="max-width:100%;" title="@name">@name</MudText>
+                    </MudPaper>
+                }
+            </div>
+        }
+    </DialogContent>
+    <DialogActions>
+        <MudButton OnClick="Cancel">@L["cancel", "Cancel"]</MudButton>
+    </DialogActions>
+</MudDialog>
+
+@code {
+    [CascadingParameter] private IMudDialogInstance MudDialog { get; set; } = null!;
+
+    private string? _search;
+
+    private List<string> Filtered =>
+        string.IsNullOrWhiteSpace(_search)
+            ? IconNames
+            : IconNames.Where(n => n.Contains(_search, StringComparison.OrdinalIgnoreCase)).ToList();
+
+    private void Select(string cssClass) => MudDialog.Close(DialogResult.Ok(cssClass));
+    private void Cancel() => MudDialog.Cancel();
+
+    /// <summary>Curated subset of Bootstrap Icons (the icon font already loaded on the storefront) offered for picking.</summary>
+    private static readonly List<string> IconNames = new()
+    {
+        "house","house-door","house-fill","building","shop","shop-window","cart","cart-fill","cart2","cart3","cart4",
+        "cart-plus","cart-dash","cart-check","cart-x","bag","bag-fill","bag-check","bag-dash","bag-plus","bag-x",
+        "box","box2","box-seam","boxes","basket","basket2","basket3","gift","gift-fill","tag","tag-fill","tags","tags-fill",
+        "person","person-fill","person-circle","person-square","people","people-fill","person-plus","person-dash",
+        "person-check","person-gear","person-badge","person-lines-fill","person-workspace",
+        "envelope","envelope-fill","envelope-open","envelope-at","envelope-paper","chat","chat-fill","chat-dots",
+        "chat-square","chat-square-text","chat-left","chat-left-text","chat-right","chat-quote","messenger",
+        "telephone","telephone-fill","telephone-plus","telephone-outbound","telephone-inbound","phone","phone-fill",
+        "geo-alt","geo-alt-fill","geo","geo-fill","pin-map","pin-map-fill","map","map-fill","signpost","signpost-2",
+        "compass","compass-fill","globe","globe2","globe-americas","globe-central-south-asia","globe-europe-africa",
+        "star","star-fill","star-half","stars","heart","heart-fill","heart-half","bookmark","bookmark-fill",
+        "bookmark-star","bookmark-check","bookmark-heart","flag","flag-fill","award","award-fill","trophy","trophy-fill",
+        "gear","gear-fill","gears","tools","wrench","wrench-adjustable","sliders","sliders2","toggles","toggle-on",
+        "grid","grid-fill","grid-1x2","grid-3x3","list","list-ul","list-ol","list-check","list-nested","list-task",
+        "layout-text-window","layout-sidebar","layout-sidebar-inset","layers","layers-fill","collection","collection-fill",
+        "folder","folder-fill","folder2","folder2-open","file","file-fill","file-earmark","file-earmark-text",
+        "file-earmark-pdf","file-earmark-image","file-text","file-text-fill","clipboard","clipboard-fill","clipboard-check",
+        "clipboard-data","journal","journal-text","journals","book","book-fill","book-half","bookshelf","newspaper",
+        "image","image-fill","images","camera","camera-fill","camera-video","camera-video-fill","play-circle",
+        "play-circle-fill","play-btn","play-btn-fill","music-note","music-note-beamed","film","collection-play",
+        "mic","mic-fill","volume-up","volume-down","volume-mute","headphones","headset","broadcast","broadcast-pin",
+        "calendar","calendar-fill","calendar-date","calendar-event","calendar-check","calendar-week","calendar2",
+        "clock","clock-fill","clock-history","hourglass","hourglass-split","stopwatch","stopwatch-fill",
+        "search","search-heart","zoom-in","zoom-out","funnel","funnel-fill","filter","filter-circle",
+        "check","check2","check-circle","check-circle-fill","check-square","check-square-fill","check-lg","check-all",
+        "x","x-circle","x-circle-fill","x-square","x-square-fill","x-lg","dash-circle","dash-square",
+        "plus","plus-circle","plus-circle-fill","plus-square","plus-square-fill","plus-lg","dash","dash-lg",
+        "arrow-left","arrow-right","arrow-up","arrow-down","arrow-left-circle","arrow-right-circle","arrow-up-circle",
+        "arrow-down-circle","chevron-left","chevron-right","chevron-up","chevron-down","chevron-double-right",
+        "chevron-double-left","caret-right-fill","caret-down-fill","arrow-repeat","arrow-clockwise","arrow-counterclockwise",
+        "box-arrow-right","box-arrow-in-right","box-arrow-left","box-arrow-in-left","box-arrow-up-right",
+        "link","link-45deg","paperclip","share","share-fill","reply","reply-fill","forward","forward-fill",
+        "download","upload","cloud","cloud-fill","cloud-download","cloud-upload","cloud-arrow-down","cloud-arrow-up",
+        "lock","lock-fill","unlock","unlock-fill","shield","shield-fill","shield-check","shield-lock","key","key-fill",
+        "eye","eye-fill","eye-slash","eye-slash-fill","incognito","fingerprint","credit-card","credit-card-fill",
+        "credit-card-2-front","wallet","wallet2","cash","cash-coin","currency-dollar","currency-euro","piggy-bank",
+        "receipt","receipt-cutoff","calculator","graph-up","graph-down","graph-up-arrow","bar-chart","bar-chart-fill",
+        "pie-chart","pie-chart-fill","speedometer","speedometer2","activity","trend-up","percent",
+        "info-circle","info-circle-fill","question-circle","question-circle-fill","exclamation-circle",
+        "exclamation-circle-fill","exclamation-triangle","exclamation-triangle-fill","bell","bell-fill",
+        "bell-slash","megaphone","megaphone-fill","chat-heart","hand-thumbs-up","hand-thumbs-down",
+        "lightning","lightning-fill","lightning-charge","sun","sun-fill","moon","moon-fill","brightness-high",
+        "cloud-sun","umbrella","droplet","droplet-fill","fire","snow","thermometer","wind",
+        "truck","truck-front","bus-front","airplane","airplane-fill","bicycle","car-front","car-front-fill",
+        "fuel-pump","signpost-split","map-fill","compass-fill","pin","pin-fill","pin-angle",
+        "printer","printer-fill","display","laptop","phone-flip","tablet","pc-display","hdd","hdd-fill",
+        "wifi","router","ethernet","plug","plug-fill","battery","battery-charging","battery-full",
+        "code","code-slash","terminal","terminal-fill","bug","bug-fill","cpu","cpu-fill","database","database-fill",
+        "server","hdd-network","diagram-2","diagram-3","kanban","puzzle","puzzle-fill","stack","boxes",
+        "palette","palette-fill","brush","brush-fill","paint-bucket","eyedropper","aspect-ratio","crop",
+        "type","type-bold","fonts","text-left","text-center","text-right","justify","textarea",
+        "translate","chat-square-dots","emoji-smile","emoji-heart-eyes","emoji-laughing","emoji-frown",
+        "handbag","handbag-fill","umbrella-fill","gem","suitcase","suitcase-fill","suitcase2","briefcase",
+        "briefcase-fill","backpack","backpack2","luggage","ticket","ticket-fill","ticket-perforated",
+        "controller","dice-5","dice-6","joystick","headphones","record-circle","disc","vinyl",
+        "flower1","flower2","flower3","tree","tree-fill","leaf","egg","egg-fried","cup","cup-fill",
+        "cup-hot","cup-straw","cake","cake2","basket-fill","emoji-sunglasses","balloon",
+        "life-preserver","hospital","hospital-fill","heart-pulse","capsule","thermometer-half",
+        "shield-plus","building-add","building-check","building-gear","building-lock",
+        "diagram-2-fill","hand-index","hand-index-thumb","hand-thumbs-up-fill","gender-ambiguous",
+        "asterisk","hash","at","exclamation","question","slash-circle","dot","circle","circle-fill",
+        "record2","record2-fill","square","square-fill","triangle","triangle-fill","diamond","diamond-fill",
+        "pentagon","pentagon-fill","hexagon","hexagon-fill","octagon","octagon-fill",
+        "arrow-up-right-circle","arrow-down-left-circle","three-dots","three-dots-vertical","grip-horizontal",
+        "grip-vertical","list-columns","view-list","view-stacked","window","windows","apple","google","meta",
+        "facebook","instagram","twitter","twitter-x","youtube","linkedin","github","whatsapp","telegram",
+        "tiktok","pinterest","snapchat","discord","reddit","skype","slack","vimeo","dribbble","behance",
+        "amazon","paypal","spotify","apple-music","envelope-check","send","send-fill","chat-text","apple",
+    };
+}

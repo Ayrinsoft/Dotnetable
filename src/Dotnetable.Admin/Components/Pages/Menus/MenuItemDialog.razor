@@ -1,6 +1,7 @@
 @inject IMenuService MenuService
 @inject ISnackbar Snackbar
 @inject IPageLocalizer L
+@inject IDialogService DialogService
 
 <MudDialog>
     <DialogContent>
@@ -52,7 +53,16 @@
 
                 <MudItem xs="12" sm="6">
                     <MudTextField @bind-Value="Model.Icon" Label="@L["menus.icon", "Icon (optional)"]"
-                                  Variant="Variant.Outlined" />
+                                  Variant="Variant.Outlined" Adornment="Adornment.End">
+                        <AdornmentContent>
+                            @if (!string.IsNullOrWhiteSpace(Model.Icon))
+                            {
+                                <i class="@Model.Icon" style="font-size:1.25rem;"></i>
+                            }
+                            <MudIconButton Icon="@Icons.Material.Filled.EmojiSymbols" Size="Size.Small"
+                                           OnClick="PickIconAsync" title="@L["menus.pick_icon", "Select an icon"]" />
+                        </AdornmentContent>
+                    </MudTextField>
                 </MudItem>
                 <MudItem xs="12" sm="6">
                     <MudTextField @bind-Value="Model.CssClass" Label="@L["menus.css", "CSS class (optional)"]"
@@ -196,6 +206,15 @@
                     queue.Enqueue(child.MenuItemID);
         }
         return result;
+    }
+
+    private async Task PickIconAsync()
+    {
+        var dialog = await DialogService.ShowAsync<IconPickerDialog>(L["menus.pick_icon", "Select an icon"],
+            new DialogOptions { MaxWidth = MaxWidth.Medium, FullWidth = true });
+        var result = await dialog.Result;
+        if (result is { Canceled: false, Data: string iconClass })
+            Model.Icon = iconClass;
     }
 
     private void Cancel() => MudDialog.Cancel();
