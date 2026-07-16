@@ -34,7 +34,7 @@ else if (_menu is not null)
     </MudStack>
 
     <MudPaper Elevation="0" Class="app-card rounded-lg pa-4">
-        @if (_display.Count == 0)
+        @if (_items.Count == 0)
         {
             <div style="text-align:center; padding:32px;">
                 <MudText Color="Color.Secondary">@L["menus.no_items", "No items yet. Add the first one."]</MudText>
@@ -42,63 +42,112 @@ else if (_menu is not null)
         }
         else
         {
-            <MudSimpleTable Dense="true" Hover="true" Elevation="0">
-                <thead>
-                    <tr>
-                        <th>@L["menus.item_title", "Title"]</th>
-                        <th>@L["menus.item_type", "Type"]</th>
-                        <th>@L["menus.target", "Target"]</th>
-                        <th>@L["status", "Status"]</th>
-                        <th style="width:1%; white-space:nowrap"></th>
-                    </tr>
-                </thead>
-                <tbody>
-                    @foreach (var row in _display)
+            <MudTabs Elevation="0" Rounded="true" ApplyEffectsToContainer="true" PanelClass="pt-4">
+                <MudTabPanel Text="@L["menus.view_table", "Table"]" Icon="@Icons.Material.Filled.TableRows">
+                    <MudStack Row="true" AlignItems="AlignItems.Center" Class="mb-3" Wrap="Wrap.Wrap" Spacing="2">
+                        <MudTextField T="string" Value="_searchText" ValueChanged="OnSearchChanged"
+                                      Placeholder="@L["menus.search_items", "Search items…"]"
+                                      Adornment="Adornment.Start" AdornmentIcon="@Icons.Material.Filled.Search"
+                                      Immediate="true" DebounceInterval="250" Class="flex-grow-0" Style="min-width:260px" />
+                        @if (!string.IsNullOrWhiteSpace(_searchText) || _sortColumn is not null)
+                        {
+                            <MudButton Variant="Variant.Text" Size="Size.Small" StartIcon="@Icons.Material.Filled.FilterAltOff"
+                                       OnClick="ClearFilter">
+                                @L["menus.clear_filter", "Clear filter"]
+                            </MudButton>
+                        }
+                    </MudStack>
+
+                    @{ var display = BuildDisplay(); }
+                    @if (display.Count == 0)
                     {
-                        var item = row.Item;
-                        <tr>
-                            <td>
-                                <span style="@($"padding-inline-start:{row.Depth * 24}px")">
-                                    @if (row.Depth > 0)
-                                    {
-                                        <MudIcon Icon="@Icons.Material.Filled.SubdirectoryArrowRight" Size="Size.Small" Class="me-1" />
-                                    }
-                                    @item.Title
-                                </span>
-                            </td>
-                            <td>
-                                <MudChip T="string" Size="Size.Small" Variant="Variant.Text">@((MenuItemType)item.ItemType)</MudChip>
-                            </td>
-                            <td><MudText Typo="Typo.caption" Color="Color.Secondary">@TargetText(item)</MudText></td>
-                            <td>
-                                <MudSwitch T="bool" Value="item.IsActive" Color="Color.Success"
-                                           Disabled="@(!_canEdit || _busy.Contains(item.MenuItemID))"
-                                           ValueChanged="@(v => ToggleActiveAsync(item, v))" />
-                            </td>
-                            <td>
-                                <MudStack Row="true" Spacing="0">
-                                    <MudIconButton Icon="@Icons.Material.Filled.ArrowUpward" Size="Size.Small"
-                                                   Disabled="@(!_canEdit || _busy.Count > 0)" OnClick="@(() => MoveAsync(item, -1))" />
-                                    <MudIconButton Icon="@Icons.Material.Filled.ArrowDownward" Size="Size.Small"
-                                                   Disabled="@(!_canEdit || _busy.Count > 0)" OnClick="@(() => MoveAsync(item, 1))" />
-                                    @if (_canEdit)
-                                    {
-                                        <MudIconButton Icon="@Icons.Material.Filled.Add" Size="Size.Small" Color="Color.Primary"
-                                                       Title="@L["menus.add_child", "Add child"]" OnClick="@(() => AddItemAsync(item.MenuItemID))" />
-                                        <MudIconButton Icon="@Icons.Material.Filled.Edit" Size="Size.Small"
-                                                       OnClick="@(() => EditItemAsync(item))" />
-                                    }
-                                    @if (_canDelete)
-                                    {
-                                        <MudIconButton Icon="@Icons.Material.Filled.Delete" Size="Size.Small" Color="Color.Error"
-                                                       OnClick="@(() => DeleteItemAsync(item))" />
-                                    }
-                                </MudStack>
-                            </td>
-                        </tr>
+                        <div style="text-align:center; padding:32px;">
+                            <MudText Color="Color.Secondary">@L["menus.no_results", "No items match the filter."]</MudText>
+                        </div>
                     }
-                </tbody>
-            </MudSimpleTable>
+                    else
+                    {
+                        <MudSimpleTable Dense="true" Hover="true" Elevation="0">
+                            <thead>
+                                <tr>
+                                    <th @onclick="@(() => ToggleSort("Title"))" class="dn-tree-th">
+                                        @L["menus.item_title", "Title"] @SortIndicator("Title")
+                                    </th>
+                                    <th @onclick="@(() => ToggleSort("Type"))" class="dn-tree-th">
+                                        @L["menus.item_type", "Type"] @SortIndicator("Type")
+                                    </th>
+                                    <th>@L["menus.target", "Target"]</th>
+                                    <th @onclick="@(() => ToggleSort("Status"))" class="dn-tree-th">
+                                        @L["status", "Status"] @SortIndicator("Status")
+                                    </th>
+                                    <th style="width:1%; white-space:nowrap"></th>
+                                </tr>
+                            </thead>
+                            <tbody>
+                                @foreach (var row in display)
+                                {
+                                    var item = row.Item;
+                                    <tr>
+                                        <td>
+                                            <span style="@($"padding-inline-start:{row.Depth * 24}px")">
+                                                @if (row.Depth > 0)
+                                                {
+                                                    <MudIcon Icon="@Icons.Material.Filled.SubdirectoryArrowRight" Size="Size.Small" Class="me-1" />
+                                                }
+                                                @item.Title
+                                            </span>
+                                            @if (!string.IsNullOrEmpty(row.Path))
+                                            {
+                                                <div><MudText Typo="Typo.caption" Color="Color.Secondary">@row.Path</MudText></div>
+                                            }
+                                        </td>
+                                        <td>
+                                            <MudChip T="string" Size="Size.Small" Variant="Variant.Text">@((MenuItemType)item.ItemType)</MudChip>
+                                        </td>
+                                        <td><MudText Typo="Typo.caption" Color="Color.Secondary">@TargetText(item)</MudText></td>
+                                        <td>
+                                            <MudSwitch T="bool" Value="item.IsActive" Color="Color.Success"
+                                                       Disabled="@(!_canEdit || _busy.Contains(item.MenuItemID))"
+                                                       ValueChanged="@(v => ToggleActiveAsync(item, v))" />
+                                        </td>
+                                        <td>
+                                            <MudStack Row="true" Spacing="0">
+                                                <MudIconButton Icon="@Icons.Material.Filled.ArrowUpward" Size="Size.Small"
+                                                               Disabled="@(!_canEdit || _busy.Count > 0)" OnClick="@(() => MoveAsync(item, -1))" />
+                                                <MudIconButton Icon="@Icons.Material.Filled.ArrowDownward" Size="Size.Small"
+                                                               Disabled="@(!_canEdit || _busy.Count > 0)" OnClick="@(() => MoveAsync(item, 1))" />
+                                                @if (_canEdit)
+                                                {
+                                                    <MudIconButton Icon="@Icons.Material.Filled.Add" Size="Size.Small" Color="Color.Primary"
+                                                                   Title="@L["menus.add_child", "Add child"]" OnClick="@(() => AddItemAsync(item.MenuItemID))" />
+                                                    <MudIconButton Icon="@Icons.Material.Filled.Edit" Size="Size.Small"
+                                                                   OnClick="@(() => EditItemAsync(item))" />
+                                                }
+                                                @if (_canDelete)
+                                                {
+                                                    <MudIconButton Icon="@Icons.Material.Filled.Delete" Size="Size.Small" Color="Color.Error"
+                                                                   OnClick="@(() => DeleteItemAsync(item))" />
+                                                }
+                                            </MudStack>
+                                        </td>
+                                    </tr>
+                                }
+                            </tbody>
+                        </MudSimpleTable>
+                    }
+                </MudTabPanel>
+
+                <MudTabPanel Text="@L["menus.view_tree", "Tree"]" Icon="@Icons.Material.Filled.AccountTree">
+                    <MudText Typo="Typo.caption" Color="Color.Secondary" Class="mb-2 d-block">
+                        @L["menus.tree_hint", "Drag an item onto another to nest it, or between items to reorder. Right-click an item for more actions."]
+                    </MudText>
+                    <MenuItemTreeView Items="_items" CanEdit="_canEdit" CanDelete="_canDelete"
+                                       EmptyText="@L["menus.no_items", "No items yet. Add the first one."]"
+                                       OnEdit="EditItemAsync" OnAddChild="@(pid => AddItemAsync(pid))"
+                                       OnDelete="DeleteItemAsync" OnToggleActive="@(c => ToggleActiveAsync(c.Item, c.Value))"
+                                       OnMove="@(m => MoveTreeAsync(m.DraggedId, m.NewParentId, m.Index))" />
+                </MudTabPanel>
+            </MudTabs>
         }
     </MudPaper>
 }
@@ -106,7 +155,7 @@ else if (_menu is not null)
 @code {
     [Parameter] public int Id { get; set; }
 
-    private sealed record Row(MenuItem Item, int Depth);
+    private sealed record Row(MenuItem Item, int Depth, string? Path = null);
 
     private bool _loading = true;
     private bool _isMaster;
@@ -115,8 +164,10 @@ else if (_menu is not null)
     private int _websiteId;
     private Menu? _menu;
     private List<MenuItem> _items = new();
-    private List<Row> _display = new();
     private HashSet<int> _busy = new();
+    private string _searchText = "";
+    private string? _sortColumn;
+    private bool _sortDesc;
 
     private List<BreadcrumbItem> _breadcrumbs => new()
     {
@@ -149,7 +200,6 @@ else if (_menu is not null)
     private async Task LoadItemsAsync()
     {
         _items = await MenuService.GetItemsAsync(Id);
-        _display = Flatten(null, 0);
     }
 
     private List<Row> Flatten(int? parentId, int depth)
@@ -162,6 +212,78 @@ else if (_menu is not null)
             rows.AddRange(Flatten(item.MenuItemID, depth + 1));
         }
         return rows;
+    }
+
+    /// <summary>Tree order when no filter/sort is active; a flattened, filtered/sorted list otherwise
+    /// (each row shows its ancestor path instead of indentation once flattened).</summary>
+    private List<Row> BuildDisplay()
+    {
+        if (string.IsNullOrWhiteSpace(_searchText) && _sortColumn is null)
+            return Flatten(null, 0);
+
+        IEnumerable<MenuItem> flat = _items;
+        if (!string.IsNullOrWhiteSpace(_searchText))
+        {
+            var term = _searchText.Trim();
+            flat = flat.Where(i =>
+                i.Title.Contains(term, StringComparison.OrdinalIgnoreCase) ||
+                ((MenuItemType)i.ItemType).ToString().Contains(term, StringComparison.OrdinalIgnoreCase) ||
+                TargetText(i).Contains(term, StringComparison.OrdinalIgnoreCase));
+        }
+
+        flat = _sortColumn switch
+        {
+            "Type" => _sortDesc ? flat.OrderByDescending(i => (MenuItemType)i.ItemType) : flat.OrderBy(i => (MenuItemType)i.ItemType),
+            "Status" => _sortDesc ? flat.OrderByDescending(i => i.IsActive) : flat.OrderBy(i => i.IsActive),
+            _ => _sortDesc ? flat.OrderByDescending(i => i.Title) : flat.OrderBy(i => i.Title),
+        };
+
+        return flat.Select(i => new Row(i, 0, AncestorPath(i))).ToList();
+    }
+
+    private string? AncestorPath(MenuItem item)
+    {
+        var chain = new List<string>();
+        var parentId = item.ParentItemID;
+        while (parentId is int pid)
+        {
+            var parent = _items.FirstOrDefault(x => x.MenuItemID == pid);
+            if (parent is null) break;
+            chain.Insert(0, parent.Title);
+            parentId = parent.ParentItemID;
+        }
+        return chain.Count > 0 ? string.Join(" / ", chain) : null;
+    }
+
+    private void OnSearchChanged(string value)
+    {
+        _searchText = value;
+        StateHasChanged();
+    }
+
+    private void ToggleSort(string column)
+    {
+        if (_sortColumn == column)
+        {
+            if (_sortDesc) { _sortColumn = null; _sortDesc = false; }
+            else _sortDesc = true;
+        }
+        else { _sortColumn = column; _sortDesc = false; }
+    }
+
+    private void ClearFilter()
+    {
+        _searchText = "";
+        _sortColumn = null;
+        _sortDesc = false;
+    }
+
+    private MarkupString SortIndicator(string column)
+    {
+        if (_sortColumn != column) return (MarkupString)"";
+        return (MarkupString)(_sortDesc
+            ? "<span class=\"dn-tree-sort-arrow\">&#9660;</span>"
+            : "<span class=\"dn-tree-sort-arrow\">&#9650;</span>");
     }
 
     private string TargetText(MenuItem item) => (MenuItemType)item.ItemType switch
@@ -267,6 +389,57 @@ else if (_menu is not null)
             await LoadItemsAsync();
         }
         finally { _busy.Remove(item.MenuItemID); }
+    }
+
+    /// <summary>Reparents/reorders an item after a tree-view drag-drop: moves <paramref name="draggedId"/>
+    /// under <paramref name="newParentId"/> at sibling position <paramref name="index"/>, then rewrites
+    /// both the old and new sibling groups to contiguous sort orders.</summary>
+    private async Task MoveTreeAsync(int draggedId, int? newParentId, int index)
+    {
+        var dragged = _items.FirstOrDefault(i => i.MenuItemID == draggedId);
+        if (dragged is null) return;
+
+        // Refuse to drop an item into itself or one of its own descendants.
+        var walk = newParentId;
+        while (walk is int pid)
+        {
+            if (pid == draggedId) return;
+            walk = _items.FirstOrDefault(i => i.MenuItemID == pid)?.ParentItemID;
+        }
+
+        var oldParentId = dragged.ParentItemID;
+
+        if (!_busy.Add(draggedId)) return;
+        try
+        {
+            dragged.ParentItemID = newParentId;
+
+            var newSiblings = _items.Where(i => i.ParentItemID == newParentId && i.MenuItemID != draggedId)
+                                     .OrderBy(i => i.SortOrder).ThenBy(i => i.MenuItemID).ToList();
+            newSiblings.Insert(Math.Clamp(index, 0, newSiblings.Count), dragged);
+
+            for (var i = 0; i < newSiblings.Count; i++)
+            {
+                if (newSiblings[i].SortOrder == i && newSiblings[i] != dragged) continue;
+                newSiblings[i].SortOrder = i;
+                await MenuService.UpdateItemAsync(newSiblings[i]);
+            }
+
+            if (oldParentId != newParentId)
+            {
+                var oldSiblings = _items.Where(i => i.ParentItemID == oldParentId && i.MenuItemID != draggedId)
+                                         .OrderBy(i => i.SortOrder).ThenBy(i => i.MenuItemID).ToList();
+                for (var i = 0; i < oldSiblings.Count; i++)
+                {
+                    if (oldSiblings[i].SortOrder == i) continue;
+                    oldSiblings[i].SortOrder = i;
+                    await MenuService.UpdateItemAsync(oldSiblings[i]);
+                }
+            }
+
+            await LoadItemsAsync();
+        }
+        finally { _busy.Remove(draggedId); }
     }
 
     private int NextSortOrder(int? parentId)

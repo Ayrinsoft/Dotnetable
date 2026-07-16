@@ -32,7 +32,7 @@
     {
         <MudProgressLinear Indeterminate="true" Color="Color.Primary" Class="mb-3" />
     }
-    else if (_menus.Count == 0)
+    else if (_menus.Count == 0 && !_grid.HeaderItems.Any(h => !string.IsNullOrWhiteSpace(h.SearchText)))
     {
         <div style="text-align:center; padding:32px;">
             <MudText Color="Color.Secondary">@L["menus.empty", "No menus yet."]</MudText>
@@ -40,23 +40,18 @@
     }
     else
     {
-        <MudSimpleTable Dense="true" Hover="true" Elevation="0">
-            <thead>
+        <DNGridView GridHeaderParams="_grid" OnSearchChanged="OnGridChanged"
+                    SearchPlaceholder="@L["search", "Search…"]" AllText="@L["all", "All"]">
+            @if (_menus.Count == 0)
+            {
                 <tr>
-                    <th style="width:1%"></th>
-                    <th>@L["id", "ID"]</th>
-                    <th>@L["name", "Name"]</th>
-                    <th>@L["menus.location", "Location"]</th>
-                    @if (_isMaster)
-                    {
-                        <th>@L["website", "Website"]</th>
-                    }
-                    <th>@L["menus.items", "Items"]</th>
-                    <th>@L["status", "Status"]</th>
-                    <th style="width:1%"></th>
+                    <td colspan="@(_isMaster ? 8 : 7)" style="text-align:center; padding:32px;">
+                        <MudText Color="Color.Secondary">@L["menus.no_results", "No menus match the filter."]</MudText>
+                    </td>
                 </tr>
-            </thead>
-            <tbody>
+            }
+            else
+            {
                 @foreach (var m in _menus)
                 {
                     <tr>
@@ -98,8 +93,8 @@
                         </td>
                     </tr>
                 }
-            </tbody>
-        </MudSimpleTable>
+            }
+        </DNGridView>
     }
 </MudPaper>
 
@@ -113,6 +108,7 @@
     private List<Menu> _menus = new();
     private List<Website> _websites = new();
     private HashSet<int> _busy = new();
+    private GridViewHeaderParameters _grid = new();
 
     protected override async Task OnInitializedAsync()
     {
@@ -126,6 +122,40 @@
         int.TryParse(user.FindFirst(AdminClaimTypes.WebsiteId)?.Value, out _websiteId);
         if (_isMaster) _websites = (await WebsiteService.GetAllAsync()).ToList();
 
+        _grid = new GridViewHeaderParameters
+        {
+            Pagination = new PaginationModel { PageSize = 25 },
+            HeaderItems = new()
+            {
+                new() { ColumnTitle = "" },
+                new() { ColumnTitle = L["id", "ID"], ColumnName = nameof(Menu.MenuID), HasSort = true },
+                new() { ColumnTitle = L["name", "Name"], ColumnName = nameof(Menu.Name), HasSort = true, HasSearch = true },
+                new()
+                {
+                    ColumnTitle = L["menus.location", "Location"],
+                    ColumnName = nameof(Menu.Location),
+                    HasSort = true,
+                    HasSearch = true,
+                    SearchType = SearchColumnType.DropDown,
+                    OtherDropDownValues = Enum.GetValues<MenuLocation>()
+                        .ToDictionary(v => v.ToString(), v => ((byte)v).ToString()),
+                },
+                new() { ColumnTitle = L["menus.items", "Items"] },
+                new()
+                {
+                    ColumnTitle = L["status", "Status"],
+                    ColumnName = nameof(Menu.IsActive),
+                    HasSort = true,
+                    HasSearch = true,
+                    SearchType = SearchColumnType.DropDown,
+                    OtherDropDownValues = new() { [L["active", "Active"]] = "true", [L["inactive", "Inactive"]] = "false" },
+                },
+                new() { ColumnTitle = "" },
+            },
+        };
+        if (_isMaster)
+            _grid.HeaderItems.Insert(4, new() { ColumnTitle = L["website", "Website"] });
+
         await LoadAsync();
     }
 
@@ -135,10 +165,14 @@
         return website is null ? $"#{websiteId}" : $"{website.TradeName} (#{website.WebsiteID})";
     }
 
+    private Task OnGridChanged(GridViewHeaderParameters _) => LoadAsync();
+
     private async Task LoadAsync()
     {
         _loading = true;
-        _menus = await MenuService.GetMenusAsync(_isMaster ? null : _websiteId);
+        var result = await MenuService.GetMenusPagedAsync(_isMaster ? null : _websiteId, _grid.ToQuery());
+        _menus = result.Items.ToList();
+        _grid.Pagination.MaxLength = result.TotalCount;
         _loading = false;
     }
 

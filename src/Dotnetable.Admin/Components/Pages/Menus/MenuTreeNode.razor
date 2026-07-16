@@ -1,0 +1,108 @@
+@namespace Dotnetable.Admin.Components.Pages.Menus
+@using Dotnetable.Domain.Entities
+@using Dotnetable.Domain.Enums
+
+<li class="dn-tree-node">
+    <div class="dn-tree-dropline @(_hoverZone == DropZone.Before ? "active" : "")"
+         @ondragenter="@(() => SetHover(DropZone.Before))" @ondragenter:preventDefault="true"
+         @ondragover:preventDefault="true"
+         @ondragleave="@(() => ClearHover(DropZone.Before))"
+         @ondrop="@(() => Drop(DropZone.Before))"></div>
+
+    <MudMenu ActivationEvent="MouseEvent.RightClick" PositionAtCursor="true" Class="dn-tree-menu">
+        <ActivatorContent>
+            <div class="dn-tree-row @(Context!.DraggedId == Item.MenuItemID ? "dn-tree-dragging" : "") @(_hoverZone == DropZone.Inside ? "dn-tree-drop-inside" : "")"
+                 draggable="true"
+                 @ondragstart="@(() => { Context!.DraggedId = Item.MenuItemID; Context.NotifyChanged?.Invoke(); })"
+                 @ondragend="@(() => { Context!.DraggedId = null; _hoverZone = null; Context.NotifyChanged?.Invoke(); })"
+                 @ondragenter="@(() => SetHover(DropZone.Inside))" @ondragenter:preventDefault="true"
+                 @ondragover:preventDefault="true"
+                 @ondragleave="@(() => ClearHover(DropZone.Inside))"
+                 @ondrop="@(() => Drop(DropZone.Inside))">
+                <MudIcon Icon="@Icons.Material.Filled.DragIndicator" Size="Size.Small" Class="dn-tree-handle" />
+                <span class="dn-tree-title">@Item.Title</span>
+                <MudChip T="string" Size="Size.Small" Variant="Variant.Text" Class="ms-2">@((MenuItemType)Item.ItemType)</MudChip>
+                <MudSpacer />
+                <MudSwitch T="bool" Value="Item.IsActive" Color="Color.Success" Dense="true"
+                           Disabled="!Context!.CanEdit"
+                           ValueChanged="@(v => Context!.OnToggleActive.InvokeAsync(new MenuItemActiveChange(Item, v)))" />
+            </div>
+        </ActivatorContent>
+        <ChildContent>
+            @if (Context!.CanEdit)
+            {
+                <MudMenuItem Icon="@Icons.Material.Filled.Edit" OnClick="@(() => Context.OnEdit.InvokeAsync(Item))">@EditText</MudMenuItem>
+                <MudMenuItem Icon="@Icons.Material.Filled.Add" OnClick="@(() => Context.OnAddChild.InvokeAsync(Item.MenuItemID))">@AddChildText</MudMenuItem>
+            }
+            @if (Context!.CanDelete)
+            {
+                <MudMenuItem Icon="@Icons.Material.Filled.Delete" IconColor="Color.Error" OnClick="@(() => Context.OnDelete.InvokeAsync(Item))">@DeleteText</MudMenuItem>
+            }
+        </ChildContent>
+    </MudMenu>
+
+    @{ var children = Context!.AllItems.Where(i => i.ParentItemID == Item.MenuItemID).OrderBy(i => i.SortOrder).ThenBy(i => i.MenuItemID).ToList(); }
+    @if (children.Count > 0)
+    {
+        <ul class="dn-tree-children">
+            @for (var i = 0; i < children.Count; i++)
+            {
+                <MenuTreeNode Item="children[i]" Depth="Depth + 1" IsLastSibling="@(i == children.Count - 1)"
+                              EditText="@EditText" AddChildText="@AddChildText" DeleteText="@DeleteText" />
+            }
+        </ul>
+    }
+
+    @if (IsLastSibling)
+    {
+        <div class="dn-tree-dropline dn-tree-dropline-tail @(_hoverZone == DropZone.After ? "active" : "")"
+             @ondragenter="@(() => SetHover(DropZone.After))" @ondragenter:preventDefault="true"
+             @ondragover:preventDefault="true"
+             @ondragleave="@(() => ClearHover(DropZone.After))"
+             @ondrop="@(() => Drop(DropZone.After))"></div>
+    }
+</li>
+
+@code {
+    private enum DropZone { Before, Inside, After }
+
+    [CascadingParameter] private MenuTreeContext? Context { get; set; }
+
+    [Parameter, EditorRequired] public MenuItem Item { get; set; } = null!;
+    [Parameter] public int Depth { get; set; }
+    [Parameter] public bool IsLastSibling { get; set; }
+    [Parameter] public string EditText { get; set; } = "Edit";
+    [Parameter] public string AddChildText { get; set; } = "Add child";
+    [Parameter] public string DeleteText { get; set; } = "Delete";
+
+    private DropZone? _hoverZone;
+
+    private void SetHover(DropZone zone) => _hoverZone = zone;
+    private void ClearHover(DropZone zone) { if (_hoverZone == zone) _hoverZone = null; }
+
+    private async Task Drop(DropZone zone)
+    {
+        _hoverZone = null;
+        var draggedId = Context!.DraggedId;
+        Context.DraggedId = null;
+        if (draggedId is null || draggedId == Item.MenuItemID || Context.MoveAsync is null) return;
+
+        var siblings = Context.AllItems
+            .Where(i => i.ParentItemID == Item.ParentItemID && i.MenuItemID != draggedId)
+            .OrderBy(i => i.SortOrder).ThenBy(i => i.MenuItemID).ToList();
+
+        switch (zone)
+        {
+            case DropZone.Before:
+                await Context.MoveAsync(draggedId.Value, Item.ParentItemID, siblings.IndexOf(Item));
+                break;
+            case DropZone.After:
+                await Context.MoveAsync(draggedId.Value, Item.ParentItemID, siblings.IndexOf(Item) + 1);
+                break;
+            case DropZone.Inside:
+                var childCount = Context.AllItems.Count(i => i.ParentItemID == Item.MenuItemID && i.MenuItemID != draggedId);
+                await Context.MoveAsync(draggedId.Value, Item.MenuItemID, childCount);
+                break;
+        }
+    }
+}

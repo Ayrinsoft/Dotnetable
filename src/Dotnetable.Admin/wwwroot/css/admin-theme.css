@@ -293,3 +293,103 @@ html, body {
     background: var(--mud-palette-surface);
     color: var(--mud-palette-text-primary);
 }
+
+/* ============================================================
+   Sortable table headers (MenuEdit filtered/sorted table view)
+   ============================================================ */
+.dn-tree-th {
+    cursor: pointer;
+    user-select: none;
+}
+
+.dn-tree-th:hover {
+    color: var(--mud-palette-primary);
+}
+
+.dn-tree-sort-arrow {
+    font-size: .65rem;
+    margin-inline-start: 4px;
+    color: var(--mud-palette-primary);
+}
+
+/* ============================================================
+   MenuItemTreeView — nestable-style drag & drop tree
+   ============================================================ */
+.dn-tree,
+.dn-tree-children {
+    list-style: none;
+    margin: 0;
+    padding: 0;
+}
+
+.dn-tree-children {
+    padding-inline-start: 28px;
+}
+
+.dn-tree-node {
+    position: relative;
+}
+
+.dn-tree-empty {
+    padding: 24px;
+    text-align: center;
+    color: var(--mud-palette-text-secondary);
+}
+
+.dn-tree-menu,
+.dn-tree-menu > * {
+    display: block;
+    width: 100%;
+}
+
+.dn-tree-row {
+    display: flex;
+    align-items: center;
+    gap: 8px;
+    padding: 8px 10px;
+    margin: 2px 0;
+    border: 1px solid var(--mud-palette-lines-default);
+    border-radius: 6px;
+    background: var(--mud-palette-surface);
+    cursor: default;
+    transition: background-color .12s ease, border-color .12s ease, opacity .12s ease;
+}
+
+.dn-tree-row:hover {
+    background: rgba(52, 143, 226, .06);
+}
+
+.dn-tree-handle {
+    cursor: grab;
+    color: var(--mud-palette-text-secondary);
+}
+
+.dn-tree-title {
+    font-size: .85rem;
+}
+
+.dn-tree-dragging {
+    opacity: .4;
+}
+
+.dn-tree-drop-inside {
+    border-color: var(--mud-palette-primary);
+    box-shadow: inset 0 0 0 1px var(--mud-palette-primary);
+    background: rgba(52, 143, 226, .1);
+}
+
+.dn-tree-dropline {
+    height: 6px;
+    margin: -3px 0;
+}
+
+.dn-tree-dropline.active {
+    height: 3px;
+    margin: -1.5px 0;
+    background: var(--mud-palette-primary);
+    border-radius: 2px;
+}
+
+.dn-tree-dropline-tail {
+    margin-top: 4px;
+}

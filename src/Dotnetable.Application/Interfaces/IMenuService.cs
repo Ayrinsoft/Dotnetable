@@ -16,6 +16,9 @@ public interface IMenuService
     /// <summary>All menus for a website (or every website when <paramref name="websiteId"/> is null — master only).</summary>
     Task<List<Menu>> GetMenusAsync(int? websiteId, CancellationToken ct = default);
 
+    /// <summary>Paged/filtered/sorted menus for the grid (or every website when <paramref name="websiteId"/> is null — master only).</summary>
+    Task<PagedResult<Menu>> GetMenusPagedAsync(int? websiteId, GridQuery query, CancellationToken ct = default);
+
     Task<Menu?> GetMenuAsync(int menuId, CancellationToken ct = default);
     Task<Menu> CreateMenuAsync(Menu menu, CancellationToken ct = default);
     Task UpdateMenuAsync(Menu menu, CancellationToken ct = default);

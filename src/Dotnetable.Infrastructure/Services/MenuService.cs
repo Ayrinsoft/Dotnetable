@@ -3,6 +3,7 @@ using Dotnetable.Application.Interfaces;
 using Dotnetable.Domain.Entities;
 using Dotnetable.Domain.Enums;
 using Dotnetable.Infrastructure.Data;
+using Dotnetable.Infrastructure.Extensions;
 using Microsoft.EntityFrameworkCore;
 
 namespace Dotnetable.Infrastructure.Services;
@@ -21,6 +22,28 @@ public class MenuService : IMenuService
         if (websiteId is int wid)
             q = q.Where(m => m.WebsiteID == wid);
         return await q.OrderBy(m => m.Location).ThenBy(m => m.Name).ToListAsync(ct);
+    }
+
+    public async Task<PagedResult<Menu>> GetMenusPagedAsync(int? websiteId, GridQuery query, CancellationToken ct = default)
+    {
+        var q = _context.Menus.AsNoTracking().Include(m => m.MenuItems).AsQueryable();
+        if (websiteId is int wid)
+            q = q.Where(m => m.WebsiteID == wid);
+
+        if (query.GetSearch(nameof(Menu.Name)) is string name)
+            q = q.Where(m => m.Name.Contains(name));
+        if (query.GetSearch(nameof(Menu.Location)) is string loc && byte.TryParse(loc, out var location))
+            q = q.Where(m => m.Location == location);
+        if (query.GetSearch(nameof(Menu.IsActive)) is string active && bool.TryParse(active, out var isActive))
+            q = q.Where(m => m.IsActive == isActive);
+
+        var total = await q.CountAsync(ct);
+        var items = await q
+            .ApplyOrderBy(query.OrderBy, nameof(Menu.MenuID))
+            .Skip(query.Skip).Take(query.Take)
+            .ToListAsync(ct);
+
+        return new PagedResult<Menu> { Items = items, TotalCount = total };
     }
 
     public async Task<Menu?> GetMenuAsync(int menuId, CancellationToken ct = default) =>
