@@ -27,12 +27,23 @@
                     <MudIconButton Icon="@Icons.Material.Filled.Search" Color="Color.Default" OnClick="OpenSearchPalette" />
                 </MudTooltip>
                 <MudSpacer />
-                <MudText Typo="Typo.body2" Class="me-2 d-none d-sm-flex" Style="color:#4c4c5c;">
-                    @authCtx.User.Identity?.Name
-                </MudText>
-                <MudAvatar Color="Color.Primary" Size="Size.Small" Class="me-1">
-                    @(_initials(authCtx.User.Identity?.Name))
-                </MudAvatar>
+                <MudMenu Class="me-1">
+                    <ActivatorContent>
+                        <MudStack Row="true" AlignItems="AlignItems.Center" Spacing="1" Class="cursor-pointer">
+                            <MudText Typo="Typo.body2" Class="me-1 d-none d-sm-flex" Style="color:#4c4c5c;">
+                                @authCtx.User.Identity?.Name
+                            </MudText>
+                            <MudAvatar Color="Color.Primary" Size="Size.Small">
+                                @(_initials(authCtx.User.Identity?.Name))
+                            </MudAvatar>
+                        </MudStack>
+                    </ActivatorContent>
+                    <ChildContent>
+                        <MudMenuItem Icon="@Icons.Material.Filled.Person" OnClick="@(() => GoToProfile(authCtx.User))">
+                            Profile
+                        </MudMenuItem>
+                    </ChildContent>
+                </MudMenu>
                 @if (!_isMaster)
                 {
                     <MudTooltip Text="View mode (this browser only)">
@@ -168,6 +179,13 @@
     }
 
     public void Dispose() => UiModeState.Changed -= StateHasChanged;
+
+    private void GoToProfile(System.Security.Claims.ClaimsPrincipal user)
+    {
+        var memberId = user.FindFirst(AdminClaimTypes.MemberId)?.Value;
+        if (!string.IsNullOrEmpty(memberId))
+            Nav.NavigateTo($"/members/{memberId}");
+    }
 
     private static string _initials(string? name) =>
         string.IsNullOrWhiteSpace(name) ? "?" : name.Trim()[0].ToString().ToUpper();
