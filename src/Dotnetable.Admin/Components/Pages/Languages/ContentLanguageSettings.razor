@@ -1,6 +1,7 @@
 @page "/content-languages"
 @attribute [Authorize(Policy = RoleKeys.LocalizationEdit)]
 @inject ILanguageService LanguageService
+@inject IWebsiteService WebsiteService
 @inject AuthenticationStateProvider AuthState
 @inject ISnackbar Snackbar
 @inject IPageLocalizer L
@@ -8,16 +9,32 @@
 <DNPageTitle Title=@L["content_languages", "Content Languages"] />
 
 <MudStack Spacing="0" Class="mb-4">
-    <MudText Typo="Typo.h5" Class="fw-bold">@L["content_languages", "Content Languages"]</MudText>
-    <MudText Typo="Typo.body2" Color="Color.Secondary">
-        @L["content_languages.subtitle", "Choose which languages your Posts, Pages and other content are offered in. The first one you enable is used when only one is selected; enabling more adds a translation tab for each when editing content."]
-    </MudText>
+    <MudStack Row="true" AlignItems="AlignItems.Center" Justify="Justify.SpaceBetween">
+        <MudStack Spacing="0">
+            <MudText Typo="Typo.h5" Class="fw-bold">@L["content_languages", "Content Languages"]</MudText>
+            <MudText Typo="Typo.body2" Color="Color.Secondary">
+                @L["content_languages.subtitle", "Choose which languages your Posts, Pages and other content are offered in. The first one you enable is used when only one is selected; enabling more adds a translation tab for each when editing content."]
+            </MudText>
+        </MudStack>
+        @if (_isMaster)
+        {
+            <WebsiteSelector Value="_websiteId" ValueChanged="OnWebsiteChanged" Websites="_websites"
+                             Label="@L["website", "Website"]" Variant="Variant.Outlined"
+                             Dense="true" Style="min-width:180px" />
+        }
+    </MudStack>
 </MudStack>
 
 <MudPaper Elevation="0" Class="app-card rounded-lg pa-4">
     @if (_loading)
     {
         <MudProgressLinear Indeterminate="true" Color="Color.Primary" Class="mb-3" />
+    }
+    else if (_websiteId == AppConstants.MasterWebsiteId)
+    {
+        <MudAlert Severity="Severity.Info">
+            @L["content_languages.master_hint", "The master website's languages are the system-wide catalog. Manage it from the Languages page instead of picking a subset here."]
+        </MudAlert>
     }
     else
     {
@@ -48,7 +65,9 @@
 @code {
     private bool _loading = true;
     private bool _saving;
+    private bool _isMaster;
     private int _websiteId;
+    private List<Website> _websites = new();
     private List<Language> _catalog = new();
     private HashSet<string> _selected = new();
 
@@ -56,10 +75,22 @@
     {
         await L.EnsureLoadedAsync();
         var state = await AuthState.GetAuthenticationStateAsync();
-        int.TryParse(state.User.FindFirst(AdminClaimTypes.WebsiteId)?.Value, out _websiteId);
+        var user = state.User;
+        _isMaster = user.HasClaim(AdminClaimTypes.Master, "true");
+        int.TryParse(user.FindFirst(AdminClaimTypes.WebsiteId)?.Value, out _websiteId);
 
-        _loading = true;
+        if (_isMaster)
+            _websites = (await WebsiteService.GetAllAsync()).ToList();
+
         _catalog = await LanguageService.GetActiveCatalogAsync();
+        await LoadAsync();
+    }
+
+    private async Task OnWebsiteChanged(int id) { _websiteId = id; await LoadAsync(); }
+
+    private async Task LoadAsync()
+    {
+        _loading = true;
         var active = await LanguageService.GetActiveForWebsiteAsync(_websiteId);
         _selected = active.Select(l => l.LanguageCode).ToHashSet();
         _loading = false;

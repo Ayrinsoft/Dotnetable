@@ -17,6 +17,14 @@
     // the site always has navigation before menus are configured.
     MenuDto? headerMenu = await Api.GetMenuAsync("Header");
     MenuDto? footerMenu = await Api.GetMenuAsync("Footer");
+
+    // Language switcher: only the languages this website picked in the admin (Content Languages).
+    var languages = await Api.GetActiveLanguagesAsync();
+    var currentLangCode = Context.Request.Cookies["lang"];
+    var currentLang = languages.FirstOrDefault(l => l.Code == currentLangCode)
+        ?? languages.FirstOrDefault(l => l.IsDefault)
+        ?? languages.FirstOrDefault();
+    var returnUrl = Context.Request.Path + Context.Request.QueryString;
 }
 <!DOCTYPE html>
 <html lang="@(site?.DefaultLanguageCode ?? "en")">
@@ -107,6 +115,24 @@
                     }
                 </ul>
                 <div class="d-flex gap-2 align-items-center">
+                    @if (languages.Count > 1)
+                    {
+                        <div class="dropdown">
+                            <button class="btn btn-outline-secondary dropdown-toggle" type="button" data-bs-toggle="dropdown">
+                                <i class="bi bi-globe2 me-1"></i>@(currentLang?.Name ?? "Language")
+                            </button>
+                            <ul class="dropdown-menu dropdown-menu-end">
+                                @foreach (var lang in languages)
+                                {
+                                    <li>
+                                        <a class="dropdown-item @(lang.Code == currentLang?.Code ? "active" : "")"
+                                           asp-controller="Language" asp-action="Set"
+                                           asp-route-code="@lang.Code" asp-route-returnUrl="@returnUrl">@lang.Name</a>
+                                    </li>
+                                }
+                            </ul>
+                        </div>
+                    }
                     <a class="btn btn-outline-secondary" asp-controller="Cart" asp-action="Index" title="Cart">
                         <i class="bi bi-cart3"></i>
                     </a>
