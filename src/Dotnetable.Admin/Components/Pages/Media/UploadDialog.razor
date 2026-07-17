@@ -48,21 +48,27 @@
                 }
 
                 <MudItem xs="12" sm="6">
-                    <MudSelect T="int?" @bind-Value="_albumId" Label="@L["upload.album", "Album (optional)"]" Variant="Variant.Outlined" Clearable="true">
-                        @foreach (var a in _albums)
-                        {
-                            <MudSelectItem T="int?" Value="a.FileAlbumID">@a.Name</MudSelectItem>
-                        }
-                    </MudSelect>
+                    <MudAutocomplete T="FileAlbum" Value="_selectedAlbum" ValueChanged="OnAlbumChanged"
+                                     Label="@L["upload.album", "Album (optional)"]" Variant="Variant.Outlined"
+                                     SearchFunc="SearchAlbums" ToStringFunc="@(a => a?.Name ?? "")"
+                                     Clearable="true" ResetValueOnEmptyText="true" CoerceText="false" />
                 </MudItem>
                 <MudItem xs="12" sm="6">
-                    <MudSelect T="int" @bind-SelectedValues="_tagIds" Label="@L["upload.tags", "Tags (optional)"]" Variant="Variant.Outlined"
-                               MultiSelection="true">
-                        @foreach (var t in _tags)
-                        {
-                            <MudSelectItem T="int" Value="t.FileTagID">@t.Name</MudSelectItem>
-                        }
-                    </MudSelect>
+                    <MudAutocomplete T="FileTag" Value="_tagToAdd" ValueChanged="OnTagAdd"
+                                     Label="@L["upload.tags", "Tags (optional)"]" Variant="Variant.Outlined"
+                                     SearchFunc="SearchTags" ToStringFunc="@(t => t?.Name ?? "")"
+                                     ResetValueOnEmptyText="true" CoerceText="false"
+                                     Placeholder="@L["media.search_add_tag", "Search and add a tag…"]" />
+                    @if (_selectedTags.Count > 0)
+                    {
+                        <div class="d-flex flex-wrap gap-1 mt-2">
+                            @foreach (var t in _selectedTags)
+                            {
+                                <MudChip T="string" Size="Size.Small" Color="Color.Primary" Variant="Variant.Filled"
+                                         OnClose="@(() => RemoveTag(t.FileTagID))">@t.Name</MudChip>
+                            }
+                        </div>
+                    }
                 </MudItem>
 
                 <MudItem xs="12">
@@ -123,8 +129,9 @@
 
     private bool _busy;
     private int _storageId;
-    private int? _albumId;
-    private IReadOnlyCollection<int> _tagIds = new HashSet<int>();
+    private FileAlbum? _selectedAlbum;
+    private FileTag? _tagToAdd;
+    private List<FileTag> _selectedTags = new();
     private IReadOnlyList<IBrowserFile>? _files;
     private readonly Dictionary<IBrowserFile, FileEditSpec> _edits = new();
     private List<StorageSettingInfo> _storages = new();
@@ -134,12 +141,39 @@
     protected override async Task OnInitializedAsync()
     {
         await L.EnsureLoadedAsync();
-        _albumId = PresetAlbumId;
         _storages = (await StorageService.GetActiveForWebsiteAsync(WebsiteId)).ToList();
         if (_storages.Count > 0) _storageId = _storages[0].WebsiteStorageSettingsID;
         _albums = await FileService.GetAlbumsAsync(WebsiteId);
         _tags = await FileService.GetTagsAsync(WebsiteId);
+        if (PresetAlbumId is int presetId)
+            _selectedAlbum = _albums.FirstOrDefault(a => a.FileAlbumID == presetId);
     }
+
+    private Task<IEnumerable<FileAlbum>> SearchAlbums(string value, CancellationToken ct)
+    {
+        if (string.IsNullOrWhiteSpace(value))
+            return Task.FromResult(_albums.AsEnumerable());
+        return Task.FromResult(_albums.Where(a => a.Name.Contains(value, StringComparison.OrdinalIgnoreCase)));
+    }
+
+    private Task<IEnumerable<FileTag>> SearchTags(string value, CancellationToken ct)
+    {
+        var available = _tags.Where(t => _selectedTags.All(s => s.FileTagID != t.FileTagID));
+        if (string.IsNullOrWhiteSpace(value))
+            return Task.FromResult(available);
+        return Task.FromResult(available.Where(t => t.Name.Contains(value, StringComparison.OrdinalIgnoreCase)));
+    }
+
+    private void OnAlbumChanged(FileAlbum? album) => _selectedAlbum = album;
+
+    private void OnTagAdd(FileTag? tag)
+    {
+        if (tag is not null && _selectedTags.All(t => t.FileTagID != tag.FileTagID))
+            _selectedTags.Add(tag);
+        _tagToAdd = null;
+    }
+
+    private void RemoveTag(int tagId) => _selectedTags.RemoveAll(t => t.FileTagID == tagId);
 
     private async Task EditFileAsync(IBrowserFile file)
     {
@@ -161,7 +195,7 @@
         int ok = 0;
         try
         {
-            var tagIds = _tagIds.ToList();
+            var tagIds = _selectedTags.Select(t => t.FileTagID).ToList();
             foreach (var file in _files)
             {
                 try
@@ -175,7 +209,7 @@
                         Content = stream,
                         OriginalFileName = file.Name,
                         MimeType = file.ContentType,
-                        AlbumID = _albumId,
+                        AlbumID = _selectedAlbum?.FileAlbumID,
                         TagIDs = tagIds,
                         CustomFileName = spec?.FileName,
                         Crop = spec?.Crop,

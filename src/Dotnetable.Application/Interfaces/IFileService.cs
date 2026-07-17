@@ -59,12 +59,15 @@ public interface IFileService
 
     // ── Albums ───────────────────────────────────────────────
     Task<IReadOnlyList<FileAlbum>> GetAlbumsAsync(int websiteId, CancellationToken ct = default);
+    Task<PagedResult<FileAlbum>> GetAlbumsPagedAsync(int websiteId, GridQuery query, CancellationToken ct = default);
     Task<FileAlbum> CreateAlbumAsync(int websiteId, string name, string? description, CancellationToken ct = default);
     Task RenameAlbumAsync(int albumId, string name, string? description, CancellationToken ct = default);
     Task DeleteAlbumAsync(int albumId, CancellationToken ct = default);
 
     // ── Tags ─────────────────────────────────────────────────
     Task<IReadOnlyList<FileTag>> GetTagsAsync(int websiteId, CancellationToken ct = default);
+    Task<PagedResult<FileTag>> GetTagsPagedAsync(int websiteId, GridQuery query, CancellationToken ct = default);
     Task<FileTag> CreateTagAsync(int websiteId, string name, CancellationToken ct = default);
+    Task RenameTagAsync(int tagId, string name, CancellationToken ct = default);
     Task DeleteTagAsync(int tagId, CancellationToken ct = default);
 }

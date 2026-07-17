@@ -40,17 +40,32 @@
 
             <MudStack Row="true" AlignItems="AlignItems.Center" Justify="Justify.SpaceBetween" Class="mt-3 mb-1">
                 <MudText Typo="Typo.caption" Class="fw-bold text-uppercase">@L["media.albums", "Albums"]</MudText>
+                <MudIconButton Icon="@Icons.Material.Filled.OpenInNew" Size="Size.Small" Href="/media/albums"
+                               Title="@L["media.manage_albums", "Manage albums"]" Class="pa-0" />
             </MudStack>
-            @foreach (var a in _albums)
+            @if (_albums.Count > 5)
             {
-                <MudStack Row="true" AlignItems="AlignItems.Center" Justify="Justify.SpaceBetween"
-                          Class="@($"px-2 py-1 rounded {(_filter.AlbumID == a.FileAlbumID ? "mud-selected-item" : "")}")"
-                          Style="cursor:pointer;">
-                    <span @onclick="@(() => SelectAlbum(a.FileAlbumID))" style="flex:1;">@a.Name</span>
-                    <MudIconButton Icon="@Icons.Material.Filled.Close" Size="Size.Small"
-                                   OnClick="@(() => DeleteAlbumAsync(a))" />
-                </MudStack>
+                <MudTextField @bind-Value="_albumSearch" Placeholder="@L["search", "Search…"]" Variant="Variant.Outlined"
+                              Margin="Margin.Dense" Immediate="true" Class="mb-1"
+                              Adornment="Adornment.Start" AdornmentIcon="@Icons.Material.Filled.Search"
+                              Clearable="true" />
             }
+            <div style="max-height:220px; overflow:auto;">
+                @foreach (var a in FilteredAlbums)
+                {
+                    <MudStack Row="true" AlignItems="AlignItems.Center" Justify="Justify.SpaceBetween"
+                              Class="@($"px-2 py-1 rounded {(_filter.AlbumID == a.FileAlbumID ? "mud-selected-item" : "")}")"
+                              Style="cursor:pointer;">
+                        <span @onclick="@(() => SelectAlbum(a.FileAlbumID))" style="flex:1;" class="text-truncate" title="@a.Name">@a.Name</span>
+                        <MudIconButton Icon="@Icons.Material.Filled.Close" Size="Size.Small"
+                                       OnClick="@(() => DeleteAlbumAsync(a))" />
+                    </MudStack>
+                }
+                @if (!FilteredAlbums.Any() && _albums.Count > 0)
+                {
+                    <MudText Typo="Typo.caption" Color="Color.Secondary" Class="px-2 py-1">@L["media.albums_no_match", "No albums match your search."]</MudText>
+                }
+            </div>
             <MudStack Row="true" Spacing="1" AlignItems="AlignItems.Center" Class="mt-1">
                 <MudTextField @bind-Value="_newAlbum" Placeholder="@L["media.new_album", "New album"]" Variant="Variant.Text"
                               Margin="Margin.Dense" Immediate="true" />
@@ -70,15 +85,30 @@
                 <MudSelectItem T="FileCategory?" Value="FileCategory.Other">@L["media.cat_other", "Other"]</MudSelectItem>
             </MudSelect>
 
-            <MudText Typo="Typo.caption" Class="fw-bold text-uppercase mt-3 d-block">@L["media.tags", "Tags"]</MudText>
-            <div class="d-flex flex-wrap gap-1 mt-1">
-                @foreach (var t in _tags)
+            <MudStack Row="true" AlignItems="AlignItems.Center" Justify="Justify.SpaceBetween" Class="mt-3 mb-1">
+                <MudText Typo="Typo.caption" Class="fw-bold text-uppercase">@L["media.tags", "Tags"]</MudText>
+                <MudIconButton Icon="@Icons.Material.Filled.OpenInNew" Size="Size.Small" Href="/media/tags"
+                               Title="@L["media.manage_tags", "Manage tags"]" Class="pa-0" />
+            </MudStack>
+            @if (_tags.Count > 5)
+            {
+                <MudTextField @bind-Value="_tagSearch" Placeholder="@L["search", "Search…"]" Variant="Variant.Outlined"
+                              Margin="Margin.Dense" Immediate="true" Class="mb-1"
+                              Adornment="Adornment.Start" AdornmentIcon="@Icons.Material.Filled.Search"
+                              Clearable="true" />
+            }
+            <div class="d-flex flex-wrap gap-1" style="max-height:180px; overflow:auto;">
+                @foreach (var t in FilteredTags)
                 {
                     <MudChip T="string" Size="Size.Small"
                              Color="@(_filter.TagID == t.FileTagID ? Color.Primary : Color.Default)"
                              Variant="@(_filter.TagID == t.FileTagID ? Variant.Filled : Variant.Outlined)"
                              OnClick="@(() => ToggleTag(t.FileTagID))"
                              OnClose="@(() => DeleteTagAsync(t))">@t.Name</MudChip>
+                }
+                @if (!FilteredTags.Any() && _tags.Count > 0)
+                {
+                    <MudText Typo="Typo.caption" Color="Color.Secondary">@L["media.tags_no_match", "No tags match your search."]</MudText>
                 }
             </div>
             <MudStack Row="true" Spacing="1" AlignItems="AlignItems.Center" Class="mt-1">
@@ -161,11 +191,23 @@
 
     private readonly FileFilter _filter = new();
     private string? _search;
+    private string? _albumSearch;
+    private string? _tagSearch;
     private string? _newAlbum;
     private string? _newTag;
     private int _pageIndex = 1;
     private const int _pageSize = 24;
     private int _total;
+
+    private IEnumerable<FileAlbum> FilteredAlbums =>
+        string.IsNullOrWhiteSpace(_albumSearch)
+            ? _albums
+            : _albums.Where(a => a.Name.Contains(_albumSearch, StringComparison.OrdinalIgnoreCase));
+
+    private IEnumerable<FileTag> FilteredTags =>
+        string.IsNullOrWhiteSpace(_tagSearch)
+            ? _tags
+            : _tags.Where(t => t.Name.Contains(_tagSearch, StringComparison.OrdinalIgnoreCase));
 
     protected override async Task OnInitializedAsync()
     {
@@ -189,6 +231,8 @@
         _websiteId = websiteId;
         _filter.AlbumID = null;
         _filter.TagID = null;
+        _albumSearch = null;
+        _tagSearch = null;
         await ReloadSidebarAsync();
         await LoadAsync();
     }
