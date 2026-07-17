@@ -1,0 +1,63 @@
+@inject ILanguageService LanguageService
+@inject ISnackbar Snackbar
+@inject IPageLocalizer L
+
+<MudDialog>
+    <DialogContent>
+        <MudForm @ref="_form">
+            <MudGrid Spacing="3">
+                <MudItem xs="12" sm="4">
+                    <MudTextField @bind-Value="Model.LanguageCode" Label="@L["languages.code", "Code (e.g. pt)"]" Variant="Variant.Outlined"
+                                  Required="true" MaxLength="2" />
+                </MudItem>
+                <MudItem xs="12" sm="8">
+                    <MudTextField @bind-Value="Model.LanguageCodeISO" Label="@L["languages.iso_code", "ISO Code (e.g. pt-PT)"]"
+                                  Variant="Variant.Outlined" Required="true" MaxLength="5" />
+                </MudItem>
+                <MudItem xs="12">
+                    <MudTextField @bind-Value="Model.Name" Label="@L["name", "Native Name"]" Variant="Variant.Outlined" Required="true" />
+                </MudItem>
+                <MudItem xs="12">
+                    <MudSwitch T="bool" @bind-Value="Model.RTLDesign" Label="@L["languages.rtl", "Right-to-left"]" Color="Color.Primary" />
+                </MudItem>
+            </MudGrid>
+
+            <DNValidationSummary Errors="_formErrors" />
+        </MudForm>
+    </DialogContent>
+    <DialogActions>
+        <MudButton OnClick="Cancel">@L["cancel", "Cancel"]</MudButton>
+        <MudButton Variant="Variant.Filled" Color="Color.Primary" OnClick="SaveAsync" Disabled="@_saving">@L["save", "Save"]</MudButton>
+    </DialogActions>
+</MudDialog>
+
+@code {
+    [CascadingParameter] private IMudDialogInstance MudDialog { get; set; } = null!;
+    [Parameter] public int WebsiteId { get; set; }
+    [Parameter] public Language Model { get; set; } = new();
+
+    private MudForm _form = null!;
+    private bool _saving;
+    private string[]? _formErrors;
+
+    private void Cancel() => MudDialog.Cancel();
+
+    private async Task SaveAsync()
+    {
+        await _form.Validate();
+        _formErrors = _form.Errors;
+        if (!_form.IsValid) return;
+        Model.LanguageCode = Model.LanguageCode.Trim().ToLowerInvariant();
+        Model.LanguageCodeISO = Model.LanguageCodeISO.Trim();
+
+        _saving = true;
+        try
+        {
+            await LanguageService.AddWebsiteLanguageAsync(WebsiteId, Model);
+            Snackbar.Add(L["saved", "Saved."], Severity.Success);
+            MudDialog.Close(DialogResult.Ok(true));
+        }
+        catch (Exception ex) { Snackbar.Add($"{L["save_failed", "Save failed"]}: {ex.Message}", Severity.Error); }
+        finally { _saving = false; }
+    }
+}

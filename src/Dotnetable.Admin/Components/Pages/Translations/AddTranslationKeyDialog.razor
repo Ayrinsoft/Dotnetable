@@ -1,0 +1,60 @@
+@inject ILocalizationService LocalizationService
+@inject ISnackbar Snackbar
+@inject IPageLocalizer L
+
+<MudDialog>
+    <DialogContent>
+        <MudForm @ref="_form">
+            <MudGrid Spacing="3">
+                <MudItem xs="12">
+                    <MudTextField @bind-Value="_key" Label="@L["key", "Key"]" Variant="Variant.Outlined"
+                                  Required="true" MaxLength="72" />
+                </MudItem>
+                <MudItem xs="12">
+                    <MudTextField @bind-Value="_value" Label="@L["value", "Value"]" Variant="Variant.Outlined"
+                                  Required="true" Lines="2" MaxLength="2000"
+                                  HelperText="@L["translation.add_key_hint", "Saved for the currently selected language; used as the fallback for every other language until translated."]" />
+                </MudItem>
+            </MudGrid>
+
+            <DNValidationSummary Errors="_formErrors" />
+        </MudForm>
+    </DialogContent>
+    <DialogActions>
+        <MudButton OnClick="Cancel">@L["cancel", "Cancel"]</MudButton>
+        <MudButton Variant="Variant.Filled" Color="Color.Primary" OnClick="SaveAsync" Disabled="@_saving">@L["save", "Save"]</MudButton>
+    </DialogActions>
+</MudDialog>
+
+@code {
+    [CascadingParameter] private IMudDialogInstance MudDialog { get; set; } = null!;
+    [Parameter] public int WebsiteId { get; set; }
+    [Parameter] public string LanguageCode { get; set; } = string.Empty;
+
+    private MudForm _form = null!;
+    private string _key = string.Empty;
+    private string _value = string.Empty;
+    private bool _saving;
+    private string[]? _formErrors;
+
+    private void Cancel() => MudDialog.Cancel();
+
+    private async Task SaveAsync()
+    {
+        await _form.Validate();
+        _formErrors = _form.Errors;
+        if (!_form.IsValid) return;
+
+        var key = _key.Trim();
+
+        _saving = true;
+        try
+        {
+            await LocalizationService.SetAsync(WebsiteId, LanguageCode, key, _value);
+            Snackbar.Add(L["saved", "Saved."], Severity.Success);
+            MudDialog.Close(DialogResult.Ok(true));
+        }
+        catch (Exception ex) { Snackbar.Add($"{L["save_failed", "Save failed"]}: {ex.Message}", Severity.Error); }
+        finally { _saving = false; }
+    }
+}
