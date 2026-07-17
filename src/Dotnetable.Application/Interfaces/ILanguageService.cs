@@ -39,4 +39,14 @@ public interface ILanguageService
     /// <summary>Sets a non-master website's own enabled languages to exactly the given codes (must
     /// be a subset of the active master catalog — anything else is silently ignored).</summary>
     Task SetWebsiteLanguagesAsync(int websiteId, IEnumerable<string> codes, CancellationToken ct = default);
+
+    /// <summary>Adds a language of the website's own choosing — not restricted to the master catalog
+    /// — visible only to that website. Throws if the website already has that code. No-op for the
+    /// master website (use <see cref="CreateAsync"/> to add to the shared catalog instead).</summary>
+    Task<Language> AddWebsiteLanguageAsync(int websiteId, Language language, CancellationToken ct = default);
+
+    /// <summary>Removes a language a website added for itself via <see cref="AddWebsiteLanguageAsync"/>.
+    /// No-op for the master website — catalog rows are hidden with <see cref="SetActiveAsync"/> instead
+    /// of being deleted, since translation data may already reference them.</summary>
+    Task<bool> RemoveWebsiteLanguageAsync(int websiteId, string languageCode, CancellationToken ct = default);
 }

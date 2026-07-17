@@ -3,6 +3,8 @@
 @using Dotnetable.Application.DTOs
 @inject ILocalizationService LocalizationService
 @inject ILanguageService LanguageService
+@inject IWebsiteService WebsiteService
+@inject IDialogService DialogService
 @inject AuthenticationStateProvider AuthState
 @inject ISnackbar Snackbar
 @inject IJSRuntime JS
@@ -17,11 +19,21 @@
         <MudText Typo="Typo.body2" Color="Color.Secondary">@L["translation.subtitle", "Edit UI text for each language"]</MudText>
     </MudStack>
     <MudStack Row="true" AlignItems="AlignItems.Center" Spacing="2">
+        @if (_isMaster)
+        {
+            <WebsiteSelector Value="_websiteId" ValueChanged="OnWebsiteChanged" Websites="_websites"
+                             Label="@L["website", "Website"]" Variant="Variant.Outlined"
+                             Dense="true" Style="min-width:180px" />
+        }
         <MudAutocomplete T="string" Value="_languageCode" ValueChanged="OnLanguageChanged" Label="@L["language", "Language"]"
                           SearchFunc="SearchLanguages" ToStringFunc="@(code => _languages.FirstOrDefault(l => l.Code == code).Label ?? code)"
                           Variant="Variant.Outlined" Margin="Margin.Dense"
                           Style="width:200px;" AnchorOrigin="Origin.BottomLeft"
                           CoerceText="true" ResetValueOnEmptyText="false" />
+        <MudButton Variant="Variant.Filled" Color="Color.Primary" StartIcon="@Icons.Material.Filled.Add"
+                   OnClick="AddKeyAsync" Disabled="@(_busy || string.IsNullOrEmpty(_languageCode))">
+            @L["translation.add_key", "Add Key"]
+        </MudButton>
         <MudMenu Label="@L["translation.export", "Export CSV"]" Variant="Variant.Outlined" Color="Color.Primary"
                  StartIcon="@Icons.Material.Filled.Download" EndIcon="@Icons.Material.Filled.ArrowDropDown"
                  Disabled="_busy">
@@ -75,7 +87,9 @@
 @code {
     private bool _loading = true;
     private bool _busy;
+    private bool _isMaster;
     private int _websiteId;
+    private List<Website> _websites = new();
     private string _languageCode = "en";
     private List<TranslationEntry> _translations = new();
 
@@ -90,11 +104,14 @@
         await L.EnsureLoadedAsync();
 
         var state = await AuthState.GetAuthenticationStateAsync();
-        int.TryParse(state.User.FindFirst(AdminClaimTypes.WebsiteId)?.Value, out _websiteId);
-        _languages = (await LanguageService.GetActiveForWebsiteAsync(_websiteId))
-            .Select(x => (x.LanguageCode, x.Name)).ToArray();
-        if (_languages.Length > 0 && !_languages.Any(l => l.Code == _languageCode))
-            _languageCode = _languages[0].Code;
+        var user = state.User;
+        _isMaster = user.HasClaim(AdminClaimTypes.Master, "true");
+        int.TryParse(user.FindFirst(AdminClaimTypes.WebsiteId)?.Value, out _websiteId);
+
+        if (_isMaster)
+            _websites = (await WebsiteService.GetAllAsync()).ToList();
+
+        await LoadLanguagesAsync();
 
         _grid = new GridViewHeaderParameters
         {
@@ -106,6 +123,22 @@
             }
         };
 
+        await LoadAsync();
+    }
+
+    private async Task LoadLanguagesAsync()
+    {
+        _languages = (await LanguageService.GetActiveForWebsiteAsync(_websiteId))
+            .Select(x => (x.LanguageCode, x.Name)).ToArray();
+        if (_languages.Length > 0 && !_languages.Any(l => l.Code == _languageCode))
+            _languageCode = _languages[0].Code;
+    }
+
+    private async Task OnWebsiteChanged(int id)
+    {
+        _websiteId = id;
+        await LoadLanguagesAsync();
+        _grid.Pagination.PageIndex = 1;
         await LoadAsync();
     }
 
@@ -185,6 +218,21 @@
             Snackbar.Add($"Import failed: {ex.Message}", Severity.Error);
         }
         finally { _busy = false; }
+    }
+
+    private async Task AddKeyAsync()
+    {
+        var parameters = new DialogParameters<AddTranslationKeyDialog>
+        {
+            { x => x.WebsiteId, _websiteId },
+            { x => x.LanguageCode, _languageCode },
+        };
+        var dialog = await DialogService.ShowAsync<AddTranslationKeyDialog>(L["translation.add_key", "Add Key"], parameters);
+        var result = await dialog.Result;
+        if (result is null || result.Canceled) return;
+
+        _grid.Pagination.PageIndex = 1;
+        await LoadAsync();
     }
 
     private async Task SaveAsync(string key, string value)

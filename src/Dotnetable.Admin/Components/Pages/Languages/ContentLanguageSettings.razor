@@ -2,6 +2,7 @@
 @attribute [Authorize(Policy = RoleKeys.LocalizationEdit)]
 @inject ILanguageService LanguageService
 @inject IWebsiteService WebsiteService
+@inject IDialogService DialogService
 @inject AuthenticationStateProvider AuthState
 @inject ISnackbar Snackbar
 @inject IPageLocalizer L
@@ -13,7 +14,9 @@
         <MudStack Spacing="0">
             <MudText Typo="Typo.h5" Class="fw-bold">@L["content_languages", "Content Languages"]</MudText>
             <MudText Typo="Typo.body2" Color="Color.Secondary">
-                @L["content_languages.subtitle", "Choose which languages your Posts, Pages and other content are offered in. The first one you enable is used when only one is selected; enabling more adds a translation tab for each when editing content."]
+                @(_websiteId == AppConstants.MasterWebsiteId
+                    ? L["content_languages.subtitle_master", "Manage the system-wide language catalog every other website picks from."]
+                    : L["content_languages.subtitle", "Choose which languages your Posts, Pages and other content are offered in. The first one you enable is used when only one is selected; enabling more adds a translation tab for each when editing content."])
             </MudText>
         </MudStack>
         @if (_isMaster)
@@ -25,19 +28,41 @@
     </MudStack>
 </MudStack>
 
-<MudPaper Elevation="0" Class="app-card rounded-lg pa-4">
-    @if (_loading)
-    {
-        <MudProgressLinear Indeterminate="true" Color="Color.Primary" Class="mb-3" />
-    }
-    else if (_websiteId == AppConstants.MasterWebsiteId)
-    {
-        <MudAlert Severity="Severity.Info">
-            @L["content_languages.master_hint", "The master website's languages are the system-wide catalog. Manage it from the Languages page instead of picking a subset here."]
-        </MudAlert>
-    }
-    else
-    {
+@if (_loading)
+{
+    <MudProgressLinear Indeterminate="true" Color="Color.Primary" Class="mb-3" />
+}
+else if (_websiteId == AppConstants.MasterWebsiteId)
+{
+    @* The master website's own languages ARE the shared catalog: full CRUD here, no toggle-from-catalog. *@
+    <MudPaper Elevation="0" Class="app-card rounded-lg pa-4">
+        <MudStack Row="true" Justify="Justify.FlexEnd" Class="mb-3">
+            <MudButton Variant="Variant.Filled" Color="Color.Primary" StartIcon="@Icons.Material.Filled.Add" OnClick="CreateCatalogLanguageAsync">
+                @L["languages.new", "New Language"]
+            </MudButton>
+        </MudStack>
+        <MudList T="string" Dense="false">
+            @foreach (var lang in _catalog)
+            {
+                <MudListItem T="string">
+                    <MudStack Row="true" AlignItems="AlignItems.Center" Justify="Justify.SpaceBetween">
+                        <MudText>@lang.Name (@lang.LanguageCode) @(lang.IsDefault ? $"— {L["languages.default", "Default"]}" : "")</MudText>
+                        <MudStack Row="true" Spacing="0">
+                            <MudIconButton Icon="@Icons.Material.Filled.Edit" Size="Size.Small" OnClick="@(() => EditCatalogLanguageAsync(lang))" />
+                            <MudIconButton Icon="@(lang.Active ? Icons.Material.Filled.VisibilityOff : Icons.Material.Filled.Visibility)"
+                                           Size="Size.Small" Color="@(lang.Active ? Color.Error : Color.Success)"
+                                           OnClick="@(() => ToggleCatalogActiveAsync(lang))"
+                                           Title="@(lang.Active ? L["languages.deactivate", "Deactivate — hide from all language lists"] : L["languages.activate", "Activate"])" />
+                        </MudStack>
+                    </MudStack>
+                </MudListItem>
+            }
+        </MudList>
+    </MudPaper>
+}
+else
+{
+    <MudPaper Elevation="0" Class="app-card rounded-lg pa-4 mb-4">
         <MudList T="string" Dense="false">
             @foreach (var lang in _catalog)
             {
@@ -59,8 +84,40 @@
                 @L["save", "Save Changes"]
             </MudButton>
         </MudStack>
-    }
-</MudPaper>
+    </MudPaper>
+
+    @* Languages this website added on its own, outside the master catalog — its own website isn't
+       limited to only what the master catalog offers. *@
+    <MudPaper Elevation="0" Class="app-card rounded-lg pa-4">
+        <MudStack Row="true" AlignItems="AlignItems.Center" Justify="Justify.SpaceBetween" Class="mb-3">
+            <MudText Typo="Typo.subtitle1" Class="fw-bold">@L["content_languages.custom", "Custom languages"]</MudText>
+            <MudButton Variant="Variant.Outlined" Color="Color.Primary" StartIcon="@Icons.Material.Filled.Add" OnClick="AddCustomLanguageAsync">
+                @L["languages.new", "New Language"]
+            </MudButton>
+        </MudStack>
+        @if (_customLanguages.Count == 0)
+        {
+            <MudText Typo="Typo.body2" Color="Color.Secondary">
+                @L["content_languages.custom_empty", "None yet. Add a language not offered in the catalog above — it will be available only on this website."]
+            </MudText>
+        }
+        else
+        {
+            <MudList T="string" Dense="false">
+                @foreach (var lang in _customLanguages)
+                {
+                    <MudListItem T="string">
+                        <MudStack Row="true" AlignItems="AlignItems.Center" Justify="Justify.SpaceBetween">
+                            <MudText>@lang.Name (@lang.LanguageCode)</MudText>
+                            <MudIconButton Icon="@Icons.Material.Filled.Delete" Size="Size.Small" Color="Color.Error"
+                                           OnClick="@(() => RemoveCustomLanguageAsync(lang))" />
+                        </MudStack>
+                    </MudListItem>
+                }
+            </MudList>
+        }
+    </MudPaper>
+}
 
 @code {
     private bool _loading = true;
@@ -70,6 +127,7 @@
     private List<Website> _websites = new();
     private List<Language> _catalog = new();
     private HashSet<string> _selected = new();
+    private List<Language> _customLanguages = new();
 
     protected override async Task OnInitializedAsync()
     {
@@ -82,7 +140,6 @@
         if (_isMaster)
             _websites = (await WebsiteService.GetAllAsync()).ToList();
 
-        _catalog = await LanguageService.GetActiveCatalogAsync();
         await LoadAsync();
     }
 
@@ -91,8 +148,17 @@
     private async Task LoadAsync()
     {
         _loading = true;
-        var active = await LanguageService.GetActiveForWebsiteAsync(_websiteId);
-        _selected = active.Select(l => l.LanguageCode).ToHashSet();
+        _catalog = await LanguageService.GetCatalogAsync();
+
+        if (_websiteId != AppConstants.MasterWebsiteId)
+        {
+            var active = await LanguageService.GetActiveForWebsiteAsync(_websiteId);
+            _selected = active.Select(l => l.LanguageCode).ToHashSet();
+            var catalogCodes = _catalog.Select(l => l.LanguageCode).ToHashSet();
+            _customLanguages = active.Where(l => !catalogCodes.Contains(l.LanguageCode)).ToList();
+            _catalog = _catalog.Where(l => l.Active).ToList();
+        }
+
         _loading = false;
     }
 
@@ -112,5 +178,65 @@
         }
         catch (Exception ex) { Snackbar.Add($"{L["save_failed", "Save failed"]}: {ex.Message}", Severity.Error); }
         finally { _saving = false; }
+    }
+
+    // ── Master catalog CRUD (this website's own languages ARE the catalog) ──────
+
+    private async Task CreateCatalogLanguageAsync()
+    {
+        if (await ShowCatalogDialogAsync(new Language { Active = true }, true)) await LoadAsync();
+    }
+
+    private async Task EditCatalogLanguageAsync(Language lang)
+    {
+        var copy = new Language
+        {
+            LanguageID = lang.LanguageID,
+            LanguageCode = lang.LanguageCode,
+            LanguageCodeISO = lang.LanguageCodeISO,
+            Name = lang.Name,
+            Priority = lang.Priority,
+            IsDefault = lang.IsDefault,
+            Active = lang.Active,
+            RTLDesign = lang.RTLDesign,
+        };
+        if (await ShowCatalogDialogAsync(copy, false)) await LoadAsync();
+    }
+
+    private async Task<bool> ShowCatalogDialogAsync(Language model, bool isNew)
+    {
+        var parameters = new DialogParameters<LanguageDialog> { { x => x.Model, model }, { x => x.IsNew, isNew } };
+        var dialog = await DialogService.ShowAsync<LanguageDialog>(
+            isNew ? L["languages.new", "New Language"] : L["languages.edit", "Edit Language"], parameters);
+        var result = await dialog.Result;
+        return result is not null && !result.Canceled;
+    }
+
+    private async Task ToggleCatalogActiveAsync(Language lang)
+    {
+        await LanguageService.SetActiveAsync(lang.LanguageID, !lang.Active);
+        Snackbar.Add(L["saved", "Saved."], Severity.Success);
+        await LoadAsync();
+    }
+
+    // ── Per-website custom languages (this site's own, outside the catalog) ─────
+
+    private async Task AddCustomLanguageAsync()
+    {
+        var parameters = new DialogParameters<WebsiteLanguageDialog>
+        {
+            { x => x.WebsiteId, _websiteId },
+            { x => x.Model, new Language() },
+        };
+        var dialog = await DialogService.ShowAsync<WebsiteLanguageDialog>(L["languages.new", "New Language"], parameters);
+        var result = await dialog.Result;
+        if (result is not null && !result.Canceled) await LoadAsync();
+    }
+
+    private async Task RemoveCustomLanguageAsync(Language lang)
+    {
+        await LanguageService.RemoveWebsiteLanguageAsync(_websiteId, lang.LanguageCode);
+        Snackbar.Add(L["saved", "Saved."], Severity.Success);
+        await LoadAsync();
     }
 }

@@ -178,6 +178,41 @@ public class LanguageService : ILanguageService
         _cache.InvalidateAll();
     }
 
+    public async Task<Language> AddWebsiteLanguageAsync(int websiteId, Language language, CancellationToken ct = default)
+    {
+        if (websiteId == AppConstants.MasterWebsiteId)
+            throw new InvalidOperationException("Use CreateAsync to add to the shared master catalog.");
+
+        language.WebsiteID = websiteId;
+        language.LanguageCode = language.LanguageCode.Trim().ToLowerInvariant();
+        language.Active = true;
+        language.IsDefault = false;
+
+        var exists = await _context.Languages.AnyAsync(
+            l => l.WebsiteID == websiteId && l.LanguageCode == language.LanguageCode, ct);
+        if (exists)
+            throw new InvalidOperationException($"'{language.LanguageCode}' has already been added to this website.");
+
+        _context.Languages.Add(language);
+        await _context.SaveChangesAsync(ct);
+        _cache.InvalidateAll();
+        return language;
+    }
+
+    public async Task<bool> RemoveWebsiteLanguageAsync(int websiteId, string languageCode, CancellationToken ct = default)
+    {
+        if (websiteId == AppConstants.MasterWebsiteId) return false;
+
+        var existing = await _context.Languages.FirstOrDefaultAsync(
+            l => l.WebsiteID == websiteId && l.LanguageCode == languageCode, ct);
+        if (existing is null) return false;
+
+        _context.Languages.Remove(existing);
+        await _context.SaveChangesAsync(ct);
+        _cache.InvalidateAll();
+        return true;
+    }
+
     private async Task ClearExistingDefaultAsync(CancellationToken ct)
     {
         var current = await _context.Languages
