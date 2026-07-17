@@ -179,7 +179,7 @@
     <AuthorizeView Policy="@RoleKeys.MediaView" Context="md">
         <MudNavGroup Title="@L["media", "Media"]" Icon="@Icons.Material.Filled.PermMedia"
                      Expanded="@IsGroupActive("/media")">
-            <MudNavLink Href="/media" Icon="@Icons.Material.Filled.PhotoLibrary">
+            <MudNavLink Href="/media" Match="NavLinkMatch.All" Icon="@Icons.Material.Filled.PhotoLibrary">
                 @L["media_library", "Media Library"]
             </MudNavLink>
             <MudNavLink Href="/media/albums" Icon="@Icons.Material.Filled.Collections">
@@ -219,7 +219,7 @@
     <AuthorizeView Policy="@RoleKeys.InventoryView" Context="inv">
         <MudNavGroup Title="@L["nav.inventory", "Inventory"]" Icon="@Icons.Material.Filled.Warehouse"
                      Expanded="@IsGroupActive("/inventory")">
-            <MudNavLink Href="/inventory" Icon="@Icons.Material.Filled.Numbers">@L["inventory.stock", "Stock"]</MudNavLink>
+            <MudNavLink Href="/inventory" Match="NavLinkMatch.All" Icon="@Icons.Material.Filled.Numbers">@L["inventory.stock", "Stock"]</MudNavLink>
             <MudNavLink Href="/inventory/movements" Icon="@Icons.Material.Filled.History">@L["inventory.movements", "Movements"]</MudNavLink>
             <AuthorizeView Policy="@RoleKeys.SuppliersView" Context="sup">
                 <MudNavLink Href="/inventory/suppliers" Icon="@Icons.Material.Filled.LocalShipping">@L["suppliers", "Suppliers"]</MudNavLink>
@@ -234,7 +234,7 @@
     <MudNavGroup Title="@L["nav.finance", "Finance"]" Icon="@Icons.Material.Filled.Payments"
                  Expanded="@IsGroupActive("/payments", "/wallets/", "/finance/")">
         <AuthorizeView Policy="@RoleKeys.PaymentsView" Context="pay">
-            <MudNavLink Href="/payments" Icon="@Icons.Material.Filled.CreditCard">@L["payments", "Payments"]</MudNavLink>
+            <MudNavLink Href="/payments" Match="NavLinkMatch.All" Icon="@Icons.Material.Filled.CreditCard">@L["payments", "Payments"]</MudNavLink>
         </AuthorizeView>
         <AuthorizeView Policy="@RoleKeys.PaymentsRefund" Context="rfnd">
             <MudNavLink Href="/payments/refunds" Icon="@Icons.Material.Filled.AssignmentReturn">@L["payments.refunds", "Bank Refunds"]</MudNavLink>
@@ -249,7 +249,7 @@
             <MudNavLink Href="/finance/currency-rates" Icon="@Icons.Material.Filled.CurrencyExchange">@L["currency_rates", "Exchange Rates"]</MudNavLink>
         </AuthorizeView>
         <AuthorizeView Policy="@AdminPolicies.SuperAdminOnly" Context="bnkm">
-            <MudNavLink Href="/finance/banks" Icon="@Icons.Material.Filled.AccountBalance">@L["banks", "Banks"]</MudNavLink>
+            <MudNavLink Href="/finance/banks" Match="NavLinkMatch.All" Icon="@Icons.Material.Filled.AccountBalance">@L["banks", "Banks"]</MudNavLink>
             <MudNavLink Href="/finance/currencies" Icon="@Icons.Material.Filled.CurrencyExchange">@L["currencies", "Currencies"]</MudNavLink>
         </AuthorizeView>
     </MudNavGroup>
