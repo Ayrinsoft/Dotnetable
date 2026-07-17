@@ -203,6 +203,25 @@ public class FileService : IFileService
             .OrderBy(a => a.Name)
             .ToListAsync(ct);
 
+    public async Task<PagedResult<FileAlbum>> GetAlbumsPagedAsync(int websiteId, GridQuery query, CancellationToken ct = default)
+    {
+        var q = _context.FileAlbums.AsNoTracking()
+            .Where(a => a.WebsiteID == websiteId);
+
+        if (query.GetSearch(nameof(FileAlbum.Name)) is string name)
+            q = q.Where(a => a.Name.Contains(name));
+        if (query.GetSearch(nameof(FileAlbum.Description)) is string description)
+            q = q.Where(a => a.Description != null && a.Description.Contains(description));
+
+        var total = await q.CountAsync(ct);
+        var items = await q
+            .ApplyOrderBy(query.OrderBy, nameof(FileAlbum.Name))
+            .Skip(query.Skip).Take(query.Take)
+            .ToListAsync(ct);
+
+        return new PagedResult<FileAlbum> { Items = items, TotalCount = total };
+    }
+
     public async Task<FileAlbum> CreateAlbumAsync(int websiteId, string name, string? description, CancellationToken ct = default)
     {
         var album = new FileAlbum
@@ -238,6 +257,23 @@ public class FileService : IFileService
             .OrderBy(t => t.Name)
             .ToListAsync(ct);
 
+    public async Task<PagedResult<FileTag>> GetTagsPagedAsync(int websiteId, GridQuery query, CancellationToken ct = default)
+    {
+        var q = _context.FileTags.AsNoTracking()
+            .Where(t => t.WebsiteID == websiteId);
+
+        if (query.GetSearch(nameof(FileTag.Name)) is string name)
+            q = q.Where(t => t.Name.Contains(name));
+
+        var total = await q.CountAsync(ct);
+        var items = await q
+            .ApplyOrderBy(query.OrderBy, nameof(FileTag.Name))
+            .Skip(query.Skip).Take(query.Take)
+            .ToListAsync(ct);
+
+        return new PagedResult<FileTag> { Items = items, TotalCount = total };
+    }
+
     public async Task<FileTag> CreateTagAsync(int websiteId, string name, CancellationToken ct = default)
     {
         var tag = new FileTag { WebsiteID = websiteId, Name = Truncate(name, 60)! };
@@ -245,6 +281,10 @@ public class FileService : IFileService
         await _context.SaveChangesAsync(ct);
         return tag;
     }
+
+    public async Task RenameTagAsync(int tagId, string name, CancellationToken ct = default) =>
+        await _context.FileTags.Where(t => t.FileTagID == tagId)
+            .ExecuteUpdateAsync(s => s.SetProperty(t => t.Name, Truncate(name, 60)!), ct);
 
     public async Task DeleteTagAsync(int tagId, CancellationToken ct = default)
     {

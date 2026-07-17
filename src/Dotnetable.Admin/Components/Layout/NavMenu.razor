@@ -182,6 +182,12 @@
             <MudNavLink Href="/media" Icon="@Icons.Material.Filled.PhotoLibrary">
                 @L["media_library", "Media Library"]
             </MudNavLink>
+            <MudNavLink Href="/media/albums" Icon="@Icons.Material.Filled.Collections">
+                @L["media.albums", "Albums"]
+            </MudNavLink>
+            <MudNavLink Href="/media/tags" Icon="@Icons.Material.Filled.LocalOffer">
+                @L["media.tags", "Tags"]
+            </MudNavLink>
             <AuthorizeView Policy="@RoleKeys.MediaUpload" Context="ms">
                 <MudNavLink Href="/media/storage" Icon="@Icons.Material.Filled.Cloud">
                     @L["storage", "Storage"]

@@ -34,19 +34,25 @@
                 <MudItem xs="12" sm="7">
                     <MudTextField @bind-Value="_title" Label="@L["title", "Title"]" Variant="Variant.Outlined" Class="mb-3" />
                     <MudTextField @bind-Value="_alt" Label="@L["media.alt_text", "Alt text"]" Variant="Variant.Outlined" Class="mb-3" />
-                    <MudSelect T="int?" @bind-Value="_albumId" Label="@L["media.album", "Album"]" Variant="Variant.Outlined" Clearable="true" Class="mb-3">
-                        @foreach (var a in _albums)
-                        {
-                            <MudSelectItem T="int?" Value="a.FileAlbumID">@a.Name</MudSelectItem>
-                        }
-                    </MudSelect>
-                    <MudSelect T="int" @bind-SelectedValues="_tagIds" Label="@L["media.tags", "Tags"]" Variant="Variant.Outlined"
-                               MultiSelection="true" SelectAll="false">
-                        @foreach (var t in _tags)
-                        {
-                            <MudSelectItem T="int" Value="t.FileTagID">@t.Name</MudSelectItem>
-                        }
-                    </MudSelect>
+                    <MudAutocomplete T="FileAlbum" Value="_selectedAlbum" ValueChanged="OnAlbumChanged"
+                                     Label="@L["media.album", "Album"]" Variant="Variant.Outlined" Class="mb-3"
+                                     SearchFunc="SearchAlbums" ToStringFunc="@(a => a?.Name ?? "")"
+                                     Clearable="true" ResetValueOnEmptyText="true" CoerceText="false" />
+                    <MudAutocomplete T="FileTag" Value="_tagToAdd" ValueChanged="OnTagAdd"
+                                     Label="@L["media.tags", "Tags"]" Variant="Variant.Outlined"
+                                     SearchFunc="SearchTags" ToStringFunc="@(t => t?.Name ?? "")"
+                                     ResetValueOnEmptyText="true" CoerceText="false"
+                                     Placeholder="@L["media.search_add_tag", "Search and add a tag…"]" />
+                    @if (_selectedTags.Count > 0)
+                    {
+                        <div class="d-flex flex-wrap gap-1 mt-2">
+                            @foreach (var t in _selectedTags)
+                            {
+                                <MudChip T="string" Size="Size.Small" Color="Color.Primary" Variant="Variant.Filled"
+                                         OnClose="@(() => RemoveTag(t.FileTagID))">@t.Name</MudChip>
+                            }
+                        </div>
+                    }
 
                     @if (!string.IsNullOrEmpty(_file.CNDUrl))
                     {
@@ -76,8 +82,9 @@
     private bool _busy;
     private string? _title;
     private string? _alt;
-    private int? _albumId;
-    private IReadOnlyCollection<int> _tagIds = new HashSet<int>();
+    private FileAlbum? _selectedAlbum;
+    private FileTag? _tagToAdd;
+    private List<FileTag> _selectedTags = new();
     private IReadOnlyList<FileAlbum> _albums = Array.Empty<FileAlbum>();
     private IReadOnlyList<FileTag> _tags = Array.Empty<FileTag>();
 
@@ -91,10 +98,39 @@
         {
             _title = _file.Title;
             _alt = _file.AltText;
-            _albumId = _file.FileAlbumID;
-            _tagIds = _file.FileRecordTags.Select(t => t.FileTagID).ToHashSet();
+            _selectedAlbum = _file.FileAlbumID is int albumId
+                ? _albums.FirstOrDefault(a => a.FileAlbumID == albumId)
+                : null;
+            var selectedIds = _file.FileRecordTags.Select(t => t.FileTagID).ToHashSet();
+            _selectedTags = _tags.Where(t => selectedIds.Contains(t.FileTagID)).ToList();
         }
     }
+
+    private Task<IEnumerable<FileAlbum>> SearchAlbums(string value, CancellationToken ct)
+    {
+        if (string.IsNullOrWhiteSpace(value))
+            return Task.FromResult(_albums.AsEnumerable());
+        return Task.FromResult(_albums.Where(a => a.Name.Contains(value, StringComparison.OrdinalIgnoreCase)));
+    }
+
+    private Task<IEnumerable<FileTag>> SearchTags(string value, CancellationToken ct)
+    {
+        var available = _tags.Where(t => _selectedTags.All(s => s.FileTagID != t.FileTagID));
+        if (string.IsNullOrWhiteSpace(value))
+            return Task.FromResult(available);
+        return Task.FromResult(available.Where(t => t.Name.Contains(value, StringComparison.OrdinalIgnoreCase)));
+    }
+
+    private void OnAlbumChanged(FileAlbum? album) => _selectedAlbum = album;
+
+    private void OnTagAdd(FileTag? tag)
+    {
+        if (tag is not null && _selectedTags.All(t => t.FileTagID != tag.FileTagID))
+            _selectedTags.Add(tag);
+        _tagToAdd = null;
+    }
+
+    private void RemoveTag(int tagId) => _selectedTags.RemoveAll(t => t.FileTagID == tagId);
 
     private async Task SaveAsync()
     {
@@ -102,7 +138,10 @@
         _busy = true;
         try
         {
-            await FileService.UpdateMetadataAsync(_file.FileRecordID, _title, _alt, _albumId, _tagIds.ToList());
+            await FileService.UpdateMetadataAsync(
+                _file.FileRecordID, _title, _alt,
+                _selectedAlbum?.FileAlbumID,
+                _selectedTags.Select(t => t.FileTagID).ToList());
             Snackbar.Add(L["saved_short", "Saved."], Severity.Success);
             MudDialog.Close(DialogResult.Ok(true));
         }

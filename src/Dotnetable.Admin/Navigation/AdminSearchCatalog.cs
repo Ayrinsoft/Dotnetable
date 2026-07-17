@@ -88,6 +88,8 @@ public static class AdminSearchCatalog
         new AdminSearchPage("content_languages", "Content Languages", "/content-languages", Icons.Material.Filled.GTranslate, "translations", "Translations", RoleKeys.LocalizationEdit),
 
         new AdminSearchPage("media_library", "Media Library", "/media", Icons.Material.Filled.PhotoLibrary, "media", "Media", RoleKeys.MediaView),
+        new AdminSearchPage("media_albums", "Media Albums", "/media/albums", Icons.Material.Filled.Collections, "media", "Media", RoleKeys.MediaView),
+        new AdminSearchPage("media_tags", "Media Tags", "/media/tags", Icons.Material.Filled.LocalOffer, "media", "Media", RoleKeys.MediaView),
         new AdminSearchPage("storage", "Storage", "/media/storage", Icons.Material.Filled.Cloud, "media", "Media", RoleKeys.MediaUpload),
         new AdminSearchPage("watermark", "Watermark", "/media/watermark", Icons.Material.Filled.BrandingWatermark, "media", "Media", RoleKeys.MediaUpload),
 
