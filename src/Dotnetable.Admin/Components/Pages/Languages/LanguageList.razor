@@ -5,13 +5,13 @@
 @inject ISnackbar Snackbar
 @inject IPageLocalizer L
 
-<DNPageTitle Title=@L["languages", "Languages"] />
+<DNPageTitle Title=@L["languages.catalog", "Language Catalog"] />
 
 <MudStack Row="true" AlignItems="AlignItems.Center" Justify="Justify.SpaceBetween" Class="mb-4">
     <MudStack Spacing="0">
-        <MudText Typo="Typo.h5" Class="fw-bold">@L["languages", "Languages"]</MudText>
+        <MudText Typo="Typo.h5" Class="fw-bold">@L["languages.catalog", "Language Catalog"]</MudText>
         <MudText Typo="Typo.body2" Color="Color.Secondary">
-            @L["languages.subtitle", "The system-wide language catalog. Other websites pick which of these to offer for their own content from their Content Languages page."]
+            @L["languages.subtitle", "Admin panel language catalog (master website). Controls which languages the admin UI can switch to. Storefront languages are managed separately under Website → Languages."]
         </MudText>
     </MudStack>
     <MudButton Variant="Variant.Filled" Color="Color.Primary" StartIcon="@Icons.Material.Filled.Add" OnClick="CreateAsync">

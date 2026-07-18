@@ -8,12 +8,13 @@
             <MudGrid Spacing="3">
                 <MudItem xs="12">
                     <MudTextField @bind-Value="_key" Label="@L["key", "Key"]" Variant="Variant.Outlined"
-                                  Required="true" MaxLength="72" />
+                                  Required="true" MaxLength="72"
+                                  HelperText="@L["translation.key_hint", "Stable identifier used in themes and APIs (e.g. home.hero_title)."]" />
                 </MudItem>
                 <MudItem xs="12">
-                    <MudTextField @bind-Value="_value" Label="@L["value", "Value"]" Variant="Variant.Outlined"
+                    <MudTextField @bind-Value="_value" Label="@ValueLabel" Variant="Variant.Outlined"
                                   Required="true" Lines="2" MaxLength="2000"
-                                  HelperText="@L["translation.add_key_hint", "Saved for the currently selected language; used as the fallback for every other language until translated."]" />
+                                  HelperText="@ValueHint" />
                 </MudItem>
             </MudGrid>
 
@@ -30,12 +31,25 @@
     [CascadingParameter] private IMudDialogInstance MudDialog { get; set; } = null!;
     [Parameter] public int WebsiteId { get; set; }
     [Parameter] public string LanguageCode { get; set; } = string.Empty;
+    [Parameter] public bool IsDefaultLanguage { get; set; }
+    [Parameter] public string DefaultLanguageCode { get; set; } = "en";
 
     private MudForm _form = null!;
     private string _key = string.Empty;
     private string _value = string.Empty;
     private bool _saving;
     private string[]? _formErrors;
+
+    private string ValueLabel => IsDefaultLanguage
+        ? L["translation.default_value", "Default value"]
+        : $"{L["value", "Value"]} ({LanguageCode})";
+
+    private string ValueHint => IsDefaultLanguage
+        ? L["translation.add_key_hint", "Saved for the currently selected language; used as the fallback for every other language until translated."]
+        : string.Format(
+            L["translation.add_key_hint_other", "Saved for {0}. The default-language fallback stays empty until you add the key in {1}."],
+            LanguageCode,
+            DefaultLanguageCode);
 
     private void Cancel() => MudDialog.Cancel();
 
@@ -46,11 +60,21 @@
         if (!_form.IsValid) return;
 
         var key = _key.Trim();
+        if (string.IsNullOrWhiteSpace(key))
+        {
+            _formErrors = [L["translation.key_required", "Key is required."]];
+            return;
+        }
 
         _saving = true;
         try
         {
             await LocalizationService.SetAsync(WebsiteId, LanguageCode, key, _value);
+
+            // Always store DefaultValue when creating from the site default language (or when no default yet).
+            if (IsDefaultLanguage)
+                await LocalizationService.SetDefaultValueAsync(WebsiteId, key, _value);
+
             Snackbar.Add(L["saved", "Saved."], Severity.Success);
             MudDialog.Close(DialogResult.Ok(true));
         }

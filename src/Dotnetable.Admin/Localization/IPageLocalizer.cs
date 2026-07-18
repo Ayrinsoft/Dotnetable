@@ -1,10 +1,11 @@
 namespace Dotnetable.Admin.Localization;
 
 /// <summary>
-/// Per-circuit helper that resolves UI strings for the signed-in admin's website and language.
+/// Per-circuit helper that resolves admin UI strings for the signed-in language.
 /// Call <see cref="EnsureLoadedAsync"/> once in a page's <c>OnInitializedAsync</c>, then read strings
 /// with the indexer: <c>L["members.edit.title", "Edit Member"]</c>. Unknown keys fall back to the
-/// supplied default and self-register so they appear on the Translations page for localization.
+/// supplied default and self-register under the master website so they appear on Initial Data →
+/// Admin Translations (never under a tenant's Website → Translations).
 /// </summary>
 public interface IPageLocalizer
 {

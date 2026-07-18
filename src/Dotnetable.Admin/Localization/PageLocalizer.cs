@@ -9,7 +9,8 @@ namespace Dotnetable.Admin.Localization;
 /// <inheritdoc cref="IPageLocalizer"/>
 public sealed class PageLocalizer : IPageLocalizer
 {
-    // Admin UI strings default to English; translations for other languages come from the DB.
+    // Admin UI strings default to English; translations for other languages come from the DB
+    // under the master website only — never under a tenant website's LocalizationKeys.
     public const string DefaultLanguage = "en";
 
     private readonly TranslationCache _cache;
@@ -41,6 +42,8 @@ public sealed class PageLocalizer : IPageLocalizer
         _languageService = languageService;
     }
 
+    /// <summary>Signed-in member's website (for content language pickers, etc.). Admin UI strings
+    /// always load from <see cref="AppConstants.MasterWebsiteId"/>.</summary>
     public int WebsiteId { get; private set; } = AppConstants.MasterWebsiteId;
     public string LanguageCode { get; private set; } = DefaultLanguage;
 
@@ -69,12 +72,14 @@ public sealed class PageLocalizer : IPageLocalizer
 
         LanguageCode = await ResolveLanguageAsync(ct);
 
-        await _localization.LoadAsync(WebsiteId, LanguageCode, ct);
+        // Admin panel vocabulary always lives on the master website so tenant Website → Translations
+        // stays free of admin UI keys.
+        await _localization.LoadAsync(AppConstants.MasterWebsiteId, LanguageCode, ct);
         _loaded = true;
     }
 
     // "dn-lang" cookie (set by the header switcher / auth pages) wins; otherwise fall back to the
-    // member's website default language.
+    // member's website default language when it is in the admin catalog.
     private async Task<string> ResolveLanguageAsync(CancellationToken ct)
     {
         var options = (await _languageService.GetActiveCatalogAsync(ct)).Select(l => l.ToOption()).ToList();
@@ -95,17 +100,17 @@ public sealed class PageLocalizer : IPageLocalizer
     {
         get
         {
-            if (_cache.TryGet(WebsiteId, LanguageCode, key, out var value))
+            if (_cache.TryGet(AppConstants.MasterWebsiteId, LanguageCode, key, out var value))
                 return value;
 
             // Before the website/language is resolved, just return the default without side effects —
             // registering now could file the key under the wrong website.
             if (!_loaded) return defaultValue;
 
-            // Unknown key: queue it for insertion and cache the default so we neither re-queue it
-            // nor block rendering on a DB round-trip.
-            _pending.Add(WebsiteId, key, defaultValue);
-            _cache.Set(WebsiteId, LanguageCode, key, defaultValue);
+            // Unknown key: queue it for insertion under master only, and cache the default so we
+            // neither re-queue it nor block rendering on a DB round-trip.
+            _pending.Add(AppConstants.MasterWebsiteId, key, defaultValue);
+            _cache.Set(AppConstants.MasterWebsiteId, LanguageCode, key, defaultValue);
             return defaultValue;
         }
     }

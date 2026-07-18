@@ -8,7 +8,7 @@
             <MudGrid Spacing="3">
                 <MudItem xs="12" sm="4">
                     <MudTextField @bind-Value="Model.LanguageCode" Label="@L["languages.code", "Code (e.g. pt)"]" Variant="Variant.Outlined"
-                                  Required="true" MaxLength="2" />
+                                  Required="true" MaxLength="2" Disabled="@(!IsNew)" />
                 </MudItem>
                 <MudItem xs="12" sm="8">
                     <MudTextField @bind-Value="Model.LanguageCodeISO" Label="@L["languages.iso_code", "ISO Code (e.g. pt-PT)"]"
@@ -17,9 +17,26 @@
                 <MudItem xs="12">
                     <MudTextField @bind-Value="Model.Name" Label="@L["name", "Native Name"]" Variant="Variant.Outlined" Required="true" />
                 </MudItem>
-                <MudItem xs="12">
+                <MudItem xs="12" sm="4">
+                    <MudNumericField T="int" @bind-Value="Model.Priority" Label="@L["languages.priority", "Priority (sort order)"]"
+                                     Variant="Variant.Outlined" Min="0" />
+                </MudItem>
+                <MudItem xs="12" sm="4">
                     <MudSwitch T="bool" @bind-Value="Model.RTLDesign" Label="@L["languages.rtl", "Right-to-left"]" Color="Color.Primary" />
                 </MudItem>
+                <MudItem xs="12" sm="4">
+                    <MudSwitch T="bool" @bind-Value="Model.IsDefault" Label="@L["languages.default", "Default language"]"
+                               Color="Color.Primary" Disabled="@(!IsNew && Model.IsDefault)" />
+                </MudItem>
+                @if (!IsNew)
+                {
+                    <MudItem xs="12">
+                        <MudSwitch T="bool" @bind-Value="Model.Active"
+                                   Label="@(Model.Active ? L["languages.active_on", "Active — available on the storefront"] : L["languages.active_off", "Inactive — hidden from the storefront"])"
+                                   Color="Color.Primary"
+                                   Disabled="@Model.IsDefault" />
+                    </MudItem>
+                }
             </MudGrid>
 
             <DNValidationSummary Errors="_formErrors" />
@@ -35,6 +52,7 @@
     [CascadingParameter] private IMudDialogInstance MudDialog { get; set; } = null!;
     [Parameter] public int WebsiteId { get; set; }
     [Parameter] public Language Model { get; set; } = new();
+    [Parameter] public bool IsNew { get; set; } = true;
 
     private MudForm _form = null!;
     private bool _saving;
@@ -47,17 +65,28 @@
         await _form.Validate();
         _formErrors = _form.Errors;
         if (!_form.IsValid) return;
+
         Model.LanguageCode = Model.LanguageCode.Trim().ToLowerInvariant();
         Model.LanguageCodeISO = Model.LanguageCodeISO.Trim();
 
         _saving = true;
         try
         {
-            await LanguageService.AddWebsiteLanguageAsync(WebsiteId, Model);
+            if (IsNew)
+                await LanguageService.AddWebsiteLanguageAsync(WebsiteId, Model);
+            else
+                await LanguageService.UpdateWebsiteLanguageAsync(WebsiteId, Model);
+
             Snackbar.Add(L["saved", "Saved."], Severity.Success);
             MudDialog.Close(DialogResult.Ok(true));
         }
-        catch (Exception ex) { Snackbar.Add($"{L["save_failed", "Save failed"]}: {ex.Message}", Severity.Error); }
-        finally { _saving = false; }
+        catch (Exception ex)
+        {
+            Snackbar.Add($"{L["save_failed", "Save failed"]}: {ex.Message}", Severity.Error);
+        }
+        finally
+        {
+            _saving = false;
+        }
     }
 }

@@ -135,7 +135,6 @@
     <Build Include="Countries.sql" />
     <Build Include="CountryTranslations.sql" />
     <Build Include="CurrencyRates.sql" />
-    <Build Include="EmailSettings.sql" />
     <Build Include="EmailSubscribes.sql" />
     <Build Include="FileAlbums.sql" />
     <Build Include="FileRecords.sql" />
@@ -176,6 +175,8 @@
     <Build Include="WebsiteFeatures.sql" />
     <Build Include="WebsiteCaptchaSettings.sql" />
     <Build Include="WebsiteWatermarkSettings.sql" />
+    <Build Include="EmailAccounts.sql" />
+    <Build Include="EmailTemplates.sql" />
   </ItemGroup>
   <Import Project="$(MSBuildExtensionsPath)\Microsoft\VisualStudio\v$(VisualStudioVersion)\SSDT\Microsoft.Data.Tools.Schema.SqlTasks.targets" Condition="'$(VisualStudioVersion)' != '' And Exists('$(MSBuildExtensionsPath)\Microsoft\VisualStudio\v$(VisualStudioVersion)\SSDT\Microsoft.Data.Tools.Schema.SqlTasks.targets')" />
   <Import Project="$(MSBuildExtensionsPath)\Microsoft\VisualStudio\SSDT\Microsoft.Data.Tools.Schema.SqlTasks.targets" Condition="'$(VisualStudioVersion)' == '' And Exists('$(MSBuildExtensionsPath)\Microsoft\VisualStudio\SSDT\Microsoft.Data.Tools.Schema.SqlTasks.targets')" />

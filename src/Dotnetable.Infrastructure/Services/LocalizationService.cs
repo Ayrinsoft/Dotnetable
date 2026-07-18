@@ -101,6 +101,29 @@ public class LocalizationService : ILocalizationService
         _cache.Set(websiteId, languageCode, key, value);
     }
 
+    public async Task SetDefaultValueAsync(int websiteId, string key, string defaultValue, CancellationToken ct = default)
+    {
+        var localizationKey = await _context.LocalizationKeys
+            .FirstOrDefaultAsync(k => k.WebsiteID == websiteId && k.ItemKey == key, ct);
+
+        if (localizationKey is null)
+        {
+            localizationKey = new LocalizationKey
+            {
+                WebsiteID = websiteId,
+                ItemKey = key,
+                DefaultValue = defaultValue,
+            };
+            _context.LocalizationKeys.Add(localizationKey);
+        }
+        else
+        {
+            localizationKey.DefaultValue = defaultValue;
+        }
+
+        await _context.SaveChangesAsync(ct);
+    }
+
     // Column lengths mirror the LocalizationKey/LocalizationValue tables.
     private const int MaxKeyLength = 72;
     private const int MaxValueLength = 2000;
