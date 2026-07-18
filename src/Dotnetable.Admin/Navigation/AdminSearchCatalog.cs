@@ -30,6 +30,7 @@ public static class AdminSearchCatalog
     public static readonly IReadOnlyList<AdminSearchPage> Pages = new[]
     {
         new AdminSearchPage("dashboard", "Dashboard", "/", Icons.Material.Filled.Dashboard, "nav.navigation", "Navigation", null),
+        new AdminSearchPage("notifications", "Notifications", "/notifications", Icons.Material.Filled.Notifications, "nav.navigation", "Navigation", null),
 
         new AdminSearchPage("members", "Members", "/members", Icons.Material.Filled.PersonOutline, "nav.user_management", "User Management", RoleKeys.MembersView),
         new AdminSearchPage("clients", "Customers", "/clients", Icons.Material.Filled.People, "nav.user_management", "User Management", RoleKeys.ClientsView),

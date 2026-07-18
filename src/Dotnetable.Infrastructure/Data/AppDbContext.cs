@@ -12,6 +12,8 @@ public partial class AppDbContext : DbContext
     {
     }
 
+    public virtual DbSet<AdminNotification> AdminNotifications { get; set; }
+
     public virtual DbSet<AttributeDefinition> AttributeDefinitions { get; set; }
 
     public virtual DbSet<AttributeDefinitionTranslation> AttributeDefinitionTranslations { get; set; }
@@ -1168,11 +1170,36 @@ public partial class AppDbContext : DbContext
                 .HasConstraintName("FK_MediaSetItems_FileRecord1");
         });
 
+        modelBuilder.Entity<AdminNotification>(entity =>
+        {
+            entity.HasIndex(e => new { e.MemberID, e.IsRead, e.CreatedAt }, "IX_AdminNotifications_MemberID_IsRead_CreatedAt");
+            entity.HasIndex(e => e.WebsiteID, "IX_AdminNotifications_WebsiteID");
+
+            entity.Property(e => e.ActionUrl)
+                .HasMaxLength(256)
+                .IsUnicode(false);
+            entity.Property(e => e.CreatedAt).HasColumnType("datetime");
+            entity.Property(e => e.IsRead).HasDefaultValue(false, "DF_AdminNotifications_IsRead");
+            entity.Property(e => e.Message).HasMaxLength(1000);
+            entity.Property(e => e.Title).HasMaxLength(200);
+
+            entity.HasOne(d => d.Member).WithMany(p => p.AdminNotifications)
+                .HasForeignKey(d => d.MemberID)
+                .OnDelete(DeleteBehavior.ClientSetNull)
+                .HasConstraintName("FK_AdminNotifications_Members");
+
+            entity.HasOne(d => d.Website).WithMany(p => p.AdminNotifications)
+                .HasForeignKey(d => d.WebsiteID)
+                .OnDelete(DeleteBehavior.ClientSetNull)
+                .HasConstraintName("FK_AdminNotifications_Websites");
+        });
+
         modelBuilder.Entity<Member>(entity =>
         {
             entity.Property(e => e.AdminUIMode)
                 .HasComment("0 = Basic (admin surface reduced to what this member's Website.WebsiteType needs), 1 = General (same admin surface regardless of website type), 2 = Advanced (full surface, e.g. extra-language pages/buttons on an otherwise single-language site)")
                 .HasDefaultValue((byte)1, "DF_Members_AdminUIMode");
+            entity.Property(e => e.IsSiteAdmin).HasDefaultValue(false, "DF_Members_IsSiteAdmin");
             entity.Property(e => e.CellphoneNumber)
                 .HasMaxLength(12)
                 .IsUnicode(false);

@@ -198,6 +198,7 @@ public static class ServiceCollectionExtensions
         services.AddScoped<IEmailService, EmailService>();
         services.AddScoped<IEmailAccountService, EmailAccountService>();
         services.AddScoped<IEmailTemplateService, EmailTemplateService>();
+        services.AddScoped<IAdminNotificationService, AdminNotificationService>();
         services.AddScoped<IPasswordResetService, PasswordResetService>();
         // SMS delivery for customer OTP/reset codes. No real gateway yet — the stub logs the message.
         services.AddSingleton<ISmsSender, NoOpSmsSender>();

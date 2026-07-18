@@ -1,6 +1,7 @@
 using Dotnetable.Application.DTOs;
 using Dotnetable.Application.Interfaces;
 using Dotnetable.Domain.Entities;
+using Dotnetable.Domain.Enums;
 using Dotnetable.Infrastructure.Data;
 using Dotnetable.Infrastructure.Extensions;
 using Microsoft.EntityFrameworkCore;
@@ -11,11 +12,14 @@ public class ClientWalletWithdrawalService : IClientWalletWithdrawalService
 {
     private readonly AppDbContext _context;
     private readonly IClientWalletService _wallets;
+    private readonly IAdminNotificationService _notifications;
 
-    public ClientWalletWithdrawalService(AppDbContext context, IClientWalletService wallets)
+    public ClientWalletWithdrawalService(
+        AppDbContext context, IClientWalletService wallets, IAdminNotificationService notifications)
     {
         _context = context;
         _wallets = wallets;
+        _notifications = notifications;
     }
 
     public async Task<ClientWalletWithdrawal> RequestAsync(int websiteId, int clientId, int clientBankAccountId, decimal amountUsd, CancellationToken ct = default)
@@ -55,6 +59,15 @@ public class ClientWalletWithdrawalService : IClientWalletWithdrawalService
         // Link the hold transaction back to this withdrawal now that we have its id.
         holdTransaction.SourceId = withdrawal.ClientWalletWithdrawalID;
         await _context.SaveChangesAsync(ct);
+
+        await _notifications.NotifySiteAdminsAsync(
+            websiteId,
+            AdminNotificationType.WithdrawalRequested,
+            "Withdrawal requested",
+            $"Customer #{clientId} requested a withdrawal of {amountUsd:0.##} USD.",
+            "/wallets/withdrawals",
+            withdrawal.ClientWalletWithdrawalID,
+            ct);
 
         return withdrawal;
     }

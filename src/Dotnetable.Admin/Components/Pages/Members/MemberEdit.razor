@@ -118,14 +118,18 @@ else if (_member is not null)
 
             <MudItem xs="12">
                 <MudPaper Elevation="0" Class="border rounded-lg pa-6">
-                    <MudSwitch T="bool" @bind-Value="_member.Active" Color="Color.Primary" Disabled="@_isSelf"
-                               Label="@(_member.Active ? L["active_hint", "Active — can sign in"] : L["inactive_hint", "Inactive — cannot sign in"])" />
-                    @if (_isSelf)
-                    {
-                        <MudText Typo="Typo.caption" Color="Color.Secondary">
-                            @L["members.self_active_locked", "You cannot deactivate your own account."]
-                        </MudText>
-                    }
+                    <MudStack Spacing="3">
+                        <MudSwitch T="bool" @bind-Value="_member.Active" Color="Color.Primary" Disabled="@_isSelf"
+                                   Label="@(_member.Active ? L["active_hint", "Active — can sign in"] : L["inactive_hint", "Inactive — cannot sign in"])" />
+                        @if (_isSelf)
+                        {
+                            <MudText Typo="Typo.caption" Color="Color.Secondary">
+                                @L["members.self_active_locked", "You cannot deactivate your own account."]
+                            </MudText>
+                        }
+                        <MudSwitch T="bool" @bind-Value="_member.IsSiteAdmin" Color="Color.Primary" Disabled="@_isSelf"
+                                   Label="@L["members.site_admin", "Site admin — receives site notification emails and inbox items"]" />
+                    </MudStack>
                 </MudPaper>
             </MudItem>
         </MudGrid>
