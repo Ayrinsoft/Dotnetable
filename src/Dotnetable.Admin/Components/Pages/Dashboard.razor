@@ -162,8 +162,11 @@ else
                         </MudListItem>
                     </AuthorizeView>
                     <AuthorizeView Policy="@RoleKeys.LocalizationEdit" Context="_">
-                        <MudListItem T="string" Icon="@Icons.Material.Filled.Translate" OnClick='() => Nav.NavigateTo("/translations")'>
-                            @L["translations", "Translations"]
+                        <MudListItem T="string" Icon="@Icons.Material.Filled.Language" OnClick='() => Nav.NavigateTo("/website/languages")'>
+                            @L["website_languages", "Languages"]
+                        </MudListItem>
+                        <MudListItem T="string" Icon="@Icons.Material.Filled.Translate" OnClick='() => Nav.NavigateTo("/website/translations")'>
+                            @L["website_translations", "Translations"]
                         </MudListItem>
                     </AuthorizeView>
                     <AuthorizeView Policy="@AdminPolicies.SuperAdminOnly" Context="_">

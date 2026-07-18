@@ -80,7 +80,7 @@ public class LanguageService : ILanguageService
         language.LanguageCode = language.LanguageCode.Trim().ToLowerInvariant();
 
         if (language.IsDefault)
-            await ClearExistingDefaultAsync(ct);
+            await ClearExistingDefaultAsync(AppConstants.MasterWebsiteId, ct);
 
         _context.Languages.Add(language);
         await _context.SaveChangesAsync(ct);
@@ -95,7 +95,7 @@ public class LanguageService : ILanguageService
         if (existing is null) return false;
 
         if (language.IsDefault && !existing.IsDefault)
-            await ClearExistingDefaultAsync(ct);
+            await ClearExistingDefaultAsync(AppConstants.MasterWebsiteId, ct);
 
         existing.Name = language.Name;
         existing.LanguageCodeISO = language.LanguageCodeISO;
@@ -121,77 +121,59 @@ public class LanguageService : ILanguageService
         return true;
     }
 
-    public Task<List<Language>> GetActiveForWebsiteAsync(int websiteId, CancellationToken ct = default) =>
-        _cache.GetOrLoadWebsiteAsync(websiteId, () => LoadActiveForWebsiteAsync(websiteId, ct));
+    // ── Per-website languages ────────────────────────────────────────────────
 
-    private async Task<List<Language>> LoadActiveForWebsiteAsync(int websiteId, CancellationToken ct)
+    public Task<List<Language>> GetForWebsiteAsync(int websiteId, CancellationToken ct = default) =>
+        _cache.GetOrLoadWebsiteAsync(websiteId, () => LoadForWebsiteAsync(websiteId, ct));
+
+    public async Task<List<Language>> GetActiveForWebsiteAsync(int websiteId, CancellationToken ct = default) =>
+        (await GetForWebsiteAsync(websiteId, ct)).Where(l => l.Active).ToList();
+
+    private async Task<List<Language>> LoadForWebsiteAsync(int websiteId, CancellationToken ct)
     {
-        if (websiteId == AppConstants.MasterWebsiteId)
-            return await GetActiveCatalogAsync(ct);
+        await EnsureWebsiteDefaultLanguageAsync(websiteId, ct);
 
-        var own = await _context.Languages
+        return await _context.Languages
             .AsNoTracking()
-            .Where(l => l.WebsiteID == websiteId && l.Active)
+            .Where(l => l.WebsiteID == websiteId)
             .OrderBy(l => l.Priority)
+            .ThenBy(l => l.Name)
             .ToListAsync(ct);
-        if (own.Count > 0) return own;
-
-        var website = await _context.Websites.AsNoTracking().FirstOrDefaultAsync(w => w.WebsiteID == websiteId, ct);
-        var fallbackCode = string.IsNullOrWhiteSpace(website?.DefaultLanguageCode) ? "en" : website!.DefaultLanguageCode;
-        var fallback = (await GetCatalogAsync(ct)).FirstOrDefault(l => l.LanguageCode == fallbackCode)
-            ?? new Language { LanguageCode = fallbackCode, LanguageCodeISO = fallbackCode, Name = fallbackCode, Active = true, IsDefault = true };
-        return [fallback];
-    }
-
-    public async Task SetWebsiteLanguagesAsync(int websiteId, IEnumerable<string> codes, CancellationToken ct = default)
-    {
-        if (websiteId == AppConstants.MasterWebsiteId) return;
-
-        var activeCatalog = await GetActiveCatalogAsync(ct);
-        var selected = codes.Select(c => c.Trim().ToLowerInvariant()).ToHashSet();
-        var validCodes = activeCatalog.Select(l => l.LanguageCode).ToHashSet();
-        selected.IntersectWith(validCodes);
-
-        var existing = await _context.Languages.Where(l => l.WebsiteID == websiteId).ToListAsync(ct);
-
-        foreach (var row in existing)
-            row.Active = selected.Contains(row.LanguageCode);
-
-        var toAdd = selected.Except(existing.Select(l => l.LanguageCode));
-        foreach (var code in toAdd)
-        {
-            var catalogEntry = activeCatalog.First(l => l.LanguageCode == code);
-            _context.Languages.Add(new Language
-            {
-                WebsiteID = websiteId,
-                LanguageCode = catalogEntry.LanguageCode,
-                LanguageCodeISO = catalogEntry.LanguageCodeISO,
-                Name = catalogEntry.Name,
-                Priority = catalogEntry.Priority,
-                RTLDesign = catalogEntry.RTLDesign,
-                Active = true,
-                IsDefault = false,
-            });
-        }
-
-        await _context.SaveChangesAsync(ct);
-        _cache.InvalidateAll();
     }
 
     public async Task<Language> AddWebsiteLanguageAsync(int websiteId, Language language, CancellationToken ct = default)
     {
-        if (websiteId == AppConstants.MasterWebsiteId)
-            throw new InvalidOperationException("Use CreateAsync to add to the shared master catalog.");
-
         language.WebsiteID = websiteId;
         language.LanguageCode = language.LanguageCode.Trim().ToLowerInvariant();
+        language.LanguageCodeISO = string.IsNullOrWhiteSpace(language.LanguageCodeISO)
+            ? language.LanguageCode
+            : language.LanguageCodeISO.Trim();
         language.Active = true;
-        language.IsDefault = false;
 
         var exists = await _context.Languages.AnyAsync(
             l => l.WebsiteID == websiteId && l.LanguageCode == language.LanguageCode, ct);
         if (exists)
             throw new InvalidOperationException($"'{language.LanguageCode}' has already been added to this website.");
+
+        // First language on a site becomes the default when none is set yet.
+        var hasDefault = await _context.Languages.AnyAsync(l => l.WebsiteID == websiteId && l.IsDefault, ct);
+        if (!hasDefault || language.IsDefault)
+        {
+            if (language.IsDefault || !hasDefault)
+            {
+                await ClearExistingDefaultAsync(websiteId, ct);
+                language.IsDefault = true;
+            }
+        }
+
+        if (language.Priority == 0)
+        {
+            var maxPriority = await _context.Languages
+                .Where(l => l.WebsiteID == websiteId)
+                .Select(l => (int?)l.Priority)
+                .MaxAsync(ct) ?? -1;
+            language.Priority = maxPriority + 1;
+        }
 
         _context.Languages.Add(language);
         await _context.SaveChangesAsync(ct);
@@ -199,13 +181,79 @@ public class LanguageService : ILanguageService
         return language;
     }
 
+    public async Task<bool> UpdateWebsiteLanguageAsync(int websiteId, Language language, CancellationToken ct = default)
+    {
+        var existing = await _context.Languages.FirstOrDefaultAsync(
+            l => l.LanguageID == language.LanguageID && l.WebsiteID == websiteId, ct);
+        if (existing is null) return false;
+
+        if (language.IsDefault && !existing.IsDefault)
+            await ClearExistingDefaultAsync(websiteId, ct);
+
+        // Default language cannot be deactivated.
+        if (existing.IsDefault || language.IsDefault)
+            language.Active = true;
+
+        existing.Name = language.Name;
+        existing.LanguageCodeISO = language.LanguageCodeISO.Trim();
+        existing.Priority = language.Priority;
+        existing.IsDefault = language.IsDefault || existing.IsDefault;
+        existing.Active = language.Active;
+        existing.RTLDesign = language.RTLDesign;
+
+        await _context.SaveChangesAsync(ct);
+        _cache.InvalidateAll();
+        return true;
+    }
+
+    public async Task<bool> SetWebsiteLanguageActiveAsync(int websiteId, int languageId, bool active, CancellationToken ct = default)
+    {
+        var existing = await _context.Languages.FirstOrDefaultAsync(
+            l => l.LanguageID == languageId && l.WebsiteID == websiteId, ct);
+        if (existing is null) return false;
+
+        if (!active && existing.IsDefault)
+            throw new InvalidOperationException("The default language cannot be deactivated.");
+
+        existing.Active = active;
+        await _context.SaveChangesAsync(ct);
+        _cache.InvalidateAll();
+        return true;
+    }
+
+    public async Task<bool> SetWebsiteDefaultLanguageAsync(int websiteId, int languageId, CancellationToken ct = default)
+    {
+        var existing = await _context.Languages.FirstOrDefaultAsync(
+            l => l.LanguageID == languageId && l.WebsiteID == websiteId, ct);
+        if (existing is null) return false;
+
+        await ClearExistingDefaultAsync(websiteId, ct);
+        existing.IsDefault = true;
+        existing.Active = true;
+
+        // Keep Website.DefaultLanguageCode in sync for storefront fallbacks.
+        var website = await _context.Websites.FirstOrDefaultAsync(w => w.WebsiteID == websiteId, ct);
+        if (website is not null)
+            website.DefaultLanguageCode = existing.LanguageCode;
+
+        await _context.SaveChangesAsync(ct);
+        _cache.InvalidateAll();
+        return true;
+    }
+
     public async Task<bool> RemoveWebsiteLanguageAsync(int websiteId, string languageCode, CancellationToken ct = default)
     {
-        if (websiteId == AppConstants.MasterWebsiteId) return false;
-
+        var code = languageCode.Trim().ToLowerInvariant();
         var existing = await _context.Languages.FirstOrDefaultAsync(
-            l => l.WebsiteID == websiteId && l.LanguageCode == languageCode, ct);
+            l => l.WebsiteID == websiteId && l.LanguageCode == code, ct);
         if (existing is null) return false;
+
+        if (existing.IsDefault)
+            throw new InvalidOperationException("The default language cannot be removed. Set another default first.");
+
+        var count = await _context.Languages.CountAsync(l => l.WebsiteID == websiteId, ct);
+        if (count <= 1)
+            throw new InvalidOperationException("A website must keep at least one language.");
 
         _context.Languages.Remove(existing);
         await _context.SaveChangesAsync(ct);
@@ -213,10 +261,53 @@ public class LanguageService : ILanguageService
         return true;
     }
 
-    private async Task ClearExistingDefaultAsync(CancellationToken ct)
+    /// <summary>
+    /// When a website has no language rows yet, create a single active default from
+    /// <see cref="Website.DefaultLanguageCode"/> (or "en"). Catalog metadata is used only as a
+    /// naming hint — the row belongs to this website alone.
+    /// </summary>
+    private async Task EnsureWebsiteDefaultLanguageAsync(int websiteId, CancellationToken ct)
+    {
+        var any = await _context.Languages.AnyAsync(l => l.WebsiteID == websiteId, ct);
+        if (any) return;
+
+        var website = await _context.Websites.AsNoTracking()
+            .FirstOrDefaultAsync(w => w.WebsiteID == websiteId, ct);
+        var code = string.IsNullOrWhiteSpace(website?.DefaultLanguageCode)
+            ? "en"
+            : website!.DefaultLanguageCode.Trim().ToLowerInvariant();
+
+        var (iso, name, rtl) = ResolveLanguageMeta(code);
+
+        _context.Languages.Add(new Language
+        {
+            WebsiteID = websiteId,
+            LanguageCode = code,
+            LanguageCodeISO = iso,
+            Name = name,
+            Priority = 0,
+            Active = true,
+            IsDefault = true,
+            RTLDesign = rtl,
+        });
+        await _context.SaveChangesAsync(ct);
+        _cache.InvalidateAll();
+    }
+
+    private static (string Iso, string Name, bool Rtl) ResolveLanguageMeta(string code)
+    {
+        var known = DefaultLanguages.FirstOrDefault(l =>
+            string.Equals(l.Code, code, StringComparison.OrdinalIgnoreCase));
+        if (known.Code is not null)
+            return (known.Iso, known.Name, known.Rtl);
+
+        return (code, code.ToUpperInvariant(), false);
+    }
+
+    private async Task ClearExistingDefaultAsync(int websiteId, CancellationToken ct)
     {
         var current = await _context.Languages
-            .Where(l => l.WebsiteID == AppConstants.MasterWebsiteId && l.IsDefault)
+            .Where(l => l.WebsiteID == websiteId && l.IsDefault)
             .ToListAsync(ct);
         foreach (var l in current) l.IsDefault = false;
     }

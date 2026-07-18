@@ -38,12 +38,14 @@ public static class AdminSearchCatalog
         new AdminSearchPage("roles", "Roles", "/roles", Icons.Material.Filled.VpnKey, "nav.user_management", "User Management", null, SuperAdminOnly: true),
         new AdminSearchPage("login_logs", "Login Logs", "/login-logs", Icons.Material.Filled.History, "nav.user_management", "User Management", RoleKeys.LoginLogsView),
 
-        new AdminSearchPage("websites", "Websites", "/websites", Icons.Material.Filled.Language, "website", "Website", null, SuperAdminOnly: true),
+        new AdminSearchPage("websites", "Websites", "/websites", Icons.Material.Filled.Public, "website", "Website", null, SuperAdminOnly: true),
         new AdminSearchPage("ip_whitelist", "IP Whitelist", "/website/ips", Icons.Material.Filled.Security, "website", "Website", RoleKeys.WebsiteEdit),
         new AdminSearchPage("scripts", "Scripts", "/website/scripts", Icons.Material.Filled.Code, "website", "Website", RoleKeys.WebsiteEdit),
         new AdminSearchPage("seo_settings", "SEO Settings", "/website/seo", Icons.Material.Filled.Search, "website", "Website", RoleKeys.WebsiteEdit),
         new AdminSearchPage("social_links", "Social Links", "/website/social", Icons.Material.Filled.Share, "website", "Website", RoleKeys.WebsiteEdit),
         new AdminSearchPage("website_api_key", "Website API Key", "/website/api-key", Icons.Material.Filled.VpnKey, "website", "Website", RoleKeys.WebsiteEdit),
+        new AdminSearchPage("website_languages", "Languages", "/website/languages", Icons.Material.Filled.Language, "website", "Website", RoleKeys.LocalizationEdit),
+        new AdminSearchPage("website_translations", "Translations", "/website/translations", Icons.Material.Filled.Translate, "website", "Website", RoleKeys.LocalizationEdit),
 
         new AdminSearchPage("posts", "Posts", "/content/posts", Icons.Material.Filled.Article, "content", "Content", RoleKeys.PostsView),
         new AdminSearchPage("pages", "Pages", "/content/pages", Icons.Material.Filled.Description, "content", "Content", RoleKeys.PagesView),
@@ -86,8 +88,6 @@ public static class AdminSearchCatalog
         new AdminSearchPage("email_accounts", "Email Accounts", "/messages/email-accounts", Icons.Material.Filled.AlternateEmail, "messages", "Messages", RoleKeys.WebsiteEdit),
         new AdminSearchPage("email_templates", "Email Templates", "/messages/email-templates", Icons.Material.Filled.Description, "messages", "Messages", RoleKeys.WebsiteEdit),
 
-        new AdminSearchPage("content_languages", "Content Languages", "/content-languages", Icons.Material.Filled.GTranslate, "translations", "Translations", RoleKeys.LocalizationEdit),
-
         new AdminSearchPage("media_library", "Media Library", "/media", Icons.Material.Filled.PhotoLibrary, "media", "Media", RoleKeys.MediaView),
         new AdminSearchPage("media_albums", "Media Albums", "/media/albums", Icons.Material.Filled.Collections, "media", "Media", RoleKeys.MediaView),
         new AdminSearchPage("media_tags", "Media Tags", "/media/tags", Icons.Material.Filled.LocalOffer, "media", "Media", RoleKeys.MediaView),
@@ -97,8 +97,8 @@ public static class AdminSearchCatalog
         new AdminSearchPage("countries", "Countries", "/initial-data/countries", Icons.Material.Filled.Flag, "nav.administration", "Administration", null, SuperAdminOnly: true),
         new AdminSearchPage("states", "States / Provinces", "/initial-data/states", Icons.Material.Filled.Map, "nav.administration", "Administration", null, SuperAdminOnly: true),
         new AdminSearchPage("cities", "Cities", "/initial-data/cities", Icons.Material.Filled.LocationCity, "nav.administration", "Administration", null, SuperAdminOnly: true),
-        new AdminSearchPage("languages", "Languages", "/languages", Icons.Material.Filled.Language, "nav.administration", "Administration", null, SuperAdminOnly: true),
-        new AdminSearchPage("translations", "Translations", "/translations", Icons.Material.Filled.Translate, "nav.administration", "Administration", null, SuperAdminOnly: true),
+        new AdminSearchPage("languages.catalog", "Language Catalog", "/languages", Icons.Material.Filled.Language, "initial_data", "Initial Data", null, SuperAdminOnly: true),
+        new AdminSearchPage("translations.admin", "Admin Translations", "/translations", Icons.Material.Filled.Translate, "initial_data", "Initial Data", null, SuperAdminOnly: true),
 
         new AdminSearchPage("db_updates", "DB Updates", "/system/updates", Icons.Material.Filled.SystemUpdateAlt, "nav.system", "System", null, SuperAdminOnly: true),
         new AdminSearchPage("settings", "Settings", "/settings", Icons.Material.Filled.Settings, "nav.system", "System", null, SuperAdminOnly: true),

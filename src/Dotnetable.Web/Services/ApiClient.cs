@@ -216,8 +216,8 @@ public class ApiClient
     public Task<SiteInfoDto?> GetSiteInfoAsync(CancellationToken ct = default) =>
         CachedGetAsync("siteinfo", () => GetOrNullAsync<SiteInfoDto>("api/siteinfo", ct));
 
-    /// <summary>This website's own active languages (picked in the admin under Content Languages),
-    /// for the front-end language switcher. Empty list when the API is unreachable.</summary>
+    /// <summary>This website's own active languages (Languages rows for the site, managed under
+    /// Website → Languages), for the front-end language switcher. Empty list when the API is unreachable.</summary>
     public async Task<IReadOnlyList<LanguageDto>> GetActiveLanguagesAsync(CancellationToken ct = default) =>
         await CachedGetAsync<IReadOnlyList<LanguageDto>>("languages", () => GetOrNullAsync<IReadOnlyList<LanguageDto>>("api/languages", ct))
         ?? Array.Empty<LanguageDto>();

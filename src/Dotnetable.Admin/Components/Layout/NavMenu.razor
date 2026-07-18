@@ -14,7 +14,7 @@
         @L["notifications", "Notifications"]
     </MudNavLink>
 
-    @if (_canMembers || _canClients || _canPolicies || _canLoginLogs || _canMessages || _canWebsite || _isMaster)
+    @if (_canMembers || _canClients || _canPolicies || _canLoginLogs || _canMessages || _canWebsite || _canLocalization || _isMaster)
     {
         <span class="app-nav-label">@L["nav.management", "Management"]</span>
     }
@@ -48,34 +48,46 @@
         </AuthorizeView>
     </MudNavGroup>
 
-    <AuthorizeView Policy="@RoleKeys.WebsiteEdit" Context="ws">
+    @if (_canWebsite || _canLocalization || _isMaster)
+    {
         <MudNavGroup Title="@L["website", "Website"]" Icon="@Icons.Material.Filled.WebAsset"
-                     Expanded="@IsGroupActive("/websites", "/website/")">
+                     Expanded="@IsGroupActive("/websites", "/website/", "/content-languages")">
             <AuthorizeView Policy="@AdminPolicies.SuperAdminOnly" Context="wsm">
-                <MudNavLink Href="/websites" Icon="@Icons.Material.Filled.Language">
+                <MudNavLink Href="/websites" Icon="@Icons.Material.Filled.Public">
                     @L["websites", "Websites"]
                 </MudNavLink>
             </AuthorizeView>
-            <MudNavLink Href="/website/ips" Icon="@Icons.Material.Filled.Security">
-                @L["ip_whitelist", "IP Whitelist"]
-            </MudNavLink>
-            <MudNavLink Href="/website/scripts" Icon="@Icons.Material.Filled.Code">
-                @L["scripts", "Scripts"]
-            </MudNavLink>
-            <MudNavLink Href="/website/seo" Icon="@Icons.Material.Filled.Search">
-                @L["seo_settings", "SEO Settings"]
-            </MudNavLink>
-            <MudNavLink Href="/website/social" Icon="@Icons.Material.Filled.Share">
-                @L["social_links", "Social Links"]
-            </MudNavLink>
-            @if (_isMaster || _websiteIdForUiMode != AppConstants.MasterWebsiteId)
-            {
-                <MudNavLink Href="/website/api-key" Icon="@Icons.Material.Filled.VpnKey">
-                    @L["website_api_key", "Website API Key"]
+            <AuthorizeView Policy="@RoleKeys.WebsiteEdit" Context="ws">
+                <MudNavLink Href="/website/ips" Icon="@Icons.Material.Filled.Security">
+                    @L["ip_whitelist", "IP Whitelist"]
                 </MudNavLink>
-            }
+                <MudNavLink Href="/website/scripts" Icon="@Icons.Material.Filled.Code">
+                    @L["scripts", "Scripts"]
+                </MudNavLink>
+                <MudNavLink Href="/website/seo" Icon="@Icons.Material.Filled.Search">
+                    @L["seo_settings", "SEO Settings"]
+                </MudNavLink>
+                <MudNavLink Href="/website/social" Icon="@Icons.Material.Filled.Share">
+                    @L["social_links", "Social Links"]
+                </MudNavLink>
+                @if (_isMaster || _websiteIdForUiMode != AppConstants.MasterWebsiteId)
+                {
+                    <MudNavLink Href="/website/api-key" Icon="@Icons.Material.Filled.VpnKey">
+                        @L["website_api_key", "Website API Key"]
+                    </MudNavLink>
+                }
+            </AuthorizeView>
+            @* Per-website languages (content + storefront) and dynamic string keys for that site. *@
+            <AuthorizeView Policy="@RoleKeys.LocalizationEdit" Context="loc">
+                <MudNavLink Href="/website/languages" Icon="@Icons.Material.Filled.Language">
+                    @L["website_languages", "Languages"]
+                </MudNavLink>
+                <MudNavLink Href="/website/translations" Icon="@Icons.Material.Filled.Translate">
+                    @L["website_translations", "Translations"]
+                </MudNavLink>
+            </AuthorizeView>
         </MudNavGroup>
-    </AuthorizeView>
+    }
     
     <MudNavGroup Title="@L["messages", "Messages"]" Icon="@Icons.Material.Filled.Message"
                  Expanded="@IsGroupActive("/messages/")"
@@ -171,14 +183,6 @@
         </AuthorizeView>
     </MudNavGroup>
 
-    @if (!_isMaster)
-    {
-        <AuthorizeView Policy="@RoleKeys.LocalizationEdit" Context="tr">
-            <MudNavLink Href="/content-languages" Icon="@Icons.Material.Filled.GTranslate">
-                @L["content_languages", "Content Languages"]
-            </MudNavLink>
-        </AuthorizeView>
-    }
     <AuthorizeView Policy="@RoleKeys.MediaView" Context="md">
         <MudNavGroup Title="@L["media", "Media"]" Icon="@Icons.Material.Filled.PermMedia"
                      Expanded="@IsGroupActive("/media")">
@@ -273,7 +277,7 @@
     <AuthorizeView Policy="@AdminPolicies.SuperAdminOnly">
         <span class="app-nav-label">@L["nav.administration", "Administration"]</span>
         <MudNavGroup Title="@L["initial_data", "Initial Data"]" Icon="@Icons.Material.Filled.Storage"
-                     Expanded="@IsGroupActive("/initial-data/", "/languages", "/translations")">
+                     Expanded="@(IsGroupActive("/initial-data/") || IsExactPath("/languages") || IsExactPath("/translations"))">
             <MudNavLink Href="/initial-data/countries" Icon="@Icons.Material.Filled.Flag">
                 @L["countries", "Countries"]
             </MudNavLink>
@@ -283,11 +287,12 @@
             <MudNavLink Href="/initial-data/cities" Icon="@Icons.Material.Filled.LocationCity">
                 @L["cities", "Cities"]
             </MudNavLink>
+            @* Master website (site 1) language catalog + admin-panel UI strings. *@
             <MudNavLink Href="/languages" Icon="@Icons.Material.Filled.Language">
-                @L["languages", "Languages"]
+                @L["languages.catalog", "Language Catalog"]
             </MudNavLink>
             <MudNavLink Href="/translations" Icon="@Icons.Material.Filled.Translate">
-                @L["translations", "Translations"]
+                @L["translations.admin", "Admin Translations"]
             </MudNavLink>
         </MudNavGroup>
 
@@ -312,6 +317,7 @@
     private bool _canLoginLogs;
     private bool _canMessages;
     private bool _canWebsite;
+    private bool _canLocalization;
     private bool _canPosts;
     private bool _canPages;
     private bool _canTaxonomy;
@@ -337,6 +343,7 @@
             _canLoginLogs = AdminPolicies.Allows(user, RoleKeys.LoginLogsView);
             _canMessages = AdminPolicies.Allows(user, RoleKeys.MessagesView);
             _canWebsite = AdminPolicies.Allows(user, RoleKeys.WebsiteEdit);
+            _canLocalization = AdminPolicies.Allows(user, RoleKeys.LocalizationEdit);
             _canPosts = AdminPolicies.Allows(user, RoleKeys.PostsView);
             _canPages = AdminPolicies.Allows(user, RoleKeys.PagesView);
             _canTaxonomy = AdminPolicies.Allows(user, RoleKeys.TaxonomyView);
@@ -365,6 +372,9 @@
 
     private bool IsGroupActive(params string[] prefixes)
         => prefixes.Any(p => _currentPath.StartsWith(p, StringComparison.OrdinalIgnoreCase));
+
+    private bool IsExactPath(string path)
+        => string.Equals(_currentPath, path, StringComparison.OrdinalIgnoreCase);
 
     private async Task RefreshBlogNavVisibilityAsync()
     {

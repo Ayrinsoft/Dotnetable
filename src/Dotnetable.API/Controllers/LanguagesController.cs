@@ -5,9 +5,9 @@ using Microsoft.AspNetCore.Mvc;
 namespace Dotnetable.API.Controllers;
 
 /// <summary>
-/// The caller website's own active languages (its subset of the master language catalog, picked in
-/// the admin under Content Languages), for the front-end language switcher. Resolved from the
-/// <c>X-Website-Key</c> header.
+/// The caller website's own active languages (Languages table rows for that website, managed under
+/// Website → Languages in the admin), for the front-end language switcher. Resolved from the
+/// <c>X-Website-Key</c> header. Independent of the admin panel language catalog.
 /// </summary>
 public class LanguagesController : BaseController
 {

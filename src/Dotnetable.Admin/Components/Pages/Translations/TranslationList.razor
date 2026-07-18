@@ -1,3 +1,4 @@
+@page "/website/translations"
 @page "/translations"
 @attribute [Authorize(Policy = RoleKeys.LocalizationEdit)]
 @using Dotnetable.Application.DTOs
@@ -9,17 +10,25 @@
 @inject ISnackbar Snackbar
 @inject IJSRuntime JS
 @inject IPageLocalizer L
+@inject NavigationManager Navigation
 
-<DNPageTitle Title=@L["translations", "Translations"] />
+<DNPageTitle Title=@(_isAdminRoute ? L["translations.admin", "Admin Translations"] : L["website_translations", "Translations"]) />
 
 @* ── Page header ──────────────────────────────────────────────── *@
 <MudStack Row="true" AlignItems="AlignItems.Center" Justify="Justify.SpaceBetween" Class="mb-4">
     <MudStack Spacing="0">
-        <MudText Typo="Typo.h5" Class="fw-bold">@L["translations", "Translations"]</MudText>
-        <MudText Typo="Typo.body2" Color="Color.Secondary">@L["translation.subtitle", "Edit UI text for each language"]</MudText>
+        <MudText Typo="Typo.h5" Class="fw-bold">
+            @(_isAdminRoute ? L["translations.admin", "Admin Translations"] : L["website_translations", "Translations"])
+        </MudText>
+        <MudText Typo="Typo.body2" Color="Color.Secondary">
+            @(_isAdminRoute
+                ? L["translation.subtitle_admin", "UI strings for the admin panel only (master website). These never appear under Website → Translations on other sites."]
+                : L["translation.subtitle_site", "Custom key/value strings for this website’s storefront and themes only. Not admin panel labels — add any keys you need, then translate them for each language you enabled under Website → Languages."])
+        </MudText>
     </MudStack>
     <MudStack Row="true" AlignItems="AlignItems.Center" Spacing="2">
-        @if (_isMaster)
+        @* Site translations: master can manage any website. Admin translations (/translations) stay on site 1. *@
+        @if (_isMaster && !_isAdminRoute)
         {
             <WebsiteSelector Value="_websiteId" ValueChanged="OnWebsiteChanged" Websites="_websites"
                              Label="@L["website", "Website"]" Variant="Variant.Outlined"
@@ -49,9 +58,16 @@
     </MudStack>
 </MudStack>
 
-<MudText Typo="Typo.caption" Color="Color.Secondary" Class="d-block mb-3">
-    @L["translation.hint", "Export downloads a Key,Default,Value CSV for the selected language. Translate the Value column (e.g. with Google Translate or in a spreadsheet), keep the Key column unchanged, then import it back here."]
-</MudText>
+<MudAlert Severity="Severity.Info" Dense="true" Class="mb-3" Variant="Variant.Outlined">
+    @if (string.Equals(_languageCode, _defaultLanguageCode, StringComparison.OrdinalIgnoreCase))
+    {
+        @L["translation.hint_default", "You are editing the site default language. New keys use this value as the fallback for every other language until translated."]
+    }
+    else
+    {
+        @L["translation.hint_other", "Export downloads a Key,Default,Value CSV for the selected language. Translate the Value column, keep the Key column unchanged, then import it back. Or edit values inline below."]
+    }
+</MudAlert>
 
 <MudPaper Elevation="0" Class="app-card rounded-lg pa-4">
     @if (_loading)
@@ -88,7 +104,9 @@
     private bool _loading = true;
     private bool _busy;
     private bool _isMaster;
+    private bool _isAdminRoute;
     private int _websiteId;
+    private string _defaultLanguageCode = "en";
     private List<Website> _websites = new();
     private string _languageCode = "en";
     private List<TranslationEntry> _translations = new();
@@ -103,6 +121,9 @@
     {
         await L.EnsureLoadedAsync();
 
+        var path = new Uri(Navigation.Uri).AbsolutePath.TrimEnd('/');
+        _isAdminRoute = string.Equals(path, "/translations", StringComparison.OrdinalIgnoreCase);
+
         var state = await AuthState.GetAuthenticationStateAsync();
         var user = state.User;
         _isMaster = user.HasClaim(AdminClaimTypes.Master, "true");
@@ -111,6 +132,11 @@
         if (_isMaster)
             _websites = (await WebsiteService.GetAllAsync()).ToList();
 
+        // Admin Translations under Initial Data always targets the master website's string bag.
+        if (_isAdminRoute && _isMaster)
+            _websiteId = AppConstants.MasterWebsiteId;
+
+        await ResolveDefaultLanguageAsync();
         await LoadLanguagesAsync();
 
         _grid = new GridViewHeaderParameters
@@ -126,17 +152,28 @@
         await LoadAsync();
     }
 
+    private async Task ResolveDefaultLanguageAsync()
+    {
+        var site = await WebsiteService.GetByIdAsync(_websiteId);
+        _defaultLanguageCode = string.IsNullOrWhiteSpace(site?.DefaultLanguageCode) ? "en" : site!.DefaultLanguageCode.Trim().ToLowerInvariant();
+        _languageCode = _defaultLanguageCode;
+    }
+
     private async Task LoadLanguagesAsync()
     {
         _languages = (await LanguageService.GetActiveForWebsiteAsync(_websiteId))
             .Select(x => (x.LanguageCode, x.Name)).ToArray();
-        if (_languages.Length > 0 && !_languages.Any(l => l.Code == _languageCode))
+        if (_languages.Length == 0)
+            _languages = [(_defaultLanguageCode, _defaultLanguageCode)];
+
+        if (!_languages.Any(l => string.Equals(l.Code, _languageCode, StringComparison.OrdinalIgnoreCase)))
             _languageCode = _languages[0].Code;
     }
 
     private async Task OnWebsiteChanged(int id)
     {
         _websiteId = id;
+        await ResolveDefaultLanguageAsync();
         await LoadLanguagesAsync();
         _grid.Pagination.PageIndex = 1;
         await LoadAsync();
@@ -178,7 +215,7 @@
         {
             var bytes = await LocalizationService.ExportCsvAsync(_websiteId, _languageCode, untranslatedOnly);
             var suffix = untranslatedOnly ? "-untranslated" : "";
-            var fileName = $"translations-{_languageCode}{suffix}.csv";
+            var fileName = $"translations-w{_websiteId}-{_languageCode}{suffix}.csv";
             await JS.InvokeVoidAsync("dotnetableFile.download", fileName, Convert.ToBase64String(bytes), "text/csv");
         }
         catch (Exception ex)
@@ -195,7 +232,6 @@
         try
         {
             await using var stream = file.OpenReadStream(MaxImportBytes);
-            // Buffer to a seekable stream so the parser can read it fully.
             using var buffer = new MemoryStream();
             await stream.CopyToAsync(buffer);
             buffer.Position = 0;
@@ -226,6 +262,8 @@
         {
             { x => x.WebsiteId, _websiteId },
             { x => x.LanguageCode, _languageCode },
+            { x => x.IsDefaultLanguage, string.Equals(_languageCode, _defaultLanguageCode, StringComparison.OrdinalIgnoreCase) },
+            { x => x.DefaultLanguageCode, _defaultLanguageCode },
         };
         var dialog = await DialogService.ShowAsync<AddTranslationKeyDialog>(L["translation.add_key", "Add Key"], parameters);
         var result = await dialog.Result;
@@ -240,6 +278,9 @@
         try
         {
             await LocalizationService.SetAsync(_websiteId, _languageCode, key, value);
+            // When editing the site default language, keep DefaultValue in sync as fallback for other langs.
+            if (string.Equals(_languageCode, _defaultLanguageCode, StringComparison.OrdinalIgnoreCase))
+                await LocalizationService.SetDefaultValueAsync(_websiteId, key, value);
             Snackbar.Add($"Saved \"{key}\".", Severity.Success);
         }
         catch (Exception ex)

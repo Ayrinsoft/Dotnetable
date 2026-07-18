@@ -13,6 +13,10 @@ public interface ILocalizationService
     Task<PagedResult<TranslationEntry>> GetPagedAsync(int websiteId, string languageCode, GridQuery query, CancellationToken ct = default);
     Task SetAsync(int websiteId, string languageCode, string key, string value, CancellationToken ct = default);
 
+    /// <summary>Updates the key's <c>DefaultValue</c> fallback (used when a language has no value yet).
+    /// Creates the key if missing. Does not change per-language values.</summary>
+    Task SetDefaultValueAsync(int websiteId, string key, string defaultValue, CancellationToken ct = default);
+
     /// <summary>Builds a UTF-8 (BOM) CSV — columns Key,Default,Value — for a language, ready to hand
     /// to a translator or Google Translate and re-import. When <paramref name="untranslatedOnly"/> is
     /// true, only keys that have no value yet for this language are included (so existing translations
