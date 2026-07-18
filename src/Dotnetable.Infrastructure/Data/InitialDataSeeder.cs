@@ -149,6 +149,7 @@ public class InitialDataSeeder : IInitialDataSeeder
                 RegisterDate = DateOnly.FromDateTime(DateTime.UtcNow),
                 HashKey = Guid.NewGuid(),
                 Active = true,
+                IsSiteAdmin = true,
             };
             member.Password = _hasher.HashPassword(member, request.Password);
             context.Members.Add(member);

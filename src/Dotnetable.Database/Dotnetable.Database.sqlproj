@@ -147,6 +147,7 @@
     <Build Include="LocalizationValues.sql" />
     <Build Include="MemberForgetPasswords.sql" />
     <Build Include="Members.sql" />
+    <Build Include="AdminNotifications.sql" />
     <Build Include="MenuItems.sql" />
     <Build Include="Menus.sql" />
     <Build Include="MenuItemTranslations.sql" />

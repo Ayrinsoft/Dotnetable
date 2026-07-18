@@ -22,17 +22,20 @@ public class WebsiteClientAuthService : IWebsiteClientAuthService
     private readonly IEmailService _email;
     private readonly ISmsSender _sms;
     private readonly IPasswordHasher<WebsiteClient> _hasher;
+    private readonly IAdminNotificationService _notifications;
 
     public WebsiteClientAuthService(
         AppDbContext context,
         IEmailService email,
         ISmsSender sms,
-        IPasswordHasher<WebsiteClient> hasher)
+        IPasswordHasher<WebsiteClient> hasher,
+        IAdminNotificationService notifications)
     {
         _context = context;
         _email = email;
         _sms = sms;
         _hasher = hasher;
+        _notifications = notifications;
     }
 
     public async Task<ClientRegisterResponse> RegisterAsync(ClientRegistration registration, CancellationToken ct = default)
@@ -116,6 +119,17 @@ public class WebsiteClientAuthService : IWebsiteClientAuthService
 
         var code = await IssueCodeAsync(client.WebsiteClientID, ct);
         await SendCodeAsync(client.WebsiteID, channel, identifier, countryCode, code, isActivation: true, ct);
+
+        var clientLabel = string.Join(" ", new[] { client.Givenname, client.Surname }.Where(s => !string.IsNullOrWhiteSpace(s)));
+        if (string.IsNullOrWhiteSpace(clientLabel)) clientLabel = identifier;
+        await _notifications.NotifySiteAdminsAsync(
+            client.WebsiteID,
+            AdminNotificationType.ClientRegistered,
+            "New customer registration",
+            $"{clientLabel} registered ({identifier}).",
+            $"/clients/{client.WebsiteClientID}",
+            client.WebsiteClientID,
+            ct);
 
         return new ClientRegisterResponse(ClientRegisterResult.OtpSent, channel, identifier);
     }

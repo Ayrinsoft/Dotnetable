@@ -15,8 +15,13 @@ public class FormService : IFormService
     private const int TextSampleCount = 10;
 
     private readonly AppDbContext _context;
+    private readonly IAdminNotificationService _notifications;
 
-    public FormService(AppDbContext context) => _context = context;
+    public FormService(AppDbContext context, IAdminNotificationService notifications)
+    {
+        _context = context;
+        _notifications = notifications;
+    }
 
     // ── Admin: forms ────────────────────────────────────────────────
 
@@ -367,6 +372,15 @@ public class FormService : IFormService
 
         _context.FormResponses.Add(response);
         await _context.SaveChangesAsync(ct);
+
+        await _notifications.NotifySiteAdminsAsync(
+            websiteId,
+            AdminNotificationType.FormSubmission,
+            "New form submission",
+            $"Form \"{form.Title}\" received a new response.",
+            $"/forms/{form.FormID}/report",
+            response.FormResponseID,
+            ct);
 
         return FormSubmissionResult.Success(form.SuccessMessage);
     }

@@ -1,6 +1,7 @@
 using Dotnetable.Application.DTOs;
 using Dotnetable.Application.Interfaces;
 using Dotnetable.Domain.Entities;
+using Dotnetable.Domain.Enums;
 using Dotnetable.Infrastructure.Data;
 using Microsoft.EntityFrameworkCore;
 
@@ -15,10 +16,12 @@ public class OrderService : IOrderService
     private readonly ICouponService _coupons;
     private readonly ICurrencyConversionService _currency;
     private readonly ICartService _cart;
+    private readonly IAdminNotificationService _notifications;
 
     public OrderService(
         AppDbContext context, IInventoryService inventory, IShippingService shipping,
-        ITaxService tax, ICouponService coupons, ICurrencyConversionService currency, ICartService cart)
+        ITaxService tax, ICouponService coupons, ICurrencyConversionService currency, ICartService cart,
+        IAdminNotificationService notifications)
     {
         _context = context;
         _inventory = inventory;
@@ -27,6 +30,7 @@ public class OrderService : IOrderService
         _coupons = coupons;
         _currency = currency;
         _cart = cart;
+        _notifications = notifications;
     }
 
     public async Task<CheckoutResult> CheckoutAsync(
@@ -148,6 +152,15 @@ public class OrderService : IOrderService
         await tx.CommitAsync(ct);
 
         await _cart.ClearAsync(cartId, ct);
+
+        await _notifications.NotifySiteAdminsAsync(
+            websiteId,
+            AdminNotificationType.NewOrder,
+            "New order",
+            $"Order #{order.OrderNumber} placed — {order.GrandTotal:0.##} {order.CurrencyCode}.",
+            $"/orders/{order.OrderID}",
+            order.OrderID,
+            ct);
 
         return new CheckoutResult(true, null, order.OrderID, order.OrderNumber);
     }

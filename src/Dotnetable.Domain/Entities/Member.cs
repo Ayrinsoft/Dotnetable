@@ -40,7 +40,11 @@ public partial class Member
     /// </summary>
     public byte AdminUIMode { get; set; }
 
+    public bool IsSiteAdmin { get; set; }
+
     public virtual FileRecord? Avatar { get; set; }
+
+    public virtual ICollection<AdminNotification> AdminNotifications { get; set; } = new List<AdminNotification>();
 
     public virtual ICollection<BankAccount> BankAccounts { get; set; } = new List<BankAccount>();
 

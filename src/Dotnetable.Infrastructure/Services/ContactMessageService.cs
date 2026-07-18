@@ -1,6 +1,7 @@
 using Dotnetable.Application.DTOs;
 using Dotnetable.Application.Interfaces;
 using Dotnetable.Domain.Entities;
+using Dotnetable.Domain.Enums;
 using Dotnetable.Infrastructure.Data;
 using Dotnetable.Infrastructure.Extensions;
 using Microsoft.EntityFrameworkCore;
@@ -10,8 +11,13 @@ namespace Dotnetable.Infrastructure.Services;
 public class ContactMessageService : IContactMessageService
 {
     private readonly AppDbContext _context;
+    private readonly IAdminNotificationService _notifications;
 
-    public ContactMessageService(AppDbContext context) => _context = context;
+    public ContactMessageService(AppDbContext context, IAdminNotificationService notifications)
+    {
+        _context = context;
+        _notifications = notifications;
+    }
 
     public async Task<PagedResult<ContactUsMessage>> GetPagedAsync(int? websiteId, GridQuery query, CancellationToken ct = default)
     {
@@ -46,6 +52,17 @@ public class ContactMessageService : IContactMessageService
         message.LogTime = DateTime.UtcNow;
         _context.ContactUsMessages.Add(message);
         await _context.SaveChangesAsync(ct);
+
+        var subject = string.IsNullOrWhiteSpace(message.MessageSubject) ? "Contact message" : message.MessageSubject;
+        await _notifications.NotifySiteAdminsAsync(
+            message.WebsiteID,
+            AdminNotificationType.ContactMessage,
+            "New contact message",
+            $"{message.SenderName} ({message.EmailAddress}): {subject}",
+            $"/messages/contacts/{message.ContactUsMessagesID}",
+            message.ContactUsMessagesID,
+            ct);
+
         return message;
     }
 

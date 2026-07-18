@@ -1,0 +1,159 @@
+@page "/notifications"
+@attribute [Authorize]
+@inject IAdminNotificationService NotificationService
+@inject AuthenticationStateProvider AuthState
+@inject ISnackbar Snackbar
+@inject NavigationManager Nav
+@inject IPageLocalizer L
+
+<DNPageTitle Title=@L["notifications", "Notifications"] />
+
+<MudStack Row="true" AlignItems="AlignItems.Center" Justify="Justify.SpaceBetween" Class="mb-4">
+    <MudStack Spacing="0">
+        <MudText Typo="Typo.h5" Class="fw-bold">@L["notifications", "Notifications"]</MudText>
+        <MudText Typo="Typo.body2" Color="Color.Secondary">
+            @L["notifications.subtitle", "Tasks and events that need your attention"]
+        </MudText>
+    </MudStack>
+    <MudStack Row="true" Spacing="2">
+        <MudButton Variant="Variant.Outlined" Color="Color.Primary" StartIcon="@Icons.Material.Filled.DoneAll"
+                   OnClick="MarkAllReadAsync" Disabled="@(_loading || _unreadCount == 0)">
+            @L["notifications.mark_all_read", "Mark all read"]
+        </MudButton>
+    </MudStack>
+</MudStack>
+
+<MudPaper Elevation="0" Class="app-card rounded-lg pa-4">
+    @if (_loading)
+    {
+        <MudProgressLinear Indeterminate="true" Color="Color.Primary" Class="mb-3" />
+    }
+    <DNGridView GridHeaderParams="_grid" OnSearchChanged="OnGridChanged">
+        @if (_items.Count == 0)
+        {
+            <tr>
+                <td colspan="5" style="text-align:center; padding:32px;">
+                    <MudText Color="Color.Secondary">@L["notifications.empty", "No notifications yet."]</MudText>
+                </td>
+            </tr>
+        }
+        else
+        {
+            @foreach (var n in _items)
+            {
+                <tr style="@(!n.IsRead ? "font-weight:600;" : null)">
+                    <td>
+                        <MudStack Row="true" Spacing="1">
+                            @if (!string.IsNullOrWhiteSpace(n.ActionUrl))
+                            {
+                                <MudIconButton Icon="@Icons.Material.Filled.OpenInNew" Size="Size.Small"
+                                               Color="Color.Primary" OnClick="@(() => OpenAsync(n))" />
+                            }
+                            @if (!n.IsRead)
+                            {
+                                <MudIconButton Icon="@Icons.Material.Filled.MarkEmailRead" Size="Size.Small"
+                                               Color="Color.Default" OnClick="@(() => MarkReadAsync(n))" />
+                            }
+                            <MudIconButton Icon="@Icons.Material.Filled.Delete" Size="Size.Small"
+                                           Color="Color.Error" OnClick="@(() => DeleteAsync(n))" />
+                        </MudStack>
+                    </td>
+                    <td>
+                        @if (!n.IsRead)
+                        {
+                            <MudChip T="string" Size="Size.Small" Color="Color.Primary" Variant="Variant.Filled">
+                                @L["new", "New"]
+                            </MudChip>
+                        }
+                        else
+                        {
+                            <MudChip T="string" Size="Size.Small" Color="Color.Default" Variant="Variant.Outlined">
+                                @L["read", "Read"]
+                            </MudChip>
+                        }
+                    </td>
+                    <td>@n.Title</td>
+                    <td>@n.Message</td>
+                    <td>@n.CreatedAt.ToString("yyyy-MM-dd HH:mm")</td>
+                </tr>
+            }
+        }
+    </DNGridView>
+</MudPaper>
+
+@code {
+    private bool _loading = true;
+    private int _memberId;
+    private int _unreadCount;
+    private List<AdminNotification> _items = new();
+    private GridViewHeaderParameters _grid = new();
+
+    protected override async Task OnInitializedAsync()
+    {
+        await L.EnsureLoadedAsync();
+
+        var state = await AuthState.GetAuthenticationStateAsync();
+        int.TryParse(state.User.FindFirst(AdminClaimTypes.MemberId)?.Value, out _memberId);
+
+        _grid = new GridViewHeaderParameters
+        {
+            Pagination = new PaginationModel { PageSize = 25 },
+            HeaderItems = new()
+            {
+                new() { ColumnTitle = "", ColumnName = "" },
+                new() { ColumnTitle = L["status", "Status"], ColumnName = nameof(AdminNotification.IsRead), HasSearch = true,
+                    SearchType = SearchColumnType.DropDown,
+                    OtherDropDownValues = new() { [L["new", "New"]] = "false", [L["read", "Read"]] = "true" } },
+                new() { ColumnTitle = L["title", "Title"], ColumnName = nameof(AdminNotification.Title), HasSearch = true },
+                new() { ColumnTitle = L["message", "Message"], ColumnName = nameof(AdminNotification.Message) },
+                new() { ColumnTitle = L["date", "Date"], ColumnName = nameof(AdminNotification.CreatedAt), HasSort = true },
+            }
+        };
+
+        await LoadAsync();
+    }
+
+    private Task OnGridChanged(GridViewHeaderParameters _) => LoadAsync();
+
+    private async Task LoadAsync()
+    {
+        if (_memberId <= 0) { _loading = false; return; }
+        _loading = true;
+        try
+        {
+            var result = await NotificationService.GetPagedAsync(_memberId, _grid.ToQuery());
+            _items = result.Items.ToList();
+            _grid.Pagination.MaxLength = result.TotalCount;
+            _unreadCount = await NotificationService.GetUnreadCountAsync(_memberId);
+        }
+        finally { _loading = false; }
+    }
+
+    private async Task OpenAsync(AdminNotification n)
+    {
+        if (!n.IsRead)
+            await NotificationService.MarkReadAsync(n.AdminNotificationID, _memberId);
+        if (!string.IsNullOrWhiteSpace(n.ActionUrl))
+            Nav.NavigateTo(n.ActionUrl);
+    }
+
+    private async Task MarkReadAsync(AdminNotification n)
+    {
+        await NotificationService.MarkReadAsync(n.AdminNotificationID, _memberId);
+        await LoadAsync();
+    }
+
+    private async Task MarkAllReadAsync()
+    {
+        await NotificationService.MarkAllReadAsync(_memberId);
+        Snackbar.Add(L["notifications.all_marked_read", "All notifications marked as read."], Severity.Success);
+        await LoadAsync();
+    }
+
+    private async Task DeleteAsync(AdminNotification n)
+    {
+        await NotificationService.DeleteAsync(n.AdminNotificationID, _memberId);
+        Snackbar.Add(L["notifications.deleted", "Notification deleted."], Severity.Success);
+        await LoadAsync();
+    }
+}

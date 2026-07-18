@@ -42,6 +42,8 @@ public partial class Website
 
     public string DefaultCurrencyCode { get; set; } = null!;
 
+    public virtual ICollection<AdminNotification> AdminNotifications { get; set; } = new List<AdminNotification>();
+
     public virtual ICollection<AttributeDefinition> AttributeDefinitions { get; set; } = new List<AttributeDefinition>();
 
     public virtual ICollection<BankAccount> BankAccounts { get; set; } = new List<BankAccount>();

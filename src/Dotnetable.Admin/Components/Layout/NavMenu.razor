@@ -10,6 +10,9 @@
     <MudNavLink Href="/" Match="NavLinkMatch.All" Icon="@Icons.Material.Filled.Dashboard">
         @L["dashboard", "Dashboard"]
     </MudNavLink>
+    <MudNavLink Href="/notifications" Icon="@Icons.Material.Filled.Notifications">
+        @L["notifications", "Notifications"]
+    </MudNavLink>
 
     @if (_canMembers || _canClients || _canPolicies || _canLoginLogs || _canMessages || _canWebsite || _isMaster)
     {

@@ -1,11 +1,13 @@
 using System.Text;
 using Dotnetable.Application.DTOs;
+using Dotnetable.Application.Interfaces;
 using Dotnetable.Domain.Entities;
 using Dotnetable.Domain.Enums;
 using Dotnetable.Infrastructure.Data;
 using Dotnetable.Infrastructure.Services;
 using FluentAssertions;
 using Microsoft.EntityFrameworkCore;
+using Moq;
 using Xunit;
 
 namespace Dotnetable.Tests.Services;
@@ -22,7 +24,7 @@ public class FormServiceTests : IDisposable
             .UseInMemoryDatabase(Guid.NewGuid().ToString())
             .Options;
         _context = new AppDbContext(opts);
-        _service = new FormService(_context);
+        _service = new FormService(_context, new Mock<IAdminNotificationService>().Object);
 
         _website = NewWebsite("Test", "test.com");
         _context.Websites.Add(_website);

@@ -14,6 +14,7 @@ public static class EmailTemplateKeys
     public const string TicketReply = "TicketReply";
     public const string Newsletter = "Newsletter";
     public const string ContactFormNotification = "ContactFormNotification";
+    public const string AdminSiteNotification = "AdminSiteNotification";
 }
 
 /// <summary>One built-in template shipped as the master website's default row.</summary>
@@ -155,6 +156,14 @@ public static class EmailTemplateDefaults
             Layout("New contact message",
                 $"<p style=\"margin:0 0 12px;\">New message from <strong>{{{{Name}}}}</strong> (<a href=\"mailto:{{{{Email}}}}\" style=\"color:{AccentColor};\">{{{{Email}}}}</a>):</p>" +
                 Quote("{{MessageBody}}")),
+            EmailAccountType.Info),
+
+        new(EmailTemplateKeys.AdminSiteNotification, "Admin — Site Notification",
+            "{{Title}} — {{SiteName}}",
+            Layout("{{Title}}",
+                "<p style=\"margin:0 0 12px;\">Hello <strong>{{AdminName}}</strong>,</p>" +
+                "<p style=\"margin:0 0 12px;\">{{MessageBody}}</p>" +
+                Button("{{ActionUrl}}", "Open in admin")),
             EmailAccountType.Info),
     ];
 }

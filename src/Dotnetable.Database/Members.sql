@@ -15,6 +15,7 @@
     [Gender]          BIT              NULL,
     [WebsiteID]       INT              NOT NULL,
     [AdminUIMode]     TINYINT          CONSTRAINT [DF_Members_AdminUIMode] DEFAULT ((1)) NOT NULL,
+    [IsSiteAdmin]     BIT              CONSTRAINT [DF_Members_IsSiteAdmin] DEFAULT ((0)) NOT NULL,
     CONSTRAINT [PK_Members] PRIMARY KEY CLUSTERED ([MemberID] ASC),
     CONSTRAINT [FK_Members_FileRecords] FOREIGN KEY ([AvatarID]) REFERENCES [dbo].[FileRecords] ([FileRecordID]),
     CONSTRAINT [FK_Members_Policies] FOREIGN KEY ([PolicyID]) REFERENCES [dbo].[Policies] ([PolicyID]),

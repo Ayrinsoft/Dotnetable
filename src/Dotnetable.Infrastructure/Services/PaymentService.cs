@@ -1,6 +1,7 @@
 using Dotnetable.Application.DTOs;
 using Dotnetable.Application.Interfaces;
 using Dotnetable.Domain.Entities;
+using Dotnetable.Domain.Enums;
 using Dotnetable.Infrastructure.Data;
 using Microsoft.EntityFrameworkCore;
 
@@ -11,12 +12,16 @@ public class PaymentService : IPaymentService
     private readonly AppDbContext _context;
     private readonly IClientWalletService _wallet;
     private readonly IOrderService _orders;
+    private readonly IAdminNotificationService _notifications;
 
-    public PaymentService(AppDbContext context, IClientWalletService wallet, IOrderService orders)
+    public PaymentService(
+        AppDbContext context, IClientWalletService wallet, IOrderService orders,
+        IAdminNotificationService notifications)
     {
         _context = context;
         _wallet = wallet;
         _orders = orders;
+        _notifications = notifications;
     }
 
     public async Task<(bool Success, string? Error, Payment? Payment)> PayWithWalletAsync(int websiteId, int clientId, int orderId, CancellationToken ct = default)
@@ -56,6 +61,16 @@ public class PaymentService : IPaymentService
         await _context.SaveChangesAsync(ct);
 
         await _orders.TransitionStatusAsync(orderId, OrderStatus.Paid, null, "Paid with wallet balance.", ct);
+
+        await _notifications.NotifySiteAdminsAsync(
+            websiteId,
+            AdminNotificationType.PaymentReceived,
+            "Payment received",
+            $"Order #{order.OrderNumber} paid with wallet — {order.GrandTotal:0.##} {order.CurrencyCode}.",
+            $"/orders/{order.OrderID}",
+            payment.PaymentID,
+            ct);
+
         return (true, null, payment);
     }
 
@@ -83,6 +98,16 @@ public class PaymentService : IPaymentService
         };
         _context.Payments.Add(payment);
         await _context.SaveChangesAsync(ct);
+
+        await _notifications.NotifySiteAdminsAsync(
+            websiteId,
+            AdminNotificationType.BankReceipt,
+            "Bank receipt submitted",
+            $"Order #{order.OrderNumber} needs bank transfer verification — {order.GrandTotal:0.##} {order.CurrencyCode}.",
+            "/payments",
+            payment.PaymentID,
+            ct);
+
         return (true, null, payment);
     }
 
