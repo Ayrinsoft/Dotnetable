@@ -126,7 +126,13 @@
 
     private async Task CreateAsync()
     {
-        if (await ShowDialogAsync(new Category { WebsiteID = _websiteId, IsActive = true }, true)) await LoadAsync();
+        if (_websiteId <= 0)
+        {
+            Snackbar.Add(L["website_required", "Select a website first."], Severity.Warning);
+            return;
+        }
+        if (await ShowDialogAsync(new Category { WebsiteID = _websiteId, IsActive = true }, true))
+            await LoadAsync();
     }
 
     private async Task EditAsync(Category c)

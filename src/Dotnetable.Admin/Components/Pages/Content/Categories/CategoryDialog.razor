@@ -19,7 +19,7 @@
                         <MudSelectItem T="int?" Value="@((int?)null)">@L["categories.top_level", "— Top level —"]</MudSelectItem>
                         @foreach (var c in ParentCandidates)
                         {
-                            <MudSelectItem T="int?" Value="@c.CategoryID">@c.Name</MudSelectItem>
+                            <MudSelectItem T="int?" Value="@((int?)c.CategoryID)">@c.Name</MudSelectItem>
                         }
                     </MudSelect>
                 </MudItem>
@@ -29,7 +29,7 @@
                         <MudSelectItem T="int?" Value="@((int?)null)">@L["categories.any_type", "— Any —"]</MudSelectItem>
                         @foreach (var t in PostTypes)
                         {
-                            <MudSelectItem T="int?" Value="@t.PostTypeID">@t.Name</MudSelectItem>
+                            <MudSelectItem T="int?" Value="@((int?)t.PostTypeID)">@t.Name</MudSelectItem>
                         }
                     </MudSelect>
                 </MudItem>
@@ -142,11 +142,22 @@
         if (string.IsNullOrWhiteSpace(Model.Name)) return;
         if (string.IsNullOrWhiteSpace(Model.Slug)) Model.Slug = Model.Name.Trim();
 
+        // Optional FKs: clearable MudSelect can bind 0 instead of null (breaks SQL FKs).
+        if (Model.ParentCategoryID is 0) Model.ParentCategoryID = null;
+        if (Model.PostTypeID is 0) Model.PostTypeID = null;
+        if (Model.WebsiteID <= 0)
+        {
+            Snackbar.Add(L["website_required", "Select a website first."], Severity.Warning);
+            return;
+        }
+
         _saving = true;
         try
         {
-            if (IsNew) await CategoryService.CreateAsync(Model);
-            else await CategoryService.UpdateAsync(Model);
+            if (IsNew)
+                Model = await CategoryService.CreateAsync(Model);
+            else
+                await CategoryService.UpdateAsync(Model);
             await CategoryService.SetTranslationsAsync(Model.CategoryID, _tr);
             Snackbar.Add(L["saved", "Saved."], Severity.Success);
             MudDialog.Close(DialogResult.Ok(true));
