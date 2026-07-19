@@ -3,9 +3,18 @@
 @if (GridHeaderParams is not null)
 {
     <div class="dn-grid-wrapper">
-        <table class="dn-grid">
+        <table class="dn-grid @(HasSelection ? "dn-grid-selectable" : null)">
             <thead>
                 <tr>
+                    @if (HasSelection)
+                    {
+                        <th class="dn-grid-select">
+                            <input type="checkbox" class="dn-grid-check"
+                                   title="@SelectAllTitle"
+                                   checked="@AllPageSelected"
+                                   @onchange="OnSelectAllChanged" />
+                        </th>
+                    }
                     @if (GridHeaderParams.HasRowNumber)
                     {
                         <th class="dn-grid-rownum">#</th>
@@ -32,6 +41,10 @@
                 @if (_showSearchBar && GridHeaderParams.HeaderItems.Any(i => i.HasSearch))
                 {
                     <tr class="dn-grid-search">
+                        @if (HasSelection)
+                        {
+                            <th></th>
+                        }
                         @if (GridHeaderParams.HasRowNumber)
                         {
                             <th></th>
@@ -91,6 +104,17 @@
     [Parameter] public string SearchPlaceholder { get; set; } = "Search…";
     [Parameter] public string AllText { get; set; } = "All";
 
+    /// <summary>When true, renders a leading checkbox column (header select-all + row checkboxes from callers).</summary>
+    [Parameter] public bool HasSelection { get; set; }
+
+    /// <summary>True when every row on the current page is selected (drives the header checkbox).</summary>
+    [Parameter] public bool AllPageSelected { get; set; }
+
+    /// <summary>Raised when the header select-all checkbox is toggled. Argument is the desired checked state.</summary>
+    [Parameter] public EventCallback<bool> OnSelectAllToggled { get; set; }
+
+    [Parameter] public string SelectAllTitle { get; set; } = "Select all on this page";
+
     private const string AllToken = "__ALL__";
     private bool _showSearchBar;
 
@@ -107,6 +131,14 @@
     };
 
     private void ToggleSearchBar() => _showSearchBar = !_showSearchBar;
+
+    private async Task OnSelectAllChanged(ChangeEventArgs e)
+    {
+        var selected = e.Value is bool b && b
+            || string.Equals(e.Value?.ToString(), "true", StringComparison.OrdinalIgnoreCase)
+            || string.Equals(e.Value?.ToString(), "on", StringComparison.OrdinalIgnoreCase);
+        await OnSelectAllToggled.InvokeAsync(selected);
+    }
 
     private async Task OnPaginationChanged(PaginationModel pageChange)
     {

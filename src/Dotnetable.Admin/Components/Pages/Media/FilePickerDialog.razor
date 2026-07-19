@@ -10,14 +10,62 @@
         </MudText>
     </TitleContent>
     <DialogContent>
-        <MudStack Row="true" Spacing="2" AlignItems="AlignItems.Center" Class="mb-3">
+        <MudStack Row="true" Spacing="2" AlignItems="AlignItems.Center" Class="mb-3 flex-wrap">
+            <MudButton Size="Size.Small"
+                       Variant="@(_albumIds.Count > 0 ? Variant.Filled : Variant.Outlined)"
+                       Color="Color.Primary"
+                       StartIcon="@Icons.Material.Filled.Collections"
+                       OnClick="OpenAlbumFilterAsync">
+                @L["media.albums", "Albums"]
+                @if (_albumIds.Count > 0)
+                {
+                    <span>&nbsp;(@_albumIds.Count)</span>
+                }
+            </MudButton>
+            <MudButton Size="Size.Small"
+                       Variant="@(_tagIds.Count > 0 ? Variant.Filled : Variant.Outlined)"
+                       Color="Color.Primary"
+                       StartIcon="@Icons.Material.Filled.Sell"
+                       OnClick="OpenTagFilterAsync">
+                @L["media.tags", "Tags"]
+                @if (_tagIds.Count > 0)
+                {
+                    <span>&nbsp;(@_tagIds.Count)</span>
+                }
+            </MudButton>
             <MudTextField @bind-Value="_search" Placeholder="@L["search", "Search…"]" Variant="Variant.Outlined"
                           Margin="Margin.Dense" Immediate="false" OnKeyUp="OnSearchKey"
-                          Adornment="Adornment.Start" AdornmentIcon="@Icons.Material.Filled.Search" />
-            <MudSpacer />
+                          Adornment="Adornment.Start" AdornmentIcon="@Icons.Material.Filled.Search"
+                          Clearable="true" OnClearButtonClick="OnSearchCleared"
+                          Style="flex:1; min-width:140px;" />
             <MudButton StartIcon="@Icons.Material.Filled.CloudUpload" Color="Color.Primary"
                        Variant="Variant.Outlined" OnClick="OpenUploadAsync">@L["media.upload", "Upload"]</MudButton>
         </MudStack>
+
+        @if (HasActiveFilters)
+        {
+            <MudStack Row="true" AlignItems="AlignItems.Center" Spacing="1" Class="mb-3 flex-wrap">
+                <MudText Typo="Typo.caption" Color="Color.Secondary" Class="me-1">
+                    @L["media.active_filters", "Active filters"]:
+                </MudText>
+                @foreach (var name in _albumNames)
+                {
+                    <MudChip T="string" Size="Size.Small" Color="Color.Primary" Variant="Variant.Filled">@name</MudChip>
+                }
+                @foreach (var name in _tagNames)
+                {
+                    <MudChip T="string" Size="Size.Small" Color="Color.Secondary" Variant="Variant.Filled">@name</MudChip>
+                }
+                @if (!string.IsNullOrWhiteSpace(_search))
+                {
+                    <MudChip T="string" Size="Size.Small" Color="Color.Default" Variant="Variant.Filled"
+                             OnClose="OnSearchCleared">@L["search", "Search"]: @_search</MudChip>
+                }
+                <MudButton Size="Size.Small" Variant="Variant.Text" Color="Color.Primary"
+                           StartIcon="@Icons.Material.Filled.FilterAltOff"
+                           OnClick="ClearAllFilters">@L["media.clear_filters", "Clear filters"]</MudButton>
+            </MudStack>
+        }
 
         @if (_loading)
         {
@@ -26,7 +74,19 @@
 
         @if (_items.Count == 0 && !_loading)
         {
-            <MudText Color="Color.Secondary" Class="pa-4" Align="Align.Center">@L["picker.empty", "No files. Upload one to get started."]</MudText>
+            <MudText Color="Color.Secondary" Class="pa-4" Align="Align.Center">
+                @(HasActiveFilters
+                    ? L["media.empty_filtered", "No files match the current filters."]
+                    : L["picker.empty", "No files. Upload one to get started."])
+            </MudText>
+            @if (HasActiveFilters)
+            {
+                <div class="d-flex justify-center mb-2">
+                    <MudButton Size="Size.Small" Variant="Variant.Outlined" Color="Color.Primary"
+                               StartIcon="@Icons.Material.Filled.FilterAltOff"
+                               OnClick="ClearAllFilters">@L["media.clear_filters", "Clear filters"]</MudButton>
+                </div>
+            }
         }
         else
         {
@@ -80,13 +140,30 @@
     private const int _pageSize = 18;
     private int _total;
     private List<FileRecord> _items = new();
+    private readonly List<int> _albumIds = new();
+    private readonly List<int> _tagIds = new();
+    private List<string> _albumNames = new();
+    private List<string> _tagNames = new();
 
-    protected override Task OnInitializedAsync() => LoadAsync();
+    private bool HasActiveFilters =>
+        _albumIds.Count > 0 || _tagIds.Count > 0 || !string.IsNullOrWhiteSpace(_search);
+
+    protected override async Task OnInitializedAsync()
+    {
+        await L.EnsureLoadedAsync();
+        await LoadAsync();
+    }
 
     private async Task LoadAsync()
     {
         _loading = true;
-        var filter = new FileFilter { Category = Category, Search = _search };
+        var filter = new FileFilter
+        {
+            Category = Category,
+            Search = _search,
+            AlbumIDs = _albumIds.Count > 0 ? _albumIds.ToList() : null,
+            TagIDs = _tagIds.Count > 0 ? _tagIds.ToList() : null,
+        };
         var result = await FileService.GetPagedAsync(WebsiteId, filter,
             new GridQuery { PageIndex = _pageIndex, PageSize = _pageSize });
         _items = result.Items.ToList();
@@ -94,16 +171,105 @@
         _loading = false;
     }
 
+    private async Task OpenAlbumFilterAsync()
+    {
+        var parameters = new DialogParameters
+        {
+            [nameof(MediaFilterPickDialog.WebsiteId)] = WebsiteId,
+            [nameof(MediaFilterPickDialog.Kind)] = MediaFilterPickDialog.PickKind.Album,
+            [nameof(MediaFilterPickDialog.InitialSelectedIds)] = _albumIds.ToList(),
+        };
+        var dialog = await DialogService.ShowAsync<MediaFilterPickDialog>(
+            L["media.pick_albums", "Select albums"], parameters,
+            new DialogOptions { MaxWidth = MaxWidth.Medium, FullWidth = true });
+        var result = await dialog.Result;
+        if (result is { Canceled: false, Data: List<int> ids })
+        {
+            _albumIds.Clear();
+            _albumIds.AddRange(ids);
+            await RefreshFilterNamesAsync();
+            _pageIndex = 1;
+            await LoadAsync();
+        }
+    }
+
+    private async Task OpenTagFilterAsync()
+    {
+        var parameters = new DialogParameters
+        {
+            [nameof(MediaFilterPickDialog.WebsiteId)] = WebsiteId,
+            [nameof(MediaFilterPickDialog.Kind)] = MediaFilterPickDialog.PickKind.Tag,
+            [nameof(MediaFilterPickDialog.InitialSelectedIds)] = _tagIds.ToList(),
+        };
+        var dialog = await DialogService.ShowAsync<MediaFilterPickDialog>(
+            L["media.pick_tags", "Select tags"], parameters,
+            new DialogOptions { MaxWidth = MaxWidth.Small, FullWidth = true });
+        var result = await dialog.Result;
+        if (result is { Canceled: false, Data: List<int> ids })
+        {
+            _tagIds.Clear();
+            _tagIds.AddRange(ids);
+            await RefreshFilterNamesAsync();
+            _pageIndex = 1;
+            await LoadAsync();
+        }
+    }
+
+    private async Task RefreshFilterNamesAsync()
+    {
+        if (_albumIds.Count > 0)
+        {
+            var albums = await FileService.GetAlbumsAsync(WebsiteId);
+            _albumNames = albums.Where(a => _albumIds.Contains(a.FileAlbumID)).Select(a => a.Name).ToList();
+        }
+        else
+        {
+            _albumNames = new();
+        }
+
+        if (_tagIds.Count > 0)
+        {
+            var tags = await FileService.GetTagsAsync(WebsiteId);
+            _tagNames = tags.Where(t => _tagIds.Contains(t.FileTagID)).Select(t => t.Name).ToList();
+        }
+        else
+        {
+            _tagNames = new();
+        }
+    }
+
+    private async Task ClearAllFilters()
+    {
+        _albumIds.Clear();
+        _tagIds.Clear();
+        _albumNames = new();
+        _tagNames = new();
+        _search = null;
+        _pageIndex = 1;
+        await LoadAsync();
+    }
+
     private async Task OnSearchKey(KeyboardEventArgs e)
     {
         if (e.Key == "Enter") { _pageIndex = 1; await LoadAsync(); }
+    }
+
+    private async Task OnSearchCleared()
+    {
+        _search = null;
+        _pageIndex = 1;
+        await LoadAsync();
     }
 
     private async Task OnPageChanged(int page) { _pageIndex = page; await LoadAsync(); }
 
     private async Task OpenUploadAsync()
     {
-        var parameters = new DialogParameters { [nameof(UploadDialog.WebsiteId)] = WebsiteId };
+        var parameters = new DialogParameters
+        {
+            [nameof(UploadDialog.WebsiteId)] = WebsiteId,
+            [nameof(UploadDialog.PresetAlbumId)] = _albumIds.Count == 1 ? _albumIds[0] : null,
+        };
         var dialog = await DialogService.ShowAsync<UploadDialog>(L["media.upload", "Upload"], parameters,
             new DialogOptions { MaxWidth = MaxWidth.Medium, FullWidth = true });
         if ((await dialog.Result) is { Canceled: false }) await LoadAsync();
