@@ -47,45 +47,51 @@
     {
         <MudProgressLinear Indeterminate="true" Color="Color.Primary" Class="mb-3" />
     }
-    else if (_languages.Count == 0)
-    {
-        <MudText Color="Color.Secondary">@L["languages.empty", "No languages found."]</MudText>
-    }
-    else
-    {
-        <MudList T="string" Dense="false">
-            @foreach (var lang in _languages)
+    <DNGridView GridHeaderParams="_grid" OnSearchChanged="OnGridChanged">
+        @if (_items.Count == 0)
+        {
+            <tr>
+                <td colspan="7" style="text-align:center; padding:32px;">
+                    <MudText Color="Color.Secondary">@L["languages.empty", "No languages found."]</MudText>
+                </td>
+            </tr>
+        }
+        else
+        {
+            @foreach (var lang in _items)
             {
-                <MudListItem T="string">
-                    <MudStack Row="true" AlignItems="AlignItems.Center" Justify="Justify.SpaceBetween">
-                        <MudStack Spacing="0">
-                            <MudText>
-                                @lang.Name
-                                <MudText Typo="Typo.caption" Class="d-inline ms-1" Color="Color.Secondary">
-                                    (@lang.LanguageCode · @lang.LanguageCodeISO)
-                                </MudText>
-                            </MudText>
-                            <MudStack Row="true" Spacing="1" Class="mt-1">
-                                @if (lang.IsDefault)
-                                {
-                                    <MudChip T="string" Size="Size.Small" Color="Color.Primary" Variant="Variant.Outlined">
-                                        @L["languages.default", "Default"]
-                                    </MudChip>
-                                }
-                                @if (lang.RTLDesign)
-                                {
-                                    <MudChip T="string" Size="Size.Small" Variant="Variant.Outlined">
-                                        @L["languages.rtl", "RTL"]
-                                    </MudChip>
-                                }
-                                @if (!lang.Active)
-                                {
-                                    <MudChip T="string" Size="Size.Small" Color="Color.Error" Variant="Variant.Outlined">
-                                        @L["inactive", "Inactive"]
-                                    </MudChip>
-                                }
-                            </MudStack>
-                        </MudStack>
+                <tr>
+                    <td><code>@lang.LanguageCode</code></td>
+                    <td>@lang.LanguageCodeISO</td>
+                    <td>@lang.Name</td>
+                    <td>@(lang.RTLDesign ? L["yes", "Yes"] : L["no", "No"])</td>
+                    <td>
+                        @if (lang.IsDefault)
+                        {
+                            <MudChip T="string" Size="Size.Small" Color="Color.Primary" Variant="Variant.Outlined">
+                                @L["languages.default", "Default"]
+                            </MudChip>
+                        }
+                        else
+                        {
+                            @L["no", "No"]
+                        }
+                    </td>
+                    <td>
+                        @if (lang.Active)
+                        {
+                            <MudChip T="string" Size="Size.Small" Color="Color.Success" Variant="Variant.Outlined">
+                                @L["active", "Active"]
+                            </MudChip>
+                        }
+                        else
+                        {
+                            <MudChip T="string" Size="Size.Small" Color="Color.Error" Variant="Variant.Outlined">
+                                @L["inactive", "Inactive"]
+                            </MudChip>
+                        }
+                    </td>
+                    <td>
                         <MudStack Row="true" Spacing="0">
                             @if (!lang.IsDefault)
                             {
@@ -105,11 +111,11 @@
                                            Title="@L["delete", "Delete"]"
                                            OnClick="@(() => RemoveAsync(lang))" />
                         </MudStack>
-                    </MudStack>
-                </MudListItem>
+                    </td>
+                </tr>
             }
-        </MudList>
-    }
+        }
+    </DNGridView>
 </MudPaper>
 
 @code {
@@ -118,7 +124,8 @@
     private int _websiteId;
     private string _defaultLanguageCode = "en";
     private List<Website> _websites = new();
-    private List<Language> _languages = new();
+    private List<Language> _items = new();
+    private GridViewHeaderParameters _grid = new();
 
     protected override async Task OnInitializedAsync()
     {
@@ -131,8 +138,25 @@
         if (_isMaster)
             _websites = (await WebsiteService.GetAllAsync()).ToList();
 
+        _grid = new GridViewHeaderParameters
+        {
+            Pagination = new PaginationModel { PageSize = 25 },
+            HeaderItems = new()
+            {
+                new() { ColumnTitle = L["languages.code", "Code"], ColumnName = nameof(Language.LanguageCode), HasSort = true, HasSearch = true },
+                new() { ColumnTitle = L["languages.iso_code", "ISO Code"], ColumnName = nameof(Language.LanguageCodeISO), HasSort = true, HasSearch = true },
+                new() { ColumnTitle = L["name", "Name"], ColumnName = nameof(Language.Name), HasSort = true, HasSearch = true },
+                new() { ColumnTitle = L["languages.rtl", "RTL"], ColumnName = nameof(Language.RTLDesign) },
+                new() { ColumnTitle = L["languages.default", "Default"], ColumnName = nameof(Language.IsDefault) },
+                new() { ColumnTitle = L["active", "Active"], ColumnName = nameof(Language.Active) },
+                new() { ColumnTitle = "", ColumnName = "" },
+            }
+        };
+
         await LoadAsync();
     }
+
+    private Task OnGridChanged(GridViewHeaderParameters _) => LoadAsync();
 
     private async Task OnWebsiteChanged(int id)
     {
@@ -150,16 +174,55 @@
                 ? "en"
                 : site!.DefaultLanguageCode.Trim().ToLowerInvariant();
 
-            _languages = await LanguageService.GetForWebsiteAsync(_websiteId);
+            var all = await LanguageService.GetForWebsiteAsync(_websiteId);
 
-            var siteDefault = _languages.FirstOrDefault(l => l.IsDefault);
+            var siteDefault = all.FirstOrDefault(l => l.IsDefault);
             if (siteDefault is not null)
                 _defaultLanguageCode = siteDefault.LanguageCode;
+
+            // Client-side filter / sort / page — website language lists are small.
+            var query = _grid.ToQuery();
+            IEnumerable<Language> q = all;
+
+            if (query.GetSearch(nameof(Language.LanguageCode)) is string code)
+                q = q.Where(l => l.LanguageCode.Contains(code, StringComparison.OrdinalIgnoreCase));
+            if (query.GetSearch(nameof(Language.LanguageCodeISO)) is string iso)
+                q = q.Where(l => l.LanguageCodeISO.Contains(iso, StringComparison.OrdinalIgnoreCase));
+            if (query.GetSearch(nameof(Language.Name)) is string name)
+                q = q.Where(l => l.Name.Contains(name, StringComparison.OrdinalIgnoreCase));
+
+            q = ApplyOrderBy(q, query.OrderBy);
+
+            var filtered = q.ToList();
+            _grid.Pagination.MaxLength = filtered.Count;
+            _items = filtered.Skip(query.Skip).Take(query.Take).ToList();
         }
         finally
         {
             _loading = false;
         }
+    }
+
+    private static IEnumerable<Language> ApplyOrderBy(IEnumerable<Language> source, string? orderBy)
+    {
+        if (string.IsNullOrWhiteSpace(orderBy))
+            return source.OrderBy(l => l.Priority).ThenBy(l => l.Name);
+
+        // First sort clause only (grid typically sets one active column).
+        var parts = orderBy.Split(',')[0].Trim().Split(' ', StringSplitOptions.RemoveEmptyEntries | StringSplitOptions.TrimEntries);
+        var col = parts[0];
+        var desc = parts.Length > 1 && parts[1].Equals("DESC", StringComparison.OrdinalIgnoreCase);
+
+        return (col, desc) switch
+        {
+            (nameof(Language.LanguageCode), false) => source.OrderBy(l => l.LanguageCode),
+            (nameof(Language.LanguageCode), true) => source.OrderByDescending(l => l.LanguageCode),
+            (nameof(Language.LanguageCodeISO), false) => source.OrderBy(l => l.LanguageCodeISO),
+            (nameof(Language.LanguageCodeISO), true) => source.OrderByDescending(l => l.LanguageCodeISO),
+            (nameof(Language.Name), false) => source.OrderBy(l => l.Name),
+            (nameof(Language.Name), true) => source.OrderByDescending(l => l.Name),
+            _ => source.OrderBy(l => l.Priority).ThenBy(l => l.Name),
+        };
     }
 
     private async Task CreateAsync()
