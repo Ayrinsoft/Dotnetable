@@ -1,6 +1,7 @@
 @page "/themes"
 @attribute [Authorize(Policy = RoleKeys.ThemesView)]
 @inject IThemeService ThemeService
+@inject IWebsiteService WebsiteService
 @inject AuthenticationStateProvider AuthState
 @inject IDialogService DialogService
 @inject ISnackbar Snackbar
@@ -96,6 +97,7 @@
     private bool _canEdit;
     private int _websiteId;
     private List<WebsiteTheme> _themes = new();
+    private List<Website> _websites = new();
     private GridViewHeaderParameters _grid = new();
 
     protected override async Task OnInitializedAsync()
@@ -106,6 +108,7 @@
         _isMaster = user.HasClaim(AdminClaimTypes.Master, "true");
         _canEdit = AdminPolicies.Allows(user, RoleKeys.ThemesEdit);
         int.TryParse(user.FindFirst(AdminClaimTypes.WebsiteId)?.Value, out _websiteId);
+        if (_isMaster) _websites = (await WebsiteService.GetAllAsync()).ToList();
 
         var headers = new List<GridViewHeaderParameters.HeaderItemDetail>
         {
@@ -199,6 +202,7 @@
             { x => x.Model, theme },
             { x => x.IsNew, isNew },
             { x => x.AllowWebsiteEdit, _isMaster },
+            { x => x.Websites, _websites },
         };
         var dialog = await DialogService.ShowAsync<ThemeDialog>(
             isNew ? L["themes.new", "New Theme"] : L["themes.edit", "Edit Theme"], parameters,
