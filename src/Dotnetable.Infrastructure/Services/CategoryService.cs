@@ -50,19 +50,28 @@ public class CategoryService : ICategoryService
 
     public async Task<Category> CreateAsync(Category category, CancellationToken ct = default)
     {
+        NormalizeOptionalFks(category);
+        DetachTracked(_context.Categories, category.CategoryID, c => c.CategoryID);
         _context.Categories.Add(category);
         await _context.SaveChangesAsync(ct);
+        // Blazor Server keeps AppDbContext for the whole circuit; detach so a later
+        // edit of the same key with a fresh copy does not hit an identity conflict.
+        _context.Entry(category).State = EntityState.Detached;
         return category;
     }
 
     public async Task UpdateAsync(Category category, CancellationToken ct = default)
     {
+        NormalizeOptionalFks(category);
+        DetachTracked(_context.Categories, category.CategoryID, c => c.CategoryID);
         _context.Categories.Update(category);
         await _context.SaveChangesAsync(ct);
+        _context.Entry(category).State = EntityState.Detached;
     }
 
     public async Task DeleteAsync(int categoryId, CancellationToken ct = default)
     {
+        DetachTracked(_context.Categories, categoryId, c => c.CategoryID);
         var category = await _context.Categories
             .Include(c => c.CategoryTranslations)
             .Include(c => c.PostCategories)
@@ -78,6 +87,25 @@ public class CategoryService : ICategoryService
         _context.CategoryTranslations.RemoveRange(category.CategoryTranslations);
         _context.Categories.Remove(category);
         await _context.SaveChangesAsync(ct);
+    }
+
+    /// <summary>MudSelect / clearable binds sometimes emit 0 instead of null for optional int FKs;
+    /// 0 is not a real Category/PostType key and breaks SAME TABLE / PostTypes FKs.</summary>
+    private static void NormalizeOptionalFks(Category category)
+    {
+        if (category.ParentCategoryID is 0) category.ParentCategoryID = null;
+        if (category.PostTypeID is 0) category.PostTypeID = null;
+    }
+
+    /// <summary>Detaches any stale tracked instance with the same key before an Add/Update. AppDbContext is
+    /// scoped per Blazor Server circuit (not per request), so an entity saved earlier in the same session
+    /// stays tracked and would otherwise collide with a fresh detached copy carrying the same primary key.</summary>
+    private void DetachTracked<TEntity>(DbSet<TEntity> set, int key, Func<TEntity, int> keySelector) where TEntity : class
+    {
+        if (key == 0) return; // 0 = not-yet-persisted; there's no real identity to collide on.
+        var local = set.Local.FirstOrDefault(e => keySelector(e) == key);
+        if (local is not null)
+            _context.Entry(local).State = EntityState.Detached;
     }
 
     // ── Translations ────────────────────────────────────────────────

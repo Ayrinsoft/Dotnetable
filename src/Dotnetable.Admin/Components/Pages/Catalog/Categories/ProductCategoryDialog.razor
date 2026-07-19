@@ -34,7 +34,7 @@
                         <MudSelectItem T="int?" Value="@((int?)null)">@L["catalog.categories.top_level", "— Top level —"]</MudSelectItem>
                         @foreach (var c in ParentCandidates)
                         {
-                            <MudSelectItem T="int?" Value="@c.ProductCategoryID">@c.Name</MudSelectItem>
+                            <MudSelectItem T="int?" Value="@((int?)c.ProductCategoryID)">@c.Name</MudSelectItem>
                         }
                     </MudSelect>
                 </MudItem>
@@ -163,12 +163,21 @@
         if (string.IsNullOrWhiteSpace(Model.Name)) return;
         if (string.IsNullOrWhiteSpace(Model.Slug)) Model.Slug = Model.Name.Trim();
 
+        if (Model.ParentCategoryID is 0) Model.ParentCategoryID = null;
+        if (Model.WebsiteID <= 0)
+        {
+            Snackbar.Add(L["website_required", "Select a website first."], Severity.Warning);
+            return;
+        }
+
         _saving = true;
         try
         {
             Model.ImageFileID = _file?.FileRecordID;
-            if (IsNew) await ProductCategoryService.CreateAsync(Model);
-            else await ProductCategoryService.UpdateAsync(Model);
+            if (IsNew)
+                Model = await ProductCategoryService.CreateAsync(Model);
+            else
+                await ProductCategoryService.UpdateAsync(Model);
             await ProductCategoryService.SetTranslationsAsync(Model.ProductCategoryID, _tr);
             Snackbar.Add(L["saved", "Saved."], Severity.Success);
             MudDialog.Close(DialogResult.Ok(true));
