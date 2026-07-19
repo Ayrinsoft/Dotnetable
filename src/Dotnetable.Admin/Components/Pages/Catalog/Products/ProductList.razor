@@ -22,9 +22,6 @@
                              Label="@L["website", "Website"]" Variant="Variant.Outlined"
                              Dense="true" Style="min-width:180px" />
         }
-        <MudTextField T="string" @bind-Value="_search" Label="@L["search", "Search"]" Variant="Variant.Outlined" Dense="true"
-                      Adornment="Adornment.End" AdornmentIcon="@Icons.Material.Filled.Search" OnAdornmentClick="LoadAsync"
-                      OnKeyUp="@(async e => { if (e.Key == "Enter") await LoadAsync(); })" />
         @if (_canInsert)
         {
             <MudButton Variant="Variant.Filled" Color="Color.Primary" StartIcon="@Icons.Material.Filled.Add" OnClick="@(() => Nav.NavigateTo("/catalog/products/new"))">
@@ -39,45 +36,40 @@
     {
         <MudProgressLinear Indeterminate="true" Color="Color.Primary" Class="mb-3" />
     }
-    else if (_items.Count == 0)
-    {
-        <div style="text-align:center; padding:32px;"><MudText Color="Color.Secondary">@L["products.empty", "No products yet."]</MudText></div>
-    }
-    else
-    {
-        <MudSimpleTable Dense="true" Hover="true" Elevation="0">
-            <thead>
-                <tr>
-                    <th></th><th>@L["title", "Title"]</th><th>@L["brand", "Brand"]</th>
-                    <th>@L["products.min_price", "Min price (USD)"]</th><th>@L["active", "Active"]</th><th style="width:1%"></th>
+    <DNGridView GridHeaderParams="_grid" OnSearchChanged="OnGridChanged">
+        @if (_items.Count == 0)
+        {
+            <tr>
+                <td colspan="6" style="text-align:center; padding:32px;">
+                    <MudText Color="Color.Secondary">@L["products.empty", "No products yet."]</MudText>
+                </td>
+            </tr>
+        }
+        else
+        {
+            @foreach (var p in _items)
+            {
+                <tr style="cursor:pointer" @onclick="@(() => Nav.NavigateTo($"/catalog/products/{p.ProductID}"))">
+                    <td style="width:48px">
+                        @if (!string.IsNullOrEmpty(p.FeaturedImageUrl))
+                        {
+                            <img src="@p.FeaturedImageUrl" style="width:36px;height:36px;object-fit:cover;border-radius:6px" />
+                        }
+                    </td>
+                    <td>@p.Title <MudText Typo="Typo.caption" Color="Color.Secondary">@p.Slug</MudText></td>
+                    <td>@(p.BrandName ?? "-")</td>
+                    <td>@(p.MinPriceUsd?.ToString("0.##") ?? "-")</td>
+                    <td>@(p.IsActive ? L["yes", "Yes"] : L["no", "No"])</td>
+                    <td @onclick:stopPropagation="true">
+                        @if (_canDelete)
+                        {
+                            <MudIconButton Icon="@Icons.Material.Filled.Delete" Size="Size.Small" Color="Color.Error" OnClick="@(() => DeleteAsync(p.ProductID))" />
+                        }
+                    </td>
                 </tr>
-            </thead>
-            <tbody>
-                @foreach (var p in _items)
-                {
-                    <tr style="cursor:pointer" @onclick="@(() => Nav.NavigateTo($"/catalog/products/{p.ProductID}"))">
-                        <td style="width:48px">
-                            @if (!string.IsNullOrEmpty(p.FeaturedImageUrl))
-                            {
-                                <img src="@p.FeaturedImageUrl" style="width:36px;height:36px;object-fit:cover;border-radius:6px" />
-                            }
-                        </td>
-                        <td>@p.Title <MudText Typo="Typo.caption" Color="Color.Secondary">@p.Slug</MudText></td>
-                        <td>@(p.BrandName ?? "-")</td>
-                        <td>@(p.MinPriceUsd?.ToString("0.##") ?? "-")</td>
-                        <td>@(p.IsActive ? L["yes", "Yes"] : L["no", "No"])</td>
-                        <td @onclick:stopPropagation="true">
-                            @if (_canDelete)
-                            {
-                                <MudIconButton Icon="@Icons.Material.Filled.Delete" Size="Size.Small" Color="Color.Error" OnClick="@(() => DeleteAsync(p.ProductID))" />
-                            }
-                        </td>
-                    </tr>
-                }
-            </tbody>
-        </MudSimpleTable>
-        <MudPagination Count="@_pageCount" Selected="_page" SelectedChanged="OnPageChanged" Class="mt-3" />
-    }
+            }
+        }
+    </DNGridView>
 </MudPaper>
 
 @code {
@@ -85,11 +77,9 @@
     private bool _isMaster;
     private bool _canInsert, _canDelete;
     private int _websiteId;
-    private string? _search;
-    private int _page = 1;
-    private int _pageCount = 1;
     private List<ProductListItemDto> _items = new();
     private List<Website> _websites = new();
+    private GridViewHeaderParameters _grid = new();
 
     protected override async Task OnInitializedAsync()
     {
@@ -100,18 +90,35 @@
         _canDelete = AdminPolicies.Allows(user, RoleKeys.ProductsDelete);
         int.TryParse(user.FindFirst(AdminClaimTypes.WebsiteId)?.Value, out _websiteId);
         if (_isMaster) _websites = (await WebsiteService.GetAllAsync()).ToList();
+
+        _grid = new GridViewHeaderParameters
+        {
+            Pagination = new PaginationModel { PageSize = 25 },
+            HeaderItems = new()
+            {
+                new() { ColumnTitle = "", ColumnName = "" },
+                new() { ColumnTitle = L["title", "Title"], ColumnName = nameof(ProductListItemDto.Title), HasSort = true, HasSearch = true },
+                new() { ColumnTitle = L["brand", "Brand"], ColumnName = nameof(ProductListItemDto.BrandName), HasSort = true },
+                new() { ColumnTitle = L["products.min_price", "Min price (USD)"], ColumnName = "" },
+                new() { ColumnTitle = L["active", "Active"], ColumnName = nameof(ProductListItemDto.IsActive), HasSort = true },
+                new() { ColumnTitle = "", ColumnName = "" },
+            }
+        };
+
         await LoadAsync();
     }
 
     private async Task OnWebsiteChanged(int id) { _websiteId = id; await LoadAsync(); }
-    private async Task OnPageChanged(int page) { _page = page; await LoadAsync(); }
+    private Task OnGridChanged(GridViewHeaderParameters _) => LoadAsync();
 
     private async Task LoadAsync()
     {
         _loading = true;
-        var result = await ProductService.GetPagedAsync(_websiteId, new ProductFilter(), new GridQuery { PageIndex = _page, PageSize = 20 }, _search);
+        var query = _grid.ToQuery();
+        var search = query.GetSearch(nameof(ProductListItemDto.Title));
+        var result = await ProductService.GetPagedAsync(_websiteId, new ProductFilter(), query, search);
         _items = result.Items.ToList();
-        _pageCount = Math.Max(1, (int)Math.Ceiling(result.TotalCount / 20.0));
+        _grid.Pagination.MaxLength = result.TotalCount;
         _loading = false;
     }
 

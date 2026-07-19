@@ -1,3 +1,4 @@
+using Dotnetable.Application.DTOs;
 using Dotnetable.Domain.Entities;
 
 namespace Dotnetable.Application.Interfaces;
@@ -7,6 +8,7 @@ public interface IShippingService
 {
     // Methods
     Task<List<ShippingMethod>> GetAllAsync(int websiteId, CancellationToken ct = default);
+    Task<PagedResult<ShippingMethod>> GetPagedAsync(int websiteId, GridQuery query, CancellationToken ct = default);
     Task<ShippingMethod?> GetByIdAsync(int shippingMethodId, CancellationToken ct = default);
     Task<ShippingMethod> CreateAsync(ShippingMethod method, CancellationToken ct = default);
     Task<bool> UpdateAsync(ShippingMethod method, CancellationToken ct = default);
@@ -14,6 +16,7 @@ public interface IShippingService
 
     // Rates (scoped to a method)
     Task<List<ShippingRate>> GetRatesAsync(int shippingMethodId, CancellationToken ct = default);
+    Task<PagedResult<ShippingRate>> GetRatesPagedAsync(int shippingMethodId, GridQuery query, CancellationToken ct = default);
     Task<ShippingRate> CreateRateAsync(ShippingRate rate, CancellationToken ct = default);
     Task<bool> UpdateRateAsync(ShippingRate rate, CancellationToken ct = default);
     Task<bool> DeleteRateAsync(int shippingRateId, CancellationToken ct = default);

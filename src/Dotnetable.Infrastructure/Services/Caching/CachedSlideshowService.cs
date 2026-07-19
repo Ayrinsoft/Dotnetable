@@ -32,6 +32,9 @@ public class CachedSlideshowService : ISlideshowService
     public Task<List<Slideshow>> GetSlideshowsAsync(int? websiteId, CancellationToken ct = default) =>
         _inner.GetSlideshowsAsync(websiteId, ct);
 
+    public Task<PagedResult<Slideshow>> GetPagedAsync(int? websiteId, GridQuery query, CancellationToken ct = default) =>
+        _inner.GetPagedAsync(websiteId, query, ct);
+
     public Task<Slideshow?> GetSlideshowAsync(int slideshowId, CancellationToken ct = default) =>
         _inner.GetSlideshowAsync(slideshowId, ct);
 

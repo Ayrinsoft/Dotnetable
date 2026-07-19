@@ -29,78 +29,65 @@
     {
         <MudProgressLinear Indeterminate="true" Color="Color.Primary" Class="mb-3" />
     }
-    else if (_themes.Count == 0)
-    {
-        <div style="text-align:center; padding:32px;">
-            <MudText Color="Color.Secondary">@L["themes.empty", "No themes yet. The front-end uses its built-in defaults."]</MudText>
-        </div>
-    }
-    else
-    {
-        <MudSimpleTable Dense="true" Hover="true" Elevation="0">
-            <thead>
+    <DNGridView GridHeaderParams="_grid" OnSearchChanged="OnGridChanged">
+        @if (_themes.Count == 0)
+        {
+            <tr>
+                <td colspan="@(_isMaster ? 6 : 5)" style="text-align:center; padding:32px;">
+                    <MudText Color="Color.Secondary">@L["themes.empty", "No themes yet. The front-end uses its built-in defaults."]</MudText>
+                </td>
+            </tr>
+        }
+        else
+        {
+            @foreach (var t in _themes)
+            {
                 <tr>
-                    <th>@L["id", "ID"]</th>
-                    <th>@L["name", "Name"]</th>
+                    <td>@t.WebsiteThemeID</td>
+                    <td>@t.Name</td>
                     @if (_isMaster)
                     {
-                        <th>@L["website", "Website"]</th>
+                        <td>#@t.WebsiteID</td>
                     }
-                    <th>@L["themes.preview", "Preview"]</th>
-                    <th>@L["themes.active", "Active"]</th>
-                    <th style="width:1%"></th>
-                </tr>
-            </thead>
-            <tbody>
-                @foreach (var t in _themes)
-                {
-                    <tr>
-                        <td>@t.WebsiteThemeID</td>
-                        <td>@t.Name</td>
-                        @if (_isMaster)
+                    <td>
+                        <MudStack Row="true" Spacing="1">
+                            @foreach (var color in PreviewColors(t))
+                            {
+                                <div style="width:20px;height:20px;border-radius:4px;border:1px solid rgba(128,128,128,.35);background:@color"></div>
+                            }
+                        </MudStack>
+                    </td>
+                    <td>
+                        @if (t.IsActive)
                         {
-                            <td>#@t.WebsiteID</td>
+                            <MudChip T="string" Size="Size.Small" Color="Color.Success" Variant="Variant.Text">
+                                @L["themes.active", "Active"]
+                            </MudChip>
                         }
-                        <td>
-                            <MudStack Row="true" Spacing="1">
-                                @foreach (var color in PreviewColors(t))
-                                {
-                                    <div style="width:20px;height:20px;border-radius:4px;border:1px solid rgba(128,128,128,.35);background:@color"></div>
-                                }
-                            </MudStack>
-                        </td>
-                        <td>
-                            @if (t.IsActive)
+                        else if (_canEdit)
+                        {
+                            <MudButton Size="Size.Small" Variant="Variant.Outlined" Color="Color.Primary"
+                                       OnClick="@(() => ActivateAsync(t))">
+                                @L["themes.activate", "Activate"]
+                            </MudButton>
+                        }
+                    </td>
+                    <td>
+                        <MudStack Row="true" Spacing="0">
+                            @if (_canEdit)
                             {
-                                <MudChip T="string" Size="Size.Small" Color="Color.Success" Variant="Variant.Text">
-                                    @L["themes.active", "Active"]
-                                </MudChip>
+                                <MudIconButton Icon="@Icons.Material.Filled.Edit" Size="Size.Small"
+                                               Color="Color.Default" OnClick="@(() => EditAsync(t))" />
+                                <MudIconButton Icon="@Icons.Material.Filled.Delete" Size="Size.Small"
+                                               Color="Color.Error" Disabled="@t.IsActive"
+                                               OnClick="@(() => DeleteAsync(t))" />
                             }
-                            else if (_canEdit)
-                            {
-                                <MudButton Size="Size.Small" Variant="Variant.Outlined" Color="Color.Primary"
-                                           OnClick="@(() => ActivateAsync(t))">
-                                    @L["themes.activate", "Activate"]
-                                </MudButton>
-                            }
-                        </td>
-                        <td>
-                            <MudStack Row="true" Spacing="0">
-                                @if (_canEdit)
-                                {
-                                    <MudIconButton Icon="@Icons.Material.Filled.Edit" Size="Size.Small"
-                                                   Color="Color.Default" OnClick="@(() => EditAsync(t))" />
-                                    <MudIconButton Icon="@Icons.Material.Filled.Delete" Size="Size.Small"
-                                                   Color="Color.Error" Disabled="@t.IsActive"
-                                                   OnClick="@(() => DeleteAsync(t))" />
-                                }
-                            </MudStack>
-                        </td>
-                    </tr>
-                }
-            </tbody>
-        </MudSimpleTable>
-    }
+                        </MudStack>
+                    </td>
+                </tr>
+            }
+        }
+    </DNGridView>
 </MudPaper>
 
 @code {
@@ -109,6 +96,7 @@
     private bool _canEdit;
     private int _websiteId;
     private List<WebsiteTheme> _themes = new();
+    private GridViewHeaderParameters _grid = new();
 
     protected override async Task OnInitializedAsync()
     {
@@ -119,13 +107,34 @@
         _canEdit = AdminPolicies.Allows(user, RoleKeys.ThemesEdit);
         int.TryParse(user.FindFirst(AdminClaimTypes.WebsiteId)?.Value, out _websiteId);
 
+        var headers = new List<GridViewHeaderParameters.HeaderItemDetail>
+        {
+            new() { ColumnTitle = L["id", "ID"], ColumnName = nameof(WebsiteTheme.WebsiteThemeID), HasSort = true },
+            new() { ColumnTitle = L["name", "Name"], ColumnName = nameof(WebsiteTheme.Name), HasSort = true, HasSearch = true },
+        };
+        if (_isMaster)
+            headers.Add(new() { ColumnTitle = L["website", "Website"], ColumnName = nameof(WebsiteTheme.WebsiteID), HasSort = true });
+        headers.Add(new() { ColumnTitle = L["themes.preview", "Preview"], ColumnName = "" });
+        headers.Add(new() { ColumnTitle = L["themes.active", "Active"], ColumnName = nameof(WebsiteTheme.IsActive), HasSort = true });
+        headers.Add(new() { ColumnTitle = "", ColumnName = "" });
+
+        _grid = new GridViewHeaderParameters
+        {
+            Pagination = new PaginationModel { PageSize = 25 },
+            HeaderItems = headers,
+        };
+
         await LoadAsync();
     }
+
+    private Task OnGridChanged(GridViewHeaderParameters _) => LoadAsync();
 
     private async Task LoadAsync()
     {
         _loading = true;
-        _themes = await ThemeService.GetThemesAsync(_isMaster ? null : _websiteId);
+        var result = await ThemeService.GetPagedAsync(_isMaster ? null : _websiteId, _grid.ToQuery());
+        _themes = result.Items.ToList();
+        _grid.Pagination.MaxLength = result.TotalCount;
         _loading = false;
     }
 

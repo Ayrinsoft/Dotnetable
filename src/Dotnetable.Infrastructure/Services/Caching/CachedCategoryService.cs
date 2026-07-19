@@ -27,6 +27,9 @@ public class CachedCategoryService : ICategoryService
     public Task<List<Category>> GetAllAsync(int? websiteId, CancellationToken ct = default) =>
         _inner.GetAllAsync(websiteId, ct);
 
+    public Task<PagedResult<Category>> GetPagedAsync(int? websiteId, GridQuery query, CancellationToken ct = default) =>
+        _inner.GetPagedAsync(websiteId, query, ct);
+
     public Task<Category?> GetByIdAsync(int categoryId, CancellationToken ct = default) =>
         _inner.GetByIdAsync(categoryId, ct);
 

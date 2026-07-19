@@ -35,54 +35,47 @@
     {
         <MudProgressLinear Indeterminate="true" Color="Color.Primary" Class="mb-3" />
     }
-    else if (_items.Count == 0)
-    {
-        <div style="text-align:center; padding:32px;"><MudText Color="Color.Secondary">@L["shipping.empty", "No shipping methods yet."]</MudText></div>
-    }
-    else
-    {
-        <MudSimpleTable Dense="true" Hover="true" Elevation="0">
-            <thead>
+    <DNGridView GridHeaderParams="_grid" OnSearchChanged="OnGridChanged">
+        @if (_items.Count == 0)
+        {
+            <tr>
+                <td colspan="5" style="text-align:center; padding:32px;">
+                    <MudText Color="Color.Secondary">@L["shipping.empty", "No shipping methods yet."]</MudText>
+                </td>
+            </tr>
+        }
+        else
+        {
+            @foreach (var m in _items)
+            {
                 <tr>
-                    <th>@L["title", "Title"]</th>
-                    <th>@L["carrier", "Carrier"]</th>
-                    <th>@L["sort_order", "Sort Order"]</th>
-                    <th>@L["status", "Status"]</th>
-                    <th style="width:1%"></th>
+                    <td>@m.Title</td>
+                    <td>@(m.CarrierName ?? "-")</td>
+                    <td>@m.SortOrder</td>
+                    <td>
+                        <MudChip T="string" Size="Size.Small" Color="@(m.IsActive ? Color.Success : Color.Default)">
+                            @(m.IsActive ? L["active", "Active"] : L["inactive", "Inactive"])
+                        </MudChip>
+                    </td>
+                    <td>
+                        <MudStack Row="true" Spacing="0">
+                            <MudIconButton Icon="@Icons.Material.Filled.LocalShipping" Size="Size.Small"
+                                           Href="@($"/sales/shipping/{m.ShippingMethodID}/rates")"
+                                           title="@L["shipping.rates", "Rates"]" />
+                            @if (_canEdit)
+                            {
+                                <MudIconButton Icon="@Icons.Material.Filled.Edit" Size="Size.Small" OnClick="@(() => EditAsync(m))" />
+                            }
+                            @if (_canDelete)
+                            {
+                                <MudIconButton Icon="@Icons.Material.Filled.Delete" Size="Size.Small" Color="Color.Error" OnClick="@(() => DeleteAsync(m))" />
+                            }
+                        </MudStack>
+                    </td>
                 </tr>
-            </thead>
-            <tbody>
-                @foreach (var m in _items)
-                {
-                    <tr>
-                        <td>@m.Title</td>
-                        <td>@(m.CarrierName ?? "-")</td>
-                        <td>@m.SortOrder</td>
-                        <td>
-                            <MudChip T="string" Size="Size.Small" Color="@(m.IsActive ? Color.Success : Color.Default)">
-                                @(m.IsActive ? L["active", "Active"] : L["inactive", "Inactive"])
-                            </MudChip>
-                        </td>
-                        <td>
-                            <MudStack Row="true" Spacing="0">
-                                <MudIconButton Icon="@Icons.Material.Filled.LocalShipping" Size="Size.Small"
-                                               Href="@($"/sales/shipping/{m.ShippingMethodID}/rates")"
-                                               title="@L["shipping.rates", "Rates"]" />
-                                @if (_canEdit)
-                                {
-                                    <MudIconButton Icon="@Icons.Material.Filled.Edit" Size="Size.Small" OnClick="@(() => EditAsync(m))" />
-                                }
-                                @if (_canDelete)
-                                {
-                                    <MudIconButton Icon="@Icons.Material.Filled.Delete" Size="Size.Small" Color="Color.Error" OnClick="@(() => DeleteAsync(m))" />
-                                }
-                            </MudStack>
-                        </td>
-                    </tr>
-                }
-            </tbody>
-        </MudSimpleTable>
-    }
+            }
+        }
+    </DNGridView>
 </MudPaper>
 
 @code {
@@ -92,6 +85,7 @@
     private int _websiteId;
     private List<ShippingMethod> _items = new();
     private List<Website> _websites = new();
+    private GridViewHeaderParameters _grid = new();
 
     protected override async Task OnInitializedAsync()
     {
@@ -103,15 +97,32 @@
         _canDelete = AdminPolicies.Allows(user, RoleKeys.ShippingDelete);
         int.TryParse(user.FindFirst(AdminClaimTypes.WebsiteId)?.Value, out _websiteId);
         if (_isMaster) _websites = (await WebsiteService.GetAllAsync()).ToList();
+
+        _grid = new GridViewHeaderParameters
+        {
+            Pagination = new PaginationModel { PageSize = 25 },
+            HeaderItems = new()
+            {
+                new() { ColumnTitle = L["title", "Title"], ColumnName = nameof(ShippingMethod.Title), HasSort = true, HasSearch = true },
+                new() { ColumnTitle = L["carrier", "Carrier"], ColumnName = nameof(ShippingMethod.CarrierName), HasSort = true, HasSearch = true },
+                new() { ColumnTitle = L["sort_order", "Sort Order"], ColumnName = nameof(ShippingMethod.SortOrder), HasSort = true },
+                new() { ColumnTitle = L["status", "Status"], ColumnName = nameof(ShippingMethod.IsActive), HasSort = true },
+                new() { ColumnTitle = "", ColumnName = "" },
+            }
+        };
+
         await LoadAsync();
     }
 
     private async Task OnWebsiteChanged(int id) { _websiteId = id; await LoadAsync(); }
+    private Task OnGridChanged(GridViewHeaderParameters _) => LoadAsync();
 
     private async Task LoadAsync()
     {
         _loading = true;
-        _items = await ShippingService.GetAllAsync(_websiteId);
+        var result = await ShippingService.GetPagedAsync(_websiteId, _grid.ToQuery());
+        _items = result.Items.ToList();
+        _grid.Pagination.MaxLength = result.TotalCount;
         _loading = false;
     }
 

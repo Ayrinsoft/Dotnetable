@@ -22,46 +22,71 @@
     {
         <MudProgressLinear Indeterminate="true" Color="Color.Primary" Class="mb-3" />
     }
-    else
-    {
-        <MudSimpleTable Dense="true" Hover="true" Elevation="0">
-            <thead><tr><th>@L["currencies.code", "Code"]</th><th>@L["name", "Name"]</th><th>@L["currencies.symbol", "Symbol"]</th><th>@L["currencies.decimals", "Decimals"]</th><th>@L["active", "Active"]</th><th style="width:1%"></th></tr></thead>
-            <tbody>
-                @foreach (var c in _items)
-                {
-                    <tr>
-                        <td><code>@c.CurrencyCode</code></td>
-                        <td>@c.Name</td>
-                        <td>@c.Symbol</td>
-                        <td>@c.DecimalDigits</td>
-                        <td>@(c.IsActive ? L["yes", "Yes"] : L["no", "No"])</td>
-                        <td>
-                            <MudStack Row="true" Spacing="0">
-                                <MudIconButton Icon="@Icons.Material.Filled.Edit" Size="Size.Small" OnClick="@(() => EditAsync(c))" />
-                                <MudIconButton Icon="@Icons.Material.Filled.Delete" Size="Size.Small" Color="Color.Error" OnClick="@(() => DeleteAsync(c))" />
-                            </MudStack>
-                        </td>
-                    </tr>
-                }
-            </tbody>
-        </MudSimpleTable>
-    }
+    <DNGridView GridHeaderParams="_grid" OnSearchChanged="OnGridChanged">
+        @if (_items.Count == 0)
+        {
+            <tr>
+                <td colspan="6" style="text-align:center; padding:32px;">
+                    <MudText Color="Color.Secondary">@L["currencies.empty", "No currencies yet."]</MudText>
+                </td>
+            </tr>
+        }
+        else
+        {
+            @foreach (var c in _items)
+            {
+                <tr>
+                    <td><code>@c.CurrencyCode</code></td>
+                    <td>@c.Name</td>
+                    <td>@c.Symbol</td>
+                    <td>@c.DecimalDigits</td>
+                    <td>@(c.IsActive ? L["yes", "Yes"] : L["no", "No"])</td>
+                    <td>
+                        <MudStack Row="true" Spacing="0">
+                            <MudIconButton Icon="@Icons.Material.Filled.Edit" Size="Size.Small" OnClick="@(() => EditAsync(c))" />
+                            <MudIconButton Icon="@Icons.Material.Filled.Delete" Size="Size.Small" Color="Color.Error" OnClick="@(() => DeleteAsync(c))" />
+                        </MudStack>
+                    </td>
+                </tr>
+            }
+        }
+    </DNGridView>
 </MudPaper>
 
 @code {
     private bool _loading = true;
     private List<Currency> _items = new();
+    private GridViewHeaderParameters _grid = new();
 
     protected override async Task OnInitializedAsync()
     {
         await L.EnsureLoadedAsync();
+
+        _grid = new GridViewHeaderParameters
+        {
+            Pagination = new PaginationModel { PageSize = 25 },
+            HeaderItems = new()
+            {
+                new() { ColumnTitle = L["currencies.code", "Code"], ColumnName = nameof(Currency.CurrencyCode), HasSort = true, HasSearch = true },
+                new() { ColumnTitle = L["name", "Name"], ColumnName = nameof(Currency.Name), HasSort = true, HasSearch = true },
+                new() { ColumnTitle = L["currencies.symbol", "Symbol"], ColumnName = nameof(Currency.Symbol), HasSort = true },
+                new() { ColumnTitle = L["currencies.decimals", "Decimals"], ColumnName = nameof(Currency.DecimalDigits), HasSort = true },
+                new() { ColumnTitle = L["active", "Active"], ColumnName = nameof(Currency.IsActive), HasSort = true },
+                new() { ColumnTitle = "", ColumnName = "" },
+            }
+        };
+
         await LoadAsync();
     }
+
+    private Task OnGridChanged(GridViewHeaderParameters _) => LoadAsync();
 
     private async Task LoadAsync()
     {
         _loading = true;
-        _items = await CurrencyService.GetAllAsync();
+        var result = await CurrencyService.GetPagedAsync(_grid.ToQuery());
+        _items = result.Items.ToList();
+        _grid.Pagination.MaxLength = result.TotalCount;
         _loading = false;
     }
 

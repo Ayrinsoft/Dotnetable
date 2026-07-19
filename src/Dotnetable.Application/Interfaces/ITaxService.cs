@@ -1,3 +1,4 @@
+using Dotnetable.Application.DTOs;
 using Dotnetable.Domain.Entities;
 
 namespace Dotnetable.Application.Interfaces;
@@ -6,6 +7,7 @@ namespace Dotnetable.Application.Interfaces;
 public interface ITaxService
 {
     Task<List<TaxRate>> GetAllAsync(int websiteId, CancellationToken ct = default);
+    Task<PagedResult<TaxRate>> GetPagedAsync(int websiteId, GridQuery query, CancellationToken ct = default);
     Task<TaxRate?> GetByIdAsync(int taxRateId, CancellationToken ct = default);
     Task<TaxRate> CreateAsync(TaxRate rate, CancellationToken ct = default);
     Task<bool> UpdateAsync(TaxRate rate, CancellationToken ct = default);

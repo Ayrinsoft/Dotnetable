@@ -1,6 +1,8 @@
+using Dotnetable.Application.DTOs;
 using Dotnetable.Application.Interfaces;
 using Dotnetable.Domain.Entities;
 using Dotnetable.Infrastructure.Data;
+using Dotnetable.Infrastructure.Extensions;
 using Microsoft.EntityFrameworkCore;
 
 namespace Dotnetable.Infrastructure.Services;
@@ -17,6 +19,26 @@ public class TagService : ITagService
         if (websiteId is int wid)
             q = q.Where(t => t.WebsiteID == wid);
         return await q.OrderBy(t => t.Name).ToListAsync(ct);
+    }
+
+    public async Task<PagedResult<Tag>> GetPagedAsync(int? websiteId, GridQuery query, CancellationToken ct = default)
+    {
+        var q = _context.Tags.AsNoTracking();
+        if (websiteId is int wid)
+            q = q.Where(t => t.WebsiteID == wid);
+
+        if (query.GetSearch(nameof(Tag.Name)) is string name)
+            q = q.Where(t => t.Name.Contains(name));
+        if (query.GetSearch(nameof(Tag.Slug)) is string slug)
+            q = q.Where(t => t.Slug.Contains(slug));
+
+        var total = await q.CountAsync(ct);
+        var items = await q
+            .ApplyOrderBy(query.OrderBy, nameof(Tag.Name))
+            .Skip(query.Skip).Take(query.Take)
+            .ToListAsync(ct);
+
+        return new PagedResult<Tag> { Items = items, TotalCount = total };
     }
 
     public async Task<Tag?> GetByIdAsync(int tagId, CancellationToken ct = default) =>

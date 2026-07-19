@@ -1,3 +1,4 @@
+using Dotnetable.Application.DTOs;
 using Dotnetable.Domain.Entities;
 
 namespace Dotnetable.Application.Interfaces;
@@ -10,6 +11,7 @@ namespace Dotnetable.Application.Interfaces;
 public interface ICurrencyService
 {
     Task<List<Currency>> GetAllAsync(CancellationToken ct = default);
+    Task<PagedResult<Currency>> GetPagedAsync(GridQuery query, CancellationToken ct = default);
 
     Task<Currency?> GetByCodeAsync(string currencyCode, CancellationToken ct = default);
 

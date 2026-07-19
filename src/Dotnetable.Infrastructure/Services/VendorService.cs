@@ -2,6 +2,7 @@ using Dotnetable.Application.DTOs;
 using Dotnetable.Application.Interfaces;
 using Dotnetable.Domain.Entities;
 using Dotnetable.Infrastructure.Data;
+using Dotnetable.Infrastructure.Extensions;
 using Microsoft.EntityFrameworkCore;
 
 namespace Dotnetable.Infrastructure.Services;
@@ -18,6 +19,28 @@ public class VendorService : IVendorService
         if (websiteId is int wid)
             q = q.Where(v => v.WebsiteID == wid);
         return await q.OrderBy(v => v.Name).ToListAsync(ct);
+    }
+
+    public async Task<PagedResult<Vendor>> GetPagedAsync(int? websiteId, GridQuery query, CancellationToken ct = default)
+    {
+        var q = _context.Vendors.AsNoTracking();
+        if (websiteId is int wid)
+            q = q.Where(v => v.WebsiteID == wid);
+
+        if (query.GetSearch(nameof(Vendor.Name)) is string name)
+            q = q.Where(v => v.Name.Contains(name));
+        if (query.GetSearch(nameof(Vendor.Slug)) is string slug)
+            q = q.Where(v => v.Slug.Contains(slug));
+        if (query.GetSearch(nameof(Vendor.IsActive)) is string active && bool.TryParse(active, out var isActive))
+            q = q.Where(v => v.IsActive == isActive);
+
+        var total = await q.CountAsync(ct);
+        var items = await q
+            .ApplyOrderBy(query.OrderBy, nameof(Vendor.Name))
+            .Skip(query.Skip).Take(query.Take)
+            .ToListAsync(ct);
+
+        return new PagedResult<Vendor> { Items = items, TotalCount = total };
     }
 
     public async Task<Vendor?> GetByIdAsync(int vendorId, CancellationToken ct = default) =>

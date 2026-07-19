@@ -11,6 +11,7 @@ public interface ICategoryService
 {
     // ── Admin management ────────────────────────────────────────────
     Task<List<Category>> GetAllAsync(int? websiteId, CancellationToken ct = default);
+    Task<PagedResult<Category>> GetPagedAsync(int? websiteId, GridQuery query, CancellationToken ct = default);
     Task<Category?> GetByIdAsync(int categoryId, CancellationToken ct = default);
     Task<Category> CreateAsync(Category category, CancellationToken ct = default);
     Task UpdateAsync(Category category, CancellationToken ct = default);

@@ -33,28 +33,28 @@
     {
         <MudProgressLinear Indeterminate="true" Color="Color.Primary" Class="mb-3" />
     }
-    else if (_items.Count == 0)
-    {
-        <div style="text-align:center; padding:32px;"><MudText Color="Color.Secondary">@L["orders.empty", "No orders yet."]</MudText></div>
-    }
-    else
-    {
-        <MudSimpleTable Dense="true" Hover="true" Elevation="0">
-            <thead><tr><th>@L["orders.number", "Order #"]</th><th>@L["orders.total", "Total"]</th><th>@L["status", "Status"]</th><th>@L["orders.date", "Date"]</th></tr></thead>
-            <tbody>
-                @foreach (var o in _items)
-                {
-                    <tr style="cursor:pointer" @onclick="@(() => Nav.NavigateTo($"/orders/{o.OrderID}"))">
-                        <td>@o.OrderNumber</td>
-                        <td>@o.GrandTotal.ToString("0.##") @o.CurrencyCode</td>
-                        <td>@((OrderStatus)o.Status)</td>
-                        <td>@o.CreatedAt.ToLocalTime().ToString("g")</td>
-                    </tr>
-                }
-            </tbody>
-        </MudSimpleTable>
-        <MudPagination Count="@_pageCount" Selected="_page" SelectedChanged="OnPageChanged" Class="mt-3" />
-    }
+    <DNGridView GridHeaderParams="_grid" OnSearchChanged="OnGridChanged">
+        @if (_items.Count == 0)
+        {
+            <tr>
+                <td colspan="4" style="text-align:center; padding:32px;">
+                    <MudText Color="Color.Secondary">@L["orders.empty", "No orders yet."]</MudText>
+                </td>
+            </tr>
+        }
+        else
+        {
+            @foreach (var o in _items)
+            {
+                <tr style="cursor:pointer" @onclick="@(() => Nav.NavigateTo($"/orders/{o.OrderID}"))">
+                    <td>@o.OrderNumber</td>
+                    <td>@o.GrandTotal.ToString("0.##") @o.CurrencyCode</td>
+                    <td>@((OrderStatus)o.Status)</td>
+                    <td>@o.CreatedAt.ToLocalTime().ToString("g")</td>
+                </tr>
+            }
+        }
+    </DNGridView>
 </MudPaper>
 
 @code {
@@ -62,9 +62,9 @@
     private bool _isMaster;
     private int _websiteId;
     private byte? _statusFilter;
-    private int _page = 1, _pageCount = 1;
     private List<Order> _items = new();
     private List<Website> _websites = new();
+    private GridViewHeaderParameters _grid = new();
 
     protected override async Task OnInitializedAsync()
     {
@@ -73,18 +73,31 @@
         _isMaster = user.HasClaim(AdminClaimTypes.Master, "true");
         int.TryParse(user.FindFirst(AdminClaimTypes.WebsiteId)?.Value, out _websiteId);
         if (_isMaster) _websites = (await WebsiteService.GetAllAsync()).ToList();
+
+        _grid = new GridViewHeaderParameters
+        {
+            Pagination = new PaginationModel { PageSize = 25 },
+            HeaderItems = new()
+            {
+                new() { ColumnTitle = L["orders.number", "Order #"], ColumnName = nameof(Order.OrderNumber), HasSort = true, HasSearch = true },
+                new() { ColumnTitle = L["orders.total", "Total"], ColumnName = nameof(Order.GrandTotal), HasSort = true },
+                new() { ColumnTitle = L["status", "Status"], ColumnName = nameof(Order.Status), HasSort = true },
+                new() { ColumnTitle = L["orders.date", "Date"], ColumnName = nameof(Order.CreatedAt), HasSort = true },
+            }
+        };
+
         await LoadAsync();
     }
 
     private async Task OnWebsiteChanged(int id) { _websiteId = id; await LoadAsync(); }
-    private async Task OnPageChanged(int page) { _page = page; await LoadAsync(); }
+    private Task OnGridChanged(GridViewHeaderParameters _) => LoadAsync();
 
     private async Task LoadAsync()
     {
         _loading = true;
-        var result = await OrderService.GetPagedAsync(_websiteId, _statusFilter, new GridQuery { PageIndex = _page, PageSize = 20 });
+        var result = await OrderService.GetPagedAsync(_websiteId, _statusFilter, _grid.ToQuery());
         _items = result.Items.ToList();
-        _pageCount = Math.Max(1, (int)Math.Ceiling(result.TotalCount / 20.0));
+        _grid.Pagination.MaxLength = result.TotalCount;
         _loading = false;
     }
 }

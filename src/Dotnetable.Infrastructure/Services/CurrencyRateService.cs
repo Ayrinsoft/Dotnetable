@@ -1,6 +1,8 @@
+using Dotnetable.Application.DTOs;
 using Dotnetable.Application.Interfaces;
 using Dotnetable.Domain.Entities;
 using Dotnetable.Infrastructure.Data;
+using Dotnetable.Infrastructure.Extensions;
 using Microsoft.EntityFrameworkCore;
 
 namespace Dotnetable.Infrastructure.Services;
@@ -18,6 +20,24 @@ public class CurrencyRateService : ICurrencyRateService
             .OrderByDescending(r => r.IsDefault)
             .ThenBy(r => r.CurrencyCode)
             .ToListAsync(ct);
+
+    public async Task<PagedResult<CurrencyRate>> GetPagedAsync(int websiteId, GridQuery query, CancellationToken ct = default)
+    {
+        var q = _context.CurrencyRates.AsNoTracking()
+            .Include(r => r.CurrencyCodeNavigation)
+            .Where(r => r.WebsiteID == websiteId);
+
+        if (query.GetSearch(nameof(CurrencyRate.CurrencyCode)) is string code)
+            q = q.Where(r => r.CurrencyCode.Contains(code));
+
+        var total = await q.CountAsync(ct);
+        var items = await q
+            .ApplyOrderBy(query.OrderBy, nameof(CurrencyRate.CurrencyCode))
+            .Skip(query.Skip).Take(query.Take)
+            .ToListAsync(ct);
+
+        return new PagedResult<CurrencyRate> { Items = items, TotalCount = total };
+    }
 
     public async Task CreateAsync(CurrencyRate rate, CancellationToken ct = default)
     {
