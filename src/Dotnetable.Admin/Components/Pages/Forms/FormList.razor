@@ -228,6 +228,7 @@
             { x => x.Model, form },
             { x => x.IsNew, isNew },
             { x => x.AllowWebsiteEdit, _isMaster },
+            { x => x.Websites, _websites },
         };
         var dialog = await DialogService.ShowAsync<FormDialog>(
             isNew ? L["forms.new", "New Form"] : L["forms.edit", "Edit Form"], parameters,

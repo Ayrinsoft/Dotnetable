@@ -1,6 +1,7 @@
 @page "/slideshows"
 @attribute [Authorize(Policy = RoleKeys.SlideshowsView)]
 @inject ISlideshowService SlideshowService
+@inject IWebsiteService WebsiteService
 @inject AuthenticationStateProvider AuthState
 @inject IDialogService DialogService
 @inject ISnackbar Snackbar
@@ -112,6 +113,7 @@
     private bool _canDelete;
     private int _websiteId;
     private List<Slideshow> _slideshows = new();
+    private List<Website> _websites = new();
     private HashSet<int> _busy = new();
     private GridViewHeaderParameters _grid = new();
 
@@ -125,6 +127,7 @@
         _canEdit = AdminPolicies.Allows(user, RoleKeys.SlideshowsEdit);
         _canDelete = AdminPolicies.Allows(user, RoleKeys.SlideshowsDelete);
         int.TryParse(user.FindFirst(AdminClaimTypes.WebsiteId)?.Value, out _websiteId);
+        if (_isMaster) _websites = (await WebsiteService.GetAllAsync()).ToList();
 
         var headers = new List<GridViewHeaderParameters.HeaderItemDetail>
         {
@@ -221,6 +224,7 @@
             { x => x.Model, slideshow },
             { x => x.IsNew, isNew },
             { x => x.AllowWebsiteEdit, _isMaster },
+            { x => x.Websites, _websites },
         };
         var dialog = await DialogService.ShowAsync<SlideshowDialog>(
             isNew ? L["slideshows.new", "New Slideshow"] : L["slideshows.edit", "Edit Slideshow"], parameters,

@@ -3,6 +3,7 @@
 @using Page = Dotnetable.Domain.Entities.Page
 @attribute [Authorize(Policy = RoleKeys.PagesView)]
 @inject IPageService PageService
+@inject IWebsiteService WebsiteService
 @inject AuthenticationStateProvider AuthState
 @inject NavigationManager Nav
 @inject ISnackbar Snackbar
@@ -114,7 +115,9 @@ else if (_model is not null)
 
                     @if (_isMaster && _isNew)
                     {
-                        <MudNumericField T="int" @bind-Value="_model.WebsiteID" Label="@L["website_id", "Website ID"]" Variant="Variant.Outlined" Min="1" Class="mb-3" />
+                        <WebsiteSelector Value="_model.WebsiteID" ValueChanged="OnWebsiteChanged"
+                                         Websites="_websites" Label="@L["website", "Website"]"
+                                         Variant="Variant.Outlined" Required="true" Class="mb-3" />
                     }
 
                     <MudSwitch T="bool" @bind-Value="_model.IsHomepage" Color="Color.Primary" Label="@L["pages.homepage", "Homepage"]" />
@@ -144,6 +147,7 @@ else if (_model is not null)
     private Page? _model;
     private MudForm _form = null!;
     private List<Page> _allPages = new();
+    private List<Website> _websites = new();
     private string[]? _formErrors;
 
     private sealed class TranslationModel { public string Title = ""; public string Slug = ""; public string Content = ""; }
@@ -197,6 +201,7 @@ else if (_model is not null)
         var user = (await AuthState.GetAuthenticationStateAsync()).User;
         _isMaster = user.HasClaim(AdminClaimTypes.Master, "true");
         int.TryParse(user.FindFirst(AdminClaimTypes.WebsiteId)?.Value, out _websiteId);
+        if (_isMaster) _websites = (await WebsiteService.GetAllAsync()).ToList();
 
         _isNew = Id is null;
         _canEdit = AdminPolicies.Allows(user, _isNew ? RoleKeys.PagesInsert : RoleKeys.PagesEdit);
@@ -215,13 +220,24 @@ else if (_model is not null)
 
         // Master site (website 1) uses the same per-website language rows as every other site.
         if (_model is not null)
-        {
-            _allPages = await PageService.GetAllAsync(_model.WebsiteID);
-            _languages = (await LanguageService.GetOtherActiveForWebsiteAsync(_model.WebsiteID))
-                .Select(x => (x.LanguageCode, x.Name)).ToArray();
-        }
+            await LoadWebsiteContextAsync(_model.WebsiteID);
 
         _loading = false;
+    }
+
+    private async Task LoadWebsiteContextAsync(int websiteId)
+    {
+        _allPages = await PageService.GetAllAsync(websiteId);
+        _languages = (await LanguageService.GetOtherActiveForWebsiteAsync(websiteId))
+            .Select(x => (x.LanguageCode, x.Name)).ToArray();
+    }
+
+    private async Task OnWebsiteChanged(int id)
+    {
+        if (_model is null || _model.WebsiteID == id) return;
+        _model.WebsiteID = id;
+        _model.ParentPageID = null;
+        await LoadWebsiteContextAsync(id);
     }
 
     private TranslationModel Translation(string code)
