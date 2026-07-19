@@ -31,4 +31,6 @@ public partial class EmailTemplate
     public bool Active { get; set; }
 
     public virtual Website Website { get; set; } = null!;
+
+    public virtual ICollection<EmailTemplateTranslation> EmailTemplateTranslations { get; set; } = new List<EmailTemplateTranslation>();
 }

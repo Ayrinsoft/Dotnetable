@@ -42,10 +42,11 @@ public static class EmailTemplateDefaults
     private const string TextMuted = "#7b8488";
     private const string FontFamily = "'Segoe UI', 'Open Sans', Arial, sans-serif";
 
-    /// <summary>Wraps inner content HTML in the shared, table-based, email-safe layout shell.</summary>
+    /// <summary>Wraps inner content HTML in the shared, table-based, email-safe layout shell.
+    /// <c>dir</c>/<c>lang</c> are set at send time from the target language (including RTL).</summary>
     private static string Layout(string title, string innerHtml) =>
         "<!doctype html>" +
-        "<html><head><meta charset=\"utf-8\"><meta name=\"viewport\" content=\"width=device-width,initial-scale=1\">" +
+        "<html dir=\"ltr\" lang=\"en\"><head><meta charset=\"utf-8\"><meta name=\"viewport\" content=\"width=device-width,initial-scale=1\">" +
         $"<title>{title}</title></head>" +
         $"<body style=\"margin:0;padding:0;background-color:{BodyBg};font-family:{FontFamily};\">" +
         $"<div style=\"background-color:{BodyBg};padding:32px 16px;\">" +

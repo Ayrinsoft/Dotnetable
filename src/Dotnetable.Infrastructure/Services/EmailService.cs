@@ -44,12 +44,18 @@ public partial class EmailService : IEmailService
 
     public async Task SendTemplateAsync(
         int websiteId, string templateKey, string toAddress, IDictionary<string, string>? tokens = null,
-        CancellationToken ct = default)
+        string? languageCode = null, CancellationToken ct = default)
     {
-        var template = await _templates.GetAsync(websiteId, templateKey, ct)
+        var website = await _context.Websites.AsNoTracking()
+            .FirstOrDefaultAsync(w => w.WebsiteID == websiteId, ct);
+
+        var resolvedLanguage = string.IsNullOrWhiteSpace(languageCode)
+            ? website?.DefaultLanguageCode
+            : languageCode.Trim().ToLowerInvariant();
+
+        var template = await _templates.GetAsync(websiteId, templateKey, resolvedLanguage, ct)
             ?? throw new InvalidOperationException($"Unknown email template '{templateKey}'.");
 
-        var website = await _context.Websites.FirstOrDefaultAsync(w => w.WebsiteID == websiteId, ct);
         var all = new Dictionary<string, string>(tokens ?? new Dictionary<string, string>(), StringComparer.OrdinalIgnoreCase)
         {
             ["SiteName"] = website?.BrandName ?? website?.TradeName ?? string.Empty,
@@ -59,6 +65,21 @@ public partial class EmailService : IEmailService
 
         var subject = Render(template.Subject, all);
         var body = Render(template.HtmlBody, all);
+
+        if (!string.IsNullOrWhiteSpace(resolvedLanguage))
+        {
+            var rtl = await _context.Languages.AsNoTracking()
+                .Where(l => l.WebsiteID == websiteId && l.LanguageCode == resolvedLanguage && l.Active)
+                .Select(l => (bool?)l.RTLDesign)
+                .FirstOrDefaultAsync(ct)
+                ?? await _context.Languages.AsNoTracking()
+                    .Where(l => l.LanguageCode == resolvedLanguage && l.Active)
+                    .Select(l => (bool?)l.RTLDesign)
+                    .FirstOrDefaultAsync(ct)
+                ?? false;
+
+            body = ApplyDocumentDirection(body, resolvedLanguage, rtl);
+        }
 
         await SendAsync(websiteId, template.AccountType, toAddress, subject, body, ct);
     }
@@ -90,6 +111,44 @@ public partial class EmailService : IEmailService
         TokenPattern().Replace(template, m =>
             tokens.TryGetValue(m.Groups[1].Value, out var value) ? value : m.Value);
 
+    /// <summary>
+    /// Ensures the outgoing HTML declares <c>dir</c>/<c>lang</c> so RTL languages render correctly
+    /// in email clients. Replaces existing attributes on <c>&lt;html&gt;</c> when present; otherwise
+    /// wraps the fragment.
+    /// </summary>
+    public static string ApplyDocumentDirection(string html, string languageCode, bool rtl)
+    {
+        if (string.IsNullOrWhiteSpace(html)) return html;
+
+        var dir = rtl ? "rtl" : "ltr";
+        var lang = languageCode.Trim().ToLowerInvariant();
+
+        if (HtmlOpenTag().IsMatch(html))
+        {
+            return HtmlOpenTag().Replace(html, m =>
+            {
+                var rest = m.Groups[1].Value;
+                rest = DirAttr().Replace(rest, string.Empty);
+                rest = LangAttr().Replace(rest, string.Empty);
+                rest = rest.TrimEnd();
+                return string.IsNullOrEmpty(rest)
+                    ? $"<html dir=\"{dir}\" lang=\"{lang}\">"
+                    : $"<html dir=\"{dir}\" lang=\"{lang}\"{rest}>";
+            }, 1);
+        }
+
+        return $"<div dir=\"{dir}\" lang=\"{lang}\">{html}</div>";
+    }
+
     [GeneratedRegex(@"\{\{(\w+)\}\}")]
     private static partial Regex TokenPattern();
+
+    [GeneratedRegex(@"<html(\s[^>]*)?>", RegexOptions.IgnoreCase)]
+    private static partial Regex HtmlOpenTag();
+
+    [GeneratedRegex(@"\sdir\s*=\s*[""'][^""']*[""']", RegexOptions.IgnoreCase)]
+    private static partial Regex DirAttr();
+
+    [GeneratedRegex(@"\slang\s*=\s*[""'][^""']*[""']", RegexOptions.IgnoreCase)]
+    private static partial Regex LangAttr();
 }

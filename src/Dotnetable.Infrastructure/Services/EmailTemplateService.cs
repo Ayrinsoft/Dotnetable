@@ -19,6 +19,8 @@ public class EmailTemplateService : IEmailTemplateService
     public async Task<List<EmailTemplateInfo>> GetForWebsiteAsync(int websiteId, CancellationToken ct = default)
     {
         var rows = await _context.EmailTemplates
+            .AsNoTracking()
+            .Include(t => t.EmailTemplateTranslations)
             .Where(t => t.WebsiteID == websiteId || t.WebsiteID == AppConstants.MasterWebsiteId)
             .ToListAsync(ct);
 
@@ -32,61 +34,60 @@ public class EmailTemplateService : IEmailTemplateService
             var row = own ?? fallback;
 
             result.Add(row is null
-                ? new EmailTemplateInfo
-                {
-                    WebsiteID = websiteId,
-                    TemplateKey = def.Key,
-                    Name = def.Name,
-                    Subject = def.Subject,
-                    HtmlBody = def.HtmlBody,
-                    AccountType = def.AccountType,
-                    Active = true,
-                    IsOverride = false,
-                }
+                ? FromDefault(websiteId, def)
                 : ToInfo(row, isOverride: own is not null));
         }
         return result;
     }
 
-    public async Task<EmailTemplateInfo?> GetAsync(int websiteId, string templateKey, CancellationToken ct = default)
+    public async Task<EmailTemplateInfo?> GetAsync(
+        int websiteId, string templateKey, string? languageCode = null, CancellationToken ct = default)
     {
         var def = EmailTemplateDefaults.All.FirstOrDefault(d => d.Key == templateKey);
         if (def is null) return null;
 
         var own = websiteId != AppConstants.MasterWebsiteId
-            ? await _context.EmailTemplates.FirstOrDefaultAsync(t => t.WebsiteID == websiteId && t.TemplateKey == templateKey, ct)
+            ? await _context.EmailTemplates
+                .AsNoTracking()
+                .Include(t => t.EmailTemplateTranslations)
+                .FirstOrDefaultAsync(t => t.WebsiteID == websiteId && t.TemplateKey == templateKey, ct)
             : null;
         var row = own ?? await _context.EmailTemplates
+            .AsNoTracking()
+            .Include(t => t.EmailTemplateTranslations)
             .FirstOrDefaultAsync(t => t.WebsiteID == AppConstants.MasterWebsiteId && t.TemplateKey == templateKey, ct);
 
-        if (row is null)
+        var info = row is null
+            ? FromDefault(websiteId, def)
+            : ToInfo(row, isOverride: own is not null);
+
+        if (!string.IsNullOrWhiteSpace(languageCode) && row is not null)
         {
-            return new EmailTemplateInfo
+            var defaultCode = await _context.Websites.AsNoTracking()
+                .Where(w => w.WebsiteID == websiteId)
+                .Select(w => w.DefaultLanguageCode)
+                .FirstOrDefaultAsync(ct);
+
+            if (!string.IsNullOrWhiteSpace(defaultCode)
+                && !string.Equals(languageCode, defaultCode, StringComparison.OrdinalIgnoreCase))
             {
-                WebsiteID = websiteId,
-                TemplateKey = def.Key,
-                Name = def.Name,
-                Subject = def.Subject,
-                HtmlBody = def.HtmlBody,
-                AccountType = def.AccountType,
-                Active = true,
-                IsOverride = false,
-            };
+                var tr = row.EmailTemplateTranslations.FirstOrDefault(t =>
+                    string.Equals(t.LanguageCode, languageCode, StringComparison.OrdinalIgnoreCase));
+                if (tr is not null && !string.IsNullOrWhiteSpace(tr.Subject))
+                {
+                    info.Subject = tr.Subject;
+                    if (!string.IsNullOrWhiteSpace(tr.HtmlBody))
+                        info.HtmlBody = tr.HtmlBody;
+                }
+            }
         }
 
-        return ToInfo(row, isOverride: own is not null);
+        return info;
     }
 
     public async Task SaveAsync(int websiteId, EmailTemplateInfo template, CancellationToken ct = default)
     {
-        var row = await _context.EmailTemplates
-            .FirstOrDefaultAsync(t => t.WebsiteID == websiteId && t.TemplateKey == template.TemplateKey, ct);
-
-        if (row is null)
-        {
-            row = new EmailTemplate { WebsiteID = websiteId, TemplateKey = template.TemplateKey };
-            _context.EmailTemplates.Add(row);
-        }
+        var row = await EnsureOwnRowAsync(websiteId, template.TemplateKey, ct);
 
         row.Name = template.Name;
         row.Subject = template.Subject;
@@ -97,14 +98,99 @@ public class EmailTemplateService : IEmailTemplateService
         await _context.SaveChangesAsync(ct);
     }
 
+    public async Task SetTranslationsAsync(
+        int websiteId,
+        string templateKey,
+        IReadOnlyDictionary<string, (string Subject, string HtmlBody)> byLanguage,
+        CancellationToken ct = default)
+    {
+        var row = await EnsureOwnRowAsync(websiteId, templateKey, ct);
+        // EnsureOwnRow may have added a new tracked entity without an ID until save.
+        if (row.EmailTemplateID == 0)
+            await _context.SaveChangesAsync(ct);
+
+        var existing = await _context.EmailTemplateTranslations
+            .Where(t => t.EmailTemplateID == row.EmailTemplateID)
+            .ToListAsync(ct);
+
+        foreach (var (languageCode, value) in byLanguage)
+        {
+            var code = languageCode.Trim().ToLowerInvariant();
+            var current = existing.FirstOrDefault(t =>
+                string.Equals(t.LanguageCode, code, StringComparison.OrdinalIgnoreCase));
+
+            if (string.IsNullOrWhiteSpace(value.Subject))
+            {
+                if (current is not null) _context.EmailTemplateTranslations.Remove(current);
+                continue;
+            }
+
+            if (current is null)
+            {
+                _context.EmailTemplateTranslations.Add(new EmailTemplateTranslation
+                {
+                    EmailTemplateID = row.EmailTemplateID,
+                    LanguageCode = code,
+                    Subject = value.Subject.Trim(),
+                    HtmlBody = value.HtmlBody ?? string.Empty,
+                });
+            }
+            else
+            {
+                current.Subject = value.Subject.Trim();
+                current.HtmlBody = value.HtmlBody ?? string.Empty;
+            }
+        }
+
+        await _context.SaveChangesAsync(ct);
+    }
+
     public async Task ResetToDefaultAsync(int websiteId, string templateKey, CancellationToken ct = default)
     {
         var row = await _context.EmailTemplates
+            .Include(t => t.EmailTemplateTranslations)
             .FirstOrDefaultAsync(t => t.WebsiteID == websiteId && t.TemplateKey == templateKey, ct);
         if (row is null) return;
+        _context.EmailTemplateTranslations.RemoveRange(row.EmailTemplateTranslations);
         _context.EmailTemplates.Remove(row);
         await _context.SaveChangesAsync(ct);
     }
+
+    private async Task<EmailTemplate> EnsureOwnRowAsync(int websiteId, string templateKey, CancellationToken ct)
+    {
+        var row = await _context.EmailTemplates
+            .FirstOrDefaultAsync(t => t.WebsiteID == websiteId && t.TemplateKey == templateKey, ct);
+        if (row is not null) return row;
+
+        var def = EmailTemplateDefaults.All.FirstOrDefault(d => d.Key == templateKey);
+        var fallback = await _context.EmailTemplates.AsNoTracking()
+            .FirstOrDefaultAsync(t => t.WebsiteID == AppConstants.MasterWebsiteId && t.TemplateKey == templateKey, ct);
+
+        row = new EmailTemplate
+        {
+            WebsiteID = websiteId,
+            TemplateKey = templateKey,
+            Name = fallback?.Name ?? def?.Name ?? templateKey,
+            Subject = fallback?.Subject ?? def?.Subject ?? templateKey,
+            HtmlBody = fallback?.HtmlBody ?? def?.HtmlBody ?? string.Empty,
+            AccountType = fallback?.AccountType ?? (byte)(def?.AccountType ?? EmailAccountType.NoReply),
+            Active = fallback?.Active ?? true,
+        };
+        _context.EmailTemplates.Add(row);
+        return row;
+    }
+
+    private static EmailTemplateInfo FromDefault(int websiteId, EmailTemplateDefault def) => new()
+    {
+        WebsiteID = websiteId,
+        TemplateKey = def.Key,
+        Name = def.Name,
+        Subject = def.Subject,
+        HtmlBody = def.HtmlBody,
+        AccountType = def.AccountType,
+        Active = true,
+        IsOverride = false,
+    };
 
     private static EmailTemplateInfo ToInfo(EmailTemplate t, bool isOverride) => new()
     {
@@ -117,5 +203,14 @@ public class EmailTemplateService : IEmailTemplateService
         AccountType = (EmailAccountType)t.AccountType,
         Active = t.Active,
         IsOverride = isOverride,
+        Translations = t.EmailTemplateTranslations
+            .OrderBy(x => x.LanguageCode)
+            .Select(x => new EmailTemplateTranslationInfo
+            {
+                LanguageCode = x.LanguageCode,
+                Subject = x.Subject,
+                HtmlBody = x.HtmlBody,
+            })
+            .ToList(),
     };
 }

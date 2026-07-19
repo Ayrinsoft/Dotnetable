@@ -53,7 +53,8 @@ public class PasswordResetService : IPasswordResetService
 
         var resetUrl = resetUrlBuilder(key);
         await _email.SendTemplateAsync(member.WebsiteID, EmailTemplateKeys.AdminForgotPassword, member.Email,
-            new Dictionary<string, string> { ["Name"] = member.Givenname, ["ResetUrl"] = resetUrl }, ct);
+            new Dictionary<string, string> { ["Name"] = member.Givenname, ["ResetUrl"] = resetUrl },
+            languageCode: null, ct);
         return PasswordResetRequestResult.Sent;
     }
 

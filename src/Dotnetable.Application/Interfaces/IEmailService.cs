@@ -21,9 +21,11 @@ public interface IEmailService
     /// Resolves and renders the template for <paramref name="templateKey"/> (own override or master
     /// default), substitutes <c>{{Token}}</c> placeholders from <paramref name="tokens"/> plus the
     /// sending website's own SiteName/SiteUrl, and sends it through the template's preferred account.
+    /// When <paramref name="languageCode"/> is null, the website default language is used. For RTL
+    /// languages the rendered HTML gets <c>dir="rtl"</c> (and <c>lang</c>) applied.
     /// Throws when the key is unknown or no usable account can be resolved.
     /// </summary>
     Task SendTemplateAsync(
         int websiteId, string templateKey, string toAddress, IDictionary<string, string>? tokens = null,
-        CancellationToken ct = default);
+        string? languageCode = null, CancellationToken ct = default);
 }

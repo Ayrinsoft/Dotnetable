@@ -101,6 +101,34 @@ public class EmailServiceTests : IDisposable
         await act.Should().ThrowAsync<InvalidOperationException>();
     }
 
+    // ── ApplyDocumentDirection ────────────────────────────────────────────────
+
+    [Fact]
+    public void ApplyDocumentDirection_FullHtml_SetsDirAndLang()
+    {
+        var html = "<!doctype html><html dir=\"ltr\" lang=\"en\"><body>Hi</body></html>";
+        var result = EmailService.ApplyDocumentDirection(html, "fa", rtl: true);
+        result.Should().Contain("dir=\"rtl\"");
+        result.Should().Contain("lang=\"fa\"");
+        result.Should().NotContain("dir=\"ltr\"");
+    }
+
+    [Fact]
+    public void ApplyDocumentDirection_Fragment_WrapsWithDir()
+    {
+        var result = EmailService.ApplyDocumentDirection("<p>سلام</p>", "fa", rtl: true);
+        result.Should().Be("<div dir=\"rtl\" lang=\"fa\"><p>سلام</p></div>");
+    }
+
+    [Fact]
+    public void ApplyDocumentDirection_Ltr_KeepsLtr()
+    {
+        var html = "<html><body>x</body></html>";
+        var result = EmailService.ApplyDocumentDirection(html, "en", rtl: false);
+        result.Should().Contain("dir=\"ltr\"");
+        result.Should().Contain("lang=\"en\"");
+    }
+
     // ── EmailAccountService.SaveAsync ─────────────────────────────────────────
 
     [Fact]

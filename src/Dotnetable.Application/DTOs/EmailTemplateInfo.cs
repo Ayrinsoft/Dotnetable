@@ -2,6 +2,14 @@ using Dotnetable.Domain.Enums;
 
 namespace Dotnetable.Application.DTOs;
 
+/// <summary>Localized subject/body for a non-default website language.</summary>
+public class EmailTemplateTranslationInfo
+{
+    public string LanguageCode { get; set; } = string.Empty;
+    public string Subject { get; set; } = string.Empty;
+    public string HtmlBody { get; set; } = string.Empty;
+}
+
 /// <summary>An editable email template, resolved for a given website (own row or master fallback).</summary>
 public class EmailTemplateInfo
 {
@@ -16,4 +24,7 @@ public class EmailTemplateInfo
 
     /// <summary>True when this row belongs to the requested website; false when it's the master fallback.</summary>
     public bool IsOverride { get; set; }
+
+    /// <summary>Non-default language variants owned by this template row (empty when none saved).</summary>
+    public List<EmailTemplateTranslationInfo> Translations { get; set; } = [];
 }

@@ -1,6 +1,7 @@
 @page "/messages/email-templates/{TemplateKey}"
 @attribute [Authorize(Policy = RoleKeys.WebsiteEdit)]
 @inject IEmailTemplateService TemplateService
+@inject ILanguageService LanguageService
 @inject AuthenticationStateProvider AuthState
 @inject NavigationManager Nav
 @inject ISnackbar Snackbar
@@ -31,25 +32,27 @@ else if (_item is not null)
         <MudGrid Spacing="4">
             <MudItem xs="12">
                 <MudPaper Elevation="0" Class="border rounded-lg pa-6">
-                    <MudGrid Spacing="3" Class="mb-2">
-                        <MudItem xs="12" sm="8">
-                            <MudTextField @bind-Value="_item.Subject" Label="@L["email_templates.subject", "Subject"]"
-                                          Variant="Variant.Outlined" Required="true"
-                                          RequiredError="@L["required", "This field is required."]" />
-                        </MudItem>
-                        <MudItem xs="12" sm="4">
-                            <MudSelect T="EmailAccountType" @bind-Value="_item.AccountType" Label="@L["email_templates.sender", "Sender Account"]"
-                                       Variant="Variant.Outlined">
-                                @foreach (var t in Enum.GetValues<EmailAccountType>())
-                                {
-                                    <MudSelectItem T="EmailAccountType" Value="t">@AccountTypeLabel(t)</MudSelectItem>
-                                }
-                            </MudSelect>
-                        </MudItem>
-                    </MudGrid>
+                    <div dir="@(_defaultRtl ? "rtl" : "ltr")">
+                        <MudGrid Spacing="3" Class="mb-2">
+                            <MudItem xs="12" sm="8">
+                                <MudTextField @bind-Value="_item.Subject" Label="@L["email_templates.subject", "Subject"]"
+                                              Variant="Variant.Outlined" Required="true"
+                                              RequiredError="@L["required", "This field is required."]" />
+                            </MudItem>
+                            <MudItem xs="12" sm="4">
+                                <MudSelect T="EmailAccountType" @bind-Value="_item.AccountType" Label="@L["email_templates.sender", "Sender Account"]"
+                                           Variant="Variant.Outlined">
+                                    @foreach (var t in Enum.GetValues<EmailAccountType>())
+                                    {
+                                        <MudSelectItem T="EmailAccountType" Value="t">@AccountTypeLabel(t)</MudSelectItem>
+                                    }
+                                </MudSelect>
+                            </MudItem>
+                        </MudGrid>
 
-                    <MudText Typo="Typo.body2" Class="mb-1" Color="Color.Secondary">@L["email_templates.body", "HTML Content"]</MudText>
-                    <CkEditor Value="@_item.HtmlBody" OnValueChanged="@(v => _item!.HtmlBody = v)" />
+                        <MudText Typo="Typo.body2" Class="mb-1" Color="Color.Secondary">@L["email_templates.body", "HTML Content"]</MudText>
+                        <CkEditor Value="@_item.HtmlBody" OnValueChanged="@(v => _item!.HtmlBody = v)" />
+                    </div>
 
                     <MudText Typo="Typo.caption" Color="Color.Secondary" Class="mt-2 d-block">
                         @L["email_templates.tokens_hint", "Available placeholders depend on the email: {{SiteName}} and {{SiteUrl}} always work; others (e.g. {{Code}}, {{ResetUrl}}, {{Name}}, {{OrderNumber}}) are filled in when that specific email is sent."]
@@ -58,6 +61,41 @@ else if (_item is not null)
                     <MudSwitch T="bool" @bind-Value="_item.Active" Color="Color.Primary" Class="mt-3"
                                Label="@(_item.Active ? L["email_templates.active_on", "Active — will be sent"] : L["email_templates.active_off", "Inactive — sending will fail"])" />
                 </MudPaper>
+
+                @if (_otherLanguages.Count > 0)
+                {
+                    <MudExpansionPanels Elevation="0" Class="mt-4">
+                        <MudExpansionPanel Text="@L["other_languages", "Other languages"]" IsInitiallyExpanded="true">
+                            <MudText Typo="Typo.body2" Color="Color.Secondary" Class="mb-2">
+                                @L["email_templates.other_languages.hint", "Main fields above are the site default language. Leave a translation blank to fall back to the default. RTL languages open the editor right-to-left."]
+                            </MudText>
+                            @foreach (var lang in _otherLanguages)
+                            {
+                                var t = Translation(lang.LanguageCode);
+                                var dir = lang.RTLDesign ? "rtl" : "ltr";
+                                <MudPaper Elevation="0" Class="pa-3 mb-3" Style="border:1px solid var(--mud-palette-lines-default); border-radius:8px;">
+                                    <MudStack Row="true" AlignItems="AlignItems.Center" Spacing="2" Class="mb-2">
+                                        <MudText Typo="Typo.subtitle2">@lang.Name</MudText>
+                                        <MudChip T="string" Size="Size.Small" Variant="Variant.Outlined" Color="Color.Default">
+                                            @lang.LanguageCode.ToUpperInvariant()
+                                        </MudChip>
+                                        @if (lang.RTLDesign)
+                                        {
+                                            <MudChip T="string" Size="Size.Small" Color="Color.Info" Variant="Variant.Outlined">RTL</MudChip>
+                                        }
+                                    </MudStack>
+                                    <div dir="@dir">
+                                        <MudTextField T="string" Value="@t.Subject" ValueChanged="@(v => t.Subject = v ?? string.Empty)"
+                                                      Label="@L["email_templates.subject", "Subject"]"
+                                                      Variant="Variant.Outlined" Class="mb-3" Margin="Margin.Dense" />
+                                        <MudText Typo="Typo.caption" Class="mb-1" Color="Color.Secondary">@L["email_templates.body", "HTML Content"]</MudText>
+                                        <CkEditor Value="@(t.HtmlBody ?? "")" OnValueChanged="@(v => t.HtmlBody = v)" />
+                                    </div>
+                                </MudPaper>
+                            }
+                        </MudExpansionPanel>
+                    </MudExpansionPanels>
+                }
             </MudItem>
         </MudGrid>
 
@@ -96,6 +134,15 @@ else if (_item is not null)
     private bool _loading = true;
     private bool _saving;
     private int _websiteId;
+    private bool _defaultRtl;
+    private List<Language> _otherLanguages = [];
+    private readonly Dictionary<string, TranslationModel> _translations = new(StringComparer.OrdinalIgnoreCase);
+
+    private sealed class TranslationModel
+    {
+        public string Subject { get; set; } = "";
+        public string HtmlBody { get; set; } = "";
+    }
 
     private List<BreadcrumbItem> _breadcrumbs => new()
     {
@@ -121,7 +168,26 @@ else if (_item is not null)
             Nav.NavigateTo("/messages/email-templates");
             return;
         }
+
+        var languages = await LanguageService.GetActiveForWebsiteAsync(_websiteId);
+        var defaultLang = languages.FirstOrDefault(l => l.IsDefault) ?? languages.FirstOrDefault();
+        _defaultRtl = defaultLang?.RTLDesign == true;
+        _otherLanguages = languages.Where(l => !l.IsDefault).ToList();
+
+        foreach (var tr in _item.Translations)
+            _translations[tr.LanguageCode] = new TranslationModel { Subject = tr.Subject, HtmlBody = tr.HtmlBody };
+
         _loading = false;
+    }
+
+    private TranslationModel Translation(string code)
+    {
+        if (!_translations.TryGetValue(code, out var t))
+        {
+            t = new TranslationModel();
+            _translations[code] = t;
+        }
+        return t;
     }
 
     private async Task SaveAsync()
@@ -133,8 +199,24 @@ else if (_item is not null)
         try
         {
             await TemplateService.SaveAsync(_websiteId, _item!);
+            var byLanguage = _otherLanguages.ToDictionary(
+                l => l.LanguageCode,
+                l =>
+                {
+                    var t = Translation(l.LanguageCode);
+                    return (t.Subject, t.HtmlBody);
+                },
+                StringComparer.OrdinalIgnoreCase);
+            await TemplateService.SetTranslationsAsync(_websiteId, TemplateKey, byLanguage);
+
             Snackbar.Add(L["email_templates.saved", "Template saved."], Severity.Success);
             _item = await TemplateService.GetAsync(_websiteId, TemplateKey);
+            _translations.Clear();
+            if (_item is not null)
+            {
+                foreach (var tr in _item.Translations)
+                    _translations[tr.LanguageCode] = new TranslationModel { Subject = tr.Subject, HtmlBody = tr.HtmlBody };
+            }
         }
         catch (Exception ex)
         {
@@ -151,6 +233,7 @@ else if (_item is not null)
             await TemplateService.ResetToDefaultAsync(_websiteId, TemplateKey);
             Snackbar.Add(L["email_templates.reset_done", "Reverted to the default template."], Severity.Success);
             _item = await TemplateService.GetAsync(_websiteId, TemplateKey);
+            _translations.Clear();
         }
         finally { _saving = false; }
     }
