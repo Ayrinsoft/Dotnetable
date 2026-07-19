@@ -154,20 +154,48 @@
 
     private async Task ResolveDefaultLanguageAsync()
     {
+        if (_isAdminRoute)
+        {
+            var catalog = await LanguageService.GetActiveCatalogAsync();
+            var def = catalog.FirstOrDefault(l => l.IsDefault) ?? catalog.FirstOrDefault();
+            _defaultLanguageCode = def?.LanguageCode ?? "en";
+            _languageCode = _defaultLanguageCode;
+            return;
+        }
+
         var site = await WebsiteService.GetByIdAsync(_websiteId);
         _defaultLanguageCode = string.IsNullOrWhiteSpace(site?.DefaultLanguageCode) ? "en" : site!.DefaultLanguageCode.Trim().ToLowerInvariant();
+
+        // Prefer Languages.IsDefault for the website (master site 1 included).
+        var websiteLangs = await LanguageService.GetActiveForWebsiteAsync(_websiteId);
+        var siteDefault = websiteLangs.FirstOrDefault(l => l.IsDefault);
+        if (siteDefault is not null)
+            _defaultLanguageCode = siteDefault.LanguageCode;
+
         _languageCode = _defaultLanguageCode;
     }
 
     private async Task LoadLanguagesAsync()
     {
-        _languages = (await LanguageService.GetActiveForWebsiteAsync(_websiteId))
-            .Select(x => (x.LanguageCode, x.Name)).ToArray();
+        // Admin Translations → active admin catalog only (inactive languages hidden).
+        // Website Translations → active website languages (including master site 1 rows).
+        var source = _isAdminRoute
+            ? await LanguageService.GetActiveCatalogAsync()
+            : await LanguageService.GetActiveForWebsiteAsync(_websiteId);
+
+        _languages = source.Select(x => (x.LanguageCode, x.Name)).ToArray();
         if (_languages.Length == 0)
             _languages = [(_defaultLanguageCode, _defaultLanguageCode)];
 
+        // Prefer the default language of the active list for first open.
+        var defaultCode = source.FirstOrDefault(l => l.IsDefault)?.LanguageCode ?? _defaultLanguageCode;
+        if (source.Any(l => l.IsDefault))
+            _defaultLanguageCode = defaultCode;
+
         if (!_languages.Any(l => string.Equals(l.Code, _languageCode, StringComparison.OrdinalIgnoreCase)))
-            _languageCode = _languages[0].Code;
+            _languageCode = _languages.Any(l => string.Equals(l.Code, defaultCode, StringComparison.OrdinalIgnoreCase))
+                ? defaultCode
+                : _languages[0].Code;
     }
 
     private async Task OnWebsiteChanged(int id)

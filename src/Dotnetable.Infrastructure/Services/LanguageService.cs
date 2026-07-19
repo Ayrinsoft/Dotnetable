@@ -74,6 +74,9 @@ public class LanguageService : ILanguageService
     public async Task<List<Language>> GetActiveCatalogAsync(CancellationToken ct = default) =>
         (await GetCatalogAsync(ct)).Where(l => l.Active).ToList();
 
+    public async Task<List<Language>> GetOtherActiveCatalogAsync(CancellationToken ct = default) =>
+        (await GetActiveCatalogAsync(ct)).Where(l => !l.IsDefault).ToList();
+
     public async Task<Language> CreateAsync(Language language, CancellationToken ct = default)
     {
         language.WebsiteID = AppConstants.MasterWebsiteId;
@@ -97,10 +100,14 @@ public class LanguageService : ILanguageService
         if (language.IsDefault && !existing.IsDefault)
             await ClearExistingDefaultAsync(AppConstants.MasterWebsiteId, ct);
 
+        // Default language cannot be deactivated (same rule as per-website languages).
+        if (existing.IsDefault || language.IsDefault)
+            language.Active = true;
+
         existing.Name = language.Name;
         existing.LanguageCodeISO = language.LanguageCodeISO;
         existing.Priority = language.Priority;
-        existing.IsDefault = language.IsDefault;
+        existing.IsDefault = language.IsDefault || existing.IsDefault;
         existing.Active = language.Active;
         existing.RTLDesign = language.RTLDesign;
 
@@ -115,6 +122,10 @@ public class LanguageService : ILanguageService
             l => l.LanguageID == languageId && l.WebsiteID == AppConstants.MasterWebsiteId, ct);
         if (existing is null) return false;
 
+        // Default language stays available for admin UI + fallbacks; inactive langs never appear in pickers.
+        if (!active && existing.IsDefault)
+            throw new InvalidOperationException("The default language cannot be deactivated.");
+
         existing.Active = active;
         await _context.SaveChangesAsync(ct);
         _cache.InvalidateAll();
@@ -128,6 +139,9 @@ public class LanguageService : ILanguageService
 
     public async Task<List<Language>> GetActiveForWebsiteAsync(int websiteId, CancellationToken ct = default) =>
         (await GetForWebsiteAsync(websiteId, ct)).Where(l => l.Active).ToList();
+
+    public async Task<List<Language>> GetOtherActiveForWebsiteAsync(int websiteId, CancellationToken ct = default) =>
+        (await GetActiveForWebsiteAsync(websiteId, ct)).Where(l => !l.IsDefault).ToList();
 
     private async Task<List<Language>> LoadForWebsiteAsync(int websiteId, CancellationToken ct)
     {

@@ -335,6 +335,7 @@ else if (_menu is not null)
             { x => x.Model, item },
             { x => x.IsNew, isNew },
             { x => x.AllItems, _items },
+            { x => x.WebsiteId, _menu?.WebsiteID ?? _websiteId },
         };
         var dialog = await DialogService.ShowAsync<MenuItemDialog>(
             isNew ? L["menus.add_item", "Add Item"] : L["menus.edit_item", "Edit Item"],
