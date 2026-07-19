@@ -78,13 +78,16 @@
                                Label="@(Model.IsActive ? L["active", "Active"] : L["inactive", "Inactive"])" />
                 </MudItem>
 
-                @* Website languages only (Website → Languages) — never the admin catalog.
-                   Root items and children share this form; fields appear when the site has 2+ active languages. *@
-                @if (_otherLanguages.Count > 0)
-                {
-                    <MudItem xs="12">
-                        <MudPaper Elevation="0" Class="pa-3" Style="border:1px solid var(--mud-palette-lines-default); border-radius:8px;">
-                            <MudText Typo="Typo.subtitle2" Class="mb-1">@L["other_languages", "Other languages"]</MudText>
+                @* Translations for every non-default website language (root and child items alike). *@
+                <MudItem xs="12">
+                    <MudPaper Elevation="0" Class="pa-3" Style="border:1px solid var(--mud-palette-lines-default); border-radius:8px;">
+                        <MudText Typo="Typo.subtitle2" Class="mb-1">@L["other_languages", "Other languages"]</MudText>
+                        @if (_loadingLanguages)
+                        {
+                            <MudProgressLinear Indeterminate="true" Color="Color.Primary" Class="my-2" />
+                        }
+                        else if (_otherLanguages.Count > 0)
+                        {
                             <MudText Typo="Typo.body2" Color="Color.Secondary" Class="mb-3">
                                 @L["other_languages.hint", "Main fields above are the site default language. Leave a translation blank to fall back to the default."]
                             </MudText>
@@ -92,12 +95,19 @@
                             {
                                 <MudTextField T="string" Value="@GetTranslation(lang.LanguageCode)"
                                               ValueChanged="@(v => SetTranslation(lang.LanguageCode, v))"
-                                              Label="@($"{lang.Name} — {L["menus.item_title", "Title"]}")"
+                                              Label="@($"{lang.Name} ({lang.LanguageCode.ToUpperInvariant()}) — {L["menus.item_title", "Title"]}")"
                                               Variant="Variant.Outlined" Class="mb-2" Margin="Margin.Dense" />
                             }
-                        </MudPaper>
-                    </MudItem>
-                }
+                        }
+                        else
+                        {
+                            <MudAlert Severity="Severity.Info" Dense="true" Variant="Variant.Outlined" Class="mt-1">
+                                @L["menus.need_website_languages", "This website has only one language, so there are no extra title fields. Add more languages under Website → Languages, then edit this item again."]
+                                <MudLink Href="/website/languages" Typo="Typo.body2" Class="ms-1">@L["website_languages", "Languages"]</MudLink>
+                            </MudAlert>
+                        }
+                    </MudPaper>
+                </MudItem>
             </MudGrid>
 
             <DNValidationSummary Errors="_formErrors" />
@@ -121,13 +131,14 @@
     [Parameter] public IReadOnlyList<MenuItem> AllItems { get; set; } = Array.Empty<MenuItem>();
 
     /// <summary>
-    /// Owning website of this menu. Content languages come from Website → Languages for this id
-    /// (including master site 1). Never use the admin panel language catalog here.
+    /// Owning website of this menu. Prefer resolving from the menu row; this is a fallback.
+    /// Content languages come from Website → Languages for this id (never the admin catalog).
     /// </summary>
     [Parameter] public int WebsiteId { get; set; }
 
     private MudForm _form = null!;
     private bool _saving;
+    private bool _loadingLanguages = true;
     private string[]? _formErrors;
     private MenuItemType _type;
     private int? _parentId;
@@ -135,12 +146,12 @@
     private readonly Dictionary<string, string> _translations = new(StringComparer.OrdinalIgnoreCase);
     private List<Language> _otherLanguages = new();
     private string? _defaultLanguageName;
+    private int _resolvedWebsiteId;
 
     private string TitleLabel => string.IsNullOrWhiteSpace(_defaultLanguageName)
         ? L["menus.item_title", "Title"]
         : $"{L["menus.item_title", "Title"]} ({_defaultLanguageName})";
 
-    /// <summary>Items that may be chosen as the parent — excludes this item and any of its descendants.</summary>
     private IEnumerable<MenuItem> ParentCandidates
     {
         get
@@ -168,30 +179,53 @@
     }
 
     /// <summary>
-    /// Loads active languages for the menu's website only (not admin catalog).
-    /// Resolves website from parameter → menu row → signed-in claim as last resort.
+    /// Always resolve the menu's website from the DB first (root and child items share this form).
+    /// Then load that site's non-default active languages for translation fields.
     /// </summary>
     private async Task LoadWebsiteLanguagesAsync()
     {
-        var websiteId = WebsiteId;
-        if (websiteId <= 0 && Model.MenuID > 0)
+        _loadingLanguages = true;
+        try
         {
-            var menu = await MenuService.GetMenuAsync(Model.MenuID);
-            websiteId = menu?.WebsiteID ?? 0;
+            _resolvedWebsiteId = 0;
+
+            // 1) Authoritative: the menu row this item belongs to.
+            if (Model.MenuID > 0)
+            {
+                var menu = await MenuService.GetMenuAsync(Model.MenuID);
+                if (menu is not null)
+                    _resolvedWebsiteId = menu.WebsiteID;
+            }
+
+            // 2) Parameter from MenuEdit.
+            if (_resolvedWebsiteId <= 0 && WebsiteId > 0)
+                _resolvedWebsiteId = WebsiteId;
+
+            // 3) Signed-in member's website claim.
+            if (_resolvedWebsiteId <= 0)
+                _resolvedWebsiteId = L.WebsiteId;
+
+            if (_resolvedWebsiteId <= 0)
+            {
+                _otherLanguages = new();
+                _defaultLanguageName = null;
+                return;
+            }
+
+            var active = await LanguageService.GetActiveForWebsiteAsync(_resolvedWebsiteId);
+            var defaultLang = active.FirstOrDefault(l => l.IsDefault)
+                ?? active.OrderBy(l => l.Priority).ThenBy(l => l.Name).FirstOrDefault();
+
+            _defaultLanguageName = defaultLang?.Name;
+
+            _otherLanguages = active.Count <= 1 || defaultLang is null
+                ? new List<Language>()
+                : active.Where(l => l.LanguageID != defaultLang.LanguageID).ToList();
         }
-        if (websiteId <= 0)
-            websiteId = L.WebsiteId;
-
-        // Active languages of this website only — independent of admin panel language settings.
-        var active = await LanguageService.GetActiveForWebsiteAsync(websiteId);
-        var defaultLang = active.FirstOrDefault(l => l.IsDefault)
-            ?? active.OrderBy(l => l.Priority).ThenBy(l => l.Name).FirstOrDefault();
-
-        _defaultLanguageName = defaultLang?.Name;
-
-        _otherLanguages = active.Count <= 1 || defaultLang is null
-            ? new List<Language>()
-            : active.Where(l => l.LanguageID != defaultLang.LanguageID).ToList();
+        finally
+        {
+            _loadingLanguages = false;
+        }
     }
 
     private string GetTranslation(string code) => _translations.TryGetValue(code, out var v) ? v : string.Empty;
@@ -216,7 +250,6 @@
         _ => null,
     };
 
-    /// <summary>Writes the target-id field into the matching column and clears the others.</summary>
     private void ApplyTargetId()
     {
         Model.PageID = _type == MenuItemType.Page ? _targetId : null;
@@ -273,12 +306,24 @@
             else
                 await MenuService.UpdateItemAsync(Model);
 
-            // Only persist translations for the website's other active languages.
-            var toSave = _otherLanguages.ToDictionary(
-                l => l.LanguageCode,
-                l => GetTranslation(l.LanguageCode),
-                StringComparer.OrdinalIgnoreCase);
-            await MenuService.SetItemTranslationsAsync(Model.MenuItemID, toSave);
+            // Persist titles for every non-default website language (blank = remove translation).
+            if (Model.MenuItemID > 0)
+            {
+                var toSave = _otherLanguages.ToDictionary(
+                    l => l.LanguageCode,
+                    l => GetTranslation(l.LanguageCode),
+                    StringComparer.OrdinalIgnoreCase);
+
+                // Keep any codes already saved that are no longer in the active list (don't wipe them
+                // unless the user cleared them while the language was still listed).
+                foreach (var existing in _translations)
+                {
+                    if (!toSave.ContainsKey(existing.Key))
+                        toSave[existing.Key] = existing.Value;
+                }
+
+                await MenuService.SetItemTranslationsAsync(Model.MenuItemID, toSave);
+            }
 
             Snackbar.Add(L["saved", "Saved."], Severity.Success);
             MudDialog.Close(DialogResult.Ok(true));
