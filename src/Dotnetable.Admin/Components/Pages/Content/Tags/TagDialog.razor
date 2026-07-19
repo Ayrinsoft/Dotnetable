@@ -13,11 +13,13 @@
                 <MudItem xs="12" sm="5">
                     <MudTextField @bind-Value="Model.Slug" Label="@L["slug", "Slug"]" Variant="Variant.Outlined" Required="true" />
                 </MudItem>
+                @if (_languages.Length > 0)
+                {
                 <MudItem xs="12">
                     <MudExpansionPanels Elevation="0">
-                        <MudExpansionPanel Text="@L["translations", "Translations"]">
+                        <MudExpansionPanel Text="@L["other_languages", "Other languages"]">
                             <MudText Typo="Typo.body2" Color="Color.Secondary" Class="mb-2">
-                                @L["translations.hint", "Leave a name blank to fall back to the default for that language."]
+                                @L["other_languages.hint", "Main fields above are the site default language. Leave a translation blank to fall back to the default."]
                             </MudText>
                             @foreach (var (code, label) in _languages)
                             {
@@ -35,6 +37,7 @@
                         </MudExpansionPanel>
                     </MudExpansionPanels>
                 </MudItem>
+                }
             </MudGrid>
 
             <DNValidationSummary Errors="_formErrors" />
@@ -59,7 +62,8 @@
 
     protected override async Task OnInitializedAsync()
     {
-        _languages = (await LanguageService.GetActiveForWebsiteAsync(L.WebsiteId))
+        var websiteId = Model.WebsiteID > 0 ? Model.WebsiteID : L.WebsiteId;
+        _languages = (await LanguageService.GetOtherActiveForWebsiteAsync(websiteId))
             .Select(x => (x.LanguageCode, x.Name)).ToArray();
 
         if (!IsNew)

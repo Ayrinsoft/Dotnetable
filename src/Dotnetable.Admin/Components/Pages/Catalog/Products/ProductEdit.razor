@@ -89,9 +89,14 @@ else
                             </MudItem>
                         </MudGrid>
                     </MudItem>
+                    @if (_languages.Length > 0)
+                    {
                     <MudItem xs="12">
                         <MudExpansionPanels Elevation="0">
-                            <MudExpansionPanel Text="@L["translations", "Translations"]">
+                            <MudExpansionPanel Text="@L["other_languages", "Other languages"]">
+                                <MudText Typo="Typo.body2" Color="Color.Secondary" Class="mb-2">
+                                    @L["other_languages.hint", "Main fields above are the site default language. Leave a translation blank to fall back to the default."]
+                                </MudText>
                                 @foreach (var (code, label) in _languages)
                                 {
                                     <MudGrid Spacing="2" Class="mb-1">
@@ -112,6 +117,7 @@ else
                             </MudExpansionPanel>
                         </MudExpansionPanels>
                     </MudItem>
+                    }
                 </MudGrid>
             </MudTabPanel>
 
@@ -370,8 +376,6 @@ else
         _isMaster = user.HasClaim(AdminClaimTypes.Master, "true");
         _canEdit = AdminPolicies.Allows(user, ProductId is null ? RoleKeys.ProductsInsert : RoleKeys.ProductsEdit);
         int.TryParse(user.FindFirst(AdminClaimTypes.WebsiteId)?.Value, out _websiteId);
-        _languages = (await LanguageService.GetActiveForWebsiteAsync(_websiteId))
-            .Select(x => (x.LanguageCode, x.Name)).ToArray();
         _isNew = ProductId is null;
 
         if (!_isNew)
@@ -406,6 +410,10 @@ else
         {
             Model.WebsiteID = _websiteId;
         }
+
+        // Master site (website 1) uses per-website language rows like every other site.
+        _languages = (await LanguageService.GetOtherActiveForWebsiteAsync(_websiteId))
+            .Select(x => (x.LanguageCode, x.Name)).ToArray();
 
         _brands = await BrandService.GetAllAsync(_websiteId);
         _categories = await CategoryService.GetAllAsync(_websiteId);

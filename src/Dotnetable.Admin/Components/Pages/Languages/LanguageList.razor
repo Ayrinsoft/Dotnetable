@@ -49,8 +49,11 @@
                             <MudIconButton Icon="@Icons.Material.Filled.Edit" Size="Size.Small" OnClick="@(() => EditAsync(lang))" />
                             <MudIconButton Icon="@(lang.Active ? Icons.Material.Filled.VisibilityOff : Icons.Material.Filled.Visibility)"
                                            Size="Size.Small" Color="@(lang.Active ? Color.Error : Color.Success)"
+                                           Disabled="@lang.IsDefault"
                                            OnClick="@(() => ToggleActiveAsync(lang))"
-                                           Title="@(lang.Active ? L["languages.deactivate", "Deactivate — hide from all language lists"] : L["languages.activate", "Activate"])" />
+                                           Title="@(lang.IsDefault
+                                               ? L["languages.default_cannot_deactivate", "The default language cannot be deactivated"]
+                                               : lang.Active ? L["languages.deactivate", "Deactivate — hide from all language lists"] : L["languages.activate", "Activate"])" />
                         </MudStack>
                     </td>
                 </tr>
@@ -129,8 +132,15 @@
 
     private async Task ToggleActiveAsync(Language lang)
     {
-        await LanguageService.SetActiveAsync(lang.LanguageID, !lang.Active);
-        Snackbar.Add(L["saved", "Saved."], Severity.Success);
-        await LoadAsync();
+        try
+        {
+            await LanguageService.SetActiveAsync(lang.LanguageID, !lang.Active);
+            Snackbar.Add(L["saved", "Saved."], Severity.Success);
+            await LoadAsync();
+        }
+        catch (Exception ex)
+        {
+            Snackbar.Add($"{L["save_failed", "Save failed"]}: {ex.Message}", Severity.Error);
+        }
     }
 }

@@ -25,6 +25,13 @@ public interface ILanguageService
     /// <summary>Active subset of the master catalog (admin language switcher).</summary>
     Task<List<Language>> GetActiveCatalogAsync(CancellationToken ct = default);
 
+    /// <summary>
+    /// Active non-default languages from the admin catalog. Used when admin-scoped content
+    /// (e.g. Initial Data translations) needs "other language" fields. Empty when only one
+    /// active language exists — the main form fields already cover the default.
+    /// </summary>
+    Task<List<Language>> GetOtherActiveCatalogAsync(CancellationToken ct = default);
+
     /// <summary>Adds a language to the master catalog.</summary>
     Task<Language> CreateAsync(Language language, CancellationToken ct = default);
 
@@ -42,6 +49,14 @@ public interface ILanguageService
 
     /// <summary>Active languages for a website. Ensures the site default language exists when empty.</summary>
     Task<List<Language>> GetActiveForWebsiteAsync(int websiteId, CancellationToken ct = default);
+
+    /// <summary>
+    /// Active non-default languages for a website (including master site 1). Content editors use this
+    /// for "other languages" translation panels: main fields are the site default; leave a translation
+    /// blank to fall back to the default-language value at display time. Empty when the site has only
+    /// one active language (or only the default). Inactive languages are never returned.
+    /// </summary>
+    Task<List<Language>> GetOtherActiveForWebsiteAsync(int websiteId, CancellationToken ct = default);
 
     /// <summary>Adds a language owned by this website only (not the admin catalog).</summary>
     Task<Language> AddWebsiteLanguageAsync(int websiteId, Language language, CancellationToken ct = default);
