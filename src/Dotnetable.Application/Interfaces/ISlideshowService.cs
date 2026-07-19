@@ -18,6 +18,9 @@ public interface ISlideshowService
     /// <summary>All slideshows for a website (or every website when <paramref name="websiteId"/> is null — master only).</summary>
     Task<List<Slideshow>> GetSlideshowsAsync(int? websiteId, CancellationToken ct = default);
 
+    /// <summary>Paged / sorted / filtered slideshows for the admin grid.</summary>
+    Task<PagedResult<Slideshow>> GetPagedAsync(int? websiteId, GridQuery query, CancellationToken ct = default);
+
     Task<Slideshow?> GetSlideshowAsync(int slideshowId, CancellationToken ct = default);
     Task<Slideshow> CreateSlideshowAsync(Slideshow slideshow, CancellationToken ct = default);
     Task UpdateSlideshowAsync(Slideshow slideshow, CancellationToken ct = default);

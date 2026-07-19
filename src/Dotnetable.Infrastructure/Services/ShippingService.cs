@@ -1,6 +1,8 @@
+using Dotnetable.Application.DTOs;
 using Dotnetable.Application.Interfaces;
 using Dotnetable.Domain.Entities;
 using Dotnetable.Infrastructure.Data;
+using Dotnetable.Infrastructure.Extensions;
 using Microsoft.EntityFrameworkCore;
 
 namespace Dotnetable.Infrastructure.Services;
@@ -18,6 +20,26 @@ public class ShippingService : IShippingService
             .Where(m => m.WebsiteID == websiteId)
             .OrderBy(m => m.SortOrder).ThenBy(m => m.Title)
             .ToListAsync(ct);
+
+    public async Task<PagedResult<ShippingMethod>> GetPagedAsync(int websiteId, GridQuery query, CancellationToken ct = default)
+    {
+        var q = _context.ShippingMethods.AsNoTracking().Where(m => m.WebsiteID == websiteId);
+
+        if (query.GetSearch(nameof(ShippingMethod.Title)) is string title)
+            q = q.Where(m => m.Title.Contains(title));
+        if (query.GetSearch(nameof(ShippingMethod.CarrierName)) is string carrier)
+            q = q.Where(m => m.CarrierName != null && m.CarrierName.Contains(carrier));
+        if (query.GetSearch(nameof(ShippingMethod.IsActive)) is string active && bool.TryParse(active, out var isActive))
+            q = q.Where(m => m.IsActive == isActive);
+
+        var total = await q.CountAsync(ct);
+        var items = await q
+            .ApplyOrderBy(query.OrderBy, nameof(ShippingMethod.SortOrder))
+            .Skip(query.Skip).Take(query.Take)
+            .ToListAsync(ct);
+
+        return new PagedResult<ShippingMethod> { Items = items, TotalCount = total };
+    }
 
     public async Task<ShippingMethod?> GetByIdAsync(int shippingMethodId, CancellationToken ct = default) =>
         await _context.ShippingMethods.FindAsync([shippingMethodId], ct);
@@ -60,6 +82,24 @@ public class ShippingService : IShippingService
             .Where(r => r.ShippingMethodID == shippingMethodId)
             .OrderBy(r => r.PriceUsd)
             .ToListAsync(ct);
+
+    public async Task<PagedResult<ShippingRate>> GetRatesPagedAsync(int shippingMethodId, GridQuery query, CancellationToken ct = default)
+    {
+        var q = _context.ShippingRates.AsNoTracking()
+            .Include(r => r.Country).Include(r => r.State).Include(r => r.City)
+            .Where(r => r.ShippingMethodID == shippingMethodId);
+
+        if (query.GetSearch(nameof(ShippingRate.IsActive)) is string active && bool.TryParse(active, out var isActive))
+            q = q.Where(r => r.IsActive == isActive);
+
+        var total = await q.CountAsync(ct);
+        var items = await q
+            .ApplyOrderBy(query.OrderBy, nameof(ShippingRate.PriceUsd))
+            .Skip(query.Skip).Take(query.Take)
+            .ToListAsync(ct);
+
+        return new PagedResult<ShippingRate> { Items = items, TotalCount = total };
+    }
 
     public async Task<ShippingRate> CreateRateAsync(ShippingRate rate, CancellationToken ct = default)
     {

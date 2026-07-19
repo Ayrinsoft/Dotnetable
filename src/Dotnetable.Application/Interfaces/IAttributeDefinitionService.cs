@@ -1,3 +1,4 @@
+using Dotnetable.Application.DTOs;
 using Dotnetable.Domain.Entities;
 
 namespace Dotnetable.Application.Interfaces;
@@ -9,6 +10,7 @@ namespace Dotnetable.Application.Interfaces;
 public interface IAttributeDefinitionService
 {
     Task<List<AttributeDefinition>> GetAllAsync(int? websiteId, CancellationToken ct = default);
+    Task<PagedResult<AttributeDefinition>> GetPagedAsync(int? websiteId, GridQuery query, CancellationToken ct = default);
 
     /// <summary>A single definition with its options loaded (for the edit form).</summary>
     Task<AttributeDefinition?> GetByIdAsync(int attributeDefinitionId, CancellationToken ct = default);

@@ -12,6 +12,8 @@ public interface IFormService
 {
     // ── Admin: forms ────────────────────────────────────────────────
     Task<List<Form>> GetFormsAsync(int? websiteId, CancellationToken ct = default);
+    /// <summary>Paged / sorted / filtered forms for the admin grid (includes field &amp; response counts).</summary>
+    Task<PagedResult<Form>> GetPagedAsync(int? websiteId, GridQuery query, CancellationToken ct = default);
     Task<Form?> GetFormAsync(int formId, CancellationToken ct = default);
     Task<Form> CreateFormAsync(Form form, CancellationToken ct = default);
     Task UpdateFormAsync(Form form, CancellationToken ct = default);

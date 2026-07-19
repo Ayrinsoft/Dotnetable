@@ -36,45 +36,46 @@
     {
         <MudProgressLinear Indeterminate="true" Color="Color.Primary" Class="mb-3" />
     }
-    else if (_items.Count == 0)
-    {
-        <div style="text-align:center; padding:32px;"><MudText Color="Color.Secondary">@L["currency_rates.empty", "No exchange rates configured yet."]</MudText></div>
-    }
-    else
-    {
-        <MudSimpleTable Dense="true" Hover="true" Elevation="0">
-            <thead><tr><th>@L["currencies.code", "Currency"]</th><th>@L["currency_rates.rate", "USD to currency"]</th><th>@L["currency_rates.default", "Default"]</th><th>@L["currency_rates.updated", "Last update"]</th><th style="width:1%"></th></tr></thead>
-            <tbody>
-                @foreach (var r in _items)
-                {
-                    <tr>
-                        <td>@r.CurrencyCode — @r.CurrencyCodeNavigation.Name</td>
-                        <td>@r.USDToCurrency.ToString("0.####")</td>
-                        <td>
-                            @if (r.IsDefault)
+    <DNGridView GridHeaderParams="_grid" OnSearchChanged="OnGridChanged">
+        @if (_items.Count == 0)
+        {
+            <tr>
+                <td colspan="5" style="text-align:center; padding:32px;">
+                    <MudText Color="Color.Secondary">@L["currency_rates.empty", "No exchange rates configured yet."]</MudText>
+                </td>
+            </tr>
+        }
+        else
+        {
+            @foreach (var r in _items)
+            {
+                <tr>
+                    <td>@r.CurrencyCode — @r.CurrencyCodeNavigation.Name</td>
+                    <td>@r.USDToCurrency.ToString("0.####")</td>
+                    <td>
+                        @if (r.IsDefault)
+                        {
+                            <MudIcon Icon="@Icons.Material.Filled.CheckCircle" Color="Color.Success" Size="Size.Small" />
+                        }
+                        else if (_canEdit)
+                        {
+                            <MudButton Size="Size.Small" OnClick="@(() => SetDefaultAsync(r))">@L["currency_rates.make_default", "Make default"]</MudButton>
+                        }
+                    </td>
+                    <td>@r.LastUpdate.ToLocalTime().ToString("g")</td>
+                    <td>
+                        <MudStack Row="true" Spacing="0">
+                            @if (_canEdit)
                             {
-                                <MudIcon Icon="@Icons.Material.Filled.CheckCircle" Color="Color.Success" Size="Size.Small" />
+                                <MudIconButton Icon="@Icons.Material.Filled.Edit" Size="Size.Small" OnClick="@(() => EditAsync(r))" />
+                                <MudIconButton Icon="@Icons.Material.Filled.Delete" Size="Size.Small" Color="Color.Error" OnClick="@(() => DeleteAsync(r))" />
                             }
-                            else if (_canEdit)
-                            {
-                                <MudButton Size="Size.Small" OnClick="@(() => SetDefaultAsync(r))">@L["currency_rates.make_default", "Make default"]</MudButton>
-                            }
-                        </td>
-                        <td>@r.LastUpdate.ToLocalTime().ToString("g")</td>
-                        <td>
-                            <MudStack Row="true" Spacing="0">
-                                @if (_canEdit)
-                                {
-                                    <MudIconButton Icon="@Icons.Material.Filled.Edit" Size="Size.Small" OnClick="@(() => EditAsync(r))" />
-                                    <MudIconButton Icon="@Icons.Material.Filled.Delete" Size="Size.Small" Color="Color.Error" OnClick="@(() => DeleteAsync(r))" />
-                                }
-                            </MudStack>
-                        </td>
-                    </tr>
-                }
-            </tbody>
-        </MudSimpleTable>
-    }
+                        </MudStack>
+                    </td>
+                </tr>
+            }
+        }
+    </DNGridView>
 </MudPaper>
 
 @code {
@@ -84,6 +85,7 @@
     private List<CurrencyRate> _items = new();
     private List<Currency> _currencies = new();
     private List<Website> _websites = new();
+    private GridViewHeaderParameters _grid = new();
 
     protected override async Task OnInitializedAsync()
     {
@@ -94,15 +96,32 @@
         int.TryParse(user.FindFirst(AdminClaimTypes.WebsiteId)?.Value, out _websiteId);
         if (_isMaster) _websites = (await WebsiteService.GetAllAsync()).ToList();
         _currencies = await CurrencyService.GetAllAsync();
+
+        _grid = new GridViewHeaderParameters
+        {
+            Pagination = new PaginationModel { PageSize = 25 },
+            HeaderItems = new()
+            {
+                new() { ColumnTitle = L["currencies.code", "Currency"], ColumnName = nameof(CurrencyRate.CurrencyCode), HasSort = true, HasSearch = true },
+                new() { ColumnTitle = L["currency_rates.rate", "USD to currency"], ColumnName = nameof(CurrencyRate.USDToCurrency), HasSort = true },
+                new() { ColumnTitle = L["currency_rates.default", "Default"], ColumnName = nameof(CurrencyRate.IsDefault), HasSort = true },
+                new() { ColumnTitle = L["currency_rates.updated", "Last update"], ColumnName = nameof(CurrencyRate.LastUpdate), HasSort = true },
+                new() { ColumnTitle = "", ColumnName = "" },
+            }
+        };
+
         await LoadAsync();
     }
 
     private async Task OnWebsiteChanged(int id) { _websiteId = id; await LoadAsync(); }
+    private Task OnGridChanged(GridViewHeaderParameters _) => LoadAsync();
 
     private async Task LoadAsync()
     {
         _loading = true;
-        _items = await CurrencyRateService.GetByWebsiteAsync(_websiteId);
+        var result = await CurrencyRateService.GetPagedAsync(_websiteId, _grid.ToQuery());
+        _items = result.Items.ToList();
+        _grid.Pagination.MaxLength = result.TotalCount;
         _loading = false;
     }
 

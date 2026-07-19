@@ -1,3 +1,4 @@
+using Dotnetable.Application.DTOs;
 using Dotnetable.Domain.Entities;
 
 namespace Dotnetable.Application.Interfaces;
@@ -6,6 +7,7 @@ namespace Dotnetable.Application.Interfaces;
 public interface IBrandService
 {
     Task<List<Brand>> GetAllAsync(int? websiteId, CancellationToken ct = default);
+    Task<PagedResult<Brand>> GetPagedAsync(int? websiteId, GridQuery query, CancellationToken ct = default);
     Task<Brand?> GetByIdAsync(int brandId, CancellationToken ct = default);
     Task<Brand> CreateAsync(Brand brand, CancellationToken ct = default);
     Task UpdateAsync(Brand brand, CancellationToken ct = default);

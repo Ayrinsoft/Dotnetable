@@ -5,6 +5,7 @@ using Dotnetable.Application.Interfaces;
 using Dotnetable.Domain.Entities;
 using Dotnetable.Domain.Enums;
 using Dotnetable.Infrastructure.Data;
+using Dotnetable.Infrastructure.Extensions;
 using Microsoft.EntityFrameworkCore;
 
 namespace Dotnetable.Infrastructure.Services;
@@ -50,6 +51,49 @@ public class FormService : IFormService
             })
             .OrderByDescending(f => f.FormID)
             .ToListAsync(ct);
+    }
+
+    public async Task<PagedResult<Form>> GetPagedAsync(int? websiteId, GridQuery query, CancellationToken ct = default)
+    {
+        var q = _context.Forms.AsNoTracking();
+        if (websiteId is int wid)
+            q = q.Where(f => f.WebsiteID == wid);
+
+        if (query.GetSearch(nameof(Form.Title)) is string title)
+            q = q.Where(f => f.Title.Contains(title));
+        if (query.GetSearch(nameof(Form.Slug)) is string slug)
+            q = q.Where(f => f.Slug.Contains(slug));
+        if (query.GetSearch(nameof(Form.FormType)) is string typeStr && byte.TryParse(typeStr, out var formType))
+            q = q.Where(f => f.FormType == formType);
+        if (query.GetSearch(nameof(Form.IsActive)) is string active && bool.TryParse(active, out var isActive))
+            q = q.Where(f => f.IsActive == isActive);
+        if (query.GetSearch(nameof(Form.FormID)) is string idStr && int.TryParse(idStr, out var formId))
+            q = q.Where(f => f.FormID == formId);
+
+        var total = await q.CountAsync(ct);
+        var items = await q
+            .ApplyOrderBy(query.OrderBy, nameof(Form.FormID), fallbackDescending: true)
+            .Skip(query.Skip).Take(query.Take)
+            .Select(f => new Form
+            {
+                FormID = f.FormID,
+                WebsiteID = f.WebsiteID,
+                Title = f.Title,
+                Slug = f.Slug,
+                FormType = f.FormType,
+                RequireLogin = f.RequireLogin,
+                AllowMultipleSubmissions = f.AllowMultipleSubmissions,
+                ShowResults = f.ShowResults,
+                StartAt = f.StartAt,
+                EndAt = f.EndAt,
+                IsActive = f.IsActive,
+                CreatedAt = f.CreatedAt,
+                FormFields = f.FormFields.Where(x => x.IsActive).ToList(),
+                FormResponses = f.FormResponses.Select(r => new FormResponse { FormResponseID = r.FormResponseID }).ToList(),
+            })
+            .ToListAsync(ct);
+
+        return new PagedResult<Form> { Items = items, TotalCount = total };
     }
 
     public async Task<Form?> GetFormAsync(int formId, CancellationToken ct = default) =>

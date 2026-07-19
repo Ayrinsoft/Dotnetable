@@ -35,37 +35,38 @@
     {
         <MudProgressLinear Indeterminate="true" Color="Color.Primary" Class="mb-3" />
     }
-    else if (_items.Count == 0)
-    {
-        <div style="text-align:center; padding:32px;"><MudText Color="Color.Secondary">@L["brands.empty", "No brands yet."]</MudText></div>
-    }
-    else
-    {
-        <MudSimpleTable Dense="true" Hover="true" Elevation="0">
-            <thead><tr><th>@L["name", "Name"]</th><th>@L["slug", "Slug"]</th><th style="width:1%"></th></tr></thead>
-            <tbody>
-                @foreach (var b in _items)
-                {
-                    <tr>
-                        <td>@b.Name</td>
-                        <td><code>@b.Slug</code></td>
-                        <td>
-                            <MudStack Row="true" Spacing="0">
-                                @if (_canEdit)
-                                {
-                                    <MudIconButton Icon="@Icons.Material.Filled.Edit" Size="Size.Small" OnClick="@(() => EditAsync(b))" />
-                                }
-                                @if (_canDelete)
-                                {
-                                    <MudIconButton Icon="@Icons.Material.Filled.Delete" Size="Size.Small" Color="Color.Error" OnClick="@(() => DeleteAsync(b))" />
-                                }
-                            </MudStack>
-                        </td>
-                    </tr>
-                }
-            </tbody>
-        </MudSimpleTable>
-    }
+    <DNGridView GridHeaderParams="_grid" OnSearchChanged="OnGridChanged">
+        @if (_items.Count == 0)
+        {
+            <tr>
+                <td colspan="3" style="text-align:center; padding:32px;">
+                    <MudText Color="Color.Secondary">@L["brands.empty", "No brands yet."]</MudText>
+                </td>
+            </tr>
+        }
+        else
+        {
+            @foreach (var b in _items)
+            {
+                <tr>
+                    <td>@b.Name</td>
+                    <td><code>@b.Slug</code></td>
+                    <td>
+                        <MudStack Row="true" Spacing="0">
+                            @if (_canEdit)
+                            {
+                                <MudIconButton Icon="@Icons.Material.Filled.Edit" Size="Size.Small" OnClick="@(() => EditAsync(b))" />
+                            }
+                            @if (_canDelete)
+                            {
+                                <MudIconButton Icon="@Icons.Material.Filled.Delete" Size="Size.Small" Color="Color.Error" OnClick="@(() => DeleteAsync(b))" />
+                            }
+                        </MudStack>
+                    </td>
+                </tr>
+            }
+        }
+    </DNGridView>
 </MudPaper>
 
 @code {
@@ -75,6 +76,7 @@
     private int _websiteId;
     private List<Brand> _items = new();
     private List<Website> _websites = new();
+    private GridViewHeaderParameters _grid = new();
 
     protected override async Task OnInitializedAsync()
     {
@@ -86,15 +88,30 @@
         _canDelete = AdminPolicies.Allows(user, RoleKeys.CatalogTaxonomyDelete);
         int.TryParse(user.FindFirst(AdminClaimTypes.WebsiteId)?.Value, out _websiteId);
         if (_isMaster) _websites = (await WebsiteService.GetAllAsync()).ToList();
+
+        _grid = new GridViewHeaderParameters
+        {
+            Pagination = new PaginationModel { PageSize = 25 },
+            HeaderItems = new()
+            {
+                new() { ColumnTitle = L["name", "Name"], ColumnName = nameof(Brand.Name), HasSort = true, HasSearch = true },
+                new() { ColumnTitle = L["slug", "Slug"], ColumnName = nameof(Brand.Slug), HasSort = true, HasSearch = true },
+                new() { ColumnTitle = "", ColumnName = "" },
+            }
+        };
+
         await LoadAsync();
     }
 
     private async Task OnWebsiteChanged(int id) { _websiteId = id; await LoadAsync(); }
+    private Task OnGridChanged(GridViewHeaderParameters _) => LoadAsync();
 
     private async Task LoadAsync()
     {
         _loading = true;
-        _items = await BrandService.GetAllAsync(_websiteId);
+        var result = await BrandService.GetPagedAsync(_websiteId, _grid.ToQuery());
+        _items = result.Items.ToList();
+        _grid.Pagination.MaxLength = result.TotalCount;
         _loading = false;
     }
 

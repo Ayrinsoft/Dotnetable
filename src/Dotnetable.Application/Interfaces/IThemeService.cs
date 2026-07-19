@@ -1,3 +1,4 @@
+using Dotnetable.Application.DTOs;
 using Dotnetable.Domain.Entities;
 
 namespace Dotnetable.Application.Interfaces;
@@ -11,6 +12,7 @@ namespace Dotnetable.Application.Interfaces;
 public interface IThemeService
 {
     Task<List<WebsiteTheme>> GetThemesAsync(int? websiteId, CancellationToken ct = default);
+    Task<PagedResult<WebsiteTheme>> GetPagedAsync(int? websiteId, GridQuery query, CancellationToken ct = default);
     Task<WebsiteTheme?> GetThemeAsync(int themeId, CancellationToken ct = default);
     Task<WebsiteTheme> CreateThemeAsync(WebsiteTheme theme, CancellationToken ct = default);
     Task UpdateThemeAsync(WebsiteTheme theme, CancellationToken ct = default);

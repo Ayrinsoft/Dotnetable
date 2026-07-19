@@ -1,6 +1,8 @@
+using Dotnetable.Application.DTOs;
 using Dotnetable.Application.Interfaces;
 using Dotnetable.Domain.Entities;
 using Dotnetable.Infrastructure.Data;
+using Dotnetable.Infrastructure.Extensions;
 using Microsoft.EntityFrameworkCore;
 
 namespace Dotnetable.Infrastructure.Services;
@@ -17,6 +19,28 @@ public class AttributeDefinitionService : IAttributeDefinitionService
         if (websiteId is int wid)
             q = q.Where(a => a.WebsiteID == wid);
         return await q.OrderBy(a => a.SortOrder).ThenBy(a => a.Name).ToListAsync(ct);
+    }
+
+    public async Task<PagedResult<AttributeDefinition>> GetPagedAsync(int? websiteId, GridQuery query, CancellationToken ct = default)
+    {
+        var q = _context.AttributeDefinitions.AsNoTracking();
+        if (websiteId is int wid)
+            q = q.Where(a => a.WebsiteID == wid);
+
+        if (query.GetSearch(nameof(AttributeDefinition.Name)) is string name)
+            q = q.Where(a => a.Name.Contains(name));
+        if (query.GetSearch(nameof(AttributeDefinition.Code)) is string code)
+            q = q.Where(a => a.Code.Contains(code));
+        if (query.GetSearch(nameof(AttributeDefinition.Active)) is string active && bool.TryParse(active, out var isActive))
+            q = q.Where(a => a.Active == isActive);
+
+        var total = await q.CountAsync(ct);
+        var items = await q
+            .ApplyOrderBy(query.OrderBy, nameof(AttributeDefinition.SortOrder))
+            .Skip(query.Skip).Take(query.Take)
+            .ToListAsync(ct);
+
+        return new PagedResult<AttributeDefinition> { Items = items, TotalCount = total };
     }
 
     public async Task<AttributeDefinition?> GetByIdAsync(int attributeDefinitionId, CancellationToken ct = default) =>

@@ -1,6 +1,8 @@
+using Dotnetable.Application.DTOs;
 using Dotnetable.Application.Interfaces;
 using Dotnetable.Domain.Entities;
 using Dotnetable.Infrastructure.Data;
+using Dotnetable.Infrastructure.Extensions;
 using Microsoft.EntityFrameworkCore;
 
 namespace Dotnetable.Infrastructure.Services;
@@ -13,6 +15,26 @@ public class CurrencyService : ICurrencyService
 
     public async Task<List<Currency>> GetAllAsync(CancellationToken ct = default) =>
         await _context.Currencies.AsNoTracking().OrderBy(c => c.CurrencyCode).ToListAsync(ct);
+
+    public async Task<PagedResult<Currency>> GetPagedAsync(GridQuery query, CancellationToken ct = default)
+    {
+        var q = _context.Currencies.AsNoTracking();
+
+        if (query.GetSearch(nameof(Currency.CurrencyCode)) is string code)
+            q = q.Where(c => c.CurrencyCode.Contains(code));
+        if (query.GetSearch(nameof(Currency.Name)) is string name)
+            q = q.Where(c => c.Name.Contains(name));
+        if (query.GetSearch(nameof(Currency.IsActive)) is string active && bool.TryParse(active, out var isActive))
+            q = q.Where(c => c.IsActive == isActive);
+
+        var total = await q.CountAsync(ct);
+        var items = await q
+            .ApplyOrderBy(query.OrderBy, nameof(Currency.CurrencyCode))
+            .Skip(query.Skip).Take(query.Take)
+            .ToListAsync(ct);
+
+        return new PagedResult<Currency> { Items = items, TotalCount = total };
+    }
 
     public async Task<Currency?> GetByCodeAsync(string currencyCode, CancellationToken ct = default) =>
         await _context.Currencies.AsNoTracking().FirstOrDefaultAsync(c => c.CurrencyCode == currencyCode, ct);

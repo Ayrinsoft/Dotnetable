@@ -35,47 +35,40 @@
     {
         <MudProgressLinear Indeterminate="true" Color="Color.Primary" Class="mb-3" />
     }
-    else if (_items.Count == 0)
-    {
-        <div style="text-align:center; padding:32px;"><MudText Color="Color.Secondary">@L["catalog.categories.empty", "No categories yet."]</MudText></div>
-    }
-    else
-    {
-        <MudSimpleTable Dense="true" Hover="true" Elevation="0">
-            <thead>
+    <DNGridView GridHeaderParams="_grid" OnSearchChanged="OnGridChanged">
+        @if (_items.Count == 0)
+        {
+            <tr>
+                <td colspan="5" style="text-align:center; padding:32px;">
+                    <MudText Color="Color.Secondary">@L["catalog.categories.empty", "No categories yet."]</MudText>
+                </td>
+            </tr>
+        }
+        else
+        {
+            @foreach (var c in _items)
+            {
                 <tr>
-                    <th>@L["name", "Name"]</th>
-                    <th>@L["slug", "Slug"]</th>
-                    <th>@L["catalog.categories.sort", "Sort"]</th>
-                    <th>@L["active", "Active"]</th>
-                    <th style="width:1%"></th>
+                    <td>@c.Name</td>
+                    <td><code>@c.Slug</code></td>
+                    <td>@c.SortOrder</td>
+                    <td>@(c.IsActive ? L["yes", "Yes"] : L["no", "No"])</td>
+                    <td>
+                        <MudStack Row="true" Spacing="0">
+                            @if (_canEdit)
+                            {
+                                <MudIconButton Icon="@Icons.Material.Filled.Edit" Size="Size.Small" OnClick="@(() => EditAsync(c))" />
+                            }
+                            @if (_canDelete)
+                            {
+                                <MudIconButton Icon="@Icons.Material.Filled.Delete" Size="Size.Small" Color="Color.Error" OnClick="@(() => DeleteAsync(c))" />
+                            }
+                        </MudStack>
+                    </td>
                 </tr>
-            </thead>
-            <tbody>
-                @foreach (var c in Ordered())
-                {
-                    <tr>
-                        <td><span style="@($"padding-left:{Depth(c) * 20}px")">@(Depth(c) > 0 ? "└ " : "")@c.Name</span></td>
-                        <td><code>@c.Slug</code></td>
-                        <td>@c.SortOrder</td>
-                        <td>@(c.IsActive ? L["yes", "Yes"] : L["no", "No"])</td>
-                        <td>
-                            <MudStack Row="true" Spacing="0">
-                                @if (_canEdit)
-                                {
-                                    <MudIconButton Icon="@Icons.Material.Filled.Edit" Size="Size.Small" OnClick="@(() => EditAsync(c))" />
-                                }
-                                @if (_canDelete)
-                                {
-                                    <MudIconButton Icon="@Icons.Material.Filled.Delete" Size="Size.Small" Color="Color.Error" OnClick="@(() => DeleteAsync(c))" />
-                                }
-                            </MudStack>
-                        </td>
-                    </tr>
-                }
-            </tbody>
-        </MudSimpleTable>
-    }
+            }
+        }
+    </DNGridView>
 </MudPaper>
 
 @code {
@@ -85,6 +78,7 @@
     private int _websiteId;
     private List<ProductCategory> _items = new();
     private List<Website> _websites = new();
+    private GridViewHeaderParameters _grid = new();
 
     protected override async Task OnInitializedAsync()
     {
@@ -96,41 +90,33 @@
         _canDelete = AdminPolicies.Allows(user, RoleKeys.CatalogTaxonomyDelete);
         int.TryParse(user.FindFirst(AdminClaimTypes.WebsiteId)?.Value, out _websiteId);
         if (_isMaster) _websites = (await WebsiteService.GetAllAsync()).ToList();
+
+        _grid = new GridViewHeaderParameters
+        {
+            Pagination = new PaginationModel { PageSize = 25 },
+            HeaderItems = new()
+            {
+                new() { ColumnTitle = L["name", "Name"], ColumnName = nameof(ProductCategory.Name), HasSort = true, HasSearch = true },
+                new() { ColumnTitle = L["slug", "Slug"], ColumnName = nameof(ProductCategory.Slug), HasSort = true, HasSearch = true },
+                new() { ColumnTitle = L["catalog.categories.sort", "Sort"], ColumnName = nameof(ProductCategory.SortOrder), HasSort = true },
+                new() { ColumnTitle = L["active", "Active"], ColumnName = nameof(ProductCategory.IsActive), HasSort = true },
+                new() { ColumnTitle = "", ColumnName = "" },
+            }
+        };
+
         await LoadAsync();
     }
 
     private async Task OnWebsiteChanged(int id) { _websiteId = id; await LoadAsync(); }
+    private Task OnGridChanged(GridViewHeaderParameters _) => LoadAsync();
 
     private async Task LoadAsync()
     {
         _loading = true;
-        _items = await ProductCategoryService.GetAllAsync(_websiteId);
+        var result = await ProductCategoryService.GetPagedAsync(_websiteId, _grid.ToQuery());
+        _items = result.Items.ToList();
+        _grid.Pagination.MaxLength = result.TotalCount;
         _loading = false;
-    }
-
-    private int Depth(ProductCategory c)
-    {
-        var depth = 0; var parent = c.ParentCategoryID;
-        while (parent is int pid && depth < 10)
-        {
-            depth++;
-            parent = _items.FirstOrDefault(x => x.ProductCategoryID == pid)?.ParentCategoryID;
-        }
-        return depth;
-    }
-
-    private IEnumerable<ProductCategory> Ordered()
-    {
-        var byParent = _items.GroupBy(c => c.ParentCategoryID).ToDictionary(g => g.Key, g => g.OrderBy(c => c.SortOrder).ThenBy(c => c.Name).ToList());
-        var result = new List<ProductCategory>();
-        void Walk(int? parent)
-        {
-            if (!byParent.TryGetValue(parent, out var children)) return;
-            foreach (var c in children) { result.Add(c); Walk(c.ProductCategoryID); }
-        }
-        Walk(null);
-        result.AddRange(_items.Where(c => !result.Contains(c)));
-        return result;
     }
 
     private async Task CreateAsync()
@@ -151,9 +137,10 @@
 
     private async Task<bool> ShowDialogAsync(ProductCategory model, bool isNew)
     {
+        var allCategories = await ProductCategoryService.GetAllAsync(_websiteId);
         var parameters = new DialogParameters<ProductCategoryDialog>
         {
-            { x => x.Model, model }, { x => x.IsNew, isNew }, { x => x.AllCategories, _items },
+            { x => x.Model, model }, { x => x.IsNew, isNew }, { x => x.AllCategories, allCategories },
         };
         var dialog = await DialogService.ShowAsync<ProductCategoryDialog>(
             isNew ? L["catalog.categories.new", "New Category"] : L["catalog.categories.edit", "Edit Category"], parameters,

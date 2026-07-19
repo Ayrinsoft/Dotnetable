@@ -35,55 +35,46 @@
     {
         <MudProgressLinear Indeterminate="true" Color="Color.Primary" Class="mb-3" />
     }
-    else if (_items.Count == 0)
-    {
-        <div style="text-align:center; padding:32px;"><MudText Color="Color.Secondary">@L["tax_rates.empty", "No tax rates yet."]</MudText></div>
-    }
-    else
-    {
-        <MudSimpleTable Dense="true" Hover="true" Elevation="0">
-            <thead>
+    <DNGridView GridHeaderParams="_grid" OnSearchChanged="OnGridChanged">
+        @if (_items.Count == 0)
+        {
+            <tr>
+                <td colspan="7" style="text-align:center; padding:32px;">
+                    <MudText Color="Color.Secondary">@L["tax_rates.empty", "No tax rates yet."]</MudText>
+                </td>
+            </tr>
+        }
+        else
+        {
+            @foreach (var r in _items)
+            {
                 <tr>
-                    <th>@L["title", "Title"]</th>
-                    <th>@L["rate", "Rate"]</th>
-                    <th>@L["country", "Country"]</th>
-                    <th>@L["state", "State"]</th>
-                    <th>@L["priority", "Priority"]</th>
-                    <th>@L["status", "Status"]</th>
-                    <th style="width:1%"></th>
+                    <td>@r.Title</td>
+                    <td>@((r.Rate * 100).ToString("0.##"))%</td>
+                    <td>@(r.Country?.Title ?? L["any", "Any"])</td>
+                    <td>@(r.State?.Title ?? L["any", "Any"])</td>
+                    <td>@r.Priority</td>
+                    <td>
+                        <MudChip T="string" Size="Size.Small" Color="@(r.IsActive ? Color.Success : Color.Default)">
+                            @(r.IsActive ? L["active", "Active"] : L["inactive", "Inactive"])
+                        </MudChip>
+                    </td>
+                    <td>
+                        <MudStack Row="true" Spacing="0">
+                            @if (_canEdit)
+                            {
+                                <MudIconButton Icon="@Icons.Material.Filled.Edit" Size="Size.Small" OnClick="@(() => EditAsync(r))" />
+                            }
+                            @if (_canDelete)
+                            {
+                                <MudIconButton Icon="@Icons.Material.Filled.Delete" Size="Size.Small" Color="Color.Error" OnClick="@(() => DeleteAsync(r))" />
+                            }
+                        </MudStack>
+                    </td>
                 </tr>
-            </thead>
-            <tbody>
-                @foreach (var r in _items)
-                {
-                    <tr>
-                        <td>@r.Title</td>
-                        <td>@((r.Rate * 100).ToString("0.##"))%</td>
-                        <td>@(r.Country?.Title ?? L["any", "Any"])</td>
-                        <td>@(r.State?.Title ?? L["any", "Any"])</td>
-                        <td>@r.Priority</td>
-                        <td>
-                            <MudChip T="string" Size="Size.Small" Color="@(r.IsActive ? Color.Success : Color.Default)">
-                                @(r.IsActive ? L["active", "Active"] : L["inactive", "Inactive"])
-                            </MudChip>
-                        </td>
-                        <td>
-                            <MudStack Row="true" Spacing="0">
-                                @if (_canEdit)
-                                {
-                                    <MudIconButton Icon="@Icons.Material.Filled.Edit" Size="Size.Small" OnClick="@(() => EditAsync(r))" />
-                                }
-                                @if (_canDelete)
-                                {
-                                    <MudIconButton Icon="@Icons.Material.Filled.Delete" Size="Size.Small" Color="Color.Error" OnClick="@(() => DeleteAsync(r))" />
-                                }
-                            </MudStack>
-                        </td>
-                    </tr>
-                }
-            </tbody>
-        </MudSimpleTable>
-    }
+            }
+        }
+    </DNGridView>
 </MudPaper>
 
 @code {
@@ -93,6 +84,7 @@
     private int _websiteId;
     private List<TaxRate> _items = new();
     private List<Website> _websites = new();
+    private GridViewHeaderParameters _grid = new();
 
     protected override async Task OnInitializedAsync()
     {
@@ -104,15 +96,34 @@
         _canDelete = AdminPolicies.Allows(user, RoleKeys.TaxDelete);
         int.TryParse(user.FindFirst(AdminClaimTypes.WebsiteId)?.Value, out _websiteId);
         if (_isMaster) _websites = (await WebsiteService.GetAllAsync()).ToList();
+
+        _grid = new GridViewHeaderParameters
+        {
+            Pagination = new PaginationModel { PageSize = 25 },
+            HeaderItems = new()
+            {
+                new() { ColumnTitle = L["title", "Title"], ColumnName = nameof(TaxRate.Title), HasSort = true, HasSearch = true },
+                new() { ColumnTitle = L["rate", "Rate"], ColumnName = nameof(TaxRate.Rate), HasSort = true },
+                new() { ColumnTitle = L["country", "Country"], ColumnName = "" },
+                new() { ColumnTitle = L["state", "State"], ColumnName = "" },
+                new() { ColumnTitle = L["priority", "Priority"], ColumnName = nameof(TaxRate.Priority), HasSort = true },
+                new() { ColumnTitle = L["status", "Status"], ColumnName = nameof(TaxRate.IsActive), HasSort = true },
+                new() { ColumnTitle = "", ColumnName = "" },
+            }
+        };
+
         await LoadAsync();
     }
 
     private async Task OnWebsiteChanged(int id) { _websiteId = id; await LoadAsync(); }
+    private Task OnGridChanged(GridViewHeaderParameters _) => LoadAsync();
 
     private async Task LoadAsync()
     {
         _loading = true;
-        _items = await TaxService.GetAllAsync(_websiteId);
+        var result = await TaxService.GetPagedAsync(_websiteId, _grid.ToQuery());
+        _items = result.Items.ToList();
+        _grid.Pagination.MaxLength = result.TotalCount;
         _loading = false;
     }
 

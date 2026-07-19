@@ -35,89 +35,73 @@
     {
         <MudProgressLinear Indeterminate="true" Color="Color.Primary" Class="mb-3" />
     }
-    else if (_slideshows.Count == 0)
-    {
-        <div style="text-align:center; padding:32px;">
-            <MudText Color="Color.Secondary">@L["slideshows.empty", "No slideshows yet."]</MudText>
-        </div>
-    }
-    else
-    {
-        <MudSimpleTable Dense="true" Hover="true" Elevation="0">
-            <thead>
+    <DNGridView GridHeaderParams="_grid" OnSearchChanged="OnGridChanged">
+        @if (_slideshows.Count == 0)
+        {
+            <tr>
+                <td colspan="@(_isMaster ? 9 : 8)" style="text-align:center; padding:32px;">
+                    <MudText Color="Color.Secondary">@L["slideshows.empty", "No slideshows yet."]</MudText>
+                </td>
+            </tr>
+        }
+        else
+        {
+            @foreach (var s in _slideshows)
+            {
                 <tr>
-                    <th style="width:1%"></th>
-                    <th>@L["id", "ID"]</th>
-                    <th>@L["name", "Name"]</th>
-                    <th>@L["slideshows.placement", "Placement"]</th>
-                    <th>@L["slideshows.shortcode", "Shortcode"]</th>
+                    <td>
+                        <MudIconButton Icon="@Icons.Material.Filled.Collections" Size="Size.Small"
+                                       Color="Color.Primary" Title="@L["slideshows.manage_slides", "Manage slides"]"
+                                       Href="@($"/slideshows/{s.SlideshowID}")" />
+                    </td>
+                    <td>@s.SlideshowID</td>
+                    <td>@s.Name</td>
+                    <td>
+                        @if (string.IsNullOrWhiteSpace(s.PlacementKey))
+                        {
+                            <MudText Typo="Typo.caption" Color="Color.Secondary">—</MudText>
+                        }
+                        else
+                        {
+                            <MudChip T="string" Size="Size.Small" Variant="Variant.Text" Color="Color.Info">@s.PlacementKey</MudChip>
+                        }
+                    </td>
+                    <td>
+                        <MudStack Row="true" Spacing="1" AlignItems="AlignItems.Center">
+                            <MudText Typo="Typo.caption" Style="font-family:monospace;">[slideshow:@s.SlideshowID]</MudText>
+                            <MudIconButton Icon="@Icons.Material.Filled.ContentCopy" Size="Size.Small"
+                                           Title="@L["slideshows.copy_shortcode", "Copy shortcode"]"
+                                           OnClick="@(() => CopyShortcodeAsync(s.SlideshowID))" />
+                        </MudStack>
+                    </td>
                     @if (_isMaster)
                     {
-                        <th>@L["website", "Website"]</th>
+                        <td>#@s.WebsiteID</td>
                     }
-                    <th>@L["slideshows.slides", "Slides"]</th>
-                    <th>@L["status", "Status"]</th>
-                    <th style="width:1%"></th>
+                    <td>@(s.SlideshowSlides?.Count ?? 0)</td>
+                    <td>
+                        <MudSwitch T="bool" Value="s.IsActive" Color="Color.Success"
+                                   Disabled="@(!_canEdit || _busy.Contains(s.SlideshowID))"
+                                   ValueChanged="@(v => ToggleActiveAsync(s, v))" />
+                    </td>
+                    <td>
+                        <MudStack Row="true" Spacing="0">
+                            @if (_canEdit)
+                            {
+                                <MudIconButton Icon="@Icons.Material.Filled.Edit" Size="Size.Small"
+                                               Color="Color.Default" OnClick="@(() => EditAsync(s))" />
+                            }
+                            @if (_canDelete)
+                            {
+                                <MudIconButton Icon="@Icons.Material.Filled.Delete" Size="Size.Small"
+                                               Color="Color.Error" OnClick="@(() => DeleteAsync(s))" />
+                            }
+                        </MudStack>
+                    </td>
                 </tr>
-            </thead>
-            <tbody>
-                @foreach (var s in _slideshows)
-                {
-                    <tr>
-                        <td>
-                            <MudIconButton Icon="@Icons.Material.Filled.Collections" Size="Size.Small"
-                                           Color="Color.Primary" Title="@L["slideshows.manage_slides", "Manage slides"]"
-                                           Href="@($"/slideshows/{s.SlideshowID}")" />
-                        </td>
-                        <td>@s.SlideshowID</td>
-                        <td>@s.Name</td>
-                        <td>
-                            @if (string.IsNullOrWhiteSpace(s.PlacementKey))
-                            {
-                                <MudText Typo="Typo.caption" Color="Color.Secondary">—</MudText>
-                            }
-                            else
-                            {
-                                <MudChip T="string" Size="Size.Small" Variant="Variant.Text" Color="Color.Info">@s.PlacementKey</MudChip>
-                            }
-                        </td>
-                        <td>
-                            <MudStack Row="true" Spacing="1" AlignItems="AlignItems.Center">
-                                <MudText Typo="Typo.caption" Style="font-family:monospace;">[slideshow:@s.SlideshowID]</MudText>
-                                <MudIconButton Icon="@Icons.Material.Filled.ContentCopy" Size="Size.Small"
-                                               Title="@L["slideshows.copy_shortcode", "Copy shortcode"]"
-                                               OnClick="@(() => CopyShortcodeAsync(s.SlideshowID))" />
-                            </MudStack>
-                        </td>
-                        @if (_isMaster)
-                        {
-                            <td>#@s.WebsiteID</td>
-                        }
-                        <td>@(s.SlideshowSlides?.Count ?? 0)</td>
-                        <td>
-                            <MudSwitch T="bool" Value="s.IsActive" Color="Color.Success"
-                                       Disabled="@(!_canEdit || _busy.Contains(s.SlideshowID))"
-                                       ValueChanged="@(v => ToggleActiveAsync(s, v))" />
-                        </td>
-                        <td>
-                            <MudStack Row="true" Spacing="0">
-                                @if (_canEdit)
-                                {
-                                    <MudIconButton Icon="@Icons.Material.Filled.Edit" Size="Size.Small"
-                                                   Color="Color.Default" OnClick="@(() => EditAsync(s))" />
-                                }
-                                @if (_canDelete)
-                                {
-                                    <MudIconButton Icon="@Icons.Material.Filled.Delete" Size="Size.Small"
-                                                   Color="Color.Error" OnClick="@(() => DeleteAsync(s))" />
-                                }
-                            </MudStack>
-                        </td>
-                    </tr>
-                }
-            </tbody>
-        </MudSimpleTable>
-    }
+            }
+        }
+    </DNGridView>
 </MudPaper>
 
 @code {
@@ -129,6 +113,7 @@
     private int _websiteId;
     private List<Slideshow> _slideshows = new();
     private HashSet<int> _busy = new();
+    private GridViewHeaderParameters _grid = new();
 
     protected override async Task OnInitializedAsync()
     {
@@ -141,13 +126,37 @@
         _canDelete = AdminPolicies.Allows(user, RoleKeys.SlideshowsDelete);
         int.TryParse(user.FindFirst(AdminClaimTypes.WebsiteId)?.Value, out _websiteId);
 
+        var headers = new List<GridViewHeaderParameters.HeaderItemDetail>
+        {
+            new() { ColumnTitle = "", ColumnName = "" },
+            new() { ColumnTitle = L["id", "ID"], ColumnName = nameof(Slideshow.SlideshowID), HasSort = true },
+            new() { ColumnTitle = L["name", "Name"], ColumnName = nameof(Slideshow.Name), HasSort = true, HasSearch = true },
+            new() { ColumnTitle = L["slideshows.placement", "Placement"], ColumnName = nameof(Slideshow.PlacementKey), HasSort = true, HasSearch = true },
+            new() { ColumnTitle = L["slideshows.shortcode", "Shortcode"], ColumnName = "" },
+        };
+        if (_isMaster)
+            headers.Add(new() { ColumnTitle = L["website", "Website"], ColumnName = nameof(Slideshow.WebsiteID), HasSort = true });
+        headers.Add(new() { ColumnTitle = L["slideshows.slides", "Slides"], ColumnName = "" });
+        headers.Add(new() { ColumnTitle = L["status", "Status"], ColumnName = nameof(Slideshow.IsActive), HasSort = true });
+        headers.Add(new() { ColumnTitle = "", ColumnName = "" });
+
+        _grid = new GridViewHeaderParameters
+        {
+            Pagination = new PaginationModel { PageSize = 25 },
+            HeaderItems = headers,
+        };
+
         await LoadAsync();
     }
+
+    private Task OnGridChanged(GridViewHeaderParameters _) => LoadAsync();
 
     private async Task LoadAsync()
     {
         _loading = true;
-        _slideshows = await SlideshowService.GetSlideshowsAsync(_isMaster ? null : _websiteId);
+        var result = await SlideshowService.GetPagedAsync(_isMaster ? null : _websiteId, _grid.ToQuery());
+        _slideshows = result.Items.ToList();
+        _grid.Pagination.MaxLength = result.TotalCount;
         _loading = false;
     }
 

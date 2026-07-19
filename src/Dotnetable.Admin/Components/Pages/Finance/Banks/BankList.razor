@@ -22,44 +22,67 @@
     {
         <MudProgressLinear Indeterminate="true" Color="Color.Primary" Class="mb-3" />
     }
-    else
-    {
-        <MudSimpleTable Dense="true" Hover="true" Elevation="0">
-            <thead><tr><th>@L["name", "Name"]</th><th>@L["banks.code", "Code"]</th><th>@L["active", "Active"]</th><th style="width:1%"></th></tr></thead>
-            <tbody>
-                @foreach (var b in _items)
-                {
-                    <tr>
-                        <td>@b.Name</td>
-                        <td><code>@b.BankCode</code></td>
-                        <td>@(b.Active ? L["yes", "Yes"] : L["no", "No"])</td>
-                        <td>
-                            <MudStack Row="true" Spacing="0">
-                                <MudIconButton Icon="@Icons.Material.Filled.Edit" Size="Size.Small" OnClick="@(() => EditAsync(b))" />
-                                <MudIconButton Icon="@Icons.Material.Filled.Delete" Size="Size.Small" Color="Color.Error" OnClick="@(() => DeleteAsync(b))" />
-                            </MudStack>
-                        </td>
-                    </tr>
-                }
-            </tbody>
-        </MudSimpleTable>
-    }
+    <DNGridView GridHeaderParams="_grid" OnSearchChanged="OnGridChanged">
+        @if (_items.Count == 0)
+        {
+            <tr>
+                <td colspan="4" style="text-align:center; padding:32px;">
+                    <MudText Color="Color.Secondary">@L["banks.empty", "No banks yet."]</MudText>
+                </td>
+            </tr>
+        }
+        else
+        {
+            @foreach (var b in _items)
+            {
+                <tr>
+                    <td>@b.Name</td>
+                    <td><code>@b.BankCode</code></td>
+                    <td>@(b.Active ? L["yes", "Yes"] : L["no", "No"])</td>
+                    <td>
+                        <MudStack Row="true" Spacing="0">
+                            <MudIconButton Icon="@Icons.Material.Filled.Edit" Size="Size.Small" OnClick="@(() => EditAsync(b))" />
+                            <MudIconButton Icon="@Icons.Material.Filled.Delete" Size="Size.Small" Color="Color.Error" OnClick="@(() => DeleteAsync(b))" />
+                        </MudStack>
+                    </td>
+                </tr>
+            }
+        }
+    </DNGridView>
 </MudPaper>
 
 @code {
     private bool _loading = true;
     private List<Bank> _items = new();
+    private GridViewHeaderParameters _grid = new();
 
     protected override async Task OnInitializedAsync()
     {
         await L.EnsureLoadedAsync();
+
+        _grid = new GridViewHeaderParameters
+        {
+            Pagination = new PaginationModel { PageSize = 25 },
+            HeaderItems = new()
+            {
+                new() { ColumnTitle = L["name", "Name"], ColumnName = nameof(Bank.Name), HasSort = true, HasSearch = true },
+                new() { ColumnTitle = L["banks.code", "Code"], ColumnName = nameof(Bank.BankCode), HasSort = true, HasSearch = true },
+                new() { ColumnTitle = L["active", "Active"], ColumnName = nameof(Bank.Active), HasSort = true },
+                new() { ColumnTitle = "", ColumnName = "" },
+            }
+        };
+
         await LoadAsync();
     }
+
+    private Task OnGridChanged(GridViewHeaderParameters _) => LoadAsync();
 
     private async Task LoadAsync()
     {
         _loading = true;
-        _items = await BankService.GetAllAsync();
+        var result = await BankService.GetPagedAsync(_grid.ToQuery());
+        _items = result.Items.ToList();
+        _grid.Pagination.MaxLength = result.TotalCount;
         _loading = false;
     }
 

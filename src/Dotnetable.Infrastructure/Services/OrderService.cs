@@ -3,6 +3,7 @@ using Dotnetable.Application.Interfaces;
 using Dotnetable.Domain.Entities;
 using Dotnetable.Domain.Enums;
 using Dotnetable.Infrastructure.Data;
+using Dotnetable.Infrastructure.Extensions;
 using Microsoft.EntityFrameworkCore;
 
 namespace Dotnetable.Infrastructure.Services;
@@ -185,8 +186,14 @@ public class OrderService : IOrderService
         if (websiteId is int wid) q = q.Where(o => o.WebsiteID == wid);
         if (status is byte s) q = q.Where(o => o.Status == s);
 
+        if (query.GetSearch(nameof(Order.OrderNumber)) is string orderNumber)
+            q = q.Where(o => o.OrderNumber.Contains(orderNumber));
+
         var total = await q.CountAsync(ct);
-        var items = await q.OrderByDescending(o => o.CreatedAt).Skip(query.Skip).Take(query.Take).ToListAsync(ct);
+        var items = await q
+            .ApplyOrderBy(query.OrderBy, nameof(Order.CreatedAt), fallbackDescending: true)
+            .Skip(query.Skip).Take(query.Take)
+            .ToListAsync(ct);
         return new PagedResult<Order> { Items = items, TotalCount = total };
     }
 

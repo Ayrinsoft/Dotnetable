@@ -1,6 +1,8 @@
+using Dotnetable.Application.DTOs;
 using Dotnetable.Application.Interfaces;
 using Dotnetable.Domain.Entities;
 using Dotnetable.Infrastructure.Data;
+using Dotnetable.Infrastructure.Extensions;
 using Microsoft.EntityFrameworkCore;
 
 namespace Dotnetable.Infrastructure.Services;
@@ -13,6 +15,26 @@ public class BankService : IBankService
 
     public async Task<List<Bank>> GetAllAsync(CancellationToken ct = default) =>
         await _context.Banks.AsNoTracking().OrderBy(b => b.Name).ToListAsync(ct);
+
+    public async Task<PagedResult<Bank>> GetPagedAsync(GridQuery query, CancellationToken ct = default)
+    {
+        var q = _context.Banks.AsNoTracking();
+
+        if (query.GetSearch(nameof(Bank.Name)) is string name)
+            q = q.Where(b => b.Name.Contains(name));
+        if (query.GetSearch(nameof(Bank.BankCode)) is string code)
+            q = q.Where(b => b.BankCode.Contains(code));
+        if (query.GetSearch(nameof(Bank.Active)) is string active && bool.TryParse(active, out var isActive))
+            q = q.Where(b => b.Active == isActive);
+
+        var total = await q.CountAsync(ct);
+        var items = await q
+            .ApplyOrderBy(query.OrderBy, nameof(Bank.Name))
+            .Skip(query.Skip).Take(query.Take)
+            .ToListAsync(ct);
+
+        return new PagedResult<Bank> { Items = items, TotalCount = total };
+    }
 
     public async Task<Bank?> GetByIdAsync(int bankId, CancellationToken ct = default) =>
         await _context.Banks.FindAsync([bankId], ct);

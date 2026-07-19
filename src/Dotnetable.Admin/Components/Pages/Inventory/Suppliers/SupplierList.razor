@@ -35,38 +35,39 @@
     {
         <MudProgressLinear Indeterminate="true" Color="Color.Primary" Class="mb-3" />
     }
-    else if (_items.Count == 0)
-    {
-        <div style="text-align:center; padding:32px;"><MudText Color="Color.Secondary">@L["suppliers.empty", "No suppliers yet."]</MudText></div>
-    }
-    else
-    {
-        <MudSimpleTable Dense="true" Hover="true" Elevation="0">
-            <thead><tr><th>@L["name", "Name"]</th><th>@L["phone", "Phone"]</th><th>@L["active", "Active"]</th><th style="width:1%"></th></tr></thead>
-            <tbody>
-                @foreach (var s in _items)
-                {
-                    <tr>
-                        <td>@s.Name</td>
-                        <td>@s.Phone</td>
-                        <td>@(s.IsActive ? L["yes", "Yes"] : L["no", "No"])</td>
-                        <td>
-                            <MudStack Row="true" Spacing="0">
-                                @if (_canEdit)
-                                {
-                                    <MudIconButton Icon="@Icons.Material.Filled.Edit" Size="Size.Small" OnClick="@(() => EditAsync(s))" />
-                                }
-                                @if (_canDelete)
-                                {
-                                    <MudIconButton Icon="@Icons.Material.Filled.Delete" Size="Size.Small" Color="Color.Error" OnClick="@(() => DeleteAsync(s))" />
-                                }
-                            </MudStack>
-                        </td>
-                    </tr>
-                }
-            </tbody>
-        </MudSimpleTable>
-    }
+    <DNGridView GridHeaderParams="_grid" OnSearchChanged="OnGridChanged">
+        @if (_items.Count == 0)
+        {
+            <tr>
+                <td colspan="4" style="text-align:center; padding:32px;">
+                    <MudText Color="Color.Secondary">@L["suppliers.empty", "No suppliers yet."]</MudText>
+                </td>
+            </tr>
+        }
+        else
+        {
+            @foreach (var s in _items)
+            {
+                <tr>
+                    <td>@s.Name</td>
+                    <td>@s.Phone</td>
+                    <td>@(s.IsActive ? L["yes", "Yes"] : L["no", "No"])</td>
+                    <td>
+                        <MudStack Row="true" Spacing="0">
+                            @if (_canEdit)
+                            {
+                                <MudIconButton Icon="@Icons.Material.Filled.Edit" Size="Size.Small" OnClick="@(() => EditAsync(s))" />
+                            }
+                            @if (_canDelete)
+                            {
+                                <MudIconButton Icon="@Icons.Material.Filled.Delete" Size="Size.Small" Color="Color.Error" OnClick="@(() => DeleteAsync(s))" />
+                            }
+                        </MudStack>
+                    </td>
+                </tr>
+            }
+        }
+    </DNGridView>
 </MudPaper>
 
 @code {
@@ -76,6 +77,7 @@
     private int _websiteId;
     private List<Supplier> _items = new();
     private List<Website> _websites = new();
+    private GridViewHeaderParameters _grid = new();
 
     protected override async Task OnInitializedAsync()
     {
@@ -87,15 +89,31 @@
         _canDelete = AdminPolicies.Allows(user, RoleKeys.SuppliersDelete);
         int.TryParse(user.FindFirst(AdminClaimTypes.WebsiteId)?.Value, out _websiteId);
         if (_isMaster) _websites = (await WebsiteService.GetAllAsync()).ToList();
+
+        _grid = new GridViewHeaderParameters
+        {
+            Pagination = new PaginationModel { PageSize = 25 },
+            HeaderItems = new()
+            {
+                new() { ColumnTitle = L["name", "Name"], ColumnName = nameof(Supplier.Name), HasSort = true, HasSearch = true },
+                new() { ColumnTitle = L["phone", "Phone"], ColumnName = nameof(Supplier.Phone), HasSort = true },
+                new() { ColumnTitle = L["active", "Active"], ColumnName = nameof(Supplier.IsActive), HasSort = true },
+                new() { ColumnTitle = "", ColumnName = "" },
+            }
+        };
+
         await LoadAsync();
     }
 
     private async Task OnWebsiteChanged(int id) { _websiteId = id; await LoadAsync(); }
+    private Task OnGridChanged(GridViewHeaderParameters _) => LoadAsync();
 
     private async Task LoadAsync()
     {
         _loading = true;
-        _items = await SupplierService.GetAllAsync(_websiteId);
+        var result = await SupplierService.GetPagedAsync(_websiteId, _grid.ToQuery());
+        _items = result.Items.ToList();
+        _grid.Pagination.MaxLength = result.TotalCount;
         _loading = false;
     }
 

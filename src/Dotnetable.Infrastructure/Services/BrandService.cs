@@ -2,6 +2,7 @@ using Dotnetable.Application.DTOs;
 using Dotnetable.Application.Interfaces;
 using Dotnetable.Domain.Entities;
 using Dotnetable.Infrastructure.Data;
+using Dotnetable.Infrastructure.Extensions;
 using Microsoft.EntityFrameworkCore;
 
 namespace Dotnetable.Infrastructure.Services;
@@ -18,6 +19,26 @@ public class BrandService : IBrandService
         if (websiteId is int wid)
             q = q.Where(b => b.WebsiteID == wid);
         return await q.OrderBy(b => b.Name).ToListAsync(ct);
+    }
+
+    public async Task<PagedResult<Brand>> GetPagedAsync(int? websiteId, GridQuery query, CancellationToken ct = default)
+    {
+        var q = _context.Brands.AsNoTracking();
+        if (websiteId is int wid)
+            q = q.Where(b => b.WebsiteID == wid);
+
+        if (query.GetSearch(nameof(Brand.Name)) is string name)
+            q = q.Where(b => b.Name.Contains(name));
+        if (query.GetSearch(nameof(Brand.Slug)) is string slug)
+            q = q.Where(b => b.Slug.Contains(slug));
+
+        var total = await q.CountAsync(ct);
+        var items = await q
+            .ApplyOrderBy(query.OrderBy, nameof(Brand.Name))
+            .Skip(query.Skip).Take(query.Take)
+            .ToListAsync(ct);
+
+        return new PagedResult<Brand> { Items = items, TotalCount = total };
     }
 
     public async Task<Brand?> GetByIdAsync(int brandId, CancellationToken ct = default) =>

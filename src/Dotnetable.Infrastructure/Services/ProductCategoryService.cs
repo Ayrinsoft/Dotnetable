@@ -2,6 +2,7 @@ using Dotnetable.Application.DTOs;
 using Dotnetable.Application.Interfaces;
 using Dotnetable.Domain.Entities;
 using Dotnetable.Infrastructure.Data;
+using Dotnetable.Infrastructure.Extensions;
 using Microsoft.EntityFrameworkCore;
 
 namespace Dotnetable.Infrastructure.Services;
@@ -20,6 +21,28 @@ public class ProductCategoryService : IProductCategoryService
         if (websiteId is int wid)
             q = q.Where(c => c.WebsiteID == wid);
         return await q.OrderBy(c => c.SortOrder).ThenBy(c => c.Name).ToListAsync(ct);
+    }
+
+    public async Task<PagedResult<ProductCategory>> GetPagedAsync(int? websiteId, GridQuery query, CancellationToken ct = default)
+    {
+        var q = _context.ProductCategories.AsNoTracking();
+        if (websiteId is int wid)
+            q = q.Where(c => c.WebsiteID == wid);
+
+        if (query.GetSearch(nameof(ProductCategory.Name)) is string name)
+            q = q.Where(c => c.Name.Contains(name));
+        if (query.GetSearch(nameof(ProductCategory.Slug)) is string slug)
+            q = q.Where(c => c.Slug.Contains(slug));
+        if (query.GetSearch(nameof(ProductCategory.IsActive)) is string active && bool.TryParse(active, out var isActive))
+            q = q.Where(c => c.IsActive == isActive);
+
+        var total = await q.CountAsync(ct);
+        var items = await q
+            .ApplyOrderBy(query.OrderBy, nameof(ProductCategory.SortOrder))
+            .Skip(query.Skip).Take(query.Take)
+            .ToListAsync(ct);
+
+        return new PagedResult<ProductCategory> { Items = items, TotalCount = total };
     }
 
     public async Task<ProductCategory?> GetByIdAsync(int productCategoryId, CancellationToken ct = default) =>

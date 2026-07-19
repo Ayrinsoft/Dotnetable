@@ -1,3 +1,4 @@
+using Dotnetable.Application.DTOs;
 using Dotnetable.Domain.Entities;
 
 namespace Dotnetable.Application.Interfaces;
@@ -6,6 +7,7 @@ namespace Dotnetable.Application.Interfaces;
 public interface ICurrencyRateService
 {
     Task<List<CurrencyRate>> GetByWebsiteAsync(int websiteId, CancellationToken ct = default);
+    Task<PagedResult<CurrencyRate>> GetPagedAsync(int websiteId, GridQuery query, CancellationToken ct = default);
 
     Task CreateAsync(CurrencyRate rate, CancellationToken ct = default);
 

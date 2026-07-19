@@ -1,3 +1,4 @@
+using Dotnetable.Application.DTOs;
 using Dotnetable.Domain.Entities;
 
 namespace Dotnetable.Application.Interfaces;
@@ -6,6 +7,7 @@ namespace Dotnetable.Application.Interfaces;
 public interface IVendorService
 {
     Task<List<Vendor>> GetAllAsync(int? websiteId, CancellationToken ct = default);
+    Task<PagedResult<Vendor>> GetPagedAsync(int? websiteId, GridQuery query, CancellationToken ct = default);
     Task<Vendor?> GetByIdAsync(int vendorId, CancellationToken ct = default);
     Task<Vendor> CreateAsync(Vendor vendor, CancellationToken ct = default);
     Task UpdateAsync(Vendor vendor, CancellationToken ct = default);

@@ -3,6 +3,7 @@ using Dotnetable.Application.Interfaces;
 using Dotnetable.Domain.Entities;
 using Dotnetable.Domain.Enums;
 using Dotnetable.Infrastructure.Data;
+using Dotnetable.Infrastructure.Extensions;
 using Microsoft.EntityFrameworkCore;
 
 namespace Dotnetable.Infrastructure.Services;
@@ -148,8 +149,14 @@ public class PaymentService : IPaymentService
             .Where(p => p.Status == (byte)PaymentStatus.Pending);
         if (websiteId is int wid) q = q.Where(p => p.WebsiteID == wid);
 
+        if (query.GetSearch("OrderNumber") is string orderNumber)
+            q = q.Where(p => p.Order != null && p.Order.OrderNumber.Contains(orderNumber));
+
         var total = await q.CountAsync(ct);
-        var items = await q.OrderBy(p => p.CreatedAt).Skip(query.Skip).Take(query.Take).ToListAsync(ct);
+        var items = await q
+            .ApplyOrderBy(query.OrderBy, nameof(Payment.CreatedAt))
+            .Skip(query.Skip).Take(query.Take)
+            .ToListAsync(ct);
         return new PagedResult<Payment> { Items = items, TotalCount = total };
     }
 
@@ -212,8 +219,14 @@ public class PaymentService : IPaymentService
             .Where(r => r.Status == (byte)PaymentRefundStatus.Pending && r.BankAccountID != null);
         if (websiteId is int wid) q = q.Where(r => r.Payment.WebsiteID == wid);
 
+        if (query.GetSearch(nameof(PaymentRefund.Reason)) is string reason)
+            q = q.Where(r => r.Reason != null && r.Reason.Contains(reason));
+
         var total = await q.CountAsync(ct);
-        var items = await q.OrderBy(r => r.CreatedAt).Skip(query.Skip).Take(query.Take).ToListAsync(ct);
+        var items = await q
+            .ApplyOrderBy(query.OrderBy, nameof(PaymentRefund.CreatedAt))
+            .Skip(query.Skip).Take(query.Take)
+            .ToListAsync(ct);
         return new PagedResult<PaymentRefund> { Items = items, TotalCount = total };
     }
 }

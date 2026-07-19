@@ -26,32 +26,32 @@
     {
         <MudProgressLinear Indeterminate="true" Color="Color.Primary" Class="mb-3" />
     }
-    else if (_items.Count == 0)
-    {
-        <div style="text-align:center; padding:32px;"><MudText Color="Color.Secondary">@L["payments.refunds_empty", "No pending bank refunds."]</MudText></div>
-    }
-    else
-    {
-        <MudSimpleTable Dense="true" Hover="true" Elevation="0">
-            <thead><tr><th>@L["orders.order", "Order"]</th><th>@L["clients", "Customer"]</th><th>@L["banks", "Bank account"]</th><th>@L["orders.total", "Amount"]</th><th>@L["payments.reason", "Reason"]</th><th style="width:1%"></th></tr></thead>
-            <tbody>
-                @foreach (var r in _items)
-                {
-                    <tr>
-                        <td>@r.Payment.Order?.OrderNumber</td>
-                        <td>@($"{r.Payment.WebsiteClient?.Givenname} {r.Payment.WebsiteClient?.Surname}".Trim())</td>
-                        <td>@r.BankAccount?.Bank.Name — @(r.BankAccount?.IBAN ?? r.BankAccount?.CardNumber)</td>
-                        <td>@r.Amount.ToString("0.##")</td>
-                        <td>@r.Reason</td>
-                        <td>
-                            <MudButton Size="Size.Small" Color="Color.Success" Variant="Variant.Filled" OnClick="@(() => CompleteAsync(r.PaymentRefundID))">@L["payments.mark_completed", "Mark completed"]</MudButton>
-                        </td>
-                    </tr>
-                }
-            </tbody>
-        </MudSimpleTable>
-        <MudPagination Count="@_pageCount" Selected="_page" SelectedChanged="OnPageChanged" Class="mt-3" />
-    }
+    <DNGridView GridHeaderParams="_grid" OnSearchChanged="OnGridChanged">
+        @if (_items.Count == 0)
+        {
+            <tr>
+                <td colspan="6" style="text-align:center; padding:32px;">
+                    <MudText Color="Color.Secondary">@L["payments.refunds_empty", "No pending bank refunds."]</MudText>
+                </td>
+            </tr>
+        }
+        else
+        {
+            @foreach (var r in _items)
+            {
+                <tr>
+                    <td>@r.Payment.Order?.OrderNumber</td>
+                    <td>@($"{r.Payment.WebsiteClient?.Givenname} {r.Payment.WebsiteClient?.Surname}".Trim())</td>
+                    <td>@r.BankAccount?.Bank.Name — @(r.BankAccount?.IBAN ?? r.BankAccount?.CardNumber)</td>
+                    <td>@r.Amount.ToString("0.##")</td>
+                    <td>@r.Reason</td>
+                    <td>
+                        <MudButton Size="Size.Small" Color="Color.Success" Variant="Variant.Filled" OnClick="@(() => CompleteAsync(r.PaymentRefundID))">@L["payments.mark_completed", "Mark completed"]</MudButton>
+                    </td>
+                </tr>
+            }
+        }
+    </DNGridView>
 </MudPaper>
 
 @code {
@@ -59,9 +59,9 @@
     private bool _isMaster;
     private int _websiteId;
     private int? _currentMemberId;
-    private int _page = 1, _pageCount = 1;
     private List<PaymentRefund> _items = new();
     private List<Website> _websites = new();
+    private GridViewHeaderParameters _grid = new();
 
     protected override async Task OnInitializedAsync()
     {
@@ -71,18 +71,33 @@
         int.TryParse(user.FindFirst(AdminClaimTypes.WebsiteId)?.Value, out _websiteId);
         if (int.TryParse(user.FindFirst(AdminClaimTypes.MemberId)?.Value, out var mid)) _currentMemberId = mid;
         if (_isMaster) _websites = (await WebsiteService.GetAllAsync()).ToList();
+
+        _grid = new GridViewHeaderParameters
+        {
+            Pagination = new PaginationModel { PageSize = 25 },
+            HeaderItems = new()
+            {
+                new() { ColumnTitle = L["orders.order", "Order"], ColumnName = "" },
+                new() { ColumnTitle = L["clients", "Customer"], ColumnName = "" },
+                new() { ColumnTitle = L["banks", "Bank account"], ColumnName = "" },
+                new() { ColumnTitle = L["orders.total", "Amount"], ColumnName = nameof(PaymentRefund.Amount), HasSort = true },
+                new() { ColumnTitle = L["payments.reason", "Reason"], ColumnName = nameof(PaymentRefund.Reason), HasSort = true, HasSearch = true },
+                new() { ColumnTitle = "", ColumnName = "" },
+            }
+        };
+
         await LoadAsync();
     }
 
     private async Task OnWebsiteChanged(int id) { _websiteId = id; await LoadAsync(); }
-    private async Task OnPageChanged(int page) { _page = page; await LoadAsync(); }
+    private Task OnGridChanged(GridViewHeaderParameters _) => LoadAsync();
 
     private async Task LoadAsync()
     {
         _loading = true;
-        var result = await PaymentService.GetPendingRefundsAsync(_websiteId, new GridQuery { PageIndex = _page, PageSize = 20 });
+        var result = await PaymentService.GetPendingRefundsAsync(_websiteId, _grid.ToQuery());
         _items = result.Items.ToList();
-        _pageCount = Math.Max(1, (int)Math.Ceiling(result.TotalCount / 20.0));
+        _grid.Pagination.MaxLength = result.TotalCount;
         _loading = false;
     }
 

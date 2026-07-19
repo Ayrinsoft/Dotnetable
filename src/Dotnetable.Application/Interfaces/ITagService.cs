@@ -1,3 +1,4 @@
+using Dotnetable.Application.DTOs;
 using Dotnetable.Domain.Entities;
 
 namespace Dotnetable.Application.Interfaces;
@@ -6,6 +7,10 @@ namespace Dotnetable.Application.Interfaces;
 public interface ITagService
 {
     Task<List<Tag>> GetAllAsync(int? websiteId, CancellationToken ct = default);
+
+    /// <summary>Paged / sorted / filtered tags for the admin grid.</summary>
+    Task<PagedResult<Tag>> GetPagedAsync(int? websiteId, GridQuery query, CancellationToken ct = default);
+
     Task<Tag?> GetByIdAsync(int tagId, CancellationToken ct = default);
     Task<Tag> CreateAsync(Tag tag, CancellationToken ct = default);
     Task UpdateAsync(Tag tag, CancellationToken ct = default);

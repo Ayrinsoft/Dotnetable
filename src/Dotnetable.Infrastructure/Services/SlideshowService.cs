@@ -3,6 +3,7 @@ using Dotnetable.Application.Interfaces;
 using Dotnetable.Domain.Entities;
 using Dotnetable.Domain.Enums;
 using Dotnetable.Infrastructure.Data;
+using Dotnetable.Infrastructure.Extensions;
 using Microsoft.EntityFrameworkCore;
 
 namespace Dotnetable.Infrastructure.Services;
@@ -17,10 +18,32 @@ public class SlideshowService : ISlideshowService
 
     public async Task<List<Slideshow>> GetSlideshowsAsync(int? websiteId, CancellationToken ct = default)
     {
-        var q = _context.Slideshows.AsNoTracking();
+        var q = _context.Slideshows.AsNoTracking().Include(s => s.SlideshowSlides).AsQueryable();
         if (websiteId is int wid)
             q = q.Where(s => s.WebsiteID == wid);
         return await q.OrderBy(s => s.Name).ToListAsync(ct);
+    }
+
+    public async Task<PagedResult<Slideshow>> GetPagedAsync(int? websiteId, GridQuery query, CancellationToken ct = default)
+    {
+        var q = _context.Slideshows.AsNoTracking().Include(s => s.SlideshowSlides).AsQueryable();
+        if (websiteId is int wid)
+            q = q.Where(s => s.WebsiteID == wid);
+
+        if (query.GetSearch(nameof(Slideshow.Name)) is string name)
+            q = q.Where(s => s.Name.Contains(name));
+        if (query.GetSearch(nameof(Slideshow.PlacementKey)) is string placement)
+            q = q.Where(s => s.PlacementKey != null && s.PlacementKey.Contains(placement));
+        if (query.GetSearch(nameof(Slideshow.IsActive)) is string active && bool.TryParse(active, out var isActive))
+            q = q.Where(s => s.IsActive == isActive);
+
+        var total = await q.CountAsync(ct);
+        var items = await q
+            .ApplyOrderBy(query.OrderBy, nameof(Slideshow.Name))
+            .Skip(query.Skip).Take(query.Take)
+            .ToListAsync(ct);
+
+        return new PagedResult<Slideshow> { Items = items, TotalCount = total };
     }
 
     public async Task<Slideshow?> GetSlideshowAsync(int slideshowId, CancellationToken ct = default) =>
