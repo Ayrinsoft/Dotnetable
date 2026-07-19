@@ -1108,7 +1108,15 @@ public partial class AppDbContext : DbContext
 
         modelBuilder.Entity<Language>(entity =>
         {
-            entity.HasIndex(e => new { e.WebsiteID, e.LanguageCode }, "UQ_Languages_WebsiteID_LanguageCode").IsUnique();
+            // Admin catalog (WebsiteID IS NULL): one row per LanguageCode.
+            // Per-website rows: unique (WebsiteID, LanguageCode). Filtered indexes keep the two scopes separate.
+            // Filter text is provider-portable (no bracket quoting) for SQL Server / PostgreSQL.
+            entity.HasIndex(e => e.LanguageCode, "UQ_Languages_Admin_LanguageCode")
+                .IsUnique()
+                .HasFilter("WebsiteID IS NULL");
+            entity.HasIndex(e => new { e.WebsiteID, e.LanguageCode }, "UQ_Languages_WebsiteID_LanguageCode")
+                .IsUnique()
+                .HasFilter("WebsiteID IS NOT NULL");
 
             entity.Property(e => e.LanguageCode)
                 .HasMaxLength(2)
@@ -1123,12 +1131,20 @@ public partial class AppDbContext : DbContext
             entity.HasOne(d => d.Website).WithMany(p => p.Languages)
                 .HasForeignKey(d => d.WebsiteID)
                 .OnDelete(DeleteBehavior.ClientSetNull)
+                .IsRequired(false)
                 .HasConstraintName("FK_Languages_Websites");
         });
 
         modelBuilder.Entity<LocalizationKey>(entity =>
         {
             entity.HasIndex(e => e.WebsiteID, "IX_LocalizationKeys_WebsiteID");
+            // Admin catalog (null) and per-website keys: unique ItemKey within each scope.
+            entity.HasIndex(e => e.ItemKey, "UQ_LocalizationKeys_Admin_ItemKey")
+                .IsUnique()
+                .HasFilter("WebsiteID IS NULL");
+            entity.HasIndex(e => new { e.WebsiteID, e.ItemKey }, "UQ_LocalizationKeys_WebsiteID_ItemKey")
+                .IsUnique()
+                .HasFilter("WebsiteID IS NOT NULL");
 
             entity.Property(e => e.DefaultValue).HasMaxLength(2000);
             entity.Property(e => e.ItemKey)
@@ -1138,6 +1154,7 @@ public partial class AppDbContext : DbContext
             entity.HasOne(d => d.Website).WithMany(p => p.LocalizationKeys)
                 .HasForeignKey(d => d.WebsiteID)
                 .OnDelete(DeleteBehavior.ClientSetNull)
+                .IsRequired(false)
                 .HasConstraintName("FK_LocalizationKeys_Websites");
         });
 

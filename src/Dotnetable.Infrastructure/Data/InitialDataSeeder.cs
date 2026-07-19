@@ -68,8 +68,8 @@ public class InitialDataSeeder : IInitialDataSeeder
 
             await context.SaveChangesAsync(ct);
 
-            // 2a. Master language catalog — every other website picks a subset of these for its
-            // own content later, from the /languages admin page.
+            // 2a. Admin panel language catalog (WebsiteID = null) — UI switcher / Initial Data → Languages.
+            // Independent of every website, including master site 1.
             var languageDefaults = new (string Code, string Iso, string Name, bool Rtl)[]
             {
                 ("en", "en-US", "English",  false),
@@ -82,15 +82,34 @@ public class InitialDataSeeder : IInitialDataSeeder
             };
             context.Languages.AddRange(languageDefaults.Select((l, i) => new Language
             {
-                WebsiteID = website.WebsiteID,
+                WebsiteID = null,
                 LanguageCode = l.Code,
                 LanguageCodeISO = l.Iso,
                 Name = l.Name,
                 Priority = i,
                 Active = true,
-                IsDefault = l.Code == request.DefaultLanguageCode || (l.Code == "en" && languageDefaults.All(d => d.Code != request.DefaultLanguageCode)),
+                IsDefault = l.Code == "en",
                 RTLDesign = l.Rtl,
             }));
+
+            // 2b. Master website starts with only its default language (storefront/content).
+            // More languages are added later under Website → Languages when needed.
+            var siteLangCode = string.IsNullOrWhiteSpace(request.DefaultLanguageCode)
+                ? "en"
+                : request.DefaultLanguageCode.Trim().ToLowerInvariant();
+            var siteLangMeta = languageDefaults.FirstOrDefault(l =>
+                string.Equals(l.Code, siteLangCode, StringComparison.OrdinalIgnoreCase));
+            context.Languages.Add(new Language
+            {
+                WebsiteID = website.WebsiteID,
+                LanguageCode = siteLangCode,
+                LanguageCodeISO = siteLangMeta.Code is not null ? siteLangMeta.Iso : siteLangCode,
+                Name = siteLangMeta.Code is not null ? siteLangMeta.Name : siteLangCode.ToUpperInvariant(),
+                Priority = 0,
+                Active = true,
+                IsDefault = true,
+                RTLDesign = siteLangMeta.Code is not null && siteLangMeta.Rtl,
+            });
             await context.SaveChangesAsync(ct);
 
             // 4. Seed every permission (admin + client) from the catalog.

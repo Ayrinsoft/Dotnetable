@@ -29,7 +29,8 @@
 
 @code {
     [CascadingParameter] private IMudDialogInstance MudDialog { get; set; } = null!;
-    [Parameter] public int WebsiteId { get; set; }
+    /// <summary>Null = admin panel catalog; otherwise the website owning these keys.</summary>
+    [Parameter] public int? WebsiteId { get; set; }
     [Parameter] public string LanguageCode { get; set; } = string.Empty;
     [Parameter] public bool IsDefaultLanguage { get; set; }
     [Parameter] public string DefaultLanguageCode { get; set; } = "en";

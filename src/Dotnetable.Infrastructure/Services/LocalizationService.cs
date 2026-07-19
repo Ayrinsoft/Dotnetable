@@ -19,13 +19,17 @@ public class LocalizationService : ILocalizationService
         _cache = cache;
     }
 
-    public async Task LoadAsync(int websiteId, string languageCode, CancellationToken ct = default)
+    /// <summary>Cache uses 0 for admin (null WebsiteID).</summary>
+    private static int CacheId(int? websiteId) => websiteId ?? 0;
+
+    public async Task LoadAsync(int? websiteId, string languageCode, CancellationToken ct = default)
     {
         var entries = await QueryFor(websiteId, languageCode).ToListAsync(ct);
-        _cache.Load(entries.Select(e => (websiteId, languageCode, e.Key, e.Value)));
+        var cid = CacheId(websiteId);
+        _cache.Load(entries.Select(e => (cid, languageCode, e.Key, e.Value)));
     }
 
-    private IQueryable<KeyValue> QueryFor(int websiteId, string languageCode) =>
+    private IQueryable<KeyValue> QueryFor(int? websiteId, string languageCode) =>
         _context.LocalizationKeys
             .Where(k => k.WebsiteID == websiteId)
             .Select(k => new KeyValue(
@@ -40,16 +44,16 @@ public class LocalizationService : ILocalizationService
     public string Get(string key, string? fallback = null) =>
         _cache.TryGet(0, string.Empty, key, out var v) ? v : fallback ?? key;
 
-    public string Get(int websiteId, string languageCode, string key, string? fallback = null) =>
-        _cache.TryGet(websiteId, languageCode, key, out var v) ? v : fallback ?? key;
+    public string Get(int? websiteId, string languageCode, string key, string? fallback = null) =>
+        _cache.TryGet(CacheId(websiteId), languageCode, key, out var v) ? v : fallback ?? key;
 
-    public async Task<IReadOnlyDictionary<string, string>> GetAllAsync(int websiteId, string languageCode, CancellationToken ct = default)
+    public async Task<IReadOnlyDictionary<string, string>> GetAllAsync(int? websiteId, string languageCode, CancellationToken ct = default)
     {
         var entries = await QueryFor(websiteId, languageCode).ToListAsync(ct);
         return entries.ToDictionary(e => e.Key, e => e.Value);
     }
 
-    public async Task<PagedResult<TranslationEntry>> GetPagedAsync(int websiteId, string languageCode, GridQuery query, CancellationToken ct = default)
+    public async Task<PagedResult<TranslationEntry>> GetPagedAsync(int? websiteId, string languageCode, GridQuery query, CancellationToken ct = default)
     {
         var projected = _context.LocalizationKeys
             .Where(k => k.WebsiteID == websiteId)
@@ -77,7 +81,7 @@ public class LocalizationService : ILocalizationService
         return new PagedResult<TranslationEntry> { Items = items, TotalCount = total };
     }
 
-    public async Task SetAsync(int websiteId, string languageCode, string key, string value, CancellationToken ct = default)
+    public async Task SetAsync(int? websiteId, string languageCode, string key, string value, CancellationToken ct = default)
     {
         var localizationKey = await _context.LocalizationKeys
             .Include(k => k.LocalizationValues)
@@ -98,10 +102,10 @@ public class LocalizationService : ILocalizationService
             localizedValue.ItemValue = value;
 
         await _context.SaveChangesAsync(ct);
-        _cache.Set(websiteId, languageCode, key, value);
+        _cache.Set(CacheId(websiteId), languageCode, key, value);
     }
 
-    public async Task SetDefaultValueAsync(int websiteId, string key, string defaultValue, CancellationToken ct = default)
+    public async Task SetDefaultValueAsync(int? websiteId, string key, string defaultValue, CancellationToken ct = default)
     {
         var localizationKey = await _context.LocalizationKeys
             .FirstOrDefaultAsync(k => k.WebsiteID == websiteId && k.ItemKey == key, ct);
@@ -124,11 +128,10 @@ public class LocalizationService : ILocalizationService
         await _context.SaveChangesAsync(ct);
     }
 
-    // Column lengths mirror the LocalizationKey/LocalizationValue tables.
     private const int MaxKeyLength = 72;
     private const int MaxValueLength = 2000;
 
-    public async Task<byte[]> ExportCsvAsync(int websiteId, string languageCode, bool untranslatedOnly = false, CancellationToken ct = default)
+    public async Task<byte[]> ExportCsvAsync(int? websiteId, string languageCode, bool untranslatedOnly = false, CancellationToken ct = default)
     {
         var query = _context.LocalizationKeys.Where(k => k.WebsiteID == websiteId);
 
@@ -155,12 +158,11 @@ public class LocalizationService : ILocalizationService
               .Append(Csv.Escape(r.DefaultValue)).Append(',')
               .Append(Csv.Escape(r.Value ?? r.DefaultValue)).Append("\r\n");
 
-        // Prepend a UTF-8 BOM so Excel opens Persian/Arabic text correctly.
         var body = new UTF8Encoding(false).GetBytes(sb.ToString());
         return [0xEF, 0xBB, 0xBF, .. body];
     }
 
-    public async Task<LocalizationImportResult> ImportCsvAsync(int websiteId, string languageCode, Stream csv, CancellationToken ct = default)
+    public async Task<LocalizationImportResult> ImportCsvAsync(int? websiteId, string languageCode, Stream csv, CancellationToken ct = default)
     {
         using var reader = new StreamReader(csv, Encoding.UTF8, detectEncodingFromByteOrderMarks: true);
         var rows = Csv.Parse(await reader.ReadToEndAsync(ct));
@@ -173,7 +175,6 @@ public class LocalizationService : ILocalizationService
         int added = 0, updated = 0, unchanged = 0, skipped = 0;
         var errors = new List<string>();
 
-        // Skip the header row if present.
         int start = rows.Count > 0 && rows[0].Length > 0 &&
                     rows[0][0].Trim().Equals("Key", StringComparison.OrdinalIgnoreCase) ? 1 : 0;
 
@@ -182,7 +183,6 @@ public class LocalizationService : ILocalizationService
             var row = rows[i];
             int line = i + 1;
 
-            // Ignore blank lines.
             if (row.Length == 0 || (row.Length == 1 && string.IsNullOrWhiteSpace(row[0])))
                 continue;
 
@@ -234,7 +234,7 @@ public class LocalizationService : ILocalizationService
         if (added > 0 || updated > 0)
         {
             await _context.SaveChangesAsync(ct);
-            await LoadAsync(websiteId, languageCode, ct); // refresh the in-memory cache
+            await LoadAsync(websiteId, languageCode, ct);
         }
 
         return new LocalizationImportResult(added, updated, unchanged, skipped, errors);

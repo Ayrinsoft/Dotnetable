@@ -22,7 +22,7 @@
         </MudText>
         <MudText Typo="Typo.body2" Color="Color.Secondary">
             @(_isAdminRoute
-                ? L["translation.subtitle_admin", "UI strings for the admin panel only (master website). These never appear under Website → Translations on other sites."]
+                ? L["translation.subtitle_admin", "UI strings for the admin panel only (WebsiteID empty). These never appear under Website → Translations — including on master site 1."]
                 : L["translation.subtitle_site", "Custom key/value strings for this website’s storefront and themes only. Not admin panel labels — add any keys you need, then translate them for each language you enabled under Website → Languages."])
         </MudText>
     </MudStack>
@@ -30,7 +30,7 @@
         @* Site translations: master can manage any website. Admin translations (/translations) stay on site 1. *@
         @if (_isMaster && !_isAdminRoute)
         {
-            <WebsiteSelector Value="_websiteId" ValueChanged="OnWebsiteChanged" Websites="_websites"
+            <WebsiteSelector Value="@(_scopeWebsiteId ?? 0)" ValueChanged="OnWebsiteChanged" Websites="_websites"
                              Label="@L["website", "Website"]" Variant="Variant.Outlined"
                              Dense="true" Style="min-width:180px" />
         }
@@ -105,7 +105,8 @@
     private bool _busy;
     private bool _isMaster;
     private bool _isAdminRoute;
-    private int _websiteId;
+    /// <summary>Null = admin panel catalog; otherwise the website being edited (site translations route).</summary>
+    private int? _scopeWebsiteId;
     private string _defaultLanguageCode = "en";
     private List<Website> _websites = new();
     private string _languageCode = "en";
@@ -127,14 +128,16 @@
         var state = await AuthState.GetAuthenticationStateAsync();
         var user = state.User;
         _isMaster = user.HasClaim(AdminClaimTypes.Master, "true");
-        int.TryParse(user.FindFirst(AdminClaimTypes.WebsiteId)?.Value, out _websiteId);
+        int.TryParse(user.FindFirst(AdminClaimTypes.WebsiteId)?.Value, out var claimWebsiteId);
 
         if (_isMaster)
             _websites = (await WebsiteService.GetAllAsync()).ToList();
 
-        // Admin Translations under Initial Data always targets the master website's string bag.
-        if (_isAdminRoute && _isMaster)
-            _websiteId = AppConstants.MasterWebsiteId;
+        // Admin Translations → WebsiteID null. Site translations → claim / selector website id.
+        if (_isAdminRoute)
+            _scopeWebsiteId = null;
+        else
+            _scopeWebsiteId = claimWebsiteId > 0 ? claimWebsiteId : AppConstants.MasterWebsiteId;
 
         await ResolveDefaultLanguageAsync();
         await LoadLanguagesAsync();
@@ -163,11 +166,11 @@
             return;
         }
 
-        var site = await WebsiteService.GetByIdAsync(_websiteId);
+        var siteId = _scopeWebsiteId ?? 0;
+        var site = await WebsiteService.GetByIdAsync(siteId);
         _defaultLanguageCode = string.IsNullOrWhiteSpace(site?.DefaultLanguageCode) ? "en" : site!.DefaultLanguageCode.Trim().ToLowerInvariant();
 
-        // Prefer Languages.IsDefault for the website (master site 1 included).
-        var websiteLangs = await LanguageService.GetActiveForWebsiteAsync(_websiteId);
+        var websiteLangs = await LanguageService.GetActiveForWebsiteAsync(siteId);
         var siteDefault = websiteLangs.FirstOrDefault(l => l.IsDefault);
         if (siteDefault is not null)
             _defaultLanguageCode = siteDefault.LanguageCode;
@@ -177,17 +180,15 @@
 
     private async Task LoadLanguagesAsync()
     {
-        // Admin Translations → active admin catalog only (inactive languages hidden).
-        // Website Translations → active website languages (including master site 1 rows).
+        // Admin Translations → active admin catalog. Website Translations → that site's languages only.
         var source = _isAdminRoute
             ? await LanguageService.GetActiveCatalogAsync()
-            : await LanguageService.GetActiveForWebsiteAsync(_websiteId);
+            : await LanguageService.GetActiveForWebsiteAsync(_scopeWebsiteId ?? 0);
 
         _languages = source.Select(x => (x.LanguageCode, x.Name)).ToArray();
         if (_languages.Length == 0)
             _languages = [(_defaultLanguageCode, _defaultLanguageCode)];
 
-        // Prefer the default language of the active list for first open.
         var defaultCode = source.FirstOrDefault(l => l.IsDefault)?.LanguageCode ?? _defaultLanguageCode;
         if (source.Any(l => l.IsDefault))
             _defaultLanguageCode = defaultCode;
@@ -200,7 +201,7 @@
 
     private async Task OnWebsiteChanged(int id)
     {
-        _websiteId = id;
+        _scopeWebsiteId = id;
         await ResolveDefaultLanguageAsync();
         await LoadLanguagesAsync();
         _grid.Pagination.PageIndex = 1;
@@ -230,7 +231,7 @@
     private async Task LoadAsync()
     {
         _loading = true;
-        var result = await LocalizationService.GetPagedAsync(_websiteId, _languageCode, _grid.ToQuery());
+        var result = await LocalizationService.GetPagedAsync(_scopeWebsiteId, _languageCode, _grid.ToQuery());
         _translations = result.Items.ToList();
         _grid.Pagination.MaxLength = result.TotalCount;
         _loading = false;
@@ -241,9 +242,10 @@
         _busy = true;
         try
         {
-            var bytes = await LocalizationService.ExportCsvAsync(_websiteId, _languageCode, untranslatedOnly);
+            var bytes = await LocalizationService.ExportCsvAsync(_scopeWebsiteId, _languageCode, untranslatedOnly);
             var suffix = untranslatedOnly ? "-untranslated" : "";
-            var fileName = $"translations-w{_websiteId}-{_languageCode}{suffix}.csv";
+            var scopeTag = _scopeWebsiteId is int w ? $"w{w}" : "admin";
+            var fileName = $"translations-{scopeTag}-{_languageCode}{suffix}.csv";
             await JS.InvokeVoidAsync("dotnetableFile.download", fileName, Convert.ToBase64String(bytes), "text/csv");
         }
         catch (Exception ex)
@@ -264,7 +266,7 @@
             await stream.CopyToAsync(buffer);
             buffer.Position = 0;
 
-            var result = await LocalizationService.ImportCsvAsync(_websiteId, _languageCode, buffer);
+            var result = await LocalizationService.ImportCsvAsync(_scopeWebsiteId, _languageCode, buffer);
 
             var summary = $"Imported \"{_languageCode}\": {result.Added} added, {result.Updated} updated, "
                         + $"{result.Unchanged} unchanged, {result.Skipped} skipped.";
@@ -288,7 +290,7 @@
     {
         var parameters = new DialogParameters<AddTranslationKeyDialog>
         {
-            { x => x.WebsiteId, _websiteId },
+            { x => x.WebsiteId, _scopeWebsiteId },
             { x => x.LanguageCode, _languageCode },
             { x => x.IsDefaultLanguage, string.Equals(_languageCode, _defaultLanguageCode, StringComparison.OrdinalIgnoreCase) },
             { x => x.DefaultLanguageCode, _defaultLanguageCode },
@@ -305,10 +307,9 @@
     {
         try
         {
-            await LocalizationService.SetAsync(_websiteId, _languageCode, key, value);
-            // When editing the site default language, keep DefaultValue in sync as fallback for other langs.
+            await LocalizationService.SetAsync(_scopeWebsiteId, _languageCode, key, value);
             if (string.Equals(_languageCode, _defaultLanguageCode, StringComparison.OrdinalIgnoreCase))
-                await LocalizationService.SetDefaultValueAsync(_websiteId, key, value);
+                await LocalizationService.SetDefaultValueAsync(_scopeWebsiteId, key, value);
             Snackbar.Add($"Saved \"{key}\".", Severity.Success);
         }
         catch (Exception ex)

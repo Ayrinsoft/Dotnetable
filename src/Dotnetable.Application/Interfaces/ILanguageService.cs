@@ -6,23 +6,24 @@ namespace Dotnetable.Application.Interfaces;
 /// <summary>
 /// Two independent uses of the <see cref="Language"/> table (same schema, different rows):
 /// <list type="bullet">
-///   <item><b>Admin catalog</b> — rows for the master website; drive the admin UI language switcher
-///   and Initial Data → Languages.</item>
-///   <item><b>Per-website languages</b> — rows for each website (including master); drive storefront
-///   language lists, content translation tabs, and Website → Languages. Unrelated to admin UI keys.</item>
+///   <item><b>Admin catalog</b> — rows with <c>WebsiteID = null</c>. Drive the admin UI language
+///   switcher and Initial Data → Languages. Unrelated to any website's storefront.</item>
+///   <item><b>Per-website languages</b> — rows with <c>WebsiteID</c> set (including master site 1).
+///   Drive storefront language lists, content translation tabs, and Website → Languages.
+///   A new site starts with only its default language; more languages are added later when needed.</item>
 /// </list>
 /// </summary>
 public interface ILanguageService
 {
-    // ── Admin catalog (master website only) ──────────────────────────────────
+    // ── Admin catalog (WebsiteID null) ───────────────────────────────────────
 
-    /// <summary>Master catalog, ordered by Priority. Self-seeds built-in defaults when empty.</summary>
+    /// <summary>Admin catalog, ordered by Priority. Self-seeds built-in defaults when empty.</summary>
     Task<List<Language>> GetCatalogAsync(CancellationToken ct = default);
 
-    /// <summary>Master catalog, paged/sorted/searched for the admin grid.</summary>
+    /// <summary>Admin catalog, paged/sorted/searched for the admin grid.</summary>
     Task<PagedResult<Language>> GetCatalogPagedAsync(GridQuery query, CancellationToken ct = default);
 
-    /// <summary>Active subset of the master catalog (admin language switcher).</summary>
+    /// <summary>Active subset of the admin catalog (admin language switcher).</summary>
     Task<List<Language>> GetActiveCatalogAsync(CancellationToken ct = default);
 
     /// <summary>
@@ -32,13 +33,13 @@ public interface ILanguageService
     /// </summary>
     Task<List<Language>> GetOtherActiveCatalogAsync(CancellationToken ct = default);
 
-    /// <summary>Adds a language to the master catalog.</summary>
+    /// <summary>Adds a language to the admin catalog (<c>WebsiteID = null</c>).</summary>
     Task<Language> CreateAsync(Language language, CancellationToken ct = default);
 
-    /// <summary>Updates a master-catalog language.</summary>
+    /// <summary>Updates an admin-catalog language.</summary>
     Task<bool> UpdateAsync(Language language, CancellationToken ct = default);
 
-    /// <summary>Soft-hides/restores a master-catalog language.</summary>
+    /// <summary>Soft-hides/restores an admin-catalog language.</summary>
     Task<bool> SetActiveAsync(int languageId, bool active, CancellationToken ct = default);
 
     // ── Per-website languages (storefront / content) ─────────────────────────

@@ -11,7 +11,7 @@
     <MudStack Spacing="0">
         <MudText Typo="Typo.h5" Class="fw-bold">@L["languages.catalog", "Language Catalog"]</MudText>
         <MudText Typo="Typo.body2" Color="Color.Secondary">
-            @L["languages.subtitle", "Admin panel language catalog (master website). Controls which languages the admin UI can switch to. Storefront languages are managed separately under Website → Languages."]
+            @L["languages.subtitle", "Admin panel language catalog only (WebsiteID is empty). Controls which languages the admin UI can switch to. Each website has its own languages under Website → Languages — including master site 1."]
         </MudText>
     </MudStack>
     <MudButton Variant="Variant.Filled" Color="Color.Primary" StartIcon="@Icons.Material.Filled.Add" OnClick="CreateAsync">

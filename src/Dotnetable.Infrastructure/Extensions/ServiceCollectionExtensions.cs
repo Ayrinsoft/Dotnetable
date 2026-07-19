@@ -224,6 +224,12 @@ public static class ServiceCollectionExtensions
 
     internal static void ConfigureProvider(DbContextOptionsBuilder options, string provider, string connectionString)
     {
+        // Schema changes after the baseline InitialCreate are applied manually via the SQL project
+        // (Dotnetable.Database). Do not fail MigrateAsync when the model has drifted from the last
+        // EF snapshot — production updates are SQL scripts, not new EF migration files.
+        options.ConfigureWarnings(w =>
+            w.Ignore(Microsoft.EntityFrameworkCore.Diagnostics.RelationalEventId.PendingModelChangesWarning));
+
         switch (provider.ToLowerInvariant())
         {
             case "sqlserver":

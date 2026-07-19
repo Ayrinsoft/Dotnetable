@@ -7,23 +7,25 @@ namespace Dotnetable.Infrastructure.Data;
 /// database. Front-end localizers push (websiteId, key, default) here on a cache miss; a background
 /// service drains it and inserts the missing <c>LocalizationKey</c> rows so an admin can translate
 /// them later. Buffering keeps page rendering free of database writes.
+/// <para><c>WebsiteId = null</c> means the admin panel catalog (not any website).</para>
 /// </summary>
 public sealed class PendingTranslationKeys
 {
-    private readonly ConcurrentDictionary<(int WebsiteId, string Key), string> _pending = new();
+    private readonly ConcurrentDictionary<(int? WebsiteId, string Key), string> _pending = new();
 
-    public void Add(int websiteId, string key, string defaultValue)
+    /// <param name="websiteId">Null = admin panel keys; positive = that website's storefront keys.</param>
+    public void Add(int? websiteId, string key, string defaultValue)
     {
-        if (websiteId <= 0 || string.IsNullOrWhiteSpace(key)) return;
+        if (websiteId is <= 0 || string.IsNullOrWhiteSpace(key)) return;
         _pending.TryAdd((websiteId, key), defaultValue ?? key);
     }
 
     public bool IsEmpty => _pending.IsEmpty;
 
     /// <summary>Atomically removes and returns everything buffered so far.</summary>
-    public IReadOnlyList<(int WebsiteId, string Key, string DefaultValue)> Drain()
+    public IReadOnlyList<(int? WebsiteId, string Key, string DefaultValue)> Drain()
     {
-        var taken = new List<(int, string, string)>();
+        var taken = new List<(int?, string, string)>();
         foreach (var entry in _pending)
             if (_pending.TryRemove(entry.Key, out var def))
                 taken.Add((entry.Key.WebsiteId, entry.Key.Key, def));
