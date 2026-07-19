@@ -31,10 +31,26 @@ public static class ImageProcessor
     private const int MarginPx = 12;
 
     /// <summary>
+    /// Starting WebP lossy quality. High enough for photos, low enough that well-compressed
+    /// JPEGs do not balloon after re-encode.
+    /// </summary>
+    private const int WebpStartQuality = 80;
+
+    /// <summary>Floor quality when stepping down to meet a size budget.</summary>
+    private const int WebpMinQuality = 40;
+
+    /// <summary>
     /// Returns a transformed image stream, or null when the source is not a decodable image.
     /// The source stream position is reset on entry.
+    /// When <paramref name="maxOutputBytes"/> is set (typically the original file length), WebP
+    /// encoding steps quality down so the result stays at or under that budget when possible.
     /// </summary>
-    public static Task<MemoryStream?> TryProcessAsync(Stream source, ImageProcessingOptions options, SKEncodedImageFormat format, CancellationToken ct = default)
+    public static Task<MemoryStream?> TryProcessAsync(
+        Stream source,
+        ImageProcessingOptions options,
+        SKEncodedImageFormat format,
+        long? maxOutputBytes = null,
+        CancellationToken ct = default)
     {
         if (source.CanSeek) source.Position = 0;
         try
@@ -73,7 +89,7 @@ public static class ImageProcessor
                 }
 
                 using var image = SKImage.FromBitmap(current);
-                using var data = Encode(image, format);
+                using var data = Encode(image, format, maxOutputBytes);
 
                 var output = new MemoryStream();
                 data.SaveTo(output);
@@ -97,10 +113,11 @@ public static class ImageProcessor
 
     /// <summary>
     /// Encodes with max PNG compression (zlib level 9, all filters) so output size stays close to source.
-    /// WebP uses lossless for images with transparency (pixel-perfect, still smaller than PNG) and high-quality
-    /// lossy (90) for opaque photos. Other formats keep quality 90.
+    /// WebP always uses lossy compression (never lossless — that path often inflates photos from
+    /// hundreds of KB into multi‑MB files). Quality starts at 80 and steps down to meet
+    /// <paramref name="maxOutputBytes"/> when provided. Other formats keep quality 90.
     /// </summary>
-    private static SKData Encode(SKImage image, SKEncodedImageFormat format)
+    private static SKData Encode(SKImage image, SKEncodedImageFormat format, long? maxOutputBytes)
     {
         if (format == SKEncodedImageFormat.Png)
         {
@@ -114,20 +131,67 @@ public static class ImageProcessor
         }
 
         if (format == SKEncodedImageFormat.Webp)
-        {
-            var hasAlpha = image.AlphaType != SKAlphaType.Opaque;
-            using var pixmap = image.PeekPixels();
-            if (pixmap is not null)
-            {
-                var options = hasAlpha
-                    ? new SKWebpEncoderOptions(SKWebpEncoderCompression.Lossless, 100)
-                    : new SKWebpEncoderOptions(SKWebpEncoderCompression.Lossy, 90);
-                var encoded = pixmap.Encode(options);
-                if (encoded is not null) return encoded;
-            }
-        }
+            return EncodeWebpLossy(image, maxOutputBytes);
 
         return image.Encode(format, 90);
+    }
+
+    /// <summary>
+    /// Lossy WebP only. Transparency is preserved by the lossy encoder when present; we never
+    /// fall back to lossless WebP because that regularly produces files several times larger
+    /// than a well-compressed JPEG/PNG source.
+    /// </summary>
+    private static SKData EncodeWebpLossy(SKImage image, long? maxOutputBytes)
+    {
+        SKData? best = null;
+        try
+        {
+            for (var quality = WebpStartQuality; quality >= WebpMinQuality; quality -= 10)
+            {
+                var candidate = EncodeWebpAtQuality(image, quality);
+                if (candidate is null) continue;
+
+                if (best is null || candidate.Size < best.Size)
+                {
+                    best?.Dispose();
+                    best = candidate;
+                }
+                else
+                {
+                    candidate.Dispose();
+                }
+
+                // Stay under the original upload size when possible.
+                if (maxOutputBytes is long budget && budget > 0 && best.Size <= budget)
+                    break;
+
+                // Without a budget, quality 80 is enough — do not keep stepping for smaller size only.
+                if (maxOutputBytes is null)
+                    break;
+            }
+
+            // Last resort if every attempt failed.
+            return best ?? image.Encode(SKEncodedImageFormat.Webp, WebpStartQuality)
+                ?? throw new InvalidOperationException("WebP encode failed.");
+        }
+        catch
+        {
+            best?.Dispose();
+            throw;
+        }
+    }
+
+    private static SKData? EncodeWebpAtQuality(SKImage image, int quality)
+    {
+        using var pixmap = image.PeekPixels();
+        if (pixmap is not null)
+        {
+            var options = new SKWebpEncoderOptions(SKWebpEncoderCompression.Lossy, quality);
+            var encoded = pixmap.Encode(options);
+            if (encoded is not null) return encoded;
+        }
+
+        return image.Encode(SKEncodedImageFormat.Webp, quality);
     }
 
     private static SKBitmap? ApplyCrop(SKBitmap source, ImageCropRect crop)

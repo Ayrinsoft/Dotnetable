@@ -108,24 +108,29 @@ public class FileService : IFileService
         // SkiaSharp takes ownership of the decoded stream, so processing always reads from `buffer`
         // and yields a brand-new stream — `buffer` itself is never written to again afterwards.
         // SVG (vector) and GIF (SkiaSharp only decodes its first frame, which would kill animation)
-        // are left untouched — every other raster format is converted to WebP for its smaller size.
+        // are left untouched. Every other raster image is converted to lossy WebP for web delivery.
+        // We pass the original byte length as a size budget so re-encode does not inflate a
+        // well-compressed JPEG/PNG (e.g. 300 KB → multi‑MB lossless WebP).
         Stream uploadSource = buffer;
         var webpApplied = false;
         var isRasterProcessable = category == FileCategory.Image && ext is not (".svg" or ".gif");
         if (isRasterProcessable)
         {
             var options = await BuildProcessingOptionsAsync(request, ct);
-            var convertToWebp = !string.Equals(mime, "image/webp", StringComparison.OrdinalIgnoreCase);
-            if (options.HasWork || convertToWebp)
+            var alreadyWebp = string.Equals(mime, "image/webp", StringComparison.OrdinalIgnoreCase);
+            // Re-encode when transforming, or when converting another format to WebP.
+            // Already-WebP files with no transforms are stored as uploaded.
+            if (options.HasWork || !alreadyWebp)
             {
                 buffer.Position = 0;
-                var format = convertToWebp ? SKEncodedImageFormat.Webp : MimeToFormat(mime);
-                var processed = await ImageProcessor.TryProcessAsync(buffer, options, format, ct);
+                var originalLength = buffer.Length;
+                var processed = await ImageProcessor.TryProcessAsync(
+                    buffer, options, SKEncodedImageFormat.Webp, maxOutputBytes: originalLength, ct);
                 if (processed is not null)
                 {
                     uploadSource = processed;
                     sizeKb = (int)Math.Ceiling(processed.Length / 1024d);
-                    if (convertToWebp)
+                    if (!alreadyWebp)
                     {
                         mime = "image/webp";
                         ext = ".webp";
@@ -361,15 +366,6 @@ public class FileService : IFileService
             return null;
         }
     }
-
-    private static SKEncodedImageFormat MimeToFormat(string mime) => mime.ToLowerInvariant() switch
-    {
-        "image/png" => SKEncodedImageFormat.Png,
-        "image/webp" => SKEncodedImageFormat.Webp,
-        "image/gif" => SKEncodedImageFormat.Gif,
-        "image/bmp" => SKEncodedImageFormat.Bmp,
-        _ => SKEncodedImageFormat.Jpeg,
-    };
 
     // ── Helpers ──────────────────────────────────────────────
     private static FileCategory ClassifyMime(string mime)
