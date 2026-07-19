@@ -254,6 +254,26 @@ public partial class AppDbContext : DbContext
 
     protected override void OnModelCreating(ModelBuilder modelBuilder)
     {
+        modelBuilder.Entity<AdminNotification>(entity =>
+        {
+            entity.Property(e => e.ActionUrl)
+                .HasMaxLength(256)
+                .IsUnicode(false);
+            entity.Property(e => e.CreatedAt).HasColumnType("datetime");
+            entity.Property(e => e.Message).HasMaxLength(1000);
+            entity.Property(e => e.Title).HasMaxLength(200);
+
+            entity.HasOne(d => d.Member).WithMany(p => p.AdminNotifications)
+                .HasForeignKey(d => d.MemberID)
+                .OnDelete(DeleteBehavior.ClientSetNull)
+                .HasConstraintName("FK_AdminNotifications_Members");
+
+            entity.HasOne(d => d.Website).WithMany(p => p.AdminNotifications)
+                .HasForeignKey(d => d.WebsiteID)
+                .OnDelete(DeleteBehavior.ClientSetNull)
+                .HasConstraintName("FK_AdminNotifications_Websites");
+        });
+
         modelBuilder.Entity<AttributeDefinition>(entity =>
         {
             entity.HasIndex(e => e.WebsiteID, "IX_AttributeDefinitions_WebsiteID");
@@ -803,7 +823,6 @@ public partial class AppDbContext : DbContext
         modelBuilder.Entity<EmailAccount>(entity =>
         {
             entity.HasIndex(e => e.WebsiteID, "IX_EmailAccounts_WebsiteID");
-            entity.Property(e => e.Name).HasMaxLength(64);
 
             entity.Property(e => e.EmailAddress)
                 .HasMaxLength(64)
@@ -812,43 +831,13 @@ public partial class AppDbContext : DbContext
             entity.Property(e => e.MailServer)
                 .HasMaxLength(64)
                 .IsUnicode(false);
+            entity.Property(e => e.Name).HasMaxLength(64);
             entity.Property(e => e.Password).HasMaxLength(256);
 
             entity.HasOne(d => d.Website).WithMany(p => p.EmailAccounts)
                 .HasForeignKey(d => d.WebsiteID)
                 .OnDelete(DeleteBehavior.ClientSetNull)
                 .HasConstraintName("FK_EmailAccounts_Websites");
-        });
-
-        modelBuilder.Entity<EmailTemplate>(entity =>
-        {
-            entity.HasIndex(e => new { e.WebsiteID, e.TemplateKey }, "IX_EmailTemplates_WebsiteID_TemplateKey").IsUnique();
-
-            entity.Property(e => e.TemplateKey).HasMaxLength(64).IsUnicode(false);
-            entity.Property(e => e.Name).HasMaxLength(128);
-            entity.Property(e => e.Subject).HasMaxLength(256);
-
-            entity.HasOne(d => d.Website).WithMany(p => p.EmailTemplates)
-                .HasForeignKey(d => d.WebsiteID)
-                .OnDelete(DeleteBehavior.ClientSetNull)
-                .HasConstraintName("FK_EmailTemplates_Websites");
-        });
-
-        modelBuilder.Entity<EmailTemplateTranslation>(entity =>
-        {
-            entity.HasIndex(e => new { e.EmailTemplateID, e.LanguageCode }, "IX_EmailTemplateTranslations_EmailTemplateID_LanguageCode")
-                .IsUnique();
-
-            entity.Property(e => e.LanguageCode)
-                .HasMaxLength(2)
-                .IsUnicode(false)
-                .IsFixedLength();
-            entity.Property(e => e.Subject).HasMaxLength(256);
-
-            entity.HasOne(d => d.EmailTemplate).WithMany(p => p.EmailTemplateTranslations)
-                .HasForeignKey(d => d.EmailTemplateID)
-                .OnDelete(DeleteBehavior.Cascade)
-                .HasConstraintName("FK_EmailTemplateTranslations_EmailTemplates");
         });
 
         modelBuilder.Entity<EmailSubscribe>(entity =>
@@ -866,6 +855,37 @@ public partial class AppDbContext : DbContext
                 .HasForeignKey(d => d.WebsiteID)
                 .OnDelete(DeleteBehavior.ClientSetNull)
                 .HasConstraintName("FK_EmailSubscribes_Websites");
+        });
+
+        modelBuilder.Entity<EmailTemplate>(entity =>
+        {
+            entity.HasIndex(e => new { e.WebsiteID, e.TemplateKey }, "IX_EmailTemplates_WebsiteID_TemplateKey").IsUnique();
+
+            entity.Property(e => e.Name).HasMaxLength(128);
+            entity.Property(e => e.Subject).HasMaxLength(256);
+            entity.Property(e => e.TemplateKey)
+                .HasMaxLength(64)
+                .IsUnicode(false);
+
+            entity.HasOne(d => d.Website).WithMany(p => p.EmailTemplates)
+                .HasForeignKey(d => d.WebsiteID)
+                .OnDelete(DeleteBehavior.ClientSetNull)
+                .HasConstraintName("FK_EmailTemplates_Websites");
+        });
+
+        modelBuilder.Entity<EmailTemplateTranslation>(entity =>
+        {
+            entity.HasIndex(e => new { e.EmailTemplateID, e.LanguageCode }, "IX_EmailTemplateTranslations_EmailTemplateID_LanguageCode").IsUnique();
+
+            entity.Property(e => e.LanguageCode)
+                .HasMaxLength(2)
+                .IsUnicode(false)
+                .IsFixedLength();
+            entity.Property(e => e.Subject).HasMaxLength(256);
+
+            entity.HasOne(d => d.EmailTemplate).WithMany(p => p.EmailTemplateTranslations)
+                .HasForeignKey(d => d.EmailTemplateID)
+                .HasConstraintName("FK_EmailTemplateTranslations_EmailTemplates");
         });
 
         modelBuilder.Entity<FileAlbum>(entity =>
@@ -1189,36 +1209,11 @@ public partial class AppDbContext : DbContext
                 .HasConstraintName("FK_MediaSetItems_FileRecord1");
         });
 
-        modelBuilder.Entity<AdminNotification>(entity =>
-        {
-            entity.HasIndex(e => new { e.MemberID, e.IsRead, e.CreatedAt }, "IX_AdminNotifications_MemberID_IsRead_CreatedAt");
-            entity.HasIndex(e => e.WebsiteID, "IX_AdminNotifications_WebsiteID");
-
-            entity.Property(e => e.ActionUrl)
-                .HasMaxLength(256)
-                .IsUnicode(false);
-            entity.Property(e => e.CreatedAt).HasColumnType("datetime");
-            entity.Property(e => e.IsRead).HasDefaultValue(false, "DF_AdminNotifications_IsRead");
-            entity.Property(e => e.Message).HasMaxLength(1000);
-            entity.Property(e => e.Title).HasMaxLength(200);
-
-            entity.HasOne(d => d.Member).WithMany(p => p.AdminNotifications)
-                .HasForeignKey(d => d.MemberID)
-                .OnDelete(DeleteBehavior.ClientSetNull)
-                .HasConstraintName("FK_AdminNotifications_Members");
-
-            entity.HasOne(d => d.Website).WithMany(p => p.AdminNotifications)
-                .HasForeignKey(d => d.WebsiteID)
-                .OnDelete(DeleteBehavior.ClientSetNull)
-                .HasConstraintName("FK_AdminNotifications_Websites");
-        });
-
         modelBuilder.Entity<Member>(entity =>
         {
             entity.Property(e => e.AdminUIMode)
                 .HasComment("0 = Basic (admin surface reduced to what this member's Website.WebsiteType needs), 1 = General (same admin surface regardless of website type), 2 = Advanced (full surface, e.g. extra-language pages/buttons on an otherwise single-language site)")
                 .HasDefaultValue((byte)1, "DF_Members_AdminUIMode");
-            entity.Property(e => e.IsSiteAdmin).HasDefaultValue(false, "DF_Members_IsSiteAdmin");
             entity.Property(e => e.CellphoneNumber)
                 .HasMaxLength(12)
                 .IsUnicode(false);

@@ -42,9 +42,9 @@ public partial class Member
 
     public bool IsSiteAdmin { get; set; }
 
-    public virtual FileRecord? Avatar { get; set; }
-
     public virtual ICollection<AdminNotification> AdminNotifications { get; set; } = new List<AdminNotification>();
+
+    public virtual FileRecord? Avatar { get; set; }
 
     public virtual ICollection<BankAccount> BankAccounts { get; set; } = new List<BankAccount>();
 
