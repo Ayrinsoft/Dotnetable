@@ -1,4 +1,5 @@
 using Dotnetable.Application.DTOs;
+using Dotnetable.Domain.Entities;
 using Dotnetable.Domain.Enums;
 using MudBlazor;
 
@@ -7,6 +8,16 @@ namespace Dotnetable.Admin.Components.Pages.Media;
 /// <summary>Display helpers shared by the media-library pages/dialogs.</summary>
 public static class MediaFormat
 {
+    /// <summary>Public CDN/download URL for embedding or sharing, if available.</summary>
+    public static string? PublicUrl(FileRecord file)
+    {
+        if (!string.IsNullOrWhiteSpace(file.CNDUrl))
+            return file.CNDUrl;
+        if (!string.IsNullOrWhiteSpace(file.ThumbnailCDN))
+            return file.ThumbnailCDN;
+        return null;
+    }
+
     /// <summary>Human-readable size from a KB value (e.g. 1536 → "1.5 MB").</summary>
     public static string Size(long kb)
     {
