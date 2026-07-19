@@ -28,7 +28,8 @@ public class PasswordResetServiceTests : IDisposable
         _emailMock = new Mock<IEmailService>();
         _emailMock.Setup(e => e.IsConfiguredAsync(It.IsAny<int>(), It.IsAny<CancellationToken>())).ReturnsAsync(true);
         _emailMock.Setup(e => e.SendTemplateAsync(
-            It.IsAny<int>(), It.IsAny<string>(), It.IsAny<string>(), It.IsAny<IDictionary<string, string>>(), It.IsAny<CancellationToken>()))
+            It.IsAny<int>(), It.IsAny<string>(), It.IsAny<string>(), It.IsAny<IDictionary<string, string>?>(),
+            It.IsAny<string?>(), It.IsAny<CancellationToken>()))
             .Returns(Task.CompletedTask);
 
         _hasherMock = new Mock<IPasswordHasher<Member>>();
@@ -237,6 +238,7 @@ public class PasswordResetServiceTests : IDisposable
             EmailTemplateKeys.AdminForgotPassword,
             "alice@test.com",
             It.Is<IDictionary<string, string>>(t => t["ResetUrl"].StartsWith("https://app/reset?k=")),
+            It.IsAny<string?>(),
             It.IsAny<CancellationToken>()), Times.Once);
     }
 

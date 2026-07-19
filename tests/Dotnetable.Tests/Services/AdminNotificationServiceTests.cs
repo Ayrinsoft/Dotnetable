@@ -101,6 +101,7 @@ public class AdminNotificationServiceTests : IDisposable
             EmailTemplateKeys.AdminSiteNotification,
             "a@test.com",
             It.Is<IDictionary<string, string>>(t => t["Title"] == "New order" && t["MessageBody"] == "Order #1 placed"),
+            It.IsAny<string?>(),
             It.IsAny<CancellationToken>()), Times.Once);
     }
 
@@ -121,7 +122,7 @@ public class AdminNotificationServiceTests : IDisposable
         _context.AdminNotifications.Should().HaveCount(1);
         _emailMock.Verify(e => e.SendTemplateAsync(
             It.IsAny<int>(), It.IsAny<string>(), It.IsAny<string>(),
-            It.IsAny<IDictionary<string, string>>(), It.IsAny<CancellationToken>()), Times.Never);
+            It.IsAny<IDictionary<string, string>?>(), It.IsAny<string?>(), It.IsAny<CancellationToken>()), Times.Never);
     }
 
     [Fact]

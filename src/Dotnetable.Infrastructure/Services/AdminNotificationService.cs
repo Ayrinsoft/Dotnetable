@@ -83,6 +83,7 @@ public class AdminNotificationService : IAdminNotificationService
                         ["MessageBody"] = safeMessage,
                         ["ActionUrl"] = safeUrl ?? string.Empty,
                     },
+                    languageCode: null,
                     ct);
             }
             catch (Exception ex)

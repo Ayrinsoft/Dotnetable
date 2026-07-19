@@ -72,6 +72,8 @@ public partial class AppDbContext : DbContext
 
     public virtual DbSet<EmailTemplate> EmailTemplates { get; set; }
 
+    public virtual DbSet<EmailTemplateTranslation> EmailTemplateTranslations { get; set; }
+
     public virtual DbSet<FileAlbum> FileAlbums { get; set; }
 
     public virtual DbSet<FileRecord> FileRecords { get; set; }
@@ -830,6 +832,23 @@ public partial class AppDbContext : DbContext
                 .HasForeignKey(d => d.WebsiteID)
                 .OnDelete(DeleteBehavior.ClientSetNull)
                 .HasConstraintName("FK_EmailTemplates_Websites");
+        });
+
+        modelBuilder.Entity<EmailTemplateTranslation>(entity =>
+        {
+            entity.HasIndex(e => new { e.EmailTemplateID, e.LanguageCode }, "IX_EmailTemplateTranslations_EmailTemplateID_LanguageCode")
+                .IsUnique();
+
+            entity.Property(e => e.LanguageCode)
+                .HasMaxLength(2)
+                .IsUnicode(false)
+                .IsFixedLength();
+            entity.Property(e => e.Subject).HasMaxLength(256);
+
+            entity.HasOne(d => d.EmailTemplate).WithMany(p => p.EmailTemplateTranslations)
+                .HasForeignKey(d => d.EmailTemplateID)
+                .OnDelete(DeleteBehavior.Cascade)
+                .HasConstraintName("FK_EmailTemplateTranslations_EmailTemplates");
         });
 
         modelBuilder.Entity<EmailSubscribe>(entity =>

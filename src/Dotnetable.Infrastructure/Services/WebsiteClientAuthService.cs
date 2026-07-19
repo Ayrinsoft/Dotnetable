@@ -261,7 +261,8 @@ public class WebsiteClientAuthService : IWebsiteClientAuthService
         if (channel == OtpChannel.Email)
         {
             var key = isActivation ? EmailTemplateKeys.ClientOtpActivation : EmailTemplateKeys.ClientOtpPasswordReset;
-            await _email.SendTemplateAsync(websiteId, key, target, new Dictionary<string, string> { ["Code"] = code }, ct);
+            await _email.SendTemplateAsync(websiteId, key, target, new Dictionary<string, string> { ["Code"] = code },
+                languageCode: null, ct);
         }
         else
         {
