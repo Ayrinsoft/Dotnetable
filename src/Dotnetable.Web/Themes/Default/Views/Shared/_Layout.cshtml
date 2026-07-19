@@ -13,21 +13,24 @@
     var brandName = string.IsNullOrWhiteSpace(site?.BrandName) ? "Website" : site!.BrandName;
     var separator = site?.TitleSeparator ?? "·";
 
-    // Header/footer navigation is driven by admin-managed menus; static links are the fallback so
-    // the site always has navigation before menus are configured.
-    MenuDto? headerMenu = await Api.GetMenuAsync("Header");
-    MenuDto? footerMenu = await Api.GetMenuAsync("Footer");
-
-    // Language switcher: only the languages this website picked in the admin (Content Languages).
+    // Language switcher + content language for menus: only languages this website picked in admin.
     var languages = await Api.GetActiveLanguagesAsync();
     var currentLangCode = Context.Request.Cookies["lang"];
     var currentLang = languages.FirstOrDefault(l => l.Code == currentLangCode)
         ?? languages.FirstOrDefault(l => l.IsDefault)
         ?? languages.FirstOrDefault();
+    // Prefer cookie / resolved UI language so Header/Footer titles use MenuItemTranslations.
+    var menuLang = currentLang?.Code;
+
+    // Header/footer navigation is driven by admin-managed menus; static links are the fallback so
+    // the site always has navigation before menus are configured.
+    MenuDto? headerMenu = await Api.GetMenuAsync("Header", menuLang);
+    MenuDto? footerMenu = await Api.GetMenuAsync("Footer", menuLang);
+
     var returnUrl = Context.Request.Path + Context.Request.QueryString;
 }
 <!DOCTYPE html>
-<html lang="@(site?.DefaultLanguageCode ?? "en")">
+<html lang="@(currentLang?.Code ?? site?.DefaultLanguageCode ?? "en")">
 <head>
     <meta charset="utf-8" />
     <meta name="viewport" content="width=device-width, initial-scale=1.0" />

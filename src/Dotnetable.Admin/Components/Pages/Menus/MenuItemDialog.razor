@@ -78,11 +78,12 @@
                                Label="@(Model.IsActive ? L["active", "Active"] : L["inactive", "Inactive"])" />
                 </MudItem>
 
+                @* Shown when this website has at least one active non-default language (Website → Languages). *@
                 @if (_languages.Length > 0)
                 {
                 <MudItem xs="12">
-                    <MudExpansionPanels Elevation="0">
-                        <MudExpansionPanel Text="@L["other_languages", "Other languages"]">
+                    <MudExpansionPanels Elevation="0" MultiExpansion="true">
+                        <MudExpansionPanel Text="@L["other_languages", "Other languages"]" IsInitiallyExpanded="true">
                             <MudText Typo="Typo.body2" Color="Color.Secondary" Class="mb-2">
                                 @L["other_languages.hint", "Main fields above are the site default language. Leave a translation blank to fall back to the default."]
                             </MudText>
@@ -90,7 +91,8 @@
                             {
                                 <MudTextField T="string" Value="@GetTranslation(code)"
                                               ValueChanged="@(v => SetTranslation(code, v))"
-                                              Label="@label" Variant="Variant.Outlined" Class="mb-2" />
+                                              Label="@($"{label} — {L["menus.item_title", "Title"]}")"
+                                              Variant="Variant.Outlined" Class="mb-2" />
                             }
                         </MudExpansionPanel>
                     </MudExpansionPanels>
@@ -147,11 +149,15 @@
         _parentId = Model.ParentItemID;
         _targetId = CurrentTargetId();
 
+        await L.EnsureLoadedAsync();
+        // Prefer the menu's website (passed from MenuEdit); fall back to the signed-in site.
         var websiteId = WebsiteId > 0 ? WebsiteId : L.WebsiteId;
+        // Non-default active languages only — default title is the main Title field above.
+        // Appears for every menu item (root / parent and children) once the site has 2+ languages.
         _languages = (await LanguageService.GetOtherActiveForWebsiteAsync(websiteId))
             .Select(x => (x.LanguageCode, x.Name)).ToArray();
 
-        if (!IsNew)
+        if (!IsNew && Model.MenuItemID > 0)
         {
             foreach (var t in await MenuService.GetItemTranslationsAsync(Model.MenuItemID))
                 _translations[t.LanguageCode] = t.Title;
