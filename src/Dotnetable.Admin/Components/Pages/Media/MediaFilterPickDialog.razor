@@ -1,0 +1,216 @@
+@using Dotnetable.Admin.Components.Shared.FormControls
+@inject IFileService FileService
+@inject IPageLocalizer L
+
+<MudDialog>
+    <TitleContent>
+        <MudText Typo="Typo.h6">
+            <MudIcon Icon="@(IsAlbum ? Icons.Material.Filled.Collections : Icons.Material.Filled.Sell)" Class="me-2" />
+            @(IsAlbum ? L["media.pick_albums", "Select albums"] : L["media.pick_tags", "Select tags"])
+        </MudText>
+    </TitleContent>
+    <DialogContent>
+        <MudText Typo="Typo.body2" Color="Color.Secondary" Class="mb-3">
+            @(IsAlbum
+                ? L["media.pick_albums_hint", "Choose one or more albums to filter the file list."]
+                : L["media.pick_tags_hint", "Choose one or more tags to filter the file list."])
+        </MudText>
+
+        @if (_loading)
+        {
+            <MudProgressLinear Indeterminate="true" Color="Color.Primary" Class="mb-3" />
+        }
+
+        <MudStack Row="true" AlignItems="AlignItems.Center" Spacing="2" Class="mb-2">
+            <MudText Typo="Typo.caption" Color="Color.Secondary">
+                @string.Format(L["media.selected_count", "{0} selected"], _selected.Count)
+            </MudText>
+            <MudSpacer />
+            @if (_selected.Count > 0)
+            {
+                <MudButton Size="Size.Small" Variant="Variant.Text" Color="Color.Default"
+                           OnClick="ClearSelection">@L["media.clear_selection", "Clear selection"]</MudButton>
+            }
+        </MudStack>
+
+        <DNGridView GridHeaderParams="_grid" OnSearchChanged="OnGridChanged"
+                    HasSelection="true"
+                    AllPageSelected="@AllPageSelected"
+                    OnSelectAllToggled="OnSelectAllToggled"
+                    SelectAllTitle="@L["media.select_all_page", "Select all on this page"]"
+                    SearchPlaceholder="@L["search", "Search…"]"
+                    AllText="@L["all", "All"]">
+            @if (IsAlbum)
+            {
+                @if (_albums.Count == 0)
+                {
+                    <tr>
+                        <td colspan="3" style="text-align:center; padding:28px;">
+                            <MudText Color="Color.Secondary">@L["media.albums_empty", "No albums yet."]</MudText>
+                        </td>
+                    </tr>
+                }
+                else
+                {
+                    @foreach (var a in _albums)
+                    {
+                        var selected = _selected.Contains(a.FileAlbumID);
+                        <tr class="@(selected ? "dn-grid-row-selected dn-grid-row-clickable" : "dn-grid-row-clickable")"
+                            @onclick="@(() => Toggle(a.FileAlbumID))">
+                            <td class="dn-grid-select" @onclick:stopPropagation="true">
+                                <input type="checkbox" class="dn-grid-check" checked="@selected"
+                                       @onchange="@(() => Toggle(a.FileAlbumID))" />
+                            </td>
+                            <td>@a.Name</td>
+                            <td>
+                                <MudText Typo="Typo.body2" Color="Color.Secondary" Class="text-truncate" Style="max-width:280px;">
+                                    @(a.Description ?? "—")
+                                </MudText>
+                            </td>
+                        </tr>
+                    }
+                }
+            }
+            else
+            {
+                @if (_tags.Count == 0)
+                {
+                    <tr>
+                        <td colspan="2" style="text-align:center; padding:28px;">
+                            <MudText Color="Color.Secondary">@L["media.tags_empty", "No tags yet."]</MudText>
+                        </td>
+                    </tr>
+                }
+                else
+                {
+                    @foreach (var t in _tags)
+                    {
+                        var selected = _selected.Contains(t.FileTagID);
+                        <tr class="@(selected ? "dn-grid-row-selected dn-grid-row-clickable" : "dn-grid-row-clickable")"
+                            @onclick="@(() => Toggle(t.FileTagID))">
+                            <td class="dn-grid-select" @onclick:stopPropagation="true">
+                                <input type="checkbox" class="dn-grid-check" checked="@selected"
+                                       @onchange="@(() => Toggle(t.FileTagID))" />
+                            </td>
+                            <td>@t.Name</td>
+                        </tr>
+                    }
+                }
+            }
+        </DNGridView>
+    </DialogContent>
+    <DialogActions>
+        <MudButton OnClick="Cancel">@L["cancel", "Cancel"]</MudButton>
+        <MudButton Color="Color.Primary" Variant="Variant.Filled" OnClick="Apply">
+            @L["apply", "Apply"]
+            @if (_selected.Count > 0)
+            {
+                <span>&nbsp;(@_selected.Count)</span>
+            }
+        </MudButton>
+    </DialogActions>
+</MudDialog>
+
+@code {
+    public enum PickKind
+    {
+        Album,
+        Tag
+    }
+
+    [CascadingParameter] private IMudDialogInstance MudDialog { get; set; } = null!;
+
+    [Parameter] public int WebsiteId { get; set; }
+    [Parameter] public PickKind Kind { get; set; } = PickKind.Album;
+    [Parameter] public IReadOnlyCollection<int>? InitialSelectedIds { get; set; }
+
+    private bool _loading = true;
+    private GridViewHeaderParameters _grid = new();
+    private readonly HashSet<int> _selected = new();
+    private List<FileAlbum> _albums = new();
+    private List<FileTag> _tags = new();
+
+    private bool IsAlbum => Kind == PickKind.Album;
+    private IReadOnlyList<int> _pageIds = Array.Empty<int>();
+
+    private bool AllPageSelected =>
+        _pageIds.Count > 0 && _pageIds.All(id => _selected.Contains(id));
+
+    protected override async Task OnInitializedAsync()
+    {
+        await L.EnsureLoadedAsync();
+
+        if (InitialSelectedIds is not null)
+        {
+            foreach (var id in InitialSelectedIds)
+                _selected.Add(id);
+        }
+
+        _grid = new GridViewHeaderParameters
+        {
+            Pagination = new PaginationModel { PageSize = 15 },
+            HeaderItems = IsAlbum
+                ? new()
+                {
+                    new() { ColumnTitle = L["name", "Name"], ColumnName = nameof(FileAlbum.Name), HasSort = true, HasSearch = true },
+                    new() { ColumnTitle = L["description", "Description"], ColumnName = nameof(FileAlbum.Description), HasSort = true, HasSearch = true },
+                }
+                : new()
+                {
+                    new() { ColumnTitle = L["name", "Name"], ColumnName = nameof(FileTag.Name), HasSort = true, HasSearch = true },
+                }
+        };
+
+        await LoadAsync();
+    }
+
+    private Task OnGridChanged(GridViewHeaderParameters _) => LoadAsync();
+
+    private async Task LoadAsync()
+    {
+        _loading = true;
+        var query = _grid.ToQuery();
+        if (IsAlbum)
+        {
+            var result = await FileService.GetAlbumsPagedAsync(WebsiteId, query);
+            _albums = result.Items.ToList();
+            _tags = new();
+            _grid.Pagination.MaxLength = result.TotalCount;
+            _pageIds = _albums.Select(a => a.FileAlbumID).ToList();
+        }
+        else
+        {
+            var result = await FileService.GetTagsPagedAsync(WebsiteId, query);
+            _tags = result.Items.ToList();
+            _albums = new();
+            _grid.Pagination.MaxLength = result.TotalCount;
+            _pageIds = _tags.Select(t => t.FileTagID).ToList();
+        }
+        _loading = false;
+    }
+
+    private void Toggle(int id)
+    {
+        if (!_selected.Add(id))
+            _selected.Remove(id);
+    }
+
+    private void OnSelectAllToggled(bool selected)
+    {
+        if (selected)
+        {
+            foreach (var id in _pageIds)
+                _selected.Add(id);
+        }
+        else
+        {
+            foreach (var id in _pageIds)
+                _selected.Remove(id);
+        }
+    }
+
+    private void ClearSelection() => _selected.Clear();
+
+    private void Apply() => MudDialog.Close(DialogResult.Ok(_selected.OrderBy(x => x).ToList()));
+    private void Cancel() => MudDialog.Cancel();
+}

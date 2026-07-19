@@ -35,10 +35,29 @@ public class FileService : IFileService
 
         if (filter.Category is FileCategory cat)
             q = q.Where(f => f.FileCategory == (byte)cat);
-        if (filter.AlbumID is int albumId)
+
+        var albumIds = filter.EffectiveAlbumIDs().ToList();
+        if (albumIds.Count == 1)
+        {
+            var albumId = albumIds[0];
             q = q.Where(f => f.FileAlbumID == albumId);
-        if (filter.TagID is int tagId)
+        }
+        else if (albumIds.Count > 1)
+        {
+            q = q.Where(f => f.FileAlbumID != null && albumIds.Contains(f.FileAlbumID.Value));
+        }
+
+        var tagIds = filter.EffectiveTagIDs().ToList();
+        if (tagIds.Count == 1)
+        {
+            var tagId = tagIds[0];
             q = q.Where(f => f.FileRecordTags.Any(t => t.FileTagID == tagId));
+        }
+        else if (tagIds.Count > 1)
+        {
+            q = q.Where(f => f.FileRecordTags.Any(t => tagIds.Contains(t.FileTagID)));
+        }
+
         if (!string.IsNullOrWhiteSpace(filter.Search))
         {
             var s = filter.Search.Trim();

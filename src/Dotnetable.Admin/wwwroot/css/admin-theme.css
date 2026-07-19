@@ -187,6 +187,28 @@ html, body {
 
 .dn-grid .dn-grid-rownum { width: 48px; text-align: center; }
 
+.dn-grid .dn-grid-select {
+    width: 44px;
+    text-align: center;
+    vertical-align: middle;
+}
+
+.dn-grid .dn-grid-select .dn-grid-check,
+.dn-grid td.dn-grid-select .dn-grid-check {
+    width: 16px;
+    height: 16px;
+    cursor: pointer;
+    accent-color: var(--mud-palette-primary);
+}
+
+.dn-grid tbody tr.dn-grid-row-selected {
+    background: rgba(52, 143, 226, .12) !important;
+}
+
+.dn-grid tbody tr.dn-grid-row-clickable {
+    cursor: pointer;
+}
+
 .dn-grid tbody tr:nth-of-type(odd) { background: rgba(0, 0, 0, .015); }
 .dn-grid tbody tr:hover { background: rgba(52, 143, 226, .08); }
 
