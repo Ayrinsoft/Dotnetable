@@ -1,4 +1,3 @@
-using Dotnetable.Application;
 using Dotnetable.Application.DTOs;
 using Dotnetable.Application.Interfaces;
 using Dotnetable.Domain.Entities;
@@ -11,8 +10,7 @@ namespace Dotnetable.Infrastructure.Services;
 /// <inheritdoc cref="ILanguageService"/>
 public class LanguageService : ILanguageService
 {
-    // Seed data for a fresh install / an existing database that predates this feature (the
-    // Languages table exists in every migration but was never populated until now).
+    // Seed data for a fresh install: admin catalog only (WebsiteID null).
     private static readonly (string Code, string Iso, string Name, bool Rtl)[] DefaultLanguages =
     [
         ("en", "en-US", "English",  false),
@@ -33,11 +31,8 @@ public class LanguageService : ILanguageService
         _cache = cache;
     }
 
-    // Cached behind a singleton lock: components across the same Blazor circuit (MainLayout,
-    // NavMenu, PageLocalizer, the page itself) all read this on first render and share one scoped
-    // AppDbContext — without serializing the initial fetch, two of them racing to query it at once
-    // throws "A second operation was started on this context instance before a previous operation
-    // completed."
+    // Cached behind a singleton lock: components across the same Blazor circuit share one scoped
+    // AppDbContext — without serializing the initial fetch, concurrent loads race and throw.
     public Task<List<Language>> GetCatalogAsync(CancellationToken ct = default) =>
         _cache.GetOrLoadCatalogAsync(() => LoadCatalogAsync(ct));
 
@@ -62,13 +57,13 @@ public class LanguageService : ILanguageService
     {
         var catalog = await _context.Languages
             .AsNoTracking()
-            .Where(l => l.WebsiteID == AppConstants.MasterWebsiteId)
+            .Where(l => l.WebsiteID == null)
             .OrderBy(l => l.Priority)
             .ToListAsync(ct);
 
         if (catalog.Count > 0) return catalog;
 
-        return await SeedDefaultsAsync(ct);
+        return await SeedAdminCatalogAsync(ct);
     }
 
     public async Task<List<Language>> GetActiveCatalogAsync(CancellationToken ct = default) =>
@@ -79,11 +74,11 @@ public class LanguageService : ILanguageService
 
     public async Task<Language> CreateAsync(Language language, CancellationToken ct = default)
     {
-        language.WebsiteID = AppConstants.MasterWebsiteId;
+        language.WebsiteID = null;
         language.LanguageCode = language.LanguageCode.Trim().ToLowerInvariant();
 
         if (language.IsDefault)
-            await ClearExistingDefaultAsync(AppConstants.MasterWebsiteId, ct);
+            await ClearExistingDefaultAsync(null, ct);
 
         _context.Languages.Add(language);
         await _context.SaveChangesAsync(ct);
@@ -94,13 +89,12 @@ public class LanguageService : ILanguageService
     public async Task<bool> UpdateAsync(Language language, CancellationToken ct = default)
     {
         var existing = await _context.Languages.FirstOrDefaultAsync(
-            l => l.LanguageID == language.LanguageID && l.WebsiteID == AppConstants.MasterWebsiteId, ct);
+            l => l.LanguageID == language.LanguageID && l.WebsiteID == null, ct);
         if (existing is null) return false;
 
         if (language.IsDefault && !existing.IsDefault)
-            await ClearExistingDefaultAsync(AppConstants.MasterWebsiteId, ct);
+            await ClearExistingDefaultAsync(null, ct);
 
-        // Default language cannot be deactivated (same rule as per-website languages).
         if (existing.IsDefault || language.IsDefault)
             language.Active = true;
 
@@ -119,10 +113,9 @@ public class LanguageService : ILanguageService
     public async Task<bool> SetActiveAsync(int languageId, bool active, CancellationToken ct = default)
     {
         var existing = await _context.Languages.FirstOrDefaultAsync(
-            l => l.LanguageID == languageId && l.WebsiteID == AppConstants.MasterWebsiteId, ct);
+            l => l.LanguageID == languageId && l.WebsiteID == null, ct);
         if (existing is null) return false;
 
-        // Default language stays available for admin UI + fallbacks; inactive langs never appear in pickers.
         if (!active && existing.IsDefault)
             throw new InvalidOperationException("The default language cannot be deactivated.");
 
@@ -140,8 +133,16 @@ public class LanguageService : ILanguageService
     public async Task<List<Language>> GetActiveForWebsiteAsync(int websiteId, CancellationToken ct = default) =>
         (await GetForWebsiteAsync(websiteId, ct)).Where(l => l.Active).ToList();
 
-    public async Task<List<Language>> GetOtherActiveForWebsiteAsync(int websiteId, CancellationToken ct = default) =>
-        (await GetActiveForWebsiteAsync(websiteId, ct)).Where(l => !l.IsDefault).ToList();
+    public async Task<List<Language>> GetOtherActiveForWebsiteAsync(int websiteId, CancellationToken ct = default)
+    {
+        var active = await GetActiveForWebsiteAsync(websiteId, ct);
+        if (active.Count <= 1) return [];
+
+        var defaultLang = active.FirstOrDefault(l => l.IsDefault)
+            ?? active.OrderBy(l => l.Priority).ThenBy(l => l.Name).First();
+
+        return active.Where(l => l.LanguageID != defaultLang.LanguageID).ToList();
+    }
 
     private async Task<List<Language>> LoadForWebsiteAsync(int websiteId, CancellationToken ct)
     {
@@ -169,7 +170,6 @@ public class LanguageService : ILanguageService
         if (exists)
             throw new InvalidOperationException($"'{language.LanguageCode}' has already been added to this website.");
 
-        // First language on a site becomes the default when none is set yet.
         var hasDefault = await _context.Languages.AnyAsync(l => l.WebsiteID == websiteId && l.IsDefault, ct);
         if (!hasDefault || language.IsDefault)
         {
@@ -204,7 +204,6 @@ public class LanguageService : ILanguageService
         if (language.IsDefault && !existing.IsDefault)
             await ClearExistingDefaultAsync(websiteId, ct);
 
-        // Default language cannot be deactivated.
         if (existing.IsDefault || language.IsDefault)
             language.Active = true;
 
@@ -245,7 +244,6 @@ public class LanguageService : ILanguageService
         existing.IsDefault = true;
         existing.Active = true;
 
-        // Keep Website.DefaultLanguageCode in sync for storefront fallbacks.
         var website = await _context.Websites.FirstOrDefaultAsync(w => w.WebsiteID == websiteId, ct);
         if (website is not null)
             website.DefaultLanguageCode = existing.LanguageCode;
@@ -277,8 +275,7 @@ public class LanguageService : ILanguageService
 
     /// <summary>
     /// When a website has no language rows yet, create a single active default from
-    /// <see cref="Website.DefaultLanguageCode"/> (or "en"). Catalog metadata is used only as a
-    /// naming hint — the row belongs to this website alone.
+    /// <see cref="Website.DefaultLanguageCode"/> (or "en"). Never copies the admin catalog.
     /// </summary>
     private async Task EnsureWebsiteDefaultLanguageAsync(int websiteId, CancellationToken ct)
     {
@@ -318,7 +315,8 @@ public class LanguageService : ILanguageService
         return (code, code.ToUpperInvariant(), false);
     }
 
-    private async Task ClearExistingDefaultAsync(int websiteId, CancellationToken ct)
+    /// <param name="websiteId">Null clears default on the admin catalog; non-null on that website only.</param>
+    private async Task ClearExistingDefaultAsync(int? websiteId, CancellationToken ct)
     {
         var current = await _context.Languages
             .Where(l => l.WebsiteID == websiteId && l.IsDefault)
@@ -326,11 +324,11 @@ public class LanguageService : ILanguageService
         foreach (var l in current) l.IsDefault = false;
     }
 
-    private async Task<List<Language>> SeedDefaultsAsync(CancellationToken ct)
+    private async Task<List<Language>> SeedAdminCatalogAsync(CancellationToken ct)
     {
         var rows = DefaultLanguages.Select((l, i) => new Language
         {
-            WebsiteID = AppConstants.MasterWebsiteId,
+            WebsiteID = null,
             LanguageCode = l.Code,
             LanguageCodeISO = l.Iso,
             Name = l.Name,

@@ -330,12 +330,15 @@ else if (_menu is not null)
 
     private async Task<bool> ShowItemDialogAsync(MenuItem item, bool isNew)
     {
-        var parameters = new DialogParameters<MenuItemDialog>
+        // Always pass the menu's website so translations use Website → Languages for that site
+        // (including master site 1) — never the admin panel language catalog.
+        var websiteId = _menu?.WebsiteID > 0 ? _menu.WebsiteID : _websiteId;
+        var parameters = new DialogParameters
         {
-            { x => x.Model, item },
-            { x => x.IsNew, isNew },
-            { x => x.AllItems, _items },
-            { x => x.WebsiteId, _menu?.WebsiteID ?? _websiteId },
+            [nameof(MenuItemDialog.Model)] = item,
+            [nameof(MenuItemDialog.IsNew)] = isNew,
+            [nameof(MenuItemDialog.AllItems)] = _items,
+            [nameof(MenuItemDialog.WebsiteId)] = websiteId,
         };
         var dialog = await DialogService.ShowAsync<MenuItemDialog>(
             isNew ? L["menus.add_item", "Add Item"] : L["menus.edit_item", "Edit Item"],

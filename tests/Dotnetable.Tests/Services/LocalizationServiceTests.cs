@@ -35,6 +35,19 @@ public class LocalizationServiceTests : IDisposable
     }
 
     [Fact]
+    public async Task SetAsync_AdminCatalog_UsesNullWebsiteId()
+    {
+        await _service.SetAsync(websiteId: null, languageCode: "en", key: "menus", value: "Menus");
+
+        var result = _service.Get(websiteId: null, languageCode: "en", key: "menus");
+        result.Should().Be("Menus");
+
+        // Admin keys must not appear under website 1.
+        (await _context.LocalizationKeys.AnyAsync(k => k.WebsiteID == 1 && k.ItemKey == "menus")).Should().BeFalse();
+        (await _context.LocalizationKeys.AnyAsync(k => k.WebsiteID == null && k.ItemKey == "menus")).Should().BeTrue();
+    }
+
+    [Fact]
     public async Task LoadAsync_ShouldPopulateCache()
     {
         var key = new LocalizationKey { WebsiteID = 1, ItemKey = "welcome", DefaultValue = "Welcome" };

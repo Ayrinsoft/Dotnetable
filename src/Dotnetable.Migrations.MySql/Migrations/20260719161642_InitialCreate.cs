@@ -1,4 +1,4 @@
-﻿using System;
+using System;
 using Microsoft.EntityFrameworkCore.Migrations;
 using MySql.EntityFrameworkCore.Metadata;
 
@@ -177,6 +177,28 @@ namespace Dotnetable.Migrations.MySql.Migrations
                         column: x => x.CityID,
                         principalTable: "Cities",
                         principalColumn: "CityID");
+                })
+                .Annotation("MySQL:Charset", "utf8mb4");
+
+            migrationBuilder.CreateTable(
+                name: "AdminNotifications",
+                columns: table => new
+                {
+                    AdminNotificationID = table.Column<int>(type: "int", nullable: false)
+                        .Annotation("MySQL:ValueGenerationStrategy", MySQLValueGenerationStrategy.IdentityColumn),
+                    MemberID = table.Column<int>(type: "int", nullable: false),
+                    WebsiteID = table.Column<int>(type: "int", nullable: false),
+                    NotificationType = table.Column<byte>(type: "tinyint unsigned", nullable: false),
+                    Title = table.Column<string>(type: "varchar(200)", maxLength: 200, nullable: false),
+                    Message = table.Column<string>(type: "varchar(1000)", maxLength: 1000, nullable: false),
+                    ActionUrl = table.Column<string>(type: "varchar(256)", unicode: false, maxLength: 256, nullable: true),
+                    RelatedEntityID = table.Column<int>(type: "int", nullable: true),
+                    IsRead = table.Column<bool>(type: "tinyint(1)", nullable: false),
+                    CreatedAt = table.Column<DateTime>(type: "datetime", nullable: false)
+                },
+                constraints: table =>
+                {
+                    table.PrimaryKey("PK_AdminNotifications", x => x.AdminNotificationID);
                 })
                 .Annotation("MySQL:Charset", "utf8mb4");
 
@@ -723,6 +745,29 @@ namespace Dotnetable.Migrations.MySql.Migrations
                 .Annotation("MySQL:Charset", "utf8mb4");
 
             migrationBuilder.CreateTable(
+                name: "EmailTemplateTranslations",
+                columns: table => new
+                {
+                    EmailTemplateTranslationID = table.Column<int>(type: "int", nullable: false)
+                        .Annotation("MySQL:ValueGenerationStrategy", MySQLValueGenerationStrategy.IdentityColumn),
+                    EmailTemplateID = table.Column<int>(type: "int", nullable: false),
+                    LanguageCode = table.Column<string>(type: "char(2)", unicode: false, fixedLength: true, maxLength: 2, nullable: false),
+                    Subject = table.Column<string>(type: "varchar(256)", maxLength: 256, nullable: false),
+                    HtmlBody = table.Column<string>(type: "longtext", nullable: false)
+                },
+                constraints: table =>
+                {
+                    table.PrimaryKey("PK_EmailTemplateTranslations", x => x.EmailTemplateTranslationID);
+                    table.ForeignKey(
+                        name: "FK_EmailTemplateTranslations_EmailTemplates",
+                        column: x => x.EmailTemplateID,
+                        principalTable: "EmailTemplates",
+                        principalColumn: "EmailTemplateID",
+                        onDelete: ReferentialAction.Cascade);
+                })
+                .Annotation("MySQL:Charset", "utf8mb4");
+
+            migrationBuilder.CreateTable(
                 name: "FileAlbums",
                 columns: table => new
                 {
@@ -914,7 +959,7 @@ namespace Dotnetable.Migrations.MySql.Migrations
                     IsDefault = table.Column<bool>(type: "tinyint(1)", nullable: false),
                     Active = table.Column<bool>(type: "tinyint(1)", nullable: false),
                     RTLDesign = table.Column<bool>(type: "tinyint(1)", nullable: false),
-                    WebsiteID = table.Column<int>(type: "int", nullable: false)
+                    WebsiteID = table.Column<int>(type: "int", nullable: true)
                 },
                 constraints: table =>
                 {
@@ -935,7 +980,7 @@ namespace Dotnetable.Migrations.MySql.Migrations
                         .Annotation("MySQL:ValueGenerationStrategy", MySQLValueGenerationStrategy.IdentityColumn),
                     ItemKey = table.Column<string>(type: "varchar(72)", unicode: false, maxLength: 72, nullable: false),
                     DefaultValue = table.Column<string>(type: "varchar(2000)", maxLength: 2000, nullable: false),
-                    WebsiteID = table.Column<int>(type: "int", nullable: false)
+                    WebsiteID = table.Column<int>(type: "int", nullable: true)
                 },
                 constraints: table =>
                 {
@@ -1722,7 +1767,8 @@ namespace Dotnetable.Migrations.MySql.Migrations
                     PolicyID = table.Column<int>(type: "int", nullable: false),
                     Gender = table.Column<bool>(type: "tinyint(1)", nullable: true),
                     WebsiteID = table.Column<int>(type: "int", nullable: false),
-                    AdminUIMode = table.Column<byte>(type: "tinyint unsigned", nullable: false, defaultValue: (byte)1, comment: "0 = Basic (admin surface reduced to what this member's Website.WebsiteType needs), 1 = General (same admin surface regardless of website type), 2 = Advanced (full surface, e.g. extra-language pages/buttons on an otherwise single-language site)")
+                    AdminUIMode = table.Column<byte>(type: "tinyint unsigned", nullable: false, defaultValue: (byte)1, comment: "0 = Basic (admin surface reduced to what this member's Website.WebsiteType needs), 1 = General (same admin surface regardless of website type), 2 = Advanced (full surface, e.g. extra-language pages/buttons on an otherwise single-language site)"),
+                    IsSiteAdmin = table.Column<bool>(type: "tinyint(1)", nullable: false)
                 },
                 constraints: table =>
                 {
@@ -3430,6 +3476,16 @@ namespace Dotnetable.Migrations.MySql.Migrations
                 .Annotation("MySQL:Charset", "utf8mb4");
 
             migrationBuilder.CreateIndex(
+                name: "IX_AdminNotifications_MemberID",
+                table: "AdminNotifications",
+                column: "MemberID");
+
+            migrationBuilder.CreateIndex(
+                name: "IX_AdminNotifications_WebsiteID",
+                table: "AdminNotifications",
+                column: "WebsiteID");
+
+            migrationBuilder.CreateIndex(
                 name: "IX_AttributeDefinitions_WebsiteID",
                 table: "AttributeDefinitions",
                 column: "WebsiteID");
@@ -3700,6 +3756,12 @@ namespace Dotnetable.Migrations.MySql.Migrations
                 unique: true);
 
             migrationBuilder.CreateIndex(
+                name: "IX_EmailTemplateTranslations_EmailTemplateID_LanguageCode",
+                table: "EmailTemplateTranslations",
+                columns: new[] { "EmailTemplateID", "LanguageCode" },
+                unique: true);
+
+            migrationBuilder.CreateIndex(
                 name: "IX_FileAlbums_WebsiteID",
                 table: "FileAlbums",
                 column: "WebsiteID");
@@ -3805,15 +3867,37 @@ namespace Dotnetable.Migrations.MySql.Migrations
                 column: "JournalEntryID");
 
             migrationBuilder.CreateIndex(
+                name: "UQ_Languages_Admin_LanguageCode",
+                table: "Languages",
+                column: "LanguageCode",
+                unique: true,
+                filter: "WebsiteID IS NULL");
+
+            migrationBuilder.CreateIndex(
                 name: "UQ_Languages_WebsiteID_LanguageCode",
                 table: "Languages",
                 columns: new[] { "WebsiteID", "LanguageCode" },
-                unique: true);
+                unique: true,
+                filter: "WebsiteID IS NOT NULL");
 
             migrationBuilder.CreateIndex(
                 name: "IX_LocalizationKeys_WebsiteID",
                 table: "LocalizationKeys",
                 column: "WebsiteID");
+
+            migrationBuilder.CreateIndex(
+                name: "UQ_LocalizationKeys_Admin_ItemKey",
+                table: "LocalizationKeys",
+                column: "ItemKey",
+                unique: true,
+                filter: "WebsiteID IS NULL");
+
+            migrationBuilder.CreateIndex(
+                name: "UQ_LocalizationKeys_WebsiteID_ItemKey",
+                table: "LocalizationKeys",
+                columns: new[] { "WebsiteID", "ItemKey" },
+                unique: true,
+                filter: "WebsiteID IS NOT NULL");
 
             migrationBuilder.CreateIndex(
                 name: "IX_LocalizationValues_LocalizationKeyID",
@@ -4665,6 +4749,20 @@ namespace Dotnetable.Migrations.MySql.Migrations
                 unique: true);
 
             migrationBuilder.AddForeignKey(
+                name: "FK_AdminNotifications_Members",
+                table: "AdminNotifications",
+                column: "MemberID",
+                principalTable: "Members",
+                principalColumn: "MemberID");
+
+            migrationBuilder.AddForeignKey(
+                name: "FK_AdminNotifications_Websites",
+                table: "AdminNotifications",
+                column: "WebsiteID",
+                principalTable: "Websites",
+                principalColumn: "WebsiteID");
+
+            migrationBuilder.AddForeignKey(
                 name: "FK_AttributeDefinitions_Websites",
                 table: "AttributeDefinitions",
                 column: "WebsiteID",
@@ -4963,20 +5061,16 @@ namespace Dotnetable.Migrations.MySql.Migrations
         protected override void Down(MigrationBuilder migrationBuilder)
         {
             migrationBuilder.DropForeignKey(
+                name: "FK_FileRecords_Members",
+                table: "FileRecords");
+
+            migrationBuilder.DropForeignKey(
                 name: "FK_FileAlbums_Websites",
                 table: "FileAlbums");
 
             migrationBuilder.DropForeignKey(
                 name: "FK_FileRecords_Websites",
                 table: "FileRecords");
-
-            migrationBuilder.DropForeignKey(
-                name: "FK_Members_Websites",
-                table: "Members");
-
-            migrationBuilder.DropForeignKey(
-                name: "FK_Policies_Websites",
-                table: "Policies");
 
             migrationBuilder.DropForeignKey(
                 name: "FK_WebsiteClients_Websites",
@@ -4987,12 +5081,11 @@ namespace Dotnetable.Migrations.MySql.Migrations
                 table: "WebsiteStorageSettings");
 
             migrationBuilder.DropForeignKey(
-                name: "FK_FileRecords_Members",
-                table: "FileRecords");
-
-            migrationBuilder.DropForeignKey(
                 name: "FK_WebsiteClients_FileRecords",
                 table: "WebsiteClients");
+
+            migrationBuilder.DropTable(
+                name: "AdminNotifications");
 
             migrationBuilder.DropTable(
                 name: "AttributeDefinitionTranslations");
@@ -5034,7 +5127,7 @@ namespace Dotnetable.Migrations.MySql.Migrations
                 name: "EmailSubscribes");
 
             migrationBuilder.DropTable(
-                name: "EmailTemplates");
+                name: "EmailTemplateTranslations");
 
             migrationBuilder.DropTable(
                 name: "FileRecordTags");
@@ -5187,6 +5280,9 @@ namespace Dotnetable.Migrations.MySql.Migrations
                 name: "ClientBankAccounts");
 
             migrationBuilder.DropTable(
+                name: "EmailTemplates");
+
+            migrationBuilder.DropTable(
                 name: "FileTags");
 
             migrationBuilder.DropTable(
@@ -5328,16 +5424,16 @@ namespace Dotnetable.Migrations.MySql.Migrations
                 name: "Countries");
 
             migrationBuilder.DropTable(
-                name: "Websites");
-
-            migrationBuilder.DropTable(
-                name: "Currencies");
-
-            migrationBuilder.DropTable(
                 name: "Members");
 
             migrationBuilder.DropTable(
                 name: "Policies");
+
+            migrationBuilder.DropTable(
+                name: "Websites");
+
+            migrationBuilder.DropTable(
+                name: "Currencies");
 
             migrationBuilder.DropTable(
                 name: "FileRecords");

@@ -9,9 +9,11 @@ namespace Dotnetable.Admin.Localization;
 /// <inheritdoc cref="IPageLocalizer"/>
 public sealed class PageLocalizer : IPageLocalizer
 {
-    // Admin UI strings default to English; translations for other languages come from the DB
-    // under the master website only — never under a tenant website's LocalizationKeys.
+    // Admin UI strings default to English; translations live under LocalizationKeys with WebsiteID = null.
     public const string DefaultLanguage = "en";
+
+    /// <summary>Cache / pending key for admin catalog (maps to DB WebsiteID = null).</summary>
+    private const int AdminCacheWebsiteId = 0;
 
     private readonly TranslationCache _cache;
     private readonly ILocalizationService _localization;
@@ -43,15 +45,10 @@ public sealed class PageLocalizer : IPageLocalizer
     }
 
     /// <summary>Signed-in member's website (for content language pickers, etc.). Admin UI strings
-    /// always load from <see cref="AppConstants.MasterWebsiteId"/>.</summary>
+    /// always load from the admin catalog (<c>WebsiteID = null</c>), never from a site bag.</summary>
     public int WebsiteId { get; private set; } = AppConstants.MasterWebsiteId;
     public string LanguageCode { get; private set; } = DefaultLanguage;
 
-    // This instance is scoped per circuit, but several components can call EnsureLoadedAsync
-    // concurrently from their own OnInitializedAsync. Without coordination, two callers would both
-    // see _loaded == false and both drive the same scoped AppDbContext at once, throwing
-    // "A second operation was started on this context instance before a previous operation
-    // completed." Cache the in-flight task so concurrent callers await the same load.
     public Task EnsureLoadedAsync(CancellationToken ct = default)
     {
         if (_loaded) return Task.CompletedTask;
@@ -72,14 +69,11 @@ public sealed class PageLocalizer : IPageLocalizer
 
         LanguageCode = await ResolveLanguageAsync(ct);
 
-        // Admin panel vocabulary always lives on the master website so tenant Website → Translations
-        // stays free of admin UI keys.
-        await _localization.LoadAsync(AppConstants.MasterWebsiteId, LanguageCode, ct);
+        // Admin panel vocabulary: LocalizationKeys.WebsiteID IS NULL — not master site 1.
+        await _localization.LoadAsync(null, LanguageCode, ct);
         _loaded = true;
     }
 
-    // "dn-lang" cookie (set by the header switcher / auth pages) wins; otherwise fall back to the
-    // member's website default language when it is in the admin catalog.
     private async Task<string> ResolveLanguageAsync(CancellationToken ct)
     {
         var options = (await _languageService.GetActiveCatalogAsync(ct)).Select(l => l.ToOption()).ToList();
@@ -100,17 +94,14 @@ public sealed class PageLocalizer : IPageLocalizer
     {
         get
         {
-            if (_cache.TryGet(AppConstants.MasterWebsiteId, LanguageCode, key, out var value))
+            if (_cache.TryGet(AdminCacheWebsiteId, LanguageCode, key, out var value))
                 return value;
 
-            // Before the website/language is resolved, just return the default without side effects —
-            // registering now could file the key under the wrong website.
             if (!_loaded) return defaultValue;
 
-            // Unknown key: queue it for insertion under master only, and cache the default so we
-            // neither re-queue it nor block rendering on a DB round-trip.
-            _pending.Add(AppConstants.MasterWebsiteId, key, defaultValue);
-            _cache.Set(AppConstants.MasterWebsiteId, LanguageCode, key, defaultValue);
+            // Queue under admin catalog (WebsiteID null in DB).
+            _pending.Add(null, key, defaultValue);
+            _cache.Set(AdminCacheWebsiteId, LanguageCode, key, defaultValue);
             return defaultValue;
         }
     }

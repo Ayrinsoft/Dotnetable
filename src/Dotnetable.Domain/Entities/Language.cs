@@ -21,7 +21,11 @@ public partial class Language
 
     public bool RTLDesign { get; set; }
 
-    public int WebsiteID { get; set; }
+    /// <summary>
+    /// <c>null</c> = admin panel language catalog (Initial Data → Languages, admin UI switcher).
+    /// Non-null = languages for that website only (Website → Languages, storefront, content translations).
+    /// </summary>
+    public int? WebsiteID { get; set; }
 
-    public virtual Website Website { get; set; } = null!;
+    public virtual Website? Website { get; set; }
 }

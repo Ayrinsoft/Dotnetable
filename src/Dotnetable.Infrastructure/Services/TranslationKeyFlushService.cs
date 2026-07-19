@@ -1,4 +1,4 @@
-﻿using Dotnetable.Domain.Entities;
+using Dotnetable.Domain.Entities;
 using Dotnetable.Infrastructure.Data;
 using Microsoft.EntityFrameworkCore;
 using Microsoft.Extensions.DependencyInjection;
@@ -11,11 +11,12 @@ namespace Dotnetable.Infrastructure.Services;
 /// Periodically drains <see cref="PendingTranslationKeys"/> and inserts any localization keys that
 /// pages requested but the database didn't have yet. Runs in every host that calls
 /// <c>AddInfrastructure</c>, so newly-used UI strings self-register after the first run.
+/// Admin keys are stored with <c>WebsiteID = null</c>; site keys use their website id.
 /// </summary>
 public sealed class TranslationKeyFlushService : BackgroundService
 {
-    private const int MaxKeyLength = 72;     // mirrors LocalizationKey.ItemKey
-    private const int MaxValueLength = 2000; // mirrors LocalizationKey.DefaultValue
+    private const int MaxKeyLength = 72;
+    private const int MaxValueLength = 2000;
     private static readonly TimeSpan Interval = TimeSpan.FromSeconds(10);
 
     private readonly PendingTranslationKeys _pending;
@@ -42,7 +43,6 @@ public sealed class TranslationKeyFlushService : BackgroundService
             }
             catch (Exception ex)
             {
-                // Never let a transient DB issue stop the loop; retry next tick.
                 _logger.LogWarning(ex, "Flushing new localization keys failed; will retry.");
             }
 
@@ -64,7 +64,7 @@ public sealed class TranslationKeyFlushService : BackgroundService
 
         foreach (var byWebsite in batch.GroupBy(b => b.WebsiteId))
         {
-            var websiteId = byWebsite.Key;
+            var websiteId = byWebsite.Key; // null = admin catalog
             var candidates = byWebsite
                 .Where(b => b.Key.Length <= MaxKeyLength)
                 .GroupBy(b => b.Key)
@@ -81,7 +81,7 @@ public sealed class TranslationKeyFlushService : BackgroundService
 
             foreach (var (_, key, defaultValue) in candidates)
             {
-                if (!existingSet.Add(key)) continue; // already present
+                if (!existingSet.Add(key)) continue;
                 db.LocalizationKeys.Add(new LocalizationKey
                 {
                     WebsiteID = websiteId,
