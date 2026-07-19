@@ -43,7 +43,12 @@ else if (_model is not null)
                     <MudTextField @bind-Value="_model.Title" Label="@L["title", "Title"]" Variant="Variant.Outlined"
                                   Required="true" Class="mb-3" />
                     <MudTextField @bind-Value="_model.Slug" Label="@L["slug", "Slug"]" Variant="Variant.Outlined" Required="true" Class="mb-3" />
-                    <MudText Typo="Typo.body2" Class="mb-1" Color="Color.Secondary">@L["pages.content", "Content"]</MudText>
+                    <MudStack Row="true" AlignItems="AlignItems.Center" Justify="Justify.SpaceBetween" Class="mb-1">
+                        <MudText Typo="Typo.body2" Color="Color.Secondary">@L["pages.content", "Content"]</MudText>
+                        <ContentMediaInsertButton WebsiteId="_model.WebsiteID"
+                                                  CurrentHtml="@_model.Content"
+                                                  HtmlChanged="OnMainContentMediaInserted" />
+                    </MudStack>
                     <CkEditor @key="_editorVersion" Value="@(_model.Content ?? "")" OnValueChanged="@(v => _model!.Content = v)" />
                 </MudPaper>
 
@@ -69,8 +74,14 @@ else if (_model is not null)
                                                       Label="@L["slug", "Slug"]" Variant="Variant.Outlined" Margin="Margin.Dense" />
                                     </MudItem>
                                     <MudItem xs="12">
-                                        <MudText Typo="Typo.caption" Class="mb-1" Color="Color.Secondary">@L["pages.content", "Content"]</MudText>
-                                        <CkEditor Value="@(t.Content ?? "")" OnValueChanged="@(v => t.Content = v)" />
+                                        <MudStack Row="true" AlignItems="AlignItems.Center" Justify="Justify.SpaceBetween" Class="mb-1">
+                                            <MudText Typo="Typo.caption" Color="Color.Secondary">@L["pages.content", "Content"]</MudText>
+                                            <ContentMediaInsertButton WebsiteId="_model!.WebsiteID"
+                                                                      CurrentHtml="@t.Content"
+                                                                      HtmlChanged="@(html => OnTranslationContentMediaInserted(code, html))" />
+                                        </MudStack>
+                                        <CkEditor @key="@($"{code}_{TranslationEditorVersion(code)}")"
+                                                  Value="@(t.Content ?? "")" OnValueChanged="@(v => t.Content = v)" />
                                     </MudItem>
                                 </MudGrid>
                             </MudPaper>
@@ -159,7 +170,8 @@ else if (_model is not null)
     };
 
     private string? _presetKey;
-    private int _editorVersion; // bumped when a preset fills Content so the CkEditor re-renders with it
+    private int _editorVersion; // bumped when content is filled programmatically so CkEditor re-renders
+    private readonly Dictionary<string, int> _translationEditorVersions = new(StringComparer.OrdinalIgnoreCase);
 
     private void ApplyPreset(string? slug)
     {
@@ -216,6 +228,22 @@ else if (_model is not null)
     {
         if (!_translations.TryGetValue(code, out var t)) { t = new TranslationModel(); _translations[code] = t; }
         return t;
+    }
+
+    private int TranslationEditorVersion(string code) =>
+        _translationEditorVersions.TryGetValue(code, out var v) ? v : 0;
+
+    private void OnMainContentMediaInserted(string html)
+    {
+        if (_model is null) return;
+        _model.Content = html;
+        _editorVersion++;
+    }
+
+    private void OnTranslationContentMediaInserted(string code, string html)
+    {
+        Translation(code).Content = html;
+        _translationEditorVersions[code] = TranslationEditorVersion(code) + 1;
     }
 
     private async Task SaveAsync()

@@ -1,0 +1,82 @@
+@inject IDialogService DialogService
+@inject ISnackbar Snackbar
+@inject IPageLocalizer L
+
+<MudButton Size="@Size"
+           Variant="@Variant"
+           Color="Color.Primary"
+           StartIcon="@Icons.Material.Filled.PermMedia"
+           OnClick="PickAndInsertAsync"
+           Disabled="@(WebsiteId <= 0 || Disabled)">
+    @if (!string.IsNullOrWhiteSpace(Label))
+    {
+        @Label
+    }
+    else
+    {
+        @L["content.insert_media", "Insert media"]
+    }
+</MudButton>
+
+@code {
+    /// <summary>Website whose media library is shown (and where new uploads go).</summary>
+    [Parameter] public int WebsiteId { get; set; }
+
+    /// <summary>Current HTML in the target editor field.</summary>
+    [Parameter] public string? CurrentHtml { get; set; }
+
+    /// <summary>Raised with the updated HTML after a file is chosen (content + embed appended).</summary>
+    [Parameter] public EventCallback<string> HtmlChanged { get; set; }
+
+    /// <summary>
+    /// Optional category filter. Leave null to browse images, videos, and other files.
+    /// </summary>
+    [Parameter] public FileCategory? Category { get; set; }
+
+    [Parameter] public string? Label { get; set; }
+    [Parameter] public Size Size { get; set; } = Size.Small;
+    [Parameter] public Variant Variant { get; set; } = Variant.Outlined;
+    [Parameter] public bool Disabled { get; set; }
+
+    private async Task PickAndInsertAsync()
+    {
+        if (WebsiteId <= 0)
+        {
+            Snackbar.Add(L["content.insert_media.no_website", "Select a website first."], Severity.Warning);
+            return;
+        }
+
+        var parameters = new DialogParameters
+        {
+            [nameof(FilePickerDialog.WebsiteId)] = WebsiteId,
+            [nameof(FilePickerDialog.Category)] = Category,
+        };
+        var dialog = await DialogService.ShowAsync<FilePickerDialog>(
+            L["content.insert_media", "Insert media"],
+            parameters,
+            new DialogOptions { MaxWidth = MaxWidth.Medium, FullWidth = true });
+
+        var result = await dialog.Result;
+        if (result is not { Canceled: false, Data: FileRecord file })
+            return;
+
+        var embed = MediaEmbedHtml.ToHtml(file);
+        if (string.IsNullOrEmpty(embed))
+        {
+            Snackbar.Add(L["content.insert_media.no_url", "This file has no public URL yet. Check storage settings."], Severity.Warning);
+            return;
+        }
+
+        var next = MediaEmbedHtml.Append(CurrentHtml, embed);
+        await HtmlChanged.InvokeAsync(next);
+
+        var kind = (FileCategory)file.FileCategory switch
+        {
+            FileCategory.Image => L["media.category.image", "Image"],
+            FileCategory.Video => L["media.category.video", "Video"],
+            FileCategory.Audio => L["media.category.audio", "Audio"],
+            _ => L["media.category.file", "File"],
+        };
+        Snackbar.Add(L["content.insert_media.done", "{0} inserted into content."].Replace("{0}", kind), Severity.Success);
+    }
+}

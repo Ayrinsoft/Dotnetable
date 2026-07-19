@@ -54,9 +54,12 @@
                         </div>
                     }
 
-                    @if (!string.IsNullOrEmpty(_file.CNDUrl))
+                    @{
+                        var detailUrl = MediaFormat.PublicUrl(_file);
+                    }
+                    @if (!string.IsNullOrEmpty(detailUrl))
                     {
-                        <MudTextField Value="_file.CNDUrl" Label="@L["media.cdn_url", "CDN URL"]" Variant="Variant.Outlined" ReadOnly="true"
+                        <MudTextField Value="@detailUrl" Label="@L["media.cdn_url", "CDN URL"]" Variant="Variant.Outlined" ReadOnly="true"
                                       Class="mt-3" Adornment="Adornment.End"
                                       AdornmentIcon="@Icons.Material.Filled.ContentCopy"
                                       OnAdornmentClick="CopyUrlAsync" />
@@ -159,12 +162,22 @@
 
     private async Task CopyUrlAsync()
     {
+        var url = _file is null ? null : MediaFormat.PublicUrl(_file);
+        if (string.IsNullOrWhiteSpace(url))
+        {
+            Snackbar.Add(L["content.insert_media.no_url", "This file has no public URL yet. Check storage settings."], Severity.Warning);
+            return;
+        }
+
         try
         {
-            await JS.InvokeVoidAsync("navigator.clipboard.writeText", _file?.CNDUrl ?? "");
-            Snackbar.Add(L["media.url_copied", "URL copied."], Severity.Info);
+            await JS.InvokeVoidAsync("navigator.clipboard.writeText", url);
+            Snackbar.Add(L["media.url_copied", "URL copied."], Severity.Success);
         }
-        catch { /* clipboard unavailable */ }
+        catch
+        {
+            Snackbar.Add(L["media.url_copy_failed", "Could not copy to clipboard."], Severity.Warning);
+        }
     }
 
     private void Cancel() => MudDialog.Cancel();

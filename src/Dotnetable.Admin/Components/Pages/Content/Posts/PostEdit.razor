@@ -33,8 +33,13 @@ else if (_model is not null)
                     <MudTextField @bind-Value="_model.Slug" Label="@L["slug", "Slug"]" Variant="Variant.Outlined" Required="true" Class="mb-3" />
                     <MudTextField @bind-Value="_model.Excerpt" Label="@L["posts.excerpt", "Excerpt"]" Variant="Variant.Outlined"
                                   Lines="2" AutoGrow="true" Class="mb-3" />
-                    <MudText Typo="Typo.body2" Class="mb-1" Color="Color.Secondary">@L["posts.content", "Content"]</MudText>
-                    <CkEditor Value="@(_model.Content ?? "")" OnValueChanged="@(v => _model!.Content = v)" />
+                    <MudStack Row="true" AlignItems="AlignItems.Center" Justify="Justify.SpaceBetween" Class="mb-1">
+                        <MudText Typo="Typo.body2" Color="Color.Secondary">@L["posts.content", "Content"]</MudText>
+                        <ContentMediaInsertButton WebsiteId="_model.WebsiteID"
+                                                  CurrentHtml="@_model.Content"
+                                                  HtmlChanged="OnMainContentMediaInserted" />
+                    </MudStack>
+                    <CkEditor @key="_mainEditorVersion" Value="@(_model.Content ?? "")" OnValueChanged="@(v => _model!.Content = v)" />
                 </MudPaper>
 
                 @if (_languages.Length > 0)
@@ -54,8 +59,14 @@ else if (_model is not null)
                                     <MudItem xs="12" sm="5"><MudTextField T="string" Value="@t.Slug" ValueChanged="@(v => { t.Slug = v; })" Label="@L["slug", "Slug"]" Variant="Variant.Outlined" Margin="Margin.Dense" /></MudItem>
                                     <MudItem xs="12"><MudTextField T="string" Value="@t.Excerpt" ValueChanged="@(v => { t.Excerpt = v; })" Label="@L["posts.excerpt", "Excerpt"]" Variant="Variant.Outlined" Lines="2" AutoGrow="true" Margin="Margin.Dense" /></MudItem>
                                     <MudItem xs="12">
-                                        <MudText Typo="Typo.caption" Class="mb-1" Color="Color.Secondary">@L["posts.content", "Content"]</MudText>
-                                        <CkEditor Value="@(t.Content ?? "")" OnValueChanged="@(v => t.Content = v)" />
+                                        <MudStack Row="true" AlignItems="AlignItems.Center" Justify="Justify.SpaceBetween" Class="mb-1">
+                                            <MudText Typo="Typo.caption" Color="Color.Secondary">@L["posts.content", "Content"]</MudText>
+                                            <ContentMediaInsertButton WebsiteId="_model!.WebsiteID"
+                                                                      CurrentHtml="@t.Content"
+                                                                      HtmlChanged="@(html => OnTranslationContentMediaInserted(code, html))" />
+                                        </MudStack>
+                                        <CkEditor @key="@($"{code}_{TranslationEditorVersion(code)}")"
+                                                  Value="@(t.Content ?? "")" OnValueChanged="@(v => t.Content = v)" />
                                     </MudItem>
                                 </MudGrid>
                             </MudPaper>
@@ -170,6 +181,8 @@ else if (_model is not null)
 
     private sealed class TranslationModel { public string Title = ""; public string Slug = ""; public string Excerpt = ""; public string Content = ""; }
     private readonly Dictionary<string, TranslationModel> _translations = new(StringComparer.OrdinalIgnoreCase);
+    private int _mainEditorVersion;
+    private readonly Dictionary<string, int> _translationEditorVersions = new(StringComparer.OrdinalIgnoreCase);
 
     protected override async Task OnInitializedAsync()
     {
@@ -218,6 +231,22 @@ else if (_model is not null)
     {
         if (!_translations.TryGetValue(code, out var t)) { t = new TranslationModel(); _translations[code] = t; }
         return t;
+    }
+
+    private int TranslationEditorVersion(string code) =>
+        _translationEditorVersions.TryGetValue(code, out var v) ? v : 0;
+
+    private void OnMainContentMediaInserted(string html)
+    {
+        if (_model is null) return;
+        _model.Content = html;
+        _mainEditorVersion++;
+    }
+
+    private void OnTranslationContentMediaInserted(string code, string html)
+    {
+        Translation(code).Content = html;
+        _translationEditorVersions[code] = TranslationEditorVersion(code) + 1;
     }
 
     private async Task PickImageAsync()
