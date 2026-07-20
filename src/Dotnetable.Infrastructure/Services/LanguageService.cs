@@ -326,6 +326,14 @@ public class LanguageService : ILanguageService
 
     private async Task<List<Language>> SeedAdminCatalogAsync(CancellationToken ct)
     {
+        // Re-check under the same context: another request may have filled the catalog
+        // between LoadCatalogAsync and this seed (setup seeder + first UI load race).
+        var existing = await _context.Languages
+            .Where(l => l.WebsiteID == null)
+            .OrderBy(l => l.Priority)
+            .ToListAsync(ct);
+        if (existing.Count > 0) return existing;
+
         var rows = DefaultLanguages.Select((l, i) => new Language
         {
             WebsiteID = null,

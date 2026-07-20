@@ -98,5 +98,46 @@ public class InitialDataSeederTests : IDisposable
         member.Password.Should().Be("HASHED:secret");
     }
 
+    [Fact]
+    public async Task SeedAsync_SeedsAdminCatalogAndWebsiteDefaultLanguageSeparately()
+    {
+        await _seeder.SeedAsync(_context, NewRequest());
+
+        var admin = await _context.Languages.Where(l => l.WebsiteID == null).ToListAsync();
+        admin.Should().HaveCount(7);
+        admin.Select(l => l.LanguageCode).Should().Contain("en");
+        admin.Single(l => l.LanguageCode == "en").IsDefault.Should().BeTrue();
+
+        var site = await _context.Languages.Where(l => l.WebsiteID != null).ToListAsync();
+        site.Should().ContainSingle();
+        site[0].LanguageCode.Should().Be("en");
+        site[0].WebsiteID.Should().Be(1);
+        site[0].IsDefault.Should().BeTrue();
+    }
+
+    [Fact]
+    public async Task SeedAsync_DoesNotDuplicateAdminLanguageWhenCatalogAlreadyPresent()
+    {
+        _context.Languages.Add(new Language
+        {
+            WebsiteID = null,
+            LanguageCode = "en",
+            LanguageCodeISO = "en-US",
+            Name = "English",
+            Priority = 0,
+            Active = true,
+            IsDefault = true,
+            RTLDesign = false,
+        });
+        await _context.SaveChangesAsync();
+
+        await _seeder.SeedAsync(_context, NewRequest());
+
+        (await _context.Languages.CountAsync(l => l.WebsiteID == null && l.LanguageCode == "en"))
+            .Should().Be(1);
+        (await _context.Languages.CountAsync(l => l.WebsiteID == 1 && l.LanguageCode == "en"))
+            .Should().Be(1);
+    }
+
     public void Dispose() => _context.Dispose();
 }
