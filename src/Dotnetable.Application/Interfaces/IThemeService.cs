@@ -4,24 +4,29 @@ using Dotnetable.Domain.Entities;
 namespace Dotnetable.Application.Interfaces;
 
 /// <summary>
-/// Admin-managed visual themes. Each theme is a named bag of design tokens (JSON); exactly one can
-/// be active per website. Front-ends (React SPA in serverless mode, and any theme-aware layout)
-/// fetch the active theme at runtime and apply it as CSS custom properties — re-theming a deployed
-/// site never needs a rebuild.
+/// WordPress-style website theme packages: install from zip, activate one per website, export zip.
+/// Built-in "Default" always appears and needs no package row.
 /// </summary>
 public interface IThemeService
 {
-    Task<List<WebsiteTheme>> GetThemesAsync(int? websiteId, CancellationToken ct = default);
-    Task<PagedResult<WebsiteTheme>> GetPagedAsync(int? websiteId, GridQuery query, CancellationToken ct = default);
-    Task<WebsiteTheme?> GetThemeAsync(int themeId, CancellationToken ct = default);
-    Task<WebsiteTheme> CreateThemeAsync(WebsiteTheme theme, CancellationToken ct = default);
-    Task UpdateThemeAsync(WebsiteTheme theme, CancellationToken ct = default);
-    Task DeleteThemeAsync(int themeId, CancellationToken ct = default);
+    Task<List<ThemePackageDto>> GetThemesAsync(int websiteId, CancellationToken ct = default);
+    Task<ThemePackageDto?> GetThemeAsync(int websiteId, string slug, CancellationToken ct = default);
+    Task<WebsiteTheme?> GetThemeEntityAsync(int themeId, CancellationToken ct = default);
 
-    /// <summary>Marks a theme active and deactivates every other theme of the same website.</summary>
-    Task ActivateThemeAsync(int themeId, CancellationToken ct = default);
+    Task ActivateThemeAsync(int websiteId, string slug, CancellationToken ct = default);
+    Task DeleteThemeAsync(int websiteId, string slug, CancellationToken ct = default);
 
-    /// <summary>The website's active theme, or null when none is configured (front-ends fall back
-    /// to their built-in defaults).</summary>
-    Task<WebsiteTheme?> GetActiveThemeAsync(int websiteId, CancellationToken ct = default);
+    /// <summary>Install or replace a theme package from a zip stream.</summary>
+    Task<ThemePackageDto> InstallFromZipAsync(int websiteId, Stream zipStream, string? originalFileName = null, CancellationToken ct = default);
+
+    /// <summary>Export a package as zip bytes. Built-in Default is exported from the shared Default folder.</summary>
+    Task<(byte[] Bytes, string FileName)> ExportZipAsync(int websiteId, string slug, CancellationToken ct = default);
+
+    Task<ActiveThemeDto> GetActiveThemeAsync(int websiteId, CancellationToken ct = default);
+
+    /// <summary>Absolute path to a screenshot file, or null.</summary>
+    string? GetScreenshotPath(int websiteId, string slug);
+
+    /// <summary>Absolute filesystem root where theme packages are stored.</summary>
+    string ThemesRoot { get; }
 }

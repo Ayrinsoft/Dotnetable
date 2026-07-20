@@ -18,6 +18,16 @@ window.dotnetableTheme = {
     }
 };
 
+// Admin panel color skin (MudBlazor palette preset). Browser-local only.
+window.dotnetableAdminSkin = {
+    get: function () {
+        try { return localStorage.getItem('dn-admin-skin') || ''; } catch { return ''; }
+    },
+    set: function (value) {
+        try { localStorage.setItem('dn-admin-skin', value || ''); } catch (e) { }
+    }
+};
+
 // Active UI language for both the Blazor admin and the Razor-Pages auth screens. Same
 // localStorage+cookie pattern as dotnetableTheme so pre-render (auth pages, PageLocalizer)
 // can read it server-side while the client keeps a fast local copy.

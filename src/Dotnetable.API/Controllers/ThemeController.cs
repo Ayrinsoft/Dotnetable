@@ -4,9 +4,8 @@ using Microsoft.AspNetCore.Mvc;
 namespace Dotnetable.API.Controllers;
 
 /// <summary>
-/// The caller website's active visual theme. The React SPA (serverless mode) fetches this on boot
-/// and applies the design tokens as CSS custom properties, so the admin can re-theme a deployed
-/// site without rebuilding it.
+/// Public active theme for the caller website. The MVC Web host uses this to resolve the view
+/// root (WordPress-style package under Themes/{viewRoot}).
 /// </summary>
 public class ThemeController : BaseController
 {
@@ -26,14 +25,6 @@ public class ThemeController : BaseController
         if (website is null) return NotFound(new { message = "Website could not be resolved." });
 
         var theme = await _themeService.GetActiveThemeAsync(website.WebsiteID, ct);
-        if (theme is null) return NoContent();
-
-        return Ok(new
-        {
-            theme.WebsiteThemeID,
-            theme.Name,
-            // Serialized token bag; the SPA parses it into CSS custom properties.
-            Settings = theme.SettingsJson,
-        });
+        return Ok(theme);
     }
 }

@@ -2746,11 +2746,17 @@ public partial class AppDbContext : DbContext
         modelBuilder.Entity<WebsiteTheme>(entity =>
         {
             entity.HasIndex(e => e.WebsiteID, "IX_WebsiteThemes_WebsiteID");
+            entity.HasIndex(e => new { e.WebsiteID, e.Slug }, "IX_WebsiteThemes_WebsiteID_Slug")
+                .IsUnique();
 
             entity.Property(e => e.CreatedAt)
                 .HasDefaultValueSql("(sysutcdatetime())", "DF_WebsiteThemes_CreatedAt")
                 .HasColumnType("datetime");
+            entity.Property(e => e.Slug).HasMaxLength(64);
             entity.Property(e => e.Name).HasMaxLength(100);
+            entity.Property(e => e.Version).HasMaxLength(50);
+            entity.Property(e => e.Author).HasMaxLength(100);
+            entity.Property(e => e.Description).HasMaxLength(500);
 
             entity.HasOne(d => d.Website).WithMany(p => p.WebsiteThemes)
                 .HasForeignKey(d => d.WebsiteID)

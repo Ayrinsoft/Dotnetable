@@ -16,7 +16,7 @@ builder.Services.Configure<Microsoft.AspNetCore.Mvc.Razor.RazorViewEngineOptions
     options.ViewLocationExpanders.Add(new ThemeViewLocationExpander());
 });
 
-builder.Services.AddSingleton<IThemeService, ThemeService>();
+builder.Services.AddScoped<IThemeService, ThemeService>();
 builder.Services.AddSingleton<WebLocalizationService>();
 
 // Short-TTL read-through cache for ApiClient's public content reads (menu/categories/pages/posts).

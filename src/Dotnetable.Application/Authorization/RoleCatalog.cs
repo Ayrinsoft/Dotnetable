@@ -81,8 +81,8 @@ public static class RoleCatalog
         new(RoleKeys.FormsReport, "View form reports & responses", RoleCategory.Admin),
 
         // Themes
-        new(RoleKeys.ThemesView, "View themes", RoleCategory.Admin),
-        new(RoleKeys.ThemesEdit, "Create/edit/activate themes", RoleCategory.Admin),
+        new(RoleKeys.ThemesView, "View website theme packages", RoleCategory.Admin),
+        new(RoleKeys.ThemesEdit, "Install/activate/delete website themes", RoleCategory.Admin),
 
         // Content — posts
         new(RoleKeys.PostsView, "View posts", RoleCategory.Admin),

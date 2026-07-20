@@ -190,7 +190,7 @@ public static class ServiceCollectionExtensions
         // Dynamic form / survey builder with response collection and reporting.
         services.AddScoped<IFormService, FormService>();
 
-        // Admin-managed visual themes (design tokens served to the React SPA at runtime).
+        // WordPress-style website theme packages (zip install / activate / export).
         services.AddScoped<IThemeService, ThemeService>();
 
         // Login/forgot-password protection + email.

@@ -1567,8 +1567,12 @@ namespace Dotnetable.Migrations.MySql.Migrations
                     WebsiteThemeID = table.Column<int>(type: "int", nullable: false)
                         .Annotation("MySQL:ValueGenerationStrategy", MySQLValueGenerationStrategy.IdentityColumn),
                     WebsiteID = table.Column<int>(type: "int", nullable: false),
+                    Slug = table.Column<string>(type: "varchar(64)", maxLength: 64, nullable: false),
                     Name = table.Column<string>(type: "varchar(100)", maxLength: 100, nullable: false),
-                    SettingsJson = table.Column<string>(type: "longtext", nullable: false),
+                    Version = table.Column<string>(type: "varchar(50)", maxLength: 50, nullable: true),
+                    Author = table.Column<string>(type: "varchar(100)", maxLength: 100, nullable: true),
+                    Description = table.Column<string>(type: "varchar(500)", maxLength: 500, nullable: true),
+                    HasScreenshot = table.Column<bool>(type: "tinyint(1)", nullable: false),
                     IsActive = table.Column<bool>(type: "tinyint(1)", nullable: false),
                     CreatedAt = table.Column<DateTime>(type: "datetime", nullable: false, defaultValueSql: "(sysutcdatetime())")
                 },
@@ -4715,6 +4719,12 @@ namespace Dotnetable.Migrations.MySql.Migrations
                 name: "IX_WebsiteThemes_WebsiteID",
                 table: "WebsiteThemes",
                 column: "WebsiteID");
+
+            migrationBuilder.CreateIndex(
+                name: "IX_WebsiteThemes_WebsiteID_Slug",
+                table: "WebsiteThemes",
+                columns: new[] { "WebsiteID", "Slug" },
+                unique: true);
 
             migrationBuilder.CreateIndex(
                 name: "IX_WebsiteWatermarkSettings_WatermarkFileID",

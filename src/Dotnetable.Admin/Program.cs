@@ -95,6 +95,25 @@ app.UseAuthentication();
 app.UseAuthorization();
 app.UseAntiforgery();
 
+// Theme package screenshots (WordPress-style). Files live under Themes:RootPath.
+app.MapGet("/theme-files/{websiteId:int}/{slug}/screenshot", async (
+    int websiteId,
+    string slug,
+    IThemeService themes,
+    CancellationToken ct) =>
+{
+    var path = themes.GetScreenshotPath(websiteId, slug);
+    if (path is null || !System.IO.File.Exists(path))
+        return Results.NotFound();
+
+    var contentType = path.EndsWith(".png", StringComparison.OrdinalIgnoreCase) ? "image/png"
+        : path.EndsWith(".jpg", StringComparison.OrdinalIgnoreCase) || path.EndsWith(".jpeg", StringComparison.OrdinalIgnoreCase)
+            ? "image/jpeg"
+            : "application/octet-stream";
+    var bytes = await System.IO.File.ReadAllBytesAsync(path, ct);
+    return Results.File(bytes, contentType);
+}).RequireAuthorization();
+
 app.MapRazorPages();
 app.MapRazorComponents<Dotnetable.Admin.Components.App>()
     .AddInteractiveServerRenderMode();

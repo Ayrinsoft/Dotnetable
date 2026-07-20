@@ -5244,10 +5244,21 @@ namespace Dotnetable.Migrations.SqlServer.Migrations
 
                     SqlServerPropertyBuilderExtensions.UseIdentityColumn(b.Property<int>("WebsiteThemeID"));
 
+                    b.Property<string>("Author")
+                        .HasMaxLength(100)
+                        .HasColumnType("nvarchar(100)");
+
                     b.Property<DateTime>("CreatedAt")
                         .ValueGeneratedOnAdd()
                         .HasColumnType("datetime")
                         .HasDefaultValueSql("(sysutcdatetime())", "DF_WebsiteThemes_CreatedAt");
+
+                    b.Property<string>("Description")
+                        .HasMaxLength(500)
+                        .HasColumnType("nvarchar(500)");
+
+                    b.Property<bool>("HasScreenshot")
+                        .HasColumnType("bit");
 
                     b.Property<bool>("IsActive")
                         .HasColumnType("bit");
@@ -5257,9 +5268,14 @@ namespace Dotnetable.Migrations.SqlServer.Migrations
                         .HasMaxLength(100)
                         .HasColumnType("nvarchar(100)");
 
-                    b.Property<string>("SettingsJson")
+                    b.Property<string>("Slug")
                         .IsRequired()
-                        .HasColumnType("nvarchar(max)");
+                        .HasMaxLength(64)
+                        .HasColumnType("nvarchar(64)");
+
+                    b.Property<string>("Version")
+                        .HasMaxLength(50)
+                        .HasColumnType("nvarchar(50)");
 
                     b.Property<int>("WebsiteID")
                         .HasColumnType("int");
@@ -5267,6 +5283,9 @@ namespace Dotnetable.Migrations.SqlServer.Migrations
                     b.HasKey("WebsiteThemeID");
 
                     b.HasIndex(new[] { "WebsiteID" }, "IX_WebsiteThemes_WebsiteID");
+
+                    b.HasIndex(new[] { "WebsiteID", "Slug" }, "IX_WebsiteThemes_WebsiteID_Slug")
+                        .IsUnique();
 
                     b.ToTable("WebsiteThemes");
                 });
