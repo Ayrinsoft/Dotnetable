@@ -1,6 +1,7 @@
 @page "/media"
 @attribute [Authorize(Policy = RoleKeys.MediaView)]
 @inject IFileService FileService
+@inject IStorageSettingService StorageService
 @inject IWebsiteService WebsiteService
 @inject IDialogService DialogService
 @inject ISnackbar Snackbar
@@ -25,9 +26,12 @@
         <MudButton Variant="Variant.Outlined" Color="Color.Default"
                    StartIcon="@Icons.Material.Filled.Cloud" Href="/media/storage">@L["storage", "Storage"]</MudButton>
         <MudButton Variant="Variant.Filled" Color="Color.Primary"
-                   StartIcon="@Icons.Material.Filled.CloudUpload" OnClick="OpenUploadAsync">@L["media.upload", "Upload"]</MudButton>
+                   StartIcon="@Icons.Material.Filled.CloudUpload" OnClick="OpenUploadAsync"
+                   Disabled="@(!_hasActiveStorage)">@L["media.upload", "Upload"]</MudButton>
     </MudStack>
 </MudStack>
+
+<DNPrerequisiteAlert Items="_prerequisites" />
 
 <MudGrid Spacing="3">
     @* ── Left rail ─────────────────────────────────────── *@
@@ -250,6 +254,8 @@
     private bool _isMaster;
     private int _websiteId;
     private bool _loading = true;
+    private bool _hasActiveStorage;
+    private List<DNPrerequisiteAlert.Item> _prerequisites = new();
 
     private List<Website> _websites = new();
     private List<FileRecord> _items = new();
@@ -293,6 +299,7 @@
             if (_websiteId == 0 && _websites.Count > 0) _websiteId = _websites[0].WebsiteID;
         }
         await ReloadSidebarAsync();
+        await RefreshPrerequisitesAsync();
         await LoadAsync();
     }
 
@@ -301,6 +308,7 @@
         _websiteId = websiteId;
         ResetFilters(keepSearch: false);
         await ReloadSidebarAsync();
+        await RefreshPrerequisitesAsync();
         await LoadAsync();
     }
 
@@ -308,6 +316,13 @@
     {
         _albums = await FileService.GetAlbumsAsync(_websiteId);
         _tags = await FileService.GetTagsAsync(_websiteId);
+    }
+
+    private async Task RefreshPrerequisitesAsync()
+    {
+        var storages = await StorageService.GetActiveForWebsiteAsync(_websiteId);
+        _hasActiveStorage = storages.Count > 0;
+        _prerequisites = ContentPrerequisiteHelper.ForMediaStorage(L, storages.Count);
     }
 
     private void ApplyListFiltersToModel()

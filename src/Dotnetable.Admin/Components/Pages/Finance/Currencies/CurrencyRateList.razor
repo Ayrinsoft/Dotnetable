@@ -24,12 +24,15 @@
         }
         @if (_canEdit)
         {
-            <MudButton Variant="Variant.Filled" Color="Color.Primary" StartIcon="@Icons.Material.Filled.Add" OnClick="CreateAsync">
+            <MudButton Variant="Variant.Filled" Color="Color.Primary" StartIcon="@Icons.Material.Filled.Add" OnClick="CreateAsync"
+                       Disabled="@(_currencies.Count == 0)">
                 @L["currency_rates.new", "New Rate"]
             </MudButton>
         }
     </MudStack>
 </MudStack>
+
+<DNPrerequisiteAlert Items="_prerequisites" />
 
 <MudPaper Elevation="0" Class="app-card rounded-lg pa-4">
     @if (_loading)
@@ -85,6 +88,7 @@
     private List<CurrencyRate> _items = new();
     private List<Currency> _currencies = new();
     private List<Website> _websites = new();
+    private List<DNPrerequisiteAlert.Item> _prerequisites = new();
     private GridViewHeaderParameters _grid = new();
 
     protected override async Task OnInitializedAsync()
@@ -96,6 +100,7 @@
         int.TryParse(user.FindFirst(AdminClaimTypes.WebsiteId)?.Value, out _websiteId);
         if (_isMaster) _websites = (await WebsiteService.GetAllAsync()).ToList();
         _currencies = await CurrencyService.GetAllAsync();
+        _prerequisites = ContentPrerequisiteHelper.ForCurrencyRates(L, _currencies.Count);
 
         _grid = new GridViewHeaderParameters
         {
