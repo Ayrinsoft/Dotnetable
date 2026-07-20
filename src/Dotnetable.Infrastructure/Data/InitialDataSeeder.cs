@@ -42,6 +42,13 @@ public class InitialDataSeeder : IInitialDataSeeder
                 await context.SaveChangesAsync(ct);
             }
 
+            // Resolve storefront default language once (normalized 2-letter code).
+            var siteLangCode = string.IsNullOrWhiteSpace(request.DefaultLanguageCode)
+                ? "en"
+                : request.DefaultLanguageCode.Trim().ToLowerInvariant();
+            if (siteLangCode.Length > 2)
+                siteLangCode = siteLangCode[..2];
+
             // 2. Master website. As the first row inserted into an empty table it receives WebsiteID 1.
             var website = new Website
             {
@@ -51,7 +58,7 @@ public class InitialDataSeeder : IInitialDataSeeder
                 Manager = request.Manager,
                 Mobile = request.Mobile,
                 Email = request.WebsiteEmail,
-                DefaultLanguageCode = request.DefaultLanguageCode,
+                DefaultLanguageCode = siteLangCode,
                 DefaultCurrencyCode = currencyCode,
                 RegisterDate = DateOnly.FromDateTime(DateTime.UtcNow),
                 AuthCode = Guid.NewGuid(),
@@ -70,6 +77,8 @@ public class InitialDataSeeder : IInitialDataSeeder
 
             // 2a. Admin panel language catalog (WebsiteID = null) — UI switcher / Initial Data → Languages.
             // Independent of every website, including master site 1.
+            // Skip codes already present (partial prior seed / LanguageService auto-seed) so we never
+            // hit UQ_Languages_Admin_LanguageCode on re-run or race.
             var languageDefaults = new (string Code, string Iso, string Name, bool Rtl)[]
             {
                 ("en", "en-US", "English",  false),
@@ -80,36 +89,54 @@ public class InitialDataSeeder : IInitialDataSeeder
                 ("fa", "fa-IR", "فارسی",    true),
                 ("ar", "ar-SA", "العربية",  true),
             };
-            context.Languages.AddRange(languageDefaults.Select((l, i) => new Language
-            {
-                WebsiteID = null,
-                LanguageCode = l.Code,
-                LanguageCodeISO = l.Iso,
-                Name = l.Name,
-                Priority = i,
-                Active = true,
-                IsDefault = l.Code == "en",
-                RTLDesign = l.Rtl,
-            }));
+            var existingAdminCodes = (await context.Languages
+                    .Where(l => l.WebsiteID == null)
+                    .Select(l => l.LanguageCode)
+                    .ToListAsync(ct))
+                .Select(c => c.Trim().ToLowerInvariant())
+                .ToHashSet(StringComparer.OrdinalIgnoreCase);
+
+            var adminToAdd = languageDefaults
+                .Where(l => !existingAdminCodes.Contains(l.Code))
+                .Select(l => new Language
+                {
+                    WebsiteID = null,
+                    LanguageCode = l.Code,
+                    LanguageCodeISO = l.Iso,
+                    Name = l.Name,
+                    // Preserve catalog priority from the full defaults list, not the filtered subset.
+                    Priority = Array.FindIndex(languageDefaults, d => d.Code == l.Code),
+                    Active = true,
+                    IsDefault = l.Code == "en",
+                    RTLDesign = l.Rtl,
+                })
+                .ToList();
+            if (adminToAdd.Count > 0)
+                context.Languages.AddRange(adminToAdd);
 
             // 2b. Master website starts with only its default language (storefront/content).
             // More languages are added later under Website → Languages when needed.
-            var siteLangCode = string.IsNullOrWhiteSpace(request.DefaultLanguageCode)
-                ? "en"
-                : request.DefaultLanguageCode.Trim().ToLowerInvariant();
-            var siteLangMeta = languageDefaults.FirstOrDefault(l =>
-                string.Equals(l.Code, siteLangCode, StringComparison.OrdinalIgnoreCase));
-            context.Languages.Add(new Language
+            // Bind via navigation (not only WebsiteID) so the FK is never left null in the change tracker.
+            var siteLangAlreadyExists = await context.Languages.AnyAsync(
+                l => l.WebsiteID == website.WebsiteID && l.LanguageCode == siteLangCode, ct);
+            if (!siteLangAlreadyExists)
             {
-                WebsiteID = website.WebsiteID,
-                LanguageCode = siteLangCode,
-                LanguageCodeISO = siteLangMeta.Code is not null ? siteLangMeta.Iso : siteLangCode,
-                Name = siteLangMeta.Code is not null ? siteLangMeta.Name : siteLangCode.ToUpperInvariant(),
-                Priority = 0,
-                Active = true,
-                IsDefault = true,
-                RTLDesign = siteLangMeta.Code is not null && siteLangMeta.Rtl,
-            });
+                var siteLangMeta = languageDefaults.FirstOrDefault(l =>
+                    string.Equals(l.Code, siteLangCode, StringComparison.OrdinalIgnoreCase));
+                context.Languages.Add(new Language
+                {
+                    Website = website,
+                    WebsiteID = website.WebsiteID,
+                    LanguageCode = siteLangCode,
+                    LanguageCodeISO = siteLangMeta.Code is not null ? siteLangMeta.Iso : siteLangCode,
+                    Name = siteLangMeta.Code is not null ? siteLangMeta.Name : siteLangCode.ToUpperInvariant(),
+                    Priority = 0,
+                    Active = true,
+                    IsDefault = true,
+                    RTLDesign = siteLangMeta.Code is not null && siteLangMeta.Rtl,
+                });
+            }
+
             await context.SaveChangesAsync(ct);
 
             // 4. Seed every permission (admin + client) from the catalog.
