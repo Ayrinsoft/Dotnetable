@@ -12,7 +12,7 @@
         @if (_previewDataUrl is not null)
         {
             <MudText Typo="Typo.caption" Color="Color.Secondary" Class="mb-1 d-block">
-                @L["upload.crop_hint", "Drag on the image to crop. Leave empty to keep the full image."]
+                @L["upload.crop_hint", "Drag to select a crop. Then move the box or drag its handles to adjust. Leave empty to keep the full image."]
             </MudText>
             <canvas id="@_canvasId" style="max-width:100%;border:1px solid var(--mud-palette-lines-default);border-radius:4px;cursor:crosshair;touch-action:none;"></canvas>
             <MudButton Size="Size.Small" Variant="Variant.Text" OnClick="ClearCrop" Class="mt-1">
