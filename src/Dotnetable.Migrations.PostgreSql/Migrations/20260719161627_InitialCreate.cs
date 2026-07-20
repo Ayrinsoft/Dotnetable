@@ -1499,8 +1499,12 @@ namespace Dotnetable.Migrations.PostgreSql.Migrations
                     WebsiteThemeID = table.Column<int>(type: "integer", nullable: false)
                         .Annotation("Npgsql:ValueGenerationStrategy", NpgsqlValueGenerationStrategy.IdentityByDefaultColumn),
                     WebsiteID = table.Column<int>(type: "integer", nullable: false),
+                    Slug = table.Column<string>(type: "character varying(64)", maxLength: 64, nullable: false),
                     Name = table.Column<string>(type: "character varying(100)", maxLength: 100, nullable: false),
-                    SettingsJson = table.Column<string>(type: "text", nullable: false),
+                    Version = table.Column<string>(type: "character varying(50)", maxLength: 50, nullable: true),
+                    Author = table.Column<string>(type: "character varying(100)", maxLength: 100, nullable: true),
+                    Description = table.Column<string>(type: "character varying(500)", maxLength: 500, nullable: true),
+                    HasScreenshot = table.Column<bool>(type: "boolean", nullable: false),
                     IsActive = table.Column<bool>(type: "boolean", nullable: false),
                     CreatedAt = table.Column<DateTime>(type: "datetime", nullable: false, defaultValueSql: "(sysutcdatetime())")
                 },
@@ -4589,6 +4593,12 @@ namespace Dotnetable.Migrations.PostgreSql.Migrations
                 name: "IX_WebsiteThemes_WebsiteID",
                 table: "WebsiteThemes",
                 column: "WebsiteID");
+
+            migrationBuilder.CreateIndex(
+                name: "IX_WebsiteThemes_WebsiteID_Slug",
+                table: "WebsiteThemes",
+                columns: new[] { "WebsiteID", "Slug" },
+                unique: true);
 
             migrationBuilder.CreateIndex(
                 name: "IX_WebsiteWatermarkSettings_WatermarkFileID",

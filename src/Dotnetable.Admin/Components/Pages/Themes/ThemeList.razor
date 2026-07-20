@@ -1,11 +1,13 @@
 @page "/themes"
 @attribute [Authorize(Policy = RoleKeys.ThemesView)]
+@using Dotnetable.Application.DTOs
 @inject IThemeService ThemeService
 @inject IWebsiteService WebsiteService
 @inject AuthenticationStateProvider AuthState
 @inject IDialogService DialogService
 @inject ISnackbar Snackbar
 @inject IPageLocalizer L
+@inject IJSRuntime JS
 
 <DNPageTitle Title=@L["themes", "Themes"] />
 
@@ -13,92 +15,146 @@
     <MudStack Spacing="0">
         <MudText Typo="Typo.h5" Class="fw-bold">@L["themes", "Themes"]</MudText>
         <MudText Typo="Typo.body2" Color="Color.Secondary">
-            @L["themes.subtitle", "Design tokens the public front-end applies at runtime — activate a theme to restyle the site without redeploying."]
+            @L["themes.subtitle", "Install a theme package (zip) and activate it for this website’s public storefront — like WordPress."]
         </MudText>
     </MudStack>
     @if (_canEdit)
     {
-        <MudButton Variant="Variant.Filled" Color="Color.Primary"
-                   StartIcon="@Icons.Material.Filled.Add" OnClick="CreateAsync">
-            @L["themes.new", "New Theme"]
-        </MudButton>
+        <MudFileUpload T="IBrowserFile" FilesChanged="UploadAsync" Accept=".zip,application/zip"
+                       MaximumFileCount="1" Class="d-inline-flex">
+            <ActivatorContent>
+                <MudButton Variant="Variant.Filled" Color="Color.Primary"
+                           StartIcon="@Icons.Material.Filled.Upload"
+                           Disabled="@_uploading">
+                    @if (_uploading)
+                    {
+                        <MudProgressCircular Size="Size.Small" Indeterminate="true" Class="me-2" />
+                    }
+                    @L["themes.upload", "Upload theme"]
+                </MudButton>
+            </ActivatorContent>
+        </MudFileUpload>
     }
 </MudStack>
 
-<MudPaper Elevation="0" Class="app-card rounded-lg pa-4">
-    @if (_loading)
-    {
-        <MudProgressLinear Indeterminate="true" Color="Color.Primary" Class="mb-3" />
-    }
-    <DNGridView GridHeaderParams="_grid" OnSearchChanged="OnGridChanged">
-        @if (_themes.Count == 0)
+@if (_isMaster)
+{
+    <MudPaper Elevation="0" Class="app-card rounded-lg pa-3 mb-4">
+        <WebsiteSelector Value="_websiteId" ValueChanged="OnWebsiteChanged"
+                         Websites="_websites" Label="@L["website", "Website"]"
+                         Variant="Variant.Outlined" />
+    </MudPaper>
+}
+
+@if (_loading)
+{
+    <MudProgressLinear Indeterminate="true" Color="Color.Primary" Class="mb-3" />
+}
+else if (_websiteId <= 0)
+{
+    <MudAlert Severity="Severity.Info" Elevation="0">
+        @L["themes.pick_website", "Select a website to manage its themes."]
+    </MudAlert>
+}
+else if (_themes.Count == 0)
+{
+    <MudAlert Severity="Severity.Info" Elevation="0">
+        @L["themes.empty", "No themes available."]
+    </MudAlert>
+}
+else
+{
+    <MudGrid Spacing="3">
+        @foreach (var t in _themes)
         {
-            <tr>
-                <td colspan="@(_isMaster ? 6 : 5)" style="text-align:center; padding:32px;">
-                    <MudText Color="Color.Secondary">@L["themes.empty", "No themes yet. The front-end uses its built-in defaults."]</MudText>
-                </td>
-            </tr>
-        }
-        else
-        {
-            @foreach (var t in _themes)
-            {
-                <tr>
-                    <td>@t.WebsiteThemeID</td>
-                    <td>@t.Name</td>
-                    @if (_isMaster)
-                    {
-                        <td>#@t.WebsiteID</td>
-                    }
-                    <td>
-                        <MudStack Row="true" Spacing="1">
-                            @foreach (var color in PreviewColors(t))
-                            {
-                                <div style="width:20px;height:20px;border-radius:4px;border:1px solid rgba(128,128,128,.35);background:@color"></div>
-                            }
-                        </MudStack>
-                    </td>
-                    <td>
+            <MudItem xs="12" sm="6" md="4" lg="3">
+                <MudPaper Elevation="0" Class="app-card rounded-lg overflow-hidden d-flex flex-column"
+                          Style="@(t.IsActive ? "outline:2px solid var(--mud-palette-primary);" : null)">
+                    <div style="height:160px;background:linear-gradient(135deg,#2d353c 0%,#4a5560 100%);display:flex;align-items:center;justify-content:center;position:relative;">
+                        @if (t.HasScreenshot)
+                        {
+                            <img src="@ScreenshotUrl(t)" alt="@t.Name"
+                                 style="width:100%;height:160px;object-fit:cover;" />
+                        }
+                        else
+                        {
+                            <MudIcon Icon="@Icons.Material.Filled.Palette" Size="Size.Large" Style="color:#a8acb1;" />
+                        }
                         @if (t.IsActive)
                         {
-                            <MudChip T="string" Size="Size.Small" Color="Color.Success" Variant="Variant.Text">
+                            <MudChip T="string" Size="Size.Small" Color="Color.Success" Class="ma-2"
+                                     Style="position:absolute;top:0;inset-inline-start:0;">
                                 @L["themes.active", "Active"]
                             </MudChip>
                         }
-                        else if (_canEdit)
+                        @if (t.IsBuiltin)
                         {
-                            <MudButton Size="Size.Small" Variant="Variant.Outlined" Color="Color.Primary"
-                                       OnClick="@(() => ActivateAsync(t))">
-                                @L["themes.activate", "Activate"]
-                            </MudButton>
+                            <MudChip T="string" Size="Size.Small" Color="Color.Info" Variant="Variant.Filled" Class="ma-2"
+                                     Style="position:absolute;top:0;inset-inline-end:0;">
+                                @L["themes.builtin", "Built-in"]
+                            </MudChip>
                         }
-                    </td>
-                    <td>
-                        <MudStack Row="true" Spacing="0">
+                    </div>
+                    <div class="pa-3 d-flex flex-column flex-grow-1">
+                        <MudText Typo="Typo.subtitle1" Class="fw-bold">@t.Name</MudText>
+                        <MudText Typo="Typo.caption" Color="Color.Secondary">
+                            @t.Slug
+                            @if (!string.IsNullOrWhiteSpace(t.Version))
+                            {
+                                <span> · v@t.Version</span>
+                            }
+                        </MudText>
+                        @if (!string.IsNullOrWhiteSpace(t.Author))
+                        {
+                            <MudText Typo="Typo.caption" Color="Color.Secondary">@t.Author</MudText>
+                        }
+                        @if (!string.IsNullOrWhiteSpace(t.Description))
+                        {
+                            <MudText Typo="Typo.body2" Class="mt-1" Style="display:-webkit-box;-webkit-line-clamp:2;-webkit-box-orient:vertical;overflow:hidden;">
+                                @t.Description
+                            </MudText>
+                        }
+                        <MudStack Row="true" Spacing="1" Class="mt-3" Justify="Justify.FlexEnd">
+                            <MudTooltip Text="@L["themes.download", "Download zip"]">
+                                <MudIconButton Icon="@Icons.Material.Filled.Download" Size="Size.Small"
+                                               Color="Color.Default" OnClick="@(() => DownloadAsync(t))"
+                                               Disabled="@_busy" />
+                            </MudTooltip>
                             @if (_canEdit)
                             {
-                                <MudIconButton Icon="@Icons.Material.Filled.Edit" Size="Size.Small"
-                                               Color="Color.Default" OnClick="@(() => EditAsync(t))" />
-                                <MudIconButton Icon="@Icons.Material.Filled.Delete" Size="Size.Small"
-                                               Color="Color.Error" Disabled="@t.IsActive"
-                                               OnClick="@(() => DeleteAsync(t))" />
+                                @if (!t.IsActive)
+                                {
+                                    <MudButton Size="Size.Small" Variant="Variant.Filled" Color="Color.Primary"
+                                               OnClick="@(() => ActivateAsync(t))" Disabled="@_busy">
+                                        @L["themes.activate", "Activate"]
+                                    </MudButton>
+                                }
+                                @if (!t.IsBuiltin)
+                                {
+                                    <MudIconButton Icon="@Icons.Material.Filled.Delete" Size="Size.Small"
+                                                   Color="Color.Error" Disabled="@(t.IsActive || _busy)"
+                                                   OnClick="@(() => DeleteAsync(t))" />
+                                }
                             }
                         </MudStack>
-                    </td>
-                </tr>
-            }
+                    </div>
+                </MudPaper>
+            </MudItem>
         }
-    </DNGridView>
-</MudPaper>
+    </MudGrid>
+}
 
 @code {
+    private const long MaxZipBytes = 50 * 1024 * 1024;
+
     private bool _loading = true;
+    private bool _uploading;
+    private bool _busy;
     private bool _isMaster;
     private bool _canEdit;
     private int _websiteId;
-    private List<WebsiteTheme> _themes = new();
+    private List<ThemePackageDto> _themes = new();
     private List<Website> _websites = new();
-    private GridViewHeaderParameters _grid = new();
 
     protected override async Task OnInitializedAsync()
     {
@@ -108,119 +164,124 @@
         _isMaster = user.HasClaim(AdminClaimTypes.Master, "true");
         _canEdit = AdminPolicies.Allows(user, RoleKeys.ThemesEdit);
         int.TryParse(user.FindFirst(AdminClaimTypes.WebsiteId)?.Value, out _websiteId);
-        if (_isMaster) _websites = (await WebsiteService.GetAllAsync()).ToList();
 
-        var headers = new List<GridViewHeaderParameters.HeaderItemDetail>
-        {
-            new() { ColumnTitle = L["id", "ID"], ColumnName = nameof(WebsiteTheme.WebsiteThemeID), HasSort = true },
-            new() { ColumnTitle = L["name", "Name"], ColumnName = nameof(WebsiteTheme.Name), HasSort = true, HasSearch = true },
-        };
         if (_isMaster)
-            headers.Add(new() { ColumnTitle = L["website", "Website"], ColumnName = nameof(WebsiteTheme.WebsiteID), HasSort = true });
-        headers.Add(new() { ColumnTitle = L["themes.preview", "Preview"], ColumnName = "" });
-        headers.Add(new() { ColumnTitle = L["themes.active", "Active"], ColumnName = nameof(WebsiteTheme.IsActive), HasSort = true });
-        headers.Add(new() { ColumnTitle = "", ColumnName = "" });
-
-        _grid = new GridViewHeaderParameters
         {
-            Pagination = new PaginationModel { PageSize = 25 },
-            HeaderItems = headers,
-        };
+            _websites = (await WebsiteService.GetAllAsync()).ToList();
+            if (_websiteId <= 0 && _websites.Count > 0)
+                _websiteId = _websites[0].WebsiteID;
+        }
 
         await LoadAsync();
     }
 
-    private Task OnGridChanged(GridViewHeaderParameters _) => LoadAsync();
+    private async Task OnWebsiteChanged(int id)
+    {
+        _websiteId = id;
+        await LoadAsync();
+    }
 
     private async Task LoadAsync()
     {
-        _loading = true;
-        var result = await ThemeService.GetPagedAsync(_isMaster ? null : _websiteId, _grid.ToQuery());
-        _themes = result.Items.ToList();
-        _grid.Pagination.MaxLength = result.TotalCount;
-        _loading = false;
-    }
+        if (_websiteId <= 0)
+        {
+            _themes = new();
+            _loading = false;
+            return;
+        }
 
-    /// <summary>Color swatches parsed out of the theme JSON for the list preview.</summary>
-    private static IEnumerable<string> PreviewColors(WebsiteTheme theme)
-    {
-        var colors = new List<string>();
+        _loading = true;
         try
         {
-            using var doc = global::System.Text.Json.JsonDocument.Parse(theme.SettingsJson);
-            if (doc.RootElement.TryGetProperty("colors", out var colorMap) &&
-                colorMap.ValueKind == global::System.Text.Json.JsonValueKind.Object)
-            {
-                foreach (var color in colorMap.EnumerateObject())
-                {
-                    if (color.Value.ValueKind == global::System.Text.Json.JsonValueKind.String)
-                        colors.Add(color.Value.GetString()!);
-                    if (colors.Count == 5) break;
-                }
-            }
+            _themes = await ThemeService.GetThemesAsync(_websiteId);
         }
-        catch (global::System.Text.Json.JsonException) { /* malformed JSON — no preview */ }
-        return colors;
-    }
-
-    private async Task ActivateAsync(WebsiteTheme theme)
-    {
-        await ThemeService.ActivateThemeAsync(theme.WebsiteThemeID);
-        Snackbar.Add(L["themes.activated", "Theme activated."], Severity.Success);
-        await LoadAsync();
-    }
-
-    private async Task CreateAsync()
-    {
-        var result = await ShowDialogAsync(new WebsiteTheme
+        finally
         {
-            WebsiteID = _websiteId,
-            SettingsJson = ThemeDialog.DefaultSettingsJson,
-        }, isNew: true);
-        if (result) await LoadAsync();
+            _loading = false;
+        }
     }
 
-    private async Task EditAsync(WebsiteTheme theme)
+    private string ScreenshotUrl(ThemePackageDto t) =>
+        $"/theme-files/{t.WebsiteID}/{Uri.EscapeDataString(t.Slug)}/screenshot?v={t.CreatedAt?.Ticks ?? 0}";
+
+    private async Task ActivateAsync(ThemePackageDto theme)
     {
-        var model = new WebsiteTheme
+        _busy = true;
+        try
         {
-            WebsiteThemeID = theme.WebsiteThemeID,
-            WebsiteID = theme.WebsiteID,
-            Name = theme.Name,
-            SettingsJson = theme.SettingsJson,
-            IsActive = theme.IsActive,
-            CreatedAt = theme.CreatedAt,
-        };
-        var result = await ShowDialogAsync(model, isNew: false);
-        if (result) await LoadAsync();
+            await ThemeService.ActivateThemeAsync(_websiteId, theme.Slug);
+            Snackbar.Add(L["themes.activated", "Theme activated."], Severity.Success);
+            await LoadAsync();
+        }
+        catch (Exception ex)
+        {
+            Snackbar.Add($"{L["themes.activate_failed", "Activate failed"]}: {ex.Message}", Severity.Error);
+        }
+        finally { _busy = false; }
     }
 
-    private async Task<bool> ShowDialogAsync(WebsiteTheme theme, bool isNew)
-    {
-        var parameters = new DialogParameters<ThemeDialog>
-        {
-            { x => x.Model, theme },
-            { x => x.IsNew, isNew },
-            { x => x.AllowWebsiteEdit, _isMaster },
-            { x => x.Websites, _websites },
-        };
-        var dialog = await DialogService.ShowAsync<ThemeDialog>(
-            isNew ? L["themes.new", "New Theme"] : L["themes.edit", "Edit Theme"], parameters,
-            new DialogOptions { MaxWidth = MaxWidth.Medium, FullWidth = true });
-        var result = await dialog.Result;
-        return result is not null && !result.Canceled;
-    }
-
-    private async Task DeleteAsync(WebsiteTheme theme)
+    private async Task DeleteAsync(ThemePackageDto theme)
     {
         var confirmed = await DialogService.ShowMessageBoxAsync(
             L["themes.delete", "Delete theme"],
-            L["themes.delete_confirm", "Delete this theme?"],
+            L["themes.delete_confirm", "Delete this theme package from the website?"],
             yesText: L["delete", "Delete"], cancelText: L["cancel", "Cancel"]);
         if (confirmed != true) return;
 
-        await ThemeService.DeleteThemeAsync(theme.WebsiteThemeID);
-        Snackbar.Add(L["deleted", "Deleted."], Severity.Success);
-        await LoadAsync();
+        _busy = true;
+        try
+        {
+            await ThemeService.DeleteThemeAsync(_websiteId, theme.Slug);
+            Snackbar.Add(L["deleted", "Deleted."], Severity.Success);
+            await LoadAsync();
+        }
+        catch (Exception ex)
+        {
+            Snackbar.Add($"{L["delete_failed", "Delete failed"]}: {ex.Message}", Severity.Error);
+        }
+        finally { _busy = false; }
+    }
+
+    private async Task DownloadAsync(ThemePackageDto theme)
+    {
+        _busy = true;
+        try
+        {
+            var (bytes, fileName) = await ThemeService.ExportZipAsync(_websiteId, theme.Slug);
+            var b64 = Convert.ToBase64String(bytes);
+            await JS.InvokeVoidAsync("dotnetableFile.download", fileName, b64, "application/zip");
+        }
+        catch (Exception ex)
+        {
+            Snackbar.Add($"{L["themes.download_failed", "Download failed"]}: {ex.Message}", Severity.Error);
+        }
+        finally { _busy = false; }
+    }
+
+    private async Task UploadAsync(IBrowserFile? file)
+    {
+        if (file is null || _websiteId <= 0) return;
+        if (file.Size > MaxZipBytes)
+        {
+            Snackbar.Add(L["themes.zip_too_large", "Theme zip must be 50 MB or smaller."], Severity.Error);
+            return;
+        }
+
+        _uploading = true;
+        try
+        {
+            await using var stream = file.OpenReadStream(MaxZipBytes);
+            await using var ms = new MemoryStream();
+            await stream.CopyToAsync(ms);
+            ms.Position = 0;
+            var installed = await ThemeService.InstallFromZipAsync(_websiteId, ms, file.Name);
+            Snackbar.Add(L["themes.installed", "Theme installed: {0}"].Replace("{0}", installed.Name), Severity.Success);
+            await LoadAsync();
+        }
+        catch (Exception ex)
+        {
+            Snackbar.Add($"{L["themes.install_failed", "Install failed"]}: {ex.Message}", Severity.Error);
+        }
+        finally { _uploading = false; }
     }
 }

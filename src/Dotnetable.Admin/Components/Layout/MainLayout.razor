@@ -3,6 +3,7 @@
 @using Microsoft.JSInterop
 @using Dotnetable.Admin.Auth
 @using Dotnetable.Admin.Localization
+@using Dotnetable.Admin.Theme
 @inject IJSRuntime JS
 @inject AdminUiModeState UiModeState
 @inject AuthenticationStateProvider AuthStateProvider
@@ -67,6 +68,28 @@
                         }
                     </MudMenu>
                 </MudTooltip>
+                <MudTooltip Text="Admin skin (this browser only)">
+                    <MudMenu Icon="@Icons.Material.Filled.Palette" Color="Color.Default" AnchorOrigin="Origin.BottomRight"
+                             TransformOrigin="Origin.TopRight">
+                        <div class="pa-2" style="min-width:200px;">
+                            <MudText Typo="Typo.caption" Class="px-2 pb-2" Color="Color.Secondary">Panel skin</MudText>
+                            @foreach (var skin in AdminSkinCatalog.All)
+                            {
+                                <MudMenuItem OnClick="@(() => SetSkinAsync(skin.Id))"
+                                             Class="@(_skinId == skin.Id ? "fw-bold mud-primary-text" : null)">
+                                    <MudStack Row="true" AlignItems="AlignItems.Center" Spacing="2">
+                                        <span style="width:16px;height:16px;border-radius:50%;background:@skin.Primary;border:1px solid rgba(0,0,0,.12);display:inline-block;"></span>
+                                        <span>@skin.Name</span>
+                                        @if (_skinId == skin.Id)
+                                        {
+                                            <MudIcon Icon="@Icons.Material.Filled.Check" Size="Size.Small" Color="Color.Primary" />
+                                        }
+                                    </MudStack>
+                                </MudMenuItem>
+                            }
+                        </div>
+                    </MudMenu>
+                </MudTooltip>
                 <MudTooltip Text="@(_isDarkMode ? "Light mode" : "Dark mode")">
                     <MudIconButton Icon="@(_isDarkMode ? Icons.Material.Filled.LightMode : Icons.Material.Filled.DarkMode)"
                                    Color="Color.Default" OnClick="ToggleDarkMode" />
@@ -79,7 +102,7 @@
             <MudDrawer @bind-Open="_drawerOpen" Elevation="0" Variant="DrawerVariant.Responsive"
                        ClipMode="DrawerClipMode.Never">
                 <MudDrawerHeader Class="d-flex align-center gap-2 px-4">
-                    <MudIcon Icon="@Icons.Material.Filled.Dashboard" Style="color:#348fe2;" Size="Size.Medium" />
+                    <MudIcon Icon="@Icons.Material.Filled.Dashboard" Style="@($"color:{_skin.Primary};")" Size="Size.Medium" />
                     <MudStack Spacing="0">
                         <MudText Typo="Typo.subtitle1" Class="fw-bold lh-1" Style="color:#fff; letter-spacing:.04em;">
                             @AppBranding.Name.ToUpperInvariant()
@@ -108,6 +131,9 @@
     private bool _isDarkMode;
     private bool _isMaster;
     private bool _isRtl;
+    private string _skinId = AdminSkinCatalog.DefaultId;
+    private AdminSkin _skin = AdminSkinCatalog.Get(AdminSkinCatalog.DefaultId);
+    private MudTheme _theme = AdminSkinCatalog.BuildMudTheme(AdminSkinCatalog.Get(AdminSkinCatalog.DefaultId));
     private static readonly AdminUiMode[] _uiModes = Enum.GetValues<AdminUiMode>();
 
     private IReadOnlyList<LanguageOption> _languages = SupportedLanguages.Defaults;
@@ -137,14 +163,17 @@
 
             var stored = await JS.InvokeAsync<string>("dotnetableTheme.get");
             if (stored == "dark" && !_isDarkMode)
-            {
                 _isDarkMode = true;
-                StateHasChanged();
-            }
+
+            var storedSkin = await JS.InvokeAsync<string>("dotnetableAdminSkin.get");
+            if (!string.IsNullOrWhiteSpace(storedSkin))
+                ApplySkin(storedSkin);
 
             var storedMode = await JS.InvokeAsync<string>("dotnetableUiMode.get");
             if (Enum.TryParse<AdminUiMode>(storedMode, out var mode))
                 UiModeState.Set(mode);
+
+            StateHasChanged();
         }
     }
 
@@ -162,6 +191,19 @@
     {
         _isDarkMode = !_isDarkMode;
         await JS.InvokeVoidAsync("dotnetableTheme.set", _isDarkMode ? "dark" : "light");
+    }
+
+    private async Task SetSkinAsync(string skinId)
+    {
+        ApplySkin(skinId);
+        await JS.InvokeVoidAsync("dotnetableAdminSkin.set", _skinId);
+    }
+
+    private void ApplySkin(string skinId)
+    {
+        _skin = AdminSkinCatalog.Get(skinId);
+        _skinId = _skin.Id;
+        _theme = AdminSkinCatalog.BuildMudTheme(_skin);
     }
 
     private async Task SetUiMode(AdminUiMode mode)
@@ -189,64 +231,4 @@
 
     private static string _initials(string? name) =>
         string.IsNullOrWhiteSpace(name) ? "?" : name.Trim()[0].ToString().ToUpper();
-
-    private static readonly MudTheme _theme = new()
-    {
-        PaletteLight = new PaletteLight
-        {
-            Primary             = "#348fe2",
-            PrimaryContrastText = "#FFFFFF",
-            Secondary           = "#727cb6",
-            Tertiary            = "#49b6d6",
-            Info                = "#49b6d6",
-            Success             = "#00acac",
-            Warning             = "#f59c1a",
-            Error               = "#ff5b57",
-            Dark                = "#2d353c",
-            Background          = "#e4e7ea",
-            Surface             = "#FFFFFF",
-            TextPrimary         = "#2d353c",
-            TextSecondary       = "#7b8488",
-            AppbarBackground    = "#FFFFFF",
-            AppbarText          = "#2d353c",
-            DrawerBackground    = "#2d353c",
-            DrawerText          = "#a8acb1",
-            DrawerIcon          = "#a8acb1",
-            LinesDefault        = "#e2e7eb",
-            TableLines          = "#e2e7eb",
-        },
-        PaletteDark = new PaletteDark
-        {
-            Primary             = "#348fe2",
-            PrimaryContrastText = "#FFFFFF",
-            Secondary           = "#727cb6",
-            Tertiary            = "#49b6d6",
-            Info                = "#49b6d6",
-            Success             = "#00acac",
-            Warning             = "#f59c1a",
-            Error               = "#ff5b57",
-            Dark                = "#1a2025",
-            Background          = "#1a2025",
-            BackgroundGray      = "#151a1e",
-            Surface             = "#2d353c",
-            TextPrimary         = "#cdd3d8",
-            TextSecondary       = "#8a939a",
-            AppbarBackground    = "#2d353c",
-            AppbarText          = "#cdd3d8",
-            DrawerBackground    = "#1b2127",
-            DrawerText          = "#a8acb1",
-            DrawerIcon          = "#a8acb1",
-            LinesDefault        = "#3a4148",
-            TableLines          = "#3a4148",
-        },
-        LayoutProperties = new LayoutProperties
-        {
-            DefaultBorderRadius = "4px",
-            DrawerWidthLeft     = "240px",
-        },
-        Typography = new Typography
-        {
-            Default = new DefaultTypography { FontFamily = new[] { "Open Sans", "sans-serif" } }
-        }
-    };
 }

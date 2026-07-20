@@ -5348,14 +5348,30 @@ namespace Dotnetable.Migrations.PostgreSql.Migrations
                     b.Property<bool>("IsActive")
                         .HasColumnType("boolean");
 
+                    b.Property<string>("Author")
+                        .HasMaxLength(100)
+                        .HasColumnType("character varying(100)");
+
+                    b.Property<string>("Description")
+                        .HasMaxLength(500)
+                        .HasColumnType("character varying(500)");
+
+                    b.Property<bool>("HasScreenshot")
+                        .HasColumnType("boolean");
+
                     b.Property<string>("Name")
                         .IsRequired()
                         .HasMaxLength(100)
                         .HasColumnType("character varying(100)");
 
-                    b.Property<string>("SettingsJson")
+                    b.Property<string>("Slug")
                         .IsRequired()
-                        .HasColumnType("text");
+                        .HasMaxLength(64)
+                        .HasColumnType("character varying(64)");
+
+                    b.Property<string>("Version")
+                        .HasMaxLength(50)
+                        .HasColumnType("character varying(50)");
 
                     b.Property<int>("WebsiteID")
                         .HasColumnType("integer");
@@ -5363,6 +5379,9 @@ namespace Dotnetable.Migrations.PostgreSql.Migrations
                     b.HasKey("WebsiteThemeID");
 
                     b.HasIndex(new[] { "WebsiteID" }, "IX_WebsiteThemes_WebsiteID");
+
+                    b.HasIndex(new[] { "WebsiteID", "Slug" }, "IX_WebsiteThemes_WebsiteID_Slug")
+                        .IsUnique();
 
                     b.ToTable("WebsiteThemes");
                 });

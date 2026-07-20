@@ -9,7 +9,19 @@ public class ThemeViewLocationExpander : IViewLocationExpander
     {
         var themeService = context.ActionContext.HttpContext.RequestServices.GetService<IThemeService>();
         if (themeService is not null)
+        {
+            // Best-effort resolve from API (cached). GetAwaiter is acceptable here because
+            // PopulateValues runs once per request for cache-key population.
+            try
+            {
+                themeService.EnsureResolvedAsync().GetAwaiter().GetResult();
+            }
+            catch
+            {
+                // Fall back to whatever ActiveTheme already holds (config default).
+            }
             context.Values["theme"] = themeService.ActiveTheme;
+        }
     }
 
     public IEnumerable<string> ExpandViewLocations(ViewLocationExpanderContext context, IEnumerable<string> viewLocations)

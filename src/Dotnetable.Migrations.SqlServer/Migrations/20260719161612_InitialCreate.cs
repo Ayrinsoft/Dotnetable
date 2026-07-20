@@ -1550,8 +1550,12 @@ namespace Dotnetable.Migrations.SqlServer.Migrations
                     WebsiteThemeID = table.Column<int>(type: "int", nullable: false)
                         .Annotation("SqlServer:Identity", "1, 1"),
                     WebsiteID = table.Column<int>(type: "int", nullable: false),
+                    Slug = table.Column<string>(type: "nvarchar(64)", maxLength: 64, nullable: false),
                     Name = table.Column<string>(type: "nvarchar(100)", maxLength: 100, nullable: false),
-                    SettingsJson = table.Column<string>(type: "nvarchar(max)", nullable: false),
+                    Version = table.Column<string>(type: "nvarchar(50)", maxLength: 50, nullable: true),
+                    Author = table.Column<string>(type: "nvarchar(100)", maxLength: 100, nullable: true),
+                    Description = table.Column<string>(type: "nvarchar(500)", maxLength: 500, nullable: true),
+                    HasScreenshot = table.Column<bool>(type: "bit", nullable: false),
                     IsActive = table.Column<bool>(type: "bit", nullable: false),
                     CreatedAt = table.Column<DateTime>(type: "datetime", nullable: false, defaultValueSql: "(sysutcdatetime())")
                         .Annotation("Relational:DefaultConstraintName", "DF_WebsiteThemes_CreatedAt")
@@ -4691,6 +4695,12 @@ namespace Dotnetable.Migrations.SqlServer.Migrations
                 name: "IX_WebsiteThemes_WebsiteID",
                 table: "WebsiteThemes",
                 column: "WebsiteID");
+
+            migrationBuilder.CreateIndex(
+                name: "IX_WebsiteThemes_WebsiteID_Slug",
+                table: "WebsiteThemes",
+                columns: new[] { "WebsiteID", "Slug" },
+                unique: true);
 
             migrationBuilder.CreateIndex(
                 name: "IX_WebsiteWatermarkSettings_WatermarkFileID",

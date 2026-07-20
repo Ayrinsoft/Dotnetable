@@ -1,4 +1,4 @@
-/* Theme tokens arrive at runtime from the admin (see ThemeProvider); these are the fallbacks. */
+/* Static SPA tokens (MVC storefront uses installable theme packages instead). */
 :root {
   --color-primary: #4f46e5;
   --color-secondary: #0ea5e9;

@@ -32,7 +32,6 @@ export const api = {
   // ── Site chrome ───────────────────────────────────────────────
   siteInfo: () => request('api/siteinfo').catch(() => null),
   menu: (location) => request(`api/menu/${encodeURIComponent(location)}`).catch(() => null),
-  activeTheme: () => request('api/theme/active').catch(() => null),
 
   // ── Content ───────────────────────────────────────────────────
   posts: (page = 1, pageSize = 12) => request(`api/posts?page=${page}&pageSize=${pageSize}`),

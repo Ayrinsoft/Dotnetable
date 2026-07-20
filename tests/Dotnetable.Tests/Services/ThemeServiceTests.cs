@@ -12,6 +12,7 @@ public class ThemeServiceTests : IDisposable
     private readonly AppDbContext _context;
     private readonly ThemeService _service;
     private readonly Website _website;
+    private readonly string _themesRoot;
 
     public ThemeServiceTests()
     {
@@ -19,7 +20,12 @@ public class ThemeServiceTests : IDisposable
             .UseInMemoryDatabase(Guid.NewGuid().ToString())
             .Options;
         _context = new AppDbContext(opts);
-        _service = new ThemeService(_context);
+        _themesRoot = Path.Combine(Path.GetTempPath(), "dn-theme-tests-" + Guid.NewGuid().ToString("N"));
+        Directory.CreateDirectory(Path.Combine(_themesRoot, ThemeService.BuiltinSlug, "Views"));
+        File.WriteAllText(Path.Combine(_themesRoot, ThemeService.BuiltinSlug, "theme.json"),
+            """{"name":"Default","slug":"Default","version":"1.0.0"}""");
+
+        _service = new ThemeService(_context, _themesRoot);
 
         _website = NewWebsite("Test", "test.com");
         _context.Websites.Add(_website);
@@ -34,122 +40,146 @@ public class ThemeServiceTests : IDisposable
         DefaultLanguageCode = "en", DefaultCurrencyCode = "USD",
     };
 
-    private WebsiteTheme NewTheme(string name, int? websiteId = null, bool active = false) => new()
+    private async Task<WebsiteTheme> SeedPackageAsync(string slug, string name, bool active = false, int? websiteId = null)
     {
-        WebsiteID = websiteId ?? _website.WebsiteID,
-        Name = name,
-        SettingsJson = """{"colors":{"primary":"#4f46e5"}}""",
-        IsActive = active,
-    };
+        var wid = websiteId ?? _website.WebsiteID;
+        var dir = Path.Combine(_themesRoot, wid.ToString(), slug, "Views");
+        Directory.CreateDirectory(dir);
+        File.WriteAllText(Path.Combine(_themesRoot, wid.ToString(), slug, "theme.json"),
+            $$"""{"name":"{{name}}","slug":"{{slug}}","version":"1.0.0"}""");
 
-    [Fact]
-    public async Task CreateThemeAsync_PersistsAndAssignsId()
+        var entity = new WebsiteTheme
+        {
+            WebsiteID = wid,
+            Slug = slug,
+            Name = name,
+            Version = "1.0.0",
+            IsActive = active,
+            CreatedAt = DateTime.UtcNow,
+        };
+        _context.WebsiteThemes.Add(entity);
+        await _context.SaveChangesAsync();
+        return entity;
+    }
+
+    private static MemoryStream SampleThemeZip(string slug = "ocean", string name = "Ocean")
     {
-        var theme = await _service.CreateThemeAsync(NewTheme("Ocean"));
+        var ms = new MemoryStream();
+        using (var zip = new System.IO.Compression.ZipArchive(ms, System.IO.Compression.ZipArchiveMode.Create, leaveOpen: true))
+        {
+            var manifest = zip.CreateEntry("theme.json");
+            using (var w = new StreamWriter(manifest.Open()))
+                w.Write($$"""{"name":"{{name}}","slug":"{{slug}}","version":"2.0.0","author":"Test"}""");
 
-        theme.WebsiteThemeID.Should().BeGreaterThan(0);
-        (await _context.WebsiteThemes.FindAsync(theme.WebsiteThemeID))!.Name.Should().Be("Ocean");
+            var layout = zip.CreateEntry("Views/Shared/_Layout.cshtml");
+            using (var w = new StreamWriter(layout.Open()))
+                w.Write("@RenderBody()");
+        }
+        ms.Position = 0;
+        return ms;
     }
 
     [Fact]
-    public async Task CreateThemeAsync_CreatedActive_DeactivatesExistingActiveTheme()
+    public async Task GetThemesAsync_IncludesBuiltinDefault()
     {
-        var old = await _service.CreateThemeAsync(NewTheme("Old", active: true));
-
-        await _service.CreateThemeAsync(NewTheme("New", active: true));
-
-        (await _context.WebsiteThemes.FindAsync(old.WebsiteThemeID))!.IsActive.Should().BeFalse();
-        _context.WebsiteThemes.Count(t => t.IsActive).Should().Be(1);
+        var list = await _service.GetThemesAsync(_website.WebsiteID);
+        list.Should().ContainSingle(t => t.IsBuiltin && t.Slug == "Default" && t.IsActive);
     }
 
     [Fact]
-    public async Task GetThemesAsync_WebsiteFilter_ReturnsOnlyMatchingSite()
+    public async Task InstallFromZipAsync_PersistsPackageAndFiles()
+    {
+        await using var zip = SampleThemeZip();
+        var dto = await _service.InstallFromZipAsync(_website.WebsiteID, zip, "ocean.zip");
+
+        dto.Slug.Should().Be("ocean");
+        dto.Name.Should().Be("Ocean");
+        dto.IsBuiltin.Should().BeFalse();
+        Directory.Exists(Path.Combine(_themesRoot, _website.WebsiteID.ToString(), "ocean", "Views")).Should().BeTrue();
+        (await _context.WebsiteThemes.CountAsync()).Should().Be(1);
+    }
+
+    [Fact]
+    public async Task ActivateThemeAsync_Package_DeactivatesSiblings()
     {
         var other = NewWebsite("Other", "other.com");
         _context.Websites.Add(other);
         await _context.SaveChangesAsync();
 
-        await _service.CreateThemeAsync(NewTheme("Mine"));
-        await _service.CreateThemeAsync(NewTheme("Theirs", other.WebsiteID));
+        await SeedPackageAsync("a", "A", active: true);
+        await SeedPackageAsync("b", "B");
+        await SeedPackageAsync("foreign", "Foreign", active: true, websiteId: other.WebsiteID);
 
-        (await _service.GetThemesAsync(_website.WebsiteID)).Should().ContainSingle(t => t.Name == "Mine");
-        (await _service.GetThemesAsync(null)).Should().HaveCount(2);
+        await _service.ActivateThemeAsync(_website.WebsiteID, "b");
+
+        (await _context.WebsiteThemes.SingleAsync(t => t.Slug == "a")).IsActive.Should().BeFalse();
+        (await _context.WebsiteThemes.SingleAsync(t => t.Slug == "b")).IsActive.Should().BeTrue();
+        (await _context.WebsiteThemes.SingleAsync(t => t.Slug == "foreign")).IsActive.Should().BeTrue();
+
+        var active = await _service.GetActiveThemeAsync(_website.WebsiteID);
+        active.Slug.Should().Be("b");
+        active.ViewRoot.Should().Be($"{_website.WebsiteID}/b");
     }
 
     [Fact]
-    public async Task ActivateThemeAsync_DeactivatesSiblingsOfSameWebsiteOnly()
+    public async Task ActivateThemeAsync_Default_ClearsPackageActiveFlags()
     {
-        var other = NewWebsite("Other", "other.com");
-        _context.Websites.Add(other);
-        await _context.SaveChangesAsync();
+        await SeedPackageAsync("ocean", "Ocean", active: true);
+        await _service.ActivateThemeAsync(_website.WebsiteID, "Default");
 
-        var a = await _service.CreateThemeAsync(NewTheme("A", active: true));
-        var b = await _service.CreateThemeAsync(NewTheme("B"));
-        var foreign = await _service.CreateThemeAsync(NewTheme("Foreign", other.WebsiteID, active: true));
-
-        await _service.ActivateThemeAsync(b.WebsiteThemeID);
-
-        (await _context.WebsiteThemes.FindAsync(a.WebsiteThemeID))!.IsActive.Should().BeFalse();
-        (await _context.WebsiteThemes.FindAsync(b.WebsiteThemeID))!.IsActive.Should().BeTrue();
-        // The other website's active theme is untouched.
-        (await _context.WebsiteThemes.FindAsync(foreign.WebsiteThemeID))!.IsActive.Should().BeTrue();
+        _context.WebsiteThemes.All(t => !t.IsActive).Should().BeTrue();
+        (await _service.GetActiveThemeAsync(_website.WebsiteID)).Slug.Should().Be("Default");
     }
 
     [Fact]
-    public async Task ActivateThemeAsync_MissingId_DoesNotThrow()
+    public async Task DeleteThemeAsync_RemovesFilesAndRow()
     {
-        await _service.Invoking(s => s.ActivateThemeAsync(999)).Should().NotThrowAsync();
-    }
-
-    [Fact]
-    public async Task GetActiveThemeAsync_ReturnsActiveThemeForWebsite()
-    {
-        await _service.CreateThemeAsync(NewTheme("Inactive"));
-        var active = await _service.CreateThemeAsync(NewTheme("Active", active: true));
-
-        var result = await _service.GetActiveThemeAsync(_website.WebsiteID);
-
-        result.Should().NotBeNull();
-        result!.WebsiteThemeID.Should().Be(active.WebsiteThemeID);
-    }
-
-    [Fact]
-    public async Task GetActiveThemeAsync_NoActiveTheme_ReturnsNull()
-    {
-        await _service.CreateThemeAsync(NewTheme("Inactive"));
-
-        (await _service.GetActiveThemeAsync(_website.WebsiteID)).Should().BeNull();
-    }
-
-    [Fact]
-    public async Task UpdateThemeAsync_PersistsChanges()
-    {
-        var theme = await _service.CreateThemeAsync(NewTheme("Base"));
-        theme.Name = "Renamed";
-        theme.SettingsJson = """{"colors":{"primary":"#000000"}}""";
-
-        await _service.UpdateThemeAsync(theme);
-
-        var stored = await _context.WebsiteThemes.FindAsync(theme.WebsiteThemeID);
-        stored!.Name.Should().Be("Renamed");
-        stored.SettingsJson.Should().Contain("#000000");
-    }
-
-    [Fact]
-    public async Task DeleteThemeAsync_RemovesTheme()
-    {
-        var theme = await _service.CreateThemeAsync(NewTheme("Doomed"));
-
-        await _service.DeleteThemeAsync(theme.WebsiteThemeID);
+        await SeedPackageAsync("doomed", "Doomed");
+        await _service.DeleteThemeAsync(_website.WebsiteID, "doomed");
 
         _context.WebsiteThemes.Should().BeEmpty();
+        Directory.Exists(Path.Combine(_themesRoot, _website.WebsiteID.ToString(), "doomed")).Should().BeFalse();
     }
 
     [Fact]
-    public async Task DeleteThemeAsync_MissingId_DoesNotThrow()
+    public async Task DeleteThemeAsync_Active_Throws()
     {
-        await _service.Invoking(s => s.DeleteThemeAsync(999)).Should().NotThrowAsync();
+        await SeedPackageAsync("live", "Live", active: true);
+        await _service.Invoking(s => s.DeleteThemeAsync(_website.WebsiteID, "live"))
+            .Should().ThrowAsync<InvalidOperationException>();
     }
 
-    public void Dispose() => _context.Dispose();
+    [Fact]
+    public async Task DeleteThemeAsync_Builtin_Throws()
+    {
+        await _service.Invoking(s => s.DeleteThemeAsync(_website.WebsiteID, "Default"))
+            .Should().ThrowAsync<InvalidOperationException>();
+    }
+
+    [Fact]
+    public async Task ExportZipAsync_ReturnsBytes()
+    {
+        await using var zip = SampleThemeZip("export-me", "Export Me");
+        await _service.InstallFromZipAsync(_website.WebsiteID, zip);
+
+        var (bytes, fileName) = await _service.ExportZipAsync(_website.WebsiteID, "export-me");
+        bytes.Length.Should().BeGreaterThan(20);
+        fileName.Should().Be("export-me.zip");
+    }
+
+    [Fact]
+    public async Task GetActiveThemeAsync_NoActivePackage_ReturnsDefault()
+    {
+        await SeedPackageAsync("idle", "Idle", active: false);
+        var active = await _service.GetActiveThemeAsync(_website.WebsiteID);
+        active.Slug.Should().Be("Default");
+        active.ViewRoot.Should().Be("Default");
+    }
+
+    public void Dispose()
+    {
+        _context.Dispose();
+        try { if (Directory.Exists(_themesRoot)) Directory.Delete(_themesRoot, recursive: true); }
+        catch { /* ignore */ }
+    }
 }

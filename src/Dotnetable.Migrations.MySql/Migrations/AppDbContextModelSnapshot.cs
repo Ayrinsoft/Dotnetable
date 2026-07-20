@@ -5125,14 +5125,30 @@ namespace Dotnetable.Migrations.MySql.Migrations
                     b.Property<bool>("IsActive")
                         .HasColumnType("tinyint(1)");
 
+                    b.Property<string>("Author")
+                        .HasMaxLength(100)
+                        .HasColumnType("varchar(100)");
+
+                    b.Property<string>("Description")
+                        .HasMaxLength(500)
+                        .HasColumnType("varchar(500)");
+
+                    b.Property<bool>("HasScreenshot")
+                        .HasColumnType("tinyint(1)");
+
                     b.Property<string>("Name")
                         .IsRequired()
                         .HasMaxLength(100)
                         .HasColumnType("varchar(100)");
 
-                    b.Property<string>("SettingsJson")
+                    b.Property<string>("Slug")
                         .IsRequired()
-                        .HasColumnType("longtext");
+                        .HasMaxLength(64)
+                        .HasColumnType("varchar(64)");
+
+                    b.Property<string>("Version")
+                        .HasMaxLength(50)
+                        .HasColumnType("varchar(50)");
 
                     b.Property<int>("WebsiteID")
                         .HasColumnType("int");
@@ -5140,6 +5156,9 @@ namespace Dotnetable.Migrations.MySql.Migrations
                     b.HasKey("WebsiteThemeID");
 
                     b.HasIndex(new[] { "WebsiteID" }, "IX_WebsiteThemes_WebsiteID");
+
+                    b.HasIndex(new[] { "WebsiteID", "Slug" }, "IX_WebsiteThemes_WebsiteID_Slug")
+                        .IsUnique();
 
                     b.ToTable("WebsiteThemes");
                 });
