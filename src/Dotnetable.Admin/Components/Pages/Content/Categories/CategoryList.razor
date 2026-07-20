@@ -31,6 +31,8 @@
     </MudStack>
 </MudStack>
 
+<DNPrerequisiteAlert Items="_prerequisites" />
+
 <MudPaper Elevation="0" Class="app-card rounded-lg pa-4">
     @if (_loading)
     {
@@ -81,6 +83,7 @@
     private List<Category> _items = new();
     private List<PostType> _postTypes = new();
     private List<Website> _websites = new();
+    private List<DNPrerequisiteAlert.Item> _prerequisites = new();
     private GridViewHeaderParameters _grid = new();
 
     protected override async Task OnInitializedAsync()
@@ -121,6 +124,7 @@
         _items = result.Items.ToList();
         _grid.Pagination.MaxLength = result.TotalCount;
         _postTypes = await PostTypeService.GetAllAsync(_websiteId);
+        _prerequisites = ContentPrerequisiteHelper.ForCategories(L, _postTypes.Count);
         _loading = false;
     }
 

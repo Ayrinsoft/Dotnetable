@@ -2,6 +2,8 @@
 @attribute [Authorize(Policy = RoleKeys.PostsView)]
 @inject IPostService PostService
 @inject IPostTypeService PostTypeService
+@inject ICategoryService CategoryService
+@inject ITagService TagService
 @inject IWebsiteService WebsiteService
 @inject AuthenticationStateProvider AuthState
 @inject IDialogService DialogService
@@ -32,12 +34,15 @@
         </MudSelect>
         @if (_canInsert)
         {
-            <MudButton Variant="Variant.Filled" Color="Color.Primary" StartIcon="@Icons.Material.Filled.Add" Href="/content/posts/new">
+            <MudButton Variant="Variant.Filled" Color="Color.Primary" StartIcon="@Icons.Material.Filled.Add" Href="/content/posts/new"
+                       Disabled="@(_postTypes.Count == 0)">
                 @L["posts.new", "New Post"]
             </MudButton>
         }
     </MudStack>
 </MudStack>
+
+<DNPrerequisiteAlert Items="_prerequisites" />
 
 <MudPaper Elevation="0" Class="app-card rounded-lg pa-4">
     @if (_loading)
@@ -94,6 +99,7 @@
     private List<Website> _websites = new();
     private HashSet<int> _busy = new();
     private GridViewHeaderParameters _grid = new();
+    private List<DNPrerequisiteAlert.Item> _prerequisites = new();
 
     protected override async Task OnInitializedAsync()
     {
@@ -105,7 +111,7 @@
         _canDelete = AdminPolicies.Allows(user, RoleKeys.PostsDelete);
         int.TryParse(user.FindFirst(AdminClaimTypes.WebsiteId)?.Value, out _websiteId);
         if (_isMaster) _websites = (await WebsiteService.GetAllAsync()).ToList();
-        _postTypes = await PostTypeService.GetAllAsync(_websiteId);
+        await RefreshPrerequisitesAsync();
 
         _grid = new GridViewHeaderParameters
         {
@@ -128,10 +134,18 @@
     private async Task OnWebsiteChanged(int id)
     {
         _websiteId = id;
-        _postTypes = await PostTypeService.GetAllAsync(_websiteId);
+        await RefreshPrerequisitesAsync();
         await LoadAsync();
     }
     private async Task OnFilterChanged(IEnumerable<int?> _) => await LoadAsync();
+
+    private async Task RefreshPrerequisitesAsync()
+    {
+        _postTypes = await PostTypeService.GetAllAsync(_websiteId);
+        var categories = await CategoryService.GetAllAsync(_websiteId);
+        var tags = await TagService.GetAllAsync(_websiteId);
+        _prerequisites = ContentPrerequisiteHelper.ForPosts(L, _postTypes, categories.Count, tags.Count);
+    }
 
     private async Task LoadAsync()
     {

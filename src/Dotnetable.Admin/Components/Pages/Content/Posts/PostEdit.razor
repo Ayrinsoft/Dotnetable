@@ -19,6 +19,11 @@
     <MudButton Variant="Variant.Text" StartIcon="@Icons.Material.Filled.ArrowBack" Href="/content/posts">@L["back", "Back"]</MudButton>
 </MudStack>
 
+@if (!_loading)
+{
+    <DNPrerequisiteAlert Items="_prerequisites" />
+}
+
 @if (_loading)
 {
     <MudProgressLinear Indeterminate="true" Color="Color.Primary" Class="mb-4" />
@@ -91,7 +96,7 @@ else if (_model is not null)
                     <MudSwitch T="bool" @bind-Value="_model.CommentsEnabled" Color="Color.Primary" Label="@L["posts.comments", "Comments enabled"]" />
                     <MudSwitch T="bool" @bind-Value="_model.IsActive" Color="Color.Success" Label="@(_model.IsActive ? L["active", "Active"] : L["inactive", "Inactive"])" />
                     <MudButton Variant="Variant.Filled" Color="Color.Primary" FullWidth="true" Class="mt-4"
-                               OnClick="SaveAsync" Disabled="@(_saving || !_canEdit)">@L["save", "Save"]</MudButton>
+                               OnClick="SaveAsync" Disabled="@(_saving || !_canEdit || _postTypes.Count == 0)">@L["save", "Save"]</MudButton>
                 </MudPaper>
 
                 <MudPaper Elevation="0" Class="app-card rounded-lg pa-4 mb-4">
@@ -175,6 +180,7 @@ else if (_model is not null)
     private List<PostType> _postTypes = new();
     private List<Category> _categories = new();
     private List<Tag> _tags = new();
+    private List<DNPrerequisiteAlert.Item> _prerequisites = new();
     private IReadOnlyCollection<int> _selectedCategoryIds = new HashSet<int>();
     private IReadOnlyCollection<int> _selectedTagIds = new HashSet<int>();
     private int? _primaryCategoryId;
@@ -221,6 +227,7 @@ else if (_model is not null)
         _postTypes = await PostTypeService.GetAllAsync(wid);
         _categories = await CategoryService.GetAllAsync(wid);
         _tags = await TagService.GetAllAsync(wid);
+        _prerequisites = ContentPrerequisiteHelper.ForPosts(L, _postTypes, _categories.Count, _tags.Count);
         if (_isNew && _model is not null && _postTypes.Count > 0)
             _model.PostTypeID = _postTypes[0].PostTypeID;
 

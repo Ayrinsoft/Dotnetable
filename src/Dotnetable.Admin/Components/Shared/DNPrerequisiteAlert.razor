@@ -1,0 +1,41 @@
+@* Top-of-page warnings when setup data required by this screen is missing. *@
+@if (Items is { Count: > 0 })
+{
+    <MudStack Spacing="2" Class="mb-4">
+        @foreach (var item in Items)
+        {
+            <MudAlert Severity="@item.Severity"
+                      Variant="Variant.Filled"
+                      Dense="true"
+                      Icon="@Icons.Material.Filled.WarningAmber"
+                      Class="prerequisite-alert">
+                <div class="d-flex flex-wrap align-center justify-space-between gap-2">
+                    <MudText Typo="Typo.body2">@item.Message</MudText>
+                    @if (!string.IsNullOrWhiteSpace(item.ActionHref))
+                    {
+                        <MudButton Variant="Variant.Outlined"
+                                   Color="Color.Inherit"
+                                   Size="Size.Small"
+                                   Href="@item.ActionHref"
+                                   StartIcon="@Icons.Material.Filled.ArrowForward">
+                            @(item.ActionLabel ?? L["prereq.setup", "Set up"])
+                        </MudButton>
+                    }
+                </div>
+            </MudAlert>
+        }
+    </MudStack>
+}
+
+@code {
+    /// <summary>One missing prerequisite to surface to the operator.</summary>
+    public sealed record Item(
+        string Message,
+        string? ActionHref = null,
+        string? ActionLabel = null,
+        Severity Severity = Severity.Warning);
+
+    [Parameter] public IReadOnlyList<Item>? Items { get; set; }
+
+    [Inject] private IPageLocalizer L { get; set; } = null!;
+}
