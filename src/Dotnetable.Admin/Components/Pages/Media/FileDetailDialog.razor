@@ -2,6 +2,7 @@
 @inject ISnackbar Snackbar
 @inject IJSRuntime JS
 @inject IDialogService DialogService
+@inject NavigationManager Nav
 @inject IPageLocalizer L
 
 <MudDialog>
@@ -266,12 +267,16 @@
         await DownloadAsync();
     }
 
-    /// <summary>Force-download the public CDN URL with the original file name (avoids opening a new tab).</summary>
+    /// <summary>
+    /// Downloads via the Admin same-origin proxy (/media/download/{id}) so the browser receives
+    /// Content-Disposition: attachment without CDN CORS or a new tab.
+    /// </summary>
     private async Task DownloadAsync()
     {
         if (_file is null || _downloading) return;
-        var url = MediaFormat.PublicUrl(_file);
-        if (string.IsNullOrWhiteSpace(url))
+
+        var publicUrl = MediaFormat.PublicUrl(_file);
+        if (string.IsNullOrWhiteSpace(publicUrl))
         {
             Snackbar.Add(L["content.insert_media.no_url", "This file has no public URL yet. Check storage settings."], Severity.Warning);
             return;
@@ -281,16 +286,33 @@
         try
         {
             var fileName = string.IsNullOrWhiteSpace(_file.OriginalFileName) ? "download" : _file.OriginalFileName;
-            await JS.InvokeVoidAsync("dotnetableFile.downloadUrl", url, fileName);
+            // Same-origin authenticated endpoint — works for image, video, PDF, etc.
+            var downloadUrl = Nav.ToAbsoluteUri($"/media/download/{_file.FileRecordID}").ToString();
+
+            // Prefer named helper; fall back if the browser still has a cached theme.js.
+            try
+            {
+                await JS.InvokeVoidAsync("dotnetableFile.downloadUrl", downloadUrl, fileName);
+            }
+            catch
+            {
+                await JS.InvokeVoidAsync("eval", BuildDownloadClickScript(downloadUrl, fileName));
+            }
         }
-        catch
+        catch (Exception ex)
         {
-            Snackbar.Add(L["media.download_failed", "Could not download the file."], Severity.Warning);
+            Snackbar.Add($"{L["media.download_failed", "Could not download the file."]} {ex.Message}", Severity.Warning);
         }
         finally
         {
             _downloading = false;
         }
+    }
+
+    private static string BuildDownloadClickScript(string url, string fileName)
+    {
+        static string Esc(string s) => s.Replace("\\", "\\\\").Replace("'", "\\'").Replace("\r", "").Replace("\n", "");
+        return $"(function(){{var a=document.createElement('a');a.href='{Esc(url)}';a.download='{Esc(fileName)}';document.body.appendChild(a);a.click();a.remove();}})()";
     }
 
     private void Cancel() => MudDialog.Cancel();

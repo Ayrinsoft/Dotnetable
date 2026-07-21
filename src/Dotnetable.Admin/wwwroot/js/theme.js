@@ -79,35 +79,25 @@ window.dotnetableFile = {
     },
 
     /**
-     * Download a remote URL as a file (media library CDN, etc.).
-     * Prefers fetch→blob so the browser saves instead of navigating to a new tab.
-     * Falls back to an <a download> click when CORS blocks the fetch.
+     * Trigger a browser download for a same-origin (or CORS-enabled) URL.
+     * Synchronous entry point for Blazor interop — never throws; work runs async.
+     * Prefer Admin's /media/download/{id} proxy so CDN CORS is not required.
      */
-    downloadUrl: async function (url, fileName) {
+    downloadUrl: function (url, fileName) {
         var name = fileName || 'download';
+        // Same-origin paths (e.g. /media/download/123) work best with credentials + <a download>.
         try {
-            var res = await fetch(url, { mode: 'cors', credentials: 'omit' });
-            if (!res.ok) throw new Error('HTTP ' + res.status);
-            var blob = await res.blob();
-            var objectUrl = URL.createObjectURL(blob);
             var a = document.createElement('a');
-            a.href = objectUrl;
+            a.href = url;
             a.download = name;
+            a.rel = 'noopener noreferrer';
+            // Keep the user on the page; Content-Disposition: attachment does the rest.
             document.body.appendChild(a);
             a.click();
             document.body.removeChild(a);
-            setTimeout(function () { URL.revokeObjectURL(objectUrl); }, 2000);
-            return true;
         } catch (e) {
-            var a2 = document.createElement('a');
-            a2.href = url;
-            a2.download = name;
-            a2.rel = 'noopener noreferrer';
-            // No target=_blank: avoid opening a tab when the browser honors download.
-            document.body.appendChild(a2);
-            a2.click();
-            document.body.removeChild(a2);
-            return false;
+            // Last resort: navigate the top window (still usually downloads with attachment header).
+            try { window.location.assign(url); } catch (_) { /* ignore */ }
         }
     }
 };
