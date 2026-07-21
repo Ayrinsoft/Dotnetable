@@ -1,0 +1,129 @@
+@inject IFileService FileService
+@inject ISnackbar Snackbar
+@inject IPageLocalizer L
+
+<MudDialog>
+    <DialogContent>
+        <MudForm @ref="_form">
+            <MudTextField @bind-Value="_name" Label="@L["name", "Name"]" Variant="Variant.Outlined"
+                          Required="true" Class="mb-3" Immediate="true" />
+            <MudTextField @bind-Value="_description" Label="@L["description", "Description"]"
+                          Variant="Variant.Outlined" Lines="2" Class="mb-3" />
+            <MudSelect T="int?" @bind-Value="_parentFolderId"
+                       Label="@L["media.parent_folder", "Parent folder"]"
+                       Variant="Variant.Outlined"
+                       Clearable="true"
+                       HelperText="@L["media.parent_folder_hint", "Leave empty for a top-level folder under Root."]">
+                @foreach (var option in ParentOptions)
+                {
+                    <MudSelectItem T="int?" Value="option.Id">@option.Label</MudSelectItem>
+                }
+            </MudSelect>
+        </MudForm>
+    </DialogContent>
+    <DialogActions>
+        <MudButton OnClick="Cancel">@L["cancel", "Cancel"]</MudButton>
+        <MudButton Variant="Variant.Filled" Color="Color.Primary" OnClick="SaveAsync" Disabled="@_saving">
+            @L["save", "Save"]
+        </MudButton>
+    </DialogActions>
+</MudDialog>
+
+@code {
+    [CascadingParameter] private IMudDialogInstance MudDialog { get; set; } = null!;
+    [Parameter] public int WebsiteId { get; set; }
+    [Parameter] public FileFolder? Folder { get; set; }
+    [Parameter] public int? PresetParentFolderId { get; set; }
+    [Parameter] public IReadOnlyList<FileFolder>? AllFolders { get; set; }
+
+    private MudForm _form = null!;
+    private bool _saving;
+    private string _name = "";
+    private string? _description;
+    private int? _parentFolderId;
+    private IReadOnlyList<FileFolder> _folders = Array.Empty<FileFolder>();
+
+    private IEnumerable<(int? Id, string Label)> ParentOptions
+    {
+        get
+        {
+            var blocked = new HashSet<int>();
+            if (Folder is not null)
+            {
+                blocked.Add(Folder.FileFolderID);
+                CollectDescendants(Folder.FileFolderID, blocked);
+            }
+
+            foreach (var f in _folders.OrderBy(f => f.Name))
+            {
+                if (blocked.Contains(f.FileFolderID)) continue;
+                yield return (f.FileFolderID, BuildPath(f));
+            }
+        }
+    }
+
+    protected override async Task OnInitializedAsync()
+    {
+        await L.EnsureLoadedAsync();
+        _folders = AllFolders ?? await FileService.GetFoldersAsync(WebsiteId);
+
+        if (Folder is not null)
+        {
+            _name = Folder.Name;
+            _description = Folder.Description;
+            _parentFolderId = Folder.ParentFolderID;
+        }
+        else
+        {
+            _parentFolderId = PresetParentFolderId;
+        }
+    }
+
+    private string BuildPath(FileFolder folder)
+    {
+        var byId = _folders.ToDictionary(f => f.FileFolderID);
+        var parts = new List<string> { folder.Name };
+        var current = folder;
+        var guard = 0;
+        while (current.ParentFolderID is int pid && byId.TryGetValue(pid, out var parent) && guard++ < 64)
+        {
+            parts.Insert(0, parent.Name);
+            current = parent;
+        }
+        return string.Join(" / ", parts);
+    }
+
+    private void CollectDescendants(int folderId, HashSet<int> set)
+    {
+        foreach (var child in _folders.Where(f => f.ParentFolderID == folderId))
+        {
+            if (set.Add(child.FileFolderID))
+                CollectDescendants(child.FileFolderID, set);
+        }
+    }
+
+    private void Cancel() => MudDialog.Cancel();
+
+    private async Task SaveAsync()
+    {
+        await _form.ValidateAsync();
+        if (!_form.IsValid || string.IsNullOrWhiteSpace(_name)) return;
+
+        _saving = true;
+        try
+        {
+            if (Folder is null)
+                await FileService.CreateFolderAsync(WebsiteId, _name.Trim(), _description?.Trim(), _parentFolderId);
+            else
+                await FileService.UpdateFolderAsync(Folder.FileFolderID, _name.Trim(), _description?.Trim(), _parentFolderId);
+
+            Snackbar.Add(L["saved", "Saved."], Severity.Success);
+            MudDialog.Close(DialogResult.Ok(true));
+        }
+        catch (Exception ex)
+        {
+            Snackbar.Add($"{L["save_failed", "Save failed"]}: {ex.Message}", Severity.Error);
+        }
+        finally { _saving = false; }
+    }
+}

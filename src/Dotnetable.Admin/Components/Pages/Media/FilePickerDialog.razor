@@ -10,117 +10,124 @@
         </MudText>
     </TitleContent>
     <DialogContent>
-        <MudStack Row="true" Spacing="2" AlignItems="AlignItems.Center" Class="mb-3 flex-wrap">
-            <MudButton Size="Size.Small"
-                       Variant="@(_albumIds.Count > 0 ? Variant.Filled : Variant.Outlined)"
-                       Color="Color.Primary"
-                       StartIcon="@Icons.Material.Filled.Collections"
-                       OnClick="OpenAlbumFilterAsync">
-                @L["media.albums", "Albums"]
-                @if (_albumIds.Count > 0)
-                {
-                    <span>&nbsp;(@_albumIds.Count)</span>
-                }
-            </MudButton>
-            <MudButton Size="Size.Small"
-                       Variant="@(_tagIds.Count > 0 ? Variant.Filled : Variant.Outlined)"
-                       Color="Color.Primary"
-                       StartIcon="@Icons.Material.Filled.Sell"
-                       OnClick="OpenTagFilterAsync">
-                @L["media.tags", "Tags"]
-                @if (_tagIds.Count > 0)
-                {
-                    <span>&nbsp;(@_tagIds.Count)</span>
-                }
-            </MudButton>
-            <MudTextField @bind-Value="_search" Placeholder="@L["search", "Search…"]" Variant="Variant.Outlined"
-                          Margin="Margin.Dense" Immediate="false" OnKeyUp="OnSearchKey"
-                          Adornment="Adornment.Start" AdornmentIcon="@Icons.Material.Filled.Search"
-                          Clearable="true" OnClearButtonClick="OnSearchCleared"
-                          Style="flex:1; min-width:140px;" />
-            <MudButton StartIcon="@Icons.Material.Filled.CloudUpload" Color="Color.Primary"
-                       Variant="Variant.Outlined" OnClick="OpenUploadAsync">@L["media.upload", "Upload"]</MudButton>
-        </MudStack>
+        <MudGrid Spacing="2">
+            <MudItem xs="12" md="4">
+                <MudPaper Elevation="0" Class="border rounded-lg pa-2" Style="max-height:480px; overflow:auto;">
+                    <FileFolderTree Folders="_folders"
+                                    SelectedScope="_folderScope"
+                                    SelectedFolderId="_folderId"
+                                    SelectionChanged="OnFolderSelectionChanged" />
+                </MudPaper>
+            </MudItem>
+            <MudItem xs="12" md="8">
+                <MudStack Row="true" Spacing="2" AlignItems="AlignItems.Center" Class="mb-3 flex-wrap">
+                    <MudButton Size="Size.Small"
+                               Variant="@(_tagIds.Count > 0 ? Variant.Filled : Variant.Outlined)"
+                               Color="Color.Primary"
+                               StartIcon="@Icons.Material.Filled.Sell"
+                               OnClick="OpenTagFilterAsync">
+                        @L["media.tags", "Tags"]
+                        @if (_tagIds.Count > 0)
+                        {
+                            <span>&nbsp;(@_tagIds.Count)</span>
+                        }
+                    </MudButton>
+                    <MudTextField @bind-Value="_search" Placeholder="@L["search", "Search…"]" Variant="Variant.Outlined"
+                                  Margin="Margin.Dense" Immediate="false" OnKeyUp="OnSearchKey"
+                                  Adornment="Adornment.Start" AdornmentIcon="@Icons.Material.Filled.Search"
+                                  Clearable="true" OnClearButtonClick="OnSearchCleared"
+                                  Style="flex:1; min-width:140px;" />
+                    <MudButton StartIcon="@Icons.Material.Filled.CloudUpload" Color="Color.Primary"
+                               Variant="Variant.Outlined" OnClick="OpenUploadAsync">@L["media.upload", "Upload"]</MudButton>
+                </MudStack>
 
-        @if (HasActiveFilters)
-        {
-            <MudStack Row="true" AlignItems="AlignItems.Center" Spacing="1" Class="mb-3 flex-wrap">
-                <MudText Typo="Typo.caption" Color="Color.Secondary" Class="me-1">
-                    @L["media.active_filters", "Active filters"]:
-                </MudText>
-                @foreach (var name in _albumNames)
+                @if (HasActiveFilters)
                 {
-                    <MudChip T="string" Size="Size.Small" Color="Color.Primary" Variant="Variant.Filled">@name</MudChip>
-                }
-                @foreach (var name in _tagNames)
-                {
-                    <MudChip T="string" Size="Size.Small" Color="Color.Secondary" Variant="Variant.Filled">@name</MudChip>
-                }
-                @if (!string.IsNullOrWhiteSpace(_search))
-                {
-                    <MudChip T="string" Size="Size.Small" Color="Color.Default" Variant="Variant.Filled"
-                             OnClose="OnSearchCleared">@L["search", "Search"]: @_search</MudChip>
-                }
-                <MudButton Size="Size.Small" Variant="Variant.Text" Color="Color.Primary"
-                           StartIcon="@Icons.Material.Filled.FilterAltOff"
-                           OnClick="ClearAllFilters">@L["media.clear_filters", "Clear filters"]</MudButton>
-            </MudStack>
-        }
-
-        @if (_loading)
-        {
-            <MudProgressLinear Indeterminate="true" Color="Color.Primary" Class="mb-3" />
-        }
-
-        @if (_items.Count == 0 && !_loading)
-        {
-            <MudText Color="Color.Secondary" Class="pa-4" Align="Align.Center">
-                @(HasActiveFilters
-                    ? L["media.empty_filtered", "No files match the current filters."]
-                    : L["picker.empty", "No files. Upload one to get started."])
-            </MudText>
-            @if (HasActiveFilters)
-            {
-                <div class="d-flex justify-center mb-2">
-                    <MudButton Size="Size.Small" Variant="Variant.Outlined" Color="Color.Primary"
-                               StartIcon="@Icons.Material.Filled.FilterAltOff"
-                               OnClick="ClearAllFilters">@L["media.clear_filters", "Clear filters"]</MudButton>
-                </div>
-            }
-        }
-        else
-        {
-            <div style="display:grid; grid-template-columns:repeat(auto-fill,minmax(120px,1fr)); gap:10px; max-height:420px; overflow:auto;">
-                @foreach (var f in _items)
-                {
-                    <MudPaper Elevation="0" Class="border rounded-lg" Style="overflow:hidden; cursor:pointer;"
-                              @onclick="@(() => Select(f))">
-                        <div style="aspect-ratio:1; display:flex; align-items:center; justify-content:center; background:var(--mud-palette-background-grey); overflow:hidden;">
-                            @if (f.FileCategory == (byte)FileCategory.Image && !string.IsNullOrEmpty(f.CNDUrl))
-                            {
-                                <img src="@(f.ThumbnailCDN ?? f.CNDUrl)" alt="@f.AltText" loading="lazy"
-                                     style="width:100%; height:100%; object-fit:cover;" />
-                            }
-                            else
-                            {
-                                <MudIcon Icon="@MediaFormat.CategoryIcon(f.FileCategory)" Color="Color.Secondary" />
-                            }
-                        </div>
-                        <MudText Typo="Typo.caption" Class="d-block text-truncate pa-1" title="@f.OriginalFileName">
-                            @(string.IsNullOrWhiteSpace(f.Title) ? f.OriginalFileName : f.Title)
+                    <MudStack Row="true" AlignItems="AlignItems.Center" Spacing="1" Class="mb-3 flex-wrap">
+                        <MudText Typo="Typo.caption" Color="Color.Secondary" Class="me-1">
+                            @L["media.active_filters", "Active filters"]:
                         </MudText>
-                    </MudPaper>
+                        @if (_folderScope == FileFolderScope.Root)
+                        {
+                            <MudChip T="string" Size="Size.Small" Color="Color.Primary" Variant="Variant.Filled">
+                                @L["media.root_folder", "Root"]
+                            </MudChip>
+                        }
+                        else if (_folderScope == FileFolderScope.Folder && SelectedFolder is { } folder)
+                        {
+                            <MudChip T="string" Size="Size.Small" Color="Color.Primary" Variant="Variant.Filled">@folder.Name</MudChip>
+                        }
+                        @foreach (var name in _tagNames)
+                        {
+                            <MudChip T="string" Size="Size.Small" Color="Color.Secondary" Variant="Variant.Filled">@name</MudChip>
+                        }
+                        @if (!string.IsNullOrWhiteSpace(_search))
+                        {
+                            <MudChip T="string" Size="Size.Small" Color="Color.Default" Variant="Variant.Filled"
+                                     OnClose="OnSearchCleared">@L["search", "Search"]: @_search</MudChip>
+                        }
+                        <MudButton Size="Size.Small" Variant="Variant.Text" Color="Color.Primary"
+                                   StartIcon="@Icons.Material.Filled.FilterAltOff"
+                                   OnClick="ClearAllFilters">@L["media.clear_filters", "Clear filters"]</MudButton>
+                    </MudStack>
                 }
-            </div>
 
-            @if (_total > _pageSize)
-            {
-                <div class="d-flex justify-center mt-3">
-                    <MudPagination Count="@((_total + _pageSize - 1) / _pageSize)" Selected="_pageIndex"
-                                   SelectedChanged="OnPageChanged" Color="Color.Primary" />
-                </div>
-            }
-        }
+                @if (_loading)
+                {
+                    <MudProgressLinear Indeterminate="true" Color="Color.Primary" Class="mb-3" />
+                }
+
+                @if (_items.Count == 0 && !_loading)
+                {
+                    <MudText Color="Color.Secondary" Class="pa-4" Align="Align.Center">
+                        @(HasActiveFilters
+                            ? L["media.empty_filtered", "No files match the current filters."]
+                            : L["picker.empty", "No files. Upload one to get started."])
+                    </MudText>
+                    @if (HasActiveFilters)
+                    {
+                        <div class="d-flex justify-center mb-2">
+                            <MudButton Size="Size.Small" Variant="Variant.Outlined" Color="Color.Primary"
+                                       StartIcon="@Icons.Material.Filled.FilterAltOff"
+                                       OnClick="ClearAllFilters">@L["media.clear_filters", "Clear filters"]</MudButton>
+                        </div>
+                    }
+                }
+                else
+                {
+                    <div style="display:grid; grid-template-columns:repeat(auto-fill,minmax(120px,1fr)); gap:10px; max-height:420px; overflow:auto;">
+                        @foreach (var f in _items)
+                        {
+                            <MudPaper Elevation="0" Class="border rounded-lg" Style="overflow:hidden; cursor:pointer;"
+                                      @onclick="@(() => Select(f))">
+                                <div style="aspect-ratio:1; display:flex; align-items:center; justify-content:center; background:var(--mud-palette-background-grey); overflow:hidden;">
+                                    @if (f.FileCategory == (byte)FileCategory.Image && !string.IsNullOrEmpty(f.CNDUrl))
+                                    {
+                                        <img src="@(f.ThumbnailCDN ?? f.CNDUrl)" alt="@f.AltText" loading="lazy"
+                                             style="width:100%; height:100%; object-fit:cover;" />
+                                    }
+                                    else
+                                    {
+                                        <MudIcon Icon="@MediaFormat.CategoryIcon(f.FileCategory)" Color="Color.Secondary" />
+                                    }
+                                </div>
+                                <MudText Typo="Typo.caption" Class="d-block text-truncate pa-1" title="@f.OriginalFileName">
+                                    @(string.IsNullOrWhiteSpace(f.Title) ? f.OriginalFileName : f.Title)
+                                </MudText>
+                            </MudPaper>
+                        }
+                    </div>
+
+                    @if (_total > _pageSize)
+                    {
+                        <div class="d-flex justify-center mt-3">
+                            <MudPagination Count="@((_total + _pageSize - 1) / _pageSize)" Selected="_pageIndex"
+                                           SelectedChanged="OnPageChanged" Color="Color.Primary" />
+                        </div>
+                    }
+                }
+            </MudItem>
+        </MudGrid>
     </DialogContent>
     <DialogActions>
         <MudButton OnClick="Cancel">@L["cancel", "Cancel"]</MudButton>
@@ -140,17 +147,22 @@
     private const int _pageSize = 18;
     private int _total;
     private List<FileRecord> _items = new();
-    private readonly List<int> _albumIds = new();
+    private IReadOnlyList<FileFolder> _folders = Array.Empty<FileFolder>();
+    private FileFolderScope _folderScope = FileFolderScope.All;
+    private int? _folderId;
     private readonly List<int> _tagIds = new();
-    private List<string> _albumNames = new();
     private List<string> _tagNames = new();
 
     private bool HasActiveFilters =>
-        _albumIds.Count > 0 || _tagIds.Count > 0 || !string.IsNullOrWhiteSpace(_search);
+        _folderScope != FileFolderScope.All || _tagIds.Count > 0 || !string.IsNullOrWhiteSpace(_search);
+
+    private FileFolder? SelectedFolder =>
+        _folderId is int id ? _folders.FirstOrDefault(f => f.FileFolderID == id) : null;
 
     protected override async Task OnInitializedAsync()
     {
         await L.EnsureLoadedAsync();
+        _folders = await FileService.GetFoldersAsync(WebsiteId);
         await LoadAsync();
     }
 
@@ -161,7 +173,8 @@
         {
             Category = Category,
             Search = _search,
-            AlbumIDs = _albumIds.Count > 0 ? _albumIds.ToList() : null,
+            FolderScope = _folderScope,
+            FolderID = _folderId,
             TagIDs = _tagIds.Count > 0 ? _tagIds.ToList() : null,
         };
         var result = await FileService.GetPagedAsync(WebsiteId, filter,
@@ -171,26 +184,12 @@
         _loading = false;
     }
 
-    private async Task OpenAlbumFilterAsync()
+    private async Task OnFolderSelectionChanged(FolderTreeSelection selection)
     {
-        var parameters = new DialogParameters
-        {
-            [nameof(MediaFilterPickDialog.WebsiteId)] = WebsiteId,
-            [nameof(MediaFilterPickDialog.Kind)] = MediaFilterPickDialog.PickKind.Album,
-            [nameof(MediaFilterPickDialog.InitialSelectedIds)] = _albumIds.ToList(),
-        };
-        var dialog = await DialogService.ShowAsync<MediaFilterPickDialog>(
-            L["media.pick_albums", "Select albums"], parameters,
-            new DialogOptions { MaxWidth = MaxWidth.Medium, FullWidth = true });
-        var result = await dialog.Result;
-        if (result is { Canceled: false, Data: List<int> ids })
-        {
-            _albumIds.Clear();
-            _albumIds.AddRange(ids);
-            await RefreshFilterNamesAsync();
-            _pageIndex = 1;
-            await LoadAsync();
-        }
+        _folderScope = selection.Scope;
+        _folderId = selection.FolderId;
+        _pageIndex = 1;
+        await LoadAsync();
     }
 
     private async Task OpenTagFilterAsync()
@@ -217,16 +216,6 @@
 
     private async Task RefreshFilterNamesAsync()
     {
-        if (_albumIds.Count > 0)
-        {
-            var albums = await FileService.GetAlbumsAsync(WebsiteId);
-            _albumNames = albums.Where(a => _albumIds.Contains(a.FileAlbumID)).Select(a => a.Name).ToList();
-        }
-        else
-        {
-            _albumNames = new();
-        }
-
         if (_tagIds.Count > 0)
         {
             var tags = await FileService.GetTagsAsync(WebsiteId);
@@ -240,9 +229,9 @@
 
     private async Task ClearAllFilters()
     {
-        _albumIds.Clear();
+        _folderScope = FileFolderScope.All;
+        _folderId = null;
         _tagIds.Clear();
-        _albumNames = new();
         _tagNames = new();
         _search = null;
         _pageIndex = 1;
@@ -268,7 +257,7 @@
         var parameters = new DialogParameters
         {
             [nameof(UploadDialog.WebsiteId)] = WebsiteId,
-            [nameof(UploadDialog.PresetAlbumId)] = _albumIds.Count == 1 ? _albumIds[0] : null,
+            [nameof(UploadDialog.PresetFolderId)] = _folderScope == FileFolderScope.Folder ? _folderId : null,
         };
         var dialog = await DialogService.ShowAsync<UploadDialog>(L["media.upload", "Upload"], parameters,
             new DialogOptions { MaxWidth = MaxWidth.Medium, FullWidth = true });

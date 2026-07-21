@@ -26,7 +26,7 @@ public class FileService : IFileService
     public async Task<PagedResult<FileRecord>> GetPagedAsync(int? websiteId, FileFilter filter, GridQuery query, CancellationToken ct = default)
     {
         var q = _context.FileRecords.AsNoTracking()
-            .Include(f => f.FileAlbum)
+            .Include(f => f.FileFolder)
             .Include(f => f.FileRecordTags).ThenInclude(t => t.FileTag)
             .Where(f => !f.IsDeleted);
 
@@ -36,15 +36,14 @@ public class FileService : IFileService
         if (filter.Category is FileCategory cat)
             q = q.Where(f => f.FileCategory == (byte)cat);
 
-        var albumIds = filter.EffectiveAlbumIDs().ToList();
-        if (albumIds.Count == 1)
+        switch (filter.FolderScope)
         {
-            var albumId = albumIds[0];
-            q = q.Where(f => f.FileAlbumID == albumId);
-        }
-        else if (albumIds.Count > 1)
-        {
-            q = q.Where(f => f.FileAlbumID != null && albumIds.Contains(f.FileAlbumID.Value));
+            case FileFolderScope.Root:
+                q = q.Where(f => f.FileFolderID == null);
+                break;
+            case FileFolderScope.Folder when filter.FolderID is int folderId:
+                q = q.Where(f => f.FileFolderID == folderId);
+                break;
         }
 
         var tagIds = filter.EffectiveTagIDs().ToList();
@@ -75,7 +74,7 @@ public class FileService : IFileService
 
     public async Task<FileRecord?> GetByIdAsync(int id, CancellationToken ct = default) =>
         await _context.FileRecords
-            .Include(f => f.FileAlbum)
+            .Include(f => f.FileFolder)
             .Include(f => f.FileRecordTags).ThenInclude(t => t.FileTag)
             .FirstOrDefaultAsync(f => f.FileRecordID == id, ct);
 
@@ -188,7 +187,7 @@ public class FileService : IFileService
             FileCategory = (byte)category,
             Title = Truncate(request.Title, 50),
             AltText = Truncate(request.AltText, 120),
-            FileAlbumID = request.AlbumID,
+            FileFolderID = request.FolderID,
             ThumbnailStorage = thumbStorage,
             ThumbnailCDN = thumbCdn,
             IsDeleted = false,
@@ -204,7 +203,7 @@ public class FileService : IFileService
         return record;
     }
 
-    public async Task UpdateMetadataAsync(int id, string? title, string? altText, int? albumId,
+    public async Task UpdateMetadataAsync(int id, string? title, string? altText, int? folderId,
         IReadOnlyList<int> tagIds, CancellationToken ct = default)
     {
         var record = await _context.FileRecords
@@ -214,7 +213,7 @@ public class FileService : IFileService
 
         record.Title = Truncate(title, 50);
         record.AltText = Truncate(altText, 120);
-        record.FileAlbumID = albumId;
+        record.FileFolderID = folderId;
 
         var desired = tagIds.Distinct().ToHashSet();
         foreach (var stale in record.FileRecordTags.Where(t => !desired.Contains(t.FileTagID)).ToList())
@@ -413,58 +412,112 @@ public class FileService : IFileService
         return false;
     }
 
-    // ── Albums ───────────────────────────────────────────────
-    public async Task<IReadOnlyList<FileAlbum>> GetAlbumsAsync(int websiteId, CancellationToken ct = default) =>
-        await _context.FileAlbums.AsNoTracking()
-            .Where(a => a.WebsiteID == websiteId)
-            .OrderBy(a => a.Name)
+    // ── Virtual folders ──────────────────────────────────────
+    public async Task<IReadOnlyList<FileFolder>> GetFoldersAsync(int websiteId, CancellationToken ct = default) =>
+        await _context.FileFolders.AsNoTracking()
+            .Where(f => f.WebsiteID == websiteId)
+            .OrderBy(f => f.Name)
             .ToListAsync(ct);
 
-    public async Task<PagedResult<FileAlbum>> GetAlbumsPagedAsync(int websiteId, GridQuery query, CancellationToken ct = default)
+    public async Task<PagedResult<FileFolder>> GetFoldersPagedAsync(int websiteId, GridQuery query, CancellationToken ct = default)
     {
-        var q = _context.FileAlbums.AsNoTracking()
-            .Where(a => a.WebsiteID == websiteId);
+        var q = _context.FileFolders.AsNoTracking()
+            .Where(f => f.WebsiteID == websiteId);
 
-        if (query.GetSearch(nameof(FileAlbum.Name)) is string name)
-            q = q.Where(a => a.Name.Contains(name));
-        if (query.GetSearch(nameof(FileAlbum.Description)) is string description)
-            q = q.Where(a => a.Description != null && a.Description.Contains(description));
+        if (query.GetSearch(nameof(FileFolder.Name)) is string name)
+            q = q.Where(f => f.Name.Contains(name));
+        if (query.GetSearch(nameof(FileFolder.Description)) is string description)
+            q = q.Where(f => f.Description != null && f.Description.Contains(description));
 
         var total = await q.CountAsync(ct);
         var items = await q
-            .ApplyOrderBy(query.OrderBy, nameof(FileAlbum.Name))
+            .ApplyOrderBy(query.OrderBy, nameof(FileFolder.Name))
             .Skip(query.Skip).Take(query.Take)
             .ToListAsync(ct);
 
-        return new PagedResult<FileAlbum> { Items = items, TotalCount = total };
+        return new PagedResult<FileFolder> { Items = items, TotalCount = total };
     }
 
-    public async Task<FileAlbum> CreateAlbumAsync(int websiteId, string name, string? description, CancellationToken ct = default)
+    public async Task<FileFolder> CreateFolderAsync(int websiteId, string name, string? description, int? parentFolderId = null, CancellationToken ct = default)
     {
-        var album = new FileAlbum
+        if (parentFolderId is int parentId)
+            await EnsureFolderBelongsToWebsiteAsync(parentId, websiteId, ct);
+
+        var folder = new FileFolder
         {
             WebsiteID = websiteId,
+            ParentFolderID = parentFolderId,
             Name = Truncate(name, 120)!,
             Description = Truncate(description, 400),
             CreateDate = DateTime.UtcNow,
         };
-        _context.FileAlbums.Add(album);
+        _context.FileFolders.Add(folder);
         await _context.SaveChangesAsync(ct);
-        return album;
+        return folder;
     }
 
-    public async Task RenameAlbumAsync(int albumId, string name, string? description, CancellationToken ct = default) =>
-        await _context.FileAlbums.Where(a => a.FileAlbumID == albumId)
-            .ExecuteUpdateAsync(s => s
-                .SetProperty(a => a.Name, Truncate(name, 120)!)
-                .SetProperty(a => a.Description, Truncate(description, 400)), ct);
-
-    public async Task DeleteAlbumAsync(int albumId, CancellationToken ct = default)
+    public async Task UpdateFolderAsync(int folderId, string name, string? description, int? parentFolderId, CancellationToken ct = default)
     {
-        // Detach files from the album, then remove it.
-        await _context.FileRecords.Where(f => f.FileAlbumID == albumId)
-            .ExecuteUpdateAsync(s => s.SetProperty(f => f.FileAlbumID, (int?)null), ct);
-        await _context.FileAlbums.Where(a => a.FileAlbumID == albumId).ExecuteDeleteAsync(ct);
+        var folder = await _context.FileFolders.FirstOrDefaultAsync(f => f.FileFolderID == folderId, ct)
+            ?? throw new InvalidOperationException($"Folder {folderId} not found.");
+
+        if (parentFolderId == folderId)
+            throw new InvalidOperationException("A folder cannot be its own parent.");
+
+        if (parentFolderId is int parentId)
+        {
+            await EnsureFolderBelongsToWebsiteAsync(parentId, folder.WebsiteID, ct);
+            if (await IsDescendantAsync(folderId, parentId, ct))
+                throw new InvalidOperationException("Cannot move a folder under one of its descendants.");
+        }
+
+        folder.Name = Truncate(name, 120)!;
+        folder.Description = Truncate(description, 400);
+        folder.ParentFolderID = parentFolderId;
+        await _context.SaveChangesAsync(ct);
+    }
+
+    public async Task DeleteFolderAsync(int folderId, CancellationToken ct = default)
+    {
+        var folder = await _context.FileFolders.FirstOrDefaultAsync(f => f.FileFolderID == folderId, ct)
+            ?? throw new InvalidOperationException($"Folder {folderId} not found.");
+
+        var parentId = folder.ParentFolderID;
+
+        // Promote children to the deleted folder's parent (or root).
+        await _context.FileFolders.Where(f => f.ParentFolderID == folderId)
+            .ExecuteUpdateAsync(s => s.SetProperty(f => f.ParentFolderID, parentId), ct);
+
+        // Detach files so they fall back to the virtual root.
+        await _context.FileRecords.Where(f => f.FileFolderID == folderId)
+            .ExecuteUpdateAsync(s => s.SetProperty(f => f.FileFolderID, (int?)null), ct);
+
+        await _context.FileFolders.Where(f => f.FileFolderID == folderId).ExecuteDeleteAsync(ct);
+    }
+
+    private async Task EnsureFolderBelongsToWebsiteAsync(int folderId, int websiteId, CancellationToken ct)
+    {
+        var ok = await _context.FileFolders.AsNoTracking()
+            .AnyAsync(f => f.FileFolderID == folderId && f.WebsiteID == websiteId, ct);
+        if (!ok)
+            throw new InvalidOperationException($"Folder {folderId} was not found for this website.");
+    }
+
+    /// <summary>True when <paramref name="candidateId"/> is under <paramref name="ancestorId"/> in the tree.</summary>
+    private async Task<bool> IsDescendantAsync(int ancestorId, int candidateId, CancellationToken ct)
+    {
+        var parentById = await _context.FileFolders.AsNoTracking()
+            .Select(f => new { f.FileFolderID, f.ParentFolderID })
+            .ToDictionaryAsync(f => f.FileFolderID, f => f.ParentFolderID, ct);
+
+        var current = (int?)candidateId;
+        for (var guard = 0; current is int id && guard < 256; guard++)
+        {
+            if (id == ancestorId) return true;
+            if (!parentById.TryGetValue(id, out var parent)) break;
+            current = parent;
+        }
+        return false;
     }
 
     // ── Tags ─────────────────────────────────────────────────

@@ -1405,13 +1405,13 @@ namespace Dotnetable.Migrations.PostgreSql.Migrations
                     b.ToTable("EmailTemplateTranslations");
                 });
 
-            modelBuilder.Entity("Dotnetable.Domain.Entities.FileAlbum", b =>
+            modelBuilder.Entity("Dotnetable.Domain.Entities.FileFolder", b =>
                 {
-                    b.Property<int>("FileAlbumID")
+                    b.Property<int>("FileFolderID")
                         .ValueGeneratedOnAdd()
                         .HasColumnType("integer");
 
-                    NpgsqlPropertyBuilderExtensions.UseIdentityByDefaultColumn(b.Property<int>("FileAlbumID"));
+                    NpgsqlPropertyBuilderExtensions.UseIdentityByDefaultColumn(b.Property<int>("FileFolderID"));
 
                     b.Property<DateTime>("CreateDate")
                         .HasColumnType("datetime");
@@ -1425,14 +1425,19 @@ namespace Dotnetable.Migrations.PostgreSql.Migrations
                         .HasMaxLength(120)
                         .HasColumnType("character varying(120)");
 
+                    b.Property<int?>("ParentFolderID")
+                        .HasColumnType("integer");
+
                     b.Property<int>("WebsiteID")
                         .HasColumnType("integer");
 
-                    b.HasKey("FileAlbumID");
+                    b.HasKey("FileFolderID");
 
-                    b.HasIndex(new[] { "WebsiteID" }, "IX_FileAlbums_WebsiteID");
+                    b.HasIndex(new[] { "ParentFolderID" }, "IX_FileFolders_ParentFolderID");
 
-                    b.ToTable("FileAlbums");
+                    b.HasIndex(new[] { "WebsiteID" }, "IX_FileFolders_WebsiteID");
+
+                    b.ToTable("FileFolders");
                 });
 
             modelBuilder.Entity("Dotnetable.Domain.Entities.FileRecord", b =>
@@ -1456,7 +1461,7 @@ namespace Dotnetable.Migrations.PostgreSql.Migrations
                         .HasMaxLength(450)
                         .HasColumnType("character varying(450)");
 
-                    b.Property<int?>("FileAlbumID")
+                    b.Property<int?>("FileFolderID")
                         .HasColumnType("integer");
 
                     b.Property<byte>("FileCategory")
@@ -1525,7 +1530,7 @@ namespace Dotnetable.Migrations.PostgreSql.Migrations
 
                     b.HasKey("FileRecordID");
 
-                    b.HasIndex("FileAlbumID");
+                    b.HasIndex("FileFolderID");
 
                     b.HasIndex("UploaderMemberID");
 
@@ -6012,23 +6017,30 @@ namespace Dotnetable.Migrations.PostgreSql.Migrations
                     b.Navigation("EmailTemplate");
                 });
 
-            modelBuilder.Entity("Dotnetable.Domain.Entities.FileAlbum", b =>
+            modelBuilder.Entity("Dotnetable.Domain.Entities.FileFolder", b =>
                 {
+                    b.HasOne("Dotnetable.Domain.Entities.FileFolder", "ParentFolder")
+                        .WithMany("InverseParentFolder")
+                        .HasForeignKey("ParentFolderID")
+                        .HasConstraintName("FK_FileFolders_Parent");
+
                     b.HasOne("Dotnetable.Domain.Entities.Website", "Website")
-                        .WithMany("FileAlbums")
+                        .WithMany("FileFolders")
                         .HasForeignKey("WebsiteID")
                         .IsRequired()
-                        .HasConstraintName("FK_FileAlbums_Websites");
+                        .HasConstraintName("FK_FileFolders_Websites");
+
+                    b.Navigation("ParentFolder");
 
                     b.Navigation("Website");
                 });
 
             modelBuilder.Entity("Dotnetable.Domain.Entities.FileRecord", b =>
                 {
-                    b.HasOne("Dotnetable.Domain.Entities.FileAlbum", "FileAlbum")
+                    b.HasOne("Dotnetable.Domain.Entities.FileFolder", "FileFolder")
                         .WithMany("FileRecords")
-                        .HasForeignKey("FileAlbumID")
-                        .HasConstraintName("FK_FileRecords_FileAlbums");
+                        .HasForeignKey("FileFolderID")
+                        .HasConstraintName("FK_FileRecords_FileFolders");
 
                     b.HasOne("Dotnetable.Domain.Entities.Member", "UploaderMember")
                         .WithMany("FileRecords")
@@ -6052,7 +6064,7 @@ namespace Dotnetable.Migrations.PostgreSql.Migrations
                         .IsRequired()
                         .HasConstraintName("FK_FileRecords_WebsiteStorageSettings");
 
-                    b.Navigation("FileAlbum");
+                    b.Navigation("FileFolder");
 
                     b.Navigation("UploaderMember");
 
@@ -7933,9 +7945,11 @@ namespace Dotnetable.Migrations.PostgreSql.Migrations
                     b.Navigation("EmailTemplateTranslations");
                 });
 
-            modelBuilder.Entity("Dotnetable.Domain.Entities.FileAlbum", b =>
+            modelBuilder.Entity("Dotnetable.Domain.Entities.FileFolder", b =>
                 {
                     b.Navigation("FileRecords");
+
+                    b.Navigation("InverseParentFolder");
                 });
 
             modelBuilder.Entity("Dotnetable.Domain.Entities.FileRecord", b =>
@@ -8328,7 +8342,7 @@ namespace Dotnetable.Migrations.PostgreSql.Migrations
 
                     b.Navigation("EmailTemplates");
 
-                    b.Navigation("FileAlbums");
+                    b.Navigation("FileFolders");
 
                     b.Navigation("FileRecords");
 

@@ -83,10 +83,11 @@
                 <MudItem xs="12" sm="7">
                     <MudTextField @bind-Value="_title" Label="@L["title", "Title"]" Variant="Variant.Outlined" Class="mb-3" />
                     <MudTextField @bind-Value="_alt" Label="@L["media.alt_text", "Alt text"]" Variant="Variant.Outlined" Class="mb-3" />
-                    <MudAutocomplete T="FileAlbum" Value="_selectedAlbum" ValueChanged="OnAlbumChanged"
-                                     Label="@L["media.album", "Album"]" Variant="Variant.Outlined" Class="mb-3"
-                                     SearchFunc="SearchAlbums" ToStringFunc="@(a => a?.Name ?? "")"
-                                     Clearable="true" ResetValueOnEmptyText="true" CoerceText="false" />
+                    <MudAutocomplete T="FileFolder" Value="_selectedFolder" ValueChanged="OnFolderChanged"
+                                     Label="@L["media.folder", "Folder"]" Variant="Variant.Outlined" Class="mb-3"
+                                     SearchFunc="SearchFolders" ToStringFunc="FolderPath"
+                                     Clearable="true" ResetValueOnEmptyText="true" CoerceText="false"
+                                     HelperText="@L["media.folder_root_hint", "Empty means Root"]" />
                     <MudAutocomplete T="FileTag" Value="_tagToAdd" ValueChanged="OnTagAdd"
                                      Label="@L["media.tags", "Tags"]" Variant="Variant.Outlined"
                                      SearchFunc="SearchTags" ToStringFunc="@(t => t?.Name ?? "")"
@@ -135,35 +136,52 @@
     private bool _downloading;
     private string? _title;
     private string? _alt;
-    private FileAlbum? _selectedAlbum;
+    private FileFolder? _selectedFolder;
     private FileTag? _tagToAdd;
     private List<FileTag> _selectedTags = new();
-    private IReadOnlyList<FileAlbum> _albums = Array.Empty<FileAlbum>();
+    private IReadOnlyList<FileFolder> _folders = Array.Empty<FileFolder>();
     private IReadOnlyList<FileTag> _tags = Array.Empty<FileTag>();
 
     protected override async Task OnInitializedAsync()
     {
         await L.EnsureLoadedAsync();
-        _albums = await FileService.GetAlbumsAsync(WebsiteId);
+        _folders = await FileService.GetFoldersAsync(WebsiteId);
         _tags = await FileService.GetTagsAsync(WebsiteId);
         _file = await FileService.GetByIdAsync(FileId);
         if (_file is not null)
         {
             _title = _file.Title;
             _alt = _file.AltText;
-            _selectedAlbum = _file.FileAlbumID is int albumId
-                ? _albums.FirstOrDefault(a => a.FileAlbumID == albumId)
+            _selectedFolder = _file.FileFolderID is int folderId
+                ? _folders.FirstOrDefault(f => f.FileFolderID == folderId)
                 : null;
             var selectedIds = _file.FileRecordTags.Select(t => t.FileTagID).ToHashSet();
             _selectedTags = _tags.Where(t => selectedIds.Contains(t.FileTagID)).ToList();
         }
     }
 
-    private Task<IEnumerable<FileAlbum>> SearchAlbums(string value, CancellationToken ct)
+    private Task<IEnumerable<FileFolder>> SearchFolders(string value, CancellationToken ct)
     {
         if (string.IsNullOrWhiteSpace(value))
-            return Task.FromResult(_albums.AsEnumerable());
-        return Task.FromResult(_albums.Where(a => a.Name.Contains(value, StringComparison.OrdinalIgnoreCase)));
+            return Task.FromResult(_folders.AsEnumerable());
+        return Task.FromResult(_folders.Where(f =>
+            f.Name.Contains(value, StringComparison.OrdinalIgnoreCase)
+            || FolderPath(f).Contains(value, StringComparison.OrdinalIgnoreCase)));
+    }
+
+    private string FolderPath(FileFolder? folder)
+    {
+        if (folder is null) return "";
+        var byId = _folders.ToDictionary(f => f.FileFolderID);
+        var parts = new List<string> { folder.Name };
+        var current = folder;
+        var guard = 0;
+        while (current.ParentFolderID is int pid && byId.TryGetValue(pid, out var parent) && guard++ < 64)
+        {
+            parts.Insert(0, parent.Name);
+            current = parent;
+        }
+        return string.Join(" / ", parts);
     }
 
     private Task<IEnumerable<FileTag>> SearchTags(string value, CancellationToken ct)
@@ -174,7 +192,7 @@
         return Task.FromResult(available.Where(t => t.Name.Contains(value, StringComparison.OrdinalIgnoreCase)));
     }
 
-    private void OnAlbumChanged(FileAlbum? album) => _selectedAlbum = album;
+    private void OnFolderChanged(FileFolder? folder) => _selectedFolder = folder;
 
     private void OnTagAdd(FileTag? tag)
     {
@@ -193,7 +211,7 @@
         {
             await FileService.UpdateMetadataAsync(
                 _file.FileRecordID, _title, _alt,
-                _selectedAlbum?.FileAlbumID,
+                _selectedFolder?.FileFolderID,
                 _selectedTags.Select(t => t.FileTagID).ToList());
             Snackbar.Add(L["saved_short", "Saved."], Severity.Success);
             MudDialog.Close(DialogResult.Ok(true));

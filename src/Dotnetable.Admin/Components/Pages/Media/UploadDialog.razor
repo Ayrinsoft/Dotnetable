@@ -49,9 +49,9 @@
                 }
 
                 <MudItem xs="12" sm="6">
-                    <MudAutocomplete T="FileAlbum" Value="_selectedAlbum" ValueChanged="OnAlbumChanged"
-                                     Label="@L["upload.album", "Album (optional)"]" Variant="Variant.Outlined"
-                                     SearchFunc="SearchAlbums" ToStringFunc="@(a => a?.Name ?? "")"
+                    <MudAutocomplete T="FileFolder" Value="_selectedFolder" ValueChanged="OnFolderChanged"
+                                     Label="@L["upload.folder", "Folder (optional — empty = Root)"]" Variant="Variant.Outlined"
+                                     SearchFunc="SearchFolders" ToStringFunc="FolderPath"
                                      Clearable="true" ResetValueOnEmptyText="true" CoerceText="false"
                                      Disabled="@_busy" />
                 </MudItem>
@@ -169,20 +169,20 @@
 @code {
     [CascadingParameter] private IMudDialogInstance MudDialog { get; set; } = null!;
     [Parameter] public int WebsiteId { get; set; }
-    [Parameter] public int? PresetAlbumId { get; set; }
+    [Parameter] public int? PresetFolderId { get; set; }
 
     private const long MaxUploadBytes = 200L * 1024 * 1024; // 200 MB per file
 
     private bool _busy;
     private int _storageId;
-    private FileAlbum? _selectedAlbum;
+    private FileFolder? _selectedFolder;
     private FileTag? _tagToAdd;
     private List<FileTag> _selectedTags = new();
     private IReadOnlyList<IBrowserFile>? _files;
     private readonly Dictionary<IBrowserFile, FileEditSpec> _edits = new();
     private readonly Dictionary<IBrowserFile, string> _customNames = new();
     private List<StorageSettingInfo> _storages = new();
-    private IReadOnlyList<FileAlbum> _albums = Array.Empty<FileAlbum>();
+    private IReadOnlyList<FileFolder> _folders = Array.Empty<FileFolder>();
     private IReadOnlyList<FileTag> _tags = Array.Empty<FileTag>();
 
     // Progress (0..100 overall across all selected files)
@@ -198,10 +198,10 @@
         await L.EnsureLoadedAsync();
         _storages = (await StorageService.GetActiveForWebsiteAsync(WebsiteId)).ToList();
         if (_storages.Count > 0) _storageId = _storages[0].WebsiteStorageSettingsID;
-        _albums = await FileService.GetAlbumsAsync(WebsiteId);
+        _folders = await FileService.GetFoldersAsync(WebsiteId);
         _tags = await FileService.GetTagsAsync(WebsiteId);
-        if (PresetAlbumId is int presetId)
-            _selectedAlbum = _albums.FirstOrDefault(a => a.FileAlbumID == presetId);
+        if (PresetFolderId is int presetId)
+            _selectedFolder = _folders.FirstOrDefault(f => f.FileFolderID == presetId);
     }
 
     private void OnFilesChanged(IReadOnlyList<IBrowserFile>? files)
@@ -234,11 +234,28 @@
     private void SetCustomName(IBrowserFile file, string? value) =>
         _customNames[file] = value ?? "";
 
-    private Task<IEnumerable<FileAlbum>> SearchAlbums(string value, CancellationToken ct)
+    private Task<IEnumerable<FileFolder>> SearchFolders(string value, CancellationToken ct)
     {
         if (string.IsNullOrWhiteSpace(value))
-            return Task.FromResult(_albums.AsEnumerable());
-        return Task.FromResult(_albums.Where(a => a.Name.Contains(value, StringComparison.OrdinalIgnoreCase)));
+            return Task.FromResult(_folders.AsEnumerable());
+        return Task.FromResult(_folders.Where(f =>
+            f.Name.Contains(value, StringComparison.OrdinalIgnoreCase)
+            || FolderPath(f).Contains(value, StringComparison.OrdinalIgnoreCase)));
+    }
+
+    private string FolderPath(FileFolder? folder)
+    {
+        if (folder is null) return "";
+        var byId = _folders.ToDictionary(f => f.FileFolderID);
+        var parts = new List<string> { folder.Name };
+        var current = folder;
+        var guard = 0;
+        while (current.ParentFolderID is int pid && byId.TryGetValue(pid, out var parent) && guard++ < 64)
+        {
+            parts.Insert(0, parent.Name);
+            current = parent;
+        }
+        return string.Join(" / ", parts);
     }
 
     private Task<IEnumerable<FileTag>> SearchTags(string value, CancellationToken ct)
@@ -249,7 +266,7 @@
         return Task.FromResult(available.Where(t => t.Name.Contains(value, StringComparison.OrdinalIgnoreCase)));
     }
 
-    private void OnAlbumChanged(FileAlbum? album) => _selectedAlbum = album;
+    private void OnFolderChanged(FileFolder? folder) => _selectedFolder = folder;
 
     private void OnTagAdd(FileTag? tag)
     {
@@ -347,7 +364,7 @@
                         Content = progressStream,
                         OriginalFileName = file.Name,
                         MimeType = file.ContentType,
-                        AlbumID = _selectedAlbum?.FileAlbumID,
+                        FolderID = _selectedFolder?.FileFolderID,
                         TagIDs = tagIds,
                         CustomFileName = customName,
                         Crop = spec?.Crop,

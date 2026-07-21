@@ -5,15 +5,13 @@
 <MudDialog>
     <TitleContent>
         <MudText Typo="Typo.h6">
-            <MudIcon Icon="@(IsAlbum ? Icons.Material.Filled.Collections : Icons.Material.Filled.Sell)" Class="me-2" />
-            @(IsAlbum ? L["media.pick_albums", "Select albums"] : L["media.pick_tags", "Select tags"])
+            <MudIcon Icon="@Icons.Material.Filled.Sell" Class="me-2" />
+            @L["media.pick_tags", "Select tags"]
         </MudText>
     </TitleContent>
     <DialogContent>
         <MudText Typo="Typo.body2" Color="Color.Secondary" Class="mb-3">
-            @(IsAlbum
-                ? L["media.pick_albums_hint", "Choose one or more albums to filter the file list."]
-                : L["media.pick_tags_hint", "Choose one or more tags to filter the file list."])
+            @L["media.pick_tags_hint", "Choose one or more tags to filter the file list."]
         </MudText>
 
         @if (_loading)
@@ -40,61 +38,27 @@
                     SelectAllTitle="@L["media.select_all_page", "Select all on this page"]"
                     SearchPlaceholder="@L["search", "Search…"]"
                     AllText="@L["all", "All"]">
-            @if (IsAlbum)
+            @if (_tags.Count == 0)
             {
-                @if (_albums.Count == 0)
-                {
-                    <tr>
-                        <td colspan="3" style="text-align:center; padding:28px;">
-                            <MudText Color="Color.Secondary">@L["media.albums_empty", "No albums yet."]</MudText>
-                        </td>
-                    </tr>
-                }
-                else
-                {
-                    @foreach (var a in _albums)
-                    {
-                        var selected = _selected.Contains(a.FileAlbumID);
-                        <tr class="@(selected ? "dn-grid-row-selected dn-grid-row-clickable" : "dn-grid-row-clickable")"
-                            @onclick="@(() => Toggle(a.FileAlbumID))">
-                            <td class="dn-grid-select" @onclick:stopPropagation="true">
-                                <input type="checkbox" class="dn-grid-check" checked="@selected"
-                                       @onchange="@(() => Toggle(a.FileAlbumID))" />
-                            </td>
-                            <td>@a.Name</td>
-                            <td>
-                                <MudText Typo="Typo.body2" Color="Color.Secondary" Class="text-truncate" Style="max-width:280px;">
-                                    @(a.Description ?? "—")
-                                </MudText>
-                            </td>
-                        </tr>
-                    }
-                }
+                <tr>
+                    <td colspan="2" style="text-align:center; padding:28px;">
+                        <MudText Color="Color.Secondary">@L["media.tags_empty", "No tags yet."]</MudText>
+                    </td>
+                </tr>
             }
             else
             {
-                @if (_tags.Count == 0)
+                @foreach (var t in _tags)
                 {
-                    <tr>
-                        <td colspan="2" style="text-align:center; padding:28px;">
-                            <MudText Color="Color.Secondary">@L["media.tags_empty", "No tags yet."]</MudText>
+                    var selected = _selected.Contains(t.FileTagID);
+                    <tr class="@(selected ? "dn-grid-row-selected dn-grid-row-clickable" : "dn-grid-row-clickable")"
+                        @onclick="@(() => Toggle(t.FileTagID))">
+                        <td class="dn-grid-select" @onclick:stopPropagation="true">
+                            <input type="checkbox" class="dn-grid-check" checked="@selected"
+                                   @onchange="@(() => Toggle(t.FileTagID))" />
                         </td>
+                        <td>@t.Name</td>
                     </tr>
-                }
-                else
-                {
-                    @foreach (var t in _tags)
-                    {
-                        var selected = _selected.Contains(t.FileTagID);
-                        <tr class="@(selected ? "dn-grid-row-selected dn-grid-row-clickable" : "dn-grid-row-clickable")"
-                            @onclick="@(() => Toggle(t.FileTagID))">
-                            <td class="dn-grid-select" @onclick:stopPropagation="true">
-                                <input type="checkbox" class="dn-grid-check" checked="@selected"
-                                       @onchange="@(() => Toggle(t.FileTagID))" />
-                            </td>
-                            <td>@t.Name</td>
-                        </tr>
-                    }
                 }
             }
         </DNGridView>
@@ -114,23 +78,21 @@
 @code {
     public enum PickKind
     {
-        Album,
-        Tag
+        Tag = 0,
+        /// <summary>Obsolete — albums were replaced by the folder tree. Kept for call-site compatibility.</summary>
+        Album = 1
     }
 
     [CascadingParameter] private IMudDialogInstance MudDialog { get; set; } = null!;
 
     [Parameter] public int WebsiteId { get; set; }
-    [Parameter] public PickKind Kind { get; set; } = PickKind.Album;
+    [Parameter] public PickKind Kind { get; set; } = PickKind.Tag;
     [Parameter] public IReadOnlyCollection<int>? InitialSelectedIds { get; set; }
 
     private bool _loading = true;
     private GridViewHeaderParameters _grid = new();
     private readonly HashSet<int> _selected = new();
-    private List<FileAlbum> _albums = new();
     private List<FileTag> _tags = new();
-
-    private bool IsAlbum => Kind == PickKind.Album;
     private IReadOnlyList<int> _pageIds = Array.Empty<int>();
 
     private bool AllPageSelected =>
@@ -149,16 +111,10 @@
         _grid = new GridViewHeaderParameters
         {
             Pagination = new PaginationModel { PageSize = 15 },
-            HeaderItems = IsAlbum
-                ? new()
-                {
-                    new() { ColumnTitle = L["name", "Name"], ColumnName = nameof(FileAlbum.Name), HasSort = true, HasSearch = true },
-                    new() { ColumnTitle = L["description", "Description"], ColumnName = nameof(FileAlbum.Description), HasSort = true, HasSearch = true },
-                }
-                : new()
-                {
-                    new() { ColumnTitle = L["name", "Name"], ColumnName = nameof(FileTag.Name), HasSort = true, HasSearch = true },
-                }
+            HeaderItems = new()
+            {
+                new() { ColumnTitle = L["name", "Name"], ColumnName = nameof(FileTag.Name), HasSort = true, HasSearch = true },
+            }
         };
 
         await LoadAsync();
@@ -170,22 +126,10 @@
     {
         _loading = true;
         var query = _grid.ToQuery();
-        if (IsAlbum)
-        {
-            var result = await FileService.GetAlbumsPagedAsync(WebsiteId, query);
-            _albums = result.Items.ToList();
-            _tags = new();
-            _grid.Pagination.MaxLength = result.TotalCount;
-            _pageIds = _albums.Select(a => a.FileAlbumID).ToList();
-        }
-        else
-        {
-            var result = await FileService.GetTagsPagedAsync(WebsiteId, query);
-            _tags = result.Items.ToList();
-            _albums = new();
-            _grid.Pagination.MaxLength = result.TotalCount;
-            _pageIds = _tags.Select(t => t.FileTagID).ToList();
-        }
+        var result = await FileService.GetTagsPagedAsync(WebsiteId, query);
+        _tags = result.Items.ToList();
+        _grid.Pagination.MaxLength = result.TotalCount;
+        _pageIds = _tags.Select(t => t.FileTagID).ToList();
         _loading = false;
     }
 

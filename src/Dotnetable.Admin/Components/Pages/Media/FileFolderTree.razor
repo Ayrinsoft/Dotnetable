@@ -1,0 +1,177 @@
+@using Dotnetable.Domain.Entities
+@inject IPageLocalizer L
+
+<div class="dn-folder-tree">
+    <MudTextField @bind-Value="_search"
+                  Placeholder="@L["media.search_folders", "Search folders…"]"
+                  Variant="Variant.Outlined"
+                  Margin="Margin.Dense"
+                  Immediate="true"
+                  Adornment="Adornment.Start"
+                  AdornmentIcon="@Icons.Material.Filled.Search"
+                  Clearable="true"
+                  Class="mb-2" />
+
+    <MudButton Variant="@(IsAllSelected ? Variant.Filled : Variant.Text)"
+               Color="@(IsAllSelected ? Color.Primary : Color.Default)"
+               StartIcon="@Icons.Material.Filled.PhotoLibrary"
+               FullWidth="true"
+               Class="justify-start mb-1"
+               OnClick="SelectAll">
+        @L["media.all_files", "All files"]
+    </MudButton>
+
+    <MudButton Variant="@(IsRootSelected ? Variant.Filled : Variant.Text)"
+               Color="@(IsRootSelected ? Color.Primary : Color.Default)"
+               StartIcon="@Icons.Material.Filled.Home"
+               FullWidth="true"
+               Class="justify-start mb-2"
+               OnClick="SelectRoot">
+        @L["media.root_folder", "Root"]
+    </MudButton>
+
+    @if (VisibleRoots.Count == 0)
+    {
+        <MudText Typo="Typo.caption" Color="Color.Secondary" Class="px-1">
+            @(_search is { Length: > 0 }
+                ? L["media.folders_search_empty", "No folders match your search."]
+                : L["media.folders_empty", "No folders yet."])
+        </MudText>
+    }
+    else
+    {
+        <ul class="dn-tree dn-tree-root dn-folder-tree-list">
+            @foreach (var folder in VisibleRoots)
+            {
+                @RenderNode(folder, 0)
+            }
+        </ul>
+    }
+</div>
+
+@code {
+    [Parameter] public IReadOnlyList<FileFolder> Folders { get; set; } = Array.Empty<FileFolder>();
+    [Parameter] public FileFolderScope SelectedScope { get; set; } = FileFolderScope.All;
+    [Parameter] public int? SelectedFolderId { get; set; }
+    [Parameter] public EventCallback<FolderTreeSelection> SelectionChanged { get; set; }
+
+    private string? _search;
+    private readonly HashSet<int> _expanded = new();
+
+    private bool IsAllSelected => SelectedScope == FileFolderScope.All;
+    private bool IsRootSelected => SelectedScope == FileFolderScope.Root;
+
+    private IReadOnlyList<FileFolder> VisibleRoots
+    {
+        get
+        {
+            if (string.IsNullOrWhiteSpace(_search))
+                return Folders.Where(f => f.ParentFolderID is null).OrderBy(f => f.Name).ToList();
+
+            var matchIds = Folders
+                .Where(f => f.Name.Contains(_search.Trim(), StringComparison.OrdinalIgnoreCase))
+                .Select(f => f.FileFolderID)
+                .ToHashSet();
+
+            // Include ancestors so matched nodes stay visible in context.
+            var byId = Folders.ToDictionary(f => f.FileFolderID);
+            var visible = new HashSet<int>(matchIds);
+            foreach (var id in matchIds.ToList())
+            {
+                var current = byId.GetValueOrDefault(id);
+                while (current?.ParentFolderID is int parentId)
+                {
+                    visible.Add(parentId);
+                    if (!byId.TryGetValue(parentId, out current)) break;
+                }
+            }
+
+            // Auto-expand ancestors while searching.
+            foreach (var id in visible)
+                _expanded.Add(id);
+
+            return Folders.Where(f => f.ParentFolderID is null && visible.Contains(f.FileFolderID))
+                .OrderBy(f => f.Name).ToList();
+        }
+    }
+
+    private IEnumerable<FileFolder> ChildrenOf(int parentId)
+    {
+        IEnumerable<FileFolder> children = Folders.Where(f => f.ParentFolderID == parentId).OrderBy(f => f.Name);
+        if (string.IsNullOrWhiteSpace(_search)) return children;
+
+        var matchIds = Folders
+            .Where(f => f.Name.Contains(_search.Trim(), StringComparison.OrdinalIgnoreCase))
+            .Select(f => f.FileFolderID)
+            .ToHashSet();
+        var byId = Folders.ToDictionary(f => f.FileFolderID);
+        var visible = new HashSet<int>(matchIds);
+        foreach (var id in matchIds.ToList())
+        {
+            var current = byId.GetValueOrDefault(id);
+            while (current?.ParentFolderID is int p)
+            {
+                visible.Add(p);
+                if (!byId.TryGetValue(p, out current)) break;
+            }
+        }
+        return children.Where(c => visible.Contains(c.FileFolderID));
+    }
+
+    private bool HasChildren(int folderId) => Folders.Any(f => f.ParentFolderID == folderId);
+
+    private bool IsFolderSelected(int folderId) =>
+        SelectedScope == FileFolderScope.Folder && SelectedFolderId == folderId;
+
+    private bool IsExpanded(int folderId) =>
+        _expanded.Contains(folderId) || (!string.IsNullOrWhiteSpace(_search) && HasChildren(folderId));
+
+    private void ToggleExpand(int folderId)
+    {
+        if (!_expanded.Add(folderId))
+            _expanded.Remove(folderId);
+    }
+
+    private Task SelectAll() => SelectionChanged.InvokeAsync(FolderTreeSelection.All);
+    private Task SelectRoot() => SelectionChanged.InvokeAsync(FolderTreeSelection.Root);
+    private Task SelectFolder(int folderId) => SelectionChanged.InvokeAsync(FolderTreeSelection.Folder(folderId));
+
+    private RenderFragment RenderNode(FileFolder folder, int depth) => __builder =>
+    {
+        var hasChildren = HasChildren(folder.FileFolderID);
+        var expanded = IsExpanded(folder.FileFolderID);
+        var selected = IsFolderSelected(folder.FileFolderID);
+        var indent = depth * 12;
+
+        <li class="dn-tree-node">
+            <div class="dn-folder-tree-row @(selected ? "dn-folder-tree-selected" : "")"
+                 style="@($"padding-inline-start:{8 + indent}px")"
+                 @onclick="@(() => SelectFolder(folder.FileFolderID))">
+                @if (hasChildren)
+                {
+                    <span @onclick:stopPropagation="true">
+                        <MudIconButton Icon="@(expanded ? Icons.Material.Filled.ExpandMore : Icons.Material.Filled.ChevronRight)"
+                                       Size="Size.Small"
+                                       Class="pa-0 dn-folder-tree-toggle"
+                                       OnClick="@(() => ToggleExpand(folder.FileFolderID))" />
+                    </span>
+                }
+                else
+                {
+                    <span class="dn-folder-tree-toggle-spacer"></span>
+                }
+                <MudIcon Icon="@Icons.Material.Filled.Folder" Size="Size.Small" Class="me-1" Color="@(selected ? Color.Primary : Color.Default)" />
+                <span class="dn-folder-tree-title text-truncate" title="@folder.Name">@folder.Name</span>
+            </div>
+            @if (hasChildren && expanded)
+            {
+                <ul class="dn-tree-children">
+                    @foreach (var child in ChildrenOf(folder.FileFolderID))
+                    {
+                        @RenderNode(child, depth + 1)
+                    }
+                </ul>
+            }
+        </li>
+    };
+}

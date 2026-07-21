@@ -415,3 +415,44 @@ html, body {
 .dn-tree-dropline-tail {
     margin-top: 4px;
 }
+
+/* ============================================================
+   Media library virtual folder tree
+   ============================================================ */
+.dn-folder-tree-list {
+    max-height: 360px;
+    overflow: auto;
+}
+
+.dn-folder-tree-row {
+    display: flex;
+    align-items: center;
+    gap: 2px;
+    padding: 4px 6px;
+    margin: 1px 0;
+    border-radius: 6px;
+    cursor: pointer;
+    transition: background-color .12s ease;
+}
+
+.dn-folder-tree-row:hover {
+    background: rgba(52, 143, 226, .08);
+}
+
+.dn-folder-tree-selected {
+    background: rgba(52, 143, 226, .14);
+    color: var(--mud-palette-primary);
+    font-weight: 600;
+}
+
+.dn-folder-tree-title {
+    font-size: .85rem;
+    min-width: 0;
+}
+
+.dn-folder-tree-toggle-spacer {
+    width: 28px;
+    display: inline-block;
+    flex-shrink: 0;
+}
+

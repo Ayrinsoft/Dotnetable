@@ -17,12 +17,12 @@
     [ThumbnailCDN]             NVARCHAR (450)  NULL,
     [FileCategory]             TINYINT         NOT NULL,
     [CDNFileCode]              VARCHAR (80)    NULL,
-    [FileAlbumID]              INT             NULL,
+    [FileFolderID]             INT             NULL,
     [WebsiteID]                INT             NOT NULL,
     [UploaderMemberID]         INT             NULL,
     [WebsiteClientID]          INT             NULL,
     CONSTRAINT [PK_FileRecords] PRIMARY KEY CLUSTERED ([FileRecordID] ASC),
-    CONSTRAINT [FK_FileRecords_FileAlbums] FOREIGN KEY ([FileAlbumID]) REFERENCES [dbo].[FileAlbums] ([FileAlbumID]),
+    CONSTRAINT [FK_FileRecords_FileFolders] FOREIGN KEY ([FileFolderID]) REFERENCES [dbo].[FileFolders] ([FileFolderID]),
     CONSTRAINT [FK_FileRecords_Members] FOREIGN KEY ([UploaderMemberID]) REFERENCES [dbo].[Members] ([MemberID]),
     CONSTRAINT [FK_FileRecords_Websites] FOREIGN KEY ([WebsiteID]) REFERENCES [dbo].[Websites] ([WebsiteID]),
     CONSTRAINT [FK_FileRecords_WebsiteClients] FOREIGN KEY ([WebsiteClientID]) REFERENCES [dbo].[WebsiteClients] ([WebsiteClientID]),
@@ -30,8 +30,8 @@
 );
 GO
 
-CREATE NONCLUSTERED INDEX [IX_FileRecords_FileAlbumID]
-    ON [dbo].[FileRecords] ([FileAlbumID] ASC);
+CREATE NONCLUSTERED INDEX [IX_FileRecords_FileFolderID]
+    ON [dbo].[FileRecords] ([FileFolderID] ASC);
 
 CREATE NONCLUSTERED INDEX [IX_FileRecords_UploaderMemberID]
     ON [dbo].[FileRecords] ([UploaderMemberID] ASC);
