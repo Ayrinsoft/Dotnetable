@@ -128,14 +128,24 @@ public class FileService : IFileService
                     buffer, options, SKEncodedImageFormat.Webp, maxOutputBytes: originalLength, ct);
                 if (processed is not null)
                 {
-                    uploadSource = processed;
-                    sizeKb = (int)Math.Ceiling(processed.Length / 1024d);
-                    if (!alreadyWebp)
+                    // Graphics-heavy PNGs (QR codes, icons) often re-encode larger as WebP.
+                    // Keep the original bytes whenever we only converted format and grew the file.
+                    // When the user applied crop/resize/etc., always keep the processed result.
+                    if (!options.HasWork && processed.Length >= originalLength)
                     {
-                        mime = "image/webp";
-                        ext = ".webp";
-                        storedName = Path.GetFileNameWithoutExtension(storedName) + ext;
-                        webpApplied = true;
+                        await processed.DisposeAsync();
+                    }
+                    else
+                    {
+                        uploadSource = processed;
+                        sizeKb = (int)Math.Ceiling(processed.Length / 1024d);
+                        if (!alreadyWebp)
+                        {
+                            mime = "image/webp";
+                            ext = ".webp";
+                            storedName = Path.GetFileNameWithoutExtension(storedName) + ext;
+                            webpApplied = true;
+                        }
                     }
                 }
             }
@@ -151,8 +161,8 @@ public class FileService : IFileService
             await using var thumb = await ImageThumbnailer.TryCreateAsync(uploadSource, ct);
             if (thumb is not null)
             {
-                var thumbName = "t_" + storedName;
-                var thumbResult = await provider.UploadAsync(ctx, thumb, thumbName, "image/jpeg", ct);
+                var thumbName = "t_" + Path.GetFileNameWithoutExtension(storedName) + ".webp";
+                var thumbResult = await provider.UploadAsync(ctx, thumb, thumbName, "image/webp", ct);
                 thumbStorage = thumbResult.StoragePath;
                 thumbCdn = thumbResult.CdnUrl;
             }
@@ -216,9 +226,66 @@ public class FileService : IFileService
         await _context.SaveChangesAsync(ct);
     }
 
+    public async Task<FileUsageSummary> GetUsageAsync(int id, CancellationToken ct = default)
+    {
+        var items = new List<FileUsageItem>();
+
+        async Task AddOptionalAsync(string label, Task<int> countTask)
+        {
+            var count = await countTask;
+            if (count > 0)
+                items.Add(new FileUsageItem { Label = label, Count = count, IsRequired = false });
+        }
+
+        await AddOptionalAsync("Bank logos", _context.Banks.CountAsync(x => x.LogoFileID == id, ct));
+        await AddOptionalAsync("Brand logos", _context.Brands.CountAsync(x => x.LogoFileID == id, ct));
+        await AddOptionalAsync("Vendor logos", _context.Vendors.CountAsync(x => x.LogoFileID == id, ct));
+        await AddOptionalAsync("Member avatars", _context.Members.CountAsync(x => x.AvatarID == id, ct));
+        await AddOptionalAsync("Client avatars", _context.WebsiteClients.CountAsync(x => x.AvatarID == id, ct));
+        await AddOptionalAsync("Payment receipts", _context.Payments.CountAsync(x => x.ReceiptFileID == id, ct));
+        await AddOptionalAsync("Post featured images", _context.Posts.CountAsync(x => x.FeaturedImageFileID == id, ct));
+        await AddOptionalAsync("Product featured images", _context.Products.CountAsync(x => x.FeaturedImageFileID == id, ct));
+        await AddOptionalAsync("Product category images", _context.ProductCategories.CountAsync(x => x.ImageFileID == id, ct));
+        await AddOptionalAsync("Product variant images", _context.ProductVariants.CountAsync(x => x.ImageFileID == id, ct));
+        await AddOptionalAsync("Product content sections", _context.ProductContentSections.CountAsync(x => x.FileId == id, ct));
+        await AddOptionalAsync("Media set items", _context.MediaSetItems.CountAsync(x => x.FileID == id, ct));
+        await AddOptionalAsync("Video thumbnails", _context.MediaSetItems.CountAsync(x => x.VideoThumbnailFileID == id, ct));
+        await AddOptionalAsync("Slideshow mobile images", _context.SlideshowSlides.CountAsync(x => x.MobileFileID == id, ct));
+        await AddOptionalAsync("Website logos", _context.Websites.CountAsync(x => x.LogoFileID == id, ct));
+        await AddOptionalAsync("Website favicons", _context.Websites.CountAsync(x => x.FaveIconFileID == id, ct));
+        await AddOptionalAsync("Watermark images", _context.WebsiteWatermarkSettings.CountAsync(x => x.WatermarkFileID == id, ct));
+
+        // Required FK: primary slideshow image — deleting the file removes those slides.
+        var requiredSlides = await _context.SlideshowSlides.AsNoTracking()
+            .Where(s => s.FileID == id)
+            .Select(s => new { s.SlideshowSlideID, SlideshowName = s.Slideshow.Name, s.Title })
+            .Take(20)
+            .ToListAsync(ct);
+        if (requiredSlides.Count > 0)
+        {
+            var total = requiredSlides.Count < 20
+                ? requiredSlides.Count
+                : await _context.SlideshowSlides.CountAsync(s => s.FileID == id, ct);
+            var detail = string.Join(", ", requiredSlides
+                .Select(s => string.IsNullOrWhiteSpace(s.Title) ? s.SlideshowName : $"{s.SlideshowName}: {s.Title}")
+                .Where(x => !string.IsNullOrWhiteSpace(x))
+                .Distinct()
+                .Take(8));
+            items.Add(new FileUsageItem
+            {
+                Label = "Slideshow slides (primary image)",
+                Count = total,
+                Detail = string.IsNullOrWhiteSpace(detail) ? null : detail,
+                IsRequired = true,
+            });
+        }
+
+        return new FileUsageSummary { Items = items };
+    }
+
     /// <summary>
-    /// Hides the file in the library and removes the object(s) from the storage backend
-    /// (main file + thumbnail when present). The DB row stays for FK integrity (IsDeleted = true).
+    /// Deletes the file from storage, nulls every optional FK that pointed at it, removes slideshow
+    /// slides that required it as their primary image, then hard-deletes the <see cref="FileRecord"/> row.
     /// </summary>
     public async Task SoftDeleteAsync(int id, CancellationToken ct = default)
     {
@@ -227,11 +294,8 @@ public class FileService : IFileService
             .FirstOrDefaultAsync(f => f.FileRecordID == id, ct)
             ?? throw new InvalidOperationException("File not found.");
 
-        if (record.IsDeleted)
-            return;
-
         // Remove from storage first so a failed backend delete does not leave an orphaned blob
-        // while the library already hides the file.
+        // while the library already removed the row.
         if (record.WebsiteStorageSettings is not null)
         {
             var setting = record.WebsiteStorageSettings;
@@ -250,8 +314,55 @@ public class FileService : IFileService
             }
         }
 
-        record.IsDeleted = true;
+        await ClearFileReferencesAsync(id, ct);
+
+        // Junction rows (no optional FK — must delete).
+        await _context.FileRecordTags.Where(t => t.FileRecordID == id).ExecuteDeleteAsync(ct);
+
+        // Slideshow slides require a primary FileID; without the image the slide is unusable.
+        await _context.SlideshowSlides.Where(s => s.FileID == id).ExecuteDeleteAsync(ct);
+
+        _context.FileRecords.Remove(record);
         await _context.SaveChangesAsync(ct);
+    }
+
+    /// <summary>Sets every optional FileRecord FK to null so the row can be hard-deleted.</summary>
+    private async Task ClearFileReferencesAsync(int fileId, CancellationToken ct)
+    {
+        await _context.Banks.Where(x => x.LogoFileID == fileId)
+            .ExecuteUpdateAsync(s => s.SetProperty(x => x.LogoFileID, (int?)null), ct);
+        await _context.Brands.Where(x => x.LogoFileID == fileId)
+            .ExecuteUpdateAsync(s => s.SetProperty(x => x.LogoFileID, (int?)null), ct);
+        await _context.Vendors.Where(x => x.LogoFileID == fileId)
+            .ExecuteUpdateAsync(s => s.SetProperty(x => x.LogoFileID, (int?)null), ct);
+        await _context.Members.Where(x => x.AvatarID == fileId)
+            .ExecuteUpdateAsync(s => s.SetProperty(x => x.AvatarID, (int?)null), ct);
+        await _context.WebsiteClients.Where(x => x.AvatarID == fileId)
+            .ExecuteUpdateAsync(s => s.SetProperty(x => x.AvatarID, (int?)null), ct);
+        await _context.Payments.Where(x => x.ReceiptFileID == fileId)
+            .ExecuteUpdateAsync(s => s.SetProperty(x => x.ReceiptFileID, (int?)null), ct);
+        await _context.Posts.Where(x => x.FeaturedImageFileID == fileId)
+            .ExecuteUpdateAsync(s => s.SetProperty(x => x.FeaturedImageFileID, (int?)null), ct);
+        await _context.Products.Where(x => x.FeaturedImageFileID == fileId)
+            .ExecuteUpdateAsync(s => s.SetProperty(x => x.FeaturedImageFileID, (int?)null), ct);
+        await _context.ProductCategories.Where(x => x.ImageFileID == fileId)
+            .ExecuteUpdateAsync(s => s.SetProperty(x => x.ImageFileID, (int?)null), ct);
+        await _context.ProductVariants.Where(x => x.ImageFileID == fileId)
+            .ExecuteUpdateAsync(s => s.SetProperty(x => x.ImageFileID, (int?)null), ct);
+        await _context.ProductContentSections.Where(x => x.FileId == fileId)
+            .ExecuteUpdateAsync(s => s.SetProperty(x => x.FileId, (int?)null), ct);
+        await _context.MediaSetItems.Where(x => x.FileID == fileId)
+            .ExecuteUpdateAsync(s => s.SetProperty(x => x.FileID, (int?)null), ct);
+        await _context.MediaSetItems.Where(x => x.VideoThumbnailFileID == fileId)
+            .ExecuteUpdateAsync(s => s.SetProperty(x => x.VideoThumbnailFileID, (int?)null), ct);
+        await _context.SlideshowSlides.Where(x => x.MobileFileID == fileId)
+            .ExecuteUpdateAsync(s => s.SetProperty(x => x.MobileFileID, (int?)null), ct);
+        await _context.Websites.Where(x => x.LogoFileID == fileId)
+            .ExecuteUpdateAsync(s => s.SetProperty(x => x.LogoFileID, (int?)null), ct);
+        await _context.Websites.Where(x => x.FaveIconFileID == fileId)
+            .ExecuteUpdateAsync(s => s.SetProperty(x => x.FaveIconFileID, (int?)null), ct);
+        await _context.WebsiteWatermarkSettings.Where(x => x.WatermarkFileID == fileId)
+            .ExecuteUpdateAsync(s => s.SetProperty(x => x.WatermarkFileID, (int?)null), ct);
     }
 
     /// <summary>Picks the best storage object key: path from upload, then CDN code, then stored file name.</summary>

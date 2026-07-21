@@ -42,6 +42,32 @@ public sealed class FileUploadRequest
     public bool? ApplyWatermark { get; init; }
 }
 
+/// <summary>One place that references a media file (for delete confirmation).</summary>
+public sealed class FileUsageItem
+{
+    /// <summary>Human-readable area, e.g. "Slideshow slides", "Product featured image".</summary>
+    public required string Label { get; init; }
+
+    public int Count { get; init; }
+
+    /// <summary>Optional detail (names/titles) for the confirmation dialog.</summary>
+    public string? Detail { get; init; }
+
+    /// <summary>
+    /// When true, delete will remove those rows (required FK). When false, the FK is only nulled.
+    /// </summary>
+    public bool IsRequired { get; init; }
+}
+
+/// <summary>Where a media file is currently used across the system.</summary>
+public sealed class FileUsageSummary
+{
+    public IReadOnlyList<FileUsageItem> Items { get; init; } = Array.Empty<FileUsageItem>();
+
+    public bool HasAny => Items.Count > 0;
+    public bool HasRequired => Items.Any(i => i.IsRequired);
+}
+
 /// <summary>The media library: browsing, uploading, albums and tags — all scoped per website.</summary>
 public interface IFileService
 {
@@ -50,13 +76,17 @@ public interface IFileService
 
     Task<FileRecord?> GetByIdAsync(int id, CancellationToken ct = default);
 
+    /// <summary>Lists optional and required references for delete confirmation.</summary>
+    Task<FileUsageSummary> GetUsageAsync(int id, CancellationToken ct = default);
+
     Task<FileRecord> UploadAsync(FileUploadRequest request, CancellationToken ct = default);
 
     Task UpdateMetadataAsync(int id, string? title, string? altText, int? albumId, IReadOnlyList<int> tagIds, CancellationToken ct = default);
 
     /// <summary>
-    /// Hides the file from the library and deletes the object (and thumbnail if any) from storage.
-    /// The DB row is retained with <c>IsDeleted = true</c> for foreign-key integrity.
+    /// Deletes the object (and thumbnail if any) from storage, nulls optional FKs that referenced
+    /// this file, removes dependent slideshow slides that required it, and hard-deletes the
+    /// <c>FileRecord</c> row.
     /// </summary>
     Task SoftDeleteAsync(int id, CancellationToken ct = default);
 
