@@ -1,0 +1,45 @@
+@inject IPageLocalizer L
+
+<MudDialog>
+    <TitleContent>
+        <MudText Typo="Typo.h6">@(_title ?? L["media.preview", "Preview"])</MudText>
+    </TitleContent>
+    <DialogContent>
+        <div class="d-flex align-center justify-center" style="min-height:200px; max-height:min(80vh, 900px); overflow:auto; background:var(--mud-palette-background-grey); border-radius:8px;">
+            @if (IsVideo)
+            {
+                <video src="@Url" controls autoplay
+                       style="max-width:100%; max-height:min(78vh, 880px); width:auto; height:auto; display:block;"
+                       @onclick:stopPropagation="true">
+                    @L["media.video_unsupported", "Your browser cannot play this video."]
+                </video>
+            }
+            else
+            {
+                <img src="@Url" alt="@(_title ?? "")"
+                     style="max-width:100%; max-height:min(78vh, 880px); width:auto; height:auto; object-fit:contain; display:block;" />
+            }
+        </div>
+    </DialogContent>
+    <DialogActions>
+        <MudButton OnClick="Close">@L["close", "Close"]</MudButton>
+    </DialogActions>
+</MudDialog>
+
+@code {
+    [CascadingParameter] private IMudDialogInstance MudDialog { get; set; } = null!;
+
+    [Parameter] public string Url { get; set; } = "";
+    [Parameter] public string? Title { get; set; }
+    [Parameter] public bool IsVideo { get; set; }
+
+    private string? _title;
+
+    protected override async Task OnInitializedAsync()
+    {
+        await L.EnsureLoadedAsync();
+        _title = Title;
+    }
+
+    private void Close() => MudDialog.Close();
+}
