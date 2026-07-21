@@ -184,25 +184,26 @@
     </MudNavGroup>
 
     <AuthorizeView Policy="@RoleKeys.MediaView" Context="md">
-        <MudNavGroup Title="@L["media", "Media"]" Icon="@Icons.Material.Filled.PermMedia"
-                     Expanded="@IsGroupActive("/media")">
+        <MudNavGroup Title="@L["media", "Media"]" Icon="@Icons.Material.Filled.PermMedia" Expanded="@IsGroupActive("/media")">
+            <AuthorizeView Policy="@RoleKeys.MediaUpload" Context="ms">
+                <MudNavLink Href="/media/storage" Icon="@Icons.Material.Filled.Cloud">
+                    @L["storage", "Storage"]
+                </MudNavLink>
+            </AuthorizeView>
             <MudNavLink Href="/media" Match="NavLinkMatch.All" Icon="@Icons.Material.Filled.PhotoLibrary">
                 @L["media_library", "Media Library"]
             </MudNavLink>
+            <AuthorizeView Policy="@RoleKeys.MediaUpload" Context="ms2">
+                <MudNavLink Href="/media/watermark" Icon="@Icons.Material.Filled.BrandingWatermark">
+                    @L["watermark.heading", "Watermark"]
+                </MudNavLink>
+            </AuthorizeView>
             <MudNavLink Href="/media/albums" Icon="@Icons.Material.Filled.Collections">
                 @L["media.albums", "Albums"]
             </MudNavLink>
             <MudNavLink Href="/media/tags" Icon="@Icons.Material.Filled.LocalOffer">
                 @L["media.tags", "Tags"]
-            </MudNavLink>
-            <AuthorizeView Policy="@RoleKeys.MediaUpload" Context="ms">
-                <MudNavLink Href="/media/storage" Icon="@Icons.Material.Filled.Cloud">
-                    @L["storage", "Storage"]
-                </MudNavLink>
-                <MudNavLink Href="/media/watermark" Icon="@Icons.Material.Filled.BrandingWatermark">
-                    @L["watermark.heading", "Watermark"]
-                </MudNavLink>
-            </AuthorizeView>
+            </MudNavLink>            
         </MudNavGroup>
     </AuthorizeView>
 
