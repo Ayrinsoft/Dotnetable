@@ -12,6 +12,9 @@ public interface ILocationService
     Task<Country> CreateCountryAsync(Country country, CancellationToken ct = default);
     Task UpdateCountryAsync(Country country, CancellationToken ct = default);
     Task DeleteCountryAsync(int id, CancellationToken ct = default);
+    Task<bool> CountryExistsAsync(string countryCode, string title, int? excludeId = null, CancellationToken ct = default);
+    byte[] GetCountryImportSample();
+    Task<LocationImportResult> ImportCountriesAsync(Stream csv, CancellationToken ct = default);
 
     // States
     Task<PagedResult<State>> GetStatesPagedAsync(int? countryId, GridQuery query, CancellationToken ct = default);
@@ -20,6 +23,9 @@ public interface ILocationService
     Task<State> CreateStateAsync(State state, CancellationToken ct = default);
     Task UpdateStateAsync(State state, CancellationToken ct = default);
     Task DeleteStateAsync(int id, CancellationToken ct = default);
+    Task<bool> StateExistsAsync(int countryId, string title, int? excludeId = null, CancellationToken ct = default);
+    byte[] GetStateImportSample();
+    Task<LocationImportResult> ImportStatesAsync(Stream csv, CancellationToken ct = default);
 
     // Cities
     /// <summary>All active cities for a country, unpaged — for populating a dependent dropdown.</summary>
@@ -29,4 +35,11 @@ public interface ILocationService
     Task<City> CreateCityAsync(City city, CancellationToken ct = default);
     Task UpdateCityAsync(City city, CancellationToken ct = default);
     Task DeleteCityAsync(int id, CancellationToken ct = default);
+    /// <summary>
+    /// True when another city already has the same title within the same country.
+    /// Same title in a different country is allowed.
+    /// </summary>
+    Task<bool> CityExistsAsync(int countryId, string title, int? excludeId = null, CancellationToken ct = default);
+    byte[] GetCityImportSample();
+    Task<LocationImportResult> ImportCitiesAsync(Stream csv, CancellationToken ct = default);
 }

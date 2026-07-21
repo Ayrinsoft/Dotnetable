@@ -3,6 +3,7 @@
 @inject ILocationService LocationService
 @inject ISnackbar Snackbar
 @inject IPageLocalizer L
+@inject IJSRuntime JS
 
 <DNPageTitle Title=@L["cities", "Cities"] />
 
@@ -28,6 +29,18 @@
                 <MudSelectItem T="int?" Value="@((int?)s.StateID)">@s.Title</MudSelectItem>
             }
         </MudSelect>
+        <MudButton Variant="Variant.Outlined" Color="Color.Primary"
+                   StartIcon="@Icons.Material.Filled.Download"
+                   OnClick="DownloadSampleAsync" Disabled="_busy">
+            @L["import.sample", "Sample Excel"]
+        </MudButton>
+        <MudFileUpload T="IBrowserFile" FilesChanged="ImportAsync" Accept=".csv,.txt" Class="d-inline-flex">
+            <ActivatorContent>
+                <MudButton Variant="Variant.Outlined" Color="Color.Primary"
+                           StartIcon="@Icons.Material.Filled.Upload"
+                           Disabled="_busy">@L["import.excel", "Import Excel"]</MudButton>
+            </ActivatorContent>
+        </MudFileUpload>
         <MudButton Variant="Variant.Filled" Color="Color.Primary"
                    StartIcon="@Icons.Material.Filled.Add"
                    Href="/initial-data/cities/new">
@@ -35,6 +48,10 @@
         </MudButton>
     </MudStack>
 </MudStack>
+
+<MudAlert Severity="Severity.Info" Dense="true" Class="mb-3" Variant="Variant.Outlined">
+    @L["city.import_hint", "Download the sample CSV (opens in Excel). Duplicate city titles within the same country (by country code + title) are skipped. The same city name in different countries is allowed."]
+</MudAlert>
 
 <MudPaper Elevation="0" Class="app-card rounded-lg pa-4">
     @if (_loading)
@@ -77,6 +94,7 @@
 
 @code {
     private bool _loading = true;
+    private bool _busy;
     private int? _filterCountryId;
     private int? _filterStateId;
     private List<City> _items = new();
@@ -84,6 +102,7 @@
     private List<State> _states = new();
     private HashSet<int> _toggling = new();
     private GridViewHeaderParameters _grid = new();
+    private const long MaxImportBytes = 16L * 1024 * 1024;
 
     protected override async Task OnInitializedAsync()
     {
@@ -152,5 +171,48 @@
         _items = result.Items.ToList();
         _grid.Pagination.MaxLength = result.TotalCount;
         _loading = false;
+    }
+
+    private async Task DownloadSampleAsync()
+    {
+        try
+        {
+            var bytes = LocationService.GetCityImportSample();
+            await JS.InvokeVoidAsync("dotnetableFile.download", "cities-sample.csv",
+                Convert.ToBase64String(bytes), "text/csv");
+        }
+        catch (Exception ex)
+        {
+            Snackbar.Add($"{L["import.sample_failed", "Sample download failed"]}: {ex.Message}", Severity.Error);
+        }
+    }
+
+    private async Task ImportAsync(IBrowserFile? file)
+    {
+        if (file is null) return;
+        _busy = true;
+        try
+        {
+            await using var stream = file.OpenReadStream(MaxImportBytes);
+            using var buffer = new MemoryStream();
+            await stream.CopyToAsync(buffer);
+            buffer.Position = 0;
+
+            var result = await LocationService.ImportCitiesAsync(buffer);
+            var summary = $"{L["import.done", "Import finished"]}: {result.Added} {L["import.added", "added"]}, {result.Skipped} {L["import.skipped", "skipped"]}.";
+            Snackbar.Add(summary, result.HasErrors ? Severity.Warning : Severity.Success);
+            foreach (var error in result.Errors.Take(5))
+                Snackbar.Add(error, Severity.Warning);
+            if (result.Errors.Count > 5)
+                Snackbar.Add($"…and {result.Errors.Count - 5} more issue(s).", Severity.Warning);
+
+            _grid.Pagination.PageIndex = 1;
+            await LoadAsync();
+        }
+        catch (Exception ex)
+        {
+            Snackbar.Add($"{L["import.failed", "Import failed"]}: {ex.Message}", Severity.Error);
+        }
+        finally { _busy = false; }
     }
 }

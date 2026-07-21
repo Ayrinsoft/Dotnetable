@@ -3,6 +3,7 @@
 @inject ILocationService LocationService
 @inject ISnackbar Snackbar
 @inject IPageLocalizer L
+@inject IJSRuntime JS
 
 <DNPageTitle Title=@L["countries", "Countries"] />
 
@@ -11,12 +12,30 @@
         <MudText Typo="Typo.h5" Class="fw-bold">@L["countries", "Countries"]</MudText>
         <MudText Typo="Typo.body2" Color="Color.Secondary">@L["country.subtitle", "Manage country reference data"]</MudText>
     </MudStack>
-    <MudButton Variant="Variant.Filled" Color="Color.Primary"
-               StartIcon="@Icons.Material.Filled.Add"
-               Href="/initial-data/countries/new">
-        @L["country.new", "New Country"]
-    </MudButton>
+    <MudStack Row="true" Spacing="2" AlignItems="AlignItems.Center">
+        <MudButton Variant="Variant.Outlined" Color="Color.Primary"
+                   StartIcon="@Icons.Material.Filled.Download"
+                   OnClick="DownloadSampleAsync" Disabled="_busy">
+            @L["import.sample", "Sample Excel"]
+        </MudButton>
+        <MudFileUpload T="IBrowserFile" FilesChanged="ImportAsync" Accept=".csv,.txt" Class="d-inline-flex">
+            <ActivatorContent>
+                <MudButton Variant="Variant.Outlined" Color="Color.Primary"
+                           StartIcon="@Icons.Material.Filled.Upload"
+                           Disabled="_busy">@L["import.excel", "Import Excel"]</MudButton>
+            </ActivatorContent>
+        </MudFileUpload>
+        <MudButton Variant="Variant.Filled" Color="Color.Primary"
+                   StartIcon="@Icons.Material.Filled.Add"
+                   Href="/initial-data/countries/new">
+            @L["country.new", "New Country"]
+        </MudButton>
+    </MudStack>
 </MudStack>
+
+<MudAlert Severity="Severity.Info" Dense="true" Class="mb-3" Variant="Variant.Outlined">
+    @L["country.import_hint", "Download the sample CSV (opens in Excel), fill CountryCode and Title, then import. Duplicate country codes are skipped."]
+</MudAlert>
 
 <MudPaper Elevation="0" Class="app-card rounded-lg pa-4">
     @if (_loading)
@@ -54,8 +73,10 @@
 
 @code {
     private bool _loading = true;
+    private bool _busy;
     private List<Country> _items = new();
     private GridViewHeaderParameters _grid = new();
+    private const long MaxImportBytes = 16L * 1024 * 1024;
 
     protected override async Task OnInitializedAsync()
     {
@@ -87,5 +108,48 @@
         _items = result.Items.ToList();
         _grid.Pagination.MaxLength = result.TotalCount;
         _loading = false;
+    }
+
+    private async Task DownloadSampleAsync()
+    {
+        try
+        {
+            var bytes = LocationService.GetCountryImportSample();
+            await JS.InvokeVoidAsync("dotnetableFile.download", "countries-sample.csv",
+                Convert.ToBase64String(bytes), "text/csv");
+        }
+        catch (Exception ex)
+        {
+            Snackbar.Add($"{L["import.sample_failed", "Sample download failed"]}: {ex.Message}", Severity.Error);
+        }
+    }
+
+    private async Task ImportAsync(IBrowserFile? file)
+    {
+        if (file is null) return;
+        _busy = true;
+        try
+        {
+            await using var stream = file.OpenReadStream(MaxImportBytes);
+            using var buffer = new MemoryStream();
+            await stream.CopyToAsync(buffer);
+            buffer.Position = 0;
+
+            var result = await LocationService.ImportCountriesAsync(buffer);
+            var summary = $"{L["import.done", "Import finished"]}: {result.Added} {L["import.added", "added"]}, {result.Skipped} {L["import.skipped", "skipped"]}.";
+            Snackbar.Add(summary, result.HasErrors ? Severity.Warning : Severity.Success);
+            foreach (var error in result.Errors.Take(5))
+                Snackbar.Add(error, Severity.Warning);
+            if (result.Errors.Count > 5)
+                Snackbar.Add($"…and {result.Errors.Count - 5} more issue(s).", Severity.Warning);
+
+            _grid.Pagination.PageIndex = 1;
+            await LoadAsync();
+        }
+        catch (Exception ex)
+        {
+            Snackbar.Add($"{L["import.failed", "Import failed"]}: {ex.Message}", Severity.Error);
+        }
+        finally { _busy = false; }
     }
 }
