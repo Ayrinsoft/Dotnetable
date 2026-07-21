@@ -204,10 +204,22 @@
 
     private async Task DeleteAsync()
     {
-        if (_file is null) return;
-        await FileService.SoftDeleteAsync(_file.FileRecordID);
-        Snackbar.Add(L["media.file_removed", "File removed."], Severity.Success);
-        MudDialog.Close(DialogResult.Ok(true));
+        if (_file is null || _busy) return;
+        _busy = true;
+        try
+        {
+            await FileService.SoftDeleteAsync(_file.FileRecordID);
+            Snackbar.Add(L["media.file_removed", "File removed."], Severity.Success);
+            MudDialog.Close(DialogResult.Ok(true));
+        }
+        catch (Exception ex)
+        {
+            Snackbar.Add($"{L["media.delete_failed", "Could not delete file"]}: {ex.Message}", Severity.Error);
+        }
+        finally
+        {
+            _busy = false;
+        }
     }
 
     private async Task CopyUrlAsync()

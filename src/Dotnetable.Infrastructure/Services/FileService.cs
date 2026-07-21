@@ -216,9 +216,91 @@ public class FileService : IFileService
         await _context.SaveChangesAsync(ct);
     }
 
-    public async Task SoftDeleteAsync(int id, CancellationToken ct = default) =>
-        await _context.FileRecords.Where(f => f.FileRecordID == id)
-            .ExecuteUpdateAsync(s => s.SetProperty(f => f.IsDeleted, true), ct);
+    /// <summary>
+    /// Hides the file in the library and removes the object(s) from the storage backend
+    /// (main file + thumbnail when present). The DB row stays for FK integrity (IsDeleted = true).
+    /// </summary>
+    public async Task SoftDeleteAsync(int id, CancellationToken ct = default)
+    {
+        var record = await _context.FileRecords
+            .Include(f => f.WebsiteStorageSettings)
+            .FirstOrDefaultAsync(f => f.FileRecordID == id, ct)
+            ?? throw new InvalidOperationException("File not found.");
+
+        if (record.IsDeleted)
+            return;
+
+        // Remove from storage first so a failed backend delete does not leave an orphaned blob
+        // while the library already hides the file.
+        if (record.WebsiteStorageSettings is not null)
+        {
+            var setting = record.WebsiteStorageSettings;
+            var ctx = ToContext(setting);
+            var provider = _providers.Get((StorageProviderType)setting.StorageProvider);
+
+            var mainKey = ResolveStorageKey(record.StoragePath, record.CDNFileCode, record.StoredFileName);
+            if (!string.IsNullOrWhiteSpace(mainKey))
+                await DeleteFromStorageAsync(provider, ctx, mainKey, ct);
+
+            var thumbKey = ResolveStorageKey(record.ThumbnailStorage, null, null);
+            if (!string.IsNullOrWhiteSpace(thumbKey)
+                && !string.Equals(thumbKey, mainKey, StringComparison.Ordinal))
+            {
+                await DeleteFromStorageAsync(provider, ctx, thumbKey, ct);
+            }
+        }
+
+        record.IsDeleted = true;
+        await _context.SaveChangesAsync(ct);
+    }
+
+    /// <summary>Picks the best storage object key: path from upload, then CDN code, then stored file name.</summary>
+    private static string? ResolveStorageKey(string? storagePath, string? cdnFileCode, string? storedFileName)
+    {
+        if (!string.IsNullOrWhiteSpace(storagePath)) return storagePath.Trim();
+        if (!string.IsNullOrWhiteSpace(cdnFileCode)) return cdnFileCode.Trim();
+        if (!string.IsNullOrWhiteSpace(storedFileName)) return storedFileName.Trim();
+        return null;
+    }
+
+    /// <summary>
+    /// Deletes one object; treats "already missing" as success so re-deletes and partial cleanups work.
+    /// Other failures bubble up so the admin can see and retry.
+    /// </summary>
+    private static async Task DeleteFromStorageAsync(
+        IFileStorageProvider provider, StorageSettingContext ctx, string storedName, CancellationToken ct)
+    {
+        try
+        {
+            await provider.DeleteAsync(ctx, storedName, ct);
+        }
+        catch (Exception ex) when (IsMissingObjectError(ex))
+        {
+            // Object already gone — treat as success.
+        }
+        catch (Exception ex)
+        {
+            throw new InvalidOperationException(
+                $"Failed to delete '{storedName}' from storage: {ex.Message}", ex);
+        }
+    }
+
+    private static bool IsMissingObjectError(Exception ex)
+    {
+        // Provider SDKs surface missing objects differently; match common cases without referencing SDK types.
+        for (var e = ex; e is not null; e = e.InnerException!)
+        {
+            var msg = e.Message ?? "";
+            if (msg.Contains("404", StringComparison.OrdinalIgnoreCase)
+                || msg.Contains("Not Found", StringComparison.OrdinalIgnoreCase)
+                || msg.Contains("NoSuchKey", StringComparison.OrdinalIgnoreCase)
+                || msg.Contains("not_found", StringComparison.OrdinalIgnoreCase)
+                || msg.Contains("BlobNotFound", StringComparison.OrdinalIgnoreCase)
+                || msg.Contains("path/not_found", StringComparison.OrdinalIgnoreCase))
+                return true;
+        }
+        return false;
+    }
 
     // ── Albums ───────────────────────────────────────────────
     public async Task<IReadOnlyList<FileAlbum>> GetAlbumsAsync(int websiteId, CancellationToken ct = default) =>
