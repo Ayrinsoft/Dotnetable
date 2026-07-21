@@ -74,7 +74,7 @@ public partial class AppDbContext : DbContext
 
     public virtual DbSet<EmailTemplateTranslation> EmailTemplateTranslations { get; set; }
 
-    public virtual DbSet<FileAlbum> FileAlbums { get; set; }
+    public virtual DbSet<FileFolder> FileFolders { get; set; }
 
     public virtual DbSet<FileRecord> FileRecords { get; set; }
 
@@ -888,18 +888,23 @@ public partial class AppDbContext : DbContext
                 .HasConstraintName("FK_EmailTemplateTranslations_EmailTemplates");
         });
 
-        modelBuilder.Entity<FileAlbum>(entity =>
+        modelBuilder.Entity<FileFolder>(entity =>
         {
-            entity.HasIndex(e => e.WebsiteID, "IX_FileAlbums_WebsiteID");
+            entity.HasIndex(e => e.WebsiteID, "IX_FileFolders_WebsiteID");
+            entity.HasIndex(e => e.ParentFolderID, "IX_FileFolders_ParentFolderID");
 
             entity.Property(e => e.CreateDate).HasColumnType("datetime");
             entity.Property(e => e.Description).HasMaxLength(400);
             entity.Property(e => e.Name).HasMaxLength(120);
 
-            entity.HasOne(d => d.Website).WithMany(p => p.FileAlbums)
+            entity.HasOne(d => d.Website).WithMany(p => p.FileFolders)
                 .HasForeignKey(d => d.WebsiteID)
                 .OnDelete(DeleteBehavior.ClientSetNull)
-                .HasConstraintName("FK_FileAlbums_Websites");
+                .HasConstraintName("FK_FileFolders_Websites");
+
+            entity.HasOne(d => d.ParentFolder).WithMany(p => p.InverseParentFolder)
+                .HasForeignKey(d => d.ParentFolderID)
+                .HasConstraintName("FK_FileFolders_Parent");
         });
 
         modelBuilder.Entity<FileRecord>(entity =>
@@ -923,9 +928,9 @@ public partial class AppDbContext : DbContext
             entity.Property(e => e.Title).HasMaxLength(50);
             entity.Property(e => e.UploadDate).HasColumnType("datetime");
 
-            entity.HasOne(d => d.FileAlbum).WithMany(p => p.FileRecords)
-                .HasForeignKey(d => d.FileAlbumID)
-                .HasConstraintName("FK_FileRecords_FileAlbums");
+            entity.HasOne(d => d.FileFolder).WithMany(p => p.FileRecords)
+                .HasForeignKey(d => d.FileFolderID)
+                .HasConstraintName("FK_FileRecords_FileFolders");
 
             entity.HasOne(d => d.UploaderMember).WithMany(p => p.FileRecords)
                 .HasForeignKey(d => d.UploaderMemberID)

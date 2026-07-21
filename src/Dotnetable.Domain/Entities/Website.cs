@@ -82,7 +82,7 @@ public partial class Website
 
     public virtual FileRecord? FaveIconFile { get; set; }
 
-    public virtual ICollection<FileAlbum> FileAlbums { get; set; } = new List<FileAlbum>();
+    public virtual ICollection<FileFolder> FileFolders { get; set; } = new List<FileFolder>();
 
     public virtual ICollection<FileRecord> FileRecords { get; set; } = new List<FileRecord>();
 

@@ -34,35 +34,19 @@
 <DNPrerequisiteAlert Items="_prerequisites" />
 
 <MudGrid Spacing="3">
-    @* ── Left rail ─────────────────────────────────────── *@
+    @* ── Left rail: virtual folder tree ─────────────────── *@
     <MudItem xs="12" md="3">
         <MudPaper Elevation="0" Class="app-card rounded-lg pa-3">
-            <MudButton Variant="@(!HasAlbumOrTagFilter ? Variant.Filled : Variant.Text)"
-                       Color="@(!HasAlbumOrTagFilter ? Color.Primary : Color.Default)"
-                       StartIcon="@Icons.Material.Filled.PhotoLibrary"
-                       FullWidth="true" Class="justify-start"
-                       OnClick="ClearAlbumAndTagFilters">@L["media.all_files", "All files"]</MudButton>
+            <MudStack Row="true" AlignItems="AlignItems.Center" Justify="Justify.SpaceBetween" Class="mb-2">
+                <MudText Typo="Typo.caption" Class="fw-bold text-uppercase">@L["media.folders", "Media folders"]</MudText>
+                <MudIconButton Icon="@Icons.Material.Filled.OpenInNew" Size="Size.Small" Href="/media/folders"
+                               Class="pa-0" Title="@L["media.manage_folders", "Manage folders"]" />
+            </MudStack>
 
-            <MudStack Row="true" AlignItems="AlignItems.Center" Justify="Justify.SpaceBetween" Class="mt-3 mb-1">
-                <MudText Typo="Typo.caption" Class="fw-bold text-uppercase">@L["media.albums", "Albums"]</MudText>
-                <MudIconButton Icon="@Icons.Material.Filled.OpenInNew" Size="Size.Small" Href="/media/albums"
-                               Class="pa-0" />
-            </MudStack>
-            <MudButton Variant="Variant.Outlined" Color="Color.Primary" FullWidth="true" Class="mb-1"
-                       StartIcon="@Icons.Material.Filled.FilterList"
-                       OnClick="OpenAlbumFilterAsync">
-                @L["media.filter_by_album", "Filter by album"]
-                @if (_albumIds.Count > 0)
-                {
-                    <span>&nbsp;(@_albumIds.Count)</span>
-                }
-            </MudButton>
-            <MudStack Row="true" Spacing="1" AlignItems="AlignItems.Center" Class="mt-1">
-                <MudTextField @bind-Value="_newAlbum" Placeholder="@L["media.new_album", "New album"]" Variant="Variant.Text"
-                              Margin="Margin.Dense" Immediate="true" />
-                <MudIconButton Icon="@Icons.Material.Filled.Add" Color="Color.Primary" Size="Size.Small"
-                               OnClick="AddAlbumAsync" />
-            </MudStack>
+            <FileFolderTree Folders="_folders"
+                            SelectedScope="_folderScope"
+                            SelectedFolderId="_folderId"
+                            SelectionChanged="OnFolderSelectionChanged" />
 
             <MudDivider Class="my-3" />
 
@@ -75,59 +59,43 @@
                 <MudSelectItem T="FileCategory?" Value="FileCategory.Audio">@L["media.cat_audio", "Audio"]</MudSelectItem>
                 <MudSelectItem T="FileCategory?" Value="FileCategory.Other">@L["media.cat_other", "Other"]</MudSelectItem>
             </MudSelect>
-
-            <MudStack Row="true" AlignItems="AlignItems.Center" Justify="Justify.SpaceBetween" Class="mt-3 mb-1">
-                <MudText Typo="Typo.caption" Class="fw-bold text-uppercase">@L["media.tags", "Tags"]</MudText>
-                <MudIconButton Icon="@Icons.Material.Filled.OpenInNew" Size="Size.Small" Href="/media/tags"
-                               Class="pa-0" />
-            </MudStack>
-            <MudButton Variant="Variant.Outlined" Color="Color.Primary" FullWidth="true" Class="mb-1"
-                       StartIcon="@Icons.Material.Filled.FilterList"
-                       OnClick="OpenTagFilterAsync">
-                @L["media.filter_by_tag", "Filter by tag"]
-                @if (_tagIds.Count > 0)
-                {
-                    <span>&nbsp;(@_tagIds.Count)</span>
-                }
-            </MudButton>
-            <MudStack Row="true" Spacing="1" AlignItems="AlignItems.Center" Class="mt-1">
-                <MudTextField @bind-Value="_newTag" Placeholder="@L["media.new_tag", "New tag"]" Variant="Variant.Text"
-                              Margin="Margin.Dense" Immediate="true" />
-                <MudIconButton Icon="@Icons.Material.Filled.Add" Color="Color.Primary" Size="Size.Small"
-                               OnClick="AddTagAsync" />
-            </MudStack>
         </MudPaper>
     </MudItem>
 
     @* ── Gallery ──────────────────────────────────────── *@
     <MudItem xs="12" md="9">
         <MudPaper Elevation="0" Class="app-card rounded-lg pa-4">
-            <MudStack Row="true" Spacing="2" AlignItems="AlignItems.Center" Class="mb-3 flex-wrap">
-                <MudButton Variant="@(_albumIds.Count > 0 ? Variant.Filled : Variant.Outlined)"
-                           Color="Color.Primary"
-                           StartIcon="@Icons.Material.Filled.Collections"
-                           OnClick="OpenAlbumFilterAsync">
-                    @L["media.albums", "Albums"]
-                    @if (_albumIds.Count > 0)
-                    {
-                        <span>&nbsp;(@_albumIds.Count)</span>
-                    }
-                </MudButton>
-                <MudButton Variant="@(_tagIds.Count > 0 ? Variant.Filled : Variant.Outlined)"
-                           Color="Color.Primary"
-                           StartIcon="@Icons.Material.Filled.Sell"
-                           OnClick="OpenTagFilterAsync">
-                    @L["media.tags", "Tags"]
-                    @if (_tagIds.Count > 0)
-                    {
-                        <span>&nbsp;(@_tagIds.Count)</span>
-                    }
-                </MudButton>
+            @* Tags + search above the file list *@
+            <MudStack Spacing="2" Class="mb-3">
+                <MudStack Row="true" AlignItems="AlignItems.Center" Justify="Justify.SpaceBetween">
+                    <MudText Typo="Typo.caption" Class="fw-bold text-uppercase">@L["media.tags", "Tags"]</MudText>
+                    <MudIconButton Icon="@Icons.Material.Filled.OpenInNew" Size="Size.Small" Href="/media/tags"
+                                   Class="pa-0" />
+                </MudStack>
+                <MudStack Row="true" Spacing="2" AlignItems="AlignItems.Center" Class="flex-wrap">
+                    <MudButton Variant="@(_tagIds.Count > 0 ? Variant.Filled : Variant.Outlined)"
+                               Color="Color.Primary"
+                               StartIcon="@Icons.Material.Filled.Sell"
+                               OnClick="OpenTagFilterAsync">
+                        @L["media.filter_by_tag", "Filter by tag"]
+                        @if (_tagIds.Count > 0)
+                        {
+                            <span>&nbsp;(@_tagIds.Count)</span>
+                        }
+                    </MudButton>
+                    <MudStack Row="true" Spacing="1" AlignItems="AlignItems.Center" Style="flex:1; min-width:200px;">
+                        <MudTextField @bind-Value="_newTag" Placeholder="@L["media.new_tag", "New tag"]" Variant="Variant.Outlined"
+                                      Margin="Margin.Dense" Immediate="true" Style="flex:1;" />
+                        <MudIconButton Icon="@Icons.Material.Filled.Add" Color="Color.Primary" Size="Size.Small"
+                                       OnClick="AddTagAsync" />
+                    </MudStack>
+                </MudStack>
+
                 <MudTextField @bind-Value="_search" Placeholder="@L["media.search", "Search files…"]" Variant="Variant.Outlined"
                               Margin="Margin.Dense" Immediate="false" Adornment="Adornment.Start"
                               AdornmentIcon="@Icons.Material.Filled.Search"
                               Clearable="true" OnClearButtonClick="OnSearchCleared"
-                              OnKeyUp="OnSearchKey" Style="flex:1; min-width:180px;" />
+                              OnKeyUp="OnSearchKey" />
             </MudStack>
 
             @if (HasActiveFilters)
@@ -136,11 +104,18 @@
                     <MudText Typo="Typo.caption" Color="Color.Secondary" Class="me-1">
                         @L["media.active_filters", "Active filters"]:
                     </MudText>
-                    @foreach (var album in SelectedAlbums)
+                    @if (_folderScope == FileFolderScope.Root)
                     {
                         <MudChip T="string" Size="Size.Small" Color="Color.Primary" Variant="Variant.Filled"
-                                 OnClose="@(() => RemoveAlbumFilter(album.FileAlbumID))">
-                            @L["media.album", "Album"]: @album.Name
+                                 OnClose="ClearFolderFilter">
+                            @L["media.folder", "Folder"]: @L["media.root_folder", "Root"]
+                        </MudChip>
+                    }
+                    else if (_folderScope == FileFolderScope.Folder && SelectedFolder is { } folder)
+                    {
+                        <MudChip T="string" Size="Size.Small" Color="Color.Primary" Variant="Variant.Filled"
+                                 OnClose="ClearFolderFilter">
+                            @L["media.folder", "Folder"]: @folder.Name
                         </MudChip>
                     }
                     @foreach (var tag in SelectedTags)
@@ -259,28 +234,27 @@
 
     private List<Website> _websites = new();
     private List<FileRecord> _items = new();
-    private IReadOnlyList<FileAlbum> _albums = Array.Empty<FileAlbum>();
+    private IReadOnlyList<FileFolder> _folders = Array.Empty<FileFolder>();
     private IReadOnlyList<FileTag> _tags = Array.Empty<FileTag>();
 
     private readonly FileFilter _filter = new();
-    private readonly List<int> _albumIds = new();
+    private FileFolderScope _folderScope = FileFolderScope.All;
+    private int? _folderId;
     private readonly List<int> _tagIds = new();
     private string? _search;
-    private string? _newAlbum;
     private string? _newTag;
     private int _pageIndex = 1;
     private const int _pageSize = 24;
     private int _total;
 
-    private bool HasAlbumOrTagFilter => _albumIds.Count > 0 || _tagIds.Count > 0;
-
     private bool HasActiveFilters =>
-        HasAlbumOrTagFilter
+        _folderScope != FileFolderScope.All
+        || _tagIds.Count > 0
         || _filter.Category is not null
         || !string.IsNullOrWhiteSpace(_filter.Search);
 
-    private IEnumerable<FileAlbum> SelectedAlbums =>
-        _albums.Where(a => _albumIds.Contains(a.FileAlbumID));
+    private FileFolder? SelectedFolder =>
+        _folderId is int id ? _folders.FirstOrDefault(f => f.FileFolderID == id) : null;
 
     private IEnumerable<FileTag> SelectedTags =>
         _tags.Where(t => _tagIds.Contains(t.FileTagID));
@@ -314,7 +288,7 @@
 
     private async Task ReloadSidebarAsync()
     {
-        _albums = await FileService.GetAlbumsAsync(_websiteId);
+        _folders = await FileService.GetFoldersAsync(_websiteId);
         _tags = await FileService.GetTagsAsync(_websiteId);
     }
 
@@ -327,9 +301,9 @@
 
     private void ApplyListFiltersToModel()
     {
-        _filter.AlbumIDs = _albumIds.Count > 0 ? _albumIds.ToList() : null;
+        _filter.FolderScope = _folderScope;
+        _filter.FolderID = _folderId;
         _filter.TagIDs = _tagIds.Count > 0 ? _tagIds.ToList() : null;
-        _filter.AlbumID = null;
         _filter.TagID = null;
         _filter.Search = _search;
     }
@@ -364,26 +338,12 @@
         }
     }
 
-    private async Task OpenAlbumFilterAsync()
+    private async Task OnFolderSelectionChanged(FolderTreeSelection selection)
     {
-        var parameters = new DialogParameters
-        {
-            [nameof(MediaFilterPickDialog.WebsiteId)] = _websiteId,
-            [nameof(MediaFilterPickDialog.Kind)] = MediaFilterPickDialog.PickKind.Album,
-            [nameof(MediaFilterPickDialog.InitialSelectedIds)] = _albumIds.ToList(),
-        };
-        var dialog = await DialogService.ShowAsync<MediaFilterPickDialog>(
-            L["media.pick_albums", "Select albums"], parameters,
-            new DialogOptions { MaxWidth = MaxWidth.Medium, FullWidth = true });
-        var result = await dialog.Result;
-        if (result is { Canceled: false, Data: List<int> ids })
-        {
-            _albumIds.Clear();
-            _albumIds.AddRange(ids);
-            _pageIndex = 1;
-            await ReloadSidebarAsync();
-            await LoadAsync();
-        }
+        _folderScope = selection.Scope;
+        _folderId = selection.FolderId;
+        _pageIndex = 1;
+        await LoadAsync();
     }
 
     private async Task OpenTagFilterAsync()
@@ -434,16 +394,17 @@
         await LoadAsync();
     }
 
-    private async Task RemoveAlbumFilter(int albumId)
+    private async Task RemoveTagFilter(int tagId)
     {
-        _albumIds.Remove(albumId);
+        _tagIds.Remove(tagId);
         _pageIndex = 1;
         await LoadAsync();
     }
 
-    private async Task RemoveTagFilter(int tagId)
+    private async Task ClearFolderFilter()
     {
-        _tagIds.Remove(tagId);
+        _folderScope = FileFolderScope.All;
+        _folderId = null;
         _pageIndex = 1;
         await LoadAsync();
     }
@@ -463,14 +424,6 @@
         await LoadAsync();
     }
 
-    private async Task ClearAlbumAndTagFilters()
-    {
-        _albumIds.Clear();
-        _tagIds.Clear();
-        _pageIndex = 1;
-        await LoadAsync();
-    }
-
     private async Task ClearAllFilters()
     {
         ResetFilters(keepSearch: false);
@@ -480,11 +433,12 @@
 
     private void ResetFilters(bool keepSearch)
     {
-        _albumIds.Clear();
+        _folderScope = FileFolderScope.All;
+        _folderId = null;
         _tagIds.Clear();
-        _filter.AlbumIDs = null;
+        _filter.FolderScope = FileFolderScope.All;
+        _filter.FolderID = null;
         _filter.TagIDs = null;
-        _filter.AlbumID = null;
         _filter.TagID = null;
         _filter.Category = null;
         if (!keepSearch)
@@ -503,14 +457,6 @@
         _ => L["media.cat_other", "Other"],
     };
 
-    private async Task AddAlbumAsync()
-    {
-        if (string.IsNullOrWhiteSpace(_newAlbum)) return;
-        await FileService.CreateAlbumAsync(_websiteId, _newAlbum.Trim(), null);
-        _newAlbum = null;
-        await ReloadSidebarAsync();
-    }
-
     private async Task AddTagAsync()
     {
         if (string.IsNullOrWhiteSpace(_newTag)) return;
@@ -524,7 +470,7 @@
         var parameters = new DialogParameters
         {
             [nameof(UploadDialog.WebsiteId)] = _websiteId,
-            [nameof(UploadDialog.PresetAlbumId)] = _albumIds.Count == 1 ? _albumIds[0] : null,
+            [nameof(UploadDialog.PresetFolderId)] = _folderScope == FileFolderScope.Folder ? _folderId : null,
         };
         var dialog = await DialogService.ShowAsync<UploadDialog>(L["media.upload", "Upload"], parameters,
             new DialogOptions { MaxWidth = MaxWidth.Medium, FullWidth = true });

@@ -730,19 +730,25 @@ namespace Dotnetable.Migrations.PostgreSql.Migrations
                 });
 
             migrationBuilder.CreateTable(
-                name: "FileAlbums",
+                name: "FileFolders",
                 columns: table => new
                 {
-                    FileAlbumID = table.Column<int>(type: "integer", nullable: false)
+                    FileFolderID = table.Column<int>(type: "integer", nullable: false)
                         .Annotation("Npgsql:ValueGenerationStrategy", NpgsqlValueGenerationStrategy.IdentityByDefaultColumn),
                     WebsiteID = table.Column<int>(type: "integer", nullable: false),
+                    ParentFolderID = table.Column<int>(type: "integer", nullable: true),
                     Name = table.Column<string>(type: "character varying(120)", maxLength: 120, nullable: false),
                     Description = table.Column<string>(type: "character varying(400)", maxLength: 400, nullable: true),
                     CreateDate = table.Column<DateTime>(type: "datetime", nullable: false)
                 },
                 constraints: table =>
                 {
-                    table.PrimaryKey("PK_FileAlbums", x => x.FileAlbumID);
+                    table.PrimaryKey("PK_FileFolders", x => x.FileFolderID);
+                    table.ForeignKey(
+                        name: "FK_FileFolders_Parent",
+                        column: x => x.ParentFolderID,
+                        principalTable: "FileFolders",
+                        principalColumn: "FileFolderID");
                 });
 
             migrationBuilder.CreateTable(
@@ -768,7 +774,7 @@ namespace Dotnetable.Migrations.PostgreSql.Migrations
                     ThumbnailCDN = table.Column<string>(type: "character varying(450)", maxLength: 450, nullable: true),
                     FileCategory = table.Column<byte>(type: "smallint", nullable: false),
                     CDNFileCode = table.Column<string>(type: "character varying(80)", unicode: false, maxLength: 80, nullable: true),
-                    FileAlbumID = table.Column<int>(type: "integer", nullable: true),
+                    FileFolderID = table.Column<int>(type: "integer", nullable: true),
                     WebsiteID = table.Column<int>(type: "integer", nullable: false),
                     UploaderMemberID = table.Column<int>(type: "integer", nullable: true),
                     WebsiteClientID = table.Column<int>(type: "integer", nullable: true)
@@ -777,10 +783,10 @@ namespace Dotnetable.Migrations.PostgreSql.Migrations
                 {
                     table.PrimaryKey("PK_FileRecords", x => x.FileRecordID);
                     table.ForeignKey(
-                        name: "FK_FileRecords_FileAlbums",
-                        column: x => x.FileAlbumID,
-                        principalTable: "FileAlbums",
-                        principalColumn: "FileAlbumID");
+                        name: "FK_FileRecords_FileFolders",
+                        column: x => x.FileFolderID,
+                        principalTable: "FileFolders",
+                        principalColumn: "FileFolderID");
                 });
 
             migrationBuilder.CreateTable(
@@ -3640,14 +3646,19 @@ namespace Dotnetable.Migrations.PostgreSql.Migrations
                 unique: true);
 
             migrationBuilder.CreateIndex(
-                name: "IX_FileAlbums_WebsiteID",
-                table: "FileAlbums",
+                name: "IX_FileFolders_ParentFolderID",
+                table: "FileFolders",
+                column: "ParentFolderID");
+
+            migrationBuilder.CreateIndex(
+                name: "IX_FileFolders_WebsiteID",
+                table: "FileFolders",
                 column: "WebsiteID");
 
             migrationBuilder.CreateIndex(
-                name: "IX_FileRecords_FileAlbumID",
+                name: "IX_FileRecords_FileFolderID",
                 table: "FileRecords",
-                column: "FileAlbumID");
+                column: "FileFolderID");
 
             migrationBuilder.CreateIndex(
                 name: "IX_FileRecords_UploaderMemberID",
@@ -4906,8 +4917,8 @@ namespace Dotnetable.Migrations.PostgreSql.Migrations
                 principalColumn: "WebsiteID");
 
             migrationBuilder.AddForeignKey(
-                name: "FK_FileAlbums_Websites",
-                table: "FileAlbums",
+                name: "FK_FileFolders_Websites",
+                table: "FileFolders",
                 column: "WebsiteID",
                 principalTable: "Websites",
                 principalColumn: "WebsiteID");
@@ -4949,8 +4960,8 @@ namespace Dotnetable.Migrations.PostgreSql.Migrations
                 table: "FileRecords");
 
             migrationBuilder.DropForeignKey(
-                name: "FK_FileAlbums_Websites",
-                table: "FileAlbums");
+                name: "FK_FileFolders_Websites",
+                table: "FileFolders");
 
             migrationBuilder.DropForeignKey(
                 name: "FK_FileRecords_Websites",
@@ -5323,7 +5334,7 @@ namespace Dotnetable.Migrations.PostgreSql.Migrations
                 name: "FileRecords");
 
             migrationBuilder.DropTable(
-                name: "FileAlbums");
+                name: "FileFolders");
 
             migrationBuilder.DropTable(
                 name: "WebsiteClients");

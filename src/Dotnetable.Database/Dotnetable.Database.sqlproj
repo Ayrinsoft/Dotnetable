@@ -138,7 +138,7 @@
     <Build Include="CountryTranslations.sql" />
     <Build Include="CurrencyRates.sql" />
     <Build Include="EmailSubscribes.sql" />
-    <Build Include="FileAlbums.sql" />
+    <Build Include="FileFolders.sql" />
     <Build Include="FileRecords.sql" />
     <Build Include="FileRecordTags.sql" />
     <Build Include="FileTags.sql" />

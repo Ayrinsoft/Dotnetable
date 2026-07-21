@@ -41,7 +41,7 @@ public partial class FileRecord
 
     public string? CDNFileCode { get; set; }
 
-    public int? FileAlbumID { get; set; }
+    public int? FileFolderID { get; set; }
 
     public int WebsiteID { get; set; }
 
@@ -53,7 +53,7 @@ public partial class FileRecord
 
     public virtual ICollection<Brand> Brands { get; set; } = new List<Brand>();
 
-    public virtual FileAlbum? FileAlbum { get; set; }
+    public virtual FileFolder? FileFolder { get; set; }
 
     public virtual ICollection<FileRecordTag> FileRecordTags { get; set; } = new List<FileRecordTag>();
 

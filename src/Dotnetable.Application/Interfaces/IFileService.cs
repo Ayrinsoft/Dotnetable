@@ -20,7 +20,8 @@ public sealed class FileUploadRequest
     public required Stream Content { get; init; }
     public required string OriginalFileName { get; init; }
     public string? MimeType { get; init; }
-    public int? AlbumID { get; init; }
+    /// <summary>Virtual folder; null places the file under the library root.</summary>
+    public int? FolderID { get; init; }
     public IReadOnlyList<int>? TagIDs { get; init; }
     public string? Title { get; init; }
     public string? AltText { get; init; }
@@ -68,7 +69,7 @@ public sealed class FileUsageSummary
     public bool HasRequired => Items.Any(i => i.IsRequired);
 }
 
-/// <summary>The media library: browsing, uploading, albums and tags — all scoped per website.</summary>
+/// <summary>The media library: browsing, uploading, virtual folders and tags — all scoped per website.</summary>
 public interface IFileService
 {
     /// <summary>Paged file listing. <paramref name="websiteId"/> null = all websites (master only).</summary>
@@ -81,7 +82,7 @@ public interface IFileService
 
     Task<FileRecord> UploadAsync(FileUploadRequest request, CancellationToken ct = default);
 
-    Task UpdateMetadataAsync(int id, string? title, string? altText, int? albumId, IReadOnlyList<int> tagIds, CancellationToken ct = default);
+    Task UpdateMetadataAsync(int id, string? title, string? altText, int? folderId, IReadOnlyList<int> tagIds, CancellationToken ct = default);
 
     /// <summary>
     /// Deletes the object (and thumbnail if any) from storage, nulls optional FKs that referenced
@@ -90,12 +91,12 @@ public interface IFileService
     /// </summary>
     Task SoftDeleteAsync(int id, CancellationToken ct = default);
 
-    // ── Albums ───────────────────────────────────────────────
-    Task<IReadOnlyList<FileAlbum>> GetAlbumsAsync(int websiteId, CancellationToken ct = default);
-    Task<PagedResult<FileAlbum>> GetAlbumsPagedAsync(int websiteId, GridQuery query, CancellationToken ct = default);
-    Task<FileAlbum> CreateAlbumAsync(int websiteId, string name, string? description, CancellationToken ct = default);
-    Task RenameAlbumAsync(int albumId, string name, string? description, CancellationToken ct = default);
-    Task DeleteAlbumAsync(int albumId, CancellationToken ct = default);
+    // ── Virtual folders ──────────────────────────────────────
+    Task<IReadOnlyList<FileFolder>> GetFoldersAsync(int websiteId, CancellationToken ct = default);
+    Task<PagedResult<FileFolder>> GetFoldersPagedAsync(int websiteId, GridQuery query, CancellationToken ct = default);
+    Task<FileFolder> CreateFolderAsync(int websiteId, string name, string? description, int? parentFolderId = null, CancellationToken ct = default);
+    Task UpdateFolderAsync(int folderId, string name, string? description, int? parentFolderId, CancellationToken ct = default);
+    Task DeleteFolderAsync(int folderId, CancellationToken ct = default);
 
     // ── Tags ─────────────────────────────────────────────────
     Task<IReadOnlyList<FileTag>> GetTagsAsync(int websiteId, CancellationToken ct = default);
