@@ -49,6 +49,8 @@ builder.Services.AddRazorComponents()
     .AddInteractiveServerComponents();
 
 builder.Services.AddHttpContextAccessor();
+// Used by the media download proxy (and any other ad-hoc server-side HTTP calls).
+builder.Services.AddHttpClient();
 
 var app = builder.Build();
 
@@ -112,6 +114,66 @@ app.MapGet("/theme-files/{websiteId:int}/{slug}/screenshot", async (
             : "application/octet-stream";
     var bytes = await System.IO.File.ReadAllBytesAsync(path, ct);
     return Results.File(bytes, contentType);
+}).RequireAuthorization();
+
+// Same-origin media download with Content-Disposition: attachment.
+// Proxies the public CDN/API URL so the browser can save images/videos/docs without CORS issues
+// or opening a new tab.
+app.MapGet("/media/download/{fileId:int}", async (
+    int fileId,
+    HttpContext httpContext,
+    IFileService fileService,
+    IConfiguration config,
+    IHttpClientFactory httpClientFactory,
+    CancellationToken ct) =>
+{
+    var file = await fileService.GetByIdAsync(fileId, ct);
+    if (file is null || file.IsDeleted)
+        return Results.NotFound();
+
+    var publicUrl = !string.IsNullOrWhiteSpace(file.CNDUrl) ? file.CNDUrl!.Trim()
+        : !string.IsNullOrWhiteSpace(file.ThumbnailCDN) ? file.ThumbnailCDN!.Trim()
+        : null;
+    if (string.IsNullOrWhiteSpace(publicUrl))
+        return Results.NotFound();
+
+    // Local storage often stores a relative API path (/api/files/{websiteId}/{name}).
+    if (publicUrl.StartsWith('/'))
+    {
+        var apiBase = (config["Api:BaseUrl"] ?? "").TrimEnd('/');
+        if (string.IsNullOrEmpty(apiBase))
+            return Results.Problem("Api:BaseUrl is not configured; cannot resolve relative media URL.");
+        publicUrl = apiBase + publicUrl;
+    }
+
+    var client = httpClientFactory.CreateClient();
+    HttpResponseMessage upstream;
+    try
+    {
+        upstream = await client.GetAsync(publicUrl, HttpCompletionOption.ResponseHeadersRead, ct);
+    }
+    catch (Exception ex)
+    {
+        return Results.Problem($"Could not fetch media from storage: {ex.Message}");
+    }
+
+    if (!upstream.IsSuccessStatusCode)
+    {
+        var status = (int)upstream.StatusCode;
+        upstream.Dispose();
+        return Results.StatusCode(status);
+    }
+
+    // Keep the upstream response alive until the body stream is fully written to the client.
+    httpContext.Response.RegisterForDispose(upstream);
+
+    var stream = await upstream.Content.ReadAsStreamAsync(ct);
+    var mime = string.IsNullOrWhiteSpace(file.MimeType) ? "application/octet-stream" : file.MimeType!;
+    var fileName = string.IsNullOrWhiteSpace(file.OriginalFileName)
+        ? "download"
+        : Path.GetFileName(file.OriginalFileName);
+
+    return Results.File(stream, contentType: mime, fileDownloadName: fileName);
 }).RequireAuthorization();
 
 app.MapRazorPages();
