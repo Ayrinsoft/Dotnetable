@@ -205,6 +205,26 @@
     private async Task DeleteAsync()
     {
         if (_file is null || _busy) return;
+
+        FileUsageSummary usage;
+        try
+        {
+            usage = await FileService.GetUsageAsync(_file.FileRecordID);
+        }
+        catch (Exception ex)
+        {
+            Snackbar.Add($"{L["media.delete_failed", "Could not delete file"]}: {ex.Message}", Severity.Error);
+            return;
+        }
+
+        var message = (MarkupString)BuildDeleteConfirmMessage(usage);
+        var confirmed = await DialogService.ShowMessageBoxAsync(
+            L["media.delete_title", "Delete file"],
+            message,
+            yesText: L["delete", "Delete"],
+            cancelText: L["cancel", "Cancel"]);
+        if (confirmed != true) return;
+
         _busy = true;
         try
         {
@@ -220,6 +240,51 @@
         {
             _busy = false;
         }
+    }
+
+    private string BuildDeleteConfirmMessage(FileUsageSummary usage)
+    {
+        static string Esc(string s) => s
+            .Replace("&", "&amp;")
+            .Replace("<", "&lt;")
+            .Replace(">", "&gt;")
+            .Replace("\"", "&quot;");
+
+        var parts = new List<string>
+        {
+            $"<p>{Esc(L["media.delete_confirm", "Delete this file permanently from the library and storage?"])}</p>",
+        };
+
+        if (!usage.HasAny)
+            return string.Concat(parts);
+
+        var required = usage.Items.Where(i => i.IsRequired).ToList();
+        var optional = usage.Items.Where(i => !i.IsRequired).ToList();
+
+        if (required.Count > 0)
+        {
+            parts.Add($"<p><strong>{Esc(L["media.delete_required_warning",
+                "This file is the primary image for the following. Those records will be removed:"])}</strong></p><ul>");
+            foreach (var item in required)
+            {
+                var line = $"{Esc(item.Label)} ({item.Count})";
+                if (!string.IsNullOrWhiteSpace(item.Detail))
+                    line += $" — {Esc(item.Detail)}";
+                parts.Add($"<li>{line}</li>");
+            }
+            parts.Add("</ul>");
+        }
+
+        if (optional.Count > 0)
+        {
+            parts.Add($"<p>{Esc(L["media.delete_optional_note",
+                "These places will keep their records, but the file link will be cleared:"])}</p><ul>");
+            foreach (var item in optional)
+                parts.Add($"<li>{Esc(item.Label)} ({item.Count})</li>");
+            parts.Add("</ul>");
+        }
+
+        return string.Concat(parts);
     }
 
     private async Task CopyUrlAsync()
