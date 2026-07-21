@@ -1,3 +1,4 @@
+@using Microsoft.AspNetCore.Components.Forms
 @inject IFileService FileService
 @inject IStorageSettingService StorageService
 @inject ISnackbar Snackbar
@@ -22,7 +23,7 @@
         {
             <MudGrid Spacing="3">
                 <MudItem xs="12">
-                    <MudSelect T="int" @bind-Value="_storageId" Label="@L["storage", "Storage"]" Variant="Variant.Outlined">
+                    <MudSelect T="int" @bind-Value="_storageId" Label="@L["storage", "Storage"]" Variant="Variant.Outlined" Disabled="@_busy">
                         @foreach (var s in _storages)
                         {
                             <MudSelectItem T="int" Value="s.WebsiteStorageSettingsID">
@@ -51,71 +52,113 @@
                     <MudAutocomplete T="FileAlbum" Value="_selectedAlbum" ValueChanged="OnAlbumChanged"
                                      Label="@L["upload.album", "Album (optional)"]" Variant="Variant.Outlined"
                                      SearchFunc="SearchAlbums" ToStringFunc="@(a => a?.Name ?? "")"
-                                     Clearable="true" ResetValueOnEmptyText="true" CoerceText="false" />
+                                     Clearable="true" ResetValueOnEmptyText="true" CoerceText="false"
+                                     Disabled="@_busy" />
                 </MudItem>
                 <MudItem xs="12" sm="6">
                     <MudAutocomplete T="FileTag" Value="_tagToAdd" ValueChanged="OnTagAdd"
                                      Label="@L["upload.tags", "Tags (optional)"]" Variant="Variant.Outlined"
                                      SearchFunc="SearchTags" ToStringFunc="@(t => t?.Name ?? "")"
                                      ResetValueOnEmptyText="true" CoerceText="false"
-                                     Placeholder="@L["media.search_add_tag", "Search and add a tag…"]" />
+                                     Placeholder="@L["media.search_add_tag", "Search and add a tag…"]"
+                                     Disabled="@_busy" />
                     @if (_selectedTags.Count > 0)
                     {
                         <div class="d-flex flex-wrap gap-1 mt-2">
                             @foreach (var t in _selectedTags)
                             {
                                 <MudChip T="string" Size="Size.Small" Color="Color.Primary" Variant="Variant.Filled"
-                                         OnClose="@(() => RemoveTag(t.FileTagID))">@t.Name</MudChip>
+                                         OnClose="@(() => { if (!_busy) RemoveTag(t.FileTagID); })">@t.Name</MudChip>
                             }
                         </div>
                     }
                 </MudItem>
 
                 <MudItem xs="12">
-                    <MudFileUpload T="IReadOnlyList<IBrowserFile>" @bind-Files="_files" MaximumFileCount="20">
+                    <MudFileUpload T="IReadOnlyList<IBrowserFile>" Files="_files" FilesChanged="OnFilesChanged" MaximumFileCount="20" Disabled="@_busy">
                         <CustomContent Context="upload">
                             <MudButton Variant="Variant.Outlined" Color="Color.Primary"
                                        StartIcon="@Icons.Material.Filled.AttachFile"
-                                       OnClick="@(() => upload.OpenFilePickerAsync())">
+                                       OnClick="@(() => upload.OpenFilePickerAsync())"
+                                       Disabled="@_busy">
                                 @L["upload.choose_files", "Choose files"]
                             </MudButton>
                         </CustomContent>
                     </MudFileUpload>
                     @if (_files is { Count: > 0 })
                     {
-                        <MudList T="string" Dense="true" Class="mt-2">
+                        <MudStack Spacing="2" Class="mt-3">
                             @foreach (var f in _files)
                             {
-                                <MudListItem T="string" Icon="@Icons.Material.Filled.InsertDriveFile">
-                                    <MudStack Row="true" AlignItems="AlignItems.Center" Justify="Justify.SpaceBetween">
-                                        <span>
-                                            @f.Name <MudText Typo="Typo.caption" Color="Color.Secondary" Class="d-inline">(@MediaFormat.Size((long)Math.Ceiling(f.Size / 1024d)))</MudText>
-                                            @if (IsImageFile(f) && _edits.TryGetValue(f, out var spec) && spec.HasEdits)
+                                var ext = Path.GetExtension(f.Name);
+                                <MudPaper Outlined="true" Class="pa-3">
+                                    <MudStack Spacing="2">
+                                        <MudStack Row="true" AlignItems="AlignItems.Center" Justify="Justify.SpaceBetween">
+                                            <div style="min-width:0;">
+                                                <MudText Typo="Typo.body2" Class="text-truncate">
+                                                    @f.Name
+                                                </MudText>
+                                                <MudText Typo="Typo.caption" Color="Color.Secondary">
+                                                    @MediaFormat.Size((long)Math.Ceiling(f.Size / 1024d))
+                                                    @if (!string.IsNullOrEmpty(f.ContentType))
+                                                    {
+                                                        <span> · @f.ContentType</span>
+                                                    }
+                                                    @if (IsImageFile(f) && _edits.TryGetValue(f, out var spec) && spec.HasEdits)
+                                                    {
+                                                        <MudChip T="string" Size="Size.Small" Color="Color.Info" Class="ms-1">@L["upload.edited", "edited"]</MudChip>
+                                                    }
+                                                </MudText>
+                                            </div>
+                                            @if (IsImageFile(f) && !_busy)
                                             {
-                                                <MudChip T="string" Size="Size.Small" Color="Color.Info" Class="ms-2">@L["upload.edited", "edited"]</MudChip>
+                                                <MudIconButton Icon="@Icons.Material.Filled.Tune" Size="Size.Small"
+                                                               Title="@L["upload.edit", "Crop / resize / watermark"]"
+                                                               OnClick="@(() => EditFileAsync(f))" />
                                             }
-                                        </span>
-                                        @if (IsImageFile(f))
-                                        {
-                                            <MudIconButton Icon="@Icons.Material.Filled.Tune" Size="Size.Small"
-                                                           Title="@L["upload.edit", "Crop / resize / watermark"]"
-                                                           OnClick="@(() => EditFileAsync(f))" />
-                                        }
+                                        </MudStack>
+                                        <MudTextField T="string"
+                                                      Value="@GetCustomName(f)"
+                                                      ValueChanged="@(v => SetCustomName(f, v))"
+                                                      Label="@L["upload.file_name", "File name"]"
+                                                      Variant="Variant.Outlined"
+                                                      Dense="true"
+                                                      Disabled="@_busy"
+                                                      Adornment="Adornment.End"
+                                                      AdornmentText="@ext"
+                                                      Immediate="true" />
                                     </MudStack>
-                                </MudListItem>
+                                </MudPaper>
                             }
-                        </MudList>
+                        </MudStack>
                     }
                 </MudItem>
             </MudGrid>
+
             @if (_busy)
             {
-                <MudProgressLinear Indeterminate="true" Color="Color.Primary" Class="mt-3" />
+                <div class="mt-4">
+                    <MudStack Row="true" Justify="Justify.SpaceBetween" AlignItems="AlignItems.Center" Class="mb-1">
+                        <MudText Typo="Typo.caption" Color="Color.Secondary">
+                            @if (_totalFiles > 1)
+                            {
+                                <span>@L["upload.file_of", "File"] @_currentFileIndex / @_totalFiles · </span>
+                            }
+                            @_progressStatus
+                        </MudText>
+                        <MudText Typo="Typo.caption" Class="fw-bold">@_displayPercent.ToString("0")%</MudText>
+                    </MudStack>
+                    <MudProgressLinear Color="Color.Primary" Value="@_displayPercent" Class="my-1" Style="height:8px;border-radius:4px;" />
+                    @if (!string.IsNullOrEmpty(_currentFileName))
+                    {
+                        <MudText Typo="Typo.caption" Color="Color.Secondary" Class="text-truncate">@_currentFileName</MudText>
+                    }
+                </div>
             }
         }
     </DialogContent>
     <DialogActions>
-        <MudButton OnClick="Cancel">@L["cancel", "Cancel"]</MudButton>
+        <MudButton OnClick="Cancel" Disabled="@_busy">@L["cancel", "Cancel"]</MudButton>
         <MudButton Color="Color.Primary" Variant="Variant.Filled" StartIcon="@Icons.Material.Filled.CloudUpload"
                    OnClick="UploadAsync" Disabled="@(_busy || _storages.Count == 0 || _files is null or { Count: 0 })">
             @L["media.upload", "Upload"]
@@ -137,9 +180,18 @@
     private List<FileTag> _selectedTags = new();
     private IReadOnlyList<IBrowserFile>? _files;
     private readonly Dictionary<IBrowserFile, FileEditSpec> _edits = new();
+    private readonly Dictionary<IBrowserFile, string> _customNames = new();
     private List<StorageSettingInfo> _storages = new();
     private IReadOnlyList<FileAlbum> _albums = Array.Empty<FileAlbum>();
     private IReadOnlyList<FileTag> _tags = Array.Empty<FileTag>();
+
+    // Progress (0..100 overall across all selected files)
+    private double _displayPercent;
+    private int _currentFileIndex;
+    private int _totalFiles;
+    private string _currentFileName = "";
+    private string _progressStatus = "";
+    private double _fileReadFraction; // 0..1 within current file read
 
     protected override async Task OnInitializedAsync()
     {
@@ -151,6 +203,36 @@
         if (PresetAlbumId is int presetId)
             _selectedAlbum = _albums.FirstOrDefault(a => a.FileAlbumID == presetId);
     }
+
+    private void OnFilesChanged(IReadOnlyList<IBrowserFile>? files)
+    {
+        _files = files;
+        // Drop names/edits for files no longer selected; seed names for new ones.
+        if (files is null)
+        {
+            _customNames.Clear();
+            _edits.Clear();
+            return;
+        }
+
+        var keep = files.ToHashSet();
+        foreach (var key in _customNames.Keys.Where(k => !keep.Contains(k)).ToList())
+            _customNames.Remove(key);
+        foreach (var key in _edits.Keys.Where(k => !keep.Contains(k)).ToList())
+            _edits.Remove(key);
+
+        foreach (var f in files)
+        {
+            if (!_customNames.ContainsKey(f))
+                _customNames[f] = Path.GetFileNameWithoutExtension(f.Name);
+        }
+    }
+
+    private string GetCustomName(IBrowserFile file) =>
+        _customNames.TryGetValue(file, out var n) ? n : Path.GetFileNameWithoutExtension(file.Name);
+
+    private void SetCustomName(IBrowserFile file, string? value) =>
+        _customNames[file] = value ?? "";
 
     private Task<IEnumerable<FileAlbum>> SearchAlbums(string value, CancellationToken ct)
     {
@@ -187,59 +269,164 @@
     {
         if (!IsImageFile(file)) return;
 
+        var existing = _edits.GetValueOrDefault(file) ?? new FileEditSpec();
+        existing.FileName = GetCustomName(file);
+
         var parameters = new DialogParameters<MediaEditDialog>
         {
             { x => x.File, file },
-            { x => x.Existing, _edits.GetValueOrDefault(file) },
+            { x => x.Existing, existing },
         };
         var dialog = await DialogService.ShowAsync<MediaEditDialog>(L["upload.edit_title", "Edit before upload"], parameters);
         var result = await dialog.Result;
         if (result is { Canceled: false, Data: FileEditSpec spec })
+        {
+            // Keep the name from the main form; image options come from the dialog.
+            spec.FileName = GetCustomName(file);
             _edits[file] = spec;
+        }
+    }
+
+    /// <summary>Build stored display name: custom base + original extension when the user omitted it.</summary>
+    private static string? ResolveCustomFileName(string? customBase, string originalName)
+    {
+        if (string.IsNullOrWhiteSpace(customBase)) return null;
+        var name = customBase.Trim();
+        if (name.IndexOfAny(Path.GetInvalidFileNameChars()) >= 0)
+            name = string.Concat(name.Select(c => Path.GetInvalidFileNameChars().Contains(c) ? '_' : c));
+
+        if (Path.HasExtension(name))
+            return name;
+
+        var ext = Path.GetExtension(originalName);
+        return string.IsNullOrEmpty(ext) ? name : name + ext;
     }
 
     private async Task UploadAsync()
     {
         if (_files is null || _files.Count == 0) return;
         _busy = true;
+        _totalFiles = _files.Count;
+        _displayPercent = 0;
         int ok = 0;
         try
         {
             var tagIds = _selectedTags.Select(t => t.FileTagID).ToList();
+            var index = 0;
             foreach (var file in _files)
             {
+                index++;
+                _currentFileIndex = index;
+                _currentFileName = file.Name;
+                _fileReadFraction = 0;
+                _progressStatus = L["upload.sending", "Uploading…"];
+                RefreshOverallProgress();
+                await InvokeAsync(StateHasChanged);
+
                 try
                 {
                     var spec = _edits.GetValueOrDefault(file);
-                    await using var stream = file.OpenReadStream(MaxUploadBytes);
-                    await FileService.UploadAsync(new FileUploadRequest
+                    var customName = ResolveCustomFileName(GetCustomName(file), file.Name);
+
+                    await using var browserStream = file.OpenReadStream(MaxUploadBytes);
+                    await using var progressStream = new ProgressStream(
+                        browserStream,
+                        file.Size,
+                        fraction =>
+                        {
+                            _fileReadFraction = fraction;
+                            // Reading from the browser is the long phase for large files (~0–90% of this file).
+                            RefreshOverallProgress(filePhase: 0.9 * fraction);
+                            _ = InvokeAsync(StateHasChanged);
+                        });
+
+                    var uploadTask = FileService.UploadAsync(new FileUploadRequest
                     {
                         WebsiteID = WebsiteId,
                         StorageSettingID = _storageId,
-                        Content = stream,
+                        Content = progressStream,
                         OriginalFileName = file.Name,
                         MimeType = file.ContentType,
                         AlbumID = _selectedAlbum?.FileAlbumID,
                         TagIDs = tagIds,
-                        CustomFileName = spec?.FileName,
+                        CustomFileName = customName,
                         Crop = spec?.Crop,
                         ResizeWidth = spec?.ResizeWidth,
                         ResizeHeight = spec?.ResizeHeight,
                         Grayscale = spec?.Grayscale ?? false,
                         ApplyWatermark = spec?.ApplyWatermark,
                     });
+
+                    // After the stream is fully read, server still processes + stores — show remaining phase.
+                    var monitor = MonitorPostReadAsync(uploadTask);
+                    await uploadTask;
+                    await monitor;
+
                     ok++;
+                    _fileReadFraction = 1;
+                    RefreshOverallProgress(filePhase: 1);
+                    await InvokeAsync(StateHasChanged);
                 }
                 catch (Exception ex)
                 {
                     Snackbar.Add($"{file.Name}: {ex.Message}", Severity.Error);
+                    // Count failed file as complete for overall bar so it keeps moving.
+                    RefreshOverallProgress(filePhase: 1);
+                    await InvokeAsync(StateHasChanged);
                 }
             }
             if (ok > 0) Snackbar.Add($"{L["upload.uploaded", "Uploaded"]} {ok} {L["upload.files_suffix", "file(s)."]}", Severity.Success);
             MudDialog.Close(DialogResult.Ok(ok));
         }
-        finally { _busy = false; }
+        finally
+        {
+            _busy = false;
+            _progressStatus = "";
+            _currentFileName = "";
+        }
     }
 
-    private void Cancel() => MudDialog.Cancel();
+    /// <summary>
+    /// While UploadAsync continues after the browser stream is drained (image process + CDN write),
+    /// nudge the bar through the remaining 10% of the current file slot.
+    /// </summary>
+    private async Task MonitorPostReadAsync(Task uploadTask)
+    {
+        // Wait until read looks finished (or upload already done).
+        while (!uploadTask.IsCompleted && _fileReadFraction < 0.999)
+            await Task.Delay(100);
+
+        if (uploadTask.IsCompleted) return;
+
+        _progressStatus = L["upload.processing", "Processing & storing…"];
+        var step = 0.90;
+        while (!uploadTask.IsCompleted && step < 0.99)
+        {
+            step = Math.Min(0.99, step + 0.01);
+            RefreshOverallProgress(filePhase: step);
+            await InvokeAsync(StateHasChanged);
+            await Task.Delay(400);
+        }
+    }
+
+    /// <param name="filePhase">0..1 completion of the current file (default from read fraction mapped to 0–0.9).</param>
+    private void RefreshOverallProgress(double? filePhase = null)
+    {
+        if (_totalFiles <= 0)
+        {
+            _displayPercent = 0;
+            return;
+        }
+
+        var phase = filePhase ?? (0.9 * _fileReadFraction);
+        phase = Math.Clamp(phase, 0d, 1d);
+        var overall = ((_currentFileIndex - 1) + phase) / _totalFiles;
+        _displayPercent = Math.Clamp(overall * 100d, 0d, 100d);
+    }
+
+    private void Cancel()
+    {
+        if (_busy) return;
+        MudDialog.Cancel();
+    }
 }

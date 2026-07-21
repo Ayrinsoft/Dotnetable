@@ -46,7 +46,7 @@
                         }
                         @if (canOpen)
                         {
-                            <MudIcon Icon="@(isImage || isVideo ? Icons.Material.Filled.ZoomIn : Icons.Material.Filled.OpenInNew)"
+                            <MudIcon Icon="@(isImage || isVideo ? Icons.Material.Filled.ZoomIn : Icons.Material.Filled.Download)"
                                      Color="Color.Default"
                                      Style="position:absolute; bottom:8px; right:8px; opacity:.75; background:var(--mud-palette-surface); border-radius:50%; padding:4px;" />
                         }
@@ -56,10 +56,26 @@
                     </MudText>
                     @if (canOpen)
                     {
-                        <MudText Typo="Typo.caption" Color="Color.Primary" Class="d-block mt-1" Style="cursor:pointer;" @onclick="OpenFileAsync">
+                        <MudStack Row="true" Spacing="1" Class="mt-2" AlignItems="AlignItems.Center">
+                            <MudButton Variant="Variant.Outlined" Color="Color.Primary" Size="Size.Small"
+                                       StartIcon="@Icons.Material.Filled.Download"
+                                       OnClick="DownloadAsync"
+                                       Disabled="@_downloading">
+                                @(_downloading ? L["media.downloading", "Downloading…"] : L["download", "Download"])
+                            </MudButton>
+                            @if (isImage || isVideo)
+                            {
+                                <MudButton Variant="Variant.Text" Color="Color.Primary" Size="Size.Small"
+                                           StartIcon="@Icons.Material.Filled.ZoomIn"
+                                           OnClick="OpenFileAsync">
+                                    @L["media.preview", "Preview"]
+                                </MudButton>
+                            }
+                        </MudStack>
+                        <MudText Typo="Typo.caption" Color="Color.Secondary" Class="d-block mt-1">
                             @(isImage || isVideo
                                 ? L["media.click_preview_full", "Click preview to view full size"]
-                                : L["media.click_open_file", "Click to open or download file"])
+                                : L["media.click_to_download", "Click preview or Download to save the file"])
                         </MudText>
                     }
                 </MudItem>
@@ -115,6 +131,7 @@
 
     private FileRecord? _file;
     private bool _busy;
+    private bool _downloading;
     private string? _title;
     private string? _alt;
     private FileAlbum? _selectedAlbum;
@@ -213,7 +230,7 @@
     }
 
     /// <summary>
-    /// Image/video: full-size preview dialog. Other files: open public URL in a new tab.
+    /// Image/video: full-size preview dialog. Other files: trigger a file download (no new tab).
     /// </summary>
     private async Task OpenFileAsync()
     {
@@ -246,13 +263,33 @@
             return;
         }
 
+        await DownloadAsync();
+    }
+
+    /// <summary>Force-download the public CDN URL with the original file name (avoids opening a new tab).</summary>
+    private async Task DownloadAsync()
+    {
+        if (_file is null || _downloading) return;
+        var url = MediaFormat.PublicUrl(_file);
+        if (string.IsNullOrWhiteSpace(url))
+        {
+            Snackbar.Add(L["content.insert_media.no_url", "This file has no public URL yet. Check storage settings."], Severity.Warning);
+            return;
+        }
+
+        _downloading = true;
         try
         {
-            await JS.InvokeVoidAsync("open", url, "_blank", "noopener,noreferrer");
+            var fileName = string.IsNullOrWhiteSpace(_file.OriginalFileName) ? "download" : _file.OriginalFileName;
+            await JS.InvokeVoidAsync("dotnetableFile.downloadUrl", url, fileName);
         }
         catch
         {
-            Snackbar.Add(L["media.open_failed", "Could not open the file."], Severity.Warning);
+            Snackbar.Add(L["media.download_failed", "Could not download the file."], Severity.Warning);
+        }
+        finally
+        {
+            _downloading = false;
         }
     }
 
