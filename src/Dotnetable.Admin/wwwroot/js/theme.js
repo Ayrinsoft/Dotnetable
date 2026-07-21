@@ -76,5 +76,38 @@ window.dotnetableFile = {
         a.click();
         document.body.removeChild(a);
         URL.revokeObjectURL(url);
+    },
+
+    /**
+     * Download a remote URL as a file (media library CDN, etc.).
+     * Prefers fetch→blob so the browser saves instead of navigating to a new tab.
+     * Falls back to an <a download> click when CORS blocks the fetch.
+     */
+    downloadUrl: async function (url, fileName) {
+        var name = fileName || 'download';
+        try {
+            var res = await fetch(url, { mode: 'cors', credentials: 'omit' });
+            if (!res.ok) throw new Error('HTTP ' + res.status);
+            var blob = await res.blob();
+            var objectUrl = URL.createObjectURL(blob);
+            var a = document.createElement('a');
+            a.href = objectUrl;
+            a.download = name;
+            document.body.appendChild(a);
+            a.click();
+            document.body.removeChild(a);
+            setTimeout(function () { URL.revokeObjectURL(objectUrl); }, 2000);
+            return true;
+        } catch (e) {
+            var a2 = document.createElement('a');
+            a2.href = url;
+            a2.download = name;
+            a2.rel = 'noopener noreferrer';
+            // No target=_blank: avoid opening a tab when the browser honors download.
+            document.body.appendChild(a2);
+            a2.click();
+            document.body.removeChild(a2);
+            return false;
+        }
     }
 };
