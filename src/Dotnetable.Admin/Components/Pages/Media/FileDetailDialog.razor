@@ -1,6 +1,7 @@
 @inject IFileService FileService
 @inject ISnackbar Snackbar
 @inject IJSRuntime JS
+@inject IDialogService DialogService
 @inject IPageLocalizer L
 
 <MudDialog>
@@ -16,20 +17,51 @@
         {
             <MudGrid Spacing="3">
                 <MudItem xs="12" sm="5">
-                    <div class="app-media-preview rounded-lg" style="aspect-ratio:1; display:flex; align-items:center; justify-content:center; overflow:hidden; background:var(--mud-palette-background-grey);">
-                        @if (_file.FileCategory == (byte)FileCategory.Image && !string.IsNullOrEmpty(_file.CNDUrl))
+                    @{
+                        var previewUrl = MediaFormat.PublicUrl(_file);
+                        var canOpen = !string.IsNullOrEmpty(previewUrl);
+                        var isImage = _file.FileCategory == (byte)FileCategory.Image;
+                        var isVideo = _file.FileCategory == (byte)FileCategory.Video;
+                    }
+                    <div class="app-media-preview rounded-lg"
+                         role="@(canOpen ? "button" : null)"
+                         title="@(canOpen ? L["media.click_to_view", "Click to view"] : null)"
+                         @onclick="OpenFileAsync"
+                         style="aspect-ratio:1; display:flex; align-items:center; justify-content:center; overflow:hidden; background:var(--mud-palette-background-grey); position:relative; @(canOpen ? "cursor:pointer;" : null)">
+                        @if (isImage && !string.IsNullOrEmpty(previewUrl))
                         {
-                            <img src="@(_file.ThumbnailCDN ?? _file.CNDUrl)" alt="@_file.AltText"
-                                 style="width:100%; height:100%; object-fit:cover;" />
+                            <img src="@(_file.ThumbnailCDN ?? previewUrl)" alt="@_file.AltText"
+                                 style="width:100%; height:100%; object-fit:contain;" />
+                        }
+                        else if (isVideo && !string.IsNullOrEmpty(previewUrl))
+                        {
+                            <video src="@previewUrl" muted preload="metadata"
+                                   style="width:100%; height:100%; object-fit:contain; pointer-events:none;"></video>
+                            <MudIcon Icon="@Icons.Material.Filled.PlayCircleFilled" Color="Color.Primary"
+                                     Style="position:absolute; font-size:3rem; opacity:.9; pointer-events:none;" />
                         }
                         else
                         {
                             <MudIcon Icon="@MediaFormat.CategoryIcon(_file.FileCategory)" Size="Size.Large" Color="Color.Secondary" />
                         }
+                        @if (canOpen)
+                        {
+                            <MudIcon Icon="@(isImage || isVideo ? Icons.Material.Filled.ZoomIn : Icons.Material.Filled.OpenInNew)"
+                                     Color="Color.Default"
+                                     Style="position:absolute; bottom:8px; right:8px; opacity:.75; background:var(--mud-palette-surface); border-radius:50%; padding:4px;" />
+                        }
                     </div>
                     <MudText Typo="Typo.caption" Color="Color.Secondary" Class="d-block mt-2">
                         @_file.OriginalFileName · @MediaFormat.Size(_file.FileSizeKB) · @_file.MimeType
                     </MudText>
+                    @if (canOpen)
+                    {
+                        <MudText Typo="Typo.caption" Color="Color.Primary" Class="d-block mt-1" Style="cursor:pointer;" @onclick="OpenFileAsync">
+                            @(isImage || isVideo
+                                ? L["media.click_preview_full", "Click preview to view full size"]
+                                : L["media.click_open_file", "Click to open or download file"])
+                        </MudText>
+                    }
                 </MudItem>
                 <MudItem xs="12" sm="7">
                     <MudTextField @bind-Value="_title" Label="@L["title", "Title"]" Variant="Variant.Outlined" Class="mb-3" />
@@ -177,6 +209,50 @@
         catch
         {
             Snackbar.Add(L["media.url_copy_failed", "Could not copy to clipboard."], Severity.Warning);
+        }
+    }
+
+    /// <summary>
+    /// Image/video: full-size preview dialog. Other files: open public URL in a new tab.
+    /// </summary>
+    private async Task OpenFileAsync()
+    {
+        if (_file is null) return;
+        var url = MediaFormat.PublicUrl(_file);
+        if (string.IsNullOrWhiteSpace(url))
+        {
+            Snackbar.Add(L["content.insert_media.no_url", "This file has no public URL yet. Check storage settings."], Severity.Warning);
+            return;
+        }
+
+        var category = (FileCategory)_file.FileCategory;
+        if (category is FileCategory.Image or FileCategory.Video)
+        {
+            var parameters = new DialogParameters<MediaPreviewDialog>
+            {
+                { x => x.Url, url },
+                { x => x.Title, _file.Title ?? _file.OriginalFileName },
+                { x => x.IsVideo, category == FileCategory.Video },
+            };
+            var options = new DialogOptions
+            {
+                MaxWidth = MaxWidth.ExtraLarge,
+                FullWidth = true,
+                CloseButton = true,
+                CloseOnEscapeKey = true,
+            };
+            await DialogService.ShowAsync<MediaPreviewDialog>(
+                L["media.preview", "Preview"], parameters, options);
+            return;
+        }
+
+        try
+        {
+            await JS.InvokeVoidAsync("open", url, "_blank", "noopener,noreferrer");
+        }
+        catch
+        {
+            Snackbar.Add(L["media.open_failed", "Could not open the file."], Severity.Warning);
         }
     }
 

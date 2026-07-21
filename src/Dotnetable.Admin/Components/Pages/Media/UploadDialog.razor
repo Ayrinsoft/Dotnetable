@@ -90,14 +90,17 @@
                                     <MudStack Row="true" AlignItems="AlignItems.Center" Justify="Justify.SpaceBetween">
                                         <span>
                                             @f.Name <MudText Typo="Typo.caption" Color="Color.Secondary" Class="d-inline">(@MediaFormat.Size((long)Math.Ceiling(f.Size / 1024d)))</MudText>
-                                            @if (_edits.TryGetValue(f, out var spec) && spec.HasEdits)
+                                            @if (IsImageFile(f) && _edits.TryGetValue(f, out var spec) && spec.HasEdits)
                                             {
                                                 <MudChip T="string" Size="Size.Small" Color="Color.Info" Class="ms-2">@L["upload.edited", "edited"]</MudChip>
                                             }
                                         </span>
-                                        <MudIconButton Icon="@Icons.Material.Filled.Tune" Size="Size.Small"
-                                                       Title="@L["upload.edit", "Crop / resize / watermark"]"
-                                                       OnClick="@(() => EditFileAsync(f))" />
+                                        @if (IsImageFile(f))
+                                        {
+                                            <MudIconButton Icon="@Icons.Material.Filled.Tune" Size="Size.Small"
+                                                           Title="@L["upload.edit", "Crop / resize / watermark"]"
+                                                           OnClick="@(() => EditFileAsync(f))" />
+                                        }
                                     </MudStack>
                                 </MudListItem>
                             }
@@ -175,8 +178,15 @@
 
     private void RemoveTag(int tagId) => _selectedTags.RemoveAll(t => t.FileTagID == tagId);
 
+    /// <summary>Image edit (crop / resize / grayscale / watermark) only applies to images.</summary>
+    private static bool IsImageFile(IBrowserFile file) =>
+        !string.IsNullOrEmpty(file.ContentType)
+        && file.ContentType.StartsWith("image/", StringComparison.OrdinalIgnoreCase);
+
     private async Task EditFileAsync(IBrowserFile file)
     {
+        if (!IsImageFile(file)) return;
+
         var parameters = new DialogParameters<MediaEditDialog>
         {
             { x => x.File, file },
