@@ -54,7 +54,10 @@ public interface IFileService
 
     Task UpdateMetadataAsync(int id, string? title, string? altText, int? albumId, IReadOnlyList<int> tagIds, CancellationToken ct = default);
 
-    /// <summary>Marks a file deleted (hidden from the library) without removing it from the backend.</summary>
+    /// <summary>
+    /// Hides the file from the library and deletes the object (and thumbnail if any) from storage.
+    /// The DB row is retained with <c>IsDeleted = true</c> for foreign-key integrity.
+    /// </summary>
     Task SoftDeleteAsync(int id, CancellationToken ct = default);
 
     // ── Albums ───────────────────────────────────────────────
