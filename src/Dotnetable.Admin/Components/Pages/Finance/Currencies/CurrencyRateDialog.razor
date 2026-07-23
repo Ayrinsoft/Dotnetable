@@ -7,16 +7,63 @@
         <MudForm @ref="_form">
             <MudGrid Spacing="3">
                 <MudItem xs="12">
-                    <MudSelect T="string" @bind-Value="Model.CurrencyCode" Label="@L["currencies.code", "Currency"]" Variant="Variant.Outlined" Required="true" Disabled="@(!IsNew)">
+                    <MudSelect T="string" Value="Model.CurrencyCode" ValueChanged="OnCurrencyChanged"
+                               Label="@L["currencies.code", "Currency"]" Variant="Variant.Outlined" Required="true" Disabled="@(!IsNew)">
                         @foreach (var c in Currencies)
                         {
                             <MudSelectItem T="string" Value="@c.CurrencyCode">@c.CurrencyCode — @c.Name</MudSelectItem>
                         }
                     </MudSelect>
                 </MudItem>
+
                 <MudItem xs="12">
-                    <MudNumericField T="decimal" @bind-Value="Model.USDToCurrency" Label="@L["currency_rates.rate", "1 USD = ? currency"]" Variant="Variant.Outlined" Min="0" Format="0.####" />
+                    <MudSelect T="RateInputMode" Value="_inputMode" ValueChanged="OnInputModeChanged"
+                               Label="@L["currency_rates.input_mode", "How do you want to enter the rate?"]" Variant="Variant.Outlined">
+                        <MudSelectItem T="RateInputMode" Value="RateInputMode.UsdToLocal">
+                            @L["currency_rates.mode_usd_to_local", "1 USD = how many units of this currency"]
+                        </MudSelectItem>
+                        <MudSelectItem T="RateInputMode" Value="RateInputMode.LocalToUsd">
+                            @L["currency_rates.mode_local_to_usd", "1 unit of this currency = how many USD"]
+                        </MudSelectItem>
+                    </MudSelect>
                 </MudItem>
+
+                <MudItem xs="12">
+                    <MudNumericField T="decimal" Value="_enteredRate" ValueChanged="OnRateChanged"
+                                     Label="@RateFieldLabel"
+                                     HelperText="@RateHelperText"
+                                     Variant="Variant.Outlined"
+                                     Min="0"
+                                     Step="@RateStep"
+                                     Format="@RateFormat"
+                                     Immediate="true" />
+                </MudItem>
+
+                @if (_resolvedUsdToCurrency > 0)
+                {
+                    <MudItem xs="12">
+                        <MudAlert Severity="Severity.Info" Dense="true" Class="mb-0">
+                            <MudText Typo="Typo.body2">
+                                <strong>1 USD</strong> = @_resolvedUsdToCurrency.ToString(PreviewLocalFormat) @CurrencyLabel
+                            </MudText>
+                            <MudText Typo="Typo.caption" Color="Color.Secondary">
+                                1 @CurrencyLabel ≈ @(1m / _resolvedUsdToCurrency).ToString("0.##########") USD
+                            </MudText>
+                            <MudText Typo="Typo.caption" Color="Color.Secondary" Class="mt-1">
+                                @L["currency_rates.stored_as", "Stored internally as"] USD→@CurrencyLabel = @_resolvedUsdToCurrency.ToString("0.######")
+                            </MudText>
+                        </MudAlert>
+                    </MudItem>
+                }
+                else if (_enteredRate > 0 && _inputMode == RateInputMode.LocalToUsd)
+                {
+                    <MudItem xs="12">
+                        <MudAlert Severity="Severity.Warning" Dense="true">
+                            @L["currency_rates.rate_too_small", "This rate is too small to store precisely. Prefer entering how many local units equal 1 USD (e.g. 2,000,000 IRR per 1 USD)."]
+                        </MudAlert>
+                    </MudItem>
+                }
+
                 <MudItem xs="12">
                     <MudSwitch T="bool" @bind-Value="Model.IsDefault" Label="@L["currency_rates.default", "Default display currency"]" Color="Color.Primary" />
                 </MudItem>
@@ -32,6 +79,14 @@
 </MudDialog>
 
 @code {
+    private enum RateInputMode
+    {
+        /// <summary>User enters how many local currency units equal 1 USD (stored directly).</summary>
+        UsdToLocal = 0,
+        /// <summary>User enters how many USD equal 1 local unit; inverted before save.</summary>
+        LocalToUsd = 1,
+    }
+
     [CascadingParameter] private IMudDialogInstance MudDialog { get; set; } = null!;
     [Parameter] public CurrencyRate Model { get; set; } = new();
     [Parameter] public bool IsNew { get; set; }
@@ -40,14 +95,116 @@
     private MudForm _form = null!;
     private bool _saving;
     private string[]? _formErrors;
+    private RateInputMode _inputMode = RateInputMode.UsdToLocal;
+    private decimal _enteredRate;
+    private decimal _resolvedUsdToCurrency;
+
+    private string CurrencyLabel => string.IsNullOrWhiteSpace(Model.CurrencyCode) ? "…" : Model.CurrencyCode;
+
+    private string RateFieldLabel => _inputMode == RateInputMode.UsdToLocal
+        ? string.Format(L["currency_rates.rate_usd_to_local", "1 USD = ? {0}"], CurrencyLabel)
+        : string.Format(L["currency_rates.rate_local_to_usd", "1 {0} = ? USD"], CurrencyLabel);
+
+    private string RateHelperText => _inputMode == RateInputMode.UsdToLocal
+        ? L["currency_rates.help_usd_to_local", "Example for IRR: if 2,000,000 rials = 1 dollar, enter 2000000."]
+        : L["currency_rates.help_local_to_usd", "Example for IRR: 1 rial ≈ 0.0000005 USD. Prefer the other mode for weak currencies."];
+
+    private string RateFormat => _inputMode == RateInputMode.UsdToLocal ? "0.######" : "0.##############";
+    private decimal RateStep => _inputMode == RateInputMode.UsdToLocal ? 1m : 0.0000001m;
+    private string PreviewLocalFormat => _resolvedUsdToCurrency >= 1 ? "N2" : "0.######";
+
+    protected override void OnParametersSet()
+    {
+        // Always open in the natural "1 USD = X local" mode with the stored value.
+        _inputMode = RateInputMode.UsdToLocal;
+        _enteredRate = Model.USDToCurrency > 0 ? Model.USDToCurrency : 0;
+        RecalculateResolved();
+    }
+
+    private Task OnCurrencyChanged(string code)
+    {
+        Model.CurrencyCode = code;
+        return Task.CompletedTask;
+    }
+
+    private Task OnInputModeChanged(RateInputMode mode)
+    {
+        if (mode == _inputMode) return Task.CompletedTask;
+
+        // Convert the currently entered value into the other expression so the number stays meaningful.
+        if (_resolvedUsdToCurrency > 0)
+        {
+            _enteredRate = mode == RateInputMode.UsdToLocal
+                ? _resolvedUsdToCurrency
+                : 1m / _resolvedUsdToCurrency;
+        }
+
+        _inputMode = mode;
+        RecalculateResolved();
+        return Task.CompletedTask;
+    }
+
+    private Task OnRateChanged(decimal value)
+    {
+        _enteredRate = value;
+        RecalculateResolved();
+        return Task.CompletedTask;
+    }
+
+    private void RecalculateResolved()
+    {
+        if (_enteredRate <= 0)
+        {
+            _resolvedUsdToCurrency = 0;
+            return;
+        }
+
+        if (_inputMode == RateInputMode.UsdToLocal)
+        {
+            _resolvedUsdToCurrency = decimal.Round(_enteredRate, 6, MidpointRounding.AwayFromZero);
+            return;
+        }
+
+        // Local → USD: store inverse. Guard against values that cannot be represented as decimal(18,6).
+        try
+        {
+            var inverted = 1m / _enteredRate;
+            // DB column is decimal(18,6); reject values that would round to zero.
+            _resolvedUsdToCurrency = inverted < 0.000001m
+                ? 0
+                : decimal.Round(inverted, 6, MidpointRounding.AwayFromZero);
+        }
+        catch (DivideByZeroException)
+        {
+            _resolvedUsdToCurrency = 0;
+        }
+        catch (OverflowException)
+        {
+            _resolvedUsdToCurrency = 0;
+        }
+    }
 
     private void Cancel() => MudDialog.Cancel();
 
     private async Task SaveAsync()
     {
-        await _form.Validate();
-        _formErrors = _form.Errors;
-        if (!_form.IsValid || string.IsNullOrEmpty(Model.CurrencyCode)) return;
+        await _form.ValidateAsync();
+        var errors = new List<string>(_form.Errors ?? Array.Empty<string>());
+
+        if (string.IsNullOrEmpty(Model.CurrencyCode))
+            errors.Add(L["currency_rates.currency_required", "Currency is required."]);
+
+        if (_enteredRate <= 0)
+            errors.Add(L["currency_rates.rate_required", "Exchange rate must be greater than zero."]);
+        else if (_resolvedUsdToCurrency <= 0)
+            errors.Add(L["currency_rates.rate_invalid", "Could not resolve a valid USD→currency rate. Enter how many local units equal 1 USD instead."]);
+        else if (_resolvedUsdToCurrency > 999_999_999_999m)
+            errors.Add(L["currency_rates.rate_too_large", "Resolved rate is too large to store."]);
+
+        _formErrors = errors.Count > 0 ? errors.ToArray() : null;
+        if (_formErrors is not null || !_form.IsValid) return;
+
+        Model.USDToCurrency = _resolvedUsdToCurrency;
 
         _saving = true;
         try
