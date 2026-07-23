@@ -29,14 +29,16 @@
                 <MudItem xs="12" sm="6">
                     <MudTextField @bind-Value="Model.Name" Label="@L["name", "Name"]" Variant="Variant.Outlined" Required="true" Class="mb-3" />
                     <MudTextField @bind-Value="Model.Slug" Label="@L["slug", "Slug"]" Variant="Variant.Outlined" Required="true" Class="mb-3" />
-                    <MudSelect T="int?" @bind-Value="Model.ParentCategoryID" Label="@L["catalog.categories.parent", "Parent"]"
-                               Variant="Variant.Outlined" Clearable="true">
-                        <MudSelectItem T="int?" Value="@((int?)null)">@L["catalog.categories.top_level", "— Top level —"]</MudSelectItem>
-                        @foreach (var c in ParentCandidates)
-                        {
-                            <MudSelectItem T="int?" Value="@((int?)c.ProductCategoryID)">@c.Name</MudSelectItem>
-                        }
-                    </MudSelect>
+                    <MudAutocomplete T="ProductCategory" Value="_selectedParent" ValueChanged="OnParentChanged"
+                                     Label="@L["catalog.categories.parent", "Parent"]"
+                                     Variant="Variant.Outlined"
+                                     SearchFunc="SearchParents"
+                                     ToStringFunc="CategoryPath"
+                                     Clearable="true"
+                                     ResetValueOnEmptyText="true"
+                                     CoerceText="false"
+                                     Dense="true"
+                                     HelperText="@L["catalog.categories.parent_hint", "Search by name or path. Empty means top level."]" />
                 </MudItem>
                 <MudItem xs="6">
                     <MudNumericField T="int" @bind-Value="Model.SortOrder" Label="@L["catalog.categories.sort", "Sort order"]" Variant="Variant.Outlined" />
@@ -93,6 +95,7 @@
     private bool _saving;
     private string[]? _formErrors;
     private FileRecord? _file;
+    private ProductCategory? _selectedParent;
     private readonly Dictionary<string, (string Name, string Slug)> _tr = new(StringComparer.OrdinalIgnoreCase);
 
     private IEnumerable<ProductCategory> ParentCandidates
@@ -114,9 +117,50 @@
             .Select(x => (x.LanguageCode, x.Name)).ToArray();
 
         _file = Model.ImageFile;
+        if (Model.ParentCategoryID is int parentId)
+            _selectedParent = AllCategories.FirstOrDefault(c => c.ProductCategoryID == parentId);
+
         if (!IsNew)
             foreach (var t in await ProductCategoryService.GetTranslationsAsync(Model.ProductCategoryID))
                 _tr[t.LanguageCode] = (t.Name, t.Slug);
+    }
+
+    private Task<IEnumerable<ProductCategory>> SearchParents(string value, CancellationToken ct)
+    {
+        IEnumerable<ProductCategory> candidates = ParentCandidates
+            .OrderBy(c => CategoryPath(c), StringComparer.OrdinalIgnoreCase);
+
+        if (!string.IsNullOrWhiteSpace(value))
+        {
+            var needle = value.Trim();
+            candidates = candidates.Where(c =>
+                c.Name.Contains(needle, StringComparison.OrdinalIgnoreCase)
+                || c.Slug.Contains(needle, StringComparison.OrdinalIgnoreCase)
+                || CategoryPath(c).Contains(needle, StringComparison.OrdinalIgnoreCase));
+        }
+
+        return Task.FromResult(candidates);
+    }
+
+    private string CategoryPath(ProductCategory? category)
+    {
+        if (category is null) return string.Empty;
+        var byId = AllCategories.ToDictionary(c => c.ProductCategoryID);
+        var parts = new List<string> { category.Name };
+        var current = category;
+        var guard = 0;
+        while (current.ParentCategoryID is int pid && byId.TryGetValue(pid, out var parent) && guard++ < 64)
+        {
+            parts.Insert(0, parent.Name);
+            current = parent;
+        }
+        return string.Join(" / ", parts);
+    }
+
+    private void OnParentChanged(ProductCategory? parent)
+    {
+        _selectedParent = parent;
+        Model.ParentCategoryID = parent?.ProductCategoryID;
     }
 
     private string Name(string code) => _tr.TryGetValue(code, out var v) ? v.Name : string.Empty;

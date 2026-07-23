@@ -456,3 +456,59 @@ html, body {
     flex-shrink: 0;
 }
 
+/* ============================================================
+   Product category tree (catalog admin)
+   ============================================================ */
+.dn-category-tree-head {
+    display: flex;
+    align-items: center;
+    gap: 8px;
+    padding: 6px 10px 6px 46px;
+    margin-bottom: 4px;
+    font-size: .75rem;
+    font-weight: 600;
+    text-transform: uppercase;
+    letter-spacing: .03em;
+    color: var(--mud-palette-text-secondary);
+    border-bottom: 1px solid var(--mud-palette-lines-default);
+}
+
+.dn-category-tree-row {
+    flex-wrap: nowrap;
+}
+
+.dn-category-tree-col-name {
+    flex: 1 1 auto;
+    min-width: 0;
+}
+
+.dn-category-tree-col-slug {
+    flex: 0 0 140px;
+    max-width: 140px;
+    font-size: .8rem;
+    color: var(--mud-palette-text-secondary);
+}
+
+.dn-category-tree-col-sort {
+    flex: 0 0 56px;
+    text-align: center;
+    font-size: .85rem;
+    color: var(--mud-palette-text-secondary);
+}
+
+.dn-category-tree-col-status {
+    flex: 0 0 96px;
+    text-align: center;
+}
+
+.dn-category-tree-col-actions {
+    flex: 0 0 auto;
+    margin-inline-start: auto;
+}
+
+.dn-category-tree-head .dn-category-tree-col-name { flex: 1 1 auto; }
+.dn-category-tree-head .dn-category-tree-col-slug { flex: 0 0 140px; }
+.dn-category-tree-head .dn-category-tree-col-sort { flex: 0 0 56px; text-align: center; }
+.dn-category-tree-head .dn-category-tree-col-status { flex: 0 0 96px; text-align: center; }
+.dn-category-tree-head .dn-category-tree-col-actions { flex: 0 0 120px; }
+
