@@ -230,6 +230,26 @@ public class ProductService : IProductService
             .Where(p => p.ProductID == productId).Select(p => new { p.WebsiteID }).FirstOrDefaultAsync(ct);
         if (product is null) return;
 
+        // Server-side guard so incomplete variants never hit the DB (UI should already block these).
+        if (variants.Count == 0)
+            throw new ArgumentException("At least one product variant with SKU and price is required.");
+
+        var seenSkus = new HashSet<string>(StringComparer.OrdinalIgnoreCase);
+        for (var i = 0; i < variants.Count; i++)
+        {
+            var v = variants[i];
+            if (string.IsNullOrWhiteSpace(v.Sku))
+                throw new ArgumentException($"Variant {i + 1}: SKU is required.");
+            var sku = v.Sku.Trim();
+            if (sku.Length > 100)
+                throw new ArgumentException($"Variant {i + 1}: SKU must be at most 100 characters.");
+            if (!seenSkus.Add(sku))
+                throw new ArgumentException($"Variant {i + 1}: duplicate SKU \"{sku}\".");
+            if (v.ReferencePriceUsd <= 0)
+                throw new ArgumentException($"Variant {i + 1}: price must be greater than zero.");
+            v.Sku = sku;
+        }
+
         var existing = await _context.ProductVariants.Where(v => v.ProductID == productId).ToListAsync(ct);
         var wantedIds = variants.Where(v => v.ProductVariantID != 0).Select(v => v.ProductVariantID).ToHashSet();
 
