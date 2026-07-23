@@ -1,6 +1,7 @@
 using Dotnetable.Application.DTOs;
 using Dotnetable.Application.Interfaces;
 using Dotnetable.Domain.Entities;
+using Dotnetable.Domain.Enums;
 using Dotnetable.Infrastructure.Data;
 using Dotnetable.Infrastructure.Extensions;
 using Microsoft.EntityFrameworkCore;
@@ -14,16 +15,18 @@ public class ProductService : IProductService
 
     private readonly AppDbContext _context;
     private readonly ICurrencyConversionService _currency;
+    private readonly IVendorService _vendors;
 
-    public ProductService(AppDbContext context, ICurrencyConversionService currency)
+    public ProductService(AppDbContext context, ICurrencyConversionService currency, IVendorService vendors)
     {
         _context = context;
         _currency = currency;
+        _vendors = vendors;
     }
 
     // ── Admin management ────────────────────────────────────────────
 
-    public async Task<PagedResult<ProductListItemDto>> GetPagedAsync(int? websiteId, ProductFilter filter, GridQuery query, string? search, CancellationToken ct = default)
+    public async Task<PagedResult<ProductListItemDto>> GetPagedAsync(int? websiteId, ProductFilter filter, GridQuery query, string? search, int? createdByMemberId = null, CancellationToken ct = default)
     {
         var q = _context.Products.AsNoTracking()
             .Include(p => p.Brand)
@@ -41,6 +44,9 @@ public class ProductService : IProductService
             q = q.Where(p => p.IsActive == active);
         if (filter.ProductCategoryID is int cid)
             q = q.Where(p => p.ProductCategoryMaps.Any(m => m.ProductCategoryID == cid));
+        var memberScope = createdByMemberId ?? filter.CreatedByMemberId;
+        if (memberScope is int memberId)
+            q = q.Where(p => p.CreatedByMemberId == memberId);
         if (!string.IsNullOrWhiteSpace(search))
             q = q.Where(p => p.Title.Contains(search) || p.Slug.Contains(search));
 
@@ -449,6 +455,7 @@ public class ProductService : IProductService
         decimal? minPriceUsd, decimal? maxPriceUsd,
         int pageIndex, int pageSize, string? languageCode = null, string? currencyCode = null, CancellationToken ct = default)
     {
+        // Own products of the host site.
         var q = PublishedQuery(websiteId);
 
         if (!string.IsNullOrWhiteSpace(categorySlug))
@@ -463,44 +470,64 @@ public class ProductService : IProductService
         if (maxPriceUsd is decimal max)
             q = q.Where(p => p.ProductVariants.Any(v => v.IsActive && (v.OverridePrice ?? v.ReferencePriceUsd) <= max));
 
-        var total = await q.CountAsync(ct);
-
-        var take = pageSize < 1 ? 12 : pageSize;
-        var skip = (pageIndex < 1 ? 0 : pageIndex - 1) * take;
-
-        var products = await q
+        var localProducts = await q
             .OrderByDescending(p => p.SortOrder).ThenByDescending(p => p.CreatedAt)
-            .Skip(skip).Take(take)
             .ToListAsync(ct);
 
-        var items = new List<ProductSummaryDto>(products.Count);
-        foreach (var p in products)
-            items.Add(await ProjectSummaryAsync(p, languageCode, currencyCode, ct));
+        // Site-linked vendors: only products owned by the linked website (never re-shared imports).
+        var linked = await LoadLinkedSiteProductsAsync(websiteId, categorySlug, brandSlug, search, minPriceUsd, maxPriceUsd, ct);
+
+        var combined = new List<(Product Product, Vendor? Vendor)>(localProducts.Count + linked.Count);
+        combined.AddRange(localProducts.Select(p => ((Product Product, Vendor? Vendor))(p, null)));
+        combined.AddRange(linked.Select(x => ((Product Product, Vendor? Vendor))(x.Product, x.Vendor)));
+
+        var total = combined.Count;
+        var take = pageSize < 1 ? 12 : pageSize;
+        var skip = (pageIndex < 1 ? 0 : pageIndex - 1) * take;
+        var page = combined.Skip(skip).Take(take).ToList();
+
+        var items = new List<ProductSummaryDto>(page.Count);
+        foreach (var (p, vendor) in page)
+        {
+            var dto = await ProjectSummaryAsync(p, languageCode, currencyCode, ct, vendor);
+            items.Add(dto);
+        }
 
         return new PagedResult<ProductSummaryDto> { Items = items, TotalCount = total };
     }
 
     public async Task<ProductDetailDto?> GetBySlugAsync(int websiteId, string slug, string? languageCode = null, string? currencyCode = null, CancellationToken ct = default)
     {
-        var product = await PublishedQuery(websiteId)
-            .Include(p => p.ProductVariants).ThenInclude(v => v.ImageFile)
-            .Include(p => p.ProductVariants).ThenInclude(v => v.InventoryItems)
-            .Include(p => p.ProductVariants).ThenInclude(v => v.VariantAttributeValues).ThenInclude(a => a.AttributeDefinition).ThenInclude(a => a.AttributeDefinitionTranslations)
-            .Include(p => p.ProductVariants).ThenInclude(v => v.VariantAttributeValues).ThenInclude(a => a.AttributeOption).ThenInclude(o => o.AttributeOptionTranslations)
-            .Include(p => p.ProductCategoryMaps).ThenInclude(m => m.ProductCategory).ThenInclude(c => c.ProductCategoryTranslations)
-            .Include(p => p.ProductAttributeValues).ThenInclude(v => v.AttributeDefinition).ThenInclude(a => a.AttributeDefinitionTranslations)
-            .Include(p => p.ProductAttributeValues).ThenInclude(v => v.AttributeOption).ThenInclude(o => o!.AttributeOptionTranslations)
-            .Include(p => p.ProductAttributeValues).ThenInclude(v => v.ProductAttributeValueTranslations)
-            .Include(p => p.ProductContentSections).ThenInclude(s => s.ProductContentSectionTranslations)
-            .Include(p => p.ProductContentSections).ThenInclude(s => s.File)
-            .Include(p => p.ProductWarnings).ThenInclude(w => w.ProductWarningTranslations)
-            .Include(p => p.ProductRelationProducts).ThenInclude(r => r.RelatedProduct).ThenInclude(rp => rp.FeaturedImageFile)
-            .Include(p => p.ProductRelationProducts).ThenInclude(r => r.RelatedProduct).ThenInclude(rp => rp.ProductVariants)
-            .Include(p => p.ProductMedia).ThenInclude(m => m.MediaSet).ThenInclude(ms => ms.MediaSetItems).ThenInclude(i => i.File)
+        // Prefer host-owned product.
+        var product = await DetailQuery(websiteId)
             .FirstOrDefaultAsync(p => p.Slug == slug || p.ProductTranslations.Any(t => t.Slug == slug), ct);
-        if (product is null) return null;
+        Vendor? vendor = null;
 
-        return await ProjectDetailAsync(product, languageCode, currencyCode, ct);
+        if (product is null)
+        {
+            // Linked-site product: slug may be "vendorSlug--productSlug" or raw product slug on source.
+            var siteVendors = await _vendors.GetActiveSiteLinksAsync(websiteId, ct);
+            foreach (var v in siteVendors)
+            {
+                if (v.LinkedWebsiteID is not int lid) continue;
+                string productSlug = slug;
+                if (slug.StartsWith(v.Slug + "--", StringComparison.OrdinalIgnoreCase))
+                    productSlug = slug[(v.Slug.Length + 2)..];
+
+                product = await DetailQuery(lid)
+                    .FirstOrDefaultAsync(p => p.Slug == productSlug || p.ProductTranslations.Any(t => t.Slug == productSlug), ct);
+                if (product is not null)
+                {
+                    // Hard rule: only products owned by the linked website itself.
+                    if (product.WebsiteID != lid) { product = null; continue; }
+                    vendor = v;
+                    break;
+                }
+            }
+        }
+
+        if (product is null) return null;
+        return await ProjectDetailAsync(product, languageCode, currencyCode, ct, vendor, websiteId);
     }
 
     public async Task<List<ProductRefDto>> GetRelatedAsync(int websiteId, string slug, int take, string? languageCode = null, string? currencyCode = null, CancellationToken ct = default)
@@ -531,14 +558,73 @@ public class ProductService : IProductService
             .Include(p => p.ProductTranslations)
             .Include(p => p.ProductVariants);
 
+    private IQueryable<Product> DetailQuery(int websiteId) =>
+        PublishedQuery(websiteId)
+            .Include(p => p.ProductVariants).ThenInclude(v => v.ImageFile)
+            .Include(p => p.ProductVariants).ThenInclude(v => v.InventoryItems)
+            .Include(p => p.ProductVariants).ThenInclude(v => v.VariantAttributeValues).ThenInclude(a => a.AttributeDefinition).ThenInclude(a => a.AttributeDefinitionTranslations)
+            .Include(p => p.ProductVariants).ThenInclude(v => v.VariantAttributeValues).ThenInclude(a => a.AttributeOption).ThenInclude(o => o.AttributeOptionTranslations)
+            .Include(p => p.ProductCategoryMaps).ThenInclude(m => m.ProductCategory).ThenInclude(c => c.ProductCategoryTranslations)
+            .Include(p => p.ProductAttributeValues).ThenInclude(v => v.AttributeDefinition).ThenInclude(a => a.AttributeDefinitionTranslations)
+            .Include(p => p.ProductAttributeValues).ThenInclude(v => v.AttributeOption).ThenInclude(o => o!.AttributeOptionTranslations)
+            .Include(p => p.ProductAttributeValues).ThenInclude(v => v.ProductAttributeValueTranslations)
+            .Include(p => p.ProductContentSections).ThenInclude(s => s.ProductContentSectionTranslations)
+            .Include(p => p.ProductContentSections).ThenInclude(s => s.File)
+            .Include(p => p.ProductWarnings).ThenInclude(w => w.ProductWarningTranslations)
+            .Include(p => p.ProductRelationProducts).ThenInclude(r => r.RelatedProduct).ThenInclude(rp => rp.FeaturedImageFile)
+            .Include(p => p.ProductRelationProducts).ThenInclude(r => r.RelatedProduct).ThenInclude(rp => rp.ProductVariants)
+            .Include(p => p.ProductMedia).ThenInclude(m => m.MediaSet).ThenInclude(ms => ms.MediaSetItems).ThenInclude(i => i.File);
+
+    /// <summary>
+    /// Products owned by linked websites (Product.WebsiteID == LinkedWebsiteID only — never re-share).
+    /// </summary>
+    private async Task<List<(Product Product, Vendor Vendor)>> LoadLinkedSiteProductsAsync(
+        int hostWebsiteId, string? categorySlug, string? brandSlug, string? search,
+        decimal? minPriceUsd, decimal? maxPriceUsd, CancellationToken ct)
+    {
+        var siteVendors = await _vendors.GetActiveSiteLinksAsync(hostWebsiteId, ct);
+        var result = new List<(Product, Vendor)>();
+        foreach (var vendor in siteVendors)
+        {
+            if (vendor.LinkedWebsiteID is not int lid) continue;
+            var q = PublishedQuery(lid);
+            // Ownership guard: only source-owned products.
+            q = q.Where(p => p.WebsiteID == lid);
+
+            if (!string.IsNullOrWhiteSpace(categorySlug))
+                q = q.Where(p => p.ProductCategoryMaps.Any(m =>
+                    m.ProductCategory.Slug == categorySlug || m.ProductCategory.ProductCategoryTranslations.Any(t => t.Slug == categorySlug)));
+            if (!string.IsNullOrWhiteSpace(brandSlug))
+                q = q.Where(p => p.Brand != null && p.Brand.Slug == brandSlug);
+            if (!string.IsNullOrWhiteSpace(search))
+                q = q.Where(p => p.Title.Contains(search) || p.ProductTranslations.Any(t => t.Title.Contains(search)));
+            if (minPriceUsd is decimal min)
+                q = q.Where(p => p.ProductVariants.Any(v => v.IsActive && (v.OverridePrice ?? v.ReferencePriceUsd) >= min));
+            if (maxPriceUsd is decimal max)
+                q = q.Where(p => p.ProductVariants.Any(v => v.IsActive && (v.OverridePrice ?? v.ReferencePriceUsd) <= max));
+
+            var products = await q
+                .OrderByDescending(p => p.SortOrder).ThenByDescending(p => p.CreatedAt)
+                .ToListAsync(ct);
+            foreach (var p in products)
+                result.Add((p, vendor));
+        }
+        return result;
+    }
+
     // ── Projection helpers ──────────────────────────────────────────
 
-    private async Task<ProductSummaryDto> ProjectSummaryAsync(Product p, string? lang, string? currencyCode, CancellationToken ct)
+    private async Task<ProductSummaryDto> ProjectSummaryAsync(Product p, string? lang, string? currencyCode, CancellationToken ct, Vendor? vendor = null)
     {
         var (title, slug, shortDescription) = LocalizedCore(p, lang);
         var activeVariants = p.ProductVariants.Where(v => v.IsActive).ToList();
         var minUsd = activeVariants.Count == 0 ? 0m : activeVariants.Min(v => v.OverridePrice ?? v.ReferencePriceUsd);
         var defaultVariant = activeVariants.FirstOrDefault(v => v.IsDefault) ?? activeVariants.FirstOrDefault();
+
+        // Host display currency; pricing conversion uses the host website when sold via a vendor.
+        var priceWebsiteId = vendor?.WebsiteID ?? p.WebsiteID;
+        if (vendor is not null)
+            slug = $"{vendor.Slug}--{slug}";
 
         return new ProductSummaryDto
         {
@@ -546,8 +632,10 @@ public class ProductService : IProductService
             FeaturedImageUrl = p.FeaturedImageFile?.ThumbnailCDN ?? p.FeaturedImageFile?.CNDUrl,
             BrandName = p.Brand?.Name,
             DefaultSku = defaultVariant?.Sku,
-            MinPrice = await _currency.ToDisplayAsync(p.WebsiteID, minUsd, currencyCode, ct),
+            MinPrice = await _currency.ToDisplayAsync(priceWebsiteId, minUsd, currencyCode, ct),
             AvgRating = p.AvgRating, RatingCount = p.RatingCount, HasVariants = p.HasVariants,
+            VendorID = vendor?.VendorID,
+            VendorName = vendor?.Name,
         };
     }
 
@@ -567,26 +655,47 @@ public class ProductService : IProductService
         };
     }
 
-    private async Task<ProductDetailDto> ProjectDetailAsync(Product p, string? lang, string? currencyCode, CancellationToken ct)
+    private async Task<ProductDetailDto> ProjectDetailAsync(
+        Product p, string? lang, string? currencyCode, CancellationToken ct, Vendor? vendor = null, int? hostWebsiteId = null)
     {
-        var summary = await ProjectSummaryAsync(p, lang, currencyCode, ct);
+        var summary = await ProjectSummaryAsync(p, lang, currencyCode, ct, vendor);
+        var priceWebsiteId = hostWebsiteId ?? vendor?.WebsiteID ?? p.WebsiteID;
 
         var categories = p.ProductCategoryMaps
             .Where(m => m.ProductCategory is not null)
             .Select(m => LocalizeCategory(m.ProductCategory, lang))
             .ToList();
 
+        // Optional host vendor-product overrides for price/stock.
+        Dictionary<int, VendorProduct>? listings = null;
+        if (vendor is not null)
+        {
+            listings = await _context.VendorProducts.AsNoTracking()
+                .Where(vp => vp.VendorID == vendor.VendorID && vp.IsActive)
+                .ToDictionaryAsync(vp => vp.ProductVariantID, ct);
+        }
+
         var variants = new List<ProductVariantDto>(p.ProductVariants.Count);
         foreach (var v in p.ProductVariants.Where(v => v.IsActive))
         {
+            VendorProduct? listing = null;
+            if (listings is not null)
+                listings.TryGetValue(v.ProductVariantID, out listing);
+            var unitUsd = listing?.OverridePrice ?? listing?.ReferencePriceUsd ?? v.OverridePrice ?? v.ReferencePriceUsd;
+            var stock = listing is not null
+                ? listing.StockQuantity
+                : v.InventoryItems.Where(i => i.WebsiteID == p.WebsiteID).Sum(i => i.QuantityOnHand - i.QuantityReserved);
+
             variants.Add(new ProductVariantDto
             {
                 ProductVariantID = v.ProductVariantID, Sku = v.Sku, IsDefault = v.IsDefault,
                 ImageUrl = v.ImageFile?.ThumbnailCDN ?? v.ImageFile?.CNDUrl,
-                Price = await _currency.ToDisplayAsync(v.WebsiteID, v.OverridePrice ?? v.ReferencePriceUsd, currencyCode, ct),
-                CompareAtPrice = v.CompareAtPriceUsd is decimal cmp ? await _currency.ToDisplayAsync(v.WebsiteID, cmp, currencyCode, ct) : null,
+                Price = await _currency.ToDisplayAsync(priceWebsiteId, unitUsd, currencyCode, ct),
+                CompareAtPrice = v.CompareAtPriceUsd is decimal cmp ? await _currency.ToDisplayAsync(priceWebsiteId, cmp, currencyCode, ct) : null,
                 Weight = v.Weight, Barcode = v.Barcode, IsActive = v.IsActive,
-                StockQuantity = v.InventoryItems.Sum(i => i.QuantityOnHand - i.QuantityReserved),
+                StockQuantity = stock,
+                VendorProductID = listing?.VendorProductID,
+                VendorID = vendor?.VendorID,
                 Attributes = v.VariantAttributeValues.Select(a => new ProductAttributeValueDto
                 {
                     AttributeDefinitionID = a.AttributeDefinitionID,

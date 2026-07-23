@@ -18,11 +18,12 @@ public class OrderService : IOrderService
     private readonly ICurrencyConversionService _currency;
     private readonly ICartService _cart;
     private readonly IAdminNotificationService _notifications;
+    private readonly IVendorCreditService _vendorCredit;
 
     public OrderService(
         AppDbContext context, IInventoryService inventory, IShippingService shipping,
         ITaxService tax, ICouponService coupons, ICurrencyConversionService currency, ICartService cart,
-        IAdminNotificationService notifications)
+        IAdminNotificationService notifications, IVendorCreditService vendorCredit)
     {
         _context = context;
         _inventory = inventory;
@@ -32,6 +33,7 @@ public class OrderService : IOrderService
         _currency = currency;
         _cart = cart;
         _notifications = notifications;
+        _vendorCredit = vendorCredit;
     }
 
     public async Task<CheckoutResult> CheckoutAsync(
@@ -41,6 +43,7 @@ public class OrderService : IOrderService
         var cart = await _context.Carts
             .Include(c => c.CartItems).ThenInclude(i => i.ProductVariant).ThenInclude(v => v.Product)
             .Include(c => c.CartItems).ThenInclude(i => i.ProductVariant).ThenInclude(v => v.InventoryItems)
+            .Include(c => c.CartItems).ThenInclude(i => i.VendorProduct).ThenInclude(vp => vp!.Vendor)
             .FirstOrDefaultAsync(c => c.CartID == cartId && c.WebsiteClientID == clientId, ct);
         if (cart is null || cart.CartItems.Count == 0)
             return new CheckoutResult(false, "Cart is empty.", null, null);
@@ -52,12 +55,42 @@ public class OrderService : IOrderService
             return new CheckoutResult(false, "Address not found.", null, null);
         var stateId = address.City?.StateID;
 
-        // Stock re-validation: fail fast before touching anything.
+        // Preload vendor credit needs for site-linked lines.
+        decimal creditNeedByVendor(int vendorId) => cart.CartItems
+            .Where(i => i.VendorProduct?.VendorID == vendorId)
+            .Sum(i => ResolveUnitPriceUsd(i) * i.Quantity);
+
+        // Stock / vendor listing re-validation.
         foreach (var item in cart.CartItems)
         {
-            var availability = await _inventory.GetAvailabilityAsync(websiteId, item.ProductVariantID, ct);
-            if (availability.Available < item.Quantity)
-                return new CheckoutResult(false, $"Insufficient stock for {item.ProductVariant.Product.Title}.", null, null);
+            if (item.VendorProduct is { } vp)
+            {
+                if (!vp.IsActive || vp.Vendor is null || !vp.Vendor.IsActive)
+                    return new CheckoutResult(false, $"Vendor listing unavailable for {item.ProductVariant.Product.Title}.", null, null);
+
+                if (vp.Vendor.VendorType == (byte)VendorType.Site)
+                {
+                    // Only own products of linked website may be sold (no re-share).
+                    if (vp.Vendor.LinkedWebsiteID is int lid && item.ProductVariant.Product.WebsiteID != lid)
+                        return new CheckoutResult(false, $"Product {item.ProductVariant.Product.Title} cannot be sold via this vendor link.", null, null);
+
+                    if (vp.Vendor.SettlementMode == 1 && vp.Vendor.AvailableCreditUsd < creditNeedByVendor(vp.VendorID))
+                        return new CheckoutResult(false, $"Insufficient inter-site credit for vendor {vp.Vendor.Name}.", null, null);
+
+                    if (vp.StockQuantity < item.Quantity)
+                        return new CheckoutResult(false, $"Insufficient vendor stock for {item.ProductVariant.Product.Title}.", null, null);
+                }
+                else if (vp.StockQuantity < item.Quantity)
+                {
+                    return new CheckoutResult(false, $"Insufficient vendor stock for {item.ProductVariant.Product.Title}.", null, null);
+                }
+            }
+            else
+            {
+                var availability = await _inventory.GetAvailabilityAsync(websiteId, item.ProductVariantID, ct);
+                if (availability.Available < item.Quantity)
+                    return new CheckoutResult(false, $"Insufficient stock for {item.ProductVariant.Product.Title}.", null, null);
+            }
         }
 
         var totalWeight = cart.CartItems.Sum(i => (i.ProductVariant.Weight ?? 0) * i.Quantity);
@@ -66,7 +99,7 @@ public class OrderService : IOrderService
         if (shippingOption.Method is null)
             return new CheckoutResult(false, "Selected shipping method is not available for this address.", null, null);
 
-        var subtotalUsd = cart.CartItems.Sum(i => (i.ProductVariant.OverridePrice ?? i.ProductVariant.ReferencePriceUsd) * i.Quantity);
+        var subtotalUsd = cart.CartItems.Sum(i => ResolveUnitPriceUsd(i) * i.Quantity);
         var taxUsd = await _tax.ComputeTaxAsync(websiteId, address.CountryId, stateId, subtotalUsd, ct);
         var shippingUsd = shippingOption.PriceUsd;
 
@@ -115,16 +148,18 @@ public class OrderService : IOrderService
         foreach (var item in cart.CartItems)
         {
             var variant = item.ProductVariant;
-            var unitPriceUsd = variant.OverridePrice ?? variant.ReferencePriceUsd;
-            var unitCostUsd = variant.InventoryItems.FirstOrDefault(i => i.WebsiteID == websiteId)?.AvgCostUsd ?? 0;
+            var unitPriceUsd = ResolveUnitPriceUsd(item);
+            var sourceWebsiteId = variant.Product.WebsiteID;
+            var unitCostUsd = variant.InventoryItems.FirstOrDefault(i => i.WebsiteID == sourceWebsiteId)?.AvgCostUsd ?? 0;
 
             _context.OrderItems.Add(new OrderItem
             {
                 OrderID = order.OrderID,
                 WebsiteID = websiteId,
-                SourceWebsiteID = websiteId,
+                SourceWebsiteID = sourceWebsiteId,
                 ProductVariantID = variant.ProductVariantID,
                 VendorProductID = item.VendorProductID,
+                VendorID = item.VendorProduct?.VendorID,
                 TitleSnapshot = variant.Product.Title,
                 SkuSnapshot = variant.Sku,
                 Quantity = item.Quantity,
@@ -135,7 +170,21 @@ public class OrderService : IOrderService
                 TotalPrice = unitPriceUsd * rate * item.Quantity,
             });
 
-            await _inventory.ReserveAsync(websiteId, variant.ProductVariantID, item.Quantity, ct);
+            if (item.VendorProduct is { } vp)
+            {
+                // Debit vendor listing stock on host side.
+                var tracked = await _context.VendorProducts.FirstOrDefaultAsync(x => x.VendorProductID == vp.VendorProductID, ct);
+                if (tracked is not null)
+                    tracked.StockQuantity = Math.Max(0, tracked.StockQuantity - item.Quantity);
+
+                // Reserve stock on source website for site-linked goods.
+                if (vp.Vendor?.VendorType == (byte)VendorType.Site && sourceWebsiteId != websiteId)
+                    await _inventory.ReserveAsync(sourceWebsiteId, variant.ProductVariantID, item.Quantity, ct);
+            }
+            else
+            {
+                await _inventory.ReserveAsync(websiteId, variant.ProductVariantID, item.Quantity, ct);
+            }
         }
 
         _context.OrderStatusHistories.Add(new OrderStatusHistory
@@ -150,6 +199,10 @@ public class OrderService : IOrderService
             await _coupons.RedeemAsync(coupon.CouponID, order.OrderID, clientId, discountUsd, ct);
 
         await _context.SaveChangesAsync(ct);
+
+        // Dual settlement + inter-site credit debit + mirror orders (buyer only sees host order).
+        await _vendorCredit.SettleHostOrderAsync(order.OrderID, ct);
+
         await tx.CommitAsync(ct);
 
         await _cart.ClearAsync(cartId, ct);
@@ -164,6 +217,13 @@ public class OrderService : IOrderService
             ct);
 
         return new CheckoutResult(true, null, order.OrderID, order.OrderNumber);
+    }
+
+    private static decimal ResolveUnitPriceUsd(CartItem item)
+    {
+        if (item.VendorProduct is { } vp)
+            return vp.OverridePrice ?? vp.ReferencePriceUsd;
+        return item.ProductVariant.OverridePrice ?? item.ProductVariant.ReferencePriceUsd;
     }
 
     public async Task<Order?> GetByIdAsync(int orderId, int? clientId = null, CancellationToken ct = default)
@@ -230,12 +290,23 @@ public class OrderService : IOrderService
         if (newStatus is OrderStatus.Paid or OrderStatus.Processing && fromStatus is OrderStatus.PendingPayment)
         {
             foreach (var item in order.OrderItems)
-                await _inventory.DecrementOnFulfillAsync(order.WebsiteID, item.ProductVariantID, item.Quantity, order.OrderID, item.OrderItemID, memberId, ct);
+            {
+                var stockSite = item.SourceWebsiteID > 0 ? item.SourceWebsiteID : order.WebsiteID;
+                await _inventory.DecrementOnFulfillAsync(stockSite, item.ProductVariantID, item.Quantity, order.OrderID, item.OrderItemID, memberId, ct);
+            }
         }
-        else if (newStatus is OrderStatus.Cancelled or OrderStatus.Refunded && fromStatus is OrderStatus.PendingPayment)
+        else if (newStatus is OrderStatus.Cancelled or OrderStatus.Refunded)
         {
-            foreach (var item in order.OrderItems)
-                await _inventory.ReleaseReservationAsync(order.WebsiteID, item.ProductVariantID, item.Quantity, ct);
+            if (fromStatus is OrderStatus.PendingPayment)
+            {
+                foreach (var item in order.OrderItems)
+                {
+                    var stockSite = item.SourceWebsiteID > 0 ? item.SourceWebsiteID : order.WebsiteID;
+                    await _inventory.ReleaseReservationAsync(stockSite, item.ProductVariantID, item.Quantity, ct);
+                }
+            }
+
+            await _vendorCredit.ReverseHostOrderAsync(orderId, ct);
         }
 
         await _context.SaveChangesAsync(ct);

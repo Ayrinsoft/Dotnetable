@@ -65,6 +65,8 @@ public partial class Order
 
     public virtual ICollection<StockMovement> StockMovements { get; set; } = new List<StockMovement>();
 
+    public virtual ICollection<VendorCreditTransaction> VendorCreditTransactions { get; set; } = new List<VendorCreditTransaction>();
+
     public virtual Website Website { get; set; } = null!;
 
     public virtual WebsiteClient WebsiteClient { get; set; } = null!;

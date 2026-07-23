@@ -1,0 +1,60 @@
+@inject IVendorProductService VendorProductService
+@inject ISnackbar Snackbar
+@inject IPageLocalizer L
+
+<MudDialog>
+    <DialogContent>
+        <MudForm @ref="_form">
+            <MudNumericField T="int" @bind-Value="Model.ProductVariantID" Label="@L["vendors.variant_id", "Product variant ID"]"
+                             Variant="Variant.Outlined" Required="true" Min="1" Class="mb-2" />
+            <MudNumericField T="decimal" @bind-Value="Model.ReferencePriceUsd" Label="@L["vendors.ref_price", "Reference price (USD)"]"
+                             Variant="Variant.Outlined" Min="0" Class="mb-2" />
+            <MudNumericField T="decimal?" @bind-Value="Model.OverridePrice" Label="@L["vendors.override_price", "Override price (USD)"]"
+                             Variant="Variant.Outlined" Min="0" Class="mb-2" />
+            <MudNumericField T="int" @bind-Value="Model.StockQuantity" Label="@L["stock", "Stock"]"
+                             Variant="Variant.Outlined" Min="0" Class="mb-2" />
+            <MudNumericField T="int" @bind-Value="Model.DeliveryDays" Label="@L["vendors.delivery_days", "Delivery days"]"
+                             Variant="Variant.Outlined" Min="0" Class="mb-2" />
+            <MudSwitch T="bool" @bind-Value="Model.IsActive" Label="@L["active", "Active"]" Color="Color.Primary" />
+            <DNValidationSummary Errors="_formErrors" />
+        </MudForm>
+    </DialogContent>
+    <DialogActions>
+        <MudButton OnClick="Cancel">@L["cancel", "Cancel"]</MudButton>
+        <MudButton Variant="Variant.Filled" Color="Color.Primary" OnClick="SaveAsync" Disabled="@_saving">@L["save", "Save"]</MudButton>
+    </DialogActions>
+</MudDialog>
+
+@code {
+    [CascadingParameter] private IMudDialogInstance MudDialog { get; set; } = null!;
+    [Parameter] public VendorProduct Model { get; set; } = new();
+    [Parameter] public int? ActingMemberId { get; set; }
+
+    private MudForm _form = null!;
+    private bool _saving;
+    private string[]? _formErrors;
+
+    private void Cancel() => MudDialog.Cancel();
+
+    private async Task SaveAsync()
+    {
+        await _form.Validate();
+        _formErrors = _form.Errors;
+        if (!_form.IsValid) return;
+
+        _saving = true;
+        try
+        {
+            var (ok, err, _) = await VendorProductService.UpsertAsync(Model, ActingMemberId);
+            if (!ok)
+            {
+                Snackbar.Add(err ?? L["save_failed", "Save failed"], Severity.Error);
+                return;
+            }
+            Snackbar.Add(L["saved", "Saved."], Severity.Success);
+            MudDialog.Close(DialogResult.Ok(true));
+        }
+        catch (Exception ex) { Snackbar.Add($"{L["save_failed", "Save failed"]}: {ex.Message}", Severity.Error); }
+        finally { _saving = false; }
+    }
+}

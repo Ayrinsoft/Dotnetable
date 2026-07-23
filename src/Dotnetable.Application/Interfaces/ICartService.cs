@@ -18,8 +18,9 @@ public interface ICartService
     /// <summary>The cart priced for display, including a coupon preview when one is applied.</summary>
     Task<CartViewDto> GetCartViewAsync(int websiteId, int cartId, string? currencyCode = null, CancellationToken ct = default);
 
-    /// <summary>Adds a variant to the cart, merging quantity into an existing line for the same variant+vendor.</summary>
-    Task AddItemAsync(int websiteId, int cartId, int variantId, int quantity, int? vendorProductId = null, CancellationToken ct = default);
+    /// <summary>Adds a variant to the cart, merging quantity into an existing line for the same variant+vendor.
+    /// When <paramref name="vendorId"/> is set without a listing id, a VendorProduct row is ensured for site/member vendors.</summary>
+    Task AddItemAsync(int websiteId, int cartId, int variantId, int quantity, int? vendorProductId = null, int? vendorId = null, CancellationToken ct = default);
 
     Task UpdateQuantityAsync(int cartId, int cartItemId, int quantity, CancellationToken ct = default);
 

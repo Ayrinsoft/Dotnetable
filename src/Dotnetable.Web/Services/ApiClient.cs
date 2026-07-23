@@ -418,8 +418,8 @@ public class ApiClient
         return await GetOrNullAsync<CartViewDto>(path, ct);
     }
 
-    public Task<AuthApiResult> AddToCartAsync(int variantId, int quantity, CancellationToken ct = default) =>
-        PostAsync("api/cart/items", new { variantId, quantity }, ct);
+    public Task<AuthApiResult> AddToCartAsync(int variantId, int quantity, int? vendorProductId = null, int? vendorId = null, CancellationToken ct = default) =>
+        PostAsync("api/cart/items", new { variantId, quantity, vendorProductId, vendorId }, ct);
 
     public async Task<AuthApiResult> UpdateCartItemAsync(int cartItemId, int quantity, CancellationToken ct = default)
     {

@@ -154,7 +154,12 @@ public partial class Website
 
     public virtual ICollection<VendorProduct> VendorProducts { get; set; } = new List<VendorProduct>();
 
+    public virtual ICollection<VendorCreditTransaction> VendorCreditTransactions { get; set; } = new List<VendorCreditTransaction>();
+
     public virtual ICollection<Vendor> Vendors { get; set; } = new List<Vendor>();
+
+    /// <summary>Vendors on other host sites that point at this website as their LinkedWebsite.</summary>
+    public virtual ICollection<Vendor> LinkedAsVendors { get; set; } = new List<Vendor>();
 
     public virtual WebsiteCaptchaSetting? WebsiteCaptchaSetting { get; set; }
 

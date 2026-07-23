@@ -216,6 +216,8 @@ public partial class AppDbContext : DbContext
 
     public virtual DbSet<Vendor> Vendors { get; set; }
 
+    public virtual DbSet<VendorCreditTransaction> VendorCreditTransactions { get; set; }
+
     public virtual DbSet<VendorProduct> VendorProducts { get; set; }
 
     public virtual DbSet<VendorTranslation> VendorTranslations { get; set; }
@@ -2450,6 +2452,9 @@ public partial class AppDbContext : DbContext
 
         modelBuilder.Entity<Vendor>(entity =>
         {
+            entity.Property(e => e.AvailableCreditUsd)
+                .HasDefaultValue(0m, "DF_Vendors_AvailableCreditUsd")
+                .HasColumnType("decimal(18, 4)");
             entity.Property(e => e.CreditDays).HasComment("number of days after the settlement period ends before payment is due; only meaningful when SettlementMode = Credit");
             entity.Property(e => e.CreditLimitUsd)
                 .HasComment("maximum outstanding credit balance allowed for this vendor, in USD; only meaningful when SettlementMode = Credit")
@@ -2459,15 +2464,64 @@ public partial class AppDbContext : DbContext
             entity.Property(e => e.Rating).HasColumnType("decimal(3, 2)");
             entity.Property(e => e.SettlementMode).HasComment("0 = Immediate: every purchase from this vendor is settled instantly like a normal cash purchase. 1 = Credit: purchases accrue as credit and are batched into a periodic Settlements record due on CreditDays");
             entity.Property(e => e.Slug).HasMaxLength(200);
+            entity.Property(e => e.VendorType)
+                .HasDefaultValue((byte)0, "DF_Vendors_VendorType")
+                .HasComment("0 = Display-only title, 1 = Member login (manage own catalog), 2 = Linked website (inter-site virtual credit)");
+
+            entity.HasIndex(e => e.MemberID, "IX_Vendors_MemberID")
+                .IsUnique()
+                .HasFilter("MemberID IS NOT NULL");
+
+            entity.HasOne(d => d.LinkedWebsite).WithMany(p => p.LinkedAsVendors)
+                .HasForeignKey(d => d.LinkedWebsiteID)
+                .HasConstraintName("FK_Vendors_LinkedWebsites");
 
             entity.HasOne(d => d.LogoFile).WithMany(p => p.Vendors)
                 .HasForeignKey(d => d.LogoFileID)
                 .HasConstraintName("FK_Vendors_FileRecords");
 
+            entity.HasOne(d => d.Member).WithOne(p => p.Vendor)
+                .HasForeignKey<Vendor>(d => d.MemberID)
+                .HasConstraintName("FK_Vendors_Members");
+
             entity.HasOne(d => d.Website).WithMany(p => p.Vendors)
                 .HasForeignKey(d => d.WebsiteID)
                 .OnDelete(DeleteBehavior.ClientSetNull)
                 .HasConstraintName("FK_Vendors_Websites");
+        });
+
+        modelBuilder.Entity<VendorCreditTransaction>(entity =>
+        {
+            entity.Property(e => e.AmountUsd).HasColumnType("decimal(18, 4)");
+            entity.Property(e => e.BalanceAfterUsd).HasColumnType("decimal(18, 4)");
+            entity.Property(e => e.CreatedAt)
+                .HasDefaultValueSql("(sysutcdatetime())", "DF_VendorCreditTransactions_CreatedAt")
+                .HasColumnType("datetime");
+            entity.Property(e => e.Note).HasMaxLength(500);
+            entity.Property(e => e.SourceType)
+                .HasComment("1 = Grant, 2 = Sale, 3 = Adjustment, 4 = Refund");
+
+            entity.HasOne(d => d.CreatedByMember).WithMany(p => p.VendorCreditTransactions)
+                .HasForeignKey(d => d.CreatedByMemberID)
+                .HasConstraintName("FK_VendorCreditTransactions_Members");
+
+            entity.HasOne(d => d.MirrorOrder).WithMany(p => p.VendorCreditTransactions)
+                .HasForeignKey(d => d.MirrorOrderID)
+                .HasConstraintName("FK_VendorCreditTransactions_Orders");
+
+            entity.HasOne(d => d.SourceOrderItem).WithMany(p => p.VendorCreditTransactions)
+                .HasForeignKey(d => d.SourceOrderItemID)
+                .HasConstraintName("FK_VendorCreditTransactions_OrderItems");
+
+            entity.HasOne(d => d.Vendor).WithMany(p => p.VendorCreditTransactions)
+                .HasForeignKey(d => d.VendorID)
+                .OnDelete(DeleteBehavior.ClientSetNull)
+                .HasConstraintName("FK_VendorCreditTransactions_Vendors");
+
+            entity.HasOne(d => d.Website).WithMany(p => p.VendorCreditTransactions)
+                .HasForeignKey(d => d.WebsiteID)
+                .OnDelete(DeleteBehavior.ClientSetNull)
+                .HasConstraintName("FK_VendorCreditTransactions_Websites");
         });
 
         modelBuilder.Entity<VendorProduct>(entity =>
