@@ -2067,6 +2067,7 @@ public partial class AppDbContext : DbContext
             entity.Property(e => e.OverridePrice).HasColumnType("decimal(18, 4)");
             entity.Property(e => e.ReferencePriceUsd).HasColumnType("decimal(18, 4)");
             entity.Property(e => e.Sku).HasMaxLength(100);
+            entity.Property(e => e.Title).HasMaxLength(200);
             entity.Property(e => e.Weight).HasColumnType("decimal(10, 3)");
 
             entity.HasOne(d => d.ImageFile).WithMany(p => p.ProductVariants)

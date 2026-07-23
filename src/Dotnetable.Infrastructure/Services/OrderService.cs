@@ -160,7 +160,9 @@ public class OrderService : IOrderService
                 ProductVariantID = variant.ProductVariantID,
                 VendorProductID = item.VendorProductID,
                 VendorID = item.VendorProduct?.VendorID,
-                TitleSnapshot = variant.Product.Title,
+                TitleSnapshot = string.IsNullOrWhiteSpace(variant.Title)
+                    ? variant.Product.Title
+                    : $"{variant.Product.Title} — {variant.Title}",
                 SkuSnapshot = variant.Sku,
                 Quantity = item.Quantity,
                 UnitPrice = unitPriceUsd * rate,

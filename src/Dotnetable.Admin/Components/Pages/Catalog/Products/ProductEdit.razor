@@ -134,73 +134,63 @@ else
 
             <MudTabPanel Text="@L["products.variants", "Variants"]">
                 <div class="pa-2">
-                    @if (_hasRate)
+                    @if (_hasRate && !_isUsdSite)
                     {
                         <MudAlert Severity="Severity.Info" Dense="true" Class="mb-3" Variant="Variant.Outlined">
-                            @if (_isUsdSite)
-                            {
-                                @L["products.price_usd_hint", "Enter the product price in USD. This is the reference price used for conversion when the site currency changes."]
-                            }
-                            else
-                            {
-                                @string.Format(
-                                    L["products.price_local_hint", "Enter the product price in {0}. It is converted to USD (reference) with the current rate (1 USD = {1} {0}). The storefront always shows USD × live exchange rate — if the rate changes, the displayed {0} price updates automatically."],
-                                    _displayCurrency, FormatRate(_usdToCurrency))
-                            }
+                            @string.Format(
+                                L["products.price_enter_local_only", "Enter prices in {0} only. USD is calculated automatically (1 USD = {1} {0}) and used as the reference for live display."],
+                                _displayCurrency, FormatRate(_usdToCurrency))
                         </MudAlert>
                     }
                     @foreach (var (v, idx) in _variants.Select((v, i) => (v, i)))
                     {
                         <MudPaper Elevation="0" Class="border rounded-lg pa-3 mb-2">
                             <MudGrid Spacing="2" AlignItems="AlignItems.Center">
-                                <MudItem xs="12" sm="2">
-                                    <MudTextField T="string" @bind-Value="v.Sku" Label="@L["variants.sku", "SKU"]"
-                                                  Variant="Variant.Outlined" Margin="Margin.Dense" Required="true"
-                                                  RequiredError="@L["variants.sku_required", "SKU is required"]"
-                                                  Error="@IsVariantSkuError(v)" ErrorText="@L["variants.sku_required", "SKU is required"]" />
+                                <MudItem xs="12" sm="4" md="3">
+                                    <MudTextField T="string" @bind-Value="v.Title" Label="@L["variants.title", "Variant title"]"
+                                                  Placeholder="@L["variants.title_placeholder", "e.g. Black T-shirt · Size XL"]"
+                                                  Variant="Variant.Outlined" Margin="Margin.Dense" Required="true" MaxLength="200"
+                                                  RequiredError="@L["variants.title_required", "Variant title is required"]"
+                                                  Error="@IsVariantTitleError(v)" ErrorText="@L["variants.title_required", "Variant title is required"]" />
                                 </MudItem>
-                                @if (!_isUsdSite && _hasRate)
-                                {
-                                    <MudItem xs="12" sm="3">
-                                        <MudNumericField T="decimal" Value="@LocalPrice(v)" ValueChanged="@(val => SetLocalPrice(v, val))"
-                                                         Label="@($"{L["variants.price", "Price"]} ({_displayCurrency})")"
-                                                         HelperText="@UsdHelper(v.ReferencePriceUsd)"
-                                                         Variant="Variant.Outlined" Margin="Margin.Dense" Min="0" Immediate="true"
-                                                         Required="true"
-                                                         Error="@IsVariantPriceError(v)" ErrorText="@L["variants.price_required", "Price must be greater than zero"]" />
-                                    </MudItem>
-                                    <MudItem xs="12" sm="3">
-                                        <MudNumericField T="decimal?" Value="@LocalCompareAt(v)" ValueChanged="@(val => SetLocalCompareAt(v, val))"
-                                                         Label="@($"{L["variants.compare_price", "Compare at"]} ({_displayCurrency})")"
-                                                         HelperText="@(v.CompareAtPriceUsd is decimal cmp ? UsdHelper(cmp) : null)"
-                                                         Variant="Variant.Outlined" Margin="Margin.Dense" Min="0" Immediate="true" />
-                                    </MudItem>
-                                }
-                                else
-                                {
-                                    <MudItem xs="12" sm="3">
-                                        <MudNumericField T="decimal" @bind-Value="v.ReferencePriceUsd"
-                                                         Label="@L["variants.price", "Price (USD)"]"
-                                                         Variant="Variant.Outlined" Margin="Margin.Dense" Min="0"
-                                                         Required="true"
-                                                         Error="@IsVariantPriceError(v)" ErrorText="@L["variants.price_required", "Price must be greater than zero"]" />
-                                    </MudItem>
-                                    <MudItem xs="12" sm="3">
-                                        <MudNumericField T="decimal?" @bind-Value="v.CompareAtPriceUsd"
-                                                         Label="@L["variants.compare_price", "Compare at (USD)"]"
-                                                         Variant="Variant.Outlined" Margin="Margin.Dense" Min="0" />
-                                    </MudItem>
-                                }
-                                <MudItem xs="6" sm="2">
+                                <MudItem xs="12" sm="4" md="3">
+                                    <MudStack Row="true" AlignItems="AlignItems.Start" Spacing="0">
+                                        <MudTextField T="string" @bind-Value="v.Sku" Label="@L["variants.sku", "SKU"]"
+                                                      Placeholder="NK-TSH-M-BLK-XL"
+                                                      Variant="Variant.Outlined" Margin="Margin.Dense" Required="true" MaxLength="100"
+                                                      Class="flex-grow-1"
+                                                      RequiredError="@L["variants.sku_required", "SKU is required"]"
+                                                      Error="@IsVariantSkuError(v)" ErrorText="@L["variants.sku_required", "SKU is required"]" />
+                                        <MudTooltip Text="@L["variants.sku_help_tooltip", "SKU format guide"]">
+                                            <MudIconButton Icon="@Icons.Material.Filled.HelpOutline" Color="Color.Primary"
+                                                           Size="Size.Medium" Class="mt-1"
+                                                           aria-label="@L["variants.sku_help_tooltip", "SKU format guide"]"
+                                                           OnClick="ShowSkuGuideAsync" />
+                                        </MudTooltip>
+                                    </MudStack>
+                                </MudItem>
+                                <MudItem xs="6" sm="2" md="2">
+                                    <MudNumericField T="decimal" Value="@DisplayPrice(v)" ValueChanged="@(val => SetDisplayPrice(v, val))"
+                                                     Label="@PriceFieldLabel"
+                                                     Variant="Variant.Outlined" Margin="Margin.Dense" Min="0" Immediate="true"
+                                                     Required="true"
+                                                     Error="@IsVariantPriceError(v)" ErrorText="@L["variants.price_required", "Price must be greater than zero"]" />
+                                </MudItem>
+                                <MudItem xs="6" sm="2" md="2">
+                                    <MudNumericField T="decimal?" Value="@DisplayCompareAt(v)" ValueChanged="@(val => SetDisplayCompareAt(v, val))"
+                                                     Label="@CompareFieldLabel"
+                                                     Variant="Variant.Outlined" Margin="Margin.Dense" Min="0" Immediate="true" />
+                                </MudItem>
+                                <MudItem xs="6" sm="2" md="1">
                                     <MudNumericField T="decimal?" @bind-Value="v.Weight" Label="@L["variants.weight", "Weight (kg)"]" Variant="Variant.Outlined" Margin="Margin.Dense" Min="0" />
                                 </MudItem>
-                                <MudItem xs="6" sm="2">
+                                <MudItem xs="6" sm="2" md="2">
                                     <MudTextField T="string" @bind-Value="v.Barcode" Label="@L["variants.barcode", "Barcode"]" Variant="Variant.Outlined" Margin="Margin.Dense" />
                                 </MudItem>
-                                <MudItem xs="6" sm="1">
+                                <MudItem xs="6" sm="1" md="1">
                                     <MudCheckBox T="bool" @bind-Value="v.IsDefault" Label="@L["variants.default", "Default"]" Color="Color.Primary" />
                                 </MudItem>
-                                <MudItem xs="6" sm="1">
+                                <MudItem xs="6" sm="1" md="1">
                                     <MudIconButton Icon="@Icons.Material.Filled.Delete" Color="Color.Error" OnClick="@(() => _variants.RemoveAt(idx))" />
                                 </MudItem>
                             </MudGrid>
@@ -564,39 +554,61 @@ else
     private static string FormatRate(decimal rate) =>
         rate >= 1 ? rate.ToString("N2") : rate.ToString("0.######");
 
-    private string UsdHelper(decimal usd) =>
-        string.Format(L["products.price_usd_ref", "≈ {0} USD (reference · storefront = USD × live rate)"], usd.ToString("0.####"));
+    /// <summary>Single price label: "Price (IRR)" or "Price (USD)" — never both.</summary>
+    private string PriceFieldLabel =>
+        string.Format(L["variants.price_in_currency", "Price ({0})"], _displayCurrency);
 
-    private decimal LocalPrice(ProductVariant v)
+    /// <summary>Optional strikethrough/list price in the same site currency only.</summary>
+    private string CompareFieldLabel =>
+        string.Format(L["variants.compare_in_currency", "Compare at ({0})"], _displayCurrency);
+
+    private bool UseLocalCurrencyInput => !_isUsdSite && _hasRate;
+
+    /// <summary>The one editable amount the admin types — always in site display currency.</summary>
+    private decimal DisplayPrice(ProductVariant v)
     {
+        if (!UseLocalCurrencyInput) return v.ReferencePriceUsd;
         if (_localPrice.TryGetValue(v, out var local)) return local;
-        if (_hasRate && !_isUsdSite) return RoundLocal(v.ReferencePriceUsd * _usdToCurrency);
-        return v.ReferencePriceUsd;
+        return RoundLocal(v.ReferencePriceUsd * _usdToCurrency);
     }
 
-    private decimal? LocalCompareAt(ProductVariant v)
+    private decimal? DisplayCompareAt(ProductVariant v)
     {
+        if (!UseLocalCurrencyInput) return v.CompareAtPriceUsd;
         if (_localCompareAt.TryGetValue(v, out var local)) return local;
-        if (v.CompareAtPriceUsd is decimal cmp && _hasRate && !_isUsdSite)
+        if (v.CompareAtPriceUsd is decimal cmp)
             return RoundLocal(cmp * _usdToCurrency);
-        return v.CompareAtPriceUsd;
+        return null;
     }
 
-    private void SetLocalPrice(ProductVariant v, decimal local)
+    private void SetDisplayPrice(ProductVariant v, decimal amount)
     {
-        if (local < 0) local = 0;
-        _localPrice[v] = local;
-        // Convert entered site-currency price → USD reference at the rate of the moment of entry.
-        v.ReferencePriceUsd = _usdToCurrency == 0 ? 0 : RoundUsd(local / _usdToCurrency);
-    }
-
-    private void SetLocalCompareAt(ProductVariant v, decimal? local)
-    {
-        _localCompareAt[v] = local;
-        if (local is null or < 0)
-            v.CompareAtPriceUsd = null;
+        if (amount < 0) amount = 0;
+        if (UseLocalCurrencyInput)
+        {
+            _localPrice[v] = amount;
+            v.ReferencePriceUsd = _usdToCurrency == 0 ? 0 : RoundUsd(amount / _usdToCurrency);
+        }
         else
-            v.CompareAtPriceUsd = _usdToCurrency == 0 ? 0 : RoundUsd(local.Value / _usdToCurrency);
+        {
+            v.ReferencePriceUsd = RoundUsd(amount);
+        }
+    }
+
+    private void SetDisplayCompareAt(ProductVariant v, decimal? amount)
+    {
+        if (amount is < 0) amount = 0;
+        if (UseLocalCurrencyInput)
+        {
+            _localCompareAt[v] = amount;
+            v.CompareAtPriceUsd = amount is null || _usdToCurrency == 0
+                ? null
+                : RoundUsd(amount.Value / _usdToCurrency);
+        }
+        else
+        {
+            v.CompareAtPriceUsd = amount;
+        }
     }
 
     private Task<IEnumerable<Brand>> SearchBrands(string value, CancellationToken ct)
@@ -648,13 +660,27 @@ else
 
     private void AddVariant()
     {
-        var v = new ProductVariant { IsActive = true, IsDefault = _variants.Count == 0 };
+        var v = new ProductVariant
+        {
+            IsActive = true,
+            IsDefault = _variants.Count == 0,
+            Title = string.Empty,
+            Sku = string.Empty,
+        };
         _variants.Add(v);
-        if (!_isUsdSite && _hasRate)
+        if (UseLocalCurrencyInput)
         {
             _localPrice[v] = 0;
             _localCompareAt[v] = null;
         }
+    }
+
+    private async Task ShowSkuGuideAsync()
+    {
+        var options = new DialogOptions { MaxWidth = MaxWidth.Small, FullWidth = true, CloseButton = true };
+        await DialogService.ShowAsync<SkuGuideDialog>(
+            L["variants.sku_guide_title", "SKU coding guide"],
+            options);
     }
 
     private string TrTitle(string c) => _tr.TryGetValue(c, out var v) ? v.Title : string.Empty;
@@ -746,16 +772,14 @@ else
         _relatedTitles[product.ProductID] = product.Title;
     }
 
+    private bool IsVariantTitleError(ProductVariant v) =>
+        _showFieldErrors && string.IsNullOrWhiteSpace(v.Title);
+
     private bool IsVariantSkuError(ProductVariant v) =>
         _showFieldErrors && string.IsNullOrWhiteSpace(v.Sku);
 
-    private bool IsVariantPriceError(ProductVariant v)
-    {
-        if (!_showFieldErrors) return false;
-        if (!_isUsdSite && _hasRate)
-            return LocalPrice(v) <= 0;
-        return v.ReferencePriceUsd <= 0;
-    }
+    private bool IsVariantPriceError(ProductVariant v) =>
+        _showFieldErrors && DisplayPrice(v) <= 0;
 
     /// <summary>Client-side checks before any DB call so incomplete variants/fields never hit SaveChanges.</summary>
     private List<string> ValidateBeforeSave()
@@ -786,6 +810,15 @@ else
             var v = _variants[i];
             var label = string.Format(L["variants.row", "Variant {0}"], i + 1);
 
+            if (string.IsNullOrWhiteSpace(v.Title))
+            {
+                errors.Add(string.Format(L["variants.title_required_row", "{0}: title is required (e.g. Black T-shirt · Size XL)."], label));
+            }
+            else if (v.Title.Trim().Length > 200)
+            {
+                errors.Add(string.Format(L["variants.title_too_long", "{0}: title must be at most 200 characters."], label));
+            }
+
             if (string.IsNullOrWhiteSpace(v.Sku))
             {
                 errors.Add(string.Format(L["variants.sku_required_row", "{0}: SKU is required."], label));
@@ -799,20 +832,13 @@ else
                     errors.Add(string.Format(L["variants.sku_duplicate", "{0}: SKU \"{1}\" is duplicated."], label, sku));
             }
 
-            decimal price = !_isUsdSite && _hasRate ? LocalPrice(v) : v.ReferencePriceUsd;
+            var price = DisplayPrice(v);
             if (price <= 0)
                 errors.Add(string.Format(L["variants.price_required_row", "{0}: price must be greater than zero."], label));
 
-            if (!_isUsdSite && _hasRate)
-            {
-                var cmp = LocalCompareAt(v);
-                if (cmp is decimal c && c > 0 && c < LocalPrice(v))
-                    errors.Add(string.Format(L["variants.compare_below_price", "{0}: compare-at price should be greater than or equal to the sale price."], label));
-            }
-            else if (v.CompareAtPriceUsd is decimal cu && cu > 0 && cu < v.ReferencePriceUsd)
-            {
+            var cmp = DisplayCompareAt(v);
+            if (cmp is decimal c && c > 0 && c < price)
                 errors.Add(string.Format(L["variants.compare_below_price", "{0}: compare-at price should be greater than or equal to the sale price."], label));
-            }
         }
 
         if (_variants.Count > 0 && !_variants.Any(v => v.IsDefault))
@@ -839,20 +865,12 @@ else
         // ProductVariant.OverridePrice is not used for catalog pricing (reserved/legacy; keep null).
         foreach (var v in _variants)
         {
+            v.Title = (v.Title ?? string.Empty).Trim();
             v.Sku = (v.Sku ?? string.Empty).Trim();
 
-            if (!_isUsdSite && _hasRate)
-            {
-                if (_localPrice.TryGetValue(v, out var local))
-                    v.ReferencePriceUsd = _usdToCurrency == 0 ? 0 : RoundUsd(local / _usdToCurrency);
-
-                if (_localCompareAt.TryGetValue(v, out var localCmp))
-                {
-                    v.CompareAtPriceUsd = localCmp is decimal lc and >= 0 && _usdToCurrency != 0
-                        ? RoundUsd(lc / _usdToCurrency)
-                        : null;
-                }
-            }
+            // Re-apply display price → USD so save always matches what the user typed.
+            SetDisplayPrice(v, DisplayPrice(v));
+            SetDisplayCompareAt(v, DisplayCompareAt(v));
 
             v.OverridePrice = null;
             v.IsActive = true;

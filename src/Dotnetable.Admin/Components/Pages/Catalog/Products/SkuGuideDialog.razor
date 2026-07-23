@@ -1,0 +1,91 @@
+@inject IPageLocalizer L
+
+<MudDialog>
+    <TitleContent>
+        <MudStack Row="true" AlignItems="AlignItems.Center" Spacing="2">
+            <MudIcon Icon="@Icons.Material.Filled.QrCode2" Color="Color.Primary" />
+            <MudText Typo="Typo.h6">@L["variants.sku_guide_title", "SKU coding guide"]</MudText>
+        </MudStack>
+    </TitleContent>
+    <DialogContent>
+        <MudText Typo="Typo.body2" Class="mb-3">
+            @L["variants.sku_guide_intro", "SKU (Stock Keeping Unit) is a short internal code for each sellable variant. Keep it unique, stable, and free of spaces. Customers usually see the Title, not the SKU."]
+        </MudText>
+
+        <MudText Typo="Typo.subtitle2" Class="mb-1">@L["variants.sku_guide_pattern", "Recommended pattern"]</MudText>
+        <MudPaper Elevation="0" Class="pa-3 mb-3" Style="background:var(--mud-palette-background-grey); font-family: ui-monospace, Consolas, monospace;">
+            <MudText Typo="Typo.body1"><strong>BRAND-PRODUCT-ATTR1-ATTR2-…</strong></MudText>
+            <MudText Typo="Typo.caption" Color="Color.Secondary" Class="mt-1">
+                @L["variants.sku_guide_pattern_hint", "Use uppercase letters, digits, and hyphens only. Put the most important attributes last so similar variants sort together."]
+            </MudText>
+        </MudPaper>
+
+        <MudText Typo="Typo.subtitle2" Class="mb-1">@L["variants.sku_guide_example", "Example"]</MudText>
+        <MudPaper Elevation="0" Class="pa-3 mb-2 border rounded-lg">
+            <MudStack Spacing="1">
+                <MudText Typo="Typo.body1">
+                    <strong>SKU:</strong>
+                    <code style="font-size:1.05em">NK-TSH-M-BLK-XL</code>
+                </MudText>
+                <MudText Typo="Typo.body2">
+                    <strong>@L["variants.title", "Title"]:</strong>
+                    @L["variants.sku_guide_example_title", "Nike T-shirt · Men · Black · XL"]
+                </MudText>
+            </MudStack>
+        </MudPaper>
+
+        <MudSimpleTable Dense="true" Hover="true" Class="mb-3" Style="overflow-x:auto">
+            <thead>
+                <tr>
+                    <th>@L["variants.sku_guide_part", "Part"]</th>
+                    <th>@L["variants.sku_guide_meaning", "Meaning"]</th>
+                    <th>@L["variants.sku_guide_sample", "Sample"]</th>
+                </tr>
+            </thead>
+            <tbody>
+                <tr>
+                    <td><code>NK</code></td>
+                    <td>@L["variants.sku_guide_brand", "Brand short code"]</td>
+                    <td>Nike</td>
+                </tr>
+                <tr>
+                    <td><code>TSH</code></td>
+                    <td>@L["variants.sku_guide_product", "Product / model family"]</td>
+                    <td>T-shirt</td>
+                </tr>
+                <tr>
+                    <td><code>M</code></td>
+                    <td>@L["variants.sku_guide_gender", "Gender / line (optional)"]</td>
+                    <td>Men</td>
+                </tr>
+                <tr>
+                    <td><code>BLK</code></td>
+                    <td>@L["variants.sku_guide_color", "Color"]</td>
+                    <td>Black</td>
+                </tr>
+                <tr>
+                    <td><code>XL</code></td>
+                    <td>@L["variants.sku_guide_size", "Size"]</td>
+                    <td>XL</td>
+                </tr>
+            </tbody>
+        </MudSimpleTable>
+
+        <MudText Typo="Typo.subtitle2" Class="mb-1">@L["variants.sku_guide_rules", "Rules of thumb"]</MudText>
+        <ul class="ps-4 mb-0">
+            <li>@L["variants.sku_guide_rule1", "One SKU per sellable combination (color + size + …). Never reuse a SKU after it has been sold."]</li>
+            <li>@L["variants.sku_guide_rule2", "Prefer 2–4 letter tokens: BLK, WHT, RED, SM, MD, LG, XL."]</li>
+            <li>@L["variants.sku_guide_rule3", "No spaces or special characters other than hyphen (-). Max 100 characters."]</li>
+            <li>@L["variants.sku_guide_rule4", "Title is for humans (storefront, cart, admin lists). SKU is for warehouse, barcode, and integrations."]</li>
+            <li>@L["variants.sku_guide_rule5", "If you only sell one version of a product, still give it a clear Title and a short SKU (e.g. NK-TSH-STD)."]</li>
+        </ul>
+    </DialogContent>
+    <DialogActions>
+        <MudButton Color="Color.Primary" Variant="Variant.Filled" OnClick="Close">@L["close", "Close"]</MudButton>
+    </DialogActions>
+</MudDialog>
+
+@code {
+    [CascadingParameter] private IMudDialogInstance MudDialog { get; set; } = null!;
+    private void Close() => MudDialog.Close();
+}

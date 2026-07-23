@@ -3709,6 +3709,11 @@ namespace Dotnetable.Migrations.MySql.Migrations
                         .HasMaxLength(100)
                         .HasColumnType("varchar(100)");
 
+                    b.Property<string>("Title")
+                        .IsRequired()
+                        .HasMaxLength(200)
+                        .HasColumnType("varchar(200)");
+
                     b.Property<int>("WebsiteID")
                         .HasColumnType("int");
 

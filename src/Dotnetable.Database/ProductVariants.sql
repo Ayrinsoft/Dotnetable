@@ -3,6 +3,7 @@
     [WebsiteID]         INT             NOT NULL,
     [ProductID]         INT             NOT NULL,
     [Sku]               NVARCHAR (100)  NOT NULL,
+    [Title]             NVARCHAR (200)  NOT NULL,
     [IsDefault]         BIT             CONSTRAINT [DF_ProductVariants_IsDefault] DEFAULT ((0)) NOT NULL,
     [ImageFileID]       INT             NULL,
     [ReferencePriceUsd] DECIMAL (18, 4) NOT NULL,
