@@ -1,5 +1,6 @@
-// Injects RTL / LTR buttons into the CKEditor 5 toolbar and wraps full HTML in
-// <div dir="…" style="direction:…">…</div> via the live editor instance.
+// RTL / LTR toolbar buttons for DNCkEditor.
+// Click → Blazor wraps bound save HTML as <div dir="…" style="direction:…">…</div>
+// Visual dir on the editable is separate (so the editor can stay unwrapped while typing).
 window.dnCkEditor = (function () {
     var MAX_TRIES = 80;
     var RETRY_MS = 100;
@@ -38,6 +39,42 @@ window.dnCkEditor = (function () {
         });
     }
 
+    function getEditor(host) {
+        if (!host) return null;
+        var editable = host.querySelector('.ck-editor__editable');
+        if (editable && editable.ckeditorInstance) return editable.ckeditorInstance;
+
+        var nodes = host.querySelectorAll('.ck-editor__editable, textarea, .ck-source-editing-area, .ck-editor');
+        for (var i = 0; i < nodes.length; i++) {
+            if (nodes[i].ckeditorInstance) return nodes[i].ckeditorInstance;
+        }
+        var all = host.querySelectorAll('*');
+        for (var j = 0; j < all.length; j++) {
+            if (all[j].ckeditorInstance) return all[j].ckeditorInstance;
+        }
+        return null;
+    }
+
+    function setVisualDirection(host, dir) {
+        dir = (dir === 'rtl') ? 'rtl' : (dir === 'ltr' ? 'ltr' : '');
+        var editor = getEditor(host);
+        if (!editor || !dir) return false;
+        try {
+            var view = editor.editing && editor.editing.view;
+            if (!view) return false;
+            view.change(function (writer) {
+                var root = view.document.getRoot();
+                if (!root) return;
+                writer.setAttribute('dir', dir, root);
+                writer.setStyle('direction', dir, root);
+            });
+            return true;
+        } catch (e) {
+            console.warn('[dnCkEditor] applyVisualDirection failed', e);
+            return false;
+        }
+    }
+
     function makeSeparator() {
         var sep = document.createElement('span');
         sep.className = 'ck ck-toolbar__separator dn-ck-dir-sep';
@@ -60,7 +97,6 @@ window.dnCkEditor = (function () {
         text.textContent = label;
         btn.appendChild(text);
 
-        // Capture phase so CK toolbar does not swallow the event.
         var fire = function (e) {
             e.preventDefault();
             e.stopPropagation();
@@ -72,45 +108,32 @@ window.dnCkEditor = (function () {
         return btn;
     }
 
-    function getEditor(host) {
-        if (!host) return null;
+    function applyDirection(host, dir) {
+        dir = (dir === 'rtl') ? 'rtl' : 'ltr';
+        var st = stateOf(host);
+        var editor = getEditor(host);
+        var html = '';
 
-        var editable = host.querySelector('.ck-editor__editable');
-        if (editable && editable.ckeditorInstance) return editable.ckeditorInstance;
-
-        var nodes = host.querySelectorAll('.ck-editor__editable, textarea, .ck-source-editing-area, .ck-editor');
-        for (var i = 0; i < nodes.length; i++) {
-            if (nodes[i].ckeditorInstance) return nodes[i].ckeditorInstance;
+        if (editor) {
+            try { html = editor.getData() || ''; }
+            catch (e) { console.error('[dnCkEditor] getData failed', e); }
+            setVisualDirection(host, dir);
+        } else {
+            console.warn('[dnCkEditor] no editor instance — Blazor will use its buffer');
         }
 
-        var all = host.querySelectorAll('*');
-        for (var j = 0; j < all.length; j++) {
-            if (all[j].ckeditorInstance) return all[j].ckeditorInstance;
+        applyActive(host, dir);
+
+        if (!st || !st.dotNetRef) {
+            console.error('[dnCkEditor] missing DotNet ref — cannot update save HTML');
+            return false;
         }
-        return null;
-    }
 
-    var OUTER_DIR_RE = /^\s*<div\b(?=[^>]*\b(?:style\s*=\s*["'][^"']*\bdirection\s*:\s*(?:rtl|ltr)|dir\s*=\s*["'](?:rtl|ltr)["']))[^>]*>\s*([\s\S]*)\s*<\/div>\s*$/i;
-
-    function unwrapDirection(html) {
-        if (!html) return '';
-        var m = String(html).match(OUTER_DIR_RE);
-        return m ? m[1] : html;
-    }
-
-    function wrapDirection(html, dir) {
-        var inner = unwrapDirection(html || '');
-        var textOnly = String(inner).replace(/<[^>]*>/g, '').replace(/&nbsp;/gi, ' ').trim();
-        if (!textOnly && !/<(img|table|figure|iframe|video|ul|ol)\b/i.test(inner)) {
-            inner = '<p>&nbsp;</p>';
-        }
-        // Both dir= and style= — some sanitizers keep one or the other.
-        return '<div dir="' + dir + '" style="direction:' + dir + '">' + inner + '</div>';
-    }
-
-    function notifyBlazor(st, html, dir) {
-        if (!st || !st.dotNetRef) return;
+        // Always notify Blazor so the *bound model* gets the wrapper for Save → DB.
         st.dotNetRef.invokeMethodAsync('NotifyDirectionApplied', html, dir)
+            .then(function () {
+                console.debug('[dnCkEditor] direction applied for save:', dir);
+            })
             .catch(function (err) {
                 console.error('[dnCkEditor] NotifyDirectionApplied failed', err);
                 return st.dotNetRef.invokeMethodAsync('ApplyDirectionFromJs', dir);
@@ -118,65 +141,6 @@ window.dnCkEditor = (function () {
             .catch(function (err2) {
                 console.error('[dnCkEditor] ApplyDirectionFromJs failed', err2);
             });
-    }
-
-    function applyDirection(host, dir) {
-        dir = (dir === 'rtl') ? 'rtl' : 'ltr';
-        var st = stateOf(host);
-        var editor = getEditor(host);
-
-        if (!editor) {
-            console.warn('[dnCkEditor] ckeditorInstance not found — falling back to Blazor path.');
-            if (st && st.dotNetRef) {
-                st.dotNetRef.invokeMethodAsync('ApplyDirectionFromJs', dir)
-                    .catch(function (err) { console.error('[dnCkEditor] fallback failed', err); });
-            }
-            return false;
-        }
-
-        var current = '';
-        try { current = editor.getData() || ''; }
-        catch (e) { console.error('[dnCkEditor] getData failed', e); }
-
-        var wrapped = wrapDirection(current, dir);
-
-        try {
-            editor.setData(wrapped);
-        } catch (e) {
-            console.error('[dnCkEditor] setData failed', e);
-            return false;
-        }
-
-        // Immediate visual on the editing root (independent of data pipeline).
-        try {
-            var view = editor.editing && editor.editing.view;
-            if (view) {
-                view.change(function (writer) {
-                    var root = view.document.getRoot();
-                    if (!root) return;
-                    writer.setAttribute('dir', dir, root);
-                    writer.setStyle('direction', dir, root);
-                });
-            }
-        } catch (e) { /* non-fatal */ }
-
-        // If the schema kept the wrapper, change:data will sync Blazor — do not push a
-        // second HTML string (that races Value→SetData and jumps the caret while typing).
-        // Only force-notify when the wrapper was stripped but we still want it in the model.
-        applyActive(host, dir);
-        try {
-            var saved = editor.getData() || wrapped;
-            var kept =
-                /direction\s*:\s*(rtl|ltr)/i.test(saved) ||
-                /\bdir\s*=\s*["'](rtl|ltr)["']/i.test(saved);
-            if (!kept) {
-                console.warn('[dnCkEditor] Schema dropped direction wrapper; pushing wrapped HTML to Blazor model only.');
-                notifyBlazor(st, wrapped, dir);
-            }
-            // when kept: rely on change:data only
-        } catch (e) {
-            notifyBlazor(st, wrapped, dir);
-        }
         return true;
     }
 
@@ -196,6 +160,7 @@ window.dnCkEditor = (function () {
 
         if (items.querySelector('.dn-ck-dir-group')) {
             applyActive(host, st.active);
+            if (st.active) setVisualDirection(host, st.active);
             return true;
         }
 
@@ -213,6 +178,8 @@ window.dnCkEditor = (function () {
             applyDirection(host, d);
         }));
         items.appendChild(group);
+
+        if (active) setVisualDirection(host, active);
         return true;
     }
 
@@ -236,22 +203,17 @@ window.dnCkEditor = (function () {
     }
 
     return {
-        /**
-         * Safe to call on every Blazor render — does NOT tear down existing buttons.
-         */
         attachDirectionToolbar: function (host, labels, active, dotNetRef) {
             if (!host) return;
 
             var prev = stateOf(host);
             if (prev && !prev.disposed) {
-                // Keep the same lifecycle; only refresh callback + labels + pressed state.
                 prev.labels = labels || prev.labels;
                 prev.active = (active || '').toLowerCase();
                 if (dotNetRef) prev.dotNetRef = dotNetRef;
                 applyActive(host, prev.active);
-                if (!host.querySelector('.dn-ck-dir-group')) {
-                    schedule(host);
-                }
+                if (prev.active) setVisualDirection(host, prev.active);
+                if (!host.querySelector('.dn-ck-dir-group')) schedule(host);
                 return;
             }
 
@@ -267,12 +229,15 @@ window.dnCkEditor = (function () {
 
             schedule(host);
 
-            // Debounced: subtree mutations fire on every keystroke; only re-inject if buttons gone.
             var st = host._dnCkEditorState;
             var debounce = null;
             st.observer = new MutationObserver(function () {
                 if (st.disposed) return;
-                if (host.querySelector('.dn-ck-dir-group')) return;
+                if (host.querySelector('.dn-ck-dir-group')) {
+                    // Editor may appear after toolbar — re-apply visual dir.
+                    if (st.active) setVisualDirection(host, st.active);
+                    return;
+                }
                 if (!(host.querySelector('.ck-toolbar') || host.querySelector('.ck-editor'))) return;
                 if (debounce) clearTimeout(debounce);
                 debounce = setTimeout(function () {
@@ -286,6 +251,10 @@ window.dnCkEditor = (function () {
 
         setActiveDirection: function (host, active) {
             applyActive(host, active);
+        },
+
+        applyVisualDirection: function (host, dir) {
+            return setVisualDirection(host, dir);
         },
 
         applyDirection: function (host, dir) {
