@@ -5,18 +5,109 @@
 <MudDialog>
     <DialogContent>
         <MudForm @ref="_form">
-            <MudNumericField T="int" @bind-Value="Model.ProductVariantID" Label="@L["vendors.variant_id", "Product variant ID"]"
-                             Variant="Variant.Outlined" Required="true" Min="1" Class="mb-2" />
-            <MudNumericField T="decimal" @bind-Value="Model.ReferencePriceUsd" Label="@L["vendors.ref_price", "Reference price (USD)"]"
-                             Variant="Variant.Outlined" Min="0" Class="mb-2" />
-            <MudNumericField T="decimal?" @bind-Value="Model.OverridePrice" Label="@L["vendors.override_price", "Override price (USD)"]"
-                             Variant="Variant.Outlined" Min="0" Class="mb-2" />
-            <MudNumericField T="int" @bind-Value="Model.StockQuantity" Label="@L["stock", "Stock"]"
-                             Variant="Variant.Outlined" Min="0" Class="mb-2" />
-            <MudNumericField T="int" @bind-Value="Model.DeliveryDays" Label="@L["vendors.delivery_days", "Delivery days"]"
-                             Variant="Variant.Outlined" Min="0" Class="mb-2" />
-            <MudSwitch T="bool" @bind-Value="Model.IsActive" Label="@L["active", "Active"]" Color="Color.Primary" />
-            <DNValidationSummary Errors="_formErrors" />
+            <MudStack Spacing="3">
+                @if (IsNew)
+                {
+                    <MudAlert Severity="Severity.Info" Dense="true" Variant="Variant.Outlined">
+                        @L["vendors.listings.pick_hint", "Search by product name, variant title, or SKU, then select one sellable variant to list for this vendor."]
+                    </MudAlert>
+
+                    <MudAutocomplete T="VendorVariantPickDto"
+                                     Value="_selected"
+                                     ValueChanged="OnVariantPicked"
+                                     SearchFunc="SearchVariantsAsync"
+                                     ToStringFunc="@(v => v?.DisplayLabel ?? string.Empty)"
+                                     Label="@L["vendors.listings.pick_variant", "Product / variant"]"
+                                     Placeholder="@L["vendors.listings.pick_placeholder", "Type to search products…"]"
+                                     Variant="Variant.Outlined"
+                                     Dense="true"
+                                     ResetValueOnEmptyText="true"
+                                     ShowProgressIndicator="true"
+                                     MinCharacters="0"
+                                     MaxItems="25"
+                                     Required="true"
+                                     RequiredError="@L["vendors.listings.variant_required", "Select a product variant"]"
+                                     Error="@(_showErrors && _selected is null)"
+                                     ErrorText="@L["vendors.listings.variant_required", "Select a product variant"]">
+                        <ItemTemplate Context="item">
+                            <MudStack Spacing="0" Class="py-1">
+                                <MudText Typo="Typo.body2">
+                                    <strong>@item.ProductTitle</strong>
+                                    @if (!string.IsNullOrWhiteSpace(item.VariantTitle))
+                                    {
+                                        <span> — @item.VariantTitle</span>
+                                    }
+                                </MudText>
+                                <MudText Typo="Typo.caption" Color="Color.Secondary">
+                                    SKU: <code>@item.Sku</code>
+                                    · @item.ReferencePriceUsd.ToString("0.####") USD
+                                    @if (item.AlreadyListed)
+                                    {
+                                        <MudChip T="string" Size="Size.Small" Color="Color.Warning" Class="ms-1">@L["vendors.listings.already", "Already listed"]</MudChip>
+                                    }
+                                </MudText>
+                            </MudStack>
+                        </ItemTemplate>
+                        <NoItemsTemplate>
+                            <MudText Typo="Typo.caption" Class="pa-2">@L["vendors.listings.no_matches", "No eligible products found. Check vendor type / linked website catalog."]</MudText>
+                        </NoItemsTemplate>
+                    </MudAutocomplete>
+
+                    @if (_selected is not null)
+                    {
+                        <MudPaper Elevation="0" Class="pa-3 border rounded-lg">
+                            <MudText Typo="Typo.caption" Color="Color.Secondary">@L["vendors.listings.selected", "Selected"]</MudText>
+                            <MudText Typo="Typo.subtitle2">@_selected.ProductTitle</MudText>
+                            <MudText Typo="Typo.body2">
+                                @(string.IsNullOrWhiteSpace(_selected.VariantTitle) ? "—" : _selected.VariantTitle)
+                                · <code>@_selected.Sku</code>
+                            </MudText>
+                        </MudPaper>
+                    }
+                }
+                else
+                {
+                    <MudPaper Elevation="0" Class="pa-3 border rounded-lg">
+                        <MudText Typo="Typo.caption" Color="Color.Secondary">@L["vendors.listings.locked_variant", "Product variant (cannot change)"]</MudText>
+                        <MudText Typo="Typo.subtitle2">@(_lockedProductTitle ?? "—")</MudText>
+                        <MudText Typo="Typo.body2">
+                            @(string.IsNullOrWhiteSpace(_lockedVariantTitle) ? "—" : _lockedVariantTitle)
+                            · <code>@(_lockedSku ?? "—")</code>
+                        </MudText>
+                    </MudPaper>
+                }
+
+                <MudGrid Spacing="2">
+                    <MudItem xs="12" sm="6">
+                        <MudNumericField T="decimal" @bind-Value="Model.ReferencePriceUsd"
+                                         Label="@L["vendors.ref_price", "Reference price (USD)"]"
+                                         HelperText="@L["vendors.ref_price_help", "Catalog reference in USD. Defaults from the product when you pick a variant."]"
+                                         Variant="Variant.Outlined" Min="0" />
+                    </MudItem>
+                    <MudItem xs="12" sm="6">
+                        <MudNumericField T="decimal?" @bind-Value="Model.OverridePrice"
+                                         Label="@L["vendors.override_price", "Override price (USD)"]"
+                                         HelperText="@L["vendors.override_price_help", "Optional. When set, this vendor sells at this USD price instead of the catalog reference."]"
+                                         Variant="Variant.Outlined" Min="0" />
+                    </MudItem>
+                    <MudItem xs="12" sm="6">
+                        <MudNumericField T="int" @bind-Value="Model.StockQuantity"
+                                         Label="@L["stock", "Stock"]"
+                                         HelperText="@L["vendors.stock_help", "Units this vendor can sell on the host site."]"
+                                         Variant="Variant.Outlined" Min="0" />
+                    </MudItem>
+                    <MudItem xs="12" sm="6">
+                        <MudNumericField T="int" @bind-Value="Model.DeliveryDays"
+                                         Label="@L["vendors.delivery_days", "Delivery days"]"
+                                         Variant="Variant.Outlined" Min="0" />
+                    </MudItem>
+                    <MudItem xs="12">
+                        <MudSwitch T="bool" @bind-Value="Model.IsActive" Label="@L["active", "Active"]" Color="Color.Primary" />
+                    </MudItem>
+                </MudGrid>
+
+                <DNValidationSummary Errors="_formErrors" />
+            </MudStack>
         </MudForm>
     </DialogContent>
     <DialogActions>
@@ -29,18 +120,67 @@
     [CascadingParameter] private IMudDialogInstance MudDialog { get; set; } = null!;
     [Parameter] public VendorProduct Model { get; set; } = new();
     [Parameter] public int? ActingMemberId { get; set; }
+    [Parameter] public bool IsNew { get; set; } = true;
 
     private MudForm _form = null!;
     private bool _saving;
+    private bool _showErrors;
     private string[]? _formErrors;
+    private VendorVariantPickDto? _selected;
+    private string? _lockedProductTitle;
+    private string? _lockedVariantTitle;
+    private string? _lockedSku;
+
+    protected override void OnParametersSet()
+    {
+        if (!IsNew && Model.ProductVariant is not null)
+        {
+            _lockedProductTitle = Model.ProductVariant.Product?.Title;
+            _lockedVariantTitle = Model.ProductVariant.Title;
+            _lockedSku = Model.ProductVariant.Sku;
+        }
+    }
+
+    private async Task<IEnumerable<VendorVariantPickDto>> SearchVariantsAsync(string value, CancellationToken ct)
+    {
+        var results = await VendorProductService.SearchEligibleVariantsAsync(
+            Model.VendorID, value, take: 25, includeAlreadyListed: false, ct);
+        return results;
+    }
+
+    private Task OnVariantPicked(VendorVariantPickDto? pick)
+    {
+        _selected = pick;
+        if (pick is not null)
+        {
+            Model.ProductVariantID = pick.ProductVariantID;
+            if (Model.ReferencePriceUsd <= 0)
+                Model.ReferencePriceUsd = pick.ReferencePriceUsd;
+        }
+        else
+        {
+            Model.ProductVariantID = 0;
+        }
+        return Task.CompletedTask;
+    }
 
     private void Cancel() => MudDialog.Cancel();
 
     private async Task SaveAsync()
     {
-        await _form.Validate();
-        _formErrors = _form.Errors;
-        if (!_form.IsValid) return;
+        _showErrors = true;
+        await _form.ValidateAsync();
+        var errors = new List<string>(_form.Errors ?? Array.Empty<string>());
+
+        if (IsNew && (_selected is null || Model.ProductVariantID <= 0))
+            errors.Add(L["vendors.listings.variant_required", "Select a product variant"]);
+        if (Model.ReferencePriceUsd < 0)
+            errors.Add(L["vendors.listings.price_invalid", "Reference price cannot be negative."]);
+        if (Model.StockQuantity < 0)
+            errors.Add(L["vendors.listings.stock_invalid", "Stock cannot be negative."]);
+
+        _formErrors = errors.Count > 0 ? errors.ToArray() : null;
+        if (_formErrors is not null || !_form.IsValid) return;
 
         _saving = true;
         try
