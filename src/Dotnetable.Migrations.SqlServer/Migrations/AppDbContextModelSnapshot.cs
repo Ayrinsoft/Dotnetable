@@ -3175,6 +3175,9 @@ namespace Dotnetable.Migrations.SqlServer.Migrations
                     b.Property<int?>("BrandID")
                         .HasColumnType("int");
 
+                    b.Property<string>("Content")
+                        .HasColumnType("nvarchar(max)");
+
                     b.Property<DateTime>("CreatedAt")
                         .ValueGeneratedOnAdd()
                         .HasColumnType("datetime")
@@ -3485,77 +3488,6 @@ namespace Dotnetable.Migrations.SqlServer.Migrations
                     b.ToTable("ProductCategoryTranslations");
                 });
 
-            modelBuilder.Entity("Dotnetable.Domain.Entities.ProductContentSection", b =>
-                {
-                    b.Property<int>("ProductContentSectionID")
-                        .ValueGeneratedOnAdd()
-                        .HasColumnType("int");
-
-                    SqlServerPropertyBuilderExtensions.UseIdentityColumn(b.Property<int>("ProductContentSectionID"));
-
-                    b.Property<int?>("FileId")
-                        .HasColumnType("int");
-
-                    b.Property<string>("HtmlContent")
-                        .HasColumnType("nvarchar(max)");
-
-                    b.Property<bool>("IsActive")
-                        .ValueGeneratedOnAdd()
-                        .HasColumnType("bit")
-                        .HasDefaultValue(true, "DF_ProductContentSections_IsActive");
-
-                    b.Property<int?>("MediaSetID")
-                        .HasColumnType("int");
-
-                    b.Property<int>("ProductID")
-                        .HasColumnType("int");
-
-                    b.Property<byte>("SectionType")
-                        .HasColumnType("tinyint");
-
-                    b.Property<int>("SortOrder")
-                        .HasColumnType("int");
-
-                    b.HasKey("ProductContentSectionID");
-
-                    b.HasIndex("FileId");
-
-                    b.HasIndex("MediaSetID");
-
-                    b.HasIndex("ProductID");
-
-                    b.ToTable("ProductContentSections");
-                });
-
-            modelBuilder.Entity("Dotnetable.Domain.Entities.ProductContentSectionTranslation", b =>
-                {
-                    b.Property<int>("ProductContentSectionTranslationID")
-                        .ValueGeneratedOnAdd()
-                        .HasColumnType("int");
-
-                    SqlServerPropertyBuilderExtensions.UseIdentityColumn(b.Property<int>("ProductContentSectionTranslationID"));
-
-                    b.Property<string>("HtmlContent")
-                        .IsRequired()
-                        .HasColumnType("nvarchar(max)");
-
-                    b.Property<string>("LanguageCode")
-                        .IsRequired()
-                        .HasMaxLength(2)
-                        .IsUnicode(false)
-                        .HasColumnType("char(2)")
-                        .IsFixedLength();
-
-                    b.Property<int>("ProductContentSectionID")
-                        .HasColumnType("int");
-
-                    b.HasKey("ProductContentSectionTranslationID");
-
-                    b.HasIndex(new[] { "ProductContentSectionID" }, "IX_ProductContentSectionTranslations_ProductContentSectionID");
-
-                    b.ToTable("ProductContentSectionTranslations");
-                });
-
             modelBuilder.Entity("Dotnetable.Domain.Entities.ProductMedium", b =>
                 {
                     b.Property<int>("ProductID")
@@ -3724,6 +3656,9 @@ namespace Dotnetable.Migrations.SqlServer.Migrations
                         .HasColumnType("int");
 
                     SqlServerPropertyBuilderExtensions.UseIdentityColumn(b.Property<int>("ProductTranslationID"));
+
+                    b.Property<string>("Content")
+                        .HasColumnType("nvarchar(max)");
 
                     b.Property<string>("LanguageCode")
                         .IsRequired()
@@ -6978,42 +6913,6 @@ namespace Dotnetable.Migrations.SqlServer.Migrations
                     b.Navigation("ProductCategory");
                 });
 
-            modelBuilder.Entity("Dotnetable.Domain.Entities.ProductContentSection", b =>
-                {
-                    b.HasOne("Dotnetable.Domain.Entities.FileRecord", "File")
-                        .WithMany("ProductContentSections")
-                        .HasForeignKey("FileId")
-                        .HasConstraintName("FK_ProductContentSections_FileRecords");
-
-                    b.HasOne("Dotnetable.Domain.Entities.MediaSet", "MediaSet")
-                        .WithMany("ProductContentSections")
-                        .HasForeignKey("MediaSetID")
-                        .HasConstraintName("FK_ProductContentSections_MediaSets");
-
-                    b.HasOne("Dotnetable.Domain.Entities.Product", "Product")
-                        .WithMany("ProductContentSections")
-                        .HasForeignKey("ProductID")
-                        .IsRequired()
-                        .HasConstraintName("FK_ProductContentSections_Products");
-
-                    b.Navigation("File");
-
-                    b.Navigation("MediaSet");
-
-                    b.Navigation("Product");
-                });
-
-            modelBuilder.Entity("Dotnetable.Domain.Entities.ProductContentSectionTranslation", b =>
-                {
-                    b.HasOne("Dotnetable.Domain.Entities.ProductContentSection", "ProductContentSection")
-                        .WithMany("ProductContentSectionTranslations")
-                        .HasForeignKey("ProductContentSectionID")
-                        .IsRequired()
-                        .HasConstraintName("FK_ProductContentSectionTranslations_ProductContentSections");
-
-                    b.Navigation("ProductContentSection");
-                });
-
             modelBuilder.Entity("Dotnetable.Domain.Entities.ProductMedium", b =>
                 {
                     b.HasOne("Dotnetable.Domain.Entities.MediaSet", "MediaSet")
@@ -8033,8 +7932,6 @@ namespace Dotnetable.Migrations.SqlServer.Migrations
 
                     b.Navigation("ProductCategories");
 
-                    b.Navigation("ProductContentSections");
-
                     b.Navigation("ProductVariants");
 
                     b.Navigation("Products");
@@ -8091,8 +7988,6 @@ namespace Dotnetable.Migrations.SqlServer.Migrations
             modelBuilder.Entity("Dotnetable.Domain.Entities.MediaSet", b =>
                 {
                     b.Navigation("MediaSetItems");
-
-                    b.Navigation("ProductContentSections");
 
                     b.Navigation("ProductMedia");
                 });
@@ -8230,8 +8125,6 @@ namespace Dotnetable.Migrations.SqlServer.Migrations
 
                     b.Navigation("ProductCategoryRelations");
 
-                    b.Navigation("ProductContentSections");
-
                     b.Navigation("ProductMedia");
 
                     b.Navigation("ProductQuestions");
@@ -8265,11 +8158,6 @@ namespace Dotnetable.Migrations.SqlServer.Migrations
                     b.Navigation("ProductCategoryRelations");
 
                     b.Navigation("ProductCategoryTranslations");
-                });
-
-            modelBuilder.Entity("Dotnetable.Domain.Entities.ProductContentSection", b =>
-                {
-                    b.Navigation("ProductContentSectionTranslations");
                 });
 
             modelBuilder.Entity("Dotnetable.Domain.Entities.ProductQuestion", b =>

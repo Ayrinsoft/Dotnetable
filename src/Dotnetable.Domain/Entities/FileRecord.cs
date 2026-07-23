@@ -69,8 +69,6 @@ public partial class FileRecord
 
     public virtual ICollection<ProductCategory> ProductCategories { get; set; } = new List<ProductCategory>();
 
-    public virtual ICollection<ProductContentSection> ProductContentSections { get; set; } = new List<ProductContentSection>();
-
     public virtual ICollection<ProductVariant> ProductVariants { get; set; } = new List<ProductVariant>();
 
     public virtual ICollection<Product> Products { get; set; } = new List<Product>();

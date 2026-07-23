@@ -17,6 +17,9 @@ public partial class Product
 
     public string? ShortDescription { get; set; }
 
+    /// <summary>Rich HTML body (CKEditor), including inline images — one block per product like posts.</summary>
+    public string? Content { get; set; }
+
     public int? FeaturedImageFileID { get; set; }
 
     public bool IsCatalogOnly { get; set; }
@@ -52,8 +55,6 @@ public partial class Product
     public virtual ICollection<ProductCategoryMap> ProductCategoryMaps { get; set; } = new List<ProductCategoryMap>();
 
     public virtual ICollection<ProductCategoryRelation> ProductCategoryRelations { get; set; } = new List<ProductCategoryRelation>();
-
-    public virtual ICollection<ProductContentSection> ProductContentSections { get; set; } = new List<ProductContentSection>();
 
     public virtual ICollection<ProductMedium> ProductMedia { get; set; } = new List<ProductMedium>();
 

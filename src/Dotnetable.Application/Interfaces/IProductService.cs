@@ -41,9 +41,6 @@ public interface IProductService
     // ── Attribute values (product-level, non-variant) ────────────────
     Task SetAttributeValuesAsync(int productId, IReadOnlyList<ProductAttributeValue> values, CancellationToken ct = default);
 
-    // ── Content sections ──────────────────────────────────────────────
-    Task SetContentSectionsAsync(int productId, IReadOnlyList<ProductContentSection> sections, CancellationToken ct = default);
-
     // ── Warnings ───────────────────────────────────────────────────────
     Task SetWarningsAsync(int productId, IReadOnlyList<ProductWarning> warnings, CancellationToken ct = default);
 

@@ -17,5 +17,8 @@ public partial class ProductTranslation
 
     public string? ShortDescription { get; set; }
 
+    /// <summary>Localized rich HTML body; falls back to <see cref="Product.Content"/> when empty.</summary>
+    public string? Content { get; set; }
+
     public virtual Product Product { get; set; } = null!;
 }
