@@ -177,9 +177,18 @@ else
                                                      Error="@IsVariantPriceError(v)" ErrorText="@L["variants.price_required", "Price must be greater than zero"]" />
                                 </MudItem>
                                 <MudItem xs="6" sm="2" md="2">
-                                    <MudNumericField T="decimal?" Value="@DisplayCompareAt(v)" ValueChanged="@(val => SetDisplayCompareAt(v, val))"
-                                                     Label="@CompareFieldLabel"
-                                                     Variant="Variant.Outlined" Margin="Margin.Dense" Min="0" Immediate="true" />
+                                    <MudStack Row="true" AlignItems="AlignItems.Start" Spacing="0">
+                                        <MudNumericField T="decimal?" Value="@DisplayCompareAt(v)" ValueChanged="@(val => SetDisplayCompareAt(v, val))"
+                                                         Label="@CompareFieldLabel"
+                                                         Variant="Variant.Outlined" Margin="Margin.Dense" Min="0" Immediate="true"
+                                                         Class="flex-grow-1" />
+                                        <MudTooltip Text="@L["variants.compare_help_tooltip", "What is Compare at?"]">
+                                            <MudIconButton Icon="@Icons.Material.Filled.HelpOutline" Color="Color.Primary"
+                                                           Size="Size.Medium" Class="mt-1"
+                                                           aria-label="@L["variants.compare_help_tooltip", "What is Compare at?"]"
+                                                           OnClick="ShowCompareAtGuideAsync" />
+                                        </MudTooltip>
+                                    </MudStack>
                                 </MudItem>
                                 <MudItem xs="6" sm="2" md="1">
                                     <MudNumericField T="decimal?" @bind-Value="v.Weight" Label="@L["variants.weight", "Weight (kg)"]" Variant="Variant.Outlined" Margin="Margin.Dense" Min="0" />
@@ -680,6 +689,19 @@ else
         var options = new DialogOptions { MaxWidth = MaxWidth.Small, FullWidth = true, CloseButton = true };
         await DialogService.ShowAsync<SkuGuideDialog>(
             L["variants.sku_guide_title", "SKU coding guide"],
+            options);
+    }
+
+    private async Task ShowCompareAtGuideAsync()
+    {
+        var parameters = new DialogParameters<CompareAtGuideDialog>
+        {
+            { x => x.CurrencyCode, _displayCurrency },
+        };
+        var options = new DialogOptions { MaxWidth = MaxWidth.Small, FullWidth = true, CloseButton = true };
+        await DialogService.ShowAsync<CompareAtGuideDialog>(
+            L["variants.compare_guide_title", "What is Compare at?"],
+            parameters,
             options);
     }
 
