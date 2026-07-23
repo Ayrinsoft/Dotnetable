@@ -1,0 +1,20 @@
+@model (Dotnetable.Application.DTOs.ProductCategoryDto Category, string? ActiveSlug, int Depth)
+@{
+    var c = Model.Category;
+    var depth = Model.Depth;
+    var isActive = string.Equals(Model.ActiveSlug, c.Slug, StringComparison.OrdinalIgnoreCase);
+    var hasChildren = c.Children is { Count: > 0 };
+}
+<li class="shop-category-node" style="--depth:@depth">
+    <a asp-controller="Shop" asp-action="Category" asp-route-slug="@c.Slug"
+       class="shop-category-link @(isActive ? "is-active" : "")">@c.Name</a>
+    @if (hasChildren)
+    {
+        <ul class="shop-category-children list-unstyled">
+            @foreach (var child in c.Children)
+            {
+                @await Html.PartialAsync("_CategoryTreeNode", (child, Model.ActiveSlug, depth + 1))
+            }
+        </ul>
+    }
+</li>

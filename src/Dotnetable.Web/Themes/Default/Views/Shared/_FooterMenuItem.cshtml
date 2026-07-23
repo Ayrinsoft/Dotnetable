@@ -1,0 +1,17 @@
+@model (Dotnetable.Application.DTOs.MenuItemDto Item, int Depth)
+@{
+    var item = Model.Item;
+    var depth = Model.Depth;
+}
+<li class="footer-menu-node" style="--depth:@depth">
+    <a href="@item.Url" target="@(item.OpenInNewTab ? "_blank" : null)">@item.Title</a>
+    @if (item.Children is { Count: > 0 })
+    {
+        <ul class="list-unstyled footer-menu-children">
+            @foreach (var child in item.Children)
+            {
+                @await Html.PartialAsync("_FooterMenuItem", (child, depth + 1))
+            }
+        </ul>
+    }
+</li>

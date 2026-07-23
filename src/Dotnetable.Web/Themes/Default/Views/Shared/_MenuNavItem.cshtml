@@ -1,0 +1,56 @@
+@model (Dotnetable.Application.DTOs.MenuItemDto Item, bool IsTopLevel)
+@{
+    var item = Model.Item;
+    var isTopLevel = Model.IsTopLevel;
+    var hasChildren = item.Children is { Count: > 0 };
+}
+@if (hasChildren)
+{
+    var liClass = isTopLevel ? "nav-item dropdown" : "dropdown-submenu dropend";
+    var linkClass = isTopLevel
+        ? $"nav-link dropdown-toggle {item.CssClass}"
+        : $"dropdown-item dropdown-toggle {item.CssClass}";
+    <li class="@liClass">
+        <a class="@linkClass" href="@item.Url" role="button"
+           data-bs-toggle="dropdown" data-bs-auto-close="outside" aria-expanded="false"
+           target="@(item.OpenInNewTab ? "_blank" : null)">
+            @if (!string.IsNullOrEmpty(item.Icon))
+            {
+                <i class="@item.Icon me-1"></i>
+            }
+            @item.Title
+        </a>
+        <ul class="dropdown-menu">
+            @foreach (var child in item.Children)
+            {
+                @await Html.PartialAsync("_MenuNavItem", (child, false))
+            }
+        </ul>
+    </li>
+}
+else if (isTopLevel)
+{
+    <li class="nav-item">
+        <a class="nav-link @item.CssClass" href="@item.Url"
+           target="@(item.OpenInNewTab ? "_blank" : null)">
+            @if (!string.IsNullOrEmpty(item.Icon))
+            {
+                <i class="@item.Icon me-1"></i>
+            }
+            @item.Title
+        </a>
+    </li>
+}
+else
+{
+    <li>
+        <a class="dropdown-item @item.CssClass" href="@item.Url"
+           target="@(item.OpenInNewTab ? "_blank" : null)">
+            @if (!string.IsNullOrEmpty(item.Icon))
+            {
+                <i class="@item.Icon me-1"></i>
+            }
+            @item.Title
+        </a>
+    </li>
+}

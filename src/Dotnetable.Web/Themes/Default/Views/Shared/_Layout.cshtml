@@ -70,42 +70,7 @@
                     {
                         @foreach (var item in headerMenu.Items)
                         {
-                            @if (item.Children.Count > 0)
-                            {
-                                <li class="nav-item dropdown">
-                                    <a class="nav-link dropdown-toggle @item.CssClass" href="@item.Url" role="button"
-                                       data-bs-toggle="dropdown" aria-expanded="false"
-                                       target="@(item.OpenInNewTab ? "_blank" : null)">
-                                        @if (!string.IsNullOrEmpty(item.Icon))
-                                        {
-                                            <i class="@item.Icon me-1"></i>
-                                        }
-                                        @item.Title
-                                    </a>
-                                    <ul class="dropdown-menu">
-                                        @foreach (var child in item.Children)
-                                        {
-                                            <li>
-                                                <a class="dropdown-item @child.CssClass" href="@child.Url"
-                                                   target="@(child.OpenInNewTab ? "_blank" : null)">@child.Title</a>
-                                            </li>
-                                        }
-                                    </ul>
-                                </li>
-                            }
-                            else
-                            {
-                                <li class="nav-item">
-                                    <a class="nav-link @item.CssClass" href="@item.Url"
-                                       target="@(item.OpenInNewTab ? "_blank" : null)">
-                                        @if (!string.IsNullOrEmpty(item.Icon))
-                                        {
-                                            <i class="@item.Icon me-1"></i>
-                                        }
-                                        @item.Title
-                                    </a>
-                                </li>
-                            }
+                            @await Html.PartialAsync("_MenuNavItem", (item, true))
                         }
                     }
                     else
@@ -193,14 +158,12 @@
                 </div>
                 <div class="col-6 col-lg-4">
                     <h5>Links</h5>
-                    <ul class="list-unstyled d-grid gap-2">
+                    <ul class="list-unstyled d-grid gap-2 footer-menu-tree">
                         @if (footerMenu is not null && footerMenu.Items.Count > 0)
                         {
                             @foreach (var item in footerMenu.Items)
                             {
-                                <li>
-                                    <a href="@item.Url" target="@(item.OpenInNewTab ? "_blank" : null)">@item.Title</a>
-                                </li>
+                                @await Html.PartialAsync("_FooterMenuItem", (item, 0))
                             }
                         }
                         else

@@ -12,11 +12,13 @@
         <div class="row g-4">
             <div class="col-lg-3">
                 <h6 class="mb-3">Categories</h6>
-                <ul class="list-unstyled d-grid gap-2">
-                    <li><a asp-controller="Shop" asp-action="Index" class="@(Model.Category is null ? "fw-bold" : "")">All</a></li>
+                <ul class="shop-category-tree list-unstyled">
+                    <li>
+                        <a asp-controller="Shop" asp-action="Index" class="shop-category-link @(Model.Category is null ? "is-active" : "")">All</a>
+                    </li>
                     @foreach (var c in Model.Categories)
                     {
-                        <li><a asp-controller="Shop" asp-action="Category" asp-route-slug="@c.Slug" class="@(Model.Category == c.Slug ? "fw-bold" : "")">@c.Name</a></li>
+                        @await Html.PartialAsync("_CategoryTreeNode", (c, Model.Category, 0))
                     }
                 </ul>
             </div>
