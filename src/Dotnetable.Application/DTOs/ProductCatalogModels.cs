@@ -67,17 +67,6 @@ public sealed class ProductVariantDto
     public IReadOnlyList<ProductAttributeValueDto> Attributes { get; init; } = Array.Empty<ProductAttributeValueDto>();
 }
 
-/// <summary>A rich content block (text/image/video/spec-table) rendered on the product detail page.</summary>
-public sealed class ProductContentSectionDto
-{
-    public int ProductContentSectionID { get; init; }
-    public byte SectionType { get; init; }
-    public string? HtmlContent { get; init; }
-    public string? FileUrl { get; init; }
-    public int? MediaSetID { get; init; }
-    public int SortOrder { get; init; }
-}
-
 /// <summary>A safety/compliance warning shown on the product detail page.</summary>
 public sealed class ProductWarningDto
 {
@@ -124,7 +113,8 @@ public sealed class ProductDetailDto : ProductSummaryDto
     public IReadOnlyList<ProductCategoryDto> Categories { get; init; } = Array.Empty<ProductCategoryDto>();
     public IReadOnlyList<ProductVariantDto> Variants { get; init; } = Array.Empty<ProductVariantDto>();
     public IReadOnlyList<ProductAttributeValueDto> Attributes { get; init; } = Array.Empty<ProductAttributeValueDto>();
-    public IReadOnlyList<ProductContentSectionDto> ContentSections { get; init; } = Array.Empty<ProductContentSectionDto>();
+    /// <summary>Rich HTML description (CKEditor), with optional inline images.</summary>
+    public string? Content { get; init; }
     public IReadOnlyList<ProductWarningDto> Warnings { get; init; } = Array.Empty<ProductWarningDto>();
     public IReadOnlyList<ProductRefDto> RelatedProducts { get; init; } = Array.Empty<ProductRefDto>();
     public IReadOnlyList<string> GalleryImageUrls { get; init; } = Array.Empty<string>();

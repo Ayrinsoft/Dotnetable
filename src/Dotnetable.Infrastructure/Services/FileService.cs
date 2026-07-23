@@ -246,7 +246,6 @@ public class FileService : IFileService
         await AddOptionalAsync("Product featured images", _context.Products.CountAsync(x => x.FeaturedImageFileID == id, ct));
         await AddOptionalAsync("Product category images", _context.ProductCategories.CountAsync(x => x.ImageFileID == id, ct));
         await AddOptionalAsync("Product variant images", _context.ProductVariants.CountAsync(x => x.ImageFileID == id, ct));
-        await AddOptionalAsync("Product content sections", _context.ProductContentSections.CountAsync(x => x.FileId == id, ct));
         await AddOptionalAsync("Media set items", _context.MediaSetItems.CountAsync(x => x.FileID == id, ct));
         await AddOptionalAsync("Video thumbnails", _context.MediaSetItems.CountAsync(x => x.VideoThumbnailFileID == id, ct));
         await AddOptionalAsync("Slideshow mobile images", _context.SlideshowSlides.CountAsync(x => x.MobileFileID == id, ct));
@@ -348,8 +347,6 @@ public class FileService : IFileService
             .ExecuteUpdateAsync(s => s.SetProperty(x => x.ImageFileID, (int?)null), ct);
         await _context.ProductVariants.Where(x => x.ImageFileID == fileId)
             .ExecuteUpdateAsync(s => s.SetProperty(x => x.ImageFileID, (int?)null), ct);
-        await _context.ProductContentSections.Where(x => x.FileId == fileId)
-            .ExecuteUpdateAsync(s => s.SetProperty(x => x.FileId, (int?)null), ct);
         await _context.MediaSetItems.Where(x => x.FileID == fileId)
             .ExecuteUpdateAsync(s => s.SetProperty(x => x.FileID, (int?)null), ct);
         await _context.MediaSetItems.Where(x => x.VideoThumbnailFileID == fileId)

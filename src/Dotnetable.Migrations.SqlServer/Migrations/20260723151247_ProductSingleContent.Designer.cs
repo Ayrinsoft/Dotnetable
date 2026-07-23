@@ -3,27 +3,35 @@ using System;
 using Dotnetable.Infrastructure.Data;
 using Microsoft.EntityFrameworkCore;
 using Microsoft.EntityFrameworkCore.Infrastructure;
+using Microsoft.EntityFrameworkCore.Metadata;
+using Microsoft.EntityFrameworkCore.Migrations;
 using Microsoft.EntityFrameworkCore.Storage.ValueConversion;
 
 #nullable disable
 
-namespace Dotnetable.Migrations.MySql.Migrations
+namespace Dotnetable.Migrations.SqlServer.Migrations
 {
     [DbContext(typeof(AppDbContext))]
-    partial class AppDbContextModelSnapshot : ModelSnapshot
+    [Migration("20260723151247_ProductSingleContent")]
+    partial class ProductSingleContent
     {
-        protected override void BuildModel(ModelBuilder modelBuilder)
+        /// <inheritdoc />
+        protected override void BuildTargetModel(ModelBuilder modelBuilder)
         {
 #pragma warning disable 612, 618
             modelBuilder
                 .HasAnnotation("ProductVersion", "10.0.9")
-                .HasAnnotation("Relational:MaxIdentifierLength", 64);
+                .HasAnnotation("Relational:MaxIdentifierLength", 128);
+
+            SqlServerModelBuilderExtensions.UseIdentityColumns(modelBuilder);
 
             modelBuilder.Entity("Dotnetable.Domain.Entities.AdminNotification", b =>
                 {
                     b.Property<int>("AdminNotificationID")
                         .ValueGeneratedOnAdd()
                         .HasColumnType("int");
+
+                    SqlServerPropertyBuilderExtensions.UseIdentityColumn(b.Property<int>("AdminNotificationID"));
 
                     b.Property<string>("ActionUrl")
                         .HasMaxLength(256)
@@ -34,7 +42,7 @@ namespace Dotnetable.Migrations.MySql.Migrations
                         .HasColumnType("datetime");
 
                     b.Property<bool>("IsRead")
-                        .HasColumnType("tinyint(1)");
+                        .HasColumnType("bit");
 
                     b.Property<int>("MemberID")
                         .HasColumnType("int");
@@ -42,10 +50,10 @@ namespace Dotnetable.Migrations.MySql.Migrations
                     b.Property<string>("Message")
                         .IsRequired()
                         .HasMaxLength(1000)
-                        .HasColumnType("varchar(1000)");
+                        .HasColumnType("nvarchar(1000)");
 
                     b.Property<byte>("NotificationType")
-                        .HasColumnType("tinyint unsigned");
+                        .HasColumnType("tinyint");
 
                     b.Property<int?>("RelatedEntityID")
                         .HasColumnType("int");
@@ -53,7 +61,7 @@ namespace Dotnetable.Migrations.MySql.Migrations
                     b.Property<string>("Title")
                         .IsRequired()
                         .HasMaxLength(200)
-                        .HasColumnType("varchar(200)");
+                        .HasColumnType("nvarchar(200)");
 
                     b.Property<int>("WebsiteID")
                         .HasColumnType("int");
@@ -73,40 +81,42 @@ namespace Dotnetable.Migrations.MySql.Migrations
                         .ValueGeneratedOnAdd()
                         .HasColumnType("int");
 
+                    SqlServerPropertyBuilderExtensions.UseIdentityColumn(b.Property<int>("AttributeDefinitionID"));
+
                     b.Property<bool>("Active")
-                        .HasColumnType("tinyint(1)");
+                        .HasColumnType("bit");
 
                     b.Property<string>("Code")
                         .IsRequired()
                         .HasMaxLength(100)
-                        .HasColumnType("varchar(100)");
+                        .HasColumnType("nvarchar(100)");
 
                     b.Property<byte>("InputType")
-                        .HasColumnType("tinyint unsigned");
+                        .HasColumnType("tinyint");
 
                     b.Property<bool>("IsComparable")
-                        .HasColumnType("tinyint(1)");
+                        .HasColumnType("bit");
 
                     b.Property<bool>("IsFilterable")
-                        .HasColumnType("tinyint(1)");
+                        .HasColumnType("bit");
 
                     b.Property<bool>("IsVariantAttribute")
-                        .HasColumnType("tinyint(1)");
+                        .HasColumnType("bit");
 
                     b.Property<string>("Name")
                         .IsRequired()
                         .HasMaxLength(200)
-                        .HasColumnType("varchar(200)");
+                        .HasColumnType("nvarchar(200)");
 
                     b.Property<bool>("ShowOnTop")
-                        .HasColumnType("tinyint(1)");
+                        .HasColumnType("bit");
 
                     b.Property<int>("SortOrder")
                         .HasColumnType("int");
 
                     b.Property<string>("Unit")
                         .HasMaxLength(30)
-                        .HasColumnType("varchar(30)");
+                        .HasColumnType("nvarchar(30)");
 
                     b.Property<int>("WebsiteID")
                         .HasColumnType("int");
@@ -124,6 +134,8 @@ namespace Dotnetable.Migrations.MySql.Migrations
                         .ValueGeneratedOnAdd()
                         .HasColumnType("int");
 
+                    SqlServerPropertyBuilderExtensions.UseIdentityColumn(b.Property<int>("AttributeDefinitionTranslationID"));
+
                     b.Property<int>("AttributeDefinitionID")
                         .HasColumnType("int");
 
@@ -137,11 +149,11 @@ namespace Dotnetable.Migrations.MySql.Migrations
                     b.Property<string>("Name")
                         .IsRequired()
                         .HasMaxLength(200)
-                        .HasColumnType("varchar(200)");
+                        .HasColumnType("nvarchar(200)");
 
                     b.Property<string>("Unit")
                         .HasMaxLength(30)
-                        .HasColumnType("varchar(30)");
+                        .HasColumnType("nvarchar(30)");
 
                     b.HasKey("AttributeDefinitionTranslationID");
 
@@ -155,6 +167,8 @@ namespace Dotnetable.Migrations.MySql.Migrations
                     b.Property<int>("AttributeOptionID")
                         .ValueGeneratedOnAdd()
                         .HasColumnType("int");
+
+                    SqlServerPropertyBuilderExtensions.UseIdentityColumn(b.Property<int>("AttributeOptionID"));
 
                     b.Property<int>("AttributeDefinitionID")
                         .HasColumnType("int");
@@ -171,7 +185,7 @@ namespace Dotnetable.Migrations.MySql.Migrations
                     b.Property<string>("Value")
                         .IsRequired()
                         .HasMaxLength(2000)
-                        .HasColumnType("varchar(2000)");
+                        .HasColumnType("nvarchar(2000)");
 
                     b.HasKey("AttributeOptionID");
 
@@ -186,6 +200,8 @@ namespace Dotnetable.Migrations.MySql.Migrations
                         .ValueGeneratedOnAdd()
                         .HasColumnType("int");
 
+                    SqlServerPropertyBuilderExtensions.UseIdentityColumn(b.Property<int>("AttributeOptionTranslationID"));
+
                     b.Property<int>("AttributeOptionID")
                         .HasColumnType("int");
 
@@ -199,7 +215,7 @@ namespace Dotnetable.Migrations.MySql.Migrations
                     b.Property<string>("Value")
                         .IsRequired()
                         .HasMaxLength(2000)
-                        .HasColumnType("varchar(2000)");
+                        .HasColumnType("nvarchar(2000)");
 
                     b.HasKey("AttributeOptionTranslationID");
 
@@ -214,8 +230,10 @@ namespace Dotnetable.Migrations.MySql.Migrations
                         .ValueGeneratedOnAdd()
                         .HasColumnType("int");
 
+                    SqlServerPropertyBuilderExtensions.UseIdentityColumn(b.Property<int>("BankID"));
+
                     b.Property<bool>("Active")
-                        .HasColumnType("tinyint(1)");
+                        .HasColumnType("bit");
 
                     b.Property<string>("BankCode")
                         .IsRequired()
@@ -229,7 +247,7 @@ namespace Dotnetable.Migrations.MySql.Migrations
                     b.Property<string>("Name")
                         .IsRequired()
                         .HasMaxLength(64)
-                        .HasColumnType("varchar(64)");
+                        .HasColumnType("nvarchar(64)");
 
                     b.Property<int?>("WebsiteID")
                         .HasColumnType("int");
@@ -248,6 +266,8 @@ namespace Dotnetable.Migrations.MySql.Migrations
                     b.Property<int>("BankAccountID")
                         .ValueGeneratedOnAdd()
                         .HasColumnType("int");
+
+                    SqlServerPropertyBuilderExtensions.UseIdentityColumn(b.Property<int>("BankAccountID"));
 
                     b.Property<string>("AccountNumber")
                         .HasMaxLength(30)
@@ -272,24 +292,22 @@ namespace Dotnetable.Migrations.MySql.Migrations
 
                     b.Property<bool>("IsActive")
                         .ValueGeneratedOnAdd()
-                        .HasColumnType("tinyint(1)")
-                        .HasDefaultValue(true)
-                        .HasAnnotation("Relational:DefaultConstraintName", "DF_BankAccounts_IsActive");
+                        .HasColumnType("bit")
+                        .HasDefaultValue(true, "DF_BankAccounts_IsActive");
 
                     b.Property<bool>("IsForOfflinePayment")
                         .ValueGeneratedOnAdd()
-                        .HasColumnType("tinyint(1)")
-                        .HasDefaultValue(true)
-                        .HasAnnotation("Relational:DefaultConstraintName", "DF_BankAccounts_IsForOfflinePayment");
+                        .HasColumnType("bit")
+                        .HasDefaultValue(true, "DF_BankAccounts_IsForOfflinePayment");
 
                     b.Property<string>("OwnerName")
                         .HasMaxLength(90)
-                        .HasColumnType("varchar(90)");
+                        .HasColumnType("nvarchar(90)");
 
                     b.Property<string>("Title")
                         .IsRequired()
                         .HasMaxLength(70)
-                        .HasColumnType("varchar(70)");
+                        .HasColumnType("nvarchar(70)");
 
                     b.Property<int>("WebsiteID")
                         .HasColumnType("int");
@@ -311,11 +329,12 @@ namespace Dotnetable.Migrations.MySql.Migrations
                         .ValueGeneratedOnAdd()
                         .HasColumnType("int");
 
+                    SqlServerPropertyBuilderExtensions.UseIdentityColumn(b.Property<int>("BrandID"));
+
                     b.Property<bool>("IsActive")
                         .ValueGeneratedOnAdd()
-                        .HasColumnType("tinyint(1)")
-                        .HasDefaultValue(true)
-                        .HasAnnotation("Relational:DefaultConstraintName", "DF_Brands_IsActive_1");
+                        .HasColumnType("bit")
+                        .HasDefaultValue(true, "DF_Brands_IsActive_1");
 
                     b.Property<int?>("LogoFileID")
                         .HasColumnType("int");
@@ -323,12 +342,12 @@ namespace Dotnetable.Migrations.MySql.Migrations
                     b.Property<string>("Name")
                         .IsRequired()
                         .HasMaxLength(200)
-                        .HasColumnType("varchar(200)");
+                        .HasColumnType("nvarchar(200)");
 
                     b.Property<string>("Slug")
                         .IsRequired()
                         .HasMaxLength(200)
-                        .HasColumnType("varchar(200)");
+                        .HasColumnType("nvarchar(200)");
 
                     b.Property<int>("WebsiteID")
                         .HasColumnType("int");
@@ -348,6 +367,8 @@ namespace Dotnetable.Migrations.MySql.Migrations
                         .ValueGeneratedOnAdd()
                         .HasColumnType("int");
 
+                    SqlServerPropertyBuilderExtensions.UseIdentityColumn(b.Property<int>("BrandTranslationID"));
+
                     b.Property<int>("BrandID")
                         .HasColumnType("int");
 
@@ -361,12 +382,12 @@ namespace Dotnetable.Migrations.MySql.Migrations
                     b.Property<string>("Name")
                         .IsRequired()
                         .HasMaxLength(200)
-                        .HasColumnType("varchar(200)");
+                        .HasColumnType("nvarchar(200)");
 
                     b.Property<string>("Slug")
                         .IsRequired()
                         .HasMaxLength(200)
-                        .HasColumnType("varchar(200)");
+                        .HasColumnType("nvarchar(200)");
 
                     b.HasKey("BrandTranslationID");
 
@@ -381,15 +402,16 @@ namespace Dotnetable.Migrations.MySql.Migrations
                         .ValueGeneratedOnAdd()
                         .HasColumnType("int");
 
+                    SqlServerPropertyBuilderExtensions.UseIdentityColumn(b.Property<int>("CartID"));
+
                     b.Property<int?>("CouponID")
                         .HasColumnType("int");
 
                     b.Property<DateTime>("CreatedAt")
                         .ValueGeneratedOnAdd()
                         .HasPrecision(0)
-                        .HasColumnType("datetime(0)")
-                        .HasDefaultValueSql("(sysutcdatetime())")
-                        .HasAnnotation("Relational:DefaultConstraintName", "DF_Carts_CreatedAt");
+                        .HasColumnType("datetime2(0)")
+                        .HasDefaultValueSql("(sysutcdatetime())", "DF_Carts_CreatedAt");
 
                     b.Property<string>("SessionKey")
                         .HasMaxLength(64)
@@ -399,9 +421,8 @@ namespace Dotnetable.Migrations.MySql.Migrations
                     b.Property<DateTime>("UpdatedAt")
                         .ValueGeneratedOnAdd()
                         .HasPrecision(0)
-                        .HasColumnType("datetime(0)")
-                        .HasDefaultValueSql("(sysutcdatetime())")
-                        .HasAnnotation("Relational:DefaultConstraintName", "DF_Carts_UpdatedAt");
+                        .HasColumnType("datetime2(0)")
+                        .HasDefaultValueSql("(sysutcdatetime())", "DF_Carts_UpdatedAt");
 
                     b.Property<int?>("WebsiteClientID")
                         .HasColumnType("int");
@@ -426,12 +447,13 @@ namespace Dotnetable.Migrations.MySql.Migrations
                         .ValueGeneratedOnAdd()
                         .HasColumnType("int");
 
+                    SqlServerPropertyBuilderExtensions.UseIdentityColumn(b.Property<int>("CartItemID"));
+
                     b.Property<DateTime>("AddedAt")
                         .ValueGeneratedOnAdd()
                         .HasPrecision(0)
-                        .HasColumnType("datetime(0)")
-                        .HasDefaultValueSql("(sysutcdatetime())")
-                        .HasAnnotation("Relational:DefaultConstraintName", "DF_CartItems_AddedAt");
+                        .HasColumnType("datetime2(0)")
+                        .HasDefaultValueSql("(sysutcdatetime())", "DF_CartItems_AddedAt");
 
                     b.Property<int>("CartID")
                         .HasColumnType("int");
@@ -442,8 +464,7 @@ namespace Dotnetable.Migrations.MySql.Migrations
                     b.Property<int>("Quantity")
                         .ValueGeneratedOnAdd()
                         .HasColumnType("int")
-                        .HasDefaultValue(1)
-                        .HasAnnotation("Relational:DefaultConstraintName", "DF_CartItems_Quantity");
+                        .HasDefaultValue(1, "DF_CartItems_Quantity");
 
                     b.Property<int?>("VendorProductID")
                         .HasColumnType("int");
@@ -455,7 +476,8 @@ namespace Dotnetable.Migrations.MySql.Migrations
                     b.HasIndex("VendorProductID");
 
                     b.HasIndex(new[] { "CartID", "ProductVariantID", "VendorProductID" }, "UQ_CartItems_CartID_ProductVariantID_VendorProductID")
-                        .IsUnique();
+                        .IsUnique()
+                        .HasFilter("[VendorProductID] IS NOT NULL");
 
                     b.ToTable("CartItems");
                 });
@@ -466,16 +488,17 @@ namespace Dotnetable.Migrations.MySql.Migrations
                         .ValueGeneratedOnAdd()
                         .HasColumnType("int");
 
+                    SqlServerPropertyBuilderExtensions.UseIdentityColumn(b.Property<int>("CategoryID"));
+
                     b.Property<bool>("IsActive")
                         .ValueGeneratedOnAdd()
-                        .HasColumnType("tinyint(1)")
-                        .HasDefaultValue(true)
-                        .HasAnnotation("Relational:DefaultConstraintName", "DF_Categories_IsActive");
+                        .HasColumnType("bit")
+                        .HasDefaultValue(true, "DF_Categories_IsActive");
 
                     b.Property<string>("Name")
                         .IsRequired()
                         .HasMaxLength(200)
-                        .HasColumnType("varchar(200)");
+                        .HasColumnType("nvarchar(200)");
 
                     b.Property<int?>("ParentCategoryID")
                         .HasColumnType("int");
@@ -486,7 +509,7 @@ namespace Dotnetable.Migrations.MySql.Migrations
                     b.Property<string>("Slug")
                         .IsRequired()
                         .HasMaxLength(200)
-                        .HasColumnType("varchar(200)");
+                        .HasColumnType("nvarchar(200)");
 
                     b.Property<int>("SortOrder")
                         .HasColumnType("int");
@@ -511,6 +534,8 @@ namespace Dotnetable.Migrations.MySql.Migrations
                         .ValueGeneratedOnAdd()
                         .HasColumnType("int");
 
+                    SqlServerPropertyBuilderExtensions.UseIdentityColumn(b.Property<int>("CategoryTranslationID"));
+
                     b.Property<int>("CategoryID")
                         .HasColumnType("int");
 
@@ -524,12 +549,12 @@ namespace Dotnetable.Migrations.MySql.Migrations
                     b.Property<string>("Name")
                         .IsRequired()
                         .HasMaxLength(200)
-                        .HasColumnType("varchar(200)");
+                        .HasColumnType("nvarchar(200)");
 
                     b.Property<string>("Slug")
                         .IsRequired()
                         .HasMaxLength(200)
-                        .HasColumnType("varchar(200)");
+                        .HasColumnType("nvarchar(200)");
 
                     b.HasKey("CategoryTranslationID");
 
@@ -544,24 +569,25 @@ namespace Dotnetable.Migrations.MySql.Migrations
                         .ValueGeneratedOnAdd()
                         .HasColumnType("int");
 
+                    SqlServerPropertyBuilderExtensions.UseIdentityColumn(b.Property<int>("ChartOfAccountID"));
+
                     b.Property<byte>("AccountType")
-                        .HasColumnType("tinyint unsigned");
+                        .HasColumnType("tinyint");
 
                     b.Property<string>("Code")
                         .IsRequired()
                         .HasMaxLength(20)
-                        .HasColumnType("varchar(20)");
+                        .HasColumnType("nvarchar(20)");
 
                     b.Property<bool>("IsActive")
                         .ValueGeneratedOnAdd()
-                        .HasColumnType("tinyint(1)")
-                        .HasDefaultValue(true)
-                        .HasAnnotation("Relational:DefaultConstraintName", "DF_ChartOfAccounts_IsActive");
+                        .HasColumnType("bit")
+                        .HasDefaultValue(true, "DF_ChartOfAccounts_IsActive");
 
                     b.Property<string>("Name")
                         .IsRequired()
                         .HasMaxLength(200)
-                        .HasColumnType("varchar(200)");
+                        .HasColumnType("nvarchar(200)");
 
                     b.Property<int?>("ParentAccountID")
                         .HasColumnType("int");
@@ -584,8 +610,10 @@ namespace Dotnetable.Migrations.MySql.Migrations
                         .ValueGeneratedOnAdd()
                         .HasColumnType("int");
 
+                    SqlServerPropertyBuilderExtensions.UseIdentityColumn(b.Property<int>("CityID"));
+
                     b.Property<bool>("Active")
-                        .HasColumnType("tinyint(1)");
+                        .HasColumnType("bit");
 
                     b.Property<int>("CountryID")
                         .HasColumnType("int");
@@ -598,10 +626,10 @@ namespace Dotnetable.Migrations.MySql.Migrations
                         .IsFixedLength();
 
                     b.Property<double?>("Latitude")
-                        .HasColumnType("double");
+                        .HasColumnType("float");
 
                     b.Property<double>("Longitude")
-                        .HasColumnType("double");
+                        .HasColumnType("float");
 
                     b.Property<int?>("StateID")
                         .HasColumnType("int");
@@ -609,7 +637,7 @@ namespace Dotnetable.Migrations.MySql.Migrations
                     b.Property<string>("Title")
                         .IsRequired()
                         .HasMaxLength(48)
-                        .HasColumnType("varchar(48)");
+                        .HasColumnType("nvarchar(48)");
 
                     b.HasKey("CityID");
 
@@ -626,6 +654,8 @@ namespace Dotnetable.Migrations.MySql.Migrations
                         .ValueGeneratedOnAdd()
                         .HasColumnType("int");
 
+                    SqlServerPropertyBuilderExtensions.UseIdentityColumn(b.Property<int>("CityTranslationID"));
+
                     b.Property<int>("CityID")
                         .HasColumnType("int");
 
@@ -639,7 +669,7 @@ namespace Dotnetable.Migrations.MySql.Migrations
                     b.Property<string>("Title")
                         .IsRequired()
                         .HasMaxLength(48)
-                        .HasColumnType("varchar(48)");
+                        .HasColumnType("nvarchar(48)");
 
                     b.HasKey("CityTranslationID");
 
@@ -653,6 +683,8 @@ namespace Dotnetable.Migrations.MySql.Migrations
                     b.Property<int>("ClientBankAccountID")
                         .ValueGeneratedOnAdd()
                         .HasColumnType("int");
+
+                    SqlServerPropertyBuilderExtensions.UseIdentityColumn(b.Property<int>("ClientBankAccountID"));
 
                     b.Property<string>("AccountNumber")
                         .HasMaxLength(30)
@@ -670,9 +702,8 @@ namespace Dotnetable.Migrations.MySql.Migrations
                     b.Property<DateTime>("CreatedAt")
                         .ValueGeneratedOnAdd()
                         .HasPrecision(0)
-                        .HasColumnType("datetime(0)")
-                        .HasDefaultValueSql("(sysutcdatetime())")
-                        .HasAnnotation("Relational:DefaultConstraintName", "DF_ClientBankAccounts_CreatedAt");
+                        .HasColumnType("datetime2(0)")
+                        .HasDefaultValueSql("(sysutcdatetime())", "DF_ClientBankAccounts_CreatedAt");
 
                     b.Property<string>("IBAN")
                         .HasMaxLength(34)
@@ -681,17 +712,16 @@ namespace Dotnetable.Migrations.MySql.Migrations
 
                     b.Property<bool>("IsActive")
                         .ValueGeneratedOnAdd()
-                        .HasColumnType("tinyint(1)")
-                        .HasDefaultValue(true)
-                        .HasAnnotation("Relational:DefaultConstraintName", "DF_ClientBankAccounts_IsActive");
+                        .HasColumnType("bit")
+                        .HasDefaultValue(true, "DF_ClientBankAccounts_IsActive");
 
                     b.Property<bool>("IsDefault")
-                        .HasColumnType("tinyint(1)");
+                        .HasColumnType("bit");
 
                     b.Property<string>("OwnerName")
                         .IsRequired()
                         .HasMaxLength(90)
-                        .HasColumnType("varchar(90)");
+                        .HasColumnType("nvarchar(90)");
 
                     b.Property<int>("WebsiteClientID")
                         .HasColumnType("int");
@@ -716,27 +746,27 @@ namespace Dotnetable.Migrations.MySql.Migrations
                         .ValueGeneratedOnAdd()
                         .HasColumnType("int");
 
+                    SqlServerPropertyBuilderExtensions.UseIdentityColumn(b.Property<int>("ClientWalletID"));
+
                     b.Property<decimal>("BalanceUsd")
                         .HasColumnType("decimal(18, 4)");
 
                     b.Property<DateTime>("CreatedAt")
                         .ValueGeneratedOnAdd()
                         .HasPrecision(0)
-                        .HasColumnType("datetime(0)")
-                        .HasDefaultValueSql("(sysutcdatetime())")
-                        .HasAnnotation("Relational:DefaultConstraintName", "DF_ClientWallets_CreatedAt");
+                        .HasColumnType("datetime2(0)")
+                        .HasDefaultValueSql("(sysutcdatetime())", "DF_ClientWallets_CreatedAt");
 
                     b.Property<bool>("IsActive")
                         .ValueGeneratedOnAdd()
-                        .HasColumnType("tinyint(1)")
-                        .HasDefaultValue(true)
-                        .HasAnnotation("Relational:DefaultConstraintName", "DF_ClientWallets_IsActive");
+                        .HasColumnType("bit")
+                        .HasDefaultValue(true, "DF_ClientWallets_IsActive");
 
                     b.Property<byte[]>("RowVersion")
                         .IsConcurrencyToken()
                         .IsRequired()
                         .ValueGeneratedOnAddOrUpdate()
-                        .HasColumnType("longblob");
+                        .HasColumnType("rowversion");
 
                     b.Property<int>("WebsiteClientID")
                         .HasColumnType("int");
@@ -760,6 +790,8 @@ namespace Dotnetable.Migrations.MySql.Migrations
                         .ValueGeneratedOnAdd()
                         .HasColumnType("int");
 
+                    SqlServerPropertyBuilderExtensions.UseIdentityColumn(b.Property<int>("ClientWalletTransactionID"));
+
                     b.Property<decimal>("AmountUsd")
                         .HasColumnType("decimal(18, 4)");
 
@@ -772,25 +804,24 @@ namespace Dotnetable.Migrations.MySql.Migrations
                     b.Property<DateTime>("CreatedAt")
                         .ValueGeneratedOnAdd()
                         .HasPrecision(0)
-                        .HasColumnType("datetime(0)")
-                        .HasDefaultValueSql("(sysutcdatetime())")
-                        .HasAnnotation("Relational:DefaultConstraintName", "DF_ClientWalletTransactions_CreatedAt");
+                        .HasColumnType("datetime2(0)")
+                        .HasDefaultValueSql("(sysutcdatetime())", "DF_ClientWalletTransactions_CreatedAt");
 
                     b.Property<int?>("CreatedByMemberID")
                         .HasColumnType("int");
 
                     b.Property<string>("Note")
                         .HasMaxLength(500)
-                        .HasColumnType("varchar(500)");
+                        .HasColumnType("nvarchar(500)");
 
                     b.Property<int?>("SourceId")
                         .HasColumnType("int");
 
                     b.Property<byte?>("SourceType")
-                        .HasColumnType("tinyint unsigned");
+                        .HasColumnType("tinyint");
 
                     b.Property<byte>("Type")
-                        .HasColumnType("tinyint unsigned");
+                        .HasColumnType("tinyint");
 
                     b.Property<int>("WebsiteID")
                         .HasColumnType("int");
@@ -812,6 +843,8 @@ namespace Dotnetable.Migrations.MySql.Migrations
                         .ValueGeneratedOnAdd()
                         .HasColumnType("int");
 
+                    SqlServerPropertyBuilderExtensions.UseIdentityColumn(b.Property<int>("ClientWalletWithdrawalID"));
+
                     b.Property<decimal>("AmountUsd")
                         .HasColumnType("decimal(18, 4)");
 
@@ -823,35 +856,33 @@ namespace Dotnetable.Migrations.MySql.Migrations
 
                     b.Property<DateTime?>("PaidAt")
                         .HasPrecision(0)
-                        .HasColumnType("datetime(0)");
+                        .HasColumnType("datetime2(0)");
 
                     b.Property<string>("PaymentRefNumber")
                         .HasMaxLength(100)
-                        .HasColumnType("varchar(100)");
+                        .HasColumnType("nvarchar(100)");
 
                     b.Property<string>("RejectReason")
                         .HasMaxLength(500)
-                        .HasColumnType("varchar(500)");
+                        .HasColumnType("nvarchar(500)");
 
                     b.Property<DateTime>("RequestedAt")
                         .ValueGeneratedOnAdd()
                         .HasPrecision(0)
-                        .HasColumnType("datetime(0)")
-                        .HasDefaultValueSql("(sysutcdatetime())")
-                        .HasAnnotation("Relational:DefaultConstraintName", "DF_ClientWalletWithdrawals_RequestedAt");
+                        .HasColumnType("datetime2(0)")
+                        .HasDefaultValueSql("(sysutcdatetime())", "DF_ClientWalletWithdrawals_RequestedAt");
 
                     b.Property<DateTime?>("ReviewedAt")
                         .HasPrecision(0)
-                        .HasColumnType("datetime(0)");
+                        .HasColumnType("datetime2(0)");
 
                     b.Property<int?>("ReviewedByMemberID")
                         .HasColumnType("int");
 
                     b.Property<byte>("Status")
                         .ValueGeneratedOnAdd()
-                        .HasColumnType("tinyint unsigned")
-                        .HasDefaultValue((byte)1)
-                        .HasAnnotation("Relational:DefaultConstraintName", "DF_ClientWalletWithdrawals_Status");
+                        .HasColumnType("tinyint")
+                        .HasDefaultValue((byte)1, "DF_ClientWalletWithdrawals_Status");
 
                     b.Property<int>("WebsiteClientID")
                         .HasColumnType("int");
@@ -880,8 +911,10 @@ namespace Dotnetable.Migrations.MySql.Migrations
                         .ValueGeneratedOnAdd()
                         .HasColumnType("int");
 
+                    SqlServerPropertyBuilderExtensions.UseIdentityColumn(b.Property<int>("ContactUsMessagesID"));
+
                     b.Property<bool>("Archive")
-                        .HasColumnType("tinyint(1)");
+                        .HasColumnType("bit");
 
                     b.Property<string>("CellphoneNumber")
                         .IsRequired()
@@ -901,12 +934,12 @@ namespace Dotnetable.Migrations.MySql.Migrations
                     b.Property<string>("MessageBody")
                         .IsRequired()
                         .HasMaxLength(4000)
-                        .HasColumnType("varchar(4000)");
+                        .HasColumnType("nvarchar(4000)");
 
                     b.Property<string>("MessageSubject")
                         .IsRequired()
                         .HasMaxLength(512)
-                        .HasColumnType("varchar(512)");
+                        .HasColumnType("nvarchar(512)");
 
                     b.Property<string>("SenderIPAddress")
                         .IsRequired()
@@ -917,7 +950,7 @@ namespace Dotnetable.Migrations.MySql.Migrations
                     b.Property<string>("SenderName")
                         .IsRequired()
                         .HasMaxLength(64)
-                        .HasColumnType("varchar(64)");
+                        .HasColumnType("nvarchar(64)");
 
                     b.Property<int>("WebsiteID")
                         .HasColumnType("int");
@@ -934,6 +967,8 @@ namespace Dotnetable.Migrations.MySql.Migrations
                     b.Property<int>("CountryID")
                         .ValueGeneratedOnAdd()
                         .HasColumnType("int");
+
+                    SqlServerPropertyBuilderExtensions.UseIdentityColumn(b.Property<int>("CountryID"));
 
                     b.Property<string>("CountryCode")
                         .IsRequired()
@@ -958,7 +993,7 @@ namespace Dotnetable.Migrations.MySql.Migrations
                     b.Property<string>("Title")
                         .IsRequired()
                         .HasMaxLength(42)
-                        .HasColumnType("varchar(42)");
+                        .HasColumnType("nvarchar(42)");
 
                     b.HasKey("CountryID");
 
@@ -970,6 +1005,8 @@ namespace Dotnetable.Migrations.MySql.Migrations
                     b.Property<int>("CountryTranslationID")
                         .ValueGeneratedOnAdd()
                         .HasColumnType("int");
+
+                    SqlServerPropertyBuilderExtensions.UseIdentityColumn(b.Property<int>("CountryTranslationID"));
 
                     b.Property<int>("CountryID")
                         .HasColumnType("int");
@@ -984,7 +1021,7 @@ namespace Dotnetable.Migrations.MySql.Migrations
                     b.Property<string>("Title")
                         .IsRequired()
                         .HasMaxLength(42)
-                        .HasColumnType("varchar(42)");
+                        .HasColumnType("nvarchar(42)");
 
                     b.HasKey("CountryTranslationID");
 
@@ -999,6 +1036,8 @@ namespace Dotnetable.Migrations.MySql.Migrations
                         .ValueGeneratedOnAdd()
                         .HasColumnType("int");
 
+                    SqlServerPropertyBuilderExtensions.UseIdentityColumn(b.Property<int>("CouponID"));
+
                     b.Property<string>("Code")
                         .IsRequired()
                         .HasMaxLength(40)
@@ -1008,28 +1047,26 @@ namespace Dotnetable.Migrations.MySql.Migrations
                     b.Property<DateTime>("CreatedAt")
                         .ValueGeneratedOnAdd()
                         .HasPrecision(0)
-                        .HasColumnType("datetime(0)")
-                        .HasDefaultValueSql("(sysutcdatetime())")
-                        .HasAnnotation("Relational:DefaultConstraintName", "DF_Coupons_CreatedAt");
+                        .HasColumnType("datetime2(0)")
+                        .HasDefaultValueSql("(sysutcdatetime())", "DF_Coupons_CreatedAt");
 
                     b.Property<int?>("CreatedByMemberID")
                         .HasColumnType("int");
 
                     b.Property<byte>("DiscountType")
-                        .HasColumnType("tinyint unsigned");
+                        .HasColumnType("tinyint");
 
                     b.Property<decimal>("DiscountValue")
                         .HasColumnType("decimal(18, 4)");
 
                     b.Property<DateTime?>("EndsAt")
                         .HasPrecision(0)
-                        .HasColumnType("datetime(0)");
+                        .HasColumnType("datetime2(0)");
 
                     b.Property<bool>("IsActive")
                         .ValueGeneratedOnAdd()
-                        .HasColumnType("tinyint(1)")
-                        .HasDefaultValue(true)
-                        .HasAnnotation("Relational:DefaultConstraintName", "DF_Coupons_IsActive");
+                        .HasColumnType("bit")
+                        .HasDefaultValue(true, "DF_Coupons_IsActive");
 
                     b.Property<decimal?>("MaxDiscountAmountUsd")
                         .HasColumnType("decimal(18, 4)");
@@ -1039,7 +1076,7 @@ namespace Dotnetable.Migrations.MySql.Migrations
 
                     b.Property<DateTime?>("StartsAt")
                         .HasPrecision(0)
-                        .HasColumnType("datetime(0)");
+                        .HasColumnType("datetime2(0)");
 
                     b.Property<int>("TimesUsed")
                         .HasColumnType("int");
@@ -1069,6 +1106,8 @@ namespace Dotnetable.Migrations.MySql.Migrations
                         .ValueGeneratedOnAdd()
                         .HasColumnType("int");
 
+                    SqlServerPropertyBuilderExtensions.UseIdentityColumn(b.Property<int>("CouponRedemptionID"));
+
                     b.Property<int>("CouponID")
                         .HasColumnType("int");
 
@@ -1081,9 +1120,8 @@ namespace Dotnetable.Migrations.MySql.Migrations
                     b.Property<DateTime>("RedeemedAt")
                         .ValueGeneratedOnAdd()
                         .HasPrecision(0)
-                        .HasColumnType("datetime(0)")
-                        .HasDefaultValueSql("(sysutcdatetime())")
-                        .HasAnnotation("Relational:DefaultConstraintName", "DF_CouponRedemptions_RedeemedAt");
+                        .HasColumnType("datetime2(0)")
+                        .HasDefaultValueSql("(sysutcdatetime())", "DF_CouponRedemptions_RedeemedAt");
 
                     b.Property<int>("WebsiteClientID")
                         .HasColumnType("int");
@@ -1110,25 +1148,23 @@ namespace Dotnetable.Migrations.MySql.Migrations
 
                     b.Property<byte>("DecimalDigits")
                         .ValueGeneratedOnAdd()
-                        .HasColumnType("tinyint unsigned")
-                        .HasDefaultValue((byte)2)
-                        .HasAnnotation("Relational:DefaultConstraintName", "DF_Currencies_DecimalDigits");
+                        .HasColumnType("tinyint")
+                        .HasDefaultValue((byte)2, "DF_Currencies_DecimalDigits");
 
                     b.Property<bool>("IsActive")
                         .ValueGeneratedOnAdd()
-                        .HasColumnType("tinyint(1)")
-                        .HasDefaultValue(true)
-                        .HasAnnotation("Relational:DefaultConstraintName", "DF_Currencies_IsActive");
+                        .HasColumnType("bit")
+                        .HasDefaultValue(true, "DF_Currencies_IsActive");
 
                     b.Property<string>("Name")
                         .IsRequired()
                         .HasMaxLength(50)
-                        .HasColumnType("varchar(50)");
+                        .HasColumnType("nvarchar(50)");
 
                     b.Property<string>("Symbol")
                         .IsRequired()
                         .HasMaxLength(10)
-                        .HasColumnType("varchar(10)");
+                        .HasColumnType("nvarchar(10)");
 
                     b.HasKey("CurrencyCode");
 
@@ -1141,6 +1177,8 @@ namespace Dotnetable.Migrations.MySql.Migrations
                         .ValueGeneratedOnAdd()
                         .HasColumnType("int");
 
+                    SqlServerPropertyBuilderExtensions.UseIdentityColumn(b.Property<int>("CurrencyRateID"));
+
                     b.Property<string>("CurrencyCode")
                         .IsRequired()
                         .HasMaxLength(3)
@@ -1149,7 +1187,7 @@ namespace Dotnetable.Migrations.MySql.Migrations
                         .IsFixedLength();
 
                     b.Property<bool>("IsDefault")
-                        .HasColumnType("tinyint(1)");
+                        .HasColumnType("bit");
 
                     b.Property<DateTime>("LastUpdate")
                         .HasColumnType("datetime");
@@ -1175,11 +1213,13 @@ namespace Dotnetable.Migrations.MySql.Migrations
                         .ValueGeneratedOnAdd()
                         .HasColumnType("int");
 
+                    SqlServerPropertyBuilderExtensions.UseIdentityColumn(b.Property<int>("EmailAccountID"));
+
                     b.Property<byte>("AccountType")
-                        .HasColumnType("tinyint unsigned");
+                        .HasColumnType("tinyint");
 
                     b.Property<bool>("Active")
-                        .HasColumnType("tinyint(1)");
+                        .HasColumnType("bit");
 
                     b.Property<string>("EmailAddress")
                         .IsRequired()
@@ -1188,15 +1228,15 @@ namespace Dotnetable.Migrations.MySql.Migrations
                         .HasColumnType("varchar(64)");
 
                     b.Property<bool>("EnableSSL")
-                        .HasColumnType("tinyint(1)");
+                        .HasColumnType("bit");
 
                     b.Property<bool>("IsDefault")
-                        .HasColumnType("tinyint(1)");
+                        .HasColumnType("bit");
 
                     b.Property<string>("MailName")
                         .IsRequired()
                         .HasMaxLength(64)
-                        .HasColumnType("varchar(64)");
+                        .HasColumnType("nvarchar(64)");
 
                     b.Property<string>("MailServer")
                         .IsRequired()
@@ -1207,12 +1247,12 @@ namespace Dotnetable.Migrations.MySql.Migrations
                     b.Property<string>("Name")
                         .IsRequired()
                         .HasMaxLength(64)
-                        .HasColumnType("varchar(64)");
+                        .HasColumnType("nvarchar(64)");
 
                     b.Property<string>("Password")
                         .IsRequired()
                         .HasMaxLength(256)
-                        .HasColumnType("varchar(256)");
+                        .HasColumnType("nvarchar(256)");
 
                     b.Property<int>("SMTPPort")
                         .HasColumnType("int");
@@ -1233,11 +1273,13 @@ namespace Dotnetable.Migrations.MySql.Migrations
                         .ValueGeneratedOnAdd()
                         .HasColumnType("int");
 
+                    SqlServerPropertyBuilderExtensions.UseIdentityColumn(b.Property<int>("EmailSubscribeID"));
+
                     b.Property<bool>("Active")
-                        .HasColumnType("tinyint(1)");
+                        .HasColumnType("bit");
 
                     b.Property<bool>("Approved")
-                        .HasColumnType("tinyint(1)");
+                        .HasColumnType("bit");
 
                     b.Property<string>("Email")
                         .IsRequired()
@@ -1269,25 +1311,27 @@ namespace Dotnetable.Migrations.MySql.Migrations
                         .ValueGeneratedOnAdd()
                         .HasColumnType("int");
 
+                    SqlServerPropertyBuilderExtensions.UseIdentityColumn(b.Property<int>("EmailTemplateID"));
+
                     b.Property<byte>("AccountType")
-                        .HasColumnType("tinyint unsigned");
+                        .HasColumnType("tinyint");
 
                     b.Property<bool>("Active")
-                        .HasColumnType("tinyint(1)");
+                        .HasColumnType("bit");
 
                     b.Property<string>("HtmlBody")
                         .IsRequired()
-                        .HasColumnType("longtext");
+                        .HasColumnType("nvarchar(max)");
 
                     b.Property<string>("Name")
                         .IsRequired()
                         .HasMaxLength(128)
-                        .HasColumnType("varchar(128)");
+                        .HasColumnType("nvarchar(128)");
 
                     b.Property<string>("Subject")
                         .IsRequired()
                         .HasMaxLength(256)
-                        .HasColumnType("varchar(256)");
+                        .HasColumnType("nvarchar(256)");
 
                     b.Property<string>("TemplateKey")
                         .IsRequired()
@@ -1312,12 +1356,14 @@ namespace Dotnetable.Migrations.MySql.Migrations
                         .ValueGeneratedOnAdd()
                         .HasColumnType("int");
 
+                    SqlServerPropertyBuilderExtensions.UseIdentityColumn(b.Property<int>("EmailTemplateTranslationID"));
+
                     b.Property<int>("EmailTemplateID")
                         .HasColumnType("int");
 
                     b.Property<string>("HtmlBody")
                         .IsRequired()
-                        .HasColumnType("longtext");
+                        .HasColumnType("nvarchar(max)");
 
                     b.Property<string>("LanguageCode")
                         .IsRequired()
@@ -1329,7 +1375,7 @@ namespace Dotnetable.Migrations.MySql.Migrations
                     b.Property<string>("Subject")
                         .IsRequired()
                         .HasMaxLength(256)
-                        .HasColumnType("varchar(256)");
+                        .HasColumnType("nvarchar(256)");
 
                     b.HasKey("EmailTemplateTranslationID");
 
@@ -1345,17 +1391,19 @@ namespace Dotnetable.Migrations.MySql.Migrations
                         .ValueGeneratedOnAdd()
                         .HasColumnType("int");
 
+                    SqlServerPropertyBuilderExtensions.UseIdentityColumn(b.Property<int>("FileFolderID"));
+
                     b.Property<DateTime>("CreateDate")
                         .HasColumnType("datetime");
 
                     b.Property<string>("Description")
                         .HasMaxLength(400)
-                        .HasColumnType("varchar(400)");
+                        .HasColumnType("nvarchar(400)");
 
                     b.Property<string>("Name")
                         .IsRequired()
                         .HasMaxLength(120)
-                        .HasColumnType("varchar(120)");
+                        .HasColumnType("nvarchar(120)");
 
                     b.Property<int?>("ParentFolderID")
                         .HasColumnType("int");
@@ -1378,9 +1426,11 @@ namespace Dotnetable.Migrations.MySql.Migrations
                         .ValueGeneratedOnAdd()
                         .HasColumnType("int");
 
+                    SqlServerPropertyBuilderExtensions.UseIdentityColumn(b.Property<int>("FileRecordID"));
+
                     b.Property<string>("AltText")
                         .HasMaxLength(120)
-                        .HasColumnType("varchar(120)");
+                        .HasColumnType("nvarchar(120)");
 
                     b.Property<string>("CDNFileCode")
                         .HasMaxLength(80)
@@ -1389,10 +1439,10 @@ namespace Dotnetable.Migrations.MySql.Migrations
 
                     b.Property<string>("CNDUrl")
                         .HasMaxLength(450)
-                        .HasColumnType("varchar(450)");
+                        .HasColumnType("nvarchar(450)");
 
                     b.Property<byte>("FileCategory")
-                        .HasColumnType("tinyint unsigned");
+                        .HasColumnType("tinyint");
 
                     b.Property<int?>("FileFolderID")
                         .HasColumnType("int");
@@ -1401,11 +1451,11 @@ namespace Dotnetable.Migrations.MySql.Migrations
                         .HasColumnType("int");
 
                     b.Property<bool>("IsDeleted")
-                        .HasColumnType("tinyint(1)");
+                        .HasColumnType("bit");
 
                     b.Property<string>("MetadataJSON")
                         .HasMaxLength(2000)
-                        .HasColumnType("varchar(2000)");
+                        .HasColumnType("nvarchar(2000)");
 
                     b.Property<string>("MimeType")
                         .IsRequired()
@@ -1416,11 +1466,11 @@ namespace Dotnetable.Migrations.MySql.Migrations
                     b.Property<string>("OriginalFileName")
                         .IsRequired()
                         .HasMaxLength(120)
-                        .HasColumnType("varchar(120)");
+                        .HasColumnType("nvarchar(120)");
 
                     b.Property<string>("StoragePath")
                         .HasMaxLength(350)
-                        .HasColumnType("varchar(350)");
+                        .HasColumnType("nvarchar(350)");
 
                     b.Property<short>("StorageProvider")
                         .HasColumnType("smallint");
@@ -1433,15 +1483,15 @@ namespace Dotnetable.Migrations.MySql.Migrations
 
                     b.Property<string>("ThumbnailCDN")
                         .HasMaxLength(450)
-                        .HasColumnType("varchar(450)");
+                        .HasColumnType("nvarchar(450)");
 
                     b.Property<string>("ThumbnailStorage")
                         .HasMaxLength(350)
-                        .HasColumnType("varchar(350)");
+                        .HasColumnType("nvarchar(350)");
 
                     b.Property<string>("Title")
                         .HasMaxLength(50)
-                        .HasColumnType("varchar(50)");
+                        .HasColumnType("nvarchar(50)");
 
                     b.Property<DateTime>("UploadDate")
                         .HasColumnType("datetime");
@@ -1479,6 +1529,8 @@ namespace Dotnetable.Migrations.MySql.Migrations
                         .ValueGeneratedOnAdd()
                         .HasColumnType("int");
 
+                    SqlServerPropertyBuilderExtensions.UseIdentityColumn(b.Property<int>("FileRecordTagID"));
+
                     b.Property<int>("FileRecordID")
                         .HasColumnType("int");
 
@@ -1500,10 +1552,12 @@ namespace Dotnetable.Migrations.MySql.Migrations
                         .ValueGeneratedOnAdd()
                         .HasColumnType("int");
 
+                    SqlServerPropertyBuilderExtensions.UseIdentityColumn(b.Property<int>("FileTagID"));
+
                     b.Property<string>("Name")
                         .IsRequired()
                         .HasMaxLength(60)
-                        .HasColumnType("varchar(60)");
+                        .HasColumnType("nvarchar(60)");
 
                     b.Property<int>("WebsiteID")
                         .HasColumnType("int");
@@ -1521,64 +1575,63 @@ namespace Dotnetable.Migrations.MySql.Migrations
                         .ValueGeneratedOnAdd()
                         .HasColumnType("int");
 
+                    SqlServerPropertyBuilderExtensions.UseIdentityColumn(b.Property<int>("FormID"));
+
                     b.Property<bool>("AllowMultipleSubmissions")
                         .ValueGeneratedOnAdd()
-                        .HasColumnType("tinyint(1)")
-                        .HasDefaultValue(true)
-                        .HasAnnotation("Relational:DefaultConstraintName", "DF_Forms_AllowMultipleSubmissions");
+                        .HasColumnType("bit")
+                        .HasDefaultValue(true, "DF_Forms_AllowMultipleSubmissions");
 
                     b.Property<DateTime>("CreatedAt")
                         .ValueGeneratedOnAdd()
                         .HasColumnType("datetime")
-                        .HasDefaultValueSql("(sysutcdatetime())")
-                        .HasAnnotation("Relational:DefaultConstraintName", "DF_Forms_CreatedAt");
+                        .HasDefaultValueSql("(sysutcdatetime())", "DF_Forms_CreatedAt");
 
                     b.Property<string>("Description")
                         .HasMaxLength(1000)
-                        .HasColumnType("varchar(1000)");
+                        .HasColumnType("nvarchar(1000)");
 
                     b.Property<DateTime?>("EndAt")
                         .HasColumnType("datetime");
 
                     b.Property<byte>("FormType")
-                        .HasColumnType("tinyint unsigned");
+                        .HasColumnType("tinyint");
 
                     b.Property<bool>("IsActive")
                         .ValueGeneratedOnAdd()
-                        .HasColumnType("tinyint(1)")
-                        .HasDefaultValue(true)
-                        .HasAnnotation("Relational:DefaultConstraintName", "DF_Forms_IsActive");
+                        .HasColumnType("bit")
+                        .HasDefaultValue(true, "DF_Forms_IsActive");
 
                     b.Property<string>("NotifyEmail")
                         .HasMaxLength(200)
-                        .HasColumnType("varchar(200)");
+                        .HasColumnType("nvarchar(200)");
 
                     b.Property<bool>("RequireLogin")
-                        .HasColumnType("tinyint(1)");
+                        .HasColumnType("bit");
 
                     b.Property<bool>("ShowResults")
-                        .HasColumnType("tinyint(1)");
+                        .HasColumnType("bit");
 
                     b.Property<string>("Slug")
                         .IsRequired()
                         .HasMaxLength(200)
-                        .HasColumnType("varchar(200)");
+                        .HasColumnType("nvarchar(200)");
 
                     b.Property<DateTime?>("StartAt")
                         .HasColumnType("datetime");
 
                     b.Property<string>("SubmitButtonText")
                         .HasMaxLength(100)
-                        .HasColumnType("varchar(100)");
+                        .HasColumnType("nvarchar(100)");
 
                     b.Property<string>("SuccessMessage")
                         .HasMaxLength(500)
-                        .HasColumnType("varchar(500)");
+                        .HasColumnType("nvarchar(500)");
 
                     b.Property<string>("Title")
                         .IsRequired()
                         .HasMaxLength(200)
-                        .HasColumnType("varchar(200)");
+                        .HasColumnType("nvarchar(200)");
 
                     b.Property<int>("WebsiteID")
                         .HasColumnType("int");
@@ -1596,29 +1649,30 @@ namespace Dotnetable.Migrations.MySql.Migrations
                         .ValueGeneratedOnAdd()
                         .HasColumnType("int");
 
+                    SqlServerPropertyBuilderExtensions.UseIdentityColumn(b.Property<int>("FormFieldID"));
+
                     b.Property<byte>("FieldType")
-                        .HasColumnType("tinyint unsigned");
+                        .HasColumnType("tinyint");
 
                     b.Property<int>("FormID")
                         .HasColumnType("int");
 
                     b.Property<string>("HelpText")
                         .HasMaxLength(500)
-                        .HasColumnType("varchar(500)");
+                        .HasColumnType("nvarchar(500)");
 
                     b.Property<bool>("IsActive")
                         .ValueGeneratedOnAdd()
-                        .HasColumnType("tinyint(1)")
-                        .HasDefaultValue(true)
-                        .HasAnnotation("Relational:DefaultConstraintName", "DF_FormFields_IsActive");
+                        .HasColumnType("bit")
+                        .HasDefaultValue(true, "DF_FormFields_IsActive");
 
                     b.Property<bool>("IsRequired")
-                        .HasColumnType("tinyint(1)");
+                        .HasColumnType("bit");
 
                     b.Property<string>("Label")
                         .IsRequired()
                         .HasMaxLength(300)
-                        .HasColumnType("varchar(300)");
+                        .HasColumnType("nvarchar(300)");
 
                     b.Property<int?>("MaxValue")
                         .HasColumnType("int");
@@ -1628,7 +1682,7 @@ namespace Dotnetable.Migrations.MySql.Migrations
 
                     b.Property<string>("Placeholder")
                         .HasMaxLength(200)
-                        .HasColumnType("varchar(200)");
+                        .HasColumnType("nvarchar(200)");
 
                     b.Property<int>("SortOrder")
                         .HasColumnType("int");
@@ -1646,20 +1700,22 @@ namespace Dotnetable.Migrations.MySql.Migrations
                         .ValueGeneratedOnAdd()
                         .HasColumnType("int");
 
+                    SqlServerPropertyBuilderExtensions.UseIdentityColumn(b.Property<int>("FormFieldOptionID"));
+
                     b.Property<int>("FormFieldID")
                         .HasColumnType("int");
 
                     b.Property<string>("Label")
                         .IsRequired()
                         .HasMaxLength(300)
-                        .HasColumnType("varchar(300)");
+                        .HasColumnType("nvarchar(300)");
 
                     b.Property<int>("SortOrder")
                         .HasColumnType("int");
 
                     b.Property<string>("Value")
                         .HasMaxLength(200)
-                        .HasColumnType("varchar(200)");
+                        .HasColumnType("nvarchar(200)");
 
                     b.HasKey("FormFieldOptionID");
 
@@ -1674,6 +1730,8 @@ namespace Dotnetable.Migrations.MySql.Migrations
                         .ValueGeneratedOnAdd()
                         .HasColumnType("int");
 
+                    SqlServerPropertyBuilderExtensions.UseIdentityColumn(b.Property<int>("FormResponseID"));
+
                     b.Property<int>("FormID")
                         .HasColumnType("int");
 
@@ -1686,8 +1744,7 @@ namespace Dotnetable.Migrations.MySql.Migrations
                     b.Property<DateTime>("SubmittedAt")
                         .ValueGeneratedOnAdd()
                         .HasColumnType("datetime")
-                        .HasDefaultValueSql("(sysutcdatetime())")
-                        .HasAnnotation("Relational:DefaultConstraintName", "DF_FormResponses_SubmittedAt");
+                        .HasDefaultValueSql("(sysutcdatetime())", "DF_FormResponses_SubmittedAt");
 
                     b.Property<int?>("WebsiteClientID")
                         .HasColumnType("int");
@@ -1707,6 +1764,8 @@ namespace Dotnetable.Migrations.MySql.Migrations
                         .ValueGeneratedOnAdd()
                         .HasColumnType("int");
 
+                    SqlServerPropertyBuilderExtensions.UseIdentityColumn(b.Property<int>("FormResponseValueID"));
+
                     b.Property<int>("FormFieldID")
                         .HasColumnType("int");
 
@@ -1714,7 +1773,7 @@ namespace Dotnetable.Migrations.MySql.Migrations
                         .HasColumnType("int");
 
                     b.Property<string>("Value")
-                        .HasColumnType("longtext");
+                        .HasColumnType("nvarchar(max)");
 
                     b.HasKey("FormResponseValueID");
 
@@ -1730,6 +1789,8 @@ namespace Dotnetable.Migrations.MySql.Migrations
                     b.Property<int>("InventoryItemID")
                         .ValueGeneratedOnAdd()
                         .HasColumnType("int");
+
+                    SqlServerPropertyBuilderExtensions.UseIdentityColumn(b.Property<int>("InventoryItemID"));
 
                     b.Property<decimal>("AvgCostUsd")
                         .HasColumnType("decimal(18, 4)");
@@ -1750,7 +1811,7 @@ namespace Dotnetable.Migrations.MySql.Migrations
                         .IsConcurrencyToken()
                         .IsRequired()
                         .ValueGeneratedOnAddOrUpdate()
-                        .HasColumnType("longblob");
+                        .HasColumnType("rowversion");
 
                     b.Property<int>("WebsiteID")
                         .HasColumnType("int");
@@ -1770,15 +1831,16 @@ namespace Dotnetable.Migrations.MySql.Migrations
                         .ValueGeneratedOnAdd()
                         .HasColumnType("int");
 
+                    SqlServerPropertyBuilderExtensions.UseIdentityColumn(b.Property<int>("JournalEntryID"));
+
                     b.Property<DateTime>("CreatedAt")
                         .ValueGeneratedOnAdd()
                         .HasColumnType("datetime")
-                        .HasDefaultValueSql("(sysutcdatetime())")
-                        .HasAnnotation("Relational:DefaultConstraintName", "DF_JournalEntries_CreatedAt");
+                        .HasDefaultValueSql("(sysutcdatetime())", "DF_JournalEntries_CreatedAt");
 
                     b.Property<string>("Description")
                         .HasMaxLength(500)
-                        .HasColumnType("varchar(500)");
+                        .HasColumnType("nvarchar(500)");
 
                     b.Property<DateOnly>("EntryDate")
                         .HasColumnType("date");
@@ -1786,16 +1848,16 @@ namespace Dotnetable.Migrations.MySql.Migrations
                     b.Property<string>("EntryNumber")
                         .IsRequired()
                         .HasMaxLength(30)
-                        .HasColumnType("varchar(30)");
+                        .HasColumnType("nvarchar(30)");
 
                     b.Property<bool>("IsPosted")
-                        .HasColumnType("tinyint(1)");
+                        .HasColumnType("bit");
 
                     b.Property<int?>("SourceId")
                         .HasColumnType("int");
 
                     b.Property<byte?>("SourceType")
-                        .HasColumnType("tinyint unsigned");
+                        .HasColumnType("tinyint");
 
                     b.Property<int>("WebsiteID")
                         .HasColumnType("int");
@@ -1813,6 +1875,8 @@ namespace Dotnetable.Migrations.MySql.Migrations
                         .ValueGeneratedOnAdd()
                         .HasColumnType("int");
 
+                    SqlServerPropertyBuilderExtensions.UseIdentityColumn(b.Property<int>("JournalEntryLineID"));
+
                     b.Property<int>("ChartOfAccountID")
                         .HasColumnType("int");
 
@@ -1824,7 +1888,7 @@ namespace Dotnetable.Migrations.MySql.Migrations
 
                     b.Property<string>("Description")
                         .HasMaxLength(300)
-                        .HasColumnType("varchar(300)");
+                        .HasColumnType("nvarchar(300)");
 
                     b.Property<int>("JournalEntryID")
                         .HasColumnType("int");
@@ -1844,11 +1908,13 @@ namespace Dotnetable.Migrations.MySql.Migrations
                         .ValueGeneratedOnAdd()
                         .HasColumnType("int");
 
+                    SqlServerPropertyBuilderExtensions.UseIdentityColumn(b.Property<int>("LanguageID"));
+
                     b.Property<bool>("Active")
-                        .HasColumnType("tinyint(1)");
+                        .HasColumnType("bit");
 
                     b.Property<bool>("IsDefault")
-                        .HasColumnType("tinyint(1)");
+                        .HasColumnType("bit");
 
                     b.Property<string>("LanguageCode")
                         .IsRequired()
@@ -1867,13 +1933,13 @@ namespace Dotnetable.Migrations.MySql.Migrations
                     b.Property<string>("Name")
                         .IsRequired()
                         .HasMaxLength(32)
-                        .HasColumnType("varchar(32)");
+                        .HasColumnType("nvarchar(32)");
 
                     b.Property<int>("Priority")
                         .HasColumnType("int");
 
                     b.Property<bool>("RTLDesign")
-                        .HasColumnType("tinyint(1)");
+                        .HasColumnType("bit");
 
                     b.Property<int?>("WebsiteID")
                         .HasColumnType("int");
@@ -1897,10 +1963,12 @@ namespace Dotnetable.Migrations.MySql.Migrations
                         .ValueGeneratedOnAdd()
                         .HasColumnType("int");
 
+                    SqlServerPropertyBuilderExtensions.UseIdentityColumn(b.Property<int>("LocalizationKeyID"));
+
                     b.Property<string>("DefaultValue")
                         .IsRequired()
                         .HasMaxLength(2000)
-                        .HasColumnType("varchar(2000)");
+                        .HasColumnType("nvarchar(2000)");
 
                     b.Property<string>("ItemKey")
                         .IsRequired()
@@ -1932,10 +2000,12 @@ namespace Dotnetable.Migrations.MySql.Migrations
                         .ValueGeneratedOnAdd()
                         .HasColumnType("int");
 
+                    SqlServerPropertyBuilderExtensions.UseIdentityColumn(b.Property<int>("LocalizationValueID"));
+
                     b.Property<string>("ItemValue")
                         .IsRequired()
                         .HasMaxLength(2000)
-                        .HasColumnType("varchar(2000)");
+                        .HasColumnType("nvarchar(2000)");
 
                     b.Property<string>("LanguageCode")
                         .IsRequired()
@@ -1960,8 +2030,10 @@ namespace Dotnetable.Migrations.MySql.Migrations
                         .ValueGeneratedOnAdd()
                         .HasColumnType("int");
 
+                    SqlServerPropertyBuilderExtensions.UseIdentityColumn(b.Property<int>("LoginTryID"));
+
                     b.Property<bool>("IsSuccess")
-                        .HasColumnType("tinyint(1)");
+                        .HasColumnType("bit");
 
                     b.Property<DateTime>("LogTime")
                         .HasColumnType("datetime");
@@ -1981,8 +2053,7 @@ namespace Dotnetable.Migrations.MySql.Migrations
                     b.Property<int>("WebsiteID")
                         .ValueGeneratedOnAdd()
                         .HasColumnType("int")
-                        .HasDefaultValue(1)
-                        .HasAnnotation("Relational:DefaultConstraintName", "DF_LoginTries_WebsiteID");
+                        .HasDefaultValue(1, "DF_LoginTries_WebsiteID");
 
                     b.HasKey("LoginTryID");
 
@@ -1997,19 +2068,20 @@ namespace Dotnetable.Migrations.MySql.Migrations
                         .ValueGeneratedOnAdd()
                         .HasColumnType("int");
 
+                    SqlServerPropertyBuilderExtensions.UseIdentityColumn(b.Property<int>("MediaSetID"));
+
                     b.Property<DateTime>("CreatedAt")
                         .ValueGeneratedOnAdd()
                         .HasColumnType("datetime")
-                        .HasDefaultValueSql("(sysutcdatetime())")
-                        .HasAnnotation("Relational:DefaultConstraintName", "DF_MediaSets_CreatedAt_1");
+                        .HasDefaultValueSql("(sysutcdatetime())", "DF_MediaSets_CreatedAt_1");
 
                     b.Property<bool>("IsShared")
-                        .HasColumnType("tinyint(1)");
+                        .HasColumnType("bit");
 
                     b.Property<string>("Name")
                         .IsRequired()
                         .HasMaxLength(200)
-                        .HasColumnType("varchar(200)");
+                        .HasColumnType("nvarchar(200)");
 
                     b.Property<int>("WebsiteID")
                         .HasColumnType("int");
@@ -2027,9 +2099,11 @@ namespace Dotnetable.Migrations.MySql.Migrations
                         .ValueGeneratedOnAdd()
                         .HasColumnType("int");
 
+                    SqlServerPropertyBuilderExtensions.UseIdentityColumn(b.Property<int>("MediaSetItemID"));
+
                     b.Property<string>("ExternalVideoUrl")
                         .HasMaxLength(500)
-                        .HasColumnType("varchar(500)");
+                        .HasColumnType("nvarchar(500)");
 
                     b.Property<int?>("FileID")
                         .HasColumnType("int");
@@ -2060,15 +2134,16 @@ namespace Dotnetable.Migrations.MySql.Migrations
                         .ValueGeneratedOnAdd()
                         .HasColumnType("int");
 
+                    SqlServerPropertyBuilderExtensions.UseIdentityColumn(b.Property<int>("MemberID"));
+
                     b.Property<bool>("Active")
-                        .HasColumnType("tinyint(1)");
+                        .HasColumnType("bit");
 
                     b.Property<byte>("AdminUIMode")
                         .ValueGeneratedOnAdd()
-                        .HasColumnType("tinyint unsigned")
-                        .HasDefaultValue((byte)1)
+                        .HasColumnType("tinyint")
                         .HasComment("0 = Basic (admin surface reduced to what this member's Website.WebsiteType needs), 1 = General (same admin surface regardless of website type), 2 = Advanced (full surface, e.g. extra-language pages/buttons on an otherwise single-language site)")
-                        .HasAnnotation("Relational:DefaultConstraintName", "DF_Members_AdminUIMode");
+                        .HasDefaultValue((byte)1, "DF_Members_AdminUIMode");
 
                     b.Property<int?>("AvatarID")
                         .HasColumnType("int");
@@ -2092,18 +2167,18 @@ namespace Dotnetable.Migrations.MySql.Migrations
                         .HasColumnType("varchar(64)");
 
                     b.Property<bool?>("Gender")
-                        .HasColumnType("tinyint(1)");
+                        .HasColumnType("bit");
 
                     b.Property<string>("Givenname")
                         .IsRequired()
                         .HasMaxLength(64)
-                        .HasColumnType("varchar(64)");
+                        .HasColumnType("nvarchar(64)");
 
                     b.Property<Guid>("HashKey")
-                        .HasColumnType("char(36)");
+                        .HasColumnType("uniqueidentifier");
 
                     b.Property<bool>("IsSiteAdmin")
-                        .HasColumnType("tinyint(1)");
+                        .HasColumnType("bit");
 
                     b.Property<string>("Password")
                         .IsRequired()
@@ -2120,7 +2195,7 @@ namespace Dotnetable.Migrations.MySql.Migrations
                     b.Property<string>("Surname")
                         .IsRequired()
                         .HasMaxLength(64)
-                        .HasColumnType("varchar(64)");
+                        .HasColumnType("nvarchar(64)");
 
                     b.Property<string>("Username")
                         .IsRequired()
@@ -2148,6 +2223,8 @@ namespace Dotnetable.Migrations.MySql.Migrations
                         .ValueGeneratedOnAdd()
                         .HasColumnType("int");
 
+                    SqlServerPropertyBuilderExtensions.UseIdentityColumn(b.Property<int>("MemberForgetPasswordID"));
+
                     b.Property<string>("ForgetKey")
                         .IsRequired()
                         .HasMaxLength(8)
@@ -2173,19 +2250,20 @@ namespace Dotnetable.Migrations.MySql.Migrations
                         .ValueGeneratedOnAdd()
                         .HasColumnType("int");
 
+                    SqlServerPropertyBuilderExtensions.UseIdentityColumn(b.Property<int>("MenuID"));
+
                     b.Property<bool>("IsActive")
                         .ValueGeneratedOnAdd()
-                        .HasColumnType("tinyint(1)")
-                        .HasDefaultValue(true)
-                        .HasAnnotation("Relational:DefaultConstraintName", "DF_Menus_IsActive");
+                        .HasColumnType("bit")
+                        .HasDefaultValue(true, "DF_Menus_IsActive");
 
                     b.Property<byte>("Location")
-                        .HasColumnType("tinyint unsigned");
+                        .HasColumnType("tinyint");
 
                     b.Property<string>("Name")
                         .IsRequired()
                         .HasMaxLength(100)
-                        .HasColumnType("varchar(100)");
+                        .HasColumnType("nvarchar(100)");
 
                     b.Property<int>("WebsiteID")
                         .HasColumnType("int");
@@ -2203,6 +2281,8 @@ namespace Dotnetable.Migrations.MySql.Migrations
                         .ValueGeneratedOnAdd()
                         .HasColumnType("int");
 
+                    SqlServerPropertyBuilderExtensions.UseIdentityColumn(b.Property<int>("MenuItemID"));
+
                     b.Property<int?>("BrandID")
                         .HasColumnType("int");
 
@@ -2211,26 +2291,25 @@ namespace Dotnetable.Migrations.MySql.Migrations
 
                     b.Property<string>("CssClass")
                         .HasMaxLength(100)
-                        .HasColumnType("varchar(100)");
+                        .HasColumnType("nvarchar(100)");
 
                     b.Property<string>("Icon")
                         .HasMaxLength(100)
-                        .HasColumnType("varchar(100)");
+                        .HasColumnType("nvarchar(100)");
 
                     b.Property<bool>("IsActive")
                         .ValueGeneratedOnAdd()
-                        .HasColumnType("tinyint(1)")
-                        .HasDefaultValue(true)
-                        .HasAnnotation("Relational:DefaultConstraintName", "DF_MenuItems_IsActive");
+                        .HasColumnType("bit")
+                        .HasDefaultValue(true, "DF_MenuItems_IsActive");
 
                     b.Property<byte>("ItemType")
-                        .HasColumnType("tinyint unsigned");
+                        .HasColumnType("tinyint");
 
                     b.Property<int>("MenuID")
                         .HasColumnType("int");
 
                     b.Property<bool>("OpenInNewTab")
-                        .HasColumnType("tinyint(1)");
+                        .HasColumnType("bit");
 
                     b.Property<int?>("PageID")
                         .HasColumnType("int");
@@ -2253,11 +2332,11 @@ namespace Dotnetable.Migrations.MySql.Migrations
                     b.Property<string>("Title")
                         .IsRequired()
                         .HasMaxLength(200)
-                        .HasColumnType("varchar(200)");
+                        .HasColumnType("nvarchar(200)");
 
                     b.Property<string>("Url")
                         .HasMaxLength(500)
-                        .HasColumnType("varchar(500)");
+                        .HasColumnType("nvarchar(500)");
 
                     b.Property<int?>("VendorID")
                         .HasColumnType("int");
@@ -2291,6 +2370,8 @@ namespace Dotnetable.Migrations.MySql.Migrations
                         .ValueGeneratedOnAdd()
                         .HasColumnType("int");
 
+                    SqlServerPropertyBuilderExtensions.UseIdentityColumn(b.Property<int>("MenuItemTranslationID"));
+
                     b.Property<string>("LanguageCode")
                         .IsRequired()
                         .HasMaxLength(2)
@@ -2304,7 +2385,7 @@ namespace Dotnetable.Migrations.MySql.Migrations
                     b.Property<string>("Title")
                         .IsRequired()
                         .HasMaxLength(200)
-                        .HasColumnType("varchar(200)");
+                        .HasColumnType("nvarchar(200)");
 
                     b.HasKey("MenuItemTranslationID");
 
@@ -2319,9 +2400,11 @@ namespace Dotnetable.Migrations.MySql.Migrations
                         .ValueGeneratedOnAdd()
                         .HasColumnType("int");
 
+                    SqlServerPropertyBuilderExtensions.UseIdentityColumn(b.Property<int>("OrderID"));
+
                     b.Property<string>("AddressSnapshot")
                         .HasMaxLength(1000)
-                        .HasColumnType("varchar(1000)");
+                        .HasColumnType("nvarchar(1000)");
 
                     b.Property<int?>("CouponID")
                         .HasColumnType("int");
@@ -2329,8 +2412,7 @@ namespace Dotnetable.Migrations.MySql.Migrations
                     b.Property<DateTime>("CreatedAt")
                         .ValueGeneratedOnAdd()
                         .HasColumnType("datetime")
-                        .HasDefaultValueSql("(sysutcdatetime())")
-                        .HasAnnotation("Relational:DefaultConstraintName", "DF_Orders_CreatedAt_1");
+                        .HasDefaultValueSql("(sysutcdatetime())", "DF_Orders_CreatedAt_1");
 
                     b.Property<int?>("CreatedByMemberID")
                         .HasColumnType("int");
@@ -2356,12 +2438,12 @@ namespace Dotnetable.Migrations.MySql.Migrations
 
                     b.Property<string>("Note")
                         .HasMaxLength(1000)
-                        .HasColumnType("varchar(1000)");
+                        .HasColumnType("nvarchar(1000)");
 
                     b.Property<string>("OrderNumber")
                         .IsRequired()
                         .HasMaxLength(30)
-                        .HasColumnType("varchar(30)");
+                        .HasColumnType("nvarchar(30)");
 
                     b.Property<DateTime?>("PaidAt")
                         .HasColumnType("datetime");
@@ -2374,9 +2456,8 @@ namespace Dotnetable.Migrations.MySql.Migrations
 
                     b.Property<byte>("Status")
                         .ValueGeneratedOnAdd()
-                        .HasColumnType("tinyint unsigned")
-                        .HasDefaultValue((byte)1)
-                        .HasAnnotation("Relational:DefaultConstraintName", "DF_Orders_Status_1");
+                        .HasColumnType("tinyint")
+                        .HasDefaultValue((byte)1, "DF_Orders_Status_1");
 
                     b.Property<decimal>("SubTotal")
                         .HasColumnType("decimal(18, 4)");
@@ -2418,6 +2499,8 @@ namespace Dotnetable.Migrations.MySql.Migrations
                         .ValueGeneratedOnAdd()
                         .HasColumnType("int");
 
+                    SqlServerPropertyBuilderExtensions.UseIdentityColumn(b.Property<int>("OrderItemID"));
+
                     b.Property<decimal>("DiscountAmount")
                         .HasColumnType("decimal(18, 4)");
 
@@ -2433,7 +2516,7 @@ namespace Dotnetable.Migrations.MySql.Migrations
                     b.Property<string>("SkuSnapshot")
                         .IsRequired()
                         .HasMaxLength(100)
-                        .HasColumnType("varchar(100)");
+                        .HasColumnType("nvarchar(100)");
 
                     b.Property<int>("SourceWebsiteID")
                         .HasColumnType("int");
@@ -2441,7 +2524,7 @@ namespace Dotnetable.Migrations.MySql.Migrations
                     b.Property<string>("TitleSnapshot")
                         .IsRequired()
                         .HasMaxLength(300)
-                        .HasColumnType("varchar(300)");
+                        .HasColumnType("nvarchar(300)");
 
                     b.Property<decimal>("TotalPrice")
                         .HasColumnType("decimal(18, 4)");
@@ -2487,27 +2570,28 @@ namespace Dotnetable.Migrations.MySql.Migrations
                         .ValueGeneratedOnAdd()
                         .HasColumnType("int");
 
+                    SqlServerPropertyBuilderExtensions.UseIdentityColumn(b.Property<int>("OrderStatusHistoryID"));
+
                     b.Property<DateTime>("CreatedAt")
                         .ValueGeneratedOnAdd()
                         .HasColumnType("datetime")
-                        .HasDefaultValueSql("(sysutcdatetime())")
-                        .HasAnnotation("Relational:DefaultConstraintName", "DF_OrderStatusHistories_CreatedAt");
+                        .HasDefaultValueSql("(sysutcdatetime())", "DF_OrderStatusHistories_CreatedAt");
 
                     b.Property<int?>("CreatedByMemberID")
                         .HasColumnType("int");
 
                     b.Property<byte?>("FromStatus")
-                        .HasColumnType("tinyint unsigned");
+                        .HasColumnType("tinyint");
 
                     b.Property<string>("Note")
                         .HasMaxLength(500)
-                        .HasColumnType("varchar(500)");
+                        .HasColumnType("nvarchar(500)");
 
                     b.Property<int>("OrderID")
                         .HasColumnType("int");
 
                     b.Property<byte>("ToStatus")
-                        .HasColumnType("tinyint unsigned");
+                        .HasColumnType("tinyint");
 
                     b.HasKey("OrderStatusHistoryID");
 
@@ -2524,27 +2608,27 @@ namespace Dotnetable.Migrations.MySql.Migrations
                         .ValueGeneratedOnAdd()
                         .HasColumnType("int");
 
+                    SqlServerPropertyBuilderExtensions.UseIdentityColumn(b.Property<int>("PageID"));
+
                     b.Property<string>("Content")
-                        .HasColumnType("longtext");
+                        .HasColumnType("nvarchar(max)");
 
                     b.Property<DateTime>("CreatedAt")
                         .ValueGeneratedOnAdd()
                         .HasPrecision(0)
-                        .HasColumnType("datetime(0)")
-                        .HasDefaultValueSql("(sysutcdatetime())")
-                        .HasAnnotation("Relational:DefaultConstraintName", "DF_Pages_CreatedAt_1");
+                        .HasColumnType("datetime2(0)")
+                        .HasDefaultValueSql("(sysutcdatetime())", "DF_Pages_CreatedAt_1");
 
                     b.Property<int?>("CreatedByMemberID")
                         .HasColumnType("int");
 
                     b.Property<bool>("IsActive")
                         .ValueGeneratedOnAdd()
-                        .HasColumnType("tinyint(1)")
-                        .HasDefaultValue(true)
-                        .HasAnnotation("Relational:DefaultConstraintName", "DF_Pages_IsActive_1");
+                        .HasColumnType("bit")
+                        .HasDefaultValue(true, "DF_Pages_IsActive_1");
 
                     b.Property<bool>("IsHomepage")
-                        .HasColumnType("tinyint(1)");
+                        .HasColumnType("bit");
 
                     b.Property<int?>("ParentPageID")
                         .HasColumnType("int");
@@ -2552,32 +2636,30 @@ namespace Dotnetable.Migrations.MySql.Migrations
                     b.Property<string>("Slug")
                         .IsRequired()
                         .HasMaxLength(300)
-                        .HasColumnType("varchar(300)");
+                        .HasColumnType("nvarchar(300)");
 
                     b.Property<int>("SortOrder")
                         .HasColumnType("int");
 
                     b.Property<byte>("Status")
                         .ValueGeneratedOnAdd()
-                        .HasColumnType("tinyint unsigned")
-                        .HasDefaultValue((byte)1)
-                        .HasAnnotation("Relational:DefaultConstraintName", "DF_Pages_Status_1");
+                        .HasColumnType("tinyint")
+                        .HasDefaultValue((byte)1, "DF_Pages_Status_1");
 
                     b.Property<string>("Template")
                         .HasMaxLength(100)
-                        .HasColumnType("varchar(100)");
+                        .HasColumnType("nvarchar(100)");
 
                     b.Property<string>("Title")
                         .IsRequired()
                         .HasMaxLength(300)
-                        .HasColumnType("varchar(300)");
+                        .HasColumnType("nvarchar(300)");
 
                     b.Property<DateTime>("UpdatedAt")
                         .ValueGeneratedOnAdd()
                         .HasPrecision(0)
-                        .HasColumnType("datetime(0)")
-                        .HasDefaultValueSql("(sysutcdatetime())")
-                        .HasAnnotation("Relational:DefaultConstraintName", "DF_Pages_UpdatedAt_1");
+                        .HasColumnType("datetime2(0)")
+                        .HasDefaultValueSql("(sysutcdatetime())", "DF_Pages_UpdatedAt_1");
 
                     b.Property<int>("WebsiteID")
                         .HasColumnType("int");
@@ -2599,8 +2681,10 @@ namespace Dotnetable.Migrations.MySql.Migrations
                         .ValueGeneratedOnAdd()
                         .HasColumnType("int");
 
+                    SqlServerPropertyBuilderExtensions.UseIdentityColumn(b.Property<int>("PageTranslationID"));
+
                     b.Property<string>("Content")
-                        .HasColumnType("longtext");
+                        .HasColumnType("nvarchar(max)");
 
                     b.Property<string>("LanguageCode")
                         .IsRequired()
@@ -2615,12 +2699,12 @@ namespace Dotnetable.Migrations.MySql.Migrations
                     b.Property<string>("Slug")
                         .IsRequired()
                         .HasMaxLength(300)
-                        .HasColumnType("varchar(300)");
+                        .HasColumnType("nvarchar(300)");
 
                     b.Property<string>("Title")
                         .IsRequired()
                         .HasMaxLength(300)
-                        .HasColumnType("varchar(300)");
+                        .HasColumnType("nvarchar(300)");
 
                     b.HasKey("PageTranslationID");
 
@@ -2634,6 +2718,8 @@ namespace Dotnetable.Migrations.MySql.Migrations
                     b.Property<int>("PaymentID")
                         .ValueGeneratedOnAdd()
                         .HasColumnType("int");
+
+                    SqlServerPropertyBuilderExtensions.UseIdentityColumn(b.Property<int>("PaymentID"));
 
                     b.Property<decimal>("Amount")
                         .HasColumnType("decimal(18, 4)");
@@ -2650,9 +2736,8 @@ namespace Dotnetable.Migrations.MySql.Migrations
                     b.Property<DateTime>("CreatedAt")
                         .ValueGeneratedOnAdd()
                         .HasPrecision(0)
-                        .HasColumnType("datetime(0)")
-                        .HasDefaultValueSql("(sysutcdatetime())")
-                        .HasAnnotation("Relational:DefaultConstraintName", "DF_Payments_CreatedAt_1");
+                        .HasColumnType("datetime2(0)")
+                        .HasDefaultValueSql("(sysutcdatetime())", "DF_Payments_CreatedAt_1");
 
                     b.Property<string>("CurrencyCode")
                         .IsRequired()
@@ -2666,17 +2751,17 @@ namespace Dotnetable.Migrations.MySql.Migrations
 
                     b.Property<string>("GatewayRefNumber")
                         .HasMaxLength(100)
-                        .HasColumnType("varchar(100)");
+                        .HasColumnType("nvarchar(100)");
 
                     b.Property<byte>("Method")
-                        .HasColumnType("tinyint unsigned");
+                        .HasColumnType("tinyint");
 
                     b.Property<int?>("OrderID")
                         .HasColumnType("int");
 
                     b.Property<DateTime?>("PaidAt")
                         .HasPrecision(0)
-                        .HasColumnType("datetime(0)");
+                        .HasColumnType("datetime2(0)");
 
                     b.Property<int?>("PaymentGatewayID")
                         .HasColumnType("int");
@@ -2686,13 +2771,12 @@ namespace Dotnetable.Migrations.MySql.Migrations
 
                     b.Property<byte>("Status")
                         .ValueGeneratedOnAdd()
-                        .HasColumnType("tinyint unsigned")
-                        .HasDefaultValue((byte)1)
-                        .HasAnnotation("Relational:DefaultConstraintName", "DF_Payments_Status_1");
+                        .HasColumnType("tinyint")
+                        .HasDefaultValue((byte)1, "DF_Payments_Status_1");
 
                     b.Property<string>("TrackingCode")
                         .HasMaxLength(100)
-                        .HasColumnType("varchar(100)");
+                        .HasColumnType("nvarchar(100)");
 
                     b.Property<int?>("VerifiedByMemberID")
                         .HasColumnType("int");
@@ -2732,36 +2816,37 @@ namespace Dotnetable.Migrations.MySql.Migrations
                         .ValueGeneratedOnAdd()
                         .HasColumnType("int");
 
+                    SqlServerPropertyBuilderExtensions.UseIdentityColumn(b.Property<int>("PaymentGatewayID"));
+
                     b.Property<string>("ApiKey")
                         .HasMaxLength(500)
-                        .HasColumnType("varchar(500)");
+                        .HasColumnType("nvarchar(500)");
 
                     b.Property<string>("ApiSecret")
                         .HasMaxLength(500)
-                        .HasColumnType("varchar(500)");
+                        .HasColumnType("nvarchar(500)");
 
                     b.Property<bool>("IsActive")
                         .ValueGeneratedOnAdd()
-                        .HasColumnType("tinyint(1)")
-                        .HasDefaultValue(true)
-                        .HasAnnotation("Relational:DefaultConstraintName", "DF_PaymentGateways_IsActive");
+                        .HasColumnType("bit")
+                        .HasDefaultValue(true, "DF_PaymentGateways_IsActive");
 
                     b.Property<bool>("IsSandbox")
-                        .HasColumnType("tinyint(1)");
+                        .HasColumnType("bit");
 
                     b.Property<string>("MerchantID")
                         .HasMaxLength(200)
-                        .HasColumnType("varchar(200)");
+                        .HasColumnType("nvarchar(200)");
 
                     b.Property<string>("Name")
                         .IsRequired()
                         .HasMaxLength(150)
-                        .HasColumnType("varchar(150)");
+                        .HasColumnType("nvarchar(150)");
 
                     b.Property<string>("Provider")
                         .IsRequired()
                         .HasMaxLength(50)
-                        .HasColumnType("varchar(50)");
+                        .HasColumnType("nvarchar(50)");
 
                     b.Property<int>("SortOrder")
                         .HasColumnType("int");
@@ -2782,6 +2867,8 @@ namespace Dotnetable.Migrations.MySql.Migrations
                         .ValueGeneratedOnAdd()
                         .HasColumnType("int");
 
+                    SqlServerPropertyBuilderExtensions.UseIdentityColumn(b.Property<int>("PaymentRefundID"));
+
                     b.Property<decimal>("Amount")
                         .HasColumnType("decimal(18, 4)");
 
@@ -2794,8 +2881,7 @@ namespace Dotnetable.Migrations.MySql.Migrations
                     b.Property<DateTime>("CreatedAt")
                         .ValueGeneratedOnAdd()
                         .HasColumnType("datetime")
-                        .HasDefaultValueSql("(sysutcdatetime())")
-                        .HasAnnotation("Relational:DefaultConstraintName", "DF_PaymentRefunds_CreatedAt");
+                        .HasDefaultValueSql("(sysutcdatetime())", "DF_PaymentRefunds_CreatedAt");
 
                     b.Property<int?>("CreatedByMemberID")
                         .HasColumnType("int");
@@ -2805,16 +2891,15 @@ namespace Dotnetable.Migrations.MySql.Migrations
 
                     b.Property<string>("Reason")
                         .HasMaxLength(500)
-                        .HasColumnType("varchar(500)");
+                        .HasColumnType("nvarchar(500)");
 
                     b.Property<DateTime?>("RefundedAt")
                         .HasColumnType("datetime");
 
                     b.Property<byte>("Status")
                         .ValueGeneratedOnAdd()
-                        .HasColumnType("tinyint unsigned")
-                        .HasDefaultValue((byte)1)
-                        .HasAnnotation("Relational:DefaultConstraintName", "DF_PaymentRefunds_Status");
+                        .HasColumnType("tinyint")
+                        .HasDefaultValue((byte)1, "DF_PaymentRefunds_Status");
 
                     b.HasKey("PaymentRefundID");
 
@@ -2835,8 +2920,10 @@ namespace Dotnetable.Migrations.MySql.Migrations
                         .ValueGeneratedOnAdd()
                         .HasColumnType("int");
 
+                    SqlServerPropertyBuilderExtensions.UseIdentityColumn(b.Property<int>("PolicyID"));
+
                     b.Property<bool>("Active")
-                        .HasColumnType("tinyint(1)");
+                        .HasColumnType("bit");
 
                     b.Property<string>("Title")
                         .IsRequired()
@@ -2862,8 +2949,10 @@ namespace Dotnetable.Migrations.MySql.Migrations
                         .ValueGeneratedOnAdd()
                         .HasColumnType("int");
 
+                    SqlServerPropertyBuilderExtensions.UseIdentityColumn(b.Property<int>("PolicyRoleID"));
+
                     b.Property<bool>("Active")
-                        .HasColumnType("tinyint(1)");
+                        .HasColumnType("bit");
 
                     b.Property<int>("PolicyID")
                         .HasColumnType("int");
@@ -2886,39 +2975,38 @@ namespace Dotnetable.Migrations.MySql.Migrations
                         .ValueGeneratedOnAdd()
                         .HasColumnType("int");
 
+                    SqlServerPropertyBuilderExtensions.UseIdentityColumn(b.Property<int>("PostID"));
+
                     b.Property<int?>("AuthorMemberID")
                         .HasColumnType("int");
 
                     b.Property<bool>("CommentsEnabled")
                         .ValueGeneratedOnAdd()
-                        .HasColumnType("tinyint(1)")
-                        .HasDefaultValue(true)
-                        .HasAnnotation("Relational:DefaultConstraintName", "DF_Posts_CommentsEnabled");
+                        .HasColumnType("bit")
+                        .HasDefaultValue(true, "DF_Posts_CommentsEnabled");
 
                     b.Property<string>("Content")
-                        .HasColumnType("longtext");
+                        .HasColumnType("nvarchar(max)");
 
                     b.Property<DateTime>("CreatedAt")
                         .ValueGeneratedOnAdd()
                         .HasColumnType("datetime")
-                        .HasDefaultValueSql("(sysutcdatetime())")
-                        .HasAnnotation("Relational:DefaultConstraintName", "DF_Posts_CreatedAt_1");
+                        .HasDefaultValueSql("(sysutcdatetime())", "DF_Posts_CreatedAt_1");
 
                     b.Property<string>("Excerpt")
                         .HasMaxLength(1000)
-                        .HasColumnType("varchar(1000)");
+                        .HasColumnType("nvarchar(1000)");
 
                     b.Property<int?>("FeaturedImageFileID")
                         .HasColumnType("int");
 
                     b.Property<bool>("IsActive")
                         .ValueGeneratedOnAdd()
-                        .HasColumnType("tinyint(1)")
-                        .HasDefaultValue(true)
-                        .HasAnnotation("Relational:DefaultConstraintName", "DF_Posts_IsActive_1");
+                        .HasColumnType("bit")
+                        .HasDefaultValue(true, "DF_Posts_IsActive_1");
 
                     b.Property<bool>("IsFeatured")
-                        .HasColumnType("tinyint(1)");
+                        .HasColumnType("bit");
 
                     b.Property<int>("PostTypeID")
                         .HasColumnType("int");
@@ -2932,24 +3020,22 @@ namespace Dotnetable.Migrations.MySql.Migrations
                     b.Property<string>("Slug")
                         .IsRequired()
                         .HasMaxLength(300)
-                        .HasColumnType("varchar(300)");
+                        .HasColumnType("nvarchar(300)");
 
                     b.Property<byte>("Status")
                         .ValueGeneratedOnAdd()
-                        .HasColumnType("tinyint unsigned")
-                        .HasDefaultValue((byte)1)
-                        .HasAnnotation("Relational:DefaultConstraintName", "DF_Posts_Status_1");
+                        .HasColumnType("tinyint")
+                        .HasDefaultValue((byte)1, "DF_Posts_Status_1");
 
                     b.Property<string>("Title")
                         .IsRequired()
                         .HasMaxLength(300)
-                        .HasColumnType("varchar(300)");
+                        .HasColumnType("nvarchar(300)");
 
                     b.Property<DateTime>("UpdatedAt")
                         .ValueGeneratedOnAdd()
                         .HasColumnType("datetime")
-                        .HasDefaultValueSql("(sysutcdatetime())")
-                        .HasAnnotation("Relational:DefaultConstraintName", "DF_Posts_UpdatedAt_1");
+                        .HasDefaultValueSql("(sysutcdatetime())", "DF_Posts_UpdatedAt_1");
 
                     b.Property<int>("ViewCount")
                         .HasColumnType("int");
@@ -2979,7 +3065,7 @@ namespace Dotnetable.Migrations.MySql.Migrations
                         .HasColumnType("int");
 
                     b.Property<bool>("IsPrimary")
-                        .HasColumnType("tinyint(1)");
+                        .HasColumnType("bit");
 
                     b.HasKey("PostID", "CategoryID");
 
@@ -2994,12 +3080,14 @@ namespace Dotnetable.Migrations.MySql.Migrations
                         .ValueGeneratedOnAdd()
                         .HasColumnType("int");
 
+                    SqlServerPropertyBuilderExtensions.UseIdentityColumn(b.Property<int>("PostTranslationID"));
+
                     b.Property<string>("Content")
-                        .HasColumnType("longtext");
+                        .HasColumnType("nvarchar(max)");
 
                     b.Property<string>("Excerpt")
                         .HasMaxLength(1000)
-                        .HasColumnType("varchar(1000)");
+                        .HasColumnType("nvarchar(1000)");
 
                     b.Property<string>("LanguageCode")
                         .IsRequired()
@@ -3014,12 +3102,12 @@ namespace Dotnetable.Migrations.MySql.Migrations
                     b.Property<string>("Slug")
                         .IsRequired()
                         .HasMaxLength(300)
-                        .HasColumnType("varchar(300)");
+                        .HasColumnType("nvarchar(300)");
 
                     b.Property<string>("Title")
                         .IsRequired()
                         .HasMaxLength(300)
-                        .HasColumnType("varchar(300)");
+                        .HasColumnType("nvarchar(300)");
 
                     b.HasKey("PostTranslationID");
 
@@ -3034,39 +3122,37 @@ namespace Dotnetable.Migrations.MySql.Migrations
                         .ValueGeneratedOnAdd()
                         .HasColumnType("int");
 
+                    SqlServerPropertyBuilderExtensions.UseIdentityColumn(b.Property<int>("PostTypeID"));
+
                     b.Property<bool>("CommentsEnabled")
                         .ValueGeneratedOnAdd()
-                        .HasColumnType("tinyint(1)")
-                        .HasDefaultValue(true)
-                        .HasAnnotation("Relational:DefaultConstraintName", "DF_PostTypes_CommentsEnabled");
+                        .HasColumnType("bit")
+                        .HasDefaultValue(true, "DF_PostTypes_CommentsEnabled");
 
                     b.Property<bool>("HasAuthor")
                         .ValueGeneratedOnAdd()
-                        .HasColumnType("tinyint(1)")
-                        .HasDefaultValue(true)
-                        .HasAnnotation("Relational:DefaultConstraintName", "DF_PostTypes_HasAuthor");
+                        .HasColumnType("bit")
+                        .HasDefaultValue(true, "DF_PostTypes_HasAuthor");
 
                     b.Property<bool>("HasCategories")
                         .ValueGeneratedOnAdd()
-                        .HasColumnType("tinyint(1)")
-                        .HasDefaultValue(true)
-                        .HasAnnotation("Relational:DefaultConstraintName", "DF_PostTypes_HasCategories");
+                        .HasColumnType("bit")
+                        .HasDefaultValue(true, "DF_PostTypes_HasCategories");
 
                     b.Property<bool>("HasTags")
                         .ValueGeneratedOnAdd()
-                        .HasColumnType("tinyint(1)")
-                        .HasDefaultValue(true)
-                        .HasAnnotation("Relational:DefaultConstraintName", "DF_PostTypes_HasTags");
+                        .HasColumnType("bit")
+                        .HasDefaultValue(true, "DF_PostTypes_HasTags");
 
                     b.Property<string>("Name")
                         .IsRequired()
                         .HasMaxLength(100)
-                        .HasColumnType("varchar(100)");
+                        .HasColumnType("nvarchar(100)");
 
                     b.Property<string>("Slug")
                         .IsRequired()
                         .HasMaxLength(100)
-                        .HasColumnType("varchar(100)");
+                        .HasColumnType("nvarchar(100)");
 
                     b.Property<int>("WebsiteID")
                         .HasColumnType("int");
@@ -3084,6 +3170,8 @@ namespace Dotnetable.Migrations.MySql.Migrations
                         .ValueGeneratedOnAdd()
                         .HasColumnType("int");
 
+                    SqlServerPropertyBuilderExtensions.UseIdentityColumn(b.Property<int>("ProductID"));
+
                     b.Property<decimal>("AvgRating")
                         .HasColumnType("decimal(3, 2)");
 
@@ -3091,13 +3179,12 @@ namespace Dotnetable.Migrations.MySql.Migrations
                         .HasColumnType("int");
 
                     b.Property<string>("Content")
-                        .HasColumnType("longtext");
+                        .HasColumnType("nvarchar(max)");
 
                     b.Property<DateTime>("CreatedAt")
                         .ValueGeneratedOnAdd()
                         .HasColumnType("datetime")
-                        .HasDefaultValueSql("(sysutcdatetime())")
-                        .HasAnnotation("Relational:DefaultConstraintName", "DF_Products_CreatedAt_1");
+                        .HasDefaultValueSql("(sysutcdatetime())", "DF_Products_CreatedAt_1");
 
                     b.Property<int?>("CreatedByMemberId")
                         .HasColumnType("int");
@@ -3106,48 +3193,45 @@ namespace Dotnetable.Migrations.MySql.Migrations
                         .HasColumnType("int");
 
                     b.Property<bool>("HasVariants")
-                        .HasColumnType("tinyint(1)");
+                        .HasColumnType("bit");
 
                     b.Property<bool>("IsActive")
                         .ValueGeneratedOnAdd()
-                        .HasColumnType("tinyint(1)")
-                        .HasDefaultValue(true)
-                        .HasAnnotation("Relational:DefaultConstraintName", "DF_Products_IsActive_1");
+                        .HasColumnType("bit")
+                        .HasDefaultValue(true, "DF_Products_IsActive_1");
 
                     b.Property<bool>("IsCatalogOnly")
-                        .HasColumnType("tinyint(1)");
+                        .HasColumnType("bit");
 
                     b.Property<int>("RatingCount")
                         .HasColumnType("int");
 
                     b.Property<string>("ShortDescription")
                         .HasMaxLength(1000)
-                        .HasColumnType("varchar(1000)");
+                        .HasColumnType("nvarchar(1000)");
 
                     b.Property<string>("Slug")
                         .IsRequired()
                         .HasMaxLength(300)
-                        .HasColumnType("varchar(300)");
+                        .HasColumnType("nvarchar(300)");
 
                     b.Property<int>("SortOrder")
                         .HasColumnType("int");
 
                     b.Property<byte>("Status")
                         .ValueGeneratedOnAdd()
-                        .HasColumnType("tinyint unsigned")
-                        .HasDefaultValue((byte)1)
-                        .HasAnnotation("Relational:DefaultConstraintName", "DF_Products_Status_1");
+                        .HasColumnType("tinyint")
+                        .HasDefaultValue((byte)1, "DF_Products_Status_1");
 
                     b.Property<string>("Title")
                         .IsRequired()
                         .HasMaxLength(300)
-                        .HasColumnType("varchar(300)");
+                        .HasColumnType("nvarchar(300)");
 
                     b.Property<DateTime>("UpdatedAt")
                         .ValueGeneratedOnAdd()
                         .HasColumnType("datetime")
-                        .HasDefaultValueSql("(sysutcdatetime())")
-                        .HasAnnotation("Relational:DefaultConstraintName", "DF_Products_UpdatedAt_1");
+                        .HasDefaultValueSql("(sysutcdatetime())", "DF_Products_UpdatedAt_1");
 
                     b.Property<int>("WebsiteID")
                         .HasColumnType("int");
@@ -3171,19 +3255,20 @@ namespace Dotnetable.Migrations.MySql.Migrations
                         .ValueGeneratedOnAdd()
                         .HasColumnType("int");
 
+                    SqlServerPropertyBuilderExtensions.UseIdentityColumn(b.Property<int>("ProductAnswerID"));
+
                     b.Property<bool>("Approved")
-                        .HasColumnType("tinyint(1)");
+                        .HasColumnType("bit");
 
                     b.Property<string>("Body")
                         .IsRequired()
                         .HasMaxLength(4000)
-                        .HasColumnType("varchar(4000)");
+                        .HasColumnType("nvarchar(4000)");
 
                     b.Property<DateTime>("CreatedAt")
                         .ValueGeneratedOnAdd()
                         .HasColumnType("datetime")
-                        .HasDefaultValueSql("(sysutcdatetime())")
-                        .HasAnnotation("Relational:DefaultConstraintName", "DF_ProductAnswers_CreatedAt");
+                        .HasDefaultValueSql("(sysutcdatetime())", "DF_ProductAnswers_CreatedAt");
 
                     b.Property<int>("LikeCount")
                         .HasColumnType("int");
@@ -3193,9 +3278,8 @@ namespace Dotnetable.Migrations.MySql.Migrations
 
                     b.Property<byte>("Status")
                         .ValueGeneratedOnAdd()
-                        .HasColumnType("tinyint unsigned")
-                        .HasDefaultValue((byte)1)
-                        .HasAnnotation("Relational:DefaultConstraintName", "DF_ProductAnswers_Status");
+                        .HasColumnType("tinyint")
+                        .HasDefaultValue((byte)1, "DF_ProductAnswers_Status");
 
                     b.Property<int?>("VendorID")
                         .HasColumnType("int");
@@ -3220,6 +3304,8 @@ namespace Dotnetable.Migrations.MySql.Migrations
                         .ValueGeneratedOnAdd()
                         .HasColumnType("int");
 
+                    SqlServerPropertyBuilderExtensions.UseIdentityColumn(b.Property<int>("ProductAttributeValueID"));
+
                     b.Property<int>("AttributeDefinitionID")
                         .HasColumnType("int");
 
@@ -3228,10 +3314,10 @@ namespace Dotnetable.Migrations.MySql.Migrations
 
                     b.Property<string>("CustomValue")
                         .HasMaxLength(1000)
-                        .HasColumnType("varchar(1000)");
+                        .HasColumnType("nvarchar(1000)");
 
                     b.Property<bool>("IsFeatured")
-                        .HasColumnType("tinyint(1)");
+                        .HasColumnType("bit");
 
                     b.Property<decimal?>("NumericValue")
                         .HasColumnType("decimal(18, 4)");
@@ -3259,10 +3345,12 @@ namespace Dotnetable.Migrations.MySql.Migrations
                         .ValueGeneratedOnAdd()
                         .HasColumnType("int");
 
+                    SqlServerPropertyBuilderExtensions.UseIdentityColumn(b.Property<int>("ProductAttributeValueTranslationID"));
+
                     b.Property<string>("CustomValue")
                         .IsRequired()
                         .HasMaxLength(1000)
-                        .HasColumnType("varchar(1000)");
+                        .HasColumnType("nvarchar(1000)");
 
                     b.Property<string>("LanguageCode")
                         .IsRequired()
@@ -3287,19 +3375,20 @@ namespace Dotnetable.Migrations.MySql.Migrations
                         .ValueGeneratedOnAdd()
                         .HasColumnType("int");
 
+                    SqlServerPropertyBuilderExtensions.UseIdentityColumn(b.Property<int>("ProductCategoryID"));
+
                     b.Property<int?>("ImageFileID")
                         .HasColumnType("int");
 
                     b.Property<bool>("IsActive")
                         .ValueGeneratedOnAdd()
-                        .HasColumnType("tinyint(1)")
-                        .HasDefaultValue(true)
-                        .HasAnnotation("Relational:DefaultConstraintName", "DF_ProductCategories_IsActive");
+                        .HasColumnType("bit")
+                        .HasDefaultValue(true, "DF_ProductCategories_IsActive");
 
                     b.Property<string>("Name")
                         .IsRequired()
                         .HasMaxLength(200)
-                        .HasColumnType("varchar(200)");
+                        .HasColumnType("nvarchar(200)");
 
                     b.Property<int?>("ParentCategoryID")
                         .HasColumnType("int");
@@ -3307,7 +3396,7 @@ namespace Dotnetable.Migrations.MySql.Migrations
                     b.Property<string>("Slug")
                         .IsRequired()
                         .HasMaxLength(200)
-                        .HasColumnType("varchar(200)");
+                        .HasColumnType("nvarchar(200)");
 
                     b.Property<int>("SortOrder")
                         .HasColumnType("int");
@@ -3335,7 +3424,7 @@ namespace Dotnetable.Migrations.MySql.Migrations
                         .HasColumnType("int");
 
                     b.Property<bool>("IsPrimary")
-                        .HasColumnType("tinyint(1)");
+                        .HasColumnType("bit");
 
                     b.HasKey("ProductID", "ProductCategoryID");
 
@@ -3353,13 +3442,12 @@ namespace Dotnetable.Migrations.MySql.Migrations
                         .HasColumnType("int");
 
                     b.Property<byte>("RelationType")
-                        .HasColumnType("tinyint unsigned");
+                        .HasColumnType("tinyint");
 
                     b.Property<int>("MaxItems")
                         .ValueGeneratedOnAdd()
                         .HasColumnType("int")
-                        .HasDefaultValue(10)
-                        .HasAnnotation("Relational:DefaultConstraintName", "DF_ProductCategoryRelations_MaxItems");
+                        .HasDefaultValue(10, "DF_ProductCategoryRelations_MaxItems");
 
                     b.HasKey("ProductID", "RelatedProductCategoryID", "RelationType");
 
@@ -3374,6 +3462,8 @@ namespace Dotnetable.Migrations.MySql.Migrations
                         .ValueGeneratedOnAdd()
                         .HasColumnType("int");
 
+                    SqlServerPropertyBuilderExtensions.UseIdentityColumn(b.Property<int>("ProductCategoryTranslationID"));
+
                     b.Property<string>("LanguageCode")
                         .IsRequired()
                         .HasMaxLength(2)
@@ -3384,7 +3474,7 @@ namespace Dotnetable.Migrations.MySql.Migrations
                     b.Property<string>("Name")
                         .IsRequired()
                         .HasMaxLength(200)
-                        .HasColumnType("varchar(200)");
+                        .HasColumnType("nvarchar(200)");
 
                     b.Property<int>("ProductCategoryID")
                         .HasColumnType("int");
@@ -3392,7 +3482,7 @@ namespace Dotnetable.Migrations.MySql.Migrations
                     b.Property<string>("Slug")
                         .IsRequired()
                         .HasMaxLength(200)
-                        .HasColumnType("varchar(200)");
+                        .HasColumnType("nvarchar(200)");
 
                     b.HasKey("ProductCategoryTranslationID");
 
@@ -3425,28 +3515,28 @@ namespace Dotnetable.Migrations.MySql.Migrations
                         .ValueGeneratedOnAdd()
                         .HasColumnType("int");
 
+                    SqlServerPropertyBuilderExtensions.UseIdentityColumn(b.Property<int>("ProductQuestionID"));
+
                     b.Property<bool>("Approved")
-                        .HasColumnType("tinyint(1)");
+                        .HasColumnType("bit");
 
                     b.Property<string>("Body")
                         .IsRequired()
                         .HasMaxLength(2000)
-                        .HasColumnType("varchar(2000)");
+                        .HasColumnType("nvarchar(2000)");
 
                     b.Property<DateTime>("CreatedAt")
                         .ValueGeneratedOnAdd()
                         .HasColumnType("datetime")
-                        .HasDefaultValueSql("(sysutcdatetime())")
-                        .HasAnnotation("Relational:DefaultConstraintName", "DF_ProductQuestions_CreatedAt");
+                        .HasDefaultValueSql("(sysutcdatetime())", "DF_ProductQuestions_CreatedAt");
 
                     b.Property<int>("ProductID")
                         .HasColumnType("int");
 
                     b.Property<byte>("Status")
                         .ValueGeneratedOnAdd()
-                        .HasColumnType("tinyint unsigned")
-                        .HasDefaultValue((byte)1)
-                        .HasAnnotation("Relational:DefaultConstraintName", "DF_ProductQuestions_Status");
+                        .HasColumnType("tinyint")
+                        .HasDefaultValue((byte)1, "DF_ProductQuestions_Status");
 
                     b.Property<int>("WebsiteClientID")
                         .HasColumnType("int");
@@ -3474,7 +3564,7 @@ namespace Dotnetable.Migrations.MySql.Migrations
                         .HasColumnType("int");
 
                     b.Property<byte>("RelationType")
-                        .HasColumnType("tinyint unsigned");
+                        .HasColumnType("tinyint");
 
                     b.Property<int>("SortOrder")
                         .HasColumnType("int");
@@ -3492,30 +3582,31 @@ namespace Dotnetable.Migrations.MySql.Migrations
                         .ValueGeneratedOnAdd()
                         .HasColumnType("int");
 
+                    SqlServerPropertyBuilderExtensions.UseIdentityColumn(b.Property<int>("ProductReviewID"));
+
                     b.Property<bool>("Approved")
-                        .HasColumnType("tinyint(1)");
+                        .HasColumnType("bit");
 
                     b.Property<string>("Body")
                         .IsRequired()
                         .HasMaxLength(4000)
-                        .HasColumnType("varchar(4000)");
+                        .HasColumnType("nvarchar(4000)");
 
                     b.Property<string>("ConsJson")
                         .HasMaxLength(2000)
-                        .HasColumnType("varchar(2000)");
+                        .HasColumnType("nvarchar(2000)");
 
                     b.Property<DateTime>("CreatedAt")
                         .ValueGeneratedOnAdd()
                         .HasPrecision(0)
-                        .HasColumnType("datetime(0)")
-                        .HasDefaultValueSql("(sysutcdatetime())")
-                        .HasAnnotation("Relational:DefaultConstraintName", "DF_ProductReviews_CreatedAt");
+                        .HasColumnType("datetime2(0)")
+                        .HasDefaultValueSql("(sysutcdatetime())", "DF_ProductReviews_CreatedAt");
 
                     b.Property<int>("DislikeCount")
                         .HasColumnType("int");
 
                     b.Property<bool>("IsVerifiedPurchase")
-                        .HasColumnType("tinyint(1)");
+                        .HasColumnType("bit");
 
                     b.Property<int>("LikeCount")
                         .HasColumnType("int");
@@ -3528,20 +3619,19 @@ namespace Dotnetable.Migrations.MySql.Migrations
 
                     b.Property<string>("ProsJson")
                         .HasMaxLength(2000)
-                        .HasColumnType("varchar(2000)");
+                        .HasColumnType("nvarchar(2000)");
 
                     b.Property<byte>("Rating")
-                        .HasColumnType("tinyint unsigned");
+                        .HasColumnType("tinyint");
 
                     b.Property<byte>("Status")
                         .ValueGeneratedOnAdd()
-                        .HasColumnType("tinyint unsigned")
-                        .HasDefaultValue((byte)1)
-                        .HasAnnotation("Relational:DefaultConstraintName", "DF_ProductReviews_Status");
+                        .HasColumnType("tinyint")
+                        .HasDefaultValue((byte)1, "DF_ProductReviews_Status");
 
                     b.Property<string>("Title")
                         .HasMaxLength(200)
-                        .HasColumnType("varchar(200)");
+                        .HasColumnType("nvarchar(200)");
 
                     b.Property<int>("WebsiteClientID")
                         .HasColumnType("int");
@@ -3568,8 +3658,10 @@ namespace Dotnetable.Migrations.MySql.Migrations
                         .ValueGeneratedOnAdd()
                         .HasColumnType("int");
 
+                    SqlServerPropertyBuilderExtensions.UseIdentityColumn(b.Property<int>("ProductTranslationID"));
+
                     b.Property<string>("Content")
-                        .HasColumnType("longtext");
+                        .HasColumnType("nvarchar(max)");
 
                     b.Property<string>("LanguageCode")
                         .IsRequired()
@@ -3583,17 +3675,17 @@ namespace Dotnetable.Migrations.MySql.Migrations
 
                     b.Property<string>("ShortDescription")
                         .HasMaxLength(1000)
-                        .HasColumnType("varchar(1000)");
+                        .HasColumnType("nvarchar(1000)");
 
                     b.Property<string>("Slug")
                         .IsRequired()
                         .HasMaxLength(300)
-                        .HasColumnType("varchar(300)");
+                        .HasColumnType("nvarchar(300)");
 
                     b.Property<string>("Title")
                         .IsRequired()
                         .HasMaxLength(300)
-                        .HasColumnType("varchar(300)");
+                        .HasColumnType("nvarchar(300)");
 
                     b.HasKey("ProductTranslationID");
 
@@ -3608,9 +3700,11 @@ namespace Dotnetable.Migrations.MySql.Migrations
                         .ValueGeneratedOnAdd()
                         .HasColumnType("int");
 
+                    SqlServerPropertyBuilderExtensions.UseIdentityColumn(b.Property<int>("ProductVariantID"));
+
                     b.Property<string>("Barcode")
                         .HasMaxLength(100)
-                        .HasColumnType("varchar(100)");
+                        .HasColumnType("nvarchar(100)");
 
                     b.Property<decimal?>("CompareAtPriceUsd")
                         .HasColumnType("decimal(18, 4)");
@@ -3618,20 +3712,18 @@ namespace Dotnetable.Migrations.MySql.Migrations
                     b.Property<DateTime>("CreatedAt")
                         .ValueGeneratedOnAdd()
                         .HasColumnType("datetime")
-                        .HasDefaultValueSql("(sysutcdatetime())")
-                        .HasAnnotation("Relational:DefaultConstraintName", "DF_ProductVariants_CreatedAt");
+                        .HasDefaultValueSql("(sysutcdatetime())", "DF_ProductVariants_CreatedAt");
 
                     b.Property<int?>("ImageFileID")
                         .HasColumnType("int");
 
                     b.Property<bool>("IsActive")
                         .ValueGeneratedOnAdd()
-                        .HasColumnType("tinyint(1)")
-                        .HasDefaultValue(true)
-                        .HasAnnotation("Relational:DefaultConstraintName", "DF_ProductVariants_IsActive");
+                        .HasColumnType("bit")
+                        .HasDefaultValue(true, "DF_ProductVariants_IsActive");
 
                     b.Property<bool>("IsDefault")
-                        .HasColumnType("tinyint(1)");
+                        .HasColumnType("bit");
 
                     b.Property<decimal?>("OverridePrice")
                         .HasColumnType("decimal(18, 4)");
@@ -3645,12 +3737,12 @@ namespace Dotnetable.Migrations.MySql.Migrations
                     b.Property<string>("Sku")
                         .IsRequired()
                         .HasMaxLength(100)
-                        .HasColumnType("varchar(100)");
+                        .HasColumnType("nvarchar(100)");
 
                     b.Property<string>("Title")
                         .IsRequired()
                         .HasMaxLength(200)
-                        .HasColumnType("varchar(200)");
+                        .HasColumnType("nvarchar(200)");
 
                     b.Property<int>("WebsiteID")
                         .HasColumnType("int");
@@ -3675,11 +3767,12 @@ namespace Dotnetable.Migrations.MySql.Migrations
                         .ValueGeneratedOnAdd()
                         .HasColumnType("int");
 
+                    SqlServerPropertyBuilderExtensions.UseIdentityColumn(b.Property<int>("ProductWarningID"));
+
                     b.Property<bool>("IsActive")
                         .ValueGeneratedOnAdd()
-                        .HasColumnType("tinyint(1)")
-                        .HasDefaultValue(true)
-                        .HasAnnotation("Relational:DefaultConstraintName", "DF_ProductWarnings_IsActive");
+                        .HasColumnType("bit")
+                        .HasDefaultValue(true, "DF_ProductWarnings_IsActive");
 
                     b.Property<int>("ProductID")
                         .HasColumnType("int");
@@ -3688,14 +3781,13 @@ namespace Dotnetable.Migrations.MySql.Migrations
                         .IsRequired()
                         .ValueGeneratedOnAdd()
                         .HasMaxLength(20)
-                        .HasColumnType("varchar(20)")
-                        .HasDefaultValue("info")
-                        .HasAnnotation("Relational:DefaultConstraintName", "DF_ProductWarnings_Severity");
+                        .HasColumnType("nvarchar(20)")
+                        .HasDefaultValue("info", "DF_ProductWarnings_Severity");
 
                     b.Property<string>("Text")
                         .IsRequired()
                         .HasMaxLength(1000)
-                        .HasColumnType("varchar(1000)");
+                        .HasColumnType("nvarchar(1000)");
 
                     b.HasKey("ProductWarningID");
 
@@ -3710,6 +3802,8 @@ namespace Dotnetable.Migrations.MySql.Migrations
                         .ValueGeneratedOnAdd()
                         .HasColumnType("int");
 
+                    SqlServerPropertyBuilderExtensions.UseIdentityColumn(b.Property<int>("ProductWarningTranslationID"));
+
                     b.Property<string>("LanguageCode")
                         .IsRequired()
                         .HasMaxLength(2)
@@ -3723,7 +3817,7 @@ namespace Dotnetable.Migrations.MySql.Migrations
                     b.Property<string>("Text")
                         .IsRequired()
                         .HasMaxLength(1000)
-                        .HasColumnType("varchar(1000)");
+                        .HasColumnType("nvarchar(1000)");
 
                     b.HasKey("ProductWarningTranslationID");
 
@@ -3738,11 +3832,13 @@ namespace Dotnetable.Migrations.MySql.Migrations
                         .ValueGeneratedOnAdd()
                         .HasColumnType("smallint");
 
+                    SqlServerPropertyBuilderExtensions.UseIdentityColumn(b.Property<short>("RoleID"));
+
                     b.Property<bool>("Active")
-                        .HasColumnType("tinyint(1)");
+                        .HasColumnType("bit");
 
                     b.Property<byte>("Category")
-                        .HasColumnType("tinyint unsigned");
+                        .HasColumnType("tinyint");
 
                     b.Property<string>("Description")
                         .IsRequired()
@@ -3767,6 +3863,8 @@ namespace Dotnetable.Migrations.MySql.Migrations
                         .ValueGeneratedOnAdd()
                         .HasColumnType("int");
 
+                    SqlServerPropertyBuilderExtensions.UseIdentityColumn(b.Property<int>("SettlementID"));
+
                     b.Property<int?>("ApprovedByMemberID")
                         .HasColumnType("int");
 
@@ -3776,8 +3874,7 @@ namespace Dotnetable.Migrations.MySql.Migrations
                     b.Property<DateTime>("CreatedAt")
                         .ValueGeneratedOnAdd()
                         .HasColumnType("datetime")
-                        .HasDefaultValueSql("(sysutcdatetime())")
-                        .HasAnnotation("Relational:DefaultConstraintName", "DF_Settlements_CreatedAt_1");
+                        .HasDefaultValueSql("(sysutcdatetime())", "DF_Settlements_CreatedAt_1");
 
                     b.Property<int?>("CreatedByMemberID")
                         .HasColumnType("int");
@@ -3791,14 +3888,14 @@ namespace Dotnetable.Migrations.MySql.Migrations
 
                     b.Property<string>("Note")
                         .HasMaxLength(500)
-                        .HasColumnType("varchar(500)");
+                        .HasColumnType("nvarchar(500)");
 
                     b.Property<DateTime?>("PaidAt")
                         .HasColumnType("datetime");
 
                     b.Property<string>("PaymentRefNumber")
                         .HasMaxLength(100)
-                        .HasColumnType("varchar(100)");
+                        .HasColumnType("nvarchar(100)");
 
                     b.Property<DateOnly>("PeriodFrom")
                         .HasColumnType("date");
@@ -3808,15 +3905,14 @@ namespace Dotnetable.Migrations.MySql.Migrations
 
                     b.Property<byte>("Status")
                         .ValueGeneratedOnAdd()
-                        .HasColumnType("tinyint unsigned")
-                        .HasDefaultValue((byte)1)
-                        .HasAnnotation("Relational:DefaultConstraintName", "DF_Settlements_Status_1");
+                        .HasColumnType("tinyint")
+                        .HasDefaultValue((byte)1, "DF_Settlements_Status_1");
 
                     b.Property<int?>("SupplierID")
                         .HasColumnType("int");
 
                     b.Property<byte>("TargetType")
-                        .HasColumnType("tinyint unsigned");
+                        .HasColumnType("tinyint");
 
                     b.Property<int?>("TargetWebsiteID")
                         .HasColumnType("int");
@@ -3857,12 +3953,14 @@ namespace Dotnetable.Migrations.MySql.Migrations
                         .ValueGeneratedOnAdd()
                         .HasColumnType("int");
 
+                    SqlServerPropertyBuilderExtensions.UseIdentityColumn(b.Property<int>("SettlementItemID"));
+
                     b.Property<decimal>("Amount")
                         .HasColumnType("decimal(18, 4)");
 
                     b.Property<string>("Description")
                         .HasMaxLength(300)
-                        .HasColumnType("varchar(300)");
+                        .HasColumnType("nvarchar(300)");
 
                     b.Property<int?>("OrderItemID")
                         .HasColumnType("int");
@@ -3895,15 +3993,16 @@ namespace Dotnetable.Migrations.MySql.Migrations
                         .ValueGeneratedOnAdd()
                         .HasColumnType("int");
 
+                    SqlServerPropertyBuilderExtensions.UseIdentityColumn(b.Property<int>("ShippingMethodID"));
+
                     b.Property<string>("CarrierName")
                         .HasMaxLength(100)
-                        .HasColumnType("varchar(100)");
+                        .HasColumnType("nvarchar(100)");
 
                     b.Property<bool>("IsActive")
                         .ValueGeneratedOnAdd()
-                        .HasColumnType("tinyint(1)")
-                        .HasDefaultValue(true)
-                        .HasAnnotation("Relational:DefaultConstraintName", "DF_ShippingMethods_IsActive");
+                        .HasColumnType("bit")
+                        .HasDefaultValue(true, "DF_ShippingMethods_IsActive");
 
                     b.Property<int>("SortOrder")
                         .HasColumnType("int");
@@ -3911,7 +4010,7 @@ namespace Dotnetable.Migrations.MySql.Migrations
                     b.Property<string>("Title")
                         .IsRequired()
                         .HasMaxLength(100)
-                        .HasColumnType("varchar(100)");
+                        .HasColumnType("nvarchar(100)");
 
                     b.Property<int>("WebsiteID")
                         .HasColumnType("int");
@@ -3929,6 +4028,8 @@ namespace Dotnetable.Migrations.MySql.Migrations
                         .ValueGeneratedOnAdd()
                         .HasColumnType("int");
 
+                    SqlServerPropertyBuilderExtensions.UseIdentityColumn(b.Property<int>("ShippingRateID"));
+
                     b.Property<int?>("CityID")
                         .HasColumnType("int");
 
@@ -3937,9 +4038,8 @@ namespace Dotnetable.Migrations.MySql.Migrations
 
                     b.Property<bool>("IsActive")
                         .ValueGeneratedOnAdd()
-                        .HasColumnType("tinyint(1)")
-                        .HasDefaultValue(true)
-                        .HasAnnotation("Relational:DefaultConstraintName", "DF_ShippingRates_IsActive");
+                        .HasColumnType("bit")
+                        .HasDefaultValue(true, "DF_ShippingRates_IsActive");
 
                     b.Property<decimal?>("MaxWeightKg")
                         .HasColumnType("decimal(10, 3)");
@@ -3975,66 +4075,60 @@ namespace Dotnetable.Migrations.MySql.Migrations
                         .ValueGeneratedOnAdd()
                         .HasColumnType("int");
 
+                    SqlServerPropertyBuilderExtensions.UseIdentityColumn(b.Property<int>("SlideshowID"));
+
                     b.Property<string>("AspectRatio")
                         .HasMaxLength(20)
-                        .HasColumnType("varchar(20)");
+                        .HasColumnType("nvarchar(20)");
 
                     b.Property<bool>("AutoPlay")
                         .ValueGeneratedOnAdd()
-                        .HasColumnType("tinyint(1)")
-                        .HasDefaultValue(true)
-                        .HasAnnotation("Relational:DefaultConstraintName", "DF_Slideshows_AutoPlay");
+                        .HasColumnType("bit")
+                        .HasDefaultValue(true, "DF_Slideshows_AutoPlay");
 
                     b.Property<DateTime>("CreatedAt")
                         .ValueGeneratedOnAdd()
                         .HasColumnType("datetime")
-                        .HasDefaultValueSql("(sysutcdatetime())")
-                        .HasAnnotation("Relational:DefaultConstraintName", "DF_Slideshows_CreatedAt");
+                        .HasDefaultValueSql("(sysutcdatetime())", "DF_Slideshows_CreatedAt");
 
                     b.Property<bool>("EnableLightbox")
                         .ValueGeneratedOnAdd()
-                        .HasColumnType("tinyint(1)")
-                        .HasDefaultValue(true)
-                        .HasAnnotation("Relational:DefaultConstraintName", "DF_Slideshows_EnableLightbox");
+                        .HasColumnType("bit")
+                        .HasDefaultValue(true, "DF_Slideshows_EnableLightbox");
 
                     b.Property<int>("IntervalMs")
                         .ValueGeneratedOnAdd()
                         .HasColumnType("int")
-                        .HasDefaultValue(5000)
-                        .HasAnnotation("Relational:DefaultConstraintName", "DF_Slideshows_IntervalMs");
+                        .HasDefaultValue(5000, "DF_Slideshows_IntervalMs");
 
                     b.Property<bool>("IsActive")
                         .ValueGeneratedOnAdd()
-                        .HasColumnType("tinyint(1)")
-                        .HasDefaultValue(true)
-                        .HasAnnotation("Relational:DefaultConstraintName", "DF_Slideshows_IsActive");
+                        .HasColumnType("bit")
+                        .HasDefaultValue(true, "DF_Slideshows_IsActive");
 
                     b.Property<string>("Name")
                         .IsRequired()
                         .HasMaxLength(150)
-                        .HasColumnType("varchar(150)");
+                        .HasColumnType("nvarchar(150)");
 
                     b.Property<string>("PlacementKey")
                         .HasMaxLength(100)
-                        .HasColumnType("varchar(100)");
+                        .HasColumnType("nvarchar(100)");
 
                     b.Property<bool>("ShowArrows")
                         .ValueGeneratedOnAdd()
-                        .HasColumnType("tinyint(1)")
-                        .HasDefaultValue(true)
-                        .HasAnnotation("Relational:DefaultConstraintName", "DF_Slideshows_ShowArrows");
+                        .HasColumnType("bit")
+                        .HasDefaultValue(true, "DF_Slideshows_ShowArrows");
 
                     b.Property<bool>("ShowDots")
                         .ValueGeneratedOnAdd()
-                        .HasColumnType("tinyint(1)")
-                        .HasDefaultValue(true)
-                        .HasAnnotation("Relational:DefaultConstraintName", "DF_Slideshows_ShowDots");
+                        .HasColumnType("bit")
+                        .HasDefaultValue(true, "DF_Slideshows_ShowDots");
 
                     b.Property<byte>("TransitionEffect")
                         .ValueGeneratedOnAdd()
-                        .HasColumnType("tinyint unsigned")
-                        .HasDefaultValue((byte)1)
-                        .HasAnnotation("Relational:DefaultConstraintName", "DF_Slideshows_TransitionEffect");
+                        .HasColumnType("tinyint")
+                        .HasDefaultValue((byte)1, "DF_Slideshows_TransitionEffect");
 
                     b.Property<int>("WebsiteID")
                         .HasColumnType("int");
@@ -4052,35 +4146,36 @@ namespace Dotnetable.Migrations.MySql.Migrations
                         .ValueGeneratedOnAdd()
                         .HasColumnType("int");
 
+                    SqlServerPropertyBuilderExtensions.UseIdentityColumn(b.Property<int>("SlideshowSlideID"));
+
                     b.Property<string>("ButtonText")
                         .HasMaxLength(100)
-                        .HasColumnType("varchar(100)");
+                        .HasColumnType("nvarchar(100)");
 
                     b.Property<string>("Caption")
                         .HasMaxLength(500)
-                        .HasColumnType("varchar(500)");
+                        .HasColumnType("nvarchar(500)");
 
                     b.Property<DateTime?>("EndAt")
-                        .HasColumnType("datetime(6)");
+                        .HasColumnType("datetime2");
 
                     b.Property<int>("FileID")
                         .HasColumnType("int");
 
                     b.Property<bool>("IsActive")
                         .ValueGeneratedOnAdd()
-                        .HasColumnType("tinyint(1)")
-                        .HasDefaultValue(true)
-                        .HasAnnotation("Relational:DefaultConstraintName", "DF_SlideshowSlides_IsActive");
+                        .HasColumnType("bit")
+                        .HasDefaultValue(true, "DF_SlideshowSlides_IsActive");
 
                     b.Property<string>("LinkUrl")
                         .HasMaxLength(500)
-                        .HasColumnType("varchar(500)");
+                        .HasColumnType("nvarchar(500)");
 
                     b.Property<int?>("MobileFileID")
                         .HasColumnType("int");
 
                     b.Property<bool>("OpenInNewTab")
-                        .HasColumnType("tinyint(1)");
+                        .HasColumnType("bit");
 
                     b.Property<int>("SlideshowID")
                         .HasColumnType("int");
@@ -4089,11 +4184,11 @@ namespace Dotnetable.Migrations.MySql.Migrations
                         .HasColumnType("int");
 
                     b.Property<DateTime?>("StartAt")
-                        .HasColumnType("datetime(6)");
+                        .HasColumnType("datetime2");
 
                     b.Property<string>("Title")
                         .HasMaxLength(200)
-                        .HasColumnType("varchar(200)");
+                        .HasColumnType("nvarchar(200)");
 
                     b.HasKey("SlideshowSlideID");
 
@@ -4112,8 +4207,10 @@ namespace Dotnetable.Migrations.MySql.Migrations
                         .ValueGeneratedOnAdd()
                         .HasColumnType("int");
 
+                    SqlServerPropertyBuilderExtensions.UseIdentityColumn(b.Property<int>("StateID"));
+
                     b.Property<bool>("Active")
-                        .HasColumnType("tinyint(1)");
+                        .HasColumnType("bit");
 
                     b.Property<int>("CountryID")
                         .HasColumnType("int");
@@ -4128,7 +4225,7 @@ namespace Dotnetable.Migrations.MySql.Migrations
                     b.Property<string>("Title")
                         .IsRequired()
                         .HasMaxLength(48)
-                        .HasColumnType("varchar(48)");
+                        .HasColumnType("nvarchar(48)");
 
                     b.HasKey("StateID");
 
@@ -4143,6 +4240,8 @@ namespace Dotnetable.Migrations.MySql.Migrations
                         .ValueGeneratedOnAdd()
                         .HasColumnType("int");
 
+                    SqlServerPropertyBuilderExtensions.UseIdentityColumn(b.Property<int>("StateTranslationID"));
+
                     b.Property<string>("LanguageCode")
                         .IsRequired()
                         .HasMaxLength(2)
@@ -4156,7 +4255,7 @@ namespace Dotnetable.Migrations.MySql.Migrations
                     b.Property<string>("Title")
                         .IsRequired()
                         .HasMaxLength(48)
-                        .HasColumnType("varchar(48)");
+                        .HasColumnType("nvarchar(48)");
 
                     b.HasKey("StateTranslationID");
 
@@ -4171,12 +4270,13 @@ namespace Dotnetable.Migrations.MySql.Migrations
                         .ValueGeneratedOnAdd()
                         .HasColumnType("int");
 
+                    SqlServerPropertyBuilderExtensions.UseIdentityColumn(b.Property<int>("StockMovementID"));
+
                     b.Property<DateTime>("CreatedAt")
                         .ValueGeneratedOnAdd()
                         .HasPrecision(0)
-                        .HasColumnType("datetime(0)")
-                        .HasDefaultValueSql("(sysutcdatetime())")
-                        .HasAnnotation("Relational:DefaultConstraintName", "DF_StockMovements_CreatedAt");
+                        .HasColumnType("datetime2(0)")
+                        .HasDefaultValueSql("(sysutcdatetime())", "DF_StockMovements_CreatedAt");
 
                     b.Property<int?>("CreatedByMemberID")
                         .HasColumnType("int");
@@ -4191,13 +4291,12 @@ namespace Dotnetable.Migrations.MySql.Migrations
                     b.Property<decimal>("ExchangeRateToUsd")
                         .ValueGeneratedOnAdd()
                         .HasColumnType("decimal(18, 6)")
-                        .HasDefaultValue(1m)
                         .HasComment("website's local currency rate snapshotted at the moment of this stock entry/exit, so accounting and reports can be reconstructed in local currency at that point in time")
-                        .HasAnnotation("Relational:DefaultConstraintName", "DF_StockMovements_ExchangeRateToUsd");
+                        .HasDefaultValue(1m, "DF_StockMovements_ExchangeRateToUsd");
 
                     b.Property<string>("Note")
                         .HasMaxLength(500)
-                        .HasColumnType("varchar(500)");
+                        .HasColumnType("nvarchar(500)");
 
                     b.Property<int?>("OrderID")
                         .HasColumnType("int");
@@ -4215,7 +4314,7 @@ namespace Dotnetable.Migrations.MySql.Migrations
                         .HasColumnType("int");
 
                     b.Property<byte>("Type")
-                        .HasColumnType("tinyint unsigned");
+                        .HasColumnType("tinyint");
 
                     b.Property<decimal>("UnitCostUsd")
                         .HasColumnType("decimal(18, 4)");
@@ -4251,20 +4350,21 @@ namespace Dotnetable.Migrations.MySql.Migrations
                         .ValueGeneratedOnAdd()
                         .HasColumnType("int");
 
+                    SqlServerPropertyBuilderExtensions.UseIdentityColumn(b.Property<int>("SupplierID"));
+
                     b.Property<bool>("IsActive")
                         .ValueGeneratedOnAdd()
-                        .HasColumnType("tinyint(1)")
-                        .HasDefaultValue(true)
-                        .HasAnnotation("Relational:DefaultConstraintName", "DF_Suppliers_IsActive_1");
+                        .HasColumnType("bit")
+                        .HasDefaultValue(true, "DF_Suppliers_IsActive_1");
 
                     b.Property<string>("Name")
                         .IsRequired()
                         .HasMaxLength(200)
-                        .HasColumnType("varchar(200)");
+                        .HasColumnType("nvarchar(200)");
 
                     b.Property<string>("Phone")
                         .HasMaxLength(20)
-                        .HasColumnType("varchar(20)");
+                        .HasColumnType("nvarchar(20)");
 
                     b.Property<int>("WebsiteID")
                         .HasColumnType("int");
@@ -4282,15 +4382,17 @@ namespace Dotnetable.Migrations.MySql.Migrations
                         .ValueGeneratedOnAdd()
                         .HasColumnType("int");
 
+                    SqlServerPropertyBuilderExtensions.UseIdentityColumn(b.Property<int>("TagID"));
+
                     b.Property<string>("Name")
                         .IsRequired()
                         .HasMaxLength(150)
-                        .HasColumnType("varchar(150)");
+                        .HasColumnType("nvarchar(150)");
 
                     b.Property<string>("Slug")
                         .IsRequired()
                         .HasMaxLength(150)
-                        .HasColumnType("varchar(150)");
+                        .HasColumnType("nvarchar(150)");
 
                     b.Property<int>("WebsiteID")
                         .HasColumnType("int");
@@ -4308,6 +4410,8 @@ namespace Dotnetable.Migrations.MySql.Migrations
                         .ValueGeneratedOnAdd()
                         .HasColumnType("int");
 
+                    SqlServerPropertyBuilderExtensions.UseIdentityColumn(b.Property<int>("TagTranslationID"));
+
                     b.Property<string>("LanguageCode")
                         .IsRequired()
                         .HasMaxLength(2)
@@ -4318,12 +4422,12 @@ namespace Dotnetable.Migrations.MySql.Migrations
                     b.Property<string>("Name")
                         .IsRequired()
                         .HasMaxLength(150)
-                        .HasColumnType("varchar(150)");
+                        .HasColumnType("nvarchar(150)");
 
                     b.Property<string>("Slug")
                         .IsRequired()
                         .HasMaxLength(150)
-                        .HasColumnType("varchar(150)");
+                        .HasColumnType("nvarchar(150)");
 
                     b.Property<int>("TagID")
                         .HasColumnType("int");
@@ -4341,14 +4445,15 @@ namespace Dotnetable.Migrations.MySql.Migrations
                         .ValueGeneratedOnAdd()
                         .HasColumnType("int");
 
+                    SqlServerPropertyBuilderExtensions.UseIdentityColumn(b.Property<int>("TaxRateID"));
+
                     b.Property<int?>("CountryID")
                         .HasColumnType("int");
 
                     b.Property<bool>("IsActive")
                         .ValueGeneratedOnAdd()
-                        .HasColumnType("tinyint(1)")
-                        .HasDefaultValue(true)
-                        .HasAnnotation("Relational:DefaultConstraintName", "DF_TaxRates_IsActive");
+                        .HasColumnType("bit")
+                        .HasDefaultValue(true, "DF_TaxRates_IsActive");
 
                     b.Property<int>("Priority")
                         .HasColumnType("int");
@@ -4362,7 +4467,7 @@ namespace Dotnetable.Migrations.MySql.Migrations
                     b.Property<string>("Title")
                         .IsRequired()
                         .HasMaxLength(100)
-                        .HasColumnType("varchar(100)");
+                        .HasColumnType("nvarchar(100)");
 
                     b.Property<int>("WebsiteID")
                         .HasColumnType("int");
@@ -4404,11 +4509,12 @@ namespace Dotnetable.Migrations.MySql.Migrations
                         .ValueGeneratedOnAdd()
                         .HasColumnType("int");
 
+                    SqlServerPropertyBuilderExtensions.UseIdentityColumn(b.Property<int>("VendorID"));
+
                     b.Property<decimal>("AvailableCreditUsd")
                         .ValueGeneratedOnAdd()
                         .HasColumnType("decimal(18, 4)")
-                        .HasDefaultValue(0m)
-                        .HasAnnotation("Relational:DefaultConstraintName", "DF_Vendors_AvailableCreditUsd");
+                        .HasDefaultValue(0m, "DF_Vendors_AvailableCreditUsd");
 
                     b.Property<int?>("CreditDays")
                         .HasColumnType("int")
@@ -4420,9 +4526,8 @@ namespace Dotnetable.Migrations.MySql.Migrations
 
                     b.Property<bool>("IsActive")
                         .ValueGeneratedOnAdd()
-                        .HasColumnType("tinyint(1)")
-                        .HasDefaultValue(true)
-                        .HasAnnotation("Relational:DefaultConstraintName", "DF_Vendors_IsActive_1");
+                        .HasColumnType("bit")
+                        .HasDefaultValue(true, "DF_Vendors_IsActive_1");
 
                     b.Property<int?>("LinkedWebsiteID")
                         .HasColumnType("int");
@@ -4436,26 +4541,25 @@ namespace Dotnetable.Migrations.MySql.Migrations
                     b.Property<string>("Name")
                         .IsRequired()
                         .HasMaxLength(200)
-                        .HasColumnType("varchar(200)");
+                        .HasColumnType("nvarchar(200)");
 
                     b.Property<decimal>("Rating")
                         .HasColumnType("decimal(3, 2)");
 
                     b.Property<byte>("SettlementMode")
-                        .HasColumnType("tinyint unsigned")
+                        .HasColumnType("tinyint")
                         .HasComment("0 = Immediate: every purchase from this vendor is settled instantly like a normal cash purchase. 1 = Credit: purchases accrue as credit and are batched into a periodic Settlements record due on CreditDays");
 
                     b.Property<string>("Slug")
                         .IsRequired()
                         .HasMaxLength(200)
-                        .HasColumnType("varchar(200)");
+                        .HasColumnType("nvarchar(200)");
 
                     b.Property<byte>("VendorType")
                         .ValueGeneratedOnAdd()
-                        .HasColumnType("tinyint unsigned")
-                        .HasDefaultValue((byte)0)
+                        .HasColumnType("tinyint")
                         .HasComment("0 = Display-only title, 1 = Member login (manage own catalog), 2 = Linked website (inter-site virtual credit)")
-                        .HasAnnotation("Relational:DefaultConstraintName", "DF_Vendors_VendorType");
+                        .HasDefaultValue((byte)0, "DF_Vendors_VendorType");
 
                     b.Property<int>("WebsiteID")
                         .HasColumnType("int");
@@ -4481,6 +4585,8 @@ namespace Dotnetable.Migrations.MySql.Migrations
                         .ValueGeneratedOnAdd()
                         .HasColumnType("int");
 
+                    SqlServerPropertyBuilderExtensions.UseIdentityColumn(b.Property<int>("VendorCreditTransactionID"));
+
                     b.Property<decimal>("AmountUsd")
                         .HasColumnType("decimal(18, 4)");
 
@@ -4490,8 +4596,7 @@ namespace Dotnetable.Migrations.MySql.Migrations
                     b.Property<DateTime>("CreatedAt")
                         .ValueGeneratedOnAdd()
                         .HasColumnType("datetime")
-                        .HasDefaultValueSql("(sysutcdatetime())")
-                        .HasAnnotation("Relational:DefaultConstraintName", "DF_VendorCreditTransactions_CreatedAt");
+                        .HasDefaultValueSql("(sysutcdatetime())", "DF_VendorCreditTransactions_CreatedAt");
 
                     b.Property<int?>("CreatedByMemberID")
                         .HasColumnType("int");
@@ -4501,13 +4606,13 @@ namespace Dotnetable.Migrations.MySql.Migrations
 
                     b.Property<string>("Note")
                         .HasMaxLength(500)
-                        .HasColumnType("varchar(500)");
+                        .HasColumnType("nvarchar(500)");
 
                     b.Property<int?>("SourceOrderItemID")
                         .HasColumnType("int");
 
                     b.Property<byte>("SourceType")
-                        .HasColumnType("tinyint unsigned")
+                        .HasColumnType("tinyint")
                         .HasComment("1 = Grant, 2 = Sale, 3 = Adjustment, 4 = Refund");
 
                     b.Property<int>("VendorID")
@@ -4537,17 +4642,17 @@ namespace Dotnetable.Migrations.MySql.Migrations
                         .ValueGeneratedOnAdd()
                         .HasColumnType("int");
 
+                    SqlServerPropertyBuilderExtensions.UseIdentityColumn(b.Property<int>("VendorProductID"));
+
                     b.Property<int>("DeliveryDays")
                         .ValueGeneratedOnAdd()
                         .HasColumnType("int")
-                        .HasDefaultValue(1)
-                        .HasAnnotation("Relational:DefaultConstraintName", "DF_VendorProducts_DeliveryDays");
+                        .HasDefaultValue(1, "DF_VendorProducts_DeliveryDays");
 
                     b.Property<bool>("IsActive")
                         .ValueGeneratedOnAdd()
-                        .HasColumnType("tinyint(1)")
-                        .HasDefaultValue(true)
-                        .HasAnnotation("Relational:DefaultConstraintName", "DF_VendorProducts_IsActive_1");
+                        .HasColumnType("bit")
+                        .HasDefaultValue(true, "DF_VendorProducts_IsActive_1");
 
                     b.Property<decimal?>("OverridePrice")
                         .HasColumnType("decimal(18, 4)");
@@ -4584,6 +4689,8 @@ namespace Dotnetable.Migrations.MySql.Migrations
                         .ValueGeneratedOnAdd()
                         .HasColumnType("int");
 
+                    SqlServerPropertyBuilderExtensions.UseIdentityColumn(b.Property<int>("VendorTranslationID"));
+
                     b.Property<string>("LanguageCode")
                         .IsRequired()
                         .HasMaxLength(2)
@@ -4594,7 +4701,7 @@ namespace Dotnetable.Migrations.MySql.Migrations
                     b.Property<string>("Name")
                         .IsRequired()
                         .HasMaxLength(200)
-                        .HasColumnType("varchar(200)");
+                        .HasColumnType("nvarchar(200)");
 
                     b.Property<int>("VendorID")
                         .HasColumnType("int");
@@ -4612,19 +4719,21 @@ namespace Dotnetable.Migrations.MySql.Migrations
                         .ValueGeneratedOnAdd()
                         .HasColumnType("int");
 
+                    SqlServerPropertyBuilderExtensions.UseIdentityColumn(b.Property<int>("WebsiteID"));
+
                     b.Property<bool>("Active")
-                        .HasColumnType("tinyint(1)");
+                        .HasColumnType("bit");
 
                     b.Property<bool>("AllowAllIP")
-                        .HasColumnType("tinyint(1)");
+                        .HasColumnType("bit");
 
                     b.Property<Guid>("AuthCode")
-                        .HasColumnType("char(36)");
+                        .HasColumnType("uniqueidentifier");
 
                     b.Property<string>("BrandName")
                         .IsRequired()
                         .HasMaxLength(60)
-                        .HasColumnType("varchar(60)")
+                        .HasColumnType("nvarchar(60)")
                         .HasComment("show in title of pages");
 
                     b.Property<string>("DefaultCurrencyCode")
@@ -4651,7 +4760,7 @@ namespace Dotnetable.Migrations.MySql.Migrations
                         .HasColumnType("int");
 
                     b.Property<bool>("IsHub")
-                        .HasColumnType("tinyint(1)");
+                        .HasColumnType("bit");
 
                     b.Property<int?>("LogoFileID")
                         .HasColumnType("int");
@@ -4659,7 +4768,7 @@ namespace Dotnetable.Migrations.MySql.Migrations
                     b.Property<string>("Manager")
                         .IsRequired()
                         .HasMaxLength(30)
-                        .HasColumnType("varchar(30)");
+                        .HasColumnType("nvarchar(30)");
 
                     b.Property<string>("Mobile")
                         .IsRequired()
@@ -4673,7 +4782,7 @@ namespace Dotnetable.Migrations.MySql.Migrations
                     b.Property<string>("TradeName")
                         .IsRequired()
                         .HasMaxLength(32)
-                        .HasColumnType("varchar(32)");
+                        .HasColumnType("nvarchar(32)");
 
                     b.Property<string>("WebsiteAddress")
                         .IsRequired()
@@ -4682,7 +4791,7 @@ namespace Dotnetable.Migrations.MySql.Migrations
                         .HasColumnType("varchar(60)");
 
                     b.Property<byte>("WebsiteType")
-                        .HasColumnType("tinyint unsigned");
+                        .HasColumnType("tinyint");
 
                     b.HasKey("WebsiteID");
 
@@ -4701,16 +4810,18 @@ namespace Dotnetable.Migrations.MySql.Migrations
                         .ValueGeneratedOnAdd()
                         .HasColumnType("int");
 
+                    SqlServerPropertyBuilderExtensions.UseIdentityColumn(b.Property<int>("WebsiteCaptchaSettingID"));
+
                     b.Property<byte>("Provider")
-                        .HasColumnType("tinyint unsigned");
+                        .HasColumnType("tinyint");
 
                     b.Property<string>("TurnstileSecretKey")
                         .HasMaxLength(200)
-                        .HasColumnType("varchar(200)");
+                        .HasColumnType("nvarchar(200)");
 
                     b.Property<string>("TurnstileSiteKey")
                         .HasMaxLength(200)
-                        .HasColumnType("varchar(200)");
+                        .HasColumnType("nvarchar(200)");
 
                     b.Property<int>("WebsiteID")
                         .HasColumnType("int");
@@ -4729,8 +4840,10 @@ namespace Dotnetable.Migrations.MySql.Migrations
                         .ValueGeneratedOnAdd()
                         .HasColumnType("int");
 
+                    SqlServerPropertyBuilderExtensions.UseIdentityColumn(b.Property<int>("WebsiteClientID"));
+
                     b.Property<bool>("Active")
-                        .HasColumnType("tinyint(1)");
+                        .HasColumnType("bit");
 
                     b.Property<int?>("AvatarID")
                         .HasColumnType("int");
@@ -4741,7 +4854,7 @@ namespace Dotnetable.Migrations.MySql.Migrations
                         .HasColumnType("varchar(16)");
 
                     b.Property<byte>("ClientLevel")
-                        .HasColumnType("tinyint unsigned");
+                        .HasColumnType("tinyint");
 
                     b.Property<string>("CountryCode")
                         .HasMaxLength(3)
@@ -4754,14 +4867,14 @@ namespace Dotnetable.Migrations.MySql.Migrations
                         .HasColumnType("varchar(60)");
 
                     b.Property<bool?>("Gender")
-                        .HasColumnType("tinyint(1)");
+                        .HasColumnType("bit");
 
                     b.Property<string>("Givenname")
                         .HasMaxLength(42)
-                        .HasColumnType("varchar(42)");
+                        .HasColumnType("nvarchar(42)");
 
                     b.Property<Guid>("HashKey")
-                        .HasColumnType("char(36)");
+                        .HasColumnType("uniqueidentifier");
 
                     b.Property<string>("Password")
                         .HasMaxLength(256)
@@ -4773,7 +4886,7 @@ namespace Dotnetable.Migrations.MySql.Migrations
 
                     b.Property<string>("Surname")
                         .HasMaxLength(42)
-                        .HasColumnType("varchar(42)");
+                        .HasColumnType("nvarchar(42)");
 
                     b.Property<int>("WebsiteID")
                         .HasColumnType("int");
@@ -4793,10 +4906,12 @@ namespace Dotnetable.Migrations.MySql.Migrations
                         .ValueGeneratedOnAdd()
                         .HasColumnType("int");
 
+                    SqlServerPropertyBuilderExtensions.UseIdentityColumn(b.Property<int>("WebsiteClientAddressID"));
+
                     b.Property<string>("AddressLine")
                         .IsRequired()
                         .HasMaxLength(500)
-                        .HasColumnType("varchar(500)");
+                        .HasColumnType("nvarchar(500)");
 
                     b.Property<int?>("CityId")
                         .HasColumnType("int");
@@ -4805,7 +4920,7 @@ namespace Dotnetable.Migrations.MySql.Migrations
                         .HasColumnType("int");
 
                     b.Property<bool>("IsDefault")
-                        .HasColumnType("tinyint(1)");
+                        .HasColumnType("bit");
 
                     b.Property<decimal?>("Latitude")
                         .HasColumnType("decimal(9, 6)");
@@ -4815,19 +4930,19 @@ namespace Dotnetable.Migrations.MySql.Migrations
 
                     b.Property<string>("Phone")
                         .HasMaxLength(20)
-                        .HasColumnType("varchar(20)");
+                        .HasColumnType("nvarchar(20)");
 
                     b.Property<string>("PostalCode")
                         .HasMaxLength(20)
-                        .HasColumnType("varchar(20)");
+                        .HasColumnType("nvarchar(20)");
 
                     b.Property<string>("ReceiverName")
                         .HasMaxLength(200)
-                        .HasColumnType("varchar(200)");
+                        .HasColumnType("nvarchar(200)");
 
                     b.Property<string>("Title")
                         .HasMaxLength(100)
-                        .HasColumnType("varchar(100)");
+                        .HasColumnType("nvarchar(100)");
 
                     b.Property<int>("WebsiteClientID")
                         .HasColumnType("int");
@@ -4848,6 +4963,8 @@ namespace Dotnetable.Migrations.MySql.Migrations
                     b.Property<int>("WebsiteClientForgetPasswordID")
                         .ValueGeneratedOnAdd()
                         .HasColumnType("int");
+
+                    SqlServerPropertyBuilderExtensions.UseIdentityColumn(b.Property<int>("WebsiteClientForgetPasswordID"));
 
                     b.Property<string>("ForgetKey")
                         .IsRequired()
@@ -4874,21 +4991,21 @@ namespace Dotnetable.Migrations.MySql.Migrations
                         .ValueGeneratedOnAdd()
                         .HasColumnType("int");
 
+                    SqlServerPropertyBuilderExtensions.UseIdentityColumn(b.Property<int>("WebsiteFeatureID"));
+
                     b.Property<DateTime>("CreatedAt")
                         .ValueGeneratedOnAdd()
                         .HasPrecision(0)
-                        .HasColumnType("datetime(0)")
-                        .HasDefaultValueSql("(sysutcdatetime())")
-                        .HasAnnotation("Relational:DefaultConstraintName", "DF_WebsiteFeatures_CreatedAt");
+                        .HasColumnType("datetime2(0)")
+                        .HasDefaultValueSql("(sysutcdatetime())", "DF_WebsiteFeatures_CreatedAt");
 
                     b.Property<bool>("Enabled")
                         .ValueGeneratedOnAdd()
-                        .HasColumnType("tinyint(1)")
-                        .HasDefaultValue(true)
-                        .HasAnnotation("Relational:DefaultConstraintName", "DF_WebsiteFeatures_Enabled");
+                        .HasColumnType("bit")
+                        .HasDefaultValue(true, "DF_WebsiteFeatures_Enabled");
 
                     b.Property<byte>("FeatureKey")
-                        .HasColumnType("tinyint unsigned");
+                        .HasColumnType("tinyint");
 
                     b.Property<int>("WebsiteID")
                         .HasColumnType("int");
@@ -4907,8 +5024,10 @@ namespace Dotnetable.Migrations.MySql.Migrations
                         .ValueGeneratedOnAdd()
                         .HasColumnType("int");
 
+                    SqlServerPropertyBuilderExtensions.UseIdentityColumn(b.Property<int>("WebsiteIPID"));
+
                     b.Property<bool>("Active")
-                        .HasColumnType("tinyint(1)");
+                        .HasColumnType("bit");
 
                     b.Property<int?>("CidrPrefix")
                         .HasColumnType("int");
@@ -4921,7 +5040,7 @@ namespace Dotnetable.Migrations.MySql.Migrations
                     b.Property<string>("Label")
                         .IsRequired()
                         .HasMaxLength(30)
-                        .HasColumnType("varchar(30)");
+                        .HasColumnType("nvarchar(30)");
 
                     b.Property<string>("StartIP")
                         .IsRequired()
@@ -4945,39 +5064,38 @@ namespace Dotnetable.Migrations.MySql.Migrations
                         .ValueGeneratedOnAdd()
                         .HasColumnType("int");
 
+                    SqlServerPropertyBuilderExtensions.UseIdentityColumn(b.Property<int>("WebsiteRedirectID"));
+
                     b.Property<DateTime>("CreatedAt")
                         .ValueGeneratedOnAdd()
                         .HasColumnType("datetime")
-                        .HasDefaultValueSql("(sysutcdatetime())")
-                        .HasAnnotation("Relational:DefaultConstraintName", "DF_WebsiteRedirects_CreatedAt");
+                        .HasDefaultValueSql("(sysutcdatetime())", "DF_WebsiteRedirects_CreatedAt");
 
                     b.Property<int>("HitCount")
                         .HasColumnType("int");
 
                     b.Property<bool>("IsActive")
                         .ValueGeneratedOnAdd()
-                        .HasColumnType("tinyint(1)")
-                        .HasDefaultValue(true)
-                        .HasAnnotation("Relational:DefaultConstraintName", "DF_WebsiteRedirects_IsActive");
+                        .HasColumnType("bit")
+                        .HasDefaultValue(true, "DF_WebsiteRedirects_IsActive");
 
                     b.Property<bool>("IsRegex")
-                        .HasColumnType("tinyint(1)");
+                        .HasColumnType("bit");
 
                     b.Property<string>("SourcePath")
                         .IsRequired()
                         .HasMaxLength(500)
-                        .HasColumnType("varchar(500)");
+                        .HasColumnType("nvarchar(500)");
 
                     b.Property<int>("StatusCode")
                         .ValueGeneratedOnAdd()
                         .HasColumnType("int")
-                        .HasDefaultValue(301)
-                        .HasAnnotation("Relational:DefaultConstraintName", "DF_WebsiteRedirects_StatusCode");
+                        .HasDefaultValue(301, "DF_WebsiteRedirects_StatusCode");
 
                     b.Property<string>("TargetPath")
                         .IsRequired()
                         .HasMaxLength(500)
-                        .HasColumnType("varchar(500)");
+                        .HasColumnType("nvarchar(500)");
 
                     b.Property<int>("WebsiteID")
                         .HasColumnType("int");
@@ -4995,8 +5113,10 @@ namespace Dotnetable.Migrations.MySql.Migrations
                         .ValueGeneratedOnAdd()
                         .HasColumnType("int");
 
+                    SqlServerPropertyBuilderExtensions.UseIdentityColumn(b.Property<int>("WebsiteScriptID"));
+
                     b.Property<bool>("Active")
-                        .HasColumnType("tinyint(1)");
+                        .HasColumnType("bit");
 
                     b.Property<DateTime>("LogTime")
                         .HasColumnType("datetime");
@@ -5008,18 +5128,18 @@ namespace Dotnetable.Migrations.MySql.Migrations
                         .HasColumnType("varchar(50)");
 
                     b.Property<byte?>("Priority")
-                        .HasColumnType("tinyint unsigned");
+                        .HasColumnType("tinyint");
 
                     b.Property<string>("RawContent")
                         .IsRequired()
                         .HasMaxLength(4000)
-                        .HasColumnType("varchar(4000)");
+                        .HasColumnType("nvarchar(4000)");
 
                     b.Property<byte>("ScriptLoadCondition")
-                        .HasColumnType("tinyint unsigned");
+                        .HasColumnType("tinyint");
 
                     b.Property<byte>("ScriptPosition")
-                        .HasColumnType("tinyint unsigned");
+                        .HasColumnType("tinyint");
 
                     b.Property<int>("WebsiteID")
                         .HasColumnType("int");
@@ -5037,13 +5157,15 @@ namespace Dotnetable.Migrations.MySql.Migrations
                         .ValueGeneratedOnAdd()
                         .HasColumnType("int");
 
+                    SqlServerPropertyBuilderExtensions.UseIdentityColumn(b.Property<int>("WebsiteSeoSettingID"));
+
                     b.Property<string>("CustomRobotsTxt")
                         .IsRequired()
-                        .HasColumnType("longtext");
+                        .HasColumnType("nvarchar(max)");
 
                     b.Property<string>("DefaultMetaDescription")
                         .HasMaxLength(158)
-                        .HasColumnType("varchar(158)");
+                        .HasColumnType("nvarchar(158)");
 
                     b.Property<string>("DefaultMetaTitle")
                         .HasMaxLength(40)
@@ -5052,19 +5174,18 @@ namespace Dotnetable.Migrations.MySql.Migrations
                         .HasComment("Page | {SiteName}");
 
                     b.Property<bool>("RobotsEnabled")
-                        .HasColumnType("tinyint(1)");
+                        .HasColumnType("bit");
 
                     b.Property<bool>("SitemapEnabled")
-                        .HasColumnType("tinyint(1)");
+                        .HasColumnType("bit");
 
                     b.Property<string>("TitleSeparator")
                         .ValueGeneratedOnAdd()
                         .HasMaxLength(3)
                         .IsUnicode(false)
                         .HasColumnType("char(3)")
-                        .HasDefaultValue(" | ")
                         .IsFixedLength()
-                        .HasAnnotation("Relational:DefaultConstraintName", "DF_WebsiteSeoSettings_TitleSeparator");
+                        .HasDefaultValue(" | ", "DF_WebsiteSeoSettings_TitleSeparator");
 
                     b.Property<int>("WebsiteID")
                         .HasColumnType("int");
@@ -5082,6 +5203,8 @@ namespace Dotnetable.Migrations.MySql.Migrations
                         .ValueGeneratedOnAdd()
                         .HasColumnType("int");
 
+                    SqlServerPropertyBuilderExtensions.UseIdentityColumn(b.Property<int>("WebsiteSocialLinkID"));
+
                     b.Property<string>("SocialIcon")
                         .HasMaxLength(64)
                         .IsUnicode(false)
@@ -5089,15 +5212,15 @@ namespace Dotnetable.Migrations.MySql.Migrations
 
                     b.Property<string>("SocialName")
                         .HasMaxLength(64)
-                        .HasColumnType("varchar(64)");
+                        .HasColumnType("nvarchar(64)");
 
                     b.Property<byte>("SocialType")
-                        .HasColumnType("tinyint unsigned");
+                        .HasColumnType("tinyint");
 
                     b.Property<string>("UrlAddress")
                         .IsRequired()
                         .HasMaxLength(80)
-                        .HasColumnType("varchar(80)");
+                        .HasColumnType("nvarchar(80)");
 
                     b.Property<int>("WebsiteID")
                         .HasColumnType("int");
@@ -5115,8 +5238,10 @@ namespace Dotnetable.Migrations.MySql.Migrations
                         .ValueGeneratedOnAdd()
                         .HasColumnType("int");
 
+                    SqlServerPropertyBuilderExtensions.UseIdentityColumn(b.Property<int>("WebsiteStorageSettingsID"));
+
                     b.Property<bool>("Active")
-                        .HasColumnType("tinyint(1)");
+                        .HasColumnType("bit");
 
                     b.Property<string>("AllowedExtensions")
                         .HasMaxLength(710)
@@ -5124,7 +5249,7 @@ namespace Dotnetable.Migrations.MySql.Migrations
                         .HasColumnType("varchar(710)");
 
                     b.Property<bool>("AutoGenerateThumbnails")
-                        .HasColumnType("tinyint(1)");
+                        .HasColumnType("bit");
 
                     b.Property<long>("MaxFileSizeKB")
                         .HasColumnType("bigint");
@@ -5135,7 +5260,7 @@ namespace Dotnetable.Migrations.MySql.Migrations
                     b.Property<string>("StorageSettingsJSON")
                         .IsRequired()
                         .HasMaxLength(2000)
-                        .HasColumnType("varchar(2000)");
+                        .HasColumnType("nvarchar(2000)");
 
                     b.Property<int>("WebsiteID")
                         .HasColumnType("int");
@@ -5153,39 +5278,40 @@ namespace Dotnetable.Migrations.MySql.Migrations
                         .ValueGeneratedOnAdd()
                         .HasColumnType("int");
 
+                    SqlServerPropertyBuilderExtensions.UseIdentityColumn(b.Property<int>("WebsiteThemeID"));
+
                     b.Property<string>("Author")
                         .HasMaxLength(100)
-                        .HasColumnType("varchar(100)");
+                        .HasColumnType("nvarchar(100)");
 
                     b.Property<DateTime>("CreatedAt")
                         .ValueGeneratedOnAdd()
                         .HasColumnType("datetime")
-                        .HasDefaultValueSql("(sysutcdatetime())")
-                        .HasAnnotation("Relational:DefaultConstraintName", "DF_WebsiteThemes_CreatedAt");
+                        .HasDefaultValueSql("(sysutcdatetime())", "DF_WebsiteThemes_CreatedAt");
 
                     b.Property<string>("Description")
                         .HasMaxLength(500)
-                        .HasColumnType("varchar(500)");
+                        .HasColumnType("nvarchar(500)");
 
                     b.Property<bool>("HasScreenshot")
-                        .HasColumnType("tinyint(1)");
+                        .HasColumnType("bit");
 
                     b.Property<bool>("IsActive")
-                        .HasColumnType("tinyint(1)");
+                        .HasColumnType("bit");
 
                     b.Property<string>("Name")
                         .IsRequired()
                         .HasMaxLength(100)
-                        .HasColumnType("varchar(100)");
+                        .HasColumnType("nvarchar(100)");
 
                     b.Property<string>("Slug")
                         .IsRequired()
                         .HasMaxLength(64)
-                        .HasColumnType("varchar(64)");
+                        .HasColumnType("nvarchar(64)");
 
                     b.Property<string>("Version")
                         .HasMaxLength(50)
-                        .HasColumnType("varchar(50)");
+                        .HasColumnType("nvarchar(50)");
 
                     b.Property<int>("WebsiteID")
                         .HasColumnType("int");
@@ -5206,26 +5332,25 @@ namespace Dotnetable.Migrations.MySql.Migrations
                         .ValueGeneratedOnAdd()
                         .HasColumnType("int");
 
+                    SqlServerPropertyBuilderExtensions.UseIdentityColumn(b.Property<int>("WebsiteWatermarkSettingID"));
+
                     b.Property<bool>("Enabled")
-                        .HasColumnType("tinyint(1)");
+                        .HasColumnType("bit");
 
                     b.Property<int>("Opacity")
                         .ValueGeneratedOnAdd()
                         .HasColumnType("int")
-                        .HasDefaultValue(80)
-                        .HasAnnotation("Relational:DefaultConstraintName", "DF_WebsiteWatermarkSettings_Opacity");
+                        .HasDefaultValue(80, "DF_WebsiteWatermarkSettings_Opacity");
 
                     b.Property<byte>("Position")
                         .ValueGeneratedOnAdd()
-                        .HasColumnType("tinyint unsigned")
-                        .HasDefaultValue((byte)9)
-                        .HasAnnotation("Relational:DefaultConstraintName", "DF_WebsiteWatermarkSettings_Position");
+                        .HasColumnType("tinyint")
+                        .HasDefaultValue((byte)9, "DF_WebsiteWatermarkSettings_Position");
 
                     b.Property<int>("SizePercent")
                         .ValueGeneratedOnAdd()
                         .HasColumnType("int")
-                        .HasDefaultValue(20)
-                        .HasAnnotation("Relational:DefaultConstraintName", "DF_WebsiteWatermarkSettings_SizePercent");
+                        .HasDefaultValue(20, "DF_WebsiteWatermarkSettings_SizePercent");
 
                     b.Property<int?>("WatermarkFileID")
                         .HasColumnType("int");
@@ -5248,12 +5373,13 @@ namespace Dotnetable.Migrations.MySql.Migrations
                         .ValueGeneratedOnAdd()
                         .HasColumnType("int");
 
+                    SqlServerPropertyBuilderExtensions.UseIdentityColumn(b.Property<int>("WishlistID"));
+
                     b.Property<DateTime>("CreatedAt")
                         .ValueGeneratedOnAdd()
                         .HasPrecision(0)
-                        .HasColumnType("datetime(0)")
-                        .HasDefaultValueSql("(sysutcdatetime())")
-                        .HasAnnotation("Relational:DefaultConstraintName", "DF_Wishlists_CreatedAt");
+                        .HasColumnType("datetime2(0)")
+                        .HasDefaultValueSql("(sysutcdatetime())", "DF_Wishlists_CreatedAt");
 
                     b.Property<int>("WebsiteClientID")
                         .HasColumnType("int");
@@ -5277,12 +5403,13 @@ namespace Dotnetable.Migrations.MySql.Migrations
                         .ValueGeneratedOnAdd()
                         .HasColumnType("int");
 
+                    SqlServerPropertyBuilderExtensions.UseIdentityColumn(b.Property<int>("WishlistItemID"));
+
                     b.Property<DateTime>("AddedAt")
                         .ValueGeneratedOnAdd()
                         .HasPrecision(0)
-                        .HasColumnType("datetime(0)")
-                        .HasDefaultValueSql("(sysutcdatetime())")
-                        .HasAnnotation("Relational:DefaultConstraintName", "DF_WishlistItems_AddedAt");
+                        .HasColumnType("datetime2(0)")
+                        .HasDefaultValueSql("(sysutcdatetime())", "DF_WishlistItems_AddedAt");
 
                     b.Property<int>("ProductVariantID")
                         .HasColumnType("int");

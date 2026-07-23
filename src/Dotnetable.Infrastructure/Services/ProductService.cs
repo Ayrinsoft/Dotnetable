@@ -81,8 +81,7 @@ public class ProductService : IProductService
             .Include(p => p.ProductMedia).ThenInclude(m => m.MediaSet).ThenInclude(ms => ms.MediaSetItems).ThenInclude(i => i.File)
             .Include(p => p.ProductAttributeValues).ThenInclude(v => v.AttributeDefinition)
             .Include(p => p.ProductAttributeValues).ThenInclude(v => v.AttributeOption)
-            .Include(p => p.ProductContentSections).ThenInclude(s => s.ProductContentSectionTranslations)
-            .Include(p => p.ProductContentSections).ThenInclude(s => s.File)
+
             .Include(p => p.ProductWarnings).ThenInclude(w => w.ProductWarningTranslations)
             .Include(p => p.ProductRelationProducts).ThenInclude(r => r.RelatedProduct)
             .Include(p => p.FeaturedImageFile)
@@ -121,7 +120,6 @@ public class ProductService : IProductService
             .Include(p => p.ProductCategoryMaps)
             .Include(p => p.ProductMedia)
             .Include(p => p.ProductAttributeValues)
-            .Include(p => p.ProductContentSections)
             .Include(p => p.ProductWarnings)
             .Include(p => p.ProductRelationProducts)
             .Include(p => p.ProductRelationRelatedProducts)
@@ -135,7 +133,6 @@ public class ProductService : IProductService
         _context.ProductRelations.RemoveRange(product.ProductRelationProducts);
         _context.ProductRelations.RemoveRange(product.ProductRelationRelatedProducts);
         _context.ProductWarnings.RemoveRange(product.ProductWarnings);
-        _context.ProductContentSections.RemoveRange(product.ProductContentSections);
         _context.ProductAttributeValues.RemoveRange(product.ProductAttributeValues);
         _context.ProductMedia.RemoveRange(product.ProductMedia);
         _context.ProductCategoryMaps.RemoveRange(product.ProductCategoryMaps);
@@ -181,12 +178,14 @@ public class ProductService : IProductService
                     Title = t.Title.Trim(),
                     Slug = slug,
                     ShortDescription = t.ShortDescription,
+                    Content = t.Content,
                 });
             else
             {
                 current.Title = t.Title.Trim();
                 current.Slug = slug;
                 current.ShortDescription = t.ShortDescription;
+                current.Content = t.Content;
             }
         }
 
@@ -360,50 +359,6 @@ public class ProductService : IProductService
                 current.NumericValue = v.NumericValue;
                 current.IsFeatured = v.IsFeatured;
                 current.SortOrder = sortOrder++;
-            }
-        }
-
-        await _context.SaveChangesAsync(ct);
-    }
-
-    // ── Content sections ─────────────────────────────────────────────────
-
-    public async Task SetContentSectionsAsync(int productId, IReadOnlyList<ProductContentSection> sections, CancellationToken ct = default)
-    {
-        var existing = await _context.ProductContentSections
-            .Include(s => s.ProductContentSectionTranslations)
-            .Where(s => s.ProductID == productId).ToListAsync(ct);
-        var wantedIds = sections.Where(s => s.ProductContentSectionID != 0).Select(s => s.ProductContentSectionID).ToHashSet();
-
-        var toRemove = existing.Where(s => !wantedIds.Contains(s.ProductContentSectionID)).ToList();
-        foreach (var r in toRemove)
-            _context.ProductContentSectionTranslations.RemoveRange(r.ProductContentSectionTranslations);
-        _context.ProductContentSections.RemoveRange(toRemove);
-
-        var sortOrder = 0;
-        foreach (var s in sections)
-        {
-            if (s.ProductContentSectionID == 0)
-                _context.ProductContentSections.Add(new ProductContentSection
-                {
-                    ProductID = productId,
-                    SectionType = s.SectionType,
-                    HtmlContent = s.HtmlContent,
-                    FileId = s.FileId,
-                    MediaSetID = s.MediaSetID,
-                    SortOrder = sortOrder++,
-                    IsActive = s.IsActive,
-                });
-            else
-            {
-                var current = existing.FirstOrDefault(x => x.ProductContentSectionID == s.ProductContentSectionID);
-                if (current is null) continue;
-                current.SectionType = s.SectionType;
-                current.HtmlContent = s.HtmlContent;
-                current.FileId = s.FileId;
-                current.MediaSetID = s.MediaSetID;
-                current.SortOrder = sortOrder++;
-                current.IsActive = s.IsActive;
             }
         }
 
@@ -597,8 +552,6 @@ public class ProductService : IProductService
             .Include(p => p.ProductAttributeValues).ThenInclude(v => v.AttributeDefinition).ThenInclude(a => a.AttributeDefinitionTranslations)
             .Include(p => p.ProductAttributeValues).ThenInclude(v => v.AttributeOption).ThenInclude(o => o!.AttributeOptionTranslations)
             .Include(p => p.ProductAttributeValues).ThenInclude(v => v.ProductAttributeValueTranslations)
-            .Include(p => p.ProductContentSections).ThenInclude(s => s.ProductContentSectionTranslations)
-            .Include(p => p.ProductContentSections).ThenInclude(s => s.File)
             .Include(p => p.ProductWarnings).ThenInclude(w => w.ProductWarningTranslations)
             .Include(p => p.ProductRelationProducts).ThenInclude(r => r.RelatedProduct).ThenInclude(rp => rp.FeaturedImageFile)
             .Include(p => p.ProductRelationProducts).ThenInclude(r => r.RelatedProduct).ThenInclude(rp => rp.ProductVariants)
@@ -750,14 +703,6 @@ public class ProductService : IProductService
             IsFeatured = a.IsFeatured,
         }).ToList();
 
-        var contentSections = p.ProductContentSections.Where(s => s.IsActive).OrderBy(s => s.SortOrder).Select(s => new ProductContentSectionDto
-        {
-            ProductContentSectionID = s.ProductContentSectionID, SectionType = s.SectionType,
-            HtmlContent = LocalizedHtml(s, lang),
-            FileUrl = s.File?.ThumbnailCDN ?? s.File?.CNDUrl,
-            MediaSetID = s.MediaSetID, SortOrder = s.SortOrder,
-        }).ToList();
-
         var warnings = p.ProductWarnings.Where(w => w.IsActive).Select(w => new ProductWarningDto
         {
             ProductWarningID = w.ProductWarningID, Severity = w.Severity, Text = LocalizedWarningText(w, lang),
@@ -781,7 +726,8 @@ public class ProductService : IProductService
             FeaturedImageUrl = summary.FeaturedImageUrl, BrandName = summary.BrandName, DefaultSku = summary.DefaultSku,
             MinPrice = summary.MinPrice, AvgRating = summary.AvgRating, RatingCount = summary.RatingCount, HasVariants = summary.HasVariants,
             Categories = categories, Variants = variants, Attributes = attributes,
-            ContentSections = contentSections, Warnings = warnings, RelatedProducts = related, GalleryImageUrls = gallery,
+            Content = LocalizedContent(p, lang),
+            Warnings = warnings, RelatedProducts = related, GalleryImageUrls = gallery,
         };
     }
 
@@ -845,15 +791,15 @@ public class ProductService : IProductService
         return a.CustomValue;
     }
 
-    private static string? LocalizedHtml(ProductContentSection s, string? lang)
+    private static string? LocalizedContent(Product p, string? lang)
     {
         if (!string.IsNullOrWhiteSpace(lang))
         {
-            var t = s.ProductContentSectionTranslations.FirstOrDefault(x =>
+            var t = p.ProductTranslations.FirstOrDefault(x =>
                 string.Equals(x.LanguageCode, lang, StringComparison.OrdinalIgnoreCase));
-            if (t is not null && !string.IsNullOrWhiteSpace(t.HtmlContent)) return t.HtmlContent;
+            if (t is not null && !string.IsNullOrWhiteSpace(t.Content)) return t.Content;
         }
-        return s.HtmlContent;
+        return p.Content;
     }
 
     private static string LocalizedWarningText(ProductWarning w, string? lang)

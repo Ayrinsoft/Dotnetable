@@ -90,9 +90,9 @@
             </div>
         </div>
 
-        @foreach (var section in Model.ContentSections)
+        @if (!string.IsNullOrWhiteSpace(Model.Content))
         {
-            <div class="mt-5">@Html.Raw(section.HtmlContent)</div>
+            <div class="mt-5 product-content">@Html.Raw(Model.Content)</div>
         }
 
         @if (Model.RelatedProducts.Count > 0)

@@ -278,48 +278,43 @@ else
                 </div>
             </MudTabPanel>
 
-            <MudTabPanel Text="@L["products.content_sections", "Content"]">
+            <MudTabPanel Text="@L["products.content", "Content"]">
                 <div class="pa-2">
-                    @foreach (var (section, idx) in _contentSections.Select((s, i) => (s, i)))
+                    <MudAlert Severity="Severity.Info" Dense="true" Variant="Variant.Outlined" Class="mb-3">
+                        @L["products.content_hint", "One rich description per product (like posts). Format text and insert images inside the editor — they appear on the product page as written."]
+                    </MudAlert>
+                    <MudStack Row="true" AlignItems="AlignItems.Center" Justify="Justify.SpaceBetween" Class="mb-1">
+                        <MudText Typo="Typo.body2" Color="Color.Secondary">@L["products.content", "Content"]</MudText>
+                        <ContentMediaInsertButton WebsiteId="_websiteId"
+                                                  CurrentHtml="@(Model.Content ?? "")"
+                                                  HtmlChanged="OnMainContentMediaInserted" />
+                    </MudStack>
+                    <CkEditor @key="_mainEditorVersion" Value="@(Model.Content ?? "")" OnValueChanged="@(v => Model.Content = v)" />
+
+                    @if (_languages.Length > 0)
                     {
-                        <MudPaper Elevation="0" Class="border rounded-lg pa-3 mb-2">
-                            <MudGrid Spacing="2" AlignItems="AlignItems.Center">
-                                <MudItem xs="12" sm="2">
-                                    <MudSelect T="byte" @bind-Value="section.SectionType" Variant="Variant.Outlined" Margin="Margin.Dense" Label="@L["products.section_type", "Type"]">
-                                        <MudSelectItem T="byte" Value="(byte)0">@L["products.section_text", "Text"]</MudSelectItem>
-                                        <MudSelectItem T="byte" Value="(byte)1">@L["products.section_image", "Image"]</MudSelectItem>
-                                    </MudSelect>
-                                </MudItem>
-                                @if (section.SectionType == 1)
+                        <MudExpansionPanels Elevation="0" Class="mt-4">
+                            <MudExpansionPanel Text="@L["other_languages", "Other languages"]">
+                                <MudText Typo="Typo.body2" Color="Color.Secondary" Class="mb-2">
+                                    @L["products.content_tr_hint", "Optional localized body. Leave blank to use the default-language content."]
+                                </MudText>
+                                @foreach (var (code, label) in _languages)
                                 {
-                                    <MudItem xs="12" sm="8">
-                                        <MudButton StartIcon="@Icons.Material.Filled.Image" OnClick="@(() => PickContentImageAsync(section))">
-                                            @(section.File?.CNDUrl is null ? L["select_file", "Select a file"] : L["change", "Change"])
-                                        </MudButton>
-                                        @if (section.File?.ThumbnailCDN is not null || section.File?.CNDUrl is not null)
-                                        {
-                                            <img src="@(section.File.ThumbnailCDN ?? section.File.CNDUrl)" style="height:48px; margin-left:8px; border-radius:4px; vertical-align:middle;" />
-                                        }
-                                    </MudItem>
+                                    <MudPaper Elevation="0" Class="pa-3 mb-2 border rounded-lg">
+                                        <MudText Typo="Typo.subtitle2" Class="mb-2">@label</MudText>
+                                        <MudStack Row="true" AlignItems="AlignItems.Center" Justify="Justify.SpaceBetween" Class="mb-1">
+                                            <MudText Typo="Typo.caption" Color="Color.Secondary">@L["products.content", "Content"]</MudText>
+                                            <ContentMediaInsertButton WebsiteId="_websiteId"
+                                                                      CurrentHtml="@TrContent(code)"
+                                                                      HtmlChanged="@(html => OnTranslationContentMediaInserted(code, html))" />
+                                        </MudStack>
+                                        <CkEditor @key="@($"{code}_{TranslationEditorVersion(code)}")"
+                                                  Value="@TrContent(code)" OnValueChanged="@(v => SetTrContent(code, v))" />
+                                    </MudPaper>
                                 }
-                                else
-                                {
-                                    <MudItem xs="12" sm="8">
-                                        <MudTextField @bind-Value="section.HtmlContent" Label="@L["products.html_content", "Content (HTML)"]" Variant="Variant.Outlined" Margin="Margin.Dense" Lines="3" AutoGrow="true" />
-                                    </MudItem>
-                                }
-                                <MudItem xs="6" sm="1">
-                                    <MudCheckBox T="bool" @bind-Value="section.IsActive" Label="@L["active", "Active"]" Color="Color.Primary" />
-                                </MudItem>
-                                <MudItem xs="6" sm="1">
-                                    <MudIconButton Icon="@Icons.Material.Filled.Delete" Color="Color.Error" OnClick="@(() => _contentSections.RemoveAt(idx))" />
-                                </MudItem>
-                            </MudGrid>
-                        </MudPaper>
+                            </MudExpansionPanel>
+                        </MudExpansionPanels>
                     }
-                    <MudButton StartIcon="@Icons.Material.Filled.Add" OnClick="@(() => _contentSections.Add(new ProductContentSection { IsActive = true, SortOrder = _contentSections.Count }))">
-                        @L["products.add_section", "Add section"]
-                    </MudButton>
                 </div>
             </MudTabPanel>
 
@@ -413,7 +408,9 @@ else
     private int _localDigits = 0;
     private bool _hasRate;
     private bool _isUsdSite = true;
-    private readonly Dictionary<string, (string Title, string Slug, string? Short)> _tr = new(StringComparer.OrdinalIgnoreCase);
+    private readonly Dictionary<string, (string Title, string Slug, string? Short, string? Content)> _tr = new(StringComparer.OrdinalIgnoreCase);
+    private int _mainEditorVersion;
+    private readonly Dictionary<string, int> _translationEditorVersions = new(StringComparer.OrdinalIgnoreCase);
     /// <summary>Session-only local (site-currency) amounts while editing. USD on the variant is the persisted source of truth for live storefront pricing.</summary>
     private readonly Dictionary<ProductVariant, decimal> _localPrice = new();
     private readonly Dictionary<ProductVariant, decimal?> _localCompareAt = new();
@@ -421,7 +418,6 @@ else
     private List<(int MediaSetId, FileRecord File)> _gallery = new();
     private List<AttributeDefinition> _nonVariantAttributes = new();
     private Dictionary<int, ProductAttributeValue> _attrValues = new();
-    private List<ProductContentSection> _contentSections = new();
     private List<ProductWarning> _warnings = new();
     private List<ProductRelation> _relatedProducts = new();
     private Dictionary<int, string> _relatedTitles = new();
@@ -456,7 +452,7 @@ else
             if (product.FeaturedImageFileID is int fid)
                 _featuredImage = product.FeaturedImageFile;
             foreach (var t in product.ProductTranslations)
-                _tr[t.LanguageCode] = (t.Title, t.Slug, t.ShortDescription);
+                _tr[t.LanguageCode] = (t.Title, t.Slug, t.ShortDescription, t.Content);
 
             _gallery = product.ProductMedia.OrderBy(m => m.SortOrder)
                 .Select(m => (m.MediaSetID, m.MediaSet.MediaSetItems.OrderBy(i => i.SortOrder).FirstOrDefault()?.File))
@@ -465,7 +461,6 @@ else
                 .ToList();
             foreach (var v in product.ProductAttributeValues)
                 _attrValues[v.AttributeDefinitionID] = v;
-            _contentSections = product.ProductContentSections.OrderBy(s => s.SortOrder).ToList();
             _warnings = product.ProductWarnings.ToList();
             _relatedProducts = product.ProductRelationProducts.ToList();
             foreach (var r in product.ProductRelationProducts)
@@ -708,9 +703,42 @@ else
     private string TrTitle(string c) => _tr.TryGetValue(c, out var v) ? v.Title : string.Empty;
     private string TrSlug(string c) => _tr.TryGetValue(c, out var v) ? v.Slug : string.Empty;
     private string TrShort(string c) => _tr.TryGetValue(c, out var v) ? v.Short ?? string.Empty : string.Empty;
-    private void SetTrTitle(string c, string v) { var cur = _tr.GetValueOrDefault(c); _tr[c] = (v ?? string.Empty, cur.Slug ?? string.Empty, cur.Short); }
-    private void SetTrSlug(string c, string v) { var cur = _tr.GetValueOrDefault(c); _tr[c] = (cur.Title ?? string.Empty, v ?? string.Empty, cur.Short); }
-    private void SetTrShort(string c, string v) { var cur = _tr.GetValueOrDefault(c); _tr[c] = (cur.Title ?? string.Empty, cur.Slug ?? string.Empty, v); }
+    private string TrContent(string c) => _tr.TryGetValue(c, out var v) ? v.Content ?? string.Empty : string.Empty;
+    private void SetTrTitle(string c, string v)
+    {
+        var cur = _tr.GetValueOrDefault(c);
+        _tr[c] = (v ?? string.Empty, cur.Slug ?? string.Empty, cur.Short, cur.Content);
+    }
+    private void SetTrSlug(string c, string v)
+    {
+        var cur = _tr.GetValueOrDefault(c);
+        _tr[c] = (cur.Title ?? string.Empty, v ?? string.Empty, cur.Short, cur.Content);
+    }
+    private void SetTrShort(string c, string v)
+    {
+        var cur = _tr.GetValueOrDefault(c);
+        _tr[c] = (cur.Title ?? string.Empty, cur.Slug ?? string.Empty, v, cur.Content);
+    }
+    private void SetTrContent(string c, string v)
+    {
+        var cur = _tr.GetValueOrDefault(c);
+        _tr[c] = (cur.Title ?? string.Empty, cur.Slug ?? string.Empty, cur.Short, v);
+    }
+
+    private int TranslationEditorVersion(string code) =>
+        _translationEditorVersions.TryGetValue(code, out var v) ? v : 0;
+
+    private void OnMainContentMediaInserted(string html)
+    {
+        Model.Content = html;
+        _mainEditorVersion++;
+    }
+
+    private void OnTranslationContentMediaInserted(string code, string html)
+    {
+        SetTrContent(code, html);
+        _translationEditorVersions[code] = TranslationEditorVersion(code) + 1;
+    }
 
     private async Task PickFeaturedImageAsync()
     {
@@ -760,23 +788,6 @@ else
     private void SetAttrNumeric(int attributeDefinitionId, decimal? value) => GetOrCreateAttrValue(attributeDefinitionId).NumericValue = value;
     private void SetAttrText(int attributeDefinitionId, string? value) => GetOrCreateAttrValue(attributeDefinitionId).CustomValue = value;
     private void SetAttrFeatured(int attributeDefinitionId, bool featured) => GetOrCreateAttrValue(attributeDefinitionId).IsFeatured = featured;
-
-    private async Task PickContentImageAsync(ProductContentSection section)
-    {
-        var parameters = new DialogParameters
-        {
-            [nameof(FilePickerDialog.WebsiteId)] = _websiteId,
-            [nameof(FilePickerDialog.Category)] = FileCategory.Image,
-        };
-        var dialog = await DialogService.ShowAsync<FilePickerDialog>(L["select_file", "Select a file"], parameters,
-            new DialogOptions { MaxWidth = MaxWidth.Medium, FullWidth = true });
-        var result = await dialog.Result;
-        if (result is { Canceled: false, Data: FileRecord file })
-        {
-            section.FileId = file.FileRecordID;
-            section.File = file;
-        }
-    }
 
     private string RelatedTitle(int productId) => _relatedTitles.TryGetValue(productId, out var t) ? t : $"#{productId}";
 
@@ -929,13 +940,13 @@ else
                 {
                     ProductID = Model.ProductID, LanguageCode = kv.Key,
                     Title = kv.Value.Title, Slug = kv.Value.Slug, ShortDescription = kv.Value.Short,
+                    Content = kv.Value.Content,
                 }).ToList());
             var categoryId = _selectedCategory!.ProductCategoryID;
             await ProductService.SetCategoriesAsync(Model.ProductID, new[] { categoryId }, categoryId);
             await ProductService.SetVariantsAsync(Model.ProductID, _variants);
             await ProductService.SetMediaAsync(Model.ProductID, _gallery.Select(g => g.MediaSetId).ToList());
             await ProductService.SetAttributeValuesAsync(Model.ProductID, _attrValues.Values.ToList());
-            await ProductService.SetContentSectionsAsync(Model.ProductID, _contentSections);
             await ProductService.SetWarningsAsync(Model.ProductID, _warnings);
             await ProductService.SetRelatedProductsAsync(Model.ProductID,
                 _relatedProducts.Select(r => (r.RelatedProductID, r.RelationType, r.SortOrder)).ToList());

@@ -164,9 +164,6 @@ public partial class AppDbContext : DbContext
 
     public virtual DbSet<ProductCategoryTranslation> ProductCategoryTranslations { get; set; }
 
-    public virtual DbSet<ProductContentSection> ProductContentSections { get; set; }
-
-    public virtual DbSet<ProductContentSectionTranslation> ProductContentSectionTranslations { get; set; }
 
     public virtual DbSet<ProductMedium> ProductMedia { get; set; }
 
@@ -1916,39 +1913,6 @@ public partial class AppDbContext : DbContext
                 .HasConstraintName("FK_ProductCategoryTranslations_ProductCategories");
         });
 
-        modelBuilder.Entity<ProductContentSection>(entity =>
-        {
-            entity.Property(e => e.IsActive).HasDefaultValue(true, "DF_ProductContentSections_IsActive");
-
-            entity.HasOne(d => d.File).WithMany(p => p.ProductContentSections)
-                .HasForeignKey(d => d.FileId)
-                .HasConstraintName("FK_ProductContentSections_FileRecords");
-
-            entity.HasOne(d => d.MediaSet).WithMany(p => p.ProductContentSections)
-                .HasForeignKey(d => d.MediaSetID)
-                .HasConstraintName("FK_ProductContentSections_MediaSets");
-
-            entity.HasOne(d => d.Product).WithMany(p => p.ProductContentSections)
-                .HasForeignKey(d => d.ProductID)
-                .OnDelete(DeleteBehavior.ClientSetNull)
-                .HasConstraintName("FK_ProductContentSections_Products");
-        });
-
-        modelBuilder.Entity<ProductContentSectionTranslation>(entity =>
-        {
-            entity.HasIndex(e => e.ProductContentSectionID, "IX_ProductContentSectionTranslations_ProductContentSectionID");
-
-            entity.Property(e => e.LanguageCode)
-                .HasMaxLength(2)
-                .IsUnicode(false)
-                .IsFixedLength();
-
-            entity.HasOne(d => d.ProductContentSection).WithMany(p => p.ProductContentSectionTranslations)
-                .HasForeignKey(d => d.ProductContentSectionID)
-                .OnDelete(DeleteBehavior.ClientSetNull)
-                .HasConstraintName("FK_ProductContentSectionTranslations_ProductContentSections");
-        });
-
         modelBuilder.Entity<ProductMedium>(entity =>
         {
             entity.HasKey(e => new { e.ProductID, e.MediaSetID });
@@ -2049,6 +2013,7 @@ public partial class AppDbContext : DbContext
             entity.Property(e => e.ShortDescription).HasMaxLength(1000);
             entity.Property(e => e.Slug).HasMaxLength(300);
             entity.Property(e => e.Title).HasMaxLength(300);
+            // Content is nvarchar(max) / text — no max length
 
             entity.HasOne(d => d.Product).WithMany(p => p.ProductTranslations)
                 .HasForeignKey(d => d.ProductID)

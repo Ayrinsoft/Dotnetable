@@ -5,6 +5,7 @@
     [Title]                NVARCHAR (300)  NOT NULL,
     [Slug]                 NVARCHAR (300)  NOT NULL,
     [ShortDescription]     NVARCHAR (1000) NULL,
+    [Content]              NVARCHAR (MAX)  NULL,
     CONSTRAINT [PK_ProductTranslations] PRIMARY KEY CLUSTERED ([ProductTranslationID] ASC),
     CONSTRAINT [FK_ProductTranslations_Products] FOREIGN KEY ([ProductID]) REFERENCES [dbo].[Products] ([ProductID])
 );
