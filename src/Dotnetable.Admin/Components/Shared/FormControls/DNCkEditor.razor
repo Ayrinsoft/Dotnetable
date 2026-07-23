@@ -1,0 +1,218 @@
+@using System.Text.RegularExpressions
+@using CkEditor5.Blazor
+@using CkEditor5.Blazor.Models
+@inject IPageLocalizer L
+@inject IJSRuntime JS
+@implements IAsyncDisposable
+
+@*
+  Wrapper around CkEditor5.Blazor:
+  - Sets config.language.content from ContentLanguage (fa/ar → typing RTL).
+  - Injects RTL/LTR into the CK toolbar once (dn-ckeditor.js). Direction wrap is done
+    in JS on the live editor; Blazor only stores the resulting HTML.
+
+  Important: never await JS or re-attach on every keystroke — that races the CkEditor
+  Value parameter and causes SetData loops / caret jumping to the start.
+*@
+<div class="dn-ckeditor" @ref="_host">
+    <CkEditor @ref="_editor"
+              Id="@Id"
+              Class="@Class"
+              Value="@Value"
+              OnValueChanged="OnEditorValueChanged"
+              Configuration="@_configuration"
+              IsReadOnly="IsReadOnly" />
+</div>
+
+@code {
+    /// <summary>Language of the content being edited (e.g. site default or a translation code).</summary>
+    [Parameter] public string? ContentLanguage { get; set; }
+
+    [Parameter] public string? Id { get; set; }
+    [Parameter] public string? Class { get; set; }
+    [Parameter] public string Value { get; set; } = "";
+    [Parameter] public EventCallback<string> OnValueChanged { get; set; }
+    [Parameter] public bool IsReadOnly { get; set; }
+
+    private ElementReference _host;
+    private CkEditor? _editor;
+    private DotNetObjectReference<DNCkEditor>? _dotNetRef;
+    private CkEditorConfiguration _configuration = CkEditorConfiguration.Default;
+    private string? _appliedLanguage;
+    private string? _activeDirection;
+    private bool _toolbarAttached;
+
+    private static readonly Regex OuterDirectionDiv = new(
+        @"^\s*<div\b(?=[^>]*\b(?:style\s*=\s*[""'][^""']*\bdirection\s*:\s*(?<dirStyle>rtl|ltr)|dir\s*=\s*[""'](?<dirAttr>rtl|ltr)[""']))[^>]*>\s*(?<inner>[\s\S]*)\s*</div>\s*$",
+        RegexOptions.IgnoreCase | RegexOptions.CultureInvariant | RegexOptions.Compiled);
+
+    protected override void OnParametersSet()
+    {
+        var lang = NormalizeLanguage(ContentLanguage) ?? NormalizeLanguage(L.LanguageCode) ?? "en";
+        if (!string.Equals(_appliedLanguage, lang, StringComparison.OrdinalIgnoreCase)
+            || !_configuration.ContainsKey("language"))
+        {
+            _appliedLanguage = lang;
+            var config = CkEditorConfiguration.Default;
+            config["language"] = new Dictionary<string, string>(StringComparer.OrdinalIgnoreCase)
+            {
+                ["ui"] = "en",
+                ["content"] = lang,
+            };
+            _configuration = config;
+        }
+
+        var detected = DetectDirection(Value);
+        if (detected is not null)
+            _activeDirection = detected;
+    }
+
+    protected override async Task OnAfterRenderAsync(bool firstRender)
+    {
+        // Only attach once. Re-running JS interop on every parent render races typing
+        // and makes CkEditor.Value push stale HTML back via SetData.
+        if (!firstRender || IsReadOnly || _toolbarAttached)
+            return;
+
+        _dotNetRef ??= DotNetObjectReference.Create(this);
+
+        try
+        {
+            await JS.InvokeVoidAsync(
+                "dnCkEditor.attachDirectionToolbar",
+                _host,
+                new
+                {
+                    rtl = "RTL",
+                    ltr = "LTR",
+                    rtlTitle = L["editor.direction_rtl", "Wrap all content right-to-left"],
+                    ltrTitle = L["editor.direction_ltr", "Wrap all content left-to-right"],
+                },
+                _activeDirection ?? "",
+                _dotNetRef);
+            _toolbarAttached = true;
+        }
+        catch
+        {
+            _toolbarAttached = false;
+        }
+    }
+
+    /// <summary>
+    /// Must stay synchronous until the parent model is updated — any await here lets a
+    /// re-render apply a stale Value and CkEditor.SetData jumps the caret to the start.
+    /// </summary>
+    private Task OnEditorValueChanged(string data)
+    {
+        if (DetectDirection(data) is { } d)
+            _activeDirection = d;
+
+        return OnValueChanged.HasDelegate
+            ? OnValueChanged.InvokeAsync(data)
+            : Task.CompletedTask;
+    }
+
+    /// <summary>
+    /// JS already called editor.setData. Only sync the Blazor model (no SetData).
+    /// Skip if HTML is empty or identical to current Value to avoid feedback loops.
+    /// </summary>
+    [JSInvokable]
+    public Task NotifyDirectionApplied(string html, string direction)
+    {
+        direction = direction.Equals("rtl", StringComparison.OrdinalIgnoreCase) ? "rtl" : "ltr";
+        _activeDirection = direction;
+
+        if (string.IsNullOrWhiteSpace(html))
+            return Task.CompletedTask;
+
+        // Same content already bound — do not re-raise (prevents Value→SetData loops).
+        if (string.Equals(html, Value, StringComparison.Ordinal))
+            return Task.CompletedTask;
+
+        return OnValueChanged.HasDelegate
+            ? OnValueChanged.InvokeAsync(html)
+            : Task.CompletedTask;
+    }
+
+    /// <summary>
+    /// Fallback when JS cannot resolve ckeditorInstance.
+    /// </summary>
+    [JSInvokable]
+    public async Task ApplyDirectionFromJs(string direction)
+    {
+        direction = direction.Equals("rtl", StringComparison.OrdinalIgnoreCase) ? "rtl" : "ltr";
+
+        var html = Value ?? "";
+        if (_editor is not null)
+        {
+            try
+            {
+                var live = await _editor.GetData();
+                if (!string.IsNullOrWhiteSpace(live))
+                    html = live;
+            }
+            catch
+            {
+                // keep Value
+            }
+        }
+
+        var inner = UnwrapDirectionWrapper(html);
+        if (string.IsNullOrWhiteSpace(inner))
+            inner = "<p>&nbsp;</p>";
+
+        var wrapped = $"<div dir=\"{direction}\" style=\"direction:{direction}\">{inner}</div>";
+
+        if (string.Equals(wrapped, Value, StringComparison.Ordinal))
+        {
+            _activeDirection = direction;
+            return;
+        }
+
+        if (_editor is not null)
+        {
+            try { await _editor.SetData(wrapped); }
+            catch { /* package interop may fail; parent still gets the HTML */ }
+        }
+
+        _activeDirection = direction;
+
+        if (OnValueChanged.HasDelegate)
+            await OnValueChanged.InvokeAsync(wrapped);
+    }
+
+    private static string? DetectDirection(string? html)
+    {
+        if (string.IsNullOrWhiteSpace(html)) return null;
+        var m = OuterDirectionDiv.Match(html);
+        if (!m.Success) return null;
+        var dir = m.Groups["dirStyle"].Success ? m.Groups["dirStyle"].Value : m.Groups["dirAttr"].Value;
+        return string.IsNullOrEmpty(dir) ? null : dir.ToLowerInvariant();
+    }
+
+    private static string UnwrapDirectionWrapper(string html)
+    {
+        if (string.IsNullOrWhiteSpace(html)) return html ?? "";
+        var m = OuterDirectionDiv.Match(html);
+        return m.Success ? m.Groups["inner"].Value : html;
+    }
+
+    private static string? NormalizeLanguage(string? code)
+    {
+        if (string.IsNullOrWhiteSpace(code)) return null;
+        return code.Trim().ToLowerInvariant();
+    }
+
+    public async ValueTask DisposeAsync()
+    {
+        if (_toolbarAttached)
+        {
+            try { await JS.InvokeVoidAsync("dnCkEditor.dispose", _host); }
+            catch { /* circuit disposed */ }
+        }
+
+        _dotNetRef?.Dispose();
+        _dotNetRef = null;
+        _toolbarAttached = false;
+    }
+}

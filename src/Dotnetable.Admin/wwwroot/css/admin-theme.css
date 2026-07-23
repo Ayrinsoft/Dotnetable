@@ -512,3 +512,20 @@ html, body {
 .dn-category-tree-head .dn-category-tree-col-status { flex: 0 0 96px; text-align: center; }
 .dn-category-tree-head .dn-category-tree-col-actions { flex: 0 0 120px; }
 
+
+/* ---- DNCkEditor direction buttons injected into CK toolbar ---------------- */
+.dn-ck-dir-group {
+    display: inline-flex;
+    align-items: center;
+    gap: 2px;
+}
+.dn-ck-dir-btn.ck-button {
+    min-width: 2.4em;
+    font-weight: 600;
+    font-size: 0.78rem;
+    letter-spacing: 0.02em;
+}
+.dn-ck-dir-btn .ck-button__label {
+    width: auto;
+    display: inline;
+}

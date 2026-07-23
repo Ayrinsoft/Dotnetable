@@ -50,7 +50,10 @@ else if (_model is not null)
                                                   CurrentHtml="@_model.Content"
                                                   HtmlChanged="OnMainContentMediaInserted" />
                     </MudStack>
-                    <CkEditor @key="_editorVersion" Value="@(_model.Content ?? "")" OnValueChanged="@(v => _model!.Content = v)" />
+                    <DNCkEditor @key="_editorVersion"
+                                ContentLanguage="@_defaultLanguageCode"
+                                Value="@(_model.Content ?? "")"
+                                OnValueChanged="@(v => _model!.Content = v)" />
                 </MudPaper>
 
                 @if (_languages.Length > 0)
@@ -81,8 +84,10 @@ else if (_model is not null)
                                                                       CurrentHtml="@t.Content"
                                                                       HtmlChanged="@(html => OnTranslationContentMediaInserted(code, html))" />
                                         </MudStack>
-                                        <CkEditor @key="@($"{code}_{TranslationEditorVersion(code)}")"
-                                                  Value="@(t.Content ?? "")" OnValueChanged="@(v => t.Content = v)" />
+                                        <DNCkEditor @key="@($"{code}_{TranslationEditorVersion(code)}")"
+                                                    ContentLanguage="@(code)"
+                                                    Value="@(t.Content ?? "")"
+                                                    OnValueChanged="@(v => t.Content = v)" />
                                     </MudItem>
                                 </MudGrid>
                             </MudPaper>
@@ -143,6 +148,7 @@ else if (_model is not null)
     private bool _canEdit;
     private bool _saving;
     private int _websiteId;
+    private string _defaultLanguageCode = "en";
     private (string Code, string Label)[] _languages = Array.Empty<(string, string)>();
     private Page? _model;
     private MudForm _form = null!;
@@ -228,7 +234,11 @@ else if (_model is not null)
     private async Task LoadWebsiteContextAsync(int websiteId)
     {
         _allPages = await PageService.GetAllAsync(websiteId);
-        _languages = (await LanguageService.GetOtherActiveForWebsiteAsync(websiteId))
+        var activeLangs = await LanguageService.GetActiveForWebsiteAsync(websiteId);
+        _defaultLanguageCode = activeLangs.FirstOrDefault(l => l.IsDefault)?.LanguageCode
+            ?? activeLangs.FirstOrDefault()?.LanguageCode
+            ?? "en";
+        _languages = activeLangs.Where(l => !l.IsDefault)
             .Select(x => (x.LanguageCode, x.Name)).ToArray();
     }
 

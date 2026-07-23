@@ -51,7 +51,9 @@ else if (_item is not null)
                         </MudGrid>
 
                         <MudText Typo="Typo.body2" Class="mb-1" Color="Color.Secondary">@L["email_templates.body", "HTML Content"]</MudText>
-                        <CkEditor Value="@_item.HtmlBody" OnValueChanged="@(v => _item!.HtmlBody = v)" />
+                        <DNCkEditor ContentLanguage="@_defaultLanguageCode"
+                                    Value="@_item.HtmlBody"
+                                    OnValueChanged="@(v => _item!.HtmlBody = v)" />
                     </div>
 
                     <MudText Typo="Typo.caption" Color="Color.Secondary" Class="mt-2 d-block">
@@ -89,7 +91,9 @@ else if (_item is not null)
                                                       Label="@L["email_templates.subject", "Subject"]"
                                                       Variant="Variant.Outlined" Class="mb-3" Margin="Margin.Dense" />
                                         <MudText Typo="Typo.caption" Class="mb-1" Color="Color.Secondary">@L["email_templates.body", "HTML Content"]</MudText>
-                                        <CkEditor Value="@(t.HtmlBody ?? "")" OnValueChanged="@(v => t.HtmlBody = v)" />
+                                        <DNCkEditor ContentLanguage="@lang.LanguageCode"
+                                                    Value="@(t.HtmlBody ?? "")"
+                                                    OnValueChanged="@(v => t.HtmlBody = v)" />
                                     </div>
                                 </MudPaper>
                             }
@@ -135,6 +139,7 @@ else if (_item is not null)
     private bool _saving;
     private int _websiteId;
     private bool _defaultRtl;
+    private string _defaultLanguageCode = "en";
     private List<Language> _otherLanguages = [];
     private readonly Dictionary<string, TranslationModel> _translations = new(StringComparer.OrdinalIgnoreCase);
 
@@ -171,6 +176,7 @@ else if (_item is not null)
 
         var languages = await LanguageService.GetActiveForWebsiteAsync(_websiteId);
         var defaultLang = languages.FirstOrDefault(l => l.IsDefault) ?? languages.FirstOrDefault();
+        _defaultLanguageCode = defaultLang?.LanguageCode ?? "en";
         _defaultRtl = defaultLang?.RTLDesign == true;
         _otherLanguages = languages.Where(l => !l.IsDefault).ToList();
 
