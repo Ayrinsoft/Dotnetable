@@ -65,7 +65,7 @@ public class ProductService : IProductService
             Status = p.Status,
             IsActive = p.IsActive,
             HasVariants = p.HasVariants,
-            MinPriceUsd = p.ProductVariants.Count == 0 ? null : p.ProductVariants.Min(v => v.OverridePrice ?? v.ReferencePriceUsd),
+            MinPriceUsd = p.ProductVariants.Count == 0 ? null : p.ProductVariants.Min(v => v.ReferencePriceUsd),
             FeaturedImageUrl = p.FeaturedImageFile?.ThumbnailCDN ?? p.FeaturedImageFile?.CNDUrl,
             UpdatedAt = p.UpdatedAt,
         }).ToList();
@@ -466,9 +466,9 @@ public class ProductService : IProductService
         if (!string.IsNullOrWhiteSpace(search))
             q = q.Where(p => p.Title.Contains(search) || p.ProductTranslations.Any(t => t.Title.Contains(search)));
         if (minPriceUsd is decimal min)
-            q = q.Where(p => p.ProductVariants.Any(v => v.IsActive && (v.OverridePrice ?? v.ReferencePriceUsd) >= min));
+            q = q.Where(p => p.ProductVariants.Any(v => v.IsActive && v.ReferencePriceUsd >= min));
         if (maxPriceUsd is decimal max)
-            q = q.Where(p => p.ProductVariants.Any(v => v.IsActive && (v.OverridePrice ?? v.ReferencePriceUsd) <= max));
+            q = q.Where(p => p.ProductVariants.Any(v => v.IsActive && v.ReferencePriceUsd <= max));
 
         var localProducts = await q
             .OrderByDescending(p => p.SortOrder).ThenByDescending(p => p.CreatedAt)
@@ -599,9 +599,9 @@ public class ProductService : IProductService
             if (!string.IsNullOrWhiteSpace(search))
                 q = q.Where(p => p.Title.Contains(search) || p.ProductTranslations.Any(t => t.Title.Contains(search)));
             if (minPriceUsd is decimal min)
-                q = q.Where(p => p.ProductVariants.Any(v => v.IsActive && (v.OverridePrice ?? v.ReferencePriceUsd) >= min));
+                q = q.Where(p => p.ProductVariants.Any(v => v.IsActive && v.ReferencePriceUsd >= min));
             if (maxPriceUsd is decimal max)
-                q = q.Where(p => p.ProductVariants.Any(v => v.IsActive && (v.OverridePrice ?? v.ReferencePriceUsd) <= max));
+                q = q.Where(p => p.ProductVariants.Any(v => v.IsActive && v.ReferencePriceUsd <= max));
 
             var products = await q
                 .OrderByDescending(p => p.SortOrder).ThenByDescending(p => p.CreatedAt)
@@ -618,7 +618,7 @@ public class ProductService : IProductService
     {
         var (title, slug, shortDescription) = LocalizedCore(p, lang);
         var activeVariants = p.ProductVariants.Where(v => v.IsActive).ToList();
-        var minUsd = activeVariants.Count == 0 ? 0m : activeVariants.Min(v => v.OverridePrice ?? v.ReferencePriceUsd);
+        var minUsd = activeVariants.Count == 0 ? 0m : activeVariants.Min(v => v.ReferencePriceUsd);
         var defaultVariant = activeVariants.FirstOrDefault(v => v.IsDefault) ?? activeVariants.FirstOrDefault();
 
         // Host display currency; pricing conversion uses the host website when sold via a vendor.
@@ -645,7 +645,7 @@ public class ProductService : IProductService
         var activeVariants = p.ProductVariants.Where(v => v.IsActive).ToList();
         MoneyDto? minPrice = null;
         if (activeVariants.Count > 0)
-            minPrice = await _currency.ToDisplayAsync(p.WebsiteID, activeVariants.Min(v => v.OverridePrice ?? v.ReferencePriceUsd), currencyCode, ct);
+            minPrice = await _currency.ToDisplayAsync(p.WebsiteID, activeVariants.Min(v => v.ReferencePriceUsd), currencyCode, ct);
 
         return new ProductRefDto
         {
@@ -681,7 +681,7 @@ public class ProductService : IProductService
             VendorProduct? listing = null;
             if (listings is not null)
                 listings.TryGetValue(v.ProductVariantID, out listing);
-            var unitUsd = listing?.OverridePrice ?? listing?.ReferencePriceUsd ?? v.OverridePrice ?? v.ReferencePriceUsd;
+            var unitUsd = listing?.OverridePrice ?? listing?.ReferencePriceUsd ?? v.ReferencePriceUsd;
             var stock = listing is not null
                 ? listing.StockQuantity
                 : v.InventoryItems.Where(i => i.WebsiteID == p.WebsiteID).Sum(i => i.QuantityOnHand - i.QuantityReserved);

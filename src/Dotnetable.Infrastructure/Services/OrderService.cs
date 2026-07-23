@@ -223,7 +223,8 @@ public class OrderService : IOrderService
     {
         if (item.VendorProduct is { } vp)
             return vp.OverridePrice ?? vp.ReferencePriceUsd;
-        return item.ProductVariant.OverridePrice ?? item.ProductVariant.ReferencePriceUsd;
+        // ProductVariant.OverridePrice is display-currency snapshot; USD is always ReferencePriceUsd.
+        return item.ProductVariant.ReferencePriceUsd;
     }
 
     public async Task<Order?> GetByIdAsync(int orderId, int? clientId = null, CancellationToken ct = default)

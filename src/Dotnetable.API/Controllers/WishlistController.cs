@@ -29,7 +29,7 @@ public class WishlistController : BaseController
             Title = i.ProductVariant.Product.Title,
             Sku = i.ProductVariant.Sku,
             ImageUrl = i.ProductVariant.ImageFile?.ThumbnailCDN ?? i.ProductVariant.ImageFile?.CNDUrl,
-            PriceUsd = i.ProductVariant.OverridePrice ?? i.ProductVariant.ReferencePriceUsd,
+            PriceUsd = i.ProductVariant.ReferencePriceUsd,
         }));
     }
 

@@ -69,9 +69,11 @@ public class CartService : ICartService
         foreach (var item in cart.CartItems)
         {
             var variant = item.ProductVariant;
+            // Vendor listings may override in USD. ProductVariant.OverridePrice stores the
+            // display-currency snapshot (not USD); commerce always uses ReferencePriceUsd.
             var unitPriceUsd = item.VendorProduct is { } vp
                 ? (vp.OverridePrice ?? vp.ReferencePriceUsd)
-                : (variant.OverridePrice ?? variant.ReferencePriceUsd);
+                : variant.ReferencePriceUsd;
             var lineTotalUsd = unitPriceUsd * item.Quantity;
             subtotalUsd += lineTotalUsd;
             totalWeight += (variant.Weight ?? 0) * item.Quantity;
@@ -236,7 +238,13 @@ public class CartService : ICartService
             .FirstOrDefaultAsync(c => c.CartID == cartId, ct);
         if (cart is null) return (false, "Cart not found.");
 
-        var subtotalUsd = cart.CartItems.Sum(i => (i.ProductVariant.OverridePrice ?? i.ProductVariant.ReferencePriceUsd) * i.Quantity);
+        var subtotalUsd = cart.CartItems.Sum(i =>
+        {
+            var usd = i.VendorProduct is { } vp
+                ? (vp.OverridePrice ?? vp.ReferencePriceUsd)
+                : i.ProductVariant.ReferencePriceUsd;
+            return usd * i.Quantity;
+        });
         var coupon = await _context.Coupons.FirstOrDefaultAsync(c => c.WebsiteID == websiteId && c.Code == code, ct);
         if (coupon is null) return (false, "Coupon not found.");
 
