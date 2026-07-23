@@ -65,7 +65,7 @@
                     </td>
                     <td>@p.Title <MudText Typo="Typo.caption" Color="Color.Secondary">@p.Slug</MudText></td>
                     <td>@(p.BrandName ?? "-")</td>
-                    <td>@(p.MinPriceUsd?.ToString("0.##") ?? "-")</td>
+                    <td>@FormatMinPrice(p.MinPriceUsd)</td>
                     <td>@(p.IsActive ? L["yes", "Yes"] : L["no", "No"])</td>
                     <td @onclick:stopPropagation="true">
                         @if (_canDelete)
@@ -89,6 +89,10 @@
     private List<Website> _websites = new();
     private List<DNPrerequisiteAlert.Item> _prerequisites = new();
     private GridViewHeaderParameters _grid = new();
+    private string _displayCurrency = "USD";
+    private decimal _usdToCurrency = 1m;
+    private int _localDigits = 2;
+    private bool _isUsdSite = true;
 
     protected override async Task OnInitializedAsync()
     {
@@ -112,7 +116,7 @@
                 new() { ColumnTitle = "", ColumnName = "" },
                 new() { ColumnTitle = L["title", "Title"], ColumnName = nameof(ProductListItemDto.Title), HasSort = true, HasSearch = true },
                 new() { ColumnTitle = L["brand", "Brand"], ColumnName = nameof(ProductListItemDto.BrandName), HasSort = true },
-                new() { ColumnTitle = L["products.min_price", "Min price (USD)"], ColumnName = "" },
+                new() { ColumnTitle = L["products.min_price", "Min price"], ColumnName = "" },
                 new() { ColumnTitle = L["active", "Active"], ColumnName = nameof(ProductListItemDto.IsActive), HasSort = true },
                 new() { ColumnTitle = "", ColumnName = "" },
             }
@@ -136,9 +140,35 @@
         var brands = await BrandService.GetAllAsync(_websiteId);
         var categories = await CategoryService.GetAllAsync(_websiteId);
         var rates = await CurrencyConversion.GetActiveRatesAsync(_websiteId);
+        var rate = rates.FirstOrDefault(r => r.IsDefault) ?? rates.FirstOrDefault();
+        if (rate is null)
+        {
+            _displayCurrency = "USD";
+            _usdToCurrency = 1m;
+            _isUsdSite = true;
+            _localDigits = 2;
+        }
+        else
+        {
+            _displayCurrency = rate.CurrencyCode;
+            _usdToCurrency = rate.USDToCurrency <= 0 ? 1m : rate.USDToCurrency;
+            _isUsdSite = string.Equals(_displayCurrency, "USD", StringComparison.OrdinalIgnoreCase);
+            _localDigits = rate.CurrencyCodeNavigation?.DecimalDigits ?? 0;
+        }
         _prerequisites = ContentPrerequisiteHelper.ForProducts(L, brands.Count, categories.Count, rates.Count);
 
         _loading = false;
+    }
+
+    private string FormatMinPrice(decimal? minUsd)
+    {
+        if (minUsd is null) return "-";
+        if (_isUsdSite)
+            return $"{minUsd.Value.ToString("0.##")} USD";
+
+        var local = Math.Round(minUsd.Value * _usdToCurrency, _localDigits, MidpointRounding.AwayFromZero);
+        var localText = _localDigits == 0 ? local.ToString("N0") : local.ToString($"N{_localDigits}");
+        return $"{localText} {_displayCurrency}";
     }
 
     private async Task DeleteAsync(int productId)
