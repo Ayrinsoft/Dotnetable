@@ -289,7 +289,10 @@ else
                                                   CurrentHtml="@(Model.Content ?? "")"
                                                   HtmlChanged="OnMainContentMediaInserted" />
                     </MudStack>
-                    <CkEditor @key="_mainEditorVersion" Value="@(Model.Content ?? "")" OnValueChanged="@(v => Model.Content = v)" />
+                    <DNCkEditor @key="_mainEditorVersion"
+                                ContentLanguage="@_defaultLanguageCode"
+                                Value="@(Model.Content ?? "")"
+                                OnValueChanged="@(v => Model.Content = v)" />
 
                     @if (_languages.Length > 0)
                     {
@@ -308,8 +311,10 @@ else
                                                                       CurrentHtml="@TrContent(code)"
                                                                       HtmlChanged="@(html => OnTranslationContentMediaInserted(code, html))" />
                                         </MudStack>
-                                        <CkEditor @key="@($"{code}_{TranslationEditorVersion(code)}")"
-                                                  Value="@TrContent(code)" OnValueChanged="@(v => SetTrContent(code, v))" />
+                                        <DNCkEditor @key="@($"{code}_{TranslationEditorVersion(code)}")"
+                                                    ContentLanguage="@(code)"
+                                                    Value="@TrContent(code)"
+                                                    OnValueChanged="@(v => SetTrContent(code, v))" />
                                     </MudPaper>
                                 }
                             </MudExpansionPanel>
@@ -394,6 +399,7 @@ else
     private int _websiteId;
     private int? _memberId;
     private int? _vendorId;
+    private string _defaultLanguageCode = "en";
     private (string Code, string Label)[] _languages = Array.Empty<(string, string)>();
     private Brand? _selectedBrand;
     private ProductCategory? _selectedCategory;
@@ -475,7 +481,11 @@ else
         }
 
         // Master site (website 1) uses per-website language rows like every other site.
-        _languages = (await LanguageService.GetOtherActiveForWebsiteAsync(_websiteId))
+        var activeLangs = await LanguageService.GetActiveForWebsiteAsync(_websiteId);
+        _defaultLanguageCode = activeLangs.FirstOrDefault(l => l.IsDefault)?.LanguageCode
+            ?? activeLangs.FirstOrDefault()?.LanguageCode
+            ?? "en";
+        _languages = activeLangs.Where(l => !l.IsDefault)
             .Select(x => (x.LanguageCode, x.Name)).ToArray();
 
         _brands = await BrandService.GetAllAsync(_websiteId);

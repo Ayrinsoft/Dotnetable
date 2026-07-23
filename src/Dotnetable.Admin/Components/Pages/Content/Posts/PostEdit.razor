@@ -44,7 +44,10 @@ else if (_model is not null)
                                                   CurrentHtml="@_model.Content"
                                                   HtmlChanged="OnMainContentMediaInserted" />
                     </MudStack>
-                    <CkEditor @key="_mainEditorVersion" Value="@(_model.Content ?? "")" OnValueChanged="@(v => _model!.Content = v)" />
+                    <DNCkEditor @key="_mainEditorVersion"
+                                ContentLanguage="@_defaultLanguageCode"
+                                Value="@(_model.Content ?? "")"
+                                OnValueChanged="@(v => _model!.Content = v)" />
                 </MudPaper>
 
                 @if (_languages.Length > 0)
@@ -70,8 +73,10 @@ else if (_model is not null)
                                                                       CurrentHtml="@t.Content"
                                                                       HtmlChanged="@(html => OnTranslationContentMediaInserted(code, html))" />
                                         </MudStack>
-                                        <CkEditor @key="@($"{code}_{TranslationEditorVersion(code)}")"
-                                                  Value="@(t.Content ?? "")" OnValueChanged="@(v => t.Content = v)" />
+                                        <DNCkEditor @key="@($"{code}_{TranslationEditorVersion(code)}")"
+                                                    ContentLanguage="@(code)"
+                                                    Value="@(t.Content ?? "")"
+                                                    OnValueChanged="@(v => t.Content = v)" />
                                     </MudItem>
                                 </MudGrid>
                             </MudPaper>
@@ -168,6 +173,7 @@ else if (_model is not null)
     private bool _saving;
     private int _websiteId;
     private int _memberId;
+    private string _defaultLanguageCode = "en";
     private (string Code, string Label)[] _languages = Array.Empty<(string, string)>();
     private Post? _model;
     private MudForm _form = null!;
@@ -222,7 +228,11 @@ else if (_model is not null)
 
         // Master site (website 1) uses the same per-website language rows as every other site.
         var wid = _model?.WebsiteID ?? _websiteId;
-        _languages = (await LanguageService.GetOtherActiveForWebsiteAsync(wid))
+        var activeLangs = await LanguageService.GetActiveForWebsiteAsync(wid);
+        _defaultLanguageCode = activeLangs.FirstOrDefault(l => l.IsDefault)?.LanguageCode
+            ?? activeLangs.FirstOrDefault()?.LanguageCode
+            ?? "en";
+        _languages = activeLangs.Where(l => !l.IsDefault)
             .Select(x => (x.LanguageCode, x.Name)).ToArray();
         _postTypes = await PostTypeService.GetAllAsync(wid);
         _categories = await CategoryService.GetAllAsync(wid);
