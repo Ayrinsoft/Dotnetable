@@ -1,6 +1,9 @@
 @page "/catalog/products"
 @attribute [Authorize(Policy = RoleKeys.ProductsView)]
 @inject IProductService ProductService
+@inject IBrandService BrandService
+@inject IProductCategoryService CategoryService
+@inject ICurrencyConversionService CurrencyConversion
 @inject IWebsiteService WebsiteService
 @inject AuthenticationStateProvider AuthState
 @inject IDialogService DialogService
@@ -24,12 +27,16 @@
         }
         @if (_canInsert)
         {
-            <MudButton Variant="Variant.Filled" Color="Color.Primary" StartIcon="@Icons.Material.Filled.Add" OnClick="@(() => Nav.NavigateTo("/catalog/products/new"))">
+            <MudButton Variant="Variant.Filled" Color="Color.Primary" StartIcon="@Icons.Material.Filled.Add"
+                       OnClick="@(() => Nav.NavigateTo("/catalog/products/new"))"
+                       Disabled="@(_prerequisites.Count > 0)">
                 @L["products.new", "New Product"]
             </MudButton>
         }
     </MudStack>
 </MudStack>
+
+<DNPrerequisiteAlert Items="_prerequisites" />
 
 <MudPaper Elevation="0" Class="app-card rounded-lg pa-4">
     @if (_loading)
@@ -80,6 +87,7 @@
     private int? _vendorMemberId;
     private List<ProductListItemDto> _items = new();
     private List<Website> _websites = new();
+    private List<DNPrerequisiteAlert.Item> _prerequisites = new();
     private GridViewHeaderParameters _grid = new();
 
     protected override async Task OnInitializedAsync()
@@ -124,6 +132,12 @@
         var result = await ProductService.GetPagedAsync(_websiteId, new ProductFilter(), query, search, _vendorMemberId);
         _items = result.Items.ToList();
         _grid.Pagination.MaxLength = result.TotalCount;
+
+        var brands = await BrandService.GetAllAsync(_websiteId);
+        var categories = await CategoryService.GetAllAsync(_websiteId);
+        var rates = await CurrencyConversion.GetActiveRatesAsync(_websiteId);
+        _prerequisites = ContentPrerequisiteHelper.ForProducts(L, brands.Count, categories.Count, rates.Count);
+
         _loading = false;
     }
 

@@ -6,6 +6,7 @@
 @inject IProductCategoryService CategoryService
 @inject IBrandService BrandService
 @inject IAttributeDefinitionService AttributeDefinitionService
+@inject ICurrencyConversionService CurrencyConversion
 @inject IWebsiteService WebsiteService
 @inject AuthenticationStateProvider AuthState
 @inject IDialogService DialogService
@@ -28,10 +29,12 @@ else
             <MudButton OnClick="@(() => Nav.NavigateTo("/catalog/products"))">@L["back", "Back"]</MudButton>
             @if (_canEdit)
             {
-                <MudButton Variant="Variant.Filled" Color="Color.Primary" OnClick="SaveAsync" Disabled="@_saving">@L["save", "Save"]</MudButton>
+                <MudButton Variant="Variant.Filled" Color="Color.Primary" OnClick="SaveAsync" Disabled="@(_saving || _prerequisites.Count > 0)">@L["save", "Save"]</MudButton>
             }
         </MudStack>
     </MudStack>
+
+    <DNPrerequisiteAlert Items="_prerequisites" />
 
     <MudPaper Elevation="0" Class="app-card rounded-lg pa-4">
         <MudTabs Elevation="0" Rounded="true">
@@ -61,18 +64,25 @@ else
                                 <MudTextField @bind-Value="Model.Slug" Label="@L["slug", "Slug"]" Variant="Variant.Outlined" />
                             </MudItem>
                             <MudItem xs="12" sm="6">
-                                <MudSelect T="int?" @bind-Value="_brandId" Label="@L["brand", "Brand"]" Variant="Variant.Outlined" Clearable="true">
-                                    @foreach (var b in _brands)
-                                    {
-                                        <MudSelectItem T="int?" Value="@((int?)b.BrandID)">@b.Name</MudSelectItem>
-                                    }
-                                </MudSelect>
+                                <MudAutocomplete T="Brand" Value="_selectedBrand" ValueChanged="OnBrandChanged"
+                                                 Label="@L["brand", "Brand"]" Variant="Variant.Outlined"
+                                                 SearchFunc="SearchBrands" ToStringFunc="@(b => b?.Name ?? "")"
+                                                 Clearable="false" ResetValueOnEmptyText="true" CoerceText="false"
+                                                 Required="true"
+                                                 HelperText="@L["products.brand_required_hint", "Required. Type to search brands."]" />
                             </MudItem>
                             <MudItem xs="12" sm="6">
                                 <MudSelect T="byte" @bind-Value="Model.Status" Label="@L["status", "Status"]" Variant="Variant.Outlined">
                                     <MudSelectItem T="byte" Value="(byte)0">@L["products.draft", "Draft"]</MudSelectItem>
                                     <MudSelectItem T="byte" Value="(byte)1">@L["products.published", "Published"]</MudSelectItem>
                                 </MudSelect>
+                            </MudItem>
+                            <MudItem xs="12">
+                                <MudAutocomplete T="ProductCategory" Value="_selectedCategory" ValueChanged="OnCategoryChanged"
+                                                 Label="@L["products.category", "Category"]" Variant="Variant.Outlined"
+                                                 SearchFunc="SearchCategories" ToStringFunc="CategoryPath"
+                                                 Clearable="true" ResetValueOnEmptyText="true" CoerceText="false"
+                                                 HelperText="@L["products.category_hint", "Pick one category. Type to search by name or path (e.g. Digital / Headphones)."]" />
                             </MudItem>
                             <MudItem xs="12">
                                 <MudTextField @bind-Value="Model.ShortDescription" Label="@L["products.short_description", "Short description"]"
@@ -121,17 +131,16 @@ else
                 </MudGrid>
             </MudTabPanel>
 
-            <MudTabPanel Text="@L["products.categories", "Categories"]">
-                <MudList T="int" Class="pa-2">
-                    @foreach (var c in RootCategories())
-                    {
-                        @CategoryNode(c, 0)
-                    }
-                </MudList>
-            </MudTabPanel>
-
             <MudTabPanel Text="@L["products.variants", "Variants"]">
                 <div class="pa-2">
+                    @if (!_isUsdSite && _hasRate)
+                    {
+                        <MudAlert Severity="Severity.Info" Dense="true" Class="mb-3" Variant="Variant.Outlined">
+                            @string.Format(
+                                L["products.price_dual_hint", "Site currency is {0}. Enter the local price; USD is converted with rate 1 USD = {1:0.####} {0}. Both values are saved."],
+                                _displayCurrency, _usdToCurrency)
+                        </MudAlert>
+                    }
                     @foreach (var (v, idx) in _variants.Select((v, i) => (v, i)))
                     {
                         <MudPaper Elevation="0" Class="border rounded-lg pa-3 mb-2">
@@ -139,12 +148,42 @@ else
                                 <MudItem xs="12" sm="2">
                                     <MudTextField T="string" @bind-Value="v.Sku" Label="@L["variants.sku", "SKU"]" Variant="Variant.Outlined" Margin="Margin.Dense" />
                                 </MudItem>
-                                <MudItem xs="6" sm="2">
-                                    <MudNumericField T="decimal" @bind-Value="v.ReferencePriceUsd" Label="@L["variants.price", "Price (USD)"]" Variant="Variant.Outlined" Margin="Margin.Dense" Min="0" />
-                                </MudItem>
-                                <MudItem xs="6" sm="2">
-                                    <MudNumericField T="decimal?" @bind-Value="v.CompareAtPriceUsd" Label="@L["variants.compare_price", "Compare at (USD)"]" Variant="Variant.Outlined" Margin="Margin.Dense" Min="0" />
-                                </MudItem>
+                                @if (!_isUsdSite && _hasRate)
+                                {
+                                    <MudItem xs="6" sm="2">
+                                        <MudNumericField T="decimal" Value="@LocalPrice(v)" ValueChanged="@(val => SetLocalPrice(v, val))"
+                                                         Label="@($"{L["variants.price", "Price"]} ({_displayCurrency})")"
+                                                         Variant="Variant.Outlined" Margin="Margin.Dense" Min="0" />
+                                    </MudItem>
+                                    <MudItem xs="6" sm="2">
+                                        <MudNumericField T="decimal" Value="@v.ReferencePriceUsd" ValueChanged="@(val => SetUsdPrice(v, val))"
+                                                         Label="@L["variants.price_usd", "Price (USD)"]"
+                                                         Variant="Variant.Outlined" Margin="Margin.Dense" Min="0" />
+                                    </MudItem>
+                                    <MudItem xs="6" sm="2">
+                                        <MudNumericField T="decimal?" Value="@LocalCompareAt(v)" ValueChanged="@(val => SetLocalCompareAt(v, val))"
+                                                         Label="@($"{L["variants.compare_price", "Compare at"]} ({_displayCurrency})")"
+                                                         Variant="Variant.Outlined" Margin="Margin.Dense" Min="0" />
+                                    </MudItem>
+                                    <MudItem xs="6" sm="2">
+                                        <MudNumericField T="decimal?" Value="@v.CompareAtPriceUsd" ValueChanged="@(val => SetUsdCompareAt(v, val))"
+                                                         Label="@L["variants.compare_usd", "Compare at (USD)"]"
+                                                         Variant="Variant.Outlined" Margin="Margin.Dense" Min="0" />
+                                    </MudItem>
+                                }
+                                else
+                                {
+                                    <MudItem xs="6" sm="2">
+                                        <MudNumericField T="decimal" @bind-Value="v.ReferencePriceUsd"
+                                                         Label="@L["variants.price", "Price (USD)"]"
+                                                         Variant="Variant.Outlined" Margin="Margin.Dense" Min="0" />
+                                    </MudItem>
+                                    <MudItem xs="6" sm="2">
+                                        <MudNumericField T="decimal?" @bind-Value="v.CompareAtPriceUsd"
+                                                         Label="@L["variants.compare_price", "Compare at (USD)"]"
+                                                         Variant="Variant.Outlined" Margin="Margin.Dense" Min="0" />
+                                    </MudItem>
+                                }
                                 <MudItem xs="6" sm="2">
                                     <MudNumericField T="decimal?" @bind-Value="v.Weight" Label="@L["variants.weight", "Weight (kg)"]" Variant="Variant.Outlined" Margin="Margin.Dense" Min="0" />
                                 </MudItem>
@@ -353,15 +392,21 @@ else
     private int? _memberId;
     private int? _vendorId;
     private (string Code, string Label)[] _languages = Array.Empty<(string, string)>();
-    private int? _brandId;
+    private Brand? _selectedBrand;
+    private ProductCategory? _selectedCategory;
     private Product Model { get; set; } = new() { IsActive = true };
     private FileRecord? _featuredImage;
     private List<Brand> _brands = new();
     private List<ProductCategory> _categories = new();
     private List<ProductVariant> _variants = new();
-    private HashSet<int> _selectedCategoryIds = new();
-    private int? _primaryCategoryId;
+    private List<DNPrerequisiteAlert.Item> _prerequisites = new();
+    private string _displayCurrency = "USD";
+    private decimal _usdToCurrency = 1m;
+    private int _localDigits = 0;
+    private bool _hasRate;
+    private bool _isUsdSite = true;
     private readonly Dictionary<string, (string Title, string Slug, string? Short)> _tr = new(StringComparer.OrdinalIgnoreCase);
+    private readonly Dictionary<ProductVariant, decimal?> _localCompareAt = new();
 
     private List<(int MediaSetId, FileRecord File)> _gallery = new();
     private List<AttributeDefinition> _nonVariantAttributes = new();
@@ -397,10 +442,7 @@ else
             }
             Model = product;
             _websiteId = product.WebsiteID;
-            _brandId = product.BrandID;
             _variants = product.ProductVariants.ToList();
-            _selectedCategoryIds = product.ProductCategoryMaps.Select(m => m.ProductCategoryID).ToHashSet();
-            _primaryCategoryId = product.ProductCategoryMaps.FirstOrDefault(m => m.IsPrimary)?.ProductCategoryID;
             if (product.FeaturedImageFileID is int fid)
                 _featuredImage = product.FeaturedImageFile;
             foreach (var t in product.ProductTranslations)
@@ -431,6 +473,21 @@ else
         _brands = await BrandService.GetAllAsync(_websiteId);
         _categories = await CategoryService.GetAllAsync(_websiteId);
 
+        if (!_isNew)
+        {
+            if (Model.BrandID is int brandId)
+                _selectedBrand = _brands.FirstOrDefault(b => b.BrandID == brandId);
+            var primaryMap = Model.ProductCategoryMaps.FirstOrDefault(m => m.IsPrimary)
+                             ?? Model.ProductCategoryMaps.FirstOrDefault();
+            if (primaryMap is not null)
+                _selectedCategory = _categories.FirstOrDefault(c => c.ProductCategoryID == primaryMap.ProductCategoryID);
+        }
+
+        await LoadCurrencyAsync();
+        SyncVariantLocalPrices();
+
+        _prerequisites = ContentPrerequisiteHelper.ForProducts(L, _brands.Count, _categories.Count, _hasRate ? 1 : 0);
+
         var allAttrs = await AttributeDefinitionService.GetAllAsync(_websiteId);
         var withOptions = new List<AttributeDefinition>();
         foreach (var a in allAttrs.Where(a => !a.IsVariantAttribute && a.Active))
@@ -443,41 +500,148 @@ else
         _loading = false;
     }
 
-    private IEnumerable<ProductCategory> RootCategories() => _categories.Where(c => c.ParentCategoryID is null).OrderBy(c => c.SortOrder);
-    private IEnumerable<ProductCategory> Children(int parentId) => _categories.Where(c => c.ParentCategoryID == parentId).OrderBy(c => c.SortOrder);
-
-    private RenderFragment CategoryNode(ProductCategory c, int depth) => builder =>
+    private async Task LoadCurrencyAsync()
     {
-        builder.OpenComponent<MudListItem<int>>(0);
-        builder.AddAttribute(1, "ChildContent", (RenderFragment)(b =>
+        try
         {
-            b.OpenElement(0, "div");
-            b.AddAttribute(1, "style", $"display:flex;align-items:center;gap:8px;padding-left:{depth * 20}px");
-            b.OpenComponent<MudCheckBox<bool>>(2);
-            b.AddAttribute(3, "Value", _selectedCategoryIds.Contains(c.ProductCategoryID));
-            b.AddAttribute(4, "ValueChanged", EventCallback.Factory.Create<bool>(this, v => ToggleCategory(c.ProductCategoryID, v)));
-            b.CloseComponent();
-            b.OpenComponent<MudRadio<int>>(5);
-            b.AddAttribute(6, "Value", c.ProductCategoryID);
-            b.AddAttribute(7, "Color", Color.Primary);
-            b.CloseComponent();
-            b.OpenElement(8, "span");
-            b.AddContent(9, c.Name);
-            b.CloseElement();
-            b.CloseElement();
-        }));
-        builder.CloseComponent();
-        foreach (var child in Children(c.ProductCategoryID))
-            builder.AddContent(2, CategoryNode(child, depth + 1));
-    };
+            var rates = await CurrencyConversion.GetActiveRatesAsync(_websiteId);
+            var rate = rates.FirstOrDefault(r => r.IsDefault) ?? rates.FirstOrDefault();
+            if (rate is null)
+            {
+                _hasRate = false;
+                _displayCurrency = "USD";
+                _usdToCurrency = 1m;
+                _isUsdSite = true;
+                return;
+            }
 
-    private void ToggleCategory(int categoryId, bool selected)
-    {
-        if (selected) { _selectedCategoryIds.Add(categoryId); _primaryCategoryId ??= categoryId; }
-        else { _selectedCategoryIds.Remove(categoryId); if (_primaryCategoryId == categoryId) _primaryCategoryId = _selectedCategoryIds.FirstOrDefault(); }
+            _hasRate = true;
+            _displayCurrency = rate.CurrencyCode;
+            _usdToCurrency = rate.USDToCurrency <= 0 ? 1m : rate.USDToCurrency;
+            _localDigits = rate.CurrencyCodeNavigation?.DecimalDigits ?? 0;
+            _isUsdSite = string.Equals(_displayCurrency, "USD", StringComparison.OrdinalIgnoreCase);
+        }
+        catch
+        {
+            _hasRate = false;
+            _isUsdSite = true;
+            _displayCurrency = "USD";
+            _usdToCurrency = 1m;
+            _localDigits = 2;
+        }
     }
 
-    private void AddVariant() => _variants.Add(new ProductVariant { IsActive = true, IsDefault = _variants.Count == 0 });
+    private void SyncVariantLocalPrices()
+    {
+        if (_isUsdSite || !_hasRate) return;
+        foreach (var v in _variants)
+        {
+            if (v.OverridePrice is null or 0)
+                v.OverridePrice = RoundLocal(v.ReferencePriceUsd * _usdToCurrency);
+            if (v.CompareAtPriceUsd is decimal cmp)
+                _localCompareAt[v] = RoundLocal(cmp * _usdToCurrency);
+        }
+    }
+
+    private decimal RoundLocal(decimal amount) => Math.Round(amount, _localDigits, MidpointRounding.AwayFromZero);
+    private decimal RoundUsd(decimal amount) => Math.Round(amount, 4, MidpointRounding.AwayFromZero);
+
+    private decimal LocalPrice(ProductVariant v) =>
+        v.OverridePrice ?? (_hasRate && !_isUsdSite ? RoundLocal(v.ReferencePriceUsd * _usdToCurrency) : v.ReferencePriceUsd);
+
+    private decimal? LocalCompareAt(ProductVariant v)
+    {
+        if (_localCompareAt.TryGetValue(v, out var local)) return local;
+        if (v.CompareAtPriceUsd is decimal cmp && _hasRate && !_isUsdSite)
+            return RoundLocal(cmp * _usdToCurrency);
+        return v.CompareAtPriceUsd;
+    }
+
+    private void SetLocalPrice(ProductVariant v, decimal local)
+    {
+        if (local < 0) local = 0;
+        v.OverridePrice = local;
+        v.ReferencePriceUsd = _usdToCurrency == 0 ? 0 : RoundUsd(local / _usdToCurrency);
+    }
+
+    private void SetUsdPrice(ProductVariant v, decimal usd)
+    {
+        if (usd < 0) usd = 0;
+        v.ReferencePriceUsd = usd;
+        if (!_isUsdSite && _hasRate)
+            v.OverridePrice = RoundLocal(usd * _usdToCurrency);
+    }
+
+    private void SetLocalCompareAt(ProductVariant v, decimal? local)
+    {
+        _localCompareAt[v] = local;
+        if (local is null)
+            v.CompareAtPriceUsd = null;
+        else
+            v.CompareAtPriceUsd = _usdToCurrency == 0 ? 0 : RoundUsd(local.Value / _usdToCurrency);
+    }
+
+    private void SetUsdCompareAt(ProductVariant v, decimal? usd)
+    {
+        v.CompareAtPriceUsd = usd;
+        if (usd is null)
+            _localCompareAt[v] = null;
+        else if (!_isUsdSite && _hasRate)
+            _localCompareAt[v] = RoundLocal(usd.Value * _usdToCurrency);
+    }
+
+    private Task<IEnumerable<Brand>> SearchBrands(string value, CancellationToken ct)
+    {
+        IEnumerable<Brand> q = _brands.Where(b => b.IsActive || (_selectedBrand is not null && b.BrandID == _selectedBrand.BrandID))
+            .OrderBy(b => b.Name);
+        if (!string.IsNullOrWhiteSpace(value))
+        {
+            var needle = value.Trim();
+            q = q.Where(b => b.Name.Contains(needle, StringComparison.OrdinalIgnoreCase)
+                             || b.Slug.Contains(needle, StringComparison.OrdinalIgnoreCase));
+        }
+        return Task.FromResult(q);
+    }
+
+    private void OnBrandChanged(Brand? brand) => _selectedBrand = brand;
+
+    private Task<IEnumerable<ProductCategory>> SearchCategories(string value, CancellationToken ct)
+    {
+        IEnumerable<ProductCategory> q = _categories
+            .Where(c => c.IsActive || (_selectedCategory is not null && c.ProductCategoryID == _selectedCategory.ProductCategoryID))
+            .OrderBy(c => CategoryPath(c), StringComparer.OrdinalIgnoreCase);
+        if (!string.IsNullOrWhiteSpace(value))
+        {
+            var needle = value.Trim();
+            q = q.Where(c => c.Name.Contains(needle, StringComparison.OrdinalIgnoreCase)
+                             || c.Slug.Contains(needle, StringComparison.OrdinalIgnoreCase)
+                             || CategoryPath(c).Contains(needle, StringComparison.OrdinalIgnoreCase));
+        }
+        return Task.FromResult(q);
+    }
+
+    private string CategoryPath(ProductCategory? category)
+    {
+        if (category is null) return string.Empty;
+        var byId = _categories.ToDictionary(c => c.ProductCategoryID);
+        var parts = new List<string> { category.Name };
+        var current = category;
+        var guard = 0;
+        while (current.ParentCategoryID is int pid && byId.TryGetValue(pid, out var parent) && guard++ < 64)
+        {
+            parts.Insert(0, parent.Name);
+            current = parent;
+        }
+        return string.Join(" / ", parts);
+    }
+
+    private void OnCategoryChanged(ProductCategory? category) => _selectedCategory = category;
+
+    private void AddVariant()
+    {
+        var v = new ProductVariant { IsActive = true, IsDefault = _variants.Count == 0 };
+        _variants.Add(v);
+    }
 
     private string TrTitle(string c) => _tr.TryGetValue(c, out var v) ? v.Title : string.Empty;
     private string TrSlug(string c) => _tr.TryGetValue(c, out var v) ? v.Slug : string.Empty;
@@ -570,10 +734,55 @@ else
 
     private async Task SaveAsync()
     {
-        if (string.IsNullOrWhiteSpace(Model.Title)) { Snackbar.Add(L["products.title_required", "Title is required."], Severity.Warning); return; }
+        if (_prerequisites.Count > 0)
+        {
+            Snackbar.Add(L["products.prereq_block", "Finish the setup warnings above before saving."], Severity.Warning);
+            return;
+        }
+        if (string.IsNullOrWhiteSpace(Model.Title))
+        {
+            Snackbar.Add(L["products.title_required", "Title is required."], Severity.Warning);
+            return;
+        }
+        if (_selectedBrand is null)
+        {
+            Snackbar.Add(L["products.brand_required", "Brand is required. Select a brand before saving."], Severity.Warning);
+            return;
+        }
+        if (_selectedCategory is null)
+        {
+            Snackbar.Add(L["products.category_required", "Category is required. Select one category before saving."], Severity.Warning);
+            return;
+        }
+        if (!_hasRate)
+        {
+            Snackbar.Add(L["products.rate_required", "Configure an exchange rate before setting product prices."], Severity.Warning);
+            return;
+        }
         if (string.IsNullOrWhiteSpace(Model.Slug)) Model.Slug = Model.Title.Trim();
+
+        // Ensure dual prices are consistent before persist.
+        if (!_isUsdSite)
+        {
+            foreach (var v in _variants)
+            {
+                if (v.OverridePrice is decimal local and > 0)
+                    v.ReferencePriceUsd = RoundUsd(local / _usdToCurrency);
+                else
+                    v.OverridePrice = RoundLocal(v.ReferencePriceUsd * _usdToCurrency);
+
+                if (_localCompareAt.TryGetValue(v, out var localCmp) && localCmp is decimal lc)
+                    v.CompareAtPriceUsd = RoundUsd(lc / _usdToCurrency);
+            }
+        }
+        else
+        {
+            foreach (var v in _variants)
+                v.OverridePrice = null;
+        }
+
         Model.WebsiteID = _websiteId;
-        Model.BrandID = _brandId;
+        Model.BrandID = _selectedBrand.BrandID;
         Model.HasVariants = _variants.Count > 1;
         if (_isNew && _memberId is int creatorId)
             Model.CreatedByMemberId = creatorId;
@@ -597,7 +806,8 @@ else
                     ProductID = Model.ProductID, LanguageCode = kv.Key,
                     Title = kv.Value.Title, Slug = kv.Value.Slug, ShortDescription = kv.Value.Short,
                 }).ToList());
-            await ProductService.SetCategoriesAsync(Model.ProductID, _selectedCategoryIds.ToList(), _primaryCategoryId);
+            var categoryId = _selectedCategory.ProductCategoryID;
+            await ProductService.SetCategoriesAsync(Model.ProductID, new[] { categoryId }, categoryId);
             await ProductService.SetVariantsAsync(Model.ProductID, _variants);
             await ProductService.SetMediaAsync(Model.ProductID, _gallery.Select(g => g.MediaSetId).ToList());
             await ProductService.SetAttributeValuesAsync(Model.ProductID, _attrValues.Values.ToList());

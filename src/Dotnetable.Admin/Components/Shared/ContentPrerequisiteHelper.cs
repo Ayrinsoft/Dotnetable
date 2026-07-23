@@ -80,6 +80,40 @@ public static class ContentPrerequisiteHelper
         };
     }
 
+    public static List<DNPrerequisiteAlert.Item> ForProducts(
+        IPageLocalizer L,
+        int brandCount,
+        int categoryCount,
+        int currencyRateCount)
+    {
+        var list = new List<DNPrerequisiteAlert.Item>();
+        if (brandCount == 0)
+        {
+            list.Add(new(
+                L["prereq.products.no_brands", "No brands yet. Create at least one brand before adding products."],
+                "/catalog/brands",
+                L["prereq.products.go_brands", "Brands"]));
+        }
+
+        if (categoryCount == 0)
+        {
+            list.Add(new(
+                L["prereq.products.no_categories", "No product categories yet. Create a category before adding products."],
+                "/catalog/categories",
+                L["prereq.products.go_categories", "Categories"]));
+        }
+
+        if (currencyRateCount == 0)
+        {
+            list.Add(new(
+                L["prereq.products.no_rates", "No exchange rate is configured for this website. Add a rate (e.g. USD → local currency) before setting product prices."],
+                "/finance/currency-rates",
+                L["prereq.products.go_rates", "Exchange rates"]));
+        }
+
+        return list;
+    }
+
     public static List<DNPrerequisiteAlert.Item> ForBankAccounts(IPageLocalizer L, int bankCount)
     {
         if (bankCount > 0) return new();

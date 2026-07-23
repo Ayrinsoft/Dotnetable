@@ -113,7 +113,7 @@ public class VendorProductService : IVendorProductService
 
         entity.ReferencePriceUsd = model.ReferencePriceUsd > 0
             ? model.ReferencePriceUsd
-            : (variant.OverridePrice ?? variant.ReferencePriceUsd);
+            : variant.ReferencePriceUsd;
         entity.OverridePrice = model.OverridePrice;
         entity.StockQuantity = model.StockQuantity;
         entity.DeliveryDays = model.DeliveryDays < 0 ? 0 : model.DeliveryDays;
@@ -167,7 +167,7 @@ public class VendorProductService : IVendorProductService
             WebsiteID = hostWebsiteId,
             VendorID = vendorId,
             ProductVariantID = productVariantId,
-            ReferencePriceUsd = variant.OverridePrice ?? variant.ReferencePriceUsd,
+            ReferencePriceUsd = variant.ReferencePriceUsd,
             OverridePrice = null,
             StockQuantity = Math.Max(0, sourceStock),
             DeliveryDays = 1,
