@@ -13,6 +13,9 @@ public partial class ProductVariant
 
     public string Sku { get; set; } = null!;
 
+    /// <summary>Human-readable label for this variant (e.g. "Black T-shirt · Size XL").</summary>
+    public string Title { get; set; } = null!;
+
     public bool IsDefault { get; set; }
 
     public int? ImageFileID { get; set; }

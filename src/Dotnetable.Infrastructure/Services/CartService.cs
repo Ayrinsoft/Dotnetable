@@ -98,7 +98,9 @@ public class CartService : ICartService
                 CartItemID = item.CartItemID,
                 ProductVariantID = item.ProductVariantID,
                 ProductID = variant.ProductID,
-                Title = variant.Product.Title,
+                Title = string.IsNullOrWhiteSpace(variant.Title)
+                    ? variant.Product.Title
+                    : $"{variant.Product.Title} — {variant.Title}",
                 Sku = variant.Sku,
                 ImageUrl = variant.ImageFile?.ThumbnailCDN ?? variant.ImageFile?.CNDUrl,
                 Quantity = item.Quantity,

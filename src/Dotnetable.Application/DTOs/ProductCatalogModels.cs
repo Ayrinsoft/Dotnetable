@@ -52,6 +52,8 @@ public sealed class ProductVariantDto
 {
     public int ProductVariantID { get; init; }
     public string Sku { get; init; } = string.Empty;
+    /// <summary>Human-readable variant label shown in pickers and cart (e.g. "Black · XL").</summary>
+    public string Title { get; init; } = string.Empty;
     public bool IsDefault { get; init; }
     public string? ImageUrl { get; init; }
     public MoneyDto Price { get; init; } = new();

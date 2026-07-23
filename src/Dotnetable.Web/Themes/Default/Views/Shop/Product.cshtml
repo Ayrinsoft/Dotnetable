@@ -53,7 +53,7 @@
                         <select name="variantId" class="form-select" style="max-width:260px" id="variantSelect">
                             @foreach (var v in Model.Variants)
                             {
-                                <option value="@v.ProductVariantID" data-vendor-product-id="@v.VendorProductID">@v.Sku — @v.Price.Amount.ToString("0.##") @v.Price.CurrencyCode</option>
+                                <option value="@v.ProductVariantID" data-vendor-product-id="@v.VendorProductID">@(string.IsNullOrWhiteSpace(v.Title) ? v.Sku : v.Title) — @v.Price.Amount.ToString("0.##") @v.Price.CurrencyCode</option>
                             }
                         </select>
                         <input type="hidden" name="vendorProductId" id="vendorProductId" value="@(defaultVariant?.VendorProductID)" />

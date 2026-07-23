@@ -232,12 +232,18 @@ public class ProductService : IProductService
 
         // Server-side guard so incomplete variants never hit the DB (UI should already block these).
         if (variants.Count == 0)
-            throw new ArgumentException("At least one product variant with SKU and price is required.");
+            throw new ArgumentException("At least one product variant with title, SKU and price is required.");
 
         var seenSkus = new HashSet<string>(StringComparer.OrdinalIgnoreCase);
         for (var i = 0; i < variants.Count; i++)
         {
             var v = variants[i];
+            if (string.IsNullOrWhiteSpace(v.Title))
+                throw new ArgumentException($"Variant {i + 1}: title is required.");
+            var title = v.Title.Trim();
+            if (title.Length > 200)
+                throw new ArgumentException($"Variant {i + 1}: title must be at most 200 characters.");
+
             if (string.IsNullOrWhiteSpace(v.Sku))
                 throw new ArgumentException($"Variant {i + 1}: SKU is required.");
             var sku = v.Sku.Trim();
@@ -247,6 +253,7 @@ public class ProductService : IProductService
                 throw new ArgumentException($"Variant {i + 1}: duplicate SKU \"{sku}\".");
             if (v.ReferencePriceUsd <= 0)
                 throw new ArgumentException($"Variant {i + 1}: price must be greater than zero.");
+            v.Title = title;
             v.Sku = sku;
         }
 
@@ -270,6 +277,7 @@ public class ProductService : IProductService
                     WebsiteID = product.WebsiteID,
                     ProductID = productId,
                     Sku = v.Sku,
+                    Title = v.Title,
                     IsDefault = v.IsDefault,
                     ImageFileID = v.ImageFileID,
                     ReferencePriceUsd = v.ReferencePriceUsd,
@@ -285,6 +293,7 @@ public class ProductService : IProductService
                 var current = existing.FirstOrDefault(x => x.ProductVariantID == v.ProductVariantID);
                 if (current is null) continue;
                 current.Sku = v.Sku;
+                current.Title = v.Title;
                 current.IsDefault = v.IsDefault;
                 current.ImageFileID = v.ImageFileID;
                 current.ReferencePriceUsd = v.ReferencePriceUsd;
@@ -708,7 +717,7 @@ public class ProductService : IProductService
 
             variants.Add(new ProductVariantDto
             {
-                ProductVariantID = v.ProductVariantID, Sku = v.Sku, IsDefault = v.IsDefault,
+                ProductVariantID = v.ProductVariantID, Sku = v.Sku, Title = v.Title, IsDefault = v.IsDefault,
                 ImageUrl = v.ImageFile?.ThumbnailCDN ?? v.ImageFile?.CNDUrl,
                 Price = await _currency.ToDisplayAsync(priceWebsiteId, unitUsd, currencyCode, ct),
                 CompareAtPrice = v.CompareAtPriceUsd is decimal cmp ? await _currency.ToDisplayAsync(priceWebsiteId, cmp, currencyCode, ct) : null,

@@ -140,7 +140,7 @@ public class VendorServiceTests : IDisposable
         await _context.SaveChangesAsync();
         var variant = new ProductVariant
         {
-            WebsiteID = _host.WebsiteID, ProductID = product.ProductID, Sku = "SKU1",
+            WebsiteID = _host.WebsiteID, ProductID = product.ProductID, Sku = "SKU1", Title = "Default",
             ReferencePriceUsd = 10, IsActive = true, CreatedAt = DateTime.UtcNow,
         };
         _context.ProductVariants.Add(variant);
@@ -174,7 +174,7 @@ public class VendorServiceTests : IDisposable
         await _context.SaveChangesAsync();
         var variant = new ProductVariant
         {
-            WebsiteID = _source.WebsiteID, ProductID = product.ProductID, Sku = "SRC1",
+            WebsiteID = _source.WebsiteID, ProductID = product.ProductID, Sku = "SRC1", Title = "Default",
             ReferencePriceUsd = 12, IsActive = true, CreatedAt = DateTime.UtcNow,
         };
         _context.ProductVariants.Add(variant);
