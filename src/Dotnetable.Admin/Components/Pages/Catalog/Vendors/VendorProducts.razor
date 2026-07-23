@@ -1,8 +1,8 @@
 @page "/catalog/vendors/{VendorId:int}/products"
 @attribute [Authorize(Policy = RoleKeys.VendorsView)]
+@implements IDisposable
 @inject IVendorService VendorService
 @inject IVendorProductService VendorProductService
-@inject IProductService ProductService
 @inject AuthenticationStateProvider AuthState
 @inject IDialogService DialogService
 @inject ISnackbar Snackbar
@@ -20,16 +20,40 @@ else
     <MudStack Row="true" AlignItems="AlignItems.Center" Justify="Justify.SpaceBetween" Class="mb-4">
         <MudStack Spacing="0">
             <MudText Typo="Typo.h5" Class="fw-bold">@_vendor.Name — @L["vendors.listings", "Listings"]</MudText>
-            <MudText Typo="Typo.body2" Color="Color.Secondary">@L["vendors.listings.subtitle", "Price and stock overrides for this vendor on the host site."]</MudText>
+            <MudText Typo="Typo.body2" Color="Color.Secondary">
+                @L["vendors.listings.subtitle", "Which catalog variants this vendor sells on the host site, with optional USD price override and stock."]
+            </MudText>
         </MudStack>
         <MudStack Row="true" Spacing="2">
             <MudButton Variant="Variant.Text" StartIcon="@Icons.Material.Filled.ArrowBack" OnClick="@(() => Nav.NavigateTo("/catalog/vendors"))">@L["back", "Back"]</MudButton>
             @if (_canEdit)
             {
-                <MudButton Variant="Variant.Filled" Color="Color.Primary" StartIcon="@Icons.Material.Filled.Add" OnClick="AddAsync">@L["vendors.listings.add", "Add listing"]</MudButton>
+                <MudButton Variant="Variant.Filled" Color="Color.Primary" StartIcon="@Icons.Material.Filled.Add" OnClick="AddAsync">
+                    @L["vendors.listings.add", "Add listing"]
+                </MudButton>
             }
         </MudStack>
     </MudStack>
+
+    <MudPaper Elevation="0" Class="app-card rounded-lg pa-4 mb-3">
+        <MudStack Row="true" AlignItems="AlignItems.Center" Spacing="2" Class="flex-wrap">
+            <MudTextField T="string" Value="_search" ValueChanged="OnSearchChanged"
+                          Label="@L["search", "Search"]"
+                          Placeholder="@L["vendors.listings.search_ph", "Product, variant title, or SKU…"]"
+                          Variant="Variant.Outlined" Dense="true" Immediate="true"
+                          Adornment="Adornment.Start" AdornmentIcon="@Icons.Material.Filled.Search"
+                          Clearable="true" Style="min-width:280px; max-width:420px; flex:1" />
+            <MudSelect T="bool?" Value="_activeFilter" ValueChanged="OnActiveFilterChanged"
+                       Label="@L["active", "Active"]" Variant="Variant.Outlined" Dense="true"
+                       Clearable="true" Style="min-width:140px">
+                <MudSelectItem T="bool?" Value="@((bool?)true)">@L["yes", "Yes"]</MudSelectItem>
+                <MudSelectItem T="bool?" Value="@((bool?)false)">@L["no", "No"]</MudSelectItem>
+            </MudSelect>
+            <MudChip T="string" Variant="Variant.Outlined" Color="Color.Default">
+                @_grid.Pagination.MaxLength @L["vendors.listings.count", "listings"]
+            </MudChip>
+        </MudStack>
+    </MudPaper>
 
     <MudPaper Elevation="0" Class="app-card rounded-lg pa-4">
         @if (_loading)
@@ -40,8 +64,26 @@ else
             @if (_items.Count == 0)
             {
                 <tr>
-                    <td colspan="7" style="text-align:center; padding:32px;">
-                        <MudText Color="Color.Secondary">@L["vendors.listings.empty", "No listings yet."]</MudText>
+                    <td colspan="8" style="text-align:center; padding:40px 24px;">
+                        <MudStack AlignItems="AlignItems.Center" Spacing="2">
+                            <MudIcon Icon="@Icons.Material.Filled.Inventory2" Color="Color.Secondary" Size="Size.Large" />
+                            <MudText Color="Color.Secondary">
+                                @if (string.IsNullOrWhiteSpace(_search) && _activeFilter is null)
+                                {
+                                    @L["vendors.listings.empty", "No listings yet. Add a product variant this vendor can sell."]
+                                }
+                                else
+                                {
+                                    @L["vendors.listings.empty_filter", "No listings match your filters."]
+                                }
+                            </MudText>
+                            @if (_canEdit && string.IsNullOrWhiteSpace(_search) && _activeFilter is null)
+                            {
+                                <MudButton Variant="Variant.Filled" Color="Color.Primary" StartIcon="@Icons.Material.Filled.Add" OnClick="AddAsync">
+                                    @L["vendors.listings.add", "Add listing"]
+                                </MudButton>
+                            }
+                        </MudStack>
                     </td>
                 </tr>
             }
@@ -50,17 +92,47 @@ else
                 @foreach (var item in _items)
                 {
                     <tr>
-                        <td>@item.ProductTitle</td>
+                        <td>
+                            <MudStack Spacing="0">
+                                <MudText Typo="Typo.body2">@item.ProductTitle</MudText>
+                                <MudText Typo="Typo.caption" Color="Color.Secondary">#@item.ProductID</MudText>
+                            </MudStack>
+                        </td>
+                        <td>
+                            <MudText Typo="Typo.body2">
+                                @(string.IsNullOrWhiteSpace(item.VariantTitle) ? "—" : item.VariantTitle)
+                            </MudText>
+                        </td>
                         <td><code>@item.Sku</code></td>
-                        <td>@item.ReferencePriceUsd.ToString("0.####")</td>
-                        <td>@(item.OverridePrice?.ToString("0.####") ?? "-")</td>
+                        <td>@item.ReferencePriceUsd.ToString("0.##") USD</td>
+                        <td>
+                            @if (item.OverridePrice is decimal ov)
+                            {
+                                <span>@ov.ToString("0.##") USD</span>
+                            }
+                            else
+                            {
+                                <MudText Color="Color.Secondary">—</MudText>
+                            }
+                        </td>
                         <td>@item.StockQuantity</td>
-                        <td>@(item.IsActive ? L["yes", "Yes"] : L["no", "No"])</td>
+                        <td>
+                            @if (item.IsActive)
+                            {
+                                <MudChip T="string" Size="Size.Small" Color="Color.Success" Variant="Variant.Filled">@L["active", "Active"]</MudChip>
+                            }
+                            else
+                            {
+                                <MudChip T="string" Size="Size.Small" Color="Color.Default" Variant="Variant.Outlined">@L["inactive", "Inactive"]</MudChip>
+                            }
+                        </td>
                         <td>
                             @if (_canEdit)
                             {
-                                <MudIconButton Icon="@Icons.Material.Filled.Edit" Size="Size.Small" OnClick="@(() => EditAsync(item))" />
-                                <MudIconButton Icon="@Icons.Material.Filled.Delete" Size="Size.Small" Color="Color.Error" OnClick="@(() => DeleteAsync(item))" />
+                                <MudStack Row="true" Spacing="0">
+                                    <MudIconButton Icon="@Icons.Material.Filled.Edit" Size="Size.Small" title="@L["edit", "Edit"]" OnClick="@(() => EditAsync(item))" />
+                                    <MudIconButton Icon="@Icons.Material.Filled.Delete" Size="Size.Small" Color="Color.Error" title="@L["delete", "Delete"]" OnClick="@(() => DeleteAsync(item))" />
+                                </MudStack>
                             }
                         </td>
                     </tr>
@@ -79,6 +151,9 @@ else
     private int? _actingMemberId;
     private List<VendorProductListItemDto> _items = new();
     private GridViewHeaderParameters _grid = new();
+    private string _search = string.Empty;
+    private bool? _activeFilter;
+    private global::System.Threading.Timer? _searchDebounce;
 
     protected override async Task OnInitializedAsync()
     {
@@ -95,10 +170,11 @@ else
             Pagination = new PaginationModel { PageSize = 25 },
             HeaderItems = new()
             {
-                new() { ColumnTitle = L["title", "Title"], ColumnName = "ProductTitle", HasSearch = true },
-                new() { ColumnTitle = L["sku", "SKU"], ColumnName = "Sku", HasSearch = true },
-                new() { ColumnTitle = L["vendors.ref_price", "Ref. price"], ColumnName = nameof(VendorProductListItemDto.ReferencePriceUsd) },
-                new() { ColumnTitle = L["vendors.override_price", "Override"], ColumnName = nameof(VendorProductListItemDto.OverridePrice) },
+                new() { ColumnTitle = L["products.product", "Product"], ColumnName = "ProductTitle" },
+                new() { ColumnTitle = L["variants.title", "Variant"], ColumnName = "VariantTitle" },
+                new() { ColumnTitle = L["sku", "SKU"], ColumnName = "Sku" },
+                new() { ColumnTitle = L["vendors.ref_price", "Ref. (USD)"], ColumnName = nameof(VendorProductListItemDto.ReferencePriceUsd) },
+                new() { ColumnTitle = L["vendors.override_price", "Override (USD)"], ColumnName = nameof(VendorProductListItemDto.OverridePrice) },
                 new() { ColumnTitle = L["stock", "Stock"], ColumnName = nameof(VendorProductListItemDto.StockQuantity) },
                 new() { ColumnTitle = L["active", "Active"], ColumnName = nameof(VendorProductListItemDto.IsActive) },
                 new() { ColumnTitle = "", ColumnName = "" },
@@ -109,10 +185,44 @@ else
 
     private Task OnGridChanged(GridViewHeaderParameters _) => LoadAsync();
 
+    private void OnSearchChanged(string value)
+    {
+        _search = value ?? string.Empty;
+        _searchDebounce?.Dispose();
+        _searchDebounce = new global::System.Threading.Timer(async _ =>
+        {
+            await InvokeAsync(async () =>
+            {
+                _grid.Pagination.PageIndex = 1;
+                await LoadAsync();
+                StateHasChanged();
+            });
+        }, null, 300, global::System.Threading.Timeout.Infinite);
+    }
+
+    private async Task OnActiveFilterChanged(bool? value)
+    {
+        _activeFilter = value;
+        _grid.Pagination.PageIndex = 1;
+        await LoadAsync();
+    }
+
     private async Task LoadAsync()
     {
         _loading = true;
-        var result = await VendorProductService.GetPagedAsync(VendorId, _grid.ToQuery());
+        var query = _grid.ToQuery();
+        // Inject free-text + active filters into the grid query search bag.
+        if (!string.IsNullOrWhiteSpace(_search))
+            query.Search["q"] = _search.Trim();
+        else
+            query.Search.Remove("q");
+
+        if (_activeFilter is bool active)
+            query.Search[nameof(VendorProduct.IsActive)] = active ? "true" : "false";
+        else
+            query.Search.Remove(nameof(VendorProduct.IsActive));
+
+        var result = await VendorProductService.GetPagedAsync(VendorId, query);
         _items = result.Items.ToList();
         _grid.Pagination.MaxLength = result.TotalCount;
         _loading = false;
@@ -120,36 +230,49 @@ else
 
     private async Task AddAsync()
     {
-        var model = new VendorProduct { VendorID = VendorId, IsActive = true, DeliveryDays = 1 };
-        if (await ShowDialogAsync(model)) await LoadAsync();
+        var model = new VendorProduct
+        {
+            VendorID = VendorId,
+            IsActive = true,
+            DeliveryDays = 1,
+            StockQuantity = 0,
+        };
+        if (await ShowDialogAsync(model, isNew: true)) await LoadAsync();
     }
 
     private async Task EditAsync(VendorProductListItemDto row)
     {
         var entity = await VendorProductService.GetByIdAsync(row.VendorProductID);
         if (entity is null) return;
-        if (await ShowDialogAsync(entity)) await LoadAsync();
+        if (await ShowDialogAsync(entity, isNew: false)) await LoadAsync();
     }
 
-    private async Task<bool> ShowDialogAsync(VendorProduct model)
+    private async Task<bool> ShowDialogAsync(VendorProduct model, bool isNew)
     {
         var parameters = new DialogParameters<VendorProductDialog>
         {
             { x => x.Model, model },
             { x => x.ActingMemberId, _actingMemberId },
+            { x => x.IsNew, isNew },
         };
         var dialog = await DialogService.ShowAsync<VendorProductDialog>(
-            L["vendors.listings.edit", "Vendor listing"], parameters,
-            new DialogOptions { MaxWidth = MaxWidth.Small, FullWidth = true });
+            isNew
+                ? L["vendors.listings.add", "Add listing"]
+                : L["vendors.listings.edit", "Edit listing"],
+            parameters,
+            new DialogOptions { MaxWidth = MaxWidth.Medium, FullWidth = true, CloseButton = true });
         var result = await dialog.Result;
         return result is not null && !result.Canceled;
     }
 
     private async Task DeleteAsync(VendorProductListItemDto row)
     {
+        var label = string.IsNullOrWhiteSpace(row.VariantTitle)
+            ? $"{row.ProductTitle} ({row.Sku})"
+            : $"{row.ProductTitle} — {row.VariantTitle} ({row.Sku})";
         var confirmed = await DialogService.ShowMessageBoxAsync(
             L["vendors.listings.delete", "Delete listing"],
-            L["vendors.listings.delete_confirm", "Remove this vendor listing?"],
+            string.Format(L["vendors.listings.delete_confirm", "Remove listing for {0}?"], label),
             yesText: L["delete", "Delete"], cancelText: L["cancel", "Cancel"]);
         if (confirmed != true) return;
         var (ok, err) = await VendorProductService.DeleteAsync(row.VendorProductID, _actingMemberId);
@@ -157,4 +280,6 @@ else
         Snackbar.Add(L["deleted", "Deleted."], Severity.Success);
         await LoadAsync();
     }
+
+    public void Dispose() => _searchDebounce?.Dispose();
 }

@@ -15,6 +15,12 @@ public interface IVendorProductService
     Task<VendorProduct?> FindAsync(int vendorId, int productVariantId, CancellationToken ct = default);
 
     /// <summary>
+    /// Search product variants the vendor is allowed to list (ownership rules), for the add-listing picker.
+    /// </summary>
+    Task<List<VendorVariantPickDto>> SearchEligibleVariantsAsync(
+        int vendorId, string? search, int take = 25, bool includeAlreadyListed = false, CancellationToken ct = default);
+
+    /// <summary>
     /// Creates or updates a vendor listing. Enforces ownership rules for site-linked vendors
     /// and member ownership for member-managed vendors when <paramref name="actingMemberId"/> is set.
     /// </summary>

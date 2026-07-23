@@ -24,13 +24,27 @@ public class VendorProductService : IVendorProductService
         if (query.GetSearch("Sku") is string sku)
             q = q.Where(vp => vp.ProductVariant.Sku.Contains(sku));
         if (query.GetSearch("ProductTitle") is string title)
-            q = q.Where(vp => vp.ProductVariant.Product.Title.Contains(title));
+            q = q.Where(vp => vp.ProductVariant.Product.Title.Contains(title)
+                              || vp.ProductVariant.Title.Contains(title));
+        if (query.GetSearch("VariantTitle") is string vTitle)
+            q = q.Where(vp => vp.ProductVariant.Title.Contains(vTitle));
         if (query.GetSearch(nameof(VendorProduct.IsActive)) is string active && bool.TryParse(active, out var isActive))
             q = q.Where(vp => vp.IsActive == isActive);
+
+        // Single free-text box from list page (key "q") matches product, variant title, or SKU.
+        if (query.GetSearch("q") is string free && !string.IsNullOrWhiteSpace(free))
+        {
+            var s = free.Trim();
+            q = q.Where(vp =>
+                vp.ProductVariant.Product.Title.Contains(s)
+                || vp.ProductVariant.Title.Contains(s)
+                || vp.ProductVariant.Sku.Contains(s));
+        }
 
         var total = await q.CountAsync(ct);
         var items = await q
             .OrderBy(vp => vp.ProductVariant.Product.Title)
+            .ThenBy(vp => vp.ProductVariant.Title)
             .Skip(query.Skip).Take(query.Take)
             .ToListAsync(ct);
 
@@ -44,6 +58,7 @@ public class VendorProductService : IVendorProductService
                 ProductVariantID = vp.ProductVariantID,
                 ProductID = vp.ProductVariant.ProductID,
                 ProductTitle = vp.ProductVariant.Product.Title,
+                VariantTitle = vp.ProductVariant.Title,
                 Sku = vp.ProductVariant.Sku,
                 ReferencePriceUsd = vp.ReferencePriceUsd,
                 OverridePrice = vp.OverridePrice,
@@ -52,6 +67,71 @@ public class VendorProductService : IVendorProductService
                 IsActive = vp.IsActive,
             }).ToList(),
         };
+    }
+
+    public async Task<List<VendorVariantPickDto>> SearchEligibleVariantsAsync(
+        int vendorId, string? search, int take = 25, bool includeAlreadyListed = false, CancellationToken ct = default)
+    {
+        var vendor = await _context.Vendors.AsNoTracking()
+            .FirstOrDefaultAsync(v => v.VendorID == vendorId, ct);
+        if (vendor is null) return new List<VendorVariantPickDto>();
+
+        // Site vendors list products owned by the linked website; others list host-website products.
+        var catalogWebsiteId = vendor.VendorType == (byte)VendorType.Site && vendor.LinkedWebsiteID is int lid
+            ? lid
+            : vendor.WebsiteID;
+
+        var listedIds = await _context.VendorProducts.AsNoTracking()
+            .Where(vp => vp.VendorID == vendorId)
+            .Select(vp => vp.ProductVariantID)
+            .ToListAsync(ct);
+        var listed = listedIds.ToHashSet();
+
+        var q = _context.ProductVariants.AsNoTracking()
+            .Where(v => v.IsActive
+                        && v.Product.IsActive
+                        && v.Product.WebsiteID == catalogWebsiteId);
+
+        if (!includeAlreadyListed && listed.Count > 0)
+            q = q.Where(v => !listed.Contains(v.ProductVariantID));
+
+        if (!string.IsNullOrWhiteSpace(search))
+        {
+            var s = search.Trim();
+            q = q.Where(v =>
+                v.Sku.Contains(s)
+                || v.Title.Contains(s)
+                || v.Product.Title.Contains(s)
+                || v.Product.Slug.Contains(s));
+        }
+
+        take = Math.Clamp(take, 1, 50);
+        var rows = await q
+            .OrderBy(v => v.Product.Title)
+            .ThenBy(v => v.Title)
+            .ThenBy(v => v.Sku)
+            .Take(take)
+            .Select(v => new
+            {
+                v.ProductVariantID,
+                v.ProductID,
+                ProductTitle = v.Product.Title,
+                VariantTitle = v.Title,
+                v.Sku,
+                v.ReferencePriceUsd,
+            })
+            .ToListAsync(ct);
+
+        return rows.Select(v => new VendorVariantPickDto
+        {
+            ProductVariantID = v.ProductVariantID,
+            ProductID = v.ProductID,
+            ProductTitle = v.ProductTitle,
+            VariantTitle = v.VariantTitle ?? string.Empty,
+            Sku = v.Sku,
+            ReferencePriceUsd = v.ReferencePriceUsd,
+            AlreadyListed = listed.Contains(v.ProductVariantID),
+        }).ToList();
     }
 
     public async Task<VendorProduct?> GetByIdAsync(int vendorProductId, CancellationToken ct = default) =>

@@ -7,12 +7,30 @@ public sealed class VendorProductListItemDto
     public int ProductVariantID { get; init; }
     public int ProductID { get; init; }
     public string ProductTitle { get; init; } = string.Empty;
+    public string VariantTitle { get; init; } = string.Empty;
     public string Sku { get; init; } = string.Empty;
     public decimal ReferencePriceUsd { get; init; }
     public decimal? OverridePrice { get; init; }
     public int StockQuantity { get; init; }
     public int DeliveryDays { get; init; }
     public bool IsActive { get; init; }
+}
+
+/// <summary>Pick-list row for adding a vendor listing (searchable product + variant).</summary>
+public sealed class VendorVariantPickDto
+{
+    public int ProductVariantID { get; init; }
+    public int ProductID { get; init; }
+    public string ProductTitle { get; init; } = string.Empty;
+    public string VariantTitle { get; init; } = string.Empty;
+    public string Sku { get; init; } = string.Empty;
+    public decimal ReferencePriceUsd { get; init; }
+    public bool AlreadyListed { get; init; }
+
+    public string DisplayLabel =>
+        string.IsNullOrWhiteSpace(VariantTitle)
+            ? $"{ProductTitle}  ·  {Sku}"
+            : $"{ProductTitle}  ·  {VariantTitle}  ·  {Sku}";
 }
 
 public sealed class VendorCreditBalanceDto
