@@ -1,0 +1,77 @@
+@inject IPageLocalizer L
+
+<MudDialog>
+    <TitleContent>
+        <MudStack Row="true" AlignItems="AlignItems.Center" Spacing="2">
+            <MudIcon Icon="@Icons.Material.Filled.LocalOffer" Color="Color.Primary" />
+            <MudText Typo="Typo.h6">@L["variants.compare_guide_title", "What is Compare at?"]</MudText>
+        </MudStack>
+    </TitleContent>
+    <DialogContent>
+        <MudText Typo="Typo.body2" Class="mb-3">
+            @string.Format(
+                L["variants.compare_guide_intro", "Compare at is the optional “was / list” price shown with a strikethrough next to the real selling price. It is only for display — it does not change what the customer pays. Currency here is {0}."],
+                CurrencyCode)
+        </MudText>
+
+        <MudText Typo="Typo.subtitle2" Class="mb-1">@L["variants.compare_guide_example", "Example"]</MudText>
+        <MudPaper Elevation="0" Class="pa-3 mb-3 border rounded-lg">
+            <MudStack Spacing="1">
+                <MudText Typo="Typo.body2">
+                    <strong>@string.Format(L["variants.compare_guide_price_label", "Price ({0})"], CurrencyCode):</strong>
+                    10,000,000
+                </MudText>
+                <MudText Typo="Typo.body2">
+                    <strong>@string.Format(L["variants.compare_guide_compare_label", "Compare at ({0})"], CurrencyCode):</strong>
+                    15,000,000
+                </MudText>
+                <MudDivider Class="my-2" />
+                <MudText Typo="Typo.body1">
+                    <span style="text-decoration:line-through;opacity:.65">15,000,000</span>
+                    <strong class="ms-2">10,000,000 @CurrencyCode</strong>
+                </MudText>
+                <MudText Typo="Typo.caption" Color="Color.Secondary">
+                    @L["variants.compare_guide_example_hint", "Customer sees a higher “was” price and the actual sale price."]
+                </MudText>
+            </MudStack>
+        </MudPaper>
+
+        <MudText Typo="Typo.subtitle2" Class="mb-1">@L["variants.compare_guide_when", "When to fill it"]</MudText>
+        <MudSimpleTable Dense="true" Hover="true" Class="mb-3">
+            <thead>
+                <tr>
+                    <th>@L["variants.compare_guide_situation", "Situation"]</th>
+                    <th>@L["variants.compare_guide_action", "What to do"]</th>
+                </tr>
+            </thead>
+            <tbody>
+                <tr>
+                    <td>@L["variants.compare_guide_no_discount", "No discount / normal price"]</td>
+                    <td>@L["variants.compare_guide_leave_empty", "Leave Compare at empty"]</td>
+                </tr>
+                <tr>
+                    <td>@L["variants.compare_guide_with_discount", "You want to show a “was” price"]</td>
+                    <td>@L["variants.compare_guide_fill_higher", "Enter a value ≥ selling Price"]</td>
+                </tr>
+            </tbody>
+        </MudSimpleTable>
+
+        <MudText Typo="Typo.subtitle2" Class="mb-1">@L["variants.compare_guide_rules", "Rules"]</MudText>
+        <ul class="ps-4 mb-0">
+            <li>@L["variants.compare_guide_rule1", "Optional — not required to save the product."]</li>
+            <li>@L["variants.compare_guide_rule2", "If set, it should be greater than or equal to the selling Price."]</li>
+            <li>@L["variants.compare_guide_rule3", "Does not affect cart total or checkout; only storefront display."]</li>
+            <li>@L["variants.compare_guide_rule4", "Like Price, it is stored as a USD reference and shown with the live exchange rate."]</li>
+        </ul>
+    </DialogContent>
+    <DialogActions>
+        <MudButton Color="Color.Primary" Variant="Variant.Filled" OnClick="Close">@L["close", "Close"]</MudButton>
+    </DialogActions>
+</MudDialog>
+
+@code {
+    [CascadingParameter] private IMudDialogInstance MudDialog { get; set; } = null!;
+    [Parameter] public string CurrencyCode { get; set; } = "USD";
+
+    private void Close() => MudDialog.Close();
+}
