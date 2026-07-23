@@ -41,6 +41,7 @@ public class CurrencyRateService : ICurrencyRateService
 
     public async Task CreateAsync(CurrencyRate rate, CancellationToken ct = default)
     {
+        ValidateRate(rate);
         rate.LastUpdate = DateTime.UtcNow;
         if (rate.IsDefault)
             await ClearDefaultAsync(rate.WebsiteID, ct);
@@ -53,6 +54,7 @@ public class CurrencyRateService : ICurrencyRateService
 
     public async Task<bool> UpdateAsync(CurrencyRate rate, CancellationToken ct = default)
     {
+        ValidateRate(rate);
         var existing = await _context.CurrencyRates
             .FirstOrDefaultAsync(r => r.CurrencyRateID == rate.CurrencyRateID && r.WebsiteID == rate.WebsiteID, ct);
         if (existing is null) return false;
@@ -110,4 +112,24 @@ public class CurrencyRateService : ICurrencyRateService
         await _context.CurrencyRates
             .Where(r => r.WebsiteID == websiteId && r.IsDefault)
             .ExecuteUpdateAsync(s => s.SetProperty(r => r.IsDefault, false), ct);
+
+    /// <summary>
+    /// Rates are stored as "how many units of local currency equal 1 USD" (USDToCurrency).
+    /// Column is decimal(18,6); values that round to zero are rejected.
+    /// </summary>
+    private static void ValidateRate(CurrencyRate rate)
+    {
+        if (string.IsNullOrWhiteSpace(rate.CurrencyCode))
+            throw new ArgumentException("Currency code is required.");
+
+        if (rate.USDToCurrency <= 0)
+            throw new ArgumentException(
+                "Exchange rate must be greater than zero. Enter how many units of the local currency equal 1 USD (e.g. 2000000 for IRR).");
+
+        // Persist with the same scale as the column so tiny inverses don't silently become 0.
+        rate.USDToCurrency = decimal.Round(rate.USDToCurrency, 6, MidpointRounding.AwayFromZero);
+        if (rate.USDToCurrency <= 0)
+            throw new ArgumentException(
+                "Exchange rate is too small to store. Prefer entering how many local units equal 1 USD.");
+    }
 }
