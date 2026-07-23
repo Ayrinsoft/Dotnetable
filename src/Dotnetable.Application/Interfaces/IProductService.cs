@@ -10,7 +10,8 @@ namespace Dotnetable.Application.Interfaces;
 public interface IProductService
 {
     // ── Admin management ────────────────────────────────────────────
-    Task<PagedResult<ProductListItemDto>> GetPagedAsync(int? websiteId, ProductFilter filter, GridQuery query, string? search, CancellationToken ct = default);
+    /// <param name="createdByMemberId">When set (vendor member login), only products created by that member are returned.</param>
+    Task<PagedResult<ProductListItemDto>> GetPagedAsync(int? websiteId, ProductFilter filter, GridQuery query, string? search, int? createdByMemberId = null, CancellationToken ct = default);
 
     /// <summary>A single product with everything loaded (variants, categories, media, attributes, content, warnings, relations, translations) for the edit form.</summary>
     Task<Product?> GetByIdAsync(int productId, CancellationToken ct = default);

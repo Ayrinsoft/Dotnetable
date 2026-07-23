@@ -26,6 +26,10 @@
             </div>
             <div class="col-lg-6">
                 <h1 class="mb-2">@Model.Title</h1>
+                @if (!string.IsNullOrEmpty(Model.VendorName))
+                {
+                    <div class="text-muted mb-1"><i class="bi bi-shop"></i> @Model.VendorName</div>
+                }
                 @if (!string.IsNullOrEmpty(Model.BrandName))
                 {
                     <div class="text-muted mb-2">@Model.BrandName</div>
@@ -40,18 +44,27 @@
                 <p>@Model.ShortDescription</p>
 
                 <form asp-controller="Shop" asp-action="AddToCart" method="post" class="d-flex gap-2 align-items-center mt-4">
+                    @if (Model.VendorID is int vid)
+                    {
+                        <input type="hidden" name="vendorId" value="@vid" />
+                    }
                     @if (Model.Variants.Count > 1)
                     {
-                        <select name="variantId" class="form-select" style="max-width:260px">
+                        <select name="variantId" class="form-select" style="max-width:260px" id="variantSelect">
                             @foreach (var v in Model.Variants)
                             {
-                                <option value="@v.ProductVariantID">@v.Sku — @v.Price.Amount.ToString("0.##") @v.Price.CurrencyCode</option>
+                                <option value="@v.ProductVariantID" data-vendor-product-id="@v.VendorProductID">@v.Sku — @v.Price.Amount.ToString("0.##") @v.Price.CurrencyCode</option>
                             }
                         </select>
+                        <input type="hidden" name="vendorProductId" id="vendorProductId" value="@(defaultVariant?.VendorProductID)" />
                     }
                     else if (defaultVariant is not null)
                     {
                         <input type="hidden" name="variantId" value="@defaultVariant.ProductVariantID" />
+                        @if (defaultVariant.VendorProductID is int vpid)
+                        {
+                            <input type="hidden" name="vendorProductId" value="@vpid" />
+                        }
                         <div class="fs-4 fw-bold">@defaultVariant.Price.Amount.ToString("0.##") @defaultVariant.Price.CurrencyCode</div>
                     }
                     <input type="number" name="quantity" value="1" min="1" class="form-control" style="max-width:90px" />

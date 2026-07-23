@@ -1,5 +1,8 @@
 @using Dotnetable.Admin.Components.Pages.Media
+@using Dotnetable.Domain.Enums
 @inject IVendorService VendorService
+@inject IMemberService MemberService
+@inject IWebsiteService WebsiteService
 @inject IFileService FileService
 @inject IDialogService DialogService
 @inject ISnackbar Snackbar
@@ -34,6 +37,14 @@
                             <MudTextField @bind-Value="Model.Slug" Label="@L["slug", "Slug"]" Variant="Variant.Outlined" />
                         </MudItem>
                         <MudItem xs="12" sm="6">
+                            <MudSelect T="byte" Value="Model.VendorType" ValueChanged="OnVendorTypeChanged"
+                                       Label="@L["vendors.type", "Vendor type"]" Variant="Variant.Outlined">
+                                <MudSelectItem T="byte" Value="(byte)VendorType.Display">@L["vendors.type.display", "Display only"]</MudSelectItem>
+                                <MudSelectItem T="byte" Value="(byte)VendorType.Member">@L["vendors.type.member", "Member login"]</MudSelectItem>
+                                <MudSelectItem T="byte" Value="(byte)VendorType.Site">@L["vendors.type.site", "Linked website"]</MudSelectItem>
+                            </MudSelect>
+                        </MudItem>
+                        <MudItem xs="12" sm="6">
                             <MudSelect T="byte" @bind-Value="Model.SettlementMode" Label="@L["vendors.settlement", "Settlement mode"]" Variant="Variant.Outlined">
                                 <MudSelectItem T="byte" Value="(byte)0">@L["vendors.immediate", "Immediate"]</MudSelectItem>
                                 <MudSelectItem T="byte" Value="(byte)1">@L["vendors.credit", "Credit"]</MudSelectItem>
@@ -42,6 +53,40 @@
                         <MudItem xs="12" sm="6">
                             <MudSwitch T="bool" @bind-Value="Model.IsActive" Label="@L["active", "Active"]" Color="Color.Primary" />
                         </MudItem>
+                        @if (Model.VendorType == (byte)VendorType.Member)
+                        {
+                            <MudItem xs="12">
+                                <MudSelect T="int?" @bind-Value="Model.MemberID" Label="@L["vendors.member", "Linked member"]" Variant="Variant.Outlined"
+                                           Clearable="true" Dense="true">
+                                    @foreach (var m in _members)
+                                    {
+                                        <MudSelectItem T="int?" Value="@m.MemberID">@m.Username — @m.Givenname @m.Surname</MudSelectItem>
+                                    }
+                                </MudSelect>
+                                <MudText Typo="Typo.caption" Color="Color.Secondary">
+                                    @L["vendors.member.hint", "This member can sign in to admin and manage only their own products and prices."]
+                                </MudText>
+                            </MudItem>
+                        }
+                        @if (Model.VendorType == (byte)VendorType.Site)
+                        {
+                            <MudItem xs="12">
+                                <MudSelect T="int?" @bind-Value="Model.LinkedWebsiteID" Label="@L["vendors.linked_site", "Linked website"]" Variant="Variant.Outlined"
+                                           Clearable="true" Dense="true">
+                                    @foreach (var w in _websites)
+                                    {
+                                        <MudSelectItem T="int?" Value="@w.WebsiteID">@w.TradeName (#@w.WebsiteID)</MudSelectItem>
+                                    }
+                                </MudSelect>
+                                <MudText Typo="Typo.caption" Color="Color.Secondary">
+                                    @L["vendors.linked_site.hint", "Only products owned by that website are shown here. Goods they import from others cannot be re-shared."]
+                                </MudText>
+                            </MudItem>
+                            <MudItem xs="12" sm="6">
+                                <MudNumericField T="decimal" Value="Model.AvailableCreditUsd" Disabled="true"
+                                                 Label="@L["vendors.available_credit", "Available credit (USD)"]" Variant="Variant.Outlined" />
+                            </MudItem>
+                        }
                         @if (Model.SettlementMode == 1)
                         {
                             <MudItem xs="12" sm="6">
@@ -91,6 +136,8 @@
     private string[]? _formErrors;
     private FileRecord? _logo;
     private readonly Dictionary<string, string> _tr = new(StringComparer.OrdinalIgnoreCase);
+    private List<Member> _members = new();
+    private List<Website> _websites = new();
 
     private (string Code, string Label)[] _languages = Array.Empty<(string, string)>();
 
@@ -105,10 +152,23 @@
         if (!IsNew)
             foreach (var t in await VendorService.GetTranslationsAsync(Model.VendorID))
                 _tr[t.LanguageCode] = t.Name;
+
+        _members = (await MemberService.GetByWebsiteAsync(websiteId)).Where(m => m.Active).OrderBy(m => m.Username).ToList();
+        _websites = (await WebsiteService.GetAllAsync())
+            .Where(w => w.Active && w.WebsiteID != websiteId)
+            .OrderBy(w => w.TradeName)
+            .ToList();
     }
 
     private string Name(string code) => _tr.TryGetValue(code, out var v) ? v : string.Empty;
     private void SetName(string code, string v) => _tr[code] = v ?? string.Empty;
+
+    private void OnVendorTypeChanged(byte type)
+    {
+        Model.VendorType = type;
+        if (type != (byte)VendorType.Member) Model.MemberID = null;
+        if (type != (byte)VendorType.Site) Model.LinkedWebsiteID = null;
+    }
 
     private async Task PickLogoAsync()
     {
@@ -135,7 +195,7 @@
         _formErrors = _form.Errors;
         if (!_form.IsValid) return;
         if (string.IsNullOrWhiteSpace(Model.Slug)) Model.Slug = Model.Name.Trim();
-        if (Model.SettlementMode != 1) { Model.CreditDays = null; Model.CreditLimitUsd = null; }
+        if (Model.SettlementMode != 1) { Model.CreditDays = null; }
 
         _saving = true;
         try

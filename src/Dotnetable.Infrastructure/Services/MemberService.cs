@@ -28,6 +28,7 @@ public class MemberService : IMemberService
             .Include(m => m.Policy)
                 .ThenInclude(p => p.PolicyRoles)
                     .ThenInclude(pr => pr.Role)
+            .Include(m => m.Vendor)
             .FirstOrDefaultAsync(m => m.Username == username && m.Active, ct);
 
         if (member is null) return null;

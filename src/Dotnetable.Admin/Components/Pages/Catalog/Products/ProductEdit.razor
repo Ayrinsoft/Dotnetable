@@ -350,6 +350,8 @@ else
     private bool _isNew;
     private bool _isMaster, _canEdit;
     private int _websiteId;
+    private int? _memberId;
+    private int? _vendorId;
     private (string Code, string Label)[] _languages = Array.Empty<(string, string)>();
     private int? _brandId;
     private Product Model { get; set; } = new() { IsActive = true };
@@ -376,12 +378,23 @@ else
         _isMaster = user.HasClaim(AdminClaimTypes.Master, "true");
         _canEdit = AdminPolicies.Allows(user, ProductId is null ? RoleKeys.ProductsInsert : RoleKeys.ProductsEdit);
         int.TryParse(user.FindFirst(AdminClaimTypes.WebsiteId)?.Value, out _websiteId);
+        if (int.TryParse(user.FindFirst(AdminClaimTypes.MemberId)?.Value, out var mid))
+            _memberId = mid;
+        if (int.TryParse(user.FindFirst(AdminClaimTypes.VendorId)?.Value, out var vendorId))
+            _vendorId = vendorId;
         _isNew = ProductId is null;
 
         if (!_isNew)
         {
             var product = await ProductService.GetByIdAsync(ProductId!.Value);
             if (product is null) { Nav.NavigateTo("/catalog/products"); return; }
+            // Vendor members may only open their own products.
+            if (_vendorId is not null && _memberId is int ownerId && product.CreatedByMemberId != ownerId)
+            {
+                Snackbar.Add(L["products.vendor_forbidden", "You can only manage your own products."], Severity.Error);
+                Nav.NavigateTo("/catalog/products");
+                return;
+            }
             Model = product;
             _websiteId = product.WebsiteID;
             _brandId = product.BrandID;
@@ -544,7 +557,7 @@ else
     private async Task<IEnumerable<ProductListItemDto>> SearchProductsAsync(string search, CancellationToken ct)
     {
         if (string.IsNullOrWhiteSpace(search)) return Array.Empty<ProductListItemDto>();
-        var result = await ProductService.GetPagedAsync(_websiteId, new ProductFilter(), new GridQuery { PageIndex = 1, PageSize = 10 }, search, ct);
+        var result = await ProductService.GetPagedAsync(_websiteId, new ProductFilter(), new GridQuery { PageIndex = 1, PageSize = 10 }, search, null, ct);
         return result.Items.Where(p => p.ProductID != Model.ProductID);
     }
 
@@ -562,6 +575,8 @@ else
         Model.WebsiteID = _websiteId;
         Model.BrandID = _brandId;
         Model.HasVariants = _variants.Count > 1;
+        if (_isNew && _memberId is int creatorId)
+            Model.CreatedByMemberId = creatorId;
 
         _saving = true;
         try

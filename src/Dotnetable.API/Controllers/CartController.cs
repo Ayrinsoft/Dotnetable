@@ -34,7 +34,7 @@ public class CartController : BaseController
         return Ok(new { view.CartID, cart.SessionKey, view.Items, view.SubTotal, view.CouponCode, view.DiscountAmount, view.CouponError, view.TotalWeightKg });
     }
 
-    public sealed record AddItemRequest(int VariantId, int Quantity, int? VendorProductId);
+    public sealed record AddItemRequest(int VariantId, int Quantity, int? VendorProductId, int? VendorId);
 
     [HttpPost("items")]
     public async Task<IActionResult> AddItem([FromBody] AddItemRequest request, CancellationToken ct = default)
@@ -43,7 +43,7 @@ public class CartController : BaseController
         if (website is null) return NotFound(new { message = "Website could not be resolved." });
 
         var cart = await _cartService.GetOrCreateAsync(website.WebsiteID, CurrentClientId, SessionKey, ct);
-        await _cartService.AddItemAsync(website.WebsiteID, cart.CartID, request.VariantId, request.Quantity, request.VendorProductId, ct);
+        await _cartService.AddItemAsync(website.WebsiteID, cart.CartID, request.VariantId, request.Quantity, request.VendorProductId, request.VendorId, ct);
         var view = await _cartService.GetCartViewAsync(website.WebsiteID, cart.CartID, null, ct);
         return Ok(new { view.CartID, cart.SessionKey, view.Items, view.SubTotal });
     }

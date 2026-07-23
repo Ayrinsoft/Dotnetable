@@ -9,6 +9,7 @@ public static class AdminClaimTypes
     public const string MemberId = MemberClaims.MemberId;
     public const string WebsiteId = MemberClaims.WebsiteId;
     public const string PolicyId = MemberClaims.PolicyId;
+    public const string VendorId = MemberClaims.VendorId;
 
     /// <summary>"true" for members of the master website (WebsiteID 1), who have full cross-site access.</summary>
     public const string Master = MemberClaims.Master;

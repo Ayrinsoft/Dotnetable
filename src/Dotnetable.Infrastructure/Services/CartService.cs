@@ -12,13 +12,17 @@ public class CartService : ICartService
     private readonly IInventoryService _inventory;
     private readonly ICurrencyConversionService _currency;
     private readonly ICouponService _coupons;
+    private readonly IVendorProductService _vendorProducts;
 
-    public CartService(AppDbContext context, IInventoryService inventory, ICurrencyConversionService currency, ICouponService coupons)
+    public CartService(
+        AppDbContext context, IInventoryService inventory, ICurrencyConversionService currency, ICouponService coupons,
+        IVendorProductService vendorProducts)
     {
         _context = context;
         _inventory = inventory;
         _currency = currency;
         _coupons = coupons;
+        _vendorProducts = vendorProducts;
     }
 
     public async Task<Cart> GetOrCreateAsync(int websiteId, int? clientId, string? sessionKey, CancellationToken ct = default)
@@ -50,11 +54,14 @@ public class CartService : ICartService
             .Include(c => c.Coupon)
             .Include(c => c.CartItems).ThenInclude(i => i.ProductVariant).ThenInclude(v => v.Product)
             .Include(c => c.CartItems).ThenInclude(i => i.ProductVariant).ThenInclude(v => v.ImageFile)
+            .Include(c => c.CartItems).ThenInclude(i => i.VendorProduct)
             .FirstOrDefaultAsync(c => c.CartID == cartId, ct);
         if (cart is null) return new CartViewDto { CartID = cartId };
 
-        var variantIds = cart.CartItems.Select(i => i.ProductVariantID).ToList();
-        var availability = await _inventory.GetAvailabilityBulkAsync(websiteId, variantIds, ct);
+        var localVariantIds = cart.CartItems.Where(i => i.VendorProductID is null).Select(i => i.ProductVariantID).ToList();
+        var availability = localVariantIds.Count > 0
+            ? await _inventory.GetAvailabilityBulkAsync(websiteId, localVariantIds, ct)
+            : new Dictionary<int, StockAvailability>();
 
         var items = new List<CartItemViewDto>();
         decimal subtotalUsd = 0;
@@ -62,11 +69,26 @@ public class CartService : ICartService
         foreach (var item in cart.CartItems)
         {
             var variant = item.ProductVariant;
-            var unitPriceUsd = variant.OverridePrice ?? variant.ReferencePriceUsd;
+            var unitPriceUsd = item.VendorProduct is { } vp
+                ? (vp.OverridePrice ?? vp.ReferencePriceUsd)
+                : (variant.OverridePrice ?? variant.ReferencePriceUsd);
             var lineTotalUsd = unitPriceUsd * item.Quantity;
             subtotalUsd += lineTotalUsd;
             totalWeight += (variant.Weight ?? 0) * item.Quantity;
-            var avail = availability.GetValueOrDefault(item.ProductVariantID);
+
+            int maxPurchasable;
+            bool isAvailable;
+            if (item.VendorProduct is { } listing)
+            {
+                maxPurchasable = listing.StockQuantity;
+                isAvailable = listing.IsActive && listing.StockQuantity >= item.Quantity;
+            }
+            else
+            {
+                var avail = availability.GetValueOrDefault(item.ProductVariantID);
+                maxPurchasable = avail.Available;
+                isAvailable = avail.Available >= item.Quantity;
+            }
 
             items.Add(new CartItemViewDto
             {
@@ -79,8 +101,8 @@ public class CartService : ICartService
                 Quantity = item.Quantity,
                 UnitPrice = await _currency.ToDisplayAsync(websiteId, unitPriceUsd, currencyCode, ct),
                 LineTotal = await _currency.ToDisplayAsync(websiteId, lineTotalUsd, currencyCode, ct),
-                IsAvailable = avail.Available >= item.Quantity,
-                MaxPurchasable = avail.Available,
+                IsAvailable = isAvailable,
+                MaxPurchasable = maxPurchasable,
             });
         }
 
@@ -108,9 +130,15 @@ public class CartService : ICartService
         };
     }
 
-    public async Task AddItemAsync(int websiteId, int cartId, int variantId, int quantity, int? vendorProductId = null, CancellationToken ct = default)
+    public async Task AddItemAsync(int websiteId, int cartId, int variantId, int quantity, int? vendorProductId = null, int? vendorId = null, CancellationToken ct = default)
     {
         if (quantity < 1) quantity = 1;
+
+        if (vendorProductId is null && vendorId is int vid)
+        {
+            var listing = await _vendorProducts.EnsureListingForVariantAsync(websiteId, vid, variantId, ct);
+            vendorProductId = listing?.VendorProductID;
+        }
 
         var existing = await _context.CartItems.FirstOrDefaultAsync(
             i => i.CartID == cartId && i.ProductVariantID == variantId && i.VendorProductID == vendorProductId, ct);

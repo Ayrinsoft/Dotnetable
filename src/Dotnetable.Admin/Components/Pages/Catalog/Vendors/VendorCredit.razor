@@ -1,0 +1,151 @@
+@page "/catalog/vendors/{VendorId:int}/credit"
+@attribute [Authorize(Policy = RoleKeys.VendorsEdit)]
+@inject IVendorService VendorService
+@inject IVendorCreditService VendorCreditService
+@inject AuthenticationStateProvider AuthState
+@inject ISnackbar Snackbar
+@inject IPageLocalizer L
+@inject NavigationManager Nav
+
+<DNPageTitle Title=@L["vendors.credit_mgmt", "Vendor credit"] />
+
+@if (_vendor is null || _balance is null)
+{
+    <MudProgressLinear Indeterminate="true" Color="Color.Primary" />
+}
+else
+{
+    <MudStack Row="true" AlignItems="AlignItems.Center" Justify="Justify.SpaceBetween" Class="mb-4">
+        <MudStack Spacing="0">
+            <MudText Typo="Typo.h5" Class="fw-bold">@_vendor.Name — @L["vendors.credit_mgmt", "Credit"]</MudText>
+            <MudText Typo="Typo.body2" Color="Color.Secondary">
+                @L["vendors.credit.subtitle", "Virtual credit between host and linked site. Products show only while credit remains (credit settlement mode)."]
+            </MudText>
+        </MudStack>
+        <MudButton Variant="Variant.Text" StartIcon="@Icons.Material.Filled.ArrowBack" OnClick="@(() => Nav.NavigateTo("/catalog/vendors"))">@L["back", "Back"]</MudButton>
+    </MudStack>
+
+    <MudGrid Spacing="3" Class="mb-4">
+        <MudItem xs="12" sm="4">
+            <MudPaper Elevation="0" Class="app-card rounded-lg pa-4">
+                <MudText Typo="Typo.caption" Color="Color.Secondary">@L["vendors.available_credit", "Available credit (USD)"]</MudText>
+                <MudText Typo="Typo.h4">@_balance.AvailableCreditUsd.ToString("0.####")</MudText>
+            </MudPaper>
+        </MudItem>
+        <MudItem xs="12" sm="4">
+            <MudPaper Elevation="0" Class="app-card rounded-lg pa-4">
+                <MudText Typo="Typo.caption" Color="Color.Secondary">@L["vendors.credit_limit", "Credit limit (USD)"]</MudText>
+                <MudText Typo="Typo.h4">@(_balance.CreditLimitUsd?.ToString("0.####") ?? "—")</MudText>
+            </MudPaper>
+        </MudItem>
+        <MudItem xs="12" sm="4">
+            <MudPaper Elevation="0" Class="app-card rounded-lg pa-4">
+                <MudText Typo="Typo.caption" Color="Color.Secondary">@L["vendors.catalog_open", "Catalog visible"]</MudText>
+                <MudText Typo="Typo.h5">@(_balance.CanExposeCatalog ? L["yes", "Yes"] : L["no", "No"])</MudText>
+            </MudPaper>
+        </MudItem>
+    </MudGrid>
+
+    <MudPaper Elevation="0" Class="app-card rounded-lg pa-4 mb-4">
+        <MudText Typo="Typo.h6" Class="mb-3">@L["vendors.grant_credit", "Grant / adjust credit"]</MudText>
+        <MudStack Row="true" Spacing="2" AlignItems="AlignItems.Start">
+            <MudNumericField T="decimal" @bind-Value="_grantAmount" Label="@L["amount", "Amount (USD)"]" Variant="Variant.Outlined"
+                             HelperText="@L["vendors.grant_hint", "Positive grants credit; negative reduces it."]" Style="min-width:180px" />
+            <MudTextField @bind-Value="_grantNote" Label="@L["note", "Note"]" Variant="Variant.Outlined" Style="min-width:240px" />
+            <MudButton Variant="Variant.Filled" Color="Color.Primary" OnClick="GrantAsync" Disabled="@_saving" Class="mt-1">
+                @L["apply", "Apply"]
+            </MudButton>
+        </MudStack>
+    </MudPaper>
+
+    <MudPaper Elevation="0" Class="app-card rounded-lg pa-4">
+        <MudText Typo="Typo.h6" Class="mb-3">@L["vendors.credit_history", "Credit history"]</MudText>
+        @if (_history.Count == 0)
+        {
+            <MudText Color="Color.Secondary">@L["vendors.credit_history.empty", "No transactions yet."]</MudText>
+        }
+        else
+        {
+            <MudSimpleTable Dense="true" Hover="true">
+                <thead>
+                    <tr>
+                        <th>@L["date", "Date"]</th>
+                        <th>@L["type", "Type"]</th>
+                        <th>@L["amount", "Amount"]</th>
+                        <th>@L["balance", "Balance"]</th>
+                        <th>@L["note", "Note"]</th>
+                    </tr>
+                </thead>
+                <tbody>
+                    @foreach (var t in _history)
+                    {
+                        <tr>
+                            <td>@t.CreatedAt.ToString("u")</td>
+                            <td>@SourceLabel(t.SourceType)</td>
+                            <td>@t.AmountUsd.ToString("0.####")</td>
+                            <td>@t.BalanceAfterUsd.ToString("0.####")</td>
+                            <td>@(t.Note ?? "")</td>
+                        </tr>
+                    }
+                </tbody>
+            </MudSimpleTable>
+        }
+    </MudPaper>
+}
+
+@code {
+    [Parameter] public int VendorId { get; set; }
+
+    private Vendor? _vendor;
+    private VendorCreditBalanceDto? _balance;
+    private List<VendorCreditTransaction> _history = new();
+    private decimal _grantAmount;
+    private string? _grantNote;
+    private bool _saving;
+    private int? _memberId;
+
+    protected override async Task OnInitializedAsync()
+    {
+        await L.EnsureLoadedAsync();
+        var user = (await AuthState.GetAuthenticationStateAsync()).User;
+        if (int.TryParse(user.FindFirst(AdminClaimTypes.MemberId)?.Value, out var mid))
+            _memberId = mid;
+
+        _vendor = await VendorService.GetByIdAsync(VendorId);
+        await ReloadAsync();
+    }
+
+    private async Task ReloadAsync()
+    {
+        _balance = await VendorCreditService.GetBalanceAsync(VendorId);
+        var page = await VendorCreditService.GetHistoryAsync(VendorId, new GridQuery { PageIndex = 1, PageSize = 50 });
+        _history = page.Items.ToList();
+        if (_vendor is not null)
+            _vendor.AvailableCreditUsd = _balance.AvailableCreditUsd;
+    }
+
+    private static string SourceLabel(byte t) => t switch
+    {
+        1 => "Grant",
+        2 => "Sale",
+        3 => "Adjustment",
+        4 => "Refund",
+        _ => t.ToString(),
+    };
+
+    private async Task GrantAsync()
+    {
+        if (_grantAmount == 0) { Snackbar.Add("Amount required", Severity.Warning); return; }
+        _saving = true;
+        try
+        {
+            var (ok, err, _) = await VendorCreditService.GrantAsync(VendorId, _grantAmount, _grantNote, _memberId);
+            if (!ok) { Snackbar.Add(err ?? "Failed", Severity.Error); return; }
+            Snackbar.Add(L["saved", "Saved."], Severity.Success);
+            _grantAmount = 0;
+            _grantNote = null;
+            await ReloadAsync();
+        }
+        finally { _saving = false; }
+    }
+}

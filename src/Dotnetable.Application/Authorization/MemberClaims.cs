@@ -19,9 +19,13 @@ public static class MemberClaims
     /// <summary>The member's <see cref="Member.AdminUIMode"/> (0 = Basic, 1 = General, 2 = Advanced), as a string digit.</summary>
     public const string AdminUiMode = "auimode";
 
+    /// <summary>When the member is bound to a marketplace vendor (VendorType = Member), the VendorID.</summary>
+    public const string VendorId = "vid";
+
     /// <summary>
     /// Builds the identity + role claims for <paramref name="member"/>. The member must have its
     /// Policy → PolicyRoles → Role graph loaded for the role claims to be populated.
+    /// Include <see cref="Member.Vendor"/> when present so <see cref="VendorId"/> is emitted.
     /// </summary>
     public static IReadOnlyList<Claim> Build(Member member)
     {
@@ -38,6 +42,9 @@ public static class MemberClaims
 
         if (member.WebsiteID == AppConstants.MasterWebsiteId)
             claims.Add(new Claim(Master, "true"));
+
+        if (member.Vendor is { IsActive: true, VendorType: (byte)Domain.Enums.VendorType.Member } v)
+            claims.Add(new Claim(VendorId, v.VendorID.ToString()));
 
         // One role claim per active permission key granted through the member's policy.
         var roleKeys = member.Policy?.PolicyRoles

@@ -60,6 +60,8 @@ public sealed class ProductVariantDto
     public string? Barcode { get; init; }
     public bool IsActive { get; init; }
     public int StockQuantity { get; init; }
+    public int? VendorProductID { get; init; }
+    public int? VendorID { get; init; }
     public IReadOnlyList<ProductAttributeValueDto> Attributes { get; init; } = Array.Empty<ProductAttributeValueDto>();
 }
 
@@ -107,6 +109,11 @@ public class ProductSummaryDto
     public decimal AvgRating { get; init; }
     public int RatingCount { get; init; }
     public bool HasVariants { get; init; }
+
+    /// <summary>When the listing comes from a site-linked or member vendor on the host storefront.</summary>
+    public int? VendorID { get; init; }
+    public string? VendorName { get; init; }
+    public int? VendorProductID { get; init; }
 }
 
 /// <summary>A single published product with full detail (variants, attributes, content, warnings, related).</summary>
@@ -145,4 +152,6 @@ public sealed class ProductFilter
     public int? ProductCategoryID { get; set; }
     public byte? Status { get; set; }
     public bool? IsActive { get; set; }
+    /// <summary>When set, only products created by this member (vendor scope).</summary>
+    public int? CreatedByMemberId { get; set; }
 }

@@ -48,9 +48,9 @@ public class ShopController : Controller
     }
 
     [HttpPost]
-    public async Task<IActionResult> AddToCart(int variantId, int quantity = 1, CancellationToken ct = default)
+    public async Task<IActionResult> AddToCart(int variantId, int quantity = 1, int? vendorProductId = null, int? vendorId = null, CancellationToken ct = default)
     {
-        var result = await _api.AddToCartAsync(variantId, quantity, ct);
+        var result = await _api.AddToCartAsync(variantId, quantity, vendorProductId, vendorId, ct);
         return result.Ok ? RedirectToAction("Index", "Cart") : BadRequest(new { message = result.Message });
     }
 

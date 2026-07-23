@@ -41,6 +41,8 @@ public partial class OrderItem
 
     public virtual ICollection<SettlementItem> SettlementItems { get; set; } = new List<SettlementItem>();
 
+    public virtual ICollection<VendorCreditTransaction> VendorCreditTransactions { get; set; } = new List<VendorCreditTransaction>();
+
     public virtual Website SourceWebsite { get; set; } = null!;
 
     public virtual ICollection<StockMovement> StockMovements { get; set; } = new List<StockMovement>();

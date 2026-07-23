@@ -109,6 +109,8 @@ public static class ServiceCollectionExtensions
         services.AddScoped<IAttributeDefinitionService, AttributeDefinitionService>();
         services.AddScoped<IBrandService, BrandService>();
         services.AddScoped<IVendorService, VendorService>();
+        services.AddScoped<IVendorProductService, VendorProductService>();
+        services.AddScoped<IVendorCreditService, VendorCreditService>();
         services.AddScoped<IProductService, ProductService>();
 
         // E-commerce: inventory / stock / suppliers.

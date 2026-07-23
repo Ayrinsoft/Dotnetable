@@ -1,0 +1,160 @@
+@page "/catalog/vendors/{VendorId:int}/products"
+@attribute [Authorize(Policy = RoleKeys.VendorsView)]
+@inject IVendorService VendorService
+@inject IVendorProductService VendorProductService
+@inject IProductService ProductService
+@inject AuthenticationStateProvider AuthState
+@inject IDialogService DialogService
+@inject ISnackbar Snackbar
+@inject IPageLocalizer L
+@inject NavigationManager Nav
+
+<DNPageTitle Title=@L["vendors.listings", "Vendor listings"] />
+
+@if (_vendor is null)
+{
+    <MudProgressLinear Indeterminate="true" Color="Color.Primary" />
+}
+else
+{
+    <MudStack Row="true" AlignItems="AlignItems.Center" Justify="Justify.SpaceBetween" Class="mb-4">
+        <MudStack Spacing="0">
+            <MudText Typo="Typo.h5" Class="fw-bold">@_vendor.Name — @L["vendors.listings", "Listings"]</MudText>
+            <MudText Typo="Typo.body2" Color="Color.Secondary">@L["vendors.listings.subtitle", "Price and stock overrides for this vendor on the host site."]</MudText>
+        </MudStack>
+        <MudStack Row="true" Spacing="2">
+            <MudButton Variant="Variant.Text" StartIcon="@Icons.Material.Filled.ArrowBack" OnClick="@(() => Nav.NavigateTo("/catalog/vendors"))">@L["back", "Back"]</MudButton>
+            @if (_canEdit)
+            {
+                <MudButton Variant="Variant.Filled" Color="Color.Primary" StartIcon="@Icons.Material.Filled.Add" OnClick="AddAsync">@L["vendors.listings.add", "Add listing"]</MudButton>
+            }
+        </MudStack>
+    </MudStack>
+
+    <MudPaper Elevation="0" Class="app-card rounded-lg pa-4">
+        @if (_loading)
+        {
+            <MudProgressLinear Indeterminate="true" Color="Color.Primary" Class="mb-3" />
+        }
+        <DNGridView GridHeaderParams="_grid" OnSearchChanged="OnGridChanged">
+            @if (_items.Count == 0)
+            {
+                <tr>
+                    <td colspan="7" style="text-align:center; padding:32px;">
+                        <MudText Color="Color.Secondary">@L["vendors.listings.empty", "No listings yet."]</MudText>
+                    </td>
+                </tr>
+            }
+            else
+            {
+                @foreach (var item in _items)
+                {
+                    <tr>
+                        <td>@item.ProductTitle</td>
+                        <td><code>@item.Sku</code></td>
+                        <td>@item.ReferencePriceUsd.ToString("0.####")</td>
+                        <td>@(item.OverridePrice?.ToString("0.####") ?? "-")</td>
+                        <td>@item.StockQuantity</td>
+                        <td>@(item.IsActive ? L["yes", "Yes"] : L["no", "No"])</td>
+                        <td>
+                            @if (_canEdit)
+                            {
+                                <MudIconButton Icon="@Icons.Material.Filled.Edit" Size="Size.Small" OnClick="@(() => EditAsync(item))" />
+                                <MudIconButton Icon="@Icons.Material.Filled.Delete" Size="Size.Small" Color="Color.Error" OnClick="@(() => DeleteAsync(item))" />
+                            }
+                        </td>
+                    </tr>
+                }
+            }
+        </DNGridView>
+    </MudPaper>
+}
+
+@code {
+    [Parameter] public int VendorId { get; set; }
+
+    private Vendor? _vendor;
+    private bool _loading = true;
+    private bool _canEdit;
+    private int? _actingMemberId;
+    private List<VendorProductListItemDto> _items = new();
+    private GridViewHeaderParameters _grid = new();
+
+    protected override async Task OnInitializedAsync()
+    {
+        await L.EnsureLoadedAsync();
+        var user = (await AuthState.GetAuthenticationStateAsync()).User;
+        _canEdit = AdminPolicies.Allows(user, RoleKeys.VendorsEdit) || AdminPolicies.Allows(user, RoleKeys.ProductsEdit);
+        if (int.TryParse(user.FindFirst(AdminClaimTypes.VendorId)?.Value, out var vid) && vid == VendorId
+            && int.TryParse(user.FindFirst(AdminClaimTypes.MemberId)?.Value, out var mid))
+            _actingMemberId = mid;
+
+        _vendor = await VendorService.GetByIdAsync(VendorId);
+        _grid = new GridViewHeaderParameters
+        {
+            Pagination = new PaginationModel { PageSize = 25 },
+            HeaderItems = new()
+            {
+                new() { ColumnTitle = L["title", "Title"], ColumnName = "ProductTitle", HasSearch = true },
+                new() { ColumnTitle = L["sku", "SKU"], ColumnName = "Sku", HasSearch = true },
+                new() { ColumnTitle = L["vendors.ref_price", "Ref. price"], ColumnName = nameof(VendorProductListItemDto.ReferencePriceUsd) },
+                new() { ColumnTitle = L["vendors.override_price", "Override"], ColumnName = nameof(VendorProductListItemDto.OverridePrice) },
+                new() { ColumnTitle = L["stock", "Stock"], ColumnName = nameof(VendorProductListItemDto.StockQuantity) },
+                new() { ColumnTitle = L["active", "Active"], ColumnName = nameof(VendorProductListItemDto.IsActive) },
+                new() { ColumnTitle = "", ColumnName = "" },
+            }
+        };
+        await LoadAsync();
+    }
+
+    private Task OnGridChanged(GridViewHeaderParameters _) => LoadAsync();
+
+    private async Task LoadAsync()
+    {
+        _loading = true;
+        var result = await VendorProductService.GetPagedAsync(VendorId, _grid.ToQuery());
+        _items = result.Items.ToList();
+        _grid.Pagination.MaxLength = result.TotalCount;
+        _loading = false;
+    }
+
+    private async Task AddAsync()
+    {
+        var model = new VendorProduct { VendorID = VendorId, IsActive = true, DeliveryDays = 1 };
+        if (await ShowDialogAsync(model)) await LoadAsync();
+    }
+
+    private async Task EditAsync(VendorProductListItemDto row)
+    {
+        var entity = await VendorProductService.GetByIdAsync(row.VendorProductID);
+        if (entity is null) return;
+        if (await ShowDialogAsync(entity)) await LoadAsync();
+    }
+
+    private async Task<bool> ShowDialogAsync(VendorProduct model)
+    {
+        var parameters = new DialogParameters<VendorProductDialog>
+        {
+            { x => x.Model, model },
+            { x => x.ActingMemberId, _actingMemberId },
+        };
+        var dialog = await DialogService.ShowAsync<VendorProductDialog>(
+            L["vendors.listings.edit", "Vendor listing"], parameters,
+            new DialogOptions { MaxWidth = MaxWidth.Small, FullWidth = true });
+        var result = await dialog.Result;
+        return result is not null && !result.Canceled;
+    }
+
+    private async Task DeleteAsync(VendorProductListItemDto row)
+    {
+        var confirmed = await DialogService.ShowMessageBoxAsync(
+            L["vendors.listings.delete", "Delete listing"],
+            L["vendors.listings.delete_confirm", "Remove this vendor listing?"],
+            yesText: L["delete", "Delete"], cancelText: L["cancel", "Cancel"]);
+        if (confirmed != true) return;
+        var (ok, err) = await VendorProductService.DeleteAsync(row.VendorProductID, _actingMemberId);
+        if (!ok) { Snackbar.Add(err ?? "Failed", Severity.Error); return; }
+        Snackbar.Add(L["deleted", "Deleted."], Severity.Success);
+        await LoadAsync();
+    }
+}

@@ -4568,6 +4568,11 @@ namespace Dotnetable.Migrations.SqlServer.Migrations
 
                     SqlServerPropertyBuilderExtensions.UseIdentityColumn(b.Property<int>("VendorID"));
 
+                    b.Property<decimal>("AvailableCreditUsd")
+                        .ValueGeneratedOnAdd()
+                        .HasColumnType("decimal(18, 4)")
+                        .HasDefaultValue(0m, "DF_Vendors_AvailableCreditUsd");
+
                     b.Property<int?>("CreditDays")
                         .HasColumnType("int")
                         .HasComment("number of days after the settlement period ends before payment is due; only meaningful when SettlementMode = Credit");
@@ -4581,7 +4586,13 @@ namespace Dotnetable.Migrations.SqlServer.Migrations
                         .HasColumnType("bit")
                         .HasDefaultValue(true, "DF_Vendors_IsActive_1");
 
+                    b.Property<int?>("LinkedWebsiteID")
+                        .HasColumnType("int");
+
                     b.Property<int?>("LogoFileID")
+                        .HasColumnType("int");
+
+                    b.Property<int?>("MemberID")
                         .HasColumnType("int");
 
                     b.Property<string>("Name")
@@ -4601,16 +4612,85 @@ namespace Dotnetable.Migrations.SqlServer.Migrations
                         .HasMaxLength(200)
                         .HasColumnType("nvarchar(200)");
 
+                    b.Property<byte>("VendorType")
+                        .ValueGeneratedOnAdd()
+                        .HasColumnType("tinyint")
+                        .HasComment("0 = Display-only title, 1 = Member login (manage own catalog), 2 = Linked website (inter-site virtual credit)")
+                        .HasDefaultValue((byte)0, "DF_Vendors_VendorType");
+
                     b.Property<int>("WebsiteID")
                         .HasColumnType("int");
 
                     b.HasKey("VendorID");
 
+                    b.HasIndex("LinkedWebsiteID");
+
                     b.HasIndex("LogoFileID");
 
                     b.HasIndex("WebsiteID");
 
+                    b.HasIndex(new[] { "MemberID" }, "IX_Vendors_MemberID")
+                        .IsUnique()
+                        .HasFilter("MemberID IS NOT NULL");
+
                     b.ToTable("Vendors");
+                });
+
+            modelBuilder.Entity("Dotnetable.Domain.Entities.VendorCreditTransaction", b =>
+                {
+                    b.Property<int>("VendorCreditTransactionID")
+                        .ValueGeneratedOnAdd()
+                        .HasColumnType("int");
+
+                    SqlServerPropertyBuilderExtensions.UseIdentityColumn(b.Property<int>("VendorCreditTransactionID"));
+
+                    b.Property<decimal>("AmountUsd")
+                        .HasColumnType("decimal(18, 4)");
+
+                    b.Property<decimal>("BalanceAfterUsd")
+                        .HasColumnType("decimal(18, 4)");
+
+                    b.Property<DateTime>("CreatedAt")
+                        .ValueGeneratedOnAdd()
+                        .HasColumnType("datetime")
+                        .HasDefaultValueSql("(sysutcdatetime())", "DF_VendorCreditTransactions_CreatedAt");
+
+                    b.Property<int?>("CreatedByMemberID")
+                        .HasColumnType("int");
+
+                    b.Property<int?>("MirrorOrderID")
+                        .HasColumnType("int");
+
+                    b.Property<string>("Note")
+                        .HasMaxLength(500)
+                        .HasColumnType("nvarchar(500)");
+
+                    b.Property<int?>("SourceOrderItemID")
+                        .HasColumnType("int");
+
+                    b.Property<byte>("SourceType")
+                        .HasColumnType("tinyint")
+                        .HasComment("1 = Grant, 2 = Sale, 3 = Adjustment, 4 = Refund");
+
+                    b.Property<int>("VendorID")
+                        .HasColumnType("int");
+
+                    b.Property<int>("WebsiteID")
+                        .HasColumnType("int");
+
+                    b.HasKey("VendorCreditTransactionID");
+
+                    b.HasIndex("CreatedByMemberID");
+
+                    b.HasIndex("MirrorOrderID");
+
+                    b.HasIndex("SourceOrderItemID");
+
+                    b.HasIndex("VendorID");
+
+                    b.HasIndex("WebsiteID");
+
+                    b.ToTable("VendorCreditTransactions");
                 });
 
             modelBuilder.Entity("Dotnetable.Domain.Entities.VendorProduct", b =>
@@ -7424,10 +7504,20 @@ namespace Dotnetable.Migrations.SqlServer.Migrations
 
             modelBuilder.Entity("Dotnetable.Domain.Entities.Vendor", b =>
                 {
+                    b.HasOne("Dotnetable.Domain.Entities.Website", "LinkedWebsite")
+                        .WithMany("LinkedAsVendors")
+                        .HasForeignKey("LinkedWebsiteID")
+                        .HasConstraintName("FK_Vendors_LinkedWebsites");
+
                     b.HasOne("Dotnetable.Domain.Entities.FileRecord", "LogoFile")
                         .WithMany("Vendors")
                         .HasForeignKey("LogoFileID")
                         .HasConstraintName("FK_Vendors_FileRecords");
+
+                    b.HasOne("Dotnetable.Domain.Entities.Member", "Member")
+                        .WithOne("Vendor")
+                        .HasForeignKey("Dotnetable.Domain.Entities.Vendor", "MemberID")
+                        .HasConstraintName("FK_Vendors_Members");
 
                     b.HasOne("Dotnetable.Domain.Entities.Website", "Website")
                         .WithMany("Vendors")
@@ -7435,7 +7525,51 @@ namespace Dotnetable.Migrations.SqlServer.Migrations
                         .IsRequired()
                         .HasConstraintName("FK_Vendors_Websites");
 
+                    b.Navigation("LinkedWebsite");
+
                     b.Navigation("LogoFile");
+
+                    b.Navigation("Member");
+
+                    b.Navigation("Website");
+                });
+
+            modelBuilder.Entity("Dotnetable.Domain.Entities.VendorCreditTransaction", b =>
+                {
+                    b.HasOne("Dotnetable.Domain.Entities.Member", "CreatedByMember")
+                        .WithMany("VendorCreditTransactions")
+                        .HasForeignKey("CreatedByMemberID")
+                        .HasConstraintName("FK_VendorCreditTransactions_Members");
+
+                    b.HasOne("Dotnetable.Domain.Entities.Order", "MirrorOrder")
+                        .WithMany("VendorCreditTransactions")
+                        .HasForeignKey("MirrorOrderID")
+                        .HasConstraintName("FK_VendorCreditTransactions_Orders");
+
+                    b.HasOne("Dotnetable.Domain.Entities.OrderItem", "SourceOrderItem")
+                        .WithMany("VendorCreditTransactions")
+                        .HasForeignKey("SourceOrderItemID")
+                        .HasConstraintName("FK_VendorCreditTransactions_OrderItems");
+
+                    b.HasOne("Dotnetable.Domain.Entities.Vendor", "Vendor")
+                        .WithMany("VendorCreditTransactions")
+                        .HasForeignKey("VendorID")
+                        .IsRequired()
+                        .HasConstraintName("FK_VendorCreditTransactions_Vendors");
+
+                    b.HasOne("Dotnetable.Domain.Entities.Website", "Website")
+                        .WithMany("VendorCreditTransactions")
+                        .HasForeignKey("WebsiteID")
+                        .IsRequired()
+                        .HasConstraintName("FK_VendorCreditTransactions_Websites");
+
+                    b.Navigation("CreatedByMember");
+
+                    b.Navigation("MirrorOrder");
+
+                    b.Navigation("SourceOrderItem");
+
+                    b.Navigation("Vendor");
 
                     b.Navigation("Website");
                 });
@@ -7995,6 +8129,10 @@ namespace Dotnetable.Migrations.SqlServer.Migrations
                     b.Navigation("SettlementCreatedByMembers");
 
                     b.Navigation("StockMovements");
+
+                    b.Navigation("Vendor");
+
+                    b.Navigation("VendorCreditTransactions");
                 });
 
             modelBuilder.Entity("Dotnetable.Domain.Entities.Menu", b =>
@@ -8020,6 +8158,8 @@ namespace Dotnetable.Migrations.SqlServer.Migrations
                     b.Navigation("Payments");
 
                     b.Navigation("StockMovements");
+
+                    b.Navigation("VendorCreditTransactions");
                 });
 
             modelBuilder.Entity("Dotnetable.Domain.Entities.OrderItem", b =>
@@ -8027,6 +8167,8 @@ namespace Dotnetable.Migrations.SqlServer.Migrations
                     b.Navigation("SettlementItems");
 
                     b.Navigation("StockMovements");
+
+                    b.Navigation("VendorCreditTransactions");
                 });
 
             modelBuilder.Entity("Dotnetable.Domain.Entities.Page", b =>
@@ -8214,6 +8356,8 @@ namespace Dotnetable.Migrations.SqlServer.Migrations
 
                     b.Navigation("Settlements");
 
+                    b.Navigation("VendorCreditTransactions");
+
                     b.Navigation("VendorProducts");
 
                     b.Navigation("VendorTranslations");
@@ -8278,6 +8422,8 @@ namespace Dotnetable.Migrations.SqlServer.Migrations
 
                     b.Navigation("Languages");
 
+                    b.Navigation("LinkedAsVendors");
+
                     b.Navigation("LocalizationKeys");
 
                     b.Navigation("LoginTries");
@@ -8331,6 +8477,8 @@ namespace Dotnetable.Migrations.SqlServer.Migrations
                     b.Navigation("Tags");
 
                     b.Navigation("TaxRates");
+
+                    b.Navigation("VendorCreditTransactions");
 
                     b.Navigation("VendorProducts");
 

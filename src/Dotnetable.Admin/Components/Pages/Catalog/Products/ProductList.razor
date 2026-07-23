@@ -77,6 +77,7 @@
     private bool _isMaster;
     private bool _canInsert, _canDelete;
     private int _websiteId;
+    private int? _vendorMemberId;
     private List<ProductListItemDto> _items = new();
     private List<Website> _websites = new();
     private GridViewHeaderParameters _grid = new();
@@ -89,6 +90,10 @@
         _canInsert = AdminPolicies.Allows(user, RoleKeys.ProductsInsert);
         _canDelete = AdminPolicies.Allows(user, RoleKeys.ProductsDelete);
         int.TryParse(user.FindFirst(AdminClaimTypes.WebsiteId)?.Value, out _websiteId);
+        // Vendor members only manage products they created.
+        if (user.HasClaim(c => c.Type == AdminClaimTypes.VendorId)
+            && int.TryParse(user.FindFirst(AdminClaimTypes.MemberId)?.Value, out var mid))
+            _vendorMemberId = mid;
         if (_isMaster) _websites = (await WebsiteService.GetAllAsync()).ToList();
 
         _grid = new GridViewHeaderParameters
@@ -116,7 +121,7 @@
         _loading = true;
         var query = _grid.ToQuery();
         var search = query.GetSearch(nameof(ProductListItemDto.Title));
-        var result = await ProductService.GetPagedAsync(_websiteId, new ProductFilter(), query, search);
+        var result = await ProductService.GetPagedAsync(_websiteId, new ProductFilter(), query, search, _vendorMemberId);
         _items = result.Items.ToList();
         _grid.Pagination.MaxLength = result.TotalCount;
         _loading = false;

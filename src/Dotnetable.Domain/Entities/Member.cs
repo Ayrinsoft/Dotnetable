@@ -82,5 +82,10 @@ public partial class Member
 
     public virtual ICollection<StockMovement> StockMovements { get; set; } = new List<StockMovement>();
 
+    public virtual ICollection<VendorCreditTransaction> VendorCreditTransactions { get; set; } = new List<VendorCreditTransaction>();
+
+    /// <summary>When this member is bound as a marketplace vendor (VendorType = Member).</summary>
+    public virtual Vendor? Vendor { get; set; }
+
     public virtual Website Website { get; set; } = null!;
 }
