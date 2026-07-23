@@ -69,8 +69,9 @@ public class CartService : ICartService
         foreach (var item in cart.CartItems)
         {
             var variant = item.ProductVariant;
-            // Vendor listings may override in USD. ProductVariant.OverridePrice stores the
-            // display-currency snapshot (not USD); commerce always uses ReferencePriceUsd.
+            // Catalog price is always ProductVariant.ReferencePriceUsd (USD reference).
+            // VendorProduct.OverridePrice is an optional USD override for marketplace listings.
+            // Display currency is applied later via the live exchange rate (USD × rate).
             var unitPriceUsd = item.VendorProduct is { } vp
                 ? (vp.OverridePrice ?? vp.ReferencePriceUsd)
                 : variant.ReferencePriceUsd;

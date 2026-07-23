@@ -133,12 +133,19 @@ else
 
             <MudTabPanel Text="@L["products.variants", "Variants"]">
                 <div class="pa-2">
-                    @if (!_isUsdSite && _hasRate)
+                    @if (_hasRate)
                     {
                         <MudAlert Severity="Severity.Info" Dense="true" Class="mb-3" Variant="Variant.Outlined">
-                            @string.Format(
-                                L["products.price_dual_hint", "Site currency is {0}. Enter the local price; USD is converted with rate 1 USD = {1:0.####} {0}. Both values are saved."],
-                                _displayCurrency, _usdToCurrency)
+                            @if (_isUsdSite)
+                            {
+                                @L["products.price_usd_hint", "Enter the product price in USD. This is the reference price used for conversion when the site currency changes."]
+                            }
+                            else
+                            {
+                                @string.Format(
+                                    L["products.price_local_hint", "Enter the product price in {0}. It is converted to USD (reference) with the current rate (1 USD = {1} {0}). The storefront always shows USD × live exchange rate — if the rate changes, the displayed {0} price updates automatically."],
+                                    _displayCurrency, FormatRate(_usdToCurrency))
+                            }
                         </MudAlert>
                     }
                     @foreach (var (v, idx) in _variants.Select((v, i) => (v, i)))
@@ -150,35 +157,27 @@ else
                                 </MudItem>
                                 @if (!_isUsdSite && _hasRate)
                                 {
-                                    <MudItem xs="6" sm="2">
+                                    <MudItem xs="12" sm="3">
                                         <MudNumericField T="decimal" Value="@LocalPrice(v)" ValueChanged="@(val => SetLocalPrice(v, val))"
                                                          Label="@($"{L["variants.price", "Price"]} ({_displayCurrency})")"
-                                                         Variant="Variant.Outlined" Margin="Margin.Dense" Min="0" />
+                                                         HelperText="@UsdHelper(v.ReferencePriceUsd)"
+                                                         Variant="Variant.Outlined" Margin="Margin.Dense" Min="0" Immediate="true" />
                                     </MudItem>
-                                    <MudItem xs="6" sm="2">
-                                        <MudNumericField T="decimal" Value="@v.ReferencePriceUsd" ValueChanged="@(val => SetUsdPrice(v, val))"
-                                                         Label="@L["variants.price_usd", "Price (USD)"]"
-                                                         Variant="Variant.Outlined" Margin="Margin.Dense" Min="0" />
-                                    </MudItem>
-                                    <MudItem xs="6" sm="2">
+                                    <MudItem xs="12" sm="3">
                                         <MudNumericField T="decimal?" Value="@LocalCompareAt(v)" ValueChanged="@(val => SetLocalCompareAt(v, val))"
                                                          Label="@($"{L["variants.compare_price", "Compare at"]} ({_displayCurrency})")"
-                                                         Variant="Variant.Outlined" Margin="Margin.Dense" Min="0" />
-                                    </MudItem>
-                                    <MudItem xs="6" sm="2">
-                                        <MudNumericField T="decimal?" Value="@v.CompareAtPriceUsd" ValueChanged="@(val => SetUsdCompareAt(v, val))"
-                                                         Label="@L["variants.compare_usd", "Compare at (USD)"]"
-                                                         Variant="Variant.Outlined" Margin="Margin.Dense" Min="0" />
+                                                         HelperText="@(v.CompareAtPriceUsd is decimal cmp ? UsdHelper(cmp) : null)"
+                                                         Variant="Variant.Outlined" Margin="Margin.Dense" Min="0" Immediate="true" />
                                     </MudItem>
                                 }
                                 else
                                 {
-                                    <MudItem xs="6" sm="2">
+                                    <MudItem xs="12" sm="3">
                                         <MudNumericField T="decimal" @bind-Value="v.ReferencePriceUsd"
                                                          Label="@L["variants.price", "Price (USD)"]"
                                                          Variant="Variant.Outlined" Margin="Margin.Dense" Min="0" />
                                     </MudItem>
-                                    <MudItem xs="6" sm="2">
+                                    <MudItem xs="12" sm="3">
                                         <MudNumericField T="decimal?" @bind-Value="v.CompareAtPriceUsd"
                                                          Label="@L["variants.compare_price", "Compare at (USD)"]"
                                                          Variant="Variant.Outlined" Margin="Margin.Dense" Min="0" />
@@ -406,6 +405,8 @@ else
     private bool _hasRate;
     private bool _isUsdSite = true;
     private readonly Dictionary<string, (string Title, string Slug, string? Short)> _tr = new(StringComparer.OrdinalIgnoreCase);
+    /// <summary>Session-only local (site-currency) amounts while editing. USD on the variant is the persisted source of truth for live storefront pricing.</summary>
+    private readonly Dictionary<ProductVariant, decimal> _localPrice = new();
     private readonly Dictionary<ProductVariant, decimal?> _localCompareAt = new();
 
     private List<(int MediaSetId, FileRecord File)> _gallery = new();
@@ -536,18 +537,29 @@ else
         if (_isUsdSite || !_hasRate) return;
         foreach (var v in _variants)
         {
-            if (v.OverridePrice is null or 0)
-                v.OverridePrice = RoundLocal(v.ReferencePriceUsd * _usdToCurrency);
-            if (v.CompareAtPriceUsd is decimal cmp)
-                _localCompareAt[v] = RoundLocal(cmp * _usdToCurrency);
+            // Show the live local equivalent of the stored USD reference (rate may have changed since last save).
+            _localPrice[v] = RoundLocal(v.ReferencePriceUsd * _usdToCurrency);
+            _localCompareAt[v] = v.CompareAtPriceUsd is decimal cmp
+                ? RoundLocal(cmp * _usdToCurrency)
+                : null;
         }
     }
 
     private decimal RoundLocal(decimal amount) => Math.Round(amount, _localDigits, MidpointRounding.AwayFromZero);
     private decimal RoundUsd(decimal amount) => Math.Round(amount, 4, MidpointRounding.AwayFromZero);
 
-    private decimal LocalPrice(ProductVariant v) =>
-        v.OverridePrice ?? (_hasRate && !_isUsdSite ? RoundLocal(v.ReferencePriceUsd * _usdToCurrency) : v.ReferencePriceUsd);
+    private static string FormatRate(decimal rate) =>
+        rate >= 1 ? rate.ToString("N2") : rate.ToString("0.######");
+
+    private string UsdHelper(decimal usd) =>
+        string.Format(L["products.price_usd_ref", "≈ {0} USD (reference · storefront = USD × live rate)"], usd.ToString("0.####"));
+
+    private decimal LocalPrice(ProductVariant v)
+    {
+        if (_localPrice.TryGetValue(v, out var local)) return local;
+        if (_hasRate && !_isUsdSite) return RoundLocal(v.ReferencePriceUsd * _usdToCurrency);
+        return v.ReferencePriceUsd;
+    }
 
     private decimal? LocalCompareAt(ProductVariant v)
     {
@@ -560,34 +572,18 @@ else
     private void SetLocalPrice(ProductVariant v, decimal local)
     {
         if (local < 0) local = 0;
-        v.OverridePrice = local;
+        _localPrice[v] = local;
+        // Convert entered site-currency price → USD reference at the rate of the moment of entry.
         v.ReferencePriceUsd = _usdToCurrency == 0 ? 0 : RoundUsd(local / _usdToCurrency);
-    }
-
-    private void SetUsdPrice(ProductVariant v, decimal usd)
-    {
-        if (usd < 0) usd = 0;
-        v.ReferencePriceUsd = usd;
-        if (!_isUsdSite && _hasRate)
-            v.OverridePrice = RoundLocal(usd * _usdToCurrency);
     }
 
     private void SetLocalCompareAt(ProductVariant v, decimal? local)
     {
         _localCompareAt[v] = local;
-        if (local is null)
+        if (local is null or < 0)
             v.CompareAtPriceUsd = null;
         else
             v.CompareAtPriceUsd = _usdToCurrency == 0 ? 0 : RoundUsd(local.Value / _usdToCurrency);
-    }
-
-    private void SetUsdCompareAt(ProductVariant v, decimal? usd)
-    {
-        v.CompareAtPriceUsd = usd;
-        if (usd is null)
-            _localCompareAt[v] = null;
-        else if (!_isUsdSite && _hasRate)
-            _localCompareAt[v] = RoundLocal(usd.Value * _usdToCurrency);
     }
 
     private Task<IEnumerable<Brand>> SearchBrands(string value, CancellationToken ct)
@@ -641,6 +637,11 @@ else
     {
         var v = new ProductVariant { IsActive = true, IsDefault = _variants.Count == 0 };
         _variants.Add(v);
+        if (!_isUsdSite && _hasRate)
+        {
+            _localPrice[v] = 0;
+            _localCompareAt[v] = null;
+        }
     }
 
     private string TrTitle(string c) => _tr.TryGetValue(c, out var v) ? v.Title : string.Empty;
@@ -761,24 +762,24 @@ else
         }
         if (string.IsNullOrWhiteSpace(Model.Slug)) Model.Slug = Model.Title.Trim();
 
-        // Ensure dual prices are consistent before persist.
-        if (!_isUsdSite)
+        // Persist USD reference only. Storefront always multiplies by the live exchange rate.
+        // ProductVariant.OverridePrice is not used for catalog pricing (reserved/legacy; keep null).
+        foreach (var v in _variants)
         {
-            foreach (var v in _variants)
+            if (!_isUsdSite && _hasRate)
             {
-                if (v.OverridePrice is decimal local and > 0)
-                    v.ReferencePriceUsd = RoundUsd(local / _usdToCurrency);
-                else
-                    v.OverridePrice = RoundLocal(v.ReferencePriceUsd * _usdToCurrency);
+                if (_localPrice.TryGetValue(v, out var local))
+                    v.ReferencePriceUsd = _usdToCurrency == 0 ? 0 : RoundUsd(local / _usdToCurrency);
 
-                if (_localCompareAt.TryGetValue(v, out var localCmp) && localCmp is decimal lc)
-                    v.CompareAtPriceUsd = RoundUsd(lc / _usdToCurrency);
+                if (_localCompareAt.TryGetValue(v, out var localCmp))
+                {
+                    v.CompareAtPriceUsd = localCmp is decimal lc and >= 0 && _usdToCurrency != 0
+                        ? RoundUsd(lc / _usdToCurrency)
+                        : null;
+                }
             }
-        }
-        else
-        {
-            foreach (var v in _variants)
-                v.OverridePrice = null;
+
+            v.OverridePrice = null;
         }
 
         Model.WebsiteID = _websiteId;
