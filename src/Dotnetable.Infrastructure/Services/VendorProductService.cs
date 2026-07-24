@@ -18,6 +18,7 @@ public class VendorProductService : IVendorProductService
     {
         var q = _context.VendorProducts.AsNoTracking()
             .Where(vp => vp.VendorID == vendorId)
+            .Include(vp => vp.Vendor)
             .Include(vp => vp.ProductVariant).ThenInclude(v => v.Product)
             .AsQueryable();
 
@@ -51,23 +52,41 @@ public class VendorProductService : IVendorProductService
         return new PagedResult<VendorProductListItemDto>
         {
             TotalCount = total,
-            Items = items.Select(vp => new VendorProductListItemDto
-            {
-                VendorProductID = vp.VendorProductID,
-                VendorID = vp.VendorID,
-                ProductVariantID = vp.ProductVariantID,
-                ProductID = vp.ProductVariant.ProductID,
-                ProductTitle = vp.ProductVariant.Product.Title,
-                VariantTitle = vp.ProductVariant.Title,
-                Sku = vp.ProductVariant.Sku,
-                ReferencePriceUsd = vp.ReferencePriceUsd,
-                OverridePrice = vp.OverridePrice,
-                StockQuantity = vp.StockQuantity,
-                DeliveryDays = vp.DeliveryDays,
-                IsActive = vp.IsActive,
-            }).ToList(),
+            Items = items.Select(MapListItem).ToList(),
         };
     }
+
+    public async Task<List<VendorProductListItemDto>> GetByProductIdAsync(int productId, CancellationToken ct = default)
+    {
+        var items = await _context.VendorProducts.AsNoTracking()
+            .Where(vp => vp.ProductVariant.ProductID == productId)
+            .Include(vp => vp.Vendor)
+            .Include(vp => vp.ProductVariant).ThenInclude(v => v.Product)
+            .OrderBy(vp => vp.Vendor.Name)
+            .ThenBy(vp => vp.ProductVariant.Title)
+            .ThenBy(vp => vp.ProductVariant.Sku)
+            .ToListAsync(ct);
+
+        return items.Select(MapListItem).ToList();
+    }
+
+    private static VendorProductListItemDto MapListItem(VendorProduct vp) => new()
+    {
+        VendorProductID = vp.VendorProductID,
+        VendorID = vp.VendorID,
+        VendorName = vp.Vendor?.Name ?? string.Empty,
+        VendorType = vp.Vendor?.VendorType ?? 0,
+        ProductVariantID = vp.ProductVariantID,
+        ProductID = vp.ProductVariant.ProductID,
+        ProductTitle = vp.ProductVariant.Product.Title,
+        VariantTitle = vp.ProductVariant.Title,
+        Sku = vp.ProductVariant.Sku,
+        ReferencePriceUsd = vp.ReferencePriceUsd,
+        OverridePrice = vp.OverridePrice,
+        StockQuantity = vp.StockQuantity,
+        DeliveryDays = vp.DeliveryDays,
+        IsActive = vp.IsActive,
+    };
 
     public async Task<List<VendorVariantPickDto>> SearchEligibleVariantsAsync(
         int vendorId, string? search, int take = 25, bool includeAlreadyListed = false, CancellationToken ct = default)

@@ -7,6 +7,9 @@
 @inject IBrandService BrandService
 @inject IAttributeDefinitionService AttributeDefinitionService
 @inject ICurrencyConversionService CurrencyConversion
+@inject IInventoryService InventoryService
+@inject IVendorProductService VendorProductService
+@inject IVendorService VendorService
 @inject IWebsiteService WebsiteService
 @inject AuthenticationStateProvider AuthState
 @inject IDialogService DialogService
@@ -197,6 +200,12 @@ else
                                 <MudItem xs="6" sm="2" md="2">
                                     <MudTextField T="string" @bind-Value="v.Barcode" Label="@L["variants.barcode", "Barcode"]" Variant="Variant.Outlined" Margin="Margin.Dense" />
                                 </MudItem>
+                                <MudItem xs="6" sm="2" md="2">
+                                    <MudNumericField T="int" Value="@StockOnHand(v)" ValueChanged="@(val => SetStockOnHand(v, val))"
+                                                     Label="@VariantStockLabel"
+                                                     Variant="Variant.Outlined" Margin="Margin.Dense" Min="0" Immediate="true"
+                                                     HelperText="@StockHelper(v)" />
+                                </MudItem>
                                 <MudItem xs="6" sm="1" md="1">
                                     <MudCheckBox T="bool" @bind-Value="v.IsDefault" Label="@L["variants.default", "Default"]" Color="Color.Primary" />
                                 </MudItem>
@@ -218,6 +227,105 @@ else
                     <MudButton StartIcon="@Icons.Material.Filled.Add" OnClick="AddVariant">@L["variants.add", "Add variant"]</MudButton>
                 </div>
             </MudTabPanel>
+
+            @if (!_isNew && _vendorId is null)
+            {
+            <MudTabPanel Text="@L["products.seller_stock", "Seller stock"]">
+                <div class="pa-2">
+                    <MudAlert Severity="Severity.Info" Dense="true" Variant="Variant.Outlined" Class="mb-3">
+                        @L["products.seller_stock_hint", "Each marketplace seller has their own stock for this product (not shared). Site-link vendors manage stock on the source site; Display/Member sellers set quantity below. Warehouse stock on the Variants tab is only for direct site sales without a seller."]
+                    </MudAlert>
+
+                    <MudPaper Elevation="0" Class="border rounded-lg pa-3 mb-3">
+                        <MudText Typo="Typo.subtitle2" Class="mb-2">@L["products.seller_stock_add", "Assign stock to a seller"]</MudText>
+                        <MudGrid Spacing="2" AlignItems="AlignItems.Center">
+                            <MudItem xs="12" sm="4">
+                                <MudSelect T="int?" @bind-Value="_addSellerVendorId"
+                                           Label="@L["vendor", "Seller"]" Variant="Variant.Outlined" Margin="Margin.Dense"
+                                           Clearable="true" Dense="true">
+                                    @foreach (var vendor in _marketplaceVendors)
+                                    {
+                                        <MudSelectItem T="int?" Value="@vendor.VendorID">@vendor.Name</MudSelectItem>
+                                    }
+                                </MudSelect>
+                            </MudItem>
+                            <MudItem xs="12" sm="3">
+                                <MudSelect T="int?" @bind-Value="_addSellerVariantId"
+                                           Label="@L["variants.title", "Variant"]" Variant="Variant.Outlined" Margin="Margin.Dense"
+                                           Clearable="true" Dense="true">
+                                    @foreach (var v in _variants.Where(x => x.ProductVariantID != 0))
+                                    {
+                                        <MudSelectItem T="int?" Value="@v.ProductVariantID">
+                                            @(string.IsNullOrWhiteSpace(v.Title) ? v.Sku : $"{v.Title} ({v.Sku})")
+                                        </MudSelectItem>
+                                    }
+                                </MudSelect>
+                            </MudItem>
+                            <MudItem xs="6" sm="2">
+                                <MudNumericField T="int" @bind-Value="_addSellerStock"
+                                                 Label="@L["stock", "Stock"]" Variant="Variant.Outlined" Margin="Margin.Dense" Min="0" />
+                            </MudItem>
+                            <MudItem xs="6" sm="3">
+                                <MudButton Variant="Variant.Filled" Color="Color.Primary" OnClick="AddSellerStockAsync"
+                                           Disabled="@(!_canEdit || _addSellerVendorId is null || _addSellerVariantId is null)">
+                                    @L["products.seller_stock_assign", "Assign"]
+                                </MudButton>
+                            </MudItem>
+                        </MudGrid>
+                    </MudPaper>
+
+                    @if (_sellerStocks.Count == 0)
+                    {
+                        <MudText Color="Color.Secondary">
+                            @L["products.seller_stock_empty", "No seller listings yet. Assign a Display or Member seller above, or add a listing under Catalog → Vendors."]
+                        </MudText>
+                    }
+                    else
+                    {
+                        <MudSimpleTable Dense="true" Hover="true" Elevation="0" Class="border rounded-lg">
+                            <thead>
+                                <tr>
+                                    <th>@L["vendor", "Seller"]</th>
+                                    <th>@L["variants.title", "Variant"]</th>
+                                    <th>@L["sku", "SKU"]</th>
+                                    <th style="min-width:120px">@L["stock", "Stock"]</th>
+                                    <th>@L["active", "Active"]</th>
+                                    <th style="width:1%"></th>
+                                </tr>
+                            </thead>
+                            <tbody>
+                                @foreach (var row in _sellerStocks)
+                                {
+                                    <tr>
+                                        <td>
+                                            <MudText Typo="Typo.body2">@row.VendorName</MudText>
+                                            <MudText Typo="Typo.caption" Color="Color.Secondary">@VendorTypeLabel(row.VendorType)</MudText>
+                                        </td>
+                                        <td>@(string.IsNullOrWhiteSpace(row.VariantTitle) ? "—" : row.VariantTitle)</td>
+                                        <td><code>@row.Sku</code></td>
+                                        <td>
+                                            <MudNumericField T="int" @bind-Value="row.StockQuantity" Margin="Margin.Dense"
+                                                            Variant="Variant.Outlined" Min="0" Disabled="@(!_canEdit || row.IsSiteLinked)"
+                                                            Style="max-width:110px" />
+                                        </td>
+                                        <td>
+                                            <MudSwitch T="bool" @bind-Value="row.IsActive" Color="Color.Primary" Disabled="@(!_canEdit || row.IsSiteLinked)" />
+                                        </td>
+                                        <td>
+                                            @if (_canEdit && !row.IsSiteLinked)
+                                            {
+                                                <MudIconButton Icon="@Icons.Material.Filled.Delete" Color="Color.Error" Size="Size.Small"
+                                                               OnClick="@(() => RemoveSellerStockAsync(row))" />
+                                            }
+                                        </td>
+                                    </tr>
+                                }
+                            </tbody>
+                        </MudSimpleTable>
+                    }
+                </div>
+            </MudTabPanel>
+            }
 
             <MudTabPanel Text="@L["products.gallery", "Gallery"]">
                 <div class="pa-2">
@@ -522,6 +630,16 @@ else
     /// <summary>Session-only local (site-currency) amounts while editing. USD on the variant is the persisted source of truth for live storefront pricing.</summary>
     private readonly Dictionary<ProductVariant, decimal> _localPrice = new();
     private readonly Dictionary<ProductVariant, decimal?> _localCompareAt = new();
+    /// <summary>Editable on-hand stock per variant row (site warehouse InventoryItems, or member-vendor listing stock).</summary>
+    private readonly Dictionary<ProductVariant, int> _stockOnHand = new();
+    /// <summary>Reserved quantity (read-only hint) loaded from inventory; sales already hold this stock.</summary>
+    private readonly Dictionary<ProductVariant, int> _stockReserved = new();
+    /// <summary>Per-seller marketplace stock rows (VendorProduct) for this product — Display/Member vendors.</summary>
+    private List<SellerStockEditRow> _sellerStocks = new();
+    private List<Vendor> _marketplaceVendors = new();
+    private int? _addSellerVendorId;
+    private int? _addSellerVariantId;
+    private int _addSellerStock;
 
     private List<(int MediaSetId, FileRecord File)> _gallery = new();
     private List<AttributeDefinition> _nonVariantAttributes = new();
@@ -559,6 +677,9 @@ else
             Model = product;
             _websiteId = product.WebsiteID;
             _variants = product.ProductVariants.ToList();
+            await LoadVariantStockAsync(_variants);
+            if (_vendorId is null)
+                await LoadSellerStocksAsync();
             if (product.FeaturedImageFileID is int fid)
                 _featuredImage = product.FeaturedImageFile;
             foreach (var t in product.ProductTranslations)
@@ -596,6 +717,14 @@ else
         _brands = await BrandService.GetAllAsync(_websiteId);
         _categories = await CategoryService.GetAllAsync(_websiteId);
         _warrantyCatalog = await WarrantyService.GetAllAsync(_websiteId, activeOnly: true);
+        if (_vendorId is null)
+        {
+            // Display + Member sellers only (site-link stock lives on the source website inventory).
+            _marketplaceVendors = (await VendorService.GetAllAsync(_websiteId))
+                .Where(v => v.IsActive && v.VendorType != (byte)VendorType.Site)
+                .OrderBy(v => v.Name)
+                .ToList();
+        }
 
         if (!_isNew)
         {
@@ -788,11 +917,221 @@ else
             Sku = string.Empty,
         };
         _variants.Add(v);
+        _stockOnHand[v] = 0;
+        _stockReserved[v] = 0;
         if (UseLocalCurrencyInput)
         {
             _localPrice[v] = 0;
             _localCompareAt[v] = null;
         }
+    }
+
+    private async Task LoadVariantStockAsync(IReadOnlyList<ProductVariant> variants)
+    {
+        _stockOnHand.Clear();
+        _stockReserved.Clear();
+
+        // Member vendors: stock lives on their VendorProduct listing, not shared warehouse inventory.
+        if (_vendorId is int vendorId)
+        {
+            foreach (var v in variants)
+            {
+                _stockReserved[v] = 0;
+                if (v.ProductVariantID == 0)
+                {
+                    _stockOnHand[v] = 0;
+                    continue;
+                }
+                var listing = await VendorProductService.FindAsync(vendorId, v.ProductVariantID);
+                _stockOnHand[v] = listing?.StockQuantity ?? 0;
+            }
+            return;
+        }
+
+        var ids = variants.Where(v => v.ProductVariantID != 0).Select(v => v.ProductVariantID).ToList();
+        var availability = ids.Count > 0
+            ? await InventoryService.GetAvailabilityBulkAsync(_websiteId, ids)
+            : new Dictionary<int, StockAvailability>();
+
+        foreach (var v in variants)
+        {
+            if (v.ProductVariantID != 0 && availability.TryGetValue(v.ProductVariantID, out var stock))
+            {
+                _stockOnHand[v] = stock.OnHand;
+                _stockReserved[v] = stock.Reserved;
+            }
+            else
+            {
+                _stockOnHand[v] = 0;
+                _stockReserved[v] = 0;
+            }
+        }
+    }
+
+    private async Task LoadSellerStocksAsync()
+    {
+        if (Model.ProductID == 0)
+        {
+            _sellerStocks = new();
+            return;
+        }
+
+        var listings = await VendorProductService.GetByProductIdAsync(Model.ProductID);
+        _sellerStocks = listings.Select(x => new SellerStockEditRow
+        {
+            VendorProductID = x.VendorProductID,
+            VendorID = x.VendorID,
+            VendorName = x.VendorName,
+            VendorType = x.VendorType,
+            ProductVariantID = x.ProductVariantID,
+            VariantTitle = x.VariantTitle,
+            Sku = x.Sku,
+            StockQuantity = x.StockQuantity,
+            DeliveryDays = x.DeliveryDays,
+            ReferencePriceUsd = x.ReferencePriceUsd,
+            OverridePrice = x.OverridePrice,
+            IsActive = x.IsActive,
+        }).ToList();
+    }
+
+    private int StockOnHand(ProductVariant v) =>
+        _stockOnHand.TryGetValue(v, out var qty) ? qty : 0;
+
+    private void SetStockOnHand(ProductVariant v, int qty) =>
+        _stockOnHand[v] = Math.Max(0, qty);
+
+    private string VariantStockLabel => _vendorId is null
+        ? L["variants.stock_warehouse", "Warehouse stock"]
+        : L["variants.stock_yours", "Your stock"];
+
+    private string? StockHelper(ProductVariant v)
+    {
+        if (_vendorId is not null)
+            return L["variants.stock_seller_hint", "Units you can sell as this seller. Other sellers have their own stock."];
+        if (_stockReserved.TryGetValue(v, out var reserved) && reserved > 0)
+            return string.Format(L["variants.stock_reserved_hint", "{0} reserved by open orders"], reserved);
+        return L["variants.stock_warehouse_hint", "Direct site sales only. Per-seller stock is on the Seller stock tab."];
+    }
+
+    private string VendorTypeLabel(byte type) => type switch
+    {
+        (byte)VendorType.Member => L["vendors.type_member", "Member"],
+        (byte)VendorType.Site => L["vendors.type_site", "Site link"],
+        _ => L["vendors.type_display", "Display"],
+    };
+
+    private async Task AddSellerStockAsync()
+    {
+        if (_addSellerVendorId is not int vendorId || _addSellerVariantId is not int variantId) return;
+        if (_sellerStocks.Any(r => r.VendorID == vendorId && r.ProductVariantID == variantId))
+        {
+            Snackbar.Add(L["products.seller_stock_exists", "This seller already has stock for that variant. Edit the row below."], Severity.Warning);
+            return;
+        }
+
+        var variant = _variants.FirstOrDefault(v => v.ProductVariantID == variantId);
+        if (variant is null) return;
+
+        var model = new VendorProduct
+        {
+            VendorID = vendorId,
+            ProductVariantID = variantId,
+            ReferencePriceUsd = variant.ReferencePriceUsd > 0 ? variant.ReferencePriceUsd : 0.01m,
+            StockQuantity = Math.Max(0, _addSellerStock),
+            DeliveryDays = 1,
+            IsActive = true,
+        };
+        var (ok, err, item) = await VendorProductService.UpsertAsync(model, actingMemberId: null);
+        if (!ok || item is null)
+        {
+            Snackbar.Add(err ?? L["save_failed", "Save failed"], Severity.Error);
+            return;
+        }
+
+        _addSellerVendorId = null;
+        _addSellerVariantId = null;
+        _addSellerStock = 0;
+        await LoadSellerStocksAsync();
+        Snackbar.Add(L["saved", "Saved."], Severity.Success);
+    }
+
+    private async Task RemoveSellerStockAsync(SellerStockEditRow row)
+    {
+        if (row.IsSiteLinked) return;
+        var confirmed = await DialogService.ShowMessageBoxAsync(
+            L["products.seller_stock_remove", "Remove seller stock"],
+            string.Format(L["products.seller_stock_remove_confirm", "Remove {0} stock for {1}?"], row.VendorName, row.Sku),
+            yesText: L["delete", "Delete"], cancelText: L["cancel", "Cancel"]);
+        if (confirmed != true) return;
+
+        var (ok, err) = await VendorProductService.DeleteAsync(row.VendorProductID);
+        if (!ok)
+        {
+            Snackbar.Add(err ?? L["save_failed", "Save failed"], Severity.Error);
+            return;
+        }
+        await LoadSellerStocksAsync();
+        Snackbar.Add(L["deleted", "Deleted."], Severity.Success);
+    }
+
+    private async Task PersistSellerStocksAsync()
+    {
+        foreach (var row in _sellerStocks.Where(r => !r.IsSiteLinked))
+        {
+            var (ok, err, _) = await VendorProductService.UpsertAsync(new VendorProduct
+            {
+                VendorProductID = row.VendorProductID,
+                VendorID = row.VendorID,
+                ProductVariantID = row.ProductVariantID,
+                ReferencePriceUsd = row.ReferencePriceUsd > 0 ? row.ReferencePriceUsd : 0.01m,
+                OverridePrice = row.OverridePrice,
+                StockQuantity = Math.Max(0, row.StockQuantity),
+                DeliveryDays = row.DeliveryDays,
+                IsActive = row.IsActive,
+            });
+            if (!ok)
+                throw new InvalidOperationException(err ?? $"Failed to save stock for {row.VendorName} / {row.Sku}");
+        }
+    }
+
+    private async Task PersistMemberVendorStockAsync(Dictionary<string, int> stockBySku)
+    {
+        if (_vendorId is not int vendorId) return;
+
+        foreach (var v in _variants)
+        {
+            if (!stockBySku.TryGetValue(v.Sku, out var desired))
+                desired = 0;
+
+            var (ok, err, _) = await VendorProductService.UpsertAsync(new VendorProduct
+            {
+                VendorID = vendorId,
+                ProductVariantID = v.ProductVariantID,
+                ReferencePriceUsd = v.ReferencePriceUsd > 0 ? v.ReferencePriceUsd : 0.01m,
+                StockQuantity = Math.Max(0, desired),
+                DeliveryDays = 1,
+                IsActive = true,
+            }, actingMemberId: _memberId);
+            if (!ok)
+                throw new InvalidOperationException(err ?? $"Failed to save seller stock for {v.Sku}");
+        }
+    }
+
+    private sealed class SellerStockEditRow
+    {
+        public int VendorProductID { get; set; }
+        public int VendorID { get; set; }
+        public string VendorName { get; set; } = "";
+        public byte VendorType { get; set; }
+        public int ProductVariantID { get; set; }
+        public string VariantTitle { get; set; } = "";
+        public string Sku { get; set; } = "";
+        public int StockQuantity { get; set; }
+        public int DeliveryDays { get; set; } = 1;
+        public decimal ReferencePriceUsd { get; set; }
+        public decimal? OverridePrice { get; set; }
+        public bool IsActive { get; set; } = true;
+        public bool IsSiteLinked => VendorType == (byte)global::Dotnetable.Domain.Enums.VendorType.Site;
     }
 
     private async Task ShowSkuGuideAsync()
@@ -1034,6 +1373,14 @@ else
             var cmp = DisplayCompareAt(v);
             if (cmp is decimal c && c > 0 && c < price)
                 errors.Add(string.Format(L["variants.compare_below_price", "{0}: compare-at price should be greater than or equal to the sale price."], label));
+
+            var stock = StockOnHand(v);
+            if (stock < 0)
+                errors.Add(string.Format(L["variants.stock_negative", "{0}: stock cannot be negative."], label));
+            if (_stockReserved.TryGetValue(v, out var reserved) && stock < reserved)
+                errors.Add(string.Format(
+                    L["variants.stock_below_reserved", "{0}: stock ({1}) cannot be below reserved quantity ({2})."],
+                    label, stock, reserved));
         }
 
         if (_variants.Count > 0 && !_variants.Any(v => v.IsDefault))
@@ -1107,6 +1454,13 @@ else
                 }).ToList());
             var categoryId = _selectedCategory!.ProductCategoryID;
             await ProductService.SetCategoriesAsync(Model.ProductID, new[] { categoryId }, categoryId);
+
+            // Capture stock by SKU before replace-all variants (new rows get IDs after save).
+            var stockBySku = _variants
+                .Where(v => !string.IsNullOrWhiteSpace(v.Sku))
+                .GroupBy(v => v.Sku.Trim(), StringComparer.OrdinalIgnoreCase)
+                .ToDictionary(g => g.Key, g => StockOnHand(g.First()), StringComparer.OrdinalIgnoreCase);
+
             await ProductService.SetVariantsAsync(Model.ProductID, _variants, _memberId);
             await ProductService.SetMediaAsync(Model.ProductID, _gallery.Select(g => g.MediaSetId).ToList());
             await ProductService.SetAttributeValuesAsync(Model.ProductID, _attrValues.Values.ToList());
@@ -1123,6 +1477,34 @@ else
                 SyncVariantLocalPrices();
                 _warnings = refreshed.ProductWarnings.ToList();
                 _warranties = refreshed.ProductWarranties.OrderBy(w => w.SortOrder).ToList();
+
+                if (_vendorId is not null)
+                {
+                    // Member seller: stock is per-vendor (VendorProduct), not shared warehouse.
+                    await PersistMemberVendorStockAsync(stockBySku);
+                }
+                else
+                {
+                    // Site warehouse inventory for direct (non-seller) sales.
+                    var memberId = _memberId ?? 0;
+                    foreach (var v in _variants)
+                    {
+                        if (!stockBySku.TryGetValue(v.Sku, out var desiredOnHand))
+                            desiredOnHand = 0;
+                        await InventoryService.SetOnHandAsync(
+                            _websiteId,
+                            v.ProductVariantID,
+                            desiredOnHand,
+                            note: "Product form warehouse stock",
+                            memberId: memberId);
+                    }
+
+                    // Persist per-seller marketplace stocks edited on the Seller stock tab.
+                    await PersistSellerStocksAsync();
+                    await LoadSellerStocksAsync();
+                }
+
+                await LoadVariantStockAsync(_variants);
             }
 
             _showFieldErrors = false;

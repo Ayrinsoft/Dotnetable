@@ -11,6 +11,13 @@ namespace Dotnetable.Application.Interfaces;
 public interface IVendorProductService
 {
     Task<PagedResult<VendorProductListItemDto>> GetPagedAsync(int vendorId, GridQuery query, CancellationToken ct = default);
+
+    /// <summary>
+    /// All marketplace listings for every variant of a product (each seller’s own stock/price).
+    /// Used on the product edit form so stock can be set per vendor without site-linking.
+    /// </summary>
+    Task<List<VendorProductListItemDto>> GetByProductIdAsync(int productId, CancellationToken ct = default);
+
     Task<VendorProduct?> GetByIdAsync(int vendorProductId, CancellationToken ct = default);
     Task<VendorProduct?> FindAsync(int vendorId, int productVariantId, CancellationToken ct = default);
 

@@ -4,6 +4,9 @@ public sealed class VendorProductListItemDto
 {
     public int VendorProductID { get; init; }
     public int VendorID { get; init; }
+    public string VendorName { get; init; } = string.Empty;
+    /// <summary>0=Display, 1=Member, 2=Site (see <c>VendorType</c>).</summary>
+    public byte VendorType { get; init; }
     public int ProductVariantID { get; init; }
     public int ProductID { get; init; }
     public string ProductTitle { get; init; } = string.Empty;

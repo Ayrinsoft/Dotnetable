@@ -161,6 +161,58 @@ public class InventoryService : IInventoryService
         }
     }
 
+    public async Task SetOnHandAsync(int websiteId, int variantId, int quantityOnHand, string? note, int memberId, CancellationToken ct = default)
+    {
+        if (quantityOnHand < 0)
+            throw new ArgumentOutOfRangeException(nameof(quantityOnHand), "Stock quantity cannot be negative.");
+
+        for (var attempt = 0; attempt < 2; attempt++)
+        {
+            var item = await GetOrCreateAsync(websiteId, variantId, ct);
+
+            if (quantityOnHand < item.QuantityReserved)
+                throw new InvalidOperationException(
+                    $"Cannot set on-hand stock ({quantityOnHand}) below reserved quantity ({item.QuantityReserved}).");
+
+            var delta = quantityOnHand - item.QuantityOnHand;
+            if (delta == 0)
+            {
+                // Ensure a new zero-stock row is persisted so the variant appears in inventory.
+                if (_context.Entry(item).State == EntityState.Added)
+                    await _context.SaveChangesAsync(ct);
+                return;
+            }
+
+            item.QuantityOnHand = quantityOnHand;
+
+            _context.StockMovements.Add(new StockMovement
+            {
+                WebsiteID = websiteId,
+                ProductVariantID = variantId,
+                Type = (byte)StockMovementType.Adjustment,
+                Quantity = delta,
+                UnitCostUsd = item.AvgCostUsd,
+                CurrencyCode = "USD",
+                ExchangeRateToUsd = 1m,
+                Note = note ?? "Product stock set",
+                CreatedByMemberID = memberId,
+                CreatedAt = DateTime.UtcNow,
+            });
+
+            try
+            {
+                await _context.SaveChangesAsync(ct);
+                return;
+            }
+            catch (DbUpdateConcurrencyException)
+            {
+                foreach (var entry in _context.ChangeTracker.Entries().Where(e => e.State != EntityState.Unchanged))
+                    entry.State = EntityState.Detached;
+                if (attempt == 1) throw;
+            }
+        }
+    }
+
     public async Task<PagedResult<InventoryItem>> GetPagedAsync(int websiteId, GridQuery query, CancellationToken ct = default)
     {
         var q = _context.InventoryItems.AsNoTracking()
