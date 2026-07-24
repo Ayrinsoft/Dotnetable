@@ -14,6 +14,7 @@
 @inject NavigationManager Nav
 @inject IPageLocalizer L
 @inject ILanguageService LanguageService
+@inject IWarrantyService WarrantyService
 
 <DNPageTitle Title="@(_isNew ? L["products.new", "New Product"] : L["products.edit", "Edit Product"])" />
 
@@ -200,7 +201,16 @@ else
                                     <MudCheckBox T="bool" @bind-Value="v.IsDefault" Label="@L["variants.default", "Default"]" Color="Color.Primary" />
                                 </MudItem>
                                 <MudItem xs="6" sm="1" md="1">
-                                    <MudIconButton Icon="@Icons.Material.Filled.Delete" Color="Color.Error" OnClick="@(() => _variants.RemoveAt(idx))" />
+                                    <MudStack Row="true" Spacing="0">
+                                        @if (v.ProductVariantID != 0)
+                                        {
+                                            <MudTooltip Text="@L["products.price_history", "Price history"]">
+                                                <MudIconButton Icon="@Icons.Material.Filled.History" Color="Color.Primary"
+                                                               OnClick="@(() => ShowPriceHistoryAsync(v))" />
+                                            </MudTooltip>
+                                        }
+                                        <MudIconButton Icon="@Icons.Material.Filled.Delete" Color="Color.Error" OnClick="@(() => _variants.RemoveAt(idx))" />
+                                    </MudStack>
                                 </MudItem>
                             </MudGrid>
                         </MudPaper>
@@ -399,6 +409,51 @@ else
                 </div>
             </MudTabPanel>
 
+            <MudTabPanel Text="@L["products.warranties", "Warranties"]">
+                <div class="pa-2">
+                    <MudAlert Severity="Severity.Info" Dense="true" Variant="Variant.Outlined" Class="mb-3">
+                        @L["products.warranties_hint", "Optional. Pick a plan from Catalog → Warranties, or enter free text for seller/non-company warranties. Leave empty if the product has no warranty."]
+                    </MudAlert>
+                    @foreach (var (row, idx) in _warranties.Select((w, i) => (w, i)))
+                    {
+                        <MudPaper Elevation="0" Class="border rounded-lg pa-3 mb-2">
+                            <MudGrid Spacing="2" AlignItems="AlignItems.Center">
+                                <MudItem xs="12" sm="4">
+                                    <MudSelect T="int?" Value="row.WarrantyID" ValueChanged="@(id => OnWarrantyCatalogChanged(row, id))"
+                                               Label="@L["products.warranty_plan", "Catalog plan"]" Variant="Variant.Outlined" Margin="Margin.Dense"
+                                               Clearable="true" Dense="true">
+                                        <MudSelectItem T="int?" Value="@((int?)null)">@L["products.warranty_custom_only", "Custom text only"]</MudSelectItem>
+                                        @foreach (var plan in _warrantyCatalog)
+                                        {
+                                            <MudSelectItem T="int?" Value="@plan.WarrantyID">@plan.Title@(plan.DurationMonths is int m ? $" ({m} mo)" : "")</MudSelectItem>
+                                        }
+                                    </MudSelect>
+                                </MudItem>
+                                <MudItem xs="12" sm="4">
+                                    <MudTextField @bind-Value="row.CustomTitle" Label="@L["products.warranty_custom_title", "Custom title / override"]"
+                                                  Variant="Variant.Outlined" Margin="Margin.Dense"
+                                                  HelperText="@L["products.warranty_custom_title_hint", "Required if no catalog plan. Optional override when a plan is selected."]" />
+                                </MudItem>
+                                <MudItem xs="6" sm="2">
+                                    <MudCheckBox T="bool" @bind-Value="row.IsActive" Label="@L["active", "Active"]" Color="Color.Primary" />
+                                </MudItem>
+                                <MudItem xs="6" sm="2" Class="d-flex justify-end">
+                                    <MudIconButton Icon="@Icons.Material.Filled.Delete" Color="Color.Error" OnClick="@(() => _warranties.RemoveAt(idx))" />
+                                </MudItem>
+                                <MudItem xs="12">
+                                    <MudTextField @bind-Value="row.CustomDescription" Label="@L["products.warranty_notes", "Description / notes"]"
+                                                  Variant="Variant.Outlined" Margin="Margin.Dense" Lines="2"
+                                                  HelperText="@L["products.warranty_notes_hint", "Extra terms or full text for non-catalog warranties."]" />
+                                </MudItem>
+                            </MudGrid>
+                        </MudPaper>
+                    }
+                    <MudButton StartIcon="@Icons.Material.Filled.Add" OnClick="AddWarrantyRow">
+                        @L["products.add_warranty", "Add warranty"]
+                    </MudButton>
+                </div>
+            </MudTabPanel>
+
             <MudTabPanel Text="@L["products.related", "Related Products"]">
                 <div class="pa-2">
                     <MudGrid Spacing="2" AlignItems="AlignItems.Center" Class="mb-3">
@@ -472,6 +527,8 @@ else
     private List<AttributeDefinition> _nonVariantAttributes = new();
     private Dictionary<int, ProductAttributeValue> _attrValues = new();
     private List<ProductWarning> _warnings = new();
+    private List<ProductWarranty> _warranties = new();
+    private List<Warranty> _warrantyCatalog = new();
     private List<ProductRelation> _relatedProducts = new();
     private Dictionary<int, string> _relatedTitles = new();
 
@@ -515,6 +572,7 @@ else
             foreach (var v in product.ProductAttributeValues)
                 _attrValues[v.AttributeDefinitionID] = v;
             _warnings = product.ProductWarnings.ToList();
+            _warranties = product.ProductWarranties.OrderBy(w => w.SortOrder).ToList();
             _relatedProducts = product.ProductRelationProducts.ToList();
             foreach (var r in product.ProductRelationProducts)
                 if (r.RelatedProduct is not null) _relatedTitles[r.RelatedProductID] = r.RelatedProduct.Title;
@@ -537,6 +595,7 @@ else
 
         _brands = await BrandService.GetAllAsync(_websiteId);
         _categories = await CategoryService.GetAllAsync(_websiteId);
+        _warrantyCatalog = await WarrantyService.GetAllAsync(_websiteId, activeOnly: true);
 
         if (!_isNew)
         {
@@ -755,6 +814,31 @@ else
             L["variants.compare_guide_title", "What is Compare at?"],
             parameters,
             options);
+    }
+
+    private async Task ShowPriceHistoryAsync(ProductVariant v)
+    {
+        if (v.ProductVariantID == 0) return;
+        var parameters = new DialogParameters<PriceHistoryDialog>
+        {
+            { x => x.ProductVariantID, v.ProductVariantID },
+            { x => x.VariantTitle, string.IsNullOrWhiteSpace(v.Title) ? v.Sku : v.Title },
+            { x => x.Months, 12 },
+            { x => x.WebsiteId, _websiteId },
+            { x => x.DisplayCurrency, _displayCurrency },
+        };
+        await DialogService.ShowAsync<PriceHistoryDialog>(
+            L["products.price_history", "Price history"],
+            parameters,
+            new DialogOptions { MaxWidth = MaxWidth.Medium, FullWidth = true, CloseButton = true });
+    }
+
+    private void AddWarrantyRow() =>
+        _warranties.Add(new ProductWarranty { IsActive = true, SortOrder = _warranties.Count });
+
+    private void OnWarrantyCatalogChanged(ProductWarranty row, int? warrantyId)
+    {
+        row.WarrantyID = warrantyId;
     }
 
     private string TrTitle(string c) => _tr.TryGetValue(c, out var v) ? v.Title : string.Empty;
@@ -1023,12 +1107,23 @@ else
                 }).ToList());
             var categoryId = _selectedCategory!.ProductCategoryID;
             await ProductService.SetCategoriesAsync(Model.ProductID, new[] { categoryId }, categoryId);
-            await ProductService.SetVariantsAsync(Model.ProductID, _variants);
+            await ProductService.SetVariantsAsync(Model.ProductID, _variants, _memberId);
             await ProductService.SetMediaAsync(Model.ProductID, _gallery.Select(g => g.MediaSetId).ToList());
             await ProductService.SetAttributeValuesAsync(Model.ProductID, _attrValues.Values.ToList());
             await ProductService.SetWarningsAsync(Model.ProductID, _warnings);
+            await ProductService.SetWarrantiesAsync(Model.ProductID, _warranties);
             await ProductService.SetRelatedProductsAsync(Model.ProductID,
                 _relatedProducts.Select(r => (r.RelatedProductID, r.RelationType, r.SortOrder)).ToList());
+
+            // Reload children so variant/warranty IDs and price-history buttons stay in sync after save.
+            var refreshed = await ProductService.GetByIdAsync(Model.ProductID);
+            if (refreshed is not null)
+            {
+                _variants = refreshed.ProductVariants.ToList();
+                SyncVariantLocalPrices();
+                _warnings = refreshed.ProductWarnings.ToList();
+                _warranties = refreshed.ProductWarranties.OrderBy(w => w.SortOrder).ToList();
+            }
 
             _showFieldErrors = false;
             Snackbar.Add(L["saved", "Saved."], Severity.Success);

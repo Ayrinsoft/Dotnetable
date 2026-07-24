@@ -177,9 +177,13 @@ public partial class AppDbContext : DbContext
 
     public virtual DbSet<ProductVariant> ProductVariants { get; set; }
 
+    public virtual DbSet<ProductVariantPriceHistory> ProductVariantPriceHistories { get; set; }
+
     public virtual DbSet<ProductWarning> ProductWarnings { get; set; }
 
     public virtual DbSet<ProductWarningTranslation> ProductWarningTranslations { get; set; }
+
+    public virtual DbSet<ProductWarranty> ProductWarranties { get; set; }
 
     public virtual DbSet<Role> Roles { get; set; }
 
@@ -218,6 +222,10 @@ public partial class AppDbContext : DbContext
     public virtual DbSet<VendorProduct> VendorProducts { get; set; }
 
     public virtual DbSet<VendorTranslation> VendorTranslations { get; set; }
+
+    public virtual DbSet<Warranty> Warranties { get; set; }
+
+    public virtual DbSet<WarrantyTranslation> WarrantyTranslations { get; set; }
 
     public virtual DbSet<Website> Websites { get; set; }
 
@@ -2080,6 +2088,80 @@ public partial class AppDbContext : DbContext
                 .HasForeignKey(d => d.ProductWarningID)
                 .OnDelete(DeleteBehavior.ClientSetNull)
                 .HasConstraintName("FK_ProductWarningTranslations_ProductWarnings");
+        });
+
+        modelBuilder.Entity<ProductVariantPriceHistory>(entity =>
+        {
+            entity.HasIndex(e => new { e.ProductVariantID, e.RecordedAt }, "IX_ProductVariantPriceHistories_ProductVariantID_RecordedAt");
+
+            entity.Property(e => e.ReferencePriceUsd).HasColumnType("decimal(18, 4)");
+            entity.Property(e => e.CompareAtPriceUsd).HasColumnType("decimal(18, 4)");
+            entity.Property(e => e.RecordedAt)
+                .HasDefaultValueSql("(sysutcdatetime())", "DF_ProductVariantPriceHistories_RecordedAt")
+                .HasColumnType("datetime");
+
+            entity.HasOne(d => d.ProductVariant).WithMany(p => p.ProductVariantPriceHistories)
+                .HasForeignKey(d => d.ProductVariantID)
+                .OnDelete(DeleteBehavior.ClientSetNull)
+                .HasConstraintName("FK_ProductVariantPriceHistories_ProductVariants");
+
+            entity.HasOne(d => d.ChangedByMember).WithMany(p => p.ProductVariantPriceHistories)
+                .HasForeignKey(d => d.ChangedByMemberId)
+                .HasConstraintName("FK_ProductVariantPriceHistories_Members");
+        });
+
+        modelBuilder.Entity<ProductWarranty>(entity =>
+        {
+            entity.HasIndex(e => e.ProductID, "IX_ProductWarranties_ProductID");
+            entity.HasIndex(e => e.WarrantyID, "IX_ProductWarranties_WarrantyID");
+
+            entity.Property(e => e.IsActive).HasDefaultValue(true, "DF_ProductWarranties_IsActive");
+            entity.Property(e => e.SortOrder).HasDefaultValue(0, "DF_ProductWarranties_SortOrder");
+            entity.Property(e => e.CustomTitle).HasMaxLength(200);
+            entity.Property(e => e.CustomDescription).HasMaxLength(2000);
+
+            entity.HasOne(d => d.Product).WithMany(p => p.ProductWarranties)
+                .HasForeignKey(d => d.ProductID)
+                .OnDelete(DeleteBehavior.ClientSetNull)
+                .HasConstraintName("FK_ProductWarranties_Products");
+
+            entity.HasOne(d => d.Warranty).WithMany(p => p.ProductWarranties)
+                .HasForeignKey(d => d.WarrantyID)
+                .HasConstraintName("FK_ProductWarranties_Warranties");
+        });
+
+        modelBuilder.Entity<Warranty>(entity =>
+        {
+            entity.HasIndex(e => e.WebsiteID, "IX_Warranties_WebsiteID");
+
+            entity.Property(e => e.Title).HasMaxLength(200);
+            entity.Property(e => e.Description).HasMaxLength(2000);
+            entity.Property(e => e.ProviderName).HasMaxLength(200);
+            entity.Property(e => e.IsActive).HasDefaultValue(true, "DF_Warranties_IsActive");
+            entity.Property(e => e.SortOrder).HasDefaultValue(0, "DF_Warranties_SortOrder");
+
+            entity.HasOne(d => d.Website).WithMany(p => p.Warranties)
+                .HasForeignKey(d => d.WebsiteID)
+                .OnDelete(DeleteBehavior.ClientSetNull)
+                .HasConstraintName("FK_Warranties_Websites");
+        });
+
+        modelBuilder.Entity<WarrantyTranslation>(entity =>
+        {
+            entity.HasIndex(e => e.WarrantyID, "IX_WarrantyTranslations_WarrantyID");
+
+            entity.Property(e => e.LanguageCode)
+                .HasMaxLength(2)
+                .IsUnicode(false)
+                .IsFixedLength();
+            entity.Property(e => e.Title).HasMaxLength(200);
+            entity.Property(e => e.Description).HasMaxLength(2000);
+            entity.Property(e => e.ProviderName).HasMaxLength(200);
+
+            entity.HasOne(d => d.Warranty).WithMany(p => p.WarrantyTranslations)
+                .HasForeignKey(d => d.WarrantyID)
+                .OnDelete(DeleteBehavior.ClientSetNull)
+                .HasConstraintName("FK_WarrantyTranslations_Warranties");
         });
 
         modelBuilder.Entity<Role>(entity =>

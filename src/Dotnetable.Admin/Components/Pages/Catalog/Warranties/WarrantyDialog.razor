@@ -1,0 +1,137 @@
+@inject IWarrantyService WarrantyService
+@inject ISnackbar Snackbar
+@inject IPageLocalizer L
+@inject ILanguageService LanguageService
+
+<MudDialog>
+    <DialogContent>
+        <MudForm @ref="_form">
+            <MudGrid Spacing="3">
+                <MudItem xs="12" sm="8">
+                    <MudTextField @bind-Value="Model.Title" Label="@L["title", "Title"]" Variant="Variant.Outlined" Required="true"
+                                  HelperText="@L["warranties.title_hint", "e.g. 18-month official company warranty"]" />
+                </MudItem>
+                <MudItem xs="12" sm="4">
+                    <MudNumericField T="int?" @bind-Value="Model.DurationMonths" Label="@L["warranties.duration_months", "Duration (months)"]"
+                                     Variant="Variant.Outlined" Min="0" Clearable="true" />
+                </MudItem>
+                <MudItem xs="12" sm="8">
+                    <MudTextField @bind-Value="Model.ProviderName" Label="@L["warranties.provider", "Provider"]" Variant="Variant.Outlined"
+                                  HelperText="@L["warranties.provider_hint", "Optional issuer name (e.g. Samsung, LG). Leave blank for store/seller plans."]" />
+                </MudItem>
+                <MudItem xs="12" sm="4">
+                    <MudNumericField T="int" @bind-Value="Model.SortOrder" Label="@L["sort_order", "Sort order"]" Variant="Variant.Outlined" />
+                </MudItem>
+                <MudItem xs="12">
+                    <MudTextField @bind-Value="Model.Description" Label="@L["description", "Description"]" Variant="Variant.Outlined"
+                                  Lines="3" HelperText="@L["warranties.description_hint", "Optional terms summary shown on the product page."]" />
+                </MudItem>
+                <MudItem xs="12">
+                    <MudSwitch T="bool" @bind-Value="Model.IsActive" Label="@L["active", "Active"]" Color="Color.Primary" />
+                </MudItem>
+                @if (_languages.Length > 0)
+                {
+                    <MudItem xs="12">
+                        <MudExpansionPanels Elevation="0">
+                            <MudExpansionPanel Text="@L["other_languages", "Other languages"]">
+                                <MudText Typo="Typo.body2" Color="Color.Secondary" Class="mb-2">
+                                    @L["other_languages.hint", "Main fields above are the site default language. Leave a translation blank to fall back to the default."]
+                                </MudText>
+                                @foreach (var (code, label) in _languages)
+                                {
+                                    <MudPaper Elevation="0" Class="pa-3 mb-2 border rounded-lg">
+                                        <MudText Typo="Typo.subtitle2" Class="mb-2">@label</MudText>
+                                        <MudGrid Spacing="2">
+                                            <MudItem xs="12" sm="6">
+                                                <MudTextField T="string" Value="@Title(code)" ValueChanged="@(v => SetTitle(code, v))"
+                                                              Label="@L["title", "Title"]" Variant="Variant.Outlined" Margin="Margin.Dense" />
+                                            </MudItem>
+                                            <MudItem xs="12" sm="6">
+                                                <MudTextField T="string" Value="@Provider(code)" ValueChanged="@(v => SetProvider(code, v))"
+                                                              Label="@L["warranties.provider", "Provider"]" Variant="Variant.Outlined" Margin="Margin.Dense" />
+                                            </MudItem>
+                                            <MudItem xs="12">
+                                                <MudTextField T="string" Value="@Description(code)" ValueChanged="@(v => SetDescription(code, v))"
+                                                              Label="@L["description", "Description"]" Variant="Variant.Outlined" Margin="Margin.Dense" Lines="2" />
+                                            </MudItem>
+                                        </MudGrid>
+                                    </MudPaper>
+                                }
+                            </MudExpansionPanel>
+                        </MudExpansionPanels>
+                    </MudItem>
+                }
+            </MudGrid>
+            <DNValidationSummary Errors="_formErrors" />
+        </MudForm>
+    </DialogContent>
+    <DialogActions>
+        <MudButton OnClick="Cancel">@L["cancel", "Cancel"]</MudButton>
+        <MudButton Variant="Variant.Filled" Color="Color.Primary" OnClick="SaveAsync" Disabled="@_saving">@L["save", "Save"]</MudButton>
+    </DialogActions>
+</MudDialog>
+
+@code {
+    [CascadingParameter] private IMudDialogInstance MudDialog { get; set; } = null!;
+    [Parameter] public Warranty Model { get; set; } = new() { IsActive = true };
+    [Parameter] public bool IsNew { get; set; }
+
+    private MudForm _form = null!;
+    private bool _saving;
+    private string[]? _formErrors;
+    private readonly Dictionary<string, (string Title, string? Description, string? ProviderName)> _tr = new(StringComparer.OrdinalIgnoreCase);
+    private (string Code, string Label)[] _languages = Array.Empty<(string, string)>();
+
+    protected override async Task OnInitializedAsync()
+    {
+        var websiteId = Model.WebsiteID > 0 ? Model.WebsiteID : L.WebsiteId;
+        _languages = (await LanguageService.GetOtherActiveForWebsiteAsync(websiteId))
+            .Select(x => (x.LanguageCode, x.Name)).ToArray();
+
+        if (!IsNew)
+            foreach (var t in await WarrantyService.GetTranslationsAsync(Model.WarrantyID))
+                _tr[t.LanguageCode] = (t.Title, t.Description, t.ProviderName);
+    }
+
+    private string Title(string code) => _tr.TryGetValue(code, out var v) ? v.Title : string.Empty;
+    private string Description(string code) => _tr.TryGetValue(code, out var v) ? v.Description ?? string.Empty : string.Empty;
+    private string Provider(string code) => _tr.TryGetValue(code, out var v) ? v.ProviderName ?? string.Empty : string.Empty;
+
+    private void SetTitle(string code, string v)
+    {
+        var c = _tr.GetValueOrDefault(code);
+        _tr[code] = (v ?? string.Empty, c.Description, c.ProviderName);
+    }
+    private void SetDescription(string code, string v)
+    {
+        var c = _tr.GetValueOrDefault(code);
+        _tr[code] = (c.Title ?? string.Empty, v, c.ProviderName);
+    }
+    private void SetProvider(string code, string v)
+    {
+        var c = _tr.GetValueOrDefault(code);
+        _tr[code] = (c.Title ?? string.Empty, c.Description, v);
+    }
+
+    private void Cancel() => MudDialog.Cancel();
+
+    private async Task SaveAsync()
+    {
+        await _form.Validate();
+        _formErrors = _form.Errors;
+        if (!_form.IsValid) return;
+        if (string.IsNullOrWhiteSpace(Model.Title)) return;
+
+        _saving = true;
+        try
+        {
+            if (IsNew) await WarrantyService.CreateAsync(Model);
+            else await WarrantyService.UpdateAsync(Model);
+            await WarrantyService.SetTranslationsAsync(Model.WarrantyID, _tr);
+            Snackbar.Add(L["saved", "Saved."], Severity.Success);
+            MudDialog.Close(DialogResult.Ok(true));
+        }
+        catch (Exception ex) { Snackbar.Add($"{L["save_failed", "Save failed"]}: {ex.Message}", Severity.Error); }
+        finally { _saving = false; }
+    }
+}

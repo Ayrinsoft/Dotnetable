@@ -4,8 +4,9 @@ using Dotnetable.Domain.Entities;
 namespace Dotnetable.Application.Interfaces;
 
 /// <summary>
-/// Products with variants, categories, media, attributes, content sections, warnings and related
-/// products. Admin management plus localized/priced read projections for the public site. Scoped per website.
+/// Products with variants, categories, media, attributes, content, expert review, warnings,
+/// warranties, price history and related products. Admin management plus localized/priced read
+/// projections for the public site. Scoped per website.
 /// </summary>
 public interface IProductService
 {
@@ -30,7 +31,14 @@ public interface IProductService
     Task SetCategoriesAsync(int productId, IReadOnlyList<int> categoryIds, int? primaryCategoryId, CancellationToken ct = default);
 
     // ── Variants (replace-all-children pattern; ProductVariantID == 0 means insert) ──
-    Task SetVariantsAsync(int productId, IReadOnlyList<ProductVariant> variants, CancellationToken ct = default);
+    /// <param name="changedByMemberId">Optional admin member that applied the price change (recorded in price history).</param>
+    Task SetVariantsAsync(int productId, IReadOnlyList<ProductVariant> variants, int? changedByMemberId = null, CancellationToken ct = default);
+
+    /// <summary>
+    /// Price history for a variant, newest first. Defaults to the last 12 months.
+    /// </summary>
+    Task<List<ProductVariantPriceHistoryDto>> GetVariantPriceHistoryAsync(
+        int productVariantId, int months = 12, CancellationToken ct = default);
 
     // ── Media (ordered ProductMedium rows referencing MediaSet ids) ──
     Task SetMediaAsync(int productId, IReadOnlyList<int> mediaSetIds, CancellationToken ct = default);
@@ -43,6 +51,9 @@ public interface IProductService
 
     // ── Warnings ───────────────────────────────────────────────────────
     Task SetWarningsAsync(int productId, IReadOnlyList<ProductWarning> warnings, CancellationToken ct = default);
+
+    // ── Warranties (catalog pick and/or free-text custom) ───────────────
+    Task SetWarrantiesAsync(int productId, IReadOnlyList<ProductWarranty> warranties, CancellationToken ct = default);
 
     // ── Related products ────────────────────────────────────────────────
     Task SetRelatedProductsAsync(int productId, IReadOnlyList<(int RelatedProductID, byte RelationType, int SortOrder)> related, CancellationToken ct = default);

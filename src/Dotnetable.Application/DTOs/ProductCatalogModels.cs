@@ -75,6 +75,39 @@ public sealed class ProductWarningDto
     public string Text { get; init; } = string.Empty;
 }
 
+/// <summary>Resolved warranty line for a product (catalog definition and/or custom text).</summary>
+public sealed class ProductWarrantyDto
+{
+    public int ProductWarrantyID { get; init; }
+    public int? WarrantyID { get; init; }
+    public string Title { get; init; } = string.Empty;
+    public string? Description { get; init; }
+    public string? ProviderName { get; init; }
+    public int? DurationMonths { get; init; }
+}
+
+/// <summary>One recorded price point for a product variant (admin history / charts).</summary>
+public sealed class ProductVariantPriceHistoryDto
+{
+    public long ProductVariantPriceHistoryID { get; init; }
+    public int ProductVariantID { get; init; }
+    public decimal ReferencePriceUsd { get; init; }
+    public decimal? CompareAtPriceUsd { get; init; }
+    public DateTime RecordedAt { get; init; }
+    public int? ChangedByMemberId { get; init; }
+}
+
+/// <summary>Admin/list projection of a reusable warranty definition.</summary>
+public sealed class WarrantyListItemDto
+{
+    public int WarrantyID { get; init; }
+    public string Title { get; init; } = string.Empty;
+    public string? ProviderName { get; init; }
+    public int? DurationMonths { get; init; }
+    public bool IsActive { get; set; }
+    public int SortOrder { get; init; }
+}
+
 /// <summary>A lightweight reference to another product (used for related/cross-sell lists).</summary>
 public sealed class ProductRefDto
 {
@@ -118,6 +151,7 @@ public sealed class ProductDetailDto : ProductSummaryDto
     /// <summary>Rich HTML expert/technical review (CKEditor), same shape as <see cref="Content"/>.</summary>
     public string? ExpertReview { get; init; }
     public IReadOnlyList<ProductWarningDto> Warnings { get; init; } = Array.Empty<ProductWarningDto>();
+    public IReadOnlyList<ProductWarrantyDto> Warranties { get; init; } = Array.Empty<ProductWarrantyDto>();
     public IReadOnlyList<ProductRefDto> RelatedProducts { get; init; } = Array.Empty<ProductRefDto>();
     public IReadOnlyList<string> GalleryImageUrls { get; init; } = Array.Empty<string>();
 }

@@ -3,65 +3,68 @@ using System;
 using Dotnetable.Infrastructure.Data;
 using Microsoft.EntityFrameworkCore;
 using Microsoft.EntityFrameworkCore.Infrastructure;
-using Microsoft.EntityFrameworkCore.Metadata;
+using Microsoft.EntityFrameworkCore.Migrations;
 using Microsoft.EntityFrameworkCore.Storage.ValueConversion;
+using Npgsql.EntityFrameworkCore.PostgreSQL.Metadata;
 
 #nullable disable
 
-namespace Dotnetable.Migrations.SqlServer.Migrations
+namespace Dotnetable.Migrations.PostgreSql.Migrations
 {
     [DbContext(typeof(AppDbContext))]
-    partial class AppDbContextModelSnapshot : ModelSnapshot
+    [Migration("20260724060313_ProductPriceHistoryAndWarranties")]
+    partial class ProductPriceHistoryAndWarranties
     {
-        protected override void BuildModel(ModelBuilder modelBuilder)
+        /// <inheritdoc />
+        protected override void BuildTargetModel(ModelBuilder modelBuilder)
         {
 #pragma warning disable 612, 618
             modelBuilder
                 .HasAnnotation("ProductVersion", "10.0.9")
-                .HasAnnotation("Relational:MaxIdentifierLength", 128);
+                .HasAnnotation("Relational:MaxIdentifierLength", 63);
 
-            SqlServerModelBuilderExtensions.UseIdentityColumns(modelBuilder);
+            NpgsqlModelBuilderExtensions.UseIdentityByDefaultColumns(modelBuilder);
 
             modelBuilder.Entity("Dotnetable.Domain.Entities.AdminNotification", b =>
                 {
                     b.Property<int>("AdminNotificationID")
                         .ValueGeneratedOnAdd()
-                        .HasColumnType("int");
+                        .HasColumnType("integer");
 
-                    SqlServerPropertyBuilderExtensions.UseIdentityColumn(b.Property<int>("AdminNotificationID"));
+                    NpgsqlPropertyBuilderExtensions.UseIdentityByDefaultColumn(b.Property<int>("AdminNotificationID"));
 
                     b.Property<string>("ActionUrl")
                         .HasMaxLength(256)
                         .IsUnicode(false)
-                        .HasColumnType("varchar(256)");
+                        .HasColumnType("character varying(256)");
 
                     b.Property<DateTime>("CreatedAt")
                         .HasColumnType("datetime");
 
                     b.Property<bool>("IsRead")
-                        .HasColumnType("bit");
+                        .HasColumnType("boolean");
 
                     b.Property<int>("MemberID")
-                        .HasColumnType("int");
+                        .HasColumnType("integer");
 
                     b.Property<string>("Message")
                         .IsRequired()
                         .HasMaxLength(1000)
-                        .HasColumnType("nvarchar(1000)");
+                        .HasColumnType("character varying(1000)");
 
                     b.Property<byte>("NotificationType")
-                        .HasColumnType("tinyint");
+                        .HasColumnType("smallint");
 
                     b.Property<int?>("RelatedEntityID")
-                        .HasColumnType("int");
+                        .HasColumnType("integer");
 
                     b.Property<string>("Title")
                         .IsRequired()
                         .HasMaxLength(200)
-                        .HasColumnType("nvarchar(200)");
+                        .HasColumnType("character varying(200)");
 
                     b.Property<int>("WebsiteID")
-                        .HasColumnType("int");
+                        .HasColumnType("integer");
 
                     b.HasKey("AdminNotificationID");
 
@@ -76,47 +79,47 @@ namespace Dotnetable.Migrations.SqlServer.Migrations
                 {
                     b.Property<int>("AttributeDefinitionID")
                         .ValueGeneratedOnAdd()
-                        .HasColumnType("int");
+                        .HasColumnType("integer");
 
-                    SqlServerPropertyBuilderExtensions.UseIdentityColumn(b.Property<int>("AttributeDefinitionID"));
+                    NpgsqlPropertyBuilderExtensions.UseIdentityByDefaultColumn(b.Property<int>("AttributeDefinitionID"));
 
                     b.Property<bool>("Active")
-                        .HasColumnType("bit");
+                        .HasColumnType("boolean");
 
                     b.Property<string>("Code")
                         .IsRequired()
                         .HasMaxLength(100)
-                        .HasColumnType("nvarchar(100)");
+                        .HasColumnType("character varying(100)");
 
                     b.Property<byte>("InputType")
-                        .HasColumnType("tinyint");
+                        .HasColumnType("smallint");
 
                     b.Property<bool>("IsComparable")
-                        .HasColumnType("bit");
+                        .HasColumnType("boolean");
 
                     b.Property<bool>("IsFilterable")
-                        .HasColumnType("bit");
+                        .HasColumnType("boolean");
 
                     b.Property<bool>("IsVariantAttribute")
-                        .HasColumnType("bit");
+                        .HasColumnType("boolean");
 
                     b.Property<string>("Name")
                         .IsRequired()
                         .HasMaxLength(200)
-                        .HasColumnType("nvarchar(200)");
+                        .HasColumnType("character varying(200)");
 
                     b.Property<bool>("ShowOnTop")
-                        .HasColumnType("bit");
+                        .HasColumnType("boolean");
 
                     b.Property<int>("SortOrder")
-                        .HasColumnType("int");
+                        .HasColumnType("integer");
 
                     b.Property<string>("Unit")
                         .HasMaxLength(30)
-                        .HasColumnType("nvarchar(30)");
+                        .HasColumnType("character varying(30)");
 
                     b.Property<int>("WebsiteID")
-                        .HasColumnType("int");
+                        .HasColumnType("integer");
 
                     b.HasKey("AttributeDefinitionID");
 
@@ -129,28 +132,28 @@ namespace Dotnetable.Migrations.SqlServer.Migrations
                 {
                     b.Property<int>("AttributeDefinitionTranslationID")
                         .ValueGeneratedOnAdd()
-                        .HasColumnType("int");
+                        .HasColumnType("integer");
 
-                    SqlServerPropertyBuilderExtensions.UseIdentityColumn(b.Property<int>("AttributeDefinitionTranslationID"));
+                    NpgsqlPropertyBuilderExtensions.UseIdentityByDefaultColumn(b.Property<int>("AttributeDefinitionTranslationID"));
 
                     b.Property<int>("AttributeDefinitionID")
-                        .HasColumnType("int");
+                        .HasColumnType("integer");
 
                     b.Property<string>("LanguageCode")
                         .IsRequired()
                         .HasMaxLength(2)
                         .IsUnicode(false)
-                        .HasColumnType("char(2)")
+                        .HasColumnType("character(2)")
                         .IsFixedLength();
 
                     b.Property<string>("Name")
                         .IsRequired()
                         .HasMaxLength(200)
-                        .HasColumnType("nvarchar(200)");
+                        .HasColumnType("character varying(200)");
 
                     b.Property<string>("Unit")
                         .HasMaxLength(30)
-                        .HasColumnType("nvarchar(30)");
+                        .HasColumnType("character varying(30)");
 
                     b.HasKey("AttributeDefinitionTranslationID");
 
@@ -163,26 +166,26 @@ namespace Dotnetable.Migrations.SqlServer.Migrations
                 {
                     b.Property<int>("AttributeOptionID")
                         .ValueGeneratedOnAdd()
-                        .HasColumnType("int");
+                        .HasColumnType("integer");
 
-                    SqlServerPropertyBuilderExtensions.UseIdentityColumn(b.Property<int>("AttributeOptionID"));
+                    NpgsqlPropertyBuilderExtensions.UseIdentityByDefaultColumn(b.Property<int>("AttributeOptionID"));
 
                     b.Property<int>("AttributeDefinitionID")
-                        .HasColumnType("int");
+                        .HasColumnType("integer");
 
                     b.Property<string>("ColorHex")
                         .HasMaxLength(7)
                         .IsUnicode(false)
-                        .HasColumnType("char(7)")
+                        .HasColumnType("character(7)")
                         .IsFixedLength();
 
                     b.Property<int>("SortOrder")
-                        .HasColumnType("int");
+                        .HasColumnType("integer");
 
                     b.Property<string>("Value")
                         .IsRequired()
                         .HasMaxLength(2000)
-                        .HasColumnType("nvarchar(2000)");
+                        .HasColumnType("character varying(2000)");
 
                     b.HasKey("AttributeOptionID");
 
@@ -195,24 +198,24 @@ namespace Dotnetable.Migrations.SqlServer.Migrations
                 {
                     b.Property<int>("AttributeOptionTranslationID")
                         .ValueGeneratedOnAdd()
-                        .HasColumnType("int");
+                        .HasColumnType("integer");
 
-                    SqlServerPropertyBuilderExtensions.UseIdentityColumn(b.Property<int>("AttributeOptionTranslationID"));
+                    NpgsqlPropertyBuilderExtensions.UseIdentityByDefaultColumn(b.Property<int>("AttributeOptionTranslationID"));
 
                     b.Property<int>("AttributeOptionID")
-                        .HasColumnType("int");
+                        .HasColumnType("integer");
 
                     b.Property<string>("LanguageCode")
                         .IsRequired()
                         .HasMaxLength(2)
                         .IsUnicode(false)
-                        .HasColumnType("char(2)")
+                        .HasColumnType("character(2)")
                         .IsFixedLength();
 
                     b.Property<string>("Value")
                         .IsRequired()
                         .HasMaxLength(2000)
-                        .HasColumnType("nvarchar(2000)");
+                        .HasColumnType("character varying(2000)");
 
                     b.HasKey("AttributeOptionTranslationID");
 
@@ -225,29 +228,29 @@ namespace Dotnetable.Migrations.SqlServer.Migrations
                 {
                     b.Property<int>("BankID")
                         .ValueGeneratedOnAdd()
-                        .HasColumnType("int");
+                        .HasColumnType("integer");
 
-                    SqlServerPropertyBuilderExtensions.UseIdentityColumn(b.Property<int>("BankID"));
+                    NpgsqlPropertyBuilderExtensions.UseIdentityByDefaultColumn(b.Property<int>("BankID"));
 
                     b.Property<bool>("Active")
-                        .HasColumnType("bit");
+                        .HasColumnType("boolean");
 
                     b.Property<string>("BankCode")
                         .IsRequired()
                         .HasMaxLength(10)
                         .IsUnicode(false)
-                        .HasColumnType("varchar(10)");
+                        .HasColumnType("character varying(10)");
 
                     b.Property<int?>("LogoFileID")
-                        .HasColumnType("int");
+                        .HasColumnType("integer");
 
                     b.Property<string>("Name")
                         .IsRequired()
                         .HasMaxLength(64)
-                        .HasColumnType("nvarchar(64)");
+                        .HasColumnType("character varying(64)");
 
                     b.Property<int?>("WebsiteID")
-                        .HasColumnType("int");
+                        .HasColumnType("integer");
 
                     b.HasKey("BankID");
 
@@ -262,52 +265,54 @@ namespace Dotnetable.Migrations.SqlServer.Migrations
                 {
                     b.Property<int>("BankAccountID")
                         .ValueGeneratedOnAdd()
-                        .HasColumnType("int");
+                        .HasColumnType("integer");
 
-                    SqlServerPropertyBuilderExtensions.UseIdentityColumn(b.Property<int>("BankAccountID"));
+                    NpgsqlPropertyBuilderExtensions.UseIdentityByDefaultColumn(b.Property<int>("BankAccountID"));
 
                     b.Property<string>("AccountNumber")
                         .HasMaxLength(30)
                         .IsUnicode(false)
-                        .HasColumnType("varchar(30)");
+                        .HasColumnType("character varying(30)");
 
                     b.Property<int>("BankID")
-                        .HasColumnType("int");
+                        .HasColumnType("integer");
 
                     b.Property<string>("CardNumber")
                         .HasMaxLength(20)
                         .IsUnicode(false)
-                        .HasColumnType("varchar(20)");
+                        .HasColumnType("character varying(20)");
 
                     b.Property<int>("CreatedByMemberId")
-                        .HasColumnType("int");
+                        .HasColumnType("integer");
 
                     b.Property<string>("IBAN")
                         .HasMaxLength(34)
                         .IsUnicode(false)
-                        .HasColumnType("varchar(34)");
+                        .HasColumnType("character varying(34)");
 
                     b.Property<bool>("IsActive")
                         .ValueGeneratedOnAdd()
-                        .HasColumnType("bit")
-                        .HasDefaultValue(true, "DF_BankAccounts_IsActive");
+                        .HasColumnType("boolean")
+                        .HasDefaultValue(true)
+                        .HasAnnotation("Relational:DefaultConstraintName", "DF_BankAccounts_IsActive");
 
                     b.Property<bool>("IsForOfflinePayment")
                         .ValueGeneratedOnAdd()
-                        .HasColumnType("bit")
-                        .HasDefaultValue(true, "DF_BankAccounts_IsForOfflinePayment");
+                        .HasColumnType("boolean")
+                        .HasDefaultValue(true)
+                        .HasAnnotation("Relational:DefaultConstraintName", "DF_BankAccounts_IsForOfflinePayment");
 
                     b.Property<string>("OwnerName")
                         .HasMaxLength(90)
-                        .HasColumnType("nvarchar(90)");
+                        .HasColumnType("character varying(90)");
 
                     b.Property<string>("Title")
                         .IsRequired()
                         .HasMaxLength(70)
-                        .HasColumnType("nvarchar(70)");
+                        .HasColumnType("character varying(70)");
 
                     b.Property<int>("WebsiteID")
-                        .HasColumnType("int");
+                        .HasColumnType("integer");
 
                     b.HasKey("BankAccountID");
 
@@ -324,30 +329,31 @@ namespace Dotnetable.Migrations.SqlServer.Migrations
                 {
                     b.Property<int>("BrandID")
                         .ValueGeneratedOnAdd()
-                        .HasColumnType("int");
+                        .HasColumnType("integer");
 
-                    SqlServerPropertyBuilderExtensions.UseIdentityColumn(b.Property<int>("BrandID"));
+                    NpgsqlPropertyBuilderExtensions.UseIdentityByDefaultColumn(b.Property<int>("BrandID"));
 
                     b.Property<bool>("IsActive")
                         .ValueGeneratedOnAdd()
-                        .HasColumnType("bit")
-                        .HasDefaultValue(true, "DF_Brands_IsActive_1");
+                        .HasColumnType("boolean")
+                        .HasDefaultValue(true)
+                        .HasAnnotation("Relational:DefaultConstraintName", "DF_Brands_IsActive_1");
 
                     b.Property<int?>("LogoFileID")
-                        .HasColumnType("int");
+                        .HasColumnType("integer");
 
                     b.Property<string>("Name")
                         .IsRequired()
                         .HasMaxLength(200)
-                        .HasColumnType("nvarchar(200)");
+                        .HasColumnType("character varying(200)");
 
                     b.Property<string>("Slug")
                         .IsRequired()
                         .HasMaxLength(200)
-                        .HasColumnType("nvarchar(200)");
+                        .HasColumnType("character varying(200)");
 
                     b.Property<int>("WebsiteID")
-                        .HasColumnType("int");
+                        .HasColumnType("integer");
 
                     b.HasKey("BrandID");
 
@@ -362,29 +368,29 @@ namespace Dotnetable.Migrations.SqlServer.Migrations
                 {
                     b.Property<int>("BrandTranslationID")
                         .ValueGeneratedOnAdd()
-                        .HasColumnType("int");
+                        .HasColumnType("integer");
 
-                    SqlServerPropertyBuilderExtensions.UseIdentityColumn(b.Property<int>("BrandTranslationID"));
+                    NpgsqlPropertyBuilderExtensions.UseIdentityByDefaultColumn(b.Property<int>("BrandTranslationID"));
 
                     b.Property<int>("BrandID")
-                        .HasColumnType("int");
+                        .HasColumnType("integer");
 
                     b.Property<string>("LanguageCode")
                         .IsRequired()
                         .HasMaxLength(2)
                         .IsUnicode(false)
-                        .HasColumnType("char(2)")
+                        .HasColumnType("character(2)")
                         .IsFixedLength();
 
                     b.Property<string>("Name")
                         .IsRequired()
                         .HasMaxLength(200)
-                        .HasColumnType("nvarchar(200)");
+                        .HasColumnType("character varying(200)");
 
                     b.Property<string>("Slug")
                         .IsRequired()
                         .HasMaxLength(200)
-                        .HasColumnType("nvarchar(200)");
+                        .HasColumnType("character varying(200)");
 
                     b.HasKey("BrandTranslationID");
 
@@ -397,35 +403,37 @@ namespace Dotnetable.Migrations.SqlServer.Migrations
                 {
                     b.Property<int>("CartID")
                         .ValueGeneratedOnAdd()
-                        .HasColumnType("int");
+                        .HasColumnType("integer");
 
-                    SqlServerPropertyBuilderExtensions.UseIdentityColumn(b.Property<int>("CartID"));
+                    NpgsqlPropertyBuilderExtensions.UseIdentityByDefaultColumn(b.Property<int>("CartID"));
 
                     b.Property<int?>("CouponID")
-                        .HasColumnType("int");
+                        .HasColumnType("integer");
 
                     b.Property<DateTime>("CreatedAt")
                         .ValueGeneratedOnAdd()
                         .HasPrecision(0)
-                        .HasColumnType("datetime2(0)")
-                        .HasDefaultValueSql("(sysutcdatetime())", "DF_Carts_CreatedAt");
+                        .HasColumnType("timestamp(0) with time zone")
+                        .HasDefaultValueSql("(sysutcdatetime())")
+                        .HasAnnotation("Relational:DefaultConstraintName", "DF_Carts_CreatedAt");
 
                     b.Property<string>("SessionKey")
                         .HasMaxLength(64)
                         .IsUnicode(false)
-                        .HasColumnType("varchar(64)");
+                        .HasColumnType("character varying(64)");
 
                     b.Property<DateTime>("UpdatedAt")
                         .ValueGeneratedOnAdd()
                         .HasPrecision(0)
-                        .HasColumnType("datetime2(0)")
-                        .HasDefaultValueSql("(sysutcdatetime())", "DF_Carts_UpdatedAt");
+                        .HasColumnType("timestamp(0) with time zone")
+                        .HasDefaultValueSql("(sysutcdatetime())")
+                        .HasAnnotation("Relational:DefaultConstraintName", "DF_Carts_UpdatedAt");
 
                     b.Property<int?>("WebsiteClientID")
-                        .HasColumnType("int");
+                        .HasColumnType("integer");
 
                     b.Property<int>("WebsiteID")
-                        .HasColumnType("int");
+                        .HasColumnType("integer");
 
                     b.HasKey("CartID");
 
@@ -442,29 +450,31 @@ namespace Dotnetable.Migrations.SqlServer.Migrations
                 {
                     b.Property<int>("CartItemID")
                         .ValueGeneratedOnAdd()
-                        .HasColumnType("int");
+                        .HasColumnType("integer");
 
-                    SqlServerPropertyBuilderExtensions.UseIdentityColumn(b.Property<int>("CartItemID"));
+                    NpgsqlPropertyBuilderExtensions.UseIdentityByDefaultColumn(b.Property<int>("CartItemID"));
 
                     b.Property<DateTime>("AddedAt")
                         .ValueGeneratedOnAdd()
                         .HasPrecision(0)
-                        .HasColumnType("datetime2(0)")
-                        .HasDefaultValueSql("(sysutcdatetime())", "DF_CartItems_AddedAt");
+                        .HasColumnType("timestamp(0) with time zone")
+                        .HasDefaultValueSql("(sysutcdatetime())")
+                        .HasAnnotation("Relational:DefaultConstraintName", "DF_CartItems_AddedAt");
 
                     b.Property<int>("CartID")
-                        .HasColumnType("int");
+                        .HasColumnType("integer");
 
                     b.Property<int>("ProductVariantID")
-                        .HasColumnType("int");
+                        .HasColumnType("integer");
 
                     b.Property<int>("Quantity")
                         .ValueGeneratedOnAdd()
-                        .HasColumnType("int")
-                        .HasDefaultValue(1, "DF_CartItems_Quantity");
+                        .HasColumnType("integer")
+                        .HasDefaultValue(1)
+                        .HasAnnotation("Relational:DefaultConstraintName", "DF_CartItems_Quantity");
 
                     b.Property<int?>("VendorProductID")
-                        .HasColumnType("int");
+                        .HasColumnType("integer");
 
                     b.HasKey("CartItemID");
 
@@ -473,8 +483,7 @@ namespace Dotnetable.Migrations.SqlServer.Migrations
                     b.HasIndex("VendorProductID");
 
                     b.HasIndex(new[] { "CartID", "ProductVariantID", "VendorProductID" }, "UQ_CartItems_CartID_ProductVariantID_VendorProductID")
-                        .IsUnique()
-                        .HasFilter("[VendorProductID] IS NOT NULL");
+                        .IsUnique();
 
                     b.ToTable("CartItems");
                 });
@@ -483,36 +492,37 @@ namespace Dotnetable.Migrations.SqlServer.Migrations
                 {
                     b.Property<int>("CategoryID")
                         .ValueGeneratedOnAdd()
-                        .HasColumnType("int");
+                        .HasColumnType("integer");
 
-                    SqlServerPropertyBuilderExtensions.UseIdentityColumn(b.Property<int>("CategoryID"));
+                    NpgsqlPropertyBuilderExtensions.UseIdentityByDefaultColumn(b.Property<int>("CategoryID"));
 
                     b.Property<bool>("IsActive")
                         .ValueGeneratedOnAdd()
-                        .HasColumnType("bit")
-                        .HasDefaultValue(true, "DF_Categories_IsActive");
+                        .HasColumnType("boolean")
+                        .HasDefaultValue(true)
+                        .HasAnnotation("Relational:DefaultConstraintName", "DF_Categories_IsActive");
 
                     b.Property<string>("Name")
                         .IsRequired()
                         .HasMaxLength(200)
-                        .HasColumnType("nvarchar(200)");
+                        .HasColumnType("character varying(200)");
 
                     b.Property<int?>("ParentCategoryID")
-                        .HasColumnType("int");
+                        .HasColumnType("integer");
 
                     b.Property<int?>("PostTypeID")
-                        .HasColumnType("int");
+                        .HasColumnType("integer");
 
                     b.Property<string>("Slug")
                         .IsRequired()
                         .HasMaxLength(200)
-                        .HasColumnType("nvarchar(200)");
+                        .HasColumnType("character varying(200)");
 
                     b.Property<int>("SortOrder")
-                        .HasColumnType("int");
+                        .HasColumnType("integer");
 
                     b.Property<int>("WebsiteID")
-                        .HasColumnType("int");
+                        .HasColumnType("integer");
 
                     b.HasKey("CategoryID");
 
@@ -529,29 +539,29 @@ namespace Dotnetable.Migrations.SqlServer.Migrations
                 {
                     b.Property<int>("CategoryTranslationID")
                         .ValueGeneratedOnAdd()
-                        .HasColumnType("int");
+                        .HasColumnType("integer");
 
-                    SqlServerPropertyBuilderExtensions.UseIdentityColumn(b.Property<int>("CategoryTranslationID"));
+                    NpgsqlPropertyBuilderExtensions.UseIdentityByDefaultColumn(b.Property<int>("CategoryTranslationID"));
 
                     b.Property<int>("CategoryID")
-                        .HasColumnType("int");
+                        .HasColumnType("integer");
 
                     b.Property<string>("LanguageCode")
                         .IsRequired()
                         .HasMaxLength(2)
                         .IsUnicode(false)
-                        .HasColumnType("char(2)")
+                        .HasColumnType("character(2)")
                         .IsFixedLength();
 
                     b.Property<string>("Name")
                         .IsRequired()
                         .HasMaxLength(200)
-                        .HasColumnType("nvarchar(200)");
+                        .HasColumnType("character varying(200)");
 
                     b.Property<string>("Slug")
                         .IsRequired()
                         .HasMaxLength(200)
-                        .HasColumnType("nvarchar(200)");
+                        .HasColumnType("character varying(200)");
 
                     b.HasKey("CategoryTranslationID");
 
@@ -564,33 +574,34 @@ namespace Dotnetable.Migrations.SqlServer.Migrations
                 {
                     b.Property<int>("ChartOfAccountID")
                         .ValueGeneratedOnAdd()
-                        .HasColumnType("int");
+                        .HasColumnType("integer");
 
-                    SqlServerPropertyBuilderExtensions.UseIdentityColumn(b.Property<int>("ChartOfAccountID"));
+                    NpgsqlPropertyBuilderExtensions.UseIdentityByDefaultColumn(b.Property<int>("ChartOfAccountID"));
 
                     b.Property<byte>("AccountType")
-                        .HasColumnType("tinyint");
+                        .HasColumnType("smallint");
 
                     b.Property<string>("Code")
                         .IsRequired()
                         .HasMaxLength(20)
-                        .HasColumnType("nvarchar(20)");
+                        .HasColumnType("character varying(20)");
 
                     b.Property<bool>("IsActive")
                         .ValueGeneratedOnAdd()
-                        .HasColumnType("bit")
-                        .HasDefaultValue(true, "DF_ChartOfAccounts_IsActive");
+                        .HasColumnType("boolean")
+                        .HasDefaultValue(true)
+                        .HasAnnotation("Relational:DefaultConstraintName", "DF_ChartOfAccounts_IsActive");
 
                     b.Property<string>("Name")
                         .IsRequired()
                         .HasMaxLength(200)
-                        .HasColumnType("nvarchar(200)");
+                        .HasColumnType("character varying(200)");
 
                     b.Property<int?>("ParentAccountID")
-                        .HasColumnType("int");
+                        .HasColumnType("integer");
 
                     b.Property<int>("WebsiteID")
-                        .HasColumnType("int");
+                        .HasColumnType("integer");
 
                     b.HasKey("ChartOfAccountID");
 
@@ -605,36 +616,36 @@ namespace Dotnetable.Migrations.SqlServer.Migrations
                 {
                     b.Property<int>("CityID")
                         .ValueGeneratedOnAdd()
-                        .HasColumnType("int");
+                        .HasColumnType("integer");
 
-                    SqlServerPropertyBuilderExtensions.UseIdentityColumn(b.Property<int>("CityID"));
+                    NpgsqlPropertyBuilderExtensions.UseIdentityByDefaultColumn(b.Property<int>("CityID"));
 
                     b.Property<bool>("Active")
-                        .HasColumnType("bit");
+                        .HasColumnType("boolean");
 
                     b.Property<int>("CountryID")
-                        .HasColumnType("int");
+                        .HasColumnType("integer");
 
                     b.Property<string>("LanguageCode")
                         .IsRequired()
                         .HasMaxLength(2)
                         .IsUnicode(false)
-                        .HasColumnType("char(2)")
+                        .HasColumnType("character(2)")
                         .IsFixedLength();
 
                     b.Property<double?>("Latitude")
-                        .HasColumnType("float");
+                        .HasColumnType("double precision");
 
                     b.Property<double>("Longitude")
-                        .HasColumnType("float");
+                        .HasColumnType("double precision");
 
                     b.Property<int?>("StateID")
-                        .HasColumnType("int");
+                        .HasColumnType("integer");
 
                     b.Property<string>("Title")
                         .IsRequired()
                         .HasMaxLength(48)
-                        .HasColumnType("nvarchar(48)");
+                        .HasColumnType("character varying(48)");
 
                     b.HasKey("CityID");
 
@@ -649,24 +660,24 @@ namespace Dotnetable.Migrations.SqlServer.Migrations
                 {
                     b.Property<int>("CityTranslationID")
                         .ValueGeneratedOnAdd()
-                        .HasColumnType("int");
+                        .HasColumnType("integer");
 
-                    SqlServerPropertyBuilderExtensions.UseIdentityColumn(b.Property<int>("CityTranslationID"));
+                    NpgsqlPropertyBuilderExtensions.UseIdentityByDefaultColumn(b.Property<int>("CityTranslationID"));
 
                     b.Property<int>("CityID")
-                        .HasColumnType("int");
+                        .HasColumnType("integer");
 
                     b.Property<string>("LanguageCode")
                         .IsRequired()
                         .HasMaxLength(2)
                         .IsUnicode(false)
-                        .HasColumnType("char(2)")
+                        .HasColumnType("character(2)")
                         .IsFixedLength();
 
                     b.Property<string>("Title")
                         .IsRequired()
                         .HasMaxLength(48)
-                        .HasColumnType("nvarchar(48)");
+                        .HasColumnType("character varying(48)");
 
                     b.HasKey("CityTranslationID");
 
@@ -679,52 +690,54 @@ namespace Dotnetable.Migrations.SqlServer.Migrations
                 {
                     b.Property<int>("ClientBankAccountID")
                         .ValueGeneratedOnAdd()
-                        .HasColumnType("int");
+                        .HasColumnType("integer");
 
-                    SqlServerPropertyBuilderExtensions.UseIdentityColumn(b.Property<int>("ClientBankAccountID"));
+                    NpgsqlPropertyBuilderExtensions.UseIdentityByDefaultColumn(b.Property<int>("ClientBankAccountID"));
 
                     b.Property<string>("AccountNumber")
                         .HasMaxLength(30)
                         .IsUnicode(false)
-                        .HasColumnType("varchar(30)");
+                        .HasColumnType("character varying(30)");
 
                     b.Property<int?>("BankID")
-                        .HasColumnType("int");
+                        .HasColumnType("integer");
 
                     b.Property<string>("CardNumber")
                         .HasMaxLength(20)
                         .IsUnicode(false)
-                        .HasColumnType("varchar(20)");
+                        .HasColumnType("character varying(20)");
 
                     b.Property<DateTime>("CreatedAt")
                         .ValueGeneratedOnAdd()
                         .HasPrecision(0)
-                        .HasColumnType("datetime2(0)")
-                        .HasDefaultValueSql("(sysutcdatetime())", "DF_ClientBankAccounts_CreatedAt");
+                        .HasColumnType("timestamp(0) with time zone")
+                        .HasDefaultValueSql("(sysutcdatetime())")
+                        .HasAnnotation("Relational:DefaultConstraintName", "DF_ClientBankAccounts_CreatedAt");
 
                     b.Property<string>("IBAN")
                         .HasMaxLength(34)
                         .IsUnicode(false)
-                        .HasColumnType("varchar(34)");
+                        .HasColumnType("character varying(34)");
 
                     b.Property<bool>("IsActive")
                         .ValueGeneratedOnAdd()
-                        .HasColumnType("bit")
-                        .HasDefaultValue(true, "DF_ClientBankAccounts_IsActive");
+                        .HasColumnType("boolean")
+                        .HasDefaultValue(true)
+                        .HasAnnotation("Relational:DefaultConstraintName", "DF_ClientBankAccounts_IsActive");
 
                     b.Property<bool>("IsDefault")
-                        .HasColumnType("bit");
+                        .HasColumnType("boolean");
 
                     b.Property<string>("OwnerName")
                         .IsRequired()
                         .HasMaxLength(90)
-                        .HasColumnType("nvarchar(90)");
+                        .HasColumnType("character varying(90)");
 
                     b.Property<int>("WebsiteClientID")
-                        .HasColumnType("int");
+                        .HasColumnType("integer");
 
                     b.Property<int>("WebsiteID")
-                        .HasColumnType("int");
+                        .HasColumnType("integer");
 
                     b.HasKey("ClientBankAccountID");
 
@@ -741,9 +754,9 @@ namespace Dotnetable.Migrations.SqlServer.Migrations
                 {
                     b.Property<int>("ClientWalletID")
                         .ValueGeneratedOnAdd()
-                        .HasColumnType("int");
+                        .HasColumnType("integer");
 
-                    SqlServerPropertyBuilderExtensions.UseIdentityColumn(b.Property<int>("ClientWalletID"));
+                    NpgsqlPropertyBuilderExtensions.UseIdentityByDefaultColumn(b.Property<int>("ClientWalletID"));
 
                     b.Property<decimal>("BalanceUsd")
                         .HasColumnType("decimal(18, 4)");
@@ -751,25 +764,27 @@ namespace Dotnetable.Migrations.SqlServer.Migrations
                     b.Property<DateTime>("CreatedAt")
                         .ValueGeneratedOnAdd()
                         .HasPrecision(0)
-                        .HasColumnType("datetime2(0)")
-                        .HasDefaultValueSql("(sysutcdatetime())", "DF_ClientWallets_CreatedAt");
+                        .HasColumnType("timestamp(0) with time zone")
+                        .HasDefaultValueSql("(sysutcdatetime())")
+                        .HasAnnotation("Relational:DefaultConstraintName", "DF_ClientWallets_CreatedAt");
 
                     b.Property<bool>("IsActive")
                         .ValueGeneratedOnAdd()
-                        .HasColumnType("bit")
-                        .HasDefaultValue(true, "DF_ClientWallets_IsActive");
+                        .HasColumnType("boolean")
+                        .HasDefaultValue(true)
+                        .HasAnnotation("Relational:DefaultConstraintName", "DF_ClientWallets_IsActive");
 
                     b.Property<byte[]>("RowVersion")
                         .IsConcurrencyToken()
                         .IsRequired()
                         .ValueGeneratedOnAddOrUpdate()
-                        .HasColumnType("rowversion");
+                        .HasColumnType("bytea");
 
                     b.Property<int>("WebsiteClientID")
-                        .HasColumnType("int");
+                        .HasColumnType("integer");
 
                     b.Property<int>("WebsiteID")
-                        .HasColumnType("int");
+                        .HasColumnType("integer");
 
                     b.HasKey("ClientWalletID");
 
@@ -785,9 +800,9 @@ namespace Dotnetable.Migrations.SqlServer.Migrations
                 {
                     b.Property<int>("ClientWalletTransactionID")
                         .ValueGeneratedOnAdd()
-                        .HasColumnType("int");
+                        .HasColumnType("integer");
 
-                    SqlServerPropertyBuilderExtensions.UseIdentityColumn(b.Property<int>("ClientWalletTransactionID"));
+                    NpgsqlPropertyBuilderExtensions.UseIdentityByDefaultColumn(b.Property<int>("ClientWalletTransactionID"));
 
                     b.Property<decimal>("AmountUsd")
                         .HasColumnType("decimal(18, 4)");
@@ -796,32 +811,33 @@ namespace Dotnetable.Migrations.SqlServer.Migrations
                         .HasColumnType("decimal(18, 4)");
 
                     b.Property<int>("ClientWalletID")
-                        .HasColumnType("int");
+                        .HasColumnType("integer");
 
                     b.Property<DateTime>("CreatedAt")
                         .ValueGeneratedOnAdd()
                         .HasPrecision(0)
-                        .HasColumnType("datetime2(0)")
-                        .HasDefaultValueSql("(sysutcdatetime())", "DF_ClientWalletTransactions_CreatedAt");
+                        .HasColumnType("timestamp(0) with time zone")
+                        .HasDefaultValueSql("(sysutcdatetime())")
+                        .HasAnnotation("Relational:DefaultConstraintName", "DF_ClientWalletTransactions_CreatedAt");
 
                     b.Property<int?>("CreatedByMemberID")
-                        .HasColumnType("int");
+                        .HasColumnType("integer");
 
                     b.Property<string>("Note")
                         .HasMaxLength(500)
-                        .HasColumnType("nvarchar(500)");
+                        .HasColumnType("character varying(500)");
 
                     b.Property<int?>("SourceId")
-                        .HasColumnType("int");
+                        .HasColumnType("integer");
 
                     b.Property<byte?>("SourceType")
-                        .HasColumnType("tinyint");
+                        .HasColumnType("smallint");
 
                     b.Property<byte>("Type")
-                        .HasColumnType("tinyint");
+                        .HasColumnType("smallint");
 
                     b.Property<int>("WebsiteID")
-                        .HasColumnType("int");
+                        .HasColumnType("integer");
 
                     b.HasKey("ClientWalletTransactionID");
 
@@ -838,54 +854,56 @@ namespace Dotnetable.Migrations.SqlServer.Migrations
                 {
                     b.Property<int>("ClientWalletWithdrawalID")
                         .ValueGeneratedOnAdd()
-                        .HasColumnType("int");
+                        .HasColumnType("integer");
 
-                    SqlServerPropertyBuilderExtensions.UseIdentityColumn(b.Property<int>("ClientWalletWithdrawalID"));
+                    NpgsqlPropertyBuilderExtensions.UseIdentityByDefaultColumn(b.Property<int>("ClientWalletWithdrawalID"));
 
                     b.Property<decimal>("AmountUsd")
                         .HasColumnType("decimal(18, 4)");
 
                     b.Property<int>("ClientBankAccountID")
-                        .HasColumnType("int");
+                        .HasColumnType("integer");
 
                     b.Property<int>("ClientWalletID")
-                        .HasColumnType("int");
+                        .HasColumnType("integer");
 
                     b.Property<DateTime?>("PaidAt")
                         .HasPrecision(0)
-                        .HasColumnType("datetime2(0)");
+                        .HasColumnType("timestamp(0) with time zone");
 
                     b.Property<string>("PaymentRefNumber")
                         .HasMaxLength(100)
-                        .HasColumnType("nvarchar(100)");
+                        .HasColumnType("character varying(100)");
 
                     b.Property<string>("RejectReason")
                         .HasMaxLength(500)
-                        .HasColumnType("nvarchar(500)");
+                        .HasColumnType("character varying(500)");
 
                     b.Property<DateTime>("RequestedAt")
                         .ValueGeneratedOnAdd()
                         .HasPrecision(0)
-                        .HasColumnType("datetime2(0)")
-                        .HasDefaultValueSql("(sysutcdatetime())", "DF_ClientWalletWithdrawals_RequestedAt");
+                        .HasColumnType("timestamp(0) with time zone")
+                        .HasDefaultValueSql("(sysutcdatetime())")
+                        .HasAnnotation("Relational:DefaultConstraintName", "DF_ClientWalletWithdrawals_RequestedAt");
 
                     b.Property<DateTime?>("ReviewedAt")
                         .HasPrecision(0)
-                        .HasColumnType("datetime2(0)");
+                        .HasColumnType("timestamp(0) with time zone");
 
                     b.Property<int?>("ReviewedByMemberID")
-                        .HasColumnType("int");
+                        .HasColumnType("integer");
 
                     b.Property<byte>("Status")
                         .ValueGeneratedOnAdd()
-                        .HasColumnType("tinyint")
-                        .HasDefaultValue((byte)1, "DF_ClientWalletWithdrawals_Status");
+                        .HasColumnType("smallint")
+                        .HasDefaultValue((byte)1)
+                        .HasAnnotation("Relational:DefaultConstraintName", "DF_ClientWalletWithdrawals_Status");
 
                     b.Property<int>("WebsiteClientID")
-                        .HasColumnType("int");
+                        .HasColumnType("integer");
 
                     b.Property<int>("WebsiteID")
-                        .HasColumnType("int");
+                        .HasColumnType("integer");
 
                     b.HasKey("ClientWalletWithdrawalID");
 
@@ -906,24 +924,24 @@ namespace Dotnetable.Migrations.SqlServer.Migrations
                 {
                     b.Property<int>("ContactUsMessagesID")
                         .ValueGeneratedOnAdd()
-                        .HasColumnType("int");
+                        .HasColumnType("integer");
 
-                    SqlServerPropertyBuilderExtensions.UseIdentityColumn(b.Property<int>("ContactUsMessagesID"));
+                    NpgsqlPropertyBuilderExtensions.UseIdentityByDefaultColumn(b.Property<int>("ContactUsMessagesID"));
 
                     b.Property<bool>("Archive")
-                        .HasColumnType("bit");
+                        .HasColumnType("boolean");
 
                     b.Property<string>("CellphoneNumber")
                         .IsRequired()
                         .HasMaxLength(15)
                         .IsUnicode(false)
-                        .HasColumnType("varchar(15)");
+                        .HasColumnType("character varying(15)");
 
                     b.Property<string>("EmailAddress")
                         .IsRequired()
                         .HasMaxLength(64)
                         .IsUnicode(false)
-                        .HasColumnType("varchar(64)");
+                        .HasColumnType("character varying(64)");
 
                     b.Property<DateTime>("LogTime")
                         .HasColumnType("datetime");
@@ -931,26 +949,26 @@ namespace Dotnetable.Migrations.SqlServer.Migrations
                     b.Property<string>("MessageBody")
                         .IsRequired()
                         .HasMaxLength(4000)
-                        .HasColumnType("nvarchar(4000)");
+                        .HasColumnType("character varying(4000)");
 
                     b.Property<string>("MessageSubject")
                         .IsRequired()
                         .HasMaxLength(512)
-                        .HasColumnType("nvarchar(512)");
+                        .HasColumnType("character varying(512)");
 
                     b.Property<string>("SenderIPAddress")
                         .IsRequired()
                         .HasMaxLength(15)
                         .IsUnicode(false)
-                        .HasColumnType("varchar(15)");
+                        .HasColumnType("character varying(15)");
 
                     b.Property<string>("SenderName")
                         .IsRequired()
                         .HasMaxLength(64)
-                        .HasColumnType("nvarchar(64)");
+                        .HasColumnType("character varying(64)");
 
                     b.Property<int>("WebsiteID")
-                        .HasColumnType("int");
+                        .HasColumnType("integer");
 
                     b.HasKey("ContactUsMessagesID");
 
@@ -963,34 +981,34 @@ namespace Dotnetable.Migrations.SqlServer.Migrations
                 {
                     b.Property<int>("CountryID")
                         .ValueGeneratedOnAdd()
-                        .HasColumnType("int");
+                        .HasColumnType("integer");
 
-                    SqlServerPropertyBuilderExtensions.UseIdentityColumn(b.Property<int>("CountryID"));
+                    NpgsqlPropertyBuilderExtensions.UseIdentityByDefaultColumn(b.Property<int>("CountryID"));
 
                     b.Property<string>("CountryCode")
                         .IsRequired()
                         .HasMaxLength(2)
                         .IsUnicode(false)
-                        .HasColumnType("char(2)")
+                        .HasColumnType("character(2)")
                         .IsFixedLength();
 
                     b.Property<string>("LanguageCode")
                         .IsRequired()
                         .HasMaxLength(2)
                         .IsUnicode(false)
-                        .HasColumnType("char(2)")
+                        .HasColumnType("character(2)")
                         .IsFixedLength();
 
                     b.Property<string>("PhonePerfix")
                         .IsRequired()
                         .HasMaxLength(3)
                         .IsUnicode(false)
-                        .HasColumnType("varchar(3)");
+                        .HasColumnType("character varying(3)");
 
                     b.Property<string>("Title")
                         .IsRequired()
                         .HasMaxLength(42)
-                        .HasColumnType("nvarchar(42)");
+                        .HasColumnType("character varying(42)");
 
                     b.HasKey("CountryID");
 
@@ -1001,24 +1019,24 @@ namespace Dotnetable.Migrations.SqlServer.Migrations
                 {
                     b.Property<int>("CountryTranslationID")
                         .ValueGeneratedOnAdd()
-                        .HasColumnType("int");
+                        .HasColumnType("integer");
 
-                    SqlServerPropertyBuilderExtensions.UseIdentityColumn(b.Property<int>("CountryTranslationID"));
+                    NpgsqlPropertyBuilderExtensions.UseIdentityByDefaultColumn(b.Property<int>("CountryTranslationID"));
 
                     b.Property<int>("CountryID")
-                        .HasColumnType("int");
+                        .HasColumnType("integer");
 
                     b.Property<string>("LanguageCode")
                         .IsRequired()
                         .HasMaxLength(2)
                         .IsUnicode(false)
-                        .HasColumnType("char(2)")
+                        .HasColumnType("character(2)")
                         .IsFixedLength();
 
                     b.Property<string>("Title")
                         .IsRequired()
                         .HasMaxLength(42)
-                        .HasColumnType("nvarchar(42)");
+                        .HasColumnType("character varying(42)");
 
                     b.HasKey("CountryTranslationID");
 
@@ -1031,39 +1049,41 @@ namespace Dotnetable.Migrations.SqlServer.Migrations
                 {
                     b.Property<int>("CouponID")
                         .ValueGeneratedOnAdd()
-                        .HasColumnType("int");
+                        .HasColumnType("integer");
 
-                    SqlServerPropertyBuilderExtensions.UseIdentityColumn(b.Property<int>("CouponID"));
+                    NpgsqlPropertyBuilderExtensions.UseIdentityByDefaultColumn(b.Property<int>("CouponID"));
 
                     b.Property<string>("Code")
                         .IsRequired()
                         .HasMaxLength(40)
                         .IsUnicode(false)
-                        .HasColumnType("varchar(40)");
+                        .HasColumnType("character varying(40)");
 
                     b.Property<DateTime>("CreatedAt")
                         .ValueGeneratedOnAdd()
                         .HasPrecision(0)
-                        .HasColumnType("datetime2(0)")
-                        .HasDefaultValueSql("(sysutcdatetime())", "DF_Coupons_CreatedAt");
+                        .HasColumnType("timestamp(0) with time zone")
+                        .HasDefaultValueSql("(sysutcdatetime())")
+                        .HasAnnotation("Relational:DefaultConstraintName", "DF_Coupons_CreatedAt");
 
                     b.Property<int?>("CreatedByMemberID")
-                        .HasColumnType("int");
+                        .HasColumnType("integer");
 
                     b.Property<byte>("DiscountType")
-                        .HasColumnType("tinyint");
+                        .HasColumnType("smallint");
 
                     b.Property<decimal>("DiscountValue")
                         .HasColumnType("decimal(18, 4)");
 
                     b.Property<DateTime?>("EndsAt")
                         .HasPrecision(0)
-                        .HasColumnType("datetime2(0)");
+                        .HasColumnType("timestamp(0) with time zone");
 
                     b.Property<bool>("IsActive")
                         .ValueGeneratedOnAdd()
-                        .HasColumnType("bit")
-                        .HasDefaultValue(true, "DF_Coupons_IsActive");
+                        .HasColumnType("boolean")
+                        .HasDefaultValue(true)
+                        .HasAnnotation("Relational:DefaultConstraintName", "DF_Coupons_IsActive");
 
                     b.Property<decimal?>("MaxDiscountAmountUsd")
                         .HasColumnType("decimal(18, 4)");
@@ -1073,19 +1093,19 @@ namespace Dotnetable.Migrations.SqlServer.Migrations
 
                     b.Property<DateTime?>("StartsAt")
                         .HasPrecision(0)
-                        .HasColumnType("datetime2(0)");
+                        .HasColumnType("timestamp(0) with time zone");
 
                     b.Property<int>("TimesUsed")
-                        .HasColumnType("int");
+                        .HasColumnType("integer");
 
                     b.Property<int?>("UsageLimitPerClient")
-                        .HasColumnType("int");
+                        .HasColumnType("integer");
 
                     b.Property<int?>("UsageLimitTotal")
-                        .HasColumnType("int");
+                        .HasColumnType("integer");
 
                     b.Property<int>("WebsiteID")
-                        .HasColumnType("int");
+                        .HasColumnType("integer");
 
                     b.HasKey("CouponID");
 
@@ -1101,27 +1121,28 @@ namespace Dotnetable.Migrations.SqlServer.Migrations
                 {
                     b.Property<int>("CouponRedemptionID")
                         .ValueGeneratedOnAdd()
-                        .HasColumnType("int");
+                        .HasColumnType("integer");
 
-                    SqlServerPropertyBuilderExtensions.UseIdentityColumn(b.Property<int>("CouponRedemptionID"));
+                    NpgsqlPropertyBuilderExtensions.UseIdentityByDefaultColumn(b.Property<int>("CouponRedemptionID"));
 
                     b.Property<int>("CouponID")
-                        .HasColumnType("int");
+                        .HasColumnType("integer");
 
                     b.Property<decimal>("DiscountAmountUsd")
                         .HasColumnType("decimal(18, 4)");
 
                     b.Property<int>("OrderID")
-                        .HasColumnType("int");
+                        .HasColumnType("integer");
 
                     b.Property<DateTime>("RedeemedAt")
                         .ValueGeneratedOnAdd()
                         .HasPrecision(0)
-                        .HasColumnType("datetime2(0)")
-                        .HasDefaultValueSql("(sysutcdatetime())", "DF_CouponRedemptions_RedeemedAt");
+                        .HasColumnType("timestamp(0) with time zone")
+                        .HasDefaultValueSql("(sysutcdatetime())")
+                        .HasAnnotation("Relational:DefaultConstraintName", "DF_CouponRedemptions_RedeemedAt");
 
                     b.Property<int>("WebsiteClientID")
-                        .HasColumnType("int");
+                        .HasColumnType("integer");
 
                     b.HasKey("CouponRedemptionID");
 
@@ -1140,28 +1161,30 @@ namespace Dotnetable.Migrations.SqlServer.Migrations
                     b.Property<string>("CurrencyCode")
                         .HasMaxLength(3)
                         .IsUnicode(false)
-                        .HasColumnType("char(3)")
+                        .HasColumnType("character(3)")
                         .IsFixedLength();
 
                     b.Property<byte>("DecimalDigits")
                         .ValueGeneratedOnAdd()
-                        .HasColumnType("tinyint")
-                        .HasDefaultValue((byte)2, "DF_Currencies_DecimalDigits");
+                        .HasColumnType("smallint")
+                        .HasDefaultValue((byte)2)
+                        .HasAnnotation("Relational:DefaultConstraintName", "DF_Currencies_DecimalDigits");
 
                     b.Property<bool>("IsActive")
                         .ValueGeneratedOnAdd()
-                        .HasColumnType("bit")
-                        .HasDefaultValue(true, "DF_Currencies_IsActive");
+                        .HasColumnType("boolean")
+                        .HasDefaultValue(true)
+                        .HasAnnotation("Relational:DefaultConstraintName", "DF_Currencies_IsActive");
 
                     b.Property<string>("Name")
                         .IsRequired()
                         .HasMaxLength(50)
-                        .HasColumnType("nvarchar(50)");
+                        .HasColumnType("character varying(50)");
 
                     b.Property<string>("Symbol")
                         .IsRequired()
                         .HasMaxLength(10)
-                        .HasColumnType("nvarchar(10)");
+                        .HasColumnType("character varying(10)");
 
                     b.HasKey("CurrencyCode");
 
@@ -1172,19 +1195,19 @@ namespace Dotnetable.Migrations.SqlServer.Migrations
                 {
                     b.Property<int>("CurrencyRateID")
                         .ValueGeneratedOnAdd()
-                        .HasColumnType("int");
+                        .HasColumnType("integer");
 
-                    SqlServerPropertyBuilderExtensions.UseIdentityColumn(b.Property<int>("CurrencyRateID"));
+                    NpgsqlPropertyBuilderExtensions.UseIdentityByDefaultColumn(b.Property<int>("CurrencyRateID"));
 
                     b.Property<string>("CurrencyCode")
                         .IsRequired()
                         .HasMaxLength(3)
                         .IsUnicode(false)
-                        .HasColumnType("char(3)")
+                        .HasColumnType("character(3)")
                         .IsFixedLength();
 
                     b.Property<bool>("IsDefault")
-                        .HasColumnType("bit");
+                        .HasColumnType("boolean");
 
                     b.Property<DateTime>("LastUpdate")
                         .HasColumnType("datetime");
@@ -1193,7 +1216,7 @@ namespace Dotnetable.Migrations.SqlServer.Migrations
                         .HasColumnType("decimal(18, 6)");
 
                     b.Property<int>("WebsiteID")
-                        .HasColumnType("int");
+                        .HasColumnType("integer");
 
                     b.HasKey("CurrencyRateID");
 
@@ -1208,54 +1231,54 @@ namespace Dotnetable.Migrations.SqlServer.Migrations
                 {
                     b.Property<int>("EmailAccountID")
                         .ValueGeneratedOnAdd()
-                        .HasColumnType("int");
+                        .HasColumnType("integer");
 
-                    SqlServerPropertyBuilderExtensions.UseIdentityColumn(b.Property<int>("EmailAccountID"));
+                    NpgsqlPropertyBuilderExtensions.UseIdentityByDefaultColumn(b.Property<int>("EmailAccountID"));
 
                     b.Property<byte>("AccountType")
-                        .HasColumnType("tinyint");
+                        .HasColumnType("smallint");
 
                     b.Property<bool>("Active")
-                        .HasColumnType("bit");
+                        .HasColumnType("boolean");
 
                     b.Property<string>("EmailAddress")
                         .IsRequired()
                         .HasMaxLength(64)
                         .IsUnicode(false)
-                        .HasColumnType("varchar(64)");
+                        .HasColumnType("character varying(64)");
 
                     b.Property<bool>("EnableSSL")
-                        .HasColumnType("bit");
+                        .HasColumnType("boolean");
 
                     b.Property<bool>("IsDefault")
-                        .HasColumnType("bit");
+                        .HasColumnType("boolean");
 
                     b.Property<string>("MailName")
                         .IsRequired()
                         .HasMaxLength(64)
-                        .HasColumnType("nvarchar(64)");
+                        .HasColumnType("character varying(64)");
 
                     b.Property<string>("MailServer")
                         .IsRequired()
                         .HasMaxLength(64)
                         .IsUnicode(false)
-                        .HasColumnType("varchar(64)");
+                        .HasColumnType("character varying(64)");
 
                     b.Property<string>("Name")
                         .IsRequired()
                         .HasMaxLength(64)
-                        .HasColumnType("nvarchar(64)");
+                        .HasColumnType("character varying(64)");
 
                     b.Property<string>("Password")
                         .IsRequired()
                         .HasMaxLength(256)
-                        .HasColumnType("nvarchar(256)");
+                        .HasColumnType("character varying(256)");
 
                     b.Property<int>("SMTPPort")
-                        .HasColumnType("int");
+                        .HasColumnType("integer");
 
                     b.Property<int>("WebsiteID")
-                        .HasColumnType("int");
+                        .HasColumnType("integer");
 
                     b.HasKey("EmailAccountID");
 
@@ -1268,30 +1291,30 @@ namespace Dotnetable.Migrations.SqlServer.Migrations
                 {
                     b.Property<int>("EmailSubscribeID")
                         .ValueGeneratedOnAdd()
-                        .HasColumnType("int");
+                        .HasColumnType("integer");
 
-                    SqlServerPropertyBuilderExtensions.UseIdentityColumn(b.Property<int>("EmailSubscribeID"));
+                    NpgsqlPropertyBuilderExtensions.UseIdentityByDefaultColumn(b.Property<int>("EmailSubscribeID"));
 
                     b.Property<bool>("Active")
-                        .HasColumnType("bit");
+                        .HasColumnType("boolean");
 
                     b.Property<bool>("Approved")
-                        .HasColumnType("bit");
+                        .HasColumnType("boolean");
 
                     b.Property<string>("Email")
                         .IsRequired()
                         .HasMaxLength(64)
                         .IsUnicode(false)
-                        .HasColumnType("varchar(64)");
+                        .HasColumnType("character varying(64)");
 
                     b.Property<DateTime>("LogTime")
                         .HasColumnType("datetime");
 
                     b.Property<int?>("MemberID")
-                        .HasColumnType("int");
+                        .HasColumnType("integer");
 
                     b.Property<int>("WebsiteID")
-                        .HasColumnType("int");
+                        .HasColumnType("integer");
 
                     b.HasKey("EmailSubscribeID");
 
@@ -1306,38 +1329,38 @@ namespace Dotnetable.Migrations.SqlServer.Migrations
                 {
                     b.Property<int>("EmailTemplateID")
                         .ValueGeneratedOnAdd()
-                        .HasColumnType("int");
+                        .HasColumnType("integer");
 
-                    SqlServerPropertyBuilderExtensions.UseIdentityColumn(b.Property<int>("EmailTemplateID"));
+                    NpgsqlPropertyBuilderExtensions.UseIdentityByDefaultColumn(b.Property<int>("EmailTemplateID"));
 
                     b.Property<byte>("AccountType")
-                        .HasColumnType("tinyint");
+                        .HasColumnType("smallint");
 
                     b.Property<bool>("Active")
-                        .HasColumnType("bit");
+                        .HasColumnType("boolean");
 
                     b.Property<string>("HtmlBody")
                         .IsRequired()
-                        .HasColumnType("nvarchar(max)");
+                        .HasColumnType("text");
 
                     b.Property<string>("Name")
                         .IsRequired()
                         .HasMaxLength(128)
-                        .HasColumnType("nvarchar(128)");
+                        .HasColumnType("character varying(128)");
 
                     b.Property<string>("Subject")
                         .IsRequired()
                         .HasMaxLength(256)
-                        .HasColumnType("nvarchar(256)");
+                        .HasColumnType("character varying(256)");
 
                     b.Property<string>("TemplateKey")
                         .IsRequired()
                         .HasMaxLength(64)
                         .IsUnicode(false)
-                        .HasColumnType("varchar(64)");
+                        .HasColumnType("character varying(64)");
 
                     b.Property<int>("WebsiteID")
-                        .HasColumnType("int");
+                        .HasColumnType("integer");
 
                     b.HasKey("EmailTemplateID");
 
@@ -1351,28 +1374,28 @@ namespace Dotnetable.Migrations.SqlServer.Migrations
                 {
                     b.Property<int>("EmailTemplateTranslationID")
                         .ValueGeneratedOnAdd()
-                        .HasColumnType("int");
+                        .HasColumnType("integer");
 
-                    SqlServerPropertyBuilderExtensions.UseIdentityColumn(b.Property<int>("EmailTemplateTranslationID"));
+                    NpgsqlPropertyBuilderExtensions.UseIdentityByDefaultColumn(b.Property<int>("EmailTemplateTranslationID"));
 
                     b.Property<int>("EmailTemplateID")
-                        .HasColumnType("int");
+                        .HasColumnType("integer");
 
                     b.Property<string>("HtmlBody")
                         .IsRequired()
-                        .HasColumnType("nvarchar(max)");
+                        .HasColumnType("text");
 
                     b.Property<string>("LanguageCode")
                         .IsRequired()
                         .HasMaxLength(2)
                         .IsUnicode(false)
-                        .HasColumnType("char(2)")
+                        .HasColumnType("character(2)")
                         .IsFixedLength();
 
                     b.Property<string>("Subject")
                         .IsRequired()
                         .HasMaxLength(256)
-                        .HasColumnType("nvarchar(256)");
+                        .HasColumnType("character varying(256)");
 
                     b.HasKey("EmailTemplateTranslationID");
 
@@ -1386,27 +1409,27 @@ namespace Dotnetable.Migrations.SqlServer.Migrations
                 {
                     b.Property<int>("FileFolderID")
                         .ValueGeneratedOnAdd()
-                        .HasColumnType("int");
+                        .HasColumnType("integer");
 
-                    SqlServerPropertyBuilderExtensions.UseIdentityColumn(b.Property<int>("FileFolderID"));
+                    NpgsqlPropertyBuilderExtensions.UseIdentityByDefaultColumn(b.Property<int>("FileFolderID"));
 
                     b.Property<DateTime>("CreateDate")
                         .HasColumnType("datetime");
 
                     b.Property<string>("Description")
                         .HasMaxLength(400)
-                        .HasColumnType("nvarchar(400)");
+                        .HasColumnType("character varying(400)");
 
                     b.Property<string>("Name")
                         .IsRequired()
                         .HasMaxLength(120)
-                        .HasColumnType("nvarchar(120)");
+                        .HasColumnType("character varying(120)");
 
                     b.Property<int?>("ParentFolderID")
-                        .HasColumnType("int");
+                        .HasColumnType("integer");
 
                     b.Property<int>("WebsiteID")
-                        .HasColumnType("int");
+                        .HasColumnType("integer");
 
                     b.HasKey("FileFolderID");
 
@@ -1421,53 +1444,53 @@ namespace Dotnetable.Migrations.SqlServer.Migrations
                 {
                     b.Property<int>("FileRecordID")
                         .ValueGeneratedOnAdd()
-                        .HasColumnType("int");
+                        .HasColumnType("integer");
 
-                    SqlServerPropertyBuilderExtensions.UseIdentityColumn(b.Property<int>("FileRecordID"));
+                    NpgsqlPropertyBuilderExtensions.UseIdentityByDefaultColumn(b.Property<int>("FileRecordID"));
 
                     b.Property<string>("AltText")
                         .HasMaxLength(120)
-                        .HasColumnType("nvarchar(120)");
+                        .HasColumnType("character varying(120)");
 
                     b.Property<string>("CDNFileCode")
                         .HasMaxLength(80)
                         .IsUnicode(false)
-                        .HasColumnType("varchar(80)");
+                        .HasColumnType("character varying(80)");
 
                     b.Property<string>("CNDUrl")
                         .HasMaxLength(450)
-                        .HasColumnType("nvarchar(450)");
+                        .HasColumnType("character varying(450)");
 
                     b.Property<byte>("FileCategory")
-                        .HasColumnType("tinyint");
+                        .HasColumnType("smallint");
 
                     b.Property<int?>("FileFolderID")
-                        .HasColumnType("int");
+                        .HasColumnType("integer");
 
                     b.Property<int>("FileSizeKB")
-                        .HasColumnType("int");
+                        .HasColumnType("integer");
 
                     b.Property<bool>("IsDeleted")
-                        .HasColumnType("bit");
+                        .HasColumnType("boolean");
 
                     b.Property<string>("MetadataJSON")
                         .HasMaxLength(2000)
-                        .HasColumnType("nvarchar(2000)");
+                        .HasColumnType("character varying(2000)");
 
                     b.Property<string>("MimeType")
                         .IsRequired()
                         .HasMaxLength(74)
                         .IsUnicode(false)
-                        .HasColumnType("varchar(74)");
+                        .HasColumnType("character varying(74)");
 
                     b.Property<string>("OriginalFileName")
                         .IsRequired()
                         .HasMaxLength(120)
-                        .HasColumnType("nvarchar(120)");
+                        .HasColumnType("character varying(120)");
 
                     b.Property<string>("StoragePath")
                         .HasMaxLength(350)
-                        .HasColumnType("nvarchar(350)");
+                        .HasColumnType("character varying(350)");
 
                     b.Property<short>("StorageProvider")
                         .HasColumnType("smallint");
@@ -1476,34 +1499,34 @@ namespace Dotnetable.Migrations.SqlServer.Migrations
                         .IsRequired()
                         .HasMaxLength(40)
                         .IsUnicode(false)
-                        .HasColumnType("varchar(40)");
+                        .HasColumnType("character varying(40)");
 
                     b.Property<string>("ThumbnailCDN")
                         .HasMaxLength(450)
-                        .HasColumnType("nvarchar(450)");
+                        .HasColumnType("character varying(450)");
 
                     b.Property<string>("ThumbnailStorage")
                         .HasMaxLength(350)
-                        .HasColumnType("nvarchar(350)");
+                        .HasColumnType("character varying(350)");
 
                     b.Property<string>("Title")
                         .HasMaxLength(50)
-                        .HasColumnType("nvarchar(50)");
+                        .HasColumnType("character varying(50)");
 
                     b.Property<DateTime>("UploadDate")
                         .HasColumnType("datetime");
 
                     b.Property<int?>("UploaderMemberID")
-                        .HasColumnType("int");
+                        .HasColumnType("integer");
 
                     b.Property<int?>("WebsiteClientID")
-                        .HasColumnType("int");
+                        .HasColumnType("integer");
 
                     b.Property<int>("WebsiteID")
-                        .HasColumnType("int");
+                        .HasColumnType("integer");
 
                     b.Property<int>("WebsiteStorageSettingsID")
-                        .HasColumnType("int");
+                        .HasColumnType("integer");
 
                     b.HasKey("FileRecordID");
 
@@ -1524,15 +1547,15 @@ namespace Dotnetable.Migrations.SqlServer.Migrations
                 {
                     b.Property<int>("FileRecordTagID")
                         .ValueGeneratedOnAdd()
-                        .HasColumnType("int");
+                        .HasColumnType("integer");
 
-                    SqlServerPropertyBuilderExtensions.UseIdentityColumn(b.Property<int>("FileRecordTagID"));
+                    NpgsqlPropertyBuilderExtensions.UseIdentityByDefaultColumn(b.Property<int>("FileRecordTagID"));
 
                     b.Property<int>("FileRecordID")
-                        .HasColumnType("int");
+                        .HasColumnType("integer");
 
                     b.Property<int>("FileTagID")
-                        .HasColumnType("int");
+                        .HasColumnType("integer");
 
                     b.HasKey("FileRecordTagID");
 
@@ -1547,17 +1570,17 @@ namespace Dotnetable.Migrations.SqlServer.Migrations
                 {
                     b.Property<int>("FileTagID")
                         .ValueGeneratedOnAdd()
-                        .HasColumnType("int");
+                        .HasColumnType("integer");
 
-                    SqlServerPropertyBuilderExtensions.UseIdentityColumn(b.Property<int>("FileTagID"));
+                    NpgsqlPropertyBuilderExtensions.UseIdentityByDefaultColumn(b.Property<int>("FileTagID"));
 
                     b.Property<string>("Name")
                         .IsRequired()
                         .HasMaxLength(60)
-                        .HasColumnType("nvarchar(60)");
+                        .HasColumnType("character varying(60)");
 
                     b.Property<int>("WebsiteID")
-                        .HasColumnType("int");
+                        .HasColumnType("integer");
 
                     b.HasKey("FileTagID");
 
@@ -1570,68 +1593,71 @@ namespace Dotnetable.Migrations.SqlServer.Migrations
                 {
                     b.Property<int>("FormID")
                         .ValueGeneratedOnAdd()
-                        .HasColumnType("int");
+                        .HasColumnType("integer");
 
-                    SqlServerPropertyBuilderExtensions.UseIdentityColumn(b.Property<int>("FormID"));
+                    NpgsqlPropertyBuilderExtensions.UseIdentityByDefaultColumn(b.Property<int>("FormID"));
 
                     b.Property<bool>("AllowMultipleSubmissions")
                         .ValueGeneratedOnAdd()
-                        .HasColumnType("bit")
-                        .HasDefaultValue(true, "DF_Forms_AllowMultipleSubmissions");
+                        .HasColumnType("boolean")
+                        .HasDefaultValue(true)
+                        .HasAnnotation("Relational:DefaultConstraintName", "DF_Forms_AllowMultipleSubmissions");
 
                     b.Property<DateTime>("CreatedAt")
                         .ValueGeneratedOnAdd()
                         .HasColumnType("datetime")
-                        .HasDefaultValueSql("(sysutcdatetime())", "DF_Forms_CreatedAt");
+                        .HasDefaultValueSql("(sysutcdatetime())")
+                        .HasAnnotation("Relational:DefaultConstraintName", "DF_Forms_CreatedAt");
 
                     b.Property<string>("Description")
                         .HasMaxLength(1000)
-                        .HasColumnType("nvarchar(1000)");
+                        .HasColumnType("character varying(1000)");
 
                     b.Property<DateTime?>("EndAt")
                         .HasColumnType("datetime");
 
                     b.Property<byte>("FormType")
-                        .HasColumnType("tinyint");
+                        .HasColumnType("smallint");
 
                     b.Property<bool>("IsActive")
                         .ValueGeneratedOnAdd()
-                        .HasColumnType("bit")
-                        .HasDefaultValue(true, "DF_Forms_IsActive");
+                        .HasColumnType("boolean")
+                        .HasDefaultValue(true)
+                        .HasAnnotation("Relational:DefaultConstraintName", "DF_Forms_IsActive");
 
                     b.Property<string>("NotifyEmail")
                         .HasMaxLength(200)
-                        .HasColumnType("nvarchar(200)");
+                        .HasColumnType("character varying(200)");
 
                     b.Property<bool>("RequireLogin")
-                        .HasColumnType("bit");
+                        .HasColumnType("boolean");
 
                     b.Property<bool>("ShowResults")
-                        .HasColumnType("bit");
+                        .HasColumnType("boolean");
 
                     b.Property<string>("Slug")
                         .IsRequired()
                         .HasMaxLength(200)
-                        .HasColumnType("nvarchar(200)");
+                        .HasColumnType("character varying(200)");
 
                     b.Property<DateTime?>("StartAt")
                         .HasColumnType("datetime");
 
                     b.Property<string>("SubmitButtonText")
                         .HasMaxLength(100)
-                        .HasColumnType("nvarchar(100)");
+                        .HasColumnType("character varying(100)");
 
                     b.Property<string>("SuccessMessage")
                         .HasMaxLength(500)
-                        .HasColumnType("nvarchar(500)");
+                        .HasColumnType("character varying(500)");
 
                     b.Property<string>("Title")
                         .IsRequired()
                         .HasMaxLength(200)
-                        .HasColumnType("nvarchar(200)");
+                        .HasColumnType("character varying(200)");
 
                     b.Property<int>("WebsiteID")
-                        .HasColumnType("int");
+                        .HasColumnType("integer");
 
                     b.HasKey("FormID");
 
@@ -1644,45 +1670,46 @@ namespace Dotnetable.Migrations.SqlServer.Migrations
                 {
                     b.Property<int>("FormFieldID")
                         .ValueGeneratedOnAdd()
-                        .HasColumnType("int");
+                        .HasColumnType("integer");
 
-                    SqlServerPropertyBuilderExtensions.UseIdentityColumn(b.Property<int>("FormFieldID"));
+                    NpgsqlPropertyBuilderExtensions.UseIdentityByDefaultColumn(b.Property<int>("FormFieldID"));
 
                     b.Property<byte>("FieldType")
-                        .HasColumnType("tinyint");
+                        .HasColumnType("smallint");
 
                     b.Property<int>("FormID")
-                        .HasColumnType("int");
+                        .HasColumnType("integer");
 
                     b.Property<string>("HelpText")
                         .HasMaxLength(500)
-                        .HasColumnType("nvarchar(500)");
+                        .HasColumnType("character varying(500)");
 
                     b.Property<bool>("IsActive")
                         .ValueGeneratedOnAdd()
-                        .HasColumnType("bit")
-                        .HasDefaultValue(true, "DF_FormFields_IsActive");
+                        .HasColumnType("boolean")
+                        .HasDefaultValue(true)
+                        .HasAnnotation("Relational:DefaultConstraintName", "DF_FormFields_IsActive");
 
                     b.Property<bool>("IsRequired")
-                        .HasColumnType("bit");
+                        .HasColumnType("boolean");
 
                     b.Property<string>("Label")
                         .IsRequired()
                         .HasMaxLength(300)
-                        .HasColumnType("nvarchar(300)");
+                        .HasColumnType("character varying(300)");
 
                     b.Property<int?>("MaxValue")
-                        .HasColumnType("int");
+                        .HasColumnType("integer");
 
                     b.Property<int?>("MinValue")
-                        .HasColumnType("int");
+                        .HasColumnType("integer");
 
                     b.Property<string>("Placeholder")
                         .HasMaxLength(200)
-                        .HasColumnType("nvarchar(200)");
+                        .HasColumnType("character varying(200)");
 
                     b.Property<int>("SortOrder")
-                        .HasColumnType("int");
+                        .HasColumnType("integer");
 
                     b.HasKey("FormFieldID");
 
@@ -1695,24 +1722,24 @@ namespace Dotnetable.Migrations.SqlServer.Migrations
                 {
                     b.Property<int>("FormFieldOptionID")
                         .ValueGeneratedOnAdd()
-                        .HasColumnType("int");
+                        .HasColumnType("integer");
 
-                    SqlServerPropertyBuilderExtensions.UseIdentityColumn(b.Property<int>("FormFieldOptionID"));
+                    NpgsqlPropertyBuilderExtensions.UseIdentityByDefaultColumn(b.Property<int>("FormFieldOptionID"));
 
                     b.Property<int>("FormFieldID")
-                        .HasColumnType("int");
+                        .HasColumnType("integer");
 
                     b.Property<string>("Label")
                         .IsRequired()
                         .HasMaxLength(300)
-                        .HasColumnType("nvarchar(300)");
+                        .HasColumnType("character varying(300)");
 
                     b.Property<int>("SortOrder")
-                        .HasColumnType("int");
+                        .HasColumnType("integer");
 
                     b.Property<string>("Value")
                         .HasMaxLength(200)
-                        .HasColumnType("nvarchar(200)");
+                        .HasColumnType("character varying(200)");
 
                     b.HasKey("FormFieldOptionID");
 
@@ -1725,26 +1752,27 @@ namespace Dotnetable.Migrations.SqlServer.Migrations
                 {
                     b.Property<int>("FormResponseID")
                         .ValueGeneratedOnAdd()
-                        .HasColumnType("int");
+                        .HasColumnType("integer");
 
-                    SqlServerPropertyBuilderExtensions.UseIdentityColumn(b.Property<int>("FormResponseID"));
+                    NpgsqlPropertyBuilderExtensions.UseIdentityByDefaultColumn(b.Property<int>("FormResponseID"));
 
                     b.Property<int>("FormID")
-                        .HasColumnType("int");
+                        .HasColumnType("integer");
 
                     b.Property<string>("SenderIPAddress")
                         .IsRequired()
                         .HasMaxLength(45)
                         .IsUnicode(false)
-                        .HasColumnType("varchar(45)");
+                        .HasColumnType("character varying(45)");
 
                     b.Property<DateTime>("SubmittedAt")
                         .ValueGeneratedOnAdd()
                         .HasColumnType("datetime")
-                        .HasDefaultValueSql("(sysutcdatetime())", "DF_FormResponses_SubmittedAt");
+                        .HasDefaultValueSql("(sysutcdatetime())")
+                        .HasAnnotation("Relational:DefaultConstraintName", "DF_FormResponses_SubmittedAt");
 
                     b.Property<int?>("WebsiteClientID")
-                        .HasColumnType("int");
+                        .HasColumnType("integer");
 
                     b.HasKey("FormResponseID");
 
@@ -1759,18 +1787,18 @@ namespace Dotnetable.Migrations.SqlServer.Migrations
                 {
                     b.Property<int>("FormResponseValueID")
                         .ValueGeneratedOnAdd()
-                        .HasColumnType("int");
+                        .HasColumnType("integer");
 
-                    SqlServerPropertyBuilderExtensions.UseIdentityColumn(b.Property<int>("FormResponseValueID"));
+                    NpgsqlPropertyBuilderExtensions.UseIdentityByDefaultColumn(b.Property<int>("FormResponseValueID"));
 
                     b.Property<int>("FormFieldID")
-                        .HasColumnType("int");
+                        .HasColumnType("integer");
 
                     b.Property<int>("FormResponseID")
-                        .HasColumnType("int");
+                        .HasColumnType("integer");
 
                     b.Property<string>("Value")
-                        .HasColumnType("nvarchar(max)");
+                        .HasColumnType("text");
 
                     b.HasKey("FormResponseValueID");
 
@@ -1785,33 +1813,33 @@ namespace Dotnetable.Migrations.SqlServer.Migrations
                 {
                     b.Property<int>("InventoryItemID")
                         .ValueGeneratedOnAdd()
-                        .HasColumnType("int");
+                        .HasColumnType("integer");
 
-                    SqlServerPropertyBuilderExtensions.UseIdentityColumn(b.Property<int>("InventoryItemID"));
+                    NpgsqlPropertyBuilderExtensions.UseIdentityByDefaultColumn(b.Property<int>("InventoryItemID"));
 
                     b.Property<decimal>("AvgCostUsd")
                         .HasColumnType("decimal(18, 4)");
 
                     b.Property<int>("ProductVariantID")
-                        .HasColumnType("int");
+                        .HasColumnType("integer");
 
                     b.Property<int>("QuantityOnHand")
-                        .HasColumnType("int");
+                        .HasColumnType("integer");
 
                     b.Property<int>("QuantityReserved")
-                        .HasColumnType("int");
+                        .HasColumnType("integer");
 
                     b.Property<int>("ReorderLevel")
-                        .HasColumnType("int");
+                        .HasColumnType("integer");
 
                     b.Property<byte[]>("RowVersion")
                         .IsConcurrencyToken()
                         .IsRequired()
                         .ValueGeneratedOnAddOrUpdate()
-                        .HasColumnType("rowversion");
+                        .HasColumnType("bytea");
 
                     b.Property<int>("WebsiteID")
-                        .HasColumnType("int");
+                        .HasColumnType("integer");
 
                     b.HasKey("InventoryItemID");
 
@@ -1826,18 +1854,19 @@ namespace Dotnetable.Migrations.SqlServer.Migrations
                 {
                     b.Property<int>("JournalEntryID")
                         .ValueGeneratedOnAdd()
-                        .HasColumnType("int");
+                        .HasColumnType("integer");
 
-                    SqlServerPropertyBuilderExtensions.UseIdentityColumn(b.Property<int>("JournalEntryID"));
+                    NpgsqlPropertyBuilderExtensions.UseIdentityByDefaultColumn(b.Property<int>("JournalEntryID"));
 
                     b.Property<DateTime>("CreatedAt")
                         .ValueGeneratedOnAdd()
                         .HasColumnType("datetime")
-                        .HasDefaultValueSql("(sysutcdatetime())", "DF_JournalEntries_CreatedAt");
+                        .HasDefaultValueSql("(sysutcdatetime())")
+                        .HasAnnotation("Relational:DefaultConstraintName", "DF_JournalEntries_CreatedAt");
 
                     b.Property<string>("Description")
                         .HasMaxLength(500)
-                        .HasColumnType("nvarchar(500)");
+                        .HasColumnType("character varying(500)");
 
                     b.Property<DateOnly>("EntryDate")
                         .HasColumnType("date");
@@ -1845,19 +1874,19 @@ namespace Dotnetable.Migrations.SqlServer.Migrations
                     b.Property<string>("EntryNumber")
                         .IsRequired()
                         .HasMaxLength(30)
-                        .HasColumnType("nvarchar(30)");
+                        .HasColumnType("character varying(30)");
 
                     b.Property<bool>("IsPosted")
-                        .HasColumnType("bit");
+                        .HasColumnType("boolean");
 
                     b.Property<int?>("SourceId")
-                        .HasColumnType("int");
+                        .HasColumnType("integer");
 
                     b.Property<byte?>("SourceType")
-                        .HasColumnType("tinyint");
+                        .HasColumnType("smallint");
 
                     b.Property<int>("WebsiteID")
-                        .HasColumnType("int");
+                        .HasColumnType("integer");
 
                     b.HasKey("JournalEntryID");
 
@@ -1870,12 +1899,12 @@ namespace Dotnetable.Migrations.SqlServer.Migrations
                 {
                     b.Property<int>("JournalEntryLineID")
                         .ValueGeneratedOnAdd()
-                        .HasColumnType("int");
+                        .HasColumnType("integer");
 
-                    SqlServerPropertyBuilderExtensions.UseIdentityColumn(b.Property<int>("JournalEntryLineID"));
+                    NpgsqlPropertyBuilderExtensions.UseIdentityByDefaultColumn(b.Property<int>("JournalEntryLineID"));
 
                     b.Property<int>("ChartOfAccountID")
-                        .HasColumnType("int");
+                        .HasColumnType("integer");
 
                     b.Property<decimal>("Credit")
                         .HasColumnType("decimal(18, 4)");
@@ -1885,10 +1914,10 @@ namespace Dotnetable.Migrations.SqlServer.Migrations
 
                     b.Property<string>("Description")
                         .HasMaxLength(300)
-                        .HasColumnType("nvarchar(300)");
+                        .HasColumnType("character varying(300)");
 
                     b.Property<int>("JournalEntryID")
-                        .HasColumnType("int");
+                        .HasColumnType("integer");
 
                     b.HasKey("JournalEntryLineID");
 
@@ -1903,43 +1932,43 @@ namespace Dotnetable.Migrations.SqlServer.Migrations
                 {
                     b.Property<int>("LanguageID")
                         .ValueGeneratedOnAdd()
-                        .HasColumnType("int");
+                        .HasColumnType("integer");
 
-                    SqlServerPropertyBuilderExtensions.UseIdentityColumn(b.Property<int>("LanguageID"));
+                    NpgsqlPropertyBuilderExtensions.UseIdentityByDefaultColumn(b.Property<int>("LanguageID"));
 
                     b.Property<bool>("Active")
-                        .HasColumnType("bit");
+                        .HasColumnType("boolean");
 
                     b.Property<bool>("IsDefault")
-                        .HasColumnType("bit");
+                        .HasColumnType("boolean");
 
                     b.Property<string>("LanguageCode")
                         .IsRequired()
                         .HasMaxLength(2)
                         .IsUnicode(false)
-                        .HasColumnType("char(2)")
+                        .HasColumnType("character(2)")
                         .IsFixedLength();
 
                     b.Property<string>("LanguageCodeISO")
                         .IsRequired()
                         .HasMaxLength(5)
                         .IsUnicode(false)
-                        .HasColumnType("char(5)")
+                        .HasColumnType("character(5)")
                         .IsFixedLength();
 
                     b.Property<string>("Name")
                         .IsRequired()
                         .HasMaxLength(32)
-                        .HasColumnType("nvarchar(32)");
+                        .HasColumnType("character varying(32)");
 
                     b.Property<int>("Priority")
-                        .HasColumnType("int");
+                        .HasColumnType("integer");
 
                     b.Property<bool>("RTLDesign")
-                        .HasColumnType("bit");
+                        .HasColumnType("boolean");
 
                     b.Property<int?>("WebsiteID")
-                        .HasColumnType("int");
+                        .HasColumnType("integer");
 
                     b.HasKey("LanguageID");
 
@@ -1958,23 +1987,23 @@ namespace Dotnetable.Migrations.SqlServer.Migrations
                 {
                     b.Property<int>("LocalizationKeyID")
                         .ValueGeneratedOnAdd()
-                        .HasColumnType("int");
+                        .HasColumnType("integer");
 
-                    SqlServerPropertyBuilderExtensions.UseIdentityColumn(b.Property<int>("LocalizationKeyID"));
+                    NpgsqlPropertyBuilderExtensions.UseIdentityByDefaultColumn(b.Property<int>("LocalizationKeyID"));
 
                     b.Property<string>("DefaultValue")
                         .IsRequired()
                         .HasMaxLength(2000)
-                        .HasColumnType("nvarchar(2000)");
+                        .HasColumnType("character varying(2000)");
 
                     b.Property<string>("ItemKey")
                         .IsRequired()
                         .HasMaxLength(72)
                         .IsUnicode(false)
-                        .HasColumnType("varchar(72)");
+                        .HasColumnType("character varying(72)");
 
                     b.Property<int?>("WebsiteID")
-                        .HasColumnType("int");
+                        .HasColumnType("integer");
 
                     b.HasKey("LocalizationKeyID");
 
@@ -1995,24 +2024,24 @@ namespace Dotnetable.Migrations.SqlServer.Migrations
                 {
                     b.Property<int>("LocalizationValueID")
                         .ValueGeneratedOnAdd()
-                        .HasColumnType("int");
+                        .HasColumnType("integer");
 
-                    SqlServerPropertyBuilderExtensions.UseIdentityColumn(b.Property<int>("LocalizationValueID"));
+                    NpgsqlPropertyBuilderExtensions.UseIdentityByDefaultColumn(b.Property<int>("LocalizationValueID"));
 
                     b.Property<string>("ItemValue")
                         .IsRequired()
                         .HasMaxLength(2000)
-                        .HasColumnType("nvarchar(2000)");
+                        .HasColumnType("character varying(2000)");
 
                     b.Property<string>("LanguageCode")
                         .IsRequired()
                         .HasMaxLength(2)
                         .IsUnicode(false)
-                        .HasColumnType("char(2)")
+                        .HasColumnType("character(2)")
                         .IsFixedLength();
 
                     b.Property<int>("LocalizationKeyID")
-                        .HasColumnType("int");
+                        .HasColumnType("integer");
 
                     b.HasKey("LocalizationValueID");
 
@@ -2025,12 +2054,12 @@ namespace Dotnetable.Migrations.SqlServer.Migrations
                 {
                     b.Property<int>("LoginTryID")
                         .ValueGeneratedOnAdd()
-                        .HasColumnType("int");
+                        .HasColumnType("integer");
 
-                    SqlServerPropertyBuilderExtensions.UseIdentityColumn(b.Property<int>("LoginTryID"));
+                    NpgsqlPropertyBuilderExtensions.UseIdentityByDefaultColumn(b.Property<int>("LoginTryID"));
 
                     b.Property<bool>("IsSuccess")
-                        .HasColumnType("bit");
+                        .HasColumnType("boolean");
 
                     b.Property<DateTime>("LogTime")
                         .HasColumnType("datetime");
@@ -2039,18 +2068,19 @@ namespace Dotnetable.Migrations.SqlServer.Migrations
                         .IsRequired()
                         .HasMaxLength(15)
                         .IsUnicode(false)
-                        .HasColumnType("varchar(15)");
+                        .HasColumnType("character varying(15)");
 
                     b.Property<string>("Username")
                         .IsRequired()
                         .HasMaxLength(64)
                         .IsUnicode(false)
-                        .HasColumnType("varchar(64)");
+                        .HasColumnType("character varying(64)");
 
                     b.Property<int>("WebsiteID")
                         .ValueGeneratedOnAdd()
-                        .HasColumnType("int")
-                        .HasDefaultValue(1, "DF_LoginTries_WebsiteID");
+                        .HasColumnType("integer")
+                        .HasDefaultValue(1)
+                        .HasAnnotation("Relational:DefaultConstraintName", "DF_LoginTries_WebsiteID");
 
                     b.HasKey("LoginTryID");
 
@@ -2063,25 +2093,26 @@ namespace Dotnetable.Migrations.SqlServer.Migrations
                 {
                     b.Property<int>("MediaSetID")
                         .ValueGeneratedOnAdd()
-                        .HasColumnType("int");
+                        .HasColumnType("integer");
 
-                    SqlServerPropertyBuilderExtensions.UseIdentityColumn(b.Property<int>("MediaSetID"));
+                    NpgsqlPropertyBuilderExtensions.UseIdentityByDefaultColumn(b.Property<int>("MediaSetID"));
 
                     b.Property<DateTime>("CreatedAt")
                         .ValueGeneratedOnAdd()
                         .HasColumnType("datetime")
-                        .HasDefaultValueSql("(sysutcdatetime())", "DF_MediaSets_CreatedAt_1");
+                        .HasDefaultValueSql("(sysutcdatetime())")
+                        .HasAnnotation("Relational:DefaultConstraintName", "DF_MediaSets_CreatedAt_1");
 
                     b.Property<bool>("IsShared")
-                        .HasColumnType("bit");
+                        .HasColumnType("boolean");
 
                     b.Property<string>("Name")
                         .IsRequired()
                         .HasMaxLength(200)
-                        .HasColumnType("nvarchar(200)");
+                        .HasColumnType("character varying(200)");
 
                     b.Property<int>("WebsiteID")
-                        .HasColumnType("int");
+                        .HasColumnType("integer");
 
                     b.HasKey("MediaSetID");
 
@@ -2094,25 +2125,25 @@ namespace Dotnetable.Migrations.SqlServer.Migrations
                 {
                     b.Property<int>("MediaSetItemID")
                         .ValueGeneratedOnAdd()
-                        .HasColumnType("int");
+                        .HasColumnType("integer");
 
-                    SqlServerPropertyBuilderExtensions.UseIdentityColumn(b.Property<int>("MediaSetItemID"));
+                    NpgsqlPropertyBuilderExtensions.UseIdentityByDefaultColumn(b.Property<int>("MediaSetItemID"));
 
                     b.Property<string>("ExternalVideoUrl")
                         .HasMaxLength(500)
-                        .HasColumnType("nvarchar(500)");
+                        .HasColumnType("character varying(500)");
 
                     b.Property<int?>("FileID")
-                        .HasColumnType("int");
+                        .HasColumnType("integer");
 
                     b.Property<int>("MediaSetID")
-                        .HasColumnType("int");
+                        .HasColumnType("integer");
 
                     b.Property<int>("SortOrder")
-                        .HasColumnType("int");
+                        .HasColumnType("integer");
 
                     b.Property<int?>("VideoThumbnailFileID")
-                        .HasColumnType("int");
+                        .HasColumnType("integer");
 
                     b.HasKey("MediaSetItemID");
 
@@ -2129,62 +2160,63 @@ namespace Dotnetable.Migrations.SqlServer.Migrations
                 {
                     b.Property<int>("MemberID")
                         .ValueGeneratedOnAdd()
-                        .HasColumnType("int");
+                        .HasColumnType("integer");
 
-                    SqlServerPropertyBuilderExtensions.UseIdentityColumn(b.Property<int>("MemberID"));
+                    NpgsqlPropertyBuilderExtensions.UseIdentityByDefaultColumn(b.Property<int>("MemberID"));
 
                     b.Property<bool>("Active")
-                        .HasColumnType("bit");
+                        .HasColumnType("boolean");
 
                     b.Property<byte>("AdminUIMode")
                         .ValueGeneratedOnAdd()
-                        .HasColumnType("tinyint")
+                        .HasColumnType("smallint")
+                        .HasDefaultValue((byte)1)
                         .HasComment("0 = Basic (admin surface reduced to what this member's Website.WebsiteType needs), 1 = General (same admin surface regardless of website type), 2 = Advanced (full surface, e.g. extra-language pages/buttons on an otherwise single-language site)")
-                        .HasDefaultValue((byte)1, "DF_Members_AdminUIMode");
+                        .HasAnnotation("Relational:DefaultConstraintName", "DF_Members_AdminUIMode");
 
                     b.Property<int?>("AvatarID")
-                        .HasColumnType("int");
+                        .HasColumnType("integer");
 
                     b.Property<string>("CellphoneNumber")
                         .IsRequired()
                         .HasMaxLength(12)
                         .IsUnicode(false)
-                        .HasColumnType("varchar(12)");
+                        .HasColumnType("character varying(12)");
 
                     b.Property<string>("CountryCode")
                         .IsRequired()
                         .HasMaxLength(3)
                         .IsUnicode(false)
-                        .HasColumnType("varchar(3)");
+                        .HasColumnType("character varying(3)");
 
                     b.Property<string>("Email")
                         .IsRequired()
                         .HasMaxLength(64)
                         .IsUnicode(false)
-                        .HasColumnType("varchar(64)");
+                        .HasColumnType("character varying(64)");
 
                     b.Property<bool?>("Gender")
-                        .HasColumnType("bit");
+                        .HasColumnType("boolean");
 
                     b.Property<string>("Givenname")
                         .IsRequired()
                         .HasMaxLength(64)
-                        .HasColumnType("nvarchar(64)");
+                        .HasColumnType("character varying(64)");
 
                     b.Property<Guid>("HashKey")
-                        .HasColumnType("uniqueidentifier");
+                        .HasColumnType("uuid");
 
                     b.Property<bool>("IsSiteAdmin")
-                        .HasColumnType("bit");
+                        .HasColumnType("boolean");
 
                     b.Property<string>("Password")
                         .IsRequired()
                         .HasMaxLength(256)
                         .IsUnicode(false)
-                        .HasColumnType("varchar(256)");
+                        .HasColumnType("character varying(256)");
 
                     b.Property<int>("PolicyID")
-                        .HasColumnType("int");
+                        .HasColumnType("integer");
 
                     b.Property<DateOnly>("RegisterDate")
                         .HasColumnType("date");
@@ -2192,16 +2224,16 @@ namespace Dotnetable.Migrations.SqlServer.Migrations
                     b.Property<string>("Surname")
                         .IsRequired()
                         .HasMaxLength(64)
-                        .HasColumnType("nvarchar(64)");
+                        .HasColumnType("character varying(64)");
 
                     b.Property<string>("Username")
                         .IsRequired()
                         .HasMaxLength(64)
                         .IsUnicode(false)
-                        .HasColumnType("varchar(64)");
+                        .HasColumnType("character varying(64)");
 
                     b.Property<int>("WebsiteID")
-                        .HasColumnType("int");
+                        .HasColumnType("integer");
 
                     b.HasKey("MemberID");
 
@@ -2218,21 +2250,21 @@ namespace Dotnetable.Migrations.SqlServer.Migrations
                 {
                     b.Property<int>("MemberForgetPasswordID")
                         .ValueGeneratedOnAdd()
-                        .HasColumnType("int");
+                        .HasColumnType("integer");
 
-                    SqlServerPropertyBuilderExtensions.UseIdentityColumn(b.Property<int>("MemberForgetPasswordID"));
+                    NpgsqlPropertyBuilderExtensions.UseIdentityByDefaultColumn(b.Property<int>("MemberForgetPasswordID"));
 
                     b.Property<string>("ForgetKey")
                         .IsRequired()
                         .HasMaxLength(8)
                         .IsUnicode(false)
-                        .HasColumnType("varchar(8)");
+                        .HasColumnType("character varying(8)");
 
                     b.Property<DateTime>("LogTime")
                         .HasColumnType("datetime");
 
                     b.Property<int>("MemberID")
-                        .HasColumnType("int");
+                        .HasColumnType("integer");
 
                     b.HasKey("MemberForgetPasswordID");
 
@@ -2245,25 +2277,26 @@ namespace Dotnetable.Migrations.SqlServer.Migrations
                 {
                     b.Property<int>("MenuID")
                         .ValueGeneratedOnAdd()
-                        .HasColumnType("int");
+                        .HasColumnType("integer");
 
-                    SqlServerPropertyBuilderExtensions.UseIdentityColumn(b.Property<int>("MenuID"));
+                    NpgsqlPropertyBuilderExtensions.UseIdentityByDefaultColumn(b.Property<int>("MenuID"));
 
                     b.Property<bool>("IsActive")
                         .ValueGeneratedOnAdd()
-                        .HasColumnType("bit")
-                        .HasDefaultValue(true, "DF_Menus_IsActive");
+                        .HasColumnType("boolean")
+                        .HasDefaultValue(true)
+                        .HasAnnotation("Relational:DefaultConstraintName", "DF_Menus_IsActive");
 
                     b.Property<byte>("Location")
-                        .HasColumnType("tinyint");
+                        .HasColumnType("smallint");
 
                     b.Property<string>("Name")
                         .IsRequired()
                         .HasMaxLength(100)
-                        .HasColumnType("nvarchar(100)");
+                        .HasColumnType("character varying(100)");
 
                     b.Property<int>("WebsiteID")
-                        .HasColumnType("int");
+                        .HasColumnType("integer");
 
                     b.HasKey("MenuID");
 
@@ -2276,67 +2309,68 @@ namespace Dotnetable.Migrations.SqlServer.Migrations
                 {
                     b.Property<int>("MenuItemID")
                         .ValueGeneratedOnAdd()
-                        .HasColumnType("int");
+                        .HasColumnType("integer");
 
-                    SqlServerPropertyBuilderExtensions.UseIdentityColumn(b.Property<int>("MenuItemID"));
+                    NpgsqlPropertyBuilderExtensions.UseIdentityByDefaultColumn(b.Property<int>("MenuItemID"));
 
                     b.Property<int?>("BrandID")
-                        .HasColumnType("int");
+                        .HasColumnType("integer");
 
                     b.Property<int?>("CategoryID")
-                        .HasColumnType("int");
+                        .HasColumnType("integer");
 
                     b.Property<string>("CssClass")
                         .HasMaxLength(100)
-                        .HasColumnType("nvarchar(100)");
+                        .HasColumnType("character varying(100)");
 
                     b.Property<string>("Icon")
                         .HasMaxLength(100)
-                        .HasColumnType("nvarchar(100)");
+                        .HasColumnType("character varying(100)");
 
                     b.Property<bool>("IsActive")
                         .ValueGeneratedOnAdd()
-                        .HasColumnType("bit")
-                        .HasDefaultValue(true, "DF_MenuItems_IsActive");
+                        .HasColumnType("boolean")
+                        .HasDefaultValue(true)
+                        .HasAnnotation("Relational:DefaultConstraintName", "DF_MenuItems_IsActive");
 
                     b.Property<byte>("ItemType")
-                        .HasColumnType("tinyint");
+                        .HasColumnType("smallint");
 
                     b.Property<int>("MenuID")
-                        .HasColumnType("int");
+                        .HasColumnType("integer");
 
                     b.Property<bool>("OpenInNewTab")
-                        .HasColumnType("bit");
+                        .HasColumnType("boolean");
 
                     b.Property<int?>("PageID")
-                        .HasColumnType("int");
+                        .HasColumnType("integer");
 
                     b.Property<int?>("ParentItemID")
-                        .HasColumnType("int");
+                        .HasColumnType("integer");
 
                     b.Property<int?>("PostID")
-                        .HasColumnType("int");
+                        .HasColumnType("integer");
 
                     b.Property<int?>("ProductCategoryID")
-                        .HasColumnType("int");
+                        .HasColumnType("integer");
 
                     b.Property<int?>("ProductID")
-                        .HasColumnType("int");
+                        .HasColumnType("integer");
 
                     b.Property<int>("SortOrder")
-                        .HasColumnType("int");
+                        .HasColumnType("integer");
 
                     b.Property<string>("Title")
                         .IsRequired()
                         .HasMaxLength(200)
-                        .HasColumnType("nvarchar(200)");
+                        .HasColumnType("character varying(200)");
 
                     b.Property<string>("Url")
                         .HasMaxLength(500)
-                        .HasColumnType("nvarchar(500)");
+                        .HasColumnType("character varying(500)");
 
                     b.Property<int?>("VendorID")
-                        .HasColumnType("int");
+                        .HasColumnType("integer");
 
                     b.HasKey("MenuItemID");
 
@@ -2365,24 +2399,24 @@ namespace Dotnetable.Migrations.SqlServer.Migrations
                 {
                     b.Property<int>("MenuItemTranslationID")
                         .ValueGeneratedOnAdd()
-                        .HasColumnType("int");
+                        .HasColumnType("integer");
 
-                    SqlServerPropertyBuilderExtensions.UseIdentityColumn(b.Property<int>("MenuItemTranslationID"));
+                    NpgsqlPropertyBuilderExtensions.UseIdentityByDefaultColumn(b.Property<int>("MenuItemTranslationID"));
 
                     b.Property<string>("LanguageCode")
                         .IsRequired()
                         .HasMaxLength(2)
                         .IsUnicode(false)
-                        .HasColumnType("char(2)")
+                        .HasColumnType("character(2)")
                         .IsFixedLength();
 
                     b.Property<int>("MenuItemID")
-                        .HasColumnType("int");
+                        .HasColumnType("integer");
 
                     b.Property<string>("Title")
                         .IsRequired()
                         .HasMaxLength(200)
-                        .HasColumnType("nvarchar(200)");
+                        .HasColumnType("character varying(200)");
 
                     b.HasKey("MenuItemTranslationID");
 
@@ -2395,30 +2429,31 @@ namespace Dotnetable.Migrations.SqlServer.Migrations
                 {
                     b.Property<int>("OrderID")
                         .ValueGeneratedOnAdd()
-                        .HasColumnType("int");
+                        .HasColumnType("integer");
 
-                    SqlServerPropertyBuilderExtensions.UseIdentityColumn(b.Property<int>("OrderID"));
+                    NpgsqlPropertyBuilderExtensions.UseIdentityByDefaultColumn(b.Property<int>("OrderID"));
 
                     b.Property<string>("AddressSnapshot")
                         .HasMaxLength(1000)
-                        .HasColumnType("nvarchar(1000)");
+                        .HasColumnType("character varying(1000)");
 
                     b.Property<int?>("CouponID")
-                        .HasColumnType("int");
+                        .HasColumnType("integer");
 
                     b.Property<DateTime>("CreatedAt")
                         .ValueGeneratedOnAdd()
                         .HasColumnType("datetime")
-                        .HasDefaultValueSql("(sysutcdatetime())", "DF_Orders_CreatedAt_1");
+                        .HasDefaultValueSql("(sysutcdatetime())")
+                        .HasAnnotation("Relational:DefaultConstraintName", "DF_Orders_CreatedAt_1");
 
                     b.Property<int?>("CreatedByMemberID")
-                        .HasColumnType("int");
+                        .HasColumnType("integer");
 
                     b.Property<string>("CurrencyCode")
                         .IsRequired()
                         .HasMaxLength(3)
                         .IsUnicode(false)
-                        .HasColumnType("char(3)")
+                        .HasColumnType("character(3)")
                         .IsFixedLength();
 
                     b.Property<decimal>("DiscountTotal")
@@ -2435,26 +2470,27 @@ namespace Dotnetable.Migrations.SqlServer.Migrations
 
                     b.Property<string>("Note")
                         .HasMaxLength(1000)
-                        .HasColumnType("nvarchar(1000)");
+                        .HasColumnType("character varying(1000)");
 
                     b.Property<string>("OrderNumber")
                         .IsRequired()
                         .HasMaxLength(30)
-                        .HasColumnType("nvarchar(30)");
+                        .HasColumnType("character varying(30)");
 
                     b.Property<DateTime?>("PaidAt")
                         .HasColumnType("datetime");
 
                     b.Property<int?>("ShippingMethodID")
-                        .HasColumnType("int");
+                        .HasColumnType("integer");
 
                     b.Property<decimal>("ShippingTotal")
                         .HasColumnType("decimal(18, 4)");
 
                     b.Property<byte>("Status")
                         .ValueGeneratedOnAdd()
-                        .HasColumnType("tinyint")
-                        .HasDefaultValue((byte)1, "DF_Orders_Status_1");
+                        .HasColumnType("smallint")
+                        .HasDefaultValue((byte)1)
+                        .HasAnnotation("Relational:DefaultConstraintName", "DF_Orders_Status_1");
 
                     b.Property<decimal>("SubTotal")
                         .HasColumnType("decimal(18, 4)");
@@ -2463,13 +2499,13 @@ namespace Dotnetable.Migrations.SqlServer.Migrations
                         .HasColumnType("decimal(18, 4)");
 
                     b.Property<int?>("WebsiteClientAddressID")
-                        .HasColumnType("int");
+                        .HasColumnType("integer");
 
                     b.Property<int>("WebsiteClientID")
-                        .HasColumnType("int");
+                        .HasColumnType("integer");
 
                     b.Property<int>("WebsiteID")
-                        .HasColumnType("int");
+                        .HasColumnType("integer");
 
                     b.HasKey("OrderID");
 
@@ -2494,34 +2530,34 @@ namespace Dotnetable.Migrations.SqlServer.Migrations
                 {
                     b.Property<int>("OrderItemID")
                         .ValueGeneratedOnAdd()
-                        .HasColumnType("int");
+                        .HasColumnType("integer");
 
-                    SqlServerPropertyBuilderExtensions.UseIdentityColumn(b.Property<int>("OrderItemID"));
+                    NpgsqlPropertyBuilderExtensions.UseIdentityByDefaultColumn(b.Property<int>("OrderItemID"));
 
                     b.Property<decimal>("DiscountAmount")
                         .HasColumnType("decimal(18, 4)");
 
                     b.Property<int>("OrderID")
-                        .HasColumnType("int");
+                        .HasColumnType("integer");
 
                     b.Property<int>("ProductVariantID")
-                        .HasColumnType("int");
+                        .HasColumnType("integer");
 
                     b.Property<int>("Quantity")
-                        .HasColumnType("int");
+                        .HasColumnType("integer");
 
                     b.Property<string>("SkuSnapshot")
                         .IsRequired()
                         .HasMaxLength(100)
-                        .HasColumnType("nvarchar(100)");
+                        .HasColumnType("character varying(100)");
 
                     b.Property<int>("SourceWebsiteID")
-                        .HasColumnType("int");
+                        .HasColumnType("integer");
 
                     b.Property<string>("TitleSnapshot")
                         .IsRequired()
                         .HasMaxLength(300)
-                        .HasColumnType("nvarchar(300)");
+                        .HasColumnType("character varying(300)");
 
                     b.Property<decimal>("TotalPrice")
                         .HasColumnType("decimal(18, 4)");
@@ -2536,13 +2572,13 @@ namespace Dotnetable.Migrations.SqlServer.Migrations
                         .HasColumnType("decimal(18, 4)");
 
                     b.Property<int?>("VendorID")
-                        .HasColumnType("int");
+                        .HasColumnType("integer");
 
                     b.Property<int?>("VendorProductID")
-                        .HasColumnType("int");
+                        .HasColumnType("integer");
 
                     b.Property<int>("WebsiteID")
-                        .HasColumnType("int");
+                        .HasColumnType("integer");
 
                     b.HasKey("OrderItemID");
 
@@ -2565,30 +2601,31 @@ namespace Dotnetable.Migrations.SqlServer.Migrations
                 {
                     b.Property<int>("OrderStatusHistoryID")
                         .ValueGeneratedOnAdd()
-                        .HasColumnType("int");
+                        .HasColumnType("integer");
 
-                    SqlServerPropertyBuilderExtensions.UseIdentityColumn(b.Property<int>("OrderStatusHistoryID"));
+                    NpgsqlPropertyBuilderExtensions.UseIdentityByDefaultColumn(b.Property<int>("OrderStatusHistoryID"));
 
                     b.Property<DateTime>("CreatedAt")
                         .ValueGeneratedOnAdd()
                         .HasColumnType("datetime")
-                        .HasDefaultValueSql("(sysutcdatetime())", "DF_OrderStatusHistories_CreatedAt");
+                        .HasDefaultValueSql("(sysutcdatetime())")
+                        .HasAnnotation("Relational:DefaultConstraintName", "DF_OrderStatusHistories_CreatedAt");
 
                     b.Property<int?>("CreatedByMemberID")
-                        .HasColumnType("int");
+                        .HasColumnType("integer");
 
                     b.Property<byte?>("FromStatus")
-                        .HasColumnType("tinyint");
+                        .HasColumnType("smallint");
 
                     b.Property<string>("Note")
                         .HasMaxLength(500)
-                        .HasColumnType("nvarchar(500)");
+                        .HasColumnType("character varying(500)");
 
                     b.Property<int>("OrderID")
-                        .HasColumnType("int");
+                        .HasColumnType("integer");
 
                     b.Property<byte>("ToStatus")
-                        .HasColumnType("tinyint");
+                        .HasColumnType("smallint");
 
                     b.HasKey("OrderStatusHistoryID");
 
@@ -2603,63 +2640,67 @@ namespace Dotnetable.Migrations.SqlServer.Migrations
                 {
                     b.Property<int>("PageID")
                         .ValueGeneratedOnAdd()
-                        .HasColumnType("int");
+                        .HasColumnType("integer");
 
-                    SqlServerPropertyBuilderExtensions.UseIdentityColumn(b.Property<int>("PageID"));
+                    NpgsqlPropertyBuilderExtensions.UseIdentityByDefaultColumn(b.Property<int>("PageID"));
 
                     b.Property<string>("Content")
-                        .HasColumnType("nvarchar(max)");
+                        .HasColumnType("text");
 
                     b.Property<DateTime>("CreatedAt")
                         .ValueGeneratedOnAdd()
                         .HasPrecision(0)
-                        .HasColumnType("datetime2(0)")
-                        .HasDefaultValueSql("(sysutcdatetime())", "DF_Pages_CreatedAt_1");
+                        .HasColumnType("timestamp(0) with time zone")
+                        .HasDefaultValueSql("(sysutcdatetime())")
+                        .HasAnnotation("Relational:DefaultConstraintName", "DF_Pages_CreatedAt_1");
 
                     b.Property<int?>("CreatedByMemberID")
-                        .HasColumnType("int");
+                        .HasColumnType("integer");
 
                     b.Property<bool>("IsActive")
                         .ValueGeneratedOnAdd()
-                        .HasColumnType("bit")
-                        .HasDefaultValue(true, "DF_Pages_IsActive_1");
+                        .HasColumnType("boolean")
+                        .HasDefaultValue(true)
+                        .HasAnnotation("Relational:DefaultConstraintName", "DF_Pages_IsActive_1");
 
                     b.Property<bool>("IsHomepage")
-                        .HasColumnType("bit");
+                        .HasColumnType("boolean");
 
                     b.Property<int?>("ParentPageID")
-                        .HasColumnType("int");
+                        .HasColumnType("integer");
 
                     b.Property<string>("Slug")
                         .IsRequired()
                         .HasMaxLength(300)
-                        .HasColumnType("nvarchar(300)");
+                        .HasColumnType("character varying(300)");
 
                     b.Property<int>("SortOrder")
-                        .HasColumnType("int");
+                        .HasColumnType("integer");
 
                     b.Property<byte>("Status")
                         .ValueGeneratedOnAdd()
-                        .HasColumnType("tinyint")
-                        .HasDefaultValue((byte)1, "DF_Pages_Status_1");
+                        .HasColumnType("smallint")
+                        .HasDefaultValue((byte)1)
+                        .HasAnnotation("Relational:DefaultConstraintName", "DF_Pages_Status_1");
 
                     b.Property<string>("Template")
                         .HasMaxLength(100)
-                        .HasColumnType("nvarchar(100)");
+                        .HasColumnType("character varying(100)");
 
                     b.Property<string>("Title")
                         .IsRequired()
                         .HasMaxLength(300)
-                        .HasColumnType("nvarchar(300)");
+                        .HasColumnType("character varying(300)");
 
                     b.Property<DateTime>("UpdatedAt")
                         .ValueGeneratedOnAdd()
                         .HasPrecision(0)
-                        .HasColumnType("datetime2(0)")
-                        .HasDefaultValueSql("(sysutcdatetime())", "DF_Pages_UpdatedAt_1");
+                        .HasColumnType("timestamp(0) with time zone")
+                        .HasDefaultValueSql("(sysutcdatetime())")
+                        .HasAnnotation("Relational:DefaultConstraintName", "DF_Pages_UpdatedAt_1");
 
                     b.Property<int>("WebsiteID")
-                        .HasColumnType("int");
+                        .HasColumnType("integer");
 
                     b.HasKey("PageID");
 
@@ -2676,32 +2717,32 @@ namespace Dotnetable.Migrations.SqlServer.Migrations
                 {
                     b.Property<int>("PageTranslationID")
                         .ValueGeneratedOnAdd()
-                        .HasColumnType("int");
+                        .HasColumnType("integer");
 
-                    SqlServerPropertyBuilderExtensions.UseIdentityColumn(b.Property<int>("PageTranslationID"));
+                    NpgsqlPropertyBuilderExtensions.UseIdentityByDefaultColumn(b.Property<int>("PageTranslationID"));
 
                     b.Property<string>("Content")
-                        .HasColumnType("nvarchar(max)");
+                        .HasColumnType("text");
 
                     b.Property<string>("LanguageCode")
                         .IsRequired()
                         .HasMaxLength(2)
                         .IsUnicode(false)
-                        .HasColumnType("char(2)")
+                        .HasColumnType("character(2)")
                         .IsFixedLength();
 
                     b.Property<int>("PageID")
-                        .HasColumnType("int");
+                        .HasColumnType("integer");
 
                     b.Property<string>("Slug")
                         .IsRequired()
                         .HasMaxLength(300)
-                        .HasColumnType("nvarchar(300)");
+                        .HasColumnType("character varying(300)");
 
                     b.Property<string>("Title")
                         .IsRequired()
                         .HasMaxLength(300)
-                        .HasColumnType("nvarchar(300)");
+                        .HasColumnType("character varying(300)");
 
                     b.HasKey("PageTranslationID");
 
@@ -2714,9 +2755,9 @@ namespace Dotnetable.Migrations.SqlServer.Migrations
                 {
                     b.Property<int>("PaymentID")
                         .ValueGeneratedOnAdd()
-                        .HasColumnType("int");
+                        .HasColumnType("integer");
 
-                    SqlServerPropertyBuilderExtensions.UseIdentityColumn(b.Property<int>("PaymentID"));
+                    NpgsqlPropertyBuilderExtensions.UseIdentityByDefaultColumn(b.Property<int>("PaymentID"));
 
                     b.Property<decimal>("Amount")
                         .HasColumnType("decimal(18, 4)");
@@ -2725,22 +2766,23 @@ namespace Dotnetable.Migrations.SqlServer.Migrations
                         .HasColumnType("decimal(18, 4)");
 
                     b.Property<int?>("BankAccountID")
-                        .HasColumnType("int");
+                        .HasColumnType("integer");
 
                     b.Property<int?>("ClientWalletTransactionID")
-                        .HasColumnType("int");
+                        .HasColumnType("integer");
 
                     b.Property<DateTime>("CreatedAt")
                         .ValueGeneratedOnAdd()
                         .HasPrecision(0)
-                        .HasColumnType("datetime2(0)")
-                        .HasDefaultValueSql("(sysutcdatetime())", "DF_Payments_CreatedAt_1");
+                        .HasColumnType("timestamp(0) with time zone")
+                        .HasDefaultValueSql("(sysutcdatetime())")
+                        .HasAnnotation("Relational:DefaultConstraintName", "DF_Payments_CreatedAt_1");
 
                     b.Property<string>("CurrencyCode")
                         .IsRequired()
                         .HasMaxLength(3)
                         .IsUnicode(false)
-                        .HasColumnType("char(3)")
+                        .HasColumnType("character(3)")
                         .IsFixedLength();
 
                     b.Property<decimal>("ExchangeRateToUsd")
@@ -2748,41 +2790,42 @@ namespace Dotnetable.Migrations.SqlServer.Migrations
 
                     b.Property<string>("GatewayRefNumber")
                         .HasMaxLength(100)
-                        .HasColumnType("nvarchar(100)");
+                        .HasColumnType("character varying(100)");
 
                     b.Property<byte>("Method")
-                        .HasColumnType("tinyint");
+                        .HasColumnType("smallint");
 
                     b.Property<int?>("OrderID")
-                        .HasColumnType("int");
+                        .HasColumnType("integer");
 
                     b.Property<DateTime?>("PaidAt")
                         .HasPrecision(0)
-                        .HasColumnType("datetime2(0)");
+                        .HasColumnType("timestamp(0) with time zone");
 
                     b.Property<int?>("PaymentGatewayID")
-                        .HasColumnType("int");
+                        .HasColumnType("integer");
 
                     b.Property<int?>("ReceiptFileID")
-                        .HasColumnType("int");
+                        .HasColumnType("integer");
 
                     b.Property<byte>("Status")
                         .ValueGeneratedOnAdd()
-                        .HasColumnType("tinyint")
-                        .HasDefaultValue((byte)1, "DF_Payments_Status_1");
+                        .HasColumnType("smallint")
+                        .HasDefaultValue((byte)1)
+                        .HasAnnotation("Relational:DefaultConstraintName", "DF_Payments_Status_1");
 
                     b.Property<string>("TrackingCode")
                         .HasMaxLength(100)
-                        .HasColumnType("nvarchar(100)");
+                        .HasColumnType("character varying(100)");
 
                     b.Property<int?>("VerifiedByMemberID")
-                        .HasColumnType("int");
+                        .HasColumnType("integer");
 
                     b.Property<int>("WebsiteClientID")
-                        .HasColumnType("int");
+                        .HasColumnType("integer");
 
                     b.Property<int>("WebsiteID")
-                        .HasColumnType("int");
+                        .HasColumnType("integer");
 
                     b.HasKey("PaymentID");
 
@@ -2811,45 +2854,46 @@ namespace Dotnetable.Migrations.SqlServer.Migrations
                 {
                     b.Property<int>("PaymentGatewayID")
                         .ValueGeneratedOnAdd()
-                        .HasColumnType("int");
+                        .HasColumnType("integer");
 
-                    SqlServerPropertyBuilderExtensions.UseIdentityColumn(b.Property<int>("PaymentGatewayID"));
+                    NpgsqlPropertyBuilderExtensions.UseIdentityByDefaultColumn(b.Property<int>("PaymentGatewayID"));
 
                     b.Property<string>("ApiKey")
                         .HasMaxLength(500)
-                        .HasColumnType("nvarchar(500)");
+                        .HasColumnType("character varying(500)");
 
                     b.Property<string>("ApiSecret")
                         .HasMaxLength(500)
-                        .HasColumnType("nvarchar(500)");
+                        .HasColumnType("character varying(500)");
 
                     b.Property<bool>("IsActive")
                         .ValueGeneratedOnAdd()
-                        .HasColumnType("bit")
-                        .HasDefaultValue(true, "DF_PaymentGateways_IsActive");
+                        .HasColumnType("boolean")
+                        .HasDefaultValue(true)
+                        .HasAnnotation("Relational:DefaultConstraintName", "DF_PaymentGateways_IsActive");
 
                     b.Property<bool>("IsSandbox")
-                        .HasColumnType("bit");
+                        .HasColumnType("boolean");
 
                     b.Property<string>("MerchantID")
                         .HasMaxLength(200)
-                        .HasColumnType("nvarchar(200)");
+                        .HasColumnType("character varying(200)");
 
                     b.Property<string>("Name")
                         .IsRequired()
                         .HasMaxLength(150)
-                        .HasColumnType("nvarchar(150)");
+                        .HasColumnType("character varying(150)");
 
                     b.Property<string>("Provider")
                         .IsRequired()
                         .HasMaxLength(50)
-                        .HasColumnType("nvarchar(50)");
+                        .HasColumnType("character varying(50)");
 
                     b.Property<int>("SortOrder")
-                        .HasColumnType("int");
+                        .HasColumnType("integer");
 
                     b.Property<int>("WebsiteID")
-                        .HasColumnType("int");
+                        .HasColumnType("integer");
 
                     b.HasKey("PaymentGatewayID");
 
@@ -2862,41 +2906,43 @@ namespace Dotnetable.Migrations.SqlServer.Migrations
                 {
                     b.Property<int>("PaymentRefundID")
                         .ValueGeneratedOnAdd()
-                        .HasColumnType("int");
+                        .HasColumnType("integer");
 
-                    SqlServerPropertyBuilderExtensions.UseIdentityColumn(b.Property<int>("PaymentRefundID"));
+                    NpgsqlPropertyBuilderExtensions.UseIdentityByDefaultColumn(b.Property<int>("PaymentRefundID"));
 
                     b.Property<decimal>("Amount")
                         .HasColumnType("decimal(18, 4)");
 
                     b.Property<int?>("BankAccountID")
-                        .HasColumnType("int");
+                        .HasColumnType("integer");
 
                     b.Property<int?>("ClientWalletTransactionID")
-                        .HasColumnType("int");
+                        .HasColumnType("integer");
 
                     b.Property<DateTime>("CreatedAt")
                         .ValueGeneratedOnAdd()
                         .HasColumnType("datetime")
-                        .HasDefaultValueSql("(sysutcdatetime())", "DF_PaymentRefunds_CreatedAt");
+                        .HasDefaultValueSql("(sysutcdatetime())")
+                        .HasAnnotation("Relational:DefaultConstraintName", "DF_PaymentRefunds_CreatedAt");
 
                     b.Property<int?>("CreatedByMemberID")
-                        .HasColumnType("int");
+                        .HasColumnType("integer");
 
                     b.Property<int>("PaymentID")
-                        .HasColumnType("int");
+                        .HasColumnType("integer");
 
                     b.Property<string>("Reason")
                         .HasMaxLength(500)
-                        .HasColumnType("nvarchar(500)");
+                        .HasColumnType("character varying(500)");
 
                     b.Property<DateTime?>("RefundedAt")
                         .HasColumnType("datetime");
 
                     b.Property<byte>("Status")
                         .ValueGeneratedOnAdd()
-                        .HasColumnType("tinyint")
-                        .HasDefaultValue((byte)1, "DF_PaymentRefunds_Status");
+                        .HasColumnType("smallint")
+                        .HasDefaultValue((byte)1)
+                        .HasAnnotation("Relational:DefaultConstraintName", "DF_PaymentRefunds_Status");
 
                     b.HasKey("PaymentRefundID");
 
@@ -2915,22 +2961,22 @@ namespace Dotnetable.Migrations.SqlServer.Migrations
                 {
                     b.Property<int>("PolicyID")
                         .ValueGeneratedOnAdd()
-                        .HasColumnType("int");
+                        .HasColumnType("integer");
 
-                    SqlServerPropertyBuilderExtensions.UseIdentityColumn(b.Property<int>("PolicyID"));
+                    NpgsqlPropertyBuilderExtensions.UseIdentityByDefaultColumn(b.Property<int>("PolicyID"));
 
                     b.Property<bool>("Active")
-                        .HasColumnType("bit");
+                        .HasColumnType("boolean");
 
                     b.Property<string>("Title")
                         .IsRequired()
                         .HasMaxLength(64)
                         .IsUnicode(false)
-                        .HasColumnType("varchar(64)");
+                        .HasColumnType("character varying(64)");
 
                     b.Property<int>("WebsiteID")
                         .ValueGeneratedOnAdd()
-                        .HasColumnType("int")
+                        .HasColumnType("integer")
                         .HasDefaultValue(1);
 
                     b.HasKey("PolicyID");
@@ -2944,15 +2990,15 @@ namespace Dotnetable.Migrations.SqlServer.Migrations
                 {
                     b.Property<int>("PolicyRoleID")
                         .ValueGeneratedOnAdd()
-                        .HasColumnType("int");
+                        .HasColumnType("integer");
 
-                    SqlServerPropertyBuilderExtensions.UseIdentityColumn(b.Property<int>("PolicyRoleID"));
+                    NpgsqlPropertyBuilderExtensions.UseIdentityByDefaultColumn(b.Property<int>("PolicyRoleID"));
 
                     b.Property<bool>("Active")
-                        .HasColumnType("bit");
+                        .HasColumnType("boolean");
 
                     b.Property<int>("PolicyID")
-                        .HasColumnType("int");
+                        .HasColumnType("integer");
 
                     b.Property<short>("RoleID")
                         .HasColumnType("smallint");
@@ -2970,43 +3016,46 @@ namespace Dotnetable.Migrations.SqlServer.Migrations
                 {
                     b.Property<int>("PostID")
                         .ValueGeneratedOnAdd()
-                        .HasColumnType("int");
+                        .HasColumnType("integer");
 
-                    SqlServerPropertyBuilderExtensions.UseIdentityColumn(b.Property<int>("PostID"));
+                    NpgsqlPropertyBuilderExtensions.UseIdentityByDefaultColumn(b.Property<int>("PostID"));
 
                     b.Property<int?>("AuthorMemberID")
-                        .HasColumnType("int");
+                        .HasColumnType("integer");
 
                     b.Property<bool>("CommentsEnabled")
                         .ValueGeneratedOnAdd()
-                        .HasColumnType("bit")
-                        .HasDefaultValue(true, "DF_Posts_CommentsEnabled");
+                        .HasColumnType("boolean")
+                        .HasDefaultValue(true)
+                        .HasAnnotation("Relational:DefaultConstraintName", "DF_Posts_CommentsEnabled");
 
                     b.Property<string>("Content")
-                        .HasColumnType("nvarchar(max)");
+                        .HasColumnType("text");
 
                     b.Property<DateTime>("CreatedAt")
                         .ValueGeneratedOnAdd()
                         .HasColumnType("datetime")
-                        .HasDefaultValueSql("(sysutcdatetime())", "DF_Posts_CreatedAt_1");
+                        .HasDefaultValueSql("(sysutcdatetime())")
+                        .HasAnnotation("Relational:DefaultConstraintName", "DF_Posts_CreatedAt_1");
 
                     b.Property<string>("Excerpt")
                         .HasMaxLength(1000)
-                        .HasColumnType("nvarchar(1000)");
+                        .HasColumnType("character varying(1000)");
 
                     b.Property<int?>("FeaturedImageFileID")
-                        .HasColumnType("int");
+                        .HasColumnType("integer");
 
                     b.Property<bool>("IsActive")
                         .ValueGeneratedOnAdd()
-                        .HasColumnType("bit")
-                        .HasDefaultValue(true, "DF_Posts_IsActive_1");
+                        .HasColumnType("boolean")
+                        .HasDefaultValue(true)
+                        .HasAnnotation("Relational:DefaultConstraintName", "DF_Posts_IsActive_1");
 
                     b.Property<bool>("IsFeatured")
-                        .HasColumnType("bit");
+                        .HasColumnType("boolean");
 
                     b.Property<int>("PostTypeID")
-                        .HasColumnType("int");
+                        .HasColumnType("integer");
 
                     b.Property<DateTime?>("PublishedAt")
                         .HasColumnType("datetime");
@@ -3017,28 +3066,30 @@ namespace Dotnetable.Migrations.SqlServer.Migrations
                     b.Property<string>("Slug")
                         .IsRequired()
                         .HasMaxLength(300)
-                        .HasColumnType("nvarchar(300)");
+                        .HasColumnType("character varying(300)");
 
                     b.Property<byte>("Status")
                         .ValueGeneratedOnAdd()
-                        .HasColumnType("tinyint")
-                        .HasDefaultValue((byte)1, "DF_Posts_Status_1");
+                        .HasColumnType("smallint")
+                        .HasDefaultValue((byte)1)
+                        .HasAnnotation("Relational:DefaultConstraintName", "DF_Posts_Status_1");
 
                     b.Property<string>("Title")
                         .IsRequired()
                         .HasMaxLength(300)
-                        .HasColumnType("nvarchar(300)");
+                        .HasColumnType("character varying(300)");
 
                     b.Property<DateTime>("UpdatedAt")
                         .ValueGeneratedOnAdd()
                         .HasColumnType("datetime")
-                        .HasDefaultValueSql("(sysutcdatetime())", "DF_Posts_UpdatedAt_1");
+                        .HasDefaultValueSql("(sysutcdatetime())")
+                        .HasAnnotation("Relational:DefaultConstraintName", "DF_Posts_UpdatedAt_1");
 
                     b.Property<int>("ViewCount")
-                        .HasColumnType("int");
+                        .HasColumnType("integer");
 
                     b.Property<int>("WebsiteID")
-                        .HasColumnType("int");
+                        .HasColumnType("integer");
 
                     b.HasKey("PostID");
 
@@ -3056,13 +3107,13 @@ namespace Dotnetable.Migrations.SqlServer.Migrations
             modelBuilder.Entity("Dotnetable.Domain.Entities.PostCategory", b =>
                 {
                     b.Property<int>("PostID")
-                        .HasColumnType("int");
+                        .HasColumnType("integer");
 
                     b.Property<int>("CategoryID")
-                        .HasColumnType("int");
+                        .HasColumnType("integer");
 
                     b.Property<bool>("IsPrimary")
-                        .HasColumnType("bit");
+                        .HasColumnType("boolean");
 
                     b.HasKey("PostID", "CategoryID");
 
@@ -3075,36 +3126,36 @@ namespace Dotnetable.Migrations.SqlServer.Migrations
                 {
                     b.Property<int>("PostTranslationID")
                         .ValueGeneratedOnAdd()
-                        .HasColumnType("int");
+                        .HasColumnType("integer");
 
-                    SqlServerPropertyBuilderExtensions.UseIdentityColumn(b.Property<int>("PostTranslationID"));
+                    NpgsqlPropertyBuilderExtensions.UseIdentityByDefaultColumn(b.Property<int>("PostTranslationID"));
 
                     b.Property<string>("Content")
-                        .HasColumnType("nvarchar(max)");
+                        .HasColumnType("text");
 
                     b.Property<string>("Excerpt")
                         .HasMaxLength(1000)
-                        .HasColumnType("nvarchar(1000)");
+                        .HasColumnType("character varying(1000)");
 
                     b.Property<string>("LanguageCode")
                         .IsRequired()
                         .HasMaxLength(2)
                         .IsUnicode(false)
-                        .HasColumnType("char(2)")
+                        .HasColumnType("character(2)")
                         .IsFixedLength();
 
                     b.Property<int>("PostID")
-                        .HasColumnType("int");
+                        .HasColumnType("integer");
 
                     b.Property<string>("Slug")
                         .IsRequired()
                         .HasMaxLength(300)
-                        .HasColumnType("nvarchar(300)");
+                        .HasColumnType("character varying(300)");
 
                     b.Property<string>("Title")
                         .IsRequired()
                         .HasMaxLength(300)
-                        .HasColumnType("nvarchar(300)");
+                        .HasColumnType("character varying(300)");
 
                     b.HasKey("PostTranslationID");
 
@@ -3117,42 +3168,46 @@ namespace Dotnetable.Migrations.SqlServer.Migrations
                 {
                     b.Property<int>("PostTypeID")
                         .ValueGeneratedOnAdd()
-                        .HasColumnType("int");
+                        .HasColumnType("integer");
 
-                    SqlServerPropertyBuilderExtensions.UseIdentityColumn(b.Property<int>("PostTypeID"));
+                    NpgsqlPropertyBuilderExtensions.UseIdentityByDefaultColumn(b.Property<int>("PostTypeID"));
 
                     b.Property<bool>("CommentsEnabled")
                         .ValueGeneratedOnAdd()
-                        .HasColumnType("bit")
-                        .HasDefaultValue(true, "DF_PostTypes_CommentsEnabled");
+                        .HasColumnType("boolean")
+                        .HasDefaultValue(true)
+                        .HasAnnotation("Relational:DefaultConstraintName", "DF_PostTypes_CommentsEnabled");
 
                     b.Property<bool>("HasAuthor")
                         .ValueGeneratedOnAdd()
-                        .HasColumnType("bit")
-                        .HasDefaultValue(true, "DF_PostTypes_HasAuthor");
+                        .HasColumnType("boolean")
+                        .HasDefaultValue(true)
+                        .HasAnnotation("Relational:DefaultConstraintName", "DF_PostTypes_HasAuthor");
 
                     b.Property<bool>("HasCategories")
                         .ValueGeneratedOnAdd()
-                        .HasColumnType("bit")
-                        .HasDefaultValue(true, "DF_PostTypes_HasCategories");
+                        .HasColumnType("boolean")
+                        .HasDefaultValue(true)
+                        .HasAnnotation("Relational:DefaultConstraintName", "DF_PostTypes_HasCategories");
 
                     b.Property<bool>("HasTags")
                         .ValueGeneratedOnAdd()
-                        .HasColumnType("bit")
-                        .HasDefaultValue(true, "DF_PostTypes_HasTags");
+                        .HasColumnType("boolean")
+                        .HasDefaultValue(true)
+                        .HasAnnotation("Relational:DefaultConstraintName", "DF_PostTypes_HasTags");
 
                     b.Property<string>("Name")
                         .IsRequired()
                         .HasMaxLength(100)
-                        .HasColumnType("nvarchar(100)");
+                        .HasColumnType("character varying(100)");
 
                     b.Property<string>("Slug")
                         .IsRequired()
                         .HasMaxLength(100)
-                        .HasColumnType("nvarchar(100)");
+                        .HasColumnType("character varying(100)");
 
                     b.Property<int>("WebsiteID")
-                        .HasColumnType("int");
+                        .HasColumnType("integer");
 
                     b.HasKey("PostTypeID");
 
@@ -3165,76 +3220,80 @@ namespace Dotnetable.Migrations.SqlServer.Migrations
                 {
                     b.Property<int>("ProductID")
                         .ValueGeneratedOnAdd()
-                        .HasColumnType("int");
+                        .HasColumnType("integer");
 
-                    SqlServerPropertyBuilderExtensions.UseIdentityColumn(b.Property<int>("ProductID"));
+                    NpgsqlPropertyBuilderExtensions.UseIdentityByDefaultColumn(b.Property<int>("ProductID"));
 
                     b.Property<decimal>("AvgRating")
                         .HasColumnType("decimal(3, 2)");
 
                     b.Property<int?>("BrandID")
-                        .HasColumnType("int");
+                        .HasColumnType("integer");
 
                     b.Property<string>("Content")
-                        .HasColumnType("nvarchar(max)");
+                        .HasColumnType("text");
 
                     b.Property<DateTime>("CreatedAt")
                         .ValueGeneratedOnAdd()
                         .HasColumnType("datetime")
-                        .HasDefaultValueSql("(sysutcdatetime())", "DF_Products_CreatedAt_1");
+                        .HasDefaultValueSql("(sysutcdatetime())")
+                        .HasAnnotation("Relational:DefaultConstraintName", "DF_Products_CreatedAt_1");
 
                     b.Property<int?>("CreatedByMemberId")
-                        .HasColumnType("int");
+                        .HasColumnType("integer");
 
                     b.Property<string>("ExpertReview")
-                        .HasColumnType("nvarchar(max)");
+                        .HasColumnType("text");
 
                     b.Property<int?>("FeaturedImageFileID")
-                        .HasColumnType("int");
+                        .HasColumnType("integer");
 
                     b.Property<bool>("HasVariants")
-                        .HasColumnType("bit");
+                        .HasColumnType("boolean");
 
                     b.Property<bool>("IsActive")
                         .ValueGeneratedOnAdd()
-                        .HasColumnType("bit")
-                        .HasDefaultValue(true, "DF_Products_IsActive_1");
+                        .HasColumnType("boolean")
+                        .HasDefaultValue(true)
+                        .HasAnnotation("Relational:DefaultConstraintName", "DF_Products_IsActive_1");
 
                     b.Property<bool>("IsCatalogOnly")
-                        .HasColumnType("bit");
+                        .HasColumnType("boolean");
 
                     b.Property<int>("RatingCount")
-                        .HasColumnType("int");
+                        .HasColumnType("integer");
 
                     b.Property<string>("ShortDescription")
                         .HasMaxLength(1000)
-                        .HasColumnType("nvarchar(1000)");
+                        .HasColumnType("character varying(1000)");
 
                     b.Property<string>("Slug")
                         .IsRequired()
                         .HasMaxLength(300)
-                        .HasColumnType("nvarchar(300)");
+                        .HasColumnType("character varying(300)");
 
                     b.Property<int>("SortOrder")
-                        .HasColumnType("int");
+                        .HasColumnType("integer");
 
                     b.Property<byte>("Status")
                         .ValueGeneratedOnAdd()
-                        .HasColumnType("tinyint")
-                        .HasDefaultValue((byte)1, "DF_Products_Status_1");
+                        .HasColumnType("smallint")
+                        .HasDefaultValue((byte)1)
+                        .HasAnnotation("Relational:DefaultConstraintName", "DF_Products_Status_1");
 
                     b.Property<string>("Title")
                         .IsRequired()
                         .HasMaxLength(300)
-                        .HasColumnType("nvarchar(300)");
+                        .HasColumnType("character varying(300)");
 
                     b.Property<DateTime>("UpdatedAt")
                         .ValueGeneratedOnAdd()
                         .HasColumnType("datetime")
-                        .HasDefaultValueSql("(sysutcdatetime())", "DF_Products_UpdatedAt_1");
+                        .HasDefaultValueSql("(sysutcdatetime())")
+                        .HasAnnotation("Relational:DefaultConstraintName", "DF_Products_UpdatedAt_1");
 
                     b.Property<int>("WebsiteID")
-                        .HasColumnType("int");
+                        .HasColumnType("integer");
 
                     b.HasKey("ProductID");
 
@@ -3253,39 +3312,41 @@ namespace Dotnetable.Migrations.SqlServer.Migrations
                 {
                     b.Property<int>("ProductAnswerID")
                         .ValueGeneratedOnAdd()
-                        .HasColumnType("int");
+                        .HasColumnType("integer");
 
-                    SqlServerPropertyBuilderExtensions.UseIdentityColumn(b.Property<int>("ProductAnswerID"));
+                    NpgsqlPropertyBuilderExtensions.UseIdentityByDefaultColumn(b.Property<int>("ProductAnswerID"));
 
                     b.Property<bool>("Approved")
-                        .HasColumnType("bit");
+                        .HasColumnType("boolean");
 
                     b.Property<string>("Body")
                         .IsRequired()
                         .HasMaxLength(4000)
-                        .HasColumnType("nvarchar(4000)");
+                        .HasColumnType("character varying(4000)");
 
                     b.Property<DateTime>("CreatedAt")
                         .ValueGeneratedOnAdd()
                         .HasColumnType("datetime")
-                        .HasDefaultValueSql("(sysutcdatetime())", "DF_ProductAnswers_CreatedAt");
+                        .HasDefaultValueSql("(sysutcdatetime())")
+                        .HasAnnotation("Relational:DefaultConstraintName", "DF_ProductAnswers_CreatedAt");
 
                     b.Property<int>("LikeCount")
-                        .HasColumnType("int");
+                        .HasColumnType("integer");
 
                     b.Property<int>("ProductQuestionID")
-                        .HasColumnType("int");
+                        .HasColumnType("integer");
 
                     b.Property<byte>("Status")
                         .ValueGeneratedOnAdd()
-                        .HasColumnType("tinyint")
-                        .HasDefaultValue((byte)1, "DF_ProductAnswers_Status");
+                        .HasColumnType("smallint")
+                        .HasDefaultValue((byte)1)
+                        .HasAnnotation("Relational:DefaultConstraintName", "DF_ProductAnswers_Status");
 
                     b.Property<int?>("VendorID")
-                        .HasColumnType("int");
+                        .HasColumnType("integer");
 
                     b.Property<int?>("WebsiteClientID")
-                        .HasColumnType("int");
+                        .HasColumnType("integer");
 
                     b.HasKey("ProductAnswerID");
 
@@ -3302,31 +3363,31 @@ namespace Dotnetable.Migrations.SqlServer.Migrations
                 {
                     b.Property<int>("ProductAttributeValueID")
                         .ValueGeneratedOnAdd()
-                        .HasColumnType("int");
+                        .HasColumnType("integer");
 
-                    SqlServerPropertyBuilderExtensions.UseIdentityColumn(b.Property<int>("ProductAttributeValueID"));
+                    NpgsqlPropertyBuilderExtensions.UseIdentityByDefaultColumn(b.Property<int>("ProductAttributeValueID"));
 
                     b.Property<int>("AttributeDefinitionID")
-                        .HasColumnType("int");
+                        .HasColumnType("integer");
 
                     b.Property<int?>("AttributeOptionID")
-                        .HasColumnType("int");
+                        .HasColumnType("integer");
 
                     b.Property<string>("CustomValue")
                         .HasMaxLength(1000)
-                        .HasColumnType("nvarchar(1000)");
+                        .HasColumnType("character varying(1000)");
 
                     b.Property<bool>("IsFeatured")
-                        .HasColumnType("bit");
+                        .HasColumnType("boolean");
 
                     b.Property<decimal?>("NumericValue")
                         .HasColumnType("decimal(18, 4)");
 
                     b.Property<int>("ProductID")
-                        .HasColumnType("int");
+                        .HasColumnType("integer");
 
                     b.Property<int>("SortOrder")
-                        .HasColumnType("int");
+                        .HasColumnType("integer");
 
                     b.HasKey("ProductAttributeValueID");
 
@@ -3343,24 +3404,24 @@ namespace Dotnetable.Migrations.SqlServer.Migrations
                 {
                     b.Property<int>("ProductAttributeValueTranslationID")
                         .ValueGeneratedOnAdd()
-                        .HasColumnType("int");
+                        .HasColumnType("integer");
 
-                    SqlServerPropertyBuilderExtensions.UseIdentityColumn(b.Property<int>("ProductAttributeValueTranslationID"));
+                    NpgsqlPropertyBuilderExtensions.UseIdentityByDefaultColumn(b.Property<int>("ProductAttributeValueTranslationID"));
 
                     b.Property<string>("CustomValue")
                         .IsRequired()
                         .HasMaxLength(1000)
-                        .HasColumnType("nvarchar(1000)");
+                        .HasColumnType("character varying(1000)");
 
                     b.Property<string>("LanguageCode")
                         .IsRequired()
                         .HasMaxLength(2)
                         .IsUnicode(false)
-                        .HasColumnType("char(2)")
+                        .HasColumnType("character(2)")
                         .IsFixedLength();
 
                     b.Property<int>("ProductAttributeValueID")
-                        .HasColumnType("int");
+                        .HasColumnType("integer");
 
                     b.HasKey("ProductAttributeValueTranslationID");
 
@@ -3373,36 +3434,37 @@ namespace Dotnetable.Migrations.SqlServer.Migrations
                 {
                     b.Property<int>("ProductCategoryID")
                         .ValueGeneratedOnAdd()
-                        .HasColumnType("int");
+                        .HasColumnType("integer");
 
-                    SqlServerPropertyBuilderExtensions.UseIdentityColumn(b.Property<int>("ProductCategoryID"));
+                    NpgsqlPropertyBuilderExtensions.UseIdentityByDefaultColumn(b.Property<int>("ProductCategoryID"));
 
                     b.Property<int?>("ImageFileID")
-                        .HasColumnType("int");
+                        .HasColumnType("integer");
 
                     b.Property<bool>("IsActive")
                         .ValueGeneratedOnAdd()
-                        .HasColumnType("bit")
-                        .HasDefaultValue(true, "DF_ProductCategories_IsActive");
+                        .HasColumnType("boolean")
+                        .HasDefaultValue(true)
+                        .HasAnnotation("Relational:DefaultConstraintName", "DF_ProductCategories_IsActive");
 
                     b.Property<string>("Name")
                         .IsRequired()
                         .HasMaxLength(200)
-                        .HasColumnType("nvarchar(200)");
+                        .HasColumnType("character varying(200)");
 
                     b.Property<int?>("ParentCategoryID")
-                        .HasColumnType("int");
+                        .HasColumnType("integer");
 
                     b.Property<string>("Slug")
                         .IsRequired()
                         .HasMaxLength(200)
-                        .HasColumnType("nvarchar(200)");
+                        .HasColumnType("character varying(200)");
 
                     b.Property<int>("SortOrder")
-                        .HasColumnType("int");
+                        .HasColumnType("integer");
 
                     b.Property<int>("WebsiteID")
-                        .HasColumnType("int");
+                        .HasColumnType("integer");
 
                     b.HasKey("ProductCategoryID");
 
@@ -3418,13 +3480,13 @@ namespace Dotnetable.Migrations.SqlServer.Migrations
             modelBuilder.Entity("Dotnetable.Domain.Entities.ProductCategoryMap", b =>
                 {
                     b.Property<int>("ProductID")
-                        .HasColumnType("int");
+                        .HasColumnType("integer");
 
                     b.Property<int>("ProductCategoryID")
-                        .HasColumnType("int");
+                        .HasColumnType("integer");
 
                     b.Property<bool>("IsPrimary")
-                        .HasColumnType("bit");
+                        .HasColumnType("boolean");
 
                     b.HasKey("ProductID", "ProductCategoryID");
 
@@ -3436,18 +3498,19 @@ namespace Dotnetable.Migrations.SqlServer.Migrations
             modelBuilder.Entity("Dotnetable.Domain.Entities.ProductCategoryRelation", b =>
                 {
                     b.Property<int>("ProductID")
-                        .HasColumnType("int");
+                        .HasColumnType("integer");
 
                     b.Property<int>("RelatedProductCategoryID")
-                        .HasColumnType("int");
+                        .HasColumnType("integer");
 
                     b.Property<byte>("RelationType")
-                        .HasColumnType("tinyint");
+                        .HasColumnType("smallint");
 
                     b.Property<int>("MaxItems")
                         .ValueGeneratedOnAdd()
-                        .HasColumnType("int")
-                        .HasDefaultValue(10, "DF_ProductCategoryRelations_MaxItems");
+                        .HasColumnType("integer")
+                        .HasDefaultValue(10)
+                        .HasAnnotation("Relational:DefaultConstraintName", "DF_ProductCategoryRelations_MaxItems");
 
                     b.HasKey("ProductID", "RelatedProductCategoryID", "RelationType");
 
@@ -3460,29 +3523,29 @@ namespace Dotnetable.Migrations.SqlServer.Migrations
                 {
                     b.Property<int>("ProductCategoryTranslationID")
                         .ValueGeneratedOnAdd()
-                        .HasColumnType("int");
+                        .HasColumnType("integer");
 
-                    SqlServerPropertyBuilderExtensions.UseIdentityColumn(b.Property<int>("ProductCategoryTranslationID"));
+                    NpgsqlPropertyBuilderExtensions.UseIdentityByDefaultColumn(b.Property<int>("ProductCategoryTranslationID"));
 
                     b.Property<string>("LanguageCode")
                         .IsRequired()
                         .HasMaxLength(2)
                         .IsUnicode(false)
-                        .HasColumnType("char(2)")
+                        .HasColumnType("character(2)")
                         .IsFixedLength();
 
                     b.Property<string>("Name")
                         .IsRequired()
                         .HasMaxLength(200)
-                        .HasColumnType("nvarchar(200)");
+                        .HasColumnType("character varying(200)");
 
                     b.Property<int>("ProductCategoryID")
-                        .HasColumnType("int");
+                        .HasColumnType("integer");
 
                     b.Property<string>("Slug")
                         .IsRequired()
                         .HasMaxLength(200)
-                        .HasColumnType("nvarchar(200)");
+                        .HasColumnType("character varying(200)");
 
                     b.HasKey("ProductCategoryTranslationID");
 
@@ -3494,13 +3557,13 @@ namespace Dotnetable.Migrations.SqlServer.Migrations
             modelBuilder.Entity("Dotnetable.Domain.Entities.ProductMedium", b =>
                 {
                     b.Property<int>("ProductID")
-                        .HasColumnType("int");
+                        .HasColumnType("integer");
 
                     b.Property<int>("MediaSetID")
-                        .HasColumnType("int");
+                        .HasColumnType("integer");
 
                     b.Property<int>("SortOrder")
-                        .HasColumnType("int");
+                        .HasColumnType("integer");
 
                     b.HasKey("ProductID", "MediaSetID");
 
@@ -3513,36 +3576,38 @@ namespace Dotnetable.Migrations.SqlServer.Migrations
                 {
                     b.Property<int>("ProductQuestionID")
                         .ValueGeneratedOnAdd()
-                        .HasColumnType("int");
+                        .HasColumnType("integer");
 
-                    SqlServerPropertyBuilderExtensions.UseIdentityColumn(b.Property<int>("ProductQuestionID"));
+                    NpgsqlPropertyBuilderExtensions.UseIdentityByDefaultColumn(b.Property<int>("ProductQuestionID"));
 
                     b.Property<bool>("Approved")
-                        .HasColumnType("bit");
+                        .HasColumnType("boolean");
 
                     b.Property<string>("Body")
                         .IsRequired()
                         .HasMaxLength(2000)
-                        .HasColumnType("nvarchar(2000)");
+                        .HasColumnType("character varying(2000)");
 
                     b.Property<DateTime>("CreatedAt")
                         .ValueGeneratedOnAdd()
                         .HasColumnType("datetime")
-                        .HasDefaultValueSql("(sysutcdatetime())", "DF_ProductQuestions_CreatedAt");
+                        .HasDefaultValueSql("(sysutcdatetime())")
+                        .HasAnnotation("Relational:DefaultConstraintName", "DF_ProductQuestions_CreatedAt");
 
                     b.Property<int>("ProductID")
-                        .HasColumnType("int");
+                        .HasColumnType("integer");
 
                     b.Property<byte>("Status")
                         .ValueGeneratedOnAdd()
-                        .HasColumnType("tinyint")
-                        .HasDefaultValue((byte)1, "DF_ProductQuestions_Status");
+                        .HasColumnType("smallint")
+                        .HasDefaultValue((byte)1)
+                        .HasAnnotation("Relational:DefaultConstraintName", "DF_ProductQuestions_Status");
 
                     b.Property<int>("WebsiteClientID")
-                        .HasColumnType("int");
+                        .HasColumnType("integer");
 
                     b.Property<int>("WebsiteID")
-                        .HasColumnType("int");
+                        .HasColumnType("integer");
 
                     b.HasKey("ProductQuestionID");
 
@@ -3558,16 +3623,16 @@ namespace Dotnetable.Migrations.SqlServer.Migrations
             modelBuilder.Entity("Dotnetable.Domain.Entities.ProductRelation", b =>
                 {
                     b.Property<int>("ProductID")
-                        .HasColumnType("int");
+                        .HasColumnType("integer");
 
                     b.Property<int>("RelatedProductID")
-                        .HasColumnType("int");
+                        .HasColumnType("integer");
 
                     b.Property<byte>("RelationType")
-                        .HasColumnType("tinyint");
+                        .HasColumnType("smallint");
 
                     b.Property<int>("SortOrder")
-                        .HasColumnType("int");
+                        .HasColumnType("integer");
 
                     b.HasKey("ProductID", "RelatedProductID", "RelationType");
 
@@ -3580,64 +3645,66 @@ namespace Dotnetable.Migrations.SqlServer.Migrations
                 {
                     b.Property<int>("ProductReviewID")
                         .ValueGeneratedOnAdd()
-                        .HasColumnType("int");
+                        .HasColumnType("integer");
 
-                    SqlServerPropertyBuilderExtensions.UseIdentityColumn(b.Property<int>("ProductReviewID"));
+                    NpgsqlPropertyBuilderExtensions.UseIdentityByDefaultColumn(b.Property<int>("ProductReviewID"));
 
                     b.Property<bool>("Approved")
-                        .HasColumnType("bit");
+                        .HasColumnType("boolean");
 
                     b.Property<string>("Body")
                         .IsRequired()
                         .HasMaxLength(4000)
-                        .HasColumnType("nvarchar(4000)");
+                        .HasColumnType("character varying(4000)");
 
                     b.Property<string>("ConsJson")
                         .HasMaxLength(2000)
-                        .HasColumnType("nvarchar(2000)");
+                        .HasColumnType("character varying(2000)");
 
                     b.Property<DateTime>("CreatedAt")
                         .ValueGeneratedOnAdd()
                         .HasPrecision(0)
-                        .HasColumnType("datetime2(0)")
-                        .HasDefaultValueSql("(sysutcdatetime())", "DF_ProductReviews_CreatedAt");
+                        .HasColumnType("timestamp(0) with time zone")
+                        .HasDefaultValueSql("(sysutcdatetime())")
+                        .HasAnnotation("Relational:DefaultConstraintName", "DF_ProductReviews_CreatedAt");
 
                     b.Property<int>("DislikeCount")
-                        .HasColumnType("int");
+                        .HasColumnType("integer");
 
                     b.Property<bool>("IsVerifiedPurchase")
-                        .HasColumnType("bit");
+                        .HasColumnType("boolean");
 
                     b.Property<int>("LikeCount")
-                        .HasColumnType("int");
+                        .HasColumnType("integer");
 
                     b.Property<int>("ProductID")
-                        .HasColumnType("int");
+                        .HasColumnType("integer");
 
                     b.Property<int?>("ProductVariantID")
-                        .HasColumnType("int");
+                        .HasColumnType("integer");
 
                     b.Property<string>("ProsJson")
                         .HasMaxLength(2000)
-                        .HasColumnType("nvarchar(2000)");
+                        .HasColumnType("character varying(2000)");
 
                     b.Property<byte>("Rating")
-                        .HasColumnType("tinyint");
+                        .HasColumnType("smallint");
 
                     b.Property<byte>("Status")
                         .ValueGeneratedOnAdd()
-                        .HasColumnType("tinyint")
-                        .HasDefaultValue((byte)1, "DF_ProductReviews_Status");
+                        .HasColumnType("smallint")
+                        .HasDefaultValue((byte)1)
+                        .HasAnnotation("Relational:DefaultConstraintName", "DF_ProductReviews_Status");
 
                     b.Property<string>("Title")
                         .HasMaxLength(200)
-                        .HasColumnType("nvarchar(200)");
+                        .HasColumnType("character varying(200)");
 
                     b.Property<int>("WebsiteClientID")
-                        .HasColumnType("int");
+                        .HasColumnType("integer");
 
                     b.Property<int>("WebsiteID")
-                        .HasColumnType("int");
+                        .HasColumnType("integer");
 
                     b.HasKey("ProductReviewID");
 
@@ -3656,39 +3723,39 @@ namespace Dotnetable.Migrations.SqlServer.Migrations
                 {
                     b.Property<int>("ProductTranslationID")
                         .ValueGeneratedOnAdd()
-                        .HasColumnType("int");
+                        .HasColumnType("integer");
 
-                    SqlServerPropertyBuilderExtensions.UseIdentityColumn(b.Property<int>("ProductTranslationID"));
+                    NpgsqlPropertyBuilderExtensions.UseIdentityByDefaultColumn(b.Property<int>("ProductTranslationID"));
 
                     b.Property<string>("Content")
-                        .HasColumnType("nvarchar(max)");
+                        .HasColumnType("text");
 
                     b.Property<string>("ExpertReview")
-                        .HasColumnType("nvarchar(max)");
+                        .HasColumnType("text");
 
                     b.Property<string>("LanguageCode")
                         .IsRequired()
                         .HasMaxLength(2)
                         .IsUnicode(false)
-                        .HasColumnType("char(2)")
+                        .HasColumnType("character(2)")
                         .IsFixedLength();
 
                     b.Property<int>("ProductID")
-                        .HasColumnType("int");
+                        .HasColumnType("integer");
 
                     b.Property<string>("ShortDescription")
                         .HasMaxLength(1000)
-                        .HasColumnType("nvarchar(1000)");
+                        .HasColumnType("character varying(1000)");
 
                     b.Property<string>("Slug")
                         .IsRequired()
                         .HasMaxLength(300)
-                        .HasColumnType("nvarchar(300)");
+                        .HasColumnType("character varying(300)");
 
                     b.Property<string>("Title")
                         .IsRequired()
                         .HasMaxLength(300)
-                        .HasColumnType("nvarchar(300)");
+                        .HasColumnType("character varying(300)");
 
                     b.HasKey("ProductTranslationID");
 
@@ -3701,13 +3768,13 @@ namespace Dotnetable.Migrations.SqlServer.Migrations
                 {
                     b.Property<int>("ProductVariantID")
                         .ValueGeneratedOnAdd()
-                        .HasColumnType("int");
+                        .HasColumnType("integer");
 
-                    SqlServerPropertyBuilderExtensions.UseIdentityColumn(b.Property<int>("ProductVariantID"));
+                    NpgsqlPropertyBuilderExtensions.UseIdentityByDefaultColumn(b.Property<int>("ProductVariantID"));
 
                     b.Property<string>("Barcode")
                         .HasMaxLength(100)
-                        .HasColumnType("nvarchar(100)");
+                        .HasColumnType("character varying(100)");
 
                     b.Property<decimal?>("CompareAtPriceUsd")
                         .HasColumnType("decimal(18, 4)");
@@ -3715,24 +3782,26 @@ namespace Dotnetable.Migrations.SqlServer.Migrations
                     b.Property<DateTime>("CreatedAt")
                         .ValueGeneratedOnAdd()
                         .HasColumnType("datetime")
-                        .HasDefaultValueSql("(sysutcdatetime())", "DF_ProductVariants_CreatedAt");
+                        .HasDefaultValueSql("(sysutcdatetime())")
+                        .HasAnnotation("Relational:DefaultConstraintName", "DF_ProductVariants_CreatedAt");
 
                     b.Property<int?>("ImageFileID")
-                        .HasColumnType("int");
+                        .HasColumnType("integer");
 
                     b.Property<bool>("IsActive")
                         .ValueGeneratedOnAdd()
-                        .HasColumnType("bit")
-                        .HasDefaultValue(true, "DF_ProductVariants_IsActive");
+                        .HasColumnType("boolean")
+                        .HasDefaultValue(true)
+                        .HasAnnotation("Relational:DefaultConstraintName", "DF_ProductVariants_IsActive");
 
                     b.Property<bool>("IsDefault")
-                        .HasColumnType("bit");
+                        .HasColumnType("boolean");
 
                     b.Property<decimal?>("OverridePrice")
                         .HasColumnType("decimal(18, 4)");
 
                     b.Property<int>("ProductID")
-                        .HasColumnType("int");
+                        .HasColumnType("integer");
 
                     b.Property<decimal>("ReferencePriceUsd")
                         .HasColumnType("decimal(18, 4)");
@@ -3740,15 +3809,15 @@ namespace Dotnetable.Migrations.SqlServer.Migrations
                     b.Property<string>("Sku")
                         .IsRequired()
                         .HasMaxLength(100)
-                        .HasColumnType("nvarchar(100)");
+                        .HasColumnType("character varying(100)");
 
                     b.Property<string>("Title")
                         .IsRequired()
                         .HasMaxLength(200)
-                        .HasColumnType("nvarchar(200)");
+                        .HasColumnType("character varying(200)");
 
                     b.Property<int>("WebsiteID")
-                        .HasColumnType("int");
+                        .HasColumnType("integer");
 
                     b.Property<decimal?>("Weight")
                         .HasColumnType("decimal(10, 3)");
@@ -3770,21 +3839,22 @@ namespace Dotnetable.Migrations.SqlServer.Migrations
                         .ValueGeneratedOnAdd()
                         .HasColumnType("bigint");
 
-                    SqlServerPropertyBuilderExtensions.UseIdentityColumn(b.Property<long>("ProductVariantPriceHistoryID"));
+                    NpgsqlPropertyBuilderExtensions.UseIdentityByDefaultColumn(b.Property<long>("ProductVariantPriceHistoryID"));
 
                     b.Property<int?>("ChangedByMemberId")
-                        .HasColumnType("int");
+                        .HasColumnType("integer");
 
                     b.Property<decimal?>("CompareAtPriceUsd")
                         .HasColumnType("decimal(18, 4)");
 
                     b.Property<int>("ProductVariantID")
-                        .HasColumnType("int");
+                        .HasColumnType("integer");
 
                     b.Property<DateTime>("RecordedAt")
                         .ValueGeneratedOnAdd()
                         .HasColumnType("datetime")
-                        .HasDefaultValueSql("(sysutcdatetime())", "DF_ProductVariantPriceHistories_RecordedAt");
+                        .HasDefaultValueSql("(sysutcdatetime())")
+                        .HasAnnotation("Relational:DefaultConstraintName", "DF_ProductVariantPriceHistories_RecordedAt");
 
                     b.Property<decimal>("ReferencePriceUsd")
                         .HasColumnType("decimal(18, 4)");
@@ -3802,29 +3872,31 @@ namespace Dotnetable.Migrations.SqlServer.Migrations
                 {
                     b.Property<int>("ProductWarningID")
                         .ValueGeneratedOnAdd()
-                        .HasColumnType("int");
+                        .HasColumnType("integer");
 
-                    SqlServerPropertyBuilderExtensions.UseIdentityColumn(b.Property<int>("ProductWarningID"));
+                    NpgsqlPropertyBuilderExtensions.UseIdentityByDefaultColumn(b.Property<int>("ProductWarningID"));
 
                     b.Property<bool>("IsActive")
                         .ValueGeneratedOnAdd()
-                        .HasColumnType("bit")
-                        .HasDefaultValue(true, "DF_ProductWarnings_IsActive");
+                        .HasColumnType("boolean")
+                        .HasDefaultValue(true)
+                        .HasAnnotation("Relational:DefaultConstraintName", "DF_ProductWarnings_IsActive");
 
                     b.Property<int>("ProductID")
-                        .HasColumnType("int");
+                        .HasColumnType("integer");
 
                     b.Property<string>("Severity")
                         .IsRequired()
                         .ValueGeneratedOnAdd()
                         .HasMaxLength(20)
-                        .HasColumnType("nvarchar(20)")
-                        .HasDefaultValue("info", "DF_ProductWarnings_Severity");
+                        .HasColumnType("character varying(20)")
+                        .HasDefaultValue("info")
+                        .HasAnnotation("Relational:DefaultConstraintName", "DF_ProductWarnings_Severity");
 
                     b.Property<string>("Text")
                         .IsRequired()
                         .HasMaxLength(1000)
-                        .HasColumnType("nvarchar(1000)");
+                        .HasColumnType("character varying(1000)");
 
                     b.HasKey("ProductWarningID");
 
@@ -3837,24 +3909,24 @@ namespace Dotnetable.Migrations.SqlServer.Migrations
                 {
                     b.Property<int>("ProductWarningTranslationID")
                         .ValueGeneratedOnAdd()
-                        .HasColumnType("int");
+                        .HasColumnType("integer");
 
-                    SqlServerPropertyBuilderExtensions.UseIdentityColumn(b.Property<int>("ProductWarningTranslationID"));
+                    NpgsqlPropertyBuilderExtensions.UseIdentityByDefaultColumn(b.Property<int>("ProductWarningTranslationID"));
 
                     b.Property<string>("LanguageCode")
                         .IsRequired()
                         .HasMaxLength(2)
                         .IsUnicode(false)
-                        .HasColumnType("char(2)")
+                        .HasColumnType("character(2)")
                         .IsFixedLength();
 
                     b.Property<int>("ProductWarningID")
-                        .HasColumnType("int");
+                        .HasColumnType("integer");
 
                     b.Property<string>("Text")
                         .IsRequired()
                         .HasMaxLength(1000)
-                        .HasColumnType("nvarchar(1000)");
+                        .HasColumnType("character varying(1000)");
 
                     b.HasKey("ProductWarningTranslationID");
 
@@ -3867,33 +3939,35 @@ namespace Dotnetable.Migrations.SqlServer.Migrations
                 {
                     b.Property<int>("ProductWarrantyID")
                         .ValueGeneratedOnAdd()
-                        .HasColumnType("int");
+                        .HasColumnType("integer");
 
-                    SqlServerPropertyBuilderExtensions.UseIdentityColumn(b.Property<int>("ProductWarrantyID"));
+                    NpgsqlPropertyBuilderExtensions.UseIdentityByDefaultColumn(b.Property<int>("ProductWarrantyID"));
 
                     b.Property<string>("CustomDescription")
                         .HasMaxLength(2000)
-                        .HasColumnType("nvarchar(2000)");
+                        .HasColumnType("character varying(2000)");
 
                     b.Property<string>("CustomTitle")
                         .HasMaxLength(200)
-                        .HasColumnType("nvarchar(200)");
+                        .HasColumnType("character varying(200)");
 
                     b.Property<bool>("IsActive")
                         .ValueGeneratedOnAdd()
-                        .HasColumnType("bit")
-                        .HasDefaultValue(true, "DF_ProductWarranties_IsActive");
+                        .HasColumnType("boolean")
+                        .HasDefaultValue(true)
+                        .HasAnnotation("Relational:DefaultConstraintName", "DF_ProductWarranties_IsActive");
 
                     b.Property<int>("ProductID")
-                        .HasColumnType("int");
+                        .HasColumnType("integer");
 
                     b.Property<int>("SortOrder")
                         .ValueGeneratedOnAdd()
-                        .HasColumnType("int")
-                        .HasDefaultValue(0, "DF_ProductWarranties_SortOrder");
+                        .HasColumnType("integer")
+                        .HasDefaultValue(0)
+                        .HasAnnotation("Relational:DefaultConstraintName", "DF_ProductWarranties_SortOrder");
 
                     b.Property<int?>("WarrantyID")
-                        .HasColumnType("int");
+                        .HasColumnType("integer");
 
                     b.HasKey("ProductWarrantyID");
 
@@ -3910,25 +3984,25 @@ namespace Dotnetable.Migrations.SqlServer.Migrations
                         .ValueGeneratedOnAdd()
                         .HasColumnType("smallint");
 
-                    SqlServerPropertyBuilderExtensions.UseIdentityColumn(b.Property<short>("RoleID"));
+                    NpgsqlPropertyBuilderExtensions.UseIdentityByDefaultColumn(b.Property<short>("RoleID"));
 
                     b.Property<bool>("Active")
-                        .HasColumnType("bit");
+                        .HasColumnType("boolean");
 
                     b.Property<byte>("Category")
-                        .HasColumnType("tinyint");
+                        .HasColumnType("smallint");
 
                     b.Property<string>("Description")
                         .IsRequired()
                         .HasMaxLength(128)
                         .IsUnicode(false)
-                        .HasColumnType("varchar(128)");
+                        .HasColumnType("character varying(128)");
 
                     b.Property<string>("RoleKey")
                         .IsRequired()
                         .HasMaxLength(42)
                         .IsUnicode(false)
-                        .HasColumnType("varchar(42)");
+                        .HasColumnType("character varying(42)");
 
                     b.HasKey("RoleID");
 
@@ -3939,41 +4013,42 @@ namespace Dotnetable.Migrations.SqlServer.Migrations
                 {
                     b.Property<int>("SettlementID")
                         .ValueGeneratedOnAdd()
-                        .HasColumnType("int");
+                        .HasColumnType("integer");
 
-                    SqlServerPropertyBuilderExtensions.UseIdentityColumn(b.Property<int>("SettlementID"));
+                    NpgsqlPropertyBuilderExtensions.UseIdentityByDefaultColumn(b.Property<int>("SettlementID"));
 
                     b.Property<int?>("ApprovedByMemberID")
-                        .HasColumnType("int");
+                        .HasColumnType("integer");
 
                     b.Property<int?>("BankAccountID")
-                        .HasColumnType("int");
+                        .HasColumnType("integer");
 
                     b.Property<DateTime>("CreatedAt")
                         .ValueGeneratedOnAdd()
                         .HasColumnType("datetime")
-                        .HasDefaultValueSql("(sysutcdatetime())", "DF_Settlements_CreatedAt_1");
+                        .HasDefaultValueSql("(sysutcdatetime())")
+                        .HasAnnotation("Relational:DefaultConstraintName", "DF_Settlements_CreatedAt_1");
 
                     b.Property<int?>("CreatedByMemberID")
-                        .HasColumnType("int");
+                        .HasColumnType("integer");
 
                     b.Property<string>("CurrencyCode")
                         .IsRequired()
                         .HasMaxLength(3)
                         .IsUnicode(false)
-                        .HasColumnType("char(3)")
+                        .HasColumnType("character(3)")
                         .IsFixedLength();
 
                     b.Property<string>("Note")
                         .HasMaxLength(500)
-                        .HasColumnType("nvarchar(500)");
+                        .HasColumnType("character varying(500)");
 
                     b.Property<DateTime?>("PaidAt")
                         .HasColumnType("datetime");
 
                     b.Property<string>("PaymentRefNumber")
                         .HasMaxLength(100)
-                        .HasColumnType("nvarchar(100)");
+                        .HasColumnType("character varying(100)");
 
                     b.Property<DateOnly>("PeriodFrom")
                         .HasColumnType("date");
@@ -3983,26 +4058,27 @@ namespace Dotnetable.Migrations.SqlServer.Migrations
 
                     b.Property<byte>("Status")
                         .ValueGeneratedOnAdd()
-                        .HasColumnType("tinyint")
-                        .HasDefaultValue((byte)1, "DF_Settlements_Status_1");
+                        .HasColumnType("smallint")
+                        .HasDefaultValue((byte)1)
+                        .HasAnnotation("Relational:DefaultConstraintName", "DF_Settlements_Status_1");
 
                     b.Property<int?>("SupplierID")
-                        .HasColumnType("int");
+                        .HasColumnType("integer");
 
                     b.Property<byte>("TargetType")
-                        .HasColumnType("tinyint");
+                        .HasColumnType("smallint");
 
                     b.Property<int?>("TargetWebsiteID")
-                        .HasColumnType("int");
+                        .HasColumnType("integer");
 
                     b.Property<decimal>("TotalAmount")
                         .HasColumnType("decimal(18, 4)");
 
                     b.Property<int?>("VendorID")
-                        .HasColumnType("int");
+                        .HasColumnType("integer");
 
                     b.Property<int>("WebsiteID")
-                        .HasColumnType("int");
+                        .HasColumnType("integer");
 
                     b.HasKey("SettlementID");
 
@@ -4029,28 +4105,28 @@ namespace Dotnetable.Migrations.SqlServer.Migrations
                 {
                     b.Property<int>("SettlementItemID")
                         .ValueGeneratedOnAdd()
-                        .HasColumnType("int");
+                        .HasColumnType("integer");
 
-                    SqlServerPropertyBuilderExtensions.UseIdentityColumn(b.Property<int>("SettlementItemID"));
+                    NpgsqlPropertyBuilderExtensions.UseIdentityByDefaultColumn(b.Property<int>("SettlementItemID"));
 
                     b.Property<decimal>("Amount")
                         .HasColumnType("decimal(18, 4)");
 
                     b.Property<string>("Description")
                         .HasMaxLength(300)
-                        .HasColumnType("nvarchar(300)");
+                        .HasColumnType("character varying(300)");
 
                     b.Property<int?>("OrderItemID")
-                        .HasColumnType("int");
+                        .HasColumnType("integer");
 
                     b.Property<int?>("PaymentID")
-                        .HasColumnType("int");
+                        .HasColumnType("integer");
 
                     b.Property<int>("SettlementID")
-                        .HasColumnType("int");
+                        .HasColumnType("integer");
 
                     b.Property<int?>("StockMovementID")
-                        .HasColumnType("int");
+                        .HasColumnType("integer");
 
                     b.HasKey("SettlementItemID");
 
@@ -4069,29 +4145,30 @@ namespace Dotnetable.Migrations.SqlServer.Migrations
                 {
                     b.Property<int>("ShippingMethodID")
                         .ValueGeneratedOnAdd()
-                        .HasColumnType("int");
+                        .HasColumnType("integer");
 
-                    SqlServerPropertyBuilderExtensions.UseIdentityColumn(b.Property<int>("ShippingMethodID"));
+                    NpgsqlPropertyBuilderExtensions.UseIdentityByDefaultColumn(b.Property<int>("ShippingMethodID"));
 
                     b.Property<string>("CarrierName")
                         .HasMaxLength(100)
-                        .HasColumnType("nvarchar(100)");
+                        .HasColumnType("character varying(100)");
 
                     b.Property<bool>("IsActive")
                         .ValueGeneratedOnAdd()
-                        .HasColumnType("bit")
-                        .HasDefaultValue(true, "DF_ShippingMethods_IsActive");
+                        .HasColumnType("boolean")
+                        .HasDefaultValue(true)
+                        .HasAnnotation("Relational:DefaultConstraintName", "DF_ShippingMethods_IsActive");
 
                     b.Property<int>("SortOrder")
-                        .HasColumnType("int");
+                        .HasColumnType("integer");
 
                     b.Property<string>("Title")
                         .IsRequired()
                         .HasMaxLength(100)
-                        .HasColumnType("nvarchar(100)");
+                        .HasColumnType("character varying(100)");
 
                     b.Property<int>("WebsiteID")
-                        .HasColumnType("int");
+                        .HasColumnType("integer");
 
                     b.HasKey("ShippingMethodID");
 
@@ -4104,20 +4181,21 @@ namespace Dotnetable.Migrations.SqlServer.Migrations
                 {
                     b.Property<int>("ShippingRateID")
                         .ValueGeneratedOnAdd()
-                        .HasColumnType("int");
+                        .HasColumnType("integer");
 
-                    SqlServerPropertyBuilderExtensions.UseIdentityColumn(b.Property<int>("ShippingRateID"));
+                    NpgsqlPropertyBuilderExtensions.UseIdentityByDefaultColumn(b.Property<int>("ShippingRateID"));
 
                     b.Property<int?>("CityID")
-                        .HasColumnType("int");
+                        .HasColumnType("integer");
 
                     b.Property<int?>("CountryID")
-                        .HasColumnType("int");
+                        .HasColumnType("integer");
 
                     b.Property<bool>("IsActive")
                         .ValueGeneratedOnAdd()
-                        .HasColumnType("bit")
-                        .HasDefaultValue(true, "DF_ShippingRates_IsActive");
+                        .HasColumnType("boolean")
+                        .HasDefaultValue(true)
+                        .HasAnnotation("Relational:DefaultConstraintName", "DF_ShippingRates_IsActive");
 
                     b.Property<decimal?>("MaxWeightKg")
                         .HasColumnType("decimal(10, 3)");
@@ -4129,10 +4207,10 @@ namespace Dotnetable.Migrations.SqlServer.Migrations
                         .HasColumnType("decimal(18, 4)");
 
                     b.Property<int>("ShippingMethodID")
-                        .HasColumnType("int");
+                        .HasColumnType("integer");
 
                     b.Property<int?>("StateID")
-                        .HasColumnType("int");
+                        .HasColumnType("integer");
 
                     b.HasKey("ShippingRateID");
 
@@ -4151,65 +4229,73 @@ namespace Dotnetable.Migrations.SqlServer.Migrations
                 {
                     b.Property<int>("SlideshowID")
                         .ValueGeneratedOnAdd()
-                        .HasColumnType("int");
+                        .HasColumnType("integer");
 
-                    SqlServerPropertyBuilderExtensions.UseIdentityColumn(b.Property<int>("SlideshowID"));
+                    NpgsqlPropertyBuilderExtensions.UseIdentityByDefaultColumn(b.Property<int>("SlideshowID"));
 
                     b.Property<string>("AspectRatio")
                         .HasMaxLength(20)
-                        .HasColumnType("nvarchar(20)");
+                        .HasColumnType("character varying(20)");
 
                     b.Property<bool>("AutoPlay")
                         .ValueGeneratedOnAdd()
-                        .HasColumnType("bit")
-                        .HasDefaultValue(true, "DF_Slideshows_AutoPlay");
+                        .HasColumnType("boolean")
+                        .HasDefaultValue(true)
+                        .HasAnnotation("Relational:DefaultConstraintName", "DF_Slideshows_AutoPlay");
 
                     b.Property<DateTime>("CreatedAt")
                         .ValueGeneratedOnAdd()
                         .HasColumnType("datetime")
-                        .HasDefaultValueSql("(sysutcdatetime())", "DF_Slideshows_CreatedAt");
+                        .HasDefaultValueSql("(sysutcdatetime())")
+                        .HasAnnotation("Relational:DefaultConstraintName", "DF_Slideshows_CreatedAt");
 
                     b.Property<bool>("EnableLightbox")
                         .ValueGeneratedOnAdd()
-                        .HasColumnType("bit")
-                        .HasDefaultValue(true, "DF_Slideshows_EnableLightbox");
+                        .HasColumnType("boolean")
+                        .HasDefaultValue(true)
+                        .HasAnnotation("Relational:DefaultConstraintName", "DF_Slideshows_EnableLightbox");
 
                     b.Property<int>("IntervalMs")
                         .ValueGeneratedOnAdd()
-                        .HasColumnType("int")
-                        .HasDefaultValue(5000, "DF_Slideshows_IntervalMs");
+                        .HasColumnType("integer")
+                        .HasDefaultValue(5000)
+                        .HasAnnotation("Relational:DefaultConstraintName", "DF_Slideshows_IntervalMs");
 
                     b.Property<bool>("IsActive")
                         .ValueGeneratedOnAdd()
-                        .HasColumnType("bit")
-                        .HasDefaultValue(true, "DF_Slideshows_IsActive");
+                        .HasColumnType("boolean")
+                        .HasDefaultValue(true)
+                        .HasAnnotation("Relational:DefaultConstraintName", "DF_Slideshows_IsActive");
 
                     b.Property<string>("Name")
                         .IsRequired()
                         .HasMaxLength(150)
-                        .HasColumnType("nvarchar(150)");
+                        .HasColumnType("character varying(150)");
 
                     b.Property<string>("PlacementKey")
                         .HasMaxLength(100)
-                        .HasColumnType("nvarchar(100)");
+                        .HasColumnType("character varying(100)");
 
                     b.Property<bool>("ShowArrows")
                         .ValueGeneratedOnAdd()
-                        .HasColumnType("bit")
-                        .HasDefaultValue(true, "DF_Slideshows_ShowArrows");
+                        .HasColumnType("boolean")
+                        .HasDefaultValue(true)
+                        .HasAnnotation("Relational:DefaultConstraintName", "DF_Slideshows_ShowArrows");
 
                     b.Property<bool>("ShowDots")
                         .ValueGeneratedOnAdd()
-                        .HasColumnType("bit")
-                        .HasDefaultValue(true, "DF_Slideshows_ShowDots");
+                        .HasColumnType("boolean")
+                        .HasDefaultValue(true)
+                        .HasAnnotation("Relational:DefaultConstraintName", "DF_Slideshows_ShowDots");
 
                     b.Property<byte>("TransitionEffect")
                         .ValueGeneratedOnAdd()
-                        .HasColumnType("tinyint")
-                        .HasDefaultValue((byte)1, "DF_Slideshows_TransitionEffect");
+                        .HasColumnType("smallint")
+                        .HasDefaultValue((byte)1)
+                        .HasAnnotation("Relational:DefaultConstraintName", "DF_Slideshows_TransitionEffect");
 
                     b.Property<int>("WebsiteID")
-                        .HasColumnType("int");
+                        .HasColumnType("integer");
 
                     b.HasKey("SlideshowID");
 
@@ -4222,51 +4308,52 @@ namespace Dotnetable.Migrations.SqlServer.Migrations
                 {
                     b.Property<int>("SlideshowSlideID")
                         .ValueGeneratedOnAdd()
-                        .HasColumnType("int");
+                        .HasColumnType("integer");
 
-                    SqlServerPropertyBuilderExtensions.UseIdentityColumn(b.Property<int>("SlideshowSlideID"));
+                    NpgsqlPropertyBuilderExtensions.UseIdentityByDefaultColumn(b.Property<int>("SlideshowSlideID"));
 
                     b.Property<string>("ButtonText")
                         .HasMaxLength(100)
-                        .HasColumnType("nvarchar(100)");
+                        .HasColumnType("character varying(100)");
 
                     b.Property<string>("Caption")
                         .HasMaxLength(500)
-                        .HasColumnType("nvarchar(500)");
+                        .HasColumnType("character varying(500)");
 
                     b.Property<DateTime?>("EndAt")
-                        .HasColumnType("datetime2");
+                        .HasColumnType("timestamp with time zone");
 
                     b.Property<int>("FileID")
-                        .HasColumnType("int");
+                        .HasColumnType("integer");
 
                     b.Property<bool>("IsActive")
                         .ValueGeneratedOnAdd()
-                        .HasColumnType("bit")
-                        .HasDefaultValue(true, "DF_SlideshowSlides_IsActive");
+                        .HasColumnType("boolean")
+                        .HasDefaultValue(true)
+                        .HasAnnotation("Relational:DefaultConstraintName", "DF_SlideshowSlides_IsActive");
 
                     b.Property<string>("LinkUrl")
                         .HasMaxLength(500)
-                        .HasColumnType("nvarchar(500)");
+                        .HasColumnType("character varying(500)");
 
                     b.Property<int?>("MobileFileID")
-                        .HasColumnType("int");
+                        .HasColumnType("integer");
 
                     b.Property<bool>("OpenInNewTab")
-                        .HasColumnType("bit");
+                        .HasColumnType("boolean");
 
                     b.Property<int>("SlideshowID")
-                        .HasColumnType("int");
+                        .HasColumnType("integer");
 
                     b.Property<int>("SortOrder")
-                        .HasColumnType("int");
+                        .HasColumnType("integer");
 
                     b.Property<DateTime?>("StartAt")
-                        .HasColumnType("datetime2");
+                        .HasColumnType("timestamp with time zone");
 
                     b.Property<string>("Title")
                         .HasMaxLength(200)
-                        .HasColumnType("nvarchar(200)");
+                        .HasColumnType("character varying(200)");
 
                     b.HasKey("SlideshowSlideID");
 
@@ -4283,27 +4370,27 @@ namespace Dotnetable.Migrations.SqlServer.Migrations
                 {
                     b.Property<int>("StateID")
                         .ValueGeneratedOnAdd()
-                        .HasColumnType("int");
+                        .HasColumnType("integer");
 
-                    SqlServerPropertyBuilderExtensions.UseIdentityColumn(b.Property<int>("StateID"));
+                    NpgsqlPropertyBuilderExtensions.UseIdentityByDefaultColumn(b.Property<int>("StateID"));
 
                     b.Property<bool>("Active")
-                        .HasColumnType("bit");
+                        .HasColumnType("boolean");
 
                     b.Property<int>("CountryID")
-                        .HasColumnType("int");
+                        .HasColumnType("integer");
 
                     b.Property<string>("LanguageCode")
                         .IsRequired()
                         .HasMaxLength(2)
                         .IsUnicode(false)
-                        .HasColumnType("char(2)")
+                        .HasColumnType("character(2)")
                         .IsFixedLength();
 
                     b.Property<string>("Title")
                         .IsRequired()
                         .HasMaxLength(48)
-                        .HasColumnType("nvarchar(48)");
+                        .HasColumnType("character varying(48)");
 
                     b.HasKey("StateID");
 
@@ -4316,24 +4403,24 @@ namespace Dotnetable.Migrations.SqlServer.Migrations
                 {
                     b.Property<int>("StateTranslationID")
                         .ValueGeneratedOnAdd()
-                        .HasColumnType("int");
+                        .HasColumnType("integer");
 
-                    SqlServerPropertyBuilderExtensions.UseIdentityColumn(b.Property<int>("StateTranslationID"));
+                    NpgsqlPropertyBuilderExtensions.UseIdentityByDefaultColumn(b.Property<int>("StateTranslationID"));
 
                     b.Property<string>("LanguageCode")
                         .IsRequired()
                         .HasMaxLength(2)
                         .IsUnicode(false)
-                        .HasColumnType("char(2)")
+                        .HasColumnType("character(2)")
                         .IsFixedLength();
 
                     b.Property<int>("StateID")
-                        .HasColumnType("int");
+                        .HasColumnType("integer");
 
                     b.Property<string>("Title")
                         .IsRequired()
                         .HasMaxLength(48)
-                        .HasColumnType("nvarchar(48)");
+                        .HasColumnType("character varying(48)");
 
                     b.HasKey("StateTranslationID");
 
@@ -4346,53 +4433,55 @@ namespace Dotnetable.Migrations.SqlServer.Migrations
                 {
                     b.Property<int>("StockMovementID")
                         .ValueGeneratedOnAdd()
-                        .HasColumnType("int");
+                        .HasColumnType("integer");
 
-                    SqlServerPropertyBuilderExtensions.UseIdentityColumn(b.Property<int>("StockMovementID"));
+                    NpgsqlPropertyBuilderExtensions.UseIdentityByDefaultColumn(b.Property<int>("StockMovementID"));
 
                     b.Property<DateTime>("CreatedAt")
                         .ValueGeneratedOnAdd()
                         .HasPrecision(0)
-                        .HasColumnType("datetime2(0)")
-                        .HasDefaultValueSql("(sysutcdatetime())", "DF_StockMovements_CreatedAt");
+                        .HasColumnType("timestamp(0) with time zone")
+                        .HasDefaultValueSql("(sysutcdatetime())")
+                        .HasAnnotation("Relational:DefaultConstraintName", "DF_StockMovements_CreatedAt");
 
                     b.Property<int?>("CreatedByMemberID")
-                        .HasColumnType("int");
+                        .HasColumnType("integer");
 
                     b.Property<string>("CurrencyCode")
                         .IsRequired()
                         .HasMaxLength(3)
                         .IsUnicode(false)
-                        .HasColumnType("char(3)")
+                        .HasColumnType("character(3)")
                         .IsFixedLength();
 
                     b.Property<decimal>("ExchangeRateToUsd")
                         .ValueGeneratedOnAdd()
                         .HasColumnType("decimal(18, 6)")
+                        .HasDefaultValue(1m)
                         .HasComment("website's local currency rate snapshotted at the moment of this stock entry/exit, so accounting and reports can be reconstructed in local currency at that point in time")
-                        .HasDefaultValue(1m, "DF_StockMovements_ExchangeRateToUsd");
+                        .HasAnnotation("Relational:DefaultConstraintName", "DF_StockMovements_ExchangeRateToUsd");
 
                     b.Property<string>("Note")
                         .HasMaxLength(500)
-                        .HasColumnType("nvarchar(500)");
+                        .HasColumnType("character varying(500)");
 
                     b.Property<int?>("OrderID")
-                        .HasColumnType("int");
+                        .HasColumnType("integer");
 
                     b.Property<int?>("OrderItemID")
-                        .HasColumnType("int");
+                        .HasColumnType("integer");
 
                     b.Property<int>("ProductVariantID")
-                        .HasColumnType("int");
+                        .HasColumnType("integer");
 
                     b.Property<int>("Quantity")
-                        .HasColumnType("int");
+                        .HasColumnType("integer");
 
                     b.Property<int?>("SupplierID")
-                        .HasColumnType("int");
+                        .HasColumnType("integer");
 
                     b.Property<byte>("Type")
-                        .HasColumnType("tinyint");
+                        .HasColumnType("smallint");
 
                     b.Property<decimal>("UnitCostUsd")
                         .HasColumnType("decimal(18, 4)");
@@ -4401,7 +4490,7 @@ namespace Dotnetable.Migrations.SqlServer.Migrations
                         .HasColumnType("decimal(18, 4)");
 
                     b.Property<int>("WebsiteID")
-                        .HasColumnType("int");
+                        .HasColumnType("integer");
 
                     b.HasKey("StockMovementID");
 
@@ -4426,26 +4515,27 @@ namespace Dotnetable.Migrations.SqlServer.Migrations
                 {
                     b.Property<int>("SupplierID")
                         .ValueGeneratedOnAdd()
-                        .HasColumnType("int");
+                        .HasColumnType("integer");
 
-                    SqlServerPropertyBuilderExtensions.UseIdentityColumn(b.Property<int>("SupplierID"));
+                    NpgsqlPropertyBuilderExtensions.UseIdentityByDefaultColumn(b.Property<int>("SupplierID"));
 
                     b.Property<bool>("IsActive")
                         .ValueGeneratedOnAdd()
-                        .HasColumnType("bit")
-                        .HasDefaultValue(true, "DF_Suppliers_IsActive_1");
+                        .HasColumnType("boolean")
+                        .HasDefaultValue(true)
+                        .HasAnnotation("Relational:DefaultConstraintName", "DF_Suppliers_IsActive_1");
 
                     b.Property<string>("Name")
                         .IsRequired()
                         .HasMaxLength(200)
-                        .HasColumnType("nvarchar(200)");
+                        .HasColumnType("character varying(200)");
 
                     b.Property<string>("Phone")
                         .HasMaxLength(20)
-                        .HasColumnType("nvarchar(20)");
+                        .HasColumnType("character varying(20)");
 
                     b.Property<int>("WebsiteID")
-                        .HasColumnType("int");
+                        .HasColumnType("integer");
 
                     b.HasKey("SupplierID");
 
@@ -4458,22 +4548,22 @@ namespace Dotnetable.Migrations.SqlServer.Migrations
                 {
                     b.Property<int>("TagID")
                         .ValueGeneratedOnAdd()
-                        .HasColumnType("int");
+                        .HasColumnType("integer");
 
-                    SqlServerPropertyBuilderExtensions.UseIdentityColumn(b.Property<int>("TagID"));
+                    NpgsqlPropertyBuilderExtensions.UseIdentityByDefaultColumn(b.Property<int>("TagID"));
 
                     b.Property<string>("Name")
                         .IsRequired()
                         .HasMaxLength(150)
-                        .HasColumnType("nvarchar(150)");
+                        .HasColumnType("character varying(150)");
 
                     b.Property<string>("Slug")
                         .IsRequired()
                         .HasMaxLength(150)
-                        .HasColumnType("nvarchar(150)");
+                        .HasColumnType("character varying(150)");
 
                     b.Property<int>("WebsiteID")
-                        .HasColumnType("int");
+                        .HasColumnType("integer");
 
                     b.HasKey("TagID");
 
@@ -4486,29 +4576,29 @@ namespace Dotnetable.Migrations.SqlServer.Migrations
                 {
                     b.Property<int>("TagTranslationID")
                         .ValueGeneratedOnAdd()
-                        .HasColumnType("int");
+                        .HasColumnType("integer");
 
-                    SqlServerPropertyBuilderExtensions.UseIdentityColumn(b.Property<int>("TagTranslationID"));
+                    NpgsqlPropertyBuilderExtensions.UseIdentityByDefaultColumn(b.Property<int>("TagTranslationID"));
 
                     b.Property<string>("LanguageCode")
                         .IsRequired()
                         .HasMaxLength(2)
                         .IsUnicode(false)
-                        .HasColumnType("char(2)")
+                        .HasColumnType("character(2)")
                         .IsFixedLength();
 
                     b.Property<string>("Name")
                         .IsRequired()
                         .HasMaxLength(150)
-                        .HasColumnType("nvarchar(150)");
+                        .HasColumnType("character varying(150)");
 
                     b.Property<string>("Slug")
                         .IsRequired()
                         .HasMaxLength(150)
-                        .HasColumnType("nvarchar(150)");
+                        .HasColumnType("character varying(150)");
 
                     b.Property<int>("TagID")
-                        .HasColumnType("int");
+                        .HasColumnType("integer");
 
                     b.HasKey("TagTranslationID");
 
@@ -4521,34 +4611,35 @@ namespace Dotnetable.Migrations.SqlServer.Migrations
                 {
                     b.Property<int>("TaxRateID")
                         .ValueGeneratedOnAdd()
-                        .HasColumnType("int");
+                        .HasColumnType("integer");
 
-                    SqlServerPropertyBuilderExtensions.UseIdentityColumn(b.Property<int>("TaxRateID"));
+                    NpgsqlPropertyBuilderExtensions.UseIdentityByDefaultColumn(b.Property<int>("TaxRateID"));
 
                     b.Property<int?>("CountryID")
-                        .HasColumnType("int");
+                        .HasColumnType("integer");
 
                     b.Property<bool>("IsActive")
                         .ValueGeneratedOnAdd()
-                        .HasColumnType("bit")
-                        .HasDefaultValue(true, "DF_TaxRates_IsActive");
+                        .HasColumnType("boolean")
+                        .HasDefaultValue(true)
+                        .HasAnnotation("Relational:DefaultConstraintName", "DF_TaxRates_IsActive");
 
                     b.Property<int>("Priority")
-                        .HasColumnType("int");
+                        .HasColumnType("integer");
 
                     b.Property<decimal>("Rate")
                         .HasColumnType("decimal(9, 6)");
 
                     b.Property<int?>("StateID")
-                        .HasColumnType("int");
+                        .HasColumnType("integer");
 
                     b.Property<string>("Title")
                         .IsRequired()
                         .HasMaxLength(100)
-                        .HasColumnType("nvarchar(100)");
+                        .HasColumnType("character varying(100)");
 
                     b.Property<int>("WebsiteID")
-                        .HasColumnType("int");
+                        .HasColumnType("integer");
 
                     b.HasKey("TaxRateID");
 
@@ -4564,13 +4655,13 @@ namespace Dotnetable.Migrations.SqlServer.Migrations
             modelBuilder.Entity("Dotnetable.Domain.Entities.VariantAttributeValue", b =>
                 {
                     b.Property<int>("ProductVariantID")
-                        .HasColumnType("int");
+                        .HasColumnType("integer");
 
                     b.Property<int>("AttributeDefinitionID")
-                        .HasColumnType("int");
+                        .HasColumnType("integer");
 
                     b.Property<int>("AttributeOptionID")
-                        .HasColumnType("int");
+                        .HasColumnType("integer");
 
                     b.HasKey("ProductVariantID", "AttributeDefinitionID");
 
@@ -4585,17 +4676,18 @@ namespace Dotnetable.Migrations.SqlServer.Migrations
                 {
                     b.Property<int>("VendorID")
                         .ValueGeneratedOnAdd()
-                        .HasColumnType("int");
+                        .HasColumnType("integer");
 
-                    SqlServerPropertyBuilderExtensions.UseIdentityColumn(b.Property<int>("VendorID"));
+                    NpgsqlPropertyBuilderExtensions.UseIdentityByDefaultColumn(b.Property<int>("VendorID"));
 
                     b.Property<decimal>("AvailableCreditUsd")
                         .ValueGeneratedOnAdd()
                         .HasColumnType("decimal(18, 4)")
-                        .HasDefaultValue(0m, "DF_Vendors_AvailableCreditUsd");
+                        .HasDefaultValue(0m)
+                        .HasAnnotation("Relational:DefaultConstraintName", "DF_Vendors_AvailableCreditUsd");
 
                     b.Property<int?>("CreditDays")
-                        .HasColumnType("int")
+                        .HasColumnType("integer")
                         .HasComment("number of days after the settlement period ends before payment is due; only meaningful when SettlementMode = Credit");
 
                     b.Property<decimal?>("CreditLimitUsd")
@@ -4604,43 +4696,45 @@ namespace Dotnetable.Migrations.SqlServer.Migrations
 
                     b.Property<bool>("IsActive")
                         .ValueGeneratedOnAdd()
-                        .HasColumnType("bit")
-                        .HasDefaultValue(true, "DF_Vendors_IsActive_1");
+                        .HasColumnType("boolean")
+                        .HasDefaultValue(true)
+                        .HasAnnotation("Relational:DefaultConstraintName", "DF_Vendors_IsActive_1");
 
                     b.Property<int?>("LinkedWebsiteID")
-                        .HasColumnType("int");
+                        .HasColumnType("integer");
 
                     b.Property<int?>("LogoFileID")
-                        .HasColumnType("int");
+                        .HasColumnType("integer");
 
                     b.Property<int?>("MemberID")
-                        .HasColumnType("int");
+                        .HasColumnType("integer");
 
                     b.Property<string>("Name")
                         .IsRequired()
                         .HasMaxLength(200)
-                        .HasColumnType("nvarchar(200)");
+                        .HasColumnType("character varying(200)");
 
                     b.Property<decimal>("Rating")
                         .HasColumnType("decimal(3, 2)");
 
                     b.Property<byte>("SettlementMode")
-                        .HasColumnType("tinyint")
+                        .HasColumnType("smallint")
                         .HasComment("0 = Immediate: every purchase from this vendor is settled instantly like a normal cash purchase. 1 = Credit: purchases accrue as credit and are batched into a periodic Settlements record due on CreditDays");
 
                     b.Property<string>("Slug")
                         .IsRequired()
                         .HasMaxLength(200)
-                        .HasColumnType("nvarchar(200)");
+                        .HasColumnType("character varying(200)");
 
                     b.Property<byte>("VendorType")
                         .ValueGeneratedOnAdd()
-                        .HasColumnType("tinyint")
+                        .HasColumnType("smallint")
+                        .HasDefaultValue((byte)0)
                         .HasComment("0 = Display-only title, 1 = Member login (manage own catalog), 2 = Linked website (inter-site virtual credit)")
-                        .HasDefaultValue((byte)0, "DF_Vendors_VendorType");
+                        .HasAnnotation("Relational:DefaultConstraintName", "DF_Vendors_VendorType");
 
                     b.Property<int>("WebsiteID")
-                        .HasColumnType("int");
+                        .HasColumnType("integer");
 
                     b.HasKey("VendorID");
 
@@ -4661,9 +4755,9 @@ namespace Dotnetable.Migrations.SqlServer.Migrations
                 {
                     b.Property<int>("VendorCreditTransactionID")
                         .ValueGeneratedOnAdd()
-                        .HasColumnType("int");
+                        .HasColumnType("integer");
 
-                    SqlServerPropertyBuilderExtensions.UseIdentityColumn(b.Property<int>("VendorCreditTransactionID"));
+                    NpgsqlPropertyBuilderExtensions.UseIdentityByDefaultColumn(b.Property<int>("VendorCreditTransactionID"));
 
                     b.Property<decimal>("AmountUsd")
                         .HasColumnType("decimal(18, 4)");
@@ -4674,30 +4768,31 @@ namespace Dotnetable.Migrations.SqlServer.Migrations
                     b.Property<DateTime>("CreatedAt")
                         .ValueGeneratedOnAdd()
                         .HasColumnType("datetime")
-                        .HasDefaultValueSql("(sysutcdatetime())", "DF_VendorCreditTransactions_CreatedAt");
+                        .HasDefaultValueSql("(sysutcdatetime())")
+                        .HasAnnotation("Relational:DefaultConstraintName", "DF_VendorCreditTransactions_CreatedAt");
 
                     b.Property<int?>("CreatedByMemberID")
-                        .HasColumnType("int");
+                        .HasColumnType("integer");
 
                     b.Property<int?>("MirrorOrderID")
-                        .HasColumnType("int");
+                        .HasColumnType("integer");
 
                     b.Property<string>("Note")
                         .HasMaxLength(500)
-                        .HasColumnType("nvarchar(500)");
+                        .HasColumnType("character varying(500)");
 
                     b.Property<int?>("SourceOrderItemID")
-                        .HasColumnType("int");
+                        .HasColumnType("integer");
 
                     b.Property<byte>("SourceType")
-                        .HasColumnType("tinyint")
+                        .HasColumnType("smallint")
                         .HasComment("1 = Grant, 2 = Sale, 3 = Adjustment, 4 = Refund");
 
                     b.Property<int>("VendorID")
-                        .HasColumnType("int");
+                        .HasColumnType("integer");
 
                     b.Property<int>("WebsiteID")
-                        .HasColumnType("int");
+                        .HasColumnType("integer");
 
                     b.HasKey("VendorCreditTransactionID");
 
@@ -4718,37 +4813,39 @@ namespace Dotnetable.Migrations.SqlServer.Migrations
                 {
                     b.Property<int>("VendorProductID")
                         .ValueGeneratedOnAdd()
-                        .HasColumnType("int");
+                        .HasColumnType("integer");
 
-                    SqlServerPropertyBuilderExtensions.UseIdentityColumn(b.Property<int>("VendorProductID"));
+                    NpgsqlPropertyBuilderExtensions.UseIdentityByDefaultColumn(b.Property<int>("VendorProductID"));
 
                     b.Property<int>("DeliveryDays")
                         .ValueGeneratedOnAdd()
-                        .HasColumnType("int")
-                        .HasDefaultValue(1, "DF_VendorProducts_DeliveryDays");
+                        .HasColumnType("integer")
+                        .HasDefaultValue(1)
+                        .HasAnnotation("Relational:DefaultConstraintName", "DF_VendorProducts_DeliveryDays");
 
                     b.Property<bool>("IsActive")
                         .ValueGeneratedOnAdd()
-                        .HasColumnType("bit")
-                        .HasDefaultValue(true, "DF_VendorProducts_IsActive_1");
+                        .HasColumnType("boolean")
+                        .HasDefaultValue(true)
+                        .HasAnnotation("Relational:DefaultConstraintName", "DF_VendorProducts_IsActive_1");
 
                     b.Property<decimal?>("OverridePrice")
                         .HasColumnType("decimal(18, 4)");
 
                     b.Property<int>("ProductVariantID")
-                        .HasColumnType("int");
+                        .HasColumnType("integer");
 
                     b.Property<decimal>("ReferencePriceUsd")
                         .HasColumnType("decimal(18, 4)");
 
                     b.Property<int>("StockQuantity")
-                        .HasColumnType("int");
+                        .HasColumnType("integer");
 
                     b.Property<int>("VendorID")
-                        .HasColumnType("int");
+                        .HasColumnType("integer");
 
                     b.Property<int>("WebsiteID")
-                        .HasColumnType("int");
+                        .HasColumnType("integer");
 
                     b.HasKey("VendorProductID");
 
@@ -4765,24 +4862,24 @@ namespace Dotnetable.Migrations.SqlServer.Migrations
                 {
                     b.Property<int>("VendorTranslationID")
                         .ValueGeneratedOnAdd()
-                        .HasColumnType("int");
+                        .HasColumnType("integer");
 
-                    SqlServerPropertyBuilderExtensions.UseIdentityColumn(b.Property<int>("VendorTranslationID"));
+                    NpgsqlPropertyBuilderExtensions.UseIdentityByDefaultColumn(b.Property<int>("VendorTranslationID"));
 
                     b.Property<string>("LanguageCode")
                         .IsRequired()
                         .HasMaxLength(2)
                         .IsUnicode(false)
-                        .HasColumnType("char(2)")
+                        .HasColumnType("character(2)")
                         .IsFixedLength();
 
                     b.Property<string>("Name")
                         .IsRequired()
                         .HasMaxLength(200)
-                        .HasColumnType("nvarchar(200)");
+                        .HasColumnType("character varying(200)");
 
                     b.Property<int>("VendorID")
-                        .HasColumnType("int");
+                        .HasColumnType("integer");
 
                     b.HasKey("VendorTranslationID");
 
@@ -4795,38 +4892,40 @@ namespace Dotnetable.Migrations.SqlServer.Migrations
                 {
                     b.Property<int>("WarrantyID")
                         .ValueGeneratedOnAdd()
-                        .HasColumnType("int");
+                        .HasColumnType("integer");
 
-                    SqlServerPropertyBuilderExtensions.UseIdentityColumn(b.Property<int>("WarrantyID"));
+                    NpgsqlPropertyBuilderExtensions.UseIdentityByDefaultColumn(b.Property<int>("WarrantyID"));
 
                     b.Property<string>("Description")
                         .HasMaxLength(2000)
-                        .HasColumnType("nvarchar(2000)");
+                        .HasColumnType("character varying(2000)");
 
                     b.Property<int?>("DurationMonths")
-                        .HasColumnType("int");
+                        .HasColumnType("integer");
 
                     b.Property<bool>("IsActive")
                         .ValueGeneratedOnAdd()
-                        .HasColumnType("bit")
-                        .HasDefaultValue(true, "DF_Warranties_IsActive");
+                        .HasColumnType("boolean")
+                        .HasDefaultValue(true)
+                        .HasAnnotation("Relational:DefaultConstraintName", "DF_Warranties_IsActive");
 
                     b.Property<string>("ProviderName")
                         .HasMaxLength(200)
-                        .HasColumnType("nvarchar(200)");
+                        .HasColumnType("character varying(200)");
 
                     b.Property<int>("SortOrder")
                         .ValueGeneratedOnAdd()
-                        .HasColumnType("int")
-                        .HasDefaultValue(0, "DF_Warranties_SortOrder");
+                        .HasColumnType("integer")
+                        .HasDefaultValue(0)
+                        .HasAnnotation("Relational:DefaultConstraintName", "DF_Warranties_SortOrder");
 
                     b.Property<string>("Title")
                         .IsRequired()
                         .HasMaxLength(200)
-                        .HasColumnType("nvarchar(200)");
+                        .HasColumnType("character varying(200)");
 
                     b.Property<int>("WebsiteID")
-                        .HasColumnType("int");
+                        .HasColumnType("integer");
 
                     b.HasKey("WarrantyID");
 
@@ -4839,32 +4938,32 @@ namespace Dotnetable.Migrations.SqlServer.Migrations
                 {
                     b.Property<int>("WarrantyTranslationID")
                         .ValueGeneratedOnAdd()
-                        .HasColumnType("int");
+                        .HasColumnType("integer");
 
-                    SqlServerPropertyBuilderExtensions.UseIdentityColumn(b.Property<int>("WarrantyTranslationID"));
+                    NpgsqlPropertyBuilderExtensions.UseIdentityByDefaultColumn(b.Property<int>("WarrantyTranslationID"));
 
                     b.Property<string>("Description")
                         .HasMaxLength(2000)
-                        .HasColumnType("nvarchar(2000)");
+                        .HasColumnType("character varying(2000)");
 
                     b.Property<string>("LanguageCode")
                         .IsRequired()
                         .HasMaxLength(2)
                         .IsUnicode(false)
-                        .HasColumnType("char(2)")
+                        .HasColumnType("character(2)")
                         .IsFixedLength();
 
                     b.Property<string>("ProviderName")
                         .HasMaxLength(200)
-                        .HasColumnType("nvarchar(200)");
+                        .HasColumnType("character varying(200)");
 
                     b.Property<string>("Title")
                         .IsRequired()
                         .HasMaxLength(200)
-                        .HasColumnType("nvarchar(200)");
+                        .HasColumnType("character varying(200)");
 
                     b.Property<int>("WarrantyID")
-                        .HasColumnType("int");
+                        .HasColumnType("integer");
 
                     b.HasKey("WarrantyTranslationID");
 
@@ -4877,64 +4976,64 @@ namespace Dotnetable.Migrations.SqlServer.Migrations
                 {
                     b.Property<int>("WebsiteID")
                         .ValueGeneratedOnAdd()
-                        .HasColumnType("int");
+                        .HasColumnType("integer");
 
-                    SqlServerPropertyBuilderExtensions.UseIdentityColumn(b.Property<int>("WebsiteID"));
+                    NpgsqlPropertyBuilderExtensions.UseIdentityByDefaultColumn(b.Property<int>("WebsiteID"));
 
                     b.Property<bool>("Active")
-                        .HasColumnType("bit");
+                        .HasColumnType("boolean");
 
                     b.Property<bool>("AllowAllIP")
-                        .HasColumnType("bit");
+                        .HasColumnType("boolean");
 
                     b.Property<Guid>("AuthCode")
-                        .HasColumnType("uniqueidentifier");
+                        .HasColumnType("uuid");
 
                     b.Property<string>("BrandName")
                         .IsRequired()
                         .HasMaxLength(60)
-                        .HasColumnType("nvarchar(60)")
+                        .HasColumnType("character varying(60)")
                         .HasComment("show in title of pages");
 
                     b.Property<string>("DefaultCurrencyCode")
                         .IsRequired()
                         .HasMaxLength(3)
                         .IsUnicode(false)
-                        .HasColumnType("char(3)")
+                        .HasColumnType("character(3)")
                         .IsFixedLength();
 
                     b.Property<string>("DefaultLanguageCode")
                         .IsRequired()
                         .HasMaxLength(2)
                         .IsUnicode(false)
-                        .HasColumnType("char(2)")
+                        .HasColumnType("character(2)")
                         .IsFixedLength();
 
                     b.Property<string>("Email")
                         .IsRequired()
                         .HasMaxLength(60)
                         .IsUnicode(false)
-                        .HasColumnType("varchar(60)");
+                        .HasColumnType("character varying(60)");
 
                     b.Property<int?>("FaveIconFileID")
-                        .HasColumnType("int");
+                        .HasColumnType("integer");
 
                     b.Property<bool>("IsHub")
-                        .HasColumnType("bit");
+                        .HasColumnType("boolean");
 
                     b.Property<int?>("LogoFileID")
-                        .HasColumnType("int");
+                        .HasColumnType("integer");
 
                     b.Property<string>("Manager")
                         .IsRequired()
                         .HasMaxLength(30)
-                        .HasColumnType("nvarchar(30)");
+                        .HasColumnType("character varying(30)");
 
                     b.Property<string>("Mobile")
                         .IsRequired()
                         .HasMaxLength(15)
                         .IsUnicode(false)
-                        .HasColumnType("varchar(15)");
+                        .HasColumnType("character varying(15)");
 
                     b.Property<DateOnly>("RegisterDate")
                         .HasColumnType("date");
@@ -4942,16 +5041,16 @@ namespace Dotnetable.Migrations.SqlServer.Migrations
                     b.Property<string>("TradeName")
                         .IsRequired()
                         .HasMaxLength(32)
-                        .HasColumnType("nvarchar(32)");
+                        .HasColumnType("character varying(32)");
 
                     b.Property<string>("WebsiteAddress")
                         .IsRequired()
                         .HasMaxLength(60)
                         .IsUnicode(false)
-                        .HasColumnType("varchar(60)");
+                        .HasColumnType("character varying(60)");
 
                     b.Property<byte>("WebsiteType")
-                        .HasColumnType("tinyint");
+                        .HasColumnType("smallint");
 
                     b.HasKey("WebsiteID");
 
@@ -4968,23 +5067,23 @@ namespace Dotnetable.Migrations.SqlServer.Migrations
                 {
                     b.Property<int>("WebsiteCaptchaSettingID")
                         .ValueGeneratedOnAdd()
-                        .HasColumnType("int");
+                        .HasColumnType("integer");
 
-                    SqlServerPropertyBuilderExtensions.UseIdentityColumn(b.Property<int>("WebsiteCaptchaSettingID"));
+                    NpgsqlPropertyBuilderExtensions.UseIdentityByDefaultColumn(b.Property<int>("WebsiteCaptchaSettingID"));
 
                     b.Property<byte>("Provider")
-                        .HasColumnType("tinyint");
+                        .HasColumnType("smallint");
 
                     b.Property<string>("TurnstileSecretKey")
                         .HasMaxLength(200)
-                        .HasColumnType("nvarchar(200)");
+                        .HasColumnType("character varying(200)");
 
                     b.Property<string>("TurnstileSiteKey")
                         .HasMaxLength(200)
-                        .HasColumnType("nvarchar(200)");
+                        .HasColumnType("character varying(200)");
 
                     b.Property<int>("WebsiteID")
-                        .HasColumnType("int");
+                        .HasColumnType("integer");
 
                     b.HasKey("WebsiteCaptchaSettingID");
 
@@ -4998,58 +5097,58 @@ namespace Dotnetable.Migrations.SqlServer.Migrations
                 {
                     b.Property<int>("WebsiteClientID")
                         .ValueGeneratedOnAdd()
-                        .HasColumnType("int");
+                        .HasColumnType("integer");
 
-                    SqlServerPropertyBuilderExtensions.UseIdentityColumn(b.Property<int>("WebsiteClientID"));
+                    NpgsqlPropertyBuilderExtensions.UseIdentityByDefaultColumn(b.Property<int>("WebsiteClientID"));
 
                     b.Property<bool>("Active")
-                        .HasColumnType("bit");
+                        .HasColumnType("boolean");
 
                     b.Property<int?>("AvatarID")
-                        .HasColumnType("int");
+                        .HasColumnType("integer");
 
                     b.Property<string>("Cellphone")
                         .HasMaxLength(16)
                         .IsUnicode(false)
-                        .HasColumnType("varchar(16)");
+                        .HasColumnType("character varying(16)");
 
                     b.Property<byte>("ClientLevel")
-                        .HasColumnType("tinyint");
+                        .HasColumnType("smallint");
 
                     b.Property<string>("CountryCode")
                         .HasMaxLength(3)
                         .IsUnicode(false)
-                        .HasColumnType("varchar(3)");
+                        .HasColumnType("character varying(3)");
 
                     b.Property<string>("Email")
                         .HasMaxLength(60)
                         .IsUnicode(false)
-                        .HasColumnType("varchar(60)");
+                        .HasColumnType("character varying(60)");
 
                     b.Property<bool?>("Gender")
-                        .HasColumnType("bit");
+                        .HasColumnType("boolean");
 
                     b.Property<string>("Givenname")
                         .HasMaxLength(42)
-                        .HasColumnType("nvarchar(42)");
+                        .HasColumnType("character varying(42)");
 
                     b.Property<Guid>("HashKey")
-                        .HasColumnType("uniqueidentifier");
+                        .HasColumnType("uuid");
 
                     b.Property<string>("Password")
                         .HasMaxLength(256)
                         .IsUnicode(false)
-                        .HasColumnType("varchar(256)");
+                        .HasColumnType("character varying(256)");
 
                     b.Property<DateOnly>("RegisterDate")
                         .HasColumnType("date");
 
                     b.Property<string>("Surname")
                         .HasMaxLength(42)
-                        .HasColumnType("nvarchar(42)");
+                        .HasColumnType("character varying(42)");
 
                     b.Property<int>("WebsiteID")
-                        .HasColumnType("int");
+                        .HasColumnType("integer");
 
                     b.HasKey("WebsiteClientID");
 
@@ -5064,23 +5163,23 @@ namespace Dotnetable.Migrations.SqlServer.Migrations
                 {
                     b.Property<int>("WebsiteClientAddressID")
                         .ValueGeneratedOnAdd()
-                        .HasColumnType("int");
+                        .HasColumnType("integer");
 
-                    SqlServerPropertyBuilderExtensions.UseIdentityColumn(b.Property<int>("WebsiteClientAddressID"));
+                    NpgsqlPropertyBuilderExtensions.UseIdentityByDefaultColumn(b.Property<int>("WebsiteClientAddressID"));
 
                     b.Property<string>("AddressLine")
                         .IsRequired()
                         .HasMaxLength(500)
-                        .HasColumnType("nvarchar(500)");
+                        .HasColumnType("character varying(500)");
 
                     b.Property<int?>("CityId")
-                        .HasColumnType("int");
+                        .HasColumnType("integer");
 
                     b.Property<int?>("CountryId")
-                        .HasColumnType("int");
+                        .HasColumnType("integer");
 
                     b.Property<bool>("IsDefault")
-                        .HasColumnType("bit");
+                        .HasColumnType("boolean");
 
                     b.Property<decimal?>("Latitude")
                         .HasColumnType("decimal(9, 6)");
@@ -5090,22 +5189,22 @@ namespace Dotnetable.Migrations.SqlServer.Migrations
 
                     b.Property<string>("Phone")
                         .HasMaxLength(20)
-                        .HasColumnType("nvarchar(20)");
+                        .HasColumnType("character varying(20)");
 
                     b.Property<string>("PostalCode")
                         .HasMaxLength(20)
-                        .HasColumnType("nvarchar(20)");
+                        .HasColumnType("character varying(20)");
 
                     b.Property<string>("ReceiverName")
                         .HasMaxLength(200)
-                        .HasColumnType("nvarchar(200)");
+                        .HasColumnType("character varying(200)");
 
                     b.Property<string>("Title")
                         .HasMaxLength(100)
-                        .HasColumnType("nvarchar(100)");
+                        .HasColumnType("character varying(100)");
 
                     b.Property<int>("WebsiteClientID")
-                        .HasColumnType("int");
+                        .HasColumnType("integer");
 
                     b.HasKey("WebsiteClientAddressID");
 
@@ -5122,21 +5221,21 @@ namespace Dotnetable.Migrations.SqlServer.Migrations
                 {
                     b.Property<int>("WebsiteClientForgetPasswordID")
                         .ValueGeneratedOnAdd()
-                        .HasColumnType("int");
+                        .HasColumnType("integer");
 
-                    SqlServerPropertyBuilderExtensions.UseIdentityColumn(b.Property<int>("WebsiteClientForgetPasswordID"));
+                    NpgsqlPropertyBuilderExtensions.UseIdentityByDefaultColumn(b.Property<int>("WebsiteClientForgetPasswordID"));
 
                     b.Property<string>("ForgetKey")
                         .IsRequired()
                         .HasMaxLength(8)
                         .IsUnicode(false)
-                        .HasColumnType("varchar(8)");
+                        .HasColumnType("character varying(8)");
 
                     b.Property<DateTime>("LogTime")
                         .HasColumnType("datetime");
 
                     b.Property<int>("WebsiteClientID")
-                        .HasColumnType("int");
+                        .HasColumnType("integer");
 
                     b.HasKey("WebsiteClientForgetPasswordID");
 
@@ -5149,26 +5248,28 @@ namespace Dotnetable.Migrations.SqlServer.Migrations
                 {
                     b.Property<int>("WebsiteFeatureID")
                         .ValueGeneratedOnAdd()
-                        .HasColumnType("int");
+                        .HasColumnType("integer");
 
-                    SqlServerPropertyBuilderExtensions.UseIdentityColumn(b.Property<int>("WebsiteFeatureID"));
+                    NpgsqlPropertyBuilderExtensions.UseIdentityByDefaultColumn(b.Property<int>("WebsiteFeatureID"));
 
                     b.Property<DateTime>("CreatedAt")
                         .ValueGeneratedOnAdd()
                         .HasPrecision(0)
-                        .HasColumnType("datetime2(0)")
-                        .HasDefaultValueSql("(sysutcdatetime())", "DF_WebsiteFeatures_CreatedAt");
+                        .HasColumnType("timestamp(0) with time zone")
+                        .HasDefaultValueSql("(sysutcdatetime())")
+                        .HasAnnotation("Relational:DefaultConstraintName", "DF_WebsiteFeatures_CreatedAt");
 
                     b.Property<bool>("Enabled")
                         .ValueGeneratedOnAdd()
-                        .HasColumnType("bit")
-                        .HasDefaultValue(true, "DF_WebsiteFeatures_Enabled");
+                        .HasColumnType("boolean")
+                        .HasDefaultValue(true)
+                        .HasAnnotation("Relational:DefaultConstraintName", "DF_WebsiteFeatures_Enabled");
 
                     b.Property<byte>("FeatureKey")
-                        .HasColumnType("tinyint");
+                        .HasColumnType("smallint");
 
                     b.Property<int>("WebsiteID")
-                        .HasColumnType("int");
+                        .HasColumnType("integer");
 
                     b.HasKey("WebsiteFeatureID");
 
@@ -5182,34 +5283,34 @@ namespace Dotnetable.Migrations.SqlServer.Migrations
                 {
                     b.Property<int>("WebsiteIPID")
                         .ValueGeneratedOnAdd()
-                        .HasColumnType("int");
+                        .HasColumnType("integer");
 
-                    SqlServerPropertyBuilderExtensions.UseIdentityColumn(b.Property<int>("WebsiteIPID"));
+                    NpgsqlPropertyBuilderExtensions.UseIdentityByDefaultColumn(b.Property<int>("WebsiteIPID"));
 
                     b.Property<bool>("Active")
-                        .HasColumnType("bit");
+                        .HasColumnType("boolean");
 
                     b.Property<int?>("CidrPrefix")
-                        .HasColumnType("int");
+                        .HasColumnType("integer");
 
                     b.Property<string>("EndIP")
                         .HasMaxLength(45)
                         .IsUnicode(false)
-                        .HasColumnType("varchar(45)");
+                        .HasColumnType("character varying(45)");
 
                     b.Property<string>("Label")
                         .IsRequired()
                         .HasMaxLength(30)
-                        .HasColumnType("nvarchar(30)");
+                        .HasColumnType("character varying(30)");
 
                     b.Property<string>("StartIP")
                         .IsRequired()
                         .HasMaxLength(45)
                         .IsUnicode(false)
-                        .HasColumnType("varchar(45)");
+                        .HasColumnType("character varying(45)");
 
                     b.Property<int>("WebsiteID")
-                        .HasColumnType("int");
+                        .HasColumnType("integer");
 
                     b.HasKey("WebsiteIPID");
 
@@ -5222,43 +5323,46 @@ namespace Dotnetable.Migrations.SqlServer.Migrations
                 {
                     b.Property<int>("WebsiteRedirectID")
                         .ValueGeneratedOnAdd()
-                        .HasColumnType("int");
+                        .HasColumnType("integer");
 
-                    SqlServerPropertyBuilderExtensions.UseIdentityColumn(b.Property<int>("WebsiteRedirectID"));
+                    NpgsqlPropertyBuilderExtensions.UseIdentityByDefaultColumn(b.Property<int>("WebsiteRedirectID"));
 
                     b.Property<DateTime>("CreatedAt")
                         .ValueGeneratedOnAdd()
                         .HasColumnType("datetime")
-                        .HasDefaultValueSql("(sysutcdatetime())", "DF_WebsiteRedirects_CreatedAt");
+                        .HasDefaultValueSql("(sysutcdatetime())")
+                        .HasAnnotation("Relational:DefaultConstraintName", "DF_WebsiteRedirects_CreatedAt");
 
                     b.Property<int>("HitCount")
-                        .HasColumnType("int");
+                        .HasColumnType("integer");
 
                     b.Property<bool>("IsActive")
                         .ValueGeneratedOnAdd()
-                        .HasColumnType("bit")
-                        .HasDefaultValue(true, "DF_WebsiteRedirects_IsActive");
+                        .HasColumnType("boolean")
+                        .HasDefaultValue(true)
+                        .HasAnnotation("Relational:DefaultConstraintName", "DF_WebsiteRedirects_IsActive");
 
                     b.Property<bool>("IsRegex")
-                        .HasColumnType("bit");
+                        .HasColumnType("boolean");
 
                     b.Property<string>("SourcePath")
                         .IsRequired()
                         .HasMaxLength(500)
-                        .HasColumnType("nvarchar(500)");
+                        .HasColumnType("character varying(500)");
 
                     b.Property<int>("StatusCode")
                         .ValueGeneratedOnAdd()
-                        .HasColumnType("int")
-                        .HasDefaultValue(301, "DF_WebsiteRedirects_StatusCode");
+                        .HasColumnType("integer")
+                        .HasDefaultValue(301)
+                        .HasAnnotation("Relational:DefaultConstraintName", "DF_WebsiteRedirects_StatusCode");
 
                     b.Property<string>("TargetPath")
                         .IsRequired()
                         .HasMaxLength(500)
-                        .HasColumnType("nvarchar(500)");
+                        .HasColumnType("character varying(500)");
 
                     b.Property<int>("WebsiteID")
-                        .HasColumnType("int");
+                        .HasColumnType("integer");
 
                     b.HasKey("WebsiteRedirectID");
 
@@ -5271,12 +5375,12 @@ namespace Dotnetable.Migrations.SqlServer.Migrations
                 {
                     b.Property<int>("WebsiteScriptID")
                         .ValueGeneratedOnAdd()
-                        .HasColumnType("int");
+                        .HasColumnType("integer");
 
-                    SqlServerPropertyBuilderExtensions.UseIdentityColumn(b.Property<int>("WebsiteScriptID"));
+                    NpgsqlPropertyBuilderExtensions.UseIdentityByDefaultColumn(b.Property<int>("WebsiteScriptID"));
 
                     b.Property<bool>("Active")
-                        .HasColumnType("bit");
+                        .HasColumnType("boolean");
 
                     b.Property<DateTime>("LogTime")
                         .HasColumnType("datetime");
@@ -5285,24 +5389,24 @@ namespace Dotnetable.Migrations.SqlServer.Migrations
                         .IsRequired()
                         .HasMaxLength(50)
                         .IsUnicode(false)
-                        .HasColumnType("varchar(50)");
+                        .HasColumnType("character varying(50)");
 
                     b.Property<byte?>("Priority")
-                        .HasColumnType("tinyint");
+                        .HasColumnType("smallint");
 
                     b.Property<string>("RawContent")
                         .IsRequired()
                         .HasMaxLength(4000)
-                        .HasColumnType("nvarchar(4000)");
+                        .HasColumnType("character varying(4000)");
 
                     b.Property<byte>("ScriptLoadCondition")
-                        .HasColumnType("tinyint");
+                        .HasColumnType("smallint");
 
                     b.Property<byte>("ScriptPosition")
-                        .HasColumnType("tinyint");
+                        .HasColumnType("smallint");
 
                     b.Property<int>("WebsiteID")
-                        .HasColumnType("int");
+                        .HasColumnType("integer");
 
                     b.HasKey("WebsiteScriptID");
 
@@ -5315,40 +5419,41 @@ namespace Dotnetable.Migrations.SqlServer.Migrations
                 {
                     b.Property<int>("WebsiteSeoSettingID")
                         .ValueGeneratedOnAdd()
-                        .HasColumnType("int");
+                        .HasColumnType("integer");
 
-                    SqlServerPropertyBuilderExtensions.UseIdentityColumn(b.Property<int>("WebsiteSeoSettingID"));
+                    NpgsqlPropertyBuilderExtensions.UseIdentityByDefaultColumn(b.Property<int>("WebsiteSeoSettingID"));
 
                     b.Property<string>("CustomRobotsTxt")
                         .IsRequired()
-                        .HasColumnType("nvarchar(max)");
+                        .HasColumnType("text");
 
                     b.Property<string>("DefaultMetaDescription")
                         .HasMaxLength(158)
-                        .HasColumnType("nvarchar(158)");
+                        .HasColumnType("character varying(158)");
 
                     b.Property<string>("DefaultMetaTitle")
                         .HasMaxLength(40)
                         .IsUnicode(false)
-                        .HasColumnType("varchar(40)")
+                        .HasColumnType("character varying(40)")
                         .HasComment("Page | {SiteName}");
 
                     b.Property<bool>("RobotsEnabled")
-                        .HasColumnType("bit");
+                        .HasColumnType("boolean");
 
                     b.Property<bool>("SitemapEnabled")
-                        .HasColumnType("bit");
+                        .HasColumnType("boolean");
 
                     b.Property<string>("TitleSeparator")
                         .ValueGeneratedOnAdd()
                         .HasMaxLength(3)
                         .IsUnicode(false)
-                        .HasColumnType("char(3)")
+                        .HasColumnType("character(3)")
+                        .HasDefaultValue(" | ")
                         .IsFixedLength()
-                        .HasDefaultValue(" | ", "DF_WebsiteSeoSettings_TitleSeparator");
+                        .HasAnnotation("Relational:DefaultConstraintName", "DF_WebsiteSeoSettings_TitleSeparator");
 
                     b.Property<int>("WebsiteID")
-                        .HasColumnType("int");
+                        .HasColumnType("integer");
 
                     b.HasKey("WebsiteSeoSettingID");
 
@@ -5361,29 +5466,29 @@ namespace Dotnetable.Migrations.SqlServer.Migrations
                 {
                     b.Property<int>("WebsiteSocialLinkID")
                         .ValueGeneratedOnAdd()
-                        .HasColumnType("int");
+                        .HasColumnType("integer");
 
-                    SqlServerPropertyBuilderExtensions.UseIdentityColumn(b.Property<int>("WebsiteSocialLinkID"));
+                    NpgsqlPropertyBuilderExtensions.UseIdentityByDefaultColumn(b.Property<int>("WebsiteSocialLinkID"));
 
                     b.Property<string>("SocialIcon")
                         .HasMaxLength(64)
                         .IsUnicode(false)
-                        .HasColumnType("varchar(64)");
+                        .HasColumnType("character varying(64)");
 
                     b.Property<string>("SocialName")
                         .HasMaxLength(64)
-                        .HasColumnType("nvarchar(64)");
+                        .HasColumnType("character varying(64)");
 
                     b.Property<byte>("SocialType")
-                        .HasColumnType("tinyint");
+                        .HasColumnType("smallint");
 
                     b.Property<string>("UrlAddress")
                         .IsRequired()
                         .HasMaxLength(80)
-                        .HasColumnType("nvarchar(80)");
+                        .HasColumnType("character varying(80)");
 
                     b.Property<int>("WebsiteID")
-                        .HasColumnType("int");
+                        .HasColumnType("integer");
 
                     b.HasKey("WebsiteSocialLinkID");
 
@@ -5396,20 +5501,20 @@ namespace Dotnetable.Migrations.SqlServer.Migrations
                 {
                     b.Property<int>("WebsiteStorageSettingsID")
                         .ValueGeneratedOnAdd()
-                        .HasColumnType("int");
+                        .HasColumnType("integer");
 
-                    SqlServerPropertyBuilderExtensions.UseIdentityColumn(b.Property<int>("WebsiteStorageSettingsID"));
+                    NpgsqlPropertyBuilderExtensions.UseIdentityByDefaultColumn(b.Property<int>("WebsiteStorageSettingsID"));
 
                     b.Property<bool>("Active")
-                        .HasColumnType("bit");
+                        .HasColumnType("boolean");
 
                     b.Property<string>("AllowedExtensions")
                         .HasMaxLength(710)
                         .IsUnicode(false)
-                        .HasColumnType("varchar(710)");
+                        .HasColumnType("character varying(710)");
 
                     b.Property<bool>("AutoGenerateThumbnails")
-                        .HasColumnType("bit");
+                        .HasColumnType("boolean");
 
                     b.Property<long>("MaxFileSizeKB")
                         .HasColumnType("bigint");
@@ -5420,10 +5525,10 @@ namespace Dotnetable.Migrations.SqlServer.Migrations
                     b.Property<string>("StorageSettingsJSON")
                         .IsRequired()
                         .HasMaxLength(2000)
-                        .HasColumnType("nvarchar(2000)");
+                        .HasColumnType("character varying(2000)");
 
                     b.Property<int>("WebsiteID")
-                        .HasColumnType("int");
+                        .HasColumnType("integer");
 
                     b.HasKey("WebsiteStorageSettingsID");
 
@@ -5436,45 +5541,46 @@ namespace Dotnetable.Migrations.SqlServer.Migrations
                 {
                     b.Property<int>("WebsiteThemeID")
                         .ValueGeneratedOnAdd()
-                        .HasColumnType("int");
+                        .HasColumnType("integer");
 
-                    SqlServerPropertyBuilderExtensions.UseIdentityColumn(b.Property<int>("WebsiteThemeID"));
+                    NpgsqlPropertyBuilderExtensions.UseIdentityByDefaultColumn(b.Property<int>("WebsiteThemeID"));
 
                     b.Property<string>("Author")
                         .HasMaxLength(100)
-                        .HasColumnType("nvarchar(100)");
+                        .HasColumnType("character varying(100)");
 
                     b.Property<DateTime>("CreatedAt")
                         .ValueGeneratedOnAdd()
                         .HasColumnType("datetime")
-                        .HasDefaultValueSql("(sysutcdatetime())", "DF_WebsiteThemes_CreatedAt");
+                        .HasDefaultValueSql("(sysutcdatetime())")
+                        .HasAnnotation("Relational:DefaultConstraintName", "DF_WebsiteThemes_CreatedAt");
 
                     b.Property<string>("Description")
                         .HasMaxLength(500)
-                        .HasColumnType("nvarchar(500)");
+                        .HasColumnType("character varying(500)");
 
                     b.Property<bool>("HasScreenshot")
-                        .HasColumnType("bit");
+                        .HasColumnType("boolean");
 
                     b.Property<bool>("IsActive")
-                        .HasColumnType("bit");
+                        .HasColumnType("boolean");
 
                     b.Property<string>("Name")
                         .IsRequired()
                         .HasMaxLength(100)
-                        .HasColumnType("nvarchar(100)");
+                        .HasColumnType("character varying(100)");
 
                     b.Property<string>("Slug")
                         .IsRequired()
                         .HasMaxLength(64)
-                        .HasColumnType("nvarchar(64)");
+                        .HasColumnType("character varying(64)");
 
                     b.Property<string>("Version")
                         .HasMaxLength(50)
-                        .HasColumnType("nvarchar(50)");
+                        .HasColumnType("character varying(50)");
 
                     b.Property<int>("WebsiteID")
-                        .HasColumnType("int");
+                        .HasColumnType("integer");
 
                     b.HasKey("WebsiteThemeID");
 
@@ -5490,33 +5596,36 @@ namespace Dotnetable.Migrations.SqlServer.Migrations
                 {
                     b.Property<int>("WebsiteWatermarkSettingID")
                         .ValueGeneratedOnAdd()
-                        .HasColumnType("int");
+                        .HasColumnType("integer");
 
-                    SqlServerPropertyBuilderExtensions.UseIdentityColumn(b.Property<int>("WebsiteWatermarkSettingID"));
+                    NpgsqlPropertyBuilderExtensions.UseIdentityByDefaultColumn(b.Property<int>("WebsiteWatermarkSettingID"));
 
                     b.Property<bool>("Enabled")
-                        .HasColumnType("bit");
+                        .HasColumnType("boolean");
 
                     b.Property<int>("Opacity")
                         .ValueGeneratedOnAdd()
-                        .HasColumnType("int")
-                        .HasDefaultValue(80, "DF_WebsiteWatermarkSettings_Opacity");
+                        .HasColumnType("integer")
+                        .HasDefaultValue(80)
+                        .HasAnnotation("Relational:DefaultConstraintName", "DF_WebsiteWatermarkSettings_Opacity");
 
                     b.Property<byte>("Position")
                         .ValueGeneratedOnAdd()
-                        .HasColumnType("tinyint")
-                        .HasDefaultValue((byte)9, "DF_WebsiteWatermarkSettings_Position");
+                        .HasColumnType("smallint")
+                        .HasDefaultValue((byte)9)
+                        .HasAnnotation("Relational:DefaultConstraintName", "DF_WebsiteWatermarkSettings_Position");
 
                     b.Property<int>("SizePercent")
                         .ValueGeneratedOnAdd()
-                        .HasColumnType("int")
-                        .HasDefaultValue(20, "DF_WebsiteWatermarkSettings_SizePercent");
+                        .HasColumnType("integer")
+                        .HasDefaultValue(20)
+                        .HasAnnotation("Relational:DefaultConstraintName", "DF_WebsiteWatermarkSettings_SizePercent");
 
                     b.Property<int?>("WatermarkFileID")
-                        .HasColumnType("int");
+                        .HasColumnType("integer");
 
                     b.Property<int>("WebsiteID")
-                        .HasColumnType("int");
+                        .HasColumnType("integer");
 
                     b.HasKey("WebsiteWatermarkSettingID");
 
@@ -5531,21 +5640,22 @@ namespace Dotnetable.Migrations.SqlServer.Migrations
                 {
                     b.Property<int>("WishlistID")
                         .ValueGeneratedOnAdd()
-                        .HasColumnType("int");
+                        .HasColumnType("integer");
 
-                    SqlServerPropertyBuilderExtensions.UseIdentityColumn(b.Property<int>("WishlistID"));
+                    NpgsqlPropertyBuilderExtensions.UseIdentityByDefaultColumn(b.Property<int>("WishlistID"));
 
                     b.Property<DateTime>("CreatedAt")
                         .ValueGeneratedOnAdd()
                         .HasPrecision(0)
-                        .HasColumnType("datetime2(0)")
-                        .HasDefaultValueSql("(sysutcdatetime())", "DF_Wishlists_CreatedAt");
+                        .HasColumnType("timestamp(0) with time zone")
+                        .HasDefaultValueSql("(sysutcdatetime())")
+                        .HasAnnotation("Relational:DefaultConstraintName", "DF_Wishlists_CreatedAt");
 
                     b.Property<int>("WebsiteClientID")
-                        .HasColumnType("int");
+                        .HasColumnType("integer");
 
                     b.Property<int>("WebsiteID")
-                        .HasColumnType("int");
+                        .HasColumnType("integer");
 
                     b.HasKey("WishlistID");
 
@@ -5561,21 +5671,22 @@ namespace Dotnetable.Migrations.SqlServer.Migrations
                 {
                     b.Property<int>("WishlistItemID")
                         .ValueGeneratedOnAdd()
-                        .HasColumnType("int");
+                        .HasColumnType("integer");
 
-                    SqlServerPropertyBuilderExtensions.UseIdentityColumn(b.Property<int>("WishlistItemID"));
+                    NpgsqlPropertyBuilderExtensions.UseIdentityByDefaultColumn(b.Property<int>("WishlistItemID"));
 
                     b.Property<DateTime>("AddedAt")
                         .ValueGeneratedOnAdd()
                         .HasPrecision(0)
-                        .HasColumnType("datetime2(0)")
-                        .HasDefaultValueSql("(sysutcdatetime())", "DF_WishlistItems_AddedAt");
+                        .HasColumnType("timestamp(0) with time zone")
+                        .HasDefaultValueSql("(sysutcdatetime())")
+                        .HasAnnotation("Relational:DefaultConstraintName", "DF_WishlistItems_AddedAt");
 
                     b.Property<int>("ProductVariantID")
-                        .HasColumnType("int");
+                        .HasColumnType("integer");
 
                     b.Property<int>("WishlistID")
-                        .HasColumnType("int");
+                        .HasColumnType("integer");
 
                     b.HasKey("WishlistItemID");
 
@@ -5590,10 +5701,10 @@ namespace Dotnetable.Migrations.SqlServer.Migrations
             modelBuilder.Entity("PostTag", b =>
                 {
                     b.Property<int>("PostID")
-                        .HasColumnType("int");
+                        .HasColumnType("integer");
 
                     b.Property<int>("TagID")
-                        .HasColumnType("int");
+                        .HasColumnType("integer");
 
                     b.HasKey("PostID", "TagID");
 

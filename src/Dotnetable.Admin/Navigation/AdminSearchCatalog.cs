@@ -64,6 +64,7 @@ public static class AdminSearchCatalog
         new AdminSearchPage("categories", "Categories", "/catalog/categories", Icons.Material.Filled.Category, "nav.catalog", "Catalog", RoleKeys.CatalogTaxonomyView),
         new AdminSearchPage("attributes", "Attributes", "/catalog/attributes", Icons.Material.Filled.Tune, "nav.catalog", "Catalog", RoleKeys.CatalogTaxonomyView),
         new AdminSearchPage("brands", "Brands", "/catalog/brands", Icons.Material.Filled.BrandingWatermark, "nav.catalog", "Catalog", RoleKeys.CatalogTaxonomyView),
+        new AdminSearchPage("warranties", "Warranties", "/catalog/warranties", Icons.Material.Filled.VerifiedUser, "nav.catalog", "Catalog", RoleKeys.CatalogTaxonomyView),
         new AdminSearchPage("vendors", "Vendors", "/catalog/vendors", Icons.Material.Filled.Store, "nav.catalog", "Catalog", RoleKeys.VendorsView),
 
         new AdminSearchPage("inventory.stock", "Stock", "/inventory", Icons.Material.Filled.Numbers, "nav.inventory", "Inventory", RoleKeys.InventoryView),

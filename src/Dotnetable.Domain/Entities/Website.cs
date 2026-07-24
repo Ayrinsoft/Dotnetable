@@ -158,6 +158,8 @@ public partial class Website
 
     public virtual ICollection<Vendor> Vendors { get; set; } = new List<Vendor>();
 
+    public virtual ICollection<Warranty> Warranties { get; set; } = new List<Warranty>();
+
     /// <summary>Vendors on other host sites that point at this website as their LinkedWebsite.</summary>
     public virtual ICollection<Vendor> LinkedAsVendors { get; set; } = new List<Vendor>();
 

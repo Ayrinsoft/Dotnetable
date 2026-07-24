@@ -79,9 +79,13 @@
     <Build Include="SettlementItems.sql" />
     <Build Include="ProductWarningTranslations.sql" />
     <Build Include="ProductWarnings.sql" />
+    <Build Include="ProductWarranties.sql" />
+    <Build Include="ProductVariantPriceHistories.sql" />
     <Build Include="ProductVariants.sql" />
     <Build Include="ProductTranslations.sql" />
     <Build Include="Products.sql" />
+    <Build Include="Warranties.sql" />
+    <Build Include="WarrantyTranslations.sql" />
     <Build Include="ProductReviews.sql" />
     <Build Include="ProductRelations.sql" />
     <Build Include="ProductQuestions.sql" />

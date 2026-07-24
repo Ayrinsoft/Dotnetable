@@ -46,6 +46,8 @@ public partial class ProductVariant
 
     public virtual ICollection<ProductReview> ProductReviews { get; set; } = new List<ProductReview>();
 
+    public virtual ICollection<ProductVariantPriceHistory> ProductVariantPriceHistories { get; set; } = new List<ProductVariantPriceHistory>();
+
     public virtual ICollection<StockMovement> StockMovements { get; set; } = new List<StockMovement>();
 
     public virtual ICollection<VariantAttributeValue> VariantAttributeValues { get; set; } = new List<VariantAttributeValue>();
