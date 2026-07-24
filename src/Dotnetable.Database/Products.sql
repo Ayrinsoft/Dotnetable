@@ -6,6 +6,7 @@
     [Title]               NVARCHAR (300)  NOT NULL,
     [ShortDescription]    NVARCHAR (1000) NULL,
     [Content]             NVARCHAR (MAX)  NULL,
+    [ExpertReview]        NVARCHAR (MAX)  NULL,
     [FeaturedImageFileID] INT             NULL,
     [IsCatalogOnly]       BIT             CONSTRAINT [DF_Products_IsCatalogOnly] DEFAULT ((0)) NOT NULL,
     [HasVariants]         BIT             CONSTRAINT [DF_Products_HasVariants_1] DEFAULT ((0)) NOT NULL,

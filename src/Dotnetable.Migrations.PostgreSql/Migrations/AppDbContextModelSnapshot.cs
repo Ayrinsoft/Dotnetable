@@ -3239,6 +3239,9 @@ namespace Dotnetable.Migrations.PostgreSql.Migrations
                     b.Property<int?>("CreatedByMemberId")
                         .HasColumnType("integer");
 
+                    b.Property<string>("ExpertReview")
+                        .HasColumnType("text");
+
                     b.Property<int?>("FeaturedImageFileID")
                         .HasColumnType("integer");
 
@@ -3722,6 +3725,9 @@ namespace Dotnetable.Migrations.PostgreSql.Migrations
                     NpgsqlPropertyBuilderExtensions.UseIdentityByDefaultColumn(b.Property<int>("ProductTranslationID"));
 
                     b.Property<string>("Content")
+                        .HasColumnType("text");
+
+                    b.Property<string>("ExpertReview")
                         .HasColumnType("text");
 
                     b.Property<string>("LanguageCode")

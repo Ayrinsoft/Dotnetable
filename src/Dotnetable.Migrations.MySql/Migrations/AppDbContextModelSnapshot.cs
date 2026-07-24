@@ -3102,6 +3102,9 @@ namespace Dotnetable.Migrations.MySql.Migrations
                     b.Property<int?>("CreatedByMemberId")
                         .HasColumnType("int");
 
+                    b.Property<string>("ExpertReview")
+                        .HasColumnType("longtext");
+
                     b.Property<int?>("FeaturedImageFileID")
                         .HasColumnType("int");
 
@@ -3569,6 +3572,9 @@ namespace Dotnetable.Migrations.MySql.Migrations
                         .HasColumnType("int");
 
                     b.Property<string>("Content")
+                        .HasColumnType("longtext");
+
+                    b.Property<string>("ExpertReview")
                         .HasColumnType("longtext");
 
                     b.Property<string>("LanguageCode")

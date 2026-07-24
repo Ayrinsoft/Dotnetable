@@ -323,6 +323,51 @@ else
                 </div>
             </MudTabPanel>
 
+            <MudTabPanel Text="@L["products.expert_review", "Expert review"]">
+                <div class="pa-2">
+                    <MudAlert Severity="Severity.Info" Dense="true" Variant="Variant.Outlined" Class="mb-3">
+                        @L["products.expert_review_hint", "Optional expert/technical review for this product. Same editor as the introduction content — format text and insert images as needed."]
+                    </MudAlert>
+                    <MudStack Row="true" AlignItems="AlignItems.Center" Justify="Justify.SpaceBetween" Class="mb-1">
+                        <MudText Typo="Typo.body2" Color="Color.Secondary">@L["products.expert_review", "Expert review"]</MudText>
+                        <ContentMediaInsertButton WebsiteId="_websiteId"
+                                                  CurrentHtml="@(Model.ExpertReview ?? "")"
+                                                  HtmlChanged="OnMainExpertReviewMediaInserted" />
+                    </MudStack>
+                    <DNCkEditor @key="_mainExpertReviewEditorVersion"
+                                ContentLanguage="@_defaultLanguageCode"
+                                Value="@(Model.ExpertReview ?? "")"
+                                OnValueChanged="@(v => Model.ExpertReview = v)" />
+
+                    @if (_languages.Length > 0)
+                    {
+                        <MudExpansionPanels Elevation="0" Class="mt-4">
+                            <MudExpansionPanel Text="@L["other_languages", "Other languages"]">
+                                <MudText Typo="Typo.body2" Color="Color.Secondary" Class="mb-2">
+                                    @L["products.expert_review_tr_hint", "Optional localized expert review. Leave blank to use the default-language text."]
+                                </MudText>
+                                @foreach (var (code, label) in _languages)
+                                {
+                                    <MudPaper Elevation="0" Class="pa-3 mb-2 border rounded-lg">
+                                        <MudText Typo="Typo.subtitle2" Class="mb-2">@label</MudText>
+                                        <MudStack Row="true" AlignItems="AlignItems.Center" Justify="Justify.SpaceBetween" Class="mb-1">
+                                            <MudText Typo="Typo.caption" Color="Color.Secondary">@L["products.expert_review", "Expert review"]</MudText>
+                                            <ContentMediaInsertButton WebsiteId="_websiteId"
+                                                                      CurrentHtml="@TrExpertReview(code)"
+                                                                      HtmlChanged="@(html => OnTranslationExpertReviewMediaInserted(code, html))" />
+                                        </MudStack>
+                                        <DNCkEditor @key="@($"er_{code}_{TranslationExpertReviewEditorVersion(code)}")"
+                                                    ContentLanguage="@(code)"
+                                                    Value="@TrExpertReview(code)"
+                                                    OnValueChanged="@(v => SetTrExpertReview(code, v))" />
+                                    </MudPaper>
+                                }
+                            </MudExpansionPanel>
+                        </MudExpansionPanels>
+                    }
+                </div>
+            </MudTabPanel>
+
             <MudTabPanel Text="@L["products.warnings", "Warnings"]">
                 <div class="pa-2">
                     @foreach (var (warning, idx) in _warnings.Select((w, i) => (w, i)))
@@ -414,9 +459,11 @@ else
     private int _localDigits = 0;
     private bool _hasRate;
     private bool _isUsdSite = true;
-    private readonly Dictionary<string, (string Title, string Slug, string? Short, string? Content)> _tr = new(StringComparer.OrdinalIgnoreCase);
+    private readonly Dictionary<string, (string Title, string Slug, string? Short, string? Content, string? ExpertReview)> _tr = new(StringComparer.OrdinalIgnoreCase);
     private int _mainEditorVersion;
+    private int _mainExpertReviewEditorVersion;
     private readonly Dictionary<string, int> _translationEditorVersions = new(StringComparer.OrdinalIgnoreCase);
+    private readonly Dictionary<string, int> _translationExpertReviewEditorVersions = new(StringComparer.OrdinalIgnoreCase);
     /// <summary>Session-only local (site-currency) amounts while editing. USD on the variant is the persisted source of truth for live storefront pricing.</summary>
     private readonly Dictionary<ProductVariant, decimal> _localPrice = new();
     private readonly Dictionary<ProductVariant, decimal?> _localCompareAt = new();
@@ -458,7 +505,7 @@ else
             if (product.FeaturedImageFileID is int fid)
                 _featuredImage = product.FeaturedImageFile;
             foreach (var t in product.ProductTranslations)
-                _tr[t.LanguageCode] = (t.Title, t.Slug, t.ShortDescription, t.Content);
+                _tr[t.LanguageCode] = (t.Title, t.Slug, t.ShortDescription, t.Content, t.ExpertReview);
 
             _gallery = product.ProductMedia.OrderBy(m => m.SortOrder)
                 .Select(m => (m.MediaSetID, m.MediaSet.MediaSetItems.OrderBy(i => i.SortOrder).FirstOrDefault()?.File))
@@ -714,29 +761,38 @@ else
     private string TrSlug(string c) => _tr.TryGetValue(c, out var v) ? v.Slug : string.Empty;
     private string TrShort(string c) => _tr.TryGetValue(c, out var v) ? v.Short ?? string.Empty : string.Empty;
     private string TrContent(string c) => _tr.TryGetValue(c, out var v) ? v.Content ?? string.Empty : string.Empty;
+    private string TrExpertReview(string c) => _tr.TryGetValue(c, out var v) ? v.ExpertReview ?? string.Empty : string.Empty;
     private void SetTrTitle(string c, string v)
     {
         var cur = _tr.GetValueOrDefault(c);
-        _tr[c] = (v ?? string.Empty, cur.Slug ?? string.Empty, cur.Short, cur.Content);
+        _tr[c] = (v ?? string.Empty, cur.Slug ?? string.Empty, cur.Short, cur.Content, cur.ExpertReview);
     }
     private void SetTrSlug(string c, string v)
     {
         var cur = _tr.GetValueOrDefault(c);
-        _tr[c] = (cur.Title ?? string.Empty, v ?? string.Empty, cur.Short, cur.Content);
+        _tr[c] = (cur.Title ?? string.Empty, v ?? string.Empty, cur.Short, cur.Content, cur.ExpertReview);
     }
     private void SetTrShort(string c, string v)
     {
         var cur = _tr.GetValueOrDefault(c);
-        _tr[c] = (cur.Title ?? string.Empty, cur.Slug ?? string.Empty, v, cur.Content);
+        _tr[c] = (cur.Title ?? string.Empty, cur.Slug ?? string.Empty, v, cur.Content, cur.ExpertReview);
     }
     private void SetTrContent(string c, string v)
     {
         var cur = _tr.GetValueOrDefault(c);
-        _tr[c] = (cur.Title ?? string.Empty, cur.Slug ?? string.Empty, cur.Short, v);
+        _tr[c] = (cur.Title ?? string.Empty, cur.Slug ?? string.Empty, cur.Short, v, cur.ExpertReview);
+    }
+    private void SetTrExpertReview(string c, string v)
+    {
+        var cur = _tr.GetValueOrDefault(c);
+        _tr[c] = (cur.Title ?? string.Empty, cur.Slug ?? string.Empty, cur.Short, cur.Content, v);
     }
 
     private int TranslationEditorVersion(string code) =>
         _translationEditorVersions.TryGetValue(code, out var v) ? v : 0;
+
+    private int TranslationExpertReviewEditorVersion(string code) =>
+        _translationExpertReviewEditorVersions.TryGetValue(code, out var v) ? v : 0;
 
     private void OnMainContentMediaInserted(string html)
     {
@@ -748,6 +804,18 @@ else
     {
         SetTrContent(code, html);
         _translationEditorVersions[code] = TranslationEditorVersion(code) + 1;
+    }
+
+    private void OnMainExpertReviewMediaInserted(string html)
+    {
+        Model.ExpertReview = html;
+        _mainExpertReviewEditorVersion++;
+    }
+
+    private void OnTranslationExpertReviewMediaInserted(string code, string html)
+    {
+        SetTrExpertReview(code, html);
+        _translationExpertReviewEditorVersions[code] = TranslationExpertReviewEditorVersion(code) + 1;
     }
 
     private async Task PickFeaturedImageAsync()
@@ -951,6 +1019,7 @@ else
                     ProductID = Model.ProductID, LanguageCode = kv.Key,
                     Title = kv.Value.Title, Slug = kv.Value.Slug, ShortDescription = kv.Value.Short,
                     Content = kv.Value.Content,
+                    ExpertReview = kv.Value.ExpertReview,
                 }).ToList());
             var categoryId = _selectedCategory!.ProductCategoryID;
             await ProductService.SetCategoriesAsync(Model.ProductID, new[] { categoryId }, categoryId);

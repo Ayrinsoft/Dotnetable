@@ -20,6 +20,9 @@ public partial class Product
     /// <summary>Rich HTML body (CKEditor), including inline images — one block per product like posts.</summary>
     public string? Content { get; set; }
 
+    /// <summary>Rich HTML expert/technical review (CKEditor), same shape as <see cref="Content"/>.</summary>
+    public string? ExpertReview { get; set; }
+
     public int? FeaturedImageFileID { get; set; }
 
     public bool IsCatalogOnly { get; set; }

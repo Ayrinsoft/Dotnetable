@@ -179,6 +179,7 @@ public class ProductService : IProductService
                     Slug = slug,
                     ShortDescription = t.ShortDescription,
                     Content = t.Content,
+                    ExpertReview = t.ExpertReview,
                 });
             else
             {
@@ -186,6 +187,7 @@ public class ProductService : IProductService
                 current.Slug = slug;
                 current.ShortDescription = t.ShortDescription;
                 current.Content = t.Content;
+                current.ExpertReview = t.ExpertReview;
             }
         }
 
@@ -727,6 +729,7 @@ public class ProductService : IProductService
             MinPrice = summary.MinPrice, AvgRating = summary.AvgRating, RatingCount = summary.RatingCount, HasVariants = summary.HasVariants,
             Categories = categories, Variants = variants, Attributes = attributes,
             Content = LocalizedContent(p, lang),
+            ExpertReview = LocalizedExpertReview(p, lang),
             Warnings = warnings, RelatedProducts = related, GalleryImageUrls = gallery,
         };
     }
@@ -800,6 +803,17 @@ public class ProductService : IProductService
             if (t is not null && !string.IsNullOrWhiteSpace(t.Content)) return t.Content;
         }
         return p.Content;
+    }
+
+    private static string? LocalizedExpertReview(Product p, string? lang)
+    {
+        if (!string.IsNullOrWhiteSpace(lang))
+        {
+            var t = p.ProductTranslations.FirstOrDefault(x =>
+                string.Equals(x.LanguageCode, lang, StringComparison.OrdinalIgnoreCase));
+            if (t is not null && !string.IsNullOrWhiteSpace(t.ExpertReview)) return t.ExpertReview;
+        }
+        return p.ExpertReview;
     }
 
     private static string LocalizedWarningText(ProductWarning w, string? lang)
