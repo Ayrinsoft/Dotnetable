@@ -60,11 +60,19 @@ public interface IProductService
 
     // ── Public read ─────────────────────────────────────────────────
 
-    /// <summary>Published/active products for a website (paged), optionally filtered by category/brand slug or search text, priced in the requested display currency.</summary>
+    /// <summary>
+    /// Published/active products for a website (paged), optionally filtered by category/brand slug, search,
+    /// price, and availability. Priced in the requested display currency.
+    /// </summary>
+    /// <param name="inStock">
+    /// When true, only products with available stock &gt; 0 (warehouse or any seller listing).
+    /// When false, only out-of-stock products. When null, no availability filter.
+    /// </param>
     Task<PagedResult<ProductSummaryDto>> GetPublishedAsync(
         int websiteId, string? categorySlug, string? brandSlug, string? search,
         decimal? minPriceUsd, decimal? maxPriceUsd,
-        int pageIndex, int pageSize, string? languageCode = null, string? currencyCode = null, CancellationToken ct = default);
+        int pageIndex, int pageSize, string? languageCode = null, string? currencyCode = null,
+        bool? inStock = null, CancellationToken ct = default);
 
     /// <summary>A single published product by slug (base or translated), fully detailed and priced.</summary>
     Task<ProductDetailDto?> GetBySlugAsync(int websiteId, string slug, string? languageCode = null, string? currencyCode = null, CancellationToken ct = default);

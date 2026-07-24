@@ -14,16 +14,39 @@
                 <h6 class="mb-3">Categories</h6>
                 <ul class="shop-category-tree list-unstyled">
                     <li>
-                        <a asp-controller="Shop" asp-action="Index" class="shop-category-link @(Model.Category is null ? "is-active" : "")">All</a>
+                        <a asp-controller="Shop" asp-action="Index"
+                           asp-route-inStock="@Model.InStock"
+                           class="shop-category-link @(Model.Category is null ? "is-active" : "")">All</a>
                     </li>
                     @foreach (var c in Model.Categories)
                     {
                         @await Html.PartialAsync("_CategoryTreeNode", (c, Model.Category, 0))
                     }
                 </ul>
+
+                <h6 class="mt-4 mb-3">Availability</h6>
+                <div class="list-group list-group-flush">
+                    <a asp-controller="Shop" asp-action="Index"
+                       asp-route-category="@Model.Category" asp-route-search="@Model.Search"
+                       class="list-group-item list-group-item-action @(Model.InStock is null ? "active" : "")">All</a>
+                    <a asp-controller="Shop" asp-action="Index"
+                       asp-route-category="@Model.Category" asp-route-search="@Model.Search" asp-route-inStock="true"
+                       class="list-group-item list-group-item-action @(Model.InStock == true ? "active" : "")">In stock</a>
+                    <a asp-controller="Shop" asp-action="Index"
+                       asp-route-category="@Model.Category" asp-route-search="@Model.Search" asp-route-inStock="false"
+                       class="list-group-item list-group-item-action @(Model.InStock == false ? "active" : "")">Out of stock</a>
+                </div>
             </div>
             <div class="col-lg-9">
-                <form method="get" class="d-flex mb-4 gap-2">
+                <form method="get" class="d-flex mb-4 gap-2 flex-wrap">
+                    @if (!string.IsNullOrEmpty(Model.Category))
+                    {
+                        <input type="hidden" name="category" value="@Model.Category" />
+                    }
+                    @if (Model.InStock is bool stock)
+                    {
+                        <input type="hidden" name="inStock" value="@(stock ? "true" : "false")" />
+                    }
                     <input type="text" name="search" value="@Model.Search" class="form-control" placeholder="Search products..." />
                     <button class="btn btn-primary" type="submit">Search</button>
                 </form>
@@ -55,7 +78,25 @@
                                         {
                                             <div class="text-muted small">@p.BrandName</div>
                                         }
+                                        @if (!string.IsNullOrEmpty(p.VendorName))
+                                        {
+                                            <div class="text-muted small"><i class="bi bi-shop"></i> @p.VendorName</div>
+                                        }
                                         <div class="fw-bold mt-2">@p.MinPrice.Amount.ToString("0.##") @p.MinPrice.CurrencyCode</div>
+                                        <div class="mt-1">
+                                            @if (!p.IsInStock)
+                                            {
+                                                <span class="badge text-bg-secondary">Out of stock</span>
+                                            }
+                                            else if (p.DisplayStockQuantity is int left)
+                                            {
+                                                <span class="badge text-bg-warning text-dark">Only @left left</span>
+                                            }
+                                            else
+                                            {
+                                                <span class="badge text-bg-success">In stock</span>
+                                            }
+                                        </div>
                                     </div>
                                 </div>
                             </div>
@@ -70,7 +111,8 @@
                                 {
                                     <li class="page-item @(i == Model.Page ? "active" : "")">
                                         <a class="page-link" asp-controller="Shop" asp-action="Index"
-                                           asp-route-page="@i" asp-route-category="@Model.Category" asp-route-search="@Model.Search">@i</a>
+                                           asp-route-page="@i" asp-route-category="@Model.Category" asp-route-search="@Model.Search"
+                                           asp-route-inStock="@Model.InStock">@i</a>
                                     </li>
                                 }
                             </ul>

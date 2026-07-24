@@ -367,7 +367,7 @@ public class ApiClient
     public async Task<PagedResult<ProductSummaryDto>> GetProductsAsync(
         string? category = null, string? brand = null, string? search = null,
         decimal? minPrice = null, decimal? maxPrice = null, int page = 1, int pageSize = 20,
-        string? lang = null, string? currency = null, CancellationToken ct = default)
+        string? lang = null, string? currency = null, bool? inStock = null, CancellationToken ct = default)
     {
         var query = new List<string> { $"page={page}", $"pageSize={pageSize}" };
         if (!string.IsNullOrWhiteSpace(category)) query.Add($"categorySlug={Uri.EscapeDataString(category)}");
@@ -377,6 +377,7 @@ public class ApiClient
         if (maxPrice is decimal max) query.Add($"maxPrice={max}");
         if (!string.IsNullOrWhiteSpace(lang)) query.Add($"lang={Uri.EscapeDataString(lang)}");
         if (!string.IsNullOrWhiteSpace(currency)) query.Add($"currency={Uri.EscapeDataString(currency)}");
+        if (inStock is bool stockFilter) query.Add($"inStock={(stockFilter ? "true" : "false")}");
 
         try
         {

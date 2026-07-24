@@ -17,18 +17,20 @@ public class ProductsController : BaseController
     }
 
     /// <summary>Paged/filterable published product listing, priced in the requested display currency.</summary>
+    /// <param name="inStock">When true/false, only in-stock or out-of-stock products. Omit for all.</param>
     [HttpGet]
     public async Task<IActionResult> Get(
         [FromQuery] string? categorySlug = null, [FromQuery] string? brandSlug = null, [FromQuery] string? search = null,
         [FromQuery] decimal? minPrice = null, [FromQuery] decimal? maxPrice = null,
         [FromQuery] int page = 1, [FromQuery] int pageSize = 20,
-        [FromQuery] string? lang = null, [FromQuery] string? currency = null, CancellationToken ct = default)
+        [FromQuery] string? lang = null, [FromQuery] string? currency = null,
+        [FromQuery] bool? inStock = null, CancellationToken ct = default)
     {
         var website = await ResolveWebsiteAsync(_websiteService, ct);
         if (website is null) return NotFound(new { message = "Website could not be resolved." });
 
         var result = await _productService.GetPublishedAsync(
-            website.WebsiteID, categorySlug, brandSlug, search, minPrice, maxPrice, page, pageSize, lang, currency, ct);
+            website.WebsiteID, categorySlug, brandSlug, search, minPrice, maxPrice, page, pageSize, lang, currency, inStock, ct);
         return Ok(result);
     }
 

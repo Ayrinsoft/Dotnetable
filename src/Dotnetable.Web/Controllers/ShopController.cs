@@ -17,23 +17,25 @@ public class ShopController : Controller
         IReadOnlyList<ProductSummaryDto> Products,
         IReadOnlyList<ProductCategoryDto> Categories,
         int Page, int TotalCount, int PageSize,
-        string? Category, string? Brand, string? Search)
+        string? Category, string? Brand, string? Search,
+        bool? InStock)
     {
         public int TotalPages => (int)Math.Ceiling((double)TotalCount / PageSize);
     }
 
     public async Task<IActionResult> Index(
-        int page = 1, string? category = null, string? brand = null, string? search = null, CancellationToken ct = default)
+        int page = 1, string? category = null, string? brand = null, string? search = null,
+        bool? inStock = null, CancellationToken ct = default)
     {
         var lang = CurrentLang();
-        var result = await _api.GetProductsAsync(category, brand, search, page: page, pageSize: PageSize, lang: lang, ct: ct);
+        var result = await _api.GetProductsAsync(category, brand, search, page: page, pageSize: PageSize, lang: lang, inStock: inStock, ct: ct);
         var categories = await _api.GetProductCategoryTreeAsync(lang, ct);
 
-        return View(new ShopListView(result.Items, categories, page, result.TotalCount, PageSize, category, brand, search));
+        return View(new ShopListView(result.Items, categories, page, result.TotalCount, PageSize, category, brand, search, inStock));
     }
 
-    public Task<IActionResult> Category(string slug, int page = 1, CancellationToken ct = default) =>
-        Index(page, category: slug, ct: ct);
+    public Task<IActionResult> Category(string slug, int page = 1, bool? inStock = null, CancellationToken ct = default) =>
+        Index(page, category: slug, inStock: inStock, ct: ct);
 
     public async Task<IActionResult> Product(string slug, CancellationToken ct = default)
     {

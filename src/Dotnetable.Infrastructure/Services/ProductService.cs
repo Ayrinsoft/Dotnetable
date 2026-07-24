@@ -567,10 +567,12 @@ public class ProductService : IProductService
     public async Task<PagedResult<ProductSummaryDto>> GetPublishedAsync(
         int websiteId, string? categorySlug, string? brandSlug, string? search,
         decimal? minPriceUsd, decimal? maxPriceUsd,
-        int pageIndex, int pageSize, string? languageCode = null, string? currencyCode = null, CancellationToken ct = default)
+        int pageIndex, int pageSize, string? languageCode = null, string? currencyCode = null,
+        bool? inStock = null, CancellationToken ct = default)
     {
-        // Own products of the host site.
-        var q = PublishedQuery(websiteId);
+        // Own products of the host site (include inventory for availability).
+        var q = PublishedQuery(websiteId)
+            .Include(p => p.ProductVariants).ThenInclude(v => v.InventoryItems);
 
         if (!string.IsNullOrWhiteSpace(categorySlug))
             q = q.Where(p => p.ProductCategoryMaps.Any(m =>
@@ -595,6 +597,20 @@ public class ProductService : IProductService
         combined.AddRange(localProducts.Select(p => ((Product Product, Vendor? Vendor))(p, null)));
         combined.AddRange(linked.Select(x => ((Product Product, Vendor? Vendor))(x.Product, x.Vendor)));
 
+        // Availability totals for filtering and summary projection.
+        var stockByKey = await ResolveListingStockBulkAsync(websiteId, combined, ct);
+        if (inStock is bool wantInStock)
+        {
+            combined = combined
+                .Where(x =>
+                {
+                    var key = ListingKey(x.Product.ProductID, x.Vendor?.VendorID);
+                    var available = stockByKey.GetValueOrDefault(key);
+                    return wantInStock ? StockDisplay.IsInStock(available) : !StockDisplay.IsInStock(available);
+                })
+                .ToList();
+        }
+
         var total = combined.Count;
         var take = pageSize < 1 ? 12 : pageSize;
         var skip = (pageIndex < 1 ? 0 : pageIndex - 1) * take;
@@ -603,7 +619,8 @@ public class ProductService : IProductService
         var items = new List<ProductSummaryDto>(page.Count);
         foreach (var (p, vendor) in page)
         {
-            var dto = await ProjectSummaryAsync(p, languageCode, currencyCode, ct, vendor);
+            var available = stockByKey.GetValueOrDefault(ListingKey(p.ProductID, vendor?.VendorID));
+            var dto = await ProjectSummaryAsync(p, languageCode, currencyCode, ct, vendor, available);
             items.Add(dto);
         }
 
@@ -700,7 +717,8 @@ public class ProductService : IProductService
         foreach (var vendor in siteVendors)
         {
             if (vendor.LinkedWebsiteID is not int lid) continue;
-            var q = PublishedQuery(lid);
+            var q = PublishedQuery(lid)
+                .Include(p => p.ProductVariants).ThenInclude(v => v.InventoryItems);
             // Ownership guard: only source-owned products.
             q = q.Where(p => p.WebsiteID == lid);
 
@@ -725,9 +743,96 @@ public class ProductService : IProductService
         return result;
     }
 
+    private static string ListingKey(int productId, int? vendorId) => $"{productId}:{vendorId?.ToString() ?? "0"}";
+
+    /// <summary>
+    /// Total available units for a catalog listing: warehouse (+ host marketplace sellers) for host products,
+    /// or the vendor listing / source warehouse for site-linked products.
+    /// </summary>
+    private async Task<Dictionary<string, int>> ResolveListingStockBulkAsync(
+        int hostWebsiteId, List<(Product Product, Vendor? Vendor)> listings, CancellationToken ct)
+    {
+        var result = new Dictionary<string, int>(StringComparer.Ordinal);
+        if (listings.Count == 0) return result;
+
+        var hostProductIds = listings.Where(x => x.Vendor is null).Select(x => x.Product.ProductID).Distinct().ToList();
+        var variantIdsByProduct = listings
+            .SelectMany(x => x.Product.ProductVariants.Where(v => v.IsActive).Select(v => (x.Product.ProductID, v.ProductVariantID)))
+            .GroupBy(x => x.ProductID)
+            .ToDictionary(g => g.Key, g => g.Select(x => x.ProductVariantID).Distinct().ToList());
+
+        // Marketplace seller stocks on host (Display/Member/Site listings with quantity).
+        var hostVariantIds = hostProductIds
+            .SelectMany(pid => variantIdsByProduct.GetValueOrDefault(pid) ?? new List<int>())
+            .Distinct()
+            .ToList();
+        var sellerStockByVariant = hostVariantIds.Count == 0
+            ? new Dictionary<int, int>()
+            : await _context.VendorProducts.AsNoTracking()
+                .Where(vp => vp.WebsiteID == hostWebsiteId && vp.IsActive && vp.StockQuantity > 0
+                             && hostVariantIds.Contains(vp.ProductVariantID))
+                .GroupBy(vp => vp.ProductVariantID)
+                .Select(g => new { VariantId = g.Key, Stock = g.Sum(x => x.StockQuantity) })
+                .ToDictionaryAsync(x => x.VariantId, x => x.Stock, ct);
+
+        // Site-linked vendor listing stocks (host VendorProduct rows).
+        var siteVendorIds = listings.Where(x => x.Vendor is not null).Select(x => x.Vendor!.VendorID).Distinct().ToList();
+        var siteListingStocks = siteVendorIds.Count == 0
+            ? new List<(int VendorID, int ProductVariantID, int StockQuantity)>()
+            : (await _context.VendorProducts.AsNoTracking()
+                .Where(vp => siteVendorIds.Contains(vp.VendorID) && vp.IsActive)
+                .Select(vp => new { vp.VendorID, vp.ProductVariantID, vp.StockQuantity })
+                .ToListAsync(ct))
+              .Select(x => (x.VendorID, x.ProductVariantID, x.StockQuantity))
+              .ToList();
+
+        foreach (var (product, vendor) in listings)
+        {
+            var key = ListingKey(product.ProductID, vendor?.VendorID);
+            var activeVariants = product.ProductVariants.Where(v => v.IsActive).ToList();
+            if (activeVariants.Count == 0)
+            {
+                result[key] = 0;
+                continue;
+            }
+
+            if (vendor is null)
+            {
+                // Host catalog: warehouse available + any marketplace seller stock on those variants.
+                var warehouse = activeVariants.Sum(v =>
+                    v.InventoryItems.Where(i => i.WebsiteID == product.WebsiteID)
+                        .Sum(i => Math.Max(0, i.QuantityOnHand - i.QuantityReserved)));
+                var sellers = activeVariants.Sum(v => sellerStockByVariant.GetValueOrDefault(v.ProductVariantID));
+                result[key] = warehouse + sellers;
+            }
+            else
+            {
+                // Site-linked row: prefer explicit VendorProduct stock; fall back to source warehouse.
+                var listingStock = siteListingStocks
+                    .Where(s => s.VendorID == vendor.VendorID
+                                && activeVariants.Any(v => v.ProductVariantID == s.ProductVariantID))
+                    .Sum(s => Math.Max(0, s.StockQuantity));
+                if (listingStock > 0)
+                {
+                    result[key] = listingStock;
+                }
+                else
+                {
+                    // No listing row yet — use source-site inventory (auto-listing path uses this too).
+                    result[key] = activeVariants.Sum(v =>
+                        v.InventoryItems.Where(i => i.WebsiteID == product.WebsiteID)
+                            .Sum(i => Math.Max(0, i.QuantityOnHand - i.QuantityReserved)));
+                }
+            }
+        }
+
+        return result;
+    }
+
     // ── Projection helpers ──────────────────────────────────────────
 
-    private async Task<ProductSummaryDto> ProjectSummaryAsync(Product p, string? lang, string? currencyCode, CancellationToken ct, Vendor? vendor = null)
+    private async Task<ProductSummaryDto> ProjectSummaryAsync(
+        Product p, string? lang, string? currencyCode, CancellationToken ct, Vendor? vendor = null, int? availableStock = null)
     {
         var (title, slug, shortDescription) = LocalizedCore(p, lang);
         var activeVariants = p.ProductVariants.Where(v => v.IsActive).ToList();
@@ -739,6 +844,8 @@ public class ProductService : IProductService
         if (vendor is not null)
             slug = $"{vendor.Slug}--{slug}";
 
+        var stock = availableStock ?? 0;
+
         return new ProductSummaryDto
         {
             ProductID = p.ProductID, Slug = slug, Title = title, ShortDescription = shortDescription,
@@ -747,6 +854,9 @@ public class ProductService : IProductService
             DefaultSku = defaultVariant?.Sku,
             MinPrice = await _currency.ToDisplayAsync(priceWebsiteId, minUsd, currencyCode, ct),
             AvgRating = p.AvgRating, RatingCount = p.RatingCount, HasVariants = p.HasVariants,
+            IsInStock = StockDisplay.IsInStock(stock),
+            StockQuantity = stock,
+            DisplayStockQuantity = StockDisplay.ExactCountOrNull(stock),
             VendorID = vendor?.VendorID,
             VendorName = vendor?.Name,
         };
@@ -771,34 +881,114 @@ public class ProductService : IProductService
     private async Task<ProductDetailDto> ProjectDetailAsync(
         Product p, string? lang, string? currencyCode, CancellationToken ct, Vendor? vendor = null, int? hostWebsiteId = null)
     {
-        var summary = await ProjectSummaryAsync(p, lang, currencyCode, ct, vendor);
         var priceWebsiteId = hostWebsiteId ?? vendor?.WebsiteID ?? p.WebsiteID;
+        var hostId = hostWebsiteId ?? vendor?.WebsiteID ?? p.WebsiteID;
 
         var categories = p.ProductCategoryMaps
             .Where(m => m.ProductCategory is not null)
             .Select(m => LocalizeCategory(m.ProductCategory, lang))
             .ToList();
 
-        // Optional host vendor-product overrides for price/stock.
-        Dictionary<int, VendorProduct>? listings = null;
+        // Optional single-vendor overrides (site-linked product page).
+        Dictionary<int, VendorProduct>? focusedListings = null;
         if (vendor is not null)
         {
-            listings = await _context.VendorProducts.AsNoTracking()
+            focusedListings = await _context.VendorProducts.AsNoTracking()
                 .Where(vp => vp.VendorID == vendor.VendorID && vp.IsActive)
                 .ToDictionaryAsync(vp => vp.ProductVariantID, ct);
         }
 
-        var variants = new List<ProductVariantDto>(p.ProductVariants.Count);
+        // Marketplace sellers on the host for this product — only in-stock listings are returned.
+        var variantIds = p.ProductVariants.Where(v => v.IsActive).Select(v => v.ProductVariantID).ToList();
+        var sellerRows = vendor is null && variantIds.Count > 0
+            ? await _context.VendorProducts.AsNoTracking()
+                .Include(vp => vp.Vendor)
+                .Include(vp => vp.ProductVariant)
+                .Where(vp => vp.WebsiteID == hostId
+                             && vp.IsActive
+                             && vp.StockQuantity > 0
+                             && variantIds.Contains(vp.ProductVariantID)
+                             && vp.Vendor.IsActive)
+                .OrderBy(vp => vp.Vendor.Name)
+                .ThenBy(vp => vp.ProductVariant.Title)
+                .ToListAsync(ct)
+            : new List<VendorProduct>();
+
+        // When viewing a single site-linked vendor, only that vendor's in-stock offers.
+        if (vendor is not null && focusedListings is not null)
+        {
+            sellerRows = focusedListings.Values
+                .Where(vp => vp.IsActive && vp.StockQuantity > 0)
+                .ToList();
+            // Attach navigation if missing (from dictionary query without Include).
+            if (sellerRows.Count > 0 && sellerRows[0].Vendor is null)
+            {
+                var reloaded = await _context.VendorProducts.AsNoTracking()
+                    .Include(vp => vp.Vendor)
+                    .Include(vp => vp.ProductVariant)
+                    .Where(vp => vp.VendorID == vendor.VendorID && vp.IsActive && vp.StockQuantity > 0
+                                 && variantIds.Contains(vp.ProductVariantID))
+                    .ToListAsync(ct);
+                sellerRows = reloaded;
+            }
+        }
+
+        var sellers = new List<ProductSellerOfferDto>(sellerRows.Count);
+        foreach (var vp in sellerRows)
+        {
+            var unitUsd = vp.OverridePrice ?? vp.ReferencePriceUsd;
+            var stock = Math.Max(0, vp.StockQuantity);
+            sellers.Add(new ProductSellerOfferDto
+            {
+                VendorID = vp.VendorID,
+                VendorName = vp.Vendor?.Name ?? string.Empty,
+                VendorSlug = vp.Vendor?.Slug ?? string.Empty,
+                VendorType = vp.Vendor?.VendorType ?? 0,
+                VendorProductID = vp.VendorProductID,
+                ProductVariantID = vp.ProductVariantID,
+                VariantTitle = vp.ProductVariant?.Title ?? string.Empty,
+                Sku = vp.ProductVariant?.Sku ?? string.Empty,
+                Price = await _currency.ToDisplayAsync(priceWebsiteId, unitUsd, currencyCode, ct),
+                StockQuantity = stock,
+                IsInStock = StockDisplay.IsInStock(stock),
+                DisplayStockQuantity = StockDisplay.ExactCountOrNull(stock),
+                DeliveryDays = vp.DeliveryDays,
+            });
+        }
+
+        var sellerStockByVariant = sellers
+            .GroupBy(s => s.ProductVariantID)
+            .ToDictionary(g => g.Key, g => g.Sum(x => x.StockQuantity));
+
+        var variants = new List<ProductVariantDto>();
         foreach (var v in p.ProductVariants.Where(v => v.IsActive))
         {
             VendorProduct? listing = null;
-            if (listings is not null)
-                listings.TryGetValue(v.ProductVariantID, out listing);
-            var unitUsd = listing?.OverridePrice ?? listing?.ReferencePriceUsd ?? v.ReferencePriceUsd;
-            var stock = listing is not null
-                ? listing.StockQuantity
-                : v.InventoryItems.Where(i => i.WebsiteID == p.WebsiteID).Sum(i => i.QuantityOnHand - i.QuantityReserved);
+            focusedListings?.TryGetValue(v.ProductVariantID, out listing);
 
+            int stock;
+            if (vendor is not null)
+            {
+                // Site-linked (or single-vendor) page: listing stock, else source warehouse.
+                stock = listing is not null
+                    ? Math.Max(0, listing.StockQuantity)
+                    : v.InventoryItems.Where(i => i.WebsiteID == p.WebsiteID)
+                        .Sum(i => Math.Max(0, i.QuantityOnHand - i.QuantityReserved));
+            }
+            else
+            {
+                var warehouse = v.InventoryItems.Where(i => i.WebsiteID == p.WebsiteID)
+                    .Sum(i => Math.Max(0, i.QuantityOnHand - i.QuantityReserved));
+                var fromSellers = sellerStockByVariant.GetValueOrDefault(v.ProductVariantID);
+                stock = warehouse + fromSellers;
+            }
+
+            // Hide fully unavailable variants when other sellable options exist; keep at least one row for OOS products.
+            // Always include variants that have stock; OOS variants are omitted so they are not offered for sale.
+            if (!StockDisplay.IsInStock(stock))
+                continue;
+
+            var unitUsd = listing?.OverridePrice ?? listing?.ReferencePriceUsd ?? v.ReferencePriceUsd;
             variants.Add(new ProductVariantDto
             {
                 ProductVariantID = v.ProductVariantID, Sku = v.Sku, Title = v.Title, IsDefault = v.IsDefault,
@@ -807,6 +997,8 @@ public class ProductService : IProductService
                 CompareAtPrice = v.CompareAtPriceUsd is decimal cmp ? await _currency.ToDisplayAsync(priceWebsiteId, cmp, currencyCode, ct) : null,
                 Weight = v.Weight, Barcode = v.Barcode, IsActive = v.IsActive,
                 StockQuantity = stock,
+                IsInStock = true,
+                DisplayStockQuantity = StockDisplay.ExactCountOrNull(stock),
                 VendorProductID = listing?.VendorProductID,
                 VendorID = vendor?.VendorID,
                 Attributes = v.VariantAttributeValues.Select(a => new ProductAttributeValueDto
@@ -820,6 +1012,13 @@ public class ProductService : IProductService
                 }).ToList(),
             });
         }
+
+        // Product-level stock = best available across remaining variants / sellers.
+        var productStock = Math.Max(
+            variants.Count == 0 ? 0 : variants.Max(v => v.StockQuantity),
+            sellers.Count == 0 ? 0 : sellers.Max(s => s.StockQuantity));
+
+        var summary = await ProjectSummaryAsync(p, lang, currencyCode, ct, vendor, productStock);
 
         var attributes = p.ProductAttributeValues.OrderBy(a => a.SortOrder).Select(a => new ProductAttributeValueDto
         {
@@ -861,7 +1060,9 @@ public class ProductService : IProductService
             ProductID = summary.ProductID, Slug = summary.Slug, Title = summary.Title, ShortDescription = summary.ShortDescription,
             FeaturedImageUrl = summary.FeaturedImageUrl, BrandName = summary.BrandName, DefaultSku = summary.DefaultSku,
             MinPrice = summary.MinPrice, AvgRating = summary.AvgRating, RatingCount = summary.RatingCount, HasVariants = summary.HasVariants,
-            Categories = categories, Variants = variants, Attributes = attributes,
+            IsInStock = summary.IsInStock, StockQuantity = summary.StockQuantity, DisplayStockQuantity = summary.DisplayStockQuantity,
+            VendorID = summary.VendorID, VendorName = summary.VendorName, VendorProductID = summary.VendorProductID,
+            Categories = categories, Variants = variants, Sellers = sellers, Attributes = attributes,
             Content = LocalizedContent(p, lang),
             ExpertReview = LocalizedExpertReview(p, lang),
             Warnings = warnings, Warranties = warranties, RelatedProducts = related, GalleryImageUrls = gallery,
