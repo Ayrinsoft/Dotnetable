@@ -40,6 +40,13 @@ public interface IInventoryService
     /// row if it doesn't exist yet for that website+variant.</summary>
     Task AdjustAsync(int websiteId, int variantId, int delta, decimal? unitCostUsd, string? note, int memberId, CancellationToken ct = default);
 
+    /// <summary>
+    /// Sets absolute on-hand quantity for a variant (used when registering/editing a product).
+    /// Creates the inventory row if missing. When the value changes, writes an Adjustment
+    /// <see cref="StockMovement"/> for the delta. Rejects values below the reserved quantity.
+    /// </summary>
+    Task SetOnHandAsync(int websiteId, int variantId, int quantityOnHand, string? note, int memberId, CancellationToken ct = default);
+
     /// <summary>Paged admin stock grid, joined to variant + product for display.</summary>
     Task<PagedResult<InventoryItem>> GetPagedAsync(int websiteId, GridQuery query, CancellationToken ct = default);
 
