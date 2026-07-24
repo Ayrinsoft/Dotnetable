@@ -61,10 +61,33 @@ public sealed class ProductVariantDto
     public decimal? Weight { get; init; }
     public string? Barcode { get; init; }
     public bool IsActive { get; init; }
+    /// <summary>Available units (for max qty / cart). Prefer <see cref="DisplayStockQuantity"/> for UI labels.</summary>
     public int StockQuantity { get; init; }
+    /// <summary>True when <see cref="StockQuantity"/> &gt; 0.</summary>
+    public bool IsInStock { get; init; }
+    /// <summary>Exact count for UI only when 1..8; null means out of stock or “in stock” without a number (≥9).</summary>
+    public int? DisplayStockQuantity { get; init; }
     public int? VendorProductID { get; init; }
     public int? VendorID { get; init; }
     public IReadOnlyList<ProductAttributeValueDto> Attributes { get; init; } = Array.Empty<ProductAttributeValueDto>();
+}
+
+/// <summary>One marketplace seller offering a product variant (only in-stock sellers are returned).</summary>
+public sealed class ProductSellerOfferDto
+{
+    public int VendorID { get; init; }
+    public string VendorName { get; init; } = string.Empty;
+    public string VendorSlug { get; init; } = string.Empty;
+    public byte VendorType { get; init; }
+    public int VendorProductID { get; init; }
+    public int ProductVariantID { get; init; }
+    public string VariantTitle { get; init; } = string.Empty;
+    public string Sku { get; init; } = string.Empty;
+    public MoneyDto Price { get; init; } = new();
+    public int StockQuantity { get; init; }
+    public bool IsInStock { get; init; }
+    public int? DisplayStockQuantity { get; init; }
+    public int DeliveryDays { get; init; }
 }
 
 /// <summary>A safety/compliance warning shown on the product detail page.</summary>
@@ -134,6 +157,13 @@ public class ProductSummaryDto
     public int RatingCount { get; init; }
     public bool HasVariants { get; init; }
 
+    /// <summary>True when any sellable channel (warehouse or seller listing) has stock &gt; 0.</summary>
+    public bool IsInStock { get; init; }
+    /// <summary>Best available units across channels (for cart max). Prefer <see cref="DisplayStockQuantity"/> for labels.</summary>
+    public int StockQuantity { get; init; }
+    /// <summary>Exact count for UI only when 1..8; null means out of stock or “in stock” without a number (≥9).</summary>
+    public int? DisplayStockQuantity { get; init; }
+
     /// <summary>When the listing comes from a site-linked or member vendor on the host storefront.</summary>
     public int? VendorID { get; init; }
     public string? VendorName { get; init; }
@@ -145,6 +175,8 @@ public sealed class ProductDetailDto : ProductSummaryDto
 {
     public IReadOnlyList<ProductCategoryDto> Categories { get; init; } = Array.Empty<ProductCategoryDto>();
     public IReadOnlyList<ProductVariantDto> Variants { get; init; } = Array.Empty<ProductVariantDto>();
+    /// <summary>In-stock marketplace sellers for this product (out-of-stock sellers are omitted).</summary>
+    public IReadOnlyList<ProductSellerOfferDto> Sellers { get; init; } = Array.Empty<ProductSellerOfferDto>();
     public IReadOnlyList<ProductAttributeValueDto> Attributes { get; init; } = Array.Empty<ProductAttributeValueDto>();
     /// <summary>Rich HTML description (CKEditor), with optional inline images.</summary>
     public string? Content { get; init; }
