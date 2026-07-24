@@ -1,0 +1,97 @@
+@inject IProductService ProductService
+@inject IPageLocalizer L
+@inject ICurrencyConversionService CurrencyConversion
+
+<MudDialog>
+    <TitleContent>
+        <MudText Typo="Typo.h6">@L["products.price_history", "Price history"]</MudText>
+    </TitleContent>
+    <DialogContent>
+        <MudText Typo="Typo.body2" Color="Color.Secondary" Class="mb-3">
+            @string.Format(L["products.price_history_hint", "Recorded selling prices for “{0}” over the last {1} months (USD reference)."], VariantTitle, Months)
+        </MudText>
+        @if (_loading)
+        {
+            <MudProgressLinear Indeterminate="true" Color="Color.Primary" />
+        }
+        else if (_items.Count == 0)
+        {
+            <MudAlert Severity="Severity.Info" Dense="true" Variant="Variant.Outlined">
+                @L["products.price_history_empty", "No price changes recorded yet. History is written when you save a new or changed price."]
+            </MudAlert>
+        }
+        else
+        {
+            <MudSimpleTable Dense="true" Hover="true" Elevation="0" Class="border rounded-lg">
+                <thead>
+                    <tr>
+                        <th>@L["date", "Date"]</th>
+                        <th>@L["variants.price", "Price (USD)"]</th>
+                        <th>@L["variants.compare_at", "Compare at (USD)"]</th>
+                        @if (!string.IsNullOrEmpty(DisplayCurrency) && !_isUsd)
+                        {
+                            <th>@string.Format(L["products.price_history_local", "Price ({0})"], DisplayCurrency)</th>
+                        }
+                    </tr>
+                </thead>
+                <tbody>
+                    @foreach (var h in _items)
+                    {
+                        <tr>
+                            <td>@h.RecordedAt.ToLocalTime().ToString("yyyy-MM-dd HH:mm")</td>
+                            <td>@h.ReferencePriceUsd.ToString("0.####")</td>
+                            <td>@(h.CompareAtPriceUsd is decimal c ? c.ToString("0.####") : "—")</td>
+                            @if (!string.IsNullOrEmpty(DisplayCurrency) && !_isUsd)
+                            {
+                                <td>@LocalAmount(h.ReferencePriceUsd)</td>
+                            }
+                        </tr>
+                    }
+                </tbody>
+            </MudSimpleTable>
+        }
+    </DialogContent>
+    <DialogActions>
+        <MudButton OnClick="Close">@L["close", "Close"]</MudButton>
+    </DialogActions>
+</MudDialog>
+
+@code {
+    [CascadingParameter] private IMudDialogInstance MudDialog { get; set; } = null!;
+    [Parameter] public int ProductVariantID { get; set; }
+    [Parameter] public string VariantTitle { get; set; } = string.Empty;
+    [Parameter] public int Months { get; set; } = 12;
+    [Parameter] public int WebsiteId { get; set; }
+    [Parameter] public string? DisplayCurrency { get; set; }
+
+    private bool _loading = true;
+    private bool _isUsd = true;
+    private decimal _usdToLocal = 1m;
+    private List<ProductVariantPriceHistoryDto> _items = new();
+
+    protected override async Task OnInitializedAsync()
+    {
+        await L.EnsureLoadedAsync();
+        _items = await ProductService.GetVariantPriceHistoryAsync(ProductVariantID, Months);
+        if (!string.IsNullOrWhiteSpace(DisplayCurrency) && !string.Equals(DisplayCurrency, "USD", StringComparison.OrdinalIgnoreCase))
+        {
+            _isUsd = false;
+            try
+            {
+                // Convert 1 USD to display currency for a rough local column.
+                var one = await CurrencyConversion.ToDisplayAsync(WebsiteId, 1m, DisplayCurrency, default);
+                _usdToLocal = one.Amount;
+            }
+            catch { _usdToLocal = 0; }
+        }
+        _loading = false;
+    }
+
+    private string LocalAmount(decimal usd)
+    {
+        if (_usdToLocal <= 0) return "—";
+        return (usd * _usdToLocal).ToString("N0");
+    }
+
+    private void Close() => MudDialog.Close();
+}

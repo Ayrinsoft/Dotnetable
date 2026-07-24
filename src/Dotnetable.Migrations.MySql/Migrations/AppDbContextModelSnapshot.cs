@@ -3675,6 +3675,39 @@ namespace Dotnetable.Migrations.MySql.Migrations
                     b.ToTable("ProductVariants");
                 });
 
+            modelBuilder.Entity("Dotnetable.Domain.Entities.ProductVariantPriceHistory", b =>
+                {
+                    b.Property<long>("ProductVariantPriceHistoryID")
+                        .ValueGeneratedOnAdd()
+                        .HasColumnType("bigint");
+
+                    b.Property<int?>("ChangedByMemberId")
+                        .HasColumnType("int");
+
+                    b.Property<decimal?>("CompareAtPriceUsd")
+                        .HasColumnType("decimal(18, 4)");
+
+                    b.Property<int>("ProductVariantID")
+                        .HasColumnType("int");
+
+                    b.Property<DateTime>("RecordedAt")
+                        .ValueGeneratedOnAdd()
+                        .HasColumnType("datetime")
+                        .HasDefaultValueSql("(sysutcdatetime())")
+                        .HasAnnotation("Relational:DefaultConstraintName", "DF_ProductVariantPriceHistories_RecordedAt");
+
+                    b.Property<decimal>("ReferencePriceUsd")
+                        .HasColumnType("decimal(18, 4)");
+
+                    b.HasKey("ProductVariantPriceHistoryID");
+
+                    b.HasIndex("ChangedByMemberId");
+
+                    b.HasIndex(new[] { "ProductVariantID", "RecordedAt" }, "IX_ProductVariantPriceHistories_ProductVariantID_RecordedAt");
+
+                    b.ToTable("ProductVariantPriceHistories");
+                });
+
             modelBuilder.Entity("Dotnetable.Domain.Entities.ProductWarning", b =>
                 {
                     b.Property<int>("ProductWarningID")
@@ -3736,6 +3769,47 @@ namespace Dotnetable.Migrations.MySql.Migrations
                     b.HasIndex(new[] { "ProductWarningID" }, "IX_ProductWarningTranslations_ProductWarningID");
 
                     b.ToTable("ProductWarningTranslations");
+                });
+
+            modelBuilder.Entity("Dotnetable.Domain.Entities.ProductWarranty", b =>
+                {
+                    b.Property<int>("ProductWarrantyID")
+                        .ValueGeneratedOnAdd()
+                        .HasColumnType("int");
+
+                    b.Property<string>("CustomDescription")
+                        .HasMaxLength(2000)
+                        .HasColumnType("varchar(2000)");
+
+                    b.Property<string>("CustomTitle")
+                        .HasMaxLength(200)
+                        .HasColumnType("varchar(200)");
+
+                    b.Property<bool>("IsActive")
+                        .ValueGeneratedOnAdd()
+                        .HasColumnType("tinyint(1)")
+                        .HasDefaultValue(true)
+                        .HasAnnotation("Relational:DefaultConstraintName", "DF_ProductWarranties_IsActive");
+
+                    b.Property<int>("ProductID")
+                        .HasColumnType("int");
+
+                    b.Property<int>("SortOrder")
+                        .ValueGeneratedOnAdd()
+                        .HasColumnType("int")
+                        .HasDefaultValue(0)
+                        .HasAnnotation("Relational:DefaultConstraintName", "DF_ProductWarranties_SortOrder");
+
+                    b.Property<int?>("WarrantyID")
+                        .HasColumnType("int");
+
+                    b.HasKey("ProductWarrantyID");
+
+                    b.HasIndex(new[] { "ProductID" }, "IX_ProductWarranties_ProductID");
+
+                    b.HasIndex(new[] { "WarrantyID" }, "IX_ProductWarranties_WarrantyID");
+
+                    b.ToTable("ProductWarranties");
                 });
 
             modelBuilder.Entity("Dotnetable.Domain.Entities.Role", b =>
@@ -4610,6 +4684,86 @@ namespace Dotnetable.Migrations.MySql.Migrations
                     b.HasIndex(new[] { "VendorID" }, "IX_VendorTranslations_VendorID");
 
                     b.ToTable("VendorTranslations");
+                });
+
+            modelBuilder.Entity("Dotnetable.Domain.Entities.Warranty", b =>
+                {
+                    b.Property<int>("WarrantyID")
+                        .ValueGeneratedOnAdd()
+                        .HasColumnType("int");
+
+                    b.Property<string>("Description")
+                        .HasMaxLength(2000)
+                        .HasColumnType("varchar(2000)");
+
+                    b.Property<int?>("DurationMonths")
+                        .HasColumnType("int");
+
+                    b.Property<bool>("IsActive")
+                        .ValueGeneratedOnAdd()
+                        .HasColumnType("tinyint(1)")
+                        .HasDefaultValue(true)
+                        .HasAnnotation("Relational:DefaultConstraintName", "DF_Warranties_IsActive");
+
+                    b.Property<string>("ProviderName")
+                        .HasMaxLength(200)
+                        .HasColumnType("varchar(200)");
+
+                    b.Property<int>("SortOrder")
+                        .ValueGeneratedOnAdd()
+                        .HasColumnType("int")
+                        .HasDefaultValue(0)
+                        .HasAnnotation("Relational:DefaultConstraintName", "DF_Warranties_SortOrder");
+
+                    b.Property<string>("Title")
+                        .IsRequired()
+                        .HasMaxLength(200)
+                        .HasColumnType("varchar(200)");
+
+                    b.Property<int>("WebsiteID")
+                        .HasColumnType("int");
+
+                    b.HasKey("WarrantyID");
+
+                    b.HasIndex(new[] { "WebsiteID" }, "IX_Warranties_WebsiteID");
+
+                    b.ToTable("Warranties");
+                });
+
+            modelBuilder.Entity("Dotnetable.Domain.Entities.WarrantyTranslation", b =>
+                {
+                    b.Property<int>("WarrantyTranslationID")
+                        .ValueGeneratedOnAdd()
+                        .HasColumnType("int");
+
+                    b.Property<string>("Description")
+                        .HasMaxLength(2000)
+                        .HasColumnType("varchar(2000)");
+
+                    b.Property<string>("LanguageCode")
+                        .IsRequired()
+                        .HasMaxLength(2)
+                        .IsUnicode(false)
+                        .HasColumnType("char(2)")
+                        .IsFixedLength();
+
+                    b.Property<string>("ProviderName")
+                        .HasMaxLength(200)
+                        .HasColumnType("varchar(200)");
+
+                    b.Property<string>("Title")
+                        .IsRequired()
+                        .HasMaxLength(200)
+                        .HasColumnType("varchar(200)");
+
+                    b.Property<int>("WarrantyID")
+                        .HasColumnType("int");
+
+                    b.HasKey("WarrantyTranslationID");
+
+                    b.HasIndex(new[] { "WarrantyID" }, "IX_WarrantyTranslations_WarrantyID");
+
+                    b.ToTable("WarrantyTranslations");
                 });
 
             modelBuilder.Entity("Dotnetable.Domain.Entities.Website", b =>
@@ -6931,6 +7085,24 @@ namespace Dotnetable.Migrations.MySql.Migrations
                     b.Navigation("Website");
                 });
 
+            modelBuilder.Entity("Dotnetable.Domain.Entities.ProductVariantPriceHistory", b =>
+                {
+                    b.HasOne("Dotnetable.Domain.Entities.Member", "ChangedByMember")
+                        .WithMany("ProductVariantPriceHistories")
+                        .HasForeignKey("ChangedByMemberId")
+                        .HasConstraintName("FK_ProductVariantPriceHistories_Members");
+
+                    b.HasOne("Dotnetable.Domain.Entities.ProductVariant", "ProductVariant")
+                        .WithMany("ProductVariantPriceHistories")
+                        .HasForeignKey("ProductVariantID")
+                        .IsRequired()
+                        .HasConstraintName("FK_ProductVariantPriceHistories_ProductVariants");
+
+                    b.Navigation("ChangedByMember");
+
+                    b.Navigation("ProductVariant");
+                });
+
             modelBuilder.Entity("Dotnetable.Domain.Entities.ProductWarning", b =>
                 {
                     b.HasOne("Dotnetable.Domain.Entities.Product", "Product")
@@ -6951,6 +7123,24 @@ namespace Dotnetable.Migrations.MySql.Migrations
                         .HasConstraintName("FK_ProductWarningTranslations_ProductWarnings");
 
                     b.Navigation("ProductWarning");
+                });
+
+            modelBuilder.Entity("Dotnetable.Domain.Entities.ProductWarranty", b =>
+                {
+                    b.HasOne("Dotnetable.Domain.Entities.Product", "Product")
+                        .WithMany("ProductWarranties")
+                        .HasForeignKey("ProductID")
+                        .IsRequired()
+                        .HasConstraintName("FK_ProductWarranties_Products");
+
+                    b.HasOne("Dotnetable.Domain.Entities.Warranty", "Warranty")
+                        .WithMany("ProductWarranties")
+                        .HasForeignKey("WarrantyID")
+                        .HasConstraintName("FK_ProductWarranties_Warranties");
+
+                    b.Navigation("Product");
+
+                    b.Navigation("Warranty");
                 });
 
             modelBuilder.Entity("Dotnetable.Domain.Entities.Settlement", b =>
@@ -7396,6 +7586,28 @@ namespace Dotnetable.Migrations.MySql.Migrations
                         .HasConstraintName("FK_VendorTranslations_Vendors");
 
                     b.Navigation("Vendor");
+                });
+
+            modelBuilder.Entity("Dotnetable.Domain.Entities.Warranty", b =>
+                {
+                    b.HasOne("Dotnetable.Domain.Entities.Website", "Website")
+                        .WithMany("Warranties")
+                        .HasForeignKey("WebsiteID")
+                        .IsRequired()
+                        .HasConstraintName("FK_Warranties_Websites");
+
+                    b.Navigation("Website");
+                });
+
+            modelBuilder.Entity("Dotnetable.Domain.Entities.WarrantyTranslation", b =>
+                {
+                    b.HasOne("Dotnetable.Domain.Entities.Warranty", "Warranty")
+                        .WithMany("WarrantyTranslations")
+                        .HasForeignKey("WarrantyID")
+                        .IsRequired()
+                        .HasConstraintName("FK_WarrantyTranslations_Warranties");
+
+                    b.Navigation("Warranty");
                 });
 
             modelBuilder.Entity("Dotnetable.Domain.Entities.Website", b =>
@@ -7904,6 +8116,8 @@ namespace Dotnetable.Migrations.MySql.Migrations
 
                     b.Navigation("Posts");
 
+                    b.Navigation("ProductVariantPriceHistories");
+
                     b.Navigation("Products");
 
                     b.Navigation("SettlementApprovedByMembers");
@@ -8022,6 +8236,8 @@ namespace Dotnetable.Migrations.MySql.Migrations
                     b.Navigation("ProductVariants");
 
                     b.Navigation("ProductWarnings");
+
+                    b.Navigation("ProductWarranties");
                 });
 
             modelBuilder.Entity("Dotnetable.Domain.Entities.ProductAttributeValue", b =>
@@ -8056,6 +8272,8 @@ namespace Dotnetable.Migrations.MySql.Migrations
                     b.Navigation("OrderItems");
 
                     b.Navigation("ProductReviews");
+
+                    b.Navigation("ProductVariantPriceHistories");
 
                     b.Navigation("StockMovements");
 
@@ -8143,6 +8361,13 @@ namespace Dotnetable.Migrations.MySql.Migrations
                     b.Navigation("CartItems");
 
                     b.Navigation("OrderItems");
+                });
+
+            modelBuilder.Entity("Dotnetable.Domain.Entities.Warranty", b =>
+                {
+                    b.Navigation("ProductWarranties");
+
+                    b.Navigation("WarrantyTranslations");
                 });
 
             modelBuilder.Entity("Dotnetable.Domain.Entities.Website", b =>
@@ -8258,6 +8483,8 @@ namespace Dotnetable.Migrations.MySql.Migrations
                     b.Navigation("VendorProducts");
 
                     b.Navigation("Vendors");
+
+                    b.Navigation("Warranties");
 
                     b.Navigation("WebsiteCaptchaSetting");
 

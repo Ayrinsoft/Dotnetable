@@ -83,6 +83,7 @@ public class ProductService : IProductService
             .Include(p => p.ProductAttributeValues).ThenInclude(v => v.AttributeOption)
 
             .Include(p => p.ProductWarnings).ThenInclude(w => w.ProductWarningTranslations)
+            .Include(p => p.ProductWarranties).ThenInclude(w => w.Warranty)
             .Include(p => p.ProductRelationProducts).ThenInclude(r => r.RelatedProduct)
             .Include(p => p.FeaturedImageFile)
             .FirstOrDefaultAsync(p => p.ProductID == productId, ct);
@@ -121,6 +122,7 @@ public class ProductService : IProductService
             .Include(p => p.ProductMedia)
             .Include(p => p.ProductAttributeValues)
             .Include(p => p.ProductWarnings)
+            .Include(p => p.ProductWarranties)
             .Include(p => p.ProductRelationProducts)
             .Include(p => p.ProductRelationRelatedProducts)
             .Include(p => p.MenuItems)
@@ -130,9 +132,16 @@ public class ProductService : IProductService
         foreach (var mi in product.MenuItems)
             mi.ProductID = null;
 
+        // Price history is cascade-removed via variants; clear explicit FKs first when variants go.
+        var variantIds = product.ProductVariants.Select(v => v.ProductVariantID).ToList();
+        if (variantIds.Count > 0)
+            _context.ProductVariantPriceHistories.RemoveRange(
+                _context.ProductVariantPriceHistories.Where(h => variantIds.Contains(h.ProductVariantID)));
+
         _context.ProductRelations.RemoveRange(product.ProductRelationProducts);
         _context.ProductRelations.RemoveRange(product.ProductRelationRelatedProducts);
         _context.ProductWarnings.RemoveRange(product.ProductWarnings);
+        _context.ProductWarranties.RemoveRange(product.ProductWarranties);
         _context.ProductAttributeValues.RemoveRange(product.ProductAttributeValues);
         _context.ProductMedia.RemoveRange(product.ProductMedia);
         _context.ProductCategoryMaps.RemoveRange(product.ProductCategoryMaps);
@@ -225,7 +234,7 @@ public class ProductService : IProductService
     // ── Variants ───────────────────────────────────────────────────────
     // Replace-all-children: ProductVariantID == 0 means insert, existing ids not present are removed.
 
-    public async Task SetVariantsAsync(int productId, IReadOnlyList<ProductVariant> variants, CancellationToken ct = default)
+    public async Task SetVariantsAsync(int productId, IReadOnlyList<ProductVariant> variants, int? changedByMemberId = null, CancellationToken ct = default)
     {
         var product = await _context.Products.AsNoTracking()
             .Where(p => p.ProductID == productId).Select(p => new { p.WebsiteID }).FirstOrDefaultAsync(ct);
@@ -265,15 +274,21 @@ public class ProductService : IProductService
         if (toRemove.Count > 0)
         {
             var removeIds = toRemove.Select(v => v.ProductVariantID).ToList();
+            _context.ProductVariantPriceHistories.RemoveRange(
+                _context.ProductVariantPriceHistories.Where(h => removeIds.Contains(h.ProductVariantID)));
             _context.VariantAttributeValues.RemoveRange(
                 _context.VariantAttributeValues.Where(a => removeIds.Contains(a.ProductVariantID)));
             _context.ProductVariants.RemoveRange(toRemove);
         }
 
+        var now = DateTime.UtcNow;
+        var newVariantsNeedingHistory = new List<ProductVariant>();
+
         foreach (var v in variants)
         {
             if (v.ProductVariantID == 0)
-                _context.ProductVariants.Add(new ProductVariant
+            {
+                var created = new ProductVariant
                 {
                     WebsiteID = product.WebsiteID,
                     ProductID = productId,
@@ -287,12 +302,19 @@ public class ProductService : IProductService
                     Weight = v.Weight,
                     Barcode = v.Barcode,
                     IsActive = v.IsActive,
-                    CreatedAt = DateTime.UtcNow,
-                });
+                    CreatedAt = now,
+                };
+                _context.ProductVariants.Add(created);
+                newVariantsNeedingHistory.Add(created);
+            }
             else
             {
                 var current = existing.FirstOrDefault(x => x.ProductVariantID == v.ProductVariantID);
                 if (current is null) continue;
+
+                var priceChanged = current.ReferencePriceUsd != v.ReferencePriceUsd
+                    || current.CompareAtPriceUsd != v.CompareAtPriceUsd;
+
                 current.Sku = v.Sku;
                 current.Title = v.Title;
                 current.IsDefault = v.IsDefault;
@@ -303,10 +325,72 @@ public class ProductService : IProductService
                 current.Weight = v.Weight;
                 current.Barcode = v.Barcode;
                 current.IsActive = v.IsActive;
+
+                if (priceChanged)
+                    AppendPriceHistory(current.ProductVariantID, v.ReferencePriceUsd, v.CompareAtPriceUsd, now, changedByMemberId);
             }
         }
 
         await _context.SaveChangesAsync(ct);
+
+        // New variants get an ID after SaveChanges — log their initial price.
+        foreach (var created in newVariantsNeedingHistory)
+            AppendPriceHistory(created.ProductVariantID, created.ReferencePriceUsd, created.CompareAtPriceUsd, now, changedByMemberId);
+
+        if (newVariantsNeedingHistory.Count > 0)
+            await _context.SaveChangesAsync(ct);
+
+        // Soft retention: drop history older than 18 months for touched variants (keep ~12 months visible).
+        var historyVariantIds = variants.Where(v => v.ProductVariantID != 0).Select(v => v.ProductVariantID)
+            .Concat(newVariantsNeedingHistory.Select(v => v.ProductVariantID))
+            .Distinct()
+            .ToList();
+        if (historyVariantIds.Count > 0)
+        {
+            var cutoff = now.AddMonths(-18);
+            await _context.ProductVariantPriceHistories
+                .Where(h => historyVariantIds.Contains(h.ProductVariantID) && h.RecordedAt < cutoff)
+                .ExecuteDeleteAsync(ct);
+        }
+    }
+
+    public async Task<List<ProductVariantPriceHistoryDto>> GetVariantPriceHistoryAsync(
+        int productVariantId, int months = 12, CancellationToken ct = default)
+    {
+        if (months < 1) months = 1;
+        if (months > 36) months = 36;
+        var from = DateTime.UtcNow.AddMonths(-months);
+
+        return await _context.ProductVariantPriceHistories.AsNoTracking()
+            .Where(h => h.ProductVariantID == productVariantId && h.RecordedAt >= from)
+            .OrderByDescending(h => h.RecordedAt)
+            .Select(h => new ProductVariantPriceHistoryDto
+            {
+                ProductVariantPriceHistoryID = h.ProductVariantPriceHistoryID,
+                ProductVariantID = h.ProductVariantID,
+                ReferencePriceUsd = h.ReferencePriceUsd,
+                CompareAtPriceUsd = h.CompareAtPriceUsd,
+                RecordedAt = h.RecordedAt,
+                ChangedByMemberId = h.ChangedByMemberId,
+            })
+            .ToListAsync(ct);
+    }
+
+    private void AppendPriceHistory(
+        int productVariantId,
+        decimal referencePriceUsd,
+        decimal? compareAtPriceUsd,
+        DateTime recordedAt,
+        int? changedByMemberId)
+    {
+        _context.ProductVariantPriceHistories.Add(new ProductVariantPriceHistory
+        {
+            ProductVariantID = productVariantId,
+            ReferencePriceUsd = referencePriceUsd,
+            CompareAtPriceUsd = compareAtPriceUsd,
+            RecordedAt = recordedAt,
+            ChangedByMemberId = changedByMemberId,
+        });
     }
 
     // ── Media ──────────────────────────────────────────────────────────
@@ -397,6 +481,50 @@ public class ProductService : IProductService
                 if (current is null) continue;
                 current.Severity = w.Severity;
                 current.Text = w.Text;
+                current.IsActive = w.IsActive;
+            }
+        }
+
+        await _context.SaveChangesAsync(ct);
+    }
+
+    // ── Warranties ───────────────────────────────────────────────────────
+
+    public async Task SetWarrantiesAsync(int productId, IReadOnlyList<ProductWarranty> warranties, CancellationToken ct = default)
+    {
+        var existing = await _context.ProductWarranties.Where(w => w.ProductID == productId).ToListAsync(ct);
+        var wantedIds = warranties.Where(w => w.ProductWarrantyID != 0).Select(w => w.ProductWarrantyID).ToHashSet();
+
+        _context.ProductWarranties.RemoveRange(existing.Where(w => !wantedIds.Contains(w.ProductWarrantyID)));
+
+        var sort = 0;
+        foreach (var w in warranties)
+        {
+            // Skip empty rows (neither catalog pick nor custom title).
+            var hasCatalog = w.WarrantyID is > 0;
+            var hasCustom = !string.IsNullOrWhiteSpace(w.CustomTitle) || !string.IsNullOrWhiteSpace(w.CustomDescription);
+            if (!hasCatalog && !hasCustom) continue;
+
+            if (w.ProductWarrantyID == 0)
+            {
+                _context.ProductWarranties.Add(new ProductWarranty
+                {
+                    ProductID = productId,
+                    WarrantyID = hasCatalog ? w.WarrantyID : null,
+                    CustomTitle = string.IsNullOrWhiteSpace(w.CustomTitle) ? null : w.CustomTitle.Trim(),
+                    CustomDescription = string.IsNullOrWhiteSpace(w.CustomDescription) ? null : w.CustomDescription.Trim(),
+                    SortOrder = sort++,
+                    IsActive = w.IsActive,
+                });
+            }
+            else
+            {
+                var current = existing.FirstOrDefault(x => x.ProductWarrantyID == w.ProductWarrantyID);
+                if (current is null) continue;
+                current.WarrantyID = hasCatalog ? w.WarrantyID : null;
+                current.CustomTitle = string.IsNullOrWhiteSpace(w.CustomTitle) ? null : w.CustomTitle.Trim();
+                current.CustomDescription = string.IsNullOrWhiteSpace(w.CustomDescription) ? null : w.CustomDescription.Trim();
+                current.SortOrder = sort++;
                 current.IsActive = w.IsActive;
             }
         }
@@ -555,6 +683,7 @@ public class ProductService : IProductService
             .Include(p => p.ProductAttributeValues).ThenInclude(v => v.AttributeOption).ThenInclude(o => o!.AttributeOptionTranslations)
             .Include(p => p.ProductAttributeValues).ThenInclude(v => v.ProductAttributeValueTranslations)
             .Include(p => p.ProductWarnings).ThenInclude(w => w.ProductWarningTranslations)
+            .Include(p => p.ProductWarranties).ThenInclude(w => w.Warranty!).ThenInclude(w => w.WarrantyTranslations)
             .Include(p => p.ProductRelationProducts).ThenInclude(r => r.RelatedProduct).ThenInclude(rp => rp.FeaturedImageFile)
             .Include(p => p.ProductRelationProducts).ThenInclude(r => r.RelatedProduct).ThenInclude(rp => rp.ProductVariants)
             .Include(p => p.ProductMedia).ThenInclude(m => m.MediaSet).ThenInclude(ms => ms.MediaSetItems).ThenInclude(i => i.File);
@@ -710,6 +839,11 @@ public class ProductService : IProductService
             ProductWarningID = w.ProductWarningID, Severity = w.Severity, Text = LocalizedWarningText(w, lang),
         }).ToList();
 
+        var warranties = p.ProductWarranties.Where(w => w.IsActive).OrderBy(w => w.SortOrder)
+            .Select(w => ResolveWarrantyDto(w, lang))
+            .Where(w => !string.IsNullOrWhiteSpace(w.Title) || !string.IsNullOrWhiteSpace(w.Description))
+            .ToList();
+
         var related = new List<ProductRefDto>();
         foreach (var r in p.ProductRelationProducts.Where(r => r.RelatedProduct.IsActive).OrderBy(r => r.SortOrder))
             related.Add(await ProjectRefAsync(r.RelatedProduct, r.RelationType, lang, currencyCode, ct));
@@ -730,7 +864,52 @@ public class ProductService : IProductService
             Categories = categories, Variants = variants, Attributes = attributes,
             Content = LocalizedContent(p, lang),
             ExpertReview = LocalizedExpertReview(p, lang),
-            Warnings = warnings, RelatedProducts = related, GalleryImageUrls = gallery,
+            Warnings = warnings, Warranties = warranties, RelatedProducts = related, GalleryImageUrls = gallery,
+        };
+    }
+
+    private static ProductWarrantyDto ResolveWarrantyDto(ProductWarranty w, string? lang)
+    {
+        string? title = null;
+        string? description = null;
+        string? provider = null;
+        int? duration = null;
+        int? catalogId = w.WarrantyID;
+
+        if (w.Warranty is { } cat && cat.IsActive)
+        {
+            duration = cat.DurationMonths;
+            title = cat.Title;
+            description = cat.Description;
+            provider = cat.ProviderName;
+            if (!string.IsNullOrWhiteSpace(lang))
+            {
+                var t = cat.WarrantyTranslations.FirstOrDefault(x =>
+                    string.Equals(x.LanguageCode, lang, StringComparison.OrdinalIgnoreCase));
+                if (t is not null)
+                {
+                    if (!string.IsNullOrWhiteSpace(t.Title)) title = t.Title;
+                    if (!string.IsNullOrWhiteSpace(t.Description)) description = t.Description;
+                    if (!string.IsNullOrWhiteSpace(t.ProviderName)) provider = t.ProviderName;
+                }
+            }
+        }
+
+        // Custom fields win for title/description when provided (one-off seller warranties or notes).
+        if (!string.IsNullOrWhiteSpace(w.CustomTitle)) title = w.CustomTitle;
+        if (!string.IsNullOrWhiteSpace(w.CustomDescription))
+            description = string.IsNullOrWhiteSpace(description)
+                ? w.CustomDescription
+                : $"{description}\n{w.CustomDescription}";
+
+        return new ProductWarrantyDto
+        {
+            ProductWarrantyID = w.ProductWarrantyID,
+            WarrantyID = catalogId,
+            Title = title ?? string.Empty,
+            Description = description,
+            ProviderName = provider,
+            DurationMonths = duration,
         };
     }
 

@@ -108,6 +108,7 @@ public static class ServiceCollectionExtensions
         services.AddScoped<IProductCategoryService, ProductCategoryService>();
         services.AddScoped<IAttributeDefinitionService, AttributeDefinitionService>();
         services.AddScoped<IBrandService, BrandService>();
+        services.AddScoped<IWarrantyService, WarrantyService>();
         services.AddScoped<IVendorService, VendorService>();
         services.AddScoped<IVendorProductService, VendorProductService>();
         services.AddScoped<IVendorCreditService, VendorCreditService>();

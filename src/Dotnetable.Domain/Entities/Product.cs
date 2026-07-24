@@ -75,5 +75,7 @@ public partial class Product
 
     public virtual ICollection<ProductWarning> ProductWarnings { get; set; } = new List<ProductWarning>();
 
+    public virtual ICollection<ProductWarranty> ProductWarranties { get; set; } = new List<ProductWarranty>();
+
     public virtual Website Website { get; set; } = null!;
 }

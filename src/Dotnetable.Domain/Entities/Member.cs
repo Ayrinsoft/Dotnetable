@@ -76,6 +76,8 @@ public partial class Member
 
     public virtual ICollection<Product> Products { get; set; } = new List<Product>();
 
+    public virtual ICollection<ProductVariantPriceHistory> ProductVariantPriceHistories { get; set; } = new List<ProductVariantPriceHistory>();
+
     public virtual ICollection<Settlement> SettlementApprovedByMembers { get; set; } = new List<Settlement>();
 
     public virtual ICollection<Settlement> SettlementCreatedByMembers { get; set; } = new List<Settlement>();

@@ -87,6 +87,32 @@
                 {
                     <div class="alert alert-warning mt-3 mb-0">@w.Text</div>
                 }
+                @if (Model.Warranties.Count > 0)
+                {
+                    <div class="mt-3 product-warranties">
+                        <strong>Warranty</strong>
+                        <ul class="mb-0 mt-1">
+                            @foreach (var war in Model.Warranties)
+                            {
+                                <li>
+                                    @war.Title
+                                    @if (war.DurationMonths is int months)
+                                    {
+                                        <span class="text-muted">(@months months)</span>
+                                    }
+                                    @if (!string.IsNullOrWhiteSpace(war.ProviderName))
+                                    {
+                                        <span class="text-muted">— @war.ProviderName</span>
+                                    }
+                                    @if (!string.IsNullOrWhiteSpace(war.Description))
+                                    {
+                                        <div class="small text-muted">@war.Description</div>
+                                    }
+                                </li>
+                            }
+                        </ul>
+                    </div>
+                }
             </div>
         </div>
 
