@@ -2013,7 +2013,7 @@ public partial class AppDbContext : DbContext
             entity.Property(e => e.ShortDescription).HasMaxLength(1000);
             entity.Property(e => e.Slug).HasMaxLength(300);
             entity.Property(e => e.Title).HasMaxLength(300);
-            // Content is nvarchar(max) / text — no max length
+            // Content / ExpertReview are nvarchar(max) / text — no max length
 
             entity.HasOne(d => d.Product).WithMany(p => p.ProductTranslations)
                 .HasForeignKey(d => d.ProductID)

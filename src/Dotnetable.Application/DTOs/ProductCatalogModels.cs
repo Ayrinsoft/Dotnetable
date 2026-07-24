@@ -115,6 +115,8 @@ public sealed class ProductDetailDto : ProductSummaryDto
     public IReadOnlyList<ProductAttributeValueDto> Attributes { get; init; } = Array.Empty<ProductAttributeValueDto>();
     /// <summary>Rich HTML description (CKEditor), with optional inline images.</summary>
     public string? Content { get; init; }
+    /// <summary>Rich HTML expert/technical review (CKEditor), same shape as <see cref="Content"/>.</summary>
+    public string? ExpertReview { get; init; }
     public IReadOnlyList<ProductWarningDto> Warnings { get; init; } = Array.Empty<ProductWarningDto>();
     public IReadOnlyList<ProductRefDto> RelatedProducts { get; init; } = Array.Empty<ProductRefDto>();
     public IReadOnlyList<string> GalleryImageUrls { get; init; } = Array.Empty<string>();

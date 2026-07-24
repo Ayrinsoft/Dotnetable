@@ -3186,6 +3186,9 @@ namespace Dotnetable.Migrations.SqlServer.Migrations
                     b.Property<int?>("CreatedByMemberId")
                         .HasColumnType("int");
 
+                    b.Property<string>("ExpertReview")
+                        .HasColumnType("nvarchar(max)");
+
                     b.Property<int?>("FeaturedImageFileID")
                         .HasColumnType("int");
 
@@ -3658,6 +3661,9 @@ namespace Dotnetable.Migrations.SqlServer.Migrations
                     SqlServerPropertyBuilderExtensions.UseIdentityColumn(b.Property<int>("ProductTranslationID"));
 
                     b.Property<string>("Content")
+                        .HasColumnType("nvarchar(max)");
+
+                    b.Property<string>("ExpertReview")
                         .HasColumnType("nvarchar(max)");
 
                     b.Property<string>("LanguageCode")

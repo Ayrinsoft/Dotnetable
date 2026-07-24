@@ -95,6 +95,14 @@
             <div class="mt-5 product-content">@Html.Raw(Model.Content)</div>
         }
 
+        @if (!string.IsNullOrWhiteSpace(Model.ExpertReview))
+        {
+            <div class="mt-5 product-expert-review">
+                <h4 class="mb-3">Expert review</h4>
+                <div class="product-content">@Html.Raw(Model.ExpertReview)</div>
+            </div>
+        }
+
         @if (Model.RelatedProducts.Count > 0)
         {
             <h4 class="mt-5 mb-3">Related products</h4>
