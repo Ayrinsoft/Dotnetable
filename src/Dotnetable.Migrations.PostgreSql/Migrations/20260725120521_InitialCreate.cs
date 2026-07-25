@@ -1,9 +1,10 @@
 ﻿using System;
 using Microsoft.EntityFrameworkCore.Migrations;
+using Npgsql.EntityFrameworkCore.PostgreSQL.Metadata;
 
 #nullable disable
 
-namespace Dotnetable.Migrations.SqlServer.Migrations
+namespace Dotnetable.Migrations.PostgreSql.Migrations
 {
     /// <inheritdoc />
     public partial class InitialCreate : Migration
@@ -15,12 +16,12 @@ namespace Dotnetable.Migrations.SqlServer.Migrations
                 name: "Countries",
                 columns: table => new
                 {
-                    CountryID = table.Column<int>(type: "int", nullable: false)
-                        .Annotation("SqlServer:Identity", "1, 1"),
-                    CountryCode = table.Column<string>(type: "char(2)", unicode: false, fixedLength: true, maxLength: 2, nullable: false),
-                    LanguageCode = table.Column<string>(type: "char(2)", unicode: false, fixedLength: true, maxLength: 2, nullable: false),
-                    Title = table.Column<string>(type: "nvarchar(42)", maxLength: 42, nullable: false),
-                    PhonePerfix = table.Column<string>(type: "varchar(3)", unicode: false, maxLength: 3, nullable: false)
+                    CountryID = table.Column<int>(type: "integer", nullable: false)
+                        .Annotation("Npgsql:ValueGenerationStrategy", NpgsqlValueGenerationStrategy.IdentityByDefaultColumn),
+                    CountryCode = table.Column<string>(type: "character(2)", unicode: false, fixedLength: true, maxLength: 2, nullable: false),
+                    LanguageCode = table.Column<string>(type: "character(2)", unicode: false, fixedLength: true, maxLength: 2, nullable: false),
+                    Title = table.Column<string>(type: "character varying(42)", maxLength: 42, nullable: false),
+                    PhonePerfix = table.Column<string>(type: "character varying(3)", unicode: false, maxLength: 3, nullable: false)
                 },
                 constraints: table =>
                 {
@@ -31,13 +32,11 @@ namespace Dotnetable.Migrations.SqlServer.Migrations
                 name: "Currencies",
                 columns: table => new
                 {
-                    CurrencyCode = table.Column<string>(type: "char(3)", unicode: false, fixedLength: true, maxLength: 3, nullable: false),
-                    Name = table.Column<string>(type: "nvarchar(50)", maxLength: 50, nullable: false),
-                    Symbol = table.Column<string>(type: "nvarchar(10)", maxLength: 10, nullable: false),
-                    DecimalDigits = table.Column<byte>(type: "tinyint", nullable: false, defaultValue: (byte)2)
-                        .Annotation("Relational:DefaultConstraintName", "DF_Currencies_DecimalDigits"),
-                    IsActive = table.Column<bool>(type: "bit", nullable: false, defaultValue: true)
-                        .Annotation("Relational:DefaultConstraintName", "DF_Currencies_IsActive")
+                    CurrencyCode = table.Column<string>(type: "character(3)", unicode: false, fixedLength: true, maxLength: 3, nullable: false),
+                    Name = table.Column<string>(type: "character varying(50)", maxLength: 50, nullable: false),
+                    Symbol = table.Column<string>(type: "character varying(10)", maxLength: 10, nullable: false),
+                    DecimalDigits = table.Column<byte>(type: "smallint", nullable: false),
+                    IsActive = table.Column<bool>(type: "boolean", nullable: false)
                 },
                 constraints: table =>
                 {
@@ -49,11 +48,11 @@ namespace Dotnetable.Migrations.SqlServer.Migrations
                 columns: table => new
                 {
                     RoleID = table.Column<short>(type: "smallint", nullable: false)
-                        .Annotation("SqlServer:Identity", "1, 1"),
-                    RoleKey = table.Column<string>(type: "varchar(42)", unicode: false, maxLength: 42, nullable: false),
-                    Description = table.Column<string>(type: "varchar(128)", unicode: false, maxLength: 128, nullable: false),
-                    Active = table.Column<bool>(type: "bit", nullable: false),
-                    Category = table.Column<byte>(type: "tinyint", nullable: false)
+                        .Annotation("Npgsql:ValueGenerationStrategy", NpgsqlValueGenerationStrategy.IdentityByDefaultColumn),
+                    RoleKey = table.Column<string>(type: "character varying(42)", unicode: false, maxLength: 42, nullable: false),
+                    Description = table.Column<string>(type: "character varying(128)", unicode: false, maxLength: 128, nullable: false),
+                    Active = table.Column<bool>(type: "boolean", nullable: false),
+                    Category = table.Column<byte>(type: "smallint", nullable: false)
                 },
                 constraints: table =>
                 {
@@ -64,11 +63,11 @@ namespace Dotnetable.Migrations.SqlServer.Migrations
                 name: "CountryTranslations",
                 columns: table => new
                 {
-                    CountryTranslationID = table.Column<int>(type: "int", nullable: false)
-                        .Annotation("SqlServer:Identity", "1, 1"),
-                    LanguageCode = table.Column<string>(type: "char(2)", unicode: false, fixedLength: true, maxLength: 2, nullable: false),
-                    Title = table.Column<string>(type: "nvarchar(42)", maxLength: 42, nullable: false),
-                    CountryID = table.Column<int>(type: "int", nullable: false)
+                    CountryTranslationID = table.Column<int>(type: "integer", nullable: false)
+                        .Annotation("Npgsql:ValueGenerationStrategy", NpgsqlValueGenerationStrategy.IdentityByDefaultColumn),
+                    LanguageCode = table.Column<string>(type: "character(2)", unicode: false, fixedLength: true, maxLength: 2, nullable: false),
+                    Title = table.Column<string>(type: "character varying(42)", maxLength: 42, nullable: false),
+                    CountryID = table.Column<int>(type: "integer", nullable: false)
                 },
                 constraints: table =>
                 {
@@ -84,12 +83,12 @@ namespace Dotnetable.Migrations.SqlServer.Migrations
                 name: "States",
                 columns: table => new
                 {
-                    StateID = table.Column<int>(type: "int", nullable: false)
-                        .Annotation("SqlServer:Identity", "1, 1"),
-                    CountryID = table.Column<int>(type: "int", nullable: false),
-                    Title = table.Column<string>(type: "nvarchar(48)", maxLength: 48, nullable: false),
-                    LanguageCode = table.Column<string>(type: "char(2)", unicode: false, fixedLength: true, maxLength: 2, nullable: false),
-                    Active = table.Column<bool>(type: "bit", nullable: false)
+                    StateID = table.Column<int>(type: "integer", nullable: false)
+                        .Annotation("Npgsql:ValueGenerationStrategy", NpgsqlValueGenerationStrategy.IdentityByDefaultColumn),
+                    CountryID = table.Column<int>(type: "integer", nullable: false),
+                    Title = table.Column<string>(type: "character varying(48)", maxLength: 48, nullable: false),
+                    LanguageCode = table.Column<string>(type: "character(2)", unicode: false, fixedLength: true, maxLength: 2, nullable: false),
+                    Active = table.Column<bool>(type: "boolean", nullable: false)
                 },
                 constraints: table =>
                 {
@@ -105,15 +104,15 @@ namespace Dotnetable.Migrations.SqlServer.Migrations
                 name: "Cities",
                 columns: table => new
                 {
-                    CityID = table.Column<int>(type: "int", nullable: false)
-                        .Annotation("SqlServer:Identity", "1, 1"),
-                    CountryID = table.Column<int>(type: "int", nullable: false),
-                    StateID = table.Column<int>(type: "int", nullable: true),
-                    Title = table.Column<string>(type: "nvarchar(48)", maxLength: 48, nullable: false),
-                    LanguageCode = table.Column<string>(type: "char(2)", unicode: false, fixedLength: true, maxLength: 2, nullable: false),
-                    Latitude = table.Column<double>(type: "float", nullable: true),
-                    Longitude = table.Column<double>(type: "float", nullable: false),
-                    Active = table.Column<bool>(type: "bit", nullable: false)
+                    CityID = table.Column<int>(type: "integer", nullable: false)
+                        .Annotation("Npgsql:ValueGenerationStrategy", NpgsqlValueGenerationStrategy.IdentityByDefaultColumn),
+                    CountryID = table.Column<int>(type: "integer", nullable: false),
+                    StateID = table.Column<int>(type: "integer", nullable: true),
+                    Title = table.Column<string>(type: "character varying(48)", maxLength: 48, nullable: false),
+                    LanguageCode = table.Column<string>(type: "character(2)", unicode: false, fixedLength: true, maxLength: 2, nullable: false),
+                    Latitude = table.Column<double>(type: "double precision", nullable: true),
+                    Longitude = table.Column<double>(type: "double precision", nullable: false),
+                    Active = table.Column<bool>(type: "boolean", nullable: false)
                 },
                 constraints: table =>
                 {
@@ -134,11 +133,11 @@ namespace Dotnetable.Migrations.SqlServer.Migrations
                 name: "StateTranslations",
                 columns: table => new
                 {
-                    StateTranslationID = table.Column<int>(type: "int", nullable: false)
-                        .Annotation("SqlServer:Identity", "1, 1"),
-                    Title = table.Column<string>(type: "nvarchar(48)", maxLength: 48, nullable: false),
-                    LanguageCode = table.Column<string>(type: "char(2)", unicode: false, fixedLength: true, maxLength: 2, nullable: false),
-                    StateID = table.Column<int>(type: "int", nullable: false)
+                    StateTranslationID = table.Column<int>(type: "integer", nullable: false)
+                        .Annotation("Npgsql:ValueGenerationStrategy", NpgsqlValueGenerationStrategy.IdentityByDefaultColumn),
+                    Title = table.Column<string>(type: "character varying(48)", maxLength: 48, nullable: false),
+                    LanguageCode = table.Column<string>(type: "character(2)", unicode: false, fixedLength: true, maxLength: 2, nullable: false),
+                    StateID = table.Column<int>(type: "integer", nullable: false)
                 },
                 constraints: table =>
                 {
@@ -154,11 +153,11 @@ namespace Dotnetable.Migrations.SqlServer.Migrations
                 name: "CityTranslations",
                 columns: table => new
                 {
-                    CityTranslationID = table.Column<int>(type: "int", nullable: false)
-                        .Annotation("SqlServer:Identity", "1, 1"),
-                    CityID = table.Column<int>(type: "int", nullable: false),
-                    LanguageCode = table.Column<string>(type: "char(2)", unicode: false, fixedLength: true, maxLength: 2, nullable: false),
-                    Title = table.Column<string>(type: "nvarchar(48)", maxLength: 48, nullable: false)
+                    CityTranslationID = table.Column<int>(type: "integer", nullable: false)
+                        .Annotation("Npgsql:ValueGenerationStrategy", NpgsqlValueGenerationStrategy.IdentityByDefaultColumn),
+                    CityID = table.Column<int>(type: "integer", nullable: false),
+                    LanguageCode = table.Column<string>(type: "character(2)", unicode: false, fixedLength: true, maxLength: 2, nullable: false),
+                    Title = table.Column<string>(type: "character varying(48)", maxLength: 48, nullable: false)
                 },
                 constraints: table =>
                 {
@@ -174,16 +173,16 @@ namespace Dotnetable.Migrations.SqlServer.Migrations
                 name: "AdminNotifications",
                 columns: table => new
                 {
-                    AdminNotificationID = table.Column<int>(type: "int", nullable: false)
-                        .Annotation("SqlServer:Identity", "1, 1"),
-                    MemberID = table.Column<int>(type: "int", nullable: false),
-                    WebsiteID = table.Column<int>(type: "int", nullable: false),
-                    NotificationType = table.Column<byte>(type: "tinyint", nullable: false),
-                    Title = table.Column<string>(type: "nvarchar(200)", maxLength: 200, nullable: false),
-                    Message = table.Column<string>(type: "nvarchar(1000)", maxLength: 1000, nullable: false),
-                    ActionUrl = table.Column<string>(type: "varchar(256)", unicode: false, maxLength: 256, nullable: true),
-                    RelatedEntityID = table.Column<int>(type: "int", nullable: true),
-                    IsRead = table.Column<bool>(type: "bit", nullable: false),
+                    AdminNotificationID = table.Column<int>(type: "integer", nullable: false)
+                        .Annotation("Npgsql:ValueGenerationStrategy", NpgsqlValueGenerationStrategy.IdentityByDefaultColumn),
+                    MemberID = table.Column<int>(type: "integer", nullable: false),
+                    WebsiteID = table.Column<int>(type: "integer", nullable: false),
+                    NotificationType = table.Column<byte>(type: "smallint", nullable: false),
+                    Title = table.Column<string>(type: "character varying(200)", maxLength: 200, nullable: false),
+                    Message = table.Column<string>(type: "character varying(1000)", maxLength: 1000, nullable: false),
+                    ActionUrl = table.Column<string>(type: "character varying(256)", unicode: false, maxLength: 256, nullable: true),
+                    RelatedEntityID = table.Column<int>(type: "integer", nullable: true),
+                    IsRead = table.Column<bool>(type: "boolean", nullable: false),
                     CreatedAt = table.Column<DateTime>(type: "datetime", nullable: false)
                 },
                 constraints: table =>
@@ -195,19 +194,19 @@ namespace Dotnetable.Migrations.SqlServer.Migrations
                 name: "AttributeDefinitions",
                 columns: table => new
                 {
-                    AttributeDefinitionID = table.Column<int>(type: "int", nullable: false)
-                        .Annotation("SqlServer:Identity", "1, 1"),
-                    WebsiteID = table.Column<int>(type: "int", nullable: false),
-                    Name = table.Column<string>(type: "nvarchar(200)", maxLength: 200, nullable: false),
-                    Code = table.Column<string>(type: "nvarchar(100)", maxLength: 100, nullable: false),
-                    InputType = table.Column<byte>(type: "tinyint", nullable: false),
-                    Unit = table.Column<string>(type: "nvarchar(30)", maxLength: 30, nullable: true),
-                    IsFilterable = table.Column<bool>(type: "bit", nullable: false),
-                    IsVariantAttribute = table.Column<bool>(type: "bit", nullable: false),
-                    IsComparable = table.Column<bool>(type: "bit", nullable: false),
-                    SortOrder = table.Column<int>(type: "int", nullable: false),
-                    ShowOnTop = table.Column<bool>(type: "bit", nullable: false),
-                    Active = table.Column<bool>(type: "bit", nullable: false)
+                    AttributeDefinitionID = table.Column<int>(type: "integer", nullable: false)
+                        .Annotation("Npgsql:ValueGenerationStrategy", NpgsqlValueGenerationStrategy.IdentityByDefaultColumn),
+                    WebsiteID = table.Column<int>(type: "integer", nullable: false),
+                    Name = table.Column<string>(type: "character varying(200)", maxLength: 200, nullable: false),
+                    Code = table.Column<string>(type: "character varying(100)", maxLength: 100, nullable: false),
+                    InputType = table.Column<byte>(type: "smallint", nullable: false),
+                    Unit = table.Column<string>(type: "character varying(30)", maxLength: 30, nullable: true),
+                    IsFilterable = table.Column<bool>(type: "boolean", nullable: false),
+                    IsVariantAttribute = table.Column<bool>(type: "boolean", nullable: false),
+                    IsComparable = table.Column<bool>(type: "boolean", nullable: false),
+                    SortOrder = table.Column<int>(type: "integer", nullable: false),
+                    ShowOnTop = table.Column<bool>(type: "boolean", nullable: false),
+                    Active = table.Column<bool>(type: "boolean", nullable: false)
                 },
                 constraints: table =>
                 {
@@ -218,12 +217,12 @@ namespace Dotnetable.Migrations.SqlServer.Migrations
                 name: "AttributeDefinitionTranslations",
                 columns: table => new
                 {
-                    AttributeDefinitionTranslationID = table.Column<int>(type: "int", nullable: false)
-                        .Annotation("SqlServer:Identity", "1, 1"),
-                    AttributeDefinitionID = table.Column<int>(type: "int", nullable: false),
-                    LanguageCode = table.Column<string>(type: "char(2)", unicode: false, fixedLength: true, maxLength: 2, nullable: false),
-                    Name = table.Column<string>(type: "nvarchar(200)", maxLength: 200, nullable: false),
-                    Unit = table.Column<string>(type: "nvarchar(30)", maxLength: 30, nullable: true)
+                    AttributeDefinitionTranslationID = table.Column<int>(type: "integer", nullable: false)
+                        .Annotation("Npgsql:ValueGenerationStrategy", NpgsqlValueGenerationStrategy.IdentityByDefaultColumn),
+                    AttributeDefinitionID = table.Column<int>(type: "integer", nullable: false),
+                    LanguageCode = table.Column<string>(type: "character(2)", unicode: false, fixedLength: true, maxLength: 2, nullable: false),
+                    Name = table.Column<string>(type: "character varying(200)", maxLength: 200, nullable: false),
+                    Unit = table.Column<string>(type: "character varying(30)", maxLength: 30, nullable: true)
                 },
                 constraints: table =>
                 {
@@ -239,12 +238,12 @@ namespace Dotnetable.Migrations.SqlServer.Migrations
                 name: "AttributeOptions",
                 columns: table => new
                 {
-                    AttributeOptionID = table.Column<int>(type: "int", nullable: false)
-                        .Annotation("SqlServer:Identity", "1, 1"),
-                    AttributeDefinitionID = table.Column<int>(type: "int", nullable: false),
-                    Value = table.Column<string>(type: "nvarchar(2000)", maxLength: 2000, nullable: false),
-                    ColorHex = table.Column<string>(type: "char(7)", unicode: false, fixedLength: true, maxLength: 7, nullable: true),
-                    SortOrder = table.Column<int>(type: "int", nullable: false)
+                    AttributeOptionID = table.Column<int>(type: "integer", nullable: false)
+                        .Annotation("Npgsql:ValueGenerationStrategy", NpgsqlValueGenerationStrategy.IdentityByDefaultColumn),
+                    AttributeDefinitionID = table.Column<int>(type: "integer", nullable: false),
+                    Value = table.Column<string>(type: "character varying(2000)", maxLength: 2000, nullable: false),
+                    ColorHex = table.Column<string>(type: "character(7)", unicode: false, fixedLength: true, maxLength: 7, nullable: true),
+                    SortOrder = table.Column<int>(type: "integer", nullable: false)
                 },
                 constraints: table =>
                 {
@@ -260,11 +259,11 @@ namespace Dotnetable.Migrations.SqlServer.Migrations
                 name: "AttributeOptionTranslations",
                 columns: table => new
                 {
-                    AttributeOptionTranslationID = table.Column<int>(type: "int", nullable: false)
-                        .Annotation("SqlServer:Identity", "1, 1"),
-                    AttributeOptionID = table.Column<int>(type: "int", nullable: false),
-                    LanguageCode = table.Column<string>(type: "char(2)", unicode: false, fixedLength: true, maxLength: 2, nullable: false),
-                    Value = table.Column<string>(type: "nvarchar(2000)", maxLength: 2000, nullable: false)
+                    AttributeOptionTranslationID = table.Column<int>(type: "integer", nullable: false)
+                        .Annotation("Npgsql:ValueGenerationStrategy", NpgsqlValueGenerationStrategy.IdentityByDefaultColumn),
+                    AttributeOptionID = table.Column<int>(type: "integer", nullable: false),
+                    LanguageCode = table.Column<string>(type: "character(2)", unicode: false, fixedLength: true, maxLength: 2, nullable: false),
+                    Value = table.Column<string>(type: "character varying(2000)", maxLength: 2000, nullable: false)
                 },
                 constraints: table =>
                 {
@@ -280,20 +279,18 @@ namespace Dotnetable.Migrations.SqlServer.Migrations
                 name: "BankAccounts",
                 columns: table => new
                 {
-                    BankAccountID = table.Column<int>(type: "int", nullable: false)
-                        .Annotation("SqlServer:Identity", "1, 1"),
-                    BankID = table.Column<int>(type: "int", nullable: false),
-                    WebsiteID = table.Column<int>(type: "int", nullable: false),
-                    Title = table.Column<string>(type: "nvarchar(70)", maxLength: 70, nullable: false),
-                    OwnerName = table.Column<string>(type: "nvarchar(90)", maxLength: 90, nullable: true),
-                    AccountNumber = table.Column<string>(type: "varchar(30)", unicode: false, maxLength: 30, nullable: true),
-                    IBAN = table.Column<string>(type: "varchar(34)", unicode: false, maxLength: 34, nullable: true),
-                    CardNumber = table.Column<string>(type: "varchar(20)", unicode: false, maxLength: 20, nullable: true),
-                    IsForOfflinePayment = table.Column<bool>(type: "bit", nullable: false, defaultValue: true)
-                        .Annotation("Relational:DefaultConstraintName", "DF_BankAccounts_IsForOfflinePayment"),
-                    IsActive = table.Column<bool>(type: "bit", nullable: false, defaultValue: true)
-                        .Annotation("Relational:DefaultConstraintName", "DF_BankAccounts_IsActive"),
-                    CreatedByMemberId = table.Column<int>(type: "int", nullable: false)
+                    BankAccountID = table.Column<int>(type: "integer", nullable: false)
+                        .Annotation("Npgsql:ValueGenerationStrategy", NpgsqlValueGenerationStrategy.IdentityByDefaultColumn),
+                    BankID = table.Column<int>(type: "integer", nullable: false),
+                    WebsiteID = table.Column<int>(type: "integer", nullable: false),
+                    Title = table.Column<string>(type: "character varying(70)", maxLength: 70, nullable: false),
+                    OwnerName = table.Column<string>(type: "character varying(90)", maxLength: 90, nullable: true),
+                    AccountNumber = table.Column<string>(type: "character varying(30)", unicode: false, maxLength: 30, nullable: true),
+                    IBAN = table.Column<string>(type: "character varying(34)", unicode: false, maxLength: 34, nullable: true),
+                    CardNumber = table.Column<string>(type: "character varying(20)", unicode: false, maxLength: 20, nullable: true),
+                    IsForOfflinePayment = table.Column<bool>(type: "boolean", nullable: false),
+                    IsActive = table.Column<bool>(type: "boolean", nullable: false),
+                    CreatedByMemberId = table.Column<int>(type: "integer", nullable: false)
                 },
                 constraints: table =>
                 {
@@ -304,13 +301,13 @@ namespace Dotnetable.Migrations.SqlServer.Migrations
                 name: "Banks",
                 columns: table => new
                 {
-                    BankID = table.Column<int>(type: "int", nullable: false)
-                        .Annotation("SqlServer:Identity", "1, 1"),
-                    WebsiteID = table.Column<int>(type: "int", nullable: true),
-                    Name = table.Column<string>(type: "nvarchar(64)", maxLength: 64, nullable: false),
-                    LogoFileID = table.Column<int>(type: "int", nullable: true),
-                    Active = table.Column<bool>(type: "bit", nullable: false),
-                    BankCode = table.Column<string>(type: "varchar(10)", unicode: false, maxLength: 10, nullable: false)
+                    BankID = table.Column<int>(type: "integer", nullable: false)
+                        .Annotation("Npgsql:ValueGenerationStrategy", NpgsqlValueGenerationStrategy.IdentityByDefaultColumn),
+                    WebsiteID = table.Column<int>(type: "integer", nullable: true),
+                    Name = table.Column<string>(type: "character varying(64)", maxLength: 64, nullable: false),
+                    LogoFileID = table.Column<int>(type: "integer", nullable: true),
+                    Active = table.Column<bool>(type: "boolean", nullable: false),
+                    BankCode = table.Column<string>(type: "character varying(10)", unicode: false, maxLength: 10, nullable: false)
                 },
                 constraints: table =>
                 {
@@ -321,14 +318,13 @@ namespace Dotnetable.Migrations.SqlServer.Migrations
                 name: "Brands",
                 columns: table => new
                 {
-                    BrandID = table.Column<int>(type: "int", nullable: false)
-                        .Annotation("SqlServer:Identity", "1, 1"),
-                    WebsiteID = table.Column<int>(type: "int", nullable: false),
-                    Name = table.Column<string>(type: "nvarchar(200)", maxLength: 200, nullable: false),
-                    Slug = table.Column<string>(type: "nvarchar(200)", maxLength: 200, nullable: false),
-                    LogoFileID = table.Column<int>(type: "int", nullable: true),
-                    IsActive = table.Column<bool>(type: "bit", nullable: false, defaultValue: true)
-                        .Annotation("Relational:DefaultConstraintName", "DF_Brands_IsActive_1")
+                    BrandID = table.Column<int>(type: "integer", nullable: false)
+                        .Annotation("Npgsql:ValueGenerationStrategy", NpgsqlValueGenerationStrategy.IdentityByDefaultColumn),
+                    WebsiteID = table.Column<int>(type: "integer", nullable: false),
+                    Name = table.Column<string>(type: "character varying(200)", maxLength: 200, nullable: false),
+                    Slug = table.Column<string>(type: "character varying(200)", maxLength: 200, nullable: false),
+                    LogoFileID = table.Column<int>(type: "integer", nullable: true),
+                    IsActive = table.Column<bool>(type: "boolean", nullable: false)
                 },
                 constraints: table =>
                 {
@@ -339,12 +335,12 @@ namespace Dotnetable.Migrations.SqlServer.Migrations
                 name: "BrandTranslations",
                 columns: table => new
                 {
-                    BrandTranslationID = table.Column<int>(type: "int", nullable: false)
-                        .Annotation("SqlServer:Identity", "1, 1"),
-                    BrandID = table.Column<int>(type: "int", nullable: false),
-                    LanguageCode = table.Column<string>(type: "char(2)", unicode: false, fixedLength: true, maxLength: 2, nullable: false),
-                    Name = table.Column<string>(type: "nvarchar(200)", maxLength: 200, nullable: false),
-                    Slug = table.Column<string>(type: "nvarchar(200)", maxLength: 200, nullable: false)
+                    BrandTranslationID = table.Column<int>(type: "integer", nullable: false)
+                        .Annotation("Npgsql:ValueGenerationStrategy", NpgsqlValueGenerationStrategy.IdentityByDefaultColumn),
+                    BrandID = table.Column<int>(type: "integer", nullable: false),
+                    LanguageCode = table.Column<string>(type: "character(2)", unicode: false, fixedLength: true, maxLength: 2, nullable: false),
+                    Name = table.Column<string>(type: "character varying(200)", maxLength: 200, nullable: false),
+                    Slug = table.Column<string>(type: "character varying(200)", maxLength: 200, nullable: false)
                 },
                 constraints: table =>
                 {
@@ -360,15 +356,13 @@ namespace Dotnetable.Migrations.SqlServer.Migrations
                 name: "CartItems",
                 columns: table => new
                 {
-                    CartItemID = table.Column<int>(type: "int", nullable: false)
-                        .Annotation("SqlServer:Identity", "1, 1"),
-                    CartID = table.Column<int>(type: "int", nullable: false),
-                    ProductVariantID = table.Column<int>(type: "int", nullable: false),
-                    VendorProductID = table.Column<int>(type: "int", nullable: true),
-                    Quantity = table.Column<int>(type: "int", nullable: false, defaultValue: 1)
-                        .Annotation("Relational:DefaultConstraintName", "DF_CartItems_Quantity"),
-                    AddedAt = table.Column<DateTime>(type: "datetime2(0)", precision: 0, nullable: false, defaultValueSql: "(sysutcdatetime())")
-                        .Annotation("Relational:DefaultConstraintName", "DF_CartItems_AddedAt")
+                    CartItemID = table.Column<int>(type: "integer", nullable: false)
+                        .Annotation("Npgsql:ValueGenerationStrategy", NpgsqlValueGenerationStrategy.IdentityByDefaultColumn),
+                    CartID = table.Column<int>(type: "integer", nullable: false),
+                    ProductVariantID = table.Column<int>(type: "integer", nullable: false),
+                    VendorProductID = table.Column<int>(type: "integer", nullable: true),
+                    Quantity = table.Column<int>(type: "integer", nullable: false),
+                    AddedAt = table.Column<DateTime>(type: "timestamp(0) with time zone", precision: 0, nullable: false)
                 },
                 constraints: table =>
                 {
@@ -379,16 +373,14 @@ namespace Dotnetable.Migrations.SqlServer.Migrations
                 name: "Carts",
                 columns: table => new
                 {
-                    CartID = table.Column<int>(type: "int", nullable: false)
-                        .Annotation("SqlServer:Identity", "1, 1"),
-                    WebsiteID = table.Column<int>(type: "int", nullable: false),
-                    WebsiteClientID = table.Column<int>(type: "int", nullable: true),
-                    SessionKey = table.Column<string>(type: "varchar(64)", unicode: false, maxLength: 64, nullable: true),
-                    CouponID = table.Column<int>(type: "int", nullable: true),
-                    CreatedAt = table.Column<DateTime>(type: "datetime2(0)", precision: 0, nullable: false, defaultValueSql: "(sysutcdatetime())")
-                        .Annotation("Relational:DefaultConstraintName", "DF_Carts_CreatedAt"),
-                    UpdatedAt = table.Column<DateTime>(type: "datetime2(0)", precision: 0, nullable: false, defaultValueSql: "(sysutcdatetime())")
-                        .Annotation("Relational:DefaultConstraintName", "DF_Carts_UpdatedAt")
+                    CartID = table.Column<int>(type: "integer", nullable: false)
+                        .Annotation("Npgsql:ValueGenerationStrategy", NpgsqlValueGenerationStrategy.IdentityByDefaultColumn),
+                    WebsiteID = table.Column<int>(type: "integer", nullable: false),
+                    WebsiteClientID = table.Column<int>(type: "integer", nullable: true),
+                    SessionKey = table.Column<string>(type: "character varying(64)", unicode: false, maxLength: 64, nullable: true),
+                    CouponID = table.Column<int>(type: "integer", nullable: true),
+                    CreatedAt = table.Column<DateTime>(type: "timestamp(0) with time zone", precision: 0, nullable: false),
+                    UpdatedAt = table.Column<DateTime>(type: "timestamp(0) with time zone", precision: 0, nullable: false)
                 },
                 constraints: table =>
                 {
@@ -399,16 +391,15 @@ namespace Dotnetable.Migrations.SqlServer.Migrations
                 name: "Categories",
                 columns: table => new
                 {
-                    CategoryID = table.Column<int>(type: "int", nullable: false)
-                        .Annotation("SqlServer:Identity", "1, 1"),
-                    WebsiteID = table.Column<int>(type: "int", nullable: false),
-                    PostTypeID = table.Column<int>(type: "int", nullable: true),
-                    ParentCategoryID = table.Column<int>(type: "int", nullable: true),
-                    Name = table.Column<string>(type: "nvarchar(200)", maxLength: 200, nullable: false),
-                    Slug = table.Column<string>(type: "nvarchar(200)", maxLength: 200, nullable: false),
-                    SortOrder = table.Column<int>(type: "int", nullable: false),
-                    IsActive = table.Column<bool>(type: "bit", nullable: false, defaultValue: true)
-                        .Annotation("Relational:DefaultConstraintName", "DF_Categories_IsActive")
+                    CategoryID = table.Column<int>(type: "integer", nullable: false)
+                        .Annotation("Npgsql:ValueGenerationStrategy", NpgsqlValueGenerationStrategy.IdentityByDefaultColumn),
+                    WebsiteID = table.Column<int>(type: "integer", nullable: false),
+                    PostTypeID = table.Column<int>(type: "integer", nullable: true),
+                    ParentCategoryID = table.Column<int>(type: "integer", nullable: true),
+                    Name = table.Column<string>(type: "character varying(200)", maxLength: 200, nullable: false),
+                    Slug = table.Column<string>(type: "character varying(200)", maxLength: 200, nullable: false),
+                    SortOrder = table.Column<int>(type: "integer", nullable: false),
+                    IsActive = table.Column<bool>(type: "boolean", nullable: false)
                 },
                 constraints: table =>
                 {
@@ -424,12 +415,12 @@ namespace Dotnetable.Migrations.SqlServer.Migrations
                 name: "CategoryTranslations",
                 columns: table => new
                 {
-                    CategoryTranslationID = table.Column<int>(type: "int", nullable: false)
-                        .Annotation("SqlServer:Identity", "1, 1"),
-                    CategoryID = table.Column<int>(type: "int", nullable: false),
-                    LanguageCode = table.Column<string>(type: "char(2)", unicode: false, fixedLength: true, maxLength: 2, nullable: false),
-                    Name = table.Column<string>(type: "nvarchar(200)", maxLength: 200, nullable: false),
-                    Slug = table.Column<string>(type: "nvarchar(200)", maxLength: 200, nullable: false)
+                    CategoryTranslationID = table.Column<int>(type: "integer", nullable: false)
+                        .Annotation("Npgsql:ValueGenerationStrategy", NpgsqlValueGenerationStrategy.IdentityByDefaultColumn),
+                    CategoryID = table.Column<int>(type: "integer", nullable: false),
+                    LanguageCode = table.Column<string>(type: "character(2)", unicode: false, fixedLength: true, maxLength: 2, nullable: false),
+                    Name = table.Column<string>(type: "character varying(200)", maxLength: 200, nullable: false),
+                    Slug = table.Column<string>(type: "character varying(200)", maxLength: 200, nullable: false)
                 },
                 constraints: table =>
                 {
@@ -445,15 +436,14 @@ namespace Dotnetable.Migrations.SqlServer.Migrations
                 name: "ChartOfAccounts",
                 columns: table => new
                 {
-                    ChartOfAccountID = table.Column<int>(type: "int", nullable: false)
-                        .Annotation("SqlServer:Identity", "1, 1"),
-                    WebsiteID = table.Column<int>(type: "int", nullable: false),
-                    ParentAccountID = table.Column<int>(type: "int", nullable: true),
-                    Code = table.Column<string>(type: "nvarchar(20)", maxLength: 20, nullable: false),
-                    Name = table.Column<string>(type: "nvarchar(200)", maxLength: 200, nullable: false),
-                    AccountType = table.Column<byte>(type: "tinyint", nullable: false),
-                    IsActive = table.Column<bool>(type: "bit", nullable: false, defaultValue: true)
-                        .Annotation("Relational:DefaultConstraintName", "DF_ChartOfAccounts_IsActive")
+                    ChartOfAccountID = table.Column<int>(type: "integer", nullable: false)
+                        .Annotation("Npgsql:ValueGenerationStrategy", NpgsqlValueGenerationStrategy.IdentityByDefaultColumn),
+                    WebsiteID = table.Column<int>(type: "integer", nullable: false),
+                    ParentAccountID = table.Column<int>(type: "integer", nullable: true),
+                    Code = table.Column<string>(type: "character varying(20)", maxLength: 20, nullable: false),
+                    Name = table.Column<string>(type: "character varying(200)", maxLength: 200, nullable: false),
+                    AccountType = table.Column<byte>(type: "smallint", nullable: false),
+                    IsActive = table.Column<bool>(type: "boolean", nullable: false)
                 },
                 constraints: table =>
                 {
@@ -469,20 +459,18 @@ namespace Dotnetable.Migrations.SqlServer.Migrations
                 name: "ClientBankAccounts",
                 columns: table => new
                 {
-                    ClientBankAccountID = table.Column<int>(type: "int", nullable: false)
-                        .Annotation("SqlServer:Identity", "1, 1"),
-                    WebsiteID = table.Column<int>(type: "int", nullable: false),
-                    WebsiteClientID = table.Column<int>(type: "int", nullable: false),
-                    BankID = table.Column<int>(type: "int", nullable: true),
-                    OwnerName = table.Column<string>(type: "nvarchar(90)", maxLength: 90, nullable: false),
-                    AccountNumber = table.Column<string>(type: "varchar(30)", unicode: false, maxLength: 30, nullable: true),
-                    IBAN = table.Column<string>(type: "varchar(34)", unicode: false, maxLength: 34, nullable: true),
-                    CardNumber = table.Column<string>(type: "varchar(20)", unicode: false, maxLength: 20, nullable: true),
-                    IsDefault = table.Column<bool>(type: "bit", nullable: false),
-                    IsActive = table.Column<bool>(type: "bit", nullable: false, defaultValue: true)
-                        .Annotation("Relational:DefaultConstraintName", "DF_ClientBankAccounts_IsActive"),
-                    CreatedAt = table.Column<DateTime>(type: "datetime2(0)", precision: 0, nullable: false, defaultValueSql: "(sysutcdatetime())")
-                        .Annotation("Relational:DefaultConstraintName", "DF_ClientBankAccounts_CreatedAt")
+                    ClientBankAccountID = table.Column<int>(type: "integer", nullable: false)
+                        .Annotation("Npgsql:ValueGenerationStrategy", NpgsqlValueGenerationStrategy.IdentityByDefaultColumn),
+                    WebsiteID = table.Column<int>(type: "integer", nullable: false),
+                    WebsiteClientID = table.Column<int>(type: "integer", nullable: false),
+                    BankID = table.Column<int>(type: "integer", nullable: true),
+                    OwnerName = table.Column<string>(type: "character varying(90)", maxLength: 90, nullable: false),
+                    AccountNumber = table.Column<string>(type: "character varying(30)", unicode: false, maxLength: 30, nullable: true),
+                    IBAN = table.Column<string>(type: "character varying(34)", unicode: false, maxLength: 34, nullable: true),
+                    CardNumber = table.Column<string>(type: "character varying(20)", unicode: false, maxLength: 20, nullable: true),
+                    IsDefault = table.Column<bool>(type: "boolean", nullable: false),
+                    IsActive = table.Column<bool>(type: "boolean", nullable: false),
+                    CreatedAt = table.Column<DateTime>(type: "timestamp(0) with time zone", precision: 0, nullable: false)
                 },
                 constraints: table =>
                 {
@@ -498,16 +486,14 @@ namespace Dotnetable.Migrations.SqlServer.Migrations
                 name: "ClientWallets",
                 columns: table => new
                 {
-                    ClientWalletID = table.Column<int>(type: "int", nullable: false)
-                        .Annotation("SqlServer:Identity", "1, 1"),
-                    WebsiteID = table.Column<int>(type: "int", nullable: false),
-                    WebsiteClientID = table.Column<int>(type: "int", nullable: false),
-                    BalanceUsd = table.Column<decimal>(type: "decimal(18,4)", nullable: false),
-                    IsActive = table.Column<bool>(type: "bit", nullable: false, defaultValue: true)
-                        .Annotation("Relational:DefaultConstraintName", "DF_ClientWallets_IsActive"),
-                    RowVersion = table.Column<byte[]>(type: "rowversion", rowVersion: true, nullable: false),
-                    CreatedAt = table.Column<DateTime>(type: "datetime2(0)", precision: 0, nullable: false, defaultValueSql: "(sysutcdatetime())")
-                        .Annotation("Relational:DefaultConstraintName", "DF_ClientWallets_CreatedAt")
+                    ClientWalletID = table.Column<int>(type: "integer", nullable: false)
+                        .Annotation("Npgsql:ValueGenerationStrategy", NpgsqlValueGenerationStrategy.IdentityByDefaultColumn),
+                    WebsiteID = table.Column<int>(type: "integer", nullable: false),
+                    WebsiteClientID = table.Column<int>(type: "integer", nullable: false),
+                    BalanceUsd = table.Column<decimal>(type: "numeric(18,4)", nullable: false),
+                    IsActive = table.Column<bool>(type: "boolean", nullable: false),
+                    RowVersion = table.Column<byte[]>(type: "bytea", rowVersion: true, nullable: false),
+                    CreatedAt = table.Column<DateTime>(type: "timestamp(0) with time zone", precision: 0, nullable: false)
                 },
                 constraints: table =>
                 {
@@ -518,19 +504,18 @@ namespace Dotnetable.Migrations.SqlServer.Migrations
                 name: "ClientWalletTransactions",
                 columns: table => new
                 {
-                    ClientWalletTransactionID = table.Column<int>(type: "int", nullable: false)
-                        .Annotation("SqlServer:Identity", "1, 1"),
-                    WebsiteID = table.Column<int>(type: "int", nullable: false),
-                    ClientWalletID = table.Column<int>(type: "int", nullable: false),
-                    Type = table.Column<byte>(type: "tinyint", nullable: false),
-                    AmountUsd = table.Column<decimal>(type: "decimal(18,4)", nullable: false),
-                    BalanceAfterUsd = table.Column<decimal>(type: "decimal(18,4)", nullable: false),
-                    SourceType = table.Column<byte>(type: "tinyint", nullable: true),
-                    SourceId = table.Column<int>(type: "int", nullable: true),
-                    Note = table.Column<string>(type: "nvarchar(500)", maxLength: 500, nullable: true),
-                    CreatedByMemberID = table.Column<int>(type: "int", nullable: true),
-                    CreatedAt = table.Column<DateTime>(type: "datetime2(0)", precision: 0, nullable: false, defaultValueSql: "(sysutcdatetime())")
-                        .Annotation("Relational:DefaultConstraintName", "DF_ClientWalletTransactions_CreatedAt")
+                    ClientWalletTransactionID = table.Column<int>(type: "integer", nullable: false)
+                        .Annotation("Npgsql:ValueGenerationStrategy", NpgsqlValueGenerationStrategy.IdentityByDefaultColumn),
+                    WebsiteID = table.Column<int>(type: "integer", nullable: false),
+                    ClientWalletID = table.Column<int>(type: "integer", nullable: false),
+                    Type = table.Column<byte>(type: "smallint", nullable: false),
+                    AmountUsd = table.Column<decimal>(type: "numeric(18,4)", nullable: false),
+                    BalanceAfterUsd = table.Column<decimal>(type: "numeric(18,4)", nullable: false),
+                    SourceType = table.Column<byte>(type: "smallint", nullable: true),
+                    SourceId = table.Column<int>(type: "integer", nullable: true),
+                    Note = table.Column<string>(type: "character varying(500)", maxLength: 500, nullable: true),
+                    CreatedByMemberID = table.Column<int>(type: "integer", nullable: true),
+                    CreatedAt = table.Column<DateTime>(type: "timestamp(0) with time zone", precision: 0, nullable: false)
                 },
                 constraints: table =>
                 {
@@ -546,22 +531,20 @@ namespace Dotnetable.Migrations.SqlServer.Migrations
                 name: "ClientWalletWithdrawals",
                 columns: table => new
                 {
-                    ClientWalletWithdrawalID = table.Column<int>(type: "int", nullable: false)
-                        .Annotation("SqlServer:Identity", "1, 1"),
-                    WebsiteID = table.Column<int>(type: "int", nullable: false),
-                    WebsiteClientID = table.Column<int>(type: "int", nullable: false),
-                    ClientWalletID = table.Column<int>(type: "int", nullable: false),
-                    ClientBankAccountID = table.Column<int>(type: "int", nullable: false),
-                    AmountUsd = table.Column<decimal>(type: "decimal(18,4)", nullable: false),
-                    Status = table.Column<byte>(type: "tinyint", nullable: false, defaultValue: (byte)1)
-                        .Annotation("Relational:DefaultConstraintName", "DF_ClientWalletWithdrawals_Status"),
-                    ReviewedByMemberID = table.Column<int>(type: "int", nullable: true),
-                    ReviewedAt = table.Column<DateTime>(type: "datetime2(0)", precision: 0, nullable: true),
-                    RejectReason = table.Column<string>(type: "nvarchar(500)", maxLength: 500, nullable: true),
-                    PaymentRefNumber = table.Column<string>(type: "nvarchar(100)", maxLength: 100, nullable: true),
-                    PaidAt = table.Column<DateTime>(type: "datetime2(0)", precision: 0, nullable: true),
-                    RequestedAt = table.Column<DateTime>(type: "datetime2(0)", precision: 0, nullable: false, defaultValueSql: "(sysutcdatetime())")
-                        .Annotation("Relational:DefaultConstraintName", "DF_ClientWalletWithdrawals_RequestedAt")
+                    ClientWalletWithdrawalID = table.Column<int>(type: "integer", nullable: false)
+                        .Annotation("Npgsql:ValueGenerationStrategy", NpgsqlValueGenerationStrategy.IdentityByDefaultColumn),
+                    WebsiteID = table.Column<int>(type: "integer", nullable: false),
+                    WebsiteClientID = table.Column<int>(type: "integer", nullable: false),
+                    ClientWalletID = table.Column<int>(type: "integer", nullable: false),
+                    ClientBankAccountID = table.Column<int>(type: "integer", nullable: false),
+                    AmountUsd = table.Column<decimal>(type: "numeric(18,4)", nullable: false),
+                    Status = table.Column<byte>(type: "smallint", nullable: false),
+                    ReviewedByMemberID = table.Column<int>(type: "integer", nullable: true),
+                    ReviewedAt = table.Column<DateTime>(type: "timestamp(0) with time zone", precision: 0, nullable: true),
+                    RejectReason = table.Column<string>(type: "character varying(500)", maxLength: 500, nullable: true),
+                    PaymentRefNumber = table.Column<string>(type: "character varying(100)", maxLength: 100, nullable: true),
+                    PaidAt = table.Column<DateTime>(type: "timestamp(0) with time zone", precision: 0, nullable: true),
+                    RequestedAt = table.Column<DateTime>(type: "timestamp(0) with time zone", precision: 0, nullable: false)
                 },
                 constraints: table =>
                 {
@@ -582,17 +565,17 @@ namespace Dotnetable.Migrations.SqlServer.Migrations
                 name: "ContactUsMessages",
                 columns: table => new
                 {
-                    ContactUsMessagesID = table.Column<int>(type: "int", nullable: false)
-                        .Annotation("SqlServer:Identity", "1, 1"),
-                    SenderName = table.Column<string>(type: "nvarchar(64)", maxLength: 64, nullable: false),
-                    EmailAddress = table.Column<string>(type: "varchar(64)", unicode: false, maxLength: 64, nullable: false),
-                    CellphoneNumber = table.Column<string>(type: "varchar(15)", unicode: false, maxLength: 15, nullable: false),
-                    MessageSubject = table.Column<string>(type: "nvarchar(512)", maxLength: 512, nullable: false),
-                    MessageBody = table.Column<string>(type: "nvarchar(4000)", maxLength: 4000, nullable: false),
-                    Archive = table.Column<bool>(type: "bit", nullable: false),
+                    ContactUsMessagesID = table.Column<int>(type: "integer", nullable: false)
+                        .Annotation("Npgsql:ValueGenerationStrategy", NpgsqlValueGenerationStrategy.IdentityByDefaultColumn),
+                    SenderName = table.Column<string>(type: "character varying(64)", maxLength: 64, nullable: false),
+                    EmailAddress = table.Column<string>(type: "character varying(64)", unicode: false, maxLength: 64, nullable: false),
+                    CellphoneNumber = table.Column<string>(type: "character varying(15)", unicode: false, maxLength: 15, nullable: false),
+                    MessageSubject = table.Column<string>(type: "character varying(512)", maxLength: 512, nullable: false),
+                    MessageBody = table.Column<string>(type: "character varying(4000)", maxLength: 4000, nullable: false),
+                    Archive = table.Column<bool>(type: "boolean", nullable: false),
                     LogTime = table.Column<DateTime>(type: "datetime", nullable: false),
-                    SenderIPAddress = table.Column<string>(type: "varchar(15)", unicode: false, maxLength: 15, nullable: false),
-                    WebsiteID = table.Column<int>(type: "int", nullable: false)
+                    SenderIPAddress = table.Column<string>(type: "character varying(15)", unicode: false, maxLength: 15, nullable: false),
+                    WebsiteID = table.Column<int>(type: "integer", nullable: false)
                 },
                 constraints: table =>
                 {
@@ -603,14 +586,13 @@ namespace Dotnetable.Migrations.SqlServer.Migrations
                 name: "CouponRedemptions",
                 columns: table => new
                 {
-                    CouponRedemptionID = table.Column<int>(type: "int", nullable: false)
-                        .Annotation("SqlServer:Identity", "1, 1"),
-                    CouponID = table.Column<int>(type: "int", nullable: false),
-                    OrderID = table.Column<int>(type: "int", nullable: false),
-                    WebsiteClientID = table.Column<int>(type: "int", nullable: false),
-                    DiscountAmountUsd = table.Column<decimal>(type: "decimal(18,4)", nullable: false),
-                    RedeemedAt = table.Column<DateTime>(type: "datetime2(0)", precision: 0, nullable: false, defaultValueSql: "(sysutcdatetime())")
-                        .Annotation("Relational:DefaultConstraintName", "DF_CouponRedemptions_RedeemedAt")
+                    CouponRedemptionID = table.Column<int>(type: "integer", nullable: false)
+                        .Annotation("Npgsql:ValueGenerationStrategy", NpgsqlValueGenerationStrategy.IdentityByDefaultColumn),
+                    CouponID = table.Column<int>(type: "integer", nullable: false),
+                    OrderID = table.Column<int>(type: "integer", nullable: false),
+                    WebsiteClientID = table.Column<int>(type: "integer", nullable: false),
+                    DiscountAmountUsd = table.Column<decimal>(type: "numeric(18,4)", nullable: false),
+                    RedeemedAt = table.Column<DateTime>(type: "timestamp(0) with time zone", precision: 0, nullable: false)
                 },
                 constraints: table =>
                 {
@@ -621,24 +603,22 @@ namespace Dotnetable.Migrations.SqlServer.Migrations
                 name: "Coupons",
                 columns: table => new
                 {
-                    CouponID = table.Column<int>(type: "int", nullable: false)
-                        .Annotation("SqlServer:Identity", "1, 1"),
-                    WebsiteID = table.Column<int>(type: "int", nullable: false),
-                    Code = table.Column<string>(type: "varchar(40)", unicode: false, maxLength: 40, nullable: false),
-                    DiscountType = table.Column<byte>(type: "tinyint", nullable: false),
-                    DiscountValue = table.Column<decimal>(type: "decimal(18,4)", nullable: false),
-                    MinOrderAmountUsd = table.Column<decimal>(type: "decimal(18,4)", nullable: false),
-                    MaxDiscountAmountUsd = table.Column<decimal>(type: "decimal(18,4)", nullable: true),
-                    UsageLimitTotal = table.Column<int>(type: "int", nullable: true),
-                    UsageLimitPerClient = table.Column<int>(type: "int", nullable: true),
-                    TimesUsed = table.Column<int>(type: "int", nullable: false),
-                    StartsAt = table.Column<DateTime>(type: "datetime2(0)", precision: 0, nullable: true),
-                    EndsAt = table.Column<DateTime>(type: "datetime2(0)", precision: 0, nullable: true),
-                    IsActive = table.Column<bool>(type: "bit", nullable: false, defaultValue: true)
-                        .Annotation("Relational:DefaultConstraintName", "DF_Coupons_IsActive"),
-                    CreatedByMemberID = table.Column<int>(type: "int", nullable: true),
-                    CreatedAt = table.Column<DateTime>(type: "datetime2(0)", precision: 0, nullable: false, defaultValueSql: "(sysutcdatetime())")
-                        .Annotation("Relational:DefaultConstraintName", "DF_Coupons_CreatedAt")
+                    CouponID = table.Column<int>(type: "integer", nullable: false)
+                        .Annotation("Npgsql:ValueGenerationStrategy", NpgsqlValueGenerationStrategy.IdentityByDefaultColumn),
+                    WebsiteID = table.Column<int>(type: "integer", nullable: false),
+                    Code = table.Column<string>(type: "character varying(40)", unicode: false, maxLength: 40, nullable: false),
+                    DiscountType = table.Column<byte>(type: "smallint", nullable: false),
+                    DiscountValue = table.Column<decimal>(type: "numeric(18,4)", nullable: false),
+                    MinOrderAmountUsd = table.Column<decimal>(type: "numeric(18,4)", nullable: false),
+                    MaxDiscountAmountUsd = table.Column<decimal>(type: "numeric(18,4)", nullable: true),
+                    UsageLimitTotal = table.Column<int>(type: "integer", nullable: true),
+                    UsageLimitPerClient = table.Column<int>(type: "integer", nullable: true),
+                    TimesUsed = table.Column<int>(type: "integer", nullable: false),
+                    StartsAt = table.Column<DateTime>(type: "timestamp(0) with time zone", precision: 0, nullable: true),
+                    EndsAt = table.Column<DateTime>(type: "timestamp(0) with time zone", precision: 0, nullable: true),
+                    IsActive = table.Column<bool>(type: "boolean", nullable: false),
+                    CreatedByMemberID = table.Column<int>(type: "integer", nullable: true),
+                    CreatedAt = table.Column<DateTime>(type: "timestamp(0) with time zone", precision: 0, nullable: false)
                 },
                 constraints: table =>
                 {
@@ -649,12 +629,12 @@ namespace Dotnetable.Migrations.SqlServer.Migrations
                 name: "CurrencyRates",
                 columns: table => new
                 {
-                    CurrencyRateID = table.Column<int>(type: "int", nullable: false)
-                        .Annotation("SqlServer:Identity", "1, 1"),
-                    WebsiteID = table.Column<int>(type: "int", nullable: false),
-                    CurrencyCode = table.Column<string>(type: "char(3)", unicode: false, fixedLength: true, maxLength: 3, nullable: false),
-                    USDToCurrency = table.Column<decimal>(type: "decimal(18,6)", nullable: false),
-                    IsDefault = table.Column<bool>(type: "bit", nullable: false),
+                    CurrencyRateID = table.Column<int>(type: "integer", nullable: false)
+                        .Annotation("Npgsql:ValueGenerationStrategy", NpgsqlValueGenerationStrategy.IdentityByDefaultColumn),
+                    WebsiteID = table.Column<int>(type: "integer", nullable: false),
+                    CurrencyCode = table.Column<string>(type: "character(3)", unicode: false, fixedLength: true, maxLength: 3, nullable: false),
+                    USDToCurrency = table.Column<decimal>(type: "numeric(18,6)", nullable: false),
+                    IsDefault = table.Column<bool>(type: "boolean", nullable: false),
                     LastUpdate = table.Column<DateTime>(type: "datetime", nullable: false)
                 },
                 constraints: table =>
@@ -671,19 +651,19 @@ namespace Dotnetable.Migrations.SqlServer.Migrations
                 name: "EmailAccounts",
                 columns: table => new
                 {
-                    EmailAccountID = table.Column<int>(type: "int", nullable: false)
-                        .Annotation("SqlServer:Identity", "1, 1"),
-                    WebsiteID = table.Column<int>(type: "int", nullable: false),
-                    AccountType = table.Column<byte>(type: "tinyint", nullable: false),
-                    Name = table.Column<string>(type: "nvarchar(64)", maxLength: 64, nullable: false),
-                    EmailAddress = table.Column<string>(type: "varchar(64)", unicode: false, maxLength: 64, nullable: false),
-                    Password = table.Column<string>(type: "nvarchar(256)", maxLength: 256, nullable: false),
-                    MailServer = table.Column<string>(type: "varchar(64)", unicode: false, maxLength: 64, nullable: false),
-                    SMTPPort = table.Column<int>(type: "int", nullable: false),
-                    EnableSSL = table.Column<bool>(type: "bit", nullable: false),
-                    MailName = table.Column<string>(type: "nvarchar(64)", maxLength: 64, nullable: false),
-                    IsDefault = table.Column<bool>(type: "bit", nullable: false),
-                    Active = table.Column<bool>(type: "bit", nullable: false)
+                    EmailAccountID = table.Column<int>(type: "integer", nullable: false)
+                        .Annotation("Npgsql:ValueGenerationStrategy", NpgsqlValueGenerationStrategy.IdentityByDefaultColumn),
+                    WebsiteID = table.Column<int>(type: "integer", nullable: false),
+                    AccountType = table.Column<byte>(type: "smallint", nullable: false),
+                    Name = table.Column<string>(type: "character varying(64)", maxLength: 64, nullable: false),
+                    EmailAddress = table.Column<string>(type: "character varying(64)", unicode: false, maxLength: 64, nullable: false),
+                    Password = table.Column<string>(type: "character varying(256)", maxLength: 256, nullable: false),
+                    MailServer = table.Column<string>(type: "character varying(64)", unicode: false, maxLength: 64, nullable: false),
+                    SMTPPort = table.Column<int>(type: "integer", nullable: false),
+                    EnableSSL = table.Column<bool>(type: "boolean", nullable: false),
+                    MailName = table.Column<string>(type: "character varying(64)", maxLength: 64, nullable: false),
+                    IsDefault = table.Column<bool>(type: "boolean", nullable: false),
+                    Active = table.Column<bool>(type: "boolean", nullable: false)
                 },
                 constraints: table =>
                 {
@@ -694,14 +674,14 @@ namespace Dotnetable.Migrations.SqlServer.Migrations
                 name: "EmailSubscribes",
                 columns: table => new
                 {
-                    EmailSubscribeID = table.Column<int>(type: "int", nullable: false)
-                        .Annotation("SqlServer:Identity", "1, 1"),
-                    WebsiteID = table.Column<int>(type: "int", nullable: false),
-                    Email = table.Column<string>(type: "varchar(64)", unicode: false, maxLength: 64, nullable: false),
+                    EmailSubscribeID = table.Column<int>(type: "integer", nullable: false)
+                        .Annotation("Npgsql:ValueGenerationStrategy", NpgsqlValueGenerationStrategy.IdentityByDefaultColumn),
+                    WebsiteID = table.Column<int>(type: "integer", nullable: false),
+                    Email = table.Column<string>(type: "character varying(64)", unicode: false, maxLength: 64, nullable: false),
                     LogTime = table.Column<DateTime>(type: "datetime", nullable: false),
-                    Active = table.Column<bool>(type: "bit", nullable: false),
-                    MemberID = table.Column<int>(type: "int", nullable: true),
-                    Approved = table.Column<bool>(type: "bit", nullable: false)
+                    Active = table.Column<bool>(type: "boolean", nullable: false),
+                    MemberID = table.Column<int>(type: "integer", nullable: true),
+                    Approved = table.Column<bool>(type: "boolean", nullable: false)
                 },
                 constraints: table =>
                 {
@@ -712,15 +692,15 @@ namespace Dotnetable.Migrations.SqlServer.Migrations
                 name: "EmailTemplates",
                 columns: table => new
                 {
-                    EmailTemplateID = table.Column<int>(type: "int", nullable: false)
-                        .Annotation("SqlServer:Identity", "1, 1"),
-                    WebsiteID = table.Column<int>(type: "int", nullable: false),
-                    TemplateKey = table.Column<string>(type: "varchar(64)", unicode: false, maxLength: 64, nullable: false),
-                    Name = table.Column<string>(type: "nvarchar(128)", maxLength: 128, nullable: false),
-                    Subject = table.Column<string>(type: "nvarchar(256)", maxLength: 256, nullable: false),
-                    HtmlBody = table.Column<string>(type: "nvarchar(max)", nullable: false),
-                    AccountType = table.Column<byte>(type: "tinyint", nullable: false),
-                    Active = table.Column<bool>(type: "bit", nullable: false)
+                    EmailTemplateID = table.Column<int>(type: "integer", nullable: false)
+                        .Annotation("Npgsql:ValueGenerationStrategy", NpgsqlValueGenerationStrategy.IdentityByDefaultColumn),
+                    WebsiteID = table.Column<int>(type: "integer", nullable: false),
+                    TemplateKey = table.Column<string>(type: "character varying(64)", unicode: false, maxLength: 64, nullable: false),
+                    Name = table.Column<string>(type: "character varying(128)", maxLength: 128, nullable: false),
+                    Subject = table.Column<string>(type: "character varying(256)", maxLength: 256, nullable: false),
+                    HtmlBody = table.Column<string>(type: "text", nullable: false),
+                    AccountType = table.Column<byte>(type: "smallint", nullable: false),
+                    Active = table.Column<bool>(type: "boolean", nullable: false)
                 },
                 constraints: table =>
                 {
@@ -731,12 +711,12 @@ namespace Dotnetable.Migrations.SqlServer.Migrations
                 name: "EmailTemplateTranslations",
                 columns: table => new
                 {
-                    EmailTemplateTranslationID = table.Column<int>(type: "int", nullable: false)
-                        .Annotation("SqlServer:Identity", "1, 1"),
-                    EmailTemplateID = table.Column<int>(type: "int", nullable: false),
-                    LanguageCode = table.Column<string>(type: "char(2)", unicode: false, fixedLength: true, maxLength: 2, nullable: false),
-                    Subject = table.Column<string>(type: "nvarchar(256)", maxLength: 256, nullable: false),
-                    HtmlBody = table.Column<string>(type: "nvarchar(max)", nullable: false)
+                    EmailTemplateTranslationID = table.Column<int>(type: "integer", nullable: false)
+                        .Annotation("Npgsql:ValueGenerationStrategy", NpgsqlValueGenerationStrategy.IdentityByDefaultColumn),
+                    EmailTemplateID = table.Column<int>(type: "integer", nullable: false),
+                    LanguageCode = table.Column<string>(type: "character(2)", unicode: false, fixedLength: true, maxLength: 2, nullable: false),
+                    Subject = table.Column<string>(type: "character varying(256)", maxLength: 256, nullable: false),
+                    HtmlBody = table.Column<string>(type: "text", nullable: false)
                 },
                 constraints: table =>
                 {
@@ -753,12 +733,12 @@ namespace Dotnetable.Migrations.SqlServer.Migrations
                 name: "FileFolders",
                 columns: table => new
                 {
-                    FileFolderID = table.Column<int>(type: "int", nullable: false)
-                        .Annotation("SqlServer:Identity", "1, 1"),
-                    WebsiteID = table.Column<int>(type: "int", nullable: false),
-                    ParentFolderID = table.Column<int>(type: "int", nullable: true),
-                    Name = table.Column<string>(type: "nvarchar(120)", maxLength: 120, nullable: false),
-                    Description = table.Column<string>(type: "nvarchar(400)", maxLength: 400, nullable: true),
+                    FileFolderID = table.Column<int>(type: "integer", nullable: false)
+                        .Annotation("Npgsql:ValueGenerationStrategy", NpgsqlValueGenerationStrategy.IdentityByDefaultColumn),
+                    WebsiteID = table.Column<int>(type: "integer", nullable: false),
+                    ParentFolderID = table.Column<int>(type: "integer", nullable: true),
+                    Name = table.Column<string>(type: "character varying(120)", maxLength: 120, nullable: false),
+                    Description = table.Column<string>(type: "character varying(400)", maxLength: 400, nullable: true),
                     CreateDate = table.Column<DateTime>(type: "datetime", nullable: false)
                 },
                 constraints: table =>
@@ -775,29 +755,29 @@ namespace Dotnetable.Migrations.SqlServer.Migrations
                 name: "FileRecords",
                 columns: table => new
                 {
-                    FileRecordID = table.Column<int>(type: "int", nullable: false)
-                        .Annotation("SqlServer:Identity", "1, 1"),
-                    WebsiteStorageSettingsID = table.Column<int>(type: "int", nullable: false),
+                    FileRecordID = table.Column<int>(type: "integer", nullable: false)
+                        .Annotation("Npgsql:ValueGenerationStrategy", NpgsqlValueGenerationStrategy.IdentityByDefaultColumn),
+                    WebsiteStorageSettingsID = table.Column<int>(type: "integer", nullable: false),
                     StorageProvider = table.Column<short>(type: "smallint", nullable: false),
-                    StoragePath = table.Column<string>(type: "nvarchar(350)", maxLength: 350, nullable: true),
-                    CNDUrl = table.Column<string>(type: "nvarchar(450)", maxLength: 450, nullable: true),
-                    OriginalFileName = table.Column<string>(type: "nvarchar(120)", maxLength: 120, nullable: false),
-                    StoredFileName = table.Column<string>(type: "varchar(40)", unicode: false, maxLength: 40, nullable: false),
-                    MimeType = table.Column<string>(type: "varchar(74)", unicode: false, maxLength: 74, nullable: false),
-                    FileSizeKB = table.Column<int>(type: "int", nullable: false),
-                    MetadataJSON = table.Column<string>(type: "nvarchar(2000)", maxLength: 2000, nullable: true),
-                    AltText = table.Column<string>(type: "nvarchar(120)", maxLength: 120, nullable: true),
-                    Title = table.Column<string>(type: "nvarchar(50)", maxLength: 50, nullable: true),
-                    IsDeleted = table.Column<bool>(type: "bit", nullable: false),
+                    StoragePath = table.Column<string>(type: "character varying(350)", maxLength: 350, nullable: true),
+                    CNDUrl = table.Column<string>(type: "character varying(450)", maxLength: 450, nullable: true),
+                    OriginalFileName = table.Column<string>(type: "character varying(120)", maxLength: 120, nullable: false),
+                    StoredFileName = table.Column<string>(type: "character varying(40)", unicode: false, maxLength: 40, nullable: false),
+                    MimeType = table.Column<string>(type: "character varying(74)", unicode: false, maxLength: 74, nullable: false),
+                    FileSizeKB = table.Column<int>(type: "integer", nullable: false),
+                    MetadataJSON = table.Column<string>(type: "character varying(2000)", maxLength: 2000, nullable: true),
+                    AltText = table.Column<string>(type: "character varying(120)", maxLength: 120, nullable: true),
+                    Title = table.Column<string>(type: "character varying(50)", maxLength: 50, nullable: true),
+                    IsDeleted = table.Column<bool>(type: "boolean", nullable: false),
                     UploadDate = table.Column<DateTime>(type: "datetime", nullable: false),
-                    ThumbnailStorage = table.Column<string>(type: "nvarchar(350)", maxLength: 350, nullable: true),
-                    ThumbnailCDN = table.Column<string>(type: "nvarchar(450)", maxLength: 450, nullable: true),
-                    FileCategory = table.Column<byte>(type: "tinyint", nullable: false),
-                    CDNFileCode = table.Column<string>(type: "varchar(80)", unicode: false, maxLength: 80, nullable: true),
-                    FileFolderID = table.Column<int>(type: "int", nullable: true),
-                    WebsiteID = table.Column<int>(type: "int", nullable: false),
-                    UploaderMemberID = table.Column<int>(type: "int", nullable: true),
-                    WebsiteClientID = table.Column<int>(type: "int", nullable: true)
+                    ThumbnailStorage = table.Column<string>(type: "character varying(350)", maxLength: 350, nullable: true),
+                    ThumbnailCDN = table.Column<string>(type: "character varying(450)", maxLength: 450, nullable: true),
+                    FileCategory = table.Column<byte>(type: "smallint", nullable: false),
+                    CDNFileCode = table.Column<string>(type: "character varying(80)", unicode: false, maxLength: 80, nullable: true),
+                    FileFolderID = table.Column<int>(type: "integer", nullable: true),
+                    WebsiteID = table.Column<int>(type: "integer", nullable: false),
+                    UploaderMemberID = table.Column<int>(type: "integer", nullable: true),
+                    WebsiteClientID = table.Column<int>(type: "integer", nullable: true)
                 },
                 constraints: table =>
                 {
@@ -813,24 +793,24 @@ namespace Dotnetable.Migrations.SqlServer.Migrations
                 name: "Websites",
                 columns: table => new
                 {
-                    WebsiteID = table.Column<int>(type: "int", nullable: false)
-                        .Annotation("SqlServer:Identity", "1, 1"),
-                    TradeName = table.Column<string>(type: "nvarchar(32)", maxLength: 32, nullable: false),
-                    WebsiteAddress = table.Column<string>(type: "varchar(60)", unicode: false, maxLength: 60, nullable: false),
-                    AuthCode = table.Column<Guid>(type: "uniqueidentifier", nullable: false),
-                    Active = table.Column<bool>(type: "bit", nullable: false),
-                    Manager = table.Column<string>(type: "nvarchar(30)", maxLength: 30, nullable: false),
-                    Mobile = table.Column<string>(type: "varchar(15)", unicode: false, maxLength: 15, nullable: false),
-                    Email = table.Column<string>(type: "varchar(60)", unicode: false, maxLength: 60, nullable: false),
+                    WebsiteID = table.Column<int>(type: "integer", nullable: false)
+                        .Annotation("Npgsql:ValueGenerationStrategy", NpgsqlValueGenerationStrategy.IdentityByDefaultColumn),
+                    TradeName = table.Column<string>(type: "character varying(32)", maxLength: 32, nullable: false),
+                    WebsiteAddress = table.Column<string>(type: "character varying(60)", unicode: false, maxLength: 60, nullable: false),
+                    AuthCode = table.Column<Guid>(type: "uuid", nullable: false),
+                    Active = table.Column<bool>(type: "boolean", nullable: false),
+                    Manager = table.Column<string>(type: "character varying(30)", maxLength: 30, nullable: false),
+                    Mobile = table.Column<string>(type: "character varying(15)", unicode: false, maxLength: 15, nullable: false),
+                    Email = table.Column<string>(type: "character varying(60)", unicode: false, maxLength: 60, nullable: false),
                     RegisterDate = table.Column<DateOnly>(type: "date", nullable: false),
-                    AllowAllIP = table.Column<bool>(type: "bit", nullable: false),
-                    DefaultLanguageCode = table.Column<string>(type: "char(2)", unicode: false, fixedLength: true, maxLength: 2, nullable: false),
-                    WebsiteType = table.Column<byte>(type: "tinyint", nullable: false),
-                    IsHub = table.Column<bool>(type: "bit", nullable: false),
-                    BrandName = table.Column<string>(type: "nvarchar(60)", maxLength: 60, nullable: false, comment: "show in title of pages"),
-                    LogoFileID = table.Column<int>(type: "int", nullable: true),
-                    FaveIconFileID = table.Column<int>(type: "int", nullable: true),
-                    DefaultCurrencyCode = table.Column<string>(type: "char(3)", unicode: false, fixedLength: true, maxLength: 3, nullable: false)
+                    AllowAllIP = table.Column<bool>(type: "boolean", nullable: false),
+                    DefaultLanguageCode = table.Column<string>(type: "character(2)", unicode: false, fixedLength: true, maxLength: 2, nullable: false),
+                    WebsiteType = table.Column<byte>(type: "smallint", nullable: false),
+                    IsHub = table.Column<bool>(type: "boolean", nullable: false),
+                    BrandName = table.Column<string>(type: "character varying(60)", maxLength: 60, nullable: false, comment: "show in title of pages"),
+                    LogoFileID = table.Column<int>(type: "integer", nullable: true),
+                    FaveIconFileID = table.Column<int>(type: "integer", nullable: true),
+                    DefaultCurrencyCode = table.Column<string>(type: "character(3)", unicode: false, fixedLength: true, maxLength: 3, nullable: false)
                 },
                 constraints: table =>
                 {
@@ -856,10 +836,10 @@ namespace Dotnetable.Migrations.SqlServer.Migrations
                 name: "FileTags",
                 columns: table => new
                 {
-                    FileTagID = table.Column<int>(type: "int", nullable: false)
-                        .Annotation("SqlServer:Identity", "1, 1"),
-                    WebsiteID = table.Column<int>(type: "int", nullable: false),
-                    Name = table.Column<string>(type: "nvarchar(60)", maxLength: 60, nullable: false)
+                    FileTagID = table.Column<int>(type: "integer", nullable: false)
+                        .Annotation("Npgsql:ValueGenerationStrategy", NpgsqlValueGenerationStrategy.IdentityByDefaultColumn),
+                    WebsiteID = table.Column<int>(type: "integer", nullable: false),
+                    Name = table.Column<string>(type: "character varying(60)", maxLength: 60, nullable: false)
                 },
                 constraints: table =>
                 {
@@ -875,26 +855,23 @@ namespace Dotnetable.Migrations.SqlServer.Migrations
                 name: "Forms",
                 columns: table => new
                 {
-                    FormID = table.Column<int>(type: "int", nullable: false)
-                        .Annotation("SqlServer:Identity", "1, 1"),
-                    WebsiteID = table.Column<int>(type: "int", nullable: false),
-                    Title = table.Column<string>(type: "nvarchar(200)", maxLength: 200, nullable: false),
-                    Slug = table.Column<string>(type: "nvarchar(200)", maxLength: 200, nullable: false),
-                    Description = table.Column<string>(type: "nvarchar(1000)", maxLength: 1000, nullable: true),
-                    FormType = table.Column<byte>(type: "tinyint", nullable: false),
-                    SubmitButtonText = table.Column<string>(type: "nvarchar(100)", maxLength: 100, nullable: true),
-                    SuccessMessage = table.Column<string>(type: "nvarchar(500)", maxLength: 500, nullable: true),
-                    RequireLogin = table.Column<bool>(type: "bit", nullable: false),
-                    AllowMultipleSubmissions = table.Column<bool>(type: "bit", nullable: false, defaultValue: true)
-                        .Annotation("Relational:DefaultConstraintName", "DF_Forms_AllowMultipleSubmissions"),
-                    ShowResults = table.Column<bool>(type: "bit", nullable: false),
-                    NotifyEmail = table.Column<string>(type: "nvarchar(200)", maxLength: 200, nullable: true),
+                    FormID = table.Column<int>(type: "integer", nullable: false)
+                        .Annotation("Npgsql:ValueGenerationStrategy", NpgsqlValueGenerationStrategy.IdentityByDefaultColumn),
+                    WebsiteID = table.Column<int>(type: "integer", nullable: false),
+                    Title = table.Column<string>(type: "character varying(200)", maxLength: 200, nullable: false),
+                    Slug = table.Column<string>(type: "character varying(200)", maxLength: 200, nullable: false),
+                    Description = table.Column<string>(type: "character varying(1000)", maxLength: 1000, nullable: true),
+                    FormType = table.Column<byte>(type: "smallint", nullable: false),
+                    SubmitButtonText = table.Column<string>(type: "character varying(100)", maxLength: 100, nullable: true),
+                    SuccessMessage = table.Column<string>(type: "character varying(500)", maxLength: 500, nullable: true),
+                    RequireLogin = table.Column<bool>(type: "boolean", nullable: false),
+                    AllowMultipleSubmissions = table.Column<bool>(type: "boolean", nullable: false),
+                    ShowResults = table.Column<bool>(type: "boolean", nullable: false),
+                    NotifyEmail = table.Column<string>(type: "character varying(200)", maxLength: 200, nullable: true),
                     StartAt = table.Column<DateTime>(type: "datetime", nullable: true),
                     EndAt = table.Column<DateTime>(type: "datetime", nullable: true),
-                    IsActive = table.Column<bool>(type: "bit", nullable: false, defaultValue: true)
-                        .Annotation("Relational:DefaultConstraintName", "DF_Forms_IsActive"),
-                    CreatedAt = table.Column<DateTime>(type: "datetime", nullable: false, defaultValueSql: "(sysutcdatetime())")
-                        .Annotation("Relational:DefaultConstraintName", "DF_Forms_CreatedAt")
+                    IsActive = table.Column<bool>(type: "boolean", nullable: false),
+                    CreatedAt = table.Column<DateTime>(type: "datetime", nullable: false)
                 },
                 constraints: table =>
                 {
@@ -910,17 +887,16 @@ namespace Dotnetable.Migrations.SqlServer.Migrations
                 name: "JournalEntries",
                 columns: table => new
                 {
-                    JournalEntryID = table.Column<int>(type: "int", nullable: false)
-                        .Annotation("SqlServer:Identity", "1, 1"),
-                    WebsiteID = table.Column<int>(type: "int", nullable: false),
-                    EntryNumber = table.Column<string>(type: "nvarchar(30)", maxLength: 30, nullable: false),
+                    JournalEntryID = table.Column<int>(type: "integer", nullable: false)
+                        .Annotation("Npgsql:ValueGenerationStrategy", NpgsqlValueGenerationStrategy.IdentityByDefaultColumn),
+                    WebsiteID = table.Column<int>(type: "integer", nullable: false),
+                    EntryNumber = table.Column<string>(type: "character varying(30)", maxLength: 30, nullable: false),
                     EntryDate = table.Column<DateOnly>(type: "date", nullable: false),
-                    Description = table.Column<string>(type: "nvarchar(500)", maxLength: 500, nullable: true),
-                    SourceType = table.Column<byte>(type: "tinyint", nullable: true),
-                    SourceId = table.Column<int>(type: "int", nullable: true),
-                    IsPosted = table.Column<bool>(type: "bit", nullable: false),
-                    CreatedAt = table.Column<DateTime>(type: "datetime", nullable: false, defaultValueSql: "(sysutcdatetime())")
-                        .Annotation("Relational:DefaultConstraintName", "DF_JournalEntries_CreatedAt")
+                    Description = table.Column<string>(type: "character varying(500)", maxLength: 500, nullable: true),
+                    SourceType = table.Column<byte>(type: "smallint", nullable: true),
+                    SourceId = table.Column<int>(type: "integer", nullable: true),
+                    IsPosted = table.Column<bool>(type: "boolean", nullable: false),
+                    CreatedAt = table.Column<DateTime>(type: "datetime", nullable: false)
                 },
                 constraints: table =>
                 {
@@ -936,16 +912,16 @@ namespace Dotnetable.Migrations.SqlServer.Migrations
                 name: "Languages",
                 columns: table => new
                 {
-                    LanguageID = table.Column<int>(type: "int", nullable: false)
-                        .Annotation("SqlServer:Identity", "1, 1"),
-                    LanguageCode = table.Column<string>(type: "char(2)", unicode: false, fixedLength: true, maxLength: 2, nullable: false),
-                    LanguageCodeISO = table.Column<string>(type: "char(5)", unicode: false, fixedLength: true, maxLength: 5, nullable: false),
-                    Name = table.Column<string>(type: "nvarchar(32)", maxLength: 32, nullable: false),
-                    Priority = table.Column<int>(type: "int", nullable: false),
-                    IsDefault = table.Column<bool>(type: "bit", nullable: false),
-                    Active = table.Column<bool>(type: "bit", nullable: false),
-                    RTLDesign = table.Column<bool>(type: "bit", nullable: false),
-                    WebsiteID = table.Column<int>(type: "int", nullable: true)
+                    LanguageID = table.Column<int>(type: "integer", nullable: false)
+                        .Annotation("Npgsql:ValueGenerationStrategy", NpgsqlValueGenerationStrategy.IdentityByDefaultColumn),
+                    LanguageCode = table.Column<string>(type: "character(2)", unicode: false, fixedLength: true, maxLength: 2, nullable: false),
+                    LanguageCodeISO = table.Column<string>(type: "character(5)", unicode: false, fixedLength: true, maxLength: 5, nullable: false),
+                    Name = table.Column<string>(type: "character varying(32)", maxLength: 32, nullable: false),
+                    Priority = table.Column<int>(type: "integer", nullable: false),
+                    IsDefault = table.Column<bool>(type: "boolean", nullable: false),
+                    Active = table.Column<bool>(type: "boolean", nullable: false),
+                    RTLDesign = table.Column<bool>(type: "boolean", nullable: false),
+                    WebsiteID = table.Column<int>(type: "integer", nullable: true)
                 },
                 constraints: table =>
                 {
@@ -961,11 +937,11 @@ namespace Dotnetable.Migrations.SqlServer.Migrations
                 name: "LocalizationKeys",
                 columns: table => new
                 {
-                    LocalizationKeyID = table.Column<int>(type: "int", nullable: false)
-                        .Annotation("SqlServer:Identity", "1, 1"),
-                    ItemKey = table.Column<string>(type: "varchar(72)", unicode: false, maxLength: 72, nullable: false),
-                    DefaultValue = table.Column<string>(type: "nvarchar(2000)", maxLength: 2000, nullable: false),
-                    WebsiteID = table.Column<int>(type: "int", nullable: true)
+                    LocalizationKeyID = table.Column<int>(type: "integer", nullable: false)
+                        .Annotation("Npgsql:ValueGenerationStrategy", NpgsqlValueGenerationStrategy.IdentityByDefaultColumn),
+                    ItemKey = table.Column<string>(type: "character varying(72)", unicode: false, maxLength: 72, nullable: false),
+                    DefaultValue = table.Column<string>(type: "character varying(2000)", maxLength: 2000, nullable: false),
+                    WebsiteID = table.Column<int>(type: "integer", nullable: true)
                 },
                 constraints: table =>
                 {
@@ -981,14 +957,13 @@ namespace Dotnetable.Migrations.SqlServer.Migrations
                 name: "LoginTries",
                 columns: table => new
                 {
-                    LoginTryID = table.Column<int>(type: "int", nullable: false)
-                        .Annotation("SqlServer:Identity", "1, 1"),
-                    Username = table.Column<string>(type: "varchar(64)", unicode: false, maxLength: 64, nullable: false),
+                    LoginTryID = table.Column<int>(type: "integer", nullable: false)
+                        .Annotation("Npgsql:ValueGenerationStrategy", NpgsqlValueGenerationStrategy.IdentityByDefaultColumn),
+                    Username = table.Column<string>(type: "character varying(64)", unicode: false, maxLength: 64, nullable: false),
                     LogTime = table.Column<DateTime>(type: "datetime", nullable: false),
-                    IsSuccess = table.Column<bool>(type: "bit", nullable: false),
-                    TryIP = table.Column<string>(type: "varchar(15)", unicode: false, maxLength: 15, nullable: false),
-                    WebsiteID = table.Column<int>(type: "int", nullable: false, defaultValue: 1)
-                        .Annotation("Relational:DefaultConstraintName", "DF_LoginTries_WebsiteID")
+                    IsSuccess = table.Column<bool>(type: "boolean", nullable: false),
+                    TryIP = table.Column<string>(type: "character varying(15)", unicode: false, maxLength: 15, nullable: false),
+                    WebsiteID = table.Column<int>(type: "integer", nullable: false)
                 },
                 constraints: table =>
                 {
@@ -1004,13 +979,12 @@ namespace Dotnetable.Migrations.SqlServer.Migrations
                 name: "MediaSets",
                 columns: table => new
                 {
-                    MediaSetID = table.Column<int>(type: "int", nullable: false)
-                        .Annotation("SqlServer:Identity", "1, 1"),
-                    WebsiteID = table.Column<int>(type: "int", nullable: false),
-                    Name = table.Column<string>(type: "nvarchar(200)", maxLength: 200, nullable: false),
-                    IsShared = table.Column<bool>(type: "bit", nullable: false),
-                    CreatedAt = table.Column<DateTime>(type: "datetime", nullable: false, defaultValueSql: "(sysutcdatetime())")
-                        .Annotation("Relational:DefaultConstraintName", "DF_MediaSets_CreatedAt_1")
+                    MediaSetID = table.Column<int>(type: "integer", nullable: false)
+                        .Annotation("Npgsql:ValueGenerationStrategy", NpgsqlValueGenerationStrategy.IdentityByDefaultColumn),
+                    WebsiteID = table.Column<int>(type: "integer", nullable: false),
+                    Name = table.Column<string>(type: "character varying(200)", maxLength: 200, nullable: false),
+                    IsShared = table.Column<bool>(type: "boolean", nullable: false),
+                    CreatedAt = table.Column<DateTime>(type: "datetime", nullable: false)
                 },
                 constraints: table =>
                 {
@@ -1026,13 +1000,12 @@ namespace Dotnetable.Migrations.SqlServer.Migrations
                 name: "Menus",
                 columns: table => new
                 {
-                    MenuID = table.Column<int>(type: "int", nullable: false)
-                        .Annotation("SqlServer:Identity", "1, 1"),
-                    WebsiteID = table.Column<int>(type: "int", nullable: false),
-                    Name = table.Column<string>(type: "nvarchar(100)", maxLength: 100, nullable: false),
-                    Location = table.Column<byte>(type: "tinyint", nullable: false),
-                    IsActive = table.Column<bool>(type: "bit", nullable: false, defaultValue: true)
-                        .Annotation("Relational:DefaultConstraintName", "DF_Menus_IsActive")
+                    MenuID = table.Column<int>(type: "integer", nullable: false)
+                        .Annotation("Npgsql:ValueGenerationStrategy", NpgsqlValueGenerationStrategy.IdentityByDefaultColumn),
+                    WebsiteID = table.Column<int>(type: "integer", nullable: false),
+                    Name = table.Column<string>(type: "character varying(100)", maxLength: 100, nullable: false),
+                    Location = table.Column<byte>(type: "smallint", nullable: false),
+                    IsActive = table.Column<bool>(type: "boolean", nullable: false)
                 },
                 constraints: table =>
                 {
@@ -1048,18 +1021,17 @@ namespace Dotnetable.Migrations.SqlServer.Migrations
                 name: "PaymentGateways",
                 columns: table => new
                 {
-                    PaymentGatewayID = table.Column<int>(type: "int", nullable: false)
-                        .Annotation("SqlServer:Identity", "1, 1"),
-                    WebsiteID = table.Column<int>(type: "int", nullable: false),
-                    Name = table.Column<string>(type: "nvarchar(150)", maxLength: 150, nullable: false),
-                    Provider = table.Column<string>(type: "nvarchar(50)", maxLength: 50, nullable: false),
-                    MerchantID = table.Column<string>(type: "nvarchar(200)", maxLength: 200, nullable: true),
-                    ApiKey = table.Column<string>(type: "nvarchar(500)", maxLength: 500, nullable: true),
-                    ApiSecret = table.Column<string>(type: "nvarchar(500)", maxLength: 500, nullable: true),
-                    IsSandbox = table.Column<bool>(type: "bit", nullable: false),
-                    SortOrder = table.Column<int>(type: "int", nullable: false),
-                    IsActive = table.Column<bool>(type: "bit", nullable: false, defaultValue: true)
-                        .Annotation("Relational:DefaultConstraintName", "DF_PaymentGateways_IsActive")
+                    PaymentGatewayID = table.Column<int>(type: "integer", nullable: false)
+                        .Annotation("Npgsql:ValueGenerationStrategy", NpgsqlValueGenerationStrategy.IdentityByDefaultColumn),
+                    WebsiteID = table.Column<int>(type: "integer", nullable: false),
+                    Name = table.Column<string>(type: "character varying(150)", maxLength: 150, nullable: false),
+                    Provider = table.Column<string>(type: "character varying(50)", maxLength: 50, nullable: false),
+                    MerchantID = table.Column<string>(type: "character varying(200)", maxLength: 200, nullable: true),
+                    ApiKey = table.Column<string>(type: "character varying(500)", maxLength: 500, nullable: true),
+                    ApiSecret = table.Column<string>(type: "character varying(500)", maxLength: 500, nullable: true),
+                    IsSandbox = table.Column<bool>(type: "boolean", nullable: false),
+                    SortOrder = table.Column<int>(type: "integer", nullable: false),
+                    IsActive = table.Column<bool>(type: "boolean", nullable: false)
                 },
                 constraints: table =>
                 {
@@ -1075,11 +1047,11 @@ namespace Dotnetable.Migrations.SqlServer.Migrations
                 name: "Policies",
                 columns: table => new
                 {
-                    PolicyID = table.Column<int>(type: "int", nullable: false)
-                        .Annotation("SqlServer:Identity", "1, 1"),
-                    Title = table.Column<string>(type: "varchar(64)", unicode: false, maxLength: 64, nullable: false),
-                    Active = table.Column<bool>(type: "bit", nullable: false),
-                    WebsiteID = table.Column<int>(type: "int", nullable: false, defaultValue: 1)
+                    PolicyID = table.Column<int>(type: "integer", nullable: false)
+                        .Annotation("Npgsql:ValueGenerationStrategy", NpgsqlValueGenerationStrategy.IdentityByDefaultColumn),
+                    Title = table.Column<string>(type: "character varying(64)", unicode: false, maxLength: 64, nullable: false),
+                    Active = table.Column<bool>(type: "boolean", nullable: false),
+                    WebsiteID = table.Column<int>(type: "integer", nullable: false)
                 },
                 constraints: table =>
                 {
@@ -1095,19 +1067,15 @@ namespace Dotnetable.Migrations.SqlServer.Migrations
                 name: "PostTypes",
                 columns: table => new
                 {
-                    PostTypeID = table.Column<int>(type: "int", nullable: false)
-                        .Annotation("SqlServer:Identity", "1, 1"),
-                    WebsiteID = table.Column<int>(type: "int", nullable: false),
-                    Name = table.Column<string>(type: "nvarchar(100)", maxLength: 100, nullable: false),
-                    Slug = table.Column<string>(type: "nvarchar(100)", maxLength: 100, nullable: false),
-                    HasCategories = table.Column<bool>(type: "bit", nullable: false, defaultValue: true)
-                        .Annotation("Relational:DefaultConstraintName", "DF_PostTypes_HasCategories"),
-                    HasTags = table.Column<bool>(type: "bit", nullable: false, defaultValue: true)
-                        .Annotation("Relational:DefaultConstraintName", "DF_PostTypes_HasTags"),
-                    HasAuthor = table.Column<bool>(type: "bit", nullable: false, defaultValue: true)
-                        .Annotation("Relational:DefaultConstraintName", "DF_PostTypes_HasAuthor"),
-                    CommentsEnabled = table.Column<bool>(type: "bit", nullable: false, defaultValue: true)
-                        .Annotation("Relational:DefaultConstraintName", "DF_PostTypes_CommentsEnabled")
+                    PostTypeID = table.Column<int>(type: "integer", nullable: false)
+                        .Annotation("Npgsql:ValueGenerationStrategy", NpgsqlValueGenerationStrategy.IdentityByDefaultColumn),
+                    WebsiteID = table.Column<int>(type: "integer", nullable: false),
+                    Name = table.Column<string>(type: "character varying(100)", maxLength: 100, nullable: false),
+                    Slug = table.Column<string>(type: "character varying(100)", maxLength: 100, nullable: false),
+                    HasCategories = table.Column<bool>(type: "boolean", nullable: false),
+                    HasTags = table.Column<bool>(type: "boolean", nullable: false),
+                    HasAuthor = table.Column<bool>(type: "boolean", nullable: false),
+                    CommentsEnabled = table.Column<bool>(type: "boolean", nullable: false)
                 },
                 constraints: table =>
                 {
@@ -1123,16 +1091,15 @@ namespace Dotnetable.Migrations.SqlServer.Migrations
                 name: "ProductCategories",
                 columns: table => new
                 {
-                    ProductCategoryID = table.Column<int>(type: "int", nullable: false)
-                        .Annotation("SqlServer:Identity", "1, 1"),
-                    WebsiteID = table.Column<int>(type: "int", nullable: false),
-                    ParentCategoryID = table.Column<int>(type: "int", nullable: true),
-                    Name = table.Column<string>(type: "nvarchar(200)", maxLength: 200, nullable: false),
-                    Slug = table.Column<string>(type: "nvarchar(200)", maxLength: 200, nullable: false),
-                    ImageFileID = table.Column<int>(type: "int", nullable: true),
-                    SortOrder = table.Column<int>(type: "int", nullable: false),
-                    IsActive = table.Column<bool>(type: "bit", nullable: false, defaultValue: true)
-                        .Annotation("Relational:DefaultConstraintName", "DF_ProductCategories_IsActive")
+                    ProductCategoryID = table.Column<int>(type: "integer", nullable: false)
+                        .Annotation("Npgsql:ValueGenerationStrategy", NpgsqlValueGenerationStrategy.IdentityByDefaultColumn),
+                    WebsiteID = table.Column<int>(type: "integer", nullable: false),
+                    ParentCategoryID = table.Column<int>(type: "integer", nullable: true),
+                    Name = table.Column<string>(type: "character varying(200)", maxLength: 200, nullable: false),
+                    Slug = table.Column<string>(type: "character varying(200)", maxLength: 200, nullable: false),
+                    ImageFileID = table.Column<int>(type: "integer", nullable: true),
+                    SortOrder = table.Column<int>(type: "integer", nullable: false),
+                    IsActive = table.Column<bool>(type: "boolean", nullable: false)
                 },
                 constraints: table =>
                 {
@@ -1158,14 +1125,13 @@ namespace Dotnetable.Migrations.SqlServer.Migrations
                 name: "ShippingMethods",
                 columns: table => new
                 {
-                    ShippingMethodID = table.Column<int>(type: "int", nullable: false)
-                        .Annotation("SqlServer:Identity", "1, 1"),
-                    WebsiteID = table.Column<int>(type: "int", nullable: false),
-                    Title = table.Column<string>(type: "nvarchar(100)", maxLength: 100, nullable: false),
-                    CarrierName = table.Column<string>(type: "nvarchar(100)", maxLength: 100, nullable: true),
-                    IsActive = table.Column<bool>(type: "bit", nullable: false, defaultValue: true)
-                        .Annotation("Relational:DefaultConstraintName", "DF_ShippingMethods_IsActive"),
-                    SortOrder = table.Column<int>(type: "int", nullable: false)
+                    ShippingMethodID = table.Column<int>(type: "integer", nullable: false)
+                        .Annotation("Npgsql:ValueGenerationStrategy", NpgsqlValueGenerationStrategy.IdentityByDefaultColumn),
+                    WebsiteID = table.Column<int>(type: "integer", nullable: false),
+                    Title = table.Column<string>(type: "character varying(100)", maxLength: 100, nullable: false),
+                    CarrierName = table.Column<string>(type: "character varying(100)", maxLength: 100, nullable: true),
+                    IsActive = table.Column<bool>(type: "boolean", nullable: false),
+                    SortOrder = table.Column<int>(type: "integer", nullable: false)
                 },
                 constraints: table =>
                 {
@@ -1181,28 +1147,20 @@ namespace Dotnetable.Migrations.SqlServer.Migrations
                 name: "Slideshows",
                 columns: table => new
                 {
-                    SlideshowID = table.Column<int>(type: "int", nullable: false)
-                        .Annotation("SqlServer:Identity", "1, 1"),
-                    WebsiteID = table.Column<int>(type: "int", nullable: false),
-                    Name = table.Column<string>(type: "nvarchar(150)", maxLength: 150, nullable: false),
-                    PlacementKey = table.Column<string>(type: "nvarchar(100)", maxLength: 100, nullable: true),
-                    TransitionEffect = table.Column<byte>(type: "tinyint", nullable: false, defaultValue: (byte)1)
-                        .Annotation("Relational:DefaultConstraintName", "DF_Slideshows_TransitionEffect"),
-                    AutoPlay = table.Column<bool>(type: "bit", nullable: false, defaultValue: true)
-                        .Annotation("Relational:DefaultConstraintName", "DF_Slideshows_AutoPlay"),
-                    IntervalMs = table.Column<int>(type: "int", nullable: false, defaultValue: 5000)
-                        .Annotation("Relational:DefaultConstraintName", "DF_Slideshows_IntervalMs"),
-                    ShowArrows = table.Column<bool>(type: "bit", nullable: false, defaultValue: true)
-                        .Annotation("Relational:DefaultConstraintName", "DF_Slideshows_ShowArrows"),
-                    ShowDots = table.Column<bool>(type: "bit", nullable: false, defaultValue: true)
-                        .Annotation("Relational:DefaultConstraintName", "DF_Slideshows_ShowDots"),
-                    EnableLightbox = table.Column<bool>(type: "bit", nullable: false, defaultValue: true)
-                        .Annotation("Relational:DefaultConstraintName", "DF_Slideshows_EnableLightbox"),
-                    AspectRatio = table.Column<string>(type: "nvarchar(20)", maxLength: 20, nullable: true),
-                    IsActive = table.Column<bool>(type: "bit", nullable: false, defaultValue: true)
-                        .Annotation("Relational:DefaultConstraintName", "DF_Slideshows_IsActive"),
-                    CreatedAt = table.Column<DateTime>(type: "datetime", nullable: false, defaultValueSql: "(sysutcdatetime())")
-                        .Annotation("Relational:DefaultConstraintName", "DF_Slideshows_CreatedAt")
+                    SlideshowID = table.Column<int>(type: "integer", nullable: false)
+                        .Annotation("Npgsql:ValueGenerationStrategy", NpgsqlValueGenerationStrategy.IdentityByDefaultColumn),
+                    WebsiteID = table.Column<int>(type: "integer", nullable: false),
+                    Name = table.Column<string>(type: "character varying(150)", maxLength: 150, nullable: false),
+                    PlacementKey = table.Column<string>(type: "character varying(100)", maxLength: 100, nullable: true),
+                    TransitionEffect = table.Column<byte>(type: "smallint", nullable: false),
+                    AutoPlay = table.Column<bool>(type: "boolean", nullable: false),
+                    IntervalMs = table.Column<int>(type: "integer", nullable: false),
+                    ShowArrows = table.Column<bool>(type: "boolean", nullable: false),
+                    ShowDots = table.Column<bool>(type: "boolean", nullable: false),
+                    EnableLightbox = table.Column<bool>(type: "boolean", nullable: false),
+                    AspectRatio = table.Column<string>(type: "character varying(20)", maxLength: 20, nullable: true),
+                    IsActive = table.Column<bool>(type: "boolean", nullable: false),
+                    CreatedAt = table.Column<DateTime>(type: "datetime", nullable: false)
                 },
                 constraints: table =>
                 {
@@ -1218,13 +1176,12 @@ namespace Dotnetable.Migrations.SqlServer.Migrations
                 name: "Suppliers",
                 columns: table => new
                 {
-                    SupplierID = table.Column<int>(type: "int", nullable: false)
-                        .Annotation("SqlServer:Identity", "1, 1"),
-                    WebsiteID = table.Column<int>(type: "int", nullable: false),
-                    Name = table.Column<string>(type: "nvarchar(200)", maxLength: 200, nullable: false),
-                    Phone = table.Column<string>(type: "nvarchar(20)", maxLength: 20, nullable: true),
-                    IsActive = table.Column<bool>(type: "bit", nullable: false, defaultValue: true)
-                        .Annotation("Relational:DefaultConstraintName", "DF_Suppliers_IsActive_1")
+                    SupplierID = table.Column<int>(type: "integer", nullable: false)
+                        .Annotation("Npgsql:ValueGenerationStrategy", NpgsqlValueGenerationStrategy.IdentityByDefaultColumn),
+                    WebsiteID = table.Column<int>(type: "integer", nullable: false),
+                    Name = table.Column<string>(type: "character varying(200)", maxLength: 200, nullable: false),
+                    Phone = table.Column<string>(type: "character varying(20)", maxLength: 20, nullable: true),
+                    IsActive = table.Column<bool>(type: "boolean", nullable: false)
                 },
                 constraints: table =>
                 {
@@ -1240,11 +1197,11 @@ namespace Dotnetable.Migrations.SqlServer.Migrations
                 name: "Tags",
                 columns: table => new
                 {
-                    TagID = table.Column<int>(type: "int", nullable: false)
-                        .Annotation("SqlServer:Identity", "1, 1"),
-                    WebsiteID = table.Column<int>(type: "int", nullable: false),
-                    Name = table.Column<string>(type: "nvarchar(150)", maxLength: 150, nullable: false),
-                    Slug = table.Column<string>(type: "nvarchar(150)", maxLength: 150, nullable: false)
+                    TagID = table.Column<int>(type: "integer", nullable: false)
+                        .Annotation("Npgsql:ValueGenerationStrategy", NpgsqlValueGenerationStrategy.IdentityByDefaultColumn),
+                    WebsiteID = table.Column<int>(type: "integer", nullable: false),
+                    Name = table.Column<string>(type: "character varying(150)", maxLength: 150, nullable: false),
+                    Slug = table.Column<string>(type: "character varying(150)", maxLength: 150, nullable: false)
                 },
                 constraints: table =>
                 {
@@ -1260,16 +1217,15 @@ namespace Dotnetable.Migrations.SqlServer.Migrations
                 name: "TaxRates",
                 columns: table => new
                 {
-                    TaxRateID = table.Column<int>(type: "int", nullable: false)
-                        .Annotation("SqlServer:Identity", "1, 1"),
-                    WebsiteID = table.Column<int>(type: "int", nullable: false),
-                    Title = table.Column<string>(type: "nvarchar(100)", maxLength: 100, nullable: false),
-                    Rate = table.Column<decimal>(type: "decimal(9,6)", nullable: false),
-                    CountryID = table.Column<int>(type: "int", nullable: true),
-                    StateID = table.Column<int>(type: "int", nullable: true),
-                    Priority = table.Column<int>(type: "int", nullable: false),
-                    IsActive = table.Column<bool>(type: "bit", nullable: false, defaultValue: true)
-                        .Annotation("Relational:DefaultConstraintName", "DF_TaxRates_IsActive")
+                    TaxRateID = table.Column<int>(type: "integer", nullable: false)
+                        .Annotation("Npgsql:ValueGenerationStrategy", NpgsqlValueGenerationStrategy.IdentityByDefaultColumn),
+                    WebsiteID = table.Column<int>(type: "integer", nullable: false),
+                    Title = table.Column<string>(type: "character varying(100)", maxLength: 100, nullable: false),
+                    Rate = table.Column<decimal>(type: "numeric(9,6)", nullable: false),
+                    CountryID = table.Column<int>(type: "integer", nullable: true),
+                    StateID = table.Column<int>(type: "integer", nullable: true),
+                    Priority = table.Column<int>(type: "integer", nullable: false),
+                    IsActive = table.Column<bool>(type: "boolean", nullable: false)
                 },
                 constraints: table =>
                 {
@@ -1292,15 +1248,39 @@ namespace Dotnetable.Migrations.SqlServer.Migrations
                 });
 
             migrationBuilder.CreateTable(
+                name: "Warranties",
+                columns: table => new
+                {
+                    WarrantyID = table.Column<int>(type: "integer", nullable: false)
+                        .Annotation("Npgsql:ValueGenerationStrategy", NpgsqlValueGenerationStrategy.IdentityByDefaultColumn),
+                    WebsiteID = table.Column<int>(type: "integer", nullable: false),
+                    Title = table.Column<string>(type: "character varying(200)", maxLength: 200, nullable: false),
+                    Description = table.Column<string>(type: "character varying(2000)", maxLength: 2000, nullable: true),
+                    ProviderName = table.Column<string>(type: "character varying(200)", maxLength: 200, nullable: true),
+                    DurationMonths = table.Column<int>(type: "integer", nullable: true),
+                    IsActive = table.Column<bool>(type: "boolean", nullable: false),
+                    SortOrder = table.Column<int>(type: "integer", nullable: false)
+                },
+                constraints: table =>
+                {
+                    table.PrimaryKey("PK_Warranties", x => x.WarrantyID);
+                    table.ForeignKey(
+                        name: "FK_Warranties_Websites",
+                        column: x => x.WebsiteID,
+                        principalTable: "Websites",
+                        principalColumn: "WebsiteID");
+                });
+
+            migrationBuilder.CreateTable(
                 name: "WebsiteCaptchaSettings",
                 columns: table => new
                 {
-                    WebsiteCaptchaSettingID = table.Column<int>(type: "int", nullable: false)
-                        .Annotation("SqlServer:Identity", "1, 1"),
-                    WebsiteID = table.Column<int>(type: "int", nullable: false),
-                    Provider = table.Column<byte>(type: "tinyint", nullable: false),
-                    TurnstileSiteKey = table.Column<string>(type: "nvarchar(200)", maxLength: 200, nullable: true),
-                    TurnstileSecretKey = table.Column<string>(type: "nvarchar(200)", maxLength: 200, nullable: true)
+                    WebsiteCaptchaSettingID = table.Column<int>(type: "integer", nullable: false)
+                        .Annotation("Npgsql:ValueGenerationStrategy", NpgsqlValueGenerationStrategy.IdentityByDefaultColumn),
+                    WebsiteID = table.Column<int>(type: "integer", nullable: false),
+                    Provider = table.Column<byte>(type: "smallint", nullable: false),
+                    TurnstileSiteKey = table.Column<string>(type: "character varying(200)", maxLength: 200, nullable: true),
+                    TurnstileSecretKey = table.Column<string>(type: "character varying(200)", maxLength: 200, nullable: true)
                 },
                 constraints: table =>
                 {
@@ -1316,21 +1296,21 @@ namespace Dotnetable.Migrations.SqlServer.Migrations
                 name: "WebsiteClients",
                 columns: table => new
                 {
-                    WebsiteClientID = table.Column<int>(type: "int", nullable: false)
-                        .Annotation("SqlServer:Identity", "1, 1"),
-                    WebsiteID = table.Column<int>(type: "int", nullable: false),
-                    AvatarID = table.Column<int>(type: "int", nullable: true),
-                    Email = table.Column<string>(type: "varchar(60)", unicode: false, maxLength: 60, nullable: true),
-                    Cellphone = table.Column<string>(type: "varchar(16)", unicode: false, maxLength: 16, nullable: true),
-                    CountryCode = table.Column<string>(type: "varchar(3)", unicode: false, maxLength: 3, nullable: true),
-                    Password = table.Column<string>(type: "varchar(256)", unicode: false, maxLength: 256, nullable: true),
-                    Active = table.Column<bool>(type: "bit", nullable: false),
+                    WebsiteClientID = table.Column<int>(type: "integer", nullable: false)
+                        .Annotation("Npgsql:ValueGenerationStrategy", NpgsqlValueGenerationStrategy.IdentityByDefaultColumn),
+                    WebsiteID = table.Column<int>(type: "integer", nullable: false),
+                    AvatarID = table.Column<int>(type: "integer", nullable: true),
+                    Email = table.Column<string>(type: "character varying(60)", unicode: false, maxLength: 60, nullable: true),
+                    Cellphone = table.Column<string>(type: "character varying(16)", unicode: false, maxLength: 16, nullable: true),
+                    CountryCode = table.Column<string>(type: "character varying(3)", unicode: false, maxLength: 3, nullable: true),
+                    Password = table.Column<string>(type: "character varying(256)", unicode: false, maxLength: 256, nullable: true),
+                    Active = table.Column<bool>(type: "boolean", nullable: false),
                     RegisterDate = table.Column<DateOnly>(type: "date", nullable: false),
-                    Gender = table.Column<bool>(type: "bit", nullable: true),
-                    Givenname = table.Column<string>(type: "nvarchar(42)", maxLength: 42, nullable: true),
-                    Surname = table.Column<string>(type: "nvarchar(42)", maxLength: 42, nullable: true),
-                    HashKey = table.Column<Guid>(type: "uniqueidentifier", nullable: false),
-                    ClientLevel = table.Column<byte>(type: "tinyint", nullable: false)
+                    Gender = table.Column<bool>(type: "boolean", nullable: true),
+                    Givenname = table.Column<string>(type: "character varying(42)", maxLength: 42, nullable: true),
+                    Surname = table.Column<string>(type: "character varying(42)", maxLength: 42, nullable: true),
+                    HashKey = table.Column<Guid>(type: "uuid", nullable: false),
+                    ClientLevel = table.Column<byte>(type: "smallint", nullable: false)
                 },
                 constraints: table =>
                 {
@@ -1351,14 +1331,12 @@ namespace Dotnetable.Migrations.SqlServer.Migrations
                 name: "WebsiteFeatures",
                 columns: table => new
                 {
-                    WebsiteFeatureID = table.Column<int>(type: "int", nullable: false)
-                        .Annotation("SqlServer:Identity", "1, 1"),
-                    WebsiteID = table.Column<int>(type: "int", nullable: false),
-                    FeatureKey = table.Column<byte>(type: "tinyint", nullable: false),
-                    Enabled = table.Column<bool>(type: "bit", nullable: false, defaultValue: true)
-                        .Annotation("Relational:DefaultConstraintName", "DF_WebsiteFeatures_Enabled"),
-                    CreatedAt = table.Column<DateTime>(type: "datetime2(0)", precision: 0, nullable: false, defaultValueSql: "(sysutcdatetime())")
-                        .Annotation("Relational:DefaultConstraintName", "DF_WebsiteFeatures_CreatedAt")
+                    WebsiteFeatureID = table.Column<int>(type: "integer", nullable: false)
+                        .Annotation("Npgsql:ValueGenerationStrategy", NpgsqlValueGenerationStrategy.IdentityByDefaultColumn),
+                    WebsiteID = table.Column<int>(type: "integer", nullable: false),
+                    FeatureKey = table.Column<byte>(type: "smallint", nullable: false),
+                    Enabled = table.Column<bool>(type: "boolean", nullable: false),
+                    CreatedAt = table.Column<DateTime>(type: "timestamp(0) with time zone", precision: 0, nullable: false)
                 },
                 constraints: table =>
                 {
@@ -1374,14 +1352,14 @@ namespace Dotnetable.Migrations.SqlServer.Migrations
                 name: "WebsiteIPs",
                 columns: table => new
                 {
-                    WebsiteIPID = table.Column<int>(type: "int", nullable: false)
-                        .Annotation("SqlServer:Identity", "1, 1"),
-                    WebsiteID = table.Column<int>(type: "int", nullable: false),
-                    StartIP = table.Column<string>(type: "varchar(45)", unicode: false, maxLength: 45, nullable: false),
-                    EndIP = table.Column<string>(type: "varchar(45)", unicode: false, maxLength: 45, nullable: true),
-                    CidrPrefix = table.Column<int>(type: "int", nullable: true),
-                    Label = table.Column<string>(type: "nvarchar(30)", maxLength: 30, nullable: false),
-                    Active = table.Column<bool>(type: "bit", nullable: false)
+                    WebsiteIPID = table.Column<int>(type: "integer", nullable: false)
+                        .Annotation("Npgsql:ValueGenerationStrategy", NpgsqlValueGenerationStrategy.IdentityByDefaultColumn),
+                    WebsiteID = table.Column<int>(type: "integer", nullable: false),
+                    StartIP = table.Column<string>(type: "character varying(45)", unicode: false, maxLength: 45, nullable: false),
+                    EndIP = table.Column<string>(type: "character varying(45)", unicode: false, maxLength: 45, nullable: true),
+                    CidrPrefix = table.Column<int>(type: "integer", nullable: true),
+                    Label = table.Column<string>(type: "character varying(30)", maxLength: 30, nullable: false),
+                    Active = table.Column<bool>(type: "boolean", nullable: false)
                 },
                 constraints: table =>
                 {
@@ -1397,19 +1375,16 @@ namespace Dotnetable.Migrations.SqlServer.Migrations
                 name: "WebsiteRedirects",
                 columns: table => new
                 {
-                    WebsiteRedirectID = table.Column<int>(type: "int", nullable: false)
-                        .Annotation("SqlServer:Identity", "1, 1"),
-                    WebsiteID = table.Column<int>(type: "int", nullable: false),
-                    SourcePath = table.Column<string>(type: "nvarchar(500)", maxLength: 500, nullable: false),
-                    TargetPath = table.Column<string>(type: "nvarchar(500)", maxLength: 500, nullable: false),
-                    StatusCode = table.Column<int>(type: "int", nullable: false, defaultValue: 301)
-                        .Annotation("Relational:DefaultConstraintName", "DF_WebsiteRedirects_StatusCode"),
-                    IsRegex = table.Column<bool>(type: "bit", nullable: false),
-                    HitCount = table.Column<int>(type: "int", nullable: false),
-                    IsActive = table.Column<bool>(type: "bit", nullable: false, defaultValue: true)
-                        .Annotation("Relational:DefaultConstraintName", "DF_WebsiteRedirects_IsActive"),
-                    CreatedAt = table.Column<DateTime>(type: "datetime", nullable: false, defaultValueSql: "(sysutcdatetime())")
-                        .Annotation("Relational:DefaultConstraintName", "DF_WebsiteRedirects_CreatedAt")
+                    WebsiteRedirectID = table.Column<int>(type: "integer", nullable: false)
+                        .Annotation("Npgsql:ValueGenerationStrategy", NpgsqlValueGenerationStrategy.IdentityByDefaultColumn),
+                    WebsiteID = table.Column<int>(type: "integer", nullable: false),
+                    SourcePath = table.Column<string>(type: "character varying(500)", maxLength: 500, nullable: false),
+                    TargetPath = table.Column<string>(type: "character varying(500)", maxLength: 500, nullable: false),
+                    StatusCode = table.Column<int>(type: "integer", nullable: false),
+                    IsRegex = table.Column<bool>(type: "boolean", nullable: false),
+                    HitCount = table.Column<int>(type: "integer", nullable: false),
+                    IsActive = table.Column<bool>(type: "boolean", nullable: false),
+                    CreatedAt = table.Column<DateTime>(type: "datetime", nullable: false)
                 },
                 constraints: table =>
                 {
@@ -1425,16 +1400,16 @@ namespace Dotnetable.Migrations.SqlServer.Migrations
                 name: "WebsiteScripts",
                 columns: table => new
                 {
-                    WebsiteScriptID = table.Column<int>(type: "int", nullable: false)
-                        .Annotation("SqlServer:Identity", "1, 1"),
-                    WebsiteID = table.Column<int>(type: "int", nullable: false),
-                    Name = table.Column<string>(type: "varchar(50)", unicode: false, maxLength: 50, nullable: false),
-                    RawContent = table.Column<string>(type: "nvarchar(4000)", maxLength: 4000, nullable: false),
-                    ScriptPosition = table.Column<byte>(type: "tinyint", nullable: false),
-                    ScriptLoadCondition = table.Column<byte>(type: "tinyint", nullable: false),
+                    WebsiteScriptID = table.Column<int>(type: "integer", nullable: false)
+                        .Annotation("Npgsql:ValueGenerationStrategy", NpgsqlValueGenerationStrategy.IdentityByDefaultColumn),
+                    WebsiteID = table.Column<int>(type: "integer", nullable: false),
+                    Name = table.Column<string>(type: "character varying(50)", unicode: false, maxLength: 50, nullable: false),
+                    RawContent = table.Column<string>(type: "character varying(4000)", maxLength: 4000, nullable: false),
+                    ScriptPosition = table.Column<byte>(type: "smallint", nullable: false),
+                    ScriptLoadCondition = table.Column<byte>(type: "smallint", nullable: false),
                     LogTime = table.Column<DateTime>(type: "datetime", nullable: false),
-                    Active = table.Column<bool>(type: "bit", nullable: false),
-                    Priority = table.Column<byte>(type: "tinyint", nullable: true)
+                    Active = table.Column<bool>(type: "boolean", nullable: false),
+                    Priority = table.Column<byte>(type: "smallint", nullable: true)
                 },
                 constraints: table =>
                 {
@@ -1450,16 +1425,15 @@ namespace Dotnetable.Migrations.SqlServer.Migrations
                 name: "WebsiteSeoSettings",
                 columns: table => new
                 {
-                    WebsiteSeoSettingID = table.Column<int>(type: "int", nullable: false)
-                        .Annotation("SqlServer:Identity", "1, 1"),
-                    WebsiteID = table.Column<int>(type: "int", nullable: false),
-                    DefaultMetaTitle = table.Column<string>(type: "varchar(40)", unicode: false, maxLength: 40, nullable: true, comment: "Page | {SiteName}"),
-                    TitleSeparator = table.Column<string>(type: "char(3)", unicode: false, fixedLength: true, maxLength: 3, nullable: true, defaultValue: " | ")
-                        .Annotation("Relational:DefaultConstraintName", "DF_WebsiteSeoSettings_TitleSeparator"),
-                    DefaultMetaDescription = table.Column<string>(type: "nvarchar(158)", maxLength: 158, nullable: true),
-                    SitemapEnabled = table.Column<bool>(type: "bit", nullable: false),
-                    RobotsEnabled = table.Column<bool>(type: "bit", nullable: false),
-                    CustomRobotsTxt = table.Column<string>(type: "nvarchar(max)", nullable: false)
+                    WebsiteSeoSettingID = table.Column<int>(type: "integer", nullable: false)
+                        .Annotation("Npgsql:ValueGenerationStrategy", NpgsqlValueGenerationStrategy.IdentityByDefaultColumn),
+                    WebsiteID = table.Column<int>(type: "integer", nullable: false),
+                    DefaultMetaTitle = table.Column<string>(type: "character varying(40)", unicode: false, maxLength: 40, nullable: true, comment: "Page | {SiteName}"),
+                    TitleSeparator = table.Column<string>(type: "character(3)", unicode: false, fixedLength: true, maxLength: 3, nullable: true),
+                    DefaultMetaDescription = table.Column<string>(type: "character varying(158)", maxLength: 158, nullable: true),
+                    SitemapEnabled = table.Column<bool>(type: "boolean", nullable: false),
+                    RobotsEnabled = table.Column<bool>(type: "boolean", nullable: false),
+                    CustomRobotsTxt = table.Column<string>(type: "text", nullable: false)
                 },
                 constraints: table =>
                 {
@@ -1475,13 +1449,13 @@ namespace Dotnetable.Migrations.SqlServer.Migrations
                 name: "WebsiteSocialLinks",
                 columns: table => new
                 {
-                    WebsiteSocialLinkID = table.Column<int>(type: "int", nullable: false)
-                        .Annotation("SqlServer:Identity", "1, 1"),
-                    WebsiteID = table.Column<int>(type: "int", nullable: false),
-                    SocialType = table.Column<byte>(type: "tinyint", nullable: false),
-                    SocialName = table.Column<string>(type: "nvarchar(64)", maxLength: 64, nullable: true),
-                    SocialIcon = table.Column<string>(type: "varchar(64)", unicode: false, maxLength: 64, nullable: true),
-                    UrlAddress = table.Column<string>(type: "nvarchar(80)", maxLength: 80, nullable: false)
+                    WebsiteSocialLinkID = table.Column<int>(type: "integer", nullable: false)
+                        .Annotation("Npgsql:ValueGenerationStrategy", NpgsqlValueGenerationStrategy.IdentityByDefaultColumn),
+                    WebsiteID = table.Column<int>(type: "integer", nullable: false),
+                    SocialType = table.Column<byte>(type: "smallint", nullable: false),
+                    SocialName = table.Column<string>(type: "character varying(64)", maxLength: 64, nullable: true),
+                    SocialIcon = table.Column<string>(type: "character varying(64)", unicode: false, maxLength: 64, nullable: true),
+                    UrlAddress = table.Column<string>(type: "character varying(80)", maxLength: 80, nullable: false)
                 },
                 constraints: table =>
                 {
@@ -1497,15 +1471,15 @@ namespace Dotnetable.Migrations.SqlServer.Migrations
                 name: "WebsiteStorageSettings",
                 columns: table => new
                 {
-                    WebsiteStorageSettingsID = table.Column<int>(type: "int", nullable: false)
-                        .Annotation("SqlServer:Identity", "1, 1"),
-                    WebsiteID = table.Column<int>(type: "int", nullable: false),
+                    WebsiteStorageSettingsID = table.Column<int>(type: "integer", nullable: false)
+                        .Annotation("Npgsql:ValueGenerationStrategy", NpgsqlValueGenerationStrategy.IdentityByDefaultColumn),
+                    WebsiteID = table.Column<int>(type: "integer", nullable: false),
                     StorageProvider = table.Column<short>(type: "smallint", nullable: false),
-                    StorageSettingsJSON = table.Column<string>(type: "nvarchar(2000)", maxLength: 2000, nullable: false),
-                    Active = table.Column<bool>(type: "bit", nullable: false),
+                    StorageSettingsJSON = table.Column<string>(type: "character varying(2000)", maxLength: 2000, nullable: false),
+                    Active = table.Column<bool>(type: "boolean", nullable: false),
                     MaxFileSizeKB = table.Column<long>(type: "bigint", nullable: false),
-                    AllowedExtensions = table.Column<string>(type: "varchar(710)", unicode: false, maxLength: 710, nullable: true),
-                    AutoGenerateThumbnails = table.Column<bool>(type: "bit", nullable: false)
+                    AllowedExtensions = table.Column<string>(type: "character varying(710)", unicode: false, maxLength: 710, nullable: true),
+                    AutoGenerateThumbnails = table.Column<bool>(type: "boolean", nullable: false)
                 },
                 constraints: table =>
                 {
@@ -1521,18 +1495,17 @@ namespace Dotnetable.Migrations.SqlServer.Migrations
                 name: "WebsiteThemes",
                 columns: table => new
                 {
-                    WebsiteThemeID = table.Column<int>(type: "int", nullable: false)
-                        .Annotation("SqlServer:Identity", "1, 1"),
-                    WebsiteID = table.Column<int>(type: "int", nullable: false),
-                    Slug = table.Column<string>(type: "nvarchar(64)", maxLength: 64, nullable: false),
-                    Name = table.Column<string>(type: "nvarchar(100)", maxLength: 100, nullable: false),
-                    Version = table.Column<string>(type: "nvarchar(50)", maxLength: 50, nullable: true),
-                    Author = table.Column<string>(type: "nvarchar(100)", maxLength: 100, nullable: true),
-                    Description = table.Column<string>(type: "nvarchar(500)", maxLength: 500, nullable: true),
-                    HasScreenshot = table.Column<bool>(type: "bit", nullable: false),
-                    IsActive = table.Column<bool>(type: "bit", nullable: false),
-                    CreatedAt = table.Column<DateTime>(type: "datetime", nullable: false, defaultValueSql: "(sysutcdatetime())")
-                        .Annotation("Relational:DefaultConstraintName", "DF_WebsiteThemes_CreatedAt")
+                    WebsiteThemeID = table.Column<int>(type: "integer", nullable: false)
+                        .Annotation("Npgsql:ValueGenerationStrategy", NpgsqlValueGenerationStrategy.IdentityByDefaultColumn),
+                    WebsiteID = table.Column<int>(type: "integer", nullable: false),
+                    Slug = table.Column<string>(type: "character varying(64)", maxLength: 64, nullable: false),
+                    Name = table.Column<string>(type: "character varying(100)", maxLength: 100, nullable: false),
+                    Version = table.Column<string>(type: "character varying(50)", maxLength: 50, nullable: true),
+                    Author = table.Column<string>(type: "character varying(100)", maxLength: 100, nullable: true),
+                    Description = table.Column<string>(type: "character varying(500)", maxLength: 500, nullable: true),
+                    HasScreenshot = table.Column<bool>(type: "boolean", nullable: false),
+                    IsActive = table.Column<bool>(type: "boolean", nullable: false),
+                    CreatedAt = table.Column<DateTime>(type: "datetime", nullable: false)
                 },
                 constraints: table =>
                 {
@@ -1548,17 +1521,14 @@ namespace Dotnetable.Migrations.SqlServer.Migrations
                 name: "WebsiteWatermarkSettings",
                 columns: table => new
                 {
-                    WebsiteWatermarkSettingID = table.Column<int>(type: "int", nullable: false)
-                        .Annotation("SqlServer:Identity", "1, 1"),
-                    WebsiteID = table.Column<int>(type: "int", nullable: false),
-                    WatermarkFileID = table.Column<int>(type: "int", nullable: true),
-                    Position = table.Column<byte>(type: "tinyint", nullable: false, defaultValue: (byte)9)
-                        .Annotation("Relational:DefaultConstraintName", "DF_WebsiteWatermarkSettings_Position"),
-                    SizePercent = table.Column<int>(type: "int", nullable: false, defaultValue: 20)
-                        .Annotation("Relational:DefaultConstraintName", "DF_WebsiteWatermarkSettings_SizePercent"),
-                    Opacity = table.Column<int>(type: "int", nullable: false, defaultValue: 80)
-                        .Annotation("Relational:DefaultConstraintName", "DF_WebsiteWatermarkSettings_Opacity"),
-                    Enabled = table.Column<bool>(type: "bit", nullable: false)
+                    WebsiteWatermarkSettingID = table.Column<int>(type: "integer", nullable: false)
+                        .Annotation("Npgsql:ValueGenerationStrategy", NpgsqlValueGenerationStrategy.IdentityByDefaultColumn),
+                    WebsiteID = table.Column<int>(type: "integer", nullable: false),
+                    WatermarkFileID = table.Column<int>(type: "integer", nullable: true),
+                    Position = table.Column<byte>(type: "smallint", nullable: false),
+                    SizePercent = table.Column<int>(type: "integer", nullable: false),
+                    Opacity = table.Column<int>(type: "integer", nullable: false),
+                    Enabled = table.Column<bool>(type: "boolean", nullable: false)
                 },
                 constraints: table =>
                 {
@@ -1579,10 +1549,10 @@ namespace Dotnetable.Migrations.SqlServer.Migrations
                 name: "FileRecordTags",
                 columns: table => new
                 {
-                    FileRecordTagID = table.Column<int>(type: "int", nullable: false)
-                        .Annotation("SqlServer:Identity", "1, 1"),
-                    FileRecordID = table.Column<int>(type: "int", nullable: false),
-                    FileTagID = table.Column<int>(type: "int", nullable: false)
+                    FileRecordTagID = table.Column<int>(type: "integer", nullable: false)
+                        .Annotation("Npgsql:ValueGenerationStrategy", NpgsqlValueGenerationStrategy.IdentityByDefaultColumn),
+                    FileRecordID = table.Column<int>(type: "integer", nullable: false),
+                    FileTagID = table.Column<int>(type: "integer", nullable: false)
                 },
                 constraints: table =>
                 {
@@ -1603,19 +1573,18 @@ namespace Dotnetable.Migrations.SqlServer.Migrations
                 name: "FormFields",
                 columns: table => new
                 {
-                    FormFieldID = table.Column<int>(type: "int", nullable: false)
-                        .Annotation("SqlServer:Identity", "1, 1"),
-                    FormID = table.Column<int>(type: "int", nullable: false),
-                    Label = table.Column<string>(type: "nvarchar(300)", maxLength: 300, nullable: false),
-                    FieldType = table.Column<byte>(type: "tinyint", nullable: false),
-                    Placeholder = table.Column<string>(type: "nvarchar(200)", maxLength: 200, nullable: true),
-                    HelpText = table.Column<string>(type: "nvarchar(500)", maxLength: 500, nullable: true),
-                    IsRequired = table.Column<bool>(type: "bit", nullable: false),
-                    MinValue = table.Column<int>(type: "int", nullable: true),
-                    MaxValue = table.Column<int>(type: "int", nullable: true),
-                    SortOrder = table.Column<int>(type: "int", nullable: false),
-                    IsActive = table.Column<bool>(type: "bit", nullable: false, defaultValue: true)
-                        .Annotation("Relational:DefaultConstraintName", "DF_FormFields_IsActive")
+                    FormFieldID = table.Column<int>(type: "integer", nullable: false)
+                        .Annotation("Npgsql:ValueGenerationStrategy", NpgsqlValueGenerationStrategy.IdentityByDefaultColumn),
+                    FormID = table.Column<int>(type: "integer", nullable: false),
+                    Label = table.Column<string>(type: "character varying(300)", maxLength: 300, nullable: false),
+                    FieldType = table.Column<byte>(type: "smallint", nullable: false),
+                    Placeholder = table.Column<string>(type: "character varying(200)", maxLength: 200, nullable: true),
+                    HelpText = table.Column<string>(type: "character varying(500)", maxLength: 500, nullable: true),
+                    IsRequired = table.Column<bool>(type: "boolean", nullable: false),
+                    MinValue = table.Column<int>(type: "integer", nullable: true),
+                    MaxValue = table.Column<int>(type: "integer", nullable: true),
+                    SortOrder = table.Column<int>(type: "integer", nullable: false),
+                    IsActive = table.Column<bool>(type: "boolean", nullable: false)
                 },
                 constraints: table =>
                 {
@@ -1631,13 +1600,13 @@ namespace Dotnetable.Migrations.SqlServer.Migrations
                 name: "JournalEntryLines",
                 columns: table => new
                 {
-                    JournalEntryLineID = table.Column<int>(type: "int", nullable: false)
-                        .Annotation("SqlServer:Identity", "1, 1"),
-                    JournalEntryID = table.Column<int>(type: "int", nullable: false),
-                    ChartOfAccountID = table.Column<int>(type: "int", nullable: false),
-                    Debit = table.Column<decimal>(type: "decimal(18,4)", nullable: false),
-                    Credit = table.Column<decimal>(type: "decimal(18,4)", nullable: false),
-                    Description = table.Column<string>(type: "nvarchar(300)", maxLength: 300, nullable: true)
+                    JournalEntryLineID = table.Column<int>(type: "integer", nullable: false)
+                        .Annotation("Npgsql:ValueGenerationStrategy", NpgsqlValueGenerationStrategy.IdentityByDefaultColumn),
+                    JournalEntryID = table.Column<int>(type: "integer", nullable: false),
+                    ChartOfAccountID = table.Column<int>(type: "integer", nullable: false),
+                    Debit = table.Column<decimal>(type: "numeric(18,4)", nullable: false),
+                    Credit = table.Column<decimal>(type: "numeric(18,4)", nullable: false),
+                    Description = table.Column<string>(type: "character varying(300)", maxLength: 300, nullable: true)
                 },
                 constraints: table =>
                 {
@@ -1658,11 +1627,11 @@ namespace Dotnetable.Migrations.SqlServer.Migrations
                 name: "LocalizationValues",
                 columns: table => new
                 {
-                    LocalizationValueID = table.Column<int>(type: "int", nullable: false)
-                        .Annotation("SqlServer:Identity", "1, 1"),
-                    LocalizationKeyID = table.Column<int>(type: "int", nullable: false),
-                    ItemValue = table.Column<string>(type: "nvarchar(2000)", maxLength: 2000, nullable: false),
-                    LanguageCode = table.Column<string>(type: "char(2)", unicode: false, fixedLength: true, maxLength: 2, nullable: false)
+                    LocalizationValueID = table.Column<int>(type: "integer", nullable: false)
+                        .Annotation("Npgsql:ValueGenerationStrategy", NpgsqlValueGenerationStrategy.IdentityByDefaultColumn),
+                    LocalizationKeyID = table.Column<int>(type: "integer", nullable: false),
+                    ItemValue = table.Column<string>(type: "character varying(2000)", maxLength: 2000, nullable: false),
+                    LanguageCode = table.Column<string>(type: "character(2)", unicode: false, fixedLength: true, maxLength: 2, nullable: false)
                 },
                 constraints: table =>
                 {
@@ -1678,13 +1647,13 @@ namespace Dotnetable.Migrations.SqlServer.Migrations
                 name: "MediaSetItems",
                 columns: table => new
                 {
-                    MediaSetItemID = table.Column<int>(type: "int", nullable: false)
-                        .Annotation("SqlServer:Identity", "1, 1"),
-                    MediaSetID = table.Column<int>(type: "int", nullable: false),
-                    FileID = table.Column<int>(type: "int", nullable: true),
-                    VideoThumbnailFileID = table.Column<int>(type: "int", nullable: true),
-                    ExternalVideoUrl = table.Column<string>(type: "nvarchar(500)", maxLength: 500, nullable: true),
-                    SortOrder = table.Column<int>(type: "int", nullable: false)
+                    MediaSetItemID = table.Column<int>(type: "integer", nullable: false)
+                        .Annotation("Npgsql:ValueGenerationStrategy", NpgsqlValueGenerationStrategy.IdentityByDefaultColumn),
+                    MediaSetID = table.Column<int>(type: "integer", nullable: false),
+                    FileID = table.Column<int>(type: "integer", nullable: true),
+                    VideoThumbnailFileID = table.Column<int>(type: "integer", nullable: true),
+                    ExternalVideoUrl = table.Column<string>(type: "character varying(500)", maxLength: 500, nullable: true),
+                    SortOrder = table.Column<int>(type: "integer", nullable: false)
                 },
                 constraints: table =>
                 {
@@ -1710,25 +1679,24 @@ namespace Dotnetable.Migrations.SqlServer.Migrations
                 name: "Members",
                 columns: table => new
                 {
-                    MemberID = table.Column<int>(type: "int", nullable: false)
-                        .Annotation("SqlServer:Identity", "1, 1"),
-                    Active = table.Column<bool>(type: "bit", nullable: false),
-                    Username = table.Column<string>(type: "varchar(64)", unicode: false, maxLength: 64, nullable: false),
-                    Password = table.Column<string>(type: "varchar(256)", unicode: false, maxLength: 256, nullable: false),
-                    Email = table.Column<string>(type: "varchar(64)", unicode: false, maxLength: 64, nullable: false),
-                    CellphoneNumber = table.Column<string>(type: "varchar(12)", unicode: false, maxLength: 12, nullable: false),
-                    CountryCode = table.Column<string>(type: "varchar(3)", unicode: false, maxLength: 3, nullable: false),
+                    MemberID = table.Column<int>(type: "integer", nullable: false)
+                        .Annotation("Npgsql:ValueGenerationStrategy", NpgsqlValueGenerationStrategy.IdentityByDefaultColumn),
+                    Active = table.Column<bool>(type: "boolean", nullable: false),
+                    Username = table.Column<string>(type: "character varying(64)", unicode: false, maxLength: 64, nullable: false),
+                    Password = table.Column<string>(type: "character varying(256)", unicode: false, maxLength: 256, nullable: false),
+                    Email = table.Column<string>(type: "character varying(64)", unicode: false, maxLength: 64, nullable: false),
+                    CellphoneNumber = table.Column<string>(type: "character varying(12)", unicode: false, maxLength: 12, nullable: false),
+                    CountryCode = table.Column<string>(type: "character varying(3)", unicode: false, maxLength: 3, nullable: false),
                     RegisterDate = table.Column<DateOnly>(type: "date", nullable: false),
-                    Givenname = table.Column<string>(type: "nvarchar(64)", maxLength: 64, nullable: false),
-                    Surname = table.Column<string>(type: "nvarchar(64)", maxLength: 64, nullable: false),
-                    AvatarID = table.Column<int>(type: "int", nullable: true),
-                    HashKey = table.Column<Guid>(type: "uniqueidentifier", nullable: false),
-                    PolicyID = table.Column<int>(type: "int", nullable: false),
-                    Gender = table.Column<bool>(type: "bit", nullable: true),
-                    WebsiteID = table.Column<int>(type: "int", nullable: false),
-                    AdminUIMode = table.Column<byte>(type: "tinyint", nullable: false, defaultValue: (byte)1, comment: "0 = Basic (admin surface reduced to what this member's Website.WebsiteType needs), 1 = General (same admin surface regardless of website type), 2 = Advanced (full surface, e.g. extra-language pages/buttons on an otherwise single-language site)")
-                        .Annotation("Relational:DefaultConstraintName", "DF_Members_AdminUIMode"),
-                    IsSiteAdmin = table.Column<bool>(type: "bit", nullable: false)
+                    Givenname = table.Column<string>(type: "character varying(64)", maxLength: 64, nullable: false),
+                    Surname = table.Column<string>(type: "character varying(64)", maxLength: 64, nullable: false),
+                    AvatarID = table.Column<int>(type: "integer", nullable: true),
+                    HashKey = table.Column<Guid>(type: "uuid", nullable: false),
+                    PolicyID = table.Column<int>(type: "integer", nullable: false),
+                    Gender = table.Column<bool>(type: "boolean", nullable: true),
+                    WebsiteID = table.Column<int>(type: "integer", nullable: false),
+                    AdminUIMode = table.Column<byte>(type: "smallint", nullable: false, comment: "0 = Basic (admin surface reduced to what this member's Website.WebsiteType needs), 1 = General (same admin surface regardless of website type), 2 = Advanced (full surface, e.g. extra-language pages/buttons on an otherwise single-language site)"),
+                    IsSiteAdmin = table.Column<bool>(type: "boolean", nullable: false)
                 },
                 constraints: table =>
                 {
@@ -1754,11 +1722,11 @@ namespace Dotnetable.Migrations.SqlServer.Migrations
                 name: "PolicyRoles",
                 columns: table => new
                 {
-                    PolicyRoleID = table.Column<int>(type: "int", nullable: false)
-                        .Annotation("SqlServer:Identity", "1, 1"),
-                    PolicyID = table.Column<int>(type: "int", nullable: false),
+                    PolicyRoleID = table.Column<int>(type: "integer", nullable: false)
+                        .Annotation("Npgsql:ValueGenerationStrategy", NpgsqlValueGenerationStrategy.IdentityByDefaultColumn),
+                    PolicyID = table.Column<int>(type: "integer", nullable: false),
                     RoleID = table.Column<short>(type: "smallint", nullable: false),
-                    Active = table.Column<bool>(type: "bit", nullable: false)
+                    Active = table.Column<bool>(type: "boolean", nullable: false)
                 },
                 constraints: table =>
                 {
@@ -1779,12 +1747,12 @@ namespace Dotnetable.Migrations.SqlServer.Migrations
                 name: "ProductCategoryTranslations",
                 columns: table => new
                 {
-                    ProductCategoryTranslationID = table.Column<int>(type: "int", nullable: false)
-                        .Annotation("SqlServer:Identity", "1, 1"),
-                    ProductCategoryID = table.Column<int>(type: "int", nullable: false),
-                    LanguageCode = table.Column<string>(type: "char(2)", unicode: false, fixedLength: true, maxLength: 2, nullable: false),
-                    Name = table.Column<string>(type: "nvarchar(200)", maxLength: 200, nullable: false),
-                    Slug = table.Column<string>(type: "nvarchar(200)", maxLength: 200, nullable: false)
+                    ProductCategoryTranslationID = table.Column<int>(type: "integer", nullable: false)
+                        .Annotation("Npgsql:ValueGenerationStrategy", NpgsqlValueGenerationStrategy.IdentityByDefaultColumn),
+                    ProductCategoryID = table.Column<int>(type: "integer", nullable: false),
+                    LanguageCode = table.Column<string>(type: "character(2)", unicode: false, fixedLength: true, maxLength: 2, nullable: false),
+                    Name = table.Column<string>(type: "character varying(200)", maxLength: 200, nullable: false),
+                    Slug = table.Column<string>(type: "character varying(200)", maxLength: 200, nullable: false)
                 },
                 constraints: table =>
                 {
@@ -1800,17 +1768,16 @@ namespace Dotnetable.Migrations.SqlServer.Migrations
                 name: "ShippingRates",
                 columns: table => new
                 {
-                    ShippingRateID = table.Column<int>(type: "int", nullable: false)
-                        .Annotation("SqlServer:Identity", "1, 1"),
-                    ShippingMethodID = table.Column<int>(type: "int", nullable: false),
-                    CountryID = table.Column<int>(type: "int", nullable: true),
-                    StateID = table.Column<int>(type: "int", nullable: true),
-                    CityID = table.Column<int>(type: "int", nullable: true),
-                    MinWeightKg = table.Column<decimal>(type: "decimal(10,3)", nullable: true),
-                    MaxWeightKg = table.Column<decimal>(type: "decimal(10,3)", nullable: true),
-                    PriceUsd = table.Column<decimal>(type: "decimal(18,4)", nullable: false),
-                    IsActive = table.Column<bool>(type: "bit", nullable: false, defaultValue: true)
-                        .Annotation("Relational:DefaultConstraintName", "DF_ShippingRates_IsActive")
+                    ShippingRateID = table.Column<int>(type: "integer", nullable: false)
+                        .Annotation("Npgsql:ValueGenerationStrategy", NpgsqlValueGenerationStrategy.IdentityByDefaultColumn),
+                    ShippingMethodID = table.Column<int>(type: "integer", nullable: false),
+                    CountryID = table.Column<int>(type: "integer", nullable: true),
+                    StateID = table.Column<int>(type: "integer", nullable: true),
+                    CityID = table.Column<int>(type: "integer", nullable: true),
+                    MinWeightKg = table.Column<decimal>(type: "numeric(10,3)", nullable: true),
+                    MaxWeightKg = table.Column<decimal>(type: "numeric(10,3)", nullable: true),
+                    PriceUsd = table.Column<decimal>(type: "numeric(18,4)", nullable: false),
+                    IsActive = table.Column<bool>(type: "boolean", nullable: false)
                 },
                 constraints: table =>
                 {
@@ -1841,21 +1808,20 @@ namespace Dotnetable.Migrations.SqlServer.Migrations
                 name: "SlideshowSlides",
                 columns: table => new
                 {
-                    SlideshowSlideID = table.Column<int>(type: "int", nullable: false)
-                        .Annotation("SqlServer:Identity", "1, 1"),
-                    SlideshowID = table.Column<int>(type: "int", nullable: false),
-                    FileID = table.Column<int>(type: "int", nullable: false),
-                    MobileFileID = table.Column<int>(type: "int", nullable: true),
-                    Title = table.Column<string>(type: "nvarchar(200)", maxLength: 200, nullable: true),
-                    Caption = table.Column<string>(type: "nvarchar(500)", maxLength: 500, nullable: true),
-                    ButtonText = table.Column<string>(type: "nvarchar(100)", maxLength: 100, nullable: true),
-                    LinkUrl = table.Column<string>(type: "nvarchar(500)", maxLength: 500, nullable: true),
-                    OpenInNewTab = table.Column<bool>(type: "bit", nullable: false),
-                    SortOrder = table.Column<int>(type: "int", nullable: false),
-                    IsActive = table.Column<bool>(type: "bit", nullable: false, defaultValue: true)
-                        .Annotation("Relational:DefaultConstraintName", "DF_SlideshowSlides_IsActive"),
-                    StartAt = table.Column<DateTime>(type: "datetime2", nullable: true),
-                    EndAt = table.Column<DateTime>(type: "datetime2", nullable: true)
+                    SlideshowSlideID = table.Column<int>(type: "integer", nullable: false)
+                        .Annotation("Npgsql:ValueGenerationStrategy", NpgsqlValueGenerationStrategy.IdentityByDefaultColumn),
+                    SlideshowID = table.Column<int>(type: "integer", nullable: false),
+                    FileID = table.Column<int>(type: "integer", nullable: false),
+                    MobileFileID = table.Column<int>(type: "integer", nullable: true),
+                    Title = table.Column<string>(type: "character varying(200)", maxLength: 200, nullable: true),
+                    Caption = table.Column<string>(type: "character varying(500)", maxLength: 500, nullable: true),
+                    ButtonText = table.Column<string>(type: "character varying(100)", maxLength: 100, nullable: true),
+                    LinkUrl = table.Column<string>(type: "character varying(500)", maxLength: 500, nullable: true),
+                    OpenInNewTab = table.Column<bool>(type: "boolean", nullable: false),
+                    SortOrder = table.Column<int>(type: "integer", nullable: false),
+                    IsActive = table.Column<bool>(type: "boolean", nullable: false),
+                    StartAt = table.Column<DateTime>(type: "timestamp with time zone", nullable: true),
+                    EndAt = table.Column<DateTime>(type: "timestamp with time zone", nullable: true)
                 },
                 constraints: table =>
                 {
@@ -1881,12 +1847,12 @@ namespace Dotnetable.Migrations.SqlServer.Migrations
                 name: "TagTranslations",
                 columns: table => new
                 {
-                    TagTranslationID = table.Column<int>(type: "int", nullable: false)
-                        .Annotation("SqlServer:Identity", "1, 1"),
-                    TagID = table.Column<int>(type: "int", nullable: false),
-                    LanguageCode = table.Column<string>(type: "char(2)", unicode: false, fixedLength: true, maxLength: 2, nullable: false),
-                    Name = table.Column<string>(type: "nvarchar(150)", maxLength: 150, nullable: false),
-                    Slug = table.Column<string>(type: "nvarchar(150)", maxLength: 150, nullable: false)
+                    TagTranslationID = table.Column<int>(type: "integer", nullable: false)
+                        .Annotation("Npgsql:ValueGenerationStrategy", NpgsqlValueGenerationStrategy.IdentityByDefaultColumn),
+                    TagID = table.Column<int>(type: "integer", nullable: false),
+                    LanguageCode = table.Column<string>(type: "character(2)", unicode: false, fixedLength: true, maxLength: 2, nullable: false),
+                    Name = table.Column<string>(type: "character varying(150)", maxLength: 150, nullable: false),
+                    Slug = table.Column<string>(type: "character varying(150)", maxLength: 150, nullable: false)
                 },
                 constraints: table =>
                 {
@@ -1899,16 +1865,37 @@ namespace Dotnetable.Migrations.SqlServer.Migrations
                 });
 
             migrationBuilder.CreateTable(
+                name: "WarrantyTranslations",
+                columns: table => new
+                {
+                    WarrantyTranslationID = table.Column<int>(type: "integer", nullable: false)
+                        .Annotation("Npgsql:ValueGenerationStrategy", NpgsqlValueGenerationStrategy.IdentityByDefaultColumn),
+                    WarrantyID = table.Column<int>(type: "integer", nullable: false),
+                    LanguageCode = table.Column<string>(type: "character(2)", unicode: false, fixedLength: true, maxLength: 2, nullable: false),
+                    Title = table.Column<string>(type: "character varying(200)", maxLength: 200, nullable: false),
+                    Description = table.Column<string>(type: "character varying(2000)", maxLength: 2000, nullable: true),
+                    ProviderName = table.Column<string>(type: "character varying(200)", maxLength: 200, nullable: true)
+                },
+                constraints: table =>
+                {
+                    table.PrimaryKey("PK_WarrantyTranslations", x => x.WarrantyTranslationID);
+                    table.ForeignKey(
+                        name: "FK_WarrantyTranslations_Warranties",
+                        column: x => x.WarrantyID,
+                        principalTable: "Warranties",
+                        principalColumn: "WarrantyID");
+                });
+
+            migrationBuilder.CreateTable(
                 name: "FormResponses",
                 columns: table => new
                 {
-                    FormResponseID = table.Column<int>(type: "int", nullable: false)
-                        .Annotation("SqlServer:Identity", "1, 1"),
-                    FormID = table.Column<int>(type: "int", nullable: false),
-                    WebsiteClientID = table.Column<int>(type: "int", nullable: true),
-                    SenderIPAddress = table.Column<string>(type: "varchar(45)", unicode: false, maxLength: 45, nullable: false),
-                    SubmittedAt = table.Column<DateTime>(type: "datetime", nullable: false, defaultValueSql: "(sysutcdatetime())")
-                        .Annotation("Relational:DefaultConstraintName", "DF_FormResponses_SubmittedAt")
+                    FormResponseID = table.Column<int>(type: "integer", nullable: false)
+                        .Annotation("Npgsql:ValueGenerationStrategy", NpgsqlValueGenerationStrategy.IdentityByDefaultColumn),
+                    FormID = table.Column<int>(type: "integer", nullable: false),
+                    WebsiteClientID = table.Column<int>(type: "integer", nullable: true),
+                    SenderIPAddress = table.Column<string>(type: "character varying(45)", unicode: false, maxLength: 45, nullable: false),
+                    SubmittedAt = table.Column<DateTime>(type: "datetime", nullable: false)
                 },
                 constraints: table =>
                 {
@@ -1929,19 +1916,19 @@ namespace Dotnetable.Migrations.SqlServer.Migrations
                 name: "WebsiteClientAddresses",
                 columns: table => new
                 {
-                    WebsiteClientAddressID = table.Column<int>(type: "int", nullable: false)
-                        .Annotation("SqlServer:Identity", "1, 1"),
-                    WebsiteClientID = table.Column<int>(type: "int", nullable: false),
-                    Title = table.Column<string>(type: "nvarchar(100)", maxLength: 100, nullable: true),
-                    ReceiverName = table.Column<string>(type: "nvarchar(200)", maxLength: 200, nullable: true),
-                    CountryId = table.Column<int>(type: "int", nullable: true),
-                    CityId = table.Column<int>(type: "int", nullable: true),
-                    AddressLine = table.Column<string>(type: "nvarchar(500)", maxLength: 500, nullable: false),
-                    PostalCode = table.Column<string>(type: "nvarchar(20)", maxLength: 20, nullable: true),
-                    Phone = table.Column<string>(type: "nvarchar(20)", maxLength: 20, nullable: true),
-                    IsDefault = table.Column<bool>(type: "bit", nullable: false),
-                    Latitude = table.Column<decimal>(type: "decimal(9,6)", nullable: true),
-                    Longitude = table.Column<decimal>(type: "decimal(9,6)", nullable: true)
+                    WebsiteClientAddressID = table.Column<int>(type: "integer", nullable: false)
+                        .Annotation("Npgsql:ValueGenerationStrategy", NpgsqlValueGenerationStrategy.IdentityByDefaultColumn),
+                    WebsiteClientID = table.Column<int>(type: "integer", nullable: false),
+                    Title = table.Column<string>(type: "character varying(100)", maxLength: 100, nullable: true),
+                    ReceiverName = table.Column<string>(type: "character varying(200)", maxLength: 200, nullable: true),
+                    CountryId = table.Column<int>(type: "integer", nullable: true),
+                    CityId = table.Column<int>(type: "integer", nullable: true),
+                    AddressLine = table.Column<string>(type: "character varying(500)", maxLength: 500, nullable: false),
+                    PostalCode = table.Column<string>(type: "character varying(20)", maxLength: 20, nullable: true),
+                    Phone = table.Column<string>(type: "character varying(20)", maxLength: 20, nullable: true),
+                    IsDefault = table.Column<bool>(type: "boolean", nullable: false),
+                    Latitude = table.Column<decimal>(type: "numeric(9,6)", nullable: true),
+                    Longitude = table.Column<decimal>(type: "numeric(9,6)", nullable: true)
                 },
                 constraints: table =>
                 {
@@ -1967,10 +1954,10 @@ namespace Dotnetable.Migrations.SqlServer.Migrations
                 name: "WebsiteClientForgetPasswords",
                 columns: table => new
                 {
-                    WebsiteClientForgetPasswordID = table.Column<int>(type: "int", nullable: false)
-                        .Annotation("SqlServer:Identity", "1, 1"),
-                    ForgetKey = table.Column<string>(type: "varchar(8)", unicode: false, maxLength: 8, nullable: false),
-                    WebsiteClientID = table.Column<int>(type: "int", nullable: false),
+                    WebsiteClientForgetPasswordID = table.Column<int>(type: "integer", nullable: false)
+                        .Annotation("Npgsql:ValueGenerationStrategy", NpgsqlValueGenerationStrategy.IdentityByDefaultColumn),
+                    ForgetKey = table.Column<string>(type: "character varying(8)", unicode: false, maxLength: 8, nullable: false),
+                    WebsiteClientID = table.Column<int>(type: "integer", nullable: false),
                     LogTime = table.Column<DateTime>(type: "datetime", nullable: false)
                 },
                 constraints: table =>
@@ -1987,12 +1974,11 @@ namespace Dotnetable.Migrations.SqlServer.Migrations
                 name: "Wishlists",
                 columns: table => new
                 {
-                    WishlistID = table.Column<int>(type: "int", nullable: false)
-                        .Annotation("SqlServer:Identity", "1, 1"),
-                    WebsiteID = table.Column<int>(type: "int", nullable: false),
-                    WebsiteClientID = table.Column<int>(type: "int", nullable: false),
-                    CreatedAt = table.Column<DateTime>(type: "datetime2(0)", precision: 0, nullable: false, defaultValueSql: "(sysutcdatetime())")
-                        .Annotation("Relational:DefaultConstraintName", "DF_Wishlists_CreatedAt")
+                    WishlistID = table.Column<int>(type: "integer", nullable: false)
+                        .Annotation("Npgsql:ValueGenerationStrategy", NpgsqlValueGenerationStrategy.IdentityByDefaultColumn),
+                    WebsiteID = table.Column<int>(type: "integer", nullable: false),
+                    WebsiteClientID = table.Column<int>(type: "integer", nullable: false),
+                    CreatedAt = table.Column<DateTime>(type: "timestamp(0) with time zone", precision: 0, nullable: false)
                 },
                 constraints: table =>
                 {
@@ -2013,12 +1999,12 @@ namespace Dotnetable.Migrations.SqlServer.Migrations
                 name: "FormFieldOptions",
                 columns: table => new
                 {
-                    FormFieldOptionID = table.Column<int>(type: "int", nullable: false)
-                        .Annotation("SqlServer:Identity", "1, 1"),
-                    FormFieldID = table.Column<int>(type: "int", nullable: false),
-                    Label = table.Column<string>(type: "nvarchar(300)", maxLength: 300, nullable: false),
-                    Value = table.Column<string>(type: "nvarchar(200)", maxLength: 200, nullable: true),
-                    SortOrder = table.Column<int>(type: "int", nullable: false)
+                    FormFieldOptionID = table.Column<int>(type: "integer", nullable: false)
+                        .Annotation("Npgsql:ValueGenerationStrategy", NpgsqlValueGenerationStrategy.IdentityByDefaultColumn),
+                    FormFieldID = table.Column<int>(type: "integer", nullable: false),
+                    Label = table.Column<string>(type: "character varying(300)", maxLength: 300, nullable: false),
+                    Value = table.Column<string>(type: "character varying(200)", maxLength: 200, nullable: true),
+                    SortOrder = table.Column<int>(type: "integer", nullable: false)
                 },
                 constraints: table =>
                 {
@@ -2034,10 +2020,10 @@ namespace Dotnetable.Migrations.SqlServer.Migrations
                 name: "MemberForgetPasswords",
                 columns: table => new
                 {
-                    MemberForgetPasswordID = table.Column<int>(type: "int", nullable: false)
-                        .Annotation("SqlServer:Identity", "1, 1"),
-                    ForgetKey = table.Column<string>(type: "varchar(8)", unicode: false, maxLength: 8, nullable: false),
-                    MemberID = table.Column<int>(type: "int", nullable: false),
+                    MemberForgetPasswordID = table.Column<int>(type: "integer", nullable: false)
+                        .Annotation("Npgsql:ValueGenerationStrategy", NpgsqlValueGenerationStrategy.IdentityByDefaultColumn),
+                    ForgetKey = table.Column<string>(type: "character varying(8)", unicode: false, maxLength: 8, nullable: false),
+                    MemberID = table.Column<int>(type: "integer", nullable: false),
                     LogTime = table.Column<DateTime>(type: "datetime", nullable: false)
                 },
                 constraints: table =>
@@ -2054,25 +2040,21 @@ namespace Dotnetable.Migrations.SqlServer.Migrations
                 name: "Pages",
                 columns: table => new
                 {
-                    PageID = table.Column<int>(type: "int", nullable: false)
-                        .Annotation("SqlServer:Identity", "1, 1"),
-                    WebsiteID = table.Column<int>(type: "int", nullable: false),
-                    ParentPageID = table.Column<int>(type: "int", nullable: true),
-                    Slug = table.Column<string>(type: "nvarchar(300)", maxLength: 300, nullable: false),
-                    Title = table.Column<string>(type: "nvarchar(300)", maxLength: 300, nullable: false),
-                    Content = table.Column<string>(type: "nvarchar(max)", nullable: true),
-                    Template = table.Column<string>(type: "nvarchar(100)", maxLength: 100, nullable: true),
-                    IsHomepage = table.Column<bool>(type: "bit", nullable: false),
-                    Status = table.Column<byte>(type: "tinyint", nullable: false, defaultValue: (byte)1)
-                        .Annotation("Relational:DefaultConstraintName", "DF_Pages_Status_1"),
-                    SortOrder = table.Column<int>(type: "int", nullable: false),
-                    IsActive = table.Column<bool>(type: "bit", nullable: false, defaultValue: true)
-                        .Annotation("Relational:DefaultConstraintName", "DF_Pages_IsActive_1"),
-                    CreatedByMemberID = table.Column<int>(type: "int", nullable: true),
-                    CreatedAt = table.Column<DateTime>(type: "datetime2(0)", precision: 0, nullable: false, defaultValueSql: "(sysutcdatetime())")
-                        .Annotation("Relational:DefaultConstraintName", "DF_Pages_CreatedAt_1"),
-                    UpdatedAt = table.Column<DateTime>(type: "datetime2(0)", precision: 0, nullable: false, defaultValueSql: "(sysutcdatetime())")
-                        .Annotation("Relational:DefaultConstraintName", "DF_Pages_UpdatedAt_1")
+                    PageID = table.Column<int>(type: "integer", nullable: false)
+                        .Annotation("Npgsql:ValueGenerationStrategy", NpgsqlValueGenerationStrategy.IdentityByDefaultColumn),
+                    WebsiteID = table.Column<int>(type: "integer", nullable: false),
+                    ParentPageID = table.Column<int>(type: "integer", nullable: true),
+                    Slug = table.Column<string>(type: "character varying(300)", maxLength: 300, nullable: false),
+                    Title = table.Column<string>(type: "character varying(300)", maxLength: 300, nullable: false),
+                    Content = table.Column<string>(type: "text", nullable: true),
+                    Template = table.Column<string>(type: "character varying(100)", maxLength: 100, nullable: true),
+                    IsHomepage = table.Column<bool>(type: "boolean", nullable: false),
+                    Status = table.Column<byte>(type: "smallint", nullable: false),
+                    SortOrder = table.Column<int>(type: "integer", nullable: false),
+                    IsActive = table.Column<bool>(type: "boolean", nullable: false),
+                    CreatedByMemberID = table.Column<int>(type: "integer", nullable: true),
+                    CreatedAt = table.Column<DateTime>(type: "timestamp(0) with time zone", precision: 0, nullable: false),
+                    UpdatedAt = table.Column<DateTime>(type: "timestamp(0) with time zone", precision: 0, nullable: false)
                 },
                 constraints: table =>
                 {
@@ -2098,30 +2080,25 @@ namespace Dotnetable.Migrations.SqlServer.Migrations
                 name: "Posts",
                 columns: table => new
                 {
-                    PostID = table.Column<int>(type: "int", nullable: false)
-                        .Annotation("SqlServer:Identity", "1, 1"),
-                    WebsiteID = table.Column<int>(type: "int", nullable: false),
-                    PostTypeID = table.Column<int>(type: "int", nullable: false),
-                    AuthorMemberID = table.Column<int>(type: "int", nullable: true),
-                    Slug = table.Column<string>(type: "nvarchar(300)", maxLength: 300, nullable: false),
-                    Title = table.Column<string>(type: "nvarchar(300)", maxLength: 300, nullable: false),
-                    Excerpt = table.Column<string>(type: "nvarchar(1000)", maxLength: 1000, nullable: true),
-                    Content = table.Column<string>(type: "nvarchar(max)", nullable: true),
-                    FeaturedImageFileID = table.Column<int>(type: "int", nullable: true),
-                    Status = table.Column<byte>(type: "tinyint", nullable: false, defaultValue: (byte)1)
-                        .Annotation("Relational:DefaultConstraintName", "DF_Posts_Status_1"),
+                    PostID = table.Column<int>(type: "integer", nullable: false)
+                        .Annotation("Npgsql:ValueGenerationStrategy", NpgsqlValueGenerationStrategy.IdentityByDefaultColumn),
+                    WebsiteID = table.Column<int>(type: "integer", nullable: false),
+                    PostTypeID = table.Column<int>(type: "integer", nullable: false),
+                    AuthorMemberID = table.Column<int>(type: "integer", nullable: true),
+                    Slug = table.Column<string>(type: "character varying(300)", maxLength: 300, nullable: false),
+                    Title = table.Column<string>(type: "character varying(300)", maxLength: 300, nullable: false),
+                    Excerpt = table.Column<string>(type: "character varying(1000)", maxLength: 1000, nullable: true),
+                    Content = table.Column<string>(type: "text", nullable: true),
+                    FeaturedImageFileID = table.Column<int>(type: "integer", nullable: true),
+                    Status = table.Column<byte>(type: "smallint", nullable: false),
                     PublishedAt = table.Column<DateTime>(type: "datetime", nullable: true),
                     ScheduledAt = table.Column<DateTime>(type: "datetime", nullable: true),
-                    IsFeatured = table.Column<bool>(type: "bit", nullable: false),
-                    ViewCount = table.Column<int>(type: "int", nullable: false),
-                    CommentsEnabled = table.Column<bool>(type: "bit", nullable: false, defaultValue: true)
-                        .Annotation("Relational:DefaultConstraintName", "DF_Posts_CommentsEnabled"),
-                    IsActive = table.Column<bool>(type: "bit", nullable: false, defaultValue: true)
-                        .Annotation("Relational:DefaultConstraintName", "DF_Posts_IsActive_1"),
-                    CreatedAt = table.Column<DateTime>(type: "datetime", nullable: false, defaultValueSql: "(sysutcdatetime())")
-                        .Annotation("Relational:DefaultConstraintName", "DF_Posts_CreatedAt_1"),
-                    UpdatedAt = table.Column<DateTime>(type: "datetime", nullable: false, defaultValueSql: "(sysutcdatetime())")
-                        .Annotation("Relational:DefaultConstraintName", "DF_Posts_UpdatedAt_1")
+                    IsFeatured = table.Column<bool>(type: "boolean", nullable: false),
+                    ViewCount = table.Column<int>(type: "integer", nullable: false),
+                    CommentsEnabled = table.Column<bool>(type: "boolean", nullable: false),
+                    IsActive = table.Column<bool>(type: "boolean", nullable: false),
+                    CreatedAt = table.Column<DateTime>(type: "datetime", nullable: false),
+                    UpdatedAt = table.Column<DateTime>(type: "datetime", nullable: false)
                 },
                 constraints: table =>
                 {
@@ -2152,28 +2129,26 @@ namespace Dotnetable.Migrations.SqlServer.Migrations
                 name: "Products",
                 columns: table => new
                 {
-                    ProductID = table.Column<int>(type: "int", nullable: false)
-                        .Annotation("SqlServer:Identity", "1, 1"),
-                    WebsiteID = table.Column<int>(type: "int", nullable: false),
-                    BrandID = table.Column<int>(type: "int", nullable: true),
-                    Slug = table.Column<string>(type: "nvarchar(300)", maxLength: 300, nullable: false),
-                    Title = table.Column<string>(type: "nvarchar(300)", maxLength: 300, nullable: false),
-                    ShortDescription = table.Column<string>(type: "nvarchar(1000)", maxLength: 1000, nullable: true),
-                    FeaturedImageFileID = table.Column<int>(type: "int", nullable: true),
-                    IsCatalogOnly = table.Column<bool>(type: "bit", nullable: false),
-                    HasVariants = table.Column<bool>(type: "bit", nullable: false),
-                    AvgRating = table.Column<decimal>(type: "decimal(3,2)", nullable: false),
-                    RatingCount = table.Column<int>(type: "int", nullable: false),
-                    Status = table.Column<byte>(type: "tinyint", nullable: false, defaultValue: (byte)1)
-                        .Annotation("Relational:DefaultConstraintName", "DF_Products_Status_1"),
-                    SortOrder = table.Column<int>(type: "int", nullable: false),
-                    IsActive = table.Column<bool>(type: "bit", nullable: false, defaultValue: true)
-                        .Annotation("Relational:DefaultConstraintName", "DF_Products_IsActive_1"),
-                    CreatedByMemberId = table.Column<int>(type: "int", nullable: true),
-                    CreatedAt = table.Column<DateTime>(type: "datetime", nullable: false, defaultValueSql: "(sysutcdatetime())")
-                        .Annotation("Relational:DefaultConstraintName", "DF_Products_CreatedAt_1"),
-                    UpdatedAt = table.Column<DateTime>(type: "datetime", nullable: false, defaultValueSql: "(sysutcdatetime())")
-                        .Annotation("Relational:DefaultConstraintName", "DF_Products_UpdatedAt_1")
+                    ProductID = table.Column<int>(type: "integer", nullable: false)
+                        .Annotation("Npgsql:ValueGenerationStrategy", NpgsqlValueGenerationStrategy.IdentityByDefaultColumn),
+                    WebsiteID = table.Column<int>(type: "integer", nullable: false),
+                    BrandID = table.Column<int>(type: "integer", nullable: true),
+                    Slug = table.Column<string>(type: "character varying(300)", maxLength: 300, nullable: false),
+                    Title = table.Column<string>(type: "character varying(300)", maxLength: 300, nullable: false),
+                    ShortDescription = table.Column<string>(type: "character varying(1000)", maxLength: 1000, nullable: true),
+                    Content = table.Column<string>(type: "text", nullable: true),
+                    ExpertReview = table.Column<string>(type: "text", nullable: true),
+                    FeaturedImageFileID = table.Column<int>(type: "integer", nullable: true),
+                    IsCatalogOnly = table.Column<bool>(type: "boolean", nullable: false),
+                    HasVariants = table.Column<bool>(type: "boolean", nullable: false),
+                    AvgRating = table.Column<decimal>(type: "numeric(3,2)", nullable: false),
+                    RatingCount = table.Column<int>(type: "integer", nullable: false),
+                    Status = table.Column<byte>(type: "smallint", nullable: false),
+                    SortOrder = table.Column<int>(type: "integer", nullable: false),
+                    IsActive = table.Column<bool>(type: "boolean", nullable: false),
+                    CreatedByMemberID = table.Column<int>(type: "integer", nullable: true),
+                    CreatedAt = table.Column<DateTime>(type: "datetime", nullable: false),
+                    UpdatedAt = table.Column<DateTime>(type: "datetime", nullable: false)
                 },
                 constraints: table =>
                 {
@@ -2190,7 +2165,7 @@ namespace Dotnetable.Migrations.SqlServer.Migrations
                         principalColumn: "FileRecordID");
                     table.ForeignKey(
                         name: "FK_Products_Members",
-                        column: x => x.CreatedByMemberId,
+                        column: x => x.CreatedByMemberID,
                         principalTable: "Members",
                         principalColumn: "MemberID");
                     table.ForeignKey(
@@ -2204,24 +2179,21 @@ namespace Dotnetable.Migrations.SqlServer.Migrations
                 name: "Vendors",
                 columns: table => new
                 {
-                    VendorID = table.Column<int>(type: "int", nullable: false)
-                        .Annotation("SqlServer:Identity", "1, 1"),
-                    WebsiteID = table.Column<int>(type: "int", nullable: false),
-                    Name = table.Column<string>(type: "nvarchar(200)", maxLength: 200, nullable: false),
-                    Slug = table.Column<string>(type: "nvarchar(200)", maxLength: 200, nullable: false),
-                    LogoFileID = table.Column<int>(type: "int", nullable: true),
-                    Rating = table.Column<decimal>(type: "decimal(3,2)", nullable: false),
-                    IsActive = table.Column<bool>(type: "bit", nullable: false, defaultValue: true)
-                        .Annotation("Relational:DefaultConstraintName", "DF_Vendors_IsActive_1"),
-                    SettlementMode = table.Column<byte>(type: "tinyint", nullable: false, comment: "0 = Immediate: every purchase from this vendor is settled instantly like a normal cash purchase. 1 = Credit: purchases accrue as credit and are batched into a periodic Settlements record due on CreditDays"),
-                    CreditDays = table.Column<int>(type: "int", nullable: true, comment: "number of days after the settlement period ends before payment is due; only meaningful when SettlementMode = Credit"),
-                    CreditLimitUsd = table.Column<decimal>(type: "decimal(18,4)", nullable: true, comment: "maximum outstanding credit balance allowed for this vendor, in USD; only meaningful when SettlementMode = Credit"),
-                    VendorType = table.Column<byte>(type: "tinyint", nullable: false, defaultValue: (byte)0, comment: "0 = Display-only title, 1 = Member login (manage own catalog), 2 = Linked website (inter-site virtual credit)")
-                        .Annotation("Relational:DefaultConstraintName", "DF_Vendors_VendorType"),
-                    MemberID = table.Column<int>(type: "int", nullable: true),
-                    LinkedWebsiteID = table.Column<int>(type: "int", nullable: true),
-                    AvailableCreditUsd = table.Column<decimal>(type: "decimal(18,4)", nullable: false, defaultValue: 0m)
-                        .Annotation("Relational:DefaultConstraintName", "DF_Vendors_AvailableCreditUsd")
+                    VendorID = table.Column<int>(type: "integer", nullable: false)
+                        .Annotation("Npgsql:ValueGenerationStrategy", NpgsqlValueGenerationStrategy.IdentityByDefaultColumn),
+                    WebsiteID = table.Column<int>(type: "integer", nullable: false),
+                    Name = table.Column<string>(type: "character varying(200)", maxLength: 200, nullable: false),
+                    Slug = table.Column<string>(type: "character varying(200)", maxLength: 200, nullable: false),
+                    LogoFileID = table.Column<int>(type: "integer", nullable: true),
+                    Rating = table.Column<decimal>(type: "numeric(3,2)", nullable: false),
+                    IsActive = table.Column<bool>(type: "boolean", nullable: false),
+                    SettlementMode = table.Column<byte>(type: "smallint", nullable: false, comment: "0 = Immediate: every purchase from this vendor is settled instantly like a normal cash purchase. 1 = Credit: purchases accrue as credit and are batched into a periodic Settlements record due on CreditDays"),
+                    CreditDays = table.Column<int>(type: "integer", nullable: true, comment: "number of days after the settlement period ends before payment is due; only meaningful when SettlementMode = Credit"),
+                    CreditLimitUsd = table.Column<decimal>(type: "numeric(18,4)", nullable: true, comment: "maximum outstanding credit balance allowed for this vendor, in USD; only meaningful when SettlementMode = Credit"),
+                    VendorType = table.Column<byte>(type: "smallint", nullable: false, comment: "0 = Display-only title, 1 = Member login (manage own catalog), 2 = Linked website (inter-site virtual credit)"),
+                    MemberID = table.Column<int>(type: "integer", nullable: true),
+                    LinkedWebsiteID = table.Column<int>(type: "integer", nullable: true),
+                    AvailableCreditUsd = table.Column<decimal>(type: "numeric(18,4)", nullable: false)
                 },
                 constraints: table =>
                 {
@@ -2252,11 +2224,11 @@ namespace Dotnetable.Migrations.SqlServer.Migrations
                 name: "FormResponseValues",
                 columns: table => new
                 {
-                    FormResponseValueID = table.Column<int>(type: "int", nullable: false)
-                        .Annotation("SqlServer:Identity", "1, 1"),
-                    FormResponseID = table.Column<int>(type: "int", nullable: false),
-                    FormFieldID = table.Column<int>(type: "int", nullable: false),
-                    Value = table.Column<string>(type: "nvarchar(max)", nullable: true)
+                    FormResponseValueID = table.Column<int>(type: "integer", nullable: false)
+                        .Annotation("Npgsql:ValueGenerationStrategy", NpgsqlValueGenerationStrategy.IdentityByDefaultColumn),
+                    FormResponseID = table.Column<int>(type: "integer", nullable: false),
+                    FormFieldID = table.Column<int>(type: "integer", nullable: false),
+                    Value = table.Column<string>(type: "text", nullable: true)
                 },
                 constraints: table =>
                 {
@@ -2277,29 +2249,27 @@ namespace Dotnetable.Migrations.SqlServer.Migrations
                 name: "Orders",
                 columns: table => new
                 {
-                    OrderID = table.Column<int>(type: "int", nullable: false)
-                        .Annotation("SqlServer:Identity", "1, 1"),
-                    WebsiteID = table.Column<int>(type: "int", nullable: false),
-                    OrderNumber = table.Column<string>(type: "nvarchar(30)", maxLength: 30, nullable: false),
-                    WebsiteClientID = table.Column<int>(type: "int", nullable: false),
-                    Status = table.Column<byte>(type: "tinyint", nullable: false, defaultValue: (byte)1)
-                        .Annotation("Relational:DefaultConstraintName", "DF_Orders_Status_1"),
-                    CurrencyCode = table.Column<string>(type: "char(3)", unicode: false, fixedLength: true, maxLength: 3, nullable: false),
-                    ExchangeRateToUsd = table.Column<decimal>(type: "decimal(18,6)", nullable: false),
-                    SubTotal = table.Column<decimal>(type: "decimal(18,4)", nullable: false),
-                    DiscountTotal = table.Column<decimal>(type: "decimal(18,4)", nullable: false),
-                    ShippingTotal = table.Column<decimal>(type: "decimal(18,4)", nullable: false),
-                    TaxTotal = table.Column<decimal>(type: "decimal(18,4)", nullable: false),
-                    GrandTotal = table.Column<decimal>(type: "decimal(18,4)", nullable: false),
-                    GrandTotalUsd = table.Column<decimal>(type: "decimal(18,4)", nullable: false),
-                    WebsiteClientAddressID = table.Column<int>(type: "int", nullable: true),
-                    AddressSnapshot = table.Column<string>(type: "nvarchar(1000)", maxLength: 1000, nullable: true),
-                    CouponID = table.Column<int>(type: "int", nullable: true),
-                    ShippingMethodID = table.Column<int>(type: "int", nullable: true),
-                    Note = table.Column<string>(type: "nvarchar(1000)", maxLength: 1000, nullable: true),
-                    CreatedByMemberID = table.Column<int>(type: "int", nullable: true),
-                    CreatedAt = table.Column<DateTime>(type: "datetime", nullable: false, defaultValueSql: "(sysutcdatetime())")
-                        .Annotation("Relational:DefaultConstraintName", "DF_Orders_CreatedAt_1"),
+                    OrderID = table.Column<int>(type: "integer", nullable: false)
+                        .Annotation("Npgsql:ValueGenerationStrategy", NpgsqlValueGenerationStrategy.IdentityByDefaultColumn),
+                    WebsiteID = table.Column<int>(type: "integer", nullable: false),
+                    OrderNumber = table.Column<string>(type: "character varying(30)", maxLength: 30, nullable: false),
+                    WebsiteClientID = table.Column<int>(type: "integer", nullable: false),
+                    Status = table.Column<byte>(type: "smallint", nullable: false),
+                    CurrencyCode = table.Column<string>(type: "character(3)", unicode: false, fixedLength: true, maxLength: 3, nullable: false),
+                    ExchangeRateToUsd = table.Column<decimal>(type: "numeric(18,6)", nullable: false),
+                    SubTotal = table.Column<decimal>(type: "numeric(18,4)", nullable: false),
+                    DiscountTotal = table.Column<decimal>(type: "numeric(18,4)", nullable: false),
+                    ShippingTotal = table.Column<decimal>(type: "numeric(18,4)", nullable: false),
+                    TaxTotal = table.Column<decimal>(type: "numeric(18,4)", nullable: false),
+                    GrandTotal = table.Column<decimal>(type: "numeric(18,4)", nullable: false),
+                    GrandTotalUsd = table.Column<decimal>(type: "numeric(18,4)", nullable: false),
+                    WebsiteClientAddressID = table.Column<int>(type: "integer", nullable: true),
+                    AddressSnapshot = table.Column<string>(type: "character varying(1000)", maxLength: 1000, nullable: true),
+                    CouponID = table.Column<int>(type: "integer", nullable: true),
+                    ShippingMethodID = table.Column<int>(type: "integer", nullable: true),
+                    Note = table.Column<string>(type: "character varying(1000)", maxLength: 1000, nullable: true),
+                    CreatedByMemberID = table.Column<int>(type: "integer", nullable: true),
+                    CreatedAt = table.Column<DateTime>(type: "datetime", nullable: false),
                     PaidAt = table.Column<DateTime>(type: "datetime", nullable: true)
                 },
                 constraints: table =>
@@ -2346,13 +2316,13 @@ namespace Dotnetable.Migrations.SqlServer.Migrations
                 name: "PageTranslations",
                 columns: table => new
                 {
-                    PageTranslationID = table.Column<int>(type: "int", nullable: false)
-                        .Annotation("SqlServer:Identity", "1, 1"),
-                    PageID = table.Column<int>(type: "int", nullable: false),
-                    LanguageCode = table.Column<string>(type: "char(2)", unicode: false, fixedLength: true, maxLength: 2, nullable: false),
-                    Title = table.Column<string>(type: "nvarchar(300)", maxLength: 300, nullable: false),
-                    Slug = table.Column<string>(type: "nvarchar(300)", maxLength: 300, nullable: false),
-                    Content = table.Column<string>(type: "nvarchar(max)", nullable: true)
+                    PageTranslationID = table.Column<int>(type: "integer", nullable: false)
+                        .Annotation("Npgsql:ValueGenerationStrategy", NpgsqlValueGenerationStrategy.IdentityByDefaultColumn),
+                    PageID = table.Column<int>(type: "integer", nullable: false),
+                    LanguageCode = table.Column<string>(type: "character(2)", unicode: false, fixedLength: true, maxLength: 2, nullable: false),
+                    Title = table.Column<string>(type: "character varying(300)", maxLength: 300, nullable: false),
+                    Slug = table.Column<string>(type: "character varying(300)", maxLength: 300, nullable: false),
+                    Content = table.Column<string>(type: "text", nullable: true)
                 },
                 constraints: table =>
                 {
@@ -2368,9 +2338,9 @@ namespace Dotnetable.Migrations.SqlServer.Migrations
                 name: "PostCategories",
                 columns: table => new
                 {
-                    PostID = table.Column<int>(type: "int", nullable: false),
-                    CategoryID = table.Column<int>(type: "int", nullable: false),
-                    IsPrimary = table.Column<bool>(type: "bit", nullable: false)
+                    PostID = table.Column<int>(type: "integer", nullable: false),
+                    CategoryID = table.Column<int>(type: "integer", nullable: false),
+                    IsPrimary = table.Column<bool>(type: "boolean", nullable: false)
                 },
                 constraints: table =>
                 {
@@ -2391,8 +2361,8 @@ namespace Dotnetable.Migrations.SqlServer.Migrations
                 name: "PostTags",
                 columns: table => new
                 {
-                    PostID = table.Column<int>(type: "int", nullable: false),
-                    TagID = table.Column<int>(type: "int", nullable: false)
+                    PostID = table.Column<int>(type: "integer", nullable: false),
+                    TagID = table.Column<int>(type: "integer", nullable: false)
                 },
                 constraints: table =>
                 {
@@ -2413,14 +2383,14 @@ namespace Dotnetable.Migrations.SqlServer.Migrations
                 name: "PostTranslations",
                 columns: table => new
                 {
-                    PostTranslationID = table.Column<int>(type: "int", nullable: false)
-                        .Annotation("SqlServer:Identity", "1, 1"),
-                    PostID = table.Column<int>(type: "int", nullable: false),
-                    LanguageCode = table.Column<string>(type: "char(2)", unicode: false, fixedLength: true, maxLength: 2, nullable: false),
-                    Title = table.Column<string>(type: "nvarchar(300)", maxLength: 300, nullable: false),
-                    Slug = table.Column<string>(type: "nvarchar(300)", maxLength: 300, nullable: false),
-                    Excerpt = table.Column<string>(type: "nvarchar(1000)", maxLength: 1000, nullable: true),
-                    Content = table.Column<string>(type: "nvarchar(max)", nullable: true)
+                    PostTranslationID = table.Column<int>(type: "integer", nullable: false)
+                        .Annotation("Npgsql:ValueGenerationStrategy", NpgsqlValueGenerationStrategy.IdentityByDefaultColumn),
+                    PostID = table.Column<int>(type: "integer", nullable: false),
+                    LanguageCode = table.Column<string>(type: "character(2)", unicode: false, fixedLength: true, maxLength: 2, nullable: false),
+                    Title = table.Column<string>(type: "character varying(300)", maxLength: 300, nullable: false),
+                    Slug = table.Column<string>(type: "character varying(300)", maxLength: 300, nullable: false),
+                    Excerpt = table.Column<string>(type: "character varying(1000)", maxLength: 1000, nullable: true),
+                    Content = table.Column<string>(type: "text", nullable: true)
                 },
                 constraints: table =>
                 {
@@ -2436,15 +2406,15 @@ namespace Dotnetable.Migrations.SqlServer.Migrations
                 name: "ProductAttributeValues",
                 columns: table => new
                 {
-                    ProductAttributeValueID = table.Column<int>(type: "int", nullable: false)
-                        .Annotation("SqlServer:Identity", "1, 1"),
-                    ProductID = table.Column<int>(type: "int", nullable: false),
-                    AttributeDefinitionID = table.Column<int>(type: "int", nullable: false),
-                    AttributeOptionID = table.Column<int>(type: "int", nullable: true),
-                    CustomValue = table.Column<string>(type: "nvarchar(1000)", maxLength: 1000, nullable: true),
-                    NumericValue = table.Column<decimal>(type: "decimal(18,4)", nullable: true),
-                    IsFeatured = table.Column<bool>(type: "bit", nullable: false),
-                    SortOrder = table.Column<int>(type: "int", nullable: false)
+                    ProductAttributeValueID = table.Column<int>(type: "integer", nullable: false)
+                        .Annotation("Npgsql:ValueGenerationStrategy", NpgsqlValueGenerationStrategy.IdentityByDefaultColumn),
+                    ProductID = table.Column<int>(type: "integer", nullable: false),
+                    AttributeDefinitionID = table.Column<int>(type: "integer", nullable: false),
+                    AttributeOptionID = table.Column<int>(type: "integer", nullable: true),
+                    CustomValue = table.Column<string>(type: "character varying(1000)", maxLength: 1000, nullable: true),
+                    NumericValue = table.Column<decimal>(type: "numeric(18,4)", nullable: true),
+                    IsFeatured = table.Column<bool>(type: "boolean", nullable: false),
+                    SortOrder = table.Column<int>(type: "integer", nullable: false)
                 },
                 constraints: table =>
                 {
@@ -2470,9 +2440,9 @@ namespace Dotnetable.Migrations.SqlServer.Migrations
                 name: "ProductCategoryMaps",
                 columns: table => new
                 {
-                    ProductID = table.Column<int>(type: "int", nullable: false),
-                    ProductCategoryID = table.Column<int>(type: "int", nullable: false),
-                    IsPrimary = table.Column<bool>(type: "bit", nullable: false)
+                    ProductID = table.Column<int>(type: "integer", nullable: false),
+                    ProductCategoryID = table.Column<int>(type: "integer", nullable: false),
+                    IsPrimary = table.Column<bool>(type: "boolean", nullable: false)
                 },
                 constraints: table =>
                 {
@@ -2493,11 +2463,10 @@ namespace Dotnetable.Migrations.SqlServer.Migrations
                 name: "ProductCategoryRelations",
                 columns: table => new
                 {
-                    ProductID = table.Column<int>(type: "int", nullable: false),
-                    RelatedProductCategoryID = table.Column<int>(type: "int", nullable: false),
-                    RelationType = table.Column<byte>(type: "tinyint", nullable: false),
-                    MaxItems = table.Column<int>(type: "int", nullable: false, defaultValue: 10)
-                        .Annotation("Relational:DefaultConstraintName", "DF_ProductCategoryRelations_MaxItems")
+                    ProductID = table.Column<int>(type: "integer", nullable: false),
+                    RelatedProductCategoryID = table.Column<int>(type: "integer", nullable: false),
+                    RelationType = table.Column<byte>(type: "smallint", nullable: false),
+                    MaxItems = table.Column<int>(type: "integer", nullable: false)
                 },
                 constraints: table =>
                 {
@@ -2515,47 +2484,12 @@ namespace Dotnetable.Migrations.SqlServer.Migrations
                 });
 
             migrationBuilder.CreateTable(
-                name: "ProductContentSections",
-                columns: table => new
-                {
-                    ProductContentSectionID = table.Column<int>(type: "int", nullable: false)
-                        .Annotation("SqlServer:Identity", "1, 1"),
-                    ProductID = table.Column<int>(type: "int", nullable: false),
-                    SectionType = table.Column<byte>(type: "tinyint", nullable: false),
-                    HtmlContent = table.Column<string>(type: "nvarchar(max)", nullable: true),
-                    FileId = table.Column<int>(type: "int", nullable: true),
-                    MediaSetID = table.Column<int>(type: "int", nullable: true),
-                    SortOrder = table.Column<int>(type: "int", nullable: false),
-                    IsActive = table.Column<bool>(type: "bit", nullable: false, defaultValue: true)
-                        .Annotation("Relational:DefaultConstraintName", "DF_ProductContentSections_IsActive")
-                },
-                constraints: table =>
-                {
-                    table.PrimaryKey("PK_ProductContentSections", x => x.ProductContentSectionID);
-                    table.ForeignKey(
-                        name: "FK_ProductContentSections_FileRecords",
-                        column: x => x.FileId,
-                        principalTable: "FileRecords",
-                        principalColumn: "FileRecordID");
-                    table.ForeignKey(
-                        name: "FK_ProductContentSections_MediaSets",
-                        column: x => x.MediaSetID,
-                        principalTable: "MediaSets",
-                        principalColumn: "MediaSetID");
-                    table.ForeignKey(
-                        name: "FK_ProductContentSections_Products",
-                        column: x => x.ProductID,
-                        principalTable: "Products",
-                        principalColumn: "ProductID");
-                });
-
-            migrationBuilder.CreateTable(
                 name: "ProductMedia",
                 columns: table => new
                 {
-                    ProductID = table.Column<int>(type: "int", nullable: false),
-                    MediaSetID = table.Column<int>(type: "int", nullable: false),
-                    SortOrder = table.Column<int>(type: "int", nullable: false)
+                    ProductID = table.Column<int>(type: "integer", nullable: false),
+                    MediaSetID = table.Column<int>(type: "integer", nullable: false),
+                    SortOrder = table.Column<int>(type: "integer", nullable: false)
                 },
                 constraints: table =>
                 {
@@ -2576,17 +2510,15 @@ namespace Dotnetable.Migrations.SqlServer.Migrations
                 name: "ProductQuestions",
                 columns: table => new
                 {
-                    ProductQuestionID = table.Column<int>(type: "int", nullable: false)
-                        .Annotation("SqlServer:Identity", "1, 1"),
-                    WebsiteID = table.Column<int>(type: "int", nullable: false),
-                    ProductID = table.Column<int>(type: "int", nullable: false),
-                    WebsiteClientID = table.Column<int>(type: "int", nullable: false),
-                    Body = table.Column<string>(type: "nvarchar(2000)", maxLength: 2000, nullable: false),
-                    Status = table.Column<byte>(type: "tinyint", nullable: false, defaultValue: (byte)1)
-                        .Annotation("Relational:DefaultConstraintName", "DF_ProductQuestions_Status"),
-                    CreatedAt = table.Column<DateTime>(type: "datetime", nullable: false, defaultValueSql: "(sysutcdatetime())")
-                        .Annotation("Relational:DefaultConstraintName", "DF_ProductQuestions_CreatedAt"),
-                    Approved = table.Column<bool>(type: "bit", nullable: false)
+                    ProductQuestionID = table.Column<int>(type: "integer", nullable: false)
+                        .Annotation("Npgsql:ValueGenerationStrategy", NpgsqlValueGenerationStrategy.IdentityByDefaultColumn),
+                    WebsiteID = table.Column<int>(type: "integer", nullable: false),
+                    ProductID = table.Column<int>(type: "integer", nullable: false),
+                    WebsiteClientID = table.Column<int>(type: "integer", nullable: false),
+                    Body = table.Column<string>(type: "character varying(2000)", maxLength: 2000, nullable: false),
+                    Status = table.Column<byte>(type: "smallint", nullable: false),
+                    CreatedAt = table.Column<DateTime>(type: "datetime", nullable: false),
+                    Approved = table.Column<bool>(type: "boolean", nullable: false)
                 },
                 constraints: table =>
                 {
@@ -2612,10 +2544,10 @@ namespace Dotnetable.Migrations.SqlServer.Migrations
                 name: "ProductRelations",
                 columns: table => new
                 {
-                    ProductID = table.Column<int>(type: "int", nullable: false),
-                    RelatedProductID = table.Column<int>(type: "int", nullable: false),
-                    RelationType = table.Column<byte>(type: "tinyint", nullable: false),
-                    SortOrder = table.Column<int>(type: "int", nullable: false)
+                    ProductID = table.Column<int>(type: "integer", nullable: false),
+                    RelatedProductID = table.Column<int>(type: "integer", nullable: false),
+                    RelationType = table.Column<byte>(type: "smallint", nullable: false),
+                    SortOrder = table.Column<int>(type: "integer", nullable: false)
                 },
                 constraints: table =>
                 {
@@ -2636,13 +2568,15 @@ namespace Dotnetable.Migrations.SqlServer.Migrations
                 name: "ProductTranslations",
                 columns: table => new
                 {
-                    ProductTranslationID = table.Column<int>(type: "int", nullable: false)
-                        .Annotation("SqlServer:Identity", "1, 1"),
-                    ProductID = table.Column<int>(type: "int", nullable: false),
-                    LanguageCode = table.Column<string>(type: "char(2)", unicode: false, fixedLength: true, maxLength: 2, nullable: false),
-                    Title = table.Column<string>(type: "nvarchar(300)", maxLength: 300, nullable: false),
-                    Slug = table.Column<string>(type: "nvarchar(300)", maxLength: 300, nullable: false),
-                    ShortDescription = table.Column<string>(type: "nvarchar(1000)", maxLength: 1000, nullable: true)
+                    ProductTranslationID = table.Column<int>(type: "integer", nullable: false)
+                        .Annotation("Npgsql:ValueGenerationStrategy", NpgsqlValueGenerationStrategy.IdentityByDefaultColumn),
+                    ProductID = table.Column<int>(type: "integer", nullable: false),
+                    LanguageCode = table.Column<string>(type: "character(2)", unicode: false, fixedLength: true, maxLength: 2, nullable: false),
+                    Title = table.Column<string>(type: "character varying(300)", maxLength: 300, nullable: false),
+                    Slug = table.Column<string>(type: "character varying(300)", maxLength: 300, nullable: false),
+                    ShortDescription = table.Column<string>(type: "character varying(1000)", maxLength: 1000, nullable: true),
+                    Content = table.Column<string>(type: "text", nullable: true),
+                    ExpertReview = table.Column<string>(type: "text", nullable: true)
                 },
                 constraints: table =>
                 {
@@ -2658,22 +2592,21 @@ namespace Dotnetable.Migrations.SqlServer.Migrations
                 name: "ProductVariants",
                 columns: table => new
                 {
-                    ProductVariantID = table.Column<int>(type: "int", nullable: false)
-                        .Annotation("SqlServer:Identity", "1, 1"),
-                    WebsiteID = table.Column<int>(type: "int", nullable: false),
-                    ProductID = table.Column<int>(type: "int", nullable: false),
-                    Sku = table.Column<string>(type: "nvarchar(100)", maxLength: 100, nullable: false),
-                    IsDefault = table.Column<bool>(type: "bit", nullable: false),
-                    ImageFileID = table.Column<int>(type: "int", nullable: true),
-                    ReferencePriceUsd = table.Column<decimal>(type: "decimal(18,4)", nullable: false),
-                    CompareAtPriceUsd = table.Column<decimal>(type: "decimal(18,4)", nullable: true),
-                    OverridePrice = table.Column<decimal>(type: "decimal(18,4)", nullable: true),
-                    Weight = table.Column<decimal>(type: "decimal(10,3)", nullable: true),
-                    Barcode = table.Column<string>(type: "nvarchar(100)", maxLength: 100, nullable: true),
-                    IsActive = table.Column<bool>(type: "bit", nullable: false, defaultValue: true)
-                        .Annotation("Relational:DefaultConstraintName", "DF_ProductVariants_IsActive"),
-                    CreatedAt = table.Column<DateTime>(type: "datetime", nullable: false, defaultValueSql: "(sysutcdatetime())")
-                        .Annotation("Relational:DefaultConstraintName", "DF_ProductVariants_CreatedAt")
+                    ProductVariantID = table.Column<int>(type: "integer", nullable: false)
+                        .Annotation("Npgsql:ValueGenerationStrategy", NpgsqlValueGenerationStrategy.IdentityByDefaultColumn),
+                    WebsiteID = table.Column<int>(type: "integer", nullable: false),
+                    ProductID = table.Column<int>(type: "integer", nullable: false),
+                    Sku = table.Column<string>(type: "character varying(100)", maxLength: 100, nullable: false),
+                    Title = table.Column<string>(type: "character varying(200)", maxLength: 200, nullable: false),
+                    IsDefault = table.Column<bool>(type: "boolean", nullable: false),
+                    ImageFileID = table.Column<int>(type: "integer", nullable: true),
+                    ReferencePriceUsd = table.Column<decimal>(type: "numeric(18,4)", nullable: false),
+                    CompareAtPriceUsd = table.Column<decimal>(type: "numeric(18,4)", nullable: true),
+                    OverridePrice = table.Column<decimal>(type: "numeric(18,4)", nullable: true),
+                    Weight = table.Column<decimal>(type: "numeric(10,3)", nullable: true),
+                    Barcode = table.Column<string>(type: "character varying(100)", maxLength: 100, nullable: true),
+                    IsActive = table.Column<bool>(type: "boolean", nullable: false),
+                    CreatedAt = table.Column<DateTime>(type: "datetime", nullable: false)
                 },
                 constraints: table =>
                 {
@@ -2699,14 +2632,12 @@ namespace Dotnetable.Migrations.SqlServer.Migrations
                 name: "ProductWarnings",
                 columns: table => new
                 {
-                    ProductWarningID = table.Column<int>(type: "int", nullable: false)
-                        .Annotation("SqlServer:Identity", "1, 1"),
-                    ProductID = table.Column<int>(type: "int", nullable: false),
-                    Severity = table.Column<string>(type: "nvarchar(20)", maxLength: 20, nullable: false, defaultValue: "info")
-                        .Annotation("Relational:DefaultConstraintName", "DF_ProductWarnings_Severity"),
-                    Text = table.Column<string>(type: "nvarchar(1000)", maxLength: 1000, nullable: false),
-                    IsActive = table.Column<bool>(type: "bit", nullable: false, defaultValue: true)
-                        .Annotation("Relational:DefaultConstraintName", "DF_ProductWarnings_IsActive")
+                    ProductWarningID = table.Column<int>(type: "integer", nullable: false)
+                        .Annotation("Npgsql:ValueGenerationStrategy", NpgsqlValueGenerationStrategy.IdentityByDefaultColumn),
+                    ProductID = table.Column<int>(type: "integer", nullable: false),
+                    Severity = table.Column<string>(type: "character varying(20)", maxLength: 20, nullable: false),
+                    Text = table.Column<string>(type: "character varying(1000)", maxLength: 1000, nullable: false),
+                    IsActive = table.Column<bool>(type: "boolean", nullable: false)
                 },
                 constraints: table =>
                 {
@@ -2719,29 +2650,56 @@ namespace Dotnetable.Migrations.SqlServer.Migrations
                 });
 
             migrationBuilder.CreateTable(
+                name: "ProductWarranties",
+                columns: table => new
+                {
+                    ProductWarrantyID = table.Column<int>(type: "integer", nullable: false)
+                        .Annotation("Npgsql:ValueGenerationStrategy", NpgsqlValueGenerationStrategy.IdentityByDefaultColumn),
+                    ProductID = table.Column<int>(type: "integer", nullable: false),
+                    WarrantyID = table.Column<int>(type: "integer", nullable: true),
+                    CustomTitle = table.Column<string>(type: "character varying(200)", maxLength: 200, nullable: true),
+                    CustomDescription = table.Column<string>(type: "character varying(2000)", maxLength: 2000, nullable: true),
+                    SortOrder = table.Column<int>(type: "integer", nullable: false),
+                    IsActive = table.Column<bool>(type: "boolean", nullable: false)
+                },
+                constraints: table =>
+                {
+                    table.PrimaryKey("PK_ProductWarranties", x => x.ProductWarrantyID);
+                    table.ForeignKey(
+                        name: "FK_ProductWarranties_Products",
+                        column: x => x.ProductID,
+                        principalTable: "Products",
+                        principalColumn: "ProductID");
+                    table.ForeignKey(
+                        name: "FK_ProductWarranties_Warranties",
+                        column: x => x.WarrantyID,
+                        principalTable: "Warranties",
+                        principalColumn: "WarrantyID");
+                });
+
+            migrationBuilder.CreateTable(
                 name: "MenuItems",
                 columns: table => new
                 {
-                    MenuItemID = table.Column<int>(type: "int", nullable: false)
-                        .Annotation("SqlServer:Identity", "1, 1"),
-                    MenuID = table.Column<int>(type: "int", nullable: false),
-                    ParentItemID = table.Column<int>(type: "int", nullable: true),
-                    ItemType = table.Column<byte>(type: "tinyint", nullable: false),
-                    PageID = table.Column<int>(type: "int", nullable: true),
-                    PostID = table.Column<int>(type: "int", nullable: true),
-                    CategoryID = table.Column<int>(type: "int", nullable: true),
-                    ProductID = table.Column<int>(type: "int", nullable: true),
-                    ProductCategoryID = table.Column<int>(type: "int", nullable: true),
-                    BrandID = table.Column<int>(type: "int", nullable: true),
-                    VendorID = table.Column<int>(type: "int", nullable: true),
-                    Url = table.Column<string>(type: "nvarchar(500)", maxLength: 500, nullable: true),
-                    Title = table.Column<string>(type: "nvarchar(200)", maxLength: 200, nullable: false),
-                    Icon = table.Column<string>(type: "nvarchar(100)", maxLength: 100, nullable: true),
-                    CssClass = table.Column<string>(type: "nvarchar(100)", maxLength: 100, nullable: true),
-                    OpenInNewTab = table.Column<bool>(type: "bit", nullable: false),
-                    SortOrder = table.Column<int>(type: "int", nullable: false),
-                    IsActive = table.Column<bool>(type: "bit", nullable: false, defaultValue: true)
-                        .Annotation("Relational:DefaultConstraintName", "DF_MenuItems_IsActive")
+                    MenuItemID = table.Column<int>(type: "integer", nullable: false)
+                        .Annotation("Npgsql:ValueGenerationStrategy", NpgsqlValueGenerationStrategy.IdentityByDefaultColumn),
+                    MenuID = table.Column<int>(type: "integer", nullable: false),
+                    ParentItemID = table.Column<int>(type: "integer", nullable: true),
+                    ItemType = table.Column<byte>(type: "smallint", nullable: false),
+                    PageID = table.Column<int>(type: "integer", nullable: true),
+                    PostID = table.Column<int>(type: "integer", nullable: true),
+                    CategoryID = table.Column<int>(type: "integer", nullable: true),
+                    ProductID = table.Column<int>(type: "integer", nullable: true),
+                    ProductCategoryID = table.Column<int>(type: "integer", nullable: true),
+                    BrandID = table.Column<int>(type: "integer", nullable: true),
+                    VendorID = table.Column<int>(type: "integer", nullable: true),
+                    Url = table.Column<string>(type: "character varying(500)", maxLength: 500, nullable: true),
+                    Title = table.Column<string>(type: "character varying(200)", maxLength: 200, nullable: false),
+                    Icon = table.Column<string>(type: "character varying(100)", maxLength: 100, nullable: true),
+                    CssClass = table.Column<string>(type: "character varying(100)", maxLength: 100, nullable: true),
+                    OpenInNewTab = table.Column<bool>(type: "boolean", nullable: false),
+                    SortOrder = table.Column<int>(type: "integer", nullable: false),
+                    IsActive = table.Column<bool>(type: "boolean", nullable: false)
                 },
                 constraints: table =>
                 {
@@ -2797,27 +2755,25 @@ namespace Dotnetable.Migrations.SqlServer.Migrations
                 name: "Settlements",
                 columns: table => new
                 {
-                    SettlementID = table.Column<int>(type: "int", nullable: false)
-                        .Annotation("SqlServer:Identity", "1, 1"),
-                    WebsiteID = table.Column<int>(type: "int", nullable: false),
-                    TargetType = table.Column<byte>(type: "tinyint", nullable: false),
-                    VendorID = table.Column<int>(type: "int", nullable: true),
-                    TargetWebsiteID = table.Column<int>(type: "int", nullable: true),
-                    SupplierID = table.Column<int>(type: "int", nullable: true),
+                    SettlementID = table.Column<int>(type: "integer", nullable: false)
+                        .Annotation("Npgsql:ValueGenerationStrategy", NpgsqlValueGenerationStrategy.IdentityByDefaultColumn),
+                    WebsiteID = table.Column<int>(type: "integer", nullable: false),
+                    TargetType = table.Column<byte>(type: "smallint", nullable: false),
+                    VendorID = table.Column<int>(type: "integer", nullable: true),
+                    TargetWebsiteID = table.Column<int>(type: "integer", nullable: true),
+                    SupplierID = table.Column<int>(type: "integer", nullable: true),
                     PeriodFrom = table.Column<DateOnly>(type: "date", nullable: false),
                     PeriodTo = table.Column<DateOnly>(type: "date", nullable: false),
-                    TotalAmount = table.Column<decimal>(type: "decimal(18,4)", nullable: false),
-                    CurrencyCode = table.Column<string>(type: "char(3)", unicode: false, fixedLength: true, maxLength: 3, nullable: false),
-                    Status = table.Column<byte>(type: "tinyint", nullable: false, defaultValue: (byte)1)
-                        .Annotation("Relational:DefaultConstraintName", "DF_Settlements_Status_1"),
-                    BankAccountID = table.Column<int>(type: "int", nullable: true),
-                    PaymentRefNumber = table.Column<string>(type: "nvarchar(100)", maxLength: 100, nullable: true),
-                    Note = table.Column<string>(type: "nvarchar(500)", maxLength: 500, nullable: true),
-                    CreatedByMemberID = table.Column<int>(type: "int", nullable: true),
-                    ApprovedByMemberID = table.Column<int>(type: "int", nullable: true),
+                    TotalAmount = table.Column<decimal>(type: "numeric(18,4)", nullable: false),
+                    CurrencyCode = table.Column<string>(type: "character(3)", unicode: false, fixedLength: true, maxLength: 3, nullable: false),
+                    Status = table.Column<byte>(type: "smallint", nullable: false),
+                    BankAccountID = table.Column<int>(type: "integer", nullable: true),
+                    PaymentRefNumber = table.Column<string>(type: "character varying(100)", maxLength: 100, nullable: true),
+                    Note = table.Column<string>(type: "character varying(500)", maxLength: 500, nullable: true),
+                    CreatedByMemberID = table.Column<int>(type: "integer", nullable: true),
+                    ApprovedByMemberID = table.Column<int>(type: "integer", nullable: true),
                     PaidAt = table.Column<DateTime>(type: "datetime", nullable: true),
-                    CreatedAt = table.Column<DateTime>(type: "datetime", nullable: false, defaultValueSql: "(sysutcdatetime())")
-                        .Annotation("Relational:DefaultConstraintName", "DF_Settlements_CreatedAt_1")
+                    CreatedAt = table.Column<DateTime>(type: "datetime", nullable: false)
                 },
                 constraints: table =>
                 {
@@ -2868,11 +2824,11 @@ namespace Dotnetable.Migrations.SqlServer.Migrations
                 name: "VendorTranslations",
                 columns: table => new
                 {
-                    VendorTranslationID = table.Column<int>(type: "int", nullable: false)
-                        .Annotation("SqlServer:Identity", "1, 1"),
-                    VendorID = table.Column<int>(type: "int", nullable: false),
-                    LanguageCode = table.Column<string>(type: "char(2)", unicode: false, fixedLength: true, maxLength: 2, nullable: false),
-                    Name = table.Column<string>(type: "nvarchar(200)", maxLength: 200, nullable: false)
+                    VendorTranslationID = table.Column<int>(type: "integer", nullable: false)
+                        .Annotation("Npgsql:ValueGenerationStrategy", NpgsqlValueGenerationStrategy.IdentityByDefaultColumn),
+                    VendorID = table.Column<int>(type: "integer", nullable: false),
+                    LanguageCode = table.Column<string>(type: "character(2)", unicode: false, fixedLength: true, maxLength: 2, nullable: false),
+                    Name = table.Column<string>(type: "character varying(200)", maxLength: 200, nullable: false)
                 },
                 constraints: table =>
                 {
@@ -2888,15 +2844,14 @@ namespace Dotnetable.Migrations.SqlServer.Migrations
                 name: "OrderStatusHistories",
                 columns: table => new
                 {
-                    OrderStatusHistoryID = table.Column<int>(type: "int", nullable: false)
-                        .Annotation("SqlServer:Identity", "1, 1"),
-                    OrderID = table.Column<int>(type: "int", nullable: false),
-                    FromStatus = table.Column<byte>(type: "tinyint", nullable: true),
-                    ToStatus = table.Column<byte>(type: "tinyint", nullable: false),
-                    Note = table.Column<string>(type: "nvarchar(500)", maxLength: 500, nullable: true),
-                    CreatedByMemberID = table.Column<int>(type: "int", nullable: true),
-                    CreatedAt = table.Column<DateTime>(type: "datetime", nullable: false, defaultValueSql: "(sysutcdatetime())")
-                        .Annotation("Relational:DefaultConstraintName", "DF_OrderStatusHistories_CreatedAt")
+                    OrderStatusHistoryID = table.Column<int>(type: "integer", nullable: false)
+                        .Annotation("Npgsql:ValueGenerationStrategy", NpgsqlValueGenerationStrategy.IdentityByDefaultColumn),
+                    OrderID = table.Column<int>(type: "integer", nullable: false),
+                    FromStatus = table.Column<byte>(type: "smallint", nullable: true),
+                    ToStatus = table.Column<byte>(type: "smallint", nullable: false),
+                    Note = table.Column<string>(type: "character varying(500)", maxLength: 500, nullable: true),
+                    CreatedByMemberID = table.Column<int>(type: "integer", nullable: true),
+                    CreatedAt = table.Column<DateTime>(type: "datetime", nullable: false)
                 },
                 constraints: table =>
                 {
@@ -2917,28 +2872,26 @@ namespace Dotnetable.Migrations.SqlServer.Migrations
                 name: "Payments",
                 columns: table => new
                 {
-                    PaymentID = table.Column<int>(type: "int", nullable: false)
-                        .Annotation("SqlServer:Identity", "1, 1"),
-                    WebsiteID = table.Column<int>(type: "int", nullable: false),
-                    OrderID = table.Column<int>(type: "int", nullable: true),
-                    WebsiteClientID = table.Column<int>(type: "int", nullable: false),
-                    Method = table.Column<byte>(type: "tinyint", nullable: false),
-                    PaymentGatewayID = table.Column<int>(type: "int", nullable: true),
-                    BankAccountID = table.Column<int>(type: "int", nullable: true),
-                    ClientWalletTransactionID = table.Column<int>(type: "int", nullable: true),
-                    Amount = table.Column<decimal>(type: "decimal(18,4)", nullable: false),
-                    CurrencyCode = table.Column<string>(type: "char(3)", unicode: false, fixedLength: true, maxLength: 3, nullable: false),
-                    ExchangeRateToUsd = table.Column<decimal>(type: "decimal(18,6)", nullable: false),
-                    AmountUsd = table.Column<decimal>(type: "decimal(18,4)", nullable: false),
-                    Status = table.Column<byte>(type: "tinyint", nullable: false, defaultValue: (byte)1)
-                        .Annotation("Relational:DefaultConstraintName", "DF_Payments_Status_1"),
-                    GatewayRefNumber = table.Column<string>(type: "nvarchar(100)", maxLength: 100, nullable: true),
-                    TrackingCode = table.Column<string>(type: "nvarchar(100)", maxLength: 100, nullable: true),
-                    ReceiptFileID = table.Column<int>(type: "int", nullable: true),
-                    PaidAt = table.Column<DateTime>(type: "datetime2(0)", precision: 0, nullable: true),
-                    VerifiedByMemberID = table.Column<int>(type: "int", nullable: true),
-                    CreatedAt = table.Column<DateTime>(type: "datetime2(0)", precision: 0, nullable: false, defaultValueSql: "(sysutcdatetime())")
-                        .Annotation("Relational:DefaultConstraintName", "DF_Payments_CreatedAt_1")
+                    PaymentID = table.Column<int>(type: "integer", nullable: false)
+                        .Annotation("Npgsql:ValueGenerationStrategy", NpgsqlValueGenerationStrategy.IdentityByDefaultColumn),
+                    WebsiteID = table.Column<int>(type: "integer", nullable: false),
+                    OrderID = table.Column<int>(type: "integer", nullable: true),
+                    WebsiteClientID = table.Column<int>(type: "integer", nullable: false),
+                    Method = table.Column<byte>(type: "smallint", nullable: false),
+                    PaymentGatewayID = table.Column<int>(type: "integer", nullable: true),
+                    BankAccountID = table.Column<int>(type: "integer", nullable: true),
+                    ClientWalletTransactionID = table.Column<int>(type: "integer", nullable: true),
+                    Amount = table.Column<decimal>(type: "numeric(18,4)", nullable: false),
+                    CurrencyCode = table.Column<string>(type: "character(3)", unicode: false, fixedLength: true, maxLength: 3, nullable: false),
+                    ExchangeRateToUsd = table.Column<decimal>(type: "numeric(18,6)", nullable: false),
+                    AmountUsd = table.Column<decimal>(type: "numeric(18,4)", nullable: false),
+                    Status = table.Column<byte>(type: "smallint", nullable: false),
+                    GatewayRefNumber = table.Column<string>(type: "character varying(100)", maxLength: 100, nullable: true),
+                    TrackingCode = table.Column<string>(type: "character varying(100)", maxLength: 100, nullable: true),
+                    ReceiptFileID = table.Column<int>(type: "integer", nullable: true),
+                    PaidAt = table.Column<DateTime>(type: "timestamp(0) with time zone", precision: 0, nullable: true),
+                    VerifiedByMemberID = table.Column<int>(type: "integer", nullable: true),
+                    CreatedAt = table.Column<DateTime>(type: "timestamp(0) with time zone", precision: 0, nullable: false)
                 },
                 constraints: table =>
                 {
@@ -2994,11 +2947,11 @@ namespace Dotnetable.Migrations.SqlServer.Migrations
                 name: "ProductAttributeValueTranslations",
                 columns: table => new
                 {
-                    ProductAttributeValueTranslationID = table.Column<int>(type: "int", nullable: false)
-                        .Annotation("SqlServer:Identity", "1, 1"),
-                    ProductAttributeValueID = table.Column<int>(type: "int", nullable: false),
-                    LanguageCode = table.Column<string>(type: "char(2)", unicode: false, fixedLength: true, maxLength: 2, nullable: false),
-                    CustomValue = table.Column<string>(type: "nvarchar(1000)", maxLength: 1000, nullable: false)
+                    ProductAttributeValueTranslationID = table.Column<int>(type: "integer", nullable: false)
+                        .Annotation("Npgsql:ValueGenerationStrategy", NpgsqlValueGenerationStrategy.IdentityByDefaultColumn),
+                    ProductAttributeValueID = table.Column<int>(type: "integer", nullable: false),
+                    LanguageCode = table.Column<string>(type: "character(2)", unicode: false, fixedLength: true, maxLength: 2, nullable: false),
+                    CustomValue = table.Column<string>(type: "character varying(1000)", maxLength: 1000, nullable: false)
                 },
                 constraints: table =>
                 {
@@ -3011,41 +2964,19 @@ namespace Dotnetable.Migrations.SqlServer.Migrations
                 });
 
             migrationBuilder.CreateTable(
-                name: "ProductContentSectionTranslations",
-                columns: table => new
-                {
-                    ProductContentSectionTranslationID = table.Column<int>(type: "int", nullable: false)
-                        .Annotation("SqlServer:Identity", "1, 1"),
-                    ProductContentSectionID = table.Column<int>(type: "int", nullable: false),
-                    LanguageCode = table.Column<string>(type: "char(2)", unicode: false, fixedLength: true, maxLength: 2, nullable: false),
-                    HtmlContent = table.Column<string>(type: "nvarchar(max)", nullable: false)
-                },
-                constraints: table =>
-                {
-                    table.PrimaryKey("PK_ProductContentSectionTranslations", x => x.ProductContentSectionTranslationID);
-                    table.ForeignKey(
-                        name: "FK_ProductContentSectionTranslations_ProductContentSections",
-                        column: x => x.ProductContentSectionID,
-                        principalTable: "ProductContentSections",
-                        principalColumn: "ProductContentSectionID");
-                });
-
-            migrationBuilder.CreateTable(
                 name: "ProductAnswers",
                 columns: table => new
                 {
-                    ProductAnswerID = table.Column<int>(type: "int", nullable: false)
-                        .Annotation("SqlServer:Identity", "1, 1"),
-                    ProductQuestionID = table.Column<int>(type: "int", nullable: false),
-                    WebsiteClientID = table.Column<int>(type: "int", nullable: true),
-                    VendorID = table.Column<int>(type: "int", nullable: true),
-                    Body = table.Column<string>(type: "nvarchar(4000)", maxLength: 4000, nullable: false),
-                    Status = table.Column<byte>(type: "tinyint", nullable: false, defaultValue: (byte)1)
-                        .Annotation("Relational:DefaultConstraintName", "DF_ProductAnswers_Status"),
-                    LikeCount = table.Column<int>(type: "int", nullable: false),
-                    CreatedAt = table.Column<DateTime>(type: "datetime", nullable: false, defaultValueSql: "(sysutcdatetime())")
-                        .Annotation("Relational:DefaultConstraintName", "DF_ProductAnswers_CreatedAt"),
-                    Approved = table.Column<bool>(type: "bit", nullable: false)
+                    ProductAnswerID = table.Column<int>(type: "integer", nullable: false)
+                        .Annotation("Npgsql:ValueGenerationStrategy", NpgsqlValueGenerationStrategy.IdentityByDefaultColumn),
+                    ProductQuestionID = table.Column<int>(type: "integer", nullable: false),
+                    WebsiteClientID = table.Column<int>(type: "integer", nullable: true),
+                    VendorID = table.Column<int>(type: "integer", nullable: true),
+                    Body = table.Column<string>(type: "character varying(4000)", maxLength: 4000, nullable: false),
+                    Status = table.Column<byte>(type: "smallint", nullable: false),
+                    LikeCount = table.Column<int>(type: "integer", nullable: false),
+                    CreatedAt = table.Column<DateTime>(type: "datetime", nullable: false),
+                    Approved = table.Column<bool>(type: "boolean", nullable: false)
                 },
                 constraints: table =>
                 {
@@ -3071,15 +3002,15 @@ namespace Dotnetable.Migrations.SqlServer.Migrations
                 name: "InventoryItems",
                 columns: table => new
                 {
-                    InventoryItemID = table.Column<int>(type: "int", nullable: false)
-                        .Annotation("SqlServer:Identity", "1, 1"),
-                    WebsiteID = table.Column<int>(type: "int", nullable: false),
-                    ProductVariantID = table.Column<int>(type: "int", nullable: false),
-                    QuantityOnHand = table.Column<int>(type: "int", nullable: false),
-                    QuantityReserved = table.Column<int>(type: "int", nullable: false),
-                    ReorderLevel = table.Column<int>(type: "int", nullable: false),
-                    AvgCostUsd = table.Column<decimal>(type: "decimal(18,4)", nullable: false),
-                    RowVersion = table.Column<byte[]>(type: "rowversion", rowVersion: true, nullable: false)
+                    InventoryItemID = table.Column<int>(type: "integer", nullable: false)
+                        .Annotation("Npgsql:ValueGenerationStrategy", NpgsqlValueGenerationStrategy.IdentityByDefaultColumn),
+                    WebsiteID = table.Column<int>(type: "integer", nullable: false),
+                    ProductVariantID = table.Column<int>(type: "integer", nullable: false),
+                    QuantityOnHand = table.Column<int>(type: "integer", nullable: false),
+                    QuantityReserved = table.Column<int>(type: "integer", nullable: false),
+                    ReorderLevel = table.Column<int>(type: "integer", nullable: false),
+                    AvgCostUsd = table.Column<decimal>(type: "numeric(18,4)", nullable: false),
+                    RowVersion = table.Column<byte[]>(type: "bytea", rowVersion: true, nullable: false)
                 },
                 constraints: table =>
                 {
@@ -3100,25 +3031,23 @@ namespace Dotnetable.Migrations.SqlServer.Migrations
                 name: "ProductReviews",
                 columns: table => new
                 {
-                    ProductReviewID = table.Column<int>(type: "int", nullable: false)
-                        .Annotation("SqlServer:Identity", "1, 1"),
-                    WebsiteID = table.Column<int>(type: "int", nullable: false),
-                    ProductID = table.Column<int>(type: "int", nullable: false),
-                    ProductVariantID = table.Column<int>(type: "int", nullable: true),
-                    WebsiteClientID = table.Column<int>(type: "int", nullable: false),
-                    Rating = table.Column<byte>(type: "tinyint", nullable: false),
-                    Title = table.Column<string>(type: "nvarchar(200)", maxLength: 200, nullable: true),
-                    Body = table.Column<string>(type: "nvarchar(4000)", maxLength: 4000, nullable: false),
-                    ProsJson = table.Column<string>(type: "nvarchar(2000)", maxLength: 2000, nullable: true),
-                    ConsJson = table.Column<string>(type: "nvarchar(2000)", maxLength: 2000, nullable: true),
-                    IsVerifiedPurchase = table.Column<bool>(type: "bit", nullable: false),
-                    Status = table.Column<byte>(type: "tinyint", nullable: false, defaultValue: (byte)1)
-                        .Annotation("Relational:DefaultConstraintName", "DF_ProductReviews_Status"),
-                    LikeCount = table.Column<int>(type: "int", nullable: false),
-                    DislikeCount = table.Column<int>(type: "int", nullable: false),
-                    CreatedAt = table.Column<DateTime>(type: "datetime2(0)", precision: 0, nullable: false, defaultValueSql: "(sysutcdatetime())")
-                        .Annotation("Relational:DefaultConstraintName", "DF_ProductReviews_CreatedAt"),
-                    Approved = table.Column<bool>(type: "bit", nullable: false)
+                    ProductReviewID = table.Column<int>(type: "integer", nullable: false)
+                        .Annotation("Npgsql:ValueGenerationStrategy", NpgsqlValueGenerationStrategy.IdentityByDefaultColumn),
+                    WebsiteID = table.Column<int>(type: "integer", nullable: false),
+                    ProductID = table.Column<int>(type: "integer", nullable: false),
+                    ProductVariantID = table.Column<int>(type: "integer", nullable: true),
+                    WebsiteClientID = table.Column<int>(type: "integer", nullable: false),
+                    Rating = table.Column<byte>(type: "smallint", nullable: false),
+                    Title = table.Column<string>(type: "character varying(200)", maxLength: 200, nullable: true),
+                    Body = table.Column<string>(type: "character varying(4000)", maxLength: 4000, nullable: false),
+                    ProsJson = table.Column<string>(type: "character varying(2000)", maxLength: 2000, nullable: true),
+                    ConsJson = table.Column<string>(type: "character varying(2000)", maxLength: 2000, nullable: true),
+                    IsVerifiedPurchase = table.Column<bool>(type: "boolean", nullable: false),
+                    Status = table.Column<byte>(type: "smallint", nullable: false),
+                    LikeCount = table.Column<int>(type: "integer", nullable: false),
+                    DislikeCount = table.Column<int>(type: "integer", nullable: false),
+                    CreatedAt = table.Column<DateTime>(type: "timestamp(0) with time zone", precision: 0, nullable: false),
+                    Approved = table.Column<bool>(type: "boolean", nullable: false)
                 },
                 constraints: table =>
                 {
@@ -3146,12 +3075,39 @@ namespace Dotnetable.Migrations.SqlServer.Migrations
                 });
 
             migrationBuilder.CreateTable(
+                name: "ProductVariantPriceHistories",
+                columns: table => new
+                {
+                    ProductVariantPriceHistoryID = table.Column<long>(type: "bigint", nullable: false)
+                        .Annotation("Npgsql:ValueGenerationStrategy", NpgsqlValueGenerationStrategy.IdentityByDefaultColumn),
+                    ProductVariantID = table.Column<int>(type: "integer", nullable: false),
+                    ReferencePriceUsd = table.Column<decimal>(type: "numeric(18,4)", nullable: false),
+                    CompareAtPriceUsd = table.Column<decimal>(type: "numeric(18,4)", nullable: true),
+                    RecordedAt = table.Column<DateTime>(type: "datetime", nullable: false),
+                    ChangedByMemberId = table.Column<int>(type: "integer", nullable: true)
+                },
+                constraints: table =>
+                {
+                    table.PrimaryKey("PK_ProductVariantPriceHistories", x => x.ProductVariantPriceHistoryID);
+                    table.ForeignKey(
+                        name: "FK_ProductVariantPriceHistories_Members",
+                        column: x => x.ChangedByMemberId,
+                        principalTable: "Members",
+                        principalColumn: "MemberID");
+                    table.ForeignKey(
+                        name: "FK_ProductVariantPriceHistories_ProductVariants",
+                        column: x => x.ProductVariantID,
+                        principalTable: "ProductVariants",
+                        principalColumn: "ProductVariantID");
+                });
+
+            migrationBuilder.CreateTable(
                 name: "VariantAttributeValues",
                 columns: table => new
                 {
-                    ProductVariantID = table.Column<int>(type: "int", nullable: false),
-                    AttributeDefinitionID = table.Column<int>(type: "int", nullable: false),
-                    AttributeOptionID = table.Column<int>(type: "int", nullable: false)
+                    ProductVariantID = table.Column<int>(type: "integer", nullable: false),
+                    AttributeDefinitionID = table.Column<int>(type: "integer", nullable: false),
+                    AttributeOptionID = table.Column<int>(type: "integer", nullable: false)
                 },
                 constraints: table =>
                 {
@@ -3177,18 +3133,16 @@ namespace Dotnetable.Migrations.SqlServer.Migrations
                 name: "VendorProducts",
                 columns: table => new
                 {
-                    VendorProductID = table.Column<int>(type: "int", nullable: false)
-                        .Annotation("SqlServer:Identity", "1, 1"),
-                    WebsiteID = table.Column<int>(type: "int", nullable: false),
-                    VendorID = table.Column<int>(type: "int", nullable: false),
-                    ProductVariantID = table.Column<int>(type: "int", nullable: false),
-                    ReferencePriceUsd = table.Column<decimal>(type: "decimal(18,4)", nullable: false),
-                    OverridePrice = table.Column<decimal>(type: "decimal(18,4)", nullable: true),
-                    StockQuantity = table.Column<int>(type: "int", nullable: false),
-                    DeliveryDays = table.Column<int>(type: "int", nullable: false, defaultValue: 1)
-                        .Annotation("Relational:DefaultConstraintName", "DF_VendorProducts_DeliveryDays"),
-                    IsActive = table.Column<bool>(type: "bit", nullable: false, defaultValue: true)
-                        .Annotation("Relational:DefaultConstraintName", "DF_VendorProducts_IsActive_1")
+                    VendorProductID = table.Column<int>(type: "integer", nullable: false)
+                        .Annotation("Npgsql:ValueGenerationStrategy", NpgsqlValueGenerationStrategy.IdentityByDefaultColumn),
+                    WebsiteID = table.Column<int>(type: "integer", nullable: false),
+                    VendorID = table.Column<int>(type: "integer", nullable: false),
+                    ProductVariantID = table.Column<int>(type: "integer", nullable: false),
+                    ReferencePriceUsd = table.Column<decimal>(type: "numeric(18,4)", nullable: false),
+                    OverridePrice = table.Column<decimal>(type: "numeric(18,4)", nullable: true),
+                    StockQuantity = table.Column<int>(type: "integer", nullable: false),
+                    DeliveryDays = table.Column<int>(type: "integer", nullable: false),
+                    IsActive = table.Column<bool>(type: "boolean", nullable: false)
                 },
                 constraints: table =>
                 {
@@ -3214,12 +3168,11 @@ namespace Dotnetable.Migrations.SqlServer.Migrations
                 name: "WishlistItems",
                 columns: table => new
                 {
-                    WishlistItemID = table.Column<int>(type: "int", nullable: false)
-                        .Annotation("SqlServer:Identity", "1, 1"),
-                    WishlistID = table.Column<int>(type: "int", nullable: false),
-                    ProductVariantID = table.Column<int>(type: "int", nullable: false),
-                    AddedAt = table.Column<DateTime>(type: "datetime2(0)", precision: 0, nullable: false, defaultValueSql: "(sysutcdatetime())")
-                        .Annotation("Relational:DefaultConstraintName", "DF_WishlistItems_AddedAt")
+                    WishlistItemID = table.Column<int>(type: "integer", nullable: false)
+                        .Annotation("Npgsql:ValueGenerationStrategy", NpgsqlValueGenerationStrategy.IdentityByDefaultColumn),
+                    WishlistID = table.Column<int>(type: "integer", nullable: false),
+                    ProductVariantID = table.Column<int>(type: "integer", nullable: false),
+                    AddedAt = table.Column<DateTime>(type: "timestamp(0) with time zone", precision: 0, nullable: false)
                 },
                 constraints: table =>
                 {
@@ -3240,11 +3193,11 @@ namespace Dotnetable.Migrations.SqlServer.Migrations
                 name: "ProductWarningTranslations",
                 columns: table => new
                 {
-                    ProductWarningTranslationID = table.Column<int>(type: "int", nullable: false)
-                        .Annotation("SqlServer:Identity", "1, 1"),
-                    ProductWarningID = table.Column<int>(type: "int", nullable: false),
-                    LanguageCode = table.Column<string>(type: "char(2)", unicode: false, fixedLength: true, maxLength: 2, nullable: false),
-                    Text = table.Column<string>(type: "nvarchar(1000)", maxLength: 1000, nullable: false)
+                    ProductWarningTranslationID = table.Column<int>(type: "integer", nullable: false)
+                        .Annotation("Npgsql:ValueGenerationStrategy", NpgsqlValueGenerationStrategy.IdentityByDefaultColumn),
+                    ProductWarningID = table.Column<int>(type: "integer", nullable: false),
+                    LanguageCode = table.Column<string>(type: "character(2)", unicode: false, fixedLength: true, maxLength: 2, nullable: false),
+                    Text = table.Column<string>(type: "character varying(1000)", maxLength: 1000, nullable: false)
                 },
                 constraints: table =>
                 {
@@ -3260,11 +3213,11 @@ namespace Dotnetable.Migrations.SqlServer.Migrations
                 name: "MenuItemTranslations",
                 columns: table => new
                 {
-                    MenuItemTranslationID = table.Column<int>(type: "int", nullable: false)
-                        .Annotation("SqlServer:Identity", "1, 1"),
-                    MenuItemID = table.Column<int>(type: "int", nullable: false),
-                    LanguageCode = table.Column<string>(type: "char(2)", unicode: false, fixedLength: true, maxLength: 2, nullable: false),
-                    Title = table.Column<string>(type: "nvarchar(200)", maxLength: 200, nullable: false)
+                    MenuItemTranslationID = table.Column<int>(type: "integer", nullable: false)
+                        .Annotation("Npgsql:ValueGenerationStrategy", NpgsqlValueGenerationStrategy.IdentityByDefaultColumn),
+                    MenuItemID = table.Column<int>(type: "integer", nullable: false),
+                    LanguageCode = table.Column<string>(type: "character(2)", unicode: false, fixedLength: true, maxLength: 2, nullable: false),
+                    Title = table.Column<string>(type: "character varying(200)", maxLength: 200, nullable: false)
                 },
                 constraints: table =>
                 {
@@ -3280,19 +3233,17 @@ namespace Dotnetable.Migrations.SqlServer.Migrations
                 name: "PaymentRefunds",
                 columns: table => new
                 {
-                    PaymentRefundID = table.Column<int>(type: "int", nullable: false)
-                        .Annotation("SqlServer:Identity", "1, 1"),
-                    PaymentID = table.Column<int>(type: "int", nullable: false),
-                    Amount = table.Column<decimal>(type: "decimal(18,4)", nullable: false),
-                    Reason = table.Column<string>(type: "nvarchar(500)", maxLength: 500, nullable: true),
-                    Status = table.Column<byte>(type: "tinyint", nullable: false, defaultValue: (byte)1)
-                        .Annotation("Relational:DefaultConstraintName", "DF_PaymentRefunds_Status"),
-                    BankAccountID = table.Column<int>(type: "int", nullable: true),
-                    ClientWalletTransactionID = table.Column<int>(type: "int", nullable: true),
+                    PaymentRefundID = table.Column<int>(type: "integer", nullable: false)
+                        .Annotation("Npgsql:ValueGenerationStrategy", NpgsqlValueGenerationStrategy.IdentityByDefaultColumn),
+                    PaymentID = table.Column<int>(type: "integer", nullable: false),
+                    Amount = table.Column<decimal>(type: "numeric(18,4)", nullable: false),
+                    Reason = table.Column<string>(type: "character varying(500)", maxLength: 500, nullable: true),
+                    Status = table.Column<byte>(type: "smallint", nullable: false),
+                    BankAccountID = table.Column<int>(type: "integer", nullable: true),
+                    ClientWalletTransactionID = table.Column<int>(type: "integer", nullable: true),
                     RefundedAt = table.Column<DateTime>(type: "datetime", nullable: true),
-                    CreatedByMemberID = table.Column<int>(type: "int", nullable: true),
-                    CreatedAt = table.Column<DateTime>(type: "datetime", nullable: false, defaultValueSql: "(sysutcdatetime())")
-                        .Annotation("Relational:DefaultConstraintName", "DF_PaymentRefunds_CreatedAt")
+                    CreatedByMemberID = table.Column<int>(type: "integer", nullable: true),
+                    CreatedAt = table.Column<DateTime>(type: "datetime", nullable: false)
                 },
                 constraints: table =>
                 {
@@ -3323,22 +3274,22 @@ namespace Dotnetable.Migrations.SqlServer.Migrations
                 name: "OrderItems",
                 columns: table => new
                 {
-                    OrderItemID = table.Column<int>(type: "int", nullable: false)
-                        .Annotation("SqlServer:Identity", "1, 1"),
-                    OrderID = table.Column<int>(type: "int", nullable: false),
-                    WebsiteID = table.Column<int>(type: "int", nullable: false),
-                    SourceWebsiteID = table.Column<int>(type: "int", nullable: false),
-                    ProductVariantID = table.Column<int>(type: "int", nullable: false),
-                    VendorProductID = table.Column<int>(type: "int", nullable: true),
-                    VendorID = table.Column<int>(type: "int", nullable: true),
-                    TitleSnapshot = table.Column<string>(type: "nvarchar(300)", maxLength: 300, nullable: false),
-                    SkuSnapshot = table.Column<string>(type: "nvarchar(100)", maxLength: 100, nullable: false),
-                    Quantity = table.Column<int>(type: "int", nullable: false),
-                    UnitPrice = table.Column<decimal>(type: "decimal(18,4)", nullable: false),
-                    UnitPriceUsd = table.Column<decimal>(type: "decimal(18,4)", nullable: false),
-                    UnitCostUsd = table.Column<decimal>(type: "decimal(18,4)", nullable: false),
-                    DiscountAmount = table.Column<decimal>(type: "decimal(18,4)", nullable: false),
-                    TotalPrice = table.Column<decimal>(type: "decimal(18,4)", nullable: false)
+                    OrderItemID = table.Column<int>(type: "integer", nullable: false)
+                        .Annotation("Npgsql:ValueGenerationStrategy", NpgsqlValueGenerationStrategy.IdentityByDefaultColumn),
+                    OrderID = table.Column<int>(type: "integer", nullable: false),
+                    WebsiteID = table.Column<int>(type: "integer", nullable: false),
+                    SourceWebsiteID = table.Column<int>(type: "integer", nullable: false),
+                    ProductVariantID = table.Column<int>(type: "integer", nullable: false),
+                    VendorProductID = table.Column<int>(type: "integer", nullable: true),
+                    VendorID = table.Column<int>(type: "integer", nullable: true),
+                    TitleSnapshot = table.Column<string>(type: "character varying(300)", maxLength: 300, nullable: false),
+                    SkuSnapshot = table.Column<string>(type: "character varying(100)", maxLength: 100, nullable: false),
+                    Quantity = table.Column<int>(type: "integer", nullable: false),
+                    UnitPrice = table.Column<decimal>(type: "numeric(18,4)", nullable: false),
+                    UnitPriceUsd = table.Column<decimal>(type: "numeric(18,4)", nullable: false),
+                    UnitCostUsd = table.Column<decimal>(type: "numeric(18,4)", nullable: false),
+                    DiscountAmount = table.Column<decimal>(type: "numeric(18,4)", nullable: false),
+                    TotalPrice = table.Column<decimal>(type: "numeric(18,4)", nullable: false)
                 },
                 constraints: table =>
                 {
@@ -3379,24 +3330,22 @@ namespace Dotnetable.Migrations.SqlServer.Migrations
                 name: "StockMovements",
                 columns: table => new
                 {
-                    StockMovementID = table.Column<int>(type: "int", nullable: false)
-                        .Annotation("SqlServer:Identity", "1, 1"),
-                    WebsiteID = table.Column<int>(type: "int", nullable: false),
-                    ProductVariantID = table.Column<int>(type: "int", nullable: false),
-                    Type = table.Column<byte>(type: "tinyint", nullable: false),
-                    Quantity = table.Column<int>(type: "int", nullable: false),
-                    UnitCostUsd = table.Column<decimal>(type: "decimal(18,4)", nullable: false),
-                    UnitSalePriceUsd = table.Column<decimal>(type: "decimal(18,4)", nullable: true),
-                    CurrencyCode = table.Column<string>(type: "char(3)", unicode: false, fixedLength: true, maxLength: 3, nullable: false),
-                    ExchangeRateToUsd = table.Column<decimal>(type: "decimal(18,6)", nullable: false, defaultValue: 1m, comment: "website's local currency rate snapshotted at the moment of this stock entry/exit, so accounting and reports can be reconstructed in local currency at that point in time")
-                        .Annotation("Relational:DefaultConstraintName", "DF_StockMovements_ExchangeRateToUsd"),
-                    SupplierID = table.Column<int>(type: "int", nullable: true),
-                    OrderID = table.Column<int>(type: "int", nullable: true),
-                    OrderItemID = table.Column<int>(type: "int", nullable: true),
-                    Note = table.Column<string>(type: "nvarchar(500)", maxLength: 500, nullable: true),
-                    CreatedByMemberID = table.Column<int>(type: "int", nullable: true),
-                    CreatedAt = table.Column<DateTime>(type: "datetime2(0)", precision: 0, nullable: false, defaultValueSql: "(sysutcdatetime())")
-                        .Annotation("Relational:DefaultConstraintName", "DF_StockMovements_CreatedAt")
+                    StockMovementID = table.Column<int>(type: "integer", nullable: false)
+                        .Annotation("Npgsql:ValueGenerationStrategy", NpgsqlValueGenerationStrategy.IdentityByDefaultColumn),
+                    WebsiteID = table.Column<int>(type: "integer", nullable: false),
+                    ProductVariantID = table.Column<int>(type: "integer", nullable: false),
+                    Type = table.Column<byte>(type: "smallint", nullable: false),
+                    Quantity = table.Column<int>(type: "integer", nullable: false),
+                    UnitCostUsd = table.Column<decimal>(type: "numeric(18,4)", nullable: false),
+                    UnitSalePriceUsd = table.Column<decimal>(type: "numeric(18,4)", nullable: true),
+                    CurrencyCode = table.Column<string>(type: "character(3)", unicode: false, fixedLength: true, maxLength: 3, nullable: false),
+                    ExchangeRateToUsd = table.Column<decimal>(type: "numeric(18,6)", nullable: false, comment: "website's local currency rate snapshotted at the moment of this stock entry/exit, so accounting and reports can be reconstructed in local currency at that point in time"),
+                    SupplierID = table.Column<int>(type: "integer", nullable: true),
+                    OrderID = table.Column<int>(type: "integer", nullable: true),
+                    OrderItemID = table.Column<int>(type: "integer", nullable: true),
+                    Note = table.Column<string>(type: "character varying(500)", maxLength: 500, nullable: true),
+                    CreatedByMemberID = table.Column<int>(type: "integer", nullable: true),
+                    CreatedAt = table.Column<DateTime>(type: "timestamp(0) with time zone", precision: 0, nullable: false)
                 },
                 constraints: table =>
                 {
@@ -3442,19 +3391,18 @@ namespace Dotnetable.Migrations.SqlServer.Migrations
                 name: "VendorCreditTransactions",
                 columns: table => new
                 {
-                    VendorCreditTransactionID = table.Column<int>(type: "int", nullable: false)
-                        .Annotation("SqlServer:Identity", "1, 1"),
-                    VendorID = table.Column<int>(type: "int", nullable: false),
-                    WebsiteID = table.Column<int>(type: "int", nullable: false),
-                    AmountUsd = table.Column<decimal>(type: "decimal(18,4)", nullable: false),
-                    BalanceAfterUsd = table.Column<decimal>(type: "decimal(18,4)", nullable: false),
-                    SourceType = table.Column<byte>(type: "tinyint", nullable: false, comment: "1 = Grant, 2 = Sale, 3 = Adjustment, 4 = Refund"),
-                    SourceOrderItemID = table.Column<int>(type: "int", nullable: true),
-                    MirrorOrderID = table.Column<int>(type: "int", nullable: true),
-                    Note = table.Column<string>(type: "nvarchar(500)", maxLength: 500, nullable: true),
-                    CreatedByMemberID = table.Column<int>(type: "int", nullable: true),
-                    CreatedAt = table.Column<DateTime>(type: "datetime", nullable: false, defaultValueSql: "(sysutcdatetime())")
-                        .Annotation("Relational:DefaultConstraintName", "DF_VendorCreditTransactions_CreatedAt")
+                    VendorCreditTransactionID = table.Column<int>(type: "integer", nullable: false)
+                        .Annotation("Npgsql:ValueGenerationStrategy", NpgsqlValueGenerationStrategy.IdentityByDefaultColumn),
+                    VendorID = table.Column<int>(type: "integer", nullable: false),
+                    WebsiteID = table.Column<int>(type: "integer", nullable: false),
+                    AmountUsd = table.Column<decimal>(type: "numeric(18,4)", nullable: false),
+                    BalanceAfterUsd = table.Column<decimal>(type: "numeric(18,4)", nullable: false),
+                    SourceType = table.Column<byte>(type: "smallint", nullable: false, comment: "1 = Grant, 2 = Sale, 3 = Adjustment, 4 = Refund"),
+                    SourceOrderItemID = table.Column<int>(type: "integer", nullable: true),
+                    MirrorOrderID = table.Column<int>(type: "integer", nullable: true),
+                    Note = table.Column<string>(type: "character varying(500)", maxLength: 500, nullable: true),
+                    CreatedByMemberID = table.Column<int>(type: "integer", nullable: true),
+                    CreatedAt = table.Column<DateTime>(type: "datetime", nullable: false)
                 },
                 constraints: table =>
                 {
@@ -3490,14 +3438,14 @@ namespace Dotnetable.Migrations.SqlServer.Migrations
                 name: "SettlementItems",
                 columns: table => new
                 {
-                    SettlementItemID = table.Column<int>(type: "int", nullable: false)
-                        .Annotation("SqlServer:Identity", "1, 1"),
-                    SettlementID = table.Column<int>(type: "int", nullable: false),
-                    OrderItemID = table.Column<int>(type: "int", nullable: true),
-                    StockMovementID = table.Column<int>(type: "int", nullable: true),
-                    PaymentID = table.Column<int>(type: "int", nullable: true),
-                    Amount = table.Column<decimal>(type: "decimal(18,4)", nullable: false),
-                    Description = table.Column<string>(type: "nvarchar(300)", maxLength: 300, nullable: true)
+                    SettlementItemID = table.Column<int>(type: "integer", nullable: false)
+                        .Annotation("Npgsql:ValueGenerationStrategy", NpgsqlValueGenerationStrategy.IdentityByDefaultColumn),
+                    SettlementID = table.Column<int>(type: "integer", nullable: false),
+                    OrderItemID = table.Column<int>(type: "integer", nullable: true),
+                    StockMovementID = table.Column<int>(type: "integer", nullable: true),
+                    PaymentID = table.Column<int>(type: "integer", nullable: true),
+                    Amount = table.Column<decimal>(type: "numeric(18,4)", nullable: false),
+                    Description = table.Column<string>(type: "character varying(300)", maxLength: 300, nullable: true)
                 },
                 constraints: table =>
                 {
@@ -3525,9 +3473,10 @@ namespace Dotnetable.Migrations.SqlServer.Migrations
                 });
 
             migrationBuilder.CreateIndex(
-                name: "IX_AdminNotifications_MemberID",
+                name: "IX_AdminNotifications_MemberID_IsRead_CreatedAt",
                 table: "AdminNotifications",
-                column: "MemberID");
+                columns: new[] { "MemberID", "IsRead", "CreatedAt" },
+                descending: new[] { false, false, true });
 
             migrationBuilder.CreateIndex(
                 name: "IX_AdminNotifications_WebsiteID",
@@ -3608,8 +3557,7 @@ namespace Dotnetable.Migrations.SqlServer.Migrations
                 name: "UQ_CartItems_CartID_ProductVariantID_VendorProductID",
                 table: "CartItems",
                 columns: new[] { "CartID", "ProductVariantID", "VendorProductID" },
-                unique: true,
-                filter: "[VendorProductID] IS NOT NULL");
+                unique: true);
 
             migrationBuilder.CreateIndex(
                 name: "IX_Carts_CouponID",
@@ -3926,14 +3874,14 @@ namespace Dotnetable.Migrations.SqlServer.Migrations
                 table: "Languages",
                 column: "LanguageCode",
                 unique: true,
-                filter: "WebsiteID IS NULL");
+                filter: "([WebsiteID] IS NULL)");
 
             migrationBuilder.CreateIndex(
                 name: "UQ_Languages_WebsiteID_LanguageCode",
                 table: "Languages",
                 columns: new[] { "WebsiteID", "LanguageCode" },
                 unique: true,
-                filter: "WebsiteID IS NOT NULL");
+                filter: "([WebsiteID] IS NOT NULL)");
 
             migrationBuilder.CreateIndex(
                 name: "IX_LocalizationKeys_WebsiteID",
@@ -3945,14 +3893,14 @@ namespace Dotnetable.Migrations.SqlServer.Migrations
                 table: "LocalizationKeys",
                 column: "ItemKey",
                 unique: true,
-                filter: "WebsiteID IS NULL");
+                filter: "([WebsiteID] IS NULL)");
 
             migrationBuilder.CreateIndex(
                 name: "UQ_LocalizationKeys_WebsiteID_ItemKey",
                 table: "LocalizationKeys",
                 columns: new[] { "WebsiteID", "ItemKey" },
                 unique: true,
-                filter: "WebsiteID IS NOT NULL");
+                filter: "([WebsiteID] IS NOT NULL)");
 
             migrationBuilder.CreateIndex(
                 name: "IX_LocalizationValues_LocalizationKeyID",
@@ -4345,26 +4293,6 @@ namespace Dotnetable.Migrations.SqlServer.Migrations
                 column: "ProductCategoryID");
 
             migrationBuilder.CreateIndex(
-                name: "IX_ProductContentSections_FileId",
-                table: "ProductContentSections",
-                column: "FileId");
-
-            migrationBuilder.CreateIndex(
-                name: "IX_ProductContentSections_MediaSetID",
-                table: "ProductContentSections",
-                column: "MediaSetID");
-
-            migrationBuilder.CreateIndex(
-                name: "IX_ProductContentSections_ProductID",
-                table: "ProductContentSections",
-                column: "ProductID");
-
-            migrationBuilder.CreateIndex(
-                name: "IX_ProductContentSectionTranslations_ProductContentSectionID",
-                table: "ProductContentSectionTranslations",
-                column: "ProductContentSectionID");
-
-            migrationBuilder.CreateIndex(
                 name: "IX_ProductMedia_MediaSetID",
                 table: "ProductMedia",
                 column: "MediaSetID");
@@ -4417,7 +4345,7 @@ namespace Dotnetable.Migrations.SqlServer.Migrations
             migrationBuilder.CreateIndex(
                 name: "IX_Products_CreatedByMemberId",
                 table: "Products",
-                column: "CreatedByMemberId");
+                column: "CreatedByMemberID");
 
             migrationBuilder.CreateIndex(
                 name: "IX_Products_FeaturedImageFileID",
@@ -4433,6 +4361,17 @@ namespace Dotnetable.Migrations.SqlServer.Migrations
                 name: "IX_ProductTranslations_ProductID",
                 table: "ProductTranslations",
                 column: "ProductID");
+
+            migrationBuilder.CreateIndex(
+                name: "IX_ProductVariantPriceHistories_ChangedByMemberId",
+                table: "ProductVariantPriceHistories",
+                column: "ChangedByMemberId");
+
+            migrationBuilder.CreateIndex(
+                name: "IX_ProductVariantPriceHistories_ProductVariantID_RecordedAt",
+                table: "ProductVariantPriceHistories",
+                columns: new[] { "ProductVariantID", "RecordedAt" },
+                descending: new[] { false, true });
 
             migrationBuilder.CreateIndex(
                 name: "IX_ProductVariants_ImageFileID",
@@ -4458,6 +4397,16 @@ namespace Dotnetable.Migrations.SqlServer.Migrations
                 name: "IX_ProductWarningTranslations_ProductWarningID",
                 table: "ProductWarningTranslations",
                 column: "ProductWarningID");
+
+            migrationBuilder.CreateIndex(
+                name: "IX_ProductWarranties_ProductID",
+                table: "ProductWarranties",
+                column: "ProductID");
+
+            migrationBuilder.CreateIndex(
+                name: "IX_ProductWarranties_WarrantyID",
+                table: "ProductWarranties",
+                column: "WarrantyID");
 
             migrationBuilder.CreateIndex(
                 name: "IX_SettlementItems_OrderItemID",
@@ -4704,7 +4653,7 @@ namespace Dotnetable.Migrations.SqlServer.Migrations
                 table: "Vendors",
                 column: "MemberID",
                 unique: true,
-                filter: "MemberID IS NOT NULL");
+                filter: "([MemberID] IS NOT NULL)");
 
             migrationBuilder.CreateIndex(
                 name: "IX_Vendors_WebsiteID",
@@ -4715,6 +4664,16 @@ namespace Dotnetable.Migrations.SqlServer.Migrations
                 name: "IX_VendorTranslations_VendorID",
                 table: "VendorTranslations",
                 column: "VendorID");
+
+            migrationBuilder.CreateIndex(
+                name: "IX_Warranties_WebsiteID",
+                table: "Warranties",
+                column: "WebsiteID");
+
+            migrationBuilder.CreateIndex(
+                name: "IX_WarrantyTranslations_WarrantyID",
+                table: "WarrantyTranslations",
+                column: "WarrantyID");
 
             migrationBuilder.CreateIndex(
                 name: "UQ_WebsiteCaptchaSettings_WebsiteID",
@@ -5297,9 +5256,6 @@ namespace Dotnetable.Migrations.SqlServer.Migrations
                 name: "ProductCategoryTranslations");
 
             migrationBuilder.DropTable(
-                name: "ProductContentSectionTranslations");
-
-            migrationBuilder.DropTable(
                 name: "ProductMedia");
 
             migrationBuilder.DropTable(
@@ -5312,7 +5268,13 @@ namespace Dotnetable.Migrations.SqlServer.Migrations
                 name: "ProductTranslations");
 
             migrationBuilder.DropTable(
+                name: "ProductVariantPriceHistories");
+
+            migrationBuilder.DropTable(
                 name: "ProductWarningTranslations");
+
+            migrationBuilder.DropTable(
+                name: "ProductWarranties");
 
             migrationBuilder.DropTable(
                 name: "SettlementItems");
@@ -5340,6 +5302,9 @@ namespace Dotnetable.Migrations.SqlServer.Migrations
 
             migrationBuilder.DropTable(
                 name: "VendorTranslations");
+
+            migrationBuilder.DropTable(
+                name: "WarrantyTranslations");
 
             migrationBuilder.DropTable(
                 name: "WebsiteCaptchaSettings");
@@ -5414,7 +5379,7 @@ namespace Dotnetable.Migrations.SqlServer.Migrations
                 name: "ProductAttributeValues");
 
             migrationBuilder.DropTable(
-                name: "ProductContentSections");
+                name: "MediaSets");
 
             migrationBuilder.DropTable(
                 name: "ProductWarnings");
@@ -5433,6 +5398,9 @@ namespace Dotnetable.Migrations.SqlServer.Migrations
 
             migrationBuilder.DropTable(
                 name: "Tags");
+
+            migrationBuilder.DropTable(
+                name: "Warranties");
 
             migrationBuilder.DropTable(
                 name: "Wishlists");
@@ -5457,9 +5425,6 @@ namespace Dotnetable.Migrations.SqlServer.Migrations
 
             migrationBuilder.DropTable(
                 name: "AttributeOptions");
-
-            migrationBuilder.DropTable(
-                name: "MediaSets");
 
             migrationBuilder.DropTable(
                 name: "ClientWalletTransactions");

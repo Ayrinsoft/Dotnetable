@@ -1,4 +1,4 @@
-﻿using System;
+using System;
 using System.Collections.Generic;
 
 namespace Dotnetable.Domain.Entities;
@@ -83,6 +83,8 @@ public partial class Member
     public virtual ICollection<Settlement> SettlementCreatedByMembers { get; set; } = new List<Settlement>();
 
     public virtual ICollection<StockMovement> StockMovements { get; set; } = new List<StockMovement>();
+
+    public virtual ICollection<VendorCreditTransaction> VendorCreditTransactions { get; set; } = new List<VendorCreditTransaction>();
 
     public virtual Vendor? Vendor { get; set; }
 

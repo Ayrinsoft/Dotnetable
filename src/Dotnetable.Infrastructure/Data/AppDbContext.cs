@@ -216,6 +216,8 @@ public partial class AppDbContext : DbContext
 
     public virtual DbSet<Vendor> Vendors { get; set; }
 
+    public virtual DbSet<VendorCreditTransaction> VendorCreditTransactions { get; set; }
+
     public virtual DbSet<VendorProduct> VendorProducts { get; set; }
 
     public virtual DbSet<VendorTranslation> VendorTranslations { get; set; }
@@ -1757,7 +1759,6 @@ public partial class AppDbContext : DbContext
             entity.Property(e => e.Title)
                 .HasMaxLength(64)
                 .IsUnicode(false);
-            entity.Property(e => e.WebsiteID).HasDefaultValue(1);
 
             entity.HasOne(d => d.Website).WithMany(p => p.Policies)
                 .HasForeignKey(d => d.WebsiteID)
@@ -2691,6 +2692,47 @@ public partial class AppDbContext : DbContext
                 .HasForeignKey(d => d.WebsiteID)
                 .OnDelete(DeleteBehavior.ClientSetNull)
                 .HasConstraintName("FK_Vendors_Websites");
+        });
+
+        modelBuilder.Entity<VendorCreditTransaction>(entity =>
+        {
+            entity.HasIndex(e => e.CreatedByMemberID, "IX_VendorCreditTransactions_CreatedByMemberID");
+
+            entity.HasIndex(e => e.MirrorOrderID, "IX_VendorCreditTransactions_MirrorOrderID");
+
+            entity.HasIndex(e => e.SourceOrderItemID, "IX_VendorCreditTransactions_SourceOrderItemID");
+
+            entity.HasIndex(e => e.VendorID, "IX_VendorCreditTransactions_VendorID");
+
+            entity.HasIndex(e => e.WebsiteID, "IX_VendorCreditTransactions_WebsiteID");
+
+            entity.Property(e => e.AmountUsd).HasColumnType("decimal(18, 4)");
+            entity.Property(e => e.BalanceAfterUsd).HasColumnType("decimal(18, 4)");
+            entity.Property(e => e.CreatedAt).HasColumnType("datetime");
+            entity.Property(e => e.Note).HasMaxLength(500);
+            entity.Property(e => e.SourceType).HasComment("1 = Grant, 2 = Sale, 3 = Adjustment, 4 = Refund");
+
+            entity.HasOne(d => d.CreatedByMember).WithMany(p => p.VendorCreditTransactions)
+                .HasForeignKey(d => d.CreatedByMemberID)
+                .HasConstraintName("FK_VendorCreditTransactions_Members");
+
+            entity.HasOne(d => d.MirrorOrder).WithMany(p => p.VendorCreditTransactionMirrorOrders)
+                .HasForeignKey(d => d.MirrorOrderID)
+                .HasConstraintName("FK_VendorCreditTransactions_Orders");
+
+            entity.HasOne(d => d.SourceOrderItem).WithMany(p => p.VendorCreditTransactions)
+                .HasForeignKey(d => d.SourceOrderItemID)
+                .HasConstraintName("FK_VendorCreditTransactions_OrderItems");
+
+            entity.HasOne(d => d.Vendor).WithMany(p => p.VendorCreditTransactions)
+                .HasForeignKey(d => d.VendorID)
+                .OnDelete(DeleteBehavior.ClientSetNull)
+                .HasConstraintName("FK_VendorCreditTransactions_Vendors");
+
+            entity.HasOne(d => d.Website).WithMany(p => p.VendorCreditTransactions)
+                .HasForeignKey(d => d.WebsiteID)
+                .OnDelete(DeleteBehavior.ClientSetNull)
+                .HasConstraintName("FK_VendorCreditTransactions_Websites");
         });
 
         modelBuilder.Entity<VendorProduct>(entity =>

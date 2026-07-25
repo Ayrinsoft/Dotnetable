@@ -46,7 +46,7 @@ public class ProductService : IProductService
             q = q.Where(p => p.ProductCategoryMaps.Any(m => m.ProductCategoryID == cid));
         var memberScope = createdByMemberId ?? filter.CreatedByMemberId;
         if (memberScope is int memberId)
-            q = q.Where(p => p.CreatedByMemberId == memberId);
+            q = q.Where(p => p.CreatedByMemberID == memberId);
         if (!string.IsNullOrWhiteSpace(search))
             q = q.Where(p => p.Title.Contains(search) || p.Slug.Contains(search));
 

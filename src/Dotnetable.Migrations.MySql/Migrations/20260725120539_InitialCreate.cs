@@ -39,8 +39,8 @@ namespace Dotnetable.Migrations.MySql.Migrations
                     CurrencyCode = table.Column<string>(type: "char(3)", unicode: false, fixedLength: true, maxLength: 3, nullable: false),
                     Name = table.Column<string>(type: "varchar(50)", maxLength: 50, nullable: false),
                     Symbol = table.Column<string>(type: "varchar(10)", maxLength: 10, nullable: false),
-                    DecimalDigits = table.Column<byte>(type: "tinyint unsigned", nullable: false, defaultValue: (byte)2),
-                    IsActive = table.Column<bool>(type: "tinyint(1)", nullable: false, defaultValue: true)
+                    DecimalDigits = table.Column<byte>(type: "tinyint unsigned", nullable: false),
+                    IsActive = table.Column<bool>(type: "tinyint(1)", nullable: false)
                 },
                 constraints: table =>
                 {
@@ -304,8 +304,8 @@ namespace Dotnetable.Migrations.MySql.Migrations
                     AccountNumber = table.Column<string>(type: "varchar(30)", unicode: false, maxLength: 30, nullable: true),
                     IBAN = table.Column<string>(type: "varchar(34)", unicode: false, maxLength: 34, nullable: true),
                     CardNumber = table.Column<string>(type: "varchar(20)", unicode: false, maxLength: 20, nullable: true),
-                    IsForOfflinePayment = table.Column<bool>(type: "tinyint(1)", nullable: false, defaultValue: true),
-                    IsActive = table.Column<bool>(type: "tinyint(1)", nullable: false, defaultValue: true),
+                    IsForOfflinePayment = table.Column<bool>(type: "tinyint(1)", nullable: false),
+                    IsActive = table.Column<bool>(type: "tinyint(1)", nullable: false),
                     CreatedByMemberId = table.Column<int>(type: "int", nullable: false)
                 },
                 constraints: table =>
@@ -342,7 +342,7 @@ namespace Dotnetable.Migrations.MySql.Migrations
                     Name = table.Column<string>(type: "varchar(200)", maxLength: 200, nullable: false),
                     Slug = table.Column<string>(type: "varchar(200)", maxLength: 200, nullable: false),
                     LogoFileID = table.Column<int>(type: "int", nullable: true),
-                    IsActive = table.Column<bool>(type: "tinyint(1)", nullable: false, defaultValue: true)
+                    IsActive = table.Column<bool>(type: "tinyint(1)", nullable: false)
                 },
                 constraints: table =>
                 {
@@ -381,8 +381,8 @@ namespace Dotnetable.Migrations.MySql.Migrations
                     CartID = table.Column<int>(type: "int", nullable: false),
                     ProductVariantID = table.Column<int>(type: "int", nullable: false),
                     VendorProductID = table.Column<int>(type: "int", nullable: true),
-                    Quantity = table.Column<int>(type: "int", nullable: false, defaultValue: 1),
-                    AddedAt = table.Column<DateTime>(type: "datetime(0)", precision: 0, nullable: false, defaultValueSql: "(sysutcdatetime())")
+                    Quantity = table.Column<int>(type: "int", nullable: false),
+                    AddedAt = table.Column<DateTime>(type: "datetime(0)", precision: 0, nullable: false)
                 },
                 constraints: table =>
                 {
@@ -400,8 +400,8 @@ namespace Dotnetable.Migrations.MySql.Migrations
                     WebsiteClientID = table.Column<int>(type: "int", nullable: true),
                     SessionKey = table.Column<string>(type: "varchar(64)", unicode: false, maxLength: 64, nullable: true),
                     CouponID = table.Column<int>(type: "int", nullable: true),
-                    CreatedAt = table.Column<DateTime>(type: "datetime(0)", precision: 0, nullable: false, defaultValueSql: "(sysutcdatetime())"),
-                    UpdatedAt = table.Column<DateTime>(type: "datetime(0)", precision: 0, nullable: false, defaultValueSql: "(sysutcdatetime())")
+                    CreatedAt = table.Column<DateTime>(type: "datetime(0)", precision: 0, nullable: false),
+                    UpdatedAt = table.Column<DateTime>(type: "datetime(0)", precision: 0, nullable: false)
                 },
                 constraints: table =>
                 {
@@ -421,7 +421,7 @@ namespace Dotnetable.Migrations.MySql.Migrations
                     Name = table.Column<string>(type: "varchar(200)", maxLength: 200, nullable: false),
                     Slug = table.Column<string>(type: "varchar(200)", maxLength: 200, nullable: false),
                     SortOrder = table.Column<int>(type: "int", nullable: false),
-                    IsActive = table.Column<bool>(type: "tinyint(1)", nullable: false, defaultValue: true)
+                    IsActive = table.Column<bool>(type: "tinyint(1)", nullable: false)
                 },
                 constraints: table =>
                 {
@@ -467,7 +467,7 @@ namespace Dotnetable.Migrations.MySql.Migrations
                     Code = table.Column<string>(type: "varchar(20)", maxLength: 20, nullable: false),
                     Name = table.Column<string>(type: "varchar(200)", maxLength: 200, nullable: false),
                     AccountType = table.Column<byte>(type: "tinyint unsigned", nullable: false),
-                    IsActive = table.Column<bool>(type: "tinyint(1)", nullable: false, defaultValue: true)
+                    IsActive = table.Column<bool>(type: "tinyint(1)", nullable: false)
                 },
                 constraints: table =>
                 {
@@ -494,8 +494,8 @@ namespace Dotnetable.Migrations.MySql.Migrations
                     IBAN = table.Column<string>(type: "varchar(34)", unicode: false, maxLength: 34, nullable: true),
                     CardNumber = table.Column<string>(type: "varchar(20)", unicode: false, maxLength: 20, nullable: true),
                     IsDefault = table.Column<bool>(type: "tinyint(1)", nullable: false),
-                    IsActive = table.Column<bool>(type: "tinyint(1)", nullable: false, defaultValue: true),
-                    CreatedAt = table.Column<DateTime>(type: "datetime(0)", precision: 0, nullable: false, defaultValueSql: "(sysutcdatetime())")
+                    IsActive = table.Column<bool>(type: "tinyint(1)", nullable: false),
+                    CreatedAt = table.Column<DateTime>(type: "datetime(0)", precision: 0, nullable: false)
                 },
                 constraints: table =>
                 {
@@ -517,10 +517,10 @@ namespace Dotnetable.Migrations.MySql.Migrations
                     WebsiteID = table.Column<int>(type: "int", nullable: false),
                     WebsiteClientID = table.Column<int>(type: "int", nullable: false),
                     BalanceUsd = table.Column<decimal>(type: "decimal(18,4)", nullable: false),
-                    IsActive = table.Column<bool>(type: "tinyint(1)", nullable: false, defaultValue: true),
+                    IsActive = table.Column<bool>(type: "tinyint(1)", nullable: false),
                     RowVersion = table.Column<byte[]>(type: "longblob", rowVersion: true, nullable: false)
                         .Annotation("MySQL:ValueGenerationStrategy", MySQLValueGenerationStrategy.ComputedColumn),
-                    CreatedAt = table.Column<DateTime>(type: "datetime(0)", precision: 0, nullable: false, defaultValueSql: "(sysutcdatetime())")
+                    CreatedAt = table.Column<DateTime>(type: "datetime(0)", precision: 0, nullable: false)
                 },
                 constraints: table =>
                 {
@@ -543,7 +543,7 @@ namespace Dotnetable.Migrations.MySql.Migrations
                     SourceId = table.Column<int>(type: "int", nullable: true),
                     Note = table.Column<string>(type: "varchar(500)", maxLength: 500, nullable: true),
                     CreatedByMemberID = table.Column<int>(type: "int", nullable: true),
-                    CreatedAt = table.Column<DateTime>(type: "datetime(0)", precision: 0, nullable: false, defaultValueSql: "(sysutcdatetime())")
+                    CreatedAt = table.Column<DateTime>(type: "datetime(0)", precision: 0, nullable: false)
                 },
                 constraints: table =>
                 {
@@ -567,13 +567,13 @@ namespace Dotnetable.Migrations.MySql.Migrations
                     ClientWalletID = table.Column<int>(type: "int", nullable: false),
                     ClientBankAccountID = table.Column<int>(type: "int", nullable: false),
                     AmountUsd = table.Column<decimal>(type: "decimal(18,4)", nullable: false),
-                    Status = table.Column<byte>(type: "tinyint unsigned", nullable: false, defaultValue: (byte)1),
+                    Status = table.Column<byte>(type: "tinyint unsigned", nullable: false),
                     ReviewedByMemberID = table.Column<int>(type: "int", nullable: true),
                     ReviewedAt = table.Column<DateTime>(type: "datetime(0)", precision: 0, nullable: true),
                     RejectReason = table.Column<string>(type: "varchar(500)", maxLength: 500, nullable: true),
                     PaymentRefNumber = table.Column<string>(type: "varchar(100)", maxLength: 100, nullable: true),
                     PaidAt = table.Column<DateTime>(type: "datetime(0)", precision: 0, nullable: true),
-                    RequestedAt = table.Column<DateTime>(type: "datetime(0)", precision: 0, nullable: false, defaultValueSql: "(sysutcdatetime())")
+                    RequestedAt = table.Column<DateTime>(type: "datetime(0)", precision: 0, nullable: false)
                 },
                 constraints: table =>
                 {
@@ -623,7 +623,7 @@ namespace Dotnetable.Migrations.MySql.Migrations
                     OrderID = table.Column<int>(type: "int", nullable: false),
                     WebsiteClientID = table.Column<int>(type: "int", nullable: false),
                     DiscountAmountUsd = table.Column<decimal>(type: "decimal(18,4)", nullable: false),
-                    RedeemedAt = table.Column<DateTime>(type: "datetime(0)", precision: 0, nullable: false, defaultValueSql: "(sysutcdatetime())")
+                    RedeemedAt = table.Column<DateTime>(type: "datetime(0)", precision: 0, nullable: false)
                 },
                 constraints: table =>
                 {
@@ -648,9 +648,9 @@ namespace Dotnetable.Migrations.MySql.Migrations
                     TimesUsed = table.Column<int>(type: "int", nullable: false),
                     StartsAt = table.Column<DateTime>(type: "datetime(0)", precision: 0, nullable: true),
                     EndsAt = table.Column<DateTime>(type: "datetime(0)", precision: 0, nullable: true),
-                    IsActive = table.Column<bool>(type: "tinyint(1)", nullable: false, defaultValue: true),
+                    IsActive = table.Column<bool>(type: "tinyint(1)", nullable: false),
                     CreatedByMemberID = table.Column<int>(type: "int", nullable: true),
-                    CreatedAt = table.Column<DateTime>(type: "datetime(0)", precision: 0, nullable: false, defaultValueSql: "(sysutcdatetime())")
+                    CreatedAt = table.Column<DateTime>(type: "datetime(0)", precision: 0, nullable: false)
                 },
                 constraints: table =>
                 {
@@ -907,13 +907,13 @@ namespace Dotnetable.Migrations.MySql.Migrations
                     SubmitButtonText = table.Column<string>(type: "varchar(100)", maxLength: 100, nullable: true),
                     SuccessMessage = table.Column<string>(type: "varchar(500)", maxLength: 500, nullable: true),
                     RequireLogin = table.Column<bool>(type: "tinyint(1)", nullable: false),
-                    AllowMultipleSubmissions = table.Column<bool>(type: "tinyint(1)", nullable: false, defaultValue: true),
+                    AllowMultipleSubmissions = table.Column<bool>(type: "tinyint(1)", nullable: false),
                     ShowResults = table.Column<bool>(type: "tinyint(1)", nullable: false),
                     NotifyEmail = table.Column<string>(type: "varchar(200)", maxLength: 200, nullable: true),
                     StartAt = table.Column<DateTime>(type: "datetime", nullable: true),
                     EndAt = table.Column<DateTime>(type: "datetime", nullable: true),
-                    IsActive = table.Column<bool>(type: "tinyint(1)", nullable: false, defaultValue: true),
-                    CreatedAt = table.Column<DateTime>(type: "datetime", nullable: false, defaultValueSql: "(sysutcdatetime())")
+                    IsActive = table.Column<bool>(type: "tinyint(1)", nullable: false),
+                    CreatedAt = table.Column<DateTime>(type: "datetime", nullable: false)
                 },
                 constraints: table =>
                 {
@@ -939,7 +939,7 @@ namespace Dotnetable.Migrations.MySql.Migrations
                     SourceType = table.Column<byte>(type: "tinyint unsigned", nullable: true),
                     SourceId = table.Column<int>(type: "int", nullable: true),
                     IsPosted = table.Column<bool>(type: "tinyint(1)", nullable: false),
-                    CreatedAt = table.Column<DateTime>(type: "datetime", nullable: false, defaultValueSql: "(sysutcdatetime())")
+                    CreatedAt = table.Column<DateTime>(type: "datetime", nullable: false)
                 },
                 constraints: table =>
                 {
@@ -1009,7 +1009,7 @@ namespace Dotnetable.Migrations.MySql.Migrations
                     LogTime = table.Column<DateTime>(type: "datetime", nullable: false),
                     IsSuccess = table.Column<bool>(type: "tinyint(1)", nullable: false),
                     TryIP = table.Column<string>(type: "varchar(15)", unicode: false, maxLength: 15, nullable: false),
-                    WebsiteID = table.Column<int>(type: "int", nullable: false, defaultValue: 1)
+                    WebsiteID = table.Column<int>(type: "int", nullable: false)
                 },
                 constraints: table =>
                 {
@@ -1031,7 +1031,7 @@ namespace Dotnetable.Migrations.MySql.Migrations
                     WebsiteID = table.Column<int>(type: "int", nullable: false),
                     Name = table.Column<string>(type: "varchar(200)", maxLength: 200, nullable: false),
                     IsShared = table.Column<bool>(type: "tinyint(1)", nullable: false),
-                    CreatedAt = table.Column<DateTime>(type: "datetime", nullable: false, defaultValueSql: "(sysutcdatetime())")
+                    CreatedAt = table.Column<DateTime>(type: "datetime", nullable: false)
                 },
                 constraints: table =>
                 {
@@ -1053,7 +1053,7 @@ namespace Dotnetable.Migrations.MySql.Migrations
                     WebsiteID = table.Column<int>(type: "int", nullable: false),
                     Name = table.Column<string>(type: "varchar(100)", maxLength: 100, nullable: false),
                     Location = table.Column<byte>(type: "tinyint unsigned", nullable: false),
-                    IsActive = table.Column<bool>(type: "tinyint(1)", nullable: false, defaultValue: true)
+                    IsActive = table.Column<bool>(type: "tinyint(1)", nullable: false)
                 },
                 constraints: table =>
                 {
@@ -1080,7 +1080,7 @@ namespace Dotnetable.Migrations.MySql.Migrations
                     ApiSecret = table.Column<string>(type: "varchar(500)", maxLength: 500, nullable: true),
                     IsSandbox = table.Column<bool>(type: "tinyint(1)", nullable: false),
                     SortOrder = table.Column<int>(type: "int", nullable: false),
-                    IsActive = table.Column<bool>(type: "tinyint(1)", nullable: false, defaultValue: true)
+                    IsActive = table.Column<bool>(type: "tinyint(1)", nullable: false)
                 },
                 constraints: table =>
                 {
@@ -1101,7 +1101,7 @@ namespace Dotnetable.Migrations.MySql.Migrations
                         .Annotation("MySQL:ValueGenerationStrategy", MySQLValueGenerationStrategy.IdentityColumn),
                     Title = table.Column<string>(type: "varchar(64)", unicode: false, maxLength: 64, nullable: false),
                     Active = table.Column<bool>(type: "tinyint(1)", nullable: false),
-                    WebsiteID = table.Column<int>(type: "int", nullable: false, defaultValue: 1)
+                    WebsiteID = table.Column<int>(type: "int", nullable: false)
                 },
                 constraints: table =>
                 {
@@ -1123,10 +1123,10 @@ namespace Dotnetable.Migrations.MySql.Migrations
                     WebsiteID = table.Column<int>(type: "int", nullable: false),
                     Name = table.Column<string>(type: "varchar(100)", maxLength: 100, nullable: false),
                     Slug = table.Column<string>(type: "varchar(100)", maxLength: 100, nullable: false),
-                    HasCategories = table.Column<bool>(type: "tinyint(1)", nullable: false, defaultValue: true),
-                    HasTags = table.Column<bool>(type: "tinyint(1)", nullable: false, defaultValue: true),
-                    HasAuthor = table.Column<bool>(type: "tinyint(1)", nullable: false, defaultValue: true),
-                    CommentsEnabled = table.Column<bool>(type: "tinyint(1)", nullable: false, defaultValue: true)
+                    HasCategories = table.Column<bool>(type: "tinyint(1)", nullable: false),
+                    HasTags = table.Column<bool>(type: "tinyint(1)", nullable: false),
+                    HasAuthor = table.Column<bool>(type: "tinyint(1)", nullable: false),
+                    CommentsEnabled = table.Column<bool>(type: "tinyint(1)", nullable: false)
                 },
                 constraints: table =>
                 {
@@ -1151,7 +1151,7 @@ namespace Dotnetable.Migrations.MySql.Migrations
                     Slug = table.Column<string>(type: "varchar(200)", maxLength: 200, nullable: false),
                     ImageFileID = table.Column<int>(type: "int", nullable: true),
                     SortOrder = table.Column<int>(type: "int", nullable: false),
-                    IsActive = table.Column<bool>(type: "tinyint(1)", nullable: false, defaultValue: true)
+                    IsActive = table.Column<bool>(type: "tinyint(1)", nullable: false)
                 },
                 constraints: table =>
                 {
@@ -1183,7 +1183,7 @@ namespace Dotnetable.Migrations.MySql.Migrations
                     WebsiteID = table.Column<int>(type: "int", nullable: false),
                     Title = table.Column<string>(type: "varchar(100)", maxLength: 100, nullable: false),
                     CarrierName = table.Column<string>(type: "varchar(100)", maxLength: 100, nullable: true),
-                    IsActive = table.Column<bool>(type: "tinyint(1)", nullable: false, defaultValue: true),
+                    IsActive = table.Column<bool>(type: "tinyint(1)", nullable: false),
                     SortOrder = table.Column<int>(type: "int", nullable: false)
                 },
                 constraints: table =>
@@ -1206,15 +1206,15 @@ namespace Dotnetable.Migrations.MySql.Migrations
                     WebsiteID = table.Column<int>(type: "int", nullable: false),
                     Name = table.Column<string>(type: "varchar(150)", maxLength: 150, nullable: false),
                     PlacementKey = table.Column<string>(type: "varchar(100)", maxLength: 100, nullable: true),
-                    TransitionEffect = table.Column<byte>(type: "tinyint unsigned", nullable: false, defaultValue: (byte)1),
-                    AutoPlay = table.Column<bool>(type: "tinyint(1)", nullable: false, defaultValue: true),
-                    IntervalMs = table.Column<int>(type: "int", nullable: false, defaultValue: 5000),
-                    ShowArrows = table.Column<bool>(type: "tinyint(1)", nullable: false, defaultValue: true),
-                    ShowDots = table.Column<bool>(type: "tinyint(1)", nullable: false, defaultValue: true),
-                    EnableLightbox = table.Column<bool>(type: "tinyint(1)", nullable: false, defaultValue: true),
+                    TransitionEffect = table.Column<byte>(type: "tinyint unsigned", nullable: false),
+                    AutoPlay = table.Column<bool>(type: "tinyint(1)", nullable: false),
+                    IntervalMs = table.Column<int>(type: "int", nullable: false),
+                    ShowArrows = table.Column<bool>(type: "tinyint(1)", nullable: false),
+                    ShowDots = table.Column<bool>(type: "tinyint(1)", nullable: false),
+                    EnableLightbox = table.Column<bool>(type: "tinyint(1)", nullable: false),
                     AspectRatio = table.Column<string>(type: "varchar(20)", maxLength: 20, nullable: true),
-                    IsActive = table.Column<bool>(type: "tinyint(1)", nullable: false, defaultValue: true),
-                    CreatedAt = table.Column<DateTime>(type: "datetime", nullable: false, defaultValueSql: "(sysutcdatetime())")
+                    IsActive = table.Column<bool>(type: "tinyint(1)", nullable: false),
+                    CreatedAt = table.Column<DateTime>(type: "datetime", nullable: false)
                 },
                 constraints: table =>
                 {
@@ -1236,7 +1236,7 @@ namespace Dotnetable.Migrations.MySql.Migrations
                     WebsiteID = table.Column<int>(type: "int", nullable: false),
                     Name = table.Column<string>(type: "varchar(200)", maxLength: 200, nullable: false),
                     Phone = table.Column<string>(type: "varchar(20)", maxLength: 20, nullable: true),
-                    IsActive = table.Column<bool>(type: "tinyint(1)", nullable: false, defaultValue: true)
+                    IsActive = table.Column<bool>(type: "tinyint(1)", nullable: false)
                 },
                 constraints: table =>
                 {
@@ -1282,7 +1282,7 @@ namespace Dotnetable.Migrations.MySql.Migrations
                     CountryID = table.Column<int>(type: "int", nullable: true),
                     StateID = table.Column<int>(type: "int", nullable: true),
                     Priority = table.Column<int>(type: "int", nullable: false),
-                    IsActive = table.Column<bool>(type: "tinyint(1)", nullable: false, defaultValue: true)
+                    IsActive = table.Column<bool>(type: "tinyint(1)", nullable: false)
                 },
                 constraints: table =>
                 {
@@ -1299,6 +1299,31 @@ namespace Dotnetable.Migrations.MySql.Migrations
                         principalColumn: "StateID");
                     table.ForeignKey(
                         name: "FK_TaxRates_Websites",
+                        column: x => x.WebsiteID,
+                        principalTable: "Websites",
+                        principalColumn: "WebsiteID");
+                })
+                .Annotation("MySQL:Charset", "utf8mb4");
+
+            migrationBuilder.CreateTable(
+                name: "Warranties",
+                columns: table => new
+                {
+                    WarrantyID = table.Column<int>(type: "int", nullable: false)
+                        .Annotation("MySQL:ValueGenerationStrategy", MySQLValueGenerationStrategy.IdentityColumn),
+                    WebsiteID = table.Column<int>(type: "int", nullable: false),
+                    Title = table.Column<string>(type: "varchar(200)", maxLength: 200, nullable: false),
+                    Description = table.Column<string>(type: "varchar(2000)", maxLength: 2000, nullable: true),
+                    ProviderName = table.Column<string>(type: "varchar(200)", maxLength: 200, nullable: true),
+                    DurationMonths = table.Column<int>(type: "int", nullable: true),
+                    IsActive = table.Column<bool>(type: "tinyint(1)", nullable: false),
+                    SortOrder = table.Column<int>(type: "int", nullable: false)
+                },
+                constraints: table =>
+                {
+                    table.PrimaryKey("PK_Warranties", x => x.WarrantyID);
+                    table.ForeignKey(
+                        name: "FK_Warranties_Websites",
                         column: x => x.WebsiteID,
                         principalTable: "Websites",
                         principalColumn: "WebsiteID");
@@ -1371,8 +1396,8 @@ namespace Dotnetable.Migrations.MySql.Migrations
                         .Annotation("MySQL:ValueGenerationStrategy", MySQLValueGenerationStrategy.IdentityColumn),
                     WebsiteID = table.Column<int>(type: "int", nullable: false),
                     FeatureKey = table.Column<byte>(type: "tinyint unsigned", nullable: false),
-                    Enabled = table.Column<bool>(type: "tinyint(1)", nullable: false, defaultValue: true),
-                    CreatedAt = table.Column<DateTime>(type: "datetime(0)", precision: 0, nullable: false, defaultValueSql: "(sysutcdatetime())")
+                    Enabled = table.Column<bool>(type: "tinyint(1)", nullable: false),
+                    CreatedAt = table.Column<DateTime>(type: "datetime(0)", precision: 0, nullable: false)
                 },
                 constraints: table =>
                 {
@@ -1418,11 +1443,11 @@ namespace Dotnetable.Migrations.MySql.Migrations
                     WebsiteID = table.Column<int>(type: "int", nullable: false),
                     SourcePath = table.Column<string>(type: "varchar(500)", maxLength: 500, nullable: false),
                     TargetPath = table.Column<string>(type: "varchar(500)", maxLength: 500, nullable: false),
-                    StatusCode = table.Column<int>(type: "int", nullable: false, defaultValue: 301),
+                    StatusCode = table.Column<int>(type: "int", nullable: false),
                     IsRegex = table.Column<bool>(type: "tinyint(1)", nullable: false),
                     HitCount = table.Column<int>(type: "int", nullable: false),
-                    IsActive = table.Column<bool>(type: "tinyint(1)", nullable: false, defaultValue: true),
-                    CreatedAt = table.Column<DateTime>(type: "datetime", nullable: false, defaultValueSql: "(sysutcdatetime())")
+                    IsActive = table.Column<bool>(type: "tinyint(1)", nullable: false),
+                    CreatedAt = table.Column<DateTime>(type: "datetime", nullable: false)
                 },
                 constraints: table =>
                 {
@@ -1469,7 +1494,7 @@ namespace Dotnetable.Migrations.MySql.Migrations
                         .Annotation("MySQL:ValueGenerationStrategy", MySQLValueGenerationStrategy.IdentityColumn),
                     WebsiteID = table.Column<int>(type: "int", nullable: false),
                     DefaultMetaTitle = table.Column<string>(type: "varchar(40)", unicode: false, maxLength: 40, nullable: true, comment: "Page | {SiteName}"),
-                    TitleSeparator = table.Column<string>(type: "char(3)", unicode: false, fixedLength: true, maxLength: 3, nullable: true, defaultValue: " | "),
+                    TitleSeparator = table.Column<string>(type: "char(3)", unicode: false, fixedLength: true, maxLength: 3, nullable: true),
                     DefaultMetaDescription = table.Column<string>(type: "varchar(158)", maxLength: 158, nullable: true),
                     SitemapEnabled = table.Column<bool>(type: "tinyint(1)", nullable: false),
                     RobotsEnabled = table.Column<bool>(type: "tinyint(1)", nullable: false),
@@ -1548,7 +1573,7 @@ namespace Dotnetable.Migrations.MySql.Migrations
                     Description = table.Column<string>(type: "varchar(500)", maxLength: 500, nullable: true),
                     HasScreenshot = table.Column<bool>(type: "tinyint(1)", nullable: false),
                     IsActive = table.Column<bool>(type: "tinyint(1)", nullable: false),
-                    CreatedAt = table.Column<DateTime>(type: "datetime", nullable: false, defaultValueSql: "(sysutcdatetime())")
+                    CreatedAt = table.Column<DateTime>(type: "datetime", nullable: false)
                 },
                 constraints: table =>
                 {
@@ -1569,9 +1594,9 @@ namespace Dotnetable.Migrations.MySql.Migrations
                         .Annotation("MySQL:ValueGenerationStrategy", MySQLValueGenerationStrategy.IdentityColumn),
                     WebsiteID = table.Column<int>(type: "int", nullable: false),
                     WatermarkFileID = table.Column<int>(type: "int", nullable: true),
-                    Position = table.Column<byte>(type: "tinyint unsigned", nullable: false, defaultValue: (byte)9),
-                    SizePercent = table.Column<int>(type: "int", nullable: false, defaultValue: 20),
-                    Opacity = table.Column<int>(type: "int", nullable: false, defaultValue: 80),
+                    Position = table.Column<byte>(type: "tinyint unsigned", nullable: false),
+                    SizePercent = table.Column<int>(type: "int", nullable: false),
+                    Opacity = table.Column<int>(type: "int", nullable: false),
                     Enabled = table.Column<bool>(type: "tinyint(1)", nullable: false)
                 },
                 constraints: table =>
@@ -1630,7 +1655,7 @@ namespace Dotnetable.Migrations.MySql.Migrations
                     MinValue = table.Column<int>(type: "int", nullable: true),
                     MaxValue = table.Column<int>(type: "int", nullable: true),
                     SortOrder = table.Column<int>(type: "int", nullable: false),
-                    IsActive = table.Column<bool>(type: "tinyint(1)", nullable: false, defaultValue: true)
+                    IsActive = table.Column<bool>(type: "tinyint(1)", nullable: false)
                 },
                 constraints: table =>
                 {
@@ -1745,7 +1770,7 @@ namespace Dotnetable.Migrations.MySql.Migrations
                     PolicyID = table.Column<int>(type: "int", nullable: false),
                     Gender = table.Column<bool>(type: "tinyint(1)", nullable: true),
                     WebsiteID = table.Column<int>(type: "int", nullable: false),
-                    AdminUIMode = table.Column<byte>(type: "tinyint unsigned", nullable: false, defaultValue: (byte)1, comment: "0 = Basic (admin surface reduced to what this member's Website.WebsiteType needs), 1 = General (same admin surface regardless of website type), 2 = Advanced (full surface, e.g. extra-language pages/buttons on an otherwise single-language site)"),
+                    AdminUIMode = table.Column<byte>(type: "tinyint unsigned", nullable: false, comment: "0 = Basic (admin surface reduced to what this member's Website.WebsiteType needs), 1 = General (same admin surface regardless of website type), 2 = Advanced (full surface, e.g. extra-language pages/buttons on an otherwise single-language site)"),
                     IsSiteAdmin = table.Column<bool>(type: "tinyint(1)", nullable: false)
                 },
                 constraints: table =>
@@ -1830,7 +1855,7 @@ namespace Dotnetable.Migrations.MySql.Migrations
                     MinWeightKg = table.Column<decimal>(type: "decimal(10,3)", nullable: true),
                     MaxWeightKg = table.Column<decimal>(type: "decimal(10,3)", nullable: true),
                     PriceUsd = table.Column<decimal>(type: "decimal(18,4)", nullable: false),
-                    IsActive = table.Column<bool>(type: "tinyint(1)", nullable: false, defaultValue: true)
+                    IsActive = table.Column<bool>(type: "tinyint(1)", nullable: false)
                 },
                 constraints: table =>
                 {
@@ -1873,7 +1898,7 @@ namespace Dotnetable.Migrations.MySql.Migrations
                     LinkUrl = table.Column<string>(type: "varchar(500)", maxLength: 500, nullable: true),
                     OpenInNewTab = table.Column<bool>(type: "tinyint(1)", nullable: false),
                     SortOrder = table.Column<int>(type: "int", nullable: false),
-                    IsActive = table.Column<bool>(type: "tinyint(1)", nullable: false, defaultValue: true),
+                    IsActive = table.Column<bool>(type: "tinyint(1)", nullable: false),
                     StartAt = table.Column<DateTime>(type: "datetime(6)", nullable: true),
                     EndAt = table.Column<DateTime>(type: "datetime(6)", nullable: true)
                 },
@@ -1921,6 +1946,29 @@ namespace Dotnetable.Migrations.MySql.Migrations
                 .Annotation("MySQL:Charset", "utf8mb4");
 
             migrationBuilder.CreateTable(
+                name: "WarrantyTranslations",
+                columns: table => new
+                {
+                    WarrantyTranslationID = table.Column<int>(type: "int", nullable: false)
+                        .Annotation("MySQL:ValueGenerationStrategy", MySQLValueGenerationStrategy.IdentityColumn),
+                    WarrantyID = table.Column<int>(type: "int", nullable: false),
+                    LanguageCode = table.Column<string>(type: "char(2)", unicode: false, fixedLength: true, maxLength: 2, nullable: false),
+                    Title = table.Column<string>(type: "varchar(200)", maxLength: 200, nullable: false),
+                    Description = table.Column<string>(type: "varchar(2000)", maxLength: 2000, nullable: true),
+                    ProviderName = table.Column<string>(type: "varchar(200)", maxLength: 200, nullable: true)
+                },
+                constraints: table =>
+                {
+                    table.PrimaryKey("PK_WarrantyTranslations", x => x.WarrantyTranslationID);
+                    table.ForeignKey(
+                        name: "FK_WarrantyTranslations_Warranties",
+                        column: x => x.WarrantyID,
+                        principalTable: "Warranties",
+                        principalColumn: "WarrantyID");
+                })
+                .Annotation("MySQL:Charset", "utf8mb4");
+
+            migrationBuilder.CreateTable(
                 name: "FormResponses",
                 columns: table => new
                 {
@@ -1929,7 +1977,7 @@ namespace Dotnetable.Migrations.MySql.Migrations
                     FormID = table.Column<int>(type: "int", nullable: false),
                     WebsiteClientID = table.Column<int>(type: "int", nullable: true),
                     SenderIPAddress = table.Column<string>(type: "varchar(45)", unicode: false, maxLength: 45, nullable: false),
-                    SubmittedAt = table.Column<DateTime>(type: "datetime", nullable: false, defaultValueSql: "(sysutcdatetime())")
+                    SubmittedAt = table.Column<DateTime>(type: "datetime", nullable: false)
                 },
                 constraints: table =>
                 {
@@ -2015,7 +2063,7 @@ namespace Dotnetable.Migrations.MySql.Migrations
                         .Annotation("MySQL:ValueGenerationStrategy", MySQLValueGenerationStrategy.IdentityColumn),
                     WebsiteID = table.Column<int>(type: "int", nullable: false),
                     WebsiteClientID = table.Column<int>(type: "int", nullable: false),
-                    CreatedAt = table.Column<DateTime>(type: "datetime(0)", precision: 0, nullable: false, defaultValueSql: "(sysutcdatetime())")
+                    CreatedAt = table.Column<DateTime>(type: "datetime(0)", precision: 0, nullable: false)
                 },
                 constraints: table =>
                 {
@@ -2089,12 +2137,12 @@ namespace Dotnetable.Migrations.MySql.Migrations
                     Content = table.Column<string>(type: "longtext", nullable: true),
                     Template = table.Column<string>(type: "varchar(100)", maxLength: 100, nullable: true),
                     IsHomepage = table.Column<bool>(type: "tinyint(1)", nullable: false),
-                    Status = table.Column<byte>(type: "tinyint unsigned", nullable: false, defaultValue: (byte)1),
+                    Status = table.Column<byte>(type: "tinyint unsigned", nullable: false),
                     SortOrder = table.Column<int>(type: "int", nullable: false),
-                    IsActive = table.Column<bool>(type: "tinyint(1)", nullable: false, defaultValue: true),
+                    IsActive = table.Column<bool>(type: "tinyint(1)", nullable: false),
                     CreatedByMemberID = table.Column<int>(type: "int", nullable: true),
-                    CreatedAt = table.Column<DateTime>(type: "datetime(0)", precision: 0, nullable: false, defaultValueSql: "(sysutcdatetime())"),
-                    UpdatedAt = table.Column<DateTime>(type: "datetime(0)", precision: 0, nullable: false, defaultValueSql: "(sysutcdatetime())")
+                    CreatedAt = table.Column<DateTime>(type: "datetime(0)", precision: 0, nullable: false),
+                    UpdatedAt = table.Column<DateTime>(type: "datetime(0)", precision: 0, nullable: false)
                 },
                 constraints: table =>
                 {
@@ -2131,15 +2179,15 @@ namespace Dotnetable.Migrations.MySql.Migrations
                     Excerpt = table.Column<string>(type: "varchar(1000)", maxLength: 1000, nullable: true),
                     Content = table.Column<string>(type: "longtext", nullable: true),
                     FeaturedImageFileID = table.Column<int>(type: "int", nullable: true),
-                    Status = table.Column<byte>(type: "tinyint unsigned", nullable: false, defaultValue: (byte)1),
+                    Status = table.Column<byte>(type: "tinyint unsigned", nullable: false),
                     PublishedAt = table.Column<DateTime>(type: "datetime", nullable: true),
                     ScheduledAt = table.Column<DateTime>(type: "datetime", nullable: true),
                     IsFeatured = table.Column<bool>(type: "tinyint(1)", nullable: false),
                     ViewCount = table.Column<int>(type: "int", nullable: false),
-                    CommentsEnabled = table.Column<bool>(type: "tinyint(1)", nullable: false, defaultValue: true),
-                    IsActive = table.Column<bool>(type: "tinyint(1)", nullable: false, defaultValue: true),
-                    CreatedAt = table.Column<DateTime>(type: "datetime", nullable: false, defaultValueSql: "(sysutcdatetime())"),
-                    UpdatedAt = table.Column<DateTime>(type: "datetime", nullable: false, defaultValueSql: "(sysutcdatetime())")
+                    CommentsEnabled = table.Column<bool>(type: "tinyint(1)", nullable: false),
+                    IsActive = table.Column<bool>(type: "tinyint(1)", nullable: false),
+                    CreatedAt = table.Column<DateTime>(type: "datetime", nullable: false),
+                    UpdatedAt = table.Column<DateTime>(type: "datetime", nullable: false)
                 },
                 constraints: table =>
                 {
@@ -2178,17 +2226,19 @@ namespace Dotnetable.Migrations.MySql.Migrations
                     Slug = table.Column<string>(type: "varchar(300)", maxLength: 300, nullable: false),
                     Title = table.Column<string>(type: "varchar(300)", maxLength: 300, nullable: false),
                     ShortDescription = table.Column<string>(type: "varchar(1000)", maxLength: 1000, nullable: true),
+                    Content = table.Column<string>(type: "longtext", nullable: true),
+                    ExpertReview = table.Column<string>(type: "longtext", nullable: true),
                     FeaturedImageFileID = table.Column<int>(type: "int", nullable: true),
                     IsCatalogOnly = table.Column<bool>(type: "tinyint(1)", nullable: false),
                     HasVariants = table.Column<bool>(type: "tinyint(1)", nullable: false),
                     AvgRating = table.Column<decimal>(type: "decimal(3,2)", nullable: false),
                     RatingCount = table.Column<int>(type: "int", nullable: false),
-                    Status = table.Column<byte>(type: "tinyint unsigned", nullable: false, defaultValue: (byte)1),
+                    Status = table.Column<byte>(type: "tinyint unsigned", nullable: false),
                     SortOrder = table.Column<int>(type: "int", nullable: false),
-                    IsActive = table.Column<bool>(type: "tinyint(1)", nullable: false, defaultValue: true),
-                    CreatedByMemberId = table.Column<int>(type: "int", nullable: true),
-                    CreatedAt = table.Column<DateTime>(type: "datetime", nullable: false, defaultValueSql: "(sysutcdatetime())"),
-                    UpdatedAt = table.Column<DateTime>(type: "datetime", nullable: false, defaultValueSql: "(sysutcdatetime())")
+                    IsActive = table.Column<bool>(type: "tinyint(1)", nullable: false),
+                    CreatedByMemberID = table.Column<int>(type: "int", nullable: true),
+                    CreatedAt = table.Column<DateTime>(type: "datetime", nullable: false),
+                    UpdatedAt = table.Column<DateTime>(type: "datetime", nullable: false)
                 },
                 constraints: table =>
                 {
@@ -2205,7 +2255,7 @@ namespace Dotnetable.Migrations.MySql.Migrations
                         principalColumn: "FileRecordID");
                     table.ForeignKey(
                         name: "FK_Products_Members",
-                        column: x => x.CreatedByMemberId,
+                        column: x => x.CreatedByMemberID,
                         principalTable: "Members",
                         principalColumn: "MemberID");
                     table.ForeignKey(
@@ -2227,14 +2277,14 @@ namespace Dotnetable.Migrations.MySql.Migrations
                     Slug = table.Column<string>(type: "varchar(200)", maxLength: 200, nullable: false),
                     LogoFileID = table.Column<int>(type: "int", nullable: true),
                     Rating = table.Column<decimal>(type: "decimal(3,2)", nullable: false),
-                    IsActive = table.Column<bool>(type: "tinyint(1)", nullable: false, defaultValue: true),
+                    IsActive = table.Column<bool>(type: "tinyint(1)", nullable: false),
                     SettlementMode = table.Column<byte>(type: "tinyint unsigned", nullable: false, comment: "0 = Immediate: every purchase from this vendor is settled instantly like a normal cash purchase. 1 = Credit: purchases accrue as credit and are batched into a periodic Settlements record due on CreditDays"),
                     CreditDays = table.Column<int>(type: "int", nullable: true, comment: "number of days after the settlement period ends before payment is due; only meaningful when SettlementMode = Credit"),
                     CreditLimitUsd = table.Column<decimal>(type: "decimal(18,4)", nullable: true, comment: "maximum outstanding credit balance allowed for this vendor, in USD; only meaningful when SettlementMode = Credit"),
-                    VendorType = table.Column<byte>(type: "tinyint unsigned", nullable: false, defaultValue: (byte)0, comment: "0 = Display-only title, 1 = Member login (manage own catalog), 2 = Linked website (inter-site virtual credit)"),
+                    VendorType = table.Column<byte>(type: "tinyint unsigned", nullable: false, comment: "0 = Display-only title, 1 = Member login (manage own catalog), 2 = Linked website (inter-site virtual credit)"),
                     MemberID = table.Column<int>(type: "int", nullable: true),
                     LinkedWebsiteID = table.Column<int>(type: "int", nullable: true),
-                    AvailableCreditUsd = table.Column<decimal>(type: "decimal(18,4)", nullable: false, defaultValue: 0m)
+                    AvailableCreditUsd = table.Column<decimal>(type: "decimal(18,4)", nullable: false)
                 },
                 constraints: table =>
                 {
@@ -2297,7 +2347,7 @@ namespace Dotnetable.Migrations.MySql.Migrations
                     WebsiteID = table.Column<int>(type: "int", nullable: false),
                     OrderNumber = table.Column<string>(type: "varchar(30)", maxLength: 30, nullable: false),
                     WebsiteClientID = table.Column<int>(type: "int", nullable: false),
-                    Status = table.Column<byte>(type: "tinyint unsigned", nullable: false, defaultValue: (byte)1),
+                    Status = table.Column<byte>(type: "tinyint unsigned", nullable: false),
                     CurrencyCode = table.Column<string>(type: "char(3)", unicode: false, fixedLength: true, maxLength: 3, nullable: false),
                     ExchangeRateToUsd = table.Column<decimal>(type: "decimal(18,6)", nullable: false),
                     SubTotal = table.Column<decimal>(type: "decimal(18,4)", nullable: false),
@@ -2312,7 +2362,7 @@ namespace Dotnetable.Migrations.MySql.Migrations
                     ShippingMethodID = table.Column<int>(type: "int", nullable: true),
                     Note = table.Column<string>(type: "varchar(1000)", maxLength: 1000, nullable: true),
                     CreatedByMemberID = table.Column<int>(type: "int", nullable: true),
-                    CreatedAt = table.Column<DateTime>(type: "datetime", nullable: false, defaultValueSql: "(sysutcdatetime())"),
+                    CreatedAt = table.Column<DateTime>(type: "datetime", nullable: false),
                     PaidAt = table.Column<DateTime>(type: "datetime", nullable: true)
                 },
                 constraints: table =>
@@ -2516,7 +2566,7 @@ namespace Dotnetable.Migrations.MySql.Migrations
                     ProductID = table.Column<int>(type: "int", nullable: false),
                     RelatedProductCategoryID = table.Column<int>(type: "int", nullable: false),
                     RelationType = table.Column<byte>(type: "tinyint unsigned", nullable: false),
-                    MaxItems = table.Column<int>(type: "int", nullable: false, defaultValue: 10)
+                    MaxItems = table.Column<int>(type: "int", nullable: false)
                 },
                 constraints: table =>
                 {
@@ -2528,41 +2578,6 @@ namespace Dotnetable.Migrations.MySql.Migrations
                         principalColumn: "ProductCategoryID");
                     table.ForeignKey(
                         name: "FK_ProductCategoryRelations_Products",
-                        column: x => x.ProductID,
-                        principalTable: "Products",
-                        principalColumn: "ProductID");
-                })
-                .Annotation("MySQL:Charset", "utf8mb4");
-
-            migrationBuilder.CreateTable(
-                name: "ProductContentSections",
-                columns: table => new
-                {
-                    ProductContentSectionID = table.Column<int>(type: "int", nullable: false)
-                        .Annotation("MySQL:ValueGenerationStrategy", MySQLValueGenerationStrategy.IdentityColumn),
-                    ProductID = table.Column<int>(type: "int", nullable: false),
-                    SectionType = table.Column<byte>(type: "tinyint unsigned", nullable: false),
-                    HtmlContent = table.Column<string>(type: "longtext", nullable: true),
-                    FileId = table.Column<int>(type: "int", nullable: true),
-                    MediaSetID = table.Column<int>(type: "int", nullable: true),
-                    SortOrder = table.Column<int>(type: "int", nullable: false),
-                    IsActive = table.Column<bool>(type: "tinyint(1)", nullable: false, defaultValue: true)
-                },
-                constraints: table =>
-                {
-                    table.PrimaryKey("PK_ProductContentSections", x => x.ProductContentSectionID);
-                    table.ForeignKey(
-                        name: "FK_ProductContentSections_FileRecords",
-                        column: x => x.FileId,
-                        principalTable: "FileRecords",
-                        principalColumn: "FileRecordID");
-                    table.ForeignKey(
-                        name: "FK_ProductContentSections_MediaSets",
-                        column: x => x.MediaSetID,
-                        principalTable: "MediaSets",
-                        principalColumn: "MediaSetID");
-                    table.ForeignKey(
-                        name: "FK_ProductContentSections_Products",
                         column: x => x.ProductID,
                         principalTable: "Products",
                         principalColumn: "ProductID");
@@ -2603,8 +2618,8 @@ namespace Dotnetable.Migrations.MySql.Migrations
                     ProductID = table.Column<int>(type: "int", nullable: false),
                     WebsiteClientID = table.Column<int>(type: "int", nullable: false),
                     Body = table.Column<string>(type: "varchar(2000)", maxLength: 2000, nullable: false),
-                    Status = table.Column<byte>(type: "tinyint unsigned", nullable: false, defaultValue: (byte)1),
-                    CreatedAt = table.Column<DateTime>(type: "datetime", nullable: false, defaultValueSql: "(sysutcdatetime())"),
+                    Status = table.Column<byte>(type: "tinyint unsigned", nullable: false),
+                    CreatedAt = table.Column<DateTime>(type: "datetime", nullable: false),
                     Approved = table.Column<bool>(type: "tinyint(1)", nullable: false)
                 },
                 constraints: table =>
@@ -2663,7 +2678,9 @@ namespace Dotnetable.Migrations.MySql.Migrations
                     LanguageCode = table.Column<string>(type: "char(2)", unicode: false, fixedLength: true, maxLength: 2, nullable: false),
                     Title = table.Column<string>(type: "varchar(300)", maxLength: 300, nullable: false),
                     Slug = table.Column<string>(type: "varchar(300)", maxLength: 300, nullable: false),
-                    ShortDescription = table.Column<string>(type: "varchar(1000)", maxLength: 1000, nullable: true)
+                    ShortDescription = table.Column<string>(type: "varchar(1000)", maxLength: 1000, nullable: true),
+                    Content = table.Column<string>(type: "longtext", nullable: true),
+                    ExpertReview = table.Column<string>(type: "longtext", nullable: true)
                 },
                 constraints: table =>
                 {
@@ -2685,6 +2702,7 @@ namespace Dotnetable.Migrations.MySql.Migrations
                     WebsiteID = table.Column<int>(type: "int", nullable: false),
                     ProductID = table.Column<int>(type: "int", nullable: false),
                     Sku = table.Column<string>(type: "varchar(100)", maxLength: 100, nullable: false),
+                    Title = table.Column<string>(type: "varchar(200)", maxLength: 200, nullable: false),
                     IsDefault = table.Column<bool>(type: "tinyint(1)", nullable: false),
                     ImageFileID = table.Column<int>(type: "int", nullable: true),
                     ReferencePriceUsd = table.Column<decimal>(type: "decimal(18,4)", nullable: false),
@@ -2692,8 +2710,8 @@ namespace Dotnetable.Migrations.MySql.Migrations
                     OverridePrice = table.Column<decimal>(type: "decimal(18,4)", nullable: true),
                     Weight = table.Column<decimal>(type: "decimal(10,3)", nullable: true),
                     Barcode = table.Column<string>(type: "varchar(100)", maxLength: 100, nullable: true),
-                    IsActive = table.Column<bool>(type: "tinyint(1)", nullable: false, defaultValue: true),
-                    CreatedAt = table.Column<DateTime>(type: "datetime", nullable: false, defaultValueSql: "(sysutcdatetime())")
+                    IsActive = table.Column<bool>(type: "tinyint(1)", nullable: false),
+                    CreatedAt = table.Column<DateTime>(type: "datetime", nullable: false)
                 },
                 constraints: table =>
                 {
@@ -2723,9 +2741,9 @@ namespace Dotnetable.Migrations.MySql.Migrations
                     ProductWarningID = table.Column<int>(type: "int", nullable: false)
                         .Annotation("MySQL:ValueGenerationStrategy", MySQLValueGenerationStrategy.IdentityColumn),
                     ProductID = table.Column<int>(type: "int", nullable: false),
-                    Severity = table.Column<string>(type: "varchar(20)", maxLength: 20, nullable: false, defaultValue: "info"),
+                    Severity = table.Column<string>(type: "varchar(20)", maxLength: 20, nullable: false),
                     Text = table.Column<string>(type: "varchar(1000)", maxLength: 1000, nullable: false),
-                    IsActive = table.Column<bool>(type: "tinyint(1)", nullable: false, defaultValue: true)
+                    IsActive = table.Column<bool>(type: "tinyint(1)", nullable: false)
                 },
                 constraints: table =>
                 {
@@ -2735,6 +2753,35 @@ namespace Dotnetable.Migrations.MySql.Migrations
                         column: x => x.ProductID,
                         principalTable: "Products",
                         principalColumn: "ProductID");
+                })
+                .Annotation("MySQL:Charset", "utf8mb4");
+
+            migrationBuilder.CreateTable(
+                name: "ProductWarranties",
+                columns: table => new
+                {
+                    ProductWarrantyID = table.Column<int>(type: "int", nullable: false)
+                        .Annotation("MySQL:ValueGenerationStrategy", MySQLValueGenerationStrategy.IdentityColumn),
+                    ProductID = table.Column<int>(type: "int", nullable: false),
+                    WarrantyID = table.Column<int>(type: "int", nullable: true),
+                    CustomTitle = table.Column<string>(type: "varchar(200)", maxLength: 200, nullable: true),
+                    CustomDescription = table.Column<string>(type: "varchar(2000)", maxLength: 2000, nullable: true),
+                    SortOrder = table.Column<int>(type: "int", nullable: false),
+                    IsActive = table.Column<bool>(type: "tinyint(1)", nullable: false)
+                },
+                constraints: table =>
+                {
+                    table.PrimaryKey("PK_ProductWarranties", x => x.ProductWarrantyID);
+                    table.ForeignKey(
+                        name: "FK_ProductWarranties_Products",
+                        column: x => x.ProductID,
+                        principalTable: "Products",
+                        principalColumn: "ProductID");
+                    table.ForeignKey(
+                        name: "FK_ProductWarranties_Warranties",
+                        column: x => x.WarrantyID,
+                        principalTable: "Warranties",
+                        principalColumn: "WarrantyID");
                 })
                 .Annotation("MySQL:Charset", "utf8mb4");
 
@@ -2760,7 +2807,7 @@ namespace Dotnetable.Migrations.MySql.Migrations
                     CssClass = table.Column<string>(type: "varchar(100)", maxLength: 100, nullable: true),
                     OpenInNewTab = table.Column<bool>(type: "tinyint(1)", nullable: false),
                     SortOrder = table.Column<int>(type: "int", nullable: false),
-                    IsActive = table.Column<bool>(type: "tinyint(1)", nullable: false, defaultValue: true)
+                    IsActive = table.Column<bool>(type: "tinyint(1)", nullable: false)
                 },
                 constraints: table =>
                 {
@@ -2828,14 +2875,14 @@ namespace Dotnetable.Migrations.MySql.Migrations
                     PeriodTo = table.Column<DateOnly>(type: "date", nullable: false),
                     TotalAmount = table.Column<decimal>(type: "decimal(18,4)", nullable: false),
                     CurrencyCode = table.Column<string>(type: "char(3)", unicode: false, fixedLength: true, maxLength: 3, nullable: false),
-                    Status = table.Column<byte>(type: "tinyint unsigned", nullable: false, defaultValue: (byte)1),
+                    Status = table.Column<byte>(type: "tinyint unsigned", nullable: false),
                     BankAccountID = table.Column<int>(type: "int", nullable: true),
                     PaymentRefNumber = table.Column<string>(type: "varchar(100)", maxLength: 100, nullable: true),
                     Note = table.Column<string>(type: "varchar(500)", maxLength: 500, nullable: true),
                     CreatedByMemberID = table.Column<int>(type: "int", nullable: true),
                     ApprovedByMemberID = table.Column<int>(type: "int", nullable: true),
                     PaidAt = table.Column<DateTime>(type: "datetime", nullable: true),
-                    CreatedAt = table.Column<DateTime>(type: "datetime", nullable: false, defaultValueSql: "(sysutcdatetime())")
+                    CreatedAt = table.Column<DateTime>(type: "datetime", nullable: false)
                 },
                 constraints: table =>
                 {
@@ -2915,7 +2962,7 @@ namespace Dotnetable.Migrations.MySql.Migrations
                     ToStatus = table.Column<byte>(type: "tinyint unsigned", nullable: false),
                     Note = table.Column<string>(type: "varchar(500)", maxLength: 500, nullable: true),
                     CreatedByMemberID = table.Column<int>(type: "int", nullable: true),
-                    CreatedAt = table.Column<DateTime>(type: "datetime", nullable: false, defaultValueSql: "(sysutcdatetime())")
+                    CreatedAt = table.Column<DateTime>(type: "datetime", nullable: false)
                 },
                 constraints: table =>
                 {
@@ -2950,13 +2997,13 @@ namespace Dotnetable.Migrations.MySql.Migrations
                     CurrencyCode = table.Column<string>(type: "char(3)", unicode: false, fixedLength: true, maxLength: 3, nullable: false),
                     ExchangeRateToUsd = table.Column<decimal>(type: "decimal(18,6)", nullable: false),
                     AmountUsd = table.Column<decimal>(type: "decimal(18,4)", nullable: false),
-                    Status = table.Column<byte>(type: "tinyint unsigned", nullable: false, defaultValue: (byte)1),
+                    Status = table.Column<byte>(type: "tinyint unsigned", nullable: false),
                     GatewayRefNumber = table.Column<string>(type: "varchar(100)", maxLength: 100, nullable: true),
                     TrackingCode = table.Column<string>(type: "varchar(100)", maxLength: 100, nullable: true),
                     ReceiptFileID = table.Column<int>(type: "int", nullable: true),
                     PaidAt = table.Column<DateTime>(type: "datetime(0)", precision: 0, nullable: true),
                     VerifiedByMemberID = table.Column<int>(type: "int", nullable: true),
-                    CreatedAt = table.Column<DateTime>(type: "datetime(0)", precision: 0, nullable: false, defaultValueSql: "(sysutcdatetime())")
+                    CreatedAt = table.Column<DateTime>(type: "datetime(0)", precision: 0, nullable: false)
                 },
                 constraints: table =>
                 {
@@ -3031,27 +3078,6 @@ namespace Dotnetable.Migrations.MySql.Migrations
                 .Annotation("MySQL:Charset", "utf8mb4");
 
             migrationBuilder.CreateTable(
-                name: "ProductContentSectionTranslations",
-                columns: table => new
-                {
-                    ProductContentSectionTranslationID = table.Column<int>(type: "int", nullable: false)
-                        .Annotation("MySQL:ValueGenerationStrategy", MySQLValueGenerationStrategy.IdentityColumn),
-                    ProductContentSectionID = table.Column<int>(type: "int", nullable: false),
-                    LanguageCode = table.Column<string>(type: "char(2)", unicode: false, fixedLength: true, maxLength: 2, nullable: false),
-                    HtmlContent = table.Column<string>(type: "longtext", nullable: false)
-                },
-                constraints: table =>
-                {
-                    table.PrimaryKey("PK_ProductContentSectionTranslations", x => x.ProductContentSectionTranslationID);
-                    table.ForeignKey(
-                        name: "FK_ProductContentSectionTranslations_ProductContentSections",
-                        column: x => x.ProductContentSectionID,
-                        principalTable: "ProductContentSections",
-                        principalColumn: "ProductContentSectionID");
-                })
-                .Annotation("MySQL:Charset", "utf8mb4");
-
-            migrationBuilder.CreateTable(
                 name: "ProductAnswers",
                 columns: table => new
                 {
@@ -3061,9 +3087,9 @@ namespace Dotnetable.Migrations.MySql.Migrations
                     WebsiteClientID = table.Column<int>(type: "int", nullable: true),
                     VendorID = table.Column<int>(type: "int", nullable: true),
                     Body = table.Column<string>(type: "varchar(4000)", maxLength: 4000, nullable: false),
-                    Status = table.Column<byte>(type: "tinyint unsigned", nullable: false, defaultValue: (byte)1),
+                    Status = table.Column<byte>(type: "tinyint unsigned", nullable: false),
                     LikeCount = table.Column<int>(type: "int", nullable: false),
-                    CreatedAt = table.Column<DateTime>(type: "datetime", nullable: false, defaultValueSql: "(sysutcdatetime())"),
+                    CreatedAt = table.Column<DateTime>(type: "datetime", nullable: false),
                     Approved = table.Column<bool>(type: "tinyint(1)", nullable: false)
                 },
                 constraints: table =>
@@ -3134,10 +3160,10 @@ namespace Dotnetable.Migrations.MySql.Migrations
                     ProsJson = table.Column<string>(type: "varchar(2000)", maxLength: 2000, nullable: true),
                     ConsJson = table.Column<string>(type: "varchar(2000)", maxLength: 2000, nullable: true),
                     IsVerifiedPurchase = table.Column<bool>(type: "tinyint(1)", nullable: false),
-                    Status = table.Column<byte>(type: "tinyint unsigned", nullable: false, defaultValue: (byte)1),
+                    Status = table.Column<byte>(type: "tinyint unsigned", nullable: false),
                     LikeCount = table.Column<int>(type: "int", nullable: false),
                     DislikeCount = table.Column<int>(type: "int", nullable: false),
-                    CreatedAt = table.Column<DateTime>(type: "datetime(0)", precision: 0, nullable: false, defaultValueSql: "(sysutcdatetime())"),
+                    CreatedAt = table.Column<DateTime>(type: "datetime(0)", precision: 0, nullable: false),
                     Approved = table.Column<bool>(type: "tinyint(1)", nullable: false)
                 },
                 constraints: table =>
@@ -3163,6 +3189,34 @@ namespace Dotnetable.Migrations.MySql.Migrations
                         column: x => x.WebsiteID,
                         principalTable: "Websites",
                         principalColumn: "WebsiteID");
+                })
+                .Annotation("MySQL:Charset", "utf8mb4");
+
+            migrationBuilder.CreateTable(
+                name: "ProductVariantPriceHistories",
+                columns: table => new
+                {
+                    ProductVariantPriceHistoryID = table.Column<long>(type: "bigint", nullable: false)
+                        .Annotation("MySQL:ValueGenerationStrategy", MySQLValueGenerationStrategy.IdentityColumn),
+                    ProductVariantID = table.Column<int>(type: "int", nullable: false),
+                    ReferencePriceUsd = table.Column<decimal>(type: "decimal(18,4)", nullable: false),
+                    CompareAtPriceUsd = table.Column<decimal>(type: "decimal(18,4)", nullable: true),
+                    RecordedAt = table.Column<DateTime>(type: "datetime", nullable: false),
+                    ChangedByMemberId = table.Column<int>(type: "int", nullable: true)
+                },
+                constraints: table =>
+                {
+                    table.PrimaryKey("PK_ProductVariantPriceHistories", x => x.ProductVariantPriceHistoryID);
+                    table.ForeignKey(
+                        name: "FK_ProductVariantPriceHistories_Members",
+                        column: x => x.ChangedByMemberId,
+                        principalTable: "Members",
+                        principalColumn: "MemberID");
+                    table.ForeignKey(
+                        name: "FK_ProductVariantPriceHistories_ProductVariants",
+                        column: x => x.ProductVariantID,
+                        principalTable: "ProductVariants",
+                        principalColumn: "ProductVariantID");
                 })
                 .Annotation("MySQL:Charset", "utf8mb4");
 
@@ -3207,8 +3261,8 @@ namespace Dotnetable.Migrations.MySql.Migrations
                     ReferencePriceUsd = table.Column<decimal>(type: "decimal(18,4)", nullable: false),
                     OverridePrice = table.Column<decimal>(type: "decimal(18,4)", nullable: true),
                     StockQuantity = table.Column<int>(type: "int", nullable: false),
-                    DeliveryDays = table.Column<int>(type: "int", nullable: false, defaultValue: 1),
-                    IsActive = table.Column<bool>(type: "tinyint(1)", nullable: false, defaultValue: true)
+                    DeliveryDays = table.Column<int>(type: "int", nullable: false),
+                    IsActive = table.Column<bool>(type: "tinyint(1)", nullable: false)
                 },
                 constraints: table =>
                 {
@@ -3239,7 +3293,7 @@ namespace Dotnetable.Migrations.MySql.Migrations
                         .Annotation("MySQL:ValueGenerationStrategy", MySQLValueGenerationStrategy.IdentityColumn),
                     WishlistID = table.Column<int>(type: "int", nullable: false),
                     ProductVariantID = table.Column<int>(type: "int", nullable: false),
-                    AddedAt = table.Column<DateTime>(type: "datetime(0)", precision: 0, nullable: false, defaultValueSql: "(sysutcdatetime())")
+                    AddedAt = table.Column<DateTime>(type: "datetime(0)", precision: 0, nullable: false)
                 },
                 constraints: table =>
                 {
@@ -3308,12 +3362,12 @@ namespace Dotnetable.Migrations.MySql.Migrations
                     PaymentID = table.Column<int>(type: "int", nullable: false),
                     Amount = table.Column<decimal>(type: "decimal(18,4)", nullable: false),
                     Reason = table.Column<string>(type: "varchar(500)", maxLength: 500, nullable: true),
-                    Status = table.Column<byte>(type: "tinyint unsigned", nullable: false, defaultValue: (byte)1),
+                    Status = table.Column<byte>(type: "tinyint unsigned", nullable: false),
                     BankAccountID = table.Column<int>(type: "int", nullable: true),
                     ClientWalletTransactionID = table.Column<int>(type: "int", nullable: true),
                     RefundedAt = table.Column<DateTime>(type: "datetime", nullable: true),
                     CreatedByMemberID = table.Column<int>(type: "int", nullable: true),
-                    CreatedAt = table.Column<DateTime>(type: "datetime", nullable: false, defaultValueSql: "(sysutcdatetime())")
+                    CreatedAt = table.Column<DateTime>(type: "datetime", nullable: false)
                 },
                 constraints: table =>
                 {
@@ -3411,13 +3465,13 @@ namespace Dotnetable.Migrations.MySql.Migrations
                     UnitCostUsd = table.Column<decimal>(type: "decimal(18,4)", nullable: false),
                     UnitSalePriceUsd = table.Column<decimal>(type: "decimal(18,4)", nullable: true),
                     CurrencyCode = table.Column<string>(type: "char(3)", unicode: false, fixedLength: true, maxLength: 3, nullable: false),
-                    ExchangeRateToUsd = table.Column<decimal>(type: "decimal(18,6)", nullable: false, defaultValue: 1m, comment: "website's local currency rate snapshotted at the moment of this stock entry/exit, so accounting and reports can be reconstructed in local currency at that point in time"),
+                    ExchangeRateToUsd = table.Column<decimal>(type: "decimal(18,6)", nullable: false, comment: "website's local currency rate snapshotted at the moment of this stock entry/exit, so accounting and reports can be reconstructed in local currency at that point in time"),
                     SupplierID = table.Column<int>(type: "int", nullable: true),
                     OrderID = table.Column<int>(type: "int", nullable: true),
                     OrderItemID = table.Column<int>(type: "int", nullable: true),
                     Note = table.Column<string>(type: "varchar(500)", maxLength: 500, nullable: true),
                     CreatedByMemberID = table.Column<int>(type: "int", nullable: true),
-                    CreatedAt = table.Column<DateTime>(type: "datetime(0)", precision: 0, nullable: false, defaultValueSql: "(sysutcdatetime())")
+                    CreatedAt = table.Column<DateTime>(type: "datetime(0)", precision: 0, nullable: false)
                 },
                 constraints: table =>
                 {
@@ -3475,7 +3529,7 @@ namespace Dotnetable.Migrations.MySql.Migrations
                     MirrorOrderID = table.Column<int>(type: "int", nullable: true),
                     Note = table.Column<string>(type: "varchar(500)", maxLength: 500, nullable: true),
                     CreatedByMemberID = table.Column<int>(type: "int", nullable: true),
-                    CreatedAt = table.Column<DateTime>(type: "datetime", nullable: false, defaultValueSql: "(sysutcdatetime())")
+                    CreatedAt = table.Column<DateTime>(type: "datetime", nullable: false)
                 },
                 constraints: table =>
                 {
@@ -3548,9 +3602,10 @@ namespace Dotnetable.Migrations.MySql.Migrations
                 .Annotation("MySQL:Charset", "utf8mb4");
 
             migrationBuilder.CreateIndex(
-                name: "IX_AdminNotifications_MemberID",
+                name: "IX_AdminNotifications_MemberID_IsRead_CreatedAt",
                 table: "AdminNotifications",
-                column: "MemberID");
+                columns: new[] { "MemberID", "IsRead", "CreatedAt" },
+                descending: new[] { false, false, true });
 
             migrationBuilder.CreateIndex(
                 name: "IX_AdminNotifications_WebsiteID",
@@ -3948,14 +4003,14 @@ namespace Dotnetable.Migrations.MySql.Migrations
                 table: "Languages",
                 column: "LanguageCode",
                 unique: true,
-                filter: "WebsiteID IS NULL");
+                filter: "([WebsiteID] IS NULL)");
 
             migrationBuilder.CreateIndex(
                 name: "UQ_Languages_WebsiteID_LanguageCode",
                 table: "Languages",
                 columns: new[] { "WebsiteID", "LanguageCode" },
                 unique: true,
-                filter: "WebsiteID IS NOT NULL");
+                filter: "([WebsiteID] IS NOT NULL)");
 
             migrationBuilder.CreateIndex(
                 name: "IX_LocalizationKeys_WebsiteID",
@@ -3967,14 +4022,14 @@ namespace Dotnetable.Migrations.MySql.Migrations
                 table: "LocalizationKeys",
                 column: "ItemKey",
                 unique: true,
-                filter: "WebsiteID IS NULL");
+                filter: "([WebsiteID] IS NULL)");
 
             migrationBuilder.CreateIndex(
                 name: "UQ_LocalizationKeys_WebsiteID_ItemKey",
                 table: "LocalizationKeys",
                 columns: new[] { "WebsiteID", "ItemKey" },
                 unique: true,
-                filter: "WebsiteID IS NOT NULL");
+                filter: "([WebsiteID] IS NOT NULL)");
 
             migrationBuilder.CreateIndex(
                 name: "IX_LocalizationValues_LocalizationKeyID",
@@ -4367,26 +4422,6 @@ namespace Dotnetable.Migrations.MySql.Migrations
                 column: "ProductCategoryID");
 
             migrationBuilder.CreateIndex(
-                name: "IX_ProductContentSections_FileId",
-                table: "ProductContentSections",
-                column: "FileId");
-
-            migrationBuilder.CreateIndex(
-                name: "IX_ProductContentSections_MediaSetID",
-                table: "ProductContentSections",
-                column: "MediaSetID");
-
-            migrationBuilder.CreateIndex(
-                name: "IX_ProductContentSections_ProductID",
-                table: "ProductContentSections",
-                column: "ProductID");
-
-            migrationBuilder.CreateIndex(
-                name: "IX_ProductContentSectionTranslations_ProductContentSectionID",
-                table: "ProductContentSectionTranslations",
-                column: "ProductContentSectionID");
-
-            migrationBuilder.CreateIndex(
                 name: "IX_ProductMedia_MediaSetID",
                 table: "ProductMedia",
                 column: "MediaSetID");
@@ -4439,7 +4474,7 @@ namespace Dotnetable.Migrations.MySql.Migrations
             migrationBuilder.CreateIndex(
                 name: "IX_Products_CreatedByMemberId",
                 table: "Products",
-                column: "CreatedByMemberId");
+                column: "CreatedByMemberID");
 
             migrationBuilder.CreateIndex(
                 name: "IX_Products_FeaturedImageFileID",
@@ -4455,6 +4490,17 @@ namespace Dotnetable.Migrations.MySql.Migrations
                 name: "IX_ProductTranslations_ProductID",
                 table: "ProductTranslations",
                 column: "ProductID");
+
+            migrationBuilder.CreateIndex(
+                name: "IX_ProductVariantPriceHistories_ChangedByMemberId",
+                table: "ProductVariantPriceHistories",
+                column: "ChangedByMemberId");
+
+            migrationBuilder.CreateIndex(
+                name: "IX_ProductVariantPriceHistories_ProductVariantID_RecordedAt",
+                table: "ProductVariantPriceHistories",
+                columns: new[] { "ProductVariantID", "RecordedAt" },
+                descending: new[] { false, true });
 
             migrationBuilder.CreateIndex(
                 name: "IX_ProductVariants_ImageFileID",
@@ -4480,6 +4526,16 @@ namespace Dotnetable.Migrations.MySql.Migrations
                 name: "IX_ProductWarningTranslations_ProductWarningID",
                 table: "ProductWarningTranslations",
                 column: "ProductWarningID");
+
+            migrationBuilder.CreateIndex(
+                name: "IX_ProductWarranties_ProductID",
+                table: "ProductWarranties",
+                column: "ProductID");
+
+            migrationBuilder.CreateIndex(
+                name: "IX_ProductWarranties_WarrantyID",
+                table: "ProductWarranties",
+                column: "WarrantyID");
 
             migrationBuilder.CreateIndex(
                 name: "IX_SettlementItems_OrderItemID",
@@ -4726,7 +4782,7 @@ namespace Dotnetable.Migrations.MySql.Migrations
                 table: "Vendors",
                 column: "MemberID",
                 unique: true,
-                filter: "MemberID IS NOT NULL");
+                filter: "([MemberID] IS NOT NULL)");
 
             migrationBuilder.CreateIndex(
                 name: "IX_Vendors_WebsiteID",
@@ -4737,6 +4793,16 @@ namespace Dotnetable.Migrations.MySql.Migrations
                 name: "IX_VendorTranslations_VendorID",
                 table: "VendorTranslations",
                 column: "VendorID");
+
+            migrationBuilder.CreateIndex(
+                name: "IX_Warranties_WebsiteID",
+                table: "Warranties",
+                column: "WebsiteID");
+
+            migrationBuilder.CreateIndex(
+                name: "IX_WarrantyTranslations_WarrantyID",
+                table: "WarrantyTranslations",
+                column: "WarrantyID");
 
             migrationBuilder.CreateIndex(
                 name: "UQ_WebsiteCaptchaSettings_WebsiteID",
@@ -5319,9 +5385,6 @@ namespace Dotnetable.Migrations.MySql.Migrations
                 name: "ProductCategoryTranslations");
 
             migrationBuilder.DropTable(
-                name: "ProductContentSectionTranslations");
-
-            migrationBuilder.DropTable(
                 name: "ProductMedia");
 
             migrationBuilder.DropTable(
@@ -5334,7 +5397,13 @@ namespace Dotnetable.Migrations.MySql.Migrations
                 name: "ProductTranslations");
 
             migrationBuilder.DropTable(
+                name: "ProductVariantPriceHistories");
+
+            migrationBuilder.DropTable(
                 name: "ProductWarningTranslations");
+
+            migrationBuilder.DropTable(
+                name: "ProductWarranties");
 
             migrationBuilder.DropTable(
                 name: "SettlementItems");
@@ -5362,6 +5431,9 @@ namespace Dotnetable.Migrations.MySql.Migrations
 
             migrationBuilder.DropTable(
                 name: "VendorTranslations");
+
+            migrationBuilder.DropTable(
+                name: "WarrantyTranslations");
 
             migrationBuilder.DropTable(
                 name: "WebsiteCaptchaSettings");
@@ -5436,7 +5508,7 @@ namespace Dotnetable.Migrations.MySql.Migrations
                 name: "ProductAttributeValues");
 
             migrationBuilder.DropTable(
-                name: "ProductContentSections");
+                name: "MediaSets");
 
             migrationBuilder.DropTable(
                 name: "ProductWarnings");
@@ -5455,6 +5527,9 @@ namespace Dotnetable.Migrations.MySql.Migrations
 
             migrationBuilder.DropTable(
                 name: "Tags");
+
+            migrationBuilder.DropTable(
+                name: "Warranties");
 
             migrationBuilder.DropTable(
                 name: "Wishlists");
@@ -5479,9 +5554,6 @@ namespace Dotnetable.Migrations.MySql.Migrations
 
             migrationBuilder.DropTable(
                 name: "AttributeOptions");
-
-            migrationBuilder.DropTable(
-                name: "MediaSets");
 
             migrationBuilder.DropTable(
                 name: "ClientWalletTransactions");
