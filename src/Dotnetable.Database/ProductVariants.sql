@@ -12,7 +12,7 @@ CREATE TABLE [dbo].[ProductVariants] (
     [Weight]            DECIMAL (10, 3) NULL,
     [Barcode]           NVARCHAR (100)  NULL,
     [IsActive]          BIT             CONSTRAINT [DF_ProductVariants_IsActive] DEFAULT ((1)) NOT NULL,
-    [CreatedAt]         DATETIME        CONSTRAINT [DF_ProductVariants_CreatedAt] DEFAULT (sysutcdatetime()) NOT NULL,
+    [CreatedAt]         DATETIME NOT NULL,
     CONSTRAINT [PK_ProductVariants] PRIMARY KEY CLUSTERED ([ProductVariantID] ASC),
     CONSTRAINT [FK_ProductVariants_FileRecords] FOREIGN KEY ([ImageFileID]) REFERENCES [dbo].[FileRecords] ([FileRecordID]),
     CONSTRAINT [FK_ProductVariants_Products] FOREIGN KEY ([ProductID]) REFERENCES [dbo].[Products] ([ProductID]),

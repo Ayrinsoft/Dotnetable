@@ -1,4 +1,4 @@
-﻿CREATE TABLE [dbo].[Coupons] (
+CREATE TABLE [dbo].[Coupons] (
     [CouponID]             INT             IDENTITY (1, 1) NOT NULL,
     [WebsiteID]            INT             NOT NULL,
     [Code]                 VARCHAR (40)    NOT NULL,
@@ -13,7 +13,7 @@
     [EndsAt]               DATETIME2 (0)   NULL,
     [IsActive]             BIT             CONSTRAINT [DF_Coupons_IsActive] DEFAULT ((1)) NOT NULL,
     [CreatedByMemberID]    INT             NULL,
-    [CreatedAt]            DATETIME2 (0)   CONSTRAINT [DF_Coupons_CreatedAt] DEFAULT (sysutcdatetime()) NOT NULL,
+    [CreatedAt]            DATETIME2 (0) NOT NULL,
     CONSTRAINT [PK_Coupons] PRIMARY KEY CLUSTERED ([CouponID] ASC),
     CONSTRAINT [UQ_Coupons_WebsiteID_Code] UNIQUE ([WebsiteID], [Code]),
     CONSTRAINT [FK_Coupons_Members] FOREIGN KEY ([CreatedByMemberID]) REFERENCES [dbo].[Members] ([MemberID]),

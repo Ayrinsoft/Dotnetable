@@ -13,7 +13,7 @@ CREATE TABLE [dbo].[StockMovements] (
     [OrderItemID]       INT             NULL,
     [Note]              NVARCHAR (500)  NULL,
     [CreatedByMemberID] INT             NULL,
-    [CreatedAt]         DATETIME2 (0)   CONSTRAINT [DF_StockMovements_CreatedAt] DEFAULT (sysutcdatetime()) NOT NULL,
+    [CreatedAt]         DATETIME2 (0) NOT NULL,
     CONSTRAINT [PK_StockMovements] PRIMARY KEY CLUSTERED ([StockMovementID] ASC),
     CONSTRAINT [FK_StockMovements_Currencies] FOREIGN KEY ([CurrencyCode]) REFERENCES [dbo].[Currencies] ([CurrencyCode]),
     CONSTRAINT [FK_StockMovements_Members] FOREIGN KEY ([CreatedByMemberID]) REFERENCES [dbo].[Members] ([MemberID]),

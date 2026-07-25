@@ -5,7 +5,7 @@ CREATE TABLE [dbo].[ProductQuestions] (
     [WebsiteClientID]   INT             NOT NULL,
     [Body]              NVARCHAR (2000) NOT NULL,
     [Status]            TINYINT         CONSTRAINT [DF_ProductQuestions_Status] DEFAULT ((1)) NOT NULL,
-    [CreatedAt]         DATETIME        CONSTRAINT [DF_ProductQuestions_CreatedAt] DEFAULT (sysutcdatetime()) NOT NULL,
+    [CreatedAt]         DATETIME NOT NULL,
     [Approved]          BIT             NOT NULL,
     CONSTRAINT [PK_ProductQuestions] PRIMARY KEY CLUSTERED ([ProductQuestionID] ASC),
     CONSTRAINT [FK_ProductQuestions_Products] FOREIGN KEY ([ProductID]) REFERENCES [dbo].[Products] ([ProductID]),

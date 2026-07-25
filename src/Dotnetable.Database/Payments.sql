@@ -17,7 +17,7 @@ CREATE TABLE [dbo].[Payments] (
     [ReceiptFileID]      INT             NULL,
     [PaidAt]             DATETIME2 (0)   NULL,
     [VerifiedByMemberID] INT             NULL,
-    [CreatedAt]          DATETIME2 (0)   CONSTRAINT [DF_Payments_CreatedAt_1] DEFAULT (sysutcdatetime()) NOT NULL,
+    [CreatedAt]          DATETIME2 (0) NOT NULL,
     CONSTRAINT [PK_Payments] PRIMARY KEY CLUSTERED ([PaymentID] ASC),
     CONSTRAINT [FK_Payments_BankAccounts] FOREIGN KEY ([BankAccountID]) REFERENCES [dbo].[BankAccounts] ([BankAccountID]),
     CONSTRAINT [FK_Payments_ClientWalletTransactions] FOREIGN KEY ([ClientWalletTransactionID]) REFERENCES [dbo].[ClientWalletTransactions] ([ClientWalletTransactionID]),

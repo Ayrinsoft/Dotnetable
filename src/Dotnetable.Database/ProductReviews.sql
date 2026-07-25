@@ -13,7 +13,7 @@ CREATE TABLE [dbo].[ProductReviews] (
     [Status]             TINYINT         CONSTRAINT [DF_ProductReviews_Status] DEFAULT ((1)) NOT NULL,
     [LikeCount]          INT             CONSTRAINT [DF_ProductReviews_LikeCount] DEFAULT ((0)) NOT NULL,
     [DislikeCount]       INT             CONSTRAINT [DF_ProductReviews_DislikeCount] DEFAULT ((0)) NOT NULL,
-    [CreatedAt]          DATETIME2 (0)   CONSTRAINT [DF_ProductReviews_CreatedAt] DEFAULT (sysutcdatetime()) NOT NULL,
+    [CreatedAt]          DATETIME2 (0) NOT NULL,
     [Approved]           BIT             NOT NULL,
     CONSTRAINT [PK_ProductReviews] PRIMARY KEY CLUSTERED ([ProductReviewID] ASC),
     CONSTRAINT [FK_ProductReviews_Products] FOREIGN KEY ([ProductID]) REFERENCES [dbo].[Products] ([ProductID]),

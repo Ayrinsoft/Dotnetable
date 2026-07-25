@@ -3,7 +3,7 @@ CREATE TABLE [dbo].[ProductVariantPriceHistories] (
     [ProductVariantID]             INT             NOT NULL,
     [ReferencePriceUsd]            DECIMAL (18, 4) NOT NULL,
     [CompareAtPriceUsd]            DECIMAL (18, 4) NULL,
-    [RecordedAt]                   DATETIME        CONSTRAINT [DF_ProductVariantPriceHistories_RecordedAt] DEFAULT (sysutcdatetime()) NOT NULL,
+    [RecordedAt]                   DATETIME NOT NULL,
     [ChangedByMemberId]            INT             NULL,
     CONSTRAINT [PK_ProductVariantPriceHistories] PRIMARY KEY CLUSTERED ([ProductVariantPriceHistoryID] ASC),
     CONSTRAINT [FK_ProductVariantPriceHistories_ProductVariants] FOREIGN KEY ([ProductVariantID]) REFERENCES [dbo].[ProductVariants] ([ProductVariantID]),

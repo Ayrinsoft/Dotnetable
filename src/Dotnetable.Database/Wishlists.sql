@@ -1,8 +1,8 @@
-﻿CREATE TABLE [dbo].[Wishlists] (
+CREATE TABLE [dbo].[Wishlists] (
     [WishlistID]      INT           IDENTITY (1, 1) NOT NULL,
     [WebsiteID]       INT           NOT NULL,
     [WebsiteClientID] INT           NOT NULL,
-    [CreatedAt]       DATETIME2 (0) CONSTRAINT [DF_Wishlists_CreatedAt] DEFAULT (sysutcdatetime()) NOT NULL,
+    [CreatedAt]       DATETIME2 (0) NOT NULL,
     CONSTRAINT [PK_Wishlists] PRIMARY KEY CLUSTERED ([WishlistID] ASC),
     CONSTRAINT [UQ_Wishlists_WebsiteClientID] UNIQUE ([WebsiteClientID]),
     CONSTRAINT [FK_Wishlists_Websites] FOREIGN KEY ([WebsiteID]) REFERENCES [dbo].[Websites] ([WebsiteID]),
