@@ -571,7 +571,7 @@ public class ProductService : IProductService
         bool? inStock = null, CancellationToken ct = default)
     {
         // Own products of the host site (include inventory for availability).
-        var q = PublishedQuery(websiteId)
+        IQueryable<Product> q = PublishedQuery(websiteId)
             .Include(p => p.ProductVariants).ThenInclude(v => v.InventoryItems);
 
         if (!string.IsNullOrWhiteSpace(categorySlug))
@@ -717,7 +717,7 @@ public class ProductService : IProductService
         foreach (var vendor in siteVendors)
         {
             if (vendor.LinkedWebsiteID is not int lid) continue;
-            var q = PublishedQuery(lid)
+            IQueryable<Product> q = PublishedQuery(lid)
                 .Include(p => p.ProductVariants).ThenInclude(v => v.InventoryItems);
             // Ownership guard: only source-owned products.
             q = q.Where(p => p.WebsiteID == lid);
