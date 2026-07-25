@@ -1,4 +1,4 @@
-﻿CREATE TABLE [dbo].[ProductAnswers] (
+CREATE TABLE [dbo].[ProductAnswers] (
     [ProductAnswerID]   INT             IDENTITY (1, 1) NOT NULL,
     [ProductQuestionID] INT             NOT NULL,
     [WebsiteClientID]   INT             NULL,
@@ -17,9 +17,11 @@ GO
 
 CREATE NONCLUSTERED INDEX [IX_ProductAnswers_ProductQuestionID]
     ON [dbo].[ProductAnswers] ([ProductQuestionID] ASC);
+GO
 
 CREATE NONCLUSTERED INDEX [IX_ProductAnswers_VendorID]
     ON [dbo].[ProductAnswers] ([VendorID] ASC);
+GO
 
 CREATE NONCLUSTERED INDEX [IX_ProductAnswers_WebsiteClientID]
     ON [dbo].[ProductAnswers] ([WebsiteClientID] ASC);

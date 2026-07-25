@@ -1,4 +1,4 @@
-﻿CREATE TABLE [dbo].[Websites] (
+CREATE TABLE [dbo].[Websites] (
     [WebsiteID]           INT              IDENTITY (1, 1) NOT NULL,
     [TradeName]           NVARCHAR (32)    NOT NULL,
     [WebsiteAddress]      VARCHAR (60)     NOT NULL,
@@ -31,9 +31,11 @@ GO
 
 CREATE NONCLUSTERED INDEX [IX_Websites_DefaultCurrencyCode]
     ON [dbo].[Websites] ([DefaultCurrencyCode] ASC);
+GO
 
 CREATE NONCLUSTERED INDEX [IX_Websites_FaveIconFileID]
     ON [dbo].[Websites] ([FaveIconFileID] ASC);
+GO
 
 CREATE NONCLUSTERED INDEX [IX_Websites_LogoFileID]
     ON [dbo].[Websites] ([LogoFileID] ASC);

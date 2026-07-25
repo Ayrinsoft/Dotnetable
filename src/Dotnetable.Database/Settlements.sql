@@ -1,4 +1,4 @@
-﻿CREATE TABLE [dbo].[Settlements] (
+CREATE TABLE [dbo].[Settlements] (
     [SettlementID]       INT             IDENTITY (1, 1) NOT NULL,
     [WebsiteID]          INT             NOT NULL,
     [TargetType]         TINYINT         NOT NULL,
@@ -31,24 +31,31 @@ GO
 
 CREATE NONCLUSTERED INDEX [IX_Settlements_ApprovedByMemberID]
     ON [dbo].[Settlements] ([ApprovedByMemberID] ASC);
+GO
 
 CREATE NONCLUSTERED INDEX [IX_Settlements_BankAccountID]
     ON [dbo].[Settlements] ([BankAccountID] ASC);
+GO
 
 CREATE NONCLUSTERED INDEX [IX_Settlements_CreatedByMemberID]
     ON [dbo].[Settlements] ([CreatedByMemberID] ASC);
+GO
 
 CREATE NONCLUSTERED INDEX [IX_Settlements_CurrencyCode]
     ON [dbo].[Settlements] ([CurrencyCode] ASC);
+GO
 
 CREATE NONCLUSTERED INDEX [IX_Settlements_SupplierID]
     ON [dbo].[Settlements] ([SupplierID] ASC);
+GO
 
 CREATE NONCLUSTERED INDEX [IX_Settlements_TargetWebsiteID]
     ON [dbo].[Settlements] ([TargetWebsiteID] ASC);
+GO
 
 CREATE NONCLUSTERED INDEX [IX_Settlements_VendorID]
     ON [dbo].[Settlements] ([VendorID] ASC);
+GO
 
 CREATE NONCLUSTERED INDEX [IX_Settlements_WebsiteID]
     ON [dbo].[Settlements] ([WebsiteID] ASC);

@@ -1,4 +1,4 @@
-﻿CREATE TABLE [dbo].[CurrencyRates] (
+CREATE TABLE [dbo].[CurrencyRates] (
     [CurrencyRateID] INT             IDENTITY (1, 1) NOT NULL,
     [WebsiteID]      INT             NOT NULL,
     [CurrencyCode]   CHAR (3)        NOT NULL,
@@ -13,6 +13,7 @@ GO
 
 CREATE NONCLUSTERED INDEX [IX_CurrencyRates_CurrencyCode]
     ON [dbo].[CurrencyRates] ([CurrencyCode] ASC);
+GO
 
 CREATE NONCLUSTERED INDEX [IX_CurrencyRates_WebsiteID]
     ON [dbo].[CurrencyRates] ([WebsiteID] ASC);

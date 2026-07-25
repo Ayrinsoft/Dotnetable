@@ -1,4 +1,4 @@
-﻿CREATE TABLE [dbo].[ClientBankAccounts] (
+CREATE TABLE [dbo].[ClientBankAccounts] (
     [ClientBankAccountID] INT           IDENTITY (1, 1) NOT NULL,
     [WebsiteID]           INT           NOT NULL,
     [WebsiteClientID]     INT           NOT NULL,
@@ -22,9 +22,11 @@ GO
 
 CREATE NONCLUSTERED INDEX [IX_ClientBankAccounts_BankID]
     ON [dbo].[ClientBankAccounts] ([BankID] ASC);
+GO
 
 CREATE NONCLUSTERED INDEX [IX_ClientBankAccounts_WebsiteClientID]
     ON [dbo].[ClientBankAccounts] ([WebsiteClientID] ASC);
+GO
 
 CREATE NONCLUSTERED INDEX [IX_ClientBankAccounts_WebsiteID]
     ON [dbo].[ClientBankAccounts] ([WebsiteID] ASC);

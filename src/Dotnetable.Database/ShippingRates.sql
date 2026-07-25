@@ -1,4 +1,4 @@
-﻿CREATE TABLE [dbo].[ShippingRates] (
+CREATE TABLE [dbo].[ShippingRates] (
     [ShippingRateID]   INT             IDENTITY (1, 1) NOT NULL,
     [ShippingMethodID] INT             NOT NULL,
     [CountryID]        INT             NULL,
@@ -21,12 +21,15 @@ GO
 
 CREATE NONCLUSTERED INDEX [IX_ShippingRates_CityID]
     ON [dbo].[ShippingRates] ([CityID] ASC);
+GO
 
 CREATE NONCLUSTERED INDEX [IX_ShippingRates_CountryID]
     ON [dbo].[ShippingRates] ([CountryID] ASC);
+GO
 
 CREATE NONCLUSTERED INDEX [IX_ShippingRates_ShippingMethodID]
     ON [dbo].[ShippingRates] ([ShippingMethodID] ASC);
+GO
 
 CREATE NONCLUSTERED INDEX [IX_ShippingRates_StateID]
     ON [dbo].[ShippingRates] ([StateID] ASC);

@@ -1,4 +1,4 @@
-﻿CREATE TABLE [dbo].[FormResponses] (
+CREATE TABLE [dbo].[FormResponses] (
     [FormResponseID]  INT          IDENTITY (1, 1) NOT NULL,
     [FormID]          INT          NOT NULL,
     [WebsiteClientID] INT          NULL,
@@ -12,6 +12,7 @@ GO
 
 CREATE NONCLUSTERED INDEX [IX_FormResponses_FormID]
     ON [dbo].[FormResponses] ([FormID] ASC);
+GO
 
 CREATE NONCLUSTERED INDEX [IX_FormResponses_WebsiteClientID]
     ON [dbo].[FormResponses] ([WebsiteClientID] ASC);

@@ -1,4 +1,4 @@
-﻿CREATE TABLE [dbo].[SlideshowSlides] (
+CREATE TABLE [dbo].[SlideshowSlides] (
     [SlideshowSlideID] INT            IDENTITY (1, 1) NOT NULL,
     [SlideshowID]       INT            NOT NULL,
     [FileID]            INT            NOT NULL,
@@ -21,9 +21,11 @@ GO
 
 CREATE NONCLUSTERED INDEX [IX_SlideshowSlides_FileID]
     ON [dbo].[SlideshowSlides] ([FileID] ASC);
+GO
 
 CREATE NONCLUSTERED INDEX [IX_SlideshowSlides_MobileFileID]
     ON [dbo].[SlideshowSlides] ([MobileFileID] ASC);
+GO
 
 CREATE NONCLUSTERED INDEX [IX_SlideshowSlides_SlideshowID]
     ON [dbo].[SlideshowSlides] ([SlideshowID] ASC);

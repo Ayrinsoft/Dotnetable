@@ -1,4 +1,4 @@
-﻿CREATE TABLE [dbo].[FileRecords] (
+CREATE TABLE [dbo].[FileRecords] (
     [FileRecordID]             INT             IDENTITY (1, 1) NOT NULL,
     [WebsiteStorageSettingsID] INT             NOT NULL,
     [StorageProvider]          SMALLINT        NOT NULL,
@@ -32,15 +32,19 @@ GO
 
 CREATE NONCLUSTERED INDEX [IX_FileRecords_FileFolderID]
     ON [dbo].[FileRecords] ([FileFolderID] ASC);
+GO
 
 CREATE NONCLUSTERED INDEX [IX_FileRecords_UploaderMemberID]
     ON [dbo].[FileRecords] ([UploaderMemberID] ASC);
+GO
 
 CREATE NONCLUSTERED INDEX [IX_FileRecords_WebsiteClientID]
     ON [dbo].[FileRecords] ([WebsiteClientID] ASC);
+GO
 
 CREATE NONCLUSTERED INDEX [IX_FileRecords_WebsiteID]
     ON [dbo].[FileRecords] ([WebsiteID] ASC);
+GO
 
 CREATE NONCLUSTERED INDEX [IX_FileRecords_WebsiteStorageSettingsID]
     ON [dbo].[FileRecords] ([WebsiteStorageSettingsID] ASC);

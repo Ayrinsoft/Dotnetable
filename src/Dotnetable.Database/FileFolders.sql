@@ -13,6 +13,7 @@ GO
 
 CREATE NONCLUSTERED INDEX [IX_FileFolders_WebsiteID]
     ON [dbo].[FileFolders] ([WebsiteID] ASC);
+GO
 
 CREATE NONCLUSTERED INDEX [IX_FileFolders_ParentFolderID]
     ON [dbo].[FileFolders] ([ParentFolderID] ASC);

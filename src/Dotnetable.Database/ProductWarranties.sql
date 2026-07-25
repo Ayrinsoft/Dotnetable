@@ -14,6 +14,7 @@ GO
 
 CREATE NONCLUSTERED INDEX [IX_ProductWarranties_ProductID]
     ON [dbo].[ProductWarranties] ([ProductID] ASC);
+GO
 
 CREATE NONCLUSTERED INDEX [IX_ProductWarranties_WarrantyID]
     ON [dbo].[ProductWarranties] ([WarrantyID] ASC);

@@ -1,4 +1,4 @@
-﻿CREATE TABLE [dbo].[Posts] (
+CREATE TABLE [dbo].[Posts] (
     [PostID]              INT             IDENTITY (1, 1) NOT NULL,
     [WebsiteID]           INT             NOT NULL,
     [PostTypeID]          INT             NOT NULL,
@@ -27,12 +27,15 @@ GO
 
 CREATE NONCLUSTERED INDEX [IX_Posts_AuthorMemberID]
     ON [dbo].[Posts] ([AuthorMemberID] ASC);
+GO
 
 CREATE NONCLUSTERED INDEX [IX_Posts_FeaturedImageFileID]
     ON [dbo].[Posts] ([FeaturedImageFileID] ASC);
+GO
 
 CREATE NONCLUSTERED INDEX [IX_Posts_PostTypeID]
     ON [dbo].[Posts] ([PostTypeID] ASC);
+GO
 
 CREATE NONCLUSTERED INDEX [IX_Posts_WebsiteID]
     ON [dbo].[Posts] ([WebsiteID] ASC);

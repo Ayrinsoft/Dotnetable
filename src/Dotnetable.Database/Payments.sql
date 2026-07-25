@@ -1,4 +1,4 @@
-﻿CREATE TABLE [dbo].[Payments] (
+CREATE TABLE [dbo].[Payments] (
     [PaymentID]          INT             IDENTITY (1, 1) NOT NULL,
     [WebsiteID]          INT             NOT NULL,
     [OrderID]            INT             NULL,
@@ -36,27 +36,35 @@ GO
 
 CREATE NONCLUSTERED INDEX [IX_Payments_BankAccountID]
     ON [dbo].[Payments] ([BankAccountID] ASC);
+GO
 
 CREATE NONCLUSTERED INDEX [IX_Payments_ClientWalletTransactionID]
     ON [dbo].[Payments] ([ClientWalletTransactionID] ASC);
+GO
 
 CREATE NONCLUSTERED INDEX [IX_Payments_CurrencyCode]
     ON [dbo].[Payments] ([CurrencyCode] ASC);
+GO
 
 CREATE NONCLUSTERED INDEX [IX_Payments_OrderID]
     ON [dbo].[Payments] ([OrderID] ASC);
+GO
 
 CREATE NONCLUSTERED INDEX [IX_Payments_PaymentGatewayID]
     ON [dbo].[Payments] ([PaymentGatewayID] ASC);
+GO
 
 CREATE NONCLUSTERED INDEX [IX_Payments_ReceiptFileID]
     ON [dbo].[Payments] ([ReceiptFileID] ASC);
+GO
 
 CREATE NONCLUSTERED INDEX [IX_Payments_VerifiedByMemberID]
     ON [dbo].[Payments] ([VerifiedByMemberID] ASC);
+GO
 
 CREATE NONCLUSTERED INDEX [IX_Payments_WebsiteClientID]
     ON [dbo].[Payments] ([WebsiteClientID] ASC);
+GO
 
 CREATE NONCLUSTERED INDEX [IX_Payments_WebsiteID]
     ON [dbo].[Payments] ([WebsiteID] ASC);

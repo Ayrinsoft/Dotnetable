@@ -1,4 +1,4 @@
-﻿CREATE TABLE [dbo].[JournalEntryLines] (
+CREATE TABLE [dbo].[JournalEntryLines] (
     [JournalEntryLineID] INT             IDENTITY (1, 1) NOT NULL,
     [JournalEntryID]     INT             NOT NULL,
     [ChartOfAccountID]   INT             NOT NULL,
@@ -13,6 +13,7 @@ GO
 
 CREATE NONCLUSTERED INDEX [IX_JournalEntryLines_ChartOfAccountID]
     ON [dbo].[JournalEntryLines] ([ChartOfAccountID] ASC);
+GO
 
 CREATE NONCLUSTERED INDEX [IX_JournalEntryLines_JournalEntryID]
     ON [dbo].[JournalEntryLines] ([JournalEntryID] ASC);

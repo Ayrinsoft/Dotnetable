@@ -1,4 +1,4 @@
-﻿CREATE TABLE [dbo].[OrderStatusHistories] (
+CREATE TABLE [dbo].[OrderStatusHistories] (
     [OrderStatusHistoryID] INT            IDENTITY (1, 1) NOT NULL,
     [OrderID]              INT            NOT NULL,
     [FromStatus]           TINYINT        NULL,
@@ -14,6 +14,7 @@ GO
 
 CREATE NONCLUSTERED INDEX [IX_OrderStatusHistories_CreatedByMemberID]
     ON [dbo].[OrderStatusHistories] ([CreatedByMemberID] ASC);
+GO
 
 CREATE NONCLUSTERED INDEX [IX_OrderStatusHistories_OrderID]
     ON [dbo].[OrderStatusHistories] ([OrderID] ASC);

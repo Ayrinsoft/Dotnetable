@@ -1,4 +1,4 @@
-﻿CREATE TABLE [dbo].[WebsiteClients] (
+CREATE TABLE [dbo].[WebsiteClients] (
     [WebsiteClientID] INT              IDENTITY (1, 1) NOT NULL,
     [WebsiteID]       INT              NOT NULL,
     [AvatarID]        INT              NULL,
@@ -29,6 +29,7 @@ GO
 
 CREATE NONCLUSTERED INDEX [IX_WebsiteClients_AvatarID]
     ON [dbo].[WebsiteClients] ([AvatarID] ASC);
+GO
 
 CREATE NONCLUSTERED INDEX [IX_WebsiteClients_WebsiteID]
     ON [dbo].[WebsiteClients] ([WebsiteID] ASC);

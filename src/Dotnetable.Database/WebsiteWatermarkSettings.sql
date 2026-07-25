@@ -1,4 +1,4 @@
-﻿CREATE TABLE [dbo].[WebsiteWatermarkSettings] (
+CREATE TABLE [dbo].[WebsiteWatermarkSettings] (
     [WebsiteWatermarkSettingID] INT      IDENTITY (1, 1) NOT NULL,
     [WebsiteID]                 INT      NOT NULL,
     [WatermarkFileID]           INT      NULL,
@@ -14,6 +14,7 @@ GO
 
 CREATE NONCLUSTERED INDEX [IX_WebsiteWatermarkSettings_WatermarkFileID]
     ON [dbo].[WebsiteWatermarkSettings] ([WatermarkFileID] ASC);
+GO
 
 CREATE NONCLUSTERED INDEX [IX_WebsiteWatermarkSettings_WebsiteID]
     ON [dbo].[WebsiteWatermarkSettings] ([WebsiteID] ASC);

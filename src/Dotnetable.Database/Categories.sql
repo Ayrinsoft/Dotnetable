@@ -1,4 +1,4 @@
-﻿CREATE TABLE [dbo].[Categories] (
+CREATE TABLE [dbo].[Categories] (
     [CategoryID]       INT            IDENTITY (1, 1) NOT NULL,
     [WebsiteID]        INT            NOT NULL,
     [PostTypeID]       INT            NULL,
@@ -16,9 +16,11 @@ GO
 
 CREATE NONCLUSTERED INDEX [IX_Categories_ParentCategoryID]
     ON [dbo].[Categories] ([ParentCategoryID] ASC);
+GO
 
 CREATE NONCLUSTERED INDEX [IX_Categories_PostTypeID]
     ON [dbo].[Categories] ([PostTypeID] ASC);
+GO
 
 CREATE NONCLUSTERED INDEX [IX_Categories_WebsiteID]
     ON [dbo].[Categories] ([WebsiteID] ASC);

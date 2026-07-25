@@ -1,4 +1,4 @@
-﻿CREATE TABLE [dbo].[Cities] (
+CREATE TABLE [dbo].[Cities] (
     [CityID]       INT           IDENTITY (1, 1) NOT NULL,
     [CountryID]    INT           NOT NULL,
     [StateID]      INT           NULL,
@@ -17,6 +17,7 @@ GO
 
 CREATE NONCLUSTERED INDEX [IX_Cities_CountryID]
     ON [dbo].[Cities] ([CountryID] ASC);
+GO
 
 CREATE NONCLUSTERED INDEX [IX_Cities_StateID]
     ON [dbo].[Cities] ([StateID] ASC);

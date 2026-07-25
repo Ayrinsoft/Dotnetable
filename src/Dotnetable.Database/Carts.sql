@@ -1,4 +1,4 @@
-﻿CREATE TABLE [dbo].[Carts] (
+CREATE TABLE [dbo].[Carts] (
     [CartID]          INT           IDENTITY (1, 1) NOT NULL,
     [WebsiteID]       INT           NOT NULL,
     [WebsiteClientID] INT           NULL,
@@ -17,9 +17,11 @@ GO
 
 CREATE NONCLUSTERED INDEX [IX_Carts_CouponID]
     ON [dbo].[Carts] ([CouponID] ASC);
+GO
 
 CREATE NONCLUSTERED INDEX [IX_Carts_WebsiteClientID]
     ON [dbo].[Carts] ([WebsiteClientID] ASC);
+GO
 
 CREATE NONCLUSTERED INDEX [IX_Carts_WebsiteID]
     ON [dbo].[Carts] ([WebsiteID] ASC);

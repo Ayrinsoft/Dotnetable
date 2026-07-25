@@ -1,4 +1,4 @@
-﻿CREATE TABLE [dbo].[MenuItems] (
+CREATE TABLE [dbo].[MenuItems] (
     [MenuItemID]        INT            IDENTITY (1, 1) NOT NULL,
     [MenuID]            INT            NOT NULL,
     [ParentItemID]      INT            NULL,
@@ -32,27 +32,35 @@ GO
 
 CREATE NONCLUSTERED INDEX [IX_MenuItems_BrandID]
     ON [dbo].[MenuItems] ([BrandID] ASC);
+GO
 
 CREATE NONCLUSTERED INDEX [IX_MenuItems_CategoryID]
     ON [dbo].[MenuItems] ([CategoryID] ASC);
+GO
 
 CREATE NONCLUSTERED INDEX [IX_MenuItems_MenuID]
     ON [dbo].[MenuItems] ([MenuID] ASC);
+GO
 
 CREATE NONCLUSTERED INDEX [IX_MenuItems_PageID]
     ON [dbo].[MenuItems] ([PageID] ASC);
+GO
 
 CREATE NONCLUSTERED INDEX [IX_MenuItems_ParentItemID]
     ON [dbo].[MenuItems] ([ParentItemID] ASC);
+GO
 
 CREATE NONCLUSTERED INDEX [IX_MenuItems_PostID]
     ON [dbo].[MenuItems] ([PostID] ASC);
+GO
 
 CREATE NONCLUSTERED INDEX [IX_MenuItems_ProductCategoryID]
     ON [dbo].[MenuItems] ([ProductCategoryID] ASC);
+GO
 
 CREATE NONCLUSTERED INDEX [IX_MenuItems_ProductID]
     ON [dbo].[MenuItems] ([ProductID] ASC);
+GO
 
 CREATE NONCLUSTERED INDEX [IX_MenuItems_VendorID]
     ON [dbo].[MenuItems] ([VendorID] ASC);

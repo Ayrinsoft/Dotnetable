@@ -1,4 +1,4 @@
-﻿CREATE TABLE [dbo].[WebsiteClientAddresses] (
+CREATE TABLE [dbo].[WebsiteClientAddresses] (
     [WebsiteClientAddressID] INT               IDENTITY (1, 1) NOT NULL,
     [WebsiteClientID]        INT               NOT NULL,
     [Title]                  NVARCHAR (100)    NULL,
@@ -20,9 +20,11 @@ GO
 
 CREATE NONCLUSTERED INDEX [IX_WebsiteClientAddresses_CityId]
     ON [dbo].[WebsiteClientAddresses] ([CityId] ASC);
+GO
 
 CREATE NONCLUSTERED INDEX [IX_WebsiteClientAddresses_CountryId]
     ON [dbo].[WebsiteClientAddresses] ([CountryId] ASC);
+GO
 
 CREATE NONCLUSTERED INDEX [IX_WebsiteClientAddresses_WebsiteClientID]
     ON [dbo].[WebsiteClientAddresses] ([WebsiteClientID] ASC);

@@ -1,4 +1,4 @@
-﻿CREATE TABLE [dbo].[Brands] (
+CREATE TABLE [dbo].[Brands] (
     [BrandID]    INT            IDENTITY (1, 1) NOT NULL,
     [WebsiteID]  INT            NOT NULL,
     [Name]       NVARCHAR (200) NOT NULL,
@@ -13,6 +13,7 @@ GO
 
 CREATE NONCLUSTERED INDEX [IX_Brands_LogoFileID]
     ON [dbo].[Brands] ([LogoFileID] ASC);
+GO
 
 CREATE NONCLUSTERED INDEX [IX_Brands_WebsiteID]
     ON [dbo].[Brands] ([WebsiteID] ASC);

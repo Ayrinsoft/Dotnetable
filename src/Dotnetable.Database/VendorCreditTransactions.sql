@@ -24,15 +24,19 @@ GO
 
 CREATE NONCLUSTERED INDEX [IX_VendorCreditTransactions_VendorID]
     ON [dbo].[VendorCreditTransactions] ([VendorID] ASC);
+GO
 
 CREATE NONCLUSTERED INDEX [IX_VendorCreditTransactions_WebsiteID]
     ON [dbo].[VendorCreditTransactions] ([WebsiteID] ASC);
+GO
 
 CREATE NONCLUSTERED INDEX [IX_VendorCreditTransactions_SourceOrderItemID]
     ON [dbo].[VendorCreditTransactions] ([SourceOrderItemID] ASC);
+GO
 
 CREATE NONCLUSTERED INDEX [IX_VendorCreditTransactions_MirrorOrderID]
     ON [dbo].[VendorCreditTransactions] ([MirrorOrderID] ASC);
+GO
 
 CREATE NONCLUSTERED INDEX [IX_VendorCreditTransactions_CreatedByMemberID]
     ON [dbo].[VendorCreditTransactions] ([CreatedByMemberID] ASC);

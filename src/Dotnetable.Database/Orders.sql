@@ -1,4 +1,4 @@
-﻿CREATE TABLE [dbo].[Orders] (
+CREATE TABLE [dbo].[Orders] (
     [OrderID]                INT             IDENTITY (1, 1) NOT NULL,
     [WebsiteID]              INT             NOT NULL,
     [OrderNumber]            NVARCHAR (30)   NOT NULL,
@@ -33,21 +33,27 @@ GO
 
 CREATE NONCLUSTERED INDEX [IX_Orders_CouponID]
     ON [dbo].[Orders] ([CouponID] ASC);
+GO
 
 CREATE NONCLUSTERED INDEX [IX_Orders_CreatedByMemberID]
     ON [dbo].[Orders] ([CreatedByMemberID] ASC);
+GO
 
 CREATE NONCLUSTERED INDEX [IX_Orders_CurrencyCode]
     ON [dbo].[Orders] ([CurrencyCode] ASC);
+GO
 
 CREATE NONCLUSTERED INDEX [IX_Orders_ShippingMethodID]
     ON [dbo].[Orders] ([ShippingMethodID] ASC);
+GO
 
 CREATE NONCLUSTERED INDEX [IX_Orders_WebsiteClientAddressID]
     ON [dbo].[Orders] ([WebsiteClientAddressID] ASC);
+GO
 
 CREATE NONCLUSTERED INDEX [IX_Orders_WebsiteClientID]
     ON [dbo].[Orders] ([WebsiteClientID] ASC);
+GO
 
 CREATE NONCLUSTERED INDEX [IX_Orders_WebsiteID]
     ON [dbo].[Orders] ([WebsiteID] ASC);
