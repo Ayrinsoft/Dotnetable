@@ -1,4 +1,4 @@
-﻿CREATE TABLE [dbo].[Slideshows] (
+CREATE TABLE [dbo].[Slideshows] (
     [SlideshowID]      INT            IDENTITY (1, 1) NOT NULL,
     [WebsiteID]        INT            NOT NULL,
     [Name]             NVARCHAR (150) NOT NULL,
@@ -11,7 +11,7 @@
     [EnableLightbox]   BIT            CONSTRAINT [DF_Slideshows_EnableLightbox] DEFAULT ((1)) NOT NULL,
     [AspectRatio]      NVARCHAR (20)  NULL,
     [IsActive]         BIT            CONSTRAINT [DF_Slideshows_IsActive] DEFAULT ((1)) NOT NULL,
-    [CreatedAt]        DATETIME       CONSTRAINT [DF_Slideshows_CreatedAt] DEFAULT (sysutcdatetime()) NOT NULL,
+    [CreatedAt]        DATETIME NOT NULL,
     CONSTRAINT [PK_Slideshows] PRIMARY KEY CLUSTERED ([SlideshowID] ASC),
     CONSTRAINT [FK_Slideshows_Websites] FOREIGN KEY ([WebsiteID]) REFERENCES [dbo].[Websites] ([WebsiteID])
 );

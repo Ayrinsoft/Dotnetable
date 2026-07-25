@@ -68,9 +68,16 @@ public class InitialDataSeeder : IInitialDataSeeder
             };
             context.Websites.Add(website);
 
+            var featureNow = DateTime.UtcNow;
             foreach (var featureKey in WebsiteType.Corporate.GetDefaultFeatures())
             {
-                context.WebsiteFeatures.Add(new WebsiteFeature { Website = website, FeatureKey = (byte)featureKey, Enabled = true });
+                context.WebsiteFeatures.Add(new WebsiteFeature
+                {
+                    Website = website,
+                    FeatureKey = (byte)featureKey,
+                    Enabled = true,
+                    CreatedAt = featureNow,
+                });
             }
 
             await context.SaveChangesAsync(ct);

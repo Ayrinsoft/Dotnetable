@@ -104,6 +104,18 @@ public class FormServiceTests : IDisposable
     }
 
     [Fact]
+    public async Task CreateFormAsync_SetsCreatedAtUtc()
+    {
+        var before = DateTime.UtcNow.AddSeconds(-2);
+
+        var form = await _service.CreateFormAsync(NewForm("Timed Form"));
+
+        form.CreatedAt.Should().BeOnOrAfter(before);
+        form.CreatedAt.Should().BeCloseTo(DateTime.UtcNow, TimeSpan.FromSeconds(5));
+        (await _context.Forms.FindAsync(form.FormID))!.CreatedAt.Should().Be(form.CreatedAt);
+    }
+
+    [Fact]
     public async Task CreateFormAsync_NormalizesExplicitSlug()
     {
         var form = NewForm();

@@ -16,7 +16,7 @@ CREATE TABLE [dbo].[Settlements] (
     [CreatedByMemberID]  INT             NULL,
     [ApprovedByMemberID] INT             NULL,
     [PaidAt]             DATETIME        NULL,
-    [CreatedAt]          DATETIME        CONSTRAINT [DF_Settlements_CreatedAt_1] DEFAULT (sysutcdatetime()) NOT NULL,
+    [CreatedAt]          DATETIME NOT NULL,
     CONSTRAINT [PK_Settlements] PRIMARY KEY CLUSTERED ([SettlementID] ASC),
     CONSTRAINT [FK_Settlements_BankAccounts] FOREIGN KEY ([BankAccountID]) REFERENCES [dbo].[BankAccounts] ([BankAccountID]),
     CONSTRAINT [FK_Settlements_Currencies] FOREIGN KEY ([CurrencyCode]) REFERENCES [dbo].[Currencies] ([CurrencyCode]),

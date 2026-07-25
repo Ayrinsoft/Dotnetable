@@ -3,7 +3,7 @@ CREATE TABLE [dbo].[WebsiteFeatures] (
     [WebsiteID]        INT           NOT NULL,
     [FeatureKey]       TINYINT       NOT NULL,
     [Enabled]          BIT           CONSTRAINT [DF_WebsiteFeatures_Enabled] DEFAULT ((1)) NOT NULL,
-    [CreatedAt]        DATETIME2 (0) CONSTRAINT [DF_WebsiteFeatures_CreatedAt] DEFAULT (sysutcdatetime()) NOT NULL,
+    [CreatedAt]        DATETIME2 (0) NOT NULL,
     CONSTRAINT [PK_WebsiteFeatures] PRIMARY KEY CLUSTERED ([WebsiteFeatureID] ASC),
     CONSTRAINT [UQ_WebsiteFeatures_WebsiteID_FeatureKey] UNIQUE ([WebsiteID], [FeatureKey]),
     CONSTRAINT [FK_WebsiteFeatures_Websites] FOREIGN KEY ([WebsiteID]) REFERENCES [dbo].[Websites] ([WebsiteID])
