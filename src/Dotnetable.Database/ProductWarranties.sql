@@ -4,8 +4,8 @@ CREATE TABLE [dbo].[ProductWarranties] (
     [WarrantyID]        INT             NULL,
     [CustomTitle]       NVARCHAR (200)  NULL,
     [CustomDescription] NVARCHAR (2000) NULL,
-    [SortOrder]         INT             CONSTRAINT [DF_ProductWarranties_SortOrder] DEFAULT ((0)) NOT NULL,
-    [IsActive]          BIT             CONSTRAINT [DF_ProductWarranties_IsActive] DEFAULT ((1)) NOT NULL,
+    [SortOrder]         INT NOT NULL,
+    [IsActive]          BIT NOT NULL,
     CONSTRAINT [PK_ProductWarranties] PRIMARY KEY CLUSTERED ([ProductWarrantyID] ASC),
     CONSTRAINT [FK_ProductWarranties_Products] FOREIGN KEY ([ProductID]) REFERENCES [dbo].[Products] ([ProductID]),
     CONSTRAINT [FK_ProductWarranties_Warranties] FOREIGN KEY ([WarrantyID]) REFERENCES [dbo].[Warranties] ([WarrantyID])

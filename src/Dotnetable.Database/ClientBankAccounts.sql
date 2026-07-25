@@ -7,7 +7,7 @@ CREATE TABLE [dbo].[ClientBankAccounts] (
     [AccountNumber]       VARCHAR (30)  NULL,
     [IBAN]                VARCHAR (34)  NULL,
     [CardNumber]          VARCHAR (20)  NULL,
-    [IsDefault]           BIT           CONSTRAINT [DF_ClientBankAccounts_IsDefault] DEFAULT ((0)) NOT NULL,
+    [IsDefault]           BIT NOT NULL,
     [IsActive]            BIT NOT NULL,
     [CreatedAt]           DATETIME2 (0) NOT NULL,
     CONSTRAINT [PK_ClientBankAccounts] PRIMARY KEY CLUSTERED ([ClientBankAccountID] ASC),

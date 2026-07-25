@@ -6,7 +6,7 @@ CREATE TABLE [dbo].[JournalEntries] (
     [Description]     NVARCHAR (500) NULL,
     [SourceType]      TINYINT        NULL,
     [SourceId]        INT            NULL,
-    [IsPosted]        BIT            CONSTRAINT [DF_JournalEntries_IsPosted] DEFAULT ((0)) NOT NULL,
+    [IsPosted]        BIT NOT NULL,
     [CreatedAt]       DATETIME NOT NULL,
     CONSTRAINT [PK_JournalEntries] PRIMARY KEY CLUSTERED ([JournalEntryID] ASC),
     CONSTRAINT [FK_JournalEntries_Websites] FOREIGN KEY ([WebsiteID]) REFERENCES [dbo].[Websites] ([WebsiteID])

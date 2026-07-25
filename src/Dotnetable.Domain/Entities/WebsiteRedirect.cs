@@ -1,4 +1,4 @@
-﻿using System;
+using System;
 using System.Collections.Generic;
 
 namespace Dotnetable.Domain.Entities;
@@ -13,13 +13,13 @@ public partial class WebsiteRedirect
 
     public string TargetPath { get; set; } = null!;
 
-    public int StatusCode { get; set; }
+    public int StatusCode { get; set; } = 301;
 
     public bool IsRegex { get; set; }
 
     public int HitCount { get; set; }
 
-    public bool IsActive { get; set; }
+    public bool IsActive { get; set; } = true;
 
     public DateTime CreatedAt { get; set; }
 

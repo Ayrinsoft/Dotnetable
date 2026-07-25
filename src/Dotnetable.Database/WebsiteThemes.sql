@@ -6,8 +6,8 @@ CREATE TABLE [dbo].[WebsiteThemes] (
     [Version]        NVARCHAR (50)  NULL,
     [Author]         NVARCHAR (100) NULL,
     [Description]    NVARCHAR (500) NULL,
-    [HasScreenshot]  BIT            CONSTRAINT [DF_WebsiteThemes_HasScreenshot] DEFAULT ((0)) NOT NULL,
-    [IsActive]       BIT            CONSTRAINT [DF_WebsiteThemes_IsActive] DEFAULT ((0)) NOT NULL,
+    [HasScreenshot]  BIT NOT NULL,
+    [IsActive]       BIT NOT NULL,
     [CreatedAt]      DATETIME NOT NULL,
     CONSTRAINT [PK_WebsiteThemes] PRIMARY KEY CLUSTERED ([WebsiteThemeID] ASC),
     CONSTRAINT [FK_WebsiteThemes_Websites] FOREIGN KEY ([WebsiteID]) REFERENCES [dbo].[Websites] ([WebsiteID])

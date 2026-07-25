@@ -1,4 +1,4 @@
-﻿using System;
+using System;
 using System.Collections.Generic;
 
 namespace Dotnetable.Domain.Entities;
@@ -21,11 +21,11 @@ public partial class Page
 
     public bool IsHomepage { get; set; }
 
-    public byte Status { get; set; }
+    public byte Status { get; set; } = (byte)1;
 
     public int SortOrder { get; set; }
 
-    public bool IsActive { get; set; }
+    public bool IsActive { get; set; } = true;
 
     public int? CreatedByMemberID { get; set; }
 

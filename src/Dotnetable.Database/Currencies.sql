@@ -2,8 +2,8 @@ CREATE TABLE [dbo].[Currencies] (
     [CurrencyCode]  CHAR (3)      NOT NULL,
     [Name]          NVARCHAR (50) NOT NULL,
     [Symbol]        NVARCHAR (10) NOT NULL,
-    [DecimalDigits] TINYINT       CONSTRAINT [DF_Currencies_DecimalDigits] DEFAULT ((2)) NOT NULL,
-    [IsActive]      BIT           CONSTRAINT [DF_Currencies_IsActive] DEFAULT ((1)) NOT NULL,
+    [DecimalDigits] TINYINT NOT NULL,
+    [IsActive]      BIT NOT NULL,
     CONSTRAINT [PK_Currencies] PRIMARY KEY CLUSTERED ([CurrencyCode] ASC)
 );
 

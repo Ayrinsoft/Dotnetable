@@ -9,7 +9,7 @@ CREATE TABLE [dbo].[Settlements] (
     [PeriodTo]           DATE            NOT NULL,
     [TotalAmount]        DECIMAL (18, 4) NOT NULL,
     [CurrencyCode]       CHAR (3)        NOT NULL,
-    [Status]             TINYINT         CONSTRAINT [DF_Settlements_Status_1] DEFAULT ((1)) NOT NULL,
+    [Status]             TINYINT NOT NULL,
     [BankAccountID]      INT             NULL,
     [PaymentRefNumber]   NVARCHAR (100)  NULL,
     [Note]               NVARCHAR (500)  NULL,

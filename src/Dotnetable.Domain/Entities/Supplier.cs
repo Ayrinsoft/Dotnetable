@@ -1,4 +1,4 @@
-﻿using System;
+using System;
 using System.Collections.Generic;
 
 namespace Dotnetable.Domain.Entities;
@@ -13,7 +13,7 @@ public partial class Supplier
 
     public string? Phone { get; set; }
 
-    public bool IsActive { get; set; }
+    public bool IsActive { get; set; } = true;
 
     public virtual ICollection<Settlement> Settlements { get; set; } = new List<Settlement>();
 

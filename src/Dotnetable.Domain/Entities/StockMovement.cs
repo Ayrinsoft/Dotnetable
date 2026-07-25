@@ -1,4 +1,4 @@
-﻿using System;
+using System;
 using System.Collections.Generic;
 
 namespace Dotnetable.Domain.Entities;
@@ -24,7 +24,7 @@ public partial class StockMovement
     /// <summary>
     /// website&apos;s local currency rate snapshotted at the moment of this stock entry/exit, so accounting and reports can be reconstructed in local currency at that point in time
     /// </summary>
-    public decimal ExchangeRateToUsd { get; set; }
+    public decimal ExchangeRateToUsd { get; set; } = 1m;
 
     public int? SupplierID { get; set; }
 

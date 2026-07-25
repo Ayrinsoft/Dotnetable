@@ -1,4 +1,4 @@
-﻿using System;
+using System;
 using System.Collections.Generic;
 
 namespace Dotnetable.Domain.Entities;
@@ -13,7 +13,7 @@ public partial class Order
 
     public int WebsiteClientID { get; set; }
 
-    public byte Status { get; set; }
+    public byte Status { get; set; } = (byte)1;
 
     public string CurrencyCode { get; set; } = null!;
 

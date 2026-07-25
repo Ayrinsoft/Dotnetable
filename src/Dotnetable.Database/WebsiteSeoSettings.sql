@@ -1,8 +1,8 @@
-﻿CREATE TABLE [dbo].[WebsiteSeoSettings] (
+CREATE TABLE [dbo].[WebsiteSeoSettings] (
     [WebsiteSeoSettingID]    INT            IDENTITY (1, 1) NOT NULL,
     [WebsiteID]              INT            NOT NULL,
     [DefaultMetaTitle]       VARCHAR (40)   NULL,
-    [TitleSeparator]         CHAR (3)       CONSTRAINT [DF_WebsiteSeoSettings_TitleSeparator] DEFAULT (' | ') NULL,
+    [TitleSeparator]         CHAR (3) NULL,
     [DefaultMetaDescription] NVARCHAR (158) NULL,
     [SitemapEnabled]         BIT            NOT NULL,
     [RobotsEnabled]          BIT            NOT NULL,

@@ -24,7 +24,7 @@ public partial class Warranty
     /// <summary>Optional structured duration in months for filtering/display.</summary>
     public int? DurationMonths { get; set; }
 
-    public bool IsActive { get; set; }
+    public bool IsActive { get; set; } = true;
 
     public int SortOrder { get; set; }
 

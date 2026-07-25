@@ -5,8 +5,8 @@ CREATE TABLE [dbo].[Warranties] (
     [Description]    NVARCHAR (2000) NULL,
     [ProviderName]   NVARCHAR (200) NULL,
     [DurationMonths] INT            NULL,
-    [IsActive]       BIT            CONSTRAINT [DF_Warranties_IsActive] DEFAULT ((1)) NOT NULL,
-    [SortOrder]      INT            CONSTRAINT [DF_Warranties_SortOrder] DEFAULT ((0)) NOT NULL,
+    [IsActive]       BIT NOT NULL,
+    [SortOrder]      INT NOT NULL,
     CONSTRAINT [PK_Warranties] PRIMARY KEY CLUSTERED ([WarrantyID] ASC),
     CONSTRAINT [FK_Warranties_Websites] FOREIGN KEY ([WebsiteID]) REFERENCES [dbo].[Websites] ([WebsiteID])
 );

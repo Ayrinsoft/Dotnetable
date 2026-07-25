@@ -4,7 +4,7 @@ CREATE TABLE [dbo].[ProductQuestions] (
     [ProductID]         INT             NOT NULL,
     [WebsiteClientID]   INT             NOT NULL,
     [Body]              NVARCHAR (2000) NOT NULL,
-    [Status]            TINYINT         CONSTRAINT [DF_ProductQuestions_Status] DEFAULT ((1)) NOT NULL,
+    [Status]            TINYINT NOT NULL,
     [CreatedAt]         DATETIME NOT NULL,
     [Approved]          BIT             NOT NULL,
     CONSTRAINT [PK_ProductQuestions] PRIMARY KEY CLUSTERED ([ProductQuestionID] ASC),

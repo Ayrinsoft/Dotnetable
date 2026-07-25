@@ -467,11 +467,12 @@ public class ProductService : IProductService
 
         foreach (var w in warnings)
         {
+            var severity = string.IsNullOrWhiteSpace(w.Severity) ? "info" : w.Severity;
             if (w.ProductWarningID == 0)
                 _context.ProductWarnings.Add(new ProductWarning
                 {
                     ProductID = productId,
-                    Severity = w.Severity,
+                    Severity = severity,
                     Text = w.Text,
                     IsActive = w.IsActive,
                 });
@@ -479,7 +480,7 @@ public class ProductService : IProductService
             {
                 var current = existing.FirstOrDefault(x => x.ProductWarningID == w.ProductWarningID);
                 if (current is null) continue;
-                current.Severity = w.Severity;
+                current.Severity = severity;
                 current.Text = w.Text;
                 current.IsActive = w.IsActive;
             }
