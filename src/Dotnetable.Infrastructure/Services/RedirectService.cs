@@ -44,6 +44,8 @@ public class RedirectService : IRedirectService
     public async Task<WebsiteRedirect> CreateAsync(WebsiteRedirect redirect, CancellationToken ct = default)
     {
         redirect.CreatedAt = DateTime.UtcNow;
+        if (redirect.StatusCode == 0)
+            redirect.StatusCode = 301;
         _context.WebsiteRedirects.Add(redirect);
         await _context.SaveChangesAsync(ct);
         return redirect;

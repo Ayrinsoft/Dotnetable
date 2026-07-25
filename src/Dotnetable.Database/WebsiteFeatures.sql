@@ -2,7 +2,7 @@ CREATE TABLE [dbo].[WebsiteFeatures] (
     [WebsiteFeatureID] INT           IDENTITY (1, 1) NOT NULL,
     [WebsiteID]        INT           NOT NULL,
     [FeatureKey]       TINYINT       NOT NULL,
-    [Enabled]          BIT           CONSTRAINT [DF_WebsiteFeatures_Enabled] DEFAULT ((1)) NOT NULL,
+    [Enabled]          BIT NOT NULL,
     [CreatedAt]        DATETIME2 (0) NOT NULL,
     CONSTRAINT [PK_WebsiteFeatures] PRIMARY KEY CLUSTERED ([WebsiteFeatureID] ASC),
     CONSTRAINT [UQ_WebsiteFeatures_WebsiteID_FeatureKey] UNIQUE ([WebsiteID], [FeatureKey]),

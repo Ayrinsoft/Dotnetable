@@ -1,9 +1,9 @@
-﻿CREATE TABLE [dbo].[Menus] (
+CREATE TABLE [dbo].[Menus] (
     [MenuID]    INT            IDENTITY (1, 1) NOT NULL,
     [WebsiteID] INT            NOT NULL,
     [Name]      NVARCHAR (100) NOT NULL,
     [Location]  TINYINT        NOT NULL,
-    [IsActive]  BIT            CONSTRAINT [DF_Menus_IsActive] DEFAULT ((1)) NOT NULL,
+    [IsActive]  BIT NOT NULL,
     CONSTRAINT [PK_Menus] PRIMARY KEY CLUSTERED ([MenuID] ASC),
     CONSTRAINT [FK_Menus_Websites] FOREIGN KEY ([WebsiteID]) REFERENCES [dbo].[Websites] ([WebsiteID])
 );

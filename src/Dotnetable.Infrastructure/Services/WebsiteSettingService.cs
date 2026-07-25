@@ -123,6 +123,9 @@ public class WebsiteSettingService : IWebsiteSettingService
         var existing = await _context.WebsiteSeoSettings
             .FirstOrDefaultAsync(x => x.WebsiteID == setting.WebsiteID, ct);
 
+        if (string.IsNullOrWhiteSpace(setting.TitleSeparator))
+            setting.TitleSeparator = " | ";
+
         if (existing is null)
         {
             _context.WebsiteSeoSettings.Add(setting);

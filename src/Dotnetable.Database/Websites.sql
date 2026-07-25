@@ -11,7 +11,7 @@ CREATE TABLE [dbo].[Websites] (
     [AllowAllIP]          BIT              NOT NULL,
     [DefaultLanguageCode] CHAR (2)         NOT NULL,
     [WebsiteType]         TINYINT          NOT NULL,
-    [IsHub]               BIT              CONSTRAINT [DF_Websites_IsHub] DEFAULT ((0)) NOT NULL,
+    [IsHub]               BIT NOT NULL,
     [BrandName]           NVARCHAR (60)    NOT NULL,
     [LogoFileID]          INT              NULL,
     [FaveIconFileID]      INT              NULL,

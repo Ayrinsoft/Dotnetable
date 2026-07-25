@@ -1,4 +1,4 @@
-﻿using System;
+using System;
 using System.Collections.Generic;
 
 namespace Dotnetable.Domain.Entities;
@@ -23,7 +23,7 @@ public partial class Form
 
     public bool RequireLogin { get; set; }
 
-    public bool AllowMultipleSubmissions { get; set; }
+    public bool AllowMultipleSubmissions { get; set; } = true;
 
     public bool ShowResults { get; set; }
 
@@ -33,7 +33,7 @@ public partial class Form
 
     public DateTime? EndAt { get; set; }
 
-    public bool IsActive { get; set; }
+    public bool IsActive { get; set; } = true;
 
     public DateTime CreatedAt { get; set; }
 

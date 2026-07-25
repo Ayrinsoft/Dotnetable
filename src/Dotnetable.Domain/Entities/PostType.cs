@@ -1,4 +1,4 @@
-﻿using System;
+using System;
 using System.Collections.Generic;
 
 namespace Dotnetable.Domain.Entities;
@@ -13,13 +13,13 @@ public partial class PostType
 
     public string Slug { get; set; } = null!;
 
-    public bool HasCategories { get; set; }
+    public bool HasCategories { get; set; } = true;
 
-    public bool HasTags { get; set; }
+    public bool HasTags { get; set; } = true;
 
-    public bool HasAuthor { get; set; }
+    public bool HasAuthor { get; set; } = true;
 
-    public bool CommentsEnabled { get; set; }
+    public bool CommentsEnabled { get; set; } = true;
 
     public virtual ICollection<Category> Categories { get; set; } = new List<Category>();
 

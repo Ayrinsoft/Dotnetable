@@ -11,7 +11,7 @@ CREATE TABLE [dbo].[Payments] (
     [CurrencyCode]       CHAR (3)        NOT NULL,
     [ExchangeRateToUsd]  DECIMAL (18, 6) NOT NULL,
     [AmountUsd]          DECIMAL (18, 4) NOT NULL,
-    [Status]             TINYINT         CONSTRAINT [DF_Payments_Status_1] DEFAULT ((1)) NOT NULL,
+    [Status]             TINYINT NOT NULL,
     [GatewayRefNumber]   NVARCHAR (100)  NULL,
     [TrackingCode]       NVARCHAR (100)  NULL,
     [ReceiptFileID]      INT             NULL,

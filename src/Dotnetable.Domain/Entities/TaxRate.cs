@@ -1,4 +1,4 @@
-﻿using System;
+using System;
 using System.Collections.Generic;
 
 namespace Dotnetable.Domain.Entities;
@@ -19,7 +19,7 @@ public partial class TaxRate
 
     public int Priority { get; set; }
 
-    public bool IsActive { get; set; }
+    public bool IsActive { get; set; } = true;
 
     public virtual Country? Country { get; set; }
 

@@ -3,7 +3,7 @@ CREATE TABLE [dbo].[PaymentRefunds] (
     [PaymentID]         INT             NOT NULL,
     [Amount]            DECIMAL (18, 4) NOT NULL,
     [Reason]            NVARCHAR (500)  NULL,
-    [Status]            TINYINT         CONSTRAINT [DF_PaymentRefunds_Status] DEFAULT ((1)) NOT NULL,
+    [Status]            TINYINT NOT NULL,
     [BankAccountID]     INT             NULL,
     [ClientWalletTransactionID] INT     NULL,
     [RefundedAt]        DATETIME        NULL,

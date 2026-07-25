@@ -1,4 +1,4 @@
-﻿using System;
+using System;
 using System.Collections.Generic;
 
 namespace Dotnetable.Domain.Entities;
@@ -19,7 +19,7 @@ public partial class ProductCategory
 
     public int SortOrder { get; set; }
 
-    public bool IsActive { get; set; }
+    public bool IsActive { get; set; } = true;
 
     public virtual FileRecord? ImageFile { get; set; }
 

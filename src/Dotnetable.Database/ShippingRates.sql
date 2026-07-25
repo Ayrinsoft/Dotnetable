@@ -7,7 +7,7 @@ CREATE TABLE [dbo].[ShippingRates] (
     [MinWeightKg]      DECIMAL (10, 3) NULL,
     [MaxWeightKg]      DECIMAL (10, 3) NULL,
     [PriceUsd]         DECIMAL (18, 4) NOT NULL,
-    [IsActive]         BIT             CONSTRAINT [DF_ShippingRates_IsActive] DEFAULT ((1)) NOT NULL,
+    [IsActive]         BIT NOT NULL,
     CONSTRAINT [PK_ShippingRates] PRIMARY KEY CLUSTERED ([ShippingRateID] ASC),
     CONSTRAINT [FK_ShippingRates_Cities] FOREIGN KEY ([CityID]) REFERENCES [dbo].[Cities] ([CityID]),
     CONSTRAINT [FK_ShippingRates_Countries] FOREIGN KEY ([CountryID]) REFERENCES [dbo].[Countries] ([CountryID]),

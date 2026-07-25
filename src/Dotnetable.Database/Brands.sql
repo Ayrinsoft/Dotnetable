@@ -4,7 +4,7 @@ CREATE TABLE [dbo].[Brands] (
     [Name]       NVARCHAR (200) NOT NULL,
     [Slug]       NVARCHAR (200) NOT NULL,
     [LogoFileID] INT            NULL,
-    [IsActive]   BIT            CONSTRAINT [DF_Brands_IsActive_1] DEFAULT ((1)) NOT NULL,
+    [IsActive]   BIT NOT NULL,
     CONSTRAINT [PK_Brands] PRIMARY KEY CLUSTERED ([BrandID] ASC),
     CONSTRAINT [FK_Brands_FileRecords] FOREIGN KEY ([LogoFileID]) REFERENCES [dbo].[FileRecords] ([FileRecordID]),
     CONSTRAINT [FK_Brands_Websites] FOREIGN KEY ([WebsiteID]) REFERENCES [dbo].[Websites] ([WebsiteID])

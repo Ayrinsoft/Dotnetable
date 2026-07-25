@@ -1,4 +1,4 @@
-﻿using System;
+using System;
 using System.Collections.Generic;
 
 namespace Dotnetable.Domain.Entities;
@@ -33,11 +33,11 @@ public partial class Product
 
     public int RatingCount { get; set; }
 
-    public byte Status { get; set; }
+    public byte Status { get; set; } = (byte)1;
 
     public int SortOrder { get; set; }
 
-    public bool IsActive { get; set; }
+    public bool IsActive { get; set; } = true;
 
     public int? CreatedByMemberId { get; set; }
 

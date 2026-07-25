@@ -1,4 +1,4 @@
-﻿using System;
+using System;
 using System.Collections.Generic;
 
 namespace Dotnetable.Domain.Entities;
@@ -38,7 +38,7 @@ public partial class Member
     /// <summary>
     /// 0 = Basic (admin surface reduced to what this member&apos;s Website.WebsiteType needs), 1 = General (same admin surface regardless of website type), 2 = Advanced (full surface, e.g. extra-language pages/buttons on an otherwise single-language site)
     /// </summary>
-    public byte AdminUIMode { get; set; }
+    public byte AdminUIMode { get; set; } = (byte)1;
 
     public bool IsSiteAdmin { get; set; }
 

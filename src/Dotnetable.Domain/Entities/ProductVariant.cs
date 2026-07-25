@@ -1,4 +1,4 @@
-﻿using System;
+using System;
 using System.Collections.Generic;
 
 namespace Dotnetable.Domain.Entities;
@@ -30,7 +30,7 @@ public partial class ProductVariant
 
     public string? Barcode { get; set; }
 
-    public bool IsActive { get; set; }
+    public bool IsActive { get; set; } = true;
 
     public DateTime CreatedAt { get; set; }
 

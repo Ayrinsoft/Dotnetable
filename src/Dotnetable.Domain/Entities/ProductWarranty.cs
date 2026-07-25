@@ -21,7 +21,7 @@ public partial class ProductWarranty
 
     public int SortOrder { get; set; }
 
-    public bool IsActive { get; set; }
+    public bool IsActive { get; set; } = true;
 
     public virtual Product Product { get; set; } = null!;
 

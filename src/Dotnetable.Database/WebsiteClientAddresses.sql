@@ -8,7 +8,7 @@ CREATE TABLE [dbo].[WebsiteClientAddresses] (
     [AddressLine]            NVARCHAR (500)    NOT NULL,
     [PostalCode]             NVARCHAR (20)     NULL,
     [Phone]                  NVARCHAR (20)     NULL,
-    [IsDefault]              BIT               CONSTRAINT [DF_WebsiteClientAddresses_IsDefault] DEFAULT ((0)) NOT NULL,
+    [IsDefault]              BIT NOT NULL,
     [Latitude]               DECIMAL (9, 6)    NULL,
     [Longitude]              DECIMAL (9, 6)    NULL,
     CONSTRAINT [PK_WebsiteClientAddresses] PRIMARY KEY CLUSTERED ([WebsiteClientAddressID] ASC),

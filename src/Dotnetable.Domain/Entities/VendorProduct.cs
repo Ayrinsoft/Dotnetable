@@ -1,4 +1,4 @@
-﻿using System;
+using System;
 using System.Collections.Generic;
 
 namespace Dotnetable.Domain.Entities;
@@ -19,9 +19,9 @@ public partial class VendorProduct
 
     public int StockQuantity { get; set; }
 
-    public int DeliveryDays { get; set; }
+    public int DeliveryDays { get; set; } = 1;
 
-    public bool IsActive { get; set; }
+    public bool IsActive { get; set; } = true;
 
     public virtual ICollection<CartItem> CartItems { get; set; } = new List<CartItem>();
 
