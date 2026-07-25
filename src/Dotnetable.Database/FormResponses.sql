@@ -3,7 +3,7 @@ CREATE TABLE [dbo].[FormResponses] (
     [FormID]          INT          NOT NULL,
     [WebsiteClientID] INT          NULL,
     [SenderIPAddress] VARCHAR (45) NOT NULL,
-    [SubmittedAt]     DATETIME     CONSTRAINT [DF_FormResponses_SubmittedAt] DEFAULT (sysutcdatetime()) NOT NULL,
+    [SubmittedAt]     DATETIME NOT NULL,
     CONSTRAINT [PK_FormResponses] PRIMARY KEY CLUSTERED ([FormResponseID] ASC),
     CONSTRAINT [FK_FormResponses_Forms] FOREIGN KEY ([FormID]) REFERENCES [dbo].[Forms] ([FormID]),
     CONSTRAINT [FK_FormResponses_WebsiteClients] FOREIGN KEY ([WebsiteClientID]) REFERENCES [dbo].[WebsiteClients] ([WebsiteClientID])

@@ -4,7 +4,7 @@ CREATE TABLE [dbo].[CouponRedemptions] (
     [OrderID]            INT             NOT NULL,
     [WebsiteClientID]    INT             NOT NULL,
     [DiscountAmountUsd]  DECIMAL (18, 4) NOT NULL,
-    [RedeemedAt]         DATETIME2 (0)   CONSTRAINT [DF_CouponRedemptions_RedeemedAt] DEFAULT (sysutcdatetime()) NOT NULL,
+    [RedeemedAt]         DATETIME2 (0) NOT NULL,
     CONSTRAINT [PK_CouponRedemptions] PRIMARY KEY CLUSTERED ([CouponRedemptionID] ASC),
     CONSTRAINT [UQ_CouponRedemptions_OrderID] UNIQUE ([OrderID]),
     CONSTRAINT [FK_CouponRedemptions_Coupons] FOREIGN KEY ([CouponID]) REFERENCES [dbo].[Coupons] ([CouponID]),

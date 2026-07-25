@@ -9,7 +9,7 @@ CREATE TABLE [dbo].[VendorCreditTransactions] (
     [MirrorOrderID]             INT             NULL,
     [Note]                      NVARCHAR (500)  NULL,
     [CreatedByMemberID]         INT             NULL,
-    [CreatedAt]                 DATETIME        CONSTRAINT [DF_VendorCreditTransactions_CreatedAt] DEFAULT (sysutcdatetime()) NOT NULL,
+    [CreatedAt]                 DATETIME NOT NULL,
     CONSTRAINT [PK_VendorCreditTransactions] PRIMARY KEY CLUSTERED ([VendorCreditTransactionID] ASC),
     CONSTRAINT [FK_VendorCreditTransactions_Vendors] FOREIGN KEY ([VendorID]) REFERENCES [dbo].[Vendors] ([VendorID]),
     CONSTRAINT [FK_VendorCreditTransactions_Websites] FOREIGN KEY ([WebsiteID]) REFERENCES [dbo].[Websites] ([WebsiteID]),

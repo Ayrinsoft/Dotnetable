@@ -1,4 +1,4 @@
-﻿CREATE TABLE [dbo].[AdminNotifications] (
+CREATE TABLE [dbo].[AdminNotifications] (
     [AdminNotificationID] INT             IDENTITY (1, 1) NOT NULL,
     [MemberID]            INT             NOT NULL,
     [WebsiteID]           INT             NOT NULL,
@@ -7,7 +7,7 @@
     [Message]             NVARCHAR (1000) NOT NULL,
     [ActionUrl]           VARCHAR (256)   NULL,
     [RelatedEntityID]     INT             NULL,
-    [IsRead]              BIT             CONSTRAINT [DF_AdminNotifications_IsRead] DEFAULT ((0)) NOT NULL,
+    [IsRead]              BIT NOT NULL,
     [CreatedAt]           DATETIME        NOT NULL,
     CONSTRAINT [PK_AdminNotifications] PRIMARY KEY CLUSTERED ([AdminNotificationID] ASC),
     CONSTRAINT [FK_AdminNotifications_Members] FOREIGN KEY ([MemberID]) REFERENCES [dbo].[Members] ([MemberID]),

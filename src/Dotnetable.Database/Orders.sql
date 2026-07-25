@@ -18,7 +18,7 @@ CREATE TABLE [dbo].[Orders] (
     [ShippingMethodID]       INT             NULL,
     [Note]                   NVARCHAR (1000) NULL,
     [CreatedByMemberID]      INT             NULL,
-    [CreatedAt]              DATETIME        CONSTRAINT [DF_Orders_CreatedAt_1] DEFAULT (sysutcdatetime()) NOT NULL,
+    [CreatedAt]              DATETIME NOT NULL,
     [PaidAt]                 DATETIME        NULL,
     CONSTRAINT [PK_Orders] PRIMARY KEY CLUSTERED ([OrderID] ASC),
     CONSTRAINT [FK_Orders_Coupons] FOREIGN KEY ([CouponID]) REFERENCES [dbo].[Coupons] ([CouponID]),

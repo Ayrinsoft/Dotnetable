@@ -8,7 +8,7 @@ CREATE TABLE [dbo].[PaymentRefunds] (
     [ClientWalletTransactionID] INT     NULL,
     [RefundedAt]        DATETIME        NULL,
     [CreatedByMemberID] INT             NULL,
-    [CreatedAt]         DATETIME        CONSTRAINT [DF_PaymentRefunds_CreatedAt] DEFAULT (sysutcdatetime()) NOT NULL,
+    [CreatedAt]         DATETIME NOT NULL,
     CONSTRAINT [PK_PaymentRefunds] PRIMARY KEY CLUSTERED ([PaymentRefundID] ASC),
     CONSTRAINT [FK_PaymentRefunds_BankAccounts] FOREIGN KEY ([BankAccountID]) REFERENCES [dbo].[BankAccounts] ([BankAccountID]),
     CONSTRAINT [FK_PaymentRefunds_ClientWalletTransactions] FOREIGN KEY ([ClientWalletTransactionID]) REFERENCES [dbo].[ClientWalletTransactions] ([ClientWalletTransactionID]),

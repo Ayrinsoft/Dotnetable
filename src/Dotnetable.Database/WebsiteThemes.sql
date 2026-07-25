@@ -8,7 +8,7 @@ CREATE TABLE [dbo].[WebsiteThemes] (
     [Description]    NVARCHAR (500) NULL,
     [HasScreenshot]  BIT            CONSTRAINT [DF_WebsiteThemes_HasScreenshot] DEFAULT ((0)) NOT NULL,
     [IsActive]       BIT            CONSTRAINT [DF_WebsiteThemes_IsActive] DEFAULT ((0)) NOT NULL,
-    [CreatedAt]      DATETIME       CONSTRAINT [DF_WebsiteThemes_CreatedAt] DEFAULT (sysutcdatetime()) NOT NULL,
+    [CreatedAt]      DATETIME NOT NULL,
     CONSTRAINT [PK_WebsiteThemes] PRIMARY KEY CLUSTERED ([WebsiteThemeID] ASC),
     CONSTRAINT [FK_WebsiteThemes_Websites] FOREIGN KEY ([WebsiteID]) REFERENCES [dbo].[Websites] ([WebsiteID])
 );

@@ -9,7 +9,7 @@ CREATE TABLE [dbo].[ClientWalletTransactions] (
     [SourceId]                  INT             NULL,
     [Note]                      NVARCHAR (500)  NULL,
     [CreatedByMemberID]         INT             NULL,
-    [CreatedAt]                 DATETIME2 (0)   CONSTRAINT [DF_ClientWalletTransactions_CreatedAt] DEFAULT (sysutcdatetime()) NOT NULL,
+    [CreatedAt]                 DATETIME2 (0) NOT NULL,
     CONSTRAINT [PK_ClientWalletTransactions] PRIMARY KEY CLUSTERED ([ClientWalletTransactionID] ASC),
     CONSTRAINT [FK_ClientWalletTransactions_ClientWallets] FOREIGN KEY ([ClientWalletID]) REFERENCES [dbo].[ClientWallets] ([ClientWalletID]),
     CONSTRAINT [FK_ClientWalletTransactions_Members] FOREIGN KEY ([CreatedByMemberID]) REFERENCES [dbo].[Members] ([MemberID]),
