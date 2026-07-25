@@ -1,4 +1,4 @@
-using System;
+﻿using System;
 using System.Collections.Generic;
 
 namespace Dotnetable.Domain.Entities;
@@ -11,7 +11,7 @@ public partial class WebsiteFeature
 
     public byte FeatureKey { get; set; }
 
-    public bool Enabled { get; set; } = true;
+    public bool Enabled { get; set; }
 
     public DateTime CreatedAt { get; set; }
 

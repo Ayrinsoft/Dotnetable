@@ -1,4 +1,4 @@
-using System;
+﻿using System;
 using System.Collections.Generic;
 
 namespace Dotnetable.Domain.Entities;
@@ -13,7 +13,7 @@ public partial class ShippingMethod
 
     public string? CarrierName { get; set; }
 
-    public bool IsActive { get; set; } = true;
+    public bool IsActive { get; set; }
 
     public int SortOrder { get; set; }
 

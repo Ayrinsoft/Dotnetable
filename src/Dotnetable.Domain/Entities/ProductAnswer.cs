@@ -1,4 +1,4 @@
-using System;
+﻿using System;
 using System.Collections.Generic;
 
 namespace Dotnetable.Domain.Entities;
@@ -15,7 +15,7 @@ public partial class ProductAnswer
 
     public string Body { get; set; } = null!;
 
-    public byte Status { get; set; } = (byte)1;
+    public byte Status { get; set; }
 
     public int LikeCount { get; set; }
 

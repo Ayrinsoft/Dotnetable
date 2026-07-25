@@ -1,4 +1,4 @@
-using System;
+﻿using System;
 using System.Collections.Generic;
 
 namespace Dotnetable.Domain.Entities;
@@ -14,7 +14,7 @@ public partial class WebsiteSeoSetting
     /// </summary>
     public string? DefaultMetaTitle { get; set; }
 
-    public string? TitleSeparator { get; set; } = " | ";
+    public string? TitleSeparator { get; set; }
 
     public string? DefaultMetaDescription { get; set; }
 

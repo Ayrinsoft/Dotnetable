@@ -1,4 +1,4 @@
-using System;
+﻿using System;
 using System.Collections.Generic;
 
 namespace Dotnetable.Domain.Entities;
@@ -13,7 +13,6 @@ public partial class ProductVariant
 
     public string Sku { get; set; } = null!;
 
-    /// <summary>Human-readable label for this variant (e.g. "Black T-shirt · Size XL").</summary>
     public string Title { get; set; } = null!;
 
     public bool IsDefault { get; set; }
@@ -30,7 +29,7 @@ public partial class ProductVariant
 
     public string? Barcode { get; set; }
 
-    public bool IsActive { get; set; } = true;
+    public bool IsActive { get; set; }
 
     public DateTime CreatedAt { get; set; }
 

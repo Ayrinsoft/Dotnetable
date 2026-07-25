@@ -1,4 +1,4 @@
-using System;
+﻿using System;
 using System.Collections.Generic;
 
 namespace Dotnetable.Domain.Entities;
@@ -13,7 +13,7 @@ public partial class Order
 
     public int WebsiteClientID { get; set; }
 
-    public byte Status { get; set; } = (byte)1;
+    public byte Status { get; set; }
 
     public string CurrencyCode { get; set; } = null!;
 
@@ -64,8 +64,6 @@ public partial class Order
     public virtual ShippingMethod? ShippingMethod { get; set; }
 
     public virtual ICollection<StockMovement> StockMovements { get; set; } = new List<StockMovement>();
-
-    public virtual ICollection<VendorCreditTransaction> VendorCreditTransactions { get; set; } = new List<VendorCreditTransaction>();
 
     public virtual Website Website { get; set; } = null!;
 

@@ -1,4 +1,4 @@
-using System;
+﻿using System;
 using System.Collections.Generic;
 using Dotnetable.Domain.Entities;
 using Microsoft.EntityFrameworkCore;
@@ -164,7 +164,6 @@ public partial class AppDbContext : DbContext
 
     public virtual DbSet<ProductCategoryTranslation> ProductCategoryTranslations { get; set; }
 
-
     public virtual DbSet<ProductMedium> ProductMedia { get; set; }
 
     public virtual DbSet<ProductQuestion> ProductQuestions { get; set; }
@@ -217,8 +216,6 @@ public partial class AppDbContext : DbContext
 
     public virtual DbSet<Vendor> Vendors { get; set; }
 
-    public virtual DbSet<VendorCreditTransaction> VendorCreditTransactions { get; set; }
-
     public virtual DbSet<VendorProduct> VendorProducts { get; set; }
 
     public virtual DbSet<VendorTranslation> VendorTranslations { get; set; }
@@ -263,6 +260,10 @@ public partial class AppDbContext : DbContext
     {
         modelBuilder.Entity<AdminNotification>(entity =>
         {
+            entity.HasIndex(e => new { e.MemberID, e.IsRead, e.CreatedAt }, "IX_AdminNotifications_MemberID_IsRead_CreatedAt").IsDescending(false, false, true);
+
+            entity.HasIndex(e => e.WebsiteID, "IX_AdminNotifications_WebsiteID");
+
             entity.Property(e => e.ActionUrl)
                 .HasMaxLength(256)
                 .IsUnicode(false);
@@ -346,6 +347,10 @@ public partial class AppDbContext : DbContext
 
         modelBuilder.Entity<Bank>(entity =>
         {
+            entity.HasIndex(e => e.LogoFileID, "IX_Banks_LogoFileID");
+
+            entity.HasIndex(e => e.WebsiteID, "IX_Banks_WebsiteID");
+
             entity.Property(e => e.BankCode)
                 .HasMaxLength(10)
                 .IsUnicode(false);
@@ -362,6 +367,12 @@ public partial class AppDbContext : DbContext
 
         modelBuilder.Entity<BankAccount>(entity =>
         {
+            entity.HasIndex(e => e.BankID, "IX_BankAccounts_BankID");
+
+            entity.HasIndex(e => e.CreatedByMemberId, "IX_BankAccounts_CreatedByMemberId");
+
+            entity.HasIndex(e => e.WebsiteID, "IX_BankAccounts_WebsiteID");
+
             entity.Property(e => e.AccountNumber)
                 .HasMaxLength(30)
                 .IsUnicode(false);
@@ -392,6 +403,10 @@ public partial class AppDbContext : DbContext
 
         modelBuilder.Entity<Brand>(entity =>
         {
+            entity.HasIndex(e => e.LogoFileID, "IX_Brands_LogoFileID");
+
+            entity.HasIndex(e => e.WebsiteID, "IX_Brands_WebsiteID");
+
             entity.Property(e => e.Name).HasMaxLength(200);
             entity.Property(e => e.Slug).HasMaxLength(200);
 
@@ -424,13 +439,17 @@ public partial class AppDbContext : DbContext
 
         modelBuilder.Entity<Cart>(entity =>
         {
-            entity.Property(e => e.CreatedAt)
-                .HasPrecision(0);
+            entity.HasIndex(e => e.CouponID, "IX_Carts_CouponID");
+
+            entity.HasIndex(e => e.WebsiteClientID, "IX_Carts_WebsiteClientID");
+
+            entity.HasIndex(e => e.WebsiteID, "IX_Carts_WebsiteID");
+
+            entity.Property(e => e.CreatedAt).HasPrecision(0);
             entity.Property(e => e.SessionKey)
                 .HasMaxLength(64)
                 .IsUnicode(false);
-            entity.Property(e => e.UpdatedAt)
-                .HasPrecision(0);
+            entity.Property(e => e.UpdatedAt).HasPrecision(0);
 
             entity.HasOne(d => d.Coupon).WithMany(p => p.Carts)
                 .HasForeignKey(d => d.CouponID)
@@ -448,10 +467,14 @@ public partial class AppDbContext : DbContext
 
         modelBuilder.Entity<CartItem>(entity =>
         {
+            entity.HasIndex(e => e.ProductVariantID, "IX_CartItems_ProductVariantID");
+
+            entity.HasIndex(e => e.VendorProductID, "IX_CartItems_VendorProductID");
+
             entity.HasIndex(e => new { e.CartID, e.ProductVariantID, e.VendorProductID }, "UQ_CartItems_CartID_ProductVariantID_VendorProductID").IsUnique();
 
-            entity.Property(e => e.AddedAt)
-                .HasPrecision(0);
+            entity.Property(e => e.AddedAt).HasPrecision(0);
+
             entity.HasOne(d => d.Cart).WithMany(p => p.CartItems)
                 .HasForeignKey(d => d.CartID)
                 .OnDelete(DeleteBehavior.ClientSetNull)
@@ -469,6 +492,12 @@ public partial class AppDbContext : DbContext
 
         modelBuilder.Entity<Category>(entity =>
         {
+            entity.HasIndex(e => e.ParentCategoryID, "IX_Categories_ParentCategoryID");
+
+            entity.HasIndex(e => e.PostTypeID, "IX_Categories_PostTypeID");
+
+            entity.HasIndex(e => e.WebsiteID, "IX_Categories_WebsiteID");
+
             entity.Property(e => e.Name).HasMaxLength(200);
             entity.Property(e => e.Slug).HasMaxLength(200);
 
@@ -505,6 +534,10 @@ public partial class AppDbContext : DbContext
 
         modelBuilder.Entity<ChartOfAccount>(entity =>
         {
+            entity.HasIndex(e => e.ParentAccountID, "IX_ChartOfAccounts_ParentAccountID");
+
+            entity.HasIndex(e => e.WebsiteID, "IX_ChartOfAccounts_WebsiteID");
+
             entity.Property(e => e.Code).HasMaxLength(20);
             entity.Property(e => e.Name).HasMaxLength(200);
 
@@ -520,6 +553,10 @@ public partial class AppDbContext : DbContext
 
         modelBuilder.Entity<City>(entity =>
         {
+            entity.HasIndex(e => e.CountryID, "IX_Cities_CountryID");
+
+            entity.HasIndex(e => e.StateID, "IX_Cities_StateID");
+
             entity.Property(e => e.LanguageCode)
                 .HasMaxLength(2)
                 .IsUnicode(false)
@@ -554,6 +591,12 @@ public partial class AppDbContext : DbContext
 
         modelBuilder.Entity<ClientBankAccount>(entity =>
         {
+            entity.HasIndex(e => e.BankID, "IX_ClientBankAccounts_BankID");
+
+            entity.HasIndex(e => e.WebsiteClientID, "IX_ClientBankAccounts_WebsiteClientID");
+
+            entity.HasIndex(e => e.WebsiteID, "IX_ClientBankAccounts_WebsiteID");
+
             entity.Property(e => e.AccountNumber)
                 .HasMaxLength(30)
                 .IsUnicode(false);
@@ -588,8 +631,7 @@ public partial class AppDbContext : DbContext
             entity.HasIndex(e => e.WebsiteClientID, "UQ_ClientWallets_WebsiteClientID").IsUnique();
 
             entity.Property(e => e.BalanceUsd).HasColumnType("decimal(18, 4)");
-            entity.Property(e => e.CreatedAt)
-                .HasPrecision(0);
+            entity.Property(e => e.CreatedAt).HasPrecision(0);
             entity.Property(e => e.RowVersion)
                 .IsRowVersion()
                 .IsConcurrencyToken();
@@ -607,10 +649,15 @@ public partial class AppDbContext : DbContext
 
         modelBuilder.Entity<ClientWalletTransaction>(entity =>
         {
+            entity.HasIndex(e => e.ClientWalletID, "IX_ClientWalletTransactions_ClientWalletID");
+
+            entity.HasIndex(e => e.CreatedByMemberID, "IX_ClientWalletTransactions_CreatedByMemberID");
+
+            entity.HasIndex(e => e.WebsiteID, "IX_ClientWalletTransactions_WebsiteID");
+
             entity.Property(e => e.AmountUsd).HasColumnType("decimal(18, 4)");
             entity.Property(e => e.BalanceAfterUsd).HasColumnType("decimal(18, 4)");
-            entity.Property(e => e.CreatedAt)
-                .HasPrecision(0);
+            entity.Property(e => e.CreatedAt).HasPrecision(0);
             entity.Property(e => e.Note).HasMaxLength(500);
 
             entity.HasOne(d => d.ClientWallet).WithMany(p => p.ClientWalletTransactions)
@@ -630,13 +677,23 @@ public partial class AppDbContext : DbContext
 
         modelBuilder.Entity<ClientWalletWithdrawal>(entity =>
         {
+            entity.HasIndex(e => e.ClientBankAccountID, "IX_ClientWalletWithdrawals_ClientBankAccountID");
+
+            entity.HasIndex(e => e.ClientWalletID, "IX_ClientWalletWithdrawals_ClientWalletID");
+
+            entity.HasIndex(e => e.ReviewedByMemberID, "IX_ClientWalletWithdrawals_ReviewedByMemberID");
+
+            entity.HasIndex(e => e.WebsiteClientID, "IX_ClientWalletWithdrawals_WebsiteClientID");
+
+            entity.HasIndex(e => e.WebsiteID, "IX_ClientWalletWithdrawals_WebsiteID");
+
             entity.Property(e => e.AmountUsd).HasColumnType("decimal(18, 4)");
             entity.Property(e => e.PaidAt).HasPrecision(0);
             entity.Property(e => e.PaymentRefNumber).HasMaxLength(100);
             entity.Property(e => e.RejectReason).HasMaxLength(500);
-            entity.Property(e => e.RequestedAt)
-                .HasPrecision(0);
+            entity.Property(e => e.RequestedAt).HasPrecision(0);
             entity.Property(e => e.ReviewedAt).HasPrecision(0);
+
             entity.HasOne(d => d.ClientBankAccount).WithMany(p => p.ClientWalletWithdrawals)
                 .HasForeignKey(d => d.ClientBankAccountID)
                 .OnDelete(DeleteBehavior.ClientSetNull)
@@ -729,8 +786,7 @@ public partial class AppDbContext : DbContext
             entity.Property(e => e.Code)
                 .HasMaxLength(40)
                 .IsUnicode(false);
-            entity.Property(e => e.CreatedAt)
-                .HasPrecision(0);
+            entity.Property(e => e.CreatedAt).HasPrecision(0);
             entity.Property(e => e.DiscountValue).HasColumnType("decimal(18, 4)");
             entity.Property(e => e.EndsAt).HasPrecision(0);
             entity.Property(e => e.MaxDiscountAmountUsd).HasColumnType("decimal(18, 4)");
@@ -749,11 +805,14 @@ public partial class AppDbContext : DbContext
 
         modelBuilder.Entity<CouponRedemption>(entity =>
         {
+            entity.HasIndex(e => e.CouponID, "IX_CouponRedemptions_CouponID");
+
+            entity.HasIndex(e => e.WebsiteClientID, "IX_CouponRedemptions_WebsiteClientID");
+
             entity.HasIndex(e => e.OrderID, "UQ_CouponRedemptions_OrderID").IsUnique();
 
             entity.Property(e => e.DiscountAmountUsd).HasColumnType("decimal(18, 4)");
-            entity.Property(e => e.RedeemedAt)
-                .HasPrecision(0);
+            entity.Property(e => e.RedeemedAt).HasPrecision(0);
 
             entity.HasOne(d => d.Coupon).WithMany(p => p.CouponRedemptions)
                 .HasForeignKey(d => d.CouponID)
@@ -785,6 +844,10 @@ public partial class AppDbContext : DbContext
 
         modelBuilder.Entity<CurrencyRate>(entity =>
         {
+            entity.HasIndex(e => e.CurrencyCode, "IX_CurrencyRates_CurrencyCode");
+
+            entity.HasIndex(e => e.WebsiteID, "IX_CurrencyRates_WebsiteID");
+
             entity.Property(e => e.CurrencyCode)
                 .HasMaxLength(3)
                 .IsUnicode(false)
@@ -825,6 +888,10 @@ public partial class AppDbContext : DbContext
 
         modelBuilder.Entity<EmailSubscribe>(entity =>
         {
+            entity.HasIndex(e => e.MemberID, "IX_EmailSubscribes_MemberID");
+
+            entity.HasIndex(e => e.WebsiteID, "IX_EmailSubscribes_WebsiteID");
+
             entity.Property(e => e.Email)
                 .HasMaxLength(64)
                 .IsUnicode(false);
@@ -873,25 +940,36 @@ public partial class AppDbContext : DbContext
 
         modelBuilder.Entity<FileFolder>(entity =>
         {
-            entity.HasIndex(e => e.WebsiteID, "IX_FileFolders_WebsiteID");
             entity.HasIndex(e => e.ParentFolderID, "IX_FileFolders_ParentFolderID");
+
+            entity.HasIndex(e => e.WebsiteID, "IX_FileFolders_WebsiteID");
 
             entity.Property(e => e.CreateDate).HasColumnType("datetime");
             entity.Property(e => e.Description).HasMaxLength(400);
             entity.Property(e => e.Name).HasMaxLength(120);
 
+            entity.HasOne(d => d.ParentFolder).WithMany(p => p.InverseParentFolder)
+                .HasForeignKey(d => d.ParentFolderID)
+                .HasConstraintName("FK_FileFolders_Parent");
+
             entity.HasOne(d => d.Website).WithMany(p => p.FileFolders)
                 .HasForeignKey(d => d.WebsiteID)
                 .OnDelete(DeleteBehavior.ClientSetNull)
                 .HasConstraintName("FK_FileFolders_Websites");
-
-            entity.HasOne(d => d.ParentFolder).WithMany(p => p.InverseParentFolder)
-                .HasForeignKey(d => d.ParentFolderID)
-                .HasConstraintName("FK_FileFolders_Parent");
         });
 
         modelBuilder.Entity<FileRecord>(entity =>
         {
+            entity.HasIndex(e => e.FileFolderID, "IX_FileRecords_FileFolderID");
+
+            entity.HasIndex(e => e.UploaderMemberID, "IX_FileRecords_UploaderMemberID");
+
+            entity.HasIndex(e => e.WebsiteClientID, "IX_FileRecords_WebsiteClientID");
+
+            entity.HasIndex(e => e.WebsiteID, "IX_FileRecords_WebsiteID");
+
+            entity.HasIndex(e => e.WebsiteStorageSettingsID, "IX_FileRecords_WebsiteStorageSettingsID");
+
             entity.Property(e => e.AltText).HasMaxLength(120);
             entity.Property(e => e.CDNFileCode)
                 .HasMaxLength(80)
@@ -936,6 +1014,10 @@ public partial class AppDbContext : DbContext
 
         modelBuilder.Entity<FileRecordTag>(entity =>
         {
+            entity.HasIndex(e => e.FileRecordID, "IX_FileRecordTags_FileRecordID");
+
+            entity.HasIndex(e => e.FileTagID, "IX_FileRecordTags_FileTagID");
+
             entity.HasOne(d => d.FileRecord).WithMany(p => p.FileRecordTags)
                 .HasForeignKey(d => d.FileRecordID)
                 .OnDelete(DeleteBehavior.ClientSetNull)
@@ -962,6 +1044,7 @@ public partial class AppDbContext : DbContext
         modelBuilder.Entity<Form>(entity =>
         {
             entity.HasIndex(e => e.WebsiteID, "IX_Forms_WebsiteID");
+
             entity.Property(e => e.CreatedAt).HasColumnType("datetime");
             entity.Property(e => e.Description).HasMaxLength(1000);
             entity.Property(e => e.EndAt).HasColumnType("datetime");
@@ -1007,11 +1090,14 @@ public partial class AppDbContext : DbContext
 
         modelBuilder.Entity<FormResponse>(entity =>
         {
+            entity.HasIndex(e => e.FormID, "IX_FormResponses_FormID");
+
+            entity.HasIndex(e => e.WebsiteClientID, "IX_FormResponses_WebsiteClientID");
+
             entity.Property(e => e.SenderIPAddress)
                 .HasMaxLength(45)
                 .IsUnicode(false);
-            entity.Property(e => e.SubmittedAt)
-                .HasColumnType("datetime");
+            entity.Property(e => e.SubmittedAt).HasColumnType("datetime");
 
             entity.HasOne(d => d.Form).WithMany(p => p.FormResponses)
                 .HasForeignKey(d => d.FormID)
@@ -1025,6 +1111,10 @@ public partial class AppDbContext : DbContext
 
         modelBuilder.Entity<FormResponseValue>(entity =>
         {
+            entity.HasIndex(e => e.FormFieldID, "IX_FormResponseValues_FormFieldID");
+
+            entity.HasIndex(e => e.FormResponseID, "IX_FormResponseValues_FormResponseID");
+
             entity.HasOne(d => d.FormField).WithMany(p => p.FormResponseValues)
                 .HasForeignKey(d => d.FormFieldID)
                 .OnDelete(DeleteBehavior.ClientSetNull)
@@ -1038,6 +1128,10 @@ public partial class AppDbContext : DbContext
 
         modelBuilder.Entity<InventoryItem>(entity =>
         {
+            entity.HasIndex(e => e.ProductVariantID, "IX_InventoryItems_ProductVariantID");
+
+            entity.HasIndex(e => e.WebsiteID, "IX_InventoryItems_WebsiteID");
+
             entity.Property(e => e.AvgCostUsd).HasColumnType("decimal(18, 4)");
             entity.Property(e => e.RowVersion)
                 .IsRowVersion()
@@ -1070,6 +1164,10 @@ public partial class AppDbContext : DbContext
 
         modelBuilder.Entity<JournalEntryLine>(entity =>
         {
+            entity.HasIndex(e => e.ChartOfAccountID, "IX_JournalEntryLines_ChartOfAccountID");
+
+            entity.HasIndex(e => e.JournalEntryID, "IX_JournalEntryLines_JournalEntryID");
+
             entity.Property(e => e.Credit).HasColumnType("decimal(18, 4)");
             entity.Property(e => e.Debit).HasColumnType("decimal(18, 4)");
             entity.Property(e => e.Description).HasMaxLength(300);
@@ -1087,15 +1185,13 @@ public partial class AppDbContext : DbContext
 
         modelBuilder.Entity<Language>(entity =>
         {
-            // Admin catalog (WebsiteID IS NULL): one row per LanguageCode.
-            // Per-website rows: unique (WebsiteID, LanguageCode). Filtered indexes keep the two scopes separate.
-            // Filter text is provider-portable (no bracket quoting) for SQL Server / PostgreSQL.
             entity.HasIndex(e => e.LanguageCode, "UQ_Languages_Admin_LanguageCode")
                 .IsUnique()
-                .HasFilter("WebsiteID IS NULL");
+                .HasFilter("([WebsiteID] IS NULL)");
+
             entity.HasIndex(e => new { e.WebsiteID, e.LanguageCode }, "UQ_Languages_WebsiteID_LanguageCode")
                 .IsUnique()
-                .HasFilter("WebsiteID IS NOT NULL");
+                .HasFilter("([WebsiteID] IS NOT NULL)");
 
             entity.Property(e => e.LanguageCode)
                 .HasMaxLength(2)
@@ -1109,21 +1205,20 @@ public partial class AppDbContext : DbContext
 
             entity.HasOne(d => d.Website).WithMany(p => p.Languages)
                 .HasForeignKey(d => d.WebsiteID)
-                .OnDelete(DeleteBehavior.ClientSetNull)
-                .IsRequired(false)
                 .HasConstraintName("FK_Languages_Websites");
         });
 
         modelBuilder.Entity<LocalizationKey>(entity =>
         {
             entity.HasIndex(e => e.WebsiteID, "IX_LocalizationKeys_WebsiteID");
-            // Admin catalog (null) and per-website keys: unique ItemKey within each scope.
+
             entity.HasIndex(e => e.ItemKey, "UQ_LocalizationKeys_Admin_ItemKey")
                 .IsUnique()
-                .HasFilter("WebsiteID IS NULL");
+                .HasFilter("([WebsiteID] IS NULL)");
+
             entity.HasIndex(e => new { e.WebsiteID, e.ItemKey }, "UQ_LocalizationKeys_WebsiteID_ItemKey")
                 .IsUnique()
-                .HasFilter("WebsiteID IS NOT NULL");
+                .HasFilter("([WebsiteID] IS NOT NULL)");
 
             entity.Property(e => e.DefaultValue).HasMaxLength(2000);
             entity.Property(e => e.ItemKey)
@@ -1132,8 +1227,6 @@ public partial class AppDbContext : DbContext
 
             entity.HasOne(d => d.Website).WithMany(p => p.LocalizationKeys)
                 .HasForeignKey(d => d.WebsiteID)
-                .OnDelete(DeleteBehavior.ClientSetNull)
-                .IsRequired(false)
                 .HasConstraintName("FK_LocalizationKeys_Websites");
         });
 
@@ -1164,6 +1257,7 @@ public partial class AppDbContext : DbContext
             entity.Property(e => e.Username)
                 .HasMaxLength(64)
                 .IsUnicode(false);
+
             entity.HasOne(d => d.Website).WithMany(p => p.LoginTries)
                 .HasForeignKey(d => d.WebsiteID)
                 .OnDelete(DeleteBehavior.ClientSetNull)
@@ -1174,8 +1268,7 @@ public partial class AppDbContext : DbContext
         {
             entity.HasIndex(e => e.WebsiteID, "IX_MediaSets_WebsiteID");
 
-            entity.Property(e => e.CreatedAt)
-                .HasColumnType("datetime");
+            entity.Property(e => e.CreatedAt).HasColumnType("datetime");
             entity.Property(e => e.Name).HasMaxLength(200);
 
             entity.HasOne(d => d.Website).WithMany(p => p.MediaSets)
@@ -1186,6 +1279,12 @@ public partial class AppDbContext : DbContext
 
         modelBuilder.Entity<MediaSetItem>(entity =>
         {
+            entity.HasIndex(e => e.FileID, "IX_MediaSetItems_FileID");
+
+            entity.HasIndex(e => e.MediaSetID, "IX_MediaSetItems_MediaSetID");
+
+            entity.HasIndex(e => e.VideoThumbnailFileID, "IX_MediaSetItems_VideoThumbnailFileID");
+
             entity.Property(e => e.ExternalVideoUrl).HasMaxLength(500);
 
             entity.HasOne(d => d.File).WithMany(p => p.MediaSetItemFiles)
@@ -1204,8 +1303,13 @@ public partial class AppDbContext : DbContext
 
         modelBuilder.Entity<Member>(entity =>
         {
-            entity.Property(e => e.AdminUIMode)
-                .HasComment("0 = Basic (admin surface reduced to what this member's Website.WebsiteType needs), 1 = General (same admin surface regardless of website type), 2 = Advanced (full surface, e.g. extra-language pages/buttons on an otherwise single-language site)");
+            entity.HasIndex(e => e.AvatarID, "IX_Members_AvatarID");
+
+            entity.HasIndex(e => e.PolicyID, "IX_Members_PolicyID");
+
+            entity.HasIndex(e => e.WebsiteID, "IX_Members_WebsiteID");
+
+            entity.Property(e => e.AdminUIMode).HasComment("0 = Basic (admin surface reduced to what this member's Website.WebsiteType needs), 1 = General (same admin surface regardless of website type), 2 = Advanced (full surface, e.g. extra-language pages/buttons on an otherwise single-language site)");
             entity.Property(e => e.CellphoneNumber)
                 .HasMaxLength(12)
                 .IsUnicode(false);
@@ -1257,6 +1361,7 @@ public partial class AppDbContext : DbContext
         modelBuilder.Entity<Menu>(entity =>
         {
             entity.HasIndex(e => e.WebsiteID, "IX_Menus_WebsiteID");
+
             entity.Property(e => e.Name).HasMaxLength(100);
 
             entity.HasOne(d => d.Website).WithMany(p => p.Menus)
@@ -1267,6 +1372,24 @@ public partial class AppDbContext : DbContext
 
         modelBuilder.Entity<MenuItem>(entity =>
         {
+            entity.HasIndex(e => e.BrandID, "IX_MenuItems_BrandID");
+
+            entity.HasIndex(e => e.CategoryID, "IX_MenuItems_CategoryID");
+
+            entity.HasIndex(e => e.MenuID, "IX_MenuItems_MenuID");
+
+            entity.HasIndex(e => e.PageID, "IX_MenuItems_PageID");
+
+            entity.HasIndex(e => e.ParentItemID, "IX_MenuItems_ParentItemID");
+
+            entity.HasIndex(e => e.PostID, "IX_MenuItems_PostID");
+
+            entity.HasIndex(e => e.ProductCategoryID, "IX_MenuItems_ProductCategoryID");
+
+            entity.HasIndex(e => e.ProductID, "IX_MenuItems_ProductID");
+
+            entity.HasIndex(e => e.VendorID, "IX_MenuItems_VendorID");
+
             entity.Property(e => e.CssClass).HasMaxLength(100);
             entity.Property(e => e.Icon).HasMaxLength(100);
             entity.Property(e => e.Title).HasMaxLength(200);
@@ -1328,9 +1451,22 @@ public partial class AppDbContext : DbContext
 
         modelBuilder.Entity<Order>(entity =>
         {
+            entity.HasIndex(e => e.CouponID, "IX_Orders_CouponID");
+
+            entity.HasIndex(e => e.CreatedByMemberID, "IX_Orders_CreatedByMemberID");
+
+            entity.HasIndex(e => e.CurrencyCode, "IX_Orders_CurrencyCode");
+
+            entity.HasIndex(e => e.ShippingMethodID, "IX_Orders_ShippingMethodID");
+
+            entity.HasIndex(e => e.WebsiteClientAddressID, "IX_Orders_WebsiteClientAddressID");
+
+            entity.HasIndex(e => e.WebsiteClientID, "IX_Orders_WebsiteClientID");
+
+            entity.HasIndex(e => e.WebsiteID, "IX_Orders_WebsiteID");
+
             entity.Property(e => e.AddressSnapshot).HasMaxLength(1000);
-            entity.Property(e => e.CreatedAt)
-                .HasColumnType("datetime");
+            entity.Property(e => e.CreatedAt).HasColumnType("datetime");
             entity.Property(e => e.CurrencyCode)
                 .HasMaxLength(3)
                 .IsUnicode(false)
@@ -1380,6 +1516,18 @@ public partial class AppDbContext : DbContext
 
         modelBuilder.Entity<OrderItem>(entity =>
         {
+            entity.HasIndex(e => e.OrderID, "IX_OrderItems_OrderID");
+
+            entity.HasIndex(e => e.ProductVariantID, "IX_OrderItems_ProductVariantID");
+
+            entity.HasIndex(e => e.SourceWebsiteID, "IX_OrderItems_SourceWebsiteID");
+
+            entity.HasIndex(e => e.VendorID, "IX_OrderItems_VendorID");
+
+            entity.HasIndex(e => e.VendorProductID, "IX_OrderItems_VendorProductID");
+
+            entity.HasIndex(e => e.WebsiteID, "IX_OrderItems_WebsiteID");
+
             entity.Property(e => e.DiscountAmount).HasColumnType("decimal(18, 4)");
             entity.Property(e => e.SkuSnapshot).HasMaxLength(100);
             entity.Property(e => e.TitleSnapshot).HasMaxLength(300);
@@ -1419,8 +1567,11 @@ public partial class AppDbContext : DbContext
 
         modelBuilder.Entity<OrderStatusHistory>(entity =>
         {
-            entity.Property(e => e.CreatedAt)
-                .HasColumnType("datetime");
+            entity.HasIndex(e => e.CreatedByMemberID, "IX_OrderStatusHistories_CreatedByMemberID");
+
+            entity.HasIndex(e => e.OrderID, "IX_OrderStatusHistories_OrderID");
+
+            entity.Property(e => e.CreatedAt).HasColumnType("datetime");
             entity.Property(e => e.Note).HasMaxLength(500);
 
             entity.HasOne(d => d.CreatedByMember).WithMany(p => p.OrderStatusHistories)
@@ -1435,13 +1586,17 @@ public partial class AppDbContext : DbContext
 
         modelBuilder.Entity<Page>(entity =>
         {
-            entity.Property(e => e.CreatedAt)
-                .HasPrecision(0);
+            entity.HasIndex(e => e.CreatedByMemberID, "IX_Pages_CreatedByMemberID");
+
+            entity.HasIndex(e => e.ParentPageID, "IX_Pages_ParentPageID");
+
+            entity.HasIndex(e => e.WebsiteID, "IX_Pages_WebsiteID");
+
+            entity.Property(e => e.CreatedAt).HasPrecision(0);
             entity.Property(e => e.Slug).HasMaxLength(300);
             entity.Property(e => e.Template).HasMaxLength(100);
             entity.Property(e => e.Title).HasMaxLength(300);
-            entity.Property(e => e.UpdatedAt)
-                .HasPrecision(0);
+            entity.Property(e => e.UpdatedAt).HasPrecision(0);
 
             entity.HasOne(d => d.CreatedByMember).WithMany(p => p.Pages)
                 .HasForeignKey(d => d.CreatedByMemberID)
@@ -1476,10 +1631,27 @@ public partial class AppDbContext : DbContext
 
         modelBuilder.Entity<Payment>(entity =>
         {
+            entity.HasIndex(e => e.BankAccountID, "IX_Payments_BankAccountID");
+
+            entity.HasIndex(e => e.ClientWalletTransactionID, "IX_Payments_ClientWalletTransactionID");
+
+            entity.HasIndex(e => e.CurrencyCode, "IX_Payments_CurrencyCode");
+
+            entity.HasIndex(e => e.OrderID, "IX_Payments_OrderID");
+
+            entity.HasIndex(e => e.PaymentGatewayID, "IX_Payments_PaymentGatewayID");
+
+            entity.HasIndex(e => e.ReceiptFileID, "IX_Payments_ReceiptFileID");
+
+            entity.HasIndex(e => e.VerifiedByMemberID, "IX_Payments_VerifiedByMemberID");
+
+            entity.HasIndex(e => e.WebsiteClientID, "IX_Payments_WebsiteClientID");
+
+            entity.HasIndex(e => e.WebsiteID, "IX_Payments_WebsiteID");
+
             entity.Property(e => e.Amount).HasColumnType("decimal(18, 4)");
             entity.Property(e => e.AmountUsd).HasColumnType("decimal(18, 4)");
-            entity.Property(e => e.CreatedAt)
-                .HasPrecision(0);
+            entity.Property(e => e.CreatedAt).HasPrecision(0);
             entity.Property(e => e.CurrencyCode)
                 .HasMaxLength(3)
                 .IsUnicode(false)
@@ -1547,11 +1719,19 @@ public partial class AppDbContext : DbContext
 
         modelBuilder.Entity<PaymentRefund>(entity =>
         {
+            entity.HasIndex(e => e.BankAccountID, "IX_PaymentRefunds_BankAccountID");
+
+            entity.HasIndex(e => e.ClientWalletTransactionID, "IX_PaymentRefunds_ClientWalletTransactionID");
+
+            entity.HasIndex(e => e.CreatedByMemberID, "IX_PaymentRefunds_CreatedByMemberID");
+
+            entity.HasIndex(e => e.PaymentID, "IX_PaymentRefunds_PaymentID");
+
             entity.Property(e => e.Amount).HasColumnType("decimal(18, 4)");
-            entity.Property(e => e.CreatedAt)
-                .HasColumnType("datetime");
+            entity.Property(e => e.CreatedAt).HasColumnType("datetime");
             entity.Property(e => e.Reason).HasMaxLength(500);
             entity.Property(e => e.RefundedAt).HasColumnType("datetime");
+
             entity.HasOne(d => d.BankAccount).WithMany(p => p.PaymentRefunds)
                 .HasForeignKey(d => d.BankAccountID)
                 .HasConstraintName("FK_PaymentRefunds_BankAccounts");
@@ -1577,6 +1757,8 @@ public partial class AppDbContext : DbContext
             entity.Property(e => e.Title)
                 .HasMaxLength(64)
                 .IsUnicode(false);
+            entity.Property(e => e.WebsiteID).HasDefaultValue(1);
+
             entity.HasOne(d => d.Website).WithMany(p => p.Policies)
                 .HasForeignKey(d => d.WebsiteID)
                 .OnDelete(DeleteBehavior.ClientSetNull)
@@ -1585,6 +1767,10 @@ public partial class AppDbContext : DbContext
 
         modelBuilder.Entity<PolicyRole>(entity =>
         {
+            entity.HasIndex(e => e.PolicyID, "IX_PolicyRoles_PolicyID");
+
+            entity.HasIndex(e => e.RoleID, "IX_PolicyRoles_RoleID");
+
             entity.HasOne(d => d.Policy).WithMany(p => p.PolicyRoles)
                 .HasForeignKey(d => d.PolicyID)
                 .OnDelete(DeleteBehavior.ClientSetNull)
@@ -1598,15 +1784,21 @@ public partial class AppDbContext : DbContext
 
         modelBuilder.Entity<Post>(entity =>
         {
-            entity.Property(e => e.CreatedAt)
-                .HasColumnType("datetime");
+            entity.HasIndex(e => e.AuthorMemberID, "IX_Posts_AuthorMemberID");
+
+            entity.HasIndex(e => e.FeaturedImageFileID, "IX_Posts_FeaturedImageFileID");
+
+            entity.HasIndex(e => e.PostTypeID, "IX_Posts_PostTypeID");
+
+            entity.HasIndex(e => e.WebsiteID, "IX_Posts_WebsiteID");
+
+            entity.Property(e => e.CreatedAt).HasColumnType("datetime");
             entity.Property(e => e.Excerpt).HasMaxLength(1000);
             entity.Property(e => e.PublishedAt).HasColumnType("datetime");
             entity.Property(e => e.ScheduledAt).HasColumnType("datetime");
             entity.Property(e => e.Slug).HasMaxLength(300);
             entity.Property(e => e.Title).HasMaxLength(300);
-            entity.Property(e => e.UpdatedAt)
-                .HasColumnType("datetime");
+            entity.Property(e => e.UpdatedAt).HasColumnType("datetime");
 
             entity.HasOne(d => d.AuthorMember).WithMany(p => p.Posts)
                 .HasForeignKey(d => d.AuthorMemberID)
@@ -1683,6 +1875,7 @@ public partial class AppDbContext : DbContext
         modelBuilder.Entity<PostType>(entity =>
         {
             entity.HasIndex(e => e.WebsiteID, "IX_PostTypes_WebsiteID");
+
             entity.Property(e => e.Name).HasMaxLength(100);
             entity.Property(e => e.Slug).HasMaxLength(100);
 
@@ -1694,21 +1887,27 @@ public partial class AppDbContext : DbContext
 
         modelBuilder.Entity<Product>(entity =>
         {
+            entity.HasIndex(e => e.BrandID, "IX_Products_BrandID");
+
+            entity.HasIndex(e => e.CreatedByMemberID, "IX_Products_CreatedByMemberId");
+
+            entity.HasIndex(e => e.FeaturedImageFileID, "IX_Products_FeaturedImageFileID");
+
+            entity.HasIndex(e => e.WebsiteID, "IX_Products_WebsiteID");
+
             entity.Property(e => e.AvgRating).HasColumnType("decimal(3, 2)");
-            entity.Property(e => e.CreatedAt)
-                .HasColumnType("datetime");
+            entity.Property(e => e.CreatedAt).HasColumnType("datetime");
             entity.Property(e => e.ShortDescription).HasMaxLength(1000);
             entity.Property(e => e.Slug).HasMaxLength(300);
             entity.Property(e => e.Title).HasMaxLength(300);
-            entity.Property(e => e.UpdatedAt)
-                .HasColumnType("datetime");
+            entity.Property(e => e.UpdatedAt).HasColumnType("datetime");
 
             entity.HasOne(d => d.Brand).WithMany(p => p.Products)
                 .HasForeignKey(d => d.BrandID)
                 .HasConstraintName("FK_Products_Brands");
 
             entity.HasOne(d => d.CreatedByMember).WithMany(p => p.Products)
-                .HasForeignKey(d => d.CreatedByMemberId)
+                .HasForeignKey(d => d.CreatedByMemberID)
                 .HasConstraintName("FK_Products_Members");
 
             entity.HasOne(d => d.FeaturedImageFile).WithMany(p => p.Products)
@@ -1723,9 +1922,15 @@ public partial class AppDbContext : DbContext
 
         modelBuilder.Entity<ProductAnswer>(entity =>
         {
+            entity.HasIndex(e => e.ProductQuestionID, "IX_ProductAnswers_ProductQuestionID");
+
+            entity.HasIndex(e => e.VendorID, "IX_ProductAnswers_VendorID");
+
+            entity.HasIndex(e => e.WebsiteClientID, "IX_ProductAnswers_WebsiteClientID");
+
             entity.Property(e => e.Body).HasMaxLength(4000);
-            entity.Property(e => e.CreatedAt)
-                .HasColumnType("datetime");
+            entity.Property(e => e.CreatedAt).HasColumnType("datetime");
+
             entity.HasOne(d => d.ProductQuestion).WithMany(p => p.ProductAnswers)
                 .HasForeignKey(d => d.ProductQuestionID)
                 .OnDelete(DeleteBehavior.ClientSetNull)
@@ -1742,6 +1947,12 @@ public partial class AppDbContext : DbContext
 
         modelBuilder.Entity<ProductAttributeValue>(entity =>
         {
+            entity.HasIndex(e => e.AttributeDefinitionID, "IX_ProductAttributeValues_AttributeDefinitionID");
+
+            entity.HasIndex(e => e.AttributeOptionID, "IX_ProductAttributeValues_AttributeOptionID");
+
+            entity.HasIndex(e => e.ProductID, "IX_ProductAttributeValues_ProductID");
+
             entity.Property(e => e.CustomValue).HasMaxLength(1000);
             entity.Property(e => e.NumericValue).HasColumnType("decimal(18, 4)");
 
@@ -1778,6 +1989,12 @@ public partial class AppDbContext : DbContext
 
         modelBuilder.Entity<ProductCategory>(entity =>
         {
+            entity.HasIndex(e => e.ImageFileID, "IX_ProductCategories_ImageFileID");
+
+            entity.HasIndex(e => e.ParentCategoryID, "IX_ProductCategories_ParentCategoryID");
+
+            entity.HasIndex(e => e.WebsiteID, "IX_ProductCategories_WebsiteID");
+
             entity.Property(e => e.Name).HasMaxLength(200);
             entity.Property(e => e.Slug).HasMaxLength(200);
 
@@ -1817,6 +2034,7 @@ public partial class AppDbContext : DbContext
             entity.HasKey(e => new { e.ProductID, e.RelatedProductCategoryID, e.RelationType });
 
             entity.HasIndex(e => e.RelatedProductCategoryID, "IX_ProductCategoryRelations_RelatedProductCategoryID");
+
             entity.HasOne(d => d.Product).WithMany(p => p.ProductCategoryRelations)
                 .HasForeignKey(d => d.ProductID)
                 .OnDelete(DeleteBehavior.ClientSetNull)
@@ -1864,9 +2082,15 @@ public partial class AppDbContext : DbContext
 
         modelBuilder.Entity<ProductQuestion>(entity =>
         {
+            entity.HasIndex(e => e.ProductID, "IX_ProductQuestions_ProductID");
+
+            entity.HasIndex(e => e.WebsiteClientID, "IX_ProductQuestions_WebsiteClientID");
+
+            entity.HasIndex(e => e.WebsiteID, "IX_ProductQuestions_WebsiteID");
+
             entity.Property(e => e.Body).HasMaxLength(2000);
-            entity.Property(e => e.CreatedAt)
-                .HasColumnType("datetime");
+            entity.Property(e => e.CreatedAt).HasColumnType("datetime");
+
             entity.HasOne(d => d.Product).WithMany(p => p.ProductQuestions)
                 .HasForeignKey(d => d.ProductID)
                 .OnDelete(DeleteBehavior.ClientSetNull)
@@ -1902,10 +2126,17 @@ public partial class AppDbContext : DbContext
 
         modelBuilder.Entity<ProductReview>(entity =>
         {
+            entity.HasIndex(e => e.ProductID, "IX_ProductReviews_ProductID");
+
+            entity.HasIndex(e => e.ProductVariantID, "IX_ProductReviews_ProductVariantID");
+
+            entity.HasIndex(e => e.WebsiteClientID, "IX_ProductReviews_WebsiteClientID");
+
+            entity.HasIndex(e => e.WebsiteID, "IX_ProductReviews_WebsiteID");
+
             entity.Property(e => e.Body).HasMaxLength(4000);
             entity.Property(e => e.ConsJson).HasMaxLength(2000);
-            entity.Property(e => e.CreatedAt)
-                .HasPrecision(0);
+            entity.Property(e => e.CreatedAt).HasPrecision(0);
             entity.Property(e => e.ProsJson).HasMaxLength(2000);
             entity.Property(e => e.Title).HasMaxLength(200);
 
@@ -1940,7 +2171,6 @@ public partial class AppDbContext : DbContext
             entity.Property(e => e.ShortDescription).HasMaxLength(1000);
             entity.Property(e => e.Slug).HasMaxLength(300);
             entity.Property(e => e.Title).HasMaxLength(300);
-            // Content / ExpertReview are nvarchar(max) / text — no max length
 
             entity.HasOne(d => d.Product).WithMany(p => p.ProductTranslations)
                 .HasForeignKey(d => d.ProductID)
@@ -1950,10 +2180,15 @@ public partial class AppDbContext : DbContext
 
         modelBuilder.Entity<ProductVariant>(entity =>
         {
+            entity.HasIndex(e => e.ImageFileID, "IX_ProductVariants_ImageFileID");
+
+            entity.HasIndex(e => e.ProductID, "IX_ProductVariants_ProductID");
+
+            entity.HasIndex(e => e.WebsiteID, "IX_ProductVariants_WebsiteID");
+
             entity.Property(e => e.Barcode).HasMaxLength(100);
             entity.Property(e => e.CompareAtPriceUsd).HasColumnType("decimal(18, 4)");
-            entity.Property(e => e.CreatedAt)
-                .HasColumnType("datetime");
+            entity.Property(e => e.CreatedAt).HasColumnType("datetime");
             entity.Property(e => e.OverridePrice).HasColumnType("decimal(18, 4)");
             entity.Property(e => e.ReferencePriceUsd).HasColumnType("decimal(18, 4)");
             entity.Property(e => e.Sku).HasMaxLength(100);
@@ -1975,11 +2210,29 @@ public partial class AppDbContext : DbContext
                 .HasConstraintName("FK_ProductVariants_Websites");
         });
 
+        modelBuilder.Entity<ProductVariantPriceHistory>(entity =>
+        {
+            entity.HasIndex(e => new { e.ProductVariantID, e.RecordedAt }, "IX_ProductVariantPriceHistories_ProductVariantID_RecordedAt").IsDescending(false, true);
+
+            entity.Property(e => e.CompareAtPriceUsd).HasColumnType("decimal(18, 4)");
+            entity.Property(e => e.RecordedAt).HasColumnType("datetime");
+            entity.Property(e => e.ReferencePriceUsd).HasColumnType("decimal(18, 4)");
+
+            entity.HasOne(d => d.ChangedByMember).WithMany(p => p.ProductVariantPriceHistories)
+                .HasForeignKey(d => d.ChangedByMemberId)
+                .HasConstraintName("FK_ProductVariantPriceHistories_Members");
+
+            entity.HasOne(d => d.ProductVariant).WithMany(p => p.ProductVariantPriceHistories)
+                .HasForeignKey(d => d.ProductVariantID)
+                .OnDelete(DeleteBehavior.ClientSetNull)
+                .HasConstraintName("FK_ProductVariantPriceHistories_ProductVariants");
+        });
+
         modelBuilder.Entity<ProductWarning>(entity =>
         {
             entity.HasIndex(e => e.ProductID, "IX_ProductWarnings_ProductID");
-            entity.Property(e => e.Severity)
-                .HasMaxLength(20);
+
+            entity.Property(e => e.Severity).HasMaxLength(20);
             entity.Property(e => e.Text).HasMaxLength(1000);
 
             entity.HasOne(d => d.Product).WithMany(p => p.ProductWarnings)
@@ -2004,31 +2257,14 @@ public partial class AppDbContext : DbContext
                 .HasConstraintName("FK_ProductWarningTranslations_ProductWarnings");
         });
 
-        modelBuilder.Entity<ProductVariantPriceHistory>(entity =>
-        {
-            entity.HasIndex(e => new { e.ProductVariantID, e.RecordedAt }, "IX_ProductVariantPriceHistories_ProductVariantID_RecordedAt");
-
-            entity.Property(e => e.ReferencePriceUsd).HasColumnType("decimal(18, 4)");
-            entity.Property(e => e.CompareAtPriceUsd).HasColumnType("decimal(18, 4)");
-            entity.Property(e => e.RecordedAt)
-                .HasColumnType("datetime");
-
-            entity.HasOne(d => d.ProductVariant).WithMany(p => p.ProductVariantPriceHistories)
-                .HasForeignKey(d => d.ProductVariantID)
-                .OnDelete(DeleteBehavior.ClientSetNull)
-                .HasConstraintName("FK_ProductVariantPriceHistories_ProductVariants");
-
-            entity.HasOne(d => d.ChangedByMember).WithMany(p => p.ProductVariantPriceHistories)
-                .HasForeignKey(d => d.ChangedByMemberId)
-                .HasConstraintName("FK_ProductVariantPriceHistories_Members");
-        });
-
         modelBuilder.Entity<ProductWarranty>(entity =>
         {
             entity.HasIndex(e => e.ProductID, "IX_ProductWarranties_ProductID");
+
             entity.HasIndex(e => e.WarrantyID, "IX_ProductWarranties_WarrantyID");
-            entity.Property(e => e.CustomTitle).HasMaxLength(200);
+
             entity.Property(e => e.CustomDescription).HasMaxLength(2000);
+            entity.Property(e => e.CustomTitle).HasMaxLength(200);
 
             entity.HasOne(d => d.Product).WithMany(p => p.ProductWarranties)
                 .HasForeignKey(d => d.ProductID)
@@ -2038,37 +2274,6 @@ public partial class AppDbContext : DbContext
             entity.HasOne(d => d.Warranty).WithMany(p => p.ProductWarranties)
                 .HasForeignKey(d => d.WarrantyID)
                 .HasConstraintName("FK_ProductWarranties_Warranties");
-        });
-
-        modelBuilder.Entity<Warranty>(entity =>
-        {
-            entity.HasIndex(e => e.WebsiteID, "IX_Warranties_WebsiteID");
-
-            entity.Property(e => e.Title).HasMaxLength(200);
-            entity.Property(e => e.Description).HasMaxLength(2000);
-            entity.Property(e => e.ProviderName).HasMaxLength(200);
-            entity.HasOne(d => d.Website).WithMany(p => p.Warranties)
-                .HasForeignKey(d => d.WebsiteID)
-                .OnDelete(DeleteBehavior.ClientSetNull)
-                .HasConstraintName("FK_Warranties_Websites");
-        });
-
-        modelBuilder.Entity<WarrantyTranslation>(entity =>
-        {
-            entity.HasIndex(e => e.WarrantyID, "IX_WarrantyTranslations_WarrantyID");
-
-            entity.Property(e => e.LanguageCode)
-                .HasMaxLength(2)
-                .IsUnicode(false)
-                .IsFixedLength();
-            entity.Property(e => e.Title).HasMaxLength(200);
-            entity.Property(e => e.Description).HasMaxLength(2000);
-            entity.Property(e => e.ProviderName).HasMaxLength(200);
-
-            entity.HasOne(d => d.Warranty).WithMany(p => p.WarrantyTranslations)
-                .HasForeignKey(d => d.WarrantyID)
-                .OnDelete(DeleteBehavior.ClientSetNull)
-                .HasConstraintName("FK_WarrantyTranslations_Warranties");
         });
 
         modelBuilder.Entity<Role>(entity =>
@@ -2083,6 +2288,22 @@ public partial class AppDbContext : DbContext
 
         modelBuilder.Entity<Settlement>(entity =>
         {
+            entity.HasIndex(e => e.ApprovedByMemberID, "IX_Settlements_ApprovedByMemberID");
+
+            entity.HasIndex(e => e.BankAccountID, "IX_Settlements_BankAccountID");
+
+            entity.HasIndex(e => e.CreatedByMemberID, "IX_Settlements_CreatedByMemberID");
+
+            entity.HasIndex(e => e.CurrencyCode, "IX_Settlements_CurrencyCode");
+
+            entity.HasIndex(e => e.SupplierID, "IX_Settlements_SupplierID");
+
+            entity.HasIndex(e => e.TargetWebsiteID, "IX_Settlements_TargetWebsiteID");
+
+            entity.HasIndex(e => e.VendorID, "IX_Settlements_VendorID");
+
+            entity.HasIndex(e => e.WebsiteID, "IX_Settlements_WebsiteID");
+
             entity.Property(e => e.CreatedAt).HasColumnType("datetime");
             entity.Property(e => e.CurrencyCode)
                 .HasMaxLength(3)
@@ -2130,6 +2351,14 @@ public partial class AppDbContext : DbContext
 
         modelBuilder.Entity<SettlementItem>(entity =>
         {
+            entity.HasIndex(e => e.OrderItemID, "IX_SettlementItems_OrderItemID");
+
+            entity.HasIndex(e => e.PaymentID, "IX_SettlementItems_PaymentID");
+
+            entity.HasIndex(e => e.SettlementID, "IX_SettlementItems_SettlementID");
+
+            entity.HasIndex(e => e.StockMovementID, "IX_SettlementItems_StockMovementID");
+
             entity.Property(e => e.Amount).HasColumnType("decimal(18, 4)");
             entity.Property(e => e.Description).HasMaxLength(300);
 
@@ -2166,6 +2395,14 @@ public partial class AppDbContext : DbContext
 
         modelBuilder.Entity<ShippingRate>(entity =>
         {
+            entity.HasIndex(e => e.CityID, "IX_ShippingRates_CityID");
+
+            entity.HasIndex(e => e.CountryID, "IX_ShippingRates_CountryID");
+
+            entity.HasIndex(e => e.ShippingMethodID, "IX_ShippingRates_ShippingMethodID");
+
+            entity.HasIndex(e => e.StateID, "IX_ShippingRates_StateID");
+
             entity.Property(e => e.MaxWeightKg).HasColumnType("decimal(10, 3)");
             entity.Property(e => e.MinWeightKg).HasColumnType("decimal(10, 3)");
             entity.Property(e => e.PriceUsd).HasColumnType("decimal(18, 4)");
@@ -2196,6 +2433,7 @@ public partial class AppDbContext : DbContext
             entity.Property(e => e.CreatedAt).HasColumnType("datetime");
             entity.Property(e => e.Name).HasMaxLength(150);
             entity.Property(e => e.PlacementKey).HasMaxLength(100);
+
             entity.HasOne(d => d.Website).WithMany(p => p.Slideshows)
                 .HasForeignKey(d => d.WebsiteID)
                 .OnDelete(DeleteBehavior.ClientSetNull)
@@ -2204,6 +2442,12 @@ public partial class AppDbContext : DbContext
 
         modelBuilder.Entity<SlideshowSlide>(entity =>
         {
+            entity.HasIndex(e => e.FileID, "IX_SlideshowSlides_FileID");
+
+            entity.HasIndex(e => e.MobileFileID, "IX_SlideshowSlides_MobileFileID");
+
+            entity.HasIndex(e => e.SlideshowID, "IX_SlideshowSlides_SlideshowID");
+
             entity.Property(e => e.ButtonText).HasMaxLength(100);
             entity.Property(e => e.Caption).HasMaxLength(500);
             entity.Property(e => e.LinkUrl).HasMaxLength(500);
@@ -2258,8 +2502,21 @@ public partial class AppDbContext : DbContext
 
         modelBuilder.Entity<StockMovement>(entity =>
         {
-            entity.Property(e => e.CreatedAt)
-                .HasPrecision(0);
+            entity.HasIndex(e => e.CreatedByMemberID, "IX_StockMovements_CreatedByMemberID");
+
+            entity.HasIndex(e => e.CurrencyCode, "IX_StockMovements_CurrencyCode");
+
+            entity.HasIndex(e => e.OrderID, "IX_StockMovements_OrderID");
+
+            entity.HasIndex(e => e.OrderItemID, "IX_StockMovements_OrderItemID");
+
+            entity.HasIndex(e => e.ProductVariantID, "IX_StockMovements_ProductVariantID");
+
+            entity.HasIndex(e => e.SupplierID, "IX_StockMovements_SupplierID");
+
+            entity.HasIndex(e => e.WebsiteID, "IX_StockMovements_WebsiteID");
+
+            entity.Property(e => e.CreatedAt).HasPrecision(0);
             entity.Property(e => e.CurrencyCode)
                 .HasMaxLength(3)
                 .IsUnicode(false)
@@ -2306,6 +2563,7 @@ public partial class AppDbContext : DbContext
         modelBuilder.Entity<Supplier>(entity =>
         {
             entity.HasIndex(e => e.WebsiteID, "IX_Suppliers_WebsiteID");
+
             entity.Property(e => e.Name).HasMaxLength(200);
             entity.Property(e => e.Phone).HasMaxLength(20);
 
@@ -2347,6 +2605,12 @@ public partial class AppDbContext : DbContext
 
         modelBuilder.Entity<TaxRate>(entity =>
         {
+            entity.HasIndex(e => e.CountryID, "IX_TaxRates_CountryID");
+
+            entity.HasIndex(e => e.StateID, "IX_TaxRates_StateID");
+
+            entity.HasIndex(e => e.WebsiteID, "IX_TaxRates_WebsiteID");
+
             entity.Property(e => e.Rate).HasColumnType("decimal(9, 6)");
             entity.Property(e => e.Title).HasMaxLength(100);
 
@@ -2368,6 +2632,10 @@ public partial class AppDbContext : DbContext
         {
             entity.HasKey(e => new { e.ProductVariantID, e.AttributeDefinitionID });
 
+            entity.HasIndex(e => e.AttributeDefinitionID, "IX_VariantAttributeValues_AttributeDefinitionID");
+
+            entity.HasIndex(e => e.AttributeOptionID, "IX_VariantAttributeValues_AttributeOptionID");
+
             entity.HasOne(d => d.AttributeDefinition).WithMany(p => p.VariantAttributeValues)
                 .HasForeignKey(d => d.AttributeDefinitionID)
                 .OnDelete(DeleteBehavior.ClientSetNull)
@@ -2386,8 +2654,17 @@ public partial class AppDbContext : DbContext
 
         modelBuilder.Entity<Vendor>(entity =>
         {
-            entity.Property(e => e.AvailableCreditUsd)
-                .HasColumnType("decimal(18, 4)");
+            entity.HasIndex(e => e.LinkedWebsiteID, "IX_Vendors_LinkedWebsiteID");
+
+            entity.HasIndex(e => e.LogoFileID, "IX_Vendors_LogoFileID");
+
+            entity.HasIndex(e => e.MemberID, "IX_Vendors_MemberID")
+                .IsUnique()
+                .HasFilter("([MemberID] IS NOT NULL)");
+
+            entity.HasIndex(e => e.WebsiteID, "IX_Vendors_WebsiteID");
+
+            entity.Property(e => e.AvailableCreditUsd).HasColumnType("decimal(18, 4)");
             entity.Property(e => e.CreditDays).HasComment("number of days after the settlement period ends before payment is due; only meaningful when SettlementMode = Credit");
             entity.Property(e => e.CreditLimitUsd)
                 .HasComment("maximum outstanding credit balance allowed for this vendor, in USD; only meaningful when SettlementMode = Credit")
@@ -2396,14 +2673,9 @@ public partial class AppDbContext : DbContext
             entity.Property(e => e.Rating).HasColumnType("decimal(3, 2)");
             entity.Property(e => e.SettlementMode).HasComment("0 = Immediate: every purchase from this vendor is settled instantly like a normal cash purchase. 1 = Credit: purchases accrue as credit and are batched into a periodic Settlements record due on CreditDays");
             entity.Property(e => e.Slug).HasMaxLength(200);
-            entity.Property(e => e.VendorType)
-                .HasComment("0 = Display-only title, 1 = Member login (manage own catalog), 2 = Linked website (inter-site virtual credit)");
+            entity.Property(e => e.VendorType).HasComment("0 = Display-only title, 1 = Member login (manage own catalog), 2 = Linked website (inter-site virtual credit)");
 
-            entity.HasIndex(e => e.MemberID, "IX_Vendors_MemberID")
-                .IsUnique()
-                .HasFilter("MemberID IS NOT NULL");
-
-            entity.HasOne(d => d.LinkedWebsite).WithMany(p => p.LinkedAsVendors)
+            entity.HasOne(d => d.LinkedWebsite).WithMany(p => p.VendorLinkedWebsites)
                 .HasForeignKey(d => d.LinkedWebsiteID)
                 .HasConstraintName("FK_Vendors_LinkedWebsites");
 
@@ -2415,47 +2687,20 @@ public partial class AppDbContext : DbContext
                 .HasForeignKey<Vendor>(d => d.MemberID)
                 .HasConstraintName("FK_Vendors_Members");
 
-            entity.HasOne(d => d.Website).WithMany(p => p.Vendors)
+            entity.HasOne(d => d.Website).WithMany(p => p.VendorWebsites)
                 .HasForeignKey(d => d.WebsiteID)
                 .OnDelete(DeleteBehavior.ClientSetNull)
                 .HasConstraintName("FK_Vendors_Websites");
         });
 
-        modelBuilder.Entity<VendorCreditTransaction>(entity =>
-        {
-            entity.Property(e => e.AmountUsd).HasColumnType("decimal(18, 4)");
-            entity.Property(e => e.BalanceAfterUsd).HasColumnType("decimal(18, 4)");
-            entity.Property(e => e.CreatedAt)
-                .HasColumnType("datetime");
-            entity.Property(e => e.Note).HasMaxLength(500);
-            entity.Property(e => e.SourceType)
-                .HasComment("1 = Grant, 2 = Sale, 3 = Adjustment, 4 = Refund");
-
-            entity.HasOne(d => d.CreatedByMember).WithMany(p => p.VendorCreditTransactions)
-                .HasForeignKey(d => d.CreatedByMemberID)
-                .HasConstraintName("FK_VendorCreditTransactions_Members");
-
-            entity.HasOne(d => d.MirrorOrder).WithMany(p => p.VendorCreditTransactions)
-                .HasForeignKey(d => d.MirrorOrderID)
-                .HasConstraintName("FK_VendorCreditTransactions_Orders");
-
-            entity.HasOne(d => d.SourceOrderItem).WithMany(p => p.VendorCreditTransactions)
-                .HasForeignKey(d => d.SourceOrderItemID)
-                .HasConstraintName("FK_VendorCreditTransactions_OrderItems");
-
-            entity.HasOne(d => d.Vendor).WithMany(p => p.VendorCreditTransactions)
-                .HasForeignKey(d => d.VendorID)
-                .OnDelete(DeleteBehavior.ClientSetNull)
-                .HasConstraintName("FK_VendorCreditTransactions_Vendors");
-
-            entity.HasOne(d => d.Website).WithMany(p => p.VendorCreditTransactions)
-                .HasForeignKey(d => d.WebsiteID)
-                .OnDelete(DeleteBehavior.ClientSetNull)
-                .HasConstraintName("FK_VendorCreditTransactions_Websites");
-        });
-
         modelBuilder.Entity<VendorProduct>(entity =>
         {
+            entity.HasIndex(e => e.ProductVariantID, "IX_VendorProducts_ProductVariantID");
+
+            entity.HasIndex(e => e.VendorID, "IX_VendorProducts_VendorID");
+
+            entity.HasIndex(e => e.WebsiteID, "IX_VendorProducts_WebsiteID");
+
             entity.Property(e => e.OverridePrice).HasColumnType("decimal(18, 4)");
             entity.Property(e => e.ReferencePriceUsd).HasColumnType("decimal(18, 4)");
 
@@ -2491,8 +2736,46 @@ public partial class AppDbContext : DbContext
                 .HasConstraintName("FK_VendorTranslations_Vendors");
         });
 
+        modelBuilder.Entity<Warranty>(entity =>
+        {
+            entity.HasIndex(e => e.WebsiteID, "IX_Warranties_WebsiteID");
+
+            entity.Property(e => e.Description).HasMaxLength(2000);
+            entity.Property(e => e.ProviderName).HasMaxLength(200);
+            entity.Property(e => e.Title).HasMaxLength(200);
+
+            entity.HasOne(d => d.Website).WithMany(p => p.Warranties)
+                .HasForeignKey(d => d.WebsiteID)
+                .OnDelete(DeleteBehavior.ClientSetNull)
+                .HasConstraintName("FK_Warranties_Websites");
+        });
+
+        modelBuilder.Entity<WarrantyTranslation>(entity =>
+        {
+            entity.HasIndex(e => e.WarrantyID, "IX_WarrantyTranslations_WarrantyID");
+
+            entity.Property(e => e.Description).HasMaxLength(2000);
+            entity.Property(e => e.LanguageCode)
+                .HasMaxLength(2)
+                .IsUnicode(false)
+                .IsFixedLength();
+            entity.Property(e => e.ProviderName).HasMaxLength(200);
+            entity.Property(e => e.Title).HasMaxLength(200);
+
+            entity.HasOne(d => d.Warranty).WithMany(p => p.WarrantyTranslations)
+                .HasForeignKey(d => d.WarrantyID)
+                .OnDelete(DeleteBehavior.ClientSetNull)
+                .HasConstraintName("FK_WarrantyTranslations_Warranties");
+        });
+
         modelBuilder.Entity<Website>(entity =>
         {
+            entity.HasIndex(e => e.DefaultCurrencyCode, "IX_Websites_DefaultCurrencyCode");
+
+            entity.HasIndex(e => e.FaveIconFileID, "IX_Websites_FaveIconFileID");
+
+            entity.HasIndex(e => e.LogoFileID, "IX_Websites_LogoFileID");
+
             entity.Property(e => e.BrandName)
                 .HasMaxLength(60)
                 .HasComment("show in title of pages");
@@ -2545,6 +2828,10 @@ public partial class AppDbContext : DbContext
 
         modelBuilder.Entity<WebsiteClient>(entity =>
         {
+            entity.HasIndex(e => e.AvatarID, "IX_WebsiteClients_AvatarID");
+
+            entity.HasIndex(e => e.WebsiteID, "IX_WebsiteClients_WebsiteID");
+
             entity.Property(e => e.Cellphone)
                 .HasMaxLength(16)
                 .IsUnicode(false);
@@ -2572,6 +2859,12 @@ public partial class AppDbContext : DbContext
 
         modelBuilder.Entity<WebsiteClientAddress>(entity =>
         {
+            entity.HasIndex(e => e.CityId, "IX_WebsiteClientAddresses_CityId");
+
+            entity.HasIndex(e => e.CountryId, "IX_WebsiteClientAddresses_CountryId");
+
+            entity.HasIndex(e => e.WebsiteClientID, "IX_WebsiteClientAddresses_WebsiteClientID");
+
             entity.Property(e => e.AddressLine).HasMaxLength(500);
             entity.Property(e => e.Latitude).HasColumnType("decimal(9, 6)");
             entity.Property(e => e.Longitude).HasColumnType("decimal(9, 6)");
@@ -2614,6 +2907,7 @@ public partial class AppDbContext : DbContext
             entity.HasIndex(e => new { e.WebsiteID, e.FeatureKey }, "UQ_WebsiteFeatures_WebsiteID_FeatureKey").IsUnique();
 
             entity.Property(e => e.CreatedAt).HasPrecision(0);
+
             entity.HasOne(d => d.Website).WithMany(p => p.WebsiteFeatures)
                 .HasForeignKey(d => d.WebsiteID)
                 .OnDelete(DeleteBehavior.ClientSetNull)
@@ -2642,8 +2936,7 @@ public partial class AppDbContext : DbContext
         {
             entity.HasIndex(e => e.WebsiteID, "IX_WebsiteRedirects_WebsiteID");
 
-            entity.Property(e => e.CreatedAt)
-                .HasColumnType("datetime");
+            entity.Property(e => e.CreatedAt).HasColumnType("datetime");
             entity.Property(e => e.SourcePath).HasMaxLength(500);
             entity.Property(e => e.TargetPath).HasMaxLength(500);
 
@@ -2725,16 +3018,15 @@ public partial class AppDbContext : DbContext
         modelBuilder.Entity<WebsiteTheme>(entity =>
         {
             entity.HasIndex(e => e.WebsiteID, "IX_WebsiteThemes_WebsiteID");
-            entity.HasIndex(e => new { e.WebsiteID, e.Slug }, "IX_WebsiteThemes_WebsiteID_Slug")
-                .IsUnique();
 
-            entity.Property(e => e.CreatedAt)
-                .HasColumnType("datetime");
-            entity.Property(e => e.Slug).HasMaxLength(64);
-            entity.Property(e => e.Name).HasMaxLength(100);
-            entity.Property(e => e.Version).HasMaxLength(50);
+            entity.HasIndex(e => new { e.WebsiteID, e.Slug }, "IX_WebsiteThemes_WebsiteID_Slug").IsUnique();
+
             entity.Property(e => e.Author).HasMaxLength(100);
+            entity.Property(e => e.CreatedAt).HasColumnType("datetime");
             entity.Property(e => e.Description).HasMaxLength(500);
+            entity.Property(e => e.Name).HasMaxLength(100);
+            entity.Property(e => e.Slug).HasMaxLength(64);
+            entity.Property(e => e.Version).HasMaxLength(50);
 
             entity.HasOne(d => d.Website).WithMany(p => p.WebsiteThemes)
                 .HasForeignKey(d => d.WebsiteID)
@@ -2744,6 +3036,10 @@ public partial class AppDbContext : DbContext
 
         modelBuilder.Entity<WebsiteWatermarkSetting>(entity =>
         {
+            entity.HasIndex(e => e.WatermarkFileID, "IX_WebsiteWatermarkSettings_WatermarkFileID");
+
+            entity.HasIndex(e => e.WebsiteID, "IX_WebsiteWatermarkSettings_WebsiteID");
+
             entity.HasOne(d => d.WatermarkFile).WithMany(p => p.WebsiteWatermarkSettings)
                 .HasForeignKey(d => d.WatermarkFileID)
                 .HasConstraintName("FK_WebsiteWatermarkSettings_FileRecords");
@@ -2760,8 +3056,7 @@ public partial class AppDbContext : DbContext
 
             entity.HasIndex(e => e.WebsiteClientID, "UQ_Wishlists_WebsiteClientID").IsUnique();
 
-            entity.Property(e => e.CreatedAt)
-                .HasPrecision(0);
+            entity.Property(e => e.CreatedAt).HasPrecision(0);
 
             entity.HasOne(d => d.WebsiteClient).WithOne(p => p.Wishlist)
                 .HasForeignKey<Wishlist>(d => d.WebsiteClientID)
@@ -2780,8 +3075,7 @@ public partial class AppDbContext : DbContext
 
             entity.HasIndex(e => new { e.WishlistID, e.ProductVariantID }, "UQ_WishlistItems_WishlistID_ProductVariantID").IsUnique();
 
-            entity.Property(e => e.AddedAt)
-                .HasPrecision(0);
+            entity.Property(e => e.AddedAt).HasPrecision(0);
 
             entity.HasOne(d => d.ProductVariant).WithMany(p => p.WishlistItems)
                 .HasForeignKey(d => d.ProductVariantID)

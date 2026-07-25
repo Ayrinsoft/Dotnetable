@@ -1,4 +1,4 @@
-using System;
+﻿using System;
 using System.Collections.Generic;
 
 namespace Dotnetable.Domain.Entities;
@@ -17,7 +17,7 @@ public partial class Vendor
 
     public decimal Rating { get; set; }
 
-    public bool IsActive { get; set; } = true;
+    public bool IsActive { get; set; }
 
     /// <summary>
     /// 0 = Immediate: every purchase from this vendor is settled instantly like a normal cash purchase. 1 = Credit: purchases accrue as credit and are batched into a periodic Settlements record due on CreditDays
@@ -39,18 +39,15 @@ public partial class Vendor
     /// </summary>
     public byte VendorType { get; set; }
 
-    /// <summary>Admin member who owns this vendor when VendorType = Member.</summary>
     public int? MemberID { get; set; }
 
-    /// <summary>Source website whose own products may be sold on the host when VendorType = Site.</summary>
     public int? LinkedWebsiteID { get; set; }
 
-    /// <summary>Remaining virtual credit (USD) the host may spend against this vendor's catalog.</summary>
     public decimal AvailableCreditUsd { get; set; }
 
-    public virtual FileRecord? LogoFile { get; set; }
-
     public virtual Website? LinkedWebsite { get; set; }
+
+    public virtual FileRecord? LogoFile { get; set; }
 
     public virtual Member? Member { get; set; }
 
@@ -61,8 +58,6 @@ public partial class Vendor
     public virtual ICollection<ProductAnswer> ProductAnswers { get; set; } = new List<ProductAnswer>();
 
     public virtual ICollection<Settlement> Settlements { get; set; } = new List<Settlement>();
-
-    public virtual ICollection<VendorCreditTransaction> VendorCreditTransactions { get; set; } = new List<VendorCreditTransaction>();
 
     public virtual ICollection<VendorProduct> VendorProducts { get; set; } = new List<VendorProduct>();
 

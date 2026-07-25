@@ -1,4 +1,4 @@
-using System;
+﻿using System;
 using System.Collections.Generic;
 
 namespace Dotnetable.Domain.Entities;
@@ -17,10 +17,8 @@ public partial class Product
 
     public string? ShortDescription { get; set; }
 
-    /// <summary>Rich HTML body (CKEditor), including inline images — one block per product like posts.</summary>
     public string? Content { get; set; }
 
-    /// <summary>Rich HTML expert/technical review (CKEditor), same shape as <see cref="Content"/>.</summary>
     public string? ExpertReview { get; set; }
 
     public int? FeaturedImageFileID { get; set; }
@@ -33,13 +31,13 @@ public partial class Product
 
     public int RatingCount { get; set; }
 
-    public byte Status { get; set; } = (byte)1;
+    public byte Status { get; set; }
 
     public int SortOrder { get; set; }
 
-    public bool IsActive { get; set; } = true;
+    public bool IsActive { get; set; }
 
-    public int? CreatedByMemberId { get; set; }
+    public int? CreatedByMemberID { get; set; }
 
     public DateTime CreatedAt { get; set; }
 

@@ -1,4 +1,4 @@
-using System;
+﻿using System;
 using System.Collections.Generic;
 
 namespace Dotnetable.Domain.Entities;
@@ -23,7 +23,7 @@ public partial class Post
 
     public int? FeaturedImageFileID { get; set; }
 
-    public byte Status { get; set; } = (byte)1;
+    public byte Status { get; set; }
 
     public DateTime? PublishedAt { get; set; }
 
@@ -33,9 +33,9 @@ public partial class Post
 
     public int ViewCount { get; set; }
 
-    public bool CommentsEnabled { get; set; } = true;
+    public bool CommentsEnabled { get; set; }
 
-    public bool IsActive { get; set; } = true;
+    public bool IsActive { get; set; }
 
     public DateTime CreatedAt { get; set; }
 

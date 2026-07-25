@@ -1,4 +1,4 @@
-using System;
+﻿using System;
 using System.Collections.Generic;
 
 namespace Dotnetable.Domain.Entities;
@@ -11,7 +11,7 @@ public partial class ProductCategoryRelation
 
     public byte RelationType { get; set; }
 
-    public int MaxItems { get; set; } = 10;
+    public int MaxItems { get; set; }
 
     public virtual Product Product { get; set; } = null!;
 

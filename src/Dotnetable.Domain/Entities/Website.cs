@@ -152,16 +152,13 @@ public partial class Website
 
     public virtual ICollection<TaxRate> TaxRates { get; set; } = new List<TaxRate>();
 
+    public virtual ICollection<Vendor> VendorLinkedWebsites { get; set; } = new List<Vendor>();
+
     public virtual ICollection<VendorProduct> VendorProducts { get; set; } = new List<VendorProduct>();
 
-    public virtual ICollection<VendorCreditTransaction> VendorCreditTransactions { get; set; } = new List<VendorCreditTransaction>();
-
-    public virtual ICollection<Vendor> Vendors { get; set; } = new List<Vendor>();
+    public virtual ICollection<Vendor> VendorWebsites { get; set; } = new List<Vendor>();
 
     public virtual ICollection<Warranty> Warranties { get; set; } = new List<Warranty>();
-
-    /// <summary>Vendors on other host sites that point at this website as their LinkedWebsite.</summary>
-    public virtual ICollection<Vendor> LinkedAsVendors { get; set; } = new List<Vendor>();
 
     public virtual WebsiteCaptchaSetting? WebsiteCaptchaSetting { get; set; }
 

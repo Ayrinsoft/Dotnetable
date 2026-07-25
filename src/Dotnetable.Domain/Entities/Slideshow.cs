@@ -1,4 +1,4 @@
-using System;
+﻿using System;
 using System.Collections.Generic;
 
 namespace Dotnetable.Domain.Entities;
@@ -13,21 +13,21 @@ public partial class Slideshow
 
     public string? PlacementKey { get; set; }
 
-    public byte TransitionEffect { get; set; } = (byte)1;
+    public byte TransitionEffect { get; set; }
 
-    public bool AutoPlay { get; set; } = true;
+    public bool AutoPlay { get; set; }
 
-    public int IntervalMs { get; set; } = 5000;
+    public int IntervalMs { get; set; }
 
-    public bool ShowArrows { get; set; } = true;
+    public bool ShowArrows { get; set; }
 
-    public bool ShowDots { get; set; } = true;
+    public bool ShowDots { get; set; }
 
-    public bool EnableLightbox { get; set; } = true;
+    public bool EnableLightbox { get; set; }
 
     public string? AspectRatio { get; set; }
 
-    public bool IsActive { get; set; } = true;
+    public bool IsActive { get; set; }
 
     public DateTime CreatedAt { get; set; }
 
