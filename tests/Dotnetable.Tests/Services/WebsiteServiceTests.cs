@@ -1,5 +1,6 @@
 using Dotnetable.Application.DTOs;
 using Dotnetable.Domain.Entities;
+using Dotnetable.Domain.Enums;
 using Dotnetable.Infrastructure.Data;
 using Dotnetable.Infrastructure.Services;
 using FluentAssertions;
@@ -203,6 +204,34 @@ public class WebsiteServiceTests : IDisposable
 
         created.WebsiteID.Should().BeGreaterThan(0);
         (await _context.Websites.FindAsync(created.WebsiteID))!.TradeName.Should().Be("New Site");
+    }
+
+    [Fact]
+    public async Task CreateAsync_SeedsDefaultFeaturesWithCreatedAt()
+    {
+        var before = DateTime.UtcNow.AddSeconds(-2);
+        var created = await _service.CreateAsync(NewWebsite("Featured Site", "featured.com"));
+
+        var features = await _context.WebsiteFeatures
+            .Where(f => f.WebsiteID == created.WebsiteID)
+            .ToListAsync();
+
+        features.Should().NotBeEmpty();
+        features.Should().OnlyContain(f => f.CreatedAt >= before && f.CreatedAt <= DateTime.UtcNow.AddSeconds(2));
+    }
+
+    [Fact]
+    public async Task SetFeatureAsync_InsertsFeatureWithCreatedAt_WhenMissing()
+    {
+        var w = NewWebsite(); _context.Websites.Add(w); await _context.SaveChangesAsync();
+        var before = DateTime.UtcNow.AddSeconds(-2);
+
+        await _service.SetFeatureAsync(w.WebsiteID, WebsiteFeatureKey.Ecommerce, enabled: true);
+
+        var feature = await _context.WebsiteFeatures.SingleAsync(f => f.WebsiteID == w.WebsiteID);
+        feature.Enabled.Should().BeTrue();
+        feature.CreatedAt.Should().BeOnOrAfter(before);
+        feature.CreatedAt.Should().BeCloseTo(DateTime.UtcNow, TimeSpan.FromSeconds(5));
     }
 
     [Fact]

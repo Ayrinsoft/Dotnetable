@@ -139,5 +139,18 @@ public class InitialDataSeederTests : IDisposable
             .Should().Be(1);
     }
 
+    [Fact]
+    public async Task SeedAsync_WebsiteFeatures_HaveCreatedAtSet()
+    {
+        var before = DateTime.UtcNow.AddSeconds(-2);
+
+        await _seeder.SeedAsync(_context, NewRequest());
+
+        var features = await _context.WebsiteFeatures.ToListAsync();
+        features.Should().NotBeEmpty();
+        features.Should().OnlyContain(f => f.CreatedAt >= before && f.CreatedAt <= DateTime.UtcNow.AddSeconds(2));
+        features.Should().OnlyContain(f => f.CreatedAt != default);
+    }
+
     public void Dispose() => _context.Dispose();
 }

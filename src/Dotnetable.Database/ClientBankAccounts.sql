@@ -9,7 +9,7 @@ CREATE TABLE [dbo].[ClientBankAccounts] (
     [CardNumber]          VARCHAR (20)  NULL,
     [IsDefault]           BIT           CONSTRAINT [DF_ClientBankAccounts_IsDefault] DEFAULT ((0)) NOT NULL,
     [IsActive]            BIT NOT NULL,
-    [CreatedAt]           DATETIME2 (0) CONSTRAINT [DF_ClientBankAccounts_CreatedAt] DEFAULT (sysutcdatetime()) NOT NULL,
+    [CreatedAt]           DATETIME2 (0) NOT NULL,
     CONSTRAINT [PK_ClientBankAccounts] PRIMARY KEY CLUSTERED ([ClientBankAccountID] ASC),
     CONSTRAINT [FK_ClientBankAccounts_Banks] FOREIGN KEY ([BankID]) REFERENCES [dbo].[Banks] ([BankID]),
     CONSTRAINT [FK_ClientBankAccounts_Websites] FOREIGN KEY ([WebsiteID]) REFERENCES [dbo].[Websites] ([WebsiteID]),

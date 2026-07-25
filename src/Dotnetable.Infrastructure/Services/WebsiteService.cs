@@ -61,6 +61,7 @@ public class WebsiteService : IWebsiteService
         _context.Websites.Add(website);
 
         var defaults = ((WebsiteType)website.WebsiteType).GetDefaultFeatures();
+        var featureNow = DateTime.UtcNow;
         foreach (var featureKey in defaults)
         {
             _context.WebsiteFeatures.Add(new WebsiteFeature
@@ -68,6 +69,7 @@ public class WebsiteService : IWebsiteService
                 Website = website,
                 FeatureKey = (byte)featureKey,
                 Enabled = true,
+                CreatedAt = featureNow,
             });
         }
 
@@ -108,6 +110,7 @@ public class WebsiteService : IWebsiteService
                 WebsiteID = websiteId,
                 FeatureKey = (byte)featureKey,
                 Enabled = enabled,
+                CreatedAt = DateTime.UtcNow,
             });
         }
 

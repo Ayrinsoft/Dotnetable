@@ -570,13 +570,10 @@ public partial class AppDbContext : DbContext
             entity.Property(e => e.CardNumber)
                 .HasMaxLength(20)
                 .IsUnicode(false);
-            entity.Property(e => e.CreatedAt)
-                .HasPrecision(0)
-                .HasDefaultValueSql("(sysutcdatetime())", "DF_ClientBankAccounts_CreatedAt");
+            entity.Property(e => e.CreatedAt).HasPrecision(0);
             entity.Property(e => e.IBAN)
                 .HasMaxLength(34)
                 .IsUnicode(false);
-            entity.Property(e => e.IsActive).HasDefaultValue(true, "DF_ClientBankAccounts_IsActive");
             entity.Property(e => e.OwnerName).HasMaxLength(90);
 
             entity.HasOne(d => d.Bank).WithMany(p => p.ClientBankAccounts)
@@ -988,9 +985,7 @@ public partial class AppDbContext : DbContext
             entity.HasIndex(e => e.WebsiteID, "IX_Forms_WebsiteID");
 
             entity.Property(e => e.AllowMultipleSubmissions).HasDefaultValue(true, "DF_Forms_AllowMultipleSubmissions");
-            entity.Property(e => e.CreatedAt)
-                .HasDefaultValueSql("(sysutcdatetime())", "DF_Forms_CreatedAt")
-                .HasColumnType("datetime");
+            entity.Property(e => e.CreatedAt).HasColumnType("datetime");
             entity.Property(e => e.Description).HasMaxLength(1000);
             entity.Property(e => e.EndAt).HasColumnType("datetime");
             entity.Property(e => e.IsActive).HasDefaultValue(true, "DF_Forms_IsActive");
@@ -1089,9 +1084,7 @@ public partial class AppDbContext : DbContext
         {
             entity.HasIndex(e => e.WebsiteID, "IX_JournalEntries_WebsiteID");
 
-            entity.Property(e => e.CreatedAt)
-                .HasDefaultValueSql("(sysutcdatetime())", "DF_JournalEntries_CreatedAt")
-                .HasColumnType("datetime");
+            entity.Property(e => e.CreatedAt).HasColumnType("datetime");
             entity.Property(e => e.Description).HasMaxLength(500);
             entity.Property(e => e.EntryNumber).HasMaxLength(30);
 
@@ -2176,9 +2169,7 @@ public partial class AppDbContext : DbContext
 
         modelBuilder.Entity<Settlement>(entity =>
         {
-            entity.Property(e => e.CreatedAt)
-                .HasDefaultValueSql("(sysutcdatetime())", "DF_Settlements_CreatedAt_1")
-                .HasColumnType("datetime");
+            entity.Property(e => e.CreatedAt).HasColumnType("datetime");
             entity.Property(e => e.CurrencyCode)
                 .HasMaxLength(3)
                 .IsUnicode(false)
@@ -2292,9 +2283,7 @@ public partial class AppDbContext : DbContext
 
             entity.Property(e => e.AspectRatio).HasMaxLength(20);
             entity.Property(e => e.AutoPlay).HasDefaultValue(true, "DF_Slideshows_AutoPlay");
-            entity.Property(e => e.CreatedAt)
-                .HasDefaultValueSql("(sysutcdatetime())", "DF_Slideshows_CreatedAt")
-                .HasColumnType("datetime");
+            entity.Property(e => e.CreatedAt).HasColumnType("datetime");
             entity.Property(e => e.EnableLightbox).HasDefaultValue(true, "DF_Slideshows_EnableLightbox");
             entity.Property(e => e.IntervalMs).HasDefaultValue(5000, "DF_Slideshows_IntervalMs");
             entity.Property(e => e.IsActive).HasDefaultValue(true, "DF_Slideshows_IsActive");
@@ -2733,9 +2722,7 @@ public partial class AppDbContext : DbContext
         {
             entity.HasIndex(e => new { e.WebsiteID, e.FeatureKey }, "UQ_WebsiteFeatures_WebsiteID_FeatureKey").IsUnique();
 
-            entity.Property(e => e.CreatedAt)
-                .HasPrecision(0)
-                .HasDefaultValueSql("(sysutcdatetime())", "DF_WebsiteFeatures_CreatedAt");
+            entity.Property(e => e.CreatedAt).HasPrecision(0);
             entity.Property(e => e.Enabled).HasDefaultValue(true, "DF_WebsiteFeatures_Enabled");
 
             entity.HasOne(d => d.Website).WithMany(p => p.WebsiteFeatures)

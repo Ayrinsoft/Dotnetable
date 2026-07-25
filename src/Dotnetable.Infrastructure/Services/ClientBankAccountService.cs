@@ -33,6 +33,7 @@ public class ClientBankAccountService : IClientBankAccountService
             return BankAccountSaveResult.LimitReached;
 
         account.IsActive = true;
+        account.CreatedAt = DateTime.UtcNow;
         if (account.IsDefault)
             await ClearDefaultAsync(account.WebsiteClientID, ct);
         else if (count == 0)

@@ -105,6 +105,7 @@ public class FormService : IFormService
     public async Task<Form> CreateFormAsync(Form form, CancellationToken ct = default)
     {
         form.Slug = NormalizeSlug(form.Slug, form.Title);
+        form.CreatedAt = DateTime.UtcNow;
         _context.Forms.Add(form);
         await _context.SaveChangesAsync(ct);
         return form;

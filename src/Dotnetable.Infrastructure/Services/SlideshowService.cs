@@ -51,6 +51,7 @@ public class SlideshowService : ISlideshowService
 
     public async Task<Slideshow> CreateSlideshowAsync(Slideshow slideshow, CancellationToken ct = default)
     {
+        slideshow.CreatedAt = DateTime.UtcNow;
         _context.Slideshows.Add(slideshow);
         await _context.SaveChangesAsync(ct);
         return slideshow;

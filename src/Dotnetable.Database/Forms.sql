@@ -1,4 +1,4 @@
-﻿CREATE TABLE [dbo].[Forms] (
+CREATE TABLE [dbo].[Forms] (
     [FormID]                   INT            IDENTITY (1, 1) NOT NULL,
     [WebsiteID]                INT            NOT NULL,
     [Title]                    NVARCHAR (200) NOT NULL,
@@ -14,7 +14,7 @@
     [StartAt]                  DATETIME       NULL,
     [EndAt]                    DATETIME       NULL,
     [IsActive]                 BIT            CONSTRAINT [DF_Forms_IsActive] DEFAULT ((1)) NOT NULL,
-    [CreatedAt]                DATETIME       CONSTRAINT [DF_Forms_CreatedAt] DEFAULT (sysutcdatetime()) NOT NULL,
+    [CreatedAt]                DATETIME NOT NULL,
     CONSTRAINT [PK_Forms] PRIMARY KEY CLUSTERED ([FormID] ASC),
     CONSTRAINT [FK_Forms_Websites] FOREIGN KEY ([WebsiteID]) REFERENCES [dbo].[Websites] ([WebsiteID])
 );
