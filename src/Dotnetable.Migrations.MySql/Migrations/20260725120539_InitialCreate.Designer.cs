@@ -11,8 +11,8 @@ using Microsoft.EntityFrameworkCore.Storage.ValueConversion;
 namespace Dotnetable.Migrations.MySql.Migrations
 {
     [DbContext(typeof(AppDbContext))]
-    [Migration("20260723151321_ProductSingleContent")]
-    partial class ProductSingleContent
+    [Migration("20260725120539_InitialCreate")]
+    partial class InitialCreate
     {
         /// <inheritdoc />
         protected override void BuildTargetModel(ModelBuilder modelBuilder)
@@ -63,9 +63,10 @@ namespace Dotnetable.Migrations.MySql.Migrations
 
                     b.HasKey("AdminNotificationID");
 
-                    b.HasIndex("MemberID");
+                    b.HasIndex(new[] { "MemberID", "IsRead", "CreatedAt" }, "IX_AdminNotifications_MemberID_IsRead_CreatedAt")
+                        .IsDescending(false, false, true);
 
-                    b.HasIndex("WebsiteID");
+                    b.HasIndex(new[] { "WebsiteID" }, "IX_AdminNotifications_WebsiteID");
 
                     b.ToTable("AdminNotifications");
                 });
@@ -239,9 +240,9 @@ namespace Dotnetable.Migrations.MySql.Migrations
 
                     b.HasKey("BankID");
 
-                    b.HasIndex("LogoFileID");
+                    b.HasIndex(new[] { "LogoFileID" }, "IX_Banks_LogoFileID");
 
-                    b.HasIndex("WebsiteID");
+                    b.HasIndex(new[] { "WebsiteID" }, "IX_Banks_WebsiteID");
 
                     b.ToTable("Banks");
                 });
@@ -274,16 +275,10 @@ namespace Dotnetable.Migrations.MySql.Migrations
                         .HasColumnType("varchar(34)");
 
                     b.Property<bool>("IsActive")
-                        .ValueGeneratedOnAdd()
-                        .HasColumnType("tinyint(1)")
-                        .HasDefaultValue(true)
-                        .HasAnnotation("Relational:DefaultConstraintName", "DF_BankAccounts_IsActive");
+                        .HasColumnType("tinyint(1)");
 
                     b.Property<bool>("IsForOfflinePayment")
-                        .ValueGeneratedOnAdd()
-                        .HasColumnType("tinyint(1)")
-                        .HasDefaultValue(true)
-                        .HasAnnotation("Relational:DefaultConstraintName", "DF_BankAccounts_IsForOfflinePayment");
+                        .HasColumnType("tinyint(1)");
 
                     b.Property<string>("OwnerName")
                         .HasMaxLength(90)
@@ -299,11 +294,11 @@ namespace Dotnetable.Migrations.MySql.Migrations
 
                     b.HasKey("BankAccountID");
 
-                    b.HasIndex("BankID");
+                    b.HasIndex(new[] { "BankID" }, "IX_BankAccounts_BankID");
 
-                    b.HasIndex("CreatedByMemberId");
+                    b.HasIndex(new[] { "CreatedByMemberId" }, "IX_BankAccounts_CreatedByMemberId");
 
-                    b.HasIndex("WebsiteID");
+                    b.HasIndex(new[] { "WebsiteID" }, "IX_BankAccounts_WebsiteID");
 
                     b.ToTable("BankAccounts");
                 });
@@ -315,10 +310,7 @@ namespace Dotnetable.Migrations.MySql.Migrations
                         .HasColumnType("int");
 
                     b.Property<bool>("IsActive")
-                        .ValueGeneratedOnAdd()
-                        .HasColumnType("tinyint(1)")
-                        .HasDefaultValue(true)
-                        .HasAnnotation("Relational:DefaultConstraintName", "DF_Brands_IsActive_1");
+                        .HasColumnType("tinyint(1)");
 
                     b.Property<int?>("LogoFileID")
                         .HasColumnType("int");
@@ -338,9 +330,9 @@ namespace Dotnetable.Migrations.MySql.Migrations
 
                     b.HasKey("BrandID");
 
-                    b.HasIndex("LogoFileID");
+                    b.HasIndex(new[] { "LogoFileID" }, "IX_Brands_LogoFileID");
 
-                    b.HasIndex("WebsiteID");
+                    b.HasIndex(new[] { "WebsiteID" }, "IX_Brands_WebsiteID");
 
                     b.ToTable("Brands");
                 });
@@ -388,11 +380,8 @@ namespace Dotnetable.Migrations.MySql.Migrations
                         .HasColumnType("int");
 
                     b.Property<DateTime>("CreatedAt")
-                        .ValueGeneratedOnAdd()
                         .HasPrecision(0)
-                        .HasColumnType("datetime(0)")
-                        .HasDefaultValueSql("(sysutcdatetime())")
-                        .HasAnnotation("Relational:DefaultConstraintName", "DF_Carts_CreatedAt");
+                        .HasColumnType("datetime(0)");
 
                     b.Property<string>("SessionKey")
                         .HasMaxLength(64)
@@ -400,11 +389,8 @@ namespace Dotnetable.Migrations.MySql.Migrations
                         .HasColumnType("varchar(64)");
 
                     b.Property<DateTime>("UpdatedAt")
-                        .ValueGeneratedOnAdd()
                         .HasPrecision(0)
-                        .HasColumnType("datetime(0)")
-                        .HasDefaultValueSql("(sysutcdatetime())")
-                        .HasAnnotation("Relational:DefaultConstraintName", "DF_Carts_UpdatedAt");
+                        .HasColumnType("datetime(0)");
 
                     b.Property<int?>("WebsiteClientID")
                         .HasColumnType("int");
@@ -414,11 +400,11 @@ namespace Dotnetable.Migrations.MySql.Migrations
 
                     b.HasKey("CartID");
 
-                    b.HasIndex("CouponID");
+                    b.HasIndex(new[] { "CouponID" }, "IX_Carts_CouponID");
 
-                    b.HasIndex("WebsiteClientID");
+                    b.HasIndex(new[] { "WebsiteClientID" }, "IX_Carts_WebsiteClientID");
 
-                    b.HasIndex("WebsiteID");
+                    b.HasIndex(new[] { "WebsiteID" }, "IX_Carts_WebsiteID");
 
                     b.ToTable("Carts");
                 });
@@ -430,11 +416,8 @@ namespace Dotnetable.Migrations.MySql.Migrations
                         .HasColumnType("int");
 
                     b.Property<DateTime>("AddedAt")
-                        .ValueGeneratedOnAdd()
                         .HasPrecision(0)
-                        .HasColumnType("datetime(0)")
-                        .HasDefaultValueSql("(sysutcdatetime())")
-                        .HasAnnotation("Relational:DefaultConstraintName", "DF_CartItems_AddedAt");
+                        .HasColumnType("datetime(0)");
 
                     b.Property<int>("CartID")
                         .HasColumnType("int");
@@ -443,19 +426,16 @@ namespace Dotnetable.Migrations.MySql.Migrations
                         .HasColumnType("int");
 
                     b.Property<int>("Quantity")
-                        .ValueGeneratedOnAdd()
-                        .HasColumnType("int")
-                        .HasDefaultValue(1)
-                        .HasAnnotation("Relational:DefaultConstraintName", "DF_CartItems_Quantity");
+                        .HasColumnType("int");
 
                     b.Property<int?>("VendorProductID")
                         .HasColumnType("int");
 
                     b.HasKey("CartItemID");
 
-                    b.HasIndex("ProductVariantID");
+                    b.HasIndex(new[] { "ProductVariantID" }, "IX_CartItems_ProductVariantID");
 
-                    b.HasIndex("VendorProductID");
+                    b.HasIndex(new[] { "VendorProductID" }, "IX_CartItems_VendorProductID");
 
                     b.HasIndex(new[] { "CartID", "ProductVariantID", "VendorProductID" }, "UQ_CartItems_CartID_ProductVariantID_VendorProductID")
                         .IsUnique();
@@ -470,10 +450,7 @@ namespace Dotnetable.Migrations.MySql.Migrations
                         .HasColumnType("int");
 
                     b.Property<bool>("IsActive")
-                        .ValueGeneratedOnAdd()
-                        .HasColumnType("tinyint(1)")
-                        .HasDefaultValue(true)
-                        .HasAnnotation("Relational:DefaultConstraintName", "DF_Categories_IsActive");
+                        .HasColumnType("tinyint(1)");
 
                     b.Property<string>("Name")
                         .IsRequired()
@@ -499,11 +476,11 @@ namespace Dotnetable.Migrations.MySql.Migrations
 
                     b.HasKey("CategoryID");
 
-                    b.HasIndex("ParentCategoryID");
+                    b.HasIndex(new[] { "ParentCategoryID" }, "IX_Categories_ParentCategoryID");
 
-                    b.HasIndex("PostTypeID");
+                    b.HasIndex(new[] { "PostTypeID" }, "IX_Categories_PostTypeID");
 
-                    b.HasIndex("WebsiteID");
+                    b.HasIndex(new[] { "WebsiteID" }, "IX_Categories_WebsiteID");
 
                     b.ToTable("Categories");
                 });
@@ -556,10 +533,7 @@ namespace Dotnetable.Migrations.MySql.Migrations
                         .HasColumnType("varchar(20)");
 
                     b.Property<bool>("IsActive")
-                        .ValueGeneratedOnAdd()
-                        .HasColumnType("tinyint(1)")
-                        .HasDefaultValue(true)
-                        .HasAnnotation("Relational:DefaultConstraintName", "DF_ChartOfAccounts_IsActive");
+                        .HasColumnType("tinyint(1)");
 
                     b.Property<string>("Name")
                         .IsRequired()
@@ -574,9 +548,9 @@ namespace Dotnetable.Migrations.MySql.Migrations
 
                     b.HasKey("ChartOfAccountID");
 
-                    b.HasIndex("ParentAccountID");
+                    b.HasIndex(new[] { "ParentAccountID" }, "IX_ChartOfAccounts_ParentAccountID");
 
-                    b.HasIndex("WebsiteID");
+                    b.HasIndex(new[] { "WebsiteID" }, "IX_ChartOfAccounts_WebsiteID");
 
                     b.ToTable("ChartOfAccounts");
                 });
@@ -616,9 +590,9 @@ namespace Dotnetable.Migrations.MySql.Migrations
 
                     b.HasKey("CityID");
 
-                    b.HasIndex("CountryID");
+                    b.HasIndex(new[] { "CountryID" }, "IX_Cities_CountryID");
 
-                    b.HasIndex("StateID");
+                    b.HasIndex(new[] { "StateID" }, "IX_Cities_StateID");
 
                     b.ToTable("Cities");
                 });
@@ -671,11 +645,8 @@ namespace Dotnetable.Migrations.MySql.Migrations
                         .HasColumnType("varchar(20)");
 
                     b.Property<DateTime>("CreatedAt")
-                        .ValueGeneratedOnAdd()
                         .HasPrecision(0)
-                        .HasColumnType("datetime(0)")
-                        .HasDefaultValueSql("(sysutcdatetime())")
-                        .HasAnnotation("Relational:DefaultConstraintName", "DF_ClientBankAccounts_CreatedAt");
+                        .HasColumnType("datetime(0)");
 
                     b.Property<string>("IBAN")
                         .HasMaxLength(34)
@@ -683,10 +654,7 @@ namespace Dotnetable.Migrations.MySql.Migrations
                         .HasColumnType("varchar(34)");
 
                     b.Property<bool>("IsActive")
-                        .ValueGeneratedOnAdd()
-                        .HasColumnType("tinyint(1)")
-                        .HasDefaultValue(true)
-                        .HasAnnotation("Relational:DefaultConstraintName", "DF_ClientBankAccounts_IsActive");
+                        .HasColumnType("tinyint(1)");
 
                     b.Property<bool>("IsDefault")
                         .HasColumnType("tinyint(1)");
@@ -704,11 +672,11 @@ namespace Dotnetable.Migrations.MySql.Migrations
 
                     b.HasKey("ClientBankAccountID");
 
-                    b.HasIndex("BankID");
+                    b.HasIndex(new[] { "BankID" }, "IX_ClientBankAccounts_BankID");
 
-                    b.HasIndex("WebsiteClientID");
+                    b.HasIndex(new[] { "WebsiteClientID" }, "IX_ClientBankAccounts_WebsiteClientID");
 
-                    b.HasIndex("WebsiteID");
+                    b.HasIndex(new[] { "WebsiteID" }, "IX_ClientBankAccounts_WebsiteID");
 
                     b.ToTable("ClientBankAccounts");
                 });
@@ -723,17 +691,11 @@ namespace Dotnetable.Migrations.MySql.Migrations
                         .HasColumnType("decimal(18, 4)");
 
                     b.Property<DateTime>("CreatedAt")
-                        .ValueGeneratedOnAdd()
                         .HasPrecision(0)
-                        .HasColumnType("datetime(0)")
-                        .HasDefaultValueSql("(sysutcdatetime())")
-                        .HasAnnotation("Relational:DefaultConstraintName", "DF_ClientWallets_CreatedAt");
+                        .HasColumnType("datetime(0)");
 
                     b.Property<bool>("IsActive")
-                        .ValueGeneratedOnAdd()
-                        .HasColumnType("tinyint(1)")
-                        .HasDefaultValue(true)
-                        .HasAnnotation("Relational:DefaultConstraintName", "DF_ClientWallets_IsActive");
+                        .HasColumnType("tinyint(1)");
 
                     b.Property<byte[]>("RowVersion")
                         .IsConcurrencyToken()
@@ -773,11 +735,8 @@ namespace Dotnetable.Migrations.MySql.Migrations
                         .HasColumnType("int");
 
                     b.Property<DateTime>("CreatedAt")
-                        .ValueGeneratedOnAdd()
                         .HasPrecision(0)
-                        .HasColumnType("datetime(0)")
-                        .HasDefaultValueSql("(sysutcdatetime())")
-                        .HasAnnotation("Relational:DefaultConstraintName", "DF_ClientWalletTransactions_CreatedAt");
+                        .HasColumnType("datetime(0)");
 
                     b.Property<int?>("CreatedByMemberID")
                         .HasColumnType("int");
@@ -800,11 +759,11 @@ namespace Dotnetable.Migrations.MySql.Migrations
 
                     b.HasKey("ClientWalletTransactionID");
 
-                    b.HasIndex("ClientWalletID");
+                    b.HasIndex(new[] { "ClientWalletID" }, "IX_ClientWalletTransactions_ClientWalletID");
 
-                    b.HasIndex("CreatedByMemberID");
+                    b.HasIndex(new[] { "CreatedByMemberID" }, "IX_ClientWalletTransactions_CreatedByMemberID");
 
-                    b.HasIndex("WebsiteID");
+                    b.HasIndex(new[] { "WebsiteID" }, "IX_ClientWalletTransactions_WebsiteID");
 
                     b.ToTable("ClientWalletTransactions");
                 });
@@ -837,11 +796,8 @@ namespace Dotnetable.Migrations.MySql.Migrations
                         .HasColumnType("varchar(500)");
 
                     b.Property<DateTime>("RequestedAt")
-                        .ValueGeneratedOnAdd()
                         .HasPrecision(0)
-                        .HasColumnType("datetime(0)")
-                        .HasDefaultValueSql("(sysutcdatetime())")
-                        .HasAnnotation("Relational:DefaultConstraintName", "DF_ClientWalletWithdrawals_RequestedAt");
+                        .HasColumnType("datetime(0)");
 
                     b.Property<DateTime?>("ReviewedAt")
                         .HasPrecision(0)
@@ -851,10 +807,7 @@ namespace Dotnetable.Migrations.MySql.Migrations
                         .HasColumnType("int");
 
                     b.Property<byte>("Status")
-                        .ValueGeneratedOnAdd()
-                        .HasColumnType("tinyint unsigned")
-                        .HasDefaultValue((byte)1)
-                        .HasAnnotation("Relational:DefaultConstraintName", "DF_ClientWalletWithdrawals_Status");
+                        .HasColumnType("tinyint unsigned");
 
                     b.Property<int>("WebsiteClientID")
                         .HasColumnType("int");
@@ -864,15 +817,15 @@ namespace Dotnetable.Migrations.MySql.Migrations
 
                     b.HasKey("ClientWalletWithdrawalID");
 
-                    b.HasIndex("ClientBankAccountID");
+                    b.HasIndex(new[] { "ClientBankAccountID" }, "IX_ClientWalletWithdrawals_ClientBankAccountID");
 
-                    b.HasIndex("ClientWalletID");
+                    b.HasIndex(new[] { "ClientWalletID" }, "IX_ClientWalletWithdrawals_ClientWalletID");
 
-                    b.HasIndex("ReviewedByMemberID");
+                    b.HasIndex(new[] { "ReviewedByMemberID" }, "IX_ClientWalletWithdrawals_ReviewedByMemberID");
 
-                    b.HasIndex("WebsiteClientID");
+                    b.HasIndex(new[] { "WebsiteClientID" }, "IX_ClientWalletWithdrawals_WebsiteClientID");
 
-                    b.HasIndex("WebsiteID");
+                    b.HasIndex(new[] { "WebsiteID" }, "IX_ClientWalletWithdrawals_WebsiteID");
 
                     b.ToTable("ClientWalletWithdrawals");
                 });
@@ -1009,11 +962,8 @@ namespace Dotnetable.Migrations.MySql.Migrations
                         .HasColumnType("varchar(40)");
 
                     b.Property<DateTime>("CreatedAt")
-                        .ValueGeneratedOnAdd()
                         .HasPrecision(0)
-                        .HasColumnType("datetime(0)")
-                        .HasDefaultValueSql("(sysutcdatetime())")
-                        .HasAnnotation("Relational:DefaultConstraintName", "DF_Coupons_CreatedAt");
+                        .HasColumnType("datetime(0)");
 
                     b.Property<int?>("CreatedByMemberID")
                         .HasColumnType("int");
@@ -1029,10 +979,7 @@ namespace Dotnetable.Migrations.MySql.Migrations
                         .HasColumnType("datetime(0)");
 
                     b.Property<bool>("IsActive")
-                        .ValueGeneratedOnAdd()
-                        .HasColumnType("tinyint(1)")
-                        .HasDefaultValue(true)
-                        .HasAnnotation("Relational:DefaultConstraintName", "DF_Coupons_IsActive");
+                        .HasColumnType("tinyint(1)");
 
                     b.Property<decimal?>("MaxDiscountAmountUsd")
                         .HasColumnType("decimal(18, 4)");
@@ -1082,20 +1029,17 @@ namespace Dotnetable.Migrations.MySql.Migrations
                         .HasColumnType("int");
 
                     b.Property<DateTime>("RedeemedAt")
-                        .ValueGeneratedOnAdd()
                         .HasPrecision(0)
-                        .HasColumnType("datetime(0)")
-                        .HasDefaultValueSql("(sysutcdatetime())")
-                        .HasAnnotation("Relational:DefaultConstraintName", "DF_CouponRedemptions_RedeemedAt");
+                        .HasColumnType("datetime(0)");
 
                     b.Property<int>("WebsiteClientID")
                         .HasColumnType("int");
 
                     b.HasKey("CouponRedemptionID");
 
-                    b.HasIndex("CouponID");
+                    b.HasIndex(new[] { "CouponID" }, "IX_CouponRedemptions_CouponID");
 
-                    b.HasIndex("WebsiteClientID");
+                    b.HasIndex(new[] { "WebsiteClientID" }, "IX_CouponRedemptions_WebsiteClientID");
 
                     b.HasIndex(new[] { "OrderID" }, "UQ_CouponRedemptions_OrderID")
                         .IsUnique();
@@ -1112,16 +1056,10 @@ namespace Dotnetable.Migrations.MySql.Migrations
                         .IsFixedLength();
 
                     b.Property<byte>("DecimalDigits")
-                        .ValueGeneratedOnAdd()
-                        .HasColumnType("tinyint unsigned")
-                        .HasDefaultValue((byte)2)
-                        .HasAnnotation("Relational:DefaultConstraintName", "DF_Currencies_DecimalDigits");
+                        .HasColumnType("tinyint unsigned");
 
                     b.Property<bool>("IsActive")
-                        .ValueGeneratedOnAdd()
-                        .HasColumnType("tinyint(1)")
-                        .HasDefaultValue(true)
-                        .HasAnnotation("Relational:DefaultConstraintName", "DF_Currencies_IsActive");
+                        .HasColumnType("tinyint(1)");
 
                     b.Property<string>("Name")
                         .IsRequired()
@@ -1165,9 +1103,9 @@ namespace Dotnetable.Migrations.MySql.Migrations
 
                     b.HasKey("CurrencyRateID");
 
-                    b.HasIndex("CurrencyCode");
+                    b.HasIndex(new[] { "CurrencyCode" }, "IX_CurrencyRates_CurrencyCode");
 
-                    b.HasIndex("WebsiteID");
+                    b.HasIndex(new[] { "WebsiteID" }, "IX_CurrencyRates_WebsiteID");
 
                     b.ToTable("CurrencyRates");
                 });
@@ -1259,9 +1197,9 @@ namespace Dotnetable.Migrations.MySql.Migrations
 
                     b.HasKey("EmailSubscribeID");
 
-                    b.HasIndex("MemberID");
+                    b.HasIndex(new[] { "MemberID" }, "IX_EmailSubscribes_MemberID");
 
-                    b.HasIndex("WebsiteID");
+                    b.HasIndex(new[] { "WebsiteID" }, "IX_EmailSubscribes_WebsiteID");
 
                     b.ToTable("EmailSubscribes");
                 });
@@ -1463,15 +1401,15 @@ namespace Dotnetable.Migrations.MySql.Migrations
 
                     b.HasKey("FileRecordID");
 
-                    b.HasIndex("FileFolderID");
+                    b.HasIndex(new[] { "FileFolderID" }, "IX_FileRecords_FileFolderID");
 
-                    b.HasIndex("UploaderMemberID");
+                    b.HasIndex(new[] { "UploaderMemberID" }, "IX_FileRecords_UploaderMemberID");
 
-                    b.HasIndex("WebsiteClientID");
+                    b.HasIndex(new[] { "WebsiteClientID" }, "IX_FileRecords_WebsiteClientID");
 
-                    b.HasIndex("WebsiteID");
+                    b.HasIndex(new[] { "WebsiteID" }, "IX_FileRecords_WebsiteID");
 
-                    b.HasIndex("WebsiteStorageSettingsID");
+                    b.HasIndex(new[] { "WebsiteStorageSettingsID" }, "IX_FileRecords_WebsiteStorageSettingsID");
 
                     b.ToTable("FileRecords");
                 });
@@ -1490,9 +1428,9 @@ namespace Dotnetable.Migrations.MySql.Migrations
 
                     b.HasKey("FileRecordTagID");
 
-                    b.HasIndex("FileRecordID");
+                    b.HasIndex(new[] { "FileRecordID" }, "IX_FileRecordTags_FileRecordID");
 
-                    b.HasIndex("FileTagID");
+                    b.HasIndex(new[] { "FileTagID" }, "IX_FileRecordTags_FileTagID");
 
                     b.ToTable("FileRecordTags");
                 });
@@ -1525,16 +1463,10 @@ namespace Dotnetable.Migrations.MySql.Migrations
                         .HasColumnType("int");
 
                     b.Property<bool>("AllowMultipleSubmissions")
-                        .ValueGeneratedOnAdd()
-                        .HasColumnType("tinyint(1)")
-                        .HasDefaultValue(true)
-                        .HasAnnotation("Relational:DefaultConstraintName", "DF_Forms_AllowMultipleSubmissions");
+                        .HasColumnType("tinyint(1)");
 
                     b.Property<DateTime>("CreatedAt")
-                        .ValueGeneratedOnAdd()
-                        .HasColumnType("datetime")
-                        .HasDefaultValueSql("(sysutcdatetime())")
-                        .HasAnnotation("Relational:DefaultConstraintName", "DF_Forms_CreatedAt");
+                        .HasColumnType("datetime");
 
                     b.Property<string>("Description")
                         .HasMaxLength(1000)
@@ -1547,10 +1479,7 @@ namespace Dotnetable.Migrations.MySql.Migrations
                         .HasColumnType("tinyint unsigned");
 
                     b.Property<bool>("IsActive")
-                        .ValueGeneratedOnAdd()
-                        .HasColumnType("tinyint(1)")
-                        .HasDefaultValue(true)
-                        .HasAnnotation("Relational:DefaultConstraintName", "DF_Forms_IsActive");
+                        .HasColumnType("tinyint(1)");
 
                     b.Property<string>("NotifyEmail")
                         .HasMaxLength(200)
@@ -1610,10 +1539,7 @@ namespace Dotnetable.Migrations.MySql.Migrations
                         .HasColumnType("varchar(500)");
 
                     b.Property<bool>("IsActive")
-                        .ValueGeneratedOnAdd()
-                        .HasColumnType("tinyint(1)")
-                        .HasDefaultValue(true)
-                        .HasAnnotation("Relational:DefaultConstraintName", "DF_FormFields_IsActive");
+                        .HasColumnType("tinyint(1)");
 
                     b.Property<bool>("IsRequired")
                         .HasColumnType("tinyint(1)");
@@ -1687,19 +1613,16 @@ namespace Dotnetable.Migrations.MySql.Migrations
                         .HasColumnType("varchar(45)");
 
                     b.Property<DateTime>("SubmittedAt")
-                        .ValueGeneratedOnAdd()
-                        .HasColumnType("datetime")
-                        .HasDefaultValueSql("(sysutcdatetime())")
-                        .HasAnnotation("Relational:DefaultConstraintName", "DF_FormResponses_SubmittedAt");
+                        .HasColumnType("datetime");
 
                     b.Property<int?>("WebsiteClientID")
                         .HasColumnType("int");
 
                     b.HasKey("FormResponseID");
 
-                    b.HasIndex("FormID");
+                    b.HasIndex(new[] { "FormID" }, "IX_FormResponses_FormID");
 
-                    b.HasIndex("WebsiteClientID");
+                    b.HasIndex(new[] { "WebsiteClientID" }, "IX_FormResponses_WebsiteClientID");
 
                     b.ToTable("FormResponses");
                 });
@@ -1721,9 +1644,9 @@ namespace Dotnetable.Migrations.MySql.Migrations
 
                     b.HasKey("FormResponseValueID");
 
-                    b.HasIndex("FormFieldID");
+                    b.HasIndex(new[] { "FormFieldID" }, "IX_FormResponseValues_FormFieldID");
 
-                    b.HasIndex("FormResponseID");
+                    b.HasIndex(new[] { "FormResponseID" }, "IX_FormResponseValues_FormResponseID");
 
                     b.ToTable("FormResponseValues");
                 });
@@ -1760,9 +1683,9 @@ namespace Dotnetable.Migrations.MySql.Migrations
 
                     b.HasKey("InventoryItemID");
 
-                    b.HasIndex("ProductVariantID");
+                    b.HasIndex(new[] { "ProductVariantID" }, "IX_InventoryItems_ProductVariantID");
 
-                    b.HasIndex("WebsiteID");
+                    b.HasIndex(new[] { "WebsiteID" }, "IX_InventoryItems_WebsiteID");
 
                     b.ToTable("InventoryItems");
                 });
@@ -1774,10 +1697,7 @@ namespace Dotnetable.Migrations.MySql.Migrations
                         .HasColumnType("int");
 
                     b.Property<DateTime>("CreatedAt")
-                        .ValueGeneratedOnAdd()
-                        .HasColumnType("datetime")
-                        .HasDefaultValueSql("(sysutcdatetime())")
-                        .HasAnnotation("Relational:DefaultConstraintName", "DF_JournalEntries_CreatedAt");
+                        .HasColumnType("datetime");
 
                     b.Property<string>("Description")
                         .HasMaxLength(500)
@@ -1834,9 +1754,9 @@ namespace Dotnetable.Migrations.MySql.Migrations
 
                     b.HasKey("JournalEntryLineID");
 
-                    b.HasIndex("ChartOfAccountID");
+                    b.HasIndex(new[] { "ChartOfAccountID" }, "IX_JournalEntryLines_ChartOfAccountID");
 
-                    b.HasIndex("JournalEntryID");
+                    b.HasIndex(new[] { "JournalEntryID" }, "IX_JournalEntryLines_JournalEntryID");
 
                     b.ToTable("JournalEntryLines");
                 });
@@ -1885,11 +1805,11 @@ namespace Dotnetable.Migrations.MySql.Migrations
 
                     b.HasIndex(new[] { "LanguageCode" }, "UQ_Languages_Admin_LanguageCode")
                         .IsUnique()
-                        .HasFilter("WebsiteID IS NULL");
+                        .HasFilter("([WebsiteID] IS NULL)");
 
                     b.HasIndex(new[] { "WebsiteID", "LanguageCode" }, "UQ_Languages_WebsiteID_LanguageCode")
                         .IsUnique()
-                        .HasFilter("WebsiteID IS NOT NULL");
+                        .HasFilter("([WebsiteID] IS NOT NULL)");
 
                     b.ToTable("Languages");
                 });
@@ -1920,11 +1840,11 @@ namespace Dotnetable.Migrations.MySql.Migrations
 
                     b.HasIndex(new[] { "ItemKey" }, "UQ_LocalizationKeys_Admin_ItemKey")
                         .IsUnique()
-                        .HasFilter("WebsiteID IS NULL");
+                        .HasFilter("([WebsiteID] IS NULL)");
 
                     b.HasIndex(new[] { "WebsiteID", "ItemKey" }, "UQ_LocalizationKeys_WebsiteID_ItemKey")
                         .IsUnique()
-                        .HasFilter("WebsiteID IS NOT NULL");
+                        .HasFilter("([WebsiteID] IS NOT NULL)");
 
                     b.ToTable("LocalizationKeys");
                 });
@@ -1982,10 +1902,7 @@ namespace Dotnetable.Migrations.MySql.Migrations
                         .HasColumnType("varchar(64)");
 
                     b.Property<int>("WebsiteID")
-                        .ValueGeneratedOnAdd()
-                        .HasColumnType("int")
-                        .HasDefaultValue(1)
-                        .HasAnnotation("Relational:DefaultConstraintName", "DF_LoginTries_WebsiteID");
+                        .HasColumnType("int");
 
                     b.HasKey("LoginTryID");
 
@@ -2001,10 +1918,7 @@ namespace Dotnetable.Migrations.MySql.Migrations
                         .HasColumnType("int");
 
                     b.Property<DateTime>("CreatedAt")
-                        .ValueGeneratedOnAdd()
-                        .HasColumnType("datetime")
-                        .HasDefaultValueSql("(sysutcdatetime())")
-                        .HasAnnotation("Relational:DefaultConstraintName", "DF_MediaSets_CreatedAt_1");
+                        .HasColumnType("datetime");
 
                     b.Property<bool>("IsShared")
                         .HasColumnType("tinyint(1)");
@@ -2048,11 +1962,11 @@ namespace Dotnetable.Migrations.MySql.Migrations
 
                     b.HasKey("MediaSetItemID");
 
-                    b.HasIndex("FileID");
+                    b.HasIndex(new[] { "FileID" }, "IX_MediaSetItems_FileID");
 
-                    b.HasIndex("MediaSetID");
+                    b.HasIndex(new[] { "MediaSetID" }, "IX_MediaSetItems_MediaSetID");
 
-                    b.HasIndex("VideoThumbnailFileID");
+                    b.HasIndex(new[] { "VideoThumbnailFileID" }, "IX_MediaSetItems_VideoThumbnailFileID");
 
                     b.ToTable("MediaSetItems");
                 });
@@ -2067,11 +1981,8 @@ namespace Dotnetable.Migrations.MySql.Migrations
                         .HasColumnType("tinyint(1)");
 
                     b.Property<byte>("AdminUIMode")
-                        .ValueGeneratedOnAdd()
                         .HasColumnType("tinyint unsigned")
-                        .HasDefaultValue((byte)1)
-                        .HasComment("0 = Basic (admin surface reduced to what this member's Website.WebsiteType needs), 1 = General (same admin surface regardless of website type), 2 = Advanced (full surface, e.g. extra-language pages/buttons on an otherwise single-language site)")
-                        .HasAnnotation("Relational:DefaultConstraintName", "DF_Members_AdminUIMode");
+                        .HasComment("0 = Basic (admin surface reduced to what this member's Website.WebsiteType needs), 1 = General (same admin surface regardless of website type), 2 = Advanced (full surface, e.g. extra-language pages/buttons on an otherwise single-language site)");
 
                     b.Property<int?>("AvatarID")
                         .HasColumnType("int");
@@ -2136,11 +2047,11 @@ namespace Dotnetable.Migrations.MySql.Migrations
 
                     b.HasKey("MemberID");
 
-                    b.HasIndex("AvatarID");
+                    b.HasIndex(new[] { "AvatarID" }, "IX_Members_AvatarID");
 
-                    b.HasIndex("PolicyID");
+                    b.HasIndex(new[] { "PolicyID" }, "IX_Members_PolicyID");
 
-                    b.HasIndex("WebsiteID");
+                    b.HasIndex(new[] { "WebsiteID" }, "IX_Members_WebsiteID");
 
                     b.ToTable("Members");
                 });
@@ -2177,10 +2088,7 @@ namespace Dotnetable.Migrations.MySql.Migrations
                         .HasColumnType("int");
 
                     b.Property<bool>("IsActive")
-                        .ValueGeneratedOnAdd()
-                        .HasColumnType("tinyint(1)")
-                        .HasDefaultValue(true)
-                        .HasAnnotation("Relational:DefaultConstraintName", "DF_Menus_IsActive");
+                        .HasColumnType("tinyint(1)");
 
                     b.Property<byte>("Location")
                         .HasColumnType("tinyint unsigned");
@@ -2221,10 +2129,7 @@ namespace Dotnetable.Migrations.MySql.Migrations
                         .HasColumnType("varchar(100)");
 
                     b.Property<bool>("IsActive")
-                        .ValueGeneratedOnAdd()
-                        .HasColumnType("tinyint(1)")
-                        .HasDefaultValue(true)
-                        .HasAnnotation("Relational:DefaultConstraintName", "DF_MenuItems_IsActive");
+                        .HasColumnType("tinyint(1)");
 
                     b.Property<byte>("ItemType")
                         .HasColumnType("tinyint unsigned");
@@ -2267,23 +2172,23 @@ namespace Dotnetable.Migrations.MySql.Migrations
 
                     b.HasKey("MenuItemID");
 
-                    b.HasIndex("BrandID");
+                    b.HasIndex(new[] { "BrandID" }, "IX_MenuItems_BrandID");
 
-                    b.HasIndex("CategoryID");
+                    b.HasIndex(new[] { "CategoryID" }, "IX_MenuItems_CategoryID");
 
-                    b.HasIndex("MenuID");
+                    b.HasIndex(new[] { "MenuID" }, "IX_MenuItems_MenuID");
 
-                    b.HasIndex("PageID");
+                    b.HasIndex(new[] { "PageID" }, "IX_MenuItems_PageID");
 
-                    b.HasIndex("ParentItemID");
+                    b.HasIndex(new[] { "ParentItemID" }, "IX_MenuItems_ParentItemID");
 
-                    b.HasIndex("PostID");
+                    b.HasIndex(new[] { "PostID" }, "IX_MenuItems_PostID");
 
-                    b.HasIndex("ProductCategoryID");
+                    b.HasIndex(new[] { "ProductCategoryID" }, "IX_MenuItems_ProductCategoryID");
 
-                    b.HasIndex("ProductID");
+                    b.HasIndex(new[] { "ProductID" }, "IX_MenuItems_ProductID");
 
-                    b.HasIndex("VendorID");
+                    b.HasIndex(new[] { "VendorID" }, "IX_MenuItems_VendorID");
 
                     b.ToTable("MenuItems");
                 });
@@ -2330,10 +2235,7 @@ namespace Dotnetable.Migrations.MySql.Migrations
                         .HasColumnType("int");
 
                     b.Property<DateTime>("CreatedAt")
-                        .ValueGeneratedOnAdd()
-                        .HasColumnType("datetime")
-                        .HasDefaultValueSql("(sysutcdatetime())")
-                        .HasAnnotation("Relational:DefaultConstraintName", "DF_Orders_CreatedAt_1");
+                        .HasColumnType("datetime");
 
                     b.Property<int?>("CreatedByMemberID")
                         .HasColumnType("int");
@@ -2376,10 +2278,7 @@ namespace Dotnetable.Migrations.MySql.Migrations
                         .HasColumnType("decimal(18, 4)");
 
                     b.Property<byte>("Status")
-                        .ValueGeneratedOnAdd()
-                        .HasColumnType("tinyint unsigned")
-                        .HasDefaultValue((byte)1)
-                        .HasAnnotation("Relational:DefaultConstraintName", "DF_Orders_Status_1");
+                        .HasColumnType("tinyint unsigned");
 
                     b.Property<decimal>("SubTotal")
                         .HasColumnType("decimal(18, 4)");
@@ -2398,19 +2297,19 @@ namespace Dotnetable.Migrations.MySql.Migrations
 
                     b.HasKey("OrderID");
 
-                    b.HasIndex("CouponID");
+                    b.HasIndex(new[] { "CouponID" }, "IX_Orders_CouponID");
 
-                    b.HasIndex("CreatedByMemberID");
+                    b.HasIndex(new[] { "CreatedByMemberID" }, "IX_Orders_CreatedByMemberID");
 
-                    b.HasIndex("CurrencyCode");
+                    b.HasIndex(new[] { "CurrencyCode" }, "IX_Orders_CurrencyCode");
 
-                    b.HasIndex("ShippingMethodID");
+                    b.HasIndex(new[] { "ShippingMethodID" }, "IX_Orders_ShippingMethodID");
 
-                    b.HasIndex("WebsiteClientAddressID");
+                    b.HasIndex(new[] { "WebsiteClientAddressID" }, "IX_Orders_WebsiteClientAddressID");
 
-                    b.HasIndex("WebsiteClientID");
+                    b.HasIndex(new[] { "WebsiteClientID" }, "IX_Orders_WebsiteClientID");
 
-                    b.HasIndex("WebsiteID");
+                    b.HasIndex(new[] { "WebsiteID" }, "IX_Orders_WebsiteID");
 
                     b.ToTable("Orders");
                 });
@@ -2469,17 +2368,17 @@ namespace Dotnetable.Migrations.MySql.Migrations
 
                     b.HasKey("OrderItemID");
 
-                    b.HasIndex("OrderID");
+                    b.HasIndex(new[] { "OrderID" }, "IX_OrderItems_OrderID");
 
-                    b.HasIndex("ProductVariantID");
+                    b.HasIndex(new[] { "ProductVariantID" }, "IX_OrderItems_ProductVariantID");
 
-                    b.HasIndex("SourceWebsiteID");
+                    b.HasIndex(new[] { "SourceWebsiteID" }, "IX_OrderItems_SourceWebsiteID");
 
-                    b.HasIndex("VendorID");
+                    b.HasIndex(new[] { "VendorID" }, "IX_OrderItems_VendorID");
 
-                    b.HasIndex("VendorProductID");
+                    b.HasIndex(new[] { "VendorProductID" }, "IX_OrderItems_VendorProductID");
 
-                    b.HasIndex("WebsiteID");
+                    b.HasIndex(new[] { "WebsiteID" }, "IX_OrderItems_WebsiteID");
 
                     b.ToTable("OrderItems");
                 });
@@ -2491,10 +2390,7 @@ namespace Dotnetable.Migrations.MySql.Migrations
                         .HasColumnType("int");
 
                     b.Property<DateTime>("CreatedAt")
-                        .ValueGeneratedOnAdd()
-                        .HasColumnType("datetime")
-                        .HasDefaultValueSql("(sysutcdatetime())")
-                        .HasAnnotation("Relational:DefaultConstraintName", "DF_OrderStatusHistories_CreatedAt");
+                        .HasColumnType("datetime");
 
                     b.Property<int?>("CreatedByMemberID")
                         .HasColumnType("int");
@@ -2514,9 +2410,9 @@ namespace Dotnetable.Migrations.MySql.Migrations
 
                     b.HasKey("OrderStatusHistoryID");
 
-                    b.HasIndex("CreatedByMemberID");
+                    b.HasIndex(new[] { "CreatedByMemberID" }, "IX_OrderStatusHistories_CreatedByMemberID");
 
-                    b.HasIndex("OrderID");
+                    b.HasIndex(new[] { "OrderID" }, "IX_OrderStatusHistories_OrderID");
 
                     b.ToTable("OrderStatusHistories");
                 });
@@ -2531,20 +2427,14 @@ namespace Dotnetable.Migrations.MySql.Migrations
                         .HasColumnType("longtext");
 
                     b.Property<DateTime>("CreatedAt")
-                        .ValueGeneratedOnAdd()
                         .HasPrecision(0)
-                        .HasColumnType("datetime(0)")
-                        .HasDefaultValueSql("(sysutcdatetime())")
-                        .HasAnnotation("Relational:DefaultConstraintName", "DF_Pages_CreatedAt_1");
+                        .HasColumnType("datetime(0)");
 
                     b.Property<int?>("CreatedByMemberID")
                         .HasColumnType("int");
 
                     b.Property<bool>("IsActive")
-                        .ValueGeneratedOnAdd()
-                        .HasColumnType("tinyint(1)")
-                        .HasDefaultValue(true)
-                        .HasAnnotation("Relational:DefaultConstraintName", "DF_Pages_IsActive_1");
+                        .HasColumnType("tinyint(1)");
 
                     b.Property<bool>("IsHomepage")
                         .HasColumnType("tinyint(1)");
@@ -2561,10 +2451,7 @@ namespace Dotnetable.Migrations.MySql.Migrations
                         .HasColumnType("int");
 
                     b.Property<byte>("Status")
-                        .ValueGeneratedOnAdd()
-                        .HasColumnType("tinyint unsigned")
-                        .HasDefaultValue((byte)1)
-                        .HasAnnotation("Relational:DefaultConstraintName", "DF_Pages_Status_1");
+                        .HasColumnType("tinyint unsigned");
 
                     b.Property<string>("Template")
                         .HasMaxLength(100)
@@ -2576,22 +2463,19 @@ namespace Dotnetable.Migrations.MySql.Migrations
                         .HasColumnType("varchar(300)");
 
                     b.Property<DateTime>("UpdatedAt")
-                        .ValueGeneratedOnAdd()
                         .HasPrecision(0)
-                        .HasColumnType("datetime(0)")
-                        .HasDefaultValueSql("(sysutcdatetime())")
-                        .HasAnnotation("Relational:DefaultConstraintName", "DF_Pages_UpdatedAt_1");
+                        .HasColumnType("datetime(0)");
 
                     b.Property<int>("WebsiteID")
                         .HasColumnType("int");
 
                     b.HasKey("PageID");
 
-                    b.HasIndex("CreatedByMemberID");
+                    b.HasIndex(new[] { "CreatedByMemberID" }, "IX_Pages_CreatedByMemberID");
 
-                    b.HasIndex("ParentPageID");
+                    b.HasIndex(new[] { "ParentPageID" }, "IX_Pages_ParentPageID");
 
-                    b.HasIndex("WebsiteID");
+                    b.HasIndex(new[] { "WebsiteID" }, "IX_Pages_WebsiteID");
 
                     b.ToTable("Pages");
                 });
@@ -2651,11 +2535,8 @@ namespace Dotnetable.Migrations.MySql.Migrations
                         .HasColumnType("int");
 
                     b.Property<DateTime>("CreatedAt")
-                        .ValueGeneratedOnAdd()
                         .HasPrecision(0)
-                        .HasColumnType("datetime(0)")
-                        .HasDefaultValueSql("(sysutcdatetime())")
-                        .HasAnnotation("Relational:DefaultConstraintName", "DF_Payments_CreatedAt_1");
+                        .HasColumnType("datetime(0)");
 
                     b.Property<string>("CurrencyCode")
                         .IsRequired()
@@ -2688,10 +2569,7 @@ namespace Dotnetable.Migrations.MySql.Migrations
                         .HasColumnType("int");
 
                     b.Property<byte>("Status")
-                        .ValueGeneratedOnAdd()
-                        .HasColumnType("tinyint unsigned")
-                        .HasDefaultValue((byte)1)
-                        .HasAnnotation("Relational:DefaultConstraintName", "DF_Payments_Status_1");
+                        .HasColumnType("tinyint unsigned");
 
                     b.Property<string>("TrackingCode")
                         .HasMaxLength(100)
@@ -2708,23 +2586,23 @@ namespace Dotnetable.Migrations.MySql.Migrations
 
                     b.HasKey("PaymentID");
 
-                    b.HasIndex("BankAccountID");
+                    b.HasIndex(new[] { "BankAccountID" }, "IX_Payments_BankAccountID");
 
-                    b.HasIndex("ClientWalletTransactionID");
+                    b.HasIndex(new[] { "ClientWalletTransactionID" }, "IX_Payments_ClientWalletTransactionID");
 
-                    b.HasIndex("CurrencyCode");
+                    b.HasIndex(new[] { "CurrencyCode" }, "IX_Payments_CurrencyCode");
 
-                    b.HasIndex("OrderID");
+                    b.HasIndex(new[] { "OrderID" }, "IX_Payments_OrderID");
 
-                    b.HasIndex("PaymentGatewayID");
+                    b.HasIndex(new[] { "PaymentGatewayID" }, "IX_Payments_PaymentGatewayID");
 
-                    b.HasIndex("ReceiptFileID");
+                    b.HasIndex(new[] { "ReceiptFileID" }, "IX_Payments_ReceiptFileID");
 
-                    b.HasIndex("VerifiedByMemberID");
+                    b.HasIndex(new[] { "VerifiedByMemberID" }, "IX_Payments_VerifiedByMemberID");
 
-                    b.HasIndex("WebsiteClientID");
+                    b.HasIndex(new[] { "WebsiteClientID" }, "IX_Payments_WebsiteClientID");
 
-                    b.HasIndex("WebsiteID");
+                    b.HasIndex(new[] { "WebsiteID" }, "IX_Payments_WebsiteID");
 
                     b.ToTable("Payments");
                 });
@@ -2744,10 +2622,7 @@ namespace Dotnetable.Migrations.MySql.Migrations
                         .HasColumnType("varchar(500)");
 
                     b.Property<bool>("IsActive")
-                        .ValueGeneratedOnAdd()
-                        .HasColumnType("tinyint(1)")
-                        .HasDefaultValue(true)
-                        .HasAnnotation("Relational:DefaultConstraintName", "DF_PaymentGateways_IsActive");
+                        .HasColumnType("tinyint(1)");
 
                     b.Property<bool>("IsSandbox")
                         .HasColumnType("tinyint(1)");
@@ -2795,10 +2670,7 @@ namespace Dotnetable.Migrations.MySql.Migrations
                         .HasColumnType("int");
 
                     b.Property<DateTime>("CreatedAt")
-                        .ValueGeneratedOnAdd()
-                        .HasColumnType("datetime")
-                        .HasDefaultValueSql("(sysutcdatetime())")
-                        .HasAnnotation("Relational:DefaultConstraintName", "DF_PaymentRefunds_CreatedAt");
+                        .HasColumnType("datetime");
 
                     b.Property<int?>("CreatedByMemberID")
                         .HasColumnType("int");
@@ -2814,20 +2686,17 @@ namespace Dotnetable.Migrations.MySql.Migrations
                         .HasColumnType("datetime");
 
                     b.Property<byte>("Status")
-                        .ValueGeneratedOnAdd()
-                        .HasColumnType("tinyint unsigned")
-                        .HasDefaultValue((byte)1)
-                        .HasAnnotation("Relational:DefaultConstraintName", "DF_PaymentRefunds_Status");
+                        .HasColumnType("tinyint unsigned");
 
                     b.HasKey("PaymentRefundID");
 
-                    b.HasIndex("BankAccountID");
+                    b.HasIndex(new[] { "BankAccountID" }, "IX_PaymentRefunds_BankAccountID");
 
-                    b.HasIndex("ClientWalletTransactionID");
+                    b.HasIndex(new[] { "ClientWalletTransactionID" }, "IX_PaymentRefunds_ClientWalletTransactionID");
 
-                    b.HasIndex("CreatedByMemberID");
+                    b.HasIndex(new[] { "CreatedByMemberID" }, "IX_PaymentRefunds_CreatedByMemberID");
 
-                    b.HasIndex("PaymentID");
+                    b.HasIndex(new[] { "PaymentID" }, "IX_PaymentRefunds_PaymentID");
 
                     b.ToTable("PaymentRefunds");
                 });
@@ -2848,9 +2717,7 @@ namespace Dotnetable.Migrations.MySql.Migrations
                         .HasColumnType("varchar(64)");
 
                     b.Property<int>("WebsiteID")
-                        .ValueGeneratedOnAdd()
-                        .HasColumnType("int")
-                        .HasDefaultValue(1);
+                        .HasColumnType("int");
 
                     b.HasKey("PolicyID");
 
@@ -2876,9 +2743,9 @@ namespace Dotnetable.Migrations.MySql.Migrations
 
                     b.HasKey("PolicyRoleID");
 
-                    b.HasIndex("PolicyID");
+                    b.HasIndex(new[] { "PolicyID" }, "IX_PolicyRoles_PolicyID");
 
-                    b.HasIndex("RoleID");
+                    b.HasIndex(new[] { "RoleID" }, "IX_PolicyRoles_RoleID");
 
                     b.ToTable("PolicyRoles");
                 });
@@ -2893,19 +2760,13 @@ namespace Dotnetable.Migrations.MySql.Migrations
                         .HasColumnType("int");
 
                     b.Property<bool>("CommentsEnabled")
-                        .ValueGeneratedOnAdd()
-                        .HasColumnType("tinyint(1)")
-                        .HasDefaultValue(true)
-                        .HasAnnotation("Relational:DefaultConstraintName", "DF_Posts_CommentsEnabled");
+                        .HasColumnType("tinyint(1)");
 
                     b.Property<string>("Content")
                         .HasColumnType("longtext");
 
                     b.Property<DateTime>("CreatedAt")
-                        .ValueGeneratedOnAdd()
-                        .HasColumnType("datetime")
-                        .HasDefaultValueSql("(sysutcdatetime())")
-                        .HasAnnotation("Relational:DefaultConstraintName", "DF_Posts_CreatedAt_1");
+                        .HasColumnType("datetime");
 
                     b.Property<string>("Excerpt")
                         .HasMaxLength(1000)
@@ -2915,10 +2776,7 @@ namespace Dotnetable.Migrations.MySql.Migrations
                         .HasColumnType("int");
 
                     b.Property<bool>("IsActive")
-                        .ValueGeneratedOnAdd()
-                        .HasColumnType("tinyint(1)")
-                        .HasDefaultValue(true)
-                        .HasAnnotation("Relational:DefaultConstraintName", "DF_Posts_IsActive_1");
+                        .HasColumnType("tinyint(1)");
 
                     b.Property<bool>("IsFeatured")
                         .HasColumnType("tinyint(1)");
@@ -2938,10 +2796,7 @@ namespace Dotnetable.Migrations.MySql.Migrations
                         .HasColumnType("varchar(300)");
 
                     b.Property<byte>("Status")
-                        .ValueGeneratedOnAdd()
-                        .HasColumnType("tinyint unsigned")
-                        .HasDefaultValue((byte)1)
-                        .HasAnnotation("Relational:DefaultConstraintName", "DF_Posts_Status_1");
+                        .HasColumnType("tinyint unsigned");
 
                     b.Property<string>("Title")
                         .IsRequired()
@@ -2949,10 +2804,7 @@ namespace Dotnetable.Migrations.MySql.Migrations
                         .HasColumnType("varchar(300)");
 
                     b.Property<DateTime>("UpdatedAt")
-                        .ValueGeneratedOnAdd()
-                        .HasColumnType("datetime")
-                        .HasDefaultValueSql("(sysutcdatetime())")
-                        .HasAnnotation("Relational:DefaultConstraintName", "DF_Posts_UpdatedAt_1");
+                        .HasColumnType("datetime");
 
                     b.Property<int>("ViewCount")
                         .HasColumnType("int");
@@ -2962,13 +2814,13 @@ namespace Dotnetable.Migrations.MySql.Migrations
 
                     b.HasKey("PostID");
 
-                    b.HasIndex("AuthorMemberID");
+                    b.HasIndex(new[] { "AuthorMemberID" }, "IX_Posts_AuthorMemberID");
 
-                    b.HasIndex("FeaturedImageFileID");
+                    b.HasIndex(new[] { "FeaturedImageFileID" }, "IX_Posts_FeaturedImageFileID");
 
-                    b.HasIndex("PostTypeID");
+                    b.HasIndex(new[] { "PostTypeID" }, "IX_Posts_PostTypeID");
 
-                    b.HasIndex("WebsiteID");
+                    b.HasIndex(new[] { "WebsiteID" }, "IX_Posts_WebsiteID");
 
                     b.ToTable("Posts");
                 });
@@ -3038,28 +2890,16 @@ namespace Dotnetable.Migrations.MySql.Migrations
                         .HasColumnType("int");
 
                     b.Property<bool>("CommentsEnabled")
-                        .ValueGeneratedOnAdd()
-                        .HasColumnType("tinyint(1)")
-                        .HasDefaultValue(true)
-                        .HasAnnotation("Relational:DefaultConstraintName", "DF_PostTypes_CommentsEnabled");
+                        .HasColumnType("tinyint(1)");
 
                     b.Property<bool>("HasAuthor")
-                        .ValueGeneratedOnAdd()
-                        .HasColumnType("tinyint(1)")
-                        .HasDefaultValue(true)
-                        .HasAnnotation("Relational:DefaultConstraintName", "DF_PostTypes_HasAuthor");
+                        .HasColumnType("tinyint(1)");
 
                     b.Property<bool>("HasCategories")
-                        .ValueGeneratedOnAdd()
-                        .HasColumnType("tinyint(1)")
-                        .HasDefaultValue(true)
-                        .HasAnnotation("Relational:DefaultConstraintName", "DF_PostTypes_HasCategories");
+                        .HasColumnType("tinyint(1)");
 
                     b.Property<bool>("HasTags")
-                        .ValueGeneratedOnAdd()
-                        .HasColumnType("tinyint(1)")
-                        .HasDefaultValue(true)
-                        .HasAnnotation("Relational:DefaultConstraintName", "DF_PostTypes_HasTags");
+                        .HasColumnType("tinyint(1)");
 
                     b.Property<string>("Name")
                         .IsRequired()
@@ -3097,13 +2937,13 @@ namespace Dotnetable.Migrations.MySql.Migrations
                         .HasColumnType("longtext");
 
                     b.Property<DateTime>("CreatedAt")
-                        .ValueGeneratedOnAdd()
-                        .HasColumnType("datetime")
-                        .HasDefaultValueSql("(sysutcdatetime())")
-                        .HasAnnotation("Relational:DefaultConstraintName", "DF_Products_CreatedAt_1");
+                        .HasColumnType("datetime");
 
-                    b.Property<int?>("CreatedByMemberId")
+                    b.Property<int?>("CreatedByMemberID")
                         .HasColumnType("int");
+
+                    b.Property<string>("ExpertReview")
+                        .HasColumnType("longtext");
 
                     b.Property<int?>("FeaturedImageFileID")
                         .HasColumnType("int");
@@ -3112,10 +2952,7 @@ namespace Dotnetable.Migrations.MySql.Migrations
                         .HasColumnType("tinyint(1)");
 
                     b.Property<bool>("IsActive")
-                        .ValueGeneratedOnAdd()
-                        .HasColumnType("tinyint(1)")
-                        .HasDefaultValue(true)
-                        .HasAnnotation("Relational:DefaultConstraintName", "DF_Products_IsActive_1");
+                        .HasColumnType("tinyint(1)");
 
                     b.Property<bool>("IsCatalogOnly")
                         .HasColumnType("tinyint(1)");
@@ -3136,10 +2973,7 @@ namespace Dotnetable.Migrations.MySql.Migrations
                         .HasColumnType("int");
 
                     b.Property<byte>("Status")
-                        .ValueGeneratedOnAdd()
-                        .HasColumnType("tinyint unsigned")
-                        .HasDefaultValue((byte)1)
-                        .HasAnnotation("Relational:DefaultConstraintName", "DF_Products_Status_1");
+                        .HasColumnType("tinyint unsigned");
 
                     b.Property<string>("Title")
                         .IsRequired()
@@ -3147,23 +2981,20 @@ namespace Dotnetable.Migrations.MySql.Migrations
                         .HasColumnType("varchar(300)");
 
                     b.Property<DateTime>("UpdatedAt")
-                        .ValueGeneratedOnAdd()
-                        .HasColumnType("datetime")
-                        .HasDefaultValueSql("(sysutcdatetime())")
-                        .HasAnnotation("Relational:DefaultConstraintName", "DF_Products_UpdatedAt_1");
+                        .HasColumnType("datetime");
 
                     b.Property<int>("WebsiteID")
                         .HasColumnType("int");
 
                     b.HasKey("ProductID");
 
-                    b.HasIndex("BrandID");
+                    b.HasIndex(new[] { "BrandID" }, "IX_Products_BrandID");
 
-                    b.HasIndex("CreatedByMemberId");
+                    b.HasIndex(new[] { "CreatedByMemberID" }, "IX_Products_CreatedByMemberId");
 
-                    b.HasIndex("FeaturedImageFileID");
+                    b.HasIndex(new[] { "FeaturedImageFileID" }, "IX_Products_FeaturedImageFileID");
 
-                    b.HasIndex("WebsiteID");
+                    b.HasIndex(new[] { "WebsiteID" }, "IX_Products_WebsiteID");
 
                     b.ToTable("Products");
                 });
@@ -3183,10 +3014,7 @@ namespace Dotnetable.Migrations.MySql.Migrations
                         .HasColumnType("varchar(4000)");
 
                     b.Property<DateTime>("CreatedAt")
-                        .ValueGeneratedOnAdd()
-                        .HasColumnType("datetime")
-                        .HasDefaultValueSql("(sysutcdatetime())")
-                        .HasAnnotation("Relational:DefaultConstraintName", "DF_ProductAnswers_CreatedAt");
+                        .HasColumnType("datetime");
 
                     b.Property<int>("LikeCount")
                         .HasColumnType("int");
@@ -3195,10 +3023,7 @@ namespace Dotnetable.Migrations.MySql.Migrations
                         .HasColumnType("int");
 
                     b.Property<byte>("Status")
-                        .ValueGeneratedOnAdd()
-                        .HasColumnType("tinyint unsigned")
-                        .HasDefaultValue((byte)1)
-                        .HasAnnotation("Relational:DefaultConstraintName", "DF_ProductAnswers_Status");
+                        .HasColumnType("tinyint unsigned");
 
                     b.Property<int?>("VendorID")
                         .HasColumnType("int");
@@ -3208,11 +3033,11 @@ namespace Dotnetable.Migrations.MySql.Migrations
 
                     b.HasKey("ProductAnswerID");
 
-                    b.HasIndex("ProductQuestionID");
+                    b.HasIndex(new[] { "ProductQuestionID" }, "IX_ProductAnswers_ProductQuestionID");
 
-                    b.HasIndex("VendorID");
+                    b.HasIndex(new[] { "VendorID" }, "IX_ProductAnswers_VendorID");
 
-                    b.HasIndex("WebsiteClientID");
+                    b.HasIndex(new[] { "WebsiteClientID" }, "IX_ProductAnswers_WebsiteClientID");
 
                     b.ToTable("ProductAnswers");
                 });
@@ -3247,11 +3072,11 @@ namespace Dotnetable.Migrations.MySql.Migrations
 
                     b.HasKey("ProductAttributeValueID");
 
-                    b.HasIndex("AttributeDefinitionID");
+                    b.HasIndex(new[] { "AttributeDefinitionID" }, "IX_ProductAttributeValues_AttributeDefinitionID");
 
-                    b.HasIndex("AttributeOptionID");
+                    b.HasIndex(new[] { "AttributeOptionID" }, "IX_ProductAttributeValues_AttributeOptionID");
 
-                    b.HasIndex("ProductID");
+                    b.HasIndex(new[] { "ProductID" }, "IX_ProductAttributeValues_ProductID");
 
                     b.ToTable("ProductAttributeValues");
                 });
@@ -3294,10 +3119,7 @@ namespace Dotnetable.Migrations.MySql.Migrations
                         .HasColumnType("int");
 
                     b.Property<bool>("IsActive")
-                        .ValueGeneratedOnAdd()
-                        .HasColumnType("tinyint(1)")
-                        .HasDefaultValue(true)
-                        .HasAnnotation("Relational:DefaultConstraintName", "DF_ProductCategories_IsActive");
+                        .HasColumnType("tinyint(1)");
 
                     b.Property<string>("Name")
                         .IsRequired()
@@ -3320,11 +3142,11 @@ namespace Dotnetable.Migrations.MySql.Migrations
 
                     b.HasKey("ProductCategoryID");
 
-                    b.HasIndex("ImageFileID");
+                    b.HasIndex(new[] { "ImageFileID" }, "IX_ProductCategories_ImageFileID");
 
-                    b.HasIndex("ParentCategoryID");
+                    b.HasIndex(new[] { "ParentCategoryID" }, "IX_ProductCategories_ParentCategoryID");
 
-                    b.HasIndex("WebsiteID");
+                    b.HasIndex(new[] { "WebsiteID" }, "IX_ProductCategories_WebsiteID");
 
                     b.ToTable("ProductCategories");
                 });
@@ -3359,10 +3181,7 @@ namespace Dotnetable.Migrations.MySql.Migrations
                         .HasColumnType("tinyint unsigned");
 
                     b.Property<int>("MaxItems")
-                        .ValueGeneratedOnAdd()
-                        .HasColumnType("int")
-                        .HasDefaultValue(10)
-                        .HasAnnotation("Relational:DefaultConstraintName", "DF_ProductCategoryRelations_MaxItems");
+                        .HasColumnType("int");
 
                     b.HasKey("ProductID", "RelatedProductCategoryID", "RelationType");
 
@@ -3437,19 +3256,13 @@ namespace Dotnetable.Migrations.MySql.Migrations
                         .HasColumnType("varchar(2000)");
 
                     b.Property<DateTime>("CreatedAt")
-                        .ValueGeneratedOnAdd()
-                        .HasColumnType("datetime")
-                        .HasDefaultValueSql("(sysutcdatetime())")
-                        .HasAnnotation("Relational:DefaultConstraintName", "DF_ProductQuestions_CreatedAt");
+                        .HasColumnType("datetime");
 
                     b.Property<int>("ProductID")
                         .HasColumnType("int");
 
                     b.Property<byte>("Status")
-                        .ValueGeneratedOnAdd()
-                        .HasColumnType("tinyint unsigned")
-                        .HasDefaultValue((byte)1)
-                        .HasAnnotation("Relational:DefaultConstraintName", "DF_ProductQuestions_Status");
+                        .HasColumnType("tinyint unsigned");
 
                     b.Property<int>("WebsiteClientID")
                         .HasColumnType("int");
@@ -3459,11 +3272,11 @@ namespace Dotnetable.Migrations.MySql.Migrations
 
                     b.HasKey("ProductQuestionID");
 
-                    b.HasIndex("ProductID");
+                    b.HasIndex(new[] { "ProductID" }, "IX_ProductQuestions_ProductID");
 
-                    b.HasIndex("WebsiteClientID");
+                    b.HasIndex(new[] { "WebsiteClientID" }, "IX_ProductQuestions_WebsiteClientID");
 
-                    b.HasIndex("WebsiteID");
+                    b.HasIndex(new[] { "WebsiteID" }, "IX_ProductQuestions_WebsiteID");
 
                     b.ToTable("ProductQuestions");
                 });
@@ -3508,11 +3321,8 @@ namespace Dotnetable.Migrations.MySql.Migrations
                         .HasColumnType("varchar(2000)");
 
                     b.Property<DateTime>("CreatedAt")
-                        .ValueGeneratedOnAdd()
                         .HasPrecision(0)
-                        .HasColumnType("datetime(0)")
-                        .HasDefaultValueSql("(sysutcdatetime())")
-                        .HasAnnotation("Relational:DefaultConstraintName", "DF_ProductReviews_CreatedAt");
+                        .HasColumnType("datetime(0)");
 
                     b.Property<int>("DislikeCount")
                         .HasColumnType("int");
@@ -3537,10 +3347,7 @@ namespace Dotnetable.Migrations.MySql.Migrations
                         .HasColumnType("tinyint unsigned");
 
                     b.Property<byte>("Status")
-                        .ValueGeneratedOnAdd()
-                        .HasColumnType("tinyint unsigned")
-                        .HasDefaultValue((byte)1)
-                        .HasAnnotation("Relational:DefaultConstraintName", "DF_ProductReviews_Status");
+                        .HasColumnType("tinyint unsigned");
 
                     b.Property<string>("Title")
                         .HasMaxLength(200)
@@ -3554,13 +3361,13 @@ namespace Dotnetable.Migrations.MySql.Migrations
 
                     b.HasKey("ProductReviewID");
 
-                    b.HasIndex("ProductID");
+                    b.HasIndex(new[] { "ProductID" }, "IX_ProductReviews_ProductID");
 
-                    b.HasIndex("ProductVariantID");
+                    b.HasIndex(new[] { "ProductVariantID" }, "IX_ProductReviews_ProductVariantID");
 
-                    b.HasIndex("WebsiteClientID");
+                    b.HasIndex(new[] { "WebsiteClientID" }, "IX_ProductReviews_WebsiteClientID");
 
-                    b.HasIndex("WebsiteID");
+                    b.HasIndex(new[] { "WebsiteID" }, "IX_ProductReviews_WebsiteID");
 
                     b.ToTable("ProductReviews");
                 });
@@ -3572,6 +3379,9 @@ namespace Dotnetable.Migrations.MySql.Migrations
                         .HasColumnType("int");
 
                     b.Property<string>("Content")
+                        .HasColumnType("longtext");
+
+                    b.Property<string>("ExpertReview")
                         .HasColumnType("longtext");
 
                     b.Property<string>("LanguageCode")
@@ -3619,19 +3429,13 @@ namespace Dotnetable.Migrations.MySql.Migrations
                         .HasColumnType("decimal(18, 4)");
 
                     b.Property<DateTime>("CreatedAt")
-                        .ValueGeneratedOnAdd()
-                        .HasColumnType("datetime")
-                        .HasDefaultValueSql("(sysutcdatetime())")
-                        .HasAnnotation("Relational:DefaultConstraintName", "DF_ProductVariants_CreatedAt");
+                        .HasColumnType("datetime");
 
                     b.Property<int?>("ImageFileID")
                         .HasColumnType("int");
 
                     b.Property<bool>("IsActive")
-                        .ValueGeneratedOnAdd()
-                        .HasColumnType("tinyint(1)")
-                        .HasDefaultValue(true)
-                        .HasAnnotation("Relational:DefaultConstraintName", "DF_ProductVariants_IsActive");
+                        .HasColumnType("tinyint(1)");
 
                     b.Property<bool>("IsDefault")
                         .HasColumnType("tinyint(1)");
@@ -3663,13 +3467,44 @@ namespace Dotnetable.Migrations.MySql.Migrations
 
                     b.HasKey("ProductVariantID");
 
-                    b.HasIndex("ImageFileID");
+                    b.HasIndex(new[] { "ImageFileID" }, "IX_ProductVariants_ImageFileID");
 
-                    b.HasIndex("ProductID");
+                    b.HasIndex(new[] { "ProductID" }, "IX_ProductVariants_ProductID");
 
-                    b.HasIndex("WebsiteID");
+                    b.HasIndex(new[] { "WebsiteID" }, "IX_ProductVariants_WebsiteID");
 
                     b.ToTable("ProductVariants");
+                });
+
+            modelBuilder.Entity("Dotnetable.Domain.Entities.ProductVariantPriceHistory", b =>
+                {
+                    b.Property<long>("ProductVariantPriceHistoryID")
+                        .ValueGeneratedOnAdd()
+                        .HasColumnType("bigint");
+
+                    b.Property<int?>("ChangedByMemberId")
+                        .HasColumnType("int");
+
+                    b.Property<decimal?>("CompareAtPriceUsd")
+                        .HasColumnType("decimal(18, 4)");
+
+                    b.Property<int>("ProductVariantID")
+                        .HasColumnType("int");
+
+                    b.Property<DateTime>("RecordedAt")
+                        .HasColumnType("datetime");
+
+                    b.Property<decimal>("ReferencePriceUsd")
+                        .HasColumnType("decimal(18, 4)");
+
+                    b.HasKey("ProductVariantPriceHistoryID");
+
+                    b.HasIndex("ChangedByMemberId");
+
+                    b.HasIndex(new[] { "ProductVariantID", "RecordedAt" }, "IX_ProductVariantPriceHistories_ProductVariantID_RecordedAt")
+                        .IsDescending(false, true);
+
+                    b.ToTable("ProductVariantPriceHistories");
                 });
 
             modelBuilder.Entity("Dotnetable.Domain.Entities.ProductWarning", b =>
@@ -3679,21 +3514,15 @@ namespace Dotnetable.Migrations.MySql.Migrations
                         .HasColumnType("int");
 
                     b.Property<bool>("IsActive")
-                        .ValueGeneratedOnAdd()
-                        .HasColumnType("tinyint(1)")
-                        .HasDefaultValue(true)
-                        .HasAnnotation("Relational:DefaultConstraintName", "DF_ProductWarnings_IsActive");
+                        .HasColumnType("tinyint(1)");
 
                     b.Property<int>("ProductID")
                         .HasColumnType("int");
 
                     b.Property<string>("Severity")
                         .IsRequired()
-                        .ValueGeneratedOnAdd()
                         .HasMaxLength(20)
-                        .HasColumnType("varchar(20)")
-                        .HasDefaultValue("info")
-                        .HasAnnotation("Relational:DefaultConstraintName", "DF_ProductWarnings_Severity");
+                        .HasColumnType("varchar(20)");
 
                     b.Property<string>("Text")
                         .IsRequired()
@@ -3733,6 +3562,41 @@ namespace Dotnetable.Migrations.MySql.Migrations
                     b.HasIndex(new[] { "ProductWarningID" }, "IX_ProductWarningTranslations_ProductWarningID");
 
                     b.ToTable("ProductWarningTranslations");
+                });
+
+            modelBuilder.Entity("Dotnetable.Domain.Entities.ProductWarranty", b =>
+                {
+                    b.Property<int>("ProductWarrantyID")
+                        .ValueGeneratedOnAdd()
+                        .HasColumnType("int");
+
+                    b.Property<string>("CustomDescription")
+                        .HasMaxLength(2000)
+                        .HasColumnType("varchar(2000)");
+
+                    b.Property<string>("CustomTitle")
+                        .HasMaxLength(200)
+                        .HasColumnType("varchar(200)");
+
+                    b.Property<bool>("IsActive")
+                        .HasColumnType("tinyint(1)");
+
+                    b.Property<int>("ProductID")
+                        .HasColumnType("int");
+
+                    b.Property<int>("SortOrder")
+                        .HasColumnType("int");
+
+                    b.Property<int?>("WarrantyID")
+                        .HasColumnType("int");
+
+                    b.HasKey("ProductWarrantyID");
+
+                    b.HasIndex(new[] { "ProductID" }, "IX_ProductWarranties_ProductID");
+
+                    b.HasIndex(new[] { "WarrantyID" }, "IX_ProductWarranties_WarrantyID");
+
+                    b.ToTable("ProductWarranties");
                 });
 
             modelBuilder.Entity("Dotnetable.Domain.Entities.Role", b =>
@@ -3777,10 +3641,7 @@ namespace Dotnetable.Migrations.MySql.Migrations
                         .HasColumnType("int");
 
                     b.Property<DateTime>("CreatedAt")
-                        .ValueGeneratedOnAdd()
-                        .HasColumnType("datetime")
-                        .HasDefaultValueSql("(sysutcdatetime())")
-                        .HasAnnotation("Relational:DefaultConstraintName", "DF_Settlements_CreatedAt_1");
+                        .HasColumnType("datetime");
 
                     b.Property<int?>("CreatedByMemberID")
                         .HasColumnType("int");
@@ -3810,10 +3671,7 @@ namespace Dotnetable.Migrations.MySql.Migrations
                         .HasColumnType("date");
 
                     b.Property<byte>("Status")
-                        .ValueGeneratedOnAdd()
-                        .HasColumnType("tinyint unsigned")
-                        .HasDefaultValue((byte)1)
-                        .HasAnnotation("Relational:DefaultConstraintName", "DF_Settlements_Status_1");
+                        .HasColumnType("tinyint unsigned");
 
                     b.Property<int?>("SupplierID")
                         .HasColumnType("int");
@@ -3835,21 +3693,21 @@ namespace Dotnetable.Migrations.MySql.Migrations
 
                     b.HasKey("SettlementID");
 
-                    b.HasIndex("ApprovedByMemberID");
+                    b.HasIndex(new[] { "ApprovedByMemberID" }, "IX_Settlements_ApprovedByMemberID");
 
-                    b.HasIndex("BankAccountID");
+                    b.HasIndex(new[] { "BankAccountID" }, "IX_Settlements_BankAccountID");
 
-                    b.HasIndex("CreatedByMemberID");
+                    b.HasIndex(new[] { "CreatedByMemberID" }, "IX_Settlements_CreatedByMemberID");
 
-                    b.HasIndex("CurrencyCode");
+                    b.HasIndex(new[] { "CurrencyCode" }, "IX_Settlements_CurrencyCode");
 
-                    b.HasIndex("SupplierID");
+                    b.HasIndex(new[] { "SupplierID" }, "IX_Settlements_SupplierID");
 
-                    b.HasIndex("TargetWebsiteID");
+                    b.HasIndex(new[] { "TargetWebsiteID" }, "IX_Settlements_TargetWebsiteID");
 
-                    b.HasIndex("VendorID");
+                    b.HasIndex(new[] { "VendorID" }, "IX_Settlements_VendorID");
 
-                    b.HasIndex("WebsiteID");
+                    b.HasIndex(new[] { "WebsiteID" }, "IX_Settlements_WebsiteID");
 
                     b.ToTable("Settlements");
                 });
@@ -3881,13 +3739,13 @@ namespace Dotnetable.Migrations.MySql.Migrations
 
                     b.HasKey("SettlementItemID");
 
-                    b.HasIndex("OrderItemID");
+                    b.HasIndex(new[] { "OrderItemID" }, "IX_SettlementItems_OrderItemID");
 
-                    b.HasIndex("PaymentID");
+                    b.HasIndex(new[] { "PaymentID" }, "IX_SettlementItems_PaymentID");
 
-                    b.HasIndex("SettlementID");
+                    b.HasIndex(new[] { "SettlementID" }, "IX_SettlementItems_SettlementID");
 
-                    b.HasIndex("StockMovementID");
+                    b.HasIndex(new[] { "StockMovementID" }, "IX_SettlementItems_StockMovementID");
 
                     b.ToTable("SettlementItems");
                 });
@@ -3903,10 +3761,7 @@ namespace Dotnetable.Migrations.MySql.Migrations
                         .HasColumnType("varchar(100)");
 
                     b.Property<bool>("IsActive")
-                        .ValueGeneratedOnAdd()
-                        .HasColumnType("tinyint(1)")
-                        .HasDefaultValue(true)
-                        .HasAnnotation("Relational:DefaultConstraintName", "DF_ShippingMethods_IsActive");
+                        .HasColumnType("tinyint(1)");
 
                     b.Property<int>("SortOrder")
                         .HasColumnType("int");
@@ -3939,10 +3794,7 @@ namespace Dotnetable.Migrations.MySql.Migrations
                         .HasColumnType("int");
 
                     b.Property<bool>("IsActive")
-                        .ValueGeneratedOnAdd()
-                        .HasColumnType("tinyint(1)")
-                        .HasDefaultValue(true)
-                        .HasAnnotation("Relational:DefaultConstraintName", "DF_ShippingRates_IsActive");
+                        .HasColumnType("tinyint(1)");
 
                     b.Property<decimal?>("MaxWeightKg")
                         .HasColumnType("decimal(10, 3)");
@@ -3961,13 +3813,13 @@ namespace Dotnetable.Migrations.MySql.Migrations
 
                     b.HasKey("ShippingRateID");
 
-                    b.HasIndex("CityID");
+                    b.HasIndex(new[] { "CityID" }, "IX_ShippingRates_CityID");
 
-                    b.HasIndex("CountryID");
+                    b.HasIndex(new[] { "CountryID" }, "IX_ShippingRates_CountryID");
 
-                    b.HasIndex("ShippingMethodID");
+                    b.HasIndex(new[] { "ShippingMethodID" }, "IX_ShippingRates_ShippingMethodID");
 
-                    b.HasIndex("StateID");
+                    b.HasIndex(new[] { "StateID" }, "IX_ShippingRates_StateID");
 
                     b.ToTable("ShippingRates");
                 });
@@ -3983,34 +3835,19 @@ namespace Dotnetable.Migrations.MySql.Migrations
                         .HasColumnType("varchar(20)");
 
                     b.Property<bool>("AutoPlay")
-                        .ValueGeneratedOnAdd()
-                        .HasColumnType("tinyint(1)")
-                        .HasDefaultValue(true)
-                        .HasAnnotation("Relational:DefaultConstraintName", "DF_Slideshows_AutoPlay");
+                        .HasColumnType("tinyint(1)");
 
                     b.Property<DateTime>("CreatedAt")
-                        .ValueGeneratedOnAdd()
-                        .HasColumnType("datetime")
-                        .HasDefaultValueSql("(sysutcdatetime())")
-                        .HasAnnotation("Relational:DefaultConstraintName", "DF_Slideshows_CreatedAt");
+                        .HasColumnType("datetime");
 
                     b.Property<bool>("EnableLightbox")
-                        .ValueGeneratedOnAdd()
-                        .HasColumnType("tinyint(1)")
-                        .HasDefaultValue(true)
-                        .HasAnnotation("Relational:DefaultConstraintName", "DF_Slideshows_EnableLightbox");
+                        .HasColumnType("tinyint(1)");
 
                     b.Property<int>("IntervalMs")
-                        .ValueGeneratedOnAdd()
-                        .HasColumnType("int")
-                        .HasDefaultValue(5000)
-                        .HasAnnotation("Relational:DefaultConstraintName", "DF_Slideshows_IntervalMs");
+                        .HasColumnType("int");
 
                     b.Property<bool>("IsActive")
-                        .ValueGeneratedOnAdd()
-                        .HasColumnType("tinyint(1)")
-                        .HasDefaultValue(true)
-                        .HasAnnotation("Relational:DefaultConstraintName", "DF_Slideshows_IsActive");
+                        .HasColumnType("tinyint(1)");
 
                     b.Property<string>("Name")
                         .IsRequired()
@@ -4022,22 +3859,13 @@ namespace Dotnetable.Migrations.MySql.Migrations
                         .HasColumnType("varchar(100)");
 
                     b.Property<bool>("ShowArrows")
-                        .ValueGeneratedOnAdd()
-                        .HasColumnType("tinyint(1)")
-                        .HasDefaultValue(true)
-                        .HasAnnotation("Relational:DefaultConstraintName", "DF_Slideshows_ShowArrows");
+                        .HasColumnType("tinyint(1)");
 
                     b.Property<bool>("ShowDots")
-                        .ValueGeneratedOnAdd()
-                        .HasColumnType("tinyint(1)")
-                        .HasDefaultValue(true)
-                        .HasAnnotation("Relational:DefaultConstraintName", "DF_Slideshows_ShowDots");
+                        .HasColumnType("tinyint(1)");
 
                     b.Property<byte>("TransitionEffect")
-                        .ValueGeneratedOnAdd()
-                        .HasColumnType("tinyint unsigned")
-                        .HasDefaultValue((byte)1)
-                        .HasAnnotation("Relational:DefaultConstraintName", "DF_Slideshows_TransitionEffect");
+                        .HasColumnType("tinyint unsigned");
 
                     b.Property<int>("WebsiteID")
                         .HasColumnType("int");
@@ -4070,10 +3898,7 @@ namespace Dotnetable.Migrations.MySql.Migrations
                         .HasColumnType("int");
 
                     b.Property<bool>("IsActive")
-                        .ValueGeneratedOnAdd()
-                        .HasColumnType("tinyint(1)")
-                        .HasDefaultValue(true)
-                        .HasAnnotation("Relational:DefaultConstraintName", "DF_SlideshowSlides_IsActive");
+                        .HasColumnType("tinyint(1)");
 
                     b.Property<string>("LinkUrl")
                         .HasMaxLength(500)
@@ -4100,11 +3925,11 @@ namespace Dotnetable.Migrations.MySql.Migrations
 
                     b.HasKey("SlideshowSlideID");
 
-                    b.HasIndex("FileID");
+                    b.HasIndex(new[] { "FileID" }, "IX_SlideshowSlides_FileID");
 
-                    b.HasIndex("MobileFileID");
+                    b.HasIndex(new[] { "MobileFileID" }, "IX_SlideshowSlides_MobileFileID");
 
-                    b.HasIndex("SlideshowID");
+                    b.HasIndex(new[] { "SlideshowID" }, "IX_SlideshowSlides_SlideshowID");
 
                     b.ToTable("SlideshowSlides");
                 });
@@ -4175,11 +4000,8 @@ namespace Dotnetable.Migrations.MySql.Migrations
                         .HasColumnType("int");
 
                     b.Property<DateTime>("CreatedAt")
-                        .ValueGeneratedOnAdd()
                         .HasPrecision(0)
-                        .HasColumnType("datetime(0)")
-                        .HasDefaultValueSql("(sysutcdatetime())")
-                        .HasAnnotation("Relational:DefaultConstraintName", "DF_StockMovements_CreatedAt");
+                        .HasColumnType("datetime(0)");
 
                     b.Property<int?>("CreatedByMemberID")
                         .HasColumnType("int");
@@ -4192,11 +4014,8 @@ namespace Dotnetable.Migrations.MySql.Migrations
                         .IsFixedLength();
 
                     b.Property<decimal>("ExchangeRateToUsd")
-                        .ValueGeneratedOnAdd()
                         .HasColumnType("decimal(18, 6)")
-                        .HasDefaultValue(1m)
-                        .HasComment("website's local currency rate snapshotted at the moment of this stock entry/exit, so accounting and reports can be reconstructed in local currency at that point in time")
-                        .HasAnnotation("Relational:DefaultConstraintName", "DF_StockMovements_ExchangeRateToUsd");
+                        .HasComment("website's local currency rate snapshotted at the moment of this stock entry/exit, so accounting and reports can be reconstructed in local currency at that point in time");
 
                     b.Property<string>("Note")
                         .HasMaxLength(500)
@@ -4231,19 +4050,19 @@ namespace Dotnetable.Migrations.MySql.Migrations
 
                     b.HasKey("StockMovementID");
 
-                    b.HasIndex("CreatedByMemberID");
+                    b.HasIndex(new[] { "CreatedByMemberID" }, "IX_StockMovements_CreatedByMemberID");
 
-                    b.HasIndex("CurrencyCode");
+                    b.HasIndex(new[] { "CurrencyCode" }, "IX_StockMovements_CurrencyCode");
 
-                    b.HasIndex("OrderID");
+                    b.HasIndex(new[] { "OrderID" }, "IX_StockMovements_OrderID");
 
-                    b.HasIndex("OrderItemID");
+                    b.HasIndex(new[] { "OrderItemID" }, "IX_StockMovements_OrderItemID");
 
-                    b.HasIndex("ProductVariantID");
+                    b.HasIndex(new[] { "ProductVariantID" }, "IX_StockMovements_ProductVariantID");
 
-                    b.HasIndex("SupplierID");
+                    b.HasIndex(new[] { "SupplierID" }, "IX_StockMovements_SupplierID");
 
-                    b.HasIndex("WebsiteID");
+                    b.HasIndex(new[] { "WebsiteID" }, "IX_StockMovements_WebsiteID");
 
                     b.ToTable("StockMovements");
                 });
@@ -4255,10 +4074,7 @@ namespace Dotnetable.Migrations.MySql.Migrations
                         .HasColumnType("int");
 
                     b.Property<bool>("IsActive")
-                        .ValueGeneratedOnAdd()
-                        .HasColumnType("tinyint(1)")
-                        .HasDefaultValue(true)
-                        .HasAnnotation("Relational:DefaultConstraintName", "DF_Suppliers_IsActive_1");
+                        .HasColumnType("tinyint(1)");
 
                     b.Property<string>("Name")
                         .IsRequired()
@@ -4348,10 +4164,7 @@ namespace Dotnetable.Migrations.MySql.Migrations
                         .HasColumnType("int");
 
                     b.Property<bool>("IsActive")
-                        .ValueGeneratedOnAdd()
-                        .HasColumnType("tinyint(1)")
-                        .HasDefaultValue(true)
-                        .HasAnnotation("Relational:DefaultConstraintName", "DF_TaxRates_IsActive");
+                        .HasColumnType("tinyint(1)");
 
                     b.Property<int>("Priority")
                         .HasColumnType("int");
@@ -4372,11 +4185,11 @@ namespace Dotnetable.Migrations.MySql.Migrations
 
                     b.HasKey("TaxRateID");
 
-                    b.HasIndex("CountryID");
+                    b.HasIndex(new[] { "CountryID" }, "IX_TaxRates_CountryID");
 
-                    b.HasIndex("StateID");
+                    b.HasIndex(new[] { "StateID" }, "IX_TaxRates_StateID");
 
-                    b.HasIndex("WebsiteID");
+                    b.HasIndex(new[] { "WebsiteID" }, "IX_TaxRates_WebsiteID");
 
                     b.ToTable("TaxRates");
                 });
@@ -4394,9 +4207,9 @@ namespace Dotnetable.Migrations.MySql.Migrations
 
                     b.HasKey("ProductVariantID", "AttributeDefinitionID");
 
-                    b.HasIndex("AttributeDefinitionID");
+                    b.HasIndex(new[] { "AttributeDefinitionID" }, "IX_VariantAttributeValues_AttributeDefinitionID");
 
-                    b.HasIndex("AttributeOptionID");
+                    b.HasIndex(new[] { "AttributeOptionID" }, "IX_VariantAttributeValues_AttributeOptionID");
 
                     b.ToTable("VariantAttributeValues");
                 });
@@ -4408,10 +4221,7 @@ namespace Dotnetable.Migrations.MySql.Migrations
                         .HasColumnType("int");
 
                     b.Property<decimal>("AvailableCreditUsd")
-                        .ValueGeneratedOnAdd()
-                        .HasColumnType("decimal(18, 4)")
-                        .HasDefaultValue(0m)
-                        .HasAnnotation("Relational:DefaultConstraintName", "DF_Vendors_AvailableCreditUsd");
+                        .HasColumnType("decimal(18, 4)");
 
                     b.Property<int?>("CreditDays")
                         .HasColumnType("int")
@@ -4422,10 +4232,7 @@ namespace Dotnetable.Migrations.MySql.Migrations
                         .HasComment("maximum outstanding credit balance allowed for this vendor, in USD; only meaningful when SettlementMode = Credit");
 
                     b.Property<bool>("IsActive")
-                        .ValueGeneratedOnAdd()
-                        .HasColumnType("tinyint(1)")
-                        .HasDefaultValue(true)
-                        .HasAnnotation("Relational:DefaultConstraintName", "DF_Vendors_IsActive_1");
+                        .HasColumnType("tinyint(1)");
 
                     b.Property<int?>("LinkedWebsiteID")
                         .HasColumnType("int");
@@ -4454,26 +4261,23 @@ namespace Dotnetable.Migrations.MySql.Migrations
                         .HasColumnType("varchar(200)");
 
                     b.Property<byte>("VendorType")
-                        .ValueGeneratedOnAdd()
                         .HasColumnType("tinyint unsigned")
-                        .HasDefaultValue((byte)0)
-                        .HasComment("0 = Display-only title, 1 = Member login (manage own catalog), 2 = Linked website (inter-site virtual credit)")
-                        .HasAnnotation("Relational:DefaultConstraintName", "DF_Vendors_VendorType");
+                        .HasComment("0 = Display-only title, 1 = Member login (manage own catalog), 2 = Linked website (inter-site virtual credit)");
 
                     b.Property<int>("WebsiteID")
                         .HasColumnType("int");
 
                     b.HasKey("VendorID");
 
-                    b.HasIndex("LinkedWebsiteID");
+                    b.HasIndex(new[] { "LinkedWebsiteID" }, "IX_Vendors_LinkedWebsiteID");
 
-                    b.HasIndex("LogoFileID");
-
-                    b.HasIndex("WebsiteID");
+                    b.HasIndex(new[] { "LogoFileID" }, "IX_Vendors_LogoFileID");
 
                     b.HasIndex(new[] { "MemberID" }, "IX_Vendors_MemberID")
                         .IsUnique()
-                        .HasFilter("MemberID IS NOT NULL");
+                        .HasFilter("([MemberID] IS NOT NULL)");
+
+                    b.HasIndex(new[] { "WebsiteID" }, "IX_Vendors_WebsiteID");
 
                     b.ToTable("Vendors");
                 });
@@ -4491,10 +4295,7 @@ namespace Dotnetable.Migrations.MySql.Migrations
                         .HasColumnType("decimal(18, 4)");
 
                     b.Property<DateTime>("CreatedAt")
-                        .ValueGeneratedOnAdd()
-                        .HasColumnType("datetime")
-                        .HasDefaultValueSql("(sysutcdatetime())")
-                        .HasAnnotation("Relational:DefaultConstraintName", "DF_VendorCreditTransactions_CreatedAt");
+                        .HasColumnType("datetime");
 
                     b.Property<int?>("CreatedByMemberID")
                         .HasColumnType("int");
@@ -4521,15 +4322,15 @@ namespace Dotnetable.Migrations.MySql.Migrations
 
                     b.HasKey("VendorCreditTransactionID");
 
-                    b.HasIndex("CreatedByMemberID");
+                    b.HasIndex(new[] { "CreatedByMemberID" }, "IX_VendorCreditTransactions_CreatedByMemberID");
 
-                    b.HasIndex("MirrorOrderID");
+                    b.HasIndex(new[] { "MirrorOrderID" }, "IX_VendorCreditTransactions_MirrorOrderID");
 
-                    b.HasIndex("SourceOrderItemID");
+                    b.HasIndex(new[] { "SourceOrderItemID" }, "IX_VendorCreditTransactions_SourceOrderItemID");
 
-                    b.HasIndex("VendorID");
+                    b.HasIndex(new[] { "VendorID" }, "IX_VendorCreditTransactions_VendorID");
 
-                    b.HasIndex("WebsiteID");
+                    b.HasIndex(new[] { "WebsiteID" }, "IX_VendorCreditTransactions_WebsiteID");
 
                     b.ToTable("VendorCreditTransactions");
                 });
@@ -4541,16 +4342,10 @@ namespace Dotnetable.Migrations.MySql.Migrations
                         .HasColumnType("int");
 
                     b.Property<int>("DeliveryDays")
-                        .ValueGeneratedOnAdd()
-                        .HasColumnType("int")
-                        .HasDefaultValue(1)
-                        .HasAnnotation("Relational:DefaultConstraintName", "DF_VendorProducts_DeliveryDays");
+                        .HasColumnType("int");
 
                     b.Property<bool>("IsActive")
-                        .ValueGeneratedOnAdd()
-                        .HasColumnType("tinyint(1)")
-                        .HasDefaultValue(true)
-                        .HasAnnotation("Relational:DefaultConstraintName", "DF_VendorProducts_IsActive_1");
+                        .HasColumnType("tinyint(1)");
 
                     b.Property<decimal?>("OverridePrice")
                         .HasColumnType("decimal(18, 4)");
@@ -4572,11 +4367,11 @@ namespace Dotnetable.Migrations.MySql.Migrations
 
                     b.HasKey("VendorProductID");
 
-                    b.HasIndex("ProductVariantID");
+                    b.HasIndex(new[] { "ProductVariantID" }, "IX_VendorProducts_ProductVariantID");
 
-                    b.HasIndex("VendorID");
+                    b.HasIndex(new[] { "VendorID" }, "IX_VendorProducts_VendorID");
 
-                    b.HasIndex("WebsiteID");
+                    b.HasIndex(new[] { "WebsiteID" }, "IX_VendorProducts_WebsiteID");
 
                     b.ToTable("VendorProducts");
                 });
@@ -4607,6 +4402,80 @@ namespace Dotnetable.Migrations.MySql.Migrations
                     b.HasIndex(new[] { "VendorID" }, "IX_VendorTranslations_VendorID");
 
                     b.ToTable("VendorTranslations");
+                });
+
+            modelBuilder.Entity("Dotnetable.Domain.Entities.Warranty", b =>
+                {
+                    b.Property<int>("WarrantyID")
+                        .ValueGeneratedOnAdd()
+                        .HasColumnType("int");
+
+                    b.Property<string>("Description")
+                        .HasMaxLength(2000)
+                        .HasColumnType("varchar(2000)");
+
+                    b.Property<int?>("DurationMonths")
+                        .HasColumnType("int");
+
+                    b.Property<bool>("IsActive")
+                        .HasColumnType("tinyint(1)");
+
+                    b.Property<string>("ProviderName")
+                        .HasMaxLength(200)
+                        .HasColumnType("varchar(200)");
+
+                    b.Property<int>("SortOrder")
+                        .HasColumnType("int");
+
+                    b.Property<string>("Title")
+                        .IsRequired()
+                        .HasMaxLength(200)
+                        .HasColumnType("varchar(200)");
+
+                    b.Property<int>("WebsiteID")
+                        .HasColumnType("int");
+
+                    b.HasKey("WarrantyID");
+
+                    b.HasIndex(new[] { "WebsiteID" }, "IX_Warranties_WebsiteID");
+
+                    b.ToTable("Warranties");
+                });
+
+            modelBuilder.Entity("Dotnetable.Domain.Entities.WarrantyTranslation", b =>
+                {
+                    b.Property<int>("WarrantyTranslationID")
+                        .ValueGeneratedOnAdd()
+                        .HasColumnType("int");
+
+                    b.Property<string>("Description")
+                        .HasMaxLength(2000)
+                        .HasColumnType("varchar(2000)");
+
+                    b.Property<string>("LanguageCode")
+                        .IsRequired()
+                        .HasMaxLength(2)
+                        .IsUnicode(false)
+                        .HasColumnType("char(2)")
+                        .IsFixedLength();
+
+                    b.Property<string>("ProviderName")
+                        .HasMaxLength(200)
+                        .HasColumnType("varchar(200)");
+
+                    b.Property<string>("Title")
+                        .IsRequired()
+                        .HasMaxLength(200)
+                        .HasColumnType("varchar(200)");
+
+                    b.Property<int>("WarrantyID")
+                        .HasColumnType("int");
+
+                    b.HasKey("WarrantyTranslationID");
+
+                    b.HasIndex(new[] { "WarrantyID" }, "IX_WarrantyTranslations_WarrantyID");
+
+                    b.ToTable("WarrantyTranslations");
                 });
 
             modelBuilder.Entity("Dotnetable.Domain.Entities.Website", b =>
@@ -4689,11 +4558,11 @@ namespace Dotnetable.Migrations.MySql.Migrations
 
                     b.HasKey("WebsiteID");
 
-                    b.HasIndex("DefaultCurrencyCode");
+                    b.HasIndex(new[] { "DefaultCurrencyCode" }, "IX_Websites_DefaultCurrencyCode");
 
-                    b.HasIndex("FaveIconFileID");
+                    b.HasIndex(new[] { "FaveIconFileID" }, "IX_Websites_FaveIconFileID");
 
-                    b.HasIndex("LogoFileID");
+                    b.HasIndex(new[] { "LogoFileID" }, "IX_Websites_LogoFileID");
 
                     b.ToTable("Websites");
                 });
@@ -4783,9 +4652,9 @@ namespace Dotnetable.Migrations.MySql.Migrations
 
                     b.HasKey("WebsiteClientID");
 
-                    b.HasIndex("AvatarID");
+                    b.HasIndex(new[] { "AvatarID" }, "IX_WebsiteClients_AvatarID");
 
-                    b.HasIndex("WebsiteID");
+                    b.HasIndex(new[] { "WebsiteID" }, "IX_WebsiteClients_WebsiteID");
 
                     b.ToTable("WebsiteClients");
                 });
@@ -4837,11 +4706,11 @@ namespace Dotnetable.Migrations.MySql.Migrations
 
                     b.HasKey("WebsiteClientAddressID");
 
-                    b.HasIndex("CityId");
+                    b.HasIndex(new[] { "CityId" }, "IX_WebsiteClientAddresses_CityId");
 
-                    b.HasIndex("CountryId");
+                    b.HasIndex(new[] { "CountryId" }, "IX_WebsiteClientAddresses_CountryId");
 
-                    b.HasIndex("WebsiteClientID");
+                    b.HasIndex(new[] { "WebsiteClientID" }, "IX_WebsiteClientAddresses_WebsiteClientID");
 
                     b.ToTable("WebsiteClientAddresses");
                 });
@@ -4878,17 +4747,11 @@ namespace Dotnetable.Migrations.MySql.Migrations
                         .HasColumnType("int");
 
                     b.Property<DateTime>("CreatedAt")
-                        .ValueGeneratedOnAdd()
                         .HasPrecision(0)
-                        .HasColumnType("datetime(0)")
-                        .HasDefaultValueSql("(sysutcdatetime())")
-                        .HasAnnotation("Relational:DefaultConstraintName", "DF_WebsiteFeatures_CreatedAt");
+                        .HasColumnType("datetime(0)");
 
                     b.Property<bool>("Enabled")
-                        .ValueGeneratedOnAdd()
-                        .HasColumnType("tinyint(1)")
-                        .HasDefaultValue(true)
-                        .HasAnnotation("Relational:DefaultConstraintName", "DF_WebsiteFeatures_Enabled");
+                        .HasColumnType("tinyint(1)");
 
                     b.Property<byte>("FeatureKey")
                         .HasColumnType("tinyint unsigned");
@@ -4949,19 +4812,13 @@ namespace Dotnetable.Migrations.MySql.Migrations
                         .HasColumnType("int");
 
                     b.Property<DateTime>("CreatedAt")
-                        .ValueGeneratedOnAdd()
-                        .HasColumnType("datetime")
-                        .HasDefaultValueSql("(sysutcdatetime())")
-                        .HasAnnotation("Relational:DefaultConstraintName", "DF_WebsiteRedirects_CreatedAt");
+                        .HasColumnType("datetime");
 
                     b.Property<int>("HitCount")
                         .HasColumnType("int");
 
                     b.Property<bool>("IsActive")
-                        .ValueGeneratedOnAdd()
-                        .HasColumnType("tinyint(1)")
-                        .HasDefaultValue(true)
-                        .HasAnnotation("Relational:DefaultConstraintName", "DF_WebsiteRedirects_IsActive");
+                        .HasColumnType("tinyint(1)");
 
                     b.Property<bool>("IsRegex")
                         .HasColumnType("tinyint(1)");
@@ -4972,10 +4829,7 @@ namespace Dotnetable.Migrations.MySql.Migrations
                         .HasColumnType("varchar(500)");
 
                     b.Property<int>("StatusCode")
-                        .ValueGeneratedOnAdd()
-                        .HasColumnType("int")
-                        .HasDefaultValue(301)
-                        .HasAnnotation("Relational:DefaultConstraintName", "DF_WebsiteRedirects_StatusCode");
+                        .HasColumnType("int");
 
                     b.Property<string>("TargetPath")
                         .IsRequired()
@@ -5061,13 +4915,10 @@ namespace Dotnetable.Migrations.MySql.Migrations
                         .HasColumnType("tinyint(1)");
 
                     b.Property<string>("TitleSeparator")
-                        .ValueGeneratedOnAdd()
                         .HasMaxLength(3)
                         .IsUnicode(false)
                         .HasColumnType("char(3)")
-                        .HasDefaultValue(" | ")
-                        .IsFixedLength()
-                        .HasAnnotation("Relational:DefaultConstraintName", "DF_WebsiteSeoSettings_TitleSeparator");
+                        .IsFixedLength();
 
                     b.Property<int>("WebsiteID")
                         .HasColumnType("int");
@@ -5161,10 +5012,7 @@ namespace Dotnetable.Migrations.MySql.Migrations
                         .HasColumnType("varchar(100)");
 
                     b.Property<DateTime>("CreatedAt")
-                        .ValueGeneratedOnAdd()
-                        .HasColumnType("datetime")
-                        .HasDefaultValueSql("(sysutcdatetime())")
-                        .HasAnnotation("Relational:DefaultConstraintName", "DF_WebsiteThemes_CreatedAt");
+                        .HasColumnType("datetime");
 
                     b.Property<string>("Description")
                         .HasMaxLength(500)
@@ -5213,22 +5061,13 @@ namespace Dotnetable.Migrations.MySql.Migrations
                         .HasColumnType("tinyint(1)");
 
                     b.Property<int>("Opacity")
-                        .ValueGeneratedOnAdd()
-                        .HasColumnType("int")
-                        .HasDefaultValue(80)
-                        .HasAnnotation("Relational:DefaultConstraintName", "DF_WebsiteWatermarkSettings_Opacity");
+                        .HasColumnType("int");
 
                     b.Property<byte>("Position")
-                        .ValueGeneratedOnAdd()
-                        .HasColumnType("tinyint unsigned")
-                        .HasDefaultValue((byte)9)
-                        .HasAnnotation("Relational:DefaultConstraintName", "DF_WebsiteWatermarkSettings_Position");
+                        .HasColumnType("tinyint unsigned");
 
                     b.Property<int>("SizePercent")
-                        .ValueGeneratedOnAdd()
-                        .HasColumnType("int")
-                        .HasDefaultValue(20)
-                        .HasAnnotation("Relational:DefaultConstraintName", "DF_WebsiteWatermarkSettings_SizePercent");
+                        .HasColumnType("int");
 
                     b.Property<int?>("WatermarkFileID")
                         .HasColumnType("int");
@@ -5238,9 +5077,9 @@ namespace Dotnetable.Migrations.MySql.Migrations
 
                     b.HasKey("WebsiteWatermarkSettingID");
 
-                    b.HasIndex("WatermarkFileID");
+                    b.HasIndex(new[] { "WatermarkFileID" }, "IX_WebsiteWatermarkSettings_WatermarkFileID");
 
-                    b.HasIndex("WebsiteID");
+                    b.HasIndex(new[] { "WebsiteID" }, "IX_WebsiteWatermarkSettings_WebsiteID");
 
                     b.ToTable("WebsiteWatermarkSettings");
                 });
@@ -5252,11 +5091,8 @@ namespace Dotnetable.Migrations.MySql.Migrations
                         .HasColumnType("int");
 
                     b.Property<DateTime>("CreatedAt")
-                        .ValueGeneratedOnAdd()
                         .HasPrecision(0)
-                        .HasColumnType("datetime(0)")
-                        .HasDefaultValueSql("(sysutcdatetime())")
-                        .HasAnnotation("Relational:DefaultConstraintName", "DF_Wishlists_CreatedAt");
+                        .HasColumnType("datetime(0)");
 
                     b.Property<int>("WebsiteClientID")
                         .HasColumnType("int");
@@ -5281,11 +5117,8 @@ namespace Dotnetable.Migrations.MySql.Migrations
                         .HasColumnType("int");
 
                     b.Property<DateTime>("AddedAt")
-                        .ValueGeneratedOnAdd()
                         .HasPrecision(0)
-                        .HasColumnType("datetime(0)")
-                        .HasDefaultValueSql("(sysutcdatetime())")
-                        .HasAnnotation("Relational:DefaultConstraintName", "DF_WishlistItems_AddedAt");
+                        .HasColumnType("datetime(0)");
 
                     b.Property<int>("ProductVariantID")
                         .HasColumnType("int");
@@ -6633,7 +6466,7 @@ namespace Dotnetable.Migrations.MySql.Migrations
 
                     b.HasOne("Dotnetable.Domain.Entities.Member", "CreatedByMember")
                         .WithMany("Products")
-                        .HasForeignKey("CreatedByMemberId")
+                        .HasForeignKey("CreatedByMemberID")
                         .HasConstraintName("FK_Products_Members");
 
                     b.HasOne("Dotnetable.Domain.Entities.FileRecord", "FeaturedImageFile")
@@ -6928,6 +6761,24 @@ namespace Dotnetable.Migrations.MySql.Migrations
                     b.Navigation("Website");
                 });
 
+            modelBuilder.Entity("Dotnetable.Domain.Entities.ProductVariantPriceHistory", b =>
+                {
+                    b.HasOne("Dotnetable.Domain.Entities.Member", "ChangedByMember")
+                        .WithMany("ProductVariantPriceHistories")
+                        .HasForeignKey("ChangedByMemberId")
+                        .HasConstraintName("FK_ProductVariantPriceHistories_Members");
+
+                    b.HasOne("Dotnetable.Domain.Entities.ProductVariant", "ProductVariant")
+                        .WithMany("ProductVariantPriceHistories")
+                        .HasForeignKey("ProductVariantID")
+                        .IsRequired()
+                        .HasConstraintName("FK_ProductVariantPriceHistories_ProductVariants");
+
+                    b.Navigation("ChangedByMember");
+
+                    b.Navigation("ProductVariant");
+                });
+
             modelBuilder.Entity("Dotnetable.Domain.Entities.ProductWarning", b =>
                 {
                     b.HasOne("Dotnetable.Domain.Entities.Product", "Product")
@@ -6948,6 +6799,24 @@ namespace Dotnetable.Migrations.MySql.Migrations
                         .HasConstraintName("FK_ProductWarningTranslations_ProductWarnings");
 
                     b.Navigation("ProductWarning");
+                });
+
+            modelBuilder.Entity("Dotnetable.Domain.Entities.ProductWarranty", b =>
+                {
+                    b.HasOne("Dotnetable.Domain.Entities.Product", "Product")
+                        .WithMany("ProductWarranties")
+                        .HasForeignKey("ProductID")
+                        .IsRequired()
+                        .HasConstraintName("FK_ProductWarranties_Products");
+
+                    b.HasOne("Dotnetable.Domain.Entities.Warranty", "Warranty")
+                        .WithMany("ProductWarranties")
+                        .HasForeignKey("WarrantyID")
+                        .HasConstraintName("FK_ProductWarranties_Warranties");
+
+                    b.Navigation("Product");
+
+                    b.Navigation("Warranty");
                 });
 
             modelBuilder.Entity("Dotnetable.Domain.Entities.Settlement", b =>
@@ -7288,7 +7157,7 @@ namespace Dotnetable.Migrations.MySql.Migrations
             modelBuilder.Entity("Dotnetable.Domain.Entities.Vendor", b =>
                 {
                     b.HasOne("Dotnetable.Domain.Entities.Website", "LinkedWebsite")
-                        .WithMany("LinkedAsVendors")
+                        .WithMany("VendorLinkedWebsites")
                         .HasForeignKey("LinkedWebsiteID")
                         .HasConstraintName("FK_Vendors_LinkedWebsites");
 
@@ -7303,7 +7172,7 @@ namespace Dotnetable.Migrations.MySql.Migrations
                         .HasConstraintName("FK_Vendors_Members");
 
                     b.HasOne("Dotnetable.Domain.Entities.Website", "Website")
-                        .WithMany("Vendors")
+                        .WithMany("VendorWebsites")
                         .HasForeignKey("WebsiteID")
                         .IsRequired()
                         .HasConstraintName("FK_Vendors_Websites");
@@ -7325,7 +7194,7 @@ namespace Dotnetable.Migrations.MySql.Migrations
                         .HasConstraintName("FK_VendorCreditTransactions_Members");
 
                     b.HasOne("Dotnetable.Domain.Entities.Order", "MirrorOrder")
-                        .WithMany("VendorCreditTransactions")
+                        .WithMany("VendorCreditTransactionMirrorOrders")
                         .HasForeignKey("MirrorOrderID")
                         .HasConstraintName("FK_VendorCreditTransactions_Orders");
 
@@ -7393,6 +7262,28 @@ namespace Dotnetable.Migrations.MySql.Migrations
                         .HasConstraintName("FK_VendorTranslations_Vendors");
 
                     b.Navigation("Vendor");
+                });
+
+            modelBuilder.Entity("Dotnetable.Domain.Entities.Warranty", b =>
+                {
+                    b.HasOne("Dotnetable.Domain.Entities.Website", "Website")
+                        .WithMany("Warranties")
+                        .HasForeignKey("WebsiteID")
+                        .IsRequired()
+                        .HasConstraintName("FK_Warranties_Websites");
+
+                    b.Navigation("Website");
+                });
+
+            modelBuilder.Entity("Dotnetable.Domain.Entities.WarrantyTranslation", b =>
+                {
+                    b.HasOne("Dotnetable.Domain.Entities.Warranty", "Warranty")
+                        .WithMany("WarrantyTranslations")
+                        .HasForeignKey("WarrantyID")
+                        .IsRequired()
+                        .HasConstraintName("FK_WarrantyTranslations_Warranties");
+
+                    b.Navigation("Warranty");
                 });
 
             modelBuilder.Entity("Dotnetable.Domain.Entities.Website", b =>
@@ -7901,6 +7792,8 @@ namespace Dotnetable.Migrations.MySql.Migrations
 
                     b.Navigation("Posts");
 
+                    b.Navigation("ProductVariantPriceHistories");
+
                     b.Navigation("Products");
 
                     b.Navigation("SettlementApprovedByMembers");
@@ -7938,7 +7831,7 @@ namespace Dotnetable.Migrations.MySql.Migrations
 
                     b.Navigation("StockMovements");
 
-                    b.Navigation("VendorCreditTransactions");
+                    b.Navigation("VendorCreditTransactionMirrorOrders");
                 });
 
             modelBuilder.Entity("Dotnetable.Domain.Entities.OrderItem", b =>
@@ -8019,6 +7912,8 @@ namespace Dotnetable.Migrations.MySql.Migrations
                     b.Navigation("ProductVariants");
 
                     b.Navigation("ProductWarnings");
+
+                    b.Navigation("ProductWarranties");
                 });
 
             modelBuilder.Entity("Dotnetable.Domain.Entities.ProductAttributeValue", b =>
@@ -8053,6 +7948,8 @@ namespace Dotnetable.Migrations.MySql.Migrations
                     b.Navigation("OrderItems");
 
                     b.Navigation("ProductReviews");
+
+                    b.Navigation("ProductVariantPriceHistories");
 
                     b.Navigation("StockMovements");
 
@@ -8142,6 +8039,13 @@ namespace Dotnetable.Migrations.MySql.Migrations
                     b.Navigation("OrderItems");
                 });
 
+            modelBuilder.Entity("Dotnetable.Domain.Entities.Warranty", b =>
+                {
+                    b.Navigation("ProductWarranties");
+
+                    b.Navigation("WarrantyTranslations");
+                });
+
             modelBuilder.Entity("Dotnetable.Domain.Entities.Website", b =>
                 {
                     b.Navigation("AdminNotifications");
@@ -8193,8 +8097,6 @@ namespace Dotnetable.Migrations.MySql.Migrations
                     b.Navigation("JournalEntries");
 
                     b.Navigation("Languages");
-
-                    b.Navigation("LinkedAsVendors");
 
                     b.Navigation("LocalizationKeys");
 
@@ -8252,9 +8154,13 @@ namespace Dotnetable.Migrations.MySql.Migrations
 
                     b.Navigation("VendorCreditTransactions");
 
+                    b.Navigation("VendorLinkedWebsites");
+
                     b.Navigation("VendorProducts");
 
-                    b.Navigation("Vendors");
+                    b.Navigation("VendorWebsites");
+
+                    b.Navigation("Warranties");
 
                     b.Navigation("WebsiteCaptchaSetting");
 

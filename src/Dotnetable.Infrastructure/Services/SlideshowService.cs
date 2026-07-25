@@ -52,6 +52,9 @@ public class SlideshowService : ISlideshowService
     public async Task<Slideshow> CreateSlideshowAsync(Slideshow slideshow, CancellationToken ct = default)
     {
         slideshow.CreatedAt = DateTime.UtcNow;
+        if (slideshow.TransitionEffect == 0) slideshow.TransitionEffect = 1;
+        if (slideshow.IntervalMs <= 0) slideshow.IntervalMs = 5000;
+        // Entity defaults cover AutoPlay/arrows/dots/lightbox/IsActive when not bound from UI.
         _context.Slideshows.Add(slideshow);
         await _context.SaveChangesAsync(ct);
         return slideshow;

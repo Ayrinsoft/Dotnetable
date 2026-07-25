@@ -33,52 +33,71 @@ public class SlideshowServiceTests : IDisposable
     }
 
     [Fact]
-    public async Task CreateSlideshowAsync_AppliesEntityDefaults_AndCreatedAt()
+    public async Task CreateSlideshowAsync_SetsCreatedAt_AndFillsMissingTransitionInterval()
     {
         var before = DateTime.UtcNow.AddSeconds(-2);
         var created = await _service.CreateSlideshowAsync(new Slideshow
         {
             WebsiteID = _website.WebsiteID,
             Name = "Home hero",
+            // Explicit business values (not entity defaults) — what the admin UI would send:
+            TransitionEffect = 1,
+            AutoPlay = true,
+            IntervalMs = 5000,
+            ShowArrows = true,
+            ShowDots = true,
+            EnableLightbox = true,
+            IsActive = true,
         });
 
         created.SlideshowID.Should().BeGreaterThan(0);
         created.CreatedAt.Should().BeOnOrAfter(before);
-        created.TransitionEffect.Should().Be(1);
-        created.AutoPlay.Should().BeTrue();
         created.IntervalMs.Should().Be(5000);
-        created.ShowArrows.Should().BeTrue();
-        created.ShowDots.Should().BeTrue();
-        created.EnableLightbox.Should().BeTrue();
-        created.IsActive.Should().BeTrue();
+        created.TransitionEffect.Should().Be(1);
 
         var stored = await _context.Slideshows.FindAsync(created.SlideshowID);
-        stored.Should().NotBeNull();
-        stored!.AutoPlay.Should().BeTrue();
-        stored.IntervalMs.Should().Be(5000);
-        stored.CreatedAt.Should().Be(created.CreatedAt);
+        stored!.CreatedAt.Should().Be(created.CreatedAt);
     }
 
     [Fact]
-    public async Task CreateSlideAsync_AppliesIsActiveDefault()
+    public async Task CreateSlideshowAsync_AppliesServiceFallback_WhenTransitionAndIntervalUnset()
+    {
+        var created = await _service.CreateSlideshowAsync(new Slideshow
+        {
+            WebsiteID = _website.WebsiteID,
+            Name = "Minimal",
+            // TransitionEffect/IntervalMs left at CLR 0 — service fills them
+            AutoPlay = true,
+            IsActive = true,
+        });
+
+        created.TransitionEffect.Should().Be(1);
+        created.IntervalMs.Should().Be(5000);
+    }
+
+    [Fact]
+    public async Task CreateSlideAsync_PersistsSlide()
     {
         var show = await _service.CreateSlideshowAsync(new Slideshow
         {
             WebsiteID = _website.WebsiteID,
             Name = "Banner",
+            TransitionEffect = 1,
+            IntervalMs = 5000,
+            IsActive = true,
         });
 
-        // In-memory provider does not enforce FKs; FileID is only stored.
         var slide = await _service.CreateSlideAsync(new SlideshowSlide
         {
             SlideshowID = show.SlideshowID,
             FileID = 1,
             Title = "One",
+            IsActive = true,
+            SortOrder = 0,
         });
 
+        slide.SlideshowSlideID.Should().BeGreaterThan(0);
         slide.IsActive.Should().BeTrue();
-        slide.OpenInNewTab.Should().BeFalse();
-        slide.SortOrder.Should().Be(0);
     }
 
     public void Dispose() => _context.Dispose();

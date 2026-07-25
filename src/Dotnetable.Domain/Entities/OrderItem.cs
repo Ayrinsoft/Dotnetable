@@ -45,6 +45,8 @@ public partial class OrderItem
 
     public virtual ICollection<StockMovement> StockMovements { get; set; } = new List<StockMovement>();
 
+    public virtual ICollection<VendorCreditTransaction> VendorCreditTransactions { get; set; } = new List<VendorCreditTransaction>();
+
     public virtual Vendor? Vendor { get; set; }
 
     public virtual VendorProduct? VendorProduct { get; set; }
