@@ -1,4 +1,4 @@
-﻿CREATE TABLE [dbo].[VariantAttributeValues] (
+CREATE TABLE [dbo].[VariantAttributeValues] (
     [ProductVariantID]      INT NOT NULL,
     [AttributeDefinitionID] INT NOT NULL,
     [AttributeOptionID]     INT NOT NULL,
@@ -11,6 +11,7 @@ GO
 
 CREATE NONCLUSTERED INDEX [IX_VariantAttributeValues_AttributeDefinitionID]
     ON [dbo].[VariantAttributeValues] ([AttributeDefinitionID] ASC);
+GO
 
 CREATE NONCLUSTERED INDEX [IX_VariantAttributeValues_AttributeOptionID]
     ON [dbo].[VariantAttributeValues] ([AttributeOptionID] ASC);

@@ -1,4 +1,4 @@
-﻿CREATE TABLE [dbo].[PaymentRefunds] (
+CREATE TABLE [dbo].[PaymentRefunds] (
     [PaymentRefundID]   INT             IDENTITY (1, 1) NOT NULL,
     [PaymentID]         INT             NOT NULL,
     [Amount]            DECIMAL (18, 4) NOT NULL,
@@ -23,12 +23,15 @@ GO
 
 CREATE NONCLUSTERED INDEX [IX_PaymentRefunds_BankAccountID]
     ON [dbo].[PaymentRefunds] ([BankAccountID] ASC);
+GO
 
 CREATE NONCLUSTERED INDEX [IX_PaymentRefunds_ClientWalletTransactionID]
     ON [dbo].[PaymentRefunds] ([ClientWalletTransactionID] ASC);
+GO
 
 CREATE NONCLUSTERED INDEX [IX_PaymentRefunds_CreatedByMemberID]
     ON [dbo].[PaymentRefunds] ([CreatedByMemberID] ASC);
+GO
 
 CREATE NONCLUSTERED INDEX [IX_PaymentRefunds_PaymentID]
     ON [dbo].[PaymentRefunds] ([PaymentID] ASC);

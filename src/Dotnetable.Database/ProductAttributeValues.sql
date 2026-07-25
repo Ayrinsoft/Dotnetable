@@ -1,4 +1,4 @@
-﻿CREATE TABLE [dbo].[ProductAttributeValues] (
+CREATE TABLE [dbo].[ProductAttributeValues] (
     [ProductAttributeValueID] INT             IDENTITY (1, 1) NOT NULL,
     [ProductID]               INT             NOT NULL,
     [AttributeDefinitionID]   INT             NOT NULL,
@@ -16,9 +16,11 @@ GO
 
 CREATE NONCLUSTERED INDEX [IX_ProductAttributeValues_AttributeDefinitionID]
     ON [dbo].[ProductAttributeValues] ([AttributeDefinitionID] ASC);
+GO
 
 CREATE NONCLUSTERED INDEX [IX_ProductAttributeValues_AttributeOptionID]
     ON [dbo].[ProductAttributeValues] ([AttributeOptionID] ASC);
+GO
 
 CREATE NONCLUSTERED INDEX [IX_ProductAttributeValues_ProductID]
     ON [dbo].[ProductAttributeValues] ([ProductID] ASC);

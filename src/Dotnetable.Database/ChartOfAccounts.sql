@@ -1,4 +1,4 @@
-﻿CREATE TABLE [dbo].[ChartOfAccounts] (
+CREATE TABLE [dbo].[ChartOfAccounts] (
     [ChartOfAccountID] INT            IDENTITY (1, 1) NOT NULL,
     [WebsiteID]        INT            NOT NULL,
     [ParentAccountID]  INT            NULL,
@@ -14,6 +14,7 @@ GO
 
 CREATE NONCLUSTERED INDEX [IX_ChartOfAccounts_ParentAccountID]
     ON [dbo].[ChartOfAccounts] ([ParentAccountID] ASC);
+GO
 
 CREATE NONCLUSTERED INDEX [IX_ChartOfAccounts_WebsiteID]
     ON [dbo].[ChartOfAccounts] ([WebsiteID] ASC);

@@ -1,4 +1,4 @@
-﻿CREATE TABLE [dbo].[OrderItems] (
+CREATE TABLE [dbo].[OrderItems] (
     [OrderItemID]      INT             IDENTITY (1, 1) NOT NULL,
     [OrderID]          INT             NOT NULL,
     [WebsiteID]        INT             NOT NULL,
@@ -26,18 +26,23 @@ GO
 
 CREATE NONCLUSTERED INDEX [IX_OrderItems_OrderID]
     ON [dbo].[OrderItems] ([OrderID] ASC);
+GO
 
 CREATE NONCLUSTERED INDEX [IX_OrderItems_ProductVariantID]
     ON [dbo].[OrderItems] ([ProductVariantID] ASC);
+GO
 
 CREATE NONCLUSTERED INDEX [IX_OrderItems_SourceWebsiteID]
     ON [dbo].[OrderItems] ([SourceWebsiteID] ASC);
+GO
 
 CREATE NONCLUSTERED INDEX [IX_OrderItems_VendorID]
     ON [dbo].[OrderItems] ([VendorID] ASC);
+GO
 
 CREATE NONCLUSTERED INDEX [IX_OrderItems_VendorProductID]
     ON [dbo].[OrderItems] ([VendorProductID] ASC);
+GO
 
 CREATE NONCLUSTERED INDEX [IX_OrderItems_WebsiteID]
     ON [dbo].[OrderItems] ([WebsiteID] ASC);

@@ -1,4 +1,4 @@
-﻿CREATE TABLE [dbo].[TaxRates] (
+CREATE TABLE [dbo].[TaxRates] (
     [TaxRateID] INT            IDENTITY (1, 1) NOT NULL,
     [WebsiteID] INT            NOT NULL,
     [Title]     NVARCHAR (100) NOT NULL,
@@ -19,9 +19,11 @@ GO
 
 CREATE NONCLUSTERED INDEX [IX_TaxRates_CountryID]
     ON [dbo].[TaxRates] ([CountryID] ASC);
+GO
 
 CREATE NONCLUSTERED INDEX [IX_TaxRates_StateID]
     ON [dbo].[TaxRates] ([StateID] ASC);
+GO
 
 CREATE NONCLUSTERED INDEX [IX_TaxRates_WebsiteID]
     ON [dbo].[TaxRates] ([WebsiteID] ASC);

@@ -1,4 +1,4 @@
-﻿CREATE TABLE [dbo].[Members] (
+CREATE TABLE [dbo].[Members] (
     [MemberID]        INT              IDENTITY (1, 1) NOT NULL,
     [Active]          BIT              NOT NULL,
     [Username]        VARCHAR (64)     NOT NULL,
@@ -29,9 +29,11 @@ GO
 
 CREATE NONCLUSTERED INDEX [IX_Members_AvatarID]
     ON [dbo].[Members] ([AvatarID] ASC);
+GO
 
 CREATE NONCLUSTERED INDEX [IX_Members_PolicyID]
     ON [dbo].[Members] ([PolicyID] ASC);
+GO
 
 CREATE NONCLUSTERED INDEX [IX_Members_WebsiteID]
     ON [dbo].[Members] ([WebsiteID] ASC);

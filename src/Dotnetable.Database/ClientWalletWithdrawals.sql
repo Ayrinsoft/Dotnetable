@@ -1,4 +1,4 @@
-﻿CREATE TABLE [dbo].[ClientWalletWithdrawals] (
+CREATE TABLE [dbo].[ClientWalletWithdrawals] (
     [ClientWalletWithdrawalID] INT             IDENTITY (1, 1) NOT NULL,
     [WebsiteID]                INT             NOT NULL,
     [WebsiteClientID]          INT             NOT NULL,
@@ -28,15 +28,19 @@ GO
 
 CREATE NONCLUSTERED INDEX [IX_ClientWalletWithdrawals_ClientBankAccountID]
     ON [dbo].[ClientWalletWithdrawals] ([ClientBankAccountID] ASC);
+GO
 
 CREATE NONCLUSTERED INDEX [IX_ClientWalletWithdrawals_ClientWalletID]
     ON [dbo].[ClientWalletWithdrawals] ([ClientWalletID] ASC);
+GO
 
 CREATE NONCLUSTERED INDEX [IX_ClientWalletWithdrawals_ReviewedByMemberID]
     ON [dbo].[ClientWalletWithdrawals] ([ReviewedByMemberID] ASC);
+GO
 
 CREATE NONCLUSTERED INDEX [IX_ClientWalletWithdrawals_WebsiteClientID]
     ON [dbo].[ClientWalletWithdrawals] ([WebsiteClientID] ASC);
+GO
 
 CREATE NONCLUSTERED INDEX [IX_ClientWalletWithdrawals_WebsiteID]
     ON [dbo].[ClientWalletWithdrawals] ([WebsiteID] ASC);

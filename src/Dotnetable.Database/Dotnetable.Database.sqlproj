@@ -90,8 +90,6 @@
     <Build Include="ProductRelations.sql" />
     <Build Include="ProductQuestions.sql" />
     <Build Include="ProductMedia.sql" />
-    <Build Include="ProductContentSectionTranslations.sql" />
-    <Build Include="ProductContentSections.sql" />
     <Build Include="ProductCategoryTranslations.sql" />
     <Build Include="ProductCategoryRelations.sql" />
     <Build Include="ProductCategoryMaps.sql" />

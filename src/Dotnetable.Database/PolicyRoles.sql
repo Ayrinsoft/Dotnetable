@@ -1,4 +1,4 @@
-﻿CREATE TABLE [dbo].[PolicyRoles] (
+CREATE TABLE [dbo].[PolicyRoles] (
     [PolicyRoleID] INT      IDENTITY (1, 1) NOT NULL,
     [PolicyID]     INT      NOT NULL,
     [RoleID]       SMALLINT NOT NULL,
@@ -11,6 +11,7 @@ GO
 
 CREATE NONCLUSTERED INDEX [IX_PolicyRoles_PolicyID]
     ON [dbo].[PolicyRoles] ([PolicyID] ASC);
+GO
 
 CREATE NONCLUSTERED INDEX [IX_PolicyRoles_RoleID]
     ON [dbo].[PolicyRoles] ([RoleID] ASC);

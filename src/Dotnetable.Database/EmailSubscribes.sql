@@ -1,4 +1,4 @@
-﻿CREATE TABLE [dbo].[EmailSubscribes] (
+CREATE TABLE [dbo].[EmailSubscribes] (
     [EmailSubscribeID] INT          IDENTITY (1, 1) NOT NULL,
     [WebsiteID]        INT          NOT NULL,
     [Email]            VARCHAR (64) NOT NULL,
@@ -14,6 +14,7 @@ GO
 
 CREATE NONCLUSTERED INDEX [IX_EmailSubscribes_MemberID]
     ON [dbo].[EmailSubscribes] ([MemberID] ASC);
+GO
 
 CREATE NONCLUSTERED INDEX [IX_EmailSubscribes_WebsiteID]
     ON [dbo].[EmailSubscribes] ([WebsiteID] ASC);

@@ -34,13 +34,16 @@ GO
 
 CREATE NONCLUSTERED INDEX [IX_Vendors_LogoFileID]
     ON [dbo].[Vendors] ([LogoFileID] ASC);
+GO
 
 CREATE NONCLUSTERED INDEX [IX_Vendors_WebsiteID]
     ON [dbo].[Vendors] ([WebsiteID] ASC);
+GO
 
 CREATE UNIQUE NONCLUSTERED INDEX [IX_Vendors_MemberID]
     ON [dbo].[Vendors] ([MemberID] ASC)
     WHERE [MemberID] IS NOT NULL;
+GO
 
 CREATE NONCLUSTERED INDEX [IX_Vendors_LinkedWebsiteID]
     ON [dbo].[Vendors] ([LinkedWebsiteID] ASC);

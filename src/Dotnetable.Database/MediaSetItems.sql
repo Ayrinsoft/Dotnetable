@@ -1,4 +1,4 @@
-﻿CREATE TABLE [dbo].[MediaSetItems] (
+CREATE TABLE [dbo].[MediaSetItems] (
     [MediaSetItemID]       INT            IDENTITY (1, 1) NOT NULL,
     [MediaSetID]           INT            NOT NULL,
     [FileID]               INT            NULL,
@@ -14,9 +14,11 @@ GO
 
 CREATE NONCLUSTERED INDEX [IX_MediaSetItems_FileID]
     ON [dbo].[MediaSetItems] ([FileID] ASC);
+GO
 
 CREATE NONCLUSTERED INDEX [IX_MediaSetItems_MediaSetID]
     ON [dbo].[MediaSetItems] ([MediaSetID] ASC);
+GO
 
 CREATE NONCLUSTERED INDEX [IX_MediaSetItems_VideoThumbnailFileID]
     ON [dbo].[MediaSetItems] ([VideoThumbnailFileID] ASC);

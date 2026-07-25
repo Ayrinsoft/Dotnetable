@@ -1,4 +1,4 @@
-﻿CREATE TABLE [dbo].[ProductCategories] (
+CREATE TABLE [dbo].[ProductCategories] (
     [ProductCategoryID] INT            IDENTITY (1, 1) NOT NULL,
     [WebsiteID]         INT            NOT NULL,
     [ParentCategoryID]  INT            NULL,
@@ -16,9 +16,11 @@ GO
 
 CREATE NONCLUSTERED INDEX [IX_ProductCategories_ImageFileID]
     ON [dbo].[ProductCategories] ([ImageFileID] ASC);
+GO
 
 CREATE NONCLUSTERED INDEX [IX_ProductCategories_ParentCategoryID]
     ON [dbo].[ProductCategories] ([ParentCategoryID] ASC);
+GO
 
 CREATE NONCLUSTERED INDEX [IX_ProductCategories_WebsiteID]
     ON [dbo].[ProductCategories] ([WebsiteID] ASC);

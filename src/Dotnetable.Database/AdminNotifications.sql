@@ -1,4 +1,4 @@
-CREATE TABLE [dbo].[AdminNotifications] (
+﻿CREATE TABLE [dbo].[AdminNotifications] (
     [AdminNotificationID] INT             IDENTITY (1, 1) NOT NULL,
     [MemberID]            INT             NOT NULL,
     [WebsiteID]           INT             NOT NULL,
@@ -17,6 +17,7 @@ GO
 
 CREATE NONCLUSTERED INDEX [IX_AdminNotifications_MemberID_IsRead_CreatedAt]
     ON [dbo].[AdminNotifications] ([MemberID] ASC, [IsRead] ASC, [CreatedAt] DESC);
+GO
 
 CREATE NONCLUSTERED INDEX [IX_AdminNotifications_WebsiteID]
     ON [dbo].[AdminNotifications] ([WebsiteID] ASC);

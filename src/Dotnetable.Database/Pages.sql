@@ -1,4 +1,4 @@
-﻿CREATE TABLE [dbo].[Pages] (
+CREATE TABLE [dbo].[Pages] (
     [PageID]            INT            IDENTITY (1, 1) NOT NULL,
     [WebsiteID]         INT            NOT NULL,
     [ParentPageID]      INT            NULL,
@@ -22,9 +22,11 @@ GO
 
 CREATE NONCLUSTERED INDEX [IX_Pages_CreatedByMemberID]
     ON [dbo].[Pages] ([CreatedByMemberID] ASC);
+GO
 
 CREATE NONCLUSTERED INDEX [IX_Pages_ParentPageID]
     ON [dbo].[Pages] ([ParentPageID] ASC);
+GO
 
 CREATE NONCLUSTERED INDEX [IX_Pages_WebsiteID]
     ON [dbo].[Pages] ([WebsiteID] ASC);

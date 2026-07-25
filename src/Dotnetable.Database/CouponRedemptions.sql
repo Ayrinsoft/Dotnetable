@@ -1,4 +1,4 @@
-﻿CREATE TABLE [dbo].[CouponRedemptions] (
+CREATE TABLE [dbo].[CouponRedemptions] (
     [CouponRedemptionID] INT             IDENTITY (1, 1) NOT NULL,
     [CouponID]           INT             NOT NULL,
     [OrderID]            INT             NOT NULL,
@@ -18,6 +18,7 @@ GO
 
 CREATE NONCLUSTERED INDEX [IX_CouponRedemptions_CouponID]
     ON [dbo].[CouponRedemptions] ([CouponID] ASC);
+GO
 
 CREATE NONCLUSTERED INDEX [IX_CouponRedemptions_WebsiteClientID]
     ON [dbo].[CouponRedemptions] ([WebsiteClientID] ASC);

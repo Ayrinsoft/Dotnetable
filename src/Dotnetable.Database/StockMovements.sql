@@ -1,4 +1,4 @@
-﻿CREATE TABLE [dbo].[StockMovements] (
+CREATE TABLE [dbo].[StockMovements] (
     [StockMovementID]   INT             IDENTITY (1, 1) NOT NULL,
     [WebsiteID]         INT             NOT NULL,
     [ProductVariantID]  INT             NOT NULL,
@@ -32,21 +32,27 @@ GO
 
 CREATE NONCLUSTERED INDEX [IX_StockMovements_CreatedByMemberID]
     ON [dbo].[StockMovements] ([CreatedByMemberID] ASC);
+GO
 
 CREATE NONCLUSTERED INDEX [IX_StockMovements_CurrencyCode]
     ON [dbo].[StockMovements] ([CurrencyCode] ASC);
+GO
 
 CREATE NONCLUSTERED INDEX [IX_StockMovements_OrderID]
     ON [dbo].[StockMovements] ([OrderID] ASC);
+GO
 
 CREATE NONCLUSTERED INDEX [IX_StockMovements_OrderItemID]
     ON [dbo].[StockMovements] ([OrderItemID] ASC);
+GO
 
 CREATE NONCLUSTERED INDEX [IX_StockMovements_ProductVariantID]
     ON [dbo].[StockMovements] ([ProductVariantID] ASC);
+GO
 
 CREATE NONCLUSTERED INDEX [IX_StockMovements_SupplierID]
     ON [dbo].[StockMovements] ([SupplierID] ASC);
+GO
 
 CREATE NONCLUSTERED INDEX [IX_StockMovements_WebsiteID]
     ON [dbo].[StockMovements] ([WebsiteID] ASC);

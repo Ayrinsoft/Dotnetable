@@ -1,4 +1,4 @@
-﻿CREATE TABLE [dbo].[FileRecordTags] (
+CREATE TABLE [dbo].[FileRecordTags] (
     [FileRecordTagID] INT IDENTITY (1, 1) NOT NULL,
     [FileRecordID]    INT NOT NULL,
     [FileTagID]       INT NOT NULL,
@@ -10,6 +10,7 @@ GO
 
 CREATE NONCLUSTERED INDEX [IX_FileRecordTags_FileRecordID]
     ON [dbo].[FileRecordTags] ([FileRecordID] ASC);
+GO
 
 CREATE NONCLUSTERED INDEX [IX_FileRecordTags_FileTagID]
     ON [dbo].[FileRecordTags] ([FileTagID] ASC);

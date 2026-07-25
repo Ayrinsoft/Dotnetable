@@ -1,4 +1,4 @@
-﻿CREATE TABLE [dbo].[SettlementItems] (
+CREATE TABLE [dbo].[SettlementItems] (
     [SettlementItemID] INT             IDENTITY (1, 1) NOT NULL,
     [SettlementID]     INT             NOT NULL,
     [OrderItemID]      INT             NULL,
@@ -16,12 +16,15 @@ GO
 
 CREATE NONCLUSTERED INDEX [IX_SettlementItems_OrderItemID]
     ON [dbo].[SettlementItems] ([OrderItemID] ASC);
+GO
 
 CREATE NONCLUSTERED INDEX [IX_SettlementItems_PaymentID]
     ON [dbo].[SettlementItems] ([PaymentID] ASC);
+GO
 
 CREATE NONCLUSTERED INDEX [IX_SettlementItems_SettlementID]
     ON [dbo].[SettlementItems] ([SettlementID] ASC);
+GO
 
 CREATE NONCLUSTERED INDEX [IX_SettlementItems_StockMovementID]
     ON [dbo].[SettlementItems] ([StockMovementID] ASC);

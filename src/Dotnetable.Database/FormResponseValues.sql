@@ -1,4 +1,4 @@
-﻿CREATE TABLE [dbo].[FormResponseValues] (
+CREATE TABLE [dbo].[FormResponseValues] (
     [FormResponseValueID] INT            IDENTITY (1, 1) NOT NULL,
     [FormResponseID]      INT            NOT NULL,
     [FormFieldID]         INT            NOT NULL,
@@ -11,6 +11,7 @@ GO
 
 CREATE NONCLUSTERED INDEX [IX_FormResponseValues_FormFieldID]
     ON [dbo].[FormResponseValues] ([FormFieldID] ASC);
+GO
 
 CREATE NONCLUSTERED INDEX [IX_FormResponseValues_FormResponseID]
     ON [dbo].[FormResponseValues] ([FormResponseID] ASC);

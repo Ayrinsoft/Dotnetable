@@ -1,4 +1,4 @@
-﻿CREATE TABLE [dbo].[VendorProducts] (
+CREATE TABLE [dbo].[VendorProducts] (
     [VendorProductID]   INT             IDENTITY (1, 1) NOT NULL,
     [WebsiteID]         INT             NOT NULL,
     [VendorID]          INT             NOT NULL,
@@ -17,9 +17,11 @@ GO
 
 CREATE NONCLUSTERED INDEX [IX_VendorProducts_ProductVariantID]
     ON [dbo].[VendorProducts] ([ProductVariantID] ASC);
+GO
 
 CREATE NONCLUSTERED INDEX [IX_VendorProducts_VendorID]
     ON [dbo].[VendorProducts] ([VendorID] ASC);
+GO
 
 CREATE NONCLUSTERED INDEX [IX_VendorProducts_WebsiteID]
     ON [dbo].[VendorProducts] ([WebsiteID] ASC);
