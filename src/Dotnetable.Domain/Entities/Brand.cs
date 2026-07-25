@@ -1,4 +1,4 @@
-using System;
+﻿using System;
 using System.Collections.Generic;
 
 namespace Dotnetable.Domain.Entities;
@@ -15,7 +15,7 @@ public partial class Brand
 
     public int? LogoFileID { get; set; }
 
-    public bool IsActive { get; set; } = true;
+    public bool IsActive { get; set; }
 
     public virtual ICollection<BrandTranslation> BrandTranslations { get; set; } = new List<BrandTranslation>();
 

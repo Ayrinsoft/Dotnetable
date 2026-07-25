@@ -1,4 +1,4 @@
-using System;
+﻿using System;
 using System.Collections.Generic;
 
 namespace Dotnetable.Domain.Entities;
@@ -11,9 +11,9 @@ public partial class Currency
 
     public string Symbol { get; set; } = null!;
 
-    public byte DecimalDigits { get; set; } = (byte)2;
+    public byte DecimalDigits { get; set; }
 
-    public bool IsActive { get; set; } = true;
+    public bool IsActive { get; set; }
 
     public virtual ICollection<CurrencyRate> CurrencyRates { get; set; } = new List<CurrencyRate>();
 

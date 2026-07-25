@@ -1,4 +1,4 @@
-using System;
+﻿using System;
 using System.Collections.Generic;
 
 namespace Dotnetable.Domain.Entities;
@@ -25,7 +25,7 @@ public partial class Settlement
 
     public string CurrencyCode { get; set; } = null!;
 
-    public byte Status { get; set; } = (byte)1;
+    public byte Status { get; set; }
 
     public int? BankAccountID { get; set; }
 

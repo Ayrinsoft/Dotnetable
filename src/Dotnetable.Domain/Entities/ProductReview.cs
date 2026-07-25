@@ -1,4 +1,4 @@
-using System;
+﻿using System;
 using System.Collections.Generic;
 
 namespace Dotnetable.Domain.Entities;
@@ -27,7 +27,7 @@ public partial class ProductReview
 
     public bool IsVerifiedPurchase { get; set; }
 
-    public byte Status { get; set; } = (byte)1;
+    public byte Status { get; set; }
 
     public int LikeCount { get; set; }
 

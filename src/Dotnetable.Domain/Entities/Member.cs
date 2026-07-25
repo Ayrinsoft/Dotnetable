@@ -1,4 +1,4 @@
-using System;
+﻿using System;
 using System.Collections.Generic;
 
 namespace Dotnetable.Domain.Entities;
@@ -38,7 +38,7 @@ public partial class Member
     /// <summary>
     /// 0 = Basic (admin surface reduced to what this member&apos;s Website.WebsiteType needs), 1 = General (same admin surface regardless of website type), 2 = Advanced (full surface, e.g. extra-language pages/buttons on an otherwise single-language site)
     /// </summary>
-    public byte AdminUIMode { get; set; } = (byte)1;
+    public byte AdminUIMode { get; set; }
 
     public bool IsSiteAdmin { get; set; }
 
@@ -74,9 +74,9 @@ public partial class Member
 
     public virtual ICollection<Post> Posts { get; set; } = new List<Post>();
 
-    public virtual ICollection<Product> Products { get; set; } = new List<Product>();
-
     public virtual ICollection<ProductVariantPriceHistory> ProductVariantPriceHistories { get; set; } = new List<ProductVariantPriceHistory>();
+
+    public virtual ICollection<Product> Products { get; set; } = new List<Product>();
 
     public virtual ICollection<Settlement> SettlementApprovedByMembers { get; set; } = new List<Settlement>();
 
@@ -84,9 +84,6 @@ public partial class Member
 
     public virtual ICollection<StockMovement> StockMovements { get; set; } = new List<StockMovement>();
 
-    public virtual ICollection<VendorCreditTransaction> VendorCreditTransactions { get; set; } = new List<VendorCreditTransaction>();
-
-    /// <summary>When this member is bound as a marketplace vendor (VendorType = Member).</summary>
     public virtual Vendor? Vendor { get; set; }
 
     public virtual Website Website { get; set; } = null!;

@@ -1,11 +1,8 @@
-using System;
+﻿using System;
+using System.Collections.Generic;
 
 namespace Dotnetable.Domain.Entities;
 
-/// <summary>
-/// Snapshot of a variant's selling / compare-at price when it changes.
-/// Used for multi-month price history (admin charts and lowest-price checks).
-/// </summary>
 public partial class ProductVariantPriceHistory
 {
     public long ProductVariantPriceHistoryID { get; set; }

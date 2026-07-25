@@ -1,4 +1,4 @@
-using System;
+﻿using System;
 using System.Collections.Generic;
 
 namespace Dotnetable.Domain.Entities;
@@ -9,11 +9,11 @@ public partial class ProductWarning
 
     public int ProductID { get; set; }
 
-    public string Severity { get; set; } = "info";
+    public string Severity { get; set; } = null!;
 
     public string Text { get; set; } = null!;
 
-    public bool IsActive { get; set; } = true;
+    public bool IsActive { get; set; }
 
     public virtual Product Product { get; set; } = null!;
 

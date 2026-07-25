@@ -1,4 +1,4 @@
-using System;
+﻿using System;
 using System.Collections.Generic;
 
 namespace Dotnetable.Domain.Entities;
@@ -21,9 +21,9 @@ public partial class BankAccount
 
     public string? CardNumber { get; set; }
 
-    public bool IsForOfflinePayment { get; set; } = true;
+    public bool IsForOfflinePayment { get; set; }
 
-    public bool IsActive { get; set; } = true;
+    public bool IsActive { get; set; }
 
     public int CreatedByMemberId { get; set; }
 

@@ -1,4 +1,4 @@
-using System;
+﻿using System;
 using System.Collections.Generic;
 
 namespace Dotnetable.Domain.Entities;
@@ -29,7 +29,7 @@ public partial class Coupon
 
     public DateTime? EndsAt { get; set; }
 
-    public bool IsActive { get; set; } = true;
+    public bool IsActive { get; set; }
 
     public int? CreatedByMemberID { get; set; }
 
