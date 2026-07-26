@@ -275,7 +275,10 @@ public class VendorProductService : IVendorProductService
             WebsiteID = hostWebsiteId,
             VendorID = vendorId,
             ProductVariantID = productVariantId,
-            ReferencePriceUsd = variant.ReferencePriceUsd,
+            // Per-seller listing price starts from the catalog variant; sellers can override later.
+            ReferencePrice = variant.ReferencePrice > 0 ? variant.ReferencePrice : variant.ReferencePriceUsd,
+            ReferencePriceUsd = variant.ReferencePriceUsd > 0 ? variant.ReferencePriceUsd : variant.ReferencePrice,
+            OverridePriceLocal = null,
             OverridePrice = null,
             StockQuantity = Math.Max(0, sourceStock),
             DeliveryDays = 1,

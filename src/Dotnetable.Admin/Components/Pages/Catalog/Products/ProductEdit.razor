@@ -138,6 +138,12 @@ else
 
             <MudTabPanel Text="@L["products.variants", "Variants"]">
                 <div class="pa-2">
+                    @if (_vendorId is null)
+                    {
+                        <MudAlert Severity="Severity.Info" Dense="true" Class="mb-3" Variant="Variant.Outlined">
+                            @L["products.catalog_price_hint", "Price on this tab is the catalog / warehouse default for direct site sales. Marketplace sellers can charge a different price for the same variant — set that on the Seller stock & prices tab."]
+                        </MudAlert>
+                    }
                     @if (_hasRate && !_isUsdSite)
                     {
                         <MudAlert Severity="Severity.Info" Dense="true" Class="mb-3" Variant="Variant.Outlined">
@@ -239,16 +245,16 @@ else
 
             @if (!_isNew && _vendorId is null)
             {
-            <MudTabPanel Text="@L["products.seller_stock", "Seller stock"]">
+            <MudTabPanel Text="@L["products.seller_stock", "Seller stock & prices"]">
                 <div class="pa-2">
                     <MudAlert Severity="Severity.Info" Dense="true" Variant="Variant.Outlined" Class="mb-3">
-                        @L["products.seller_stock_hint", "Each marketplace seller has their own stock for this product (not shared). Site-link vendors manage stock on the source site; Display/Member sellers set quantity below. Warehouse stock on the Variants tab is only for direct site sales without a seller."]
+                        @L["products.seller_stock_hint", "Each marketplace seller has their own stock and selling price for a variant (not shared). Store A can sell the same SKU more expensively than Store B. Site-link vendors manage stock on the source site; Display/Member sellers set quantity and price below. Warehouse stock/price on the Variants tab is only for direct site sales without a seller."]
                     </MudAlert>
 
                     <MudPaper Elevation="0" Class="border rounded-lg pa-3 mb-3">
-                        <MudText Typo="Typo.subtitle2" Class="mb-2">@L["products.seller_stock_add", "Assign stock to a seller"]</MudText>
+                        <MudText Typo="Typo.subtitle2" Class="mb-2">@L["products.seller_stock_add", "Assign listing to a seller"]</MudText>
                         <MudGrid Spacing="2" AlignItems="AlignItems.Center">
-                            <MudItem xs="12" sm="4">
+                            <MudItem xs="12" sm="3">
                                 <MudSelect T="int?" @bind-Value="_addSellerVendorId"
                                            Label="@L["vendor", "Seller"]" Variant="Variant.Outlined" Margin="Margin.Dense"
                                            Clearable="true" Dense="true">
@@ -259,7 +265,7 @@ else
                                 </MudSelect>
                             </MudItem>
                             <MudItem xs="12" sm="3">
-                                <MudSelect T="int?" @bind-Value="_addSellerVariantId"
+                                <MudSelect T="int?" Value="_addSellerVariantId" ValueChanged="OnAddSellerVariantChanged"
                                            Label="@L["variants.title", "Variant"]" Variant="Variant.Outlined" Margin="Margin.Dense"
                                            Clearable="true" Dense="true">
                                     @foreach (var v in _variants.Where(x => x.ProductVariantID != 0))
@@ -271,10 +277,14 @@ else
                                 </MudSelect>
                             </MudItem>
                             <MudItem xs="6" sm="2">
+                                <MudNumericField T="decimal" @bind-Value="_addSellerPrice"
+                                                 Label="@PriceFieldLabel" Variant="Variant.Outlined" Margin="Margin.Dense" Min="0" />
+                            </MudItem>
+                            <MudItem xs="6" sm="2">
                                 <MudNumericField T="int" @bind-Value="_addSellerStock"
                                                  Label="@L["stock", "Stock"]" Variant="Variant.Outlined" Margin="Margin.Dense" Min="0" />
                             </MudItem>
-                            <MudItem xs="6" sm="3">
+                            <MudItem xs="12" sm="2">
                                 <MudButton Variant="Variant.Filled" Color="Color.Primary" OnClick="AddSellerStockAsync"
                                            Disabled="@(!_canEdit || _addSellerVendorId is null || _addSellerVariantId is null)">
                                     @L["products.seller_stock_assign", "Assign"]
@@ -297,7 +307,9 @@ else
                                     <th>@L["vendor", "Seller"]</th>
                                     <th>@L["variants.title", "Variant"]</th>
                                     <th>@L["sku", "SKU"]</th>
+                                    <th style="min-width:130px">@PriceFieldLabel</th>
                                     <th style="min-width:120px">@L["stock", "Stock"]</th>
+                                    <th style="min-width:100px">@L["vendors.delivery_days", "Delivery days"]</th>
                                     <th>@L["active", "Active"]</th>
                                     <th style="width:1%"></th>
                                 </tr>
@@ -313,9 +325,20 @@ else
                                         <td>@(string.IsNullOrWhiteSpace(row.VariantTitle) ? "—" : row.VariantTitle)</td>
                                         <td><code>@row.Sku</code></td>
                                         <td>
+                                            <MudNumericField T="decimal" @bind-Value="row.ReferencePrice" Margin="Margin.Dense"
+                                                            Variant="Variant.Outlined" Min="0" Disabled="@(!_canEdit || row.IsSiteLinked)"
+                                                            Style="max-width:140px"
+                                                            HelperText="@(row.OverridePriceLocal is decimal ov ? string.Format(L["products.seller_override_hint", "Promo override: {0}"], ov.ToString("0.##")) : null)" />
+                                        </td>
+                                        <td>
                                             <MudNumericField T="int" @bind-Value="row.StockQuantity" Margin="Margin.Dense"
                                                             Variant="Variant.Outlined" Min="0" Disabled="@(!_canEdit || row.IsSiteLinked)"
                                                             Style="max-width:110px" />
+                                        </td>
+                                        <td>
+                                            <MudNumericField T="int" @bind-Value="row.DeliveryDays" Margin="Margin.Dense"
+                                                            Variant="Variant.Outlined" Min="0" Disabled="@(!_canEdit || row.IsSiteLinked)"
+                                                            Style="max-width:100px" />
                                         </td>
                                         <td>
                                             <MudSwitch T="bool" @bind-Value="row.IsActive" Color="Color.Primary" Disabled="@(!_canEdit || row.IsSiteLinked)" />
@@ -649,6 +672,7 @@ else
     private List<Vendor> _marketplaceVendors = new();
     private int? _addSellerVendorId;
     private int? _addSellerVariantId;
+    private decimal _addSellerPrice;
     private int _addSellerStock;
 
     private List<(int MediaSetId, FileRecord File)> _gallery = new();
@@ -1004,12 +1028,39 @@ else
             Sku = x.Sku,
             StockQuantity = x.StockQuantity,
             DeliveryDays = x.DeliveryDays,
-            ReferencePrice = x.ReferencePrice,
+            // Effective listing price in site currency (override wins when set).
+            ReferencePrice = RoundLocal(
+                x.OverridePriceLocal is decimal ov && ov > 0
+                    ? ov
+                    : (x.ReferencePrice > 0 ? x.ReferencePrice : x.ReferencePriceUsd)),
             OverridePriceLocal = x.OverridePriceLocal,
             ReferencePriceUsd = x.ReferencePriceUsd,
             OverridePrice = x.OverridePrice,
             IsActive = x.IsActive,
         }).ToList();
+    }
+
+    private Task OnAddSellerVariantChanged(int? variantId)
+    {
+        _addSellerVariantId = variantId;
+        if (variantId is int id)
+        {
+            var variant = _variants.FirstOrDefault(v => v.ProductVariantID == id);
+            if (variant is not null)
+                _addSellerPrice = DisplayPrice(variant);
+        }
+        return Task.CompletedTask;
+    }
+
+    /// <summary>Site-currency amount → dual store (local authority + USD bridge) for a seller listing.</summary>
+    private (decimal Local, decimal Usd) SellerPriceDual(decimal amount)
+    {
+        if (amount < 0) amount = 0;
+        var local = RoundLocal(amount);
+        var usd = UseLocalCurrencyInput
+            ? (_usdToCurrency == 0 ? 0 : RoundUsd(local / _usdToCurrency))
+            : RoundUsd(local);
+        return (local, usd);
     }
 
     private int StockOnHand(ProductVariant v) =>
@@ -1043,19 +1094,29 @@ else
         if (_addSellerVendorId is not int vendorId || _addSellerVariantId is not int variantId) return;
         if (_sellerStocks.Any(r => r.VendorID == vendorId && r.ProductVariantID == variantId))
         {
-            Snackbar.Add(L["products.seller_stock_exists", "This seller already has stock for that variant. Edit the row below."], Severity.Warning);
+            Snackbar.Add(L["products.seller_stock_exists", "This seller already has a listing for that variant. Edit the row below (price/stock are per seller)."], Severity.Warning);
             return;
         }
 
         var variant = _variants.FirstOrDefault(v => v.ProductVariantID == variantId);
         if (variant is null) return;
 
+        // Prefer explicit assign-form price; fall back to catalog variant price.
+        var priceInput = _addSellerPrice > 0
+            ? _addSellerPrice
+            : DisplayPrice(variant);
+        if (priceInput <= 0)
+            priceInput = 0.01m;
+        var (local, usd) = SellerPriceDual(priceInput);
+
         var model = new VendorProduct
         {
             VendorID = vendorId,
             ProductVariantID = variantId,
-            ReferencePrice = variant.ReferencePrice > 0 ? variant.ReferencePrice : (variant.ReferencePriceUsd > 0 ? variant.ReferencePriceUsd : 0.01m),
-            ReferencePriceUsd = variant.ReferencePriceUsd > 0 ? variant.ReferencePriceUsd : 0.01m,
+            ReferencePrice = local,
+            ReferencePriceUsd = usd > 0 ? usd : 0.01m,
+            OverridePriceLocal = null,
+            OverridePrice = null,
             StockQuantity = Math.Max(0, _addSellerStock),
             DeliveryDays = 1,
             IsActive = true,
@@ -1069,6 +1130,7 @@ else
 
         _addSellerVendorId = null;
         _addSellerVariantId = null;
+        _addSellerPrice = 0;
         _addSellerStock = 0;
         await LoadSellerStocksAsync();
         Snackbar.Add(L["saved", "Saved."], Severity.Success);
@@ -1097,21 +1159,24 @@ else
     {
         foreach (var row in _sellerStocks.Where(r => !r.IsSiteLinked))
         {
+            var amount = row.ReferencePrice > 0 ? row.ReferencePrice : 0.01m;
+            var (local, usd) = SellerPriceDual(amount);
+            // Grid edits set this seller's list price; clear promo override so the typed amount is what they sell at.
             var (ok, err, _) = await VendorProductService.UpsertAsync(new VendorProduct
             {
                 VendorProductID = row.VendorProductID,
                 VendorID = row.VendorID,
                 ProductVariantID = row.ProductVariantID,
-                ReferencePrice = row.ReferencePrice > 0 ? row.ReferencePrice : (row.ReferencePriceUsd > 0 ? row.ReferencePriceUsd : 0.01m),
-                ReferencePriceUsd = row.ReferencePriceUsd > 0 ? row.ReferencePriceUsd : 0.01m,
-                OverridePriceLocal = row.OverridePriceLocal,
-                OverridePrice = row.OverridePrice,
+                ReferencePrice = local,
+                ReferencePriceUsd = usd > 0 ? usd : 0.01m,
+                OverridePriceLocal = null,
+                OverridePrice = null,
                 StockQuantity = Math.Max(0, row.StockQuantity),
-                DeliveryDays = row.DeliveryDays,
+                DeliveryDays = Math.Max(0, row.DeliveryDays),
                 IsActive = row.IsActive,
             });
             if (!ok)
-                throw new InvalidOperationException(err ?? $"Failed to save stock for {row.VendorName} / {row.Sku}");
+                throw new InvalidOperationException(err ?? $"Failed to save seller listing for {row.VendorName} / {row.Sku}");
         }
     }
 
@@ -1124,18 +1189,24 @@ else
             if (!stockBySku.TryGetValue(v.Sku, out var desired))
                 desired = 0;
 
+            // Member seller: their listing price tracks the variant price they edit on this form.
+            var amount = v.ReferencePrice > 0 ? v.ReferencePrice : (v.ReferencePriceUsd > 0 ? v.ReferencePriceUsd : 0.01m);
+            var (local, usd) = SellerPriceDual(amount);
+
             var (ok, err, _) = await VendorProductService.UpsertAsync(new VendorProduct
             {
                 VendorID = vendorId,
                 ProductVariantID = v.ProductVariantID,
-                ReferencePrice = v.ReferencePrice > 0 ? v.ReferencePrice : (v.ReferencePriceUsd > 0 ? v.ReferencePriceUsd : 0.01m),
-                ReferencePriceUsd = v.ReferencePriceUsd > 0 ? v.ReferencePriceUsd : 0.01m,
+                ReferencePrice = local,
+                ReferencePriceUsd = usd > 0 ? usd : 0.01m,
+                OverridePriceLocal = null,
+                OverridePrice = null,
                 StockQuantity = Math.Max(0, desired),
                 DeliveryDays = 1,
                 IsActive = true,
             }, actingMemberId: _memberId);
             if (!ok)
-                throw new InvalidOperationException(err ?? $"Failed to save seller stock for {v.Sku}");
+                throw new InvalidOperationException(err ?? $"Failed to save seller listing for {v.Sku}");
         }
     }
 

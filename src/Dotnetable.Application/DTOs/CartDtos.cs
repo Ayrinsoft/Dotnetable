@@ -14,6 +14,11 @@ public sealed class CartItemViewDto
     public MoneyDto LineTotal { get; init; } = new();
     public bool IsAvailable { get; init; }
     public int MaxPurchasable { get; init; }
+    /// <summary>Marketplace listing id when this line is sold by a seller (not warehouse-only).</summary>
+    public int? VendorProductID { get; init; }
+    public int? VendorID { get; init; }
+    /// <summary>Seller display name when the line is a marketplace listing.</summary>
+    public string? VendorName { get; init; }
 }
 
 /// <summary>The full cart, priced live, with coupon/shipping/tax preview totals in USD.</summary>

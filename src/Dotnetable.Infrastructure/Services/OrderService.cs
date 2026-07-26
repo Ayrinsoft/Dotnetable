@@ -246,7 +246,7 @@ public class OrderService : IOrderService
     public async Task<Order?> GetByIdAsync(int orderId, int? clientId = null, CancellationToken ct = default)
     {
         var query = _context.Orders
-            .Include(o => o.OrderItems)
+            .Include(o => o.OrderItems).ThenInclude(i => i.Vendor)
             .Include(o => o.OrderStatusHistories)
             .Include(o => o.Payments)
             .Include(o => o.ShippingMethod)

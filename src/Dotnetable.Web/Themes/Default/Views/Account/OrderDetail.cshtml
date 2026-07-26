@@ -15,7 +15,17 @@
             <tbody>
                 @foreach (var item in Model.OrderItems)
                 {
-                    <tr><td>@item.TitleSnapshot</td><td>@item.Quantity</td><td>@item.TotalPrice.ToString("0.##")</td></tr>
+                    <tr>
+                        <td>
+                            @item.TitleSnapshot
+                            @if (item.Vendor is not null)
+                            {
+                                <div class="small text-muted">Sold by @item.Vendor.Name</div>
+                            }
+                        </td>
+                        <td>@item.Quantity</td>
+                        <td>@item.TotalPrice.ToString("0.##")</td>
+                    </tr>
                 }
             </tbody>
         </table>
