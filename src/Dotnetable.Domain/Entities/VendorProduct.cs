@@ -25,7 +25,11 @@ public partial class VendorProduct
     /// <summary>Optional USD override for marketplace listings (when StorePricesInUsd or legacy rows).</summary>
     public decimal? OverridePrice { get; set; }
 
+    /// <summary>On-hand units this vendor can sell. Available = StockQuantity - QuantityReserved.</summary>
     public int StockQuantity { get; set; }
+
+    /// <summary>Units held for unpaid orders (checkout reserve). Released on cancel; cleared on payment fulfill.</summary>
+    public int QuantityReserved { get; set; }
 
     public int DeliveryDays { get; set; }
 

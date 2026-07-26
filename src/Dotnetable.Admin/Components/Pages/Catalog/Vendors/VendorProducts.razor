@@ -121,7 +121,15 @@ else
                                 <MudText Color="Color.Secondary">—</MudText>
                             }
                         </td>
-                        <td>@item.StockQuantity</td>
+                        <td>
+                            @item.AvailableQuantity
+                            @if (item.QuantityReserved > 0)
+                            {
+                                <MudText Typo="Typo.caption" Color="Color.Secondary">
+                                    (@item.StockQuantity / @item.QuantityReserved @L["inventory.reserved", "reserved"])
+                                </MudText>
+                            }
+                        </td>
                         <td>
                             @if (item.IsActive)
                             {

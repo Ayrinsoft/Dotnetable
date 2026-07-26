@@ -159,7 +159,7 @@ public class ProductSummaryDto
     public int RatingCount { get; init; }
     public bool HasVariants { get; init; }
 
-    /// <summary>True when any sellable channel (warehouse or seller listing) has stock &gt; 0.</summary>
+    /// <summary>True when any store listing has available stock &gt; 0.</summary>
     public bool IsInStock { get; init; }
     /// <summary>Best available units across channels (for cart max). Prefer <see cref="DisplayStockQuantity"/> for labels.</summary>
     public int StockQuantity { get; init; }

@@ -20,21 +20,42 @@ public class InventoryService : IInventoryService
 
     public async Task<StockAvailability> GetAvailabilityAsync(int websiteId, int variantId, CancellationToken ct = default)
     {
-        var item = await _context.InventoryItems.AsNoTracking()
-            .FirstOrDefaultAsync(i => i.WebsiteID == websiteId && i.ProductVariantID == variantId, ct);
-        return ToAvailability(item);
+        // Sellable stock is the sum of store listings only (not a free-floating warehouse row).
+        var rows = await _context.VendorProducts.AsNoTracking()
+            .Where(vp => vp.WebsiteID == websiteId && vp.ProductVariantID == variantId && vp.IsActive)
+            .Select(vp => new { vp.StockQuantity, vp.QuantityReserved })
+            .ToListAsync(ct);
+        if (rows.Count == 0)
+            return new StockAvailability(0, 0, 0);
+
+        var onHand = rows.Sum(r => Math.Max(0, r.StockQuantity));
+        var reserved = rows.Sum(r => Math.Max(0, r.QuantityReserved));
+        return new StockAvailability(onHand, reserved, Math.Max(0, onHand - reserved));
     }
 
     public async Task<Dictionary<int, StockAvailability>> GetAvailabilityBulkAsync(int websiteId, IEnumerable<int> variantIds, CancellationToken ct = default)
     {
         var ids = variantIds.Distinct().ToList();
-        var items = await _context.InventoryItems.AsNoTracking()
-            .Where(i => i.WebsiteID == websiteId && ids.Contains(i.ProductVariantID))
+        var result = ids.ToDictionary(id => id, _ => new StockAvailability(0, 0, 0));
+        if (ids.Count == 0) return result;
+
+        var rows = await _context.VendorProducts.AsNoTracking()
+            .Where(vp => vp.WebsiteID == websiteId && ids.Contains(vp.ProductVariantID) && vp.IsActive)
+            .GroupBy(vp => vp.ProductVariantID)
+            .Select(g => new
+            {
+                VariantId = g.Key,
+                OnHand = g.Sum(x => x.StockQuantity),
+                Reserved = g.Sum(x => x.QuantityReserved),
+            })
             .ToListAsync(ct);
 
-        var result = ids.ToDictionary(id => id, _ => new StockAvailability(0, 0, 0));
-        foreach (var item in items)
-            result[item.ProductVariantID] = ToAvailability(item);
+        foreach (var row in rows)
+        {
+            var onHand = Math.Max(0, row.OnHand);
+            var reserved = Math.Max(0, row.Reserved);
+            result[row.VariantId] = new StockAvailability(onHand, reserved, Math.Max(0, onHand - reserved));
+        }
         return result;
     }
 
@@ -269,6 +290,20 @@ public class InventoryService : IInventoryService
             .OrderBy(i => i.QuantityOnHand)
             .ToListAsync(ct);
 
+    public async Task SyncOnHandFromVendorListingsAsync(int websiteId, int productVariantId, CancellationToken ct = default)
+    {
+        var listings = await _context.VendorProducts.AsNoTracking()
+            .Where(vp => vp.WebsiteID == websiteId && vp.ProductVariantID == productVariantId)
+            .Select(vp => vp.StockQuantity)
+            .ToListAsync(ct);
+
+        var sumOnHand = listings.Sum(q => Math.Max(0, q));
+        var item = await GetOrCreateAsync(websiteId, productVariantId, ct);
+        // Store listings are the only source of on-hand; no listings ⇒ on-hand collapses to reserved floor.
+        item.QuantityOnHand = Math.Max(sumOnHand, item.QuantityReserved);
+        await _context.SaveChangesAsync(ct);
+    }
+
     private async Task<(string CurrencyCode, decimal Rate)> ResolveSiteRateAsync(int websiteId, CancellationToken ct)
     {
         try
@@ -296,6 +331,7 @@ public class InventoryService : IInventoryService
             ReorderLevel = 0,
             AvgCost = 0,
             AvgCostUsd = 0,
+            RowVersion = new byte[8],
         };
         _context.InventoryItems.Add(item);
         return item;

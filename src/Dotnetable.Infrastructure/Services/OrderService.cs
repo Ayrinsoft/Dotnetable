@@ -12,6 +12,7 @@ public class OrderService : IOrderService
 {
     private readonly AppDbContext _context;
     private readonly IInventoryService _inventory;
+    private readonly IVendorProductService _vendorProducts;
     private readonly IShippingService _shipping;
     private readonly ITaxService _tax;
     private readonly ICouponService _coupons;
@@ -21,12 +22,13 @@ public class OrderService : IOrderService
     private readonly IVendorCreditService _vendorCredit;
 
     public OrderService(
-        AppDbContext context, IInventoryService inventory, IShippingService shipping,
-        ITaxService tax, ICouponService coupons, ICurrencyConversionService currency, ICartService cart,
-        IAdminNotificationService notifications, IVendorCreditService vendorCredit)
+        AppDbContext context, IInventoryService inventory, IVendorProductService vendorProducts,
+        IShippingService shipping, ITaxService tax, ICouponService coupons, ICurrencyConversionService currency,
+        ICartService cart, IAdminNotificationService notifications, IVendorCreditService vendorCredit)
     {
         _context = context;
         _inventory = inventory;
+        _vendorProducts = vendorProducts;
         _shipping = shipping;
         _tax = tax;
         _coupons = coupons;
@@ -64,7 +66,7 @@ public class OrderService : IOrderService
             .Where(i => i.VendorProduct?.VendorID == vendorId)
             .Sum(i => unitUsdByItem[i.CartItemID] * i.Quantity);
 
-        // Stock / vendor listing re-validation.
+        // Stock / vendor listing re-validation (available = on-hand − reserved).
         foreach (var item in cart.CartItems)
         {
             if (item.VendorProduct is { } vp)
@@ -85,20 +87,15 @@ public class OrderService : IOrderService
                     var needUsd = creditNeedByVendor(vp.VendorID);
                     if (vp.Vendor.SettlementMode == 1 && vp.Vendor.AvailableCreditUsd < needUsd && availableCredit < needUsd)
                         return new CheckoutResult(false, $"Insufficient inter-site credit for vendor {vp.Vendor.Name}.", null, null);
+                }
 
-                    if (vp.StockQuantity < item.Quantity)
-                        return new CheckoutResult(false, $"Insufficient vendor stock for {item.ProductVariant.Product.Title}.", null, null);
-                }
-                else if (vp.StockQuantity < item.Quantity)
-                {
+                if (IVendorProductService.Available(vp) < item.Quantity)
                     return new CheckoutResult(false, $"Insufficient vendor stock for {item.ProductVariant.Product.Title}.", null, null);
-                }
             }
             else
             {
-                var availability = await _inventory.GetAvailabilityAsync(websiteId, item.ProductVariantID, ct);
-                if (availability.Available < item.Quantity)
-                    return new CheckoutResult(false, $"Insufficient stock for {item.ProductVariant.Product.Title}.", null, null);
+                // No warehouse-only sales: every line must be sold by a store listing.
+                return new CheckoutResult(false, $"No store stock assigned for {item.ProductVariant.Product.Title}.", null, null);
             }
         }
 
@@ -181,20 +178,33 @@ public class OrderService : IOrderService
                 TotalPrice = unitPriceUsd * rate * item.Quantity,
             });
 
+            // Reserve only at checkout; on-hand is deducted after payment.
             if (item.VendorProduct is { } vp)
             {
-                // Debit vendor listing stock on host side.
-                var tracked = await _context.VendorProducts.FirstOrDefaultAsync(x => x.VendorProductID == vp.VendorProductID, ct);
-                if (tracked is not null)
-                    tracked.StockQuantity = Math.Max(0, tracked.StockQuantity - item.Quantity);
+                if (!await _vendorProducts.ReserveAsync(vp.VendorProductID, item.Quantity, ct))
+                {
+                    await tx.RollbackAsync(ct);
+                    return new CheckoutResult(false, $"Insufficient vendor stock for {item.ProductVariant.Product.Title}.", null, null);
+                }
 
-                // Reserve stock on source website for site-linked goods.
-                if (vp.Vendor?.VendorType == (byte)VendorType.Site && sourceWebsiteId != websiteId)
-                    await _inventory.ReserveAsync(sourceWebsiteId, variant.ProductVariantID, item.Quantity, ct);
+                // Site-linked: reserve physical stock on the source website inventory.
+                // Host display/member listings: reserve host inventory (materialised sum of store stocks).
+                var isCrossSite = vp.Vendor?.VendorType == (byte)VendorType.Site && sourceWebsiteId != websiteId;
+                var reserveSiteId = isCrossSite ? sourceWebsiteId : websiteId;
+                if (!isCrossSite)
+                    await _vendorProducts.SyncInventoryOnHandFromListingsAsync(websiteId, variant.ProductVariantID, ct);
+
+                if (!await _inventory.ReserveAsync(reserveSiteId, variant.ProductVariantID, item.Quantity, ct))
+                {
+                    await _vendorProducts.ReleaseReservationAsync(vp.VendorProductID, item.Quantity, ct);
+                    await tx.RollbackAsync(ct);
+                    return new CheckoutResult(false, $"Insufficient stock for {item.ProductVariant.Product.Title}.", null, null);
+                }
             }
             else
             {
-                await _inventory.ReserveAsync(websiteId, variant.ProductVariantID, item.Quantity, ct);
+                await tx.RollbackAsync(ct);
+                return new CheckoutResult(false, $"No store stock assigned for {item.ProductVariant.Product.Title}.", null, null);
             }
         }
 
@@ -308,8 +318,16 @@ public class OrderService : IOrderService
         {
             foreach (var item in order.OrderItems)
             {
-                var stockSite = item.SourceWebsiteID > 0 ? item.SourceWebsiteID : order.WebsiteID;
+                // Deduct store listing after payment (was only reserved at checkout).
+                if (item.VendorProductID is int vendorProductId)
+                    await _vendorProducts.CommitSaleAsync(vendorProductId, item.Quantity, ct);
+
+                var stockSite = ResolveStockSite(item, order);
                 await _inventory.DecrementOnFulfillAsync(stockSite, item.ProductVariantID, item.Quantity, order.OrderID, item.OrderItemID, memberId, ct);
+
+                // Keep host inventory total aligned with sum of store listing stocks.
+                if (item.VendorProductID is not null)
+                    await _vendorProducts.SyncInventoryOnHandFromListingsAsync(order.WebsiteID, item.ProductVariantID, ct);
             }
         }
         else if (newStatus is OrderStatus.Cancelled or OrderStatus.Refunded)
@@ -318,7 +336,10 @@ public class OrderService : IOrderService
             {
                 foreach (var item in order.OrderItems)
                 {
-                    var stockSite = item.SourceWebsiteID > 0 ? item.SourceWebsiteID : order.WebsiteID;
+                    if (item.VendorProductID is int vendorProductId)
+                        await _vendorProducts.ReleaseReservationAsync(vendorProductId, item.Quantity, ct);
+
+                    var stockSite = ResolveStockSite(item, order);
                     await _inventory.ReleaseReservationAsync(stockSite, item.ProductVariantID, item.Quantity, ct);
                 }
             }
@@ -335,6 +356,18 @@ public class OrderService : IOrderService
             .Where(o => o.WebsiteClientID == clientId && o.Status >= (byte)OrderStatus.Paid)
             .SelectMany(o => o.OrderItems)
             .AnyAsync(i => i.ProductVariant.ProductID == productId, ct);
+
+    /// <summary>
+    /// Site-linked vendor lines reserve/fulfill physical stock on the source site;
+    /// other marketplace and direct lines use the host website inventory.
+    /// </summary>
+    private static int ResolveStockSite(OrderItem item, Order order)
+    {
+        // Prefer source when it differs from host (cross-site site-vendor sale).
+        if (item.SourceWebsiteID > 0 && item.SourceWebsiteID != order.WebsiteID)
+            return item.SourceWebsiteID;
+        return order.WebsiteID;
+    }
 
     private static string GenerateOrderNumber(int websiteId) =>
         $"{websiteId}-{DateTime.UtcNow:yyMMddHHmmss}{Random.Shared.Next(100, 999)}";

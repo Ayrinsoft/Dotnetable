@@ -93,7 +93,7 @@
                     <MudItem xs="12" sm="6">
                         <MudNumericField T="int" @bind-Value="Model.StockQuantity"
                                          Label="@L["stock", "Stock"]"
-                                         HelperText="@L["vendors.stock_help", "Units this vendor can sell on the host site."]"
+                                         HelperText="@L["vendors.stock_help", "On-hand units for this store. Available = stock − reserved (open unpaid orders). Inventory total is the sum of all stores."]"
                                          Variant="Variant.Outlined" Min="0" />
                     </MudItem>
                     <MudItem xs="12" sm="6">

@@ -9,17 +9,15 @@ namespace Dotnetable.Infrastructure.Services;
 public class CartService : ICartService
 {
     private readonly AppDbContext _context;
-    private readonly IInventoryService _inventory;
     private readonly ICurrencyConversionService _currency;
     private readonly ICouponService _coupons;
     private readonly IVendorProductService _vendorProducts;
 
     public CartService(
-        AppDbContext context, IInventoryService inventory, ICurrencyConversionService currency, ICouponService coupons,
+        AppDbContext context, ICurrencyConversionService currency, ICouponService coupons,
         IVendorProductService vendorProducts)
     {
         _context = context;
-        _inventory = inventory;
         _currency = currency;
         _coupons = coupons;
         _vendorProducts = vendorProducts;
@@ -58,11 +56,6 @@ public class CartService : ICartService
             .FirstOrDefaultAsync(c => c.CartID == cartId, ct);
         if (cart is null) return new CartViewDto { CartID = cartId };
 
-        var localVariantIds = cart.CartItems.Where(i => i.VendorProductID is null).Select(i => i.ProductVariantID).ToList();
-        var availability = localVariantIds.Count > 0
-            ? await _inventory.GetAvailabilityBulkAsync(websiteId, localVariantIds, ct)
-            : new Dictionary<int, StockAvailability>();
-
         var items = new List<CartItemViewDto>();
         decimal subtotalUsd = 0;
         decimal totalWeight = 0;
@@ -83,6 +76,7 @@ public class CartService : ICartService
             }
             else
             {
+                // Lines without a store listing cannot be sold (stock is store-owned only).
                 unitPriceUsd = await _currency.ResolveCatalogUnitUsdAsync(
                     websiteId, variant.ReferencePrice, variant.ReferencePriceUsd, null, null, ct);
                 unitPrice = variant.ReferencePrice > 0
@@ -94,18 +88,18 @@ public class CartService : ICartService
             subtotalUsd += lineTotalUsd;
             totalWeight += (variant.Weight ?? 0) * item.Quantity;
 
+            // Sellable stock only exists on VendorProduct (store) listings.
             int maxPurchasable;
             bool isAvailable;
             if (item.VendorProduct is { } listing)
             {
-                maxPurchasable = listing.StockQuantity;
-                isAvailable = listing.IsActive && listing.StockQuantity >= item.Quantity;
+                maxPurchasable = IVendorProductService.Available(listing);
+                isAvailable = listing.IsActive && listing.Vendor is { IsActive: true } && maxPurchasable >= item.Quantity;
             }
             else
             {
-                var avail = availability.GetValueOrDefault(item.ProductVariantID);
-                maxPurchasable = avail.Available;
-                isAvailable = avail.Available >= item.Quantity;
+                maxPurchasable = 0;
+                isAvailable = false;
             }
 
             var lineTotal = new MoneyDto
@@ -169,6 +163,22 @@ public class CartService : ICartService
         {
             var listing = await _vendorProducts.EnsureListingForVariantAsync(websiteId, vid, variantId, ct);
             vendorProductId = listing?.VendorProductID;
+        }
+
+        // Stock is always store-owned: when no store was specified, attach the only in-stock listing if unique.
+        if (vendorProductId is null)
+        {
+            var candidates = await _context.VendorProducts.AsNoTracking()
+                .Where(vp => vp.WebsiteID == websiteId
+                             && vp.ProductVariantID == variantId
+                             && vp.IsActive
+                             && vp.Vendor.IsActive
+                             && vp.StockQuantity - vp.QuantityReserved > 0)
+                .Select(vp => vp.VendorProductID)
+                .Take(2)
+                .ToListAsync(ct);
+            if (candidates.Count == 1)
+                vendorProductId = candidates[0];
         }
 
         var existing = await _context.CartItems.FirstOrDefaultAsync(

@@ -4607,6 +4607,9 @@ namespace Dotnetable.Migrations.PostgreSql.Migrations
                     b.Property<int>("ProductVariantID")
                         .HasColumnType("integer");
 
+                    b.Property<int>("QuantityReserved")
+                        .HasColumnType("integer");
+
                     b.Property<decimal>("ReferencePrice")
                         .HasColumnType("decimal(18, 4)");
 
