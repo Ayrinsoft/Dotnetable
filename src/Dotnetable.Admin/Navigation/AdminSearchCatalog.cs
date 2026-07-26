@@ -1,3 +1,4 @@
+using Dotnetable.Admin.Auth;
 using Dotnetable.Application.Authorization;
 using MudBlazor;
 
@@ -10,6 +11,8 @@ namespace Dotnetable.Admin.Navigation;
 /// <param name="GroupDefault">Fallback section label.</param>
 /// <param name="RoleKey">Role key required to see this page, or null if every authenticated member can.</param>
 /// <param name="SuperAdminOnly">True if only master-website members can reach this page.</param>
+/// <param name="NavArea">Optional surface area for Basic/General UiMode filtering (null = always allowed when roles match).</param>
+/// <param name="VendorMemberAllowed">When false, marketplace seller accounts never see this page in search/nav surface.</param>
 public sealed record AdminSearchPage(
     string TitleKey,
     string TitleDefault,
@@ -18,7 +21,9 @@ public sealed record AdminSearchPage(
     string GroupKey,
     string GroupDefault,
     string? RoleKey,
-    bool SuperAdminOnly = false);
+    bool SuperAdminOnly = false,
+    AdminNavArea? NavArea = null,
+    bool VendorMemberAllowed = true);
 
 /// <summary>
 /// Static index of every admin page for the header search palette. Keep this in sync with
@@ -32,76 +37,76 @@ public static class AdminSearchCatalog
         new AdminSearchPage("dashboard", "Dashboard", "/", Icons.Material.Filled.Dashboard, "nav.navigation", "Navigation", null),
         new AdminSearchPage("notifications", "Notifications", "/notifications", Icons.Material.Filled.Notifications, "nav.navigation", "Navigation", null),
 
-        new AdminSearchPage("members", "Members", "/members", Icons.Material.Filled.PersonOutline, "nav.user_management", "User Management", RoleKeys.MembersView),
-        new AdminSearchPage("clients", "Customers", "/clients", Icons.Material.Filled.People, "nav.user_management", "User Management", RoleKeys.ClientsView),
-        new AdminSearchPage("access_levels", "Access Levels", "/policies", Icons.Material.Filled.Shield, "nav.user_management", "User Management", RoleKeys.PoliciesView),
-        new AdminSearchPage("roles", "Roles", "/roles", Icons.Material.Filled.VpnKey, "nav.user_management", "User Management", null, SuperAdminOnly: true),
-        new AdminSearchPage("login_logs", "Login Logs", "/login-logs", Icons.Material.Filled.History, "nav.user_management", "User Management", RoleKeys.LoginLogsView),
+        new AdminSearchPage("members", "Members", "/members", Icons.Material.Filled.PersonOutline, "nav.user_management", "User Management", RoleKeys.MembersView, NavArea: AdminNavArea.Users, VendorMemberAllowed: false),
+        new AdminSearchPage("clients", "Customers", "/clients", Icons.Material.Filled.People, "nav.user_management", "User Management", RoleKeys.ClientsView, NavArea: AdminNavArea.Users, VendorMemberAllowed: false),
+        new AdminSearchPage("access_levels", "Access Levels", "/policies", Icons.Material.Filled.Shield, "nav.user_management", "User Management", RoleKeys.PoliciesView, NavArea: AdminNavArea.Users, VendorMemberAllowed: false),
+        new AdminSearchPage("roles", "Roles", "/roles", Icons.Material.Filled.VpnKey, "nav.user_management", "User Management", null, SuperAdminOnly: true, VendorMemberAllowed: false),
+        new AdminSearchPage("login_logs", "Login Logs", "/login-logs", Icons.Material.Filled.History, "nav.user_management", "User Management", RoleKeys.LoginLogsView, NavArea: AdminNavArea.Users, VendorMemberAllowed: false),
 
-        new AdminSearchPage("websites", "Websites", "/websites", Icons.Material.Filled.Public, "website", "Website", null, SuperAdminOnly: true),
-        new AdminSearchPage("ip_whitelist", "IP Whitelist", "/website/ips", Icons.Material.Filled.Security, "website", "Website", RoleKeys.WebsiteEdit),
-        new AdminSearchPage("scripts", "Scripts", "/website/scripts", Icons.Material.Filled.Code, "website", "Website", RoleKeys.WebsiteEdit),
-        new AdminSearchPage("seo_settings", "SEO Settings", "/website/seo", Icons.Material.Filled.Search, "website", "Website", RoleKeys.WebsiteEdit),
-        new AdminSearchPage("social_links", "Social Links", "/website/social", Icons.Material.Filled.Share, "website", "Website", RoleKeys.WebsiteEdit),
-        new AdminSearchPage("website_api_key", "Website API Key", "/website/api-key", Icons.Material.Filled.VpnKey, "website", "Website", RoleKeys.WebsiteEdit),
-        new AdminSearchPage("website_languages", "Languages", "/website/languages", Icons.Material.Filled.Language, "website", "Website", RoleKeys.LocalizationEdit),
-        new AdminSearchPage("website_translations", "Translations", "/website/translations", Icons.Material.Filled.Translate, "website", "Website", RoleKeys.LocalizationEdit),
+        new AdminSearchPage("websites", "Websites", "/websites", Icons.Material.Filled.Public, "website", "Website", null, SuperAdminOnly: true, VendorMemberAllowed: false),
+        new AdminSearchPage("ip_whitelist", "IP Whitelist", "/website/ips", Icons.Material.Filled.Security, "website", "Website", RoleKeys.WebsiteEdit, NavArea: AdminNavArea.Website, VendorMemberAllowed: false),
+        new AdminSearchPage("scripts", "Scripts", "/website/scripts", Icons.Material.Filled.Code, "website", "Website", RoleKeys.WebsiteEdit, NavArea: AdminNavArea.Website, VendorMemberAllowed: false),
+        new AdminSearchPage("seo_settings", "SEO Settings", "/website/seo", Icons.Material.Filled.Search, "website", "Website", RoleKeys.WebsiteEdit, NavArea: AdminNavArea.Website, VendorMemberAllowed: false),
+        new AdminSearchPage("social_links", "Social Links", "/website/social", Icons.Material.Filled.Share, "website", "Website", RoleKeys.WebsiteEdit, NavArea: AdminNavArea.Website, VendorMemberAllowed: false),
+        new AdminSearchPage("website_api_key", "Website API Key", "/website/api-key", Icons.Material.Filled.VpnKey, "website", "Website", RoleKeys.WebsiteEdit, NavArea: AdminNavArea.Website, VendorMemberAllowed: false),
+        new AdminSearchPage("website_languages", "Languages", "/website/languages", Icons.Material.Filled.Language, "website", "Website", RoleKeys.LocalizationEdit, NavArea: AdminNavArea.Website, VendorMemberAllowed: false),
+        new AdminSearchPage("website_translations", "Translations", "/website/translations", Icons.Material.Filled.Translate, "website", "Website", RoleKeys.LocalizationEdit, NavArea: AdminNavArea.Website, VendorMemberAllowed: false),
 
-        new AdminSearchPage("posts", "Posts", "/content/posts", Icons.Material.Filled.Article, "content", "Content", RoleKeys.PostsView),
-        new AdminSearchPage("pages", "Pages", "/content/pages", Icons.Material.Filled.Description, "content", "Content", RoleKeys.PagesView),
-        new AdminSearchPage("moderation.reviews", "Reviews", "/moderation/reviews", Icons.Material.Filled.Star, "nav.moderation", "Reviews & Q&A", RoleKeys.ModerationView),
-        new AdminSearchPage("moderation.questions", "Questions", "/moderation/questions", Icons.Material.Filled.QuestionAnswer, "nav.moderation", "Reviews & Q&A", RoleKeys.ModerationView),
-        new AdminSearchPage("menus", "Menus", "/menus", Icons.Material.Filled.Menu, "content", "Content", RoleKeys.MenusView),
-        new AdminSearchPage("slideshows", "Slideshows", "/slideshows", Icons.Material.Filled.ViewCarousel, "content", "Content", RoleKeys.SlideshowsView),
-        new AdminSearchPage("forms", "Forms & Surveys", "/forms", Icons.Material.Filled.DynamicForm, "content", "Content", RoleKeys.FormsView),
-        new AdminSearchPage("themes", "Themes", "/themes", Icons.Material.Filled.Palette, "content", "Content", RoleKeys.ThemesView),
-        new AdminSearchPage("categories", "Categories", "/content/categories", Icons.Material.Filled.Category, "content", "Content", RoleKeys.TaxonomyView),
-        new AdminSearchPage("tags", "Tags", "/content/tags", Icons.Material.Filled.Label, "content", "Content", RoleKeys.TaxonomyView),
-        new AdminSearchPage("post_types", "Post Types", "/content/post-types", Icons.Material.Filled.Dashboard, "content", "Content", RoleKeys.TaxonomyView),
-        new AdminSearchPage("redirects", "Redirects", "/content/redirects", Icons.Material.Filled.CallSplit, "content", "Content", RoleKeys.RedirectsView),
+        new AdminSearchPage("posts", "Posts", "/content/posts", Icons.Material.Filled.Article, "content", "Content", RoleKeys.PostsView, NavArea: AdminNavArea.ContentBlog, VendorMemberAllowed: false),
+        new AdminSearchPage("pages", "Pages", "/content/pages", Icons.Material.Filled.Description, "content", "Content", RoleKeys.PagesView, NavArea: AdminNavArea.ContentCore, VendorMemberAllowed: false),
+        new AdminSearchPage("moderation.reviews", "Reviews", "/moderation/reviews", Icons.Material.Filled.Star, "nav.moderation", "Reviews & Q&A", RoleKeys.ModerationView, NavArea: AdminNavArea.ContentExtra, VendorMemberAllowed: false),
+        new AdminSearchPage("moderation.questions", "Questions", "/moderation/questions", Icons.Material.Filled.QuestionAnswer, "nav.moderation", "Reviews & Q&A", RoleKeys.ModerationView, NavArea: AdminNavArea.ContentExtra, VendorMemberAllowed: false),
+        new AdminSearchPage("menus", "Menus", "/menus", Icons.Material.Filled.Menu, "content", "Content", RoleKeys.MenusView, NavArea: AdminNavArea.ContentCore, VendorMemberAllowed: false),
+        new AdminSearchPage("slideshows", "Slideshows", "/slideshows", Icons.Material.Filled.ViewCarousel, "content", "Content", RoleKeys.SlideshowsView, NavArea: AdminNavArea.ContentCore, VendorMemberAllowed: false),
+        new AdminSearchPage("forms", "Forms & Surveys", "/forms", Icons.Material.Filled.DynamicForm, "content", "Content", RoleKeys.FormsView, NavArea: AdminNavArea.ContentExtra, VendorMemberAllowed: false),
+        new AdminSearchPage("themes", "Themes", "/themes", Icons.Material.Filled.Palette, "content", "Content", RoleKeys.ThemesView, NavArea: AdminNavArea.ContentCore, VendorMemberAllowed: false),
+        new AdminSearchPage("categories", "Categories", "/content/categories", Icons.Material.Filled.Category, "content", "Content", RoleKeys.TaxonomyView, NavArea: AdminNavArea.ContentBlog, VendorMemberAllowed: false),
+        new AdminSearchPage("tags", "Tags", "/content/tags", Icons.Material.Filled.Label, "content", "Content", RoleKeys.TaxonomyView, NavArea: AdminNavArea.ContentBlog, VendorMemberAllowed: false),
+        new AdminSearchPage("post_types", "Post Types", "/content/post-types", Icons.Material.Filled.Dashboard, "content", "Content", RoleKeys.TaxonomyView, NavArea: AdminNavArea.ContentBlog, VendorMemberAllowed: false),
+        new AdminSearchPage("redirects", "Redirects", "/content/redirects", Icons.Material.Filled.CallSplit, "content", "Content", RoleKeys.RedirectsView, NavArea: AdminNavArea.ContentExtra, VendorMemberAllowed: false),
 
-        new AdminSearchPage("products", "Products", "/catalog/products", Icons.Material.Filled.ShoppingBag, "nav.catalog", "Catalog", RoleKeys.ProductsView),
-        new AdminSearchPage("categories", "Categories", "/catalog/categories", Icons.Material.Filled.Category, "nav.catalog", "Catalog", RoleKeys.CatalogTaxonomyView),
-        new AdminSearchPage("attributes", "Attributes", "/catalog/attributes", Icons.Material.Filled.Tune, "nav.catalog", "Catalog", RoleKeys.CatalogTaxonomyView),
-        new AdminSearchPage("brands", "Brands", "/catalog/brands", Icons.Material.Filled.BrandingWatermark, "nav.catalog", "Catalog", RoleKeys.CatalogTaxonomyView),
-        new AdminSearchPage("warranties", "Warranties", "/catalog/warranties", Icons.Material.Filled.VerifiedUser, "nav.catalog", "Catalog", RoleKeys.CatalogTaxonomyView),
-        new AdminSearchPage("vendors", "Vendors", "/catalog/vendors", Icons.Material.Filled.Store, "nav.catalog", "Catalog", RoleKeys.VendorsView),
+        new AdminSearchPage("products", "Products", "/catalog/products", Icons.Material.Filled.ShoppingBag, "nav.catalog", "Catalog", RoleKeys.ProductsView, NavArea: AdminNavArea.Catalog),
+        new AdminSearchPage("categories", "Categories", "/catalog/categories", Icons.Material.Filled.Category, "nav.catalog", "Catalog", RoleKeys.CatalogTaxonomyView, NavArea: AdminNavArea.Catalog, VendorMemberAllowed: false),
+        new AdminSearchPage("attributes", "Attributes", "/catalog/attributes", Icons.Material.Filled.Tune, "nav.catalog", "Catalog", RoleKeys.CatalogTaxonomyView, NavArea: AdminNavArea.Catalog, VendorMemberAllowed: false),
+        new AdminSearchPage("brands", "Brands", "/catalog/brands", Icons.Material.Filled.BrandingWatermark, "nav.catalog", "Catalog", RoleKeys.CatalogTaxonomyView, NavArea: AdminNavArea.Catalog, VendorMemberAllowed: false),
+        new AdminSearchPage("warranties", "Warranties", "/catalog/warranties", Icons.Material.Filled.VerifiedUser, "nav.catalog", "Catalog", RoleKeys.CatalogTaxonomyView, NavArea: AdminNavArea.Catalog, VendorMemberAllowed: false),
+        new AdminSearchPage("vendors", "Vendors", "/catalog/vendors", Icons.Material.Filled.Store, "nav.catalog", "Catalog", RoleKeys.VendorsView, NavArea: AdminNavArea.Catalog, VendorMemberAllowed: false),
 
-        new AdminSearchPage("inventory.stock", "Stock", "/inventory", Icons.Material.Filled.Numbers, "nav.inventory", "Inventory", RoleKeys.InventoryView),
-        new AdminSearchPage("inventory.movements", "Movements", "/inventory/movements", Icons.Material.Filled.History, "nav.inventory", "Inventory", RoleKeys.InventoryView),
-        new AdminSearchPage("suppliers", "Suppliers", "/inventory/suppliers", Icons.Material.Filled.LocalShipping, "nav.inventory", "Inventory", RoleKeys.SuppliersView),
+        new AdminSearchPage("inventory.stock", "Stock", "/inventory", Icons.Material.Filled.Numbers, "nav.inventory", "Inventory", RoleKeys.InventoryView, NavArea: AdminNavArea.Inventory, VendorMemberAllowed: false),
+        new AdminSearchPage("inventory.movements", "Movements", "/inventory/movements", Icons.Material.Filled.History, "nav.inventory", "Inventory", RoleKeys.InventoryView, NavArea: AdminNavArea.Inventory, VendorMemberAllowed: false),
+        new AdminSearchPage("suppliers", "Suppliers", "/inventory/suppliers", Icons.Material.Filled.LocalShipping, "nav.inventory", "Inventory", RoleKeys.SuppliersView, NavArea: AdminNavArea.Inventory, VendorMemberAllowed: false),
 
-        new AdminSearchPage("orders", "Orders", "/orders", Icons.Material.Filled.ReceiptLong, "orders", "Orders", RoleKeys.OrdersView),
+        new AdminSearchPage("orders", "Orders", "/orders", Icons.Material.Filled.ReceiptLong, "orders", "Orders", RoleKeys.OrdersView, NavArea: AdminNavArea.Orders),
 
-        new AdminSearchPage("payments", "Payments", "/payments", Icons.Material.Filled.CreditCard, "nav.finance", "Finance", RoleKeys.PaymentsView),
-        new AdminSearchPage("payments.refunds", "Bank Refunds", "/payments/refunds", Icons.Material.Filled.AssignmentReturn, "nav.finance", "Finance", RoleKeys.PaymentsRefund),
-        new AdminSearchPage("wallets.withdrawals", "Withdrawals", "/wallets/withdrawals", Icons.Material.Filled.AccountBalanceWallet, "nav.finance", "Finance", RoleKeys.WalletsView),
-        new AdminSearchPage("bank_accounts", "Bank Accounts", "/finance/bank-accounts", Icons.Material.Filled.AccountBalance, "nav.finance", "Finance", RoleKeys.BankAccountsView),
-        new AdminSearchPage("currency_rates", "Exchange Rates", "/finance/currency-rates", Icons.Material.Filled.CurrencyExchange, "nav.finance", "Finance", RoleKeys.CurrencyView),
-        new AdminSearchPage("banks", "Banks", "/finance/banks", Icons.Material.Filled.AccountBalance, "nav.finance", "Finance", null, SuperAdminOnly: true),
-        new AdminSearchPage("currencies", "Currencies", "/finance/currencies", Icons.Material.Filled.CurrencyExchange, "nav.finance", "Finance", null, SuperAdminOnly: true),
+        new AdminSearchPage("payments", "Payments", "/payments", Icons.Material.Filled.CreditCard, "nav.finance", "Finance", RoleKeys.PaymentsView, NavArea: AdminNavArea.Finance, VendorMemberAllowed: false),
+        new AdminSearchPage("payments.refunds", "Bank Refunds", "/payments/refunds", Icons.Material.Filled.AssignmentReturn, "nav.finance", "Finance", RoleKeys.PaymentsRefund, NavArea: AdminNavArea.Finance, VendorMemberAllowed: false),
+        new AdminSearchPage("wallets.withdrawals", "Withdrawals", "/wallets/withdrawals", Icons.Material.Filled.AccountBalanceWallet, "nav.finance", "Finance", RoleKeys.WalletsView, NavArea: AdminNavArea.Finance, VendorMemberAllowed: false),
+        new AdminSearchPage("bank_accounts", "Bank Accounts", "/finance/bank-accounts", Icons.Material.Filled.AccountBalance, "nav.finance", "Finance", RoleKeys.BankAccountsView, NavArea: AdminNavArea.Finance, VendorMemberAllowed: false),
+        new AdminSearchPage("currency_rates", "Exchange Rates", "/finance/currency-rates", Icons.Material.Filled.CurrencyExchange, "nav.finance", "Finance", RoleKeys.CurrencyView, NavArea: AdminNavArea.Finance, VendorMemberAllowed: false),
+        new AdminSearchPage("banks", "Banks", "/finance/banks", Icons.Material.Filled.AccountBalance, "nav.finance", "Finance", null, SuperAdminOnly: true, VendorMemberAllowed: false),
+        new AdminSearchPage("currencies", "Currencies", "/finance/currencies", Icons.Material.Filled.CurrencyExchange, "nav.finance", "Finance", null, SuperAdminOnly: true, VendorMemberAllowed: false),
 
-        new AdminSearchPage("coupons", "Coupons", "/sales/coupons", Icons.Material.Filled.Discount, "nav.promotions", "Promotions & Shipping", RoleKeys.CouponsView),
-        new AdminSearchPage("shipping", "Shipping", "/sales/shipping", Icons.Material.Filled.LocalShipping, "nav.promotions", "Promotions & Shipping", RoleKeys.ShippingView),
-        new AdminSearchPage("tax", "Tax", "/sales/tax", Icons.Material.Filled.Percent, "nav.promotions", "Promotions & Shipping", RoleKeys.TaxView),
+        new AdminSearchPage("coupons", "Coupons", "/sales/coupons", Icons.Material.Filled.Discount, "nav.promotions", "Promotions & Shipping", RoleKeys.CouponsView, NavArea: AdminNavArea.Promotions, VendorMemberAllowed: false),
+        new AdminSearchPage("shipping", "Shipping", "/sales/shipping", Icons.Material.Filled.LocalShipping, "nav.promotions", "Promotions & Shipping", RoleKeys.ShippingView, NavArea: AdminNavArea.Promotions, VendorMemberAllowed: false),
+        new AdminSearchPage("tax", "Tax", "/sales/tax", Icons.Material.Filled.Percent, "nav.promotions", "Promotions & Shipping", RoleKeys.TaxView, NavArea: AdminNavArea.Promotions, VendorMemberAllowed: false),
 
-        new AdminSearchPage("contact_messages", "Contact Messages", "/messages/contacts", Icons.Material.Filled.ContactMail, "messages", "Messages", RoleKeys.MessagesView),
-        new AdminSearchPage("email_accounts", "Email Accounts", "/messages/email-accounts", Icons.Material.Filled.AlternateEmail, "messages", "Messages", RoleKeys.WebsiteEdit),
-        new AdminSearchPage("email_templates", "Email Templates", "/messages/email-templates", Icons.Material.Filled.Description, "messages", "Messages", RoleKeys.WebsiteEdit),
+        new AdminSearchPage("contact_messages", "Contact Messages", "/messages/contacts", Icons.Material.Filled.ContactMail, "messages", "Messages", RoleKeys.MessagesView, NavArea: AdminNavArea.Messages),
+        new AdminSearchPage("email_accounts", "Email Accounts", "/messages/email-accounts", Icons.Material.Filled.AlternateEmail, "messages", "Messages", RoleKeys.WebsiteEdit, NavArea: AdminNavArea.Messages, VendorMemberAllowed: false),
+        new AdminSearchPage("email_templates", "Email Templates", "/messages/email-templates", Icons.Material.Filled.Description, "messages", "Messages", RoleKeys.WebsiteEdit, NavArea: AdminNavArea.Messages, VendorMemberAllowed: false),
 
-        new AdminSearchPage("media_library", "Media Library", "/media", Icons.Material.Filled.PhotoLibrary, "media", "Media", RoleKeys.MediaView),
-        new AdminSearchPage("media_folders", "Media Folders", "/media/folders", Icons.Material.Filled.Folder, "media", "Media", RoleKeys.MediaView),
-        new AdminSearchPage("media_tags", "Media Tags", "/media/tags", Icons.Material.Filled.LocalOffer, "media", "Media", RoleKeys.MediaView),
-        new AdminSearchPage("storage", "Storage", "/media/storage", Icons.Material.Filled.Cloud, "media", "Media", RoleKeys.MediaUpload),
-        new AdminSearchPage("watermark", "Watermark", "/media/watermark", Icons.Material.Filled.BrandingWatermark, "media", "Media", RoleKeys.MediaUpload),
+        new AdminSearchPage("media_library", "Media Library", "/media", Icons.Material.Filled.PhotoLibrary, "media", "Media", RoleKeys.MediaView, NavArea: AdminNavArea.Media),
+        new AdminSearchPage("media_folders", "Media Folders", "/media/folders", Icons.Material.Filled.Folder, "media", "Media", RoleKeys.MediaView, NavArea: AdminNavArea.Media, VendorMemberAllowed: false),
+        new AdminSearchPage("media_tags", "Media Tags", "/media/tags", Icons.Material.Filled.LocalOffer, "media", "Media", RoleKeys.MediaView, NavArea: AdminNavArea.Media, VendorMemberAllowed: false),
+        new AdminSearchPage("storage", "Storage", "/media/storage", Icons.Material.Filled.Cloud, "media", "Media", RoleKeys.MediaUpload, NavArea: AdminNavArea.Media, VendorMemberAllowed: false),
+        new AdminSearchPage("watermark", "Watermark", "/media/watermark", Icons.Material.Filled.BrandingWatermark, "media", "Media", RoleKeys.MediaUpload, NavArea: AdminNavArea.Media, VendorMemberAllowed: false),
 
-        new AdminSearchPage("countries", "Countries", "/initial-data/countries", Icons.Material.Filled.Flag, "nav.administration", "Administration", null, SuperAdminOnly: true),
-        new AdminSearchPage("states", "States / Provinces", "/initial-data/states", Icons.Material.Filled.Map, "nav.administration", "Administration", null, SuperAdminOnly: true),
-        new AdminSearchPage("cities", "Cities", "/initial-data/cities", Icons.Material.Filled.LocationCity, "nav.administration", "Administration", null, SuperAdminOnly: true),
-        new AdminSearchPage("languages.catalog", "Language Catalog", "/languages", Icons.Material.Filled.Language, "initial_data", "Initial Data", null, SuperAdminOnly: true),
-        new AdminSearchPage("translations.admin", "Admin Translations", "/translations", Icons.Material.Filled.Translate, "initial_data", "Initial Data", null, SuperAdminOnly: true),
+        new AdminSearchPage("countries", "Countries", "/initial-data/countries", Icons.Material.Filled.Flag, "nav.administration", "Administration", null, SuperAdminOnly: true, VendorMemberAllowed: false),
+        new AdminSearchPage("states", "States / Provinces", "/initial-data/states", Icons.Material.Filled.Map, "nav.administration", "Administration", null, SuperAdminOnly: true, VendorMemberAllowed: false),
+        new AdminSearchPage("cities", "Cities", "/initial-data/cities", Icons.Material.Filled.LocationCity, "nav.administration", "Administration", null, SuperAdminOnly: true, VendorMemberAllowed: false),
+        new AdminSearchPage("languages.catalog", "Language Catalog", "/languages", Icons.Material.Filled.Language, "initial_data", "Initial Data", null, SuperAdminOnly: true, VendorMemberAllowed: false),
+        new AdminSearchPage("translations.admin", "Admin Translations", "/translations", Icons.Material.Filled.Translate, "initial_data", "Initial Data", null, SuperAdminOnly: true, VendorMemberAllowed: false),
 
-        new AdminSearchPage("db_updates", "DB Updates", "/system/updates", Icons.Material.Filled.SystemUpdateAlt, "nav.system", "System", null, SuperAdminOnly: true),
-        new AdminSearchPage("settings", "Settings", "/settings", Icons.Material.Filled.Settings, "nav.system", "System", null, SuperAdminOnly: true),
+        new AdminSearchPage("db_updates", "DB Updates", "/system/updates", Icons.Material.Filled.SystemUpdateAlt, "nav.system", "System", null, SuperAdminOnly: true, VendorMemberAllowed: false),
+        new AdminSearchPage("settings", "Settings", "/settings", Icons.Material.Filled.Settings, "nav.system", "System", null, SuperAdminOnly: true, VendorMemberAllowed: false),
     };
 }

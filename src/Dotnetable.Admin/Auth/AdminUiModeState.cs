@@ -9,7 +9,8 @@ public sealed class AdminUiModeState
 {
     private bool _initialized;
 
-    public AdminUiMode Current { get; private set; } = AdminUiMode.General;
+    /// <summary>Defaults to Basic so non-master circuits never flash the full menu before Initialize.</summary>
+    public AdminUiMode Current { get; private set; } = AdminUiMode.Basic;
 
     public event Action? Changed;
 

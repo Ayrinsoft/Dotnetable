@@ -1,6 +1,7 @@
 @inject NavigationManager Nav
 @inject AuthenticationStateProvider AuthStateProvider
 @inject IPageLocalizer L
+@inject AdminNavSurfaceState NavSurface
 
 <MudDialog>
     <TitleContent>
@@ -60,6 +61,8 @@
     {
         if (_isMaster) return true;
         if (page.SuperAdminOnly) return false;
+        if (NavSurface.IsVendorMember && !page.VendorMemberAllowed) return false;
+        if (page.NavArea is AdminNavArea area && !NavSurface.Shows(area)) return false;
         return page.RoleKey is null || _grantedRoleKeys.Contains(page.RoleKey);
     }
 

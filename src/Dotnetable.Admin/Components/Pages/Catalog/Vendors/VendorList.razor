@@ -94,6 +94,12 @@
     {
         await L.EnsureLoadedAsync();
         var user = (await AuthState.GetAuthenticationStateAsync()).User;
+        // Marketplace sellers manage only their own listings — no vendor directory.
+        if (int.TryParse(user.FindFirst(AdminClaimTypes.VendorId)?.Value, out var myVendorId) && myVendorId > 0)
+        {
+            Nav.NavigateTo($"/catalog/vendors/{myVendorId}/products", replace: true);
+            return;
+        }
         _isMaster = user.HasClaim(AdminClaimTypes.Master, "true");
         _canInsert = AdminPolicies.Allows(user, RoleKeys.VendorsInsert);
         _canEdit = AdminPolicies.Allows(user, RoleKeys.VendorsEdit);
