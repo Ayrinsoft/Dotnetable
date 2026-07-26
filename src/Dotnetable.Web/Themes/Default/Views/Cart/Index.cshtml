@@ -37,6 +37,10 @@
                                         }
                                         <div>
                                             @item.Title
+                                            @if (!string.IsNullOrWhiteSpace(item.VendorName))
+                                            {
+                                                <div class="small text-muted">Sold by @item.VendorName</div>
+                                            }
                                             @if (!item.IsAvailable)
                                             {
                                                 <div class="text-danger small">Only @item.MaxPurchasable available</div>

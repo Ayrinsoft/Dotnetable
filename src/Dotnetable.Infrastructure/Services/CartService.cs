@@ -54,7 +54,7 @@ public class CartService : ICartService
             .Include(c => c.Coupon)
             .Include(c => c.CartItems).ThenInclude(i => i.ProductVariant).ThenInclude(v => v.Product)
             .Include(c => c.CartItems).ThenInclude(i => i.ProductVariant).ThenInclude(v => v.ImageFile)
-            .Include(c => c.CartItems).ThenInclude(i => i.VendorProduct)
+            .Include(c => c.CartItems).ThenInclude(i => i.VendorProduct).ThenInclude(vp => vp!.Vendor)
             .FirstOrDefaultAsync(c => c.CartID == cartId, ct);
         if (cart is null) return new CartViewDto { CartID = cartId };
 
@@ -130,6 +130,10 @@ public class CartService : ICartService
                 LineTotal = lineTotal,
                 IsAvailable = isAvailable,
                 MaxPurchasable = maxPurchasable,
+                // Price is per seller listing when VendorProduct is set (same variant can cost more from another store).
+                VendorProductID = item.VendorProductID,
+                VendorID = item.VendorProduct?.VendorID,
+                VendorName = item.VendorProduct?.Vendor?.Name,
             });
         }
 
