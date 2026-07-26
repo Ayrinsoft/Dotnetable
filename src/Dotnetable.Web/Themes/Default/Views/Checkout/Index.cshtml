@@ -45,7 +45,7 @@
                             <div class="form-check border rounded p-3 mb-2">
                                 <input class="form-check-input" type="radio" name="shippingMethodId" value="@s.ShippingMethodID" id="ship-@s.ShippingMethodID" checked="@(s == Model.ShippingOptions.First())" />
                                 <label class="form-check-label" for="ship-@s.ShippingMethodID">
-                                    @s.Title (@s.CarrierName) — @s.PriceUsd.ToString("0.##") USD
+                                    @s.Title (@s.CarrierName) — @((s.Price?.Amount ?? s.PriceUsd).ToString("0.##")) @(s.Price?.CurrencyCode ?? "")
                                 </label>
                             </div>
                         }

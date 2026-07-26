@@ -66,6 +66,8 @@ public class InitialDataSeeder : IInitialDataSeeder
                 AllowAllIP = true,
                 WebsiteType = (byte)WebsiteType.Corporate,
             };
+            // Single-currency by default; dual USD is an explicit website setting later.
+            website.StorePricesInUsd = false;
             context.Websites.Add(website);
 
             var featureNow = DateTime.UtcNow;
@@ -81,6 +83,22 @@ public class InitialDataSeeder : IInitialDataSeeder
             }
 
             await context.SaveChangesAsync(ct);
+
+            // Seed the operational currency rate so storefront/admin never hard-require FX setup.
+            // USDToCurrency = units of this currency per 1 USD. For single-currency sites (any code)
+            // we use 1 so local amounts work immediately; multi-currency sites edit the rate later.
+            if (!await context.CurrencyRates.AnyAsync(r => r.WebsiteID == website.WebsiteID, ct))
+            {
+                context.CurrencyRates.Add(new CurrencyRate
+                {
+                    WebsiteID = website.WebsiteID,
+                    CurrencyCode = currencyCode,
+                    USDToCurrency = 1m,
+                    IsDefault = true,
+                    LastUpdate = DateTime.UtcNow,
+                });
+                await context.SaveChangesAsync(ct);
+            }
 
             // 2a. Admin panel language catalog (WebsiteID = null) — UI switcher / Initial Data → Languages.
             // Independent of every website, including master site 1.

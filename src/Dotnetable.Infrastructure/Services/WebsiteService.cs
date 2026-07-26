@@ -58,6 +58,8 @@ public class WebsiteService : IWebsiteService
 
     public async Task<Website> CreateAsync(Website website, CancellationToken ct = default)
     {
+        // Dual USD is opt-in; default operational mode is single site currency.
+        // (Do not force true when caller left the flag default.)
         _context.Websites.Add(website);
 
         var defaults = ((WebsiteType)website.WebsiteType).GetDefaultFeatures();
@@ -74,6 +76,22 @@ public class WebsiteService : IWebsiteService
         }
 
         await _context.SaveChangesAsync(ct);
+
+        // Operational currency rate so the site works without multi-currency FX setup.
+        if (!string.IsNullOrWhiteSpace(website.DefaultCurrencyCode)
+            && !await _context.CurrencyRates.AnyAsync(r => r.WebsiteID == website.WebsiteID, ct))
+        {
+            _context.CurrencyRates.Add(new CurrencyRate
+            {
+                WebsiteID = website.WebsiteID,
+                CurrencyCode = website.DefaultCurrencyCode,
+                USDToCurrency = 1m,
+                IsDefault = true,
+                LastUpdate = DateTime.UtcNow,
+            });
+            await _context.SaveChangesAsync(ct);
+        }
+
         return website;
     }
 

@@ -104,11 +104,19 @@ else if (_website is not null)
                             </MudSelect>
                         </MudItem>
                         <MudItem xs="12" sm="6">
-                            <MudSwitch T="bool" @bind-Value="_website.StorePricesInUsd" Color="Color.Primary"
-                                       Label="@L["website.store_prices_in_usd", "Also store prices in USD"]" />
-                            <MudText Typo="Typo.caption" Color="Color.Secondary" Class="mt-1">
-                                @L["website.store_prices_in_usd_hint", "Default is off: prices are stored and managed in the site currency. Turn on to also keep USD equivalents in the database for multi-currency conversion and reporting. Storefront can still show other currencies via the USD rate bridge."]
-                            </MudText>
+                            <MudAlert Severity="Severity.Info" Dense="true" Variant="Variant.Outlined" Class="mt-1">
+                                @L["website.currency_mode_hint", "Single vs multi-currency (USD dual) is configured under Finance → Exchange Rates for each website — where rate tables are managed."]
+                                @if (!_isNew && Id > 0)
+                                {
+                                    <div class="mt-2">
+                                        <MudButton Variant="Variant.Text" Color="Color.Primary" Size="Size.Small"
+                                                   Href="/finance/currency-rates"
+                                                   StartIcon="@Icons.Material.Filled.CurrencyExchange">
+                                            @L["currency_rates", "Exchange Rates"]
+                                        </MudButton>
+                                    </div>
+                                }
+                            </MudAlert>
                         </MudItem>
                     </MudGrid>
                 </MudPaper>
@@ -272,7 +280,6 @@ else if (_website is not null)
                 Active = true,
                 DefaultLanguageCode = "en",
                 DefaultCurrencyCode = _currencies.FirstOrDefault()?.CurrencyCode ?? string.Empty,
-                StorePricesInUsd = false,
             };
         }
         else

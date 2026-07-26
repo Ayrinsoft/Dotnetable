@@ -26,7 +26,7 @@
                             }
                             <div class="card-body">
                                 <h6 class="card-title">@item.Title</h6>
-                                <div class="fw-bold">@item.PriceUsd.ToString("0.##") USD</div>
+                                <div class="fw-bold">@((item.Price?.Amount ?? item.PriceUsd).ToString("0.##")) @(item.Price?.CurrencyCode ?? "")</div>
                                 <div class="d-flex gap-2 mt-2">
                                     <form asp-controller="Shop" asp-action="AddToCart" method="post">
                                         <input type="hidden" name="variantId" value="@item.ProductVariantID" />

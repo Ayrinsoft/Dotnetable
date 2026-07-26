@@ -199,11 +199,17 @@ public class ShippingService : IShippingService
 
             if (best is not null)
             {
-                var priceUsd = best.PriceUsd;
-                if (priceUsd <= 0 && best.Price > 0)
+                // Site-currency Price is authority; dual USD is bridge (or mirror in single-currency mode).
+                var local = best.Price > 0 ? best.Price : best.PriceUsd;
+                var priceUsd = best.PriceUsd > 0 ? best.PriceUsd : local;
+                try
                 {
-                    try { priceUsd = await _currency.ToUsdAsync(websiteId, best.Price, null, ct); }
-                    catch (InvalidOperationException) { priceUsd = best.Price; }
+                    if (best.Price > 0)
+                        priceUsd = await _currency.ToUsdAsync(websiteId, best.Price, null, ct);
+                }
+                catch (InvalidOperationException)
+                {
+                    priceUsd = local;
                 }
                 result.Add((method, priceUsd));
             }

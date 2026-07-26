@@ -4,10 +4,11 @@ using Dotnetable.Domain.Entities;
 namespace Dotnetable.Application.Interfaces;
 
 /// <summary>
-/// Converts monetary amounts between a website's operational (default) currency and other currencies.
-/// USD is the conversion bridge (rates store "local units per 1 USD"). Catalog amounts are stored in
-/// site currency; optional dual USD columns are used when <see cref="Website.StorePricesInUsd"/> is true
-/// or as a derived bridge for multi-currency display.
+/// Converts monetary amounts for a website.
+/// Default mode (<see cref="Website.StorePricesInUsd"/> = false): single operational currency only —
+/// no multi-currency switcher and no real FX required (e.g. KRW-only or IRR-only shops).
+/// Dual mode (flag = true): site currency is still authority; USD dual columns + rates enable
+/// multi-currency display (rates = local units per 1 USD).
 /// </summary>
 public interface ICurrencyConversionService
 {
