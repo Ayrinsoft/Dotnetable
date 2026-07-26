@@ -51,7 +51,7 @@
                     <td>@(r.State?.Title ?? L["any", "Any"])</td>
                     <td>@(r.City?.Title ?? L["any", "Any"])</td>
                     <td>@(r.MinWeightKg?.ToString("0.##") ?? "0") - @(r.MaxWeightKg?.ToString("0.##") ?? "∞")</td>
-                    <td>@r.PriceUsd.ToString("0.00")</td>
+                    <td>@((r.Price > 0 ? r.Price : r.PriceUsd).ToString("0.00"))</td>
                     <td>
                         <MudChip T="string" Size="Size.Small" Color="@(r.IsActive ? Color.Success : Color.Default)">
                             @(r.IsActive ? L["active", "Active"] : L["inactive", "Inactive"])
@@ -108,7 +108,7 @@
                 new() { ColumnTitle = L["state", "State"], ColumnName = "" },
                 new() { ColumnTitle = L["city", "City"], ColumnName = "" },
                 new() { ColumnTitle = L["weight_range", "Weight (kg)"], ColumnName = "" },
-                new() { ColumnTitle = L["price", "Price (USD)"], ColumnName = nameof(ShippingRate.PriceUsd), HasSort = true },
+                new() { ColumnTitle = L["price", "Price"], ColumnName = nameof(ShippingRate.Price), HasSort = true },
                 new() { ColumnTitle = L["status", "Status"], ColumnName = nameof(ShippingRate.IsActive), HasSort = true },
                 new() { ColumnTitle = "", ColumnName = "" },
             }
@@ -144,6 +144,7 @@
             CityID = r.CityID,
             MinWeightKg = r.MinWeightKg,
             MaxWeightKg = r.MaxWeightKg,
+            Price = r.Price > 0 ? r.Price : r.PriceUsd,
             PriceUsd = r.PriceUsd,
             IsActive = r.IsActive,
         };

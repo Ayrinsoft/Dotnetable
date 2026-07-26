@@ -69,12 +69,27 @@ public class CartService : ICartService
         foreach (var item in cart.CartItems)
         {
             var variant = item.ProductVariant;
-            // Catalog price is always ProductVariant.ReferencePriceUsd (USD reference).
-            // VendorProduct.OverridePrice is an optional USD override for marketplace listings.
-            // Display currency is applied later via the live exchange rate (USD × rate).
-            var unitPriceUsd = item.VendorProduct is { } vp
-                ? (vp.OverridePrice ?? vp.ReferencePriceUsd)
-                : variant.ReferencePriceUsd;
+            // Site-currency catalog price is authority; multi-currency display goes through the USD rate bridge.
+            decimal unitPriceUsd;
+            MoneyDto unitPrice;
+            if (item.VendorProduct is { } vp)
+            {
+                var local = vp.OverridePriceLocal ?? (vp.ReferencePrice > 0 ? vp.ReferencePrice : 0);
+                unitPriceUsd = await _currency.ResolveCatalogUnitUsdAsync(
+                    websiteId, vp.ReferencePrice, vp.ReferencePriceUsd, vp.OverridePriceLocal, vp.OverridePrice, ct);
+                unitPrice = local > 0
+                    ? await _currency.ToDisplayFromLocalAsync(websiteId, local, null, currencyCode, unitPriceUsd > 0 ? unitPriceUsd : null, ct)
+                    : await _currency.ToDisplayAsync(websiteId, unitPriceUsd, currencyCode, ct);
+            }
+            else
+            {
+                unitPriceUsd = await _currency.ResolveCatalogUnitUsdAsync(
+                    websiteId, variant.ReferencePrice, variant.ReferencePriceUsd, null, null, ct);
+                unitPrice = variant.ReferencePrice > 0
+                    ? await _currency.ToDisplayFromLocalAsync(websiteId, variant.ReferencePrice, null, currencyCode, unitPriceUsd > 0 ? unitPriceUsd : null, ct)
+                    : await _currency.ToDisplayAsync(websiteId, unitPriceUsd, currencyCode, ct);
+            }
+
             var lineTotalUsd = unitPriceUsd * item.Quantity;
             subtotalUsd += lineTotalUsd;
             totalWeight += (variant.Weight ?? 0) * item.Quantity;
@@ -93,6 +108,13 @@ public class CartService : ICartService
                 isAvailable = avail.Available >= item.Quantity;
             }
 
+            var lineTotal = new MoneyDto
+            {
+                Amount = unitPrice.Amount * item.Quantity,
+                CurrencyCode = unitPrice.CurrencyCode,
+                AmountUsd = lineTotalUsd,
+            };
+
             items.Add(new CartItemViewDto
             {
                 CartItemID = item.CartItemID,
@@ -104,8 +126,8 @@ public class CartService : ICartService
                 Sku = variant.Sku,
                 ImageUrl = variant.ImageFile?.ThumbnailCDN ?? variant.ImageFile?.CNDUrl,
                 Quantity = item.Quantity,
-                UnitPrice = await _currency.ToDisplayAsync(websiteId, unitPriceUsd, currencyCode, ct),
-                LineTotal = await _currency.ToDisplayAsync(websiteId, lineTotalUsd, currencyCode, ct),
+                UnitPrice = unitPrice,
+                LineTotal = lineTotal,
                 IsAvailable = isAvailable,
                 MaxPurchasable = maxPurchasable,
             });
@@ -237,17 +259,27 @@ public class CartService : ICartService
 
     public async Task<(bool Success, string? Error)> ApplyCouponAsync(int websiteId, int cartId, string code, int? clientId, CancellationToken ct = default)
     {
-        var cart = await _context.Carts.Include(c => c.CartItems).ThenInclude(i => i.ProductVariant)
+        var cart = await _context.Carts
+            .Include(c => c.CartItems).ThenInclude(i => i.ProductVariant)
+            .Include(c => c.CartItems).ThenInclude(i => i.VendorProduct)
             .FirstOrDefaultAsync(c => c.CartID == cartId, ct);
         if (cart is null) return (false, "Cart not found.");
 
-        var subtotalUsd = cart.CartItems.Sum(i =>
+        decimal subtotalUsd = 0;
+        foreach (var i in cart.CartItems)
         {
-            var usd = i.VendorProduct is { } vp
-                ? (vp.OverridePrice ?? vp.ReferencePriceUsd)
-                : i.ProductVariant.ReferencePriceUsd;
-            return usd * i.Quantity;
-        });
+            if (i.VendorProduct is { } vp)
+            {
+                subtotalUsd += await _currency.ResolveCatalogUnitUsdAsync(
+                    websiteId, vp.ReferencePrice, vp.ReferencePriceUsd, vp.OverridePriceLocal, vp.OverridePrice, ct) * i.Quantity;
+            }
+            else
+            {
+                var v = i.ProductVariant;
+                subtotalUsd += await _currency.ResolveCatalogUnitUsdAsync(
+                    websiteId, v.ReferencePrice, v.ReferencePriceUsd, null, null, ct) * i.Quantity;
+            }
+        }
         var coupon = await _context.Coupons.FirstOrDefaultAsync(c => c.WebsiteID == websiteId && c.Code == code, ct);
         if (coupon is null) return (false, "Coupon not found.");
 

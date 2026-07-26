@@ -47,7 +47,7 @@
                             @(w.WebsiteClient is { } c ? (c.Email ?? c.Cellphone ?? $"#{c.WebsiteClientID}") : $"#{w.WebsiteClientID}")
                         </MudLink>
                     </td>
-                    <td>@w.AmountUsd.ToString("N2")</td>
+                    <td>@((w.Amount != 0 || w.AmountUsd == 0 ? w.Amount : w.AmountUsd).ToString("N2"))</td>
                     <td>@(w.ClientBankAccount is { } b ? $"{b.OwnerName} — {b.IBAN ?? b.AccountNumber ?? b.CardNumber}" : "—")</td>
                     <td>
                         @{ var (statusColor, statusText) = StatusInfo(w.Status); }
@@ -100,7 +100,7 @@
             {
                 new() { ColumnTitle = L["id", "ID"], ColumnName = nameof(ClientWalletWithdrawal.ClientWalletWithdrawalID), HasSort = true },
                 new() { ColumnTitle = L["clients", "Customer"], ColumnName = "Client" },
-                new() { ColumnTitle = L["amount", "Amount"], ColumnName = nameof(ClientWalletWithdrawal.AmountUsd), HasSort = true },
+                new() { ColumnTitle = L["amount", "Amount"], ColumnName = nameof(ClientWalletWithdrawal.Amount), HasSort = true },
                 new() { ColumnTitle = L["wallets.bank_account", "Bank Account"], ColumnName = "BankAccount" },
                 new() { ColumnTitle = L["status", "Status"], ColumnName = nameof(ClientWalletWithdrawal.Status) },
                 new() { ColumnTitle = L["wallets.requested_at", "Requested"], ColumnName = nameof(ClientWalletWithdrawal.RequestedAt), HasSort = true },

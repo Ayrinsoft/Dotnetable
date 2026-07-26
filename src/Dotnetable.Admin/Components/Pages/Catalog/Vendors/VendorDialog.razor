@@ -83,8 +83,8 @@
                                 </MudText>
                             </MudItem>
                             <MudItem xs="12" sm="6">
-                                <MudNumericField T="decimal" Value="Model.AvailableCreditUsd" Disabled="true"
-                                                 Label="@L["vendors.available_credit", "Available credit (USD)"]" Variant="Variant.Outlined" />
+                                <MudNumericField T="decimal" Value="@(Model.AvailableCredit != 0 || Model.AvailableCreditUsd == 0 ? Model.AvailableCredit : Model.AvailableCreditUsd)" Disabled="true"
+                                                 Label="@L["vendors.available_credit", "Available credit"]" Variant="Variant.Outlined" />
                             </MudItem>
                         }
                         @if (Model.SettlementMode == 1)
@@ -93,7 +93,7 @@
                                 <MudNumericField T="int?" @bind-Value="Model.CreditDays" Label="@L["vendors.credit_days", "Credit days"]" Variant="Variant.Outlined" Min="1" />
                             </MudItem>
                             <MudItem xs="12" sm="6">
-                                <MudNumericField T="decimal?" @bind-Value="Model.CreditLimitUsd" Label="@L["vendors.credit_limit", "Credit limit (USD)"]" Variant="Variant.Outlined" Min="0" />
+                                <MudNumericField T="decimal?" @bind-Value="Model.CreditLimit" Label="@L["vendors.credit_limit", "Credit limit (site currency)"]" Variant="Variant.Outlined" Min="0" />
                             </MudItem>
                         }
                     </MudGrid>

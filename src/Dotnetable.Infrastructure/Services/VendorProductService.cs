@@ -81,7 +81,9 @@ public class VendorProductService : IVendorProductService
         ProductTitle = vp.ProductVariant.Product.Title,
         VariantTitle = vp.ProductVariant.Title,
         Sku = vp.ProductVariant.Sku,
+        ReferencePrice = vp.ReferencePrice > 0 ? vp.ReferencePrice : vp.ReferencePriceUsd,
         ReferencePriceUsd = vp.ReferencePriceUsd,
+        OverridePriceLocal = vp.OverridePriceLocal,
         OverridePrice = vp.OverridePrice,
         StockQuantity = vp.StockQuantity,
         DeliveryDays = vp.DeliveryDays,
@@ -137,6 +139,7 @@ public class VendorProductService : IVendorProductService
                 ProductTitle = v.Product.Title,
                 VariantTitle = v.Title,
                 v.Sku,
+                v.ReferencePrice,
                 v.ReferencePriceUsd,
             })
             .ToListAsync(ct);
@@ -148,6 +151,7 @@ public class VendorProductService : IVendorProductService
             ProductTitle = v.ProductTitle,
             VariantTitle = v.VariantTitle ?? string.Empty,
             Sku = v.Sku,
+            ReferencePrice = v.ReferencePrice > 0 ? v.ReferencePrice : v.ReferencePriceUsd,
             ReferencePriceUsd = v.ReferencePriceUsd,
             AlreadyListed = listed.Contains(v.ProductVariantID),
         }).ToList();
@@ -210,9 +214,14 @@ public class VendorProductService : IVendorProductService
             }
         }
 
+        // Site-currency listing price is authority; USD dual kept for conversion bridge.
+        entity.ReferencePrice = model.ReferencePrice > 0
+            ? model.ReferencePrice
+            : (variant.ReferencePrice > 0 ? variant.ReferencePrice : model.ReferencePriceUsd);
+        entity.OverridePriceLocal = model.OverridePriceLocal;
         entity.ReferencePriceUsd = model.ReferencePriceUsd > 0
             ? model.ReferencePriceUsd
-            : variant.ReferencePriceUsd;
+            : (variant.ReferencePriceUsd > 0 ? variant.ReferencePriceUsd : entity.ReferencePrice);
         entity.OverridePrice = model.OverridePrice;
         entity.StockQuantity = model.StockQuantity;
         entity.DeliveryDays = model.DeliveryDays < 0 ? 0 : model.DeliveryDays;

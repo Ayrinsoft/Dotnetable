@@ -10,8 +10,13 @@ namespace Dotnetable.Infrastructure.Services;
 public class ShippingService : IShippingService
 {
     private readonly AppDbContext _context;
+    private readonly ICurrencyConversionService _currency;
 
-    public ShippingService(AppDbContext context) => _context = context;
+    public ShippingService(AppDbContext context, ICurrencyConversionService currency)
+    {
+        _context = context;
+        _currency = currency;
+    }
 
     // ── Methods ─────────────────────────────────────────────────────
 
@@ -103,6 +108,7 @@ public class ShippingService : IShippingService
 
     public async Task<ShippingRate> CreateRateAsync(ShippingRate rate, CancellationToken ct = default)
     {
+        await NormalizeRatePriceAsync(rate, ct);
         _context.ShippingRates.Add(rate);
         await _context.SaveChangesAsync(ct);
         return rate;
@@ -113,16 +119,42 @@ public class ShippingService : IShippingService
         var existing = await _context.ShippingRates.FirstOrDefaultAsync(r => r.ShippingRateID == rate.ShippingRateID, ct);
         if (existing is null) return false;
 
+        await NormalizeRatePriceAsync(rate, ct);
+
         existing.CountryID = rate.CountryID;
         existing.StateID = rate.StateID;
         existing.CityID = rate.CityID;
         existing.MinWeightKg = rate.MinWeightKg;
         existing.MaxWeightKg = rate.MaxWeightKg;
+        existing.Price = rate.Price;
         existing.PriceUsd = rate.PriceUsd;
         existing.IsActive = rate.IsActive;
 
         await _context.SaveChangesAsync(ct);
         return true;
+    }
+
+    private async Task NormalizeRatePriceAsync(ShippingRate rate, CancellationToken ct)
+    {
+        var method = await _context.ShippingMethods.AsNoTracking()
+            .FirstOrDefaultAsync(m => m.ShippingMethodID == rate.ShippingMethodID, ct);
+        if (method is null) return;
+
+        try
+        {
+            if (rate.Price > 0)
+                rate.PriceUsd = await _currency.ToUsdAsync(method.WebsiteID, rate.Price, null, ct);
+            else if (rate.PriceUsd > 0)
+            {
+                var m = await _currency.ToDisplayAsync(method.WebsiteID, rate.PriceUsd, null, ct);
+                rate.Price = m.Amount;
+            }
+        }
+        catch (InvalidOperationException)
+        {
+            if (rate.Price <= 0) rate.Price = rate.PriceUsd;
+            if (rate.PriceUsd <= 0) rate.PriceUsd = rate.Price;
+        }
     }
 
     public async Task<bool> DeleteRateAsync(int shippingRateId, CancellationToken ct = default)
@@ -166,7 +198,15 @@ public class ShippingService : IShippingService
                 candidates.FirstOrDefault(r => r.CountryID is null && r.StateID is null && r.CityID is null);
 
             if (best is not null)
-                result.Add((method, best.PriceUsd));
+            {
+                var priceUsd = best.PriceUsd;
+                if (priceUsd <= 0 && best.Price > 0)
+                {
+                    try { priceUsd = await _currency.ToUsdAsync(websiteId, best.Price, null, ct); }
+                    catch (InvalidOperationException) { priceUsd = best.Price; }
+                }
+                result.Add((method, priceUsd));
+            }
         }
 
         return result;

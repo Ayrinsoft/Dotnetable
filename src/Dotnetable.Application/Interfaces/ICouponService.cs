@@ -9,10 +9,10 @@ namespace Dotnetable.Application.Interfaces;
 /// </summary>
 public static class DiscountTypes
 {
-    /// <summary>DiscountValue is a percentage (0-100) of the cart subtotal, optionally capped by MaxDiscountAmountUsd.</summary>
+    /// <summary>DiscountValue is a percentage (0-100) of the cart subtotal, optionally capped by MaxDiscountAmount.</summary>
     public const byte Percent = 0;
 
-    /// <summary>DiscountValue is a flat USD amount, capped at the cart subtotal.</summary>
+    /// <summary>DiscountValue is a flat amount in site currency (legacy constant name FixedAmountUsd), capped at the cart subtotal.</summary>
     public const byte FixedAmountUsd = 1;
 }
 

@@ -104,11 +104,15 @@ else
                             </MudText>
                         </td>
                         <td><code>@item.Sku</code></td>
-                        <td>@item.ReferencePriceUsd.ToString("0.##") USD</td>
+                        <td>@((item.ReferencePrice > 0 ? item.ReferencePrice : item.ReferencePriceUsd).ToString("0.##"))</td>
                         <td>
-                            @if (item.OverridePrice is decimal ov)
+                            @if (item.OverridePriceLocal is decimal ovLocal)
                             {
-                                <span>@ov.ToString("0.##") USD</span>
+                                <span>@ovLocal.ToString("0.##")</span>
+                            }
+                            else if (item.OverridePrice is decimal ov)
+                            {
+                                <span>@ov.ToString("0.##")</span>
                             }
                             else
                             {
@@ -173,8 +177,8 @@ else
                 new() { ColumnTitle = L["products.product", "Product"], ColumnName = "ProductTitle" },
                 new() { ColumnTitle = L["variants.title", "Variant"], ColumnName = "VariantTitle" },
                 new() { ColumnTitle = L["sku", "SKU"], ColumnName = "Sku" },
-                new() { ColumnTitle = L["vendors.ref_price", "Ref. (USD)"], ColumnName = nameof(VendorProductListItemDto.ReferencePriceUsd) },
-                new() { ColumnTitle = L["vendors.override_price", "Override (USD)"], ColumnName = nameof(VendorProductListItemDto.OverridePrice) },
+                new() { ColumnTitle = L["vendors.ref_price", "Ref. price"], ColumnName = nameof(VendorProductListItemDto.ReferencePrice) },
+                new() { ColumnTitle = L["vendors.override_price", "Override"], ColumnName = nameof(VendorProductListItemDto.OverridePriceLocal) },
                 new() { ColumnTitle = L["stock", "Stock"], ColumnName = nameof(VendorProductListItemDto.StockQuantity) },
                 new() { ColumnTitle = L["active", "Active"], ColumnName = nameof(VendorProductListItemDto.IsActive) },
                 new() { ColumnTitle = "", ColumnName = "" },

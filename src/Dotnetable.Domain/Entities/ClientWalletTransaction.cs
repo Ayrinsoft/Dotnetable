@@ -13,7 +13,12 @@ public partial class ClientWalletTransaction
 
     public byte Type { get; set; }
 
+    /// <summary>Signed amount in site currency.</summary>
+    public decimal Amount { get; set; }
+
     public decimal AmountUsd { get; set; }
+
+    public decimal BalanceAfter { get; set; }
 
     public decimal BalanceAfterUsd { get; set; }
 

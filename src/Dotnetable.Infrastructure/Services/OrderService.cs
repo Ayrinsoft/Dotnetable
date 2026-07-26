@@ -55,10 +55,14 @@ public class OrderService : IOrderService
             return new CheckoutResult(false, "Address not found.", null, null);
         var stateId = address.City?.StateID;
 
-        // Preload vendor credit needs for site-linked lines.
+        // Preload vendor credit needs for site-linked lines (USD bridge for credit accounting).
+        var unitUsdByItem = new Dictionary<int, decimal>();
+        foreach (var i in cart.CartItems)
+            unitUsdByItem[i.CartItemID] = await ResolveUnitPriceUsdAsync(i, websiteId, ct);
+
         decimal creditNeedByVendor(int vendorId) => cart.CartItems
             .Where(i => i.VendorProduct?.VendorID == vendorId)
-            .Sum(i => ResolveUnitPriceUsd(i) * i.Quantity);
+            .Sum(i => unitUsdByItem[i.CartItemID] * i.Quantity);
 
         // Stock / vendor listing re-validation.
         foreach (var item in cart.CartItems)
@@ -74,7 +78,12 @@ public class OrderService : IOrderService
                     if (vp.Vendor.LinkedWebsiteID is int lid && item.ProductVariant.Product.WebsiteID != lid)
                         return new CheckoutResult(false, $"Product {item.ProductVariant.Product.Title} cannot be sold via this vendor link.", null, null);
 
-                    if (vp.Vendor.SettlementMode == 1 && vp.Vendor.AvailableCreditUsd < creditNeedByVendor(vp.VendorID))
+                    var availableCredit = vp.Vendor.AvailableCredit != 0 || vp.Vendor.AvailableCreditUsd == 0
+                        ? vp.Vendor.AvailableCredit
+                        : vp.Vendor.AvailableCreditUsd;
+                    // creditNeed is USD; convert available when dual is populated.
+                    var needUsd = creditNeedByVendor(vp.VendorID);
+                    if (vp.Vendor.SettlementMode == 1 && vp.Vendor.AvailableCreditUsd < needUsd && availableCredit < needUsd)
                         return new CheckoutResult(false, $"Insufficient inter-site credit for vendor {vp.Vendor.Name}.", null, null);
 
                     if (vp.StockQuantity < item.Quantity)
@@ -99,7 +108,7 @@ public class OrderService : IOrderService
         if (shippingOption.Method is null)
             return new CheckoutResult(false, "Selected shipping method is not available for this address.", null, null);
 
-        var subtotalUsd = cart.CartItems.Sum(i => ResolveUnitPriceUsd(i) * i.Quantity);
+        var subtotalUsd = cart.CartItems.Sum(i => unitUsdByItem[i.CartItemID] * i.Quantity);
         var taxUsd = await _tax.ComputeTaxAsync(websiteId, address.CountryId, stateId, subtotalUsd, ct);
         var shippingUsd = shippingOption.PriceUsd;
 
@@ -148,7 +157,7 @@ public class OrderService : IOrderService
         foreach (var item in cart.CartItems)
         {
             var variant = item.ProductVariant;
-            var unitPriceUsd = ResolveUnitPriceUsd(item);
+            var unitPriceUsd = unitUsdByItem[item.CartItemID];
             var sourceWebsiteId = variant.Product.WebsiteID;
             var unitCostUsd = variant.InventoryItems.FirstOrDefault(i => i.WebsiteID == sourceWebsiteId)?.AvgCostUsd ?? 0;
 
@@ -221,12 +230,17 @@ public class OrderService : IOrderService
         return new CheckoutResult(true, null, order.OrderID, order.OrderNumber);
     }
 
-    private static decimal ResolveUnitPriceUsd(CartItem item)
+    private async Task<decimal> ResolveUnitPriceUsdAsync(CartItem item, int websiteId, CancellationToken ct)
     {
         if (item.VendorProduct is { } vp)
-            return vp.OverridePrice ?? vp.ReferencePriceUsd;
-        // ProductVariant.OverridePrice is display-currency snapshot; USD is always ReferencePriceUsd.
-        return item.ProductVariant.ReferencePriceUsd;
+        {
+            return await _currency.ResolveCatalogUnitUsdAsync(
+                websiteId, vp.ReferencePrice, vp.ReferencePriceUsd, vp.OverridePriceLocal, vp.OverridePrice, ct);
+        }
+
+        var variant = item.ProductVariant;
+        return await _currency.ResolveCatalogUnitUsdAsync(
+            websiteId, variant.ReferencePrice, variant.ReferencePriceUsd, null, null, ct);
     }
 
     public async Task<Order?> GetByIdAsync(int orderId, int? clientId = null, CancellationToken ct = default)

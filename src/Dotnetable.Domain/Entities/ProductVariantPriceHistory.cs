@@ -9,6 +9,10 @@ public partial class ProductVariantPriceHistory
 
     public int ProductVariantID { get; set; }
 
+    public decimal ReferencePrice { get; set; }
+
+    public decimal? CompareAtPrice { get; set; }
+
     public decimal ReferencePriceUsd { get; set; }
 
     public decimal? CompareAtPriceUsd { get; set; }

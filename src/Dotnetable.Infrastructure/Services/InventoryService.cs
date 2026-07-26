@@ -10,8 +10,13 @@ namespace Dotnetable.Infrastructure.Services;
 public class InventoryService : IInventoryService
 {
     private readonly AppDbContext _context;
+    private readonly ICurrencyConversionService _currency;
 
-    public InventoryService(AppDbContext context) => _context = context;
+    public InventoryService(AppDbContext context, ICurrencyConversionService currency)
+    {
+        _context = context;
+        _currency = currency;
+    }
 
     public async Task<StockAvailability> GetAvailabilityAsync(int websiteId, int variantId, CancellationToken ct = default)
     {
@@ -88,9 +93,13 @@ public class InventoryService : IInventoryService
         for (var attempt = 0; attempt < 2; attempt++)
         {
             var item = await GetOrCreateAsync(websiteId, variantId, ct);
+            var (currencyCode, rate) = await ResolveSiteRateAsync(websiteId, ct);
 
             item.QuantityOnHand -= qty;
             item.QuantityReserved = Math.Max(0, item.QuantityReserved - qty);
+
+            var unitCost = item.AvgCost > 0 ? item.AvgCost : item.AvgCostUsd * rate;
+            var unitCostUsd = item.AvgCostUsd > 0 ? item.AvgCostUsd : (rate == 0 ? 0 : unitCost / rate);
 
             _context.StockMovements.Add(new StockMovement
             {
@@ -98,9 +107,10 @@ public class InventoryService : IInventoryService
                 ProductVariantID = variantId,
                 Type = (byte)StockMovementType.Sale,
                 Quantity = -qty,
-                UnitCostUsd = item.AvgCostUsd,
-                CurrencyCode = "USD",
-                ExchangeRateToUsd = 1m,
+                UnitCost = unitCost,
+                UnitCostUsd = unitCostUsd,
+                CurrencyCode = currencyCode,
+                ExchangeRateToUsd = rate,
                 OrderID = orderId,
                 OrderItemID = orderItemId,
                 CreatedByMemberID = memberId,
@@ -121,17 +131,32 @@ public class InventoryService : IInventoryService
         }
     }
 
-    public async Task AdjustAsync(int websiteId, int variantId, int delta, decimal? unitCostUsd, string? note, int memberId, CancellationToken ct = default)
+    public async Task AdjustAsync(int websiteId, int variantId, int delta, decimal? unitCost, string? note, int memberId, CancellationToken ct = default)
     {
         for (var attempt = 0; attempt < 2; attempt++)
         {
             var item = await GetOrCreateAsync(websiteId, variantId, ct);
+            var (currencyCode, rate) = await ResolveSiteRateAsync(websiteId, ct);
+
+            decimal? unitCostUsd = null;
+            decimal? unitCostLocal = unitCost;
+            if (unitCost is decimal cost)
+            {
+                unitCostUsd = rate == 0 ? cost : cost / rate;
+                if (delta > 0)
+                {
+                    var prevLocal = item.AvgCost > 0 ? item.AvgCost : item.AvgCostUsd * rate;
+                    item.AvgCost = item.QuantityOnHand + delta > 0
+                        ? ((prevLocal * item.QuantityOnHand) + (cost * delta)) / (item.QuantityOnHand + delta)
+                        : cost;
+                    item.AvgCostUsd = rate == 0 ? item.AvgCost : item.AvgCost / rate;
+                }
+            }
 
             item.QuantityOnHand += delta;
-            if (unitCostUsd is decimal cost && delta > 0)
-                item.AvgCostUsd = item.QuantityOnHand > 0
-                    ? ((item.AvgCostUsd * (item.QuantityOnHand - delta)) + (cost * delta)) / item.QuantityOnHand
-                    : cost;
+
+            var movementCost = unitCostLocal ?? (item.AvgCost > 0 ? item.AvgCost : item.AvgCostUsd * rate);
+            var movementCostUsd = unitCostUsd ?? (item.AvgCostUsd > 0 ? item.AvgCostUsd : (rate == 0 ? movementCost : movementCost / rate));
 
             _context.StockMovements.Add(new StockMovement
             {
@@ -139,9 +164,10 @@ public class InventoryService : IInventoryService
                 ProductVariantID = variantId,
                 Type = (byte)StockMovementType.Adjustment,
                 Quantity = delta,
-                UnitCostUsd = unitCostUsd ?? item.AvgCostUsd,
-                CurrencyCode = "USD",
-                ExchangeRateToUsd = 1m,
+                UnitCost = movementCost,
+                UnitCostUsd = movementCostUsd,
+                CurrencyCode = currencyCode,
+                ExchangeRateToUsd = rate,
                 Note = note,
                 CreatedByMemberID = memberId,
                 CreatedAt = DateTime.UtcNow,
@@ -177,13 +203,15 @@ public class InventoryService : IInventoryService
             var delta = quantityOnHand - item.QuantityOnHand;
             if (delta == 0)
             {
-                // Ensure a new zero-stock row is persisted so the variant appears in inventory.
                 if (_context.Entry(item).State == EntityState.Added)
                     await _context.SaveChangesAsync(ct);
                 return;
             }
 
             item.QuantityOnHand = quantityOnHand;
+            var (currencyCode, rate) = await ResolveSiteRateAsync(websiteId, ct);
+            var unitCost = item.AvgCost > 0 ? item.AvgCost : item.AvgCostUsd * rate;
+            var unitCostUsd = item.AvgCostUsd > 0 ? item.AvgCostUsd : (rate == 0 ? unitCost : unitCost / rate);
 
             _context.StockMovements.Add(new StockMovement
             {
@@ -191,9 +219,10 @@ public class InventoryService : IInventoryService
                 ProductVariantID = variantId,
                 Type = (byte)StockMovementType.Adjustment,
                 Quantity = delta,
-                UnitCostUsd = item.AvgCostUsd,
-                CurrencyCode = "USD",
-                ExchangeRateToUsd = 1m,
+                UnitCost = unitCost,
+                UnitCostUsd = unitCostUsd,
+                CurrencyCode = currencyCode,
+                ExchangeRateToUsd = rate,
                 Note = note ?? "Product stock set",
                 CreatedByMemberID = memberId,
                 CreatedAt = DateTime.UtcNow,
@@ -240,6 +269,18 @@ public class InventoryService : IInventoryService
             .OrderBy(i => i.QuantityOnHand)
             .ToListAsync(ct);
 
+    private async Task<(string CurrencyCode, decimal Rate)> ResolveSiteRateAsync(int websiteId, CancellationToken ct)
+    {
+        try
+        {
+            return await _currency.GetActiveRateAsync(websiteId, null, ct);
+        }
+        catch (InvalidOperationException)
+        {
+            return ("USD", 1m);
+        }
+    }
+
     private async Task<InventoryItem> GetOrCreateAsync(int websiteId, int variantId, CancellationToken ct)
     {
         var item = await _context.InventoryItems
@@ -253,6 +294,7 @@ public class InventoryService : IInventoryService
             QuantityOnHand = 0,
             QuantityReserved = 0,
             ReorderLevel = 0,
+            AvgCost = 0,
             AvgCostUsd = 0,
         };
         _context.InventoryItems.Add(item);

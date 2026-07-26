@@ -38,7 +38,8 @@ public interface IInventoryService
     /// <summary>Manual admin stock adjustment: writes an Adjustment <see cref="StockMovement"/> and changes
     /// QuantityOnHand by <paramref name="delta"/> (positive or negative), creating the <see cref="InventoryItem"/>
     /// row if it doesn't exist yet for that website+variant.</summary>
-    Task AdjustAsync(int websiteId, int variantId, int delta, decimal? unitCostUsd, string? note, int memberId, CancellationToken ct = default);
+    /// <param name="unitCost">Optional unit cost in website operational currency (dual USD is derived via rates).</param>
+    Task AdjustAsync(int websiteId, int variantId, int delta, decimal? unitCost, string? note, int memberId, CancellationToken ct = default);
 
     /// <summary>
     /// Sets absolute on-hand quantity for a variant (used when registering/editing a product).

@@ -41,7 +41,7 @@
                     <MudNumericField T="decimal?" @bind-Value="Model.MaxWeightKg" Label="@L["max_weight", "Max Weight (kg)"]" Variant="Variant.Outlined" Min="0" />
                 </MudItem>
                 <MudItem xs="12" sm="4">
-                    <MudNumericField T="decimal" @bind-Value="Model.PriceUsd" Label="@L["price", "Price (USD)"]" Variant="Variant.Outlined" Min="0" Required="true" />
+                    <MudNumericField T="decimal" @bind-Value="Model.Price" Label="@L["price", "Price (site currency)"]" Variant="Variant.Outlined" Min="0" Required="true" />
                 </MudItem>
                 <MudItem xs="12">
                     <MudSwitch T="bool" @bind-Value="Model.IsActive" Label="@L["active", "Active"]" Color="Color.Primary" />

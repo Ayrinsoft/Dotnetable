@@ -13,6 +13,9 @@ public partial class CouponRedemption
 
     public int WebsiteClientID { get; set; }
 
+    /// <summary>Discount applied in site currency at redemption.</summary>
+    public decimal DiscountAmount { get; set; }
+
     public decimal DiscountAmountUsd { get; set; }
 
     public DateTime RedeemedAt { get; set; }

@@ -30,6 +30,7 @@ public class ShippingController : BaseController
             shippingMethodId = r.Method.ShippingMethodID,
             title = r.Method.Title,
             carrierName = r.Method.CarrierName,
+            // USD bridge for multi-currency storefront conversion; site amount derived client-side via rates when needed.
             priceUsd = r.PriceUsd,
         }));
     }

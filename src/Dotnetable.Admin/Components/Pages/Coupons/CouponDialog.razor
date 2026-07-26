@@ -14,18 +14,18 @@
                 <MudItem xs="12" sm="4">
                     <MudSelect T="byte" @bind-Value="Model.DiscountType" Label="@L["discount_type", "Discount Type"]" Variant="Variant.Outlined">
                         <MudSelectItem T="byte" Value="@DiscountTypes.Percent">@L["percent", "Percent"]</MudSelectItem>
-                        <MudSelectItem T="byte" Value="@DiscountTypes.FixedAmountUsd">@L["fixed_amount", "Fixed Amount (USD)"]</MudSelectItem>
+                        <MudSelectItem T="byte" Value="@DiscountTypes.FixedAmountUsd">@L["fixed_amount", "Fixed Amount (site currency)"]</MudSelectItem>
                     </MudSelect>
                 </MudItem>
                 <MudItem xs="12" sm="4">
                     <MudNumericField T="decimal" @bind-Value="Model.DiscountValue" Label="@L["discount_value", "Discount Value"]" Variant="Variant.Outlined" Min="0" />
                 </MudItem>
                 <MudItem xs="12" sm="4">
-                    <MudNumericField T="decimal?" @bind-Value="Model.MaxDiscountAmountUsd" Label="@L["max_discount", "Max Discount (USD)"]" Variant="Variant.Outlined" Min="0"
+                    <MudNumericField T="decimal?" @bind-Value="Model.MaxDiscountAmount" Label="@L["max_discount", "Max Discount (site currency)"]" Variant="Variant.Outlined" Min="0"
                                      Disabled="@(Model.DiscountType != DiscountTypes.Percent)" />
                 </MudItem>
                 <MudItem xs="12" sm="6">
-                    <MudNumericField T="decimal" @bind-Value="Model.MinOrderAmountUsd" Label="@L["min_order", "Minimum Order (USD)"]" Variant="Variant.Outlined" Min="0" />
+                    <MudNumericField T="decimal" @bind-Value="Model.MinOrderAmount" Label="@L["min_order", "Minimum Order (site currency)"]" Variant="Variant.Outlined" Min="0" />
                 </MudItem>
                 <MudItem xs="12" sm="6" />
                 <MudItem xs="12" sm="6">

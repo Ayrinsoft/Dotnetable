@@ -15,7 +15,13 @@ public partial class StockMovement
 
     public int Quantity { get; set; }
 
+    /// <summary>Unit cost in site currency at the time of the movement.</summary>
+    public decimal UnitCost { get; set; }
+
     public decimal UnitCostUsd { get; set; }
+
+    /// <summary>Optional unit sale price in site currency.</summary>
+    public decimal? UnitSalePrice { get; set; }
 
     public decimal? UnitSalePriceUsd { get; set; }
 

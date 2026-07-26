@@ -65,7 +65,8 @@ public class ProductService : IProductService
             Status = p.Status,
             IsActive = p.IsActive,
             HasVariants = p.HasVariants,
-            MinPriceUsd = p.ProductVariants.Count == 0 ? null : p.ProductVariants.Min(v => v.ReferencePriceUsd),
+            MinPriceUsd = p.ProductVariants.Count == 0 ? null : p.ProductVariants.Min(v => v.ReferencePriceUsd > 0 ? v.ReferencePriceUsd : 0),
+            MinPrice = p.ProductVariants.Count == 0 ? null : p.ProductVariants.Min(v => v.ReferencePrice > 0 ? v.ReferencePrice : v.ReferencePriceUsd),
             FeaturedImageUrl = p.FeaturedImageFile?.ThumbnailCDN ?? p.FeaturedImageFile?.CNDUrl,
             UpdatedAt = p.UpdatedAt,
         }).ToList();
@@ -261,11 +262,14 @@ public class ProductService : IProductService
                 throw new ArgumentException($"Variant {i + 1}: SKU must be at most 100 characters.");
             if (!seenSkus.Add(sku))
                 throw new ArgumentException($"Variant {i + 1}: duplicate SKU \"{sku}\".");
-            if (v.ReferencePriceUsd <= 0)
+            // Site-currency price is authority; USD may be dual-stored or derived.
+            if (v.ReferencePrice <= 0 && v.ReferencePriceUsd <= 0)
                 throw new ArgumentException($"Variant {i + 1}: price must be greater than zero.");
             v.Title = title;
             v.Sku = sku;
         }
+
+        await NormalizeVariantPricesAsync(product.WebsiteID, variants, ct);
 
         var existing = await _context.ProductVariants.Where(v => v.ProductID == productId).ToListAsync(ct);
         var wantedIds = variants.Where(v => v.ProductVariantID != 0).Select(v => v.ProductVariantID).ToHashSet();
@@ -296,6 +300,8 @@ public class ProductService : IProductService
                     Title = v.Title,
                     IsDefault = v.IsDefault,
                     ImageFileID = v.ImageFileID,
+                    ReferencePrice = v.ReferencePrice,
+                    CompareAtPrice = v.CompareAtPrice,
                     ReferencePriceUsd = v.ReferencePriceUsd,
                     CompareAtPriceUsd = v.CompareAtPriceUsd,
                     OverridePrice = v.OverridePrice,
@@ -312,13 +318,17 @@ public class ProductService : IProductService
                 var current = existing.FirstOrDefault(x => x.ProductVariantID == v.ProductVariantID);
                 if (current is null) continue;
 
-                var priceChanged = current.ReferencePriceUsd != v.ReferencePriceUsd
+                var priceChanged = current.ReferencePrice != v.ReferencePrice
+                    || current.CompareAtPrice != v.CompareAtPrice
+                    || current.ReferencePriceUsd != v.ReferencePriceUsd
                     || current.CompareAtPriceUsd != v.CompareAtPriceUsd;
 
                 current.Sku = v.Sku;
                 current.Title = v.Title;
                 current.IsDefault = v.IsDefault;
                 current.ImageFileID = v.ImageFileID;
+                current.ReferencePrice = v.ReferencePrice;
+                current.CompareAtPrice = v.CompareAtPrice;
                 current.ReferencePriceUsd = v.ReferencePriceUsd;
                 current.CompareAtPriceUsd = v.CompareAtPriceUsd;
                 current.OverridePrice = v.OverridePrice;
@@ -327,7 +337,7 @@ public class ProductService : IProductService
                 current.IsActive = v.IsActive;
 
                 if (priceChanged)
-                    AppendPriceHistory(current.ProductVariantID, v.ReferencePriceUsd, v.CompareAtPriceUsd, now, changedByMemberId);
+                    AppendPriceHistory(current.ProductVariantID, v.ReferencePrice, v.CompareAtPrice, v.ReferencePriceUsd, v.CompareAtPriceUsd, now, changedByMemberId);
             }
         }
 
@@ -335,7 +345,7 @@ public class ProductService : IProductService
 
         // New variants get an ID after SaveChanges — log their initial price.
         foreach (var created in newVariantsNeedingHistory)
-            AppendPriceHistory(created.ProductVariantID, created.ReferencePriceUsd, created.CompareAtPriceUsd, now, changedByMemberId);
+            AppendPriceHistory(created.ProductVariantID, created.ReferencePrice, created.CompareAtPrice, created.ReferencePriceUsd, created.CompareAtPriceUsd, now, changedByMemberId);
 
         if (newVariantsNeedingHistory.Count > 0)
             await _context.SaveChangesAsync(ct);
@@ -368,6 +378,8 @@ public class ProductService : IProductService
             {
                 ProductVariantPriceHistoryID = h.ProductVariantPriceHistoryID,
                 ProductVariantID = h.ProductVariantID,
+                ReferencePrice = h.ReferencePrice,
+                CompareAtPrice = h.CompareAtPrice,
                 ReferencePriceUsd = h.ReferencePriceUsd,
                 CompareAtPriceUsd = h.CompareAtPriceUsd,
                 RecordedAt = h.RecordedAt,
@@ -376,8 +388,41 @@ public class ProductService : IProductService
             .ToListAsync(ct);
     }
 
+    /// <summary>
+    /// Ensures site-currency price is set and USD dual is filled (always derived when missing so multi-currency works).
+    /// </summary>
+    private async Task NormalizeVariantPricesAsync(int websiteId, IReadOnlyList<ProductVariant> variants, CancellationToken ct)
+    {
+        decimal? usdToLocal = null;
+        try
+        {
+            var (_, rate) = await _currency.GetActiveRateAsync(websiteId, null, ct);
+            usdToLocal = rate <= 0 ? 1m : rate;
+        }
+        catch (InvalidOperationException)
+        {
+            usdToLocal = 1m;
+        }
+
+        var rateVal = usdToLocal.Value;
+        foreach (var v in variants)
+        {
+            if (v.ReferencePrice <= 0 && v.ReferencePriceUsd > 0)
+                v.ReferencePrice = Math.Round(v.ReferencePriceUsd * rateVal, 4, MidpointRounding.AwayFromZero);
+            if (v.ReferencePriceUsd <= 0 && v.ReferencePrice > 0)
+                v.ReferencePriceUsd = rateVal == 0 ? 0 : Math.Round(v.ReferencePrice / rateVal, 4, MidpointRounding.AwayFromZero);
+
+            if (v.CompareAtPrice is null && v.CompareAtPriceUsd is decimal cmpUsd && cmpUsd > 0)
+                v.CompareAtPrice = Math.Round(cmpUsd * rateVal, 4, MidpointRounding.AwayFromZero);
+            if (v.CompareAtPriceUsd is null && v.CompareAtPrice is decimal cmpLocal && cmpLocal > 0)
+                v.CompareAtPriceUsd = rateVal == 0 ? null : Math.Round(cmpLocal / rateVal, 4, MidpointRounding.AwayFromZero);
+        }
+    }
+
     private void AppendPriceHistory(
         int productVariantId,
+        decimal referencePrice,
+        decimal? compareAtPrice,
         decimal referencePriceUsd,
         decimal? compareAtPriceUsd,
         DateTime recordedAt,
@@ -386,6 +431,8 @@ public class ProductService : IProductService
         _context.ProductVariantPriceHistories.Add(new ProductVariantPriceHistory
         {
             ProductVariantID = productVariantId,
+            ReferencePrice = referencePrice,
+            CompareAtPrice = compareAtPrice,
             ReferencePriceUsd = referencePriceUsd,
             CompareAtPriceUsd = compareAtPriceUsd,
             RecordedAt = recordedAt,
@@ -837,7 +884,6 @@ public class ProductService : IProductService
     {
         var (title, slug, shortDescription) = LocalizedCore(p, lang);
         var activeVariants = p.ProductVariants.Where(v => v.IsActive).ToList();
-        var minUsd = activeVariants.Count == 0 ? 0m : activeVariants.Min(v => v.ReferencePriceUsd);
         var defaultVariant = activeVariants.FirstOrDefault(v => v.IsDefault) ?? activeVariants.FirstOrDefault();
 
         // Host display currency; pricing conversion uses the host website when sold via a vendor.
@@ -846,6 +892,16 @@ public class ProductService : IProductService
             slug = $"{vendor.Slug}--{slug}";
 
         var stock = availableStock ?? 0;
+        MoneyDto? minPrice = null;
+        if (activeVariants.Count > 0)
+        {
+            var minLocal = activeVariants.Min(v => v.ReferencePrice > 0 ? v.ReferencePrice : 0);
+            var minUsd = activeVariants.Min(v => v.ReferencePriceUsd);
+            if (minLocal <= 0 && minUsd > 0)
+                minPrice = await _currency.ToDisplayAsync(priceWebsiteId, minUsd, currencyCode, ct);
+            else
+                minPrice = await _currency.ToDisplayFromLocalAsync(priceWebsiteId, minLocal, null, currencyCode, minUsd > 0 ? minUsd : null, ct);
+        }
 
         return new ProductSummaryDto
         {
@@ -853,7 +909,7 @@ public class ProductService : IProductService
             FeaturedImageUrl = p.FeaturedImageFile?.ThumbnailCDN ?? p.FeaturedImageFile?.CNDUrl,
             BrandName = p.Brand?.Name,
             DefaultSku = defaultVariant?.Sku,
-            MinPrice = await _currency.ToDisplayAsync(priceWebsiteId, minUsd, currencyCode, ct),
+            MinPrice = minPrice!,
             AvgRating = p.AvgRating, RatingCount = p.RatingCount, HasVariants = p.HasVariants,
             IsInStock = StockDisplay.IsInStock(stock),
             StockQuantity = stock,
@@ -869,7 +925,14 @@ public class ProductService : IProductService
         var activeVariants = p.ProductVariants.Where(v => v.IsActive).ToList();
         MoneyDto? minPrice = null;
         if (activeVariants.Count > 0)
-            minPrice = await _currency.ToDisplayAsync(p.WebsiteID, activeVariants.Min(v => v.ReferencePriceUsd), currencyCode, ct);
+        {
+            var minLocal = activeVariants.Min(v => v.ReferencePrice > 0 ? v.ReferencePrice : 0);
+            var minUsd = activeVariants.Min(v => v.ReferencePriceUsd);
+            if (minLocal <= 0 && minUsd > 0)
+                minPrice = await _currency.ToDisplayAsync(p.WebsiteID, minUsd, currencyCode, ct);
+            else
+                minPrice = await _currency.ToDisplayFromLocalAsync(p.WebsiteID, minLocal, null, currencyCode, minUsd > 0 ? minUsd : null, ct);
+        }
 
         return new ProductRefDto
         {
@@ -937,8 +1000,14 @@ public class ProductService : IProductService
         var sellers = new List<ProductSellerOfferDto>(sellerRows.Count);
         foreach (var vp in sellerRows)
         {
+            var unitLocal = vp.OverridePriceLocal ?? (vp.ReferencePrice > 0 ? vp.ReferencePrice : 0);
             var unitUsd = vp.OverridePrice ?? vp.ReferencePriceUsd;
             var stock = Math.Max(0, vp.StockQuantity);
+            MoneyDto price;
+            if (unitLocal > 0)
+                price = await _currency.ToDisplayFromLocalAsync(priceWebsiteId, unitLocal, null, currencyCode, unitUsd > 0 ? unitUsd : null, ct);
+            else
+                price = await _currency.ToDisplayAsync(priceWebsiteId, unitUsd, currencyCode, ct);
             sellers.Add(new ProductSellerOfferDto
             {
                 VendorID = vp.VendorID,
@@ -949,7 +1018,7 @@ public class ProductService : IProductService
                 ProductVariantID = vp.ProductVariantID,
                 VariantTitle = vp.ProductVariant?.Title ?? string.Empty,
                 Sku = vp.ProductVariant?.Sku ?? string.Empty,
-                Price = await _currency.ToDisplayAsync(priceWebsiteId, unitUsd, currencyCode, ct),
+                Price = price,
                 StockQuantity = stock,
                 IsInStock = StockDisplay.IsInStock(stock),
                 DisplayStockQuantity = StockDisplay.ExactCountOrNull(stock),
@@ -989,13 +1058,27 @@ public class ProductService : IProductService
             if (!StockDisplay.IsInStock(stock))
                 continue;
 
+            var unitLocal = listing?.OverridePriceLocal
+                ?? (listing is not null && listing.ReferencePrice > 0 ? listing.ReferencePrice : (v.ReferencePrice > 0 ? v.ReferencePrice : 0));
             var unitUsd = listing?.OverridePrice ?? listing?.ReferencePriceUsd ?? v.ReferencePriceUsd;
+            MoneyDto price;
+            if (unitLocal > 0)
+                price = await _currency.ToDisplayFromLocalAsync(priceWebsiteId, unitLocal, null, currencyCode, unitUsd > 0 ? unitUsd : null, ct);
+            else
+                price = await _currency.ToDisplayAsync(priceWebsiteId, unitUsd, currencyCode, ct);
+
+            MoneyDto? compareAt = null;
+            if (v.CompareAtPrice is decimal cmpLocal && cmpLocal > 0)
+                compareAt = await _currency.ToDisplayFromLocalAsync(priceWebsiteId, cmpLocal, null, currencyCode, v.CompareAtPriceUsd, ct);
+            else if (v.CompareAtPriceUsd is decimal cmpUsd)
+                compareAt = await _currency.ToDisplayAsync(priceWebsiteId, cmpUsd, currencyCode, ct);
+
             variants.Add(new ProductVariantDto
             {
                 ProductVariantID = v.ProductVariantID, Sku = v.Sku, Title = v.Title, IsDefault = v.IsDefault,
                 ImageUrl = v.ImageFile?.ThumbnailCDN ?? v.ImageFile?.CNDUrl,
-                Price = await _currency.ToDisplayAsync(priceWebsiteId, unitUsd, currencyCode, ct),
-                CompareAtPrice = v.CompareAtPriceUsd is decimal cmp ? await _currency.ToDisplayAsync(priceWebsiteId, cmp, currencyCode, ct) : null,
+                Price = price,
+                CompareAtPrice = compareAt,
                 Weight = v.Weight, Barcode = v.Barcode, IsActive = v.IsActive,
                 StockQuantity = stock,
                 IsInStock = true,

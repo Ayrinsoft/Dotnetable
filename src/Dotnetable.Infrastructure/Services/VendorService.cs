@@ -166,7 +166,10 @@ public class VendorService : IVendorService
         if (vendor.LinkedWebsiteID is null or <= 0) return false;
         // Immediate settlement: always expose. Credit mode: need remaining credit.
         if (vendor.SettlementMode == 0) return true;
-        return vendor.AvailableCreditUsd > 0;
+        var available = vendor.AvailableCredit != 0 || vendor.AvailableCreditUsd == 0
+            ? vendor.AvailableCredit
+            : vendor.AvailableCreditUsd;
+        return available > 0;
     }
 
     private static void NormalizeAndValidate(Vendor vendor)
@@ -175,6 +178,16 @@ public class VendorService : IVendorService
         if (string.IsNullOrWhiteSpace(vendor.Slug))
             vendor.Slug = vendor.Name;
         vendor.Slug = vendor.Slug.Trim();
+
+        // Site-currency credit fields are authority; keep USD dual in sync when only one side is set.
+        if (vendor.CreditLimit is decimal cl && cl > 0 && (vendor.CreditLimitUsd is null or <= 0))
+            vendor.CreditLimitUsd = cl;
+        if (vendor.CreditLimitUsd is decimal clu && clu > 0 && (vendor.CreditLimit is null or <= 0))
+            vendor.CreditLimit = clu;
+        if (vendor.AvailableCredit == 0 && vendor.AvailableCreditUsd != 0)
+            vendor.AvailableCredit = vendor.AvailableCreditUsd;
+        if (vendor.AvailableCreditUsd == 0 && vendor.AvailableCredit != 0)
+            vendor.AvailableCreditUsd = vendor.AvailableCredit;
 
         switch ((VendorType)vendor.VendorType)
         {
@@ -193,7 +206,7 @@ public class VendorService : IVendorService
         if (vendor.SettlementMode != 1)
         {
             vendor.CreditDays = null;
-            // keep CreditLimitUsd / AvailableCreditUsd for site links even in immediate mode if desired
+            // keep credit duals for site links even in immediate mode if desired
         }
     }
 
