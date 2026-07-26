@@ -4202,6 +4202,13 @@ namespace Dotnetable.Migrations.MySql.Migrations
                     b.Property<int?>("AssignedMemberID")
                         .HasColumnType("int");
 
+                    b.Property<DateTime?>("CallbackAt")
+                        .HasColumnType("datetime");
+
+                    b.Property<string>("CallbackNote")
+                        .HasMaxLength(500)
+                        .HasColumnType("varchar(500)");
+
                     b.Property<byte>("Category")
                         .HasColumnType("tinyint unsigned");
 
@@ -4239,6 +4246,9 @@ namespace Dotnetable.Migrations.MySql.Migrations
                     b.Property<DateTime?>("FirstResponseAt")
                         .HasColumnType("datetime");
 
+                    b.Property<DateTime?>("FirstResponseDueAt")
+                        .HasColumnType("datetime");
+
                     b.Property<DateTime?>("LastInteractionAt")
                         .HasColumnType("datetime");
 
@@ -4247,6 +4257,9 @@ namespace Dotnetable.Migrations.MySql.Migrations
 
                     b.Property<int?>("RelatedOrderID")
                         .HasColumnType("int");
+
+                    b.Property<DateTime?>("ResolveDueAt")
+                        .HasColumnType("datetime");
 
                     b.Property<DateTime?>("ResolvedAt")
                         .HasColumnType("datetime");

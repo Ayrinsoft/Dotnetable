@@ -25,7 +25,13 @@ public interface ISupportDeskService
         int? assignedMemberId,
         bool? archive,
         GridQuery query,
+        bool? slaBreachedOnly = null,
+        bool? unassignedOnly = null,
+        bool? callbackDueOnly = null,
         CancellationToken ct = default);
+
+    /// <summary>Queue health counters for the desk dashboard.</summary>
+    Task<SupportDeskStatsDto> GetDeskStatsAsync(int? websiteId, int? memberId, CancellationToken ct = default);
 
     Task<SupportSession?> GetSessionEntityByIdAsync(int sessionId, CancellationToken ct = default);
 
@@ -56,4 +62,7 @@ public interface ISupportDeskService
         SupportCategory? category,
         string? tags,
         CancellationToken ct = default);
+
+    /// <summary>Schedule or clear a customer callback; logs an interaction.</summary>
+    Task<bool> ScheduleCallbackAsync(int sessionId, DateTime? callbackAt, string? note, int memberId, CancellationToken ct = default);
 }

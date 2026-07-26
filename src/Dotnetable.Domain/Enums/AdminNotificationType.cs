@@ -9,4 +9,5 @@ public enum AdminNotificationType : byte
     BankReceipt = 5,
     PaymentReceived = 6,
     WithdrawalRequested = 7,
+    SupportTicket = 8,
 }

@@ -93,6 +93,66 @@ public class AdminNotificationService : IAdminNotificationService
         }
     }
 
+    public async Task NotifyMemberAsync(
+        int memberId,
+        int websiteId,
+        AdminNotificationType type,
+        string title,
+        string message,
+        string? actionUrl = null,
+        int? relatedEntityId = null,
+        CancellationToken ct = default)
+    {
+        var member = await _context.Members.AsNoTracking()
+            .Where(m => m.MemberID == memberId && m.Active)
+            .Select(m => new { m.MemberID, m.Email, m.Givenname })
+            .FirstOrDefaultAsync(ct);
+        if (member is null) return;
+
+        var now = DateTime.UtcNow;
+        var safeTitle = Truncate(title, 200);
+        var safeMessage = Truncate(message, 1000);
+        var safeUrl = actionUrl is null ? null : Truncate(actionUrl, 256);
+
+        _context.AdminNotifications.Add(new AdminNotification
+        {
+            MemberID = member.MemberID,
+            WebsiteID = websiteId,
+            NotificationType = (byte)type,
+            Title = safeTitle,
+            Message = safeMessage,
+            ActionUrl = safeUrl,
+            RelatedEntityID = relatedEntityId,
+            IsRead = false,
+            CreatedAt = now,
+        });
+        await _context.SaveChangesAsync(ct);
+
+        if (string.IsNullOrWhiteSpace(member.Email) || !await _email.IsConfiguredAsync(websiteId, ct))
+            return;
+
+        try
+        {
+            await _email.SendTemplateAsync(
+                websiteId,
+                EmailTemplateKeys.AdminSiteNotification,
+                member.Email,
+                new Dictionary<string, string>
+                {
+                    ["AdminName"] = string.IsNullOrWhiteSpace(member.Givenname) ? member.Email : member.Givenname,
+                    ["Title"] = safeTitle,
+                    ["MessageBody"] = safeMessage,
+                    ["ActionUrl"] = safeUrl ?? string.Empty,
+                },
+                languageCode: null,
+                ct);
+        }
+        catch (Exception ex)
+        {
+            _logger.LogWarning(ex, "Failed to email member notification to {Email} for website {WebsiteId}", member.Email, websiteId);
+        }
+    }
+
     public async Task<PagedResult<AdminNotification>> GetPagedAsync(int memberId, GridQuery query, CancellationToken ct = default)
     {
         var q = _context.AdminNotifications.AsNoTracking()

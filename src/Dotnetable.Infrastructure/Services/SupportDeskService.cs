@@ -2,6 +2,7 @@ using System.Text.RegularExpressions;
 using Dotnetable.Application.DTOs;
 using Dotnetable.Application.Interfaces;
 using Dotnetable.Domain.Entities;
+using Dotnetable.Domain.Enums;
 using Dotnetable.Infrastructure.Data;
 using Dotnetable.Infrastructure.Extensions;
 using Microsoft.EntityFrameworkCore;
@@ -26,8 +27,13 @@ public class SupportDeskService : ISupportDeskService
     ];
 
     private readonly AppDbContext _context;
+    private readonly IAdminNotificationService _notifications;
 
-    public SupportDeskService(AppDbContext context) => _context = context;
+    public SupportDeskService(AppDbContext context, IAdminNotificationService notifications)
+    {
+        _context = context;
+        _notifications = notifications;
+    }
 
     public async Task<SupportMobileLookupResult> LookupByMobileAsync(int? websiteId, string mobile, CancellationToken ct = default)
     {
@@ -266,8 +272,12 @@ public class SupportDeskService : ISupportDeskService
         int? assignedMemberId,
         bool? archive,
         GridQuery query,
+        bool? slaBreachedOnly = null,
+        bool? unassignedOnly = null,
+        bool? callbackDueOnly = null,
         CancellationToken ct = default)
     {
+        var now = DateTime.UtcNow;
         var q = _context.SupportSessions.AsNoTracking()
             .Include(s => s.AssignedMember)
             .Include(s => s.RelatedOrder)
@@ -283,6 +293,16 @@ public class SupportDeskService : ISupportDeskService
             q = q.Where(s => s.AssignedMemberID == mid);
         if (archive is bool arch)
             q = q.Where(s => s.Archive == arch);
+        if (unassignedOnly == true)
+            q = q.Where(s => s.AssignedMemberID == null && OpenStatuses.Contains(s.Status) && !s.Archive);
+        if (callbackDueOnly == true)
+            q = q.Where(s => s.CallbackAt != null && s.CallbackAt <= now && OpenStatuses.Contains(s.Status) && !s.Archive);
+        if (slaBreachedOnly == true)
+        {
+            q = q.Where(s => !s.Archive && OpenStatuses.Contains(s.Status) && (
+                (s.FirstResponseAt == null && s.FirstResponseDueAt != null && s.FirstResponseDueAt < now) ||
+                (s.ResolvedAt == null && s.ResolveDueAt != null && s.ResolveDueAt < now)));
+        }
 
         if (query.GetSearch("SessionNumber") is string sn)
             q = q.Where(s => s.SessionNumber.Contains(sn));
@@ -301,7 +321,6 @@ public class SupportDeskService : ISupportDeskService
             .Skip(query.Skip).Take(query.Take)
             .ToListAsync(ct);
 
-        // Interaction counts in one query
         var ids = items.Select(i => i.SupportSessionID).ToList();
         var counts = await _context.SupportInteractions.AsNoTracking()
             .Where(i => ids.Contains(i.SupportSessionID))
@@ -317,6 +336,34 @@ public class SupportDeskService : ISupportDeskService
         }).ToList();
 
         return new PagedResult<SupportSessionSummaryDto> { Items = dtos, TotalCount = total };
+    }
+
+    public async Task<SupportDeskStatsDto> GetDeskStatsAsync(int? websiteId, int? memberId, CancellationToken ct = default)
+    {
+        var now = DateTime.UtcNow;
+        var today = now.Date;
+        var q = _context.SupportSessions.AsNoTracking().AsQueryable();
+        if (websiteId is int wid)
+            q = q.Where(s => s.WebsiteID == wid);
+
+        var open = q.Where(s => !s.Archive && OpenStatuses.Contains(s.Status));
+
+        return new SupportDeskStatsDto
+        {
+            OpenCount = await open.CountAsync(ct),
+            MyOpenCount = memberId is int mid
+                ? await open.CountAsync(s => s.AssignedMemberID == mid, ct)
+                : 0,
+            UnassignedCount = await open.CountAsync(s => s.AssignedMemberID == null, ct),
+            WaitingCustomerCount = await open.CountAsync(s => s.Status == (byte)SupportSessionStatus.WaitingCustomer, ct),
+            UrgentCount = await open.CountAsync(s => s.Priority == (byte)SupportPriority.Urgent, ct),
+            SlaBreachedCount = await open.CountAsync(s =>
+                (s.FirstResponseAt == null && s.FirstResponseDueAt != null && s.FirstResponseDueAt < now) ||
+                (s.ResolvedAt == null && s.ResolveDueAt != null && s.ResolveDueAt < now), ct),
+            CallbackDueCount = await open.CountAsync(s => s.CallbackAt != null && s.CallbackAt <= now, ct),
+            ResolvedTodayCount = await q.CountAsync(s =>
+                s.ResolvedAt != null && s.ResolvedAt >= today && s.ResolvedAt < today.AddDays(1), ct),
+        };
     }
 
     public async Task<SupportSession?> GetSessionEntityByIdAsync(int sessionId, CancellationToken ct = default) =>
@@ -392,7 +439,10 @@ public class SupportDeskService : ISupportDeskService
             UpdatedAt = now,
             LastInteractionAt = now,
             Archive = false,
+            CallbackAt = request.CallbackAt,
+            CallbackNote = Truncate(request.CallbackNote, 500),
         };
+        SupportSlaPolicy.ApplyDueDates(session);
 
         _context.SupportSessions.Add(session);
         await _context.SaveChangesAsync(ct);
@@ -425,8 +475,24 @@ public class SupportDeskService : ISupportDeskService
         };
         _context.SupportInteractions.Add(interaction);
 
+        // Agent who opens the ticket while on the call counts as first response.
         session.FirstResponseAt = now;
+        if (request.CallOutcome == SupportCallOutcome.CallbackScheduled && request.CallbackAt is null)
+        {
+            // Default callback window: 2 hours if outcome is scheduled but no time given.
+            session.CallbackAt = now.AddHours(2);
+        }
+
         await _context.SaveChangesAsync(ct);
+
+        await NotifyTicketAsync(
+            session,
+            title: $"Support ticket {session.SessionNumber}",
+            message: $"{session.CustomerNameSnapshot ?? session.CellphoneSnapshot ?? "Customer"} — {session.Subject ?? request.Channel.ToString()} [{(SupportPriority)session.Priority}]",
+            notifyAllAdmins: !request.AssignToSelf || request.Priority is SupportPriority.Urgent or SupportPriority.High,
+            notifyMemberId: request.AssignToSelf ? null : null,
+            ct);
+
         return session;
     }
 
@@ -458,6 +524,26 @@ public class SupportDeskService : ISupportDeskService
         if (session.FirstResponseAt is null && !isInternal)
             session.FirstResponseAt = now;
 
+        if (request.CallbackAt is DateTime cb)
+        {
+            session.CallbackAt = cb;
+            session.CallbackNote = Truncate(request.CallbackNote, 500);
+        }
+        else if (request.CallOutcome == SupportCallOutcome.CallbackScheduled && session.CallbackAt is null)
+        {
+            session.CallbackAt = now.AddHours(2);
+            session.CallbackNote = Truncate(request.CallbackNote ?? request.Body, 500);
+        }
+        else if (request.CallOutcome is SupportCallOutcome.Answered && type is SupportInteractionType.CallOutbound or SupportInteractionType.CallInbound)
+        {
+            // Successful call clears pending callback.
+            if (session.CallbackAt is not null && session.CallbackAt <= now.AddMinutes(1))
+            {
+                session.CallbackAt = null;
+                session.CallbackNote = null;
+            }
+        }
+
         // Re-open closed/resolved tickets when agent logs new customer-facing work
         if (session.Status is (byte)SupportSessionStatus.Resolved or (byte)SupportSessionStatus.Closed
             && type is SupportInteractionType.CallInbound or SupportInteractionType.CallOutbound
@@ -467,6 +553,7 @@ public class SupportDeskService : ISupportDeskService
             session.ResolvedAt = null;
             session.ClosedAt = null;
             session.Archive = false;
+            SupportSlaPolicy.RefreshResolveDueOnReopen(session, now);
         }
 
         await _context.SaveChangesAsync(ct);
@@ -489,17 +576,26 @@ public class SupportDeskService : ISupportDeskService
         if (newStatus is SupportSessionStatus.Resolved)
         {
             session.ResolvedAt ??= now;
+            session.CallbackAt = null;
         }
         else if (newStatus is SupportSessionStatus.Closed)
         {
             session.ResolvedAt ??= now;
             session.ClosedAt = now;
+            session.CallbackAt = null;
         }
         else if (newStatus is SupportSessionStatus.Open or SupportSessionStatus.Pending or SupportSessionStatus.WaitingCustomer)
         {
             session.ClosedAt = null;
-            if (newStatus is SupportSessionStatus.Open)
+            if (newStatus is SupportSessionStatus.Open && from is SupportSessionStatus.Resolved or SupportSessionStatus.Closed)
+            {
                 session.ResolvedAt = null;
+                SupportSlaPolicy.RefreshResolveDueOnReopen(session, now);
+            }
+            else if (newStatus is SupportSessionStatus.Open)
+            {
+                session.ResolvedAt = null;
+            }
         }
 
         var body = string.IsNullOrWhiteSpace(note)
@@ -519,6 +615,21 @@ public class SupportDeskService : ISupportDeskService
         });
 
         await _context.SaveChangesAsync(ct);
+
+        if (session.AssignedMemberID is int assignee && assignee != memberId
+            && newStatus is SupportSessionStatus.Open or SupportSessionStatus.Pending)
+        {
+            await _notifications.NotifyMemberAsync(
+                assignee,
+                session.WebsiteID,
+                AdminNotificationType.SupportTicket,
+                $"Ticket {session.SessionNumber} → {newStatus}",
+                body,
+                $"/support/tickets/{session.SupportSessionID}",
+                session.SupportSessionID,
+                ct);
+        }
+
         return true;
     }
 
@@ -553,6 +664,20 @@ public class SupportDeskService : ISupportDeskService
         });
 
         await _context.SaveChangesAsync(ct);
+
+        if (assignedMemberId is int toId && toId != actorMemberId)
+        {
+            await _notifications.NotifyMemberAsync(
+                toId,
+                session.WebsiteID,
+                AdminNotificationType.SupportTicket,
+                $"Ticket assigned: {session.SessionNumber}",
+                session.Subject ?? session.CustomerNameSnapshot ?? session.CellphoneSnapshot ?? "Support ticket",
+                $"/support/tickets/{session.SupportSessionID}",
+                session.SupportSessionID,
+                ct);
+        }
+
         return true;
     }
 
@@ -567,18 +692,31 @@ public class SupportDeskService : ISupportDeskService
         var now = DateTime.UtcNow;
         session.Priority = (byte)priority;
         session.UpdatedAt = now;
+        SupportSlaPolicy.ApplyDueDates(session);
 
         _context.SupportInteractions.Add(new SupportInteraction
         {
             SupportSessionID = session.SupportSessionID,
             InteractionType = (byte)SupportInteractionType.System,
-            Body = $"Priority: {from} → {priority}",
+            Body = $"Priority: {from} → {priority} (SLA deadlines refreshed)",
             CreatedByMemberID = memberId,
             IsInternal = true,
             CreatedAt = now,
         });
 
         await _context.SaveChangesAsync(ct);
+
+        if (priority is SupportPriority.Urgent or SupportPriority.High)
+        {
+            await NotifyTicketAsync(
+                session,
+                $"Priority {priority}: {session.SessionNumber}",
+                session.Subject ?? "Support ticket escalated",
+                notifyAllAdmins: true,
+                notifyMemberId: session.AssignedMemberID,
+                ct);
+        }
+
         return true;
     }
 
@@ -654,7 +792,77 @@ public class SupportDeskService : ISupportDeskService
         await _context.SaveChangesAsync(ct);
     }
 
+    public async Task<bool> ScheduleCallbackAsync(int sessionId, DateTime? callbackAt, string? note, int memberId, CancellationToken ct = default)
+    {
+        var session = await _context.SupportSessions.FirstOrDefaultAsync(s => s.SupportSessionID == sessionId, ct);
+        if (session is null) return false;
+
+        var now = DateTime.UtcNow;
+        session.CallbackAt = callbackAt;
+        session.CallbackNote = Truncate(note, 500);
+        session.UpdatedAt = now;
+        session.LastInteractionAt = now;
+
+        _context.SupportInteractions.Add(new SupportInteraction
+        {
+            SupportSessionID = session.SupportSessionID,
+            InteractionType = (byte)SupportInteractionType.System,
+            Body = callbackAt is DateTime at
+                ? $"Callback scheduled for {at:u}. {note}".Trim()
+                : $"Callback cleared. {note}".Trim(),
+            CallOutcome = callbackAt is null ? null : (byte)SupportCallOutcome.CallbackScheduled,
+            CreatedByMemberID = memberId,
+            IsInternal = true,
+            CreatedAt = now,
+        });
+
+        await _context.SaveChangesAsync(ct);
+        return true;
+    }
+
     // ── Helpers ──────────────────────────────────────────────────────
+
+    private async Task NotifyTicketAsync(
+        SupportSession session,
+        string title,
+        string message,
+        bool notifyAllAdmins,
+        int? notifyMemberId,
+        CancellationToken ct)
+    {
+        var url = $"/support/tickets/{session.SupportSessionID}";
+        try
+        {
+            if (notifyAllAdmins)
+            {
+                await _notifications.NotifySiteAdminsAsync(
+                    session.WebsiteID,
+                    AdminNotificationType.SupportTicket,
+                    title,
+                    message,
+                    url,
+                    session.SupportSessionID,
+                    ct);
+            }
+
+            if (notifyMemberId is int mid)
+            {
+                await _notifications.NotifyMemberAsync(
+                    mid,
+                    session.WebsiteID,
+                    AdminNotificationType.SupportTicket,
+                    title,
+                    message,
+                    url,
+                    session.SupportSessionID,
+                    ct);
+            }
+        }
+        catch
+        {
+            // Notifications must never break the desk workflow.
+        }
+    }
 
     private async Task<string> NextSessionNumberAsync(int websiteId, DateTime now, CancellationToken ct)
     {
@@ -674,35 +882,71 @@ public class SupportDeskService : ISupportDeskService
         return $"{prefix}{seq:D5}";
     }
 
-    private static SupportSessionSummaryDto MapSessionSummary(SupportSession s) => new()
+    private static SupportSessionSummaryDto MapSessionSummary(SupportSession s)
     {
-        SupportSessionID = s.SupportSessionID,
-        SessionNumber = s.SessionNumber,
-        Status = s.Status,
-        StatusName = ((SupportSessionStatus)s.Status).ToString(),
-        Priority = s.Priority,
-        PriorityName = ((SupportPriority)s.Priority).ToString(),
-        Channel = s.Channel,
-        ChannelName = ((SupportChannel)s.Channel).ToString(),
-        Category = s.Category,
-        CategoryName = ((SupportCategory)s.Category).ToString(),
-        Subject = s.Subject,
-        Tags = s.Tags,
-        CellphoneSnapshot = s.CellphoneSnapshot,
-        CustomerNameSnapshot = s.CustomerNameSnapshot,
-        WebsiteClientID = s.WebsiteClientID,
-        RelatedOrderID = s.RelatedOrderID,
-        RelatedOrderNumber = s.RelatedOrder?.OrderNumber,
-        AssignedMemberID = s.AssignedMemberID,
-        AssignedMemberName = s.AssignedMember is null
-            ? null
-            : $"{s.AssignedMember.Givenname} {s.AssignedMember.Surname}".Trim(),
-        CreatedAt = s.CreatedAt,
-        UpdatedAt = s.UpdatedAt,
-        LastInteractionAt = s.LastInteractionAt,
-        FirstResponseAt = s.FirstResponseAt,
-        ResolvedAt = s.ResolvedAt,
-        Archive = s.Archive,
+        // Backfill SLA dues for rows created before due columns existed.
+        var firstDue = s.FirstResponseDueAt;
+        var resolveDue = s.ResolveDueAt;
+        if (firstDue is null || resolveDue is null)
+        {
+            var (fr, res) = SupportSlaPolicy.GetTargets((SupportPriority)s.Priority);
+            firstDue ??= s.CreatedAt.Add(fr);
+            resolveDue ??= s.CreatedAt.Add(res);
+        }
+
+        var sla = SupportSlaPolicy.Evaluate(
+            s.Status, s.CreatedAt, s.FirstResponseAt, firstDue, s.ResolvedAt, resolveDue);
+
+        return new SupportSessionSummaryDto
+        {
+            SupportSessionID = s.SupportSessionID,
+            SessionNumber = s.SessionNumber,
+            Status = s.Status,
+            StatusName = ((SupportSessionStatus)s.Status).ToString(),
+            Priority = s.Priority,
+            PriorityName = ((SupportPriority)s.Priority).ToString(),
+            Channel = s.Channel,
+            ChannelName = ((SupportChannel)s.Channel).ToString(),
+            Category = s.Category,
+            CategoryName = ((SupportCategory)s.Category).ToString(),
+            Subject = s.Subject,
+            Tags = s.Tags,
+            CellphoneSnapshot = s.CellphoneSnapshot,
+            CustomerNameSnapshot = s.CustomerNameSnapshot,
+            WebsiteClientID = s.WebsiteClientID,
+            RelatedOrderID = s.RelatedOrderID,
+            RelatedOrderNumber = s.RelatedOrder?.OrderNumber,
+            AssignedMemberID = s.AssignedMemberID,
+            AssignedMemberName = s.AssignedMember is null
+                ? null
+                : $"{s.AssignedMember.Givenname} {s.AssignedMember.Surname}".Trim(),
+            CreatedAt = s.CreatedAt,
+            UpdatedAt = s.UpdatedAt,
+            LastInteractionAt = s.LastInteractionAt,
+            FirstResponseAt = s.FirstResponseAt,
+            ResolvedAt = s.ResolvedAt,
+            FirstResponseDueAt = firstDue,
+            ResolveDueAt = resolveDue,
+            CallbackAt = s.CallbackAt,
+            CallbackNote = s.CallbackNote,
+            SlaState = sla,
+            SlaLabel = SlaLabel(sla),
+            IsSlaBreached = SupportSlaPolicy.IsBreached(sla),
+            Archive = s.Archive,
+            SatisfactionRating = s.SatisfactionRating,
+        };
+    }
+
+    private static string SlaLabel(SupportSlaState state) => state switch
+    {
+        SupportSlaState.Ok => "On track",
+        SupportSlaState.FirstResponseAtRisk => "First response at risk",
+        SupportSlaState.FirstResponseBreached => "First response breached",
+        SupportSlaState.ResolveAtRisk => "Resolve at risk",
+        SupportSlaState.ResolveBreached => "Resolve breached",
+        SupportSlaState.Met => "SLA met",
+        SupportSlaState.Closed => "Closed",
+        _ => state.ToString(),
     };
 
     private static SupportInteractionDto MapInteraction(SupportInteraction i) => new()

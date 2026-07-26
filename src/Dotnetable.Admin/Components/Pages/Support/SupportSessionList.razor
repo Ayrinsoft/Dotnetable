@@ -11,8 +11,28 @@
 <MudStack Row="true" AlignItems="AlignItems.Center" Justify="Justify.SpaceBetween" Class="mb-4" Style="flex-wrap:wrap; gap:12px;">
     <MudStack Spacing="0">
         <MudText Typo="Typo.h5" Class="fw-bold">@L["support.tickets", "Ticket queue"]</MudText>
-        <MudText Typo="Typo.body2" Color="Color.Secondary">@L["support.tickets.subtitle", "All support sessions — filter by status, priority, or phone."]</MudText>
+        <MudText Typo="Typo.body2" Color="Color.Secondary">@L["support.tickets.subtitle", "All support sessions — filter by status, priority, SLA, or phone."]</MudText>
     </MudStack>
+    <MudButton Variant="Variant.Filled" Color="Color.Primary" Href="/support"
+               StartIcon="@Icons.Material.Filled.SupportAgent">
+        @L["support.desk", "Support Desk"]
+    </MudButton>
+</MudStack>
+
+@if (_stats is not null)
+{
+    <MudStack Row="true" Spacing="2" Class="mb-3" Style="flex-wrap:wrap;">
+        <StatChip Label="@L["support.stat.open", "Open"]" Value="@_stats.OpenCount.ToString()" Color="Color.Primary" />
+        <StatChip Label="@L["support.stat.mine", "Mine"]" Value="@_stats.MyOpenCount.ToString()" Color="Color.Info" />
+        <StatChip Label="@L["support.stat.unassigned", "Unassigned"]" Value="@_stats.UnassignedCount.ToString()" Color="Color.Secondary" />
+        <StatChip Label="@L["support.stat.sla", "SLA breached"]" Value="@_stats.SlaBreachedCount.ToString()" Color="Color.Error" />
+        <StatChip Label="@L["support.stat.callback", "Callbacks due"]" Value="@_stats.CallbackDueCount.ToString()" Color="Color.Warning" />
+        <StatChip Label="@L["support.stat.urgent", "Urgent"]" Value="@_stats.UrgentCount.ToString()" Color="Color.Error" />
+        <StatChip Label="@L["support.stat.resolved_today", "Resolved today"]" Value="@_stats.ResolvedTodayCount.ToString()" Color="Color.Success" />
+    </MudStack>
+}
+
+<MudPaper Elevation="0" Class="app-card rounded-lg pa-4 mb-3">
     <MudStack Row="true" Spacing="2" AlignItems="AlignItems.Center" Style="flex-wrap:wrap;">
         @if (_isMaster)
         {
@@ -20,34 +40,35 @@
                              Label="@L["website", "Website"]" Variant="Variant.Outlined"
                              Dense="true" Style="min-width:160px" />
         }
-        <MudSelect T="SupportSessionStatus?" @bind-Value="_statusFilter" Label="@L["status", "Status"]"
-                   Variant="Variant.Outlined" Dense="true" Clearable="true" Style="min-width:140px"
-                   SelectedValuesChanged="@(_ => LoadAsync())">
+        <MudSelect T="SupportSessionStatus?" Value="_statusFilter" ValueChanged="OnStatusChanged" Label="@L["status", "Status"]"
+                   Variant="Variant.Outlined" Dense="true" Clearable="true" Style="min-width:140px">
             @foreach (var s in Enum.GetValues<SupportSessionStatus>())
             {
                 <MudSelectItem T="SupportSessionStatus?" Value="@s">@s</MudSelectItem>
             }
         </MudSelect>
-        <MudSelect T="SupportPriority?" @bind-Value="_priorityFilter" Label="@L["support.priority", "Priority"]"
-                   Variant="Variant.Outlined" Dense="true" Clearable="true" Style="min-width:130px"
-                   SelectedValuesChanged="@(_ => LoadAsync())">
+        <MudSelect T="SupportPriority?" Value="_priorityFilter" ValueChanged="OnPriorityChanged" Label="@L["support.priority", "Priority"]"
+                   Variant="Variant.Outlined" Dense="true" Clearable="true" Style="min-width:130px">
             @foreach (var p in Enum.GetValues<SupportPriority>())
             {
                 <MudSelectItem T="SupportPriority?" Value="@p">@p</MudSelectItem>
             }
         </MudSelect>
-        <MudSelect T="bool?" @bind-Value="_archiveFilter" Label="@L["archive", "Archive"]"
-                   Variant="Variant.Outlined" Dense="true" Clearable="true" Style="min-width:120px"
-                   SelectedValuesChanged="@(_ => LoadAsync())">
+        <MudSelect T="bool?" Value="_archiveFilter" ValueChanged="OnArchiveChanged" Label="@L["archive", "Archive"]"
+                   Variant="Variant.Outlined" Dense="true" Clearable="true" Style="min-width:120px">
             <MudSelectItem T="bool?" Value="@false">@L["support.active_only", "Active"]</MudSelectItem>
             <MudSelectItem T="bool?" Value="@true">@L["archived", "Archived"]</MudSelectItem>
         </MudSelect>
-        <MudButton Variant="Variant.Filled" Color="Color.Primary" Href="/support"
-                   StartIcon="@Icons.Material.Filled.SupportAgent">
-            @L["support.desk", "Support Desk"]
-        </MudButton>
+        <MudChip T="string" Color="@(_mineOnly ? Color.Info : Color.Default)" Variant="@(_mineOnly ? Variant.Filled : Variant.Outlined)"
+                 OnClick="ToggleMine" Icon="@Icons.Material.Filled.Person">@L["support.filter.mine", "My tickets"]</MudChip>
+        <MudChip T="string" Color="@(_unassignedOnly ? Color.Secondary : Color.Default)" Variant="@(_unassignedOnly ? Variant.Filled : Variant.Outlined)"
+                 OnClick="ToggleUnassigned" Icon="@Icons.Material.Filled.PersonOff">@L["support.filter.unassigned", "Unassigned"]</MudChip>
+        <MudChip T="string" Color="@(_slaBreachedOnly ? Color.Error : Color.Default)" Variant="@(_slaBreachedOnly ? Variant.Filled : Variant.Outlined)"
+                 OnClick="ToggleSla" Icon="@Icons.Material.Filled.TimerOff">@L["support.filter.sla", "SLA breached"]</MudChip>
+        <MudChip T="string" Color="@(_callbackDueOnly ? Color.Warning : Color.Default)" Variant="@(_callbackDueOnly ? Variant.Filled : Variant.Outlined)"
+                 OnClick="ToggleCallback" Icon="@Icons.Material.Filled.Phone">@L["support.filter.callback", "Callback due"]</MudChip>
     </MudStack>
-</MudStack>
+</MudPaper>
 
 <MudPaper Elevation="0" Class="app-card rounded-lg pa-4">
     @if (_loading)
@@ -58,7 +79,7 @@
         @if (_items.Count == 0)
         {
             <tr>
-                <td colspan="9" style="text-align:center; padding:32px;">
+                <td colspan="10" style="text-align:center; padding:32px;">
                     <MudText Color="Color.Secondary">@L["support.tickets.empty", "No tickets found."]</MudText>
                 </td>
             </tr>
@@ -73,7 +94,18 @@
                     <td>@(s.CellphoneSnapshot ?? "—")</td>
                     <td><MudChip T="string" Size="Size.Small" Color="@StatusColor(s.Status)">@s.StatusName</MudChip></td>
                     <td><MudChip T="string" Size="Size.Small" Color="@PriorityColor(s.Priority)">@s.PriorityName</MudChip></td>
-                    <td>@s.ChannelName</td>
+                    <td>
+                        <MudChip T="string" Size="Size.Small" Color="@SlaColor(s.SlaState)" Variant="Variant.Outlined">@s.SlaLabel</MudChip>
+                    </td>
+                    <td>
+                        @if (s.CallbackAt is DateTime cb)
+                        {
+                            <MudChip T="string" Size="Size.Small" Color="@(cb <= DateTime.UtcNow ? Color.Warning : Color.Default)" Icon="@Icons.Material.Filled.Phone">
+                                @cb.ToLocalTime().ToString("g")
+                            </MudChip>
+                        }
+                        else { <text>—</text> }
+                    </td>
                     <td>@(s.Subject ?? "—")</td>
                     <td>@(s.AssignedMemberName ?? "—")</td>
                     <td>@((s.LastInteractionAt ?? s.CreatedAt).ToLocalTime().ToString("g"))</td>
@@ -85,10 +117,13 @@
 
 @code {
     private bool _loading = true, _isMaster;
+    private bool _mineOnly, _unassignedOnly, _slaBreachedOnly, _callbackDueOnly;
     private int _websiteId;
+    private int? _memberId;
     private SupportSessionStatus? _statusFilter;
     private SupportPriority? _priorityFilter;
     private bool? _archiveFilter = false;
+    private SupportDeskStatsDto? _stats;
     private List<SupportSessionSummaryDto> _items = new();
     private List<Website> _websites = new();
     private GridViewHeaderParameters _grid = new();
@@ -99,6 +134,8 @@
         var user = (await AuthState.GetAuthenticationStateAsync()).User;
         _isMaster = user.HasClaim(AdminClaimTypes.Master, "true");
         int.TryParse(user.FindFirst(AdminClaimTypes.WebsiteId)?.Value, out _websiteId);
+        int.TryParse(user.FindFirst(AdminClaimTypes.MemberId)?.Value, out var mid);
+        _memberId = mid > 0 ? mid : null;
         if (_isMaster) _websites = (await WebsiteService.GetAllAsync()).ToList();
 
         _grid = new GridViewHeaderParameters
@@ -111,7 +148,8 @@
                 new() { ColumnTitle = L["support.phone", "Phone"], ColumnName = "Cellphone", HasSearch = true },
                 new() { ColumnTitle = L["status", "Status"], ColumnName = nameof(SupportSession.Status), HasSort = true },
                 new() { ColumnTitle = L["support.priority", "Priority"], ColumnName = nameof(SupportSession.Priority), HasSort = true },
-                new() { ColumnTitle = L["support.channel", "Channel"], ColumnName = nameof(SupportSession.Channel) },
+                new() { ColumnTitle = L["support.sla", "SLA"], ColumnName = "Sla" },
+                new() { ColumnTitle = L["support.callback", "Callback"], ColumnName = "Callback" },
                 new() { ColumnTitle = L["support.subject", "Subject"], ColumnName = "Subject", HasSearch = true },
                 new() { ColumnTitle = L["support.assignee", "Assignee"], ColumnName = "Assigned" },
                 new() { ColumnTitle = L["support.last_activity", "Last activity"], ColumnName = nameof(SupportSession.LastInteractionAt), HasSort = true },
@@ -123,6 +161,26 @@
 
     private async Task OnWebsiteChanged(int id) { _websiteId = id; await LoadAsync(); }
     private Task OnGridChanged(GridViewHeaderParameters _) => LoadAsync();
+    private async Task OnStatusChanged(SupportSessionStatus? v) { _statusFilter = v; await LoadAsync(); }
+    private async Task OnPriorityChanged(SupportPriority? v) { _priorityFilter = v; await LoadAsync(); }
+    private async Task OnArchiveChanged(bool? v) { _archiveFilter = v; await LoadAsync(); }
+
+    private async Task ToggleMine()
+    {
+        _mineOnly = !_mineOnly;
+        if (_mineOnly) _unassignedOnly = false;
+        await LoadAsync();
+    }
+
+    private async Task ToggleUnassigned()
+    {
+        _unassignedOnly = !_unassignedOnly;
+        if (_unassignedOnly) _mineOnly = false;
+        await LoadAsync();
+    }
+
+    private async Task ToggleSla() { _slaBreachedOnly = !_slaBreachedOnly; await LoadAsync(); }
+    private async Task ToggleCallback() { _callbackDueOnly = !_callbackDueOnly; await LoadAsync(); }
 
     private async Task LoadAsync()
     {
@@ -130,8 +188,17 @@
         try
         {
             int? wid = _isMaster && _websiteId <= 0 ? null : _websiteId;
+            _stats = await SupportDeskService.GetDeskStatsAsync(wid, _memberId);
             var result = await SupportDeskService.GetSessionsPagedAsync(
-                wid, _statusFilter, _priorityFilter, assignedMemberId: null, _archiveFilter, _grid.ToQuery());
+                wid,
+                _statusFilter,
+                _priorityFilter,
+                _mineOnly ? _memberId : null,
+                _archiveFilter,
+                _grid.ToQuery(),
+                slaBreachedOnly: _slaBreachedOnly ? true : null,
+                unassignedOnly: _unassignedOnly ? true : null,
+                callbackDueOnly: _callbackDueOnly ? true : null);
             _items = result.Items.ToList();
             _grid.Pagination.MaxLength = result.TotalCount;
         }
@@ -157,5 +224,13 @@
         SupportPriority.High => Color.Warning,
         SupportPriority.Low => Color.Default,
         _ => Color.Primary,
+    };
+
+    private static Color SlaColor(SupportSlaState s) => s switch
+    {
+        SupportSlaState.Ok or SupportSlaState.Met => Color.Success,
+        SupportSlaState.FirstResponseAtRisk or SupportSlaState.ResolveAtRisk => Color.Warning,
+        SupportSlaState.FirstResponseBreached or SupportSlaState.ResolveBreached => Color.Error,
+        _ => Color.Default,
     };
 }

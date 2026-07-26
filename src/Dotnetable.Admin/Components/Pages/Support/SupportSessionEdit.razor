@@ -22,10 +22,11 @@ else
 {
     <MudStack Row="true" AlignItems="AlignItems.Center" Justify="Justify.SpaceBetween" Class="mb-4" Style="flex-wrap:wrap; gap:12px;">
         <MudStack Spacing="0">
-            <MudStack Row="true" AlignItems="AlignItems.Center" Spacing="2">
+            <MudStack Row="true" AlignItems="AlignItems.Center" Spacing="2" Style="flex-wrap:wrap;">
                 <MudText Typo="Typo.h5" Class="fw-bold">@_summary.SessionNumber</MudText>
                 <MudChip T="string" Color="@StatusColor(_summary.Status)">@_summary.StatusName</MudChip>
                 <MudChip T="string" Color="@PriorityColor(_summary.Priority)" Variant="Variant.Outlined">@_summary.PriorityName</MudChip>
+                <MudChip T="string" Color="@SlaColor(_summary.SlaState)" Variant="Variant.Outlined" Icon="@Icons.Material.Filled.Timer">@_summary.SlaLabel</MudChip>
             </MudStack>
             <MudText Typo="Typo.body2" Color="Color.Secondary">
                 @(_summary.CustomerNameSnapshot ?? "—") · @(_summary.CellphoneSnapshot ?? "—") · @_summary.ChannelName · @_summary.CategoryName
@@ -149,6 +150,44 @@ else
                 </MudStack>
             </MudPaper>
 
+            <MudPaper Elevation="0" Class="app-card rounded-lg pa-4 mb-3">
+                <MudText Typo="Typo.subtitle1" Class="mb-2">@L["support.sla", "SLA"]</MudText>
+                <MudChip T="string" Color="@SlaColor(_summary.SlaState)" Class="mb-2">@_summary.SlaLabel</MudChip>
+                <MudStack Spacing="1">
+                    <DetailRow Label="@L["support.first_response_due", "First response due"]"
+                               Value="@(_summary.FirstResponseDueAt?.ToLocalTime().ToString("g") ?? "—")" />
+                    <DetailRow Label="@L["support.resolve_due", "Resolve due"]"
+                               Value="@(_summary.ResolveDueAt?.ToLocalTime().ToString("g") ?? "—")" />
+                </MudStack>
+                <MudText Typo="Typo.caption" Color="Color.Secondary" Class="mt-2">
+                    @L["support.sla_hint", "Urgent 15m/4h · High 1h/8h · Normal 4h/24h · Low 8h/48h"]
+                </MudText>
+            </MudPaper>
+
+            <MudPaper Elevation="0" Class="app-card rounded-lg pa-4 mb-3">
+                <MudText Typo="Typo.subtitle1" Class="mb-2">@L["support.callback", "Callback"]</MudText>
+                @if (_summary.CallbackAt is DateTime existingCb)
+                {
+                    <MudAlert Severity="@(existingCb <= DateTime.UtcNow ? Severity.Warning : Severity.Info)" Dense="true" Class="mb-2">
+                        @existingCb.ToLocalTime().ToString("g")
+                        @if (!string.IsNullOrEmpty(_summary.CallbackNote))
+                        {
+                            <text> — @_summary.CallbackNote</text>
+                        }
+                    </MudAlert>
+                }
+                @if (_canEdit)
+                {
+                    <MudDatePicker @bind-Date="_callbackDate" Label="@L["support.callback_date", "Date"]" Variant="Variant.Outlined" Dense="true" Class="mb-2" />
+                    <MudTimePicker @bind-Time="_callbackTime" Label="@L["support.callback_time", "Time"]" Variant="Variant.Outlined" Dense="true" Class="mb-2" />
+                    <MudTextField @bind-Value="_callbackNote" Label="@L["support.callback_note", "Note"]" Variant="Variant.Outlined" Dense="true" Class="mb-2" />
+                    <MudStack Row="true" Spacing="1">
+                        <MudButton Variant="Variant.Filled" Color="Color.Warning" Disabled="_busy" OnClick="SaveCallbackAsync">@L["support.schedule_callback", "Schedule"]</MudButton>
+                        <MudButton Variant="Variant.Text" Disabled="_busy || _summary.CallbackAt is null" OnClick="ClearCallbackAsync">@L["clear", "Clear"]</MudButton>
+                    </MudStack>
+                }
+            </MudPaper>
+
             @if (_canEdit)
             {
                 <MudPaper Elevation="0" Class="app-card rounded-lg pa-4 mb-3">
@@ -265,6 +304,9 @@ else
     private int? _assignMemberId;
     private int? _linkOrderId;
     private byte? _csat;
+    private DateTime? _callbackDate;
+    private TimeSpan? _callbackTime;
+    private string? _callbackNote;
 
     protected override async Task OnParametersSetAsync()
     {
@@ -292,6 +334,18 @@ else
             _metaTags = _summary.Tags;
             _assignMemberId = _summary.AssignedMemberID;
             _linkOrderId = _summary.RelatedOrderID;
+            if (_summary.CallbackAt is DateTime cbLocal)
+            {
+                var local = cbLocal.ToLocalTime();
+                _callbackDate = local.Date;
+                _callbackTime = local.TimeOfDay;
+            }
+            else
+            {
+                _callbackDate = null;
+                _callbackTime = null;
+            }
+            _callbackNote = _summary.CallbackNote;
 
             if (_canEdit)
             {
@@ -442,6 +496,34 @@ else
         await ReloadAsync();
     }
 
+    private async Task SaveCallbackAsync()
+    {
+        if (_memberId is null || _callbackDate is null) return;
+        _busy = true;
+        try
+        {
+            var time = _callbackTime ?? TimeSpan.FromHours(10);
+            var local = _callbackDate.Value.Date.Add(time);
+            var utc = DateTime.SpecifyKind(local, DateTimeKind.Local).ToUniversalTime();
+            await SupportDeskService.ScheduleCallbackAsync(SessionId, utc, _callbackNote, _memberId.Value);
+            Snackbar.Add(L["saved", "Saved."], Severity.Success);
+            await ReloadAsync();
+        }
+        finally { _busy = false; }
+    }
+
+    private async Task ClearCallbackAsync()
+    {
+        if (_memberId is null) return;
+        _busy = true;
+        try
+        {
+            await SupportDeskService.ScheduleCallbackAsync(SessionId, null, null, _memberId.Value);
+            await ReloadAsync();
+        }
+        finally { _busy = false; }
+    }
+
     private static string FormatDuration(int sec)
     {
         var m = sec / 60;
@@ -465,6 +547,14 @@ else
         SupportPriority.High => Color.Warning,
         SupportPriority.Low => Color.Default,
         _ => Color.Primary,
+    };
+
+    private static Color SlaColor(SupportSlaState s) => s switch
+    {
+        SupportSlaState.Ok or SupportSlaState.Met => Color.Success,
+        SupportSlaState.FirstResponseAtRisk or SupportSlaState.ResolveAtRisk => Color.Warning,
+        SupportSlaState.FirstResponseBreached or SupportSlaState.ResolveBreached => Color.Error,
+        _ => Color.Default,
     };
 
     private static Color InteractionColor(SupportInteractionDto i) => (SupportInteractionType)i.InteractionType switch

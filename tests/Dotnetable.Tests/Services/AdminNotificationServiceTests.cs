@@ -141,5 +141,25 @@ public class AdminNotificationServiceTests : IDisposable
         others.Should().HaveCount(1);
     }
 
+    [Fact]
+    public async Task NotifyMemberAsync_CreatesRowForSingleMember()
+    {
+        var agent = await SeedMemberAsync(isSiteAdmin: false, email: "agent@test.com");
+
+        await _service.NotifyMemberAsync(
+            agent.MemberID,
+            _website.WebsiteID,
+            AdminNotificationType.SupportTicket,
+            "Ticket assigned",
+            "SUP-1 needs you",
+            "/support/tickets/1",
+            1);
+
+        var rows = _context.AdminNotifications.Where(n => n.MemberID == agent.MemberID).ToList();
+        rows.Should().ContainSingle();
+        rows[0].NotificationType.Should().Be((byte)AdminNotificationType.SupportTicket);
+        rows[0].ActionUrl.Should().Be("/support/tickets/1");
+    }
+
     public void Dispose() => _context.Dispose();
 }

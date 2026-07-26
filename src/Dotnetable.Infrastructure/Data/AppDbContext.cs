@@ -2617,6 +2617,8 @@ public partial class AppDbContext : DbContext
             entity.HasIndex(e => new { e.WebsiteID, e.SessionNumber }, "IX_SupportSessions_Website_SessionNumber")
                 .IsUnique();
 
+            entity.Property(e => e.CallbackAt).HasColumnType("datetime");
+            entity.Property(e => e.CallbackNote).HasMaxLength(500);
             entity.Property(e => e.CellphoneSnapshot)
                 .HasMaxLength(16)
                 .IsUnicode(false);
@@ -2630,7 +2632,9 @@ public partial class AppDbContext : DbContext
                 .HasMaxLength(64)
                 .IsUnicode(false);
             entity.Property(e => e.FirstResponseAt).HasColumnType("datetime");
+            entity.Property(e => e.FirstResponseDueAt).HasColumnType("datetime");
             entity.Property(e => e.LastInteractionAt).HasColumnType("datetime");
+            entity.Property(e => e.ResolveDueAt).HasColumnType("datetime");
             entity.Property(e => e.ResolvedAt).HasColumnType("datetime");
             entity.Property(e => e.SessionNumber).HasMaxLength(30);
             entity.Property(e => e.Subject).HasMaxLength(256);
