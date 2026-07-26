@@ -169,6 +169,10 @@ public static class RoleKeys
     public const string ModerationView = "moderation.view";
     public const string ModerationReview = "moderation.review";
 
+    // ── Support desk / Customer 360 (admin) ──────────────────────────
+    public const string SupportView = "support.view";
+    public const string SupportEdit = "support.edit";
+
     // ── Client (website customers) — never used in the admin panel ──
     public const string ClientAccess = "client.access";
     public const string ClientPurchase = "client.purchase";

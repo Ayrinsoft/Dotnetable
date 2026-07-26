@@ -120,6 +120,8 @@ public partial class Website
 
     public virtual ICollection<Order> Orders { get; set; } = new List<Order>();
 
+    public virtual ICollection<SupportSession> SupportSessions { get; set; } = new List<SupportSession>();
+
     public virtual ICollection<Page> Pages { get; set; } = new List<Page>();
 
     public virtual ICollection<PaymentGateway> PaymentGateways { get; set; } = new List<PaymentGateway>();

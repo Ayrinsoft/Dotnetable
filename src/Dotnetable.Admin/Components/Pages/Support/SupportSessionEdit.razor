@@ -1,0 +1,491 @@
+@page "/support/tickets/{SessionId:int}"
+@attribute [Authorize(Policy = RoleKeys.SupportView)]
+@inject ISupportDeskService SupportDeskService
+@inject IMemberService MemberService
+@inject IOrderService OrderService
+@inject AuthenticationStateProvider AuthState
+@inject NavigationManager Nav
+@inject ISnackbar Snackbar
+@inject IPageLocalizer L
+
+<DNPageTitle Title="@(_summary?.SessionNumber ?? L["support.ticket", "Ticket"])" />
+
+@if (_loading)
+{
+    <MudProgressLinear Indeterminate="true" Color="Color.Primary" />
+}
+else if (_summary is null)
+{
+    <MudText Color="Color.Error">@L["support.ticket_not_found", "Ticket not found."]</MudText>
+}
+else
+{
+    <MudStack Row="true" AlignItems="AlignItems.Center" Justify="Justify.SpaceBetween" Class="mb-4" Style="flex-wrap:wrap; gap:12px;">
+        <MudStack Spacing="0">
+            <MudStack Row="true" AlignItems="AlignItems.Center" Spacing="2">
+                <MudText Typo="Typo.h5" Class="fw-bold">@_summary.SessionNumber</MudText>
+                <MudChip T="string" Color="@StatusColor(_summary.Status)">@_summary.StatusName</MudChip>
+                <MudChip T="string" Color="@PriorityColor(_summary.Priority)" Variant="Variant.Outlined">@_summary.PriorityName</MudChip>
+            </MudStack>
+            <MudText Typo="Typo.body2" Color="Color.Secondary">
+                @(_summary.CustomerNameSnapshot ?? "—") · @(_summary.CellphoneSnapshot ?? "—") · @_summary.ChannelName · @_summary.CategoryName
+            </MudText>
+        </MudStack>
+        <MudStack Row="true" Spacing="1">
+            @if (_summary.WebsiteClientID is int cid)
+            {
+                <MudButton Variant="Variant.Outlined" Href="@($"/support?client={cid}")" StartIcon="@Icons.Material.Filled.PersonSearch">
+                    @L["support.customer_360", "Customer 360"]
+                </MudButton>
+            }
+            <MudButton Variant="Variant.Text" OnClick="@(() => Nav.NavigateTo("/support/tickets"))">@L["back", "Back"]</MudButton>
+        </MudStack>
+    </MudStack>
+
+    <MudGrid Spacing="3">
+        <MudItem xs="12" md="8">
+            @* Log new interaction *@
+            @if (_canEdit)
+            {
+                <MudPaper Elevation="0" Class="app-card rounded-lg pa-4 mb-3">
+                    <MudText Typo="Typo.subtitle1" Class="mb-2">@L["support.log_interaction", "Log interaction"]</MudText>
+                    <MudStack Spacing="2">
+                        <MudStack Row="true" Spacing="2" Style="flex-wrap:wrap;">
+                            <MudSelect T="SupportInteractionType" @bind-Value="_ixType" Label="@L["type", "Type"]" Variant="Variant.Outlined" Dense="true" Style="min-width:160px;">
+                                @foreach (var t in LoggableTypes)
+                                {
+                                    <MudSelectItem T="SupportInteractionType" Value="@t">@t</MudSelectItem>
+                                }
+                            </MudSelect>
+                            @if (_ixType is SupportInteractionType.CallInbound or SupportInteractionType.CallOutbound)
+                            {
+                                <MudSelect T="SupportCallOutcome?" @bind-Value="_ixOutcome" Label="@L["support.call_outcome", "Call outcome"]"
+                                           Variant="Variant.Outlined" Dense="true" Clearable="true" Style="min-width:150px;">
+                                    @foreach (var o in Enum.GetValues<SupportCallOutcome>())
+                                    {
+                                        <MudSelectItem T="SupportCallOutcome?" Value="@o">@o</MudSelectItem>
+                                    }
+                                </MudSelect>
+                                <MudNumericField T="int?" @bind-Value="_ixDuration" Label="@L["support.duration_sec", "Duration (sec)"]"
+                                                 Variant="Variant.Outlined" Dense="true" Min="0" Style="min-width:130px;" />
+                            }
+                            <MudCheckBox T="bool" @bind-Value="_ixInternal" Label="@L["support.internal", "Internal only"]" Color="Color.Primary" Dense="true" />
+                        </MudStack>
+                        <MudTextField @bind-Value="_ixBody" Label="@L["support.note", "Note / summary"]" Variant="Variant.Outlined"
+                                      Lines="3" Dense="true" />
+                        <MudButton Variant="Variant.Filled" Color="Color.Primary" Disabled="_busy" OnClick="AddInteractionAsync"
+                                   StartIcon="@Icons.Material.Filled.Save">
+                            @L["support.add_to_log", "Add to log"]
+                        </MudButton>
+                    </MudStack>
+                </MudPaper>
+            }
+
+            <MudPaper Elevation="0" Class="app-card rounded-lg pa-4">
+                <MudText Typo="Typo.subtitle1" Class="mb-3">@L["support.timeline", "Timeline"]</MudText>
+                @if (_interactions.Count == 0)
+                {
+                    <MudText Color="Color.Secondary">@L["support.no_activity", "No support activity logged yet."]</MudText>
+                }
+                else
+                {
+                    <MudTimeline TimelinePosition="TimelinePosition.Start">
+                        @foreach (var i in _interactions)
+                        {
+                            <MudTimelineItem Color="@InteractionColor(i)" Size="Size.Small" Icon="@InteractionIcon(i)">
+                                <ItemContent>
+                                    <MudStack Spacing="0">
+                                        <MudStack Row="true" Spacing="1" AlignItems="AlignItems.Center" Style="flex-wrap:wrap;">
+                                            <MudText Typo="Typo.subtitle2">@i.InteractionTypeName</MudText>
+                                            @if (i.IsInternal)
+                                            {
+                                                <MudChip T="string" Size="Size.Small" Variant="Variant.Outlined">@L["support.internal", "Internal"]</MudChip>
+                                            }
+                                            @if (!string.IsNullOrEmpty(i.CallOutcomeName))
+                                            {
+                                                <MudChip T="string" Size="Size.Small">@i.CallOutcomeName</MudChip>
+                                            }
+                                            @if (i.DurationSeconds is int sec)
+                                            {
+                                                <MudText Typo="Typo.caption">@FormatDuration(sec)</MudText>
+                                            }
+                                        </MudStack>
+                                        @if (!string.IsNullOrEmpty(i.Body))
+                                        {
+                                            <MudText Typo="Typo.body2" Style="white-space:pre-wrap;">@i.Body</MudText>
+                                        }
+                                        <MudText Typo="Typo.caption" Color="Color.Secondary">
+                                            @(i.CreatedByMemberName ?? "System") · @i.CreatedAt.ToLocalTime().ToString("g")
+                                            @if (!string.IsNullOrEmpty(i.RelatedOrderNumber))
+                                            {
+                                                <text> · <a href="@($"/orders/{i.RelatedOrderID}")">@i.RelatedOrderNumber</a></text>
+                                            }
+                                        </MudText>
+                                    </MudStack>
+                                </ItemContent>
+                            </MudTimelineItem>
+                        }
+                    </MudTimeline>
+                }
+            </MudPaper>
+        </MudItem>
+
+        <MudItem xs="12" md="4">
+            <MudPaper Elevation="0" Class="app-card rounded-lg pa-4 mb-3">
+                <MudText Typo="Typo.subtitle1" Class="mb-2">@L["support.details", "Details"]</MudText>
+                <MudStack Spacing="1">
+                    <DetailRow Label="@L["support.subject", "Subject"]" Value="@(_summary.Subject ?? "—")" />
+                    <DetailRow Label="@L["support.assignee", "Assignee"]" Value="@(_summary.AssignedMemberName ?? "—")" />
+                    <DetailRow Label="@L["support.related_order", "Related order"]"
+                               Value="@(_summary.RelatedOrderNumber ?? "—")"
+                               Href="@(_summary.RelatedOrderID is int oid ? $"/orders/{oid}" : null)" />
+                    <DetailRow Label="@L["support.tags", "Tags"]" Value="@(_summary.Tags ?? "—")" />
+                    <DetailRow Label="@L["support.created", "Created"]" Value="@_summary.CreatedAt.ToLocalTime().ToString("g")" />
+                    <DetailRow Label="@L["support.first_response", "First response"]"
+                               Value="@(_summary.FirstResponseAt?.ToLocalTime().ToString("g") ?? "—")" />
+                    <DetailRow Label="@L["support.resolved", "Resolved"]"
+                               Value="@(_summary.ResolvedAt?.ToLocalTime().ToString("g") ?? "—")" />
+                    <DetailRow Label="@L["support.interactions", "Interactions"]" Value="@_summary.InteractionCount.ToString()" />
+                </MudStack>
+            </MudPaper>
+
+            @if (_canEdit)
+            {
+                <MudPaper Elevation="0" Class="app-card rounded-lg pa-4 mb-3">
+                    <MudText Typo="Typo.subtitle1" Class="mb-2">@L["support.actions", "Actions"]</MudText>
+                    <MudSelect T="SupportSessionStatus" @bind-Value="_newStatus" Label="@L["status", "Status"]"
+                               Variant="Variant.Outlined" Dense="true" Class="mb-2">
+                        @foreach (var s in Enum.GetValues<SupportSessionStatus>())
+                        {
+                            <MudSelectItem T="SupportSessionStatus" Value="@s">@s</MudSelectItem>
+                        }
+                    </MudSelect>
+                    <MudTextField @bind-Value="_statusNote" Label="@L["orders.note", "Note (optional)"]" Variant="Variant.Outlined" Dense="true" Class="mb-2" />
+                    <MudButton Variant="Variant.Filled" Color="Color.Primary" FullWidth="true" Class="mb-3" Disabled="_busy"
+                               OnClick="TransitionAsync">@L["support.change_status", "Change status"]</MudButton>
+
+                    <MudSelect T="SupportPriority" @bind-Value="_newPriority" Label="@L["support.priority", "Priority"]"
+                               Variant="Variant.Outlined" Dense="true" Class="mb-2">
+                        @foreach (var p in Enum.GetValues<SupportPriority>())
+                        {
+                            <MudSelectItem T="SupportPriority" Value="@p">@p</MudSelectItem>
+                        }
+                    </MudSelect>
+                    <MudButton Variant="Variant.Outlined" FullWidth="true" Class="mb-3" Disabled="_busy" OnClick="SetPriorityAsync">
+                        @L["support.set_priority", "Update priority"]
+                    </MudButton>
+
+                    <MudTextField @bind-Value="_metaSubject" Label="@L["support.subject", "Subject"]" Variant="Variant.Outlined" Dense="true" Class="mb-2" />
+                    <MudSelect T="SupportCategory" @bind-Value="_metaCategory" Label="@L["support.category", "Category"]"
+                               Variant="Variant.Outlined" Dense="true" Class="mb-2">
+                        @foreach (var c in Enum.GetValues<SupportCategory>())
+                        {
+                            <MudSelectItem T="SupportCategory" Value="@c">@c</MudSelectItem>
+                        }
+                    </MudSelect>
+                    <MudTextField @bind-Value="_metaTags" Label="@L["support.tags", "Tags"]" Variant="Variant.Outlined" Dense="true" Class="mb-2"
+                                  HelperText="@L["support.tags_hint", "Comma-separated"]" />
+                    <MudButton Variant="Variant.Outlined" FullWidth="true" Class="mb-3" Disabled="_busy" OnClick="SaveMetaAsync">
+                        @L["save", "Save"]
+                    </MudButton>
+
+                    <MudSelect T="int?" @bind-Value="_assignMemberId" Label="@L["support.assignee", "Assignee"]"
+                               Variant="Variant.Outlined" Dense="true" Clearable="true" Class="mb-2">
+                        @foreach (var m in _members)
+                        {
+                            <MudSelectItem T="int?" Value="@m.MemberID">@($"{m.Givenname} {m.Surname}".Trim())</MudSelectItem>
+                        }
+                    </MudSelect>
+                    <MudButton Variant="Variant.Outlined" FullWidth="true" Class="mb-3" Disabled="_busy" OnClick="AssignAsync">
+                        @L["support.assign", "Assign"]
+                    </MudButton>
+
+                    <MudSelect T="int?" @bind-Value="_linkOrderId" Label="@L["support.related_order", "Related order"]"
+                               Variant="Variant.Outlined" Dense="true" Clearable="true" Class="mb-2">
+                        @foreach (var o in _clientOrders)
+                        {
+                            <MudSelectItem T="int?" Value="@o.OrderID">@o.OrderNumber</MudSelectItem>
+                        }
+                    </MudSelect>
+                    <MudButton Variant="Variant.Outlined" FullWidth="true" Class="mb-3" Disabled="_busy" OnClick="LinkOrderAsync">
+                        @L["support.link_order", "Link order"]
+                    </MudButton>
+
+                    <MudSelect T="byte?" @bind-Value="_csat" Label="@L["support.csat", "CSAT (1–5)"]"
+                               Variant="Variant.Outlined" Dense="true" Clearable="true" Class="mb-2">
+                        @for (byte i = 1; i <= 5; i++)
+                        {
+                            <MudSelectItem T="byte?" Value="@i">@i</MudSelectItem>
+                        }
+                    </MudSelect>
+                    <MudButton Variant="Variant.Text" FullWidth="true" Class="mb-2" Disabled="_busy" OnClick="SaveCsatAsync">
+                        @L["support.save_csat", "Save satisfaction"]
+                    </MudButton>
+
+                    <MudSwitch T="bool" Value="_summary.Archive" Color="Color.Default" Label="@L["archived", "Archived"]"
+                               ValueChanged="OnArchiveChanged" />
+                </MudPaper>
+            }
+        </MudItem>
+    </MudGrid>
+}
+
+@code {
+    [Parameter] public int SessionId { get; set; }
+
+    private static readonly SupportInteractionType[] LoggableTypes =
+    [
+        SupportInteractionType.Note,
+        SupportInteractionType.InternalNote,
+        SupportInteractionType.CallInbound,
+        SupportInteractionType.CallOutbound,
+        SupportInteractionType.Email,
+        SupportInteractionType.Sms,
+    ];
+
+    private bool _loading = true, _canEdit, _busy;
+    private int? _memberId;
+    private SupportSessionSummaryDto? _summary;
+    private List<SupportInteractionDto> _interactions = new();
+    private List<Member> _members = new();
+    private List<Order> _clientOrders = new();
+
+    private SupportInteractionType _ixType = SupportInteractionType.Note;
+    private string? _ixBody;
+    private int? _ixDuration;
+    private SupportCallOutcome? _ixOutcome;
+    private bool _ixInternal;
+
+    private SupportSessionStatus _newStatus = SupportSessionStatus.Open;
+    private string? _statusNote;
+    private SupportPriority _newPriority = SupportPriority.Normal;
+    private string? _metaSubject;
+    private SupportCategory _metaCategory = SupportCategory.General;
+    private string? _metaTags;
+    private int? _assignMemberId;
+    private int? _linkOrderId;
+    private byte? _csat;
+
+    protected override async Task OnParametersSetAsync()
+    {
+        await L.EnsureLoadedAsync();
+        var user = (await AuthState.GetAuthenticationStateAsync()).User;
+        _canEdit = AdminPolicies.Allows(user, RoleKeys.SupportEdit);
+        int.TryParse(user.FindFirst(AdminClaimTypes.MemberId)?.Value, out var mid);
+        _memberId = mid > 0 ? mid : null;
+        await ReloadAsync();
+    }
+
+    private async Task ReloadAsync()
+    {
+        _loading = true;
+        try
+        {
+            _summary = await SupportDeskService.GetSessionSummaryByIdAsync(SessionId);
+            if (_summary is null) return;
+
+            _interactions = (await SupportDeskService.GetInteractionsAsync(SessionId)).ToList();
+            _newStatus = (SupportSessionStatus)_summary.Status;
+            _newPriority = (SupportPriority)_summary.Priority;
+            _metaSubject = _summary.Subject;
+            _metaCategory = (SupportCategory)_summary.Category;
+            _metaTags = _summary.Tags;
+            _assignMemberId = _summary.AssignedMemberID;
+            _linkOrderId = _summary.RelatedOrderID;
+
+            if (_canEdit)
+            {
+                var entity = await SupportDeskService.GetSessionEntityByIdAsync(SessionId);
+                if (entity is not null)
+                {
+                    _members = (await MemberService.GetByWebsiteAsync(entity.WebsiteID))
+                        .Where(m => m.Active)
+                        .OrderBy(m => m.Givenname)
+                        .ToList();
+
+                    if (entity.WebsiteClientID is int cid)
+                    {
+                        var oq = new GridQuery { PageIndex = 1, PageSize = 50 };
+                        var orders = await OrderService.GetClientHistoryAsync(cid, oq);
+                        _clientOrders = orders.Items.ToList();
+                    }
+                }
+            }
+        }
+        finally
+        {
+            _loading = false;
+        }
+    }
+
+    private async Task AddInteractionAsync()
+    {
+        if (_memberId is null) return;
+        if (string.IsNullOrWhiteSpace(_ixBody) && _ixType is SupportInteractionType.Note or SupportInteractionType.InternalNote)
+        {
+            Snackbar.Add(L["support.note_required", "Please enter a note."], Severity.Warning);
+            return;
+        }
+        _busy = true;
+        try
+        {
+            await SupportDeskService.AddInteractionAsync(new AddSupportInteractionRequest
+            {
+                SupportSessionID = SessionId,
+                InteractionType = _ixType,
+                Body = _ixBody,
+                DurationSeconds = _ixDuration,
+                CallOutcome = _ixOutcome,
+                RelatedOrderID = _linkOrderId,
+                IsInternal = _ixInternal || _ixType == SupportInteractionType.InternalNote,
+            }, _memberId.Value);
+            _ixBody = null;
+            _ixDuration = null;
+            _ixOutcome = null;
+            Snackbar.Add(L["support.logged", "Logged."], Severity.Success);
+            await ReloadAsync();
+        }
+        catch (Exception ex)
+        {
+            Snackbar.Add(ex.Message, Severity.Error);
+        }
+        finally
+        {
+            _busy = false;
+        }
+    }
+
+    private async Task TransitionAsync()
+    {
+        if (_memberId is null) return;
+        _busy = true;
+        try
+        {
+            await SupportDeskService.TransitionStatusAsync(SessionId, _newStatus, _memberId.Value, _statusNote);
+            _statusNote = null;
+            Snackbar.Add(L["saved", "Saved."], Severity.Success);
+            await ReloadAsync();
+        }
+        finally { _busy = false; }
+    }
+
+    private async Task SetPriorityAsync()
+    {
+        if (_memberId is null) return;
+        _busy = true;
+        try
+        {
+            await SupportDeskService.SetPriorityAsync(SessionId, _newPriority, _memberId.Value);
+            Snackbar.Add(L["saved", "Saved."], Severity.Success);
+            await ReloadAsync();
+        }
+        finally { _busy = false; }
+    }
+
+    private async Task SaveMetaAsync()
+    {
+        _busy = true;
+        try
+        {
+            await SupportDeskService.UpdateSessionMetaAsync(SessionId, _metaSubject, _metaCategory, _metaTags);
+            Snackbar.Add(L["saved", "Saved."], Severity.Success);
+            await ReloadAsync();
+        }
+        finally { _busy = false; }
+    }
+
+    private async Task AssignAsync()
+    {
+        if (_memberId is null) return;
+        _busy = true;
+        try
+        {
+            await SupportDeskService.AssignAsync(SessionId, _assignMemberId, _memberId.Value);
+            Snackbar.Add(L["saved", "Saved."], Severity.Success);
+            await ReloadAsync();
+        }
+        finally { _busy = false; }
+    }
+
+    private async Task LinkOrderAsync()
+    {
+        if (_memberId is null) return;
+        _busy = true;
+        try
+        {
+            var ok = await SupportDeskService.LinkOrderAsync(SessionId, _linkOrderId, _memberId.Value);
+            if (!ok) Snackbar.Add(L["support.link_failed", "Could not link order."], Severity.Error);
+            else
+            {
+                Snackbar.Add(L["saved", "Saved."], Severity.Success);
+                await ReloadAsync();
+            }
+        }
+        finally { _busy = false; }
+    }
+
+    private async Task SaveCsatAsync()
+    {
+        _busy = true;
+        try
+        {
+            await SupportDeskService.SetSatisfactionAsync(SessionId, _csat);
+            Snackbar.Add(L["saved", "Saved."], Severity.Success);
+            await ReloadAsync();
+        }
+        finally { _busy = false; }
+    }
+
+    private async Task OnArchiveChanged(bool value)
+    {
+        await SupportDeskService.SetArchiveAsync(SessionId, value);
+        await ReloadAsync();
+    }
+
+    private static string FormatDuration(int sec)
+    {
+        var m = sec / 60;
+        var s = sec % 60;
+        return m > 0 ? $"{m}m {s}s" : $"{s}s";
+    }
+
+    private static Color StatusColor(byte status) => (SupportSessionStatus)status switch
+    {
+        SupportSessionStatus.Open => Color.Primary,
+        SupportSessionStatus.Pending => Color.Warning,
+        SupportSessionStatus.WaitingCustomer => Color.Info,
+        SupportSessionStatus.Resolved => Color.Success,
+        SupportSessionStatus.Closed => Color.Default,
+        _ => Color.Default,
+    };
+
+    private static Color PriorityColor(byte p) => (SupportPriority)p switch
+    {
+        SupportPriority.Urgent => Color.Error,
+        SupportPriority.High => Color.Warning,
+        SupportPriority.Low => Color.Default,
+        _ => Color.Primary,
+    };
+
+    private static Color InteractionColor(SupportInteractionDto i) => (SupportInteractionType)i.InteractionType switch
+    {
+        SupportInteractionType.CallInbound or SupportInteractionType.CallOutbound => Color.Primary,
+        SupportInteractionType.InternalNote => Color.Secondary,
+        SupportInteractionType.StatusChange => Color.Info,
+        SupportInteractionType.Assignment => Color.Warning,
+        _ => Color.Default,
+    };
+
+    private static string InteractionIcon(SupportInteractionDto i) => (SupportInteractionType)i.InteractionType switch
+    {
+        SupportInteractionType.CallInbound => Icons.Material.Filled.CallReceived,
+        SupportInteractionType.CallOutbound => Icons.Material.Filled.CallMade,
+        SupportInteractionType.InternalNote => Icons.Material.Filled.Lock,
+        SupportInteractionType.Email => Icons.Material.Filled.Email,
+        SupportInteractionType.Sms => Icons.Material.Filled.Sms,
+        SupportInteractionType.StatusChange => Icons.Material.Filled.SwapHoriz,
+        SupportInteractionType.Assignment => Icons.Material.Filled.PersonAdd,
+        SupportInteractionType.OrderLinked => Icons.Material.Filled.Link,
+        _ => Icons.Material.Filled.Notes,
+    };
+}

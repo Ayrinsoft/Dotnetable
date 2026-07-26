@@ -61,6 +61,10 @@ public partial class Order
 
     public virtual ICollection<Payment> Payments { get; set; } = new List<Payment>();
 
+    public virtual ICollection<SupportInteraction> SupportInteractions { get; set; } = new List<SupportInteraction>();
+
+    public virtual ICollection<SupportSession> SupportSessions { get; set; } = new List<SupportSession>();
+
     public virtual ShippingMethod? ShippingMethod { get; set; }
 
     public virtual ICollection<StockMovement> StockMovements { get; set; } = new List<StockMovement>();

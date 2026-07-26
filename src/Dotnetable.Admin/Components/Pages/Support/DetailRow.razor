@@ -1,0 +1,17 @@
+<MudStack Row="true" Justify="Justify.SpaceBetween" AlignItems="AlignItems.Start" Spacing="2">
+    <MudText Typo="Typo.caption" Color="Color.Secondary">@Label</MudText>
+    @if (!string.IsNullOrEmpty(Href) && Value != "—")
+    {
+        <MudLink Href="@Href" Typo="Typo.body2">@Value</MudLink>
+    }
+    else
+    {
+        <MudText Typo="Typo.body2" Align="Align.End">@Value</MudText>
+    }
+</MudStack>
+
+@code {
+    [Parameter] public string Label { get; set; } = string.Empty;
+    [Parameter] public string Value { get; set; } = string.Empty;
+    [Parameter] public string? Href { get; set; }
+}

@@ -4323,6 +4323,176 @@ namespace Dotnetable.Migrations.SqlServer.Migrations
                     b.ToTable("Suppliers");
                 });
 
+            modelBuilder.Entity("Dotnetable.Domain.Entities.SupportInteraction", b =>
+                {
+                    b.Property<int>("SupportInteractionID")
+                        .ValueGeneratedOnAdd()
+                        .HasColumnType("int");
+
+                    SqlServerPropertyBuilderExtensions.UseIdentityColumn(b.Property<int>("SupportInteractionID"));
+
+                    b.Property<string>("Body")
+                        .HasMaxLength(4000)
+                        .HasColumnType("nvarchar(4000)");
+
+                    b.Property<byte?>("CallOutcome")
+                        .HasColumnType("tinyint");
+
+                    b.Property<DateTime>("CreatedAt")
+                        .HasColumnType("datetime");
+
+                    b.Property<int?>("CreatedByMemberID")
+                        .HasColumnType("int");
+
+                    b.Property<int?>("DurationSeconds")
+                        .HasColumnType("int");
+
+                    b.Property<byte?>("FromStatus")
+                        .HasColumnType("tinyint");
+
+                    b.Property<byte>("InteractionType")
+                        .HasColumnType("tinyint");
+
+                    b.Property<bool>("IsInternal")
+                        .HasColumnType("bit");
+
+                    b.Property<int?>("RelatedOrderID")
+                        .HasColumnType("int");
+
+                    b.Property<int>("SupportSessionID")
+                        .HasColumnType("int");
+
+                    b.Property<byte?>("ToStatus")
+                        .HasColumnType("tinyint");
+
+                    b.HasKey("SupportInteractionID");
+
+                    b.HasIndex(new[] { "CreatedAt" }, "IX_SupportInteractions_CreatedAt");
+
+                    b.HasIndex(new[] { "CreatedByMemberID" }, "IX_SupportInteractions_CreatedByMemberID");
+
+                    b.HasIndex(new[] { "RelatedOrderID" }, "IX_SupportInteractions_RelatedOrderID");
+
+                    b.HasIndex(new[] { "SupportSessionID" }, "IX_SupportInteractions_SupportSessionID");
+
+                    b.ToTable("SupportInteractions");
+                });
+
+            modelBuilder.Entity("Dotnetable.Domain.Entities.SupportSession", b =>
+                {
+                    b.Property<int>("SupportSessionID")
+                        .ValueGeneratedOnAdd()
+                        .HasColumnType("int");
+
+                    SqlServerPropertyBuilderExtensions.UseIdentityColumn(b.Property<int>("SupportSessionID"));
+
+                    b.Property<bool>("Archive")
+                        .HasColumnType("bit");
+
+                    b.Property<int?>("AssignedMemberID")
+                        .HasColumnType("int");
+
+                    b.Property<byte>("Category")
+                        .HasColumnType("tinyint");
+
+                    b.Property<string>("CellphoneSnapshot")
+                        .HasMaxLength(16)
+                        .IsUnicode(false)
+                        .HasColumnType("varchar(16)");
+
+                    b.Property<byte>("Channel")
+                        .HasColumnType("tinyint");
+
+                    b.Property<DateTime?>("ClosedAt")
+                        .HasColumnType("datetime");
+
+                    b.Property<string>("CountryCodeSnapshot")
+                        .HasMaxLength(3)
+                        .IsUnicode(false)
+                        .HasColumnType("varchar(3)");
+
+                    b.Property<DateTime>("CreatedAt")
+                        .HasColumnType("datetime");
+
+                    b.Property<int?>("CreatedByMemberID")
+                        .HasColumnType("int");
+
+                    b.Property<string>("CustomerNameSnapshot")
+                        .HasMaxLength(128)
+                        .HasColumnType("nvarchar(128)");
+
+                    b.Property<string>("EmailSnapshot")
+                        .HasMaxLength(64)
+                        .IsUnicode(false)
+                        .HasColumnType("varchar(64)");
+
+                    b.Property<DateTime?>("FirstResponseAt")
+                        .HasColumnType("datetime");
+
+                    b.Property<DateTime?>("LastInteractionAt")
+                        .HasColumnType("datetime");
+
+                    b.Property<byte>("Priority")
+                        .HasColumnType("tinyint");
+
+                    b.Property<int?>("RelatedOrderID")
+                        .HasColumnType("int");
+
+                    b.Property<DateTime?>("ResolvedAt")
+                        .HasColumnType("datetime");
+
+                    b.Property<byte?>("SatisfactionRating")
+                        .HasColumnType("tinyint");
+
+                    b.Property<string>("SessionNumber")
+                        .IsRequired()
+                        .HasMaxLength(30)
+                        .HasColumnType("nvarchar(30)");
+
+                    b.Property<byte>("Status")
+                        .HasColumnType("tinyint");
+
+                    b.Property<string>("Subject")
+                        .HasMaxLength(256)
+                        .HasColumnType("nvarchar(256)");
+
+                    b.Property<string>("Tags")
+                        .HasMaxLength(256)
+                        .HasColumnType("nvarchar(256)");
+
+                    b.Property<DateTime>("UpdatedAt")
+                        .HasColumnType("datetime");
+
+                    b.Property<int?>("WebsiteClientID")
+                        .HasColumnType("int");
+
+                    b.Property<int>("WebsiteID")
+                        .HasColumnType("int");
+
+                    b.HasKey("SupportSessionID");
+
+                    b.HasIndex(new[] { "AssignedMemberID" }, "IX_SupportSessions_AssignedMemberID");
+
+                    b.HasIndex(new[] { "CellphoneSnapshot" }, "IX_SupportSessions_CellphoneSnapshot");
+
+                    b.HasIndex(new[] { "CreatedAt" }, "IX_SupportSessions_CreatedAt");
+
+                    b.HasIndex(new[] { "CreatedByMemberID" }, "IX_SupportSessions_CreatedByMemberID");
+
+                    b.HasIndex(new[] { "RelatedOrderID" }, "IX_SupportSessions_RelatedOrderID");
+
+                    b.HasIndex(new[] { "Status" }, "IX_SupportSessions_Status");
+
+                    b.HasIndex(new[] { "WebsiteClientID" }, "IX_SupportSessions_WebsiteClientID");
+
+                    b.HasIndex(new[] { "WebsiteID" }, "IX_SupportSessions_WebsiteID");
+
+                    b.HasIndex(new[] { "WebsiteID", "SessionNumber" }, "IX_SupportSessions_Website_SessionNumber")
+                        .IsUnique();
+
+                    b.ToTable("SupportSessions");
+                });
+
             modelBuilder.Entity("Dotnetable.Domain.Entities.Tag", b =>
                 {
                     b.Property<int>("TagID")
@@ -7385,6 +7555,70 @@ namespace Dotnetable.Migrations.SqlServer.Migrations
                     b.Navigation("Website");
                 });
 
+            modelBuilder.Entity("Dotnetable.Domain.Entities.SupportInteraction", b =>
+                {
+                    b.HasOne("Dotnetable.Domain.Entities.Member", "CreatedByMember")
+                        .WithMany("SupportInteractions")
+                        .HasForeignKey("CreatedByMemberID")
+                        .HasConstraintName("FK_SupportInteractions_Members");
+
+                    b.HasOne("Dotnetable.Domain.Entities.Order", "RelatedOrder")
+                        .WithMany("SupportInteractions")
+                        .HasForeignKey("RelatedOrderID")
+                        .HasConstraintName("FK_SupportInteractions_Orders");
+
+                    b.HasOne("Dotnetable.Domain.Entities.SupportSession", "SupportSession")
+                        .WithMany("SupportInteractions")
+                        .HasForeignKey("SupportSessionID")
+                        .IsRequired()
+                        .HasConstraintName("FK_SupportInteractions_SupportSessions");
+
+                    b.Navigation("CreatedByMember");
+
+                    b.Navigation("RelatedOrder");
+
+                    b.Navigation("SupportSession");
+                });
+
+            modelBuilder.Entity("Dotnetable.Domain.Entities.SupportSession", b =>
+                {
+                    b.HasOne("Dotnetable.Domain.Entities.Member", "AssignedMember")
+                        .WithMany("SupportSessionAssignedMembers")
+                        .HasForeignKey("AssignedMemberID")
+                        .HasConstraintName("FK_SupportSessions_AssignedMembers");
+
+                    b.HasOne("Dotnetable.Domain.Entities.Member", "CreatedByMember")
+                        .WithMany("SupportSessionCreatedByMembers")
+                        .HasForeignKey("CreatedByMemberID")
+                        .HasConstraintName("FK_SupportSessions_CreatedByMembers");
+
+                    b.HasOne("Dotnetable.Domain.Entities.Order", "RelatedOrder")
+                        .WithMany("SupportSessions")
+                        .HasForeignKey("RelatedOrderID")
+                        .HasConstraintName("FK_SupportSessions_Orders");
+
+                    b.HasOne("Dotnetable.Domain.Entities.WebsiteClient", "WebsiteClient")
+                        .WithMany("SupportSessions")
+                        .HasForeignKey("WebsiteClientID")
+                        .HasConstraintName("FK_SupportSessions_WebsiteClients");
+
+                    b.HasOne("Dotnetable.Domain.Entities.Website", "Website")
+                        .WithMany("SupportSessions")
+                        .HasForeignKey("WebsiteID")
+                        .IsRequired()
+                        .HasConstraintName("FK_SupportSessions_Websites");
+
+                    b.Navigation("AssignedMember");
+
+                    b.Navigation("CreatedByMember");
+
+                    b.Navigation("RelatedOrder");
+
+                    b.Navigation("Website");
+
+                    b.Navigation("WebsiteClient");
+                });
+
             modelBuilder.Entity("Dotnetable.Domain.Entities.Tag", b =>
                 {
                     b.HasOne("Dotnetable.Domain.Entities.Website", "Website")
@@ -8107,6 +8341,12 @@ namespace Dotnetable.Migrations.SqlServer.Migrations
 
                     b.Navigation("StockMovements");
 
+                    b.Navigation("SupportInteractions");
+
+                    b.Navigation("SupportSessionAssignedMembers");
+
+                    b.Navigation("SupportSessionCreatedByMembers");
+
                     b.Navigation("Vendor");
 
                     b.Navigation("VendorCreditTransactions");
@@ -8135,6 +8375,10 @@ namespace Dotnetable.Migrations.SqlServer.Migrations
                     b.Navigation("Payments");
 
                     b.Navigation("StockMovements");
+
+                    b.Navigation("SupportInteractions");
+
+                    b.Navigation("SupportSessions");
 
                     b.Navigation("VendorCreditTransactionMirrorOrders");
                 });
@@ -8315,6 +8559,11 @@ namespace Dotnetable.Migrations.SqlServer.Migrations
                     b.Navigation("StockMovements");
                 });
 
+            modelBuilder.Entity("Dotnetable.Domain.Entities.SupportSession", b =>
+                {
+                    b.Navigation("SupportInteractions");
+                });
+
             modelBuilder.Entity("Dotnetable.Domain.Entities.Tag", b =>
                 {
                     b.Navigation("TagTranslations");
@@ -8453,6 +8702,8 @@ namespace Dotnetable.Migrations.SqlServer.Migrations
 
                     b.Navigation("Suppliers");
 
+                    b.Navigation("SupportSessions");
+
                     b.Navigation("Tags");
 
                     b.Navigation("TaxRates");
@@ -8517,6 +8768,8 @@ namespace Dotnetable.Migrations.SqlServer.Migrations
                     b.Navigation("ProductQuestions");
 
                     b.Navigation("ProductReviews");
+
+                    b.Navigation("SupportSessions");
 
                     b.Navigation("WebsiteClientAddresses");
 
