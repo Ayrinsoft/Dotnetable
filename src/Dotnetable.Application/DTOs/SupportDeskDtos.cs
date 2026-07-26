@@ -1,3 +1,5 @@
+using Dotnetable.Domain.Entities;
+
 namespace Dotnetable.Application.DTOs;
 
 /// <summary>Lifecycle of a support ticket / session.</summary>
@@ -71,6 +73,95 @@ public enum SupportCallOutcome : byte
     WrongNumber = 6,
 }
 
+/// <summary>Computed SLA health for a ticket (not stored).</summary>
+public enum SupportSlaState : byte
+{
+    Ok = 0,
+    FirstResponseAtRisk = 1,
+    FirstResponseBreached = 2,
+    ResolveAtRisk = 3,
+    ResolveBreached = 4,
+    Met = 5,
+    Closed = 6,
+}
+
+/// <summary>Priority → first-response / resolve windows used by the support desk.</summary>
+public static class SupportSlaPolicy
+{
+    /// <summary>At-risk window: last 20% of the SLA budget (min 5 minutes).</summary>
+    public static readonly TimeSpan MinAtRiskWindow = TimeSpan.FromMinutes(5);
+
+    public static (TimeSpan FirstResponse, TimeSpan Resolve) GetTargets(SupportPriority priority) => priority switch
+    {
+        SupportPriority.Urgent => (TimeSpan.FromMinutes(15), TimeSpan.FromHours(4)),
+        SupportPriority.High => (TimeSpan.FromHours(1), TimeSpan.FromHours(8)),
+        SupportPriority.Normal => (TimeSpan.FromHours(4), TimeSpan.FromHours(24)),
+        SupportPriority.Low => (TimeSpan.FromHours(8), TimeSpan.FromHours(48)),
+        _ => (TimeSpan.FromHours(4), TimeSpan.FromHours(24)),
+    };
+
+    public static void ApplyDueDates(SupportSession session)
+    {
+        var (first, resolve) = GetTargets((SupportPriority)session.Priority);
+        session.FirstResponseDueAt = session.CreatedAt.Add(first);
+        session.ResolveDueAt = session.CreatedAt.Add(resolve);
+    }
+
+    /// <summary>On reopen, give a fresh resolve window from <paramref name="now"/> while keeping first-response history.</summary>
+    public static void RefreshResolveDueOnReopen(SupportSession session, DateTime now)
+    {
+        var (_, resolve) = GetTargets((SupportPriority)session.Priority);
+        session.ResolveDueAt = now.Add(resolve);
+    }
+
+    public static SupportSlaState Evaluate(
+        byte status,
+        DateTime createdAt,
+        DateTime? firstResponseAt,
+        DateTime? firstResponseDueAt,
+        DateTime? resolvedAt,
+        DateTime? resolveDueAt,
+        DateTime? now = null)
+    {
+        var utc = now ?? DateTime.UtcNow;
+        if (status is (byte)SupportSessionStatus.Resolved or (byte)SupportSessionStatus.Closed)
+        {
+            if (resolveDueAt is DateTime rd && resolvedAt is DateTime ra && ra > rd)
+                return SupportSlaState.ResolveBreached;
+            if (firstResponseDueAt is DateTime fd && firstResponseAt is DateTime fa && fa > fd)
+                return SupportSlaState.FirstResponseBreached;
+            return SupportSlaState.Met;
+        }
+
+        if (firstResponseAt is null && firstResponseDueAt is DateTime frDue)
+        {
+            if (utc > frDue) return SupportSlaState.FirstResponseBreached;
+            if (IsAtRisk(createdAt, frDue, utc)) return SupportSlaState.FirstResponseAtRisk;
+        }
+
+        if (resolvedAt is null && resolveDueAt is DateTime resDue)
+        {
+            if (utc > resDue) return SupportSlaState.ResolveBreached;
+            if (IsAtRisk(createdAt, resDue, utc)) return SupportSlaState.ResolveAtRisk;
+        }
+
+        return SupportSlaState.Ok;
+    }
+
+    public static bool IsBreached(SupportSlaState state) =>
+        state is SupportSlaState.FirstResponseBreached or SupportSlaState.ResolveBreached;
+
+    private static bool IsAtRisk(DateTime start, DateTime due, DateTime now)
+    {
+        if (now >= due) return false;
+        var total = due - start;
+        if (total <= TimeSpan.Zero) return true;
+        var remaining = due - now;
+        var window = TimeSpan.FromTicks(Math.Max(MinAtRiskWindow.Ticks, total.Ticks / 5));
+        return remaining <= window;
+    }
+}
+
 /// <summary>Request to open a new support session (ticket).</summary>
 public sealed class StartSupportSessionRequest
 {
@@ -92,6 +183,9 @@ public sealed class StartSupportSessionRequest
     public SupportCallOutcome? CallOutcome { get; set; }
     /// <summary>When true, auto-assign the creating agent.</summary>
     public bool AssignToSelf { get; set; } = true;
+    /// <summary>Optional scheduled callback when logging an opening call.</summary>
+    public DateTime? CallbackAt { get; set; }
+    public string? CallbackNote { get; set; }
 }
 
 /// <summary>Request to append a timeline interaction.</summary>
@@ -104,6 +198,8 @@ public sealed class AddSupportInteractionRequest
     public SupportCallOutcome? CallOutcome { get; set; }
     public int? RelatedOrderID { get; set; }
     public bool IsInternal { get; set; }
+    public DateTime? CallbackAt { get; set; }
+    public string? CallbackNote { get; set; }
 }
 
 /// <summary>Lightweight order row for Customer 360 / support desk panels.</summary>
@@ -158,8 +254,29 @@ public sealed class SupportSessionSummaryDto
     public DateTime? LastInteractionAt { get; set; }
     public DateTime? FirstResponseAt { get; set; }
     public DateTime? ResolvedAt { get; set; }
+    public DateTime? FirstResponseDueAt { get; set; }
+    public DateTime? ResolveDueAt { get; set; }
+    public DateTime? CallbackAt { get; set; }
+    public string? CallbackNote { get; set; }
+    public SupportSlaState SlaState { get; set; }
+    public string SlaLabel { get; set; } = string.Empty;
+    public bool IsSlaBreached { get; set; }
     public int InteractionCount { get; set; }
     public bool Archive { get; set; }
+    public byte? SatisfactionRating { get; set; }
+}
+
+/// <summary>Dashboard counters for the support desk / ticket queue.</summary>
+public sealed class SupportDeskStatsDto
+{
+    public int OpenCount { get; set; }
+    public int MyOpenCount { get; set; }
+    public int UnassignedCount { get; set; }
+    public int WaitingCustomerCount { get; set; }
+    public int UrgentCount { get; set; }
+    public int SlaBreachedCount { get; set; }
+    public int CallbackDueCount { get; set; }
+    public int ResolvedTodayCount { get; set; }
 }
 
 /// <summary>Timeline entry DTO (avoids navigation cycles for Blazor grids).</summary>

@@ -30,6 +30,17 @@
     </MudStack>
 </MudStack>
 
+@if (_stats is not null)
+{
+    <MudStack Row="true" Spacing="2" Class="mb-3" Style="flex-wrap:wrap;">
+        <StatChip Label="@L["support.stat.mine", "Mine"]" Value="@_stats.MyOpenCount.ToString()" Color="Color.Info" />
+        <StatChip Label="@L["support.stat.unassigned", "Unassigned"]" Value="@_stats.UnassignedCount.ToString()" Color="Color.Secondary" />
+        <StatChip Label="@L["support.stat.sla", "SLA breached"]" Value="@_stats.SlaBreachedCount.ToString()" Color="Color.Error" />
+        <StatChip Label="@L["support.stat.callback", "Callbacks due"]" Value="@_stats.CallbackDueCount.ToString()" Color="Color.Warning" />
+        <StatChip Label="@L["support.stat.open", "Open"]" Value="@_stats.OpenCount.ToString()" Color="Color.Primary" />
+    </MudStack>
+}
+
 @* ── Phone lookup ─────────────────────────────────────────────────── *@
 <MudPaper Elevation="0" Class="app-card rounded-lg pa-4 mb-4">
     <MudStack Row="true" AlignItems="AlignItems.End" Spacing="2" Style="flex-wrap:wrap;">
@@ -407,6 +418,7 @@
     private List<Website> _websites = new();
     private SupportMobileLookupResult? _lookup;
     private Customer360Dto? _c360;
+    private SupportDeskStatsDto? _stats;
 
     private SupportChannel _newChannel = SupportChannel.InboundCall;
     private SupportPriority _newPriority = SupportPriority.Normal;
@@ -426,11 +438,19 @@
         _memberId = mid > 0 ? mid : null;
         if (_isMaster) _websites = (await WebsiteService.GetAllAsync()).ToList();
 
+        await RefreshStatsAsync();
+
         // Deep-link from a ticket: /support?client=123
         var uri = Nav.ToAbsoluteUri(Nav.Uri);
         var query = Microsoft.AspNetCore.WebUtilities.QueryHelpers.ParseQuery(uri.Query);
         if (query.TryGetValue("client", out var clientVal) && int.TryParse(clientVal, out var clientId) && clientId > 0)
             await SelectMatchAsync(clientId);
+    }
+
+    private async Task RefreshStatsAsync()
+    {
+        int? wid = _isMaster && _websiteId <= 0 ? null : _websiteId;
+        _stats = await SupportDeskService.GetDeskStatsAsync(wid, _memberId);
     }
 
     private async Task OnWebsiteChanged(int id)
@@ -439,7 +459,7 @@
         _c360 = null;
         _lookup = null;
         _searched = false;
-        await Task.CompletedTask;
+        await RefreshStatsAsync();
     }
 
     private async Task OnMobileKeyUp(KeyboardEventArgs e)

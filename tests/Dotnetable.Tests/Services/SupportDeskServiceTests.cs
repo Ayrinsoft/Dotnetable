@@ -1,10 +1,12 @@
 using Dotnetable.Application.DTOs;
 using Dotnetable.Application.Interfaces;
 using Dotnetable.Domain.Entities;
+using Dotnetable.Domain.Enums;
 using Dotnetable.Infrastructure.Data;
 using Dotnetable.Infrastructure.Services;
 using FluentAssertions;
 using Microsoft.EntityFrameworkCore;
+using Moq;
 using Xunit;
 
 namespace Dotnetable.Tests.Services;
@@ -13,6 +15,7 @@ public class SupportDeskServiceTests : IDisposable
 {
     private readonly AppDbContext _context;
     private readonly SupportDeskService _service;
+    private readonly Mock<IAdminNotificationService> _notifications = new();
 
     public SupportDeskServiceTests()
     {
@@ -20,7 +23,7 @@ public class SupportDeskServiceTests : IDisposable
             .UseInMemoryDatabase(Guid.NewGuid().ToString())
             .Options;
         _context = new AppDbContext(opts);
-        _service = new SupportDeskService(_context);
+        _service = new SupportDeskService(_context, _notifications.Object);
         SeedBasics();
     }
 
@@ -208,6 +211,115 @@ public class SupportDeskServiceTests : IDisposable
 
         session.WebsiteClientID.Should().BeNull();
         session.CellphoneSnapshot.Should().Be("09121112233");
+    }
+
+    [Fact]
+    public async Task StartSession_AppliesSlaDueDates_AndNotifiesAdminsOnUnassigned()
+    {
+        var session = await _service.StartSessionAsync(new StartSupportSessionRequest
+        {
+            WebsiteID = 1,
+            WebsiteClientID = 100,
+            Priority = SupportPriority.Urgent,
+            AssignToSelf = false,
+            Subject = "Urgent issue",
+        }, 10);
+
+        session.FirstResponseDueAt.Should().NotBeNull();
+        session.ResolveDueAt.Should().NotBeNull();
+        session.FirstResponseDueAt!.Value.Should().BeCloseTo(session.CreatedAt.AddMinutes(15), TimeSpan.FromSeconds(2));
+        session.ResolveDueAt!.Value.Should().BeCloseTo(session.CreatedAt.AddHours(4), TimeSpan.FromSeconds(2));
+
+        _notifications.Verify(n => n.NotifySiteAdminsAsync(
+            1,
+            AdminNotificationType.SupportTicket,
+            It.IsAny<string>(),
+            It.IsAny<string>(),
+            It.Is<string>(u => u.Contains($"/support/tickets/{session.SupportSessionID}")),
+            session.SupportSessionID,
+            It.IsAny<CancellationToken>()), Times.AtLeastOnce);
+    }
+
+    [Fact]
+    public async Task ScheduleCallback_And_DeskStats_CountDue()
+    {
+        var session = await _service.StartSessionAsync(new StartSupportSessionRequest
+        {
+            WebsiteID = 1,
+            WebsiteClientID = 100,
+            AssignToSelf = true,
+        }, 10);
+
+        await _service.ScheduleCallbackAsync(session.SupportSessionID, DateTime.UtcNow.AddMinutes(-5), "Call back about invoice", 10);
+
+        var stats = await _service.GetDeskStatsAsync(1, 10);
+        stats.OpenCount.Should().BeGreaterThanOrEqualTo(1);
+        stats.MyOpenCount.Should().BeGreaterThanOrEqualTo(1);
+        stats.CallbackDueCount.Should().BeGreaterThanOrEqualTo(1);
+
+        var due = await _service.GetSessionsPagedAsync(1, null, null, null, false, new GridQuery { PageSize = 50 },
+            callbackDueOnly: true);
+        due.Items.Should().Contain(s => s.SupportSessionID == session.SupportSessionID);
+    }
+
+    [Fact]
+    public async Task Assign_NotifiesAssignee()
+    {
+        _context.Members.Add(new Member
+        {
+            MemberID = 11,
+            WebsiteID = 1,
+            Username = "agent2",
+            Password = "x",
+            Email = "a2@test.local",
+            CellphoneNumber = "9000000001",
+            CountryCode = "98",
+            Givenname = "Reza",
+            Surname = "Agent",
+            Active = true,
+            RegisterDate = DateOnly.FromDateTime(DateTime.UtcNow),
+            HashKey = Guid.NewGuid(),
+            PolicyID = 1,
+        });
+        await _context.SaveChangesAsync();
+
+        var session = await _service.StartSessionAsync(new StartSupportSessionRequest
+        {
+            WebsiteID = 1,
+            WebsiteClientID = 100,
+            AssignToSelf = true,
+        }, 10);
+
+        await _service.AssignAsync(session.SupportSessionID, 11, actorMemberId: 10);
+
+        _notifications.Verify(n => n.NotifyMemberAsync(
+            11,
+            1,
+            AdminNotificationType.SupportTicket,
+            It.IsAny<string>(),
+            It.IsAny<string>(),
+            It.IsAny<string?>(),
+            session.SupportSessionID,
+            It.IsAny<CancellationToken>()), Times.Once);
+    }
+
+    [Fact]
+    public void SupportSlaPolicy_Urgent_IsShorterThanNormal()
+    {
+        var (uFirst, uRes) = SupportSlaPolicy.GetTargets(SupportPriority.Urgent);
+        var (nFirst, nRes) = SupportSlaPolicy.GetTargets(SupportPriority.Normal);
+        uFirst.Should().BeLessThan(nFirst);
+        uRes.Should().BeLessThan(nRes);
+
+        var created = DateTime.UtcNow.AddHours(-5);
+        var state = SupportSlaPolicy.Evaluate(
+            (byte)SupportSessionStatus.Open,
+            created,
+            firstResponseAt: null,
+            firstResponseDueAt: created.AddHours(4),
+            resolvedAt: null,
+            resolveDueAt: created.AddHours(24));
+        state.Should().Be(SupportSlaState.FirstResponseBreached);
     }
 
     public void Dispose() => _context.Dispose();

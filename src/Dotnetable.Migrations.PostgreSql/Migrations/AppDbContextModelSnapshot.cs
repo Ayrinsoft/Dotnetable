@@ -4391,6 +4391,13 @@ namespace Dotnetable.Migrations.PostgreSql.Migrations
                     b.Property<int?>("AssignedMemberID")
                         .HasColumnType("integer");
 
+                    b.Property<DateTime?>("CallbackAt")
+                        .HasColumnType("datetime");
+
+                    b.Property<string>("CallbackNote")
+                        .HasMaxLength(500)
+                        .HasColumnType("character varying(500)");
+
                     b.Property<byte>("Category")
                         .HasColumnType("smallint");
 
@@ -4428,6 +4435,9 @@ namespace Dotnetable.Migrations.PostgreSql.Migrations
                     b.Property<DateTime?>("FirstResponseAt")
                         .HasColumnType("datetime");
 
+                    b.Property<DateTime?>("FirstResponseDueAt")
+                        .HasColumnType("datetime");
+
                     b.Property<DateTime?>("LastInteractionAt")
                         .HasColumnType("datetime");
 
@@ -4436,6 +4446,9 @@ namespace Dotnetable.Migrations.PostgreSql.Migrations
 
                     b.Property<int?>("RelatedOrderID")
                         .HasColumnType("integer");
+
+                    b.Property<DateTime?>("ResolveDueAt")
+                        .HasColumnType("datetime");
 
                     b.Property<DateTime?>("ResolvedAt")
                         .HasColumnType("datetime");

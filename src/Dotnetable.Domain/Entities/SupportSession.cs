@@ -57,6 +57,17 @@ public partial class SupportSession
 
     public DateTime? ClosedAt { get; set; }
 
+    /// <summary>Deadline for first agent response (computed from priority SLA).</summary>
+    public DateTime? FirstResponseDueAt { get; set; }
+
+    /// <summary>Deadline for resolution (computed from priority SLA).</summary>
+    public DateTime? ResolveDueAt { get; set; }
+
+    /// <summary>When a callback to the customer is scheduled.</summary>
+    public DateTime? CallbackAt { get; set; }
+
+    public string? CallbackNote { get; set; }
+
     public DateTime CreatedAt { get; set; }
 
     public DateTime UpdatedAt { get; set; }
