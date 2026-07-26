@@ -94,6 +94,21 @@ public class HumanVerificationServiceTests : IDisposable
     }
 
     [Fact]
+    public void CreateMathChallenge_SvgDoesNotExposeQuestionAsText()
+    {
+        // Bots must not scrape the equation from <text> nodes; digits are path strokes only.
+        var challenge = _service.CreateMathChallenge();
+
+        challenge.Svg.Should().NotContain("<text");
+        challenge.Svg.Should().NotContain("</text>");
+        challenge.Svg.Should().Contain("<path");
+        // Equation characters must not appear as literal glyph content (path data is numeric only).
+        challenge.Svg.Should().NotContain(" = ?");
+        challenge.Svg.Should().NotContain("+");
+        challenge.Svg.Should().NotContain("−");
+    }
+
+    [Fact]
     public void CreateMathChallenge_EachCallReturnsUniqueToken()
     {
         var t1 = _service.CreateMathChallenge().Token;
@@ -108,7 +123,7 @@ public class HumanVerificationServiceTests : IDisposable
         var challenge = _service.CreateMathChallenge();
 
         _cache.TryGetValue($"mathcaptcha:{challenge.Token}", out int answer).Should().BeTrue();
-        answer.Should().BeInRange(0, 18); // max: 9+9=18
+        answer.Should().BeInRange(0, 58); // max: 29+29=58; min subtraction result 0
     }
 
     // ── ValidateMath ───────────────────────────────────────────────────────────
