@@ -45,16 +45,21 @@
                         </MudMenuItem>
                     </ChildContent>
                 </MudMenu>
-                @if (!_isMaster)
+                @if (!_isMaster && !_isVendorMember)
                 {
-                    <MudTooltip Text="View mode (this browser only)">
-                        <MudMenu Icon="@Icons.Material.Filled.Tune" Color="Color.Default">
-                            @foreach (var mode in _uiModes)
-                            {
-                                <MudMenuItem OnClick="@(() => SetUiMode(mode))" Class="@(UiModeState.Current == mode ? "fw-bold" : null)">
-                                    @mode
-                                </MudMenuItem>
-                            }
+                    <MudTooltip Text="@($"View mode: {UiModeState.Current} (this browser only). Basic/General follow site type; Advanced shows all permitted menus.")">
+                        <MudMenu Icon="@Icons.Material.Filled.Tune" Color="Color.Default" Dense="true">
+                            <div class="pa-2" style="min-width:200px;">
+                                <MudText Typo="Typo.caption" Class="px-2 pb-1" Color="Color.Secondary">
+                                    @L_mode_hint
+                                </MudText>
+                                @foreach (var mode in _uiModes)
+                                {
+                                    <MudMenuItem OnClick="@(() => SetUiMode(mode))" Class="@(UiModeState.Current == mode ? "fw-bold mud-primary-text" : null)">
+                                        @ModeLabel(mode)
+                                    </MudMenuItem>
+                                }
+                            </div>
                         </MudMenu>
                     </MudTooltip>
                 }
@@ -130,11 +135,13 @@
     private bool _drawerOpen = true;
     private bool _isDarkMode;
     private bool _isMaster;
+    private bool _isVendorMember;
     private bool _isRtl;
     private string _skinId = AdminSkinCatalog.DefaultId;
     private AdminSkin _skin = AdminSkinCatalog.Get(AdminSkinCatalog.DefaultId);
     private MudTheme _theme = AdminSkinCatalog.BuildMudTheme(AdminSkinCatalog.Get(AdminSkinCatalog.DefaultId));
     private static readonly AdminUiMode[] _uiModes = Enum.GetValues<AdminUiMode>();
+    private string L_mode_hint => "Menu density for this browser only";
 
     private IReadOnlyList<LanguageOption> _languages = SupportedLanguages.Defaults;
 
@@ -142,6 +149,7 @@
     {
         var user = (await AuthStateProvider.GetAuthenticationStateAsync()).User;
         _isMaster = user.HasClaim(AdminClaimTypes.Master, "true");
+        _isVendorMember = user.HasClaim(c => c.Type == AdminClaimTypes.VendorId);
         UiModeState.Initialize(AdminClaimTypes.GetUiMode(user));
         UiModeState.Changed += StateHasChanged;
 
@@ -211,6 +219,14 @@
         UiModeState.Set(mode);
         await JS.InvokeVoidAsync("dotnetableUiMode.set", mode.ToString());
     }
+
+    private static string ModeLabel(AdminUiMode mode) => mode switch
+    {
+        AdminUiMode.Basic => "Basic — site type only",
+        AdminUiMode.General => "General — a bit more",
+        AdminUiMode.Advanced => "Advanced — full menus",
+        _ => mode.ToString(),
+    };
 
     // Persists the choice, then does a full reload so the fresh circuit re-resolves
     // PageLocalizer.LanguageCode from the cookie and re-loads every page's translations.

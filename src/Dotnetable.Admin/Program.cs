@@ -17,6 +17,7 @@ builder.Services.AddInfrastructure(builder.Configuration, builder.Environment.Co
 builder.Services.AddScoped<IPageLocalizer, PageLocalizer>();
 builder.Services.AddScoped<IAuthLanguageResolver, AuthLanguageResolver>();
 builder.Services.AddScoped<AdminUiModeState>();
+builder.Services.AddScoped<AdminNavSurfaceState>();
 
 // Admin writes content directly against the DB (bypassing the API), so its own cache invalidation
 // never reaches the API process on its own — push it over HTTP. Overrides the no-op default that

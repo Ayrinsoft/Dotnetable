@@ -1,7 +1,9 @@
-﻿@implements IDisposable
+@implements IDisposable
+@using Dotnetable.Domain.Enums
 @inject IPageLocalizer L
 @inject IWebsiteService WebsiteService
 @inject AdminUiModeState UiModeState
+@inject AdminNavSurfaceState NavSurface
 @inject NavigationManager NavigationManager
 
 <MudNavMenu Class="pt-1">
@@ -14,298 +16,357 @@
         @L["notifications", "Notifications"]
     </MudNavLink>
 
-    @if (_canMembers || _canClients || _canPolicies || _canLoginLogs || _canMessages || _canWebsite || _canLocalization || _isMaster)
+    @* ── Marketplace seller (Member vendor): compact menu only ── *@
+    @if (NavSurface.IsVendorMember && NavSurface.VendorId is int sellerVendorId)
     {
-        <span class="app-nav-label">@L["nav.management", "Management"]</span>
-    }
-    <MudNavGroup Title="@L["nav.user_management", "User Management"]" Icon="@Icons.Material.Filled.People"
-                 Expanded="@IsGroupActive("/members", "/clients", "/policies", "/roles", "/login-logs")"
-                 Hidden="@(!_canMembers && !_canClients && !_canPolicies && !_canLoginLogs && !_isMaster)">
-        <AuthorizeView Policy="@RoleKeys.MembersView" Context="m">
-            <MudNavLink Href="/members" Icon="@Icons.Material.Filled.PersonOutline">
-                @L["members", "Members"]
-            </MudNavLink>
-        </AuthorizeView>
-        <AuthorizeView Policy="@RoleKeys.ClientsView" Context="c">
-            <MudNavLink Href="/clients" Icon="@Icons.Material.Filled.People">
-                @L["clients", "Customers"]
-            </MudNavLink>
-        </AuthorizeView>
-        <AuthorizeView Policy="@RoleKeys.PoliciesView" Context="p">
-            <MudNavLink Href="/policies" Icon="@Icons.Material.Filled.Shield">
-                @L["access_levels", "Access Levels"]
-            </MudNavLink>
-        </AuthorizeView>
-        <AuthorizeView Policy="@AdminPolicies.SuperAdminOnly" Context="roles">
-            <MudNavLink Href="/roles" Icon="@Icons.Material.Filled.VpnKey">
-                @L["roles", "Roles"]
-            </MudNavLink>
-        </AuthorizeView>
-        <AuthorizeView Policy="@RoleKeys.LoginLogsView" Context="ll">
-            <MudNavLink Href="/login-logs" Icon="@Icons.Material.Filled.History">
-                @L["login_logs", "Login Logs"]
-            </MudNavLink>
-        </AuthorizeView>
-    </MudNavGroup>
-
-    @if (_canWebsite || _canLocalization || _isMaster)
-    {
-        <MudNavGroup Title="@L["website", "Website"]" Icon="@Icons.Material.Filled.WebAsset"
-                     Expanded="@IsGroupActive("/websites", "/website/", "/content-languages")">
-            <AuthorizeView Policy="@AdminPolicies.SuperAdminOnly" Context="wsm">
-                <MudNavLink Href="/websites" Icon="@Icons.Material.Filled.Public">
-                    @L["websites", "Websites"]
-                </MudNavLink>
-            </AuthorizeView>
-            <AuthorizeView Policy="@RoleKeys.WebsiteEdit" Context="ws">
-                <MudNavLink Href="/website/ips" Icon="@Icons.Material.Filled.Security">
-                    @L["ip_whitelist", "IP Whitelist"]
-                </MudNavLink>
-                <MudNavLink Href="/website/scripts" Icon="@Icons.Material.Filled.Code">
-                    @L["scripts", "Scripts"]
-                </MudNavLink>
-                <MudNavLink Href="/website/seo" Icon="@Icons.Material.Filled.Search">
-                    @L["seo_settings", "SEO Settings"]
-                </MudNavLink>
-                <MudNavLink Href="/website/social" Icon="@Icons.Material.Filled.Share">
-                    @L["social_links", "Social Links"]
-                </MudNavLink>
-                @if (_isMaster || _websiteIdForUiMode != AppConstants.MasterWebsiteId)
-                {
-                    <MudNavLink Href="/website/api-key" Icon="@Icons.Material.Filled.VpnKey">
-                        @L["website_api_key", "Website API Key"]
-                    </MudNavLink>
-                }
-            </AuthorizeView>
-            @* Per-website languages (content + storefront) and dynamic string keys for that site. *@
-            <AuthorizeView Policy="@RoleKeys.LocalizationEdit" Context="loc">
-                <MudNavLink Href="/website/languages" Icon="@Icons.Material.Filled.Language">
-                    @L["website_languages", "Languages"]
-                </MudNavLink>
-                <MudNavLink Href="/website/translations" Icon="@Icons.Material.Filled.Translate">
-                    @L["website_translations", "Translations"]
-                </MudNavLink>
-            </AuthorizeView>
-        </MudNavGroup>
-    }
-    
-    <MudNavGroup Title="@L["messages", "Messages"]" Icon="@Icons.Material.Filled.Message"
-                 Expanded="@IsGroupActive("/messages/")"
-                 Hidden="@(!_canMessages && !_canWebsite && !_isMaster)">
-        <AuthorizeView Policy="@RoleKeys.MessagesView" Context="cm">
-            <MudNavLink Href="/messages/contacts" Icon="@Icons.Material.Filled.ContactMail">
-                @L["contact_messages", "Contact Messages"]
-            </MudNavLink>
-        </AuthorizeView>
-        <AuthorizeView Policy="@RoleKeys.WebsiteEdit" Context="em">
-            <MudNavLink Href="/messages/email-accounts" Icon="@Icons.Material.Filled.AlternateEmail">
-                @L["email_accounts", "Email Accounts"]
-            </MudNavLink>
-            <MudNavLink Href="/messages/email-templates" Icon="@Icons.Material.Filled.Description">
-                @L["email_templates", "Email Templates"]
-            </MudNavLink>
-        </AuthorizeView>
-    </MudNavGroup>
-
-
-    @if (_canPosts || _canPages || _canTaxonomy || _canRedirects)
-    {
-        <span class="app-nav-label">@L["nav.content", "Content"]</span>
-    }
-    <MudNavGroup Title="@L["content", "Content"]" Icon="@Icons.Material.Filled.Article"
-                 Expanded="@IsGroupActive("/menus", "/content/", "/moderation/", "/slideshows", "/forms", "/themes")"
-                 hidden="@(!_canPosts && !_canPages && !_canTaxonomy && !_canRedirects)">
-
-        
-        <AuthorizeView Policy="@RoleKeys.MenusView" Context="mn">
-            <MudNavLink Href="/menus" Icon="@Icons.Material.Filled.Menu">
-                @L["menus", "Menus"]
-            </MudNavLink>
-        </AuthorizeView>
-
-        @if (!_hideBlogNavForBasicStore)
-        {
-            <AuthorizeView Policy="@RoleKeys.PostsView" Context="po">
-                <MudNavLink Href="/content/posts" Icon="@Icons.Material.Filled.Article">
-                    @L["posts", "Posts"]
-                </MudNavLink>
-            </AuthorizeView>
-        }
-        <AuthorizeView Policy="@RoleKeys.PagesView" Context="pg">
-            <MudNavLink Href="/content/pages" Icon="@Icons.Material.Filled.Description">
-                @L["pages", "Pages"]
-            </MudNavLink>
-        </AuthorizeView>
-
-        <AuthorizeView Policy="@RoleKeys.ModerationView" Context="mod">
-            <MudNavGroup Title="@L["nav.moderation", "Reviews & Q&A"]" Icon="@Icons.Material.Filled.RateReview">
-                <MudNavLink Href="/moderation/reviews" Icon="@Icons.Material.Filled.Star">@L["moderation.reviews", "Reviews"]</MudNavLink>
-                <MudNavLink Href="/moderation/questions" Icon="@Icons.Material.Filled.QuestionAnswer">@L["moderation.questions", "Questions"]</MudNavLink>
-            </MudNavGroup>
-        </AuthorizeView>
-
-        <AuthorizeView Policy="@RoleKeys.SlideshowsView" Context="sl">
-            <MudNavLink Href="/slideshows" Icon="@Icons.Material.Filled.ViewCarousel">
-                @L["slideshows", "Slideshows"]
-            </MudNavLink>
-        </AuthorizeView>
-
-        <AuthorizeView Policy="@RoleKeys.FormsView" Context="fm">
-            <MudNavLink Href="/forms" Icon="@Icons.Material.Filled.DynamicForm">
-                @L["forms", "Forms & Surveys"]
-            </MudNavLink>
-        </AuthorizeView>
-
-        <AuthorizeView Policy="@RoleKeys.ThemesView" Context="th">
-            <MudNavLink Href="/themes" Icon="@Icons.Material.Filled.Palette">
-                @L["themes", "Themes"]
-            </MudNavLink>
-        </AuthorizeView>
-
-        @if (!_hideBlogNavForBasicStore)
-        {
-            <AuthorizeView Policy="@RoleKeys.TaxonomyView" Context="tx">
-                <MudNavLink Href="/content/categories" Icon="@Icons.Material.Filled.Category">
-                    @L["categories", "Categories"]
-                </MudNavLink>
-                <MudNavLink Href="/content/tags" Icon="@Icons.Material.Filled.Label">
-                    @L["tags", "Tags"]
-                </MudNavLink>
-                <MudNavLink Href="/content/post-types" Icon="@Icons.Material.Filled.Dashboard">
-                    @L["post_types", "Post Types"]
-                </MudNavLink>
-            </AuthorizeView>
-        }
-        <AuthorizeView Policy="@RoleKeys.RedirectsView" Context="rd">
-            <MudNavLink Href="/content/redirects" Icon="@Icons.Material.Filled.CallSplit">
-                @L["redirects", "Redirects"]
-            </MudNavLink>
-        </AuthorizeView>
-    </MudNavGroup>
-
-    <AuthorizeView Policy="@RoleKeys.MediaView" Context="md">
-        <MudNavGroup Title="@L["media", "Media"]" Icon="@Icons.Material.Filled.PermMedia" Expanded="@IsGroupActive("/media")">
-            <AuthorizeView Policy="@RoleKeys.MediaUpload" Context="ms">
-                <MudNavLink Href="/media/storage" Icon="@Icons.Material.Filled.Cloud">
-                    @L["storage", "Storage"]
-                </MudNavLink>
-            </AuthorizeView>
-            <MudNavLink Href="/media" Match="NavLinkMatch.All" Icon="@Icons.Material.Filled.PhotoLibrary">
-                @L["media_library", "Media Library"]
-            </MudNavLink>
-            <AuthorizeView Policy="@RoleKeys.MediaUpload" Context="ms2">
-                <MudNavLink Href="/media/watermark" Icon="@Icons.Material.Filled.BrandingWatermark">
-                    @L["watermark.heading", "Watermark"]
-                </MudNavLink>
-            </AuthorizeView>
-            <MudNavLink Href="/media/folders" Icon="@Icons.Material.Filled.Folder">
-                @L["media.folders", "Media folders"]
-            </MudNavLink>
-            <MudNavLink Href="/media/tags" Icon="@Icons.Material.Filled.LocalOffer">
-                @L["media.tags", "Tags"]
-            </MudNavLink>            
-        </MudNavGroup>
-    </AuthorizeView>
-
-
-    <span class="app-nav-label">@L["nav.commerce", "Commerce"]</span>
-    <MudNavGroup Title="@L["nav.catalog", "Catalog"]" Icon="@Icons.Material.Filled.Inventory2"
-                 Expanded="@IsGroupActive("/catalog/")">
+        <span class="app-nav-label">@L["nav.seller", "My shop"]</span>
         <AuthorizeView Policy="@RoleKeys.ProductsView" Context="pr">
-            <MudNavLink Href="/catalog/products" Icon="@Icons.Material.Filled.ShoppingBag">@L["products", "Products"]</MudNavLink>
+            <MudNavLink Href="/catalog/products" Icon="@Icons.Material.Filled.ShoppingBag">
+                @L["products.my", "My products"]
+            </MudNavLink>
         </AuthorizeView>
-        <AuthorizeView Policy="@RoleKeys.CatalogTaxonomyView" Context="pcat">
-            <MudNavLink Href="/catalog/categories" Icon="@Icons.Material.Filled.Category">@L["categories", "Categories"]</MudNavLink>
-            <MudNavLink Href="/catalog/attributes" Icon="@Icons.Material.Filled.Tune">@L["attributes", "Attributes"]</MudNavLink>
-            <MudNavLink Href="/catalog/brands" Icon="@Icons.Material.Filled.BrandingWatermark">@L["brands", "Brands"]</MudNavLink>
-            <MudNavLink Href="/catalog/warranties" Icon="@Icons.Material.Filled.VerifiedUser">@L["warranties", "Warranties"]</MudNavLink>
+        <AuthorizeView Policy="@RoleKeys.ProductsView" Context="pr2">
+            <MudNavLink Href="@($"/catalog/vendors/{sellerVendorId}/products")" Icon="@Icons.Material.Filled.PriceChange">
+                @L["vendors.my_listings", "My prices & stock"]
+            </MudNavLink>
         </AuthorizeView>
-        <AuthorizeView Policy="@RoleKeys.VendorsView" Context="vd">
-            <MudNavLink Href="/catalog/vendors" Icon="@Icons.Material.Filled.Store">@L["vendors", "Vendors"]</MudNavLink>
-        </AuthorizeView>
-    </MudNavGroup>
-
-    <AuthorizeView Policy="@RoleKeys.InventoryView" Context="inv">
-        <MudNavGroup Title="@L["nav.inventory", "Inventory"]" Icon="@Icons.Material.Filled.Warehouse"
-                     Expanded="@IsGroupActive("/inventory")">
-            <MudNavLink Href="/inventory" Match="NavLinkMatch.All" Icon="@Icons.Material.Filled.Numbers">@L["inventory.stock", "Stock"]</MudNavLink>
-            <MudNavLink Href="/inventory/movements" Icon="@Icons.Material.Filled.History">@L["inventory.movements", "Movements"]</MudNavLink>
-            <AuthorizeView Policy="@RoleKeys.SuppliersView" Context="sup">
-                <MudNavLink Href="/inventory/suppliers" Icon="@Icons.Material.Filled.LocalShipping">@L["suppliers", "Suppliers"]</MudNavLink>
+        @if (NavSurface.Shows(AdminNavArea.Orders))
+        {
+            <AuthorizeView Policy="@RoleKeys.OrdersView" Context="ord">
+                <MudNavLink Href="/orders" Icon="@Icons.Material.Filled.ReceiptLong">@L["orders", "Orders"]</MudNavLink>
             </AuthorizeView>
-        </MudNavGroup>
-    </AuthorizeView>
+        }
+        @if (NavSurface.Shows(AdminNavArea.Media))
+        {
+            <AuthorizeView Policy="@RoleKeys.MediaView" Context="md">
+                <MudNavLink Href="/media" Match="NavLinkMatch.All" Icon="@Icons.Material.Filled.PhotoLibrary">
+                    @L["media_library", "Media Library"]
+                </MudNavLink>
+            </AuthorizeView>
+        }
+        @if (NavSurface.Shows(AdminNavArea.Messages))
+        {
+            <AuthorizeView Policy="@RoleKeys.MessagesView" Context="cm">
+                <MudNavLink Href="/messages/contacts" Icon="@Icons.Material.Filled.ContactMail">
+                    @L["contact_messages", "Contact Messages"]
+                </MudNavLink>
+            </AuthorizeView>
+        }
+    }
+    else
+    {
+        @* ── Full site admin menu (filtered by UiMode × website type × roles) ── *@
 
-    <AuthorizeView Policy="@RoleKeys.OrdersView" Context="ord">
-        <MudNavLink Href="/orders" Icon="@Icons.Material.Filled.ReceiptLong">@L["orders", "Orders"]</MudNavLink>
-    </AuthorizeView>
+        @if (NavSurface.Shows(AdminNavArea.Users) && (_canMembers || _canClients || _canPolicies || _canLoginLogs || _isMaster))
+        {
+            <span class="app-nav-label">@L["nav.management", "Management"]</span>
+            <MudNavGroup Title="@L["nav.user_management", "User Management"]" Icon="@Icons.Material.Filled.People"
+                         Expanded="@IsGroupActive("/members", "/clients", "/policies", "/roles", "/login-logs")">
+                <AuthorizeView Policy="@RoleKeys.MembersView" Context="m">
+                    <MudNavLink Href="/members" Icon="@Icons.Material.Filled.PersonOutline">
+                        @L["members", "Members"]
+                    </MudNavLink>
+                </AuthorizeView>
+                <AuthorizeView Policy="@RoleKeys.ClientsView" Context="c">
+                    <MudNavLink Href="/clients" Icon="@Icons.Material.Filled.People">
+                        @L["clients", "Customers"]
+                    </MudNavLink>
+                </AuthorizeView>
+                <AuthorizeView Policy="@RoleKeys.PoliciesView" Context="p">
+                    <MudNavLink Href="/policies" Icon="@Icons.Material.Filled.Shield">
+                        @L["access_levels", "Access Levels"]
+                    </MudNavLink>
+                </AuthorizeView>
+                <AuthorizeView Policy="@AdminPolicies.SuperAdminOnly" Context="roles">
+                    <MudNavLink Href="/roles" Icon="@Icons.Material.Filled.VpnKey">
+                        @L["roles", "Roles"]
+                    </MudNavLink>
+                </AuthorizeView>
+                <AuthorizeView Policy="@RoleKeys.LoginLogsView" Context="ll">
+                    <MudNavLink Href="/login-logs" Icon="@Icons.Material.Filled.History">
+                        @L["login_logs", "Login Logs"]
+                    </MudNavLink>
+                </AuthorizeView>
+            </MudNavGroup>
+        }
 
-    <MudNavGroup Title="@L["nav.finance", "Finance"]" Icon="@Icons.Material.Filled.Payments"
-                 Expanded="@IsGroupActive("/payments", "/wallets/", "/finance/")">
-        <AuthorizeView Policy="@RoleKeys.PaymentsView" Context="pay">
-            <MudNavLink Href="/payments" Match="NavLinkMatch.All" Icon="@Icons.Material.Filled.CreditCard">@L["payments", "Payments"]</MudNavLink>
-        </AuthorizeView>
-        <AuthorizeView Policy="@RoleKeys.PaymentsRefund" Context="rfnd">
-            <MudNavLink Href="/payments/refunds" Icon="@Icons.Material.Filled.AssignmentReturn">@L["payments.refunds", "Bank Refunds"]</MudNavLink>
-        </AuthorizeView>
-        <AuthorizeView Policy="@RoleKeys.WalletsView" Context="wal">
-            <MudNavLink Href="/wallets/withdrawals" Icon="@Icons.Material.Filled.AccountBalanceWallet">@L["wallets.withdrawals", "Withdrawals"]</MudNavLink>
-        </AuthorizeView>
-        <AuthorizeView Policy="@RoleKeys.BankAccountsView" Context="bnk">
-            <MudNavLink Href="/finance/bank-accounts" Icon="@Icons.Material.Filled.AccountBalance">@L["bank_accounts", "Bank Accounts"]</MudNavLink>
-        </AuthorizeView>
-        <AuthorizeView Policy="@RoleKeys.CurrencyView" Context="cur">
-            <MudNavLink Href="/finance/currency-rates" Icon="@Icons.Material.Filled.CurrencyExchange">@L["currency_rates", "Exchange Rates"]</MudNavLink>
-        </AuthorizeView>
-        <AuthorizeView Policy="@AdminPolicies.SuperAdminOnly" Context="bnkm">
-            <MudNavLink Href="/finance/banks" Match="NavLinkMatch.All" Icon="@Icons.Material.Filled.AccountBalance">@L["banks", "Banks"]</MudNavLink>
-            <MudNavLink Href="/finance/currencies" Icon="@Icons.Material.Filled.CurrencyExchange">@L["currencies", "Currencies"]</MudNavLink>
-        </AuthorizeView>
-    </MudNavGroup>
+        @if (NavSurface.Shows(AdminNavArea.Website) && (_canWebsite || _canLocalization || _isMaster))
+        {
+            <MudNavGroup Title="@L["website", "Website"]" Icon="@Icons.Material.Filled.WebAsset"
+                         Expanded="@IsGroupActive("/websites", "/website/", "/content-languages")">
+                <AuthorizeView Policy="@AdminPolicies.SuperAdminOnly" Context="wsm">
+                    <MudNavLink Href="/websites" Icon="@Icons.Material.Filled.Public">
+                        @L["websites", "Websites"]
+                    </MudNavLink>
+                </AuthorizeView>
+                <AuthorizeView Policy="@RoleKeys.WebsiteEdit" Context="ws">
+                    <MudNavLink Href="/website/ips" Icon="@Icons.Material.Filled.Security">
+                        @L["ip_whitelist", "IP Whitelist"]
+                    </MudNavLink>
+                    <MudNavLink Href="/website/scripts" Icon="@Icons.Material.Filled.Code">
+                        @L["scripts", "Scripts"]
+                    </MudNavLink>
+                    <MudNavLink Href="/website/seo" Icon="@Icons.Material.Filled.Search">
+                        @L["seo_settings", "SEO Settings"]
+                    </MudNavLink>
+                    <MudNavLink Href="/website/social" Icon="@Icons.Material.Filled.Share">
+                        @L["social_links", "Social Links"]
+                    </MudNavLink>
+                    @if (_isMaster || _websiteId != AppConstants.MasterWebsiteId)
+                    {
+                        <MudNavLink Href="/website/api-key" Icon="@Icons.Material.Filled.VpnKey">
+                            @L["website_api_key", "Website API Key"]
+                        </MudNavLink>
+                    }
+                </AuthorizeView>
+                <AuthorizeView Policy="@RoleKeys.LocalizationEdit" Context="loc">
+                    <MudNavLink Href="/website/languages" Icon="@Icons.Material.Filled.Language">
+                        @L["website_languages", "Languages"]
+                    </MudNavLink>
+                    <MudNavLink Href="/website/translations" Icon="@Icons.Material.Filled.Translate">
+                        @L["website_translations", "Translations"]
+                    </MudNavLink>
+                </AuthorizeView>
+            </MudNavGroup>
+        }
 
-    <MudNavGroup Title="@L["nav.promotions", "Promotions & Shipping"]" Icon="@Icons.Material.Filled.LocalOffer"
-                 Expanded="@IsGroupActive("/sales/")">
-        <AuthorizeView Policy="@RoleKeys.CouponsView" Context="cpn">
-            <MudNavLink Href="/sales/coupons" Icon="@Icons.Material.Filled.Discount">@L["coupons", "Coupons"]</MudNavLink>
-        </AuthorizeView>
-        <AuthorizeView Policy="@RoleKeys.ShippingView" Context="shp">
-            <MudNavLink Href="/sales/shipping" Icon="@Icons.Material.Filled.LocalShipping">@L["shipping", "Shipping"]</MudNavLink>
-        </AuthorizeView>
-        <AuthorizeView Policy="@RoleKeys.TaxView" Context="tax">
-            <MudNavLink Href="/sales/tax" Icon="@Icons.Material.Filled.Percent">@L["tax", "Tax"]</MudNavLink>
-        </AuthorizeView>
-    </MudNavGroup>
+        @if (NavSurface.Shows(AdminNavArea.Messages) && (_canMessages || _canWebsite || _isMaster))
+        {
+            <MudNavGroup Title="@L["messages", "Messages"]" Icon="@Icons.Material.Filled.Message"
+                         Expanded="@IsGroupActive("/messages/")">
+                <AuthorizeView Policy="@RoleKeys.MessagesView" Context="cm">
+                    <MudNavLink Href="/messages/contacts" Icon="@Icons.Material.Filled.ContactMail">
+                        @L["contact_messages", "Contact Messages"]
+                    </MudNavLink>
+                </AuthorizeView>
+                <AuthorizeView Policy="@RoleKeys.WebsiteEdit" Context="em">
+                    <MudNavLink Href="/messages/email-accounts" Icon="@Icons.Material.Filled.AlternateEmail">
+                        @L["email_accounts", "Email Accounts"]
+                    </MudNavLink>
+                    <MudNavLink Href="/messages/email-templates" Icon="@Icons.Material.Filled.Description">
+                        @L["email_templates", "Email Templates"]
+                    </MudNavLink>
+                </AuthorizeView>
+            </MudNavGroup>
+        }
 
-    <AuthorizeView Policy="@AdminPolicies.SuperAdminOnly">
-        <span class="app-nav-label">@L["nav.administration", "Administration"]</span>
-        <MudNavGroup Title="@L["initial_data", "Initial Data"]" Icon="@Icons.Material.Filled.Storage"
-                     Expanded="@(IsGroupActive("/initial-data/") || IsExactPath("/languages") || IsExactPath("/translations"))">
-            <MudNavLink Href="/initial-data/countries" Icon="@Icons.Material.Filled.Flag">
-                @L["countries", "Countries"]
-            </MudNavLink>
-            <MudNavLink Href="/initial-data/states" Icon="@Icons.Material.Filled.Map">
-                @L["states", "States / Provinces"]
-            </MudNavLink>
-            <MudNavLink Href="/initial-data/cities" Icon="@Icons.Material.Filled.LocationCity">
-                @L["cities", "Cities"]
-            </MudNavLink>
-            @* Master website (site 1) language catalog + admin-panel UI strings. *@
-            <MudNavLink Href="/languages" Icon="@Icons.Material.Filled.Language">
-                @L["languages.catalog", "Language Catalog"]
-            </MudNavLink>
-            <MudNavLink Href="/translations" Icon="@Icons.Material.Filled.Translate">
-                @L["translations.admin", "Admin Translations"]
-            </MudNavLink>
-        </MudNavGroup>
+        @if (NavSurface.ShowsAny(AdminNavArea.ContentCore, AdminNavArea.ContentBlog, AdminNavArea.ContentExtra)
+             && (_canPosts || _canPages || _canTaxonomy || _canRedirects || _canMenus || _canSlideshows || _canForms || _canThemes || _canModeration))
+        {
+            <span class="app-nav-label">@L["nav.content", "Content"]</span>
+            <MudNavGroup Title="@L["content", "Content"]" Icon="@Icons.Material.Filled.Article"
+                         Expanded="@IsGroupActive("/menus", "/content/", "/moderation/", "/slideshows", "/forms", "/themes")">
 
-        <span class="app-nav-label">@L["nav.system", "System"]</span>
-        <MudNavLink Href="/system/updates" Icon="@Icons.Material.Filled.SystemUpdateAlt">
-            @L["db_updates", "DB Updates"]
-        </MudNavLink>
-        <MudNavLink Href="/settings" Icon="@Icons.Material.Filled.Settings">
-            @L["settings", "Settings"]
-        </MudNavLink>
-    </AuthorizeView>
+                @if (NavSurface.Shows(AdminNavArea.ContentCore))
+                {
+                    <AuthorizeView Policy="@RoleKeys.MenusView" Context="mn">
+                        <MudNavLink Href="/menus" Icon="@Icons.Material.Filled.Menu">
+                            @L["menus", "Menus"]
+                        </MudNavLink>
+                    </AuthorizeView>
+                    <AuthorizeView Policy="@RoleKeys.PagesView" Context="pg">
+                        <MudNavLink Href="/content/pages" Icon="@Icons.Material.Filled.Description">
+                            @L["pages", "Pages"]
+                        </MudNavLink>
+                    </AuthorizeView>
+                    <AuthorizeView Policy="@RoleKeys.SlideshowsView" Context="sl">
+                        <MudNavLink Href="/slideshows" Icon="@Icons.Material.Filled.ViewCarousel">
+                            @L["slideshows", "Slideshows"]
+                        </MudNavLink>
+                    </AuthorizeView>
+                    <AuthorizeView Policy="@RoleKeys.ThemesView" Context="th">
+                        <MudNavLink Href="/themes" Icon="@Icons.Material.Filled.Palette">
+                            @L["themes", "Themes"]
+                        </MudNavLink>
+                    </AuthorizeView>
+                }
+
+                @if (NavSurface.Shows(AdminNavArea.ContentBlog))
+                {
+                    <AuthorizeView Policy="@RoleKeys.PostsView" Context="po">
+                        <MudNavLink Href="/content/posts" Icon="@Icons.Material.Filled.Article">
+                            @L["posts", "Posts"]
+                        </MudNavLink>
+                    </AuthorizeView>
+                    <AuthorizeView Policy="@RoleKeys.TaxonomyView" Context="tx">
+                        <MudNavLink Href="/content/categories" Icon="@Icons.Material.Filled.Category">
+                            @L["categories", "Categories"]
+                        </MudNavLink>
+                        <MudNavLink Href="/content/tags" Icon="@Icons.Material.Filled.Label">
+                            @L["tags", "Tags"]
+                        </MudNavLink>
+                        <MudNavLink Href="/content/post-types" Icon="@Icons.Material.Filled.Dashboard">
+                            @L["post_types", "Post Types"]
+                        </MudNavLink>
+                    </AuthorizeView>
+                }
+
+                @if (NavSurface.Shows(AdminNavArea.ContentExtra))
+                {
+                    <AuthorizeView Policy="@RoleKeys.ModerationView" Context="mod">
+                        <MudNavGroup Title="@L["nav.moderation", "Reviews & Q&A"]" Icon="@Icons.Material.Filled.RateReview">
+                            <MudNavLink Href="/moderation/reviews" Icon="@Icons.Material.Filled.Star">@L["moderation.reviews", "Reviews"]</MudNavLink>
+                            <MudNavLink Href="/moderation/questions" Icon="@Icons.Material.Filled.QuestionAnswer">@L["moderation.questions", "Questions"]</MudNavLink>
+                        </MudNavGroup>
+                    </AuthorizeView>
+                    <AuthorizeView Policy="@RoleKeys.FormsView" Context="fm">
+                        <MudNavLink Href="/forms" Icon="@Icons.Material.Filled.DynamicForm">
+                            @L["forms", "Forms & Surveys"]
+                        </MudNavLink>
+                    </AuthorizeView>
+                    <AuthorizeView Policy="@RoleKeys.RedirectsView" Context="rd">
+                        <MudNavLink Href="/content/redirects" Icon="@Icons.Material.Filled.CallSplit">
+                            @L["redirects", "Redirects"]
+                        </MudNavLink>
+                    </AuthorizeView>
+                }
+            </MudNavGroup>
+        }
+
+        @if (NavSurface.Shows(AdminNavArea.Media))
+        {
+            <AuthorizeView Policy="@RoleKeys.MediaView" Context="md">
+                <MudNavGroup Title="@L["media", "Media"]" Icon="@Icons.Material.Filled.PermMedia" Expanded="@IsGroupActive("/media")">
+                    <AuthorizeView Policy="@RoleKeys.MediaUpload" Context="ms">
+                        <MudNavLink Href="/media/storage" Icon="@Icons.Material.Filled.Cloud">
+                            @L["storage", "Storage"]
+                        </MudNavLink>
+                    </AuthorizeView>
+                    <MudNavLink Href="/media" Match="NavLinkMatch.All" Icon="@Icons.Material.Filled.PhotoLibrary">
+                        @L["media_library", "Media Library"]
+                    </MudNavLink>
+                    <AuthorizeView Policy="@RoleKeys.MediaUpload" Context="ms2">
+                        <MudNavLink Href="/media/watermark" Icon="@Icons.Material.Filled.BrandingWatermark">
+                            @L["watermark.heading", "Watermark"]
+                        </MudNavLink>
+                    </AuthorizeView>
+                    <MudNavLink Href="/media/folders" Icon="@Icons.Material.Filled.Folder">
+                        @L["media.folders", "Media folders"]
+                    </MudNavLink>
+                    <MudNavLink Href="/media/tags" Icon="@Icons.Material.Filled.LocalOffer">
+                        @L["media.tags", "Tags"]
+                    </MudNavLink>
+                </MudNavGroup>
+            </AuthorizeView>
+        }
+
+        @if (NavSurface.ShowsAny(AdminNavArea.Catalog, AdminNavArea.Inventory, AdminNavArea.Orders, AdminNavArea.Finance, AdminNavArea.Promotions))
+        {
+            <span class="app-nav-label">@L["nav.commerce", "Commerce"]</span>
+        }
+
+        @if (NavSurface.Shows(AdminNavArea.Catalog))
+        {
+            <MudNavGroup Title="@L["nav.catalog", "Catalog"]" Icon="@Icons.Material.Filled.Inventory2"
+                         Expanded="@IsGroupActive("/catalog/")">
+                <AuthorizeView Policy="@RoleKeys.ProductsView" Context="pr">
+                    <MudNavLink Href="/catalog/products" Icon="@Icons.Material.Filled.ShoppingBag">@L["products", "Products"]</MudNavLink>
+                </AuthorizeView>
+                <AuthorizeView Policy="@RoleKeys.CatalogTaxonomyView" Context="pcat">
+                    <MudNavLink Href="/catalog/categories" Icon="@Icons.Material.Filled.Category">@L["categories", "Categories"]</MudNavLink>
+                    <MudNavLink Href="/catalog/attributes" Icon="@Icons.Material.Filled.Tune">@L["attributes", "Attributes"]</MudNavLink>
+                    <MudNavLink Href="/catalog/brands" Icon="@Icons.Material.Filled.BrandingWatermark">@L["brands", "Brands"]</MudNavLink>
+                    <MudNavLink Href="/catalog/warranties" Icon="@Icons.Material.Filled.VerifiedUser">@L["warranties", "Warranties"]</MudNavLink>
+                </AuthorizeView>
+                <AuthorizeView Policy="@RoleKeys.VendorsView" Context="vd">
+                    <MudNavLink Href="/catalog/vendors" Icon="@Icons.Material.Filled.Store">@L["vendors", "Vendors"]</MudNavLink>
+                </AuthorizeView>
+            </MudNavGroup>
+        }
+
+        @if (NavSurface.Shows(AdminNavArea.Inventory))
+        {
+            <AuthorizeView Policy="@RoleKeys.InventoryView" Context="inv">
+                <MudNavGroup Title="@L["nav.inventory", "Inventory"]" Icon="@Icons.Material.Filled.Warehouse"
+                             Expanded="@IsGroupActive("/inventory")">
+                    <MudNavLink Href="/inventory" Match="NavLinkMatch.All" Icon="@Icons.Material.Filled.Numbers">@L["inventory.stock", "Stock"]</MudNavLink>
+                    <MudNavLink Href="/inventory/movements" Icon="@Icons.Material.Filled.History">@L["inventory.movements", "Movements"]</MudNavLink>
+                    <AuthorizeView Policy="@RoleKeys.SuppliersView" Context="sup">
+                        <MudNavLink Href="/inventory/suppliers" Icon="@Icons.Material.Filled.LocalShipping">@L["suppliers", "Suppliers"]</MudNavLink>
+                    </AuthorizeView>
+                </MudNavGroup>
+            </AuthorizeView>
+        }
+
+        @if (NavSurface.Shows(AdminNavArea.Orders))
+        {
+            <AuthorizeView Policy="@RoleKeys.OrdersView" Context="ord">
+                <MudNavLink Href="/orders" Icon="@Icons.Material.Filled.ReceiptLong">@L["orders", "Orders"]</MudNavLink>
+            </AuthorizeView>
+        }
+
+        @if (NavSurface.Shows(AdminNavArea.Finance))
+        {
+            <MudNavGroup Title="@L["nav.finance", "Finance"]" Icon="@Icons.Material.Filled.Payments"
+                         Expanded="@IsGroupActive("/payments", "/wallets/", "/finance/")">
+                <AuthorizeView Policy="@RoleKeys.PaymentsView" Context="pay">
+                    <MudNavLink Href="/payments" Match="NavLinkMatch.All" Icon="@Icons.Material.Filled.CreditCard">@L["payments", "Payments"]</MudNavLink>
+                </AuthorizeView>
+                <AuthorizeView Policy="@RoleKeys.PaymentsRefund" Context="rfnd">
+                    <MudNavLink Href="/payments/refunds" Icon="@Icons.Material.Filled.AssignmentReturn">@L["payments.refunds", "Bank Refunds"]</MudNavLink>
+                </AuthorizeView>
+                <AuthorizeView Policy="@RoleKeys.WalletsView" Context="wal">
+                    <MudNavLink Href="/wallets/withdrawals" Icon="@Icons.Material.Filled.AccountBalanceWallet">@L["wallets.withdrawals", "Withdrawals"]</MudNavLink>
+                </AuthorizeView>
+                <AuthorizeView Policy="@RoleKeys.BankAccountsView" Context="bnk">
+                    <MudNavLink Href="/finance/bank-accounts" Icon="@Icons.Material.Filled.AccountBalance">@L["bank_accounts", "Bank Accounts"]</MudNavLink>
+                </AuthorizeView>
+                <AuthorizeView Policy="@RoleKeys.CurrencyView" Context="cur">
+                    <MudNavLink Href="/finance/currency-rates" Icon="@Icons.Material.Filled.CurrencyExchange">@L["currency_rates", "Exchange Rates"]</MudNavLink>
+                </AuthorizeView>
+                <AuthorizeView Policy="@AdminPolicies.SuperAdminOnly" Context="bnkm">
+                    <MudNavLink Href="/finance/banks" Match="NavLinkMatch.All" Icon="@Icons.Material.Filled.AccountBalance">@L["banks", "Banks"]</MudNavLink>
+                    <MudNavLink Href="/finance/currencies" Icon="@Icons.Material.Filled.CurrencyExchange">@L["currencies", "Currencies"]</MudNavLink>
+                </AuthorizeView>
+            </MudNavGroup>
+        }
+
+        @if (NavSurface.Shows(AdminNavArea.Promotions))
+        {
+            <MudNavGroup Title="@L["nav.promotions", "Promotions & Shipping"]" Icon="@Icons.Material.Filled.LocalOffer"
+                         Expanded="@IsGroupActive("/sales/")">
+                <AuthorizeView Policy="@RoleKeys.CouponsView" Context="cpn">
+                    <MudNavLink Href="/sales/coupons" Icon="@Icons.Material.Filled.Discount">@L["coupons", "Coupons"]</MudNavLink>
+                </AuthorizeView>
+                <AuthorizeView Policy="@RoleKeys.ShippingView" Context="shp">
+                    <MudNavLink Href="/sales/shipping" Icon="@Icons.Material.Filled.LocalShipping">@L["shipping", "Shipping"]</MudNavLink>
+                </AuthorizeView>
+                <AuthorizeView Policy="@RoleKeys.TaxView" Context="tax">
+                    <MudNavLink Href="/sales/tax" Icon="@Icons.Material.Filled.Percent">@L["tax", "Tax"]</MudNavLink>
+                </AuthorizeView>
+            </MudNavGroup>
+        }
+
+        <AuthorizeView Policy="@AdminPolicies.SuperAdminOnly">
+            <span class="app-nav-label">@L["nav.administration", "Administration"]</span>
+            <MudNavGroup Title="@L["initial_data", "Initial Data"]" Icon="@Icons.Material.Filled.Storage"
+                         Expanded="@(IsGroupActive("/initial-data/") || IsExactPath("/languages") || IsExactPath("/translations"))">
+                <MudNavLink Href="/initial-data/countries" Icon="@Icons.Material.Filled.Flag">
+                    @L["countries", "Countries"]
+                </MudNavLink>
+                <MudNavLink Href="/initial-data/states" Icon="@Icons.Material.Filled.Map">
+                    @L["states", "States / Provinces"]
+                </MudNavLink>
+                <MudNavLink Href="/initial-data/cities" Icon="@Icons.Material.Filled.LocationCity">
+                    @L["cities", "Cities"]
+                </MudNavLink>
+                <MudNavLink Href="/languages" Icon="@Icons.Material.Filled.Language">
+                    @L["languages.catalog", "Language Catalog"]
+                </MudNavLink>
+                <MudNavLink Href="/translations" Icon="@Icons.Material.Filled.Translate">
+                    @L["translations.admin", "Admin Translations"]
+                </MudNavLink>
+            </MudNavGroup>
+
+            <span class="app-nav-label">@L["nav.system", "System"]</span>
+            <MudNavLink Href="/system/updates" Icon="@Icons.Material.Filled.SystemUpdateAlt">
+                @L["db_updates", "DB Updates"]
+            </MudNavLink>
+            <MudNavLink Href="/settings" Icon="@Icons.Material.Filled.Settings">
+                @L["settings", "Settings"]
+            </MudNavLink>
+        </AuthorizeView>
+    }
 
 </MudNavMenu>
 
@@ -324,8 +385,12 @@
     private bool _canPages;
     private bool _canTaxonomy;
     private bool _canRedirects;
-    private bool _hideBlogNavForBasicStore;
-    private int? _websiteIdForUiMode;
+    private bool _canMenus;
+    private bool _canSlideshows;
+    private bool _canForms;
+    private bool _canThemes;
+    private bool _canModeration;
+    private int? _websiteId;
     private string _currentPath = "";
 
     protected override async Task OnInitializedAsync()
@@ -350,21 +415,39 @@
             _canPages = AdminPolicies.Allows(user, RoleKeys.PagesView);
             _canTaxonomy = AdminPolicies.Allows(user, RoleKeys.TaxonomyView);
             _canRedirects = AdminPolicies.Allows(user, RoleKeys.RedirectsView);
+            _canMenus = AdminPolicies.Allows(user, RoleKeys.MenusView);
+            _canSlideshows = AdminPolicies.Allows(user, RoleKeys.SlideshowsView);
+            _canForms = AdminPolicies.Allows(user, RoleKeys.FormsView);
+            _canThemes = AdminPolicies.Allows(user, RoleKeys.ThemesView);
+            _canModeration = AdminPolicies.Allows(user, RoleKeys.ModerationView);
 
-            // Basic mode: trim the admin surface to what this member's Website.WebsiteType needs —
-            // a pure store rarely needs blog taxonomy (Posts/Categories/Tags/Post Types).
-            _websiteIdForUiMode = int.TryParse(user.FindFirst(AdminClaimTypes.WebsiteId)?.Value, out var websiteId) ? websiteId : null;
-            await RefreshBlogNavVisibilityAsync();
+            _websiteId = int.TryParse(user.FindFirst(AdminClaimTypes.WebsiteId)?.Value, out var websiteId) ? websiteId : null;
+            int? vendorId = int.TryParse(user.FindFirst(AdminClaimTypes.VendorId)?.Value, out var vid) ? vid : null;
+
+            WebsiteCategory? category = null;
+            if (!_isMaster && _websiteId is int wid)
+            {
+                var site = await WebsiteService.GetByIdAsync(wid);
+                if (site is not null)
+                    category = site.WebsiteType.GetCategory();
+            }
+
+            // Ensure claim mode is applied even if MainLayout has not finished yet.
+            UiModeState.Initialize(AdminClaimTypes.GetUiMode(user));
+            NavSurface.Rebuild(UiModeState.Current, category, _isMaster, vendorId);
         }
 
         UiModeState.Changed += OnUiModeChanged;
+        NavSurface.Changed += OnNavSurfaceChanged;
     }
 
-    private async void OnUiModeChanged()
+    private void OnUiModeChanged()
     {
-        await RefreshBlogNavVisibilityAsync();
-        StateHasChanged();
+        NavSurface.Rebuild(UiModeState.Current, NavSurface.Category, _isMaster, NavSurface.VendorId);
+        InvokeAsync(StateHasChanged);
     }
+
+    private void OnNavSurfaceChanged() => InvokeAsync(StateHasChanged);
 
     private void OnLocationChanged(object? sender, LocationChangedEventArgs e)
     {
@@ -378,19 +461,10 @@
     private bool IsExactPath(string path)
         => string.Equals(_currentPath, path, StringComparison.OrdinalIgnoreCase);
 
-    private async Task RefreshBlogNavVisibilityAsync()
-    {
-        _hideBlogNavForBasicStore = false;
-        if (UiModeState.Current == AdminUiMode.Basic && !_isMaster && _websiteIdForUiMode is { } websiteId)
-        {
-            var site = await WebsiteService.GetByIdAsync(websiteId);
-            _hideBlogNavForBasicStore = site?.WebsiteType.GetCategory() == WebsiteCategory.Commerce;
-        }
-    }
-
     public void Dispose()
     {
         UiModeState.Changed -= OnUiModeChanged;
+        NavSurface.Changed -= OnNavSurfaceChanged;
         NavigationManager.LocationChanged -= OnLocationChanged;
     }
 }

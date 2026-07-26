@@ -21,7 +21,9 @@ else
         <MudStack Spacing="0">
             <MudText Typo="Typo.h5" Class="fw-bold">@_vendor.Name — @L["vendors.listings", "Listings"]</MudText>
             <MudText Typo="Typo.body2" Color="Color.Secondary">
-                @L["vendors.listings.subtitle", "Which catalog variants this vendor sells on the host site, with optional USD price override and stock."]
+                @(_actingMemberId is not null
+                    ? L["vendors.listings.subtitle_seller", "Your sellable items: set price and stock per variant. Only products you created can be listed here."]
+                    : L["vendors.listings.subtitle", "Which catalog variants this vendor sells on the host site, with optional price override and stock."])
             </MudText>
         </MudStack>
         <MudStack Row="true" Spacing="2">
@@ -164,9 +166,19 @@ else
         await L.EnsureLoadedAsync();
         var user = (await AuthState.GetAuthenticationStateAsync()).User;
         _canEdit = AdminPolicies.Allows(user, RoleKeys.VendorsEdit) || AdminPolicies.Allows(user, RoleKeys.ProductsEdit);
-        if (int.TryParse(user.FindFirst(AdminClaimTypes.VendorId)?.Value, out var vid) && vid == VendorId
-            && int.TryParse(user.FindFirst(AdminClaimTypes.MemberId)?.Value, out var mid))
-            _actingMemberId = mid;
+        if (int.TryParse(user.FindFirst(AdminClaimTypes.VendorId)?.Value, out var myVendorId) && myVendorId > 0)
+        {
+            // Member sellers may only open their own shop listings page.
+            if (myVendorId != VendorId)
+            {
+                Nav.NavigateTo($"/catalog/vendors/{myVendorId}/products", replace: true);
+                return;
+            }
+            if (int.TryParse(user.FindFirst(AdminClaimTypes.MemberId)?.Value, out var mid))
+                _actingMemberId = mid;
+            // ProductsEdit is enough for a seller managing their own prices/stock.
+            _canEdit = _canEdit || AdminPolicies.Allows(user, RoleKeys.ProductsEdit);
+        }
 
         _vendor = await VendorService.GetByIdAsync(VendorId);
         _grid = new GridViewHeaderParameters

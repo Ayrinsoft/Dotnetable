@@ -113,6 +113,10 @@ public class VendorProductService : IVendorProductService
                         && v.Product.IsActive
                         && v.Product.WebsiteID == catalogWebsiteId);
 
+        // Member sellers only pick variants from products they created (their catalog).
+        if (vendor.VendorType == (byte)VendorType.Member && vendor.MemberID is int ownerId)
+            q = q.Where(v => v.Product.CreatedByMemberID == ownerId);
+
         if (!includeAlreadyListed && listed.Count > 0)
             q = q.Where(v => !listed.Contains(v.ProductVariantID));
 
@@ -310,9 +314,11 @@ public class VendorProductService : IVendorProductService
                     ? null
                     : "Only products owned by the linked website can be listed (borrowed products cannot be re-shared).",
             VendorType.Member =>
-                variant.Product.WebsiteID == vendor.WebsiteID
-                    ? null
-                    : "Member vendors can only list products on their host website.",
+                variant.Product.WebsiteID != vendor.WebsiteID
+                    ? "Member vendors can only list products on their host website."
+                    : vendor.MemberID is int mid && variant.Product.CreatedByMemberID != mid
+                        ? "Member vendors can only list products they created."
+                        : null,
             _ =>
                 variant.Product.WebsiteID == vendor.WebsiteID
                     ? null
