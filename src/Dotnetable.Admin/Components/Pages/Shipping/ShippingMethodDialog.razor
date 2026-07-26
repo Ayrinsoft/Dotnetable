@@ -1,22 +1,69 @@
+@using Dotnetable.Admin.Components.Pages.Media
 @inject IShippingService ShippingService
+@inject IFileService FileService
 @inject ISnackbar Snackbar
 @inject IPageLocalizer L
+@inject IDialogService DialogService
 
 <MudDialog>
     <DialogContent>
         <MudForm @ref="_form">
             <MudGrid Spacing="3">
-                <MudItem xs="12" sm="7">
-                    <MudTextField @bind-Value="Model.Title" Label="@L["title", "Title"]" Variant="Variant.Outlined" Required="true" />
+                <MudItem xs="12" sm="3">
+                    <MudText Typo="Typo.body2" Class="mb-1">@L["shipping.logo", "Logo"]</MudText>
+                    <MudPaper Elevation="0" Class="border rounded-lg pa-2" Style="cursor:pointer;" @onclick="PickLogoAsync">
+                        <div style="aspect-ratio:1/1; display:flex; align-items:center; justify-content:center; background:var(--mud-palette-background-grey); border-radius:8px; overflow:hidden;">
+                            @if (!string.IsNullOrEmpty(_logo?.CNDUrl))
+                            {
+                                <img src="@(_logo.ThumbnailCDN ?? _logo.CNDUrl)" alt="" style="width:100%; height:100%; object-fit:contain;" />
+                            }
+                            else
+                            {
+                                <MudIcon Icon="@Icons.Material.Filled.LocalShipping" Color="Color.Secondary" Size="Size.Large" />
+                            }
+                        </div>
+                    </MudPaper>
+                    @if (Model.LogoFileID is not null)
+                    {
+                        <MudButton Size="Size.Small" Variant="Variant.Text" Color="Color.Error" Class="mt-1" OnClick="ClearLogo">@L["remove", "Remove"]</MudButton>
+                    }
                 </MudItem>
-                <MudItem xs="12" sm="5">
-                    <MudTextField @bind-Value="Model.CarrierName" Label="@L["carrier", "Carrier"]" Variant="Variant.Outlined" />
+                <MudItem xs="12" sm="9">
+                    <MudGrid Spacing="3">
+                        <MudItem xs="12" sm="7">
+                            <MudTextField @bind-Value="Model.Title" Label="@L["title", "Title"]" Variant="Variant.Outlined" Required="true"
+                                          HelperText="@L["shipping.title_hint", "Display name at checkout (e.g. Tipax Express)."]" />
+                        </MudItem>
+                        <MudItem xs="12" sm="5">
+                            <MudTextField @bind-Value="Model.CarrierName" Label="@L["carrier", "Carrier / brand"]" Variant="Variant.Outlined"
+                                          HelperText="@L["shipping.carrier_hint", "Brand name: Tipax, Post, Chapar…"]" />
+                        </MudItem>
+                        <MudItem xs="12" sm="6">
+                            <MudNumericField T="int" @bind-Value="Model.SortOrder" Label="@L["sort_order", "Sort Order"]" Variant="Variant.Outlined" Min="0" />
+                        </MudItem>
+                        <MudItem xs="12" sm="6">
+                            <MudSwitch T="bool" @bind-Value="Model.IsActive" Label="@L["active", "Active"]" Color="Color.Primary" />
+                        </MudItem>
+                    </MudGrid>
+                </MudItem>
+
+                <MudItem xs="12">
+                    <MudText Typo="Typo.subtitle2" Class="mb-1">@L["shipping.payment_modes", "Payment modes"]</MudText>
+                    <MudText Typo="Typo.caption" Color="Color.Secondary" Class="mb-2">
+                        @L["shipping.payment_modes_hint", "Prepaid (پیش‌کرایه) is charged with the order. COD / postpay (پس‌کرایه) is paid on delivery. Minimum prices floor any zone rate."]
+                    </MudText>
                 </MudItem>
                 <MudItem xs="12" sm="6">
-                    <MudNumericField T="int" @bind-Value="Model.SortOrder" Label="@L["sort_order", "Sort Order"]" Variant="Variant.Outlined" Min="0" />
+                    <MudSwitch T="bool" @bind-Value="Model.SupportsPrepaid" Label="@L["shipping.supports_prepaid", "Supports prepaid (پیش‌کرایه)"]" Color="Color.Primary" />
+                    <MudNumericField T="decimal" @bind-Value="Model.PrepaidMinPrice" Class="mt-2"
+                                     Label="@L["shipping.prepaid_min", "Prepaid min price"]"
+                                     Variant="Variant.Outlined" Min="0" Disabled="@(!Model.SupportsPrepaid)" />
                 </MudItem>
                 <MudItem xs="12" sm="6">
-                    <MudSwitch T="bool" @bind-Value="Model.IsActive" Label="@L["active", "Active"]" Color="Color.Primary" />
+                    <MudSwitch T="bool" @bind-Value="Model.SupportsCod" Label="@L["shipping.supports_cod", "Supports COD (پس‌کرایه)"]" Color="Color.Primary" />
+                    <MudNumericField T="decimal" @bind-Value="Model.CodMinPrice" Class="mt-2"
+                                     Label="@L["shipping.cod_min", "COD min price"]"
+                                     Variant="Variant.Outlined" Min="0" Disabled="@(!Model.SupportsCod)" />
                 </MudItem>
             </MudGrid>
 
@@ -37,6 +84,41 @@
     private MudForm _form = null!;
     private bool _saving;
     private string[]? _formErrors;
+    private FileRecord? _logo;
+
+    protected override async Task OnInitializedAsync()
+    {
+        if (IsNew)
+        {
+            Model.SupportsPrepaid = true;
+            Model.SupportsCod = true;
+        }
+        if (Model.LogoFileID is int fid)
+            _logo = await FileService.GetByIdAsync(fid);
+    }
+
+    private async Task PickLogoAsync()
+    {
+        var parameters = new DialogParameters
+        {
+            [nameof(FilePickerDialog.WebsiteId)] = Model.WebsiteID,
+            [nameof(FilePickerDialog.Category)] = FileCategory.Image,
+        };
+        var dialog = await DialogService.ShowAsync<FilePickerDialog>(L["select_file", "Select a file"], parameters,
+            new DialogOptions { MaxWidth = MaxWidth.Medium, FullWidth = true });
+        var result = await dialog.Result;
+        if (result is { Canceled: false, Data: FileRecord file })
+        {
+            _logo = file;
+            Model.LogoFileID = file.FileRecordID;
+        }
+    }
+
+    private void ClearLogo()
+    {
+        _logo = null;
+        Model.LogoFileID = null;
+    }
 
     private void Cancel() => MudDialog.Cancel();
 
@@ -46,6 +128,11 @@
         _formErrors = _form.Errors;
         if (!_form.IsValid) return;
         if (string.IsNullOrWhiteSpace(Model.Title)) return;
+        if (!Model.SupportsPrepaid && !Model.SupportsCod)
+        {
+            _formErrors = new[] { L["shipping.mode_required", "Enable at least one payment mode (prepaid or COD)."] };
+            return;
+        }
 
         _saving = true;
         try

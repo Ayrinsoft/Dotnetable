@@ -22,13 +22,16 @@ public class ShippingService : IShippingService
 
     public async Task<List<ShippingMethod>> GetAllAsync(int websiteId, CancellationToken ct = default) =>
         await _context.ShippingMethods.AsNoTracking()
+            .Include(m => m.LogoFile)
             .Where(m => m.WebsiteID == websiteId)
             .OrderBy(m => m.SortOrder).ThenBy(m => m.Title)
             .ToListAsync(ct);
 
     public async Task<PagedResult<ShippingMethod>> GetPagedAsync(int websiteId, GridQuery query, CancellationToken ct = default)
     {
-        var q = _context.ShippingMethods.AsNoTracking().Where(m => m.WebsiteID == websiteId);
+        var q = _context.ShippingMethods.AsNoTracking()
+            .Include(m => m.LogoFile)
+            .Where(m => m.WebsiteID == websiteId);
 
         if (query.GetSearch(nameof(ShippingMethod.Title)) is string title)
             q = q.Where(m => m.Title.Contains(title));
@@ -47,10 +50,13 @@ public class ShippingService : IShippingService
     }
 
     public async Task<ShippingMethod?> GetByIdAsync(int shippingMethodId, CancellationToken ct = default) =>
-        await _context.ShippingMethods.FindAsync([shippingMethodId], ct);
+        await _context.ShippingMethods
+            .Include(m => m.LogoFile)
+            .FirstOrDefaultAsync(m => m.ShippingMethodID == shippingMethodId, ct);
 
     public async Task<ShippingMethod> CreateAsync(ShippingMethod method, CancellationToken ct = default)
     {
+        await NormalizeMethodPricesAsync(method, ct);
         _context.ShippingMethods.Add(method);
         await _context.SaveChangesAsync(ct);
         return method;
@@ -61,8 +67,17 @@ public class ShippingService : IShippingService
         var existing = await _context.ShippingMethods.FirstOrDefaultAsync(m => m.ShippingMethodID == method.ShippingMethodID, ct);
         if (existing is null) return false;
 
+        await NormalizeMethodPricesAsync(method, ct);
+
         existing.Title = method.Title;
         existing.CarrierName = method.CarrierName;
+        existing.LogoFileID = method.LogoFileID;
+        existing.SupportsPrepaid = method.SupportsPrepaid;
+        existing.SupportsCod = method.SupportsCod;
+        existing.PrepaidMinPrice = method.PrepaidMinPrice;
+        existing.PrepaidMinPriceUsd = method.PrepaidMinPriceUsd;
+        existing.CodMinPrice = method.CodMinPrice;
+        existing.CodMinPriceUsd = method.CodMinPriceUsd;
         existing.IsActive = method.IsActive;
         existing.SortOrder = method.SortOrder;
 
@@ -134,6 +149,35 @@ public class ShippingService : IShippingService
         return true;
     }
 
+    private async Task NormalizeMethodPricesAsync(ShippingMethod method, CancellationToken ct)
+    {
+        try
+        {
+            if (method.PrepaidMinPrice > 0)
+                method.PrepaidMinPriceUsd = await _currency.ToUsdAsync(method.WebsiteID, method.PrepaidMinPrice, null, ct);
+            else if (method.PrepaidMinPriceUsd > 0)
+            {
+                var m = await _currency.ToDisplayAsync(method.WebsiteID, method.PrepaidMinPriceUsd, null, ct);
+                method.PrepaidMinPrice = m.Amount;
+            }
+
+            if (method.CodMinPrice > 0)
+                method.CodMinPriceUsd = await _currency.ToUsdAsync(method.WebsiteID, method.CodMinPrice, null, ct);
+            else if (method.CodMinPriceUsd > 0)
+            {
+                var m = await _currency.ToDisplayAsync(method.WebsiteID, method.CodMinPriceUsd, null, ct);
+                method.CodMinPrice = m.Amount;
+            }
+        }
+        catch (InvalidOperationException)
+        {
+            if (method.PrepaidMinPrice <= 0) method.PrepaidMinPrice = method.PrepaidMinPriceUsd;
+            if (method.PrepaidMinPriceUsd <= 0) method.PrepaidMinPriceUsd = method.PrepaidMinPrice;
+            if (method.CodMinPrice <= 0) method.CodMinPrice = method.CodMinPriceUsd;
+            if (method.CodMinPriceUsd <= 0) method.CodMinPriceUsd = method.CodMinPrice;
+        }
+    }
+
     private async Task NormalizeRatePriceAsync(ShippingRate rate, CancellationToken ct)
     {
         var method = await _context.ShippingMethods.AsNoTracking()
@@ -168,15 +212,16 @@ public class ShippingService : IShippingService
 
     // ── Storefront quote ───────────────────────────────────────────
 
-    public async Task<List<(ShippingMethod Method, decimal PriceUsd)>> GetAvailableWithPricesAsync(
+    public async Task<List<ShippingQuoteDto>> GetAvailableWithPricesAsync(
         int websiteId, int? countryId, int? stateId, int? cityId, decimal totalWeightKg, CancellationToken ct = default)
     {
         var methods = await _context.ShippingMethods.AsNoTracking()
-            .Where(m => m.WebsiteID == websiteId && m.IsActive)
+            .Include(m => m.LogoFile)
+            .Where(m => m.WebsiteID == websiteId && m.IsActive && (m.SupportsPrepaid || m.SupportsCod))
             .OrderBy(m => m.SortOrder).ThenBy(m => m.Title)
             .ToListAsync(ct);
 
-        if (methods.Count == 0) return new List<(ShippingMethod, decimal)>();
+        if (methods.Count == 0) return new List<ShippingQuoteDto>();
 
         var methodIds = methods.Select(m => m.ShippingMethodID).ToList();
         var rates = await _context.ShippingRates.AsNoTracking()
@@ -185,7 +230,7 @@ public class ShippingService : IShippingService
                 && (r.MaxWeightKg == null || r.MaxWeightKg >= totalWeightKg))
             .ToListAsync(ct);
 
-        var result = new List<(ShippingMethod, decimal)>();
+        var result = new List<ShippingQuoteDto>();
         foreach (var method in methods)
         {
             var candidates = rates.Where(r => r.ShippingMethodID == method.ShippingMethodID).ToList();
@@ -197,22 +242,74 @@ public class ShippingService : IShippingService
                 candidates.FirstOrDefault(r => countryId is not null && r.CountryID == countryId && r.StateID is null && r.CityID is null) ??
                 candidates.FirstOrDefault(r => r.CountryID is null && r.StateID is null && r.CityID is null);
 
+            decimal? zoneUsd = null;
             if (best is not null)
             {
-                // Site-currency Price is authority; dual USD is bridge (or mirror in single-currency mode).
                 var local = best.Price > 0 ? best.Price : best.PriceUsd;
-                var priceUsd = best.PriceUsd > 0 ? best.PriceUsd : local;
+                zoneUsd = best.PriceUsd > 0 ? best.PriceUsd : local;
                 try
                 {
                     if (best.Price > 0)
-                        priceUsd = await _currency.ToUsdAsync(websiteId, best.Price, null, ct);
+                        zoneUsd = await _currency.ToUsdAsync(websiteId, best.Price, null, ct);
                 }
                 catch (InvalidOperationException)
                 {
-                    priceUsd = local;
+                    zoneUsd = local;
                 }
-                result.Add((method, priceUsd));
             }
+
+            // When no zone rate exists, method min prices alone still allow quoting
+            // (so Tipax with only prepaid/COD floors works without rate rows).
+            var baseUsd = zoneUsd ?? 0m;
+
+            decimal? prepaidUsd = null;
+            if (method.SupportsPrepaid)
+            {
+                var floor = method.PrepaidMinPriceUsd > 0
+                    ? method.PrepaidMinPriceUsd
+                    : method.PrepaidMinPrice;
+                try
+                {
+                    if (method.PrepaidMinPrice > 0)
+                        floor = await _currency.ToUsdAsync(websiteId, method.PrepaidMinPrice, null, ct);
+                }
+                catch (InvalidOperationException)
+                {
+                    floor = method.PrepaidMinPrice > 0 ? method.PrepaidMinPrice : method.PrepaidMinPriceUsd;
+                }
+                prepaidUsd = Math.Max(baseUsd, floor);
+            }
+
+            decimal? codUsd = null;
+            if (method.SupportsCod)
+            {
+                var floor = method.CodMinPriceUsd > 0
+                    ? method.CodMinPriceUsd
+                    : method.CodMinPrice;
+                try
+                {
+                    if (method.CodMinPrice > 0)
+                        floor = await _currency.ToUsdAsync(websiteId, method.CodMinPrice, null, ct);
+                }
+                catch (InvalidOperationException)
+                {
+                    floor = method.CodMinPrice > 0 ? method.CodMinPrice : method.CodMinPriceUsd;
+                }
+                codUsd = Math.Max(baseUsd, floor);
+            }
+
+            if (prepaidUsd is null && codUsd is null)
+                continue;
+
+            // Skip methods that have neither a zone rate nor any positive min and both modes are 0-only?
+            // Zero-price free shipping is valid (e.g. COD min 0). Always include when a mode is supported.
+            result.Add(new ShippingQuoteDto
+            {
+                Method = method,
+                ZoneRateUsd = zoneUsd,
+                PrepaidPriceUsd = prepaidUsd,
+                CodPriceUsd = codUsd,
+            });
         }
 
         return result;

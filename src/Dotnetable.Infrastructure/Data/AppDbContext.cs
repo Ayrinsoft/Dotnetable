@@ -120,7 +120,11 @@ public partial class AppDbContext : DbContext
 
     public virtual DbSet<MenuItemTranslation> MenuItemTranslations { get; set; }
 
+    public virtual DbSet<DigitalAccessLog> DigitalAccessLogs { get; set; }
+
     public virtual DbSet<Order> Orders { get; set; }
+
+    public virtual DbSet<OrderDigitalAsset> OrderDigitalAssets { get; set; }
 
     public virtual DbSet<OrderItem> OrderItems { get; set; }
 
@@ -1463,6 +1467,80 @@ public partial class AppDbContext : DbContext
                 .HasConstraintName("FK_MenuItemTranslations_MenuItems");
         });
 
+        modelBuilder.Entity<DigitalAccessLog>(entity =>
+        {
+            entity.HasIndex(e => e.AccessedAt, "IX_DigitalAccessLogs_AccessedAt");
+
+            entity.HasIndex(e => e.OrderDigitalAssetID, "IX_DigitalAccessLogs_OrderDigitalAssetID");
+
+            entity.HasIndex(e => e.WebsiteClientID, "IX_DigitalAccessLogs_WebsiteClientID");
+
+            entity.HasIndex(e => e.WebsiteID, "IX_DigitalAccessLogs_WebsiteID");
+
+            entity.Property(e => e.AccessedAt).HasColumnType("datetime");
+            entity.Property(e => e.IpAddress).HasMaxLength(64);
+            entity.Property(e => e.UserAgent).HasMaxLength(500);
+
+            entity.HasOne(d => d.OrderDigitalAsset).WithMany(p => p.DigitalAccessLogs)
+                .HasForeignKey(d => d.OrderDigitalAssetID)
+                .OnDelete(DeleteBehavior.ClientSetNull)
+                .HasConstraintName("FK_DigitalAccessLogs_OrderDigitalAssets");
+
+            entity.HasOne(d => d.WebsiteClient).WithMany(p => p.DigitalAccessLogs)
+                .HasForeignKey(d => d.WebsiteClientID)
+                .OnDelete(DeleteBehavior.ClientSetNull)
+                .HasConstraintName("FK_DigitalAccessLogs_WebsiteClients");
+
+            entity.HasOne(d => d.Website).WithMany(p => p.DigitalAccessLogs)
+                .HasForeignKey(d => d.WebsiteID)
+                .OnDelete(DeleteBehavior.ClientSetNull)
+                .HasConstraintName("FK_DigitalAccessLogs_Websites");
+        });
+
+        modelBuilder.Entity<OrderDigitalAsset>(entity =>
+        {
+            entity.HasIndex(e => e.OrderID, "IX_OrderDigitalAssets_OrderID");
+
+            entity.HasIndex(e => e.OrderItemID, "UQ_OrderDigitalAssets_OrderItemID").IsUnique();
+
+            entity.HasIndex(e => e.ProductID, "IX_OrderDigitalAssets_ProductID");
+
+            entity.HasIndex(e => e.WebsiteClientID, "IX_OrderDigitalAssets_WebsiteClientID");
+
+            entity.HasIndex(e => e.WebsiteID, "IX_OrderDigitalAssets_WebsiteID");
+
+            entity.Property(e => e.DigitalDeliveryNote).HasMaxLength(2000);
+            entity.Property(e => e.DigitalDownloadUrl).HasMaxLength(1000);
+            entity.Property(e => e.DigitalServiceUrl).HasMaxLength(1000);
+            entity.Property(e => e.GrantedAt).HasColumnType("datetime");
+            entity.Property(e => e.TitleSnapshot).HasMaxLength(400);
+
+            entity.HasOne(d => d.OrderItem).WithOne(p => p.OrderDigitalAsset)
+                .HasForeignKey<OrderDigitalAsset>(d => d.OrderItemID)
+                .OnDelete(DeleteBehavior.ClientSetNull)
+                .HasConstraintName("FK_OrderDigitalAssets_OrderItems");
+
+            entity.HasOne(d => d.Order).WithMany(p => p.OrderDigitalAssets)
+                .HasForeignKey(d => d.OrderID)
+                .OnDelete(DeleteBehavior.ClientSetNull)
+                .HasConstraintName("FK_OrderDigitalAssets_Orders");
+
+            entity.HasOne(d => d.Product).WithMany(p => p.OrderDigitalAssets)
+                .HasForeignKey(d => d.ProductID)
+                .OnDelete(DeleteBehavior.ClientSetNull)
+                .HasConstraintName("FK_OrderDigitalAssets_Products");
+
+            entity.HasOne(d => d.WebsiteClient).WithMany(p => p.OrderDigitalAssets)
+                .HasForeignKey(d => d.WebsiteClientID)
+                .OnDelete(DeleteBehavior.ClientSetNull)
+                .HasConstraintName("FK_OrderDigitalAssets_WebsiteClients");
+
+            entity.HasOne(d => d.Website).WithMany(p => p.OrderDigitalAssets)
+                .HasForeignKey(d => d.WebsiteID)
+                .OnDelete(DeleteBehavior.ClientSetNull)
+                .HasConstraintName("FK_OrderDigitalAssets_Websites");
+        });
+
         modelBuilder.Entity<Order>(entity =>
         {
             entity.HasIndex(e => e.CouponID, "IX_Orders_CouponID");
@@ -1910,6 +1988,9 @@ public partial class AppDbContext : DbContext
 
             entity.Property(e => e.AvgRating).HasColumnType("decimal(3, 2)");
             entity.Property(e => e.CreatedAt).HasColumnType("datetime");
+            entity.Property(e => e.DigitalDeliveryNote).HasMaxLength(2000);
+            entity.Property(e => e.DigitalDownloadUrl).HasMaxLength(1000);
+            entity.Property(e => e.DigitalServiceUrl).HasMaxLength(1000);
             entity.Property(e => e.ShortDescription).HasMaxLength(1000);
             entity.Property(e => e.Slug).HasMaxLength(300);
             entity.Property(e => e.Title).HasMaxLength(300);
@@ -2399,10 +2480,20 @@ public partial class AppDbContext : DbContext
 
         modelBuilder.Entity<ShippingMethod>(entity =>
         {
+            entity.HasIndex(e => e.LogoFileID, "IX_ShippingMethods_LogoFileID");
+
             entity.HasIndex(e => e.WebsiteID, "IX_ShippingMethods_WebsiteID");
 
             entity.Property(e => e.CarrierName).HasMaxLength(100);
+            entity.Property(e => e.CodMinPrice).HasColumnType("decimal(18, 4)");
+            entity.Property(e => e.CodMinPriceUsd).HasColumnType("decimal(18, 4)");
+            entity.Property(e => e.PrepaidMinPrice).HasColumnType("decimal(18, 4)");
+            entity.Property(e => e.PrepaidMinPriceUsd).HasColumnType("decimal(18, 4)");
             entity.Property(e => e.Title).HasMaxLength(100);
+
+            entity.HasOne(d => d.LogoFile).WithMany(p => p.ShippingMethods)
+                .HasForeignKey(d => d.LogoFileID)
+                .HasConstraintName("FK_ShippingMethods_FileRecords");
 
             entity.HasOne(d => d.Website).WithMany(p => p.ShippingMethods)
                 .HasForeignKey(d => d.WebsiteID)

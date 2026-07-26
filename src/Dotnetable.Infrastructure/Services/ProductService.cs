@@ -65,6 +65,8 @@ public class ProductService : IProductService
             Status = p.Status,
             IsActive = p.IsActive,
             HasVariants = p.HasVariants,
+            ProductType = p.ProductType,
+            RequiresShipping = p.RequiresShipping,
             MinPriceUsd = p.ProductVariants.Count == 0 ? null : p.ProductVariants.Min(v => v.ReferencePriceUsd > 0 ? v.ReferencePriceUsd : 0),
             MinPrice = p.ProductVariants.Count == 0 ? null : p.ProductVariants.Min(v => v.ReferencePrice > 0 ? v.ReferencePrice : v.ReferencePriceUsd),
             FeaturedImageUrl = p.FeaturedImageFile?.ThumbnailCDN ?? p.FeaturedImageFile?.CNDUrl,
@@ -101,6 +103,7 @@ public class ProductService : IProductService
 
     public async Task<Product> CreateAsync(Product product, CancellationToken ct = default)
     {
+        NormalizeProductFulfillment(product);
         product.CreatedAt = product.UpdatedAt = DateTime.UtcNow;
         _context.Products.Add(product);
         await _context.SaveChangesAsync(ct);
@@ -109,9 +112,31 @@ public class ProductService : IProductService
 
     public async Task UpdateAsync(Product product, CancellationToken ct = default)
     {
+        NormalizeProductFulfillment(product);
         product.UpdatedAt = DateTime.UtcNow;
         _context.Products.Update(product);
         await _context.SaveChangesAsync(ct);
+    }
+
+    /// <summary>
+    /// Physical products always require shipping; digital types clear shipping and keep digital fields coherent.
+    /// </summary>
+    private static void NormalizeProductFulfillment(Product product)
+    {
+        if (product.ProductType == (byte)ProductType.Physical)
+        {
+            product.RequiresShipping = true;
+            product.DigitalDownloadUrl = null;
+            product.DigitalServiceUrl = null;
+            product.DigitalDeliveryNote = null;
+            return;
+        }
+
+        product.RequiresShipping = false;
+        if (product.ProductType != (byte)ProductType.DigitalDownload)
+            product.DigitalDownloadUrl = null;
+        if (product.ProductType != (byte)ProductType.DigitalService)
+            product.DigitalServiceUrl = null;
     }
 
     public async Task DeleteAsync(int productId, CancellationToken ct = default)
@@ -816,16 +841,16 @@ public class ProductService : IProductService
             .ToList();
         var sellerStockByVariant = hostVariantIds.Count == 0
             ? new Dictionary<int, int>()
-            : await _context.VendorProducts.AsNoTracking()
+            : (await _context.VendorProducts.AsNoTracking()
                 .Where(vp => vp.WebsiteID == hostWebsiteId && vp.IsActive
                              && hostVariantIds.Contains(vp.ProductVariantID))
-                .GroupBy(vp => vp.ProductVariantID)
-                .Select(g => new
-                {
-                    VariantId = g.Key,
-                    Stock = g.Sum(x => x.StockQuantity - x.QuantityReserved),
-                })
-                .ToDictionaryAsync(x => x.VariantId, x => Math.Max(0, x.Stock), ct);
+                .Select(vp => new { vp.ProductVariantID, vp.StockQuantity, vp.QuantityReserved })
+                .ToListAsync(ct))
+              .GroupBy(x => x.ProductVariantID)
+              .ToDictionary(
+                  g => g.Key,
+                  g => StockDisplay.Aggregate(g.Select(x =>
+                      x.StockQuantity < 0 ? -1 : Math.Max(0, x.StockQuantity - x.QuantityReserved))));
 
         // Site-linked vendor listing stocks (host VendorProduct rows) — use available (on-hand − reserved).
         var siteVendorIds = listings.Where(x => x.Vendor is not null).Select(x => x.Vendor!.VendorID).Distinct().ToList();
@@ -833,9 +858,12 @@ public class ProductService : IProductService
             ? new List<(int VendorID, int ProductVariantID, int Available)>()
             : (await _context.VendorProducts.AsNoTracking()
                 .Where(vp => siteVendorIds.Contains(vp.VendorID) && vp.IsActive)
-                .Select(vp => new { vp.VendorID, vp.ProductVariantID, Available = vp.StockQuantity - vp.QuantityReserved })
+                .Select(vp => new { vp.VendorID, vp.ProductVariantID, vp.StockQuantity, vp.QuantityReserved })
                 .ToListAsync(ct))
-              .Select(x => (VendorID: x.VendorID, ProductVariantID: x.ProductVariantID, Available: Math.Max(0, x.Available)))
+              .Select(x => (
+                  VendorID: x.VendorID,
+                  ProductVariantID: x.ProductVariantID,
+                  Available: x.StockQuantity < 0 ? -1 : Math.Max(0, x.StockQuantity - x.QuantityReserved)))
               .ToList();
 
         foreach (var (product, vendor) in listings)
@@ -851,16 +879,18 @@ public class ProductService : IProductService
             if (vendor is null)
             {
                 // Host catalog: sellable stock is only the sum of store listing available quantities.
-                // No store listing / zero stock ⇒ not for sale.
-                result[key] = activeVariants.Sum(v => sellerStockByVariant.GetValueOrDefault(v.ProductVariantID));
+                // No store listing / zero stock ⇒ not for sale. Unlimited (-1) wins over finite sums.
+                result[key] = StockDisplay.Aggregate(
+                    activeVariants.Select(v => sellerStockByVariant.GetValueOrDefault(v.ProductVariantID)));
             }
             else
             {
                 // Site-linked row: only that vendor's listing available stock (no warehouse fallback).
-                result[key] = siteListingStocks
-                    .Where(s => s.VendorID == vendor.VendorID
-                                && activeVariants.Any(v => v.ProductVariantID == s.ProductVariantID))
-                    .Sum(s => s.Available);
+                result[key] = StockDisplay.Aggregate(
+                    siteListingStocks
+                        .Where(s => s.VendorID == vendor.VendorID
+                                    && activeVariants.Any(v => v.ProductVariantID == s.ProductVariantID))
+                        .Select(s => s.Available));
             }
         }
 
@@ -901,6 +931,9 @@ public class ProductService : IProductService
             DefaultSku = defaultVariant?.Sku,
             MinPrice = minPrice!,
             AvgRating = p.AvgRating, RatingCount = p.RatingCount, HasVariants = p.HasVariants,
+            ProductType = p.ProductType,
+            RequiresShipping = p.RequiresShipping,
+            IsUnlimitedStock = StockDisplay.IsUnlimited(stock),
             IsInStock = StockDisplay.IsInStock(stock),
             StockQuantity = stock,
             DisplayStockQuantity = StockDisplay.ExactCountOrNull(stock),
@@ -954,13 +987,14 @@ public class ProductService : IProductService
 
         // Marketplace sellers on the host for this product — only in-stock (available) listings are returned.
         var variantIds = p.ProductVariants.Where(v => v.IsActive).Select(v => v.ProductVariantID).ToList();
+        // StockQuantity < 0 = unlimited digital; otherwise available = on-hand − reserved.
         var sellerRows = vendor is null && variantIds.Count > 0
             ? await _context.VendorProducts.AsNoTracking()
                 .Include(vp => vp.Vendor)
                 .Include(vp => vp.ProductVariant)
                 .Where(vp => vp.WebsiteID == hostId
                              && vp.IsActive
-                             && vp.StockQuantity - vp.QuantityReserved > 0
+                             && (vp.StockQuantity < 0 || vp.StockQuantity - vp.QuantityReserved > 0)
                              && variantIds.Contains(vp.ProductVariantID)
                              && vp.Vendor.IsActive)
                 .OrderBy(vp => vp.Vendor.Name)
@@ -981,7 +1015,7 @@ public class ProductService : IProductService
                     .Include(vp => vp.Vendor)
                     .Include(vp => vp.ProductVariant)
                     .Where(vp => vp.VendorID == vendor.VendorID && vp.IsActive
-                                 && vp.StockQuantity - vp.QuantityReserved > 0
+                                 && (vp.StockQuantity < 0 || vp.StockQuantity - vp.QuantityReserved > 0)
                                  && variantIds.Contains(vp.ProductVariantID))
                     .ToListAsync(ct);
                 sellerRows = reloaded;
@@ -993,7 +1027,7 @@ public class ProductService : IProductService
         {
             var unitLocal = vp.OverridePriceLocal ?? (vp.ReferencePrice > 0 ? vp.ReferencePrice : 0);
             var unitUsd = vp.OverridePrice ?? vp.ReferencePriceUsd;
-            var stock = IVendorProductService.Available(vp);
+            var stock = PublicStock(IVendorProductService.Available(vp));
             MoneyDto price;
             if (unitLocal > 0)
                 price = await _currency.ToDisplayFromLocalAsync(priceWebsiteId, unitLocal, null, currencyCode, unitUsd > 0 ? unitUsd : null, ct);
@@ -1019,7 +1053,7 @@ public class ProductService : IProductService
 
         var sellerStockByVariant = sellers
             .GroupBy(s => s.ProductVariantID)
-            .ToDictionary(g => g.Key, g => g.Sum(x => x.StockQuantity));
+            .ToDictionary(g => g.Key, g => StockDisplay.Aggregate(g.Select(x => x.StockQuantity)));
 
         var variants = new List<ProductVariantDto>();
         foreach (var v in p.ProductVariants.Where(v => v.IsActive))
@@ -1029,7 +1063,7 @@ public class ProductService : IProductService
 
             // Sellable only via store listings — no warehouse-only path.
             int stock = vendor is not null
-                ? (listing is not null ? IVendorProductService.Available(listing) : 0)
+                ? (listing is not null ? PublicStock(IVendorProductService.Available(listing)) : 0)
                 : sellerStockByVariant.GetValueOrDefault(v.ProductVariantID);
 
             // Hide fully unavailable variants when other sellable options exist; keep at least one row for OOS products.
@@ -1077,9 +1111,9 @@ public class ProductService : IProductService
         }
 
         // Product-level stock = best available across remaining variants / sellers.
-        var productStock = Math.Max(
-            variants.Count == 0 ? 0 : variants.Max(v => v.StockQuantity),
-            sellers.Count == 0 ? 0 : sellers.Max(s => s.StockQuantity));
+        var productStock = StockDisplay.Max(
+            variants.Count == 0 ? 0 : StockDisplay.Aggregate(variants.Select(v => v.StockQuantity)),
+            sellers.Count == 0 ? 0 : StockDisplay.Aggregate(sellers.Select(s => s.StockQuantity)));
 
         var summary = await ProjectSummaryAsync(p, lang, currencyCode, ct, vendor, productStock);
 
@@ -1123,14 +1157,21 @@ public class ProductService : IProductService
             ProductID = summary.ProductID, Slug = summary.Slug, Title = summary.Title, ShortDescription = summary.ShortDescription,
             FeaturedImageUrl = summary.FeaturedImageUrl, BrandName = summary.BrandName, DefaultSku = summary.DefaultSku,
             MinPrice = summary.MinPrice, AvgRating = summary.AvgRating, RatingCount = summary.RatingCount, HasVariants = summary.HasVariants,
+            ProductType = summary.ProductType, RequiresShipping = summary.RequiresShipping, IsUnlimitedStock = summary.IsUnlimitedStock,
             IsInStock = summary.IsInStock, StockQuantity = summary.StockQuantity, DisplayStockQuantity = summary.DisplayStockQuantity,
             VendorID = summary.VendorID, VendorName = summary.VendorName, VendorProductID = summary.VendorProductID,
             Categories = categories, Variants = variants, Sellers = sellers, Attributes = attributes,
             Content = LocalizedContent(p, lang),
             ExpertReview = LocalizedExpertReview(p, lang),
             Warnings = warnings, Warranties = warranties, RelatedProducts = related, GalleryImageUrls = gallery,
+            DigitalDownloadUrl = p.DigitalDownloadUrl,
+            DigitalServiceUrl = p.DigitalServiceUrl,
+            DigitalDeliveryNote = p.DigitalDeliveryNote,
         };
     }
+
+    /// <summary>Maps internal available stock (int.MaxValue for unlimited) to public -1 convention.</summary>
+    private static int PublicStock(int available) => available == int.MaxValue ? -1 : available;
 
     private static ProductWarrantyDto ResolveWarrantyDto(ProductWarranty w, string? lang)
     {

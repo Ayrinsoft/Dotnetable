@@ -1,8 +1,10 @@
+@using Dotnetable.Application.DTOs
 @using Dotnetable.Domain.Entities
 @model Order
 @{
     ViewData["Title"] = $"Order {Model.OrderNumber}";
     Layout = "/Themes/Default/Views/Shared/_Layout.cshtml";
+    var digitalItems = ViewBag.DigitalItems as IReadOnlyList<DigitalLibraryItemDto> ?? Array.Empty<DigitalLibraryItemDto>();
 }
 
 @await Html.PartialAsync("_PageHeader", ($"Order {Model.OrderNumber}", "Account"))
@@ -30,6 +32,26 @@
             </tbody>
         </table>
         <div class="text-end fs-5 fw-bold">Total: @Model.GrandTotal.ToString("0.##") @Model.CurrencyCode</div>
+
+        @if (digitalItems.Count > 0)
+        {
+            <div class="alert alert-success mt-4">
+                <h6 class="alert-heading mb-2"><i class="bi bi-cloud-download me-1"></i> Digital delivery</h6>
+                <p class="mb-2 small">These items stay available in your library after purchase.</p>
+                <ul class="mb-2">
+                    @foreach (var d in digitalItems)
+                    {
+                        <li>
+                            <a asp-controller="Account" asp-action="DownloadDetail" asp-route-id="@d.OrderDigitalAssetID">@d.Title</a>
+                            @if (d.HasDownloadUrl) { <span class="badge text-bg-primary">Download</span> }
+                            @if (d.HasDeliveryNote) { <span class="badge text-bg-secondary">Code</span> }
+                            @if (d.HasServiceUrl) { <span class="badge text-bg-info">Service</span> }
+                        </li>
+                    }
+                </ul>
+                <a asp-controller="Account" asp-action="Downloads" class="btn btn-sm btn-outline-success">Open digital library</a>
+            </div>
+        }
 
         @if (Model.Status == (byte)Dotnetable.Application.Interfaces.OrderStatus.PendingPayment)
         {

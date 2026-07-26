@@ -49,6 +49,10 @@ public partial class WebsiteClient
 
     public virtual ICollection<FormResponse> FormResponses { get; set; } = new List<FormResponse>();
 
+    public virtual ICollection<DigitalAccessLog> DigitalAccessLogs { get; set; } = new List<DigitalAccessLog>();
+
+    public virtual ICollection<OrderDigitalAsset> OrderDigitalAssets { get; set; } = new List<OrderDigitalAsset>();
+
     public virtual ICollection<Order> Orders { get; set; } = new List<Order>();
 
     public virtual ICollection<Payment> Payments { get; set; } = new List<Payment>();

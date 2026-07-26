@@ -290,7 +290,56 @@ public class AccountController : Controller
             return RedirectToAction(nameof(HomeController.Index), "Home");
 
         var order = await _api.GetOrderAsync(id, ct);
-        return order is null ? NotFound() : View(order);
+        if (order is null) return NotFound();
+
+        ViewBag.DigitalItems = await _api.GetOrderDigitalAsync(id, ct);
+        return View(order);
+    }
+
+    // ── Digital library (downloads / codes / service URLs) ────────────
+
+    [HttpGet]
+    public async Task<IActionResult> Downloads(int page = 1, CancellationToken ct = default)
+    {
+        if (!Request.Cookies.ContainsKey(ClientAuth.TokenCookie))
+            return RedirectToAction(nameof(HomeController.Index), "Home");
+
+        return View(await _api.GetDigitalLibraryAsync(page, 20, ct));
+    }
+
+    [HttpGet]
+    public async Task<IActionResult> DownloadDetail(int id, CancellationToken ct = default)
+    {
+        if (!Request.Cookies.ContainsKey(ClientAuth.TokenCookie))
+            return RedirectToAction(nameof(HomeController.Index), "Home");
+
+        var item = await _api.GetDigitalDetailAsync(id, ct);
+        return item is null ? NotFound() : View(item);
+    }
+
+    /// <summary>
+    /// Logs download access via API and redirects the browser to the external download URL.
+    /// </summary>
+    [HttpGet]
+    public async Task<IActionResult> DownloadFile(int id, CancellationToken ct = default)
+    {
+        if (!Request.Cookies.ContainsKey(ClientAuth.TokenCookie))
+            return RedirectToAction(nameof(HomeController.Index), "Home");
+
+        var url = await _api.ResolveDigitalDownloadUrlAsync(id, ct);
+        if (string.IsNullOrWhiteSpace(url)) return NotFound();
+
+        return Redirect(url);
+    }
+
+    [HttpPost]
+    public async Task<IActionResult> LogDigitalAccess(int id, string accessType, CancellationToken ct = default)
+    {
+        if (!Request.Cookies.ContainsKey(ClientAuth.TokenCookie))
+            return Unauthorized();
+
+        var result = await _api.LogDigitalAccessAsync(id, accessType, ct);
+        return result.Ok ? Ok() : BadRequest(result.Message);
     }
 
     // ── Wallet ───────────────────────────────────────────────────────

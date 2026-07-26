@@ -1183,6 +1183,50 @@ namespace Dotnetable.Migrations.PostgreSql.Migrations
                     b.ToTable("CurrencyRates");
                 });
 
+            modelBuilder.Entity("Dotnetable.Domain.Entities.DigitalAccessLog", b =>
+                {
+                    b.Property<long>("DigitalAccessLogID")
+                        .ValueGeneratedOnAdd()
+                        .HasColumnType("bigint");
+
+                    NpgsqlPropertyBuilderExtensions.UseIdentityByDefaultColumn(b.Property<long>("DigitalAccessLogID"));
+
+                    b.Property<byte>("AccessType")
+                        .HasColumnType("smallint");
+
+                    b.Property<DateTime>("AccessedAt")
+                        .HasColumnType("datetime");
+
+                    b.Property<string>("IpAddress")
+                        .HasMaxLength(64)
+                        .HasColumnType("character varying(64)");
+
+                    b.Property<int>("OrderDigitalAssetID")
+                        .HasColumnType("integer");
+
+                    b.Property<string>("UserAgent")
+                        .HasMaxLength(500)
+                        .HasColumnType("character varying(500)");
+
+                    b.Property<int>("WebsiteClientID")
+                        .HasColumnType("integer");
+
+                    b.Property<int>("WebsiteID")
+                        .HasColumnType("integer");
+
+                    b.HasKey("DigitalAccessLogID");
+
+                    b.HasIndex(new[] { "AccessedAt" }, "IX_DigitalAccessLogs_AccessedAt");
+
+                    b.HasIndex(new[] { "OrderDigitalAssetID" }, "IX_DigitalAccessLogs_OrderDigitalAssetID");
+
+                    b.HasIndex(new[] { "WebsiteClientID" }, "IX_DigitalAccessLogs_WebsiteClientID");
+
+                    b.HasIndex(new[] { "WebsiteID" }, "IX_DigitalAccessLogs_WebsiteID");
+
+                    b.ToTable("DigitalAccessLogs");
+                });
+
             modelBuilder.Entity("Dotnetable.Domain.Entities.EmailAccount", b =>
                 {
                     b.Property<int>("EmailAccountID")
@@ -2446,6 +2490,71 @@ namespace Dotnetable.Migrations.PostgreSql.Migrations
                     b.ToTable("Orders");
                 });
 
+            modelBuilder.Entity("Dotnetable.Domain.Entities.OrderDigitalAsset", b =>
+                {
+                    b.Property<int>("OrderDigitalAssetID")
+                        .ValueGeneratedOnAdd()
+                        .HasColumnType("integer");
+
+                    NpgsqlPropertyBuilderExtensions.UseIdentityByDefaultColumn(b.Property<int>("OrderDigitalAssetID"));
+
+                    b.Property<string>("DigitalDeliveryNote")
+                        .HasMaxLength(2000)
+                        .HasColumnType("character varying(2000)");
+
+                    b.Property<string>("DigitalDownloadUrl")
+                        .HasMaxLength(1000)
+                        .HasColumnType("character varying(1000)");
+
+                    b.Property<string>("DigitalServiceUrl")
+                        .HasMaxLength(1000)
+                        .HasColumnType("character varying(1000)");
+
+                    b.Property<DateTime>("GrantedAt")
+                        .HasColumnType("datetime");
+
+                    b.Property<bool>("IsActive")
+                        .HasColumnType("boolean");
+
+                    b.Property<int>("OrderID")
+                        .HasColumnType("integer");
+
+                    b.Property<int>("OrderItemID")
+                        .HasColumnType("integer");
+
+                    b.Property<int>("ProductID")
+                        .HasColumnType("integer");
+
+                    b.Property<byte>("ProductType")
+                        .HasColumnType("smallint");
+
+                    b.Property<string>("TitleSnapshot")
+                        .IsRequired()
+                        .HasMaxLength(400)
+                        .HasColumnType("character varying(400)");
+
+                    b.Property<int>("WebsiteClientID")
+                        .HasColumnType("integer");
+
+                    b.Property<int>("WebsiteID")
+                        .HasColumnType("integer");
+
+                    b.HasKey("OrderDigitalAssetID");
+
+                    b.HasIndex(new[] { "OrderID" }, "IX_OrderDigitalAssets_OrderID");
+
+                    b.HasIndex(new[] { "ProductID" }, "IX_OrderDigitalAssets_ProductID");
+
+                    b.HasIndex(new[] { "WebsiteClientID" }, "IX_OrderDigitalAssets_WebsiteClientID");
+
+                    b.HasIndex(new[] { "WebsiteID" }, "IX_OrderDigitalAssets_WebsiteID");
+
+                    b.HasIndex(new[] { "OrderItemID" }, "UQ_OrderDigitalAssets_OrderItemID")
+                        .IsUnique();
+
+                    b.ToTable("OrderDigitalAssets");
+                });
+
             modelBuilder.Entity("Dotnetable.Domain.Entities.OrderItem", b =>
                 {
                     b.Property<int>("OrderItemID")
@@ -3100,6 +3209,18 @@ namespace Dotnetable.Migrations.PostgreSql.Migrations
                     b.Property<int?>("CreatedByMemberID")
                         .HasColumnType("integer");
 
+                    b.Property<string>("DigitalDeliveryNote")
+                        .HasMaxLength(2000)
+                        .HasColumnType("character varying(2000)");
+
+                    b.Property<string>("DigitalDownloadUrl")
+                        .HasMaxLength(1000)
+                        .HasColumnType("character varying(1000)");
+
+                    b.Property<string>("DigitalServiceUrl")
+                        .HasMaxLength(1000)
+                        .HasColumnType("character varying(1000)");
+
                     b.Property<string>("ExpertReview")
                         .HasColumnType("text");
 
@@ -3115,8 +3236,14 @@ namespace Dotnetable.Migrations.PostgreSql.Migrations
                     b.Property<bool>("IsCatalogOnly")
                         .HasColumnType("boolean");
 
+                    b.Property<byte>("ProductType")
+                        .HasColumnType("smallint");
+
                     b.Property<int>("RatingCount")
                         .HasColumnType("integer");
+
+                    b.Property<bool>("RequiresShipping")
+                        .HasColumnType("boolean");
 
                     b.Property<string>("ShortDescription")
                         .HasMaxLength(1000)
@@ -3964,11 +4091,32 @@ namespace Dotnetable.Migrations.PostgreSql.Migrations
                         .HasMaxLength(100)
                         .HasColumnType("character varying(100)");
 
+                    b.Property<decimal>("CodMinPrice")
+                        .HasColumnType("decimal(18, 4)");
+
+                    b.Property<decimal>("CodMinPriceUsd")
+                        .HasColumnType("decimal(18, 4)");
+
                     b.Property<bool>("IsActive")
                         .HasColumnType("boolean");
 
+                    b.Property<int?>("LogoFileID")
+                        .HasColumnType("integer");
+
+                    b.Property<decimal>("PrepaidMinPrice")
+                        .HasColumnType("decimal(18, 4)");
+
+                    b.Property<decimal>("PrepaidMinPriceUsd")
+                        .HasColumnType("decimal(18, 4)");
+
                     b.Property<int>("SortOrder")
                         .HasColumnType("integer");
+
+                    b.Property<bool>("SupportsCod")
+                        .HasColumnType("boolean");
+
+                    b.Property<bool>("SupportsPrepaid")
+                        .HasColumnType("boolean");
 
                     b.Property<string>("Title")
                         .IsRequired()
@@ -3979,6 +4127,8 @@ namespace Dotnetable.Migrations.PostgreSql.Migrations
                         .HasColumnType("integer");
 
                     b.HasKey("ShippingMethodID");
+
+                    b.HasIndex(new[] { "LogoFileID" }, "IX_ShippingMethods_LogoFileID");
 
                     b.HasIndex(new[] { "WebsiteID" }, "IX_ShippingMethods_WebsiteID");
 
@@ -6107,6 +6257,33 @@ namespace Dotnetable.Migrations.PostgreSql.Migrations
                     b.Navigation("Website");
                 });
 
+            modelBuilder.Entity("Dotnetable.Domain.Entities.DigitalAccessLog", b =>
+                {
+                    b.HasOne("Dotnetable.Domain.Entities.OrderDigitalAsset", "OrderDigitalAsset")
+                        .WithMany("DigitalAccessLogs")
+                        .HasForeignKey("OrderDigitalAssetID")
+                        .IsRequired()
+                        .HasConstraintName("FK_DigitalAccessLogs_OrderDigitalAssets");
+
+                    b.HasOne("Dotnetable.Domain.Entities.WebsiteClient", "WebsiteClient")
+                        .WithMany("DigitalAccessLogs")
+                        .HasForeignKey("WebsiteClientID")
+                        .IsRequired()
+                        .HasConstraintName("FK_DigitalAccessLogs_WebsiteClients");
+
+                    b.HasOne("Dotnetable.Domain.Entities.Website", "Website")
+                        .WithMany("DigitalAccessLogs")
+                        .HasForeignKey("WebsiteID")
+                        .IsRequired()
+                        .HasConstraintName("FK_DigitalAccessLogs_Websites");
+
+                    b.Navigation("OrderDigitalAsset");
+
+                    b.Navigation("Website");
+
+                    b.Navigation("WebsiteClient");
+                });
+
             modelBuilder.Entity("Dotnetable.Domain.Entities.EmailAccount", b =>
                 {
                     b.HasOne("Dotnetable.Domain.Entities.Website", "Website")
@@ -6623,6 +6800,49 @@ namespace Dotnetable.Migrations.PostgreSql.Migrations
                     b.Navigation("WebsiteClient");
 
                     b.Navigation("WebsiteClientAddress");
+                });
+
+            modelBuilder.Entity("Dotnetable.Domain.Entities.OrderDigitalAsset", b =>
+                {
+                    b.HasOne("Dotnetable.Domain.Entities.Order", "Order")
+                        .WithMany("OrderDigitalAssets")
+                        .HasForeignKey("OrderID")
+                        .IsRequired()
+                        .HasConstraintName("FK_OrderDigitalAssets_Orders");
+
+                    b.HasOne("Dotnetable.Domain.Entities.OrderItem", "OrderItem")
+                        .WithOne("OrderDigitalAsset")
+                        .HasForeignKey("Dotnetable.Domain.Entities.OrderDigitalAsset", "OrderItemID")
+                        .IsRequired()
+                        .HasConstraintName("FK_OrderDigitalAssets_OrderItems");
+
+                    b.HasOne("Dotnetable.Domain.Entities.Product", "Product")
+                        .WithMany("OrderDigitalAssets")
+                        .HasForeignKey("ProductID")
+                        .IsRequired()
+                        .HasConstraintName("FK_OrderDigitalAssets_Products");
+
+                    b.HasOne("Dotnetable.Domain.Entities.WebsiteClient", "WebsiteClient")
+                        .WithMany("OrderDigitalAssets")
+                        .HasForeignKey("WebsiteClientID")
+                        .IsRequired()
+                        .HasConstraintName("FK_OrderDigitalAssets_WebsiteClients");
+
+                    b.HasOne("Dotnetable.Domain.Entities.Website", "Website")
+                        .WithMany("OrderDigitalAssets")
+                        .HasForeignKey("WebsiteID")
+                        .IsRequired()
+                        .HasConstraintName("FK_OrderDigitalAssets_Websites");
+
+                    b.Navigation("Order");
+
+                    b.Navigation("OrderItem");
+
+                    b.Navigation("Product");
+
+                    b.Navigation("Website");
+
+                    b.Navigation("WebsiteClient");
                 });
 
             modelBuilder.Entity("Dotnetable.Domain.Entities.OrderItem", b =>
@@ -7401,11 +7621,18 @@ namespace Dotnetable.Migrations.PostgreSql.Migrations
 
             modelBuilder.Entity("Dotnetable.Domain.Entities.ShippingMethod", b =>
                 {
+                    b.HasOne("Dotnetable.Domain.Entities.FileRecord", "LogoFile")
+                        .WithMany("ShippingMethods")
+                        .HasForeignKey("LogoFileID")
+                        .HasConstraintName("FK_ShippingMethods_FileRecords");
+
                     b.HasOne("Dotnetable.Domain.Entities.Website", "Website")
                         .WithMany("ShippingMethods")
                         .HasForeignKey("WebsiteID")
                         .IsRequired()
                         .HasConstraintName("FK_ShippingMethods_Websites");
+
+                    b.Navigation("LogoFile");
 
                     b.Navigation("Website");
                 });
@@ -8257,6 +8484,8 @@ namespace Dotnetable.Migrations.PostgreSql.Migrations
 
                     b.Navigation("Products");
 
+                    b.Navigation("ShippingMethods");
+
                     b.Navigation("SlideshowSlideFiles");
 
                     b.Navigation("SlideshowSlideMobileFiles");
@@ -8380,6 +8609,8 @@ namespace Dotnetable.Migrations.PostgreSql.Migrations
                 {
                     b.Navigation("CouponRedemption");
 
+                    b.Navigation("OrderDigitalAssets");
+
                     b.Navigation("OrderItems");
 
                     b.Navigation("OrderStatusHistories");
@@ -8395,8 +8626,15 @@ namespace Dotnetable.Migrations.PostgreSql.Migrations
                     b.Navigation("VendorCreditTransactionMirrorOrders");
                 });
 
+            modelBuilder.Entity("Dotnetable.Domain.Entities.OrderDigitalAsset", b =>
+                {
+                    b.Navigation("DigitalAccessLogs");
+                });
+
             modelBuilder.Entity("Dotnetable.Domain.Entities.OrderItem", b =>
                 {
+                    b.Navigation("OrderDigitalAsset");
+
                     b.Navigation("SettlementItems");
 
                     b.Navigation("StockMovements");
@@ -8451,6 +8689,8 @@ namespace Dotnetable.Migrations.PostgreSql.Migrations
             modelBuilder.Entity("Dotnetable.Domain.Entities.Product", b =>
                 {
                     b.Navigation("MenuItems");
+
+                    b.Navigation("OrderDigitalAssets");
 
                     b.Navigation("ProductAttributeValues");
 
@@ -8644,6 +8884,8 @@ namespace Dotnetable.Migrations.PostgreSql.Migrations
 
                     b.Navigation("CurrencyRates");
 
+                    b.Navigation("DigitalAccessLogs");
+
                     b.Navigation("EmailAccounts");
 
                     b.Navigation("EmailSubscribes");
@@ -8673,6 +8915,8 @@ namespace Dotnetable.Migrations.PostgreSql.Migrations
                     b.Navigation("Members");
 
                     b.Navigation("Menus");
+
+                    b.Navigation("OrderDigitalAssets");
 
                     b.Navigation("OrderItemSourceWebsites");
 
@@ -8767,9 +9011,13 @@ namespace Dotnetable.Migrations.PostgreSql.Migrations
 
                     b.Navigation("CouponRedemptions");
 
+                    b.Navigation("DigitalAccessLogs");
+
                     b.Navigation("FileRecords");
 
                     b.Navigation("FormResponses");
+
+                    b.Navigation("OrderDigitalAssets");
 
                     b.Navigation("Orders");
 

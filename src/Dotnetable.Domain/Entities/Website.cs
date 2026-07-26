@@ -118,6 +118,10 @@ public partial class Website
 
     public virtual ICollection<OrderItem> OrderItemWebsites { get; set; } = new List<OrderItem>();
 
+    public virtual ICollection<DigitalAccessLog> DigitalAccessLogs { get; set; } = new List<DigitalAccessLog>();
+
+    public virtual ICollection<OrderDigitalAsset> OrderDigitalAssets { get; set; } = new List<OrderDigitalAsset>();
+
     public virtual ICollection<Order> Orders { get; set; } = new List<Order>();
 
     public virtual ICollection<SupportSession> SupportSessions { get; set; } = new List<SupportSession>();

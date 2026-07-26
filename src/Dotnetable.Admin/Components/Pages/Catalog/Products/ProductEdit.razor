@@ -101,6 +101,22 @@ else
                             <MudItem xs="12" sm="4">
                                 <MudSwitch T="bool" Value="@(_variants.Count > 1)" Disabled="true" Label="@L["products.has_variants", "Has variants"]" Color="Color.Primary" />
                             </MudItem>
+                            <MudItem xs="12" sm="6">
+                                <MudSelect T="byte" Value="Model.ProductType" ValueChanged="OnProductTypeChanged"
+                                           Label="@L["products.type", "Product type"]" Variant="Variant.Outlined">
+                                    <MudSelectItem T="byte" Value="@((byte)ProductType.Physical)">@L["products.type.physical", "Physical (shipping required)"]</MudSelectItem>
+                                    <MudSelectItem T="byte" Value="@((byte)ProductType.DigitalDownload)">@L["products.type.download", "Digital download"]</MudSelectItem>
+                                    <MudSelectItem T="byte" Value="@((byte)ProductType.DigitalCode)">@L["products.type.code", "Digital code / license"]</MudSelectItem>
+                                    <MudSelectItem T="byte" Value="@((byte)ProductType.DigitalService)">@L["products.type.service", "Digital service / URL"]</MudSelectItem>
+                                </MudSelect>
+                            </MudItem>
+                            <MudItem xs="12" sm="6" Class="d-flex align-center">
+                                <MudSwitch T="bool" Value="Model.RequiresShipping" Disabled="true"
+                                           Label="@(Model.RequiresShipping
+                                               ? L["products.requires_shipping", "Requires shipping / freight"]
+                                               : L["products.no_shipping", "No shipping (digital delivery)"])"
+                                           Color="Color.Primary" />
+                            </MudItem>
                         </MudGrid>
                     </MudItem>
                     @if (_languages.Length > 0)
@@ -135,12 +151,55 @@ else
                 </MudGrid>
             </MudTabPanel>
 
+            @if (IsDigital)
+            {
+            <MudTabPanel Text="@L["products.digital", "Digital delivery"]">
+                <div class="pa-2">
+                    <MudAlert Severity="Severity.Info" Dense="true" Class="mb-3" Variant="Variant.Outlined">
+                        @L["products.digital_hint", "Digital products do not need freight. Use stock -1 on seller listings for unlimited sales (e.g. PDF books)."]
+                    </MudAlert>
+                    <MudGrid Spacing="3">
+                        @if (Model.ProductType == (byte)ProductType.DigitalDownload)
+                        {
+                            <MudItem xs="12">
+                                <MudTextField @bind-Value="Model.DigitalDownloadUrl"
+                                              Label="@L["products.digital_download_url", "Download URL"]"
+                                              Variant="Variant.Outlined"
+                                              HelperText="@L["products.digital_download_url_hint", "External link only — the file is not stored on this server (e.g. https://cdn.example.com/book.pdf)."]" />
+                            </MudItem>
+                        }
+                        @if (Model.ProductType == (byte)ProductType.DigitalService)
+                        {
+                            <MudItem xs="12">
+                                <MudTextField @bind-Value="Model.DigitalServiceUrl"
+                                              Label="@L["products.digital_service_url", "Service URL / path"]"
+                                              Variant="Variant.Outlined"
+                                              HelperText="@L["products.digital_service_url_hint", "Endpoint or path delivered after purchase (e.g. /api/access/… or https://…)."]" />
+                            </MudItem>
+                        }
+                        <MudItem xs="12">
+                            <MudTextField @bind-Value="Model.DigitalDeliveryNote" Lines="4" AutoGrow="true"
+                                          Label="@L["products.digital_note", "Delivery note / code text"]"
+                                          Variant="Variant.Outlined"
+                                          HelperText="@L["products.digital_note_hint", "For license codes: the text/code template. For downloads/services: post-purchase instructions."]" />
+                        </MudItem>
+                    </MudGrid>
+                </div>
+            </MudTabPanel>
+            }
+
             <MudTabPanel Text="@L["products.variants", "Variants"]">
                 <div class="pa-2">
                     @if (_vendorId is null)
                     {
                         <MudAlert Severity="Severity.Info" Dense="true" Class="mb-3" Variant="Variant.Outlined">
                             @L["products.catalog_price_hint", "Price on this tab is the catalog default. Each store sets its own selling price and stock on the Seller stock & prices tab — products without store stock are not sellable."]
+                        </MudAlert>
+                    }
+                    @if (IsDigital)
+                    {
+                        <MudAlert Severity="Severity.Info" Dense="true" Class="mb-3" Variant="Variant.Outlined">
+                            @L["products.unlimited_stock_hint", "Digital: set seller stock to -1 for unlimited quantity (never depletes)."]
                         </MudAlert>
                     }
                     @if (_hasRate && !_isUsdSite)
@@ -217,7 +276,8 @@ else
                                 <MudItem xs="6" sm="2" md="2">
                                     <MudNumericField T="int" Value="@StockOnHand(v)" ValueChanged="@(val => SetStockOnHand(v, val))"
                                                      Label="@VariantStockLabel"
-                                                     Variant="Variant.Outlined" Margin="Margin.Dense" Min="0" Immediate="true"
+                                                     Variant="Variant.Outlined" Margin="Margin.Dense"
+                                                     Min="@(IsDigital ? -1 : 0)" Immediate="true"
                                                      Disabled="@(!_canEdit || IsWarehouseStockReadOnly(v))"
                                                      HelperText="@StockHelper(v)" />
                                 </MudItem>
@@ -278,7 +338,9 @@ else
                             </MudItem>
                             <MudItem xs="6" sm="2">
                                 <MudNumericField T="int" @bind-Value="_addSellerStock"
-                                                 Label="@L["stock", "Stock"]" Variant="Variant.Outlined" Margin="Margin.Dense" Min="0" />
+                                                 Label="@L["stock", "Stock"]" Variant="Variant.Outlined" Margin="Margin.Dense"
+                                                 Min="@(IsDigital ? -1 : 0)"
+                                                 HelperText="@(IsDigital ? L["products.unlimited_stock_hint_short", "-1 = unlimited"] : null)" />
                             </MudItem>
                             <MudItem xs="12" sm="2">
                                 <MudButton Variant="Variant.Filled" Color="Color.Primary" OnClick="AddSellerStockAsync"
@@ -329,9 +391,15 @@ else
                                         </td>
                                         <td>
                                             <MudNumericField T="int" @bind-Value="row.StockQuantity" Margin="Margin.Dense"
-                                                            Variant="Variant.Outlined" Min="@row.QuantityReserved" Disabled="@(!_canEdit || row.IsSiteLinked)"
+                                                            Variant="Variant.Outlined"
+                                                            Min="@(IsDigital ? -1 : Math.Max(0, row.QuantityReserved))"
+                                                            Disabled="@(!_canEdit || row.IsSiteLinked)"
                                                             Style="max-width:110px"
-                                                            HelperText="@(row.QuantityReserved > 0 ? string.Format(L["products.seller_available_hint", "Available: {0}"], Math.Max(0, row.StockQuantity - row.QuantityReserved)) : null)" />
+                                                            HelperText="@(row.StockQuantity < 0
+                                                                ? L["products.unlimited", "Unlimited"]
+                                                                : (row.QuantityReserved > 0
+                                                                    ? string.Format(L["products.seller_available_hint", "Available: {0}"], Math.Max(0, row.StockQuantity - row.QuantityReserved))
+                                                                    : null))" />
                                         </td>
                                         <td>@row.QuantityReserved</td>
                                         <td>
@@ -641,8 +709,9 @@ else
     private (string Code, string Label)[] _languages = Array.Empty<(string, string)>();
     private Brand? _selectedBrand;
     private ProductCategory? _selectedCategory;
-    private Product Model { get; set; } = new() { IsActive = true };
+    private Product Model { get; set; } = new() { IsActive = true, ProductType = (byte)ProductType.Physical, RequiresShipping = true };
     private FileRecord? _featuredImage;
+    private bool IsDigital => Model.ProductType != (byte)ProductType.Physical;
     private List<Brand> _brands = new();
     private List<ProductCategory> _categories = new();
     private List<ProductVariant> _variants = new();
@@ -1093,9 +1162,13 @@ else
     private string? StockHelper(ProductVariant v)
     {
         if (_vendorId is not null)
-            return L["variants.stock_seller_hint", "Units you can sell as this store. Other stores have their own stock."];
+            return IsDigital
+                ? L["variants.stock_seller_digital_hint", "Your stock as this store. Use -1 for unlimited digital sales."]
+                : L["variants.stock_seller_hint", "Units you can sell as this store. Other stores have their own stock."];
         if (_stockReserved.TryGetValue(v, out var reserved) && reserved > 0)
             return string.Format(L["variants.stock_reserved_hint", "{0} reserved by open orders — edit store stocks on the Seller stock tab."], reserved);
+        if (StockOnHand(v) < 0)
+            return L["products.unlimited", "Unlimited"];
         if (StockOnHand(v) <= 0)
             return L["variants.stock_none_hint", "No store stock yet. Assign a store and quantity on the Seller stock tab — otherwise this product is not sellable."];
         return L["variants.stock_from_stores_hint", "Sum of store stocks. Edit quantity per store on the Seller stock tab only."];
@@ -1136,7 +1209,7 @@ else
             ReferencePriceUsd = usd > 0 ? usd : 0.01m,
             OverridePriceLocal = null,
             OverridePrice = null,
-            StockQuantity = Math.Max(0, _addSellerStock),
+            StockQuantity = _addSellerStock < 0 && IsDigital ? -1 : Math.Max(0, _addSellerStock),
             DeliveryDays = 1,
             IsActive = true,
         };
@@ -1190,7 +1263,7 @@ else
                 ReferencePriceUsd = usd > 0 ? usd : 0.01m,
                 OverridePriceLocal = null,
                 OverridePrice = null,
-                StockQuantity = Math.Max(0, row.StockQuantity),
+                StockQuantity = row.StockQuantity < 0 ? -1 : Math.Max(0, row.StockQuantity),
                 DeliveryDays = Math.Max(0, row.DeliveryDays),
                 IsActive = row.IsActive,
             });
@@ -1220,7 +1293,7 @@ else
                 ReferencePriceUsd = usd > 0 ? usd : 0.01m,
                 OverridePriceLocal = null,
                 OverridePrice = null,
-                StockQuantity = Math.Max(0, desired),
+                StockQuantity = desired < 0 && IsDigital ? -1 : Math.Max(0, desired),
                 DeliveryDays = 1,
                 IsActive = true,
             }, actingMemberId: _memberId);
@@ -1391,6 +1464,26 @@ else
     {
         SetTrExpertReview(code, html);
         _translationExpertReviewEditorVersions[code] = TranslationExpertReviewEditorVersion(code) + 1;
+    }
+
+    private void OnProductTypeChanged(byte type)
+    {
+        Model.ProductType = type;
+        Model.RequiresShipping = type == (byte)ProductType.Physical;
+        if (type == (byte)ProductType.Physical)
+        {
+            Model.DigitalDownloadUrl = null;
+            Model.DigitalServiceUrl = null;
+            Model.DigitalDeliveryNote = null;
+        }
+        else if (type != (byte)ProductType.DigitalDownload)
+        {
+            Model.DigitalDownloadUrl = null;
+        }
+        if (type != (byte)ProductType.DigitalService)
+        {
+            Model.DigitalServiceUrl = null;
+        }
     }
 
     private async Task PickFeaturedImageAsync()

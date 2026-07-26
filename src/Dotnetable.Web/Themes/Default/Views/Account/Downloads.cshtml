@@ -1,0 +1,67 @@
+@using Dotnetable.Application.DTOs
+@model PagedResult<DigitalLibraryItemDto>
+@{
+    ViewData["Title"] = "My Downloads";
+    Layout = "/Themes/Default/Views/Shared/_Layout.cshtml";
+}
+
+@await Html.PartialAsync("_PageHeader", ("My Downloads", "Account"))
+
+<section class="site-section">
+    <div class="container">
+        <p class="text-muted mb-4">
+            Digital products you purchased stay available here forever — downloads, license codes, and service access.
+        </p>
+
+        @if (Model.Items.Count == 0)
+        {
+            <div class="alert alert-light border">
+                You have no digital purchases yet.
+                <a asp-controller="Shop" asp-action="Index">Browse the shop</a>
+            </div>
+        }
+        else
+        {
+            <div class="list-group">
+                @foreach (var item in Model.Items)
+                {
+                    <a asp-controller="Account" asp-action="DownloadDetail" asp-route-id="@item.OrderDigitalAssetID"
+                       class="list-group-item list-group-item-action">
+                        <div class="d-flex w-100 justify-content-between align-items-start gap-3">
+                            <div>
+                                <h6 class="mb-1">@item.Title</h6>
+                                <div class="small text-muted">
+                                    Order #@item.OrderNumber · @item.GrantedAt.ToLocalTime().ToString("MMM d, yyyy")
+                                </div>
+                                <div class="mt-1">
+                                    @if (item.HasDownloadUrl)
+                                    {
+                                        <span class="badge text-bg-primary me-1"><i class="bi bi-link-45deg"></i> Download link</span>
+                                    }
+                                    @if (item.HasDeliveryNote)
+                                    {
+                                        <span class="badge text-bg-secondary me-1"><i class="bi bi-key"></i> Code</span>
+                                    }
+                                    @if (item.HasServiceUrl)
+                                    {
+                                        <span class="badge text-bg-info me-1"><i class="bi bi-link-45deg"></i> Service</span>
+                                    }
+                                </div>
+                            </div>
+                            <div class="text-end small text-muted">
+                                @if (item.AccessCount > 0)
+                                {
+                                    <div>@item.AccessCount access@(item.AccessCount == 1 ? "" : "es")</div>
+                                }
+                                @if (item.LastAccessedAt is DateTime last)
+                                {
+                                    <div>Last: @last.ToLocalTime().ToString("MMM d")</div>
+                                }
+                            </div>
+                        </div>
+                    </a>
+                }
+            </div>
+        }
+    </div>
+</section>

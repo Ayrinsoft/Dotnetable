@@ -229,9 +229,22 @@ public class VendorProductService : IVendorProductService
             ? model.ReferencePriceUsd
             : (variant.ReferencePriceUsd > 0 ? variant.ReferencePriceUsd : entity.ReferencePrice);
         entity.OverridePrice = model.OverridePrice;
-        var desiredStock = Math.Max(0, model.StockQuantity);
-        if (desiredStock < entity.QuantityReserved)
-            return (false, $"Stock ({desiredStock}) cannot be below reserved quantity ({entity.QuantityReserved}).", null);
+        // -1 = unlimited (digital only). Physical listings clamp to ≥ 0.
+        var isDigital = variant.Product is not null
+            && (variant.Product.ProductType != (byte)ProductType.Physical || !variant.Product.RequiresShipping);
+        int desiredStock;
+        if (model.StockQuantity < 0)
+        {
+            if (!isDigital)
+                return (false, "Unlimited stock (-1) is only allowed for digital products.", null);
+            desiredStock = -1;
+        }
+        else
+        {
+            desiredStock = Math.Max(0, model.StockQuantity);
+            if (desiredStock < entity.QuantityReserved)
+                return (false, $"Stock ({desiredStock}) cannot be below reserved quantity ({entity.QuantityReserved}).", null);
+        }
         entity.StockQuantity = desiredStock;
         entity.DeliveryDays = model.DeliveryDays < 0 ? 0 : model.DeliveryDays;
         entity.IsActive = model.IsActive;
@@ -324,6 +337,10 @@ public class VendorProductService : IVendorProductService
         if (item is null || !item.IsActive) return false;
         if (IVendorProductService.Available(item) < qty) return false;
 
+        // Unlimited digital stock: no reservation bookkeeping (sales never deplete).
+        if (IVendorProductService.IsUnlimited(item))
+            return true;
+
         item.QuantityReserved += qty;
         await _context.SaveChangesAsync(ct);
         return true;
@@ -333,7 +350,7 @@ public class VendorProductService : IVendorProductService
     {
         if (qty <= 0) return;
         var item = await _context.VendorProducts.FirstOrDefaultAsync(vp => vp.VendorProductID == vendorProductId, ct);
-        if (item is null) return;
+        if (item is null || IVendorProductService.IsUnlimited(item)) return;
 
         item.QuantityReserved = Math.Max(0, item.QuantityReserved - qty);
         await _context.SaveChangesAsync(ct);
@@ -344,6 +361,10 @@ public class VendorProductService : IVendorProductService
         if (qty <= 0) return;
         var item = await _context.VendorProducts.FirstOrDefaultAsync(vp => vp.VendorProductID == vendorProductId, ct);
         if (item is null) return;
+
+        // Unlimited digital: leave StockQuantity at -1 forever.
+        if (IVendorProductService.IsUnlimited(item))
+            return;
 
         item.StockQuantity = Math.Max(0, item.StockQuantity - qty);
         item.QuantityReserved = Math.Max(0, item.QuantityReserved - qty);
@@ -358,7 +379,11 @@ public class VendorProductService : IVendorProductService
             .ToListAsync(ct);
 
         // Source of truth for total inventory: sum of store listing on-hand quantities (0 when no stores).
-        var sumOnHand = listings.Sum(vp => Math.Max(0, vp.StockQuantity));
+        // Any unlimited (-1) listing marks inventory as a large sentinel so warehouse checks succeed.
+        var hasUnlimited = listings.Any(vp => vp.StockQuantity < 0);
+        var sumOnHand = hasUnlimited
+            ? int.MaxValue / 4
+            : listings.Sum(vp => Math.Max(0, vp.StockQuantity));
 
         var inv = await _context.InventoryItems
             .FirstOrDefaultAsync(i => i.WebsiteID == websiteId && i.ProductVariantID == productVariantId, ct);

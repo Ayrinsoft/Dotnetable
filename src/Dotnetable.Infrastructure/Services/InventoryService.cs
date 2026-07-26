@@ -28,6 +28,9 @@ public class InventoryService : IInventoryService
         if (rows.Count == 0)
             return new StockAvailability(0, 0, 0);
 
+        if (rows.Any(r => r.StockQuantity < 0))
+            return new StockAvailability(int.MaxValue / 4, 0, int.MaxValue / 4);
+
         var onHand = rows.Sum(r => Math.Max(0, r.StockQuantity));
         var reserved = rows.Sum(r => Math.Max(0, r.QuantityReserved));
         return new StockAvailability(onHand, reserved, Math.Max(0, onHand - reserved));
@@ -39,22 +42,21 @@ public class InventoryService : IInventoryService
         var result = ids.ToDictionary(id => id, _ => new StockAvailability(0, 0, 0));
         if (ids.Count == 0) return result;
 
-        var rows = await _context.VendorProducts.AsNoTracking()
+        var raw = await _context.VendorProducts.AsNoTracking()
             .Where(vp => vp.WebsiteID == websiteId && ids.Contains(vp.ProductVariantID) && vp.IsActive)
-            .GroupBy(vp => vp.ProductVariantID)
-            .Select(g => new
-            {
-                VariantId = g.Key,
-                OnHand = g.Sum(x => x.StockQuantity),
-                Reserved = g.Sum(x => x.QuantityReserved),
-            })
+            .Select(vp => new { vp.ProductVariantID, vp.StockQuantity, vp.QuantityReserved })
             .ToListAsync(ct);
 
-        foreach (var row in rows)
+        foreach (var g in raw.GroupBy(x => x.ProductVariantID))
         {
-            var onHand = Math.Max(0, row.OnHand);
-            var reserved = Math.Max(0, row.Reserved);
-            result[row.VariantId] = new StockAvailability(onHand, reserved, Math.Max(0, onHand - reserved));
+            if (g.Any(x => x.StockQuantity < 0))
+            {
+                result[g.Key] = new StockAvailability(int.MaxValue / 4, 0, int.MaxValue / 4);
+                continue;
+            }
+            var onHand = g.Sum(x => Math.Max(0, x.StockQuantity));
+            var reserved = g.Sum(x => Math.Max(0, x.QuantityReserved));
+            result[g.Key] = new StockAvailability(onHand, reserved, Math.Max(0, onHand - reserved));
         }
         return result;
     }

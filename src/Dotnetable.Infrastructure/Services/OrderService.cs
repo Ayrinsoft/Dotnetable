@@ -20,11 +20,13 @@ public class OrderService : IOrderService
     private readonly ICartService _cart;
     private readonly IAdminNotificationService _notifications;
     private readonly IVendorCreditService _vendorCredit;
+    private readonly IDigitalDeliveryService _digitalDelivery;
 
     public OrderService(
         AppDbContext context, IInventoryService inventory, IVendorProductService vendorProducts,
         IShippingService shipping, ITaxService tax, ICouponService coupons, ICurrencyConversionService currency,
-        ICartService cart, IAdminNotificationService notifications, IVendorCreditService vendorCredit)
+        ICartService cart, IAdminNotificationService notifications, IVendorCreditService vendorCredit,
+        IDigitalDeliveryService digitalDelivery)
     {
         _context = context;
         _inventory = inventory;
@@ -36,6 +38,7 @@ public class OrderService : IOrderService
         _cart = cart;
         _notifications = notifications;
         _vendorCredit = vendorCredit;
+        _digitalDelivery = digitalDelivery;
     }
 
     public async Task<CheckoutResult> CheckoutAsync(
@@ -99,15 +102,31 @@ public class OrderService : IOrderService
             }
         }
 
-        var totalWeight = cart.CartItems.Sum(i => (i.ProductVariant.Weight ?? 0) * i.Quantity);
-        var shippingOptions = await _shipping.GetAvailableWithPricesAsync(websiteId, address.CountryId, stateId, address.CityId, totalWeight, ct);
-        var shippingOption = shippingOptions.FirstOrDefault(o => o.Method.ShippingMethodID == shippingMethodId);
-        if (shippingOption.Method is null)
-            return new CheckoutResult(false, "Selected shipping method is not available for this address.", null, null);
+        var requiresShipping = cart.CartItems.Any(i => i.ProductVariant.Product.RequiresShipping);
+        var totalWeight = cart.CartItems.Sum(i =>
+            i.ProductVariant.Product.RequiresShipping
+                ? (i.ProductVariant.Weight ?? 0) * i.Quantity
+                : 0m);
+
+        decimal shippingUsd = 0;
+        int? resolvedShippingMethodId = null;
+        if (requiresShipping)
+        {
+            if (shippingMethodId <= 0)
+                return new CheckoutResult(false, "A shipping method is required for physical items.", null, null);
+
+            var shippingOptions = await _shipping.GetAvailableWithPricesAsync(
+                websiteId, address.CountryId, stateId, address.CityId, totalWeight, ct);
+            var shippingOption = shippingOptions.FirstOrDefault(o => o.Method.ShippingMethodID == shippingMethodId);
+            if (shippingOption is null)
+                return new CheckoutResult(false, "Selected shipping method is not available for this address.", null, null);
+
+            shippingUsd = shippingOption.PriceUsd;
+            resolvedShippingMethodId = shippingMethodId;
+        }
 
         var subtotalUsd = cart.CartItems.Sum(i => unitUsdByItem[i.CartItemID] * i.Quantity);
         var taxUsd = await _tax.ComputeTaxAsync(websiteId, address.CountryId, stateId, subtotalUsd, ct);
-        var shippingUsd = shippingOption.PriceUsd;
 
         decimal discountUsd = 0;
         Coupon? coupon = null;
@@ -144,7 +163,7 @@ public class OrderService : IOrderService
             WebsiteClientAddressID = address.WebsiteClientAddressID,
             AddressSnapshot = $"{address.ReceiverName}, {address.AddressLine}, {address.PostalCode} ({address.Phone})",
             CouponID = coupon?.CouponID,
-            ShippingMethodID = shippingMethodId,
+            ShippingMethodID = resolvedShippingMethodId,
             Note = note,
             CreatedAt = DateTime.UtcNow,
         };
@@ -179,6 +198,7 @@ public class OrderService : IOrderService
             });
 
             // Reserve only at checkout; on-hand is deducted after payment.
+            // Unlimited digital listings skip inventory reservation entirely.
             if (item.VendorProduct is { } vp)
             {
                 if (!await _vendorProducts.ReserveAsync(vp.VendorProductID, item.Quantity, ct))
@@ -186,6 +206,9 @@ public class OrderService : IOrderService
                     await tx.RollbackAsync(ct);
                     return new CheckoutResult(false, $"Insufficient vendor stock for {item.ProductVariant.Product.Title}.", null, null);
                 }
+
+                if (IVendorProductService.IsUnlimited(vp))
+                    continue;
 
                 // Site-linked: reserve physical stock on the source website inventory.
                 // Host display/member listings: reserve host inventory (materialised sum of store stocks).
@@ -329,6 +352,9 @@ public class OrderService : IOrderService
                 if (item.VendorProductID is not null)
                     await _vendorProducts.SyncInventoryOnHandFromListingsAsync(order.WebsiteID, item.ProductVariantID, ct);
             }
+
+            // Permanent digital library entitlements (idempotent).
+            await _digitalDelivery.GrantForOrderAsync(orderId, ct);
         }
         else if (newStatus is OrderStatus.Cancelled or OrderStatus.Refunded)
         {
@@ -343,6 +369,13 @@ public class OrderService : IOrderService
                     await _inventory.ReleaseReservationAsync(stockSite, item.ProductVariantID, item.Quantity, ct);
                 }
             }
+
+            // Revoke permanent digital access on cancel/refund.
+            var digitalAssets = await _context.OrderDigitalAssets
+                .Where(a => a.OrderID == orderId && a.IsActive)
+                .ToListAsync(ct);
+            foreach (var asset in digitalAssets)
+                asset.IsActive = false;
 
             await _vendorCredit.ReverseHostOrderAsync(orderId, ct);
         }

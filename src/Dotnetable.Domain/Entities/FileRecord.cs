@@ -73,6 +73,8 @@ public partial class FileRecord
 
     public virtual ICollection<Product> Products { get; set; } = new List<Product>();
 
+    public virtual ICollection<ShippingMethod> ShippingMethods { get; set; } = new List<ShippingMethod>();
+
     public virtual ICollection<SlideshowSlide> SlideshowSlideFiles { get; set; } = new List<SlideshowSlide>();
 
     public virtual ICollection<SlideshowSlide> SlideshowSlideMobileFiles { get; set; } = new List<SlideshowSlide>();
