@@ -1,0 +1,88 @@
+@using Dotnetable.Application.DTOs
+@using Dotnetable.Domain.Enums
+@model DigitalLibraryDetailDto
+@{
+    ViewData["Title"] = Model.Title;
+    Layout = "/Themes/Default/Views/Shared/_Layout.cshtml";
+}
+
+@await Html.PartialAsync("_PageHeader", (Model.Title, "My Downloads"))
+
+<section class="site-section">
+    <div class="container" style="max-width:720px">
+        <p class="text-muted mb-3">
+            Order <a asp-controller="Account" asp-action="OrderDetail" asp-route-id="@Model.OrderID">#@Model.OrderNumber</a>
+            · Granted @Model.GrantedAt.ToLocalTime().ToString("MMM d, yyyy HH:mm")
+        </p>
+
+        @if (Model.HasDownloadUrl)
+        {
+            <div class="card mb-3">
+                <div class="card-body">
+                    <h5 class="card-title"><i class="bi bi-link-45deg me-1"></i> Download link</h5>
+                    <p class="card-text text-muted mb-2 text-break">@Model.DigitalDownloadUrl</p>
+                    <a class="btn btn-primary"
+                       asp-controller="Account" asp-action="DownloadFile" asp-route-id="@Model.OrderDigitalAssetID">
+                        <i class="bi bi-box-arrow-up-right me-1"></i> Open download link
+                    </a>
+                    <div class="form-text">Each open is logged on your account. The file is hosted externally — only the link is stored here.</div>
+                </div>
+            </div>
+        }
+
+        @if (Model.HasDeliveryNote)
+        {
+            <div class="card mb-3">
+                <div class="card-body">
+                    <h5 class="card-title"><i class="bi bi-key me-1"></i> Code / delivery note</h5>
+                    <pre class="bg-light border rounded p-3 mb-2" style="white-space:pre-wrap;font-family:inherit;" id="deliveryNote">@Model.DigitalDeliveryNote</pre>
+                    <button type="button" class="btn btn-outline-secondary btn-sm" onclick="logAccess('code')">Mark as viewed</button>
+                </div>
+            </div>
+        }
+
+        @if (Model.HasServiceUrl)
+        {
+            <div class="card mb-3">
+                <div class="card-body">
+                    <h5 class="card-title"><i class="bi bi-link-45deg me-1"></i> Service access</h5>
+                    <p class="mb-2"><a href="@Model.DigitalServiceUrl" target="_blank" rel="noopener" onclick="logAccess('service')">@Model.DigitalServiceUrl</a></p>
+                    <button type="button" class="btn btn-outline-secondary btn-sm" onclick="logAccess('service')">Log access</button>
+                </div>
+            </div>
+        }
+
+        @if (Model.RecentAccess.Count > 0)
+        {
+            <h6 class="mt-4">Access history</h6>
+            <table class="table table-sm">
+                <thead><tr><th>When</th><th>Type</th><th>IP</th></tr></thead>
+                <tbody>
+                    @foreach (var log in Model.RecentAccess)
+                    {
+                        <tr>
+                            <td>@log.AccessedAt.ToLocalTime().ToString("MMM d, yyyy HH:mm")</td>
+                            <td>@log.AccessTypeName</td>
+                            <td class="text-muted">@(log.IpAddress ?? "—")</td>
+                        </tr>
+                    }
+                </tbody>
+            </table>
+        }
+
+        <a asp-controller="Account" asp-action="Downloads" class="btn btn-link px-0">← Back to library</a>
+    </div>
+</section>
+
+@section Scripts {
+<script>
+async function logAccess(type) {
+    try {
+        await fetch('@Url.Action("LogDigitalAccess", "Account", new { id = Model.OrderDigitalAssetID })&accessType=' + encodeURIComponent(type), {
+            method: 'POST',
+            headers: { 'RequestVerificationToken': '' }
+        });
+    } catch { /* ignore */ }
+}
+</script>
+}

@@ -46,8 +46,15 @@ public interface IVendorProductService
     /// <summary>Active listings for a vendor (admin or storefront helper).</summary>
     Task<List<VendorProduct>> GetActiveByVendorAsync(int vendorId, CancellationToken ct = default);
 
-    /// <summary>Sellable units for a listing (StockQuantity - QuantityReserved).</summary>
-    static int Available(VendorProduct vp) => Math.Max(0, vp.StockQuantity - vp.QuantityReserved);
+    /// <summary>True when listing stock is unlimited (digital; StockQuantity &lt; 0).</summary>
+    static bool IsUnlimited(VendorProduct vp) => vp.StockQuantity < 0;
+
+    /// <summary>
+    /// Sellable units for a listing (StockQuantity - QuantityReserved).
+    /// Returns <see cref="int.MaxValue"/> when stock is unlimited (-1).
+    /// </summary>
+    static int Available(VendorProduct vp) =>
+        IsUnlimited(vp) ? int.MaxValue : Math.Max(0, vp.StockQuantity - vp.QuantityReserved);
 
     /// <summary>Reserves listing stock at checkout. Fails when available &lt; qty.</summary>
     Task<bool> ReserveAsync(int vendorProductId, int qty, CancellationToken ct = default);

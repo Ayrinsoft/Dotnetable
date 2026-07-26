@@ -159,11 +159,18 @@ public class ProductSummaryDto
     public int RatingCount { get; init; }
     public bool HasVariants { get; init; }
 
-    /// <summary>True when any store listing has available stock &gt; 0.</summary>
+    /// <summary><see cref="Domain.Enums.ProductType"/> value.</summary>
+    public byte ProductType { get; init; }
+    /// <summary>When false, checkout should not require freight / shipping method.</summary>
+    public bool RequiresShipping { get; init; } = true;
+    /// <summary>True when stock is unlimited (digital with stock = -1).</summary>
+    public bool IsUnlimitedStock { get; init; }
+
+    /// <summary>True when any store listing has available stock &gt; 0 (or unlimited).</summary>
     public bool IsInStock { get; init; }
-    /// <summary>Best available units across channels (for cart max). Prefer <see cref="DisplayStockQuantity"/> for labels.</summary>
+    /// <summary>Best available units across channels (for cart max). -1 = unlimited. Prefer <see cref="DisplayStockQuantity"/> for labels.</summary>
     public int StockQuantity { get; init; }
-    /// <summary>Exact count for UI only when 1..8; null means out of stock or “in stock” without a number (≥9).</summary>
+    /// <summary>Exact count for UI only when 1..8; null means out of stock, unlimited, or “in stock” without a number (≥9).</summary>
     public int? DisplayStockQuantity { get; init; }
 
     /// <summary>When the listing comes from a site-linked or member vendor on the host storefront.</summary>
@@ -188,6 +195,13 @@ public sealed class ProductDetailDto : ProductSummaryDto
     public IReadOnlyList<ProductWarrantyDto> Warranties { get; init; } = Array.Empty<ProductWarrantyDto>();
     public IReadOnlyList<ProductRefDto> RelatedProducts { get; init; } = Array.Empty<ProductRefDto>();
     public IReadOnlyList<string> GalleryImageUrls { get; init; } = Array.Empty<string>();
+
+    /// <summary>External download link (digital download only). Binary is not hosted here.</summary>
+    public string? DigitalDownloadUrl { get; init; }
+    /// <summary>Service / access URL for digital service products.</summary>
+    public string? DigitalServiceUrl { get; init; }
+    /// <summary>Delivery note / code instructions for digital products.</summary>
+    public string? DigitalDeliveryNote { get; init; }
 }
 
 // ── Admin projections ───────────────────────────────────────────────────────────
@@ -202,6 +216,8 @@ public sealed class ProductListItemDto
     public byte Status { get; init; }
     public bool IsActive { get; init; }
     public bool HasVariants { get; init; }
+    public byte ProductType { get; init; }
+    public bool RequiresShipping { get; init; }
     /// <summary>Minimum catalog price in site operational currency.</summary>
     public decimal? MinPrice { get; init; }
     /// <summary>Minimum catalog price in USD (dual / bridge).</summary>

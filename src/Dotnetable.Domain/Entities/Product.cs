@@ -23,6 +23,30 @@ public partial class Product
 
     public int? FeaturedImageFileID { get; set; }
 
+    /// <summary><see cref="Enums.ProductType"/> — physical vs digital fulfillment.</summary>
+    public byte ProductType { get; set; }
+
+    /// <summary>
+    /// When true, checkout requires a shipping method and address.
+    /// Digital products typically set this false.
+    /// </summary>
+    public bool RequiresShipping { get; set; } = true;
+
+    /// <summary>
+    /// External download link for <see cref="Enums.ProductType.DigitalDownload"/>.
+    /// Only the URL is stored — the binary is never hosted or snapshotted in this system.
+    /// </summary>
+    public string? DigitalDownloadUrl { get; set; }
+
+    /// <summary>Service / access URL path for <see cref="Enums.ProductType.DigitalService"/>.</summary>
+    public string? DigitalServiceUrl { get; set; }
+
+    /// <summary>
+    /// Static delivery text for digital code products (license key template, instructions),
+    /// or notes shown after purchase for download/service kinds.
+    /// </summary>
+    public string? DigitalDeliveryNote { get; set; }
+
     public bool IsCatalogOnly { get; set; }
 
     public bool HasVariants { get; set; }
@@ -50,6 +74,8 @@ public partial class Product
     public virtual FileRecord? FeaturedImageFile { get; set; }
 
     public virtual ICollection<MenuItem> MenuItems { get; set; } = new List<MenuItem>();
+
+    public virtual ICollection<OrderDigitalAsset> OrderDigitalAssets { get; set; } = new List<OrderDigitalAsset>();
 
     public virtual ICollection<ProductAttributeValue> ProductAttributeValues { get; set; } = new List<ProductAttributeValue>();
 

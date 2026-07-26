@@ -517,6 +517,53 @@ public class ApiClient
         return await GetOrNullAsync<Order>($"api/orders/{id}", ct);
     }
 
+    // ── Digital library (post-purchase downloads / codes / service URLs) ──
+
+    public async Task<PagedResult<DigitalLibraryItemDto>> GetDigitalLibraryAsync(int page = 1, int pageSize = 20, CancellationToken ct = default)
+    {
+        try
+        {
+            return await _http.GetFromJsonAsync<PagedResult<DigitalLibraryItemDto>>(
+                       $"api/digital?page={page}&pageSize={pageSize}", ct)
+                   ?? new PagedResult<DigitalLibraryItemDto>();
+        }
+        catch (HttpRequestException) { return new PagedResult<DigitalLibraryItemDto>(); }
+    }
+
+    public async Task<IReadOnlyList<DigitalLibraryItemDto>> GetOrderDigitalAsync(int orderId, CancellationToken ct = default)
+    {
+        try
+        {
+            return await _http.GetFromJsonAsync<List<DigitalLibraryItemDto>>($"api/digital/order/{orderId}", ct)
+                   ?? new List<DigitalLibraryItemDto>();
+        }
+        catch (HttpRequestException) { return Array.Empty<DigitalLibraryItemDto>(); }
+    }
+
+    public Task<DigitalLibraryDetailDto?> GetDigitalDetailAsync(int id, CancellationToken ct = default) =>
+        GetOrNullAsync<DigitalLibraryDetailDto>($"api/digital/{id}", ct);
+
+    public Task<AuthApiResult> LogDigitalAccessAsync(int id, string accessType, CancellationToken ct = default) =>
+        PostAsync($"api/digital/{id}/access", new { accessType }, ct);
+
+    /// <summary>
+    /// Calls the API download endpoint (logs access) and returns the external download URL.
+    /// </summary>
+    public async Task<string?> ResolveDigitalDownloadUrlAsync(int id, CancellationToken ct = default)
+    {
+        try
+        {
+            using var response = await _http.GetAsync($"api/digital/{id}/download", ct);
+            if (!response.IsSuccessStatusCode) return null;
+            var payload = await response.Content.ReadFromJsonAsync<Dictionary<string, JsonElement>>(cancellationToken: ct);
+            if (payload is not null && payload.TryGetValue("downloadUrl", out var urlEl) && urlEl.ValueKind == JsonValueKind.String)
+                return urlEl.GetString();
+            return null;
+        }
+        catch (HttpRequestException) { return null; }
+        catch (JsonException) { return null; }
+    }
+
     // ── Payments ─────────────────────────────────────────────────────
 
     public Task<AuthApiResult> PayWithWalletAsync(int orderId, CancellationToken ct = default) =>

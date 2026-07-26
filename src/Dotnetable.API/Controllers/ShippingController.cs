@@ -32,29 +32,36 @@ public class ShippingController : BaseController
         var payload = new List<object>();
         foreach (var r in results)
         {
-            // PriceUsd column is dual/bridge; for single-currency sites it mirrors site amount.
-            MoneyDto price;
-            try
+            async Task<MoneyDto> ToMoney(decimal usd)
             {
-                // Prefer converting from local when shipping rate has site Price authority.
-                // GetAvailableWithPrices currently returns USD dual; use ToDisplayAsync then optionally
-                // map through site mode.
-                price = await _currency.ToDisplayAsync(website.WebsiteID, r.PriceUsd, storeUsd ? currency : null, ct);
+                try
+                {
+                    return await _currency.ToDisplayAsync(website.WebsiteID, usd, storeUsd ? currency : null, ct);
+                }
+                catch
+                {
+                    var (code, _) = await _currency.GetActiveRateAsync(website.WebsiteID, null, ct);
+                    return new MoneyDto { Amount = usd, AmountUsd = usd, CurrencyCode = code };
+                }
             }
-            catch
-            {
-                var (code, _) = await _currency.GetActiveRateAsync(website.WebsiteID, null, ct);
-                price = new MoneyDto { Amount = r.PriceUsd, AmountUsd = r.PriceUsd, CurrencyCode = code };
-            }
+
+            MoneyDto? prepaid = r.PrepaidPriceUsd is decimal p ? await ToMoney(p) : null;
+            MoneyDto? cod = r.CodPriceUsd is decimal c ? await ToMoney(c) : null;
+            var defaultPrice = prepaid ?? cod!;
 
             payload.Add(new
             {
                 shippingMethodId = r.Method.ShippingMethodID,
                 title = r.Method.Title,
                 carrierName = r.Method.CarrierName,
-                price,
-                // Backward-compatible field (same as price.AmountUsd / bridge).
-                priceUsd = price.AmountUsd,
+                logoUrl = r.Method.LogoFile?.ThumbnailCDN ?? r.Method.LogoFile?.CNDUrl,
+                supportsPrepaid = r.Method.SupportsPrepaid,
+                supportsCod = r.Method.SupportsCod,
+                prepaidPrice = prepaid,
+                codPrice = cod,
+                // Default charge (prepaid preferred) — backward-compatible fields.
+                price = defaultPrice,
+                priceUsd = defaultPrice.AmountUsd,
             });
         }
 

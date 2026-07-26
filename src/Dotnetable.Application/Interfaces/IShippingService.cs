@@ -22,10 +22,11 @@ public interface IShippingService
     Task<bool> DeleteRateAsync(int shippingRateId, CancellationToken ct = default);
 
     /// <summary>
-    /// For each active shipping method, resolves the best-matching active rate by most-specific
-    /// location match (city, then state, then country, else a fully-wildcard rate) whose weight
-    /// range contains <paramref name="totalWeightKg"/>. Methods with no matching rate are skipped.
+    /// For each active shipping method that supports at least one payment mode, resolves the
+    /// best-matching active rate by most-specific location match (city → state → country → wildcard)
+    /// whose weight range contains <paramref name="totalWeightKg"/>. Zone rate is floored by the
+    /// method's prepaid/COD minimums. Methods with neither prepaid nor COD available are skipped.
     /// </summary>
-    Task<List<(ShippingMethod Method, decimal PriceUsd)>> GetAvailableWithPricesAsync(
+    Task<List<ShippingQuoteDto>> GetAvailableWithPricesAsync(
         int websiteId, int? countryId, int? stateId, int? cityId, decimal totalWeightKg, CancellationToken ct = default);
 }

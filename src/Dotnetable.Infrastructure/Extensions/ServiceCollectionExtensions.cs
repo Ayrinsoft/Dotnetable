@@ -138,6 +138,7 @@ public static class ServiceCollectionExtensions
 
         // E-commerce: checkout orchestration + order lifecycle.
         services.AddScoped<IOrderService, OrderService>();
+        services.AddScoped<IDigitalDeliveryService, DigitalDeliveryService>();
         services.AddScoped<ISupportDeskService, SupportDeskService>();
 
         // E-commerce: payments (wallet debit + manual bank transfer) and refunds.

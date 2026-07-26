@@ -37,6 +37,8 @@ public partial class OrderItem
 
     public virtual Order Order { get; set; } = null!;
 
+    public virtual OrderDigitalAsset? OrderDigitalAsset { get; set; }
+
     public virtual ProductVariant ProductVariant { get; set; } = null!;
 
     public virtual ICollection<SettlementItem> SettlementItems { get; set; } = new List<SettlementItem>();
