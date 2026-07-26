@@ -4,7 +4,7 @@
     <DialogContent>
         <MudText Typo="Typo.body1" Class="mb-3">
             @L["wallets.approve_confirm", "Confirm this withdrawal has been paid out and record the payment reference."]
-            <b>@AmountUsd.ToString("N2") USD</b>
+            <b>@AmountUsd.ToString("N2")</b>
         </MudText>
         <MudTextField @bind-Value="_refNumber" Label="@L["wallets.payment_ref", "Payment reference (optional)"]" Variant="Variant.Outlined" />
     </DialogContent>

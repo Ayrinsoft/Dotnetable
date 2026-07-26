@@ -19,6 +19,10 @@ public partial class ShippingRate
 
     public decimal? MaxWeightKg { get; set; }
 
+    /// <summary>Shipping price in the website operational currency (source of truth).</summary>
+    public decimal Price { get; set; }
+
+    /// <summary>USD dual / conversion bridge.</summary>
     public decimal PriceUsd { get; set; }
 
     public bool IsActive { get; set; }

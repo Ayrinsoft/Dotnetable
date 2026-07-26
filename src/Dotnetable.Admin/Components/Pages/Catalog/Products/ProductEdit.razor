@@ -141,9 +141,18 @@ else
                     @if (_hasRate && !_isUsdSite)
                     {
                         <MudAlert Severity="Severity.Info" Dense="true" Class="mb-3" Variant="Variant.Outlined">
-                            @string.Format(
-                                L["products.price_enter_local_only", "Enter prices in {0} only. USD is calculated automatically (1 USD = {1} {0}) and used as the reference for live display."],
-                                _displayCurrency, FormatRate(_usdToCurrency))
+                            @if (_storePricesInUsd)
+                            {
+                                @string.Format(
+                                    L["products.price_enter_local_and_usd", "Enter prices in {0}. USD is also stored (1 USD = {1} {0}) for multi-currency conversion."],
+                                    _displayCurrency, FormatRate(_usdToCurrency))
+                            }
+                            else
+                            {
+                                @string.Format(
+                                    L["products.price_enter_local_only", "Enter prices in {0} only. Amounts are stored in site currency. Other storefront currencies convert through the USD rate table (1 USD = {1} {0})."],
+                                    _displayCurrency, FormatRate(_usdToCurrency))
+                            }
                         </MudAlert>
                     }
                     @foreach (var (v, idx) in _variants.Select((v, i) => (v, i)))
@@ -622,12 +631,13 @@ else
     private int _localDigits = 0;
     private bool _hasRate;
     private bool _isUsdSite = true;
+    private bool _storePricesInUsd;
     private readonly Dictionary<string, (string Title, string Slug, string? Short, string? Content, string? ExpertReview)> _tr = new(StringComparer.OrdinalIgnoreCase);
     private int _mainEditorVersion;
     private int _mainExpertReviewEditorVersion;
     private readonly Dictionary<string, int> _translationEditorVersions = new(StringComparer.OrdinalIgnoreCase);
     private readonly Dictionary<string, int> _translationExpertReviewEditorVersions = new(StringComparer.OrdinalIgnoreCase);
-    /// <summary>Session-only local (site-currency) amounts while editing. USD on the variant is the persisted source of truth for live storefront pricing.</summary>
+    /// <summary>Session-only site-currency edit buffers. <see cref="ProductVariant.ReferencePrice"/> is the persisted authority.</summary>
     private readonly Dictionary<ProductVariant, decimal> _localPrice = new();
     private readonly Dictionary<ProductVariant, decimal?> _localCompareAt = new();
     /// <summary>Editable on-hand stock per variant row (site warehouse InventoryItems, or member-vendor listing stock).</summary>
@@ -668,7 +678,7 @@ else
             var product = await ProductService.GetByIdAsync(ProductId!.Value);
             if (product is null) { Nav.NavigateTo("/catalog/products"); return; }
             // Vendor members may only open their own products.
-            if (_vendorId is not null && _memberId is int ownerId && product.CreatedByMemberId != ownerId)
+            if (_vendorId is not null && _memberId is int ownerId && product.CreatedByMemberID != ownerId)
             {
                 Snackbar.Add(L["products.vendor_forbidden", "You can only manage your own products."], Severity.Error);
                 Nav.NavigateTo("/catalog/products");
@@ -757,6 +767,7 @@ else
     {
         try
         {
+            _storePricesInUsd = await CurrencyConversion.GetStorePricesInUsdAsync(_websiteId);
             var rates = await CurrencyConversion.GetActiveRatesAsync(_websiteId);
             var rate = rates.FirstOrDefault(r => r.IsDefault) ?? rates.FirstOrDefault();
             if (rate is null)
@@ -786,14 +797,22 @@ else
 
     private void SyncVariantLocalPrices()
     {
-        if (_isUsdSite || !_hasRate) return;
         foreach (var v in _variants)
         {
-            // Show the live local equivalent of the stored USD reference (rate may have changed since last save).
-            _localPrice[v] = RoundLocal(v.ReferencePriceUsd * _usdToCurrency);
-            _localCompareAt[v] = v.CompareAtPriceUsd is decimal cmp
-                ? RoundLocal(cmp * _usdToCurrency)
-                : null;
+            // Prefer stored site-currency price (no rate drift); fall back to USD × rate for legacy rows.
+            if (v.ReferencePrice > 0)
+                _localPrice[v] = RoundLocal(v.ReferencePrice);
+            else if (!_isUsdSite && _hasRate)
+                _localPrice[v] = RoundLocal(v.ReferencePriceUsd * _usdToCurrency);
+            else
+                _localPrice[v] = RoundLocal(v.ReferencePriceUsd);
+
+            if (v.CompareAtPrice is decimal cmpLocal && cmpLocal > 0)
+                _localCompareAt[v] = RoundLocal(cmpLocal);
+            else if (v.CompareAtPriceUsd is decimal cmpUsd && !_isUsdSite && _hasRate)
+                _localCompareAt[v] = RoundLocal(cmpUsd * _usdToCurrency);
+            else
+                _localCompareAt[v] = v.CompareAtPriceUsd;
         }
     }
 
@@ -816,48 +835,45 @@ else
     /// <summary>The one editable amount the admin types — always in site display currency.</summary>
     private decimal DisplayPrice(ProductVariant v)
     {
-        if (!UseLocalCurrencyInput) return v.ReferencePriceUsd;
         if (_localPrice.TryGetValue(v, out var local)) return local;
+        if (v.ReferencePrice > 0) return RoundLocal(v.ReferencePrice);
+        if (!UseLocalCurrencyInput) return v.ReferencePriceUsd;
         return RoundLocal(v.ReferencePriceUsd * _usdToCurrency);
     }
 
     private decimal? DisplayCompareAt(ProductVariant v)
     {
-        if (!UseLocalCurrencyInput) return v.CompareAtPriceUsd;
         if (_localCompareAt.TryGetValue(v, out var local)) return local;
-        if (v.CompareAtPriceUsd is decimal cmp)
-            return RoundLocal(cmp * _usdToCurrency);
+        if (v.CompareAtPrice is decimal cmp) return RoundLocal(cmp);
+        if (!UseLocalCurrencyInput) return v.CompareAtPriceUsd;
+        if (v.CompareAtPriceUsd is decimal cmpUsd)
+            return RoundLocal(cmpUsd * _usdToCurrency);
         return null;
     }
 
     private void SetDisplayPrice(ProductVariant v, decimal amount)
     {
         if (amount < 0) amount = 0;
-        if (UseLocalCurrencyInput)
-        {
-            _localPrice[v] = amount;
-            v.ReferencePriceUsd = _usdToCurrency == 0 ? 0 : RoundUsd(amount / _usdToCurrency);
-        }
-        else
-        {
-            v.ReferencePriceUsd = RoundUsd(amount);
-        }
+        _localPrice[v] = amount;
+        // Site currency is the stored authority.
+        v.ReferencePrice = RoundLocal(amount);
+        // Always maintain USD bridge (required for multi-currency display); dual-store flag is website-level policy.
+        v.ReferencePriceUsd = UseLocalCurrencyInput
+            ? (_usdToCurrency == 0 ? 0 : RoundUsd(amount / _usdToCurrency))
+            : RoundUsd(amount);
     }
 
     private void SetDisplayCompareAt(ProductVariant v, decimal? amount)
     {
         if (amount is < 0) amount = 0;
-        if (UseLocalCurrencyInput)
-        {
-            _localCompareAt[v] = amount;
-            v.CompareAtPriceUsd = amount is null || _usdToCurrency == 0
-                ? null
-                : RoundUsd(amount.Value / _usdToCurrency);
-        }
+        _localCompareAt[v] = amount;
+        v.CompareAtPrice = amount is null ? null : RoundLocal(amount.Value);
+        if (amount is null)
+            v.CompareAtPriceUsd = null;
+        else if (UseLocalCurrencyInput)
+            v.CompareAtPriceUsd = _usdToCurrency == 0 ? null : RoundUsd(amount.Value / _usdToCurrency);
         else
-        {
             v.CompareAtPriceUsd = amount;
-        }
     }
 
     private Task<IEnumerable<Brand>> SearchBrands(string value, CancellationToken ct)
@@ -988,6 +1004,8 @@ else
             Sku = x.Sku,
             StockQuantity = x.StockQuantity,
             DeliveryDays = x.DeliveryDays,
+            ReferencePrice = x.ReferencePrice,
+            OverridePriceLocal = x.OverridePriceLocal,
             ReferencePriceUsd = x.ReferencePriceUsd,
             OverridePrice = x.OverridePrice,
             IsActive = x.IsActive,
@@ -1036,6 +1054,7 @@ else
         {
             VendorID = vendorId,
             ProductVariantID = variantId,
+            ReferencePrice = variant.ReferencePrice > 0 ? variant.ReferencePrice : (variant.ReferencePriceUsd > 0 ? variant.ReferencePriceUsd : 0.01m),
             ReferencePriceUsd = variant.ReferencePriceUsd > 0 ? variant.ReferencePriceUsd : 0.01m,
             StockQuantity = Math.Max(0, _addSellerStock),
             DeliveryDays = 1,
@@ -1083,7 +1102,9 @@ else
                 VendorProductID = row.VendorProductID,
                 VendorID = row.VendorID,
                 ProductVariantID = row.ProductVariantID,
+                ReferencePrice = row.ReferencePrice > 0 ? row.ReferencePrice : (row.ReferencePriceUsd > 0 ? row.ReferencePriceUsd : 0.01m),
                 ReferencePriceUsd = row.ReferencePriceUsd > 0 ? row.ReferencePriceUsd : 0.01m,
+                OverridePriceLocal = row.OverridePriceLocal,
                 OverridePrice = row.OverridePrice,
                 StockQuantity = Math.Max(0, row.StockQuantity),
                 DeliveryDays = row.DeliveryDays,
@@ -1107,6 +1128,7 @@ else
             {
                 VendorID = vendorId,
                 ProductVariantID = v.ProductVariantID,
+                ReferencePrice = v.ReferencePrice > 0 ? v.ReferencePrice : (v.ReferencePriceUsd > 0 ? v.ReferencePriceUsd : 0.01m),
                 ReferencePriceUsd = v.ReferencePriceUsd > 0 ? v.ReferencePriceUsd : 0.01m,
                 StockQuantity = Math.Max(0, desired),
                 DeliveryDays = 1,
@@ -1128,6 +1150,8 @@ else
         public string Sku { get; set; } = "";
         public int StockQuantity { get; set; }
         public int DeliveryDays { get; set; } = 1;
+        public decimal ReferencePrice { get; set; }
+        public decimal? OverridePriceLocal { get; set; }
         public decimal ReferencePriceUsd { get; set; }
         public decimal? OverridePrice { get; set; }
         public bool IsActive { get; set; } = true;
@@ -1403,14 +1427,13 @@ else
         _formErrors = null;
         if (string.IsNullOrWhiteSpace(Model.Slug)) Model.Slug = Model.Title.Trim();
 
-        // Persist USD reference only. Storefront always multiplies by the live exchange rate.
-        // ProductVariant.OverridePrice is not used for catalog pricing (reserved/legacy; keep null).
+        // Persist site-currency price (authority) + USD bridge. Catalog OverridePrice unused.
         foreach (var v in _variants)
         {
             v.Title = (v.Title ?? string.Empty).Trim();
             v.Sku = (v.Sku ?? string.Empty).Trim();
 
-            // Re-apply display price → USD so save always matches what the user typed.
+            // Re-apply display price so save always matches what the user typed.
             SetDisplayPrice(v, DisplayPrice(v));
             SetDisplayCompareAt(v, DisplayCompareAt(v));
 
@@ -1429,7 +1452,7 @@ else
         Model.BrandID = _selectedBrand!.BrandID;
         Model.HasVariants = _variants.Count > 1;
         if (_isNew && _memberId is int creatorId)
-            Model.CreatedByMemberId = creatorId;
+            Model.CreatedByMemberID = creatorId;
 
         _saving = true;
         try

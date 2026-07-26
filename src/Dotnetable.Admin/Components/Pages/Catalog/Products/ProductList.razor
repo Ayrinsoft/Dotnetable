@@ -65,7 +65,7 @@
                     </td>
                     <td>@p.Title <MudText Typo="Typo.caption" Color="Color.Secondary">@p.Slug</MudText></td>
                     <td>@(p.BrandName ?? "-")</td>
-                    <td>@FormatMinPrice(p.MinPriceUsd)</td>
+                    <td>@FormatMinPrice(p.MinPrice ?? p.MinPriceUsd)</td>
                     <td>@(p.IsActive ? L["yes", "Yes"] : L["no", "No"])</td>
                     <td @onclick:stopPropagation="true">
                         @if (_canDelete)
@@ -160,13 +160,11 @@
         _loading = false;
     }
 
-    private string FormatMinPrice(decimal? minUsd)
+    private string FormatMinPrice(decimal? minSiteCurrency)
     {
-        if (minUsd is null) return "-";
-        if (_isUsdSite)
-            return $"{minUsd.Value.ToString("0.##")} USD";
-
-        var local = Math.Round(minUsd.Value * _usdToCurrency, _localDigits, MidpointRounding.AwayFromZero);
+        if (minSiteCurrency is null) return "-";
+        // MinPrice is already in site operational currency (or USD when site is USD / legacy).
+        var local = Math.Round(minSiteCurrency.Value, _localDigits, MidpointRounding.AwayFromZero);
         var localText = _localDigits == 0 ? local.ToString("N0") : local.ToString($"N{_localDigits}");
         return $"{localText} {_displayCurrency}";
     }

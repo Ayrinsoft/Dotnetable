@@ -15,6 +15,9 @@ public partial class ClientWalletWithdrawal
 
     public int ClientBankAccountID { get; set; }
 
+    /// <summary>Withdrawal amount in site currency.</summary>
+    public decimal Amount { get; set; }
+
     public decimal AmountUsd { get; set; }
 
     public byte Status { get; set; }

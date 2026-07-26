@@ -6,8 +6,8 @@ namespace Dotnetable.Application.Interfaces;
 /// <summary>
 /// Shopping cart for guests (keyed by a random <see cref="Cart.SessionKey"/>, usually stored in a
 /// cookie) and signed-in customers (keyed by <see cref="Cart.WebsiteClientID"/>). Prices are never
-/// stored on <see cref="CartItem"/> — every read recomputes them live from <see cref="ProductVariant.ReferencePriceUsd"/>
-/// (or vendor USD override) via <see cref="ICurrencyConversionService"/> (USD × live rate), so a
+/// stored on <see cref="CartItem"/> — every read recomputes them live from catalog site-currency prices
+/// (and optional dual USD / vendor overrides) via <see cref="ICurrencyConversionService"/>, so a
 /// rate or catalog price change is reflected immediately. Prices are only ever snapshotted onto <c>OrderItem</c> at checkout.
 /// </summary>
 public interface ICartService

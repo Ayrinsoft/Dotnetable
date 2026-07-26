@@ -12,8 +12,13 @@ public partial class VendorCreditTransaction
 
     public int WebsiteID { get; set; }
 
+    /// <summary>Signed amount in site currency (+ grant/refund, − sale).</summary>
+    public decimal Amount { get; set; }
+
     /// <summary>Signed amount in USD (+ grant/refund, − sale).</summary>
     public decimal AmountUsd { get; set; }
+
+    public decimal BalanceAfter { get; set; }
 
     public decimal BalanceAfterUsd { get; set; }
 

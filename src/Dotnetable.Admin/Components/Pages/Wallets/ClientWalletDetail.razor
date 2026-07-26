@@ -37,7 +37,7 @@ else
 
     <MudPaper Elevation="0" Class="border rounded-lg pa-6 mb-4">
         <MudText Typo="Typo.body2" Color="Color.Secondary">@L["wallets.balance", "Current Balance"]</MudText>
-        <MudText Typo="Typo.h4" Class="fw-bold">@_balance.ToString("N2") <small>USD</small></MudText>
+        <MudText Typo="Typo.h4" Class="fw-bold">@_balance.ToString("N2")</MudText>
     </MudPaper>
 
     <MudPaper Elevation="0" Class="app-card rounded-lg pa-4">
@@ -62,8 +62,9 @@ else
                     <tr>
                         <td>@t.ClientWalletTransactionID</td>
                         <td>@TypeName(t.Type)</td>
-                        <td style="color:@(t.AmountUsd < 0 ? "var(--mud-palette-error)" : "var(--mud-palette-success)")">
-                            @(t.AmountUsd < 0 ? "" : "+")@t.AmountUsd.ToString("N2")
+                        <td style="color:@((t.Amount != 0 ? t.Amount : t.AmountUsd) < 0 ? "var(--mud-palette-error)" : "var(--mud-palette-success)")">
+                            @{ var amt = t.Amount != 0 || t.AmountUsd == 0 ? t.Amount : t.AmountUsd; }
+                            @(amt < 0 ? "" : "+")@amt.ToString("N2")
                         </td>
                         <td>@t.BalanceAfterUsd.ToString("N2")</td>
                         <td>@(t.Note ?? "—")</td>
@@ -111,7 +112,7 @@ else
             {
                 new() { ColumnTitle = L["id", "ID"], ColumnName = nameof(ClientWalletTransaction.ClientWalletTransactionID), HasSort = true },
                 new() { ColumnTitle = L["type", "Type"], ColumnName = nameof(ClientWalletTransaction.Type) },
-                new() { ColumnTitle = L["amount", "Amount"], ColumnName = nameof(ClientWalletTransaction.AmountUsd) },
+                new() { ColumnTitle = L["amount", "Amount"], ColumnName = nameof(ClientWalletTransaction.Amount) },
                 new() { ColumnTitle = L["wallets.balance_after", "Balance After"], ColumnName = nameof(ClientWalletTransaction.BalanceAfterUsd) },
                 new() { ColumnTitle = L["note", "Note"], ColumnName = nameof(ClientWalletTransaction.Note) },
                 new() { ColumnTitle = L["wallets.date", "Date"], ColumnName = nameof(ClientWalletTransaction.CreatedAt), HasSort = true },

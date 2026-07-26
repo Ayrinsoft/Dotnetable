@@ -12,6 +12,9 @@ public sealed class VendorProductListItemDto
     public string ProductTitle { get; init; } = string.Empty;
     public string VariantTitle { get; init; } = string.Empty;
     public string Sku { get; init; } = string.Empty;
+    /// <summary>Listing price in site operational currency.</summary>
+    public decimal ReferencePrice { get; init; }
+    public decimal? OverridePriceLocal { get; init; }
     public decimal ReferencePriceUsd { get; init; }
     public decimal? OverridePrice { get; init; }
     public int StockQuantity { get; init; }
@@ -27,6 +30,7 @@ public sealed class VendorVariantPickDto
     public string ProductTitle { get; init; } = string.Empty;
     public string VariantTitle { get; init; } = string.Empty;
     public string Sku { get; init; } = string.Empty;
+    public decimal ReferencePrice { get; init; }
     public decimal ReferencePriceUsd { get; init; }
     public bool AlreadyListed { get; init; }
 
@@ -39,7 +43,9 @@ public sealed class VendorVariantPickDto
 public sealed class VendorCreditBalanceDto
 {
     public int VendorID { get; init; }
+    public decimal AvailableCredit { get; init; }
     public decimal AvailableCreditUsd { get; init; }
+    public decimal? CreditLimit { get; init; }
     public decimal? CreditLimitUsd { get; init; }
     public byte SettlementMode { get; init; }
     public byte VendorType { get; init; }

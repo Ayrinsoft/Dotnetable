@@ -10,8 +10,13 @@ namespace Dotnetable.Infrastructure.Services;
 public class ClientWalletService : IClientWalletService
 {
     private readonly AppDbContext _context;
+    private readonly ICurrencyConversionService _currency;
 
-    public ClientWalletService(AppDbContext context) => _context = context;
+    public ClientWalletService(AppDbContext context, ICurrencyConversionService currency)
+    {
+        _context = context;
+        _currency = currency;
+    }
 
     public async Task<ClientWallet> GetOrCreateAsync(int websiteId, int clientId, CancellationToken ct = default)
     {
@@ -24,6 +29,7 @@ public class ClientWalletService : IClientWalletService
         {
             WebsiteID = websiteId,
             WebsiteClientID = clientId,
+            Balance = 0,
             BalanceUsd = 0,
             IsActive = true,
             CreatedAt = DateTime.UtcNow,
@@ -36,7 +42,6 @@ public class ClientWalletService : IClientWalletService
         }
         catch (DbUpdateException)
         {
-            // Another request created the wallet concurrently (WebsiteClientID is unique) — reload it.
             _context.Entry(wallet).State = EntityState.Detached;
             wallet = await _context.ClientWallets.FirstAsync(w => w.WebsiteClientID == clientId, ct);
         }
@@ -48,7 +53,9 @@ public class ClientWalletService : IClientWalletService
     {
         var wallet = await _context.ClientWallets.AsNoTracking()
             .FirstOrDefaultAsync(w => w.WebsiteClientID == clientId, ct);
-        return wallet?.BalanceUsd ?? 0m;
+        if (wallet is null) return 0m;
+        // Site currency is authority; fall back to USD for legacy rows.
+        return wallet.Balance != 0 || wallet.BalanceUsd == 0 ? wallet.Balance : wallet.BalanceUsd;
     }
 
     public async Task<PagedResult<ClientWalletTransaction>> GetHistoryAsync(int clientId, GridQuery query, CancellationToken ct = default)
@@ -76,13 +83,14 @@ public class ClientWalletService : IClientWalletService
         int? memberId,
         CancellationToken ct = default)
     {
+        // Parameter name kept for API compatibility; amount is operational site-currency amount.
+        // Dual USD is derived via rates when available.
         try
         {
             return await ApplyOnceAsync(websiteId, clientId, type, signedAmountUsd, sourceType, sourceId, note, memberId, ct);
         }
         catch (DbUpdateConcurrencyException)
         {
-            // The wallet's RowVersion changed under us (concurrent debit/credit) — reload and retry once.
             return await ApplyOnceAsync(websiteId, clientId, type, signedAmountUsd, sourceType, sourceId, note, memberId, ct);
         }
     }
@@ -91,7 +99,7 @@ public class ClientWalletService : IClientWalletService
         int websiteId,
         int clientId,
         byte type,
-        decimal signedAmountUsd,
+        decimal signedAmountLocal,
         byte? sourceType,
         int? sourceId,
         string? note,
@@ -102,21 +110,40 @@ public class ClientWalletService : IClientWalletService
         try
         {
             var wallet = await GetOrCreateAsync(websiteId, clientId, ct);
-            // Re-attach/reload with tracking so RowVersion is current for the concurrency check.
             if (_context.Entry(wallet).State == EntityState.Detached)
                 wallet = await _context.ClientWallets.FirstAsync(w => w.WebsiteClientID == clientId, ct);
 
-            var balanceAfter = wallet.BalanceUsd + signedAmountUsd;
-            if (signedAmountUsd < 0 && balanceAfter < 0)
+            // Prefer site balance; bootstrap from USD when local is still zero after legacy data.
+            var currentLocal = wallet.Balance != 0 || wallet.BalanceUsd == 0
+                ? wallet.Balance
+                : wallet.BalanceUsd;
+
+            var balanceAfterLocal = currentLocal + signedAmountLocal;
+            if (signedAmountLocal < 0 && balanceAfterLocal < 0)
                 throw new InvalidOperationException("Insufficient wallet balance.");
+
+            decimal signedAmountUsd;
+            decimal balanceAfterUsd;
+            try
+            {
+                signedAmountUsd = await _currency.ToUsdAsync(websiteId, signedAmountLocal, null, ct);
+                balanceAfterUsd = await _currency.ToUsdAsync(websiteId, balanceAfterLocal, null, ct);
+            }
+            catch (InvalidOperationException)
+            {
+                signedAmountUsd = signedAmountLocal;
+                balanceAfterUsd = balanceAfterLocal;
+            }
 
             var transaction = new ClientWalletTransaction
             {
                 WebsiteID = websiteId,
                 ClientWalletID = wallet.ClientWalletID,
                 Type = type,
+                Amount = signedAmountLocal,
                 AmountUsd = signedAmountUsd,
-                BalanceAfterUsd = balanceAfter,
+                BalanceAfter = balanceAfterLocal,
+                BalanceAfterUsd = balanceAfterUsd,
                 SourceType = sourceType,
                 SourceId = sourceId,
                 Note = note,
@@ -125,7 +152,8 @@ public class ClientWalletService : IClientWalletService
             };
             _context.ClientWalletTransactions.Add(transaction);
 
-            wallet.BalanceUsd = balanceAfter;
+            wallet.Balance = balanceAfterLocal;
+            wallet.BalanceUsd = balanceAfterUsd;
 
             await _context.SaveChangesAsync(ct);
             await tx.CommitAsync(ct);

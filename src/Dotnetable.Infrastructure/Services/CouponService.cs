@@ -10,8 +10,13 @@ namespace Dotnetable.Infrastructure.Services;
 public class CouponService : ICouponService
 {
     private readonly AppDbContext _context;
+    private readonly ICurrencyConversionService _currency;
 
-    public CouponService(AppDbContext context) => _context = context;
+    public CouponService(AppDbContext context, ICurrencyConversionService currency)
+    {
+        _context = context;
+        _currency = currency;
+    }
 
     public async Task<PagedResult<Coupon>> GetPagedAsync(int websiteId, GridQuery query, CancellationToken ct = default)
     {
@@ -36,6 +41,7 @@ public class CouponService : ICouponService
 
     public async Task<Coupon> CreateAsync(Coupon coupon, CancellationToken ct = default)
     {
+        await NormalizeCouponAmountsAsync(coupon, ct);
         coupon.CreatedAt = DateTime.UtcNow;
         coupon.TimesUsed = 0;
         _context.Coupons.Add(coupon);
@@ -48,10 +54,14 @@ public class CouponService : ICouponService
         var existing = await _context.Coupons.FirstOrDefaultAsync(c => c.CouponID == coupon.CouponID, ct);
         if (existing is null) return false;
 
+        await NormalizeCouponAmountsAsync(coupon, ct);
+
         existing.Code = coupon.Code;
         existing.DiscountType = coupon.DiscountType;
         existing.DiscountValue = coupon.DiscountValue;
+        existing.MinOrderAmount = coupon.MinOrderAmount;
         existing.MinOrderAmountUsd = coupon.MinOrderAmountUsd;
+        existing.MaxDiscountAmount = coupon.MaxDiscountAmount;
         existing.MaxDiscountAmountUsd = coupon.MaxDiscountAmountUsd;
         existing.UsageLimitTotal = coupon.UsageLimitTotal;
         existing.UsageLimitPerClient = coupon.UsageLimitPerClient;
@@ -85,8 +95,13 @@ public class CouponService : ICouponService
         if (coupon.StartsAt is DateTime startsAt && now < startsAt) return (false, "Coupon is not yet valid.", 0);
         if (coupon.EndsAt is DateTime endsAt && now > endsAt) return (false, "Coupon has expired.", 0);
 
-        if (cartSubtotalUsd < coupon.MinOrderAmountUsd)
-            return (false, $"Order must be at least {coupon.MinOrderAmountUsd:0.00} USD to use this coupon.", 0);
+        // Prefer dual USD threshold; derive from site currency when needed.
+        var minOrderUsd = coupon.MinOrderAmountUsd;
+        if (minOrderUsd <= 0 && coupon.MinOrderAmount > 0)
+            minOrderUsd = await _currency.ToUsdAsync(websiteId, coupon.MinOrderAmount, null, ct);
+
+        if (cartSubtotalUsd < minOrderUsd)
+            return (false, $"Order must meet the minimum amount to use this coupon.", 0);
 
         if (coupon.UsageLimitTotal is int limitTotal && coupon.TimesUsed >= limitTotal)
             return (false, "Coupon usage limit has been reached.", 0);
@@ -99,27 +114,51 @@ public class CouponService : ICouponService
                 return (false, "You have already used this coupon the maximum number of times.", 0);
         }
 
-        var discount = coupon.DiscountType == DiscountTypes.FixedAmountUsd
-            ? Math.Min(coupon.DiscountValue, cartSubtotalUsd)
-            : cartSubtotalUsd * (coupon.DiscountValue / 100m);
+        decimal discountUsd;
+        if (coupon.DiscountType == DiscountTypes.FixedAmountUsd)
+        {
+            // DiscountValue is site-currency fixed amount (legacy constant name still FixedAmountUsd).
+            var fixedUsd = coupon.DiscountValue > 0
+                ? await _currency.ToUsdAsync(websiteId, coupon.DiscountValue, null, ct)
+                : 0;
+            discountUsd = Math.Min(fixedUsd, cartSubtotalUsd);
+        }
+        else
+        {
+            discountUsd = cartSubtotalUsd * (coupon.DiscountValue / 100m);
+            var maxUsd = coupon.MaxDiscountAmountUsd;
+            if ((maxUsd is null or <= 0) && coupon.MaxDiscountAmount is decimal maxLocal && maxLocal > 0)
+                maxUsd = await _currency.ToUsdAsync(websiteId, maxLocal, null, ct);
+            if (maxUsd is decimal cap && cap > 0)
+                discountUsd = Math.Min(discountUsd, cap);
+        }
 
-        if (coupon.DiscountType == DiscountTypes.Percent && coupon.MaxDiscountAmountUsd is decimal maxDiscount)
-            discount = Math.Min(discount, maxDiscount);
-
-        return (true, null, discount);
+        return (true, null, discountUsd);
     }
 
     public async Task RedeemAsync(int couponId, int orderId, int? clientId, decimal discountAmountUsd, CancellationToken ct = default)
     {
-        // Note: CouponRedemption.WebsiteClientID is a required FK in the current schema, so a guest
-        // (clientId == null) redemption cannot be attributed to a WebsiteClient row. Callers building
-        // guest checkout should ensure a clientId is available by the time RedeemAsync runs (e.g. a
-        // guest WebsiteClient shell row), or this schema gap should be revisited in a later phase.
+        var coupon = await _context.Coupons.AsNoTracking().FirstOrDefaultAsync(c => c.CouponID == couponId, ct);
+        decimal discountLocal = discountAmountUsd;
+        if (coupon is not null)
+        {
+            try
+            {
+                var money = await _currency.ToDisplayAsync(coupon.WebsiteID, discountAmountUsd, null, ct);
+                discountLocal = money.Amount;
+            }
+            catch (InvalidOperationException)
+            {
+                // keep USD as local when rates missing
+            }
+        }
+
         _context.CouponRedemptions.Add(new CouponRedemption
         {
             CouponID = couponId,
             OrderID = orderId,
             WebsiteClientID = clientId ?? 0,
+            DiscountAmount = discountLocal,
             DiscountAmountUsd = discountAmountUsd,
             RedeemedAt = DateTime.UtcNow,
         });
@@ -129,5 +168,35 @@ public class CouponService : ICouponService
             .ExecuteUpdateAsync(s => s.SetProperty(c => c.TimesUsed, c => c.TimesUsed + 1), ct);
 
         await _context.SaveChangesAsync(ct);
+    }
+
+    private async Task NormalizeCouponAmountsAsync(Coupon coupon, CancellationToken ct)
+    {
+        try
+        {
+            if (coupon.MinOrderAmount > 0)
+                coupon.MinOrderAmountUsd = await _currency.ToUsdAsync(coupon.WebsiteID, coupon.MinOrderAmount, null, ct);
+            else if (coupon.MinOrderAmountUsd > 0)
+            {
+                var m = await _currency.ToDisplayAsync(coupon.WebsiteID, coupon.MinOrderAmountUsd, null, ct);
+                coupon.MinOrderAmount = m.Amount;
+            }
+
+            if (coupon.MaxDiscountAmount is decimal max && max > 0)
+                coupon.MaxDiscountAmountUsd = await _currency.ToUsdAsync(coupon.WebsiteID, max, null, ct);
+            else if (coupon.MaxDiscountAmountUsd is decimal maxUsd && maxUsd > 0)
+            {
+                var m = await _currency.ToDisplayAsync(coupon.WebsiteID, maxUsd, null, ct);
+                coupon.MaxDiscountAmount = m.Amount;
+            }
+        }
+        catch (InvalidOperationException)
+        {
+            // No rate: keep dual columns equal so fixed-amount sites still work.
+            if (coupon.MinOrderAmount <= 0) coupon.MinOrderAmount = coupon.MinOrderAmountUsd;
+            if (coupon.MinOrderAmountUsd <= 0) coupon.MinOrderAmountUsd = coupon.MinOrderAmount;
+            if (coupon.MaxDiscountAmount is null && coupon.MaxDiscountAmountUsd is decimal u) coupon.MaxDiscountAmount = u;
+            if (coupon.MaxDiscountAmountUsd is null && coupon.MaxDiscountAmount is decimal l) coupon.MaxDiscountAmountUsd = l;
+        }
     }
 }

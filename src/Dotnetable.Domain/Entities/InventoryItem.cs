@@ -17,6 +17,9 @@ public partial class InventoryItem
 
     public int ReorderLevel { get; set; }
 
+    /// <summary>Average unit cost in site operational currency.</summary>
+    public decimal AvgCost { get; set; }
+
     public decimal AvgCostUsd { get; set; }
 
     public byte[] RowVersion { get; set; } = null!;

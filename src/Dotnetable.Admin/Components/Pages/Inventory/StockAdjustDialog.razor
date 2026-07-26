@@ -12,7 +12,7 @@
                     <MudNumericField @bind-Value="_delta" Label="@L["inventory.delta", "Quantity change (+/-)"]" Variant="Variant.Outlined" Required="true" />
                 </MudItem>
                 <MudItem xs="12" sm="6">
-                    <MudNumericField @bind-Value="_unitCostUsd" Label="@L["inventory.unitcost", "Unit cost (USD, optional)"]" Variant="Variant.Outlined" Format="F4" />
+                    <MudNumericField @bind-Value="_unitCostUsd" Label="@L["inventory.unitcost", "Unit cost (site currency, optional)"]" Variant="Variant.Outlined" Format="F4" />
                 </MudItem>
                 <MudItem xs="12">
                     <MudTextField @bind-Value="_note" Label="@L["note", "Note"]" Variant="Variant.Outlined" Lines="2" />

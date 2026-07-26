@@ -12,11 +12,13 @@ public class VendorCreditService : IVendorCreditService
 {
     private readonly AppDbContext _context;
     private readonly IVendorService _vendors;
+    private readonly ICurrencyConversionService _currency;
 
-    public VendorCreditService(AppDbContext context, IVendorService vendors)
+    public VendorCreditService(AppDbContext context, IVendorService vendors, ICurrencyConversionService currency)
     {
         _context = context;
         _vendors = vendors;
+        _currency = currency;
     }
 
     public async Task<VendorCreditBalanceDto> GetBalanceAsync(int vendorId, CancellationToken ct = default)
@@ -26,7 +28,11 @@ public class VendorCreditService : IVendorCreditService
         return new VendorCreditBalanceDto
         {
             VendorID = vendor.VendorID,
+            AvailableCredit = vendor.AvailableCredit != 0 || vendor.AvailableCreditUsd == 0
+                ? vendor.AvailableCredit
+                : vendor.AvailableCreditUsd,
             AvailableCreditUsd = vendor.AvailableCreditUsd,
+            CreditLimit = vendor.CreditLimit ?? vendor.CreditLimitUsd,
             CreditLimitUsd = vendor.CreditLimitUsd,
             SettlementMode = vendor.SettlementMode,
             VendorType = vendor.VendorType,
@@ -38,25 +44,52 @@ public class VendorCreditService : IVendorCreditService
     public async Task<(bool Success, string? Error, VendorCreditTransaction? Tx)> GrantAsync(
         int vendorId, decimal amountUsd, string? note, int? memberId, CancellationToken ct = default)
     {
-        if (amountUsd == 0) return (false, "Amount must be non-zero.", null);
+        // amountUsd param: site-currency operational amount (interface name retained).
+        var amountLocal = amountUsd;
+        if (amountLocal == 0) return (false, "Amount must be non-zero.", null);
 
         var vendor = await _context.Vendors.FirstOrDefaultAsync(v => v.VendorID == vendorId, ct);
         if (vendor is null) return (false, "Vendor not found.", null);
 
-        vendor.AvailableCreditUsd += amountUsd;
-        if (vendor.AvailableCreditUsd < 0)
+        var currentLocal = vendor.AvailableCredit != 0 || vendor.AvailableCreditUsd == 0
+            ? vendor.AvailableCredit
+            : vendor.AvailableCreditUsd;
+
+        var afterLocal = currentLocal + amountLocal;
+        if (afterLocal < 0)
             return (false, "Resulting credit balance cannot be negative.", null);
 
-        if (vendor.CreditLimitUsd is null || amountUsd > 0)
-            vendor.CreditLimitUsd = Math.Max(vendor.CreditLimitUsd ?? 0, vendor.AvailableCreditUsd);
+        decimal amountUsdDual;
+        decimal afterUsd;
+        try
+        {
+            amountUsdDual = await _currency.ToUsdAsync(vendor.WebsiteID, amountLocal, null, ct);
+            afterUsd = await _currency.ToUsdAsync(vendor.WebsiteID, afterLocal, null, ct);
+        }
+        catch (InvalidOperationException)
+        {
+            amountUsdDual = amountLocal;
+            afterUsd = afterLocal;
+        }
+
+        vendor.AvailableCredit = afterLocal;
+        vendor.AvailableCreditUsd = afterUsd;
+
+        if (vendor.CreditLimit is null || amountLocal > 0)
+        {
+            vendor.CreditLimit = Math.Max(vendor.CreditLimit ?? 0, afterLocal);
+            vendor.CreditLimitUsd = Math.Max(vendor.CreditLimitUsd ?? 0, afterUsd);
+        }
 
         var tx = new VendorCreditTransaction
         {
             VendorID = vendor.VendorID,
             WebsiteID = vendor.WebsiteID,
-            AmountUsd = amountUsd,
-            BalanceAfterUsd = vendor.AvailableCreditUsd,
-            SourceType = amountUsd > 0 ? (byte)VendorCreditSourceType.Grant : (byte)VendorCreditSourceType.Adjustment,
+            Amount = amountLocal,
+            AmountUsd = amountUsdDual,
+            BalanceAfter = afterLocal,
+            BalanceAfterUsd = afterUsd,
+            SourceType = amountLocal > 0 ? (byte)VendorCreditSourceType.Grant : (byte)VendorCreditSourceType.Adjustment,
             Note = note,
             CreatedByMemberID = memberId,
             CreatedAt = DateTime.UtcNow,
@@ -110,20 +143,30 @@ public class VendorCreditService : IVendorCreditService
 
             var amountUsd = group.Sum(i => i.UnitPriceUsd * i.Quantity - i.DiscountAmount);
             if (amountUsd < 0) amountUsd = 0;
+            var amountLocal = group.Sum(i => i.UnitPrice * i.Quantity - i.DiscountAmount);
+            if (amountLocal < 0) amountLocal = 0;
+            if (amountLocal <= 0 && amountUsd > 0)
+                amountLocal = amountUsd; // legacy
 
             // Credit-mode site vendors: require and debit available credit.
             if (vendor.VendorType == (byte)VendorType.Site && vendor.SettlementMode == 1)
             {
-                if (vendor.AvailableCreditUsd < amountUsd)
+                var availableLocal = vendor.AvailableCredit != 0 || vendor.AvailableCreditUsd == 0
+                    ? vendor.AvailableCredit
+                    : vendor.AvailableCreditUsd;
+                if (availableLocal < amountLocal && vendor.AvailableCreditUsd < amountUsd)
                     throw new InvalidOperationException(
-                        $"Insufficient inter-site credit for vendor '{vendor.Name}'. Need {amountUsd:0.####} USD, have {vendor.AvailableCreditUsd:0.####}.");
+                        $"Insufficient inter-site credit for vendor '{vendor.Name}'. Need {amountLocal:0.####}, have {availableLocal:0.####}.");
 
-                vendor.AvailableCreditUsd -= amountUsd;
+                vendor.AvailableCredit = availableLocal - amountLocal;
+                vendor.AvailableCreditUsd = Math.Max(0, vendor.AvailableCreditUsd - amountUsd);
                 _context.VendorCreditTransactions.Add(new VendorCreditTransaction
                 {
                     VendorID = vendor.VendorID,
                     WebsiteID = order.WebsiteID,
+                    Amount = -amountLocal,
                     AmountUsd = -amountUsd,
+                    BalanceAfter = vendor.AvailableCredit,
                     BalanceAfterUsd = vendor.AvailableCreditUsd,
                     SourceType = (byte)VendorCreditSourceType.Sale,
                     SourceOrderItemID = group.First().OrderItemID,
@@ -241,13 +284,17 @@ public class VendorCreditService : IVendorCreditService
             var vendor = await _context.Vendors.FirstOrDefaultAsync(v => v.VendorID == sale.VendorID, ct);
             if (vendor is null) continue;
 
-            var restore = -sale.AmountUsd; // sale amount is negative
-            vendor.AvailableCreditUsd += restore;
+            var restoreLocal = sale.Amount != 0 || sale.AmountUsd == 0 ? -sale.Amount : -sale.AmountUsd;
+            var restoreUsd = -sale.AmountUsd;
+            vendor.AvailableCredit += restoreLocal;
+            vendor.AvailableCreditUsd += restoreUsd;
             _context.VendorCreditTransactions.Add(new VendorCreditTransaction
             {
                 VendorID = vendor.VendorID,
                 WebsiteID = vendor.WebsiteID,
-                AmountUsd = restore,
+                Amount = restoreLocal,
+                AmountUsd = restoreUsd,
+                BalanceAfter = vendor.AvailableCredit,
                 BalanceAfterUsd = vendor.AvailableCreditUsd,
                 SourceType = (byte)VendorCreditSourceType.Refund,
                 SourceOrderItemID = sale.SourceOrderItemID,

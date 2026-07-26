@@ -51,7 +51,7 @@
                 <tr>
                     <td><code>@c.Code</code></td>
                     <td>@(c.DiscountType == DiscountTypes.Percent ? $"{c.DiscountValue:0.##}%" : $"${c.DiscountValue:0.00}")</td>
-                    <td>@c.MinOrderAmountUsd.ToString("0.00")</td>
+                    <td>@((c.MinOrderAmount > 0 ? c.MinOrderAmount : c.MinOrderAmountUsd).ToString("0.00"))</td>
                     <td>@(c.UsageLimitTotal is int t ? $"{c.TimesUsed}/{t}" : c.TimesUsed.ToString())</td>
                     <td>@(c.StartsAt?.ToString("yyyy-MM-dd") ?? "-")</td>
                     <td>@(c.EndsAt?.ToString("yyyy-MM-dd") ?? "-")</td>
@@ -144,7 +144,9 @@
             Code = c.Code,
             DiscountType = c.DiscountType,
             DiscountValue = c.DiscountValue,
+            MinOrderAmount = c.MinOrderAmount > 0 ? c.MinOrderAmount : c.MinOrderAmountUsd,
             MinOrderAmountUsd = c.MinOrderAmountUsd,
+            MaxDiscountAmount = c.MaxDiscountAmount ?? c.MaxDiscountAmountUsd,
             MaxDiscountAmountUsd = c.MaxDiscountAmountUsd,
             UsageLimitTotal = c.UsageLimitTotal,
             UsageLimitPerClient = c.UsageLimitPerClient,

@@ -114,6 +114,8 @@ public sealed class ProductVariantPriceHistoryDto
 {
     public long ProductVariantPriceHistoryID { get; init; }
     public int ProductVariantID { get; init; }
+    public decimal ReferencePrice { get; init; }
+    public decimal? CompareAtPrice { get; init; }
     public decimal ReferencePriceUsd { get; init; }
     public decimal? CompareAtPriceUsd { get; init; }
     public DateTime RecordedAt { get; init; }
@@ -200,6 +202,9 @@ public sealed class ProductListItemDto
     public byte Status { get; init; }
     public bool IsActive { get; init; }
     public bool HasVariants { get; init; }
+    /// <summary>Minimum catalog price in site operational currency.</summary>
+    public decimal? MinPrice { get; init; }
+    /// <summary>Minimum catalog price in USD (dual / bridge).</summary>
     public decimal? MinPriceUsd { get; init; }
     public string? FeaturedImageUrl { get; init; }
     public DateTime UpdatedAt { get; init; }

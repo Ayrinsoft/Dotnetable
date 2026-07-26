@@ -40,7 +40,7 @@
                                 </MudText>
                                 <MudText Typo="Typo.caption" Color="Color.Secondary">
                                     SKU: <code>@item.Sku</code>
-                                    · @item.ReferencePriceUsd.ToString("0.####") USD
+                                    · @((item.ReferencePrice > 0 ? item.ReferencePrice : item.ReferencePriceUsd).ToString("0.####"))
                                     @if (item.AlreadyListed)
                                     {
                                         <MudChip T="string" Size="Size.Small" Color="Color.Warning" Class="ms-1">@L["vendors.listings.already", "Already listed"]</MudChip>
@@ -79,15 +79,15 @@
 
                 <MudGrid Spacing="2">
                     <MudItem xs="12" sm="6">
-                        <MudNumericField T="decimal" @bind-Value="Model.ReferencePriceUsd"
-                                         Label="@L["vendors.ref_price", "Reference price (USD)"]"
-                                         HelperText="@L["vendors.ref_price_help", "Catalog reference in USD. Defaults from the product when you pick a variant."]"
+                        <MudNumericField T="decimal" @bind-Value="Model.ReferencePrice"
+                                         Label="@L["vendors.ref_price", "Reference price (site currency)"]"
+                                         HelperText="@L["vendors.ref_price_help", "Catalog reference in the site currency. Defaults from the product when you pick a variant."]"
                                          Variant="Variant.Outlined" Min="0" />
                     </MudItem>
                     <MudItem xs="12" sm="6">
-                        <MudNumericField T="decimal?" @bind-Value="Model.OverridePrice"
-                                         Label="@L["vendors.override_price", "Override price (USD)"]"
-                                         HelperText="@L["vendors.override_price_help", "Optional. When set, this vendor sells at this USD price instead of the catalog reference."]"
+                        <MudNumericField T="decimal?" @bind-Value="Model.OverridePriceLocal"
+                                         Label="@L["vendors.override_price", "Override price (site currency)"]"
+                                         HelperText="@L["vendors.override_price_help", "Optional. When set, this vendor sells at this site-currency price instead of the catalog reference."]"
                                          Variant="Variant.Outlined" Min="0" />
                     </MudItem>
                     <MudItem xs="12" sm="6">
@@ -154,6 +154,8 @@
         if (pick is not null)
         {
             Model.ProductVariantID = pick.ProductVariantID;
+            if (Model.ReferencePrice <= 0)
+                Model.ReferencePrice = pick.ReferencePrice > 0 ? pick.ReferencePrice : pick.ReferencePriceUsd;
             if (Model.ReferencePriceUsd <= 0)
                 Model.ReferencePriceUsd = pick.ReferencePriceUsd;
         }
@@ -174,7 +176,7 @@
 
         if (IsNew && (_selected is null || Model.ProductVariantID <= 0))
             errors.Add(L["vendors.listings.variant_required", "Select a product variant"]);
-        if (Model.ReferencePriceUsd < 0)
+        if (Model.ReferencePrice < 0)
             errors.Add(L["vendors.listings.price_invalid", "Reference price cannot be negative."]);
         if (Model.StockQuantity < 0)
             errors.Add(L["vendors.listings.stock_invalid", "Stock cannot be negative."]);

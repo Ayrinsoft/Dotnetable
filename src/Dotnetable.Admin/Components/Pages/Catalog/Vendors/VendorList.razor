@@ -148,7 +148,9 @@
         {
             VendorID = v.VendorID, WebsiteID = v.WebsiteID, Name = v.Name, Slug = v.Slug,
             LogoFileID = v.LogoFileID, Rating = v.Rating, IsActive = v.IsActive,
-            SettlementMode = v.SettlementMode, CreditDays = v.CreditDays, CreditLimitUsd = v.CreditLimitUsd,
+            SettlementMode = v.SettlementMode, CreditDays = v.CreditDays,
+            CreditLimit = v.CreditLimit ?? v.CreditLimitUsd, CreditLimitUsd = v.CreditLimitUsd,
+            AvailableCredit = v.AvailableCredit != 0 || v.AvailableCreditUsd == 0 ? v.AvailableCredit : v.AvailableCreditUsd,
             VendorType = v.VendorType, MemberID = v.MemberID, LinkedWebsiteID = v.LinkedWebsiteID,
             AvailableCreditUsd = v.AvailableCreditUsd,
         };

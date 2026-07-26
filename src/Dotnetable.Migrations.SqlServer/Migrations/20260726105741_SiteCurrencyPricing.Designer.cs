@@ -4,6 +4,7 @@ using Dotnetable.Infrastructure.Data;
 using Microsoft.EntityFrameworkCore;
 using Microsoft.EntityFrameworkCore.Infrastructure;
 using Microsoft.EntityFrameworkCore.Metadata;
+using Microsoft.EntityFrameworkCore.Migrations;
 using Microsoft.EntityFrameworkCore.Storage.ValueConversion;
 
 #nullable disable
@@ -11,9 +12,11 @@ using Microsoft.EntityFrameworkCore.Storage.ValueConversion;
 namespace Dotnetable.Migrations.SqlServer.Migrations
 {
     [DbContext(typeof(AppDbContext))]
-    partial class AppDbContextModelSnapshot : ModelSnapshot
+    [Migration("20260726105741_SiteCurrencyPricing")]
+    partial class SiteCurrencyPricing
     {
-        protected override void BuildModel(ModelBuilder modelBuilder)
+        /// <inheritdoc />
+        protected override void BuildTargetModel(ModelBuilder modelBuilder)
         {
 #pragma warning disable 612, 618
             modelBuilder
@@ -724,9 +727,6 @@ namespace Dotnetable.Migrations.SqlServer.Migrations
 
                     SqlServerPropertyBuilderExtensions.UseIdentityColumn(b.Property<int>("ClientWalletID"));
 
-                    b.Property<decimal>("Balance")
-                        .HasColumnType("decimal(18, 4)");
-
                     b.Property<decimal>("BalanceUsd")
                         .HasColumnType("decimal(18, 4)");
 
@@ -767,13 +767,7 @@ namespace Dotnetable.Migrations.SqlServer.Migrations
 
                     SqlServerPropertyBuilderExtensions.UseIdentityColumn(b.Property<int>("ClientWalletTransactionID"));
 
-                    b.Property<decimal>("Amount")
-                        .HasColumnType("decimal(18, 4)");
-
                     b.Property<decimal>("AmountUsd")
-                        .HasColumnType("decimal(18, 4)");
-
-                    b.Property<decimal>("BalanceAfter")
                         .HasColumnType("decimal(18, 4)");
 
                     b.Property<decimal>("BalanceAfterUsd")
@@ -823,9 +817,6 @@ namespace Dotnetable.Migrations.SqlServer.Migrations
                         .HasColumnType("int");
 
                     SqlServerPropertyBuilderExtensions.UseIdentityColumn(b.Property<int>("ClientWalletWithdrawalID"));
-
-                    b.Property<decimal>("Amount")
-                        .HasColumnType("decimal(18, 4)");
 
                     b.Property<decimal>("AmountUsd")
                         .HasColumnType("decimal(18, 4)");
@@ -1042,13 +1033,7 @@ namespace Dotnetable.Migrations.SqlServer.Migrations
                     b.Property<bool>("IsActive")
                         .HasColumnType("bit");
 
-                    b.Property<decimal?>("MaxDiscountAmount")
-                        .HasColumnType("decimal(18, 4)");
-
                     b.Property<decimal?>("MaxDiscountAmountUsd")
-                        .HasColumnType("decimal(18, 4)");
-
-                    b.Property<decimal>("MinOrderAmount")
                         .HasColumnType("decimal(18, 4)");
 
                     b.Property<decimal>("MinOrderAmountUsd")
@@ -1090,9 +1075,6 @@ namespace Dotnetable.Migrations.SqlServer.Migrations
 
                     b.Property<int>("CouponID")
                         .HasColumnType("int");
-
-                    b.Property<decimal>("DiscountAmount")
-                        .HasColumnType("decimal(18, 4)");
 
                     b.Property<decimal>("DiscountAmountUsd")
                         .HasColumnType("decimal(18, 4)");
@@ -1758,9 +1740,6 @@ namespace Dotnetable.Migrations.SqlServer.Migrations
                         .HasColumnType("int");
 
                     SqlServerPropertyBuilderExtensions.UseIdentityColumn(b.Property<int>("InventoryItemID"));
-
-                    b.Property<decimal>("AvgCost")
-                        .HasColumnType("decimal(18, 4)");
 
                     b.Property<decimal>("AvgCostUsd")
                         .HasColumnType("decimal(18, 4)");
@@ -4009,9 +3988,6 @@ namespace Dotnetable.Migrations.SqlServer.Migrations
                     b.Property<decimal?>("MinWeightKg")
                         .HasColumnType("decimal(10, 3)");
 
-                    b.Property<decimal>("Price")
-                        .HasColumnType("decimal(18, 4)");
-
                     b.Property<decimal>("PriceUsd")
                         .HasColumnType("decimal(18, 4)");
 
@@ -4259,13 +4235,7 @@ namespace Dotnetable.Migrations.SqlServer.Migrations
                     b.Property<byte>("Type")
                         .HasColumnType("tinyint");
 
-                    b.Property<decimal>("UnitCost")
-                        .HasColumnType("decimal(18, 4)");
-
                     b.Property<decimal>("UnitCostUsd")
-                        .HasColumnType("decimal(18, 4)");
-
-                    b.Property<decimal?>("UnitSalePrice")
                         .HasColumnType("decimal(18, 4)");
 
                     b.Property<decimal?>("UnitSalePriceUsd")
@@ -4456,18 +4426,12 @@ namespace Dotnetable.Migrations.SqlServer.Migrations
 
                     SqlServerPropertyBuilderExtensions.UseIdentityColumn(b.Property<int>("VendorID"));
 
-                    b.Property<decimal>("AvailableCredit")
-                        .HasColumnType("decimal(18, 4)");
-
                     b.Property<decimal>("AvailableCreditUsd")
                         .HasColumnType("decimal(18, 4)");
 
                     b.Property<int?>("CreditDays")
                         .HasColumnType("int")
                         .HasComment("number of days after the settlement period ends before payment is due; only meaningful when SettlementMode = Credit");
-
-                    b.Property<decimal?>("CreditLimit")
-                        .HasColumnType("decimal(18, 4)");
 
                     b.Property<decimal?>("CreditLimitUsd")
                         .HasColumnType("decimal(18, 4)")
@@ -4532,13 +4496,7 @@ namespace Dotnetable.Migrations.SqlServer.Migrations
 
                     SqlServerPropertyBuilderExtensions.UseIdentityColumn(b.Property<int>("VendorCreditTransactionID"));
 
-                    b.Property<decimal>("Amount")
-                        .HasColumnType("decimal(18, 4)");
-
                     b.Property<decimal>("AmountUsd")
-                        .HasColumnType("decimal(18, 4)");
-
-                    b.Property<decimal>("BalanceAfter")
                         .HasColumnType("decimal(18, 4)");
 
                     b.Property<decimal>("BalanceAfterUsd")

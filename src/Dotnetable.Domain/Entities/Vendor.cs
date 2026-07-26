@@ -30,6 +30,11 @@ public partial class Vendor
     public int? CreditDays { get; set; }
 
     /// <summary>
+    /// Maximum outstanding credit in site currency; only meaningful when SettlementMode = Credit.
+    /// </summary>
+    public decimal? CreditLimit { get; set; }
+
+    /// <summary>
     /// maximum outstanding credit balance allowed for this vendor, in USD; only meaningful when SettlementMode = Credit
     /// </summary>
     public decimal? CreditLimitUsd { get; set; }
@@ -42,6 +47,9 @@ public partial class Vendor
     public int? MemberID { get; set; }
 
     public int? LinkedWebsiteID { get; set; }
+
+    /// <summary>Available inter-site / credit balance in site currency.</summary>
+    public decimal AvailableCredit { get; set; }
 
     public decimal AvailableCreditUsd { get; set; }
 

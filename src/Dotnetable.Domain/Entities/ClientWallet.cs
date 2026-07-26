@@ -11,6 +11,9 @@ public partial class ClientWallet
 
     public int WebsiteClientID { get; set; }
 
+    /// <summary>Wallet balance in website operational currency (ledger authority).</summary>
+    public decimal Balance { get; set; }
+
     public decimal BalanceUsd { get; set; }
 
     public bool IsActive { get; set; }

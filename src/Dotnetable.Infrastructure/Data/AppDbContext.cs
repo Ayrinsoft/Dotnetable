@@ -632,6 +632,7 @@ public partial class AppDbContext : DbContext
 
             entity.HasIndex(e => e.WebsiteClientID, "UQ_ClientWallets_WebsiteClientID").IsUnique();
 
+            entity.Property(e => e.Balance).HasColumnType("decimal(18, 4)");
             entity.Property(e => e.BalanceUsd).HasColumnType("decimal(18, 4)");
             entity.Property(e => e.CreatedAt).HasPrecision(0);
             entity.Property(e => e.RowVersion)
@@ -657,7 +658,9 @@ public partial class AppDbContext : DbContext
 
             entity.HasIndex(e => e.WebsiteID, "IX_ClientWalletTransactions_WebsiteID");
 
+            entity.Property(e => e.Amount).HasColumnType("decimal(18, 4)");
             entity.Property(e => e.AmountUsd).HasColumnType("decimal(18, 4)");
+            entity.Property(e => e.BalanceAfter).HasColumnType("decimal(18, 4)");
             entity.Property(e => e.BalanceAfterUsd).HasColumnType("decimal(18, 4)");
             entity.Property(e => e.CreatedAt).HasPrecision(0);
             entity.Property(e => e.Note).HasMaxLength(500);
@@ -689,6 +692,7 @@ public partial class AppDbContext : DbContext
 
             entity.HasIndex(e => e.WebsiteID, "IX_ClientWalletWithdrawals_WebsiteID");
 
+            entity.Property(e => e.Amount).HasColumnType("decimal(18, 4)");
             entity.Property(e => e.AmountUsd).HasColumnType("decimal(18, 4)");
             entity.Property(e => e.PaidAt).HasPrecision(0);
             entity.Property(e => e.PaymentRefNumber).HasMaxLength(100);
@@ -791,7 +795,9 @@ public partial class AppDbContext : DbContext
             entity.Property(e => e.CreatedAt).HasPrecision(0);
             entity.Property(e => e.DiscountValue).HasColumnType("decimal(18, 4)");
             entity.Property(e => e.EndsAt).HasPrecision(0);
+            entity.Property(e => e.MaxDiscountAmount).HasColumnType("decimal(18, 4)");
             entity.Property(e => e.MaxDiscountAmountUsd).HasColumnType("decimal(18, 4)");
+            entity.Property(e => e.MinOrderAmount).HasColumnType("decimal(18, 4)");
             entity.Property(e => e.MinOrderAmountUsd).HasColumnType("decimal(18, 4)");
             entity.Property(e => e.StartsAt).HasPrecision(0);
 
@@ -813,6 +819,7 @@ public partial class AppDbContext : DbContext
 
             entity.HasIndex(e => e.OrderID, "UQ_CouponRedemptions_OrderID").IsUnique();
 
+            entity.Property(e => e.DiscountAmount).HasColumnType("decimal(18, 4)");
             entity.Property(e => e.DiscountAmountUsd).HasColumnType("decimal(18, 4)");
             entity.Property(e => e.RedeemedAt).HasPrecision(0);
 
@@ -1134,6 +1141,7 @@ public partial class AppDbContext : DbContext
 
             entity.HasIndex(e => e.WebsiteID, "IX_InventoryItems_WebsiteID");
 
+            entity.Property(e => e.AvgCost).HasColumnType("decimal(18, 4)");
             entity.Property(e => e.AvgCostUsd).HasColumnType("decimal(18, 4)");
             entity.Property(e => e.RowVersion)
                 .IsRowVersion()
@@ -2188,9 +2196,11 @@ public partial class AppDbContext : DbContext
             entity.HasIndex(e => e.WebsiteID, "IX_ProductVariants_WebsiteID");
 
             entity.Property(e => e.Barcode).HasMaxLength(100);
+            entity.Property(e => e.CompareAtPrice).HasColumnType("decimal(18, 4)");
             entity.Property(e => e.CompareAtPriceUsd).HasColumnType("decimal(18, 4)");
             entity.Property(e => e.CreatedAt).HasColumnType("datetime");
             entity.Property(e => e.OverridePrice).HasColumnType("decimal(18, 4)");
+            entity.Property(e => e.ReferencePrice).HasColumnType("decimal(18, 4)");
             entity.Property(e => e.ReferencePriceUsd).HasColumnType("decimal(18, 4)");
             entity.Property(e => e.Sku).HasMaxLength(100);
             entity.Property(e => e.Title).HasMaxLength(200);
@@ -2215,8 +2225,10 @@ public partial class AppDbContext : DbContext
         {
             entity.HasIndex(e => new { e.ProductVariantID, e.RecordedAt }, "IX_ProductVariantPriceHistories_ProductVariantID_RecordedAt").IsDescending(false, true);
 
+            entity.Property(e => e.CompareAtPrice).HasColumnType("decimal(18, 4)");
             entity.Property(e => e.CompareAtPriceUsd).HasColumnType("decimal(18, 4)");
             entity.Property(e => e.RecordedAt).HasColumnType("datetime");
+            entity.Property(e => e.ReferencePrice).HasColumnType("decimal(18, 4)");
             entity.Property(e => e.ReferencePriceUsd).HasColumnType("decimal(18, 4)");
 
             entity.HasOne(d => d.ChangedByMember).WithMany(p => p.ProductVariantPriceHistories)
@@ -2406,6 +2418,7 @@ public partial class AppDbContext : DbContext
 
             entity.Property(e => e.MaxWeightKg).HasColumnType("decimal(10, 3)");
             entity.Property(e => e.MinWeightKg).HasColumnType("decimal(10, 3)");
+            entity.Property(e => e.Price).HasColumnType("decimal(18, 4)");
             entity.Property(e => e.PriceUsd).HasColumnType("decimal(18, 4)");
 
             entity.HasOne(d => d.City).WithMany(p => p.ShippingRates)
@@ -2526,7 +2539,9 @@ public partial class AppDbContext : DbContext
                 .HasComment("website's local currency rate snapshotted at the moment of this stock entry/exit, so accounting and reports can be reconstructed in local currency at that point in time")
                 .HasColumnType("decimal(18, 6)");
             entity.Property(e => e.Note).HasMaxLength(500);
+            entity.Property(e => e.UnitCost).HasColumnType("decimal(18, 4)");
             entity.Property(e => e.UnitCostUsd).HasColumnType("decimal(18, 4)");
+            entity.Property(e => e.UnitSalePrice).HasColumnType("decimal(18, 4)");
             entity.Property(e => e.UnitSalePriceUsd).HasColumnType("decimal(18, 4)");
 
             entity.HasOne(d => d.CreatedByMember).WithMany(p => p.StockMovements)
@@ -2665,8 +2680,10 @@ public partial class AppDbContext : DbContext
 
             entity.HasIndex(e => e.WebsiteID, "IX_Vendors_WebsiteID");
 
+            entity.Property(e => e.AvailableCredit).HasColumnType("decimal(18, 4)");
             entity.Property(e => e.AvailableCreditUsd).HasColumnType("decimal(18, 4)");
             entity.Property(e => e.CreditDays).HasComment("number of days after the settlement period ends before payment is due; only meaningful when SettlementMode = Credit");
+            entity.Property(e => e.CreditLimit).HasColumnType("decimal(18, 4)");
             entity.Property(e => e.CreditLimitUsd)
                 .HasComment("maximum outstanding credit balance allowed for this vendor, in USD; only meaningful when SettlementMode = Credit")
                 .HasColumnType("decimal(18, 4)");
@@ -2706,7 +2723,9 @@ public partial class AppDbContext : DbContext
 
             entity.HasIndex(e => e.WebsiteID, "IX_VendorCreditTransactions_WebsiteID");
 
+            entity.Property(e => e.Amount).HasColumnType("decimal(18, 4)");
             entity.Property(e => e.AmountUsd).HasColumnType("decimal(18, 4)");
+            entity.Property(e => e.BalanceAfter).HasColumnType("decimal(18, 4)");
             entity.Property(e => e.BalanceAfterUsd).HasColumnType("decimal(18, 4)");
             entity.Property(e => e.CreatedAt).HasColumnType("datetime");
             entity.Property(e => e.Note).HasMaxLength(500);
@@ -2744,6 +2763,8 @@ public partial class AppDbContext : DbContext
             entity.HasIndex(e => e.WebsiteID, "IX_VendorProducts_WebsiteID");
 
             entity.Property(e => e.OverridePrice).HasColumnType("decimal(18, 4)");
+            entity.Property(e => e.OverridePriceLocal).HasColumnType("decimal(18, 4)");
+            entity.Property(e => e.ReferencePrice).HasColumnType("decimal(18, 4)");
             entity.Property(e => e.ReferencePriceUsd).HasColumnType("decimal(18, 4)");
 
             entity.HasOne(d => d.ProductVariant).WithMany(p => p.VendorProducts)
@@ -2836,6 +2857,9 @@ public partial class AppDbContext : DbContext
             entity.Property(e => e.Mobile)
                 .HasMaxLength(15)
                 .IsUnicode(false);
+            entity.Property(e => e.StorePricesInUsd)
+                .HasDefaultValue(false)
+                .HasComment("When true, also persist USD dual columns; default site currency is always operational authority.");
             entity.Property(e => e.TradeName).HasMaxLength(32);
             entity.Property(e => e.WebsiteAddress)
                 .HasMaxLength(60)

@@ -25,7 +25,8 @@ public class VendorServiceTests : IDisposable
         _context = new AppDbContext(opts);
         _vendors = new VendorService(_context);
         _listings = new VendorProductService(_context);
-        _credit = new VendorCreditService(_context, _vendors);
+        var currency = new CurrencyConversionService(_context);
+        _credit = new VendorCreditService(_context, _vendors, currency);
 
         _host = NewWebsite("Host", "host.test");
         _source = NewWebsite("Source", "source.test");
@@ -141,7 +142,7 @@ public class VendorServiceTests : IDisposable
         var variant = new ProductVariant
         {
             WebsiteID = _host.WebsiteID, ProductID = product.ProductID, Sku = "SKU1", Title = "Default",
-            ReferencePriceUsd = 10, IsActive = true, CreatedAt = DateTime.UtcNow,
+            ReferencePrice = 10, ReferencePriceUsd = 10, IsActive = true, CreatedAt = DateTime.UtcNow,
         };
         _context.ProductVariants.Add(variant);
         await _context.SaveChangesAsync();
@@ -149,7 +150,7 @@ public class VendorServiceTests : IDisposable
         var (ok, err, _) = await _listings.UpsertAsync(new VendorProduct
         {
             VendorID = v.VendorID, ProductVariantID = variant.ProductVariantID,
-            ReferencePriceUsd = 10, StockQuantity = 5, IsActive = true,
+            ReferencePrice = 10, ReferencePriceUsd = 10, StockQuantity = 5, IsActive = true,
         });
         ok.Should().BeFalse();
         err.Should().Contain("re-shared");
@@ -175,7 +176,7 @@ public class VendorServiceTests : IDisposable
         var variant = new ProductVariant
         {
             WebsiteID = _source.WebsiteID, ProductID = product.ProductID, Sku = "SRC1", Title = "Default",
-            ReferencePriceUsd = 12, IsActive = true, CreatedAt = DateTime.UtcNow,
+            ReferencePrice = 12, ReferencePriceUsd = 12, IsActive = true, CreatedAt = DateTime.UtcNow,
         };
         _context.ProductVariants.Add(variant);
         await _context.SaveChangesAsync();
@@ -183,7 +184,7 @@ public class VendorServiceTests : IDisposable
         var (ok, err, item) = await _listings.UpsertAsync(new VendorProduct
         {
             VendorID = v.VendorID, ProductVariantID = variant.ProductVariantID,
-            ReferencePriceUsd = 12, StockQuantity = 3, IsActive = true,
+            ReferencePrice = 12, ReferencePriceUsd = 12, StockQuantity = 3, IsActive = true,
         });
         ok.Should().BeTrue(err);
         item.Should().NotBeNull();

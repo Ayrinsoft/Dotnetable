@@ -42,6 +42,12 @@ public partial class Website
 
     public string DefaultCurrencyCode { get; set; } = null!;
 
+    /// <summary>
+    /// When true, monetary amounts are also persisted in USD columns.
+    /// When false (default), site currency is the stored source of truth; USD is derived via rates for multi-currency display and checkout snapshots.
+    /// </summary>
+    public bool StorePricesInUsd { get; set; }
+
     public virtual ICollection<AdminNotification> AdminNotifications { get; set; } = new List<AdminNotification>();
 
     public virtual ICollection<AttributeDefinition> AttributeDefinitions { get; set; } = new List<AttributeDefinition>();

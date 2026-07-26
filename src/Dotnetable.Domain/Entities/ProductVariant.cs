@@ -19,6 +19,13 @@ public partial class ProductVariant
 
     public int? ImageFileID { get; set; }
 
+    /// <summary>Selling price in the website's operational (default) currency. Source of truth for catalog pricing.</summary>
+    public decimal ReferencePrice { get; set; }
+
+    /// <summary>Optional compare-at / list price in the website's operational currency.</summary>
+    public decimal? CompareAtPrice { get; set; }
+
+    /// <summary>USD equivalent (stored when StorePricesInUsd, or derived for conversion bridge).</summary>
     public decimal ReferencePriceUsd { get; set; }
 
     public decimal? CompareAtPriceUsd { get; set; }

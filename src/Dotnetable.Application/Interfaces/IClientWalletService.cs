@@ -7,14 +7,14 @@ namespace Dotnetable.Application.Interfaces;
 /// Manages a website customer's cash wallet (<see cref="ClientWallet"/>) and its append-only ledger
 /// (<see cref="ClientWalletTransaction"/>). <see cref="ApplyAsync"/> is the ONLY way a wallet balance
 /// may change — every other domain (Payment refunds, checkout wallet-pay, admin adjustments,
-/// withdrawals) must go through it so the ledger always reconciles with <see cref="ClientWallet.BalanceUsd"/>.
+/// withdrawals) must go through it so the ledger always reconciles with <see cref="ClientWallet.Balance"/>.
 /// </summary>
 public interface IClientWalletService
 {
     /// <summary>Returns the customer's wallet, creating a zero-balance active one if it doesn't exist yet.</summary>
     Task<ClientWallet> GetOrCreateAsync(int websiteId, int clientId, CancellationToken ct = default);
 
-    /// <summary>Current balance in USD (0 when the customer has no wallet yet).</summary>
+    /// <summary>Current balance in website operational currency (0 when the customer has no wallet yet).</summary>
     Task<decimal> GetBalanceAsync(int clientId, CancellationToken ct = default);
 
     /// <summary>Server-side paged/sorted ledger history for one customer, newest first by default.</summary>
@@ -22,12 +22,12 @@ public interface IClientWalletService
 
     /// <summary>
     /// Applies a signed change to the customer's wallet and appends the corresponding ledger row.
-    /// This is the only method that may ever change <see cref="ClientWallet.BalanceUsd"/>.
+    /// This is the only method that may ever change <see cref="ClientWallet.Balance"/>.
     /// </summary>
     /// <param name="websiteId">Owning website, used only when the wallet must be created.</param>
     /// <param name="clientId">The customer whose wallet is affected.</param>
     /// <param name="type">A <see cref="ClientWalletTransactionType"/> value.</param>
-    /// <param name="signedAmountUsd">Positive to credit, negative to debit.</param>
+    /// <param name="signedAmountUsd">Signed amount in site currency (parameter name retained for compatibility); dual USD is derived.</param>
     /// <param name="sourceType">A <see cref="ClientWalletSourceType"/> value, or null.</param>
     /// <param name="sourceId">Polymorphic id paired with <paramref name="sourceType"/>, or null.</param>
     /// <param name="note">Optional free-text note stored on the ledger row.</param>

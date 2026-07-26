@@ -13,18 +13,23 @@ public class ClientWalletWithdrawalService : IClientWalletWithdrawalService
     private readonly AppDbContext _context;
     private readonly IClientWalletService _wallets;
     private readonly IAdminNotificationService _notifications;
+    private readonly ICurrencyConversionService _currency;
 
     public ClientWalletWithdrawalService(
-        AppDbContext context, IClientWalletService wallets, IAdminNotificationService notifications)
+        AppDbContext context, IClientWalletService wallets, IAdminNotificationService notifications,
+        ICurrencyConversionService currency)
     {
         _context = context;
         _wallets = wallets;
         _notifications = notifications;
+        _currency = currency;
     }
 
     public async Task<ClientWalletWithdrawal> RequestAsync(int websiteId, int clientId, int clientBankAccountId, decimal amountUsd, CancellationToken ct = default)
     {
-        if (amountUsd <= 0)
+        // amountUsd parameter: site-currency amount (operational); name kept for interface compatibility.
+        var amountLocal = amountUsd;
+        if (amountLocal <= 0)
             throw new InvalidOperationException("Withdrawal amount must be greater than zero.");
 
         var bankAccount = await _context.ClientBankAccounts.AsNoTracking()
@@ -32,16 +37,19 @@ public class ClientWalletWithdrawalService : IClientWalletWithdrawalService
         if (bankAccount is null)
             throw new InvalidOperationException("Bank account not found.");
 
-        // ApplyAsync itself guards against an insufficient balance (throws InvalidOperationException).
         var holdTransaction = await _wallets.ApplyAsync(
             websiteId, clientId,
             (byte)ClientWalletTransactionType.WithdrawalHold,
-            -amountUsd,
+            -amountLocal,
             (byte)ClientWalletSourceType.ClientWalletWithdrawal,
             null,
             "Withdrawal hold",
             memberId: null,
             ct);
+
+        decimal amountUsdDual;
+        try { amountUsdDual = await _currency.ToUsdAsync(websiteId, amountLocal, null, ct); }
+        catch (InvalidOperationException) { amountUsdDual = amountLocal; }
 
         var withdrawal = new ClientWalletWithdrawal
         {
@@ -49,14 +57,14 @@ public class ClientWalletWithdrawalService : IClientWalletWithdrawalService
             WebsiteClientID = clientId,
             ClientWalletID = holdTransaction.ClientWalletID,
             ClientBankAccountID = clientBankAccountId,
-            AmountUsd = amountUsd,
+            Amount = amountLocal,
+            AmountUsd = amountUsdDual,
             Status = (byte)ClientWalletWithdrawalStatus.Pending,
             RequestedAt = DateTime.UtcNow,
         };
         _context.ClientWalletWithdrawals.Add(withdrawal);
         await _context.SaveChangesAsync(ct);
 
-        // Link the hold transaction back to this withdrawal now that we have its id.
         holdTransaction.SourceId = withdrawal.ClientWalletWithdrawalID;
         await _context.SaveChangesAsync(ct);
 
@@ -64,7 +72,7 @@ public class ClientWalletWithdrawalService : IClientWalletWithdrawalService
             websiteId,
             AdminNotificationType.WithdrawalRequested,
             "Withdrawal requested",
-            $"Customer #{clientId} requested a withdrawal of {amountUsd:0.##} USD.",
+            $"Customer #{clientId} requested a withdrawal of {amountLocal:0.##}.",
             "/wallets/withdrawals",
             withdrawal.ClientWalletWithdrawalID,
             ct);
@@ -132,11 +140,14 @@ public class ClientWalletWithdrawalService : IClientWalletWithdrawalService
         if (withdrawal is null || withdrawal.Status != (byte)ClientWalletWithdrawalStatus.Pending)
             return false;
 
-        // Reverse the held funds back into the customer's wallet.
+        // Reverse the held funds back into the customer's wallet (site-currency amount).
+        var reverseAmount = withdrawal.Amount != 0 || withdrawal.AmountUsd == 0
+            ? withdrawal.Amount
+            : withdrawal.AmountUsd;
         await _wallets.ApplyAsync(
             withdrawal.WebsiteID, withdrawal.WebsiteClientID,
             (byte)ClientWalletTransactionType.WithdrawalReversed,
-            withdrawal.AmountUsd,
+            reverseAmount,
             (byte)ClientWalletSourceType.ClientWalletWithdrawal,
             withdrawal.ClientWalletWithdrawalID,
             "Withdrawal rejected",

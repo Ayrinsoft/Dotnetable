@@ -723,6 +723,9 @@ namespace Dotnetable.Migrations.PostgreSql.Migrations
 
                     NpgsqlPropertyBuilderExtensions.UseIdentityByDefaultColumn(b.Property<int>("ClientWalletID"));
 
+                    b.Property<decimal>("Balance")
+                        .HasColumnType("decimal(18, 4)");
+
                     b.Property<decimal>("BalanceUsd")
                         .HasColumnType("decimal(18, 4)");
 
@@ -763,7 +766,13 @@ namespace Dotnetable.Migrations.PostgreSql.Migrations
 
                     NpgsqlPropertyBuilderExtensions.UseIdentityByDefaultColumn(b.Property<int>("ClientWalletTransactionID"));
 
+                    b.Property<decimal>("Amount")
+                        .HasColumnType("decimal(18, 4)");
+
                     b.Property<decimal>("AmountUsd")
+                        .HasColumnType("decimal(18, 4)");
+
+                    b.Property<decimal>("BalanceAfter")
                         .HasColumnType("decimal(18, 4)");
 
                     b.Property<decimal>("BalanceAfterUsd")
@@ -813,6 +822,9 @@ namespace Dotnetable.Migrations.PostgreSql.Migrations
                         .HasColumnType("integer");
 
                     NpgsqlPropertyBuilderExtensions.UseIdentityByDefaultColumn(b.Property<int>("ClientWalletWithdrawalID"));
+
+                    b.Property<decimal>("Amount")
+                        .HasColumnType("decimal(18, 4)");
 
                     b.Property<decimal>("AmountUsd")
                         .HasColumnType("decimal(18, 4)");
@@ -1029,7 +1041,13 @@ namespace Dotnetable.Migrations.PostgreSql.Migrations
                     b.Property<bool>("IsActive")
                         .HasColumnType("boolean");
 
+                    b.Property<decimal?>("MaxDiscountAmount")
+                        .HasColumnType("decimal(18, 4)");
+
                     b.Property<decimal?>("MaxDiscountAmountUsd")
+                        .HasColumnType("decimal(18, 4)");
+
+                    b.Property<decimal>("MinOrderAmount")
                         .HasColumnType("decimal(18, 4)");
 
                     b.Property<decimal>("MinOrderAmountUsd")
@@ -1071,6 +1089,9 @@ namespace Dotnetable.Migrations.PostgreSql.Migrations
 
                     b.Property<int>("CouponID")
                         .HasColumnType("integer");
+
+                    b.Property<decimal>("DiscountAmount")
+                        .HasColumnType("decimal(18, 4)");
 
                     b.Property<decimal>("DiscountAmountUsd")
                         .HasColumnType("decimal(18, 4)");
@@ -1736,6 +1757,9 @@ namespace Dotnetable.Migrations.PostgreSql.Migrations
                         .HasColumnType("integer");
 
                     NpgsqlPropertyBuilderExtensions.UseIdentityByDefaultColumn(b.Property<int>("InventoryItemID"));
+
+                    b.Property<decimal>("AvgCost")
+                        .HasColumnType("decimal(18, 4)");
 
                     b.Property<decimal>("AvgCostUsd")
                         .HasColumnType("decimal(18, 4)");
@@ -3577,6 +3601,9 @@ namespace Dotnetable.Migrations.PostgreSql.Migrations
                         .HasMaxLength(100)
                         .HasColumnType("character varying(100)");
 
+                    b.Property<decimal?>("CompareAtPrice")
+                        .HasColumnType("decimal(18, 4)");
+
                     b.Property<decimal?>("CompareAtPriceUsd")
                         .HasColumnType("decimal(18, 4)");
 
@@ -3597,6 +3624,9 @@ namespace Dotnetable.Migrations.PostgreSql.Migrations
 
                     b.Property<int>("ProductID")
                         .HasColumnType("integer");
+
+                    b.Property<decimal>("ReferencePrice")
+                        .HasColumnType("decimal(18, 4)");
 
                     b.Property<decimal>("ReferencePriceUsd")
                         .HasColumnType("decimal(18, 4)");
@@ -3639,6 +3669,9 @@ namespace Dotnetable.Migrations.PostgreSql.Migrations
                     b.Property<int?>("ChangedByMemberId")
                         .HasColumnType("integer");
 
+                    b.Property<decimal?>("CompareAtPrice")
+                        .HasColumnType("decimal(18, 4)");
+
                     b.Property<decimal?>("CompareAtPriceUsd")
                         .HasColumnType("decimal(18, 4)");
 
@@ -3647,6 +3680,9 @@ namespace Dotnetable.Migrations.PostgreSql.Migrations
 
                     b.Property<DateTime>("RecordedAt")
                         .HasColumnType("datetime");
+
+                    b.Property<decimal>("ReferencePrice")
+                        .HasColumnType("decimal(18, 4)");
 
                     b.Property<decimal>("ReferencePriceUsd")
                         .HasColumnType("decimal(18, 4)");
@@ -3972,6 +4008,9 @@ namespace Dotnetable.Migrations.PostgreSql.Migrations
                     b.Property<decimal?>("MinWeightKg")
                         .HasColumnType("decimal(10, 3)");
 
+                    b.Property<decimal>("Price")
+                        .HasColumnType("decimal(18, 4)");
+
                     b.Property<decimal>("PriceUsd")
                         .HasColumnType("decimal(18, 4)");
 
@@ -4219,7 +4258,13 @@ namespace Dotnetable.Migrations.PostgreSql.Migrations
                     b.Property<byte>("Type")
                         .HasColumnType("smallint");
 
+                    b.Property<decimal>("UnitCost")
+                        .HasColumnType("decimal(18, 4)");
+
                     b.Property<decimal>("UnitCostUsd")
+                        .HasColumnType("decimal(18, 4)");
+
+                    b.Property<decimal?>("UnitSalePrice")
                         .HasColumnType("decimal(18, 4)");
 
                     b.Property<decimal?>("UnitSalePriceUsd")
@@ -4410,12 +4455,18 @@ namespace Dotnetable.Migrations.PostgreSql.Migrations
 
                     NpgsqlPropertyBuilderExtensions.UseIdentityByDefaultColumn(b.Property<int>("VendorID"));
 
+                    b.Property<decimal>("AvailableCredit")
+                        .HasColumnType("decimal(18, 4)");
+
                     b.Property<decimal>("AvailableCreditUsd")
                         .HasColumnType("decimal(18, 4)");
 
                     b.Property<int?>("CreditDays")
                         .HasColumnType("integer")
                         .HasComment("number of days after the settlement period ends before payment is due; only meaningful when SettlementMode = Credit");
+
+                    b.Property<decimal?>("CreditLimit")
+                        .HasColumnType("decimal(18, 4)");
 
                     b.Property<decimal?>("CreditLimitUsd")
                         .HasColumnType("decimal(18, 4)")
@@ -4480,7 +4531,13 @@ namespace Dotnetable.Migrations.PostgreSql.Migrations
 
                     NpgsqlPropertyBuilderExtensions.UseIdentityByDefaultColumn(b.Property<int>("VendorCreditTransactionID"));
 
+                    b.Property<decimal>("Amount")
+                        .HasColumnType("decimal(18, 4)");
+
                     b.Property<decimal>("AmountUsd")
+                        .HasColumnType("decimal(18, 4)");
+
+                    b.Property<decimal>("BalanceAfter")
                         .HasColumnType("decimal(18, 4)");
 
                     b.Property<decimal>("BalanceAfterUsd")
@@ -4544,8 +4601,14 @@ namespace Dotnetable.Migrations.PostgreSql.Migrations
                     b.Property<decimal?>("OverridePrice")
                         .HasColumnType("decimal(18, 4)");
 
+                    b.Property<decimal?>("OverridePriceLocal")
+                        .HasColumnType("decimal(18, 4)");
+
                     b.Property<int>("ProductVariantID")
                         .HasColumnType("integer");
+
+                    b.Property<decimal>("ReferencePrice")
+                        .HasColumnType("decimal(18, 4)");
 
                     b.Property<decimal>("ReferencePriceUsd")
                         .HasColumnType("decimal(18, 4)");
@@ -4743,6 +4806,12 @@ namespace Dotnetable.Migrations.PostgreSql.Migrations
 
                     b.Property<DateOnly>("RegisterDate")
                         .HasColumnType("date");
+
+                    b.Property<bool>("StorePricesInUsd")
+                        .ValueGeneratedOnAdd()
+                        .HasColumnType("boolean")
+                        .HasDefaultValue(false)
+                        .HasComment("When true, also persist USD dual columns; default site currency is always operational authority.");
 
                     b.Property<string>("TradeName")
                         .IsRequired()
