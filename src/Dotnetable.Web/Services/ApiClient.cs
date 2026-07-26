@@ -14,6 +14,8 @@ public sealed class ShippingOptionDto
     public int ShippingMethodID { get; set; }
     public string Title { get; set; } = string.Empty;
     public string? CarrierName { get; set; }
+    public MoneyDto? Price { get; set; }
+    /// <summary>Bridge/legacy dual amount (same as <see cref="Price"/>.AmountUsd when present).</summary>
     public decimal PriceUsd { get; set; }
 }
 
@@ -37,6 +39,7 @@ public sealed class WishlistItemView
     public string Title { get; set; } = string.Empty;
     public string Sku { get; set; } = string.Empty;
     public string? ImageUrl { get; set; }
+    public MoneyDto? Price { get; set; }
     public decimal PriceUsd { get; set; }
 }
 
