@@ -13,11 +13,11 @@ public enum StockMovementType : byte
     Return = 4,
 }
 
-/// <summary>Availability snapshot for a single product variant, derived from its <see cref="InventoryItem"/> row.</summary>
+/// <summary>Availability snapshot for a single product variant, derived from the sum of store (VendorProduct) listings.</summary>
 public readonly record struct StockAvailability(int OnHand, int Reserved, int Available);
 
-/// <summary>Stock levels, reservations and admin adjustments for <see cref="InventoryItem"/> rows.
-/// One row per (WebsiteID, ProductVariantID); rows are created lazily on first adjustment.</summary>
+/// <summary>Stock levels, reservations and admin adjustments.
+/// Sellable availability is always the sum of store listings; <see cref="InventoryItem"/> materialises that total for ledger/reserve.</summary>
 public interface IInventoryService
 {
     Task<StockAvailability> GetAvailabilityAsync(int websiteId, int variantId, CancellationToken ct = default);
@@ -52,4 +52,10 @@ public interface IInventoryService
     Task<PagedResult<InventoryItem>> GetPagedAsync(int websiteId, GridQuery query, CancellationToken ct = default);
 
     Task<List<InventoryItem>> GetLowStockAsync(int websiteId, CancellationToken ct = default);
+
+    /// <summary>
+    /// Materialises on-hand stock as the sum of store listing stocks for this website+variant.
+    /// Store listings are the only sellable stock; with no listings, on-hand is reduced to the reserved floor (available = 0).
+    /// </summary>
+    Task SyncOnHandFromVendorListingsAsync(int websiteId, int productVariantId, CancellationToken ct = default);
 }

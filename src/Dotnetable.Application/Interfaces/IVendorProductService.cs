@@ -45,4 +45,26 @@ public interface IVendorProductService
 
     /// <summary>Active listings for a vendor (admin or storefront helper).</summary>
     Task<List<VendorProduct>> GetActiveByVendorAsync(int vendorId, CancellationToken ct = default);
+
+    /// <summary>Sellable units for a listing (StockQuantity - QuantityReserved).</summary>
+    static int Available(VendorProduct vp) => Math.Max(0, vp.StockQuantity - vp.QuantityReserved);
+
+    /// <summary>Reserves listing stock at checkout. Fails when available &lt; qty.</summary>
+    Task<bool> ReserveAsync(int vendorProductId, int qty, CancellationToken ct = default);
+
+    /// <summary>Releases a reservation (cancel / unpaid order).</summary>
+    Task ReleaseReservationAsync(int vendorProductId, int qty, CancellationToken ct = default);
+
+    /// <summary>
+    /// Completes a paid sale: decrements StockQuantity and QuantityReserved, then
+    /// rebuilds host <c>InventoryItem.QuantityOnHand</c> as the sum of listing stocks for the variant.
+    /// </summary>
+    Task CommitSaleAsync(int vendorProductId, int qty, CancellationToken ct = default);
+
+    /// <summary>
+    /// Sets <c>InventoryItems.QuantityOnHand</c> for the host website + variant to the sum of
+    /// all <see cref="VendorProduct.StockQuantity"/> rows on that host (source of truth = store listings).
+    /// Preserves QuantityReserved already held on the inventory row.
+    /// </summary>
+    Task SyncInventoryOnHandFromListingsAsync(int websiteId, int productVariantId, CancellationToken ct = default);
 }

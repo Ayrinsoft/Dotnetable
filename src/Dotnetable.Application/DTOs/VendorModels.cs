@@ -17,7 +17,12 @@ public sealed class VendorProductListItemDto
     public decimal? OverridePriceLocal { get; init; }
     public decimal ReferencePriceUsd { get; init; }
     public decimal? OverridePrice { get; init; }
+    /// <summary>On-hand stock for this listing.</summary>
     public int StockQuantity { get; init; }
+    /// <summary>Units reserved by unpaid orders.</summary>
+    public int QuantityReserved { get; init; }
+    /// <summary>Sellable units = StockQuantity - QuantityReserved.</summary>
+    public int AvailableQuantity { get; init; }
     public int DeliveryDays { get; init; }
     public bool IsActive { get; init; }
 }

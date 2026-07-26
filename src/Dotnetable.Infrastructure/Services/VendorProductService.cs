@@ -86,6 +86,8 @@ public class VendorProductService : IVendorProductService
         OverridePriceLocal = vp.OverridePriceLocal,
         OverridePrice = vp.OverridePrice,
         StockQuantity = vp.StockQuantity,
+        QuantityReserved = vp.QuantityReserved,
+        AvailableQuantity = IVendorProductService.Available(vp),
         DeliveryDays = vp.DeliveryDays,
         IsActive = vp.IsActive,
     };
@@ -227,12 +229,17 @@ public class VendorProductService : IVendorProductService
             ? model.ReferencePriceUsd
             : (variant.ReferencePriceUsd > 0 ? variant.ReferencePriceUsd : entity.ReferencePrice);
         entity.OverridePrice = model.OverridePrice;
-        entity.StockQuantity = model.StockQuantity;
+        var desiredStock = Math.Max(0, model.StockQuantity);
+        if (desiredStock < entity.QuantityReserved)
+            return (false, $"Stock ({desiredStock}) cannot be below reserved quantity ({entity.QuantityReserved}).", null);
+        entity.StockQuantity = desiredStock;
         entity.DeliveryDays = model.DeliveryDays < 0 ? 0 : model.DeliveryDays;
         entity.IsActive = model.IsActive;
         entity.WebsiteID = vendor.WebsiteID;
 
         await _context.SaveChangesAsync(ct);
+        // Inventory total for the host variant = sum of store listing stocks.
+        await SyncInventoryOnHandFromListingsAsync(entity.WebsiteID, entity.ProductVariantID, ct);
         return (true, null, entity);
     }
 
@@ -249,8 +256,14 @@ public class VendorProductService : IVendorProductService
                 return (false, "You can only manage listings for your own vendor account.");
         }
 
+        if (entity.QuantityReserved > 0)
+            return (false, "Cannot delete a listing with reserved stock from open orders.");
+
+        var websiteId = entity.WebsiteID;
+        var variantId = entity.ProductVariantID;
         _context.VendorProducts.Remove(entity);
         await _context.SaveChangesAsync(ct);
+        await SyncInventoryOnHandFromListingsAsync(websiteId, variantId, ct);
         return (true, null);
     }
 
@@ -269,10 +282,13 @@ public class VendorProductService : IVendorProductService
         if (variant is null) return null;
         if (ValidateOwnership(vendor, variant) is not null) return null;
 
-        var sourceStock = await _context.InventoryItems.AsNoTracking()
-            .Where(i => i.ProductVariantID == productVariantId && i.WebsiteID == variant.WebsiteID)
-            .Select(i => i.QuantityOnHand - i.QuantityReserved)
-            .FirstOrDefaultAsync(ct);
+        // Seed from source-site store listings only (never raw warehouse). Zero ⇒ not sellable until stock is set.
+        var sourceStock = await _context.VendorProducts.AsNoTracking()
+            .Where(vp => vp.ProductVariantID == productVariantId
+                         && vp.WebsiteID == variant.WebsiteID
+                         && vp.IsActive)
+            .Select(vp => vp.StockQuantity - vp.QuantityReserved)
+            .SumAsync(ct);
 
         var listing = new VendorProduct
         {
@@ -285,11 +301,13 @@ public class VendorProductService : IVendorProductService
             OverridePriceLocal = null,
             OverridePrice = null,
             StockQuantity = Math.Max(0, sourceStock),
+            QuantityReserved = 0,
             DeliveryDays = 1,
             IsActive = true,
         };
         _context.VendorProducts.Add(listing);
         await _context.SaveChangesAsync(ct);
+        await SyncInventoryOnHandFromListingsAsync(hostWebsiteId, productVariantId, ct);
         return listing;
     }
 
@@ -298,6 +316,84 @@ public class VendorProductService : IVendorProductService
             .Where(vp => vp.VendorID == vendorId && vp.IsActive)
             .Include(vp => vp.ProductVariant).ThenInclude(v => v.Product)
             .ToListAsync(ct);
+
+    public async Task<bool> ReserveAsync(int vendorProductId, int qty, CancellationToken ct = default)
+    {
+        if (qty <= 0) return true;
+        var item = await _context.VendorProducts.FirstOrDefaultAsync(vp => vp.VendorProductID == vendorProductId, ct);
+        if (item is null || !item.IsActive) return false;
+        if (IVendorProductService.Available(item) < qty) return false;
+
+        item.QuantityReserved += qty;
+        await _context.SaveChangesAsync(ct);
+        return true;
+    }
+
+    public async Task ReleaseReservationAsync(int vendorProductId, int qty, CancellationToken ct = default)
+    {
+        if (qty <= 0) return;
+        var item = await _context.VendorProducts.FirstOrDefaultAsync(vp => vp.VendorProductID == vendorProductId, ct);
+        if (item is null) return;
+
+        item.QuantityReserved = Math.Max(0, item.QuantityReserved - qty);
+        await _context.SaveChangesAsync(ct);
+    }
+
+    public async Task CommitSaleAsync(int vendorProductId, int qty, CancellationToken ct = default)
+    {
+        if (qty <= 0) return;
+        var item = await _context.VendorProducts.FirstOrDefaultAsync(vp => vp.VendorProductID == vendorProductId, ct);
+        if (item is null) return;
+
+        item.StockQuantity = Math.Max(0, item.StockQuantity - qty);
+        item.QuantityReserved = Math.Max(0, item.QuantityReserved - qty);
+        await _context.SaveChangesAsync(ct);
+        // Inventory on-hand is reduced via DecrementOnFulfill; re-sync after both complete in OrderService.
+    }
+
+    public async Task SyncInventoryOnHandFromListingsAsync(int websiteId, int productVariantId, CancellationToken ct = default)
+    {
+        var listings = await _context.VendorProducts
+            .Where(vp => vp.WebsiteID == websiteId && vp.ProductVariantID == productVariantId)
+            .ToListAsync(ct);
+
+        // Source of truth for total inventory: sum of store listing on-hand quantities (0 when no stores).
+        var sumOnHand = listings.Sum(vp => Math.Max(0, vp.StockQuantity));
+
+        var inv = await _context.InventoryItems
+            .FirstOrDefaultAsync(i => i.WebsiteID == websiteId && i.ProductVariantID == productVariantId, ct);
+        if (listings.Count == 0)
+        {
+            if (inv is null) return;
+            // No store listings ⇒ nothing sellable; keep on-hand at reserved floor only.
+            inv.QuantityOnHand = inv.QuantityReserved;
+            await _context.SaveChangesAsync(ct);
+            return;
+        }
+
+        if (inv is null)
+        {
+            inv = new InventoryItem
+            {
+                WebsiteID = websiteId,
+                ProductVariantID = productVariantId,
+                QuantityOnHand = sumOnHand,
+                QuantityReserved = 0,
+                ReorderLevel = 0,
+                AvgCost = 0,
+                AvgCostUsd = 0,
+                RowVersion = new byte[8],
+            };
+            _context.InventoryItems.Add(inv);
+        }
+        else
+        {
+            // Never drop on-hand below open reservations held at inventory level.
+            inv.QuantityOnHand = Math.Max(sumOnHand, inv.QuantityReserved);
+        }
+
+        await _context.SaveChangesAsync(ct);
+    }
 
     /// <summary>
     /// Site vendors may only list products owned by the linked website (Product.WebsiteID == LinkedWebsiteID).

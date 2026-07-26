@@ -794,8 +794,8 @@ public class ProductService : IProductService
     private static string ListingKey(int productId, int? vendorId) => $"{productId}:{vendorId?.ToString() ?? "0"}";
 
     /// <summary>
-    /// Total available units for a catalog listing: warehouse (+ host marketplace sellers) for host products,
-    /// or the vendor listing / source warehouse for site-linked products.
+    /// Total available units for a catalog listing: sum of store listing available stock only.
+    /// Products without an active store listing (or with zero available) are not sellable.
     /// </summary>
     private async Task<Dictionary<string, int>> ResolveListingStockBulkAsync(
         int hostWebsiteId, List<(Product Product, Vendor? Vendor)> listings, CancellationToken ct)
@@ -809,7 +809,7 @@ public class ProductService : IProductService
             .GroupBy(x => x.ProductID)
             .ToDictionary(g => g.Key, g => g.Select(x => x.ProductVariantID).Distinct().ToList());
 
-        // Marketplace seller stocks on host (Display/Member/Site listings with quantity).
+        // Marketplace seller available stocks on host (Display/Member/Site). Inventory total is the sum of these.
         var hostVariantIds = hostProductIds
             .SelectMany(pid => variantIdsByProduct.GetValueOrDefault(pid) ?? new List<int>())
             .Distinct()
@@ -817,21 +817,25 @@ public class ProductService : IProductService
         var sellerStockByVariant = hostVariantIds.Count == 0
             ? new Dictionary<int, int>()
             : await _context.VendorProducts.AsNoTracking()
-                .Where(vp => vp.WebsiteID == hostWebsiteId && vp.IsActive && vp.StockQuantity > 0
+                .Where(vp => vp.WebsiteID == hostWebsiteId && vp.IsActive
                              && hostVariantIds.Contains(vp.ProductVariantID))
                 .GroupBy(vp => vp.ProductVariantID)
-                .Select(g => new { VariantId = g.Key, Stock = g.Sum(x => x.StockQuantity) })
-                .ToDictionaryAsync(x => x.VariantId, x => x.Stock, ct);
+                .Select(g => new
+                {
+                    VariantId = g.Key,
+                    Stock = g.Sum(x => x.StockQuantity - x.QuantityReserved),
+                })
+                .ToDictionaryAsync(x => x.VariantId, x => Math.Max(0, x.Stock), ct);
 
-        // Site-linked vendor listing stocks (host VendorProduct rows).
+        // Site-linked vendor listing stocks (host VendorProduct rows) — use available (on-hand − reserved).
         var siteVendorIds = listings.Where(x => x.Vendor is not null).Select(x => x.Vendor!.VendorID).Distinct().ToList();
         var siteListingStocks = siteVendorIds.Count == 0
-            ? new List<(int VendorID, int ProductVariantID, int StockQuantity)>()
+            ? new List<(int VendorID, int ProductVariantID, int Available)>()
             : (await _context.VendorProducts.AsNoTracking()
                 .Where(vp => siteVendorIds.Contains(vp.VendorID) && vp.IsActive)
-                .Select(vp => new { vp.VendorID, vp.ProductVariantID, vp.StockQuantity })
+                .Select(vp => new { vp.VendorID, vp.ProductVariantID, Available = vp.StockQuantity - vp.QuantityReserved })
                 .ToListAsync(ct))
-              .Select(x => (x.VendorID, x.ProductVariantID, x.StockQuantity))
+              .Select(x => (VendorID: x.VendorID, ProductVariantID: x.ProductVariantID, Available: Math.Max(0, x.Available)))
               .ToList();
 
         foreach (var (product, vendor) in listings)
@@ -846,31 +850,17 @@ public class ProductService : IProductService
 
             if (vendor is null)
             {
-                // Host catalog: warehouse available + any marketplace seller stock on those variants.
-                var warehouse = activeVariants.Sum(v =>
-                    v.InventoryItems.Where(i => i.WebsiteID == product.WebsiteID)
-                        .Sum(i => Math.Max(0, i.QuantityOnHand - i.QuantityReserved)));
-                var sellers = activeVariants.Sum(v => sellerStockByVariant.GetValueOrDefault(v.ProductVariantID));
-                result[key] = warehouse + sellers;
+                // Host catalog: sellable stock is only the sum of store listing available quantities.
+                // No store listing / zero stock ⇒ not for sale.
+                result[key] = activeVariants.Sum(v => sellerStockByVariant.GetValueOrDefault(v.ProductVariantID));
             }
             else
             {
-                // Site-linked row: prefer explicit VendorProduct stock; fall back to source warehouse.
-                var listingStock = siteListingStocks
+                // Site-linked row: only that vendor's listing available stock (no warehouse fallback).
+                result[key] = siteListingStocks
                     .Where(s => s.VendorID == vendor.VendorID
                                 && activeVariants.Any(v => v.ProductVariantID == s.ProductVariantID))
-                    .Sum(s => Math.Max(0, s.StockQuantity));
-                if (listingStock > 0)
-                {
-                    result[key] = listingStock;
-                }
-                else
-                {
-                    // No listing row yet — use source-site inventory (auto-listing path uses this too).
-                    result[key] = activeVariants.Sum(v =>
-                        v.InventoryItems.Where(i => i.WebsiteID == product.WebsiteID)
-                            .Sum(i => Math.Max(0, i.QuantityOnHand - i.QuantityReserved)));
-                }
+                    .Sum(s => s.Available);
             }
         }
 
@@ -962,7 +952,7 @@ public class ProductService : IProductService
                 .ToDictionaryAsync(vp => vp.ProductVariantID, ct);
         }
 
-        // Marketplace sellers on the host for this product — only in-stock listings are returned.
+        // Marketplace sellers on the host for this product — only in-stock (available) listings are returned.
         var variantIds = p.ProductVariants.Where(v => v.IsActive).Select(v => v.ProductVariantID).ToList();
         var sellerRows = vendor is null && variantIds.Count > 0
             ? await _context.VendorProducts.AsNoTracking()
@@ -970,7 +960,7 @@ public class ProductService : IProductService
                 .Include(vp => vp.ProductVariant)
                 .Where(vp => vp.WebsiteID == hostId
                              && vp.IsActive
-                             && vp.StockQuantity > 0
+                             && vp.StockQuantity - vp.QuantityReserved > 0
                              && variantIds.Contains(vp.ProductVariantID)
                              && vp.Vendor.IsActive)
                 .OrderBy(vp => vp.Vendor.Name)
@@ -982,7 +972,7 @@ public class ProductService : IProductService
         if (vendor is not null && focusedListings is not null)
         {
             sellerRows = focusedListings.Values
-                .Where(vp => vp.IsActive && vp.StockQuantity > 0)
+                .Where(vp => vp.IsActive && IVendorProductService.Available(vp) > 0)
                 .ToList();
             // Attach navigation if missing (from dictionary query without Include).
             if (sellerRows.Count > 0 && sellerRows[0].Vendor is null)
@@ -990,7 +980,8 @@ public class ProductService : IProductService
                 var reloaded = await _context.VendorProducts.AsNoTracking()
                     .Include(vp => vp.Vendor)
                     .Include(vp => vp.ProductVariant)
-                    .Where(vp => vp.VendorID == vendor.VendorID && vp.IsActive && vp.StockQuantity > 0
+                    .Where(vp => vp.VendorID == vendor.VendorID && vp.IsActive
+                                 && vp.StockQuantity - vp.QuantityReserved > 0
                                  && variantIds.Contains(vp.ProductVariantID))
                     .ToListAsync(ct);
                 sellerRows = reloaded;
@@ -1002,7 +993,7 @@ public class ProductService : IProductService
         {
             var unitLocal = vp.OverridePriceLocal ?? (vp.ReferencePrice > 0 ? vp.ReferencePrice : 0);
             var unitUsd = vp.OverridePrice ?? vp.ReferencePriceUsd;
-            var stock = Math.Max(0, vp.StockQuantity);
+            var stock = IVendorProductService.Available(vp);
             MoneyDto price;
             if (unitLocal > 0)
                 price = await _currency.ToDisplayFromLocalAsync(priceWebsiteId, unitLocal, null, currencyCode, unitUsd > 0 ? unitUsd : null, ct);
@@ -1036,22 +1027,10 @@ public class ProductService : IProductService
             VendorProduct? listing = null;
             focusedListings?.TryGetValue(v.ProductVariantID, out listing);
 
-            int stock;
-            if (vendor is not null)
-            {
-                // Site-linked (or single-vendor) page: listing stock, else source warehouse.
-                stock = listing is not null
-                    ? Math.Max(0, listing.StockQuantity)
-                    : v.InventoryItems.Where(i => i.WebsiteID == p.WebsiteID)
-                        .Sum(i => Math.Max(0, i.QuantityOnHand - i.QuantityReserved));
-            }
-            else
-            {
-                var warehouse = v.InventoryItems.Where(i => i.WebsiteID == p.WebsiteID)
-                    .Sum(i => Math.Max(0, i.QuantityOnHand - i.QuantityReserved));
-                var fromSellers = sellerStockByVariant.GetValueOrDefault(v.ProductVariantID);
-                stock = warehouse + fromSellers;
-            }
+            // Sellable only via store listings — no warehouse-only path.
+            int stock = vendor is not null
+                ? (listing is not null ? IVendorProductService.Available(listing) : 0)
+                : sellerStockByVariant.GetValueOrDefault(v.ProductVariantID);
 
             // Hide fully unavailable variants when other sellable options exist; keep at least one row for OOS products.
             // Always include variants that have stock; OOS variants are omitted so they are not offered for sale.

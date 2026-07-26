@@ -6,6 +6,7 @@ CREATE TABLE [dbo].[VendorProducts] (
     [ReferencePriceUsd] DECIMAL (18, 4) NOT NULL,
     [OverridePrice]     DECIMAL (18, 4) NULL,
     [StockQuantity]     INT NOT NULL,
+    [QuantityReserved]  INT NOT NULL CONSTRAINT [DF_VendorProducts_QuantityReserved] DEFAULT ((0)),
     [DeliveryDays]      INT NOT NULL,
     [IsActive]          BIT NOT NULL,
     CONSTRAINT [PK_VendorProducts] PRIMARY KEY CLUSTERED ([VendorProductID] ASC),

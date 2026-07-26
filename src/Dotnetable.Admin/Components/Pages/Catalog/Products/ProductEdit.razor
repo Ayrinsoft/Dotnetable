@@ -7,7 +7,6 @@
 @inject IBrandService BrandService
 @inject IAttributeDefinitionService AttributeDefinitionService
 @inject ICurrencyConversionService CurrencyConversion
-@inject IInventoryService InventoryService
 @inject IVendorProductService VendorProductService
 @inject IVendorService VendorService
 @inject IWebsiteService WebsiteService
@@ -141,7 +140,7 @@ else
                     @if (_vendorId is null)
                     {
                         <MudAlert Severity="Severity.Info" Dense="true" Class="mb-3" Variant="Variant.Outlined">
-                            @L["products.catalog_price_hint", "Price on this tab is the catalog / warehouse default for direct site sales. Marketplace sellers can charge a different price for the same variant — set that on the Seller stock & prices tab."]
+                            @L["products.catalog_price_hint", "Price on this tab is the catalog default. Each store sets its own selling price and stock on the Seller stock & prices tab — products without store stock are not sellable."]
                         </MudAlert>
                     }
                     @if (_hasRate && !_isUsdSite)
@@ -219,6 +218,7 @@ else
                                     <MudNumericField T="int" Value="@StockOnHand(v)" ValueChanged="@(val => SetStockOnHand(v, val))"
                                                      Label="@VariantStockLabel"
                                                      Variant="Variant.Outlined" Margin="Margin.Dense" Min="0" Immediate="true"
+                                                     Disabled="@(!_canEdit || IsWarehouseStockReadOnly(v))"
                                                      HelperText="@StockHelper(v)" />
                                 </MudItem>
                                 <MudItem xs="6" sm="1" md="1">
@@ -248,7 +248,7 @@ else
             <MudTabPanel Text="@L["products.seller_stock", "Seller stock & prices"]">
                 <div class="pa-2">
                     <MudAlert Severity="Severity.Info" Dense="true" Variant="Variant.Outlined" Class="mb-3">
-                        @L["products.seller_stock_hint", "Each marketplace seller has their own stock and selling price for a variant (not shared). Store A can sell the same SKU more expensively than Store B. Site-link vendors manage stock on the source site; Display/Member sellers set quantity and price below. Warehouse stock/price on the Variants tab is only for direct site sales without a seller."]
+                        @L["products.seller_stock_hint", "Every unit belongs to a store (even a display-name-only store). Register stock once per store here. Inventory total = sum of store stocks. Checkout reserves; payment deducts. Without store stock the product is not sellable."]
                     </MudAlert>
 
                     <MudPaper Elevation="0" Class="border rounded-lg pa-3 mb-3">
@@ -305,6 +305,7 @@ else
                                     <th>@L["sku", "SKU"]</th>
                                     <th style="min-width:130px">@PriceFieldLabel</th>
                                     <th style="min-width:120px">@L["stock", "Stock"]</th>
+                                    <th style="min-width:90px">@L["inventory.reserved", "Reserved"]</th>
                                     <th style="min-width:100px">@L["vendors.delivery_days", "Delivery days"]</th>
                                     <th>@L["active", "Active"]</th>
                                     <th style="width:1%"></th>
@@ -328,9 +329,11 @@ else
                                         </td>
                                         <td>
                                             <MudNumericField T="int" @bind-Value="row.StockQuantity" Margin="Margin.Dense"
-                                                            Variant="Variant.Outlined" Min="0" Disabled="@(!_canEdit || row.IsSiteLinked)"
-                                                            Style="max-width:110px" />
+                                                            Variant="Variant.Outlined" Min="@row.QuantityReserved" Disabled="@(!_canEdit || row.IsSiteLinked)"
+                                                            Style="max-width:110px"
+                                                            HelperText="@(row.QuantityReserved > 0 ? string.Format(L["products.seller_available_hint", "Available: {0}"], Math.Max(0, row.StockQuantity - row.QuantityReserved)) : null)" />
                                         </td>
+                                        <td>@row.QuantityReserved</td>
                                         <td>
                                             <MudNumericField T="int" @bind-Value="row.DeliveryDays" Margin="Margin.Dense"
                                                             Variant="Variant.Outlined" Min="0" Disabled="@(!_canEdit || row.IsSiteLinked)"
@@ -658,7 +661,7 @@ else
     /// <summary>Session-only site-currency edit buffers. <see cref="ProductVariant.ReferencePrice"/> is the persisted authority.</summary>
     private readonly Dictionary<ProductVariant, decimal> _localPrice = new();
     private readonly Dictionary<ProductVariant, decimal?> _localCompareAt = new();
-    /// <summary>Editable on-hand stock per variant row (site warehouse InventoryItems, or member-vendor listing stock).</summary>
+    /// <summary>On-hand stock per variant: member-vendor listing, or host total of store listings (read-only on host).</summary>
     private readonly Dictionary<ProductVariant, int> _stockOnHand = new();
     /// <summary>Reserved quantity (read-only hint) loaded from inventory; sales already hold this stock.</summary>
     private readonly Dictionary<ProductVariant, int> _stockReserved = new();
@@ -706,9 +709,9 @@ else
             Model = product;
             _websiteId = product.WebsiteID;
             _variants = product.ProductVariants.ToList();
-            await LoadVariantStockAsync(_variants);
             if (_vendorId is null)
                 await LoadSellerStocksAsync();
+            await LoadVariantStockAsync(_variants);
             if (product.FeaturedImageFileID is int fid)
                 _featuredImage = product.FeaturedImageFile;
             foreach (var t in product.ProductTranslations)
@@ -972,35 +975,31 @@ else
         {
             foreach (var v in variants)
             {
-                _stockReserved[v] = 0;
                 if (v.ProductVariantID == 0)
                 {
                     _stockOnHand[v] = 0;
+                    _stockReserved[v] = 0;
                     continue;
                 }
                 var listing = await VendorProductService.FindAsync(vendorId, v.ProductVariantID);
                 _stockOnHand[v] = listing?.StockQuantity ?? 0;
+                _stockReserved[v] = listing?.QuantityReserved ?? 0;
             }
             return;
         }
 
-        var ids = variants.Where(v => v.ProductVariantID != 0).Select(v => v.ProductVariantID).ToList();
-        var availability = ids.Count > 0
-            ? await InventoryService.GetAvailabilityBulkAsync(_websiteId, ids)
-            : new Dictionary<int, StockAvailability>();
-
+        // Host admin: stock is always the sum of store listings (0 when no store assigned ⇒ not sellable).
         foreach (var v in variants)
         {
-            if (v.ProductVariantID != 0 && availability.TryGetValue(v.ProductVariantID, out var stock))
-            {
-                _stockOnHand[v] = stock.OnHand;
-                _stockReserved[v] = stock.Reserved;
-            }
-            else
+            if (v.ProductVariantID == 0)
             {
                 _stockOnHand[v] = 0;
                 _stockReserved[v] = 0;
+                continue;
             }
+            var rows = _sellerStocks.Where(r => r.ProductVariantID == v.ProductVariantID).ToList();
+            _stockOnHand[v] = rows.Sum(r => r.StockQuantity);
+            _stockReserved[v] = rows.Sum(r => r.QuantityReserved);
         }
     }
 
@@ -1023,6 +1022,7 @@ else
             VariantTitle = x.VariantTitle,
             Sku = x.Sku,
             StockQuantity = x.StockQuantity,
+            QuantityReserved = x.QuantityReserved,
             DeliveryDays = x.DeliveryDays,
             // Effective listing price in site currency (override wins when set).
             ReferencePrice = RoundLocal(
@@ -1084,16 +1084,21 @@ else
         _stockOnHand[v] = Math.Max(0, qty);
 
     private string VariantStockLabel => _vendorId is null
-        ? L["variants.stock_warehouse", "Warehouse stock"]
+        ? L["variants.stock_total_stores", "Total (all stores)"]
         : L["variants.stock_yours", "Your stock"];
+
+    /// <summary>Host stock is always derived from store listings; only member sellers edit stock on the variant row.</summary>
+    private bool IsWarehouseStockReadOnly(ProductVariant v) => _vendorId is null;
 
     private string? StockHelper(ProductVariant v)
     {
         if (_vendorId is not null)
-            return L["variants.stock_seller_hint", "Units you can sell as this seller. Other sellers have their own stock."];
+            return L["variants.stock_seller_hint", "Units you can sell as this store. Other stores have their own stock."];
         if (_stockReserved.TryGetValue(v, out var reserved) && reserved > 0)
-            return string.Format(L["variants.stock_reserved_hint", "{0} reserved by open orders"], reserved);
-        return L["variants.stock_warehouse_hint", "Direct site sales only. Per-seller stock is on the Seller stock tab."];
+            return string.Format(L["variants.stock_reserved_hint", "{0} reserved by open orders — edit store stocks on the Seller stock tab."], reserved);
+        if (StockOnHand(v) <= 0)
+            return L["variants.stock_none_hint", "No store stock yet. Assign a store and quantity on the Seller stock tab — otherwise this product is not sellable."];
+        return L["variants.stock_from_stores_hint", "Sum of store stocks. Edit quantity per store on the Seller stock tab only."];
     }
 
     private string VendorTypeLabel(byte type) => type switch
@@ -1234,6 +1239,7 @@ else
         public string VariantTitle { get; set; } = "";
         public string Sku { get; set; } = "";
         public int StockQuantity { get; set; }
+        public int QuantityReserved { get; set; }
         public int DeliveryDays { get; set; } = 1;
         public decimal ReferencePrice { get; set; }
         public decimal? OverridePriceLocal { get; set; }
@@ -1641,28 +1647,19 @@ else
 
                 if (_vendorId is not null)
                 {
-                    // Member seller: stock is per-vendor (VendorProduct), not shared warehouse.
+                    // Member seller is a store: stock lives only on their VendorProduct listing.
                     await PersistMemberVendorStockAsync(stockBySku);
                 }
                 else
                 {
-                    // Site warehouse inventory for direct (non-seller) sales.
-                    var memberId = _memberId ?? 0;
-                    foreach (var v in _variants)
-                    {
-                        if (!stockBySku.TryGetValue(v.Sku, out var desiredOnHand))
-                            desiredOnHand = 0;
-                        await InventoryService.SetOnHandAsync(
-                            _websiteId,
-                            v.ProductVariantID,
-                            desiredOnHand,
-                            note: "Product form warehouse stock",
-                            memberId: memberId);
-                    }
-
-                    // Persist per-seller marketplace stocks edited on the Seller stock tab.
+                    // Host: stock only via store listings (Display / Member / Site) — no warehouse path.
                     await PersistSellerStocksAsync();
                     await LoadSellerStocksAsync();
+                    foreach (var variantId in _variants.Select(v => v.ProductVariantID).Where(id => id != 0).Distinct())
+                        await VendorProductService.SyncInventoryOnHandFromListingsAsync(_websiteId, variantId);
+
+                    if (_sellerStocks.Count == 0)
+                        Snackbar.Add(L["products.no_store_stock_warn", "No store stock assigned. This product is not sellable until you assign stock to a store on the Seller stock tab."], Severity.Warning);
                 }
 
                 await LoadVariantStockAsync(_variants);

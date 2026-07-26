@@ -4410,6 +4410,9 @@ namespace Dotnetable.Migrations.MySql.Migrations
                     b.Property<int>("ProductVariantID")
                         .HasColumnType("int");
 
+                    b.Property<int>("QuantityReserved")
+                        .HasColumnType("int");
+
                     b.Property<decimal>("ReferencePrice")
                         .HasColumnType("decimal(18, 4)");
 

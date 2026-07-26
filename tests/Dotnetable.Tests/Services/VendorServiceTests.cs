@@ -1,3 +1,4 @@
+using Dotnetable.Application.Interfaces;
 using Dotnetable.Domain.Entities;
 using Dotnetable.Domain.Enums;
 using Dotnetable.Infrastructure.Data;
@@ -189,5 +190,108 @@ public class VendorServiceTests : IDisposable
         ok.Should().BeTrue(err);
         item.Should().NotBeNull();
         item!.WebsiteID.Should().Be(_host.WebsiteID);
+    }
+
+    [Fact]
+    public async Task VendorProduct_Upsert_SyncsInventoryOnHandAsSumOfStoreStocks()
+    {
+        var v1 = await _vendors.CreateAsync(new Vendor
+        {
+            WebsiteID = _host.WebsiteID, Name = "Store A", Slug = "store-a",
+            IsActive = true, VendorType = (byte)VendorType.Display,
+        });
+        var v2 = await _vendors.CreateAsync(new Vendor
+        {
+            WebsiteID = _host.WebsiteID, Name = "Store B", Slug = "store-b",
+            IsActive = true, VendorType = (byte)VendorType.Display,
+        });
+
+        var product = new Product
+        {
+            WebsiteID = _host.WebsiteID, Slug = "p1", Title = "Product",
+            Status = 1, IsActive = true, CreatedAt = DateTime.UtcNow, UpdatedAt = DateTime.UtcNow,
+        };
+        _context.Products.Add(product);
+        await _context.SaveChangesAsync();
+        var variant = new ProductVariant
+        {
+            WebsiteID = _host.WebsiteID, ProductID = product.ProductID, Sku = "P1", Title = "Default",
+            ReferencePrice = 10, ReferencePriceUsd = 10, IsActive = true, CreatedAt = DateTime.UtcNow,
+        };
+        _context.ProductVariants.Add(variant);
+        await _context.SaveChangesAsync();
+
+        var (ok1, err1, listing1) = await _listings.UpsertAsync(new VendorProduct
+        {
+            VendorID = v1.VendorID, ProductVariantID = variant.ProductVariantID,
+            ReferencePrice = 10, ReferencePriceUsd = 10, StockQuantity = 5, IsActive = true,
+        });
+        ok1.Should().BeTrue(err1);
+
+        var (ok2, err2, _) = await _listings.UpsertAsync(new VendorProduct
+        {
+            VendorID = v2.VendorID, ProductVariantID = variant.ProductVariantID,
+            ReferencePrice = 11, ReferencePriceUsd = 11, StockQuantity = 3, IsActive = true,
+        });
+        ok2.Should().BeTrue(err2);
+
+        var inv = await _context.InventoryItems.SingleAsync(i =>
+            i.WebsiteID == _host.WebsiteID && i.ProductVariantID == variant.ProductVariantID);
+        inv.QuantityOnHand.Should().Be(8);
+
+        // Reserve on store A, then commit sale → stock and inventory total drop after commit+sync.
+        (await _listings.ReserveAsync(listing1!.VendorProductID, 2)).Should().BeTrue();
+        var reserved = await _context.VendorProducts.SingleAsync(x => x.VendorProductID == listing1.VendorProductID);
+        reserved.QuantityReserved.Should().Be(2);
+        IVendorProductService.Available(reserved).Should().Be(3);
+
+        await _listings.CommitSaleAsync(listing1.VendorProductID, 2);
+        await _listings.SyncInventoryOnHandFromListingsAsync(_host.WebsiteID, variant.ProductVariantID);
+
+        reserved = await _context.VendorProducts.SingleAsync(x => x.VendorProductID == listing1.VendorProductID);
+        reserved.StockQuantity.Should().Be(3);
+        reserved.QuantityReserved.Should().Be(0);
+
+        inv = await _context.InventoryItems.SingleAsync(i =>
+            i.WebsiteID == _host.WebsiteID && i.ProductVariantID == variant.ProductVariantID);
+        inv.QuantityOnHand.Should().Be(6); // 3 + 3
+    }
+
+    [Fact]
+    public async Task VendorProduct_Cancel_ReleasesReservationWithoutReducingOnHand()
+    {
+        var v = await _vendors.CreateAsync(new Vendor
+        {
+            WebsiteID = _host.WebsiteID, Name = "Store C", Slug = "store-c",
+            IsActive = true, VendorType = (byte)VendorType.Display,
+        });
+        var product = new Product
+        {
+            WebsiteID = _host.WebsiteID, Slug = "p2", Title = "Product 2",
+            Status = 1, IsActive = true, CreatedAt = DateTime.UtcNow, UpdatedAt = DateTime.UtcNow,
+        };
+        _context.Products.Add(product);
+        await _context.SaveChangesAsync();
+        var variant = new ProductVariant
+        {
+            WebsiteID = _host.WebsiteID, ProductID = product.ProductID, Sku = "P2", Title = "Default",
+            ReferencePrice = 5, ReferencePriceUsd = 5, IsActive = true, CreatedAt = DateTime.UtcNow,
+        };
+        _context.ProductVariants.Add(variant);
+        await _context.SaveChangesAsync();
+
+        var (ok, err, listing) = await _listings.UpsertAsync(new VendorProduct
+        {
+            VendorID = v.VendorID, ProductVariantID = variant.ProductVariantID,
+            ReferencePrice = 5, ReferencePriceUsd = 5, StockQuantity = 4, IsActive = true,
+        });
+        ok.Should().BeTrue(err);
+
+        (await _listings.ReserveAsync(listing!.VendorProductID, 1)).Should().BeTrue();
+        await _listings.ReleaseReservationAsync(listing.VendorProductID, 1);
+
+        var row = await _context.VendorProducts.SingleAsync(x => x.VendorProductID == listing.VendorProductID);
+        row.StockQuantity.Should().Be(4);
+        row.QuantityReserved.Should().Be(0);
     }
 }

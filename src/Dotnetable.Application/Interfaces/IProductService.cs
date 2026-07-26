@@ -65,7 +65,7 @@ public interface IProductService
     /// price, and availability. Priced in the requested display currency.
     /// </summary>
     /// <param name="inStock">
-    /// When true, only products with available stock &gt; 0 (warehouse or any seller listing).
+    /// When true, only products with available store-listing stock &gt; 0.
     /// When false, only out-of-stock products. When null, no availability filter.
     /// </param>
     Task<PagedResult<ProductSummaryDto>> GetPublishedAsync(
