@@ -28,14 +28,11 @@
                     </MudSelect>
                 </MudItem>
                 <MudItem xs="12" sm="6">
-                    <MudSelect T="int?" @bind-Value="_parentId" Label="@L["menus.parent", "Parent"]"
-                               Variant="Variant.Outlined" Clearable="true">
-                        <MudSelectItem T="int?" Value="@((int?)null)">@L["menus.top_level", "— Top level —"]</MudSelectItem>
-                        @foreach (var candidate in ParentCandidates)
-                        {
-                            <MudSelectItem T="int?" Value="@candidate.MenuItemID">@candidate.Title</MudSelectItem>
-                        }
-                    </MudSelect>
+                    <MudAutocomplete T="MenuItem" Value="@GetSelectedParent()" ValueChanged="OnParentChanged"
+                                     SearchFunc="SearchParents" ToStringFunc="@(m => m?.Title ?? string.Empty)"
+                                     Label="@L["menus.parent", "Parent"]" Variant="Variant.Outlined"
+                                     Clearable="true" CoerceText="false" ResetValueOnEmptyText="true"
+                                     HelperText="@L["menus.parent_hint", "Clear for top-level. Type to search."]" />
                 </MudItem>
 
                 @if (_type != MenuItemType.Custom)
@@ -160,6 +157,23 @@
             forbidden.Add(Model.MenuItemID);
             return AllItems.Where(i => !forbidden.Contains(i.MenuItemID));
         }
+    }
+
+    private MenuItem? GetSelectedParent() =>
+        _parentId is int id ? ParentCandidates.FirstOrDefault(i => i.MenuItemID == id) : null;
+
+    private void OnParentChanged(MenuItem? parent) =>
+        _parentId = parent?.MenuItemID;
+
+    private Task<IEnumerable<MenuItem>> SearchParents(string value, CancellationToken ct)
+    {
+        IEnumerable<MenuItem> q = ParentCandidates.OrderBy(i => i.Title);
+        if (!string.IsNullOrWhiteSpace(value))
+        {
+            var needle = value.Trim();
+            q = q.Where(i => i.Title.Contains(needle, StringComparison.OrdinalIgnoreCase));
+        }
+        return Task.FromResult(q);
     }
 
     protected override async Task OnInitializedAsync()

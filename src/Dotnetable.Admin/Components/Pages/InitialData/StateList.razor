@@ -13,14 +13,9 @@
         <MudText Typo="Typo.body2" Color="Color.Secondary">@L["state.subtitle", "Manage state and province reference data"]</MudText>
     </MudStack>
     <MudStack Row="true" Spacing="2" AlignItems="AlignItems.Center">
-        <MudSelect T="int?" Value="_filterCountryId" ValueChanged="OnCountryFilterChanged"
-                   Label="@L["state.filter_country", "Filter by Country"]" Variant="Variant.Outlined" Dense="true" Style="min-width:200px"
-                   Clearable="true">
-            @foreach (var c in _countries)
-            {
-                <MudSelectItem T="int?" Value="@((int?)c.CountryID)">@c.Title</MudSelectItem>
-            }
-        </MudSelect>
+        <CountrySelector Value="_filterCountryId" ValueChanged="OnCountryFilterChanged"
+                         Countries="_countries" Label="@L["state.filter_country", "Filter by Country"]"
+                         Dense="true" Style="min-width:200px" Clearable="true" />
         <MudButton Variant="Variant.Outlined" Color="Color.Primary"
                    StartIcon="@Icons.Material.Filled.Download"
                    OnClick="DownloadSampleAsync" Disabled="_busy">

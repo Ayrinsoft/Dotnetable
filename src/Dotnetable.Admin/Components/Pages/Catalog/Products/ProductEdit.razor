@@ -255,14 +255,10 @@ else
                         <MudText Typo="Typo.subtitle2" Class="mb-2">@L["products.seller_stock_add", "Assign listing to a seller"]</MudText>
                         <MudGrid Spacing="2" AlignItems="AlignItems.Center">
                             <MudItem xs="12" sm="3">
-                                <MudSelect T="int?" @bind-Value="_addSellerVendorId"
-                                           Label="@L["vendor", "Seller"]" Variant="Variant.Outlined" Margin="Margin.Dense"
-                                           Clearable="true" Dense="true">
-                                    @foreach (var vendor in _marketplaceVendors)
-                                    {
-                                        <MudSelectItem T="int?" Value="@vendor.VendorID">@vendor.Name</MudSelectItem>
-                                    }
-                                </MudSelect>
+                                <MudAutocomplete T="Vendor" Value="@GetAddSellerVendor()" ValueChanged="OnAddSellerVendorChanged"
+                                                 SearchFunc="SearchMarketplaceVendors" ToStringFunc="@(v => v?.Name ?? string.Empty)"
+                                                 Label="@L["vendor", "Seller"]" Variant="Variant.Outlined" Margin="Margin.Dense"
+                                                 Clearable="true" Dense="true" CoerceText="false" ResetValueOnEmptyText="true" />
                             </MudItem>
                             <MudItem xs="12" sm="3">
                                 <MudSelect T="int?" Value="_addSellerVariantId" ValueChanged="OnAddSellerVariantChanged"
@@ -396,13 +392,14 @@ else
                             <MudItem xs="12" sm="7">
                                 @if (def.InputType is 1 or 2)
                                 {
-                                    <MudSelect T="int?" Value="@(value?.AttributeOptionID)" ValueChanged="@(o => SetAttrOption(def.AttributeDefinitionID, o))"
-                                               Variant="Variant.Outlined" Margin="Margin.Dense" Clearable="true">
-                                        @foreach (var opt in def.AttributeOptions)
-                                        {
-                                            <MudSelectItem T="int?" Value="@((int?)opt.AttributeOptionID)">@opt.Value</MudSelectItem>
-                                        }
-                                    </MudSelect>
+                                    <MudAutocomplete T="AttributeOption"
+                                                     Value="@GetSelectedAttrOption(def, value)"
+                                                     ValueChanged="@(o => SetAttrOption(def.AttributeDefinitionID, o?.AttributeOptionID))"
+                                                     SearchFunc="@( (s, ct) => SearchAttrOptions(def, s, ct) )"
+                                                     ToStringFunc="@(o => o?.Value ?? string.Empty)"
+                                                     Variant="Variant.Outlined" Margin="Margin.Dense"
+                                                     Clearable="true" Dense="true"
+                                                     CoerceText="false" ResetValueOnEmptyText="true" />
                                 }
                                 else if (def.InputType == 3)
                                 {
@@ -559,15 +556,13 @@ else
                         <MudPaper Elevation="0" Class="border rounded-lg pa-3 mb-2">
                             <MudGrid Spacing="2" AlignItems="AlignItems.Center">
                                 <MudItem xs="12" sm="4">
-                                    <MudSelect T="int?" Value="row.WarrantyID" ValueChanged="@(id => OnWarrantyCatalogChanged(row, id))"
-                                               Label="@L["products.warranty_plan", "Catalog plan"]" Variant="Variant.Outlined" Margin="Margin.Dense"
-                                               Clearable="true" Dense="true">
-                                        <MudSelectItem T="int?" Value="@((int?)null)">@L["products.warranty_custom_only", "Custom text only"]</MudSelectItem>
-                                        @foreach (var plan in _warrantyCatalog)
-                                        {
-                                            <MudSelectItem T="int?" Value="@plan.WarrantyID">@plan.Title@(plan.DurationMonths is int m ? $" ({m} mo)" : "")</MudSelectItem>
-                                        }
-                                    </MudSelect>
+                                    <MudAutocomplete T="Warranty" Value="@GetSelectedWarranty(row)" ValueChanged="@(plan => OnWarrantyCatalogChanged(row, plan))"
+                                                     Label="@L["products.warranty_plan", "Catalog plan"]" Variant="Variant.Outlined" Margin="Margin.Dense"
+                                                     SearchFunc="@( (value, ct) => SearchWarranties(value, row, ct) )"
+                                                     ToStringFunc="WarrantyDisplay"
+                                                     Clearable="true" Dense="true"
+                                                     ResetValueOnEmptyText="true" CoerceText="false"
+                                                     HelperText="@L["products.warranty_plan_hint", "Type to search registered warranties. Clear for custom text only."]" />
                                 </MudItem>
                                 <MudItem xs="12" sm="4">
                                     <MudTextField @bind-Value="row.CustomTitle" Label="@L["products.warranty_custom_title", "Custom title / override"]"
@@ -750,7 +745,8 @@ else
 
         _brands = await BrandService.GetAllAsync(_websiteId);
         _categories = await CategoryService.GetAllAsync(_websiteId);
-        _warrantyCatalog = await WarrantyService.GetAllAsync(_websiteId, activeOnly: true);
+        // Load all plans so inactive ones already linked to the product still resolve in the autocomplete.
+        _warrantyCatalog = await WarrantyService.GetAllAsync(_websiteId, activeOnly: false);
         if (_vendorId is null)
         {
             // Display + Member sellers only (site-link stock lives on the source website inventory).
@@ -1040,6 +1036,24 @@ else
         }).ToList();
     }
 
+    private Vendor? GetAddSellerVendor() =>
+        _addSellerVendorId is int id ? _marketplaceVendors.FirstOrDefault(v => v.VendorID == id) : null;
+
+    private void OnAddSellerVendorChanged(Vendor? vendor) => _addSellerVendorId = vendor?.VendorID;
+
+    private Task<IEnumerable<Vendor>> SearchMarketplaceVendors(string value, CancellationToken ct)
+    {
+        IEnumerable<Vendor> q = _marketplaceVendors.OrderBy(v => v.Name);
+        if (!string.IsNullOrWhiteSpace(value))
+        {
+            var needle = value.Trim();
+            q = q.Where(v =>
+                v.Name.Contains(needle, StringComparison.OrdinalIgnoreCase)
+                || v.Slug.Contains(needle, StringComparison.OrdinalIgnoreCase));
+        }
+        return Task.FromResult(q);
+    }
+
     private Task OnAddSellerVariantChanged(int? variantId)
     {
         _addSellerVariantId = variantId;
@@ -1270,9 +1284,46 @@ else
     private void AddWarrantyRow() =>
         _warranties.Add(new ProductWarranty { IsActive = true, SortOrder = _warranties.Count });
 
-    private void OnWarrantyCatalogChanged(ProductWarranty row, int? warrantyId)
+    private Warranty? GetSelectedWarranty(ProductWarranty row) =>
+        row.WarrantyID is int id
+            ? _warrantyCatalog.FirstOrDefault(w => w.WarrantyID == id)
+            : null;
+
+    private void OnWarrantyCatalogChanged(ProductWarranty row, Warranty? plan)
     {
-        row.WarrantyID = warrantyId;
+        row.WarrantyID = plan?.WarrantyID;
+    }
+
+    private string WarrantyDisplay(Warranty? w)
+    {
+        if (w is null) return string.Empty;
+        var label = w.Title;
+        if (w.DurationMonths is int m)
+            label = $"{label} ({m} mo)";
+        if (!string.IsNullOrWhiteSpace(w.ProviderName))
+            label = $"{label} — {w.ProviderName}";
+        return label;
+    }
+
+    private Task<IEnumerable<Warranty>> SearchWarranties(string value, ProductWarranty row, CancellationToken ct)
+    {
+        var selectedId = row.WarrantyID;
+        IEnumerable<Warranty> q = _warrantyCatalog
+            .Where(w => w.IsActive || (selectedId is int sid && w.WarrantyID == sid))
+            .OrderBy(w => w.SortOrder)
+            .ThenBy(w => w.Title);
+
+        if (!string.IsNullOrWhiteSpace(value))
+        {
+            var needle = value.Trim();
+            q = q.Where(w =>
+                w.Title.Contains(needle, StringComparison.OrdinalIgnoreCase)
+                || (w.ProviderName?.Contains(needle, StringComparison.OrdinalIgnoreCase) ?? false)
+                || (w.Description?.Contains(needle, StringComparison.OrdinalIgnoreCase) ?? false)
+                || (w.DurationMonths?.ToString().Contains(needle, StringComparison.OrdinalIgnoreCase) ?? false));
+        }
+
+        return Task.FromResult(q);
     }
 
     private string TrTitle(string c) => _tr.TryGetValue(c, out var v) ? v.Title : string.Empty;
@@ -1384,6 +1435,22 @@ else
     private void SetAttrNumeric(int attributeDefinitionId, decimal? value) => GetOrCreateAttrValue(attributeDefinitionId).NumericValue = value;
     private void SetAttrText(int attributeDefinitionId, string? value) => GetOrCreateAttrValue(attributeDefinitionId).CustomValue = value;
     private void SetAttrFeatured(int attributeDefinitionId, bool featured) => GetOrCreateAttrValue(attributeDefinitionId).IsFeatured = featured;
+
+    private AttributeOption? GetSelectedAttrOption(AttributeDefinition def, ProductAttributeValue? value) =>
+        value?.AttributeOptionID is int id
+            ? def.AttributeOptions.FirstOrDefault(o => o.AttributeOptionID == id)
+            : null;
+
+    private Task<IEnumerable<AttributeOption>> SearchAttrOptions(AttributeDefinition def, string search, CancellationToken ct)
+    {
+        IEnumerable<AttributeOption> q = def.AttributeOptions.OrderBy(o => o.SortOrder).ThenBy(o => o.Value);
+        if (!string.IsNullOrWhiteSpace(search))
+        {
+            var needle = search.Trim();
+            q = q.Where(o => o.Value.Contains(needle, StringComparison.OrdinalIgnoreCase));
+        }
+        return Task.FromResult(q);
+    }
 
     private string RelatedTitle(int productId) => _relatedTitles.TryGetValue(productId, out var t) ? t : $"#{productId}";
 

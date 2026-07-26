@@ -245,22 +245,13 @@ else if (_client is not null)
                             <MudTextField @bind-Value="_editAddress.ReceiverName" Label="@L["clients.addresses.receiver", "Receiver"]" Variant="Variant.Outlined" />
                         </MudItem>
                         <MudItem xs="12" sm="6">
-                            <MudSelect T="int?" @bind-Value="_editAddress.CountryId" Label="@L["country", "Country"]"
-                                       Variant="Variant.Outlined" Clearable="true" SelectedValuesChanged="OnAddressCountryChanged">
-                                @foreach (var c in _countries)
-                                {
-                                    <MudSelectItem T="int?" Value="@((int?)c.CountryID)">@c.Title</MudSelectItem>
-                                }
-                            </MudSelect>
+                            <CountrySelector Value="_editAddress.CountryId" ValueChanged="OnAddressCountryIdChanged"
+                                             Countries="_countries" Label="@L["country", "Country"]" Clearable="true" />
                         </MudItem>
                         <MudItem xs="12" sm="6">
-                            <MudSelect T="int?" @bind-Value="_editAddress.CityId" Label="@L["city", "City"]"
-                                       Variant="Variant.Outlined" Clearable="true" Disabled="@(_editAddress.CountryId is null)">
-                                @foreach (var c in _addressCities)
-                                {
-                                    <MudSelectItem T="int?" Value="@((int?)c.CityID)">@c.Title</MudSelectItem>
-                                }
-                            </MudSelect>
+                            <CitySelector Value="_editAddress.CityId" ValueChanged="@(id => _editAddress.CityId = id)"
+                                          Cities="_addressCities" Label="@L["city", "City"]" Clearable="true"
+                                          Disabled="@(_editAddress.CountryId is null)" />
                         </MudItem>
                         <MudItem xs="12">
                             <MudTextField @bind-Value="_editAddress.AddressLine" Label="@L["clients.addresses.address_line", "Address"]"
@@ -385,11 +376,12 @@ else if (_client is not null)
         _addressesLoading = false;
     }
 
-    private async Task OnAddressCountryChanged(IEnumerable<int?> _)
+    private async Task OnAddressCountryIdChanged(int? countryId)
     {
-        _editAddress!.CityId = null;
-        _addressCities = _editAddress.CountryId is int countryId
-            ? (await LocationService.GetCitiesByCountryAsync(countryId)).ToList()
+        _editAddress!.CountryId = countryId;
+        _editAddress.CityId = null;
+        _addressCities = countryId is int id
+            ? (await LocationService.GetCitiesByCountryAsync(id)).ToList()
             : new();
     }
 

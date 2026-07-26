@@ -8,31 +8,18 @@
         <MudForm @ref="_form">
             <MudGrid Spacing="3">
                 <MudItem xs="12" sm="4">
-                    <MudSelect T="int?" @bind-Value="Model.CountryID" Label="@L["country", "Country"]" Variant="Variant.Outlined"
-                               Clearable="true" SelectedValuesChanged="OnCountryChanged">
-                        @foreach (var c in _countries)
-                        {
-                            <MudSelectItem T="int?" Value="@((int?)c.CountryID)">@c.Title</MudSelectItem>
-                        }
-                    </MudSelect>
+                    <CountrySelector Value="Model.CountryID" ValueChanged="OnCountryIdChanged"
+                                     Countries="_countries" Label="@L["country", "Country"]" Clearable="true" />
                 </MudItem>
                 <MudItem xs="12" sm="4">
-                    <MudSelect T="int?" @bind-Value="Model.StateID" Label="@L["state", "State"]" Variant="Variant.Outlined"
-                               Clearable="true" Disabled="@(Model.CountryID is null)" SelectedValuesChanged="OnStateChanged">
-                        @foreach (var s in _states)
-                        {
-                            <MudSelectItem T="int?" Value="@((int?)s.StateID)">@s.Title</MudSelectItem>
-                        }
-                    </MudSelect>
+                    <StateSelector Value="Model.StateID" ValueChanged="OnStateIdChanged"
+                                   States="_states" Label="@L["state", "State"]" Clearable="true"
+                                   Disabled="@(Model.CountryID is null)" />
                 </MudItem>
                 <MudItem xs="12" sm="4">
-                    <MudSelect T="int?" @bind-Value="Model.CityID" Label="@L["city", "City"]" Variant="Variant.Outlined"
-                               Clearable="true" Disabled="@(Model.CountryID is null)">
-                        @foreach (var c in _cities)
-                        {
-                            <MudSelectItem T="int?" Value="@((int?)c.CityID)">@c.Title</MudSelectItem>
-                        }
-                    </MudSelect>
+                    <CitySelector Value="Model.CityID" ValueChanged="@(id => Model.CityID = id)"
+                                  Cities="_cities" Label="@L["city", "City"]" Clearable="true"
+                                  Disabled="@(Model.CountryID is null)" />
                 </MudItem>
                 <MudItem xs="12" sm="4">
                     <MudNumericField T="decimal?" @bind-Value="Model.MinWeightKg" Label="@L["min_weight", "Min Weight (kg)"]" Variant="Variant.Outlined" Min="0" />
@@ -79,14 +66,15 @@
         }
     }
 
-    private async Task OnCountryChanged(IEnumerable<int?> _)
+    private async Task OnCountryIdChanged(int? countryId)
     {
+        Model.CountryID = countryId;
         Model.StateID = null;
         Model.CityID = null;
-        if (Model.CountryID is int countryId)
+        if (countryId is int id)
         {
-            _states = (await LocationService.GetStatesByCountryAsync(countryId)).ToList();
-            _cities = (await LocationService.GetCitiesByCountryAsync(countryId)).ToList();
+            _states = (await LocationService.GetStatesByCountryAsync(id)).ToList();
+            _cities = (await LocationService.GetCitiesByCountryAsync(id)).ToList();
         }
         else
         {
@@ -95,8 +83,9 @@
         }
     }
 
-    private Task OnStateChanged(IEnumerable<int?> _)
+    private Task OnStateIdChanged(int? stateId)
     {
+        Model.StateID = stateId;
         Model.CityID = null;
         return Task.CompletedTask;
     }

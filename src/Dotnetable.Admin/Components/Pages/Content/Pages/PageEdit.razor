@@ -106,14 +106,11 @@ else if (_model is not null)
                         <MudSelectItem T="byte" Value="@((byte)1)">@L["pages.published", "Published"]</MudSelectItem>
                     </MudSelect>
 
-                    <MudSelect T="int?" @bind-Value="_model.ParentPageID" Label="@L["pages.parent", "Parent page"]"
-                               Variant="Variant.Outlined" Clearable="true" Class="mb-3">
-                        <MudSelectItem T="int?" Value="@((int?)null)">@L["pages.top_level", "— Top level —"]</MudSelectItem>
-                        @foreach (var p in ParentCandidates)
-                        {
-                            <MudSelectItem T="int?" Value="@p.PageID">@p.Title</MudSelectItem>
-                        }
-                    </MudSelect>
+                    <MudAutocomplete T="Page" Value="@GetSelectedParentPage()" ValueChanged="OnParentPageChanged"
+                                     SearchFunc="SearchParentPages" ToStringFunc="@(p => p?.Title ?? string.Empty)"
+                                     Label="@L["pages.parent", "Parent page"]" Variant="Variant.Outlined"
+                                     Class="mb-3" Clearable="true" CoerceText="false" ResetValueOnEmptyText="true"
+                                     HelperText="@L["pages.parent_hint", "Clear for top-level page. Type to search."]" />
 
                     <MudTextField @bind-Value="_model.Template" Label="@L["pages.template", "Template (optional)"]" Variant="Variant.Outlined" Class="mb-3" />
                     <MudNumericField T="int" @bind-Value="_model.SortOrder" Label="@L["pages.sort", "Sort order"]" Variant="Variant.Outlined" Class="mb-3" />
@@ -200,6 +197,25 @@ else if (_model is not null)
     }
 
     private IEnumerable<Page> ParentCandidates => _allPages.Where(p => p.PageID != (Id ?? 0));
+
+    private Page? GetSelectedParentPage() =>
+        _model?.ParentPageID is int id ? ParentCandidates.FirstOrDefault(p => p.PageID == id) : null;
+
+    private void OnParentPageChanged(Page? page) =>
+        _model!.ParentPageID = page?.PageID;
+
+    private Task<IEnumerable<Page>> SearchParentPages(string value, CancellationToken ct)
+    {
+        IEnumerable<Page> q = ParentCandidates.OrderBy(p => p.Title);
+        if (!string.IsNullOrWhiteSpace(value))
+        {
+            var needle = value.Trim();
+            q = q.Where(p =>
+                p.Title.Contains(needle, StringComparison.OrdinalIgnoreCase)
+                || p.Slug.Contains(needle, StringComparison.OrdinalIgnoreCase));
+        }
+        return Task.FromResult(q);
+    }
 
     protected override async Task OnInitializedAsync()
     {

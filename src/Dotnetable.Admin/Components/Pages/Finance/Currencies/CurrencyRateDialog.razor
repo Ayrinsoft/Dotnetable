@@ -7,13 +7,11 @@
         <MudForm @ref="_form">
             <MudGrid Spacing="3">
                 <MudItem xs="12">
-                    <MudSelect T="string" Value="Model.CurrencyCode" ValueChanged="OnCurrencyChanged"
-                               Label="@L["currencies.code", "Currency"]" Variant="Variant.Outlined" Required="true" Disabled="@(!IsNew)">
-                        @foreach (var c in Currencies)
-                        {
-                            <MudSelectItem T="string" Value="@c.CurrencyCode">@c.CurrencyCode — @c.Name</MudSelectItem>
-                        }
-                    </MudSelect>
+                    <MudAutocomplete T="Currency" Value="@GetSelectedCurrency()" ValueChanged="OnCurrencySelected"
+                                     SearchFunc="SearchCurrencies" ToStringFunc="CurrencyDisplay"
+                                     Label="@L["currencies.code", "Currency"]" Variant="Variant.Outlined"
+                                     Required="true" Disabled="@(!IsNew)"
+                                     Clearable="false" CoerceText="false" ResetValueOnEmptyText="true" />
                 </MudItem>
 
                 <MudItem xs="12">
@@ -121,10 +119,31 @@
         RecalculateResolved();
     }
 
-    private Task OnCurrencyChanged(string code)
+    private Currency? GetSelectedCurrency() =>
+        string.IsNullOrEmpty(Model.CurrencyCode)
+            ? null
+            : Currencies.FirstOrDefault(c => c.CurrencyCode == Model.CurrencyCode);
+
+    private string CurrencyDisplay(Currency? c) =>
+        c is null ? string.Empty : $"{c.CurrencyCode} — {c.Name}";
+
+    private Task OnCurrencySelected(Currency? currency)
     {
-        Model.CurrencyCode = code;
+        Model.CurrencyCode = currency?.CurrencyCode ?? string.Empty;
         return Task.CompletedTask;
+    }
+
+    private Task<IEnumerable<Currency>> SearchCurrencies(string value, CancellationToken ct)
+    {
+        IEnumerable<Currency> q = Currencies.OrderBy(c => c.CurrencyCode);
+        if (!string.IsNullOrWhiteSpace(value))
+        {
+            var needle = value.Trim();
+            q = q.Where(c =>
+                c.CurrencyCode.Contains(needle, StringComparison.OrdinalIgnoreCase)
+                || c.Name.Contains(needle, StringComparison.OrdinalIgnoreCase));
+        }
+        return Task.FromResult(q);
     }
 
     private Task OnInputModeChanged(RateInputMode mode)

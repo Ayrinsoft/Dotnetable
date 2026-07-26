@@ -10,12 +10,10 @@
                     <MudTextField @bind-Value="Model.Title" Label="@L["title", "Title"]" Variant="Variant.Outlined" Required="true" />
                 </MudItem>
                 <MudItem xs="12">
-                    <MudSelect T="int" @bind-Value="Model.BankID" Label="@L["banks", "Bank"]" Variant="Variant.Outlined" Required="true">
-                        @foreach (var b in Banks)
-                        {
-                            <MudSelectItem T="int" Value="@b.BankID">@b.Name</MudSelectItem>
-                        }
-                    </MudSelect>
+                    <MudAutocomplete T="Bank" Value="@GetSelectedBank()" ValueChanged="OnBankChanged"
+                                     SearchFunc="SearchBanks" ToStringFunc="@(b => b?.Name ?? string.Empty)"
+                                     Label="@L["banks", "Bank"]" Variant="Variant.Outlined" Required="true"
+                                     Clearable="false" CoerceText="false" ResetValueOnEmptyText="true" />
                 </MudItem>
                 <MudItem xs="12" sm="6">
                     <MudTextField @bind-Value="Model.OwnerName" Label="@L["bank_accounts.owner", "Owner name"]" Variant="Variant.Outlined" />
@@ -55,6 +53,25 @@
     private MudForm _form = null!;
     private bool _saving;
     private string[]? _formErrors;
+
+    private Bank? GetSelectedBank() =>
+        Model.BankID > 0 ? Banks.FirstOrDefault(b => b.BankID == Model.BankID) : null;
+
+    private void OnBankChanged(Bank? bank)
+    {
+        Model.BankID = bank?.BankID ?? 0;
+    }
+
+    private Task<IEnumerable<Bank>> SearchBanks(string value, CancellationToken ct)
+    {
+        IEnumerable<Bank> q = Banks.OrderBy(b => b.Name);
+        if (!string.IsNullOrWhiteSpace(value))
+        {
+            var needle = value.Trim();
+            q = q.Where(b => b.Name.Contains(needle, StringComparison.OrdinalIgnoreCase));
+        }
+        return Task.FromResult(q);
+    }
 
     private void Cancel() => MudDialog.Cancel();
 

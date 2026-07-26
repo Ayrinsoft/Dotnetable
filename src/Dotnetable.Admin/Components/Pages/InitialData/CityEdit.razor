@@ -33,23 +33,16 @@ else if (_item is not null)
                                   Required="true" RequiredError="@L["required", "This field is required."]" />
                 </MudItem>
                 <MudItem xs="12" sm="3">
-                    <MudSelect T="int" @bind-Value="_item.CountryID" Label="@L["country", "Country"]"
-                               Variant="Variant.Outlined" Required="true"
-                               SelectedValuesChanged="OnCountryChanged">
-                        @foreach (var c in _countries)
-                        {
-                            <MudSelectItem T="int" Value="@c.CountryID">@c.Title</MudSelectItem>
-                        }
-                    </MudSelect>
+                    <CountrySelector Value="@(_item.CountryID == 0 ? null : _item.CountryID)"
+                                     ValueChanged="OnCountryIdChanged"
+                                     Countries="_countries" Label="@L["country", "Country"]"
+                                     Required="true" RequiredError="@L["required", "This field is required."]"
+                                     Clearable="false" />
                 </MudItem>
                 <MudItem xs="12" sm="3">
-                    <MudSelect T="int?" @bind-Value="_item.StateID" Label="@L["city.state_optional", "State (optional)"]"
-                               Variant="Variant.Outlined" Clearable="true">
-                        @foreach (var s in _states)
-                        {
-                            <MudSelectItem T="int?" Value="@((int?)s.StateID)">@s.Title</MudSelectItem>
-                        }
-                    </MudSelect>
+                    <StateSelector Value="_item.StateID" ValueChanged="@(id => _item.StateID = id)"
+                                   States="_states" Label="@L["city.state_optional", "State (optional)"]"
+                                   Clearable="true" />
                 </MudItem>
                 <MudItem xs="12" sm="2">
                     <MudTextField @bind-Value="_item.LanguageCode" Label="@L["language_code", "Language Code"]"
@@ -139,10 +132,13 @@ else if (_item is not null)
         _loading = false;
     }
 
-    private async Task OnCountryChanged(IEnumerable<int> _)
+    private async Task OnCountryIdChanged(int? countryId)
     {
-        _item!.StateID = null;
-        _states = (await LocationService.GetStatesByCountryAsync(_item.CountryID)).ToList();
+        _item!.CountryID = countryId ?? 0;
+        _item.StateID = null;
+        _states = _item.CountryID > 0
+            ? (await LocationService.GetStatesByCountryAsync(_item.CountryID)).ToList()
+            : new();
     }
 
     private async Task SaveAsync()
