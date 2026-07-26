@@ -1,0 +1,55 @@
+@using Dotnetable.Domain.Entities
+
+<MudAutocomplete T="State" Value="_selected" ValueChanged="OnSelected"
+                 SearchFunc="SearchAsync" ToStringFunc="@(s => s?.Title ?? string.Empty)"
+                 Label="@Label" Variant="@Variant" Margin="@Margin" Dense="@Dense" Style="@Style" Class="@Class"
+                 Required="@Required" RequiredError="@RequiredError" Disabled="@Disabled" ReadOnly="@ReadOnly"
+                 Clearable="@Clearable" CoerceText="false" ResetValueOnEmptyText="true"
+                 HelperText="@HelperText" />
+
+@code {
+    [Parameter] public int? Value { get; set; }
+    [Parameter] public EventCallback<int?> ValueChanged { get; set; }
+    [Parameter] public List<State> States { get; set; } = new();
+    [Parameter] public string? Label { get; set; }
+    [Parameter] public Variant Variant { get; set; } = Variant.Outlined;
+    [Parameter] public Margin Margin { get; set; } = Margin.None;
+    [Parameter] public bool Dense { get; set; }
+    [Parameter] public string? Style { get; set; }
+    [Parameter] public string? Class { get; set; }
+    [Parameter] public bool Required { get; set; }
+    [Parameter] public string? RequiredError { get; set; }
+    [Parameter] public bool Disabled { get; set; }
+    [Parameter] public bool ReadOnly { get; set; }
+    [Parameter] public bool Clearable { get; set; } = true;
+    [Parameter] public string? HelperText { get; set; }
+
+    private State? _selected;
+
+    protected override void OnParametersSet()
+    {
+        if (_selected?.StateID != Value)
+            _selected = Value is int id ? States.FirstOrDefault(s => s.StateID == id) : null;
+    }
+
+    private async Task OnSelected(State? state)
+    {
+        _selected = state;
+        var id = state?.StateID;
+        if (id != Value)
+            await ValueChanged.InvokeAsync(id);
+    }
+
+    private Task<IEnumerable<State>> SearchAsync(string value, CancellationToken ct)
+    {
+        IEnumerable<State> q = States.OrderBy(s => s.Title);
+        if (!string.IsNullOrWhiteSpace(value))
+        {
+            var needle = value.Trim();
+            q = q.Where(s =>
+                s.Title.Contains(needle, StringComparison.OrdinalIgnoreCase)
+                || s.StateID.ToString().Contains(needle, StringComparison.OrdinalIgnoreCase));
+        }
+        return Task.FromResult(q);
+    }
+}

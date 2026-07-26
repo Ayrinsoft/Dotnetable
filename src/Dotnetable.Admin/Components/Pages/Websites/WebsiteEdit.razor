@@ -94,14 +94,12 @@ else if (_website is not null)
                             </MudSelect>
                         </MudItem>
                         <MudItem xs="12" sm="6">
-                            <MudSelect T="string" @bind-Value="_website.DefaultCurrencyCode" Label="@L["default_currency_code", "Default Currency"]"
-                                       Variant="Variant.Outlined" Required="true"
-                                       RequiredError="@L["required", "This field is required."]">
-                                @foreach (var currency in _currencies)
-                                {
-                                    <MudSelectItem T="string" Value="@currency.CurrencyCode">@currency.CurrencyCode</MudSelectItem>
-                                }
-                            </MudSelect>
+                            <MudAutocomplete T="Currency" Value="@GetSelectedCurrency()" ValueChanged="OnCurrencySelected"
+                                             SearchFunc="SearchCurrencies" ToStringFunc="CurrencyDisplay"
+                                             Label="@L["default_currency_code", "Default Currency"]"
+                                             Variant="Variant.Outlined" Required="true"
+                                             RequiredError="@L["required", "This field is required."]"
+                                             Clearable="false" CoerceText="false" ResetValueOnEmptyText="true" />
                         </MudItem>
                         <MudItem xs="12" sm="6">
                             <MudAlert Severity="Severity.Info" Dense="true" Variant="Variant.Outlined" Class="mt-1">
@@ -309,6 +307,30 @@ else if (_website is not null)
 
     private void ClearLogo() { _website!.LogoFileID = null; _logoFile = null; }
     private void ClearFave() { _website!.FaveIconFileID = null; _faveFile = null; }
+
+    private Currency? GetSelectedCurrency() =>
+        string.IsNullOrEmpty(_website?.DefaultCurrencyCode)
+            ? null
+            : _currencies.FirstOrDefault(c => c.CurrencyCode == _website.DefaultCurrencyCode);
+
+    private string CurrencyDisplay(Currency? c) =>
+        c is null ? string.Empty : $"{c.CurrencyCode} — {c.Name}";
+
+    private void OnCurrencySelected(Currency? currency) =>
+        _website!.DefaultCurrencyCode = currency?.CurrencyCode ?? string.Empty;
+
+    private Task<IEnumerable<Currency>> SearchCurrencies(string value, CancellationToken ct)
+    {
+        IEnumerable<Currency> q = _currencies.OrderBy(c => c.CurrencyCode);
+        if (!string.IsNullOrWhiteSpace(value))
+        {
+            var needle = value.Trim();
+            q = q.Where(c =>
+                c.CurrencyCode.Contains(needle, StringComparison.OrdinalIgnoreCase)
+                || c.Name.Contains(needle, StringComparison.OrdinalIgnoreCase));
+        }
+        return Task.FromResult(q);
+    }
 
     private async Task<FileRecord?> PickImageAsync()
     {

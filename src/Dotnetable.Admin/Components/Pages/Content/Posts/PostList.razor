@@ -24,14 +24,12 @@
                              Label="@L["website", "Website"]" Variant="Variant.Outlined"
                              Dense="true" Style="min-width:160px" />
         }
-        <MudSelect T="int?" @bind-Value="_filterPostTypeId" Label="@L["post_type", "Post Type"]" Variant="Variant.Outlined"
-                   Dense="true" Clearable="true" Style="min-width:150px" SelectedValuesChanged="OnFilterChanged">
-            <MudSelectItem T="int?" Value="@((int?)null)">@L["posts.all_types", "All types"]</MudSelectItem>
-            @foreach (var t in _postTypes)
-            {
-                <MudSelectItem T="int?" Value="@t.PostTypeID">@t.Name</MudSelectItem>
-            }
-        </MudSelect>
+        <MudAutocomplete T="PostType" Value="@GetFilterPostType()" ValueChanged="OnFilterPostTypeChanged"
+                         SearchFunc="SearchPostTypes" ToStringFunc="@(t => t?.Name ?? string.Empty)"
+                         Label="@L["post_type", "Post Type"]" Variant="Variant.Outlined"
+                         Dense="true" Clearable="true" Style="min-width:180px"
+                         CoerceText="false" ResetValueOnEmptyText="true"
+                         Placeholder="@L["posts.all_types", "All types"]" />
         @if (_canInsert)
         {
             <MudButton Variant="Variant.Filled" Color="Color.Primary" StartIcon="@Icons.Material.Filled.Add" Href="/content/posts/new"
@@ -137,7 +135,25 @@
         await RefreshPrerequisitesAsync();
         await LoadAsync();
     }
-    private async Task OnFilterChanged(IEnumerable<int?> _) => await LoadAsync();
+    private PostType? GetFilterPostType() =>
+        _filterPostTypeId is int id ? _postTypes.FirstOrDefault(t => t.PostTypeID == id) : null;
+
+    private async Task OnFilterPostTypeChanged(PostType? type)
+    {
+        _filterPostTypeId = type?.PostTypeID;
+        await LoadAsync();
+    }
+
+    private Task<IEnumerable<PostType>> SearchPostTypes(string value, CancellationToken ct)
+    {
+        IEnumerable<PostType> q = _postTypes.OrderBy(t => t.Name);
+        if (!string.IsNullOrWhiteSpace(value))
+        {
+            var needle = value.Trim();
+            q = q.Where(t => t.Name.Contains(needle, StringComparison.OrdinalIgnoreCase));
+        }
+        return Task.FromResult(q);
+    }
 
     private async Task RefreshPrerequisitesAsync()
     {

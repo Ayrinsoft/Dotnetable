@@ -9,16 +9,12 @@
                           Required="true" Class="mb-3" Immediate="true" />
             <MudTextField @bind-Value="_description" Label="@L["description", "Description"]"
                           Variant="Variant.Outlined" Lines="2" Class="mb-3" />
-            <MudSelect T="int?" @bind-Value="_parentFolderId"
-                       Label="@L["media.parent_folder", "Parent folder"]"
-                       Variant="Variant.Outlined"
-                       Clearable="true"
-                       HelperText="@L["media.parent_folder_hint", "Leave empty for a top-level folder under Root."]">
-                @foreach (var option in ParentOptions)
-                {
-                    <MudSelectItem T="int?" Value="option.Id">@option.Label</MudSelectItem>
-                }
-            </MudSelect>
+            <MudAutocomplete T="FileFolder" Value="@GetSelectedParentFolder()" ValueChanged="OnParentFolderChanged"
+                             SearchFunc="SearchParentFolders" ToStringFunc="BuildPath"
+                             Label="@L["media.parent_folder", "Parent folder"]"
+                             Variant="Variant.Outlined" Clearable="true"
+                             CoerceText="false" ResetValueOnEmptyText="true"
+                             HelperText="@L["media.parent_folder_hint", "Leave empty for a top-level folder under Root."]" />
         </MudForm>
     </DialogContent>
     <DialogActions>
@@ -43,7 +39,7 @@
     private int? _parentFolderId;
     private IReadOnlyList<FileFolder> _folders = Array.Empty<FileFolder>();
 
-    private IEnumerable<(int? Id, string Label)> ParentOptions
+    private HashSet<int> BlockedParentIds
     {
         get
         {
@@ -53,13 +49,30 @@
                 blocked.Add(Folder.FileFolderID);
                 CollectDescendants(Folder.FileFolderID, blocked);
             }
-
-            foreach (var f in _folders.OrderBy(f => f.Name))
-            {
-                if (blocked.Contains(f.FileFolderID)) continue;
-                yield return (f.FileFolderID, BuildPath(f));
-            }
+            return blocked;
         }
+    }
+
+    private IEnumerable<FileFolder> ParentFolderCandidates =>
+        _folders.Where(f => !BlockedParentIds.Contains(f.FileFolderID)).OrderBy(f => f.Name);
+
+    private FileFolder? GetSelectedParentFolder() =>
+        _parentFolderId is int id ? _folders.FirstOrDefault(f => f.FileFolderID == id) : null;
+
+    private void OnParentFolderChanged(FileFolder? folder) =>
+        _parentFolderId = folder?.FileFolderID;
+
+    private Task<IEnumerable<FileFolder>> SearchParentFolders(string value, CancellationToken ct)
+    {
+        IEnumerable<FileFolder> q = ParentFolderCandidates;
+        if (!string.IsNullOrWhiteSpace(value))
+        {
+            var needle = value.Trim();
+            q = q.Where(f =>
+                f.Name.Contains(needle, StringComparison.OrdinalIgnoreCase)
+                || BuildPath(f).Contains(needle, StringComparison.OrdinalIgnoreCase));
+        }
+        return Task.FromResult(q);
     }
 
     protected override async Task OnInitializedAsync()

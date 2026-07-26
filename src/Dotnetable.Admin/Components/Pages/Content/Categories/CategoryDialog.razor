@@ -14,24 +14,18 @@
                     <MudTextField @bind-Value="Model.Slug" Label="@L["slug", "Slug"]" Variant="Variant.Outlined" Required="true" />
                 </MudItem>
                 <MudItem xs="12" sm="6">
-                    <MudSelect T="int?" @bind-Value="Model.ParentCategoryID" Label="@L["categories.parent", "Parent"]"
-                               Variant="Variant.Outlined" Clearable="true">
-                        <MudSelectItem T="int?" Value="@((int?)null)">@L["categories.top_level", "— Top level —"]</MudSelectItem>
-                        @foreach (var c in ParentCandidates)
-                        {
-                            <MudSelectItem T="int?" Value="@((int?)c.CategoryID)">@c.Name</MudSelectItem>
-                        }
-                    </MudSelect>
+                    <MudAutocomplete T="Category" Value="@GetSelectedParent()" ValueChanged="OnParentChanged"
+                                     SearchFunc="SearchParents" ToStringFunc="@(c => c?.Name ?? string.Empty)"
+                                     Label="@L["categories.parent", "Parent"]" Variant="Variant.Outlined"
+                                     Clearable="true" CoerceText="false" ResetValueOnEmptyText="true"
+                                     HelperText="@L["categories.parent_hint", "Clear for top-level. Type to search."]" />
                 </MudItem>
                 <MudItem xs="12" sm="6">
-                    <MudSelect T="int?" @bind-Value="Model.PostTypeID" Label="@L["post_type", "Post Type"]"
-                               Variant="Variant.Outlined" Clearable="true">
-                        <MudSelectItem T="int?" Value="@((int?)null)">@L["categories.any_type", "— Any —"]</MudSelectItem>
-                        @foreach (var t in PostTypes)
-                        {
-                            <MudSelectItem T="int?" Value="@((int?)t.PostTypeID)">@t.Name</MudSelectItem>
-                        }
-                    </MudSelect>
+                    <MudAutocomplete T="PostType" Value="@GetSelectedPostType()" ValueChanged="OnPostTypeChanged"
+                                     SearchFunc="SearchPostTypes" ToStringFunc="@(t => t?.Name ?? string.Empty)"
+                                     Label="@L["post_type", "Post Type"]" Variant="Variant.Outlined"
+                                     Clearable="true" CoerceText="false" ResetValueOnEmptyText="true"
+                                     HelperText="@L["categories.any_type_hint", "Clear for any type. Type to search."]" />
                 </MudItem>
                 <MudItem xs="6">
                     <MudNumericField T="int" @bind-Value="Model.SortOrder" Label="@L["categories.sort", "Sort order"]" Variant="Variant.Outlined" />
@@ -116,6 +110,41 @@
     private string Slug(string code) => _tr.TryGetValue(code, out var v) ? v.Slug : string.Empty;
     private void SetName(string code, string v) { var c = _tr.GetValueOrDefault(code); _tr[code] = (v ?? string.Empty, c.Slug ?? string.Empty); }
     private void SetSlug(string code, string v) { var c = _tr.GetValueOrDefault(code); _tr[code] = (c.Name ?? string.Empty, v ?? string.Empty); }
+
+    private Category? GetSelectedParent() =>
+        Model.ParentCategoryID is int id ? ParentCandidates.FirstOrDefault(c => c.CategoryID == id) : null;
+
+    private void OnParentChanged(Category? parent) =>
+        Model.ParentCategoryID = parent?.CategoryID;
+
+    private Task<IEnumerable<Category>> SearchParents(string value, CancellationToken ct)
+    {
+        IEnumerable<Category> q = ParentCandidates.OrderBy(c => c.Name);
+        if (!string.IsNullOrWhiteSpace(value))
+        {
+            var needle = value.Trim();
+            q = q.Where(c => c.Name.Contains(needle, StringComparison.OrdinalIgnoreCase)
+                             || c.Slug.Contains(needle, StringComparison.OrdinalIgnoreCase));
+        }
+        return Task.FromResult(q);
+    }
+
+    private PostType? GetSelectedPostType() =>
+        Model.PostTypeID is int id ? PostTypes.FirstOrDefault(t => t.PostTypeID == id) : null;
+
+    private void OnPostTypeChanged(PostType? type) =>
+        Model.PostTypeID = type?.PostTypeID;
+
+    private Task<IEnumerable<PostType>> SearchPostTypes(string value, CancellationToken ct)
+    {
+        IEnumerable<PostType> q = PostTypes.OrderBy(t => t.Name);
+        if (!string.IsNullOrWhiteSpace(value))
+        {
+            var needle = value.Trim();
+            q = q.Where(t => t.Name.Contains(needle, StringComparison.OrdinalIgnoreCase));
+        }
+        return Task.FromResult(q);
+    }
 
     private HashSet<int> DescendantIds(int rootId)
     {

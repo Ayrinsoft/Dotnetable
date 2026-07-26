@@ -65,16 +65,14 @@ else if (_member is not null)
                             }
                         </MudItem>
                         <MudItem xs="12" sm="6">
-                            <MudSelect T="int" @bind-Value="_member.PolicyID" Label="@L["access_level", "Access Level"]"
-                                       Variant="Variant.Outlined" Required="true" Disabled="@_isSelf"
-                                       RequiredError="@L["required", "This field is required."]"
-                                       HelperText="@(_isSelf ? L["members.self_access_locked", "You cannot change your own access level."]
-                                                    : _policies.Count == 0 ? L["members.no_access_levels", "This website has no access levels you can assign."] : null)">
-                                @foreach (var p in _policies)
-                                {
-                                    <MudSelectItem T="int" Value="@p.PolicyID">@p.Title</MudSelectItem>
-                                }
-                            </MudSelect>
+                            <MudAutocomplete T="Policy" Value="@GetSelectedPolicy()" ValueChanged="OnPolicyChanged"
+                                             SearchFunc="SearchPolicies" ToStringFunc="@(p => p?.Title ?? string.Empty)"
+                                             Label="@L["access_level", "Access Level"]" Variant="Variant.Outlined"
+                                             Required="true" Disabled="@_isSelf"
+                                             RequiredError="@L["required", "This field is required."]"
+                                             Clearable="false" CoerceText="false" ResetValueOnEmptyText="true"
+                                             HelperText="@(_isSelf ? L["members.self_access_locked", "You cannot change your own access level."]
+                                                          : _policies.Count == 0 ? L["members.no_access_levels", "This website has no access levels you can assign."] : null)" />
                         </MudItem>
                     </MudGrid>
                 </MudPaper>
@@ -259,6 +257,26 @@ else if (_member is not null)
     }
 
     private async Task OnWebsiteChanged(int id) { _member!.WebsiteID = id; await LoadPoliciesAsync(); }
+
+    private Policy? GetSelectedPolicy() =>
+        _member is null ? null : _policies.FirstOrDefault(p => p.PolicyID == _member.PolicyID);
+
+    private void OnPolicyChanged(Policy? policy)
+    {
+        if (_member is null || policy is null) return;
+        _member.PolicyID = policy.PolicyID;
+    }
+
+    private Task<IEnumerable<Policy>> SearchPolicies(string value, CancellationToken ct)
+    {
+        IEnumerable<Policy> q = _policies.OrderBy(p => p.Title);
+        if (!string.IsNullOrWhiteSpace(value))
+        {
+            var needle = value.Trim();
+            q = q.Where(p => p.Title.Contains(needle, StringComparison.OrdinalIgnoreCase));
+        }
+        return Task.FromResult(q);
+    }
 
     private async Task SaveAsync()
     {

@@ -109,12 +109,11 @@ else
                     <MudSwitch T="bool" @bind-Value="_refundToWallet" Label="@L["payments.refund_to_wallet", "Refund to wallet"]" Color="Color.Primary" Class="mb-2" />
                     @if (!_refundToWallet)
                     {
-                        <MudSelect T="int?" @bind-Value="_refundBankAccountId" Label="@L["bank_accounts", "Bank Account"]" Variant="Variant.Outlined" Dense="true" Class="mb-2">
-                            @foreach (var b in _bankAccounts)
-                            {
-                                <MudSelectItem T="int?" Value="@((int?)b.BankAccountID)">@b.Bank.Name — @b.Title</MudSelectItem>
-                            }
-                        </MudSelect>
+                        <MudAutocomplete T="BankAccount" Value="@GetRefundBankAccount()" ValueChanged="OnRefundBankChanged"
+                                         SearchFunc="SearchBankAccounts" ToStringFunc="BankAccountDisplay"
+                                         Label="@L["bank_accounts", "Bank Account"]" Variant="Variant.Outlined"
+                                         Dense="true" Class="mb-2" Clearable="true"
+                                         CoerceText="false" ResetValueOnEmptyText="true" />
                         <MudText Typo="Typo.caption" Color="Color.Secondary" Class="mb-2">@L["payments.bank_refund_hint", "The transfer must be performed manually outside the system; this only records the refund as pending until you mark it completed on the Bank Refunds queue."]</MudText>
                     }
                     <MudButton Variant="Variant.Filled" Color="Color.Error" FullWidth="true" OnClick="RefundAsync">@L["payments.refund", "Refund"]</MudButton>
@@ -137,6 +136,28 @@ else
     private bool _refundToWallet = true;
     private int? _refundBankAccountId;
     private List<BankAccount> _bankAccounts = new();
+
+    private BankAccount? GetRefundBankAccount() =>
+        _refundBankAccountId is int id ? _bankAccounts.FirstOrDefault(b => b.BankAccountID == id) : null;
+
+    private void OnRefundBankChanged(BankAccount? account) =>
+        _refundBankAccountId = account?.BankAccountID;
+
+    private string BankAccountDisplay(BankAccount? b) =>
+        b is null ? string.Empty : $"{b.Bank?.Name ?? "Bank"} — {b.Title}";
+
+    private Task<IEnumerable<BankAccount>> SearchBankAccounts(string value, CancellationToken ct)
+    {
+        IEnumerable<BankAccount> q = _bankAccounts.OrderBy(b => b.Title);
+        if (!string.IsNullOrWhiteSpace(value))
+        {
+            var needle = value.Trim();
+            q = q.Where(b =>
+                b.Title.Contains(needle, StringComparison.OrdinalIgnoreCase)
+                || (b.Bank?.Name?.Contains(needle, StringComparison.OrdinalIgnoreCase) ?? false));
+        }
+        return Task.FromResult(q);
+    }
 
     protected override async Task OnInitializedAsync()
     {

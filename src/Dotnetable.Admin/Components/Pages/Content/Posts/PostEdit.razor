@@ -106,40 +106,47 @@ else if (_model is not null)
 
                 <MudPaper Elevation="0" Class="app-card rounded-lg pa-4 mb-4">
                     <MudText Typo="Typo.subtitle1" Class="mb-3 fw-bold">@L["posts.organize", "Organize"]</MudText>
-                    <MudSelect T="int" @bind-Value="_model.PostTypeID" Label="@L["post_type", "Post Type"]" Variant="Variant.Outlined" Required="true" Class="mb-3">
-                        @foreach (var t in _postTypes)
-                        {
-                            <MudSelectItem T="int" Value="@t.PostTypeID">@t.Name</MudSelectItem>
-                        }
-                    </MudSelect>
+                    <MudAutocomplete T="PostType" Value="@GetSelectedPostType()" ValueChanged="OnPostTypeChanged"
+                                     SearchFunc="SearchPostTypes" ToStringFunc="@(t => t?.Name ?? string.Empty)"
+                                     Label="@L["post_type", "Post Type"]" Variant="Variant.Outlined" Required="true"
+                                     Class="mb-3" Clearable="false" CoerceText="false" ResetValueOnEmptyText="true" />
 
-                    <MudSelect T="int" MultiSelection="true" @bind-SelectedValues="_selectedCategoryIds"
-                               Label="@L["categories", "Categories"]" Variant="Variant.Outlined" Class="mb-3"
-                               MultiSelectionTextFunc="@(v => $"{v.Count} {L["posts.selected", "selected"]}")">
-                        @foreach (var c in _categories)
-                        {
-                            <MudSelectItem T="int" Value="@c.CategoryID">@c.Name</MudSelectItem>
-                        }
-                    </MudSelect>
-
+                    <MudAutocomplete T="Category" Value="_categoryToAdd" ValueChanged="AddCategory"
+                                     SearchFunc="SearchCategoriesToAdd" ToStringFunc="@(c => c?.Name ?? string.Empty)"
+                                     Label="@L["categories", "Categories"]" Variant="Variant.Outlined" Class="mb-2"
+                                     Clearable="true" CoerceText="false" ResetValueOnEmptyText="true"
+                                     HelperText="@L["posts.search_to_add_category", "Type to search and add a category"]" />
                     @if (_selectedCategoryIds.Any())
                     {
-                        <MudSelect T="int?" @bind-Value="_primaryCategoryId" Label="@L["posts.primary_category", "Primary category"]" Variant="Variant.Outlined" Clearable="true" Class="mb-3">
-                            @foreach (var c in _categories.Where(c => _selectedCategoryIds.Contains(c.CategoryID)))
+                        <div class="d-flex flex-wrap gap-1 mb-3">
+                            @foreach (var id in _selectedCategoryIds)
                             {
-                                <MudSelectItem T="int?" Value="@c.CategoryID">@c.Name</MudSelectItem>
+                                <MudChip T="string" Size="Size.Small" Color="Color.Primary" Variant="Variant.Outlined"
+                                         OnClose="@(() => RemoveCategory(id))">@CategoryName(id)</MudChip>
                             }
-                        </MudSelect>
+                        </div>
+
+                        <MudAutocomplete T="Category" Value="@GetPrimaryCategory()" ValueChanged="OnPrimaryCategoryChanged"
+                                         SearchFunc="SearchSelectedCategories" ToStringFunc="@(c => c?.Name ?? string.Empty)"
+                                         Label="@L["posts.primary_category", "Primary category"]" Variant="Variant.Outlined"
+                                         Class="mb-3" Clearable="true" CoerceText="false" ResetValueOnEmptyText="true" />
                     }
 
-                    <MudSelect T="int" MultiSelection="true" @bind-SelectedValues="_selectedTagIds"
-                               Label="@L["tags", "Tags"]" Variant="Variant.Outlined"
-                               MultiSelectionTextFunc="@(v => $"{v.Count} {L["posts.selected", "selected"]}")">
-                        @foreach (var tag in _tags)
-                        {
-                            <MudSelectItem T="int" Value="@tag.TagID">@tag.Name</MudSelectItem>
-                        }
-                    </MudSelect>
+                    <MudAutocomplete T="Tag" Value="_tagToAdd" ValueChanged="AddTag"
+                                     SearchFunc="SearchTagsToAdd" ToStringFunc="@(t => t?.Name ?? string.Empty)"
+                                     Label="@L["tags", "Tags"]" Variant="Variant.Outlined"
+                                     Clearable="true" CoerceText="false" ResetValueOnEmptyText="true"
+                                     HelperText="@L["posts.search_to_add_tag", "Type to search and add a tag"]" />
+                    @if (_selectedTagIds.Any())
+                    {
+                        <div class="d-flex flex-wrap gap-1 mt-2">
+                            @foreach (var id in _selectedTagIds)
+                            {
+                                <MudChip T="string" Size="Size.Small" Color="Color.Secondary" Variant="Variant.Outlined"
+                                         OnClose="@(() => RemoveTag(id))">@TagName(id)</MudChip>
+                            }
+                        </div>
+                    }
                 </MudPaper>
 
                 <MudPaper Elevation="0" Class="app-card rounded-lg pa-4">
@@ -187,9 +194,11 @@ else if (_model is not null)
     private List<Category> _categories = new();
     private List<Tag> _tags = new();
     private List<DNPrerequisiteAlert.Item> _prerequisites = new();
-    private IReadOnlyCollection<int> _selectedCategoryIds = new HashSet<int>();
-    private IReadOnlyCollection<int> _selectedTagIds = new HashSet<int>();
+    private HashSet<int> _selectedCategoryIds = new();
+    private HashSet<int> _selectedTagIds = new();
     private int? _primaryCategoryId;
+    private Category? _categoryToAdd;
+    private Tag? _tagToAdd;
 
     private sealed class TranslationModel { public string Title = ""; public string Slug = ""; public string Excerpt = ""; public string Content = ""; }
     private readonly Dictionary<string, TranslationModel> _translations = new(StringComparer.OrdinalIgnoreCase);
@@ -243,6 +252,93 @@ else if (_model is not null)
 
         _loading = false;
     }
+
+    private PostType? GetSelectedPostType() =>
+        _model is null ? null : _postTypes.FirstOrDefault(t => t.PostTypeID == _model.PostTypeID);
+
+    private void OnPostTypeChanged(PostType? type)
+    {
+        if (_model is null || type is null) return;
+        _model.PostTypeID = type.PostTypeID;
+    }
+
+    private Task<IEnumerable<PostType>> SearchPostTypes(string value, CancellationToken ct)
+    {
+        IEnumerable<PostType> q = _postTypes.OrderBy(t => t.Name);
+        if (!string.IsNullOrWhiteSpace(value))
+        {
+            var needle = value.Trim();
+            q = q.Where(t => t.Name.Contains(needle, StringComparison.OrdinalIgnoreCase));
+        }
+        return Task.FromResult(q);
+    }
+
+    private string CategoryName(int id) => _categories.FirstOrDefault(c => c.CategoryID == id)?.Name ?? $"#{id}";
+    private string TagName(int id) => _tags.FirstOrDefault(t => t.TagID == id)?.Name ?? $"#{id}";
+
+    private Category? GetPrimaryCategory() =>
+        _primaryCategoryId is int id ? _categories.FirstOrDefault(c => c.CategoryID == id) : null;
+
+    private void OnPrimaryCategoryChanged(Category? category) =>
+        _primaryCategoryId = category?.CategoryID;
+
+    private Task<IEnumerable<Category>> SearchSelectedCategories(string value, CancellationToken ct)
+    {
+        IEnumerable<Category> q = _categories.Where(c => _selectedCategoryIds.Contains(c.CategoryID)).OrderBy(c => c.Name);
+        if (!string.IsNullOrWhiteSpace(value))
+        {
+            var needle = value.Trim();
+            q = q.Where(c => c.Name.Contains(needle, StringComparison.OrdinalIgnoreCase));
+        }
+        return Task.FromResult(q);
+    }
+
+    private Task<IEnumerable<Category>> SearchCategoriesToAdd(string value, CancellationToken ct)
+    {
+        IEnumerable<Category> q = _categories.Where(c => !_selectedCategoryIds.Contains(c.CategoryID)).OrderBy(c => c.Name);
+        if (!string.IsNullOrWhiteSpace(value))
+        {
+            var needle = value.Trim();
+            q = q.Where(c => c.Name.Contains(needle, StringComparison.OrdinalIgnoreCase)
+                             || c.Slug.Contains(needle, StringComparison.OrdinalIgnoreCase));
+        }
+        return Task.FromResult(q);
+    }
+
+    private void AddCategory(Category? category)
+    {
+        _categoryToAdd = null;
+        if (category is null || !_selectedCategoryIds.Add(category.CategoryID)) return;
+        _primaryCategoryId ??= category.CategoryID;
+    }
+
+    private void RemoveCategory(int id)
+    {
+        _selectedCategoryIds.Remove(id);
+        if (_primaryCategoryId == id)
+            _primaryCategoryId = _selectedCategoryIds.FirstOrDefault() is int first and not 0 ? first : null;
+    }
+
+    private Task<IEnumerable<Tag>> SearchTagsToAdd(string value, CancellationToken ct)
+    {
+        IEnumerable<Tag> q = _tags.Where(t => !_selectedTagIds.Contains(t.TagID)).OrderBy(t => t.Name);
+        if (!string.IsNullOrWhiteSpace(value))
+        {
+            var needle = value.Trim();
+            q = q.Where(t => t.Name.Contains(needle, StringComparison.OrdinalIgnoreCase)
+                             || t.Slug.Contains(needle, StringComparison.OrdinalIgnoreCase));
+        }
+        return Task.FromResult(q);
+    }
+
+    private void AddTag(Tag? tag)
+    {
+        _tagToAdd = null;
+        if (tag is null) return;
+        _selectedTagIds.Add(tag.TagID);
+    }
+
+    private void RemoveTag(int id) => _selectedTagIds.Remove(id);
 
     private TranslationModel Translation(string code)
     {

@@ -56,13 +56,10 @@
                         @if (Model.VendorType == (byte)VendorType.Member)
                         {
                             <MudItem xs="12">
-                                <MudSelect T="int?" @bind-Value="Model.MemberID" Label="@L["vendors.member", "Linked member"]" Variant="Variant.Outlined"
-                                           Clearable="true" Dense="true">
-                                    @foreach (var m in _members)
-                                    {
-                                        <MudSelectItem T="int?" Value="@m.MemberID">@m.Username — @m.Givenname @m.Surname</MudSelectItem>
-                                    }
-                                </MudSelect>
+                                <MudAutocomplete T="Member" Value="@GetSelectedMember()" ValueChanged="OnMemberChanged"
+                                                 SearchFunc="SearchMembers" ToStringFunc="MemberDisplay"
+                                                 Label="@L["vendors.member", "Linked member"]" Variant="Variant.Outlined"
+                                                 Clearable="true" Dense="true" CoerceText="false" ResetValueOnEmptyText="true" />
                                 <MudText Typo="Typo.caption" Color="Color.Secondary">
                                     @L["vendors.member.hint", "This member can sign in to admin and manage only their own products and prices."]
                                 </MudText>
@@ -71,13 +68,10 @@
                         @if (Model.VendorType == (byte)VendorType.Site)
                         {
                             <MudItem xs="12">
-                                <MudSelect T="int?" @bind-Value="Model.LinkedWebsiteID" Label="@L["vendors.linked_site", "Linked website"]" Variant="Variant.Outlined"
-                                           Clearable="true" Dense="true">
-                                    @foreach (var w in _websites)
-                                    {
-                                        <MudSelectItem T="int?" Value="@w.WebsiteID">@w.TradeName (#@w.WebsiteID)</MudSelectItem>
-                                    }
-                                </MudSelect>
+                                <MudAutocomplete T="Website" Value="@GetSelectedLinkedWebsite()" ValueChanged="OnLinkedWebsiteChanged"
+                                                 SearchFunc="SearchWebsites" ToStringFunc="@(w => w is null ? string.Empty : $"{w.TradeName} (#{w.WebsiteID})")"
+                                                 Label="@L["vendors.linked_site", "Linked website"]" Variant="Variant.Outlined"
+                                                 Clearable="true" Dense="true" CoerceText="false" ResetValueOnEmptyText="true" />
                                 <MudText Typo="Typo.caption" Color="Color.Secondary">
                                     @L["vendors.linked_site.hint", "Only products owned by that website are shown here. Goods they import from others cannot be re-shared."]
                                 </MudText>
@@ -168,6 +162,48 @@
         Model.VendorType = type;
         if (type != (byte)VendorType.Member) Model.MemberID = null;
         if (type != (byte)VendorType.Site) Model.LinkedWebsiteID = null;
+    }
+
+    private Member? GetSelectedMember() =>
+        Model.MemberID is int id ? _members.FirstOrDefault(m => m.MemberID == id) : null;
+
+    private void OnMemberChanged(Member? member) => Model.MemberID = member?.MemberID;
+
+    private string MemberDisplay(Member? m) =>
+        m is null ? string.Empty : $"{m.Username} — {m.Givenname} {m.Surname}".Trim();
+
+    private Task<IEnumerable<Member>> SearchMembers(string value, CancellationToken ct)
+    {
+        IEnumerable<Member> q = _members.OrderBy(m => m.Username);
+        if (!string.IsNullOrWhiteSpace(value))
+        {
+            var needle = value.Trim();
+            q = q.Where(m =>
+                m.Username.Contains(needle, StringComparison.OrdinalIgnoreCase)
+                || m.Givenname.Contains(needle, StringComparison.OrdinalIgnoreCase)
+                || m.Surname.Contains(needle, StringComparison.OrdinalIgnoreCase)
+                || m.Email.Contains(needle, StringComparison.OrdinalIgnoreCase));
+        }
+        return Task.FromResult(q);
+    }
+
+    private Website? GetSelectedLinkedWebsite() =>
+        Model.LinkedWebsiteID is int id ? _websites.FirstOrDefault(w => w.WebsiteID == id) : null;
+
+    private void OnLinkedWebsiteChanged(Website? website) =>
+        Model.LinkedWebsiteID = website?.WebsiteID;
+
+    private Task<IEnumerable<Website>> SearchWebsites(string value, CancellationToken ct)
+    {
+        IEnumerable<Website> q = _websites.OrderBy(w => w.TradeName);
+        if (!string.IsNullOrWhiteSpace(value))
+        {
+            var needle = value.Trim();
+            q = q.Where(w =>
+                w.TradeName.Contains(needle, StringComparison.OrdinalIgnoreCase)
+                || w.WebsiteID.ToString().Contains(needle, StringComparison.OrdinalIgnoreCase));
+        }
+        return Task.FromResult(q);
     }
 
     private async Task PickLogoAsync()
