@@ -84,6 +84,12 @@ public partial class Member
 
     public virtual ICollection<StockMovement> StockMovements { get; set; } = new List<StockMovement>();
 
+    public virtual ICollection<SupportInteraction> SupportInteractions { get; set; } = new List<SupportInteraction>();
+
+    public virtual ICollection<SupportSession> SupportSessionAssignedMembers { get; set; } = new List<SupportSession>();
+
+    public virtual ICollection<SupportSession> SupportSessionCreatedByMembers { get; set; } = new List<SupportSession>();
+
     public virtual ICollection<VendorCreditTransaction> VendorCreditTransactions { get; set; } = new List<VendorCreditTransaction>();
 
     public virtual Vendor? Vendor { get; set; }

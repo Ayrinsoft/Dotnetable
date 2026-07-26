@@ -59,6 +59,8 @@ public partial class WebsiteClient
 
     public virtual ICollection<ProductReview> ProductReviews { get; set; } = new List<ProductReview>();
 
+    public virtual ICollection<SupportSession> SupportSessions { get; set; } = new List<SupportSession>();
+
     public virtual Website Website { get; set; } = null!;
 
     public virtual ICollection<WebsiteClientAddress> WebsiteClientAddresses { get; set; } = new List<WebsiteClientAddress>();

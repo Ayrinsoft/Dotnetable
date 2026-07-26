@@ -35,6 +35,9 @@
             <AuthorizeView Policy="@RoleKeys.OrdersView" Context="ord">
                 <MudNavLink Href="/orders" Icon="@Icons.Material.Filled.ReceiptLong">@L["orders", "Orders"]</MudNavLink>
             </AuthorizeView>
+            <AuthorizeView Policy="@RoleKeys.SupportView" Context="supd">
+                <MudNavLink Href="/support" Icon="@Icons.Material.Filled.SupportAgent">@L["support.desk", "Support Desk"]</MudNavLink>
+            </AuthorizeView>
         }
         @if (NavSurface.Shows(AdminNavArea.Media))
         {
@@ -292,6 +295,17 @@
         {
             <AuthorizeView Policy="@RoleKeys.OrdersView" Context="ord">
                 <MudNavLink Href="/orders" Icon="@Icons.Material.Filled.ReceiptLong">@L["orders", "Orders"]</MudNavLink>
+            </AuthorizeView>
+            <AuthorizeView Policy="@RoleKeys.SupportView" Context="sup">
+                <MudNavGroup Title="@L["nav.support", "Support"]" Icon="@Icons.Material.Filled.SupportAgent"
+                             Expanded="@IsGroupActive("/support")">
+                    <MudNavLink Href="/support" Match="NavLinkMatch.All" Icon="@Icons.Material.Filled.Phone">
+                        @L["support.desk", "Support Desk"]
+                    </MudNavLink>
+                    <MudNavLink Href="/support/tickets" Icon="@Icons.Material.Filled.ConfirmationNumber">
+                        @L["support.tickets", "Ticket queue"]
+                    </MudNavLink>
+                </MudNavGroup>
             </AuthorizeView>
         }
 

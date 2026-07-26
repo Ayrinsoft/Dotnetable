@@ -204,6 +204,10 @@ public partial class AppDbContext : DbContext
 
     public virtual DbSet<StockMovement> StockMovements { get; set; }
 
+    public virtual DbSet<SupportInteraction> SupportInteractions { get; set; }
+
+    public virtual DbSet<SupportSession> SupportSessions { get; set; }
+
     public virtual DbSet<Supplier> Suppliers { get; set; }
 
     public virtual DbSet<Tag> Tags { get; set; }
@@ -2574,6 +2578,85 @@ public partial class AppDbContext : DbContext
                 .HasForeignKey(d => d.WebsiteID)
                 .OnDelete(DeleteBehavior.ClientSetNull)
                 .HasConstraintName("FK_StockMovements_Websites");
+        });
+
+        modelBuilder.Entity<SupportInteraction>(entity =>
+        {
+            entity.HasIndex(e => e.CreatedByMemberID, "IX_SupportInteractions_CreatedByMemberID");
+            entity.HasIndex(e => e.CreatedAt, "IX_SupportInteractions_CreatedAt");
+            entity.HasIndex(e => e.RelatedOrderID, "IX_SupportInteractions_RelatedOrderID");
+            entity.HasIndex(e => e.SupportSessionID, "IX_SupportInteractions_SupportSessionID");
+
+            entity.Property(e => e.Body).HasMaxLength(4000);
+            entity.Property(e => e.CreatedAt).HasColumnType("datetime");
+
+            entity.HasOne(d => d.CreatedByMember).WithMany(p => p.SupportInteractions)
+                .HasForeignKey(d => d.CreatedByMemberID)
+                .HasConstraintName("FK_SupportInteractions_Members");
+
+            entity.HasOne(d => d.RelatedOrder).WithMany(p => p.SupportInteractions)
+                .HasForeignKey(d => d.RelatedOrderID)
+                .HasConstraintName("FK_SupportInteractions_Orders");
+
+            entity.HasOne(d => d.SupportSession).WithMany(p => p.SupportInteractions)
+                .HasForeignKey(d => d.SupportSessionID)
+                .OnDelete(DeleteBehavior.ClientSetNull)
+                .HasConstraintName("FK_SupportInteractions_SupportSessions");
+        });
+
+        modelBuilder.Entity<SupportSession>(entity =>
+        {
+            entity.HasIndex(e => e.AssignedMemberID, "IX_SupportSessions_AssignedMemberID");
+            entity.HasIndex(e => e.CellphoneSnapshot, "IX_SupportSessions_CellphoneSnapshot");
+            entity.HasIndex(e => e.CreatedAt, "IX_SupportSessions_CreatedAt");
+            entity.HasIndex(e => e.CreatedByMemberID, "IX_SupportSessions_CreatedByMemberID");
+            entity.HasIndex(e => e.RelatedOrderID, "IX_SupportSessions_RelatedOrderID");
+            entity.HasIndex(e => e.Status, "IX_SupportSessions_Status");
+            entity.HasIndex(e => e.WebsiteClientID, "IX_SupportSessions_WebsiteClientID");
+            entity.HasIndex(e => e.WebsiteID, "IX_SupportSessions_WebsiteID");
+            entity.HasIndex(e => new { e.WebsiteID, e.SessionNumber }, "IX_SupportSessions_Website_SessionNumber")
+                .IsUnique();
+
+            entity.Property(e => e.CellphoneSnapshot)
+                .HasMaxLength(16)
+                .IsUnicode(false);
+            entity.Property(e => e.ClosedAt).HasColumnType("datetime");
+            entity.Property(e => e.CountryCodeSnapshot)
+                .HasMaxLength(3)
+                .IsUnicode(false);
+            entity.Property(e => e.CreatedAt).HasColumnType("datetime");
+            entity.Property(e => e.CustomerNameSnapshot).HasMaxLength(128);
+            entity.Property(e => e.EmailSnapshot)
+                .HasMaxLength(64)
+                .IsUnicode(false);
+            entity.Property(e => e.FirstResponseAt).HasColumnType("datetime");
+            entity.Property(e => e.LastInteractionAt).HasColumnType("datetime");
+            entity.Property(e => e.ResolvedAt).HasColumnType("datetime");
+            entity.Property(e => e.SessionNumber).HasMaxLength(30);
+            entity.Property(e => e.Subject).HasMaxLength(256);
+            entity.Property(e => e.Tags).HasMaxLength(256);
+            entity.Property(e => e.UpdatedAt).HasColumnType("datetime");
+
+            entity.HasOne(d => d.AssignedMember).WithMany(p => p.SupportSessionAssignedMembers)
+                .HasForeignKey(d => d.AssignedMemberID)
+                .HasConstraintName("FK_SupportSessions_AssignedMembers");
+
+            entity.HasOne(d => d.CreatedByMember).WithMany(p => p.SupportSessionCreatedByMembers)
+                .HasForeignKey(d => d.CreatedByMemberID)
+                .HasConstraintName("FK_SupportSessions_CreatedByMembers");
+
+            entity.HasOne(d => d.RelatedOrder).WithMany(p => p.SupportSessions)
+                .HasForeignKey(d => d.RelatedOrderID)
+                .HasConstraintName("FK_SupportSessions_Orders");
+
+            entity.HasOne(d => d.WebsiteClient).WithMany(p => p.SupportSessions)
+                .HasForeignKey(d => d.WebsiteClientID)
+                .HasConstraintName("FK_SupportSessions_WebsiteClients");
+
+            entity.HasOne(d => d.Website).WithMany(p => p.SupportSessions)
+                .HasForeignKey(d => d.WebsiteID)
+                .OnDelete(DeleteBehavior.ClientSetNull)
+                .HasConstraintName("FK_SupportSessions_Websites");
         });
 
         modelBuilder.Entity<Supplier>(entity =>

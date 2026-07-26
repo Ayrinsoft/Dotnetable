@@ -78,6 +78,9 @@ public static class AdminSearchCatalog
 
         new AdminSearchPage("orders", "Orders", "/orders", Icons.Material.Filled.ReceiptLong, "orders", "Orders", RoleKeys.OrdersView, NavArea: AdminNavArea.Orders),
 
+        new AdminSearchPage("support.desk", "Support Desk", "/support", Icons.Material.Filled.SupportAgent, "nav.support", "Support", RoleKeys.SupportView, NavArea: AdminNavArea.Orders, VendorMemberAllowed: false),
+        new AdminSearchPage("support.tickets", "Support Tickets", "/support/tickets", Icons.Material.Filled.ConfirmationNumber, "nav.support", "Support", RoleKeys.SupportView, NavArea: AdminNavArea.Orders, VendorMemberAllowed: false),
+
         new AdminSearchPage("payments", "Payments", "/payments", Icons.Material.Filled.CreditCard, "nav.finance", "Finance", RoleKeys.PaymentsView, NavArea: AdminNavArea.Finance, VendorMemberAllowed: false),
         new AdminSearchPage("payments.refunds", "Bank Refunds", "/payments/refunds", Icons.Material.Filled.AssignmentReturn, "nav.finance", "Finance", RoleKeys.PaymentsRefund, NavArea: AdminNavArea.Finance, VendorMemberAllowed: false),
         new AdminSearchPage("wallets.withdrawals", "Withdrawals", "/wallets/withdrawals", Icons.Material.Filled.AccountBalanceWallet, "nav.finance", "Finance", RoleKeys.WalletsView, NavArea: AdminNavArea.Finance, VendorMemberAllowed: false),

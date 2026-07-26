@@ -1,0 +1,630 @@
+@page "/support"
+@attribute [Authorize(Policy = RoleKeys.SupportView)]
+@inject ISupportDeskService SupportDeskService
+@inject IWebsiteService WebsiteService
+@inject AuthenticationStateProvider AuthState
+@inject NavigationManager Nav
+@inject ISnackbar Snackbar
+@inject IPageLocalizer L
+
+<DNPageTitle Title=@L["support.desk", "Support Desk"] />
+
+<MudStack Row="true" AlignItems="AlignItems.Center" Justify="Justify.SpaceBetween" Class="mb-4" Style="flex-wrap:wrap; gap:12px;">
+    <MudStack Spacing="0">
+        <MudText Typo="Typo.h5" Class="fw-bold">@L["support.desk", "Support Desk"]</MudText>
+        <MudText Typo="Typo.body2" Color="Color.Secondary">
+            @L["support.desk.subtitle", "Look up a customer by mobile — see orders, call history, and log every interaction."]
+        </MudText>
+    </MudStack>
+    <MudStack Row="true" Spacing="2" AlignItems="AlignItems.Center">
+        @if (_isMaster)
+        {
+            <WebsiteSelector Value="_websiteId" ValueChanged="OnWebsiteChanged" Websites="_websites"
+                             Label="@L["website", "Website"]" Variant="Variant.Outlined"
+                             Dense="true" Style="min-width:180px" />
+        }
+        <MudButton Variant="Variant.Outlined" Color="Color.Primary" Href="/support/tickets"
+                   StartIcon="@Icons.Material.Filled.ConfirmationNumber">
+            @L["support.tickets", "Ticket queue"]
+        </MudButton>
+    </MudStack>
+</MudStack>
+
+@* ── Phone lookup ─────────────────────────────────────────────────── *@
+<MudPaper Elevation="0" Class="app-card rounded-lg pa-4 mb-4">
+    <MudStack Row="true" AlignItems="AlignItems.End" Spacing="2" Style="flex-wrap:wrap;">
+        <MudTextField @bind-Value="_mobile"
+                      Label="@L["support.mobile", "Customer mobile"]"
+                      Placeholder="@L["support.mobile.placeholder", "e.g. 0912…"]"
+                      Variant="Variant.Outlined"
+                      Dense="true"
+                      Adornment="Adornment.Start"
+                      AdornmentIcon="@Icons.Material.Filled.Phone"
+                      Style="min-width:260px; max-width:360px;"
+                      Immediate="true"
+                      OnKeyUp="OnMobileKeyUp" />
+        <MudButton Variant="Variant.Filled" Color="Color.Primary" Disabled="_lookingUp || string.IsNullOrWhiteSpace(_mobile)"
+                   OnClick="LookupAsync" StartIcon="@Icons.Material.Filled.Search">
+            @L["support.lookup", "Lookup"]
+        </MudButton>
+        @if (_canEdit)
+        {
+            <MudButton Variant="Variant.Outlined" Color="Color.Secondary" Disabled="_lookingUp"
+                       OnClick="StartUnknownAsync" StartIcon="@Icons.Material.Filled.AddIcCall">
+                @L["support.start_unknown", "Start ticket (unknown)"]
+            </MudButton>
+        }
+    </MudStack>
+    @if (_lookingUp)
+    {
+        <MudProgressLinear Indeterminate="true" Color="Color.Primary" Class="mt-3" />
+    }
+    else if (_lookup is { Matches.Count: > 1 })
+    {
+        <MudText Typo="Typo.subtitle2" Class="mt-3 mb-2">@L["support.matches", "Multiple customers matched"]</MudText>
+        <MudSimpleTable Dense="true" Hover="true" Elevation="0">
+            <thead>
+                <tr>
+                    <th>@L["name", "Name"]</th>
+                    <th>@L["support.phone", "Phone"]</th>
+                    <th>@L["email", "Email"]</th>
+                    <th>@L["orders", "Orders"]</th>
+                    <th>@L["support.open_tickets", "Open tickets"]</th>
+                    <th></th>
+                </tr>
+            </thead>
+            <tbody>
+                @foreach (var m in _lookup.Matches)
+                {
+                    <tr style="cursor:pointer" @onclick="@(() => SelectMatchAsync(m.WebsiteClientID))">
+                        <td>@m.DisplayName @if (!m.Active) { <MudChip T="string" Size="Size.Small" Color="Color.Default">@L["inactive", "Inactive"]</MudChip> }</td>
+                        <td>@m.PhoneDisplay</td>
+                        <td>@m.Email</td>
+                        <td>@m.OrderCount</td>
+                        <td>@m.OpenSessionCount</td>
+                        <td>
+                            <MudButton Size="Size.Small" Variant="Variant.Text" Color="Color.Primary">@L["open", "Open"]</MudButton>
+                        </td>
+                    </tr>
+                }
+            </tbody>
+        </MudSimpleTable>
+    }
+    else if (_lookup is { Matches.Count: 0 } && _searched)
+    {
+        <MudAlert Severity="Severity.Info" Class="mt-3" Dense="true">
+            @L["support.no_match", "No customer found for this number. You can still open a ticket for an unknown caller."]
+        </MudAlert>
+    }
+</MudPaper>
+
+@if (_c360 is not null)
+{
+    @* ── Profile strip ─────────────────────────────────────────────── *@
+    <MudPaper Elevation="0" Class="app-card rounded-lg pa-4 mb-4">
+        <MudStack Row="true" Justify="Justify.SpaceBetween" AlignItems="AlignItems.Start" Style="flex-wrap:wrap; gap:16px;">
+            <MudStack Spacing="1">
+                <MudStack Row="true" AlignItems="AlignItems.Center" Spacing="2">
+                    <MudAvatar Color="Color.Primary" Size="Size.Large">@Initials(_c360.DisplayName)</MudAvatar>
+                    <div>
+                        <MudText Typo="Typo.h6" Class="fw-bold">@_c360.DisplayName</MudText>
+                        <MudText Typo="Typo.body2" Color="Color.Secondary">@_c360.PhoneDisplay</MudText>
+                        @if (!string.IsNullOrEmpty(_c360.Email))
+                        {
+                            <MudText Typo="Typo.caption">@_c360.Email</MudText>
+                        }
+                    </div>
+                </MudStack>
+                <MudStack Row="true" Spacing="1" Class="mt-1" Style="flex-wrap:wrap;">
+                    <MudChip T="string" Size="Size.Small" Color="@(_c360.Active ? Color.Success : Color.Default)">
+                        @(_c360.Active ? L["active", "Active"] : L["inactive", "Inactive"])
+                    </MudChip>
+                    <MudChip T="string" Size="Size.Small" Variant="Variant.Outlined">@L["clients.level", "Level"] @_c360.ClientLevel</MudChip>
+                    <MudChip T="string" Size="Size.Small" Variant="Variant.Outlined" Icon="@Icons.Material.Filled.CalendarMonth">
+                        @_c360.RegisterDate.ToString("yyyy-MM-dd")
+                    </MudChip>
+                    <MudButton Size="Size.Small" Variant="Variant.Text" Href="@($"/clients/{_c360.WebsiteClientID}")"
+                               StartIcon="@Icons.Material.Filled.Person">
+                        @L["support.full_profile", "Full profile"]
+                    </MudButton>
+                </MudStack>
+            </MudStack>
+            <MudStack Row="true" Spacing="2" Style="flex-wrap:wrap;">
+                <StatChip Label="@L["orders", "Orders"]" Value="@_c360.OrderCount.ToString()" Color="Color.Primary" />
+                <StatChip Label="@L["support.in_progress_orders", "In progress"]" Value="@_c360.InProgressOrderCount.ToString()" Color="Color.Warning" />
+                <StatChip Label="@L["support.open_tickets", "Open tickets"]" Value="@_c360.OpenSessionCount.ToString()" Color="Color.Info" />
+                <StatChip Label="@L["support.wallet", "Wallet USD"]" Value="@(_c360.WalletBalanceUsd?.ToString("0.##") ?? "—")" Color="Color.Success" />
+            </MudStack>
+        </MudStack>
+
+        @if (_canEdit)
+        {
+            <MudDivider Class="my-3" />
+            <MudStack Row="true" Spacing="2" AlignItems="AlignItems.End" Style="flex-wrap:wrap;">
+                <MudSelect T="SupportChannel" @bind-Value="_newChannel" Label="@L["support.channel", "Channel"]" Variant="Variant.Outlined" Dense="true" Style="min-width:160px;">
+                    @foreach (var c in Enum.GetValues<SupportChannel>())
+                    {
+                        <MudSelectItem T="SupportChannel" Value="@c">@c</MudSelectItem>
+                    }
+                </MudSelect>
+                <MudSelect T="SupportPriority" @bind-Value="_newPriority" Label="@L["support.priority", "Priority"]" Variant="Variant.Outlined" Dense="true" Style="min-width:140px;">
+                    @foreach (var p in Enum.GetValues<SupportPriority>())
+                    {
+                        <MudSelectItem T="SupportPriority" Value="@p">@p</MudSelectItem>
+                    }
+                </MudSelect>
+                <MudSelect T="SupportCategory" @bind-Value="_newCategory" Label="@L["support.category", "Category"]" Variant="Variant.Outlined" Dense="true" Style="min-width:140px;">
+                    @foreach (var cat in Enum.GetValues<SupportCategory>())
+                    {
+                        <MudSelectItem T="SupportCategory" Value="@cat">@cat</MudSelectItem>
+                    }
+                </MudSelect>
+                <MudSelect T="int?" @bind-Value="_newOrderId" Label="@L["support.related_order", "Related order"]" Variant="Variant.Outlined" Dense="true" Clearable="true" Style="min-width:180px;">
+                    @foreach (var o in _c360.Orders.Take(20))
+                    {
+                        <MudSelectItem T="int?" Value="@o.OrderID">@o.OrderNumber (@o.StatusName)</MudSelectItem>
+                    }
+                </MudSelect>
+                <MudTextField @bind-Value="_newSubject" Label="@L["support.subject", "Subject"]" Variant="Variant.Outlined" Dense="true" Style="min-width:200px;" />
+                <MudTextField @bind-Value="_newNote" Label="@L["support.opening_note", "Opening note / call summary"]" Variant="Variant.Outlined" Dense="true" Style="min-width:240px;" />
+                <MudButton Variant="Variant.Filled" Color="Color.Primary" Disabled="_starting" OnClick="StartSessionAsync"
+                           StartIcon="@Icons.Material.Filled.SupportAgent">
+                    @L["support.start_ticket", "Start ticket"]
+                </MudButton>
+            </MudStack>
+        }
+    </MudPaper>
+
+    <MudTabs Elevation="0" Rounded="true" ApplyEffectsToContainer="true" PanelClass="pt-4" @bind-ActivePanelIndex="_tab">
+        <MudTabPanel Text="@L["support.tab.orders", "Orders / invoices"]" Icon="@Icons.Material.Filled.ReceiptLong">
+            <MudPaper Elevation="0" Class="app-card rounded-lg pa-4">
+                @if (_c360.Orders.Count == 0)
+                {
+                    <MudText Color="Color.Secondary">@L["orders.empty", "No orders yet."]</MudText>
+                }
+                else
+                {
+                    <MudSimpleTable Dense="true" Hover="true" Elevation="0">
+                        <thead>
+                            <tr>
+                                <th>@L["orders.number", "Order #"]</th>
+                                <th>@L["status", "Status"]</th>
+                                <th>@L["orders.total", "Total"]</th>
+                                <th>@L["orders.items", "Items"]</th>
+                                <th>@L["orders.date", "Date"]</th>
+                                <th></th>
+                            </tr>
+                        </thead>
+                        <tbody>
+                            @foreach (var o in _c360.Orders)
+                            {
+                                <tr>
+                                    <td><code>@o.OrderNumber</code></td>
+                                    <td>
+                                        <MudChip T="string" Size="Size.Small" Color="@OrderColor(o)">@o.StatusName</MudChip>
+                                        @if (o.IsInProgress)
+                                        {
+                                            <MudChip T="string" Size="Size.Small" Variant="Variant.Outlined" Color="Color.Warning">@L["support.processing", "Processing"]</MudChip>
+                                        }
+                                    </td>
+                                    <td>@o.GrandTotal.ToString("0.##") @o.CurrencyCode</td>
+                                    <td>@o.ItemCount</td>
+                                    <td>@o.CreatedAt.ToLocalTime().ToString("g")</td>
+                                    <td>
+                                        <MudButton Size="Size.Small" Variant="Variant.Text" Color="Color.Primary"
+                                                   Href="@($"/orders/{o.OrderID}")">@L["details", "Details"]</MudButton>
+                                        @if (_canEdit)
+                                        {
+                                            <MudButton Size="Size.Small" Variant="Variant.Text"
+                                                       OnClick="@(() => StartForOrderAsync(o))">@L["support.ticket_for_order", "Ticket"]</MudButton>
+                                        }
+                                    </td>
+                                </tr>
+                            }
+                        </tbody>
+                    </MudSimpleTable>
+                }
+            </MudPaper>
+        </MudTabPanel>
+
+        <MudTabPanel Text="@L["support.tab.tickets", "Support tickets"]" Icon="@Icons.Material.Filled.ConfirmationNumber">
+            <MudPaper Elevation="0" Class="app-card rounded-lg pa-4">
+                @if (_c360.Sessions.Count == 0)
+                {
+                    <MudText Color="Color.Secondary">@L["support.no_tickets", "No support tickets yet for this customer."]</MudText>
+                }
+                else
+                {
+                    <MudSimpleTable Dense="true" Hover="true" Elevation="0">
+                        <thead>
+                            <tr>
+                                <th>@L["support.ticket", "Ticket"]</th>
+                                <th>@L["status", "Status"]</th>
+                                <th>@L["support.priority", "Priority"]</th>
+                                <th>@L["support.channel", "Channel"]</th>
+                                <th>@L["support.subject", "Subject"]</th>
+                                <th>@L["support.assignee", "Assignee"]</th>
+                                <th>@L["support.last_activity", "Last activity"]</th>
+                            </tr>
+                        </thead>
+                        <tbody>
+                            @foreach (var s in _c360.Sessions)
+                            {
+                                <tr style="cursor:pointer" @onclick="@(() => Nav.NavigateTo($"/support/tickets/{s.SupportSessionID}"))">
+                                    <td><code>@s.SessionNumber</code></td>
+                                    <td><MudChip T="string" Size="Size.Small" Color="@StatusColor(s.Status)">@s.StatusName</MudChip></td>
+                                    <td><MudChip T="string" Size="Size.Small" Color="@PriorityColor(s.Priority)">@s.PriorityName</MudChip></td>
+                                    <td>@s.ChannelName</td>
+                                    <td>@(s.Subject ?? "—")</td>
+                                    <td>@(s.AssignedMemberName ?? "—")</td>
+                                    <td>@((s.LastInteractionAt ?? s.CreatedAt).ToLocalTime().ToString("g"))</td>
+                                </tr>
+                            }
+                        </tbody>
+                    </MudSimpleTable>
+                }
+            </MudPaper>
+        </MudTabPanel>
+
+        <MudTabPanel Text="@L["support.tab.timeline", "Activity timeline"]" Icon="@Icons.Material.Filled.Timeline">
+            <MudPaper Elevation="0" Class="app-card rounded-lg pa-4">
+                @if (_c360.RecentInteractions.Count == 0)
+                {
+                    <MudText Color="Color.Secondary">@L["support.no_activity", "No support activity logged yet."]</MudText>
+                }
+                else
+                {
+                    <MudTimeline TimelinePosition="TimelinePosition.Start">
+                        @foreach (var i in _c360.RecentInteractions)
+                        {
+                            <MudTimelineItem Color="@InteractionColor(i)" Size="Size.Small" Icon="@InteractionIcon(i)">
+                                <ItemContent>
+                                    <MudStack Spacing="0">
+                                        <MudStack Row="true" Spacing="1" AlignItems="AlignItems.Center" Style="flex-wrap:wrap;">
+                                            <MudText Typo="Typo.subtitle2">@i.InteractionTypeName</MudText>
+                                            @if (i.IsInternal)
+                                            {
+                                                <MudChip T="string" Size="Size.Small" Variant="Variant.Outlined">@L["support.internal", "Internal"]</MudChip>
+                                            }
+                                            @if (!string.IsNullOrEmpty(i.CallOutcomeName))
+                                            {
+                                                <MudChip T="string" Size="Size.Small">@i.CallOutcomeName</MudChip>
+                                            }
+                                            @if (i.DurationSeconds is int sec)
+                                            {
+                                                <MudText Typo="Typo.caption" Color="Color.Secondary">@FormatDuration(sec)</MudText>
+                                            }
+                                        </MudStack>
+                                        @if (!string.IsNullOrEmpty(i.Body))
+                                        {
+                                            <MudText Typo="Typo.body2">@i.Body</MudText>
+                                        }
+                                        <MudText Typo="Typo.caption" Color="Color.Secondary">
+                                            @(i.CreatedByMemberName ?? "System") · @i.CreatedAt.ToLocalTime().ToString("g")
+                                            @if (!string.IsNullOrEmpty(i.RelatedOrderNumber))
+                                            {
+                                                <text> · @L["orders.order", "Order"] @i.RelatedOrderNumber</text>
+                                            }
+                                        </MudText>
+                                    </MudStack>
+                                </ItemContent>
+                            </MudTimelineItem>
+                        }
+                    </MudTimeline>
+                }
+            </MudPaper>
+        </MudTabPanel>
+
+        <MudTabPanel Text="@L["support.tab.agents", "Agents who helped"]" Icon="@Icons.Material.Filled.Groups">
+            <MudPaper Elevation="0" Class="app-card rounded-lg pa-4">
+                @if (_c360.AgentsWhoHelped.Count == 0)
+                {
+                    <MudText Color="Color.Secondary">@L["support.no_agents", "No agents have logged work for this customer yet."]</MudText>
+                }
+                else
+                {
+                    <MudSimpleTable Dense="true" Elevation="0">
+                        <thead>
+                            <tr>
+                                <th>@L["support.agent", "Agent"]</th>
+                                <th>@L["support.interactions", "Interactions"]</th>
+                                <th>@L["support.tickets", "Tickets"]</th>
+                                <th>@L["support.last_activity", "Last activity"]</th>
+                            </tr>
+                        </thead>
+                        <tbody>
+                            @foreach (var a in _c360.AgentsWhoHelped)
+                            {
+                                <tr>
+                                    <td>@a.DisplayName</td>
+                                    <td>@a.InteractionCount</td>
+                                    <td>@a.SessionCount</td>
+                                    <td>@a.LastActivityAt.ToLocalTime().ToString("g")</td>
+                                </tr>
+                            }
+                        </tbody>
+                    </MudSimpleTable>
+                }
+            </MudPaper>
+        </MudTabPanel>
+
+        <MudTabPanel Text="@L["support.tab.more", "More"]" Icon="@Icons.Material.Filled.MoreHoriz">
+            <MudGrid Spacing="3">
+                <MudItem xs="12" md="6">
+                    <MudPaper Elevation="0" Class="app-card rounded-lg pa-4">
+                        <MudText Typo="Typo.subtitle1" Class="mb-2">@L["support.addresses", "Addresses"]</MudText>
+                        @if (_c360.Addresses.Count == 0)
+                        {
+                            <MudText Color="Color.Secondary">@L["support.no_addresses", "No saved addresses."]</MudText>
+                        }
+                        else
+                        {
+                            @foreach (var a in _c360.Addresses)
+                            {
+                                <MudStack Spacing="0" Class="mb-2">
+                                    <MudText Typo="Typo.subtitle2">@(a.Title ?? a.RecipientName ?? "Address") @if (a.IsDefault) { <MudChip T="string" Size="Size.Small">@L["default", "Default"]</MudChip> }</MudText>
+                                    <MudText Typo="Typo.body2">@a.FullAddress</MudText>
+                                    @if (!string.IsNullOrEmpty(a.Phone))
+                                    {
+                                        <MudText Typo="Typo.caption">@a.Phone</MudText>
+                                    }
+                                </MudStack>
+                            }
+                        }
+                    </MudPaper>
+                </MudItem>
+                <MudItem xs="12" md="6">
+                    <MudPaper Elevation="0" Class="app-card rounded-lg pa-4">
+                        <MudText Typo="Typo.subtitle1" Class="mb-2">@L["contact_messages", "Contact Messages"]</MudText>
+                        @if (_c360.ContactMessages.Count == 0)
+                        {
+                            <MudText Color="Color.Secondary">@L["contact.empty", "No messages found."]</MudText>
+                        }
+                        else
+                        {
+                            @foreach (var m in _c360.ContactMessages)
+                            {
+                                <MudStack Spacing="0" Class="mb-3" Style="cursor:pointer" @onclick="@(() => Nav.NavigateTo($"/messages/contacts/{m.ContactUsMessagesID}"))">
+                                    <MudText Typo="Typo.subtitle2">@m.MessageSubject</MudText>
+                                    <MudText Typo="Typo.caption" Color="Color.Secondary">@m.LogTime.ToLocalTime().ToString("g")</MudText>
+                                    <MudText Typo="Typo.body2" Class="mud-text-secondary" Style="display:-webkit-box;-webkit-line-clamp:2;-webkit-box-orient:vertical;overflow:hidden;">@m.MessageBody</MudText>
+                                </MudStack>
+                            }
+                        }
+                    </MudPaper>
+                </MudItem>
+            </MudGrid>
+        </MudTabPanel>
+    </MudTabs>
+}
+
+@code {
+    private bool _isMaster, _canEdit, _lookingUp, _searched, _starting;
+    private int _websiteId;
+    private int _tab;
+    private int? _memberId;
+    private string _mobile = string.Empty;
+    private List<Website> _websites = new();
+    private SupportMobileLookupResult? _lookup;
+    private Customer360Dto? _c360;
+
+    private SupportChannel _newChannel = SupportChannel.InboundCall;
+    private SupportPriority _newPriority = SupportPriority.Normal;
+    private SupportCategory _newCategory = SupportCategory.General;
+    private int? _newOrderId;
+    private string? _newSubject;
+    private string? _newNote;
+
+    protected override async Task OnInitializedAsync()
+    {
+        await L.EnsureLoadedAsync();
+        var user = (await AuthState.GetAuthenticationStateAsync()).User;
+        _isMaster = user.HasClaim(AdminClaimTypes.Master, "true");
+        _canEdit = AdminPolicies.Allows(user, RoleKeys.SupportEdit);
+        int.TryParse(user.FindFirst(AdminClaimTypes.WebsiteId)?.Value, out _websiteId);
+        int.TryParse(user.FindFirst(AdminClaimTypes.MemberId)?.Value, out var mid);
+        _memberId = mid > 0 ? mid : null;
+        if (_isMaster) _websites = (await WebsiteService.GetAllAsync()).ToList();
+
+        // Deep-link from a ticket: /support?client=123
+        var uri = Nav.ToAbsoluteUri(Nav.Uri);
+        var query = Microsoft.AspNetCore.WebUtilities.QueryHelpers.ParseQuery(uri.Query);
+        if (query.TryGetValue("client", out var clientVal) && int.TryParse(clientVal, out var clientId) && clientId > 0)
+            await SelectMatchAsync(clientId);
+    }
+
+    private async Task OnWebsiteChanged(int id)
+    {
+        _websiteId = id;
+        _c360 = null;
+        _lookup = null;
+        _searched = false;
+        await Task.CompletedTask;
+    }
+
+    private async Task OnMobileKeyUp(KeyboardEventArgs e)
+    {
+        if (e.Key == "Enter")
+            await LookupAsync();
+    }
+
+    private async Task LookupAsync()
+    {
+        _lookingUp = true;
+        _searched = true;
+        _c360 = null;
+        try
+        {
+            int? wid = _isMaster && _websiteId <= 0 ? null : _websiteId;
+            _lookup = await SupportDeskService.LookupByMobileAsync(wid, _mobile);
+            if (_lookup.Customer360 is not null)
+                _c360 = _lookup.Customer360;
+            else if (_lookup.Matches.Count == 1)
+                _c360 = await SupportDeskService.GetCustomer360Async(_lookup.Matches[0].WebsiteClientID);
+        }
+        finally
+        {
+            _lookingUp = false;
+        }
+    }
+
+    private async Task SelectMatchAsync(int clientId)
+    {
+        _lookingUp = true;
+        try
+        {
+            _c360 = await SupportDeskService.GetCustomer360Async(clientId);
+            _lookup = null;
+        }
+        finally
+        {
+            _lookingUp = false;
+        }
+    }
+
+    private async Task StartSessionAsync()
+    {
+        if (_c360 is null || _memberId is null) return;
+        _starting = true;
+        try
+        {
+            var session = await SupportDeskService.StartSessionAsync(new StartSupportSessionRequest
+            {
+                WebsiteID = _c360.WebsiteID,
+                WebsiteClientID = _c360.WebsiteClientID,
+                Cellphone = _c360.Cellphone,
+                CountryCode = _c360.CountryCode,
+                Email = _c360.Email,
+                CustomerName = _c360.DisplayName,
+                Channel = _newChannel,
+                Priority = _newPriority,
+                Category = _newCategory,
+                Subject = _newSubject,
+                RelatedOrderID = _newOrderId,
+                OpeningNote = _newNote,
+                AssignToSelf = true,
+            }, _memberId.Value);
+
+            Snackbar.Add(L["support.ticket_created", "Ticket created."], Severity.Success);
+            Nav.NavigateTo($"/support/tickets/{session.SupportSessionID}");
+        }
+        catch (Exception ex)
+        {
+            Snackbar.Add(ex.Message, Severity.Error);
+        }
+        finally
+        {
+            _starting = false;
+        }
+    }
+
+    private async Task StartForOrderAsync(SupportOrderSummaryDto order)
+    {
+        _newOrderId = order.OrderID;
+        _newCategory = SupportCategory.Order;
+        _newSubject = $"{L["orders.order", "Order"]} {order.OrderNumber}";
+        await StartSessionAsync();
+    }
+
+    private async Task StartUnknownAsync()
+    {
+        if (_memberId is null || string.IsNullOrWhiteSpace(_mobile))
+        {
+            Snackbar.Add(L["support.mobile_required", "Enter a mobile number first."], Severity.Warning);
+            return;
+        }
+        if (_websiteId <= 0)
+        {
+            Snackbar.Add(L["support.website_required", "Select a website first."], Severity.Warning);
+            return;
+        }
+        _starting = true;
+        try
+        {
+            var session = await SupportDeskService.StartSessionAsync(new StartSupportSessionRequest
+            {
+                WebsiteID = _websiteId,
+                Cellphone = _mobile.Trim(),
+                Channel = SupportChannel.InboundCall,
+                Priority = SupportPriority.Normal,
+                Category = SupportCategory.General,
+                Subject = L["support.unknown_caller", "Unknown caller"],
+                OpeningNote = L["support.unknown_caller_note", "Caller not matched to a customer profile."],
+                AssignToSelf = true,
+            }, _memberId.Value);
+            Nav.NavigateTo($"/support/tickets/{session.SupportSessionID}");
+        }
+        catch (Exception ex)
+        {
+            Snackbar.Add(ex.Message, Severity.Error);
+        }
+        finally
+        {
+            _starting = false;
+        }
+    }
+
+    private static string Initials(string name)
+    {
+        var parts = name.Split(' ', StringSplitOptions.RemoveEmptyEntries);
+        if (parts.Length == 0) return "?";
+        if (parts.Length == 1) return parts[0][..Math.Min(2, parts[0].Length)].ToUpperInvariant();
+        return $"{parts[0][0]}{parts[^1][0]}".ToUpperInvariant();
+    }
+
+    private static string FormatDuration(int sec)
+    {
+        var m = sec / 60;
+        var s = sec % 60;
+        return m > 0 ? $"{m}m {s}s" : $"{s}s";
+    }
+
+    private static Color OrderColor(SupportOrderSummaryDto o) => (OrderStatus)o.Status switch
+    {
+        OrderStatus.Completed => Color.Success,
+        OrderStatus.Cancelled or OrderStatus.Refunded => Color.Error,
+        OrderStatus.Processing or OrderStatus.Shipped => Color.Warning,
+        OrderStatus.Paid => Color.Info,
+        _ => Color.Default,
+    };
+
+    private static Color StatusColor(byte status) => (SupportSessionStatus)status switch
+    {
+        SupportSessionStatus.Open => Color.Primary,
+        SupportSessionStatus.Pending => Color.Warning,
+        SupportSessionStatus.WaitingCustomer => Color.Info,
+        SupportSessionStatus.Resolved => Color.Success,
+        SupportSessionStatus.Closed => Color.Default,
+        _ => Color.Default,
+    };
+
+    private static Color PriorityColor(byte p) => (SupportPriority)p switch
+    {
+        SupportPriority.Urgent => Color.Error,
+        SupportPriority.High => Color.Warning,
+        SupportPriority.Low => Color.Default,
+        _ => Color.Primary,
+    };
+
+    private static Color InteractionColor(SupportInteractionDto i) => (SupportInteractionType)i.InteractionType switch
+    {
+        SupportInteractionType.CallInbound or SupportInteractionType.CallOutbound => Color.Primary,
+        SupportInteractionType.InternalNote => Color.Secondary,
+        SupportInteractionType.StatusChange => Color.Info,
+        SupportInteractionType.Assignment => Color.Warning,
+        _ => Color.Default,
+    };
+
+    private static string InteractionIcon(SupportInteractionDto i) => (SupportInteractionType)i.InteractionType switch
+    {
+        SupportInteractionType.CallInbound => Icons.Material.Filled.CallReceived,
+        SupportInteractionType.CallOutbound => Icons.Material.Filled.CallMade,
+        SupportInteractionType.InternalNote => Icons.Material.Filled.Lock,
+        SupportInteractionType.Email => Icons.Material.Filled.Email,
+        SupportInteractionType.Sms => Icons.Material.Filled.Sms,
+        SupportInteractionType.StatusChange => Icons.Material.Filled.SwapHoriz,
+        SupportInteractionType.Assignment => Icons.Material.Filled.PersonAdd,
+        SupportInteractionType.OrderLinked => Icons.Material.Filled.Link,
+        _ => Icons.Material.Filled.Notes,
+    };
+}
