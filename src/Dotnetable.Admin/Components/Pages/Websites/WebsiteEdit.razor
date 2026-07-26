@@ -64,7 +64,7 @@ else if (_website is not null)
                         <MudItem xs="12" sm="6">
                             <MudSelect T="byte" @bind-Value="_website.WebsiteType" Label="@L["website_type", "Website Type"]"
                                        Variant="Variant.Outlined"
-                                       HelperText="@L["website.type_hint", "Determines the default features suggested for this site — always changeable later."]">
+                                       HelperText="@L["website.type_hint", "Sets default feature modules and the Basic/General admin menu for members of this site (Advanced shows everything they have roles for). Always changeable later."]">
                                 <MudListSubheader>@L["website.category.informational", "Informational / Brochure"]</MudListSubheader>
                                 <MudSelectItem T="byte" Value="@((byte)WebsiteType.Corporate)">@L["website.type.corporate", "Corporate Website"]</MudSelectItem>
                                 <MudSelectItem T="byte" Value="@((byte)WebsiteType.Personal)">@L["website.type.personal", "Personal Website"]</MudSelectItem>

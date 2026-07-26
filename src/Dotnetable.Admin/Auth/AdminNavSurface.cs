@@ -4,7 +4,8 @@ namespace Dotnetable.Admin.Auth;
 
 /// <summary>
 /// High-level admin drawer / search areas. Visibility is the intersection of:
-/// role permissions (AuthorizeView) × <see cref="AdminUiMode"/> × website type (non-master) × vendor-member scope.
+/// role permissions (AuthorizeView) × <see cref="AdminUiMode"/> ×
+/// the logged-in member's website <see cref="WebsiteType"/> (from Website edit form) × vendor-member scope.
 /// </summary>
 public enum AdminNavArea
 {
@@ -17,7 +18,7 @@ public enum AdminNavArea
     /// <summary>Contact messages, email accounts/templates.</summary>
     Messages,
 
-    /// <summary>Pages, menus, slideshows, themes (always useful on brochure/CMS sites).</summary>
+    /// <summary>Pages, menus, slideshows, themes.</summary>
     ContentCore,
 
     /// <summary>Posts, blog categories/tags/post-types.</summary>
@@ -43,9 +44,9 @@ public enum AdminNavArea
 
 /// <summary>
 /// Resolves which admin navigation areas a member should see.
+/// Driven by <see cref="Website.WebsiteType"/> of the website on the login claim (same field as Website edit / list).
 /// Master website (site 1) and Advanced mode always get the full surface (still role-gated in UI).
-/// Basic/General trim the surface to what the site type needs so a pure CMS blog is not flooded with shop menus.
-/// Member vendors only get the seller-relevant areas regardless of mode.
+/// Member vendors only get seller-relevant areas.
 /// </summary>
 public static class AdminNavSurface
 {
@@ -53,14 +54,13 @@ public static class AdminNavSurface
 
     public static IReadOnlySet<AdminNavArea> Resolve(
         AdminUiMode mode,
-        WebsiteCategory? category,
+        WebsiteType? websiteType,
         bool isMaster,
         bool isVendorMember)
     {
         if (isMaster)
             return new HashSet<AdminNavArea>(AllAreas);
 
-        // Marketplace seller account: only their day-to-day tools (products, listings, media, orders).
         if (isVendorMember)
         {
             return new HashSet<AdminNavArea>
@@ -72,25 +72,93 @@ public static class AdminNavSurface
             };
         }
 
-        // Advanced: every area the role system allows (UI still checks policies).
+        // Advanced: every area the role system allows.
         if (mode == AdminUiMode.Advanced)
             return new HashSet<AdminNavArea>(AllAreas);
 
-        // Basic / General: type-aware surface. General is a bit broader within the same family.
-        var cat = category ?? WebsiteCategory.Informational;
-        var basic = cat switch
-        {
-            WebsiteCategory.Commerce => CommerceBasic(),
-            WebsiteCategory.Content => ContentBasic(),
-            WebsiteCategory.Educational => EducationalBasic(),
-            _ => InformationalBasic(),
-        };
+        var type = websiteType ?? WebsiteType.Corporate;
+        var surface = ForWebsiteType(type);
 
         if (mode == AdminUiMode.General)
-            basic.UnionWith(GeneralExtras(cat));
+            surface.UnionWith(GeneralExtras(type));
 
-        return basic;
+        return surface;
     }
+
+    /// <summary>
+    /// Basic surface for the exact type chosen on the Website form
+    /// (aligned with <see cref="WebsiteTypeExtensions.GetDefaultFeatures"/> families).
+    /// </summary>
+    public static HashSet<AdminNavArea> ForWebsiteType(WebsiteType type) => type switch
+    {
+        // ── Informational / Brochure ──────────────────────────────
+        WebsiteType.Corporate or WebsiteType.LandingPage =>
+        [
+            AdminNavArea.Users, AdminNavArea.Website, AdminNavArea.Messages,
+            AdminNavArea.ContentCore, AdminNavArea.ContentExtra, AdminNavArea.Media,
+        ],
+        WebsiteType.Personal =>
+        [
+            AdminNavArea.Users, AdminNavArea.Website, AdminNavArea.Messages,
+            AdminNavArea.ContentCore, AdminNavArea.ContentBlog, AdminNavArea.ContentExtra, AdminNavArea.Media,
+        ],
+        WebsiteType.Resume =>
+        [
+            AdminNavArea.Website, AdminNavArea.Messages,
+            AdminNavArea.ContentCore, AdminNavArea.Media,
+        ],
+
+        // ── Commerce ──────────────────────────────────────────────
+        WebsiteType.ECommerce or WebsiteType.Auction =>
+            FullCommerce(),
+
+        WebsiteType.DigitalCatalog or WebsiteType.RealEstate or WebsiteType.Restaurant =>
+        [
+            // List/prices without full checkout stack in Basic (unlock via Advanced).
+            AdminNavArea.Users, AdminNavArea.Website, AdminNavArea.Messages,
+            AdminNavArea.ContentCore, AdminNavArea.Media,
+            AdminNavArea.Catalog, AdminNavArea.Inventory,
+        ],
+
+        WebsiteType.Crowdfunding =>
+        [
+            AdminNavArea.Users, AdminNavArea.Website, AdminNavArea.Messages,
+            AdminNavArea.ContentCore, AdminNavArea.ContentBlog, AdminNavArea.Media,
+            AdminNavArea.Catalog, AdminNavArea.Orders, AdminNavArea.Finance,
+        ],
+
+        // ── Content showcase ──────────────────────────────────────
+        WebsiteType.Blog or WebsiteType.News =>
+        [
+            AdminNavArea.Users, AdminNavArea.Website, AdminNavArea.Messages,
+            AdminNavArea.ContentCore, AdminNavArea.ContentBlog, AdminNavArea.ContentExtra, AdminNavArea.Media,
+        ],
+        WebsiteType.Gallery or WebsiteType.Portfolio =>
+        [
+            AdminNavArea.Users, AdminNavArea.Website, AdminNavArea.Messages,
+            AdminNavArea.ContentCore, AdminNavArea.ContentExtra, AdminNavArea.Media,
+        ],
+
+        // ── Educational / professional ────────────────────────────
+        WebsiteType.ELearning or WebsiteType.Membership =>
+        [
+            AdminNavArea.Users, AdminNavArea.Website, AdminNavArea.Messages,
+            AdminNavArea.ContentCore, AdminNavArea.ContentBlog, AdminNavArea.ContentExtra, AdminNavArea.Media,
+            // Courses/membership later; shop stays Advanced unless productized.
+        ],
+        WebsiteType.Booking or WebsiteType.MedicalBooking or WebsiteType.BeautyBooking =>
+        [
+            AdminNavArea.Users, AdminNavArea.Website, AdminNavArea.Messages,
+            AdminNavArea.ContentCore, AdminNavArea.ContentExtra, AdminNavArea.Media,
+            AdminNavArea.Orders, // appointments / bookings often surface as orders
+        ],
+
+        _ =>
+        [
+            AdminNavArea.Users, AdminNavArea.Website, AdminNavArea.Messages,
+            AdminNavArea.ContentCore, AdminNavArea.ContentExtra, AdminNavArea.Media,
+        ],
+    };
 
     public static bool Shows(IReadOnlySet<AdminNavArea> surface, AdminNavArea area) =>
         surface.Contains(area);
@@ -98,66 +166,47 @@ public static class AdminNavSurface
     public static bool ShowsAny(IReadOnlySet<AdminNavArea> surface, params AdminNavArea[] areas) =>
         areas.Any(surface.Contains);
 
-    private static HashSet<AdminNavArea> InformationalBasic() =>
+    private static HashSet<AdminNavArea> FullCommerce() =>
     [
-        AdminNavArea.Users,
-        AdminNavArea.Website,
-        AdminNavArea.Messages,
-        AdminNavArea.ContentCore,
-        AdminNavArea.ContentExtra,
-        AdminNavArea.Media,
-    ];
-
-    private static HashSet<AdminNavArea> ContentBasic() =>
-    [
-        AdminNavArea.Users,
-        AdminNavArea.Website,
-        AdminNavArea.Messages,
-        AdminNavArea.ContentCore,
-        AdminNavArea.ContentBlog,
-        AdminNavArea.ContentExtra,
-        AdminNavArea.Media,
-    ];
-
-    private static HashSet<AdminNavArea> EducationalBasic() =>
-    [
-        AdminNavArea.Users,
-        AdminNavArea.Website,
-        AdminNavArea.Messages,
-        AdminNavArea.ContentCore,
-        AdminNavArea.ContentBlog,
-        AdminNavArea.ContentExtra,
-        AdminNavArea.Media,
-        // Membership / booking sites often still need customers + light commerce later via Advanced.
-    ];
-
-    private static HashSet<AdminNavArea> CommerceBasic() =>
-    [
-        AdminNavArea.Users,
-        AdminNavArea.Website,
-        AdminNavArea.Messages,
-        AdminNavArea.ContentCore, // pages/menus for the storefront shell
-        AdminNavArea.Media,
-        AdminNavArea.Catalog,
-        AdminNavArea.Inventory,
-        AdminNavArea.Orders,
-        AdminNavArea.Finance,
-        AdminNavArea.Promotions,
+        AdminNavArea.Users, AdminNavArea.Website, AdminNavArea.Messages,
+        AdminNavArea.ContentCore, AdminNavArea.Media,
+        AdminNavArea.Catalog, AdminNavArea.Inventory, AdminNavArea.Orders,
+        AdminNavArea.Finance, AdminNavArea.Promotions,
     ];
 
     /// <summary>
-    /// Extra areas unlocked in General (still type-aware — never dumps the full shop onto a CMS site).
+    /// General adds a few cross-cutting extras for the same type — never the full unrelated stack
+    /// (e.g. a Blog site still has no Catalog until Advanced).
     /// </summary>
-    private static HashSet<AdminNavArea> GeneralExtras(WebsiteCategory cat) => cat switch
+    private static HashSet<AdminNavArea> GeneralExtras(WebsiteType type) => type switch
     {
-        WebsiteCategory.Commerce =>
+        WebsiteType.ECommerce or WebsiteType.Auction =>
         [
-            AdminNavArea.ContentBlog, // store blog / marketing posts
-            AdminNavArea.ContentExtra,
+            AdminNavArea.ContentBlog, AdminNavArea.ContentExtra,
         ],
-        WebsiteCategory.Content or WebsiteCategory.Informational or WebsiteCategory.Educational =>
+        WebsiteType.DigitalCatalog or WebsiteType.RealEstate or WebsiteType.Restaurant =>
         [
-            // Still no Catalog/Orders — switch to Advanced for shop modules on a CMS site.
+            AdminNavArea.ContentExtra, AdminNavArea.Orders, AdminNavArea.Finance, AdminNavArea.Promotions,
+        ],
+        WebsiteType.Crowdfunding =>
+        [
+            AdminNavArea.ContentExtra, AdminNavArea.Promotions, AdminNavArea.Inventory,
+        ],
+        WebsiteType.Blog or WebsiteType.News or WebsiteType.Personal =>
+        [
+            // Still CMS-only; Advanced for shop.
+        ],
+        WebsiteType.Gallery or WebsiteType.Portfolio =>
+        [
+            AdminNavArea.ContentBlog,
+        ],
+        WebsiteType.ELearning or WebsiteType.Membership =>
+        [
+            AdminNavArea.Orders, AdminNavArea.Finance,
+        ],
+        WebsiteType.Booking or WebsiteType.MedicalBooking or WebsiteType.BeautyBooking =>
+        [
+            AdminNavArea.ContentBlog, AdminNavArea.Finance, AdminNavArea.Promotions,
         ],
         _ => [],
     };

@@ -6,6 +6,7 @@
 @using Dotnetable.Admin.Theme
 @inject IJSRuntime JS
 @inject AdminUiModeState UiModeState
+@inject AdminNavSurfaceState NavSurface
 @inject AuthenticationStateProvider AuthStateProvider
 @inject IDialogService DialogService
 @inject IPageLocalizer Loc
@@ -47,12 +48,19 @@
                 </MudMenu>
                 @if (!_isMaster && !_isVendorMember)
                 {
-                    <MudTooltip Text="@($"View mode: {UiModeState.Current} (this browser only). Basic/General follow site type; Advanced shows all permitted menus.")">
+                    <MudTooltip Text="@UiModeTooltip">
                         <MudMenu Icon="@Icons.Material.Filled.Tune" Color="Color.Default" Dense="true">
-                            <div class="pa-2" style="min-width:200px;">
+                            <div class="pa-2" style="min-width:240px;">
                                 <MudText Typo="Typo.caption" Class="px-2 pb-1" Color="Color.Secondary">
-                                    @L_mode_hint
+                                    @Loc["admin.ui_mode_hint", "Menu density (this browser only)"]
                                 </MudText>
+                                @if (NavSurface.WebsiteType is WebsiteType wt)
+                                {
+                                    var label = wt.GetDisplayText();
+                                    <MudText Typo="Typo.caption" Class="px-2 pb-2" Color="Color.Primary">
+                                        @Loc["website_type", "Website Type"]: @Loc[label.Key, label.Fallback]
+                                    </MudText>
+                                }
                                 @foreach (var mode in _uiModes)
                                 {
                                     <MudMenuItem OnClick="@(() => SetUiMode(mode))" Class="@(UiModeState.Current == mode ? "fw-bold mud-primary-text" : null)">
@@ -141,7 +149,19 @@
     private AdminSkin _skin = AdminSkinCatalog.Get(AdminSkinCatalog.DefaultId);
     private MudTheme _theme = AdminSkinCatalog.BuildMudTheme(AdminSkinCatalog.Get(AdminSkinCatalog.DefaultId));
     private static readonly AdminUiMode[] _uiModes = Enum.GetValues<AdminUiMode>();
-    private string L_mode_hint => "Menu density for this browser only";
+
+    private string UiModeTooltip
+    {
+        get
+        {
+            if (NavSurface.WebsiteType is WebsiteType wt)
+            {
+                var label = wt.GetDisplayText();
+                return $"Mode: {UiModeState.Current}. Site type: {Loc[label.Key, label.Fallback]}. Basic/General follow that type; Advanced = full role menus.";
+            }
+            return $"Mode: {UiModeState.Current}. Basic/General follow website type; Advanced = full role menus.";
+        }
+    }
 
     private IReadOnlyList<LanguageOption> _languages = SupportedLanguages.Defaults;
 
@@ -220,11 +240,11 @@
         await JS.InvokeVoidAsync("dotnetableUiMode.set", mode.ToString());
     }
 
-    private static string ModeLabel(AdminUiMode mode) => mode switch
+    private string ModeLabel(AdminUiMode mode) => mode switch
     {
-        AdminUiMode.Basic => "Basic — site type only",
-        AdminUiMode.General => "General — a bit more",
-        AdminUiMode.Advanced => "Advanced — full menus",
+        AdminUiMode.Basic => Loc["admin.ui_mode.basic", "Basic — this website type only"],
+        AdminUiMode.General => Loc["admin.ui_mode.general", "General — a bit more for this type"],
+        AdminUiMode.Advanced => Loc["admin.ui_mode.advanced", "Advanced — full menus (all roles)"],
         _ => mode.ToString(),
     };
 

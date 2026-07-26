@@ -424,17 +424,18 @@
             _websiteId = int.TryParse(user.FindFirst(AdminClaimTypes.WebsiteId)?.Value, out var websiteId) ? websiteId : null;
             int? vendorId = int.TryParse(user.FindFirst(AdminClaimTypes.VendorId)?.Value, out var vid) ? vid : null;
 
-            WebsiteCategory? category = null;
-            if (!_isMaster && _websiteId is int wid)
+            // WebsiteType comes from the same field as Website edit / list (Websites.WebsiteType).
+            WebsiteType? siteType = null;
+            if (_websiteId is int wid)
             {
                 var site = await WebsiteService.GetByIdAsync(wid);
                 if (site is not null)
-                    category = site.WebsiteType.GetCategory();
+                    siteType = (WebsiteType)site.WebsiteType;
             }
 
             // Ensure claim mode is applied even if MainLayout has not finished yet.
             UiModeState.Initialize(AdminClaimTypes.GetUiMode(user));
-            NavSurface.Rebuild(UiModeState.Current, category, _isMaster, vendorId);
+            NavSurface.Rebuild(UiModeState.Current, siteType, _isMaster, vendorId, _websiteId);
         }
 
         UiModeState.Changed += OnUiModeChanged;
@@ -443,7 +444,7 @@
 
     private void OnUiModeChanged()
     {
-        NavSurface.Rebuild(UiModeState.Current, NavSurface.Category, _isMaster, NavSurface.VendorId);
+        NavSurface.Rebuild(UiModeState.Current, NavSurface.WebsiteType, _isMaster, NavSurface.VendorId, NavSurface.WebsiteId);
         InvokeAsync(StateHasChanged);
     }
 
