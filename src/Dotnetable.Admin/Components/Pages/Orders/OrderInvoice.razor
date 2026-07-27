@@ -1,0 +1,171 @@
+@page "/orders/{OrderId:int}/invoice"
+@attribute [Authorize(Policy = RoleKeys.OrdersView)]
+@inject ITaxReportService TaxReportService
+@inject NavigationManager Nav
+@inject IPageLocalizer L
+@inject IJSRuntime Js
+
+<DNPageTitle Title="@(_inv is null ? L["invoice", "Invoice"] : $"{L["invoice", "Invoice"]} {_inv.OrderNumber}")" />
+
+<style>
+    @@media print {
+        .no-print { display: none !important; }
+        body { background: #fff !important; }
+        .invoice-sheet { box-shadow: none !important; border: none !important; }
+    }
+    .invoice-sheet { max-width: 900px; margin: 0 auto; }
+    .invoice-meta td { padding: 2px 8px 2px 0; vertical-align: top; }
+    .invoice-totals td { padding: 4px 0; }
+</style>
+
+@if (_loading)
+{
+    <MudProgressLinear Indeterminate="true" Color="Color.Primary" />
+}
+else if (_inv is null)
+{
+    <MudText Color="Color.Error">@L["orders.not_found", "Order not found."]</MudText>
+}
+else
+{
+    <MudStack Row="true" Justify="Justify.SpaceBetween" AlignItems="AlignItems.Center" Class="mb-4 no-print">
+        <MudButton Variant="Variant.Text" StartIcon="@Icons.Material.Filled.ArrowBack"
+                   OnClick="@(() => Nav.NavigateTo($"/orders/{OrderId}"))">@L["back", "Back"]</MudButton>
+        <MudButton Variant="Variant.Filled" Color="Color.Primary" StartIcon="@Icons.Material.Filled.Print" OnClick="PrintAsync">
+            @L["print", "Print"]
+        </MudButton>
+    </MudStack>
+
+    <MudPaper Elevation="0" Class="app-card rounded-lg pa-6 invoice-sheet">
+        <MudStack Row="true" Justify="Justify.SpaceBetween" Class="mb-4">
+            <div>
+                <MudText Typo="Typo.h5" Class="fw-bold">@L["invoice", "Tax invoice"]</MudText>
+                <MudText Typo="Typo.subtitle1">@_inv.OrderNumber</MudText>
+                <MudText Typo="Typo.caption" Color="Color.Secondary">
+                    @L["date", "Date"]: @_inv.CreatedAt.ToLocalTime().ToString("g")
+                    @if (_inv.PaidAt is DateTime paid)
+                    {
+                        <span> · @L["orders.paid_at", "Paid"]: @paid.ToLocalTime().ToString("g")</span>
+                    }
+                </MudText>
+            </div>
+            <MudChip T="string" Color="Color.Primary">@((OrderStatus)_inv.Status)</MudChip>
+        </MudStack>
+
+        <MudGrid Spacing="4" Class="mb-4">
+            <MudItem xs="12" sm="6">
+                <MudText Typo="Typo.subtitle2" Class="mb-1">@L["invoice.seller", "Seller"]</MudText>
+                <table class="invoice-meta">
+                    <tr><td colspan="2"><strong>@(_inv.Seller.LegalName ?? _inv.Seller.Name)</strong></td></tr>
+                    @if (!string.IsNullOrEmpty(_inv.Seller.TaxId))
+                    {
+                        <tr><td>@L["website.seller_tax_id", "Tax ID"]</td><td>@_inv.Seller.TaxId</td></tr>
+                    }
+                    @if (!string.IsNullOrEmpty(_inv.Seller.EconomicCode))
+                    {
+                        <tr><td>@L["website.seller_economic_code", "Economic code"]</td><td>@_inv.Seller.EconomicCode</td></tr>
+                    }
+                    @if (!string.IsNullOrEmpty(_inv.Seller.VatNumber))
+                    {
+                        <tr><td>@L["website.seller_vat", "VAT"]</td><td>@_inv.Seller.VatNumber</td></tr>
+                    }
+                    @if (!string.IsNullOrEmpty(_inv.Seller.RegistrationNumber))
+                    {
+                        <tr><td>@L["website.seller_registration", "Registration"]</td><td>@_inv.Seller.RegistrationNumber</td></tr>
+                    }
+                    @if (!string.IsNullOrEmpty(_inv.Seller.Email))
+                    {
+                        <tr><td>@L["email", "Email"]</td><td>@_inv.Seller.Email</td></tr>
+                    }
+                    @if (!string.IsNullOrEmpty(_inv.Seller.Phone))
+                    {
+                        <tr><td>@L["phone", "Phone"]</td><td>@_inv.Seller.Phone</td></tr>
+                    }
+                </table>
+            </MudItem>
+            <MudItem xs="12" sm="6">
+                <MudText Typo="Typo.subtitle2" Class="mb-1">@L["invoice.buyer", "Buyer"]</MudText>
+                <table class="invoice-meta">
+                    <tr><td colspan="2"><strong>@(string.IsNullOrWhiteSpace(_inv.Buyer.Name) ? "—" : _inv.Buyer.Name)</strong></td></tr>
+                    @if (!string.IsNullOrEmpty(_inv.Buyer.Email))
+                    {
+                        <tr><td>@L["email", "Email"]</td><td>@_inv.Buyer.Email</td></tr>
+                    }
+                    @if (!string.IsNullOrEmpty(_inv.Buyer.Phone))
+                    {
+                        <tr><td>@L["phone", "Phone"]</td><td>@_inv.Buyer.Phone</td></tr>
+                    }
+                    @if (!string.IsNullOrEmpty(_inv.Buyer.Address))
+                    {
+                        <tr><td>@L["address", "Address"]</td><td>@_inv.Buyer.Address</td></tr>
+                    }
+                </table>
+            </MudItem>
+        </MudGrid>
+
+        <MudSimpleTable Dense="true" Elevation="0" Class="mb-4">
+            <thead>
+                <tr>
+                    <th>@L["title", "Title"]</th>
+                    <th>@L["variants.sku", "SKU"]</th>
+                    <th class="text-end">@L["quantity", "Qty"]</th>
+                    <th class="text-end">@L["variants.price", "Unit"]</th>
+                    <th class="text-end">@L["orders.line_total", "Total"]</th>
+                </tr>
+            </thead>
+            <tbody>
+                @foreach (var line in _inv.Lines)
+                {
+                    <tr>
+                        <td>@line.Title</td>
+                        <td><code>@line.Sku</code></td>
+                        <td class="text-end">@line.Quantity</td>
+                        <td class="text-end">@line.UnitPrice.ToString("0.##")</td>
+                        <td class="text-end">@line.LineTotal.ToString("0.##")</td>
+                    </tr>
+                }
+            </tbody>
+        </MudSimpleTable>
+
+        <MudGrid>
+            <MudItem xs="12" sm="6">
+                @if (_inv.PricesIncludeTax)
+                {
+                    <MudAlert Severity="Severity.Info" Dense="true" Class="mb-2">
+                        @L["invoice.prices_include_tax", "Catalog prices include tax; tax line is reported for disclosure."]
+                    </MudAlert>
+                }
+                @if (!string.IsNullOrEmpty(_inv.TaxBreakdownJson))
+                {
+                    <MudText Typo="Typo.caption" Color="Color.Secondary" Class="mb-1">@L["invoice.tax_breakdown", "Tax breakdown"]</MudText>
+                    <MudText Typo="Typo.caption" Style="word-break:break-all">@_inv.TaxBreakdownJson</MudText>
+                }
+            </MudItem>
+            <MudItem xs="12" sm="6">
+                <table class="invoice-totals" style="width:100%">
+                    <tr><td>@L["orders.subtotal", "Subtotal"]</td><td class="text-end">@_inv.SubTotal.ToString("0.##") @_inv.CurrencyCode</td></tr>
+                    <tr><td>@L["orders.discount", "Discount"]</td><td class="text-end">-@_inv.DiscountTotal.ToString("0.##")</td></tr>
+                    <tr><td>@L["shipping", "Shipping"]</td><td class="text-end">@_inv.ShippingTotal.ToString("0.##")</td></tr>
+                    <tr><td>@L["tax", "Tax"]</td><td class="text-end">@_inv.TaxTotal.ToString("0.##")</td></tr>
+                    <tr><td><strong>@L["orders.grand_total", "Grand total"]</strong></td><td class="text-end"><strong>@_inv.GrandTotal.ToString("0.##") @_inv.CurrencyCode</strong></td></tr>
+                </table>
+            </MudItem>
+        </MudGrid>
+    </MudPaper>
+}
+
+@code {
+    [Parameter] public int OrderId { get; set; }
+
+    private bool _loading = true;
+    private OrderInvoiceDto? _inv;
+
+    protected override async Task OnInitializedAsync()
+    {
+        await L.EnsureLoadedAsync();
+        _inv = await TaxReportService.GetOrderInvoiceAsync(OrderId);
+        _loading = false;
+    }
+
+    private async Task PrintAsync() => await Js.InvokeVoidAsync("window.print");
+}

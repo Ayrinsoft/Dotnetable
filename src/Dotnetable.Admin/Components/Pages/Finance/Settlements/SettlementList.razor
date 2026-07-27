@@ -1,0 +1,139 @@
+@page "/finance/settlements"
+@attribute [Authorize(Policy = RoleKeys.SettlementsView)]
+@inject ISettlementService SettlementService
+@inject IWebsiteService WebsiteService
+@inject AuthenticationStateProvider AuthState
+@inject NavigationManager Nav
+@inject IPageLocalizer L
+
+<DNPageTitle Title=@L["settlements", "Settlements"] />
+
+<MudStack Row="true" AlignItems="AlignItems.Center" Justify="Justify.SpaceBetween" Class="mb-4">
+    <MudStack Spacing="0">
+        <MudText Typo="Typo.h5" Class="fw-bold">@L["settlements", "Settlements"]</MudText>
+        <MudText Typo="Typo.body2" Color="Color.Secondary">
+            @L["settlements.subtitle", "Vendor / inter-site / supplier settlements with net, tax and gross amounts."]
+        </MudText>
+    </MudStack>
+    @if (_isMaster)
+    {
+        <WebsiteSelector Value="_websiteId" ValueChanged="OnWebsiteChanged" Websites="_websites"
+                         Label="@L["website", "Website"]" Variant="Variant.Outlined"
+                         Dense="true" Style="min-width:180px" />
+    }
+</MudStack>
+
+<MudPaper Elevation="0" Class="app-card rounded-lg pa-4">
+    @if (_loading)
+    {
+        <MudProgressLinear Indeterminate="true" Color="Color.Primary" Class="mb-3" />
+    }
+    <DNGridView GridHeaderParams="_grid" OnSearchChanged="OnGridChanged">
+        @if (_items.Count == 0)
+        {
+            <tr>
+                <td colspan="9" style="text-align:center; padding:32px;">
+                    <MudText Color="Color.Secondary">@L["settlements.empty", "No settlements yet."]</MudText>
+                </td>
+            </tr>
+        }
+        else
+        {
+            @foreach (var s in _items)
+            {
+                <tr style="cursor:pointer" @onclick="@(() => Nav.NavigateTo($"/finance/settlements/{s.SettlementID}"))">
+                    <td>S-@s.SettlementID</td>
+                    <td>@TargetLabel(s)</td>
+                    <td>@s.PeriodFrom.ToString("yyyy-MM-dd") → @s.PeriodTo.ToString("yyyy-MM-dd")</td>
+                    <td class="text-end">@s.NetAmount.ToString("0.##")</td>
+                    <td class="text-end">@s.TaxAmount.ToString("0.##")</td>
+                    <td class="text-end"><strong>@s.TotalAmount.ToString("0.##")</strong> @s.CurrencyCode</td>
+                    <td>
+                        <MudChip T="string" Size="Size.Small" Color="@StatusColor(s.Status)">@StatusLabel(s.Status)</MudChip>
+                    </td>
+                    <td>@s.CreatedAt.ToLocalTime().ToString("g")</td>
+                    <td>
+                        <MudIconButton Icon="@Icons.Material.Filled.OpenInNew" Size="Size.Small"
+                                       OnClick="@(() => Nav.NavigateTo($"/finance/settlements/{s.SettlementID}"))" />
+                    </td>
+                </tr>
+            }
+        }
+    </DNGridView>
+</MudPaper>
+
+@code {
+    private bool _loading = true;
+    private bool _isMaster;
+    private int _websiteId;
+    private List<Settlement> _items = new();
+    private List<Website> _websites = new();
+    private GridViewHeaderParameters _grid = new();
+
+    protected override async Task OnInitializedAsync()
+    {
+        await L.EnsureLoadedAsync();
+        var user = (await AuthState.GetAuthenticationStateAsync()).User;
+        _isMaster = user.HasClaim(AdminClaimTypes.Master, "true");
+        int.TryParse(user.FindFirst(AdminClaimTypes.WebsiteId)?.Value, out _websiteId);
+        if (_isMaster) _websites = (await WebsiteService.GetAllAsync()).ToList();
+
+        _grid = new GridViewHeaderParameters
+        {
+            Pagination = new PaginationModel { PageSize = 25 },
+            HeaderItems = new()
+            {
+                new() { ColumnTitle = L["id", "ID"], ColumnName = nameof(Settlement.SettlementID), HasSort = true },
+                new() { ColumnTitle = L["settlements.party", "Party"], ColumnName = "" },
+                new() { ColumnTitle = L["settlements.period", "Period"], ColumnName = nameof(Settlement.PeriodFrom), HasSort = true },
+                new() { ColumnTitle = L["settlements.net", "Net"], ColumnName = nameof(Settlement.NetAmount), HasSort = true },
+                new() { ColumnTitle = L["settlements.tax", "Tax"], ColumnName = nameof(Settlement.TaxAmount), HasSort = true },
+                new() { ColumnTitle = L["settlements.gross", "Gross"], ColumnName = nameof(Settlement.TotalAmount), HasSort = true },
+                new() { ColumnTitle = L["status", "Status"], ColumnName = nameof(Settlement.Status), HasSort = true },
+                new() { ColumnTitle = L["created", "Created"], ColumnName = nameof(Settlement.CreatedAt), HasSort = true },
+                new() { ColumnTitle = "", ColumnName = "" },
+            }
+        };
+
+        await LoadAsync();
+    }
+
+    private string TargetLabel(Settlement s)
+    {
+        if (s.Supplier is not null) return $"{L["suppliers", "Supplier"]}: {s.Supplier.Name}";
+        if (s.Vendor is not null) return $"{L["vendors", "Vendor"]}: {s.Vendor.Name}";
+        if (s.TargetWebsite is not null) return $"{L["website", "Website"]}: {s.TargetWebsite.BrandName}";
+        return ((SettlementTargetType)s.TargetType).ToString();
+    }
+
+    private string StatusLabel(byte status) => ((SettlementStatus)status) switch
+    {
+        SettlementStatus.Draft => L["settlements.status.draft", "Draft"],
+        SettlementStatus.Open => L["settlements.status.open", "Open"],
+        SettlementStatus.Approved => L["settlements.status.approved", "Approved"],
+        SettlementStatus.Paid => L["settlements.status.paid", "Paid"],
+        SettlementStatus.Cancelled => L["settlements.status.cancelled", "Cancelled"],
+        _ => status.ToString(),
+    };
+
+    private Color StatusColor(byte status) => ((SettlementStatus)status) switch
+    {
+        SettlementStatus.Paid => Color.Success,
+        SettlementStatus.Approved => Color.Info,
+        SettlementStatus.Cancelled => Color.Error,
+        SettlementStatus.Open => Color.Warning,
+        _ => Color.Default,
+    };
+
+    private async Task OnWebsiteChanged(int id) { _websiteId = id; await LoadAsync(); }
+    private Task OnGridChanged(GridViewHeaderParameters _) => LoadAsync();
+
+    private async Task LoadAsync()
+    {
+        _loading = true;
+        var result = await SettlementService.GetPagedAsync(_websiteId, _grid.ToQuery());
+        _items = result.Items.ToList();
+        _grid.Pagination.MaxLength = result.TotalCount;
+        _loading = false;
+    }
+}

@@ -322,6 +322,9 @@
                 <AuthorizeView Policy="@RoleKeys.WalletsView" Context="wal">
                     <MudNavLink Href="/wallets/withdrawals" Icon="@Icons.Material.Filled.AccountBalanceWallet">@L["wallets.withdrawals", "Withdrawals"]</MudNavLink>
                 </AuthorizeView>
+                <AuthorizeView Policy="@RoleKeys.SettlementsView" Context="stl">
+                    <MudNavLink Href="/finance/settlements" Icon="@Icons.Material.Filled.Handshake">@L["settlements", "Settlements"]</MudNavLink>
+                </AuthorizeView>
                 <AuthorizeView Policy="@RoleKeys.BankAccountsView" Context="bnk">
                     <MudNavLink Href="/finance/bank-accounts" Icon="@Icons.Material.Filled.AccountBalance">@L["bank_accounts", "Bank Accounts"]</MudNavLink>
                 </AuthorizeView>
@@ -347,6 +350,7 @@
                 </AuthorizeView>
                 <AuthorizeView Policy="@RoleKeys.TaxView" Context="tax">
                     <MudNavLink Href="/sales/tax" Icon="@Icons.Material.Filled.Percent">@L["tax", "Tax"]</MudNavLink>
+                    <MudNavLink Href="/sales/tax/report" Icon="@Icons.Material.Filled.Assessment">@L["vat_report", "VAT report"]</MudNavLink>
                 </AuthorizeView>
             </MudNavGroup>
         }

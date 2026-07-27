@@ -25,6 +25,8 @@ else
         <MudText Typo="Typo.h5" Class="fw-bold">@_order.OrderNumber</MudText>
         <MudStack Row="true" Spacing="2" AlignItems="AlignItems.Center">
             <MudChip T="string" Color="Color.Primary">@((OrderStatus)_order.Status)</MudChip>
+            <MudButton Variant="Variant.Outlined" StartIcon="@Icons.Material.Filled.Receipt"
+                       Href="@($"/orders/{OrderId}/invoice")">@L["invoice", "Invoice"]</MudButton>
             <MudButton OnClick="@(() => Nav.NavigateTo("/orders"))">@L["back", "Back"]</MudButton>
         </MudStack>
     </MudStack>
@@ -75,6 +77,10 @@ else
                     <MudStack Row="true" Justify="Justify.SpaceBetween"><MudText>@L["orders.discount", "Discount"]</MudText><MudText>-@_order.DiscountTotal.ToString("0.##")</MudText></MudStack>
                     <MudStack Row="true" Justify="Justify.SpaceBetween"><MudText>@L["shipping", "Shipping"]</MudText><MudText>@_order.ShippingTotal.ToString("0.##")</MudText></MudStack>
                     <MudStack Row="true" Justify="Justify.SpaceBetween"><MudText>@L["tax", "Tax"]</MudText><MudText>@_order.TaxTotal.ToString("0.##")</MudText></MudStack>
+                    @if (_order.PricesIncludeTax)
+                    {
+                        <MudText Typo="Typo.caption" Color="Color.Secondary">@L["invoice.prices_include_tax", "Prices include tax"]</MudText>
+                    }
                     <MudDivider />
                     <MudStack Row="true" Justify="Justify.SpaceBetween"><MudText Typo="Typo.subtitle2">@L["orders.grand_total", "Grand Total"]</MudText><MudText Typo="Typo.subtitle2">@_order.GrandTotal.ToString("0.##") @_order.CurrencyCode</MudText></MudStack>
                 </MudStack>

@@ -1,0 +1,199 @@
+@page "/sales/tax/report"
+@attribute [Authorize(Policy = RoleKeys.TaxView)]
+@inject ITaxReportService TaxReportService
+@inject IWebsiteService WebsiteService
+@inject AuthenticationStateProvider AuthState
+@inject NavigationManager Nav
+@inject IPageLocalizer L
+@inject IJSRuntime Js
+
+<DNPageTitle Title=@L["vat_report", "VAT / Tax report"] />
+
+<style>
+    @@media print {
+        .no-print { display: none !important; }
+        .app-card { box-shadow: none !important; border: 1px solid #ccc; }
+    }
+</style>
+
+<MudStack Row="true" AlignItems="AlignItems.Center" Justify="Justify.SpaceBetween" Class="mb-4 no-print">
+    <MudStack Spacing="0">
+        <MudText Typo="Typo.h5" Class="fw-bold">@L["vat_report", "VAT / Tax report"]</MudText>
+        <MudText Typo="Typo.body2" Color="Color.Secondary">
+            @L["vat_report.subtitle", "Output tax on sales plus settlement tax for the selected period (per website settings)."]
+        </MudText>
+    </MudStack>
+    <MudStack Row="true" Spacing="2" AlignItems="AlignItems.Center">
+        @if (_isMaster)
+        {
+            <WebsiteSelector Value="_websiteId" ValueChanged="OnWebsiteChanged" Websites="_websites"
+                             Label="@L["website", "Website"]" Variant="Variant.Outlined"
+                             Dense="true" Style="min-width:160px" />
+        }
+        <MudDatePicker @bind-Date="_from" Label="@L["from", "From"]" Variant="Variant.Outlined" Dense="true" Style="max-width:150px" />
+        <MudDatePicker @bind-Date="_to" Label="@L["to", "To"]" Variant="Variant.Outlined" Dense="true" Style="max-width:150px" />
+        <MudButton Variant="Variant.Filled" Color="Color.Primary" OnClick="LoadAsync" Disabled="_loading">@L["run", "Run"]</MudButton>
+        <MudButton Variant="Variant.Outlined" StartIcon="@Icons.Material.Filled.Print" OnClick="PrintAsync" Disabled="@(_report is null)">@L["print", "Print"]</MudButton>
+    </MudStack>
+</MudStack>
+
+@if (_loading)
+{
+    <MudProgressLinear Indeterminate="true" Color="Color.Primary" Class="mb-3" />
+}
+else if (_report is not null)
+{
+    <MudPaper Elevation="0" Class="app-card rounded-lg pa-4 mb-3">
+        <MudText Typo="Typo.subtitle1" Class="fw-bold mb-2">@L["vat_report.seller", "Seller identity"]</MudText>
+        <MudGrid Spacing="2">
+            <MudItem xs="12" sm="6"><MudText Typo="Typo.caption" Color="Color.Secondary">@L["website.seller_legal_name", "Legal name"]</MudText><MudText>@(_report.SellerLegalName ?? "—")</MudText></MudItem>
+            <MudItem xs="12" sm="3"><MudText Typo="Typo.caption" Color="Color.Secondary">@L["website.seller_tax_id", "Tax ID"]</MudText><MudText>@(_report.SellerTaxId ?? "—")</MudText></MudItem>
+            <MudItem xs="12" sm="3"><MudText Typo="Typo.caption" Color="Color.Secondary">@L["website.seller_vat", "VAT"]</MudText><MudText>@(_report.SellerVatNumber ?? "—")</MudText></MudItem>
+            <MudItem xs="12" sm="3"><MudText Typo="Typo.caption" Color="Color.Secondary">@L["website.seller_economic_code", "Economic code"]</MudText><MudText>@(_report.SellerEconomicCode ?? "—")</MudText></MudItem>
+            <MudItem xs="12" sm="3"><MudText Typo="Typo.caption" Color="Color.Secondary">@L["period", "Period"]</MudText><MudText>@_report.From.ToString("yyyy-MM-dd") → @_report.To.ToString("yyyy-MM-dd")</MudText></MudItem>
+        </MudGrid>
+    </MudPaper>
+
+    <MudGrid Spacing="3" Class="mb-3">
+        <MudItem xs="12" md="6">
+            <MudPaper Elevation="0" Class="app-card rounded-lg pa-4">
+                <MudText Typo="Typo.subtitle2" Class="mb-2">@L["vat_report.output_sales", "Output tax (customer sales)"]</MudText>
+                <MudStack Spacing="1">
+                    <MudStack Row="true" Justify="Justify.SpaceBetween"><MudText>@L["settlements.net", "Net"]</MudText><MudText>@_report.OutputSales.Net.ToString("0.##")</MudText></MudStack>
+                    <MudStack Row="true" Justify="Justify.SpaceBetween"><MudText>@L["settlements.tax", "Tax"]</MudText><MudText>@_report.OutputSales.Tax.ToString("0.##")</MudText></MudStack>
+                    <MudStack Row="true" Justify="Justify.SpaceBetween"><MudText Typo="Typo.subtitle2">@L["settlements.gross", "Gross"]</MudText><MudText Typo="Typo.subtitle2">@_report.OutputSales.Gross.ToString("0.##")</MudText></MudStack>
+                    <MudText Typo="Typo.caption" Color="Color.Secondary">@_report.OutputSales.DocumentCount @L["vat_report.orders", "orders"]</MudText>
+                </MudStack>
+            </MudPaper>
+        </MudItem>
+        <MudItem xs="12" md="6">
+            <MudPaper Elevation="0" Class="app-card rounded-lg pa-4">
+                <MudText Typo="Typo.subtitle2" Class="mb-2">@L["vat_report.settlement_tax", "Settlement tax (B2B / inter-site)"]</MudText>
+                <MudStack Spacing="1">
+                    <MudStack Row="true" Justify="Justify.SpaceBetween"><MudText>@L["settlements.net", "Net"]</MudText><MudText>@_report.SettlementTax.Net.ToString("0.##")</MudText></MudStack>
+                    <MudStack Row="true" Justify="Justify.SpaceBetween"><MudText>@L["settlements.tax", "Tax"]</MudText><MudText>@_report.SettlementTax.Tax.ToString("0.##")</MudText></MudStack>
+                    <MudStack Row="true" Justify="Justify.SpaceBetween"><MudText Typo="Typo.subtitle2">@L["settlements.gross", "Gross"]</MudText><MudText Typo="Typo.subtitle2">@_report.SettlementTax.Gross.ToString("0.##")</MudText></MudStack>
+                    <MudText Typo="Typo.caption" Color="Color.Secondary">@_report.SettlementTax.DocumentCount @L["settlements", "settlements"]</MudText>
+                </MudStack>
+            </MudPaper>
+        </MudItem>
+    </MudGrid>
+
+    <MudPaper Elevation="0" Class="app-card rounded-lg pa-4 mb-3">
+        <MudText Typo="Typo.subtitle1" Class="mb-2">@L["vat_report.order_lines", "Sales documents"]</MudText>
+        <MudSimpleTable Dense="true" Hover="true" Elevation="0">
+            <thead>
+                <tr>
+                    <th>@L["orders.order", "Order"]</th>
+                    <th>@L["date", "Date"]</th>
+                    <th class="text-end">@L["settlements.net", "Net"]</th>
+                    <th class="text-end">@L["settlements.tax", "Tax"]</th>
+                    <th class="text-end">@L["settlements.gross", "Gross"]</th>
+                    <th></th>
+                </tr>
+            </thead>
+            <tbody>
+                @if (_report.OrderLines.Count == 0)
+                {
+                    <tr><td colspan="6" style="text-align:center;padding:16px"><MudText Color="Color.Secondary">—</MudText></td></tr>
+                }
+                else
+                {
+                    @foreach (var line in _report.OrderLines)
+                    {
+                        <tr>
+                            <td>@line.DocumentNumber</td>
+                            <td>@line.Date.ToLocalTime().ToString("g")</td>
+                            <td class="text-end">@line.Net.ToString("0.##")</td>
+                            <td class="text-end">@line.Tax.ToString("0.##")</td>
+                            <td class="text-end">@line.Gross.ToString("0.##") @line.CurrencyCode</td>
+                            <td class="no-print">
+                                <MudIconButton Size="Size.Small" Icon="@Icons.Material.Filled.Receipt" Href="@($"/orders/{line.DocumentId}/invoice")" />
+                            </td>
+                        </tr>
+                    }
+                }
+            </tbody>
+        </MudSimpleTable>
+    </MudPaper>
+
+    <MudPaper Elevation="0" Class="app-card rounded-lg pa-4">
+        <MudText Typo="Typo.subtitle1" Class="mb-2">@L["vat_report.settlement_lines", "Settlement documents"]</MudText>
+        <MudSimpleTable Dense="true" Hover="true" Elevation="0">
+            <thead>
+                <tr>
+                    <th>@L["id", "ID"]</th>
+                    <th>@L["settlements.party", "Party"]</th>
+                    <th>@L["date", "Date"]</th>
+                    <th class="text-end">@L["settlements.net", "Net"]</th>
+                    <th class="text-end">@L["settlements.tax", "Tax"]</th>
+                    <th class="text-end">@L["settlements.gross", "Gross"]</th>
+                    <th></th>
+                </tr>
+            </thead>
+            <tbody>
+                @if (_report.SettlementLines.Count == 0)
+                {
+                    <tr><td colspan="7" style="text-align:center;padding:16px"><MudText Color="Color.Secondary">—</MudText></td></tr>
+                }
+                else
+                {
+                    @foreach (var line in _report.SettlementLines)
+                    {
+                        <tr>
+                            <td>@line.DocumentNumber</td>
+                            <td>@(line.Counterparty ?? "—")</td>
+                            <td>@line.Date.ToLocalTime().ToString("g")</td>
+                            <td class="text-end">@line.Net.ToString("0.##")</td>
+                            <td class="text-end">@line.Tax.ToString("0.##")</td>
+                            <td class="text-end">@line.Gross.ToString("0.##") @line.CurrencyCode</td>
+                            <td class="no-print">
+                                <MudIconButton Size="Size.Small" Icon="@Icons.Material.Filled.OpenInNew" Href="@($"/finance/settlements/{line.DocumentId}")" />
+                            </td>
+                        </tr>
+                    }
+                }
+            </tbody>
+        </MudSimpleTable>
+    </MudPaper>
+}
+
+@code {
+    private bool _loading;
+    private bool _isMaster;
+    private int _websiteId;
+    private List<Website> _websites = new();
+    private DateTime? _from = DateTime.UtcNow.Date.AddMonths(-1);
+    private DateTime? _to = DateTime.UtcNow.Date;
+    private VatReportDto? _report;
+
+    protected override async Task OnInitializedAsync()
+    {
+        await L.EnsureLoadedAsync();
+        var user = (await AuthState.GetAuthenticationStateAsync()).User;
+        _isMaster = user.HasClaim(AdminClaimTypes.Master, "true");
+        int.TryParse(user.FindFirst(AdminClaimTypes.WebsiteId)?.Value, out _websiteId);
+        if (_isMaster) _websites = (await WebsiteService.GetAllAsync()).ToList();
+        await LoadAsync();
+    }
+
+    private async Task OnWebsiteChanged(int id) { _websiteId = id; await LoadAsync(); }
+
+    private async Task LoadAsync()
+    {
+        if (_websiteId <= 0 || _from is null || _to is null) return;
+        _loading = true;
+        try
+        {
+            _report = await TaxReportService.GetVatReportAsync(new VatReportRequest
+            {
+                WebsiteId = _websiteId,
+                From = DateOnly.FromDateTime(_from.Value),
+                To = DateOnly.FromDateTime(_to.Value),
+            });
+        }
+        finally { _loading = false; }
+    }
+
+    private async Task PrintAsync() => await Js.InvokeVoidAsync("window.print");
+}
