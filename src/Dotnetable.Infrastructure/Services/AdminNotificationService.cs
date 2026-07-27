@@ -10,18 +10,22 @@ using Microsoft.Extensions.Logging;
 
 namespace Dotnetable.Infrastructure.Services;
 
+/// <summary>
+/// Uses a short-lived DbContext from the factory (not the circuit-scoped one) so concurrent
+/// Blazor component init after login (layout + dashboard + nav) cannot race on one context.
+/// </summary>
 public class AdminNotificationService : IAdminNotificationService
 {
-    private readonly AppDbContext _context;
+    private readonly IDbContextFactory<AppDbContext> _contextFactory;
     private readonly IEmailService _email;
     private readonly ILogger<AdminNotificationService> _logger;
 
     public AdminNotificationService(
-        AppDbContext context,
+        IDbContextFactory<AppDbContext> contextFactory,
         IEmailService email,
         ILogger<AdminNotificationService> logger)
     {
-        _context = context;
+        _contextFactory = contextFactory;
         _email = email;
         _logger = logger;
     }
@@ -35,7 +39,9 @@ public class AdminNotificationService : IAdminNotificationService
         int? relatedEntityId = null,
         CancellationToken ct = default)
     {
-        var admins = await _context.Members.AsNoTracking()
+        await using var context = await _contextFactory.CreateDbContextAsync(ct);
+
+        var admins = await context.Members.AsNoTracking()
             .Where(m => m.WebsiteID == websiteId && m.Active && m.IsSiteAdmin && m.Email != "")
             .Select(m => new { m.MemberID, m.Email, m.Givenname })
             .ToListAsync(ct);
@@ -49,7 +55,7 @@ public class AdminNotificationService : IAdminNotificationService
 
         foreach (var admin in admins)
         {
-            _context.AdminNotifications.Add(new AdminNotification
+            context.AdminNotifications.Add(new AdminNotification
             {
                 MemberID = admin.MemberID,
                 WebsiteID = websiteId,
@@ -63,7 +69,7 @@ public class AdminNotificationService : IAdminNotificationService
             });
         }
 
-        await _context.SaveChangesAsync(ct);
+        await context.SaveChangesAsync(ct);
 
         if (!await _email.IsConfiguredAsync(websiteId, ct))
             return;
@@ -103,7 +109,9 @@ public class AdminNotificationService : IAdminNotificationService
         int? relatedEntityId = null,
         CancellationToken ct = default)
     {
-        var member = await _context.Members.AsNoTracking()
+        await using var context = await _contextFactory.CreateDbContextAsync(ct);
+
+        var member = await context.Members.AsNoTracking()
             .Where(m => m.MemberID == memberId && m.Active)
             .Select(m => new { m.MemberID, m.Email, m.Givenname })
             .FirstOrDefaultAsync(ct);
@@ -114,7 +122,7 @@ public class AdminNotificationService : IAdminNotificationService
         var safeMessage = Truncate(message, 1000);
         var safeUrl = actionUrl is null ? null : Truncate(actionUrl, 256);
 
-        _context.AdminNotifications.Add(new AdminNotification
+        context.AdminNotifications.Add(new AdminNotification
         {
             MemberID = member.MemberID,
             WebsiteID = websiteId,
@@ -126,7 +134,7 @@ public class AdminNotificationService : IAdminNotificationService
             IsRead = false,
             CreatedAt = now,
         });
-        await _context.SaveChangesAsync(ct);
+        await context.SaveChangesAsync(ct);
 
         if (string.IsNullOrWhiteSpace(member.Email) || !await _email.IsConfiguredAsync(websiteId, ct))
             return;
@@ -155,7 +163,9 @@ public class AdminNotificationService : IAdminNotificationService
 
     public async Task<PagedResult<AdminNotification>> GetPagedAsync(int memberId, GridQuery query, CancellationToken ct = default)
     {
-        var q = _context.AdminNotifications.AsNoTracking()
+        await using var context = await _contextFactory.CreateDbContextAsync(ct);
+
+        var q = context.AdminNotifications.AsNoTracking()
             .Where(n => n.MemberID == memberId);
 
         if (query.GetSearch(nameof(AdminNotification.IsRead)) is string read && bool.TryParse(read, out var isRead))
@@ -172,33 +182,46 @@ public class AdminNotificationService : IAdminNotificationService
         return new PagedResult<AdminNotification> { Items = items, TotalCount = total };
     }
 
-    public async Task<IReadOnlyList<AdminNotification>> GetRecentAsync(int memberId, int take = 10, CancellationToken ct = default) =>
-        await _context.AdminNotifications.AsNoTracking()
+    public async Task<IReadOnlyList<AdminNotification>> GetRecentAsync(int memberId, int take = 10, CancellationToken ct = default)
+    {
+        await using var context = await _contextFactory.CreateDbContextAsync(ct);
+        return await context.AdminNotifications.AsNoTracking()
             .Where(n => n.MemberID == memberId)
             .OrderByDescending(n => n.CreatedAt)
             .Take(take)
             .ToListAsync(ct);
+    }
 
-    public async Task<int> GetUnreadCountAsync(int memberId, CancellationToken ct = default) =>
-        await _context.AdminNotifications.CountAsync(n => n.MemberID == memberId && !n.IsRead, ct);
+    public async Task<int> GetUnreadCountAsync(int memberId, CancellationToken ct = default)
+    {
+        await using var context = await _contextFactory.CreateDbContextAsync(ct);
+        return await context.AdminNotifications.CountAsync(n => n.MemberID == memberId && !n.IsRead, ct);
+    }
 
-    public async Task MarkReadAsync(int notificationId, int memberId, CancellationToken ct = default) =>
-        await _context.AdminNotifications
+    public async Task MarkReadAsync(int notificationId, int memberId, CancellationToken ct = default)
+    {
+        await using var context = await _contextFactory.CreateDbContextAsync(ct);
+        await context.AdminNotifications
             .Where(n => n.AdminNotificationID == notificationId && n.MemberID == memberId)
             .ExecuteUpdateAsync(s => s.SetProperty(n => n.IsRead, true), ct);
+    }
 
-    public async Task MarkAllReadAsync(int memberId, CancellationToken ct = default) =>
-        await _context.AdminNotifications
+    public async Task MarkAllReadAsync(int memberId, CancellationToken ct = default)
+    {
+        await using var context = await _contextFactory.CreateDbContextAsync(ct);
+        await context.AdminNotifications
             .Where(n => n.MemberID == memberId && !n.IsRead)
             .ExecuteUpdateAsync(s => s.SetProperty(n => n.IsRead, true), ct);
+    }
 
     public async Task DeleteAsync(int notificationId, int memberId, CancellationToken ct = default)
     {
-        var entity = await _context.AdminNotifications
+        await using var context = await _contextFactory.CreateDbContextAsync(ct);
+        var entity = await context.AdminNotifications
             .FirstOrDefaultAsync(n => n.AdminNotificationID == notificationId && n.MemberID == memberId, ct);
         if (entity is null) return;
-        _context.AdminNotifications.Remove(entity);
-        await _context.SaveChangesAsync(ct);
+        context.AdminNotifications.Remove(entity);
+        await context.SaveChangesAsync(ct);
     }
 
     private static string Truncate(string value, int max) =>

@@ -14,6 +14,7 @@ namespace Dotnetable.Tests.Services;
 
 public class AdminNotificationServiceTests : IDisposable
 {
+    private readonly DbContextOptions<AppDbContext> _options;
     private readonly AppDbContext _context;
     private readonly Mock<IEmailService> _emailMock;
     private readonly AdminNotificationService _service;
@@ -21,13 +22,15 @@ public class AdminNotificationServiceTests : IDisposable
 
     public AdminNotificationServiceTests()
     {
-        var opts = new DbContextOptionsBuilder<AppDbContext>()
+        _options = new DbContextOptionsBuilder<AppDbContext>()
             .UseInMemoryDatabase(Guid.NewGuid().ToString())
             .Options;
-        _context = new AppDbContext(opts);
+        _context = new AppDbContext(_options);
         _emailMock = new Mock<IEmailService>();
         _emailMock.Setup(e => e.IsConfiguredAsync(It.IsAny<int>(), It.IsAny<CancellationToken>())).ReturnsAsync(true);
-        _service = new AdminNotificationService(_context, _emailMock.Object, NullLogger<AdminNotificationService>.Instance);
+
+        var factory = new TestDbContextFactory(_options);
+        _service = new AdminNotificationService(factory, _emailMock.Object, NullLogger<AdminNotificationService>.Instance);
 
         _website = new Website
         {
@@ -75,7 +78,8 @@ public class AdminNotificationServiceTests : IDisposable
             "/messages/contacts/1",
             1);
 
-        var rows = _context.AdminNotifications.ToList();
+        await using var verify = new AppDbContext(_options);
+        var rows = verify.AdminNotifications.ToList();
         rows.Should().HaveCount(1);
         rows[0].MemberID.Should().Be(admin.MemberID);
         rows[0].Title.Should().Be("New contact message");
@@ -119,7 +123,8 @@ public class AdminNotificationServiceTests : IDisposable
             "/payments",
             9);
 
-        _context.AdminNotifications.Should().HaveCount(1);
+        await using var verify = new AppDbContext(_options);
+        verify.AdminNotifications.Should().HaveCount(1);
         _emailMock.Verify(e => e.SendTemplateAsync(
             It.IsAny<int>(), It.IsAny<string>(), It.IsAny<string>(),
             It.IsAny<IDictionary<string, string>?>(), It.IsAny<string?>(), It.IsAny<CancellationToken>()), Times.Never);
@@ -155,11 +160,24 @@ public class AdminNotificationServiceTests : IDisposable
             "/support/tickets/1",
             1);
 
-        var rows = _context.AdminNotifications.Where(n => n.MemberID == agent.MemberID).ToList();
+        await using var verify = new AppDbContext(_options);
+        var rows = verify.AdminNotifications.Where(n => n.MemberID == agent.MemberID).ToList();
         rows.Should().ContainSingle();
         rows[0].NotificationType.Should().Be((byte)AdminNotificationType.SupportTicket);
         rows[0].ActionUrl.Should().Be("/support/tickets/1");
     }
 
     public void Dispose() => _context.Dispose();
+
+    private sealed class TestDbContextFactory : IDbContextFactory<AppDbContext>
+    {
+        private readonly DbContextOptions<AppDbContext> _options;
+
+        public TestDbContextFactory(DbContextOptions<AppDbContext> options) => _options = options;
+
+        public AppDbContext CreateDbContext() => new(_options);
+
+        public Task<AppDbContext> CreateDbContextAsync(CancellationToken cancellationToken = default) =>
+            Task.FromResult(CreateDbContext());
+    }
 }
