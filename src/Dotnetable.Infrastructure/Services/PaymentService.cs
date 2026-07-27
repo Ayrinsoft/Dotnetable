@@ -141,13 +141,16 @@ public class PaymentService : IPaymentService
             .OrderByDescending(p => p.CreatedAt)
             .FirstOrDefaultAsync(ct);
 
-    public async Task<PagedResult<Payment>> GetPendingAsync(int? websiteId, GridQuery query, CancellationToken ct = default)
+    public Task<PagedResult<Payment>> GetPendingAsync(int? websiteId, GridQuery query, CancellationToken ct = default) =>
+        GetManualPagedAsync(websiteId, (byte)PaymentStatus.Pending, query, ct);
+
+    public async Task<PagedResult<Payment>> GetManualPagedAsync(int? websiteId, byte? status, GridQuery query, CancellationToken ct = default)
     {
-        var q = _context.Payments.AsNoTracking()
-            .Include(p => p.Order).Include(p => p.WebsiteClient).Include(p => p.BankAccount).ThenInclude(a => a!.Bank)
-            .Include(p => p.ReceiptFile)
-            .Where(p => p.Status == (byte)PaymentStatus.Pending);
-        if (websiteId is int wid) q = q.Where(p => p.WebsiteID == wid);
+        var q = ManualBankTransfers(websiteId);
+        if (status is byte s)
+            q = q.Where(p => p.Status == s);
+        else if (query.GetSearch(nameof(Payment.Status)) is string statusText && byte.TryParse(statusText, out var statusByte))
+            q = q.Where(p => p.Status == statusByte);
 
         if (query.GetSearch("OrderNumber") is string orderNumber)
             q = q.Where(p => p.Order != null && p.Order.OrderNumber.Contains(orderNumber));
@@ -158,6 +161,30 @@ public class PaymentService : IPaymentService
             .Skip(query.Skip).Take(query.Take)
             .ToListAsync(ct);
         return new PagedResult<Payment> { Items = items, TotalCount = total };
+    }
+
+    public async Task<IReadOnlyDictionary<byte, int>> GetManualStatusCountsAsync(int? websiteId, CancellationToken ct = default)
+    {
+        var q = _context.Payments.AsNoTracking()
+            .Where(p => p.Method == (byte)PaymentMethod.BankTransfer);
+        if (websiteId is int wid) q = q.Where(p => p.WebsiteID == wid);
+
+        var rows = await q
+            .GroupBy(p => p.Status)
+            .Select(g => new { Status = g.Key, Count = g.Count() })
+            .ToListAsync(ct);
+
+        return rows.ToDictionary(r => r.Status, r => r.Count);
+    }
+
+    private IQueryable<Payment> ManualBankTransfers(int? websiteId)
+    {
+        var q = _context.Payments.AsNoTracking()
+            .Include(p => p.Order).Include(p => p.WebsiteClient).Include(p => p.BankAccount).ThenInclude(a => a!.Bank)
+            .Include(p => p.ReceiptFile)
+            .Where(p => p.Method == (byte)PaymentMethod.BankTransfer);
+        if (websiteId is int wid) q = q.Where(p => p.WebsiteID == wid);
+        return q;
     }
 
     public async Task<(bool Success, string? Error, PaymentRefund? Refund)> RefundAsync(
@@ -210,14 +237,16 @@ public class PaymentService : IPaymentService
         return true;
     }
 
-    public async Task<PagedResult<PaymentRefund>> GetPendingRefundsAsync(int? websiteId, GridQuery query, CancellationToken ct = default)
+    public Task<PagedResult<PaymentRefund>> GetPendingRefundsAsync(int? websiteId, GridQuery query, CancellationToken ct = default) =>
+        GetBankRefundsPagedAsync(websiteId, (byte)PaymentRefundStatus.Pending, query, ct);
+
+    public async Task<PagedResult<PaymentRefund>> GetBankRefundsPagedAsync(int? websiteId, byte? status, GridQuery query, CancellationToken ct = default)
     {
-        var q = _context.PaymentRefunds.AsNoTracking()
-            .Include(r => r.Payment).ThenInclude(p => p.Order)
-            .Include(r => r.Payment).ThenInclude(p => p.WebsiteClient)
-            .Include(r => r.BankAccount).ThenInclude(a => a!.Bank)
-            .Where(r => r.Status == (byte)PaymentRefundStatus.Pending && r.BankAccountID != null);
-        if (websiteId is int wid) q = q.Where(r => r.Payment.WebsiteID == wid);
+        var q = BankRefunds(websiteId);
+        if (status is byte s)
+            q = q.Where(r => r.Status == s);
+        else if (query.GetSearch(nameof(PaymentRefund.Status)) is string statusText && byte.TryParse(statusText, out var statusByte))
+            q = q.Where(r => r.Status == statusByte);
 
         if (query.GetSearch(nameof(PaymentRefund.Reason)) is string reason)
             q = q.Where(r => r.Reason != null && r.Reason.Contains(reason));
@@ -228,5 +257,32 @@ public class PaymentService : IPaymentService
             .Skip(query.Skip).Take(query.Take)
             .ToListAsync(ct);
         return new PagedResult<PaymentRefund> { Items = items, TotalCount = total };
+    }
+
+    public async Task<IReadOnlyDictionary<byte, int>> GetBankRefundStatusCountsAsync(int? websiteId, CancellationToken ct = default)
+    {
+        var q = _context.PaymentRefunds.AsNoTracking()
+            .Where(r => r.BankAccountID != null);
+        if (websiteId is int wid)
+            q = q.Where(r => r.Payment.WebsiteID == wid);
+
+        var rows = await q
+            .GroupBy(r => r.Status)
+            .Select(g => new { Status = g.Key, Count = g.Count() })
+            .ToListAsync(ct);
+
+        return rows.ToDictionary(r => r.Status, r => r.Count);
+    }
+
+    private IQueryable<PaymentRefund> BankRefunds(int? websiteId)
+    {
+        var q = _context.PaymentRefunds.AsNoTracking()
+            .Include(r => r.Payment).ThenInclude(p => p.Order)
+            .Include(r => r.Payment).ThenInclude(p => p.WebsiteClient)
+            .Include(r => r.BankAccount).ThenInclude(a => a!.Bank)
+            .Where(r => r.BankAccountID != null);
+        if (websiteId is int wid)
+            q = q.Where(r => r.Payment.WebsiteID == wid);
+        return q;
     }
 }

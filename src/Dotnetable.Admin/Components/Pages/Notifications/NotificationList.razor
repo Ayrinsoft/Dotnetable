@@ -1,6 +1,7 @@
 @page "/notifications"
 @attribute [Authorize]
 @inject IAdminNotificationService NotificationService
+@inject IAdminTaskService TaskService
 @inject AuthenticationStateProvider AuthState
 @inject ISnackbar Snackbar
 @inject NavigationManager Nav
@@ -22,6 +23,9 @@
         </MudButton>
     </MudStack>
 </MudStack>
+
+@* Live work queues (orders, bank payments, withdrawals) *@
+<AdminOpenTasksPanel Tasks="_openTasks" ShowEmpty="@_showTasksPanel" />
 
 <MudPaper Elevation="0" Class="app-card rounded-lg pa-4">
     @if (_loading)
@@ -83,17 +87,37 @@
 
 @code {
     private bool _loading = true;
+    private bool _showTasksPanel;
     private int _memberId;
+    private int _websiteId;
+    private bool _isMaster;
     private int _unreadCount;
     private List<AdminNotification> _items = new();
     private GridViewHeaderParameters _grid = new();
+    private IReadOnlyList<AdminOpenTask> _openTasks = Array.Empty<AdminOpenTask>();
 
     protected override async Task OnInitializedAsync()
     {
         await L.EnsureLoadedAsync();
 
         var state = await AuthState.GetAuthenticationStateAsync();
-        int.TryParse(state.User.FindFirst(AdminClaimTypes.MemberId)?.Value, out _memberId);
+        var user = state.User;
+        int.TryParse(user.FindFirst(AdminClaimTypes.MemberId)?.Value, out _memberId);
+        int.TryParse(user.FindFirst(AdminClaimTypes.WebsiteId)?.Value, out _websiteId);
+        _isMaster = user.HasClaim(AdminClaimTypes.Master, "true");
+
+        var includeOrders = _isMaster || AdminPolicies.Allows(user, RoleKeys.OrdersView);
+        var includePayments = _isMaster || AdminPolicies.Allows(user, RoleKeys.PaymentsView);
+        var includeRefunds = _isMaster || AdminPolicies.Allows(user, RoleKeys.PaymentsRefund);
+        var includeWithdrawals = _isMaster || AdminPolicies.Allows(user, RoleKeys.WalletsView);
+        _showTasksPanel = includeOrders || includePayments || includeRefunds || includeWithdrawals;
+
+        if (_showTasksPanel)
+        {
+            int? scope = _isMaster || _websiteId <= 0 ? null : _websiteId;
+            _openTasks = await TaskService.GetOpenTasksAsync(
+                scope, includeOrders, includePayments, includeRefunds, includeWithdrawals);
+        }
 
         _grid = new GridViewHeaderParameters
         {

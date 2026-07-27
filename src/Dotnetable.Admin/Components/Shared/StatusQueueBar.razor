@@ -1,0 +1,46 @@
+@* Quick status filters with live counts for queue-style list pages (orders, payments, …). *@
+
+@if (Items.Count > 0)
+{
+    <MudStack Row="true" Spacing="1" Class="@($"mb-3 flex-wrap {Class}")" AlignItems="AlignItems.Center">
+        @if (ShowAll)
+        {
+            <MudButton Size="Size.Small"
+                       Variant="@(SelectedValue is null ? Variant.Filled : Variant.Outlined)"
+                       Color="Color.Primary"
+                       OnClick="@(() => SelectAsync(null))">
+                @(ShowAllCount ? $"{AllLabel} ({AllCount})" : AllLabel)
+            </MudButton>
+        }
+        @foreach (var item in Items)
+        {
+            var selected = SelectedValue == item.Value;
+            <MudButton Size="Size.Small"
+                       Variant="@(selected ? Variant.Filled : Variant.Outlined)"
+                       Color="@(selected ? Color.Primary : Color.Default)"
+                       OnClick="@(() => SelectAsync(item.Value))">
+                @item.Label (@item.Count)
+            </MudButton>
+        }
+    </MudStack>
+}
+
+@code {
+    public sealed record Item(byte Value, string Label, int Count);
+
+    [Parameter] public IReadOnlyList<Item> Items { get; set; } = Array.Empty<Item>();
+    [Parameter] public byte? SelectedValue { get; set; }
+    [Parameter] public EventCallback<byte?> SelectedValueChanged { get; set; }
+    [Parameter] public bool ShowAll { get; set; } = true;
+    [Parameter] public string AllLabel { get; set; } = "All";
+    [Parameter] public bool ShowAllCount { get; set; }
+    [Parameter] public int AllCount { get; set; }
+    [Parameter] public string Class { get; set; } = "";
+
+    private async Task SelectAsync(byte? value)
+    {
+        if (SelectedValue == value) return;
+        SelectedValue = value;
+        await SelectedValueChanged.InvokeAsync(value);
+    }
+}

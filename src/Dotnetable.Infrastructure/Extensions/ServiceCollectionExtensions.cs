@@ -144,6 +144,9 @@ public static class ServiceCollectionExtensions
         // E-commerce: payments (wallet debit + manual bank transfer) and refunds.
         services.AddScoped<IPaymentService, PaymentService>();
 
+        // Live admin work queues (dashboard / notifications task panel).
+        services.AddScoped<IAdminTaskService, AdminTaskService>();
+
         // E-commerce: product reviews and Q&A.
         services.AddScoped<IProductReviewService, ProductReviewService>();
         services.AddScoped<IProductQuestionService, ProductQuestionService>();

@@ -13,14 +13,15 @@
         <MudText Typo="Typo.h5" Class="fw-bold">@L["wallets.withdrawals", "Withdrawal Requests"]</MudText>
         <MudText Typo="Typo.body2" Color="Color.Secondary">@L["wallets.withdrawals.subtitle", "Review and settle customer cash-out requests."]</MudText>
     </MudStack>
-    <MudSelect T="byte?" @bind-Value="_statusFilter" Label="@L["status", "Status"]" Variant="Variant.Outlined"
-               Dense="true" Style="min-width:180px" SelectedValuesChanged="OnFilterChanged">
-        <MudSelectItem T="byte?" Value="@((byte?)null)">@L["all", "All"]</MudSelectItem>
-        <MudSelectItem T="byte?" Value="@((byte?)ClientWalletWithdrawalStatus.Pending)">@L["wallets.status.pending", "Pending"]</MudSelectItem>
-        <MudSelectItem T="byte?" Value="@((byte?)ClientWalletWithdrawalStatus.Paid)">@L["wallets.status.paid", "Paid"]</MudSelectItem>
-        <MudSelectItem T="byte?" Value="@((byte?)ClientWalletWithdrawalStatus.Rejected)">@L["wallets.status.rejected", "Rejected"]</MudSelectItem>
-    </MudSelect>
 </MudStack>
+
+<StatusQueueBar Items="_statusChips"
+                SelectedValue="_statusFilter"
+                SelectedValueChanged="OnStatusChipChanged"
+                ShowAll="true"
+                AllLabel="@L["all", "All"]"
+                ShowAllCount="true"
+                AllCount="_actionableTotal" />
 
 <MudPaper Elevation="0" Class="app-card rounded-lg pa-4">
     @if (_loading)
@@ -82,6 +83,9 @@
     private byte? _statusFilter = (byte)ClientWalletWithdrawalStatus.Pending;
     private List<ClientWalletWithdrawal> _items = new();
     private GridViewHeaderParameters _grid = new();
+    private List<StatusQueueBar.Item> _statusChips = new();
+    private int _actionableTotal;
+    private Dictionary<byte, int> _statusCounts = new();
 
     protected override async Task OnInitializedAsync()
     {
@@ -102,26 +106,92 @@
                 new() { ColumnTitle = L["clients", "Customer"], ColumnName = "Client" },
                 new() { ColumnTitle = L["amount", "Amount"], ColumnName = nameof(ClientWalletWithdrawal.Amount), HasSort = true },
                 new() { ColumnTitle = L["wallets.bank_account", "Bank Account"], ColumnName = "BankAccount" },
-                new() { ColumnTitle = L["status", "Status"], ColumnName = nameof(ClientWalletWithdrawal.Status) },
+                new()
+                {
+                    ColumnTitle = L["status", "Status"],
+                    ColumnName = nameof(ClientWalletWithdrawal.Status),
+                    HasSearch = true,
+                    SearchType = SearchColumnType.DropDown,
+                    SearchText = ((byte)ClientWalletWithdrawalStatus.Pending).ToString(),
+                    OtherDropDownValues = new Dictionary<string, string>
+                    {
+                        [L["wallets.status.pending", "Pending"]] = ((byte)ClientWalletWithdrawalStatus.Pending).ToString(),
+                        [L["wallets.status.approved", "Approved"]] = ((byte)ClientWalletWithdrawalStatus.Approved).ToString(),
+                        [L["wallets.status.paid", "Paid"]] = ((byte)ClientWalletWithdrawalStatus.Paid).ToString(),
+                        [L["wallets.status.rejected", "Rejected"]] = ((byte)ClientWalletWithdrawalStatus.Rejected).ToString(),
+                    }
+                },
                 new() { ColumnTitle = L["wallets.requested_at", "Requested"], ColumnName = nameof(ClientWalletWithdrawal.RequestedAt), HasSort = true },
+                new() { ColumnTitle = "", ColumnName = "" },
             }
         };
 
         await LoadAsync();
     }
 
-    private Task OnFilterChanged(IEnumerable<byte?> _) => LoadAsync();
+    private async Task OnStatusChipChanged(byte? status)
+    {
+        _statusFilter = status;
+        SetGridStatusSearch(status);
+        _grid.Pagination.PageIndex = 1;
+        await LoadAsync();
+    }
 
-    private Task OnGridChanged(GridViewHeaderParameters _) => LoadAsync();
+    private Task OnGridChanged(GridViewHeaderParameters _)
+    {
+        SyncStatusFromGrid();
+        return LoadAsync();
+    }
+
+    private void SyncStatusFromGrid()
+    {
+        var col = _grid.HeaderItems.FirstOrDefault(h => h.ColumnName == nameof(ClientWalletWithdrawal.Status));
+        if (col is null || string.IsNullOrWhiteSpace(col.SearchText))
+            _statusFilter = null;
+        else if (byte.TryParse(col.SearchText, out var b))
+            _statusFilter = b;
+    }
+
+    private void SetGridStatusSearch(byte? status)
+    {
+        var col = _grid.HeaderItems.FirstOrDefault(h => h.ColumnName == nameof(ClientWalletWithdrawal.Status));
+        if (col is not null)
+            col.SearchText = status?.ToString() ?? "";
+    }
 
     private async Task LoadAsync()
     {
         _loading = true;
-        var result = await WithdrawalService.GetPagedAsync(_isMaster ? null : _websiteId, _statusFilter, _grid.ToQuery());
+        await RefreshCountsAsync();
+
+        var websiteId = _isMaster ? (int?)null : _websiteId;
+        var result = await WithdrawalService.GetPagedAsync(websiteId, _statusFilter, _grid.ToQuery());
         _items = result.Items.ToList();
         _grid.Pagination.MaxLength = result.TotalCount;
         _loading = false;
     }
+
+    private async Task RefreshCountsAsync()
+    {
+        var websiteId = _isMaster ? (int?)null : _websiteId;
+        _statusCounts = (await WithdrawalService.GetStatusCountsAsync(websiteId)).ToDictionary(kv => kv.Key, kv => kv.Value);
+        _statusChips = ClientWalletWithdrawalStatusQueues.Actionable
+            .Select(s => new StatusQueueBar.Item(
+                (byte)s,
+                StatusLabel(s),
+                _statusCounts.GetValueOrDefault((byte)s)))
+            .ToList();
+        _actionableTotal = _statusChips.Sum(c => c.Count);
+    }
+
+    private string StatusLabel(ClientWalletWithdrawalStatus s) => s switch
+    {
+        ClientWalletWithdrawalStatus.Pending => L["wallets.status.pending", "Pending"],
+        ClientWalletWithdrawalStatus.Approved => L["wallets.status.approved", "Approved"],
+        ClientWalletWithdrawalStatus.Paid => L["wallets.status.paid", "Paid"],
+        ClientWalletWithdrawalStatus.Rejected => L["wallets.status.rejected", "Rejected"],
+        _ => s.ToString(),
+    };
 
     private (Color Color, string Text) StatusInfo(byte status) => (ClientWalletWithdrawalStatus)status switch
     {
