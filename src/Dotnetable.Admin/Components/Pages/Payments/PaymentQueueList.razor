@@ -22,6 +22,14 @@
     }
 </MudStack>
 
+<StatusQueueBar Items="_statusChips"
+                SelectedValue="_statusFilter"
+                SelectedValueChanged="OnStatusChipChanged"
+                ShowAll="true"
+                AllLabel="@L["all", "All"]"
+                ShowAllCount="true"
+                AllCount="_actionableTotal" />
+
 <MudPaper Elevation="0" Class="app-card rounded-lg pa-4">
     @if (_loading)
     {
@@ -31,7 +39,7 @@
         @if (_items.Count == 0)
         {
             <tr>
-                <td colspan="6" style="text-align:center; padding:32px;">
+                <td colspan="7" style="text-align:center; padding:32px;">
                     <MudText Color="Color.Secondary">@L["payments.empty", "No pending payments."]</MudText>
                 </td>
             </tr>
@@ -45,6 +53,7 @@
                     <td>@($"{p.WebsiteClient?.Givenname} {p.WebsiteClient?.Surname}".Trim())</td>
                     <td>@p.BankAccount?.Bank.Name</td>
                     <td>@p.Amount.ToString("0.##") @p.CurrencyCode</td>
+                    <td>@((PaymentStatus)p.Status)</td>
                     <td>
                         @if (p.ReceiptFile is not null)
                         {
@@ -52,10 +61,13 @@
                         }
                     </td>
                     <td>
-                        <MudStack Row="true" Spacing="1">
-                            <MudButton Size="Size.Small" Color="Color.Success" Variant="Variant.Filled" OnClick="@(() => VerifyAsync(p.PaymentID, true))">@L["approve", "Approve"]</MudButton>
-                            <MudButton Size="Size.Small" Color="Color.Error" OnClick="@(() => VerifyAsync(p.PaymentID, false))">@L["reject", "Reject"]</MudButton>
-                        </MudStack>
+                        @if (p.Status == (byte)PaymentStatus.Pending)
+                        {
+                            <MudStack Row="true" Spacing="1">
+                                <MudButton Size="Size.Small" Color="Color.Success" Variant="Variant.Filled" OnClick="@(() => VerifyAsync(p.PaymentID, true))">@L["approve", "Approve"]</MudButton>
+                                <MudButton Size="Size.Small" Color="Color.Error" OnClick="@(() => VerifyAsync(p.PaymentID, false))">@L["reject", "Reject"]</MudButton>
+                            </MudStack>
+                        }
                     </td>
                 </tr>
             }
@@ -67,9 +79,13 @@
     private bool _loading = true;
     private bool _isMaster;
     private int _websiteId;
+    private byte? _statusFilter = (byte)PaymentStatus.Pending;
     private List<Payment> _items = new();
     private List<Website> _websites = new();
     private GridViewHeaderParameters _grid = new();
+    private List<StatusQueueBar.Item> _statusChips = new();
+    private int _actionableTotal;
+    private Dictionary<byte, int> _statusCounts = new();
 
     protected override async Task OnInitializedAsync()
     {
@@ -88,6 +104,17 @@
                 new() { ColumnTitle = L["clients", "Customer"], ColumnName = "" },
                 new() { ColumnTitle = L["banks", "Bank"], ColumnName = "" },
                 new() { ColumnTitle = L["orders.total", "Amount"], ColumnName = nameof(Payment.Amount), HasSort = true },
+                new()
+                {
+                    ColumnTitle = L["status", "Status"],
+                    ColumnName = nameof(Payment.Status),
+                    HasSort = true,
+                    HasSearch = true,
+                    SearchType = SearchColumnType.DropDown,
+                    SearchText = ((byte)PaymentStatus.Pending).ToString(),
+                    OtherDropDownValues = Enum.GetValues<PaymentStatus>()
+                        .ToDictionary(v => v.ToString(), v => ((byte)v).ToString())
+                },
                 new() { ColumnTitle = L["receipt", "Receipt"], ColumnName = "" },
                 new() { ColumnTitle = "", ColumnName = "" },
             }
@@ -96,17 +123,75 @@
         await LoadAsync();
     }
 
-    private async Task OnWebsiteChanged(int id) { _websiteId = id; await LoadAsync(); }
-    private Task OnGridChanged(GridViewHeaderParameters _) => LoadAsync();
+    private async Task OnWebsiteChanged(int id)
+    {
+        _websiteId = id;
+        await LoadAsync();
+    }
+
+    private async Task OnStatusChipChanged(byte? status)
+    {
+        _statusFilter = status;
+        SetGridStatusSearch(status);
+        _grid.Pagination.PageIndex = 1;
+        await LoadAsync();
+    }
+
+    private Task OnGridChanged(GridViewHeaderParameters _)
+    {
+        SyncStatusFromGrid();
+        return LoadAsync();
+    }
+
+    private void SyncStatusFromGrid()
+    {
+        var col = _grid.HeaderItems.FirstOrDefault(h => h.ColumnName == nameof(Payment.Status));
+        if (col is null || string.IsNullOrWhiteSpace(col.SearchText))
+            _statusFilter = null;
+        else if (byte.TryParse(col.SearchText, out var b))
+            _statusFilter = b;
+    }
+
+    private void SetGridStatusSearch(byte? status)
+    {
+        var col = _grid.HeaderItems.FirstOrDefault(h => h.ColumnName == nameof(Payment.Status));
+        if (col is not null)
+            col.SearchText = status?.ToString() ?? "";
+    }
 
     private async Task LoadAsync()
     {
         _loading = true;
-        var result = await PaymentService.GetPendingAsync(_websiteId, _grid.ToQuery());
+        await RefreshCountsAsync();
+
+        // Prefer the explicit queue filter; grid status search is kept in sync for the dropdown UI.
+        var status = _statusFilter;
+        var result = await PaymentService.GetManualPagedAsync(_websiteId, status, _grid.ToQuery());
         _items = result.Items.ToList();
         _grid.Pagination.MaxLength = result.TotalCount;
         _loading = false;
     }
+
+    private async Task RefreshCountsAsync()
+    {
+        _statusCounts = (await PaymentService.GetManualStatusCountsAsync(_websiteId)).ToDictionary(kv => kv.Key, kv => kv.Value);
+        _statusChips = PaymentStatusQueues.Actionable
+            .Select(s => new StatusQueueBar.Item(
+                (byte)s,
+                StatusLabel(s),
+                _statusCounts.GetValueOrDefault((byte)s)))
+            .ToList();
+        _actionableTotal = _statusChips.Sum(c => c.Count);
+    }
+
+    private string StatusLabel(PaymentStatus s) => s switch
+    {
+        PaymentStatus.Pending => L["payments.status.pending", "Pending"],
+        PaymentStatus.Paid => L["payments.status.paid", "Paid"],
+        PaymentStatus.Rejected => L["payments.status.rejected", "Rejected"],
+        PaymentStatus.Refunded => L["payments.status.refunded", "Refunded"],
+        _ => s.ToString(),
+    };
 
     private async Task VerifyAsync(int paymentId, bool approve)
     {

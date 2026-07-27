@@ -91,6 +91,8 @@ public class ClientWalletWithdrawalService : IClientWalletWithdrawalService
             q = q.Where(w => w.WebsiteID == wid);
         if (status is byte s)
             q = q.Where(w => w.Status == s);
+        else if (query.GetSearch(nameof(ClientWalletWithdrawal.Status)) is string statusText && byte.TryParse(statusText, out var statusByte))
+            q = q.Where(w => w.Status == statusByte);
 
         var total = await q.CountAsync(ct);
         var items = await q
@@ -99,6 +101,20 @@ public class ClientWalletWithdrawalService : IClientWalletWithdrawalService
             .ToListAsync(ct);
 
         return new PagedResult<ClientWalletWithdrawal> { Items = items, TotalCount = total };
+    }
+
+    public async Task<IReadOnlyDictionary<byte, int>> GetStatusCountsAsync(int? websiteId, CancellationToken ct = default)
+    {
+        var q = _context.ClientWalletWithdrawals.AsNoTracking().AsQueryable();
+        if (websiteId is int wid)
+            q = q.Where(w => w.WebsiteID == wid);
+
+        var rows = await q
+            .GroupBy(w => w.Status)
+            .Select(g => new { Status = g.Key, Count = g.Count() })
+            .ToListAsync(ct);
+
+        return rows.ToDictionary(r => r.Status, r => r.Count);
     }
 
     public async Task<PagedResult<ClientWalletWithdrawal>> GetByClientIdAsync(int clientId, GridQuery query, CancellationToken ct = default)

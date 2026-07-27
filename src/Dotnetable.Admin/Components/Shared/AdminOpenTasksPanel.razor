@@ -1,0 +1,84 @@
+@* Live operational queues (counts from DB) — shown on dashboard and notifications. *@
+@inject NavigationManager Nav
+@inject IPageLocalizer L
+
+@if (Tasks.Count > 0)
+{
+    <MudPaper Elevation="0" Class="@($"app-card rounded-lg mb-4 {Class}")">
+        <div class="pa-4 d-flex align-center justify-space-between" style="border-bottom:1px solid var(--mud-palette-lines-default);">
+            <MudStack Row="true" AlignItems="AlignItems.Center" Spacing="2">
+                <MudIcon Icon="@Icons.Material.Filled.TaskAlt" Color="Color.Warning" Size="Size.Small" />
+                <MudText Typo="Typo.subtitle2" Class="fw-bold">@L["tasks.open", "Open tasks"]</MudText>
+                <MudChip T="string" Size="Size.Small" Color="Color.Warning" Variant="Variant.Filled">
+                    @Tasks.Sum(t => t.Count)
+                </MudChip>
+            </MudStack>
+        </div>
+        <MudList T="string" Dense="true" Class="py-1">
+            @foreach (var task in Tasks)
+            {
+                <MudListItem T="string"
+                             Icon="@IconFor(task.Key)"
+                             IconColor="Color.Primary"
+                             OnClick="@(() => Nav.NavigateTo(task.ActionUrl))">
+                    <MudStack Row="true" Justify="Justify.SpaceBetween" AlignItems="AlignItems.Center" Class="w-100">
+                        <MudStack Spacing="0">
+                            <MudText Typo="Typo.body2" Class="fw-bold">@TitleFor(task.Key)</MudText>
+                            <MudText Typo="Typo.caption" Color="Color.Secondary">@SubtitleFor(task.Key)</MudText>
+                        </MudStack>
+                        <MudChip T="string" Size="Size.Small" Color="Color.Warning" Variant="Variant.Filled">
+                            @task.Count
+                        </MudChip>
+                    </MudStack>
+                </MudListItem>
+            }
+        </MudList>
+    </MudPaper>
+}
+else if (ShowEmpty)
+{
+    <MudPaper Elevation="0" Class="@($"app-card rounded-lg mb-4 pa-4 {Class}")">
+        <MudStack Row="true" AlignItems="AlignItems.Center" Spacing="2">
+            <MudIcon Icon="@Icons.Material.Filled.CheckCircle" Color="Color.Success" Size="Size.Small" />
+            <MudText Typo="Typo.body2" Color="Color.Secondary">
+                @L["tasks.empty", "No open tasks right now."]
+            </MudText>
+        </MudStack>
+    </MudPaper>
+}
+
+@code {
+    [Parameter] public IReadOnlyList<AdminOpenTask> Tasks { get; set; } = Array.Empty<AdminOpenTask>();
+    [Parameter] public bool ShowEmpty { get; set; }
+    [Parameter] public string Class { get; set; } = "";
+
+    private string TitleFor(string key) => key switch
+    {
+        "payments.pending" => L["tasks.payments.pending", "Bank payments to verify"],
+        "payments.refunds.pending" => L["tasks.payments.refunds", "Bank refunds to complete"],
+        "wallets.withdrawals.pending" => L["tasks.withdrawals.pending", "Withdrawal requests"],
+        "orders.fulfillment" => L["tasks.orders.fulfillment", "Orders to process"],
+        "orders.pending_payment" => L["tasks.orders.pending_payment", "Orders awaiting payment"],
+        _ => key,
+    };
+
+    private string SubtitleFor(string key) => key switch
+    {
+        "payments.pending" => L["tasks.payments.pending_sub", "Offline bank receipts waiting for approval"],
+        "payments.refunds.pending" => L["tasks.payments.refunds_sub", "Manual bank refunds not marked completed"],
+        "wallets.withdrawals.pending" => L["tasks.withdrawals.pending_sub", "Customer cash-out requests awaiting review"],
+        "orders.fulfillment" => L["tasks.orders.fulfillment_sub", "Paid, processing, or shipped orders still open"],
+        "orders.pending_payment" => L["tasks.orders.pending_payment_sub", "Placed orders that are not paid yet"],
+        _ => "",
+    };
+
+    private string IconFor(string key) => key switch
+    {
+        "payments.pending" => Icons.Material.Filled.CreditCard,
+        "payments.refunds.pending" => Icons.Material.Filled.AssignmentReturn,
+        "wallets.withdrawals.pending" => Icons.Material.Filled.AccountBalanceWallet,
+        "orders.fulfillment" => Icons.Material.Filled.LocalShipping,
+        "orders.pending_payment" => Icons.Material.Filled.HourglassTop,
+        _ => Icons.Material.Filled.TaskAlt,
+    };
+}

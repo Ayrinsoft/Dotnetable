@@ -37,6 +37,15 @@ public enum ClientWalletWithdrawalStatus : byte
     Paid = 4,
 }
 
+/// <summary>Withdrawal statuses that still need admin action (excludes terminal Paid / Rejected / Approved).</summary>
+public static class ClientWalletWithdrawalStatusQueues
+{
+    public static readonly ClientWalletWithdrawalStatus[] Actionable =
+    [
+        ClientWalletWithdrawalStatus.Pending,
+    ];
+}
+
 /// <summary>A customer bank account as returned by the API — flattened, no navigation cycles.</summary>
 public sealed class ClientBankAccountDto
 {

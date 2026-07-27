@@ -20,6 +20,14 @@
     }
 </MudStack>
 
+<StatusQueueBar Items="_statusChips"
+                SelectedValue="_statusFilter"
+                SelectedValueChanged="OnStatusChipChanged"
+                ShowAll="true"
+                AllLabel="@L["all", "All"]"
+                ShowAllCount="true"
+                AllCount="_actionableTotal" />
+
 <MudPaper Elevation="0" Class="app-card rounded-lg pa-4">
     @if (_loading)
     {
@@ -53,9 +61,13 @@
     private bool _loading = true;
     private bool _isMaster;
     private int _websiteId;
+    private byte? _statusFilter;
     private List<Order> _items = new();
     private List<Website> _websites = new();
     private GridViewHeaderParameters _grid = new();
+    private List<StatusQueueBar.Item> _statusChips = new();
+    private int _actionableTotal;
+    private Dictionary<byte, int> _statusCounts = new();
 
     protected override async Task OnInitializedAsync()
     {
@@ -89,15 +101,52 @@
         await LoadAsync();
     }
 
-    private async Task OnWebsiteChanged(int id) { _websiteId = id; await LoadAsync(); }
-    private Task OnGridChanged(GridViewHeaderParameters _) => LoadAsync();
+    private async Task OnWebsiteChanged(int id)
+    {
+        _websiteId = id;
+        await LoadAsync();
+    }
+
+    private async Task OnStatusChipChanged(byte? status)
+    {
+        _statusFilter = status;
+        SetGridStatusSearch(status);
+        _grid.Pagination.PageIndex = 1;
+        await LoadAsync();
+    }
+
+    private Task OnGridChanged(GridViewHeaderParameters _)
+    {
+        SyncStatusFromGrid();
+        return LoadAsync();
+    }
+
+    private void SyncStatusFromGrid()
+    {
+        var col = _grid.HeaderItems.FirstOrDefault(h => h.ColumnName == nameof(Order.Status));
+        if (col is null || string.IsNullOrWhiteSpace(col.SearchText))
+            _statusFilter = null;
+        else if (byte.TryParse(col.SearchText, out var b))
+            _statusFilter = b;
+    }
+
+    private void SetGridStatusSearch(byte? status)
+    {
+        var col = _grid.HeaderItems.FirstOrDefault(h => h.ColumnName == nameof(Order.Status));
+        if (col is not null)
+            col.SearchText = status?.ToString() ?? "";
+    }
 
     private async Task LoadAsync()
     {
         _loading = true;
+        await RefreshCountsAsync();
+
         var query = _grid.ToQuery();
-        byte? statusFilter = null;
-        if (query.Search is not null
+        // Explicit queue filter wins; keep in sync with grid dropdown.
+        var statusFilter = _statusFilter;
+        if (statusFilter is null
+            && query.Search is not null
             && query.Search.TryGetValue(nameof(Order.Status), out var statusText)
             && byte.TryParse(statusText, out var statusByte))
         {
@@ -109,4 +158,28 @@
         _grid.Pagination.MaxLength = result.TotalCount;
         _loading = false;
     }
+
+    private async Task RefreshCountsAsync()
+    {
+        _statusCounts = (await OrderService.GetStatusCountsAsync(_websiteId)).ToDictionary(kv => kv.Key, kv => kv.Value);
+        _statusChips = OrderStatusQueues.Actionable
+            .Select(s => new StatusQueueBar.Item(
+                (byte)s,
+                StatusLabel(s),
+                _statusCounts.GetValueOrDefault((byte)s)))
+            .ToList();
+        _actionableTotal = _statusChips.Sum(c => c.Count);
+    }
+
+    private string StatusLabel(OrderStatus s) => s switch
+    {
+        OrderStatus.PendingPayment => L["orders.status.pending_payment", "Pending payment"],
+        OrderStatus.Paid => L["orders.status.paid", "Paid"],
+        OrderStatus.Processing => L["orders.status.processing", "Processing"],
+        OrderStatus.Shipped => L["orders.status.shipped", "Shipped"],
+        OrderStatus.Completed => L["orders.status.completed", "Completed"],
+        OrderStatus.Cancelled => L["orders.status.cancelled", "Cancelled"],
+        OrderStatus.Refunded => L["orders.status.refunded", "Refunded"],
+        _ => s.ToString(),
+    };
 }

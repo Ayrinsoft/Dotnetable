@@ -23,6 +23,9 @@ public interface IClientWalletWithdrawalService
     /// <paramref name="websiteId"/> null = all websites (master only).</summary>
     Task<PagedResult<ClientWalletWithdrawal>> GetPagedAsync(int? websiteId, byte? status, GridQuery query, CancellationToken ct = default);
 
+    /// <summary>Counts of withdrawals per <see cref="ClientWalletWithdrawal"/>.Status for the optional website scope.</summary>
+    Task<IReadOnlyDictionary<byte, int>> GetStatusCountsAsync(int? websiteId, CancellationToken ct = default);
+
     /// <summary>Own withdrawal history for a customer (client-facing).</summary>
     Task<PagedResult<ClientWalletWithdrawal>> GetByClientIdAsync(int clientId, GridQuery query, CancellationToken ct = default);
 

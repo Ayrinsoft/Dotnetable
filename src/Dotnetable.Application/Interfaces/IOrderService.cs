@@ -16,6 +16,18 @@ public enum OrderStatus : byte
     Refunded = 7,
 }
 
+/// <summary>Statuses that still need admin/fulfillment action (excludes terminal Completed / Cancelled / Refunded).</summary>
+public static class OrderStatusQueues
+{
+    public static readonly OrderStatus[] Actionable =
+    [
+        OrderStatus.PendingPayment,
+        OrderStatus.Paid,
+        OrderStatus.Processing,
+        OrderStatus.Shipped,
+    ];
+}
+
 /// <summary>Result of a checkout attempt.</summary>
 public sealed record CheckoutResult(bool Success, string? Error, int? OrderId, string? OrderNumber);
 
@@ -34,6 +46,9 @@ public interface IOrderService
     Task<Order?> GetByIdAsync(int orderId, int? clientId = null, CancellationToken ct = default);
 
     Task<PagedResult<Order>> GetPagedAsync(int? websiteId, byte? status, GridQuery query, CancellationToken ct = default);
+
+    /// <summary>Counts of orders per <see cref="Order"/>.Status for the optional website scope.</summary>
+    Task<IReadOnlyDictionary<byte, int>> GetStatusCountsAsync(int? websiteId, CancellationToken ct = default);
 
     Task<PagedResult<Order>> GetClientHistoryAsync(int clientId, GridQuery query, CancellationToken ct = default);
 

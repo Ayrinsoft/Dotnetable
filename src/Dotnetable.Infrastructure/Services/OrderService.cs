@@ -307,6 +307,19 @@ public class OrderService : IOrderService
         return new PagedResult<Order> { Items = items, TotalCount = total };
     }
 
+    public async Task<IReadOnlyDictionary<byte, int>> GetStatusCountsAsync(int? websiteId, CancellationToken ct = default)
+    {
+        var q = _context.Orders.AsNoTracking().AsQueryable();
+        if (websiteId is int wid) q = q.Where(o => o.WebsiteID == wid);
+
+        var rows = await q
+            .GroupBy(o => o.Status)
+            .Select(g => new { Status = g.Key, Count = g.Count() })
+            .ToListAsync(ct);
+
+        return rows.ToDictionary(r => r.Status, r => r.Count);
+    }
+
     public async Task<PagedResult<Order>> GetClientHistoryAsync(int clientId, GridQuery query, CancellationToken ct = default)
     {
         var q = _context.Orders.AsNoTracking().Where(o => o.WebsiteClientID == clientId);

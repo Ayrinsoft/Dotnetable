@@ -19,11 +19,30 @@ public enum PaymentStatus : byte
     Refunded = 4,
 }
 
+/// <summary>Payment statuses that still need admin action on the offline bank-transfer queue
+/// (excludes Paid / Rejected / Refunded which are terminal for verification).</summary>
+public static class PaymentStatusQueues
+{
+    public static readonly PaymentStatus[] Actionable =
+    [
+        PaymentStatus.Pending,
+    ];
+}
+
 /// <summary>Values for <see cref="PaymentRefund"/>.Status (TINYINT).</summary>
 public enum PaymentRefundStatus : byte
 {
     Pending = 1,
     Completed = 2,
+}
+
+/// <summary>Bank-refund statuses that still need admin action (excludes Completed).</summary>
+public static class PaymentRefundStatusQueues
+{
+    public static readonly PaymentRefundStatus[] Actionable =
+    [
+        PaymentRefundStatus.Pending,
+    ];
 }
 
 /// <summary>
@@ -49,7 +68,15 @@ public interface IPaymentService
 
     Task<Payment?> GetLatestForOrderAsync(int orderId, CancellationToken ct = default);
 
+    /// <summary>Pending bank-transfer receipts awaiting verification. Prefer
+    /// <see cref="GetManualPagedAsync"/> when a status filter is needed.</summary>
     Task<Application.DTOs.PagedResult<Payment>> GetPendingAsync(int? websiteId, Application.DTOs.GridQuery query, CancellationToken ct = default);
+
+    /// <summary>Bank-transfer payments for the admin verification queue, optionally filtered by status.</summary>
+    Task<Application.DTOs.PagedResult<Payment>> GetManualPagedAsync(int? websiteId, byte? status, Application.DTOs.GridQuery query, CancellationToken ct = default);
+
+    /// <summary>Counts of bank-transfer payments per <see cref="Payment"/>.Status for the optional website scope.</summary>
+    Task<IReadOnlyDictionary<byte, int>> GetManualStatusCountsAsync(int? websiteId, CancellationToken ct = default);
 
     /// <summary>Refunds a payment, either crediting the customer's wallet (instant) or recording a
     /// Pending bank refund for manual off-system transfer (admin marks it Completed once done).</summary>
@@ -58,6 +85,13 @@ public interface IPaymentService
 
     Task<bool> CompleteBankRefundAsync(int paymentRefundId, int memberId, CancellationToken ct = default);
 
-    /// <summary>Bank refunds awaiting the admin to perform the manual outgoing transfer and mark it done.</summary>
+    /// <summary>Bank refunds awaiting the admin to perform the manual outgoing transfer and mark it done.
+    /// Prefer <see cref="GetBankRefundsPagedAsync"/> when a status filter is needed.</summary>
     Task<Application.DTOs.PagedResult<PaymentRefund>> GetPendingRefundsAsync(int? websiteId, Application.DTOs.GridQuery query, CancellationToken ct = default);
+
+    /// <summary>Manual bank refunds for the admin queue, optionally filtered by status (only rows with a bank account).</summary>
+    Task<Application.DTOs.PagedResult<PaymentRefund>> GetBankRefundsPagedAsync(int? websiteId, byte? status, Application.DTOs.GridQuery query, CancellationToken ct = default);
+
+    /// <summary>Counts of bank refunds per <see cref="PaymentRefund"/>.Status for the optional website scope.</summary>
+    Task<IReadOnlyDictionary<byte, int>> GetBankRefundStatusCountsAsync(int? websiteId, CancellationToken ct = default);
 }

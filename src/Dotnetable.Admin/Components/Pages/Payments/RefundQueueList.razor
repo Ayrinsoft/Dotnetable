@@ -21,6 +21,14 @@
     }
 </MudStack>
 
+<StatusQueueBar Items="_statusChips"
+                SelectedValue="_statusFilter"
+                SelectedValueChanged="OnStatusChipChanged"
+                ShowAll="true"
+                AllLabel="@L["all", "All"]"
+                ShowAllCount="true"
+                AllCount="_actionableTotal" />
+
 <MudPaper Elevation="0" Class="app-card rounded-lg pa-4">
     @if (_loading)
     {
@@ -30,7 +38,7 @@
         @if (_items.Count == 0)
         {
             <tr>
-                <td colspan="6" style="text-align:center; padding:32px;">
+                <td colspan="7" style="text-align:center; padding:32px;">
                     <MudText Color="Color.Secondary">@L["payments.refunds_empty", "No pending bank refunds."]</MudText>
                 </td>
             </tr>
@@ -44,9 +52,15 @@
                     <td>@($"{r.Payment.WebsiteClient?.Givenname} {r.Payment.WebsiteClient?.Surname}".Trim())</td>
                     <td>@r.BankAccount?.Bank.Name — @(r.BankAccount?.IBAN ?? r.BankAccount?.CardNumber)</td>
                     <td>@r.Amount.ToString("0.##")</td>
+                    <td>@((PaymentRefundStatus)r.Status)</td>
                     <td>@r.Reason</td>
                     <td>
-                        <MudButton Size="Size.Small" Color="Color.Success" Variant="Variant.Filled" OnClick="@(() => CompleteAsync(r.PaymentRefundID))">@L["payments.mark_completed", "Mark completed"]</MudButton>
+                        @if (r.Status == (byte)PaymentRefundStatus.Pending)
+                        {
+                            <MudButton Size="Size.Small" Color="Color.Success" Variant="Variant.Filled" OnClick="@(() => CompleteAsync(r.PaymentRefundID))">
+                                @L["payments.mark_completed", "Mark completed"]
+                            </MudButton>
+                        }
                     </td>
                 </tr>
             }
@@ -59,9 +73,13 @@
     private bool _isMaster;
     private int _websiteId;
     private int? _currentMemberId;
+    private byte? _statusFilter = (byte)PaymentRefundStatus.Pending;
     private List<PaymentRefund> _items = new();
     private List<Website> _websites = new();
     private GridViewHeaderParameters _grid = new();
+    private List<StatusQueueBar.Item> _statusChips = new();
+    private int _actionableTotal;
+    private Dictionary<byte, int> _statusCounts = new();
 
     protected override async Task OnInitializedAsync()
     {
@@ -81,6 +99,17 @@
                 new() { ColumnTitle = L["clients", "Customer"], ColumnName = "" },
                 new() { ColumnTitle = L["banks", "Bank account"], ColumnName = "" },
                 new() { ColumnTitle = L["orders.total", "Amount"], ColumnName = nameof(PaymentRefund.Amount), HasSort = true },
+                new()
+                {
+                    ColumnTitle = L["status", "Status"],
+                    ColumnName = nameof(PaymentRefund.Status),
+                    HasSort = true,
+                    HasSearch = true,
+                    SearchType = SearchColumnType.DropDown,
+                    SearchText = ((byte)PaymentRefundStatus.Pending).ToString(),
+                    OtherDropDownValues = Enum.GetValues<PaymentRefundStatus>()
+                        .ToDictionary(v => StatusLabel(v), v => ((byte)v).ToString())
+                },
                 new() { ColumnTitle = L["payments.reason", "Reason"], ColumnName = nameof(PaymentRefund.Reason), HasSort = true, HasSearch = true },
                 new() { ColumnTitle = "", ColumnName = "" },
             }
@@ -89,17 +118,71 @@
         await LoadAsync();
     }
 
-    private async Task OnWebsiteChanged(int id) { _websiteId = id; await LoadAsync(); }
-    private Task OnGridChanged(GridViewHeaderParameters _) => LoadAsync();
+    private async Task OnWebsiteChanged(int id)
+    {
+        _websiteId = id;
+        await LoadAsync();
+    }
+
+    private async Task OnStatusChipChanged(byte? status)
+    {
+        _statusFilter = status;
+        SetGridStatusSearch(status);
+        _grid.Pagination.PageIndex = 1;
+        await LoadAsync();
+    }
+
+    private Task OnGridChanged(GridViewHeaderParameters _)
+    {
+        SyncStatusFromGrid();
+        return LoadAsync();
+    }
+
+    private void SyncStatusFromGrid()
+    {
+        var col = _grid.HeaderItems.FirstOrDefault(h => h.ColumnName == nameof(PaymentRefund.Status));
+        if (col is null || string.IsNullOrWhiteSpace(col.SearchText))
+            _statusFilter = null;
+        else if (byte.TryParse(col.SearchText, out var b))
+            _statusFilter = b;
+    }
+
+    private void SetGridStatusSearch(byte? status)
+    {
+        var col = _grid.HeaderItems.FirstOrDefault(h => h.ColumnName == nameof(PaymentRefund.Status));
+        if (col is not null)
+            col.SearchText = status?.ToString() ?? "";
+    }
 
     private async Task LoadAsync()
     {
         _loading = true;
-        var result = await PaymentService.GetPendingRefundsAsync(_websiteId, _grid.ToQuery());
+        await RefreshCountsAsync();
+
+        var result = await PaymentService.GetBankRefundsPagedAsync(_websiteId, _statusFilter, _grid.ToQuery());
         _items = result.Items.ToList();
         _grid.Pagination.MaxLength = result.TotalCount;
         _loading = false;
     }
+
+    private async Task RefreshCountsAsync()
+    {
+        _statusCounts = (await PaymentService.GetBankRefundStatusCountsAsync(_websiteId)).ToDictionary(kv => kv.Key, kv => kv.Value);
+        _statusChips = PaymentRefundStatusQueues.Actionable
+            .Select(s => new StatusQueueBar.Item(
+                (byte)s,
+                StatusLabel(s),
+                _statusCounts.GetValueOrDefault((byte)s)))
+            .ToList();
+        _actionableTotal = _statusChips.Sum(c => c.Count);
+    }
+
+    private string StatusLabel(PaymentRefundStatus s) => s switch
+    {
+        PaymentRefundStatus.Pending => L["payments.refunds.status.pending", "Pending"],
+        PaymentRefundStatus.Completed => L["payments.refunds.status.completed", "Completed"],
+        _ => s.ToString(),
+    };
 
     private async Task CompleteAsync(int paymentRefundId)
     {
