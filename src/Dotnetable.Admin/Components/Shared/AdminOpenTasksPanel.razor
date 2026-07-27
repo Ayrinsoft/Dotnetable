@@ -8,7 +8,7 @@
         <div class="pa-4 d-flex align-center justify-space-between" style="border-bottom:1px solid var(--mud-palette-lines-default);">
             <MudStack Row="true" AlignItems="AlignItems.Center" Spacing="2">
                 <MudIcon Icon="@Icons.Material.Filled.TaskAlt" Color="Color.Warning" Size="Size.Small" />
-                <MudText Typo="Typo.subtitle2" Class="fw-bold">@L["tasks.open", "Open tasks"]</MudText>
+                <MudText Typo="Typo.subtitle2" Class="fw-bold">@L["inbox.section.tasks", "Needs action"]</MudText>
                 <MudChip T="string" Size="Size.Small" Color="Color.Warning" Variant="Variant.Filled">
                     @Tasks.Sum(t => t.Count)
                 </MudChip>
