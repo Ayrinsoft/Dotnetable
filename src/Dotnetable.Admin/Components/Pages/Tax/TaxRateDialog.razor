@@ -14,6 +14,17 @@
                     <MudNumericField T="decimal" @bind-Value="_ratePercent" Label="@L["rate_percent", "Rate (%)"]" Variant="Variant.Outlined" Min="0" Max="100" Required="true" />
                 </MudItem>
                 <MudItem xs="12" sm="6">
+                    <MudTextField @bind-Value="Model.TaxCode" Label="@L["tax_rates.code", "Tax code"]" Variant="Variant.Outlined"
+                                  HelperText="@L["tax_rates.code_hint", "Invoice / export code, e.g. VAT9"]" />
+                </MudItem>
+                <MudItem xs="12" sm="6">
+                    <MudSelect T="byte" @bind-Value="Model.TaxKind" Label="@L["tax_rates.kind", "Tax kind"]" Variant="Variant.Outlined">
+                        <MudSelectItem T="byte" Value="(byte)TaxKind.Vat">@L["tax_rates.kind.vat", "VAT / GST"]</MudSelectItem>
+                        <MudSelectItem T="byte" Value="(byte)TaxKind.SalesTax">@L["tax_rates.kind.sales", "Sales tax"]</MudSelectItem>
+                        <MudSelectItem T="byte" Value="(byte)TaxKind.Other">@L["tax_rates.kind.other", "Other"]</MudSelectItem>
+                    </MudSelect>
+                </MudItem>
+                <MudItem xs="12" sm="6">
                     <CountrySelector Value="Model.CountryID" ValueChanged="OnCountryIdChanged"
                                      Countries="_countries" Label="@L["country", "Country"]" Clearable="true" />
                 </MudItem>
@@ -22,10 +33,13 @@
                                    States="_states" Label="@L["state", "State"]" Clearable="true"
                                    Disabled="@(Model.CountryID is null)" />
                 </MudItem>
-                <MudItem xs="12" sm="6">
+                <MudItem xs="12" sm="4">
                     <MudNumericField T="int" @bind-Value="Model.Priority" Label="@L["priority", "Priority"]" Variant="Variant.Outlined" Min="0" />
                 </MudItem>
-                <MudItem xs="12" sm="6">
+                <MudItem xs="12" sm="4">
+                    <MudSwitch T="bool" @bind-Value="Model.ApplyToShipping" Label="@L["tax_rates.apply_shipping", "Apply to shipping"]" Color="Color.Primary" />
+                </MudItem>
+                <MudItem xs="12" sm="4">
                     <MudSwitch T="bool" @bind-Value="Model.IsActive" Label="@L["active", "Active"]" Color="Color.Primary" />
                 </MudItem>
             </MudGrid>

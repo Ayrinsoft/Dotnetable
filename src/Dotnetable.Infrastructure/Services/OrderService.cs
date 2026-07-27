@@ -126,7 +126,6 @@ public class OrderService : IOrderService
         }
 
         var subtotalUsd = cart.CartItems.Sum(i => unitUsdByItem[i.CartItemID] * i.Quantity);
-        var taxUsd = await _tax.ComputeTaxAsync(websiteId, address.CountryId, stateId, subtotalUsd, ct);
 
         decimal discountUsd = 0;
         Coupon? coupon = null;
@@ -141,7 +140,16 @@ public class OrderService : IOrderService
             }
         }
 
-        var grandTotalUsd = subtotalUsd + shippingUsd + taxUsd - discountUsd;
+        // Tax base after merchandise discount; shipping taxed per site TaxOnShipping + rate flags.
+        var taxableMerchandise = Math.Max(0, subtotalUsd - discountUsd);
+        var taxResult = await _tax.ComputeTaxDetailedAsync(
+            websiteId, address.CountryId, stateId, taxableMerchandise, shippingUsd, ct);
+        var taxUsd = taxResult.TaxAmount;
+
+        // Exclusive tax is added on top; inclusive tax is already in prices (extracted for reporting only).
+        var grandTotalUsd = taxResult.PricesIncludeTax
+            ? subtotalUsd + shippingUsd - discountUsd
+            : subtotalUsd + shippingUsd + taxUsd - discountUsd;
         var (resolvedCurrency, rate) = await _currency.GetActiveRateAsync(websiteId, currencyCode, ct);
 
         await using var tx = await _context.Database.BeginTransactionAsync(ct);
@@ -158,6 +166,8 @@ public class OrderService : IOrderService
             DiscountTotal = discountUsd * rate,
             ShippingTotal = shippingUsd * rate,
             TaxTotal = taxUsd * rate,
+            PricesIncludeTax = taxResult.PricesIncludeTax,
+            TaxBreakdownJson = taxResult.BreakdownJson,
             GrandTotal = grandTotalUsd * rate,
             GrandTotalUsd = grandTotalUsd,
             WebsiteClientAddressID = address.WebsiteClientAddressID,

@@ -13,12 +13,21 @@ public class VendorCreditService : IVendorCreditService
     private readonly AppDbContext _context;
     private readonly IVendorService _vendors;
     private readonly ICurrencyConversionService _currency;
+    private readonly ISupplierService _suppliers;
+    private readonly ITaxService _tax;
 
-    public VendorCreditService(AppDbContext context, IVendorService vendors, ICurrencyConversionService currency)
+    public VendorCreditService(
+        AppDbContext context,
+        IVendorService vendors,
+        ICurrencyConversionService currency,
+        ISupplierService suppliers,
+        ITaxService tax)
     {
         _context = context;
         _vendors = vendors;
         _currency = currency;
+        _suppliers = suppliers;
+        _tax = tax;
     }
 
     public async Task<VendorCreditBalanceDto> GetBalanceAsync(int vendorId, CancellationToken ct = default)
@@ -180,6 +189,22 @@ public class VendorCreditService : IVendorCreditService
             }
 
             // Dual settlements: host pays source (or vendor), and source records receivable from host.
+            // Inter-site linked vendors are also tax counterparties (suppliers) on the host.
+            int? hostSupplierId = null;
+            if (vendor.VendorType == (byte)VendorType.Site && vendor.LinkedWebsiteID is int linkedSiteIdForSupplier)
+            {
+                hostSupplierId = await _suppliers.EnsureLinkedWebsiteSupplierAsync(
+                    order.WebsiteID, linkedSiteIdForSupplier, vendor.Name, ct);
+            }
+
+            // B2B settlement tax: each site applies its own tax settings on the settlement net.
+            var hostTax = await _tax.ComputeTaxDetailedAsync(order.WebsiteID, null, null, amountUsd, 0, ct);
+            var hostNet = amountUsd;
+            var hostTaxAmt = hostTax.PricesIncludeTax ? hostTax.TaxAmount : hostTax.TaxAmount;
+            // Settlement payable is always net merchandise; tax is recorded for reporting.
+            // If exclusive tax, TotalAmount may include tax when the parties settle gross — use net+tax as gross.
+            var hostGross = hostTax.PricesIncludeTax ? hostNet : hostNet + hostTaxAmt;
+
             var hostSettlement = new Settlement
             {
                 WebsiteID = order.WebsiteID,
@@ -188,12 +213,17 @@ public class VendorCreditService : IVendorCreditService
                     : (byte)SettlementTargetType.Vendor,
                 VendorID = vendor.VendorID,
                 TargetWebsiteID = vendor.LinkedWebsiteID,
+                SupplierID = hostSupplierId,
                 PeriodFrom = today,
                 PeriodTo = today,
-                TotalAmount = amountUsd,
+                NetAmount = hostNet,
+                TaxAmount = hostTaxAmt,
+                TotalAmount = hostGross,
+                TaxRateSnapshot = hostTax.Lines.Count > 0 ? hostTax.Lines.Sum(l => l.Rate) : null,
                 CurrencyCode = "USD",
                 Status = 1,
-                Note = $"Host order {order.OrderNumber}",
+                Note = $"Host order {order.OrderNumber}" +
+                       (hostTax.BreakdownJson is not null ? $" | tax:{hostTax.BreakdownJson}" : ""),
                 CreatedAt = DateTime.UtcNow,
             };
             _context.Settlements.Add(hostSettlement);
@@ -214,6 +244,11 @@ public class VendorCreditService : IVendorCreditService
             {
                 var mirrorOrderId = await CreateMirrorOrderAsync(order, group.ToList(), sourceWebsiteId, vendor, ct);
 
+                var sourceTax = await _tax.ComputeTaxDetailedAsync(sourceWebsiteId, null, null, amountUsd, 0, ct);
+                var sourceNet = amountUsd;
+                var sourceTaxAmt = sourceTax.TaxAmount;
+                var sourceGross = sourceTax.PricesIncludeTax ? sourceNet : sourceNet + sourceTaxAmt;
+
                 var sourceSettlement = new Settlement
                 {
                     WebsiteID = sourceWebsiteId,
@@ -222,10 +257,14 @@ public class VendorCreditService : IVendorCreditService
                     VendorID = null,
                     PeriodFrom = today,
                     PeriodTo = today,
-                    TotalAmount = amountUsd,
+                    NetAmount = sourceNet,
+                    TaxAmount = sourceTaxAmt,
+                    TotalAmount = sourceGross,
+                    TaxRateSnapshot = sourceTax.Lines.Count > 0 ? sourceTax.Lines.Sum(l => l.Rate) : null,
                     CurrencyCode = "USD",
                     Status = 1,
-                    Note = $"Mirror of host order {order.OrderNumber} (host site {order.WebsiteID})",
+                    Note = $"Mirror of host order {order.OrderNumber} (host site {order.WebsiteID})" +
+                           (sourceTax.BreakdownJson is not null ? $" | tax:{sourceTax.BreakdownJson}" : ""),
                     CreatedAt = DateTime.UtcNow,
                 };
                 _context.Settlements.Add(sourceSettlement);
@@ -324,6 +363,11 @@ public class VendorCreditService : IVendorCreditService
         var client = await GetOrCreateInterSiteClientAsync(sourceWebsiteId, hostOrder.WebsiteID, ct);
         var amountUsd = lines.Sum(i => i.UnitPriceUsd * i.Quantity - i.DiscountAmount);
 
+        // Source site books the sale under its own tax settings (dual tax: host already taxed the customer).
+        var sourceTax = await _tax.ComputeTaxDetailedAsync(sourceWebsiteId, null, null, amountUsd, 0, ct);
+        var taxUsd = sourceTax.TaxAmount;
+        var grandUsd = sourceTax.PricesIncludeTax ? amountUsd : amountUsd + taxUsd;
+
         var mirror = new Order
         {
             WebsiteID = sourceWebsiteId,
@@ -335,9 +379,11 @@ public class VendorCreditService : IVendorCreditService
             SubTotal = amountUsd,
             DiscountTotal = 0,
             ShippingTotal = 0,
-            TaxTotal = 0,
-            GrandTotal = amountUsd,
-            GrandTotalUsd = amountUsd,
+            TaxTotal = taxUsd,
+            PricesIncludeTax = sourceTax.PricesIncludeTax,
+            TaxBreakdownJson = sourceTax.BreakdownJson,
+            GrandTotal = grandUsd,
+            GrandTotalUsd = grandUsd,
             AddressSnapshot = hostOrder.AddressSnapshot,
             Note = $"Inter-site sale via host order {hostOrder.OrderNumber} (vendor {vendor.Name})",
             CreatedAt = DateTime.UtcNow,

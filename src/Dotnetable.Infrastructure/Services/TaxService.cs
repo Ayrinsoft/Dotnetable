@@ -1,3 +1,4 @@
+using System.Text.Json;
 using Dotnetable.Application.DTOs;
 using Dotnetable.Application.Interfaces;
 using Dotnetable.Domain.Entities;
@@ -56,10 +57,13 @@ public class TaxService : ITaxService
         if (existing is null) return false;
 
         existing.Title = rate.Title;
+        existing.TaxCode = rate.TaxCode;
+        existing.TaxKind = rate.TaxKind;
         existing.Rate = rate.Rate;
         existing.CountryID = rate.CountryID;
         existing.StateID = rate.StateID;
         existing.Priority = rate.Priority;
+        existing.ApplyToShipping = rate.ApplyToShipping;
         existing.IsActive = rate.IsActive;
 
         await _context.SaveChangesAsync(ct);
@@ -77,13 +81,104 @@ public class TaxService : ITaxService
 
     public async Task<decimal> ComputeTaxAsync(int websiteId, int? countryId, int? stateId, decimal subtotalUsd, CancellationToken ct = default)
     {
+        var result = await ComputeTaxDetailedAsync(websiteId, countryId, stateId, subtotalUsd, 0, ct);
+        return result.TaxAmount;
+    }
+
+    public async Task<TaxComputationResult> ComputeTaxDetailedAsync(
+        int websiteId,
+        int? countryId,
+        int? stateId,
+        decimal merchandiseSubtotal,
+        decimal shippingAmount = 0,
+        CancellationToken ct = default)
+    {
+        var website = await _context.Websites.AsNoTracking()
+            .FirstOrDefaultAsync(w => w.WebsiteID == websiteId, ct);
+
+        if (website is null || !website.TaxEnabled)
+        {
+            return new TaxComputationResult
+            {
+                TaxAmount = 0,
+                TaxEnabled = website?.TaxEnabled ?? false,
+                PricesIncludeTax = website?.PricesIncludeTax ?? false,
+            };
+        }
+
+        var matchCountryId = countryId ?? website.TaxCountryID;
+
         var matching = await _context.TaxRates.AsNoTracking()
             .Where(r => r.WebsiteID == websiteId && r.IsActive
-                && (r.CountryID == null || r.CountryID == countryId)
+                && (r.CountryID == null || r.CountryID == matchCountryId)
                 && (r.StateID == null || r.StateID == stateId))
             .OrderBy(r => r.Priority)
             .ToListAsync(ct);
 
-        return matching.Sum(r => subtotalUsd * r.Rate);
+        if (matching.Count == 0)
+        {
+            return new TaxComputationResult
+            {
+                TaxAmount = 0,
+                TaxEnabled = true,
+                PricesIncludeTax = website.PricesIncludeTax,
+            };
+        }
+
+        var lines = new List<TaxLineDto>();
+        decimal totalTax = 0;
+
+        foreach (var rate in matching)
+        {
+            var baseMerch = merchandiseSubtotal;
+            var baseShip = website.TaxOnShipping && rate.ApplyToShipping ? shippingAmount : 0m;
+            var taxable = baseMerch + baseShip;
+            if (taxable <= 0 || rate.Rate <= 0) continue;
+
+            decimal amount;
+            if (website.PricesIncludeTax)
+            {
+                // Extract tax already embedded in prices: tax = gross * r / (1 + r) for a single rate;
+                // for stacked rates use sequential extraction on remaining gross.
+                amount = taxable * rate.Rate / (1m + rate.Rate);
+            }
+            else
+            {
+                amount = taxable * rate.Rate;
+            }
+
+            amount = Math.Round(amount, 4, MidpointRounding.AwayFromZero);
+            totalTax += amount;
+            lines.Add(new TaxLineDto
+            {
+                Code = rate.TaxCode,
+                Title = rate.Title,
+                TaxKind = rate.TaxKind,
+                Rate = rate.Rate,
+                Amount = amount,
+                AppliedToShipping = baseShip > 0,
+            });
+        }
+
+        var breakdown = lines.Count == 0
+            ? null
+            : JsonSerializer.Serialize(lines.Select(l => new
+            {
+                code = l.Code,
+                title = l.Title,
+                kind = l.TaxKind,
+                rate = l.Rate,
+                amount = l.Amount,
+                onShipping = l.AppliedToShipping,
+            }));
+
+        return new TaxComputationResult
+        {
+            TaxAmount = totalTax,
+            TaxEnabled = true,
+            PricesIncludeTax = website.PricesIncludeTax,
+            BreakdownJson = breakdown,
+            Lines = lines,
+        };
     }
 }

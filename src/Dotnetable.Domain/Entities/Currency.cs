@@ -25,5 +25,7 @@ public partial class Currency
 
     public virtual ICollection<StockMovement> StockMovements { get; set; } = new List<StockMovement>();
 
+    public virtual ICollection<Supplier> Suppliers { get; set; } = new List<Supplier>();
+
     public virtual ICollection<Website> Websites { get; set; } = new List<Website>();
 }

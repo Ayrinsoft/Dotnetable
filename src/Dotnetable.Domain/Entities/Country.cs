@@ -25,5 +25,9 @@ public partial class Country
 
     public virtual ICollection<TaxRate> TaxRates { get; set; } = new List<TaxRate>();
 
+    public virtual ICollection<Supplier> Suppliers { get; set; } = new List<Supplier>();
+
+    public virtual ICollection<Website> TaxJurisdictionWebsites { get; set; } = new List<Website>();
+
     public virtual ICollection<WebsiteClientAddress> WebsiteClientAddresses { get; set; } = new List<WebsiteClientAddress>();
 }

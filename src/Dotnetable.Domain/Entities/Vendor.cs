@@ -67,6 +67,8 @@ public partial class Vendor
 
     public virtual ICollection<Settlement> Settlements { get; set; } = new List<Settlement>();
 
+    public virtual ICollection<Supplier> LinkedSuppliers { get; set; } = new List<Supplier>();
+
     public virtual ICollection<VendorCreditTransaction> VendorCreditTransactions { get; set; } = new List<VendorCreditTransaction>();
 
     public virtual ICollection<VendorProduct> VendorProducts { get; set; } = new List<VendorProduct>();

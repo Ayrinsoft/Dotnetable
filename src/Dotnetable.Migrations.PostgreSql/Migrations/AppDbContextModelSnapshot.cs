@@ -2447,6 +2447,9 @@ namespace Dotnetable.Migrations.PostgreSql.Migrations
                     b.Property<DateTime?>("PaidAt")
                         .HasColumnType("datetime");
 
+                    b.Property<bool>("PricesIncludeTax")
+                        .HasColumnType("boolean");
+
                     b.Property<int?>("ShippingMethodID")
                         .HasColumnType("integer");
 
@@ -2458,6 +2461,10 @@ namespace Dotnetable.Migrations.PostgreSql.Migrations
 
                     b.Property<decimal>("SubTotal")
                         .HasColumnType("decimal(18, 4)");
+
+                    b.Property<string>("TaxBreakdownJson")
+                        .HasMaxLength(4000)
+                        .HasColumnType("character varying(4000)");
 
                     b.Property<decimal>("TaxTotal")
                         .HasColumnType("decimal(18, 4)");
@@ -3980,6 +3987,9 @@ namespace Dotnetable.Migrations.PostgreSql.Migrations
                         .HasColumnType("character(3)")
                         .IsFixedLength();
 
+                    b.Property<decimal>("NetAmount")
+                        .HasColumnType("decimal(18, 4)");
+
                     b.Property<string>("Note")
                         .HasMaxLength(500)
                         .HasColumnType("character varying(500)");
@@ -4008,6 +4018,12 @@ namespace Dotnetable.Migrations.PostgreSql.Migrations
 
                     b.Property<int?>("TargetWebsiteID")
                         .HasColumnType("integer");
+
+                    b.Property<decimal>("TaxAmount")
+                        .HasColumnType("decimal(18, 4)");
+
+                    b.Property<decimal?>("TaxRateSnapshot")
+                        .HasColumnType("decimal(9, 6)");
 
                     b.Property<decimal>("TotalAmount")
                         .HasColumnType("decimal(18, 4)");
@@ -4450,22 +4466,106 @@ namespace Dotnetable.Migrations.PostgreSql.Migrations
 
                     NpgsqlPropertyBuilderExtensions.UseIdentityByDefaultColumn(b.Property<int>("SupplierID"));
 
+                    b.Property<string>("AddressLine")
+                        .HasMaxLength(500)
+                        .HasColumnType("character varying(500)");
+
+                    b.Property<string>("BankAccountNumber")
+                        .HasMaxLength(50)
+                        .HasColumnType("character varying(50)");
+
+                    b.Property<string>("BankIban")
+                        .HasMaxLength(34)
+                        .HasColumnType("character varying(34)");
+
+                    b.Property<string>("BankName")
+                        .HasMaxLength(100)
+                        .HasColumnType("character varying(100)");
+
+                    b.Property<string>("CityName")
+                        .HasMaxLength(100)
+                        .HasColumnType("character varying(100)");
+
+                    b.Property<int?>("CountryID")
+                        .HasColumnType("integer");
+
+                    b.Property<DateTime>("CreatedAt")
+                        .HasColumnType("datetime");
+
+                    b.Property<string>("DefaultCurrencyCode")
+                        .HasMaxLength(3)
+                        .IsUnicode(false)
+                        .HasColumnType("character(3)")
+                        .IsFixedLength();
+
+                    b.Property<string>("EconomicCode")
+                        .HasMaxLength(50)
+                        .HasColumnType("character varying(50)");
+
+                    b.Property<string>("Email")
+                        .HasMaxLength(120)
+                        .HasColumnType("character varying(120)");
+
                     b.Property<bool>("IsActive")
                         .HasColumnType("boolean");
+
+                    b.Property<bool>("IsVatRegistered")
+                        .HasColumnType("boolean");
+
+                    b.Property<string>("LegalName")
+                        .HasMaxLength(200)
+                        .HasColumnType("character varying(200)");
+
+                    b.Property<int?>("LinkedVendorID")
+                        .HasColumnType("integer");
+
+                    b.Property<int?>("LinkedWebsiteID")
+                        .HasColumnType("integer");
 
                     b.Property<string>("Name")
                         .IsRequired()
                         .HasMaxLength(200)
                         .HasColumnType("character varying(200)");
 
+                    b.Property<string>("Notes")
+                        .HasMaxLength(1000)
+                        .HasColumnType("character varying(1000)");
+
                     b.Property<string>("Phone")
                         .HasMaxLength(20)
                         .HasColumnType("character varying(20)");
+
+                    b.Property<string>("PostalCode")
+                        .HasMaxLength(20)
+                        .HasColumnType("character varying(20)");
+
+                    b.Property<string>("RegistrationNumber")
+                        .HasMaxLength(50)
+                        .HasColumnType("character varying(50)");
+
+                    b.Property<byte>("SupplierType")
+                        .HasColumnType("smallint");
+
+                    b.Property<string>("TaxIdentificationNumber")
+                        .HasMaxLength(50)
+                        .HasColumnType("character varying(50)");
+
+                    b.Property<string>("VatNumber")
+                        .HasMaxLength(50)
+                        .HasColumnType("character varying(50)");
 
                     b.Property<int>("WebsiteID")
                         .HasColumnType("integer");
 
                     b.HasKey("SupplierID");
+
+                    b.HasIndex("DefaultCurrencyCode");
+
+                    b.HasIndex(new[] { "CountryID" }, "IX_Suppliers_CountryID");
+
+                    b.HasIndex(new[] { "LinkedVendorID" }, "IX_Suppliers_LinkedVendorID");
+
+                    b.HasIndex(new[] { "LinkedWebsiteID" }, "IX_Suppliers_LinkedWebsiteID");
 
                     b.HasIndex(new[] { "WebsiteID" }, "IX_Suppliers_WebsiteID");
 
@@ -4726,6 +4826,9 @@ namespace Dotnetable.Migrations.PostgreSql.Migrations
 
                     NpgsqlPropertyBuilderExtensions.UseIdentityByDefaultColumn(b.Property<int>("TaxRateID"));
 
+                    b.Property<bool>("ApplyToShipping")
+                        .HasColumnType("boolean");
+
                     b.Property<int?>("CountryID")
                         .HasColumnType("integer");
 
@@ -4740,6 +4843,13 @@ namespace Dotnetable.Migrations.PostgreSql.Migrations
 
                     b.Property<int?>("StateID")
                         .HasColumnType("integer");
+
+                    b.Property<string>("TaxCode")
+                        .HasMaxLength(30)
+                        .HasColumnType("character varying(30)");
+
+                    b.Property<byte>("TaxKind")
+                        .HasColumnType("smallint");
 
                     b.Property<string>("Title")
                         .IsRequired()
@@ -5140,14 +5250,48 @@ namespace Dotnetable.Migrations.PostgreSql.Migrations
                         .IsUnicode(false)
                         .HasColumnType("character varying(15)");
 
+                    b.Property<bool>("PricesIncludeTax")
+                        .HasColumnType("boolean");
+
                     b.Property<DateOnly>("RegisterDate")
                         .HasColumnType("date");
+
+                    b.Property<string>("SellerEconomicCode")
+                        .HasMaxLength(50)
+                        .HasColumnType("character varying(50)");
+
+                    b.Property<string>("SellerLegalName")
+                        .HasMaxLength(200)
+                        .HasColumnType("character varying(200)");
+
+                    b.Property<string>("SellerRegistrationNumber")
+                        .HasMaxLength(50)
+                        .HasColumnType("character varying(50)");
+
+                    b.Property<string>("SellerTaxId")
+                        .HasMaxLength(50)
+                        .HasColumnType("character varying(50)");
+
+                    b.Property<string>("SellerVatNumber")
+                        .HasMaxLength(50)
+                        .HasColumnType("character varying(50)");
 
                     b.Property<bool>("StorePricesInUsd")
                         .ValueGeneratedOnAdd()
                         .HasColumnType("boolean")
                         .HasDefaultValue(false)
                         .HasComment("When true, also persist USD dual columns; default site currency is always operational authority.");
+
+                    b.Property<int?>("TaxCountryID")
+                        .HasColumnType("integer");
+
+                    b.Property<bool>("TaxEnabled")
+                        .ValueGeneratedOnAdd()
+                        .HasColumnType("boolean")
+                        .HasDefaultValue(true);
+
+                    b.Property<bool>("TaxOnShipping")
+                        .HasColumnType("boolean");
 
                     b.Property<string>("TradeName")
                         .IsRequired()
@@ -5164,6 +5308,8 @@ namespace Dotnetable.Migrations.PostgreSql.Migrations
                         .HasColumnType("smallint");
 
                     b.HasKey("WebsiteID");
+
+                    b.HasIndex("TaxCountryID");
 
                     b.HasIndex(new[] { "DefaultCurrencyCode" }, "IX_Websites_DefaultCurrencyCode");
 
@@ -7785,11 +7931,39 @@ namespace Dotnetable.Migrations.PostgreSql.Migrations
 
             modelBuilder.Entity("Dotnetable.Domain.Entities.Supplier", b =>
                 {
+                    b.HasOne("Dotnetable.Domain.Entities.Country", "Country")
+                        .WithMany("Suppliers")
+                        .HasForeignKey("CountryID")
+                        .HasConstraintName("FK_Suppliers_Countries");
+
+                    b.HasOne("Dotnetable.Domain.Entities.Currency", "DefaultCurrencyCodeNavigation")
+                        .WithMany("Suppliers")
+                        .HasForeignKey("DefaultCurrencyCode")
+                        .HasConstraintName("FK_Suppliers_Currencies");
+
+                    b.HasOne("Dotnetable.Domain.Entities.Vendor", "LinkedVendor")
+                        .WithMany("LinkedSuppliers")
+                        .HasForeignKey("LinkedVendorID")
+                        .HasConstraintName("FK_Suppliers_Vendors");
+
+                    b.HasOne("Dotnetable.Domain.Entities.Website", "LinkedWebsite")
+                        .WithMany("SupplierLinkedWebsites")
+                        .HasForeignKey("LinkedWebsiteID")
+                        .HasConstraintName("FK_Suppliers_LinkedWebsites");
+
                     b.HasOne("Dotnetable.Domain.Entities.Website", "Website")
                         .WithMany("Suppliers")
                         .HasForeignKey("WebsiteID")
                         .IsRequired()
                         .HasConstraintName("FK_Suppliers_Websites");
+
+                    b.Navigation("Country");
+
+                    b.Navigation("DefaultCurrencyCodeNavigation");
+
+                    b.Navigation("LinkedVendor");
+
+                    b.Navigation("LinkedWebsite");
 
                     b.Navigation("Website");
                 });
@@ -8082,11 +8256,18 @@ namespace Dotnetable.Migrations.PostgreSql.Migrations
                         .HasForeignKey("LogoFileID")
                         .HasConstraintName("FK_Websites_FileRecords");
 
+                    b.HasOne("Dotnetable.Domain.Entities.Country", "TaxCountry")
+                        .WithMany("TaxJurisdictionWebsites")
+                        .HasForeignKey("TaxCountryID")
+                        .HasConstraintName("FK_Websites_TaxCountries");
+
                     b.Navigation("DefaultCurrencyCodeNavigation");
 
                     b.Navigation("FaveIconFile");
 
                     b.Navigation("LogoFile");
+
+                    b.Navigation("TaxCountry");
                 });
 
             modelBuilder.Entity("Dotnetable.Domain.Entities.WebsiteCaptchaSetting", b =>
@@ -8419,6 +8600,10 @@ namespace Dotnetable.Migrations.PostgreSql.Migrations
 
                     b.Navigation("States");
 
+                    b.Navigation("Suppliers");
+
+                    b.Navigation("TaxJurisdictionWebsites");
+
                     b.Navigation("TaxRates");
 
                     b.Navigation("WebsiteClientAddresses");
@@ -8444,6 +8629,8 @@ namespace Dotnetable.Migrations.PostgreSql.Migrations
                     b.Navigation("Settlements");
 
                     b.Navigation("StockMovements");
+
+                    b.Navigation("Suppliers");
 
                     b.Navigation("Websites");
                 });
@@ -8823,6 +9010,8 @@ namespace Dotnetable.Migrations.PostgreSql.Migrations
 
             modelBuilder.Entity("Dotnetable.Domain.Entities.Vendor", b =>
                 {
+                    b.Navigation("LinkedSuppliers");
+
                     b.Navigation("MenuItems");
 
                     b.Navigation("OrderItems");
@@ -8955,6 +9144,8 @@ namespace Dotnetable.Migrations.PostgreSql.Migrations
                     b.Navigation("Slideshows");
 
                     b.Navigation("StockMovements");
+
+                    b.Navigation("SupplierLinkedWebsites");
 
                     b.Navigation("Suppliers");
 

@@ -21,7 +21,17 @@ public partial class Settlement
 
     public DateOnly PeriodTo { get; set; }
 
+    /// <summary>Net amount excluding tax (when tax is broken out).</summary>
+    public decimal NetAmount { get; set; }
+
+    /// <summary>Tax amount on this settlement (VAT/sales tax counterparty reporting).</summary>
+    public decimal TaxAmount { get; set; }
+
+    /// <summary>Gross payable / receivable: NetAmount + TaxAmount (legacy rows may only fill this).</summary>
     public decimal TotalAmount { get; set; }
+
+    /// <summary>Optional snapshot of rate fraction used when TaxAmount was computed.</summary>
+    public decimal? TaxRateSnapshot { get; set; }
 
     public string CurrencyCode { get; set; } = null!;
 
