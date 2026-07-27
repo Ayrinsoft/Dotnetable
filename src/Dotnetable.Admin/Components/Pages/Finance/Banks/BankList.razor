@@ -26,7 +26,7 @@
         @if (_items.Count == 0)
         {
             <tr>
-                <td colspan="4" style="text-align:center; padding:32px;">
+                <td colspan="5" style="text-align:center; padding:32px;">
                     <MudText Color="Color.Secondary">@L["banks.empty", "No banks yet."]</MudText>
                 </td>
             </tr>
@@ -36,6 +36,17 @@
             @foreach (var b in _items)
             {
                 <tr>
+                    <td style="width:56px">
+                        @if (!string.IsNullOrEmpty(b.LogoFile?.ThumbnailCDN ?? b.LogoFile?.CNDUrl))
+                        {
+                            <img src="@(b.LogoFile!.ThumbnailCDN ?? b.LogoFile.CNDUrl)" alt=""
+                                 style="width:40px; height:40px; object-fit:contain; border-radius:6px;" />
+                        }
+                        else
+                        {
+                            <MudIcon Icon="@Icons.Material.Filled.AccountBalance" Color="Color.Secondary" />
+                        }
+                    </td>
                     <td>@b.Name</td>
                     <td><code>@b.BankCode</code></td>
                     <td>@(b.Active ? L["yes", "Yes"] : L["no", "No"])</td>
@@ -65,6 +76,7 @@
             Pagination = new PaginationModel { PageSize = 25 },
             HeaderItems = new()
             {
+                new() { ColumnTitle = "", ColumnName = "" },
                 new() { ColumnTitle = L["name", "Name"], ColumnName = nameof(Bank.Name), HasSort = true, HasSearch = true },
                 new() { ColumnTitle = L["banks.code", "Code"], ColumnName = nameof(Bank.BankCode), HasSort = true, HasSearch = true },
                 new() { ColumnTitle = L["active", "Active"], ColumnName = nameof(Bank.Active), HasSort = true },

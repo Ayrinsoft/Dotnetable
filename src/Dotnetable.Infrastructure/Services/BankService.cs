@@ -18,7 +18,7 @@ public class BankService : IBankService
 
     public async Task<PagedResult<Bank>> GetPagedAsync(GridQuery query, CancellationToken ct = default)
     {
-        var q = _context.Banks.AsNoTracking();
+        var q = _context.Banks.AsNoTracking().Include(b => b.LogoFile);
 
         if (query.GetSearch(nameof(Bank.Name)) is string name)
             q = q.Where(b => b.Name.Contains(name));
