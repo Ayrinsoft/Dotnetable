@@ -128,6 +128,8 @@ public static class ServiceCollectionExtensions
         services.AddScoped<ICouponService, CouponService>();
         services.AddScoped<IShippingService, ShippingService>();
         services.AddScoped<ITaxService, TaxService>();
+        services.AddScoped<ITaxReportService, TaxReportService>();
+        services.AddScoped<ISettlementService, SettlementService>();
 
         // E-commerce: the website's own banks/bank accounts (manual/offline payment receiving).
         services.AddScoped<IBankService, BankService>();

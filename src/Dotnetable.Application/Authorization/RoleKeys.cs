@@ -146,6 +146,10 @@ public static class RoleKeys
     public const string TaxEdit = "tax.edit";
     public const string TaxDelete = "tax.delete";
 
+    // ── Settlements (admin) ───────────────────────────────────────────
+    public const string SettlementsView = "settlements.view";
+    public const string SettlementsEdit = "settlements.edit";
+
     // ── Currency master list + per-website rates (admin) ─────────────
     public const string CurrencyView = "currency.view";
     public const string CurrencyEdit = "currency.edit";

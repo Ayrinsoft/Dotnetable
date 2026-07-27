@@ -162,6 +162,10 @@ public static class RoleCatalog
         new(RoleKeys.TaxEdit, "Edit tax rates", RoleCategory.Admin),
         new(RoleKeys.TaxDelete, "Delete tax rates", RoleCategory.Admin),
 
+        // Settlements
+        new(RoleKeys.SettlementsView, "View settlements", RoleCategory.Admin),
+        new(RoleKeys.SettlementsEdit, "Approve / pay / cancel settlements", RoleCategory.Admin),
+
         // Currency
         new(RoleKeys.CurrencyView, "View currencies & exchange rates", RoleCategory.Admin),
         new(RoleKeys.CurrencyEdit, "Edit currencies & exchange rates", RoleCategory.Admin),
