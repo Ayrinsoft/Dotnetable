@@ -12,7 +12,9 @@
 <MudStack Row="true" AlignItems="AlignItems.Center" Justify="Justify.SpaceBetween" Class="mb-4">
     <MudStack Spacing="0">
         <MudText Typo="Typo.h5" Class="fw-bold">@L["suppliers", "Suppliers"]</MudText>
-        <MudText Typo="Typo.body2" Color="Color.Secondary">@L["suppliers.subtitle", "Vendors you purchase stock from."]</MudText>
+        <MudText Typo="Typo.body2" Color="Color.Secondary">
+            @L["suppliers.subtitle", "External stock suppliers and inter-site tax counterparties (legal ID, VAT, bank)."]
+        </MudText>
     </MudStack>
     <MudStack Row="true" Spacing="2" AlignItems="AlignItems.Center">
         @if (_isMaster)
@@ -39,7 +41,7 @@
         @if (_items.Count == 0)
         {
             <tr>
-                <td colspan="4" style="text-align:center; padding:32px;">
+                <td colspan="7" style="text-align:center; padding:32px;">
                     <MudText Color="Color.Secondary">@L["suppliers.empty", "No suppliers yet."]</MudText>
                 </td>
             </tr>
@@ -50,6 +52,9 @@
             {
                 <tr>
                     <td>@s.Name</td>
+                    <td>@TypeLabel(s.SupplierType)</td>
+                    <td>@(s.TaxIdentificationNumber ?? s.VatNumber ?? "—")</td>
+                    <td>@(s.IsVatRegistered ? L["yes", "Yes"] : L["no", "No"])</td>
                     <td>@s.Phone</td>
                     <td>@(s.IsActive ? L["yes", "Yes"] : L["no", "No"])</td>
                     <td>
@@ -96,6 +101,9 @@
             HeaderItems = new()
             {
                 new() { ColumnTitle = L["name", "Name"], ColumnName = nameof(Supplier.Name), HasSort = true, HasSearch = true },
+                new() { ColumnTitle = L["suppliers.type", "Type"], ColumnName = nameof(Supplier.SupplierType), HasSort = true },
+                new() { ColumnTitle = L["suppliers.tax_id", "Tax ID"], ColumnName = nameof(Supplier.TaxIdentificationNumber) },
+                new() { ColumnTitle = L["suppliers.vat_registered", "VAT"], ColumnName = nameof(Supplier.IsVatRegistered), HasSort = true },
                 new() { ColumnTitle = L["phone", "Phone"], ColumnName = nameof(Supplier.Phone), HasSort = true },
                 new() { ColumnTitle = L["active", "Active"], ColumnName = nameof(Supplier.IsActive), HasSort = true },
                 new() { ColumnTitle = "", ColumnName = "" },
@@ -104,6 +112,13 @@
 
         await LoadAsync();
     }
+
+    private string TypeLabel(byte t) => t switch
+    {
+        (byte)SupplierType.LinkedWebsite => L["suppliers.type.linked_website_short", "Linked site"],
+        (byte)SupplierType.LinkedVendor => L["suppliers.type.linked_vendor_short", "Vendor"],
+        _ => L["suppliers.type.external_short", "External"],
+    };
 
     private async Task OnWebsiteChanged(int id) { _websiteId = id; await LoadAsync(); }
     private Task OnGridChanged(GridViewHeaderParameters _) => LoadAsync();
@@ -119,20 +134,57 @@
 
     private async Task CreateAsync()
     {
-        if (await ShowDialogAsync(new Supplier { WebsiteID = _websiteId, IsActive = true }, true)) await LoadAsync();
+        if (await ShowDialogAsync(new Supplier
+            {
+                WebsiteID = _websiteId,
+                IsActive = true,
+                SupplierType = (byte)SupplierType.External,
+                CreatedAt = DateTime.UtcNow,
+            }, true))
+            await LoadAsync();
     }
 
     private async Task EditAsync(Supplier s)
     {
-        var copy = new Supplier { SupplierID = s.SupplierID, WebsiteID = s.WebsiteID, Name = s.Name, Phone = s.Phone, IsActive = s.IsActive };
+        var copy = Clone(s);
         if (await ShowDialogAsync(copy, false)) await LoadAsync();
     }
+
+    private static Supplier Clone(Supplier s) => new()
+    {
+        SupplierID = s.SupplierID,
+        WebsiteID = s.WebsiteID,
+        Name = s.Name,
+        LegalName = s.LegalName,
+        Phone = s.Phone,
+        Email = s.Email,
+        AddressLine = s.AddressLine,
+        CityName = s.CityName,
+        PostalCode = s.PostalCode,
+        CountryID = s.CountryID,
+        TaxIdentificationNumber = s.TaxIdentificationNumber,
+        EconomicCode = s.EconomicCode,
+        VatNumber = s.VatNumber,
+        RegistrationNumber = s.RegistrationNumber,
+        IsVatRegistered = s.IsVatRegistered,
+        BankName = s.BankName,
+        BankIban = s.BankIban,
+        BankAccountNumber = s.BankAccountNumber,
+        DefaultCurrencyCode = s.DefaultCurrencyCode,
+        SupplierType = s.SupplierType,
+        LinkedWebsiteID = s.LinkedWebsiteID,
+        LinkedVendorID = s.LinkedVendorID,
+        Notes = s.Notes,
+        IsActive = s.IsActive,
+        CreatedAt = s.CreatedAt,
+    };
 
     private async Task<bool> ShowDialogAsync(Supplier model, bool isNew)
     {
         var parameters = new DialogParameters<SupplierDialog> { { x => x.Model, model }, { x => x.IsNew, isNew } };
         var dialog = await DialogService.ShowAsync<SupplierDialog>(
-            isNew ? L["suppliers.new", "New Supplier"] : L["suppliers.edit", "Edit Supplier"], parameters);
+            isNew ? L["suppliers.new", "New Supplier"] : L["suppliers.edit", "Edit Supplier"], parameters,
+            new DialogOptions { MaxWidth = MaxWidth.Medium, FullWidth = true });
         var result = await dialog.Result;
         return result is not null && !result.Canceled;
     }

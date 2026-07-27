@@ -48,6 +48,33 @@ public partial class Website
     /// </summary>
     public bool StorePricesInUsd { get; set; }
 
+    /// <summary>When false, checkout does not add tax (TaxTotal stays 0).</summary>
+    public bool TaxEnabled { get; set; } = true;
+
+    /// <summary>When true, catalog prices already include tax; checkout extracts or reports tax without adding on top.</summary>
+    public bool PricesIncludeTax { get; set; }
+
+    /// <summary>When true, eligible tax rates may apply to shipping as well as merchandise.</summary>
+    public bool TaxOnShipping { get; set; }
+
+    /// <summary>Optional default tax jurisdiction country for seller / fallback matching.</summary>
+    public int? TaxCountryID { get; set; }
+
+    /// <summary>Seller legal name for invoices / tax reports.</summary>
+    public string? SellerLegalName { get; set; }
+
+    /// <summary>Seller TIN / national company ID.</summary>
+    public string? SellerTaxId { get; set; }
+
+    /// <summary>Seller economic code (کد اقتصادی).</summary>
+    public string? SellerEconomicCode { get; set; }
+
+    /// <summary>Seller VAT / GST number.</summary>
+    public string? SellerVatNumber { get; set; }
+
+    /// <summary>Seller commercial registration number.</summary>
+    public string? SellerRegistrationNumber { get; set; }
+
     public virtual ICollection<AdminNotification> AdminNotifications { get; set; } = new List<AdminNotification>();
 
     public virtual ICollection<AttributeDefinition> AttributeDefinitions { get; set; } = new List<AttributeDefinition>();
@@ -159,6 +186,10 @@ public partial class Website
     public virtual ICollection<StockMovement> StockMovements { get; set; } = new List<StockMovement>();
 
     public virtual ICollection<Supplier> Suppliers { get; set; } = new List<Supplier>();
+
+    public virtual ICollection<Supplier> SupplierLinkedWebsites { get; set; } = new List<Supplier>();
+
+    public virtual Country? TaxCountry { get; set; }
 
     public virtual ICollection<Tag> Tags { get; set; } = new List<Tag>();
 

@@ -1572,6 +1572,7 @@ public partial class AppDbContext : DbContext
             entity.Property(e => e.PaidAt).HasColumnType("datetime");
             entity.Property(e => e.ShippingTotal).HasColumnType("decimal(18, 4)");
             entity.Property(e => e.SubTotal).HasColumnType("decimal(18, 4)");
+            entity.Property(e => e.TaxBreakdownJson).HasMaxLength(4000);
             entity.Property(e => e.TaxTotal).HasColumnType("decimal(18, 4)");
 
             entity.HasOne(d => d.Coupon).WithMany(p => p.Orders)
@@ -2407,9 +2408,12 @@ public partial class AppDbContext : DbContext
                 .HasMaxLength(3)
                 .IsUnicode(false)
                 .IsFixedLength();
+            entity.Property(e => e.NetAmount).HasColumnType("decimal(18, 4)");
             entity.Property(e => e.Note).HasMaxLength(500);
             entity.Property(e => e.PaidAt).HasColumnType("datetime");
             entity.Property(e => e.PaymentRefNumber).HasMaxLength(100);
+            entity.Property(e => e.TaxAmount).HasColumnType("decimal(18, 4)");
+            entity.Property(e => e.TaxRateSnapshot).HasColumnType("decimal(9, 6)");
             entity.Property(e => e.TotalAmount).HasColumnType("decimal(18, 4)");
 
             entity.HasOne(d => d.ApprovedByMember).WithMany(p => p.SettlementApprovedByMembers)
@@ -2756,10 +2760,47 @@ public partial class AppDbContext : DbContext
 
         modelBuilder.Entity<Supplier>(entity =>
         {
+            entity.HasIndex(e => e.CountryID, "IX_Suppliers_CountryID");
+            entity.HasIndex(e => e.LinkedVendorID, "IX_Suppliers_LinkedVendorID");
+            entity.HasIndex(e => e.LinkedWebsiteID, "IX_Suppliers_LinkedWebsiteID");
             entity.HasIndex(e => e.WebsiteID, "IX_Suppliers_WebsiteID");
 
+            entity.Property(e => e.AddressLine).HasMaxLength(500);
+            entity.Property(e => e.BankAccountNumber).HasMaxLength(50);
+            entity.Property(e => e.BankIban).HasMaxLength(34);
+            entity.Property(e => e.BankName).HasMaxLength(100);
+            entity.Property(e => e.CityName).HasMaxLength(100);
+            entity.Property(e => e.CreatedAt).HasColumnType("datetime");
+            entity.Property(e => e.DefaultCurrencyCode)
+                .HasMaxLength(3)
+                .IsUnicode(false)
+                .IsFixedLength();
+            entity.Property(e => e.EconomicCode).HasMaxLength(50);
+            entity.Property(e => e.Email).HasMaxLength(120);
+            entity.Property(e => e.LegalName).HasMaxLength(200);
             entity.Property(e => e.Name).HasMaxLength(200);
+            entity.Property(e => e.Notes).HasMaxLength(1000);
             entity.Property(e => e.Phone).HasMaxLength(20);
+            entity.Property(e => e.PostalCode).HasMaxLength(20);
+            entity.Property(e => e.RegistrationNumber).HasMaxLength(50);
+            entity.Property(e => e.TaxIdentificationNumber).HasMaxLength(50);
+            entity.Property(e => e.VatNumber).HasMaxLength(50);
+
+            entity.HasOne(d => d.Country).WithMany(p => p.Suppliers)
+                .HasForeignKey(d => d.CountryID)
+                .HasConstraintName("FK_Suppliers_Countries");
+
+            entity.HasOne(d => d.DefaultCurrencyCodeNavigation).WithMany(p => p.Suppliers)
+                .HasForeignKey(d => d.DefaultCurrencyCode)
+                .HasConstraintName("FK_Suppliers_Currencies");
+
+            entity.HasOne(d => d.LinkedVendor).WithMany(p => p.LinkedSuppliers)
+                .HasForeignKey(d => d.LinkedVendorID)
+                .HasConstraintName("FK_Suppliers_Vendors");
+
+            entity.HasOne(d => d.LinkedWebsite).WithMany(p => p.SupplierLinkedWebsites)
+                .HasForeignKey(d => d.LinkedWebsiteID)
+                .HasConstraintName("FK_Suppliers_LinkedWebsites");
 
             entity.HasOne(d => d.Website).WithMany(p => p.Suppliers)
                 .HasForeignKey(d => d.WebsiteID)
@@ -2806,6 +2847,7 @@ public partial class AppDbContext : DbContext
             entity.HasIndex(e => e.WebsiteID, "IX_TaxRates_WebsiteID");
 
             entity.Property(e => e.Rate).HasColumnType("decimal(9, 6)");
+            entity.Property(e => e.TaxCode).HasMaxLength(30);
             entity.Property(e => e.Title).HasMaxLength(100);
 
             entity.HasOne(d => d.Country).WithMany(p => p.TaxRates)
@@ -3035,9 +3077,15 @@ public partial class AppDbContext : DbContext
             entity.Property(e => e.Mobile)
                 .HasMaxLength(15)
                 .IsUnicode(false);
+            entity.Property(e => e.SellerEconomicCode).HasMaxLength(50);
+            entity.Property(e => e.SellerLegalName).HasMaxLength(200);
+            entity.Property(e => e.SellerRegistrationNumber).HasMaxLength(50);
+            entity.Property(e => e.SellerTaxId).HasMaxLength(50);
+            entity.Property(e => e.SellerVatNumber).HasMaxLength(50);
             entity.Property(e => e.StorePricesInUsd)
                 .HasDefaultValue(false)
                 .HasComment("When true, also persist USD dual columns; default site currency is always operational authority.");
+            entity.Property(e => e.TaxEnabled).HasDefaultValue(true);
             entity.Property(e => e.TradeName).HasMaxLength(32);
             entity.Property(e => e.WebsiteAddress)
                 .HasMaxLength(60)
@@ -3055,6 +3103,10 @@ public partial class AppDbContext : DbContext
             entity.HasOne(d => d.LogoFile).WithMany(p => p.WebsiteLogoFiles)
                 .HasForeignKey(d => d.LogoFileID)
                 .HasConstraintName("FK_Websites_FileRecords");
+
+            entity.HasOne(d => d.TaxCountry).WithMany(p => p.TaxJurisdictionWebsites)
+                .HasForeignKey(d => d.TaxCountryID)
+                .HasConstraintName("FK_Websites_TaxCountries");
         });
 
         modelBuilder.Entity<WebsiteCaptchaSetting>(entity =>

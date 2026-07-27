@@ -210,6 +210,59 @@ else if (_website is not null)
                 </MudPaper>
             </MudItem>
 
+            @* ── Tax & seller identity ─────────────────────── *@
+            <MudItem xs="12">
+                <MudPaper Elevation="0" Class="border rounded-lg pa-6">
+                    <MudText Typo="Typo.subtitle1" Class="fw-bold mb-4">
+                        <MudIcon Icon="@Icons.Material.Filled.ReceiptLong" Size="Size.Small" Class="me-1" />
+                        @L["website.section.tax", "Tax & seller registration"]
+                    </MudText>
+                    <MudText Typo="Typo.caption" Color="Color.Secondary" Class="mb-3">
+                        @L["website.tax_hint", "Controls checkout VAT/sales tax for this site and dual-site settlement tax when selling through another marketplace host. Rate tables are under Sales → Tax Rates."]
+                    </MudText>
+                    <MudGrid Spacing="3">
+                        <MudItem xs="12" sm="4">
+                            <MudSwitch T="bool" @bind-Value="_website.TaxEnabled" Color="Color.Primary"
+                                       Label="@L["website.tax_enabled", "Tax enabled at checkout"]" />
+                        </MudItem>
+                        <MudItem xs="12" sm="4">
+                            <MudSwitch T="bool" @bind-Value="_website.PricesIncludeTax" Color="Color.Primary"
+                                       Label="@L["website.prices_include_tax", "Prices include tax"]" />
+                        </MudItem>
+                        <MudItem xs="12" sm="4">
+                            <MudSwitch T="bool" @bind-Value="_website.TaxOnShipping" Color="Color.Primary"
+                                       Label="@L["website.tax_on_shipping", "Tax may apply to shipping"]" />
+                        </MudItem>
+                        <MudItem xs="12" sm="6">
+                            <MudTextField @bind-Value="_website.SellerLegalName" Label="@L["website.seller_legal_name", "Seller legal name"]"
+                                          Variant="Variant.Outlined" />
+                        </MudItem>
+                        <MudItem xs="12" sm="6">
+                            <MudNumericField T="int?" @bind-Value="_website.TaxCountryID"
+                                             Label="@L["website.tax_country_id", "Default tax country ID"]"
+                                             Variant="Variant.Outlined" Min="1"
+                                             HelperText="@L["website.tax_country_hint", "Optional CountryID for seller jurisdiction / fallback matching"]" />
+                        </MudItem>
+                        <MudItem xs="12" sm="6">
+                            <MudTextField @bind-Value="_website.SellerTaxId" Label="@L["website.seller_tax_id", "Seller tax ID / national ID"]"
+                                          Variant="Variant.Outlined" />
+                        </MudItem>
+                        <MudItem xs="12" sm="6">
+                            <MudTextField @bind-Value="_website.SellerEconomicCode" Label="@L["website.seller_economic_code", "Economic code"]"
+                                          Variant="Variant.Outlined" />
+                        </MudItem>
+                        <MudItem xs="12" sm="6">
+                            <MudTextField @bind-Value="_website.SellerVatNumber" Label="@L["website.seller_vat", "VAT / GST number"]"
+                                          Variant="Variant.Outlined" />
+                        </MudItem>
+                        <MudItem xs="12" sm="6">
+                            <MudTextField @bind-Value="_website.SellerRegistrationNumber" Label="@L["website.seller_registration", "Registration number"]"
+                                          Variant="Variant.Outlined" />
+                        </MudItem>
+                    </MudGrid>
+                </MudPaper>
+            </MudItem>
+
             @* ── Status ───────────────────────────────────── *@
             <MudItem xs="12">
                 <MudPaper Elevation="0" Class="border rounded-lg pa-6">
@@ -276,6 +329,7 @@ else if (_website is not null)
             _website = new Website
             {
                 Active = true,
+                TaxEnabled = true,
                 DefaultLanguageCode = "en",
                 DefaultCurrencyCode = _currencies.FirstOrDefault()?.CurrencyCode ?? string.Empty,
             };

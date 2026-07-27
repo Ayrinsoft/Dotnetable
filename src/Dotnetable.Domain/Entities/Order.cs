@@ -27,6 +27,12 @@ public partial class Order
 
     public decimal TaxTotal { get; set; }
 
+    /// <summary>When true, line prices already included tax at checkout (tax extracted or zero-added per site settings).</summary>
+    public bool PricesIncludeTax { get; set; }
+
+    /// <summary>JSON breakdown of applied tax lines for filings (code, rate, amount).</summary>
+    public string? TaxBreakdownJson { get; set; }
+
     public decimal GrandTotal { get; set; }
 
     public decimal GrandTotalUsd { get; set; }

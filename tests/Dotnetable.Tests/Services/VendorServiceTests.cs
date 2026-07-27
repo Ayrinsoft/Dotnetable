@@ -27,7 +27,9 @@ public class VendorServiceTests : IDisposable
         _vendors = new VendorService(_context);
         _listings = new VendorProductService(_context);
         var currency = new CurrencyConversionService(_context);
-        _credit = new VendorCreditService(_context, _vendors, currency);
+        var suppliers = new SupplierService(_context);
+        var tax = new TaxService(_context);
+        _credit = new VendorCreditService(_context, _vendors, currency, suppliers, tax);
 
         _host = NewWebsite("Host", "host.test");
         _source = NewWebsite("Source", "source.test");

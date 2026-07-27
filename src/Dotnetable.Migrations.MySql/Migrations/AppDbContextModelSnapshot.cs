@@ -2334,6 +2334,9 @@ namespace Dotnetable.Migrations.MySql.Migrations
                     b.Property<DateTime?>("PaidAt")
                         .HasColumnType("datetime");
 
+                    b.Property<bool>("PricesIncludeTax")
+                        .HasColumnType("tinyint(1)");
+
                     b.Property<int?>("ShippingMethodID")
                         .HasColumnType("int");
 
@@ -2345,6 +2348,10 @@ namespace Dotnetable.Migrations.MySql.Migrations
 
                     b.Property<decimal>("SubTotal")
                         .HasColumnType("decimal(18, 4)");
+
+                    b.Property<string>("TaxBreakdownJson")
+                        .HasMaxLength(4000)
+                        .HasColumnType("varchar(4000)");
 
                     b.Property<decimal>("TaxTotal")
                         .HasColumnType("decimal(18, 4)");
@@ -3809,6 +3816,9 @@ namespace Dotnetable.Migrations.MySql.Migrations
                         .HasColumnType("char(3)")
                         .IsFixedLength();
 
+                    b.Property<decimal>("NetAmount")
+                        .HasColumnType("decimal(18, 4)");
+
                     b.Property<string>("Note")
                         .HasMaxLength(500)
                         .HasColumnType("varchar(500)");
@@ -3837,6 +3847,12 @@ namespace Dotnetable.Migrations.MySql.Migrations
 
                     b.Property<int?>("TargetWebsiteID")
                         .HasColumnType("int");
+
+                    b.Property<decimal>("TaxAmount")
+                        .HasColumnType("decimal(18, 4)");
+
+                    b.Property<decimal?>("TaxRateSnapshot")
+                        .HasColumnType("decimal(9, 6)");
 
                     b.Property<decimal>("TotalAmount")
                         .HasColumnType("decimal(18, 4)");
@@ -4261,22 +4277,106 @@ namespace Dotnetable.Migrations.MySql.Migrations
                         .ValueGeneratedOnAdd()
                         .HasColumnType("int");
 
+                    b.Property<string>("AddressLine")
+                        .HasMaxLength(500)
+                        .HasColumnType("varchar(500)");
+
+                    b.Property<string>("BankAccountNumber")
+                        .HasMaxLength(50)
+                        .HasColumnType("varchar(50)");
+
+                    b.Property<string>("BankIban")
+                        .HasMaxLength(34)
+                        .HasColumnType("varchar(34)");
+
+                    b.Property<string>("BankName")
+                        .HasMaxLength(100)
+                        .HasColumnType("varchar(100)");
+
+                    b.Property<string>("CityName")
+                        .HasMaxLength(100)
+                        .HasColumnType("varchar(100)");
+
+                    b.Property<int?>("CountryID")
+                        .HasColumnType("int");
+
+                    b.Property<DateTime>("CreatedAt")
+                        .HasColumnType("datetime");
+
+                    b.Property<string>("DefaultCurrencyCode")
+                        .HasMaxLength(3)
+                        .IsUnicode(false)
+                        .HasColumnType("char(3)")
+                        .IsFixedLength();
+
+                    b.Property<string>("EconomicCode")
+                        .HasMaxLength(50)
+                        .HasColumnType("varchar(50)");
+
+                    b.Property<string>("Email")
+                        .HasMaxLength(120)
+                        .HasColumnType("varchar(120)");
+
                     b.Property<bool>("IsActive")
                         .HasColumnType("tinyint(1)");
+
+                    b.Property<bool>("IsVatRegistered")
+                        .HasColumnType("tinyint(1)");
+
+                    b.Property<string>("LegalName")
+                        .HasMaxLength(200)
+                        .HasColumnType("varchar(200)");
+
+                    b.Property<int?>("LinkedVendorID")
+                        .HasColumnType("int");
+
+                    b.Property<int?>("LinkedWebsiteID")
+                        .HasColumnType("int");
 
                     b.Property<string>("Name")
                         .IsRequired()
                         .HasMaxLength(200)
                         .HasColumnType("varchar(200)");
 
+                    b.Property<string>("Notes")
+                        .HasMaxLength(1000)
+                        .HasColumnType("varchar(1000)");
+
                     b.Property<string>("Phone")
                         .HasMaxLength(20)
                         .HasColumnType("varchar(20)");
+
+                    b.Property<string>("PostalCode")
+                        .HasMaxLength(20)
+                        .HasColumnType("varchar(20)");
+
+                    b.Property<string>("RegistrationNumber")
+                        .HasMaxLength(50)
+                        .HasColumnType("varchar(50)");
+
+                    b.Property<byte>("SupplierType")
+                        .HasColumnType("tinyint unsigned");
+
+                    b.Property<string>("TaxIdentificationNumber")
+                        .HasMaxLength(50)
+                        .HasColumnType("varchar(50)");
+
+                    b.Property<string>("VatNumber")
+                        .HasMaxLength(50)
+                        .HasColumnType("varchar(50)");
 
                     b.Property<int>("WebsiteID")
                         .HasColumnType("int");
 
                     b.HasKey("SupplierID");
+
+                    b.HasIndex("DefaultCurrencyCode");
+
+                    b.HasIndex(new[] { "CountryID" }, "IX_Suppliers_CountryID");
+
+                    b.HasIndex(new[] { "LinkedVendorID" }, "IX_Suppliers_LinkedVendorID");
+
+                    b.HasIndex(new[] { "LinkedWebsiteID" }, "IX_Suppliers_LinkedWebsiteID");
 
                     b.HasIndex(new[] { "WebsiteID" }, "IX_Suppliers_WebsiteID");
 
@@ -4527,6 +4627,9 @@ namespace Dotnetable.Migrations.MySql.Migrations
                         .ValueGeneratedOnAdd()
                         .HasColumnType("int");
 
+                    b.Property<bool>("ApplyToShipping")
+                        .HasColumnType("tinyint(1)");
+
                     b.Property<int?>("CountryID")
                         .HasColumnType("int");
 
@@ -4541,6 +4644,13 @@ namespace Dotnetable.Migrations.MySql.Migrations
 
                     b.Property<int?>("StateID")
                         .HasColumnType("int");
+
+                    b.Property<string>("TaxCode")
+                        .HasMaxLength(30)
+                        .HasColumnType("varchar(30)");
+
+                    b.Property<byte>("TaxKind")
+                        .HasColumnType("tinyint unsigned");
 
                     b.Property<string>("Title")
                         .IsRequired()
@@ -4927,14 +5037,48 @@ namespace Dotnetable.Migrations.MySql.Migrations
                         .IsUnicode(false)
                         .HasColumnType("varchar(15)");
 
+                    b.Property<bool>("PricesIncludeTax")
+                        .HasColumnType("tinyint(1)");
+
                     b.Property<DateOnly>("RegisterDate")
                         .HasColumnType("date");
+
+                    b.Property<string>("SellerEconomicCode")
+                        .HasMaxLength(50)
+                        .HasColumnType("varchar(50)");
+
+                    b.Property<string>("SellerLegalName")
+                        .HasMaxLength(200)
+                        .HasColumnType("varchar(200)");
+
+                    b.Property<string>("SellerRegistrationNumber")
+                        .HasMaxLength(50)
+                        .HasColumnType("varchar(50)");
+
+                    b.Property<string>("SellerTaxId")
+                        .HasMaxLength(50)
+                        .HasColumnType("varchar(50)");
+
+                    b.Property<string>("SellerVatNumber")
+                        .HasMaxLength(50)
+                        .HasColumnType("varchar(50)");
 
                     b.Property<bool>("StorePricesInUsd")
                         .ValueGeneratedOnAdd()
                         .HasColumnType("tinyint(1)")
                         .HasDefaultValue(false)
                         .HasComment("When true, also persist USD dual columns; default site currency is always operational authority.");
+
+                    b.Property<int?>("TaxCountryID")
+                        .HasColumnType("int");
+
+                    b.Property<bool>("TaxEnabled")
+                        .ValueGeneratedOnAdd()
+                        .HasColumnType("tinyint(1)")
+                        .HasDefaultValue(true);
+
+                    b.Property<bool>("TaxOnShipping")
+                        .HasColumnType("tinyint(1)");
 
                     b.Property<string>("TradeName")
                         .IsRequired()
@@ -4951,6 +5095,8 @@ namespace Dotnetable.Migrations.MySql.Migrations
                         .HasColumnType("tinyint unsigned");
 
                     b.HasKey("WebsiteID");
+
+                    b.HasIndex("TaxCountryID");
 
                     b.HasIndex(new[] { "DefaultCurrencyCode" }, "IX_Websites_DefaultCurrencyCode");
 
@@ -7542,11 +7688,39 @@ namespace Dotnetable.Migrations.MySql.Migrations
 
             modelBuilder.Entity("Dotnetable.Domain.Entities.Supplier", b =>
                 {
+                    b.HasOne("Dotnetable.Domain.Entities.Country", "Country")
+                        .WithMany("Suppliers")
+                        .HasForeignKey("CountryID")
+                        .HasConstraintName("FK_Suppliers_Countries");
+
+                    b.HasOne("Dotnetable.Domain.Entities.Currency", "DefaultCurrencyCodeNavigation")
+                        .WithMany("Suppliers")
+                        .HasForeignKey("DefaultCurrencyCode")
+                        .HasConstraintName("FK_Suppliers_Currencies");
+
+                    b.HasOne("Dotnetable.Domain.Entities.Vendor", "LinkedVendor")
+                        .WithMany("LinkedSuppliers")
+                        .HasForeignKey("LinkedVendorID")
+                        .HasConstraintName("FK_Suppliers_Vendors");
+
+                    b.HasOne("Dotnetable.Domain.Entities.Website", "LinkedWebsite")
+                        .WithMany("SupplierLinkedWebsites")
+                        .HasForeignKey("LinkedWebsiteID")
+                        .HasConstraintName("FK_Suppliers_LinkedWebsites");
+
                     b.HasOne("Dotnetable.Domain.Entities.Website", "Website")
                         .WithMany("Suppliers")
                         .HasForeignKey("WebsiteID")
                         .IsRequired()
                         .HasConstraintName("FK_Suppliers_Websites");
+
+                    b.Navigation("Country");
+
+                    b.Navigation("DefaultCurrencyCodeNavigation");
+
+                    b.Navigation("LinkedVendor");
+
+                    b.Navigation("LinkedWebsite");
 
                     b.Navigation("Website");
                 });
@@ -7839,11 +8013,18 @@ namespace Dotnetable.Migrations.MySql.Migrations
                         .HasForeignKey("LogoFileID")
                         .HasConstraintName("FK_Websites_FileRecords");
 
+                    b.HasOne("Dotnetable.Domain.Entities.Country", "TaxCountry")
+                        .WithMany("TaxJurisdictionWebsites")
+                        .HasForeignKey("TaxCountryID")
+                        .HasConstraintName("FK_Websites_TaxCountries");
+
                     b.Navigation("DefaultCurrencyCodeNavigation");
 
                     b.Navigation("FaveIconFile");
 
                     b.Navigation("LogoFile");
+
+                    b.Navigation("TaxCountry");
                 });
 
             modelBuilder.Entity("Dotnetable.Domain.Entities.WebsiteCaptchaSetting", b =>
@@ -8176,6 +8357,10 @@ namespace Dotnetable.Migrations.MySql.Migrations
 
                     b.Navigation("States");
 
+                    b.Navigation("Suppliers");
+
+                    b.Navigation("TaxJurisdictionWebsites");
+
                     b.Navigation("TaxRates");
 
                     b.Navigation("WebsiteClientAddresses");
@@ -8201,6 +8386,8 @@ namespace Dotnetable.Migrations.MySql.Migrations
                     b.Navigation("Settlements");
 
                     b.Navigation("StockMovements");
+
+                    b.Navigation("Suppliers");
 
                     b.Navigation("Websites");
                 });
@@ -8580,6 +8767,8 @@ namespace Dotnetable.Migrations.MySql.Migrations
 
             modelBuilder.Entity("Dotnetable.Domain.Entities.Vendor", b =>
                 {
+                    b.Navigation("LinkedSuppliers");
+
                     b.Navigation("MenuItems");
 
                     b.Navigation("OrderItems");
@@ -8712,6 +8901,8 @@ namespace Dotnetable.Migrations.MySql.Migrations
                     b.Navigation("Slideshows");
 
                     b.Navigation("StockMovements");
+
+                    b.Navigation("SupplierLinkedWebsites");
 
                     b.Navigation("Suppliers");
 

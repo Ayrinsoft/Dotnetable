@@ -1,4 +1,7 @@
 @inject ISupplierService SupplierService
+@inject ILocationService LocationService
+@inject ICurrencyService CurrencyService
+@inject IWebsiteService WebsiteService
 @inject ISnackbar Snackbar
 @inject IPageLocalizer L
 
@@ -6,14 +9,97 @@
     <DialogContent>
         <MudForm @ref="_form">
             <MudGrid Spacing="3">
-                <MudItem xs="12" sm="7">
-                    <MudTextField @bind-Value="Model.Name" Label="@L["name", "Name"]" Variant="Variant.Outlined" Required="true" />
+                <MudItem xs="12">
+                    <MudText Typo="Typo.subtitle2" Class="mb-1">@L["suppliers.section.identity", "Identity"]</MudText>
                 </MudItem>
-                <MudItem xs="12" sm="5">
+                <MudItem xs="12" sm="6">
+                    <MudTextField @bind-Value="Model.Name" Label="@L["name", "Name"]" Variant="Variant.Outlined" Required="true"
+                                  HelperText="@L["suppliers.name_hint", "Trade / display name"]" />
+                </MudItem>
+                <MudItem xs="12" sm="6">
+                    <MudTextField @bind-Value="Model.LegalName" Label="@L["suppliers.legal_name", "Legal name"]" Variant="Variant.Outlined"
+                                  HelperText="@L["suppliers.legal_name_hint", "Registered name for invoices & tax filings"]" />
+                </MudItem>
+                <MudItem xs="12" sm="6">
+                    <MudSelect T="byte" @bind-Value="Model.SupplierType" Label="@L["suppliers.type", "Supplier type"]" Variant="Variant.Outlined">
+                        <MudSelectItem T="byte" Value="(byte)SupplierType.External">@L["suppliers.type.external", "External (stock purchase)"]</MudSelectItem>
+                        <MudSelectItem T="byte" Value="(byte)SupplierType.LinkedWebsite">@L["suppliers.type.linked_website", "Linked website (inter-site)"]</MudSelectItem>
+                        <MudSelectItem T="byte" Value="(byte)SupplierType.LinkedVendor">@L["suppliers.type.linked_vendor", "Linked catalog vendor"]</MudSelectItem>
+                    </MudSelect>
+                </MudItem>
+                <MudItem xs="12" sm="6">
+                    <MudSwitch T="bool" @bind-Value="Model.IsActive" Color="Color.Success" Label="@L["active", "Active"]" />
+                </MudItem>
+
+                @if (Model.SupplierType == (byte)SupplierType.LinkedWebsite)
+                {
+                    <MudItem xs="12" sm="6">
+                        <MudNumericField T="int?" @bind-Value="Model.LinkedWebsiteID"
+                                         Label="@L["suppliers.linked_website_id", "Linked website ID"]"
+                                         Variant="Variant.Outlined" Min="1"
+                                         HelperText="@L["suppliers.linked_website_hint", "Source site that supplies catalog to this host"]" />
+                    </MudItem>
+                }
+
+                <MudItem xs="12">
+                    <MudDivider Class="my-1" />
+                    <MudText Typo="Typo.subtitle2" Class="mb-1">@L["suppliers.section.tax", "Tax registration"]</MudText>
+                </MudItem>
+                <MudItem xs="12" sm="6">
+                    <MudTextField @bind-Value="Model.TaxIdentificationNumber" Label="@L["suppliers.tax_id", "Tax ID / National ID"]" Variant="Variant.Outlined" />
+                </MudItem>
+                <MudItem xs="12" sm="6">
+                    <MudTextField @bind-Value="Model.EconomicCode" Label="@L["suppliers.economic_code", "Economic code"]" Variant="Variant.Outlined" />
+                </MudItem>
+                <MudItem xs="12" sm="6">
+                    <MudTextField @bind-Value="Model.VatNumber" Label="@L["suppliers.vat_number", "VAT / GST number"]" Variant="Variant.Outlined" />
+                </MudItem>
+                <MudItem xs="12" sm="6">
+                    <MudTextField @bind-Value="Model.RegistrationNumber" Label="@L["suppliers.registration", "Registration number"]" Variant="Variant.Outlined" />
+                </MudItem>
+                <MudItem xs="12" sm="6">
+                    <MudSwitch T="bool" @bind-Value="Model.IsVatRegistered" Color="Color.Primary"
+                               Label="@L["suppliers.vat_registered", "VAT registered"]" />
+                </MudItem>
+                <MudItem xs="12" sm="6">
+                    <CountrySelector Value="Model.CountryID" ValueChanged="id => Model.CountryID = id"
+                                     Countries="_countries" Label="@L["country", "Country"]" Clearable="true" />
+                </MudItem>
+
+                <MudItem xs="12">
+                    <MudDivider Class="my-1" />
+                    <MudText Typo="Typo.subtitle2" Class="mb-1">@L["suppliers.section.contact", "Contact & bank"]</MudText>
+                </MudItem>
+                <MudItem xs="12" sm="6">
                     <MudTextField @bind-Value="Model.Phone" Label="@L["phone", "Phone"]" Variant="Variant.Outlined" />
                 </MudItem>
+                <MudItem xs="12" sm="6">
+                    <MudTextField @bind-Value="Model.Email" Label="@L["email", "Email"]" Variant="Variant.Outlined" />
+                </MudItem>
                 <MudItem xs="12">
-                    <MudSwitch T="bool" @bind-Value="Model.IsActive" Color="Color.Success" Label="@L["active", "Active"]" />
+                    <MudTextField @bind-Value="Model.AddressLine" Label="@L["address", "Address"]" Variant="Variant.Outlined" />
+                </MudItem>
+                <MudItem xs="12" sm="6">
+                    <MudTextField @bind-Value="Model.CityName" Label="@L["city", "City"]" Variant="Variant.Outlined" />
+                </MudItem>
+                <MudItem xs="12" sm="6">
+                    <MudTextField @bind-Value="Model.PostalCode" Label="@L["postal_code", "Postal code"]" Variant="Variant.Outlined" />
+                </MudItem>
+                <MudItem xs="12" sm="4">
+                    <MudTextField @bind-Value="Model.BankName" Label="@L["suppliers.bank_name", "Bank name"]" Variant="Variant.Outlined" />
+                </MudItem>
+                <MudItem xs="12" sm="4">
+                    <MudTextField @bind-Value="Model.BankIban" Label="@L["suppliers.iban", "IBAN"]" Variant="Variant.Outlined" />
+                </MudItem>
+                <MudItem xs="12" sm="4">
+                    <MudTextField @bind-Value="Model.BankAccountNumber" Label="@L["suppliers.account_no", "Account number"]" Variant="Variant.Outlined" />
+                </MudItem>
+                <MudItem xs="12" sm="6">
+                    <MudTextField @bind-Value="Model.DefaultCurrencyCode" Label="@L["currency", "Currency"]" Variant="Variant.Outlined"
+                                  MaxLength="3" HelperText="@L["suppliers.currency_hint", "ISO code, e.g. IRR / USD"]" />
+                </MudItem>
+                <MudItem xs="12">
+                    <MudTextField @bind-Value="Model.Notes" Label="@L["notes", "Notes"]" Variant="Variant.Outlined" Lines="2" />
                 </MudItem>
             </MudGrid>
 
@@ -34,6 +120,12 @@
     private MudForm _form = null!;
     private bool _saving;
     private string[]? _formErrors;
+    private List<Country> _countries = new();
+
+    protected override async Task OnInitializedAsync()
+    {
+        _countries = (await LocationService.GetAllCountriesAsync()).ToList();
+    }
 
     private void Cancel() => MudDialog.Cancel();
 
@@ -43,6 +135,11 @@
         _formErrors = _form.Errors;
         if (!_form.IsValid) return;
         if (string.IsNullOrWhiteSpace(Model.Name)) return;
+        if (Model.SupplierType == (byte)SupplierType.LinkedWebsite && Model.LinkedWebsiteID is null or <= 0)
+        {
+            _formErrors = new[] { L["suppliers.linked_website_required", "Linked website ID is required for this supplier type."] };
+            return;
+        }
 
         _saving = true;
         try
