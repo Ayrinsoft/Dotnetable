@@ -15,7 +15,7 @@
 <DNPageTitle Title=@(_isAdminRoute ? L["translations.admin", "Admin Translations"] : L["website_translations", "Translations"]) />
 
 @* ── Page header ──────────────────────────────────────────────── *@
-<MudStack Spacing="2" Class="mb-4">
+<MudStack Row="true" AlignItems="AlignItems.Center" Justify="Justify.SpaceBetween" Class="mb-4">
     <MudStack Spacing="0">
         <MudText Typo="Typo.h5" Class="fw-bold">
             @(_isAdminRoute ? L["translations.admin", "Admin Translations"] : L["website_translations", "Translations"])
@@ -26,34 +26,35 @@
                 : L["translation.subtitle_site", "Custom key/value strings for this website’s storefront and themes only. Not admin panel labels — add any keys you need, then translate them for each language you enabled under Website → Languages."])
         </MudText>
     </MudStack>
-    <MudStack Row="true" AlignItems="AlignItems.Center" Spacing="2" Class="flex-wrap">
+    <MudStack Row="true" AlignItems="AlignItems.Center" Spacing="1">
         @* Site translations: master can manage any website. Admin translations (/translations) stay on site 1. *@
         @if (_isMaster && !_isAdminRoute)
         {
             <WebsiteSelector Value="@(_scopeWebsiteId ?? 0)" ValueChanged="OnWebsiteChanged" Websites="_websites"
                              Label="@L["website", "Website"]" Variant="Variant.Outlined"
-                             Dense="true" Style="min-width:160px;max-width:220px" />
+                             Dense="true" Style="min-width:180px" />
         }
         <MudAutocomplete T="string" Value="_languageCode" ValueChanged="OnLanguageChanged" Label="@L["language", "Language"]"
                           SearchFunc="SearchLanguages" ToStringFunc="@(code => _languages.FirstOrDefault(l => l.Code == code).Label ?? code)"
-                          Variant="Variant.Outlined" Margin="Margin.Dense" Dense="true"
-                          Style="width:180px;max-width:220px" AnchorOrigin="Origin.BottomLeft"
+                          Variant="Variant.Outlined" Margin="Margin.Dense"
+                          Style="width:200px;" AnchorOrigin="Origin.BottomLeft"
                           CoerceText="true" ResetValueOnEmptyText="false" />
         <MudButton Size="Size.Small" Variant="Variant.Filled" Color="Color.Primary" StartIcon="@Icons.Material.Filled.Add"
                    OnClick="AddKeyAsync" Disabled="@(_busy || string.IsNullOrEmpty(_languageCode))">
             @L["translation.add_key", "Add Key"]
         </MudButton>
-        <MudMenu Label="@L["translation.export", "Export Excel"]" Variant="Variant.Outlined" Color="Color.Primary"
+        @* New keys (…_xlsx) so stale DB strings like "Export CSV" are not shown. *@
+        <MudMenu Label="@L["translation.export_xlsx", "Export Excel"]" Variant="Variant.Outlined" Color="Color.Primary"
                  Size="Size.Small" Dense="true"
                  StartIcon="@Icons.Material.Filled.Download" EndIcon="@Icons.Material.Filled.ArrowDropDown"
                  Disabled="_busy">
             <MudMenuItem OnClick="@(() => ExportAsync(false))">@L["translation.export_all", "All keys"]</MudMenuItem>
             <MudMenuItem OnClick="@(() => ExportAsync(true))">@L["translation.export_untranslated", "Untranslated only"]</MudMenuItem>
         </MudMenu>
-        <MudFileUpload T="IBrowserFile" FilesChanged="ImportAsync" Accept=".xlsx" Class="flex-grow-0" Style="width:auto">
+        <MudFileUpload T="IBrowserFile" FilesChanged="ImportAsync" Accept=".xlsx" Class="d-inline-flex">
             <ActivatorContent>
-                <MudButton Size="Size.Small" Variant="Variant.Outlined" Color="Color.Primary" StartIcon="@Icons.Material.Filled.Upload"
-                           Disabled="_busy">@L["translation.import", "Import Excel"]</MudButton>
+                <MudButton Size="Size.Small" Variant="Variant.Filled" Color="Color.Primary" StartIcon="@Icons.Material.Filled.Upload"
+                           Disabled="_busy">@L["translation.import_xlsx", "Import Excel"]</MudButton>
             </ActivatorContent>
         </MudFileUpload>
     </MudStack>
@@ -66,7 +67,7 @@
     }
     else
     {
-        @L["translation.hint_other", "Export downloads a Key,Default,Value Excel (.xlsx) for the selected language. Translate the Value column, keep the Key column unchanged, then import it back. Or edit values inline below."]
+        @L["translation.hint_xlsx", "Export downloads a Key,Default,Value Excel (.xlsx) for the selected language. Translate the Value column, keep the Key column unchanged, then import it back. Or edit values inline below."]
     }
 </MudAlert>
 

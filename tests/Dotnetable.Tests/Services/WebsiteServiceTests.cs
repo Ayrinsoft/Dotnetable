@@ -20,7 +20,7 @@ public class WebsiteServiceTests : IDisposable
             .UseInMemoryDatabase(Guid.NewGuid().ToString())
             .Options;
         _context = new AppDbContext(opts);
-        _service = new WebsiteService(_context);
+        _service = new WebsiteService(new TestDbContextFactory(opts));
     }
 
     private static Website NewWebsite(
@@ -252,6 +252,8 @@ public class WebsiteServiceTests : IDisposable
 
         await _service.DeleteAsync(w.WebsiteID);
 
+        // Service uses a separate context; clear tracker so we re-read from the shared store.
+        _context.ChangeTracker.Clear();
         (await _context.Websites.FindAsync(w.WebsiteID)).Should().BeNull();
     }
 

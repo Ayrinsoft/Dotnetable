@@ -10,11 +10,16 @@ namespace Dotnetable.Infrastructure.Services;
 public class LocalizationService : ILocalizationService
 {
     private readonly AppDbContext _context;
+    private readonly IDbContextFactory<AppDbContext> _contextFactory;
     private readonly TranslationCache _cache;
 
-    public LocalizationService(AppDbContext context, TranslationCache cache)
+    public LocalizationService(
+        AppDbContext context,
+        IDbContextFactory<AppDbContext> contextFactory,
+        TranslationCache cache)
     {
         _context = context;
+        _contextFactory = contextFactory;
         _cache = cache;
     }
 
@@ -23,13 +28,16 @@ public class LocalizationService : ILocalizationService
 
     public async Task LoadAsync(int? websiteId, string languageCode, CancellationToken ct = default)
     {
-        var entries = await QueryFor(websiteId, languageCode).ToListAsync(ct);
+        // Own short-lived context: PageLocalizer.Load runs in parallel with layout/page queries
+        // that share the circuit-scoped AppDbContext.
+        await using var context = await _contextFactory.CreateDbContextAsync(ct);
+        var entries = await QueryFor(context, websiteId, languageCode).ToListAsync(ct);
         var cid = CacheId(websiteId);
         _cache.Load(entries.Select(e => (cid, languageCode, e.Key, e.Value)));
     }
 
-    private IQueryable<KeyValue> QueryFor(int? websiteId, string languageCode) =>
-        _context.LocalizationKeys
+    private static IQueryable<KeyValue> QueryFor(AppDbContext context, int? websiteId, string languageCode) =>
+        context.LocalizationKeys
             .Where(k => k.WebsiteID == websiteId)
             .Select(k => new KeyValue(
                 k.ItemKey,
@@ -48,7 +56,8 @@ public class LocalizationService : ILocalizationService
 
     public async Task<IReadOnlyDictionary<string, string>> GetAllAsync(int? websiteId, string languageCode, CancellationToken ct = default)
     {
-        var entries = await QueryFor(websiteId, languageCode).ToListAsync(ct);
+        await using var context = await _contextFactory.CreateDbContextAsync(ct);
+        var entries = await QueryFor(context, websiteId, languageCode).ToListAsync(ct);
         return entries.ToDictionary(e => e.Key, e => e.Value);
     }
 

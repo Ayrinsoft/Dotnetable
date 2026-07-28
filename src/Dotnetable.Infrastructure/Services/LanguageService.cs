@@ -23,16 +23,22 @@ public class LanguageService : ILanguageService
     ];
 
     private readonly AppDbContext _context;
+    private readonly IDbContextFactory<AppDbContext> _contextFactory;
     private readonly LanguageCatalogCache _cache;
 
-    public LanguageService(AppDbContext context, LanguageCatalogCache cache)
+    public LanguageService(
+        AppDbContext context,
+        IDbContextFactory<AppDbContext> contextFactory,
+        LanguageCatalogCache cache)
     {
         _context = context;
+        _contextFactory = contextFactory;
         _cache = cache;
     }
 
     // Cached behind a singleton lock: components across the same Blazor circuit share one scoped
     // AppDbContext — without serializing the initial fetch, concurrent loads race and throw.
+    // Loaders use a factory-created context so they never touch the circuit-scoped instance.
     public Task<List<Language>> GetCatalogAsync(CancellationToken ct = default) =>
         _cache.GetOrLoadCatalogAsync(() => LoadCatalogAsync(ct));
 
@@ -55,7 +61,8 @@ public class LanguageService : ILanguageService
 
     private async Task<List<Language>> LoadCatalogAsync(CancellationToken ct)
     {
-        var catalog = await _context.Languages
+        await using var context = await _contextFactory.CreateDbContextAsync(ct);
+        var catalog = await context.Languages
             .AsNoTracking()
             .Where(l => l.WebsiteID == null)
             .OrderBy(l => l.Priority)
@@ -63,6 +70,7 @@ public class LanguageService : ILanguageService
 
         if (catalog.Count > 0) return catalog;
 
+        // Seed through the circuit-scoped context (writes + cache invalidation stay on primary path).
         return await SeedAdminCatalogAsync(ct);
     }
 
@@ -148,7 +156,8 @@ public class LanguageService : ILanguageService
     {
         await EnsureWebsiteDefaultLanguageAsync(websiteId, ct);
 
-        return await _context.Languages
+        await using var context = await _contextFactory.CreateDbContextAsync(ct);
+        return await context.Languages
             .AsNoTracking()
             .Where(l => l.WebsiteID == websiteId)
             .OrderBy(l => l.Priority)
