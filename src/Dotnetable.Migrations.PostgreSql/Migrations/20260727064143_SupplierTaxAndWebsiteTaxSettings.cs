@@ -140,7 +140,7 @@ namespace Dotnetable.Migrations.PostgreSql.Migrations
                 table: "Suppliers",
                 type: "datetime",
                 nullable: false,
-                defaultValue: new DateTime(1, 1, 1, 0, 0, 0, 0, DateTimeKind.Unspecified));
+                defaultValueSql: "NOW()");
 
             migrationBuilder.AddColumn<string>(
                 name: "DefaultCurrencyCode",
