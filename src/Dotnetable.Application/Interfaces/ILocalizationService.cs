@@ -23,12 +23,12 @@ public interface ILocalizationService
     /// Creates the key if missing. Does not change per-language values.</summary>
     Task SetDefaultValueAsync(int? websiteId, string key, string defaultValue, CancellationToken ct = default);
 
-    /// <summary>Builds a UTF-8 (BOM) CSV — columns Key,Default,Value — for a language, ready to hand
-    /// to a translator or Google Translate and re-import. When <paramref name="untranslatedOnly"/> is
-    /// true, only keys that have no value yet for this language are included (so existing translations
-    /// are never re-exported and can't be accidentally overwritten on re-import).</summary>
-    Task<byte[]> ExportCsvAsync(int? websiteId, string languageCode, bool untranslatedOnly = false, CancellationToken ct = default);
+    /// <summary>Builds an .xlsx workbook — columns Key,Default,Value — for a language, ready to hand
+    /// to a translator and re-import. When <paramref name="untranslatedOnly"/> is true, only keys that
+    /// have no value yet for this language are included (so existing translations are never re-exported
+    /// and can't be accidentally overwritten on re-import).</summary>
+    Task<byte[]> ExportExcelAsync(int? websiteId, string languageCode, bool untranslatedOnly = false, CancellationToken ct = default);
 
-    /// <summary>Applies a translated CSV (produced by <see cref="ExportCsvAsync"/>) back into the language.</summary>
-    Task<LocalizationImportResult> ImportCsvAsync(int? websiteId, string languageCode, Stream csv, CancellationToken ct = default);
+    /// <summary>Applies a translated .xlsx (produced by <see cref="ExportExcelAsync"/>) back into the language.</summary>
+    Task<LocalizationImportResult> ImportExcelAsync(int? websiteId, string languageCode, Stream excel, CancellationToken ct = default);
 }

@@ -1,6 +1,6 @@
 namespace Dotnetable.Application.DTOs;
 
-/// <summary>Outcome of importing a translation CSV for one language.</summary>
+/// <summary>Outcome of importing a translation Excel (.xlsx) file for one language.</summary>
 public sealed record LocalizationImportResult(
     int Added,
     int Updated,

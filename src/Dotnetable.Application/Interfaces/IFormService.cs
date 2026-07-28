@@ -6,7 +6,7 @@ namespace Dotnetable.Application.Interfaces;
 /// <summary>
 /// Dynamic form / survey engine. Admin builds a form out of typed fields (with options for
 /// choice types); the public site renders it (standalone page or <c>[form:ID]</c> shortcode),
-/// collects responses, and the admin gets aggregate reports plus a CSV export.
+/// collects responses, and the admin gets aggregate reports plus an Excel export.
 /// </summary>
 public interface IFormService
 {
@@ -30,8 +30,8 @@ public interface IFormService
     Task<FormReportDto?> GetReportAsync(int formId, CancellationToken ct = default);
     Task<PagedResult<FormResponseListItemDto>> GetResponsesAsync(int formId, int page, int pageSize, CancellationToken ct = default);
     Task DeleteResponseAsync(int responseId, CancellationToken ct = default);
-    /// <summary>All responses as UTF-8(BOM) CSV — one column per field, one row per response.</summary>
-    Task<byte[]> ExportResponsesCsvAsync(int formId, CancellationToken ct = default);
+    /// <summary>All responses as .xlsx — one column per field, one row per response.</summary>
+    Task<byte[]> ExportResponsesExcelAsync(int formId, CancellationToken ct = default);
 
     // ── Public (API-facing) ─────────────────────────────────────────
     Task<FormDto?> GetPublicFormAsync(int websiteId, string slug, CancellationToken ct = default);

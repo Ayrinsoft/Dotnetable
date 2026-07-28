@@ -288,7 +288,7 @@ public class FormService : IFormService
         await _context.SaveChangesAsync(ct);
     }
 
-    public async Task<byte[]> ExportResponsesCsvAsync(int formId, CancellationToken ct = default)
+    public async Task<byte[]> ExportResponsesExcelAsync(int formId, CancellationToken ct = default)
     {
         var form = await GetFormAsync(formId, ct)
             ?? throw new InvalidOperationException($"Form {formId} not found.");
@@ -311,28 +311,25 @@ public class FormService : IFormService
             })
             .ToListAsync(ct);
 
-        var sb = new StringBuilder();
-        sb.AppendLine(string.Join(",",
-            new[] { "ResponseID", "SubmittedAtUtc", "Client", "IPAddress" }
-                .Concat(fields.Select(f => Csv.Escape(f.Label)))));
+        var headers = new List<string> { "ResponseID", "SubmittedAtUtc", "Client", "IPAddress" };
+        headers.AddRange(fields.Select(f => f.Label));
 
-        foreach (var r in responses)
+        var dataRows = responses.Select(r =>
         {
             var byField = r.Values.GroupBy(v => v.FormFieldID)
                 .ToDictionary(g => g.Key, g => string.Join("; ", g.Select(v => DisplayValue(v.Value))));
-            var cells = new List<string>
+            var cells = new List<object?>
             {
-                r.FormResponseID.ToString(),
+                r.FormResponseID,
                 r.SubmittedAt.ToString("yyyy-MM-dd HH:mm:ss"),
-                Csv.Escape(r.ClientEmail ?? ""),
+                r.ClientEmail ?? "",
                 r.SenderIPAddress,
             };
-            cells.AddRange(fields.Select(f => Csv.Escape(byField.TryGetValue(f.FormFieldID, out var v) ? v : "")));
-            sb.AppendLine(string.Join(",", cells));
-        }
+            cells.AddRange(fields.Select(f => byField.TryGetValue(f.FormFieldID, out var v) ? v : ""));
+            return (IReadOnlyList<object?>)cells;
+        });
 
-        // UTF-8 BOM so Excel opens non-Latin answers correctly (same convention as the localization CSV export).
-        return Encoding.UTF8.GetPreamble().Concat(Encoding.UTF8.GetBytes(sb.ToString())).ToArray();
+        return ExcelWorkbook.Write("Responses", headers, dataRows);
     }
 
     // ── Public (API-facing) ─────────────────────────────────────────

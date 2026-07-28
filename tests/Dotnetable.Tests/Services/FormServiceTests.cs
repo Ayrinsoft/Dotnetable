@@ -515,26 +515,34 @@ public class FormServiceTests : IDisposable
     }
 
     [Fact]
-    public async Task ExportResponsesCsvAsync_ProducesBomHeaderAndRows()
+    public async Task ExportResponsesExcelAsync_ProducesHeaderAndRows()
     {
         var (form, text, radio, _) = await SeedFormWithFieldsAsync();
         await _service.SubmitAsync(_website.WebsiteID, form.FormID, null, "1.1.1.1",
             Answers((text.FormFieldID, ["hello, world"]), (radio.FormFieldID, ["Red"])));
 
-        var bytes = await _service.ExportResponsesCsvAsync(form.FormID);
+        var bytes = await _service.ExportResponsesExcelAsync(form.FormID);
 
-        bytes.Take(3).Should().Equal(Encoding.UTF8.GetPreamble());
-        var csv = Encoding.UTF8.GetString(bytes.Skip(3).ToArray());
-        var lines = csv.Trim().Split('\n').Select(l => l.TrimEnd('\r')).ToArray();
-        lines[0].Should().StartWith("ResponseID,SubmittedAtUtc,Client,IPAddress");
-        lines[0].Should().Contain("Your comment").And.Contain("Favorite color");
-        lines[1].Should().Contain("\"hello, world\"").And.Contain("Red").And.Contain("1.1.1.1");
+        bytes.Length.Should().BeGreaterThan(4);
+        // xlsx is a ZIP package
+        bytes[0].Should().Be((byte)'P');
+        bytes[1].Should().Be((byte)'K');
+
+        using var package = new OfficeOpenXml.ExcelPackage(new MemoryStream(bytes));
+        var sheet = package.Workbook.Worksheets.First();
+        sheet.Cells[1, 1].Text.Should().Be("ResponseID");
+        sheet.Cells[1, 2].Text.Should().Be("SubmittedAtUtc");
+        sheet.Cells[1, 5].Text.Should().Be("Your comment");
+        sheet.Cells[1, 6].Text.Should().Be("Favorite color");
+        sheet.Cells[2, 4].Text.Should().Be("1.1.1.1");
+        sheet.Cells[2, 5].Text.Should().Be("hello, world");
+        sheet.Cells[2, 6].Text.Should().Be("Red");
     }
 
     [Fact]
-    public async Task ExportResponsesCsvAsync_MissingForm_Throws()
+    public async Task ExportResponsesExcelAsync_MissingForm_Throws()
     {
-        await _service.Invoking(s => s.ExportResponsesCsvAsync(999))
+        await _service.Invoking(s => s.ExportResponsesExcelAsync(999))
             .Should().ThrowAsync<InvalidOperationException>();
     }
 
