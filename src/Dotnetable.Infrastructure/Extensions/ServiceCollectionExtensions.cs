@@ -36,16 +36,32 @@ public static class ServiceCollectionExtensions
         services.AddSingleton<IDatabaseConfigStore>(sp => sp.GetRequiredService<LocalSettingsStore>());
         services.AddSingleton<IAppSettingsStore>(sp => sp.GetRequiredService<LocalSettingsStore>());
 
-        // Register the factory with SCOPED options so the live connection string is re-read from
-        // the store on every new scope (HTTP request / Blazor circuit). This matters during
-        // first-run setup: the Setup page writes the real connection to the store, and the next
-        // scope must pick it up rather than reusing the placeholder captured at startup. The
-        // scoped DbContext is derived from the factory so both share one options lifetime and avoid
-        // the singleton/scoped conflict that registering AddDbContext separately would cause.
+        // Factory options are SCOPED so the live connection string is re-read from the store on
+        // every new scope (HTTP request / Blazor circuit). That matters during first-run setup:
+        // the Setup page writes the real connection, and the next scope must pick it up rather
+        // than reusing a placeholder captured at startup.
+        //
+        // AppDbContext itself is TRANSIENT (not scoped). Blazor Server runs layout + page + nav
+        // OnInitializedAsync concurrently inside one circuit scope. A single scoped DbContext was
+        // then shared by every service and concurrent queries threw:
+        //   "A second operation was started on this context instance..."
+        // Transient means each consumer (typically a scoped service) gets its own instance when
+        // constructed, so parallel component init no longer shares one context. For brand-new
+        // services prefer IDbContextFactory + short-lived contexts (see DbContextFactoryExtensions)
+        // so even two concurrent methods on the same service stay safe.
         services.AddDbContextFactory<AppDbContext>((sp, options) =>
             ConfigureFromStore(options, sp.GetRequiredService<IDatabaseConfigStore>()),
             ServiceLifetime.Scoped);
-        services.AddScoped<AppDbContext>(sp =>
+
+        // AddDbContextFactory also registers AppDbContext as Scoped (same lifetime as the factory).
+        // That reintroduces the shared-context race in Blazor — strip it and re-register Transient.
+        for (var i = services.Count - 1; i >= 0; i--)
+        {
+            if (services[i].ServiceType == typeof(AppDbContext))
+                services.RemoveAt(i);
+        }
+
+        services.AddTransient<AppDbContext>(sp =>
             sp.GetRequiredService<IDbContextFactory<AppDbContext>>().CreateDbContext());
 
         services.AddSingleton<TranslationCache>();

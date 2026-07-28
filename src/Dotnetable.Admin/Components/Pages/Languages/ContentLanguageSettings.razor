@@ -10,19 +10,19 @@
 
 <DNPageTitle Title=@L["website_languages", "Languages"] />
 
-<MudStack Spacing="2" Class="mb-4">
+<MudStack Row="true" AlignItems="AlignItems.Center" Justify="Justify.SpaceBetween" Class="mb-4">
     <MudStack Spacing="0">
         <MudText Typo="Typo.h5" Class="fw-bold">@L["website_languages", "Languages"]</MudText>
         <MudText Typo="Typo.body2" Color="Color.Secondary">
             @L["website_languages.subtitle", "Languages for this website only (storefront, content editors, menus). A new site starts with only its default language. Independent of the admin panel catalog (Initial Data → Languages)."]
         </MudText>
     </MudStack>
-    <MudStack Row="true" AlignItems="AlignItems.Center" Spacing="2" Class="flex-wrap">
+    <MudStack Row="true" AlignItems="AlignItems.Center" Spacing="1">
         @if (_isMaster)
         {
             <WebsiteSelector Value="_websiteId" ValueChanged="OnWebsiteChanged" Websites="_websites"
                              Label="@L["website", "Website"]" Variant="Variant.Outlined"
-                             Dense="true" Style="min-width:160px;max-width:220px" />
+                             Dense="true" Style="min-width:180px" />
         }
         <MudButton Size="Size.Small" Variant="Variant.Filled" Color="Color.Primary" StartIcon="@Icons.Material.Filled.Add"
                    OnClick="CreateAsync" Disabled="_loading">
