@@ -135,12 +135,14 @@ namespace Dotnetable.Migrations.SqlServer.Migrations
                 type: "int",
                 nullable: true);
 
+            // SQL Server `datetime` range starts at 1753-01-01 — EF's DateTime.MinValue (0001-01-01)
+            // fails with "out-of-range" when used as a NOT NULL default on ALTER TABLE.
             migrationBuilder.AddColumn<DateTime>(
                 name: "CreatedAt",
                 table: "Suppliers",
                 type: "datetime",
                 nullable: false,
-                defaultValue: new DateTime(1, 1, 1, 0, 0, 0, 0, DateTimeKind.Unspecified));
+                defaultValueSql: "GETUTCDATE()");
 
             migrationBuilder.AddColumn<string>(
                 name: "DefaultCurrencyCode",

@@ -135,12 +135,13 @@ namespace Dotnetable.Migrations.MySql.Migrations
                 type: "int",
                 nullable: true);
 
+            // MySQL rejects zero/out-of-range datetime defaults under strict sql_mode.
             migrationBuilder.AddColumn<DateTime>(
                 name: "CreatedAt",
                 table: "Suppliers",
                 type: "datetime",
                 nullable: false,
-                defaultValue: new DateTime(1, 1, 1, 0, 0, 0, 0, DateTimeKind.Unspecified));
+                defaultValueSql: "CURRENT_TIMESTAMP");
 
             migrationBuilder.AddColumn<string>(
                 name: "DefaultCurrencyCode",
