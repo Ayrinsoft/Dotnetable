@@ -1,4 +1,3 @@
-using System.Text;
 using Dotnetable.Application.DTOs;
 using Dotnetable.Application.Interfaces;
 using Dotnetable.Domain.Entities;
@@ -84,18 +83,15 @@ public class LocationService : ILocationService
         await _context.SaveChangesAsync(ct);
     }
 
-    public byte[] GetCountryImportSample()
-    {
-        var sb = new StringBuilder();
-        sb.Append("CountryCode,Title,LanguageCode,PhonePrefix\r\n");
-        sb.Append("IR,Iran,fa,98\r\n");
-        return WithBom(sb.ToString());
-    }
+    public byte[] GetCountryImportSample() =>
+        ExcelWorkbook.Write(
+            "Countries",
+            ["CountryCode", "Title", "LanguageCode", "PhonePrefix"],
+            [new object?[] { "IR", "Iran", "fa", "98" }]);
 
-    public async Task<LocationImportResult> ImportCountriesAsync(Stream csv, CancellationToken ct = default)
+    public async Task<LocationImportResult> ImportCountriesAsync(Stream excel, CancellationToken ct = default)
     {
-        using var reader = new StreamReader(csv, Encoding.UTF8, detectEncodingFromByteOrderMarks: true);
-        var rows = Csv.Parse(await reader.ReadToEndAsync(ct));
+        var rows = ExcelWorkbook.Read(excel);
 
         int added = 0, skipped = 0;
         var errors = new List<string>();
@@ -116,7 +112,7 @@ public class LocationService : ILocationService
 
             if (row.Length < 2)
             {
-                errors.Add($"Line {line}: expected CountryCode,Title[,LanguageCode,PhonePrefix].");
+                errors.Add($"Row {line}: expected CountryCode,Title[,LanguageCode,PhonePrefix].");
                 skipped++;
                 continue;
             }
@@ -128,7 +124,7 @@ public class LocationService : ILocationService
 
             if (string.IsNullOrWhiteSpace(code) || string.IsNullOrWhiteSpace(title))
             {
-                errors.Add($"Line {line}: CountryCode and Title are required.");
+                errors.Add($"Row {line}: CountryCode and Title are required.");
                 skipped++;
                 continue;
             }
@@ -233,18 +229,15 @@ public class LocationService : ILocationService
         await _context.SaveChangesAsync(ct);
     }
 
-    public byte[] GetStateImportSample()
-    {
-        var sb = new StringBuilder();
-        sb.Append("CountryCode,Title,LanguageCode,Active\r\n");
-        sb.Append("IR,Tehran,fa,true\r\n");
-        return WithBom(sb.ToString());
-    }
+    public byte[] GetStateImportSample() =>
+        ExcelWorkbook.Write(
+            "States",
+            ["CountryCode", "Title", "LanguageCode", "Active"],
+            [new object?[] { "IR", "Tehran", "fa", "true" }]);
 
-    public async Task<LocationImportResult> ImportStatesAsync(Stream csv, CancellationToken ct = default)
+    public async Task<LocationImportResult> ImportStatesAsync(Stream excel, CancellationToken ct = default)
     {
-        using var reader = new StreamReader(csv, Encoding.UTF8, detectEncodingFromByteOrderMarks: true);
-        var rows = Csv.Parse(await reader.ReadToEndAsync(ct));
+        var rows = ExcelWorkbook.Read(excel);
 
         int added = 0, skipped = 0;
         var errors = new List<string>();
@@ -269,7 +262,7 @@ public class LocationService : ILocationService
 
             if (row.Length < 2)
             {
-                errors.Add($"Line {line}: expected CountryCode,Title[,LanguageCode,Active].");
+                errors.Add($"Row {line}: expected CountryCode,Title[,LanguageCode,Active].");
                 skipped++;
                 continue;
             }
@@ -281,14 +274,14 @@ public class LocationService : ILocationService
 
             if (string.IsNullOrWhiteSpace(countryCode) || string.IsNullOrWhiteSpace(title))
             {
-                errors.Add($"Line {line}: CountryCode and Title are required.");
+                errors.Add($"Row {line}: CountryCode and Title are required.");
                 skipped++;
                 continue;
             }
 
             if (!countryByCode.TryGetValue(countryCode, out var country))
             {
-                errors.Add($"Line {line}: country code '{countryCode}' not found.");
+                errors.Add($"Row {line}: country code '{countryCode}' not found.");
                 skipped++;
                 continue;
             }
@@ -397,18 +390,15 @@ public class LocationService : ILocationService
         await _context.SaveChangesAsync(ct);
     }
 
-    public byte[] GetCityImportSample()
-    {
-        var sb = new StringBuilder();
-        sb.Append("CountryCode,Title,StateTitle,LanguageCode,Latitude,Longitude,Active\r\n");
-        sb.Append("IR,Tehran,Tehran,fa,35.6892,51.3890,true\r\n");
-        return WithBom(sb.ToString());
-    }
+    public byte[] GetCityImportSample() =>
+        ExcelWorkbook.Write(
+            "Cities",
+            ["CountryCode", "Title", "StateTitle", "LanguageCode", "Latitude", "Longitude", "Active"],
+            [new object?[] { "IR", "Tehran", "Tehran", "fa", "35.6892", "51.3890", "true" }]);
 
-    public async Task<LocationImportResult> ImportCitiesAsync(Stream csv, CancellationToken ct = default)
+    public async Task<LocationImportResult> ImportCitiesAsync(Stream excel, CancellationToken ct = default)
     {
-        using var reader = new StreamReader(csv, Encoding.UTF8, detectEncodingFromByteOrderMarks: true);
-        var rows = Csv.Parse(await reader.ReadToEndAsync(ct));
+        var rows = ExcelWorkbook.Read(excel);
 
         int added = 0, skipped = 0;
         var errors = new List<string>();
@@ -435,7 +425,7 @@ public class LocationService : ILocationService
 
             if (row.Length < 2)
             {
-                errors.Add($"Line {line}: expected CountryCode,Title[,StateTitle,LanguageCode,Latitude,Longitude,Active].");
+                errors.Add($"Row {line}: expected CountryCode,Title[,StateTitle,LanguageCode,Latitude,Longitude,Active].");
                 skipped++;
                 continue;
             }
@@ -450,14 +440,14 @@ public class LocationService : ILocationService
 
             if (string.IsNullOrWhiteSpace(countryCode) || string.IsNullOrWhiteSpace(title))
             {
-                errors.Add($"Line {line}: CountryCode and Title are required.");
+                errors.Add($"Row {line}: CountryCode and Title are required.");
                 skipped++;
                 continue;
             }
 
             if (!countryByCode.TryGetValue(countryCode, out var country))
             {
-                errors.Add($"Line {line}: country code '{countryCode}' not found.");
+                errors.Add($"Row {line}: country code '{countryCode}' not found.");
                 skipped++;
                 continue;
             }
@@ -470,7 +460,7 @@ public class LocationService : ILocationService
                     && string.Equals(s.Title, stateTitle, StringComparison.OrdinalIgnoreCase));
                 if (state is null)
                 {
-                    errors.Add($"Line {line}: state '{stateTitle}' not found in country '{countryCode}'.");
+                    errors.Add($"Row {line}: state '{stateTitle}' not found in country '{countryCode}'.");
                     skipped++;
                     continue;
                 }
@@ -534,16 +524,10 @@ public class LocationService : ILocationService
         city.LanguageCode = (city.LanguageCode ?? string.Empty).Trim();
     }
 
-    private static byte[] WithBom(string body)
-    {
-        var bytes = new UTF8Encoding(false).GetBytes(body);
-        return [0xEF, 0xBB, 0xBF, .. bytes];
-    }
-
     private static bool HasHeader(List<string[]> rows, string firstColumn) =>
         rows.Count > 0 && rows[0].Length > 0
         && rows[0][0].Trim().Equals(firstColumn, StringComparison.OrdinalIgnoreCase);
 
     private static bool IsEmptyRow(string[] row) =>
-        row.Length == 0 || (row.Length == 1 && string.IsNullOrWhiteSpace(row[0]));
+        row.Length == 0 || row.All(string.IsNullOrWhiteSpace);
 }

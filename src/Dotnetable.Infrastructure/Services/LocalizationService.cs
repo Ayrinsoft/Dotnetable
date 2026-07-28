@@ -1,4 +1,3 @@
-using System.Text;
 using Dotnetable.Application.DTOs;
 using Dotnetable.Application.Interfaces;
 using Dotnetable.Domain.Entities;
@@ -131,7 +130,7 @@ public class LocalizationService : ILocalizationService
     private const int MaxKeyLength = 72;
     private const int MaxValueLength = 2000;
 
-    public async Task<byte[]> ExportCsvAsync(int? websiteId, string languageCode, bool untranslatedOnly = false, CancellationToken ct = default)
+    public async Task<byte[]> ExportExcelAsync(int? websiteId, string languageCode, bool untranslatedOnly = false, CancellationToken ct = default)
     {
         var query = _context.LocalizationKeys.Where(k => k.WebsiteID == websiteId);
 
@@ -151,21 +150,15 @@ public class LocalizationService : ILocalizationService
             })
             .ToListAsync(ct);
 
-        var sb = new StringBuilder();
-        sb.Append("Key,Default,Value\r\n");
-        foreach (var r in rows)
-            sb.Append(Csv.Escape(r.ItemKey)).Append(',')
-              .Append(Csv.Escape(r.DefaultValue)).Append(',')
-              .Append(Csv.Escape(r.Value ?? r.DefaultValue)).Append("\r\n");
-
-        var body = new UTF8Encoding(false).GetBytes(sb.ToString());
-        return [0xEF, 0xBB, 0xBF, .. body];
+        return ExcelWorkbook.Write(
+            "Translations",
+            ["Key", "Default", "Value"],
+            rows.Select(r => (IReadOnlyList<object?>)[r.ItemKey, r.DefaultValue, r.Value ?? r.DefaultValue]));
     }
 
-    public async Task<LocalizationImportResult> ImportCsvAsync(int? websiteId, string languageCode, Stream csv, CancellationToken ct = default)
+    public async Task<LocalizationImportResult> ImportExcelAsync(int? websiteId, string languageCode, Stream excel, CancellationToken ct = default)
     {
-        using var reader = new StreamReader(csv, Encoding.UTF8, detectEncodingFromByteOrderMarks: true);
-        var rows = Csv.Parse(await reader.ReadToEndAsync(ct));
+        var rows = ExcelWorkbook.Read(excel);
 
         var keys = await _context.LocalizationKeys
             .Where(k => k.WebsiteID == websiteId)
@@ -192,13 +185,13 @@ public class LocalizationService : ILocalizationService
 
             if (row.Length >= 3) { defaultValue = row[1]; value = row[2]; }
             else if (row.Length == 2) { value = row[1]; }
-            else { errors.Add($"Line {line}: expected Key,Default,Value columns."); skipped++; continue; }
+            else { errors.Add($"Row {line}: expected Key,Default,Value columns."); skipped++; continue; }
 
             if (string.IsNullOrWhiteSpace(key)) { skipped++; continue; }
-            if (key.Length > MaxKeyLength) { errors.Add($"Line {line}: key exceeds {MaxKeyLength} characters."); skipped++; continue; }
+            if (key.Length > MaxKeyLength) { errors.Add($"Row {line}: key exceeds {MaxKeyLength} characters."); skipped++; continue; }
             if (value.Length > MaxValueLength)
             {
-                errors.Add($"Line {line}: value truncated to {MaxValueLength} characters.");
+                errors.Add($"Row {line}: value truncated to {MaxValueLength} characters.");
                 value = value[..MaxValueLength];
             }
 

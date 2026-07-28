@@ -17,8 +17,8 @@
         <MudText Typo="Typo.body2" Color="Color.Secondary">@L["forms.report_subtitle", "Aggregate results and individual responses"]</MudText>
     </MudStack>
     <MudButton Variant="Variant.Outlined" Color="Color.Primary" Disabled="@(_report is null || _report.ResponseCount == 0)"
-               StartIcon="@Icons.Material.Filled.Download" OnClick="ExportCsvAsync">
-        @L["forms.export_csv", "Export CSV"]
+               StartIcon="@Icons.Material.Filled.Download" OnClick="ExportExcelAsync">
+        @L["forms.export_excel", "Export Excel"]
     </MudButton>
 </MudStack>
 
@@ -208,13 +208,14 @@ else
         await LoadAsync();
     }
 
-    private async Task ExportCsvAsync()
+    private async Task ExportExcelAsync()
     {
         try
         {
-            var bytes = await FormService.ExportResponsesCsvAsync(FormId);
-            var fileName = $"form-{FormId}-responses-{DateTime.UtcNow:yyyyMMdd-HHmm}.csv";
-            await JS.InvokeVoidAsync("dotnetableFile.download", fileName, Convert.ToBase64String(bytes), "text/csv");
+            var bytes = await FormService.ExportResponsesExcelAsync(FormId);
+            var fileName = $"form-{FormId}-responses-{DateTime.UtcNow:yyyyMMdd-HHmm}.xlsx";
+            await JS.InvokeVoidAsync("dotnetableFile.download", fileName, Convert.ToBase64String(bytes),
+                "application/vnd.openxmlformats-officedocument.spreadsheetml.sheet");
         }
         catch (Exception ex)
         {

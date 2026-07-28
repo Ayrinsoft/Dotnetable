@@ -15,7 +15,7 @@
 <DNPageTitle Title=@(_isAdminRoute ? L["translations.admin", "Admin Translations"] : L["website_translations", "Translations"]) />
 
 @* ── Page header ──────────────────────────────────────────────── *@
-<MudStack Row="true" AlignItems="AlignItems.Center" Justify="Justify.SpaceBetween" Class="mb-4">
+<MudStack Spacing="2" Class="mb-4">
     <MudStack Spacing="0">
         <MudText Typo="Typo.h5" Class="fw-bold">
             @(_isAdminRoute ? L["translations.admin", "Admin Translations"] : L["website_translations", "Translations"])
@@ -26,33 +26,34 @@
                 : L["translation.subtitle_site", "Custom key/value strings for this website’s storefront and themes only. Not admin panel labels — add any keys you need, then translate them for each language you enabled under Website → Languages."])
         </MudText>
     </MudStack>
-    <MudStack Row="true" AlignItems="AlignItems.Center" Spacing="2">
+    <MudStack Row="true" AlignItems="AlignItems.Center" Spacing="2" Class="flex-wrap">
         @* Site translations: master can manage any website. Admin translations (/translations) stay on site 1. *@
         @if (_isMaster && !_isAdminRoute)
         {
             <WebsiteSelector Value="@(_scopeWebsiteId ?? 0)" ValueChanged="OnWebsiteChanged" Websites="_websites"
                              Label="@L["website", "Website"]" Variant="Variant.Outlined"
-                             Dense="true" Style="min-width:180px" />
+                             Dense="true" Style="min-width:160px;max-width:220px" />
         }
         <MudAutocomplete T="string" Value="_languageCode" ValueChanged="OnLanguageChanged" Label="@L["language", "Language"]"
                           SearchFunc="SearchLanguages" ToStringFunc="@(code => _languages.FirstOrDefault(l => l.Code == code).Label ?? code)"
-                          Variant="Variant.Outlined" Margin="Margin.Dense"
-                          Style="width:200px;" AnchorOrigin="Origin.BottomLeft"
+                          Variant="Variant.Outlined" Margin="Margin.Dense" Dense="true"
+                          Style="width:180px;max-width:220px" AnchorOrigin="Origin.BottomLeft"
                           CoerceText="true" ResetValueOnEmptyText="false" />
-        <MudButton Variant="Variant.Filled" Color="Color.Primary" StartIcon="@Icons.Material.Filled.Add"
+        <MudButton Size="Size.Small" Variant="Variant.Filled" Color="Color.Primary" StartIcon="@Icons.Material.Filled.Add"
                    OnClick="AddKeyAsync" Disabled="@(_busy || string.IsNullOrEmpty(_languageCode))">
             @L["translation.add_key", "Add Key"]
         </MudButton>
-        <MudMenu Label="@L["translation.export", "Export CSV"]" Variant="Variant.Outlined" Color="Color.Primary"
+        <MudMenu Label="@L["translation.export", "Export Excel"]" Variant="Variant.Outlined" Color="Color.Primary"
+                 Size="Size.Small" Dense="true"
                  StartIcon="@Icons.Material.Filled.Download" EndIcon="@Icons.Material.Filled.ArrowDropDown"
                  Disabled="_busy">
             <MudMenuItem OnClick="@(() => ExportAsync(false))">@L["translation.export_all", "All keys"]</MudMenuItem>
             <MudMenuItem OnClick="@(() => ExportAsync(true))">@L["translation.export_untranslated", "Untranslated only"]</MudMenuItem>
         </MudMenu>
-        <MudFileUpload T="IBrowserFile" FilesChanged="ImportAsync" Accept=".csv" Class="d-inline-flex">
+        <MudFileUpload T="IBrowserFile" FilesChanged="ImportAsync" Accept=".xlsx" Class="flex-grow-0" Style="width:auto">
             <ActivatorContent>
-                <MudButton Variant="Variant.Filled" Color="Color.Primary" StartIcon="@Icons.Material.Filled.Upload"
-                           Disabled="_busy">@L["translation.import", "Import CSV"]</MudButton>
+                <MudButton Size="Size.Small" Variant="Variant.Outlined" Color="Color.Primary" StartIcon="@Icons.Material.Filled.Upload"
+                           Disabled="_busy">@L["translation.import", "Import Excel"]</MudButton>
             </ActivatorContent>
         </MudFileUpload>
     </MudStack>
@@ -65,7 +66,7 @@
     }
     else
     {
-        @L["translation.hint_other", "Export downloads a Key,Default,Value CSV for the selected language. Translate the Value column, keep the Key column unchanged, then import it back. Or edit values inline below."]
+        @L["translation.hint_other", "Export downloads a Key,Default,Value Excel (.xlsx) for the selected language. Translate the Value column, keep the Key column unchanged, then import it back. Or edit values inline below."]
     }
 </MudAlert>
 
@@ -242,11 +243,12 @@
         _busy = true;
         try
         {
-            var bytes = await LocalizationService.ExportCsvAsync(_scopeWebsiteId, _languageCode, untranslatedOnly);
+            var bytes = await LocalizationService.ExportExcelAsync(_scopeWebsiteId, _languageCode, untranslatedOnly);
             var suffix = untranslatedOnly ? "-untranslated" : "";
             var scopeTag = _scopeWebsiteId is int w ? $"w{w}" : "admin";
-            var fileName = $"translations-{scopeTag}-{_languageCode}{suffix}.csv";
-            await JS.InvokeVoidAsync("dotnetableFile.download", fileName, Convert.ToBase64String(bytes), "text/csv");
+            var fileName = $"translations-{scopeTag}-{_languageCode}{suffix}.xlsx";
+            await JS.InvokeVoidAsync("dotnetableFile.download", fileName, Convert.ToBase64String(bytes),
+                "application/vnd.openxmlformats-officedocument.spreadsheetml.sheet");
         }
         catch (Exception ex)
         {
@@ -266,7 +268,7 @@
             await stream.CopyToAsync(buffer);
             buffer.Position = 0;
 
-            var result = await LocalizationService.ImportCsvAsync(_scopeWebsiteId, _languageCode, buffer);
+            var result = await LocalizationService.ImportExcelAsync(_scopeWebsiteId, _languageCode, buffer);
 
             var summary = $"Imported \"{_languageCode}\": {result.Added} added, {result.Updated} updated, "
                         + $"{result.Unchanged} unchanged, {result.Skipped} skipped.";

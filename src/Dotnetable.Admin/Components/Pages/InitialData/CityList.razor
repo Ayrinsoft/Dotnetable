@@ -25,7 +25,7 @@
                    OnClick="DownloadSampleAsync" Disabled="_busy">
             @L["import.sample", "Sample Excel"]
         </MudButton>
-        <MudFileUpload T="IBrowserFile" FilesChanged="ImportAsync" Accept=".csv,.txt" Class="d-inline-flex">
+        <MudFileUpload T="IBrowserFile" FilesChanged="ImportAsync" Accept=".xlsx" Class="flex-grow-0" Style="width:auto">
             <ActivatorContent>
                 <MudButton Variant="Variant.Outlined" Color="Color.Primary"
                            StartIcon="@Icons.Material.Filled.Upload"
@@ -41,7 +41,7 @@
 </MudStack>
 
 <MudAlert Severity="Severity.Info" Dense="true" Class="mb-3" Variant="Variant.Outlined">
-    @L["city.import_hint", "Download the sample CSV (opens in Excel). Duplicate city titles within the same country (by country code + title) are skipped. The same city name in different countries is allowed."]
+    @L["city.import_hint", "Download the sample Excel (.xlsx). Duplicate city titles within the same country (by country code + title) are skipped. The same city name in different countries is allowed."]
 </MudAlert>
 
 <MudPaper Elevation="0" Class="app-card rounded-lg pa-4">
@@ -169,8 +169,8 @@
         try
         {
             var bytes = LocationService.GetCityImportSample();
-            await JS.InvokeVoidAsync("dotnetableFile.download", "cities-sample.csv",
-                Convert.ToBase64String(bytes), "text/csv");
+            await JS.InvokeVoidAsync("dotnetableFile.download", "cities-sample.xlsx",
+                Convert.ToBase64String(bytes), "application/vnd.openxmlformats-officedocument.spreadsheetml.sheet");
         }
         catch (Exception ex)
         {
