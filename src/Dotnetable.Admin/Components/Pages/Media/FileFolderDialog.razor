@@ -92,15 +92,18 @@
         }
     }
 
-    private string BuildPath(FileFolder folder)
+    private string BuildPath(FileFolder? folder)
     {
+        // MudAutocomplete (Clearable) invokes ToStringFunc with null when no parent is selected.
+        if (folder is null) return string.Empty;
+
         var byId = _folders.ToDictionary(f => f.FileFolderID);
-        var parts = new List<string> { folder.Name };
+        var parts = new List<string> { folder.Name ?? string.Empty };
         var current = folder;
         var guard = 0;
         while (current.ParentFolderID is int pid && byId.TryGetValue(pid, out var parent) && guard++ < 64)
         {
-            parts.Insert(0, parent.Name);
+            parts.Insert(0, parent.Name ?? string.Empty);
             current = parent;
         }
         return string.Join(" / ", parts);
