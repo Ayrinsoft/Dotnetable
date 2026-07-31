@@ -17,7 +17,7 @@ namespace Dotnetable.Migrations.SqlServer.Migrations
         {
 #pragma warning disable 612, 618
             modelBuilder
-                .HasAnnotation("ProductVersion", "10.0.9")
+                .HasAnnotation("ProductVersion", "10.0.10")
                 .HasAnnotation("Relational:MaxIdentifierLength", 128);
 
             SqlServerModelBuilderExtensions.UseIdentityColumns(modelBuilder);
@@ -3450,6 +3450,24 @@ namespace Dotnetable.Migrations.SqlServer.Migrations
                     b.HasIndex(new[] { "WebsiteID" }, "IX_ProductCategories_WebsiteID");
 
                     b.ToTable("ProductCategories");
+                });
+
+            modelBuilder.Entity("Dotnetable.Domain.Entities.ProductCategoryAttribute", b =>
+                {
+                    b.Property<int>("ProductCategoryID")
+                        .HasColumnType("int");
+
+                    b.Property<int>("AttributeDefinitionID")
+                        .HasColumnType("int");
+
+                    b.Property<int>("SortOrder")
+                        .HasColumnType("int");
+
+                    b.HasKey("ProductCategoryID", "AttributeDefinitionID");
+
+                    b.HasIndex(new[] { "AttributeDefinitionID" }, "IX_ProductCategoryAttributes_AttributeDefinitionID");
+
+                    b.ToTable("ProductCategoryAttributes");
                 });
 
             modelBuilder.Entity("Dotnetable.Domain.Entities.ProductCategoryMap", b =>
@@ -7430,6 +7448,25 @@ namespace Dotnetable.Migrations.SqlServer.Migrations
                     b.Navigation("Website");
                 });
 
+            modelBuilder.Entity("Dotnetable.Domain.Entities.ProductCategoryAttribute", b =>
+                {
+                    b.HasOne("Dotnetable.Domain.Entities.AttributeDefinition", "AttributeDefinition")
+                        .WithMany("ProductCategoryAttributes")
+                        .HasForeignKey("AttributeDefinitionID")
+                        .IsRequired()
+                        .HasConstraintName("FK_ProductCategoryAttributes_AttributeDefinitions");
+
+                    b.HasOne("Dotnetable.Domain.Entities.ProductCategory", "ProductCategory")
+                        .WithMany("ProductCategoryAttributes")
+                        .HasForeignKey("ProductCategoryID")
+                        .IsRequired()
+                        .HasConstraintName("FK_ProductCategoryAttributes_ProductCategories");
+
+                    b.Navigation("AttributeDefinition");
+
+                    b.Navigation("ProductCategory");
+                });
+
             modelBuilder.Entity("Dotnetable.Domain.Entities.ProductCategoryMap", b =>
                 {
                     b.HasOne("Dotnetable.Domain.Entities.ProductCategory", "ProductCategory")
@@ -8503,6 +8540,8 @@ namespace Dotnetable.Migrations.SqlServer.Migrations
 
                     b.Navigation("ProductAttributeValues");
 
+                    b.Navigation("ProductCategoryAttributes");
+
                     b.Navigation("VariantAttributeValues");
                 });
 
@@ -8915,6 +8954,8 @@ namespace Dotnetable.Migrations.SqlServer.Migrations
                     b.Navigation("InverseParentCategory");
 
                     b.Navigation("MenuItems");
+
+                    b.Navigation("ProductCategoryAttributes");
 
                     b.Navigation("ProductCategoryMaps");
 

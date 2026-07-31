@@ -34,4 +34,18 @@ public class ProductCategoriesController : BaseController
         var category = await _categoryService.GetBySlugAsync(website.WebsiteID, slug, lang, ct);
         return category is null ? NotFound() : Ok(category);
     }
+
+    /// <summary>
+    /// Filterable attribute facets for a category (including ancestor category attributes).
+    /// Use with <c>GET /products?attributeOptionIds=…</c>.
+    /// </summary>
+    [HttpGet("{slug}/filters")]
+    public async Task<IActionResult> GetFilters(string slug, [FromQuery] string? lang = null, CancellationToken ct = default)
+    {
+        var website = await ResolveWebsiteAsync(_websiteService, ct);
+        if (website is null) return NotFound(new { message = "Website could not be resolved." });
+
+        var filters = await _categoryService.GetFilterableAttributesBySlugAsync(website.WebsiteID, slug, lang, ct);
+        return Ok(filters);
+    }
 }

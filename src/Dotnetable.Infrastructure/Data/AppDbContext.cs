@@ -162,6 +162,8 @@ public partial class AppDbContext : DbContext
 
     public virtual DbSet<ProductCategory> ProductCategories { get; set; }
 
+    public virtual DbSet<ProductCategoryAttribute> ProductCategoryAttributes { get; set; }
+
     public virtual DbSet<ProductCategoryMap> ProductCategoryMaps { get; set; }
 
     public virtual DbSet<ProductCategoryRelation> ProductCategoryRelations { get; set; }
@@ -2105,6 +2107,23 @@ public partial class AppDbContext : DbContext
                 .HasForeignKey(d => d.WebsiteID)
                 .OnDelete(DeleteBehavior.ClientSetNull)
                 .HasConstraintName("FK_ProductCategories_Websites");
+        });
+
+        modelBuilder.Entity<ProductCategoryAttribute>(entity =>
+        {
+            entity.HasKey(e => new { e.ProductCategoryID, e.AttributeDefinitionID });
+
+            entity.HasIndex(e => e.AttributeDefinitionID, "IX_ProductCategoryAttributes_AttributeDefinitionID");
+
+            entity.HasOne(d => d.AttributeDefinition).WithMany(p => p.ProductCategoryAttributes)
+                .HasForeignKey(d => d.AttributeDefinitionID)
+                .OnDelete(DeleteBehavior.ClientSetNull)
+                .HasConstraintName("FK_ProductCategoryAttributes_AttributeDefinitions");
+
+            entity.HasOne(d => d.ProductCategory).WithMany(p => p.ProductCategoryAttributes)
+                .HasForeignKey(d => d.ProductCategoryID)
+                .OnDelete(DeleteBehavior.ClientSetNull)
+                .HasConstraintName("FK_ProductCategoryAttributes_ProductCategories");
         });
 
         modelBuilder.Entity<ProductCategoryMap>(entity =>
