@@ -14,6 +14,27 @@ public sealed class ProductCategoryDto
     public IReadOnlyList<ProductCategoryDto> Children { get; init; } = Array.Empty<ProductCategoryDto>();
 }
 
+/// <summary>A filterable category attribute (facet) with selectable options for storefront search.</summary>
+public sealed class CategoryAttributeFilterDto
+{
+    public int AttributeDefinitionID { get; init; }
+    public string Code { get; init; } = string.Empty;
+    public string Name { get; init; } = string.Empty;
+    public string? Unit { get; init; }
+    public byte InputType { get; init; }
+    public int SortOrder { get; init; }
+    public IReadOnlyList<CategoryAttributeFilterOptionDto> Options { get; init; } = Array.Empty<CategoryAttributeFilterOptionDto>();
+}
+
+/// <summary>One selectable option within a category attribute facet.</summary>
+public sealed class CategoryAttributeFilterOptionDto
+{
+    public int AttributeOptionID { get; init; }
+    public string Value { get; init; } = string.Empty;
+    public string? ColorHex { get; init; }
+    public int SortOrder { get; init; }
+}
+
 /// <summary>A brand projected for public/read use.</summary>
 public sealed class BrandDto
 {

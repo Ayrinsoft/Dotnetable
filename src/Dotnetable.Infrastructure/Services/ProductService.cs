@@ -574,37 +574,44 @@ public class ProductService : IProductService
 
     public async Task SetAttributeValuesAsync(int productId, IReadOnlyList<ProductAttributeValue> values, CancellationToken ct = default)
     {
+        // Empty values mean "this attribute does not apply to the product" — do not persist them.
+        var meaningful = values
+            .Where(HasMeaningfulAttributeValue)
+            .GroupBy(v => v.AttributeDefinitionID)
+            .Select(g => g.Last())
+            .ToList();
+
         var existing = await _context.ProductAttributeValues
             .Include(v => v.ProductAttributeValueTranslations)
             .Where(v => v.ProductID == productId).ToListAsync(ct);
-        var wantedIds = values.Where(v => v.ProductAttributeValueID != 0).Select(v => v.ProductAttributeValueID).ToHashSet();
 
-        var toRemove = existing.Where(v => !wantedIds.Contains(v.ProductAttributeValueID)).ToList();
+        var wantedDefIds = meaningful.Select(v => v.AttributeDefinitionID).ToHashSet();
+        var toRemove = existing.Where(v => !wantedDefIds.Contains(v.AttributeDefinitionID)).ToList();
         foreach (var r in toRemove)
             _context.ProductAttributeValueTranslations.RemoveRange(r.ProductAttributeValueTranslations);
         _context.ProductAttributeValues.RemoveRange(toRemove);
 
         var sortOrder = 0;
-        foreach (var v in values)
+        foreach (var v in meaningful)
         {
-            if (v.ProductAttributeValueID == 0)
+            var current = existing.FirstOrDefault(x => x.AttributeDefinitionID == v.AttributeDefinitionID);
+            if (current is null)
+            {
                 _context.ProductAttributeValues.Add(new ProductAttributeValue
                 {
                     ProductID = productId,
                     AttributeDefinitionID = v.AttributeDefinitionID,
-                    AttributeOptionID = v.AttributeOptionID,
-                    CustomValue = v.CustomValue,
+                    AttributeOptionID = NormalizeOptionId(v.AttributeOptionID),
+                    CustomValue = NormalizeCustomValue(v.CustomValue),
                     NumericValue = v.NumericValue,
                     IsFeatured = v.IsFeatured,
                     SortOrder = sortOrder++,
                 });
+            }
             else
             {
-                var current = existing.FirstOrDefault(x => x.ProductAttributeValueID == v.ProductAttributeValueID);
-                if (current is null) continue;
-                current.AttributeDefinitionID = v.AttributeDefinitionID;
-                current.AttributeOptionID = v.AttributeOptionID;
-                current.CustomValue = v.CustomValue;
+                current.AttributeOptionID = NormalizeOptionId(v.AttributeOptionID);
+                current.CustomValue = NormalizeCustomValue(v.CustomValue);
                 current.NumericValue = v.NumericValue;
                 current.IsFeatured = v.IsFeatured;
                 current.SortOrder = sortOrder++;
@@ -613,6 +620,22 @@ public class ProductService : IProductService
 
         await _context.SaveChangesAsync(ct);
     }
+
+    /// <summary>True when the value carries a real option / number / text (featured alone is not enough).</summary>
+    internal static bool HasMeaningfulAttributeValue(ProductAttributeValue v)
+    {
+        if (v.AttributeDefinitionID <= 0) return false;
+        if (v.AttributeOptionID is int oid && oid > 0) return true;
+        if (v.NumericValue is not null) return true;
+        if (!string.IsNullOrWhiteSpace(v.CustomValue)) return true;
+        return false;
+    }
+
+    private static int? NormalizeOptionId(int? optionId) =>
+        optionId is int id && id > 0 ? id : null;
+
+    private static string? NormalizeCustomValue(string? value) =>
+        string.IsNullOrWhiteSpace(value) ? null : value.Trim();
 
     // ── Warnings ─────────────────────────────────────────────────────────
 
@@ -732,7 +755,7 @@ public class ProductService : IProductService
         int websiteId, string? categorySlug, string? brandSlug, string? search,
         decimal? minPriceUsd, decimal? maxPriceUsd,
         int pageIndex, int pageSize, string? languageCode = null, string? currencyCode = null,
-        bool? inStock = null, CancellationToken ct = default)
+        bool? inStock = null, IReadOnlyList<int>? attributeOptionIds = null, CancellationToken ct = default)
     {
         // Own products of the host site (include inventory for availability).
         IQueryable<Product> q = PublishedQuery(websiteId)
@@ -750,12 +773,14 @@ public class ProductService : IProductService
         if (maxPriceUsd is decimal max)
             q = q.Where(p => p.ProductVariants.Any(v => v.IsActive && v.ReferencePriceUsd <= max));
 
+        q = ApplyAttributeOptionFilter(q, attributeOptionIds);
+
         var localProducts = await q
             .OrderByDescending(p => p.SortOrder).ThenByDescending(p => p.CreatedAt)
             .ToListAsync(ct);
 
         // Site-linked vendors: only products owned by the linked website (never re-shared imports).
-        var linked = await LoadLinkedSiteProductsAsync(websiteId, categorySlug, brandSlug, search, minPriceUsd, maxPriceUsd, ct);
+        var linked = await LoadLinkedSiteProductsAsync(websiteId, categorySlug, brandSlug, search, minPriceUsd, maxPriceUsd, attributeOptionIds, ct);
 
         var combined = new List<(Product Product, Vendor? Vendor)>(localProducts.Count + linked.Count);
         combined.AddRange(localProducts.Select(p => ((Product Product, Vendor? Vendor))(p, null)));
@@ -874,7 +899,9 @@ public class ProductService : IProductService
     /// </summary>
     private async Task<List<(Product Product, Vendor Vendor)>> LoadLinkedSiteProductsAsync(
         int hostWebsiteId, string? categorySlug, string? brandSlug, string? search,
-        decimal? minPriceUsd, decimal? maxPriceUsd, CancellationToken ct)
+        decimal? minPriceUsd, decimal? maxPriceUsd,
+        IReadOnlyList<int>? attributeOptionIds,
+        CancellationToken ct)
     {
         var siteVendors = await _vendors.GetActiveSiteLinksAsync(hostWebsiteId, ct);
         var result = new List<(Product, Vendor)>();
@@ -898,6 +925,8 @@ public class ProductService : IProductService
             if (maxPriceUsd is decimal max)
                 q = q.Where(p => p.ProductVariants.Any(v => v.IsActive && v.ReferencePriceUsd <= max));
 
+            q = ApplyAttributeOptionFilter(q, attributeOptionIds);
+
             var products = await q
                 .OrderByDescending(p => p.SortOrder).ThenByDescending(p => p.CreatedAt)
                 .ToListAsync(ct);
@@ -905,6 +934,28 @@ public class ProductService : IProductService
                 result.Add((p, vendor));
         }
         return result;
+    }
+
+    /// <summary>
+    /// AND filter: product must match every option id via product-level or variant attribute values.
+    /// Options for the same definition still stack as AND (caller should pass one option per facet).
+    /// </summary>
+    private static IQueryable<Product> ApplyAttributeOptionFilter(
+        IQueryable<Product> q,
+        IReadOnlyList<int>? attributeOptionIds)
+    {
+        if (attributeOptionIds is null || attributeOptionIds.Count == 0)
+            return q;
+
+        foreach (var optionId in attributeOptionIds.Where(id => id > 0).Distinct())
+        {
+            var oid = optionId;
+            q = q.Where(p =>
+                p.ProductAttributeValues.Any(a => a.AttributeOptionID == oid)
+                || p.ProductVariants.Any(v => v.IsActive && v.VariantAttributeValues.Any(va => va.AttributeOptionID == oid)));
+        }
+
+        return q;
     }
 
     private static string ListingKey(int productId, int? vendorId) => $"{productId}:{vendorId?.ToString() ?? "0"}";

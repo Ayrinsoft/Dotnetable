@@ -481,45 +481,89 @@ else
 
             <MudTabPanel Text="@L["products.attributes", "Attributes"]">
                 <div class="pa-2">
-                    @foreach (var def in _nonVariantAttributes)
+                    <MudAlert Severity="Severity.Info" Dense="true" Variant="Variant.Outlined" Class="mb-3">
+                        @L["products.attributes_hint", "Category attributes are listed first. Leave a value empty to skip storing that attribute for this product. Use “Add attribute” for a product-only field not on the category."]
+                    </MudAlert>
+
+                    @if (_selectedCategory is null)
+                    {
+                        <MudText Color="Color.Secondary" Class="mb-3">@L["products.attributes_pick_category", "Select a category to load its default attributes."]</MudText>
+                    }
+
+                    @foreach (var def in DisplayedProductAttributes)
                     {
                         var value = _attrValues.TryGetValue(def.AttributeDefinitionID, out var v) ? v : null;
+                        var fromCategory = _categoryAttributeIds.Contains(def.AttributeDefinitionID);
                         <MudGrid Spacing="2" Class="mb-1" AlignItems="AlignItems.Center">
                             <MudItem xs="12" sm="3">
-                                <MudText Typo="Typo.body2">@def.Name @(string.IsNullOrEmpty(def.Unit) ? "" : $"({def.Unit})")</MudText>
+                                <MudStack Spacing="0">
+                                    <MudText Typo="Typo.body2">@def.Name @(string.IsNullOrEmpty(def.Unit) ? "" : $"({def.Unit})")</MudText>
+                                    @if (!fromCategory)
+                                    {
+                                        <MudText Typo="Typo.caption" Color="Color.Secondary">@L["products.attribute_extra", "Product-only"]</MudText>
+                                    }
+                                </MudStack>
                             </MudItem>
-                            <MudItem xs="12" sm="7">
+                            <MudItem xs="12" sm="6">
                                 @if (def.InputType is 1 or 2)
                                 {
                                     <MudAutocomplete T="AttributeOption"
                                                      Value="@GetSelectedAttrOption(def, value)"
                                                      ValueChanged="@(o => SetAttrOption(def.AttributeDefinitionID, o?.AttributeOptionID))"
                                                      SearchFunc="@( (s, ct) => SearchAttrOptions(def, s, ct) )"
-                                                     ToStringFunc="@(o => o?.Value ?? string.Empty)"
+                                                     ToStringFunc="@(o => FormatAttributeOptionLabel(def, o))"
                                                      Variant="Variant.Outlined" Margin="Margin.Dense"
                                                      Clearable="true" Dense="true"
+                                                     Disabled="@(!_canEdit)"
                                                      CoerceText="false" ResetValueOnEmptyText="true" />
                                 }
                                 else if (def.InputType == 3)
                                 {
                                     <MudNumericField T="decimal?" Value="@(value?.NumericValue)" ValueChanged="@(n => SetAttrNumeric(def.AttributeDefinitionID, n))"
-                                                      Variant="Variant.Outlined" Margin="Margin.Dense" />
+                                                      Variant="Variant.Outlined" Margin="Margin.Dense" Disabled="@(!_canEdit)" />
                                 }
                                 else
                                 {
                                     <MudTextField T="string" Value="@(value?.CustomValue)" ValueChanged="@(s => SetAttrText(def.AttributeDefinitionID, s))"
-                                                  Variant="Variant.Outlined" Margin="Margin.Dense" />
+                                                  Variant="Variant.Outlined" Margin="Margin.Dense" Disabled="@(!_canEdit)" />
                                 }
                             </MudItem>
-                            <MudItem xs="12" sm="2">
+                            <MudItem xs="8" sm="2">
                                 <MudCheckBox T="bool" Value="@(value?.IsFeatured ?? false)" ValueChanged="@(f => SetAttrFeatured(def.AttributeDefinitionID, f))"
-                                             Label="@L["attributes.featured", "Featured"]" Color="Color.Primary" />
+                                             Label="@L["attributes.featured", "Featured"]" Color="Color.Primary" Disabled="@(!_canEdit)" />
+                            </MudItem>
+                            <MudItem xs="4" sm="1">
+                                @if (!fromCategory)
+                                {
+                                    <MudIconButton Icon="@Icons.Material.Filled.Close" Size="Size.Small" Color="Color.Default"
+                                                   Disabled="@(!_canEdit)"
+                                                   OnClick="@(() => RemoveExtraAttribute(def.AttributeDefinitionID))"
+                                                   title="@L["products.remove_attribute", "Remove"]" />
+                                }
                             </MudItem>
                         </MudGrid>
                     }
-                    @if (_nonVariantAttributes.Count == 0)
+
+                    @if (DisplayedProductAttributes.Count == 0)
                     {
-                        <MudText Color="Color.Secondary">@L["products.no_attributes", "No product-level attributes defined for this website."]</MudText>
+                        <MudText Color="Color.Secondary" Class="mb-2">
+                            @(_allProductLevelAttributes.Count == 0
+                                ? L["products.no_attributes", "No product-level attributes defined for this website."]
+                                : L["products.no_category_attributes", "No attributes mapped to this category yet. Map them on the category, or add one for this product."])
+                        </MudText>
+                    }
+
+                    @if (_canEdit && AddableProductAttributes.Count > 0)
+                    {
+                        <MudStack Row="true" Spacing="2" AlignItems="AlignItems.Center" Class="mt-3">
+                            <MudAutocomplete T="AttributeDefinition" Value="_addAttributePick" ValueChanged="OnAddAttributePicked"
+                                             SearchFunc="SearchAddableAttributes" ToStringFunc="@(a => a is null ? string.Empty : a.Name)"
+                                             Label="@L["products.add_attribute", "Add attribute"]"
+                                             Variant="Variant.Outlined" Margin="Margin.Dense" Dense="true"
+                                             Clearable="true" CoerceText="false" ResetValueOnEmptyText="true"
+                                             Style="min-width:260px; max-width:360px;"
+                                             HelperText="@L["products.add_attribute_hint", "Optional product-only attribute not listed for the category."]" />
+                        </MudStack>
                     }
                 </div>
             </MudTabPanel>
@@ -771,15 +815,64 @@ else
     private int _addSellerStock;
 
     private List<(int MediaSetId, FileRecord File)> _gallery = new();
-    private List<AttributeDefinition> _nonVariantAttributes = new();
+    /// <summary>All active product-level (non-variant) attributes for the website, with options loaded.</summary>
+    private List<AttributeDefinition> _allProductLevelAttributes = new();
     /// <summary>Active catalog attributes marked as variant (color, size, …) — option pickers on each variant row.</summary>
     private List<AttributeDefinition> _variantAttributes = new();
+    /// <summary>Attribute definition IDs mapped to the selected category (and ancestors), ordered.</summary>
+    private List<int> _categoryAttributeIds = new();
+    /// <summary>Extra product-only attribute IDs added on this form (not from category mapping).</summary>
+    private readonly List<int> _extraAttributeIds = new();
+    private AttributeDefinition? _addAttributePick;
     /// <summary>
     /// Session-only option picks per variant (defId → optionId). Kept off the EF graph until SetVariantsAsync
     /// so UpdateAsync does not try to insert partial VariantAttributeValue rows.
     /// </summary>
     private readonly Dictionary<ProductVariant, Dictionary<int, int>> _variantAttrOptions = new();
     private Dictionary<int, ProductAttributeValue> _attrValues = new();
+
+    private List<AttributeDefinition> DisplayedProductAttributes
+    {
+        get
+        {
+            var byId = _allProductLevelAttributes.ToDictionary(a => a.AttributeDefinitionID);
+            var ordered = new List<AttributeDefinition>();
+            var seen = new HashSet<int>();
+
+            foreach (var id in _categoryAttributeIds)
+            {
+                if (seen.Add(id) && byId.TryGetValue(id, out var def))
+                    ordered.Add(def);
+            }
+
+            foreach (var id in _extraAttributeIds)
+            {
+                if (seen.Add(id) && byId.TryGetValue(id, out var def))
+                    ordered.Add(def);
+            }
+
+            // Existing saved values not in category/extra (legacy) still show so they can be cleared.
+            foreach (var id in _attrValues.Keys.OrderBy(x => x))
+            {
+                if (seen.Add(id) && byId.TryGetValue(id, out var def))
+                    ordered.Add(def);
+            }
+
+            return ordered;
+        }
+    }
+
+    private List<AttributeDefinition> AddableProductAttributes
+    {
+        get
+        {
+            var shown = DisplayedProductAttributes.Select(a => a.AttributeDefinitionID).ToHashSet();
+            return _allProductLevelAttributes
+                .Where(a => !shown.Contains(a.AttributeDefinitionID))
+                .OrderBy(a => a.SortOrder).ThenBy(a => a.Name)
+                .ToList();
+        }
+    }
     private List<ProductWarning> _warnings = new();
     private List<ProductWarranty> _warranties = new();
     private List<Warranty> _warrantyCatalog = new();
@@ -896,10 +989,48 @@ else
                 productLevel.Add(full);
             }
         }
-        _nonVariantAttributes = productLevel.OrderBy(a => a.SortOrder).ThenBy(a => a.Name).ToList();
+        _allProductLevelAttributes = productLevel.OrderBy(a => a.SortOrder).ThenBy(a => a.Name).ToList();
         _variantAttributes = variantLevel.OrderBy(a => a.SortOrder).ThenBy(a => a.Name).ToList();
 
+        // Product-only extras: saved values that are not on the category mapping.
+        await ReloadCategoryAttributesAsync();
+        SeedExtraAttributesFromExistingValues();
+
         _loading = false;
+    }
+
+    private async Task ReloadCategoryAttributesAsync()
+    {
+        _categoryAttributeIds.Clear();
+        if (_selectedCategory is null) return;
+
+        var defs = await CategoryService.GetAttributesForCategoryAsync(
+            _selectedCategory.ProductCategoryID, includeAncestors: true);
+        _categoryAttributeIds = defs.Select(d => d.AttributeDefinitionID).ToList();
+
+        // Ensure full option sets for category defs (service may already include them).
+        var known = _allProductLevelAttributes.Select(a => a.AttributeDefinitionID).ToHashSet();
+        foreach (var d in defs)
+        {
+            if (known.Contains(d.AttributeDefinitionID)) continue;
+            var full = await AttributeDefinitionService.GetByIdAsync(d.AttributeDefinitionID) ?? d;
+            if (!full.IsVariantAttribute && full.Active)
+            {
+                _allProductLevelAttributes.Add(full);
+                known.Add(full.AttributeDefinitionID);
+            }
+        }
+    }
+
+    private void SeedExtraAttributesFromExistingValues()
+    {
+        _extraAttributeIds.Clear();
+        var categorySet = _categoryAttributeIds.ToHashSet();
+        foreach (var defId in _attrValues.Keys.OrderBy(x => x))
+        {
+            if (!categorySet.Contains(defId) && !_extraAttributeIds.Contains(defId))
+                _extraAttributeIds.Add(defId);
+        }
     }
 
     private async Task LoadCurrencyAsync()
@@ -1060,7 +1191,42 @@ else
         return string.Join(" / ", parts);
     }
 
-    private void OnCategoryChanged(ProductCategory? category) => _selectedCategory = category;
+    private async Task OnCategoryChanged(ProductCategory? category)
+    {
+        _selectedCategory = category;
+        await ReloadCategoryAttributesAsync();
+        // Keep product-only extras; drop ones that are now covered by the new category mapping.
+        var categorySet = _categoryAttributeIds.ToHashSet();
+        _extraAttributeIds.RemoveAll(id => categorySet.Contains(id));
+        SeedExtraAttributesFromExistingValues();
+    }
+
+    private Task<IEnumerable<AttributeDefinition>> SearchAddableAttributes(string search, CancellationToken ct)
+    {
+        IEnumerable<AttributeDefinition> q = AddableProductAttributes;
+        if (!string.IsNullOrWhiteSpace(search))
+        {
+            var needle = search.Trim();
+            q = q.Where(a => a.Name.Contains(needle, StringComparison.OrdinalIgnoreCase)
+                             || a.Code.Contains(needle, StringComparison.OrdinalIgnoreCase));
+        }
+        return Task.FromResult(q);
+    }
+
+    private void OnAddAttributePicked(AttributeDefinition? def)
+    {
+        _addAttributePick = null;
+        if (def is null) return;
+        if (_categoryAttributeIds.Contains(def.AttributeDefinitionID)) return;
+        if (!_extraAttributeIds.Contains(def.AttributeDefinitionID))
+            _extraAttributeIds.Add(def.AttributeDefinitionID);
+    }
+
+    private void RemoveExtraAttribute(int attributeDefinitionId)
+    {
+        _extraAttributeIds.Remove(attributeDefinitionId);
+        _attrValues.Remove(attributeDefinitionId);
+    }
 
     private void AddVariant()
     {
@@ -1614,10 +1780,67 @@ else
         return v;
     }
 
-    private void SetAttrOption(int attributeDefinitionId, int? optionId) => GetOrCreateAttrValue(attributeDefinitionId).AttributeOptionID = optionId;
-    private void SetAttrNumeric(int attributeDefinitionId, decimal? value) => GetOrCreateAttrValue(attributeDefinitionId).NumericValue = value;
-    private void SetAttrText(int attributeDefinitionId, string? value) => GetOrCreateAttrValue(attributeDefinitionId).CustomValue = value;
-    private void SetAttrFeatured(int attributeDefinitionId, bool featured) => GetOrCreateAttrValue(attributeDefinitionId).IsFeatured = featured;
+    private void SetAttrOption(int attributeDefinitionId, int? optionId)
+    {
+        if (optionId is null or <= 0)
+        {
+            if (_attrValues.TryGetValue(attributeDefinitionId, out var existing))
+            {
+                existing.AttributeOptionID = null;
+                if (!HasMeaningfulAttrValue(existing))
+                    _attrValues.Remove(attributeDefinitionId);
+            }
+            return;
+        }
+        GetOrCreateAttrValue(attributeDefinitionId).AttributeOptionID = optionId;
+    }
+
+    private void SetAttrNumeric(int attributeDefinitionId, decimal? value)
+    {
+        if (value is null)
+        {
+            if (_attrValues.TryGetValue(attributeDefinitionId, out var existing))
+            {
+                existing.NumericValue = null;
+                if (!HasMeaningfulAttrValue(existing))
+                    _attrValues.Remove(attributeDefinitionId);
+            }
+            return;
+        }
+        GetOrCreateAttrValue(attributeDefinitionId).NumericValue = value;
+    }
+
+    private void SetAttrText(int attributeDefinitionId, string? value)
+    {
+        if (string.IsNullOrWhiteSpace(value))
+        {
+            if (_attrValues.TryGetValue(attributeDefinitionId, out var existing))
+            {
+                existing.CustomValue = null;
+                if (!HasMeaningfulAttrValue(existing))
+                    _attrValues.Remove(attributeDefinitionId);
+            }
+            return;
+        }
+        GetOrCreateAttrValue(attributeDefinitionId).CustomValue = value;
+    }
+
+    private void SetAttrFeatured(int attributeDefinitionId, bool featured)
+    {
+        // Featured alone is not enough to persist — only set when a real value exists (or will).
+        if (!_attrValues.ContainsKey(attributeDefinitionId) && !featured)
+            return;
+        if (!_attrValues.ContainsKey(attributeDefinitionId) && featured)
+            return; // no value yet; ignore featured-only
+        GetOrCreateAttrValue(attributeDefinitionId).IsFeatured = featured;
+        if (_attrValues.TryGetValue(attributeDefinitionId, out var v) && !HasMeaningfulAttrValue(v))
+            _attrValues.Remove(attributeDefinitionId);
+    }
+
+    private static bool HasMeaningfulAttrValue(ProductAttributeValue v) =>
+        (v.AttributeOptionID is int oid && oid > 0)
+        || v.NumericValue is not null
+        || !string.IsNullOrWhiteSpace(v.CustomValue);
 
     private AttributeOption? GetSelectedAttrOption(AttributeDefinition def, ProductAttributeValue? value) =>
         value?.AttributeOptionID is int id
@@ -1843,7 +2066,9 @@ else
                 _memberId,
                 BuildVariantAttributeOptionsPayload());
             await ProductService.SetMediaAsync(Model.ProductID, _gallery.Select(g => g.MediaSetId).ToList());
-            await ProductService.SetAttributeValuesAsync(Model.ProductID, _attrValues.Values.ToList());
+            // Only persist attributes that have a real value (empty = attribute not used on this product).
+            var attributePayload = _attrValues.Values.Where(HasMeaningfulAttrValue).ToList();
+            await ProductService.SetAttributeValuesAsync(Model.ProductID, attributePayload);
             await ProductService.SetWarningsAsync(Model.ProductID, _warnings);
             await ProductService.SetWarrantiesAsync(Model.ProductID, _warranties);
             await ProductService.SetRelatedProductsAsync(Model.ProductID,

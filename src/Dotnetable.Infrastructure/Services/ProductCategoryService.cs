@@ -75,6 +75,7 @@ public class ProductCategoryService : IProductCategoryService
         var category = await _context.ProductCategories
             .Include(c => c.ProductCategoryTranslations)
             .Include(c => c.ProductCategoryMaps)
+            .Include(c => c.ProductCategoryAttributes)
             .Include(c => c.InverseParentCategory)
             .FirstOrDefaultAsync(c => c.ProductCategoryID == productCategoryId, ct);
         if (category is null) return;
@@ -83,6 +84,7 @@ public class ProductCategoryService : IProductCategoryService
         foreach (var child in category.InverseParentCategory)
             child.ParentCategoryID = category.ParentCategoryID;
 
+        _context.ProductCategoryAttributes.RemoveRange(category.ProductCategoryAttributes);
         _context.ProductCategoryMaps.RemoveRange(category.ProductCategoryMaps);
         _context.ProductCategoryTranslations.RemoveRange(category.ProductCategoryTranslations);
         _context.ProductCategories.Remove(category);
@@ -147,6 +149,190 @@ public class ProductCategoryService : IProductCategoryService
         }
 
         await _context.SaveChangesAsync(ct);
+    }
+
+    // ── Category ↔ attribute definitions ────────────────────────────
+
+    public async Task<List<int>> GetAttributeDefinitionIdsAsync(int productCategoryId, CancellationToken ct = default) =>
+        await _context.ProductCategoryAttributes.AsNoTracking()
+            .Where(a => a.ProductCategoryID == productCategoryId)
+            .OrderBy(a => a.SortOrder)
+            .Select(a => a.AttributeDefinitionID)
+            .ToListAsync(ct);
+
+    public async Task SetAttributeDefinitionIdsAsync(
+        int productCategoryId,
+        IReadOnlyList<int> attributeDefinitionIds,
+        CancellationToken ct = default)
+    {
+        var existing = await _context.ProductCategoryAttributes
+            .Where(a => a.ProductCategoryID == productCategoryId)
+            .ToListAsync(ct);
+
+        // Preserve order from the caller; drop duplicates and zeros.
+        var orderedIds = attributeDefinitionIds
+            .Where(id => id > 0)
+            .Distinct()
+            .ToList();
+
+        // Only allow non-variant, active-or-existing definitions on the same website as the category.
+        var categoryWebsiteId = await _context.ProductCategories.AsNoTracking()
+            .Where(c => c.ProductCategoryID == productCategoryId)
+            .Select(c => (int?)c.WebsiteID)
+            .FirstOrDefaultAsync(ct);
+        if (categoryWebsiteId is null) return;
+
+        if (orderedIds.Count > 0)
+        {
+            var allowed = await _context.AttributeDefinitions.AsNoTracking()
+                .Where(d => orderedIds.Contains(d.AttributeDefinitionID)
+                            && d.WebsiteID == categoryWebsiteId.Value
+                            && !d.IsVariantAttribute)
+                .Select(d => d.AttributeDefinitionID)
+                .ToListAsync(ct);
+            var allowedSet = allowed.ToHashSet();
+            orderedIds = orderedIds.Where(id => allowedSet.Contains(id)).ToList();
+        }
+
+        var wanted = orderedIds.ToHashSet();
+        _context.ProductCategoryAttributes.RemoveRange(existing.Where(e => !wanted.Contains(e.AttributeDefinitionID)));
+
+        for (var i = 0; i < orderedIds.Count; i++)
+        {
+            var defId = orderedIds[i];
+            var row = existing.FirstOrDefault(e => e.AttributeDefinitionID == defId);
+            if (row is null)
+            {
+                _context.ProductCategoryAttributes.Add(new ProductCategoryAttribute
+                {
+                    ProductCategoryID = productCategoryId,
+                    AttributeDefinitionID = defId,
+                    SortOrder = i,
+                });
+            }
+            else
+            {
+                row.SortOrder = i;
+            }
+        }
+
+        await _context.SaveChangesAsync(ct);
+    }
+
+    public async Task<List<AttributeDefinition>> GetAttributesForCategoryAsync(
+        int productCategoryId,
+        bool includeAncestors = true,
+        CancellationToken ct = default)
+    {
+        var categoryIds = includeAncestors
+            ? await ResolveCategoryAncestorChainAsync(productCategoryId, ct)
+            : new List<int> { productCategoryId };
+        if (categoryIds.Count == 0) return new List<AttributeDefinition>();
+
+        // Walk from root → leaf so more specific category mappings win on conflicts (re-add moves to end).
+        categoryIds.Reverse();
+
+        var orderedDefIds = new List<int>();
+        var seen = new HashSet<int>();
+        foreach (var catId in categoryIds)
+        {
+            var ids = await _context.ProductCategoryAttributes.AsNoTracking()
+                .Where(a => a.ProductCategoryID == catId)
+                .OrderBy(a => a.SortOrder)
+                .Select(a => a.AttributeDefinitionID)
+                .ToListAsync(ct);
+            foreach (var id in ids)
+            {
+                if (seen.Add(id))
+                    orderedDefIds.Add(id);
+            }
+        }
+
+        if (orderedDefIds.Count == 0) return new List<AttributeDefinition>();
+
+        var defs = await _context.AttributeDefinitions.AsNoTracking()
+            .Include(d => d.AttributeOptions)
+            .Include(d => d.AttributeDefinitionTranslations)
+            .Where(d => orderedDefIds.Contains(d.AttributeDefinitionID) && d.Active && !d.IsVariantAttribute)
+            .ToListAsync(ct);
+
+        var byId = defs.ToDictionary(d => d.AttributeDefinitionID);
+        return orderedDefIds
+            .Where(id => byId.ContainsKey(id))
+            .Select(id => byId[id])
+            .ToList();
+    }
+
+    public async Task<List<CategoryAttributeFilterDto>> GetFilterableAttributesBySlugAsync(
+        int websiteId,
+        string categorySlug,
+        string? languageCode = null,
+        CancellationToken ct = default)
+    {
+        if (string.IsNullOrWhiteSpace(categorySlug)) return new List<CategoryAttributeFilterDto>();
+
+        var category = await _context.ProductCategories.AsNoTracking()
+            .Include(c => c.ProductCategoryTranslations)
+            .FirstOrDefaultAsync(c => c.WebsiteID == websiteId && c.IsActive &&
+                (c.Slug == categorySlug || c.ProductCategoryTranslations.Any(t => t.Slug == categorySlug)), ct);
+        if (category is null) return new List<CategoryAttributeFilterDto>();
+
+        var defs = await GetAttributesForCategoryAsync(category.ProductCategoryID, includeAncestors: true, ct);
+        return defs
+            .Where(d => d.IsFilterable)
+            .Select(d =>
+            {
+                var (name, unit) = LocalizedAttribute(d, languageCode);
+                return new CategoryAttributeFilterDto
+                {
+                    AttributeDefinitionID = d.AttributeDefinitionID,
+                    Code = d.Code,
+                    Name = name,
+                    Unit = unit,
+                    InputType = d.InputType,
+                    SortOrder = d.SortOrder,
+                    Options = d.AttributeOptions
+                        .OrderBy(o => o.SortOrder).ThenBy(o => o.Value)
+                        .Select(o => new CategoryAttributeFilterOptionDto
+                        {
+                            AttributeOptionID = o.AttributeOptionID,
+                            Value = o.Value,
+                            ColorHex = o.ColorHex,
+                            SortOrder = o.SortOrder,
+                        })
+                        .ToList(),
+                };
+            })
+            .ToList();
+    }
+
+    /// <summary>Category + ancestors from leaf to root (leaf first).</summary>
+    private async Task<List<int>> ResolveCategoryAncestorChainAsync(int productCategoryId, CancellationToken ct)
+    {
+        var result = new List<int>();
+        var currentId = (int?)productCategoryId;
+        var guard = 0;
+        while (currentId is int id && id > 0 && guard++ < 64)
+        {
+            result.Add(id);
+            currentId = await _context.ProductCategories.AsNoTracking()
+                .Where(c => c.ProductCategoryID == id)
+                .Select(c => c.ParentCategoryID)
+                .FirstOrDefaultAsync(ct);
+        }
+        return result;
+    }
+
+    private static (string Name, string? Unit) LocalizedAttribute(AttributeDefinition d, string? languageCode)
+    {
+        if (!string.IsNullOrWhiteSpace(languageCode))
+        {
+            var t = d.AttributeDefinitionTranslations.FirstOrDefault(x =>
+                string.Equals(x.LanguageCode, languageCode, StringComparison.OrdinalIgnoreCase));
+            if (t is not null && !string.IsNullOrWhiteSpace(t.Name))
+                return (t.Name, string.IsNullOrWhiteSpace(t.Unit) ? d.Unit : t.Unit);
+        }
+        return (d.Name, d.Unit);
     }
 
     // ── Public read ─────────────────────────────────────────────────

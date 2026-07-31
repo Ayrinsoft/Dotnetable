@@ -93,6 +93,7 @@
     <Build Include="ProductCategoryTranslations.sql" />
     <Build Include="ProductCategoryRelations.sql" />
     <Build Include="ProductCategoryMaps.sql" />
+    <Build Include="ProductCategoryAttributes.sql" />
     <Build Include="ProductCategories.sql" />
     <Build Include="ProductAttributeValueTranslations.sql" />
     <Build Include="ProductAttributeValues.sql" />

@@ -35,6 +35,8 @@ public partial class AttributeDefinition
 
     public virtual ICollection<ProductAttributeValue> ProductAttributeValues { get; set; } = new List<ProductAttributeValue>();
 
+    public virtual ICollection<ProductCategoryAttribute> ProductCategoryAttributes { get; set; } = new List<ProductCategoryAttribute>();
+
     public virtual ICollection<VariantAttributeValue> VariantAttributeValues { get; set; } = new List<VariantAttributeValue>();
 
     public virtual Website Website { get; set; } = null!;

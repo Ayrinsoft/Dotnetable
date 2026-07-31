@@ -66,8 +66,17 @@ public class AttributeDefinitionService : IAttributeDefinitionService
         var definition = await _context.AttributeDefinitions
             .Include(a => a.AttributeDefinitionTranslations)
             .Include(a => a.AttributeOptions).ThenInclude(o => o.AttributeOptionTranslations)
+            .Include(a => a.ProductCategoryAttributes)
+            .Include(a => a.ProductAttributeValues).ThenInclude(v => v.ProductAttributeValueTranslations)
+            .Include(a => a.VariantAttributeValues)
             .FirstOrDefaultAsync(a => a.AttributeDefinitionID == attributeDefinitionId, ct);
         if (definition is null) return;
+
+        _context.ProductCategoryAttributes.RemoveRange(definition.ProductCategoryAttributes);
+        foreach (var pav in definition.ProductAttributeValues)
+            _context.ProductAttributeValueTranslations.RemoveRange(pav.ProductAttributeValueTranslations);
+        _context.ProductAttributeValues.RemoveRange(definition.ProductAttributeValues);
+        _context.VariantAttributeValues.RemoveRange(definition.VariantAttributeValues);
 
         foreach (var option in definition.AttributeOptions)
             _context.AttributeOptionTranslations.RemoveRange(option.AttributeOptionTranslations);

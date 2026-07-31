@@ -84,7 +84,7 @@ public interface IProductService
         int websiteId, string? categorySlug, string? brandSlug, string? search,
         decimal? minPriceUsd, decimal? maxPriceUsd,
         int pageIndex, int pageSize, string? languageCode = null, string? currencyCode = null,
-        bool? inStock = null, CancellationToken ct = default);
+        bool? inStock = null, IReadOnlyList<int>? attributeOptionIds = null, CancellationToken ct = default);
 
     /// <summary>A single published product by slug (base or translated), fully detailed and priced.</summary>
     Task<ProductDetailDto?> GetBySlugAsync(int websiteId, string slug, string? languageCode = null, string? currencyCode = null, CancellationToken ct = default);
