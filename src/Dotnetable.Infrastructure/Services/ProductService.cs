@@ -260,7 +260,12 @@ public class ProductService : IProductService
     // ── Variants ───────────────────────────────────────────────────────
     // Replace-all-children: ProductVariantID == 0 means insert, existing ids not present are removed.
 
-    public async Task SetVariantsAsync(int productId, IReadOnlyList<ProductVariant> variants, int? changedByMemberId = null, CancellationToken ct = default)
+    public async Task SetVariantsAsync(
+        int productId,
+        IReadOnlyList<ProductVariant> variants,
+        int? changedByMemberId = null,
+        IReadOnlyList<IReadOnlyList<(int AttributeDefinitionID, int AttributeOptionID)>>? variantAttributeOptions = null,
+        CancellationToken ct = default)
     {
         var product = await _context.Products.AsNoTracking()
             .Where(p => p.ProductID == productId).Select(p => new { p.WebsiteID }).FirstOrDefaultAsync(ct);
@@ -312,9 +317,18 @@ public class ProductService : IProductService
 
         var now = DateTime.UtcNow;
         var newVariantsNeedingHistory = new List<ProductVariant>();
+        // Snapshot wanted option IDs before SaveChanges so we can sync after new variants get IDs.
+        var pendingVariantAttributes = new List<(ProductVariant Target, List<(int AttributeDefinitionID, int AttributeOptionID)> Attrs)>();
 
-        foreach (var v in variants)
+        for (var i = 0; i < variants.Count; i++)
         {
+            var v = variants[i];
+            List<(int AttributeDefinitionID, int AttributeOptionID)> wantedAttrs;
+            if (variantAttributeOptions is not null && i < variantAttributeOptions.Count && variantAttributeOptions[i] is not null)
+                wantedAttrs = SnapshotVariantAttributeOptions(variantAttributeOptions[i]);
+            else
+                wantedAttrs = SnapshotVariantAttributeOptions(v.VariantAttributeValues);
+
             if (v.ProductVariantID == 0)
             {
                 var created = new ProductVariant
@@ -337,6 +351,7 @@ public class ProductService : IProductService
                 };
                 _context.ProductVariants.Add(created);
                 newVariantsNeedingHistory.Add(created);
+                pendingVariantAttributes.Add((created, wantedAttrs));
             }
             else
             {
@@ -363,16 +378,20 @@ public class ProductService : IProductService
 
                 if (priceChanged)
                     AppendPriceHistory(current.ProductVariantID, v.ReferencePrice, v.CompareAtPrice, v.ReferencePriceUsd, v.CompareAtPriceUsd, now, changedByMemberId);
+
+                pendingVariantAttributes.Add((current, wantedAttrs));
             }
         }
 
         await _context.SaveChangesAsync(ct);
 
-        // New variants get an ID after SaveChanges — log their initial price.
+        // New variants get an ID after SaveChanges — log their initial price and sync attribute options.
         foreach (var created in newVariantsNeedingHistory)
             AppendPriceHistory(created.ProductVariantID, created.ReferencePrice, created.CompareAtPrice, created.ReferencePriceUsd, created.CompareAtPriceUsd, now, changedByMemberId);
 
-        if (newVariantsNeedingHistory.Count > 0)
+        await SyncVariantAttributeValuesAsync(pendingVariantAttributes, ct);
+
+        if (newVariantsNeedingHistory.Count > 0 || pendingVariantAttributes.Count > 0)
             await _context.SaveChangesAsync(ct);
 
         // Soft retention: drop history older than 18 months for touched variants (keep ~12 months visible).
@@ -386,6 +405,78 @@ public class ProductService : IProductService
             await _context.ProductVariantPriceHistories
                 .Where(h => historyVariantIds.Contains(h.ProductVariantID) && h.RecordedAt < cutoff)
                 .ExecuteDeleteAsync(ct);
+        }
+    }
+
+    /// <summary>
+    /// One option per attribute definition (last wins). Empty option IDs are dropped.
+    /// </summary>
+    private static List<(int AttributeDefinitionID, int AttributeOptionID)> SnapshotVariantAttributeOptions(
+        IEnumerable<VariantAttributeValue>? values)
+    {
+        if (values is null) return new List<(int, int)>();
+        return SnapshotVariantAttributeOptions(
+            values.Select(a => (a.AttributeDefinitionID, a.AttributeOptionID)));
+    }
+
+    private static List<(int AttributeDefinitionID, int AttributeOptionID)> SnapshotVariantAttributeOptions(
+        IEnumerable<(int AttributeDefinitionID, int AttributeOptionID)>? values)
+    {
+        if (values is null) return new List<(int, int)>();
+        return values
+            .Where(a => a.AttributeDefinitionID > 0 && a.AttributeOptionID > 0)
+            .GroupBy(a => a.AttributeDefinitionID)
+            .Select(g => g.Last())
+            .ToList();
+    }
+
+    /// <summary>
+    /// Replace-all attribute options for the given variants (composite key: variant + definition).
+    /// </summary>
+    private async Task SyncVariantAttributeValuesAsync(
+        IReadOnlyList<(ProductVariant Target, List<(int AttributeDefinitionID, int AttributeOptionID)> Attrs)> pending,
+        CancellationToken ct)
+    {
+        if (pending.Count == 0) return;
+
+        var variantIds = pending.Select(p => p.Target.ProductVariantID).Where(id => id != 0).Distinct().ToList();
+        if (variantIds.Count == 0) return;
+
+        var existing = await _context.VariantAttributeValues
+            .Where(a => variantIds.Contains(a.ProductVariantID))
+            .ToListAsync(ct);
+
+        foreach (var (target, attrs) in pending)
+        {
+            var variantId = target.ProductVariantID;
+            if (variantId == 0) continue;
+
+            var wantedByDef = attrs
+                .GroupBy(a => a.AttributeDefinitionID)
+                .ToDictionary(g => g.Key, g => g.Last().AttributeOptionID);
+
+            var currentForVariant = existing.Where(a => a.ProductVariantID == variantId).ToList();
+
+            foreach (var row in currentForVariant.Where(a => !wantedByDef.ContainsKey(a.AttributeDefinitionID)))
+                _context.VariantAttributeValues.Remove(row);
+
+            foreach (var (defId, optionId) in wantedByDef)
+            {
+                var row = currentForVariant.FirstOrDefault(a => a.AttributeDefinitionID == defId);
+                if (row is null)
+                {
+                    _context.VariantAttributeValues.Add(new VariantAttributeValue
+                    {
+                        ProductVariantID = variantId,
+                        AttributeDefinitionID = defId,
+                        AttributeOptionID = optionId,
+                    });
+                }
+                else if (row.AttributeOptionID != optionId)
+                {
+                    row.AttributeOptionID = optionId;
+                }
+            }
         }
     }
 
