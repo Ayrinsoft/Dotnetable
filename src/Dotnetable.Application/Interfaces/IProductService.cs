@@ -31,8 +31,20 @@ public interface IProductService
     Task SetCategoriesAsync(int productId, IReadOnlyList<int> categoryIds, int? primaryCategoryId, CancellationToken ct = default);
 
     // ── Variants (replace-all-children pattern; ProductVariantID == 0 means insert) ──
+    /// <summary>
+    /// Replaces product variants. Optionally syncs variant attribute options (one option per definition).
+    /// When <paramref name="variantAttributeOptions"/> is provided, it is aligned by index with
+    /// <paramref name="variants"/>; each entry is a list of (AttributeDefinitionID, AttributeOptionID).
+    /// When null, falls back to each variant's <see cref="ProductVariant.VariantAttributeValues"/> collection.
+    /// Empty / zero option IDs are ignored; omitted definitions are removed for that variant.
+    /// </summary>
     /// <param name="changedByMemberId">Optional admin member that applied the price change (recorded in price history).</param>
-    Task SetVariantsAsync(int productId, IReadOnlyList<ProductVariant> variants, int? changedByMemberId = null, CancellationToken ct = default);
+    Task SetVariantsAsync(
+        int productId,
+        IReadOnlyList<ProductVariant> variants,
+        int? changedByMemberId = null,
+        IReadOnlyList<IReadOnlyList<(int AttributeDefinitionID, int AttributeOptionID)>>? variantAttributeOptions = null,
+        CancellationToken ct = default);
 
     /// <summary>
     /// Price history for a variant, newest first. Defaults to the last 12 months.

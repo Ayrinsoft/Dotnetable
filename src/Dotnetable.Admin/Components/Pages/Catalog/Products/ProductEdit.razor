@@ -219,6 +219,12 @@ else
                             }
                         </MudAlert>
                     }
+                    @if (_variantAttributes.Count > 0)
+                    {
+                        <MudAlert Severity="Severity.Info" Dense="true" Class="mb-3" Variant="Variant.Outlined">
+                            @L["variants.attributes_hint", "Pick the option for each variant attribute (color, size, …) on every row. These options identify the variant on the storefront."]
+                        </MudAlert>
+                    }
                     @foreach (var (v, idx) in _variants.Select((v, i) => (v, i)))
                     {
                         <MudPaper Elevation="0" Class="border rounded-lg pa-3 mb-2">
@@ -296,6 +302,28 @@ else
                                         <MudIconButton Icon="@Icons.Material.Filled.Delete" Color="Color.Error" OnClick="@(() => _variants.RemoveAt(idx))" />
                                     </MudStack>
                                 </MudItem>
+                                @if (_variantAttributes.Count > 0)
+                                {
+                                    <MudItem xs="12">
+                                        <MudGrid Spacing="2">
+                                            @foreach (var def in _variantAttributes)
+                                            {
+                                                <MudItem xs="12" sm="4" md="3">
+                                                    <MudAutocomplete T="AttributeOption"
+                                                                     Value="@GetSelectedVariantAttrOption(v, def)"
+                                                                     ValueChanged="@(o => SetVariantAttrOption(v, def.AttributeDefinitionID, o?.AttributeOptionID))"
+                                                                     SearchFunc="@( (s, ct) => SearchAttrOptions(def, s, ct) )"
+                                                                     ToStringFunc="@(o => FormatAttributeOptionLabel(def, o))"
+                                                                     Label="@def.Name"
+                                                                     Variant="Variant.Outlined" Margin="Margin.Dense"
+                                                                     Clearable="true" Dense="true"
+                                                                     Disabled="@(!_canEdit)"
+                                                                     CoerceText="false" ResetValueOnEmptyText="true" />
+                                                </MudItem>
+                                            }
+                                        </MudGrid>
+                                    </MudItem>
+                                }
                             </MudGrid>
                         </MudPaper>
                     }
@@ -744,6 +772,13 @@ else
 
     private List<(int MediaSetId, FileRecord File)> _gallery = new();
     private List<AttributeDefinition> _nonVariantAttributes = new();
+    /// <summary>Active catalog attributes marked as variant (color, size, …) — option pickers on each variant row.</summary>
+    private List<AttributeDefinition> _variantAttributes = new();
+    /// <summary>
+    /// Session-only option picks per variant (defId → optionId). Kept off the EF graph until SetVariantsAsync
+    /// so UpdateAsync does not try to insert partial VariantAttributeValue rows.
+    /// </summary>
+    private readonly Dictionary<ProductVariant, Dictionary<int, int>> _variantAttrOptions = new();
     private Dictionary<int, ProductAttributeValue> _attrValues = new();
     private List<ProductWarning> _warnings = new();
     private List<ProductWarranty> _warranties = new();
@@ -778,6 +813,7 @@ else
             Model = product;
             _websiteId = product.WebsiteID;
             _variants = product.ProductVariants.ToList();
+            CaptureVariantAttributeOptions(_variants);
             if (_vendorId is null)
                 await LoadSellerStocksAsync();
             await LoadVariantStockAsync(_variants);
@@ -844,13 +880,24 @@ else
         _prerequisites = ContentPrerequisiteHelper.ForProducts(L, _brands.Count, _categories.Count, _hasRate ? 1 : 0);
 
         var allAttrs = await AttributeDefinitionService.GetAllAsync(_websiteId);
-        var withOptions = new List<AttributeDefinition>();
-        foreach (var a in allAttrs.Where(a => !a.IsVariantAttribute && a.Active))
+        var productLevel = new List<AttributeDefinition>();
+        var variantLevel = new List<AttributeDefinition>();
+        foreach (var a in allAttrs.Where(a => a.Active))
         {
-            var full = await AttributeDefinitionService.GetByIdAsync(a.AttributeDefinitionID);
-            withOptions.Add(full ?? a);
+            var full = await AttributeDefinitionService.GetByIdAsync(a.AttributeDefinitionID) ?? a;
+            // Variant attributes store an option ID only (select/color). Skip free-text/numeric defs here.
+            if (a.IsVariantAttribute)
+            {
+                if (full.InputType is 1 or 2)
+                    variantLevel.Add(full);
+            }
+            else
+            {
+                productLevel.Add(full);
+            }
         }
-        _nonVariantAttributes = withOptions;
+        _nonVariantAttributes = productLevel.OrderBy(a => a.SortOrder).ThenBy(a => a.Name).ToList();
+        _variantAttributes = variantLevel.OrderBy(a => a.SortOrder).ThenBy(a => a.Name).ToList();
 
         _loading = false;
     }
@@ -1025,6 +1072,7 @@ else
             Sku = string.Empty,
         };
         _variants.Add(v);
+        _variantAttrOptions[v] = new Dictionary<int, int>();
         _stockOnHand[v] = 0;
         _stockReserved[v] = 0;
         if (UseLocalCurrencyInput)
@@ -1032,6 +1080,42 @@ else
             _localPrice[v] = 0;
             _localCompareAt[v] = null;
         }
+    }
+
+    private void CaptureVariantAttributeOptions(IEnumerable<ProductVariant> variants)
+    {
+        _variantAttrOptions.Clear();
+        foreach (var v in variants)
+        {
+            var map = new Dictionary<int, int>();
+            foreach (var a in v.VariantAttributeValues)
+            {
+                if (a.AttributeDefinitionID > 0 && a.AttributeOptionID > 0)
+                    map[a.AttributeDefinitionID] = a.AttributeOptionID;
+            }
+            _variantAttrOptions[v] = map;
+        }
+    }
+
+    /// <summary>Index-aligned option lists for SetVariantsAsync (keeps picks off the EF graph).</summary>
+    private List<IReadOnlyList<(int AttributeDefinitionID, int AttributeOptionID)>> BuildVariantAttributeOptionsPayload()
+    {
+        var payload = new List<IReadOnlyList<(int, int)>>(_variants.Count);
+        foreach (var v in _variants)
+        {
+            var map = _variantAttrOptions.TryGetValue(v, out var m) ? m : null;
+            if (map is null || map.Count == 0)
+            {
+                payload.Add(Array.Empty<(int, int)>());
+                continue;
+            }
+
+            payload.Add(map
+                .Where(kv => kv.Key > 0 && kv.Value > 0)
+                .Select(kv => (kv.Key, kv.Value))
+                .ToList());
+        }
+        return payload;
     }
 
     private async Task LoadVariantStockAsync(IReadOnlyList<ProductVariant> variants)
@@ -1540,13 +1624,45 @@ else
             ? def.AttributeOptions.FirstOrDefault(o => o.AttributeOptionID == id)
             : null;
 
+    private AttributeOption? GetSelectedVariantAttrOption(ProductVariant variant, AttributeDefinition def)
+    {
+        if (!_variantAttrOptions.TryGetValue(variant, out var map)
+            || !map.TryGetValue(def.AttributeDefinitionID, out var optionId)
+            || optionId <= 0)
+            return null;
+        return def.AttributeOptions.FirstOrDefault(o => o.AttributeOptionID == optionId);
+    }
+
+    private void SetVariantAttrOption(ProductVariant variant, int attributeDefinitionId, int? optionId)
+    {
+        if (!_variantAttrOptions.TryGetValue(variant, out var map))
+        {
+            map = new Dictionary<int, int>();
+            _variantAttrOptions[variant] = map;
+        }
+
+        if (optionId is null or <= 0)
+            map.Remove(attributeDefinitionId);
+        else
+            map[attributeDefinitionId] = optionId.Value;
+    }
+
+    private static string FormatAttributeOptionLabel(AttributeDefinition def, AttributeOption? option)
+    {
+        if (option is null) return string.Empty;
+        if (def.InputType == 2 && !string.IsNullOrWhiteSpace(option.ColorHex))
+            return $"{option.Value} ({option.ColorHex})";
+        return option.Value;
+    }
+
     private Task<IEnumerable<AttributeOption>> SearchAttrOptions(AttributeDefinition def, string search, CancellationToken ct)
     {
         IEnumerable<AttributeOption> q = def.AttributeOptions.OrderBy(o => o.SortOrder).ThenBy(o => o.Value);
         if (!string.IsNullOrWhiteSpace(search))
         {
             var needle = search.Trim();
-            q = q.Where(o => o.Value.Contains(needle, StringComparison.OrdinalIgnoreCase));
+            q = q.Where(o => o.Value.Contains(needle, StringComparison.OrdinalIgnoreCase)
+                             || (!string.IsNullOrEmpty(o.ColorHex) && o.ColorHex.Contains(needle, StringComparison.OrdinalIgnoreCase)));
         }
         return Task.FromResult(q);
     }
@@ -1721,7 +1837,11 @@ else
                 .GroupBy(v => v.Sku.Trim(), StringComparer.OrdinalIgnoreCase)
                 .ToDictionary(g => g.Key, g => StockOnHand(g.First()), StringComparer.OrdinalIgnoreCase);
 
-            await ProductService.SetVariantsAsync(Model.ProductID, _variants, _memberId);
+            await ProductService.SetVariantsAsync(
+                Model.ProductID,
+                _variants,
+                _memberId,
+                BuildVariantAttributeOptionsPayload());
             await ProductService.SetMediaAsync(Model.ProductID, _gallery.Select(g => g.MediaSetId).ToList());
             await ProductService.SetAttributeValuesAsync(Model.ProductID, _attrValues.Values.ToList());
             await ProductService.SetWarningsAsync(Model.ProductID, _warnings);
@@ -1734,6 +1854,7 @@ else
             if (refreshed is not null)
             {
                 _variants = refreshed.ProductVariants.ToList();
+                CaptureVariantAttributeOptions(_variants);
                 SyncVariantLocalPrices();
                 _warnings = refreshed.ProductWarnings.ToList();
                 _warranties = refreshed.ProductWarranties.OrderBy(w => w.SortOrder).ToList();
