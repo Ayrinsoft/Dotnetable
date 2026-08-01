@@ -1,0 +1,119 @@
+@inject IPageLocalizer L
+
+<MudDialog>
+    <TitleContent>
+        <MudText Typo="Typo.h6">
+            <MudIcon Icon="@Icons.Material.Filled.Label" Class="me-2" />
+            @L["catalog.categories.selected_attributes", "Selected attributes"]
+        </MudText>
+    </TitleContent>
+    <DialogContent>
+        <MudText Typo="Typo.body2" Color="Color.Secondary" Class="mb-3">
+            @L["catalog.categories.selected_attributes_hint", "Search selected attributes and remove with ×. Unlinking from the category does not delete values already saved on products."]
+        </MudText>
+
+        <MudTextField @bind-Value="_search"
+                      Placeholder="@L["catalog.categories.search_selected_attributes", "Search selected attributes…"]"
+                      Variant="Variant.Outlined"
+                      Margin="Margin.Dense"
+                      Immediate="true"
+                      Adornment="Adornment.Start"
+                      AdornmentIcon="@Icons.Material.Filled.Search"
+                      Clearable="true"
+                      Class="mb-3" />
+
+        <MudStack Row="true" AlignItems="AlignItems.Center" Justify="Justify.SpaceBetween" Class="mb-2">
+            <MudText Typo="Typo.caption" Color="Color.Secondary">
+                @string.Format(L["catalog.categories.selected_visible_count", "{0} of {1}"], VisibleSelected.Count(), _items.Count)
+            </MudText>
+            @if (_items.Count > 0)
+            {
+                <MudButton Size="Size.Small" Variant="Variant.Text" Color="Color.Default"
+                           StartIcon="@Icons.Material.Filled.ClearAll"
+                           OnClick="ClearAll">
+                    @L["clear", "Clear"]
+                </MudButton>
+            }
+        </MudStack>
+
+        @if (_items.Count == 0)
+        {
+            <MudAlert Severity="Severity.Info" Dense="true" Variant="Variant.Outlined">
+                @L["catalog.categories.no_selected_attributes", "No attributes selected for this category yet."]
+            </MudAlert>
+        }
+        else if (!VisibleSelected.Any())
+        {
+            <MudText Color="Color.Secondary" Class="pa-4" Align="Align.Center">
+                @L["catalog.categories.attributes_search_empty", "No attributes match your search."]
+            </MudText>
+        }
+        else
+        {
+            <div class="dn-category-attr-chips">
+                @foreach (var a in VisibleSelected)
+                {
+                    <MudChip T="string" Size="Size.Small" Color="Color.Primary" Variant="Variant.Outlined"
+                             Class="dn-category-attr-chip"
+                             OnClose="@(() => Remove(a.AttributeDefinitionID))">
+                        @a.Name
+                        @if (!string.IsNullOrEmpty(a.Code))
+                        {
+                            <code class="ms-1" style="opacity:.75; font-size:.75em;">@a.Code</code>
+                        }
+                    </MudChip>
+                }
+            </div>
+        }
+    </DialogContent>
+    <DialogActions>
+        <MudButton OnClick="Cancel">@L["cancel", "Cancel"]</MudButton>
+        <MudButton Color="Color.Primary" Variant="Variant.Filled" OnClick="Apply">
+            @L["apply", "Apply"]
+            @if (_items.Count > 0)
+            {
+                <span>&nbsp;(@_items.Count)</span>
+            }
+        </MudButton>
+    </DialogActions>
+</MudDialog>
+
+@code {
+    [CascadingParameter] private IMudDialogInstance MudDialog { get; set; } = null!;
+
+    /// <summary>Currently linked attribute definitions (catalog order).</summary>
+    [Parameter] public IReadOnlyList<AttributeDefinition> Attributes { get; set; } = Array.Empty<AttributeDefinition>();
+
+    private readonly List<AttributeDefinition> _items = new();
+    private string? _search;
+
+    private IEnumerable<AttributeDefinition> VisibleSelected
+    {
+        get
+        {
+            if (string.IsNullOrWhiteSpace(_search))
+                return _items;
+            var needle = _search.Trim();
+            return _items.Where(a =>
+                a.Name.Contains(needle, StringComparison.OrdinalIgnoreCase)
+                || a.Code.Contains(needle, StringComparison.OrdinalIgnoreCase)
+                || (!string.IsNullOrEmpty(a.Unit) && a.Unit.Contains(needle, StringComparison.OrdinalIgnoreCase)));
+        }
+    }
+
+    protected override void OnInitialized()
+    {
+        _items.Clear();
+        _items.AddRange(Attributes);
+    }
+
+    private void Remove(int attributeDefinitionId) =>
+        _items.RemoveAll(a => a.AttributeDefinitionID == attributeDefinitionId);
+
+    private void ClearAll() => _items.Clear();
+
+    private void Apply() =>
+        MudDialog.Close(DialogResult.Ok(_items.Select(a => a.AttributeDefinitionID).ToList()));
+
+    private void Cancel() => MudDialog.Cancel();
+}

@@ -482,7 +482,7 @@ else
             <MudTabPanel Text="@L["products.attributes", "Attributes"]">
                 <div class="pa-2">
                     <MudAlert Severity="Severity.Info" Dense="true" Variant="Variant.Outlined" Class="mb-3">
-                        @L["products.attributes_hint", "Category attributes are listed first. Leave a value empty to skip storing that attribute for this product. Use “Add attribute” for a product-only field not on the category."]
+                        @L["products.attributes_hint", "Category attributes are listed first. Leave a value empty to skip storing that attribute for this product. If an attribute is unlinked from the category, any value already saved on this product stays as “Product-only” until you remove it here. Use “Add attribute” for extra product-only fields."]
                     </MudAlert>
 
                     @if (_selectedCategory is null)
