@@ -1,0 +1,251 @@
+@inject IAttributeDefinitionService AttributeDefinitionService
+@inject IPageLocalizer L
+
+<MudDialog>
+    <TitleContent>
+        <MudText Typo="Typo.h6">
+            <MudIcon Icon="@Icons.Material.Filled.Checklist" Class="me-2" />
+            @L["catalog.categories.pick_attributes", "Attributes for this category"]
+        </MudText>
+    </TitleContent>
+    <DialogContent>
+        <MudText Typo="Typo.body2" Color="Color.Secondary" Class="mb-3">
+            @L["catalog.categories.pick_attributes_hint", "Search and select attributes. Changing the filter or page does not clear already selected rows."]
+        </MudText>
+
+        @if (_loading)
+        {
+            <MudProgressLinear Indeterminate="true" Color="Color.Primary" Class="mb-3" />
+        }
+
+        <MudStack Row="true" AlignItems="AlignItems.Center" Spacing="2" Class="mb-2">
+            <MudText Typo="Typo.caption" Color="Color.Secondary">
+                @string.Format(L["catalog.categories.selected_count", "{0} selected"], _selected.Count)
+            </MudText>
+            <MudSpacer />
+            @if (_selected.Count > 0)
+            {
+                <MudButton Size="Size.Small" Variant="Variant.Text" Color="Color.Default"
+                           OnClick="ClearSelection">@L["catalog.categories.clear_selection", "Clear selection"]</MudButton>
+            }
+        </MudStack>
+
+        <DNGridView GridHeaderParams="_grid" OnSearchChanged="OnGridChanged"
+                    HasSelection="true"
+                    AllPageSelected="@AllPageSelected"
+                    OnSelectAllToggled="OnSelectAllToggled"
+                    SelectAllTitle="@L["catalog.categories.select_all_page", "Select all on this page"]"
+                    SearchPlaceholder="@L["search", "Search…"]"
+                    AllText="@L["all", "All"]">
+            @if (_pageItems.Count == 0)
+            {
+                <tr>
+                    <td colspan="5" style="text-align:center; padding:28px;">
+                        <MudText Color="Color.Secondary">
+                            @(_all.Count == 0
+                                ? L["catalog.categories.no_attributes", "No product-level attributes defined for this website yet. Create them under Catalog → Attributes first."]
+                                : L["catalog.categories.attributes_search_empty", "No attributes match your search."])
+                        </MudText>
+                    </td>
+                </tr>
+            }
+            else
+            {
+                @foreach (var a in _pageItems)
+                {
+                    var selected = _selected.Contains(a.AttributeDefinitionID);
+                    <tr class="@(selected ? "dn-grid-row-selected dn-grid-row-clickable" : "dn-grid-row-clickable")"
+                        @onclick="@(() => Toggle(a.AttributeDefinitionID))">
+                        <td class="dn-grid-select" @onclick:stopPropagation="true">
+                            <input type="checkbox" class="dn-grid-check" checked="@selected"
+                                   @onchange="@(() => Toggle(a.AttributeDefinitionID))" />
+                        </td>
+                        <td>@a.Name</td>
+                        <td><code>@a.Code</code></td>
+                        <td>@InputTypeLabel(a.InputType)</td>
+                        <td>@(a.IsFilterable ? L["yes", "Yes"] : L["no", "No"])</td>
+                    </tr>
+                }
+            }
+        </DNGridView>
+    </DialogContent>
+    <DialogActions>
+        <MudButton OnClick="Cancel">@L["cancel", "Cancel"]</MudButton>
+        <MudButton Color="Color.Primary" Variant="Variant.Filled" OnClick="Apply">
+            @L["apply", "Apply"]
+            @if (_selected.Count > 0)
+            {
+                <span>&nbsp;(@_selected.Count)</span>
+            }
+        </MudButton>
+    </DialogActions>
+</MudDialog>
+
+@code {
+    [CascadingParameter] private IMudDialogInstance MudDialog { get; set; } = null!;
+
+    [Parameter] public int WebsiteId { get; set; }
+    [Parameter] public IReadOnlyCollection<int>? InitialSelectedIds { get; set; }
+
+    private bool _loading = true;
+    private GridViewHeaderParameters _grid = new();
+    private readonly HashSet<int> _selected = new();
+    private List<AttributeDefinition> _all = new();
+    private List<AttributeDefinition> _pageItems = new();
+    private IReadOnlyList<int> _pageIds = Array.Empty<int>();
+
+    private bool AllPageSelected =>
+        _pageIds.Count > 0 && _pageIds.All(id => _selected.Contains(id));
+
+    protected override async Task OnInitializedAsync()
+    {
+        await L.EnsureLoadedAsync();
+
+        if (InitialSelectedIds is not null)
+        {
+            foreach (var id in InitialSelectedIds)
+                _selected.Add(id);
+        }
+
+        _grid = new GridViewHeaderParameters
+        {
+            Pagination = new PaginationModel { PageSize = 15 },
+            HeaderItems = new()
+            {
+                new() { ColumnTitle = L["name", "Name"], ColumnName = nameof(AttributeDefinition.Name), HasSort = true, HasSearch = true },
+                new() { ColumnTitle = L["attributes.code", "Code"], ColumnName = nameof(AttributeDefinition.Code), HasSort = true, HasSearch = true },
+                new() { ColumnTitle = L["attributes.input_type", "Input type"], ColumnName = nameof(AttributeDefinition.InputType), HasSort = true },
+                new() { ColumnTitle = L["attributes.filterable", "Filterable"], ColumnName = nameof(AttributeDefinition.IsFilterable), HasSort = true },
+            }
+        };
+
+        _loading = true;
+        _all = (await AttributeDefinitionService.GetAllAsync(WebsiteId))
+            .Where(a => a.Active && !a.IsVariantAttribute)
+            .OrderBy(a => a.SortOrder).ThenBy(a => a.Name)
+            .ToList();
+        _loading = false;
+        ApplyGrid();
+    }
+
+    private Task OnGridChanged(GridViewHeaderParameters _)
+    {
+        ApplyGrid();
+        return Task.CompletedTask;
+    }
+
+    private void ApplyGrid()
+    {
+        IEnumerable<AttributeDefinition> q = _all;
+
+        var name = _grid.HeaderItems.FirstOrDefault(h => h.ColumnName == nameof(AttributeDefinition.Name))?.SearchText;
+        if (!string.IsNullOrWhiteSpace(name))
+            q = q.Where(a => a.Name.Contains(name.Trim(), StringComparison.OrdinalIgnoreCase));
+
+        var code = _grid.HeaderItems.FirstOrDefault(h => h.ColumnName == nameof(AttributeDefinition.Code))?.SearchText;
+        if (!string.IsNullOrWhiteSpace(code))
+            q = q.Where(a => a.Code.Contains(code.Trim(), StringComparison.OrdinalIgnoreCase));
+
+        // Sort from DNGridView order clauses (e.g. "Name ASC, Code DESC").
+        q = ApplySort(q, _grid.OrderbyParams);
+
+        var list = q.ToList();
+        _grid.Pagination.MaxLength = list.Count;
+
+        var pageIndex = Math.Max(1, _grid.Pagination.PageIndex);
+        var pageSize = _grid.Pagination.PageSize < 1 ? 15 : _grid.Pagination.PageSize;
+        var maxPage = Math.Max(1, (int)Math.Ceiling(list.Count / (double)pageSize));
+        if (pageIndex > maxPage)
+        {
+            pageIndex = maxPage;
+            _grid.Pagination.PageIndex = pageIndex;
+        }
+
+        _pageItems = list.Skip((pageIndex - 1) * pageSize).Take(pageSize).ToList();
+        _pageIds = _pageItems.Select(a => a.AttributeDefinitionID).ToList();
+    }
+
+    private static IEnumerable<AttributeDefinition> ApplySort(IEnumerable<AttributeDefinition> source, string? orderBy)
+    {
+        if (string.IsNullOrWhiteSpace(orderBy))
+            return source.OrderBy(a => a.SortOrder).ThenBy(a => a.Name, StringComparer.OrdinalIgnoreCase);
+
+        IOrderedEnumerable<AttributeDefinition>? ordered = null;
+        foreach (var part in orderBy.Split(',', StringSplitOptions.RemoveEmptyEntries | StringSplitOptions.TrimEntries))
+        {
+            var tokens = part.Split(' ', StringSplitOptions.RemoveEmptyEntries | StringSplitOptions.TrimEntries);
+            if (tokens.Length == 0) continue;
+            var col = tokens[0];
+            var desc = tokens.Length > 1 && tokens[1].Equals("DESC", StringComparison.OrdinalIgnoreCase);
+
+            ordered = (ordered, col, desc) switch
+            {
+                (null, nameof(AttributeDefinition.Name), false) => source.OrderBy(a => a.Name, StringComparer.OrdinalIgnoreCase),
+                (null, nameof(AttributeDefinition.Name), true) => source.OrderByDescending(a => a.Name, StringComparer.OrdinalIgnoreCase),
+                (null, nameof(AttributeDefinition.Code), false) => source.OrderBy(a => a.Code, StringComparer.OrdinalIgnoreCase),
+                (null, nameof(AttributeDefinition.Code), true) => source.OrderByDescending(a => a.Code, StringComparer.OrdinalIgnoreCase),
+                (null, nameof(AttributeDefinition.InputType), false) => source.OrderBy(a => a.InputType),
+                (null, nameof(AttributeDefinition.InputType), true) => source.OrderByDescending(a => a.InputType),
+                (null, nameof(AttributeDefinition.IsFilterable), false) => source.OrderBy(a => a.IsFilterable),
+                (null, nameof(AttributeDefinition.IsFilterable), true) => source.OrderByDescending(a => a.IsFilterable),
+                (not null, nameof(AttributeDefinition.Name), false) => ordered.ThenBy(a => a.Name, StringComparer.OrdinalIgnoreCase),
+                (not null, nameof(AttributeDefinition.Name), true) => ordered.ThenByDescending(a => a.Name, StringComparer.OrdinalIgnoreCase),
+                (not null, nameof(AttributeDefinition.Code), false) => ordered.ThenBy(a => a.Code, StringComparer.OrdinalIgnoreCase),
+                (not null, nameof(AttributeDefinition.Code), true) => ordered.ThenByDescending(a => a.Code, StringComparer.OrdinalIgnoreCase),
+                (not null, nameof(AttributeDefinition.InputType), false) => ordered.ThenBy(a => a.InputType),
+                (not null, nameof(AttributeDefinition.InputType), true) => ordered.ThenByDescending(a => a.InputType),
+                (not null, nameof(AttributeDefinition.IsFilterable), false) => ordered.ThenBy(a => a.IsFilterable),
+                (not null, nameof(AttributeDefinition.IsFilterable), true) => ordered.ThenByDescending(a => a.IsFilterable),
+                _ => ordered,
+            };
+        }
+
+        return ordered ?? source.OrderBy(a => a.SortOrder).ThenBy(a => a.Name, StringComparer.OrdinalIgnoreCase);
+    }
+
+    private void Toggle(int id)
+    {
+        if (!_selected.Add(id))
+            _selected.Remove(id);
+    }
+
+    private void OnSelectAllToggled(bool selected)
+    {
+        if (selected)
+        {
+            foreach (var id in _pageIds)
+                _selected.Add(id);
+        }
+        else
+        {
+            foreach (var id in _pageIds)
+                _selected.Remove(id);
+        }
+    }
+
+    private void ClearSelection() => _selected.Clear();
+
+    private string InputTypeLabel(byte inputType) => inputType switch
+    {
+        1 => L["attributes.select", "Select"],
+        2 => L["attributes.color", "Color"],
+        3 => L["attributes.numeric", "Numeric"],
+        4 => L["attributes.text", "Text"],
+        _ => inputType.ToString(),
+    };
+
+    /// <summary>Returns selected IDs in catalog order (stable for save).</summary>
+    private void Apply()
+    {
+        var ordered = _all
+            .Where(a => _selected.Contains(a.AttributeDefinitionID))
+            .Select(a => a.AttributeDefinitionID)
+            .ToList();
+        // Keep any selected ids not in _all (shouldn't happen).
+        foreach (var id in _selected.Where(id => !ordered.Contains(id)))
+            ordered.Add(id);
+        MudDialog.Close(DialogResult.Ok(ordered));
+    }
+
+    private void Cancel() => MudDialog.Cancel();
+}

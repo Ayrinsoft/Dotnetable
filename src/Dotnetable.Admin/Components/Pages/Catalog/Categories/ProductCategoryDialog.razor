@@ -52,7 +52,7 @@
                 <MudItem xs="12">
                     <MudText Typo="Typo.subtitle2" Class="mb-1">@L["catalog.categories.attributes", "Category attributes"]</MudText>
                     <MudText Typo="Typo.body2" Color="Color.Secondary" Class="mb-2">
-                        @L["catalog.categories.attributes_hint", "These product-level attributes appear on every product in this category (and children inherit them). Leave a value empty on a product to skip storing it."]
+                        @L["catalog.categories.attributes_hint", "These product-level attributes appear on every product in this category (and children inherit them). Unlinking an attribute here does not remove values already saved on products — only the admin can remove those on the product itself."]
                     </MudText>
                     @if (_availableAttributes.Count == 0)
                     {
@@ -62,22 +62,34 @@
                     }
                     else
                     {
-                        <MudSelect T="int" MultiSelection="true" SelectedValues="_selectedAttributeIds"
-                                   SelectedValuesChanged="OnAttributesChanged"
-                                   Label="@L["catalog.categories.pick_attributes", "Attributes for this category"]"
-                                   Variant="Variant.Outlined" Dense="true" Clearable="true"
-                                   MultiSelectionTextFunc="@FormatSelectedAttributes">
-                            @foreach (var a in _availableAttributes)
-                            {
-                                <MudSelectItem T="int" Value="@a.AttributeDefinitionID">
-                                    @a.Name <code class="ms-1">@a.Code</code>
-                                    @if (a.IsFilterable)
+                        <MudPaper Elevation="0" Class="border rounded-lg pa-3">
+                            <MudStack Row="true" AlignItems="AlignItems.Center" Justify="Justify.SpaceBetween" Style="flex-wrap:wrap; gap:8px;">
+                                <MudStack Spacing="0">
+                                    <MudText Typo="Typo.body2">
+                                        @string.Format(L["catalog.categories.selected_count", "{0} selected"], _selectedAttributeIds.Count)
+                                    </MudText>
+                                    @if (_selectedAttributeIds.Count > 0)
                                     {
-                                        <MudChip T="string" Size="Size.Small" Class="ms-1" Variant="Variant.Text">@L["attributes.filterable", "Filterable"]</MudChip>
+                                        <MudText Typo="Typo.caption" Color="Color.Secondary">
+                                            @SelectedPreview
+                                        </MudText>
                                     }
-                                </MudSelectItem>
-                            }
-                        </MudSelect>
+                                </MudStack>
+                                <MudStack Row="true" Spacing="1">
+                                    <MudButton Variant="Variant.Outlined" Color="Color.Primary" Size="Size.Small"
+                                               StartIcon="@Icons.Material.Filled.Add"
+                                               OnClick="OpenPickAttributesAsync">
+                                        @L["catalog.categories.select_attributes", "Select attributes"]
+                                    </MudButton>
+                                    <MudButton Variant="Variant.Outlined" Color="Color.Default" Size="Size.Small"
+                                               StartIcon="@Icons.Material.Filled.Label"
+                                               Disabled="@(_selectedAttributeIds.Count == 0)"
+                                               OnClick="OpenSelectedAttributesAsync">
+                                        @L["catalog.categories.manage_selected", "Manage selected"]
+                                    </MudButton>
+                                </MudStack>
+                            </MudStack>
+                        </MudPaper>
                     }
                 </MudItem>
 
@@ -131,7 +143,7 @@
     private FileRecord? _file;
     private ProductCategory? _selectedParent;
     private List<AttributeDefinition> _availableAttributes = new();
-    private IReadOnlyCollection<int> _selectedAttributeIds = Array.Empty<int>();
+    private readonly HashSet<int> _selectedAttributeIds = new();
     private readonly Dictionary<string, (string Name, string Slug)> _tr = new(StringComparer.OrdinalIgnoreCase);
 
     private IEnumerable<ProductCategory> ParentCandidates
@@ -141,6 +153,22 @@
             var forbidden = DescendantIds(Model.ProductCategoryID);
             forbidden.Add(Model.ProductCategoryID);
             return AllCategories.Where(c => !forbidden.Contains(c.ProductCategoryID));
+        }
+    }
+
+    private IEnumerable<AttributeDefinition> SelectedAttributes =>
+        _availableAttributes.Where(a => _selectedAttributeIds.Contains(a.AttributeDefinitionID));
+
+    private string SelectedPreview
+    {
+        get
+        {
+            var names = SelectedAttributes.Select(a => a.Name).Take(4).ToList();
+            if (names.Count == 0) return string.Empty;
+            var text = string.Join(", ", names);
+            if (_selectedAttributeIds.Count > names.Count)
+                text += "…";
+            return text;
         }
     }
 
@@ -167,27 +195,51 @@
                 _tr[t.LanguageCode] = (t.Name, t.Slug);
 
             var linked = await ProductCategoryService.GetAttributeDefinitionIdsAsync(Model.ProductCategoryID);
-            // Keep only still-available definitions, preserve saved order.
             var availableSet = _availableAttributes.Select(a => a.AttributeDefinitionID).ToHashSet();
-            _selectedAttributeIds = linked.Where(id => availableSet.Contains(id)).ToList();
+            _selectedAttributeIds.Clear();
+            foreach (var id in linked.Where(id => availableSet.Contains(id)))
+                _selectedAttributeIds.Add(id);
         }
     }
 
-    private void OnAttributesChanged(IEnumerable<int> ids) =>
-        _selectedAttributeIds = (ids ?? Enumerable.Empty<int>()).ToHashSet();
-
-    private string FormatSelectedAttributes(IReadOnlyList<string> selectedValues)
+    private async Task OpenPickAttributesAsync()
     {
-        if (selectedValues.Count == 0)
-            return string.Empty;
-        var names = new List<string>();
-        foreach (var raw in selectedValues)
+        var websiteId = Model.WebsiteID > 0 ? Model.WebsiteID : L.WebsiteId;
+        var parameters = new DialogParameters<CategoryAttributePickDialog>
         {
-            if (!int.TryParse(raw, out var id)) continue;
-            var a = _availableAttributes.FirstOrDefault(x => x.AttributeDefinitionID == id);
-            if (a is not null) names.Add(a.Name);
-        }
-        return string.Join(", ", names);
+            { x => x.WebsiteId, websiteId },
+            { x => x.InitialSelectedIds, _selectedAttributeIds.ToList() },
+        };
+        var dialog = await DialogService.ShowAsync<CategoryAttributePickDialog>(
+            L["catalog.categories.pick_attributes", "Attributes for this category"],
+            parameters,
+            new DialogOptions { MaxWidth = MaxWidth.Large, FullWidth = true });
+        var result = await dialog.Result;
+        if (result is { Canceled: false, Data: List<int> ids })
+            ReplaceSelection(ids);
+    }
+
+    private async Task OpenSelectedAttributesAsync()
+    {
+        var parameters = new DialogParameters<CategoryAttributeSelectedDialog>
+        {
+            { x => x.Attributes, SelectedAttributes.ToList() },
+        };
+        var dialog = await DialogService.ShowAsync<CategoryAttributeSelectedDialog>(
+            L["catalog.categories.selected_attributes", "Selected attributes"],
+            parameters,
+            new DialogOptions { MaxWidth = MaxWidth.Medium, FullWidth = true });
+        var result = await dialog.Result;
+        if (result is { Canceled: false, Data: List<int> ids })
+            ReplaceSelection(ids);
+    }
+
+    private void ReplaceSelection(IReadOnlyList<int> ids)
+    {
+        _selectedAttributeIds.Clear();
+        var availableSet = _availableAttributes.Select(a => a.AttributeDefinitionID).ToHashSet();
+        foreach (var id in ids.Where(id => availableSet.Contains(id)))
+            _selectedAttributeIds.Add(id);
     }
 
     private Task<IEnumerable<ProductCategory>> SearchParents(string value, CancellationToken ct)
@@ -289,15 +341,11 @@
                 await ProductCategoryService.UpdateAsync(Model);
             await ProductCategoryService.SetTranslationsAsync(Model.ProductCategoryID, _tr);
 
-            // Preserve multi-select order relative to the catalog attribute list.
-            var selectedSet = _selectedAttributeIds.ToHashSet();
+            // Catalog order — does not cascade-delete product attribute values.
             var ordered = _availableAttributes
-                .Where(a => selectedSet.Contains(a.AttributeDefinitionID))
+                .Where(a => _selectedAttributeIds.Contains(a.AttributeDefinitionID))
                 .Select(a => a.AttributeDefinitionID)
                 .ToList();
-            // Append any selected ids not in available list (shouldn't happen).
-            foreach (var id in _selectedAttributeIds.Where(id => !ordered.Contains(id)))
-                ordered.Add(id);
             await ProductCategoryService.SetAttributeDefinitionIdsAsync(Model.ProductCategoryID, ordered);
 
             Snackbar.Add(L["saved", "Saved."], Severity.Success);

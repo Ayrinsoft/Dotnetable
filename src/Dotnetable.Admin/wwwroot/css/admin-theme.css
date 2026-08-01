@@ -512,6 +512,25 @@ html, body {
 .dn-category-tree-head .dn-category-tree-col-status { flex: 0 0 96px; text-align: center; }
 .dn-category-tree-head .dn-category-tree-col-actions { flex: 0 0 120px; }
 
+/* Category attribute dialogs: selected chips as a dense grid (rows/cols). */
+.dn-category-attr-chips {
+    display: grid;
+    grid-template-columns: repeat(auto-fill, minmax(150px, 1fr));
+    gap: 8px;
+    align-items: stretch;
+    max-height: 360px;
+    overflow: auto;
+    padding: 2px;
+}
+
+.dn-category-attr-chips .dn-category-attr-chip,
+.dn-category-attr-chips .mud-chip {
+    width: 100%;
+    max-width: 100%;
+    justify-content: space-between;
+    margin: 0 !important;
+}
+
 
 /* ---- DNCkEditor direction buttons injected into CK toolbar ---------------- */
 .dn-ck-dir-group {
