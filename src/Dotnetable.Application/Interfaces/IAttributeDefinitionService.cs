@@ -29,6 +29,16 @@ public interface IAttributeDefinitionService
     /// <summary>Replaces the full option set for a definition. Options with <c>AttributeOptionID == 0</c> are inserted.</summary>
     Task SetOptionsAsync(int attributeDefinitionId, IReadOnlyList<AttributeOption> options, CancellationToken ct = default);
 
+    /// <summary>
+    /// Finds an existing option by value (case-insensitive), optionally matching <paramref name="colorHex"/>,
+    /// or creates one. Used when product variants introduce a new color/size on the fly.
+    /// </summary>
+    Task<AttributeOption> EnsureOptionAsync(
+        int attributeDefinitionId,
+        string value,
+        string? colorHex = null,
+        CancellationToken ct = default);
+
     Task<List<AttributeOptionTranslation>> GetOptionTranslationsAsync(int attributeOptionId, CancellationToken ct = default);
     Task SetOptionTranslationsAsync(int attributeOptionId, IReadOnlyDictionary<string, string> valueByLanguage, CancellationToken ct = default);
 }

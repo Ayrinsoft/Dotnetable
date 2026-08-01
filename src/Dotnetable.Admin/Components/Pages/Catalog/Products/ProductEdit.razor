@@ -219,22 +219,155 @@ else
                             }
                         </MudAlert>
                     }
-                    @if (_variantAttributes.Count > 0)
-                    {
-                        <MudAlert Severity="Severity.Info" Dense="true" Class="mb-3" Variant="Variant.Outlined">
-                            @L["variants.attributes_hint", "Pick the option for each variant attribute (color, size, …) on every row. These options identify the variant on the storefront."]
-                        </MudAlert>
-                    }
+                    @* ── Shopify/Woo-style: define product options once, then pick values per row ── *@
+                    <MudPaper Elevation="0" Class="border rounded-lg pa-3 mb-3">
+                        <MudStack Row="true" AlignItems="AlignItems.Center" Justify="Justify.SpaceBetween" Class="mb-2" Style="flex-wrap:wrap; gap:8px;">
+                            <MudStack Spacing="0">
+                                <MudText Typo="Typo.subtitle2" Class="fw-bold">@L["variants.product_options", "Product options"]</MudText>
+                                <MudText Typo="Typo.caption" Color="Color.Secondary">
+                                    @L["variants.product_options_hint", "Like Shopify / WooCommerce: choose attributes (Color, Size, …), add the values this product sells, then assign them on each variant. Color name + code are set once per value — not on every row."]
+                                </MudText>
+                            </MudStack>
+                            @if (_canEdit && AddableVariantAttributes.Count > 0)
+                            {
+                                <MudAutocomplete T="AttributeDefinition" Value="_addVariantAttrPick" ValueChanged="OnAddVariantAttribute"
+                                                 SearchFunc="SearchAddableVariantAttributes"
+                                                 ToStringFunc="@(a => a is null ? string.Empty : a.Name)"
+                                                 Label="@L["variants.add_option_attr", "Add option (e.g. Color)"]"
+                                                 Variant="Variant.Outlined" Margin="Margin.Dense" Dense="true"
+                                                 Clearable="true" CoerceText="false" ResetValueOnEmptyText="true"
+                                                 Style="min-width:220px; max-width:280px;" />
+                            }
+                        </MudStack>
+
+                        @if (_variantAttributes.Count == 0)
+                        {
+                            <MudAlert Severity="Severity.Info" Dense="true" Variant="Variant.Outlined">
+                                @L["variants.no_catalog_attrs", "No variant attributes in the catalog yet. Create ones under Catalog → Attributes and mark them as “Variant attribute” (Color or Select)."]
+                            </MudAlert>
+                        }
+                        else if (_productVariantAttrIds.Count == 0)
+                        {
+                            <MudText Color="Color.Secondary">
+                                @L["variants.no_product_options", "No options on this product yet. Add Color, Size, or another variant attribute above."]
+                            </MudText>
+                        }
+                        else
+                        {
+                            @foreach (var defId in _productVariantAttrIds.ToList())
+                            {
+                                var def = GetVariantDef(defId);
+                                if (def is null) continue;
+                                var usedOptions = GetProductOptions(def);
+                                <MudPaper Elevation="0" Class="border rounded-lg pa-2 mb-2">
+                                    <MudStack Row="true" AlignItems="AlignItems.Center" Justify="Justify.SpaceBetween" Class="mb-1">
+                                        <MudStack Row="true" AlignItems="AlignItems.Center" Spacing="1">
+                                            <MudText Typo="Typo.subtitle2">@def.Name</MudText>
+                                            @if (def.InputType == 2)
+                                            {
+                                                <MudChip T="string" Size="Size.Small" Variant="Variant.Text">@L["attributes.color", "Color"]</MudChip>
+                                            }
+                                        </MudStack>
+                                        <MudStack Row="true" Spacing="0">
+                                            @if (_canEdit)
+                                            {
+                                                <MudButton Size="Size.Small" Variant="Variant.Text" StartIcon="@Icons.Material.Filled.Add"
+                                                           OnClick="@(() => AddProductOptionValueAsync(def))">
+                                                    @L["variants.add_value", "Add value"]
+                                                </MudButton>
+                                                <MudIconButton Icon="@Icons.Material.Filled.Close" Size="Size.Small" Color="Color.Default"
+                                                               title="@L["variants.remove_option_attr", "Remove this option from product"]"
+                                                               OnClick="@(() => RemoveProductVariantAttribute(defId))" />
+                                            }
+                                        </MudStack>
+                                    </MudStack>
+                                    @if (usedOptions.Count == 0)
+                                    {
+                                        <MudText Typo="Typo.caption" Color="Color.Secondary">
+                                            @L["variants.no_values_yet", "No values yet — add the ones this product offers (e.g. Red, Blue or S, M, L)."]
+                                        </MudText>
+                                    }
+                                    else
+                                    {
+                                        <div class="d-flex flex-wrap gap-1">
+                                            @foreach (var o in usedOptions)
+                                            {
+                                                <MudChip T="string" Size="Size.Small" Color="Color.Primary" Variant="Variant.Outlined"
+                                                         OnClose="@(() => { if (_canEdit) RemoveProductOptionValue(defId, o.AttributeOptionID); })">
+                                                    @if (def.InputType == 2)
+                                                    {
+                                                        <span class="dn-color-swatch-inline" style="@ColorSwatchStyle(o.ColorHex)"></span>
+                                                    }
+                                                    @o.Value
+                                                    @if (def.InputType == 2 && !string.IsNullOrEmpty(o.ColorHex))
+                                                    {
+                                                        <code class="ms-1" style="opacity:.7; font-size:.75em;">@o.ColorHex</code>
+                                                    }
+                                                </MudChip>
+                                            }
+                                        </div>
+                                    }
+                                </MudPaper>
+                            }
+
+                            @if (_canEdit && CanGenerateCombinations)
+                            {
+                                <MudButton Variant="Variant.Outlined" Color="Color.Primary" Size="Size.Small" Class="mt-1"
+                                           StartIcon="@Icons.Material.Filled.AutoAwesome"
+                                           OnClick="GenerateVariantCombinations">
+                                    @L["variants.generate_combinations", "Generate all combinations"]
+                                </MudButton>
+                                <MudText Typo="Typo.caption" Color="Color.Secondary" Class="mt-1">
+                                    @string.Format(L["variants.generate_hint", "Creates missing rows for every combination ({0} total). Existing variants are kept."], CombinationCount)
+                                </MudText>
+                            }
+                        }
+                    </MudPaper>
+
                     @foreach (var (v, idx) in _variants.Select((v, i) => (v, i)))
                     {
                         <MudPaper Elevation="0" Class="border rounded-lg pa-3 mb-2">
                             <MudGrid Spacing="2" AlignItems="AlignItems.Center">
+                                @if (_productVariantAttrIds.Count > 0)
+                                {
+                                    <MudItem xs="12">
+                                        <MudGrid Spacing="2">
+                                            @foreach (var defId in _productVariantAttrIds)
+                                            {
+                                                var def = GetVariantDef(defId);
+                                                if (def is null) continue;
+                                                var options = GetProductOptions(def);
+                                                var selectedId = GetVariantOptionId(v, defId);
+                                                <MudItem xs="12" sm="4" md="3">
+                                                    <MudSelect T="int?" Value="selectedId"
+                                                               ValueChanged="@(id => SetVariantOptionId(v, defId, id))"
+                                                               Label="@def.Name"
+                                                               Variant="Variant.Outlined" Margin="Margin.Dense"
+                                                               Dense="true" Clearable="true"
+                                                               Disabled="@(!_canEdit || options.Count == 0)">
+                                                        @foreach (var o in options)
+                                                        {
+                                                            <MudSelectItem T="int?" Value="@o.AttributeOptionID">
+                                                                @if (def.InputType == 2 && !string.IsNullOrEmpty(o.ColorHex))
+                                                                {
+                                                                    <span class="dn-color-swatch-inline" style="@ColorSwatchStyle(o.ColorHex)"></span>
+                                                                }
+                                                                @o.Value
+                                                            </MudSelectItem>
+                                                        }
+                                                    </MudSelect>
+                                                </MudItem>
+                                            }
+                                        </MudGrid>
+                                    </MudItem>
+                                }
                                 <MudItem xs="12" sm="4" md="3">
                                     <MudTextField T="string" @bind-Value="v.Title" Label="@L["variants.title", "Variant title"]"
                                                   Placeholder="@L["variants.title_placeholder", "e.g. Black T-shirt · Size XL"]"
                                                   Variant="Variant.Outlined" Margin="Margin.Dense" Required="true" MaxLength="200"
                                                   RequiredError="@L["variants.title_required", "Variant title is required"]"
-                                                  Error="@IsVariantTitleError(v)" ErrorText="@L["variants.title_required", "Variant title is required"]" />
+                                                  Error="@IsVariantTitleError(v)" ErrorText="@L["variants.title_required", "Variant title is required"]"
+                                                  HelperText="@L["variants.title_auto_hint", "Tip: leave blank and use Generate, or fill from option picks."]" />
                                 </MudItem>
                                 <MudItem xs="12" sm="4" md="3">
                                     <MudStack Row="true" AlignItems="AlignItems.Start" Spacing="0">
@@ -299,35 +432,13 @@ else
                                                                OnClick="@(() => ShowPriceHistoryAsync(v))" />
                                             </MudTooltip>
                                         }
-                                        <MudIconButton Icon="@Icons.Material.Filled.Delete" Color="Color.Error" OnClick="@(() => _variants.RemoveAt(idx))" />
+                                        <MudIconButton Icon="@Icons.Material.Filled.Delete" Color="Color.Error" OnClick="@(() => RemoveVariantAt(idx))" />
                                     </MudStack>
                                 </MudItem>
-                                @if (_variantAttributes.Count > 0)
-                                {
-                                    <MudItem xs="12">
-                                        <MudGrid Spacing="2">
-                                            @foreach (var def in _variantAttributes)
-                                            {
-                                                <MudItem xs="12" sm="4" md="3">
-                                                    <MudAutocomplete T="AttributeOption"
-                                                                     Value="@GetSelectedVariantAttrOption(v, def)"
-                                                                     ValueChanged="@(o => SetVariantAttrOption(v, def.AttributeDefinitionID, o?.AttributeOptionID))"
-                                                                     SearchFunc="@( (s, ct) => SearchAttrOptions(def, s, ct) )"
-                                                                     ToStringFunc="@(o => FormatAttributeOptionLabel(def, o))"
-                                                                     Label="@def.Name"
-                                                                     Variant="Variant.Outlined" Margin="Margin.Dense"
-                                                                     Clearable="true" Dense="true"
-                                                                     Disabled="@(!_canEdit)"
-                                                                     CoerceText="false" ResetValueOnEmptyText="true" />
-                                                </MudItem>
-                                            }
-                                        </MudGrid>
-                                    </MudItem>
-                                }
                             </MudGrid>
                         </MudPaper>
                     }
-                    <MudButton StartIcon="@Icons.Material.Filled.Add" OnClick="AddVariant">@L["variants.add", "Add variant"]</MudButton>
+                    <MudButton StartIcon="@Icons.Material.Filled.Add" OnClick="AddVariant" Disabled="@(!_canEdit)">@L["variants.add", "Add variant"]</MudButton>
                 </div>
             </MudTabPanel>
 
@@ -817,19 +928,40 @@ else
     private List<(int MediaSetId, FileRecord File)> _gallery = new();
     /// <summary>All active product-level (non-variant) attributes for the website, with options loaded.</summary>
     private List<AttributeDefinition> _allProductLevelAttributes = new();
-    /// <summary>Active catalog attributes marked as variant (color, size, …) — option pickers on each variant row.</summary>
+    /// <summary>Catalog attributes marked as variant (color, size, …) for this website.</summary>
     private List<AttributeDefinition> _variantAttributes = new();
+    /// <summary>Variant attribute definition IDs used by this product (Shopify-style product options).</summary>
+    private readonly List<int> _productVariantAttrIds = new();
+    /// <summary>Option IDs offered on this product, per attribute definition (ordered).</summary>
+    private readonly Dictionary<int, List<int>> _productVariantOptionIds = new();
+    /// <summary>Per-variant picks: defId → optionId. Kept off the EF graph until SetVariantsAsync.</summary>
+    private readonly Dictionary<ProductVariant, Dictionary<int, int>> _variantAttrPicks = new();
+    private AttributeDefinition? _addVariantAttrPick;
     /// <summary>Attribute definition IDs mapped to the selected category (and ancestors), ordered.</summary>
     private List<int> _categoryAttributeIds = new();
     /// <summary>Extra product-only attribute IDs added on this form (not from category mapping).</summary>
     private readonly List<int> _extraAttributeIds = new();
     private AttributeDefinition? _addAttributePick;
-    /// <summary>
-    /// Session-only option picks per variant (defId → optionId). Kept off the EF graph until SetVariantsAsync
-    /// so UpdateAsync does not try to insert partial VariantAttributeValue rows.
-    /// </summary>
-    private readonly Dictionary<ProductVariant, Dictionary<int, int>> _variantAttrOptions = new();
     private Dictionary<int, ProductAttributeValue> _attrValues = new();
+
+    private List<AttributeDefinition> AddableVariantAttributes =>
+        _variantAttributes.Where(a => !_productVariantAttrIds.Contains(a.AttributeDefinitionID)).ToList();
+
+    private bool CanGenerateCombinations =>
+        _productVariantAttrIds.Count > 0
+        && _productVariantAttrIds.All(id => _productVariantOptionIds.TryGetValue(id, out var opts) && opts.Count > 0);
+
+    private int CombinationCount
+    {
+        get
+        {
+            if (!CanGenerateCombinations) return 0;
+            var n = 1;
+            foreach (var id in _productVariantAttrIds)
+                n *= _productVariantOptionIds[id].Count;
+            return n;
+        }
+    }
 
     private List<AttributeDefinition> DisplayedProductAttributes
     {
@@ -906,7 +1038,6 @@ else
             Model = product;
             _websiteId = product.WebsiteID;
             _variants = product.ProductVariants.ToList();
-            CaptureVariantAttributeOptions(_variants);
             if (_vendorId is null)
                 await LoadSellerStocksAsync();
             await LoadVariantStockAsync(_variants);
@@ -991,6 +1122,9 @@ else
         }
         _allProductLevelAttributes = productLevel.OrderBy(a => a.SortOrder).ThenBy(a => a.Name).ToList();
         _variantAttributes = variantLevel.OrderBy(a => a.SortOrder).ThenBy(a => a.Name).ToList();
+
+        // After variant attribute definitions (with options) are loaded, hydrate row picks.
+        CaptureVariantAttributeOptions(_variants);
 
         // Product-only extras: saved values that are not on the category mapping.
         await ReloadCategoryAttributesAsync();
@@ -1238,7 +1372,7 @@ else
             Sku = string.Empty,
         };
         _variants.Add(v);
-        _variantAttrOptions[v] = new Dictionary<int, int>();
+        _variantAttrPicks[v] = new Dictionary<int, int>();
         _stockOnHand[v] = 0;
         _stockReserved[v] = 0;
         if (UseLocalCurrencyInput)
@@ -1248,40 +1382,311 @@ else
         }
     }
 
+    private void RemoveVariantAt(int index)
+    {
+        if (index < 0 || index >= _variants.Count) return;
+        var v = _variants[index];
+        _variants.RemoveAt(index);
+        _variantAttrPicks.Remove(v);
+        _stockOnHand.Remove(v);
+        _stockReserved.Remove(v);
+        _localPrice.Remove(v);
+        _localCompareAt.Remove(v);
+    }
+
+    /// <summary>Hydrate product options + per-row picks from saved variant attribute values.</summary>
     private void CaptureVariantAttributeOptions(IEnumerable<ProductVariant> variants)
     {
-        _variantAttrOptions.Clear();
+        _variantAttrPicks.Clear();
+        _productVariantAttrIds.Clear();
+        _productVariantOptionIds.Clear();
+
+        var attrOrder = new List<int>();
+        var optionsByAttr = new Dictionary<int, List<int>>();
+
         foreach (var v in variants)
         {
             var map = new Dictionary<int, int>();
-            foreach (var a in v.VariantAttributeValues)
+            foreach (var a in v.VariantAttributeValues
+                         .Where(x => x.AttributeDefinitionID > 0 && x.AttributeOptionID > 0)
+                         .OrderBy(x => x.AttributeDefinitionID))
             {
-                if (a.AttributeDefinitionID > 0 && a.AttributeOptionID > 0)
-                    map[a.AttributeDefinitionID] = a.AttributeOptionID;
+                map[a.AttributeDefinitionID] = a.AttributeOptionID;
+                if (!attrOrder.Contains(a.AttributeDefinitionID))
+                    attrOrder.Add(a.AttributeDefinitionID);
+                if (!optionsByAttr.TryGetValue(a.AttributeDefinitionID, out var list))
+                {
+                    list = new List<int>();
+                    optionsByAttr[a.AttributeDefinitionID] = list;
+                }
+                if (!list.Contains(a.AttributeOptionID))
+                    list.Add(a.AttributeOptionID);
             }
-            _variantAttrOptions[v] = map;
+            _variantAttrPicks[v] = map;
+        }
+
+        // Keep only attrs that still exist in the catalog as variant attributes.
+        var catalogIds = _variantAttributes.Select(a => a.AttributeDefinitionID).ToHashSet();
+        foreach (var id in attrOrder.Where(catalogIds.Contains))
+        {
+            _productVariantAttrIds.Add(id);
+            if (optionsByAttr.TryGetValue(id, out var opts))
+                _productVariantOptionIds[id] = opts;
+            else
+                _productVariantOptionIds[id] = new List<int>();
         }
     }
 
-    /// <summary>Index-aligned option lists for SetVariantsAsync (keeps picks off the EF graph).</summary>
+    private AttributeDefinition? GetVariantDef(int attributeDefinitionId) =>
+        _variantAttributes.FirstOrDefault(a => a.AttributeDefinitionID == attributeDefinitionId);
+
+    private List<AttributeOption> GetProductOptions(AttributeDefinition def)
+    {
+        if (!_productVariantOptionIds.TryGetValue(def.AttributeDefinitionID, out var ids) || ids.Count == 0)
+            return new List<AttributeOption>();
+        var byId = def.AttributeOptions.ToDictionary(o => o.AttributeOptionID);
+        var list = new List<AttributeOption>();
+        foreach (var id in ids)
+        {
+            if (byId.TryGetValue(id, out var o))
+                list.Add(o);
+        }
+        return list;
+    }
+
+    private Task<IEnumerable<AttributeDefinition>> SearchAddableVariantAttributes(string search, CancellationToken ct)
+    {
+        IEnumerable<AttributeDefinition> q = AddableVariantAttributes.OrderBy(a => a.SortOrder).ThenBy(a => a.Name);
+        if (!string.IsNullOrWhiteSpace(search))
+        {
+            var needle = search.Trim();
+            q = q.Where(a => a.Name.Contains(needle, StringComparison.OrdinalIgnoreCase)
+                             || a.Code.Contains(needle, StringComparison.OrdinalIgnoreCase));
+        }
+        return Task.FromResult(q);
+    }
+
+    private void OnAddVariantAttribute(AttributeDefinition? def)
+    {
+        _addVariantAttrPick = null;
+        if (def is null) return;
+        if (_productVariantAttrIds.Contains(def.AttributeDefinitionID)) return;
+        _productVariantAttrIds.Add(def.AttributeDefinitionID);
+        _productVariantOptionIds[def.AttributeDefinitionID] = new List<int>();
+    }
+
+    private void RemoveProductVariantAttribute(int attributeDefinitionId)
+    {
+        _productVariantAttrIds.Remove(attributeDefinitionId);
+        _productVariantOptionIds.Remove(attributeDefinitionId);
+        foreach (var map in _variantAttrPicks.Values)
+            map.Remove(attributeDefinitionId);
+    }
+
+    private async Task AddProductOptionValueAsync(AttributeDefinition def)
+    {
+        var used = _productVariantOptionIds.GetValueOrDefault(def.AttributeDefinitionID)?.ToHashSet()
+                   ?? new HashSet<int>();
+        var catalogLeft = def.AttributeOptions
+            .Where(o => !used.Contains(o.AttributeOptionID))
+            .OrderBy(o => o.SortOrder).ThenBy(o => o.Value)
+            .ToList();
+
+        var parameters = new DialogParameters<VariantOptionValueDialog>
+        {
+            { x => x.Definition, def },
+            { x => x.CatalogOptions, catalogLeft },
+        };
+        var dialog = await DialogService.ShowAsync<VariantOptionValueDialog>(
+            def.InputType == 2
+                ? L["variants.add_color_title", "Add color"]
+                : L["variants.add_value", "Add value"],
+            parameters,
+            new DialogOptions { MaxWidth = MaxWidth.Small, FullWidth = true });
+        var result = await dialog.Result;
+        if (result is not { Canceled: false, Data: AttributeOption option }) return;
+
+        AttachOptionToDefinition(def, option);
+        if (!_productVariantOptionIds.TryGetValue(def.AttributeDefinitionID, out var list))
+        {
+            list = new List<int>();
+            _productVariantOptionIds[def.AttributeDefinitionID] = list;
+        }
+        if (!list.Contains(option.AttributeOptionID))
+            list.Add(option.AttributeOptionID);
+    }
+
+    private void RemoveProductOptionValue(int attributeDefinitionId, int optionId)
+    {
+        if (_productVariantOptionIds.TryGetValue(attributeDefinitionId, out var list))
+            list.Remove(optionId);
+        foreach (var map in _variantAttrPicks.Values)
+        {
+            if (map.TryGetValue(attributeDefinitionId, out var picked) && picked == optionId)
+                map.Remove(attributeDefinitionId);
+        }
+    }
+
+    private int? GetVariantOptionId(ProductVariant variant, int attributeDefinitionId)
+    {
+        if (_variantAttrPicks.TryGetValue(variant, out var map)
+            && map.TryGetValue(attributeDefinitionId, out var id)
+            && id > 0)
+            return id;
+        return null;
+    }
+
+    private void SetVariantOptionId(ProductVariant variant, int attributeDefinitionId, int? optionId)
+    {
+        if (!_variantAttrPicks.TryGetValue(variant, out var map))
+        {
+            map = new Dictionary<int, int>();
+            _variantAttrPicks[variant] = map;
+        }
+        if (optionId is null or <= 0)
+            map.Remove(attributeDefinitionId);
+        else
+            map[attributeDefinitionId] = optionId.Value;
+
+        // Auto-fill empty title from option labels (Shopify-like).
+        if (string.IsNullOrWhiteSpace(variant.Title))
+            variant.Title = BuildVariantTitleFromPicks(variant);
+    }
+
+    private string BuildVariantTitleFromPicks(ProductVariant variant)
+    {
+        if (!_variantAttrPicks.TryGetValue(variant, out var map) || map.Count == 0)
+            return string.Empty;
+        var parts = new List<string>();
+        foreach (var defId in _productVariantAttrIds)
+        {
+            if (!map.TryGetValue(defId, out var optId)) continue;
+            var def = GetVariantDef(defId);
+            var opt = def?.AttributeOptions.FirstOrDefault(o => o.AttributeOptionID == optId);
+            if (opt is not null && !string.IsNullOrWhiteSpace(opt.Value))
+                parts.Add(opt.Value);
+        }
+        return string.Join(" / ", parts);
+    }
+
+    private void GenerateVariantCombinations()
+    {
+        if (!CanGenerateCombinations) return;
+
+        var axes = _productVariantAttrIds
+            .Select(defId => (
+                DefId: defId,
+                Options: _productVariantOptionIds[defId].ToList()))
+            .ToList();
+
+        var combos = new List<Dictionary<int, int>> { new() };
+        foreach (var axis in axes)
+        {
+            var next = new List<Dictionary<int, int>>();
+            foreach (var partial in combos)
+            {
+                foreach (var optId in axis.Options)
+                {
+                    var copy = new Dictionary<int, int>(partial) { [axis.DefId] = optId };
+                    next.Add(copy);
+                }
+            }
+            combos = next;
+        }
+
+        // Index existing variants by sorted (defId, optionId) signature.
+        string Sig(Dictionary<int, int> picks) =>
+            string.Join("|", picks.OrderBy(kv => kv.Key).Select(kv => $"{kv.Key}:{kv.Value}"));
+
+        var existing = new HashSet<string>(StringComparer.Ordinal);
+        foreach (var v in _variants)
+        {
+            if (!_variantAttrPicks.TryGetValue(v, out var map) || map.Count == 0) continue;
+            existing.Add(Sig(map));
+        }
+
+        var added = 0;
+        foreach (var combo in combos)
+        {
+            var sig = Sig(combo);
+            if (!existing.Add(sig)) continue;
+
+            var v = new ProductVariant
+            {
+                IsActive = true,
+                IsDefault = _variants.Count == 0 && added == 0,
+                Title = string.Empty,
+                Sku = string.Empty,
+            };
+            _variants.Add(v);
+            _variantAttrPicks[v] = new Dictionary<int, int>(combo);
+            v.Title = BuildVariantTitleFromPicks(v);
+            _stockOnHand[v] = 0;
+            _stockReserved[v] = 0;
+            if (UseLocalCurrencyInput)
+            {
+                _localPrice[v] = 0;
+                _localCompareAt[v] = null;
+            }
+            added++;
+        }
+
+        // Drop a single empty placeholder row if we just generated real combinations.
+        if (added > 0 && _variants.Count > added)
+        {
+            for (var i = _variants.Count - 1; i >= 0; i--)
+            {
+                var v = _variants[i];
+                var emptyPicks = !_variantAttrPicks.TryGetValue(v, out var m) || m.Count == 0;
+                var emptyMeta = string.IsNullOrWhiteSpace(v.Title) && string.IsNullOrWhiteSpace(v.Sku)
+                                && DisplayPrice(v) <= 0;
+                if (emptyPicks && emptyMeta && v.ProductVariantID == 0)
+                    RemoveVariantAt(i);
+            }
+        }
+
+        if (added == 0)
+            Snackbar.Add(L["variants.generate_none", "All combinations already exist."], Severity.Info);
+        else
+            Snackbar.Add(string.Format(L["variants.generate_added", "Added {0} variant(s). Set price and SKU on each row."], added), Severity.Success);
+    }
+
+    /// <summary>Builds option-id payload for SetVariantsAsync (only product option attributes).</summary>
     private List<IReadOnlyList<(int AttributeDefinitionID, int AttributeOptionID)>> BuildVariantAttributeOptionsPayload()
     {
         var payload = new List<IReadOnlyList<(int, int)>>(_variants.Count);
+        var allowedAttrs = _productVariantAttrIds.ToHashSet();
         foreach (var v in _variants)
         {
-            var map = _variantAttrOptions.TryGetValue(v, out var m) ? m : null;
-            if (map is null || map.Count == 0)
+            if (!_variantAttrPicks.TryGetValue(v, out var map) || map.Count == 0)
             {
                 payload.Add(Array.Empty<(int, int)>());
                 continue;
             }
-
             payload.Add(map
-                .Where(kv => kv.Key > 0 && kv.Value > 0)
+                .Where(kv => allowedAttrs.Contains(kv.Key) && kv.Value > 0)
                 .Select(kv => (kv.Key, kv.Value))
                 .ToList());
         }
         return payload;
+    }
+
+    private static void AttachOptionToDefinition(AttributeDefinition def, AttributeOption option)
+    {
+        if (def.AttributeOptions.Any(o => o.AttributeOptionID == option.AttributeOptionID))
+        {
+            var existing = def.AttributeOptions.First(o => o.AttributeOptionID == option.AttributeOptionID);
+            existing.Value = option.Value;
+            existing.ColorHex = option.ColorHex;
+            return;
+        }
+        def.AttributeOptions.Add(option);
+    }
+
+    private static string ColorSwatchStyle(string? hex)
+    {
+        var c = string.IsNullOrWhiteSpace(hex) ? "#E0E0E0" : hex.Trim();
+        return $"background:{c};";
     }
 
     private async Task LoadVariantStockAsync(IReadOnlyList<ProductVariant> variants)
@@ -1847,29 +2252,6 @@ else
             ? def.AttributeOptions.FirstOrDefault(o => o.AttributeOptionID == id)
             : null;
 
-    private AttributeOption? GetSelectedVariantAttrOption(ProductVariant variant, AttributeDefinition def)
-    {
-        if (!_variantAttrOptions.TryGetValue(variant, out var map)
-            || !map.TryGetValue(def.AttributeDefinitionID, out var optionId)
-            || optionId <= 0)
-            return null;
-        return def.AttributeOptions.FirstOrDefault(o => o.AttributeOptionID == optionId);
-    }
-
-    private void SetVariantAttrOption(ProductVariant variant, int attributeDefinitionId, int? optionId)
-    {
-        if (!_variantAttrOptions.TryGetValue(variant, out var map))
-        {
-            map = new Dictionary<int, int>();
-            _variantAttrOptions[variant] = map;
-        }
-
-        if (optionId is null or <= 0)
-            map.Remove(attributeDefinitionId);
-        else
-            map[attributeDefinitionId] = optionId.Value;
-    }
-
     private static string FormatAttributeOptionLabel(AttributeDefinition def, AttributeOption? option)
     {
         if (option is null) return string.Empty;
@@ -2030,6 +2412,8 @@ else
         if (_isNew && _memberId is int creatorId)
             Model.CreatedByMemberID = creatorId;
 
+        var variantAttrPayload = BuildVariantAttributeOptionsPayload();
+
         _saving = true;
         try
         {
@@ -2064,7 +2448,7 @@ else
                 Model.ProductID,
                 _variants,
                 _memberId,
-                BuildVariantAttributeOptionsPayload());
+                variantAttrPayload);
             await ProductService.SetMediaAsync(Model.ProductID, _gallery.Select(g => g.MediaSetId).ToList());
             // Only persist attributes that have a real value (empty = attribute not used on this product).
             var attributePayload = _attrValues.Values.Where(HasMeaningfulAttrValue).ToList();

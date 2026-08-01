@@ -1,0 +1,155 @@
+@inject IAttributeDefinitionService AttributeDefinitionService
+@inject ISnackbar Snackbar
+@inject IPageLocalizer L
+
+<MudDialog>
+    <TitleContent>
+        <MudText Typo="Typo.h6">
+            @if (IsColor)
+            {
+                <MudIcon Icon="@Icons.Material.Filled.Palette" Class="me-2" />
+                @string.Format(L["variants.add_color_title", "Add color — {0}"], Definition.Name)
+            }
+            else
+            {
+                <MudIcon Icon="@Icons.Material.Filled.Add" Class="me-2" />
+                @string.Format(L["variants.add_value_title", "Add value — {0}"], Definition.Name)
+            }
+        </MudText>
+    </TitleContent>
+    <DialogContent>
+        <MudText Typo="Typo.body2" Color="Color.Secondary" Class="mb-3">
+            @if (IsColor)
+            {
+                @L["variants.add_color_hint", "Define the color once for this product (name + code). Then assign it on each variant row."]
+            }
+            else
+            {
+                @L["variants.add_value_hint", "Add a value used by this product’s variants (e.g. XL, 256GB)."]
+            }
+        </MudText>
+
+        <MudTextField @bind-Value="_name"
+                      Label="@(IsColor ? L["attributes.color_name", "Color name"] : L["value", "Value"])"
+                      Placeholder="@(IsColor ? L["attributes.color_name_placeholder", "e.g. Navy blue"] : L["variants.value_placeholder", "e.g. XL"])"
+                      Variant="Variant.Outlined"
+                      Required="true"
+                      Class="mb-3"
+                      Immediate="true" />
+
+        @if (IsColor)
+        {
+            <MudStack Row="true" AlignItems="AlignItems.Center" Spacing="2" Class="mb-2">
+                <div class="dn-color-swatch" style="@SwatchStyle(_hex)" title="@(_hex ?? "")"></div>
+                <MudText Typo="Typo.caption" Color="Color.Secondary">@(_hex ?? L["attributes.color_not_set", "No color yet"])</MudText>
+            </MudStack>
+            <MudColorPicker Label="@L["attributes.color_code", "Color"]"
+                            Value="@ParseMudColor(_hex)"
+                            ValueChanged="OnColorChanged"
+                            Variant="Variant.Outlined"
+                            ColorPickerView="ColorPickerView.Spectrum"
+                            PickerVariant="PickerVariant.Dialog"
+                            ShowModeSwitch="true"
+                            ShowAlpha="false"
+                            HelperText="@L["attributes.color_picker_hint", "HEX or RGB (bytes 0–255)"]" />
+        }
+
+        @if (CatalogOptions.Count > 0)
+        {
+            <MudText Typo="Typo.caption" Color="Color.Secondary" Class="mt-3 mb-1">
+                @L["variants.or_pick_catalog", "Or pick an existing catalog value:"]
+            </MudText>
+            <div class="d-flex flex-wrap gap-1">
+                @foreach (var o in CatalogOptions)
+                {
+                    <MudChip T="string" Size="Size.Small" Variant="Variant.Outlined"
+                             OnClick="@(() => PickExisting(o))">
+                        @if (IsColor)
+                        {
+                            <span class="dn-color-swatch-inline" style="@SwatchStyle(o.ColorHex)"></span>
+                        }
+                        @o.Value
+                    </MudChip>
+                }
+            </div>
+        }
+    </DialogContent>
+    <DialogActions>
+        <MudButton OnClick="Cancel">@L["cancel", "Cancel"]</MudButton>
+        <MudButton Color="Color.Primary" Variant="Variant.Filled" OnClick="SaveAsync" Disabled="@_saving">
+            @L["add", "Add"]
+        </MudButton>
+    </DialogActions>
+</MudDialog>
+
+@code {
+    [CascadingParameter] private IMudDialogInstance MudDialog { get; set; } = null!;
+
+    [Parameter] public AttributeDefinition Definition { get; set; } = new();
+    /// <summary>Catalog options not yet on the product (quick-pick).</summary>
+    [Parameter] public IReadOnlyList<AttributeOption> CatalogOptions { get; set; } = Array.Empty<AttributeOption>();
+
+    private string _name = string.Empty;
+    private string? _hex;
+    private bool _saving;
+
+    private bool IsColor => Definition.InputType == 2;
+
+    private void OnColorChanged(MudColor? c) => _hex = FormatHex(c);
+
+    private void PickExisting(AttributeOption o) => MudDialog.Close(DialogResult.Ok(o));
+
+    private async Task SaveAsync()
+    {
+        if (string.IsNullOrWhiteSpace(_name))
+        {
+            Snackbar.Add(L["variants.value_required", "Enter a value name."], Severity.Warning);
+            return;
+        }
+        if (IsColor && string.IsNullOrWhiteSpace(_hex))
+        {
+            Snackbar.Add(L["attributes.color_required", "Each color option needs a color code from the picker."], Severity.Warning);
+            return;
+        }
+
+        _saving = true;
+        try
+        {
+            var option = await AttributeDefinitionService.EnsureOptionAsync(
+                Definition.AttributeDefinitionID,
+                _name.Trim(),
+                IsColor ? _hex : null);
+            MudDialog.Close(DialogResult.Ok(option));
+        }
+        catch (Exception ex)
+        {
+            Snackbar.Add($"{L["save_failed", "Save failed"]}: {ex.Message}", Severity.Error);
+        }
+        finally { _saving = false; }
+    }
+
+    private void Cancel() => MudDialog.Cancel();
+
+    private static MudColor? ParseMudColor(string? hex)
+    {
+        if (string.IsNullOrWhiteSpace(hex)) return null;
+        try { return new MudColor(hex.Trim()); }
+        catch { return null; }
+    }
+
+    private static string? FormatHex(MudColor? color)
+    {
+        if (color is null) return null;
+        var hex = color.ToString(MudColorOutputFormats.Hex);
+        if (string.IsNullOrEmpty(hex)) return null;
+        if (hex.Length == 9 && hex.StartsWith('#'))
+            return ("#" + hex[3..]).ToUpperInvariant();
+        return hex.StartsWith('#') ? hex.ToUpperInvariant() : "#" + hex.ToUpperInvariant();
+    }
+
+    private static string SwatchStyle(string? hex)
+    {
+        var c = string.IsNullOrWhiteSpace(hex) ? "#E0E0E0" : hex.Trim();
+        return $"background:{c};";
+    }
+}

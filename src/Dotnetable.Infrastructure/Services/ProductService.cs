@@ -79,7 +79,7 @@ public class ProductService : IProductService
     public async Task<Product?> GetByIdAsync(int productId, CancellationToken ct = default) =>
         await _context.Products
             .Include(p => p.ProductTranslations)
-            .Include(p => p.ProductVariants).ThenInclude(v => v.VariantAttributeValues)
+            .Include(p => p.ProductVariants).ThenInclude(v => v.VariantAttributeValues).ThenInclude(a => a.AttributeOption)
             .Include(p => p.ProductCategoryMaps)
             .Include(p => p.ProductMedia).ThenInclude(m => m.MediaSet).ThenInclude(ms => ms.MediaSetItems).ThenInclude(i => i.File)
             .Include(p => p.ProductAttributeValues).ThenInclude(v => v.AttributeDefinition)

@@ -43,22 +43,41 @@
                 @if (Model.InputType is 1 or 2)
                 {
                     <MudItem xs="12">
-                        <MudText Typo="Typo.subtitle2" Class="mb-2">@L["attributes.options", "Options"]</MudText>
+                        <MudText Typo="Typo.subtitle2" Class="mb-1">@L["attributes.options", "Options"]</MudText>
+                        @if (Model.InputType == 2)
+                        {
+                            <MudText Typo="Typo.caption" Color="Color.Secondary" Class="mb-2">
+                                @L["attributes.color_options_hint", "Each option needs a color name and a color code. Use the picker — switch modes for HEX or RGB (0–255)."]
+                            </MudText>
+                        }
                         @foreach (var (option, index) in _options.Select((o, i) => (o, i)))
                         {
-                            <MudGrid Spacing="2" Class="mb-1" AlignItems="AlignItems.Center">
-                                <MudItem xs="@(Model.InputType == 2 ? 5 : 10)">
-                                    <MudTextField T="string" @bind-Value="option.Value" Label="@L["value", "Value"]" Variant="Variant.Outlined" Margin="Margin.Dense" />
+                            <MudGrid Spacing="2" Class="mb-2" AlignItems="AlignItems.Center">
+                                <MudItem xs="@(Model.InputType == 2 ? 4 : 10)">
+                                    <MudTextField T="string" @bind-Value="option.Value"
+                                                  Label="@(Model.InputType == 2 ? L["attributes.color_name", "Color name"] : L["value", "Value"])"
+                                                  Variant="Variant.Outlined" Margin="Margin.Dense"
+                                                  Placeholder="@(Model.InputType == 2 ? L["attributes.color_name_placeholder", "e.g. Navy blue"] : null)" />
                                 </MudItem>
                                 @if (Model.InputType == 2)
                                 {
+                                    <MudItem xs="2" Class="d-flex align-center justify-center">
+                                        <div class="dn-color-swatch" style="@SwatchStyle(option.ColorHex)" title="@(option.ColorHex ?? "")"></div>
+                                    </MudItem>
                                     <MudItem xs="5">
-                                        <MudTextField T="string" @bind-Value="option.ColorHex" Label="@L["attributes.color_hex", "Color (#hex)"]"
-                                                      Variant="Variant.Outlined" Margin="Margin.Dense" Adornment="Adornment.End"
-                                                      AdornmentColor="Color.Default" AdornmentIcon="@Icons.Material.Filled.Circle" />
+                                        <MudColorPicker Label="@L["attributes.color_code", "Color"]"
+                                                        Value="@ParseMudColor(option.ColorHex)"
+                                                        ValueChanged="@(c => option.ColorHex = FormatHex(c))"
+                                                        Variant="Variant.Outlined"
+                                                        Margin="Margin.Dense"
+                                                        ColorPickerView="ColorPickerView.Spectrum"
+                                                        PickerVariant="PickerVariant.Dialog"
+                                                        ShowModeSwitch="true"
+                                                        ShowAlpha="false"
+                                                        HelperText="@L["attributes.color_picker_hint", "HEX or RGB (bytes 0–255)"]" />
                                     </MudItem>
                                 }
-                                <MudItem xs="2">
+                                <MudItem xs="1">
                                     <MudIconButton Icon="@Icons.Material.Filled.Delete" Size="Size.Small" Color="Color.Error"
                                                    OnClick="@(() => _options.RemoveAt(index))" />
                                 </MudItem>
@@ -130,6 +149,30 @@
     private string Name(string code) => _tr.TryGetValue(code, out var v) ? v.Name : string.Empty;
     private void SetName(string code, string v) { var c = _tr.GetValueOrDefault(code); _tr[code] = (v ?? string.Empty, c.Unit); }
 
+    private static MudColor? ParseMudColor(string? hex)
+    {
+        if (string.IsNullOrWhiteSpace(hex)) return null;
+        try { return new MudColor(hex.Trim()); }
+        catch { return null; }
+    }
+
+    private static string? FormatHex(MudColor? color)
+    {
+        if (color is null) return null;
+        // Prefer #RRGGBB without alpha for storefront CSS.
+        var hex = color.ToString(MudColorOutputFormats.Hex);
+        if (string.IsNullOrEmpty(hex)) return null;
+        if (hex.Length == 9 && hex.StartsWith('#')) // #AARRGGBB
+            return "#" + hex[3..];
+        return hex.StartsWith('#') ? hex.ToUpperInvariant() : "#" + hex.ToUpperInvariant();
+    }
+
+    private static string SwatchStyle(string? hex)
+    {
+        var c = string.IsNullOrWhiteSpace(hex) ? "#E0E0E0" : hex.Trim();
+        return $"background:{c}; width:28px; height:28px; border-radius:50%; border:1px solid var(--mud-palette-lines-default);";
+    }
+
     private void Cancel() => MudDialog.Cancel();
 
     private async Task SaveAsync()
@@ -138,12 +181,32 @@
         _formErrors = _form.Errors;
         if (!_form.IsValid) return;
 
+        // Drop blank option rows; require name for color options that have a hex.
+        var cleaned = _options
+            .Where(o => !string.IsNullOrWhiteSpace(o.Value))
+            .Select(o =>
+            {
+                o.Value = o.Value.Trim();
+                o.ColorHex = FormatHex(ParseMudColor(o.ColorHex)) ?? o.ColorHex?.Trim();
+                return o;
+            })
+            .ToList();
+        if (Model.InputType == 2)
+        {
+            var missingColor = cleaned.Where(o => string.IsNullOrWhiteSpace(o.ColorHex)).Select(o => o.Value).ToList();
+            if (missingColor.Count > 0)
+            {
+                Snackbar.Add(L["attributes.color_required", "Each color option needs a color code from the picker."], Severity.Warning);
+                return;
+            }
+        }
+
         _saving = true;
         try
         {
             if (IsNew) Model = await AttributeService.CreateAsync(Model);
             else await AttributeService.UpdateAsync(Model);
-            await AttributeService.SetOptionsAsync(Model.AttributeDefinitionID, _options);
+            await AttributeService.SetOptionsAsync(Model.AttributeDefinitionID, cleaned);
             await AttributeService.SetTranslationsAsync(Model.AttributeDefinitionID, _tr);
             Snackbar.Add(L["saved", "Saved."], Severity.Success);
             MudDialog.Close(DialogResult.Ok(true));

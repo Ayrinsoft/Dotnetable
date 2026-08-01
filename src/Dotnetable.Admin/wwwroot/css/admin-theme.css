@@ -512,6 +512,24 @@ html, body {
 .dn-category-tree-head .dn-category-tree-col-status { flex: 0 0 96px; text-align: center; }
 .dn-category-tree-head .dn-category-tree-col-actions { flex: 0 0 120px; }
 
+/* Color attribute swatches (catalog + product variants). */
+.dn-color-swatch {
+    width: 28px;
+    height: 28px;
+    border-radius: 50%;
+    border: 1px solid var(--mud-palette-lines-default);
+    flex-shrink: 0;
+}
+.dn-color-swatch-inline {
+    display: inline-block;
+    width: 14px;
+    height: 14px;
+    border-radius: 50%;
+    border: 1px solid rgba(0, 0, 0, .2);
+    margin-inline-end: 6px;
+    vertical-align: middle;
+}
+
 /* Category attribute dialogs: selected chips as a dense grid (rows/cols). */
 .dn-category-attr-chips {
     display: grid;
