@@ -179,6 +179,74 @@ public class AttributeDefinitionService : IAttributeDefinitionService
         await _context.SaveChangesAsync(ct);
     }
 
+    public async Task<AttributeOption> EnsureOptionAsync(
+        int attributeDefinitionId,
+        string value,
+        string? colorHex = null,
+        CancellationToken ct = default)
+    {
+        value = (value ?? string.Empty).Trim();
+        if (string.IsNullOrEmpty(value))
+            throw new ArgumentException("Option value is required.", nameof(value));
+
+        var normalizedHex = NormalizeColorHex(colorHex);
+
+        var existing = await _context.AttributeOptions
+            .Where(o => o.AttributeDefinitionID == attributeDefinitionId)
+            .ToListAsync(ct);
+
+        // Prefer exact name + hex match; fall back to name-only (update hex if provided).
+        var match = existing.FirstOrDefault(o =>
+            string.Equals(o.Value, value, StringComparison.OrdinalIgnoreCase)
+            && string.Equals(NormalizeColorHex(o.ColorHex), normalizedHex, StringComparison.OrdinalIgnoreCase));
+
+        if (match is null)
+        {
+            match = existing.FirstOrDefault(o =>
+                string.Equals(o.Value, value, StringComparison.OrdinalIgnoreCase));
+            if (match is not null && normalizedHex is not null
+                && !string.Equals(NormalizeColorHex(match.ColorHex), normalizedHex, StringComparison.OrdinalIgnoreCase))
+            {
+                match.ColorHex = normalizedHex;
+                await _context.SaveChangesAsync(ct);
+            }
+        }
+
+        if (match is not null)
+            return match;
+
+        var sortOrder = existing.Count == 0 ? 0 : existing.Max(o => o.SortOrder) + 1;
+        var created = new AttributeOption
+        {
+            AttributeDefinitionID = attributeDefinitionId,
+            Value = value,
+            ColorHex = normalizedHex,
+            SortOrder = sortOrder,
+        };
+        _context.AttributeOptions.Add(created);
+        await _context.SaveChangesAsync(ct);
+        return created;
+    }
+
+    /// <summary>Normalizes to #RRGGBB uppercase, or null when empty/invalid.</summary>
+    private static string? NormalizeColorHex(string? hex)
+    {
+        if (string.IsNullOrWhiteSpace(hex)) return null;
+        var s = hex.Trim();
+        if (s.StartsWith('#')) s = s[1..];
+        if (s.Length == 3)
+            s = string.Concat(s.Select(c => $"{c}{c}"));
+        if (s.Length == 8)
+            s = s[..6]; // RRGGBBAA → RGB
+        if (s.Length != 6) return null;
+        foreach (var c in s)
+        {
+            var isHex = (c is >= '0' and <= '9') || (c is >= 'a' and <= 'f') || (c is >= 'A' and <= 'F');
+            if (!isHex) return null;
+        }
+        return "#" + s.ToUpperInvariant();
+    }
+
     public async Task<List<AttributeOptionTranslation>> GetOptionTranslationsAsync(int attributeOptionId, CancellationToken ct = default) =>
         await _context.AttributeOptionTranslations.AsNoTracking()
             .Where(t => t.AttributeOptionID == attributeOptionId)
