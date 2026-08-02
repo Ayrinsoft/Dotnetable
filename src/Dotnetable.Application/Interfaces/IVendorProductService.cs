@@ -74,4 +74,20 @@ public interface IVendorProductService
     /// Preserves QuantityReserved already held on the inventory row.
     /// </summary>
     Task SyncInventoryOnHandFromListingsAsync(int websiteId, int productVariantId, CancellationToken ct = default);
+
+    /// <summary>
+    /// Exports current listing price/stock for bulk edit. Scope: host <paramref name="websiteId"/>,
+    /// optionally a single <paramref name="vendorId"/>. When <paramref name="actingMemberId"/> is set,
+    /// only that member’s own vendor listings are included.
+    /// </summary>
+    Task<byte[]> ExportListingsExcelAsync(
+        int websiteId, int? vendorId = null, int? actingMemberId = null, CancellationToken ct = default);
+
+    /// <summary>
+    /// Applies an Excel file produced by <see cref="ExportListingsExcelAsync"/> (same columns).
+    /// Updates only existing listings in scope; does not create new rows. Rows with validation
+    /// errors are skipped and listed in the result.
+    /// </summary>
+    Task<VendorListingImportResult> ImportListingsExcelAsync(
+        int websiteId, Stream excel, int? vendorId = null, int? actingMemberId = null, CancellationToken ct = default);
 }

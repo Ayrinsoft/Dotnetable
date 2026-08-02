@@ -8,6 +8,7 @@
 @inject ISnackbar Snackbar
 @inject IPageLocalizer L
 @inject NavigationManager Nav
+@inject IJSRuntime JS
 
 <DNPageTitle Title=@L["vendors.listings", "Vendor listings"] />
 
@@ -26,16 +27,32 @@ else
                     : L["vendors.listings.subtitle", "Which catalog variants this vendor sells on the host site, with optional price override and stock."])
             </MudText>
         </MudStack>
-        <MudStack Row="true" Spacing="2">
+        <MudStack Row="true" Spacing="2" Class="flex-wrap">
             <MudButton Variant="Variant.Text" StartIcon="@Icons.Material.Filled.ArrowBack" OnClick="@(() => Nav.NavigateTo("/catalog/vendors"))">@L["back", "Back"]</MudButton>
+            <MudButton Variant="Variant.Outlined" Color="Color.Primary" StartIcon="@Icons.Material.Filled.Download"
+                       OnClick="ExportPriceStockAsync" Disabled="_excelBusy">
+                @L["products.export_price_stock", "Export price & stock"]
+            </MudButton>
             @if (_canEdit)
             {
+                <MudFileUpload T="IBrowserFile" FilesChanged="ImportPriceStockAsync" Accept=".xlsx" Class="d-inline-flex">
+                    <ActivatorContent>
+                        <MudButton Variant="Variant.Outlined" Color="Color.Secondary"
+                                   StartIcon="@Icons.Material.Filled.UploadFile" Disabled="_excelBusy">
+                            @L["products.import_price_stock", "Import price & stock"]
+                        </MudButton>
+                    </ActivatorContent>
+                </MudFileUpload>
                 <MudButton Variant="Variant.Filled" Color="Color.Primary" StartIcon="@Icons.Material.Filled.Add" OnClick="AddAsync">
                     @L["vendors.listings.add", "Add listing"]
                 </MudButton>
             }
         </MudStack>
     </MudStack>
+
+    <MudAlert Severity="Severity.Info" Dense="true" Variant="Variant.Outlined" Class="mb-3">
+        @L["vendors.listings.excel_hint", "Download current prices and stock for this seller, edit Price/Stock in Excel (keep VendorProductID), then import. File name includes today’s date."]
+    </MudAlert>
 
     <MudPaper Elevation="0" Class="app-card rounded-lg pa-4 mb-3">
         <MudStack Row="true" AlignItems="AlignItems.Center" Spacing="2" Class="flex-wrap">
@@ -159,8 +176,11 @@ else
 @code {
     [Parameter] public int VendorId { get; set; }
 
+    private const long MaxImportBytes = 20 * 1024 * 1024;
+
     private Vendor? _vendor;
     private bool _loading = true;
+    private bool _excelBusy;
     private bool _canEdit;
     private int? _actingMemberId;
     private List<VendorProductListItemDto> _items = new();
@@ -303,6 +323,57 @@ else
         if (!ok) { Snackbar.Add(err ?? "Failed", Severity.Error); return; }
         Snackbar.Add(L["deleted", "Deleted."], Severity.Success);
         await LoadAsync();
+    }
+
+    private async Task ExportPriceStockAsync()
+    {
+        if (_vendor is null) return;
+        _excelBusy = true;
+        try
+        {
+            var bytes = await VendorProductService.ExportListingsExcelAsync(
+                _vendor.WebsiteID, vendorId: VendorId, actingMemberId: _actingMemberId);
+            var fileName = $"price-stock-w{_vendor.WebsiteID}-vendor{VendorId}-{DateTime.Now:yyyyMMdd}.xlsx";
+            await JS.InvokeVoidAsync("dotnetableFile.download", fileName, Convert.ToBase64String(bytes),
+                "application/vnd.openxmlformats-officedocument.spreadsheetml.sheet");
+        }
+        catch (Exception ex)
+        {
+            Snackbar.Add($"{L["products.export_failed", "Export failed"]}: {ex.Message}", Severity.Error);
+        }
+        finally { _excelBusy = false; }
+    }
+
+    private async Task ImportPriceStockAsync(IBrowserFile? file)
+    {
+        if (file is null || _vendor is null || !_canEdit) return;
+        _excelBusy = true;
+        try
+        {
+            await using var stream = file.OpenReadStream(MaxImportBytes);
+            using var buffer = new MemoryStream();
+            await stream.CopyToAsync(buffer);
+            buffer.Position = 0;
+
+            var result = await VendorProductService.ImportListingsExcelAsync(
+                _vendor.WebsiteID, buffer, vendorId: VendorId, actingMemberId: _actingMemberId);
+
+            var summary = string.Format(
+                L["products.import_price_stock_result", "Import finished: {0} updated, {1} unchanged, {2} skipped."],
+                result.Updated, result.Unchanged, result.Skipped);
+            Snackbar.Add(summary, result.HasErrors ? Severity.Warning : Severity.Success);
+            foreach (var error in result.Errors.Take(8))
+                Snackbar.Add(error, Severity.Warning);
+            if (result.Errors.Count > 8)
+                Snackbar.Add(string.Format(L["import.more_errors", "…and {0} more issue(s)."], result.Errors.Count - 8), Severity.Warning);
+
+            await LoadAsync();
+        }
+        catch (Exception ex)
+        {
+            Snackbar.Add($"{L["products.import_failed", "Import failed"]}: {ex.Message}", Severity.Error);
+        }
+        finally { _excelBusy = false; }
     }
 
     public void Dispose() => _searchDebounce?.Dispose();
