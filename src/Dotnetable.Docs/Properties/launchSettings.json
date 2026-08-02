@@ -1,6 +1,6 @@
-{
+﻿{
   "profiles": {
-    "Dotnetable.Admin.Docs": {
+    "Dotnetable.Docs": {
       "commandName": "Project",
       "dotnetRunMessages": true,
       "launchBrowser": true,
@@ -11,3 +11,4 @@
     }
   }
 }
+

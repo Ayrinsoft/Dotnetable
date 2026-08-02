@@ -1,16 +1,20 @@
 # Agent notes — Dotnetable
 
-## Admin operator documentation
+## Documentation site
 
-There is a **static bilingual (FA/EN) docs site** for Admin features:
+Unified static docs (Admin + API):
 
-- Project: `src/Dotnetable.Admin.Docs`
-- Content source: `src/Dotnetable.Admin.Docs/wwwroot/js/catalog.js`
+- Project: `src/Dotnetable.Docs`
+- Admin content: `wwwroot/js/catalog-admin.js`
+- API content: `wwwroot/js/catalog-api.js`
+- Switch in UI: Admin | API (`#/{lang}/{admin|api}/{pageId}`)
 
-**Rule:** When you add, remove, rename, or change the meaning of an Admin screen or workflow, update the matching docs page in `catalog.js` in the **same change**. Also keep `NavMenu.razor` and `AdminSearchCatalog.cs` aligned.
+**Rule:** When Admin UI/behavior or API endpoints change, update the matching catalog page in the same change. Cross-link with `relatedAdmin` / `relatedApi` when the concept exists in both.
 
-Run docs locally:
+Auth for the storefront API is only detailed on the API page `auth`. Do not re-explain full auth on every endpoint.
 
 ```bash
-dotnet run --project src/Dotnetable.Admin.Docs
+dotnet run --project src/Dotnetable.Docs
 ```
+
+Do not reintroduce Swagger UI on `Dotnetable.API`; use this docs site instead.

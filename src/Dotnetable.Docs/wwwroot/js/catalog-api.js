@@ -1,0 +1,1494 @@
+/**
+ * Dotnetable public API documentation catalog.
+ *
+ * Auth is explained once on page id "auth". Other pages only mark auth level and link back.
+ * Keep in sync with src/Dotnetable.API/Controllers/** and BaseController headers.
+ */
+window.DOCS_API = {
+  meta: {
+    version: "1.0",
+    maintenance: {
+      title: {
+        en: "Keep API docs in sync",
+        fa: "هم‌گام‌سازی مستندات API",
+      },
+      body: {
+        en: "When you add or change a controller endpoint, update the matching page here (path, body, sample response). Cross-link Admin pages when the same concept is managed in Admin.",
+        fa: "وقتی اندپوینت کنترلر اضافه یا عوض می‌شود، همان صفحه را اینجا (مسیر، بدنه، نمونه پاسخ) به‌روز کنید. اگر مفهوم در ادمین هم مدیریت می‌شود، لینک متقابل بگذارید.",
+      },
+      items: [
+        {
+          en: "Auth rules change → update only the Authentication page (unless a specific endpoint differs).",
+          fa: "تغییر قوانین احراز → فقط صفحه Authentication (مگر اندپوینت خاصی فرق کند).",
+        },
+        {
+          en: "New public feature → Admin docs + API docs + relatedAdmin/relatedApi links.",
+          fa: "قابلیت عمومی جدید → مستند ادمین + API + لینک relatedAdmin/relatedApi.",
+        },
+      ],
+    },
+  },
+
+  sections: [
+    /* ───────── Start ───────── */
+    {
+      id: "start",
+      title: { en: "Start here", fa: "شروع" },
+      summary: {
+        en: "How every request is scoped to a website and when you need a customer token.",
+        fa: "هر درخواست چطور به یک وب‌سایت محدود می‌شود و کی به توکن مشتری نیاز دارید.",
+      },
+      pages: [
+        {
+          id: "home",
+          title: { en: "Welcome", fa: "خوش‌آمدید" },
+          summary: {
+            en: "Public REST API used by storefronts (Web/React) and other clients.",
+            fa: "API عمومی REST که استورفرانت (Web/React) و کلاینت‌های دیگر صدا می‌زنند.",
+          },
+          purpose: [
+            {
+              en: "Base path pattern: `/api/{Controller}` (version **1.0** via optional header `X-Api-Version`).",
+              fa: "الگوی مسیر: `/api/{Controller}` (نسخه **1.0** با هدر اختیاری `X-Api-Version`).",
+            },
+            {
+              en: "Almost every call needs **`X-Website-Key`** so the server knows which site’s catalog/orders to use. Customer actions also need a JWT — details are only on the Authentication page.",
+              fa: "تقریباً همه درخواست‌ها **`X-Website-Key`** می‌خواهند تا سرور بداند کاتالوگ/سفارش کدام سایت است. کارهای مشتری JWT هم می‌خواهند — جزئیات فقط در صفحه احراز هویت.",
+            },
+            {
+              en: "Use the **Admin / API** switch above to jump to the operator panel guide for the same business concepts (products, stock, coupons, …).",
+              fa: "با سوییچ **ادمین / API** بالا به راهنمای پنل همان مفهوم کسب‌وکار (محصول، موجودی، کوپن، …) بروید.",
+            },
+          ],
+          howTo: [
+            {
+              en: "Read **Authentication** once.",
+              fa: "یک‌بار **احراز هویت** را بخوانید.",
+            },
+            {
+              en: "Open the resource you need (Products, Cart, Checkout, …) and copy the sample request.",
+              fa: "منبع لازم (Products، Cart، Checkout، …) را باز کنید و نمونه request را کپی کنید.",
+            },
+          ],
+          related: ["auth", "products", "cart", "checkout"],
+        },
+        {
+          id: "auth",
+          title: { en: "Authentication", fa: "احراز هویت" },
+          summary: {
+            en: "One place for website key, customer JWT, cart session, and API version. Other pages only say which of these they need.",
+            fa: "یک‌جا برای کلید وب‌سایت، JWT مشتری، نشست سبد و نسخه API. بقیه صفحات فقط می‌گویند کدام‌ها را می‌خواهند.",
+          },
+          purpose: [
+            {
+              en: "Dotnetable hosts many websites in one API. Every public call must say **which website** is calling. That is **`X-Website-Key`** (the site AuthCode GUID from Admin → Website API Key).",
+              fa: "Dotnetable چند وب‌سایت را با یک API میزبانی می‌کند. هر فراخوانی عمومی باید بگوید **کدام وب‌سایت** صدا می‌زند. آن **`X-Website-Key`** است (GUID همان AuthCode از ادمین → Website API Key).",
+            },
+            {
+              en: "Browsing the catalog can be anonymous (only website key). Buying, wallet, addresses, orders need the **customer JWT** from login/register.",
+              fa: "مرور کاتالوگ می‌تواند ناشناس باشد (فقط کلید سایت). خرید، کیف پول، آدرس، سفارش به **JWT مشتری** از login/register نیاز دارد.",
+            },
+            {
+              en: "Guest carts use **`X-Cart-Session`** (random string you store in a cookie). After login call cart **merge**.",
+              fa: "سبد مهمان با **`X-Cart-Session`** (رشته تصادفی در کوکی) است. بعد از لاگین **merge** سبد را صدا بزنید.",
+            },
+          ],
+          sections: [
+            {
+              title: { en: "Headers (remember once)", fa: "هدرها (یک‌بار یاد بگیرید)" },
+              definitions: [
+                {
+                  term: { en: "`X-Website-Key`", fa: "`X-Website-Key`" },
+                  def: {
+                    en: "Required for almost all storefront endpoints. Value = website `AuthCode` (GUID). Missing/invalid → website not resolved (often 400/404).",
+                    fa: "برای تقریباً همه اندپوینت‌های استورفرانت لازم است. مقدار = `AuthCode` وب‌سایت (GUID). نبودن/نامعتبر → سایت resolve نمی‌شود (معمولاً 400/404).",
+                  },
+                },
+                {
+                  term: { en: "`Authorization`", fa: "`Authorization`" },
+                  def: {
+                    en: "`Bearer {access_token}` after successful login / OTP verify. Required on endpoints marked JWT.",
+                    fa: "بعد از login یا تأیید OTP: `Bearer {access_token}`. روی اندپوینت‌های JWT لازم است.",
+                  },
+                },
+                {
+                  term: { en: "`X-Cart-Session`", fa: "`X-Cart-Session`" },
+                  def: {
+                    en: "Optional guest cart key for `/api/Cart`. Generate a UUID on first visit; keep it stable while the guest shops.",
+                    fa: "کلید اختیاری سبد مهمان برای `/api/Cart`. در اولین بازدید UUID بسازید و تا خرید مهمان ثابت نگه دارید.",
+                  },
+                },
+                {
+                  term: { en: "`X-Api-Version`", fa: "`X-Api-Version`" },
+                  def: {
+                    en: "Optional. Default **1.0** when omitted. Sent as a header (not in the URL).",
+                    fa: "اختیاری. اگر نباشد پیش‌فرض **1.0**. به‌صورت هدر (نه در URL).",
+                  },
+                },
+              ],
+            },
+            {
+              title: { en: "Auth levels used in these docs", fa: "سطح‌های احراز در این مستندات" },
+              items: [
+                {
+                  en: "**Website key only** — public read (products, menus, pages, stock availability).",
+                  fa: "**فقط کلید وب‌سایت** — خواندن عمومی (محصول، منو، صفحه، موجودی قابل‌فروش).",
+                },
+                {
+                  en: "**Guest or JWT** — cart works for both; if JWT present, cart is tied to the client.",
+                  fa: "**مهمان یا JWT** — سبد برای هر دو کار می‌کند؛ اگر JWT باشد سبد به مشتری وصل است.",
+                },
+                {
+                  en: "**Customer JWT** — profile, checkout, orders, payments, wallet, wishlist, reviews write.",
+                  fa: "**JWT مشتری** — پروفایل، تسویه، سفارش، پرداخت، کیف پول، علاقه‌مندی، نوشتن نظر.",
+                },
+              ],
+              callout: {
+                tone: "warn",
+                text: {
+                  en: "Admin panel login is **not** this API. Admin uses its own cookie/session auth. This API is for **website customers** and public storefront data.",
+                  fa: "لاگین پنل ادمین **این API نیست**. ادمین احراز خودش را دارد. این API برای **مشتریان وب‌سایت** و داده عمومی استورفرانت است.",
+                },
+              },
+            },
+          ],
+          endpoints: [
+            {
+              title: { en: "Register", fa: "ثبت‌نام" },
+              method: "POST",
+              path: "/api/Auth/register",
+              auth: "website",
+              summary: {
+                en: "Create a customer with email and/or mobile + password. Sends OTP.",
+                fa: "ساخت مشتری با ایمیل و/یا موبایل + رمز. OTP می‌فرستد.",
+              },
+              headers: [
+                { name: "X-Website-Key", desc: { en: "Website AuthCode GUID", fa: "GUID کلید وب‌سایت" } },
+                { name: "Content-Type", desc: { en: "application/json", fa: "application/json" } },
+              ],
+              request: {
+                body: {
+                  givenName: "Ali",
+                  surname: "Rezaei",
+                  email: "ali@example.com",
+                  countryCode: "+98",
+                  cellphone: "9123456789",
+                  password: "secret1",
+                },
+              },
+              response: {
+                status: 200,
+                body: {
+                  success: true,
+                  channel: "Email",
+                  identifier: "ali@example.com",
+                  message: "We sent a verification code to your email.",
+                },
+              },
+            },
+            {
+              title: { en: "Verify OTP", fa: "تأیید OTP" },
+              method: "POST",
+              path: "/api/Auth/verify-otp",
+              auth: "website",
+              summary: {
+                en: "Activate account and receive JWT in one step when OTP is valid.",
+                fa: "با OTP معتبر حساب فعال می‌شود و JWT برمی‌گردد.",
+              },
+              headers: [
+                { name: "X-Website-Key", desc: { en: "Website AuthCode GUID", fa: "GUID کلید وب‌سایت" } },
+              ],
+              request: {
+                body: { identifier: "ali@example.com", code: "123456" },
+              },
+              response: {
+                status: 200,
+                body: {
+                  accessToken: "eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9...",
+                  expiresAt: "2026-08-03T12:00:00Z",
+                  clientId: 42,
+                },
+                note: {
+                  en: "Exact token payload shape comes from the token service; store `accessToken` as Bearer.",
+                  fa: "شکل دقیق پاسخ توکن از سرویس JWT است؛ `accessToken` را به‌عنوان Bearer نگه دارید.",
+                },
+              },
+            },
+            {
+              title: { en: "Login", fa: "ورود" },
+              method: "POST",
+              path: "/api/Auth/login",
+              auth: "website",
+              summary: {
+                en: "Email or mobile + password → JWT. 403 if not activated yet.",
+                fa: "ایمیل یا موبایل + رمز → JWT. اگر هنوز فعال نشده باشد 403.",
+              },
+              headers: [
+                { name: "X-Website-Key", desc: { en: "Website AuthCode GUID", fa: "GUID کلید وب‌سایت" } },
+              ],
+              request: {
+                body: { identifier: "ali@example.com", password: "secret1" },
+              },
+              response: {
+                status: 200,
+                body: {
+                  accessToken: "eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9...",
+                  expiresAt: "2026-08-03T12:00:00Z",
+                  clientId: 42,
+                },
+              },
+              notes: [
+                {
+                  en: "Invalid credentials → 401. Not activated → 403 with `status: NotActivated`.",
+                  fa: "اعتبار اشتباه → 401. فعال‌نشده → 403 با `status: NotActivated`.",
+                },
+              ],
+            },
+            {
+              title: { en: "Me", fa: "من کیستم" },
+              method: "GET",
+              path: "/api/Auth/me",
+              auth: "jwt",
+              summary: {
+                en: "Returns claims from the current bearer token.",
+                fa: "ادعاهای توکن فعلی را برمی‌گرداند.",
+              },
+              headers: [
+                { name: "Authorization", desc: { en: "Bearer {token}", fa: "Bearer {token}" } },
+              ],
+              request: {
+                body: "(no body)",
+              },
+              response: {
+                status: 200,
+                body: {
+                  clientId: "42",
+                  websiteId: "1",
+                  level: "Standard",
+                  name: "Ali Rezaei",
+                },
+              },
+            },
+            {
+              title: { en: "Forgot / reset password", fa: "فراموشی / بازنشانی رمز" },
+              method: "POST",
+              path: "/api/Auth/forgot-password  ·  /api/Auth/reset-password",
+              auth: "website",
+              summary: {
+                en: "forgot-password sends a code (does not reveal if account exists). reset-password sets a new password with that code.",
+                fa: "forgot-password کد می‌فرستد (وجود حساب را لو نمی‌دهد). reset-password با همان کد رمز جدید می‌گذارد.",
+              },
+              request: {
+                body: {
+                  forgot: { identifier: "ali@example.com" },
+                  reset: { identifier: "ali@example.com", code: "654321", newPassword: "newsecret1" },
+                },
+              },
+              response: {
+                status: 200,
+                body: { success: true, message: "If the account exists, a reset code has been sent." },
+              },
+            },
+          ],
+          related: ["cart", "checkout", "orders"],
+          relatedAdmin: ["website-api-key", "clients", "email-accounts"],
+        },
+      ],
+    },
+
+    /* ───────── Catalog ───────── */
+    {
+      id: "catalog",
+      title: { en: "Catalog", fa: "کاتالوگ" },
+      summary: {
+        en: "Products, categories, brands, vendors, stock availability for the storefront.",
+        fa: "محصول، دسته، برند، فروشنده، موجودی قابل‌فروش برای استورفرانت.",
+      },
+      pages: [
+        {
+          id: "products",
+          title: { en: "Products", fa: "محصولات" },
+          summary: {
+            en: "List, detail, and related products for the website resolved by X-Website-Key.",
+            fa: "فهرست، جزئیات و محصولات مرتبط برای وب‌سایت resolve‌شده با X-Website-Key.",
+          },
+          purpose: [
+            {
+              en: "This is what the shop UI calls to show the catalog. Admin creates/edits products; API only **reads published** data.",
+              fa: "همان چیزی که UI فروشگاه برای نمایش کاتالوگ صدا می‌زند. ادمین محصول می‌سازد/ویرایش می‌کند؛ API فقط **منتشرشده** را می‌خواند.",
+            },
+          ],
+          relatedAdmin: ["products", "catalog-categories", "brands"],
+          related: ["product-categories", "inventory", "brands", "vendors"],
+          endpoints: [
+            {
+              title: { en: "List products", fa: "فهرست محصولات" },
+              method: "GET",
+              path: "/api/Products",
+              auth: "website",
+              summary: {
+                en: "Paged, filterable published products with display currency.",
+                fa: "محصولات منتشرشده صفحه‌بندی‌شده با فیلتر و ارز نمایش.",
+              },
+              headers: [
+                { name: "X-Website-Key", desc: { en: "Website AuthCode", fa: "کلید وب‌سایت" } },
+              ],
+              query: [
+                { name: "categorySlug", desc: { en: "Filter by product category slug", fa: "فیلتر دسته محصول" } },
+                { name: "brandSlug", desc: { en: "Filter by brand", fa: "فیلتر برند" } },
+                { name: "search", desc: { en: "Text search", fa: "جستجوی متنی" } },
+                { name: "minPrice / maxPrice", desc: { en: "Price range", fa: "بازه قیمت" } },
+                { name: "page / pageSize", desc: { en: "Paging (default page=1, pageSize=20)", fa: "صفحه‌بندی" } },
+                { name: "lang", desc: { en: "Content language code", fa: "کد زبان محتوا" } },
+                { name: "currency", desc: { en: "Display currency code", fa: "کد ارز نمایش" } },
+                { name: "inStock", desc: { en: "true/false to filter availability", fa: "true/false برای موجودی" } },
+                { name: "attributeOptionIds", desc: { en: "Facet AND filter", fa: "فیلتر وجهی AND" } },
+              ],
+              request: {
+                body: "GET /api/Products?categorySlug=shoes&page=1&pageSize=20&currency=IRR&lang=fa",
+              },
+              response: {
+                status: 200,
+                body: {
+                  items: [
+                    {
+                      productId: 10,
+                      title: "Running shoes",
+                      slug: "running-shoes",
+                      price: 2500000,
+                      currency: "IRR",
+                      inStock: true,
+                    },
+                  ],
+                  totalCount: 1,
+                },
+                note: {
+                  en: "Field names follow the service DTO; treat this as a realistic shape, not a contract freeze.",
+                  fa: "نام فیلدها از DTO سرویس می‌آید؛ این یک شکل واقع‌گرایانه است نه قرارداد یخ‌زده.",
+                },
+              },
+            },
+            {
+              title: { en: "Product by slug", fa: "محصول با اسلاگ" },
+              method: "GET",
+              path: "/api/Products/{slug}",
+              auth: "website",
+              pathParams: [
+                { name: "slug", desc: { en: "Product slug", fa: "اسلاگ محصول" } },
+              ],
+              query: [
+                { name: "lang", desc: { en: "Language", fa: "زبان" } },
+                { name: "currency", desc: { en: "Display currency", fa: "ارز نمایش" } },
+              ],
+              request: { body: "GET /api/Products/running-shoes?lang=fa&currency=IRR" },
+              response: {
+                status: 200,
+                body: {
+                  productId: 10,
+                  title: "Running shoes",
+                  slug: "running-shoes",
+                  variants: [{ variantId: 55, sku: "SHOE-42", price: 2500000 }],
+                  description: "…",
+                },
+              },
+            },
+            {
+              title: { en: "Related products", fa: "محصولات مرتبط" },
+              method: "GET",
+              path: "/api/Products/{slug}/related",
+              auth: "website",
+              query: [
+                { name: "take", desc: { en: "Max items (default 8)", fa: "حداکثر تعداد (پیش‌فرض ۸)" } },
+              ],
+              request: { body: "GET /api/Products/running-shoes/related?take=8" },
+              response: {
+                status: 200,
+                body: [{ productId: 11, title: "Sports socks", slug: "sports-socks" }],
+              },
+            },
+          ],
+        },
+        {
+          id: "product-categories",
+          title: { en: "Product categories", fa: "دسته‌های محصول" },
+          summary: {
+            en: "Category tree, category by slug, and facet filters for listing pages.",
+            fa: "درخت دسته، دسته با اسلاگ، و فیلترهای facet برای صفحه لیست.",
+          },
+          purpose: [
+            {
+              en: "Admin path: Catalog → Categories. API path: `/api/ProductCategories/...`.",
+              fa: "مسیر ادمین: Catalog → Categories. مسیر API: `/api/ProductCategories/...`.",
+            },
+          ],
+          relatedAdmin: ["catalog-categories", "attributes"],
+          related: ["products"],
+          endpoints: [
+            {
+              title: { en: "Category tree", fa: "درخت دسته" },
+              method: "GET",
+              path: "/api/ProductCategories/tree",
+              auth: "website",
+              query: [{ name: "lang", desc: { en: "Language", fa: "زبان" } }],
+              request: { body: "GET /api/ProductCategories/tree?lang=fa" },
+              response: {
+                status: 200,
+                body: [{ slug: "shoes", title: "Shoes", children: [{ slug: "running", title: "Running" }] }],
+              },
+            },
+            {
+              title: { en: "Category by slug", fa: "دسته با اسلاگ" },
+              method: "GET",
+              path: "/api/ProductCategories/{slug}",
+              auth: "website",
+              request: { body: "GET /api/ProductCategories/shoes?lang=fa" },
+              response: { status: 200, body: { slug: "shoes", title: "Shoes" } },
+            },
+            {
+              title: { en: "Filters for a category", fa: "فیلترهای یک دسته" },
+              method: "GET",
+              path: "/api/ProductCategories/{slug}/filters",
+              auth: "website",
+              summary: {
+                en: "Facet options (attributes) to build filter UI for that category.",
+                fa: "گزینه‌های facet (ویژگی) برای ساخت UI فیلتر آن دسته.",
+              },
+              request: { body: "GET /api/ProductCategories/shoes/filters?lang=fa" },
+              response: {
+                status: 200,
+                body: { attributes: [{ name: "Size", options: [{ id: 1, label: "42" }] }] },
+              },
+            },
+          ],
+        },
+        {
+          id: "brands",
+          title: { en: "Brands", fa: "برندها" },
+          summary: {
+            en: "Public brand list for filters and brand pages.",
+            fa: "فهرست عمومی برند برای فیلتر و صفحات برند.",
+          },
+          relatedAdmin: ["brands"],
+          related: ["products"],
+          endpoints: [
+            {
+              title: { en: "List brands", fa: "فهرست برندها" },
+              method: "GET",
+              path: "/api/Brands",
+              auth: "website",
+              query: [{ name: "lang", desc: { en: "Language", fa: "زبان" } }],
+              request: { body: "GET /api/Brands?lang=fa" },
+              response: {
+                status: 200,
+                body: [{ slug: "nike", title: "Nike" }],
+              },
+            },
+          ],
+        },
+        {
+          id: "vendors",
+          title: { en: "Vendors", fa: "فروشندگان" },
+          summary: {
+            en: "Marketplace sellers visible on the storefront.",
+            fa: "فروشندگان مارکت‌پلیس قابل‌نمایش در استورفرانت.",
+          },
+          relatedAdmin: ["vendors", "vendor-products"],
+          related: ["products", "cart"],
+          endpoints: [
+            {
+              title: { en: "List vendors", fa: "فهرست فروشندگان" },
+              method: "GET",
+              path: "/api/Vendors",
+              auth: "website",
+              query: [{ name: "lang", desc: { en: "Language", fa: "زبان" } }],
+              request: { body: "GET /api/Vendors?lang=fa" },
+              response: {
+                status: 200,
+                body: [{ vendorId: 3, name: "Official store" }],
+              },
+            },
+          ],
+        },
+        {
+          id: "inventory",
+          title: { en: "Inventory availability", fa: "موجودی قابل‌فروش" },
+          summary: {
+            en: "Public stock check for PDP/cart badges. Does **not** expose raw On Hand / Reserved admin numbers.",
+            fa: "چک عمومی موجودی برای نشان PDP/سبد. عدد خام On Hand / Reserved ادمین را **نشان نمی‌دهد**.",
+          },
+          purpose: [
+            {
+              en: "Admin **Stock** page shows On Hand, Reserved, Available for operators. This API only returns whether the customer can buy and the max quantity.",
+              fa: "صفحه **Stock** ادمین On Hand، Reserved، Available را به اپراتور نشان می‌دهد. این API فقط می‌گوید مشتری می‌تواند بخرد یا نه و سقف تعداد چقدر است.",
+            },
+            {
+              en: "**IsInStock** = Available > 0. **MaxPurchasable** = Available (never negative).",
+              fa: "**IsInStock** = Available > 0. **MaxPurchasable** = Available (هرگز منفی نیست).",
+            },
+          ],
+          relatedAdmin: ["inventory-stock", "inventory-movements", "products"],
+          related: ["products", "cart"],
+          endpoints: [
+            {
+              title: { en: "Bulk availability", fa: "موجودی چند واریانت" },
+              method: "GET",
+              path: "/api/Inventory/availability",
+              auth: "website",
+              query: [
+                {
+                  name: "variantIds",
+                  desc: {
+                    en: "Comma-separated variant ids, e.g. `1,2,3`",
+                    fa: "شناسه واریانت‌ها با کاما، مثلاً `1,2,3`",
+                  },
+                },
+              ],
+              request: { body: "GET /api/Inventory/availability?variantIds=55,56" },
+              response: {
+                status: 200,
+                body: {
+                  "55": { isInStock: true, maxPurchasable: 17 },
+                  "56": { isInStock: false, maxPurchasable: 0 },
+                },
+              },
+              notes: [
+                {
+                  en: "Empty or invalid id list → `{}`.",
+                  fa: "لیست خالی یا نامعتبر → `{}`.",
+                },
+              ],
+            },
+          ],
+          tips: [
+            {
+              en: "If API says out of stock but Admin shows On Hand > 0, check **Reserved** and whether vendor listings exist.",
+              fa: "اگر API ناموجود می‌گوید ولی ادمین On Hand > 0 دارد، **Reserved** و وجود لیستینگ فروشنده را چک کنید.",
+            },
+          ],
+        },
+      ],
+    },
+
+    /* ───────── Commerce ───────── */
+    {
+      id: "commerce",
+      title: { en: "Cart & checkout", fa: "سبد و تسویه" },
+      summary: {
+        en: "Guest/member cart, coupons, shipping methods, placing an order.",
+        fa: "سبد مهمان/عضو، کوپن، روش ارسال، ثبت سفارش.",
+      },
+      pages: [
+        {
+          id: "cart",
+          title: { en: "Cart", fa: "سبد خرید" },
+          summary: {
+            en: "Add/update/remove lines, apply coupon, merge guest cart after login. No [Authorize] — guests allowed.",
+            fa: "افزودن/ویرایش/حذف خط، اعمال کوپن، ادغام سبد مهمان بعد از لاگین. بدون [Authorize] — مهمان مجاز است.",
+          },
+          purpose: [
+            {
+              en: "Identify guest with `X-Cart-Session`. If `Authorization` is present, cart binds to that client.",
+              fa: "مهمان با `X-Cart-Session` شناخته می‌شود. اگر `Authorization` باشد، سبد به همان مشتری وصل است.",
+            },
+          ],
+          relatedAdmin: ["coupons", "products", "vendors"],
+          related: ["auth", "checkout", "coupons", "inventory"],
+          endpoints: [
+            {
+              title: { en: "Get cart", fa: "گرفتن سبد" },
+              method: "GET",
+              path: "/api/Cart",
+              auth: "optional-jwt",
+              headers: [
+                { name: "X-Website-Key", desc: { en: "Required", fa: "لازم" } },
+                { name: "X-Cart-Session", desc: { en: "Guest session id", fa: "شناسه نشست مهمان" } },
+                { name: "Authorization", desc: { en: "Optional Bearer", fa: "Bearer اختیاری" } },
+              ],
+              query: [{ name: "currency", desc: { en: "Price currency", fa: "ارز قیمت" } }],
+              request: { body: "GET /api/Cart?currency=IRR" },
+              response: {
+                status: 200,
+                body: {
+                  cartID: 1001,
+                  sessionKey: "a1b2c3d4-…",
+                  items: [{ cartItemId: 9, variantId: 55, quantity: 2, lineTotal: 5000000 }],
+                  subTotal: 5000000,
+                  couponCode: null,
+                  discountAmount: 0,
+                  totalWeightKg: 1.2,
+                },
+              },
+            },
+            {
+              title: { en: "Add item", fa: "افزودن قلم" },
+              method: "POST",
+              path: "/api/Cart/items",
+              auth: "optional-jwt",
+              request: {
+                body: { variantId: 55, quantity: 1, vendorProductId: null, vendorId: null },
+              },
+              response: {
+                status: 200,
+                body: { cartID: 1001, sessionKey: "a1b2c3d4-…", items: [], subTotal: 2500000 },
+              },
+            },
+            {
+              title: { en: "Update quantity", fa: "تغییر تعداد" },
+              method: "PUT",
+              path: "/api/Cart/items/{cartItemId}",
+              auth: "optional-jwt",
+              request: { body: { quantity: 3 } },
+              response: { status: 200, body: "(empty OK)" },
+            },
+            {
+              title: { en: "Remove item", fa: "حذف قلم" },
+              method: "DELETE",
+              path: "/api/Cart/items/{cartItemId}",
+              auth: "optional-jwt",
+              request: { body: "DELETE /api/Cart/items/9" },
+              response: { status: 200, body: "(empty OK)" },
+            },
+            {
+              title: { en: "Apply / remove coupon", fa: "اعمال / حذف کوپن" },
+              method: "POST",
+              path: "/api/Cart/coupon  ·  DELETE /api/Cart/coupon",
+              auth: "optional-jwt",
+              request: { body: { code: "WELCOME10" } },
+              response: {
+                status: 200,
+                body: "(OK) or 400 { message: \"…\" }",
+              },
+            },
+            {
+              title: { en: "Merge guest cart after login", fa: "ادغام سبد مهمان بعد از ورود" },
+              method: "POST",
+              path: "/api/Cart/merge",
+              auth: "jwt",
+              summary: {
+                en: "Requires JWT + previous X-Cart-Session. Folds guest lines into the account cart.",
+                fa: "JWT + همان X-Cart-Session قبلی. خطوط مهمان را داخل سبد حساب می‌ریزد.",
+              },
+              request: { body: "POST /api/Cart/merge (no body)" },
+              response: { status: 200, body: "(empty OK)" },
+            },
+          ],
+        },
+        {
+          id: "coupons",
+          title: { en: "Coupons (validate)", fa: "کوپن (اعتبارسنجی)" },
+          summary: {
+            en: "Validate a code without attaching it to a cart (cart attach is POST /api/Cart/coupon).",
+            fa: "اعتبارسنجی کد بدون اتصال به سبد (اتصال با POST /api/Cart/coupon).",
+          },
+          relatedAdmin: ["coupons"],
+          related: ["cart"],
+          endpoints: [
+            {
+              title: { en: "Validate coupon", fa: "اعتبارسنجی کوپن" },
+              method: "POST",
+              path: "/api/Coupons/validate",
+              auth: "website",
+              request: { body: { code: "WELCOME10" } },
+              response: {
+                status: 200,
+                body: { valid: true, discountType: "Percent", value: 10 },
+              },
+            },
+          ],
+        },
+        {
+          id: "shipping",
+          title: { en: "Shipping methods", fa: "روش‌های ارسال" },
+          summary: {
+            en: "Methods/rates the storefront shows at checkout.",
+            fa: "روش/نرخ‌هایی که استورفرانت در تسویه نشان می‌دهد.",
+          },
+          relatedAdmin: ["shipping"],
+          related: ["checkout", "addresses"],
+          endpoints: [
+            {
+              title: { en: "List methods", fa: "فهرست روش‌ها" },
+              method: "GET",
+              path: "/api/Shipping/methods",
+              auth: "website",
+              request: { body: "GET /api/Shipping/methods" },
+              response: {
+                status: 200,
+                body: [{ shippingMethodId: 1, title: "Courier", price: 150000 }],
+              },
+            },
+          ],
+        },
+        {
+          id: "checkout",
+          title: { en: "Checkout", fa: "ثبت سفارش (Checkout)" },
+          summary: {
+            en: "Turns the signed-in customer's cart into an order. Requires ClientPurchase policy.",
+            fa: "سبد مشتری واردشده را به سفارش تبدیل می‌کند. سیاست ClientPurchase لازم است.",
+          },
+          purpose: [
+            {
+              en: "Prerequisites: JWT, cart with items, saved address, chosen shipping method. Stock reservation happens in the order flow.",
+              fa: "پیش‌نیاز: JWT، سبد با قلم، آدرس ذخیره‌شده، روش ارسال. رزرو موجودی در جریان سفارش انجام می‌شود.",
+            },
+          ],
+          relatedAdmin: ["orders", "inventory-stock", "shipping"],
+          related: ["cart", "addresses", "shipping", "payments", "orders"],
+          endpoints: [
+            {
+              title: { en: "Create order from cart", fa: "ساخت سفارش از سبد" },
+              method: "POST",
+              path: "/api/Checkout",
+              auth: "jwt",
+              headers: [
+                { name: "X-Website-Key", desc: { en: "Required", fa: "لازم" } },
+                { name: "Authorization", desc: { en: "Bearer customer JWT", fa: "Bearer JWT مشتری" } },
+              ],
+              request: {
+                body: {
+                  cartId: 1001,
+                  addressId: 7,
+                  shippingMethodId: 1,
+                  currency: "IRR",
+                  note: "Call before 5pm",
+                },
+              },
+              response: {
+                status: 200,
+                body: { orderId: 500, orderNumber: "ORD-2026-000500" },
+              },
+              notes: [
+                {
+                  en: "Failure → 400 `{ message: \"…\" }` (empty cart, stock, validation, …).",
+                  fa: "شکست → 400 `{ message: \"…\" }` (سبد خالی، موجودی، اعتبارسنجی، …).",
+                },
+              ],
+            },
+          ],
+        },
+      ],
+    },
+
+    /* ───────── Account ───────── */
+    {
+      id: "account",
+      title: { en: "Customer account", fa: "حساب مشتری" },
+      summary: {
+        en: "Addresses, bank accounts, orders, digital library, wishlist, wallet.",
+        fa: "آدرس، حساب بانکی، سفارش، کتابخانه دیجیتال، علاقه‌مندی، کیف پول.",
+      },
+      pages: [
+        {
+          id: "addresses",
+          title: { en: "Addresses", fa: "آدرس‌ها" },
+          summary: {
+            en: "CRUD shipping addresses for the signed-in customer (ClientProfile).",
+            fa: "CRUD آدرس ارسال مشتری واردشده (ClientProfile).",
+          },
+          relatedAdmin: ["clients", "initial-cities"],
+          related: ["checkout", "locations"],
+          endpoints: [
+            {
+              title: { en: "List / get / create / update / delete / set default", fa: "لیست / گرفتن / ساخت / ویرایش / حذف / پیش‌فرض" },
+              method: "GET",
+              path: "/api/Addresses  ·  /api/Addresses/{id}  ·  POST/PUT/DELETE  ·  POST …/default",
+              auth: "jwt",
+              request: {
+                body: {
+                  title: "Home",
+                  recipientName: "Ali Rezaei",
+                  phone: "09120000000",
+                  countryId: 1,
+                  cityId: 10,
+                  addressLine: "Valiasr St.",
+                  postalCode: "1234567890",
+                },
+              },
+              response: {
+                status: 200,
+                body: [{ addressId: 7, title: "Home", isDefault: true }],
+              },
+            },
+          ],
+        },
+        {
+          id: "orders",
+          title: { en: "Orders", fa: "سفارش‌های من" },
+          summary: {
+            en: "Customer’s own order history and detail (ClientPurchase).",
+            fa: "تاریخچه و جزئیات سفارش خود مشتری (ClientPurchase).",
+          },
+          relatedAdmin: ["orders"],
+          related: ["checkout", "payments", "digital"],
+          endpoints: [
+            {
+              title: { en: "List orders", fa: "فهرست سفارش‌ها" },
+              method: "GET",
+              path: "/api/Orders",
+              auth: "jwt",
+              query: [
+                { name: "page", desc: { en: "Default 1", fa: "پیش‌فرض ۱" } },
+                { name: "pageSize", desc: { en: "Default 10", fa: "پیش‌فرض ۱۰" } },
+              ],
+              request: { body: "GET /api/Orders?page=1&pageSize=10" },
+              response: {
+                status: 200,
+                body: { items: [{ orderId: 500, orderNumber: "ORD-2026-000500", status: "PendingPayment" }], totalCount: 1 },
+              },
+            },
+            {
+              title: { en: "Order detail", fa: "جزئیات سفارش" },
+              method: "GET",
+              path: "/api/Orders/{id}",
+              auth: "jwt",
+              request: { body: "GET /api/Orders/500" },
+              response: {
+                status: 200,
+                body: { orderId: 500, items: [], grandTotal: 2650000, currencyCode: "IRR" },
+              },
+            },
+          ],
+        },
+        {
+          id: "payments",
+          title: { en: "Payments", fa: "پرداخت" },
+          summary: {
+            en: "Wallet pay, offline bank accounts, upload receipt, payment status.",
+            fa: "پرداخت با کیف پول، حساب‌های بانکی آفلاین، آپلود فیش، وضعیت پرداخت.",
+          },
+          relatedAdmin: ["payments", "bank-accounts", "wallets"],
+          related: ["orders", "wallet", "checkout"],
+          endpoints: [
+            {
+              title: { en: "Offline bank accounts", fa: "حساب‌های کارت‌به‌کارت" },
+              method: "GET",
+              path: "/api/Payments/bank-accounts",
+              auth: "jwt",
+              request: { body: "GET /api/Payments/bank-accounts" },
+              response: {
+                status: 200,
+                body: [{ bankAccountID: 1, bankName: "Melli", title: "Sales", ownerName: "Shop", iban: "IR…", cardNumber: "6037…" }],
+              },
+            },
+            {
+              title: { en: "Upload receipt image", fa: "آپلود تصویر فیش" },
+              method: "POST",
+              path: "/api/Payments/receipt-upload",
+              auth: "jwt",
+              summary: {
+                en: "multipart file → returns fileId for SubmitReceipt. Max ~10MB. Needs storage configured in Admin.",
+                fa: "فایل multipart → fileId برای SubmitReceipt. حدود ۱۰MB. نیاز به Storage در ادمین.",
+              },
+              request: { body: "Content-Type: multipart/form-data\nfile: receipt.jpg" },
+              response: { status: 200, body: { fileId: 9001 } },
+            },
+            {
+              title: { en: "Submit bank receipt", fa: "ثبت فیش بانکی" },
+              method: "POST",
+              path: "/api/Payments/receipt",
+              auth: "jwt",
+              request: {
+                body: { orderId: 500, bankAccountId: 1, receiptFileId: 9001 },
+              },
+              response: { status: 200, body: { paymentId: 70 } },
+            },
+            {
+              title: { en: "Pay with wallet", fa: "پرداخت با کیف پول" },
+              method: "POST",
+              path: "/api/Payments/wallet",
+              auth: "jwt",
+              request: { body: { orderId: 500 } },
+              response: { status: 200, body: { paymentId: 71 } },
+            },
+            {
+              title: { en: "Payment status", fa: "وضعیت پرداخت" },
+              method: "GET",
+              path: "/api/Payments/{orderId}/status",
+              auth: "jwt",
+              request: { body: "GET /api/Payments/500/status" },
+              response: {
+                status: 200,
+                body: { paymentID: 70, status: "PendingReview", method: "BankReceipt", paidAt: null },
+              },
+            },
+          ],
+        },
+        {
+          id: "wallet",
+          title: { en: "Wallet", fa: "کیف پول" },
+          summary: {
+            en: "Balance, ledger, withdrawal requests for the signed-in customer.",
+            fa: "مانده، دفتر، درخواست برداشت برای مشتری واردشده.",
+          },
+          relatedAdmin: ["withdrawals", "wallet-detail", "clients"],
+          related: ["payments", "client-bank-accounts"],
+          endpoints: [
+            {
+              title: { en: "Balance", fa: "مانده" },
+              method: "GET",
+              path: "/api/Wallet",
+              auth: "jwt",
+              request: { body: "GET /api/Wallet" },
+              response: { status: 200, body: { balanceUsd: 12.5, isActive: true } },
+            },
+            {
+              title: { en: "Transactions", fa: "تراکنش‌ها" },
+              method: "GET",
+              path: "/api/Wallet/transactions",
+              auth: "jwt",
+              query: [
+                { name: "pageIndex", desc: { en: "Default 1", fa: "پیش‌فرض ۱" } },
+                { name: "pageSize", desc: { en: "Default 20", fa: "پیش‌فرض ۲۰" } },
+              ],
+              request: { body: "GET /api/Wallet/transactions?pageIndex=1&pageSize=20" },
+              response: {
+                status: 200,
+                body: { items: [{ amount: -5, type: "Payment", createdAt: "…" }], totalCount: 1 },
+              },
+            },
+            {
+              title: { en: "Request withdrawal", fa: "درخواست برداشت" },
+              method: "POST",
+              path: "/api/Wallet/withdrawals",
+              auth: "jwt",
+              request: { body: { clientBankAccountId: 3, amountUsd: 10 } },
+              response: {
+                status: 200,
+                body: { withdrawalId: 15, status: "Pending", amountUsd: 10 },
+              },
+            },
+            {
+              title: { en: "List withdrawals", fa: "فهرست برداشت‌ها" },
+              method: "GET",
+              path: "/api/Wallet/withdrawals",
+              auth: "jwt",
+              request: { body: "GET /api/Wallet/withdrawals" },
+              response: {
+                status: 200,
+                body: { items: [], totalCount: 0 },
+              },
+            },
+          ],
+        },
+        {
+          id: "client-bank-accounts",
+          title: { en: "Client bank accounts", fa: "حساب بانکی مشتری" },
+          summary: {
+            en: "Customer’s own bank accounts for withdrawals.",
+            fa: "حساب‌های بانکی خود مشتری برای برداشت.",
+          },
+          relatedAdmin: ["withdrawals"],
+          related: ["wallet"],
+          endpoints: [
+            {
+              title: { en: "CRUD + set default", fa: "CRUD + پیش‌فرض" },
+              method: "GET",
+              path: "/api/ClientBankAccounts",
+              auth: "jwt",
+              request: {
+                body: { bankId: 1, accountHolder: "Ali", iban: "IR…", cardNumber: "6037…" },
+              },
+              response: {
+                status: 200,
+                body: [{ clientBankAccountId: 3, iban: "IR…", isDefault: true }],
+              },
+            },
+          ],
+        },
+        {
+          id: "wishlist",
+          title: { en: "Wishlist", fa: "علاقه‌مندی" },
+          summary: {
+            en: "Saved variants for the signed-in customer.",
+            fa: "واریانت‌های ذخیره‌شده مشتری واردشده.",
+          },
+          related: ["products"],
+          endpoints: [
+            {
+              title: { en: "List / add / remove", fa: "لیست / افزودن / حذف" },
+              method: "GET",
+              path: "/api/Wishlist  ·  POST /api/Wishlist/items  ·  DELETE /api/Wishlist/items/{variantId}",
+              auth: "jwt",
+              request: { body: { variantId: 55 } },
+              response: {
+                status: 200,
+                body: [{ variantId: 55, title: "Running shoes 42" }],
+              },
+            },
+          ],
+        },
+        {
+          id: "digital",
+          title: { en: "Digital library", fa: "کتابخانه دیجیتال" },
+          summary: {
+            en: "Downloads/codes/services the customer purchased.",
+            fa: "دانلود/کد/سرویسی که مشتری خریده.",
+          },
+          relatedAdmin: ["products", "orders"],
+          related: ["orders"],
+          endpoints: [
+            {
+              title: { en: "Library / by order / detail / access log / download", fa: "کتابخانه / سفارش / جزئیات / لاگ دسترسی / دانلود" },
+              method: "GET",
+              path: "/api/Digital  ·  /api/Digital/order/{orderId}  ·  /api/Digital/{id}  ·  POST …/access  ·  GET …/download",
+              auth: "jwt",
+              request: { body: "GET /api/Digital" },
+              response: {
+                status: 200,
+                body: [{ id: 1, title: "E-book PDF", productType: "DigitalDownload" }],
+              },
+            },
+          ],
+        },
+      ],
+    },
+
+    /* ───────── Content CMS ───────── */
+    {
+      id: "content",
+      title: { en: "Content & site shell", fa: "محتوا و پوسته سایت" },
+      summary: {
+        en: "Pages, posts, menus, slideshows, theme, site info, forms, contact, redirects, files.",
+        fa: "صفحه، پست، منو، اسلایدشو، تم، اطلاعات سایت، فرم، تماس، ریدایرکت، فایل.",
+      },
+      pages: [
+        {
+          id: "site-info",
+          title: { en: "Site info", fa: "اطلاعات سایت" },
+          summary: {
+            en: "Brand, logo, contact, social, SEO defaults for the website key.",
+            fa: "برند، لوگو، تماس، اجتماعی، پیش‌فرض SEO برای کلید وب‌سایت.",
+          },
+          relatedAdmin: ["websites", "website-seo", "website-social"],
+          endpoints: [
+            {
+              title: { en: "Get site info", fa: "گرفتن اطلاعات سایت" },
+              method: "GET",
+              path: "/api/SiteInfo",
+              auth: "website",
+              request: { body: "GET /api/SiteInfo" },
+              response: {
+                status: 200,
+                body: { name: "My Shop", logoUrl: "/…", social: { instagram: "…" } },
+              },
+            },
+          ],
+        },
+        {
+          id: "pages",
+          title: { en: "Pages", fa: "صفحات" },
+          summary: {
+            en: "CMS pages tree, homepage, page by slug.",
+            fa: "درخت صفحات CMS، صفحه خانه، صفحه با اسلاگ.",
+          },
+          relatedAdmin: ["pages", "menus"],
+          endpoints: [
+            {
+              title: { en: "Tree / home / by slug", fa: "درخت / خانه / با اسلاگ" },
+              method: "GET",
+              path: "/api/Pages  ·  /api/Pages/home  ·  /api/Pages/{slug}",
+              auth: "website",
+              query: [{ name: "lang", desc: { en: "Language", fa: "زبان" } }],
+              request: { body: "GET /api/Pages/about-us?lang=fa" },
+              response: {
+                status: 200,
+                body: { slug: "about-us", title: "About us", bodyHtml: "<p>…</p>" },
+              },
+            },
+          ],
+        },
+        {
+          id: "posts",
+          title: { en: "Posts", fa: "پست‌ها" },
+          summary: {
+            en: "Published blog/articles, featured list, post by slug.",
+            fa: "مقالات منتشرشده، ویژه، پست با اسلاگ.",
+          },
+          relatedAdmin: ["posts", "content-categories", "content-tags"],
+          endpoints: [
+            {
+              title: { en: "List / featured / by slug", fa: "لیست / ویژه / با اسلاگ" },
+              method: "GET",
+              path: "/api/Posts  ·  /api/Posts/featured  ·  /api/Posts/{slug}",
+              auth: "website",
+              request: { body: "GET /api/Posts?page=1&lang=fa" },
+              response: {
+                status: 200,
+                body: { items: [{ slug: "hello", title: "Hello" }], totalCount: 1 },
+              },
+            },
+          ],
+        },
+        {
+          id: "content-categories",
+          title: { en: "Content categories", fa: "دسته‌های محتوا" },
+          summary: {
+            en: "Blog/content category tree (not product categories).",
+            fa: "درخت دسته بلاگ/محتوا (نه دسته محصول).",
+          },
+          relatedAdmin: ["content-categories"],
+          related: ["posts"],
+          endpoints: [
+            {
+              title: { en: "Tree / by slug", fa: "درخت / با اسلاگ" },
+              method: "GET",
+              path: "/api/Categories  ·  /api/Categories/{slug}",
+              auth: "website",
+              request: { body: "GET /api/Categories?lang=fa" },
+              response: {
+                status: 200,
+                body: [{ slug: "news", title: "News" }],
+              },
+            },
+          ],
+        },
+        {
+          id: "menus",
+          title: { en: "Menus", fa: "منوها" },
+          summary: {
+            en: "Navigation trees by location key for the theme.",
+            fa: "درخت ناوبری بر اساس کلید location برای تم.",
+          },
+          relatedAdmin: ["menus"],
+          endpoints: [
+            {
+              title: { en: "All menus / by location", fa: "همه منوها / با location" },
+              method: "GET",
+              path: "/api/Menu  ·  /api/Menu/{location}",
+              auth: "website",
+              request: { body: "GET /api/Menu/header?lang=fa" },
+              response: {
+                status: 200,
+                body: [{ title: "Home", url: "/", children: [] }],
+              },
+            },
+          ],
+        },
+        {
+          id: "slideshows",
+          title: { en: "Slideshows", fa: "اسلایدشوها" },
+          summary: {
+            en: "Hero/banner slides by placement key or id.",
+            fa: "اسلاید هیرو/بنر با کلید placement یا id.",
+          },
+          relatedAdmin: ["slideshows", "media-library"],
+          endpoints: [
+            {
+              title: { en: "By placement / by id", fa: "با placement / با id" },
+              method: "GET",
+              path: "/api/Slideshow/placement/{placementKey}  ·  /api/Slideshow/{id}",
+              auth: "website",
+              request: { body: "GET /api/Slideshow/placement/home-hero" },
+              response: {
+                status: 200,
+                body: { slides: [{ title: "Sale", imageUrl: "/…", linkUrl: "/products" }] },
+              },
+            },
+          ],
+        },
+        {
+          id: "theme",
+          title: { en: "Theme", fa: "تم" },
+          summary: {
+            en: "Active theme for the website.",
+            fa: "تم فعال وب‌سایت.",
+          },
+          relatedAdmin: ["themes"],
+          endpoints: [
+            {
+              title: { en: "Active theme", fa: "تم فعال" },
+              method: "GET",
+              path: "/api/Theme/active",
+              auth: "website",
+              request: { body: "GET /api/Theme/active" },
+              response: { status: 200, body: { key: "default", name: "Default" } },
+            },
+          ],
+        },
+        {
+          id: "forms",
+          title: { en: "Forms", fa: "فرم‌ها" },
+          summary: {
+            en: "Load form definition and submit answers; optional public results.",
+            fa: "بارگذاری تعریف فرم و ارسال پاسخ؛ نتایج عمومی اختیاری.",
+          },
+          relatedAdmin: ["forms"],
+          endpoints: [
+            {
+              title: { en: "Get / submit / results", fa: "گرفتن / ارسال / نتایج" },
+              method: "GET",
+              path: "/api/Forms/{slug}  ·  POST /api/Forms/{id}/submit  ·  GET /api/Forms/{id}/results",
+              auth: "website",
+              request: {
+                body: { values: { email: "a@b.com", message: "Hello" } },
+              },
+              response: { status: 200, body: { success: true } },
+            },
+          ],
+        },
+        {
+          id: "contact",
+          title: { en: "Contact messages", fa: "پیام تماس" },
+          summary: {
+            en: "Simple contact form post → Admin Contact Messages.",
+            fa: "ارسال فرم تماس ساده → پیام‌های تماس ادمین.",
+          },
+          relatedAdmin: ["contact-messages"],
+          endpoints: [
+            {
+              title: { en: "Submit contact", fa: "ارسال تماس" },
+              method: "POST",
+              path: "/api/Contact",
+              auth: "website",
+              request: {
+                body: { name: "Ali", email: "a@b.com", subject: "Hi", body: "…" },
+              },
+              response: { status: 200, body: { success: true } },
+            },
+          ],
+        },
+        {
+          id: "redirects",
+          title: { en: "Redirects", fa: "ریدایرکت" },
+          summary: {
+            en: "Resolve an old path to a new target for the storefront router.",
+            fa: "resolve مسیر قدیمی به مقصد جدید برای روتر استورفرانت.",
+          },
+          relatedAdmin: ["redirects"],
+          endpoints: [
+            {
+              title: { en: "Resolve path", fa: "resolve مسیر" },
+              method: "GET",
+              path: "/api/Redirects/resolve",
+              auth: "website",
+              query: [{ name: "path", desc: { en: "Incoming path", fa: "مسیر ورودی" } }],
+              request: { body: "GET /api/Redirects/resolve?path=/old-page" },
+              response: {
+                status: 200,
+                body: { target: "/new-page", permanent: true },
+              },
+            },
+          ],
+        },
+        {
+          id: "files",
+          title: { en: "Files", fa: "فایل‌ها" },
+          summary: {
+            en: "Serve a stored media file by website id + stored name.",
+            fa: "سرو فایل مدیا با website id + نام ذخیره‌شده.",
+          },
+          relatedAdmin: ["media-library", "storage"],
+          endpoints: [
+            {
+              title: { en: "Get file", fa: "گرفتن فایل" },
+              method: "GET",
+              path: "/api/files/{websiteId}/{*storedName}",
+              auth: "none",
+              request: { body: "GET /api/files/1/abc123.jpg" },
+              response: {
+                status: 200,
+                body: "(binary file stream)",
+              },
+            },
+          ],
+        },
+      ],
+    },
+
+    /* ───────── Social commerce ───────── */
+    {
+      id: "social",
+      title: { en: "Reviews & Q&A", fa: "نظرات و پرسش‌وپاسخ" },
+      summary: {
+        en: "Public approved lists; write actions need ClientReview JWT. Admin moderates.",
+        fa: "لیست تأییدشده عمومی؛ نوشتن نیاز به JWT ClientReview. ادمین نظارت می‌کند.",
+      },
+      pages: [
+        {
+          id: "reviews",
+          title: { en: "Product reviews", fa: "نظرات محصول" },
+          relatedAdmin: ["moderation-reviews"],
+          related: ["products", "auth"],
+          endpoints: [
+            {
+              title: { en: "List approved", fa: "لیست تأییدشده" },
+              method: "GET",
+              path: "/api/products/{productId}/reviews",
+              auth: "website",
+              request: { body: "GET /api/products/10/reviews?page=1&pageSize=10" },
+              response: {
+                status: 200,
+                body: { items: [{ rating: 5, body: "Great!" }], totalCount: 1 },
+              },
+            },
+            {
+              title: { en: "Submit review", fa: "ارسال نظر" },
+              method: "POST",
+              path: "/api/products/{productId}/reviews",
+              auth: "jwt",
+              request: { body: { rating: 5, title: "Great", body: "…" } },
+              response: { status: 200, body: { success: true } },
+            },
+            {
+              title: { en: "Like / dislike", fa: "لایک / دیسلایک" },
+              method: "POST",
+              path: "/api/reviews/{reviewId}/like  ·  /api/reviews/{reviewId}/dislike",
+              auth: "jwt",
+              request: { body: "POST /api/reviews/3/like" },
+              response: { status: 200, body: "(OK)" },
+            },
+          ],
+        },
+        {
+          id: "questions",
+          title: { en: "Product Q&A", fa: "پرسش و پاسخ محصول" },
+          relatedAdmin: ["moderation-questions"],
+          related: ["products", "auth"],
+          endpoints: [
+            {
+              title: { en: "List / ask / answer / like answer", fa: "لیست / پرسش / پاسخ / لایک پاسخ" },
+              method: "GET",
+              path: "/api/products/{productId}/questions  ·  POST …  ·  POST /api/questions/{id}/answers  ·  POST /api/answers/{id}/like",
+              auth: "website",
+              request: { body: { body: "Is this waterproof?" } },
+              response: {
+                status: 200,
+                body: { items: [{ question: "…", answers: [] }], totalCount: 1 },
+              },
+              notes: [
+                {
+                  en: "Write endpoints (POST ask/answer/like) require JWT + ClientReview.",
+                  fa: "اندپوینت‌های نوشتن (POST) به JWT + ClientReview نیاز دارند.",
+                },
+              ],
+            },
+          ],
+        },
+      ],
+    },
+
+    /* ───────── Platform ───────── */
+    {
+      id: "platform",
+      title: { en: "Platform helpers", fa: "ابزارهای پلتفرم" },
+      summary: {
+        en: "Languages, localization, locations, captcha, cache invalidate.",
+        fa: "زبان، بومی‌سازی، مکان، captcha، ابطال کش.",
+      },
+      pages: [
+        {
+          id: "languages",
+          title: { en: "Languages", fa: "زبان‌ها" },
+          relatedAdmin: ["website-languages", "languages-catalog"],
+          endpoints: [
+            {
+              title: { en: "List languages", fa: "فهرست زبان‌ها" },
+              method: "GET",
+              path: "/api/Languages",
+              auth: "website",
+              request: { body: "GET /api/Languages" },
+              response: {
+                status: 200,
+                body: [{ code: "fa", name: "Persian" }, { code: "en", name: "English" }],
+              },
+            },
+          ],
+        },
+        {
+          id: "localization",
+          title: { en: "Localization strings", fa: "رشته‌های ترجمه" },
+          relatedAdmin: ["website-translations", "admin-translations"],
+          endpoints: [
+            {
+              title: { en: "Get all keys for a language", fa: "همه کلیدها برای یک زبان" },
+              method: "GET",
+              path: "/api/Localization/{languageCode}",
+              auth: "website",
+              request: { body: "GET /api/Localization/fa" },
+              response: {
+                status: 200,
+                body: { "cart.title": "سبد خرید", "checkout.pay": "پرداخت" },
+              },
+            },
+            {
+              title: { en: "Set a key (authorized)", fa: "تنظیم یک کلید (مجاز)" },
+              method: "PUT",
+              path: "/api/Localization/{languageCode}/{key}",
+              auth: "jwt",
+              summary: {
+                en: "Requires LocalizationEdit policy (not a normal customer).",
+                fa: "سیاست LocalizationEdit لازم است (مشتری عادی نیست).",
+              },
+              request: { body: "\"متن جدید\"" },
+              response: { status: 200, body: "(OK)" },
+            },
+          ],
+        },
+        {
+          id: "locations",
+          title: { en: "Locations", fa: "مکان‌ها" },
+          summary: {
+            en: "Countries and cities for address forms.",
+            fa: "کشور و شهر برای فرم آدرس.",
+          },
+          relatedAdmin: ["initial-countries", "initial-cities"],
+          related: ["addresses"],
+          endpoints: [
+            {
+              title: { en: "Countries / cities", fa: "کشورها / شهرها" },
+              method: "GET",
+              path: "/api/Locations/countries  ·  /api/Locations/countries/{countryId}/cities",
+              auth: "website",
+              request: { body: "GET /api/Locations/countries/1/cities" },
+              response: {
+                status: 200,
+                body: [{ cityId: 10, name: "Tehran" }],
+              },
+            },
+          ],
+        },
+        {
+          id: "captcha",
+          title: { en: "Captcha challenge", fa: "چالش Captcha" },
+          relatedAdmin: ["settings"],
+          related: ["auth"],
+          endpoints: [
+            {
+              title: { en: "Get challenge", fa: "گرفتن چالش" },
+              method: "GET",
+              path: "/api/Captcha/challenge",
+              auth: "website",
+              request: { body: "GET /api/Captcha/challenge" },
+              response: {
+                status: 200,
+                body: { mode: "Math", challengeId: "…", question: "3 + 4 = ?" },
+              },
+            },
+          ],
+        },
+        {
+          id: "cache",
+          title: { en: "Cache invalidate", fa: "ابطال کش" },
+          summary: {
+            en: "Internal/admin-style cache busting endpoint (not for storefront UI).",
+            fa: "اندپوینت ابطال کش داخلی/ادمین‌گونه (برای UI استورفرانت نیست).",
+          },
+          endpoints: [
+            {
+              title: { en: "Invalidate", fa: "ابطال" },
+              method: "POST",
+              path: "/api/cache/invalidate",
+              auth: "none",
+              summary: {
+                en: "Protected by configuration/shared secret patterns in the controller — do not expose casually.",
+                fa: "با الگوهای پیکربندی/راز مشترک در کنترلر محافظت می‌شود — سرسری در معرض نگذارید.",
+              },
+              request: { body: { keys: ["product:10"] } },
+              response: { status: 200, body: { success: true } },
+            },
+          ],
+        },
+      ],
+    },
+  ],
+};

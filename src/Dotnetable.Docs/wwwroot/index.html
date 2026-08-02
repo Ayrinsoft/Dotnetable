@@ -3,8 +3,8 @@
 <head>
   <meta charset="utf-8" />
   <meta name="viewport" content="width=device-width, initial-scale=1" />
-  <meta name="description" content="Dotnetable Admin documentation — bilingual FA/EN guide for every admin panel feature." />
-  <title>Dotnetable Admin Docs</title>
+  <meta name="description" content="Dotnetable documentation — Admin panel and public API." />
+  <title>Dotnetable Docs</title>
   <link rel="stylesheet" href="css/fonts.css" />
   <link rel="stylesheet" href="css/docs.css" />
 </head>
@@ -15,14 +15,23 @@
         <div class="brand-mark">D</div>
         <div class="brand-text">
           <strong data-i18n="brand">Dotnetable Docs</strong>
-          <span data-i18n="brand.sub">Admin guide</span>
+          <span id="brandSub" data-i18n="brand.sub">Admin</span>
         </div>
+      </div>
+
+      <div class="book-switch" role="group" aria-label="Documentation area">
+        <button type="button" class="book-btn active" data-book="admin" id="bookAdmin">
+          <span data-i18n="book.admin">Admin</span>
+        </button>
+        <button type="button" class="book-btn" data-book="api" id="bookApi">
+          <span data-i18n="book.api">API</span>
+        </button>
       </div>
 
       <div class="sidebar-tools">
         <label class="search-wrap">
           <span class="sr-only" data-i18n="search">Search</span>
-          <input type="search" id="searchInput" data-i18n-placeholder="search.placeholder" placeholder="Search docs…" autocomplete="off" />
+          <input type="search" id="searchInput" data-i18n-placeholder="search.placeholder" placeholder="Search…" autocomplete="off" />
         </label>
         <div class="lang-switch" role="group" aria-label="Language">
           <button type="button" class="lang-btn" data-lang="fa" id="langFa">FA</button>
@@ -33,8 +42,8 @@
       <nav class="nav" id="nav" aria-label="Documentation"></nav>
 
       <div class="sidebar-footer">
-        <p data-i18n="footer.hint">Keep this site in sync when Admin pages change.</p>
-        <code>src/Dotnetable.Admin.Docs</code>
+        <p data-i18n="footer.hint">Update matching pages when Admin or API behavior changes.</p>
+        <code>src/Dotnetable.Docs</code>
       </div>
     </aside>
 
@@ -42,9 +51,9 @@
       <header class="topbar">
         <button type="button" class="icon-btn" id="menuToggle" aria-label="Menu">☰</button>
         <div class="crumbs" id="crumbs"></div>
-        <div class="admin-link" id="adminPathLink" hidden title="">
-          <span data-i18n="open.admin">Admin path</span>
-          <code id="adminPathCode"></code>
+        <div class="admin-link" id="pathBadge" hidden title="">
+          <span id="pathBadgeLabel" data-i18n="path.admin">Path</span>
+          <code id="pathBadgeCode"></code>
         </div>
       </header>
 
@@ -56,7 +65,8 @@
 
   <div class="backdrop" id="backdrop" hidden></div>
 
-  <script src="js/catalog.js"></script>
-  <script src="js/app.js"></script>
+  <script src="js/catalog-admin.js" charset="utf-8"></script>
+  <script src="js/catalog-api.js" charset="utf-8"></script>
+  <script src="js/app.js" charset="utf-8"></script>
 </body>
 </html>
