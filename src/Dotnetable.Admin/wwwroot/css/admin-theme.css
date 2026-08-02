@@ -512,6 +512,22 @@ html, body {
 .dn-category-tree-head .dn-category-tree-col-status { flex: 0 0 96px; text-align: center; }
 .dn-category-tree-head .dn-category-tree-col-actions { flex: 0 0 120px; }
 
+/* Product edit sticky save bar (Shopify-style). */
+.dn-product-sticky-bar {
+    position: sticky;
+    bottom: 0;
+    z-index: 20;
+    margin: 0 -8px;
+    padding: 0 8px 8px;
+    background: linear-gradient(180deg, transparent, var(--mud-palette-background) 28%);
+}
+.dn-product-sticky-bar > div {
+    background: var(--mud-palette-surface);
+    border: 1px solid var(--mud-palette-lines-default);
+    border-radius: 12px;
+    box-shadow: 0 -4px 18px rgba(0, 0, 0, .08);
+}
+
 /* Color attribute swatches (catalog + product variants). */
 .dn-color-swatch {
     width: 28px;
