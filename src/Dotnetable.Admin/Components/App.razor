@@ -1,3 +1,7 @@
+@using Microsoft.AspNetCore.Http
+@using Microsoft.AspNetCore.Mvc.ViewFeatures
+@inject IFileVersionProvider FileVersionProvider
+@inject IHttpContextAccessor HttpContextAccessor
 <!DOCTYPE html>
 <html lang="en">
 <head>
@@ -10,15 +14,27 @@
     <link rel="stylesheet" href="_content/MudBlazor/MudBlazor.min.css" />
     <link rel="stylesheet" href="https://cdn.jsdelivr.net/npm/bootstrap-icons@1.11.3/font/bootstrap-icons.min.css" />
     <link rel="stylesheet" href="_content/CkEditor5.Blazor/css/ckeditor5.css" />
-    <link rel="stylesheet" href="css/admin-theme.css" />
+    <link rel="stylesheet" href="@Versioned("~/css/admin-theme.css")" />
     <HeadOutlet @rendermode="@RenderMode.InteractiveServer" />
 </head>
 <body>
     <Routes @rendermode="@RenderMode.InteractiveServer" />
-    <script src="js/theme.js?v=20260802-dismiss"></script>
-    <script src="js/media-editor.js?v=20260720b"></script>
-    <script src="js/dn-ckeditor.js?v=20260723-dir6"></script>
+    <script src="@Versioned("~/js/theme.js")"></script>
+    <script src="@Versioned("~/js/media-editor.js")"></script>
+    <script src="@Versioned("~/js/dn-ckeditor.js")"></script>
     <script src="_framework/blazor.server.js"></script>
     <script src="_content/MudBlazor/MudBlazor.min.js"></script>
 </body>
 </html>
+
+@code {
+    /// <summary>
+    /// Content-hash query string (?v=…) — same mechanism as MVC <c>asp-append-version="true"</c>.
+    /// Tag helpers do not run inside .razor files, so this uses <see cref="IFileVersionProvider"/> directly.
+    /// </summary>
+    private string Versioned(string path)
+    {
+        var pathBase = HttpContextAccessor.HttpContext?.Request.PathBase ?? PathString.Empty;
+        return FileVersionProvider.AddFileVersionToPath(pathBase, path);
+    }
+}
