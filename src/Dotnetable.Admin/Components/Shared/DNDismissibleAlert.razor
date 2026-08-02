@@ -1,0 +1,63 @@
+@* Info/hint alert with close (×). Dismissed keys are stored in localStorage so they stay hidden. *@
+@inject IJSRuntime JS
+
+@if (_ready && !_dismissed)
+{
+    <MudAlert Severity="@Severity"
+              Dense="@Dense"
+              Variant="@Variant"
+              Class="@Class"
+              ShowCloseIcon="true"
+              CloseIconClicked="DismissAsync">
+        @ChildContent
+    </MudAlert>
+}
+
+@code {
+    /// <summary>Stable key for localStorage (e.g. product-edit.media). Required.</summary>
+    [Parameter, EditorRequired]
+    public string StorageKey { get; set; } = string.Empty;
+
+    [Parameter] public RenderFragment? ChildContent { get; set; }
+    [Parameter] public Severity Severity { get; set; } = Severity.Info;
+    [Parameter] public Variant Variant { get; set; } = Variant.Outlined;
+    [Parameter] public bool Dense { get; set; } = true;
+    [Parameter] public string Class { get; set; } = "mb-3";
+
+    private bool _ready;
+    private bool _dismissed;
+
+    protected override async Task OnAfterRenderAsync(bool firstRender)
+    {
+        if (!firstRender || _ready) return;
+
+        if (!string.IsNullOrWhiteSpace(StorageKey))
+        {
+            try
+            {
+                _dismissed = await JS.InvokeAsync<bool>("dotnetableDismiss.isDismissed", StorageKey);
+            }
+            catch
+            {
+                // JS not ready / private mode — still show the alert.
+            }
+        }
+
+        _ready = true;
+        await InvokeAsync(StateHasChanged);
+    }
+
+    private async Task DismissAsync()
+    {
+        _dismissed = true;
+        if (string.IsNullOrWhiteSpace(StorageKey)) return;
+        try
+        {
+            await JS.InvokeVoidAsync("dotnetableDismiss.dismiss", StorageKey);
+        }
+        catch
+        {
+            // Ignore persistence failures; UI already hides this session.
+        }
+    }
+}

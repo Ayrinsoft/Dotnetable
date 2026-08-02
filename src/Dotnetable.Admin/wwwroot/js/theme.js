@@ -60,6 +60,19 @@ window.dotnetableUiMode = {
     }
 };
 
+// Dismissible admin info/hint alerts. Key is namespaced under dn-dismiss: so product-edit.media
+// becomes localStorage['dn-dismiss:product-edit.media'] = '1'.
+window.dotnetableDismiss = {
+    isDismissed: function (key) {
+        if (!key) return false;
+        try { return localStorage.getItem('dn-dismiss:' + key) === '1'; } catch { return false; }
+    },
+    dismiss: function (key) {
+        if (!key) return;
+        try { localStorage.setItem('dn-dismiss:' + key, '1'); } catch (e) { }
+    }
+};
+
 // Triggers a browser download of base64 content produced server-side
 // (used by the Translations page to export a CSV file).
 window.dotnetableFile = {

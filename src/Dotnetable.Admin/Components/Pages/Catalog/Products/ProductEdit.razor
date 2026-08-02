@@ -156,9 +156,9 @@ else
             {
             <MudTabPanel Text="@L["products.digital", "Digital delivery"]">
                 <div class="pa-2">
-                    <MudAlert Severity="Severity.Info" Dense="true" Class="mb-3" Variant="Variant.Outlined">
+                    <DNDismissibleAlert StorageKey="product-edit.digital">
                         @L["products.digital_hint", "Digital products do not need freight. Use stock -1 on seller listings for unlimited sales (e.g. PDF books)."]
-                    </MudAlert>
+                    </DNDismissibleAlert>
                     <MudGrid Spacing="3">
                         @if (Model.ProductType == (byte)ProductType.DigitalDownload)
                         {
@@ -193,19 +193,19 @@ else
                 <div class="pa-2">
                     @if (_vendorId is null)
                     {
-                        <MudAlert Severity="Severity.Info" Dense="true" Class="mb-3" Variant="Variant.Outlined">
+                        <DNDismissibleAlert StorageKey="product-edit.catalog-price">
                             @L["products.catalog_price_hint", "Price on this tab is the catalog default. Each store sets its own selling price and stock on the Seller stock & prices tab — products without store stock are not sellable."]
-                        </MudAlert>
+                        </DNDismissibleAlert>
                     }
                     @if (IsDigital)
                     {
-                        <MudAlert Severity="Severity.Info" Dense="true" Class="mb-3" Variant="Variant.Outlined">
+                        <DNDismissibleAlert StorageKey="product-edit.unlimited-stock">
                             @L["products.unlimited_stock_hint", "Digital: set seller stock to -1 for unlimited quantity (never depletes)."]
-                        </MudAlert>
+                        </DNDismissibleAlert>
                     }
                     @if (_hasRate && !_isUsdSite)
                     {
-                        <MudAlert Severity="Severity.Info" Dense="true" Class="mb-3" Variant="Variant.Outlined">
+                        <DNDismissibleAlert StorageKey="product-edit.price-currency">
                             @if (_storePricesInUsd)
                             {
                                 @string.Format(
@@ -218,7 +218,7 @@ else
                                     L["products.price_enter_local_only", "Enter prices in {0} only. Amounts are stored in site currency. Other storefront currencies convert through the USD rate table (1 USD = {1} {0})."],
                                     _displayCurrency, FormatRate(_usdToCurrency))
                             }
-                        </MudAlert>
+                        </DNDismissibleAlert>
                     }
                     <MudPaper Elevation="0" Class="border rounded-lg pa-3 mb-3">
                         <MudStack Row="true" AlignItems="AlignItems.Center" Justify="Justify.SpaceBetween" Class="mb-2" Style="flex-wrap:wrap; gap:8px;">
@@ -477,9 +477,9 @@ else
             {
             <MudTabPanel Text="@L["products.seller_stock", "Seller stock & prices"]">
                 <div class="pa-2">
-                    <MudAlert Severity="Severity.Info" Dense="true" Variant="Variant.Outlined" Class="mb-3">
+                    <DNDismissibleAlert StorageKey="product-edit.seller-stock">
                         @L["products.seller_stock_hint", "Every unit belongs to a store (even a display-name-only store). Register stock once per store here. Inventory total = sum of store stocks. Checkout reserves; payment deducts. Without store stock the product is not sellable."]
-                    </MudAlert>
+                    </DNDismissibleAlert>
 
                     <MudPaper Elevation="0" Class="border rounded-lg pa-3 mb-3">
                         <MudText Typo="Typo.subtitle2" Class="mb-1">@L["products.seller_stock_add", "Assign listing to a seller"]</MudText>
@@ -613,9 +613,9 @@ else
 
             <MudTabPanel Text="@MediaTabLabel">
                 <div class="pa-2">
-                    <MudAlert Severity="Severity.Info" Dense="true" Variant="Variant.Outlined" Class="mb-3">
+                    <DNDismissibleAlert StorageKey="product-edit.media">
                         @L["products.media_hint", "Set a featured image for lists and cards, then add gallery images for the product page."]
-                    </MudAlert>
+                    </DNDismissibleAlert>
                     <MudGrid Spacing="2">
                         <MudItem xs="6" sm="3" md="2">
                             <MudText Typo="Typo.caption" Class="mb-1 fw-bold">@L["products.featured_image", "Featured image"]</MudText>
@@ -693,9 +693,9 @@ else
 
             <MudTabPanel Text="@L["products.attributes", "Attributes"]">
                 <div class="pa-2">
-                    <MudAlert Severity="Severity.Info" Dense="true" Variant="Variant.Outlined" Class="mb-3">
+                    <DNDismissibleAlert StorageKey="product-edit.attributes">
                         @L["products.attributes_hint", "Category attributes are listed first. Leave a value empty to skip storing that attribute for this product. If an attribute is unlinked from the category, any value already saved on this product stays as “Product-only” until you remove it here. Use “Add attribute” for extra product-only fields."]
-                    </MudAlert>
+                    </DNDismissibleAlert>
 
                     @if (_selectedCategory is null)
                     {
@@ -818,9 +818,9 @@ else
 
             <MudTabPanel Text="@L["products.content", "Content"]">
                 <div class="pa-2">
-                    <MudAlert Severity="Severity.Info" Dense="true" Variant="Variant.Outlined" Class="mb-3">
+                    <DNDismissibleAlert StorageKey="product-edit.content">
                         @L["products.content_hint", "Full product description for the storefront. Leave empty and the Description tab will not appear on the product page."]
-                    </MudAlert>
+                    </DNDismissibleAlert>
                     <MudStack Row="true" AlignItems="AlignItems.Center" Justify="Justify.SpaceBetween" Class="mb-1">
                         <MudText Typo="Typo.body2" Color="Color.Secondary">@L["products.content", "Content"]</MudText>
                         <ContentMediaInsertButton WebsiteId="_websiteId"
@@ -863,9 +863,9 @@ else
 
             <MudTabPanel Text="@L["products.expert_review", "Expert review"]">
                 <div class="pa-2">
-                    <MudAlert Severity="Severity.Info" Dense="true" Variant="Variant.Outlined" Class="mb-3">
+                    <DNDismissibleAlert StorageKey="product-edit.expert-review">
                         @L["products.expert_review_hint", "Optional expert/technical review. Leave empty and the Expert review tab will not appear on the product page."]
-                    </MudAlert>
+                    </DNDismissibleAlert>
                     <MudStack Row="true" AlignItems="AlignItems.Center" Justify="Justify.SpaceBetween" Class="mb-1">
                         <MudText Typo="Typo.body2" Color="Color.Secondary">@L["products.expert_review", "Expert review"]</MudText>
                         <ContentMediaInsertButton WebsiteId="_websiteId"
@@ -939,9 +939,9 @@ else
 
             <MudTabPanel Text="@L["products.warranties", "Warranties"]">
                 <div class="pa-2">
-                    <MudAlert Severity="Severity.Info" Dense="true" Variant="Variant.Outlined" Class="mb-3">
+                    <DNDismissibleAlert StorageKey="product-edit.warranties">
                         @L["products.warranties_hint", "Optional. Pick a plan from Catalog → Warranties, or enter free text for seller/non-company warranties. Leave empty if the product has no warranty."]
-                    </MudAlert>
+                    </DNDismissibleAlert>
                     @foreach (var (row, idx) in _warranties.Select((w, i) => (w, i)))
                     {
                         <MudPaper Elevation="0" Class="border rounded-lg pa-3 mb-2">
