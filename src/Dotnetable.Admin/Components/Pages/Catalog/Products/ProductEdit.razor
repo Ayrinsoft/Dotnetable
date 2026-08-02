@@ -50,11 +50,10 @@ else
     <DNPrerequisiteAlert Items="_prerequisites" />
     <DNValidationSummary Errors="_formErrors" />
 
-    <MudPaper Elevation="0" Class="app-card rounded-lg pa-4 mb-10">
+    <MudPaper Elevation="0" Class="app-card rounded-lg pa-4 mb-4">
         <MudTabs Elevation="0" Rounded="true" ApplyEffectsToContainer="true">
             <MudTabPanel Text="@L["products.general", "General"]">
                 <MudGrid Spacing="3" Class="pa-2">
-                    @* Main column — Shopify-style product details *@
                     <MudItem xs="12" md="8">
                         <MudGrid Spacing="3">
                             <MudItem xs="12" sm="8">
@@ -70,7 +69,7 @@ else
                             <MudItem xs="12">
                                 <MudTextField @bind-Value="Model.ShortDescription" Label="@L["products.short_description", "Short description"]"
                                               Variant="Variant.Outlined" Lines="3" AutoGrow="true"
-                                              HelperText="@L["products.short_description_hint", "Shown in lists and previews (like Shopify’s description summary)."]" />
+                                              HelperText="@L["products.short_description_hint", "Shown in lists and product previews."]" />
                             </MudItem>
                             <MudItem xs="12" sm="6">
                                 <MudSelect T="byte" Value="Model.ProductType" ValueChanged="OnProductTypeChanged"
@@ -123,7 +122,6 @@ else
                         </MudGrid>
                     </MudItem>
 
-                    @* Organization sidebar — Shopify “Product organization” *@
                     <MudItem xs="12" md="4">
                         <MudPaper Elevation="0" Class="border rounded-lg pa-3 mb-3">
                             <MudText Typo="Typo.subtitle2" Class="fw-bold mb-2">@L["products.organization", "Organization"]</MudText>
@@ -222,13 +220,12 @@ else
                             }
                         </MudAlert>
                     }
-                    @* ── Shopify/Woo-style: define product options once, then pick values per row ── *@
                     <MudPaper Elevation="0" Class="border rounded-lg pa-3 mb-3">
                         <MudStack Row="true" AlignItems="AlignItems.Center" Justify="Justify.SpaceBetween" Class="mb-2" Style="flex-wrap:wrap; gap:8px;">
                             <MudStack Spacing="0">
                                 <MudText Typo="Typo.subtitle2" Class="fw-bold">@L["variants.product_options", "Product options"]</MudText>
                                 <MudText Typo="Typo.caption" Color="Color.Secondary">
-                                    @L["variants.product_options_hint", "Like Shopify / WooCommerce: choose attributes (Color, Size, …), add the values this product sells, then assign them on each variant. Color name + code are set once per value — not on every row."]
+                                    @L["variants.product_options_hint", "Choose attributes (Color, Size, …), add the values this product sells, then assign them on each variant. Color name + code are set once per value — not on every row."]
                                 </MudText>
                             </MudStack>
                             @if (_canEdit && AddableVariantAttributes.Count > 0)
@@ -617,7 +614,7 @@ else
             <MudTabPanel Text="@MediaTabLabel">
                 <div class="pa-2">
                     <MudAlert Severity="Severity.Info" Dense="true" Variant="Variant.Outlined" Class="mb-3">
-                        @L["products.media_hint", "Like Shopify: set a featured image for lists/cards, then add gallery images for the product page."]
+                        @L["products.media_hint", "Set a featured image for lists and cards, then add gallery images for the product page."]
                     </MudAlert>
                     <MudGrid Spacing="2">
                         <MudItem xs="6" sm="3" md="2">
@@ -1015,26 +1012,6 @@ else
             </MudTabPanel>
         </MudTabs>
     </MudPaper>
-
-    @* Sticky save bar (Shopify-style productivity) *@
-    @if (_canEdit)
-    {
-        <div class="dn-product-sticky-bar">
-            <MudStack Row="true" AlignItems="AlignItems.Center" Justify="Justify.SpaceBetween" Class="pa-2" Style="max-width:1200px; margin:0 auto;">
-                <MudText Typo="Typo.caption" Color="Color.Secondary" Class="d-none d-sm-block">
-                    @(_isNew ? L["products.new", "New Product"] : Model.Title)
-                </MudText>
-                <MudStack Row="true" Spacing="2">
-                    <MudButton Variant="Variant.Text" OnClick="@(() => Nav.NavigateTo("/catalog/products"))">@L["back", "Back"]</MudButton>
-                    <MudButton Variant="Variant.Filled" Color="Color.Primary" OnClick="SaveAsync"
-                               Disabled="@(_saving || _prerequisites.Count > 0)"
-                               StartIcon="@Icons.Material.Filled.Save">
-                        @(_saving ? L["saving", "Saving…"] : L["save", "Save"])
-                    </MudButton>
-                </MudStack>
-            </MudStack>
-        </div>
-    }
 }
 
 @code {
@@ -1098,7 +1075,7 @@ else
     private List<AttributeDefinition> _allProductLevelAttributes = new();
     /// <summary>Catalog attributes marked as variant (color, size, …) for this website.</summary>
     private List<AttributeDefinition> _variantAttributes = new();
-    /// <summary>Variant attribute definition IDs used by this product (Shopify-style product options).</summary>
+    /// <summary>Variant attribute definition IDs used by this product (product options).</summary>
     private readonly List<int> _productVariantAttrIds = new();
     /// <summary>Option IDs offered on this product, per attribute definition (ordered).</summary>
     private readonly Dictionary<int, List<int>> _productVariantOptionIds = new();
@@ -1477,7 +1454,7 @@ else
         _slugManuallyEdited = true;
     }
 
-    /// <summary>URL-safe slug from title (Shopify-style handle).</summary>
+    /// <summary>URL-safe slug from title.</summary>
     private static string Slugify(string? text)
     {
         if (string.IsNullOrWhiteSpace(text)) return string.Empty;
