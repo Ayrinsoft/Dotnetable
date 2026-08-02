@@ -4,12 +4,14 @@
 @inject IBrandService BrandService
 @inject IProductCategoryService CategoryService
 @inject ICurrencyConversionService CurrencyConversion
+@inject IVendorProductService VendorProductService
 @inject IWebsiteService WebsiteService
 @inject AuthenticationStateProvider AuthState
 @inject IDialogService DialogService
 @inject ISnackbar Snackbar
 @inject NavigationManager Nav
 @inject IPageLocalizer L
+@inject IJSRuntime JS
 
 <DNPageTitle Title=@L["products", "Products"] />
 
@@ -18,12 +20,28 @@
         <MudText Typo="Typo.h5" Class="fw-bold">@L["products", "Products"]</MudText>
         <MudText Typo="Typo.body2" Color="Color.Secondary">@L["products.subtitle", "Catalog products with variants, categories and media."]</MudText>
     </MudStack>
-    <MudStack Row="true" Spacing="2" AlignItems="AlignItems.Center">
+    <MudStack Row="true" Spacing="2" AlignItems="AlignItems.Center" Class="flex-wrap">
         @if (_isMaster)
         {
             <WebsiteSelector Value="_websiteId" ValueChanged="OnWebsiteChanged" Websites="_websites"
                              Label="@L["website", "Website"]" Variant="Variant.Outlined"
                              Dense="true" Style="min-width:180px" />
+        }
+        <MudButton Variant="Variant.Outlined" Color="Color.Primary" StartIcon="@Icons.Material.Filled.Download"
+                   OnClick="ExportPriceStockAsync" Disabled="@(_excelBusy || _websiteId <= 0)">
+            @L["products.export_price_stock", "Export price & stock"]
+        </MudButton>
+        @if (_canEdit)
+        {
+            <MudFileUpload T="IBrowserFile" FilesChanged="ImportPriceStockAsync" Accept=".xlsx" Class="d-inline-flex">
+                <ActivatorContent>
+                    <MudButton Variant="Variant.Outlined" Color="Color.Secondary"
+                               StartIcon="@Icons.Material.Filled.UploadFile"
+                               Disabled="@(_excelBusy || _websiteId <= 0)">
+                        @L["products.import_price_stock", "Import price & stock"]
+                    </MudButton>
+                </ActivatorContent>
+            </MudFileUpload>
         }
         @if (_canInsert)
         {
@@ -35,6 +53,13 @@
         }
     </MudStack>
 </MudStack>
+
+@if (_websiteId > 0)
+{
+    <MudAlert Severity="Severity.Info" Dense="true" Variant="Variant.Outlined" Class="mb-3">
+        @L["products.price_stock_excel_hint", "Export seller listings (price & stock) for the current website. Sellers only get their own rows. Edit Price/Stock in Excel, keep VendorProductID unchanged, then import. File name ends with today’s date."]
+    </MudAlert>
+}
 
 <DNPrerequisiteAlert Items="_prerequisites" />
 
@@ -80,11 +105,15 @@
 </MudPaper>
 
 @code {
+    private const long MaxImportBytes = 20 * 1024 * 1024;
+
     private bool _loading = true;
+    private bool _excelBusy;
     private bool _isMaster;
-    private bool _canInsert, _canDelete;
+    private bool _canInsert, _canDelete, _canEdit;
     private int _websiteId;
     private int? _vendorMemberId;
+    private int? _vendorId;
     private List<ProductListItemDto> _items = new();
     private List<Website> _websites = new();
     private List<DNPrerequisiteAlert.Item> _prerequisites = new();
@@ -101,11 +130,14 @@
         _isMaster = user.HasClaim(AdminClaimTypes.Master, "true");
         _canInsert = AdminPolicies.Allows(user, RoleKeys.ProductsInsert);
         _canDelete = AdminPolicies.Allows(user, RoleKeys.ProductsDelete);
+        _canEdit = AdminPolicies.Allows(user, RoleKeys.ProductsEdit);
         int.TryParse(user.FindFirst(AdminClaimTypes.WebsiteId)?.Value, out _websiteId);
         // Vendor members only manage products they created.
         if (user.HasClaim(c => c.Type == AdminClaimTypes.VendorId)
             && int.TryParse(user.FindFirst(AdminClaimTypes.MemberId)?.Value, out var mid))
             _vendorMemberId = mid;
+        if (int.TryParse(user.FindFirst(AdminClaimTypes.VendorId)?.Value, out var vid) && vid > 0)
+            _vendorId = vid;
         if (_isMaster) _websites = (await WebsiteService.GetAllAsync()).ToList();
 
         _grid = new GridViewHeaderParameters
@@ -179,5 +211,59 @@
         await ProductService.DeleteAsync(productId);
         Snackbar.Add(L["deleted", "Deleted."], Severity.Success);
         await LoadAsync();
+    }
+
+    private async Task ExportPriceStockAsync()
+    {
+        if (_websiteId <= 0) return;
+        _excelBusy = true;
+        try
+        {
+            var bytes = await VendorProductService.ExportListingsExcelAsync(
+                _websiteId, vendorId: _vendorId, actingMemberId: _vendorMemberId);
+            var scope = _vendorId is int v
+                ? $"w{_websiteId}-vendor{v}"
+                : $"w{_websiteId}";
+            var fileName = $"price-stock-{scope}-{DateTime.Now:yyyyMMdd}.xlsx";
+            await JS.InvokeVoidAsync("dotnetableFile.download", fileName, Convert.ToBase64String(bytes),
+                "application/vnd.openxmlformats-officedocument.spreadsheetml.sheet");
+        }
+        catch (Exception ex)
+        {
+            Snackbar.Add($"{L["products.export_failed", "Export failed"]}: {ex.Message}", Severity.Error);
+        }
+        finally { _excelBusy = false; }
+    }
+
+    private async Task ImportPriceStockAsync(IBrowserFile? file)
+    {
+        if (file is null || _websiteId <= 0 || !_canEdit) return;
+        _excelBusy = true;
+        try
+        {
+            await using var stream = file.OpenReadStream(MaxImportBytes);
+            using var buffer = new MemoryStream();
+            await stream.CopyToAsync(buffer);
+            buffer.Position = 0;
+
+            var result = await VendorProductService.ImportListingsExcelAsync(
+                _websiteId, buffer, vendorId: _vendorId, actingMemberId: _vendorMemberId);
+
+            var summary = string.Format(
+                L["products.import_price_stock_result", "Import finished: {0} updated, {1} unchanged, {2} skipped."],
+                result.Updated, result.Unchanged, result.Skipped);
+            Snackbar.Add(summary, result.HasErrors ? Severity.Warning : Severity.Success);
+            foreach (var error in result.Errors.Take(8))
+                Snackbar.Add(error, Severity.Warning);
+            if (result.Errors.Count > 8)
+                Snackbar.Add(string.Format(L["import.more_errors", "…and {0} more issue(s)."], result.Errors.Count - 8), Severity.Warning);
+
+            await LoadAsync();
+        }
+        catch (Exception ex)
+        {
+            Snackbar.Add($"{L["products.import_failed", "Import failed"]}: {ex.Message}", Severity.Error);
+        }
+        finally { _excelBusy = false; }
     }
 }

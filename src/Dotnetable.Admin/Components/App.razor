@@ -14,14 +14,14 @@
     <link rel="stylesheet" href="_content/MudBlazor/MudBlazor.min.css" />
     <link rel="stylesheet" href="https://cdn.jsdelivr.net/npm/bootstrap-icons@1.11.3/font/bootstrap-icons.min.css" />
     <link rel="stylesheet" href="_content/CkEditor5.Blazor/css/ckeditor5.css" />
-    <link rel="stylesheet" href="@Versioned("~/css/admin-theme.css")" />
+    <link rel="stylesheet" href="@Versioned("css/admin-theme.css")" />
     <HeadOutlet @rendermode="@RenderMode.InteractiveServer" />
 </head>
 <body>
     <Routes @rendermode="@RenderMode.InteractiveServer" />
-    <script src="@Versioned("~/js/theme.js")"></script>
-    <script src="@Versioned("~/js/media-editor.js")"></script>
-    <script src="@Versioned("~/js/dn-ckeditor.js")"></script>
+    <script src="@Versioned("js/theme.js")"></script>
+    <script src="@Versioned("js/media-editor.js")"></script>
+    <script src="@Versioned("js/dn-ckeditor.js")"></script>
     <script src="_framework/blazor.server.js"></script>
     <script src="_content/MudBlazor/MudBlazor.min.js"></script>
 </body>
@@ -31,9 +31,21 @@
     /// <summary>
     /// Content-hash query string (?v=…) — same mechanism as MVC <c>asp-append-version="true"</c>.
     /// Tag helpers do not run inside .razor files, so this uses <see cref="IFileVersionProvider"/> directly.
+    /// Paths are wwwroot-relative (e.g. js/theme.js). Do not use "~/": Blazor does not expand it,
+    /// and a literal "~/" in the URL 404s so scripts never define window.dotnetableLang etc.
     /// </summary>
     private string Versioned(string path)
     {
+        if (string.IsNullOrWhiteSpace(path))
+            return path;
+
+        // Normalize to an app-root absolute path for both the file provider and the browser.
+        path = path.Trim();
+        if (path.StartsWith("~/", StringComparison.Ordinal))
+            path = path[1..]; // ~/css/x → /css/x
+        else if (!path.StartsWith('/'))
+            path = "/" + path;
+
         var pathBase = HttpContextAccessor.HttpContext?.Request.PathBase ?? PathString.Empty;
         return FileVersionProvider.AddFileVersionToPath(pathBase, path);
     }
