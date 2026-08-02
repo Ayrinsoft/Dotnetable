@@ -42,24 +42,12 @@ builder.Services
 builder.Services.AddAuthorization(ApiAuthorization.Register);
 
 // API versioning is driven by the X-Api-Version request header (defaults to 1.0 when absent).
-builder.Services
-    .AddApiVersioning(options =>
-    {
-        options.DefaultApiVersion = new ApiVersion(1, 0);
-        options.AssumeDefaultVersionWhenUnspecified = true;
-        options.ReportApiVersions = true; // echoes api-supported-versions in the response headers
-        options.ApiVersionReader = new HeaderApiVersionReader("X-Api-Version");
-    })
-    .AddApiExplorer(options =>
-    {
-        options.GroupNameFormat = "'v'VVV";
-        options.SubstituteApiVersionInUrl = false;
-    });
-
-builder.Services.AddEndpointsApiExplorer();
-builder.Services.AddSwaggerGen(c =>
+builder.Services.AddApiVersioning(options =>
 {
-    c.SwaggerDoc("v1", new() { Title = "Dotnetable API", Version = "v1" });
+    options.DefaultApiVersion = new ApiVersion(1, 0);
+    options.AssumeDefaultVersionWhenUnspecified = true;
+    options.ReportApiVersions = true; // echoes api-supported-versions in the response headers
+    options.ApiVersionReader = new HeaderApiVersionReader("X-Api-Version");
 });
 
 // CORS for browser-based front-ends (the React SPA in serverless mode calls the API directly).
@@ -77,12 +65,6 @@ builder.Services.AddCors(options => options.AddDefaultPolicy(policy =>
 builder.Services.AddInfrastructure(builder.Configuration, builder.Environment.ContentRootPath);
 
 var app = builder.Build();
-
-if (app.Environment.IsDevelopment())
-{
-    app.UseSwagger();
-    app.UseSwaggerUI();
-}
 
 // Surfaces DB connectivity/config failures (bad connection string, unreachable server, cert
 // mismatch, etc.) as a clear 503 instead of a cryptic RetryLimitExceededException/SqlException

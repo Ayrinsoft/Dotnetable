@@ -29,8 +29,8 @@ public sealed record AdminSearchPage(
 /// Static index of every admin page for the header search palette. Keep this in sync with
 /// NavMenu.razor: whenever a page/link is added there, add a matching entry here so it becomes
 /// searchable (and remove it here if the page is removed there).
-/// Also update the matching bilingual guide page in <c>src/Dotnetable.Admin.Docs/wwwroot/js/catalog.js</c>
-/// (what the screen does + how to use it) so operator docs stay accurate.
+/// Also update the matching guide page in <c>src/Dotnetable.Docs/wwwroot/js/catalog-admin.js</c>
+/// (and API cross-links in <c>catalog-api.js</c> when the same concept is exposed publicly).
 /// </summary>
 public static class AdminSearchCatalog
 {

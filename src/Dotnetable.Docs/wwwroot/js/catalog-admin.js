@@ -10,7 +10,7 @@
  * Page ids are stable doc slugs (not always identical to admin routes).
  * adminPath mirrors the Blazor @page route for quick cross-reference.
  */
-window.DOCS = {
+window.DOCS_ADMIN = {
   meta: {
     version: "1.0",
     sourceOfTruth: [
@@ -945,6 +945,7 @@ window.DOCS = {
               fa: "بدون لیستینگ فروشگاه / موجودی on-hand ممکن است قابل‌فروش نباشد (ببینید Inventory).",
             },
           ],
+          relatedApi: ["products", "inventory"],
           related: ["catalog-categories", "attributes", "brands", "vendors", "inventory-stock"],
           keywords: [
             { en: "sku variant price", fa: "کد کالا واریانت قیمت" },
@@ -1360,6 +1361,7 @@ window.DOCS = {
               fa: "جدول خالی است؟ یا وب‌سایت اشتباه انتخاب شده، یا هنوز ردیف موجودی ساخته نشده (لیستینگ/استوک نداده‌اید).",
             },
           ],
+          relatedApi: ["inventory"],
           related: ["inventory-movements", "suppliers", "products", "vendors", "orders"],
           keywords: [
             {
@@ -1444,6 +1446,7 @@ window.DOCS = {
               fa: "اگر عدد با انبار جور نیست، خطوط دفتر را روزبه‌روز با شمارش فیزیکی مقایسه کنید.",
             },
           ],
+          relatedApi: ["inventory"],
           related: ["inventory-stock", "suppliers", "orders"],
         },
         {
@@ -1540,6 +1543,7 @@ window.DOCS = {
               fa: "رزرو/فروش موجودی از چرخه سفارش می‌آید — لغو را با دقت انجام دهید.",
             },
           ],
+          relatedApi: ["orders", "checkout", "payments"],
           related: ["payments", "inventory-stock", "shipping", "support-desk", "coupons"],
         },
         {
