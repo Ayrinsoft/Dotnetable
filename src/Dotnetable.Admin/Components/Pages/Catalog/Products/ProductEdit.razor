@@ -27,12 +27,22 @@
 else
 {
     <MudStack Row="true" AlignItems="AlignItems.Center" Justify="Justify.SpaceBetween" Class="mb-4">
-        <MudText Typo="Typo.h5" Class="fw-bold">@(_isNew ? L["products.new", "New Product"] : Model.Title)</MudText>
+        <MudStack Spacing="0">
+            <MudText Typo="Typo.h5" Class="fw-bold">@(_isNew ? L["products.new", "New Product"] : Model.Title)</MudText>
+            @if (!_isNew && !string.IsNullOrWhiteSpace(Model.Slug))
+            {
+                <MudText Typo="Typo.caption" Color="Color.Secondary"><code>@Model.Slug</code></MudText>
+            }
+        </MudStack>
         <MudStack Row="true" Spacing="2">
             <MudButton OnClick="@(() => Nav.NavigateTo("/catalog/products"))">@L["back", "Back"]</MudButton>
             @if (_canEdit)
             {
-                <MudButton Variant="Variant.Filled" Color="Color.Primary" OnClick="SaveAsync" Disabled="@(_saving || _prerequisites.Count > 0)">@L["save", "Save"]</MudButton>
+                <MudButton Variant="Variant.Filled" Color="Color.Primary" OnClick="SaveAsync"
+                           Disabled="@(_saving || _prerequisites.Count > 0)"
+                           StartIcon="@Icons.Material.Filled.Save">
+                    @(_saving ? L["saving", "Saving…"] : L["save", "Save"])
+                </MudButton>
             }
         </MudStack>
     </MudStack>
@@ -40,66 +50,27 @@ else
     <DNPrerequisiteAlert Items="_prerequisites" />
     <DNValidationSummary Errors="_formErrors" />
 
-    <MudPaper Elevation="0" Class="app-card rounded-lg pa-4">
-        <MudTabs Elevation="0" Rounded="true">
+    <MudPaper Elevation="0" Class="app-card rounded-lg pa-4 mb-10">
+        <MudTabs Elevation="0" Rounded="true" ApplyEffectsToContainer="true">
             <MudTabPanel Text="@L["products.general", "General"]">
                 <MudGrid Spacing="3" Class="pa-2">
-                    <MudItem xs="12" sm="3">
-                        <MudText Typo="Typo.body2" Class="mb-1">@L["products.featured_image", "Featured image"]</MudText>
-                        <MudPaper Elevation="0" Class="border rounded-lg pa-2" Style="cursor:pointer;" @onclick="PickFeaturedImageAsync">
-                            <div style="aspect-ratio:1/1; display:flex; align-items:center; justify-content:center; background:var(--mud-palette-background-grey); border-radius:8px; overflow:hidden;">
-                                @if (!string.IsNullOrEmpty(_featuredImage?.CNDUrl))
-                                {
-                                    <img src="@(_featuredImage.ThumbnailCDN ?? _featuredImage.CNDUrl)" alt="" style="width:100%; height:100%; object-fit:cover;" />
-                                }
-                                else
-                                {
-                                    <MudIcon Icon="@Icons.Material.Filled.AddPhotoAlternate" Color="Color.Secondary" Size="Size.Large" />
-                                }
-                            </div>
-                        </MudPaper>
-                    </MudItem>
-                    <MudItem xs="12" sm="9">
+                    @* Main column — Shopify-style product details *@
+                    <MudItem xs="12" md="8">
                         <MudGrid Spacing="3">
-                            <MudItem xs="12" sm="7">
-                                <MudTextField @bind-Value="Model.Title" Label="@L["title", "Title"]" Variant="Variant.Outlined" Required="true" />
+                            <MudItem xs="12" sm="8">
+                                <MudTextField T="string" Value="Model.Title" ValueChanged="OnTitleChanged"
+                                              Label="@L["title", "Title"]" Variant="Variant.Outlined" Required="true"
+                                              HelperText="@L["products.title_hint", "Storefront product name. Slug updates automatically until you edit it."]" />
                             </MudItem>
-                            <MudItem xs="12" sm="5">
-                                <MudTextField @bind-Value="Model.Slug" Label="@L["slug", "Slug"]" Variant="Variant.Outlined" />
-                            </MudItem>
-                            <MudItem xs="12" sm="6">
-                                <MudAutocomplete T="Brand" Value="_selectedBrand" ValueChanged="OnBrandChanged"
-                                                 Label="@L["brand", "Brand"]" Variant="Variant.Outlined"
-                                                 SearchFunc="SearchBrands" ToStringFunc="@(b => b?.Name ?? "")"
-                                                 Clearable="false" ResetValueOnEmptyText="true" CoerceText="false"
-                                                 Required="true"
-                                                 HelperText="@L["products.brand_required_hint", "Required. Type to search brands."]" />
-                            </MudItem>
-                            <MudItem xs="12" sm="6">
-                                <MudSelect T="byte" @bind-Value="Model.Status" Label="@L["status", "Status"]" Variant="Variant.Outlined">
-                                    <MudSelectItem T="byte" Value="(byte)0">@L["products.draft", "Draft"]</MudSelectItem>
-                                    <MudSelectItem T="byte" Value="(byte)1">@L["products.published", "Published"]</MudSelectItem>
-                                </MudSelect>
-                            </MudItem>
-                            <MudItem xs="12">
-                                <MudAutocomplete T="ProductCategory" Value="_selectedCategory" ValueChanged="OnCategoryChanged"
-                                                 Label="@L["products.category", "Category"]" Variant="Variant.Outlined"
-                                                 SearchFunc="SearchCategories" ToStringFunc="CategoryPath"
-                                                 Clearable="true" ResetValueOnEmptyText="true" CoerceText="false"
-                                                 HelperText="@L["products.category_hint", "Pick one category. Type to search by name or path (e.g. Digital / Headphones)."]" />
+                            <MudItem xs="12" sm="4">
+                                <MudTextField T="string" Value="Model.Slug" ValueChanged="OnSlugChanged"
+                                              Label="@L["slug", "Slug"]" Variant="Variant.Outlined"
+                                              HelperText="@L["products.slug_hint", "URL key. Leave to auto-fill from title."]" />
                             </MudItem>
                             <MudItem xs="12">
                                 <MudTextField @bind-Value="Model.ShortDescription" Label="@L["products.short_description", "Short description"]"
-                                              Variant="Variant.Outlined" Lines="3" AutoGrow="true" />
-                            </MudItem>
-                            <MudItem xs="12" sm="4">
-                                <MudSwitch T="bool" @bind-Value="Model.IsActive" Label="@L["active", "Active"]" Color="Color.Primary" />
-                            </MudItem>
-                            <MudItem xs="12" sm="4">
-                                <MudSwitch T="bool" @bind-Value="Model.IsCatalogOnly" Label="@L["products.catalog_only", "Catalog only (not purchasable)"]" Color="Color.Primary" />
-                            </MudItem>
-                            <MudItem xs="12" sm="4">
-                                <MudSwitch T="bool" Value="@(_variants.Count > 1)" Disabled="true" Label="@L["products.has_variants", "Has variants"]" Color="Color.Primary" />
+                                              Variant="Variant.Outlined" Lines="3" AutoGrow="true"
+                                              HelperText="@L["products.short_description_hint", "Shown in lists and previews (like Shopify’s description summary)."]" />
                             </MudItem>
                             <MudItem xs="12" sm="6">
                                 <MudSelect T="byte" Value="Model.ProductType" ValueChanged="OnProductTypeChanged"
@@ -111,43 +82,75 @@ else
                                 </MudSelect>
                             </MudItem>
                             <MudItem xs="12" sm="6" Class="d-flex align-center">
-                                <MudSwitch T="bool" Value="Model.RequiresShipping" Disabled="true"
-                                           Label="@(Model.RequiresShipping
-                                               ? L["products.requires_shipping", "Requires shipping / freight"]
-                                               : L["products.no_shipping", "No shipping (digital delivery)"])"
-                                           Color="Color.Primary" />
+                                <MudText Typo="Typo.caption" Color="Color.Secondary">
+                                    @(Model.RequiresShipping
+                                        ? L["products.requires_shipping", "Requires shipping / freight"]
+                                        : L["products.no_shipping", "No shipping (digital delivery)"])
+                                    · @(_variants.Count > 1
+                                        ? string.Format(L["products.variant_count", "{0} variants"], _variants.Count)
+                                        : L["products.single_variant", "Single SKU"])
+                                </MudText>
                             </MudItem>
+                            @if (_languages.Length > 0)
+                            {
+                                <MudItem xs="12">
+                                    <MudExpansionPanels Elevation="0">
+                                        <MudExpansionPanel Text="@L["other_languages", "Other languages"]">
+                                            <MudText Typo="Typo.body2" Color="Color.Secondary" Class="mb-2">
+                                                @L["other_languages.hint", "Main fields above are the site default language. Leave a translation blank to fall back to the default."]
+                                            </MudText>
+                                            @foreach (var (code, label) in _languages)
+                                            {
+                                                <MudGrid Spacing="2" Class="mb-1">
+                                                    <MudItem xs="6">
+                                                        <MudTextField T="string" Value="@TrTitle(code)" ValueChanged="@(v => SetTrTitle(code, v))"
+                                                                      Label="@($"{label} — {L["title", "Title"]}")" Variant="Variant.Outlined" Margin="Margin.Dense" />
+                                                    </MudItem>
+                                                    <MudItem xs="3">
+                                                        <MudTextField T="string" Value="@TrSlug(code)" ValueChanged="@(v => SetTrSlug(code, v))"
+                                                                      Label="@L["slug", "Slug"]" Variant="Variant.Outlined" Margin="Margin.Dense" />
+                                                    </MudItem>
+                                                    <MudItem xs="3">
+                                                        <MudTextField T="string" Value="@TrShort(code)" ValueChanged="@(v => SetTrShort(code, v))"
+                                                                      Label="@L["products.short_description", "Short description"]" Variant="Variant.Outlined" Margin="Margin.Dense" />
+                                                    </MudItem>
+                                                </MudGrid>
+                                            }
+                                        </MudExpansionPanel>
+                                    </MudExpansionPanels>
+                                </MudItem>
+                            }
                         </MudGrid>
                     </MudItem>
-                    @if (_languages.Length > 0)
-                    {
-                    <MudItem xs="12">
-                        <MudExpansionPanels Elevation="0">
-                            <MudExpansionPanel Text="@L["other_languages", "Other languages"]">
-                                <MudText Typo="Typo.body2" Color="Color.Secondary" Class="mb-2">
-                                    @L["other_languages.hint", "Main fields above are the site default language. Leave a translation blank to fall back to the default."]
-                                </MudText>
-                                @foreach (var (code, label) in _languages)
-                                {
-                                    <MudGrid Spacing="2" Class="mb-1">
-                                        <MudItem xs="6">
-                                            <MudTextField T="string" Value="@TrTitle(code)" ValueChanged="@(v => SetTrTitle(code, v))"
-                                                          Label="@($"{label} — {L["title", "Title"]}")" Variant="Variant.Outlined" Margin="Margin.Dense" />
-                                        </MudItem>
-                                        <MudItem xs="3">
-                                            <MudTextField T="string" Value="@TrSlug(code)" ValueChanged="@(v => SetTrSlug(code, v))"
-                                                          Label="@L["slug", "Slug"]" Variant="Variant.Outlined" Margin="Margin.Dense" />
-                                        </MudItem>
-                                        <MudItem xs="3">
-                                            <MudTextField T="string" Value="@TrShort(code)" ValueChanged="@(v => SetTrShort(code, v))"
-                                                          Label="@L["products.short_description", "Short description"]" Variant="Variant.Outlined" Margin="Margin.Dense" />
-                                        </MudItem>
-                                    </MudGrid>
-                                }
-                            </MudExpansionPanel>
-                        </MudExpansionPanels>
+
+                    @* Organization sidebar — Shopify “Product organization” *@
+                    <MudItem xs="12" md="4">
+                        <MudPaper Elevation="0" Class="border rounded-lg pa-3 mb-3">
+                            <MudText Typo="Typo.subtitle2" Class="fw-bold mb-2">@L["products.organization", "Organization"]</MudText>
+                            <MudSelect T="byte" @bind-Value="Model.Status" Label="@L["status", "Status"]" Variant="Variant.Outlined" Class="mb-3" Dense="true" Margin="Margin.Dense">
+                                <MudSelectItem T="byte" Value="(byte)0">@L["products.draft", "Draft"]</MudSelectItem>
+                                <MudSelectItem T="byte" Value="(byte)1">@L["products.published", "Published"]</MudSelectItem>
+                            </MudSelect>
+                            <MudSwitch T="bool" @bind-Value="Model.IsActive" Label="@L["active", "Active"]" Color="Color.Primary" Class="mb-1" />
+                            <MudSwitch T="bool" @bind-Value="Model.IsCatalogOnly" Label="@L["products.catalog_only", "Catalog only (not purchasable)"]" Color="Color.Primary" />
+                        </MudPaper>
+
+                        <MudPaper Elevation="0" Class="border rounded-lg pa-3">
+                            <MudText Typo="Typo.subtitle2" Class="fw-bold mb-2">@L["products.classification", "Classification"]</MudText>
+                            <MudAutocomplete T="Brand" Value="_selectedBrand" ValueChanged="OnBrandChanged"
+                                             Label="@L["brand", "Brand"]" Variant="Variant.Outlined" Class="mb-3"
+                                             SearchFunc="SearchBrands" ToStringFunc="@(b => b?.Name ?? "")"
+                                             Clearable="false" ResetValueOnEmptyText="true" CoerceText="false"
+                                             Required="true" Margin="Margin.Dense" Dense="true"
+                                             HelperText="@L["products.brand_required_hint", "Required. Type to search brands."]" />
+                            <MudAutocomplete T="ProductCategory" Value="_selectedCategory" ValueChanged="OnCategoryChanged"
+                                             Label="@L["products.category", "Category"]" Variant="Variant.Outlined"
+                                             SearchFunc="SearchCategories" ToStringFunc="CategoryPath"
+                                             Clearable="true" ResetValueOnEmptyText="true" CoerceText="false"
+                                             Margin="Margin.Dense" Dense="true"
+                                             HelperText="@L["products.category_hint", "Pick one category. Type to search by name or path."]" />
+                        </MudPaper>
                     </MudItem>
-                    }
                 </MudGrid>
             </MudTabPanel>
 
@@ -324,9 +327,39 @@ else
                         }
                     </MudPaper>
 
+                    @if (_canEdit && _variants.Count > 1)
+                    {
+                        <MudStack Row="true" Spacing="1" Class="mb-2" Style="flex-wrap:wrap;">
+                            <MudButton Size="Size.Small" Variant="Variant.Outlined" StartIcon="@Icons.Material.Filled.ContentCopy"
+                                       OnClick="ApplyFirstPriceToAllVariants">
+                                @L["variants.apply_price_all", "Apply first price to all"]
+                            </MudButton>
+                            <MudButton Size="Size.Small" Variant="Variant.Text" StartIcon="@Icons.Material.Filled.Title"
+                                       OnClick="RefreshTitlesFromOptions">
+                                @L["variants.refresh_titles", "Refresh titles from options"]
+                            </MudButton>
+                        </MudStack>
+                    }
+
                     @foreach (var (v, idx) in _variants.Select((v, i) => (v, i)))
                     {
                         <MudPaper Elevation="0" Class="border rounded-lg pa-3 mb-2">
+                            <MudStack Row="true" AlignItems="AlignItems.Center" Justify="Justify.SpaceBetween" Class="mb-1">
+                                <MudText Typo="Typo.caption" Color="Color.Secondary">
+                                    #@(idx + 1)
+                                    @if (v.IsDefault)
+                                    {
+                                        <MudChip T="string" Size="Size.Small" Color="Color.Primary" Class="ms-1">@L["variants.default", "Default"]</MudChip>
+                                    }
+                                </MudText>
+                                @if (_canEdit)
+                                {
+                                    <MudButton Size="Size.Small" Variant="Variant.Text" StartIcon="@Icons.Material.Filled.ContentCopy"
+                                               OnClick="@(() => DuplicateVariant(v))">
+                                        @L["variants.duplicate", "Duplicate"]
+                                    </MudButton>
+                                }
+                            </MudStack>
                             <MudGrid Spacing="2" AlignItems="AlignItems.Center">
                                 @if (_productVariantAttrIds.Count > 0)
                                 {
@@ -362,12 +395,13 @@ else
                                     </MudItem>
                                 }
                                 <MudItem xs="12" sm="4" md="3">
-                                    <MudTextField T="string" @bind-Value="v.Title" Label="@L["variants.title", "Variant title"]"
+                                    <MudTextField T="string" Value="@v.Title" ValueChanged="@(t => OnVariantTitleChanged(v, t))"
+                                                  Label="@L["variants.title", "Variant title"]"
                                                   Placeholder="@L["variants.title_placeholder", "e.g. Black T-shirt · Size XL"]"
                                                   Variant="Variant.Outlined" Margin="Margin.Dense" Required="true" MaxLength="200"
                                                   RequiredError="@L["variants.title_required", "Variant title is required"]"
                                                   Error="@IsVariantTitleError(v)" ErrorText="@L["variants.title_required", "Variant title is required"]"
-                                                  HelperText="@L["variants.title_auto_hint", "Tip: leave blank and use Generate, or fill from option picks."]" />
+                                                  HelperText="@L["variants.title_auto_hint", "Auto-filled from options until you edit it."]" />
                                 </MudItem>
                                 <MudItem xs="12" sm="4" md="3">
                                     <MudStack Row="true" AlignItems="AlignItems.Start" Spacing="0">
@@ -451,7 +485,16 @@ else
                     </MudAlert>
 
                     <MudPaper Elevation="0" Class="border rounded-lg pa-3 mb-3">
-                        <MudText Typo="Typo.subtitle2" Class="mb-2">@L["products.seller_stock_add", "Assign listing to a seller"]</MudText>
+                        <MudText Typo="Typo.subtitle2" Class="mb-1">@L["products.seller_stock_add", "Assign listing to a seller"]</MudText>
+                        <MudText Typo="Typo.caption" Color="Color.Secondary" Class="mb-2">
+                            @L["products.seller_stock_add_hint", "Pick a seller and variant. If that listing already exists, price and stock load for edit — save updates the same row."]
+                        </MudText>
+                        @if (_addSellerExistingId is int)
+                        {
+                            <MudAlert Severity="Severity.Info" Dense="true" Variant="Variant.Outlined" Class="mb-2">
+                                @L["products.seller_stock_editing_existing", "This seller already has this variant — fields below show the current listing. Change them and click Update."]
+                            </MudAlert>
+                        }
                         <MudGrid Spacing="2" AlignItems="AlignItems.Center">
                             <MudItem xs="12" sm="3">
                                 <MudAutocomplete T="Vendor" Value="@GetAddSellerVendor()" ValueChanged="OnAddSellerVendorChanged"
@@ -484,7 +527,9 @@ else
                             <MudItem xs="12" sm="2">
                                 <MudButton Variant="Variant.Filled" Color="Color.Primary" OnClick="AddSellerStockAsync"
                                            Disabled="@(!_canEdit || _addSellerVendorId is null || _addSellerVariantId is null)">
-                                    @L["products.seller_stock_assign", "Assign"]
+                                    @(_addSellerExistingId is int
+                                        ? L["products.seller_stock_update", "Update"]
+                                        : L["products.seller_stock_assign", "Assign"])
                                 </MudButton>
                             </MudItem>
                         </MudGrid>
@@ -498,6 +543,9 @@ else
                     }
                     else
                     {
+                        <MudText Typo="Typo.caption" Color="Color.Secondary" Class="mb-2">
+                            @L["products.seller_stock_row_hint", "Click a row to load it into the form above for quick edit."]
+                        </MudText>
                         <MudSimpleTable Dense="true" Hover="true" Elevation="0" Class="border rounded-lg">
                             <thead>
                                 <tr>
@@ -515,20 +563,21 @@ else
                             <tbody>
                                 @foreach (var row in _sellerStocks)
                                 {
-                                    <tr>
+                                    <tr class="dn-grid-row-clickable" @onclick="@(() => LoadSellerRowIntoForm(row))"
+                                        style="@(_addSellerExistingId == row.VendorProductID ? "background:rgba(52,143,226,.12);" : null)">
                                         <td>
                                             <MudText Typo="Typo.body2">@row.VendorName</MudText>
                                             <MudText Typo="Typo.caption" Color="Color.Secondary">@VendorTypeLabel(row.VendorType)</MudText>
                                         </td>
                                         <td>@(string.IsNullOrWhiteSpace(row.VariantTitle) ? "—" : row.VariantTitle)</td>
                                         <td><code>@row.Sku</code></td>
-                                        <td>
+                                        <td @onclick:stopPropagation="true">
                                             <MudNumericField T="decimal" @bind-Value="row.ReferencePrice" Margin="Margin.Dense"
                                                             Variant="Variant.Outlined" Min="0" Disabled="@(!_canEdit || row.IsSiteLinked)"
                                                             Style="max-width:140px"
                                                             HelperText="@(row.OverridePriceLocal is decimal ov ? string.Format(L["products.seller_override_hint", "Promo override: {0}"], ov.ToString("0.##")) : null)" />
                                         </td>
-                                        <td>
+                                        <td @onclick:stopPropagation="true">
                                             <MudNumericField T="int" @bind-Value="row.StockQuantity" Margin="Margin.Dense"
                                                             Variant="Variant.Outlined"
                                                             Min="@(IsDigital ? -1 : Math.Max(0, row.QuantityReserved))"
@@ -541,15 +590,15 @@ else
                                                                     : null))" />
                                         </td>
                                         <td>@row.QuantityReserved</td>
-                                        <td>
+                                        <td @onclick:stopPropagation="true">
                                             <MudNumericField T="int" @bind-Value="row.DeliveryDays" Margin="Margin.Dense"
                                                             Variant="Variant.Outlined" Min="0" Disabled="@(!_canEdit || row.IsSiteLinked)"
                                                             Style="max-width:100px" />
                                         </td>
-                                        <td>
+                                        <td @onclick:stopPropagation="true">
                                             <MudSwitch T="bool" @bind-Value="row.IsActive" Color="Color.Primary" Disabled="@(!_canEdit || row.IsSiteLinked)" />
                                         </td>
-                                        <td>
+                                        <td @onclick:stopPropagation="true">
                                             @if (_canEdit && !row.IsSiteLinked)
                                             {
                                                 <MudIconButton Icon="@Icons.Material.Filled.Delete" Color="Color.Error" Size="Size.Small"
@@ -565,27 +614,82 @@ else
             </MudTabPanel>
             }
 
-            <MudTabPanel Text="@L["products.gallery", "Gallery"]">
+            <MudTabPanel Text="@MediaTabLabel">
                 <div class="pa-2">
+                    <MudAlert Severity="Severity.Info" Dense="true" Variant="Variant.Outlined" Class="mb-3">
+                        @L["products.media_hint", "Like Shopify: set a featured image for lists/cards, then add gallery images for the product page."]
+                    </MudAlert>
                     <MudGrid Spacing="2">
+                        <MudItem xs="6" sm="3" md="2">
+                            <MudText Typo="Typo.caption" Class="mb-1 fw-bold">@L["products.featured_image", "Featured image"]</MudText>
+                            <MudPaper Elevation="0" Class="border rounded-lg pa-1" Style="cursor:pointer;" @onclick="PickFeaturedImageAsync">
+                                <div style="aspect-ratio:1/1; position:relative; display:flex; align-items:center; justify-content:center; background:var(--mud-palette-background-grey); border-radius:6px; overflow:hidden;">
+                                    @if (!string.IsNullOrEmpty(_featuredImage?.CNDUrl))
+                                    {
+                                        <img src="@(_featuredImage.ThumbnailCDN ?? _featuredImage.CNDUrl)" alt="" style="width:100%; height:100%; object-fit:cover;" />
+                                        @if (_canEdit)
+                                        {
+                                            <span style="position:absolute; top:2px; right:2px;" @onclick:stopPropagation="true">
+                                                <MudIconButton Icon="@Icons.Material.Filled.Clear" Size="Size.Small" Color="Color.Default"
+                                                               Style="background:rgba(255,255,255,.85);"
+                                                               OnClick="ClearFeaturedImage" />
+                                            </span>
+                                        }
+                                    }
+                                    else
+                                    {
+                                        <MudStack AlignItems="AlignItems.Center" Spacing="1">
+                                            <MudIcon Icon="@Icons.Material.Filled.AddPhotoAlternate" Color="Color.Secondary" Size="Size.Large" />
+                                            <MudText Typo="Typo.caption" Color="Color.Secondary">@L["products.set_featured", "Set featured"]</MudText>
+                                        </MudStack>
+                                    }
+                                </div>
+                            </MudPaper>
+                        </MudItem>
                         @foreach (var (entry, idx) in _gallery.Select((g, i) => (g, i)))
                         {
                             <MudItem xs="6" sm="3" md="2">
+                                @if (idx == 0)
+                                {
+                                    <MudText Typo="Typo.caption" Class="mb-1 fw-bold">@L["products.gallery", "Gallery"]</MudText>
+                                }
+                                else
+                                {
+                                    <div class="mb-1" style="height:1.25rem;"></div>
+                                }
                                 <MudPaper Elevation="0" Class="border rounded-lg pa-1">
                                     <div style="aspect-ratio:1/1; position:relative; overflow:hidden; border-radius:6px;">
                                         <img src="@(entry.File.ThumbnailCDN ?? entry.File.CNDUrl)" alt="" style="width:100%; height:100%; object-fit:cover;" />
-                                        <MudIconButton Icon="@Icons.Material.Filled.Delete" Size="Size.Small" Color="Color.Error"
-                                                       Style="position:absolute; top:2px; right:2px; background:rgba(255,255,255,.8);"
-                                                       OnClick="@(() => _gallery.RemoveAt(idx))" />
+                                        @if (_canEdit)
+                                        {
+                                            <MudIconButton Icon="@Icons.Material.Filled.Delete" Size="Size.Small" Color="Color.Error"
+                                                           Style="position:absolute; top:2px; right:2px; background:rgba(255,255,255,.8);"
+                                                           OnClick="@(() => _gallery.RemoveAt(idx))" />
+                                            @if (_featuredImage is null || _featuredImage.FileRecordID != entry.File.FileRecordID)
+                                            {
+                                                <MudButton Size="Size.Small" Variant="Variant.Filled" Color="Color.Primary"
+                                                           Style="position:absolute; bottom:4px; left:4px; right:4px; font-size:.7rem;"
+                                                           OnClick="@(() => SetFeaturedFromGallery(entry.File))">
+                                                    @L["products.use_as_featured", "Use as featured"]
+                                                </MudButton>
+                                            }
+                                        }
                                     </div>
                                 </MudPaper>
                             </MudItem>
                         }
-                        <MudItem xs="6" sm="3" md="2">
-                            <MudPaper Elevation="0" Class="border rounded-lg pa-2" Style="cursor:pointer; aspect-ratio:1/1; display:flex; align-items:center; justify-content:center;" @onclick="AddGalleryImageAsync">
-                                <MudIcon Icon="@Icons.Material.Filled.AddPhotoAlternate" Color="Color.Secondary" Size="Size.Large" />
-                            </MudPaper>
-                        </MudItem>
+                        @if (_canEdit)
+                        {
+                            <MudItem xs="6" sm="3" md="2">
+                                <div class="mb-1" style="height:1.25rem;"></div>
+                                <MudPaper Elevation="0" Class="border rounded-lg pa-2" Style="cursor:pointer; aspect-ratio:1/1; display:flex; align-items:center; justify-content:center;" @onclick="AddGalleryImageAsync">
+                                    <MudStack AlignItems="AlignItems.Center" Spacing="1">
+                                        <MudIcon Icon="@Icons.Material.Filled.AddPhotoAlternate" Color="Color.Secondary" Size="Size.Large" />
+                                        <MudText Typo="Typo.caption" Color="Color.Secondary">@L["products.add_gallery", "Add images"]</MudText>
+                                    </MudStack>
+                                </MudPaper>
+                            </MudItem>
+                        }
                     </MudGrid>
                 </div>
             </MudTabPanel>
@@ -605,54 +709,90 @@ else
                     {
                         var value = _attrValues.TryGetValue(def.AttributeDefinitionID, out var v) ? v : null;
                         var fromCategory = _categoryAttributeIds.Contains(def.AttributeDefinitionID);
-                        <MudGrid Spacing="2" Class="mb-1" AlignItems="AlignItems.Center">
-                            <MudItem xs="12" sm="3">
-                                <MudStack Spacing="0">
-                                    <MudText Typo="Typo.body2">@def.Name @(string.IsNullOrEmpty(def.Unit) ? "" : $"({def.Unit})")</MudText>
+                        var selectedOpt = GetSelectedAttrOption(def, value);
+                        <MudPaper Elevation="0" Class="border rounded-lg pa-2 mb-2">
+                            <MudGrid Spacing="2" AlignItems="AlignItems.Center">
+                                <MudItem xs="12" sm="3">
+                                    <MudStack Spacing="0">
+                                        <MudText Typo="Typo.body2" Class="fw-bold">@def.Name @(string.IsNullOrEmpty(def.Unit) ? "" : $"({def.Unit})")</MudText>
+                                        @if (!fromCategory)
+                                        {
+                                            <MudText Typo="Typo.caption" Color="Color.Secondary">@L["products.attribute_extra", "Product-only"]</MudText>
+                                        }
+                                    </MudStack>
+                                </MudItem>
+                                <MudItem xs="12" sm="6">
+                                    @if (def.InputType == 2)
+                                    {
+                                        <MudStack Spacing="1">
+                                            <MudStack Row="true" AlignItems="AlignItems.Center" Spacing="2">
+                                                <div class="dn-color-swatch" style="@ColorSwatchStyle(selectedOpt?.ColorHex)"></div>
+                                                <MudAutocomplete T="AttributeOption"
+                                                                 Value="@selectedOpt"
+                                                                 ValueChanged="@(o => SetAttrOption(def.AttributeDefinitionID, o?.AttributeOptionID))"
+                                                                 SearchFunc="@( (s, ct) => SearchAttrOptions(def, s, ct) )"
+                                                                 ToStringFunc="@(o => FormatAttributeOptionLabel(def, o))"
+                                                                 Variant="Variant.Outlined" Margin="Margin.Dense"
+                                                                 Clearable="true" Dense="true" Class="flex-grow-1"
+                                                                 Disabled="@(!_canEdit)"
+                                                                 CoerceText="false" ResetValueOnEmptyText="true"
+                                                                 Placeholder="@L["products.pick_color", "Pick a color"]" />
+                                            </MudStack>
+                                            @if (def.AttributeOptions.Count > 0 && def.AttributeOptions.Count <= 12 && _canEdit)
+                                            {
+                                                <div class="d-flex flex-wrap gap-1">
+                                                    @foreach (var o in def.AttributeOptions.OrderBy(x => x.SortOrder).ThenBy(x => x.Value))
+                                                    {
+                                                        <MudChip T="string" Size="Size.Small"
+                                                                 Color="@(selectedOpt?.AttributeOptionID == o.AttributeOptionID ? Color.Primary : Color.Default)"
+                                                                 Variant="@(selectedOpt?.AttributeOptionID == o.AttributeOptionID ? Variant.Filled : Variant.Outlined)"
+                                                                 OnClick="@(() => SetAttrOption(def.AttributeDefinitionID, o.AttributeOptionID))">
+                                                            <span class="dn-color-swatch-inline" style="@ColorSwatchStyle(o.ColorHex)"></span>
+                                                            @o.Value
+                                                        </MudChip>
+                                                    }
+                                                </div>
+                                            }
+                                        </MudStack>
+                                    }
+                                    else if (def.InputType == 1)
+                                    {
+                                        <MudAutocomplete T="AttributeOption"
+                                                         Value="@selectedOpt"
+                                                         ValueChanged="@(o => SetAttrOption(def.AttributeDefinitionID, o?.AttributeOptionID))"
+                                                         SearchFunc="@( (s, ct) => SearchAttrOptions(def, s, ct) )"
+                                                         ToStringFunc="@(o => FormatAttributeOptionLabel(def, o))"
+                                                         Variant="Variant.Outlined" Margin="Margin.Dense"
+                                                         Clearable="true" Dense="true"
+                                                         Disabled="@(!_canEdit)"
+                                                         CoerceText="false" ResetValueOnEmptyText="true" />
+                                    }
+                                    else if (def.InputType == 3)
+                                    {
+                                        <MudNumericField T="decimal?" Value="@(value?.NumericValue)" ValueChanged="@(n => SetAttrNumeric(def.AttributeDefinitionID, n))"
+                                                          Variant="Variant.Outlined" Margin="Margin.Dense" Disabled="@(!_canEdit)" />
+                                    }
+                                    else
+                                    {
+                                        <MudTextField T="string" Value="@(value?.CustomValue)" ValueChanged="@(s => SetAttrText(def.AttributeDefinitionID, s))"
+                                                      Variant="Variant.Outlined" Margin="Margin.Dense" Disabled="@(!_canEdit)" />
+                                    }
+                                </MudItem>
+                                <MudItem xs="8" sm="2">
+                                    <MudCheckBox T="bool" Value="@(value?.IsFeatured ?? false)" ValueChanged="@(f => SetAttrFeatured(def.AttributeDefinitionID, f))"
+                                                 Label="@L["attributes.featured", "Featured"]" Color="Color.Primary" Disabled="@(!_canEdit)" />
+                                </MudItem>
+                                <MudItem xs="4" sm="1">
                                     @if (!fromCategory)
                                     {
-                                        <MudText Typo="Typo.caption" Color="Color.Secondary">@L["products.attribute_extra", "Product-only"]</MudText>
+                                        <MudIconButton Icon="@Icons.Material.Filled.Close" Size="Size.Small" Color="Color.Default"
+                                                       Disabled="@(!_canEdit)"
+                                                       OnClick="@(() => RemoveExtraAttribute(def.AttributeDefinitionID))"
+                                                       title="@L["products.remove_attribute", "Remove"]" />
                                     }
-                                </MudStack>
-                            </MudItem>
-                            <MudItem xs="12" sm="6">
-                                @if (def.InputType is 1 or 2)
-                                {
-                                    <MudAutocomplete T="AttributeOption"
-                                                     Value="@GetSelectedAttrOption(def, value)"
-                                                     ValueChanged="@(o => SetAttrOption(def.AttributeDefinitionID, o?.AttributeOptionID))"
-                                                     SearchFunc="@( (s, ct) => SearchAttrOptions(def, s, ct) )"
-                                                     ToStringFunc="@(o => FormatAttributeOptionLabel(def, o))"
-                                                     Variant="Variant.Outlined" Margin="Margin.Dense"
-                                                     Clearable="true" Dense="true"
-                                                     Disabled="@(!_canEdit)"
-                                                     CoerceText="false" ResetValueOnEmptyText="true" />
-                                }
-                                else if (def.InputType == 3)
-                                {
-                                    <MudNumericField T="decimal?" Value="@(value?.NumericValue)" ValueChanged="@(n => SetAttrNumeric(def.AttributeDefinitionID, n))"
-                                                      Variant="Variant.Outlined" Margin="Margin.Dense" Disabled="@(!_canEdit)" />
-                                }
-                                else
-                                {
-                                    <MudTextField T="string" Value="@(value?.CustomValue)" ValueChanged="@(s => SetAttrText(def.AttributeDefinitionID, s))"
-                                                  Variant="Variant.Outlined" Margin="Margin.Dense" Disabled="@(!_canEdit)" />
-                                }
-                            </MudItem>
-                            <MudItem xs="8" sm="2">
-                                <MudCheckBox T="bool" Value="@(value?.IsFeatured ?? false)" ValueChanged="@(f => SetAttrFeatured(def.AttributeDefinitionID, f))"
-                                             Label="@L["attributes.featured", "Featured"]" Color="Color.Primary" Disabled="@(!_canEdit)" />
-                            </MudItem>
-                            <MudItem xs="4" sm="1">
-                                @if (!fromCategory)
-                                {
-                                    <MudIconButton Icon="@Icons.Material.Filled.Close" Size="Size.Small" Color="Color.Default"
-                                                   Disabled="@(!_canEdit)"
-                                                   OnClick="@(() => RemoveExtraAttribute(def.AttributeDefinitionID))"
-                                                   title="@L["products.remove_attribute", "Remove"]" />
-                                }
-                            </MudItem>
-                        </MudGrid>
+                                </MudItem>
+                            </MudGrid>
+                        </MudPaper>
                     }
 
                     @if (DisplayedProductAttributes.Count == 0)
@@ -682,7 +822,7 @@ else
             <MudTabPanel Text="@L["products.content", "Content"]">
                 <div class="pa-2">
                     <MudAlert Severity="Severity.Info" Dense="true" Variant="Variant.Outlined" Class="mb-3">
-                        @L["products.content_hint", "One rich description per product (like posts). Format text and insert images inside the editor — they appear on the product page as written."]
+                        @L["products.content_hint", "Full product description for the storefront. Leave empty and the Description tab will not appear on the product page."]
                     </MudAlert>
                     <MudStack Row="true" AlignItems="AlignItems.Center" Justify="Justify.SpaceBetween" Class="mb-1">
                         <MudText Typo="Typo.body2" Color="Color.Secondary">@L["products.content", "Content"]</MudText>
@@ -727,7 +867,7 @@ else
             <MudTabPanel Text="@L["products.expert_review", "Expert review"]">
                 <div class="pa-2">
                     <MudAlert Severity="Severity.Info" Dense="true" Variant="Variant.Outlined" Class="mb-3">
-                        @L["products.expert_review_hint", "Optional expert/technical review for this product. Same editor as the introduction content — format text and insert images as needed."]
+                        @L["products.expert_review_hint", "Optional expert/technical review. Leave empty and the Expert review tab will not appear on the product page."]
                     </MudAlert>
                     <MudStack Row="true" AlignItems="AlignItems.Center" Justify="Justify.SpaceBetween" Class="mb-1">
                         <MudText Typo="Typo.body2" Color="Color.Secondary">@L["products.expert_review", "Expert review"]</MudText>
@@ -875,6 +1015,26 @@ else
             </MudTabPanel>
         </MudTabs>
     </MudPaper>
+
+    @* Sticky save bar (Shopify-style productivity) *@
+    @if (_canEdit)
+    {
+        <div class="dn-product-sticky-bar">
+            <MudStack Row="true" AlignItems="AlignItems.Center" Justify="Justify.SpaceBetween" Class="pa-2" Style="max-width:1200px; margin:0 auto;">
+                <MudText Typo="Typo.caption" Color="Color.Secondary" Class="d-none d-sm-block">
+                    @(_isNew ? L["products.new", "New Product"] : Model.Title)
+                </MudText>
+                <MudStack Row="true" Spacing="2">
+                    <MudButton Variant="Variant.Text" OnClick="@(() => Nav.NavigateTo("/catalog/products"))">@L["back", "Back"]</MudButton>
+                    <MudButton Variant="Variant.Filled" Color="Color.Primary" OnClick="SaveAsync"
+                               Disabled="@(_saving || _prerequisites.Count > 0)"
+                               StartIcon="@Icons.Material.Filled.Save">
+                        @(_saving ? L["saving", "Saving…"] : L["save", "Save"])
+                    </MudButton>
+                </MudStack>
+            </MudStack>
+        </div>
+    }
 }
 
 @code {
@@ -894,7 +1054,13 @@ else
     private ProductCategory? _selectedCategory;
     private Product Model { get; set; } = new() { IsActive = true, ProductType = (byte)ProductType.Physical, RequiresShipping = true };
     private FileRecord? _featuredImage;
+    private bool _slugManuallyEdited;
+    private readonly HashSet<ProductVariant> _variantTitleManual = new();
     private bool IsDigital => Model.ProductType != (byte)ProductType.Physical;
+    private string MediaTabLabel =>
+        string.Format(L["products.media_tab", "Media ({0})"],
+            (_featuredImage is null ? 0 : 1) + _gallery.Count);
+
     private List<Brand> _brands = new();
     private List<ProductCategory> _categories = new();
     private List<ProductVariant> _variants = new();
@@ -924,6 +1090,8 @@ else
     private int? _addSellerVariantId;
     private decimal _addSellerPrice;
     private int _addSellerStock;
+    /// <summary>When seller+variant already has a listing, its VendorProductID for in-place update.</summary>
+    private int? _addSellerExistingId;
 
     private List<(int MediaSetId, FileRecord File)> _gallery = new();
     /// <summary>All active product-level (non-variant) attributes for the website, with options loaded.</summary>
@@ -1038,6 +1206,7 @@ else
             Model = product;
             _websiteId = product.WebsiteID;
             _variants = product.ProductVariants.ToList();
+            _slugManuallyEdited = !string.IsNullOrWhiteSpace(product.Slug);
             if (_vendorId is null)
                 await LoadSellerStocksAsync();
             await LoadVariantStockAsync(_variants);
@@ -1295,6 +1464,152 @@ else
 
     private void OnBrandChanged(Brand? brand) => _selectedBrand = brand;
 
+    private void OnTitleChanged(string title)
+    {
+        Model.Title = title ?? string.Empty;
+        if (!_slugManuallyEdited)
+            Model.Slug = Slugify(Model.Title);
+    }
+
+    private void OnSlugChanged(string slug)
+    {
+        Model.Slug = slug ?? string.Empty;
+        _slugManuallyEdited = true;
+    }
+
+    /// <summary>URL-safe slug from title (Shopify-style handle).</summary>
+    private static string Slugify(string? text)
+    {
+        if (string.IsNullOrWhiteSpace(text)) return string.Empty;
+        var s = text.Trim().ToLowerInvariant();
+        var chars = new List<char>(s.Length);
+        var prevDash = false;
+        foreach (var c in s)
+        {
+            if (char.IsLetterOrDigit(c))
+            {
+                chars.Add(c);
+                prevDash = false;
+            }
+            else if (c is ' ' or '-' or '_' || char.IsWhiteSpace(c))
+            {
+                if (!prevDash && chars.Count > 0)
+                {
+                    chars.Add('-');
+                    prevDash = true;
+                }
+            }
+            // Keep common non-Latin letters via IsLetter; skip punctuation.
+        }
+        while (chars.Count > 0 && chars[^1] == '-')
+            chars.RemoveAt(chars.Count - 1);
+        return new string(chars.ToArray());
+    }
+
+    /// <summary>CKEditor empty shells must not be saved as real content (storefront hides empty tabs).</summary>
+    private static string? NormalizeEmptyRichText(string? html)
+    {
+        if (string.IsNullOrWhiteSpace(html)) return null;
+        var s = html.Trim();
+        // Use global:: — razor components under Pages.* would otherwise resolve "System" to Pages.System.
+        var stripped = global::System.Text.RegularExpressions.Regex.Replace(
+            s, @"<(p|div|span|h[1-6])(\s[^>]*)?>(\s|&nbsp;|<br\s*/?>)*</\1>",
+            string.Empty,
+            global::System.Text.RegularExpressions.RegexOptions.IgnoreCase);
+        stripped = global::System.Text.RegularExpressions.Regex.Replace(stripped, @"<br\s*/?>", " ", global::System.Text.RegularExpressions.RegexOptions.IgnoreCase);
+        stripped = global::System.Text.RegularExpressions.Regex.Replace(stripped, @"<[^>]+>", " ");
+        stripped = global::System.Net.WebUtility.HtmlDecode(stripped);
+        stripped = global::System.Text.RegularExpressions.Regex.Replace(stripped, @"\s+", " ").Trim();
+        return string.IsNullOrWhiteSpace(stripped) ? null : s;
+    }
+
+    private void ClearFeaturedImage()
+    {
+        _featuredImage = null;
+        Model.FeaturedImageFileID = null;
+    }
+
+    private void SetFeaturedFromGallery(FileRecord file)
+    {
+        _featuredImage = file;
+        Model.FeaturedImageFileID = file.FileRecordID;
+    }
+
+    private void LoadSellerRowIntoForm(SellerStockEditRow row)
+    {
+        if (row.IsSiteLinked) return;
+        _addSellerVendorId = row.VendorID;
+        _addSellerVariantId = row.ProductVariantID;
+        _addSellerExistingId = row.VendorProductID;
+        _addSellerPrice = row.ReferencePrice;
+        _addSellerStock = row.StockQuantity;
+    }
+
+    private void OnVariantTitleChanged(ProductVariant v, string? title)
+    {
+        v.Title = title ?? string.Empty;
+        _variantTitleManual.Add(v);
+    }
+
+    private void ApplyFirstPriceToAllVariants()
+    {
+        var source = _variants.FirstOrDefault(v => DisplayPrice(v) > 0) ?? _variants.FirstOrDefault();
+        if (source is null) return;
+        var price = DisplayPrice(source);
+        var compare = DisplayCompareAt(source);
+        foreach (var v in _variants)
+        {
+            SetDisplayPrice(v, price);
+            SetDisplayCompareAt(v, compare);
+        }
+        Snackbar.Add(L["variants.price_applied_all", "Price applied to all variants."], Severity.Success);
+    }
+
+    private void RefreshTitlesFromOptions()
+    {
+        foreach (var v in _variants)
+        {
+            var title = BuildVariantTitleFromPicks(v);
+            if (string.IsNullOrWhiteSpace(title)) continue;
+            v.Title = title;
+            _variantTitleManual.Remove(v);
+        }
+        Snackbar.Add(L["variants.titles_refreshed", "Titles refreshed from option values."], Severity.Success);
+    }
+
+    private void DuplicateVariant(ProductVariant source)
+    {
+        var v = new ProductVariant
+        {
+            IsActive = true,
+            IsDefault = false,
+            Title = string.IsNullOrWhiteSpace(source.Title)
+                ? string.Empty
+                : source.Title + " " + L["variants.copy_suffix", "(copy)"],
+            Sku = string.IsNullOrWhiteSpace(source.Sku) ? string.Empty : source.Sku + "-COPY",
+            Weight = source.Weight,
+            Barcode = source.Barcode,
+            ReferencePrice = source.ReferencePrice,
+            ReferencePriceUsd = source.ReferencePriceUsd,
+            CompareAtPrice = source.CompareAtPrice,
+            CompareAtPriceUsd = source.CompareAtPriceUsd,
+        };
+        _variants.Add(v);
+        if (_variantAttrPicks.TryGetValue(source, out var picks))
+            _variantAttrPicks[v] = new Dictionary<int, int>(picks);
+        else
+            _variantAttrPicks[v] = new Dictionary<int, int>();
+        _stockOnHand[v] = 0;
+        _stockReserved[v] = 0;
+        if (UseLocalCurrencyInput)
+        {
+            _localPrice[v] = DisplayPrice(source);
+            _localCompareAt[v] = DisplayCompareAt(source);
+        }
+        if (_variantTitleManual.Contains(source))
+            _variantTitleManual.Add(v);
+    }
+
     private Task<IEnumerable<ProductCategory>> SearchCategories(string value, CancellationToken ct)
     {
         IEnumerable<ProductCategory> q = _categories
@@ -1388,6 +1703,7 @@ else
         var v = _variants[index];
         _variants.RemoveAt(index);
         _variantAttrPicks.Remove(v);
+        _variantTitleManual.Remove(v);
         _stockOnHand.Remove(v);
         _stockReserved.Remove(v);
         _localPrice.Remove(v);
@@ -1548,9 +1864,13 @@ else
         else
             map[attributeDefinitionId] = optionId.Value;
 
-        // Auto-fill empty title from option labels (Shopify-like).
-        if (string.IsNullOrWhiteSpace(variant.Title))
-            variant.Title = BuildVariantTitleFromPicks(variant);
+        // Auto-fill title from options until the admin edits the title manually.
+        if (!_variantTitleManual.Contains(variant))
+        {
+            var auto = BuildVariantTitleFromPicks(variant);
+            if (!string.IsNullOrWhiteSpace(auto))
+                variant.Title = auto;
+        }
     }
 
     private string BuildVariantTitleFromPicks(ProductVariant variant)
@@ -1763,7 +2083,11 @@ else
     private Vendor? GetAddSellerVendor() =>
         _addSellerVendorId is int id ? _marketplaceVendors.FirstOrDefault(v => v.VendorID == id) : null;
 
-    private void OnAddSellerVendorChanged(Vendor? vendor) => _addSellerVendorId = vendor?.VendorID;
+    private async Task OnAddSellerVendorChanged(Vendor? vendor)
+    {
+        _addSellerVendorId = vendor?.VendorID;
+        await SyncAddSellerFormFromSelectionAsync();
+    }
 
     private Task<IEnumerable<Vendor>> SearchMarketplaceVendors(string value, CancellationToken ct)
     {
@@ -1778,16 +2102,57 @@ else
         return Task.FromResult(q);
     }
 
-    private Task OnAddSellerVariantChanged(int? variantId)
+    private async Task OnAddSellerVariantChanged(int? variantId)
     {
         _addSellerVariantId = variantId;
-        if (variantId is int id)
+        await SyncAddSellerFormFromSelectionAsync();
+    }
+
+    /// <summary>
+    /// When both seller and variant are chosen, load the existing listing into price/stock (if any);
+    /// otherwise seed price from the catalog variant and stock 0 for a new assign.
+    /// </summary>
+    private async Task SyncAddSellerFormFromSelectionAsync()
+    {
+        _addSellerExistingId = null;
+
+        if (_addSellerVendorId is not int vendorId || _addSellerVariantId is not int variantId)
         {
-            var variant = _variants.FirstOrDefault(v => v.ProductVariantID == id);
-            if (variant is not null)
-                _addSellerPrice = DisplayPrice(variant);
+            if (_addSellerVariantId is int onlyVariantId)
+            {
+                var v = _variants.FirstOrDefault(x => x.ProductVariantID == onlyVariantId);
+                if (v is not null) _addSellerPrice = DisplayPrice(v);
+            }
+            return;
         }
-        return Task.CompletedTask;
+
+        // Prefer in-memory grid (already loaded for this product).
+        var row = _sellerStocks.FirstOrDefault(r => r.VendorID == vendorId && r.ProductVariantID == variantId);
+        if (row is not null)
+        {
+            _addSellerExistingId = row.VendorProductID;
+            _addSellerPrice = row.ReferencePrice;
+            _addSellerStock = row.StockQuantity;
+            return;
+        }
+
+        // Fallback: DB lookup (e.g. stale UI after external change).
+        var listing = await VendorProductService.FindAsync(vendorId, variantId);
+        if (listing is not null)
+        {
+            _addSellerExistingId = listing.VendorProductID;
+            var local = listing.OverridePriceLocal is decimal ov && ov > 0
+                ? ov
+                : (listing.ReferencePrice > 0 ? listing.ReferencePrice : listing.ReferencePriceUsd);
+            _addSellerPrice = RoundLocal(local);
+            _addSellerStock = listing.StockQuantity;
+            return;
+        }
+
+        // New listing: seed price from catalog variant.
+        var variant = _variants.FirstOrDefault(v => v.ProductVariantID == variantId);
+        _addSellerPrice = variant is not null ? DisplayPrice(variant) : 0;
+        _addSellerStock = 0;
     }
 
     /// <summary>Site-currency amount → dual store (local authority + USD bridge) for a seller listing.</summary>
@@ -1839,16 +2204,24 @@ else
     private async Task AddSellerStockAsync()
     {
         if (_addSellerVendorId is not int vendorId || _addSellerVariantId is not int variantId) return;
-        if (_sellerStocks.Any(r => r.VendorID == vendorId && r.ProductVariantID == variantId))
-        {
-            Snackbar.Add(L["products.seller_stock_exists", "This seller already has a listing for that variant. Edit the row below (price/stock are per seller)."], Severity.Warning);
-            return;
-        }
 
         var variant = _variants.FirstOrDefault(v => v.ProductVariantID == variantId);
         if (variant is null) return;
 
-        // Prefer explicit assign-form price; fall back to catalog variant price.
+        // Resolve existing listing (form state, grid, or DB) so we update instead of failing.
+        var existingId = _addSellerExistingId;
+        if (existingId is null)
+        {
+            var row = _sellerStocks.FirstOrDefault(r => r.VendorID == vendorId && r.ProductVariantID == variantId);
+            if (row is not null) existingId = row.VendorProductID;
+            else
+            {
+                var found = await VendorProductService.FindAsync(vendorId, variantId);
+                if (found is not null) existingId = found.VendorProductID;
+            }
+        }
+
+        // Prefer explicit form price; fall back to catalog variant price for brand-new assigns.
         var priceInput = _addSellerPrice > 0
             ? _addSellerPrice
             : DisplayPrice(variant);
@@ -1856,8 +2229,19 @@ else
             priceInput = 0.01m;
         var (local, usd) = SellerPriceDual(priceInput);
 
+        // Keep delivery days / active from existing row when updating.
+        var existingRow = existingId is int eid
+            ? _sellerStocks.FirstOrDefault(r => r.VendorProductID == eid)
+            : null;
+        if (existingRow?.IsSiteLinked == true)
+        {
+            Snackbar.Add(L["products.seller_stock_site_readonly", "Site-link listings cannot be edited here."], Severity.Warning);
+            return;
+        }
+
         var model = new VendorProduct
         {
+            VendorProductID = existingId ?? 0,
             VendorID = vendorId,
             ProductVariantID = variantId,
             ReferencePrice = local,
@@ -1865,8 +2249,8 @@ else
             OverridePriceLocal = null,
             OverridePrice = null,
             StockQuantity = _addSellerStock < 0 && IsDigital ? -1 : Math.Max(0, _addSellerStock),
-            DeliveryDays = 1,
-            IsActive = true,
+            DeliveryDays = existingRow?.DeliveryDays > 0 ? existingRow.DeliveryDays : 1,
+            IsActive = existingRow?.IsActive ?? true,
         };
         var (ok, err, item) = await VendorProductService.UpsertAsync(model, actingMemberId: null);
         if (!ok || item is null)
@@ -1879,8 +2263,15 @@ else
         _addSellerVariantId = null;
         _addSellerPrice = 0;
         _addSellerStock = 0;
+        _addSellerExistingId = null;
         await LoadSellerStocksAsync();
-        Snackbar.Add(L["saved", "Saved."], Severity.Success);
+        // Host variant stock totals are derived from store listings.
+        await LoadVariantStockAsync(_variants);
+        Snackbar.Add(
+            existingId is int
+                ? L["products.seller_stock_updated", "Seller listing updated."]
+                : L["saved", "Saved."],
+            Severity.Success);
     }
 
     private async Task RemoveSellerStockAsync(SellerStockEditRow row)
@@ -2383,7 +2774,10 @@ else
         }
 
         _formErrors = null;
-        if (string.IsNullOrWhiteSpace(Model.Slug)) Model.Slug = Model.Title.Trim();
+        if (string.IsNullOrWhiteSpace(Model.Slug))
+            Model.Slug = Slugify(Model.Title);
+        if (string.IsNullOrWhiteSpace(Model.Slug))
+            Model.Slug = "product";
 
         // Persist site-currency price (authority) + USD bridge. Catalog OverridePrice unused.
         foreach (var v in _variants)
@@ -2412,6 +2806,10 @@ else
         if (_isNew && _memberId is int creatorId)
             Model.CreatedByMemberID = creatorId;
 
+        // Empty editor HTML must not become storefront tabs (service also normalizes).
+        Model.Content = NormalizeEmptyRichText(Model.Content);
+        Model.ExpertReview = NormalizeEmptyRichText(Model.ExpertReview);
+
         var variantAttrPayload = BuildVariantAttributeOptionsPayload();
 
         _saving = true;
@@ -2432,8 +2830,8 @@ else
                 {
                     ProductID = Model.ProductID, LanguageCode = kv.Key,
                     Title = kv.Value.Title, Slug = kv.Value.Slug, ShortDescription = kv.Value.Short,
-                    Content = kv.Value.Content,
-                    ExpertReview = kv.Value.ExpertReview,
+                    Content = NormalizeEmptyRichText(kv.Value.Content),
+                    ExpertReview = NormalizeEmptyRichText(kv.Value.ExpertReview),
                 }).ToList());
             var categoryId = _selectedCategory!.ProductCategoryID;
             await ProductService.SetCategoriesAsync(Model.ProductID, new[] { categoryId }, categoryId);

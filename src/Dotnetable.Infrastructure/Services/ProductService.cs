@@ -104,6 +104,7 @@ public class ProductService : IProductService
     public async Task<Product> CreateAsync(Product product, CancellationToken ct = default)
     {
         NormalizeProductFulfillment(product);
+        NormalizeProductRichText(product);
         product.CreatedAt = product.UpdatedAt = DateTime.UtcNow;
         _context.Products.Add(product);
         await _context.SaveChangesAsync(ct);
@@ -113,6 +114,7 @@ public class ProductService : IProductService
     public async Task UpdateAsync(Product product, CancellationToken ct = default)
     {
         NormalizeProductFulfillment(product);
+        NormalizeProductRichText(product);
         product.UpdatedAt = DateTime.UtcNow;
         _context.Products.Update(product);
         await _context.SaveChangesAsync(ct);
@@ -137,6 +139,33 @@ public class ProductService : IProductService
             product.DigitalDownloadUrl = null;
         if (product.ProductType != (byte)ProductType.DigitalService)
             product.DigitalServiceUrl = null;
+    }
+
+    /// <summary>
+    /// Empty CKEditor leftovers (&lt;p&gt;&lt;/p&gt;, &lt;br&gt;, &nbsp;) must not hit the storefront as “content”.
+    /// </summary>
+    private static void NormalizeProductRichText(Product product)
+    {
+        product.Content = NormalizeRichTextHtml(product.Content);
+        product.ExpertReview = NormalizeRichTextHtml(product.ExpertReview);
+    }
+
+    /// <summary>Returns null when HTML has no visible text (so product-page tabs can hide).</summary>
+    internal static string? NormalizeRichTextHtml(string? html)
+    {
+        if (string.IsNullOrWhiteSpace(html)) return null;
+        var s = html.Trim();
+        // Drop empty block tags CKEditor often leaves behind.
+        var stripped = System.Text.RegularExpressions.Regex.Replace(
+            s, @"<(p|div|span|h[1-6])(\s[^>]*)?>(\s|&nbsp;|<br\s*/?>)*</\1>",
+            string.Empty,
+            System.Text.RegularExpressions.RegexOptions.IgnoreCase);
+        stripped = System.Text.RegularExpressions.Regex.Replace(stripped, @"<br\s*/?>", " ", System.Text.RegularExpressions.RegexOptions.IgnoreCase);
+        stripped = System.Text.RegularExpressions.Regex.Replace(stripped, @"<[^>]+>", " ");
+        stripped = System.Net.WebUtility.HtmlDecode(stripped);
+        stripped = System.Text.RegularExpressions.Regex.Replace(stripped, @"\s+", " ").Trim();
+        if (string.IsNullOrWhiteSpace(stripped)) return null;
+        return s;
     }
 
     public async Task DeleteAsync(int productId, CancellationToken ct = default)
@@ -213,16 +242,16 @@ public class ProductService : IProductService
                     Title = t.Title.Trim(),
                     Slug = slug,
                     ShortDescription = t.ShortDescription,
-                    Content = t.Content,
-                    ExpertReview = t.ExpertReview,
+                    Content = NormalizeRichTextHtml(t.Content),
+                    ExpertReview = NormalizeRichTextHtml(t.ExpertReview),
                 });
             else
             {
                 current.Title = t.Title.Trim();
                 current.Slug = slug;
                 current.ShortDescription = t.ShortDescription;
-                current.Content = t.Content;
-                current.ExpertReview = t.ExpertReview;
+                current.Content = NormalizeRichTextHtml(t.Content);
+                current.ExpertReview = NormalizeRichTextHtml(t.ExpertReview);
             }
         }
 
@@ -1426,9 +1455,13 @@ public class ProductService : IProductService
         {
             var t = p.ProductTranslations.FirstOrDefault(x =>
                 string.Equals(x.LanguageCode, lang, StringComparison.OrdinalIgnoreCase));
-            if (t is not null && !string.IsNullOrWhiteSpace(t.Content)) return t.Content;
+            if (t is not null)
+            {
+                var localized = NormalizeRichTextHtml(t.Content);
+                if (localized is not null) return localized;
+            }
         }
-        return p.Content;
+        return NormalizeRichTextHtml(p.Content);
     }
 
     private static string? LocalizedExpertReview(Product p, string? lang)
@@ -1437,9 +1470,13 @@ public class ProductService : IProductService
         {
             var t = p.ProductTranslations.FirstOrDefault(x =>
                 string.Equals(x.LanguageCode, lang, StringComparison.OrdinalIgnoreCase));
-            if (t is not null && !string.IsNullOrWhiteSpace(t.ExpertReview)) return t.ExpertReview;
+            if (t is not null)
+            {
+                var localized = NormalizeRichTextHtml(t.ExpertReview);
+                if (localized is not null) return localized;
+            }
         }
-        return p.ExpertReview;
+        return NormalizeRichTextHtml(p.ExpertReview);
     }
 
     private static string LocalizedWarningText(ProductWarning w, string? lang)

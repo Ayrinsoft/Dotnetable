@@ -206,16 +206,49 @@
             </div>
         </div>
 
-        @if (!string.IsNullOrWhiteSpace(Model.Content))
-        {
-            <div class="mt-5 product-content">@Html.Raw(Model.Content)</div>
+        @{
+            // Only real text counts — empty editor shells are null from API.
+            var hasDescription = !string.IsNullOrWhiteSpace(Model.Content);
+            var hasExpertReview = !string.IsNullOrWhiteSpace(Model.ExpertReview);
+            var detailTabs = new List<(string Id, string Label)>();
+            if (hasDescription) detailTabs.Add(("desc", "Description"));
+            if (hasExpertReview) detailTabs.Add(("expert", "Expert review"));
         }
-
-        @if (!string.IsNullOrWhiteSpace(Model.ExpertReview))
+        @if (detailTabs.Count > 0)
         {
-            <div class="mt-5 product-expert-review">
-                <h4 class="mb-3">Expert review</h4>
-                <div class="product-content">@Html.Raw(Model.ExpertReview)</div>
+            <div class="mt-5 product-detail-tabs">
+                <ul class="nav nav-tabs" role="tablist">
+                    @for (var ti = 0; ti < detailTabs.Count; ti++)
+                    {
+                        var tab = detailTabs[ti];
+                        <li class="nav-item" role="presentation">
+                            <button class="nav-link @(ti == 0 ? "active" : null)"
+                                    id="product-tab-@tab.Id"
+                                    data-bs-toggle="tab"
+                                    data-bs-target="#product-pane-@tab.Id"
+                                    type="button"
+                                    role="tab"
+                                    aria-controls="product-pane-@tab.Id"
+                                    aria-selected="@(ti == 0 ? "true" : "false")">
+                                @tab.Label
+                            </button>
+                        </li>
+                    }
+                </ul>
+                <div class="tab-content border border-top-0 rounded-bottom p-3">
+                    @if (hasDescription)
+                    {
+                        <div class="tab-pane fade show active" id="product-pane-desc" role="tabpanel" aria-labelledby="product-tab-desc">
+                            <div class="product-content">@Html.Raw(Model.Content)</div>
+                        </div>
+                    }
+                    @if (hasExpertReview)
+                    {
+                        <div class="tab-pane fade @(hasDescription ? null : "show active")" id="product-pane-expert" role="tabpanel" aria-labelledby="product-tab-expert">
+                            <div class="product-content">@Html.Raw(Model.ExpertReview)</div>
+                        </div>
+                    }
+                </div>
             </div>
         }
 
