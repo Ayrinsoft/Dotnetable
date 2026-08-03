@@ -3956,6 +3956,12 @@ namespace Dotnetable.Migrations.MySql.Migrations
                     b.Property<decimal>("CodMinPriceUsd")
                         .HasColumnType("decimal(18, 4)");
 
+                    b.Property<decimal>("FreeShippingMinOrderAmount")
+                        .HasColumnType("decimal(18, 4)");
+
+                    b.Property<decimal>("FreeShippingMinOrderAmountUsd")
+                        .HasColumnType("decimal(18, 4)");
+
                     b.Property<bool>("IsActive")
                         .HasColumnType("tinyint(1)");
 
@@ -5006,6 +5012,11 @@ namespace Dotnetable.Migrations.MySql.Migrations
                     b.Property<bool>("AllowAllIP")
                         .HasColumnType("tinyint(1)");
 
+                    b.Property<bool>("AllowCashOnDelivery")
+                        .ValueGeneratedOnAdd()
+                        .HasColumnType("tinyint(1)")
+                        .HasDefaultValue(true);
+
                     b.Property<Guid>("AuthCode")
                         .HasColumnType("char(36)");
 
@@ -5037,6 +5048,12 @@ namespace Dotnetable.Migrations.MySql.Migrations
 
                     b.Property<int?>("FaveIconFileID")
                         .HasColumnType("int");
+
+                    b.Property<decimal>("FreeShippingMinOrderAmount")
+                        .HasColumnType("decimal(18, 4)");
+
+                    b.Property<decimal>("FreeShippingMinOrderAmountUsd")
+                        .HasColumnType("decimal(18, 4)");
 
                     b.Property<bool>("IsHub")
                         .HasColumnType("tinyint(1)");

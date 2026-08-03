@@ -78,6 +78,8 @@ public class ShippingService : IShippingService
         existing.PrepaidMinPriceUsd = method.PrepaidMinPriceUsd;
         existing.CodMinPrice = method.CodMinPrice;
         existing.CodMinPriceUsd = method.CodMinPriceUsd;
+        existing.FreeShippingMinOrderAmount = method.FreeShippingMinOrderAmount;
+        existing.FreeShippingMinOrderAmountUsd = method.FreeShippingMinOrderAmountUsd;
         existing.IsActive = method.IsActive;
         existing.SortOrder = method.SortOrder;
 
@@ -151,6 +153,12 @@ public class ShippingService : IShippingService
 
     private async Task NormalizeMethodPricesAsync(ShippingMethod method, CancellationToken ct)
     {
+        if (method.FreeShippingMinOrderAmount <= 0)
+        {
+            method.FreeShippingMinOrderAmount = 0;
+            method.FreeShippingMinOrderAmountUsd = 0;
+        }
+
         try
         {
             if (method.PrepaidMinPrice > 0)
@@ -168,6 +176,9 @@ public class ShippingService : IShippingService
                 var m = await _currency.ToDisplayAsync(method.WebsiteID, method.CodMinPriceUsd, null, ct);
                 method.CodMinPrice = m.Amount;
             }
+
+            if (method.FreeShippingMinOrderAmount > 0)
+                method.FreeShippingMinOrderAmountUsd = await _currency.ToUsdAsync(method.WebsiteID, method.FreeShippingMinOrderAmount, null, ct);
         }
         catch (InvalidOperationException)
         {
@@ -175,6 +186,8 @@ public class ShippingService : IShippingService
             if (method.PrepaidMinPriceUsd <= 0) method.PrepaidMinPriceUsd = method.PrepaidMinPrice;
             if (method.CodMinPrice <= 0) method.CodMinPrice = method.CodMinPriceUsd;
             if (method.CodMinPriceUsd <= 0) method.CodMinPriceUsd = method.CodMinPrice;
+            if (method.FreeShippingMinOrderAmount > 0 && method.FreeShippingMinOrderAmountUsd <= 0)
+                method.FreeShippingMinOrderAmountUsd = method.FreeShippingMinOrderAmount;
         }
     }
 
@@ -213,8 +226,19 @@ public class ShippingService : IShippingService
     // ── Storefront quote ───────────────────────────────────────────
 
     public async Task<List<ShippingQuoteDto>> GetAvailableWithPricesAsync(
-        int websiteId, int? countryId, int? stateId, int? cityId, decimal totalWeightKg, CancellationToken ct = default)
+        int websiteId,
+        int? countryId,
+        int? stateId,
+        int? cityId,
+        decimal totalWeightKg,
+        decimal cartSubtotalLocal = 0,
+        CancellationToken ct = default)
     {
+        var website = await _context.Websites.AsNoTracking()
+            .FirstOrDefaultAsync(w => w.WebsiteID == websiteId, ct);
+        var allowCod = website?.AllowCashOnDelivery ?? true;
+        var siteFreeLocal = website?.FreeShippingMinOrderAmount ?? 0m;
+
         var methods = await _context.ShippingMethods.AsNoTracking()
             .Include(m => m.LogoFile)
             .Where(m => m.WebsiteID == websiteId && m.IsActive && (m.SupportsPrepaid || m.SupportsCod))
@@ -229,6 +253,8 @@ public class ShippingService : IShippingService
                 && (r.MinWeightKg == null || r.MinWeightKg <= totalWeightKg)
                 && (r.MaxWeightKg == null || r.MaxWeightKg >= totalWeightKg))
             .ToListAsync(ct);
+
+        var siteFreeShipping = siteFreeLocal > 0 && cartSubtotalLocal >= siteFreeLocal;
 
         var result = new List<ShippingQuoteDto>();
         foreach (var method in methods)
@@ -259,56 +285,75 @@ public class ShippingService : IShippingService
             }
 
             // When no zone rate exists, method min prices alone still allow quoting
-            // (so Tipax with only prepaid/COD floors works without rate rows).
+            // (so carriers with only prepaid/COD floors work without rate rows).
             var baseUsd = zoneUsd ?? 0m;
+
+            var methodFreeLocal = method.FreeShippingMinOrderAmount > 0
+                ? method.FreeShippingMinOrderAmount
+                : 0m;
+            var methodFreeShipping = methodFreeLocal > 0 && cartSubtotalLocal >= methodFreeLocal;
+            var isFreeShipping = siteFreeShipping || methodFreeShipping;
 
             decimal? prepaidUsd = null;
             if (method.SupportsPrepaid)
             {
-                var floor = method.PrepaidMinPriceUsd > 0
-                    ? method.PrepaidMinPriceUsd
-                    : method.PrepaidMinPrice;
-                try
+                if (isFreeShipping)
                 {
-                    if (method.PrepaidMinPrice > 0)
-                        floor = await _currency.ToUsdAsync(websiteId, method.PrepaidMinPrice, null, ct);
+                    prepaidUsd = 0m;
                 }
-                catch (InvalidOperationException)
+                else
                 {
-                    floor = method.PrepaidMinPrice > 0 ? method.PrepaidMinPrice : method.PrepaidMinPriceUsd;
+                    var floor = method.PrepaidMinPriceUsd > 0
+                        ? method.PrepaidMinPriceUsd
+                        : method.PrepaidMinPrice;
+                    try
+                    {
+                        if (method.PrepaidMinPrice > 0)
+                            floor = await _currency.ToUsdAsync(websiteId, method.PrepaidMinPrice, null, ct);
+                    }
+                    catch (InvalidOperationException)
+                    {
+                        floor = method.PrepaidMinPrice > 0 ? method.PrepaidMinPrice : method.PrepaidMinPriceUsd;
+                    }
+                    prepaidUsd = Math.Max(baseUsd, floor);
                 }
-                prepaidUsd = Math.Max(baseUsd, floor);
             }
 
             decimal? codUsd = null;
-            if (method.SupportsCod)
+            if (method.SupportsCod && allowCod)
             {
-                var floor = method.CodMinPriceUsd > 0
-                    ? method.CodMinPriceUsd
-                    : method.CodMinPrice;
-                try
+                if (isFreeShipping)
                 {
-                    if (method.CodMinPrice > 0)
-                        floor = await _currency.ToUsdAsync(websiteId, method.CodMinPrice, null, ct);
+                    codUsd = 0m;
                 }
-                catch (InvalidOperationException)
+                else
                 {
-                    floor = method.CodMinPrice > 0 ? method.CodMinPrice : method.CodMinPriceUsd;
+                    var floor = method.CodMinPriceUsd > 0
+                        ? method.CodMinPriceUsd
+                        : method.CodMinPrice;
+                    try
+                    {
+                        if (method.CodMinPrice > 0)
+                            floor = await _currency.ToUsdAsync(websiteId, method.CodMinPrice, null, ct);
+                    }
+                    catch (InvalidOperationException)
+                    {
+                        floor = method.CodMinPrice > 0 ? method.CodMinPrice : method.CodMinPriceUsd;
+                    }
+                    codUsd = Math.Max(baseUsd, floor);
                 }
-                codUsd = Math.Max(baseUsd, floor);
             }
 
             if (prepaidUsd is null && codUsd is null)
                 continue;
 
-            // Skip methods that have neither a zone rate nor any positive min and both modes are 0-only?
-            // Zero-price free shipping is valid (e.g. COD min 0). Always include when a mode is supported.
             result.Add(new ShippingQuoteDto
             {
                 Method = method,
                 ZoneRateUsd = zoneUsd,
                 PrepaidPriceUsd = prepaidUsd,
                 CodPriceUsd = codUsd,
+                IsFreeShipping = isFreeShipping,
             });
         }
 

@@ -2,6 +2,7 @@
 @page "/websites/{Id:int}"
 @attribute [Authorize(Policy = AdminPolicies.SuperAdminOnly)]
 @inject IWebsiteService WebsiteService
+@inject IShippingService ShippingService
 @inject IFileService FileService
 @inject ICurrencyService CurrencyService
 @inject IDialogService DialogService
@@ -102,7 +103,7 @@ else if (_website is not null)
                                              Clearable="false" CoerceText="false" ResetValueOnEmptyText="true" />
                         </MudItem>
                         <MudItem xs="12" sm="6">
-                            <MudAlert Severity="Severity.Info" Dense="true" Variant="Variant.Outlined" Class="mt-1">
+                            <DNDismissibleAlert StorageKey="website.currency-mode-hint" Class="mt-1">
                                 @L["website.currency_mode_hint", "Single vs multi-currency (USD dual) is configured under Finance → Exchange Rates for each website — where rate tables are managed."]
                                 @if (!_isNew && Id > 0)
                                 {
@@ -114,7 +115,7 @@ else if (_website is not null)
                                         </MudButton>
                                     </div>
                                 }
-                            </MudAlert>
+                            </DNDismissibleAlert>
                         </MudItem>
                     </MudGrid>
                 </MudPaper>
@@ -263,6 +264,87 @@ else if (_website is not null)
                 </MudPaper>
             </MudItem>
 
+            @* ── Shipping & COD ────────────────────────────── *@
+            <MudItem xs="12">
+                <MudPaper Elevation="0" Class="border rounded-lg pa-6">
+                    <MudText Typo="Typo.subtitle1" Class="fw-bold mb-2">
+                        <MudIcon Icon="@Icons.Material.Filled.LocalShipping" Size="Size.Small" Class="me-1" />
+                        @L["website.section.shipping", "Shipping & delivery"]
+                    </MudText>
+                    <MudText Typo="Typo.caption" Color="Color.Secondary" Class="mb-3">
+                        @L["website.shipping_hint", "Delivery options come from methods defined under Sales → Shipping (e.g. post, motorcycle courier). Use the switches below for site-wide COD and free-shipping rules."]
+                    </MudText>
+                    <MudGrid Spacing="3">
+                        <MudItem xs="12" sm="6">
+                            <MudSwitch T="bool" @bind-Value="_website.AllowCashOnDelivery" Color="Color.Primary"
+                                       Label="@L["website.allow_cod", "Allow cash on delivery (COD)"]" />
+                            <MudText Typo="Typo.caption" Color="Color.Secondary" Class="mt-1">
+                                @L["website.allow_cod_help", "When off, COD is hidden at checkout even if a shipping method supports it. Goods paid at the door is COD."]
+                            </MudText>
+                        </MudItem>
+                        <MudItem xs="12" sm="6">
+                            <DNMoneyField @bind-Value="_website.FreeShippingMinOrderAmount"
+                                          Label="@L["website.free_shipping_min", "Free shipping min order (site currency)"]"
+                                          HelperText="@L["website.free_shipping_min_help", "0 = disabled. When cart reaches this amount, all shipping methods are free (in addition to per-method thresholds)."]" />
+                        </MudItem>
+                        <MudItem xs="12">
+                            <MudStack Row="true" AlignItems="AlignItems.Center" Justify="Justify.SpaceBetween" Class="mb-2">
+                                <MudText Typo="Typo.subtitle2">@L["website.shipping_methods", "Shipping methods for this site"]</MudText>
+                                @if (!_isNew)
+                                {
+                                    <MudButton Variant="Variant.Outlined" Size="Size.Small" Color="Color.Primary"
+                                               StartIcon="@Icons.Material.Filled.OpenInNew" Href="/sales/shipping">
+                                        @L["website.manage_shipping", "Manage shipping"]
+                                    </MudButton>
+                                }
+                            </MudStack>
+                            @if (_isNew)
+                            {
+                                <MudText Typo="Typo.caption" Color="Color.Secondary">
+                                    @L["website.shipping_after_create", "Save the website first, then define methods under Sales → Shipping."]
+                                </MudText>
+                            }
+                            else if (_shippingMethods.Count == 0)
+                            {
+                                <MudAlert Severity="Severity.Info" Dense="true" Class="mt-1">
+                                    @L["website.shipping_empty", "No shipping methods yet. Add post, courier, or other methods under Sales → Shipping."]
+                                </MudAlert>
+                            }
+                            else
+                            {
+                                <MudSimpleTable Dense="true" Hover="true" Elevation="0" Class="mt-1">
+                                    <thead>
+                                        <tr>
+                                            <th>@L["title", "Title"]</th>
+                                            <th>@L["carrier", "Carrier"]</th>
+                                            <th>@L["shipping.prepaid_short", "Prepaid"]</th>
+                                            <th>@L["shipping.cod_short", "COD"]</th>
+                                            <th>@L["status", "Status"]</th>
+                                        </tr>
+                                    </thead>
+                                    <tbody>
+                                        @foreach (var m in _shippingMethods)
+                                        {
+                                            <tr>
+                                                <td>@m.Title</td>
+                                                <td>@(m.CarrierName ?? "—")</td>
+                                                <td>@(m.SupportsPrepaid ? MoneyFormat.Group(m.PrepaidMinPrice) : "—")</td>
+                                                <td>@(m.SupportsCod ? MoneyFormat.Group(m.CodMinPrice) : "—")</td>
+                                                <td>
+                                                    <MudChip T="string" Size="Size.Small" Color="@(m.IsActive ? Color.Success : Color.Default)">
+                                                        @(m.IsActive ? L["active", "Active"] : L["inactive", "Inactive"])
+                                                    </MudChip>
+                                                </td>
+                                            </tr>
+                                        }
+                                    </tbody>
+                                </MudSimpleTable>
+                            }
+                        </MudItem>
+                    </MudGrid>
+                </MudPaper>
+            </MudItem>
+
             @* ── Status ───────────────────────────────────── *@
             <MudItem xs="12">
                 <MudPaper Elevation="0" Class="border rounded-lg pa-6">
@@ -307,6 +389,7 @@ else if (_website is not null)
     private FileRecord? _logoFile;
     private FileRecord? _faveFile;
     private List<Currency> _currencies = new();
+    private List<ShippingMethod> _shippingMethods = new();
     private bool _loading = true;
     private bool _saving;
     private string[]? _formErrors;
@@ -330,6 +413,7 @@ else if (_website is not null)
             {
                 Active = true,
                 TaxEnabled = true,
+                AllowCashOnDelivery = true,
                 DefaultLanguageCode = "en",
                 DefaultCurrencyCode = _currencies.FirstOrDefault()?.CurrencyCode ?? string.Empty,
             };
@@ -342,6 +426,7 @@ else if (_website is not null)
             {
                 if (_website.LogoFileID is int logoId) _logoFile = await FileService.GetByIdAsync(logoId);
                 if (_website.FaveIconFileID is int faveId) _faveFile = await FileService.GetByIdAsync(faveId);
+                _shippingMethods = await ShippingService.GetAllAsync(Id);
             }
         }
         _loading = false;
@@ -408,17 +493,23 @@ else if (_website is not null)
         _saving = true;
         try
         {
+            if (_website!.FreeShippingMinOrderAmount <= 0)
+            {
+                _website.FreeShippingMinOrderAmount = 0;
+                _website.FreeShippingMinOrderAmountUsd = 0;
+            }
+
             if (_isNew)
             {
-                _website!.RegisterDate = DateOnly.FromDateTime(DateTime.UtcNow);
+                _website.RegisterDate = DateOnly.FromDateTime(DateTime.UtcNow);
                 _website.AuthCode = Guid.NewGuid();
                 _website.AllowAllIP = true;
-                await WebsiteService.CreateAsync(_website!);
+                await WebsiteService.CreateAsync(_website);
                 Snackbar.Add(L["website.created", "Website created successfully."], Severity.Success);
             }
             else
             {
-                await WebsiteService.UpdateAsync(_website!);
+                await WebsiteService.UpdateAsync(_website);
                 Snackbar.Add(L["saved", "Changes saved successfully."], Severity.Success);
             }
             Nav.NavigateTo("/websites");

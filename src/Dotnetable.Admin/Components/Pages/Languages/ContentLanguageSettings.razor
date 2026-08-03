@@ -33,11 +33,11 @@
 
 @if (!string.IsNullOrEmpty(_defaultLanguageCode))
 {
-    <MudAlert Severity="Severity.Info" Dense="true" Class="mb-3" Variant="Variant.Outlined">
+    <DNDismissibleAlert StorageKey="website-languages.default-hint">
         @L["website_languages.site_default", "Site default language"]:
         <code>@_defaultLanguageCode</code>
         — @L["website_languages.default_hint", "A new site starts with only this language. Add more languages when you need translations on the storefront."]
-    </MudAlert>
+    </DNDismissibleAlert>
 }
 
 <MudPaper Elevation="0" Class="app-card rounded-lg pa-4">

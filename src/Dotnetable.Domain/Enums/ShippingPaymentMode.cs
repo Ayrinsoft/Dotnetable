@@ -2,7 +2,7 @@ namespace Dotnetable.Domain.Enums;
 
 /// <summary>
 /// How shipping is paid relative to delivery.
-/// Prepaid = پیش‌کرایه (paid with the order). COD = پس‌کرایه (paid on delivery).
+/// Prepaid = charged with the order. CashOnDelivery = paid on delivery (postpay).
 /// </summary>
 public enum ShippingPaymentMode : byte
 {

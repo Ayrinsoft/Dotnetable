@@ -49,8 +49,9 @@ else
     <MudPaper Elevation="0" Class="app-card rounded-lg pa-4 mb-4">
         <MudText Typo="Typo.h6" Class="mb-3">@L["vendors.grant_credit", "Grant / adjust credit"]</MudText>
         <MudStack Row="true" Spacing="2" AlignItems="AlignItems.Start">
-            <MudNumericField T="decimal" @bind-Value="_grantAmount" Label="@L["amount", "Amount (site currency)"]" Variant="Variant.Outlined"
-                             HelperText="@L["vendors.grant_hint", "Positive grants credit; negative reduces it."]" Style="min-width:180px" />
+            <DNMoneyField @bind-Value="_grantAmount" Label="@L["amount", "Amount (site currency)"]"
+                          Min="@null"
+                          HelperText="@L["vendors.grant_hint", "Positive grants credit; negative reduces it."]" Style="min-width:180px" />
             <MudTextField @bind-Value="_grantNote" Label="@L["note", "Note"]" Variant="Variant.Outlined" Style="min-width:240px" />
             <MudButton Variant="Variant.Filled" Color="Color.Primary" OnClick="GrantAsync" Disabled="@_saving" Class="mt-1">
                 @L["apply", "Apply"]

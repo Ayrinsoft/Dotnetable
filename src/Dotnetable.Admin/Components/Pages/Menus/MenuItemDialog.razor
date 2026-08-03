@@ -98,10 +98,10 @@
                         }
                         else
                         {
-                            <MudAlert Severity="Severity.Info" Dense="true" Variant="Variant.Outlined" Class="mt-1">
+                            <DNDismissibleAlert StorageKey="menus.need-website-languages" Class="mt-1">
                                 @L["menus.need_website_languages", "This website has only one language, so there are no extra title fields. Add more languages under Website → Languages, then edit this item again."]
                                 <MudLink Href="/website/languages" Typo="Typo.body2" Class="ms-1">@L["website_languages", "Languages"]</MudLink>
-                            </MudAlert>
+                            </DNDismissibleAlert>
                         }
                     </MudPaper>
                 </MudItem>

@@ -487,9 +487,10 @@ public class ApiClient
 
     // ── Shipping ─────────────────────────────────────────────────────
 
-    public async Task<IReadOnlyList<ShippingOptionDto>> GetShippingOptionsAsync(int? countryId, int? stateId, int? cityId, decimal weightKg, CancellationToken ct = default)
+    public async Task<IReadOnlyList<ShippingOptionDto>> GetShippingOptionsAsync(
+        int? countryId, int? stateId, int? cityId, decimal weightKg, decimal cartSubtotal = 0, CancellationToken ct = default)
     {
-        var query = new List<string> { $"weightKg={weightKg}" };
+        var query = new List<string> { $"weightKg={weightKg}", $"cartSubtotal={cartSubtotal}" };
         if (countryId is int c) query.Add($"countryId={c}");
         if (stateId is int s) query.Add($"stateId={s}");
         if (cityId is int ci) query.Add($"cityId={ci}");

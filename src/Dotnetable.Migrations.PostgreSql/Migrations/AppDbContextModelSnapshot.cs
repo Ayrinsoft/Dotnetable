@@ -4131,6 +4131,12 @@ namespace Dotnetable.Migrations.PostgreSql.Migrations
                     b.Property<decimal>("CodMinPriceUsd")
                         .HasColumnType("decimal(18, 4)");
 
+                    b.Property<decimal>("FreeShippingMinOrderAmount")
+                        .HasColumnType("decimal(18, 4)");
+
+                    b.Property<decimal>("FreeShippingMinOrderAmountUsd")
+                        .HasColumnType("decimal(18, 4)");
+
                     b.Property<bool>("IsActive")
                         .HasColumnType("boolean");
 
@@ -5219,6 +5225,11 @@ namespace Dotnetable.Migrations.PostgreSql.Migrations
                     b.Property<bool>("AllowAllIP")
                         .HasColumnType("boolean");
 
+                    b.Property<bool>("AllowCashOnDelivery")
+                        .ValueGeneratedOnAdd()
+                        .HasColumnType("boolean")
+                        .HasDefaultValue(true);
+
                     b.Property<Guid>("AuthCode")
                         .HasColumnType("uuid");
 
@@ -5250,6 +5261,12 @@ namespace Dotnetable.Migrations.PostgreSql.Migrations
 
                     b.Property<int?>("FaveIconFileID")
                         .HasColumnType("integer");
+
+                    b.Property<decimal>("FreeShippingMinOrderAmount")
+                        .HasColumnType("decimal(18, 4)");
+
+                    b.Property<decimal>("FreeShippingMinOrderAmountUsd")
+                        .HasColumnType("decimal(18, 4)");
 
                     b.Property<bool>("IsHub")
                         .HasColumnType("boolean");

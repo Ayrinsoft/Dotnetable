@@ -8,8 +8,8 @@
         <MudForm @ref="_form">
             <MudGrid Spacing="3">
                 <MudItem xs="12">
-                    <MudNumericField @bind-Value="_delta" Label="@L["wallets.adjust.delta", "Amount change (site currency, +/-)"]"
-                                     Variant="Variant.Outlined" Format="F2" Required="true" />
+                    <DNMoneyField @bind-Value="_delta" Label="@L["wallets.adjust.delta", "Amount change (site currency, +/-)"]"
+                                  Min="@null" Required="true" />
                 </MudItem>
                 <MudItem xs="12">
                     <MudTextField @bind-Value="_note" Label="@L["note", "Note"]" Variant="Variant.Outlined" Lines="2" Required="true"

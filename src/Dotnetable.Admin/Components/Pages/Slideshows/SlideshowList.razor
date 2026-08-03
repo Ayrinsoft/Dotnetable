@@ -27,9 +27,9 @@
     }
 </MudStack>
 
-<MudAlert Severity="Severity.Info" Variant="Variant.Text" Icon="@Icons.Material.Filled.Info" Class="mb-4">
+<DNDismissibleAlert StorageKey="slideshows.placement-hint" Variant="Variant.Text" Class="mb-4">
     @L["slideshows.placement_hint", "Assign a placement key to render a slideshow in a fixed zone (e.g. \"home_top\"), or copy its shortcode and paste it anywhere inside a Post or Page body to embed it there."]
-</MudAlert>
+</DNDismissibleAlert>
 
 <MudPaper Elevation="0" Class="app-card rounded-lg pa-4">
     @if (_loading)

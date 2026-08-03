@@ -50,8 +50,8 @@
             {
                 <tr>
                     <td><code>@c.Code</code></td>
-                    <td>@(c.DiscountType == DiscountTypes.Percent ? $"{c.DiscountValue:0.##}%" : $"${c.DiscountValue:0.00}")</td>
-                    <td>@((c.MinOrderAmount > 0 ? c.MinOrderAmount : c.MinOrderAmountUsd).ToString("0.00"))</td>
+                    <td>@(c.DiscountType == DiscountTypes.Percent ? $"{c.DiscountValue:0.##}%" : MoneyFormat.Group(c.DiscountValue))</td>
+                    <td>@(c.MinOrderAmount > 0 ? MoneyFormat.Group(c.MinOrderAmount) : L["min_order_none", "None"])</td>
                     <td>@(c.UsageLimitTotal is int t ? $"{c.TimesUsed}/{t}" : c.TimesUsed.ToString())</td>
                     <td>@(c.StartsAt?.ToString("yyyy-MM-dd") ?? "-")</td>
                     <td>@(c.EndsAt?.ToString("yyyy-MM-dd") ?? "-")</td>
@@ -162,7 +162,9 @@
     {
         var parameters = new DialogParameters<CouponDialog> { { x => x.Model, model }, { x => x.IsNew, isNew } };
         var dialog = await DialogService.ShowAsync<CouponDialog>(
-            isNew ? L["coupons.new", "New Coupon"] : L["coupons.edit", "Edit Coupon"], parameters);
+            isNew ? L["coupons.new", "New Coupon"] : L["coupons.edit", "Edit Coupon"],
+            parameters,
+            new DialogOptions { MaxWidth = MaxWidth.Small, FullWidth = true });
         var result = await dialog.Result;
         return result is not null && !result.Canceled;
     }

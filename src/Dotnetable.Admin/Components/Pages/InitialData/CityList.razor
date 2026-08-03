@@ -40,9 +40,9 @@
     </MudStack>
 </MudStack>
 
-<MudAlert Severity="Severity.Info" Dense="true" Class="mb-3" Variant="Variant.Outlined">
+<DNDismissibleAlert StorageKey="initial-data.city.import-hint">
     @L["city.import_hint", "Download the sample Excel (.xlsx). Duplicate city titles within the same country (by country code + title) are skipped. The same city name in different countries is allowed."]
-</MudAlert>
+</DNDismissibleAlert>
 
 <MudPaper Elevation="0" Class="app-card rounded-lg pa-4">
     @if (_loading)

@@ -242,9 +242,9 @@ else
 
                         @if (_variantAttributes.Count == 0)
                         {
-                            <MudAlert Severity="Severity.Info" Dense="true" Variant="Variant.Outlined">
+                            <DNDismissibleAlert StorageKey="product-edit.no-catalog-attrs">
                                 @L["variants.no_catalog_attrs", "No variant attributes in the catalog yet. Create ones under Catalog → Attributes and mark them as “Variant attribute” (Color or Select)."]
-                            </MudAlert>
+                            </DNDismissibleAlert>
                         }
                         else if (_productVariantAttrIds.Count == 0)
                         {
@@ -417,18 +417,18 @@ else
                                     </MudStack>
                                 </MudItem>
                                 <MudItem xs="6" sm="2" md="2">
-                                    <MudNumericField T="decimal" Value="@DisplayPrice(v)" ValueChanged="@(val => SetDisplayPrice(v, val))"
-                                                     Label="@PriceFieldLabel"
-                                                     Variant="Variant.Outlined" Margin="Margin.Dense" Min="0" Immediate="true"
-                                                     Required="true"
-                                                     Error="@IsVariantPriceError(v)" ErrorText="@L["variants.price_required", "Price must be greater than zero"]" />
+                                    <DNMoneyField Value="@DisplayPrice(v)" ValueChanged="@(val => SetDisplayPrice(v, val))"
+                                                  Label="@PriceFieldLabel"
+                                                  Margin="Margin.Dense" Immediate="true"
+                                                  Required="true"
+                                                  Error="@IsVariantPriceError(v)" ErrorText="@L["variants.price_required", "Price must be greater than zero"]" />
                                 </MudItem>
                                 <MudItem xs="6" sm="2" md="2">
                                     <MudStack Row="true" AlignItems="AlignItems.Start" Spacing="0">
-                                        <MudNumericField T="decimal?" Value="@DisplayCompareAt(v)" ValueChanged="@(val => SetDisplayCompareAt(v, val))"
-                                                         Label="@CompareFieldLabel"
-                                                         Variant="Variant.Outlined" Margin="Margin.Dense" Min="0" Immediate="true"
-                                                         Class="flex-grow-1" />
+                                        <DNMoneyFieldNullable Value="@DisplayCompareAt(v)" ValueChanged="@(val => SetDisplayCompareAt(v, val))"
+                                                              Label="@CompareFieldLabel"
+                                                              Margin="Margin.Dense" Immediate="true"
+                                                              Class="flex-grow-1" />
                                         <MudTooltip Text="@L["variants.compare_help_tooltip", "What is Compare at?"]">
                                             <MudIconButton Icon="@Icons.Material.Filled.HelpOutline" Color="Color.Primary"
                                                            Size="Size.Medium" Class="mt-1"
@@ -488,9 +488,9 @@ else
                         </MudText>
                         @if (_addSellerExistingId is int)
                         {
-                            <MudAlert Severity="Severity.Info" Dense="true" Variant="Variant.Outlined" Class="mb-2">
+                            <DNDismissibleAlert StorageKey="product-edit.seller-stock-editing" Class="mb-2">
                                 @L["products.seller_stock_editing_existing", "This seller already has this variant — fields below show the current listing. Change them and click Update."]
-                            </MudAlert>
+                            </DNDismissibleAlert>
                         }
                         <MudGrid Spacing="2" AlignItems="AlignItems.Center">
                             <MudItem xs="12" sm="3">
@@ -512,8 +512,8 @@ else
                                 </MudSelect>
                             </MudItem>
                             <MudItem xs="6" sm="2">
-                                <MudNumericField T="decimal" @bind-Value="_addSellerPrice"
-                                                 Label="@PriceFieldLabel" Variant="Variant.Outlined" Margin="Margin.Dense" Min="0" />
+                                <DNMoneyField @bind-Value="_addSellerPrice"
+                                              Label="@PriceFieldLabel" Margin="Margin.Dense" />
                             </MudItem>
                             <MudItem xs="6" sm="2">
                                 <MudNumericField T="int" @bind-Value="_addSellerStock"
@@ -569,10 +569,10 @@ else
                                         <td>@(string.IsNullOrWhiteSpace(row.VariantTitle) ? "—" : row.VariantTitle)</td>
                                         <td><code>@row.Sku</code></td>
                                         <td @onclick:stopPropagation="true">
-                                            <MudNumericField T="decimal" @bind-Value="row.ReferencePrice" Margin="Margin.Dense"
-                                                            Variant="Variant.Outlined" Min="0" Disabled="@(!_canEdit || row.IsSiteLinked)"
-                                                            Style="max-width:140px"
-                                                            HelperText="@(row.OverridePriceLocal is decimal ov ? string.Format(L["products.seller_override_hint", "Promo override: {0}"], ov.ToString("0.##")) : null)" />
+                                            <DNMoneyField @bind-Value="row.ReferencePrice" Margin="Margin.Dense"
+                                                          Disabled="@(!_canEdit || row.IsSiteLinked)"
+                                                          Style="max-width:140px"
+                                                          HelperText="@(row.OverridePriceLocal is decimal ov ? string.Format(L["products.seller_override_hint", "Promo override: {0}"], MoneyFormat.Group(ov)) : null)" />
                                         </td>
                                         <td @onclick:stopPropagation="true">
                                             <MudNumericField T="int" @bind-Value="row.StockQuantity" Margin="Margin.Dense"

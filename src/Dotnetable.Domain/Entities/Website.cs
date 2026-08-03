@@ -75,6 +75,21 @@ public partial class Website
     /// <summary>Seller commercial registration number.</summary>
     public string? SellerRegistrationNumber { get; set; }
 
+    /// <summary>
+    /// When true, checkout may offer cash-on-delivery (pay for goods on delivery) for shipping methods that support COD.
+    /// When false, COD shipping options are hidden even if a method has SupportsCod.
+    /// </summary>
+    public bool AllowCashOnDelivery { get; set; } = true;
+
+    /// <summary>
+    /// Site-wide free-shipping threshold in site currency. When cart merchandise subtotal reaches this amount,
+    /// shipping quotes are free (0). Zero means no site-wide free shipping (method-level thresholds may still apply).
+    /// </summary>
+    public decimal FreeShippingMinOrderAmount { get; set; }
+
+    /// <summary>USD dual / conversion bridge for <see cref="FreeShippingMinOrderAmount"/>.</summary>
+    public decimal FreeShippingMinOrderAmountUsd { get; set; }
+
     public virtual ICollection<AdminNotification> AdminNotifications { get; set; } = new List<AdminNotification>();
 
     public virtual ICollection<AttributeDefinition> AttributeDefinitions { get; set; } = new List<AttributeDefinition>();

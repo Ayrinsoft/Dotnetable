@@ -60,16 +60,18 @@
     </MudStack>
 </MudStack>
 
-<MudAlert Severity="Severity.Info" Dense="true" Class="mb-3" Variant="Variant.Outlined">
-    @if (string.Equals(_languageCode, _defaultLanguageCode, StringComparison.OrdinalIgnoreCase))
-    {
+@if (string.Equals(_languageCode, _defaultLanguageCode, StringComparison.OrdinalIgnoreCase))
+{
+    <DNDismissibleAlert StorageKey="translations.hint-default">
         @L["translation.hint_default", "You are editing the site default language. New keys use this value as the fallback for every other language until translated."]
-    }
-    else
-    {
+    </DNDismissibleAlert>
+}
+else
+{
+    <DNDismissibleAlert StorageKey="translations.hint-xlsx">
         @L["translation.hint_xlsx", "Export downloads a Key,Default,Value Excel (.xlsx) for the selected language. Translate the Value column, keep the Key column unchanged, then import it back. Or edit values inline below."]
-    }
-</MudAlert>
+    </DNDismissibleAlert>
+}
 
 <MudPaper Elevation="0" Class="app-card rounded-lg pa-4">
     @if (_loading)

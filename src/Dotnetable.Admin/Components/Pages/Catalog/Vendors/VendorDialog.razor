@@ -87,7 +87,7 @@
                                 <MudNumericField T="int?" @bind-Value="Model.CreditDays" Label="@L["vendors.credit_days", "Credit days"]" Variant="Variant.Outlined" Min="1" />
                             </MudItem>
                             <MudItem xs="12" sm="6">
-                                <MudNumericField T="decimal?" @bind-Value="Model.CreditLimit" Label="@L["vendors.credit_limit", "Credit limit (site currency)"]" Variant="Variant.Outlined" Min="0" />
+                                <DNMoneyFieldNullable @bind-Value="Model.CreditLimit" Label="@L["vendors.credit_limit", "Credit limit (site currency)"]" />
                             </MudItem>
                         }
                     </MudGrid>

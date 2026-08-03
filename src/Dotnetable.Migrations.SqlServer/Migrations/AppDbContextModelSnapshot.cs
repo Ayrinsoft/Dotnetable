@@ -4132,6 +4132,12 @@ namespace Dotnetable.Migrations.SqlServer.Migrations
                     b.Property<decimal>("CodMinPriceUsd")
                         .HasColumnType("decimal(18, 4)");
 
+                    b.Property<decimal>("FreeShippingMinOrderAmount")
+                        .HasColumnType("decimal(18, 4)");
+
+                    b.Property<decimal>("FreeShippingMinOrderAmountUsd")
+                        .HasColumnType("decimal(18, 4)");
+
                     b.Property<bool>("IsActive")
                         .HasColumnType("bit");
 
@@ -5220,6 +5226,11 @@ namespace Dotnetable.Migrations.SqlServer.Migrations
                     b.Property<bool>("AllowAllIP")
                         .HasColumnType("bit");
 
+                    b.Property<bool>("AllowCashOnDelivery")
+                        .ValueGeneratedOnAdd()
+                        .HasColumnType("bit")
+                        .HasDefaultValue(true);
+
                     b.Property<Guid>("AuthCode")
                         .HasColumnType("uniqueidentifier");
 
@@ -5251,6 +5262,12 @@ namespace Dotnetable.Migrations.SqlServer.Migrations
 
                     b.Property<int?>("FaveIconFileID")
                         .HasColumnType("int");
+
+                    b.Property<decimal>("FreeShippingMinOrderAmount")
+                        .HasColumnType("decimal(18, 4)");
+
+                    b.Property<decimal>("FreeShippingMinOrderAmountUsd")
+                        .HasColumnType("decimal(18, 4)");
 
                     b.Property<bool>("IsHub")
                         .HasColumnType("bit");

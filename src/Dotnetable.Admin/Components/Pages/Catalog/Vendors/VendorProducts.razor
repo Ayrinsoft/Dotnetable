@@ -50,9 +50,9 @@ else
         </MudStack>
     </MudStack>
 
-    <MudAlert Severity="Severity.Info" Dense="true" Variant="Variant.Outlined" Class="mb-3">
+    <DNDismissibleAlert StorageKey="vendors.listings.excel-hint">
         @L["vendors.listings.excel_hint", "Download current prices and stock for this seller, edit Price/Stock in Excel (keep VendorProductID), then import. File name includes today’s date."]
-    </MudAlert>
+    </DNDismissibleAlert>
 
     <MudPaper Elevation="0" Class="app-card rounded-lg pa-4 mb-3">
         <MudStack Row="true" AlignItems="AlignItems.Center" Spacing="2" Class="flex-wrap">

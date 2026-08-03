@@ -98,9 +98,9 @@
                 else if (IsS3(_provider))
                 {
                     <MudItem xs="12">
-                        <MudAlert Severity="Severity.Info" Variant="Variant.Outlined" Dense="true" Icon="@Icons.Material.Filled.Cloud">
+                        <DNDismissibleAlert StorageKey="storage.s3-family-supported">
                             @L["storage.s3_family_supported", "S3-compatible storages supported here: AWS S3, Cloudflare R2, Backblaze B2 and MinIO."]
-                        </MudAlert>
+                        </DNDismissibleAlert>
                     </MudItem>
                     <MudItem xs="12" sm="6">
                         <MudTextField @bind-Value="_s3.Endpoint" Label="@L["storage.endpoint", "Endpoint"]" Variant="Variant.Outlined"
