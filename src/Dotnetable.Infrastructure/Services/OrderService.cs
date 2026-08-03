@@ -108,6 +108,17 @@ public class OrderService : IOrderService
                 ? (i.ProductVariant.Weight ?? 0) * i.Quantity
                 : 0m);
 
+        var subtotalUsd = cart.CartItems.Sum(i => unitUsdByItem[i.CartItemID] * i.Quantity);
+        decimal cartSubtotalLocal = subtotalUsd;
+        try
+        {
+            cartSubtotalLocal = (await _currency.ToDisplayAsync(websiteId, subtotalUsd, null, ct)).Amount;
+        }
+        catch (InvalidOperationException)
+        {
+            // Keep USD as stand-in when rates are missing.
+        }
+
         decimal shippingUsd = 0;
         int? resolvedShippingMethodId = null;
         if (requiresShipping)
@@ -116,7 +127,7 @@ public class OrderService : IOrderService
                 return new CheckoutResult(false, "A shipping method is required for physical items.", null, null);
 
             var shippingOptions = await _shipping.GetAvailableWithPricesAsync(
-                websiteId, address.CountryId, stateId, address.CityId, totalWeight, ct);
+                websiteId, address.CountryId, stateId, address.CityId, totalWeight, cartSubtotalLocal, ct);
             var shippingOption = shippingOptions.FirstOrDefault(o => o.Method.ShippingMethodID == shippingMethodId);
             if (shippingOption is null)
                 return new CheckoutResult(false, "Selected shipping method is not available for this address.", null, null);
@@ -124,8 +135,6 @@ public class OrderService : IOrderService
             shippingUsd = shippingOption.PriceUsd;
             resolvedShippingMethodId = shippingMethodId;
         }
-
-        var subtotalUsd = cart.CartItems.Sum(i => unitUsdByItem[i.CartItemID] * i.Quantity);
 
         decimal discountUsd = 0;
         Coupon? coupon = null;

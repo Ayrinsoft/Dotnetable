@@ -14,6 +14,8 @@
         .no-print { display: none !important; }
         .app-card { box-shadow: none !important; border: 1px solid #ccc; }
     }
+    /* Keep date-picker popover full calendar width (input can stay narrow). */
+    .vat-date-picker { max-width: 170px; }
 </style>
 
 <MudStack Row="true" AlignItems="AlignItems.Center" Justify="Justify.SpaceBetween" Class="mb-4 no-print">
@@ -30,10 +32,14 @@
                              Label="@L["website", "Website"]" Variant="Variant.Outlined"
                              Dense="true" Style="min-width:160px" />
         }
-        <MudDatePicker @bind-Date="_from" Label="@L["from", "From"]" Variant="Variant.Outlined" Dense="true" Style="max-width:150px" />
-        <MudDatePicker @bind-Date="_to" Label="@L["to", "To"]" Variant="Variant.Outlined" Dense="true" Style="max-width:150px" />
+        <MudDatePicker @bind-Date="_from" Label="@L["from", "From"]" Variant="Variant.Outlined" Dense="true"
+                       Class="vat-date-picker" />
+        <MudDatePicker @bind-Date="_to" Label="@L["to", "To"]" Variant="Variant.Outlined" Dense="true"
+                       Class="vat-date-picker" />
         <MudButton Variant="Variant.Filled" Color="Color.Primary" OnClick="LoadAsync" Disabled="_loading">@L["run", "Run"]</MudButton>
-        <MudButton Variant="Variant.Outlined" StartIcon="@Icons.Material.Filled.Print" OnClick="PrintAsync" Disabled="@(_report is null)">@L["print", "Print"]</MudButton>
+        <MudButton Variant="Variant.Outlined" StartIcon="@Icons.Material.Filled.PictureAsPdf" OnClick="PrintAsync" Disabled="@(_report is null)">
+            @L["print_pdf", "Print PDF"]
+        </MudButton>
     </MudStack>
 </MudStack>
 
@@ -43,6 +49,7 @@
 }
 else if (_report is not null)
 {
+    <div id="vat-report-print">
     <MudPaper Elevation="0" Class="app-card rounded-lg pa-4 mb-3">
         <MudText Typo="Typo.subtitle1" Class="fw-bold mb-2">@L["vat_report.seller", "Seller identity"]</MudText>
         <MudGrid Spacing="2">
@@ -59,9 +66,9 @@ else if (_report is not null)
             <MudPaper Elevation="0" Class="app-card rounded-lg pa-4">
                 <MudText Typo="Typo.subtitle2" Class="mb-2">@L["vat_report.output_sales", "Output tax (customer sales)"]</MudText>
                 <MudStack Spacing="1">
-                    <MudStack Row="true" Justify="Justify.SpaceBetween"><MudText>@L["settlements.net", "Net"]</MudText><MudText>@_report.OutputSales.Net.ToString("0.##")</MudText></MudStack>
-                    <MudStack Row="true" Justify="Justify.SpaceBetween"><MudText>@L["settlements.tax", "Tax"]</MudText><MudText>@_report.OutputSales.Tax.ToString("0.##")</MudText></MudStack>
-                    <MudStack Row="true" Justify="Justify.SpaceBetween"><MudText Typo="Typo.subtitle2">@L["settlements.gross", "Gross"]</MudText><MudText Typo="Typo.subtitle2">@_report.OutputSales.Gross.ToString("0.##")</MudText></MudStack>
+                    <MudStack Row="true" Justify="Justify.SpaceBetween"><MudText>@L["settlements.net", "Net"]</MudText><MudText>@MoneyFormat.Group(_report.OutputSales.Net)</MudText></MudStack>
+                    <MudStack Row="true" Justify="Justify.SpaceBetween"><MudText>@L["settlements.tax", "Tax"]</MudText><MudText>@MoneyFormat.Group(_report.OutputSales.Tax)</MudText></MudStack>
+                    <MudStack Row="true" Justify="Justify.SpaceBetween"><MudText Typo="Typo.subtitle2">@L["settlements.gross", "Gross"]</MudText><MudText Typo="Typo.subtitle2">@MoneyFormat.Group(_report.OutputSales.Gross)</MudText></MudStack>
                     <MudText Typo="Typo.caption" Color="Color.Secondary">@_report.OutputSales.DocumentCount @L["vat_report.orders", "orders"]</MudText>
                 </MudStack>
             </MudPaper>
@@ -70,9 +77,9 @@ else if (_report is not null)
             <MudPaper Elevation="0" Class="app-card rounded-lg pa-4">
                 <MudText Typo="Typo.subtitle2" Class="mb-2">@L["vat_report.settlement_tax", "Settlement tax (B2B / inter-site)"]</MudText>
                 <MudStack Spacing="1">
-                    <MudStack Row="true" Justify="Justify.SpaceBetween"><MudText>@L["settlements.net", "Net"]</MudText><MudText>@_report.SettlementTax.Net.ToString("0.##")</MudText></MudStack>
-                    <MudStack Row="true" Justify="Justify.SpaceBetween"><MudText>@L["settlements.tax", "Tax"]</MudText><MudText>@_report.SettlementTax.Tax.ToString("0.##")</MudText></MudStack>
-                    <MudStack Row="true" Justify="Justify.SpaceBetween"><MudText Typo="Typo.subtitle2">@L["settlements.gross", "Gross"]</MudText><MudText Typo="Typo.subtitle2">@_report.SettlementTax.Gross.ToString("0.##")</MudText></MudStack>
+                    <MudStack Row="true" Justify="Justify.SpaceBetween"><MudText>@L["settlements.net", "Net"]</MudText><MudText>@MoneyFormat.Group(_report.SettlementTax.Net)</MudText></MudStack>
+                    <MudStack Row="true" Justify="Justify.SpaceBetween"><MudText>@L["settlements.tax", "Tax"]</MudText><MudText>@MoneyFormat.Group(_report.SettlementTax.Tax)</MudText></MudStack>
+                    <MudStack Row="true" Justify="Justify.SpaceBetween"><MudText Typo="Typo.subtitle2">@L["settlements.gross", "Gross"]</MudText><MudText Typo="Typo.subtitle2">@MoneyFormat.Group(_report.SettlementTax.Gross)</MudText></MudStack>
                     <MudText Typo="Typo.caption" Color="Color.Secondary">@_report.SettlementTax.DocumentCount @L["settlements", "settlements"]</MudText>
                 </MudStack>
             </MudPaper>
@@ -104,9 +111,9 @@ else if (_report is not null)
                         <tr>
                             <td>@line.DocumentNumber</td>
                             <td>@line.Date.ToLocalTime().ToString("g")</td>
-                            <td class="text-end">@line.Net.ToString("0.##")</td>
-                            <td class="text-end">@line.Tax.ToString("0.##")</td>
-                            <td class="text-end">@line.Gross.ToString("0.##") @line.CurrencyCode</td>
+                            <td class="text-end">@MoneyFormat.Group(line.Net)</td>
+                            <td class="text-end">@MoneyFormat.Group(line.Tax)</td>
+                            <td class="text-end">@MoneyFormat.GroupWithCode(line.Gross, line.CurrencyCode)</td>
                             <td class="no-print">
                                 <MudIconButton Size="Size.Small" Icon="@Icons.Material.Filled.Receipt" Href="@($"/orders/{line.DocumentId}/invoice")" />
                             </td>
@@ -144,9 +151,9 @@ else if (_report is not null)
                             <td>@line.DocumentNumber</td>
                             <td>@(line.Counterparty ?? "—")</td>
                             <td>@line.Date.ToLocalTime().ToString("g")</td>
-                            <td class="text-end">@line.Net.ToString("0.##")</td>
-                            <td class="text-end">@line.Tax.ToString("0.##")</td>
-                            <td class="text-end">@line.Gross.ToString("0.##") @line.CurrencyCode</td>
+                            <td class="text-end">@MoneyFormat.Group(line.Net)</td>
+                            <td class="text-end">@MoneyFormat.Group(line.Tax)</td>
+                            <td class="text-end">@MoneyFormat.GroupWithCode(line.Gross, line.CurrencyCode)</td>
                             <td class="no-print">
                                 <MudIconButton Size="Size.Small" Icon="@Icons.Material.Filled.OpenInNew" Href="@($"/finance/settlements/{line.DocumentId}")" />
                             </td>
@@ -156,6 +163,7 @@ else if (_report is not null)
             </tbody>
         </MudSimpleTable>
     </MudPaper>
+    </div>
 }
 
 @code {
@@ -195,5 +203,6 @@ else if (_report is not null)
         finally { _loading = false; }
     }
 
-    private async Task PrintAsync() => await Js.InvokeVoidAsync("window.print");
+    private async Task PrintAsync() =>
+        await Js.InvokeVoidAsync("dotnetablePrint.printElement", "vat-report-print", L["vat_report", "VAT / Tax report"]);
 }

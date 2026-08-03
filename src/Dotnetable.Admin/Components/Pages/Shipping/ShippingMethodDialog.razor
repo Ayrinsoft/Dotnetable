@@ -32,7 +32,7 @@
                     <MudGrid Spacing="3">
                         <MudItem xs="12" sm="7">
                             <MudTextField @bind-Value="Model.Title" Label="@L["title", "Title"]" Variant="Variant.Outlined" Required="true"
-                                          HelperText="@L["shipping.title_hint", "Display name at checkout (e.g. Tipax Express)."]" />
+                                          HelperText="@L["shipping.title_hint", "Display name at checkout (e.g. Express Post, Motorcycle courier)."]" />
                         </MudItem>
                         <MudItem xs="12" sm="5">
                             <MudTextField @bind-Value="Model.CarrierName" Label="@L["carrier", "Carrier / brand"]" Variant="Variant.Outlined"
@@ -50,20 +50,28 @@
                 <MudItem xs="12">
                     <MudText Typo="Typo.subtitle2" Class="mb-1">@L["shipping.payment_modes", "Payment modes"]</MudText>
                     <MudText Typo="Typo.caption" Color="Color.Secondary" Class="mb-2">
-                        @L["shipping.payment_modes_hint", "Prepaid (پیش‌کرایه) is charged with the order. COD / postpay (پس‌کرایه) is paid on delivery. Minimum prices floor any zone rate."]
+                        @* New keys so stale mixed EN/FA catalog rows are not reused. *@
+                        @L["shipping.payment_modes_hint_en", "Prepaid is charged with the order. COD is paid on delivery. Minimum prices floor any zone rate."]
                     </MudText>
                 </MudItem>
                 <MudItem xs="12" sm="6">
-                    <MudSwitch T="bool" @bind-Value="Model.SupportsPrepaid" Label="@L["shipping.supports_prepaid", "Supports prepaid (پیش‌کرایه)"]" Color="Color.Primary" />
-                    <MudNumericField T="decimal" @bind-Value="Model.PrepaidMinPrice" Class="mt-2"
-                                     Label="@L["shipping.prepaid_min", "Prepaid min price"]"
-                                     Variant="Variant.Outlined" Min="0" Disabled="@(!Model.SupportsPrepaid)" />
+                    <MudSwitch T="bool" @bind-Value="Model.SupportsPrepaid"
+                               Label="@L["shipping.supports_prepaid_en", "Supports prepaid"]" Color="Color.Primary" />
+                    <DNMoneyField @bind-Value="Model.PrepaidMinPrice" Class="mt-2"
+                                  Label="@L["shipping.prepaid_min_en", "Prepaid min price"]"
+                                  Disabled="@(!Model.SupportsPrepaid)" />
                 </MudItem>
                 <MudItem xs="12" sm="6">
-                    <MudSwitch T="bool" @bind-Value="Model.SupportsCod" Label="@L["shipping.supports_cod", "Supports COD (پس‌کرایه)"]" Color="Color.Primary" />
-                    <MudNumericField T="decimal" @bind-Value="Model.CodMinPrice" Class="mt-2"
-                                     Label="@L["shipping.cod_min", "COD min price"]"
-                                     Variant="Variant.Outlined" Min="0" Disabled="@(!Model.SupportsCod)" />
+                    <MudSwitch T="bool" @bind-Value="Model.SupportsCod"
+                               Label="@L["shipping.supports_cod_en", "Supports COD"]" Color="Color.Primary" />
+                    <DNMoneyField @bind-Value="Model.CodMinPrice" Class="mt-2"
+                                  Label="@L["shipping.cod_min_en", "COD min price"]"
+                                  Disabled="@(!Model.SupportsCod)" />
+                </MudItem>
+                <MudItem xs="12" sm="6">
+                    <DNMoneyField @bind-Value="Model.FreeShippingMinOrderAmount"
+                                  Label="@L["shipping.free_min_order", "Free shipping min order"]"
+                                  HelperText="@L["shipping.free_min_order_help", "0 = no free shipping. When cart reaches this amount, this method is free."]" />
                 </MudItem>
             </MudGrid>
 

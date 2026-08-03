@@ -25,8 +25,16 @@ public interface IShippingService
     /// For each active shipping method that supports at least one payment mode, resolves the
     /// best-matching active rate by most-specific location match (city → state → country → wildcard)
     /// whose weight range contains <paramref name="totalWeightKg"/>. Zone rate is floored by the
-    /// method's prepaid/COD minimums. Methods with neither prepaid nor COD available are skipped.
+    /// method's prepaid/COD minimums. Free-shipping thresholds (site-wide and per-method) zero the
+    /// charge when <paramref name="cartSubtotalLocal"/> qualifies. Website.AllowCashOnDelivery may
+    /// suppress COD options. Methods with neither prepaid nor COD available are skipped.
     /// </summary>
     Task<List<ShippingQuoteDto>> GetAvailableWithPricesAsync(
-        int websiteId, int? countryId, int? stateId, int? cityId, decimal totalWeightKg, CancellationToken ct = default);
+        int websiteId,
+        int? countryId,
+        int? stateId,
+        int? cityId,
+        decimal totalWeightKg,
+        decimal cartSubtotalLocal = 0,
+        CancellationToken ct = default);
 }

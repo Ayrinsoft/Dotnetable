@@ -31,11 +31,12 @@ else
     <MudStack Row="true" Justify="Justify.SpaceBetween" AlignItems="AlignItems.Center" Class="mb-4 no-print">
         <MudButton Variant="Variant.Text" StartIcon="@Icons.Material.Filled.ArrowBack"
                    OnClick="@(() => Nav.NavigateTo($"/orders/{OrderId}"))">@L["back", "Back"]</MudButton>
-        <MudButton Variant="Variant.Filled" Color="Color.Primary" StartIcon="@Icons.Material.Filled.Print" OnClick="PrintAsync">
-            @L["print", "Print"]
+        <MudButton Variant="Variant.Filled" Color="Color.Primary" StartIcon="@Icons.Material.Filled.PictureAsPdf" OnClick="PrintAsync">
+            @L["print_pdf", "Print PDF"]
         </MudButton>
     </MudStack>
 
+    <div id="order-invoice-print">
     <MudPaper Elevation="0" Class="app-card rounded-lg pa-6 invoice-sheet">
         <MudStack Row="true" Justify="Justify.SpaceBetween" Class="mb-4">
             <div>
@@ -143,15 +144,16 @@ else
             </MudItem>
             <MudItem xs="12" sm="6">
                 <table class="invoice-totals" style="width:100%">
-                    <tr><td>@L["orders.subtotal", "Subtotal"]</td><td class="text-end">@_inv.SubTotal.ToString("0.##") @_inv.CurrencyCode</td></tr>
-                    <tr><td>@L["orders.discount", "Discount"]</td><td class="text-end">-@_inv.DiscountTotal.ToString("0.##")</td></tr>
-                    <tr><td>@L["shipping", "Shipping"]</td><td class="text-end">@_inv.ShippingTotal.ToString("0.##")</td></tr>
-                    <tr><td>@L["tax", "Tax"]</td><td class="text-end">@_inv.TaxTotal.ToString("0.##")</td></tr>
-                    <tr><td><strong>@L["orders.grand_total", "Grand total"]</strong></td><td class="text-end"><strong>@_inv.GrandTotal.ToString("0.##") @_inv.CurrencyCode</strong></td></tr>
+                    <tr><td>@L["orders.subtotal", "Subtotal"]</td><td class="text-end">@MoneyFormat.GroupWithCode(_inv.SubTotal, _inv.CurrencyCode)</td></tr>
+                    <tr><td>@L["orders.discount", "Discount"]</td><td class="text-end">-@MoneyFormat.Group(_inv.DiscountTotal)</td></tr>
+                    <tr><td>@L["shipping", "Shipping"]</td><td class="text-end">@MoneyFormat.Group(_inv.ShippingTotal)</td></tr>
+                    <tr><td>@L["tax", "Tax"]</td><td class="text-end">@MoneyFormat.Group(_inv.TaxTotal)</td></tr>
+                    <tr><td><strong>@L["orders.grand_total", "Grand total"]</strong></td><td class="text-end"><strong>@MoneyFormat.GroupWithCode(_inv.GrandTotal, _inv.CurrencyCode)</strong></td></tr>
                 </table>
             </MudItem>
         </MudGrid>
     </MudPaper>
+    </div>
 }
 
 @code {
@@ -167,5 +169,7 @@ else
         _loading = false;
     }
 
-    private async Task PrintAsync() => await Js.InvokeVoidAsync("window.print");
+    private async Task PrintAsync() =>
+        await Js.InvokeVoidAsync("dotnetablePrint.printElement", "order-invoice-print",
+            _inv is null ? L["invoice", "Invoice"] : $"{L["invoice", "Invoice"]} {_inv.OrderNumber}");
 }

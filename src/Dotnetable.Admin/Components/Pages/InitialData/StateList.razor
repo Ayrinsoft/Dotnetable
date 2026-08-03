@@ -36,9 +36,9 @@
     </MudStack>
 </MudStack>
 
-<MudAlert Severity="Severity.Info" Dense="true" Class="mb-3" Variant="Variant.Outlined">
+<DNDismissibleAlert StorageKey="initial-data.state.import-hint">
     @L["state.import_hint", "Download the sample Excel (.xlsx). Use CountryCode + Title. Duplicate titles in the same country are skipped; the same title in another country is allowed."]
-</MudAlert>
+</DNDismissibleAlert>
 
 <MudPaper Elevation="0" Class="app-card rounded-lg pa-4">
     @if (_loading)

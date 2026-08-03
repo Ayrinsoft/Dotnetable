@@ -1844,12 +1844,12 @@ window.DOCS_ADMIN = {
           },
           howTo: [
             {
-              en: "Create a coupon with code, discount type/value, constraints, active dates.",
-              fa: "کوپن با کد، نوع/مقدار تخفیف، محدودیت‌ها، تاریخ فعال بسازید.",
+              en: "Create a coupon with code, discount type/value, constraints, active dates. Min order 0 means no minimum; when set, cart must exceed it.",
+              fa: "کوپن با کد، نوع/مقدار تخفیف، محدودیت‌ها، تاریخ فعال بسازید. حداقل سفارش 0 یعنی بدون حداقل؛ اگر مقدار داشت سبد باید بیشتر باشد.",
             },
             {
-              en: "Test on storefront checkout before announcing publicly.",
-              fa: "قبل از اعلام عمومی روی تسویه استورفرانت تست کنید.",
+              en: "Amounts are in site currency (no dollar sign). Test on storefront checkout before announcing publicly.",
+              fa: "مبالغ به ارز سایت است (بدون علامت دلار). قبل از اعلام عمومی روی تسویه استورفرانت تست کنید.",
             },
           ],
           related: ["orders"],
@@ -1859,24 +1859,28 @@ window.DOCS_ADMIN = {
           title: { en: "Shipping", fa: "ارسال" },
           adminPath: "/sales/shipping",
           summary: {
-            en: "Shipping methods and rate tables (geo/weight/price rules depending on setup).",
-            fa: "روش‌های ارسال و جدول نرخ (قوانین جغرافیا/وزن/قیمت بسته به تنظیم).",
+            en: "Shipping methods (post, motorcycle, …), prepaid/COD modes, free-shipping thresholds, and rate tables.",
+            fa: "روش‌های ارسال (پست، پیک، …)، حالت پیش‌پرداخت/COD، آستانه ارسال رایگان و جدول نرخ.",
           },
           purpose: {
-            en: "Tell checkout how orders can be delivered and what they cost.",
-            fa: "به تسویه بگوید سفارش چطور ارسال می‌شود و چقدر هزینه دارد.",
+            en: "Tell checkout how orders can be delivered, what they cost, and when shipping is free.",
+            fa: "به تسویه بگوید سفارش چطور ارسال می‌شود، چقدر هزینه دارد و کی رایگان است.",
           },
           howTo: [
             {
-              en: "Define methods (e.g. courier, pickup), then attach rates.",
-              fa: "روش‌ها را تعریف کنید (پیک، حضوری، …) سپس نرخ وصل کنید.",
+              en: "Define methods with prepaid and/or COD, optional free-shipping min order, then attach zone rates.",
+              fa: "روش‌ها را با prepaid و/یا COD و حداقل سفارش برای ارسال رایگان تعریف کنید، سپس نرخ منطقه‌ای وصل کنید.",
             },
             {
-              en: "Validate with sample carts for different destinations.",
-              fa: "با سبد نمونه برای مقصدهای مختلف اعتبارسنجی کنید.",
+              en: "Site-wide COD and free-shipping floors are also on Website edit (Shipping & delivery).",
+              fa: "سوییچ COD و آستانه ارسال رایگان سراسری در ویرایش وب‌سایت (Shipping & delivery) هم هست.",
+            },
+            {
+              en: "Validate with sample carts for different destinations and cart totals.",
+              fa: "با سبد نمونه برای مقصدها و مبالغ مختلف اعتبارسنجی کنید.",
             },
           ],
-          related: ["orders", "tax", "initial-countries"],
+          related: ["orders", "tax", "initial-countries", "websites"],
         },
         {
           id: "tax",
@@ -1916,8 +1920,8 @@ window.DOCS_ADMIN = {
           },
           howTo: [
             {
-              en: "Open VAT report, set filters/period, export if available.",
-              fa: "گزارش VAT را باز کنید، فیلتر/بازه بگذارید، در صورت وجود export بگیرید.",
+              en: "Open VAT report, set period, run the report, then use Print PDF to print the rendered report HTML (not the full admin chrome).",
+              fa: "گزارش VAT را باز کنید، بازه بگذارید، اجرا کنید، سپس Print PDF تا HTML رندر‌شده گزارش چاپ/PDF شود (نه کل پنل ادمین).",
             },
           ],
           related: ["tax", "orders", "settlements"],

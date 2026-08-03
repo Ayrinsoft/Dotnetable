@@ -12,11 +12,14 @@ public sealed class ShippingQuoteDto
     /// <summary>Zone-matched base rate in USD dual (before prepaid/COD floors), when a rate row matched.</summary>
     public decimal? ZoneRateUsd { get; init; }
 
-    /// <summary>Prepaid (پیش‌کرایه) total in USD dual when the method supports prepaid; otherwise null.</summary>
+    /// <summary>Prepaid total in USD dual when the method supports prepaid; otherwise null.</summary>
     public decimal? PrepaidPriceUsd { get; init; }
 
-    /// <summary>COD / postpay (پس‌کرایه) total in USD dual when the method supports COD; otherwise null.</summary>
+    /// <summary>COD / postpay total in USD dual when the method supports COD; otherwise null.</summary>
     public decimal? CodPriceUsd { get; init; }
+
+    /// <summary>True when free-shipping threshold waived the charge for this quote.</summary>
+    public bool IsFreeShipping { get; init; }
 
     /// <summary>
     /// Default charge used when the caller does not pick a payment mode:

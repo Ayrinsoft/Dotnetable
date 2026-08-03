@@ -66,9 +66,9 @@
     </MudStack>
     @if (!_storePricesInUsd)
     {
-        <MudAlert Severity="Severity.Info" Dense="true" Class="mt-3" Variant="Variant.Outlined">
+        <DNDismissibleAlert StorageKey="currency-rates.single-mode-note" Class="mt-3">
             @L["currency_rates.single_mode_note", "Single-currency mode: only the default rate is used for this site. Extra currencies are ignored until multi-currency is enabled."]
-        </MudAlert>
+        </DNDismissibleAlert>
     }
 </MudPaper>
 

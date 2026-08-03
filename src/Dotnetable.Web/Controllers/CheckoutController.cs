@@ -25,7 +25,9 @@ public class CheckoutController : Controller
 
         var addresses = await _api.GetAddressesAsync(ct);
         var defaultAddress = addresses.FirstOrDefault(a => a.IsDefault) ?? addresses.FirstOrDefault();
-        var shippingOptions = await _api.GetShippingOptionsAsync(defaultAddress?.CountryId, defaultAddress?.StateId, defaultAddress?.CityId, cart.TotalWeightKg, ct);
+        var cartSubtotal = cart.SubTotal?.Amount ?? 0;
+        var shippingOptions = await _api.GetShippingOptionsAsync(
+            defaultAddress?.CountryId, defaultAddress?.StateId, defaultAddress?.CityId, cart.TotalWeightKg, cartSubtotal, ct);
 
         return View(new CheckoutView(cart, addresses, shippingOptions));
     }

@@ -95,13 +95,28 @@ public class CouponService : ICouponService
         if (coupon.StartsAt is DateTime startsAt && now < startsAt) return (false, "Coupon is not yet valid.", 0);
         if (coupon.EndsAt is DateTime endsAt && now > endsAt) return (false, "Coupon has expired.", 0);
 
-        // Prefer dual USD threshold; derive from site currency when needed.
-        var minOrderUsd = coupon.MinOrderAmountUsd;
-        if (minOrderUsd <= 0 && coupon.MinOrderAmount > 0)
-            minOrderUsd = await _currency.ToUsdAsync(websiteId, coupon.MinOrderAmount, null, ct);
+        // 0 = no minimum. When set, cart subtotal must be strictly greater than the threshold.
+        var minOrderLocal = coupon.MinOrderAmount > 0 ? coupon.MinOrderAmount : 0m;
+        var minOrderUsd = 0m;
+        if (minOrderLocal > 0)
+        {
+            try
+            {
+                minOrderUsd = await _currency.ToUsdAsync(websiteId, minOrderLocal, null, ct);
+            }
+            catch (InvalidOperationException)
+            {
+                minOrderUsd = coupon.MinOrderAmountUsd > 0 ? coupon.MinOrderAmountUsd : minOrderLocal;
+            }
+        }
+        else if (coupon.MinOrderAmountUsd > 0 && coupon.MinOrderAmount <= 0)
+        {
+            // Legacy rows that only populated the USD dual column.
+            minOrderUsd = coupon.MinOrderAmountUsd;
+        }
 
-        if (cartSubtotalUsd < minOrderUsd)
-            return (false, $"Order must meet the minimum amount to use this coupon.", 0);
+        if (minOrderUsd > 0 && cartSubtotalUsd <= minOrderUsd)
+            return (false, "Order total must be greater than the coupon minimum order amount.", 0);
 
         if (coupon.UsageLimitTotal is int limitTotal && coupon.TimesUsed >= limitTotal)
             return (false, "Coupon usage limit has been reached.", 0);
@@ -172,19 +187,26 @@ public class CouponService : ICouponService
 
     private async Task NormalizeCouponAmountsAsync(Coupon coupon, CancellationToken ct)
     {
+        // Explicit zero means "no minimum" — clear both columns so legacy USD dual does not re-enable a floor.
+        if (coupon.MinOrderAmount <= 0)
+        {
+            coupon.MinOrderAmount = 0;
+            coupon.MinOrderAmountUsd = 0;
+        }
+
         try
         {
             if (coupon.MinOrderAmount > 0)
                 coupon.MinOrderAmountUsd = await _currency.ToUsdAsync(coupon.WebsiteID, coupon.MinOrderAmount, null, ct);
-            else if (coupon.MinOrderAmountUsd > 0)
-            {
-                var m = await _currency.ToDisplayAsync(coupon.WebsiteID, coupon.MinOrderAmountUsd, null, ct);
-                coupon.MinOrderAmount = m.Amount;
-            }
 
             if (coupon.MaxDiscountAmount is decimal max && max > 0)
                 coupon.MaxDiscountAmountUsd = await _currency.ToUsdAsync(coupon.WebsiteID, max, null, ct);
-            else if (coupon.MaxDiscountAmountUsd is decimal maxUsd && maxUsd > 0)
+            else if (coupon.MaxDiscountAmount is null or <= 0)
+            {
+                coupon.MaxDiscountAmount = null;
+                coupon.MaxDiscountAmountUsd = null;
+            }
+            else if (coupon.MaxDiscountAmountUsd is decimal maxUsd && maxUsd > 0 && (coupon.MaxDiscountAmount is null or <= 0))
             {
                 var m = await _currency.ToDisplayAsync(coupon.WebsiteID, maxUsd, null, ct);
                 coupon.MaxDiscountAmount = m.Amount;
@@ -193,8 +215,8 @@ public class CouponService : ICouponService
         catch (InvalidOperationException)
         {
             // No rate: keep dual columns equal so fixed-amount sites still work.
-            if (coupon.MinOrderAmount <= 0) coupon.MinOrderAmount = coupon.MinOrderAmountUsd;
-            if (coupon.MinOrderAmountUsd <= 0) coupon.MinOrderAmountUsd = coupon.MinOrderAmount;
+            if (coupon.MinOrderAmount > 0 && coupon.MinOrderAmountUsd <= 0)
+                coupon.MinOrderAmountUsd = coupon.MinOrderAmount;
             if (coupon.MaxDiscountAmount is null && coupon.MaxDiscountAmountUsd is decimal u) coupon.MaxDiscountAmount = u;
             if (coupon.MaxDiscountAmountUsd is null && coupon.MaxDiscountAmount is decimal l) coupon.MaxDiscountAmountUsd = l;
         }

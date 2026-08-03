@@ -3,53 +3,88 @@
 
 <MudDialog>
     <DialogContent>
+        <div class="coupon-dialog-body">
         <MudForm @ref="_form">
             <MudGrid Spacing="3">
                 <MudItem xs="12" sm="6">
-                    <MudTextField @bind-Value="Model.Code" Label="@L["code", "Code"]" Variant="Variant.Outlined" Required="true" />
+                    <MudTextField @bind-Value="Model.Code" Label="@L["code", "Code"]" Variant="Variant.Outlined" Required="true"
+                                  Class="mud-width-full" />
                 </MudItem>
-                <MudItem xs="12" sm="6">
+                <MudItem xs="12" sm="6" Class="d-flex align-center">
                     <MudSwitch T="bool" @bind-Value="Model.IsActive" Label="@L["active", "Active"]" Color="Color.Primary" />
                 </MudItem>
                 <MudItem xs="12" sm="4">
-                    <MudSelect T="byte" @bind-Value="Model.DiscountType" Label="@L["discount_type", "Discount Type"]" Variant="Variant.Outlined">
+                    <MudSelect T="byte" @bind-Value="Model.DiscountType" Label="@L["discount_type", "Discount Type"]"
+                               Variant="Variant.Outlined" Class="mud-width-full">
                         <MudSelectItem T="byte" Value="@DiscountTypes.Percent">@L["percent", "Percent"]</MudSelectItem>
                         <MudSelectItem T="byte" Value="@DiscountTypes.FixedAmountUsd">@L["fixed_amount", "Fixed Amount (site currency)"]</MudSelectItem>
                     </MudSelect>
                 </MudItem>
                 <MudItem xs="12" sm="4">
-                    <MudNumericField T="decimal" @bind-Value="Model.DiscountValue" Label="@L["discount_value", "Discount Value"]" Variant="Variant.Outlined" Min="0" />
+                    @if (Model.DiscountType == DiscountTypes.Percent)
+                    {
+                        <MudNumericField T="decimal" @bind-Value="Model.DiscountValue" Label="@L["discount_value", "Discount Value"]"
+                                         Variant="Variant.Outlined" Min="0" Max="100" Class="mud-width-full" />
+                    }
+                    else
+                    {
+                        <DNMoneyField @bind-Value="Model.DiscountValue" Label="@L["discount_value", "Discount Value"]"
+                                      Class="mud-width-full" />
+                    }
                 </MudItem>
                 <MudItem xs="12" sm="4">
-                    <MudNumericField T="decimal?" @bind-Value="Model.MaxDiscountAmount" Label="@L["max_discount", "Max Discount (site currency)"]" Variant="Variant.Outlined" Min="0"
-                                     Disabled="@(Model.DiscountType != DiscountTypes.Percent)" />
+                    <DNMoneyFieldNullable @bind-Value="Model.MaxDiscountAmount" Label="@L["max_discount", "Max Discount (site currency)"]"
+                                          Disabled="@(Model.DiscountType != DiscountTypes.Percent)"
+                                          Class="mud-width-full" />
+                </MudItem>
+                <MudItem xs="12">
+                    <DNMoneyField @bind-Value="Model.MinOrderAmount" Label="@L["min_order", "Minimum Order (site currency)"]"
+                                  HelperText="@L["min_order_help", "0 = no minimum. When set, cart subtotal must be greater than this amount."]"
+                                  Class="mud-width-full" />
                 </MudItem>
                 <MudItem xs="12" sm="6">
-                    <MudNumericField T="decimal" @bind-Value="Model.MinOrderAmount" Label="@L["min_order", "Minimum Order (site currency)"]" Variant="Variant.Outlined" Min="0" />
-                </MudItem>
-                <MudItem xs="12" sm="6" />
-                <MudItem xs="12" sm="6">
-                    <MudNumericField T="int?" @bind-Value="Model.UsageLimitTotal" Label="@L["usage_limit_total", "Total Usage Limit"]" Variant="Variant.Outlined" Min="0" />
+                    <MudNumericField T="int?" @bind-Value="Model.UsageLimitTotal" Label="@L["usage_limit_total", "Total Usage Limit"]"
+                                     Variant="Variant.Outlined" Min="0" Class="mud-width-full" />
                 </MudItem>
                 <MudItem xs="12" sm="6">
-                    <MudNumericField T="int?" @bind-Value="Model.UsageLimitPerClient" Label="@L["usage_limit_per_client", "Usage Limit Per Client"]" Variant="Variant.Outlined" Min="0" />
+                    <MudNumericField T="int?" @bind-Value="Model.UsageLimitPerClient" Label="@L["usage_limit_per_client", "Usage Limit Per Client"]"
+                                     Variant="Variant.Outlined" Min="0" Class="mud-width-full" />
+                </MudItem>
+                @* PickerVariant.Dialog: calendar opens as overlay so fields don't stack/overlap inside the popup. *@
+                <MudItem xs="12" sm="6">
+                    <MudDatePicker @bind-Date="_startsAt" Label="@L["starts_at", "Starts At"]" Variant="Variant.Outlined"
+                                   Clearable="true" PickerVariant="PickerVariant.Dialog"
+                                   Class="mud-width-full" Style="width:100%; min-width:0;" />
                 </MudItem>
                 <MudItem xs="12" sm="6">
-                    <MudDatePicker @bind-Date="_startsAt" Label="@L["starts_at", "Starts At"]" Variant="Variant.Outlined" Clearable="true" />
-                </MudItem>
-                <MudItem xs="12" sm="6">
-                    <MudDatePicker @bind-Date="_endsAt" Label="@L["ends_at", "Ends At"]" Variant="Variant.Outlined" Clearable="true" />
+                    <MudDatePicker @bind-Date="_endsAt" Label="@L["ends_at", "Ends At"]" Variant="Variant.Outlined"
+                                   Clearable="true" PickerVariant="PickerVariant.Dialog"
+                                   Class="mud-width-full" Style="width:100%; min-width:0;" />
                 </MudItem>
             </MudGrid>
 
             <DNValidationSummary Errors="_formErrors" />
         </MudForm>
+        </div>
     </DialogContent>
     <DialogActions>
         <MudButton OnClick="Cancel">@L["cancel", "Cancel"]</MudButton>
         <MudButton Variant="Variant.Filled" Color="Color.Primary" OnClick="SaveAsync" Disabled="@_saving">@L["save", "Save"]</MudButton>
     </DialogActions>
 </MudDialog>
+
+<style>
+    /* Prevent horizontal scroll from wide Mud inputs inside the coupon dialog. */
+    .coupon-dialog-body {
+        overflow-x: hidden;
+        max-width: 100%;
+    }
+    .coupon-dialog-body .mud-input-control,
+    .coupon-dialog-body .mud-picker {
+        max-width: 100%;
+        min-width: 0;
+    }
+</style>
 
 @code {
     [CascadingParameter] private IMudDialogInstance MudDialog { get; set; } = null!;

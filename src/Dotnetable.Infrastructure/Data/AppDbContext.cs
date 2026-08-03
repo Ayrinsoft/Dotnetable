@@ -2510,6 +2510,8 @@ public partial class AppDbContext : DbContext
             entity.Property(e => e.CarrierName).HasMaxLength(100);
             entity.Property(e => e.CodMinPrice).HasColumnType("decimal(18, 4)");
             entity.Property(e => e.CodMinPriceUsd).HasColumnType("decimal(18, 4)");
+            entity.Property(e => e.FreeShippingMinOrderAmount).HasColumnType("decimal(18, 4)");
+            entity.Property(e => e.FreeShippingMinOrderAmountUsd).HasColumnType("decimal(18, 4)");
             entity.Property(e => e.PrepaidMinPrice).HasColumnType("decimal(18, 4)");
             entity.Property(e => e.PrepaidMinPriceUsd).HasColumnType("decimal(18, 4)");
             entity.Property(e => e.Title).HasMaxLength(100);
@@ -3101,6 +3103,9 @@ public partial class AppDbContext : DbContext
             entity.Property(e => e.SellerRegistrationNumber).HasMaxLength(50);
             entity.Property(e => e.SellerTaxId).HasMaxLength(50);
             entity.Property(e => e.SellerVatNumber).HasMaxLength(50);
+            entity.Property(e => e.AllowCashOnDelivery).HasDefaultValue(true);
+            entity.Property(e => e.FreeShippingMinOrderAmount).HasColumnType("decimal(18, 4)");
+            entity.Property(e => e.FreeShippingMinOrderAmountUsd).HasColumnType("decimal(18, 4)");
             entity.Property(e => e.StorePricesInUsd)
                 .HasDefaultValue(false)
                 .HasComment("When true, also persist USD dual columns; default site currency is always operational authority.");

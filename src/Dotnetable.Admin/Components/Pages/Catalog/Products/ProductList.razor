@@ -56,9 +56,9 @@
 
 @if (_websiteId > 0)
 {
-    <MudAlert Severity="Severity.Info" Dense="true" Variant="Variant.Outlined" Class="mb-3">
+    <DNDismissibleAlert StorageKey="products.price-stock-excel-hint">
         @L["products.price_stock_excel_hint", "Export seller listings (price & stock) for the current website. Sellers only get their own rows. Edit Price/Stock in Excel, keep VendorProductID unchanged, then import. File name ends with today’s date."]
-    </MudAlert>
+    </DNDismissibleAlert>
 }
 
 <DNPrerequisiteAlert Items="_prerequisites" />

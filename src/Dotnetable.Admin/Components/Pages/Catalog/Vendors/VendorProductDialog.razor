@@ -8,9 +8,9 @@
             <MudStack Spacing="3">
                 @if (IsNew)
                 {
-                    <MudAlert Severity="Severity.Info" Dense="true" Variant="Variant.Outlined">
+                    <DNDismissibleAlert StorageKey="vendors.listings.pick-hint">
                         @L["vendors.listings.pick_hint", "Search by product name, variant title, or SKU, then select one sellable variant to list for this vendor."]
-                    </MudAlert>
+                    </DNDismissibleAlert>
 
                     <MudAutocomplete T="VendorVariantPickDto"
                                      Value="_selected"
@@ -79,16 +79,15 @@
 
                 <MudGrid Spacing="2">
                     <MudItem xs="12" sm="6">
-                        <MudNumericField T="decimal" @bind-Value="Model.ReferencePrice"
+                        <DNMoneyField @bind-Value="Model.ReferencePrice"
                                          Label="@L["vendors.ref_price", "Reference price (site currency)"]"
                                          HelperText="@L["vendors.ref_price_help", "Catalog reference in the site currency. Defaults from the product when you pick a variant."]"
                                          Variant="Variant.Outlined" Min="0" />
                     </MudItem>
                     <MudItem xs="12" sm="6">
-                        <MudNumericField T="decimal?" @bind-Value="Model.OverridePriceLocal"
+                        <DNMoneyFieldNullable @bind-Value="Model.OverridePriceLocal"
                                          Label="@L["vendors.override_price", "Override price (site currency)"]"
-                                         HelperText="@L["vendors.override_price_help", "Optional. When set, this vendor sells at this site-currency price instead of the catalog reference."]"
-                                         Variant="Variant.Outlined" Min="0" />
+                                         HelperText="@L["vendors.override_price_help", "Optional. When set, this vendor sells at this site-currency price instead of the catalog reference."]" />
                     </MudItem>
                     <MudItem xs="12" sm="6">
                         <MudNumericField T="int" @bind-Value="Model.StockQuantity"

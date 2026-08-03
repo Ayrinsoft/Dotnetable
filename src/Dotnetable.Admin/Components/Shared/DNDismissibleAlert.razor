@@ -47,9 +47,11 @@
         await InvokeAsync(StateHasChanged);
     }
 
-    private async Task DismissAsync()
+    /// <summary>MudBlazor 9 passes the alert instance to CloseIconClicked.</summary>
+    private async Task DismissAsync(MudAlert _)
     {
         _dismissed = true;
+        await InvokeAsync(StateHasChanged);
         if (string.IsNullOrWhiteSpace(StorageKey)) return;
         try
         {

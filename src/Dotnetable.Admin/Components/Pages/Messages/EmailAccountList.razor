@@ -32,9 +32,9 @@
 
 @if (!_websiteHasOwn && !_loading)
 {
-    <MudAlert Severity="Severity.Info" Variant="Variant.Outlined" Class="mb-4">
+    <DNDismissibleAlert StorageKey="email-accounts.inherited-hint" Class="mb-4">
         @L["email_accounts.inherited_hint", "This website has no accounts of its own yet — outgoing mail uses the master website's accounts until you add one here."]
-    </MudAlert>
+    </DNDismissibleAlert>
 }
 
 <MudPaper Elevation="0" Class="app-card rounded-lg pa-4">

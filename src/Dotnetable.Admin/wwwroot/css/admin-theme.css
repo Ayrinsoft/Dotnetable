@@ -566,3 +566,20 @@ html, body {
     width: auto;
     display: inline;
 }
+
+/* ---- Date picker calendar width (avoid half-width popovers) -------------- */
+.mud-picker-datepicker-toolbar,
+.mud-picker-calendar-header,
+.mud-picker-calendar-container,
+.mud-picker-month-container {
+    min-width: 310px;
+}
+
+.mud-popover .mud-picker,
+.mud-picker.mud-picker-inline {
+    min-width: 320px !important;
+}
+
+.mud-picker .mud-picker-content {
+    min-width: 310px;
+}

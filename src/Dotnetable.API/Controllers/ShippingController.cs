@@ -21,12 +21,16 @@ public class ShippingController : BaseController
     [HttpGet("methods")]
     public async Task<IActionResult> GetMethods(
         [FromQuery] int? countryId, [FromQuery] int? stateId, [FromQuery] int? cityId,
-        [FromQuery] decimal weightKg = 0, [FromQuery] string? currency = null, CancellationToken ct = default)
+        [FromQuery] decimal weightKg = 0,
+        [FromQuery] decimal cartSubtotal = 0,
+        [FromQuery] string? currency = null,
+        CancellationToken ct = default)
     {
         var website = await ResolveWebsiteAsync(_websites, ct);
         if (website is null) return Unauthorized(new { message = "Invalid or missing website key." });
 
-        var results = await _shipping.GetAvailableWithPricesAsync(website.WebsiteID, countryId, stateId, cityId, weightKg, ct);
+        var results = await _shipping.GetAvailableWithPricesAsync(
+            website.WebsiteID, countryId, stateId, cityId, weightKg, cartSubtotal, ct);
         var storeUsd = await _currency.GetStorePricesInUsdAsync(website.WebsiteID, ct);
 
         var payload = new List<object>();
@@ -56,9 +60,10 @@ public class ShippingController : BaseController
                 carrierName = r.Method.CarrierName,
                 logoUrl = r.Method.LogoFile?.ThumbnailCDN ?? r.Method.LogoFile?.CNDUrl,
                 supportsPrepaid = r.Method.SupportsPrepaid,
-                supportsCod = r.Method.SupportsCod,
+                supportsCod = r.Method.SupportsCod && (website.AllowCashOnDelivery),
                 prepaidPrice = prepaid,
                 codPrice = cod,
+                isFreeShipping = r.IsFreeShipping,
                 // Default charge (prepaid preferred) — backward-compatible fields.
                 price = defaultPrice,
                 priceUsd = defaultPrice.AmountUsd,
