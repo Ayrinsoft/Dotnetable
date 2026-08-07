@@ -112,6 +112,71 @@ public class PaymentService : IPaymentService
         return (true, null, payment);
     }
 
+    public async Task<(bool Success, string? Error, Payment? Payment)> RecordReceivedPaymentAsync(
+        int orderId, PaymentMethod method, decimal? amountLocal, string? reference, string? note,
+        int memberId, CancellationToken ct = default)
+    {
+        if (method is not (PaymentMethod.Manual or PaymentMethod.CashOnDelivery))
+            return (false, "Only Manual or CashOnDelivery methods can be recorded by admin.", null);
+
+        var order = await _context.Orders
+            .Include(o => o.Payments)
+            .FirstOrDefaultAsync(o => o.OrderID == orderId, ct);
+        if (order is null) return (false, "Order not found.", null);
+
+        if (order.Status is (byte)OrderStatus.Cancelled or (byte)OrderStatus.Refunded)
+            return (false, "Cannot record payment on a cancelled or refunded order.", null);
+
+        if (order.Payments.Any(p => p.Status == (byte)PaymentStatus.Paid))
+            return (false, "Order already has a paid payment recorded.", null);
+
+        var amount = amountLocal is > 0 ? amountLocal.Value : order.GrandTotal;
+        if (amount <= 0) return (false, "Amount must be greater than zero.", null);
+
+        var rate = order.ExchangeRateToUsd <= 0 ? 1m : order.ExchangeRateToUsd;
+        var amountUsd = Math.Round(amount / rate, 4, MidpointRounding.AwayFromZero);
+
+        var payment = new Payment
+        {
+            WebsiteID = order.WebsiteID,
+            OrderID = order.OrderID,
+            WebsiteClientID = order.WebsiteClientID,
+            Method = (byte)method,
+            Amount = amount,
+            CurrencyCode = order.CurrencyCode,
+            ExchangeRateToUsd = rate,
+            AmountUsd = amountUsd,
+            Status = (byte)PaymentStatus.Paid,
+            TrackingCode = string.IsNullOrWhiteSpace(reference) ? null : reference.Trim(),
+            GatewayRefNumber = string.IsNullOrWhiteSpace(note) ? null : note.Trim(),
+            PaidAt = DateTime.UtcNow,
+            CreatedByMemberID = memberId,
+            VerifiedByMemberID = memberId,
+            CreatedAt = DateTime.UtcNow,
+        };
+        _context.Payments.Add(payment);
+        await _context.SaveChangesAsync(ct);
+
+        if (order.Status == (byte)OrderStatus.PendingPayment)
+        {
+            var transitionNote = string.IsNullOrWhiteSpace(note)
+                ? $"Payment received ({method})."
+                : note.Trim();
+            await _orders.TransitionStatusAsync(orderId, OrderStatus.Paid, memberId, transitionNote, ct);
+        }
+
+        await _notifications.NotifySiteAdminsAsync(
+            order.WebsiteID,
+            AdminNotificationType.PaymentReceived,
+            "Payment recorded",
+            $"Order #{order.OrderNumber}: admin recorded {method} payment — {amount:0.##} {order.CurrencyCode}.",
+            $"/orders/{order.OrderID}",
+            payment.PaymentID,
+            ct);
+
+        return (true, null, payment);
+    }
+
     public async Task<bool> VerifyAsync(int paymentId, int memberId, bool approve, string? note, CancellationToken ct = default)
     {
         var payment = await _context.Payments.FirstOrDefaultAsync(p => p.PaymentID == paymentId, ct);
@@ -133,6 +198,9 @@ public class PaymentService : IPaymentService
             .Include(p => p.BankAccount).ThenInclude(a => a!.Bank)
             .Include(p => p.ReceiptFile)
             .Include(p => p.Order)
+            .Include(p => p.WebsiteClient)
+            .Include(p => p.CreatedByMember)
+            .Include(p => p.VerifiedByMember)
             .FirstOrDefaultAsync(p => p.PaymentID == paymentId, ct);
 
     public async Task<Payment?> GetLatestForOrderAsync(int orderId, CancellationToken ct = default) =>
@@ -180,8 +248,12 @@ public class PaymentService : IPaymentService
     private IQueryable<Payment> ManualBankTransfers(int? websiteId)
     {
         var q = _context.Payments.AsNoTracking()
-            .Include(p => p.Order).Include(p => p.WebsiteClient).Include(p => p.BankAccount).ThenInclude(a => a!.Bank)
+            .Include(p => p.Order)
+            .Include(p => p.WebsiteClient)
+            .Include(p => p.BankAccount).ThenInclude(a => a!.Bank)
             .Include(p => p.ReceiptFile)
+            .Include(p => p.CreatedByMember)
+            .Include(p => p.VerifiedByMember)
             .Where(p => p.Method == (byte)PaymentMethod.BankTransfer);
         if (websiteId is int wid) q = q.Where(p => p.WebsiteID == wid);
         return q;
@@ -192,7 +264,12 @@ public class PaymentService : IPaymentService
     {
         var payment = await _context.Payments.FirstOrDefaultAsync(p => p.PaymentID == paymentId, ct);
         if (payment is null || payment.Status != (byte)PaymentStatus.Paid) return (false, "Payment is not eligible for refund.", null);
-        if (toWallet == (bankAccountId is not null)) return (false, "Refund must target exactly one of wallet or bank account.", null);
+        if (amountUsd <= 0) return (false, "Refund amount must be greater than zero.", null);
+        if (toWallet && bankAccountId is not null)
+            return (false, "Choose wallet, bank account, or cash/manual — not wallet and bank together.", null);
+
+        // Destination: wallet (instant), bank (pending manual transfer), or cash/manual (instant, no ledger).
+        var isCashManual = !toWallet && bankAccountId is null;
 
         int? walletTxId = null;
         if (toWallet)
@@ -203,15 +280,16 @@ public class PaymentService : IPaymentService
             walletTxId = tx.ClientWalletTransactionID;
         }
 
+        var completedNow = toWallet || isCashManual;
         var refund = new PaymentRefund
         {
             PaymentID = paymentId,
             Amount = amountUsd,
             Reason = reason,
-            Status = (byte)(toWallet ? PaymentRefundStatus.Completed : PaymentRefundStatus.Pending),
+            Status = (byte)(completedNow ? PaymentRefundStatus.Completed : PaymentRefundStatus.Pending),
             BankAccountID = bankAccountId,
             ClientWalletTransactionID = walletTxId,
-            RefundedAt = toWallet ? DateTime.UtcNow : null,
+            RefundedAt = completedNow ? DateTime.UtcNow : null,
             CreatedByMemberID = memberId,
             CreatedAt = DateTime.UtcNow,
         };
@@ -280,6 +358,7 @@ public class PaymentService : IPaymentService
             .Include(r => r.Payment).ThenInclude(p => p.Order)
             .Include(r => r.Payment).ThenInclude(p => p.WebsiteClient)
             .Include(r => r.BankAccount).ThenInclude(a => a!.Bank)
+            .Include(r => r.CreatedByMember)
             .Where(r => r.BankAccountID != null);
         if (websiteId is int wid)
             q = q.Where(r => r.Payment.WebsiteID == wid);

@@ -3,11 +3,15 @@ using Dotnetable.Domain.Entities;
 namespace Dotnetable.Application.Interfaces;
 
 /// <summary>Values for <see cref="Payment"/>.Method (TINYINT). No gateway integration in this build —
-/// only wallet debit and manual/offline bank transfer are supported.</summary>
+/// wallet debit, offline bank transfer, and admin-recorded cash/COD/manual receipts are supported.</summary>
 public enum PaymentMethod : byte
 {
     Wallet = 1,
     BankTransfer = 2,
+    /// <summary>Admin-recorded offline collection (cash, POS, wire outside the receipt queue, etc.).</summary>
+    Manual = 3,
+    /// <summary>Cash (or card) collected on delivery — recorded by admin after collection.</summary>
+    CashOnDelivery = 4,
 }
 
 /// <summary>Values for <see cref="Payment"/>.Status (TINYINT).</summary>
@@ -46,9 +50,9 @@ public static class PaymentRefundStatusQueues
 }
 
 /// <summary>
-/// Records payments against an order and settles them either instantly (wallet debit) or after manual
-/// admin verification (offline bank transfer + uploaded receipt). No payment-gateway abstraction exists
-/// by design — this build only supports wallet balance and manual bank transfer.
+/// Records payments against an order and settles them either instantly (wallet debit), after manual
+/// admin verification (offline bank transfer + uploaded receipt), or via admin-recorded cash/COD/manual
+/// receipt. No payment-gateway abstraction exists by design.
 /// </summary>
 public interface IPaymentService
 {
@@ -59,6 +63,19 @@ public interface IPaymentService
     /// unpaid until an admin verifies it.</summary>
     Task<(bool Success, string? Error, Payment? Payment)> SubmitBankReceiptAsync(
         int websiteId, int clientId, int orderId, int bankAccountId, int receiptFileId, CancellationToken ct = default);
+
+    /// <summary>
+    /// Admin records that money was received from the customer outside the self-serve flows
+    /// (cash, COD collection, POS, transfer not submitted as a receipt, etc.). Creates a Paid payment
+    /// and, when the order is still <see cref="OrderStatus.PendingPayment"/>, transitions it to Paid.
+    /// </summary>
+    /// <param name="method">Must be <see cref="PaymentMethod.Manual"/> or <see cref="PaymentMethod.CashOnDelivery"/>.</param>
+    /// <param name="amountLocal">Optional amount in the order currency; defaults to the order grand total.</param>
+    /// <param name="reference">Optional tracking / receipt reference stored on the payment.</param>
+    /// <param name="note">Optional free-text note (stored in <see cref="Payment.GatewayRefNumber"/> for audit).</param>
+    Task<(bool Success, string? Error, Payment? Payment)> RecordReceivedPaymentAsync(
+        int orderId, PaymentMethod method, decimal? amountLocal, string? reference, string? note,
+        int memberId, CancellationToken ct = default);
 
     /// <summary>Admin verification of a pending manual payment: approve marks it Paid and transitions the
     /// order to Paid; reject marks it Rejected and leaves the order unpaid (customer may resubmit).</summary>
@@ -78,8 +95,11 @@ public interface IPaymentService
     /// <summary>Counts of bank-transfer payments per <see cref="Payment"/>.Status for the optional website scope.</summary>
     Task<IReadOnlyDictionary<byte, int>> GetManualStatusCountsAsync(int? websiteId, CancellationToken ct = default);
 
-    /// <summary>Refunds a payment, either crediting the customer's wallet (instant) or recording a
-    /// Pending bank refund for manual off-system transfer (admin marks it Completed once done).</summary>
+    /// <summary>
+    /// Refunds a paid payment. Destination is exactly one of:
+    /// wallet credit (instant), bank account (Pending until marked completed), or cash/manual
+    /// (<paramref name="toWallet"/> false and <paramref name="bankAccountId"/> null — completed immediately).
+    /// </summary>
     Task<(bool Success, string? Error, PaymentRefund? Refund)> RefundAsync(
         int paymentId, decimal amountUsd, string? reason, bool toWallet, int? bankAccountId, int memberId, CancellationToken ct = default);
 

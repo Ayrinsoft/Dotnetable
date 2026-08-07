@@ -1525,16 +1525,24 @@ window.DOCS_ADMIN = {
               fa: "Orders را باز کنید، بر اساس وضعیت/تاریخ/مشتری فیلتر کنید.",
             },
             {
-              en: "Open an order to review items, shipping address, totals, and history.",
-              fa: "یک سفارش را برای اقلام، آدرس ارسال، جمع‌ها و تاریخچه باز کنید.",
+              en: "Open an order to review items, shipping address, totals, payments, and history.",
+              fa: "یک سفارش را برای اقلام، آدرس ارسال، جمع‌ها، پرداخت‌ها و تاریخچه باز کنید.",
             },
             {
               en: "Use Change Status only with valid transitions for your process (paid → processing → shipped → …).",
               fa: "Change Status را فقط با انتقال‌های معتبر فرایند خودتان بزنید (پرداخت‌شده → پردازش → ارسال → …).",
             },
             {
-              en: "Print/view invoice when needed; initiate refunds if policy allows.",
-              fa: "در صورت نیاز فاکتور را ببینید/چاپ کنید؛ اگر سیاست اجازه دهد استرداد بزنید.",
+              en: "**Record payment received** (needs payments.verify): when money was collected offline — COD, cash, POS, or another channel outside the bank-receipt queue. Creates a Paid payment and moves PendingPayment → Paid. Each payment shows whether **Admin** or **Customer** recorded it and who.",
+              fa: "**ثبت دریافت وجه** (نقش payments.verify): وقتی پول خارج از صف فیش بانکی گرفته شده — پرداخت در محل، نقد، کارتخوان یا کانال دیگر. پرداخت Paid می‌سازد و PendingPayment → Paid می‌کند. روی هر پرداخت مشخص است **ادمین** ثبت کرده یا **مشتری**، و نام همان فرد.",
+            },
+            {
+              en: "**Refund** (needs payments.refund): after a Paid payment exists — credit wallet, queue a bank refund, or mark cash hand-back completed. Requires recording payment first if money was only collected offline.",
+              fa: "**برگشت وجه** (نقش payments.refund): بعد از وجود پرداخت Paid — اعتبار کیف پول، صف استرداد بانکی، یا ثبت برگشت نقدی. اگر فقط آفلاین پول گرفته شده، اول دریافت وجه را ثبت کنید.",
+            },
+            {
+              en: "Print/view invoice when needed.",
+              fa: "در صورت نیاز فاکتور را ببینید/چاپ کنید.",
             },
           ],
           tips: [
@@ -1542,9 +1550,13 @@ window.DOCS_ADMIN = {
               en: "Stock reservation/sale movements are driven by order lifecycle — cancel carefully.",
               fa: "رزرو/فروش موجودی از چرخه سفارش می‌آید — لغو را با دقت انجام دهید.",
             },
+            {
+              en: "COD collection should be recorded with method Cash on delivery so finance reports stay accurate.",
+              fa: "وصول پرداخت در محل را با روش Cash on delivery ثبت کنید تا گزارش مالی دقیق بماند.",
+            },
           ],
           relatedApi: ["orders", "checkout", "payments"],
-          related: ["payments", "inventory-stock", "shipping", "support-desk", "coupons"],
+          related: ["payments", "payments-refunds", "inventory-stock", "shipping", "support-desk", "coupons"],
         },
         {
           id: "support-desk",
@@ -1603,21 +1615,25 @@ window.DOCS_ADMIN = {
           title: { en: "Payments", fa: "پرداخت‌ها" },
           adminPath: "/payments",
           summary: {
-            en: "Payment queue for reviewing/confirming customer payments (e.g. bank transfer proofs).",
-            fa: "صف پرداخت برای بررسی/تأیید پرداخت مشتری (مثلاً فیش کارت‌به‌کارت).",
+            en: "Bank-transfer receipt queue; offline/COD receipts are recorded on the order detail page.",
+            fa: "صف فیش کارت‌به‌کارت؛ دریافت وجه نقد/پرداخت در محل از جزئیات سفارش ثبت می‌شود.",
           },
           purpose: {
-            en: "Human-in-the-loop confirmation when automatic gateways are not used or need review.",
-            fa: "تأیید دستی وقتی درگاه خودکار نیست یا نیاز به بازبینی دارد.",
+            en: "Human-in-the-loop confirmation for customer-uploaded bank receipts. Cash, COD, and other offline collection are recorded by admin on Orders → order detail (Record payment received).",
+            fa: "تأیید دستی فیش‌های بانکی آپلودشده مشتری. نقد، پرداخت در محل و سایر وصول‌های آفلاین را ادمین در Orders → جزئیات سفارش (ثبت دریافت وجه) ثبت می‌کند.",
           },
           howTo: [
             {
-              en: "Open Payments queue, inspect each pending payment, approve or reject with notes.",
-              fa: "صف Payments را باز کنید، هر پرداخت معلق را ببینید، با یادداشت تأیید یا رد کنید.",
+              en: "Open Payments queue, inspect each pending bank receipt, approve or reject.",
+              fa: "صف Payments را باز کنید، هر فیش بانکی معلق را ببینید، تأیید یا رد کنید.",
             },
             {
-              en: "Approvals typically advance related orders; rejections should notify the customer process.",
-              fa: "تأیید معمولاً سفارش مرتبط را جلو می‌برد؛ رد باید فرایند اطلاع به مشتری را طی کند.",
+              en: "Approvals mark the payment Paid and advance the order; rejections leave the order unpaid.",
+              fa: "تأیید پرداخت را Paid و سفارش را جلو می‌برد؛ رد سفارش را unpaid نگه می‌دارد.",
+            },
+            {
+              en: "For COD/cash/POS collection, open the order and use **Record payment received** (payments.verify) — not this queue.",
+              fa: "برای وصول COD/نقد/کارتخوان، سفارش را باز کنید و **ثبت دریافت وجه** (payments.verify) را بزنید — نه این صف.",
             },
           ],
           related: ["orders", "payments-refunds", "bank-accounts"],
@@ -1627,17 +1643,21 @@ window.DOCS_ADMIN = {
           title: { en: "Bank refunds", fa: "استرداد بانکی" },
           adminPath: "/payments/refunds",
           summary: {
-            en: "Queue for refund operations back to customer bank channels.",
-            fa: "صف عملیات استرداد به کانال بانکی مشتری.",
+            en: "Queue for refunds that must be paid out via bank transfer (started from order detail).",
+            fa: "صف استردادهایی که باید با حواله بانکی پرداخت شوند (شروع از جزئیات سفارش).",
           },
           purpose: {
-            en: "Track refund requests that need finance action after order/payment decisions.",
-            fa: "پیگیری درخواست‌های استردادی که بعد از تصمیم سفارش/پرداخت نیاز به اقدام مالی دارند.",
+            en: "After an admin starts a bank-destination refund on an order, this queue tracks the offline outgoing transfer until Mark completed.",
+            fa: "بعد از شروع استرداد مقصد بانکی روی سفارش، این صف حواله خروجی آفلاین را تا Mark completed پیگیری می‌کند.",
           },
           howTo: [
             {
-              en: "Process the refund queue in status order; keep bank references in notes.",
-              fa: "صف استرداد را به ترتیب وضعیت انجام دهید؛ شماره پیگیری بانک را در یادداشت بگذارید.",
+              en: "Start refunds from order detail: wallet (instant), bank (appears here), or cash/manual (completed immediately).",
+              fa: "استرداد را از جزئیات سفارش شروع کنید: کیف پول (فوری)، بانک (اینجا ظاهر می‌شود)، یا نقدی/دستی (فوری تکمیل).",
+            },
+            {
+              en: "Process the bank queue; keep bank references in notes when marking completed.",
+              fa: "صف بانکی را انجام دهید؛ هنگام تکمیل، شماره پیگیری بانک را در یادداشت بگذارید.",
             },
           ],
           related: ["payments", "orders"],

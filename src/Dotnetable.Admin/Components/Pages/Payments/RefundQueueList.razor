@@ -38,7 +38,7 @@
         @if (_items.Count == 0)
         {
             <tr>
-                <td colspan="7" style="text-align:center; padding:32px;">
+                <td colspan="8" style="text-align:center; padding:32px;">
                     <MudText Color="Color.Secondary">@L["payments.refunds_empty", "No pending bank refunds."]</MudText>
                 </td>
             </tr>
@@ -54,6 +54,7 @@
                     <td>@r.Amount.ToString("0.##")</td>
                     <td>@((PaymentRefundStatus)r.Status)</td>
                     <td>@r.Reason</td>
+                    <td>@RefundRecordedByLabel(r)</td>
                     <td>
                         @if (r.Status == (byte)PaymentRefundStatus.Pending)
                         {
@@ -111,6 +112,7 @@
                         .ToDictionary(v => StatusLabel(v), v => ((byte)v).ToString())
                 },
                 new() { ColumnTitle = L["payments.reason", "Reason"], ColumnName = nameof(PaymentRefund.Reason), HasSort = true, HasSearch = true },
+                new() { ColumnTitle = L["payments.recorded_by", "Recorded by"], ColumnName = "" },
                 new() { ColumnTitle = "", ColumnName = "" },
             }
         };
@@ -183,6 +185,20 @@
         PaymentRefundStatus.Completed => L["payments.refunds.status.completed", "Completed"],
         _ => s.ToString(),
     };
+
+    private string RefundRecordedByLabel(PaymentRefund r)
+    {
+        if (r.CreatedByMember is not null)
+        {
+            var m = r.CreatedByMember;
+            var name = $"{m.Givenname} {m.Surname}".Trim();
+            if (string.IsNullOrEmpty(name)) name = m.Username;
+            return $"{L["payments.actor.admin", "Admin"]} — {name}";
+        }
+        if (r.CreatedByMemberID is int mid)
+            return $"{L["payments.actor.admin", "Admin"]} — #{mid}";
+        return L["payments.actor.admin", "Admin"];
+    }
 
     private async Task CompleteAsync(int paymentRefundId)
     {

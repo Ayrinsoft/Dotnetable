@@ -300,9 +300,12 @@ public class OrderService : IOrderService
         var query = _context.Orders
             .Include(o => o.OrderItems).ThenInclude(i => i.Vendor)
             .Include(o => o.OrderStatusHistories)
-            .Include(o => o.Payments)
+            .Include(o => o.Payments).ThenInclude(p => p.CreatedByMember)
+            .Include(o => o.Payments).ThenInclude(p => p.VerifiedByMember)
+            .Include(o => o.Payments).ThenInclude(p => p.WebsiteClient)
             .Include(o => o.ShippingMethod)
             .Include(o => o.WebsiteClientAddress)
+            .Include(o => o.WebsiteClient)
             .AsQueryable();
         if (clientId is int cid)
             query = query.Where(o => o.WebsiteClientID == cid);
