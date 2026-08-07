@@ -39,6 +39,13 @@ public partial class Payment
 
     public DateTime? PaidAt { get; set; }
 
+    /// <summary>
+    /// Admin member who created this payment row (e.g. offline/COD receipt).
+    /// Null means the customer initiated it (wallet pay or bank-receipt upload).
+    /// </summary>
+    public int? CreatedByMemberID { get; set; }
+
+    /// <summary>Admin who approved a pending bank-transfer receipt (or who recorded an already-paid offline payment).</summary>
     public int? VerifiedByMemberID { get; set; }
 
     public DateTime CreatedAt { get; set; }
@@ -46,6 +53,8 @@ public partial class Payment
     public virtual BankAccount? BankAccount { get; set; }
 
     public virtual ClientWalletTransaction? ClientWalletTransaction { get; set; }
+
+    public virtual Member? CreatedByMember { get; set; }
 
     public virtual Currency CurrencyCodeNavigation { get; set; } = null!;
 

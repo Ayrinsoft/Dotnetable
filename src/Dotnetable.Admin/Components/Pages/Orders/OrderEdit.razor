@@ -52,6 +52,50 @@ else
                 </MudSimpleTable>
             </MudPaper>
 
+            <MudPaper Elevation="0" Class="app-card rounded-lg pa-4 mb-3">
+                <MudText Typo="Typo.subtitle1" Class="mb-2">@L["payments", "Payments"]</MudText>
+                @if (_order.Payments.Count == 0)
+                {
+                    <MudText Typo="Typo.body2" Color="Color.Secondary">@L["payments.none", "No payments recorded yet."]</MudText>
+                }
+                else
+                {
+                    <MudSimpleTable Dense="true" Elevation="0">
+                        <thead>
+                            <tr>
+                                <th>@L["method", "Method"]</th>
+                                <th>@L["amount", "Amount"]</th>
+                                <th>@L["status", "Status"]</th>
+                                <th>@L["payments.recorded_by", "Recorded by"]</th>
+                                <th>@L["reference", "Reference"]</th>
+                                <th>@L["date", "Date"]</th>
+                            </tr>
+                        </thead>
+                        <tbody>
+                            @foreach (var p in _order.Payments.OrderByDescending(x => x.CreatedAt))
+                            {
+                                <tr>
+                                    <td>@MethodLabel((PaymentMethod)p.Method)</td>
+                                    <td>@p.Amount.ToString("0.##") @p.CurrencyCode</td>
+                                    <td>@((PaymentStatus)p.Status)</td>
+                                    <td>
+                                        <MudText Typo="Typo.body2">@RecordedByLabel(p)</MudText>
+                                        @if (p.VerifiedByMember is not null && p.CreatedByMemberID is null)
+                                        {
+                                            <MudText Typo="Typo.caption" Color="Color.Secondary">
+                                                @L["payments.verified_by", "Verified by"]: @MemberName(p.VerifiedByMember)
+                                            </MudText>
+                                        }
+                                    </td>
+                                    <td>@(p.TrackingCode ?? p.GatewayRefNumber ?? "—")</td>
+                                    <td>@((p.PaidAt ?? p.CreatedAt).ToLocalTime().ToString("g"))</td>
+                                </tr>
+                            }
+                        </tbody>
+                    </MudSimpleTable>
+                }
+            </MudPaper>
+
             <MudPaper Elevation="0" Class="app-card rounded-lg pa-4">
                 <MudText Typo="Typo.subtitle1" Class="mb-2">@L["orders.history", "Status History"]</MudText>
                 <MudTimeline>
@@ -93,7 +137,7 @@ else
 
             @if (_canEdit)
             {
-                <MudPaper Elevation="0" Class="app-card rounded-lg pa-4">
+                <MudPaper Elevation="0" Class="app-card rounded-lg pa-4 mb-3">
                     <MudText Typo="Typo.subtitle1" Class="mb-2">@L["orders.transition", "Change Status"]</MudText>
                     <MudSelect T="OrderStatus" @bind-Value="_newStatus" Variant="Variant.Outlined" Dense="true" Class="mb-2">
                         @foreach (OrderStatus s in Enum.GetValues<OrderStatus>())
@@ -106,14 +150,45 @@ else
                 </MudPaper>
             }
 
-            @if (_canRefund && _order.Status == (byte)OrderStatus.Paid && _order.Payments.Any(p => p.Status == (byte)PaymentStatus.Paid))
+            @if (_canRecordPayment && CanShowRecordPayment)
             {
-                <MudPaper Elevation="0" Class="app-card rounded-lg pa-4 mt-3">
+                <MudPaper Elevation="0" Class="app-card rounded-lg pa-4 mb-3">
+                    <MudText Typo="Typo.subtitle1" Class="mb-2">@L["payments.record_received", "Record payment received"]</MudText>
+                    <MudText Typo="Typo.caption" Color="Color.Secondary" Class="mb-2">
+                        @L["payments.record_received_hint", "Use when the customer paid cash on delivery, cash/POS in person, or another offline channel that is not a bank-receipt queue item."]
+                    </MudText>
+                    <MudSelect T="PaymentMethod" @bind-Value="_receiveMethod" Variant="Variant.Outlined" Dense="true" Class="mb-2"
+                               Label="@L["method", "Method"]">
+                        <MudSelectItem T="PaymentMethod" Value="PaymentMethod.CashOnDelivery">@L["payments.method.cod", "Cash on delivery"]</MudSelectItem>
+                        <MudSelectItem T="PaymentMethod" Value="PaymentMethod.Manual">@L["payments.method.manual", "Manual / cash / POS"]</MudSelectItem>
+                    </MudSelect>
+                    <MudNumericField T="decimal" @bind-Value="_receiveAmount" Label="@($"{L["amount", "Amount"]} ({_order.CurrencyCode})")"
+                                    Variant="Variant.Outlined" Dense="true" Min="0" Class="mb-2" />
+                    <MudTextField @bind-Value="_receiveReference" Label="@L["reference", "Reference (optional)"]" Variant="Variant.Outlined" Dense="true" Class="mb-2" />
+                    <MudTextField @bind-Value="_receiveNote" Label="@L["orders.note", "Note (optional)"]" Variant="Variant.Outlined" Dense="true" Class="mb-2" />
+                    <MudButton Variant="Variant.Filled" Color="Color.Success" FullWidth="true" OnClick="RecordReceivedAsync"
+                               Disabled="_savingReceive">
+                        @L["payments.record_received", "Record payment received"]
+                    </MudButton>
+                </MudPaper>
+            }
+
+            @if (_canRefund && CanShowRefund)
+            {
+                <MudPaper Elevation="0" Class="app-card rounded-lg pa-4 mb-3">
                     <MudText Typo="Typo.subtitle1" Class="mb-2">@L["payments.refund", "Refund"]</MudText>
+                    <MudText Typo="Typo.caption" Color="Color.Secondary" Class="mb-2">
+                        @L["payments.refund_hint", "Record money returned to the customer: wallet credit, bank transfer (queue), or cash/manual hand-back."]
+                    </MudText>
                     <MudNumericField T="decimal" @bind-Value="_refundAmount" Label="@L["orders.total", "Amount (USD)"]" Variant="Variant.Outlined" Dense="true" Min="0" Class="mb-2" />
                     <MudTextField @bind-Value="_refundReason" Label="@L["payments.reason", "Reason"]" Variant="Variant.Outlined" Dense="true" Class="mb-2" />
-                    <MudSwitch T="bool" @bind-Value="_refundToWallet" Label="@L["payments.refund_to_wallet", "Refund to wallet"]" Color="Color.Primary" Class="mb-2" />
-                    @if (!_refundToWallet)
+                    <MudSelect T="string" @bind-Value="_refundDestination" Variant="Variant.Outlined" Dense="true" Class="mb-2"
+                               Label="@L["payments.refund_destination", "Refund destination"]">
+                        <MudSelectItem T="string" Value="@("wallet")">@L["payments.refund_to_wallet", "Customer wallet"]</MudSelectItem>
+                        <MudSelectItem T="string" Value="@("bank")">@L["payments.refund_to_bank", "Bank transfer (manual)"]</MudSelectItem>
+                        <MudSelectItem T="string" Value="@("cash")">@L["payments.refund_to_cash", "Cash / manual hand-back"]</MudSelectItem>
+                    </MudSelect>
+                    @if (_refundDestination == "bank")
                     {
                         <MudAutocomplete T="BankAccount" Value="@GetRefundBankAccount()" ValueChanged="OnRefundBankChanged"
                                          SearchFunc="SearchBankAccounts" ToStringFunc="BankAccountDisplay"
@@ -122,7 +197,13 @@ else
                                          CoerceText="false" ResetValueOnEmptyText="true" />
                         <MudText Typo="Typo.caption" Color="Color.Secondary" Class="mb-2">@L["payments.bank_refund_hint", "The transfer must be performed manually outside the system; this only records the refund as pending until you mark it completed on the Bank Refunds queue."]</MudText>
                     }
-                    <MudButton Variant="Variant.Filled" Color="Color.Error" FullWidth="true" OnClick="RefundAsync">@L["payments.refund", "Refund"]</MudButton>
+                    else if (_refundDestination == "cash")
+                    {
+                        <MudText Typo="Typo.caption" Color="Color.Secondary" Class="mb-2">@L["payments.cash_refund_hint", "Marks the refund completed immediately with no wallet credit and no bank queue item — use when cash was returned in person."]</MudText>
+                    }
+                    <MudButton Variant="Variant.Filled" Color="Color.Error" FullWidth="true" OnClick="RefundAsync" Disabled="_savingRefund">
+                        @L["payments.refund", "Refund"]
+                    </MudButton>
                 </MudPaper>
             }
         </MudItem>
@@ -132,16 +213,33 @@ else
 @code {
     [Parameter] public int OrderId { get; set; }
 
-    private bool _loading = true, _canEdit, _canRefund;
+    private bool _loading = true, _canEdit, _canRefund, _canRecordPayment;
+    private bool _savingReceive, _savingRefund;
     private Order? _order;
     private OrderStatus _newStatus;
     private string? _note;
     private int? _currentMemberId;
+
+    private PaymentMethod _receiveMethod = PaymentMethod.CashOnDelivery;
+    private decimal _receiveAmount;
+    private string? _receiveReference;
+    private string? _receiveNote;
+
     private decimal _refundAmount;
     private string? _refundReason;
-    private bool _refundToWallet = true;
+    private string _refundDestination = "wallet";
     private int? _refundBankAccountId;
     private List<BankAccount> _bankAccounts = new();
+
+    private bool CanShowRecordPayment =>
+        _order is not null
+        && _order.Status is not ((byte)OrderStatus.Cancelled or (byte)OrderStatus.Refunded)
+        && !_order.Payments.Any(p => p.Status == (byte)PaymentStatus.Paid);
+
+    private bool CanShowRefund =>
+        _order is not null
+        && _order.Status is not ((byte)OrderStatus.Cancelled or (byte)OrderStatus.Refunded)
+        && _order.Payments.Any(p => p.Status == (byte)PaymentStatus.Paid);
 
     private BankAccount? GetRefundBankAccount() =>
         _refundBankAccountId is int id ? _bankAccounts.FirstOrDefault(b => b.BankAccountID == id) : null;
@@ -165,16 +263,72 @@ else
         return Task.FromResult(q);
     }
 
+    private string MethodLabel(PaymentMethod method) => method switch
+    {
+        PaymentMethod.Wallet => L["payments.method.wallet", "Wallet"],
+        PaymentMethod.BankTransfer => L["payments.method.bank", "Bank transfer"],
+        PaymentMethod.Manual => L["payments.method.manual", "Manual / cash / POS"],
+        PaymentMethod.CashOnDelivery => L["payments.method.cod", "Cash on delivery"],
+        _ => method.ToString(),
+    };
+
+    private static string MemberName(Member m) =>
+        $"{m.Givenname} {m.Surname}".Trim() is { Length: > 0 } name ? name : m.Username;
+
+    private static string ClientName(WebsiteClient c) =>
+        $"{c.Givenname} {c.Surname}".Trim() is { Length: > 0 } name ? name : (c.Email ?? c.Cellphone ?? $"#{c.WebsiteClientID}");
+
+    /// <summary>Admin-created when <see cref="Payment.CreatedByMemberID"/> is set; otherwise customer self-service.</summary>
+    private string RecordedByLabel(Payment p)
+    {
+        if (p.CreatedByMember is not null)
+            return $"{L["payments.actor.admin", "Admin"]} — {MemberName(p.CreatedByMember)}";
+        if (p.CreatedByMemberID is int)
+            return $"{L["payments.actor.admin", "Admin"]} — #{p.CreatedByMemberID}";
+
+        var customer = p.WebsiteClient ?? _order?.WebsiteClient;
+        if (customer is not null)
+            return $"{L["payments.actor.customer", "Customer"]} — {ClientName(customer)}";
+        return L["payments.actor.customer", "Customer"];
+    }
+
     protected override async Task OnInitializedAsync()
     {
         await L.EnsureLoadedAsync();
         var user = (await AuthState.GetAuthenticationStateAsync()).User;
         _canEdit = AdminPolicies.Allows(user, RoleKeys.OrdersEdit);
         _canRefund = AdminPolicies.Allows(user, RoleKeys.PaymentsRefund);
+        _canRecordPayment = AdminPolicies.Allows(user, RoleKeys.PaymentsVerify);
         if (int.TryParse(user.FindFirst(AdminClaimTypes.MemberId)?.Value, out var mid)) _currentMemberId = mid;
         await LoadAsync();
-        if (_canRefund && _order is not null)
+        if ((_canRefund || _canRecordPayment) && _order is not null)
             _bankAccounts = await BankAccountService.GetByWebsiteAsync(_order.WebsiteID);
+    }
+
+    private async Task RecordReceivedAsync()
+    {
+        if (_order is null || _currentMemberId is null) return;
+        if (_receiveAmount <= 0)
+        {
+            Snackbar.Add(L["payments.amount_required", "Enter a valid amount."], Severity.Warning);
+            return;
+        }
+
+        _savingReceive = true;
+        try
+        {
+            var (success, error, _) = await PaymentService.RecordReceivedPaymentAsync(
+                _order.OrderID, _receiveMethod, _receiveAmount, _receiveReference, _receiveNote, _currentMemberId.Value);
+            if (success)
+            {
+                Snackbar.Add(L["saved", "Saved."], Severity.Success);
+                _receiveReference = null;
+                _receiveNote = null;
+                await LoadAsync();
+            }
+            else Snackbar.Add(error ?? L["save_failed", "Save failed"], Severity.Error);
+        }
+        finally { _savingReceive = false; }
     }
 
     private async Task RefundAsync()
@@ -182,24 +336,41 @@ else
         if (_order is null || _currentMemberId is null) return;
         var payment = _order.Payments.FirstOrDefault(p => p.Status == (byte)PaymentStatus.Paid);
         if (payment is null) return;
-        if (!_refundToWallet && _refundBankAccountId is null)
+        if (_refundAmount <= 0)
+        {
+            Snackbar.Add(L["payments.amount_required", "Enter a valid amount."], Severity.Warning);
+            return;
+        }
+        if (_refundDestination == "bank" && _refundBankAccountId is null)
         {
             Snackbar.Add(L["payments.bank_account_required", "Select a bank account."], Severity.Warning);
             return;
         }
 
-        var (success, error, _) = await PaymentService.RefundAsync(
-            payment.PaymentID, _refundAmount, _refundReason, _refundToWallet,
-            _refundToWallet ? null : _refundBankAccountId, _currentMemberId.Value);
-        if (success) { Snackbar.Add(L["saved", "Saved."], Severity.Success); await LoadAsync(); }
-        else Snackbar.Add(error ?? L["save_failed", "Save failed"], Severity.Error);
+        var toWallet = _refundDestination == "wallet";
+        int? bankId = _refundDestination == "bank" ? _refundBankAccountId : null;
+
+        _savingRefund = true;
+        try
+        {
+            var (success, error, _) = await PaymentService.RefundAsync(
+                payment.PaymentID, _refundAmount, _refundReason, toWallet, bankId, _currentMemberId.Value);
+            if (success) { Snackbar.Add(L["saved", "Saved."], Severity.Success); await LoadAsync(); }
+            else Snackbar.Add(error ?? L["save_failed", "Save failed"], Severity.Error);
+        }
+        finally { _savingRefund = false; }
     }
 
     private async Task LoadAsync()
     {
         _loading = true;
         _order = await OrderService.GetByIdAsync(OrderId);
-        if (_order is not null) _newStatus = (OrderStatus)_order.Status;
+        if (_order is not null)
+        {
+            _newStatus = (OrderStatus)_order.Status;
+            if (_receiveAmount <= 0) _receiveAmount = _order.GrandTotal;
+            if (_refundAmount <= 0) _refundAmount = _order.GrandTotalUsd;
+        }
         _loading = false;
     }
 

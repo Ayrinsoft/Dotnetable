@@ -1738,6 +1738,8 @@ public partial class AppDbContext : DbContext
 
             entity.HasIndex(e => e.ReceiptFileID, "IX_Payments_ReceiptFileID");
 
+            entity.HasIndex(e => e.CreatedByMemberID, "IX_Payments_CreatedByMemberID");
+
             entity.HasIndex(e => e.VerifiedByMemberID, "IX_Payments_VerifiedByMemberID");
 
             entity.HasIndex(e => e.WebsiteClientID, "IX_Payments_WebsiteClientID");
@@ -1763,6 +1765,10 @@ public partial class AppDbContext : DbContext
             entity.HasOne(d => d.ClientWalletTransaction).WithMany(p => p.Payments)
                 .HasForeignKey(d => d.ClientWalletTransactionID)
                 .HasConstraintName("FK_Payments_ClientWalletTransactions");
+
+            entity.HasOne(d => d.CreatedByMember).WithMany(p => p.PaymentsCreated)
+                .HasForeignKey(d => d.CreatedByMemberID)
+                .HasConstraintName("FK_Payments_Members_CreatedBy");
 
             entity.HasOne(d => d.CurrencyCodeNavigation).WithMany(p => p.Payments)
                 .HasForeignKey(d => d.CurrencyCode)

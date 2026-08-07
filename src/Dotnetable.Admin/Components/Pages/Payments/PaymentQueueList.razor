@@ -39,7 +39,7 @@
         @if (_items.Count == 0)
         {
             <tr>
-                <td colspan="7" style="text-align:center; padding:32px;">
+                <td colspan="8" style="text-align:center; padding:32px;">
                     <MudText Color="Color.Secondary">@L["payments.empty", "No pending payments."]</MudText>
                 </td>
             </tr>
@@ -54,6 +54,15 @@
                     <td>@p.BankAccount?.Bank.Name</td>
                     <td>@p.Amount.ToString("0.##") @p.CurrencyCode</td>
                     <td>@((PaymentStatus)p.Status)</td>
+                    <td>
+                        <MudText Typo="Typo.body2">@RecordedByLabel(p)</MudText>
+                        @if (p.VerifiedByMember is not null)
+                        {
+                            <MudText Typo="Typo.caption" Color="Color.Secondary">
+                                @L["payments.verified_by", "Verified by"]: @MemberName(p.VerifiedByMember)
+                            </MudText>
+                        }
+                    </td>
                     <td>
                         @if (p.ReceiptFile is not null)
                         {
@@ -115,6 +124,7 @@
                     OtherDropDownValues = Enum.GetValues<PaymentStatus>()
                         .ToDictionary(v => v.ToString(), v => ((byte)v).ToString())
                 },
+                new() { ColumnTitle = L["payments.recorded_by", "Recorded by"], ColumnName = "" },
                 new() { ColumnTitle = L["receipt", "Receipt"], ColumnName = "" },
                 new() { ColumnTitle = "", ColumnName = "" },
             }
@@ -192,6 +202,26 @@
         PaymentStatus.Refunded => L["payments.status.refunded", "Refunded"],
         _ => s.ToString(),
     };
+
+    private static string MemberName(Member m) =>
+        $"{m.Givenname} {m.Surname}".Trim() is { Length: > 0 } name ? name : m.Username;
+
+    private string RecordedByLabel(Payment p)
+    {
+        if (p.CreatedByMember is not null)
+            return $"{L["payments.actor.admin", "Admin"]} — {MemberName(p.CreatedByMember)}";
+        if (p.CreatedByMemberID is int mid)
+            return $"{L["payments.actor.admin", "Admin"]} — #{mid}";
+
+        var customer = p.WebsiteClient;
+        if (customer is not null)
+        {
+            var name = $"{customer.Givenname} {customer.Surname}".Trim();
+            if (string.IsNullOrEmpty(name)) name = customer.Email ?? customer.Cellphone ?? $"#{customer.WebsiteClientID}";
+            return $"{L["payments.actor.customer", "Customer"]} — {name}";
+        }
+        return L["payments.actor.customer", "Customer"];
+    }
 
     private async Task VerifyAsync(int paymentId, bool approve)
     {

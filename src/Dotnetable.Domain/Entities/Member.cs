@@ -68,6 +68,10 @@ public partial class Member
 
     public virtual ICollection<PaymentRefund> PaymentRefunds { get; set; } = new List<PaymentRefund>();
 
+    /// <summary>Payments created/recorded by this admin (offline/COD).</summary>
+    public virtual ICollection<Payment> PaymentsCreated { get; set; } = new List<Payment>();
+
+    /// <summary>Payments verified/approved by this admin (bank receipts).</summary>
     public virtual ICollection<Payment> Payments { get; set; } = new List<Payment>();
 
     public virtual Policy Policy { get; set; } = null!;

@@ -2796,6 +2796,9 @@ namespace Dotnetable.Migrations.PostgreSql.Migrations
                         .HasPrecision(0)
                         .HasColumnType("timestamp(0) with time zone");
 
+                    b.Property<int?>("CreatedByMemberID")
+                        .HasColumnType("integer");
+
                     b.Property<string>("CurrencyCode")
                         .IsRequired()
                         .HasMaxLength(3)
@@ -2847,6 +2850,8 @@ namespace Dotnetable.Migrations.PostgreSql.Migrations
                     b.HasIndex(new[] { "BankAccountID" }, "IX_Payments_BankAccountID");
 
                     b.HasIndex(new[] { "ClientWalletTransactionID" }, "IX_Payments_ClientWalletTransactionID");
+
+                    b.HasIndex(new[] { "CreatedByMemberID" }, "IX_Payments_CreatedByMemberID");
 
                     b.HasIndex(new[] { "CurrencyCode" }, "IX_Payments_CurrencyCode");
 
@@ -7141,6 +7146,11 @@ namespace Dotnetable.Migrations.PostgreSql.Migrations
                         .HasForeignKey("ClientWalletTransactionID")
                         .HasConstraintName("FK_Payments_ClientWalletTransactions");
 
+                    b.HasOne("Dotnetable.Domain.Entities.Member", "CreatedByMember")
+                        .WithMany("PaymentsCreated")
+                        .HasForeignKey("CreatedByMemberID")
+                        .HasConstraintName("FK_Payments_Members_CreatedBy");
+
                     b.HasOne("Dotnetable.Domain.Entities.Currency", "CurrencyCodeNavigation")
                         .WithMany("Payments")
                         .HasForeignKey("CurrencyCode")
@@ -7182,6 +7192,8 @@ namespace Dotnetable.Migrations.PostgreSql.Migrations
                     b.Navigation("BankAccount");
 
                     b.Navigation("ClientWalletTransaction");
+
+                    b.Navigation("CreatedByMember");
 
                     b.Navigation("CurrencyCodeNavigation");
 
@@ -8812,6 +8824,8 @@ namespace Dotnetable.Migrations.PostgreSql.Migrations
                     b.Navigation("PaymentRefunds");
 
                     b.Navigation("Payments");
+
+                    b.Navigation("PaymentsCreated");
 
                     b.Navigation("Posts");
 
