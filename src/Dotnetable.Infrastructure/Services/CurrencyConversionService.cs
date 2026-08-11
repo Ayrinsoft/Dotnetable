@@ -8,9 +8,11 @@ namespace Dotnetable.Infrastructure.Services;
 
 public class CurrencyConversionService : ICurrencyConversionService
 {
-    private readonly AppDbContext _context;
+    // Prefer ambient UoW context when OrderService (etc.) has an open multi-service transaction.
+    private readonly AppDbContext _fallback;
+    private AppDbContext _context => AmbientDbContext.Current ?? _fallback;
 
-    public CurrencyConversionService(AppDbContext context) => _context = context;
+    public CurrencyConversionService(AppDbContext context) => _fallback = context;
 
     public async Task<MoneyDto> ToDisplayAsync(int websiteId, decimal amountUsd, string? currencyCode = null, CancellationToken ct = default)
     {

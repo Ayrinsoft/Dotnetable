@@ -10,9 +10,11 @@ namespace Dotnetable.Infrastructure.Services;
 
 public class SupplierService : ISupplierService
 {
-    private readonly AppDbContext _context;
+    // Prefer ambient UoW context when OrderService (etc.) has an open multi-service transaction.
+    private readonly AppDbContext _fallback;
+    private AppDbContext _context => AmbientDbContext.Current ?? _fallback;
 
-    public SupplierService(AppDbContext context) => _context = context;
+    public SupplierService(AppDbContext context) => _fallback = context;
 
     public async Task<List<Supplier>> GetAllAsync(int websiteId, CancellationToken ct = default) =>
         await _context.Suppliers.AsNoTracking()
