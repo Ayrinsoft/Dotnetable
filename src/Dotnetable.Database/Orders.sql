@@ -1,9 +1,9 @@
-CREATE TABLE [dbo].[Orders] (
+﻿CREATE TABLE [dbo].[Orders] (
     [OrderID]                INT             IDENTITY (1, 1) NOT NULL,
     [WebsiteID]              INT             NOT NULL,
     [OrderNumber]            NVARCHAR (30)   NOT NULL,
     [WebsiteClientID]        INT             NOT NULL,
-    [Status]                 TINYINT NOT NULL,
+    [Status]                 TINYINT         NOT NULL,
     [CurrencyCode]           CHAR (3)        NOT NULL,
     [ExchangeRateToUsd]      DECIMAL (18, 6) NOT NULL,
     [SubTotal]               DECIMAL (18, 4) NOT NULL,
@@ -17,21 +17,25 @@ CREATE TABLE [dbo].[Orders] (
     [CouponID]               INT             NULL,
     [ShippingMethodID]       INT             NULL,
     [Note]                   NVARCHAR (1000) NULL,
-    [SalesChannel]           TINYINT         NOT NULL CONSTRAINT [DF_Orders_SalesChannel] DEFAULT ((1)),
-    [ReportToTax]            BIT             NOT NULL CONSTRAINT [DF_Orders_ReportToTax] DEFAULT ((1)),
-    [MarkupTotal]            DECIMAL (18, 4) NOT NULL CONSTRAINT [DF_Orders_MarkupTotal] DEFAULT ((0)),
     [CreatedByMemberID]      INT             NULL,
-    [CreatedAt]              DATETIME NOT NULL,
+    [CreatedAt]              DATETIME        NOT NULL,
     [PaidAt]                 DATETIME        NULL,
+    [PricesIncludeTax]       BIT             DEFAULT (CONVERT([bit],(0))) NOT NULL,
+    [TaxBreakdownJson]       NVARCHAR (4000) NULL,
+    [MarkupTotal]            DECIMAL (18, 4) DEFAULT ((0.0)) NOT NULL,
+    [ReportToTax]            BIT             DEFAULT (CONVERT([bit],(1))) NOT NULL,
+    [SalesChannel]           TINYINT         DEFAULT (CONVERT([tinyint],(1))) NOT NULL,
     CONSTRAINT [PK_Orders] PRIMARY KEY CLUSTERED ([OrderID] ASC),
     CONSTRAINT [FK_Orders_Coupons] FOREIGN KEY ([CouponID]) REFERENCES [dbo].[Coupons] ([CouponID]),
     CONSTRAINT [FK_Orders_Currencies] FOREIGN KEY ([CurrencyCode]) REFERENCES [dbo].[Currencies] ([CurrencyCode]),
     CONSTRAINT [FK_Orders_Members] FOREIGN KEY ([CreatedByMemberID]) REFERENCES [dbo].[Members] ([MemberID]),
     CONSTRAINT [FK_Orders_ShippingMethods] FOREIGN KEY ([ShippingMethodID]) REFERENCES [dbo].[ShippingMethods] ([ShippingMethodID]),
-    CONSTRAINT [FK_Orders_Websites] FOREIGN KEY ([WebsiteID]) REFERENCES [dbo].[Websites] ([WebsiteID]),
+    CONSTRAINT [FK_Orders_WebsiteClientAddresses] FOREIGN KEY ([WebsiteClientAddressID]) REFERENCES [dbo].[WebsiteClientAddresses] ([WebsiteClientAddressID]),
     CONSTRAINT [FK_Orders_WebsiteClients] FOREIGN KEY ([WebsiteClientID]) REFERENCES [dbo].[WebsiteClients] ([WebsiteClientID]),
-    CONSTRAINT [FK_Orders_WebsiteClientAddresses] FOREIGN KEY ([WebsiteClientAddressID]) REFERENCES [dbo].[WebsiteClientAddresses] ([WebsiteClientAddressID])
+    CONSTRAINT [FK_Orders_Websites] FOREIGN KEY ([WebsiteID]) REFERENCES [dbo].[Websites] ([WebsiteID])
 );
+
+
 GO
 
 CREATE NONCLUSTERED INDEX [IX_Orders_CouponID]

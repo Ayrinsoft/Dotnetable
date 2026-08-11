@@ -1,4 +1,4 @@
-CREATE TABLE [dbo].[Settlements] (
+﻿CREATE TABLE [dbo].[Settlements] (
     [SettlementID]       INT             IDENTITY (1, 1) NOT NULL,
     [WebsiteID]          INT             NOT NULL,
     [TargetType]         TINYINT         NOT NULL,
@@ -9,24 +9,29 @@ CREATE TABLE [dbo].[Settlements] (
     [PeriodTo]           DATE            NOT NULL,
     [TotalAmount]        DECIMAL (18, 4) NOT NULL,
     [CurrencyCode]       CHAR (3)        NOT NULL,
-    [Status]             TINYINT NOT NULL,
+    [Status]             TINYINT         NOT NULL,
     [BankAccountID]      INT             NULL,
     [PaymentRefNumber]   NVARCHAR (100)  NULL,
     [Note]               NVARCHAR (500)  NULL,
     [CreatedByMemberID]  INT             NULL,
     [ApprovedByMemberID] INT             NULL,
     [PaidAt]             DATETIME        NULL,
-    [CreatedAt]          DATETIME NOT NULL,
+    [CreatedAt]          DATETIME        NOT NULL,
+    [NetAmount]          DECIMAL (18, 4) DEFAULT ((0.0)) NOT NULL,
+    [TaxAmount]          DECIMAL (18, 4) DEFAULT ((0.0)) NOT NULL,
+    [TaxRateSnapshot]    DECIMAL (9, 6)  NULL,
     CONSTRAINT [PK_Settlements] PRIMARY KEY CLUSTERED ([SettlementID] ASC),
     CONSTRAINT [FK_Settlements_BankAccounts] FOREIGN KEY ([BankAccountID]) REFERENCES [dbo].[BankAccounts] ([BankAccountID]),
     CONSTRAINT [FK_Settlements_Currencies] FOREIGN KEY ([CurrencyCode]) REFERENCES [dbo].[Currencies] ([CurrencyCode]),
-    CONSTRAINT [FK_Settlements_Members] FOREIGN KEY ([CreatedByMemberID]) REFERENCES [dbo].[Members] ([MemberID]),
     CONSTRAINT [FK_Settlements_Member1] FOREIGN KEY ([ApprovedByMemberID]) REFERENCES [dbo].[Members] ([MemberID]),
+    CONSTRAINT [FK_Settlements_Members] FOREIGN KEY ([CreatedByMemberID]) REFERENCES [dbo].[Members] ([MemberID]),
     CONSTRAINT [FK_Settlements_Suppliers] FOREIGN KEY ([SupplierID]) REFERENCES [dbo].[Suppliers] ([SupplierID]),
     CONSTRAINT [FK_Settlements_Vendors] FOREIGN KEY ([VendorID]) REFERENCES [dbo].[Vendors] ([VendorID]),
-    CONSTRAINT [FK_Settlements_Websites] FOREIGN KEY ([WebsiteID]) REFERENCES [dbo].[Websites] ([WebsiteID]),
-    CONSTRAINT [FK_Settlements_Website1] FOREIGN KEY ([TargetWebsiteID]) REFERENCES [dbo].[Websites] ([WebsiteID])
+    CONSTRAINT [FK_Settlements_Website1] FOREIGN KEY ([TargetWebsiteID]) REFERENCES [dbo].[Websites] ([WebsiteID]),
+    CONSTRAINT [FK_Settlements_Websites] FOREIGN KEY ([WebsiteID]) REFERENCES [dbo].[Websites] ([WebsiteID])
 );
+
+
 GO
 
 CREATE NONCLUSTERED INDEX [IX_Settlements_ApprovedByMemberID]

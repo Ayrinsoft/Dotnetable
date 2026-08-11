@@ -1,4 +1,4 @@
-CREATE TABLE [dbo].[OrderItems] (
+﻿CREATE TABLE [dbo].[OrderItems] (
     [OrderItemID]      INT             IDENTITY (1, 1) NOT NULL,
     [OrderID]          INT             NOT NULL,
     [WebsiteID]        INT             NOT NULL,
@@ -12,18 +12,20 @@ CREATE TABLE [dbo].[OrderItems] (
     [UnitPrice]        DECIMAL (18, 4) NOT NULL,
     [UnitPriceUsd]     DECIMAL (18, 4) NOT NULL,
     [UnitCostUsd]      DECIMAL (18, 4) NOT NULL,
-    [CatalogUnitPrice] DECIMAL (18, 4) NOT NULL CONSTRAINT [DF_OrderItems_CatalogUnitPrice] DEFAULT ((0)),
-    [UnitMarkup]       DECIMAL (18, 4) NOT NULL CONSTRAINT [DF_OrderItems_UnitMarkup] DEFAULT ((0)),
     [DiscountAmount]   DECIMAL (18, 4) NOT NULL,
     [TotalPrice]       DECIMAL (18, 4) NOT NULL,
+    [CatalogUnitPrice] DECIMAL (18, 4) DEFAULT ((0.0)) NOT NULL,
+    [UnitMarkup]       DECIMAL (18, 4) DEFAULT ((0.0)) NOT NULL,
     CONSTRAINT [PK_OrderItems] PRIMARY KEY CLUSTERED ([OrderItemID] ASC),
     CONSTRAINT [FK_OrderItems_Orders] FOREIGN KEY ([OrderID]) REFERENCES [dbo].[Orders] ([OrderID]),
     CONSTRAINT [FK_OrderItems_ProductVariants] FOREIGN KEY ([ProductVariantID]) REFERENCES [dbo].[ProductVariants] ([ProductVariantID]),
     CONSTRAINT [FK_OrderItems_VendorProducts] FOREIGN KEY ([VendorProductID]) REFERENCES [dbo].[VendorProducts] ([VendorProductID]),
     CONSTRAINT [FK_OrderItems_Vendors] FOREIGN KEY ([VendorID]) REFERENCES [dbo].[Vendors] ([VendorID]),
-    CONSTRAINT [FK_OrderItems_Websites] FOREIGN KEY ([WebsiteID]) REFERENCES [dbo].[Websites] ([WebsiteID]),
-    CONSTRAINT [FK_OrderItems_Website1] FOREIGN KEY ([SourceWebsiteID]) REFERENCES [dbo].[Websites] ([WebsiteID])
+    CONSTRAINT [FK_OrderItems_Website1] FOREIGN KEY ([SourceWebsiteID]) REFERENCES [dbo].[Websites] ([WebsiteID]),
+    CONSTRAINT [FK_OrderItems_Websites] FOREIGN KEY ([WebsiteID]) REFERENCES [dbo].[Websites] ([WebsiteID])
 );
+
+
 GO
 
 CREATE NONCLUSTERED INDEX [IX_OrderItems_OrderID]
