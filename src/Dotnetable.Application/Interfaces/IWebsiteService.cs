@@ -37,4 +37,10 @@ public interface IWebsiteService
     /// <summary>The website's bot-protection choice for public forms, or null when never configured
     /// (callers should fall back to the math captcha).</summary>
     Task<WebsiteCaptchaSetting?> GetCaptchaSettingAsync(int websiteId, CancellationToken ct = default);
+
+    /// <summary>
+    /// Default phone country dialing code for this website (from main <see cref="Website.Mobile"/>
+    /// matched to country prefixes, else tax-country prefix). Per-site — not a global hard-code.
+    /// </summary>
+    Task<string?> GetDefaultPhoneCountryCodeAsync(int websiteId, CancellationToken ct = default);
 }

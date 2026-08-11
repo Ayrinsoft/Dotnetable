@@ -43,7 +43,8 @@ else if (_item is not null)
                 </MudItem>
                 <MudItem xs="12" sm="2">
                     <MudTextField @bind-Value="_item.PhonePerfix" Label="@L["phone_prefix", "Phone Prefix"]"
-                                  Variant="Variant.Outlined" MaxLength="3" Placeholder="98" />
+                                  Variant="Variant.Outlined" MaxLength="3"
+                                  HelperText="@L["country.phone_prefix_hint", "Dialing code without + (e.g. 98, 1, 971)"]" />
                 </MudItem>
             </MudGrid>
         </MudPaper>

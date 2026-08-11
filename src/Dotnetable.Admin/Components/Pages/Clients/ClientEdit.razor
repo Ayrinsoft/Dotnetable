@@ -44,7 +44,8 @@ else if (_client is not null)
                         </MudItem>
                         <MudItem xs="12" sm="3">
                             <MudTextField @bind-Value="_client.CountryCode" Label="@L["country_code", "Country Code"]"
-                                          Variant="Variant.Outlined" MaxLength="3" Placeholder="98" Disabled="@(!_canEdit)" />
+                                          Variant="Variant.Outlined" MaxLength="3"
+                                          Placeholder="@(_defaultPhoneCountryCode ?? "")" Disabled="@(!_canEdit)" />
                         </MudItem>
                         <MudItem xs="12" sm="3">
                             <MudTextField @bind-Value="_client.Cellphone" Label="@L["cellphone", "Cellphone"]"
@@ -70,7 +71,7 @@ else if (_client is not null)
                         <MudItem xs="12" sm="6">
                             @if (_isMaster && _isNew)
                             {
-                                <WebsiteSelector Value="_client.WebsiteID" ValueChanged="@(id => _client.WebsiteID = id)" Websites="_websites"
+                                <WebsiteSelector Value="_client.WebsiteID" ValueChanged="OnClientWebsiteChanged" Websites="_websites"
                                                  Label="@L["website", "Website"]" Variant="Variant.Outlined" Required="true" />
                             }
                             else
@@ -302,6 +303,7 @@ else if (_client is not null)
     private bool _isMaster;
     private bool _canEdit;
     private int _websiteId;
+    private string? _defaultPhoneCountryCode;
     private List<Website> _websites = new();
     private string[]? _formErrors;
     private bool _isNew => Id == 0;
@@ -352,6 +354,7 @@ else if (_client is not null)
                 _websites = (await WebsiteService.GetAllAsync()).ToList();
                 _client.WebsiteID = _websites.FirstOrDefault()?.WebsiteID ?? AppConstants.MasterWebsiteId;
             }
+            await ApplyDefaultPhoneCountryAsync(_client.WebsiteID);
             _loading = false;
             return;
         }
@@ -364,9 +367,27 @@ else if (_client is not null)
         }
 
         _countries = (await LocationService.GetAllCountriesAsync()).ToList();
+        await ApplyDefaultPhoneCountryAsync(_client.WebsiteID);
         _loading = false;
 
         await LoadAddressesAsync();
+    }
+
+    private async Task OnClientWebsiteChanged(int id)
+    {
+        if (_client is null) return;
+        _client.WebsiteID = id;
+        // Re-apply site dialing code when master switches website on create.
+        _client.CountryCode = null;
+        await ApplyDefaultPhoneCountryAsync(id);
+    }
+
+    private async Task ApplyDefaultPhoneCountryAsync(int websiteId)
+    {
+        if (websiteId <= 0) return;
+        _defaultPhoneCountryCode = await WebsiteService.GetDefaultPhoneCountryCodeAsync(websiteId);
+        if (_isNew && _client is not null && string.IsNullOrWhiteSpace(_client.CountryCode))
+            _client.CountryCode = _defaultPhoneCountryCode;
     }
 
     private async Task LoadAddressesAsync()

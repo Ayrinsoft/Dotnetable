@@ -132,15 +132,15 @@ else
             <MudPaper Elevation="0" Class="app-card rounded-lg pa-4 mb-3">
                 <MudText Typo="Typo.subtitle1" Class="mb-2">@L["orders.totals", "Totals"]</MudText>
                 <MudStack Spacing="1">
-                    <MudStack Row="true" Justify="Justify.SpaceBetween"><MudText>@L["orders.subtotal", "Subtotal"]</MudText><MudText>@_order.SubTotal.ToString("0.##") @_order.CurrencyCode</MudText></MudStack>
-                    <MudStack Row="true" Justify="Justify.SpaceBetween"><MudText>@L["orders.discount", "Discount"]</MudText><MudText>-@_order.DiscountTotal.ToString("0.##")</MudText></MudStack>
-                    <MudStack Row="true" Justify="Justify.SpaceBetween"><MudText>@L["shipping", "Shipping"]</MudText><MudText>@_order.ShippingTotal.ToString("0.##")</MudText></MudStack>
-                    <MudStack Row="true" Justify="Justify.SpaceBetween"><MudText>@L["tax", "Tax"]</MudText><MudText>@_order.TaxTotal.ToString("0.##")</MudText></MudStack>
+                    <MudStack Row="true" Justify="Justify.SpaceBetween"><MudText>@L["orders.subtotal", "Subtotal"]</MudText><MudText>@MoneyFormat.GroupWithCode(_order.SubTotal, _order.CurrencyCode)</MudText></MudStack>
+                    <MudStack Row="true" Justify="Justify.SpaceBetween"><MudText>@L["orders.discount", "Discount"]</MudText><MudText>-@MoneyFormat.Group(_order.DiscountTotal, _order.CurrencyCode)</MudText></MudStack>
+                    <MudStack Row="true" Justify="Justify.SpaceBetween"><MudText>@L["shipping", "Shipping"]</MudText><MudText>@MoneyFormat.Group(_order.ShippingTotal, _order.CurrencyCode)</MudText></MudStack>
+                    <MudStack Row="true" Justify="Justify.SpaceBetween"><MudText>@L["tax", "Tax"]</MudText><MudText>@MoneyFormat.Group(_order.TaxTotal, _order.CurrencyCode)</MudText></MudStack>
                     @if (_order.MarkupTotal > 0)
                     {
                         <MudStack Row="true" Justify="Justify.SpaceBetween">
                             <MudText>@L["orders.markup_total", "Markup total"]</MudText>
-                            <MudText>@_order.MarkupTotal.ToString("0.##")</MudText>
+                            <MudText>@MoneyFormat.Group(_order.MarkupTotal, _order.CurrencyCode)</MudText>
                         </MudStack>
                     }
                     @if (_order.PricesIncludeTax)
@@ -148,7 +148,7 @@ else
                         <MudText Typo="Typo.caption" Color="Color.Secondary">@L["invoice.prices_include_tax", "Prices include tax"]</MudText>
                     }
                     <MudDivider />
-                    <MudStack Row="true" Justify="Justify.SpaceBetween"><MudText Typo="Typo.subtitle2">@L["orders.grand_total", "Grand Total"]</MudText><MudText Typo="Typo.subtitle2">@_order.GrandTotal.ToString("0.##") @_order.CurrencyCode</MudText></MudStack>
+                    <MudStack Row="true" Justify="Justify.SpaceBetween"><MudText Typo="Typo.subtitle2">@L["orders.grand_total", "Grand Total"]</MudText><MudText Typo="Typo.subtitle2">@MoneyFormat.GroupWithCode(_order.GrandTotal, _order.CurrencyCode)</MudText></MudStack>
                 </MudStack>
             </MudPaper>
 
@@ -213,6 +213,16 @@ else
                     </MudSelect>
                     <MudNumericField T="decimal" @bind-Value="_receiveAmount" Label="@($"{L["amount", "Amount"]} ({_order.CurrencyCode})")"
                                     Variant="Variant.Outlined" Dense="true" Min="0" Class="mb-2" />
+                    <MudDatePicker @bind-Date="_receiveDate" Label="@L["payments.paid_date", "Payment date"]" Variant="Variant.Outlined"
+                                   Dense="true" Class="mb-2" Editable="true" Required="true"
+                                   RequiredError="@L["required", "This field is required."]" />
+                    <MudSwitch T="bool" @bind-Value="_receiveIncludeTime" Color="Color.Primary" Class="mb-2"
+                               Label="@L["payments.include_time", "Include payment time"]" />
+                    @if (_receiveIncludeTime)
+                    {
+                        <MudTimePicker @bind-Time="_receiveTime" Label="@L["payments.paid_time", "Payment time"]" Variant="Variant.Outlined"
+                                       Dense="true" Class="mb-2" Editable="true" AmPm="false" />
+                    }
                     <MudTextField @bind-Value="_receiveReference" Label="@L["reference", "Reference (optional)"]" Variant="Variant.Outlined" Dense="true" Class="mb-2" />
                     <MudTextField @bind-Value="_receiveNote" Label="@L["orders.note", "Note (optional)"]" Variant="Variant.Outlined" Dense="true" Class="mb-2" />
                     @if (_receiveMethod == PaymentMethod.BankTransfer)
@@ -295,6 +305,9 @@ else
     private string? _receiveNote;
     private int? _receiveBankAccountId;
     private int? _receiveReceiptFileId;
+    private DateTime? _receiveDate = DateTime.Today;
+    private bool _receiveIncludeTime;
+    private TimeSpan? _receiveTime;
 
     private decimal _refundAmount;
     private string? _refundReason;
@@ -332,6 +345,7 @@ else
         OrderSalesChannel.Telegram => L["orders.channel.telegram", "Telegram"],
         OrderSalesChannel.Phone => L["orders.channel.phone", "Phone"],
         OrderSalesChannel.InPerson => L["orders.channel.in_person", "In person"],
+        OrderSalesChannel.Store => L["orders.channel.store", "Store / shop"],
         _ => L["orders.channel.other", "Other"],
     };
 
@@ -416,13 +430,19 @@ else
             Snackbar.Add(L["payments.amount_required", "Enter a valid amount."], Severity.Warning);
             return;
         }
+        if (_receiveDate is null)
+        {
+            Snackbar.Add(L["payments.paid_date_required", "Payment date is required."], Severity.Warning);
+            return;
+        }
 
         _savingReceive = true;
         try
         {
+            var paidAtUtc = BuildPaidAtUtc(_receiveDate.Value, _receiveIncludeTime, _receiveTime);
             var (success, error, _) = await PaymentService.RecordReceivedPaymentAsync(
                 _order.OrderID, _receiveMethod, _receiveAmount, _receiveReference, _receiveNote, _currentMemberId.Value,
-                _receiveBankAccountId, _receiveReceiptFileId, markAsPaid: true);
+                _receiveBankAccountId, _receiveReceiptFileId, markAsPaid: true, paidAtUtc: paidAtUtc);
             if (success)
             {
                 Snackbar.Add(L["saved", "Saved."], Severity.Success);
@@ -434,6 +454,14 @@ else
             else Snackbar.Add(error ?? L["save_failed", "Save failed"], Severity.Error);
         }
         finally { _savingReceive = false; }
+    }
+
+    private static DateTime BuildPaidAtUtc(DateTime date, bool includeTime, TimeSpan? time)
+    {
+        var local = includeTime && time is TimeSpan t
+            ? date.Date.Add(t)
+            : date.Date;
+        return DateTime.SpecifyKind(local, DateTimeKind.Local).ToUniversalTime();
     }
 
     private async Task RefundAsync()

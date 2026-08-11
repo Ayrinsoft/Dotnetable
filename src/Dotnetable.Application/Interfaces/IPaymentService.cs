@@ -81,10 +81,11 @@ public interface IPaymentService
     /// <param name="bankAccountId">Destination bank account for card-to-card / bank transfer.</param>
     /// <param name="receiptFileId">Uploaded receipt image/file id.</param>
     /// <param name="markAsPaid">When true, payment is Paid immediately; when false for bank transfer, stays Pending.</param>
+    /// <param name="paidAtUtc">When money was received (UTC). When null and paid, uses UtcNow.</param>
     Task<(bool Success, string? Error, Payment? Payment)> RecordReceivedPaymentAsync(
         int orderId, PaymentMethod method, decimal? amountLocal, string? reference, string? note,
         int memberId, int? bankAccountId = null, int? receiptFileId = null, bool markAsPaid = true,
-        CancellationToken ct = default);
+        DateTime? paidAtUtc = null, CancellationToken ct = default);
 
     /// <summary>Admin verification of a pending manual payment: approve marks it Paid and transitions the
     /// order to Paid; reject marks it Rejected and leaves the order unpaid (customer may resubmit).</summary>

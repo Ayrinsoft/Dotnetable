@@ -196,9 +196,8 @@
     {
         if (minSiteCurrency is null) return "-";
         // MinPrice is already in site operational currency (or USD when site is USD / legacy).
-        var local = Math.Round(minSiteCurrency.Value, _localDigits, MidpointRounding.AwayFromZero);
-        var localText = _localDigits == 0 ? local.ToString("N0") : local.ToString($"N{_localDigits}");
-        return $"{localText} {_displayCurrency}";
+        var digits = MoneyFormat.EffectiveDigits(_displayCurrency, _localDigits);
+        return MoneyFormat.GroupWithCode(minSiteCurrency.Value, _displayCurrency, digits);
     }
 
     private async Task DeleteAsync(int productId)

@@ -115,7 +115,7 @@ public class PaymentService : IPaymentService
     public async Task<(bool Success, string? Error, Payment? Payment)> RecordReceivedPaymentAsync(
         int orderId, PaymentMethod method, decimal? amountLocal, string? reference, string? note,
         int memberId, int? bankAccountId = null, int? receiptFileId = null, bool markAsPaid = true,
-        CancellationToken ct = default)
+        DateTime? paidAtUtc = null, CancellationToken ct = default)
     {
         if (method is not (PaymentMethod.Manual or PaymentMethod.CashOnDelivery or PaymentMethod.BankTransfer))
             return (false, "Only Manual, CashOnDelivery, or BankTransfer methods can be recorded by admin.", null);
@@ -159,6 +159,14 @@ public class PaymentService : IPaymentService
 
         // Bank transfer can stay Pending for the queue when markAsPaid is false; other methods are always Paid.
         var paid = markAsPaid || method is not PaymentMethod.BankTransfer;
+        var effectivePaidAt = paid
+            ? (paidAtUtc.HasValue
+                ? (paidAtUtc.Value.Kind == DateTimeKind.Unspecified
+                    ? DateTime.SpecifyKind(paidAtUtc.Value, DateTimeKind.Utc)
+                    : paidAtUtc.Value.ToUniversalTime())
+                : DateTime.UtcNow)
+            : (DateTime?)null;
+
         var payment = new Payment
         {
             WebsiteID = order.WebsiteID,
@@ -174,7 +182,7 @@ public class PaymentService : IPaymentService
             Status = (byte)(paid ? PaymentStatus.Paid : PaymentStatus.Pending),
             TrackingCode = string.IsNullOrWhiteSpace(reference) ? null : reference.Trim(),
             GatewayRefNumber = string.IsNullOrWhiteSpace(note) ? null : note.Trim(),
-            PaidAt = paid ? DateTime.UtcNow : null,
+            PaidAt = effectivePaidAt,
             CreatedByMemberID = memberId,
             VerifiedByMemberID = paid ? memberId : null,
             CreatedAt = DateTime.UtcNow,
@@ -188,6 +196,13 @@ public class PaymentService : IPaymentService
                 ? $"Payment received ({method})."
                 : note.Trim();
             await _orders.TransitionStatusAsync(orderId, OrderStatus.Paid, memberId, transitionNote, ct);
+
+            // Align order.PaidAt with the admin-entered payment time (transition may have set UtcNow).
+            if (effectivePaidAt is DateTime at)
+            {
+                await _context.Orders.Where(o => o.OrderID == orderId)
+                    .ExecuteUpdateAsync(s => s.SetProperty(o => o.PaidAt, at), ct);
+            }
         }
 
         await _notifications.NotifySiteAdminsAsync(

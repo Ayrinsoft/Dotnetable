@@ -4,12 +4,9 @@
 @inject IOrderService OrderService
 @inject IWebsiteClientService ClientService
 @inject IWebsiteClientAddressService AddressService
-@inject IProductService ProductService
-@inject IVendorProductService VendorProductService
 @inject IBankAccountService BankAccountService
 @inject IShippingService ShippingService
 @inject IWebsiteService WebsiteService
-@inject ILocationService LocationService
 @inject IDialogService DialogService
 @inject AuthenticationStateProvider AuthState
 @inject NavigationManager Nav
@@ -66,7 +63,8 @@ else
                             <MudTextField @bind-Value="_qcSurname" Label="@L["surname", "Surname"]" Variant="Variant.Outlined" Dense="true" />
                         </MudItem>
                         <MudItem xs="12" sm="4">
-                            <MudTextField @bind-Value="_qcCountryCode" Label="@L["country_code", "Country Code"]" Variant="Variant.Outlined" Dense="true" Placeholder="98" />
+                            <MudTextField @bind-Value="_qcCountryCode" Label="@L["country_code", "Country Code"]" Variant="Variant.Outlined" Dense="true"
+                                          Placeholder="@(_defaultPhoneCountryCode ?? "")" />
                         </MudItem>
                         <MudItem xs="12" sm="4">
                             <MudTextField @bind-Value="_qcCell" Label="@L["cellphone", "Cellphone"]" Variant="Variant.Outlined" Dense="true" />
@@ -109,11 +107,16 @@ else
         <MudItem xs="12">
             <MudPaper Elevation="0" Class="app-card rounded-lg pa-4">
                 <MudText Typo="Typo.subtitle1" Class="mb-2">@L["orders.items", "Items"]</MudText>
-                <MudAutocomplete T="ProductListItemDto" Value="_productPick" ValueChanged="OnProductPicked"
-                                 SearchFunc="SearchProductsAsync" ToStringFunc="@(p => p?.Title ?? string.Empty)"
-                                 Label="@L["orders.add_product", "Search product to add"]"
-                                 Variant="Variant.Outlined" Dense="true" Class="mb-2"
-                                 CoerceText="false" ResetValueOnEmptyText="true" Disabled="_websiteId <= 0" />
+                <MudStack Row="true" Spacing="2" Class="mb-3 flex-wrap">
+                    <MudButton Variant="Variant.Filled" Color="Color.Primary"
+                               StartIcon="@Icons.Material.Filled.PlaylistAdd"
+                               OnClick="OpenProductPickerAsync" Disabled="_websiteId <= 0">
+                        @L["orders.browse_products", "Browse products"]
+                    </MudButton>
+                    <MudText Typo="Typo.caption" Color="Color.Secondary" Class="align-self-center">
+                        @L["orders.browse_products_hint", "Open the full catalog with filters, then pick a variant."]
+                    </MudText>
+                </MudStack>
 
                 <MudExpansionPanels Class="mb-3" Elevation="0">
                     <MudExpansionPanel Text="@L["orders.free_item", "Add free-form item (no catalog)"]" Dense="true">
@@ -128,8 +131,8 @@ else
                                 <MudTextField @bind-Value="_freeSku" Label="@L["variants.sku", "SKU"]" Variant="Variant.Outlined" Dense="true" />
                             </MudItem>
                             <MudItem xs="12" sm="2">
-                                <MudNumericField T="decimal" @bind-Value="_freePrice" Label="@L["orders.charged_price", "Charged"]"
-                                                 Variant="Variant.Outlined" Dense="true" Min="0" />
+                                <DNMoneyField @bind-Value="_freePrice" Label="@L["orders.charged_price", "Charged"]"
+                                              DecimalDigits="_moneyDigits" Min="0" />
                             </MudItem>
                             <MudItem xs="12" sm="2">
                                 <MudNumericField T="int" @bind-Value="_freeQty" Label="@L["quantity", "Qty"]"
@@ -184,15 +187,18 @@ else
                                                          Variant="Variant.Outlined" Dense="true" Min="1" Margin="Margin.Dense" />
                                     </td>
                                     <td style="min-width:110px">
-                                        <MudNumericField T="decimal" Value="line.CatalogUnitPrice" ValueChanged="v => line.CatalogUnitPrice = Math.Max(0, v)"
-                                                         Variant="Variant.Outlined" Dense="true" Min="0" Margin="Margin.Dense" />
+                                        <DNMoneyField Value="line.CatalogUnitPrice" ValueChanged="v => OnCatalogChanged(line, v)"
+                                                      DecimalDigits="_moneyDigits" Min="0" Margin="Margin.Dense" />
                                     </td>
                                     <td style="min-width:110px">
-                                        <MudNumericField T="decimal" Value="line.ChargedUnitPrice" ValueChanged="v => line.ChargedUnitPrice = Math.Max(0, v)"
-                                                         Variant="Variant.Outlined" Dense="true" Min="0" Margin="Margin.Dense" />
+                                        <DNMoneyField Value="line.ChargedUnitPrice" ValueChanged="v => OnChargedChanged(line, v)"
+                                                      DecimalDigits="_moneyDigits" Min="0" Margin="Margin.Dense" />
                                     </td>
-                                    <td>@line.UnitMarkup.ToString("0.##")</td>
-                                    <td>@line.LineTotal.ToString("0.##")</td>
+                                    <td style="min-width:110px">
+                                        <DNMoneyField Value="line.UnitMarkup" ValueChanged="v => OnMarkupChanged(line, v)"
+                                                      DecimalDigits="_moneyDigits" Min="0" Margin="Margin.Dense" />
+                                    </td>
+                                    <td>@MoneyFormat.Group(line.LineTotal, _currencyCode, _moneyDigits)</td>
                                     <td>
                                         <MudIconButton Icon="@Icons.Material.Filled.Delete" Size="Size.Small" Color="Color.Error"
                                                        OnClick="@(() => _lines.Remove(line))" />
@@ -202,8 +208,8 @@ else
                         </tbody>
                     </MudSimpleTable>
                     <MudStack Row="true" Justify="Justify.FlexEnd" Class="mt-2" Spacing="4">
-                        <MudText>@L["orders.subtotal", "Subtotal"]: <strong>@_lines.Sum(l => l.LineTotal).ToString("0.##")</strong></MudText>
-                        <MudText>@L["orders.markup_total", "Markup total"]: <strong>@_lines.Sum(l => l.UnitMarkup * l.Quantity).ToString("0.##")</strong></MudText>
+                        <MudText>@L["orders.subtotal", "Subtotal"]: <strong>@MoneyFormat.GroupWithCode(_lines.Sum(l => l.LineTotal), _currencyCode, _moneyDigits)</strong></MudText>
+                        <MudText>@L["orders.markup_total", "Markup total"]: <strong>@MoneyFormat.GroupWithCode(_lines.Sum(l => l.UnitMarkup * l.Quantity), _currencyCode, _moneyDigits)</strong></MudText>
                     </MudStack>
                 }
             </MudPaper>
@@ -278,6 +284,16 @@ else
                     </MudSelect>
                     <MudNumericField T="decimal?" @bind-Value="_payAmount" Label="@L["orders.paid_amount", "Amount received (blank = grand total)"]"
                                      Variant="Variant.Outlined" Dense="true" Min="0" Class="mb-2" />
+                    <MudDatePicker @bind-Date="_payDate" Label="@L["payments.paid_date", "Payment date"]" Variant="Variant.Outlined"
+                                   Dense="true" Class="mb-2" Editable="true" Required="true"
+                                   RequiredError="@L["required", "This field is required."]" />
+                    <MudSwitch T="bool" @bind-Value="_payIncludeTime" Color="Color.Primary" Class="mb-2"
+                               Label="@L["payments.include_time", "Include payment time"]" />
+                    @if (_payIncludeTime)
+                    {
+                        <MudTimePicker @bind-Time="_payTime" Label="@L["payments.paid_time", "Payment time"]" Variant="Variant.Outlined"
+                                       Dense="true" Class="mb-2" Editable="true" AmPm="false" />
+                    }
                     <MudTextField @bind-Value="_payReference" Label="@L["reference", "Reference"]" Variant="Variant.Outlined" Dense="true" Class="mb-2" />
                     @if (_payMethod == PaymentMethod.BankTransfer)
                     {
@@ -334,13 +350,15 @@ else
     private List<WebsiteClientAddress> _addresses = new();
     private int? _addressId;
 
-    private string? _qcGiven, _qcSurname, _qcCell, _qcEmail, _qcCountryCode = "98";
+    private string? _qcGiven, _qcSurname, _qcCell, _qcEmail, _qcCountryCode;
+    private string? _defaultPhoneCountryCode;
+    private string? _currencyCode;
+    private int _moneyDigits;
 
     private OrderSalesChannel _channel = OrderSalesChannel.Instagram;
     private bool _reportToTax;
     private string? _note;
 
-    private ProductListItemDto? _productPick;
     private readonly List<LineDraft> _lines = new();
     private string? _freeTitle, _freeSku;
     private decimal _freePrice;
@@ -360,6 +378,9 @@ else
     private int? _payBankAccountId;
     private int? _receiptFileId;
     private bool _payMarkPaid = true;
+    private DateTime? _payDate = DateTime.Today;
+    private bool _payIncludeTime;
+    private TimeSpan? _payTime;
     private List<BankAccount> _bankAccounts = new();
 
     private sealed class LineDraft
@@ -372,9 +393,27 @@ else
         public int Quantity { get; set; } = 1;
         public decimal CatalogUnitPrice { get; set; }
         public decimal ChargedUnitPrice { get; set; }
+        public decimal UnitMarkup { get; set; }
         public bool IsFreeForm => ProductVariantId is null;
-        public decimal UnitMarkup => Math.Max(0, ChargedUnitPrice - CatalogUnitPrice);
         public decimal LineTotal => ChargedUnitPrice * Quantity;
+    }
+
+    private static void OnCatalogChanged(LineDraft line, decimal catalog)
+    {
+        line.CatalogUnitPrice = Math.Max(0, catalog);
+        line.ChargedUnitPrice = line.CatalogUnitPrice + Math.Max(0, line.UnitMarkup);
+    }
+
+    private static void OnMarkupChanged(LineDraft line, decimal markup)
+    {
+        line.UnitMarkup = Math.Max(0, markup);
+        line.ChargedUnitPrice = line.CatalogUnitPrice + line.UnitMarkup;
+    }
+
+    private static void OnChargedChanged(LineDraft line, decimal charged)
+    {
+        line.ChargedUnitPrice = Math.Max(0, charged);
+        line.UnitMarkup = Math.Max(0, line.ChargedUnitPrice - line.CatalogUnitPrice);
     }
 
     protected override async Task OnInitializedAsync()
@@ -411,6 +450,11 @@ else
         _reportToTax = _channel == OrderSalesChannel.Online || (_website?.ReportOfflineOrdersToTax ?? false);
         _shippingMethods = await ShippingService.GetAllAsync(_websiteId);
         _bankAccounts = await BankAccountService.GetByWebsiteAsync(_websiteId);
+        _currencyCode = _website?.DefaultCurrencyCode;
+        _moneyDigits = MoneyFormat.EffectiveDigits(_currencyCode, 0);
+        _defaultPhoneCountryCode = await WebsiteService.GetDefaultPhoneCountryCodeAsync(_websiteId);
+        if (string.IsNullOrWhiteSpace(_qcCountryCode))
+            _qcCountryCode = _defaultPhoneCountryCode;
     }
 
     private void OnChannelChanged(OrderSalesChannel ch)
@@ -428,6 +472,7 @@ else
         OrderSalesChannel.Telegram => L["orders.channel.telegram", "Telegram"],
         OrderSalesChannel.Phone => L["orders.channel.phone", "Phone"],
         OrderSalesChannel.InPerson => L["orders.channel.in_person", "In person"],
+        OrderSalesChannel.Store => L["orders.channel.store", "Store / shop"],
         _ => L["orders.channel.other", "Other"],
     };
 
@@ -522,7 +567,9 @@ else
                 Givenname = _qcGiven?.Trim(),
                 Surname = _qcSurname?.Trim(),
                 Cellphone = string.IsNullOrWhiteSpace(_qcCell) ? null : _qcCell.Trim(),
-                CountryCode = string.IsNullOrWhiteSpace(_qcCountryCode) ? null : _qcCountryCode.Trim(),
+                CountryCode = string.IsNullOrWhiteSpace(_qcCountryCode)
+                    ? _defaultPhoneCountryCode
+                    : _qcCountryCode.Trim(),
                 Email = string.IsNullOrWhiteSpace(_qcEmail) ? null : _qcEmail.Trim(),
                 Active = true,
                 ClientLevel = (byte)ClientLevel.Normal,
@@ -540,88 +587,35 @@ else
         finally { _savingClient = false; }
     }
 
-    private async Task<IEnumerable<ProductListItemDto>> SearchProductsAsync(string search, CancellationToken ct)
+    private async Task OpenProductPickerAsync()
     {
-        if (_websiteId <= 0) return Array.Empty<ProductListItemDto>();
-        var result = await ProductService.GetPagedAsync(
-            _websiteId, new ProductFilter { IsActive = true },
-            new GridQuery { PageIndex = 1, PageSize = 12 }, search, null, ct);
-        return result.Items;
-    }
-
-    private async Task OnProductPicked(ProductListItemDto? product)
-    {
-        _productPick = null;
-        if (product is null || _websiteId <= 0) return;
-
-        var full = await ProductService.GetByIdAsync(product.ProductID);
-        if (full is null)
+        if (_websiteId <= 0) return;
+        var parameters = new DialogParameters
         {
-            Snackbar.Add(L["orders.product_not_found", "Product not found."], Severity.Warning);
+            [nameof(OrderProductPickDialog.WebsiteId)] = _websiteId,
+        };
+        var dialog = await DialogService.ShowAsync<OrderProductPickDialog>(
+            L["orders.pick_product", "Pick a product"], parameters,
+            new DialogOptions { MaxWidth = MaxWidth.Large, FullWidth = true, CloseOnEscapeKey = true });
+        var result = await dialog.Result;
+        if (result is not { Canceled: false, Data: OrderProductPickDialog.PickResult pick })
             return;
-        }
 
-        var variants = full.ProductVariants?.Where(v => v.IsActive).OrderByDescending(v => v.IsDefault).ThenBy(v => v.Title).ToList()
-            ?? new List<ProductVariant>();
-        if (variants.Count == 0)
-        {
-            Snackbar.Add(L["orders.no_variants", "Product has no active variants."], Severity.Warning);
-            return;
-        }
-
-        ProductVariant? variant;
-        if (variants.Count == 1)
-        {
-            variant = variants[0];
-        }
-        else
-        {
-            var parameters = new DialogParameters
-            {
-                [nameof(OrderVariantPickDialog.ProductTitle)] = full.Title,
-                [nameof(OrderVariantPickDialog.Variants)] = variants,
-            };
-            var dialog = await DialogService.ShowAsync<OrderVariantPickDialog>(
-                L["orders.pick_variant", "Select variant"], parameters,
-                new DialogOptions { MaxWidth = MaxWidth.Small, FullWidth = true });
-            var result = await dialog.Result;
-            if (result is not { Canceled: false, Data: ProductVariant picked })
-                return;
-            variant = picked;
-        }
-
-        await AddVariantLineAsync(full, variant);
-    }
-
-    private async Task AddVariantLineAsync(Product product, ProductVariant variant)
-    {
-        var listings = await VendorProductService.GetByProductIdAsync(product.ProductID);
-        var listing = listings
-            .Where(l => l.ProductVariantID == variant.ProductVariantID && l.IsActive)
-            .OrderByDescending(l => l.AvailableQuantity)
-            .FirstOrDefault();
-
-        decimal catalog;
-        if (listing is not null)
-        {
-            catalog = listing.OverridePriceLocal ?? listing.ReferencePrice;
-            if (catalog <= 0) catalog = variant.ReferencePrice;
-        }
-        else
-        {
-            catalog = variant.ReferencePrice;
+        if (!pick.HasListing)
             Snackbar.Add(L["orders.no_listing_ok", "No store listing — line added without stock tracking."], Severity.Info);
-        }
 
         _lines.Add(new LineDraft
         {
-            ProductVariantId = variant.ProductVariantID,
-            VendorProductId = listing?.VendorProductID,
-            Title = string.IsNullOrWhiteSpace(variant.Title) ? product.Title : $"{product.Title} — {variant.Title}",
-            Sku = variant.Sku,
+            ProductVariantId = pick.Variant.ProductVariantID,
+            VendorProductId = pick.VendorProductId,
+            Title = string.IsNullOrWhiteSpace(pick.Variant.Title)
+                ? pick.Product.Title
+                : $"{pick.Product.Title} — {pick.Variant.Title}",
+            Sku = pick.Variant.Sku,
             Quantity = 1,
-            CatalogUnitPrice = catalog,
-            ChargedUnitPrice = catalog,
+            CatalogUnitPrice = pick.CatalogUnitPrice,
+            ChargedUnitPrice = pick.CatalogUnitPrice,
+            UnitMarkup = 0,
         });
     }
 
@@ -648,6 +642,7 @@ else
             Quantity = _freeQty,
             CatalogUnitPrice = _freePrice,
             ChargedUnitPrice = _freePrice,
+            UnitMarkup = 0,
         });
         _freeTitle = null;
         _freeSku = null;
@@ -668,6 +663,15 @@ else
         var result = await dialog.Result;
         if (result is { Canceled: false, Data: FileRecord file })
             _receiptFileId = file.FileRecordID;
+    }
+
+    /// <summary>Combines local date (+ optional time) into UTC for storage.</summary>
+    private static DateTime BuildPaidAtUtc(DateTime date, bool includeTime, TimeSpan? time)
+    {
+        var local = includeTime && time is TimeSpan t
+            ? date.Date.Add(t)
+            : date.Date;
+        return DateTime.SpecifyKind(local, DateTimeKind.Local).ToUniversalTime();
     }
 
     private async Task SubmitAsync()
@@ -727,6 +731,12 @@ else
 
             if (_recordPayment)
             {
+                if (_payDate is null)
+                {
+                    Snackbar.Add(L["payments.paid_date_required", "Payment date is required."], Severity.Warning);
+                    return;
+                }
+
                 req.Payment = new AdminOrderPaymentRequest
                 {
                     Method = (byte)_payMethod,
@@ -735,6 +745,7 @@ else
                     BankAccountId = _payBankAccountId,
                     ReceiptFileId = _receiptFileId,
                     MarkAsPaid = _payMarkPaid,
+                    PaidAtUtc = BuildPaidAtUtc(_payDate.Value, _payIncludeTime, _payTime),
                 };
             }
 
