@@ -38,6 +38,9 @@ public class ProductService : IProductService
             q = q.Where(p => p.WebsiteID == wid);
         if (filter.BrandID is int bid)
             q = q.Where(p => p.BrandID == bid);
+        // Grid column filter for brand name (partial match).
+        if (query.GetSearch("BrandName") is string brandName && !string.IsNullOrWhiteSpace(brandName))
+            q = q.Where(p => p.Brand != null && p.Brand.Name.Contains(brandName));
         if (filter.Status is byte status)
             q = q.Where(p => p.Status == status);
         if (filter.IsActive is bool active)

@@ -8,9 +8,7 @@ using Microsoft.AspNetCore.Mvc;
 namespace Dotnetable.API.Controllers;
 
 /// <summary>
-/// Cash wallet for the signed-in website customer (<see cref="WebsiteClient"/>). The customer is
-/// always taken from the bearer token's <see cref="ClientClaims.ClientId"/> claim — a caller can only
-/// ever see or change their own wallet.
+/// Cash wallets for the signed-in website customer. One ledger per enabled currency.
 /// </summary>
 [Authorize(Policy = RoleKeys.ClientProfile)]
 public class WalletController : BaseController
@@ -26,21 +24,78 @@ public class WalletController : BaseController
         _websiteService = websiteService;
     }
 
+    /// <summary>All balances (one row per currency wallet).</summary>
     [HttpGet]
-    public async Task<IActionResult> GetBalance(CancellationToken ct = default)
+    public async Task<IActionResult> GetBalances(CancellationToken ct = default)
     {
-        var balance = await _wallet.GetBalanceAsync(CurrentClientId, ct);
-        return Ok(new WalletBalanceDto { BalanceUsd = balance, IsActive = true });
+        var website = await ResolveWebsiteAsync(_websiteService, ct);
+        if (website is null) return NotFound(new { message = "Website could not be resolved." });
+
+        var wallets = await _wallet.ListForClientAsync(website.WebsiteID, CurrentClientId, ct);
+        var enabled = await _wallet.GetEnabledWalletCurrenciesAsync(website.WebsiteID, ct);
+        var defaultCode = enabled.FirstOrDefault(c => c.IsDefault)?.CurrencyCode ?? website.DefaultCurrencyCode;
+
+        return Ok(wallets.Select(w => new WalletBalanceDto
+        {
+            CurrencyCode = w.CurrencyCode,
+            Balance = w.Balance,
+            BalanceUsd = w.Balance, // obsolete alias
+            IsActive = w.IsActive,
+            IsDefaultCurrency = string.Equals(w.CurrencyCode, defaultCode, StringComparison.OrdinalIgnoreCase),
+        }).ToList());
+    }
+
+    /// <summary>Single currency balance (default when currency omitted).</summary>
+    [HttpGet("balance")]
+    public async Task<IActionResult> GetBalance([FromQuery] string? currencyCode = null, CancellationToken ct = default)
+    {
+        var website = await ResolveWebsiteAsync(_websiteService, ct);
+        if (website is null) return NotFound(new { message = "Website could not be resolved." });
+
+        var balance = await _wallet.GetBalanceAsync(website.WebsiteID, CurrentClientId, currencyCode, ct);
+        var code = currencyCode ?? website.DefaultCurrencyCode;
+        return Ok(new WalletBalanceDto
+        {
+            CurrencyCode = code,
+            Balance = balance,
+            BalanceUsd = balance,
+            IsActive = true,
+            IsDefaultCurrency = string.Equals(code, website.DefaultCurrencyCode, StringComparison.OrdinalIgnoreCase),
+        });
+    }
+
+    [HttpGet("currencies")]
+    public async Task<IActionResult> GetWalletCurrencies(CancellationToken ct = default)
+    {
+        var website = await ResolveWebsiteAsync(_websiteService, ct);
+        if (website is null) return NotFound(new { message = "Website could not be resolved." });
+
+        var rows = await _wallet.GetEnabledWalletCurrenciesAsync(website.WebsiteID, ct);
+        return Ok(rows.Select(c => new WebsiteWalletCurrencyDto
+        {
+            CurrencyCode = c.CurrencyCode,
+            CurrencyName = c.CurrencyCodeNavigation?.Name,
+            IsDefault = c.IsDefault,
+            IsActive = c.IsActive,
+        }).ToList());
     }
 
     [HttpGet("transactions")]
-    public async Task<IActionResult> GetTransactions([FromQuery] int pageIndex = 1, [FromQuery] int pageSize = 20, CancellationToken ct = default)
+    public async Task<IActionResult> GetTransactions(
+        [FromQuery] int pageIndex = 1,
+        [FromQuery] int pageSize = 20,
+        [FromQuery] string? currencyCode = null,
+        CancellationToken ct = default)
     {
+        var website = await ResolveWebsiteAsync(_websiteService, ct);
+        if (website is null) return NotFound(new { message = "Website could not be resolved." });
+
         var query = new GridQuery { PageIndex = pageIndex, PageSize = pageSize };
-        var result = await _wallet.GetHistoryAsync(CurrentClientId, query, ct);
+        var result = await _wallet.GetHistoryAsync(website.WebsiteID, CurrentClientId, query, currencyCode, ct);
+        var code = currencyCode ?? website.DefaultCurrencyCode;
         return Ok(new PagedResult<WalletTransactionDto>
         {
-            Items = result.Items.Select(ToDto).ToList(),
+            Items = result.Items.Select(t => ToDto(t, code)).ToList(),
             TotalCount = result.TotalCount,
         });
     }
@@ -48,7 +103,8 @@ public class WalletController : BaseController
     [HttpPost("withdrawals")]
     public async Task<IActionResult> RequestWithdrawal([FromBody] WithdrawalRequest request, CancellationToken ct = default)
     {
-        if (request.AmountUsd <= 0)
+        var amount = request.Amount > 0 ? request.Amount : request.AmountUsd;
+        if (amount <= 0)
             return BadRequest(new { message = "Amount must be greater than zero." });
 
         var website = await ResolveWebsiteAsync(_websiteService, ct);
@@ -56,7 +112,8 @@ public class WalletController : BaseController
 
         try
         {
-            var withdrawal = await _withdrawals.RequestAsync(website.WebsiteID, CurrentClientId, request.ClientBankAccountId, request.AmountUsd, ct);
+            var withdrawal = await _withdrawals.RequestAsync(
+                website.WebsiteID, CurrentClientId, request.ClientBankAccountId, amount, request.CurrencyCode, ct);
             return Ok(ToDto(withdrawal, null));
         }
         catch (InvalidOperationException ex)
@@ -77,19 +134,20 @@ public class WalletController : BaseController
         });
     }
 
-    // ── Helpers ─────────────────────────────────────────────────────
-
     private int CurrentClientId =>
         int.TryParse(User.FindFirst(ClientClaims.ClientId)?.Value, out var id)
             ? id
             : throw new InvalidOperationException("Token does not carry a client id.");
 
-    private static WalletTransactionDto ToDto(ClientWalletTransaction t) => new()
+    private static WalletTransactionDto ToDto(ClientWalletTransaction t, string currencyCode) => new()
     {
         ClientWalletTransactionID = t.ClientWalletTransactionID,
+        CurrencyCode = currencyCode,
         Type = t.Type,
-        AmountUsd = t.AmountUsd,
-        BalanceAfterUsd = t.BalanceAfterUsd,
+        Amount = t.Amount,
+        AmountUsd = t.Amount,
+        BalanceAfter = t.BalanceAfter,
+        BalanceAfterUsd = t.BalanceAfter,
         SourceType = t.SourceType,
         SourceId = t.SourceId,
         Note = t.Note,
@@ -103,7 +161,9 @@ public class WalletController : BaseController
         WebsiteClientID = w.WebsiteClientID,
         ClientName = clientName,
         ClientBankAccountID = w.ClientBankAccountID,
-        AmountUsd = w.AmountUsd,
+        CurrencyCode = w.CurrencyCode,
+        Amount = w.Amount,
+        AmountUsd = w.Amount,
         Status = w.Status,
         ReviewedByMemberID = w.ReviewedByMemberID,
         ReviewedAt = w.ReviewedAt,

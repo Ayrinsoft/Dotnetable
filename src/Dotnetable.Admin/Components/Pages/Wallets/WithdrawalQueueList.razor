@@ -48,7 +48,7 @@
                             @(w.WebsiteClient is { } c ? (c.Email ?? c.Cellphone ?? $"#{c.WebsiteClientID}") : $"#{w.WebsiteClientID}")
                         </MudLink>
                     </td>
-                    <td>@((w.Amount != 0 || w.AmountUsd == 0 ? w.Amount : w.AmountUsd).ToString("N2"))</td>
+                    <td>@MoneyFormat.GroupWithCode(w.Amount != 0 || w.AmountUsd == 0 ? w.Amount : w.AmountUsd, w.CurrencyCode)</td>
                     <td>@(w.ClientBankAccount is { } b ? $"{b.OwnerName} — {b.IBAN ?? b.AccountNumber ?? b.CardNumber}" : "—")</td>
                     <td>
                         @{ var (statusColor, statusText) = StatusInfo(w.Status); }

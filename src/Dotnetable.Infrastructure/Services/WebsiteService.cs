@@ -115,6 +115,21 @@ public class WebsiteService : IWebsiteService
             await context.SaveChangesAsync(ct);
         }
 
+        // Default wallet currency = site operational currency (separate multi-currency wallets later).
+        if (!string.IsNullOrWhiteSpace(website.DefaultCurrencyCode)
+            && !await context.WebsiteWalletCurrencies.AnyAsync(c => c.WebsiteID == website.WebsiteID, ct))
+        {
+            context.WebsiteWalletCurrencies.Add(new WebsiteWalletCurrency
+            {
+                WebsiteID = website.WebsiteID,
+                CurrencyCode = website.DefaultCurrencyCode.Trim().ToUpperInvariant(),
+                IsDefault = true,
+                IsActive = true,
+                CreatedAt = DateTime.UtcNow,
+            });
+            await context.SaveChangesAsync(ct);
+        }
+
         return website;
     }
 

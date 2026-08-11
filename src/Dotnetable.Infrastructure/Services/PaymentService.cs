@@ -34,9 +34,11 @@ public class PaymentService : IPaymentService
         ClientWalletTransaction walletTx;
         try
         {
+            // Debit the wallet that matches the order currency (separate ledger per currency).
             walletTx = await _wallet.ApplyAsync(
-                websiteId, clientId, (byte)ClientWalletTransactionType.PurchaseUse, -order.GrandTotalUsd,
-                (byte)ClientWalletSourceType.Payment, orderId, $"Order {order.OrderNumber}", null, ct);
+                websiteId, clientId, (byte)ClientWalletTransactionType.PurchaseUse, -order.GrandTotal,
+                (byte)ClientWalletSourceType.Payment, orderId, $"Order {order.OrderNumber}", null,
+                order.CurrencyCode, ct);
         }
         catch (InvalidOperationException ex)
         {
@@ -316,9 +318,14 @@ public class PaymentService : IPaymentService
         int? walletTxId = null;
         if (toWallet)
         {
+            // Credit the wallet in the payment's currency (amountUsd is still the API param name; convert via snapshot rate).
+            var amountLocal = payment.ExchangeRateToUsd > 0
+                ? Math.Round(amountUsd * payment.ExchangeRateToUsd, 4, MidpointRounding.AwayFromZero)
+                : amountUsd;
             var tx = await _wallet.ApplyAsync(
-                payment.WebsiteID, payment.WebsiteClientID, (byte)ClientWalletTransactionType.RefundCredit, amountUsd,
-                (byte)ClientWalletSourceType.PaymentRefund, paymentId, reason, memberId, ct);
+                payment.WebsiteID, payment.WebsiteClientID, (byte)ClientWalletTransactionType.RefundCredit, amountLocal,
+                (byte)ClientWalletSourceType.PaymentRefund, paymentId, reason, memberId,
+                payment.CurrencyCode, ct);
             walletTxId = tx.ClientWalletTransactionID;
         }
 

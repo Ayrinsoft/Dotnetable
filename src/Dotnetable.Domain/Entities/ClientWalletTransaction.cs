@@ -13,13 +13,16 @@ public partial class ClientWalletTransaction
 
     public byte Type { get; set; }
 
-    /// <summary>Signed amount in site currency.</summary>
+    /// <summary>Signed amount in the parent wallet's <see cref="ClientWallet.CurrencyCode"/>.</summary>
     public decimal Amount { get; set; }
 
+    /// <summary>Optional USD mirror (reporting only; not ledger authority).</summary>
     public decimal AmountUsd { get; set; }
 
+    /// <summary>Balance after this row, in the wallet currency.</summary>
     public decimal BalanceAfter { get; set; }
 
+    /// <summary>Optional USD mirror of balance after (reporting only).</summary>
     public decimal BalanceAfterUsd { get; set; }
 
     public byte? SourceType { get; set; }

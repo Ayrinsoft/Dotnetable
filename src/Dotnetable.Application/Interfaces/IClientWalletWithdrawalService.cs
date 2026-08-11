@@ -17,7 +17,10 @@ public interface IClientWalletWithdrawalService
     /// <see cref="ClientWalletWithdrawalStatus.Pending"/> row.
     /// </summary>
     /// <exception cref="InvalidOperationException">Bank account not found/not owned by the customer.</exception>
-    Task<ClientWalletWithdrawal> RequestAsync(int websiteId, int clientId, int clientBankAccountId, decimal amountUsd, CancellationToken ct = default);
+    /// <param name="amount">Amount in <paramref name="currencyCode"/> (or site default when null).</param>
+    Task<ClientWalletWithdrawal> RequestAsync(
+        int websiteId, int clientId, int clientBankAccountId, decimal amount,
+        string? currencyCode = null, CancellationToken ct = default);
 
     /// <summary>Server-side paged/sorted/searched withdrawal queue for the admin grid.
     /// <paramref name="websiteId"/> null = all websites (master only).</summary>

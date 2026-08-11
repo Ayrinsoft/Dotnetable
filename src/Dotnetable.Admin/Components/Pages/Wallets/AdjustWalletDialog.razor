@@ -8,7 +8,20 @@
         <MudForm @ref="_form">
             <MudGrid Spacing="3">
                 <MudItem xs="12">
-                    <DNMoneyField @bind-Value="_delta" Label="@L["wallets.adjust.delta", "Amount change (site currency, +/-)"]"
+                    <MudSelect T="string" @bind-Value="_currencyCode" Label="@L["currency", "Currency"]"
+                               Variant="Variant.Outlined" Dense="true" Required="true">
+                        @foreach (var c in _currencies)
+                        {
+                            <MudSelectItem T="string" Value="@c.CurrencyCode">
+                                @c.CurrencyCode @(c.IsDefault ? $"({L["default", "Default"]})" : "")
+                            </MudSelectItem>
+                        }
+                    </MudSelect>
+                </MudItem>
+                <MudItem xs="12">
+                    <DNMoneyField @bind-Value="_delta"
+                                  Label="@L["wallets.adjust.delta", "Amount change (+/-)"]"
+                                  DecimalDigits="@MoneyFormat.EffectiveDigits(_currencyCode)"
                                   Min="@null" Required="true" />
                 </MudItem>
                 <MudItem xs="12">
@@ -30,12 +43,24 @@
     [CascadingParameter] private IMudDialogInstance MudDialog { get; set; } = null!;
     [Parameter] public int WebsiteId { get; set; }
     [Parameter] public int ClientId { get; set; }
+    [Parameter] public string? CurrencyCode { get; set; }
 
     private MudForm _form = null!;
     private bool _saving;
     private string[]? _formErrors;
     private decimal _delta;
     private string? _note;
+    private string _currencyCode = "";
+    private List<WebsiteWalletCurrency> _currencies = new();
+
+    protected override async Task OnInitializedAsync()
+    {
+        await L.EnsureLoadedAsync();
+        _currencies = (await WalletService.GetEnabledWalletCurrenciesAsync(WebsiteId)).ToList();
+        _currencyCode = !string.IsNullOrWhiteSpace(CurrencyCode)
+            ? CurrencyCode
+            : (_currencies.FirstOrDefault(c => c.IsDefault)?.CurrencyCode ?? _currencies.FirstOrDefault()?.CurrencyCode ?? "");
+    }
 
     private void Cancel() => MudDialog.Cancel();
 
@@ -43,7 +68,7 @@
     {
         await _form.Validate();
         _formErrors = _form.Errors;
-        if (!_form.IsValid || _delta == 0 || string.IsNullOrWhiteSpace(_note)) return;
+        if (!_form.IsValid || _delta == 0 || string.IsNullOrWhiteSpace(_note) || string.IsNullOrWhiteSpace(_currencyCode)) return;
 
         _saving = true;
         try
@@ -58,7 +83,8 @@
                 (byte)ClientWalletSourceType.AdminManual,
                 null,
                 _note,
-                memberId);
+                memberId,
+                _currencyCode);
 
             MudDialog.Close(DialogResult.Ok(true));
         }

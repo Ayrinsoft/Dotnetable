@@ -733,6 +733,13 @@ namespace Dotnetable.Migrations.PostgreSql.Migrations
                         .HasPrecision(0)
                         .HasColumnType("timestamp(0) with time zone");
 
+                    b.Property<string>("CurrencyCode")
+                        .IsRequired()
+                        .HasMaxLength(3)
+                        .IsUnicode(false)
+                        .HasColumnType("character(3)")
+                        .IsFixedLength();
+
                     b.Property<bool>("IsActive")
                         .HasColumnType("boolean");
 
@@ -750,9 +757,11 @@ namespace Dotnetable.Migrations.PostgreSql.Migrations
 
                     b.HasKey("ClientWalletID");
 
+                    b.HasIndex(new[] { "CurrencyCode" }, "IX_ClientWallets_CurrencyCode");
+
                     b.HasIndex(new[] { "WebsiteID" }, "IX_ClientWallets_WebsiteID");
 
-                    b.HasIndex(new[] { "WebsiteClientID" }, "UQ_ClientWallets_WebsiteClientID")
+                    b.HasIndex(new[] { "WebsiteClientID", "CurrencyCode" }, "UQ_ClientWallets_Client_Currency")
                         .IsUnique();
 
                     b.ToTable("ClientWallets");
@@ -834,6 +843,13 @@ namespace Dotnetable.Migrations.PostgreSql.Migrations
 
                     b.Property<int>("ClientWalletID")
                         .HasColumnType("integer");
+
+                    b.Property<string>("CurrencyCode")
+                        .IsRequired()
+                        .HasMaxLength(3)
+                        .IsUnicode(false)
+                        .HasColumnType("character(3)")
+                        .IsFixedLength();
 
                     b.Property<DateTime?>("PaidAt")
                         .HasPrecision(0)
@@ -5892,6 +5908,46 @@ namespace Dotnetable.Migrations.PostgreSql.Migrations
                     b.ToTable("WebsiteThemes");
                 });
 
+            modelBuilder.Entity("Dotnetable.Domain.Entities.WebsiteWalletCurrency", b =>
+                {
+                    b.Property<int>("WebsiteWalletCurrencyID")
+                        .ValueGeneratedOnAdd()
+                        .HasColumnType("integer");
+
+                    NpgsqlPropertyBuilderExtensions.UseIdentityByDefaultColumn(b.Property<int>("WebsiteWalletCurrencyID"));
+
+                    b.Property<DateTime>("CreatedAt")
+                        .HasPrecision(0)
+                        .HasColumnType("timestamp(0) with time zone");
+
+                    b.Property<string>("CurrencyCode")
+                        .IsRequired()
+                        .HasMaxLength(3)
+                        .IsUnicode(false)
+                        .HasColumnType("character(3)")
+                        .IsFixedLength();
+
+                    b.Property<bool>("IsActive")
+                        .HasColumnType("boolean");
+
+                    b.Property<bool>("IsDefault")
+                        .HasColumnType("boolean");
+
+                    b.Property<int>("WebsiteID")
+                        .HasColumnType("integer");
+
+                    b.HasKey("WebsiteWalletCurrencyID");
+
+                    b.HasIndex(new[] { "CurrencyCode" }, "IX_WebsiteWalletCurrencies_CurrencyCode");
+
+                    b.HasIndex(new[] { "WebsiteID" }, "IX_WebsiteWalletCurrencies_WebsiteID");
+
+                    b.HasIndex(new[] { "WebsiteID", "CurrencyCode" }, "UQ_WebsiteWalletCurrencies_Website_Currency")
+                        .IsUnique();
+
+                    b.ToTable("WebsiteWalletCurrencies");
+                });
+
             modelBuilder.Entity("Dotnetable.Domain.Entities.WebsiteWatermarkSetting", b =>
                 {
                     b.Property<int>("WebsiteWatermarkSettingID")
@@ -6296,9 +6352,15 @@ namespace Dotnetable.Migrations.PostgreSql.Migrations
 
             modelBuilder.Entity("Dotnetable.Domain.Entities.ClientWallet", b =>
                 {
+                    b.HasOne("Dotnetable.Domain.Entities.Currency", "CurrencyCodeNavigation")
+                        .WithMany("ClientWallets")
+                        .HasForeignKey("CurrencyCode")
+                        .IsRequired()
+                        .HasConstraintName("FK_ClientWallets_Currencies");
+
                     b.HasOne("Dotnetable.Domain.Entities.WebsiteClient", "WebsiteClient")
-                        .WithOne("ClientWallet")
-                        .HasForeignKey("Dotnetable.Domain.Entities.ClientWallet", "WebsiteClientID")
+                        .WithMany("ClientWallets")
+                        .HasForeignKey("WebsiteClientID")
                         .IsRequired()
                         .HasConstraintName("FK_ClientWallets_WebsiteClients");
 
@@ -6307,6 +6369,8 @@ namespace Dotnetable.Migrations.PostgreSql.Migrations
                         .HasForeignKey("WebsiteID")
                         .IsRequired()
                         .HasConstraintName("FK_ClientWallets_Websites");
+
+                    b.Navigation("CurrencyCodeNavigation");
 
                     b.Navigation("Website");
 
@@ -8512,6 +8576,25 @@ namespace Dotnetable.Migrations.PostgreSql.Migrations
                     b.Navigation("Website");
                 });
 
+            modelBuilder.Entity("Dotnetable.Domain.Entities.WebsiteWalletCurrency", b =>
+                {
+                    b.HasOne("Dotnetable.Domain.Entities.Currency", "CurrencyCodeNavigation")
+                        .WithMany("WebsiteWalletCurrencies")
+                        .HasForeignKey("CurrencyCode")
+                        .IsRequired()
+                        .HasConstraintName("FK_WebsiteWalletCurrencies_Currencies");
+
+                    b.HasOne("Dotnetable.Domain.Entities.Website", "Website")
+                        .WithMany("WebsiteWalletCurrencies")
+                        .HasForeignKey("WebsiteID")
+                        .IsRequired()
+                        .HasConstraintName("FK_WebsiteWalletCurrencies_Websites");
+
+                    b.Navigation("CurrencyCodeNavigation");
+
+                    b.Navigation("Website");
+                });
+
             modelBuilder.Entity("Dotnetable.Domain.Entities.WebsiteWatermarkSetting", b =>
                 {
                     b.HasOne("Dotnetable.Domain.Entities.FileRecord", "WatermarkFile")
@@ -8711,6 +8794,8 @@ namespace Dotnetable.Migrations.PostgreSql.Migrations
 
             modelBuilder.Entity("Dotnetable.Domain.Entities.Currency", b =>
                 {
+                    b.Navigation("ClientWallets");
+
                     b.Navigation("CurrencyRates");
 
                     b.Navigation("Orders");
@@ -8722,6 +8807,8 @@ namespace Dotnetable.Migrations.PostgreSql.Migrations
                     b.Navigation("StockMovements");
 
                     b.Navigation("Suppliers");
+
+                    b.Navigation("WebsiteWalletCurrencies");
 
                     b.Navigation("Websites");
                 });
@@ -9280,6 +9367,8 @@ namespace Dotnetable.Migrations.PostgreSql.Migrations
 
                     b.Navigation("WebsiteThemes");
 
+                    b.Navigation("WebsiteWalletCurrencies");
+
                     b.Navigation("WebsiteWatermarkSettings");
 
                     b.Navigation("Wishlists");
@@ -9291,9 +9380,9 @@ namespace Dotnetable.Migrations.PostgreSql.Migrations
 
                     b.Navigation("ClientBankAccounts");
 
-                    b.Navigation("ClientWallet");
-
                     b.Navigation("ClientWalletWithdrawals");
+
+                    b.Navigation("ClientWallets");
 
                     b.Navigation("CouponRedemptions");
 

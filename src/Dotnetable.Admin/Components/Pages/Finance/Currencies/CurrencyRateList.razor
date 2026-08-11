@@ -3,6 +3,7 @@
 @inject ICurrencyRateService CurrencyRateService
 @inject ICurrencyService CurrencyService
 @inject IWebsiteService WebsiteService
+@inject IClientWalletService WalletService
 @inject AuthenticationStateProvider AuthState
 @inject IDialogService DialogService
 @inject ISnackbar Snackbar
@@ -15,8 +16,8 @@
         <MudText Typo="Typo.h5" Class="fw-bold">@L["currency_rates", "Exchange Rates"]</MudText>
         <MudText Typo="Typo.body2" Color="Color.Secondary">
             @(_storePricesInUsd
-                ? L["currency_rates.subtitle_multi", "Multi-currency is on. Enter how many units of each currency equal 1 USD (e.g. IRR ≈ 2,000,000). Catalog prices stay in the site currency; USD dual storage enables conversion for other storefront currencies."]
-                : L["currency_rates.subtitle_single", "This site runs in a single currency by default. Set the default rate for the site currency here. Turn on multi-currency below only if you need USD dual storage and extra display currencies."])
+                ? L["currency_rates.subtitle_multi", "Product multi-currency is on: catalog stays in site currency; USD dual storage enables live conversion to other storefront currencies. Customer wallets are separate — one ledger per wallet currency (not dual-stored)."]
+                : L["currency_rates.subtitle_single", "Products and money operate in the site default currency. Enable product multi-currency (USD dual) only if you need multi-rate storefront conversion. Wallets always use separate accounts per currency."])
         </MudText>
     </MudStack>
     <MudStack Row="true" Spacing="2" AlignItems="AlignItems.Center">
@@ -45,7 +46,7 @@
                 <MudText Typo="Typo.subtitle1" Class="fw-bold">@L["currency_rates.site_mode", "Website currency mode"]</MudText>
             </MudStack>
             <MudText Typo="Typo.body2" Color="Color.Secondary">
-                @L["currency_rates.site_mode_hint", "Off: operate only in the site default currency (KRW, IRR, …) — no multi-currency switcher. On: also keep USD dual amounts and allow other display currencies via the rates table below."]
+                @L["currency_rates.site_mode_hint", "Applies to catalog products only. Off: single site currency for prices. On: also store USD dual product prices and convert via rates for multi-currency storefront display. Customer wallets / orders / other money use site currency (or separate wallet accounts), not this dual store."]
             </MudText>
             @if (!string.IsNullOrEmpty(_defaultCurrencyCode))
             {
@@ -57,7 +58,7 @@
         <MudStack AlignItems="AlignItems.End" Spacing="1">
             <MudSwitch T="bool" Value="_storePricesInUsd" ValueChanged="OnStorePricesInUsdChanged"
                        Color="Color.Primary" Disabled="@(!_canEdit || _savingMode || _websiteId <= 0)"
-                       Label="@L["currency_rates.enable_multi", "Enable multi-currency via USD"]" />
+                       Label="@L["currency_rates.enable_multi", "Products: dual-store USD + multi-rate conversion"]" />
             @if (_savingMode)
             {
                 <MudProgressCircular Size="Size.Small" Indeterminate="true" />
@@ -67,10 +68,59 @@
     @if (!_storePricesInUsd)
     {
         <DNDismissibleAlert StorageKey="currency-rates.single-mode-note" Class="mt-3">
-            @L["currency_rates.single_mode_note", "Single-currency mode: only the default rate is used for this site. Extra currencies are ignored until multi-currency is enabled."]
+            @L["currency_rates.single_mode_note", "Product single-currency mode: only the site default catalog currency is used. Extra rate rows are ignored for storefront conversion until product dual-USD is enabled."]
         </DNDismissibleAlert>
     }
 </MudPaper>
+
+@* ── Wallet currencies (separate accounts, not dual-USD) ── *@
+@if (_websiteId > 0)
+{
+    <MudPaper Elevation="0" Class="border rounded-lg pa-4 mb-4">
+        <MudStack Row="true" AlignItems="AlignItems.Center" Justify="Justify.SpaceBetween" Class="mb-2">
+            <MudStack Spacing="1">
+                <MudText Typo="Typo.subtitle1" Class="fw-bold">@L["wallets.currencies", "Customer wallet currencies"]</MudText>
+                <MudText Typo="Typo.caption" Color="Color.Secondary">
+                    @L["wallets.currencies_hint", "Each enabled currency is a separate wallet ledger for customers (e.g. IRR and USD balances are independent). The site default is always on."]
+                </MudText>
+            </MudStack>
+            @if (_canEdit)
+            {
+                <MudStack Row="true" Spacing="2">
+                    <MudSelect T="string" @bind-Value="_walletCurrencyToAdd" Label="@L["currency", "Currency"]" Variant="Variant.Outlined"
+                               Dense="true" Style="min-width:140px">
+                        @foreach (var c in _currencies.Where(x => x.IsActive && !_walletCurrencies.Any(w => w.CurrencyCode == x.CurrencyCode && w.IsActive)))
+                        {
+                            <MudSelectItem T="string" Value="@c.CurrencyCode">@c.CurrencyCode — @c.Name</MudSelectItem>
+                        }
+                    </MudSelect>
+                    <MudButton Variant="Variant.Outlined" Color="Color.Primary" Disabled="@(string.IsNullOrEmpty(_walletCurrencyToAdd) || _savingWallet)"
+                               OnClick="EnableWalletCurrencyAsync">
+                        @L["add", "Add"]
+                    </MudButton>
+                </MudStack>
+            }
+        </MudStack>
+        <MudStack Row="true" Spacing="1" Class="flex-wrap" AlignItems="AlignItems.Center">
+            @foreach (var w in _walletCurrencies)
+            {
+                <MudChip T="string" Color="@(w.IsDefault ? Color.Primary : Color.Default)" Class="me-1">
+                    @w.CurrencyCode @(w.IsDefault ? $"({L["default", "Default"]})" : "")
+                </MudChip>
+                @if (!w.IsDefault && _canEdit)
+                {
+                    <MudIconButton Icon="@Icons.Material.Filled.Close" Size="Size.Small" Class="ms-n2"
+                                   OnClick="@(() => DisableWalletCurrencyAsync(w.CurrencyCode))"
+                                   title="@L["remove", "Remove"]" />
+                }
+            }
+            @if (_walletCurrencies.Count == 0)
+            {
+                <MudText Typo="Typo.caption" Color="Color.Secondary">@L["wallets.currencies_empty", "Default wallet currency will be created on first use."]</MudText>
+            }
+        </MudStack>
+    </MudPaper>
+}
 
 <DNPrerequisiteAlert Items="_prerequisites" />
 
@@ -133,12 +183,14 @@
     private bool _loading = true;
     private bool _isMaster, _canEdit;
     private bool _storePricesInUsd;
-    private bool _savingMode;
+    private bool _savingMode, _savingWallet;
     private string _defaultCurrencyCode = "";
+    private string _walletCurrencyToAdd = "";
     private int _websiteId;
     private List<CurrencyRate> _items = new();
     private List<Currency> _currencies = new();
     private List<Website> _websites = new();
+    private List<WebsiteWalletCurrency> _walletCurrencies = new();
     private List<DNPrerequisiteAlert.Item> _prerequisites = new();
     private GridViewHeaderParameters _grid = new();
 
@@ -180,11 +232,13 @@
             var website = await WebsiteService.GetByIdAsync(_websiteId);
             _storePricesInUsd = website?.StorePricesInUsd ?? false;
             _defaultCurrencyCode = website?.DefaultCurrencyCode ?? "";
+            _walletCurrencies = (await WalletService.GetEnabledWalletCurrenciesAsync(_websiteId)).ToList();
         }
         else
         {
             _storePricesInUsd = false;
             _defaultCurrencyCode = "";
+            _walletCurrencies = new();
         }
 
         var result = await CurrencyRateService.GetPagedAsync(_websiteId, _grid.ToQuery());
@@ -270,4 +324,34 @@
 
     private static string FormatInverse(decimal usdToCurrency) =>
         (1m / usdToCurrency).ToString("0.##########");
+
+    private async Task EnableWalletCurrencyAsync()
+    {
+        if (_websiteId <= 0 || string.IsNullOrWhiteSpace(_walletCurrencyToAdd)) return;
+        _savingWallet = true;
+        try
+        {
+            var (ok, err) = await WalletService.EnableWalletCurrencyAsync(_websiteId, _walletCurrencyToAdd);
+            if (ok)
+            {
+                Snackbar.Add(L["saved", "Saved."], Severity.Success);
+                _walletCurrencyToAdd = "";
+                _walletCurrencies = (await WalletService.GetEnabledWalletCurrenciesAsync(_websiteId)).ToList();
+            }
+            else Snackbar.Add(err ?? L["save_failed", "Save failed"], Severity.Warning);
+        }
+        finally { _savingWallet = false; }
+    }
+
+    private async Task DisableWalletCurrencyAsync(string code)
+    {
+        if (_websiteId <= 0) return;
+        var (ok, err) = await WalletService.DisableWalletCurrencyAsync(_websiteId, code);
+        if (ok)
+        {
+            Snackbar.Add(L["saved", "Saved."], Severity.Success);
+            _walletCurrencies = (await WalletService.GetEnabledWalletCurrenciesAsync(_websiteId)).ToList();
+        }
+        else Snackbar.Add(err ?? L["save_failed", "Save failed"], Severity.Warning);
+    }
 }

@@ -25,11 +25,11 @@ public class ClientWalletWithdrawalService : IClientWalletWithdrawalService
         _currency = currency;
     }
 
-    public async Task<ClientWalletWithdrawal> RequestAsync(int websiteId, int clientId, int clientBankAccountId, decimal amountUsd, CancellationToken ct = default)
+    public async Task<ClientWalletWithdrawal> RequestAsync(
+        int websiteId, int clientId, int clientBankAccountId, decimal amount,
+        string? currencyCode = null, CancellationToken ct = default)
     {
-        // amountUsd parameter: site-currency amount (operational); name kept for interface compatibility.
-        var amountLocal = amountUsd;
-        if (amountLocal <= 0)
+        if (amount <= 0)
             throw new InvalidOperationException("Withdrawal amount must be greater than zero.");
 
         var bankAccount = await _context.ClientBankAccounts.AsNoTracking()
@@ -40,16 +40,23 @@ public class ClientWalletWithdrawalService : IClientWalletWithdrawalService
         var holdTransaction = await _wallets.ApplyAsync(
             websiteId, clientId,
             (byte)ClientWalletTransactionType.WithdrawalHold,
-            -amountLocal,
+            -amount,
             (byte)ClientWalletSourceType.ClientWalletWithdrawal,
             null,
             "Withdrawal hold",
             memberId: null,
+            currencyCode,
             ct);
 
-        decimal amountUsdDual;
-        try { amountUsdDual = await _currency.ToUsdAsync(websiteId, amountLocal, null, ct); }
-        catch (InvalidOperationException) { amountUsdDual = amountLocal; }
+        var wallet = await _context.ClientWallets.AsNoTracking()
+            .FirstAsync(w => w.ClientWalletID == holdTransaction.ClientWalletID, ct);
+
+        decimal amountUsdDual = 0;
+        if (await _currency.GetStorePricesInUsdAsync(websiteId, ct))
+        {
+            try { amountUsdDual = await _currency.ToUsdAsync(websiteId, amount, wallet.CurrencyCode, ct); }
+            catch (InvalidOperationException) { amountUsdDual = 0; }
+        }
 
         var withdrawal = new ClientWalletWithdrawal
         {
@@ -57,7 +64,8 @@ public class ClientWalletWithdrawalService : IClientWalletWithdrawalService
             WebsiteClientID = clientId,
             ClientWalletID = holdTransaction.ClientWalletID,
             ClientBankAccountID = clientBankAccountId,
-            Amount = amountLocal,
+            CurrencyCode = wallet.CurrencyCode,
+            Amount = amount,
             AmountUsd = amountUsdDual,
             Status = (byte)ClientWalletWithdrawalStatus.Pending,
             RequestedAt = DateTime.UtcNow,
@@ -72,7 +80,7 @@ public class ClientWalletWithdrawalService : IClientWalletWithdrawalService
             websiteId,
             AdminNotificationType.WithdrawalRequested,
             "Withdrawal requested",
-            $"Customer #{clientId} requested a withdrawal of {amountLocal:0.##}.",
+            $"Customer #{clientId} requested a withdrawal of {amount:0.##} {wallet.CurrencyCode}.",
             "/wallets/withdrawals",
             withdrawal.ClientWalletWithdrawalID,
             ct);
@@ -156,7 +164,7 @@ public class ClientWalletWithdrawalService : IClientWalletWithdrawalService
         if (withdrawal is null || withdrawal.Status != (byte)ClientWalletWithdrawalStatus.Pending)
             return false;
 
-        // Reverse the held funds back into the customer's wallet (site-currency amount).
+        // Reverse the held funds into the same currency wallet.
         var reverseAmount = withdrawal.Amount != 0 || withdrawal.AmountUsd == 0
             ? withdrawal.Amount
             : withdrawal.AmountUsd;
@@ -168,6 +176,7 @@ public class ClientWalletWithdrawalService : IClientWalletWithdrawalService
             withdrawal.ClientWalletWithdrawalID,
             "Withdrawal rejected",
             memberId,
+            withdrawal.CurrencyCode,
             ct);
 
         withdrawal.Status = (byte)ClientWalletWithdrawalStatus.Rejected;

@@ -39,7 +39,7 @@ public partial class WebsiteClient
 
     public virtual ICollection<ClientBankAccount> ClientBankAccounts { get; set; } = new List<ClientBankAccount>();
 
-    public virtual ClientWallet? ClientWallet { get; set; }
+    public virtual ICollection<ClientWallet> ClientWallets { get; set; } = new List<ClientWallet>();
 
     public virtual ICollection<ClientWalletWithdrawal> ClientWalletWithdrawals { get; set; } = new List<ClientWalletWithdrawal>();
 

@@ -2,6 +2,7 @@
 @attribute [Authorize(Policy = RoleKeys.WalletsView)]
 @inject IClientWalletService WalletService
 @inject IWebsiteClientService ClientService
+@inject IWebsiteService WebsiteService
 @inject AuthenticationStateProvider AuthState
 @inject NavigationManager Nav
 @inject IDialogService DialogService
@@ -25,7 +26,10 @@ else
     <MudStack Row="true" AlignItems="AlignItems.Center" Justify="Justify.SpaceBetween" Class="mb-4">
         <MudStack Spacing="0">
             <MudText Typo="Typo.h5" Class="fw-bold">@(_client.Email ?? _client.Cellphone ?? $"#{_client.WebsiteClientID}")</MudText>
-            <MudText Typo="Typo.body2" Color="Color.Secondary">@L["wallets.client_wallet", "Customer Wallet"]</MudText>
+            <MudText Typo="Typo.body2" Color="Color.Secondary">
+                @L["wallets.client_wallet", "Customer Wallet"] —
+                @L["wallets.multi_currency_hint", "Separate balance per currency"]
+            </MudText>
         </MudStack>
         @if (_canAdjust)
         {
@@ -35,13 +39,38 @@ else
         }
     </MudStack>
 
-    <MudPaper Elevation="0" Class="border rounded-lg pa-6 mb-4">
-        <MudText Typo="Typo.body2" Color="Color.Secondary">@L["wallets.balance", "Current Balance"]</MudText>
-        <MudText Typo="Typo.h4" Class="fw-bold">@_balance.ToString("N2")</MudText>
-    </MudPaper>
+    <MudGrid Spacing="2" Class="mb-4">
+        @foreach (var w in _wallets)
+        {
+            <MudItem xs="12" sm="6" md="4">
+                <MudPaper Elevation="0" Class="border rounded-lg pa-4"
+                          Style="@(_selectedCurrency == w.CurrencyCode ? "outline:2px solid var(--mud-palette-primary)" : null)"
+                          @onclick="@(() => SelectCurrency(w.CurrencyCode))">
+                    <MudStack Row="true" Justify="Justify.SpaceBetween" AlignItems="AlignItems.Center">
+                        <MudText Typo="Typo.subtitle2">@w.CurrencyCode</MudText>
+                        @if (string.Equals(w.CurrencyCode, _defaultCurrency, StringComparison.OrdinalIgnoreCase))
+                        {
+                            <MudChip T="string" Size="Size.Small" Color="Color.Primary">@L["default", "Default"]</MudChip>
+                        }
+                    </MudStack>
+                    <MudText Typo="Typo.h5" Class="fw-bold mt-1">
+                        @MoneyFormat.GroupWithCode(w.Balance, w.CurrencyCode)
+                    </MudText>
+                </MudPaper>
+            </MudItem>
+        }
+    </MudGrid>
 
     <MudPaper Elevation="0" Class="app-card rounded-lg pa-4">
-        <MudText Typo="Typo.subtitle1" Class="fw-bold mb-3">@L["wallets.history", "Transaction History"]</MudText>
+        <MudStack Row="true" Justify="Justify.SpaceBetween" AlignItems="AlignItems.Center" Class="mb-3">
+            <MudText Typo="Typo.subtitle1" Class="fw-bold">
+                @L["wallets.history", "Transaction History"]
+                @if (!string.IsNullOrEmpty(_selectedCurrency))
+                {
+                    <span>(@_selectedCurrency)</span>
+                }
+            </MudText>
+        </MudStack>
         @if (_historyLoading)
         {
             <MudProgressLinear Indeterminate="true" Color="Color.Primary" Class="mb-3" />
@@ -62,11 +91,10 @@ else
                     <tr>
                         <td>@t.ClientWalletTransactionID</td>
                         <td>@TypeName(t.Type)</td>
-                        <td style="color:@((t.Amount != 0 ? t.Amount : t.AmountUsd) < 0 ? "var(--mud-palette-error)" : "var(--mud-palette-success)")">
-                            @{ var amt = t.Amount != 0 || t.AmountUsd == 0 ? t.Amount : t.AmountUsd; }
-                            @(amt < 0 ? "" : "+")@amt.ToString("N2")
+                        <td style="color:@(t.Amount < 0 ? "var(--mud-palette-error)" : "var(--mud-palette-success)")">
+                            @(t.Amount < 0 ? "" : "+")@MoneyFormat.Group(t.Amount, _selectedCurrency)
                         </td>
-                        <td>@t.BalanceAfterUsd.ToString("N2")</td>
+                        <td>@MoneyFormat.Group(t.BalanceAfter, _selectedCurrency)</td>
                         <td>@(t.Note ?? "—")</td>
                         <td>@t.CreatedAt.ToString("yyyy-MM-dd HH:mm")</td>
                     </tr>
@@ -83,7 +111,9 @@ else
     private bool _historyLoading = true;
     private bool _canAdjust;
     private WebsiteClient? _client;
-    private decimal _balance;
+    private List<ClientWallet> _wallets = new();
+    private string _selectedCurrency = "";
+    private string _defaultCurrency = "";
     private List<ClientWalletTransaction> _transactions = new();
     private GridViewHeaderParameters _grid = new();
 
@@ -105,6 +135,9 @@ else
         _loading = false;
         if (_client is null) return;
 
+        var website = await WebsiteService.GetByIdAsync(_client.WebsiteID);
+        _defaultCurrency = website?.DefaultCurrencyCode ?? "";
+
         _grid = new GridViewHeaderParameters
         {
             Pagination = new PaginationModel { PageSize = 20 },
@@ -113,13 +146,28 @@ else
                 new() { ColumnTitle = L["id", "ID"], ColumnName = nameof(ClientWalletTransaction.ClientWalletTransactionID), HasSort = true },
                 new() { ColumnTitle = L["type", "Type"], ColumnName = nameof(ClientWalletTransaction.Type) },
                 new() { ColumnTitle = L["amount", "Amount"], ColumnName = nameof(ClientWalletTransaction.Amount) },
-                new() { ColumnTitle = L["wallets.balance_after", "Balance After"], ColumnName = nameof(ClientWalletTransaction.BalanceAfterUsd) },
+                new() { ColumnTitle = L["wallets.balance_after", "Balance After"], ColumnName = nameof(ClientWalletTransaction.BalanceAfter) },
                 new() { ColumnTitle = L["note", "Note"], ColumnName = nameof(ClientWalletTransaction.Note) },
                 new() { ColumnTitle = L["wallets.date", "Date"], ColumnName = nameof(ClientWalletTransaction.CreatedAt), HasSort = true },
             }
         };
 
-        _balance = await WalletService.GetBalanceAsync(ClientId);
+        await ReloadWalletsAsync();
+    }
+
+    private async Task ReloadWalletsAsync()
+    {
+        if (_client is null) return;
+        _wallets = (await WalletService.ListForClientAsync(_client.WebsiteID, ClientId)).ToList();
+        if (string.IsNullOrEmpty(_selectedCurrency) || _wallets.All(w => w.CurrencyCode != _selectedCurrency))
+            _selectedCurrency = _wallets.FirstOrDefault()?.CurrencyCode ?? _defaultCurrency;
+        await LoadHistoryAsync();
+    }
+
+    private async Task SelectCurrency(string code)
+    {
+        _selectedCurrency = code;
+        _grid.Pagination.PageIndex = 1;
         await LoadHistoryAsync();
     }
 
@@ -127,8 +175,9 @@ else
 
     private async Task LoadHistoryAsync()
     {
+        if (_client is null) return;
         _historyLoading = true;
-        var result = await WalletService.GetHistoryAsync(ClientId, _grid.ToQuery());
+        var result = await WalletService.GetHistoryAsync(_client.WebsiteID, ClientId, _grid.ToQuery(), _selectedCurrency);
         _transactions = result.Items.ToList();
         _grid.Pagination.MaxLength = result.TotalCount;
         _historyLoading = false;
@@ -150,13 +199,13 @@ else
         {
             { x => x.WebsiteId, _client!.WebsiteID },
             { x => x.ClientId, ClientId },
+            { x => x.CurrencyCode, _selectedCurrency },
         };
         var dialog = await DialogService.ShowAsync<AdjustWalletDialog>(L["wallets.adjust", "Adjust Balance"], parameters);
         var result = await dialog.Result;
         if (result is null || result.Canceled) return;
 
         Snackbar.Add(L["saved", "Saved."], Severity.Success);
-        _balance = await WalletService.GetBalanceAsync(ClientId);
-        await LoadHistoryAsync();
+        await ReloadWalletsAsync();
     }
 }

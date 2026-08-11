@@ -136,6 +136,7 @@
     <Build Include="ClientWallets.sql" />
     <Build Include="ClientWalletTransactions.sql" />
     <Build Include="ClientWalletWithdrawals.sql" />
+    <Build Include="WebsiteWalletCurrencies.sql" />
     <Build Include="ContactUsMessages.sql" />
     <Build Include="Countries.sql" />
     <Build Include="CountryTranslations.sql" />

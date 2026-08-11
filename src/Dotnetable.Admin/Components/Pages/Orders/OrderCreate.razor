@@ -266,8 +266,8 @@ else
                         <MudSelectItem T="int?" Value="@m.ShippingMethodID">@m.Title</MudSelectItem>
                     }
                 </MudSelect>
-                <MudNumericField T="decimal" @bind-Value="_shippingTotal" Label="@L["orders.shipping_amount", "Shipping amount (0 = free / quote later)"]"
-                                 Variant="Variant.Outlined" Dense="true" Min="0" />
+                <DNMoneyField @bind-Value="_shippingTotal" Label="@L["orders.shipping_amount", "Shipping amount (0 = free / quote later)"]"
+                              DecimalDigits="_moneyDigits" Min="0" />
             </MudPaper>
 
             <MudPaper Elevation="0" Class="app-card rounded-lg pa-4">
@@ -282,8 +282,8 @@ else
                         <MudSelectItem T="PaymentMethod" Value="PaymentMethod.Manual">@L["payments.method.manual", "Manual / cash / POS"]</MudSelectItem>
                         <MudSelectItem T="PaymentMethod" Value="PaymentMethod.CashOnDelivery">@L["payments.method.cod", "Cash on delivery"]</MudSelectItem>
                     </MudSelect>
-                    <MudNumericField T="decimal?" @bind-Value="_payAmount" Label="@L["orders.paid_amount", "Amount received (blank = grand total)"]"
-                                     Variant="Variant.Outlined" Dense="true" Min="0" Class="mb-2" />
+                    <DNMoneyFieldNullable @bind-Value="_payAmount" Label="@L["orders.paid_amount", "Amount received (blank = grand total)"]"
+                                          DecimalDigits="_moneyDigits" Min="0" Class="mb-2" Clearable="true" />
                     <MudDatePicker @bind-Date="_payDate" Label="@L["payments.paid_date", "Payment date"]" Variant="Variant.Outlined"
                                    Dense="true" Class="mb-2" Editable="true" Required="true"
                                    RequiredError="@L["required", "This field is required."]" />
