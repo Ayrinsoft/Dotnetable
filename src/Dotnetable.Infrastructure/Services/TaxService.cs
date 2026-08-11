@@ -10,9 +10,11 @@ namespace Dotnetable.Infrastructure.Services;
 
 public class TaxService : ITaxService
 {
-    private readonly AppDbContext _context;
+    // Prefer ambient UoW context when OrderService (etc.) has an open multi-service transaction.
+    private readonly AppDbContext _fallback;
+    private AppDbContext _context => AmbientDbContext.Current ?? _fallback;
 
-    public TaxService(AppDbContext context) => _context = context;
+    public TaxService(AppDbContext context) => _fallback = context;
 
     public async Task<List<TaxRate>> GetAllAsync(int websiteId, CancellationToken ct = default) =>
         await _context.TaxRates.AsNoTracking()

@@ -48,3 +48,44 @@ Even with Transient injection, **two concurrent queries inside the same service 
 - Fire-and-forget (`_ = DoDbWorkAsync()`) while another call uses `_context`
 
 Mitigation: use `IDbContextFactory` per operation, not a field.
+
+## Multi-service transactions (critical)
+
+Because each service owns a **different** Transient context, this pattern deadlocks / times out on SQL Server:
+
+```csharp
+// OrderService._context  (connection A)
+await using var tx = await _context.Database.BeginTransactionAsync(ct);
+_context.Orders.Add(order);
+await _context.SaveChangesAsync(ct); // exclusive locks on uncommitted Order row
+
+// VendorCreditService._context  (connection B) — waits for A's locks until command timeout
+await _vendorCredit.SettleHostOrderAsync(order.OrderID, ct);
+```
+
+Symptom:
+
+```
+Microsoft.Data.SqlClient.SqlException: Execution Timeout Expired.
+```
+
+often on the first `Orders` query inside `VendorCreditService.SettleHostOrderAsync`.
+
+### Fix: ambient unit-of-work context
+
+```csharp
+await using var tx = await _context.Database.BeginTransactionAsync(ct);
+using var ambient = AmbientDbContext.Use(_context); // nested services join connection A
+
+await _vendorCredit.SettleHostOrderAsync(order.OrderID, ct);
+await tx.CommitAsync(ct);
+```
+
+Order-path services resolve context as:
+
+```csharp
+private readonly AppDbContext _fallback;
+private AppDbContext _context => AmbientDbContext.Current ?? _fallback;
+```
+
+See `AmbientDbContext.cs`. Apply `AmbientDbContext.Use` around any block that opens a transaction and then calls other DbContext-backed services.

@@ -10,7 +10,10 @@ namespace Dotnetable.Infrastructure.Services;
 
 public class VendorCreditService : IVendorCreditService
 {
-    private readonly AppDbContext _context;
+    // Prefer ambient UoW context when OrderService (etc.) has an open multi-service transaction.
+    private readonly AppDbContext _fallback;
+    private AppDbContext _context => AmbientDbContext.Current ?? _fallback;
+
     private readonly IVendorService _vendors;
     private readonly ICurrencyConversionService _currency;
     private readonly ISupplierService _suppliers;
@@ -23,7 +26,7 @@ public class VendorCreditService : IVendorCreditService
         ISupplierService suppliers,
         ITaxService tax)
     {
-        _context = context;
+        _fallback = context;
         _vendors = vendors;
         _currency = currency;
         _suppliers = suppliers;

@@ -166,6 +166,9 @@ public class OrderService : IOrderService
         return await strategy.ExecuteAsync(async () =>
         {
             await using var tx = await _context.Database.BeginTransactionAsync(ct);
+            // AppDbContext is Transient — nested services get their own connection unless ambient is set.
+            // Without this, SettleHostOrderAsync blocks on the uncommitted order row until SQL timeout.
+            using var ambient = AmbientDbContext.Use(_context);
 
             var order = new Order
             {
@@ -363,6 +366,9 @@ public class OrderService : IOrderService
 
     public async Task<bool> TransitionStatusAsync(int orderId, OrderStatus newStatus, int? memberId, string? note, CancellationToken ct = default)
     {
+        // Share one context with inventory / digital / credit services (Transient AppDbContext).
+        using var ambient = AmbientDbContext.Use(_context);
+
         var order = await _context.Orders.Include(o => o.OrderItems).FirstOrDefaultAsync(o => o.OrderID == orderId, ct);
         if (order is null) return false;
 
@@ -707,6 +713,9 @@ public class OrderService : IOrderService
         return await strategy.ExecuteAsync(async () =>
         {
         await using var tx = await _context.Database.BeginTransactionAsync(ct);
+        // AppDbContext is Transient — nested services get their own connection unless ambient is set.
+        // Without this, SettleHostOrderAsync blocks on the uncommitted order row until SQL timeout.
+        using var ambient = AmbientDbContext.Use(_context);
 
         var order = new Order
         {
