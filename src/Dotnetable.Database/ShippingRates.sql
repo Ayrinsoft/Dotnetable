@@ -6,6 +6,7 @@ CREATE TABLE [dbo].[ShippingRates] (
     [CityID]           INT             NULL,
     [MinWeightKg]      DECIMAL (10, 3) NULL,
     [MaxWeightKg]      DECIMAL (10, 3) NULL,
+    [Price]            DECIMAL (18, 4) NOT NULL CONSTRAINT [DF_ShippingRates_Price] DEFAULT ((0)),
     [PriceUsd]         DECIMAL (18, 4) NOT NULL,
     [IsActive]         BIT NOT NULL,
     CONSTRAINT [PK_ShippingRates] PRIMARY KEY CLUSTERED ([ShippingRateID] ASC),

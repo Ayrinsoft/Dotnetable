@@ -68,12 +68,28 @@ public class DatabaseUpdateService : IDatabaseUpdateService
             pending = (await context.Database.GetPendingMigrationsAsync(ct)).ToList();
         }
 
-        // 2) Additive migrations already partially applied (column present from a failed mid-run).
+        // 2) Additive migrations already partially applied (column present from a failed mid-run
+        //    or schema applied out-of-band via SSDT Schema Compare).
         await BaselineIfColumnExistsAsync(context, history, pending, productVersion,
             "SiteCurrencyPricing", "Websites", "StorePricesInUsd", ct);
         pending = (await context.Database.GetPendingMigrationsAsync(ct)).ToList();
         await BaselineIfColumnExistsAsync(context, history, pending, productVersion,
             "SiteCurrencyMoneyEverywhere", "ShippingRates", "Price", ct);
+        pending = (await context.Database.GetPendingMigrationsAsync(ct)).ToList();
+
+        // MultiCurrencyWallets: SSDT/schema-compare often ships ClientWallets.CurrencyCode +
+        // WebsiteWalletCurrencies without writing __EFMigrationsHistory. Re-running the migration
+        // fails on DropIndex(UQ_ClientWallets_WebsiteClientID) because that index is already gone.
+        await BaselineIfColumnExistsAsync(context, history, pending, productVersion,
+            "MultiCurrencyWallets", "ClientWallets", "CurrencyCode", ct);
+        pending = (await context.Database.GetPendingMigrationsAsync(ct)).ToList();
+        if (pending.Any(m => m.Contains("MultiCurrencyWallets", StringComparison.OrdinalIgnoreCase))
+            && await TableExistsAsync(context, "WebsiteWalletCurrencies", ct))
+        {
+            var multi = pending.First(m =>
+                m.Contains("MultiCurrencyWallets", StringComparison.OrdinalIgnoreCase));
+            await MarkAppliedAsync(context, history, multi, productVersion, ct);
+        }
     }
 
     private static async Task BaselineIfColumnExistsAsync(

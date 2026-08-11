@@ -16,6 +16,16 @@ CREATE TABLE [dbo].[Websites] (
     [LogoFileID]                     INT              NULL,
     [FaveIconFileID]                 INT              NULL,
     [DefaultCurrencyCode]            CHAR (3)         NOT NULL,
+    [StorePricesInUsd]               BIT              NOT NULL CONSTRAINT [DF_Websites_StorePricesInUsd] DEFAULT ((0)),
+    [TaxEnabled]                     BIT              NOT NULL CONSTRAINT [DF_Websites_TaxEnabled] DEFAULT ((1)),
+    [PricesIncludeTax]               BIT              NOT NULL CONSTRAINT [DF_Websites_PricesIncludeTax] DEFAULT ((0)),
+    [TaxOnShipping]                  BIT              NOT NULL CONSTRAINT [DF_Websites_TaxOnShipping] DEFAULT ((0)),
+    [TaxCountryID]                   INT              NULL,
+    [SellerLegalName]                NVARCHAR (200)   NULL,
+    [SellerTaxId]                    NVARCHAR (50)    NULL,
+    [SellerEconomicCode]             NVARCHAR (50)    NULL,
+    [SellerVatNumber]                NVARCHAR (50)    NULL,
+    [SellerRegistrationNumber]       NVARCHAR (50)    NULL,
     [AllowCashOnDelivery]            BIT              NOT NULL CONSTRAINT [DF_Websites_AllowCashOnDelivery] DEFAULT ((1)),
     [ReportOfflineOrdersToTax]       BIT              NOT NULL CONSTRAINT [DF_Websites_ReportOfflineOrdersToTax] DEFAULT ((0)),
     [FreeShippingMinOrderAmount]     DECIMAL (18, 4)  NOT NULL CONSTRAINT [DF_Websites_FreeShippingMinOrderAmount] DEFAULT ((0)),
@@ -23,7 +33,8 @@ CREATE TABLE [dbo].[Websites] (
     CONSTRAINT [PK_Websites] PRIMARY KEY CLUSTERED ([WebsiteID] ASC),
     CONSTRAINT [FK_Websites_Currencies] FOREIGN KEY ([DefaultCurrencyCode]) REFERENCES [dbo].[Currencies] ([CurrencyCode]),
     CONSTRAINT [FK_Websites_FileRecords] FOREIGN KEY ([LogoFileID]) REFERENCES [dbo].[FileRecords] ([FileRecordID]),
-    CONSTRAINT [FK_Websites_FileRecord1] FOREIGN KEY ([FaveIconFileID]) REFERENCES [dbo].[FileRecords] ([FileRecordID])
+    CONSTRAINT [FK_Websites_FileRecord1] FOREIGN KEY ([FaveIconFileID]) REFERENCES [dbo].[FileRecords] ([FileRecordID]),
+    CONSTRAINT [FK_Websites_TaxCountries] FOREIGN KEY ([TaxCountryID]) REFERENCES [dbo].[Countries] ([CountryID])
 );
 
 
@@ -43,3 +54,7 @@ GO
 
 CREATE NONCLUSTERED INDEX [IX_Websites_LogoFileID]
     ON [dbo].[Websites] ([LogoFileID] ASC);
+GO
+
+CREATE NONCLUSTERED INDEX [IX_Websites_TaxCountryID]
+    ON [dbo].[Websites] ([TaxCountryID] ASC);

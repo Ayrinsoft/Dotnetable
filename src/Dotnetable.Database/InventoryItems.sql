@@ -5,6 +5,7 @@ CREATE TABLE [dbo].[InventoryItems] (
     [QuantityOnHand]   INT NOT NULL,
     [QuantityReserved] INT NOT NULL,
     [ReorderLevel]     INT NOT NULL,
+    [AvgCost]          DECIMAL (18, 4) NOT NULL CONSTRAINT [DF_InventoryItems_AvgCost] DEFAULT ((0)),
     [AvgCostUsd]       DECIMAL (18, 4) NOT NULL,
     [RowVersion]       ROWVERSION      NOT NULL,
     CONSTRAINT [PK_InventoryItems] PRIMARY KEY CLUSTERED ([InventoryItemID] ASC),

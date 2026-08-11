@@ -16,6 +16,7 @@ CREATE TABLE [dbo].[Payments] (
     [TrackingCode]       NVARCHAR (100)  NULL,
     [ReceiptFileID]      INT             NULL,
     [PaidAt]             DATETIME2 (0)   NULL,
+    [CreatedByMemberID]  INT             NULL,
     [VerifiedByMemberID] INT             NULL,
     [CreatedAt]          DATETIME2 (0) NOT NULL,
     CONSTRAINT [PK_Payments] PRIMARY KEY CLUSTERED ([PaymentID] ASC),
@@ -24,6 +25,7 @@ CREATE TABLE [dbo].[Payments] (
     CONSTRAINT [FK_Payments_Currencies] FOREIGN KEY ([CurrencyCode]) REFERENCES [dbo].[Currencies] ([CurrencyCode]),
     CONSTRAINT [FK_Payments_FileRecords] FOREIGN KEY ([ReceiptFileID]) REFERENCES [dbo].[FileRecords] ([FileRecordID]),
     CONSTRAINT [FK_Payments_Members] FOREIGN KEY ([VerifiedByMemberID]) REFERENCES [dbo].[Members] ([MemberID]),
+    CONSTRAINT [FK_Payments_Members_CreatedBy] FOREIGN KEY ([CreatedByMemberID]) REFERENCES [dbo].[Members] ([MemberID]),
     CONSTRAINT [FK_Payments_Orders] FOREIGN KEY ([OrderID]) REFERENCES [dbo].[Orders] ([OrderID]),
     CONSTRAINT [FK_Payments_PaymentGateways] FOREIGN KEY ([PaymentGatewayID]) REFERENCES [dbo].[PaymentGateways] ([PaymentGatewayID]),
     CONSTRAINT [FK_Payments_Websites] FOREIGN KEY ([WebsiteID]) REFERENCES [dbo].[Websites] ([WebsiteID]),
@@ -60,6 +62,10 @@ GO
 
 CREATE NONCLUSTERED INDEX [IX_Payments_VerifiedByMemberID]
     ON [dbo].[Payments] ([VerifiedByMemberID] ASC);
+GO
+
+CREATE NONCLUSTERED INDEX [IX_Payments_CreatedByMemberID]
+    ON [dbo].[Payments] ([CreatedByMemberID] ASC);
 GO
 
 CREATE NONCLUSTERED INDEX [IX_Payments_WebsiteClientID]
