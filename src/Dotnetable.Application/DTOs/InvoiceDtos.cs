@@ -4,6 +4,7 @@ namespace Dotnetable.Application.DTOs;
 public sealed class OrderInvoiceDto
 {
     public int OrderId { get; init; }
+    public int WebsiteId { get; init; }
     public string OrderNumber { get; init; } = "";
     public DateTime CreatedAt { get; init; }
     public DateTime? PaidAt { get; init; }
@@ -20,7 +21,10 @@ public sealed class OrderInvoiceDto
     public decimal ShippingTotal { get; init; }
     public decimal TaxTotal { get; init; }
     public decimal GrandTotal { get; init; }
-    /// <summary>Sum of instant markups (روکشی) on lines; informational for accounting.</summary>
+    /// <summary>
+    /// Internal sum of instant markups (روکشی). Already included in line UnitPrice, SubTotal, and GrandTotal.
+    /// Do not render as a separate add-on on customer-facing invoices/print — keep for admin/accounting only.
+    /// </summary>
     public decimal MarkupTotal { get; init; }
     public bool PricesIncludeTax { get; init; }
     public bool ReportToTax { get; init; } = true;
