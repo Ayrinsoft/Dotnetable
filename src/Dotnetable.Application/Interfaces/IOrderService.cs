@@ -42,6 +42,13 @@ public interface IOrderService
         int websiteId, int clientId, int cartId, int addressId, int shippingMethodId,
         string? currencyCode = null, string? note = null, CancellationToken ct = default);
 
+    /// <summary>
+    /// Admin creates a complete order for a website customer (social / offline sales):
+    /// lines with charged prices and instant markup, address, sales channel, tax-report flag, optional payment.
+    /// </summary>
+    Task<AdminCreateOrderResult> AdminCreateAsync(
+        AdminCreateOrderRequest request, int memberId, CancellationToken ct = default);
+
     /// <summary>An order by id, scoped to a client when <paramref name="clientId"/> is given (404s otherwise), unrestricted for admin use when null.</summary>
     Task<Order?> GetByIdAsync(int orderId, int? clientId = null, CancellationToken ct = default);
 

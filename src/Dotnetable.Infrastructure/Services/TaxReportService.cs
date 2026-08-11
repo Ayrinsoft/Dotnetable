@@ -22,11 +22,12 @@ public class TaxReportService : ITaxReportService
         var fromDt = request.From.ToDateTime(TimeOnly.MinValue, DateTimeKind.Utc);
         var toDt = request.To.ToDateTime(new TimeOnly(23, 59, 59), DateTimeKind.Utc);
 
-        // Output VAT: customer-facing orders in range (exclude cancelled).
+        // Output VAT: customer-facing orders in range (exclude cancelled and orders not reported to tax).
         var orders = await _context.Orders.AsNoTracking()
             .Where(o => o.WebsiteID == request.WebsiteId
                         && o.CreatedAt >= fromDt && o.CreatedAt <= toDt
-                        && o.Status != (byte)OrderStatus.Cancelled)
+                        && o.Status != (byte)OrderStatus.Cancelled
+                        && o.ReportToTax)
             .OrderBy(o => o.CreatedAt)
             .Select(o => new
             {
@@ -184,7 +185,10 @@ public class TaxReportService : ITaxReportService
             ShippingTotal = order.ShippingTotal,
             TaxTotal = order.TaxTotal,
             GrandTotal = order.GrandTotal,
+            MarkupTotal = order.MarkupTotal,
             PricesIncludeTax = order.PricesIncludeTax,
+            ReportToTax = order.ReportToTax,
+            SalesChannel = order.SalesChannel,
             TaxBreakdownJson = order.TaxBreakdownJson,
             AddressSnapshot = order.AddressSnapshot,
             Note = order.Note,

@@ -4,6 +4,7 @@ using Dotnetable.Infrastructure.Data;
 using Microsoft.EntityFrameworkCore;
 using Microsoft.EntityFrameworkCore.Infrastructure;
 using Microsoft.EntityFrameworkCore.Metadata;
+using Microsoft.EntityFrameworkCore.Migrations;
 using Microsoft.EntityFrameworkCore.Storage.ValueConversion;
 
 #nullable disable
@@ -11,9 +12,11 @@ using Microsoft.EntityFrameworkCore.Storage.ValueConversion;
 namespace Dotnetable.Migrations.SqlServer.Migrations
 {
     [DbContext(typeof(AppDbContext))]
-    partial class AppDbContextModelSnapshot : ModelSnapshot
+    [Migration("20260810141517_AdminManualOrders")]
+    partial class AdminManualOrders
     {
-        protected override void BuildModel(ModelBuilder modelBuilder)
+        /// <inheritdoc />
+        protected override void BuildTargetModel(ModelBuilder modelBuilder)
         {
 #pragma warning disable 612, 618
             modelBuilder
@@ -2593,7 +2596,7 @@ namespace Dotnetable.Migrations.SqlServer.Migrations
                     b.Property<int>("OrderID")
                         .HasColumnType("int");
 
-                    b.Property<int?>("ProductVariantID")
+                    b.Property<int>("ProductVariantID")
                         .HasColumnType("int");
 
                     b.Property<int>("Quantity")
@@ -7067,6 +7070,7 @@ namespace Dotnetable.Migrations.SqlServer.Migrations
                     b.HasOne("Dotnetable.Domain.Entities.ProductVariant", "ProductVariant")
                         .WithMany("OrderItems")
                         .HasForeignKey("ProductVariantID")
+                        .IsRequired()
                         .HasConstraintName("FK_OrderItems_ProductVariants");
 
                     b.HasOne("Dotnetable.Domain.Entities.Website", "SourceWebsite")

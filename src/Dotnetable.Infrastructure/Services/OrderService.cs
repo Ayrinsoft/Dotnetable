@@ -184,6 +184,9 @@ public class OrderService : IOrderService
             CouponID = coupon?.CouponID,
             ShippingMethodID = resolvedShippingMethodId,
             Note = note,
+            SalesChannel = (byte)OrderSalesChannel.Online,
+            ReportToTax = true,
+            MarkupTotal = 0,
             CreatedAt = DateTime.UtcNow,
         };
         _context.Orders.Add(order);
@@ -196,6 +199,7 @@ public class OrderService : IOrderService
             var sourceWebsiteId = variant.Product.WebsiteID;
             var unitCostUsd = variant.InventoryItems.FirstOrDefault(i => i.WebsiteID == sourceWebsiteId)?.AvgCostUsd ?? 0;
 
+            var unitLocal = unitPriceUsd * rate;
             _context.OrderItems.Add(new OrderItem
             {
                 OrderID = order.OrderID,
@@ -209,11 +213,13 @@ public class OrderService : IOrderService
                     : $"{variant.Product.Title} — {variant.Title}",
                 SkuSnapshot = variant.Sku,
                 Quantity = item.Quantity,
-                UnitPrice = unitPriceUsd * rate,
+                UnitPrice = unitLocal,
                 UnitPriceUsd = unitPriceUsd,
                 UnitCostUsd = unitCostUsd,
+                CatalogUnitPrice = unitLocal,
+                UnitMarkup = 0,
                 DiscountAmount = 0,
-                TotalPrice = unitPriceUsd * rate * item.Quantity,
+                TotalPrice = unitLocal * item.Quantity,
             });
 
             // Reserve only at checkout; on-hand is deducted after payment.
@@ -376,16 +382,21 @@ public class OrderService : IOrderService
         {
             foreach (var item in order.OrderItems)
             {
+                // Free-form / no-listing admin lines skip inventory.
+                if (item.ProductVariantID is null)
+                    continue;
+
                 // Deduct store listing after payment (was only reserved at checkout).
                 if (item.VendorProductID is int vendorProductId)
                     await _vendorProducts.CommitSaleAsync(vendorProductId, item.Quantity, ct);
 
-                var stockSite = ResolveStockSite(item, order);
-                await _inventory.DecrementOnFulfillAsync(stockSite, item.ProductVariantID, item.Quantity, order.OrderID, item.OrderItemID, memberId, ct);
+                // Only touch physical inventory when a store listing reserved stock.
+                if (item.VendorProductID is null)
+                    continue;
 
-                // Keep host inventory total aligned with sum of store listing stocks.
-                if (item.VendorProductID is not null)
-                    await _vendorProducts.SyncInventoryOnHandFromListingsAsync(order.WebsiteID, item.ProductVariantID, ct);
+                var stockSite = ResolveStockSite(item, order);
+                await _inventory.DecrementOnFulfillAsync(stockSite, item.ProductVariantID.Value, item.Quantity, order.OrderID, item.OrderItemID, memberId, ct);
+                await _vendorProducts.SyncInventoryOnHandFromListingsAsync(order.WebsiteID, item.ProductVariantID.Value, ct);
             }
 
             // Permanent digital library entitlements (idempotent).
@@ -397,11 +408,17 @@ public class OrderService : IOrderService
             {
                 foreach (var item in order.OrderItems)
                 {
+                    if (item.ProductVariantID is null)
+                        continue;
+
                     if (item.VendorProductID is int vendorProductId)
                         await _vendorProducts.ReleaseReservationAsync(vendorProductId, item.Quantity, ct);
 
+                    if (item.VendorProductID is null)
+                        continue;
+
                     var stockSite = ResolveStockSite(item, order);
-                    await _inventory.ReleaseReservationAsync(stockSite, item.ProductVariantID, item.Quantity, ct);
+                    await _inventory.ReleaseReservationAsync(stockSite, item.ProductVariantID.Value, item.Quantity, ct);
                 }
             }
 
@@ -423,7 +440,19 @@ public class OrderService : IOrderService
         await _context.Orders
             .Where(o => o.WebsiteClientID == clientId && o.Status >= (byte)OrderStatus.Paid)
             .SelectMany(o => o.OrderItems)
-            .AnyAsync(i => i.ProductVariant.ProductID == productId, ct);
+            .AnyAsync(i => i.ProductVariantID != null && i.ProductVariant!.ProductID == productId, ct);
+
+    private sealed record AdminPreparedLine(
+        AdminOrderLineRequest Req,
+        ProductVariant? Variant,
+        VendorProduct? Vp,
+        decimal CatalogLocal,
+        decimal ChargedLocal,
+        string Title,
+        string Sku,
+        int SourceWebsiteId,
+        decimal UnitCostUsd,
+        bool TrackStock);
 
     /// <summary>
     /// Site-linked vendor lines reserve/fulfill physical stock on the source site;
@@ -435,6 +464,411 @@ public class OrderService : IOrderService
         if (item.SourceWebsiteID > 0 && item.SourceWebsiteID != order.WebsiteID)
             return item.SourceWebsiteID;
         return order.WebsiteID;
+    }
+
+    public async Task<AdminCreateOrderResult> AdminCreateAsync(
+        AdminCreateOrderRequest request, int memberId, CancellationToken ct = default)
+    {
+        if (request.WebsiteId <= 0)
+            return new AdminCreateOrderResult(false, "Website is required.", null, null);
+        if (request.WebsiteClientId <= 0)
+            return new AdminCreateOrderResult(false, "Customer is required.", null, null);
+        if (request.Lines is null || request.Lines.Count == 0)
+            return new AdminCreateOrderResult(false, "Add at least one product line.", null, null);
+        if (request.Lines.Any(l => l.Quantity <= 0 || l.ChargedUnitPrice < 0))
+            return new AdminCreateOrderResult(false, "Each line needs quantity > 0 and a non-negative price.", null, null);
+        if (request.Lines.Any(l =>
+                l.ProductVariantId is null or <= 0
+                && string.IsNullOrWhiteSpace(l.CustomTitle)))
+            return new AdminCreateOrderResult(false, "Each line needs a catalog product or a free-form title.", null, null);
+
+        var website = await _context.Websites.AsNoTracking()
+            .FirstOrDefaultAsync(w => w.WebsiteID == request.WebsiteId, ct);
+        if (website is null)
+            return new AdminCreateOrderResult(false, "Website not found.", null, null);
+
+        var client = await _context.WebsiteClients
+            .FirstOrDefaultAsync(c => c.WebsiteClientID == request.WebsiteClientId && c.WebsiteID == request.WebsiteId, ct);
+        if (client is null)
+            return new AdminCreateOrderResult(false, "Customer not found on this website.", null, null);
+        if (!client.Active)
+            return new AdminCreateOrderResult(false, "Customer is inactive.", null, null);
+
+        // Resolve address (existing or new).
+        WebsiteClientAddress? address = null;
+        if (request.WebsiteClientAddressId is int existingAddressId)
+        {
+            address = await _context.WebsiteClientAddresses
+                .Include(a => a.City)
+                .FirstOrDefaultAsync(a =>
+                    a.WebsiteClientAddressID == existingAddressId && a.WebsiteClientID == client.WebsiteClientID, ct);
+            if (address is null)
+                return new AdminCreateOrderResult(false, "Address not found for this customer.", null, null);
+        }
+        else if (request.NewAddress is { } na && !string.IsNullOrWhiteSpace(na.AddressLine))
+        {
+            address = new WebsiteClientAddress
+            {
+                WebsiteClientID = client.WebsiteClientID,
+                Title = string.IsNullOrWhiteSpace(na.Title) ? null : na.Title.Trim(),
+                ReceiverName = string.IsNullOrWhiteSpace(na.ReceiverName)
+                    ? $"{client.Givenname} {client.Surname}".Trim()
+                    : na.ReceiverName.Trim(),
+                CountryId = na.CountryId,
+                CityId = na.CityId,
+                AddressLine = na.AddressLine.Trim(),
+                PostalCode = string.IsNullOrWhiteSpace(na.PostalCode) ? null : na.PostalCode.Trim(),
+                Phone = string.IsNullOrWhiteSpace(na.Phone) ? client.Cellphone : na.Phone.Trim(),
+                IsDefault = false,
+            };
+            if (na.SaveToClient)
+            {
+                _context.WebsiteClientAddresses.Add(address);
+                await _context.SaveChangesAsync(ct);
+            }
+        }
+
+        var addressSnapshot = address is null
+            ? null
+            : $"{address.ReceiverName}, {address.AddressLine}, {address.PostalCode} ({address.Phone})";
+
+        // Prepare lines: catalog (+ optional listing) or free-form title-only.
+        var prepared = new List<AdminPreparedLine>();
+        foreach (var line in request.Lines)
+        {
+            if (line.ProductVariantId is int variantId and > 0)
+            {
+                var variant = await _context.ProductVariants
+                    .Include(v => v.Product)
+                    .Include(v => v.InventoryItems)
+                    .FirstOrDefaultAsync(v => v.ProductVariantID == variantId && v.IsActive, ct);
+                if (variant is null)
+                    return new AdminCreateOrderResult(false, $"Product variant #{variantId} not found.", null, null);
+
+                VendorProduct? vp = null;
+                if (line.VendorProductId is int vpId)
+                {
+                    vp = await _context.VendorProducts
+                        .Include(x => x.Vendor)
+                        .FirstOrDefaultAsync(x =>
+                            x.VendorProductID == vpId
+                            && x.ProductVariantID == variantId
+                            && x.WebsiteID == request.WebsiteId, ct);
+                }
+                else
+                {
+                    vp = await _context.VendorProducts
+                        .Include(x => x.Vendor)
+                        .Where(x => x.WebsiteID == request.WebsiteId
+                                    && x.ProductVariantID == variantId
+                                    && x.IsActive
+                                    && (x.Vendor == null || x.Vendor.IsActive))
+                        .OrderByDescending(x => x.StockQuantity)
+                        .FirstOrDefaultAsync(ct);
+                }
+
+                // Listing is optional for admin orders (social sales without warehouse listing).
+                if (vp is not null)
+                {
+                    if (!vp.IsActive || vp.Vendor is null || !vp.Vendor.IsActive)
+                        return new AdminCreateOrderResult(false, $"Store listing inactive for {variant.Product.Title} ({variant.Sku}).", null, null);
+                    if (IVendorProductService.Available(vp) < line.Quantity)
+                        return new AdminCreateOrderResult(false, $"Insufficient stock for {variant.Product.Title} ({variant.Sku}).", null, null);
+                }
+
+                decimal catalogLocal;
+                if (vp is not null)
+                {
+                    (catalogLocal, _) = await _currency.ResolveCatalogUnitLocalAsync(
+                        request.WebsiteId, vp.ReferencePrice, vp.ReferencePriceUsd,
+                        vp.OverridePriceLocal, vp.OverridePrice, ct);
+                }
+                else
+                {
+                    (catalogLocal, _) = await _currency.ResolveCatalogUnitLocalAsync(
+                        request.WebsiteId, variant.ReferencePrice, variant.ReferencePriceUsd, null, null, ct);
+                }
+                if (line.CatalogUnitPrice is >= 0)
+                    catalogLocal = line.CatalogUnitPrice.Value;
+
+                var title = string.IsNullOrWhiteSpace(variant.Title)
+                    ? variant.Product.Title
+                    : $"{variant.Product.Title} — {variant.Title}";
+                var sourceWebsiteId = variant.Product.WebsiteID;
+                var unitCostUsd = variant.InventoryItems.FirstOrDefault(i => i.WebsiteID == sourceWebsiteId)?.AvgCostUsd ?? 0;
+
+                prepared.Add(new AdminPreparedLine(
+                    line, variant, vp, catalogLocal, line.ChargedUnitPrice,
+                    title, variant.Sku, sourceWebsiteId, unitCostUsd,
+                    TrackStock: vp is not null));
+            }
+            else
+            {
+                var title = line.CustomTitle!.Trim();
+                if (title.Length > 300) title = title[..300];
+                var sku = string.IsNullOrWhiteSpace(line.CustomSku) ? "CUSTOM" : line.CustomSku.Trim();
+                if (sku.Length > 100) sku = sku[..100];
+                var catalogLocal = line.CatalogUnitPrice is >= 0
+                    ? line.CatalogUnitPrice.Value
+                    : line.ChargedUnitPrice;
+
+                prepared.Add(new AdminPreparedLine(
+                    line, null, null, catalogLocal, line.ChargedUnitPrice,
+                    title, sku, request.WebsiteId, 0, TrackStock: false));
+            }
+        }
+
+        var (resolvedCurrency, rate) = await _currency.GetActiveRateAsync(request.WebsiteId, request.CurrencyCode, ct);
+        if (rate <= 0) rate = 1m;
+
+        decimal ToUsd(decimal local) => Math.Round(local / rate, 4, MidpointRounding.AwayFromZero);
+
+        var subtotalLocal = prepared.Sum(p => p.ChargedLocal * p.Req.Quantity);
+        var markupTotalLocal = prepared.Sum(p => Math.Max(0, p.ChargedLocal - p.CatalogLocal) * p.Req.Quantity);
+
+        // Free-form lines always need shipping address path when any shipping method is chosen;
+        // catalog lines use product RequiresShipping.
+        var requiresShipping = prepared.Any(p =>
+            p.Variant is null || p.Variant.Product.RequiresShipping);
+        var totalWeight = prepared.Sum(p =>
+            p.Variant is { Product.RequiresShipping: true }
+                ? (p.Variant.Weight ?? 0) * p.Req.Quantity
+                : 0m);
+
+        decimal shippingLocal = request.ShippingTotal ?? 0;
+        int? shippingMethodId = request.ShippingMethodId;
+        if (requiresShipping && address is not null && shippingMethodId is int smId && smId > 0 && request.ShippingTotal is null)
+        {
+            if (address.City is null && address.CityId is int shipCityId)
+                address.City = await _context.Cities.AsNoTracking().FirstOrDefaultAsync(c => c.CityID == shipCityId, ct);
+
+            var stateId = address.City?.StateID;
+            var options = await _shipping.GetAvailableWithPricesAsync(
+                request.WebsiteId, address.CountryId, stateId, address.CityId, totalWeight, subtotalLocal, ct);
+            var opt = options.FirstOrDefault(o => o.Method.ShippingMethodID == smId);
+            if (opt is not null)
+                shippingLocal = (await _currency.ToDisplayAsync(request.WebsiteId, opt.PriceUsd, resolvedCurrency, ct)).Amount;
+            else
+                shippingLocal = 0;
+        }
+        else if (!requiresShipping)
+        {
+            shippingLocal = 0;
+            shippingMethodId = null;
+        }
+
+        var reportToTax = request.ReportToTax ?? (
+            request.SalesChannel == OrderSalesChannel.Online
+                ? true
+                : website.ReportOfflineOrdersToTax);
+
+        decimal taxLocal = 0;
+        bool pricesIncludeTax = website.PricesIncludeTax;
+        string? taxBreakdown = null;
+        if (reportToTax && website.TaxEnabled && address is not null)
+        {
+            if (address.City is null && address.CityId is int cityId)
+                address.City = await _context.Cities.AsNoTracking().FirstOrDefaultAsync(c => c.CityID == cityId, ct);
+
+            var stateId = address.City?.StateID;
+            var taxResult = await _tax.ComputeTaxDetailedAsync(
+                request.WebsiteId, address.CountryId, stateId,
+                ToUsd(subtotalLocal), ToUsd(shippingLocal), ct);
+            taxLocal = taxResult.TaxAmount * rate;
+            pricesIncludeTax = taxResult.PricesIncludeTax;
+            taxBreakdown = taxResult.BreakdownJson;
+        }
+        else if (!reportToTax)
+        {
+            // Explicitly keep tax out of filings for offline/unreported channels.
+            taxLocal = 0;
+            taxBreakdown = null;
+        }
+
+        var grandLocal = pricesIncludeTax && reportToTax
+            ? subtotalLocal + shippingLocal
+            : subtotalLocal + shippingLocal + taxLocal;
+        var grandUsd = ToUsd(grandLocal);
+
+        await using var tx = await _context.Database.BeginTransactionAsync(ct);
+
+        // Persist ephemeral address if not saved to client yet.
+        if (address is not null && address.WebsiteClientAddressID == 0 && request.NewAddress is { SaveToClient: false })
+        {
+            // Snapshot only — do not insert address row.
+            address = null;
+        }
+
+        var order = new Order
+        {
+            WebsiteID = request.WebsiteId,
+            OrderNumber = GenerateOrderNumber(request.WebsiteId),
+            WebsiteClientID = client.WebsiteClientID,
+            Status = (byte)OrderStatus.PendingPayment,
+            CurrencyCode = resolvedCurrency,
+            ExchangeRateToUsd = rate,
+            SubTotal = subtotalLocal,
+            DiscountTotal = 0,
+            ShippingTotal = shippingLocal,
+            TaxTotal = taxLocal,
+            PricesIncludeTax = pricesIncludeTax,
+            TaxBreakdownJson = taxBreakdown,
+            GrandTotal = grandLocal,
+            GrandTotalUsd = grandUsd,
+            WebsiteClientAddressID = address?.WebsiteClientAddressID,
+            AddressSnapshot = addressSnapshot,
+            ShippingMethodID = shippingMethodId,
+            Note = string.IsNullOrWhiteSpace(request.Note) ? null : request.Note.Trim(),
+            SalesChannel = (byte)request.SalesChannel,
+            ReportToTax = reportToTax,
+            MarkupTotal = markupTotalLocal,
+            CreatedByMemberID = memberId,
+            CreatedAt = DateTime.UtcNow,
+        };
+        _context.Orders.Add(order);
+        await _context.SaveChangesAsync(ct);
+
+        foreach (var p in prepared)
+        {
+            var unitMarkup = Math.Max(0, p.ChargedLocal - p.CatalogLocal);
+            var chargedUsd = ToUsd(p.ChargedLocal);
+
+            _context.OrderItems.Add(new OrderItem
+            {
+                OrderID = order.OrderID,
+                WebsiteID = request.WebsiteId,
+                SourceWebsiteID = p.SourceWebsiteId,
+                ProductVariantID = p.Variant?.ProductVariantID,
+                VendorProductID = p.Vp?.VendorProductID,
+                VendorID = p.Vp?.VendorID,
+                TitleSnapshot = p.Title,
+                SkuSnapshot = p.Sku,
+                Quantity = p.Req.Quantity,
+                UnitPrice = p.ChargedLocal,
+                UnitPriceUsd = chargedUsd,
+                UnitCostUsd = p.UnitCostUsd,
+                CatalogUnitPrice = p.CatalogLocal,
+                UnitMarkup = unitMarkup,
+                DiscountAmount = 0,
+                TotalPrice = p.ChargedLocal * p.Req.Quantity,
+            });
+
+            if (!p.TrackStock || p.Vp is null || p.Variant is null)
+                continue;
+
+            if (!await _vendorProducts.ReserveAsync(p.Vp.VendorProductID, p.Req.Quantity, ct))
+            {
+                await tx.RollbackAsync(ct);
+                return new AdminCreateOrderResult(false, $"Insufficient vendor stock for {p.Title}.", null, null);
+            }
+
+            if (!IVendorProductService.IsUnlimited(p.Vp))
+            {
+                var isCrossSite = p.Vp.Vendor?.VendorType == (byte)VendorType.Site && p.SourceWebsiteId != request.WebsiteId;
+                var reserveSiteId = isCrossSite ? p.SourceWebsiteId : request.WebsiteId;
+                if (!isCrossSite)
+                    await _vendorProducts.SyncInventoryOnHandFromListingsAsync(request.WebsiteId, p.Variant.ProductVariantID, ct);
+
+                if (!await _inventory.ReserveAsync(reserveSiteId, p.Variant.ProductVariantID, p.Req.Quantity, ct))
+                {
+                    await _vendorProducts.ReleaseReservationAsync(p.Vp.VendorProductID, p.Req.Quantity, ct);
+                    await tx.RollbackAsync(ct);
+                    return new AdminCreateOrderResult(false, $"Insufficient stock for {p.Title}.", null, null);
+                }
+            }
+        }
+
+        _context.OrderStatusHistories.Add(new OrderStatusHistory
+        {
+            OrderID = order.OrderID,
+            FromStatus = null,
+            ToStatus = (byte)OrderStatus.PendingPayment,
+            Note = $"Created by admin (channel: {request.SalesChannel}).",
+            CreatedByMemberID = memberId,
+            CreatedAt = DateTime.UtcNow,
+        });
+
+        await _context.SaveChangesAsync(ct);
+        await _vendorCredit.SettleHostOrderAsync(order.OrderID, ct);
+
+        // Optional payment on create (card-to-card / cash / manual) — inline to avoid DI cycle with PaymentService.
+        if (request.Payment is { } payReq)
+        {
+            var method = (PaymentMethod)payReq.Method;
+            if (method is not (PaymentMethod.Manual or PaymentMethod.CashOnDelivery or PaymentMethod.BankTransfer))
+            {
+                await tx.RollbackAsync(ct);
+                return new AdminCreateOrderResult(false, "Unsupported payment method for admin order.", null, null);
+            }
+
+            if (method == PaymentMethod.BankTransfer && payReq.BankAccountId is int baId)
+            {
+                var accountOk = await _context.BankAccounts.AnyAsync(
+                    a => a.BankAccountID == baId && a.WebsiteID == request.WebsiteId && a.IsActive, ct);
+                if (!accountOk)
+                {
+                    await tx.RollbackAsync(ct);
+                    return new AdminCreateOrderResult(false, "Bank account not found or inactive.", null, null);
+                }
+            }
+
+            if (payReq.ReceiptFileId is int fileId)
+            {
+                var fileOk = await _context.FileRecords.AnyAsync(
+                    f => f.FileRecordID == fileId && f.WebsiteID == request.WebsiteId && !f.IsDeleted, ct);
+                if (!fileOk)
+                {
+                    await tx.RollbackAsync(ct);
+                    return new AdminCreateOrderResult(false, "Receipt file not found.", null, null);
+                }
+            }
+
+            var payAmount = payReq.Amount is > 0 ? payReq.Amount.Value : grandLocal;
+            var payUsd = ToUsd(payAmount);
+            var markPaid = payReq.MarkAsPaid || method is not PaymentMethod.BankTransfer;
+
+            _context.Payments.Add(new Payment
+            {
+                WebsiteID = request.WebsiteId,
+                OrderID = order.OrderID,
+                WebsiteClientID = client.WebsiteClientID,
+                Method = (byte)method,
+                BankAccountID = payReq.BankAccountId,
+                ReceiptFileID = payReq.ReceiptFileId,
+                Amount = payAmount,
+                CurrencyCode = resolvedCurrency,
+                ExchangeRateToUsd = rate,
+                AmountUsd = payUsd,
+                Status = (byte)(markPaid ? PaymentStatus.Paid : PaymentStatus.Pending),
+                TrackingCode = string.IsNullOrWhiteSpace(payReq.Reference) ? null : payReq.Reference.Trim(),
+                GatewayRefNumber = string.IsNullOrWhiteSpace(payReq.Note) ? null : payReq.Note.Trim(),
+                PaidAt = markPaid ? DateTime.UtcNow : null,
+                CreatedByMemberID = memberId,
+                VerifiedByMemberID = markPaid ? memberId : null,
+                CreatedAt = DateTime.UtcNow,
+            });
+            await _context.SaveChangesAsync(ct);
+
+            if (markPaid)
+            {
+                // Transition inside the same unit of work context (status + stock commit).
+                await TransitionStatusAsync(order.OrderID, OrderStatus.Paid, memberId,
+                    string.IsNullOrWhiteSpace(payReq.Note) ? $"Payment received ({method})." : payReq.Note.Trim(), ct);
+            }
+        }
+
+        await tx.CommitAsync(ct);
+
+        await _notifications.NotifySiteAdminsAsync(
+            request.WebsiteId,
+            AdminNotificationType.NewOrder,
+            "Admin order created",
+            $"Order #{order.OrderNumber} created by admin — {order.GrandTotal:0.##} {order.CurrencyCode} ({request.SalesChannel}).",
+            $"/orders/{order.OrderID}",
+            order.OrderID,
+            ct);
+
+        return new AdminCreateOrderResult(true, null, order.OrderID, order.OrderNumber);
     }
 
     private static string GenerateOrderNumber(int websiteId) =>

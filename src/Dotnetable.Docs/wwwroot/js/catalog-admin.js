@@ -411,8 +411,12 @@ window.DOCS_ADMIN = {
               en: "Set identity fields and operational defaults, then configure languages/SEO under Website submenu for that context.",
               fa: "هویت و پیش‌فرض‌های عملیاتی را بگذارید؛ بعد زبان/SEO را از زیرمنوی Website همان زمینه تنظیم کنید.",
             },
+            {
+              en: "Under **Tax & seller registration**, set tax flags and **Report offline / social orders to tax by default** (when off, Instagram/WhatsApp admin orders default to excluded from VAT filings; each order can override).",
+              fa: "در **مالیات و ثبت فروشنده**، پرچم‌های مالیات و **اعلام پیش‌فرض سفارش‌های آفلاین/اجتماعی به مالیات** را تنظیم کنید (اگر خاموش باشد، سفارش‌های اینستاگرام/واتساپ ادمین پیش‌فرض از VAT خارج‌اند؛ هر سفارش override دارد).",
+            },
           ],
-          related: ["website-seo", "website-languages", "website-api-key"],
+          related: ["website-seo", "website-languages", "website-api-key", "orders", "tax"],
         },
         {
           id: "website-ips",
@@ -1506,46 +1510,58 @@ window.DOCS_ADMIN = {
           title: { en: "Orders", fa: "سفارش‌ها" },
           adminPath: "/orders",
           summary: {
-            en: "List and manage customer orders: lines, totals, address, status transitions, refunds, invoice.",
-            fa: "فهرست و مدیریت سفارش مشتری: اقلام، جمع، آدرس، تغییر وضعیت، استرداد، فاکتور.",
+            en: "List, create, and manage customer orders: manual social/offline orders, markups, payments with receipts, address print labels, tax reporting flags, status, refunds, invoice.",
+            fa: "فهرست، ثبت و مدیریت سفارش مشتری: سفارش دستی شبکه‌های اجتماعی/آفلاین، روکشی، پرداخت با فیش، برچسب آدرس، پرچم مالیات، وضعیت، استرداد، فاکتور.",
           },
           purpose: [
             {
-              en: "Operational backbone of commerce after checkout.",
-              fa: "ستون فقرات عملیاتی فروش بعد از تسویه.",
+              en: "Operational backbone of commerce after checkout — and for Instagram/WhatsApp/card-to-card sales entered by admin.",
+              fa: "ستون فقرات عملیاتی فروش بعد از تسویه — و برای فروش اینستاگرام/واتساپ/کارت‌به‌کارت که ادمین ثبت می‌کند.",
             },
             {
-              en: "Status history tracks every transition; payments/refunds may attach here.",
-              fa: "تاریخچه وضعیت هر انتقال را نگه می‌دارد؛ پرداخت/استرداد ممکن است اینجا وصل شود.",
+              en: "Status history tracks every transition; payments/refunds and sales channel attach here.",
+              fa: "تاریخچه وضعیت هر انتقال را نگه می‌دارد؛ پرداخت/استرداد و کانال فروش اینجا وصل می‌شود.",
             },
           ],
           howTo: [
             {
-              en: "Open Orders, filter by status/date/customer.",
-              fa: "Orders را باز کنید، بر اساس وضعیت/تاریخ/مشتری فیلتر کنید.",
+              en: "Open Orders, filter by status/date. Use **Create order** (orders.edit) for offline channels.",
+              fa: "Orders را باز کنید، بر اساس وضعیت/تاریخ فیلتر کنید. برای کانال‌های آفلاین **ثبت سفارش** (orders.edit) را بزنید.",
             },
             {
-              en: "Open an order to review items, shipping address, totals, payments, and history.",
-              fa: "یک سفارش را برای اقلام، آدرس ارسال، جمع‌ها، پرداخت‌ها و تاریخچه باز کنید.",
+              en: "**Create order** flow: pick or register customer → add catalog products (**variant picker** when several variants; **no listing** still allowed without stock) or a **free-form item** (title/price only) → charged vs catalog price (markup / روکشی) → address → shipping → sales channel → report-to-tax → optional payment (card-to-card + receipt, cash, COD).",
+              fa: "روند **ثبت سفارش**: انتخاب یا ثبت مشتری → محصول کاتالوگ (**انتخاب واریانت** اگر چندتاست؛ بدون listing هم مجاز بدون موجودی) یا **آیتم آزاد** (فقط عنوان/قیمت) → قیمت دریافتی در برابر کاتالوگ (روکشی) → آدرس → ارسال → کانال → مالیات → پرداخت اختیاری (کارت‌به‌کارت + فیش، نقد، COD).",
+            },
+            {
+              en: "Open an order to review items (catalog / charged / markup), shipping address, totals, payments, channel, tax flag, and history.",
+              fa: "یک سفارش را برای اقلام (کاتالوگ / دریافتی / روکشی)، آدرس ارسال، جمع‌ها، پرداخت‌ها، کانال، پرچم مالیات و تاریخچه باز کنید.",
+            },
+            {
+              en: "Use **Shipping label** to print receiver name, phone, and address for fulfillment.",
+              fa: "با **برچسب ارسال** نام گیرنده، تلفن و آدرس را برای بسته‌بندی چاپ کنید.",
             },
             {
               en: "Use Change Status only with valid transitions for your process (paid → processing → shipped → …).",
               fa: "Change Status را فقط با انتقال‌های معتبر فرایند خودتان بزنید (پرداخت‌شده → پردازش → ارسال → …).",
             },
             {
-              en: "**Record payment received** (needs payments.verify): when money was collected offline — COD, cash, POS, or another channel outside the bank-receipt queue. Creates a Paid payment and moves PendingPayment → Paid. Each payment shows whether **Admin** or **Customer** recorded it and who.",
-              fa: "**ثبت دریافت وجه** (نقش payments.verify): وقتی پول خارج از صف فیش بانکی گرفته شده — پرداخت در محل، نقد، کارتخوان یا کانال دیگر. پرداخت Paid می‌سازد و PendingPayment → Paid می‌کند. روی هر پرداخت مشخص است **ادمین** ثبت کرده یا **مشتری**، و نام همان فرد.",
+              en: "**Record payment received** (needs payments.verify): offline COD, cash, POS, or **bank/card-to-card** with optional bank account + receipt file. Creates a Paid payment and moves PendingPayment → Paid.",
+              fa: "**ثبت دریافت وجه** (نقش payments.verify): COD، نقد، کارتخوان، یا **کارت‌به‌کارت/بانکی** با حساب و فیش اختیاری. پرداخت Paid می‌سازد و PendingPayment → Paid می‌کند.",
             },
             {
-              en: "**Refund** (needs payments.refund): after a Paid payment exists — credit wallet, queue a bank refund, or mark cash hand-back completed. Requires recording payment first if money was only collected offline.",
-              fa: "**برگشت وجه** (نقش payments.refund): بعد از وجود پرداخت Paid — اعتبار کیف پول، صف استرداد بانکی، یا ثبت برگشت نقدی. اگر فقط آفلاین پول گرفته شده، اول دریافت وجه را ثبت کنید.",
+              en: "**Refund** (needs payments.refund): after a Paid payment exists — credit wallet, queue a bank refund, or mark cash hand-back completed.",
+              fa: "**برگشت وجه** (نقش payments.refund): بعد از وجود پرداخت Paid — اعتبار کیف پول، صف استرداد بانکی، یا ثبت برگشت نقدی.",
             },
             {
-              en: "Print/view invoice when needed.",
-              fa: "در صورت نیاز فاکتور را ببینید/چاپ کنید.",
+              en: "Print/view invoice when needed. Orders with **Report to tax = No** are excluded from the VAT report.",
+              fa: "در صورت نیاز فاکتور را ببینید/چاپ کنید. سفارش‌هایی که **اعلام به مالیات = خیر** دارند در گزارش VAT نمی‌آیند.",
             },
           ],
           tips: [
+            {
+              en: "Website setting **Report offline / social orders to tax by default** controls the default for non-online admin orders (can override per order).",
+              fa: "تنظیم وب‌سایت **اعلام پیش‌فرض سفارش‌های آفلاین/اجتماعی به مالیات** پیش‌فرض سفارش‌های غیراینترنتی ادمین را می‌سازد (هر سفارش قابل override است).",
+            },
             {
               en: "Stock reservation/sale movements are driven by order lifecycle — cancel carefully.",
               fa: "رزرو/فروش موجودی از چرخه سفارش می‌آید — لغو را با دقت انجام دهید.",
@@ -1556,7 +1572,7 @@ window.DOCS_ADMIN = {
             },
           ],
           relatedApi: ["orders", "checkout", "payments"],
-          related: ["payments", "payments-refunds", "inventory-stock", "shipping", "support-desk", "coupons"],
+          related: ["payments", "payments-refunds", "inventory-stock", "shipping", "support-desk", "coupons", "websites", "tax"],
         },
         {
           id: "support-desk",

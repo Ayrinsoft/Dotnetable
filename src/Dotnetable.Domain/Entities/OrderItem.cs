@@ -13,7 +13,11 @@ public partial class OrderItem
 
     public int SourceWebsiteID { get; set; }
 
-    public int ProductVariantID { get; set; }
+    /// <summary>
+    /// Catalog variant when the line maps to a product. Null for free-form admin lines
+    /// (title/price only, no inventory).
+    /// </summary>
+    public int? ProductVariantID { get; set; }
 
     public int? VendorProductID { get; set; }
 
@@ -25,11 +29,23 @@ public partial class OrderItem
 
     public int Quantity { get; set; }
 
+    /// <summary>Unit price charged to the customer (order currency).</summary>
     public decimal UnitPrice { get; set; }
 
     public decimal UnitPriceUsd { get; set; }
 
     public decimal UnitCostUsd { get; set; }
+
+    /// <summary>
+    /// Catalog / list unit price at order time (order currency), before any admin instant markup.
+    /// When the customer is charged more, the difference is <see cref="UnitMarkup"/>.
+    /// </summary>
+    public decimal CatalogUnitPrice { get; set; }
+
+    /// <summary>
+    /// Instant markup (روکشی لحظه‌ای) per unit in order currency: max(0, UnitPrice − CatalogUnitPrice).
+    /// </summary>
+    public decimal UnitMarkup { get; set; }
 
     public decimal DiscountAmount { get; set; }
 
@@ -39,7 +55,7 @@ public partial class OrderItem
 
     public virtual OrderDigitalAsset? OrderDigitalAsset { get; set; }
 
-    public virtual ProductVariant ProductVariant { get; set; } = null!;
+    public virtual ProductVariant? ProductVariant { get; set; }
 
     public virtual ICollection<SettlementItem> SettlementItems { get; set; } = new List<SettlementItem>();
 

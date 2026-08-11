@@ -148,7 +148,7 @@ public class PaymentServiceTests : IDisposable
             500, PaymentMethod.Wallet, null, null, null, 10);
 
         success.Should().BeFalse();
-        error.Should().Contain("Manual or CashOnDelivery");
+        error.Should().Contain("BankTransfer");
     }
 
     [Fact]
