@@ -1553,8 +1553,8 @@ window.DOCS_ADMIN = {
               fa: "**برگشت وجه** (نقش payments.refund): بعد از وجود پرداخت Paid — اعتبار کیف پول، صف استرداد بانکی، یا ثبت برگشت نقدی.",
             },
             {
-              en: "Print/view invoice when needed. Orders with **Report to tax = No** are excluded from the VAT report.",
-              fa: "در صورت نیاز فاکتور را ببینید/چاپ کنید. سفارش‌هایی که **اعلام به مالیات = خیر** دارند در گزارش VAT نمی‌آیند.",
+              en: "Open **Invoice** for a framed customer document (margins/borders). Print PDF, or **email / WhatsApp** the same totals from that page (edit recipient first). Charged unit prices only — markup is folded into price. Orders with **Report to tax = No** are excluded from the VAT report.",
+              fa: "از **فاکتور** سند مشتری با حاشیه و قاب مرتب را باز کنید. Print PDF، یا از همان صفحه **ایمیل / واتساپ** (گیرنده قابل ویرایش). فقط قیمت فروش — مارک‌آپ داخل قیمت است. سفارش‌هایی که **اعلام به مالیات = خیر** دارند در گزارش VAT نمی‌آیند.",
             },
           ],
           tips: [

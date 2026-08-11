@@ -1,22 +1,13 @@
 @page "/orders/{OrderId:int}/invoice"
 @attribute [Authorize(Policy = RoleKeys.OrdersView)]
 @inject ITaxReportService TaxReportService
+@inject IEmailService EmailService
 @inject NavigationManager Nav
 @inject IPageLocalizer L
 @inject IJSRuntime Js
+@inject ISnackbar Snackbar
 
 <DNPageTitle Title="@(_inv is null ? L["invoice", "Invoice"] : $"{L["invoice", "Invoice"]} {_inv.OrderNumber}")" />
-
-<style>
-    @@media print {
-        .no-print { display: none !important; }
-        body { background: #fff !important; }
-        .invoice-sheet { box-shadow: none !important; border: none !important; }
-    }
-    .invoice-sheet { max-width: 900px; margin: 0 auto; }
-    .invoice-meta td { padding: 2px 8px 2px 0; vertical-align: top; }
-    .invoice-totals td { padding: 4px 0; }
-</style>
 
 @if (_loading)
 {
@@ -28,135 +19,194 @@ else if (_inv is null)
 }
 else
 {
-    <MudStack Row="true" Justify="Justify.SpaceBetween" AlignItems="AlignItems.Center" Class="mb-4 no-print">
-        <MudButton Variant="Variant.Text" StartIcon="@Icons.Material.Filled.ArrowBack"
-                   OnClick="@(() => Nav.NavigateTo($"/orders/{OrderId}"))">@L["back", "Back"]</MudButton>
-        <MudButton Variant="Variant.Filled" Color="Color.Primary" StartIcon="@Icons.Material.Filled.PictureAsPdf" OnClick="PrintAsync">
-            @L["print_pdf", "Print PDF"]
-        </MudButton>
-    </MudStack>
-
-    <div id="order-invoice-print">
-    <MudPaper Elevation="0" Class="app-card rounded-lg pa-6 invoice-sheet">
-        <MudStack Row="true" Justify="Justify.SpaceBetween" Class="mb-4">
-            <div>
-                <MudText Typo="Typo.h5" Class="fw-bold">@L["invoice", "Tax invoice"]</MudText>
-                <MudText Typo="Typo.subtitle1">@_inv.OrderNumber</MudText>
-                <MudText Typo="Typo.caption" Color="Color.Secondary">
-                    @L["date", "Date"]: @_inv.CreatedAt.ToLocalTime().ToString("g")
-                    @if (_inv.PaidAt is DateTime paid)
-                    {
-                        <span> · @L["orders.paid_at", "Paid"]: @paid.ToLocalTime().ToString("g")</span>
-                    }
-                </MudText>
-            </div>
-            <MudChip T="string" Color="Color.Primary">@((OrderStatus)_inv.Status)</MudChip>
+    <div class="print-doc-toolbar no-print">
+        <MudStack Row="true" Justify="Justify.SpaceBetween" AlignItems="AlignItems.Center" Class="flex-wrap gap-2">
+            <MudButton Variant="Variant.Text" StartIcon="@Icons.Material.Filled.ArrowBack"
+                       OnClick="@(() => Nav.NavigateTo($"/orders/{OrderId}"))">@L["back", "Back"]</MudButton>
+            <MudStack Row="true" Spacing="1" Class="flex-wrap">
+                <MudButton Variant="Variant.Outlined" Color="Color.Primary"
+                           StartIcon="@Icons.Material.Filled.PictureAsPdf" OnClick="PrintAsync">
+                    @L["print_pdf", "Print PDF"]
+                </MudButton>
+                <MudButton Variant="Variant.Outlined" Color="Color.Info"
+                           StartIcon="@Icons.Material.Filled.Email" OnClick="SendEmailAsync"
+                           Disabled="@(_sendingEmail || string.IsNullOrWhiteSpace(_shareEmail))">
+                    @(_sendingEmail ? L["sending", "Sending…"] : L["invoice.send_email", "Email customer"])
+                </MudButton>
+                <MudButton Variant="Variant.Filled" Color="Color.Success"
+                           StartIcon="@Icons.Material.Filled.Chat" OnClick="OpenWhatsAppAsync"
+                           Disabled="@string.IsNullOrWhiteSpace(_sharePhone)">
+                    @L["invoice.send_whatsapp", "WhatsApp"]
+                </MudButton>
+            </MudStack>
         </MudStack>
+    </div>
 
-        <MudGrid Spacing="4" Class="mb-4">
+    <MudPaper Elevation="0" Class="app-card rounded-lg pa-4 print-doc-share no-print mb-3">
+        <MudText Typo="Typo.subtitle2" Class="mb-1">@L["invoice.share", "Send this invoice to the customer"]</MudText>
+        <MudText Typo="Typo.caption" Color="Color.Secondary" Class="mb-3">
+            @L["invoice.share_help", "Edit the address if needed, then email a formatted copy or open WhatsApp with a text summary of the same totals (markup is already included in prices)."]
+        </MudText>
+        <MudGrid Spacing="2">
             <MudItem xs="12" sm="6">
-                <MudText Typo="Typo.subtitle2" Class="mb-1">@L["invoice.seller", "Seller"]</MudText>
-                <table class="invoice-meta">
-                    <tr><td colspan="2"><strong>@(_inv.Seller.LegalName ?? _inv.Seller.Name)</strong></td></tr>
-                    @if (!string.IsNullOrEmpty(_inv.Seller.TaxId))
-                    {
-                        <tr><td>@L["website.seller_tax_id", "Tax ID"]</td><td>@_inv.Seller.TaxId</td></tr>
-                    }
-                    @if (!string.IsNullOrEmpty(_inv.Seller.EconomicCode))
-                    {
-                        <tr><td>@L["website.seller_economic_code", "Economic code"]</td><td>@_inv.Seller.EconomicCode</td></tr>
-                    }
-                    @if (!string.IsNullOrEmpty(_inv.Seller.VatNumber))
-                    {
-                        <tr><td>@L["website.seller_vat", "VAT"]</td><td>@_inv.Seller.VatNumber</td></tr>
-                    }
-                    @if (!string.IsNullOrEmpty(_inv.Seller.RegistrationNumber))
-                    {
-                        <tr><td>@L["website.seller_registration", "Registration"]</td><td>@_inv.Seller.RegistrationNumber</td></tr>
-                    }
-                    @if (!string.IsNullOrEmpty(_inv.Seller.Email))
-                    {
-                        <tr><td>@L["email", "Email"]</td><td>@_inv.Seller.Email</td></tr>
-                    }
-                    @if (!string.IsNullOrEmpty(_inv.Seller.Phone))
-                    {
-                        <tr><td>@L["phone", "Phone"]</td><td>@_inv.Seller.Phone</td></tr>
-                    }
-                </table>
+                <MudTextField @bind-Value="_shareEmail" Label="@L["email", "Email"]"
+                              Variant="Variant.Outlined" Margin="Margin.Dense"
+                              Adornment="Adornment.Start" AdornmentIcon="@Icons.Material.Filled.Email" />
             </MudItem>
             <MudItem xs="12" sm="6">
-                <MudText Typo="Typo.subtitle2" Class="mb-1">@L["invoice.buyer", "Buyer"]</MudText>
-                <table class="invoice-meta">
-                    <tr><td colspan="2"><strong>@(string.IsNullOrWhiteSpace(_inv.Buyer.Name) ? "—" : _inv.Buyer.Name)</strong></td></tr>
-                    @if (!string.IsNullOrEmpty(_inv.Buyer.Email))
-                    {
-                        <tr><td>@L["email", "Email"]</td><td>@_inv.Buyer.Email</td></tr>
-                    }
-                    @if (!string.IsNullOrEmpty(_inv.Buyer.Phone))
-                    {
-                        <tr><td>@L["phone", "Phone"]</td><td>@_inv.Buyer.Phone</td></tr>
-                    }
-                    @if (!string.IsNullOrEmpty(_inv.Buyer.Address))
-                    {
-                        <tr><td>@L["address", "Address"]</td><td>@_inv.Buyer.Address</td></tr>
-                    }
-                </table>
+                <MudTextField @bind-Value="_sharePhone" Label="@L["phone", "Phone / WhatsApp"]"
+                              Variant="Variant.Outlined" Margin="Margin.Dense"
+                              HelperText="@L["invoice.phone_help", "Include country code when possible (e.g. 98912…)."]"
+                              Adornment="Adornment.Start" AdornmentIcon="@Icons.Material.Filled.Phone" />
             </MudItem>
         </MudGrid>
-
-        <MudSimpleTable Dense="true" Elevation="0" Class="mb-4">
-            <thead>
-                <tr>
-                    <th>@L["title", "Title"]</th>
-                    <th>@L["variants.sku", "SKU"]</th>
-                    <th class="text-end">@L["quantity", "Qty"]</th>
-                    <th class="text-end">@L["variants.price", "Unit"]</th>
-                    <th class="text-end">@L["orders.line_total", "Total"]</th>
-                </tr>
-            </thead>
-            <tbody>
-                @foreach (var line in _inv.Lines)
-                {
-                    <tr>
-                        <td>@line.Title</td>
-                        <td><code>@line.Sku</code></td>
-                        <td class="text-end">@line.Quantity</td>
-                        <td class="text-end">@line.UnitPrice.ToString("0.##")</td>
-                        <td class="text-end">@line.LineTotal.ToString("0.##")</td>
-                    </tr>
-                }
-            </tbody>
-        </MudSimpleTable>
-
-        <MudGrid>
-            <MudItem xs="12" sm="6">
-                @if (_inv.PricesIncludeTax)
-                {
-                    <MudAlert Severity="Severity.Info" Dense="true" Class="mb-2">
-                        @L["invoice.prices_include_tax", "Catalog prices include tax; tax line is reported for disclosure."]
-                    </MudAlert>
-                }
-                @if (!string.IsNullOrEmpty(_inv.TaxBreakdownJson))
-                {
-                    <MudText Typo="Typo.caption" Color="Color.Secondary" Class="mb-1">@L["invoice.tax_breakdown", "Tax breakdown"]</MudText>
-                    <MudText Typo="Typo.caption" Style="word-break:break-all">@_inv.TaxBreakdownJson</MudText>
-                }
-            </MudItem>
-            <MudItem xs="12" sm="6">
-                <table class="invoice-totals" style="width:100%">
-                    <tr><td>@L["orders.subtotal", "Subtotal"]</td><td class="text-end">@MoneyFormat.GroupWithCode(_inv.SubTotal, _inv.CurrencyCode)</td></tr>
-                    <tr><td>@L["orders.discount", "Discount"]</td><td class="text-end">-@MoneyFormat.Group(_inv.DiscountTotal)</td></tr>
-                    <tr><td>@L["shipping", "Shipping"]</td><td class="text-end">@MoneyFormat.Group(_inv.ShippingTotal)</td></tr>
-                    <tr><td>@L["tax", "Tax"]</td><td class="text-end">@MoneyFormat.Group(_inv.TaxTotal)</td></tr>
-                    @if (_inv.MarkupTotal > 0)
-                    {
-                        <tr><td>@L["orders.markup_total", "Markup total"]</td><td class="text-end">@MoneyFormat.Group(_inv.MarkupTotal)</td></tr>
-                    }
-                    <tr><td><strong>@L["orders.grand_total", "Grand total"]</strong></td><td class="text-end"><strong>@MoneyFormat.GroupWithCode(_inv.GrandTotal, _inv.CurrencyCode)</strong></td></tr>
-                </table>
-            </MudItem>
-        </MudGrid>
+        @if (!_emailConfigured)
+        {
+            <MudAlert Severity="Severity.Warning" Dense="true" Class="mt-3" Variant="Variant.Outlined">
+                @L["invoice.email_not_configured", "No sales email account is configured for this website — set one under Email accounts before sending."]
+            </MudAlert>
+        }
     </MudPaper>
+
+    <div id="order-invoice-print" class="print-doc invoice-doc">
+        <div class="print-doc-sheet">
+            <header class="print-doc-header">
+                <div>
+                    <h1 class="print-doc-title">@L["invoice", "Tax invoice"]</h1>
+                    <p class="print-doc-subtitle">#@_inv.OrderNumber</p>
+                    <p class="print-doc-meta">
+                        @L["date", "Date"]: @_inv.CreatedAt.ToLocalTime().ToString("g")
+                        @if (_inv.PaidAt is DateTime paid)
+                        {
+                            <span> · @L["orders.paid_at", "Paid"]: @paid.ToLocalTime().ToString("g")</span>
+                        }
+                    </p>
+                </div>
+                <div class="print-doc-badge">@((OrderStatus)_inv.Status)</div>
+            </header>
+
+            <div class="print-doc-parties">
+                <section class="print-doc-party">
+                    <h2 class="print-doc-party-label">@L["invoice.seller", "Seller"]</h2>
+                    <p class="print-doc-party-name">@(_inv.Seller.LegalName ?? _inv.Seller.Name)</p>
+                    <table>
+                        @if (!string.IsNullOrEmpty(_inv.Seller.TaxId))
+                        {
+                            <tr><td>@L["website.seller_tax_id", "Tax ID"]</td><td>@_inv.Seller.TaxId</td></tr>
+                        }
+                        @if (!string.IsNullOrEmpty(_inv.Seller.EconomicCode))
+                        {
+                            <tr><td>@L["website.seller_economic_code", "Economic code"]</td><td>@_inv.Seller.EconomicCode</td></tr>
+                        }
+                        @if (!string.IsNullOrEmpty(_inv.Seller.VatNumber))
+                        {
+                            <tr><td>@L["website.seller_vat", "VAT"]</td><td>@_inv.Seller.VatNumber</td></tr>
+                        }
+                        @if (!string.IsNullOrEmpty(_inv.Seller.RegistrationNumber))
+                        {
+                            <tr><td>@L["website.seller_registration", "Registration"]</td><td>@_inv.Seller.RegistrationNumber</td></tr>
+                        }
+                        @if (!string.IsNullOrEmpty(_inv.Seller.Email))
+                        {
+                            <tr><td>@L["email", "Email"]</td><td>@_inv.Seller.Email</td></tr>
+                        }
+                        @if (!string.IsNullOrEmpty(_inv.Seller.Phone))
+                        {
+                            <tr><td>@L["phone", "Phone"]</td><td>@_inv.Seller.Phone</td></tr>
+                        }
+                    </table>
+                </section>
+                <section class="print-doc-party">
+                    <h2 class="print-doc-party-label">@L["invoice.buyer", "Buyer"]</h2>
+                    <p class="print-doc-party-name">@(string.IsNullOrWhiteSpace(_inv.Buyer.Name) ? "—" : _inv.Buyer.Name)</p>
+                    <table>
+                        @if (!string.IsNullOrEmpty(_inv.Buyer.Email))
+                        {
+                            <tr><td>@L["email", "Email"]</td><td>@_inv.Buyer.Email</td></tr>
+                        }
+                        @if (!string.IsNullOrEmpty(_inv.Buyer.Phone))
+                        {
+                            <tr><td>@L["phone", "Phone"]</td><td>@_inv.Buyer.Phone</td></tr>
+                        }
+                        @if (!string.IsNullOrEmpty(_inv.Buyer.Address))
+                        {
+                            <tr><td>@L["address", "Address"]</td><td>@_inv.Buyer.Address</td></tr>
+                        }
+                    </table>
+                </section>
+            </div>
+
+            <table class="print-doc-lines">
+                <thead>
+                    <tr>
+                        <th style="width:42%">@L["title", "Title"]</th>
+                        <th>@L["variants.sku", "SKU"]</th>
+                        <th class="text-end">@L["quantity", "Qty"]</th>
+                        <th class="text-end">@L["variants.price", "Unit"]</th>
+                        <th class="text-end">@L["orders.line_total", "Total"]</th>
+                    </tr>
+                </thead>
+                <tbody>
+                    @foreach (var line in _inv.Lines)
+                    {
+                        <tr>
+                            <td>@line.Title</td>
+                            <td><code>@(line.Sku ?? "—")</code></td>
+                            <td class="text-end">@line.Quantity</td>
+                            <td class="text-end">@MoneyFormat.Group(line.UnitPrice, _inv.CurrencyCode)</td>
+                            <td class="text-end">@MoneyFormat.Group(line.LineTotal, _inv.CurrencyCode)</td>
+                        </tr>
+                    }
+                </tbody>
+            </table>
+
+            <div class="print-doc-footer-grid">
+                <div class="print-doc-notes">
+                    <p class="print-doc-notes-title">@L["invoice.notes", "Notes"]</p>
+                    @if (_inv.PricesIncludeTax)
+                    {
+                        <div>@L["invoice.prices_include_tax", "Catalog prices include tax; tax line is reported for disclosure."]</div>
+                    }
+                    @if (!string.IsNullOrWhiteSpace(_inv.Note))
+                    {
+                        <div class="mt-1">@_inv.Note</div>
+                    }
+                    @if (string.IsNullOrWhiteSpace(_inv.Note) && !_inv.PricesIncludeTax)
+                    {
+                        <div>—</div>
+                    }
+                </div>
+                <div class="print-doc-totals">
+                    <table>
+                        @* Markup is folded into unit prices / subtotal / grand total — never a separate customer line. *@
+                        <tr>
+                            <td>@L["orders.subtotal", "Subtotal"]</td>
+                            <td class="text-end">@MoneyFormat.GroupWithCode(_inv.SubTotal, _inv.CurrencyCode)</td>
+                        </tr>
+                        <tr>
+                            <td>@L["orders.discount", "Discount"]</td>
+                            <td class="text-end">-@MoneyFormat.Group(_inv.DiscountTotal, _inv.CurrencyCode)</td>
+                        </tr>
+                        <tr>
+                            <td>@L["shipping", "Shipping"]</td>
+                            <td class="text-end">@MoneyFormat.GroupWithCode(_inv.ShippingTotal, _inv.CurrencyCode)</td>
+                        </tr>
+                        <tr>
+                            <td>@L["tax", "Tax"]</td>
+                            <td class="text-end">@MoneyFormat.GroupWithCode(_inv.TaxTotal, _inv.CurrencyCode)</td>
+                        </tr>
+                        <tr>
+                            <td>@L["orders.grand_total", "Grand total"]</td>
+                            <td class="text-end">@MoneyFormat.GroupWithCode(_inv.GrandTotal, _inv.CurrencyCode)</td>
+                        </tr>
+                    </table>
+                </div>
+            </div>
+
+            <footer class="print-doc-stamp">
+                @(_inv.Seller.LegalName ?? _inv.Seller.Name) · @L["invoice", "Invoice"] #@_inv.OrderNumber
+            </footer>
+        </div>
     </div>
 }
 
@@ -164,16 +214,168 @@ else
     [Parameter] public int OrderId { get; set; }
 
     private bool _loading = true;
+    private bool _sendingEmail;
+    private bool _emailConfigured;
     private OrderInvoiceDto? _inv;
+    private string _shareEmail = "";
+    private string _sharePhone = "";
 
     protected override async Task OnInitializedAsync()
     {
         await L.EnsureLoadedAsync();
         _inv = await TaxReportService.GetOrderInvoiceAsync(OrderId);
+        if (_inv is not null)
+        {
+            _shareEmail = _inv.Buyer.Email?.Trim() ?? "";
+            _sharePhone = _inv.Buyer.Phone?.Trim() ?? "";
+            try
+            {
+                _emailConfigured = await EmailService.IsConfiguredAsync(_inv.WebsiteId);
+            }
+            catch
+            {
+                _emailConfigured = false;
+            }
+        }
         _loading = false;
     }
 
     private async Task PrintAsync() =>
         await Js.InvokeVoidAsync("dotnetablePrint.printElement", "order-invoice-print",
             _inv is null ? L["invoice", "Invoice"] : $"{L["invoice", "Invoice"]} {_inv.OrderNumber}");
+
+    private async Task SendEmailAsync()
+    {
+        if (_inv is null) return;
+        var to = _shareEmail.Trim();
+        if (string.IsNullOrWhiteSpace(to) || !to.Contains('@'))
+        {
+            Snackbar.Add(L["invoice.email_invalid", "Enter a valid customer email."], Severity.Warning);
+            return;
+        }
+
+        _sendingEmail = true;
+        try
+        {
+            var subject = string.Format(
+                L["invoice.email_subject", "Invoice #{0} — {1}"],
+                _inv.OrderNumber,
+                _inv.Seller.Name);
+
+            // Full invoice HTML so the customer sees line prices (markup already included) — not only a link.
+            await EmailService.SendAsync(
+                _inv.WebsiteId, EmailAccountType.Sales, to, subject, BuildInvoiceEmailHtml());
+
+            Snackbar.Add(L["invoice.email_sent", "Invoice email sent."], Severity.Success);
+        }
+        catch (Exception ex)
+        {
+            Snackbar.Add(ex.Message, Severity.Error);
+        }
+        finally
+        {
+            _sendingEmail = false;
+        }
+    }
+
+    private async Task OpenWhatsAppAsync()
+    {
+        if (_inv is null) return;
+        var digits = NormalizePhoneDigits(_sharePhone);
+        if (digits.Length < 8)
+        {
+            Snackbar.Add(L["invoice.phone_invalid", "Enter a valid phone number for WhatsApp."], Severity.Warning);
+            return;
+        }
+
+        var text = BuildWhatsAppText();
+        var url = $"https://wa.me/{digits}?text={Uri.EscapeDataString(text)}";
+        await Js.InvokeVoidAsync("dotnetablePrint.openExternal", url);
+    }
+
+    private string BuildWhatsAppText()
+    {
+        var inv = _inv!;
+        var seller = inv.Seller.LegalName ?? inv.Seller.Name;
+        var buyer = string.IsNullOrWhiteSpace(inv.Buyer.Name) ? "—" : inv.Buyer.Name;
+        var lines = string.Join("\n", inv.Lines.Select(l =>
+            $"• {l.Title} × {l.Quantity} = {MoneyFormat.GroupWithCode(l.LineTotal, inv.CurrencyCode)}"));
+
+        return
+            $"{L["invoice", "Invoice"]} #{inv.OrderNumber}\n" +
+            $"{L["invoice.seller", "Seller"]}: {seller}\n" +
+            $"{L["invoice.buyer", "Buyer"]}: {buyer}\n" +
+            $"{L["date", "Date"]}: {inv.CreatedAt.ToLocalTime():g}\n\n" +
+            $"{lines}\n\n" +
+            $"{L["orders.subtotal", "Subtotal"]}: {MoneyFormat.GroupWithCode(inv.SubTotal, inv.CurrencyCode)}\n" +
+            $"{L["orders.discount", "Discount"]}: -{MoneyFormat.Group(inv.DiscountTotal, inv.CurrencyCode)}\n" +
+            $"{L["shipping", "Shipping"]}: {MoneyFormat.GroupWithCode(inv.ShippingTotal, inv.CurrencyCode)}\n" +
+            $"{L["tax", "Tax"]}: {MoneyFormat.GroupWithCode(inv.TaxTotal, inv.CurrencyCode)}\n" +
+            $"{L["orders.grand_total", "Grand total"]}: {MoneyFormat.GroupWithCode(inv.GrandTotal, inv.CurrencyCode)}";
+    }
+
+    private string BuildInvoiceEmailHtml()
+    {
+        var inv = _inv!;
+        static string H(string? s) => global::System.Net.WebUtility.HtmlEncode(s ?? "");
+
+        var seller = H(inv.Seller.LegalName ?? inv.Seller.Name);
+        var buyer = H(string.IsNullOrWhiteSpace(inv.Buyer.Name) ? "—" : inv.Buyer.Name);
+        var sb = new global::System.Text.StringBuilder();
+        sb.Append("<div style=\"font-family:Segoe UI,Tahoma,Arial,sans-serif;color:#111;max-width:640px;margin:0 auto;\">");
+        sb.Append($"<h2 style=\"margin:0 0 4px;border-bottom:2px solid #111;padding-bottom:10px;\">{H(L["invoice", "Invoice"])} #{H(inv.OrderNumber)}</h2>");
+        sb.Append($"<p style=\"margin:0 0 16px;font-size:13px;color:#333;\">{H(L["date", "Date"])}: {inv.CreatedAt.ToLocalTime():g}</p>");
+        sb.Append("<table width=\"100%\" cellpadding=\"0\" cellspacing=\"0\" style=\"margin-bottom:16px;\"><tr>");
+        sb.Append($"<td width=\"50%\" style=\"vertical-align:top;padding:10px;border:1px solid #333;\"><strong>{H(L["invoice.seller", "Seller"])}</strong><br/>{seller}</td>");
+        sb.Append($"<td width=\"50%\" style=\"vertical-align:top;padding:10px;border:1px solid #333;\"><strong>{H(L["invoice.buyer", "Buyer"])}</strong><br/>{buyer}</td>");
+        sb.Append("</tr></table>");
+        sb.Append("<table width=\"100%\" cellpadding=\"8\" cellspacing=\"0\" style=\"border-collapse:collapse;font-size:13px;margin-bottom:16px;\">");
+        sb.Append("<thead><tr style=\"background:#f0f2f4;\">");
+        sb.Append($"<th align=\"left\" style=\"border-bottom:2px solid #111;\">{H(L["title", "Title"])}</th>");
+        sb.Append($"<th align=\"right\" style=\"border-bottom:2px solid #111;\">{H(L["quantity", "Qty"])}</th>");
+        sb.Append($"<th align=\"right\" style=\"border-bottom:2px solid #111;\">{H(L["variants.price", "Unit"])}</th>");
+        sb.Append($"<th align=\"right\" style=\"border-bottom:2px solid #111;\">{H(L["orders.line_total", "Total"])}</th>");
+        sb.Append("</tr></thead><tbody>");
+        foreach (var line in inv.Lines)
+        {
+            sb.Append("<tr>");
+            sb.Append($"<td style=\"border-bottom:1px solid #ccc;\">{H(line.Title)}</td>");
+            sb.Append($"<td align=\"right\" style=\"border-bottom:1px solid #ccc;\">{line.Quantity}</td>");
+            sb.Append($"<td align=\"right\" style=\"border-bottom:1px solid #ccc;\">{MoneyFormat.Group(line.UnitPrice, inv.CurrencyCode)}</td>");
+            sb.Append($"<td align=\"right\" style=\"border-bottom:1px solid #ccc;\">{MoneyFormat.Group(line.LineTotal, inv.CurrencyCode)}</td>");
+            sb.Append("</tr>");
+        }
+        sb.Append("</tbody></table>");
+        sb.Append("<table width=\"100%\" cellpadding=\"6\" cellspacing=\"0\" style=\"font-size:13px;max-width:280px;margin-left:auto;border:1px solid #222;\">");
+        AppendTotalRow(sb, L["orders.subtotal", "Subtotal"], MoneyFormat.GroupWithCode(inv.SubTotal, inv.CurrencyCode));
+        AppendTotalRow(sb, L["orders.discount", "Discount"], "-" + MoneyFormat.Group(inv.DiscountTotal, inv.CurrencyCode));
+        AppendTotalRow(sb, L["shipping", "Shipping"], MoneyFormat.GroupWithCode(inv.ShippingTotal, inv.CurrencyCode));
+        AppendTotalRow(sb, L["tax", "Tax"], MoneyFormat.GroupWithCode(inv.TaxTotal, inv.CurrencyCode));
+        AppendTotalRow(sb, L["orders.grand_total", "Grand total"], MoneyFormat.GroupWithCode(inv.GrandTotal, inv.CurrencyCode), bold: true);
+        sb.Append("</table></div>");
+        return sb.ToString();
+    }
+
+    private static void AppendTotalRow(global::System.Text.StringBuilder sb, string label, string value, bool bold = false)
+    {
+        var weight = bold ? "font-weight:700;border-top:2px solid #111;" : "border-bottom:1px solid #eee;";
+        var left = global::System.Net.WebUtility.HtmlEncode(label);
+        var right = global::System.Net.WebUtility.HtmlEncode(value);
+        sb.Append("<tr><td style=\"padding:8px 12px;").Append(weight).Append("\">").Append(left)
+            .Append("</td><td align=\"right\" style=\"padding:8px 12px;").Append(weight).Append("\">")
+            .Append(right).Append("</td></tr>");
+    }
+
+    /// <summary>Digits only for wa.me; strips leading 00; keeps country code when present.</summary>
+    private static string NormalizePhoneDigits(string? raw)
+    {
+        if (string.IsNullOrWhiteSpace(raw)) return "";
+        var digits = new string(raw.Where(char.IsDigit).ToArray());
+        if (digits.StartsWith("00", StringComparison.Ordinal))
+            digits = digits[2..];
+        // Common Iran local mobile: 09xxxxxxxxx → 989xxxxxxxxx
+        if (digits.Length == 11 && digits.StartsWith('0'))
+            digits = "98" + digits[1..];
+        return digits;
+    }
 }

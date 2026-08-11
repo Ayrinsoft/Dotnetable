@@ -7,29 +7,6 @@
 
 <DNPageTitle Title="@(_order is null ? L["orders.shipping_label", "Shipping label"] : $"{L["orders.shipping_label", "Shipping label"]} {_order.OrderNumber}")" />
 
-<style>
-    @@media print {
-        .no-print { display: none !important; }
-        body { background: #fff !important; }
-        .label-sheet { box-shadow: none !important; border: 2px solid #000 !important; }
-    }
-    .label-sheet {
-        max-width: 420px;
-        margin: 0 auto;
-        border: 2px solid #222;
-        padding: 28px 32px;
-        font-family: Tahoma, "Segoe UI", sans-serif;
-        direction: rtl;
-        text-align: right;
-    }
-    .label-sheet.ltr { direction: ltr; text-align: left; }
-    .label-order { font-size: 0.9rem; color: #555; margin-bottom: 12px; }
-    .label-name { font-size: 1.5rem; font-weight: 700; margin-bottom: 8px; }
-    .label-phone { font-size: 1.15rem; margin-bottom: 12px; }
-    .label-address { font-size: 1.2rem; line-height: 1.6; white-space: pre-wrap; }
-    .label-postal { font-size: 1.1rem; margin-top: 12px; font-weight: 600; }
-</style>
-
 @if (_loading)
 {
     <MudProgressLinear Indeterminate="true" Color="Color.Primary" />
@@ -40,16 +17,18 @@ else if (_order is null)
 }
 else
 {
-    <MudStack Row="true" Justify="Justify.SpaceBetween" AlignItems="AlignItems.Center" Class="mb-4 no-print">
-        <MudButton Variant="Variant.Text" StartIcon="@Icons.Material.Filled.ArrowBack"
-                   OnClick="@(() => Nav.NavigateTo($"/orders/{OrderId}"))">@L["back", "Back"]</MudButton>
-        <MudButton Variant="Variant.Filled" Color="Color.Primary" StartIcon="@Icons.Material.Filled.Print" OnClick="PrintAsync">
-            @L["print", "Print"]
-        </MudButton>
-    </MudStack>
+    <div class="print-doc-toolbar no-print">
+        <MudStack Row="true" Justify="Justify.SpaceBetween" AlignItems="AlignItems.Center">
+            <MudButton Variant="Variant.Text" StartIcon="@Icons.Material.Filled.ArrowBack"
+                       OnClick="@(() => Nav.NavigateTo($"/orders/{OrderId}"))">@L["back", "Back"]</MudButton>
+            <MudButton Variant="Variant.Filled" Color="Color.Primary" StartIcon="@Icons.Material.Filled.Print" OnClick="PrintAsync">
+                @L["print", "Print"]
+            </MudButton>
+        </MudStack>
+    </div>
 
-    <div id="order-shipping-label-print">
-        <div class="label-sheet">
+    <div id="order-shipping-label-print" class="print-doc label-doc">
+        <div class="label-sheet print-doc-sheet">
             <div class="label-order">
                 @L["orders.order", "Order"] #@_order.OrderNumber
                 @if (!string.IsNullOrEmpty(ChannelText))

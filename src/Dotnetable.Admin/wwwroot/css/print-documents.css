@@ -1,0 +1,327 @@
+/* ============================================================
+   Customer-facing print documents (invoice, shipping label, …)
+   Screen preview + print/PDF window (dotnetablePrint).
+   ============================================================ */
+
+.print-doc {
+    max-width: 920px;
+    margin: 0 auto 24px;
+}
+
+.print-doc-sheet {
+    background: #fff;
+    color: #111;
+    border: 1px solid #c8cdd2;
+    border-radius: 4px;
+    box-shadow: 0 2px 12px rgba(0, 0, 0, .06);
+    padding: 36px 40px 40px;
+    font-family: "Segoe UI", Tahoma, "Open Sans", sans-serif;
+    font-size: 14px;
+    line-height: 1.5;
+}
+
+.lang-fa .print-doc-sheet {
+    font-family: Sahel, Tahoma, "Segoe UI", sans-serif;
+}
+
+/* ---- Invoice ------------------------------------------------------- */
+
+.invoice-doc .print-doc-header {
+    display: flex;
+    justify-content: space-between;
+    align-items: flex-start;
+    gap: 16px;
+    border-bottom: 2px solid #1a1a1a;
+    padding-bottom: 18px;
+    margin-bottom: 22px;
+}
+
+.invoice-doc .print-doc-title {
+    font-size: 1.55rem;
+    font-weight: 700;
+    letter-spacing: .02em;
+    margin: 0 0 4px;
+    color: #111;
+}
+
+.invoice-doc .print-doc-subtitle {
+    font-size: 1.05rem;
+    font-weight: 600;
+    margin: 0 0 6px;
+    color: #111;
+}
+
+.invoice-doc .print-doc-meta {
+    font-size: .88rem;
+    color: #333;
+    margin: 0;
+}
+
+.invoice-doc .print-doc-badge {
+    display: inline-block;
+    border: 1px solid #333;
+    padding: 4px 12px;
+    font-size: .78rem;
+    font-weight: 700;
+    text-transform: uppercase;
+    letter-spacing: .04em;
+    white-space: nowrap;
+}
+
+.invoice-doc .print-doc-parties {
+    display: grid;
+    grid-template-columns: 1fr 1fr;
+    gap: 16px;
+    margin-bottom: 24px;
+}
+
+@media (max-width: 640px) {
+    .invoice-doc .print-doc-parties {
+        grid-template-columns: 1fr;
+    }
+}
+
+.invoice-doc .print-doc-party {
+    border: 1px solid #333;
+    padding: 14px 16px;
+    min-height: 120px;
+}
+
+.invoice-doc .print-doc-party-label {
+    font-size: .72rem;
+    font-weight: 700;
+    text-transform: uppercase;
+    letter-spacing: .08em;
+    margin: 0 0 8px;
+    color: #111;
+    border-bottom: 1px solid #ccc;
+    padding-bottom: 6px;
+}
+
+.invoice-doc .print-doc-party-name {
+    font-size: 1rem;
+    font-weight: 700;
+    margin: 0 0 8px;
+    color: #111;
+}
+
+.invoice-doc .print-doc-party table {
+    width: 100%;
+    border-collapse: collapse;
+    font-size: .88rem;
+}
+
+.invoice-doc .print-doc-party td {
+    padding: 2px 0;
+    vertical-align: top;
+    border: none;
+    color: #111;
+}
+
+.invoice-doc .print-doc-party td:first-child {
+    width: 38%;
+    color: #333;
+    padding-right: 8px;
+}
+
+.invoice-doc .print-doc-lines {
+    width: 100%;
+    border-collapse: collapse;
+    margin-bottom: 22px;
+    font-size: .9rem;
+}
+
+.invoice-doc .print-doc-lines thead th {
+    background: #f0f2f4;
+    border-top: 1px solid #222;
+    border-bottom: 2px solid #222;
+    padding: 10px 10px;
+    font-weight: 700;
+    color: #111;
+    text-align: left;
+}
+
+.invoice-doc .print-doc-lines tbody td {
+    border-bottom: 1px solid #ccc;
+    padding: 10px 10px;
+    color: #111;
+    vertical-align: top;
+}
+
+.invoice-doc .print-doc-lines tbody tr:last-child td {
+    border-bottom: 1px solid #222;
+}
+
+.invoice-doc .print-doc-lines .text-end,
+.invoice-doc .print-doc-totals .text-end {
+    text-align: right;
+}
+
+.invoice-doc .print-doc-lines code {
+    font-size: .85em;
+    background: transparent;
+    color: #111;
+}
+
+.invoice-doc .print-doc-footer-grid {
+    display: grid;
+    grid-template-columns: 1fr 280px;
+    gap: 20px;
+    align-items: start;
+}
+
+@media (max-width: 640px) {
+    .invoice-doc .print-doc-footer-grid {
+        grid-template-columns: 1fr;
+    }
+}
+
+.invoice-doc .print-doc-notes {
+    font-size: .82rem;
+    color: #333;
+    border: 1px dashed #999;
+    padding: 12px 14px;
+    min-height: 72px;
+}
+
+.invoice-doc .print-doc-notes-title {
+    font-weight: 700;
+    color: #111;
+    margin: 0 0 6px;
+    font-size: .78rem;
+    text-transform: uppercase;
+    letter-spacing: .06em;
+}
+
+.invoice-doc .print-doc-totals {
+    border: 1px solid #222;
+    padding: 4px 0;
+}
+
+.invoice-doc .print-doc-totals table {
+    width: 100%;
+    border-collapse: collapse;
+}
+
+.invoice-doc .print-doc-totals td {
+    padding: 8px 14px;
+    border: none;
+    border-bottom: 1px solid #e0e0e0;
+    color: #111;
+    font-size: .9rem;
+}
+
+.invoice-doc .print-doc-totals tr:last-child td {
+    border-bottom: none;
+    border-top: 2px solid #111;
+    font-size: 1.05rem;
+    font-weight: 700;
+    padding-top: 12px;
+    padding-bottom: 12px;
+}
+
+.invoice-doc .print-doc-stamp {
+    margin-top: 28px;
+    padding-top: 14px;
+    border-top: 1px solid #ddd;
+    font-size: .78rem;
+    color: #444;
+    text-align: center;
+}
+
+/* ---- Shipping label ------------------------------------------------ */
+
+.label-doc .print-doc-sheet,
+.label-sheet {
+    max-width: 440px;
+    margin: 0 auto;
+    border: 2px solid #1a1a1a;
+    border-radius: 2px;
+    padding: 28px 32px;
+    box-shadow: 0 2px 10px rgba(0, 0, 0, .05);
+    background: #fff;
+    color: #111;
+    font-family: Tahoma, "Segoe UI", sans-serif;
+    direction: rtl;
+    text-align: right;
+}
+
+.label-sheet.ltr {
+    direction: ltr;
+    text-align: left;
+}
+
+.label-order {
+    font-size: .9rem;
+    color: #333;
+    margin-bottom: 14px;
+    padding-bottom: 10px;
+    border-bottom: 1px solid #ccc;
+}
+
+.label-name {
+    font-size: 1.5rem;
+    font-weight: 700;
+    margin-bottom: 8px;
+    color: #111;
+}
+
+.label-phone {
+    font-size: 1.15rem;
+    margin-bottom: 12px;
+    color: #111;
+}
+
+.label-address {
+    font-size: 1.15rem;
+    line-height: 1.65;
+    white-space: pre-wrap;
+    color: #111;
+    padding: 12px 0;
+    border-top: 1px dashed #bbb;
+    border-bottom: 1px dashed #bbb;
+}
+
+.label-postal {
+    font-size: 1.1rem;
+    margin-top: 14px;
+    font-weight: 600;
+    color: #111;
+}
+
+/* ---- Screen chrome (hidden in print popup via .no-print strip) ------ */
+
+.print-doc-toolbar {
+    max-width: 920px;
+    margin: 0 auto 16px;
+}
+
+.print-doc-share {
+    max-width: 920px;
+    margin: 0 auto 20px;
+}
+
+/* ---- Print media (in-page Ctrl+P fallback) ------------------------- */
+
+@media print {
+    .no-print {
+        display: none !important;
+    }
+
+    body {
+        background: #fff !important;
+    }
+
+    .print-doc-sheet,
+    .label-sheet {
+        box-shadow: none !important;
+        border: 1px solid #000 !important;
+        max-width: none !important;
+        margin: 0 !important;
+        border-radius: 0 !important;
+    }
+
+    .label-sheet {
+        border: 2px solid #000 !important;
+    }
+}

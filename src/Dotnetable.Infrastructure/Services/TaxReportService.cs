@@ -148,6 +148,7 @@ public class TaxReportService : ITaxReportService
         return new OrderInvoiceDto
         {
             OrderId = order.OrderID,
+            WebsiteId = order.WebsiteID,
             OrderNumber = order.OrderNumber,
             CreatedAt = order.CreatedAt,
             PaidAt = order.PaidAt,
