@@ -161,131 +161,136 @@ public class OrderService : IOrderService
             : subtotalUsd + shippingUsd + taxUsd - discountUsd;
         var (resolvedCurrency, rate) = await _currency.GetActiveRateAsync(websiteId, currencyCode, ct);
 
-        await using var tx = await _context.Database.BeginTransactionAsync(ct);
-
-        var order = new Order
+        // EnableRetryOnFailure requires user transactions to run inside the execution strategy.
+        var strategy = _context.Database.CreateExecutionStrategy();
+        return await strategy.ExecuteAsync(async () =>
         {
-            WebsiteID = websiteId,
-            OrderNumber = GenerateOrderNumber(websiteId),
-            WebsiteClientID = clientId,
-            Status = (byte)OrderStatus.PendingPayment,
-            CurrencyCode = resolvedCurrency,
-            ExchangeRateToUsd = rate,
-            SubTotal = subtotalUsd * rate,
-            DiscountTotal = discountUsd * rate,
-            ShippingTotal = shippingUsd * rate,
-            TaxTotal = taxUsd * rate,
-            PricesIncludeTax = taxResult.PricesIncludeTax,
-            TaxBreakdownJson = taxResult.BreakdownJson,
-            GrandTotal = grandTotalUsd * rate,
-            GrandTotalUsd = grandTotalUsd,
-            WebsiteClientAddressID = address.WebsiteClientAddressID,
-            AddressSnapshot = $"{address.ReceiverName}, {address.AddressLine}, {address.PostalCode} ({address.Phone})",
-            CouponID = coupon?.CouponID,
-            ShippingMethodID = resolvedShippingMethodId,
-            Note = note,
-            SalesChannel = (byte)OrderSalesChannel.Online,
-            ReportToTax = true,
-            MarkupTotal = 0,
-            CreatedAt = DateTime.UtcNow,
-        };
-        _context.Orders.Add(order);
-        await _context.SaveChangesAsync(ct);
+            await using var tx = await _context.Database.BeginTransactionAsync(ct);
 
-        foreach (var item in cart.CartItems)
-        {
-            var variant = item.ProductVariant;
-            var unitPriceUsd = unitUsdByItem[item.CartItemID];
-            var sourceWebsiteId = variant.Product.WebsiteID;
-            var unitCostUsd = variant.InventoryItems.FirstOrDefault(i => i.WebsiteID == sourceWebsiteId)?.AvgCostUsd ?? 0;
+            var order = new Order
+            {
+                WebsiteID = websiteId,
+                OrderNumber = GenerateOrderNumber(websiteId),
+                WebsiteClientID = clientId,
+                Status = (byte)OrderStatus.PendingPayment,
+                CurrencyCode = resolvedCurrency,
+                ExchangeRateToUsd = rate,
+                SubTotal = subtotalUsd * rate,
+                DiscountTotal = discountUsd * rate,
+                ShippingTotal = shippingUsd * rate,
+                TaxTotal = taxUsd * rate,
+                PricesIncludeTax = taxResult.PricesIncludeTax,
+                TaxBreakdownJson = taxResult.BreakdownJson,
+                GrandTotal = grandTotalUsd * rate,
+                GrandTotalUsd = grandTotalUsd,
+                WebsiteClientAddressID = address.WebsiteClientAddressID,
+                AddressSnapshot = $"{address.ReceiverName}, {address.AddressLine}, {address.PostalCode} ({address.Phone})",
+                CouponID = coupon?.CouponID,
+                ShippingMethodID = resolvedShippingMethodId,
+                Note = note,
+                SalesChannel = (byte)OrderSalesChannel.Online,
+                ReportToTax = true,
+                MarkupTotal = 0,
+                CreatedAt = DateTime.UtcNow,
+            };
+            _context.Orders.Add(order);
+            await _context.SaveChangesAsync(ct);
 
-            var unitLocal = unitPriceUsd * rate;
-            _context.OrderItems.Add(new OrderItem
+            foreach (var item in cart.CartItems)
+            {
+                var variant = item.ProductVariant;
+                var unitPriceUsd = unitUsdByItem[item.CartItemID];
+                var sourceWebsiteId = variant.Product.WebsiteID;
+                var unitCostUsd = variant.InventoryItems.FirstOrDefault(i => i.WebsiteID == sourceWebsiteId)?.AvgCostUsd ?? 0;
+
+                var unitLocal = unitPriceUsd * rate;
+                _context.OrderItems.Add(new OrderItem
+                {
+                    OrderID = order.OrderID,
+                    WebsiteID = websiteId,
+                    SourceWebsiteID = sourceWebsiteId,
+                    ProductVariantID = variant.ProductVariantID,
+                    VendorProductID = item.VendorProductID,
+                    VendorID = item.VendorProduct?.VendorID,
+                    TitleSnapshot = string.IsNullOrWhiteSpace(variant.Title)
+                        ? variant.Product.Title
+                        : $"{variant.Product.Title} — {variant.Title}",
+                    SkuSnapshot = variant.Sku,
+                    Quantity = item.Quantity,
+                    UnitPrice = unitLocal,
+                    UnitPriceUsd = unitPriceUsd,
+                    UnitCostUsd = unitCostUsd,
+                    CatalogUnitPrice = unitLocal,
+                    UnitMarkup = 0,
+                    DiscountAmount = 0,
+                    TotalPrice = unitLocal * item.Quantity,
+                });
+
+                // Reserve only at checkout; on-hand is deducted after payment.
+                // Unlimited digital listings skip inventory reservation entirely.
+                if (item.VendorProduct is { } vp)
+                {
+                    if (!await _vendorProducts.ReserveAsync(vp.VendorProductID, item.Quantity, ct))
+                    {
+                        await tx.RollbackAsync(ct);
+                        return new CheckoutResult(false, $"Insufficient vendor stock for {item.ProductVariant.Product.Title}.", null, null);
+                    }
+
+                    if (IVendorProductService.IsUnlimited(vp))
+                        continue;
+
+                    // Site-linked: reserve physical stock on the source website inventory.
+                    // Host display/member listings: reserve host inventory (materialised sum of store stocks).
+                    var isCrossSite = vp.Vendor?.VendorType == (byte)VendorType.Site && sourceWebsiteId != websiteId;
+                    var reserveSiteId = isCrossSite ? sourceWebsiteId : websiteId;
+                    if (!isCrossSite)
+                        await _vendorProducts.SyncInventoryOnHandFromListingsAsync(websiteId, variant.ProductVariantID, ct);
+
+                    if (!await _inventory.ReserveAsync(reserveSiteId, variant.ProductVariantID, item.Quantity, ct))
+                    {
+                        await _vendorProducts.ReleaseReservationAsync(vp.VendorProductID, item.Quantity, ct);
+                        await tx.RollbackAsync(ct);
+                        return new CheckoutResult(false, $"Insufficient stock for {item.ProductVariant.Product.Title}.", null, null);
+                    }
+                }
+                else
+                {
+                    await tx.RollbackAsync(ct);
+                    return new CheckoutResult(false, $"No store stock assigned for {item.ProductVariant.Product.Title}.", null, null);
+                }
+            }
+
+            _context.OrderStatusHistories.Add(new OrderStatusHistory
             {
                 OrderID = order.OrderID,
-                WebsiteID = websiteId,
-                SourceWebsiteID = sourceWebsiteId,
-                ProductVariantID = variant.ProductVariantID,
-                VendorProductID = item.VendorProductID,
-                VendorID = item.VendorProduct?.VendorID,
-                TitleSnapshot = string.IsNullOrWhiteSpace(variant.Title)
-                    ? variant.Product.Title
-                    : $"{variant.Product.Title} — {variant.Title}",
-                SkuSnapshot = variant.Sku,
-                Quantity = item.Quantity,
-                UnitPrice = unitLocal,
-                UnitPriceUsd = unitPriceUsd,
-                UnitCostUsd = unitCostUsd,
-                CatalogUnitPrice = unitLocal,
-                UnitMarkup = 0,
-                DiscountAmount = 0,
-                TotalPrice = unitLocal * item.Quantity,
+                FromStatus = null,
+                ToStatus = (byte)OrderStatus.PendingPayment,
+                CreatedAt = DateTime.UtcNow,
             });
 
-            // Reserve only at checkout; on-hand is deducted after payment.
-            // Unlimited digital listings skip inventory reservation entirely.
-            if (item.VendorProduct is { } vp)
-            {
-                if (!await _vendorProducts.ReserveAsync(vp.VendorProductID, item.Quantity, ct))
-                {
-                    await tx.RollbackAsync(ct);
-                    return new CheckoutResult(false, $"Insufficient vendor stock for {item.ProductVariant.Product.Title}.", null, null);
-                }
+            if (coupon is not null)
+                await _coupons.RedeemAsync(coupon.CouponID, order.OrderID, clientId, discountUsd, ct);
 
-                if (IVendorProductService.IsUnlimited(vp))
-                    continue;
+            await _context.SaveChangesAsync(ct);
 
-                // Site-linked: reserve physical stock on the source website inventory.
-                // Host display/member listings: reserve host inventory (materialised sum of store stocks).
-                var isCrossSite = vp.Vendor?.VendorType == (byte)VendorType.Site && sourceWebsiteId != websiteId;
-                var reserveSiteId = isCrossSite ? sourceWebsiteId : websiteId;
-                if (!isCrossSite)
-                    await _vendorProducts.SyncInventoryOnHandFromListingsAsync(websiteId, variant.ProductVariantID, ct);
+            // Dual settlement + inter-site credit debit + mirror orders (buyer only sees host order).
+            await _vendorCredit.SettleHostOrderAsync(order.OrderID, ct);
 
-                if (!await _inventory.ReserveAsync(reserveSiteId, variant.ProductVariantID, item.Quantity, ct))
-                {
-                    await _vendorProducts.ReleaseReservationAsync(vp.VendorProductID, item.Quantity, ct);
-                    await tx.RollbackAsync(ct);
-                    return new CheckoutResult(false, $"Insufficient stock for {item.ProductVariant.Product.Title}.", null, null);
-                }
-            }
-            else
-            {
-                await tx.RollbackAsync(ct);
-                return new CheckoutResult(false, $"No store stock assigned for {item.ProductVariant.Product.Title}.", null, null);
-            }
-        }
+            await tx.CommitAsync(ct);
 
-        _context.OrderStatusHistories.Add(new OrderStatusHistory
-        {
-            OrderID = order.OrderID,
-            FromStatus = null,
-            ToStatus = (byte)OrderStatus.PendingPayment,
-            CreatedAt = DateTime.UtcNow,
+            await _cart.ClearAsync(cartId, ct);
+
+            await _notifications.NotifySiteAdminsAsync(
+                websiteId,
+                AdminNotificationType.NewOrder,
+                "New order",
+                $"Order #{order.OrderNumber} placed — {order.GrandTotal:0.##} {order.CurrencyCode}.",
+                $"/orders/{order.OrderID}",
+                order.OrderID,
+                ct);
+
+            return new CheckoutResult(true, null, order.OrderID, order.OrderNumber);
         });
-
-        if (coupon is not null)
-            await _coupons.RedeemAsync(coupon.CouponID, order.OrderID, clientId, discountUsd, ct);
-
-        await _context.SaveChangesAsync(ct);
-
-        // Dual settlement + inter-site credit debit + mirror orders (buyer only sees host order).
-        await _vendorCredit.SettleHostOrderAsync(order.OrderID, ct);
-
-        await tx.CommitAsync(ct);
-
-        await _cart.ClearAsync(cartId, ct);
-
-        await _notifications.NotifySiteAdminsAsync(
-            websiteId,
-            AdminNotificationType.NewOrder,
-            "New order",
-            $"Order #{order.OrderNumber} placed — {order.GrandTotal:0.##} {order.CurrencyCode}.",
-            $"/orders/{order.OrderID}",
-            order.OrderID,
-            ct);
-
-        return new CheckoutResult(true, null, order.OrderID, order.OrderNumber);
     }
 
     private async Task<decimal> ResolveUnitPriceUsdAsync(CartItem item, int websiteId, CancellationToken ct)
@@ -690,14 +695,18 @@ public class OrderService : IOrderService
             : subtotalLocal + shippingLocal + taxLocal;
         var grandUsd = ToUsd(grandLocal);
 
-        await using var tx = await _context.Database.BeginTransactionAsync(ct);
-
-        // Persist ephemeral address if not saved to client yet.
+        // Persist ephemeral address if not saved to client yet (before transaction).
         if (address is not null && address.WebsiteClientAddressID == 0 && request.NewAddress is { SaveToClient: false })
         {
             // Snapshot only — do not insert address row.
             address = null;
         }
+
+        // EnableRetryOnFailure requires user transactions to run inside the execution strategy.
+        var strategy = _context.Database.CreateExecutionStrategy();
+        return await strategy.ExecuteAsync(async () =>
+        {
+        await using var tx = await _context.Database.BeginTransactionAsync(ct);
 
         var order = new Order
         {
@@ -826,6 +835,15 @@ public class OrderService : IOrderService
             var payAmount = payReq.Amount is > 0 ? payReq.Amount.Value : grandLocal;
             var payUsd = ToUsd(payAmount);
             var markPaid = payReq.MarkAsPaid || method is not PaymentMethod.BankTransfer;
+            DateTime? effectivePaidAt = null;
+            if (markPaid)
+            {
+                effectivePaidAt = payReq.PaidAtUtc.HasValue
+                    ? (payReq.PaidAtUtc.Value.Kind == DateTimeKind.Unspecified
+                        ? DateTime.SpecifyKind(payReq.PaidAtUtc.Value, DateTimeKind.Utc)
+                        : payReq.PaidAtUtc.Value.ToUniversalTime())
+                    : DateTime.UtcNow;
+            }
 
             _context.Payments.Add(new Payment
             {
@@ -842,7 +860,7 @@ public class OrderService : IOrderService
                 Status = (byte)(markPaid ? PaymentStatus.Paid : PaymentStatus.Pending),
                 TrackingCode = string.IsNullOrWhiteSpace(payReq.Reference) ? null : payReq.Reference.Trim(),
                 GatewayRefNumber = string.IsNullOrWhiteSpace(payReq.Note) ? null : payReq.Note.Trim(),
-                PaidAt = markPaid ? DateTime.UtcNow : null,
+                PaidAt = effectivePaidAt,
                 CreatedByMemberID = memberId,
                 VerifiedByMemberID = markPaid ? memberId : null,
                 CreatedAt = DateTime.UtcNow,
@@ -854,6 +872,14 @@ public class OrderService : IOrderService
                 // Transition inside the same unit of work context (status + stock commit).
                 await TransitionStatusAsync(order.OrderID, OrderStatus.Paid, memberId,
                     string.IsNullOrWhiteSpace(payReq.Note) ? $"Payment received ({method})." : payReq.Note.Trim(), ct);
+
+                if (effectivePaidAt is DateTime at)
+                {
+                    var tracked = await _context.Orders.FirstOrDefaultAsync(o => o.OrderID == order.OrderID, ct);
+                    if (tracked is not null)
+                        tracked.PaidAt = at;
+                    await _context.SaveChangesAsync(ct);
+                }
             }
         }
 
@@ -869,6 +895,7 @@ public class OrderService : IOrderService
             ct);
 
         return new AdminCreateOrderResult(true, null, order.OrderID, order.OrderNumber);
+        });
     }
 
     private static string GenerateOrderNumber(int websiteId) =>

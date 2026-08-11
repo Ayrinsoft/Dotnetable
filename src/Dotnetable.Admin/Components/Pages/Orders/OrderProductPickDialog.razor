@@ -1,0 +1,378 @@
+@inject IProductService ProductService
+@inject IBrandService BrandService
+@inject IProductCategoryService CategoryService
+@inject IVendorProductService VendorProductService
+@inject IPageLocalizer L
+
+<MudDialog>
+    <TitleContent>
+        <MudText Typo="Typo.h6">
+            <MudIcon Icon="@Icons.Material.Filled.Inventory2" Class="me-2" />
+            @(_selectedProduct is null
+                ? L["orders.pick_product", "Pick a product"]
+                : L["orders.pick_variant", "Select variant"])
+        </MudText>
+    </TitleContent>
+    <DialogContent>
+        @if (_selectedProduct is null)
+        {
+            <MudGrid Spacing="2" Class="mb-3">
+                <MudItem xs="12" sm="6">
+                    <MudSelect T="int?" Value="_categoryId" ValueChanged="OnCategoryChanged" Label="@L["category", "Category"]"
+                               Variant="Variant.Outlined" Dense="true" Clearable="true">
+                        @foreach (var c in _categories)
+                        {
+                            <MudSelectItem T="int?" Value="@c.ProductCategoryID">@c.Name</MudSelectItem>
+                        }
+                    </MudSelect>
+                </MudItem>
+                <MudItem xs="12" sm="6">
+                    <MudSelect T="int?" Value="_brandId" ValueChanged="OnBrandChanged" Label="@L["brand", "Brand"]"
+                               Variant="Variant.Outlined" Dense="true" Clearable="true">
+                        @foreach (var b in _brands)
+                        {
+                            <MudSelectItem T="int?" Value="@b.BrandID">@b.Name</MudSelectItem>
+                        }
+                    </MudSelect>
+                </MudItem>
+            </MudGrid>
+
+            @if (_loading)
+            {
+                <MudProgressLinear Indeterminate="true" Color="Color.Primary" Class="mb-2" />
+            }
+
+            <DNGridView GridHeaderParams="_productGrid" OnSearchChanged="OnProductGridChanged">
+                @if (_items.Count == 0)
+                {
+                    <tr>
+                        <td colspan="5" style="text-align:center; padding:24px;">
+                            <MudText Color="Color.Secondary">@L["products.empty", "No products yet."]</MudText>
+                        </td>
+                    </tr>
+                }
+                else
+                {
+                    @foreach (var p in _items)
+                    {
+                        <tr>
+                            <td style="width:48px">
+                                @if (!string.IsNullOrEmpty(p.FeaturedImageUrl))
+                                {
+                                    <img src="@p.FeaturedImageUrl" alt="" style="width:36px;height:36px;object-fit:cover;border-radius:6px" />
+                                }
+                            </td>
+                            <td>
+                                @p.Title
+                                <MudText Typo="Typo.caption" Color="Color.Secondary">@p.Slug</MudText>
+                            </td>
+                            <td>@(p.BrandName ?? "—")</td>
+                            <td>@(p.MinPrice is null ? "—" : MoneyFormat.Group(p.MinPrice.Value))</td>
+                            <td>
+                                <MudButton Size="Size.Small" Variant="Variant.Filled" Color="Color.Primary"
+                                           OnClick="@(() => OpenProductAsync(p))">
+                                    @L["select", "Select"]
+                                </MudButton>
+                            </td>
+                        </tr>
+                    }
+                }
+            </DNGridView>
+        }
+        else
+        {
+            <MudButton Variant="Variant.Text" Size="Size.Small" StartIcon="@Icons.Material.Filled.ArrowBack"
+                       Class="mb-2" OnClick="BackToList">
+                @L["back", "Back"]
+            </MudButton>
+            <MudText Typo="Typo.subtitle2" Class="mb-2">@_selectedProduct.Title</MudText>
+
+            @if (_variantsLoading)
+            {
+                <MudProgressLinear Indeterminate="true" Color="Color.Primary" />
+            }
+            else if (_allVariants.Count == 0)
+            {
+                <MudAlert Severity="Severity.Warning" Dense="true">@L["orders.no_variants", "Product has no active variants."]</MudAlert>
+            }
+            else
+            {
+                <DNGridView GridHeaderParams="_variantGrid" OnSearchChanged="OnVariantGridChanged">
+                    @if (_visibleVariants.Count == 0)
+                    {
+                        <tr>
+                            <td colspan="5" style="text-align:center; padding:24px;">
+                                <MudText Color="Color.Secondary">@L["orders.no_variant_match", "No variants match the filter."]</MudText>
+                            </td>
+                        </tr>
+                    }
+                    else
+                    {
+                        @foreach (var row in _visibleVariants)
+                        {
+                            <tr>
+                                <td>
+                                    @(string.IsNullOrWhiteSpace(row.Variant.Title) ? L["variants.default", "Default"] : row.Variant.Title)
+                                    @if (row.Variant.IsDefault)
+                                    {
+                                        <MudChip T="string" Size="Size.Small" Class="ms-1">@L["default", "Default"]</MudChip>
+                                    }
+                                </td>
+                                <td><code>@row.Variant.Sku</code></td>
+                                <td>@MoneyFormat.Group(row.CatalogPrice)</td>
+                                <td>
+                                    @if (row.HasListing)
+                                    {
+                                        @(row.Available < 0 ? "∞" : row.Available.ToString())
+                                    }
+                                    else
+                                    {
+                                        <MudChip T="string" Size="Size.Small" Color="Color.Warning">@L["orders.no_stock", "No stock"]</MudChip>
+                                    }
+                                </td>
+                                <td>
+                                    <MudButton Size="Size.Small" Variant="Variant.Filled" Color="Color.Primary"
+                                               OnClick="@(() => Confirm(row))">
+                                        @L["select", "Select"]
+                                    </MudButton>
+                                </td>
+                            </tr>
+                        }
+                    }
+                </DNGridView>
+            }
+        }
+    </DialogContent>
+    <DialogActions>
+        <MudButton OnClick="Cancel">@L["cancel", "Cancel"]</MudButton>
+    </DialogActions>
+</MudDialog>
+
+@code {
+    [CascadingParameter] private IMudDialogInstance MudDialog { get; set; } = null!;
+
+    [Parameter] public int WebsiteId { get; set; }
+
+    private bool _loading = true, _variantsLoading;
+    private int? _categoryId, _brandId;
+
+    private List<ProductListItemDto> _items = new();
+    private List<ProductCategory> _categories = new();
+    private List<Brand> _brands = new();
+    private GridViewHeaderParameters _productGrid = new();
+    private GridViewHeaderParameters _variantGrid = new();
+
+    private ProductListItemDto? _selectedProduct;
+    private Product? _fullProduct;
+    private List<VariantRow> _allVariants = new();
+    private List<VariantRow> _visibleVariants = new();
+
+    public sealed class PickResult
+    {
+        public required Product Product { get; init; }
+        public required ProductVariant Variant { get; init; }
+        public int? VendorProductId { get; init; }
+        public decimal CatalogUnitPrice { get; init; }
+        public bool HasListing { get; init; }
+    }
+
+    private sealed class VariantRow
+    {
+        public required ProductVariant Variant { get; init; }
+        public decimal CatalogPrice { get; init; }
+        public int? VendorProductId { get; init; }
+        public bool HasListing { get; init; }
+        public int Available { get; init; }
+    }
+
+    protected override async Task OnInitializedAsync()
+    {
+        await L.EnsureLoadedAsync();
+        _categories = await CategoryService.GetAllAsync(WebsiteId);
+        _brands = await BrandService.GetAllAsync(WebsiteId);
+
+        _productGrid = new GridViewHeaderParameters
+        {
+            Pagination = new PaginationModel { PageSize = 15 },
+            HeaderItems = new()
+            {
+                new() { ColumnTitle = "", ColumnName = "" },
+                new() { ColumnTitle = L["title", "Title"], ColumnName = nameof(ProductListItemDto.Title), HasSort = true, HasSearch = true },
+                new() { ColumnTitle = L["brand", "Brand"], ColumnName = nameof(ProductListItemDto.BrandName), HasSort = true },
+                new() { ColumnTitle = L["products.min_price", "Min price"], ColumnName = "" },
+                new() { ColumnTitle = "", ColumnName = "" },
+            }
+        };
+
+        _variantGrid = new GridViewHeaderParameters
+        {
+            Pagination = new PaginationModel { PageSize = 20 },
+            HeaderItems = new()
+            {
+                new() { ColumnTitle = L["title", "Title"], ColumnName = "Title", HasSort = true, HasSearch = true },
+                new() { ColumnTitle = L["variants.sku", "SKU"], ColumnName = "Sku", HasSort = true, HasSearch = true },
+                new() { ColumnTitle = L["variants.price", "Price"], ColumnName = "Price", HasSort = true },
+                new() { ColumnTitle = L["stock", "Stock"], ColumnName = "Stock", HasSort = true },
+                new() { ColumnTitle = "", ColumnName = "" },
+            }
+        };
+
+        await ReloadProductsAsync();
+    }
+
+    private async Task OnCategoryChanged(int? id)
+    {
+        _categoryId = id;
+        _productGrid.Pagination.PageIndex = 1;
+        await ReloadProductsAsync();
+    }
+
+    private async Task OnBrandChanged(int? id)
+    {
+        _brandId = id;
+        _productGrid.Pagination.PageIndex = 1;
+        await ReloadProductsAsync();
+    }
+
+    private Task OnProductGridChanged(GridViewHeaderParameters _) => ReloadProductsAsync();
+
+    private async Task ReloadProductsAsync()
+    {
+        if (WebsiteId <= 0) return;
+        _loading = true;
+        var query = _productGrid.ToQuery();
+        var search = query.GetSearch(nameof(ProductListItemDto.Title));
+        var filter = new ProductFilter
+        {
+            IsActive = true,
+            BrandID = _brandId,
+            ProductCategoryID = _categoryId,
+        };
+        var result = await ProductService.GetPagedAsync(WebsiteId, filter, query, search, null);
+        _items = result.Items.ToList();
+        _productGrid.Pagination.MaxLength = result.TotalCount;
+        _loading = false;
+    }
+
+    private async Task OpenProductAsync(ProductListItemDto p)
+    {
+        _selectedProduct = p;
+        _variantsLoading = true;
+        _allVariants = new();
+        _visibleVariants = new();
+        _fullProduct = await ProductService.GetByIdAsync(p.ProductID);
+        if (_fullProduct is null)
+        {
+            _variantsLoading = false;
+            return;
+        }
+
+        var listings = await VendorProductService.GetByProductIdAsync(p.ProductID);
+        var activeVariants = _fullProduct.ProductVariants?
+            .Where(v => v.IsActive)
+            .OrderByDescending(v => v.IsDefault)
+            .ThenBy(v => v.Title)
+            .ToList() ?? new();
+
+        foreach (var v in activeVariants)
+        {
+            var listing = listings
+                .Where(l => l.ProductVariantID == v.ProductVariantID && l.IsActive)
+                .OrderByDescending(l => l.AvailableQuantity)
+                .FirstOrDefault();
+
+            decimal catalog;
+            if (listing is not null)
+            {
+                catalog = listing.OverridePriceLocal ?? listing.ReferencePrice;
+                if (catalog <= 0) catalog = v.ReferencePrice;
+            }
+            else catalog = v.ReferencePrice;
+
+            _allVariants.Add(new VariantRow
+            {
+                Variant = v,
+                CatalogPrice = catalog,
+                VendorProductId = listing?.VendorProductID,
+                HasListing = listing is not null,
+                Available = listing?.AvailableQuantity ?? 0,
+            });
+        }
+
+        if (_allVariants.Count == 1)
+        {
+            Confirm(_allVariants[0]);
+            return;
+        }
+
+        // Reset variant grid search/page
+        foreach (var h in _variantGrid.HeaderItems)
+            h.SearchText = "";
+        _variantGrid.Pagination.PageIndex = 1;
+        ApplyVariantFilter();
+        _variantsLoading = false;
+    }
+
+    private Task OnVariantGridChanged(GridViewHeaderParameters _)
+    {
+        ApplyVariantFilter();
+        return Task.CompletedTask;
+    }
+
+    private void ApplyVariantFilter()
+    {
+        var query = _variantGrid.ToQuery();
+        var title = query.GetSearch("Title");
+        var sku = query.GetSearch("Sku");
+
+        IEnumerable<VariantRow> q = _allVariants;
+        if (!string.IsNullOrWhiteSpace(title))
+            q = q.Where(v =>
+                (v.Variant.Title?.Contains(title, StringComparison.OrdinalIgnoreCase) ?? false)
+                || (_fullProduct?.Title.Contains(title, StringComparison.OrdinalIgnoreCase) ?? false));
+        if (!string.IsNullOrWhiteSpace(sku))
+            q = q.Where(v => v.Variant.Sku.Contains(sku, StringComparison.OrdinalIgnoreCase));
+
+        // Sort
+        if (!string.IsNullOrWhiteSpace(query.OrderBy))
+        {
+            var desc = query.OrderBy.Contains("DESC", StringComparison.OrdinalIgnoreCase);
+            if (query.OrderBy.Contains("Sku", StringComparison.OrdinalIgnoreCase))
+                q = desc ? q.OrderByDescending(v => v.Variant.Sku) : q.OrderBy(v => v.Variant.Sku);
+            else if (query.OrderBy.Contains("Price", StringComparison.OrdinalIgnoreCase))
+                q = desc ? q.OrderByDescending(v => v.CatalogPrice) : q.OrderBy(v => v.CatalogPrice);
+            else if (query.OrderBy.Contains("Stock", StringComparison.OrdinalIgnoreCase))
+                q = desc ? q.OrderByDescending(v => v.Available) : q.OrderBy(v => v.Available);
+            else
+                q = desc ? q.OrderByDescending(v => v.Variant.Title) : q.OrderBy(v => v.Variant.Title);
+        }
+
+        var list = q.ToList();
+        _variantGrid.Pagination.MaxLength = list.Count;
+        var skip = Math.Max(0, (_variantGrid.Pagination.PageIndex - 1) * _variantGrid.Pagination.PageSize);
+        _visibleVariants = list.Skip(skip).Take(_variantGrid.Pagination.PageSize).ToList();
+    }
+
+    private void BackToList()
+    {
+        _selectedProduct = null;
+        _fullProduct = null;
+        _allVariants = new();
+        _visibleVariants = new();
+    }
+
+    private void Confirm(VariantRow row)
+    {
+        if (_fullProduct is null) return;
+        MudDialog.Close(DialogResult.Ok(new PickResult
+        {
+            Product = _fullProduct,
+            Variant = row.Variant,
+            VendorProductId = row.VendorProductId,
+            CatalogUnitPrice = row.CatalogPrice,
+            HasListing = row.HasListing,
+        }));
+    }
+
+    private void Cancel() => MudDialog.Cancel();
+}

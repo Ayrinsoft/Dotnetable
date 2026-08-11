@@ -63,6 +63,11 @@ public sealed class AdminOrderPaymentRequest
     /// When false for bank transfer, payment stays Pending for the verification queue.
     /// </summary>
     public bool MarkAsPaid { get; set; } = true;
+
+    /// <summary>
+    /// When the payment was received (UTC). Required for paid recordings; when null, UtcNow is used.
+    /// </summary>
+    public DateTime? PaidAtUtc { get; set; }
 }
 
 /// <summary>Optional shipping address payload when not using an existing client address id.</summary>

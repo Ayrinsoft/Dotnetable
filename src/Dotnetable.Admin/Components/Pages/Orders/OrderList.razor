@@ -57,7 +57,7 @@
             {
                 <tr style="cursor:pointer" @onclick="@(() => Nav.NavigateTo($"/orders/{o.OrderID}"))">
                     <td>@o.OrderNumber</td>
-                    <td>@o.GrandTotal.ToString("0.##") @o.CurrencyCode</td>
+                    <td>@MoneyFormat.GroupWithCode(o.GrandTotal, o.CurrencyCode)</td>
                     <td>@((OrderStatus)o.Status)</td>
                     <td>@o.CreatedAt.ToLocalTime().ToString("g")</td>
                 </tr>

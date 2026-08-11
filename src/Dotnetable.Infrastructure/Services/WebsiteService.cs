@@ -1,3 +1,4 @@
+using Dotnetable.Application;
 using Dotnetable.Application.DTOs;
 using Dotnetable.Application.Interfaces;
 using Dotnetable.Domain.Entities;
@@ -205,5 +206,28 @@ public class WebsiteService : IWebsiteService
         await using var context = await _contextFactory.CreateDbContextAsync(ct);
         return await context.WebsiteCaptchaSettings.AsNoTracking()
             .FirstOrDefaultAsync(c => c.WebsiteID == websiteId, ct);
+    }
+
+    public async Task<string?> GetDefaultPhoneCountryCodeAsync(int websiteId, CancellationToken ct = default)
+    {
+        await using var context = await _contextFactory.CreateDbContextAsync(ct);
+        var website = await context.Websites.AsNoTracking()
+            .FirstOrDefaultAsync(w => w.WebsiteID == websiteId, ct);
+        if (website is null) return null;
+
+        string? taxPrefix = null;
+        if (website.TaxCountryID is int cid)
+        {
+            taxPrefix = await context.Countries.AsNoTracking()
+                .Where(c => c.CountryID == cid)
+                .Select(c => c.PhonePerfix)
+                .FirstOrDefaultAsync(ct);
+        }
+
+        var prefixes = await context.Countries.AsNoTracking()
+            .Select(c => c.PhonePerfix)
+            .ToListAsync(ct);
+
+        return PhoneCountryCodes.FromWebsiteMobile(website.Mobile, prefixes, taxPrefix);
     }
 }

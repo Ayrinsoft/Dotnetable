@@ -97,7 +97,8 @@ else if (_member is not null)
                         </MudItem>
                         <MudItem xs="12" sm="4">
                             <MudTextField @bind-Value="_member.CountryCode" Label="@L["country_code", "Country Code"]"
-                                          Variant="Variant.Outlined" MaxLength="3" Placeholder="98" />
+                                          Variant="Variant.Outlined" MaxLength="3"
+                                          Placeholder="@(_defaultPhoneCountryCode ?? "")" />
                         </MudItem>
                         <MudItem xs="12" sm="4">
                             <MudTextField @bind-Value="_member.CellphoneNumber" Label="@L["cellphone", "Cellphone"]"
@@ -170,6 +171,7 @@ else if (_member is not null)
     private int _currentMemberId;
     private int _originalPolicyId;
     private bool _originalActive;
+    private string? _defaultPhoneCountryCode;
     private List<Website> _websites = new();
     private List<Policy> _policies = new();
     private HashSet<int> _grantablePolicyIds = new();
@@ -210,6 +212,7 @@ else if (_member is not null)
                 _websites = (await WebsiteService.GetAllAsync()).ToList();
                 _member.WebsiteID = _websites.FirstOrDefault()?.WebsiteID ?? AppConstants.MasterWebsiteId;
             }
+            await ApplyDefaultPhoneCountryAsync(_member.WebsiteID);
         }
         else
         {
@@ -222,10 +225,19 @@ else if (_member is not null)
             _isSelf = _member.MemberID == _currentMemberId;
             _originalPolicyId = _member.PolicyID;
             _originalActive = _member.Active;
+            await ApplyDefaultPhoneCountryAsync(_member.WebsiteID);
         }
 
         await LoadPoliciesAsync();
         _loading = false;
+    }
+
+    private async Task ApplyDefaultPhoneCountryAsync(int websiteId)
+    {
+        if (websiteId <= 0) return;
+        _defaultPhoneCountryCode = await WebsiteService.GetDefaultPhoneCountryCodeAsync(websiteId);
+        if (_isNew && _member is not null && string.IsNullOrWhiteSpace(_member.CountryCode))
+            _member.CountryCode = _defaultPhoneCountryCode ?? string.Empty;
     }
 
     private async Task LoadPoliciesAsync()
@@ -256,7 +268,13 @@ else if (_member is not null)
             _member.PolicyID = _policies.FirstOrDefault()?.PolicyID ?? 0;
     }
 
-    private async Task OnWebsiteChanged(int id) { _member!.WebsiteID = id; await LoadPoliciesAsync(); }
+    private async Task OnWebsiteChanged(int id)
+    {
+        _member!.WebsiteID = id;
+        if (_isNew) _member.CountryCode = string.Empty;
+        await ApplyDefaultPhoneCountryAsync(id);
+        await LoadPoliciesAsync();
+    }
 
     private Policy? GetSelectedPolicy() =>
         _member is null ? null : _policies.FirstOrDefault(p => p.PolicyID == _member.PolicyID);

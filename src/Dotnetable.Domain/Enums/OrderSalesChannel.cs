@@ -13,5 +13,7 @@ public enum OrderSalesChannel : byte
     Telegram = 4,
     Phone = 5,
     InPerson = 6,
+    /// <summary>Physical shop / store counter (مغازه).</summary>
+    Store = 7,
     Other = 99,
 }
