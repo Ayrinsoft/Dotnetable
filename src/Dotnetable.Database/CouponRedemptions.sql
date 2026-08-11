@@ -3,6 +3,7 @@ CREATE TABLE [dbo].[CouponRedemptions] (
     [CouponID]           INT             NOT NULL,
     [OrderID]            INT             NOT NULL,
     [WebsiteClientID]    INT             NOT NULL,
+    [DiscountAmount]     DECIMAL (18, 4) NOT NULL CONSTRAINT [DF_CouponRedemptions_DiscountAmount] DEFAULT ((0)),
     [DiscountAmountUsd]  DECIMAL (18, 4) NOT NULL,
     [RedeemedAt]         DATETIME2 (0) NOT NULL,
     CONSTRAINT [PK_CouponRedemptions] PRIMARY KEY CLUSTERED ([CouponRedemptionID] ASC),

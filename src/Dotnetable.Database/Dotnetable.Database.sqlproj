@@ -136,7 +136,6 @@
     <Build Include="ClientWallets.sql" />
     <Build Include="ClientWalletTransactions.sql" />
     <Build Include="ClientWalletWithdrawals.sql" />
-    <Build Include="WebsiteWalletCurrencies.sql" />
     <Build Include="ContactUsMessages.sql" />
     <Build Include="Countries.sql" />
     <Build Include="CountryTranslations.sql" />
@@ -184,6 +183,12 @@
     <Build Include="EmailAccounts.sql" />
     <Build Include="EmailTemplates.sql" />
     <Build Include="EmailTemplateTranslations.sql" />
+    <Build Include="DigitalAccessLogs.sql" />
+    <Build Include="OrderDigitalAssets.sql" />
+    <Build Include="SupportInteractions.sql" />
+    <Build Include="SupportSessions.sql" />
+    <Build Include="VendorCreditTransactions.sql" />
+    <Build Include="WebsiteWalletCurrencies.sql" />
   </ItemGroup>
   <Import Project="$(MSBuildExtensionsPath)\Microsoft\VisualStudio\v$(VisualStudioVersion)\SSDT\Microsoft.Data.Tools.Schema.SqlTasks.targets" Condition="'$(VisualStudioVersion)' != '' And Exists('$(MSBuildExtensionsPath)\Microsoft\VisualStudio\v$(VisualStudioVersion)\SSDT\Microsoft.Data.Tools.Schema.SqlTasks.targets')" />
   <Import Project="$(MSBuildExtensionsPath)\Microsoft\VisualStudio\SSDT\Microsoft.Data.Tools.Schema.SqlTasks.targets" Condition="'$(VisualStudioVersion)' == '' And Exists('$(MSBuildExtensionsPath)\Microsoft\VisualStudio\SSDT\Microsoft.Data.Tools.Schema.SqlTasks.targets')" />
