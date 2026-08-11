@@ -234,6 +234,13 @@ else if (_website is not null)
                             <MudSwitch T="bool" @bind-Value="_website.TaxOnShipping" Color="Color.Primary"
                                        Label="@L["website.tax_on_shipping", "Tax may apply to shipping"]" />
                         </MudItem>
+                        <MudItem xs="12">
+                            <MudSwitch T="bool" @bind-Value="_website.ReportOfflineOrdersToTax" Color="Color.Primary"
+                                       Label="@L["website.report_offline_to_tax", "Report offline / social orders to tax by default"]" />
+                            <MudText Typo="Typo.caption" Color="Color.Secondary" Class="mt-1">
+                                @L["website.report_offline_to_tax_hint", "When off (typical for some Iran shops), admin-created Instagram/WhatsApp/card-to-card orders default to not appearing on VAT filings. Each order can still override this."]
+                            </MudText>
+                        </MudItem>
                         <MudItem xs="12" sm="6">
                             <MudTextField @bind-Value="_website.SellerLegalName" Label="@L["website.seller_legal_name", "Seller legal name"]"
                                           Variant="Variant.Outlined" />

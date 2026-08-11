@@ -20,7 +20,11 @@ public sealed class OrderInvoiceDto
     public decimal ShippingTotal { get; init; }
     public decimal TaxTotal { get; init; }
     public decimal GrandTotal { get; init; }
+    /// <summary>Sum of instant markups (روکشی) on lines; informational for accounting.</summary>
+    public decimal MarkupTotal { get; init; }
     public bool PricesIncludeTax { get; init; }
+    public bool ReportToTax { get; init; } = true;
+    public byte SalesChannel { get; init; }
     public string? TaxBreakdownJson { get; init; }
     public string? AddressSnapshot { get; init; }
     public string? Note { get; init; }

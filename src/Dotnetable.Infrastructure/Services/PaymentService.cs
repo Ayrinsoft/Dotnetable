@@ -114,10 +114,11 @@ public class PaymentService : IPaymentService
 
     public async Task<(bool Success, string? Error, Payment? Payment)> RecordReceivedPaymentAsync(
         int orderId, PaymentMethod method, decimal? amountLocal, string? reference, string? note,
-        int memberId, CancellationToken ct = default)
+        int memberId, int? bankAccountId = null, int? receiptFileId = null, bool markAsPaid = true,
+        CancellationToken ct = default)
     {
-        if (method is not (PaymentMethod.Manual or PaymentMethod.CashOnDelivery))
-            return (false, "Only Manual or CashOnDelivery methods can be recorded by admin.", null);
+        if (method is not (PaymentMethod.Manual or PaymentMethod.CashOnDelivery or PaymentMethod.BankTransfer))
+            return (false, "Only Manual, CashOnDelivery, or BankTransfer methods can be recorded by admin.", null);
 
         var order = await _context.Orders
             .Include(o => o.Payments)
@@ -130,34 +131,58 @@ public class PaymentService : IPaymentService
         if (order.Payments.Any(p => p.Status == (byte)PaymentStatus.Paid))
             return (false, "Order already has a paid payment recorded.", null);
 
+        if (method == PaymentMethod.BankTransfer && bankAccountId is int baId)
+        {
+            var accountOk = await _context.BankAccounts.AnyAsync(
+                a => a.BankAccountID == baId && a.WebsiteID == order.WebsiteID && a.IsActive, ct);
+            if (!accountOk)
+                return (false, "Bank account not found or inactive for this website.", null);
+        }
+        else if (method == PaymentMethod.BankTransfer && bankAccountId is null)
+        {
+            // Bank account optional but recommended; allow null for free-form card-to-card notes.
+        }
+
+        if (receiptFileId is int fileId)
+        {
+            var fileOk = await _context.FileRecords.AnyAsync(
+                f => f.FileRecordID == fileId && f.WebsiteID == order.WebsiteID && !f.IsDeleted, ct);
+            if (!fileOk)
+                return (false, "Receipt file not found for this website.", null);
+        }
+
         var amount = amountLocal is > 0 ? amountLocal.Value : order.GrandTotal;
         if (amount <= 0) return (false, "Amount must be greater than zero.", null);
 
         var rate = order.ExchangeRateToUsd <= 0 ? 1m : order.ExchangeRateToUsd;
         var amountUsd = Math.Round(amount / rate, 4, MidpointRounding.AwayFromZero);
 
+        // Bank transfer can stay Pending for the queue when markAsPaid is false; other methods are always Paid.
+        var paid = markAsPaid || method is not PaymentMethod.BankTransfer;
         var payment = new Payment
         {
             WebsiteID = order.WebsiteID,
             OrderID = order.OrderID,
             WebsiteClientID = order.WebsiteClientID,
             Method = (byte)method,
+            BankAccountID = bankAccountId,
+            ReceiptFileID = receiptFileId,
             Amount = amount,
             CurrencyCode = order.CurrencyCode,
             ExchangeRateToUsd = rate,
             AmountUsd = amountUsd,
-            Status = (byte)PaymentStatus.Paid,
+            Status = (byte)(paid ? PaymentStatus.Paid : PaymentStatus.Pending),
             TrackingCode = string.IsNullOrWhiteSpace(reference) ? null : reference.Trim(),
             GatewayRefNumber = string.IsNullOrWhiteSpace(note) ? null : note.Trim(),
-            PaidAt = DateTime.UtcNow,
+            PaidAt = paid ? DateTime.UtcNow : null,
             CreatedByMemberID = memberId,
-            VerifiedByMemberID = memberId,
+            VerifiedByMemberID = paid ? memberId : null,
             CreatedAt = DateTime.UtcNow,
         };
         _context.Payments.Add(payment);
         await _context.SaveChangesAsync(ct);
 
-        if (order.Status == (byte)OrderStatus.PendingPayment)
+        if (paid && order.Status == (byte)OrderStatus.PendingPayment)
         {
             var transitionNote = string.IsNullOrWhiteSpace(note)
                 ? $"Payment received ({method})."
@@ -167,9 +192,11 @@ public class PaymentService : IPaymentService
 
         await _notifications.NotifySiteAdminsAsync(
             order.WebsiteID,
-            AdminNotificationType.PaymentReceived,
-            "Payment recorded",
-            $"Order #{order.OrderNumber}: admin recorded {method} payment — {amount:0.##} {order.CurrencyCode}.",
+            paid ? AdminNotificationType.PaymentReceived : AdminNotificationType.BankReceipt,
+            paid ? "Payment recorded" : "Bank receipt recorded",
+            paid
+                ? $"Order #{order.OrderNumber}: admin recorded {method} payment — {amount:0.##} {order.CurrencyCode}."
+                : $"Order #{order.OrderNumber}: admin submitted bank receipt for verification — {amount:0.##} {order.CurrencyCode}.",
             $"/orders/{order.OrderID}",
             payment.PaymentID,
             ct);

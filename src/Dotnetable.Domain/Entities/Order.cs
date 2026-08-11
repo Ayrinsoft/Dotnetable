@@ -47,6 +47,23 @@ public partial class Order
 
     public string? Note { get; set; }
 
+    /// <summary>
+    /// Sales origin channel (storefront, Instagram, WhatsApp, …). See <c>OrderSalesChannel</c>.
+    /// </summary>
+    public byte SalesChannel { get; set; } = 1;
+
+    /// <summary>
+    /// When false, this order is excluded from VAT / tax filing reports (common for some offline channels).
+    /// Storefront online checkout always sets this true when tax is computed.
+    /// </summary>
+    public bool ReportToTax { get; set; } = true;
+
+    /// <summary>
+    /// Sum of positive per-line instant markups (روکشی) in the order currency:
+    /// charged unit price above catalog unit price × quantity.
+    /// </summary>
+    public decimal MarkupTotal { get; set; }
+
     public int? CreatedByMemberID { get; set; }
 
     public DateTime CreatedAt { get; set; }

@@ -148,6 +148,10 @@ else
                     <tr><td>@L["orders.discount", "Discount"]</td><td class="text-end">-@MoneyFormat.Group(_inv.DiscountTotal)</td></tr>
                     <tr><td>@L["shipping", "Shipping"]</td><td class="text-end">@MoneyFormat.Group(_inv.ShippingTotal)</td></tr>
                     <tr><td>@L["tax", "Tax"]</td><td class="text-end">@MoneyFormat.Group(_inv.TaxTotal)</td></tr>
+                    @if (_inv.MarkupTotal > 0)
+                    {
+                        <tr><td>@L["orders.markup_total", "Markup total"]</td><td class="text-end">@MoneyFormat.Group(_inv.MarkupTotal)</td></tr>
+                    }
                     <tr><td><strong>@L["orders.grand_total", "Grand total"]</strong></td><td class="text-end"><strong>@MoneyFormat.GroupWithCode(_inv.GrandTotal, _inv.CurrencyCode)</strong></td></tr>
                 </table>
             </MudItem>

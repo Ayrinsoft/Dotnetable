@@ -1569,9 +1569,12 @@ public partial class AppDbContext : DbContext
             entity.Property(e => e.ExchangeRateToUsd).HasColumnType("decimal(18, 6)");
             entity.Property(e => e.GrandTotal).HasColumnType("decimal(18, 4)");
             entity.Property(e => e.GrandTotalUsd).HasColumnType("decimal(18, 4)");
+            entity.Property(e => e.MarkupTotal).HasColumnType("decimal(18, 4)");
             entity.Property(e => e.Note).HasMaxLength(1000);
             entity.Property(e => e.OrderNumber).HasMaxLength(30);
             entity.Property(e => e.PaidAt).HasColumnType("datetime");
+            entity.Property(e => e.SalesChannel).HasDefaultValue((byte)1);
+            entity.Property(e => e.ReportToTax).HasDefaultValue(true);
             entity.Property(e => e.ShippingTotal).HasColumnType("decimal(18, 4)");
             entity.Property(e => e.SubTotal).HasColumnType("decimal(18, 4)");
             entity.Property(e => e.TaxBreakdownJson).HasMaxLength(4000);
@@ -1623,11 +1626,13 @@ public partial class AppDbContext : DbContext
 
             entity.HasIndex(e => e.WebsiteID, "IX_OrderItems_WebsiteID");
 
+            entity.Property(e => e.CatalogUnitPrice).HasColumnType("decimal(18, 4)");
             entity.Property(e => e.DiscountAmount).HasColumnType("decimal(18, 4)");
             entity.Property(e => e.SkuSnapshot).HasMaxLength(100);
             entity.Property(e => e.TitleSnapshot).HasMaxLength(300);
             entity.Property(e => e.TotalPrice).HasColumnType("decimal(18, 4)");
             entity.Property(e => e.UnitCostUsd).HasColumnType("decimal(18, 4)");
+            entity.Property(e => e.UnitMarkup).HasColumnType("decimal(18, 4)");
             entity.Property(e => e.UnitPrice).HasColumnType("decimal(18, 4)");
             entity.Property(e => e.UnitPriceUsd).HasColumnType("decimal(18, 4)");
 
@@ -1638,6 +1643,7 @@ public partial class AppDbContext : DbContext
 
             entity.HasOne(d => d.ProductVariant).WithMany(p => p.OrderItems)
                 .HasForeignKey(d => d.ProductVariantID)
+                .IsRequired(false)
                 .OnDelete(DeleteBehavior.ClientSetNull)
                 .HasConstraintName("FK_OrderItems_ProductVariants");
 
@@ -3110,6 +3116,7 @@ public partial class AppDbContext : DbContext
             entity.Property(e => e.SellerTaxId).HasMaxLength(50);
             entity.Property(e => e.SellerVatNumber).HasMaxLength(50);
             entity.Property(e => e.AllowCashOnDelivery).HasDefaultValue(true);
+            entity.Property(e => e.ReportOfflineOrdersToTax).HasDefaultValue(false);
             entity.Property(e => e.FreeShippingMinOrderAmount).HasColumnType("decimal(18, 4)");
             entity.Property(e => e.FreeShippingMinOrderAmountUsd).HasColumnType("decimal(18, 4)");
             entity.Property(e => e.StorePricesInUsd)

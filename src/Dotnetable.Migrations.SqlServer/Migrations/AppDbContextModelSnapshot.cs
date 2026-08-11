@@ -2436,6 +2436,9 @@ namespace Dotnetable.Migrations.SqlServer.Migrations
                     b.Property<decimal>("GrandTotalUsd")
                         .HasColumnType("decimal(18, 4)");
 
+                    b.Property<decimal>("MarkupTotal")
+                        .HasColumnType("decimal(18, 4)");
+
                     b.Property<string>("Note")
                         .HasMaxLength(1000)
                         .HasColumnType("nvarchar(1000)");
@@ -2450,6 +2453,16 @@ namespace Dotnetable.Migrations.SqlServer.Migrations
 
                     b.Property<bool>("PricesIncludeTax")
                         .HasColumnType("bit");
+
+                    b.Property<bool>("ReportToTax")
+                        .ValueGeneratedOnAdd()
+                        .HasColumnType("bit")
+                        .HasDefaultValue(true);
+
+                    b.Property<byte>("SalesChannel")
+                        .ValueGeneratedOnAdd()
+                        .HasColumnType("tinyint")
+                        .HasDefaultValue((byte)1);
 
                     b.Property<int?>("ShippingMethodID")
                         .HasColumnType("int");
@@ -2571,13 +2584,16 @@ namespace Dotnetable.Migrations.SqlServer.Migrations
 
                     SqlServerPropertyBuilderExtensions.UseIdentityColumn(b.Property<int>("OrderItemID"));
 
+                    b.Property<decimal>("CatalogUnitPrice")
+                        .HasColumnType("decimal(18, 4)");
+
                     b.Property<decimal>("DiscountAmount")
                         .HasColumnType("decimal(18, 4)");
 
                     b.Property<int>("OrderID")
                         .HasColumnType("int");
 
-                    b.Property<int>("ProductVariantID")
+                    b.Property<int?>("ProductVariantID")
                         .HasColumnType("int");
 
                     b.Property<int>("Quantity")
@@ -2600,6 +2616,9 @@ namespace Dotnetable.Migrations.SqlServer.Migrations
                         .HasColumnType("decimal(18, 4)");
 
                     b.Property<decimal>("UnitCostUsd")
+                        .HasColumnType("decimal(18, 4)");
+
+                    b.Property<decimal>("UnitMarkup")
                         .HasColumnType("decimal(18, 4)");
 
                     b.Property<decimal>("UnitPrice")
@@ -5297,6 +5316,11 @@ namespace Dotnetable.Migrations.SqlServer.Migrations
                     b.Property<DateOnly>("RegisterDate")
                         .HasColumnType("date");
 
+                    b.Property<bool>("ReportOfflineOrdersToTax")
+                        .ValueGeneratedOnAdd()
+                        .HasColumnType("bit")
+                        .HasDefaultValue(false);
+
                     b.Property<string>("SellerEconomicCode")
                         .HasMaxLength(50)
                         .HasColumnType("nvarchar(50)");
@@ -7043,7 +7067,6 @@ namespace Dotnetable.Migrations.SqlServer.Migrations
                     b.HasOne("Dotnetable.Domain.Entities.ProductVariant", "ProductVariant")
                         .WithMany("OrderItems")
                         .HasForeignKey("ProductVariantID")
-                        .IsRequired()
                         .HasConstraintName("FK_OrderItems_ProductVariants");
 
                     b.HasOne("Dotnetable.Domain.Entities.Website", "SourceWebsite")

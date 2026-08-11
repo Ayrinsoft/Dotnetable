@@ -1,0 +1,753 @@
+@page "/orders/new"
+@attribute [Authorize(Policy = RoleKeys.OrdersEdit)]
+@using Dotnetable.Domain.Enums
+@inject IOrderService OrderService
+@inject IWebsiteClientService ClientService
+@inject IWebsiteClientAddressService AddressService
+@inject IProductService ProductService
+@inject IVendorProductService VendorProductService
+@inject IBankAccountService BankAccountService
+@inject IShippingService ShippingService
+@inject IWebsiteService WebsiteService
+@inject ILocationService LocationService
+@inject IDialogService DialogService
+@inject AuthenticationStateProvider AuthState
+@inject NavigationManager Nav
+@inject ISnackbar Snackbar
+@inject IPageLocalizer L
+
+<DNPageTitle Title=@L["orders.create", "Create order"] />
+
+<MudStack Row="true" AlignItems="AlignItems.Center" Justify="Justify.SpaceBetween" Class="mb-4">
+    <MudStack Spacing="0">
+        <MudText Typo="Typo.h5" Class="fw-bold">@L["orders.create", "Create order"]</MudText>
+        <MudText Typo="Typo.body2" Color="Color.Secondary">
+            @L["orders.create_hint", "Register a customer order from Instagram, WhatsApp, card-to-card, or other offline channels."]
+        </MudText>
+    </MudStack>
+    <MudButton Variant="Variant.Outlined" OnClick="@(() => Nav.NavigateTo("/orders"))">@L["back", "Back"]</MudButton>
+</MudStack>
+
+@if (_loading)
+{
+    <MudProgressLinear Indeterminate="true" Color="Color.Primary" />
+}
+else
+{
+    <MudGrid Spacing="3">
+        @* ── Customer ─────────────────────────────────────────── *@
+        <MudItem xs="12" md="6">
+            <MudPaper Elevation="0" Class="app-card rounded-lg pa-4">
+                <MudText Typo="Typo.subtitle1" Class="mb-2">@L["clients", "Customer"]</MudText>
+                @if (_isMaster)
+                {
+                    <WebsiteSelector Value="_websiteId" ValueChanged="OnWebsiteChanged" Websites="_websites"
+                                     Label="@L["website", "Website"]" Variant="Variant.Outlined"
+                                     Dense="true" Class="mb-2" Style="min-width:100%" />
+                }
+                <MudAutocomplete T="WebsiteClient" Value="_selectedClient" ValueChanged="OnClientChanged"
+                                 SearchFunc="SearchClientsAsync" ToStringFunc="ClientLabel"
+                                 Label="@L["orders.pick_customer", "Search customer (name, phone, email)"]"
+                                 Variant="Variant.Outlined" Dense="true" Class="mb-2"
+                                 CoerceText="false" ResetValueOnEmptyText="true" Clearable="true" />
+                <MudButton Variant="Variant.Text" Size="Size.Small" StartIcon="@Icons.Material.Filled.PersonAdd"
+                           OnClick="ToggleQuickClient" Class="mb-2">
+                    @(_showQuickClient
+                        ? L["orders.hide_new_customer", "Hide new customer form"]
+                        : L["orders.new_customer", "Register new customer"])
+                </MudButton>
+                @if (_showQuickClient)
+                {
+                    <MudGrid Spacing="2" Class="mb-2">
+                        <MudItem xs="12" sm="6">
+                            <MudTextField @bind-Value="_qcGiven" Label="@L["given_name", "Given Name"]" Variant="Variant.Outlined" Dense="true" />
+                        </MudItem>
+                        <MudItem xs="12" sm="6">
+                            <MudTextField @bind-Value="_qcSurname" Label="@L["surname", "Surname"]" Variant="Variant.Outlined" Dense="true" />
+                        </MudItem>
+                        <MudItem xs="12" sm="4">
+                            <MudTextField @bind-Value="_qcCountryCode" Label="@L["country_code", "Country Code"]" Variant="Variant.Outlined" Dense="true" Placeholder="98" />
+                        </MudItem>
+                        <MudItem xs="12" sm="4">
+                            <MudTextField @bind-Value="_qcCell" Label="@L["cellphone", "Cellphone"]" Variant="Variant.Outlined" Dense="true" />
+                        </MudItem>
+                        <MudItem xs="12" sm="4">
+                            <MudTextField @bind-Value="_qcEmail" Label="@L["email", "Email"]" Variant="Variant.Outlined" Dense="true" />
+                        </MudItem>
+                        <MudItem xs="12">
+                            <MudButton Variant="Variant.Outlined" Color="Color.Primary" OnClick="CreateQuickClientAsync" Disabled="_savingClient">
+                                @L["clients.create", "Create Customer"]
+                            </MudButton>
+                        </MudItem>
+                    </MudGrid>
+                }
+            </MudPaper>
+        </MudItem>
+
+        @* ── Channel & tax ────────────────────────────────────── *@
+        <MudItem xs="12" md="6">
+            <MudPaper Elevation="0" Class="app-card rounded-lg pa-4">
+                <MudText Typo="Typo.subtitle1" Class="mb-2">@L["orders.channel_tax", "Source & tax"]</MudText>
+                <MudSelect T="OrderSalesChannel" Value="_channel" ValueChanged="OnChannelChanged" Variant="Variant.Outlined" Dense="true" Class="mb-2"
+                           Label="@L["orders.sales_channel", "Sales channel"]">
+                    @foreach (var ch in Enum.GetValues<OrderSalesChannel>())
+                    {
+                        <MudSelectItem T="OrderSalesChannel" Value="@ch">@ChannelLabel(ch)</MudSelectItem>
+                    }
+                </MudSelect>
+                <MudSwitch T="bool" @bind-Value="_reportToTax" Color="Color.Primary" Class="mb-1"
+                           Label="@L["orders.report_to_tax", "Report this order to tax filings"]" />
+                <MudText Typo="Typo.caption" Color="Color.Secondary">
+                    @L["orders.report_to_tax_hint", "Turn off for offline / social sales you do not declare (e.g. some Iran shops). Default comes from website settings for non-online channels."]
+                </MudText>
+                <MudTextField @bind-Value="_note" Label="@L["orders.note", "Note (optional)"]" Variant="Variant.Outlined"
+                              Dense="true" Class="mt-3" Lines="2" />
+            </MudPaper>
+        </MudItem>
+
+        @* ── Lines ────────────────────────────────────────────── *@
+        <MudItem xs="12">
+            <MudPaper Elevation="0" Class="app-card rounded-lg pa-4">
+                <MudText Typo="Typo.subtitle1" Class="mb-2">@L["orders.items", "Items"]</MudText>
+                <MudAutocomplete T="ProductListItemDto" Value="_productPick" ValueChanged="OnProductPicked"
+                                 SearchFunc="SearchProductsAsync" ToStringFunc="@(p => p?.Title ?? string.Empty)"
+                                 Label="@L["orders.add_product", "Search product to add"]"
+                                 Variant="Variant.Outlined" Dense="true" Class="mb-2"
+                                 CoerceText="false" ResetValueOnEmptyText="true" Disabled="_websiteId <= 0" />
+
+                <MudExpansionPanels Class="mb-3" Elevation="0">
+                    <MudExpansionPanel Text="@L["orders.free_item", "Add free-form item (no catalog)"]" Dense="true">
+                        <MudText Typo="Typo.caption" Color="Color.Secondary" Class="mb-2">
+                            @L["orders.free_item_hint", "For Instagram/custom sales when the product is not in the catalog. No stock is reserved."]
+                        </MudText>
+                        <MudGrid Spacing="2">
+                            <MudItem xs="12" sm="5">
+                                <MudTextField @bind-Value="_freeTitle" Label="@L["title", "Title"]" Variant="Variant.Outlined" Dense="true" />
+                            </MudItem>
+                            <MudItem xs="12" sm="2">
+                                <MudTextField @bind-Value="_freeSku" Label="@L["variants.sku", "SKU"]" Variant="Variant.Outlined" Dense="true" />
+                            </MudItem>
+                            <MudItem xs="12" sm="2">
+                                <MudNumericField T="decimal" @bind-Value="_freePrice" Label="@L["orders.charged_price", "Charged"]"
+                                                 Variant="Variant.Outlined" Dense="true" Min="0" />
+                            </MudItem>
+                            <MudItem xs="12" sm="2">
+                                <MudNumericField T="int" @bind-Value="_freeQty" Label="@L["quantity", "Qty"]"
+                                                 Variant="Variant.Outlined" Dense="true" Min="1" />
+                            </MudItem>
+                            <MudItem xs="12" sm="1" Class="d-flex align-center">
+                                <MudButton Variant="Variant.Outlined" Color="Color.Primary" OnClick="AddFreeItem" FullWidth="true">
+                                    @L["add", "Add"]
+                                </MudButton>
+                            </MudItem>
+                        </MudGrid>
+                    </MudExpansionPanel>
+                </MudExpansionPanels>
+
+                @if (_lines.Count == 0)
+                {
+                    <MudText Typo="Typo.body2" Color="Color.Secondary">@L["orders.no_lines", "No products yet. Search and add lines above."]</MudText>
+                }
+                else
+                {
+                    <MudSimpleTable Dense="true" Elevation="0">
+                        <thead>
+                            <tr>
+                                <th>@L["title", "Title"]</th>
+                                <th>@L["variants.sku", "SKU"]</th>
+                                <th>@L["quantity", "Qty"]</th>
+                                <th>@L["orders.catalog_price", "Catalog"]</th>
+                                <th>@L["orders.charged_price", "Charged"]</th>
+                                <th>@L["orders.markup", "Markup"]</th>
+                                <th>@L["orders.line_total", "Total"]</th>
+                                <th></th>
+                            </tr>
+                        </thead>
+                        <tbody>
+                            @foreach (var line in _lines)
+                            {
+                                <tr>
+                                    <td>
+                                        @line.Title
+                                        @if (line.IsFreeForm)
+                                        {
+                                            <MudChip T="string" Size="Size.Small" Class="ms-1">@L["orders.free_form", "Free"]</MudChip>
+                                        }
+                                        else if (line.VendorProductId is null)
+                                        {
+                                            <MudChip T="string" Size="Size.Small" Color="Color.Warning" Class="ms-1">@L["orders.no_stock", "No stock"]</MudChip>
+                                        }
+                                    </td>
+                                    <td><code>@line.Sku</code></td>
+                                    <td style="min-width:90px">
+                                        <MudNumericField T="int" Value="line.Quantity" ValueChanged="v => { line.Quantity = Math.Max(1, v); }"
+                                                         Variant="Variant.Outlined" Dense="true" Min="1" Margin="Margin.Dense" />
+                                    </td>
+                                    <td style="min-width:110px">
+                                        <MudNumericField T="decimal" Value="line.CatalogUnitPrice" ValueChanged="v => line.CatalogUnitPrice = Math.Max(0, v)"
+                                                         Variant="Variant.Outlined" Dense="true" Min="0" Margin="Margin.Dense" />
+                                    </td>
+                                    <td style="min-width:110px">
+                                        <MudNumericField T="decimal" Value="line.ChargedUnitPrice" ValueChanged="v => line.ChargedUnitPrice = Math.Max(0, v)"
+                                                         Variant="Variant.Outlined" Dense="true" Min="0" Margin="Margin.Dense" />
+                                    </td>
+                                    <td>@line.UnitMarkup.ToString("0.##")</td>
+                                    <td>@line.LineTotal.ToString("0.##")</td>
+                                    <td>
+                                        <MudIconButton Icon="@Icons.Material.Filled.Delete" Size="Size.Small" Color="Color.Error"
+                                                       OnClick="@(() => _lines.Remove(line))" />
+                                    </td>
+                                </tr>
+                            }
+                        </tbody>
+                    </MudSimpleTable>
+                    <MudStack Row="true" Justify="Justify.FlexEnd" Class="mt-2" Spacing="4">
+                        <MudText>@L["orders.subtotal", "Subtotal"]: <strong>@_lines.Sum(l => l.LineTotal).ToString("0.##")</strong></MudText>
+                        <MudText>@L["orders.markup_total", "Markup total"]: <strong>@_lines.Sum(l => l.UnitMarkup * l.Quantity).ToString("0.##")</strong></MudText>
+                    </MudStack>
+                }
+            </MudPaper>
+        </MudItem>
+
+        @* ── Address ──────────────────────────────────────────── *@
+        <MudItem xs="12" md="6">
+            <MudPaper Elevation="0" Class="app-card rounded-lg pa-4">
+                <MudText Typo="Typo.subtitle1" Class="mb-2">@L["orders.address", "Shipping Address"]</MudText>
+                @if (_addresses.Count > 0)
+                {
+                    <MudSelect T="int?" Value="_addressId" ValueChanged="OnAddressIdChanged" Variant="Variant.Outlined" Dense="true"
+                               Label="@L["orders.saved_address", "Saved address"]" Class="mb-2" Clearable="true">
+                        @foreach (var a in _addresses)
+                        {
+                            <MudSelectItem T="int?" Value="@a.WebsiteClientAddressID">
+                                @(a.Title ?? a.ReceiverName ?? $"#{a.WebsiteClientAddressID}") — @a.AddressLine
+                            </MudSelectItem>
+                        }
+                    </MudSelect>
+                }
+                <MudText Typo="Typo.caption" Color="Color.Secondary" Class="mb-2">
+                    @L["orders.address_or_new", "Or enter a new address below (used when no saved address is selected)."]
+                </MudText>
+                <MudGrid Spacing="2">
+                    <MudItem xs="12" sm="6">
+                        <MudTextField @bind-Value="_addrReceiver" Label="@L["clients.addresses.receiver", "Receiver"]" Variant="Variant.Outlined" Dense="true" />
+                    </MudItem>
+                    <MudItem xs="12" sm="6">
+                        <MudTextField @bind-Value="_addrPhone" Label="@L["phone", "Phone"]" Variant="Variant.Outlined" Dense="true" />
+                    </MudItem>
+                    <MudItem xs="12">
+                        <MudTextField @bind-Value="_addrLine" Label="@L["address", "Address"]" Variant="Variant.Outlined" Dense="true" Lines="2" />
+                    </MudItem>
+                    <MudItem xs="12" sm="6">
+                        <MudTextField @bind-Value="_addrPostal" Label="@L["postal_code", "Postal code"]" Variant="Variant.Outlined" Dense="true" />
+                    </MudItem>
+                    <MudItem xs="12" sm="6">
+                        <MudSwitch T="bool" @bind-Value="_saveAddress" Color="Color.Primary"
+                                   Label="@L["orders.save_address", "Save address on customer"]" />
+                    </MudItem>
+                </MudGrid>
+            </MudPaper>
+        </MudItem>
+
+        @* ── Shipping & payment ──────────────────────────────── *@
+        <MudItem xs="12" md="6">
+            <MudPaper Elevation="0" Class="app-card rounded-lg pa-4 mb-3">
+                <MudText Typo="Typo.subtitle1" Class="mb-2">@L["shipping", "Shipping"]</MudText>
+                <MudSelect T="int?" @bind-Value="_shippingMethodId" Variant="Variant.Outlined" Dense="true" Class="mb-2"
+                           Label="@L["shipping_method", "Shipping method"]" Clearable="true">
+                    @foreach (var m in _shippingMethods.Where(x => x.IsActive))
+                    {
+                        <MudSelectItem T="int?" Value="@m.ShippingMethodID">@m.Title</MudSelectItem>
+                    }
+                </MudSelect>
+                <MudNumericField T="decimal" @bind-Value="_shippingTotal" Label="@L["orders.shipping_amount", "Shipping amount (0 = free / quote later)"]"
+                                 Variant="Variant.Outlined" Dense="true" Min="0" />
+            </MudPaper>
+
+            <MudPaper Elevation="0" Class="app-card rounded-lg pa-4">
+                <MudText Typo="Typo.subtitle1" Class="mb-2">@L["payments", "Payment"]</MudText>
+                <MudSwitch T="bool" @bind-Value="_recordPayment" Color="Color.Primary" Class="mb-2"
+                           Label="@L["orders.record_payment_now", "Record payment with this order"]" />
+                @if (_recordPayment)
+                {
+                    <MudSelect T="PaymentMethod" @bind-Value="_payMethod" Variant="Variant.Outlined" Dense="true" Class="mb-2"
+                               Label="@L["method", "Method"]">
+                        <MudSelectItem T="PaymentMethod" Value="PaymentMethod.BankTransfer">@L["payments.method.bank", "Bank transfer / card-to-card"]</MudSelectItem>
+                        <MudSelectItem T="PaymentMethod" Value="PaymentMethod.Manual">@L["payments.method.manual", "Manual / cash / POS"]</MudSelectItem>
+                        <MudSelectItem T="PaymentMethod" Value="PaymentMethod.CashOnDelivery">@L["payments.method.cod", "Cash on delivery"]</MudSelectItem>
+                    </MudSelect>
+                    <MudNumericField T="decimal?" @bind-Value="_payAmount" Label="@L["orders.paid_amount", "Amount received (blank = grand total)"]"
+                                     Variant="Variant.Outlined" Dense="true" Min="0" Class="mb-2" />
+                    <MudTextField @bind-Value="_payReference" Label="@L["reference", "Reference"]" Variant="Variant.Outlined" Dense="true" Class="mb-2" />
+                    @if (_payMethod == PaymentMethod.BankTransfer)
+                    {
+                        <MudSelect T="int?" @bind-Value="_payBankAccountId" Variant="Variant.Outlined" Dense="true" Class="mb-2"
+                                   Label="@L["bank_accounts", "Bank account"]" Clearable="true">
+                            @foreach (var b in _bankAccounts.Where(x => x.IsActive))
+                            {
+                                <MudSelectItem T="int?" Value="@b.BankAccountID">@(b.Bank?.Name ?? "Bank") — @b.Title</MudSelectItem>
+                            }
+                        </MudSelect>
+                        <MudStack Row="true" AlignItems="AlignItems.Center" Spacing="2" Class="mb-2">
+                            <MudButton Variant="Variant.Outlined" Size="Size.Small" StartIcon="@Icons.Material.Filled.UploadFile"
+                                       OnClick="PickReceiptAsync">
+                                @L["orders.upload_receipt", "Upload / pick receipt"]
+                            </MudButton>
+                            @if (_receiptFileId is not null)
+                            {
+                                <MudChip T="string" Size="Size.Small" OnClose="() => _receiptFileId = null">
+                                    @L["orders.receipt_attached", "Receipt attached"] (#@_receiptFileId)
+                                </MudChip>
+                            }
+                        </MudStack>
+                        <MudSwitch T="bool" @bind-Value="_payMarkPaid" Color="Color.Primary"
+                                   Label="@L["orders.mark_paid", "Mark as paid now (skip verification queue)"]" />
+                    }
+                }
+            </MudPaper>
+        </MudItem>
+
+        <MudItem xs="12">
+            <MudStack Row="true" Spacing="2">
+                <MudButton Variant="Variant.Filled" Color="Color.Primary" StartIcon="@Icons.Material.Filled.Save"
+                           OnClick="SubmitAsync" Disabled="_saving">
+                    @if (_saving)
+                    {
+                        <MudProgressCircular Size="Size.Small" Indeterminate="true" Class="me-2" />
+                    }
+                    @L["orders.create_submit", "Create order"]
+                </MudButton>
+                <MudButton Variant="Variant.Outlined" OnClick="@(() => Nav.NavigateTo("/orders"))">@L["cancel", "Cancel"]</MudButton>
+            </MudStack>
+        </MudItem>
+    </MudGrid>
+}
+
+@code {
+    private bool _loading = true, _saving, _savingClient, _isMaster, _showQuickClient;
+    private int _websiteId;
+    private int? _currentMemberId;
+    private List<Website> _websites = new();
+    private Website? _website;
+
+    private WebsiteClient? _selectedClient;
+    private List<WebsiteClientAddress> _addresses = new();
+    private int? _addressId;
+
+    private string? _qcGiven, _qcSurname, _qcCell, _qcEmail, _qcCountryCode = "98";
+
+    private OrderSalesChannel _channel = OrderSalesChannel.Instagram;
+    private bool _reportToTax;
+    private string? _note;
+
+    private ProductListItemDto? _productPick;
+    private readonly List<LineDraft> _lines = new();
+    private string? _freeTitle, _freeSku;
+    private decimal _freePrice;
+    private int _freeQty = 1;
+
+    private string? _addrReceiver, _addrPhone, _addrLine, _addrPostal;
+    private bool _saveAddress = true;
+
+    private List<ShippingMethod> _shippingMethods = new();
+    private int? _shippingMethodId;
+    private decimal _shippingTotal;
+
+    private bool _recordPayment = true;
+    private PaymentMethod _payMethod = PaymentMethod.BankTransfer;
+    private decimal? _payAmount;
+    private string? _payReference;
+    private int? _payBankAccountId;
+    private int? _receiptFileId;
+    private bool _payMarkPaid = true;
+    private List<BankAccount> _bankAccounts = new();
+
+    private sealed class LineDraft
+    {
+        public int? ProductVariantId { get; set; }
+        public int? VendorProductId { get; set; }
+        public string? CustomTitle { get; set; }
+        public string Title { get; set; } = "";
+        public string Sku { get; set; } = "";
+        public int Quantity { get; set; } = 1;
+        public decimal CatalogUnitPrice { get; set; }
+        public decimal ChargedUnitPrice { get; set; }
+        public bool IsFreeForm => ProductVariantId is null;
+        public decimal UnitMarkup => Math.Max(0, ChargedUnitPrice - CatalogUnitPrice);
+        public decimal LineTotal => ChargedUnitPrice * Quantity;
+    }
+
+    protected override async Task OnInitializedAsync()
+    {
+        await L.EnsureLoadedAsync();
+        var user = (await AuthState.GetAuthenticationStateAsync()).User;
+        _isMaster = user.HasClaim(AdminClaimTypes.Master, "true");
+        int.TryParse(user.FindFirst(AdminClaimTypes.WebsiteId)?.Value, out _websiteId);
+        if (int.TryParse(user.FindFirst(AdminClaimTypes.MemberId)?.Value, out var mid))
+            _currentMemberId = mid;
+
+        if (_isMaster)
+            _websites = (await WebsiteService.GetAllAsync()).ToList();
+
+        if (_websiteId > 0)
+            await LoadWebsiteContextAsync();
+
+        _loading = false;
+    }
+
+    private async Task OnWebsiteChanged(int id)
+    {
+        _websiteId = id;
+        _selectedClient = null;
+        _addresses.Clear();
+        _lines.Clear();
+        await LoadWebsiteContextAsync();
+    }
+
+    private async Task LoadWebsiteContextAsync()
+    {
+        if (_websiteId <= 0) return;
+        _website = await WebsiteService.GetByIdAsync(_websiteId);
+        _reportToTax = _channel == OrderSalesChannel.Online || (_website?.ReportOfflineOrdersToTax ?? false);
+        _shippingMethods = await ShippingService.GetAllAsync(_websiteId);
+        _bankAccounts = await BankAccountService.GetByWebsiteAsync(_websiteId);
+    }
+
+    private void OnChannelChanged(OrderSalesChannel ch)
+    {
+        _channel = ch;
+        // Re-apply website default when channel changes (user can still flip the switch).
+        _reportToTax = ch == OrderSalesChannel.Online || (_website?.ReportOfflineOrdersToTax ?? false);
+    }
+
+    private string ChannelLabel(OrderSalesChannel ch) => ch switch
+    {
+        OrderSalesChannel.Online => L["orders.channel.online", "Online store"],
+        OrderSalesChannel.Instagram => L["orders.channel.instagram", "Instagram"],
+        OrderSalesChannel.WhatsApp => L["orders.channel.whatsapp", "WhatsApp"],
+        OrderSalesChannel.Telegram => L["orders.channel.telegram", "Telegram"],
+        OrderSalesChannel.Phone => L["orders.channel.phone", "Phone"],
+        OrderSalesChannel.InPerson => L["orders.channel.in_person", "In person"],
+        _ => L["orders.channel.other", "Other"],
+    };
+
+    private static string ClientLabel(WebsiteClient? c)
+    {
+        if (c is null) return string.Empty;
+        var name = $"{c.Givenname} {c.Surname}".Trim();
+        if (string.IsNullOrWhiteSpace(name)) name = c.Email ?? c.Cellphone ?? $"#{c.WebsiteClientID}";
+        var contact = c.Cellphone ?? c.Email;
+        return string.IsNullOrWhiteSpace(contact) ? name : $"{name} — {contact}";
+    }
+
+    private async Task<IEnumerable<WebsiteClient>> SearchClientsAsync(string value, CancellationToken ct)
+    {
+        if (_websiteId <= 0) return Array.Empty<WebsiteClient>();
+        var q = new GridQuery { PageIndex = 1, PageSize = 15 };
+        if (!string.IsNullOrWhiteSpace(value))
+        {
+            q.Search = new Dictionary<string, string>
+            {
+                ["Fullname"] = value.Trim(),
+            };
+            // Also try phone/email via separate searches when looks like phone/email
+            if (value.Contains('@'))
+                q.Search = new Dictionary<string, string> { ["Email"] = value.Trim() };
+            else if (value.Any(char.IsDigit) && value.Length >= 4)
+                q.Search = new Dictionary<string, string> { ["Cellphone"] = value.Trim() };
+        }
+        var result = await ClientService.GetPagedAsync(_websiteId, q, ct);
+        return result.Items;
+    }
+
+    private async Task OnClientChanged(WebsiteClient? client)
+    {
+        _selectedClient = client;
+        _addresses.Clear();
+        _addressId = null;
+        if (client is null) return;
+        _addresses = await AddressService.GetByClientIdAsync(client.WebsiteClientID);
+        var def = _addresses.FirstOrDefault(a => a.IsDefault) ?? _addresses.FirstOrDefault();
+        if (def is not null)
+        {
+            _addressId = def.WebsiteClientAddressID;
+            FillAddressFields(def);
+        }
+        if (string.IsNullOrWhiteSpace(_addrReceiver))
+            _addrReceiver = $"{client.Givenname} {client.Surname}".Trim();
+        if (string.IsNullOrWhiteSpace(_addrPhone))
+            _addrPhone = client.Cellphone;
+    }
+
+    private void OnAddressIdChanged(int? id)
+    {
+        _addressId = id;
+        if (id is int aid)
+        {
+            var a = _addresses.FirstOrDefault(x => x.WebsiteClientAddressID == aid);
+            if (a is not null) FillAddressFields(a);
+        }
+    }
+
+    private void FillAddressFields(WebsiteClientAddress a)
+    {
+        _addrReceiver = a.ReceiverName;
+        _addrPhone = a.Phone;
+        _addrLine = a.AddressLine;
+        _addrPostal = a.PostalCode;
+    }
+
+    private void ToggleQuickClient() => _showQuickClient = !_showQuickClient;
+
+    private async Task CreateQuickClientAsync()
+    {
+        if (_websiteId <= 0)
+        {
+            Snackbar.Add(L["website_required", "Select a website first."], Severity.Warning);
+            return;
+        }
+        if (string.IsNullOrWhiteSpace(_qcCell) && string.IsNullOrWhiteSpace(_qcEmail))
+        {
+            Snackbar.Add(L["orders.client_contact_required", "Enter cellphone or email."], Severity.Warning);
+            return;
+        }
+
+        _savingClient = true;
+        try
+        {
+            var password = Guid.NewGuid().ToString("N")[..12] + "aA1!";
+            var client = new WebsiteClient
+            {
+                WebsiteID = _websiteId,
+                Givenname = _qcGiven?.Trim(),
+                Surname = _qcSurname?.Trim(),
+                Cellphone = string.IsNullOrWhiteSpace(_qcCell) ? null : _qcCell.Trim(),
+                CountryCode = string.IsNullOrWhiteSpace(_qcCountryCode) ? null : _qcCountryCode.Trim(),
+                Email = string.IsNullOrWhiteSpace(_qcEmail) ? null : _qcEmail.Trim(),
+                Active = true,
+                ClientLevel = (byte)ClientLevel.Normal,
+            };
+            var (result, created) = await ClientService.CreateAsync(client, password);
+            if (result == ClientSaveResult.Duplicate)
+            {
+                Snackbar.Add(L["clients.duplicate", "A customer with this email or phone already exists."], Severity.Warning);
+                return;
+            }
+            Snackbar.Add(L["saved", "Saved."], Severity.Success);
+            _showQuickClient = false;
+            await OnClientChanged(created);
+        }
+        finally { _savingClient = false; }
+    }
+
+    private async Task<IEnumerable<ProductListItemDto>> SearchProductsAsync(string search, CancellationToken ct)
+    {
+        if (_websiteId <= 0) return Array.Empty<ProductListItemDto>();
+        var result = await ProductService.GetPagedAsync(
+            _websiteId, new ProductFilter { IsActive = true },
+            new GridQuery { PageIndex = 1, PageSize = 12 }, search, null, ct);
+        return result.Items;
+    }
+
+    private async Task OnProductPicked(ProductListItemDto? product)
+    {
+        _productPick = null;
+        if (product is null || _websiteId <= 0) return;
+
+        var full = await ProductService.GetByIdAsync(product.ProductID);
+        if (full is null)
+        {
+            Snackbar.Add(L["orders.product_not_found", "Product not found."], Severity.Warning);
+            return;
+        }
+
+        var variants = full.ProductVariants?.Where(v => v.IsActive).OrderByDescending(v => v.IsDefault).ThenBy(v => v.Title).ToList()
+            ?? new List<ProductVariant>();
+        if (variants.Count == 0)
+        {
+            Snackbar.Add(L["orders.no_variants", "Product has no active variants."], Severity.Warning);
+            return;
+        }
+
+        ProductVariant? variant;
+        if (variants.Count == 1)
+        {
+            variant = variants[0];
+        }
+        else
+        {
+            var parameters = new DialogParameters
+            {
+                [nameof(OrderVariantPickDialog.ProductTitle)] = full.Title,
+                [nameof(OrderVariantPickDialog.Variants)] = variants,
+            };
+            var dialog = await DialogService.ShowAsync<OrderVariantPickDialog>(
+                L["orders.pick_variant", "Select variant"], parameters,
+                new DialogOptions { MaxWidth = MaxWidth.Small, FullWidth = true });
+            var result = await dialog.Result;
+            if (result is not { Canceled: false, Data: ProductVariant picked })
+                return;
+            variant = picked;
+        }
+
+        await AddVariantLineAsync(full, variant);
+    }
+
+    private async Task AddVariantLineAsync(Product product, ProductVariant variant)
+    {
+        var listings = await VendorProductService.GetByProductIdAsync(product.ProductID);
+        var listing = listings
+            .Where(l => l.ProductVariantID == variant.ProductVariantID && l.IsActive)
+            .OrderByDescending(l => l.AvailableQuantity)
+            .FirstOrDefault();
+
+        decimal catalog;
+        if (listing is not null)
+        {
+            catalog = listing.OverridePriceLocal ?? listing.ReferencePrice;
+            if (catalog <= 0) catalog = variant.ReferencePrice;
+        }
+        else
+        {
+            catalog = variant.ReferencePrice;
+            Snackbar.Add(L["orders.no_listing_ok", "No store listing — line added without stock tracking."], Severity.Info);
+        }
+
+        _lines.Add(new LineDraft
+        {
+            ProductVariantId = variant.ProductVariantID,
+            VendorProductId = listing?.VendorProductID,
+            Title = string.IsNullOrWhiteSpace(variant.Title) ? product.Title : $"{product.Title} — {variant.Title}",
+            Sku = variant.Sku,
+            Quantity = 1,
+            CatalogUnitPrice = catalog,
+            ChargedUnitPrice = catalog,
+        });
+    }
+
+    private void AddFreeItem()
+    {
+        if (string.IsNullOrWhiteSpace(_freeTitle))
+        {
+            Snackbar.Add(L["orders.free_title_required", "Enter a title for the free-form item."], Severity.Warning);
+            return;
+        }
+        if (_freePrice < 0 || _freeQty <= 0)
+        {
+            Snackbar.Add(L["orders.free_price_qty", "Enter a valid price and quantity."], Severity.Warning);
+            return;
+        }
+
+        _lines.Add(new LineDraft
+        {
+            ProductVariantId = null,
+            VendorProductId = null,
+            CustomTitle = _freeTitle.Trim(),
+            Title = _freeTitle.Trim(),
+            Sku = string.IsNullOrWhiteSpace(_freeSku) ? "CUSTOM" : _freeSku.Trim(),
+            Quantity = _freeQty,
+            CatalogUnitPrice = _freePrice,
+            ChargedUnitPrice = _freePrice,
+        });
+        _freeTitle = null;
+        _freeSku = null;
+        _freePrice = 0;
+        _freeQty = 1;
+    }
+
+    private async Task PickReceiptAsync()
+    {
+        if (_websiteId <= 0) return;
+        var parameters = new DialogParameters
+        {
+            [nameof(FilePickerDialog.WebsiteId)] = _websiteId,
+            [nameof(FilePickerDialog.Category)] = FileCategory.Image,
+        };
+        var dialog = await DialogService.ShowAsync<FilePickerDialog>(L["select_file", "Select a file"], parameters,
+            new DialogOptions { MaxWidth = MaxWidth.Large, FullWidth = true });
+        var result = await dialog.Result;
+        if (result is { Canceled: false, Data: FileRecord file })
+            _receiptFileId = file.FileRecordID;
+    }
+
+    private async Task SubmitAsync()
+    {
+        if (_currentMemberId is null)
+        {
+            Snackbar.Add(L["unauthorized", "Not authorized."], Severity.Error);
+            return;
+        }
+        if (_websiteId <= 0 || _selectedClient is null)
+        {
+            Snackbar.Add(L["orders.customer_required", "Select a website and customer."], Severity.Warning);
+            return;
+        }
+        if (_lines.Count == 0)
+        {
+            Snackbar.Add(L["orders.lines_required", "Add at least one product."], Severity.Warning);
+            return;
+        }
+
+        _saving = true;
+        try
+        {
+            var req = new AdminCreateOrderRequest
+            {
+                WebsiteId = _websiteId,
+                WebsiteClientId = _selectedClient.WebsiteClientID,
+                WebsiteClientAddressId = _addressId,
+                SalesChannel = _channel,
+                ReportToTax = _reportToTax,
+                Note = _note,
+                ShippingMethodId = _shippingMethodId,
+                ShippingTotal = _shippingTotal,
+                Lines = _lines.Select(l => new AdminOrderLineRequest
+                {
+                    ProductVariantId = l.ProductVariantId,
+                    CustomTitle = l.CustomTitle ?? (l.IsFreeForm ? l.Title : null),
+                    CustomSku = l.IsFreeForm ? l.Sku : null,
+                    VendorProductId = l.VendorProductId,
+                    Quantity = l.Quantity,
+                    ChargedUnitPrice = l.ChargedUnitPrice,
+                    CatalogUnitPrice = l.CatalogUnitPrice,
+                }).ToList(),
+            };
+
+            if (_addressId is null && !string.IsNullOrWhiteSpace(_addrLine))
+            {
+                req.NewAddress = new AdminOrderAddressRequest
+                {
+                    ReceiverName = _addrReceiver,
+                    Phone = _addrPhone,
+                    AddressLine = _addrLine!,
+                    PostalCode = _addrPostal,
+                    SaveToClient = _saveAddress,
+                };
+            }
+
+            if (_recordPayment)
+            {
+                req.Payment = new AdminOrderPaymentRequest
+                {
+                    Method = (byte)_payMethod,
+                    Amount = _payAmount,
+                    Reference = _payReference,
+                    BankAccountId = _payBankAccountId,
+                    ReceiptFileId = _receiptFileId,
+                    MarkAsPaid = _payMarkPaid,
+                };
+            }
+
+            var result = await OrderService.AdminCreateAsync(req, _currentMemberId.Value);
+            if (!result.Success)
+            {
+                Snackbar.Add(result.Error ?? L["save_failed", "Save failed"], Severity.Error);
+                return;
+            }
+
+            Snackbar.Add(L["orders.created", "Order created."] + $" {result.OrderNumber}", Severity.Success);
+            Nav.NavigateTo($"/orders/{result.OrderId}");
+        }
+        finally { _saving = false; }
+    }
+}

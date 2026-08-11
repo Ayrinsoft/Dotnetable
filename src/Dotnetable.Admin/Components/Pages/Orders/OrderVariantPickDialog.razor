@@ -1,0 +1,60 @@
+@inject IPageLocalizer L
+
+<MudDialog>
+    <TitleContent>
+        <MudText Typo="Typo.h6">
+            <MudIcon Icon="@Icons.Material.Filled.Style" Class="me-2" />
+            @L["orders.pick_variant", "Select variant"]
+        </MudText>
+    </TitleContent>
+    <DialogContent>
+        <MudText Typo="Typo.body2" Color="Color.Secondary" Class="mb-3">
+            @ProductTitle
+        </MudText>
+        <MudSimpleTable Dense="true" Hover="true" Elevation="0">
+            <thead>
+                <tr>
+                    <th>@L["title", "Title"]</th>
+                    <th>@L["variants.sku", "SKU"]</th>
+                    <th>@L["variants.price", "Price"]</th>
+                    <th></th>
+                </tr>
+            </thead>
+            <tbody>
+                @foreach (var v in Variants)
+                {
+                    <tr>
+                        <td>
+                            @(string.IsNullOrWhiteSpace(v.Title) ? L["variants.default", "Default"] : v.Title)
+                            @if (v.IsDefault)
+                            {
+                                <MudChip T="string" Size="Size.Small" Class="ms-1">@L["default", "Default"]</MudChip>
+                            }
+                        </td>
+                        <td><code>@v.Sku</code></td>
+                        <td>@v.ReferencePrice.ToString("0.##")</td>
+                        <td>
+                            <MudButton Size="Size.Small" Variant="Variant.Filled" Color="Color.Primary"
+                                       OnClick="@(() => Select(v))">
+                                @L["select", "Select"]
+                            </MudButton>
+                        </td>
+                    </tr>
+                }
+            </tbody>
+        </MudSimpleTable>
+    </DialogContent>
+    <DialogActions>
+        <MudButton OnClick="Cancel">@L["cancel", "Cancel"]</MudButton>
+    </DialogActions>
+</MudDialog>
+
+@code {
+    [CascadingParameter] private IMudDialogInstance MudDialog { get; set; } = null!;
+
+    [Parameter] public string ProductTitle { get; set; } = "";
+    [Parameter] public List<ProductVariant> Variants { get; set; } = new();
+
+    private void Select(ProductVariant v) => MudDialog.Close(DialogResult.Ok(v));
+    private void Cancel() => MudDialog.Cancel();
+}

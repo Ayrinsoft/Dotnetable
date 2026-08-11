@@ -80,6 +80,7 @@ public static class AdminSearchCatalog
         new AdminSearchPage("suppliers", "Suppliers", "/inventory/suppliers", Icons.Material.Filled.LocalShipping, "nav.inventory", "Inventory", RoleKeys.SuppliersView, NavArea: AdminNavArea.Inventory, VendorMemberAllowed: false),
 
         new AdminSearchPage("orders", "Orders", "/orders", Icons.Material.Filled.ReceiptLong, "orders", "Orders", RoleKeys.OrdersView, NavArea: AdminNavArea.Orders),
+        new AdminSearchPage("orders.create", "Create order", "/orders/new", Icons.Material.Filled.AddShoppingCart, "orders.create", "Create order", RoleKeys.OrdersEdit, NavArea: AdminNavArea.Orders),
 
         new AdminSearchPage("support.desk", "Support Desk", "/support", Icons.Material.Filled.SupportAgent, "nav.support", "Support", RoleKeys.SupportView, NavArea: AdminNavArea.Orders, VendorMemberAllowed: false),
         new AdminSearchPage("support.tickets", "Support Tickets", "/support/tickets", Icons.Material.Filled.ConfirmationNumber, "nav.support", "Support", RoleKeys.SupportView, NavArea: AdminNavArea.Orders, VendorMemberAllowed: false),

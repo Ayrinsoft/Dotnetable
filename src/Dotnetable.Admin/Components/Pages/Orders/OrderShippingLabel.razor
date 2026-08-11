@@ -1,0 +1,138 @@
+@page "/orders/{OrderId:int}/shipping-label"
+@attribute [Authorize(Policy = RoleKeys.OrdersView)]
+@inject IOrderService OrderService
+@inject NavigationManager Nav
+@inject IPageLocalizer L
+@inject IJSRuntime Js
+
+<DNPageTitle Title="@(_order is null ? L["orders.shipping_label", "Shipping label"] : $"{L["orders.shipping_label", "Shipping label"]} {_order.OrderNumber}")" />
+
+<style>
+    @@media print {
+        .no-print { display: none !important; }
+        body { background: #fff !important; }
+        .label-sheet { box-shadow: none !important; border: 2px solid #000 !important; }
+    }
+    .label-sheet {
+        max-width: 420px;
+        margin: 0 auto;
+        border: 2px solid #222;
+        padding: 28px 32px;
+        font-family: Tahoma, "Segoe UI", sans-serif;
+        direction: rtl;
+        text-align: right;
+    }
+    .label-sheet.ltr { direction: ltr; text-align: left; }
+    .label-order { font-size: 0.9rem; color: #555; margin-bottom: 12px; }
+    .label-name { font-size: 1.5rem; font-weight: 700; margin-bottom: 8px; }
+    .label-phone { font-size: 1.15rem; margin-bottom: 12px; }
+    .label-address { font-size: 1.2rem; line-height: 1.6; white-space: pre-wrap; }
+    .label-postal { font-size: 1.1rem; margin-top: 12px; font-weight: 600; }
+</style>
+
+@if (_loading)
+{
+    <MudProgressLinear Indeterminate="true" Color="Color.Primary" />
+}
+else if (_order is null)
+{
+    <MudText Color="Color.Error">@L["orders.not_found", "Order not found."]</MudText>
+}
+else
+{
+    <MudStack Row="true" Justify="Justify.SpaceBetween" AlignItems="AlignItems.Center" Class="mb-4 no-print">
+        <MudButton Variant="Variant.Text" StartIcon="@Icons.Material.Filled.ArrowBack"
+                   OnClick="@(() => Nav.NavigateTo($"/orders/{OrderId}"))">@L["back", "Back"]</MudButton>
+        <MudButton Variant="Variant.Filled" Color="Color.Primary" StartIcon="@Icons.Material.Filled.Print" OnClick="PrintAsync">
+            @L["print", "Print"]
+        </MudButton>
+    </MudStack>
+
+    <div id="order-shipping-label-print">
+        <div class="label-sheet">
+            <div class="label-order">
+                @L["orders.order", "Order"] #@_order.OrderNumber
+                @if (!string.IsNullOrEmpty(ChannelText))
+                {
+                    <span> · @ChannelText</span>
+                }
+            </div>
+            <div class="label-name">@ReceiverName</div>
+            @if (!string.IsNullOrWhiteSpace(Phone))
+            {
+                <div class="label-phone">@Phone</div>
+            }
+            <div class="label-address">@AddressBody</div>
+            @if (!string.IsNullOrWhiteSpace(Postal))
+            {
+                <div class="label-postal">@L["postal_code", "Postal code"]: @Postal</div>
+            }
+        </div>
+    </div>
+}
+
+@code {
+    [Parameter] public int OrderId { get; set; }
+
+    private bool _loading = true;
+    private Order? _order;
+
+    private string ReceiverName = "—";
+    private string? Phone;
+    private string AddressBody = "—";
+    private string? Postal;
+    private string? ChannelText;
+
+    protected override async Task OnInitializedAsync()
+    {
+        await L.EnsureLoadedAsync();
+        _order = await OrderService.GetByIdAsync(OrderId);
+        if (_order is not null)
+            ParseAddress();
+        _loading = false;
+    }
+
+    private void ParseAddress()
+    {
+        ChannelText = ((OrderSalesChannel)_order!.SalesChannel) switch
+        {
+            OrderSalesChannel.Online => L["orders.channel.online", "Online store"],
+            OrderSalesChannel.Instagram => L["orders.channel.instagram", "Instagram"],
+            OrderSalesChannel.WhatsApp => L["orders.channel.whatsapp", "WhatsApp"],
+            OrderSalesChannel.Telegram => L["orders.channel.telegram", "Telegram"],
+            OrderSalesChannel.Phone => L["orders.channel.phone", "Phone"],
+            OrderSalesChannel.InPerson => L["orders.channel.in_person", "In person"],
+            _ => L["orders.channel.other", "Other"],
+        };
+
+        var addr = _order.WebsiteClientAddress;
+        if (addr is not null)
+        {
+            ReceiverName = string.IsNullOrWhiteSpace(addr.ReceiverName)
+                ? ClientDisplay(_order.WebsiteClient)
+                : addr.ReceiverName!;
+            Phone = addr.Phone ?? _order.WebsiteClient?.Cellphone;
+            AddressBody = addr.AddressLine;
+            Postal = addr.PostalCode;
+            return;
+        }
+
+        // Fallback: snapshot "Name, line, postal (phone)"
+        var snap = _order.AddressSnapshot ?? "";
+        ReceiverName = ClientDisplay(_order.WebsiteClient);
+        AddressBody = snap;
+        if (string.IsNullOrWhiteSpace(AddressBody))
+            AddressBody = "—";
+    }
+
+    private static string ClientDisplay(WebsiteClient? c)
+    {
+        if (c is null) return "—";
+        var name = $"{c.Givenname} {c.Surname}".Trim();
+        return string.IsNullOrWhiteSpace(name) ? (c.Cellphone ?? c.Email ?? "—") : name;
+    }
+
+    private async Task PrintAsync() =>
+        await Js.InvokeVoidAsync("dotnetablePrint.printElement", "order-shipping-label-print",
+            _order is null ? L["orders.shipping_label", "Shipping label"] : $"{L["orders.shipping_label", "Shipping label"]} {_order.OrderNumber}");
+}

@@ -172,7 +172,7 @@ public static class RoleCatalog
 
         // Orders
         new(RoleKeys.OrdersView, "View orders", RoleCategory.Admin),
-        new(RoleKeys.OrdersEdit, "Edit orders / transition status", RoleCategory.Admin),
+        new(RoleKeys.OrdersEdit, "Create/edit orders, manual social sales, status transitions", RoleCategory.Admin),
 
         // Payments
         new(RoleKeys.PaymentsView, "View payments", RoleCategory.Admin),

@@ -17,6 +17,7 @@ CREATE TABLE [dbo].[Websites] (
     [FaveIconFileID]                 INT              NULL,
     [DefaultCurrencyCode]            CHAR (3)         NOT NULL,
     [AllowCashOnDelivery]            BIT              NOT NULL CONSTRAINT [DF_Websites_AllowCashOnDelivery] DEFAULT ((1)),
+    [ReportOfflineOrdersToTax]       BIT              NOT NULL CONSTRAINT [DF_Websites_ReportOfflineOrdersToTax] DEFAULT ((0)),
     [FreeShippingMinOrderAmount]     DECIMAL (18, 4)  NOT NULL CONSTRAINT [DF_Websites_FreeShippingMinOrderAmount] DEFAULT ((0)),
     [FreeShippingMinOrderAmountUsd]  DECIMAL (18, 4)  NOT NULL CONSTRAINT [DF_Websites_FreeShippingMinOrderAmountUsd] DEFAULT ((0)),
     CONSTRAINT [PK_Websites] PRIMARY KEY CLUSTERED ([WebsiteID] ASC),

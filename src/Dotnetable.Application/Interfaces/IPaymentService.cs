@@ -66,16 +66,25 @@ public interface IPaymentService
 
     /// <summary>
     /// Admin records that money was received from the customer outside the self-serve flows
-    /// (cash, COD collection, POS, transfer not submitted as a receipt, etc.). Creates a Paid payment
-    /// and, when the order is still <see cref="OrderStatus.PendingPayment"/>, transitions it to Paid.
+    /// (cash, COD collection, POS, card-to-card / bank transfer with optional receipt, etc.).
+    /// When <paramref name="markAsPaid"/> is true (default), creates a Paid payment and, when the order
+    /// is still <see cref="OrderStatus.PendingPayment"/>, transitions it to Paid.
+    /// When false and method is bank transfer, creates a Pending receipt for the verification queue.
     /// </summary>
-    /// <param name="method">Must be <see cref="PaymentMethod.Manual"/> or <see cref="PaymentMethod.CashOnDelivery"/>.</param>
+    /// <param name="method">
+    /// <see cref="PaymentMethod.Manual"/>, <see cref="PaymentMethod.CashOnDelivery"/>,
+    /// or <see cref="PaymentMethod.BankTransfer"/>.
+    /// </param>
     /// <param name="amountLocal">Optional amount in the order currency; defaults to the order grand total.</param>
     /// <param name="reference">Optional tracking / receipt reference stored on the payment.</param>
     /// <param name="note">Optional free-text note (stored in <see cref="Payment.GatewayRefNumber"/> for audit).</param>
+    /// <param name="bankAccountId">Destination bank account for card-to-card / bank transfer.</param>
+    /// <param name="receiptFileId">Uploaded receipt image/file id.</param>
+    /// <param name="markAsPaid">When true, payment is Paid immediately; when false for bank transfer, stays Pending.</param>
     Task<(bool Success, string? Error, Payment? Payment)> RecordReceivedPaymentAsync(
         int orderId, PaymentMethod method, decimal? amountLocal, string? reference, string? note,
-        int memberId, CancellationToken ct = default);
+        int memberId, int? bankAccountId = null, int? receiptFileId = null, bool markAsPaid = true,
+        CancellationToken ct = default);
 
     /// <summary>Admin verification of a pending manual payment: approve marks it Paid and transitions the
     /// order to Paid; reject marks it Rejected and leaves the order unpaid (customer may resubmit).</summary>

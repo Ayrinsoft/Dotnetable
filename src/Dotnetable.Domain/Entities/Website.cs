@@ -82,6 +82,13 @@ public partial class Website
     public bool AllowCashOnDelivery { get; set; } = true;
 
     /// <summary>
+    /// Default for admin-created / non-online-channel orders: whether to include them in tax filings
+    /// (<c>Order.ReportToTax</c>). Offline social sales in some jurisdictions may stay off tax reports.
+    /// Online storefront checkout is unaffected (always reportable when tax applies).
+    /// </summary>
+    public bool ReportOfflineOrdersToTax { get; set; }
+
+    /// <summary>
     /// Site-wide free-shipping threshold in site currency. When cart merchandise subtotal reaches this amount,
     /// shipping quotes are free (0). Zero means no site-wide free shipping (method-level thresholds may still apply).
     /// </summary>
