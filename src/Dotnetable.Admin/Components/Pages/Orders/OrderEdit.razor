@@ -211,8 +211,8 @@ else
                         <MudSelectItem T="PaymentMethod" Value="PaymentMethod.CashOnDelivery">@L["payments.method.cod", "Cash on delivery"]</MudSelectItem>
                         <MudSelectItem T="PaymentMethod" Value="PaymentMethod.Manual">@L["payments.method.manual", "Manual / cash / POS"]</MudSelectItem>
                     </MudSelect>
-                    <MudNumericField T="decimal" @bind-Value="_receiveAmount" Label="@($"{L["amount", "Amount"]} ({_order.CurrencyCode})")"
-                                    Variant="Variant.Outlined" Dense="true" Min="0" Class="mb-2" />
+                    <DNMoneyField @bind-Value="_receiveAmount" Label="@($"{L["amount", "Amount"]} ({_order.CurrencyCode})")"
+                                  DecimalDigits="@MoneyFormat.EffectiveDigits(_order.CurrencyCode)" Min="0" Class="mb-2" />
                     <MudDatePicker @bind-Date="_receiveDate" Label="@L["payments.paid_date", "Payment date"]" Variant="Variant.Outlined"
                                    Dense="true" Class="mb-2" Editable="true" Required="true"
                                    RequiredError="@L["required", "This field is required."]" />

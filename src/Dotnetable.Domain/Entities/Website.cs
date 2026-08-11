@@ -121,6 +121,8 @@ public partial class Website
 
     public virtual ICollection<ClientWallet> ClientWallets { get; set; } = new List<ClientWallet>();
 
+    public virtual ICollection<WebsiteWalletCurrency> WebsiteWalletCurrencies { get; set; } = new List<WebsiteWalletCurrency>();
+
     public virtual ICollection<ContactUsMessage> ContactUsMessages { get; set; } = new List<ContactUsMessage>();
 
     public virtual ICollection<Coupon> Coupons { get; set; } = new List<Coupon>();

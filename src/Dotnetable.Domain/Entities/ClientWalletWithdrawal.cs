@@ -15,9 +15,13 @@ public partial class ClientWalletWithdrawal
 
     public int ClientBankAccountID { get; set; }
 
-    /// <summary>Withdrawal amount in site currency.</summary>
+    /// <summary>Currency of the source wallet (denormalized from <see cref="ClientWallet"/>).</summary>
+    public string CurrencyCode { get; set; } = null!;
+
+    /// <summary>Withdrawal amount in <see cref="CurrencyCode"/>.</summary>
     public decimal Amount { get; set; }
 
+    /// <summary>Optional USD mirror for reporting only.</summary>
     public decimal AmountUsd { get; set; }
 
     public byte Status { get; set; }

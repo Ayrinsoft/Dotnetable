@@ -17,6 +17,10 @@ public partial class Currency
 
     public virtual ICollection<CurrencyRate> CurrencyRates { get; set; } = new List<CurrencyRate>();
 
+    public virtual ICollection<ClientWallet> ClientWallets { get; set; } = new List<ClientWallet>();
+
+    public virtual ICollection<WebsiteWalletCurrency> WebsiteWalletCurrencies { get; set; } = new List<WebsiteWalletCurrency>();
+
     public virtual ICollection<Order> Orders { get; set; } = new List<Order>();
 
     public virtual ICollection<Payment> Payments { get; set; } = new List<Payment>();

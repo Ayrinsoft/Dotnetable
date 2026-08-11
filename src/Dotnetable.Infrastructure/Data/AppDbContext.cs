@@ -48,6 +48,8 @@ public partial class AppDbContext : DbContext
 
     public virtual DbSet<ClientWallet> ClientWallets { get; set; }
 
+    public virtual DbSet<WebsiteWalletCurrency> WebsiteWalletCurrencies { get; set; }
+
     public virtual DbSet<ClientWalletTransaction> ClientWalletTransactions { get; set; }
 
     public virtual DbSet<ClientWalletWithdrawal> ClientWalletWithdrawals { get; set; }
@@ -639,9 +641,13 @@ public partial class AppDbContext : DbContext
         modelBuilder.Entity<ClientWallet>(entity =>
         {
             entity.HasIndex(e => e.WebsiteID, "IX_ClientWallets_WebsiteID");
+            entity.HasIndex(e => e.CurrencyCode, "IX_ClientWallets_CurrencyCode");
+            entity.HasIndex(e => new { e.WebsiteClientID, e.CurrencyCode }, "UQ_ClientWallets_Client_Currency").IsUnique();
 
-            entity.HasIndex(e => e.WebsiteClientID, "UQ_ClientWallets_WebsiteClientID").IsUnique();
-
+            entity.Property(e => e.CurrencyCode)
+                .HasMaxLength(3)
+                .IsUnicode(false)
+                .IsFixedLength();
             entity.Property(e => e.Balance).HasColumnType("decimal(18, 4)");
             entity.Property(e => e.BalanceUsd).HasColumnType("decimal(18, 4)");
             entity.Property(e => e.CreatedAt).HasPrecision(0);
@@ -649,8 +655,13 @@ public partial class AppDbContext : DbContext
                 .IsRowVersion()
                 .IsConcurrencyToken();
 
-            entity.HasOne(d => d.WebsiteClient).WithOne(p => p.ClientWallet)
-                .HasForeignKey<ClientWallet>(d => d.WebsiteClientID)
+            entity.HasOne(d => d.CurrencyCodeNavigation).WithMany(p => p.ClientWallets)
+                .HasForeignKey(d => d.CurrencyCode)
+                .OnDelete(DeleteBehavior.ClientSetNull)
+                .HasConstraintName("FK_ClientWallets_Currencies");
+
+            entity.HasOne(d => d.WebsiteClient).WithMany(p => p.ClientWallets)
+                .HasForeignKey(d => d.WebsiteClientID)
                 .OnDelete(DeleteBehavior.ClientSetNull)
                 .HasConstraintName("FK_ClientWallets_WebsiteClients");
 
@@ -658,6 +669,29 @@ public partial class AppDbContext : DbContext
                 .HasForeignKey(d => d.WebsiteID)
                 .OnDelete(DeleteBehavior.ClientSetNull)
                 .HasConstraintName("FK_ClientWallets_Websites");
+        });
+
+        modelBuilder.Entity<WebsiteWalletCurrency>(entity =>
+        {
+            entity.HasIndex(e => e.WebsiteID, "IX_WebsiteWalletCurrencies_WebsiteID");
+            entity.HasIndex(e => e.CurrencyCode, "IX_WebsiteWalletCurrencies_CurrencyCode");
+            entity.HasIndex(e => new { e.WebsiteID, e.CurrencyCode }, "UQ_WebsiteWalletCurrencies_Website_Currency").IsUnique();
+
+            entity.Property(e => e.CurrencyCode)
+                .HasMaxLength(3)
+                .IsUnicode(false)
+                .IsFixedLength();
+            entity.Property(e => e.CreatedAt).HasPrecision(0);
+
+            entity.HasOne(d => d.CurrencyCodeNavigation).WithMany(p => p.WebsiteWalletCurrencies)
+                .HasForeignKey(d => d.CurrencyCode)
+                .OnDelete(DeleteBehavior.ClientSetNull)
+                .HasConstraintName("FK_WebsiteWalletCurrencies_Currencies");
+
+            entity.HasOne(d => d.Website).WithMany(p => p.WebsiteWalletCurrencies)
+                .HasForeignKey(d => d.WebsiteID)
+                .OnDelete(DeleteBehavior.ClientSetNull)
+                .HasConstraintName("FK_WebsiteWalletCurrencies_Websites");
         });
 
         modelBuilder.Entity<ClientWalletTransaction>(entity =>
@@ -702,6 +736,10 @@ public partial class AppDbContext : DbContext
 
             entity.HasIndex(e => e.WebsiteID, "IX_ClientWalletWithdrawals_WebsiteID");
 
+            entity.Property(e => e.CurrencyCode)
+                .HasMaxLength(3)
+                .IsUnicode(false)
+                .IsFixedLength();
             entity.Property(e => e.Amount).HasColumnType("decimal(18, 4)");
             entity.Property(e => e.AmountUsd).HasColumnType("decimal(18, 4)");
             entity.Property(e => e.PaidAt).HasPrecision(0);

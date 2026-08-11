@@ -4,43 +4,53 @@ using Dotnetable.Domain.Entities;
 namespace Dotnetable.Application.Interfaces;
 
 /// <summary>
-/// Manages a website customer's cash wallet (<see cref="ClientWallet"/>) and its append-only ledger
-/// (<see cref="ClientWalletTransaction"/>). <see cref="ApplyAsync"/> is the ONLY way a wallet balance
-/// may change — every other domain (Payment refunds, checkout wallet-pay, admin adjustments,
-/// withdrawals) must go through it so the ledger always reconciles with <see cref="ClientWallet.Balance"/>.
+/// Customer cash wallets: one ledger per enabled currency per customer.
+/// <see cref="ApplyAsync"/> is the only way balances change. Amounts are always in the wallet's own
+/// <see cref="ClientWallet.CurrencyCode"/> — never dual-stored as authority (unlike product dual-USD).
 /// </summary>
 public interface IClientWalletService
 {
-    /// <summary>Returns the customer's wallet, creating a zero-balance active one if it doesn't exist yet.</summary>
-    Task<ClientWallet> GetOrCreateAsync(int websiteId, int clientId, CancellationToken ct = default);
+    /// <summary>
+    /// Wallet currencies the website allows. Ensures the site default currency is present and active.
+    /// </summary>
+    Task<IReadOnlyList<WebsiteWalletCurrency>> GetEnabledWalletCurrenciesAsync(int websiteId, CancellationToken ct = default);
 
-    /// <summary>Current balance in website operational currency (0 when the customer has no wallet yet).</summary>
-    Task<decimal> GetBalanceAsync(int clientId, CancellationToken ct = default);
+    /// <summary>Enable an additional wallet currency for the website (must exist in Currencies and typically have a rate).</summary>
+    Task<(bool Success, string? Error)> EnableWalletCurrencyAsync(int websiteId, string currencyCode, CancellationToken ct = default);
 
-    /// <summary>Server-side paged/sorted ledger history for one customer, newest first by default.</summary>
-    Task<PagedResult<ClientWalletTransaction>> GetHistoryAsync(int clientId, GridQuery query, CancellationToken ct = default);
+    /// <summary>Deactivate a non-default wallet currency (blocked if any positive balances remain).</summary>
+    Task<(bool Success, string? Error)> DisableWalletCurrencyAsync(int websiteId, string currencyCode, CancellationToken ct = default);
 
     /// <summary>
-    /// Applies a signed change to the customer's wallet and appends the corresponding ledger row.
-    /// This is the only method that may ever change <see cref="ClientWallet.Balance"/>.
+    /// Returns the customer's wallet for <paramref name="currencyCode"/> (or site default when null),
+    /// creating a zero-balance active wallet when missing and the currency is enabled.
     /// </summary>
-    /// <param name="websiteId">Owning website, used only when the wallet must be created.</param>
-    /// <param name="clientId">The customer whose wallet is affected.</param>
-    /// <param name="type">A <see cref="ClientWalletTransactionType"/> value.</param>
-    /// <param name="signedAmountUsd">Signed amount in site currency (parameter name retained for compatibility); dual USD is derived.</param>
-    /// <param name="sourceType">A <see cref="ClientWalletSourceType"/> value, or null.</param>
-    /// <param name="sourceId">Polymorphic id paired with <paramref name="sourceType"/>, or null.</param>
-    /// <param name="note">Optional free-text note stored on the ledger row.</param>
-    /// <param name="memberId">Admin member id when the change was triggered by an admin action, or null.</param>
-    /// <exception cref="InvalidOperationException">The debit would take the balance negative.</exception>
+    Task<ClientWallet> GetOrCreateAsync(int websiteId, int clientId, string? currencyCode = null, CancellationToken ct = default);
+
+    /// <summary>All wallet accounts for a customer on a website.</summary>
+    Task<IReadOnlyList<ClientWallet>> ListForClientAsync(int websiteId, int clientId, CancellationToken ct = default);
+
+    /// <summary>Balance in the given currency (0 when no wallet). Null currency = site default.</summary>
+    Task<decimal> GetBalanceAsync(int websiteId, int clientId, string? currencyCode = null, CancellationToken ct = default);
+
+    /// <summary>Ledger history for one wallet currency (null = default). Newest first by default.</summary>
+    Task<PagedResult<ClientWalletTransaction>> GetHistoryAsync(
+        int websiteId, int clientId, GridQuery query, string? currencyCode = null, CancellationToken ct = default);
+
+    /// <summary>
+    /// Applies a signed change in the wallet currency and appends a ledger row.
+    /// </summary>
+    /// <param name="signedAmount">Signed amount in <paramref name="currencyCode"/> (or site default).</param>
+    /// <exception cref="InvalidOperationException">Debit would go negative, or currency not enabled.</exception>
     Task<ClientWalletTransaction> ApplyAsync(
         int websiteId,
         int clientId,
         byte type,
-        decimal signedAmountUsd,
+        decimal signedAmount,
         byte? sourceType,
         int? sourceId,
         string? note,
         int? memberId,
+        string? currencyCode = null,
         CancellationToken ct = default);
 }

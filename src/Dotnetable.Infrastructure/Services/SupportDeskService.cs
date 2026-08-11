@@ -108,7 +108,7 @@ public class SupportDeskService : ISupportDeskService
     public async Task<Customer360Dto?> GetCustomer360Async(int websiteClientId, CancellationToken ct = default)
     {
         var client = await _context.WebsiteClients.AsNoTracking()
-            .Include(c => c.ClientWallet)
+            .Include(c => c.ClientWallets)
             .Include(c => c.WebsiteClientAddresses)
             .FirstOrDefaultAsync(c => c.WebsiteClientID == websiteClientId, ct);
         if (client is null) return null;
@@ -236,7 +236,11 @@ public class SupportDeskService : ISupportDeskService
             TotalSessionCount = sessions.Count,
             OrderCount = orderDtos.Count,
             InProgressOrderCount = orderDtos.Count(o => o.IsInProgress),
-            WalletBalanceUsd = client.ClientWallet?.BalanceUsd,
+            // Sum of default-site-currency wallet when present; multi-currency details are on the wallets page.
+            WalletBalanceUsd = client.ClientWallets
+                .OrderBy(w => w.CurrencyCode)
+                .Select(w => (decimal?)w.Balance)
+                .FirstOrDefault(),
             Orders = orderDtos,
             Sessions = sessions.Select(MapSessionSummary).ToList(),
             RecentInteractions = recentInteractions.Select(MapInteraction).ToList(),

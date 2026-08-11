@@ -694,6 +694,13 @@ namespace Dotnetable.Migrations.MySql.Migrations
                         .HasPrecision(0)
                         .HasColumnType("datetime(0)");
 
+                    b.Property<string>("CurrencyCode")
+                        .IsRequired()
+                        .HasMaxLength(3)
+                        .IsUnicode(false)
+                        .HasColumnType("char(3)")
+                        .IsFixedLength();
+
                     b.Property<bool>("IsActive")
                         .HasColumnType("tinyint(1)");
 
@@ -711,9 +718,11 @@ namespace Dotnetable.Migrations.MySql.Migrations
 
                     b.HasKey("ClientWalletID");
 
+                    b.HasIndex(new[] { "CurrencyCode" }, "IX_ClientWallets_CurrencyCode");
+
                     b.HasIndex(new[] { "WebsiteID" }, "IX_ClientWallets_WebsiteID");
 
-                    b.HasIndex(new[] { "WebsiteClientID" }, "UQ_ClientWallets_WebsiteClientID")
+                    b.HasIndex(new[] { "WebsiteClientID", "CurrencyCode" }, "UQ_ClientWallets_Client_Currency")
                         .IsUnique();
 
                     b.ToTable("ClientWallets");
@@ -791,6 +800,13 @@ namespace Dotnetable.Migrations.MySql.Migrations
 
                     b.Property<int>("ClientWalletID")
                         .HasColumnType("int");
+
+                    b.Property<string>("CurrencyCode")
+                        .IsRequired()
+                        .HasMaxLength(3)
+                        .IsUnicode(false)
+                        .HasColumnType("char(3)")
+                        .IsFixedLength();
 
                     b.Property<DateTime?>("PaidAt")
                         .HasPrecision(0)
@@ -5655,6 +5671,44 @@ namespace Dotnetable.Migrations.MySql.Migrations
                     b.ToTable("WebsiteThemes");
                 });
 
+            modelBuilder.Entity("Dotnetable.Domain.Entities.WebsiteWalletCurrency", b =>
+                {
+                    b.Property<int>("WebsiteWalletCurrencyID")
+                        .ValueGeneratedOnAdd()
+                        .HasColumnType("int");
+
+                    b.Property<DateTime>("CreatedAt")
+                        .HasPrecision(0)
+                        .HasColumnType("datetime(0)");
+
+                    b.Property<string>("CurrencyCode")
+                        .IsRequired()
+                        .HasMaxLength(3)
+                        .IsUnicode(false)
+                        .HasColumnType("char(3)")
+                        .IsFixedLength();
+
+                    b.Property<bool>("IsActive")
+                        .HasColumnType("tinyint(1)");
+
+                    b.Property<bool>("IsDefault")
+                        .HasColumnType("tinyint(1)");
+
+                    b.Property<int>("WebsiteID")
+                        .HasColumnType("int");
+
+                    b.HasKey("WebsiteWalletCurrencyID");
+
+                    b.HasIndex(new[] { "CurrencyCode" }, "IX_WebsiteWalletCurrencies_CurrencyCode");
+
+                    b.HasIndex(new[] { "WebsiteID" }, "IX_WebsiteWalletCurrencies_WebsiteID");
+
+                    b.HasIndex(new[] { "WebsiteID", "CurrencyCode" }, "UQ_WebsiteWalletCurrencies_Website_Currency")
+                        .IsUnique();
+
+                    b.ToTable("WebsiteWalletCurrencies");
+                });
+
             modelBuilder.Entity("Dotnetable.Domain.Entities.WebsiteWatermarkSetting", b =>
                 {
                     b.Property<int>("WebsiteWatermarkSettingID")
@@ -6053,9 +6107,15 @@ namespace Dotnetable.Migrations.MySql.Migrations
 
             modelBuilder.Entity("Dotnetable.Domain.Entities.ClientWallet", b =>
                 {
+                    b.HasOne("Dotnetable.Domain.Entities.Currency", "CurrencyCodeNavigation")
+                        .WithMany("ClientWallets")
+                        .HasForeignKey("CurrencyCode")
+                        .IsRequired()
+                        .HasConstraintName("FK_ClientWallets_Currencies");
+
                     b.HasOne("Dotnetable.Domain.Entities.WebsiteClient", "WebsiteClient")
-                        .WithOne("ClientWallet")
-                        .HasForeignKey("Dotnetable.Domain.Entities.ClientWallet", "WebsiteClientID")
+                        .WithMany("ClientWallets")
+                        .HasForeignKey("WebsiteClientID")
                         .IsRequired()
                         .HasConstraintName("FK_ClientWallets_WebsiteClients");
 
@@ -6064,6 +6124,8 @@ namespace Dotnetable.Migrations.MySql.Migrations
                         .HasForeignKey("WebsiteID")
                         .IsRequired()
                         .HasConstraintName("FK_ClientWallets_Websites");
+
+                    b.Navigation("CurrencyCodeNavigation");
 
                     b.Navigation("Website");
 
@@ -8269,6 +8331,25 @@ namespace Dotnetable.Migrations.MySql.Migrations
                     b.Navigation("Website");
                 });
 
+            modelBuilder.Entity("Dotnetable.Domain.Entities.WebsiteWalletCurrency", b =>
+                {
+                    b.HasOne("Dotnetable.Domain.Entities.Currency", "CurrencyCodeNavigation")
+                        .WithMany("WebsiteWalletCurrencies")
+                        .HasForeignKey("CurrencyCode")
+                        .IsRequired()
+                        .HasConstraintName("FK_WebsiteWalletCurrencies_Currencies");
+
+                    b.HasOne("Dotnetable.Domain.Entities.Website", "Website")
+                        .WithMany("WebsiteWalletCurrencies")
+                        .HasForeignKey("WebsiteID")
+                        .IsRequired()
+                        .HasConstraintName("FK_WebsiteWalletCurrencies_Websites");
+
+                    b.Navigation("CurrencyCodeNavigation");
+
+                    b.Navigation("Website");
+                });
+
             modelBuilder.Entity("Dotnetable.Domain.Entities.WebsiteWatermarkSetting", b =>
                 {
                     b.HasOne("Dotnetable.Domain.Entities.FileRecord", "WatermarkFile")
@@ -8468,6 +8549,8 @@ namespace Dotnetable.Migrations.MySql.Migrations
 
             modelBuilder.Entity("Dotnetable.Domain.Entities.Currency", b =>
                 {
+                    b.Navigation("ClientWallets");
+
                     b.Navigation("CurrencyRates");
 
                     b.Navigation("Orders");
@@ -8479,6 +8562,8 @@ namespace Dotnetable.Migrations.MySql.Migrations
                     b.Navigation("StockMovements");
 
                     b.Navigation("Suppliers");
+
+                    b.Navigation("WebsiteWalletCurrencies");
 
                     b.Navigation("Websites");
                 });
@@ -9037,6 +9122,8 @@ namespace Dotnetable.Migrations.MySql.Migrations
 
                     b.Navigation("WebsiteThemes");
 
+                    b.Navigation("WebsiteWalletCurrencies");
+
                     b.Navigation("WebsiteWatermarkSettings");
 
                     b.Navigation("Wishlists");
@@ -9048,9 +9135,9 @@ namespace Dotnetable.Migrations.MySql.Migrations
 
                     b.Navigation("ClientBankAccounts");
 
-                    b.Navigation("ClientWallet");
-
                     b.Navigation("ClientWalletWithdrawals");
+
+                    b.Navigation("ClientWallets");
 
                     b.Navigation("CouponRedemptions");
 

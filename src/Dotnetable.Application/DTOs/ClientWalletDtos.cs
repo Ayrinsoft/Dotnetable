@@ -70,19 +70,30 @@ public sealed class ClientBankAccountRequest
     public bool IsDefault { get; set; }
 }
 
-/// <summary>Current wallet balance for the signed-in customer.</summary>
+/// <summary>One currency wallet balance for the signed-in customer.</summary>
 public sealed class WalletBalanceDto
 {
+    public string CurrencyCode { get; set; } = string.Empty;
+    /// <summary>Balance in <see cref="CurrencyCode"/>.</summary>
+    public decimal Balance { get; set; }
+    /// <summary>Obsolete alias — same as <see cref="Balance"/> (kept for older clients).</summary>
     public decimal BalanceUsd { get; set; }
     public bool IsActive { get; set; }
+    public bool IsDefaultCurrency { get; set; }
 }
 
 /// <summary>A single wallet ledger row as returned by the API — flattened, no navigation cycles.</summary>
 public sealed class WalletTransactionDto
 {
     public int ClientWalletTransactionID { get; set; }
+    public string CurrencyCode { get; set; } = string.Empty;
     public byte Type { get; set; }
+    /// <summary>Signed amount in wallet currency.</summary>
+    public decimal Amount { get; set; }
+    /// <summary>Obsolete alias for <see cref="Amount"/>.</summary>
     public decimal AmountUsd { get; set; }
+    public decimal BalanceAfter { get; set; }
+    /// <summary>Obsolete alias for <see cref="BalanceAfter"/>.</summary>
     public decimal BalanceAfterUsd { get; set; }
     public byte? SourceType { get; set; }
     public int? SourceId { get; set; }
@@ -90,11 +101,16 @@ public sealed class WalletTransactionDto
     public DateTime CreatedAt { get; set; }
 }
 
-/// <summary>Payload to request a cash-out withdrawal from the wallet.</summary>
+/// <summary>Payload to request a cash-out withdrawal from a specific currency wallet.</summary>
 public sealed class WithdrawalRequest
 {
     public int ClientBankAccountId { get; set; }
+    /// <summary>Amount in <see cref="CurrencyCode"/> (or site default when omitted).</summary>
+    public decimal Amount { get; set; }
+    /// <summary>Obsolete alias for <see cref="Amount"/>.</summary>
     public decimal AmountUsd { get; set; }
+    /// <summary>Wallet currency; null = site default.</summary>
+    public string? CurrencyCode { get; set; }
 }
 
 /// <summary>A withdrawal request as returned by the API/admin grid — flattened, no navigation cycles.</summary>
@@ -106,6 +122,9 @@ public sealed class WithdrawalDto
     public string? ClientName { get; set; }
     public int ClientBankAccountID { get; set; }
     public string? BankAccountSummary { get; set; }
+    public string CurrencyCode { get; set; } = string.Empty;
+    public decimal Amount { get; set; }
+    /// <summary>Obsolete alias for <see cref="Amount"/>.</summary>
     public decimal AmountUsd { get; set; }
     public byte Status { get; set; }
     public int? ReviewedByMemberID { get; set; }
@@ -114,4 +133,13 @@ public sealed class WithdrawalDto
     public string? PaymentRefNumber { get; set; }
     public DateTime? PaidAt { get; set; }
     public DateTime RequestedAt { get; set; }
+}
+
+/// <summary>Wallet currency enabled on a website.</summary>
+public sealed class WebsiteWalletCurrencyDto
+{
+    public string CurrencyCode { get; set; } = string.Empty;
+    public string? CurrencyName { get; set; }
+    public bool IsDefault { get; set; }
+    public bool IsActive { get; set; }
 }
