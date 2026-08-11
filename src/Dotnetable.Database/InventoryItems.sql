@@ -1,17 +1,19 @@
-CREATE TABLE [dbo].[InventoryItems] (
+﻿CREATE TABLE [dbo].[InventoryItems] (
     [InventoryItemID]  INT             IDENTITY (1, 1) NOT NULL,
     [WebsiteID]        INT             NOT NULL,
     [ProductVariantID] INT             NOT NULL,
-    [QuantityOnHand]   INT NOT NULL,
-    [QuantityReserved] INT NOT NULL,
-    [ReorderLevel]     INT NOT NULL,
-    [AvgCost]          DECIMAL (18, 4) NOT NULL CONSTRAINT [DF_InventoryItems_AvgCost] DEFAULT ((0)),
+    [QuantityOnHand]   INT             NOT NULL,
+    [QuantityReserved] INT             NOT NULL,
+    [ReorderLevel]     INT             NOT NULL,
     [AvgCostUsd]       DECIMAL (18, 4) NOT NULL,
     [RowVersion]       ROWVERSION      NOT NULL,
+    [AvgCost]          DECIMAL (18, 4) DEFAULT ((0.0)) NOT NULL,
     CONSTRAINT [PK_InventoryItems] PRIMARY KEY CLUSTERED ([InventoryItemID] ASC),
     CONSTRAINT [FK_InventoryItems_ProductVariants] FOREIGN KEY ([ProductVariantID]) REFERENCES [dbo].[ProductVariants] ([ProductVariantID]),
     CONSTRAINT [FK_InventoryItems_Websites] FOREIGN KEY ([WebsiteID]) REFERENCES [dbo].[Websites] ([WebsiteID])
 );
+
+
 GO
 
 CREATE NONCLUSTERED INDEX [IX_InventoryItems_ProductVariantID]

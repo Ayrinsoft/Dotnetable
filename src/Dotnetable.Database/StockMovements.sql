@@ -1,12 +1,10 @@
-CREATE TABLE [dbo].[StockMovements] (
+﻿CREATE TABLE [dbo].[StockMovements] (
     [StockMovementID]   INT             IDENTITY (1, 1) NOT NULL,
     [WebsiteID]         INT             NOT NULL,
     [ProductVariantID]  INT             NOT NULL,
     [Type]              TINYINT         NOT NULL,
     [Quantity]          INT             NOT NULL,
-    [UnitCost]          DECIMAL (18, 4) NOT NULL CONSTRAINT [DF_StockMovements_UnitCost] DEFAULT ((0)),
     [UnitCostUsd]       DECIMAL (18, 4) NOT NULL,
-    [UnitSalePrice]     DECIMAL (18, 4) NULL,
     [UnitSalePriceUsd]  DECIMAL (18, 4) NULL,
     [CurrencyCode]      CHAR (3)        NOT NULL,
     [ExchangeRateToUsd] DECIMAL (18, 6) NOT NULL,
@@ -15,7 +13,9 @@ CREATE TABLE [dbo].[StockMovements] (
     [OrderItemID]       INT             NULL,
     [Note]              NVARCHAR (500)  NULL,
     [CreatedByMemberID] INT             NULL,
-    [CreatedAt]         DATETIME2 (0) NOT NULL,
+    [CreatedAt]         DATETIME2 (0)   NOT NULL,
+    [UnitCost]          DECIMAL (18, 4) DEFAULT ((0.0)) NOT NULL,
+    [UnitSalePrice]     DECIMAL (18, 4) NULL,
     CONSTRAINT [PK_StockMovements] PRIMARY KEY CLUSTERED ([StockMovementID] ASC),
     CONSTRAINT [FK_StockMovements_Currencies] FOREIGN KEY ([CurrencyCode]) REFERENCES [dbo].[Currencies] ([CurrencyCode]),
     CONSTRAINT [FK_StockMovements_Members] FOREIGN KEY ([CreatedByMemberID]) REFERENCES [dbo].[Members] ([MemberID]),
@@ -25,6 +25,8 @@ CREATE TABLE [dbo].[StockMovements] (
     CONSTRAINT [FK_StockMovements_Suppliers] FOREIGN KEY ([SupplierID]) REFERENCES [dbo].[Suppliers] ([SupplierID]),
     CONSTRAINT [FK_StockMovements_Websites] FOREIGN KEY ([WebsiteID]) REFERENCES [dbo].[Websites] ([WebsiteID])
 );
+
+
 
 
 
