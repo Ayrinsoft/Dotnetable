@@ -38,6 +38,11 @@ public class DesignTimeDbContextFactory : IDesignTimeDbContextFactory<AppDbConte
                 try
                 {
                     using var doc = JsonDocument.Parse(File.ReadAllText(path));
+                    // Admin localsettings: { "Database": { "ConnectionString": "..." } }
+                    if (doc.RootElement.TryGetProperty("Database", out var db)
+                        && db.TryGetProperty("ConnectionString", out var dbCs)
+                        && dbCs.GetString() is { Length: > 0 } fromDb)
+                        return fromDb;
                     if (doc.RootElement.TryGetProperty("ConnectionStrings", out var cs)
                         && cs.TryGetProperty("DefaultConnection", out var def)
                         && def.GetString() is { Length: > 0 } s)

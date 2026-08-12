@@ -1,9 +1,12 @@
+﻿using Dotnetable.Infrastructure.Data;
+using Microsoft.EntityFrameworkCore.Infrastructure;
 using Microsoft.EntityFrameworkCore.Migrations;
 
 #nullable disable
 
 namespace Dotnetable.Migrations.SqlServer.Migrations
 {
+    [DbContext(typeof(AppDbContext))]
     [Migration("20260812210000_FiscalCalendarOpeningBalance")]
     public class FiscalCalendarOpeningBalance : Migration
     {

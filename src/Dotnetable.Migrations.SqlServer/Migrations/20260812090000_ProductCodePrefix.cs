@@ -1,3 +1,5 @@
+﻿using Dotnetable.Infrastructure.Data;
+using Microsoft.EntityFrameworkCore.Infrastructure;
 using Microsoft.EntityFrameworkCore.Migrations;
 
 #nullable disable
@@ -5,6 +7,8 @@ using Microsoft.EntityFrameworkCore.Migrations;
 namespace Dotnetable.Migrations.SqlServer.Migrations
 {
     /// <inheritdoc />
+    [DbContext(typeof(AppDbContext))]
+    [Migration("20260812090000_ProductCodePrefix")]
     public class ProductCodePrefix : Migration
     {
         /// <inheritdoc />
@@ -17,7 +21,7 @@ namespace Dotnetable.Migrations.SqlServer.Migrations
                 maxLength: 3,
                 nullable: false,
                 defaultValue: "DN",
-                comment: "1–3 letter product code prefix; codes are {prefix}-{ProductID}.");
+                comment: "1â€“3 letter product code prefix; codes are {prefix}-{ProductID}.");
         }
 
         /// <inheritdoc />
