@@ -12,8 +12,13 @@ public class FinancialLedgerService : IFinancialLedgerService
 {
     private readonly AppDbContext _fallback;
     private AppDbContext _context => AmbientDbContext.Current ?? _fallback;
+    private readonly IGlProjector _gl;
 
-    public FinancialLedgerService(AppDbContext context) => _fallback = context;
+    public FinancialLedgerService(AppDbContext context, IGlProjector gl)
+    {
+        _fallback = context;
+        _gl = gl;
+    }
 
     public async Task<PagedResult<FinancialLedgerEntryDto>> GetPagedAsync(
         FinancialLedgerFilter filter, GridQuery query, CancellationToken ct = default)
@@ -161,6 +166,8 @@ public class FinancialLedgerService : IFinancialLedgerService
         };
         _context.FinancialLedgerEntries.Add(entry);
         await _context.SaveChangesAsync(ct);
+        try { await _gl.ProjectLedgerEntryAsync(entry.FinancialLedgerEntryID, ct); }
+        catch { /* never break commercial flows */ }
         return entry;
     }
 
@@ -285,6 +292,8 @@ public class FinancialLedgerService : IFinancialLedgerService
         }
 
         await _context.SaveChangesAsync(ct);
+        try { await _gl.ProjectEventGroupAsync(order.WebsiteID, groupId, ct); }
+        catch { /* never break commercial flows */ }
     }
 
     public async Task PostCustomerRefundAsync(int orderId, int paymentId, decimal amount, string? note, int? memberId, CancellationToken ct = default)

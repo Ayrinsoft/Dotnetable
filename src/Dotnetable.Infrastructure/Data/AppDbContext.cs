@@ -40,6 +40,10 @@ public partial class AppDbContext : DbContext
 
     public virtual DbSet<ChartOfAccount> ChartOfAccounts { get; set; }
 
+    public virtual DbSet<FiscalPeriod> FiscalPeriods { get; set; }
+
+    public virtual DbSet<LedgerAccountMap> LedgerAccountMaps { get; set; }
+
     public virtual DbSet<City> Cities { get; set; }
 
     public virtual DbSet<CityTranslation> CityTranslations { get; set; }
@@ -551,11 +555,13 @@ public partial class AppDbContext : DbContext
         modelBuilder.Entity<ChartOfAccount>(entity =>
         {
             entity.HasIndex(e => e.ParentAccountID, "IX_ChartOfAccounts_ParentAccountID");
-
             entity.HasIndex(e => e.WebsiteID, "IX_ChartOfAccounts_WebsiteID");
+            entity.HasIndex(e => new { e.WebsiteID, e.Code }, "IX_ChartOfAccounts_Website_Code").IsUnique();
 
             entity.Property(e => e.Code).HasMaxLength(20);
             entity.Property(e => e.Name).HasMaxLength(200);
+            entity.Property(e => e.IsSystem).HasDefaultValue(false);
+            entity.Property(e => e.SortOrder).HasDefaultValue(0);
 
             entity.HasOne(d => d.ParentAccount).WithMany(p => p.InverseParentAccount)
                 .HasForeignKey(d => d.ParentAccountID)
@@ -565,6 +571,39 @@ public partial class AppDbContext : DbContext
                 .HasForeignKey(d => d.WebsiteID)
                 .OnDelete(DeleteBehavior.ClientSetNull)
                 .HasConstraintName("FK_ChartOfAccounts_Websites");
+        });
+
+        modelBuilder.Entity<FiscalPeriod>(entity =>
+        {
+            entity.HasIndex(e => new { e.WebsiteID, e.PeriodFrom }, "IX_FiscalPeriods_WebsiteID");
+            entity.Property(e => e.Name).HasMaxLength(100);
+            entity.Property(e => e.IsClosed).HasDefaultValue(false);
+            entity.HasOne(d => d.ClosedByMember).WithMany()
+                .HasForeignKey(d => d.ClosedByMemberID)
+                .HasConstraintName("FK_FiscalPeriods_Members");
+            entity.HasOne(d => d.Website).WithMany()
+                .HasForeignKey(d => d.WebsiteID)
+                .OnDelete(DeleteBehavior.ClientSetNull)
+                .HasConstraintName("FK_FiscalPeriods_Websites");
+        });
+
+        modelBuilder.Entity<LedgerAccountMap>(entity =>
+        {
+            entity.HasIndex(e => new { e.WebsiteID, e.TransactionType, e.IsActive }, "IX_LedgerAccountMaps_Website_Type");
+            entity.Property(e => e.TransactionType).HasMaxLength(64);
+            entity.Property(e => e.IsActive).HasDefaultValue(true);
+            entity.HasOne(d => d.DebitAccount).WithMany(p => p.LedgerAccountMapDebits)
+                .HasForeignKey(d => d.DebitAccountID)
+                .OnDelete(DeleteBehavior.ClientSetNull)
+                .HasConstraintName("FK_LedgerAccountMaps_Debit");
+            entity.HasOne(d => d.CreditAccount).WithMany(p => p.LedgerAccountMapCredits)
+                .HasForeignKey(d => d.CreditAccountID)
+                .OnDelete(DeleteBehavior.ClientSetNull)
+                .HasConstraintName("FK_LedgerAccountMaps_Credit");
+            entity.HasOne(d => d.Website).WithMany()
+                .HasForeignKey(d => d.WebsiteID)
+                .OnDelete(DeleteBehavior.ClientSetNull)
+                .HasConstraintName("FK_LedgerAccountMaps_Websites");
         });
 
         modelBuilder.Entity<City>(entity =>
@@ -1211,15 +1250,41 @@ public partial class AppDbContext : DbContext
         modelBuilder.Entity<JournalEntry>(entity =>
         {
             entity.HasIndex(e => e.WebsiteID, "IX_JournalEntries_WebsiteID");
+            entity.HasIndex(e => new { e.WebsiteID, e.EntryDate, e.IsPosted }, "IX_JournalEntries_EntryDate");
+            entity.HasIndex(e => e.FiscalPeriodID, "IX_JournalEntries_FiscalPeriodID");
+            entity.HasIndex(e => new { e.WebsiteID, e.SourceKey }, "IX_JournalEntries_Website_SourceKey")
+                .IsUnique()
+                .HasFilter("[SourceKey] IS NOT NULL");
 
-            entity.Property(e => e.CreatedAt).HasColumnType("datetime");
+            entity.Property(e => e.CreatedAt).HasColumnType("datetime2");
             entity.Property(e => e.Description).HasMaxLength(500);
             entity.Property(e => e.EntryNumber).HasMaxLength(30);
+            entity.Property(e => e.SourceType).HasMaxLength(40);
+            entity.Property(e => e.SourceKey).HasMaxLength(80);
+            entity.Property(e => e.CurrencyCode).HasMaxLength(3).IsUnicode(false).IsFixedLength();
+            entity.Property(e => e.ReportToTax).HasDefaultValue(true);
+            entity.Property(e => e.IsReversed).HasDefaultValue(false);
 
             entity.HasOne(d => d.Website).WithMany(p => p.JournalEntries)
                 .HasForeignKey(d => d.WebsiteID)
                 .OnDelete(DeleteBehavior.ClientSetNull)
                 .HasConstraintName("FK_JournalEntries_Websites");
+            entity.HasOne(d => d.CurrencyCodeNavigation).WithMany()
+                .HasForeignKey(d => d.CurrencyCode)
+                .OnDelete(DeleteBehavior.ClientSetNull)
+                .HasConstraintName("FK_JournalEntries_Currencies");
+            entity.HasOne(d => d.FiscalPeriod).WithMany(p => p.JournalEntries)
+                .HasForeignKey(d => d.FiscalPeriodID)
+                .HasConstraintName("FK_JournalEntries_FiscalPeriods");
+            entity.HasOne(d => d.PostedByMember).WithMany()
+                .HasForeignKey(d => d.PostedByMemberID)
+                .HasConstraintName("FK_JournalEntries_PostedBy");
+            entity.HasOne(d => d.CreatedByMember).WithMany()
+                .HasForeignKey(d => d.CreatedByMemberID)
+                .HasConstraintName("FK_JournalEntries_CreatedBy");
+            entity.HasOne(d => d.ReversesJournalEntry).WithMany()
+                .HasForeignKey(d => d.ReversesJournalEntryID)
+                .HasConstraintName("FK_JournalEntries_Reverses");
         });
 
         modelBuilder.Entity<JournalEntryLine>(entity =>

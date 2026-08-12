@@ -1,0 +1,104 @@
+@page "/finance/reports/pnl"
+@attribute [Authorize(Policy = RoleKeys.AccountingReport)]
+@inject IAccountingReportService Reports
+@inject IWebsiteService WebsiteService
+@inject AuthenticationStateProvider AuthState
+@inject IPageLocalizer L
+
+<DNPageTitle Title=@L["accounting.pnl", "Profit & loss"] />
+
+<MudStack Row="true" Justify="Justify.SpaceBetween" Class="mb-4 flex-wrap gap-2">
+    <MudStack Spacing="0">
+        <MudText Typo="Typo.h5" Class="fw-bold">@L["accounting.pnl", "Profit & loss"]</MudText>
+        <MudText Typo="Typo.body2" Color="Color.Secondary">@L["accounting.pnl_hint", "From posted general-ledger journals. Use tax filter to exclude non-reportable books."]</MudText>
+    </MudStack>
+    @if (_isMaster)
+    {
+        <WebsiteSelector Value="_websiteId" ValueChanged="OnWebsite" Websites="_websites" Label="@L["website", "Website"]" Dense="true" Style="min-width:180px" />
+    }
+</MudStack>
+
+<MudPaper Elevation="0" Class="app-card rounded-lg pa-4 mb-3">
+    <MudGrid Spacing="2">
+        <MudItem xs="6" sm="3"><MudDatePicker @bind-Date="_from" Label="@L["from", "From"]" Variant="Variant.Outlined" Dense="true" /></MudItem>
+        <MudItem xs="6" sm="3"><MudDatePicker @bind-Date="_to" Label="@L["to", "To"]" Variant="Variant.Outlined" Dense="true" /></MudItem>
+        <MudItem xs="12" sm="3" Class="d-flex align-center">
+            <MudSwitch T="bool" @bind-Value="_taxOnly" Color="Color.Primary" Label="@L["accounting.tax_only", "Tax-reportable only"]" />
+        </MudItem>
+        <MudItem xs="12" sm="3" Class="d-flex align-end">
+            <MudButton Variant="Variant.Filled" Color="Color.Primary" FullWidth="true" OnClick="LoadAsync">@L["run", "Run"]</MudButton>
+        </MudItem>
+    </MudGrid>
+</MudPaper>
+
+@if (_loading)
+{
+    <MudProgressLinear Indeterminate="true" />
+}
+else if (_pnl is not null)
+{
+    <MudGrid Spacing="3">
+        <MudItem xs="12" md="6">
+            <MudPaper Elevation="0" Class="app-card rounded-lg pa-4">
+                <MudText Typo="Typo.subtitle1" Class="mb-2">@L["accounting.income", "Income"]</MudText>
+                @foreach (var r in _pnl.Income)
+                {
+                    <MudStack Row="true" Justify="Justify.SpaceBetween"><MudText>@r.Code @r.Name</MudText><MudText>@r.Balance.ToString("0.##")</MudText></MudStack>
+                }
+                <MudDivider Class="my-2" />
+                <MudStack Row="true" Justify="Justify.SpaceBetween"><MudText Typo="Typo.subtitle2">@L["total", "Total"]</MudText><MudText Typo="Typo.subtitle2">@_pnl.TotalIncome.ToString("0.##")</MudText></MudStack>
+            </MudPaper>
+        </MudItem>
+        <MudItem xs="12" md="6">
+            <MudPaper Elevation="0" Class="app-card rounded-lg pa-4">
+                <MudText Typo="Typo.subtitle1" Class="mb-2">@L["accounting.expenses", "Expenses"]</MudText>
+                @foreach (var r in _pnl.Expenses)
+                {
+                    <MudStack Row="true" Justify="Justify.SpaceBetween"><MudText>@r.Code @r.Name</MudText><MudText>@r.Balance.ToString("0.##")</MudText></MudStack>
+                }
+                <MudDivider Class="my-2" />
+                <MudStack Row="true" Justify="Justify.SpaceBetween"><MudText Typo="Typo.subtitle2">@L["total", "Total"]</MudText><MudText Typo="Typo.subtitle2">@_pnl.TotalExpenses.ToString("0.##")</MudText></MudStack>
+            </MudPaper>
+        </MudItem>
+        <MudItem xs="12">
+            <MudPaper Elevation="0" Class="app-card rounded-lg pa-4">
+                <MudStack Row="true" Justify="Justify.SpaceBetween">
+                    <MudText Typo="Typo.h6">@L["accounting.net_profit", "Net profit / (loss)"]</MudText>
+                    <MudText Typo="Typo.h5" Color="@(_pnl.NetProfit >= 0 ? Color.Success : Color.Error)">
+                        @_pnl.NetProfit.ToString("0.##") @_pnl.CurrencyCode
+                    </MudText>
+                </MudStack>
+            </MudPaper>
+        </MudItem>
+    </MudGrid>
+}
+
+@code {
+    private bool _loading, _isMaster, _taxOnly;
+    private int _websiteId;
+    private List<Website> _websites = new();
+    private DateTime? _from = new DateTime(DateTime.Today.Year, 1, 1);
+    private DateTime? _to = DateTime.Today;
+    private ProfitAndLossDto? _pnl;
+
+    protected override async Task OnInitializedAsync()
+    {
+        await L.EnsureLoadedAsync();
+        var user = (await AuthState.GetAuthenticationStateAsync()).User;
+        _isMaster = user.HasClaim(AdminClaimTypes.Master, "true");
+        int.TryParse(user.FindFirst(AdminClaimTypes.WebsiteId)?.Value, out _websiteId);
+        if (_isMaster) _websites = (await WebsiteService.GetAllAsync()).ToList();
+        await LoadAsync();
+    }
+
+    private async Task OnWebsite(int id) { _websiteId = id; await LoadAsync(); }
+
+    private async Task LoadAsync()
+    {
+        if (_websiteId <= 0 || _from is null || _to is null) return;
+        _loading = true;
+        _pnl = await Reports.GetProfitAndLossAsync(
+            _websiteId, DateOnly.FromDateTime(_from.Value), DateOnly.FromDateTime(_to.Value), _taxOnly);
+        _loading = false;
+    }
+}

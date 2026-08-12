@@ -99,6 +99,10 @@ public static class AdminSearchCatalog
         new AdminSearchPage("vat_report", "VAT report", "/sales/tax/report", Icons.Material.Filled.Assessment, "nav.promotions", "Promotions & Shipping", RoleKeys.TaxView, NavArea: AdminNavArea.Promotions, VendorMemberAllowed: false),
         new AdminSearchPage("ledger", "Financial ledger", "/finance/ledger", Icons.Material.Filled.AccountBalanceWallet, "nav.finance", "Finance", RoleKeys.SettlementsView, NavArea: AdminNavArea.Finance, VendorMemberAllowed: false),
         new AdminSearchPage("settlements", "Settlements", "/finance/settlements", Icons.Material.Filled.Handshake, "nav.finance", "Finance", RoleKeys.SettlementsView, NavArea: AdminNavArea.Finance, VendorMemberAllowed: false),
+        new AdminSearchPage("accounting.coa", "Chart of accounts", "/finance/coa", Icons.Material.Filled.AccountTree, "nav.finance", "Finance", RoleKeys.AccountingView, NavArea: AdminNavArea.Finance, VendorMemberAllowed: false),
+        new AdminSearchPage("accounting.journals", "Journals", "/finance/journals", Icons.Material.Filled.MenuBook, "nav.finance", "Finance", RoleKeys.AccountingView, NavArea: AdminNavArea.Finance, VendorMemberAllowed: false),
+        new AdminSearchPage("accounting.trial_balance", "Trial balance", "/finance/reports/trial-balance", Icons.Material.Filled.TableChart, "nav.finance", "Finance", RoleKeys.AccountingReport, NavArea: AdminNavArea.Finance, VendorMemberAllowed: false),
+        new AdminSearchPage("accounting.pnl", "Profit & loss", "/finance/reports/pnl", Icons.Material.Filled.ShowChart, "nav.finance", "Finance", RoleKeys.AccountingReport, NavArea: AdminNavArea.Finance, VendorMemberAllowed: false),
         new AdminSearchPage("ledger.my_earnings", "My settlements", "/finance/my-earnings", Icons.Material.Filled.Payments, "nav.finance", "Finance", RoleKeys.OrdersView, NavArea: AdminNavArea.Orders, VendorMemberAllowed: true),
 
         new AdminSearchPage("contact_messages", "Contact Messages", "/messages/contacts", Icons.Material.Filled.ContactMail, "messages", "Messages", RoleKeys.MessagesView, NavArea: AdminNavArea.Messages),

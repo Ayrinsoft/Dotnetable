@@ -5,7 +5,9 @@ CREATE TABLE [dbo].[ChartOfAccounts] (
     [Code]             NVARCHAR (20)  NOT NULL,
     [Name]             NVARCHAR (200) NOT NULL,
     [AccountType]      TINYINT        NOT NULL,
-    [IsActive]         BIT NOT NULL,
+    [IsActive]         BIT            NOT NULL,
+    [IsSystem]         BIT            DEFAULT (CONVERT([bit],(0))) NOT NULL,
+    [SortOrder]        INT            DEFAULT ((0)) NOT NULL,
     CONSTRAINT [PK_ChartOfAccounts] PRIMARY KEY CLUSTERED ([ChartOfAccountID] ASC),
     CONSTRAINT [FK_ChartOfAccounts_ChartOfAccounts] FOREIGN KEY ([ParentAccountID]) REFERENCES [dbo].[ChartOfAccounts] ([ChartOfAccountID]),
     CONSTRAINT [FK_ChartOfAccounts_Websites] FOREIGN KEY ([WebsiteID]) REFERENCES [dbo].[Websites] ([WebsiteID])
@@ -18,3 +20,8 @@ GO
 
 CREATE NONCLUSTERED INDEX [IX_ChartOfAccounts_WebsiteID]
     ON [dbo].[ChartOfAccounts] ([WebsiteID] ASC);
+GO
+
+CREATE UNIQUE NONCLUSTERED INDEX [IX_ChartOfAccounts_Website_Code]
+    ON [dbo].[ChartOfAccounts] ([WebsiteID] ASC, [Code] ASC);
+GO

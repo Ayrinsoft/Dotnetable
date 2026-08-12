@@ -1,0 +1,108 @@
+@page "/finance/journals"
+@attribute [Authorize(Policy = RoleKeys.AccountingView)]
+@inject IJournalService Journals
+@inject IWebsiteService WebsiteService
+@inject AuthenticationStateProvider AuthState
+@inject IPageLocalizer L
+@inject NavigationManager Nav
+
+<DNPageTitle Title=@L["accounting.journals", "Journals"] />
+
+<MudStack Row="true" Justify="Justify.SpaceBetween" Class="mb-4 flex-wrap gap-2">
+    <MudStack Spacing="0">
+        <MudText Typo="Typo.h5" Class="fw-bold">@L["accounting.journals", "General ledger journals"]</MudText>
+        <MudText Typo="Typo.body2" Color="Color.Secondary">@L["accounting.journals_hint", "Posted double-entry books. Auto-created from payments; reverse instead of editing."]</MudText>
+    </MudStack>
+    @if (_isMaster)
+    {
+        <WebsiteSelector Value="_websiteId" ValueChanged="OnWebsite" Websites="_websites" Label="@L["website", "Website"]" Dense="true" Style="min-width:180px" />
+    }
+</MudStack>
+
+<MudPaper Elevation="0" Class="app-card rounded-lg pa-4">
+    @if (_loading)
+    {
+        <MudProgressLinear Indeterminate="true" Class="mb-3" />
+    }
+    <DNGridView GridHeaderParams="_grid" OnSearchChanged="_ => LoadAsync()">
+        @if (_items.Count == 0)
+        {
+            <tr><td colspan="8" style="text-align:center;padding:32px"><MudText Color="Color.Secondary">@L["accounting.journals_empty", "No journals yet. They appear when orders are paid."]</MudText></td></tr>
+        }
+        else
+        {
+            @foreach (var j in _items)
+            {
+                <tr style="cursor:pointer" @onclick="@(() => Nav.NavigateTo($"/finance/journals/{j.JournalEntryID}"))">
+                    <td>@j.EntryNumber</td>
+                    <td>@j.EntryDate.ToString("yyyy-MM-dd")</td>
+                    <td>@(j.Description ?? "—")</td>
+                    <td>@(j.SourceType ?? "—")</td>
+                    <td class="text-end">@j.TotalDebit.ToString("0.##")</td>
+                    <td class="text-end">@j.TotalCredit.ToString("0.##")</td>
+                    <td>
+                        <MudChip T="string" Size="Size.Small" Color="@(j.IsPosted ? Color.Success : Color.Warning)">
+                            @(j.IsPosted ? L["accounting.posted", "Posted"] : L["accounting.draft", "Draft"])
+                        </MudChip>
+                        @if (j.IsReversed)
+                        {
+                            <MudChip T="string" Size="Size.Small">@L["accounting.reversed", "Reversed"]</MudChip>
+                        }
+                    </td>
+                    <td>
+                        <MudChip T="string" Size="Size.Small" Variant="Variant.Outlined" Color="@(j.ReportToTax ? Color.Success : Color.Default)">
+                            @(j.ReportToTax ? L["tax.yes", "Tax"] : L["tax.no", "No tax"])
+                        </MudChip>
+                    </td>
+                </tr>
+            }
+        }
+    </DNGridView>
+</MudPaper>
+
+@code {
+    private bool _loading = true, _isMaster;
+    private int _websiteId;
+    private List<Website> _websites = new();
+    private List<JournalEntryDto> _items = new();
+    private GridViewHeaderParameters _grid = new();
+
+    protected override async Task OnInitializedAsync()
+    {
+        await L.EnsureLoadedAsync();
+        var user = (await AuthState.GetAuthenticationStateAsync()).User;
+        _isMaster = user.HasClaim(AdminClaimTypes.Master, "true");
+        int.TryParse(user.FindFirst(AdminClaimTypes.WebsiteId)?.Value, out _websiteId);
+        if (_isMaster) _websites = (await WebsiteService.GetAllAsync()).ToList();
+        _grid = new GridViewHeaderParameters
+        {
+            Pagination = new PaginationModel { PageSize = 50 },
+            HeaderItems = new()
+            {
+                new() { ColumnTitle = L["number", "Number"], ColumnName = "EntryNumber" },
+                new() { ColumnTitle = L["date", "Date"], ColumnName = "EntryDate" },
+                new() { ColumnTitle = L["description", "Description"], ColumnName = "Description" },
+                new() { ColumnTitle = L["source", "Source"], ColumnName = "SourceType" },
+                new() { ColumnTitle = L["debit", "Debit"], ColumnName = "Debit" },
+                new() { ColumnTitle = L["credit", "Credit"], ColumnName = "Credit" },
+                new() { ColumnTitle = L["status", "Status"], ColumnName = "Status" },
+                new() { ColumnTitle = L["tax", "Tax"], ColumnName = "Tax" },
+            }
+        };
+        await LoadAsync();
+    }
+
+    private async Task OnWebsite(int id) { _websiteId = id; await LoadAsync(); }
+
+    private async Task LoadAsync()
+    {
+        _loading = true;
+        if (_websiteId > 0)
+        {
+            var result = await Journals.GetPagedAsync(_websiteId, null, null, null, _grid.ToQuery());
+            _items = result.Items.ToList();
+            _grid.Pagination.MaxLength = result.TotalCount;
+        }
+        _loading = false;
+    }
+}

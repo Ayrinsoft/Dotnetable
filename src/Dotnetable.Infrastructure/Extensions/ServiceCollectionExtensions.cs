@@ -147,6 +147,10 @@ public static class ServiceCollectionExtensions
         services.AddScoped<ITaxReportService, TaxReportService>();
         services.AddScoped<ISettlementService, SettlementService>();
         services.AddScoped<IFinancialLedgerService, FinancialLedgerService>();
+        services.AddScoped<IChartOfAccountService, ChartOfAccountService>();
+        services.AddScoped<IJournalService, JournalService>();
+        services.AddScoped<IAccountingReportService, AccountingReportService>();
+        services.AddScoped<IGlProjector, GlProjector>();
 
         // E-commerce: the website's own banks/bank accounts (manual/offline payment receiving).
         services.AddScoped<IBankService, BankService>();
