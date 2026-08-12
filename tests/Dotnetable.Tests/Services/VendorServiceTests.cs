@@ -5,6 +5,7 @@ using Dotnetable.Infrastructure.Data;
 using Dotnetable.Infrastructure.Services;
 using FluentAssertions;
 using Microsoft.EntityFrameworkCore;
+using Moq;
 using Xunit;
 
 namespace Dotnetable.Tests.Services;
@@ -29,7 +30,8 @@ public class VendorServiceTests : IDisposable
         var currency = new CurrencyConversionService(_context);
         var suppliers = new SupplierService(_context);
         var tax = new TaxService(_context);
-        _credit = new VendorCreditService(_context, _vendors, currency, suppliers, tax);
+        var ledger = new Mock<IFinancialLedgerService>();
+        _credit = new VendorCreditService(_context, _vendors, currency, suppliers, tax, ledger.Object);
 
         _host = NewWebsite("Host", "host.test");
         _source = NewWebsite("Source", "source.test");

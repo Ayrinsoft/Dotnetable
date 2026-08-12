@@ -10,6 +10,11 @@ public partial class StockDocumentLine
     public decimal UnitCostUsd { get; set; }
     public string? Note { get; set; }
 
+    /// <summary>
+    /// QC for return lines: <see cref="Enums.StockReturnCondition"/> (0 = none, 1 = sellable, 2 = defective).
+    /// </summary>
+    public byte ReturnCondition { get; set; }
+
     public virtual StockDocument StockDocument { get; set; } = null!;
     public virtual ProductVariant ProductVariant { get; set; } = null!;
 }

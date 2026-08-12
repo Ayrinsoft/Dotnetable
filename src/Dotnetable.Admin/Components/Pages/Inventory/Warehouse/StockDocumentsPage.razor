@@ -40,8 +40,25 @@
                     <MudLink Href="@($"/orders/{oid}")">#@oid</MudLink>
                 </MudText>
             }
+            @if (_doc.PaymentRefundID is int rid)
+            {
+                <MudText Class="mb-2" Typo="Typo.caption">
+                    @L["payments.refund", "Refund"]: #@rid
+                    <MudLink Href="/payments/refunds" Class="ms-1">@L["payments.refunds", "Bank refunds"]</MudLink>
+                </MudText>
+            }
             <MudSimpleTable Dense="true">
-                <thead><tr><th>Variant</th><th>Qty</th><th>Unit cost</th></tr></thead>
+                <thead>
+                    <tr>
+                        <th>@L["variant", "Variant"]</th>
+                        <th>@L["qty", "Qty"]</th>
+                        <th>@L["unit_cost", "Unit cost"]</th>
+                        @if (_doc.DocumentType == (byte)StockDocumentType.Return)
+                        {
+                            <th>@L["warehouse.return_qc", "QC (return)"]</th>
+                        }
+                    </tr>
+                </thead>
                 <tbody>
                     @foreach (var l in _doc.StockDocumentLines)
                     {
@@ -49,6 +66,27 @@
                             <td>@l.ProductVariant?.Sku — @l.ProductVariant?.Product?.Title</td>
                             <td>@l.Quantity</td>
                             <td>@l.UnitCost.ToString("0.##")</td>
+                            @if (_doc.DocumentType == (byte)StockDocumentType.Return)
+                            {
+                                <td>
+                                    @if (_doc.Status != (byte)StockDocumentStatus.Posted && (_canReceive || _canPost))
+                                    {
+                                        <MudSelect T="byte" Value="l.ReturnCondition" Dense="true" Style="min-width:140px"
+                                                   ValueChanged="@(async v => await SetQcAsync(l.StockDocumentLineID, v))">
+                                            <MudSelectItem T="byte" Value="@((byte)StockReturnCondition.Sellable)">@L["warehouse.qc.sellable", "Sellable (OK)"]</MudSelectItem>
+                                            <MudSelectItem T="byte" Value="@((byte)StockReturnCondition.Defective)">@L["warehouse.qc.defective", "Defective"]</MudSelectItem>
+                                        </MudSelect>
+                                    }
+                                    else
+                                    {
+                                        @(((StockReturnCondition)l.ReturnCondition) switch
+                                        {
+                                            StockReturnCondition.Defective => L["warehouse.qc.defective", "Defective"],
+                                            _ => L["warehouse.qc.sellable", "Sellable (OK)"],
+                                        })
+                                    }
+                                </td>
+                            }
                         </tr>
                     }
                 </tbody>
@@ -158,6 +196,11 @@ else
     private async Task Approve() { var (ok, e) = await Docs.ApproveAsync(DocumentId!.Value, _memberId); await After(ok, e); }
     private async Task Reject() { var (ok, e) = await Docs.RejectAsync(DocumentId!.Value, _memberId, null); await After(ok, e); }
     private async Task Post() { var (ok, e) = await Docs.PostAsync(DocumentId!.Value, _memberId); await After(ok, e); }
+    private async Task SetQcAsync(int lineId, byte condition)
+    {
+        var (ok, e) = await Docs.SetReturnLineConditionAsync(lineId, (StockReturnCondition)condition, _memberId);
+        await After(ok, e);
+    }
     private async Task After(bool ok, string? e)
     {
         if (ok) { Snackbar.Add(L["saved", "Saved."], Severity.Success); _doc = await Docs.GetByIdAsync(DocumentId!.Value); }

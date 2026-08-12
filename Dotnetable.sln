@@ -1,7 +1,7 @@
 ﻿
 Microsoft Visual Studio Solution File, Format Version 12.00
-# Visual Studio Version 17
-VisualStudioVersion = 17.0.31903.59
+# Visual Studio Version 18
+VisualStudioVersion = 18.8.12021.73 stable
 MinimumVisualStudioVersion = 10.0.40219.1
 Project("{2150E333-8FDC-42A3-9474-1A3956D46DE8}") = "src", "src", "{11111111-1111-1111-1111-111111111111}"
 EndProject
@@ -17,7 +17,7 @@ Project("{9A19103F-16F7-4668-BE54-9A1E7A4F7556}") = "Dotnetable.API", "src\Dotne
 EndProject
 Project("{9A19103F-16F7-4668-BE54-9A1E7A4F7556}") = "Dotnetable.Web", "src\Dotnetable.Web\Dotnetable.Web.csproj", "{F5A6B7C8-D9E0-1F2A-3B4C-5D6E7F8A9B0C}"
 EndProject
-Project("{00D1A9C2-B5AA-4197-B51D-BA2D2294DE07}") = "Dotnetable.Database", "src\Dotnetable.Database\Dotnetable.Database.sqlproj", "{A6B7C8D9-E0F1-2A3B-4C5D-6E7F8A9B0C1D}"
+Project("{00D1A9C2-B5F0-4AF3-8072-F6C62B433612}") = "Dotnetable.Database", "src\Dotnetable.Database\Dotnetable.Database.sqlproj", "{A6B7C8D9-E0F1-2A3B-4C5D-6E7F8A9B0C1D}"
 EndProject
 Project("{9A19103F-16F7-4668-BE54-9A1E7A4F7556}") = "Dotnetable.Admin", "src\Dotnetable.Admin\Dotnetable.Admin.csproj", "{C8D9E0F1-A2B3-4C5D-6E7F-8A9B0C1D2E3F}"
 EndProject

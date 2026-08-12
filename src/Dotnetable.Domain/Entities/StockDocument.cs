@@ -17,6 +17,8 @@ public partial class StockDocument
     public int? ToWarehouseID { get; set; }
     public int? SupplierID { get; set; }
     public int? OrderID { get; set; }
+    /// <summary>When this document was created from a customer refund (return after ship).</summary>
+    public int? PaymentRefundID { get; set; }
     public string? Note { get; set; }
     public int? RequestedByMemberID { get; set; }
     public int? ApprovedByMemberID { get; set; }
@@ -31,6 +33,7 @@ public partial class StockDocument
     public virtual Warehouse? ToWarehouse { get; set; }
     public virtual Supplier? Supplier { get; set; }
     public virtual Order? Order { get; set; }
+    public virtual PaymentRefund? PaymentRefund { get; set; }
     public virtual Member? RequestedByMember { get; set; }
     public virtual Member? ApprovedByMember { get; set; }
     public virtual Member? PostedByMember { get; set; }

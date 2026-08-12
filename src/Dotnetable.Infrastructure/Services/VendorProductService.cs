@@ -374,6 +374,16 @@ public class VendorProductService : IVendorProductService
         // Inventory on-hand is reduced via DecrementOnFulfill; re-sync after both complete in OrderService.
     }
 
+    public async Task RestockAsync(int vendorProductId, int qty, CancellationToken ct = default)
+    {
+        if (qty <= 0) return;
+        var item = await _context.VendorProducts.FirstOrDefaultAsync(vp => vp.VendorProductID == vendorProductId, ct);
+        if (item is null || IVendorProductService.IsUnlimited(item)) return;
+
+        item.StockQuantity += qty;
+        await _context.SaveChangesAsync(ct);
+    }
+
     public async Task SyncInventoryOnHandFromListingsAsync(int websiteId, int productVariantId, CancellationToken ct = default)
     {
         var listings = await _context.VendorProducts

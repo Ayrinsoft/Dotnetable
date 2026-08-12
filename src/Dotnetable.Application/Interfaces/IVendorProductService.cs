@@ -68,6 +68,9 @@ public interface IVendorProductService
     /// </summary>
     Task CommitSaleAsync(int vendorProductId, int qty, CancellationToken ct = default);
 
+    /// <summary>Restores listing stock after a sellable customer return (not unlimited listings).</summary>
+    Task RestockAsync(int vendorProductId, int qty, CancellationToken ct = default);
+
     /// <summary>
     /// Sets <c>InventoryItems.QuantityOnHand</c> for the host website + variant to the sum of
     /// all <see cref="VendorProduct.StockQuantity"/> rows on that host (source of truth = store listings).

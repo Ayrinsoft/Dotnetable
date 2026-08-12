@@ -1,4 +1,5 @@
 @page "/payments/refunds"
+@using Dotnetable.Application.RecordAttachments
 @attribute [Authorize(Policy = RoleKeys.PaymentsRefund)]
 @inject IPaymentService PaymentService
 @inject IWebsiteService WebsiteService
@@ -38,7 +39,7 @@
         @if (_items.Count == 0)
         {
             <tr>
-                <td colspan="8" style="text-align:center; padding:32px;">
+                <td colspan="9" style="text-align:center; padding:32px;">
                     <MudText Color="Color.Secondary">@L["payments.refunds_empty", "No pending bank refunds."]</MudText>
                 </td>
             </tr>
@@ -55,6 +56,14 @@
                     <td>@((PaymentRefundStatus)r.Status)</td>
                     <td>@r.Reason</td>
                     <td>@RefundRecordedByLabel(r)</td>
+                    <td>
+                        <RecordAttachmentsPanel WebsiteId="r.Payment.WebsiteID"
+                                               EntityType="@RecordEntityTypes.PaymentRefund"
+                                               EntityId="r.PaymentRefundID"
+                                               CanEdit="true"
+                                               Compact="true"
+                                               Title="@L["attachments.refund", "Refund proof"]" />
+                    </td>
                     <td>
                         @if (r.Status == (byte)PaymentRefundStatus.Pending)
                         {
@@ -113,6 +122,7 @@
                 },
                 new() { ColumnTitle = L["payments.reason", "Reason"], ColumnName = nameof(PaymentRefund.Reason), HasSort = true, HasSearch = true },
                 new() { ColumnTitle = L["payments.recorded_by", "Recorded by"], ColumnName = "" },
+                new() { ColumnTitle = L["attachments", "Scans"], ColumnName = "" },
                 new() { ColumnTitle = "", ColumnName = "" },
             }
         };

@@ -58,4 +58,16 @@ public interface IInventoryService
     /// Store listings are the only sellable stock; with no listings, on-hand is reduced to the reserved floor (available = 0).
     /// </summary>
     Task SyncOnHandFromVendorListingsAsync(int websiteId, int productVariantId, CancellationToken ct = default);
+
+    /// <summary>
+    /// Customer return restock: +qty on hand, <see cref="StockMovementType.Return"/> movement.
+    /// Does not touch QuantityReserved.
+    /// </summary>
+    Task RestockReturnAsync(int websiteId, int variantId, int qty, decimal? unitCost, string? note, int memberId, CancellationToken ct = default);
+
+    /// <summary>
+    /// Align InventoryItem.OnHand to the physical warehouse total (WMS sites).
+    /// Preserves QuantityReserved (never drops on-hand below reserved).
+    /// </summary>
+    Task SyncOnHandFromWarehousesAsync(int websiteId, int productVariantId, int warehouseOnHandSum, CancellationToken ct = default);
 }

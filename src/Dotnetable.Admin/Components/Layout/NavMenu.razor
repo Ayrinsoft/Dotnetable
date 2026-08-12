@@ -289,6 +289,7 @@
                     <MudNavLink Href="/inventory" Match="NavLinkMatch.All" Icon="@Icons.Material.Filled.Numbers">@L["inventory.stock", "Stock"]</MudNavLink>
                     <AuthorizeView Policy="@RoleKeys.WarehouseView" Context="wh">
                         <MudNavLink Href="/inventory/warehouses" Icon="@Icons.Material.Filled.HomeWork">@L["warehouse", "Warehouses"]</MudNavLink>
+                        <MudNavLink Href="/inventory/my-tasks" Icon="@Icons.Material.Filled.Checklist">@L["warehouse.my_tasks", "My tasks"]</MudNavLink>
                         <MudNavLink Href="/inventory/stock-documents" Icon="@Icons.Material.Filled.Assignment">@L["warehouse.docs", "Stock documents"]</MudNavLink>
                     </AuthorizeView>
                     <MudNavLink Href="/inventory/movements" Icon="@Icons.Material.Filled.History">@L["inventory.movements", "Movements"]</MudNavLink>

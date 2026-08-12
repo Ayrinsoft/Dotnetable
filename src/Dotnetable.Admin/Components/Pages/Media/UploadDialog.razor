@@ -170,6 +170,8 @@
     [CascadingParameter] private IMudDialogInstance MudDialog { get; set; } = null!;
     [Parameter] public int WebsiteId { get; set; }
     [Parameter] public int? PresetFolderId { get; set; }
+    /// <summary>When true, dialog result is the list of uploaded <see cref="FileRecord"/> (for one-step attach).</summary>
+    [Parameter] public bool ReturnUploadedFiles { get; set; }
 
     private const long MaxUploadBytes = 200L * 1024 * 1024; // 200 MB per file
 
@@ -326,6 +328,7 @@
         _totalFiles = _files.Count;
         _displayPercent = 0;
         int ok = 0;
+        var uploaded = new List<FileRecord>();
         try
         {
             var tagIds = _selectedTags.Select(t => t.FileTagID).ToList();
@@ -376,9 +379,10 @@
 
                     // After the stream is fully read, server still processes + stores — show remaining phase.
                     var monitor = MonitorPostReadAsync(uploadTask);
-                    await uploadTask;
+                    var record = await uploadTask;
                     await monitor;
 
+                    uploaded.Add(record);
                     ok++;
                     _fileReadFraction = 1;
                     RefreshOverallProgress(filePhase: 1);
@@ -393,7 +397,9 @@
                 }
             }
             if (ok > 0) Snackbar.Add($"{L["upload.uploaded", "Uploaded"]} {ok} {L["upload.files_suffix", "file(s)."]}", Severity.Success);
-            MudDialog.Close(DialogResult.Ok(ok));
+            MudDialog.Close(ReturnUploadedFiles
+                ? DialogResult.Ok(uploaded)
+                : DialogResult.Ok(ok));
         }
         finally
         {

@@ -207,7 +207,7 @@
 
     private async Task OpenSearchPalette()
     {
-        await DialogService.ShowAsync<SearchPaletteDialog>(null, new DialogOptions
+        await DialogService.ShowAsync<SearchPaletteDialog>(string.Empty, new DialogOptions
         {
             MaxWidth = MaxWidth.Small,
             FullWidth = true,

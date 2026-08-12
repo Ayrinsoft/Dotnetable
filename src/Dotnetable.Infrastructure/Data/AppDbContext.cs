@@ -618,11 +618,13 @@ public partial class AppDbContext : DbContext
         {
             entity.Property(e => e.DocumentNumber).HasMaxLength(40);
             entity.Property(e => e.Note).HasMaxLength(1000);
+            entity.HasIndex(e => e.PaymentRefundID, "IX_StockDocuments_PaymentRefundID");
             entity.HasOne(d => d.Website).WithMany().HasForeignKey(d => d.WebsiteID).OnDelete(DeleteBehavior.ClientSetNull);
             entity.HasOne(d => d.FromWarehouse).WithMany(p => p.StockDocumentFromWarehouses).HasForeignKey(d => d.FromWarehouseID);
             entity.HasOne(d => d.ToWarehouse).WithMany(p => p.StockDocumentToWarehouses).HasForeignKey(d => d.ToWarehouseID);
             entity.HasOne(d => d.Supplier).WithMany().HasForeignKey(d => d.SupplierID);
             entity.HasOne(d => d.Order).WithMany().HasForeignKey(d => d.OrderID);
+            entity.HasOne(d => d.PaymentRefund).WithMany().HasForeignKey(d => d.PaymentRefundID);
             entity.HasOne(d => d.RequestedByMember).WithMany().HasForeignKey(d => d.RequestedByMemberID);
             entity.HasOne(d => d.ApprovedByMember).WithMany().HasForeignKey(d => d.ApprovedByMemberID);
             entity.HasOne(d => d.PostedByMember).WithMany().HasForeignKey(d => d.PostedByMemberID);
@@ -632,6 +634,7 @@ public partial class AppDbContext : DbContext
             entity.Property(e => e.UnitCost).HasColumnType("decimal(18,4)");
             entity.Property(e => e.UnitCostUsd).HasColumnType("decimal(18,4)");
             entity.Property(e => e.Note).HasMaxLength(300);
+            entity.Property(e => e.ReturnCondition).HasDefaultValue((byte)0);
             entity.HasOne(d => d.StockDocument).WithMany(p => p.StockDocumentLines).HasForeignKey(d => d.StockDocumentID).OnDelete(DeleteBehavior.ClientSetNull);
             entity.HasOne(d => d.ProductVariant).WithMany().HasForeignKey(d => d.ProductVariantID).OnDelete(DeleteBehavior.ClientSetNull);
         });

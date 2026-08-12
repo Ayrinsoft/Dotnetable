@@ -1,4 +1,5 @@
 @page "/payments"
+@using Dotnetable.Application.RecordAttachments
 @attribute [Authorize(Policy = RoleKeys.PaymentsView)]
 @inject IPaymentService PaymentService
 @inject IWebsiteService WebsiteService
@@ -66,8 +67,14 @@
                     <td>
                         @if (p.ReceiptFile is not null)
                         {
-                            <MudLink Href="@(p.ReceiptFile.CNDUrl)" Target="_blank">@L["view", "View"]</MudLink>
+                            <MudLink Href="@(p.ReceiptFile.CNDUrl)" Target="_blank" Class="me-1">@L["view", "View"]</MudLink>
                         }
+                        <RecordAttachmentsPanel WebsiteId="p.WebsiteID"
+                                               EntityType="@RecordEntityTypes.Payment"
+                                               EntityId="p.PaymentID"
+                                               CanEdit="true"
+                                               Compact="true"
+                                               Title="@L["attachments.payment", "Payment scans"]" />
                     </td>
                     <td>
                         @if (p.Status == (byte)PaymentStatus.Pending)
