@@ -8,6 +8,7 @@ CREATE TABLE [dbo].[StockDocuments] (
     [ToWarehouseID]        INT            NULL,
     [SupplierID]           INT            NULL,
     [OrderID]              INT            NULL,
+    [PaymentRefundID]      INT            NULL,
     [Note]                 NVARCHAR (1000) NULL,
     [RequestedByMemberID]  INT            NULL,
     [ApprovedByMemberID]   INT            NULL,
@@ -22,10 +23,13 @@ CREATE TABLE [dbo].[StockDocuments] (
     CONSTRAINT [FK_StockDocuments_ToWarehouse] FOREIGN KEY ([ToWarehouseID]) REFERENCES [dbo].[Warehouses] ([WarehouseID]),
     CONSTRAINT [FK_StockDocuments_Suppliers] FOREIGN KEY ([SupplierID]) REFERENCES [dbo].[Suppliers] ([SupplierID]),
     CONSTRAINT [FK_StockDocuments_Orders] FOREIGN KEY ([OrderID]) REFERENCES [dbo].[Orders] ([OrderID]),
+    CONSTRAINT [FK_StockDocuments_PaymentRefunds] FOREIGN KEY ([PaymentRefundID]) REFERENCES [dbo].[PaymentRefunds] ([PaymentRefundID]),
     CONSTRAINT [FK_StockDocuments_RequestedBy] FOREIGN KEY ([RequestedByMemberID]) REFERENCES [dbo].[Members] ([MemberID]),
     CONSTRAINT [FK_StockDocuments_ApprovedBy] FOREIGN KEY ([ApprovedByMemberID]) REFERENCES [dbo].[Members] ([MemberID]),
     CONSTRAINT [FK_StockDocuments_PostedBy] FOREIGN KEY ([PostedByMemberID]) REFERENCES [dbo].[Members] ([MemberID])
 );
 GO
 CREATE NONCLUSTERED INDEX [IX_StockDocuments_Website_Status] ON [dbo].[StockDocuments] ([WebsiteID] ASC, [Status] ASC, [DocumentType] ASC);
+GO
+CREATE NONCLUSTERED INDEX [IX_StockDocuments_PaymentRefundID] ON [dbo].[StockDocuments] ([PaymentRefundID] ASC);
 GO

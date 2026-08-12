@@ -15,16 +15,19 @@ public class PaymentService : IPaymentService
     private readonly IOrderService _orders;
     private readonly IAdminNotificationService _notifications;
     private readonly IFinancialLedgerService _ledger;
+    private readonly IStockDocumentService _stockDocs;
 
     public PaymentService(
         AppDbContext context, IClientWalletService wallet, IOrderService orders,
-        IAdminNotificationService notifications, IFinancialLedgerService ledger)
+        IAdminNotificationService notifications, IFinancialLedgerService ledger,
+        IStockDocumentService stockDocs)
     {
         _context = context;
         _wallet = wallet;
         _orders = orders;
         _notifications = notifications;
         _ledger = ledger;
+        _stockDocs = stockDocs;
     }
 
     public async Task<(bool Success, string? Error, Payment? Payment)> PayWithWalletAsync(int websiteId, int clientId, int orderId, CancellationToken ct = default)
@@ -371,6 +374,17 @@ public class PaymentService : IPaymentService
         if (payment.OrderID is int orderId)
         {
             await _orders.TransitionStatusAsync(orderId, OrderStatus.Refunded, memberId, reason, ct);
+
+            // After goods left stock: auto create Return document for warehouse QC + restock.
+            try
+            {
+                await _stockDocs.EnsureReturnForRefundAsync(orderId, refund.PaymentRefundID, memberId, ct);
+            }
+            catch
+            {
+                /* stock return is best-effort after money path; warehouse can create manually */
+            }
+
             if (completedNow)
             {
                 try { await _ledger.PostCustomerRefundAsync(orderId, paymentId, amount, reason, memberId, ct); }

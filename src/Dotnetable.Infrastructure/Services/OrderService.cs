@@ -28,6 +28,7 @@ public class OrderService : IOrderService
     private readonly IWhatsAppSender _whatsApp;
     private readonly IFinancialLedgerService _ledger;
     private readonly IStockDocumentService _stockDocs;
+    private readonly IWarehouseService _warehouses;
     private readonly ILogger<OrderService> _logger;
 
     public OrderService(
@@ -36,7 +37,8 @@ public class OrderService : IOrderService
         ICartService cart, IAdminNotificationService notifications, IVendorCreditService vendorCredit,
         IDigitalDeliveryService digitalDelivery,
         IEmailService email, ISmsSender sms, IWhatsAppSender whatsApp,
-        IFinancialLedgerService ledger, IStockDocumentService stockDocs, ILogger<OrderService> logger)
+        IFinancialLedgerService ledger, IStockDocumentService stockDocs, IWarehouseService warehouses,
+        ILogger<OrderService> logger)
     {
         _context = context;
         _inventory = inventory;
@@ -54,6 +56,7 @@ public class OrderService : IOrderService
         _whatsApp = whatsApp;
         _ledger = ledger;
         _stockDocs = stockDocs;
+        _warehouses = warehouses;
         _logger = logger;
     }
 
@@ -271,6 +274,23 @@ public class OrderService : IOrderService
                         await tx.RollbackAsync(ct);
                         return new CheckoutResult(false, $"Insufficient stock for {item.ProductVariant.Product.Title}.", null, null);
                     }
+
+                    // WMS sites: also reserve warehouse bins at checkout (not only listings / inventory book).
+                    if (!isCrossSite)
+                    {
+                        var whId = await _warehouses.GetDefaultWarehouseIdAsync(websiteId, ct);
+                        if (whId is int warehouseId)
+                        {
+                            if (!await _warehouses.ReserveAsync(warehouseId, variant.ProductVariantID, item.Quantity, ct))
+                            {
+                                await _inventory.ReleaseReservationAsync(reserveSiteId, variant.ProductVariantID, item.Quantity, ct);
+                                await _vendorProducts.ReleaseReservationAsync(vp.VendorProductID, item.Quantity, ct);
+                                await tx.RollbackAsync(ct);
+                                return new CheckoutResult(false,
+                                    $"Insufficient warehouse stock for {item.ProductVariant.Product.Title}.", null, null);
+                            }
+                        }
+                    }
                 }
                 else
                 {
@@ -454,21 +474,46 @@ public class OrderService : IOrderService
         else if (newStatus == OrderStatus.Shipped
                  && (fromStatus is OrderStatus.Paid or OrderStatus.Processing))
         {
+            void RevertShipTransition()
+            {
+                order.Status = (byte)fromStatus;
+                foreach (var h in _context.ChangeTracker.Entries<OrderStatusHistory>()
+                             .Where(e => e.State == EntityState.Added && e.Entity.OrderID == orderId
+                                         && e.Entity.ToStatus == (byte)OrderStatus.Shipped)
+                             .ToList())
+                    h.State = EntityState.Detached;
+            }
+
+            var (canShip, shipErr) = await _stockDocs.CanShipOrderAsync(orderId, ct);
+            if (!canShip)
+            {
+                RevertShipTransition();
+                _logger.LogWarning("Ship blocked for order {OrderId}: {Error}", orderId, shipErr);
+                return false;
+            }
+
             try
             {
                 var (ok, err) = await _stockDocs.PostOutboundForOrderAsync(orderId, memberId, ct);
                 if (!ok)
+                {
+                    RevertShipTransition();
                     _logger.LogWarning("PostOutboundForOrder {OrderId} failed: {Error}", orderId, err);
+                    return false;
+                }
             }
             catch (Exception ex)
             {
+                RevertShipTransition();
                 _logger.LogError(ex, "PostOutboundForOrder {OrderId} threw", orderId);
+                return false;
             }
         }
         else if (newStatus is OrderStatus.Cancelled or OrderStatus.Refunded)
         {
             if (fromStatus is OrderStatus.PendingPayment)
             {
+                var whId = await _warehouses.GetDefaultWarehouseIdAsync(order.WebsiteID, ct);
                 foreach (var item in order.OrderItems)
                 {
                     if (item.ProductVariantID is null)
@@ -482,10 +527,32 @@ public class OrderService : IOrderService
 
                     var stockSite = ResolveStockSite(item, order);
                     await _inventory.ReleaseReservationAsync(stockSite, item.ProductVariantID.Value, item.Quantity, ct);
+
+                    if (whId is int warehouseId)
+                        await _warehouses.ReleaseReservationAsync(warehouseId, item.ProductVariantID.Value, item.Quantity, ct);
+                }
+            }
+            else if (fromStatus is OrderStatus.Paid or OrderStatus.Processing)
+            {
+                // Unposted pick: release warehouse reservation held since checkout.
+                var outbound = await _stockDocs.GetOutboundForOrderAsync(orderId, ct);
+                if (outbound is null || outbound.Status is not (byte)StockDocumentStatus.Posted)
+                {
+                    var whId = await _warehouses.GetDefaultWarehouseIdAsync(order.WebsiteID, ct);
+                    if (whId is int warehouseId)
+                    {
+                        foreach (var item in order.OrderItems)
+                        {
+                            if (item.ProductVariantID is null || item.VendorProductID is null) continue;
+                            await _warehouses.ReleaseReservationAsync(warehouseId, item.ProductVariantID.Value, item.Quantity, ct);
+                            var stockSite = ResolveStockSite(item, order);
+                            await _inventory.ReleaseReservationAsync(stockSite, item.ProductVariantID.Value, item.Quantity, ct);
+                        }
+                    }
                 }
             }
 
-            // Cancel unposted WMS outbound pick for this order (posted stock is not auto-reversed).
+            // Cancel unposted WMS outbound pick for this order (posted stock reversed via Return doc on refund).
             try
             {
                 var outbound = await _stockDocs.GetOutboundForOrderAsync(orderId, ct);
@@ -631,7 +698,9 @@ public class OrderService : IOrderService
                 }
 
                 await _context.SaveChangesAsync(ct);
-                await TryPostOutboundOnShipAsync(orderId, order.ShippingStatus, memberId, ct);
+                var (postOk, postErr) = await TryPostOutboundOnShipAsync(orderId, order.ShippingStatus, memberId, ct);
+                if (!postOk)
+                    return (false, postErr);
                 await NotifyTrackingCodeIfChangedAsync(orderId, previousTracking, order.ShippingTrackingCode, ct);
                 return (true, null);
             }
@@ -639,6 +708,14 @@ public class OrderService : IOrderService
 
         if (changes.Count == 0 && string.IsNullOrWhiteSpace(note))
             return (true, null);
+
+        // Preflight warehouse when shipping advances (block UI before history write).
+        if (shippingStatus is OrderShippingStatus.Shipped or OrderShippingStatus.InTransit or OrderShippingStatus.Delivered)
+        {
+            var (canShip, shipErr) = await _stockDocs.CanShipOrderAsync(orderId, ct);
+            if (!canShip)
+                return (false, shipErr ?? "Insufficient warehouse stock to ship. Prepare stock or refund the customer.");
+        }
 
         var historyNote = string.IsNullOrWhiteSpace(note)
             ? string.Join("; ", changes)
@@ -658,28 +735,47 @@ public class OrderService : IOrderService
         });
 
         await _context.SaveChangesAsync(ct);
-        await TryPostOutboundOnShipAsync(orderId, order.ShippingStatus, memberId, ct);
+        var (postOk2, postErr2) = await TryPostOutboundOnShipAsync(orderId, order.ShippingStatus, memberId, ct);
+        if (!postOk2)
+            return (false, postErr2);
         await NotifyTrackingCodeIfChangedAsync(orderId, previousTracking, order.ShippingTrackingCode, ct);
         return (true, null);
     }
 
-    /// <summary>When shipping advances, post the WMS outbound (idempotent if already posted).</summary>
-    private async Task TryPostOutboundOnShipAsync(int orderId, byte shippingStatus, int? memberId, CancellationToken ct)
+    /// <summary>
+    /// When shipping advances, post the WMS outbound (idempotent if already posted).
+    /// Returns error when warehouse stock is insufficient so callers can block the UI.
+    /// </summary>
+    private async Task<(bool Success, string? Error)> TryPostOutboundOnShipAsync(
+        int orderId, byte shippingStatus, int? memberId, CancellationToken ct)
     {
         if (shippingStatus is not (
             (byte)OrderShippingStatus.Shipped
             or (byte)OrderShippingStatus.InTransit
             or (byte)OrderShippingStatus.Delivered))
-            return;
+            return (true, null);
+
+        var (canShip, shipErr) = await _stockDocs.CanShipOrderAsync(orderId, ct);
+        if (!canShip)
+        {
+            _logger.LogWarning("Ship blocked for order {OrderId}: {Error}", orderId, shipErr);
+            return (false, shipErr ?? "Insufficient warehouse stock to ship.");
+        }
+
         try
         {
             var (ok, err) = await _stockDocs.PostOutboundForOrderAsync(orderId, memberId, ct);
             if (!ok)
+            {
                 _logger.LogWarning("PostOutboundForOrder {OrderId} on fulfillment failed: {Error}", orderId, err);
+                return (false, err ?? "Could not post warehouse outbound.");
+            }
+            return (true, null);
         }
         catch (Exception ex)
         {
             _logger.LogError(ex, "PostOutboundForOrder {OrderId} on fulfillment threw", orderId);
+            return (false, ex.Message);
         }
     }
 
@@ -1134,6 +1230,19 @@ public class OrderService : IOrderService
                     await _vendorProducts.ReleaseReservationAsync(p.Vp.VendorProductID, p.Req.Quantity, ct);
                     await tx.RollbackAsync(ct);
                     return new AdminCreateOrderResult(false, $"Insufficient stock for {p.Title}.", null, null);
+                }
+
+                if (!isCrossSite)
+                {
+                    var whId = await _warehouses.GetDefaultWarehouseIdAsync(request.WebsiteId, ct);
+                    if (whId is int warehouseId
+                        && !await _warehouses.ReserveAsync(warehouseId, p.Variant.ProductVariantID, p.Req.Quantity, ct))
+                    {
+                        await _inventory.ReleaseReservationAsync(reserveSiteId, p.Variant.ProductVariantID, p.Req.Quantity, ct);
+                        await _vendorProducts.ReleaseReservationAsync(p.Vp.VendorProductID, p.Req.Quantity, ct);
+                        await tx.RollbackAsync(ct);
+                        return new AdminCreateOrderResult(false, $"Insufficient warehouse stock for {p.Title}.", null, null);
+                    }
                 }
             }
         }

@@ -1089,8 +1089,8 @@ window.DOCS_ADMIN = {
               fa: "قیمت و استوک لیستینگ را نگه دارید؛ on-hand موجودی در صورت کاربرد از لیستینگ‌ها sync می‌شود.",
             },
             {
-              en: "Use vendor credit screens when the business model uses internal credit.",
-              fa: "اگر مدل کسب‌وکار اعتبار داخلی دارد از صفحات اعتبار فروشنده استفاده کنید.",
+              en: "Use vendor credit screens when the business model uses internal credit (separate from formal Settlements).",
+              fa: "اگر مدل کسب‌وکار اعتبار داخلی دارد از صفحات اعتبار فروشنده استفاده کنید (جدا از Settlements رسمی).",
             },
           ],
           tips: [
@@ -1099,7 +1099,7 @@ window.DOCS_ADMIN = {
               fa: "حساب فروشنده مارکت‌پلیس ممکن است سطح ادمین محدود (محصول/سفارش خودش) ببیند.",
             },
           ],
-          related: ["products", "inventory-stock", "settlements", "vendor-products"],
+          related: ["products", "inventory-stock", "settlements", "vendor-products", "vendor-credit"],
         },
         {
           id: "vendor-products",
@@ -1124,6 +1124,26 @@ window.DOCS_ADMIN = {
             },
           ],
           related: ["vendors", "products", "inventory-stock"],
+        },
+        {
+          id: "vendor-credit",
+          title: { en: "Vendor credit", fa: "اعتبار فروشنده" },
+          adminPath: "/catalog/vendors/{id}/credit",
+          summary: {
+            en: "Virtual credit between host and linked site/vendor (catalog visibility while credit remains). Not the same as Finance → Settlements.",
+            fa: "اعتبار مجازی بین میزبان و سایت/فروشنده لینک‌شده (نمایش کاتالوگ تا وقتی اعتبار هست). با Finance → Settlements یکی نیست.",
+          },
+          howTo: [
+            {
+              en: "Open Vendors → credit for a vendor. Grant/adjust amount, review history.",
+              fa: "Vendors → credit یک فروشنده. مبلغ grant/adjust و تاریخچه را ببینید.",
+            },
+            {
+              en: "Attach credit agreements / settlement scans with **Upload scan** on the same page.",
+              fa: "قرارداد اعتبار / اسکن تسویه را با **Upload scan** روی همان صفحه پیوست کنید.",
+            },
+          ],
+          related: ["vendors", "settlements", "products"],
         },
       ],
     },
@@ -1467,7 +1487,97 @@ window.DOCS_ADMIN = {
             },
           ],
           relatedApi: ["inventory"],
-          related: ["inventory-stock", "suppliers", "orders"],
+          related: ["inventory-stock", "warehouses", "stock-documents", "suppliers", "orders"],
+        },
+        {
+          id: "warehouses",
+          title: { en: "Warehouses", fa: "انبارها" },
+          adminPath: "/inventory/warehouses",
+          summary: {
+            en: "Physical warehouse locations and per-bin stock. When a site has at least one active warehouse, orders use the WMS path (outbound pick → post on ship).",
+            fa: "محل‌های فیزیکی انبار و موجودی هر انبار. وقتی سایت حداقل یک انبار فعال دارد، سفارش‌ها مسیر WMS را می‌روند (برداشت خروجی → ثبت هنگام ارسال).",
+          },
+          access: {
+            en: "warehouse.view to open; warehouse roles for receive/issue/approve/post on documents",
+            fa: "warehouse.view برای دیدن؛ نقش‌های انبار برای دریافت/صدور/تأیید/ثبت اسناد",
+          },
+          purpose: [
+            {
+              en: "**WarehouseStock** is the physical book (on hand + reserved). At checkout, listings **and** the default warehouse are reserved.",
+              fa: "**WarehouseStock** دفتر فیزیکی است (موجود + رزرو). هنگام checkout هم لیستینگ و هم انبار پیش‌فرض رزرو می‌شوند.",
+            },
+            {
+              en: "**InventoryItem** mirrors warehouse totals after stock documents are posted (and still holds reservations for open orders).",
+              fa: "**InventoryItem** بعد از ثبت اسناد انبار با مجموع انبار همگام می‌شود (و رزرو سفارش‌های باز را نگه می‌دارد).",
+            },
+          ],
+          howTo: [
+            {
+              en: "Open **Inventory → Warehouses**. Ensure a default MAIN warehouse exists (auto-created when WMS is first used).",
+              fa: "**Inventory → Warehouses** را باز کنید. انبار پیش‌فرض MAIN را داشته باشید (با اولین استفاده WMS ساخته می‌شود).",
+            },
+            {
+              en: "Receive stock with **Inbound** stock documents; sell via order outbound pick; returns create **Return** documents after refund.",
+              fa: "ورود کالا با سند **Inbound**؛ فروش با برداشت خروجی سفارش؛ برگشت بعد از استرداد سند **Return** می‌سازد.",
+            },
+          ],
+          tips: [
+            {
+              en: "Ship is blocked in the order UI when warehouse on-hand is insufficient — restock (inbound) or refund the customer.",
+              fa: "اگر موجودی انبار کافی نباشد، ارسال در UI سفارش قفل می‌شود — تأمین (inbound) یا استرداد به مشتری.",
+            },
+          ],
+          related: ["stock-documents", "warehouse-tasks", "inventory-stock", "orders", "payments-refunds"],
+        },
+        {
+          id: "stock-documents",
+          title: { en: "Stock documents", fa: "اسناد انبار" },
+          adminPath: "/inventory/stock-documents",
+          summary: {
+            en: "WMS documents: Inbound, Outbound, Transfer, Adjustment, Count, **Return**. Only **Posted** docs change balances.",
+            fa: "اسناد WMS: ورود، خروج، انتقال، تعدیل، شمارش، **برگشت**. فقط اسناد **Posted** موجودی را عوض می‌کنند.",
+          },
+          purpose: [
+            {
+              en: "Lifecycle: Draft → Submitted → Approved (Ready to pick) → Posted (or Rejected / Cancelled).",
+              fa: "چرخه: Draft → Submitted → Approved (آماده برداشت) → Posted (یا Rejected / Cancelled).",
+            },
+            {
+              en: "Paid orders auto-create **Submitted Outbound** picks. Shipping posts them. Refund after ship auto-creates **Return** with QC (Sellable / Defective).",
+              fa: "سفارش پرداخت‌شده خودکار **Outbound Submitted** می‌سازد. ارسال آن را Post می‌کند. استرداد بعد از ارسال **Return** با QC (سالم / معیوب) می‌سازد.",
+            },
+          ],
+          howTo: [
+            {
+              en: "Open a document → set QC on return lines → Approve / Post to stock. Attach packing slips via **Upload scan**.",
+              fa: "سند را باز کنید → QC خطوط برگشت را بگذارید → Approve / Post. برگه بسته‌بندی را با **Upload scan** پیوست کنید.",
+            },
+            {
+              en: "Sellable return restocks warehouse + inventory + store listing. Defective receives to warehouse for scrap tracking without restoring sellable listings.",
+              fa: "برگشت سالم: انبار + موجودی + لیستینگ فروش. معیوب: فقط ورود فیزیکی برای ضایعات، بدون بازگرداندن موجودی فروش.",
+            },
+          ],
+          related: ["warehouses", "warehouse-tasks", "orders", "payments-refunds", "inventory-stock"],
+        },
+        {
+          id: "warehouse-tasks",
+          title: { en: "My warehouse tasks", fa: "کارهای من (انبار)" },
+          adminPath: "/inventory/my-tasks",
+          summary: {
+            en: "Worker queue of outbound picks: **Submitted** (new) and **Ready to pick** (Approved).",
+            fa: "صف کار انباردار برای برداشت‌های خروجی: **Submitted** (جدید) و **Ready to pick** (تأییدشده).",
+          },
+          howTo: [
+            {
+              en: "Filter by status chips → **Ready to pick** to approve → **Pick & post** when goods leave the bin.",
+              fa: "با چیپ وضعیت فیلتر کنید → **Ready to pick** برای تأیید → **Pick & post** وقتی کالا از قفسه خارج شد.",
+            },
+            {
+              en: "Open the linked order if stock is missing — ship will stay blocked until inbound restock or customer refund.",
+              fa: "اگر موجودی نیست سفارش را باز کنید — ارسال تا inbound یا استرداد مشتری قفل می‌ماند.",
+            },
+          ],
+          related: ["stock-documents", "warehouses", "orders"],
         },
         {
           id: "suppliers",
@@ -1615,8 +1725,8 @@ window.DOCS_ADMIN = {
               fa: "**ثبت دریافت وجه** (نقش payments.verify): COD، نقد، کارتخوان، یا **کارت‌به‌کارت/بانکی** با حساب و فیش اختیاری. پرداخت Paid می‌سازد و PendingPayment → Paid می‌کند.",
             },
             {
-              en: "**Refund** (needs payments.refund): after a Paid payment exists — amount is in **order/payment currency** (site money, e.g. IRR), never forced to USD. Wallet credit, bank queue, or cash hand-back.",
-              fa: "**برگشت وجه** (نقش payments.refund): بعد از پرداخت Paid — مبلغ با **ارز سفارش/پرداخت** (ارز سایت، مثلاً ریال) است، نه اجباری دلار. اعتبار کیف پول، صف بانکی، یا برگشت نقدی.",
+              en: "**Refund** (needs payments.refund): after a Paid payment exists — amount is in **order/payment currency** (site money, e.g. IRR), never forced to USD. Wallet credit, bank queue, or cash hand-back. After ship, auto-creates a warehouse **Return** for QC + restock. Ship is blocked when warehouse stock is short — restock or refund.",
+              fa: "**برگشت وجه** (نقش payments.refund): بعد از پرداخت Paid — مبلغ با **ارز سفارش/پرداخت** (ارز سایت، مثلاً ریال) است، نه اجباری دلار. اعتبار کیف پول، صف بانکی، یا برگشت نقدی. بعد از ارسال، سند **Return** انبار برای QC و برگشت موجودی ساخته می‌شود. اگر موجودی انبار کم باشد ارسال قفل است — تأمین یا استرداد.",
             },
             {
               en: "Open **Invoice** for a framed customer document (margins/borders). Lines show **product code** (`DN-42` = site prefix + ProductID) and link to **product preview**. From the same page set preparation / shipping status and tracking code. Print PDF, or **email / WhatsApp**. Charged unit prices only — markup is folded into price. Orders with **Report to tax = No** are excluded from the VAT report.",
@@ -1629,8 +1739,8 @@ window.DOCS_ADMIN = {
               fa: "تنظیم وب‌سایت **اعلام پیش‌فرض سفارش‌های آفلاین/اجتماعی به مالیات** پیش‌فرض سفارش‌های غیراینترنتی ادمین را می‌سازد (هر سفارش قابل override است).",
             },
             {
-              en: "Stock reservation/sale movements are driven by order lifecycle — cancel carefully.",
-              fa: "رزرو/فروش موجودی از چرخه سفارش می‌آید — لغو را با دقت انجام دهید.",
+              en: "Stock reservation/sale movements are driven by order lifecycle — cancel carefully. Ship is blocked when warehouse stock is insufficient (inbound restock or refund).",
+              fa: "رزرو/فروش موجودی از چرخه سفارش می‌آید — لغو را با دقت انجام دهید. اگر موجودی انبار کم باشد ارسال قفل است (تأمین inbound یا استرداد).",
             },
             {
               en: "COD collection should be recorded with method Cash on delivery so finance reports stay accurate.",
@@ -1638,7 +1748,7 @@ window.DOCS_ADMIN = {
             },
           ],
           relatedApi: ["orders", "checkout", "payments"],
-          related: ["payments", "payments-refunds", "inventory-stock", "shipping", "support-desk", "coupons", "websites", "tax"],
+          related: ["payments", "payments-refunds", "inventory-stock", "warehouses", "stock-documents", "shipping", "support-desk", "coupons", "websites", "tax"],
         },
         {
           id: "support-desk",
@@ -1714,6 +1824,10 @@ window.DOCS_ADMIN = {
               fa: "تأیید پرداخت را Paid و سفارش را جلو می‌برد؛ رد سفارش را unpaid نگه می‌دارد.",
             },
             {
+              en: "Attach extra scans on the queue row with **Upload scan** (one step) or from media library — not only from the order detail page.",
+              fa: "اسکن اضافه را مستقیم روی ردیف صف با **Upload scan** (یک‌مرحله‌ای) یا از کتابخانه رسانه پیوست کنید — نه فقط از جزئیات سفارش.",
+            },
+            {
               en: "For COD/cash/POS collection, open the order and use **Record payment received** (payments.verify) — not this queue.",
               fa: "برای وصول COD/نقد/کارتخوان، سفارش را باز کنید و **ثبت دریافت وجه** (payments.verify) را بزنید — نه این صف.",
             },
@@ -1734,23 +1848,31 @@ window.DOCS_ADMIN = {
           },
           howTo: [
             {
-              en: "Start refunds from order detail in the **payment currency** (same as order total): wallet (instant, same currency ledger), bank (appears here), or cash/manual (completed immediately).",
-              fa: "استرداد را از جزئیات سفارش شروع کنید: کیف پول (فوری)، بانک (اینجا ظاهر می‌شود)، یا نقدی/دستی (فوری تکمیل).",
+              en: "Start refunds from order detail in the **payment currency** (same as order total): wallet (instant, same currency ledger), bank (appears here), or cash/manual (completed immediately). Default amount is the full paid amount; you may enter a lower partial refund (capped at paid).",
+              fa: "استرداد را از جزئیات سفارش به **ارز پرداخت** شروع کنید: کیف پول (فوری)، بانک (این صف)، یا نقدی/دستی (فوری). مبلغ پیش‌فرض کل پرداخت است؛ می‌توانید مبلغ جزئی کمتر وارد کنید (سقف = مبلغ پرداخت‌شده).",
             },
             {
-              en: "Process the bank queue; keep bank references in notes when marking completed.",
-              fa: "صف بانکی را انجام دهید؛ هنگام تکمیل، شماره پیگیری بانک را در یادداشت بگذارید.",
+              en: "After goods left stock (posted outbound / shipped), refund auto-creates a warehouse **Return** document. Warehouse sets QC Sellable vs Defective, then Posts to restock (or scrap).",
+              fa: "بعد از خروج کالا از انبار (خروج Posted / ارسال‌شده)، استرداد خودکار سند **Return** می‌سازد. انبار QC سالم/معیوب می‌گذارد و با Post موجودی را برمی‌گرداند (یا ضایعات).",
+            },
+            {
+              en: "Attach bank transfer proof directly on each refund row (**Upload scan**) — no need to open the order first.",
+              fa: "رسید حواله را مستقیم روی هر ردیف استرداد (**Upload scan**) پیوست کنید — لازم نیست اول سفارش را باز کنید.",
+            },
+            {
+              en: "Process the bank queue; mark completed after the real outgoing transfer.",
+              fa: "صف بانکی را انجام دهید؛ بعد از حواله واقعی Mark completed بزنید.",
             },
           ],
-          related: ["payments", "orders"],
+          related: ["payments", "orders", "stock-documents", "warehouses"],
         },
         {
           id: "withdrawals",
           title: { en: "Wallet withdrawals", fa: "برداشت کیف پول" },
           adminPath: "/wallets/withdrawals",
           summary: {
-            en: "Customer cash-out requests from client wallets; approve holds funds flow, reject reverses hold.",
-            fa: "درخواست برداشت مشتری از کیف پول؛ تأیید جریان نگهداشت را جلو می‌برد، رد hold را برمی‌گرداند.",
+            en: "Customer cash-out requests from client wallets; approve holds funds flow, reject reverses hold. Attach bank payout receipts on the row.",
+            fa: "درخواست برداشت مشتری از کیف پول؛ تأیید جریان hold را جلو می‌برد، رد hold را برمی‌گرداند. رسید بانکی پرداخت را روی ردیف پیوست کنید.",
           },
           purpose: [
             {
@@ -1758,8 +1880,8 @@ window.DOCS_ADMIN = {
               fa: "مشتری به حساب بانکی ذخیره‌شده درخواست برداشت می‌دهد؛ مبلغ فوراً در دفتر کیف پول hold می‌شود.",
             },
             {
-              en: "Finance approves payout or rejects (hold released).",
-              fa: "مالی پرداخت را تأیید یا رد می‌کند (hold آزاد می‌شود).",
+              en: "Finance approves payout or rejects (hold released). Upload the bank receipt scan on the queue row.",
+              fa: "مالی پرداخت را تأیید یا رد می‌کند (hold آزاد می‌شود). اسکن رسید بانکی را روی ردیف صف آپلود کنید.",
             },
           ],
           howTo: [
@@ -1768,8 +1890,8 @@ window.DOCS_ADMIN = {
               fa: "صف Withdrawals را باز کنید؛ مبلغ، مشتری، حساب بانکی را ببینید.",
             },
             {
-              en: "Approve after real-world payout, or reject with a reason.",
-              fa: "بعد از پرداخت واقعی تأیید کنید، یا با دلیل رد کنید.",
+              en: "Upload payout receipt via **Upload scan** on the row, then approve after real-world payout (or reject with a reason).",
+              fa: "رسید پرداخت را با **Upload scan** روی ردیف بگذارید، بعد از پرداخت واقعی تأیید کنید (یا با دلیل رد).",
             },
           ],
           tips: [

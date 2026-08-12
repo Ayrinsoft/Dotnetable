@@ -320,6 +320,26 @@ else
                         }
                     </MudAlert>
                 }
+                @if (_returnDocId is int retId)
+                {
+                    <MudAlert Severity="Severity.Warning" Dense="true" Class="mb-2" Variant="Variant.Outlined">
+                        @L["orders.return_doc", "Warehouse return"]:
+                        <MudLink Href="@($"/inventory/stock-documents/{retId}")">@(_returnDocNumber ?? $"#{retId}")</MudLink>
+                        @if (!string.IsNullOrWhiteSpace(_returnDocStatus))
+                        {
+                            <span> · @_returnDocStatus</span>
+                        }
+                    </MudAlert>
+                }
+                @if (!string.IsNullOrWhiteSpace(_shipBlockReason))
+                {
+                    <MudAlert Severity="Severity.Error" Dense="true" Class="mb-2" Variant="Variant.Filled">
+                        @L["orders.ship_blocked", "Cannot ship"]: @_shipBlockReason
+                        <div class="mt-1">
+                            @L["orders.ship_blocked_hint", "Restock the warehouse (inbound document) or refund the customer instead."]
+                        </div>
+                    </MudAlert>
+                }
                 @if (_canEdit)
                 {
                     <MudSelect T="OrderPreparationStatus" @bind-Value="_prepStatus" Variant="Variant.Outlined" Dense="true" Class="mb-2"
@@ -330,10 +350,11 @@ else
                         }
                     </MudSelect>
                     <MudSelect T="OrderShippingStatus" @bind-Value="_shipStatus" Variant="Variant.Outlined" Dense="true" Class="mb-2"
-                               Label="@L["orders.shipping_status", "Shipping status"]">
+                               Label="@L["orders.shipping_status", "Shipping status"]"
+                               Disabled="@(_shipBlockReason is not null && _shipStatus is OrderShippingStatus.Shipped or OrderShippingStatus.InTransit or OrderShippingStatus.Delivered)">
                         @foreach (OrderShippingStatus s in Enum.GetValues<OrderShippingStatus>())
                         {
-                            <MudSelectItem T="OrderShippingStatus" Value="@s">@ShipLabel(s)</MudSelectItem>
+                            <MudSelectItem T="OrderShippingStatus" Value="@s" Disabled="@(IsShipStatusBlocked(s))">@ShipLabel(s)</MudSelectItem>
                         }
                     </MudSelect>
                     <MudTextField @bind-Value="_trackingCode" Label="@L["orders.tracking_code", "Tracking code"]"
@@ -343,7 +364,7 @@ else
                     <MudTextField @bind-Value="_fulfillmentNote" Label="@L["orders.note", "Note (optional)"]"
                                   Variant="Variant.Outlined" Dense="true" Class="mb-2" />
                     <MudButton Variant="Variant.Filled" Color="Color.Primary" FullWidth="true"
-                               OnClick="SaveFulfillmentAsync" Disabled="_savingFulfillment">
+                               OnClick="SaveFulfillmentAsync" Disabled="@(_savingFulfillment || (_shipBlockReason is not null && IsShipStatusBlocked(_shipStatus)))">
                         @(_savingFulfillment ? L["saving", "Saving…"] : L["orders.save_fulfillment", "Save fulfillment"])
                     </MudButton>
                 }
@@ -437,13 +458,14 @@ else
                 <MudPaper Elevation="0" Class="app-card rounded-lg pa-4 mb-3">
                     <MudText Typo="Typo.subtitle1" Class="mb-2">@L["payments.refund", "Refund"]</MudText>
                     <MudText Typo="Typo.caption" Color="Color.Secondary" Class="mb-2">
-                        @L["payments.refund_hint", "Record money returned to the customer: wallet credit, bank transfer (queue), or cash/manual hand-back."]
+                        @L["payments.refund_hint", "Record money returned to the customer: wallet credit, bank transfer (queue), or cash/manual hand-back. Amount is in the payment currency (same as order total). After ship, a warehouse Return document is created for QC (sellable vs defective) and restock."]
                     </MudText>
                     <MudNumericField T="decimal" @bind-Value="_refundAmount"
                                      Label="@($"{L["orders.total", "Amount"]} ({_order.CurrencyCode})")"
                                      Variant="Variant.Outlined" Dense="true" Min="0" Class="mb-2"
                                      Format="@MoneyFormat.FieldFormat(_order.CurrencyCode)"
-                                     Culture="@MoneyFormat.DisplayCulture" />
+                                     Culture="@MoneyFormat.DisplayCulture"
+                                     HelperText="@L["payments.refund_amount_hint", "Default is full paid amount. Lower it for a partial refund; max is the paid payment amount."]" />
                     <MudTextField @bind-Value="_refundReason" Label="@L["payments.reason", "Reason"]" Variant="Variant.Outlined" Dense="true" Class="mb-2" />
                     <MudSelect T="string" @bind-Value="_refundDestination" Variant="Variant.Outlined" Dense="true" Class="mb-2"
                                Label="@L["payments.refund_destination", "Refund destination"]">
@@ -482,6 +504,10 @@ else
     private int? _outboundDocId;
     private string? _outboundDocNumber;
     private string? _outboundDocStatus;
+    private int? _returnDocId;
+    private string? _returnDocNumber;
+    private string? _returnDocStatus;
+    private string? _shipBlockReason;
     private OrderStatus _newStatus;
     private string? _note;
     private int? _currentMemberId;
@@ -698,6 +724,10 @@ else
         _outboundDocId = null;
         _outboundDocNumber = null;
         _outboundDocStatus = null;
+        _returnDocId = null;
+        _returnDocNumber = null;
+        _returnDocStatus = null;
+        _shipBlockReason = null;
         if (_order is not null)
         {
             _newStatus = (OrderStatus)_order.Status;
@@ -719,16 +749,42 @@ else
                 _outboundDocNumber = outbound.DocumentNumber;
                 _outboundDocStatus = ((StockDocumentStatus)outbound.Status).ToString();
             }
+
+            var ret = await StockDocs.GetReturnForOrderAsync(OrderId);
+            if (ret is not null)
+            {
+                _returnDocId = ret.StockDocumentID;
+                _returnDocNumber = ret.DocumentNumber;
+                _returnDocStatus = ((StockDocumentStatus)ret.Status).ToString();
+            }
+
+            var (canShip, shipErr) = await StockDocs.CanShipOrderAsync(OrderId);
+            if (!canShip)
+                _shipBlockReason = shipErr;
         }
         _loading = false;
     }
 
+    private bool IsShipStatusBlocked(OrderShippingStatus s) =>
+        _shipBlockReason is not null
+        && s is OrderShippingStatus.Shipped or OrderShippingStatus.InTransit or OrderShippingStatus.Delivered
+        && _order is not null
+        && _order.ShippingStatus is not (
+            (byte)OrderShippingStatus.Shipped
+            or (byte)OrderShippingStatus.InTransit
+            or (byte)OrderShippingStatus.Delivered);
+
     private async Task TransitionAsync()
     {
         if (_order is null) return;
+        if (_newStatus == OrderStatus.Shipped && _shipBlockReason is not null)
+        {
+            Snackbar.Add(_shipBlockReason, Severity.Error);
+            return;
+        }
         var ok = await OrderService.TransitionStatusAsync(_order.OrderID, _newStatus, _currentMemberId, _note);
         if (ok) { Snackbar.Add(L["saved", "Saved."], Severity.Success); _note = null; await LoadAsync(); }
-        else Snackbar.Add(L["save_failed", "Save failed"], Severity.Error);
+        else Snackbar.Add(_shipBlockReason ?? L["save_failed", "Save failed"], Severity.Error);
     }
 
     private async Task SaveFulfillmentAsync()

@@ -18,6 +18,8 @@ public class PaymentServiceTests : IDisposable
     private readonly Mock<IClientWalletService> _wallet = new();
     private readonly Mock<IOrderService> _orders = new();
     private readonly Mock<IAdminNotificationService> _notifications = new();
+    private readonly Mock<IFinancialLedgerService> _ledger = new();
+    private readonly Mock<IStockDocumentService> _stockDocs = new();
 
     public PaymentServiceTests()
     {
@@ -25,7 +27,7 @@ public class PaymentServiceTests : IDisposable
             .UseInMemoryDatabase(Guid.NewGuid().ToString())
             .Options;
         _context = new AppDbContext(opts);
-        _service = new PaymentService(_context, _wallet.Object, _orders.Object, _notifications.Object);
+        _service = new PaymentService(_context, _wallet.Object, _orders.Object, _notifications.Object, _ledger.Object, _stockDocs.Object);
         SeedBasics();
     }
 

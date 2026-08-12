@@ -10,15 +10,22 @@ namespace Dotnetable.Infrastructure.Services;
 
 public class StockDocumentService : IStockDocumentService
 {
-    private readonly AppDbContext _context;
+    private readonly AppDbContext _fallback;
+    private AppDbContext _context => AmbientDbContext.Current ?? _fallback;
     private readonly IWarehouseService _warehouses;
     private readonly IInventoryService _inventory;
+    private readonly IVendorProductService _vendorProducts;
 
-    public StockDocumentService(AppDbContext context, IWarehouseService warehouses, IInventoryService inventory)
+    public StockDocumentService(
+        AppDbContext context,
+        IWarehouseService warehouses,
+        IInventoryService inventory,
+        IVendorProductService vendorProducts)
     {
-        _context = context;
+        _fallback = context;
         _warehouses = warehouses;
         _inventory = inventory;
+        _vendorProducts = vendorProducts;
     }
 
     public async Task<PagedResult<StockDocument>> GetPagedAsync(int websiteId, byte? status, byte? type, GridQuery query, CancellationToken ct = default)
@@ -48,7 +55,7 @@ public class StockDocumentService : IStockDocumentService
         if (lines.Count == 0 || lines.Any(l => l.Quantity <= 0))
             return (false, "At least one line with positive quantity is required.", null);
 
-        if (type is StockDocumentType.Inbound or StockDocumentType.Adjustment or StockDocumentType.Count)
+        if (type is StockDocumentType.Inbound or StockDocumentType.Adjustment or StockDocumentType.Count or StockDocumentType.Return)
             toWarehouseId ??= await DefaultWarehouseId(websiteId, ct);
         if (type is StockDocumentType.Outbound)
             fromWarehouseId ??= await DefaultWarehouseId(websiteId, ct);
@@ -75,6 +82,9 @@ public class StockDocumentService : IStockDocumentService
         };
         foreach (var l in lines)
         {
+            var cond = type == StockDocumentType.Return
+                ? (l.ReturnCondition == 0 ? (byte)StockReturnCondition.Sellable : l.ReturnCondition)
+                : (byte)StockReturnCondition.None;
             doc.StockDocumentLines.Add(new StockDocumentLine
             {
                 ProductVariantID = l.ProductVariantID,
@@ -82,6 +92,7 @@ public class StockDocumentService : IStockDocumentService
                 UnitCost = l.UnitCost,
                 UnitCostUsd = l.UnitCost,
                 Note = l.Note,
+                ReturnCondition = cond,
             });
         }
         _context.StockDocuments.Add(doc);
@@ -94,7 +105,10 @@ public class StockDocumentService : IStockDocumentService
         TransitionAsync(documentId, StockDocumentStatus.Draft, StockDocumentStatus.Submitted, memberId, "Submitted", ct);
 
     public Task<(bool Success, string? Error)> ApproveAsync(int documentId, int? memberId, CancellationToken ct = default) =>
-        TransitionAsync(documentId, StockDocumentStatus.Submitted, StockDocumentStatus.Approved, memberId, "Approved", ct, approve: true);
+        TransitionAsync(documentId, StockDocumentStatus.Submitted, StockDocumentStatus.Approved, memberId, "Approved / ready to pick", ct, approve: true);
+
+    public Task<(bool Success, string? Error)> MarkReadyToPickAsync(int documentId, int? memberId, CancellationToken ct = default) =>
+        ApproveAsync(documentId, memberId, ct);
 
     public Task<(bool Success, string? Error)> RejectAsync(int documentId, int? memberId, string? note, CancellationToken ct = default) =>
         TransitionAsync(documentId, StockDocumentStatus.Submitted, StockDocumentStatus.Rejected, memberId, note ?? "Rejected", ct);
@@ -122,19 +136,35 @@ public class StockDocumentService : IStockDocumentService
                     case StockDocumentType.Inbound:
                     case StockDocumentType.Count:
                     case StockDocumentType.Adjustment when line.Quantity > 0:
-                        await AdjustWarehouseAsync(doc.ToWarehouseID ?? doc.FromWarehouseID, line.ProductVariantID, Math.Abs(line.Quantity), ct);
+                        await AdjustWarehouseAsync(doc.ToWarehouseID ?? doc.FromWarehouseID, line.ProductVariantID, Math.Abs(line.Quantity), clearReserved: 0, ct);
                         await _inventory.AdjustAsync(doc.WebsiteID, line.ProductVariantID, Math.Abs(line.Quantity), line.UnitCost,
                             $"Stock doc {doc.DocumentNumber}", memberId ?? 0, ct);
+                        await SyncInventoryFromWarehouseAsync(doc.WebsiteID, line.ProductVariantID, ct);
                         break;
                     case StockDocumentType.Outbound:
                     case StockDocumentType.Adjustment when line.Quantity < 0:
-                        await AdjustWarehouseAsync(doc.FromWarehouseID, line.ProductVariantID, -Math.Abs(line.Quantity), ct);
-                        await _inventory.AdjustAsync(doc.WebsiteID, line.ProductVariantID, -Math.Abs(line.Quantity), line.UnitCost,
-                            $"Stock doc {doc.DocumentNumber}", memberId ?? 0, ct);
+                        await AdjustWarehouseAsync(doc.FromWarehouseID, line.ProductVariantID, -Math.Abs(line.Quantity),
+                            clearReserved: Math.Abs(line.Quantity), ct);
+                        // Clear reservation + on-hand (sale) when this is an order pick; otherwise adjustment.
+                        if (doc.OrderID is not null)
+                        {
+                            await _inventory.DecrementOnFulfillAsync(doc.WebsiteID, line.ProductVariantID, Math.Abs(line.Quantity),
+                                doc.OrderID, null, memberId, ct);
+                        }
+                        else
+                        {
+                            await _inventory.AdjustAsync(doc.WebsiteID, line.ProductVariantID, -Math.Abs(line.Quantity), line.UnitCost,
+                                $"Stock doc {doc.DocumentNumber}", memberId ?? 0, ct);
+                        }
+                        await SyncInventoryFromWarehouseAsync(doc.WebsiteID, line.ProductVariantID, ct);
                         break;
                     case StockDocumentType.Transfer:
-                        await AdjustWarehouseAsync(doc.FromWarehouseID, line.ProductVariantID, -line.Quantity, ct);
-                        await AdjustWarehouseAsync(doc.ToWarehouseID, line.ProductVariantID, line.Quantity, ct);
+                        await AdjustWarehouseAsync(doc.FromWarehouseID, line.ProductVariantID, -line.Quantity, clearReserved: 0, ct);
+                        await AdjustWarehouseAsync(doc.ToWarehouseID, line.ProductVariantID, line.Quantity, clearReserved: 0, ct);
+                        await SyncInventoryFromWarehouseAsync(doc.WebsiteID, line.ProductVariantID, ct);
+                        break;
+                    case StockDocumentType.Return:
+                        await PostReturnLineAsync(doc, line, memberId, ct);
                         break;
                 }
             }
@@ -151,6 +181,56 @@ public class StockDocumentService : IStockDocumentService
         AddHistory(doc, from, (byte)StockDocumentStatus.Posted, "Posted", memberId);
         await _context.SaveChangesAsync(ct);
         return (true, null);
+    }
+
+    private async Task PostReturnLineAsync(StockDocument doc, StockDocumentLine line, int? memberId, CancellationToken ct)
+    {
+        var condition = (StockReturnCondition)line.ReturnCondition;
+        if (condition == StockReturnCondition.None)
+            condition = StockReturnCondition.Sellable;
+
+        var whId = doc.ToWarehouseID ?? doc.FromWarehouseID;
+        // Always receive into warehouse (returned goods location = default warehouse).
+        await AdjustWarehouseAsync(whId, line.ProductVariantID, Math.Abs(line.Quantity), clearReserved: 0, ct);
+
+        if (condition == StockReturnCondition.Sellable)
+        {
+            await _inventory.RestockReturnAsync(doc.WebsiteID, line.ProductVariantID, Math.Abs(line.Quantity), line.UnitCost,
+                $"Return {doc.DocumentNumber} (sellable)", memberId ?? 0, ct);
+
+            // Restore store listing(s) linked to the original order lines when possible.
+            if (doc.OrderID is int orderId)
+            {
+                var orderItems = await _context.OrderItems.AsNoTracking()
+                    .Where(i => i.OrderID == orderId && i.ProductVariantID == line.ProductVariantID && i.VendorProductID != null)
+                    .ToListAsync(ct);
+                var remaining = Math.Abs(line.Quantity);
+                foreach (var oi in orderItems)
+                {
+                    if (remaining <= 0) break;
+                    var qty = Math.Min(remaining, oi.Quantity);
+                    await _vendorProducts.RestockAsync(oi.VendorProductID!.Value, qty, ct);
+                    remaining -= qty;
+                }
+                await _vendorProducts.SyncInventoryOnHandFromListingsAsync(doc.WebsiteID, line.ProductVariantID, ct);
+            }
+            else
+            {
+                await SyncInventoryFromWarehouseAsync(doc.WebsiteID, line.ProductVariantID, ct);
+            }
+        }
+        else
+        {
+            // Defective: physical receipt only for scrap tracking.
+            // Do NOT raise sellable InventoryItem / listings — warehouse bin holds the unit separately.
+            // Optional note movement without on-hand sellable change is intentional.
+        }
+    }
+
+    private async Task SyncInventoryFromWarehouseAsync(int websiteId, int variantId, CancellationToken ct)
+    {
+        var sum = await _warehouses.SumOnHandForVariantAsync(websiteId, variantId, ct);
+        await _inventory.SyncOnHandFromWarehousesAsync(websiteId, variantId, sum, ct);
     }
 
     private async Task<(bool Success, string? Error)> TransitionAsync(
@@ -181,7 +261,7 @@ public class StockDocumentService : IStockDocumentService
         return (true, null);
     }
 
-    private async Task AdjustWarehouseAsync(int? warehouseId, int variantId, int delta, CancellationToken ct)
+    private async Task AdjustWarehouseAsync(int? warehouseId, int variantId, int delta, int clearReserved, CancellationToken ct)
     {
         if (warehouseId is null or <= 0) throw new InvalidOperationException("Warehouse is required.");
         var stock = await _context.WarehouseStocks
@@ -204,6 +284,8 @@ public class StockDocumentService : IStockDocumentService
             var next = stock.QuantityOnHand + delta;
             if (next < 0) throw new InvalidOperationException("Insufficient warehouse stock.");
             stock.QuantityOnHand = next;
+            if (clearReserved > 0)
+                stock.QuantityReserved = Math.Max(0, stock.QuantityReserved - clearReserved);
         }
         await _context.SaveChangesAsync(ct);
     }
@@ -211,7 +293,6 @@ public class StockDocumentService : IStockDocumentService
     public async Task<bool> WebsiteHasWarehouseAsync(int websiteId, CancellationToken ct = default)
     {
         if (websiteId <= 0) return false;
-        // Do not auto-create: WMS order path only when the site already has a warehouse row.
         return await _context.Warehouses.AsNoTracking()
             .AnyAsync(w => w.WebsiteID == websiteId && w.IsActive, ct);
     }
@@ -220,6 +301,15 @@ public class StockDocumentService : IStockDocumentService
         _context.StockDocuments.AsNoTracking()
             .Where(d => d.OrderID == orderId
                 && d.DocumentType == (byte)StockDocumentType.Outbound
+                && d.Status != (byte)StockDocumentStatus.Cancelled
+                && d.Status != (byte)StockDocumentStatus.Rejected)
+            .OrderByDescending(d => d.StockDocumentID)
+            .FirstOrDefaultAsync(ct);
+
+    public Task<StockDocument?> GetReturnForOrderAsync(int orderId, CancellationToken ct = default) =>
+        _context.StockDocuments.AsNoTracking()
+            .Where(d => d.OrderID == orderId
+                && d.DocumentType == (byte)StockDocumentType.Return
                 && d.Status != (byte)StockDocumentStatus.Cancelled
                 && d.Status != (byte)StockDocumentStatus.Rejected)
             .OrderByDescending(d => d.StockDocumentID)
@@ -244,29 +334,11 @@ public class StockDocumentService : IStockDocumentService
             return (true, null, existing);
 
         if (!await WebsiteHasWarehouseAsync(order.WebsiteID, ct))
-            return (true, null, null); // No WMS — caller keeps legacy inventory path.
+            return (true, null, null);
 
-        var physical = order.OrderItems
-            .Where(i => i.ProductVariantID is int)
-            .Where(i =>
-            {
-                var p = i.ProductVariant?.Product;
-                if (p is null) return true; // variant free-form with id only: treat as stockable
-                return p.RequiresShipping || p.ProductType == (byte)ProductType.Physical;
-            })
-            .GroupBy(i => i.ProductVariantID!.Value)
-            .Select(g => new StockDocumentLineRequest
-            {
-                ProductVariantID = g.Key,
-                Quantity = g.Sum(x => x.Quantity),
-                UnitCost = g.Max(x => x.UnitCostUsd),
-                Note = g.First().SkuSnapshot,
-            })
-            .Where(l => l.Quantity > 0)
-            .ToList();
-
+        var physical = BuildPhysicalLines(order);
         if (physical.Count == 0)
-            return (true, null, null); // Digital-only order.
+            return (true, null, null);
 
         var fromWh = await DefaultWarehouseId(order.WebsiteID, ct);
         var seq = await _context.StockDocuments.CountAsync(d => d.WebsiteID == order.WebsiteID, ct) + 1;
@@ -283,7 +355,6 @@ public class StockDocumentService : IStockDocumentService
             SubmittedAt = DateTime.UtcNow,
             CreatedAt = DateTime.UtcNow,
         };
-        // Unique-ish number if collision
         if (await _context.StockDocuments.AnyAsync(d => d.WebsiteID == order.WebsiteID && d.DocumentNumber == doc.DocumentNumber, ct))
             doc.DocumentNumber = $"OUT-{order.OrderNumber}-{seq:D4}";
 
@@ -296,6 +367,7 @@ public class StockDocumentService : IStockDocumentService
                 UnitCost = l.UnitCost,
                 UnitCostUsd = l.UnitCost,
                 Note = l.Note,
+                ReturnCondition = 0,
             });
         }
 
@@ -309,7 +381,7 @@ public class StockDocumentService : IStockDocumentService
     {
         var ensure = await EnsureOutboundForOrderAsync(orderId, memberId, ct);
         if (!ensure.Success) return (false, ensure.Error);
-        if (ensure.Doc is null) return (true, null); // No WMS / no physical lines.
+        if (ensure.Doc is null) return (true, null);
 
         var doc = ensure.Doc;
         if (doc.Status == (byte)StockDocumentStatus.Posted)
@@ -328,7 +400,6 @@ public class StockDocumentService : IStockDocumentService
             if (!approve.Success) return approve;
         }
 
-        // Re-load status after transitions
         var current = await _context.StockDocuments.AsNoTracking()
             .FirstOrDefaultAsync(d => d.StockDocumentID == doc.StockDocumentID, ct);
         if (current is null) return (false, "Outbound document not found.");
@@ -337,6 +408,218 @@ public class StockDocumentService : IStockDocumentService
 
         return await PostAsync(current.StockDocumentID, memberId, ct);
     }
+
+    public async Task<(bool CanShip, string? Error)> CanShipOrderAsync(int orderId, CancellationToken ct = default)
+    {
+        var order = await _context.Orders
+            .Include(o => o.OrderItems).ThenInclude(i => i.ProductVariant).ThenInclude(v => v!.Product)
+            .FirstOrDefaultAsync(o => o.OrderID == orderId, ct);
+        if (order is null) return (false, "Order not found.");
+
+        if (!await WebsiteHasWarehouseAsync(order.WebsiteID, ct))
+            return (true, null);
+
+        var outbound = await GetOutboundForOrderAsync(orderId, ct);
+        if (outbound is { Status: (byte)StockDocumentStatus.Posted })
+            return (true, null);
+
+        var fromWh = outbound?.FromWarehouseID ?? await DefaultWarehouseId(order.WebsiteID, ct);
+        var physical = BuildPhysicalLines(order);
+        foreach (var line in physical)
+        {
+            var available = await _warehouses.GetAvailableAsync(fromWh, line.ProductVariantID, ct);
+            // Reserved for this order still counts as available for this ship.
+            var reservedHere = await _context.WarehouseStocks.AsNoTracking()
+                .Where(s => s.WarehouseID == fromWh && s.ProductVariantID == line.ProductVariantID)
+                .Select(s => s.QuantityReserved)
+                .FirstOrDefaultAsync(ct);
+            // Available already excludes reserved; units reserved for open orders including this one
+            // sit in QuantityReserved. On-hand must cover required qty.
+            var onHand = available + reservedHere;
+            if (onHand < line.Quantity)
+            {
+                var sku = await _context.ProductVariants.AsNoTracking()
+                    .Where(v => v.ProductVariantID == line.ProductVariantID)
+                    .Select(v => v.Sku)
+                    .FirstOrDefaultAsync(ct) ?? line.ProductVariantID.ToString();
+                return (false,
+                    $"Insufficient warehouse stock for {sku}: need {line.Quantity}, on hand {onHand}. Prepare stock or refund the customer.");
+            }
+        }
+        return (true, null);
+    }
+
+    public async Task<(bool Success, string? Error, StockDocument? Doc)> EnsureReturnForRefundAsync(
+        int orderId, int paymentRefundId, int? memberId, CancellationToken ct = default)
+    {
+        var order = await _context.Orders
+            .Include(o => o.OrderItems).ThenInclude(i => i.ProductVariant).ThenInclude(v => v!.Product)
+            .FirstOrDefaultAsync(o => o.OrderID == orderId, ct);
+        if (order is null) return (false, "Order not found.", null);
+
+        var existingByRefund = await _context.StockDocuments
+            .Include(d => d.StockDocumentLines)
+            .FirstOrDefaultAsync(d =>
+                d.PaymentRefundID == paymentRefundId
+                && d.DocumentType == (byte)StockDocumentType.Return
+                && d.Status != (byte)StockDocumentStatus.Cancelled
+                && d.Status != (byte)StockDocumentStatus.Rejected, ct);
+        if (existingByRefund is not null)
+            return (true, null, existingByRefund);
+
+        // Only create return stock when goods left the warehouse or inventory (post-pay fulfill).
+        var outbound = await GetOutboundForOrderAsync(orderId, ct);
+        var stockLeftWarehouse = outbound is { Status: (byte)StockDocumentStatus.Posted };
+        var nonWmsFulfill =
+            !await WebsiteHasWarehouseAsync(order.WebsiteID, ct)
+            && order.Status is (byte)OrderStatus.Shipped or (byte)OrderStatus.Completed or (byte)OrderStatus.Refunded
+                or (byte)OrderStatus.Processing or (byte)OrderStatus.Paid
+            && order.ShippingStatus is (byte)OrderShippingStatus.Shipped
+                or (byte)OrderShippingStatus.InTransit
+                or (byte)OrderShippingStatus.Delivered
+                or (byte)OrderShippingStatus.Returned;
+
+        // After paid on non-WMS, inventory already left on payment — still create return for restock path.
+        var nonWmsPaid = !await WebsiteHasWarehouseAsync(order.WebsiteID, ct)
+            && order.PaidAt is not null;
+
+        if (!stockLeftWarehouse && !nonWmsFulfill && !nonWmsPaid)
+        {
+            // Goods never left (outbound cancelled on pre-ship refund) — nothing to restock.
+            return (true, null, null);
+        }
+
+        if (stockLeftWarehouse == false && nonWmsPaid && outbound is not null
+            && outbound.Status is not (byte)StockDocumentStatus.Posted)
+        {
+            // WMS site but outbound never posted — reservation released / cancel path.
+            if (await WebsiteHasWarehouseAsync(order.WebsiteID, ct))
+                return (true, null, null);
+        }
+
+        var physical = BuildPhysicalLines(order);
+        if (physical.Count == 0)
+            return (true, null, null);
+
+        // Ensure WMS warehouse exists for return receive when site already has warehouses.
+        int? toWh = null;
+        if (await WebsiteHasWarehouseAsync(order.WebsiteID, ct))
+            toWh = await DefaultWarehouseId(order.WebsiteID, ct);
+        else
+        {
+            // Non-WMS: still create Return doc so QC exists; posting will create default warehouse.
+            await _warehouses.EnsureDefaultAsync(order.WebsiteID, ct);
+            toWh = await DefaultWarehouseId(order.WebsiteID, ct);
+        }
+
+        var seq = await _context.StockDocuments.CountAsync(d => d.WebsiteID == order.WebsiteID, ct) + 1;
+        var doc = new StockDocument
+        {
+            WebsiteID = order.WebsiteID,
+            DocumentNumber = $"RET-{order.OrderNumber}",
+            DocumentType = (byte)StockDocumentType.Return,
+            Status = (byte)StockDocumentStatus.Submitted,
+            ToWarehouseID = toWh,
+            OrderID = order.OrderID,
+            PaymentRefundID = paymentRefundId,
+            Note = $"Auto return from refund #{paymentRefundId} / order {order.OrderNumber}",
+            RequestedByMemberID = memberId,
+            SubmittedAt = DateTime.UtcNow,
+            CreatedAt = DateTime.UtcNow,
+        };
+        if (await _context.StockDocuments.AnyAsync(d => d.WebsiteID == order.WebsiteID && d.DocumentNumber == doc.DocumentNumber, ct))
+            doc.DocumentNumber = $"RET-{order.OrderNumber}-{seq:D4}";
+
+        foreach (var l in physical)
+        {
+            doc.StockDocumentLines.Add(new StockDocumentLine
+            {
+                ProductVariantID = l.ProductVariantID,
+                Quantity = l.Quantity,
+                UnitCost = l.UnitCost,
+                UnitCostUsd = l.UnitCost,
+                Note = l.Note,
+                ReturnCondition = (byte)StockReturnCondition.Sellable,
+            });
+        }
+
+        _context.StockDocuments.Add(doc);
+        AddHistory(doc, 0, (byte)StockDocumentStatus.Submitted,
+            $"Created from refund #{paymentRefundId}", memberId);
+        await _context.SaveChangesAsync(ct);
+        return (true, null, doc);
+    }
+
+    public async Task<(bool Success, string? Error)> SetReturnLineConditionAsync(
+        int stockDocumentLineId, StockReturnCondition condition, int? memberId, CancellationToken ct = default)
+    {
+        var line = await _context.StockDocumentLines
+            .Include(l => l.StockDocument)
+            .FirstOrDefaultAsync(l => l.StockDocumentLineID == stockDocumentLineId, ct);
+        if (line is null) return (false, "Line not found.");
+        if (line.StockDocument.DocumentType != (byte)StockDocumentType.Return)
+            return (false, "Only return document lines have QC condition.");
+        if (line.StockDocument.Status == (byte)StockDocumentStatus.Posted)
+            return (false, "Cannot change QC after post.");
+        if (condition is not (StockReturnCondition.Sellable or StockReturnCondition.Defective))
+            return (false, "Choose Sellable or Defective.");
+
+        line.ReturnCondition = (byte)condition;
+        await _context.SaveChangesAsync(ct);
+        return (true, null);
+    }
+
+    public async Task<IReadOnlyList<WarehousePickTaskDto>> GetPickQueueAsync(
+        int websiteId, byte? statusFilter, CancellationToken ct = default)
+    {
+        var q = _context.StockDocuments.AsNoTracking()
+            .Include(d => d.FromWarehouse)
+            .Include(d => d.Order)
+            .Include(d => d.StockDocumentLines)
+            .Where(d => d.WebsiteID == websiteId
+                && d.DocumentType == (byte)StockDocumentType.Outbound
+                && (d.Status == (byte)StockDocumentStatus.Submitted
+                    || d.Status == (byte)StockDocumentStatus.Approved));
+
+        if (statusFilter is byte s)
+            q = q.Where(d => d.Status == s);
+
+        var rows = await q.OrderBy(d => d.SubmittedAt ?? d.CreatedAt).Take(200).ToListAsync(ct);
+        return rows.Select(d => new WarehousePickTaskDto
+        {
+            StockDocumentID = d.StockDocumentID,
+            DocumentNumber = d.DocumentNumber,
+            Status = d.Status,
+            OrderID = d.OrderID,
+            OrderNumber = d.Order?.OrderNumber,
+            LineCount = d.StockDocumentLines.Count,
+            TotalQuantity = d.StockDocumentLines.Sum(l => l.Quantity),
+            CreatedAt = d.CreatedAt,
+            SubmittedAt = d.SubmittedAt,
+            FromWarehouseName = d.FromWarehouse?.Name,
+            Note = d.Note,
+        }).ToList();
+    }
+
+    private static List<StockDocumentLineRequest> BuildPhysicalLines(Order order) =>
+        order.OrderItems
+            .Where(i => i.ProductVariantID is int)
+            .Where(i =>
+            {
+                var p = i.ProductVariant?.Product;
+                if (p is null) return true;
+                return p.RequiresShipping || p.ProductType == (byte)ProductType.Physical;
+            })
+            .GroupBy(i => i.ProductVariantID!.Value)
+            .Select(g => new StockDocumentLineRequest
+            {
+                ProductVariantID = g.Key,
+                Quantity = g.Sum(x => x.Quantity),
+                UnitCost = g.Max(x => x.UnitCostUsd),
+                Note = g.First().SkuSnapshot,
+            })
+            .Where(l => l.Quantity > 0)
+            .ToList();
 
     private async Task<int> DefaultWarehouseId(int websiteId, CancellationToken ct)
     {

@@ -308,6 +308,67 @@ public class InventoryService : IInventoryService
         await _context.SaveChangesAsync(ct);
     }
 
+    public async Task RestockReturnAsync(int websiteId, int variantId, int qty, decimal? unitCost, string? note, int memberId, CancellationToken ct = default)
+    {
+        if (qty <= 0) return;
+
+        for (var attempt = 0; attempt < 2; attempt++)
+        {
+            var item = await GetOrCreateAsync(websiteId, variantId, ct);
+            var (currencyCode, rate) = await ResolveSiteRateAsync(websiteId, ct);
+
+            decimal? unitCostUsd = null;
+            decimal costLocal = unitCost ?? (item.AvgCost > 0 ? item.AvgCost : item.AvgCostUsd * rate);
+            if (unitCost is decimal cost)
+            {
+                unitCostUsd = rate == 0 ? cost : cost / rate;
+                var prevLocal = item.AvgCost > 0 ? item.AvgCost : item.AvgCostUsd * rate;
+                item.AvgCost = item.QuantityOnHand + qty > 0
+                    ? ((prevLocal * item.QuantityOnHand) + (cost * qty)) / (item.QuantityOnHand + qty)
+                    : cost;
+                item.AvgCostUsd = rate == 0 ? item.AvgCost : item.AvgCost / rate;
+            }
+
+            item.QuantityOnHand += qty;
+            var movementCostUsd = unitCostUsd ?? (item.AvgCostUsd > 0 ? item.AvgCostUsd : (rate == 0 ? costLocal : costLocal / rate));
+
+            _context.StockMovements.Add(new StockMovement
+            {
+                WebsiteID = websiteId,
+                ProductVariantID = variantId,
+                Type = (byte)StockMovementType.Return,
+                Quantity = qty,
+                UnitCost = costLocal,
+                UnitCostUsd = movementCostUsd,
+                CurrencyCode = currencyCode,
+                ExchangeRateToUsd = rate,
+                Note = note ?? "Customer return",
+                CreatedByMemberID = memberId,
+                CreatedAt = DateTime.UtcNow,
+            });
+
+            try
+            {
+                await _context.SaveChangesAsync(ct);
+                return;
+            }
+            catch (DbUpdateConcurrencyException)
+            {
+                foreach (var entry in _context.ChangeTracker.Entries().Where(e => e.State != EntityState.Unchanged))
+                    entry.State = EntityState.Detached;
+                if (attempt == 1) throw;
+            }
+        }
+    }
+
+    public async Task SyncOnHandFromWarehousesAsync(int websiteId, int productVariantId, int warehouseOnHandSum, CancellationToken ct = default)
+    {
+        var item = await GetOrCreateAsync(websiteId, productVariantId, ct);
+        // Physical warehouse book is authoritative when WMS is used; never drop below reserved.
+        item.QuantityOnHand = Math.Max(Math.Max(0, warehouseOnHandSum), item.QuantityReserved);
+        await _context.SaveChangesAsync(ct);
+    }
+
     private async Task<(string CurrencyCode, decimal Rate)> ResolveSiteRateAsync(int websiteId, CancellationToken ct)
     {
         try

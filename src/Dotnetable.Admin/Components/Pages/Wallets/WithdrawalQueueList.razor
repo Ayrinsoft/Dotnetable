@@ -1,4 +1,5 @@
 @page "/wallets/withdrawals"
+@using Dotnetable.Application.RecordAttachments
 @attribute [Authorize(Policy = RoleKeys.WalletsView)]
 @inject IClientWalletWithdrawalService WithdrawalService
 @inject AuthenticationStateProvider AuthState
@@ -32,7 +33,7 @@
         @if (_items.Count == 0)
         {
             <tr>
-                <td colspan="7" style="text-align:center; padding:32px;">
+                <td colspan="8" style="text-align:center; padding:32px;">
                     <MudText Color="Color.Secondary">@L["wallets.withdrawals.empty", "No withdrawal requests found."]</MudText>
                 </td>
             </tr>
@@ -55,6 +56,14 @@
                         <MudChip T="string" Color="statusColor" Size="Size.Small">@statusText</MudChip>
                     </td>
                     <td>@w.RequestedAt.ToString("yyyy-MM-dd HH:mm")</td>
+                    <td>
+                        <RecordAttachmentsPanel WebsiteId="w.WebsiteID"
+                                               EntityType="@RecordEntityTypes.ClientWalletWithdrawal"
+                                               EntityId="w.ClientWalletWithdrawalID"
+                                               CanEdit="_canApprove"
+                                               Compact="true"
+                                               Title="@L["attachments.withdrawal", "Bank payout receipt"]" />
+                    </td>
                     <td>
                         @if (w.Status == (byte)ClientWalletWithdrawalStatus.Pending && _canApprove)
                         {
@@ -122,6 +131,7 @@
                     }
                 },
                 new() { ColumnTitle = L["wallets.requested_at", "Requested"], ColumnName = nameof(ClientWalletWithdrawal.RequestedAt), HasSort = true },
+                new() { ColumnTitle = L["attachments.receipt", "Payout receipt"], ColumnName = "" },
                 new() { ColumnTitle = "", ColumnName = "" },
             }
         };

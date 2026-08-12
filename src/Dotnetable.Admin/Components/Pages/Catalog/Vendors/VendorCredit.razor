@@ -1,4 +1,5 @@
 @page "/catalog/vendors/{VendorId:int}/credit"
+@using Dotnetable.Application.RecordAttachments
 @attribute [Authorize(Policy = RoleKeys.VendorsEdit)]
 @inject IVendorService VendorService
 @inject IVendorCreditService VendorCreditService
@@ -58,6 +59,12 @@ else
             </MudButton>
         </MudStack>
     </MudPaper>
+
+    <RecordAttachmentsPanel WebsiteId="_vendor.WebsiteID"
+                           EntityType="@RecordEntityTypes.VendorCredit"
+                           EntityId="_vendor.VendorID"
+                           CanEdit="true"
+                           Title="@L["attachments.vendor_credit", "Vendor credit / settlement scans"]" />
 
     <MudPaper Elevation="0" Class="app-card rounded-lg pa-4">
         <MudText Typo="Typo.h6" Class="mb-3">@L["vendors.credit_history", "Credit history"]</MudText>
