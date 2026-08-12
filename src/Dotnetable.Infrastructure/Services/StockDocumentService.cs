@@ -17,19 +17,22 @@ public class StockDocumentService : IStockDocumentService
     private readonly IInventoryService _inventory;
     private readonly IVendorProductService _vendorProducts;
     private readonly IAdminNotificationService _notifications;
+    private readonly IFinancialLedgerService _ledger;
 
     public StockDocumentService(
         AppDbContext context,
         IWarehouseService warehouses,
         IInventoryService inventory,
         IVendorProductService vendorProducts,
-        IAdminNotificationService notifications)
+        IAdminNotificationService notifications,
+        IFinancialLedgerService ledger)
     {
         _fallback = context;
         _warehouses = warehouses;
         _inventory = inventory;
         _vendorProducts = vendorProducts;
         _notifications = notifications;
+        _ledger = ledger;
     }
 
     public async Task<PagedResult<StockDocument>> GetPagedAsync(int websiteId, byte? status, byte? type, GridQuery query, CancellationToken ct = default)
@@ -226,6 +229,23 @@ public class StockDocumentService : IStockDocumentService
         doc.PostedByMemberID = memberId;
         AddHistory(doc, from, (byte)StockDocumentStatus.Posted, "Posted", memberId);
         await _context.SaveChangesAsync(ct);
+
+        // Align GL inventory with warehouse: COGS on outbound, reverse COGS on sellable return.
+        if (doc.OrderID is int cogsOrderId)
+        {
+            try
+            {
+                if (type == StockDocumentType.Outbound)
+                    await _ledger.PostInventoryCogsForOrderAsync(cogsOrderId, doc.StockDocumentID, memberId, ct);
+                else if (type == StockDocumentType.Return)
+                    await _ledger.PostInventoryCogsReversalForReturnAsync(cogsOrderId, doc.StockDocumentID, memberId, ct);
+            }
+            catch
+            {
+                /* never break stock post for GL */
+            }
+        }
+
         await NotifyWarehouseAsync(documentId, "posted", ct);
         return (true, null);
     }

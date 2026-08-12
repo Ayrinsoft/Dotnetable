@@ -21,6 +21,15 @@ public interface IPayrollService
     Task<byte[]> ExportTaxPayableExcelAsync(int websiteId, DateOnly from, DateOnly to, CancellationToken ct = default);
     Task<byte[]> ExportStatutoryExcelAsync(int websiteId, DateOnly from, DateOnly to, CancellationToken ct = default);
 
+    /// <summary>One-sheet Excel of printable payslip fields (one row per employee line).</summary>
+    Task<byte[]> ExportPayslipsExcelAsync(int payrollRunId, CancellationToken ct = default);
+
+    /// <summary>HTML fragment for a single employee payslip (print via admin print helper).</summary>
+    Task<string?> BuildPayslipHtmlAsync(int payrollLineId, CancellationToken ct = default);
+
+    /// <summary>HTML for all lines in a run (page-break between employees).</summary>
+    Task<string?> BuildRunPayslipsHtmlAsync(int payrollRunId, CancellationToken ct = default);
+
     Task<IReadOnlyList<PayrollRateBracket>> GetRateBracketsAsync(int websiteId, PayrollRateKind? kind = null, CancellationToken ct = default);
     Task<(bool Success, string? Error, PayrollRateBracket? Bracket)> UpsertRateBracketAsync(PayrollRateBracket bracket, CancellationToken ct = default);
     Task<(bool Success, string? Error)> DeleteRateBracketAsync(int bracketId, CancellationToken ct = default);

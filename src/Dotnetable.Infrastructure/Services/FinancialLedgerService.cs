@@ -328,6 +328,119 @@ public class FinancialLedgerService : IFinancialLedgerService
         }, ct);
     }
 
+    public async Task PostInventoryCogsForOrderAsync(int orderId, int? stockDocumentId, int? memberId, CancellationToken ct = default)
+    {
+        var order = await _context.Orders
+            .Include(o => o.OrderItems)
+            .FirstOrDefaultAsync(o => o.OrderID == orderId, ct);
+        if (order is null) return;
+
+        var sourceKey = stockDocumentId is int docId
+            ? $"STOCK-COGS:{docId}"
+            : $"STOCK-COGS:ORD:{orderId}";
+        if (await _context.FinancialLedgerEntries.AnyAsync(
+                e => e.WebsiteID == order.WebsiteID && e.IsCurrent
+                     && e.TransactionType == FinancialTransactionTypes.InventoryCogs
+                     && e.MetaJson != null && e.MetaJson.Contains(sourceKey), ct))
+            return;
+
+        decimal totalLocal = 0, totalUsd = 0;
+        foreach (var item in order.OrderItems)
+        {
+            var qty = item.Quantity <= 0 ? 1 : item.Quantity;
+            var costUnit = ResolveCostLocal(item);
+            if (costUnit <= 0) continue;
+            totalLocal += costUnit * qty;
+            totalUsd += (item.UnitCostUsd > 0 ? item.UnitCostUsd : costUnit) * qty;
+        }
+        if (totalLocal <= 0) return;
+
+        var groupId = Guid.NewGuid();
+        await PostAsync(new PostFinancialEntryRequest
+        {
+            WebsiteId = order.WebsiteID,
+            TransactionType = FinancialTransactionTypes.InventoryCogs,
+            Flow = FinancialFlow.Component,
+            Amount = totalLocal,
+            AmountUsd = Math.Round(totalUsd, 4),
+            CurrencyCode = order.CurrencyCode,
+            Title = $"COGS stock-out order {order.OrderNumber}",
+            Description = stockDocumentId is int d
+                ? $"Warehouse outbound #{d}"
+                : "Non-WMS fulfill (inventory left on payment)",
+            ReportToTax = order.ReportToTax,
+            VendorVisible = false,
+            OrderId = orderId,
+            WebsiteClientId = order.WebsiteClientID,
+            EventGroupId = groupId,
+            MemberId = memberId,
+            MetaJson = $"{{\"sourceKey\":\"{sourceKey}\",\"stockDocumentId\":{(stockDocumentId?.ToString() ?? "null")}}}",
+        }, ct);
+    }
+
+    public async Task PostInventoryCogsReversalForReturnAsync(int orderId, int stockDocumentId, int? memberId, CancellationToken ct = default)
+    {
+        var order = await _context.Orders.AsNoTracking().FirstOrDefaultAsync(o => o.OrderID == orderId, ct);
+        if (order is null) return;
+
+        var sourceKey = $"STOCK-COGS-REV:{stockDocumentId}";
+        if (await _context.FinancialLedgerEntries.AnyAsync(
+                e => e.WebsiteID == order.WebsiteID && e.IsCurrent
+                     && e.TransactionType == FinancialTransactionTypes.InventoryCogsReversal
+                     && e.MetaJson != null && e.MetaJson.Contains(sourceKey), ct))
+            return;
+
+        // Only reverse sellable return lines (defective scrap stays out of inventory asset).
+        var lines = await _context.StockDocumentLines.AsNoTracking()
+            .Where(l => l.StockDocumentID == stockDocumentId
+                        && l.ReturnCondition != (byte)Domain.Enums.StockItemCondition.Defective)
+            .ToListAsync(ct);
+        if (lines.Count == 0) return;
+
+        decimal totalLocal = 0, totalUsd = 0;
+        foreach (var line in lines)
+        {
+            var qty = Math.Abs(line.Quantity);
+            if (qty <= 0) continue;
+            totalLocal += line.UnitCost * qty;
+            totalUsd += (line.UnitCostUsd > 0 ? line.UnitCostUsd : line.UnitCost) * qty;
+        }
+        if (totalLocal <= 0)
+        {
+            // Fall back to original order cost proportion if return lines have zero unit cost.
+            var items = await _context.OrderItems.AsNoTracking().Where(i => i.OrderID == orderId).ToListAsync(ct);
+            foreach (var item in items)
+            {
+                var qty = item.Quantity <= 0 ? 1 : item.Quantity;
+                var costUnit = ResolveCostLocal(item);
+                if (costUnit <= 0) continue;
+                totalLocal += costUnit * qty;
+                totalUsd += (item.UnitCostUsd > 0 ? item.UnitCostUsd : costUnit) * qty;
+            }
+        }
+        if (totalLocal <= 0) return;
+
+        var groupId = Guid.NewGuid();
+        await PostAsync(new PostFinancialEntryRequest
+        {
+            WebsiteId = order.WebsiteID,
+            TransactionType = FinancialTransactionTypes.InventoryCogsReversal,
+            Flow = FinancialFlow.Component,
+            Amount = totalLocal,
+            AmountUsd = Math.Round(totalUsd, 4),
+            CurrencyCode = order.CurrencyCode,
+            Title = $"COGS reverse return order {order.OrderNumber}",
+            Description = $"Warehouse return #{stockDocumentId}",
+            ReportToTax = order.ReportToTax,
+            VendorVisible = false,
+            OrderId = orderId,
+            WebsiteClientId = order.WebsiteClientID,
+            EventGroupId = groupId,
+            MemberId = memberId,
+            MetaJson = $"{{\"sourceKey\":\"{sourceKey}\",\"stockDocumentId\":{stockDocumentId}}}",
+        }, ct);
+    }
+
     public async Task PostVendorSettlementAsync(
         int websiteId, int? vendorId, int? settlementId, int? orderId, int? orderItemId,
         decimal amount, string currencyCode, decimal amountUsd, string title, bool reportToTax,

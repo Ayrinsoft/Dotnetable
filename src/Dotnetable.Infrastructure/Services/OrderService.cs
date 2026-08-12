@@ -412,6 +412,36 @@ public class OrderService : IOrderService
         var fromStatus = (OrderStatus)order.Status;
         if (fromStatus == newStatus) return true;
 
+        void RevertStatusHistory(OrderStatus targetStatus)
+        {
+            order.Status = (byte)fromStatus;
+            foreach (var h in _context.ChangeTracker.Entries<OrderStatusHistory>()
+                         .Where(e => e.State == EntityState.Added && e.Entity.OrderID == orderId
+                                     && e.Entity.ToStatus == (byte)targetStatus)
+                         .ToList())
+                h.State = EntityState.Detached;
+        }
+
+        // Cancel must keep money + stock consistent: after payment capture or stock-out, use Refund (creates Return after ship).
+        if (newStatus == OrderStatus.Cancelled)
+        {
+            var hasPaidMoney = await _context.Payments.AnyAsync(
+                p => p.OrderID == orderId && p.Status == (byte)PaymentStatus.Paid, ct);
+            var outbound = await _stockDocs.GetOutboundForOrderAsync(orderId, ct);
+            var stockLeftWarehouse = outbound is { Status: (byte)StockDocumentStatus.Posted };
+            var leftDock = order.ShippingStatus is (byte)OrderShippingStatus.Shipped
+                or (byte)OrderShippingStatus.InTransit
+                or (byte)OrderShippingStatus.Delivered;
+            if (hasPaidMoney || stockLeftWarehouse || leftDock
+                || fromStatus is OrderStatus.Shipped or OrderStatus.Completed or OrderStatus.Refunded)
+            {
+                _logger.LogWarning(
+                    "Cancel blocked for order {OrderId} (from {From}): use Refund so money and warehouse return stay aligned.",
+                    orderId, fromStatus);
+                return false;
+            }
+        }
+
         order.Status = (byte)newStatus;
         if (newStatus == OrderStatus.Paid && order.PaidAt is null)
             order.PaidAt = DateTime.UtcNow;
@@ -467,6 +497,12 @@ public class OrderService : IOrderService
                     _logger.LogError(ex, "EnsureOutboundForOrder {OrderId} threw", orderId);
                 }
             }
+            else
+            {
+                // Non-WMS: inventory left on payment → recognize GL COGS so books match stock.
+                try { await _ledger.PostInventoryCogsForOrderAsync(orderId, stockDocumentId: null, memberId, ct); }
+                catch (Exception ex) { _logger.LogWarning(ex, "COGS on non-WMS fulfill failed for order {OrderId}", orderId); }
+            }
 
             // Permanent digital library entitlements (idempotent).
             await _digitalDelivery.GrantForOrderAsync(orderId, ct);
@@ -474,20 +510,10 @@ public class OrderService : IOrderService
         else if (newStatus == OrderStatus.Shipped
                  && (fromStatus is OrderStatus.Paid or OrderStatus.Processing))
         {
-            void RevertShipTransition()
-            {
-                order.Status = (byte)fromStatus;
-                foreach (var h in _context.ChangeTracker.Entries<OrderStatusHistory>()
-                             .Where(e => e.State == EntityState.Added && e.Entity.OrderID == orderId
-                                         && e.Entity.ToStatus == (byte)OrderStatus.Shipped)
-                             .ToList())
-                    h.State = EntityState.Detached;
-            }
-
             var (canShip, shipErr) = await _stockDocs.CanShipOrderAsync(orderId, ct);
             if (!canShip)
             {
-                RevertShipTransition();
+                RevertStatusHistory(OrderStatus.Shipped);
                 _logger.LogWarning("Ship blocked for order {OrderId}: {Error}", orderId, shipErr);
                 return false;
             }
@@ -497,14 +523,14 @@ public class OrderService : IOrderService
                 var (ok, err) = await _stockDocs.PostOutboundForOrderAsync(orderId, memberId, ct);
                 if (!ok)
                 {
-                    RevertShipTransition();
+                    RevertStatusHistory(OrderStatus.Shipped);
                     _logger.LogWarning("PostOutboundForOrder {OrderId} failed: {Error}", orderId, err);
                     return false;
                 }
             }
             catch (Exception ex)
             {
-                RevertShipTransition();
+                RevertStatusHistory(OrderStatus.Shipped);
                 _logger.LogError(ex, "PostOutboundForOrder {OrderId} threw", orderId);
                 return false;
             }
@@ -535,6 +561,7 @@ public class OrderService : IOrderService
             else if (fromStatus is OrderStatus.Paid or OrderStatus.Processing)
             {
                 // Unposted pick: release warehouse reservation held since checkout.
+                // Posted outbound is only reached via Refunded (Cancel is blocked above).
                 var outbound = await _stockDocs.GetOutboundForOrderAsync(orderId, ct);
                 if (outbound is null || outbound.Status is not (byte)StockDocumentStatus.Posted)
                 {

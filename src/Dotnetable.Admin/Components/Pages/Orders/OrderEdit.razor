@@ -782,8 +782,23 @@ else
             Snackbar.Add(_shipBlockReason, Severity.Error);
             return;
         }
+        if (_newStatus == OrderStatus.Cancelled
+            && (_order.Payments.Any(p => p.Status == (byte)PaymentStatus.Paid)
+                || _order.Status is (byte)OrderStatus.Shipped or (byte)OrderStatus.Completed
+                || _order.ShippingStatus is (byte)OrderShippingStatus.Shipped
+                    or (byte)OrderShippingStatus.InTransit
+                    or (byte)OrderShippingStatus.Delivered
+                || string.Equals(_outboundDocStatus, nameof(StockDocumentStatus.Posted), StringComparison.Ordinal)))
+        {
+            Snackbar.Add(L["orders.cancel_use_refund",
+                "Cancel is blocked after payment or shipment so money and stock stay aligned. Use Refund — after ship it opens a warehouse Return for QC/restock."], Severity.Warning);
+            return;
+        }
         var ok = await OrderService.TransitionStatusAsync(_order.OrderID, _newStatus, _currentMemberId, _note);
         if (ok) { Snackbar.Add(L["saved", "Saved."], Severity.Success); _note = null; await LoadAsync(); }
+        else if (_newStatus == OrderStatus.Cancelled)
+            Snackbar.Add(L["orders.cancel_use_refund",
+                "Cancel is blocked after payment or shipment so money and stock stay aligned. Use Refund — after ship it opens a warehouse Return for QC/restock."], Severity.Warning);
         else Snackbar.Add(_shipBlockReason ?? L["save_failed", "Save failed"], Severity.Error);
     }
 
