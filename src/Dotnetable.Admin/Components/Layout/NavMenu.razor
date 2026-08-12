@@ -388,6 +388,7 @@
                 <AuthorizeView Policy="@RoleKeys.TaxView" Context="tax">
                     <MudNavLink Href="/sales/tax" Icon="@Icons.Material.Filled.Percent">@L["tax", "Tax"]</MudNavLink>
                     <MudNavLink Href="/sales/tax/report" Icon="@Icons.Material.Filled.Assessment">@L["vat_report", "VAT report"]</MudNavLink>
+                    <MudNavLink Href="/sales/tax/periods" Icon="@Icons.Material.Filled.DateRange">@L["tax.periods", "Tax periods"]</MudNavLink>
                 </AuthorizeView>
             </MudNavGroup>
         }

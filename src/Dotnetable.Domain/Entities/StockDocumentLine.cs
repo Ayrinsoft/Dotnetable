@@ -5,7 +5,15 @@ public partial class StockDocumentLine
     public int StockDocumentLineID { get; set; }
     public int StockDocumentID { get; set; }
     public int ProductVariantID { get; set; }
+    /// <summary>
+    /// Movement quantity for Inbound/Outbound/Transfer/Adjustment/Return.
+    /// For Count documents: stored variance (Counted − Book) used when posting.
+    /// </summary>
     public int Quantity { get; set; }
+    /// <summary>System book qty snapshot (warehouse on-hand) for Count lines.</summary>
+    public int BookQuantity { get; set; }
+    /// <summary>Physical counted qty for Count lines; null for non-count docs.</summary>
+    public int? CountedQuantity { get; set; }
     public decimal UnitCost { get; set; }
     public decimal UnitCostUsd { get; set; }
     public string? Note { get; set; }

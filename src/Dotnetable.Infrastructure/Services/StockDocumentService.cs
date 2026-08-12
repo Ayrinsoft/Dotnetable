@@ -1,3 +1,4 @@
+using Dotnetable.Application.Authorization;
 using Dotnetable.Application.DTOs;
 using Dotnetable.Application.Interfaces;
 using Dotnetable.Domain.Entities;
@@ -15,17 +16,20 @@ public class StockDocumentService : IStockDocumentService
     private readonly IWarehouseService _warehouses;
     private readonly IInventoryService _inventory;
     private readonly IVendorProductService _vendorProducts;
+    private readonly IAdminNotificationService _notifications;
 
     public StockDocumentService(
         AppDbContext context,
         IWarehouseService warehouses,
         IInventoryService inventory,
-        IVendorProductService vendorProducts)
+        IVendorProductService vendorProducts,
+        IAdminNotificationService notifications)
     {
         _fallback = context;
         _warehouses = warehouses;
         _inventory = inventory;
         _vendorProducts = vendorProducts;
+        _notifications = notifications;
     }
 
     public async Task<PagedResult<StockDocument>> GetPagedAsync(int websiteId, byte? status, byte? type, GridQuery query, CancellationToken ct = default)
@@ -90,10 +94,26 @@ public class StockDocumentService : IStockDocumentService
                 && cond is not ((byte)StockItemCondition.New or (byte)StockItemCondition.None or (byte)StockItemCondition.Defective)
                 && grade == 0)
                 return (false, "Health grade is required for non-new return lines.", null);
+
+            int book = 0;
+            int? counted = null;
+            int qty = l.Quantity;
+            if (type == StockDocumentType.Count)
+            {
+                var whId = toWarehouseId ?? fromWarehouseId;
+                book = l.BookQuantity > 0
+                    ? l.BookQuantity
+                    : await GetWarehouseOnHandAsync(whId, l.ProductVariantID, ct);
+                counted = l.CountedQuantity ?? l.Quantity;
+                qty = counted.Value - book; // variance for post
+            }
+
             doc.StockDocumentLines.Add(new StockDocumentLine
             {
                 ProductVariantID = l.ProductVariantID,
-                Quantity = l.Quantity,
+                Quantity = qty,
+                BookQuantity = book,
+                CountedQuantity = counted,
                 UnitCost = l.UnitCost,
                 UnitCostUsd = l.UnitCost,
                 Note = l.Note,
@@ -107,11 +127,19 @@ public class StockDocumentService : IStockDocumentService
         return (true, null, doc);
     }
 
-    public Task<(bool Success, string? Error)> SubmitAsync(int documentId, int? memberId, CancellationToken ct = default) =>
-        TransitionAsync(documentId, StockDocumentStatus.Draft, StockDocumentStatus.Submitted, memberId, "Submitted", ct);
+    public async Task<(bool Success, string? Error)> SubmitAsync(int documentId, int? memberId, CancellationToken ct = default)
+    {
+        var result = await TransitionAsync(documentId, StockDocumentStatus.Draft, StockDocumentStatus.Submitted, memberId, "Submitted", ct);
+        if (result.Success) await NotifyWarehouseAsync(documentId, "submitted", ct);
+        return result;
+    }
 
-    public Task<(bool Success, string? Error)> ApproveAsync(int documentId, int? memberId, CancellationToken ct = default) =>
-        TransitionAsync(documentId, StockDocumentStatus.Submitted, StockDocumentStatus.Approved, memberId, "Approved / ready to pick", ct, approve: true);
+    public async Task<(bool Success, string? Error)> ApproveAsync(int documentId, int? memberId, CancellationToken ct = default)
+    {
+        var result = await TransitionAsync(documentId, StockDocumentStatus.Submitted, StockDocumentStatus.Approved, memberId, "Approved / ready to pick", ct, approve: true);
+        if (result.Success) await NotifyWarehouseAsync(documentId, "approved / ready", ct);
+        return result;
+    }
 
     public Task<(bool Success, string? Error)> MarkReadyToPickAsync(int documentId, int? memberId, CancellationToken ct = default) =>
         ApproveAsync(documentId, memberId, ct);
@@ -140,12 +168,22 @@ public class StockDocumentService : IStockDocumentService
                 switch (type)
                 {
                     case StockDocumentType.Inbound:
-                    case StockDocumentType.Count:
                     case StockDocumentType.Adjustment when line.Quantity > 0:
                         await AdjustWarehouseAsync(doc.ToWarehouseID ?? doc.FromWarehouseID, line.ProductVariantID, Math.Abs(line.Quantity), clearReserved: 0, ct);
                         await _inventory.AdjustAsync(doc.WebsiteID, line.ProductVariantID, Math.Abs(line.Quantity), line.UnitCost,
                             $"Stock doc {doc.DocumentNumber}", memberId ?? 0, ct);
                         await SyncInventoryFromWarehouseAsync(doc.WebsiteID, line.ProductVariantID, ct);
+                        break;
+                    case StockDocumentType.Count:
+                        // Quantity is variance (Counted − Book). Zero variance = no stock change.
+                        if (line.Quantity != 0)
+                        {
+                            await AdjustWarehouseAsync(doc.ToWarehouseID ?? doc.FromWarehouseID, line.ProductVariantID, line.Quantity, clearReserved: 0, ct);
+                            await _inventory.AdjustAsync(doc.WebsiteID, line.ProductVariantID, line.Quantity, line.UnitCost,
+                                $"Count {doc.DocumentNumber} variance {line.Quantity} (book {line.BookQuantity} → counted {line.CountedQuantity})",
+                                memberId ?? 0, ct);
+                            await SyncInventoryFromWarehouseAsync(doc.WebsiteID, line.ProductVariantID, ct);
+                        }
                         break;
                     case StockDocumentType.Outbound:
                     case StockDocumentType.Adjustment when line.Quantity < 0:
@@ -165,6 +203,8 @@ public class StockDocumentService : IStockDocumentService
                         await SyncInventoryFromWarehouseAsync(doc.WebsiteID, line.ProductVariantID, ct);
                         break;
                     case StockDocumentType.Transfer:
+                        if (line.Quantity <= 0)
+                            throw new InvalidOperationException("Transfer quantity must be positive.");
                         await AdjustWarehouseAsync(doc.FromWarehouseID, line.ProductVariantID, -line.Quantity, clearReserved: 0, ct);
                         await AdjustWarehouseAsync(doc.ToWarehouseID, line.ProductVariantID, line.Quantity, clearReserved: 0, ct);
                         await SyncInventoryFromWarehouseAsync(doc.WebsiteID, line.ProductVariantID, ct);
@@ -186,7 +226,127 @@ public class StockDocumentService : IStockDocumentService
         doc.PostedByMemberID = memberId;
         AddHistory(doc, from, (byte)StockDocumentStatus.Posted, "Posted", memberId);
         await _context.SaveChangesAsync(ct);
+        await NotifyWarehouseAsync(documentId, "posted", ct);
         return (true, null);
+    }
+
+    public async Task<(bool Success, string? Error, StockDocument? Doc)> CreateCountFromWarehouseAsync(
+        int websiteId, int warehouseId, string? note, int? memberId, CancellationToken ct = default)
+    {
+        if (websiteId <= 0 || warehouseId <= 0) return (false, "Website and warehouse are required.", null);
+        var stocks = await _warehouses.GetStockAsync(warehouseId, ct);
+        var lines = stocks
+            .Where(s => s.QuantityOnHand != 0 || s.QuantityReserved != 0)
+            .Select(s => new StockDocumentLineRequest
+            {
+                ProductVariantID = s.ProductVariantID,
+                Quantity = s.QuantityOnHand, // counted defaults to book
+                BookQuantity = s.QuantityOnHand,
+                CountedQuantity = s.QuantityOnHand,
+                UnitCost = 0,
+                Note = s.ProductVariant?.Sku,
+            })
+            .ToList();
+        if (lines.Count == 0)
+            return (false, "Warehouse has no stock rows to count. Add stock via inbound first, or create a count line manually.", null);
+
+        return await CreateAsync(websiteId, StockDocumentType.Count, null, warehouseId, null,
+            note ?? "Physical count", lines, memberId, ct);
+    }
+
+    public async Task<(bool Success, string? Error)> SetCountedQuantityAsync(
+        int stockDocumentLineId, int countedQuantity, int? memberId, CancellationToken ct = default)
+    {
+        if (countedQuantity < 0) return (false, "Counted quantity cannot be negative.");
+        var line = await _context.StockDocumentLines
+            .Include(l => l.StockDocument)
+            .FirstOrDefaultAsync(l => l.StockDocumentLineID == stockDocumentLineId, ct);
+        if (line is null) return (false, "Line not found.");
+        if (line.StockDocument.DocumentType != (byte)StockDocumentType.Count)
+            return (false, "Only count document lines have counted quantity.");
+        if (line.StockDocument.Status == (byte)StockDocumentStatus.Posted)
+            return (false, "Cannot edit after post.");
+
+        line.CountedQuantity = countedQuantity;
+        line.Quantity = countedQuantity - line.BookQuantity; // variance
+        await _context.SaveChangesAsync(ct);
+        return (true, null);
+    }
+
+    public async Task<(bool Success, string? Error)> AddLineAsync(
+        int documentId, StockDocumentLineRequest line, int? memberId, CancellationToken ct = default)
+    {
+        if (line.ProductVariantID <= 0 || line.Quantity <= 0 && line.CountedQuantity is null)
+            return (false, "Variant and quantity are required.");
+        var doc = await _context.StockDocuments
+            .Include(d => d.StockDocumentLines)
+            .FirstOrDefaultAsync(d => d.StockDocumentID == documentId, ct);
+        if (doc is null) return (false, "Document not found.");
+        if (doc.Status is (byte)StockDocumentStatus.Posted or (byte)StockDocumentStatus.Cancelled or (byte)StockDocumentStatus.Rejected)
+            return (false, "Cannot add lines to this document.");
+
+        var type = (StockDocumentType)doc.DocumentType;
+        int book = 0;
+        int? counted = null;
+        int qty = line.Quantity;
+        if (type == StockDocumentType.Count)
+        {
+            book = line.BookQuantity > 0
+                ? line.BookQuantity
+                : await GetWarehouseOnHandAsync(doc.ToWarehouseID ?? doc.FromWarehouseID, line.ProductVariantID, ct);
+            counted = line.CountedQuantity ?? line.Quantity;
+            qty = counted.Value - book;
+        }
+
+        doc.StockDocumentLines.Add(new StockDocumentLine
+        {
+            ProductVariantID = line.ProductVariantID,
+            Quantity = qty,
+            BookQuantity = book,
+            CountedQuantity = counted,
+            UnitCost = line.UnitCost,
+            UnitCostUsd = line.UnitCost,
+            Note = line.Note,
+            ReturnCondition = type == StockDocumentType.Return
+                ? (line.ReturnCondition == 0 ? (byte)StockItemCondition.New : line.ReturnCondition)
+                : (byte)0,
+            HealthGrade = line.HealthGrade,
+        });
+        await _context.SaveChangesAsync(ct);
+        return (true, null);
+    }
+
+    private async Task<int> GetWarehouseOnHandAsync(int? warehouseId, int variantId, CancellationToken ct)
+    {
+        if (warehouseId is null or <= 0) return 0;
+        return await _context.WarehouseStocks.AsNoTracking()
+            .Where(s => s.WarehouseID == warehouseId && s.ProductVariantID == variantId)
+            .Select(s => s.QuantityOnHand)
+            .FirstOrDefaultAsync(ct);
+    }
+
+    private async Task NotifyWarehouseAsync(int documentId, string action, CancellationToken ct)
+    {
+        try
+        {
+            var doc = await _context.StockDocuments.AsNoTracking()
+                .FirstOrDefaultAsync(d => d.StockDocumentID == documentId, ct);
+            if (doc is null) return;
+            var type = (StockDocumentType)doc.DocumentType;
+            await _notifications.NotifyRoleAsync(
+                doc.WebsiteID,
+                [RoleKeys.WarehouseView, RoleKeys.WarehouseIssue, RoleKeys.WarehouseReceive, RoleKeys.WarehousePost],
+                AdminNotificationType.WarehouseDocument,
+                $"Warehouse {type} {action}",
+                $"{doc.DocumentNumber} ({type}) was {action}.",
+                $"/inventory/stock-documents/{doc.StockDocumentID}",
+                doc.StockDocumentID,
+                ct);
+        }
+        catch
+        {
+            /* never fail business flow on notify */
+        }
     }
 
     private async Task PostReturnLineAsync(StockDocument doc, StockDocumentLine line, int? memberId, CancellationToken ct)

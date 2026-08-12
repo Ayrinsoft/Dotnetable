@@ -30,7 +30,9 @@ public class AdminNotificationServiceTests : IDisposable
         _emailMock.Setup(e => e.IsConfiguredAsync(It.IsAny<int>(), It.IsAny<CancellationToken>())).ReturnsAsync(true);
 
         var factory = new TestDbContextFactory(_options);
-        _service = new AdminNotificationService(factory, _emailMock.Object, NullLogger<AdminNotificationService>.Instance);
+        var wa = new Mock<IWhatsAppSender>();
+        wa.SetupGet(w => w.IsConfigured).Returns(false);
+        _service = new AdminNotificationService(factory, _emailMock.Object, wa.Object, NullLogger<AdminNotificationService>.Instance);
 
         _website = new Website
         {

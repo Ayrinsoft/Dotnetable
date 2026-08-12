@@ -15,7 +15,21 @@ public interface IAdminNotificationService
         int? relatedEntityId = null,
         CancellationToken ct = default);
 
-    /// <summary>In-app (+ optional email) notification for a single member.</summary>
+    /// <summary>
+    /// In-app + email + WhatsApp (when configured) for members who have any of the given role keys
+    /// on their policy (or are site admins). Falls back to all site admins if no role matches.
+    /// </summary>
+    Task NotifyRoleAsync(
+        int websiteId,
+        IReadOnlyList<string> roleKeys,
+        AdminNotificationType type,
+        string title,
+        string message,
+        string? actionUrl = null,
+        int? relatedEntityId = null,
+        CancellationToken ct = default);
+
+    /// <summary>In-app (+ optional email/WhatsApp) notification for a single member.</summary>
     Task NotifyMemberAsync(
         int memberId,
         int websiteId,

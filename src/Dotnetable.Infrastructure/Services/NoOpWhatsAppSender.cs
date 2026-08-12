@@ -4,7 +4,8 @@ using Microsoft.Extensions.Logging;
 namespace Dotnetable.Infrastructure.Services;
 
 /// <summary>
-/// Placeholder WhatsApp sender until a real provider is wired. Logs the message in development.
+/// Default WhatsApp sender until a provider factory + per-website settings exist.
+/// Never sends; logs only in development.
 /// </summary>
 public class NoOpWhatsAppSender : IWhatsAppSender
 {

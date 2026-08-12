@@ -182,6 +182,7 @@
     <Build Include="ShippingMethods.sql" />
     <Build Include="ShippingRates.sql" />
     <Build Include="TaxRates.sql" />
+    <Build Include="TaxPeriods.sql" />
     <Build Include="WishlistItems.sql" />
     <Build Include="Wishlists.sql" />
     <Build Include="SlideshowSlides.sql" />

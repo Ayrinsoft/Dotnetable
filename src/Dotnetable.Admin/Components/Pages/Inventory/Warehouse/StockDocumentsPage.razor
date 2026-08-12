@@ -47,12 +47,34 @@
                     <MudLink Href="/payments/refunds" Class="ms-1">@L["payments.refunds", "Bank refunds"]</MudLink>
                 </MudText>
             }
+            @if (_doc.FromWarehouse is not null || _doc.ToWarehouse is not null)
+            {
+                <MudText Class="mb-2" Typo="Typo.caption">
+                    @if (_doc.FromWarehouse is not null) { <span>@L["warehouse.from", "From"]: @_doc.FromWarehouse.Name</span> }
+                    @if (_doc.ToWarehouse is not null) { <span class="ms-2">@L["warehouse.to", "To"]: @_doc.ToWarehouse.Name</span> }
+                </MudText>
+            }
+            @if (_doc.DocumentType == (byte)StockDocumentType.Count)
+            {
+                <MudAlert Severity="Severity.Info" Dense="true" Class="mb-2" Variant="Variant.Outlined">
+                    @L["warehouse.count_hint", "Book = system on-hand at count. Counted = physical. Variance = Counted − Book (posted as stock adjustment)."]
+                </MudAlert>
+            }
             <MudSimpleTable Dense="true">
                 <thead>
                     <tr>
                         <th>@L["variant", "Variant"]</th>
-                        <th>@L["qty", "Qty"]</th>
-                        <th>@L["unit_cost", "Unit cost"]</th>
+                        @if (_doc.DocumentType == (byte)StockDocumentType.Count)
+                        {
+                            <th>@L["warehouse.book_qty", "Book"]</th>
+                            <th>@L["warehouse.counted_qty", "Counted"]</th>
+                            <th>@L["warehouse.variance", "Variance"]</th>
+                        }
+                        else
+                        {
+                            <th>@L["qty", "Qty"]</th>
+                            <th>@L["unit_cost", "Unit cost"]</th>
+                        }
                         @if (_doc.DocumentType == (byte)StockDocumentType.Return)
                         {
                             <th>@L["warehouse.item_condition", "Condition"]</th>
@@ -65,8 +87,30 @@
                     {
                         <tr>
                             <td>@l.ProductVariant?.Sku — @l.ProductVariant?.Product?.Title</td>
-                            <td>@l.Quantity</td>
-                            <td>@l.UnitCost.ToString("0.##")</td>
+                            @if (_doc.DocumentType == (byte)StockDocumentType.Count)
+                            {
+                                <td>@l.BookQuantity</td>
+                                <td>
+                                    @if (_doc.Status != (byte)StockDocumentStatus.Posted && (_canReceive || _canPost || _canIssue))
+                                    {
+                                        <MudNumericField T="int" Value="@(l.CountedQuantity ?? l.BookQuantity)" Dense="true" Style="max-width:100px"
+                                                         ValueChanged="@(async v => await SetCountedAsync(l.StockDocumentLineID, v))" Min="0" />
+                                    }
+                                    else { @(l.CountedQuantity ?? l.BookQuantity) }
+                                </td>
+                                <td>
+                                    @{
+                                        var variance = l.Quantity;
+                                        var vColor = variance == 0 ? Color.Default : variance > 0 ? Color.Success : Color.Error;
+                                    }
+                                    <MudChip T="string" Size="Size.Small" Color="vColor">@(variance > 0 ? $"+{variance}" : variance.ToString())</MudChip>
+                                </td>
+                            }
+                            else
+                            {
+                                <td>@l.Quantity</td>
+                                <td>@l.UnitCost.ToString("0.##")</td>
+                            }
                             @if (_doc.DocumentType == (byte)StockDocumentType.Return)
                             {
                                 <td>
@@ -114,6 +158,24 @@
                     }
                 </tbody>
             </MudSimpleTable>
+            @if (_doc.DocumentType == (byte)StockDocumentType.Count && _doc.StockDocumentLines.Count > 0)
+            {
+                var totalVar = _doc.StockDocumentLines.Sum(x => x.Quantity);
+                <MudText Class="mt-2" Typo="Typo.caption">
+                    @L["warehouse.total_variance", "Total variance"]: <strong>@(totalVar > 0 ? $"+{totalVar}" : totalVar.ToString())</strong>
+                    · @L["warehouse.lines_with_diff", "Lines with difference"]: @_doc.StockDocumentLines.Count(x => x.Quantity != 0)
+                </MudText>
+            }
+            @if (_doc.Status != (byte)StockDocumentStatus.Posted
+                 && _doc.DocumentType is (byte)StockDocumentType.Transfer or (byte)StockDocumentType.Inbound or (byte)StockDocumentType.Outbound
+                 && (_canIssue || _canReceive))
+            {
+                <MudStack Row="true" Class="mt-3 gap-2 flex-wrap">
+                    <MudNumericField T="int" @bind-Value="_addVariantId" Label="@L["variant_id", "Variant ID"]" Dense="true" />
+                    <MudNumericField T="int" @bind-Value="_addQty" Label="@L["qty", "Qty"]" Dense="true" Min="1" />
+                    <MudButton Size="Size.Small" Variant="Variant.Outlined" OnClick="AddLineAsync">@L["warehouse.add_line", "Add line"]</MudButton>
+                </MudStack>
+            }
         </MudPaper>
         <RecordAttachmentsPanel WebsiteId="_doc.WebsiteID"
                                EntityType="@Dotnetable.Application.RecordAttachments.RecordEntityTypes.StockDocument"
@@ -132,20 +194,32 @@ else
     @if (_canIssue || _canReceive)
     {
         <MudPaper Class="app-card pa-3 mb-3">
-            <MudText Typo="Typo.subtitle2" Class="mb-2">@L["warehouse.new_doc", "New document"]</MudText>
+            <MudText Typo="Typo.subtitle2" Class="mb-2">@L["warehouse.transfer_count", "Transfer & count (quick)"]</MudText>
+            <MudStack Row="true" Class="flex-wrap gap-2 mb-2">
+                <MudSelect T="int?" @bind-Value="_fromWh" Dense="true" Style="min-width:160px" Label="@L["warehouse.from", "From warehouse"]" Clearable="true">
+                    @foreach (var w in _wh) { <MudSelectItem T="int?" Value="@w.WarehouseID">@w.Name</MudSelectItem> }
+                </MudSelect>
+                <MudSelect T="int?" @bind-Value="_toWh" Dense="true" Style="min-width:160px" Label="@L["warehouse.to", "To warehouse"]" Clearable="true">
+                    @foreach (var w in _wh) { <MudSelectItem T="int?" Value="@w.WarehouseID">@w.Name</MudSelectItem> }
+                </MudSelect>
+                <MudButton Variant="Variant.Filled" Color="Color.Primary" OnClick="CreateTransfer" Disabled="@(_fromWh is null or <= 0 || _toWh is null or <= 0 || _fromWh == _toWh)">
+                    @L["warehouse.create_transfer", "Create transfer"]
+                </MudButton>
+                <MudButton Variant="Variant.Outlined" Color="Color.Secondary" OnClick="CreateCount" Disabled="@((_toWh ?? _fromWh) is null or <= 0)">
+                    @L["warehouse.create_count", "Physical count (load stock)"]
+                </MudButton>
+            </MudStack>
+            <MudText Typo="Typo.caption" Color="Color.Secondary" Class="mb-3">
+                @L["warehouse.transfer_hint", "Transfer: set From + To, then open the document and add lines. Count: loads all on-hand rows for the warehouse (To, or From) so you can enter physical counts and review variance."]
+            </MudText>
+
+            <MudDivider Class="mb-3" />
+            <MudText Typo="Typo.subtitle2" Class="mb-2">@L["warehouse.new_doc", "Other document types"]</MudText>
             <MudStack Row="true" Class="flex-wrap gap-2 mb-2">
                 <MudSelect T="StockDocumentType" @bind-Value="_newType" Dense="true" Style="min-width:140px" Label="Type">
                     @foreach (StockDocumentType t in Enum.GetValues<StockDocumentType>())
                     { <MudSelectItem T="StockDocumentType" Value="@t">@t</MudSelectItem> }
                 </MudSelect>
-                <MudSelect T="int?" @bind-Value="_toWh" Dense="true" Style="min-width:160px" Label="To warehouse" Clearable="true">
-                    @foreach (var w in _wh) { <MudSelectItem T="int?" Value="@w.WarehouseID">@w.Name</MudSelectItem> }
-                </MudSelect>
-                <MudSelect T="int?" @bind-Value="_fromWh" Dense="true" Style="min-width:160px" Label="From warehouse" Clearable="true">
-                    @foreach (var w in _wh) { <MudSelectItem T="int?" Value="@w.WarehouseID">@w.Name</MudSelectItem> }
-                </MudSelect>
-            </MudStack>
-            <MudStack Row="true" Class="flex-wrap gap-2">
                 <MudNumericField T="int" @bind-Value="_lineVariantId" Label="Variant ID" Dense="true" />
                 <MudNumericField T="int" @bind-Value="_lineQty" Label="Qty" Dense="true" Min="1" />
                 <DNMoneyField @bind-Value="_lineCost" Label="Unit cost" Min="0" />
@@ -175,7 +249,7 @@ else
 @code {
     [Parameter] public int? DocumentId { get; set; }
     private bool _isMaster, _canReceive, _canIssue, _canApprove, _canPost;
-    private int _websiteId, _memberId, _lineVariantId, _lineQty = 1;
+    private int _websiteId, _memberId, _lineVariantId, _lineQty = 1, _addVariantId, _addQty = 1;
     private decimal _lineCost;
     private int? _toWh, _fromWh;
     private StockDocumentType _newType = StockDocumentType.Inbound;
@@ -213,6 +287,66 @@ else
             new[] { new StockDocumentLineRequest { ProductVariantID = _lineVariantId, Quantity = _lineQty, UnitCost = _lineCost } }, _memberId);
         if (ok && doc is not null) Nav.NavigateTo($"/inventory/stock-documents/{doc.StockDocumentID}");
         else Snackbar.Add(err ?? "Failed", Severity.Error);
+    }
+
+    private async Task CreateTransfer()
+    {
+        if (_websiteId <= 0 || _fromWh is null || _toWh is null || _fromWh == _toWh)
+        {
+            Snackbar.Add(L["warehouse.transfer_need_wh", "Pick two different warehouses."], Severity.Warning);
+            return;
+        }
+        // Start with empty draft (one placeholder line required by Create — use qty 0 invalid).
+        // Create with a dummy then delete is messy; require first line via Add after empty create.
+        // Use Create with one optional line if user filled variant, else create inbound-style with no lines fails.
+        // CreateAsync requires lines — seed with first available stock SKU qty 0 not allowed.
+        // Solution: create Transfer with first warehouse stock line qty 1 if any, else ask for variant.
+        if (_lineVariantId <= 0)
+        {
+            var stocks = _fromWh is int fid ? await Warehouses.GetStockAsync(fid) : Array.Empty<WarehouseStock>();
+            var first = stocks.FirstOrDefault(s => s.QuantityOnHand > 0);
+            if (first is null)
+            {
+                Snackbar.Add(L["warehouse.transfer_need_line", "Enter a Variant ID (and qty) for the first transfer line, or stock the From warehouse first."], Severity.Warning);
+                return;
+            }
+            _lineVariantId = first.ProductVariantID;
+            _lineQty = Math.Min(1, first.QuantityOnHand);
+        }
+        var (ok, err, doc) = await Docs.CreateAsync(_websiteId, StockDocumentType.Transfer, _fromWh, _toWh, null,
+            L["warehouse.transfer_note", "Inter-warehouse transfer"],
+            new[] { new StockDocumentLineRequest { ProductVariantID = _lineVariantId, Quantity = Math.Max(1, _lineQty), UnitCost = _lineCost } },
+            _memberId);
+        if (ok && doc is not null) Nav.NavigateTo($"/inventory/stock-documents/{doc.StockDocumentID}");
+        else Snackbar.Add(err ?? "Failed", Severity.Error);
+    }
+
+    private async Task CreateCount()
+    {
+        var wh = _toWh ?? _fromWh;
+        if (_websiteId <= 0 || wh is null or <= 0)
+        {
+            Snackbar.Add(L["warehouse.count_need_wh", "Select a warehouse (To or From)."], Severity.Warning);
+            return;
+        }
+        var (ok, err, doc) = await Docs.CreateCountFromWarehouseAsync(_websiteId, wh.Value, null, _memberId);
+        if (ok && doc is not null) Nav.NavigateTo($"/inventory/stock-documents/{doc.StockDocumentID}");
+        else Snackbar.Add(err ?? "Failed", Severity.Error);
+    }
+
+    private async Task SetCountedAsync(int lineId, int counted)
+    {
+        var (ok, e) = await Docs.SetCountedQuantityAsync(lineId, counted, _memberId);
+        await After(ok, e);
+    }
+
+    private async Task AddLineAsync()
+    {
+        if (DocumentId is null or <= 0 || _addVariantId <= 0 || _addQty <= 0) return;
+        var (ok, e) = await Docs.AddLineAsync(DocumentId.Value,
+            new StockDocumentLineRequest { ProductVariantID = _addVariantId, Quantity = _addQty, UnitCost = 0 }, _memberId);
+        if (ok) { _addVariantId = 0; _addQty = 1; }
+        await After(ok, e);
     }
 
     private async Task Submit() { var (ok, e) = await Docs.SubmitAsync(DocumentId!.Value, _memberId); await After(ok, e); }

@@ -1,0 +1,168 @@
+@page "/sales/tax/periods"
+@page "/sales/tax/periods/{PeriodId:int}"
+@using Dotnetable.Domain.Enums
+@using Dotnetable.Application.RecordAttachments
+@attribute [Authorize(Policy = RoleKeys.TaxView)]
+@inject ITaxPeriodService Periods
+@inject IWebsiteService WebsiteService
+@inject AuthenticationStateProvider AuthState
+@inject ISnackbar Snackbar
+@inject IPageLocalizer L
+@inject NavigationManager Nav
+
+<DNPageTitle Title=@L["tax.periods", "Tax periods"] />
+
+@if (PeriodId is > 0)
+{
+    @if (_period is null) { <MudProgressLinear Indeterminate="true" /> }
+    else
+    {
+        <MudStack Row="true" Justify="Justify.SpaceBetween" Class="mb-3">
+            <MudText Typo="Typo.h5">@_period.PeriodCode · @((TaxPeriodStatus)_period.Status)</MudText>
+            <MudButton OnClick="@(() => Nav.NavigateTo("/sales/tax/periods"))">@L["back", "Back"]</MudButton>
+        </MudStack>
+        <MudPaper Class="app-card pa-4 mb-3">
+            <MudText>@_period.FromDate.ToString("yyyy-MM-dd") → @_period.ToDate.ToString("yyyy-MM-dd")</MudText>
+            <MudText Class="mt-2">@L["vat_report.output_sales", "Output tax"]: @_period.OutputTaxSnapshot.ToString("0.##")</MudText>
+            <MudText>@L["vat_report.settlement_tax", "Settlement tax"]: @_period.SettlementTaxSnapshot.ToString("0.##")</MudText>
+            <MudText Typo="Typo.subtitle1">@L["tax.net_snapshot", "Net tax snapshot"]: @_period.NetTaxSnapshot.ToString("0.##")</MudText>
+            <MudText Typo="Typo.caption" Color="Color.Secondary">
+                @L["orders", "Orders"]: @_period.OutputOrderCount · @L["settlements", "Settlements"]: @_period.SettlementCount
+                @if (_period.SnapshotAt is DateTime sa) { <span> · @L["tax.snapshot_at", "Snapshot"]: @sa.ToLocalTime().ToString("g")</span> }
+            </MudText>
+            <MudStack Row="true" Class="mt-3 gap-2 flex-wrap">
+                @if (_canEdit && _period.Status is not ((byte)TaxPeriodStatus.Filed))
+                {
+                    <MudButton Variant="Variant.Outlined" OnClick="Snapshot">@L["tax.generate_snapshot", "Generate snapshot"]</MudButton>
+                }
+                @if (_canEdit && _period.Status is (byte)TaxPeriodStatus.Open or (byte)TaxPeriodStatus.Draft)
+                {
+                    <MudButton Color="Color.Primary" Variant="Variant.Filled" OnClick="Close">@L["tax.close_period", "Close period"]</MudButton>
+                }
+                @if (_canEdit && _period.Status == (byte)TaxPeriodStatus.Closed)
+                {
+                    <MudButton Color="Color.Success" Variant="Variant.Filled" OnClick="File">@L["tax.mark_filed", "Mark filed"]</MudButton>
+                }
+                <MudButton Variant="Variant.Text" Href="@($"/sales/tax/report")">@L["vat_report", "Live VAT report"]</MudButton>
+            </MudStack>
+        </MudPaper>
+        <RecordAttachmentsPanel WebsiteId="_period.WebsiteID"
+                               EntityType="@RecordEntityTypes.TaxPeriod"
+                               EntityId="_period.TaxPeriodID"
+                               CanEdit="_canEdit"
+                               Title="@L["attachments.tax_period", "Tax filings / authority letters"]" />
+    }
+}
+else
+{
+    <MudStack Row="true" Justify="Justify.SpaceBetween" Class="mb-3 flex-wrap gap-2">
+        <MudStack Spacing="0">
+            <MudText Typo="Typo.h5" Class="fw-bold">@L["tax.periods", "Tax periods"]</MudText>
+            <MudText Typo="Typo.body2" Color="Color.Secondary">
+                @L["tax.periods.subtitle", "Filing windows with stored VAT snapshots (not the same as accounting fiscal periods). Attach scans on each period."]
+            </MudText>
+        </MudStack>
+        @if (_isMaster)
+        {
+            <WebsiteSelector Value="_websiteId" ValueChanged="async id=>{_websiteId=id;await Load();}" Websites="_websites" Dense="true" Style="min-width:160px" />
+        }
+    </MudStack>
+
+    @if (_canEdit)
+    {
+        <MudPaper Class="app-card pa-3 mb-3">
+            <MudStack Row="true" Class="flex-wrap gap-2">
+                <MudTextField @bind-Value="_code" Label="@L["tax.period_code", "Code"]" Dense="true" HelperText="e.g. 2026-Q1" />
+                <MudDatePicker @bind-Date="_from" Label="@L["from", "From"]" Dense="true" />
+                <MudDatePicker @bind-Date="_to" Label="@L["to", "To"]" Dense="true" />
+                <MudButton Variant="Variant.Filled" Color="Color.Primary" OnClick="Create">@L["create", "Create"]</MudButton>
+            </MudStack>
+        </MudPaper>
+    }
+
+    <MudPaper Class="app-card pa-4">
+        <MudSimpleTable Dense="true" Hover="true">
+            <thead>
+                <tr>
+                    <th>@L["tax.period_code", "Code"]</th>
+                    <th>@L["period", "Period"]</th>
+                    <th>@L["status", "Status"]</th>
+                    <th>@L["tax.net_snapshot", "Net tax"]</th>
+                </tr>
+            </thead>
+            <tbody>
+                @foreach (var p in _list)
+                {
+                    <tr style="cursor:pointer" @onclick="@(() => Nav.NavigateTo($"/sales/tax/periods/{p.TaxPeriodID}"))">
+                        <td>@p.PeriodCode</td>
+                        <td>@p.FromDate → @p.ToDate</td>
+                        <td>@((TaxPeriodStatus)p.Status)</td>
+                        <td>@p.NetTaxSnapshot.ToString("0.##")</td>
+                    </tr>
+                }
+            </tbody>
+        </MudSimpleTable>
+    </MudPaper>
+}
+
+@code {
+    [Parameter] public int? PeriodId { get; set; }
+    private bool _isMaster, _canEdit;
+    private int _websiteId, _memberId;
+    private List<Website> _websites = new();
+    private List<TaxPeriod> _list = new();
+    private TaxPeriod? _period;
+    private string _code = "";
+    private DateTime? _from = new DateTime(DateTime.Today.Year, DateTime.Today.Month, 1);
+    private DateTime? _to = DateTime.Today;
+
+    protected override async Task OnParametersSetAsync()
+    {
+        await L.EnsureLoadedAsync();
+        var u = (await AuthState.GetAuthenticationStateAsync()).User;
+        _isMaster = u.HasClaim(AdminClaimTypes.Master, "true");
+        _canEdit = AdminPolicies.Allows(u, RoleKeys.TaxEdit);
+        int.TryParse(u.FindFirst(AdminClaimTypes.WebsiteId)?.Value, out _websiteId);
+        int.TryParse(u.FindFirst(AdminClaimTypes.MemberId)?.Value, out _memberId);
+        if (_isMaster) _websites = (await WebsiteService.GetAllAsync()).ToList();
+        if (PeriodId is > 0) _period = await Periods.GetByIdAsync(PeriodId.Value);
+        else await Load();
+    }
+
+    private async Task Load()
+    {
+        if (_websiteId <= 0) return;
+        var r = await Periods.GetPagedAsync(_websiteId, null, new GridQuery { PageIndex = 1, PageSize = 50 });
+        _list = r.Items.ToList();
+    }
+
+    private async Task Create()
+    {
+        if (_from is null || _to is null) return;
+        var (ok, err, p) = await Periods.CreateAsync(_websiteId, _code,
+            DateOnly.FromDateTime(_from.Value), DateOnly.FromDateTime(_to.Value), null, _memberId);
+        if (ok && p is not null) Nav.NavigateTo($"/sales/tax/periods/{p.TaxPeriodID}");
+        else Snackbar.Add(err ?? "Failed", Severity.Error);
+    }
+
+    private async Task Snapshot()
+    {
+        var (ok, err, p) = await Periods.GenerateSnapshotAsync(PeriodId!.Value, _memberId);
+        if (ok) { Snackbar.Add(L["saved", "Saved."], Severity.Success); _period = p ?? await Periods.GetByIdAsync(PeriodId.Value); }
+        else Snackbar.Add(err ?? "Failed", Severity.Error);
+    }
+
+    private async Task Close()
+    {
+        var (ok, err) = await Periods.CloseAsync(PeriodId!.Value, _memberId);
+        if (ok) { Snackbar.Add(L["saved", "Saved."], Severity.Success); _period = await Periods.GetByIdAsync(PeriodId.Value); }
+        else Snackbar.Add(err ?? "Failed", Severity.Error);
+    }
+
+    private async Task File()
+    {
+        var (ok, err) = await Periods.UpdateStatusAsync(PeriodId!.Value, TaxPeriodStatus.Filed, _memberId);
+        if (ok) { Snackbar.Add(L["saved", "Saved."], Severity.Success); _period = await Periods.GetByIdAsync(PeriodId.Value); }
+        else Snackbar.Add(err ?? "Failed", Severity.Error);
+    }
+}

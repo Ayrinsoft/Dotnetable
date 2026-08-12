@@ -13,20 +13,24 @@ namespace Dotnetable.Infrastructure.Services;
 /// <summary>
 /// Uses a short-lived DbContext from the factory (not the circuit-scoped one) so concurrent
 /// Blazor component init after login (layout + dashboard + nav) cannot race on one context.
+/// Channels: in-app + email template + WhatsApp when gateway is configured.
 /// </summary>
 public class AdminNotificationService : IAdminNotificationService
 {
     private readonly IDbContextFactory<AppDbContext> _contextFactory;
     private readonly IEmailService _email;
+    private readonly IWhatsAppSender _whatsApp;
     private readonly ILogger<AdminNotificationService> _logger;
 
     public AdminNotificationService(
         IDbContextFactory<AppDbContext> contextFactory,
         IEmailService email,
+        IWhatsAppSender whatsApp,
         ILogger<AdminNotificationService> logger)
     {
         _contextFactory = contextFactory;
         _email = email;
+        _whatsApp = whatsApp;
         _logger = logger;
     }
 
@@ -42,61 +46,56 @@ public class AdminNotificationService : IAdminNotificationService
         await using var context = await _contextFactory.CreateDbContextAsync(ct);
 
         var admins = await context.Members.AsNoTracking()
-            .Where(m => m.WebsiteID == websiteId && m.Active && m.IsSiteAdmin && m.Email != "")
-            .Select(m => new { m.MemberID, m.Email, m.Givenname })
+            .Where(m => m.WebsiteID == websiteId && m.Active && m.IsSiteAdmin)
+            .Select(m => new Recipient(m.MemberID, m.Email, m.Givenname, m.CellphoneNumber, m.CountryCode))
             .ToListAsync(ct);
 
         if (admins.Count == 0) return;
+        await DeliverAsync(context, websiteId, type, title, message, actionUrl, relatedEntityId, admins, ct);
+    }
 
-        var now = DateTime.UtcNow;
-        var safeTitle = Truncate(title, 200);
-        var safeMessage = Truncate(message, 1000);
-        var safeUrl = actionUrl is null ? null : Truncate(actionUrl, 256);
+    public async Task NotifyRoleAsync(
+        int websiteId,
+        IReadOnlyList<string> roleKeys,
+        AdminNotificationType type,
+        string title,
+        string message,
+        string? actionUrl = null,
+        int? relatedEntityId = null,
+        CancellationToken ct = default)
+    {
+        await using var context = await _contextFactory.CreateDbContextAsync(ct);
 
-        foreach (var admin in admins)
+        var keys = roleKeys.Where(k => !string.IsNullOrWhiteSpace(k)).Select(k => k.Trim()).Distinct().ToList();
+        List<Recipient> recipients;
+
+        if (keys.Count == 0)
         {
-            context.AdminNotifications.Add(new AdminNotification
-            {
-                MemberID = admin.MemberID,
-                WebsiteID = websiteId,
-                NotificationType = (byte)type,
-                Title = safeTitle,
-                Message = safeMessage,
-                ActionUrl = safeUrl,
-                RelatedEntityID = relatedEntityId,
-                IsRead = false,
-                CreatedAt = now,
-            });
+            recipients = await context.Members.AsNoTracking()
+                .Where(m => m.WebsiteID == websiteId && m.Active && m.IsSiteAdmin)
+                .Select(m => new Recipient(m.MemberID, m.Email, m.Givenname, m.CellphoneNumber, m.CountryCode))
+                .ToListAsync(ct);
+        }
+        else
+        {
+            // Members whose policy includes any of the role keys, plus site admins.
+            var policyIds = await context.PolicyRoles.AsNoTracking()
+                .Where(pr => pr.Active && pr.Role.Active && keys.Contains(pr.Role.RoleKey))
+                .Select(pr => pr.PolicyID)
+                .Distinct()
+                .ToListAsync(ct);
+
+            recipients = await context.Members.AsNoTracking()
+                .Where(m => m.WebsiteID == websiteId && m.Active
+                            && (m.IsSiteAdmin || policyIds.Contains(m.PolicyID)))
+                .Select(m => new Recipient(m.MemberID, m.Email, m.Givenname, m.CellphoneNumber, m.CountryCode))
+                .ToListAsync(ct);
         }
 
-        await context.SaveChangesAsync(ct);
-
-        if (!await _email.IsConfiguredAsync(websiteId, ct))
-            return;
-
-        foreach (var admin in admins)
-        {
-            try
-            {
-                await _email.SendTemplateAsync(
-                    websiteId,
-                    EmailTemplateKeys.AdminSiteNotification,
-                    admin.Email,
-                    new Dictionary<string, string>
-                    {
-                        ["AdminName"] = string.IsNullOrWhiteSpace(admin.Givenname) ? admin.Email : admin.Givenname,
-                        ["Title"] = safeTitle,
-                        ["MessageBody"] = safeMessage,
-                        ["ActionUrl"] = safeUrl ?? string.Empty,
-                    },
-                    languageCode: null,
-                    ct);
-            }
-            catch (Exception ex)
-            {
-                _logger.LogWarning(ex, "Failed to email site admin notification to {Email} for website {WebsiteId}", admin.Email, websiteId);
-            }
-        }
+        if (recipients.Count == 0) return;
+        // De-dupe by member id
+        recipients = recipients.GroupBy(r => r.MemberID).Select(g => g.First()).ToList();
+        await DeliverAsync(context, websiteId, type, title, message, actionUrl, relatedEntityId, recipients, ct);
     }
 
     public async Task NotifyMemberAsync(
@@ -113,51 +112,89 @@ public class AdminNotificationService : IAdminNotificationService
 
         var member = await context.Members.AsNoTracking()
             .Where(m => m.MemberID == memberId && m.Active)
-            .Select(m => new { m.MemberID, m.Email, m.Givenname })
+            .Select(m => new Recipient(m.MemberID, m.Email, m.Givenname, m.CellphoneNumber, m.CountryCode))
             .FirstOrDefaultAsync(ct);
         if (member is null) return;
 
+        await DeliverAsync(context, websiteId, type, title, message, actionUrl, relatedEntityId, [member], ct);
+    }
+
+    private async Task DeliverAsync(
+        AppDbContext context,
+        int websiteId,
+        AdminNotificationType type,
+        string title,
+        string message,
+        string? actionUrl,
+        int? relatedEntityId,
+        IReadOnlyList<Recipient> recipients,
+        CancellationToken ct)
+    {
         var now = DateTime.UtcNow;
         var safeTitle = Truncate(title, 200);
         var safeMessage = Truncate(message, 1000);
         var safeUrl = actionUrl is null ? null : Truncate(actionUrl, 256);
 
-        context.AdminNotifications.Add(new AdminNotification
+        foreach (var r in recipients)
         {
-            MemberID = member.MemberID,
-            WebsiteID = websiteId,
-            NotificationType = (byte)type,
-            Title = safeTitle,
-            Message = safeMessage,
-            ActionUrl = safeUrl,
-            RelatedEntityID = relatedEntityId,
-            IsRead = false,
-            CreatedAt = now,
-        });
+            context.AdminNotifications.Add(new AdminNotification
+            {
+                MemberID = r.MemberID,
+                WebsiteID = websiteId,
+                NotificationType = (byte)type,
+                Title = safeTitle,
+                Message = safeMessage,
+                ActionUrl = safeUrl,
+                RelatedEntityID = relatedEntityId,
+                IsRead = false,
+                CreatedAt = now,
+            });
+        }
         await context.SaveChangesAsync(ct);
 
-        if (string.IsNullOrWhiteSpace(member.Email) || !await _email.IsConfiguredAsync(websiteId, ct))
-            return;
-
-        try
+        var emailOk = await _email.IsConfiguredAsync(websiteId, ct);
+        foreach (var r in recipients)
         {
-            await _email.SendTemplateAsync(
-                websiteId,
-                EmailTemplateKeys.AdminSiteNotification,
-                member.Email,
-                new Dictionary<string, string>
+            if (emailOk && !string.IsNullOrWhiteSpace(r.Email))
+            {
+                try
                 {
-                    ["AdminName"] = string.IsNullOrWhiteSpace(member.Givenname) ? member.Email : member.Givenname,
-                    ["Title"] = safeTitle,
-                    ["MessageBody"] = safeMessage,
-                    ["ActionUrl"] = safeUrl ?? string.Empty,
-                },
-                languageCode: null,
-                ct);
-        }
-        catch (Exception ex)
-        {
-            _logger.LogWarning(ex, "Failed to email member notification to {Email} for website {WebsiteId}", member.Email, websiteId);
+                    await _email.SendTemplateAsync(
+                        websiteId,
+                        EmailTemplateKeys.AdminSiteNotification,
+                        r.Email,
+                        new Dictionary<string, string>
+                        {
+                            ["AdminName"] = string.IsNullOrWhiteSpace(r.Givenname) ? r.Email : r.Givenname,
+                            ["Title"] = safeTitle,
+                            ["MessageBody"] = safeMessage,
+                            ["ActionUrl"] = safeUrl ?? string.Empty,
+                        },
+                        languageCode: null,
+                        ct);
+                }
+                catch (Exception ex)
+                {
+                    _logger.LogWarning(ex, "Failed to email admin notification to {Email}", r.Email);
+                }
+            }
+
+            if (_whatsApp.IsConfigured
+                && !string.IsNullOrWhiteSpace(r.Cellphone)
+                && !string.IsNullOrWhiteSpace(r.CountryCode))
+            {
+                try
+                {
+                    var wa = string.IsNullOrWhiteSpace(safeUrl)
+                        ? $"{safeTitle}\n{safeMessage}"
+                        : $"{safeTitle}\n{safeMessage}\n{safeUrl}";
+                    await _whatsApp.SendAsync(r.CountryCode, r.Cellphone, wa, ct);
+                }
+                catch (Exception ex)
+                {
+                    _logger.LogWarning(ex, "Failed to WhatsApp admin notification to {Phone}", r.Cellphone);
+                }
+            }
         }
     }
 
@@ -201,29 +238,31 @@ public class AdminNotificationService : IAdminNotificationService
     public async Task MarkReadAsync(int notificationId, int memberId, CancellationToken ct = default)
     {
         await using var context = await _contextFactory.CreateDbContextAsync(ct);
-        await context.AdminNotifications
-            .Where(n => n.AdminNotificationID == notificationId && n.MemberID == memberId)
-            .ExecuteUpdateAsync(s => s.SetProperty(n => n.IsRead, true), ct);
+        var n = await context.AdminNotifications.FirstOrDefaultAsync(x => x.AdminNotificationID == notificationId && x.MemberID == memberId, ct);
+        if (n is null) return;
+        n.IsRead = true;
+        await context.SaveChangesAsync(ct);
     }
 
     public async Task MarkAllReadAsync(int memberId, CancellationToken ct = default)
     {
         await using var context = await _contextFactory.CreateDbContextAsync(ct);
-        await context.AdminNotifications
-            .Where(n => n.MemberID == memberId && !n.IsRead)
-            .ExecuteUpdateAsync(s => s.SetProperty(n => n.IsRead, true), ct);
+        var list = await context.AdminNotifications.Where(n => n.MemberID == memberId && !n.IsRead).ToListAsync(ct);
+        foreach (var n in list) n.IsRead = true;
+        await context.SaveChangesAsync(ct);
     }
 
     public async Task DeleteAsync(int notificationId, int memberId, CancellationToken ct = default)
     {
         await using var context = await _contextFactory.CreateDbContextAsync(ct);
-        var entity = await context.AdminNotifications
-            .FirstOrDefaultAsync(n => n.AdminNotificationID == notificationId && n.MemberID == memberId, ct);
-        if (entity is null) return;
-        context.AdminNotifications.Remove(entity);
+        var n = await context.AdminNotifications.FirstOrDefaultAsync(x => x.AdminNotificationID == notificationId && x.MemberID == memberId, ct);
+        if (n is null) return;
+        context.AdminNotifications.Remove(n);
         await context.SaveChangesAsync(ct);
     }
 
     private static string Truncate(string value, int max) =>
         value.Length <= max ? value : value[..max];
+
+    private sealed record Recipient(int MemberID, string Email, string Givenname, string Cellphone, string CountryCode);
 }

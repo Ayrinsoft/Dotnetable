@@ -10,4 +10,10 @@ public enum AdminNotificationType : byte
     PaymentReceived = 6,
     WithdrawalRequested = 7,
     SupportTicket = 8,
+    /// <summary>Warehouse document submitted / ready to pick / posted.</summary>
+    WarehouseDocument = 9,
+    /// <summary>Payroll run awaiting action.</summary>
+    PayrollPending = 10,
+    /// <summary>Tax period closed or ready to file.</summary>
+    TaxPeriod = 11,
 }

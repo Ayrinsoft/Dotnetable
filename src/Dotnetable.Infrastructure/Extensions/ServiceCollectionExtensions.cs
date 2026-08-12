@@ -157,6 +157,7 @@ public static class ServiceCollectionExtensions
         services.AddScoped<IRecordAttachmentService, RecordAttachmentService>();
         services.AddScoped<IHrService, HrService>();
         services.AddScoped<IPayrollService, PayrollService>();
+        services.AddScoped<ITaxPeriodService, TaxPeriodService>();
 
         // E-commerce: the website's own banks/bank accounts (manual/offline payment receiving).
         services.AddScoped<IBankService, BankService>();
@@ -237,7 +238,7 @@ public static class ServiceCollectionExtensions
         services.AddScoped<IEmailTemplateService, EmailTemplateService>();
         services.AddScoped<IAdminNotificationService, AdminNotificationService>();
         services.AddScoped<IPasswordResetService, PasswordResetService>();
-        // SMS / WhatsApp for OTP and order shipment tracking. Stubs log only until a real gateway is registered.
+        // SMS / WhatsApp: no-op only. Real gateways will use a storage-style factory + website settings later.
         services.AddSingleton<ISmsSender, NoOpSmsSender>();
         services.AddSingleton<IWhatsAppSender, NoOpWhatsAppSender>();
 

@@ -4,8 +4,8 @@ using Microsoft.Extensions.Logging;
 namespace Dotnetable.Infrastructure.Services;
 
 /// <summary>
-/// Placeholder SMS sender used until a real gateway is wired up. It never sends anything; it logs
-/// the outgoing message so the OTP flow can be exercised end-to-end in development.
+/// Default SMS sender until a provider factory + per-website settings exist.
+/// Never sends; logs only so OTP/shipment flows can run in development.
 /// </summary>
 public class NoOpSmsSender : ISmsSender
 {
