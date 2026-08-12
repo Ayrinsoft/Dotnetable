@@ -4,6 +4,7 @@
 @inject IWebsiteService WebsiteService
 @inject AuthenticationStateProvider AuthState
 @inject IPageLocalizer L
+@inject IJSRuntime Js
 
 <DNPageTitle Title=@L["accounting.pnl", "Profit & loss"] />
 
@@ -25,8 +26,11 @@
         <MudItem xs="12" sm="3" Class="d-flex align-center">
             <MudSwitch T="bool" @bind-Value="_taxOnly" Color="Color.Primary" Label="@L["accounting.tax_only", "Tax-reportable only"]" />
         </MudItem>
-        <MudItem xs="12" sm="3" Class="d-flex align-end">
+        <MudItem xs="6" sm="2" Class="d-flex align-end">
             <MudButton Variant="Variant.Filled" Color="Color.Primary" FullWidth="true" OnClick="LoadAsync">@L["run", "Run"]</MudButton>
+        </MudItem>
+        <MudItem xs="6" sm="1" Class="d-flex align-end">
+            <MudButton Variant="Variant.Outlined" FullWidth="true" OnClick="ExportAsync">Excel</MudButton>
         </MudItem>
     </MudGrid>
 </MudPaper>
@@ -100,5 +104,15 @@ else if (_pnl is not null)
         _pnl = await Reports.GetProfitAndLossAsync(
             _websiteId, DateOnly.FromDateTime(_from.Value), DateOnly.FromDateTime(_to.Value), _taxOnly);
         _loading = false;
+    }
+
+    private async Task ExportAsync()
+    {
+        if (_websiteId <= 0 || _from is null || _to is null) return;
+        var bytes = await Reports.ExportProfitAndLossExcelAsync(
+            _websiteId, DateOnly.FromDateTime(_from.Value), DateOnly.FromDateTime(_to.Value), _taxOnly);
+        var b64 = Convert.ToBase64String(bytes);
+        await Js.InvokeVoidAsync("eval",
+            $"var a=document.createElement('a');a.href='data:application/vnd.openxmlformats-officedocument.spreadsheetml.sheet;base64,{b64}';a.download='pnl.xlsx';a.click();");
     }
 }

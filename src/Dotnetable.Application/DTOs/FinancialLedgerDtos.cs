@@ -100,6 +100,8 @@ public sealed class PostFinancialEntryRequest
     public Guid? EventGroupId { get; set; }
     public string? MetaJson { get; set; }
     public int? MemberId { get; set; }
+    /// <summary>When true, skip automatic GL projection (caller will project the event group once).</summary>
+    public bool SkipGlProjection { get; set; }
 }
 
 public sealed class PostAdditionalChargeRequest

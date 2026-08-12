@@ -1,0 +1,89 @@
+@page "/hr/employees"
+@using Dotnetable.Domain.Enums
+@attribute [Authorize(Policy = RoleKeys.HrView)]
+@inject IHrService Hr
+@inject IWebsiteService WebsiteService
+@inject AuthenticationStateProvider AuthState
+@inject ISnackbar Snackbar
+@inject IPageLocalizer L
+@inject NavigationManager Nav
+
+<DNPageTitle Title=@L["hr.employees", "Employees"] />
+<MudStack Row="true" Justify="Justify.SpaceBetween" Class="mb-3">
+    <MudText Typo="Typo.h5" Class="fw-bold">@L["hr.employees", "Employees"]</MudText>
+    @if (_isMaster) { <WebsiteSelector Value="_websiteId" ValueChanged="async id=>{_websiteId=id;await Load();}" Websites="_websites" Dense="true" Style="min-width:160px" /> }
+</MudStack>
+
+@if (_canEdit)
+{
+    <MudPaper Class="app-card pa-3 mb-3">
+        <MudGrid Spacing="2">
+            <MudItem xs="6" sm="2"><MudTextField @bind-Value="_code" Label="Code" Dense="true" /></MudItem>
+            <MudItem xs="6" sm="2"><MudTextField @bind-Value="_given" Label="Given name" Dense="true" /></MudItem>
+            <MudItem xs="6" sm="2"><MudTextField @bind-Value="_sur" Label="Surname" Dense="true" /></MudItem>
+            <MudItem xs="6" sm="2"><MudTextField @bind-Value="_title" Label="Job title" Dense="true" /></MudItem>
+            <MudItem xs="6" sm="2"><MudNumericField T="decimal" @bind-Value="_salary" Label="Base salary" Dense="true" /></MudItem>
+            <MudItem xs="6" sm="2" Class="d-flex align-end"><MudButton Variant="Variant.Filled" Color="Color.Primary" OnClick="Save">@L["save", "Save"]</MudButton></MudItem>
+        </MudGrid>
+        <MudText Typo="Typo.caption" Class="mt-1">Insurance 7%/20%, tax 10% defaults on new contract</MudText>
+    </MudPaper>
+}
+
+<MudPaper Class="app-card pa-4">
+    <MudSimpleTable Dense="true" Hover="true">
+        <thead><tr><th>Code</th><th>Name</th><th>Title</th><th>Unit</th><th>Status</th><th></th></tr></thead>
+        <tbody>
+            @foreach (var e in _items)
+            {
+                <tr>
+                    <td><code>@e.EmployeeCode</code></td>
+                    <td>@e.GivenName @e.Surname</td>
+                    <td>@(e.JobTitle ?? "—")</td>
+                    <td>@(e.OrgUnit?.Name ?? "—")</td>
+                    <td>@((EmployeeStatus)e.Status)</td>
+                    <td><MudButton Size="Size.Small" Href="@($"/hr/employees/{e.EmployeeID}")">Open</MudButton></td>
+                </tr>
+            }
+        </tbody>
+    </MudSimpleTable>
+</MudPaper>
+
+@code {
+    private bool _isMaster, _canEdit; private int _websiteId;
+    private List<Website> _websites = new(); private List<Employee> _items = new();
+    private string _code = "", _given = "", _sur = "", _title = ""; private decimal _salary;
+
+    protected override async Task OnInitializedAsync()
+    {
+        await L.EnsureLoadedAsync();
+        var u = (await AuthState.GetAuthenticationStateAsync()).User;
+        _isMaster = u.HasClaim(AdminClaimTypes.Master, "true");
+        _canEdit = AdminPolicies.Allows(u, RoleKeys.HrEdit);
+        int.TryParse(u.FindFirst(AdminClaimTypes.WebsiteId)?.Value, out _websiteId);
+        if (_isMaster) _websites = (await WebsiteService.GetAllAsync()).ToList();
+        await Load();
+    }
+    private async Task Load() { if (_websiteId > 0) _items = (await Hr.GetEmployeesAsync(_websiteId)).ToList(); }
+    private async Task Save()
+    {
+        if (_websiteId <= 0 || string.IsNullOrWhiteSpace(_code)) return;
+        var emp = await Hr.UpsertEmployeeAsync(new Employee
+        {
+            WebsiteID = _websiteId, EmployeeCode = _code.Trim(), GivenName = _given.Trim(), Surname = _sur.Trim(),
+            JobTitle = _title, Status = (byte)EmployeeStatus.Active, HireDate = DateOnly.FromDateTime(DateTime.Today),
+        });
+        if (_salary > 0)
+        {
+            var cur = (await WebsiteService.GetByIdAsync(_websiteId))?.DefaultCurrencyCode ?? "USD";
+            await Hr.UpsertContractAsync(new EmployeeContract
+            {
+                EmployeeID = emp.EmployeeID, EffectiveFrom = DateOnly.FromDateTime(DateTime.Today),
+                BaseSalary = _salary, CurrencyCode = cur, PayFrequency = 1,
+                EmployeeInsuranceRate = 0.07m, EmployerInsuranceRate = 0.20m, IncomeTaxRate = 0.10m, IsActive = true,
+            });
+        }
+        _code = _given = _sur = _title = ""; _salary = 0;
+        Snackbar.Add(L["saved", "Saved."], Severity.Success);
+        await Load();
+    }
+}

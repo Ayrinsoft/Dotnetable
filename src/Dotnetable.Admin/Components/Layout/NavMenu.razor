@@ -287,6 +287,10 @@
                 <MudNavGroup Title="@L["nav.inventory", "Inventory"]" Icon="@Icons.Material.Filled.Warehouse"
                              Expanded="@IsGroupActive("/inventory")">
                     <MudNavLink Href="/inventory" Match="NavLinkMatch.All" Icon="@Icons.Material.Filled.Numbers">@L["inventory.stock", "Stock"]</MudNavLink>
+                    <AuthorizeView Policy="@RoleKeys.WarehouseView" Context="wh">
+                        <MudNavLink Href="/inventory/warehouses" Icon="@Icons.Material.Filled.HomeWork">@L["warehouse", "Warehouses"]</MudNavLink>
+                        <MudNavLink Href="/inventory/stock-documents" Icon="@Icons.Material.Filled.Assignment">@L["warehouse.docs", "Stock documents"]</MudNavLink>
+                    </AuthorizeView>
                     <MudNavLink Href="/inventory/movements" Icon="@Icons.Material.Filled.History">@L["inventory.movements", "Movements"]</MudNavLink>
                     <AuthorizeView Policy="@RoleKeys.SuppliersView" Context="sup">
                         <MudNavLink Href="/inventory/suppliers" Icon="@Icons.Material.Filled.LocalShipping">@L["suppliers", "Suppliers"]</MudNavLink>
@@ -334,9 +338,13 @@
                     <MudNavLink Href="/finance/coa" Icon="@Icons.Material.Filled.AccountTree">@L["accounting.coa", "Chart of accounts"]</MudNavLink>
                     <MudNavLink Href="/finance/journals" Icon="@Icons.Material.Filled.MenuBook">@L["accounting.journals", "Journals"]</MudNavLink>
                 </AuthorizeView>
+                <AuthorizeView Policy="@RoleKeys.AccountingEdit" Context="acce">
+                    <MudNavLink Href="/finance/periods" Icon="@Icons.Material.Filled.DateRange">@L["accounting.periods", "Fiscal periods"]</MudNavLink>
+                </AuthorizeView>
                 <AuthorizeView Policy="@RoleKeys.AccountingReport" Context="accr">
                     <MudNavLink Href="/finance/reports/trial-balance" Icon="@Icons.Material.Filled.TableChart">@L["accounting.trial_balance", "Trial balance"]</MudNavLink>
                     <MudNavLink Href="/finance/reports/pnl" Icon="@Icons.Material.Filled.ShowChart">@L["accounting.pnl", "Profit & loss"]</MudNavLink>
+                    <MudNavLink Href="/finance/reports/tax-recon" Icon="@Icons.Material.Filled.CompareArrows">@L["accounting.tax_recon", "Tax reconciliation"]</MudNavLink>
                 </AuthorizeView>
                 <AuthorizeView Policy="@RoleKeys.BankAccountsView" Context="bnk">
                     <MudNavLink Href="/finance/bank-accounts" Icon="@Icons.Material.Filled.AccountBalance">@L["bank_accounts", "Bank Accounts"]</MudNavLink>
@@ -350,6 +358,18 @@
                 </AuthorizeView>
             </MudNavGroup>
         }
+
+        <AuthorizeView Policy="@RoleKeys.HrView" Context="hrnav">
+            <MudNavGroup Title="@L["nav.hr", "HR & payroll"]" Icon="@Icons.Material.Filled.Badge"
+                         Expanded="@IsGroupActive("/hr/")">
+                <MudNavLink Href="/hr/org-units" Icon="@Icons.Material.Filled.AccountTree">@L["hr.org", "Organization"]</MudNavLink>
+                <MudNavLink Href="/hr/employees" Icon="@Icons.Material.Filled.People">@L["hr.employees", "Employees"]</MudNavLink>
+                <AuthorizeView Policy="@RoleKeys.PayrollView" Context="prnav">
+                    <MudNavLink Href="/hr/payroll" Icon="@Icons.Material.Filled.Payments">@L["hr.payroll", "Payroll"]</MudNavLink>
+                    <MudNavLink Href="/hr/payroll/reports" Icon="@Icons.Material.Filled.Assessment">@L["hr.payroll_reports", "Payroll reports"]</MudNavLink>
+                </AuthorizeView>
+            </MudNavGroup>
+        </AuthorizeView>
 
         @if (NavSurface.Shows(AdminNavArea.Promotions))
         {

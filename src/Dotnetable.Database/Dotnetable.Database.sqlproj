@@ -104,6 +104,16 @@
     <Build Include="OrderStatusHistories.sql" />
     <Build Include="Orders.sql" />
     <Build Include="FinancialLedgerEntries.sql" />
+    <Build Include="PayrollLines.sql" />
+    <Build Include="PayrollRuns.sql" />
+    <Build Include="EmployeeContracts.sql" />
+    <Build Include="Employees.sql" />
+    <Build Include="OrgUnits.sql" />
+    <Build Include="StockDocumentHistories.sql" />
+    <Build Include="StockDocumentLines.sql" />
+    <Build Include="StockDocuments.sql" />
+    <Build Include="WarehouseStocks.sql" />
+    <Build Include="Warehouses.sql" />
     <Build Include="OrderItems.sql" />
     <Build Include="MediaSets.sql" />
     <Build Include="MediaSetItems.sql" />

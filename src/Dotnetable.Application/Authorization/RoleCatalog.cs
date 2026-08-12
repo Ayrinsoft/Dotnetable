@@ -171,6 +171,18 @@ public static class RoleCatalog
         new(RoleKeys.AccountingPost, "Post / reverse journals", RoleCategory.Admin),
         new(RoleKeys.AccountingReport, "View trial balance & P&L", RoleCategory.Admin),
 
+        new(RoleKeys.WarehouseView, "View warehouses & stock documents", RoleCategory.Admin),
+        new(RoleKeys.WarehouseReceive, "Create inbound stock documents", RoleCategory.Admin),
+        new(RoleKeys.WarehouseIssue, "Create outbound/transfer/adjust documents", RoleCategory.Admin),
+        new(RoleKeys.WarehouseApprove, "Approve stock documents", RoleCategory.Admin),
+        new(RoleKeys.WarehousePost, "Post stock documents to inventory", RoleCategory.Admin),
+
+        new(RoleKeys.HrView, "View employees & org units", RoleCategory.Admin),
+        new(RoleKeys.HrEdit, "Edit employees & org units", RoleCategory.Admin),
+        new(RoleKeys.PayrollView, "View payroll runs", RoleCategory.Admin),
+        new(RoleKeys.PayrollRun, "Create / submit payroll", RoleCategory.Admin),
+        new(RoleKeys.PayrollApprove, "Approve / pay payroll", RoleCategory.Admin),
+
         // Currency
         new(RoleKeys.CurrencyView, "View currencies & exchange rates", RoleCategory.Admin),
         new(RoleKeys.CurrencyEdit, "Edit currencies & exchange rates", RoleCategory.Admin),

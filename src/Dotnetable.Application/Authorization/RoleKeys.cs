@@ -117,6 +117,13 @@ public static class RoleKeys
     public const string InventoryView = "inventory.view";
     public const string InventoryEdit = "inventory.edit";
 
+    // ── Warehouse WMS (admin) ─────────────────────────────────────────
+    public const string WarehouseView = "warehouse.view";
+    public const string WarehouseReceive = "warehouse.receive";
+    public const string WarehouseIssue = "warehouse.issue";
+    public const string WarehouseApprove = "warehouse.approve";
+    public const string WarehousePost = "warehouse.post";
+
     // ── Suppliers (admin) ─────────────────────────────────────────────
     public const string SuppliersView = "suppliers.view";
     public const string SuppliersInsert = "suppliers.insert";
@@ -155,6 +162,13 @@ public static class RoleKeys
     public const string AccountingEdit = "accounting.edit";
     public const string AccountingPost = "accounting.post";
     public const string AccountingReport = "accounting.report";
+
+    // ── HR / payroll (admin) ──────────────────────────────────────────
+    public const string HrView = "hr.view";
+    public const string HrEdit = "hr.edit";
+    public const string PayrollView = "payroll.view";
+    public const string PayrollRun = "payroll.run";
+    public const string PayrollApprove = "payroll.approve";
 
     // ── Currency master list + per-website rates (admin) ─────────────
     public const string CurrencyView = "currency.view";

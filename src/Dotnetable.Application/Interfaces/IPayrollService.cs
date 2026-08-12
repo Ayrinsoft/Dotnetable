@@ -1,0 +1,17 @@
+using Dotnetable.Application.DTOs;
+using Dotnetable.Domain.Entities;
+
+namespace Dotnetable.Application.Interfaces;
+
+public interface IPayrollService
+{
+    Task<PagedResult<PayrollRun>> GetRunsAsync(int websiteId, GridQuery query, CancellationToken ct = default);
+    Task<PayrollRun?> GetRunAsync(int payrollRunId, CancellationToken ct = default);
+    Task<(bool Success, string? Error, PayrollRun? Run)> CreateRunAsync(
+        int websiteId, DateOnly from, DateOnly to, int? memberId, CancellationToken ct = default);
+    Task<(bool Success, string? Error)> SubmitAsync(int runId, int? memberId, CancellationToken ct = default);
+    Task<(bool Success, string? Error)> ApproveAsync(int runId, int? memberId, CancellationToken ct = default);
+    Task<(bool Success, string? Error)> MarkPaidAsync(int runId, int? memberId, CancellationToken ct = default);
+    Task<IReadOnlyList<PayrollLine>> GetInsuranceReportAsync(int websiteId, DateOnly from, DateOnly to, CancellationToken ct = default);
+    Task<IReadOnlyList<PayrollLine>> GetTaxReportAsync(int websiteId, DateOnly from, DateOnly to, CancellationToken ct = default);
+}

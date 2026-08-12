@@ -1,0 +1,61 @@
+@page "/hr/payroll/reports"
+@attribute [Authorize(Policy = RoleKeys.PayrollView)]
+@inject IPayrollService Payroll
+@inject IWebsiteService WebsiteService
+@inject AuthenticationStateProvider AuthState
+@inject IPageLocalizer L
+
+<DNPageTitle Title=@L["hr.payroll_reports", "Payroll reports"] />
+<MudText Typo="Typo.h5" Class="fw-bold mb-3">@L["hr.payroll_reports", "Insurance & tax reports"]</MudText>
+@if (_isMaster) { <WebsiteSelector Value="_websiteId" ValueChanged="async id=>{_websiteId=id;}" Websites="_websites" Class="mb-3" Style="max-width:200px" /> }
+<MudStack Row="true" Class="mb-3 gap-2">
+    <MudDatePicker @bind-Date="_from" Label="From" Dense="true" />
+    <MudDatePicker @bind-Date="_to" Label="To" Dense="true" />
+    <MudButton Variant="Variant.Filled" Color="Color.Primary" OnClick="Load">Run</MudButton>
+</MudStack>
+@if (_lines.Count > 0)
+{
+    <MudPaper Class="app-card pa-4 mb-3">
+        <MudText>Employee insurance total: @_lines.Sum(l => l.EmployeeInsurance).ToString("0.##")</MudText>
+        <MudText>Employer insurance total: @_lines.Sum(l => l.EmployerInsurance).ToString("0.##")</MudText>
+        <MudText>Income tax total: @_lines.Sum(l => l.IncomeTax).ToString("0.##")</MudText>
+        <MudText>Net paid total: @_lines.Sum(l => l.Net).ToString("0.##")</MudText>
+    </MudPaper>
+    <MudPaper Class="app-card pa-4">
+        <MudSimpleTable Dense="true">
+            <thead><tr><th>Employee</th><th>Run</th><th>Gross</th><th>Emp ins</th><th>Er ins</th><th>Tax</th><th>Net</th></tr></thead>
+            <tbody>
+                @foreach (var l in _lines)
+                {
+                    <tr>
+                        <td>@l.Employee?.GivenName @l.Employee?.Surname</td>
+                        <td>@l.PayrollRun?.RunNumber</td>
+                        <td>@l.Gross.ToString("0.##")</td>
+                        <td>@l.EmployeeInsurance.ToString("0.##")</td>
+                        <td>@l.EmployerInsurance.ToString("0.##")</td>
+                        <td>@l.IncomeTax.ToString("0.##")</td>
+                        <td>@l.Net.ToString("0.##")</td>
+                    </tr>
+                }
+            </tbody>
+        </MudSimpleTable>
+    </MudPaper>
+}
+@code {
+    private bool _isMaster; private int _websiteId;
+    private List<Website> _websites = new(); private List<PayrollLine> _lines = new();
+    private DateTime? _from = new(DateTime.Today.Year, 1, 1), _to = DateTime.Today;
+    protected override async Task OnInitializedAsync()
+    {
+        await L.EnsureLoadedAsync();
+        var u = (await AuthState.GetAuthenticationStateAsync()).User;
+        _isMaster = u.HasClaim(AdminClaimTypes.Master, "true");
+        int.TryParse(u.FindFirst(AdminClaimTypes.WebsiteId)?.Value, out _websiteId);
+        if (_isMaster) _websites = (await WebsiteService.GetAllAsync()).ToList();
+    }
+    private async Task Load()
+    {
+        if (_websiteId <= 0 || _from is null || _to is null) return;
+        _lines = (await Payroll.GetInsuranceReportAsync(_websiteId, DateOnly.FromDateTime(_from.Value), DateOnly.FromDateTime(_to.Value))).ToList();
+    }
+}

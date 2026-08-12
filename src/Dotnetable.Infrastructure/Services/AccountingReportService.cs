@@ -1,4 +1,5 @@
 using Dotnetable.Application.DTOs;
+using Dotnetable.Application.Financial;
 using Dotnetable.Application.Interfaces;
 using Dotnetable.Domain.Enums;
 using Dotnetable.Infrastructure.Data;
@@ -87,5 +88,102 @@ public class AccountingReportService : IAccountingReportService
             TotalExpenses = totalExpenses,
             NetProfit = totalIncome - totalExpenses,
         };
+    }
+
+    public async Task<TaxReconciliationDto> GetTaxReconciliationAsync(
+        int websiteId, DateOnly from, DateOnly to, CancellationToken ct = default)
+    {
+        var fromDt = from.ToDateTime(TimeOnly.MinValue, DateTimeKind.Utc);
+        var toDt = to.ToDateTime(new TimeOnly(23, 59, 59), DateTimeKind.Utc);
+
+        var orderTax = await _context.Orders.AsNoTracking()
+            .Where(o => o.WebsiteID == websiteId && o.ReportToTax
+                        && o.Status != 6 // Cancelled
+                        && o.CreatedAt >= fromDt && o.CreatedAt <= toDt)
+            .SumAsync(o => (decimal?)o.TaxTotal, ct) ?? 0;
+
+        var settlementTax = await _context.Settlements.AsNoTracking()
+            .Where(s => s.WebsiteID == websiteId && s.Status != 4
+                        && s.CreatedAt >= fromDt && s.CreatedAt <= toDt)
+            .SumAsync(s => (decimal?)s.TaxAmount, ct) ?? 0;
+
+        var ledgerTax = await _context.FinancialLedgerEntries.AsNoTracking()
+            .Where(e => e.WebsiteID == websiteId && e.IsCurrent && e.ReportToTax
+                        && e.TransactionType == FinancialTransactionTypes.OrderTax
+                        && e.OccurredDate >= from && e.OccurredDate <= to)
+            .SumAsync(e => (decimal?)e.Amount, ct) ?? 0;
+
+        await _coa.EnsureSeededAsync(websiteId, ct);
+        var taxAccId = await _context.ChartOfAccounts.AsNoTracking()
+            .Where(a => a.WebsiteID == websiteId && a.Code == "2200")
+            .Select(a => (int?)a.ChartOfAccountID)
+            .FirstOrDefaultAsync(ct);
+
+        decimal glTax = 0;
+        if (taxAccId is int aid)
+        {
+            glTax = await _context.JournalEntryLines.AsNoTracking()
+                .Where(l => l.ChartOfAccountID == aid
+                            && l.JournalEntry.WebsiteID == websiteId
+                            && l.JournalEntry.IsPosted
+                            && l.JournalEntry.ReportToTax
+                            && l.JournalEntry.EntryDate >= from
+                            && l.JournalEntry.EntryDate <= to)
+                .SumAsync(l => (decimal?)(l.Credit - l.Debit), ct) ?? 0;
+        }
+
+        return new TaxReconciliationDto
+        {
+            OrderTaxTotal = orderTax,
+            SettlementTaxTotal = settlementTax,
+            LedgerTaxComponentTotal = ledgerTax,
+            GlTaxPayableMovement = glTax,
+        };
+    }
+
+    public async Task<byte[]> ExportTrialBalanceExcelAsync(int websiteId, DateOnly from, DateOnly to, bool taxOnly = false, CancellationToken ct = default)
+    {
+        var rows = await GetTrialBalanceAsync(websiteId, from, to, taxOnly, ct);
+        return ExcelWorkbook.Write("TrialBalance",
+            new[] { "Code", "Name", "Type", "Debit", "Credit", "Balance" },
+            rows.Select(r => (IReadOnlyList<object?>)new object?[] { r.Code, r.Name, r.AccountType, r.Debit, r.Credit, r.Balance }));
+    }
+
+    public async Task<byte[]> ExportProfitAndLossExcelAsync(int websiteId, DateOnly from, DateOnly to, bool taxOnly = false, CancellationToken ct = default)
+    {
+        var pnl = await GetProfitAndLossAsync(websiteId, from, to, taxOnly, ct);
+        var list = new List<IReadOnlyList<object?>>();
+        list.Add(new object?[] { "INCOME", "", "" });
+        foreach (var r in pnl.Income)
+            list.Add(new object?[] { r.Code, r.Name, r.Balance });
+        list.Add(new object?[] { "Total income", "", pnl.TotalIncome });
+        list.Add(new object?[] { "EXPENSES", "", "" });
+        foreach (var r in pnl.Expenses)
+            list.Add(new object?[] { r.Code, r.Name, r.Balance });
+        list.Add(new object?[] { "Total expenses", "", pnl.TotalExpenses });
+        list.Add(new object?[] { "Net profit/(loss)", "", pnl.NetProfit });
+        return ExcelWorkbook.Write("PnL", new[] { "Code", "Name", "Amount" }, list);
+    }
+
+    public async Task<byte[]> ExportJournalsExcelAsync(int websiteId, DateOnly from, DateOnly to, bool taxOnly = false, CancellationToken ct = default)
+    {
+        var q = _context.JournalEntryLines.AsNoTracking()
+            .Include(l => l.JournalEntry)
+            .Include(l => l.ChartOfAccount)
+            .Where(l => l.JournalEntry.WebsiteID == websiteId
+                        && l.JournalEntry.IsPosted
+                        && l.JournalEntry.EntryDate >= from
+                        && l.JournalEntry.EntryDate <= to);
+        if (taxOnly) q = q.Where(l => l.JournalEntry.ReportToTax);
+        var lines = await q.OrderBy(l => l.JournalEntry.EntryDate).ThenBy(l => l.JournalEntryID).ToListAsync(ct);
+        return ExcelWorkbook.Write("Journals",
+            new[] { "Entry", "Date", "Account", "Debit", "Credit", "Description", "ReportToTax" },
+            lines.Select(l => (IReadOnlyList<object?>)new object?[]
+            {
+                l.JournalEntry.EntryNumber,
+                l.JournalEntry.EntryDate.ToString("yyyy-MM-dd"),
+                $"{l.ChartOfAccount.Code} {l.ChartOfAccount.Name}",
+                l.Debit, l.Credit, l.Description, l.JournalEntry.ReportToTax
+            }));
     }
 }

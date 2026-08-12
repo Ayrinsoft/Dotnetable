@@ -1,0 +1,26 @@
+CREATE TABLE [dbo].[PayrollRuns] (
+    [PayrollRunID]             INT             IDENTITY (1, 1) NOT NULL,
+    [WebsiteID]                INT             NOT NULL,
+    [RunNumber]                NVARCHAR (40)  NOT NULL,
+    [PeriodFrom]               DATE            NOT NULL,
+    [PeriodTo]                 DATE            NOT NULL,
+    [Status]                   TINYINT         NOT NULL,
+    [TotalGross]               DECIMAL (18, 4) NOT NULL,
+    [TotalEmployeeInsurance]   DECIMAL (18, 4) NOT NULL,
+    [TotalEmployerInsurance]   DECIMAL (18, 4) NOT NULL,
+    [TotalIncomeTax]           DECIMAL (18, 4) NOT NULL,
+    [TotalNet]                 DECIMAL (18, 4) NOT NULL,
+    [CurrencyCode]             CHAR (3)        NOT NULL,
+    [Note]                     NVARCHAR (1000) NULL,
+    [CreatedByMemberID]        INT             NULL,
+    [ApprovedByMemberID]       INT             NULL,
+    [ApprovedAt]               DATETIME2 (7)   NULL,
+    [PaidAt]                   DATETIME2 (7)   NULL,
+    [CreatedAt]                DATETIME2 (7)   NOT NULL,
+    CONSTRAINT [PK_PayrollRuns] PRIMARY KEY CLUSTERED ([PayrollRunID] ASC),
+    CONSTRAINT [FK_PayrollRuns_Websites] FOREIGN KEY ([WebsiteID]) REFERENCES [dbo].[Websites] ([WebsiteID]),
+    CONSTRAINT [FK_PayrollRuns_Currencies] FOREIGN KEY ([CurrencyCode]) REFERENCES [dbo].[Currencies] ([CurrencyCode]),
+    CONSTRAINT [FK_PayrollRuns_CreatedBy] FOREIGN KEY ([CreatedByMemberID]) REFERENCES [dbo].[Members] ([MemberID]),
+    CONSTRAINT [FK_PayrollRuns_ApprovedBy] FOREIGN KEY ([ApprovedByMemberID]) REFERENCES [dbo].[Members] ([MemberID])
+);
+GO

@@ -1,0 +1,54 @@
+@page "/hr/org-units"
+@attribute [Authorize(Policy = RoleKeys.HrView)]
+@inject IHrService Hr
+@inject IWebsiteService WebsiteService
+@inject AuthenticationStateProvider AuthState
+@inject ISnackbar Snackbar
+@inject IPageLocalizer L
+
+<DNPageTitle Title=@L["hr.org", "Organization"] />
+<MudText Typo="Typo.h5" Class="fw-bold mb-3">@L["hr.org", "Organization units"]</MudText>
+@if (_isMaster) { <WebsiteSelector Value="_websiteId" ValueChanged="async id=>{_websiteId=id;await Load();}" Websites="_websites" Class="mb-3" Style="max-width:200px" /> }
+@if (_canEdit)
+{
+    <MudPaper Class="app-card pa-3 mb-3">
+        <MudStack Row="true" Class="gap-2">
+            <MudTextField @bind-Value="_code" Label="Code" Dense="true" />
+            <MudTextField @bind-Value="_name" Label="Name" Dense="true" />
+            <MudButton Variant="Variant.Filled" Color="Color.Primary" OnClick="Save">Save</MudButton>
+        </MudStack>
+    </MudPaper>
+}
+<MudPaper Class="app-card pa-4">
+    <MudSimpleTable Dense="true">
+        <thead><tr><th>Code</th><th>Name</th><th>Active</th></tr></thead>
+        <tbody>
+            @foreach (var o in _items)
+            {
+                <tr><td><code>@o.Code</code></td><td>@o.Name</td><td>@(o.IsActive ? "Yes" : "No")</td></tr>
+            }
+        </tbody>
+    </MudSimpleTable>
+</MudPaper>
+@code {
+    private bool _isMaster, _canEdit; private int _websiteId;
+    private List<Website> _websites = new(); private List<OrgUnit> _items = new();
+    private string _code = "", _name = "";
+    protected override async Task OnInitializedAsync()
+    {
+        await L.EnsureLoadedAsync();
+        var u = (await AuthState.GetAuthenticationStateAsync()).User;
+        _isMaster = u.HasClaim(AdminClaimTypes.Master, "true");
+        _canEdit = AdminPolicies.Allows(u, RoleKeys.HrEdit);
+        int.TryParse(u.FindFirst(AdminClaimTypes.WebsiteId)?.Value, out _websiteId);
+        if (_isMaster) _websites = (await WebsiteService.GetAllAsync()).ToList();
+        await Load();
+    }
+    private async Task Load() { if (_websiteId > 0) _items = (await Hr.GetOrgUnitsAsync(_websiteId)).ToList(); }
+    private async Task Save()
+    {
+        if (_websiteId <= 0 || string.IsNullOrWhiteSpace(_code)) return;
+        await Hr.UpsertOrgUnitAsync(new OrgUnit { WebsiteID = _websiteId, Code = _code.Trim(), Name = _name.Trim(), IsActive = true });
+        _code = _name = ""; Snackbar.Add(L["saved", "Saved."], Severity.Success); await Load();
+    }
+}
