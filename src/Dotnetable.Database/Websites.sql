@@ -30,6 +30,7 @@
     [FreeShippingMinOrderAmount]    DECIMAL (18, 4)  DEFAULT ((0.0)) NOT NULL,
     [FreeShippingMinOrderAmountUsd] DECIMAL (18, 4)  DEFAULT ((0.0)) NOT NULL,
     [ReportOfflineOrdersToTax]      BIT              DEFAULT (CONVERT([bit],(0))) NOT NULL,
+    [ProductCodePrefix]             NVARCHAR (3)     DEFAULT (N'DN') NOT NULL,
     CONSTRAINT [PK_Websites] PRIMARY KEY CLUSTERED ([WebsiteID] ASC),
     CONSTRAINT [FK_Websites_Currencies] FOREIGN KEY ([DefaultCurrencyCode]) REFERENCES [dbo].[Currencies] ([CurrencyCode]),
     CONSTRAINT [FK_Websites_FileRecord1] FOREIGN KEY ([FaveIconFileID]) REFERENCES [dbo].[FileRecords] ([FileRecordID]),

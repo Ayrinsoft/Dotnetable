@@ -63,6 +63,12 @@ else if (_website is not null)
                                           Variant="Variant.Outlined" MaxLength="2" Placeholder="en" />
                         </MudItem>
                         <MudItem xs="12" sm="6">
+                            <MudTextField @bind-Value="_website.ProductCodePrefix"
+                                          Label="@L["website.product_code_prefix", "Product code prefix"]"
+                                          Variant="Variant.Outlined" MaxLength="3" Placeholder="DN"
+                                          HelperText="@L["website.product_code_prefix_help", "1–3 letters. Product codes become PREFIX-ProductID (e.g. DN-42). Used on invoices and /product/DN-42 URLs."]" />
+                        </MudItem>
+                        <MudItem xs="12" sm="6">
                             <MudSelect T="byte" @bind-Value="_website.WebsiteType" Label="@L["website_type", "Website Type"]"
                                        Variant="Variant.Outlined"
                                        HelperText="@L["website.type_hint", "Sets default feature modules and the Basic/General admin menu for members of this site (Advanced shows everything they have roles for). Always changeable later."]">
@@ -422,6 +428,7 @@ else if (_website is not null)
                 TaxEnabled = true,
                 AllowCashOnDelivery = true,
                 DefaultLanguageCode = "en",
+                ProductCodePrefix = Dotnetable.Domain.ProductCode.DefaultPrefix,
                 DefaultCurrencyCode = _currencies.FirstOrDefault()?.CurrencyCode ?? string.Empty,
             };
         }
@@ -505,6 +512,8 @@ else if (_website is not null)
                 _website.FreeShippingMinOrderAmount = 0;
                 _website.FreeShippingMinOrderAmountUsd = 0;
             }
+
+            _website.ProductCodePrefix = Dotnetable.Domain.ProductCode.NormalizePrefix(_website.ProductCodePrefix);
 
             if (_isNew)
             {

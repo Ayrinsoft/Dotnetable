@@ -35,7 +35,10 @@ public class ProductsController : BaseController
         return Ok(result);
     }
 
-    /// <summary>A single published product by slug (base or translated), fully detailed and priced.</summary>
+    /// <summary>
+    /// A single published product by SEO slug (base or translated) or by product code
+    /// (<c>{prefix}-{ProductID}</c>, e.g. <c>DN-42</c>), fully detailed and priced.
+    /// </summary>
     [HttpGet("{slug}")]
     public async Task<IActionResult> GetBySlug(string slug, [FromQuery] string? lang = null, [FromQuery] string? currency = null, CancellationToken ct = default)
     {

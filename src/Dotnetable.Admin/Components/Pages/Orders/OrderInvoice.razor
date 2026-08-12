@@ -82,64 +82,68 @@ else
                         }
                     </p>
                 </div>
-                <div class="print-doc-badge">@((OrderStatus)_inv.Status)</div>
+                <div class="@StatusBadgeClass(_inv.Status)">@StatusLabel(_inv.Status)</div>
             </header>
 
             <div class="print-doc-parties">
                 <section class="print-doc-party">
                     <h2 class="print-doc-party-label">@L["invoice.seller", "Seller"]</h2>
                     <p class="print-doc-party-name">@(_inv.Seller.LegalName ?? _inv.Seller.Name)</p>
-                    <table>
+                    <div class="print-doc-party-fields">
                         @if (!string.IsNullOrEmpty(_inv.Seller.TaxId))
                         {
-                            <tr><td>@L["website.seller_tax_id", "Tax ID"]</td><td>@_inv.Seller.TaxId</td></tr>
+                            <div class="print-doc-party-row"><span class="k">@L["website.seller_tax_id", "Tax ID"]</span><span class="v">@_inv.Seller.TaxId</span></div>
                         }
                         @if (!string.IsNullOrEmpty(_inv.Seller.EconomicCode))
                         {
-                            <tr><td>@L["website.seller_economic_code", "Economic code"]</td><td>@_inv.Seller.EconomicCode</td></tr>
+                            <div class="print-doc-party-row"><span class="k">@L["website.seller_economic_code", "Economic code"]</span><span class="v">@_inv.Seller.EconomicCode</span></div>
                         }
                         @if (!string.IsNullOrEmpty(_inv.Seller.VatNumber))
                         {
-                            <tr><td>@L["website.seller_vat", "VAT"]</td><td>@_inv.Seller.VatNumber</td></tr>
+                            <div class="print-doc-party-row"><span class="k">@L["website.seller_vat", "VAT"]</span><span class="v">@_inv.Seller.VatNumber</span></div>
                         }
                         @if (!string.IsNullOrEmpty(_inv.Seller.RegistrationNumber))
                         {
-                            <tr><td>@L["website.seller_registration", "Registration"]</td><td>@_inv.Seller.RegistrationNumber</td></tr>
+                            <div class="print-doc-party-row"><span class="k">@L["website.seller_registration", "Registration"]</span><span class="v">@_inv.Seller.RegistrationNumber</span></div>
                         }
                         @if (!string.IsNullOrEmpty(_inv.Seller.Email))
                         {
-                            <tr><td>@L["email", "Email"]</td><td>@_inv.Seller.Email</td></tr>
+                            <div class="print-doc-party-row"><span class="k">@L["email", "Email"]</span><span class="v">@_inv.Seller.Email</span></div>
                         }
                         @if (!string.IsNullOrEmpty(_inv.Seller.Phone))
                         {
-                            <tr><td>@L["phone", "Phone"]</td><td>@_inv.Seller.Phone</td></tr>
+                            <div class="print-doc-party-row"><span class="k">@L["phone", "Phone"]</span><span class="v">@_inv.Seller.Phone</span></div>
                         }
-                    </table>
+                    </div>
                 </section>
                 <section class="print-doc-party">
                     <h2 class="print-doc-party-label">@L["invoice.buyer", "Buyer"]</h2>
                     <p class="print-doc-party-name">@(string.IsNullOrWhiteSpace(_inv.Buyer.Name) ? "—" : _inv.Buyer.Name)</p>
-                    <table>
+                    <div class="print-doc-party-fields">
                         @if (!string.IsNullOrEmpty(_inv.Buyer.Email))
                         {
-                            <tr><td>@L["email", "Email"]</td><td>@_inv.Buyer.Email</td></tr>
+                            <div class="print-doc-party-row"><span class="k">@L["email", "Email"]</span><span class="v">@_inv.Buyer.Email</span></div>
                         }
                         @if (!string.IsNullOrEmpty(_inv.Buyer.Phone))
                         {
-                            <tr><td>@L["phone", "Phone"]</td><td>@_inv.Buyer.Phone</td></tr>
+                            <div class="print-doc-party-row"><span class="k">@L["phone", "Phone"]</span><span class="v">@_inv.Buyer.Phone</span></div>
                         }
                         @if (!string.IsNullOrEmpty(_inv.Buyer.Address))
                         {
-                            <tr><td>@L["address", "Address"]</td><td>@_inv.Buyer.Address</td></tr>
+                            <div class="print-doc-party-row print-doc-party-row-block">
+                                <span class="k">@L["address", "Address"]</span>
+                                <span class="v">@_inv.Buyer.Address</span>
+                            </div>
                         }
-                    </table>
+                    </div>
                 </section>
             </div>
 
             <table class="print-doc-lines">
                 <thead>
                     <tr>
-                        <th style="width:42%">@L["title", "Title"]</th>
+                        <th style="width:38%">@L["title", "Title"]</th>
+                        <th>@L["products.code", "Code"]</th>
                         <th>@L["variants.sku", "SKU"]</th>
                         <th class="text-end">@L["quantity", "Qty"]</th>
                         <th class="text-end">@L["variants.price", "Unit"]</th>
@@ -151,6 +155,7 @@ else
                     {
                         <tr>
                             <td>@line.Title</td>
+                            <td><code>@(string.IsNullOrWhiteSpace(line.ProductCode) ? "—" : line.ProductCode)</code></td>
                             <td><code>@(line.Sku ?? "—")</code></td>
                             <td class="text-end">@line.Quantity</td>
                             <td class="text-end">@MoneyFormat.Group(line.UnitPrice, _inv.CurrencyCode)</td>
@@ -239,6 +244,26 @@ else
         }
         _loading = false;
     }
+
+    private string StatusLabel(byte status) => ((OrderStatus)status) switch
+    {
+        OrderStatus.PendingPayment => L["orders.status.pending_payment", "Pending payment"],
+        OrderStatus.Paid => L["orders.status.paid", "Paid"],
+        OrderStatus.Processing => L["orders.status.processing", "Processing"],
+        OrderStatus.Shipped => L["orders.status.shipped", "Shipped"],
+        OrderStatus.Completed => L["orders.status.completed", "Completed"],
+        OrderStatus.Cancelled => L["orders.status.cancelled", "Cancelled"],
+        OrderStatus.Refunded => L["orders.status.refunded", "Refunded"],
+        _ => ((OrderStatus)status).ToString(),
+    };
+
+    private static string StatusBadgeClass(byte status) => ((OrderStatus)status) switch
+    {
+        OrderStatus.Paid or OrderStatus.Completed => "print-doc-badge print-doc-badge-success",
+        OrderStatus.PendingPayment => "print-doc-badge print-doc-badge-warn",
+        OrderStatus.Cancelled or OrderStatus.Refunded => "print-doc-badge print-doc-badge-muted",
+        _ => "print-doc-badge print-doc-badge-info",
+    };
 
     private async Task PrintAsync() =>
         await Js.InvokeVoidAsync("dotnetablePrint.printElement", "order-invoice-print",
@@ -332,6 +357,7 @@ else
         sb.Append("<table width=\"100%\" cellpadding=\"8\" cellspacing=\"0\" style=\"border-collapse:collapse;font-size:13px;margin-bottom:16px;\">");
         sb.Append("<thead><tr style=\"background:#f0f2f4;\">");
         sb.Append($"<th align=\"left\" style=\"border-bottom:2px solid #111;\">{H(L["title", "Title"])}</th>");
+        sb.Append($"<th align=\"left\" style=\"border-bottom:2px solid #111;\">{H(L["products.code", "Code"])}</th>");
         sb.Append($"<th align=\"right\" style=\"border-bottom:2px solid #111;\">{H(L["quantity", "Qty"])}</th>");
         sb.Append($"<th align=\"right\" style=\"border-bottom:2px solid #111;\">{H(L["variants.price", "Unit"])}</th>");
         sb.Append($"<th align=\"right\" style=\"border-bottom:2px solid #111;\">{H(L["orders.line_total", "Total"])}</th>");
@@ -340,6 +366,7 @@ else
         {
             sb.Append("<tr>");
             sb.Append($"<td style=\"border-bottom:1px solid #ccc;\">{H(line.Title)}</td>");
+            sb.Append($"<td style=\"border-bottom:1px solid #ccc;\">{H(string.IsNullOrWhiteSpace(line.ProductCode) ? "—" : line.ProductCode)}</td>");
             sb.Append($"<td align=\"right\" style=\"border-bottom:1px solid #ccc;\">{line.Quantity}</td>");
             sb.Append($"<td align=\"right\" style=\"border-bottom:1px solid #ccc;\">{MoneyFormat.Group(line.UnitPrice, inv.CurrencyCode)}</td>");
             sb.Append($"<td align=\"right\" style=\"border-bottom:1px solid #ccc;\">{MoneyFormat.Group(line.LineTotal, inv.CurrencyCode)}</td>");

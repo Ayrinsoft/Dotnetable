@@ -5336,6 +5336,14 @@ namespace Dotnetable.Migrations.PostgreSql.Migrations
                         .HasColumnType("boolean")
                         .HasDefaultValue(false);
 
+                    b.Property<string>("ProductCodePrefix")
+                        .IsRequired()
+                        .ValueGeneratedOnAdd()
+                        .HasMaxLength(3)
+                        .HasColumnType("character varying(3)")
+                        .HasDefaultValue("DN")
+                        .HasComment("1–3 letter product code prefix; codes are {prefix}-{ProductID}.");
+
                     b.Property<string>("SellerEconomicCode")
                         .HasMaxLength(50)
                         .HasColumnType("character varying(50)");

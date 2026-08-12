@@ -158,6 +158,7 @@ public sealed class WarrantyListItemDto
 public sealed class ProductRefDto
 {
     public int ProductID { get; init; }
+    public string ProductCode { get; init; } = string.Empty;
     public string Slug { get; init; } = string.Empty;
     public string Title { get; init; } = string.Empty;
     public string? ImageUrl { get; init; }
@@ -169,6 +170,8 @@ public sealed class ProductRefDto
 public class ProductSummaryDto
 {
     public int ProductID { get; init; }
+    /// <summary>Site product code: <c>{prefix}-{ProductID}</c> (not variant SKU).</summary>
+    public string ProductCode { get; init; } = string.Empty;
     public string Slug { get; init; } = string.Empty;
     public string Title { get; init; } = string.Empty;
     public string? ShortDescription { get; init; }
@@ -231,6 +234,8 @@ public sealed class ProductDetailDto : ProductSummaryDto
 public sealed class ProductListItemDto
 {
     public int ProductID { get; init; }
+    /// <summary>Site product code: <c>{prefix}-{ProductID}</c>.</summary>
+    public string ProductCode { get; init; } = string.Empty;
     public string Title { get; init; } = string.Empty;
     public string Slug { get; init; } = string.Empty;
     public string? BrandName { get; init; }

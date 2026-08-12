@@ -51,7 +51,19 @@ public class ProductService : IProductService
         if (memberScope is int memberId)
             q = q.Where(p => p.CreatedByMemberID == memberId);
         if (!string.IsNullOrWhiteSpace(search))
-            q = q.Where(p => p.Title.Contains(search) || p.Slug.Contains(search));
+        {
+            var term = search.Trim();
+            if (Domain.ProductCode.TryParse(term, out _, out var codeProductId))
+                q = q.Where(p => p.ProductID == codeProductId
+                                 || p.Title.Contains(term)
+                                 || p.Slug.Contains(term));
+            else if (int.TryParse(term, out var plainId) && plainId > 0)
+                q = q.Where(p => p.ProductID == plainId
+                                 || p.Title.Contains(term)
+                                 || p.Slug.Contains(term));
+            else
+                q = q.Where(p => p.Title.Contains(term) || p.Slug.Contains(term));
+        }
 
         var total = await q.CountAsync(ct);
         var items = await q
@@ -59,21 +71,32 @@ public class ProductService : IProductService
             .Skip(query.Skip).Take(query.Take)
             .ToListAsync(ct);
 
-        var dtos = items.Select(p => new ProductListItemDto
+        var websiteIds = items.Select(p => p.WebsiteID).Distinct().ToList();
+        var prefixes = await _context.Websites.AsNoTracking()
+            .Where(w => websiteIds.Contains(w.WebsiteID))
+            .Select(w => new { w.WebsiteID, w.ProductCodePrefix })
+            .ToDictionaryAsync(x => x.WebsiteID, x => Domain.ProductCode.NormalizePrefix(x.ProductCodePrefix), ct);
+
+        var dtos = items.Select(p =>
         {
-            ProductID = p.ProductID,
-            Title = p.Title,
-            Slug = p.Slug,
-            BrandName = p.Brand?.Name,
-            Status = p.Status,
-            IsActive = p.IsActive,
-            HasVariants = p.HasVariants,
-            ProductType = p.ProductType,
-            RequiresShipping = p.RequiresShipping,
-            MinPriceUsd = p.ProductVariants.Count == 0 ? null : p.ProductVariants.Min(v => v.ReferencePriceUsd > 0 ? v.ReferencePriceUsd : 0),
-            MinPrice = p.ProductVariants.Count == 0 ? null : p.ProductVariants.Min(v => v.ReferencePrice > 0 ? v.ReferencePrice : v.ReferencePriceUsd),
-            FeaturedImageUrl = p.FeaturedImageFile?.ThumbnailCDN ?? p.FeaturedImageFile?.CNDUrl,
-            UpdatedAt = p.UpdatedAt,
+            prefixes.TryGetValue(p.WebsiteID, out var prefix);
+            return new ProductListItemDto
+            {
+                ProductID = p.ProductID,
+                ProductCode = Domain.ProductCode.Format(prefix, p.ProductID),
+                Title = p.Title,
+                Slug = p.Slug,
+                BrandName = p.Brand?.Name,
+                Status = p.Status,
+                IsActive = p.IsActive,
+                HasVariants = p.HasVariants,
+                ProductType = p.ProductType,
+                RequiresShipping = p.RequiresShipping,
+                MinPriceUsd = p.ProductVariants.Count == 0 ? null : p.ProductVariants.Min(v => v.ReferencePriceUsd > 0 ? v.ReferencePriceUsd : 0),
+                MinPrice = p.ProductVariants.Count == 0 ? null : p.ProductVariants.Min(v => v.ReferencePrice > 0 ? v.ReferencePrice : v.ReferencePriceUsd),
+                FeaturedImageUrl = p.FeaturedImageFile?.ThumbnailCDN ?? p.FeaturedImageFile?.CNDUrl,
+                UpdatedAt = p.UpdatedAt,
+            };
         }).ToList();
 
         return new PagedResult<ProductListItemDto> { Items = dtos, TotalCount = total };
@@ -850,6 +873,34 @@ public class ProductService : IProductService
 
     public async Task<ProductDetailDto?> GetBySlugAsync(int websiteId, string slug, string? languageCode = null, string? currencyCode = null, CancellationToken ct = default)
     {
+        // Product code URL: /product/DN-42 (prefix from owning site; id is ProductID, not variant).
+        if (Domain.ProductCode.TryParse(slug, out var codePrefix, out var codeProductId))
+        {
+            var hostPrefix = await GetProductCodePrefixAsync(websiteId, ct);
+            if (string.Equals(hostPrefix, codePrefix, StringComparison.OrdinalIgnoreCase))
+            {
+                var byCode = await DetailQuery(websiteId)
+                    .FirstOrDefaultAsync(p => p.ProductID == codeProductId, ct);
+                if (byCode is not null)
+                    return await ProjectDetailAsync(byCode, languageCode, currencyCode, ct, null, websiteId);
+            }
+
+            // Linked-site product codes (source website prefix + product id).
+            var siteVendorsForCode = await _vendors.GetActiveSiteLinksAsync(websiteId, ct);
+            foreach (var v in siteVendorsForCode)
+            {
+                if (v.LinkedWebsiteID is not int lid) continue;
+                var sourcePrefix = await GetProductCodePrefixAsync(lid, ct);
+                if (!string.Equals(sourcePrefix, codePrefix, StringComparison.OrdinalIgnoreCase))
+                    continue;
+
+                var linked = await DetailQuery(lid)
+                    .FirstOrDefaultAsync(p => p.ProductID == codeProductId && p.WebsiteID == lid, ct);
+                if (linked is not null)
+                    return await ProjectDetailAsync(linked, languageCode, currencyCode, ct, v, websiteId);
+            }
+        }
+
         // Prefer host-owned product.
         var product = await DetailQuery(websiteId)
             .FirstOrDefaultAsync(p => p.Slug == slug || p.ProductTranslations.Any(t => t.Slug == slug), ct);
@@ -880,6 +931,15 @@ public class ProductService : IProductService
 
         if (product is null) return null;
         return await ProjectDetailAsync(product, languageCode, currencyCode, ct, vendor, websiteId);
+    }
+
+    private async Task<string> GetProductCodePrefixAsync(int websiteId, CancellationToken ct)
+    {
+        var prefix = await _context.Websites.AsNoTracking()
+            .Where(w => w.WebsiteID == websiteId)
+            .Select(w => w.ProductCodePrefix)
+            .FirstOrDefaultAsync(ct);
+        return Domain.ProductCode.NormalizePrefix(prefix);
     }
 
     public async Task<List<ProductRefDto>> GetRelatedAsync(int websiteId, string slug, int take, string? languageCode = null, string? currencyCode = null, CancellationToken ct = default)
@@ -1097,9 +1157,12 @@ public class ProductService : IProductService
                 minPrice = await _currency.ToDisplayFromLocalAsync(priceWebsiteId, minLocal, null, currencyCode, minUsd > 0 ? minUsd : null, ct);
         }
 
+        var codePrefix = await GetProductCodePrefixAsync(p.WebsiteID, ct);
         return new ProductSummaryDto
         {
-            ProductID = p.ProductID, Slug = slug, Title = title, ShortDescription = shortDescription,
+            ProductID = p.ProductID,
+            ProductCode = Domain.ProductCode.Format(codePrefix, p.ProductID),
+            Slug = slug, Title = title, ShortDescription = shortDescription,
             FeaturedImageUrl = p.FeaturedImageFile?.ThumbnailCDN ?? p.FeaturedImageFile?.CNDUrl,
             BrandName = p.Brand?.Name,
             DefaultSku = defaultVariant?.Sku,
@@ -1131,9 +1194,12 @@ public class ProductService : IProductService
                 minPrice = await _currency.ToDisplayFromLocalAsync(p.WebsiteID, minLocal, null, currencyCode, minUsd > 0 ? minUsd : null, ct);
         }
 
+        var codePrefix = await GetProductCodePrefixAsync(p.WebsiteID, ct);
         return new ProductRefDto
         {
-            ProductID = p.ProductID, Slug = slug, Title = title,
+            ProductID = p.ProductID,
+            ProductCode = Domain.ProductCode.Format(codePrefix, p.ProductID),
+            Slug = slug, Title = title,
             ImageUrl = p.FeaturedImageFile?.ThumbnailCDN ?? p.FeaturedImageFile?.CNDUrl,
             MinPrice = minPrice, RelationType = relationType,
         };

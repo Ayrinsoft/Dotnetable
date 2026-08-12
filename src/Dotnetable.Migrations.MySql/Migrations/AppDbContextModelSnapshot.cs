@@ -5123,6 +5123,14 @@ namespace Dotnetable.Migrations.MySql.Migrations
                         .HasColumnType("tinyint(1)")
                         .HasDefaultValue(false);
 
+                    b.Property<string>("ProductCodePrefix")
+                        .IsRequired()
+                        .ValueGeneratedOnAdd()
+                        .HasMaxLength(3)
+                        .HasColumnType("varchar(3)")
+                        .HasDefaultValue("DN")
+                        .HasComment("1–3 letter product code prefix; codes are {prefix}-{ProductID}.");
+
                     b.Property<string>("SellerEconomicCode")
                         .HasMaxLength(50)
                         .HasColumnType("varchar(50)");

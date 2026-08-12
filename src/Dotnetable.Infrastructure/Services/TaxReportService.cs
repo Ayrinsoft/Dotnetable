@@ -136,7 +136,7 @@ public class TaxReportService : ITaxReportService
     public async Task<OrderInvoiceDto?> GetOrderInvoiceAsync(int orderId, CancellationToken ct = default)
     {
         var order = await _context.Orders.AsNoTracking()
-            .Include(o => o.OrderItems)
+            .Include(o => o.OrderItems).ThenInclude(i => i.ProductVariant)
             .Include(o => o.WebsiteClient)
             .Include(o => o.Website)
             .FirstOrDefaultAsync(o => o.OrderID == orderId, ct);
@@ -144,6 +144,7 @@ public class TaxReportService : ITaxReportService
 
         var w = order.Website;
         var c = order.WebsiteClient;
+        var codePrefix = Domain.ProductCode.NormalizePrefix(w.ProductCodePrefix);
 
         return new OrderInvoiceDto
         {
@@ -175,6 +176,9 @@ public class TaxReportService : ITaxReportService
             Lines = order.OrderItems.Select(i => new InvoiceLineDto
             {
                 Title = i.TitleSnapshot,
+                ProductCode = i.ProductVariant is { ProductID: > 0 } pv
+                    ? Domain.ProductCode.Format(codePrefix, pv.ProductID)
+                    : null,
                 Sku = i.SkuSnapshot,
                 Quantity = i.Quantity,
                 UnitPrice = i.UnitPrice,

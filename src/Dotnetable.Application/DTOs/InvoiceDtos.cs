@@ -50,6 +50,8 @@ public sealed class InvoicePartyDto
 public sealed class InvoiceLineDto
 {
     public string Title { get; init; } = "";
+    /// <summary>Site product code (<c>DN-42</c>), when the line maps to a catalog product.</summary>
+    public string? ProductCode { get; init; }
     public string? Sku { get; init; }
     public int Quantity { get; init; }
     public decimal UnitPrice { get; init; }
