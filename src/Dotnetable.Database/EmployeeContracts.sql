@@ -9,6 +9,7 @@ CREATE TABLE [dbo].[EmployeeContracts] (
     [EmployeeInsuranceRate]  DECIMAL (9, 6)  NOT NULL,
     [EmployerInsuranceRate]  DECIMAL (9, 6)  NOT NULL,
     [IncomeTaxRate]          DECIMAL (9, 6)  NOT NULL,
+    [UseFlatRates]           BIT             DEFAULT (CONVERT([bit],(1))) NOT NULL,
     [IsActive]               BIT             DEFAULT (CONVERT([bit],(1))) NOT NULL,
     [CreatedAt]              DATETIME2 (7)   NOT NULL,
     CONSTRAINT [PK_EmployeeContracts] PRIMARY KEY CLUSTERED ([EmployeeContractID] ASC),

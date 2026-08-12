@@ -1553,8 +1553,8 @@ window.DOCS_ADMIN = {
               fa: "سند را باز کنید → QC خطوط برگشت را بگذارید → Approve / Post. برگه بسته‌بندی را با **Upload scan** پیوست کنید.",
             },
             {
-              en: "Sellable return restocks warehouse + inventory + store listing. Defective receives to warehouse for scrap tracking without restoring sellable listings.",
-              fa: "برگشت سالم: انبار + موجودی + لیستینگ فروش. معیوب: فقط ورود فیزیکی برای ضایعات، بدون بازگرداندن موجودی فروش.",
+              en: "Set **condition** on each return line: New, Like new, Open box, Display, Used, Defective. Non-new (except Defective) **require a health grade** A–F. New restocks original listing; Open box / Display / Used restock a used-channel listing and map the product to category slug `used-goods`; Defective is scrap-only.",
+              fa: "روی هر خط برگشت **وضعیت** بگذارید: نو، در حد نو، جعبه باز، ویترینی، کارکرده، معیوب. غیر از نو (به‌جز معیوب) **گرید سلامت A–F اجباری** است. نو → لیستینگ اصلی؛ جعبه باز/ویترینی/کارکرده → لیستینگ کانال کارکرده + دسته `used-goods`؛ معیوب فقط ضایعات.",
             },
           ],
           related: ["warehouses", "warehouse-tasks", "orders", "payments-refunds", "inventory-stock"],
@@ -1949,6 +1949,30 @@ window.DOCS_ADMIN = {
             },
           ],
           related: ["vendors", "suppliers", "tax", "bank-accounts"],
+        },
+        {
+          id: "payroll",
+          title: { en: "Payroll", fa: "حقوق و دستمزد" },
+          adminPath: "/hr/payroll",
+          summary: {
+            en: "Payroll runs, insurance/tax withholdings, Excel export for insurance payable and tax payable, multi-tier rate brackets.",
+            fa: "دوره‌های حقوق، کسر بیمه/مالیات، خروجی Excel بیمه و مالیات قابل‌پرداخت، پله‌های نرخ چندسطحی.",
+          },
+          howTo: [
+            {
+              en: "Create a run for a period → Submit → Approve → Mark paid (posts GL).",
+              fa: "برای بازه Create run → Submit → Approve → Mark paid (ثبت حسابداری).",
+            },
+            {
+              en: "Export Excel from run detail or **Payroll reports** (insurance payable / tax payable / full statutory).",
+              fa: "خروجی Excel از جزئیات دوره یا **گزارش‌های حقوق** (بیمه قابل‌پرداخت / مالیات / کامل).",
+            },
+            {
+              en: "Configure progressive brackets under **Rate brackets**. On each contract set **Use flat rates** off to apply brackets (otherwise contract %).",
+              fa: "پله‌ها را در **Rate brackets** بگذارید. روی قرارداد **Use flat rates** را خاموش کنید تا پله‌ها اعمال شوند (وگرنه درصد ثابت قرارداد).",
+            },
+          ],
+          related: ["settlements", "bank-accounts"],
         },
         {
           id: "bank-accounts",

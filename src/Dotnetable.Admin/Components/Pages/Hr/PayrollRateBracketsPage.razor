@@ -1,0 +1,138 @@
+@page "/hr/payroll/rate-brackets"
+@using Dotnetable.Domain.Enums
+@attribute [Authorize(Policy = RoleKeys.PayrollRun)]
+@inject IPayrollService Payroll
+@inject IWebsiteService WebsiteService
+@inject AuthenticationStateProvider AuthState
+@inject ISnackbar Snackbar
+@inject IPageLocalizer L
+
+<DNPageTitle Title=@L["hr.rate_brackets", "Payroll rate brackets"] />
+
+<MudStack Row="true" Justify="Justify.SpaceBetween" Class="mb-3 flex-wrap gap-2">
+    <MudStack Spacing="0">
+        <MudText Typo="Typo.h5" Class="fw-bold">@L["hr.rate_brackets", "Payroll rate brackets"]</MudText>
+        <MudText Typo="Typo.body2" Color="Color.Secondary">
+            @L["hr.rate_brackets.hint", "Multi-tier insurance and income tax. Applied when an employee contract has Use flat rates = off. Progressive: each income slice is taxed at its bracket rate."]
+        </MudText>
+    </MudStack>
+    @if (_isMaster)
+    {
+        <WebsiteSelector Value="_websiteId" ValueChanged="async id=>{_websiteId=id;await Load();}" Websites="_websites" Dense="true" Style="min-width:160px" />
+    }
+</MudStack>
+
+@if (_websiteId > 0)
+{
+    <MudPaper Class="app-card pa-3 mb-3">
+        <MudText Typo="Typo.subtitle2" Class="mb-2">@L["hr.add_bracket", "Add bracket"]</MudText>
+        <MudStack Row="true" Class="flex-wrap gap-2">
+            <MudSelect T="PayrollRateKind" @bind-Value="_kind" Dense="true" Style="min-width:160px" Label="@L["type", "Type"]">
+                <MudSelectItem T="PayrollRateKind" Value="PayrollRateKind.EmployeeInsurance">@L["hr.emp_ins", "Employee insurance"]</MudSelectItem>
+                <MudSelectItem T="PayrollRateKind" Value="PayrollRateKind.EmployerInsurance">@L["hr.er_ins", "Employer insurance"]</MudSelectItem>
+                <MudSelectItem T="PayrollRateKind" Value="PayrollRateKind.IncomeTax">@L["hr.income_tax", "Income tax"]</MudSelectItem>
+            </MudSelect>
+            <MudNumericField T="decimal" @bind-Value="_from" Label="@L["hr.from_amount", "From amount"]" Dense="true" Min="0" />
+            <MudNumericField T="decimal?" @bind-Value="_to" Label="@L["hr.to_amount", "To (empty=∞)"]" Dense="true" Min="0" />
+            <MudNumericField T="decimal" @bind-Value="_ratePct" Label="@L["hr.rate_pct", "Rate %"]" Dense="true" Min="0" Max="100" />
+            <MudNumericField T="int" @bind-Value="_sort" Label="@L["sort", "Sort"]" Dense="true" />
+            <MudButton Variant="Variant.Filled" Color="Color.Primary" OnClick="Add">@L["add", "Add"]</MudButton>
+        </MudStack>
+    </MudPaper>
+
+    <MudPaper Class="app-card pa-4">
+        @if (_items.Count == 0)
+        {
+            <MudText Color="Color.Secondary">@L["hr.brackets_empty", "No brackets yet — contracts will use flat rates (or configure tiers here and set Use flat rates = off on contracts)."]</MudText>
+        }
+        else
+        {
+            <MudSimpleTable Dense="true" Hover="true">
+                <thead>
+                    <tr>
+                        <th>@L["type", "Type"]</th>
+                        <th>@L["hr.from_amount", "From"]</th>
+                        <th>@L["hr.to_amount", "To"]</th>
+                        <th>@L["hr.rate_pct", "Rate %"]</th>
+                        <th>@L["sort", "Sort"]</th>
+                        <th></th>
+                    </tr>
+                </thead>
+                <tbody>
+                    @foreach (var b in _items)
+                    {
+                        <tr>
+                            <td>@KindLabel((PayrollRateKind)b.Kind)</td>
+                            <td>@b.FromAmount.ToString("0.##")</td>
+                            <td>@(b.ToAmount?.ToString("0.##") ?? "∞")</td>
+                            <td>@((b.Rate * 100).ToString("0.####"))%</td>
+                            <td>@b.SortOrder</td>
+                            <td>
+                                <MudIconButton Icon="@Icons.Material.Filled.Delete" Size="Size.Small" Color="Color.Error"
+                                               OnClick="@(() => Delete(b.PayrollRateBracketID))" />
+                            </td>
+                        </tr>
+                    }
+                </tbody>
+            </MudSimpleTable>
+        }
+    </MudPaper>
+}
+
+@code {
+    private bool _isMaster; private int _websiteId;
+    private List<Website> _websites = new();
+    private List<PayrollRateBracket> _items = new();
+    private PayrollRateKind _kind = PayrollRateKind.IncomeTax;
+    private decimal _from, _ratePct = 10;
+    private decimal? _to;
+    private int _sort;
+
+    protected override async Task OnInitializedAsync()
+    {
+        await L.EnsureLoadedAsync();
+        var u = (await AuthState.GetAuthenticationStateAsync()).User;
+        _isMaster = u.HasClaim(AdminClaimTypes.Master, "true");
+        int.TryParse(u.FindFirst(AdminClaimTypes.WebsiteId)?.Value, out _websiteId);
+        if (_isMaster) _websites = (await WebsiteService.GetAllAsync()).ToList();
+        await Load();
+    }
+
+    private async Task Load()
+    {
+        if (_websiteId <= 0) { _items = new(); return; }
+        _items = (await Payroll.GetRateBracketsAsync(_websiteId)).ToList();
+    }
+
+    private string KindLabel(PayrollRateKind k) => k switch
+    {
+        PayrollRateKind.EmployeeInsurance => L["hr.emp_ins", "Employee insurance"],
+        PayrollRateKind.EmployerInsurance => L["hr.er_ins", "Employer insurance"],
+        PayrollRateKind.IncomeTax => L["hr.income_tax", "Income tax"],
+        _ => k.ToString(),
+    };
+
+    private async Task Add()
+    {
+        if (_websiteId <= 0) return;
+        var (ok, err, _) = await Payroll.UpsertRateBracketAsync(new PayrollRateBracket
+        {
+            WebsiteID = _websiteId,
+            Kind = (byte)_kind,
+            FromAmount = _from,
+            ToAmount = _to,
+            Rate = _ratePct / 100m,
+            SortOrder = _sort,
+            IsActive = true,
+        });
+        if (ok) { Snackbar.Add(L["saved", "Saved."], Severity.Success); await Load(); }
+        else Snackbar.Add(err ?? "Failed", Severity.Error);
+    }
+
+    private async Task Delete(int id)
+    {
+        var (ok, err) = await Payroll.DeleteRateBracketAsync(id);
+        if (ok) { Snackbar.Add(L["saved", "Saved."], Severity.Success); await Load(); }
+        else Snackbar.Add(err ?? "Failed", Severity.Error);
+    }
+}

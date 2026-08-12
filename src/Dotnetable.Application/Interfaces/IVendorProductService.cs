@@ -72,6 +72,14 @@ public interface IVendorProductService
     Task RestockAsync(int vendorProductId, int qty, CancellationToken ct = default);
 
     /// <summary>
+    /// Restock or create a listing for a given commercial condition (New vs OpenBox/Display/Used).
+    /// Non-new listings are tagged with condition + health grade for the used-goods channel.
+    /// </summary>
+    Task RestockWithConditionAsync(
+        int websiteId, int vendorId, int productVariantId, int qty,
+        byte itemCondition, byte healthGrade, CancellationToken ct = default);
+
+    /// <summary>
     /// Sets <c>InventoryItems.QuantityOnHand</c> for the host website + variant to the sum of
     /// all <see cref="VendorProduct.StockQuantity"/> rows on that host (source of truth = store listings).
     /// Preserves QuantityReserved already held on the inventory row.

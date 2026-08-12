@@ -368,6 +368,9 @@
                 <AuthorizeView Policy="@RoleKeys.PayrollView" Context="prnav">
                     <MudNavLink Href="/hr/payroll" Icon="@Icons.Material.Filled.Payments">@L["hr.payroll", "Payroll"]</MudNavLink>
                     <MudNavLink Href="/hr/payroll/reports" Icon="@Icons.Material.Filled.Assessment">@L["hr.payroll_reports", "Payroll reports"]</MudNavLink>
+                    <AuthorizeView Policy="@RoleKeys.PayrollRun" Context="prrun">
+                        <MudNavLink Href="/hr/payroll/rate-brackets" Icon="@Icons.Material.Filled.StackedLineChart">@L["hr.rate_brackets", "Rate brackets"]</MudNavLink>
+                    </AuthorizeView>
                 </AuthorizeView>
             </MudNavGroup>
         </AuthorizeView>

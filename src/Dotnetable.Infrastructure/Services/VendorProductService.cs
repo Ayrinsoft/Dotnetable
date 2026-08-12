@@ -384,6 +384,55 @@ public class VendorProductService : IVendorProductService
         await _context.SaveChangesAsync(ct);
     }
 
+    public async Task RestockWithConditionAsync(
+        int websiteId, int vendorId, int productVariantId, int qty,
+        byte itemCondition, byte healthGrade, CancellationToken ct = default)
+    {
+        if (qty <= 0) return;
+
+        // Prefer an existing listing with the same commercial condition.
+        var listing = await _context.VendorProducts
+            .FirstOrDefaultAsync(vp =>
+                vp.WebsiteID == websiteId
+                && vp.VendorID == vendorId
+                && vp.ProductVariantID == productVariantId
+                && vp.ItemCondition == itemCondition, ct);
+
+        if (listing is null)
+        {
+            var template = await _context.VendorProducts.AsNoTracking()
+                .FirstOrDefaultAsync(vp =>
+                    vp.WebsiteID == websiteId
+                    && vp.VendorID == vendorId
+                    && vp.ProductVariantID == productVariantId, ct);
+
+            listing = new VendorProduct
+            {
+                WebsiteID = websiteId,
+                VendorID = vendorId,
+                ProductVariantID = productVariantId,
+                ReferencePrice = template?.ReferencePrice ?? 0,
+                ReferencePriceUsd = template?.ReferencePriceUsd ?? 0,
+                OverridePriceLocal = template?.OverridePriceLocal,
+                OverridePrice = template?.OverridePrice,
+                StockQuantity = 0,
+                QuantityReserved = 0,
+                DeliveryDays = template?.DeliveryDays ?? 0,
+                IsActive = true,
+                ItemCondition = itemCondition,
+                HealthGrade = healthGrade,
+            };
+            _context.VendorProducts.Add(listing);
+        }
+
+        if (!IVendorProductService.IsUnlimited(listing))
+            listing.StockQuantity += qty;
+        listing.HealthGrade = healthGrade;
+        listing.ItemCondition = itemCondition;
+        listing.IsActive = true;
+        await _context.SaveChangesAsync(ct);
+    }
+
     public async Task SyncInventoryOnHandFromListingsAsync(int websiteId, int productVariantId, CancellationToken ct = default)
     {
         var listings = await _context.VendorProducts

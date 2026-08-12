@@ -17,8 +17,13 @@ public partial class EmployeeContract
     public decimal EmployeeInsuranceRate { get; set; }
     /// <summary>Employer insurance rate as fraction.</summary>
     public decimal EmployerInsuranceRate { get; set; }
-    /// <summary>Income tax rate as fraction (simplified flat rate for v1).</summary>
+    /// <summary>Income tax rate as fraction when <see cref="UseFlatRates"/> is true.</summary>
     public decimal IncomeTaxRate { get; set; }
+    /// <summary>
+    /// When true, use the three flat rates on this contract.
+    /// When false, use website <see cref="PayrollRateBracket"/> tables (fallback to flat if no brackets).
+    /// </summary>
+    public bool UseFlatRates { get; set; } = true;
     public bool IsActive { get; set; } = true;
     public DateTime CreatedAt { get; set; }
 

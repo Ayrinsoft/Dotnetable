@@ -67,15 +67,21 @@ public class PayrollService : IPayrollService
             CreatedAt = DateTime.UtcNow,
         };
 
+        var brackets = await _context.PayrollRateBrackets.AsNoTracking()
+            .Where(b => b.WebsiteID == websiteId && b.IsActive)
+            .OrderBy(b => b.Kind).ThenBy(b => b.SortOrder).ThenBy(b => b.FromAmount)
+            .ToListAsync(ct);
+
         decimal tg = 0, tei = 0, ter = 0, ttax = 0, tnet = 0;
         foreach (var emp in employees)
         {
             var contract = await _hr.GetActiveContractAsync(emp.EmployeeID, to, ct);
             if (contract is null) continue;
             var gross = contract.BaseSalary;
-            var empIns = Math.Round(gross * contract.EmployeeInsuranceRate, 4);
-            var erIns = Math.Round(gross * contract.EmployerInsuranceRate, 4);
-            var tax = Math.Round(Math.Max(0, gross - empIns) * contract.IncomeTaxRate, 4);
+            var empIns = CalcContribution(gross, contract, PayrollRateKind.EmployeeInsurance, brackets);
+            var erIns = CalcContribution(gross, contract, PayrollRateKind.EmployerInsurance, brackets);
+            var taxable = Math.Max(0, gross - empIns);
+            var tax = CalcContribution(taxable, contract, PayrollRateKind.IncomeTax, brackets);
             var net = gross - empIns - tax;
             run.PayrollLines.Add(new PayrollLine
             {
@@ -210,6 +216,140 @@ public class PayrollService : IPayrollService
     public async Task<IReadOnlyList<PayrollLine>> GetTaxReportAsync(int websiteId, DateOnly from, DateOnly to, CancellationToken ct = default) =>
         await LinesInRange(websiteId, from, to, ct);
 
+    public async Task<byte[]> ExportRunExcelAsync(int payrollRunId, CancellationToken ct = default)
+    {
+        var run = await GetRunAsync(payrollRunId, ct)
+            ?? throw new InvalidOperationException("Payroll run not found.");
+        var headers = new[]
+        {
+            "EmployeeCode", "Employee", "Gross", "EmployeeInsurance", "EmployerInsurance",
+            "IncomeTax", "Net", "EmployerCost", "Currency", "RunNumber", "PeriodFrom", "PeriodTo", "Status",
+        };
+        var rows = run.PayrollLines.Select(l => (IReadOnlyList<object?>)new object?[]
+        {
+            l.Employee?.EmployeeCode,
+            $"{l.Employee?.GivenName} {l.Employee?.Surname}".Trim(),
+            l.Gross, l.EmployeeInsurance, l.EmployerInsurance, l.IncomeTax, l.Net, l.EmployerCost,
+            run.CurrencyCode, run.RunNumber, run.PeriodFrom.ToString("yyyy-MM-dd"), run.PeriodTo.ToString("yyyy-MM-dd"),
+            ((PayrollRunStatus)run.Status).ToString(),
+        });
+        return ExcelWorkbook.Write("Payroll", headers, rows);
+    }
+
+    public async Task<byte[]> ExportInsurancePayableExcelAsync(int websiteId, DateOnly from, DateOnly to, CancellationToken ct = default)
+    {
+        var lines = await LinesInRange(websiteId, from, to, ct);
+        var headers = new[]
+        {
+            "EmployeeCode", "Employee", "RunNumber", "PeriodFrom", "PeriodTo",
+            "Gross", "EmployeeInsurance", "EmployerInsurance", "InsuranceTotal", "Currency",
+        };
+        var rows = lines.Select(l => (IReadOnlyList<object?>)new object?[]
+        {
+            l.Employee?.EmployeeCode,
+            $"{l.Employee?.GivenName} {l.Employee?.Surname}".Trim(),
+            l.PayrollRun?.RunNumber,
+            l.PayrollRun?.PeriodFrom.ToString("yyyy-MM-dd"),
+            l.PayrollRun?.PeriodTo.ToString("yyyy-MM-dd"),
+            l.Gross, l.EmployeeInsurance, l.EmployerInsurance,
+            l.EmployeeInsurance + l.EmployerInsurance,
+            l.PayrollRun?.CurrencyCode,
+        });
+        return ExcelWorkbook.Write("InsurancePayable", headers, rows);
+    }
+
+    public async Task<byte[]> ExportTaxPayableExcelAsync(int websiteId, DateOnly from, DateOnly to, CancellationToken ct = default)
+    {
+        var lines = await LinesInRange(websiteId, from, to, ct);
+        var headers = new[]
+        {
+            "EmployeeCode", "Employee", "RunNumber", "PeriodFrom", "PeriodTo",
+            "Gross", "EmployeeInsurance", "TaxableBase", "IncomeTax", "Currency",
+        };
+        var rows = lines.Select(l => (IReadOnlyList<object?>)new object?[]
+        {
+            l.Employee?.EmployeeCode,
+            $"{l.Employee?.GivenName} {l.Employee?.Surname}".Trim(),
+            l.PayrollRun?.RunNumber,
+            l.PayrollRun?.PeriodFrom.ToString("yyyy-MM-dd"),
+            l.PayrollRun?.PeriodTo.ToString("yyyy-MM-dd"),
+            l.Gross, l.EmployeeInsurance, Math.Max(0, l.Gross - l.EmployeeInsurance),
+            l.IncomeTax, l.PayrollRun?.CurrencyCode,
+        });
+        return ExcelWorkbook.Write("TaxPayable", headers, rows);
+    }
+
+    public async Task<byte[]> ExportStatutoryExcelAsync(int websiteId, DateOnly from, DateOnly to, CancellationToken ct = default)
+    {
+        // Combined sheet for insurance + tax payable filings.
+        var lines = await LinesInRange(websiteId, from, to, ct);
+        var headers = new[]
+        {
+            "EmployeeCode", "Employee", "RunNumber", "PeriodFrom", "PeriodTo",
+            "Gross", "EmployeeInsurance", "EmployerInsurance", "IncomeTax", "Net", "EmployerCost", "Currency",
+        };
+        var rows = lines.Select(l => (IReadOnlyList<object?>)new object?[]
+        {
+            l.Employee?.EmployeeCode,
+            $"{l.Employee?.GivenName} {l.Employee?.Surname}".Trim(),
+            l.PayrollRun?.RunNumber,
+            l.PayrollRun?.PeriodFrom.ToString("yyyy-MM-dd"),
+            l.PayrollRun?.PeriodTo.ToString("yyyy-MM-dd"),
+            l.Gross, l.EmployeeInsurance, l.EmployerInsurance, l.IncomeTax, l.Net, l.EmployerCost,
+            l.PayrollRun?.CurrencyCode,
+        });
+        return ExcelWorkbook.Write("Statutory", headers, rows);
+    }
+
+    public async Task<IReadOnlyList<PayrollRateBracket>> GetRateBracketsAsync(
+        int websiteId, PayrollRateKind? kind = null, CancellationToken ct = default)
+    {
+        var q = _context.PayrollRateBrackets.AsNoTracking().Where(b => b.WebsiteID == websiteId);
+        if (kind is PayrollRateKind k) q = q.Where(b => b.Kind == (byte)k);
+        return await q.OrderBy(b => b.Kind).ThenBy(b => b.SortOrder).ThenBy(b => b.FromAmount).ToListAsync(ct);
+    }
+
+    public async Task<(bool Success, string? Error, PayrollRateBracket? Bracket)> UpsertRateBracketAsync(
+        PayrollRateBracket bracket, CancellationToken ct = default)
+    {
+        if (bracket.WebsiteID <= 0) return (false, "Website is required.", null);
+        if (bracket.Rate < 0 || bracket.Rate > 1) return (false, "Rate must be between 0 and 1 (e.g. 0.10 = 10%).", null);
+        if (bracket.FromAmount < 0) return (false, "From amount cannot be negative.", null);
+        if (bracket.ToAmount is decimal to && to <= bracket.FromAmount)
+            return (false, "To amount must be greater than From amount.", null);
+        if (!Enum.IsDefined(typeof(PayrollRateKind), bracket.Kind))
+            return (false, "Invalid rate kind.", null);
+
+        if (bracket.PayrollRateBracketID == 0)
+        {
+            bracket.CreatedAt = DateTime.UtcNow;
+            _context.PayrollRateBrackets.Add(bracket);
+        }
+        else
+        {
+            var e = await _context.PayrollRateBrackets.FirstOrDefaultAsync(b => b.PayrollRateBracketID == bracket.PayrollRateBracketID, ct);
+            if (e is null) return (false, "Bracket not found.", null);
+            e.Kind = bracket.Kind;
+            e.FromAmount = bracket.FromAmount;
+            e.ToAmount = bracket.ToAmount;
+            e.Rate = bracket.Rate;
+            e.SortOrder = bracket.SortOrder;
+            e.IsActive = bracket.IsActive;
+            bracket = e;
+        }
+        await _context.SaveChangesAsync(ct);
+        return (true, null, bracket);
+    }
+
+    public async Task<(bool Success, string? Error)> DeleteRateBracketAsync(int bracketId, CancellationToken ct = default)
+    {
+        var e = await _context.PayrollRateBrackets.FirstOrDefaultAsync(b => b.PayrollRateBracketID == bracketId, ct);
+        if (e is null) return (false, "Not found.");
+        _context.PayrollRateBrackets.Remove(e);
+        await _context.SaveChangesAsync(ct);
+        return (true, null);
+    }
+
     private async Task<IReadOnlyList<PayrollLine>> LinesInRange(int websiteId, DateOnly from, DateOnly to, CancellationToken ct) =>
         await _context.PayrollLines.AsNoTracking()
             .Include(l => l.Employee)
@@ -219,4 +359,56 @@ public class PayrollService : IPayrollService
                         && l.PayrollRun.PeriodFrom >= from && l.PayrollRun.PeriodTo <= to)
             .OrderBy(l => l.Employee.Surname)
             .ToListAsync(ct);
+
+    /// <summary>
+    /// Flat contract rates when UseFlatRates; otherwise progressive website brackets (fallback to flat).
+    /// Progressive: tax each slice of the base between From/To at that bracket's rate.
+    /// </summary>
+    private static decimal CalcContribution(
+        decimal baseAmount,
+        EmployeeContract contract,
+        PayrollRateKind kind,
+        IReadOnlyList<PayrollRateBracket> allBrackets)
+    {
+        if (baseAmount <= 0) return 0;
+
+        if (contract.UseFlatRates)
+        {
+            var flat = kind switch
+            {
+                PayrollRateKind.EmployeeInsurance => contract.EmployeeInsuranceRate,
+                PayrollRateKind.EmployerInsurance => contract.EmployerInsuranceRate,
+                PayrollRateKind.IncomeTax => contract.IncomeTaxRate,
+                _ => 0m,
+            };
+            return Math.Round(baseAmount * flat, 4);
+        }
+
+        var brackets = allBrackets.Where(b => b.Kind == (byte)kind && b.IsActive)
+            .OrderBy(b => b.SortOrder).ThenBy(b => b.FromAmount).ToList();
+        if (brackets.Count == 0)
+        {
+            // No brackets configured — fall back to contract flat rates.
+            var flat = kind switch
+            {
+                PayrollRateKind.EmployeeInsurance => contract.EmployeeInsuranceRate,
+                PayrollRateKind.EmployerInsurance => contract.EmployerInsuranceRate,
+                PayrollRateKind.IncomeTax => contract.IncomeTaxRate,
+                _ => 0m,
+            };
+            return Math.Round(baseAmount * flat, 4);
+        }
+
+        decimal total = 0;
+        foreach (var b in brackets)
+        {
+            if (baseAmount <= b.FromAmount) continue;
+            var upper = b.ToAmount ?? decimal.MaxValue;
+            var sliceStart = b.FromAmount;
+            var sliceEnd = Math.Min(baseAmount, upper);
+            if (sliceEnd <= sliceStart) continue;
+            total += (sliceEnd - sliceStart) * b.Rate;
+        }
+        return Math.Round(total, 4);
+    }
 }

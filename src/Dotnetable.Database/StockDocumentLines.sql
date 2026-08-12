@@ -7,6 +7,7 @@ CREATE TABLE [dbo].[StockDocumentLines] (
     [UnitCostUsd]         DECIMAL (18, 4) NOT NULL,
     [Note]                NVARCHAR (300)  NULL,
     [ReturnCondition]     TINYINT         NOT NULL CONSTRAINT [DF_StockDocumentLines_ReturnCondition] DEFAULT ((0)),
+    [HealthGrade]         TINYINT         NOT NULL CONSTRAINT [DF_StockDocumentLines_HealthGrade] DEFAULT ((0)),
     CONSTRAINT [PK_StockDocumentLines] PRIMARY KEY CLUSTERED ([StockDocumentLineID] ASC),
     CONSTRAINT [FK_StockDocumentLines_Docs] FOREIGN KEY ([StockDocumentID]) REFERENCES [dbo].[StockDocuments] ([StockDocumentID]),
     CONSTRAINT [FK_StockDocumentLines_Variants] FOREIGN KEY ([ProductVariantID]) REFERENCES [dbo].[ProductVariants] ([ProductVariantID])
