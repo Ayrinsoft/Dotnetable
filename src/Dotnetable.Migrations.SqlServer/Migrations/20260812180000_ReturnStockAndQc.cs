@@ -1,3 +1,5 @@
+﻿using Dotnetable.Infrastructure.Data;
+using Microsoft.EntityFrameworkCore.Infrastructure;
 using Microsoft.EntityFrameworkCore.Migrations;
 
 #nullable disable
@@ -5,6 +7,7 @@ using Microsoft.EntityFrameworkCore.Migrations;
 namespace Dotnetable.Migrations.SqlServer.Migrations
 {
     /// <inheritdoc />
+    [DbContext(typeof(AppDbContext))]
     [Migration("20260812180000_ReturnStockAndQc")]
     public class ReturnStockAndQc : Migration
     {

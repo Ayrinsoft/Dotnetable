@@ -1,9 +1,12 @@
+﻿using Dotnetable.Infrastructure.Data;
+using Microsoft.EntityFrameworkCore.Infrastructure;
 using Microsoft.EntityFrameworkCore.Migrations;
 
 #nullable disable
 
 namespace Dotnetable.Migrations.SqlServer.Migrations
 {
+    [DbContext(typeof(AppDbContext))]
     [Migration("20260812190000_ItemConditionAndPayrollBrackets")]
     public class ItemConditionAndPayrollBrackets : Migration
     {

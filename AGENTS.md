@@ -1,5 +1,33 @@
 # Agent notes — Dotnetable
 
+## Environment (current phase)
+
+**There is no pre-installed production or customer site yet.** Work is still in the **local/test** phase.
+
+| Phase | Status | Agent rules |
+|-------|--------|-------------|
+| Local test DB | **Active now** | Safe to run migrations, Schema Compare, seed, destructive schema experiments, and full app against the shared **test** database (`Dotnetable` on local SQL). Prefer reversible changes when practical, but do **not** block on “production safety” — this is not a live customer store. |
+| First real test release | **Not yet** | Owner will say when the first semi-real online test site exists. Only then tighten caution for that environment. |
+| Semi-real online test → real production | **Later** | After owner confirms: treat as shared/live; confirm before destructive ops, careful migrations, no casual data wipes. |
+
+Until the owner announces otherwise: **assume only the local test database**; apply EF migrations, SSDT/Schema Compare, and feature work directly on it.
+
+### EF migrations vs Schema Compare
+
+- Schema is often applied with **Schema Compare** from `src/Dotnetable.Database` onto SQL Server.
+- EF still needs a **current model snapshot** so `dotnet ef database update` / Admin startup `MigrateAsync` do not throw `PendingModelChangesWarning`.
+- After a batch of entity changes applied via Schema Compare (or raw-SQL migrations without Designer), add a **snapshot-sync** migration if needed (`Up` may be no-op when DB already matches).
+- Runtime already ignores `PendingModelChangesWarning` in `ConfigureProvider`; design-time `dotnet ef` does **not** — keep the snapshot honest.
+- Prefer `dotnet-ef` tools version aligned with package runtime (currently EF Core **10.0.11**).
+
+```bash
+# Update tools when version mismatch warning appears
+dotnet tool update --global dotnet-ef --version 10.0.11
+
+# SqlServer migrations (connection via DOTNETABLE_MIGRATIONS_CONNECTION or Admin localsettings)
+dotnet ef database update --project src/Dotnetable.Migrations.SqlServer --startup-project src/Dotnetable.Migrations.SqlServer
+```
+
 ## Database schema (SSDT `.sql` must stay in sync)
 
 Canonical table scripts live in `src/Dotnetable.Database/*.sql` (SSDT project `Dotnetable.Database.sqlproj`). Developers often apply schema via **Schema Compare** from this project onto SQL Server.

@@ -1,10 +1,14 @@
-using System;
+﻿using System;
+using Dotnetable.Infrastructure.Data;
+using Microsoft.EntityFrameworkCore.Infrastructure;
 using Microsoft.EntityFrameworkCore.Migrations;
 
 #nullable disable
 
 namespace Dotnetable.Migrations.SqlServer.Migrations
 {
+    [DbContext(typeof(AppDbContext))]
+    [Migration("20260812160000_ErpWarehouseHr")]
     public class ErpWarehouseHr : Migration
     {
         protected override void Up(MigrationBuilder migrationBuilder)
