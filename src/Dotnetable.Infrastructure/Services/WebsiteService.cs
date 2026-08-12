@@ -1,4 +1,5 @@
 using Dotnetable.Application;
+using Dotnetable.Application.Authorization;
 using Dotnetable.Application.DTOs;
 using Dotnetable.Application.Interfaces;
 using Dotnetable.Domain.Entities;
@@ -131,7 +132,40 @@ public class WebsiteService : IWebsiteService
             await context.SaveChangesAsync(ct);
         }
 
+        // Staff + customer policies so a new site can assign Warehouse / Sales / Finance / HR without you.
+        await EnsureDefaultSitePoliciesAsync(context, website.WebsiteID, ct);
+
         return website;
+    }
+
+    /// <summary>
+    /// Seeds Users + staff template policies for a website when missing (idempotent).
+    /// Administrators policy is only created at install for the master site; other sites get staff packs.
+    /// </summary>
+    internal static async Task EnsureDefaultSitePoliciesAsync(AppDbContext context, int websiteId, CancellationToken ct)
+    {
+        var roles = await context.Roles.AsNoTracking().ToListAsync(ct);
+        if (roles.Count == 0) return;
+        var roleByKey = roles.ToDictionary(r => r.RoleKey, r => r.RoleID, StringComparer.OrdinalIgnoreCase);
+
+        async Task EnsurePolicy(string title, IEnumerable<string> roleKeys)
+        {
+            if (await context.Policies.AnyAsync(p => p.WebsiteID == websiteId && p.Title == title, ct))
+                return;
+            var policy = new Policy { Title = title, Active = true, WebsiteID = websiteId };
+            context.Policies.Add(policy);
+            await context.SaveChangesAsync(ct);
+            foreach (var key in roleKeys)
+            {
+                if (!roleByKey.TryGetValue(key, out var roleId)) continue;
+                context.PolicyRoles.Add(new PolicyRole { PolicyID = policy.PolicyID, RoleID = roleId, Active = true });
+            }
+            await context.SaveChangesAsync(ct);
+        }
+
+        await EnsurePolicy(DefaultPolicies.Users, roles.Where(r => r.Category == (byte)RoleCategory.Client).Select(r => r.RoleKey));
+        foreach (var (title, keys) in DefaultPolicies.StaffTemplates)
+            await EnsurePolicy(title, keys);
     }
 
     public async Task UpdateAsync(Website website, CancellationToken ct = default)

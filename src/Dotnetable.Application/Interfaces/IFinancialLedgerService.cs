@@ -32,6 +32,19 @@ public interface IFinancialLedgerService
     /// <summary>Customer refund cash movement (component reverse is optional).</summary>
     Task PostCustomerRefundAsync(int orderId, int paymentId, decimal amount, string? note, int? memberId, CancellationToken ct = default);
 
+    /// <summary>
+    /// Posts inventory COGS to L1 + GL when goods leave stock (WMS outbound post or non-WMS fulfill).
+    /// Idempotent per stock document (or per order when <paramref name="stockDocumentId"/> is null).
+    /// Analytical <c>OrderLineCost</c> at payment remains for product margins; GL COGS is recognized here so books match warehouse.
+    /// </summary>
+    Task PostInventoryCogsForOrderAsync(int orderId, int? stockDocumentId, int? memberId, CancellationToken ct = default);
+
+    /// <summary>
+    /// Reverses inventory COGS when a sellable return is posted (not defective scrap).
+    /// Idempotent per return stock document.
+    /// </summary>
+    Task PostInventoryCogsReversalForReturnAsync(int orderId, int stockDocumentId, int? memberId, CancellationToken ct = default);
+
     /// <summary>Vendor settlement / payable amount (vendor-visible).</summary>
     Task PostVendorSettlementAsync(
         int websiteId, int? vendorId, int? settlementId, int? orderId, int? orderItemId,

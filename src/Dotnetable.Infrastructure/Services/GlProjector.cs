@@ -9,7 +9,9 @@ namespace Dotnetable.Infrastructure.Services;
 
 /// <summary>
 /// Builds balanced journals from L1 without double-counting revenue.
-/// Cash-basis sale: Dr Cash · Cr Sales/Shipping/Markup/Tax; Dr COGS · Cr Inventory.
+/// Cash-basis sale: Dr Cash · Cr Sales/Shipping/Markup/Tax.
+/// Inventory COGS is projected only from <see cref="FinancialTransactionTypes.InventoryCogs"/>
+/// (stock-out / return) so GL inventory matches the warehouse book.
 /// </summary>
 public class GlProjector : IGlProjector
 {
@@ -72,7 +74,9 @@ public class GlProjector : IGlProjector
         var ship = Sum(FinancialTransactionTypes.OrderShipping);
         var markup = Sum(FinancialTransactionTypes.OrderMarkup);
         var revenue = Sum(FinancialTransactionTypes.OrderLineRevenue);
-        var cost = Sum(FinancialTransactionTypes.OrderLineCost);
+        // Analytical OrderLineCost at payment is product-margin memo only — GL inventory moves with warehouse.
+        var inventoryCogs = Sum(FinancialTransactionTypes.InventoryCogs);
+        var inventoryCogsRev = Sum(FinancialTransactionTypes.InventoryCogsReversal);
         var tax = Sum(FinancialTransactionTypes.OrderTax);
         var discount = Sum(FinancialTransactionTypes.OrderDiscount);
         var vendorSettle = Sum(FinancialTransactionTypes.VendorSettlement) + Sum(FinancialTransactionTypes.SettlementPaid);
@@ -107,10 +111,18 @@ public class GlProjector : IGlProjector
             lines.Add(Cr(cash, refund, "Cash out refund"));
         }
 
-        if (cost > 0 && cogs > 0 && inventory > 0)
+        // COGS when goods leave warehouse (or non-WMS fulfill) — not at payment.
+        if (inventoryCogs > 0 && cogs > 0 && inventory > 0)
         {
-            lines.Add(Dr(cogs, cost, "COGS"));
-            lines.Add(Cr(inventory, cost, "Inventory"));
+            lines.Add(Dr(cogs, inventoryCogs, "COGS (stock out)"));
+            lines.Add(Cr(inventory, inventoryCogs, "Inventory issue"));
+        }
+
+        // Sellable return restores inventory asset and reverses COGS.
+        if (inventoryCogsRev > 0 && cogs > 0 && inventory > 0)
+        {
+            lines.Add(Dr(inventory, inventoryCogsRev, "Inventory return"));
+            lines.Add(Cr(cogs, inventoryCogsRev, "COGS reverse"));
         }
 
         if (discount > 0 && refunds > 0)
@@ -153,8 +165,11 @@ public class GlProjector : IGlProjector
         var currency = rows[0].CurrencyCode;
         var date = rows.Min(r => r.OccurredDate);
 
+        var description = $"Ledger {eventGroupId:N}";
+        if (description.Length > 48)
+            description = description[..48];
         var (ok, err, entry) = await _journals.CreateDraftAsync(
-            websiteId, date, $"Ledger {eventGroupId:N}"[..Math.Min(48, 40)], currency, reportTax, lines, null,
+            websiteId, date, description, currency, reportTax, lines, null,
             "FinancialLedger", sourceKey, ct);
         if (!ok || entry is null)
         {

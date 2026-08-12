@@ -317,6 +317,77 @@ public class PayrollService : IPayrollService
         return ExcelWorkbook.Write("Statutory", headers, rows);
     }
 
+    public async Task<byte[]> ExportPayslipsExcelAsync(int payrollRunId, CancellationToken ct = default)
+    {
+        var run = await GetRunAsync(payrollRunId, ct)
+            ?? throw new InvalidOperationException("Payroll run not found.");
+        var headers = new[]
+        {
+            "PayslipTitle", "EmployeeCode", "Employee", "NationalId", "JobTitle",
+            "RunNumber", "PeriodFrom", "PeriodTo", "Currency",
+            "Gross", "EmployeeInsurance", "EmployerInsurance", "IncomeTax", "Net", "EmployerCost", "Status",
+        };
+        var rows = run.PayrollLines.Select(l => (IReadOnlyList<object?>)new object?[]
+        {
+            $"Payslip {run.RunNumber}",
+            l.Employee?.EmployeeCode,
+            $"{l.Employee?.GivenName} {l.Employee?.Surname}".Trim(),
+            l.Employee?.NationalId,
+            l.Employee?.JobTitle,
+            run.RunNumber,
+            run.PeriodFrom.ToString("yyyy-MM-dd"),
+            run.PeriodTo.ToString("yyyy-MM-dd"),
+            run.CurrencyCode,
+            l.Gross, l.EmployeeInsurance, l.EmployerInsurance, l.IncomeTax, l.Net, l.EmployerCost,
+            ((PayrollRunStatus)run.Status).ToString(),
+        });
+        return ExcelWorkbook.Write("Payslips", headers, rows);
+    }
+
+    public async Task<string?> BuildPayslipHtmlAsync(int payrollLineId, CancellationToken ct = default)
+    {
+        var line = await _context.PayrollLines.AsNoTracking()
+            .Include(l => l.Employee)
+            .Include(l => l.PayrollRun)
+            .FirstOrDefaultAsync(l => l.PayrollLineID == payrollLineId, ct);
+        if (line is null) return null;
+        return BuildPayslipHtml(line, line.PayrollRun);
+    }
+
+    public async Task<string?> BuildRunPayslipsHtmlAsync(int payrollRunId, CancellationToken ct = default)
+    {
+        var run = await GetRunAsync(payrollRunId, ct);
+        if (run is null || run.PayrollLines.Count == 0) return null;
+        var parts = run.PayrollLines.Select(l => BuildPayslipHtml(l, run));
+        return string.Join("<div style=\"page-break-after:always\"></div>", parts);
+    }
+
+    private static string BuildPayslipHtml(PayrollLine line, PayrollRun run)
+    {
+        var name = $"{line.Employee?.GivenName} {line.Employee?.Surname}".Trim();
+        string Row(string label, decimal amount) =>
+            $"<tr><td style=\"padding:4px 8px\">{label}</td><td style=\"padding:4px 8px;text-align:right\">{amount:0.##} {run.CurrencyCode}</td></tr>";
+        return $"""
+            <div class="payslip" style="font-family:Segoe UI,Tahoma,sans-serif;max-width:640px;margin:0 auto;padding:16px;border:1px solid #ccc">
+              <h2 style="margin:0 0 8px">Payslip</h2>
+              <div style="margin-bottom:12px;color:#444">
+                <div><strong>{System.Net.WebUtility.HtmlEncode(run.RunNumber)}</strong> · {run.PeriodFrom:yyyy-MM-dd} → {run.PeriodTo:yyyy-MM-dd}</div>
+                <div>{System.Net.WebUtility.HtmlEncode(name)} ({System.Net.WebUtility.HtmlEncode(line.Employee?.EmployeeCode ?? "")})</div>
+                <div>{System.Net.WebUtility.HtmlEncode(line.Employee?.JobTitle ?? "")}</div>
+              </div>
+              <table style="width:100%;border-collapse:collapse">
+                {Row("Gross", line.Gross)}
+                {Row("Employee insurance", line.EmployeeInsurance)}
+                {Row("Employer insurance", line.EmployerInsurance)}
+                {Row("Income tax", line.IncomeTax)}
+                {Row("Net pay", line.Net)}
+                {Row("Employer cost", line.EmployerCost)}
+              </table>
+              <p style="margin-top:16px;font-size:12px;color:#666">Status: {(PayrollRunStatus)run.Status}</p>
+            </div>
+            """;
+    }
+
     public async Task<IReadOnlyList<PayrollRateBracket>> GetRateBracketsAsync(
         int websiteId, PayrollRateKind? kind = null, CancellationToken ct = default)
     {

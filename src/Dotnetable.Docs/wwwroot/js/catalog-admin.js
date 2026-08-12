@@ -323,6 +323,10 @@ window.DOCS_ADMIN = {
               en: "Prefer least privilege: grant view without edit when possible.",
               fa: "حداقل دسترسی: تا جای ممکن view بدون edit بدهید.",
             },
+            {
+              en: "Fresh install and each new website seed ready-made policies: **Users** (customers), **Warehouse staff**, **Sales staff**, **Finance staff**, **HR staff**. Assign a member to one of these instead of picking role keys by hand.",
+              fa: "نصب تازه و هر وب‌سایت جدید سیاست‌های آماده می‌سازد: **Users** (مشتری)، **Warehouse staff**، **Sales staff**، **Finance staff**، **HR staff**. عضو را به یکی از این‌ها وصل کنید به‌جای انتخاب دستی نقش‌ها.",
+            },
           ],
           related: ["roles", "members"],
         },
@@ -347,6 +351,10 @@ window.DOCS_ADMIN = {
             {
               en: "After changing roles, revisit Policies that reference them and re-test member logins.",
               fa: "بعد از تغییر نقش‌ها، سیاست‌های وابسته را بازبینی و ورود اعضا را تست کنید.",
+            },
+            {
+              en: "Staff packs: warehouse (view/receive/issue/approve/post), sales (orders + payments.verify), finance (refunds, wallets, GL), HR (employees + payroll).",
+              fa: "بسته پرسنل: انبار (مشاهده/دریافت/صدور/تأیید/ثبت)، فروش (سفارش + تأیید پرداخت)، مالی (استرداد، کیف پول، دفترکل)، منابع انسانی (کارمند + حقوق).",
             },
           ],
           related: ["policies", "members"],
@@ -1729,12 +1737,20 @@ window.DOCS_ADMIN = {
               fa: "Change Status را فقط با انتقال‌های معتبر فرایند خودتان بزنید (پرداخت‌شده → پردازش → ارسال → …).",
             },
             {
+              en: "**Cancel is blocked** after payment capture or shipment so money and warehouse stay aligned. Unpaid pending orders can still cancel (releases reservations). After pay/ship use **Refund**.",
+              fa: "**لغو بعد از دریافت وجه یا ارسال قفل است** تا پول و انبار هم‌خوان بمانند. سفارش unpaid/pending هنوز لغو می‌شود (آزادسازی رزرو). بعد از پرداخت/ارسال از **Refund** استفاده کنید.",
+            },
+            {
               en: "**Record payment received** (needs payments.verify): offline COD, cash, POS, or **bank/card-to-card** with optional bank account + receipt file. Creates a Paid payment and moves PendingPayment → Paid.",
               fa: "**ثبت دریافت وجه** (نقش payments.verify): COD، نقد، کارتخوان، یا **کارت‌به‌کارت/بانکی** با حساب و فیش اختیاری. پرداخت Paid می‌سازد و PendingPayment → Paid می‌کند.",
             },
             {
               en: "**Refund** (needs payments.refund): after a Paid payment exists — amount is in **order/payment currency** (site money, e.g. IRR), never forced to USD. Wallet credit, bank queue, or cash hand-back. After ship, auto-creates a warehouse **Return** for QC + restock. Ship is blocked when warehouse stock is short — restock or refund.",
               fa: "**برگشت وجه** (نقش payments.refund): بعد از پرداخت Paid — مبلغ با **ارز سفارش/پرداخت** (ارز سایت، مثلاً ریال) است، نه اجباری دلار. اعتبار کیف پول، صف بانکی، یا برگشت نقدی. بعد از ارسال، سند **Return** انبار برای QC و برگشت موجودی ساخته می‌شود. اگر موجودی انبار کم باشد ارسال قفل است — تأمین یا استرداد.",
+            },
+            {
+              en: "**COGS in GL** posts when stock leaves (WMS outbound **Post** on ship, or non-WMS fulfill on payment). Product cost on the payment ledger is analytical only. Sellable return posts reverse COGS so inventory books match the warehouse.",
+              fa: "**بهای تمام‌شده در دفترکل** وقتی کالا از انبار خارج می‌شود ثبت می‌شود (Post خروجی WMS هنگام ارسال، یا fulfill غیر-WMS هنگام پرداخت). هزینه کالا روی لجر پرداخت فقط تحلیلی است. برگشت سالم COGS را برمی‌گرداند تا دفتر با انبار یکی شود.",
             },
             {
               en: "Open **Invoice** for a framed customer document (margins/borders). Lines show **product code** (`DN-42` = site prefix + ProductID) and link to **product preview**. From the same page set preparation / shipping status and tracking code. Print PDF, or **email / WhatsApp**. Charged unit prices only — markup is folded into price. Orders with **Report to tax = No** are excluded from the VAT report.",
@@ -1747,8 +1763,8 @@ window.DOCS_ADMIN = {
               fa: "تنظیم وب‌سایت **اعلام پیش‌فرض سفارش‌های آفلاین/اجتماعی به مالیات** پیش‌فرض سفارش‌های غیراینترنتی ادمین را می‌سازد (هر سفارش قابل override است).",
             },
             {
-              en: "Stock reservation/sale movements are driven by order lifecycle — cancel carefully. Ship is blocked when warehouse stock is insufficient (inbound restock or refund).",
-              fa: "رزرو/فروش موجودی از چرخه سفارش می‌آید — لغو را با دقت انجام دهید. اگر موجودی انبار کم باشد ارسال قفل است (تأمین inbound یا استرداد).",
+              en: "Stock reservation/sale movements follow pay → pick → ship → refund/return. Cancel after money/stock-out is blocked; use Refund. Ship is blocked when warehouse stock is insufficient (inbound restock or refund).",
+              fa: "رزرو/فروش: پرداخت → برداشت → ارسال → استرداد/برگشت. لغو بعد از پول/خروج انبار قفل است؛ Refund بزنید. اگر موجودی انبار کم باشد ارسال قفل است (inbound یا استرداد).",
             },
             {
               en: "COD collection should be recorded with method Cash on delivery so finance reports stay accurate.",
@@ -1963,8 +1979,8 @@ window.DOCS_ADMIN = {
           title: { en: "Payroll", fa: "حقوق و دستمزد" },
           adminPath: "/hr/payroll",
           summary: {
-            en: "Payroll runs, insurance/tax withholdings, Excel export for insurance payable and tax payable, multi-tier rate brackets.",
-            fa: "دوره‌های حقوق، کسر بیمه/مالیات، خروجی Excel بیمه و مالیات قابل‌پرداخت، پله‌های نرخ چندسطحی.",
+            en: "Payroll runs, insurance/tax withholdings, printable payslips, Excel export for run / payslips / insurance / tax payable, multi-tier rate brackets.",
+            fa: "دوره‌های حقوق، کسر بیمه/مالیات، فیش چاپی، خروجی Excel برای run / فیش / بیمه / مالیات، پله‌های نرخ چندسطحی.",
           },
           howTo: [
             {
@@ -1972,8 +1988,8 @@ window.DOCS_ADMIN = {
               fa: "برای بازه Create run → Submit → Approve → Mark paid (ثبت حسابداری). Submit به نقش‌های HR/حقوق نوتیف می‌دهد.",
             },
             {
-              en: "Export Excel from run detail or **Payroll reports** (insurance payable / tax payable / full statutory).",
-              fa: "خروجی Excel از جزئیات دوره یا **گزارش‌های حقوق** (بیمه قابل‌پرداخت / مالیات / کامل).",
+              en: "On run detail: **Export Excel**, **Export payslips Excel**, **Print all payslips**, or print one employee payslip. Attach bank payment proof on the run. **Payroll reports** export insurance / tax / statutory as Excel (.xlsx only).",
+              fa: "روی جزئیات run: **Export Excel**، **Export payslips Excel**، **Print all payslips** یا فیش یک کارمند. پیوست رسید پرداخت بانکی. **گزارش‌های حقوق** بیمه/مالیات/statutory فقط Excel (.xlsx).",
             },
             {
               en: "Configure progressive brackets under **Rate brackets**. On each contract set **Use flat rates** off to apply brackets (otherwise contract %).",

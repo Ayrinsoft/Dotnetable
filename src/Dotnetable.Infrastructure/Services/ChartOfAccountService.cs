@@ -98,6 +98,8 @@ public class ChartOfAccountService : IChartOfAccountService
         Map(FinancialTransactionTypes.OrderMarkup, FinancialFlow.Component, "1300", "4300");
         Map(FinancialTransactionTypes.OrderLineRevenue, FinancialFlow.Component, "1300", "4100");
         Map(FinancialTransactionTypes.OrderLineCost, FinancialFlow.Component, "5100", "1400");
+        Map(FinancialTransactionTypes.InventoryCogs, FinancialFlow.Component, "5100", "1400");
+        Map(FinancialTransactionTypes.InventoryCogsReversal, FinancialFlow.Component, "1400", "5100");
         Map(FinancialTransactionTypes.OrderLineProfit, FinancialFlow.Component, "1300", "4100");
         Map(FinancialTransactionTypes.OrderTax, FinancialFlow.Component, "1300", "2200");
         Map(FinancialTransactionTypes.OrderDiscount, FinancialFlow.Component, "5400", "1300");

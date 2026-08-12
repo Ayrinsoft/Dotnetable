@@ -87,6 +87,22 @@ public class InitialDataSeederTests : IDisposable
     }
 
     [Fact]
+    public async Task SeedAsync_StaffPolicies_IncludeWarehouseSalesFinanceHr()
+    {
+        await _seeder.SeedAsync(_context, NewRequest());
+
+        foreach (var (title, keys) in DefaultPolicies.StaffTemplates)
+        {
+            var policy = await _context.Policies.SingleAsync(p => p.Title == title);
+            var granted = await _context.PolicyRoles
+                .Where(pr => pr.PolicyID == policy.PolicyID)
+                .Join(_context.Roles, pr => pr.RoleID, r => r.RoleID, (_, r) => r.RoleKey)
+                .ToListAsync();
+            granted.Should().BeEquivalentTo(keys, because: $"policy '{title}' should grant its template roles");
+        }
+    }
+
+    [Fact]
     public async Task SeedAsync_CreatesAdminMemberBoundToAdministratorsPolicy()
     {
         await _seeder.SeedAsync(_context, NewRequest());

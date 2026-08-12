@@ -74,7 +74,7 @@ window.dotnetableDismiss = {
 };
 
 // Triggers a browser download of base64 content produced server-side
-// (used by the Translations page to export a CSV file).
+// (used by admin pages to download Excel .xlsx and other binary exports).
 window.dotnetableFile = {
     download: function (fileName, base64, mime) {
         var bytes = atob(base64);

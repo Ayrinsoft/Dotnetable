@@ -31,13 +31,19 @@
             <MudButton Variant="Variant.Outlined" StartIcon="@Icons.Material.Filled.Download" OnClick="ExportRun">
                 @L["hr.export_run", "Export Excel"]
             </MudButton>
+            <MudButton Variant="Variant.Outlined" StartIcon="@Icons.Material.Filled.TableView" OnClick="ExportPayslips">
+                @L["hr.export_payslips", "Export payslips Excel"]
+            </MudButton>
+            <MudButton Variant="Variant.Outlined" StartIcon="@Icons.Material.Filled.Print" OnClick="PrintAllPayslips">
+                @L["hr.print_payslips", "Print all payslips"]
+            </MudButton>
         </MudStack>
         <MudPaper Class="app-card pa-4 mb-3">
             <MudText>Gross @_run.TotalGross.ToString("0.##") · Emp ins @_run.TotalEmployeeInsurance.ToString("0.##") · Er ins @_run.TotalEmployerInsurance.ToString("0.##") · Tax @_run.TotalIncomeTax.ToString("0.##") · Net @_run.TotalNet.ToString("0.##") @_run.CurrencyCode</MudText>
         </MudPaper>
         <MudPaper Class="app-card pa-4 mb-3">
             <MudSimpleTable Dense="true">
-                <thead><tr><th>Employee</th><th>Gross</th><th>Emp ins</th><th>Er ins</th><th>Tax</th><th>Net</th><th>Employer cost</th></tr></thead>
+                <thead><tr><th>Employee</th><th>Gross</th><th>Emp ins</th><th>Er ins</th><th>Tax</th><th>Net</th><th>Employer cost</th><th></th></tr></thead>
                 <tbody>
                     @foreach (var l in _run.PayrollLines)
                     {
@@ -49,11 +55,18 @@
                             <td>@l.IncomeTax.ToString("0.##")</td>
                             <td>@l.Net.ToString("0.##")</td>
                             <td>@l.EmployerCost.ToString("0.##")</td>
+                            <td>
+                                <MudButton Size="Size.Small" Variant="Variant.Text" StartIcon="@Icons.Material.Filled.Print"
+                                           OnClick="@(() => PrintPayslip(l.PayrollLineID))">
+                                    @L["hr.payslip", "Payslip"]
+                                </MudButton>
+                            </td>
                         </tr>
                     }
                 </tbody>
             </MudSimpleTable>
         </MudPaper>
+        <div id="payroll-payslip-print" style="display:none"></div>
         <RecordAttachmentsPanel WebsiteId="_run.WebsiteID"
                                EntityType="@Dotnetable.Application.RecordAttachments.RecordEntityTypes.PayrollRun"
                                EntityId="_run.PayrollRunID"
@@ -137,6 +150,43 @@ else
         await JS.InvokeVoidAsync("dotnetableFile.download", $"payroll-{RunId}.xlsx", Convert.ToBase64String(bytes),
             "application/vnd.openxmlformats-officedocument.spreadsheetml.sheet");
         Snackbar.Add(L["hr.export_done", "Excel downloaded."], Severity.Success);
+    }
+    private async Task ExportPayslips()
+    {
+        if (RunId is null or <= 0) return;
+        var bytes = await Payroll.ExportPayslipsExcelAsync(RunId.Value);
+        await JS.InvokeVoidAsync("dotnetableFile.download", $"payroll-payslips-{RunId}.xlsx", Convert.ToBase64String(bytes),
+            "application/vnd.openxmlformats-officedocument.spreadsheetml.sheet");
+        Snackbar.Add(L["hr.export_done", "Excel downloaded."], Severity.Success);
+    }
+    private async Task PrintPayslip(int lineId)
+    {
+        var html = await Payroll.BuildPayslipHtmlAsync(lineId);
+        if (string.IsNullOrWhiteSpace(html))
+        {
+            Snackbar.Add(L["not_found", "Not found."], Severity.Error);
+            return;
+        }
+        await SetPayslipHtmlAsync(html);
+        await JS.InvokeVoidAsync("dotnetablePrint.printElement", "payroll-payslip-print", L["hr.payslip", "Payslip"]);
+    }
+    private async Task PrintAllPayslips()
+    {
+        if (RunId is null or <= 0) return;
+        var html = await Payroll.BuildRunPayslipsHtmlAsync(RunId.Value);
+        if (string.IsNullOrWhiteSpace(html))
+        {
+            Snackbar.Add(L["not_found", "Not found."], Severity.Error);
+            return;
+        }
+        await SetPayslipHtmlAsync(html);
+        await JS.InvokeVoidAsync("dotnetablePrint.printElement", "payroll-payslip-print", L["hr.print_payslips", "Print all payslips"]);
+    }
+    private async Task SetPayslipHtmlAsync(string html)
+    {
+        var json = global::System.Text.Json.JsonSerializer.Serialize(html);
+        await JS.InvokeVoidAsync("eval",
+            $"document.getElementById('payroll-payslip-print').innerHTML = {json};");
     }
     private async Task After(bool ok, string? e)
     {

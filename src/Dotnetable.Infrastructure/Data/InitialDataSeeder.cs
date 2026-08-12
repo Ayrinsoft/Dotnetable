@@ -206,6 +206,26 @@ public class InitialDataSeeder : IInitialDataSeeder
                 }));
             await context.SaveChangesAsync(ct);
 
+            // 4c. Ready-made staff policies so the team can assign Warehouse / Sales / Finance / HR without hand-picking roles.
+            var roleByKey = roles.ToDictionary(r => r.RoleKey, StringComparer.OrdinalIgnoreCase);
+            foreach (var (title, keys) in DefaultPolicies.StaffTemplates)
+            {
+                var staffPolicy = new Policy { Title = title, Active = true, WebsiteID = website.WebsiteID };
+                context.Policies.Add(staffPolicy);
+                await context.SaveChangesAsync(ct);
+                foreach (var key in keys)
+                {
+                    if (!roleByKey.TryGetValue(key, out var role)) continue;
+                    context.PolicyRoles.Add(new PolicyRole
+                    {
+                        PolicyID = staffPolicy.PolicyID,
+                        RoleID = role.RoleID,
+                        Active = true,
+                    });
+                }
+                await context.SaveChangesAsync(ct);
+            }
+
             // 5. First administrator member, bound to the master website.
             var member = new Member
             {

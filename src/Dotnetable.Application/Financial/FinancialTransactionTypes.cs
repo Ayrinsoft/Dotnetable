@@ -16,6 +16,10 @@ public static class FinancialTransactionTypes
     public const string OrderLineRevenue = "OrderLineRevenue";
     public const string OrderLineCost = "OrderLineCost";
     public const string OrderLineProfit = "OrderLineProfit";
+    /// <summary>GL inventory issue (Dr COGS · Cr Inventory) when goods leave stock (outbound post / non-WMS fulfill).</summary>
+    public const string InventoryCogs = "InventoryCogs";
+    /// <summary>GL reverse of <see cref="InventoryCogs"/> when a return is posted sellable (Dr Inventory · Cr COGS).</summary>
+    public const string InventoryCogsReversal = "InventoryCogsReversal";
     public const string VendorSettlement = "VendorSettlement";
     public const string VendorCreditGrant = "VendorCreditGrant";
     public const string VendorCreditSale = "VendorCreditSale";
