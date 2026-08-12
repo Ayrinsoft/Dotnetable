@@ -1,0 +1,154 @@
+@page "/inventory/stock-documents"
+@page "/inventory/stock-documents/{DocumentId:int}"
+@using Dotnetable.Domain.Enums
+@attribute [Authorize(Policy = RoleKeys.WarehouseView)]
+@inject IStockDocumentService Docs
+@inject IWarehouseService Warehouses
+@inject IWebsiteService WebsiteService
+@inject AuthenticationStateProvider AuthState
+@inject ISnackbar Snackbar
+@inject IPageLocalizer L
+@inject NavigationManager Nav
+
+<DNPageTitle Title=@L["warehouse.docs", "Stock documents"] />
+
+@if (DocumentId is > 0)
+{
+    @if (_doc is null) { <MudProgressLinear Indeterminate="true" /> }
+    else
+    {
+        <MudStack Row="true" Justify="Justify.SpaceBetween" Class="mb-3">
+            <MudText Typo="Typo.h5">@_doc.DocumentNumber · @((StockDocumentType)_doc.DocumentType) · @((StockDocumentStatus)_doc.Status)</MudText>
+            <MudButton OnClick="@(() => Nav.NavigateTo("/inventory/stock-documents"))">@L["back", "Back"]</MudButton>
+        </MudStack>
+        <MudStack Row="true" Class="mb-3 gap-2 flex-wrap">
+            @if (_canIssue && _doc.Status == (byte)StockDocumentStatus.Draft)
+            { <MudButton Variant="Variant.Outlined" OnClick="Submit">@L["submit", "Submit"]</MudButton> }
+            @if (_canApprove && _doc.Status == (byte)StockDocumentStatus.Submitted)
+            {
+                <MudButton Color="Color.Success" Variant="Variant.Filled" OnClick="Approve">@L["approve", "Approve"]</MudButton>
+                <MudButton Color="Color.Error" Variant="Variant.Outlined" OnClick="Reject">@L["reject", "Reject"]</MudButton>
+            }
+            @if (_canPost && (_doc.Status == (byte)StockDocumentStatus.Approved || _doc.Status == (byte)StockDocumentStatus.Submitted))
+            { <MudButton Color="Color.Primary" Variant="Variant.Filled" OnClick="Post">@L["post", "Post to stock"]</MudButton> }
+        </MudStack>
+        <MudPaper Class="app-card pa-4">
+            <MudSimpleTable Dense="true">
+                <thead><tr><th>Variant</th><th>Qty</th><th>Unit cost</th></tr></thead>
+                <tbody>
+                    @foreach (var l in _doc.StockDocumentLines)
+                    {
+                        <tr>
+                            <td>@l.ProductVariant?.Sku — @l.ProductVariant?.Product?.Title</td>
+                            <td>@l.Quantity</td>
+                            <td>@l.UnitCost.ToString("0.##")</td>
+                        </tr>
+                    }
+                </tbody>
+            </MudSimpleTable>
+        </MudPaper>
+    }
+}
+else
+{
+    <MudStack Row="true" Justify="Justify.SpaceBetween" Class="mb-3">
+        <MudText Typo="Typo.h5" Class="fw-bold">@L["warehouse.docs", "Stock documents"]</MudText>
+        @if (_isMaster) { <WebsiteSelector Value="_websiteId" ValueChanged="async id=>{_websiteId=id;await LoadList();}" Websites="_websites" Dense="true" Style="min-width:160px" /> }
+    </MudStack>
+
+    @if (_canIssue || _canReceive)
+    {
+        <MudPaper Class="app-card pa-3 mb-3">
+            <MudText Typo="Typo.subtitle2" Class="mb-2">@L["warehouse.new_doc", "New document"]</MudText>
+            <MudStack Row="true" Class="flex-wrap gap-2 mb-2">
+                <MudSelect T="StockDocumentType" @bind-Value="_newType" Dense="true" Style="min-width:140px" Label="Type">
+                    @foreach (StockDocumentType t in Enum.GetValues<StockDocumentType>())
+                    { <MudSelectItem T="StockDocumentType" Value="@t">@t</MudSelectItem> }
+                </MudSelect>
+                <MudSelect T="int?" @bind-Value="_toWh" Dense="true" Style="min-width:160px" Label="To warehouse" Clearable="true">
+                    @foreach (var w in _wh) { <MudSelectItem T="int?" Value="@w.WarehouseID">@w.Name</MudSelectItem> }
+                </MudSelect>
+                <MudSelect T="int?" @bind-Value="_fromWh" Dense="true" Style="min-width:160px" Label="From warehouse" Clearable="true">
+                    @foreach (var w in _wh) { <MudSelectItem T="int?" Value="@w.WarehouseID">@w.Name</MudSelectItem> }
+                </MudSelect>
+            </MudStack>
+            <MudStack Row="true" Class="flex-wrap gap-2">
+                <MudNumericField T="int" @bind-Value="_lineVariantId" Label="Variant ID" Dense="true" />
+                <MudNumericField T="int" @bind-Value="_lineQty" Label="Qty" Dense="true" Min="1" />
+                <DNMoneyField @bind-Value="_lineCost" Label="Unit cost" Min="0" />
+                <MudButton Variant="Variant.Filled" Color="Color.Primary" OnClick="CreateDoc">@L["create", "Create"]</MudButton>
+            </MudStack>
+        </MudPaper>
+    }
+
+    <MudPaper Class="app-card pa-4">
+        <MudSimpleTable Dense="true" Hover="true">
+            <thead><tr><th>Number</th><th>Type</th><th>Status</th><th>Created</th></tr></thead>
+            <tbody>
+                @foreach (var d in _list)
+                {
+                    <tr style="cursor:pointer" @onclick="@(() => Nav.NavigateTo($"/inventory/stock-documents/{d.StockDocumentID}"))">
+                        <td>@d.DocumentNumber</td>
+                        <td>@((StockDocumentType)d.DocumentType)</td>
+                        <td>@((StockDocumentStatus)d.Status)</td>
+                        <td>@d.CreatedAt.ToLocalTime().ToString("g")</td>
+                    </tr>
+                }
+            </tbody>
+        </MudSimpleTable>
+    </MudPaper>
+}
+
+@code {
+    [Parameter] public int? DocumentId { get; set; }
+    private bool _isMaster, _canReceive, _canIssue, _canApprove, _canPost;
+    private int _websiteId, _memberId, _lineVariantId, _lineQty = 1;
+    private decimal _lineCost;
+    private int? _toWh, _fromWh;
+    private StockDocumentType _newType = StockDocumentType.Inbound;
+    private List<Website> _websites = new(); private List<Warehouse> _wh = new();
+    private List<StockDocument> _list = new(); private StockDocument? _doc;
+
+    protected override async Task OnParametersSetAsync()
+    {
+        await L.EnsureLoadedAsync();
+        var u = (await AuthState.GetAuthenticationStateAsync()).User;
+        _isMaster = u.HasClaim(AdminClaimTypes.Master, "true");
+        _canReceive = AdminPolicies.Allows(u, RoleKeys.WarehouseReceive);
+        _canIssue = AdminPolicies.Allows(u, RoleKeys.WarehouseIssue);
+        _canApprove = AdminPolicies.Allows(u, RoleKeys.WarehouseApprove);
+        _canPost = AdminPolicies.Allows(u, RoleKeys.WarehousePost);
+        int.TryParse(u.FindFirst(AdminClaimTypes.WebsiteId)?.Value, out _websiteId);
+        int.TryParse(u.FindFirst(AdminClaimTypes.MemberId)?.Value, out _memberId);
+        if (_isMaster) _websites = (await WebsiteService.GetAllAsync()).ToList();
+        if (DocumentId is > 0) _doc = await Docs.GetByIdAsync(DocumentId.Value);
+        else await LoadList();
+    }
+
+    private async Task LoadList()
+    {
+        if (_websiteId <= 0) return;
+        _wh = (await Warehouses.GetAllAsync(_websiteId)).ToList();
+        var r = await Docs.GetPagedAsync(_websiteId, null, null, new GridQuery { PageIndex = 1, PageSize = 50 });
+        _list = r.Items.ToList();
+    }
+
+    private async Task CreateDoc()
+    {
+        if (_websiteId <= 0 || _lineVariantId <= 0) return;
+        var (ok, err, doc) = await Docs.CreateAsync(_websiteId, _newType, _fromWh, _toWh, null, null,
+            new[] { new StockDocumentLineRequest { ProductVariantID = _lineVariantId, Quantity = _lineQty, UnitCost = _lineCost } }, _memberId);
+        if (ok && doc is not null) Nav.NavigateTo($"/inventory/stock-documents/{doc.StockDocumentID}");
+        else Snackbar.Add(err ?? "Failed", Severity.Error);
+    }
+
+    private async Task Submit() { var (ok, e) = await Docs.SubmitAsync(DocumentId!.Value, _memberId); await After(ok, e); }
+    private async Task Approve() { var (ok, e) = await Docs.ApproveAsync(DocumentId!.Value, _memberId); await After(ok, e); }
+    private async Task Reject() { var (ok, e) = await Docs.RejectAsync(DocumentId!.Value, _memberId, null); await After(ok, e); }
+    private async Task Post() { var (ok, e) = await Docs.PostAsync(DocumentId!.Value, _memberId); await After(ok, e); }
+    private async Task After(bool ok, string? e)
+    {
+        if (ok) { Snackbar.Add(L["saved", "Saved."], Severity.Success); _doc = await Docs.GetByIdAsync(DocumentId!.Value); }
+        else Snackbar.Add(e ?? "Failed", Severity.Error);
+    }
+}

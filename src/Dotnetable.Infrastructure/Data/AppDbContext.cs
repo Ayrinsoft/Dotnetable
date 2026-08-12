@@ -132,6 +132,17 @@ public partial class AppDbContext : DbContext
 
     public virtual DbSet<FinancialLedgerEntry> FinancialLedgerEntries { get; set; }
 
+    public virtual DbSet<Warehouse> Warehouses { get; set; }
+    public virtual DbSet<WarehouseStock> WarehouseStocks { get; set; }
+    public virtual DbSet<StockDocument> StockDocuments { get; set; }
+    public virtual DbSet<StockDocumentLine> StockDocumentLines { get; set; }
+    public virtual DbSet<StockDocumentHistory> StockDocumentHistories { get; set; }
+    public virtual DbSet<OrgUnit> OrgUnits { get; set; }
+    public virtual DbSet<Employee> Employees { get; set; }
+    public virtual DbSet<EmployeeContract> EmployeeContracts { get; set; }
+    public virtual DbSet<PayrollRun> PayrollRuns { get; set; }
+    public virtual DbSet<PayrollLine> PayrollLines { get; set; }
+
     public virtual DbSet<OrderDigitalAsset> OrderDigitalAssets { get; set; }
 
     public virtual DbSet<OrderItem> OrderItems { get; set; }
@@ -585,6 +596,102 @@ public partial class AppDbContext : DbContext
                 .HasForeignKey(d => d.WebsiteID)
                 .OnDelete(DeleteBehavior.ClientSetNull)
                 .HasConstraintName("FK_FiscalPeriods_Websites");
+        });
+
+        modelBuilder.Entity<Warehouse>(entity =>
+        {
+            entity.HasIndex(e => new { e.WebsiteID, e.Code }, "IX_Warehouses_Website_Code").IsUnique();
+            entity.Property(e => e.Code).HasMaxLength(20);
+            entity.Property(e => e.Name).HasMaxLength(200);
+            entity.Property(e => e.Address).HasMaxLength(500);
+            entity.HasOne(d => d.Website).WithMany().HasForeignKey(d => d.WebsiteID).OnDelete(DeleteBehavior.ClientSetNull);
+        });
+        modelBuilder.Entity<WarehouseStock>(entity =>
+        {
+            entity.HasIndex(e => new { e.WarehouseID, e.ProductVariantID }, "IX_WarehouseStocks_Warehouse_Variant").IsUnique();
+            entity.Property(e => e.RowVersion).IsRowVersion();
+            entity.HasOne(d => d.Warehouse).WithMany(p => p.WarehouseStocks).HasForeignKey(d => d.WarehouseID).OnDelete(DeleteBehavior.ClientSetNull);
+            entity.HasOne(d => d.ProductVariant).WithMany().HasForeignKey(d => d.ProductVariantID).OnDelete(DeleteBehavior.ClientSetNull);
+        });
+        modelBuilder.Entity<StockDocument>(entity =>
+        {
+            entity.Property(e => e.DocumentNumber).HasMaxLength(40);
+            entity.Property(e => e.Note).HasMaxLength(1000);
+            entity.HasOne(d => d.Website).WithMany().HasForeignKey(d => d.WebsiteID).OnDelete(DeleteBehavior.ClientSetNull);
+            entity.HasOne(d => d.FromWarehouse).WithMany(p => p.StockDocumentFromWarehouses).HasForeignKey(d => d.FromWarehouseID);
+            entity.HasOne(d => d.ToWarehouse).WithMany(p => p.StockDocumentToWarehouses).HasForeignKey(d => d.ToWarehouseID);
+            entity.HasOne(d => d.Supplier).WithMany().HasForeignKey(d => d.SupplierID);
+            entity.HasOne(d => d.Order).WithMany().HasForeignKey(d => d.OrderID);
+            entity.HasOne(d => d.RequestedByMember).WithMany().HasForeignKey(d => d.RequestedByMemberID);
+            entity.HasOne(d => d.ApprovedByMember).WithMany().HasForeignKey(d => d.ApprovedByMemberID);
+            entity.HasOne(d => d.PostedByMember).WithMany().HasForeignKey(d => d.PostedByMemberID);
+        });
+        modelBuilder.Entity<StockDocumentLine>(entity =>
+        {
+            entity.Property(e => e.UnitCost).HasColumnType("decimal(18,4)");
+            entity.Property(e => e.UnitCostUsd).HasColumnType("decimal(18,4)");
+            entity.Property(e => e.Note).HasMaxLength(300);
+            entity.HasOne(d => d.StockDocument).WithMany(p => p.StockDocumentLines).HasForeignKey(d => d.StockDocumentID).OnDelete(DeleteBehavior.ClientSetNull);
+            entity.HasOne(d => d.ProductVariant).WithMany().HasForeignKey(d => d.ProductVariantID).OnDelete(DeleteBehavior.ClientSetNull);
+        });
+        modelBuilder.Entity<StockDocumentHistory>(entity =>
+        {
+            entity.Property(e => e.Note).HasMaxLength(500);
+            entity.HasOne(d => d.StockDocument).WithMany(p => p.StockDocumentHistories).HasForeignKey(d => d.StockDocumentID).OnDelete(DeleteBehavior.ClientSetNull);
+            entity.HasOne(d => d.CreatedByMember).WithMany().HasForeignKey(d => d.CreatedByMemberID);
+        });
+        modelBuilder.Entity<OrgUnit>(entity =>
+        {
+            entity.HasIndex(e => new { e.WebsiteID, e.Code }, "IX_OrgUnits_Website_Code").IsUnique();
+            entity.Property(e => e.Code).HasMaxLength(20);
+            entity.Property(e => e.Name).HasMaxLength(200);
+            entity.HasOne(d => d.Website).WithMany().HasForeignKey(d => d.WebsiteID).OnDelete(DeleteBehavior.ClientSetNull);
+            entity.HasOne(d => d.ParentOrgUnit).WithMany(p => p.InverseParentOrgUnit).HasForeignKey(d => d.ParentOrgUnitID);
+        });
+        modelBuilder.Entity<Employee>(entity =>
+        {
+            entity.HasIndex(e => new { e.WebsiteID, e.EmployeeCode }, "IX_Employees_Website_Code").IsUnique();
+            entity.Property(e => e.EmployeeCode).HasMaxLength(30);
+            entity.Property(e => e.GivenName).HasMaxLength(100);
+            entity.Property(e => e.Surname).HasMaxLength(100);
+            entity.HasOne(d => d.Website).WithMany().HasForeignKey(d => d.WebsiteID).OnDelete(DeleteBehavior.ClientSetNull);
+            entity.HasOne(d => d.OrgUnit).WithMany(p => p.Employees).HasForeignKey(d => d.OrgUnitID);
+            entity.HasOne(d => d.Member).WithMany().HasForeignKey(d => d.MemberID);
+        });
+        modelBuilder.Entity<EmployeeContract>(entity =>
+        {
+            entity.Property(e => e.BaseSalary).HasColumnType("decimal(18,4)");
+            entity.Property(e => e.EmployeeInsuranceRate).HasColumnType("decimal(9,6)");
+            entity.Property(e => e.EmployerInsuranceRate).HasColumnType("decimal(9,6)");
+            entity.Property(e => e.IncomeTaxRate).HasColumnType("decimal(9,6)");
+            entity.Property(e => e.CurrencyCode).HasMaxLength(3).IsUnicode(false).IsFixedLength();
+            entity.HasOne(d => d.Employee).WithMany(p => p.EmployeeContracts).HasForeignKey(d => d.EmployeeID).OnDelete(DeleteBehavior.ClientSetNull);
+            entity.HasOne(d => d.CurrencyCodeNavigation).WithMany().HasForeignKey(d => d.CurrencyCode).OnDelete(DeleteBehavior.ClientSetNull);
+        });
+        modelBuilder.Entity<PayrollRun>(entity =>
+        {
+            entity.Property(e => e.RunNumber).HasMaxLength(40);
+            entity.Property(e => e.CurrencyCode).HasMaxLength(3).IsUnicode(false).IsFixedLength();
+            entity.Property(e => e.TotalGross).HasColumnType("decimal(18,4)");
+            entity.Property(e => e.TotalEmployeeInsurance).HasColumnType("decimal(18,4)");
+            entity.Property(e => e.TotalEmployerInsurance).HasColumnType("decimal(18,4)");
+            entity.Property(e => e.TotalIncomeTax).HasColumnType("decimal(18,4)");
+            entity.Property(e => e.TotalNet).HasColumnType("decimal(18,4)");
+            entity.HasOne(d => d.Website).WithMany().HasForeignKey(d => d.WebsiteID).OnDelete(DeleteBehavior.ClientSetNull);
+            entity.HasOne(d => d.CurrencyCodeNavigation).WithMany().HasForeignKey(d => d.CurrencyCode).OnDelete(DeleteBehavior.ClientSetNull);
+            entity.HasOne(d => d.CreatedByMember).WithMany().HasForeignKey(d => d.CreatedByMemberID);
+            entity.HasOne(d => d.ApprovedByMember).WithMany().HasForeignKey(d => d.ApprovedByMemberID);
+        });
+        modelBuilder.Entity<PayrollLine>(entity =>
+        {
+            entity.Property(e => e.Gross).HasColumnType("decimal(18,4)");
+            entity.Property(e => e.EmployeeInsurance).HasColumnType("decimal(18,4)");
+            entity.Property(e => e.EmployerInsurance).HasColumnType("decimal(18,4)");
+            entity.Property(e => e.IncomeTax).HasColumnType("decimal(18,4)");
+            entity.Property(e => e.Net).HasColumnType("decimal(18,4)");
+            entity.Property(e => e.EmployerCost).HasColumnType("decimal(18,4)");
+            entity.HasOne(d => d.PayrollRun).WithMany(p => p.PayrollLines).HasForeignKey(d => d.PayrollRunID).OnDelete(DeleteBehavior.ClientSetNull);
+            entity.HasOne(d => d.Employee).WithMany(p => p.PayrollLines).HasForeignKey(d => d.EmployeeID).OnDelete(DeleteBehavior.ClientSetNull);
         });
 
         modelBuilder.Entity<LedgerAccountMap>(entity =>

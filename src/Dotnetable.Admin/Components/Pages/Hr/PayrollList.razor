@@ -1,0 +1,129 @@
+@page "/hr/payroll"
+@page "/hr/payroll/{RunId:int}"
+@using Dotnetable.Domain.Enums
+@attribute [Authorize(Policy = RoleKeys.PayrollView)]
+@inject IPayrollService Payroll
+@inject IWebsiteService WebsiteService
+@inject AuthenticationStateProvider AuthState
+@inject ISnackbar Snackbar
+@inject IPageLocalizer L
+@inject NavigationManager Nav
+
+<DNPageTitle Title=@L["hr.payroll", "Payroll"] />
+
+@if (RunId is > 0)
+{
+    @if (_run is null) { <MudProgressLinear Indeterminate="true" /> }
+    else
+    {
+        <MudStack Row="true" Justify="Justify.SpaceBetween" Class="mb-3">
+            <MudText Typo="Typo.h5">@_run.RunNumber · @((PayrollRunStatus)_run.Status)</MudText>
+            <MudButton OnClick="@(() => Nav.NavigateTo("/hr/payroll"))">Back</MudButton>
+        </MudStack>
+        <MudStack Row="true" Class="mb-3 gap-2">
+            @if (_canRun && _run.Status == (byte)PayrollRunStatus.Draft)
+            { <MudButton Variant="Variant.Outlined" OnClick="Submit">Submit</MudButton> }
+            @if (_canApprove && _run.Status is (byte)PayrollRunStatus.Draft or (byte)PayrollRunStatus.Submitted)
+            { <MudButton Color="Color.Success" Variant="Variant.Filled" OnClick="Approve">Approve</MudButton> }
+            @if (_canApprove && _run.Status == (byte)PayrollRunStatus.Approved)
+            { <MudButton Color="Color.Primary" Variant="Variant.Filled" OnClick="Pay">Mark paid</MudButton> }
+        </MudStack>
+        <MudPaper Class="app-card pa-4 mb-3">
+            <MudText>Gross @_run.TotalGross.ToString("0.##") · Emp ins @_run.TotalEmployeeInsurance.ToString("0.##") · Er ins @_run.TotalEmployerInsurance.ToString("0.##") · Tax @_run.TotalIncomeTax.ToString("0.##") · Net @_run.TotalNet.ToString("0.##") @_run.CurrencyCode</MudText>
+        </MudPaper>
+        <MudPaper Class="app-card pa-4">
+            <MudSimpleTable Dense="true">
+                <thead><tr><th>Employee</th><th>Gross</th><th>Emp ins</th><th>Er ins</th><th>Tax</th><th>Net</th><th>Employer cost</th></tr></thead>
+                <tbody>
+                    @foreach (var l in _run.PayrollLines)
+                    {
+                        <tr>
+                            <td>@l.Employee?.GivenName @l.Employee?.Surname</td>
+                            <td>@l.Gross.ToString("0.##")</td>
+                            <td>@l.EmployeeInsurance.ToString("0.##")</td>
+                            <td>@l.EmployerInsurance.ToString("0.##")</td>
+                            <td>@l.IncomeTax.ToString("0.##")</td>
+                            <td>@l.Net.ToString("0.##")</td>
+                            <td>@l.EmployerCost.ToString("0.##")</td>
+                        </tr>
+                    }
+                </tbody>
+            </MudSimpleTable>
+        </MudPaper>
+    }
+}
+else
+{
+    <MudStack Row="true" Justify="Justify.SpaceBetween" Class="mb-3">
+        <MudText Typo="Typo.h5" Class="fw-bold">@L["hr.payroll", "Payroll"]</MudText>
+        @if (_isMaster) { <WebsiteSelector Value="_websiteId" ValueChanged="async id=>{_websiteId=id;await Load();}" Websites="_websites" Dense="true" Style="min-width:160px" /> }
+    </MudStack>
+    @if (_canRun)
+    {
+        <MudPaper Class="app-card pa-3 mb-3">
+            <MudStack Row="true" Class="gap-2">
+                <MudDatePicker @bind-Date="_from" Label="From" Dense="true" />
+                <MudDatePicker @bind-Date="_to" Label="To" Dense="true" />
+                <MudButton Variant="Variant.Filled" Color="Color.Primary" OnClick="Create">Create run</MudButton>
+            </MudStack>
+        </MudPaper>
+    }
+    <MudPaper Class="app-card pa-4">
+        <MudSimpleTable Dense="true" Hover="true">
+            <thead><tr><th>Number</th><th>Period</th><th>Status</th><th>Net</th></tr></thead>
+            <tbody>
+                @foreach (var r in _runs)
+                {
+                    <tr style="cursor:pointer" @onclick="@(() => Nav.NavigateTo($"/hr/payroll/{r.PayrollRunID}"))">
+                        <td>@r.RunNumber</td>
+                        <td>@r.PeriodFrom → @r.PeriodTo</td>
+                        <td>@((PayrollRunStatus)r.Status)</td>
+                        <td>@r.TotalNet.ToString("0.##") @r.CurrencyCode</td>
+                    </tr>
+                }
+            </tbody>
+        </MudSimpleTable>
+    </MudPaper>
+}
+
+@code {
+    [Parameter] public int? RunId { get; set; }
+    private bool _isMaster, _canRun, _canApprove; private int _websiteId, _memberId;
+    private List<Website> _websites = new(); private List<PayrollRun> _runs = new(); private PayrollRun? _run;
+    private DateTime? _from = new DateTime(DateTime.Today.Year, DateTime.Today.Month, 1), _to = DateTime.Today;
+
+    protected override async Task OnParametersSetAsync()
+    {
+        await L.EnsureLoadedAsync();
+        var u = (await AuthState.GetAuthenticationStateAsync()).User;
+        _isMaster = u.HasClaim(AdminClaimTypes.Master, "true");
+        _canRun = AdminPolicies.Allows(u, RoleKeys.PayrollRun);
+        _canApprove = AdminPolicies.Allows(u, RoleKeys.PayrollApprove);
+        int.TryParse(u.FindFirst(AdminClaimTypes.WebsiteId)?.Value, out _websiteId);
+        int.TryParse(u.FindFirst(AdminClaimTypes.MemberId)?.Value, out _memberId);
+        if (_isMaster) _websites = (await WebsiteService.GetAllAsync()).ToList();
+        if (RunId is > 0) _run = await Payroll.GetRunAsync(RunId.Value);
+        else await Load();
+    }
+    private async Task Load()
+    {
+        if (_websiteId <= 0) return;
+        var r = await Payroll.GetRunsAsync(_websiteId, new GridQuery { PageIndex = 1, PageSize = 50 });
+        _runs = r.Items.ToList();
+    }
+    private async Task Create()
+    {
+        if (_from is null || _to is null) return;
+        var (ok, err, run) = await Payroll.CreateRunAsync(_websiteId, DateOnly.FromDateTime(_from.Value), DateOnly.FromDateTime(_to.Value), _memberId);
+        if (ok && run is not null) Nav.NavigateTo($"/hr/payroll/{run.PayrollRunID}");
+        else Snackbar.Add(err ?? "Failed", Severity.Error);
+    }
+    private async Task Submit() { var (ok, e) = await Payroll.SubmitAsync(RunId!.Value, _memberId); await After(ok, e); }
+    private async Task Approve() { var (ok, e) = await Payroll.ApproveAsync(RunId!.Value, _memberId); await After(ok, e); }
+    private async Task Pay() { var (ok, e) = await Payroll.MarkPaidAsync(RunId!.Value, _memberId); await After(ok, e); }
+    private async Task After(bool ok, string? e)
+    {
+        if (ok) { Snackbar.Add(L["saved", "Saved."], Severity.Success); _run = await Payroll.GetRunAsync(RunId!.Value); }
+        else Snackbar.Add(e ?? "Failed", Severity.Error);
+    }
+}

@@ -1,0 +1,69 @@
+@page "/finance/periods"
+@attribute [Authorize(Policy = RoleKeys.AccountingEdit)]
+@inject IFiscalPeriodService Periods
+@inject IWebsiteService WebsiteService
+@inject AuthenticationStateProvider AuthState
+@inject ISnackbar Snackbar
+@inject IPageLocalizer L
+
+<DNPageTitle Title=@L["accounting.periods", "Fiscal periods"] />
+
+<MudStack Row="true" Justify="Justify.SpaceBetween" Class="mb-4">
+    <MudText Typo="Typo.h5" Class="fw-bold">@L["accounting.periods", "Fiscal periods"]</MudText>
+    <MudStack Row="true">
+        @if (_isMaster)
+        {
+            <WebsiteSelector Value="_websiteId" ValueChanged="OnWebsite" Websites="_websites" Dense="true" Style="min-width:160px" />
+        }
+        <MudNumericField T="int" @bind-Value="_year" Label="@L["year", "Year"]" Variant="Variant.Outlined" Dense="true" Style="width:100px" />
+        <MudButton Variant="Variant.Filled" Color="Color.Primary" OnClick="EnsureYear">@L["accounting.ensure_year", "Ensure year"]</MudButton>
+    </MudStack>
+</MudStack>
+
+<MudPaper Elevation="0" Class="app-card rounded-lg pa-4">
+    <MudSimpleTable Dense="true">
+        <thead><tr><th>@L["name", "Name"]</th><th>@L["from", "From"]</th><th>@L["to", "To"]</th><th>@L["status", "Status"]</th><th></th></tr></thead>
+        <tbody>
+            @foreach (var p in _items)
+            {
+                <tr>
+                    <td>@p.Name</td>
+                    <td>@p.PeriodFrom</td>
+                    <td>@p.PeriodTo</td>
+                    <td>@(p.IsClosed ? L["accounting.closed", "Closed"] : L["accounting.open", "Open"])</td>
+                    <td>
+                        @if (p.IsClosed)
+                        {
+                            <MudButton Size="Size.Small" OnClick="@(() => Reopen(p.FiscalPeriodID))">@L["accounting.reopen", "Reopen"]</MudButton>
+                        }
+                        else
+                        {
+                            <MudButton Size="Size.Small" Color="Color.Warning" OnClick="@(() => Close(p.FiscalPeriodID))">@L["accounting.close", "Close"]</MudButton>
+                        }
+                    </td>
+                </tr>
+            }
+        </tbody>
+    </MudSimpleTable>
+</MudPaper>
+
+@code {
+    private bool _isMaster; private int _websiteId, _year = DateTime.Today.Year, _memberId;
+    private List<Website> _websites = new(); private List<FiscalPeriod> _items = new();
+
+    protected override async Task OnInitializedAsync()
+    {
+        await L.EnsureLoadedAsync();
+        var u = (await AuthState.GetAuthenticationStateAsync()).User;
+        _isMaster = u.HasClaim(AdminClaimTypes.Master, "true");
+        int.TryParse(u.FindFirst(AdminClaimTypes.WebsiteId)?.Value, out _websiteId);
+        int.TryParse(u.FindFirst(AdminClaimTypes.MemberId)?.Value, out _memberId);
+        if (_isMaster) _websites = (await WebsiteService.GetAllAsync()).ToList();
+        await Reload();
+    }
+    private async Task OnWebsite(int id) { _websiteId = id; await Reload(); }
+    private async Task Reload() { if (_websiteId > 0) _items = (await Periods.GetAllAsync(_websiteId)).ToList(); }
+    private async Task EnsureYear() { if (_websiteId > 0) { await Periods.EnsureYearAsync(_websiteId, _year); await Reload(); } }
+    private async Task Close(int id) { var (ok, e) = await Periods.CloseAsync(id, _memberId); Snackbar.Add(ok ? L["saved", "Saved."] : e!, ok ? Severity.Success : Severity.Error); await Reload(); }
+    private async Task Reopen(int id) { var (ok, e) = await Periods.ReopenAsync(id, _memberId); Snackbar.Add(ok ? L["saved", "Saved."] : e!, ok ? Severity.Success : Severity.Error); await Reload(); }
+}

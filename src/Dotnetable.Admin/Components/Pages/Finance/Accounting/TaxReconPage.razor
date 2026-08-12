@@ -1,0 +1,63 @@
+@page "/finance/reports/tax-recon"
+@attribute [Authorize(Policy = RoleKeys.AccountingReport)]
+@inject IAccountingReportService Reports
+@inject IWebsiteService WebsiteService
+@inject AuthenticationStateProvider AuthState
+@inject IPageLocalizer L
+@inject IJSRuntime Js
+
+<DNPageTitle Title=@L["accounting.tax_recon", "Tax reconciliation"] />
+
+<MudText Typo="Typo.h5" Class="fw-bold mb-2">@L["accounting.tax_recon", "Tax reconciliation"]</MudText>
+<MudText Typo="Typo.body2" Color="Color.Secondary" Class="mb-3">
+    @L["accounting.tax_recon_hint", "Compares document tax (orders/settlements with ReportToTax), operational ledger tax components, and GL tax-payable movement."]
+</MudText>
+
+@if (_isMaster)
+{
+    <WebsiteSelector Value="_websiteId" ValueChanged="async id => { _websiteId = id; await Load(); }" Websites="_websites" Class="mb-3" Style="max-width:220px" />
+}
+<MudStack Row="true" Class="mb-3 gap-2">
+    <MudDatePicker @bind-Date="_from" Label="@L["from", "From"]" Variant="Variant.Outlined" Dense="true" />
+    <MudDatePicker @bind-Date="_to" Label="@L["to", "To"]" Variant="Variant.Outlined" Dense="true" />
+    <MudButton Variant="Variant.Filled" Color="Color.Primary" OnClick="Load">@L["run", "Run"]</MudButton>
+</MudStack>
+
+@if (_dto is not null)
+{
+    <MudPaper Class="app-card rounded-lg pa-4">
+        <MudStack Spacing="2">
+            <MudStack Row="true" Justify="Justify.SpaceBetween"><MudText>@L["accounting.order_tax", "Order tax (ReportToTax)"]</MudText><MudText>@_dto.OrderTaxTotal.ToString("0.##")</MudText></MudStack>
+            <MudStack Row="true" Justify="Justify.SpaceBetween"><MudText>@L["accounting.settlement_tax", "Settlement tax"]</MudText><MudText>@_dto.SettlementTaxTotal.ToString("0.##")</MudText></MudStack>
+            <MudStack Row="true" Justify="Justify.SpaceBetween"><MudText>@L["accounting.doc_tax", "Document total"]</MudText><MudText Typo="Typo.subtitle1">@_dto.DocumentTaxTotal.ToString("0.##")</MudText></MudStack>
+            <MudDivider />
+            <MudStack Row="true" Justify="Justify.SpaceBetween"><MudText>@L["accounting.ledger_tax", "L1 OrderTax components"]</MudText><MudText>@_dto.LedgerTaxComponentTotal.ToString("0.##")</MudText></MudStack>
+            <MudStack Row="true" Justify="Justify.SpaceBetween"><MudText>@L["accounting.gl_tax", "GL tax payable (2200)"]</MudText><MudText>@_dto.GlTaxPayableMovement.ToString("0.##")</MudText></MudStack>
+            <MudDivider />
+            <MudStack Row="true" Justify="Justify.SpaceBetween"><MudText>@L["accounting.diff_ledger", "Diff L1 vs docs"]</MudText><MudText>@_dto.DiffLedgerVsDocuments.ToString("0.##")</MudText></MudStack>
+            <MudStack Row="true" Justify="Justify.SpaceBetween"><MudText>@L["accounting.diff_gl", "Diff GL vs docs"]</MudText><MudText>@_dto.DiffGlVsDocuments.ToString("0.##")</MudText></MudStack>
+        </MudStack>
+    </MudPaper>
+}
+
+@code {
+    private bool _isMaster; private int _websiteId;
+    private List<Website> _websites = new();
+    private DateTime? _from = new(DateTime.Today.Year, 1, 1), _to = DateTime.Today;
+    private TaxReconciliationDto? _dto;
+
+    protected override async Task OnInitializedAsync()
+    {
+        await L.EnsureLoadedAsync();
+        var u = (await AuthState.GetAuthenticationStateAsync()).User;
+        _isMaster = u.HasClaim(AdminClaimTypes.Master, "true");
+        int.TryParse(u.FindFirst(AdminClaimTypes.WebsiteId)?.Value, out _websiteId);
+        if (_isMaster) _websites = (await WebsiteService.GetAllAsync()).ToList();
+        await Load();
+    }
+    private async Task Load()
+    {
+        if (_websiteId <= 0 || _from is null || _to is null) return;
+        _dto = await Reports.GetTaxReconciliationAsync(_websiteId, DateOnly.FromDateTime(_from.Value), DateOnly.FromDateTime(_to.Value));
+    }
+}

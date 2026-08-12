@@ -1,0 +1,66 @@
+@page "/inventory/warehouses"
+@attribute [Authorize(Policy = RoleKeys.WarehouseView)]
+@inject IWarehouseService Warehouses
+@inject IWebsiteService WebsiteService
+@inject AuthenticationStateProvider AuthState
+@inject ISnackbar Snackbar
+@inject IPageLocalizer L
+@inject NavigationManager Nav
+
+<DNPageTitle Title=@L["warehouse", "Warehouses"] />
+<MudStack Row="true" Justify="Justify.SpaceBetween" Class="mb-4">
+    <MudText Typo="Typo.h5" Class="fw-bold">@L["warehouse", "Warehouses"]</MudText>
+    @if (_isMaster) { <WebsiteSelector Value="_websiteId" ValueChanged="async id=>{_websiteId=id;await Load();}" Websites="_websites" Dense="true" Style="min-width:160px" /> }
+</MudStack>
+@if (_canEdit)
+{
+    <MudPaper Class="app-card pa-3 mb-3">
+        <MudStack Row="true" Class="flex-wrap gap-2">
+            <MudTextField @bind-Value="_code" Label="Code" Dense="true" Style="width:100px" />
+            <MudTextField @bind-Value="_name" Label="Name" Dense="true" Style="min-width:180px" />
+            <MudSwitch T="bool" @bind-Value="_isDefault" Label="Default" Color="Color.Primary" />
+            <MudButton Variant="Variant.Filled" Color="Color.Primary" OnClick="Save">@L["save", "Save"]</MudButton>
+        </MudStack>
+    </MudPaper>
+}
+<MudPaper Class="app-card pa-4">
+    <MudSimpleTable Dense="true">
+        <thead><tr><th>Code</th><th>Name</th><th>Default</th><th>Active</th><th></th></tr></thead>
+        <tbody>
+            @foreach (var w in _items)
+            {
+                <tr>
+                    <td><code>@w.Code</code></td>
+                    <td>@w.Name</td>
+                    <td>@(w.IsDefault ? "Yes" : "")</td>
+                    <td>@(w.IsActive ? "Yes" : "No")</td>
+                    <td><MudButton Size="Size.Small" Href="@($"/inventory/stock-documents?warehouseId={w.WarehouseID}")">Docs</MudButton></td>
+                </tr>
+            }
+        </tbody>
+    </MudSimpleTable>
+</MudPaper>
+@code {
+    private bool _isMaster, _canEdit, _isDefault; private int _websiteId;
+    private List<Website> _websites = new(); private List<Warehouse> _items = new();
+    private string _code = "", _name = "";
+    protected override async Task OnInitializedAsync()
+    {
+        await L.EnsureLoadedAsync();
+        var u = (await AuthState.GetAuthenticationStateAsync()).User;
+        _isMaster = u.HasClaim(AdminClaimTypes.Master, "true");
+        _canEdit = AdminPolicies.Allows(u, RoleKeys.WarehouseReceive) || AdminPolicies.Allows(u, RoleKeys.InventoryEdit);
+        int.TryParse(u.FindFirst(AdminClaimTypes.WebsiteId)?.Value, out _websiteId);
+        if (_isMaster) _websites = (await WebsiteService.GetAllAsync()).ToList();
+        await Load();
+    }
+    private async Task Load() { if (_websiteId > 0) _items = (await Warehouses.GetAllAsync(_websiteId)).ToList(); }
+    private async Task Save()
+    {
+        if (_websiteId <= 0 || string.IsNullOrWhiteSpace(_code) || string.IsNullOrWhiteSpace(_name)) return;
+        await Warehouses.UpsertAsync(new Warehouse { WebsiteID = _websiteId, Code = _code.Trim(), Name = _name.Trim(), IsDefault = _isDefault, IsActive = true });
+        _code = _name = ""; _isDefault = false;
+        Snackbar.Add(L["saved", "Saved."], Severity.Success);
+        await Load();
+    }
+}

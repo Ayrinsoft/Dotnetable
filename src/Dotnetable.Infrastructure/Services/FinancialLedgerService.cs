@@ -166,8 +166,11 @@ public class FinancialLedgerService : IFinancialLedgerService
         };
         _context.FinancialLedgerEntries.Add(entry);
         await _context.SaveChangesAsync(ct);
-        try { await _gl.ProjectLedgerEntryAsync(entry.FinancialLedgerEntryID, ct); }
-        catch { /* never break commercial flows */ }
+        if (!request.SkipGlProjection)
+        {
+            try { await _gl.ProjectLedgerEntryAsync(entry.FinancialLedgerEntryID, ct); }
+            catch { /* never break commercial flows */ }
+        }
         return entry;
     }
 
