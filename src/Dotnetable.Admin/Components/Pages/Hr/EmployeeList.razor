@@ -79,7 +79,8 @@
             {
                 EmployeeID = emp.EmployeeID, EffectiveFrom = DateOnly.FromDateTime(DateTime.Today),
                 BaseSalary = _salary, CurrencyCode = cur, PayFrequency = 1,
-                EmployeeInsuranceRate = 0.07m, EmployerInsuranceRate = 0.20m, IncomeTaxRate = 0.10m, IsActive = true,
+                EmployeeInsuranceRate = 0.07m, EmployerInsuranceRate = 0.20m, IncomeTaxRate = 0.10m,
+                UseFlatRates = true, IsActive = true,
             });
         }
         _code = _given = _sur = _title = ""; _salary = 0;

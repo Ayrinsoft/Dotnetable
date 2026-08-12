@@ -96,6 +96,7 @@ public class HrService : IHrService
             e.EmployeeInsuranceRate = contract.EmployeeInsuranceRate;
             e.EmployerInsuranceRate = contract.EmployerInsuranceRate;
             e.IncomeTaxRate = contract.IncomeTaxRate;
+            e.UseFlatRates = contract.UseFlatRates;
             e.IsActive = contract.IsActive;
             contract = e;
         }

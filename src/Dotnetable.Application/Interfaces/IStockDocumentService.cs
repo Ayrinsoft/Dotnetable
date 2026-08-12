@@ -10,8 +10,10 @@ public sealed class StockDocumentLineRequest
     public int Quantity { get; set; }
     public decimal UnitCost { get; set; }
     public string? Note { get; set; }
-    /// <summary><see cref="StockReturnCondition"/> for return docs (default Sellable when type is Return).</summary>
+    /// <summary><see cref="StockItemCondition"/> for return docs (default New when type is Return).</summary>
     public byte ReturnCondition { get; set; }
+    /// <summary><see cref="StockHealthGrade"/> required for non-new conditions.</summary>
+    public byte HealthGrade { get; set; }
 }
 
 /// <summary>Row for the warehouse worker pick queue.</summary>
@@ -73,9 +75,9 @@ public interface IStockDocumentService
     Task<(bool Success, string? Error, StockDocument? Doc)> EnsureReturnForRefundAsync(
         int orderId, int paymentRefundId, int? memberId, CancellationToken ct = default);
 
-    /// <summary>Update QC condition on a return line before post.</summary>
+    /// <summary>Update item condition + health grade on a return line before post.</summary>
     Task<(bool Success, string? Error)> SetReturnLineConditionAsync(
-        int stockDocumentLineId, StockReturnCondition condition, int? memberId, CancellationToken ct = default);
+        int stockDocumentLineId, StockItemCondition condition, StockHealthGrade healthGrade, int? memberId, CancellationToken ct = default);
 
     /// <summary>Worker queue: outbound docs in Submitted or Approved (ready to pick).</summary>
     Task<IReadOnlyList<WarehousePickTaskDto>> GetPickQueueAsync(

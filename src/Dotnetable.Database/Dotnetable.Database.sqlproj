@@ -106,6 +106,7 @@
     <Build Include="FinancialLedgerEntries.sql" />
     <Build Include="PayrollLines.sql" />
     <Build Include="PayrollRuns.sql" />
+    <Build Include="PayrollRateBrackets.sql" />
     <Build Include="EmployeeContracts.sql" />
     <Build Include="Employees.sql" />
     <Build Include="OrgUnits.sql" />

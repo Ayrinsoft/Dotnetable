@@ -55,7 +55,8 @@
                         <th>@L["unit_cost", "Unit cost"]</th>
                         @if (_doc.DocumentType == (byte)StockDocumentType.Return)
                         {
-                            <th>@L["warehouse.return_qc", "QC (return)"]</th>
+                            <th>@L["warehouse.item_condition", "Condition"]</th>
+                            <th>@L["warehouse.health_grade", "Health grade"]</th>
                         }
                     </tr>
                 </thead>
@@ -71,19 +72,41 @@
                                 <td>
                                     @if (_doc.Status != (byte)StockDocumentStatus.Posted && (_canReceive || _canPost))
                                     {
-                                        <MudSelect T="byte" Value="l.ReturnCondition" Dense="true" Style="min-width:140px"
-                                                   ValueChanged="@(async v => await SetQcAsync(l.StockDocumentLineID, v))">
-                                            <MudSelectItem T="byte" Value="@((byte)StockReturnCondition.Sellable)">@L["warehouse.qc.sellable", "Sellable (OK)"]</MudSelectItem>
-                                            <MudSelectItem T="byte" Value="@((byte)StockReturnCondition.Defective)">@L["warehouse.qc.defective", "Defective"]</MudSelectItem>
+                                        <MudSelect T="byte" Value="l.ReturnCondition" Dense="true" Style="min-width:150px"
+                                                   ValueChanged="@(async v => await SetConditionAsync(l, v, l.HealthGrade))">
+                                            <MudSelectItem T="byte" Value="@((byte)StockItemCondition.New)">@L["warehouse.cond.new", "New"]</MudSelectItem>
+                                            <MudSelectItem T="byte" Value="@((byte)StockItemCondition.LikeNew)">@L["warehouse.cond.like_new", "Like new"]</MudSelectItem>
+                                            <MudSelectItem T="byte" Value="@((byte)StockItemCondition.OpenBox)">@L["warehouse.cond.open_box", "Open box"]</MudSelectItem>
+                                            <MudSelectItem T="byte" Value="@((byte)StockItemCondition.Display)">@L["warehouse.cond.display", "Display / showcase"]</MudSelectItem>
+                                            <MudSelectItem T="byte" Value="@((byte)StockItemCondition.Used)">@L["warehouse.cond.used", "Used"]</MudSelectItem>
+                                            <MudSelectItem T="byte" Value="@((byte)StockItemCondition.Defective)">@L["warehouse.cond.defective", "Defective"]</MudSelectItem>
                                         </MudSelect>
                                     }
                                     else
                                     {
-                                        @(((StockReturnCondition)l.ReturnCondition) switch
-                                        {
-                                            StockReturnCondition.Defective => L["warehouse.qc.defective", "Defective"],
-                                            _ => L["warehouse.qc.sellable", "Sellable (OK)"],
-                                        })
+                                        @ConditionLabel((StockItemCondition)l.ReturnCondition)
+                                    }
+                                </td>
+                                <td>
+                                    @if (_doc.Status != (byte)StockDocumentStatus.Posted && (_canReceive || _canPost)
+                                         && l.ReturnCondition is not ((byte)StockItemCondition.New or (byte)StockItemCondition.Defective))
+                                    {
+                                        <MudSelect T="byte" Value="l.HealthGrade" Dense="true" Style="min-width:100px"
+                                                   ValueChanged="@(async v => await SetConditionAsync(l, l.ReturnCondition, v))">
+                                            <MudSelectItem T="byte" Value="@((byte)StockHealthGrade.A)">A — @L["warehouse.grade.a", "Excellent"]</MudSelectItem>
+                                            <MudSelectItem T="byte" Value="@((byte)StockHealthGrade.B)">B — @L["warehouse.grade.b", "Good"]</MudSelectItem>
+                                            <MudSelectItem T="byte" Value="@((byte)StockHealthGrade.C)">C — @L["warehouse.grade.c", "Fair"]</MudSelectItem>
+                                            <MudSelectItem T="byte" Value="@((byte)StockHealthGrade.D)">D — @L["warehouse.grade.d", "Poor"]</MudSelectItem>
+                                            <MudSelectItem T="byte" Value="@((byte)StockHealthGrade.F)">F — @L["warehouse.grade.f", "Critical"]</MudSelectItem>
+                                        </MudSelect>
+                                    }
+                                    else if (l.HealthGrade > 0)
+                                    {
+                                        @($"G{l.HealthGrade}")
+                                    }
+                                    else
+                                    {
+                                        <span>—</span>
                                     }
                                 </td>
                             }
@@ -196,11 +219,26 @@ else
     private async Task Approve() { var (ok, e) = await Docs.ApproveAsync(DocumentId!.Value, _memberId); await After(ok, e); }
     private async Task Reject() { var (ok, e) = await Docs.RejectAsync(DocumentId!.Value, _memberId, null); await After(ok, e); }
     private async Task Post() { var (ok, e) = await Docs.PostAsync(DocumentId!.Value, _memberId); await After(ok, e); }
-    private async Task SetQcAsync(int lineId, byte condition)
+    private async Task SetConditionAsync(StockDocumentLine line, byte condition, byte grade)
     {
-        var (ok, e) = await Docs.SetReturnLineConditionAsync(lineId, (StockReturnCondition)condition, _memberId);
+        if (condition is not ((byte)StockItemCondition.New or (byte)StockItemCondition.Defective)
+            && grade == 0)
+            grade = (byte)StockHealthGrade.B; // sensible default when switching to non-new
+        var (ok, e) = await Docs.SetReturnLineConditionAsync(
+            line.StockDocumentLineID, (StockItemCondition)condition, (StockHealthGrade)grade, _memberId);
         await After(ok, e);
     }
+
+    private string ConditionLabel(StockItemCondition c) => c switch
+    {
+        StockItemCondition.New => L["warehouse.cond.new", "New"],
+        StockItemCondition.LikeNew => L["warehouse.cond.like_new", "Like new"],
+        StockItemCondition.OpenBox => L["warehouse.cond.open_box", "Open box"],
+        StockItemCondition.Display => L["warehouse.cond.display", "Display / showcase"],
+        StockItemCondition.Used => L["warehouse.cond.used", "Used"],
+        StockItemCondition.Defective => L["warehouse.cond.defective", "Defective"],
+        _ => c.ToString(),
+    };
     private async Task After(bool ok, string? e)
     {
         if (ok) { Snackbar.Add(L["saved", "Saved."], Severity.Success); _doc = await Docs.GetByIdAsync(DocumentId!.Value); }

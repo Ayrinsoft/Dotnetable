@@ -143,6 +143,7 @@ public partial class AppDbContext : DbContext
     public virtual DbSet<EmployeeContract> EmployeeContracts { get; set; }
     public virtual DbSet<PayrollRun> PayrollRuns { get; set; }
     public virtual DbSet<PayrollLine> PayrollLines { get; set; }
+    public virtual DbSet<PayrollRateBracket> PayrollRateBrackets { get; set; }
 
     public virtual DbSet<OrderDigitalAsset> OrderDigitalAssets { get; set; }
 
@@ -635,6 +636,7 @@ public partial class AppDbContext : DbContext
             entity.Property(e => e.UnitCostUsd).HasColumnType("decimal(18,4)");
             entity.Property(e => e.Note).HasMaxLength(300);
             entity.Property(e => e.ReturnCondition).HasDefaultValue((byte)0);
+            entity.Property(e => e.HealthGrade).HasDefaultValue((byte)0);
             entity.HasOne(d => d.StockDocument).WithMany(p => p.StockDocumentLines).HasForeignKey(d => d.StockDocumentID).OnDelete(DeleteBehavior.ClientSetNull);
             entity.HasOne(d => d.ProductVariant).WithMany().HasForeignKey(d => d.ProductVariantID).OnDelete(DeleteBehavior.ClientSetNull);
         });
@@ -683,9 +685,19 @@ public partial class AppDbContext : DbContext
             entity.Property(e => e.EmployeeInsuranceRate).HasColumnType("decimal(9,6)");
             entity.Property(e => e.EmployerInsuranceRate).HasColumnType("decimal(9,6)");
             entity.Property(e => e.IncomeTaxRate).HasColumnType("decimal(9,6)");
+            entity.Property(e => e.UseFlatRates).HasDefaultValue(true);
             entity.Property(e => e.CurrencyCode).HasMaxLength(3).IsUnicode(false).IsFixedLength();
             entity.HasOne(d => d.Employee).WithMany(p => p.EmployeeContracts).HasForeignKey(d => d.EmployeeID).OnDelete(DeleteBehavior.ClientSetNull);
             entity.HasOne(d => d.CurrencyCodeNavigation).WithMany().HasForeignKey(d => d.CurrencyCode).OnDelete(DeleteBehavior.ClientSetNull);
+        });
+        modelBuilder.Entity<PayrollRateBracket>(entity =>
+        {
+            entity.HasIndex(e => new { e.WebsiteID, e.Kind, e.SortOrder }, "IX_PayrollRateBrackets_Website_Kind");
+            entity.Property(e => e.FromAmount).HasColumnType("decimal(18,4)");
+            entity.Property(e => e.ToAmount).HasColumnType("decimal(18,4)");
+            entity.Property(e => e.Rate).HasColumnType("decimal(9,6)");
+            entity.Property(e => e.IsActive).HasDefaultValue(true);
+            entity.HasOne(d => d.Website).WithMany().HasForeignKey(d => d.WebsiteID).OnDelete(DeleteBehavior.ClientSetNull);
         });
         modelBuilder.Entity<PayrollRun>(entity =>
         {
@@ -3316,6 +3328,8 @@ public partial class AppDbContext : DbContext
             entity.Property(e => e.OverridePriceLocal).HasColumnType("decimal(18, 4)");
             entity.Property(e => e.ReferencePrice).HasColumnType("decimal(18, 4)");
             entity.Property(e => e.ReferencePriceUsd).HasColumnType("decimal(18, 4)");
+            entity.Property(e => e.ItemCondition).HasDefaultValue((byte)1);
+            entity.Property(e => e.HealthGrade).HasDefaultValue((byte)0);
 
             entity.HasOne(d => d.ProductVariant).WithMany(p => p.VendorProducts)
                 .HasForeignKey(d => d.ProductVariantID)

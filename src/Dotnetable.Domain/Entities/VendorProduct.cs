@@ -38,6 +38,12 @@ public partial class VendorProduct
 
     public bool IsActive { get; set; }
 
+    /// <summary><see cref="Enums.StockItemCondition"/> — New for normal catalog; OpenBox/Display/Used for pre-owned channel.</summary>
+    public byte ItemCondition { get; set; }
+
+    /// <summary><see cref="Enums.StockHealthGrade"/> — required for non-new listings (0 only for New).</summary>
+    public byte HealthGrade { get; set; }
+
     public virtual ICollection<CartItem> CartItems { get; set; } = new List<CartItem>();
 
     public virtual ICollection<OrderItem> OrderItems { get; set; } = new List<OrderItem>();

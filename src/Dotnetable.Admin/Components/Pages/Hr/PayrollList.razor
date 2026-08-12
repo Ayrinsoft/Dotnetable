@@ -8,6 +8,7 @@
 @inject ISnackbar Snackbar
 @inject IPageLocalizer L
 @inject NavigationManager Nav
+@inject IJSRuntime JS
 
 <DNPageTitle Title=@L["hr.payroll", "Payroll"] />
 
@@ -20,13 +21,16 @@
             <MudText Typo="Typo.h5">@_run.RunNumber · @((PayrollRunStatus)_run.Status)</MudText>
             <MudButton OnClick="@(() => Nav.NavigateTo("/hr/payroll"))">Back</MudButton>
         </MudStack>
-        <MudStack Row="true" Class="mb-3 gap-2">
+        <MudStack Row="true" Class="mb-3 gap-2 flex-wrap">
             @if (_canRun && _run.Status == (byte)PayrollRunStatus.Draft)
             { <MudButton Variant="Variant.Outlined" OnClick="Submit">Submit</MudButton> }
             @if (_canApprove && _run.Status is (byte)PayrollRunStatus.Draft or (byte)PayrollRunStatus.Submitted)
             { <MudButton Color="Color.Success" Variant="Variant.Filled" OnClick="Approve">Approve</MudButton> }
             @if (_canApprove && _run.Status == (byte)PayrollRunStatus.Approved)
             { <MudButton Color="Color.Primary" Variant="Variant.Filled" OnClick="Pay">Mark paid</MudButton> }
+            <MudButton Variant="Variant.Outlined" StartIcon="@Icons.Material.Filled.Download" OnClick="ExportRun">
+                @L["hr.export_run", "Export Excel"]
+            </MudButton>
         </MudStack>
         <MudPaper Class="app-card pa-4 mb-3">
             <MudText>Gross @_run.TotalGross.ToString("0.##") · Emp ins @_run.TotalEmployeeInsurance.ToString("0.##") · Er ins @_run.TotalEmployerInsurance.ToString("0.##") · Tax @_run.TotalIncomeTax.ToString("0.##") · Net @_run.TotalNet.ToString("0.##") @_run.CurrencyCode</MudText>
@@ -126,6 +130,14 @@ else
     private async Task Submit() { var (ok, e) = await Payroll.SubmitAsync(RunId!.Value, _memberId); await After(ok, e); }
     private async Task Approve() { var (ok, e) = await Payroll.ApproveAsync(RunId!.Value, _memberId); await After(ok, e); }
     private async Task Pay() { var (ok, e) = await Payroll.MarkPaidAsync(RunId!.Value, _memberId); await After(ok, e); }
+    private async Task ExportRun()
+    {
+        if (RunId is null or <= 0) return;
+        var bytes = await Payroll.ExportRunExcelAsync(RunId.Value);
+        await JS.InvokeVoidAsync("dotnetableFile.download", $"payroll-{RunId}.xlsx", Convert.ToBase64String(bytes),
+            "application/vnd.openxmlformats-officedocument.spreadsheetml.sheet");
+        Snackbar.Add(L["hr.export_done", "Excel downloaded."], Severity.Success);
+    }
     private async Task After(bool ok, string? e)
     {
         if (ok) { Snackbar.Add(L["saved", "Saved."], Severity.Success); _run = await Payroll.GetRunAsync(RunId!.Value); }

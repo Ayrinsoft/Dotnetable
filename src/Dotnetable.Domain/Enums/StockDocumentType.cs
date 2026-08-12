@@ -11,14 +11,51 @@ public enum StockDocumentType : byte
     Return = 6,
 }
 
-/// <summary>QC outcome on a return document line (restock vs scrap).</summary>
-public enum StockReturnCondition : byte
+/// <summary>
+/// Commercial / physical condition of stock (return QC, registration, used listings).
+/// Values 1–2 keep legacy return QC compatibility (1 was Sellable→New, 2 Defective).
+/// </summary>
+public enum StockItemCondition : byte
 {
     /// <summary>Not applicable (non-return lines).</summary>
     None = 0,
-    /// <summary>Found OK — restock to sellable warehouse / listings.</summary>
+    /// <summary>Brand-new / sealed — restock original sellable listing.</summary>
+    New = 1,
+    /// <summary>Legacy alias for <see cref="New"/> (older return QC “Sellable”).</summary>
     Sellable = 1,
-    /// <summary>Defective / damaged — receive to warehouse for scrap tracking, do not restore sellable listings.</summary>
+    /// <summary>Defective / damaged scrap — warehouse receive only, not resold as used catalog.</summary>
+    Defective = 2,
+    /// <summary>Opened and barely used.</summary>
+    LikeNew = 3,
+    /// <summary>Box opened, contents complete.</summary>
+    OpenBox = 4,
+    /// <summary>Showroom / display sample (ویترینی).</summary>
+    Display = 5,
+    /// <summary>Used / pre-owned (کارکرده).</summary>
+    Used = 6,
+}
+
+/// <summary>Health grade for non-new stock (required when condition is not New). 0 = n/a.</summary>
+public enum StockHealthGrade : byte
+{
+    None = 0,
+    /// <summary>Excellent.</summary>
+    A = 1,
+    /// <summary>Good.</summary>
+    B = 2,
+    /// <summary>Fair.</summary>
+    C = 3,
+    /// <summary>Poor / heavy wear.</summary>
+    D = 4,
+    /// <summary>Critical — usually scrap path.</summary>
+    F = 5,
+}
+
+/// <summary>Obsolete name — use <see cref="StockItemCondition"/>.</summary>
+public enum StockReturnCondition : byte
+{
+    None = 0,
+    Sellable = 1,
     Defective = 2,
 }
 

@@ -11,6 +11,8 @@
     [OverridePriceLocal] DECIMAL (18, 4) NULL,
     [ReferencePrice]     DECIMAL (18, 4) DEFAULT ((0.0)) NOT NULL,
     [QuantityReserved]   INT             DEFAULT ((0)) NOT NULL,
+    [ItemCondition]      TINYINT         DEFAULT ((1)) NOT NULL,
+    [HealthGrade]        TINYINT         DEFAULT ((0)) NOT NULL,
     CONSTRAINT [PK_VendorProducts] PRIMARY KEY CLUSTERED ([VendorProductID] ASC),
     CONSTRAINT [FK_VendorProducts_ProductVariants] FOREIGN KEY ([ProductVariantID]) REFERENCES [dbo].[ProductVariants] ([ProductVariantID]),
     CONSTRAINT [FK_VendorProducts_Vendors] FOREIGN KEY ([VendorID]) REFERENCES [dbo].[Vendors] ([VendorID]),

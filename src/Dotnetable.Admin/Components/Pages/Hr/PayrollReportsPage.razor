@@ -4,22 +4,33 @@
 @inject IWebsiteService WebsiteService
 @inject AuthenticationStateProvider AuthState
 @inject IPageLocalizer L
+@inject IJSRuntime JS
+@inject ISnackbar Snackbar
 
 <DNPageTitle Title=@L["hr.payroll_reports", "Payroll reports"] />
 <MudText Typo="Typo.h5" Class="fw-bold mb-3">@L["hr.payroll_reports", "Insurance & tax reports"]</MudText>
 @if (_isMaster) { <WebsiteSelector Value="_websiteId" ValueChanged="async id=>{_websiteId=id;}" Websites="_websites" Class="mb-3" Style="max-width:200px" /> }
-<MudStack Row="true" Class="mb-3 gap-2">
+<MudStack Row="true" Class="mb-3 gap-2 flex-wrap">
     <MudDatePicker @bind-Date="_from" Label="From" Dense="true" />
     <MudDatePicker @bind-Date="_to" Label="To" Dense="true" />
-    <MudButton Variant="Variant.Filled" Color="Color.Primary" OnClick="Load">Run</MudButton>
+    <MudButton Variant="Variant.Filled" Color="Color.Primary" OnClick="Load">@L["run", "Run"]</MudButton>
+    <MudButton Variant="Variant.Outlined" StartIcon="@Icons.Material.Filled.Download" OnClick="ExportAll" Disabled="_lines.Count==0">
+        @L["hr.export_all", "Export Excel (all)"]
+    </MudButton>
+    <MudButton Variant="Variant.Outlined" OnClick="ExportIns" Disabled="_lines.Count==0">
+        @L["hr.export_insurance", "Insurance payable"]
+    </MudButton>
+    <MudButton Variant="Variant.Outlined" OnClick="ExportTax" Disabled="_lines.Count==0">
+        @L["hr.export_tax", "Tax payable"]
+    </MudButton>
 </MudStack>
 @if (_lines.Count > 0)
 {
     <MudPaper Class="app-card pa-4 mb-3">
-        <MudText>Employee insurance total: @_lines.Sum(l => l.EmployeeInsurance).ToString("0.##")</MudText>
-        <MudText>Employer insurance total: @_lines.Sum(l => l.EmployerInsurance).ToString("0.##")</MudText>
-        <MudText>Income tax total: @_lines.Sum(l => l.IncomeTax).ToString("0.##")</MudText>
-        <MudText>Net paid total: @_lines.Sum(l => l.Net).ToString("0.##")</MudText>
+        <MudText>@L["hr.emp_ins_total", "Employee insurance total"]: @_lines.Sum(l => l.EmployeeInsurance).ToString("0.##")</MudText>
+        <MudText>@L["hr.er_ins_total", "Employer insurance total"]: @_lines.Sum(l => l.EmployerInsurance).ToString("0.##")</MudText>
+        <MudText>@L["hr.tax_total", "Income tax total"]: @_lines.Sum(l => l.IncomeTax).ToString("0.##")</MudText>
+        <MudText>@L["hr.net_total", "Net paid total"]: @_lines.Sum(l => l.Net).ToString("0.##")</MudText>
     </MudPaper>
     <MudPaper Class="app-card pa-4">
         <MudSimpleTable Dense="true">
@@ -57,5 +68,30 @@
     {
         if (_websiteId <= 0 || _from is null || _to is null) return;
         _lines = (await Payroll.GetInsuranceReportAsync(_websiteId, DateOnly.FromDateTime(_from.Value), DateOnly.FromDateTime(_to.Value))).ToList();
+    }
+
+    private async Task ExportAll()
+    {
+        if (_websiteId <= 0 || _from is null || _to is null) return;
+        var bytes = await Payroll.ExportStatutoryExcelAsync(_websiteId, DateOnly.FromDateTime(_from.Value), DateOnly.FromDateTime(_to.Value));
+        await Download("payroll-statutory.xlsx", bytes);
+    }
+    private async Task ExportIns()
+    {
+        if (_websiteId <= 0 || _from is null || _to is null) return;
+        var bytes = await Payroll.ExportInsurancePayableExcelAsync(_websiteId, DateOnly.FromDateTime(_from.Value), DateOnly.FromDateTime(_to.Value));
+        await Download("payroll-insurance-payable.xlsx", bytes);
+    }
+    private async Task ExportTax()
+    {
+        if (_websiteId <= 0 || _from is null || _to is null) return;
+        var bytes = await Payroll.ExportTaxPayableExcelAsync(_websiteId, DateOnly.FromDateTime(_from.Value), DateOnly.FromDateTime(_to.Value));
+        await Download("payroll-tax-payable.xlsx", bytes);
+    }
+    private async Task Download(string name, byte[] bytes)
+    {
+        await JS.InvokeVoidAsync("dotnetableFile.download", name, Convert.ToBase64String(bytes),
+            "application/vnd.openxmlformats-officedocument.spreadsheetml.sheet");
+        Snackbar.Add(L["hr.export_done", "Excel downloaded."], Severity.Success);
     }
 }

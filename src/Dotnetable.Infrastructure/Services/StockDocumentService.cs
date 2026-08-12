@@ -83,8 +83,13 @@ public class StockDocumentService : IStockDocumentService
         foreach (var l in lines)
         {
             var cond = type == StockDocumentType.Return
-                ? (l.ReturnCondition == 0 ? (byte)StockReturnCondition.Sellable : l.ReturnCondition)
-                : (byte)StockReturnCondition.None;
+                ? (l.ReturnCondition == 0 ? (byte)StockItemCondition.New : l.ReturnCondition)
+                : (byte)StockItemCondition.None;
+            var grade = type == StockDocumentType.Return ? l.HealthGrade : (byte)0;
+            if (type == StockDocumentType.Return
+                && cond is not ((byte)StockItemCondition.New or (byte)StockItemCondition.None or (byte)StockItemCondition.Defective)
+                && grade == 0)
+                return (false, "Health grade is required for non-new return lines.", null);
             doc.StockDocumentLines.Add(new StockDocumentLine
             {
                 ProductVariantID = l.ProductVariantID,
@@ -93,6 +98,7 @@ public class StockDocumentService : IStockDocumentService
                 UnitCostUsd = l.UnitCost,
                 Note = l.Note,
                 ReturnCondition = cond,
+                HealthGrade = grade,
             });
         }
         _context.StockDocuments.Add(doc);
@@ -185,45 +191,124 @@ public class StockDocumentService : IStockDocumentService
 
     private async Task PostReturnLineAsync(StockDocument doc, StockDocumentLine line, int? memberId, CancellationToken ct)
     {
-        var condition = (StockReturnCondition)line.ReturnCondition;
-        if (condition == StockReturnCondition.None)
-            condition = StockReturnCondition.Sellable;
+        var condition = (StockItemCondition)line.ReturnCondition;
+        if (condition == StockItemCondition.None)
+            condition = StockItemCondition.New;
+
+        if (condition is not (StockItemCondition.New or StockItemCondition.Defective)
+            && line.HealthGrade == 0)
+            throw new InvalidOperationException(
+                "Health grade is required for non-new returns (LikeNew / OpenBox / Display / Used).");
 
         var whId = doc.ToWarehouseID ?? doc.FromWarehouseID;
         // Always receive into warehouse (returned goods location = default warehouse).
         await AdjustWarehouseAsync(whId, line.ProductVariantID, Math.Abs(line.Quantity), clearReserved: 0, ct);
 
-        if (condition == StockReturnCondition.Sellable)
+        if (condition == StockItemCondition.Defective)
         {
-            await _inventory.RestockReturnAsync(doc.WebsiteID, line.ProductVariantID, Math.Abs(line.Quantity), line.UnitCost,
-                $"Return {doc.DocumentNumber} (sellable)", memberId ?? 0, ct);
+            // Scrap path: physical only — no sellable inventory / catalog restore.
+            return;
+        }
 
-            // Restore store listing(s) linked to the original order lines when possible.
-            if (doc.OrderID is int orderId)
+        var qty = Math.Abs(line.Quantity);
+        var noteTag = $"{condition}" + (line.HealthGrade > 0 ? $"/G{line.HealthGrade}" : "");
+        await _inventory.RestockReturnAsync(doc.WebsiteID, line.ProductVariantID, qty, line.UnitCost,
+            $"Return {doc.DocumentNumber} ({noteTag})", memberId ?? 0, ct);
+
+        // New (or legacy Sellable): restore original listing.
+        // Pre-owned conditions: restock into used-channel listing (condition + health grade).
+        var isNew = condition is StockItemCondition.New;
+        if (doc.OrderID is int orderId)
+        {
+            var orderItems = await _context.OrderItems.AsNoTracking()
+                .Where(i => i.OrderID == orderId && i.ProductVariantID == line.ProductVariantID && i.VendorProductID != null)
+                .Select(i => new { i.VendorProductID, i.VendorID, i.Quantity })
+                .ToListAsync(ct);
+            var remaining = qty;
+            foreach (var oi in orderItems)
             {
-                var orderItems = await _context.OrderItems.AsNoTracking()
-                    .Where(i => i.OrderID == orderId && i.ProductVariantID == line.ProductVariantID && i.VendorProductID != null)
-                    .ToListAsync(ct);
-                var remaining = Math.Abs(line.Quantity);
-                foreach (var oi in orderItems)
+                if (remaining <= 0) break;
+                var take = Math.Min(remaining, oi.Quantity);
+                if (isNew)
+                    await _vendorProducts.RestockAsync(oi.VendorProductID!.Value, take, ct);
+                else
                 {
-                    if (remaining <= 0) break;
-                    var qty = Math.Min(remaining, oi.Quantity);
-                    await _vendorProducts.RestockAsync(oi.VendorProductID!.Value, qty, ct);
-                    remaining -= qty;
+                    var vendorId = oi.VendorID
+                        ?? await _context.VendorProducts.AsNoTracking()
+                            .Where(vp => vp.VendorProductID == oi.VendorProductID)
+                            .Select(vp => (int?)vp.VendorID).FirstOrDefaultAsync(ct);
+                    if (vendorId is int vid)
+                    {
+                        await _vendorProducts.RestockWithConditionAsync(
+                            doc.WebsiteID, vid, line.ProductVariantID, take,
+                            (byte)condition, line.HealthGrade, ct);
+                        await EnsureUsedGoodsCategoryAsync(doc.WebsiteID, line.ProductVariantID, ct);
+                    }
                 }
-                await _vendorProducts.SyncInventoryOnHandFromListingsAsync(doc.WebsiteID, line.ProductVariantID, ct);
+                remaining -= take;
             }
-            else
+            // Leftover without vendor: still try first site vendor for used channel.
+            if (remaining > 0 && !isNew)
             {
-                await SyncInventoryFromWarehouseAsync(doc.WebsiteID, line.ProductVariantID, ct);
+                var vendorId = await _context.VendorProducts.AsNoTracking()
+                    .Where(vp => vp.WebsiteID == doc.WebsiteID && vp.ProductVariantID == line.ProductVariantID)
+                    .Select(vp => (int?)vp.VendorID).FirstOrDefaultAsync(ct)
+                    ?? await _context.Vendors.AsNoTracking()
+                        .Where(v => v.WebsiteID == doc.WebsiteID)
+                        .Select(v => (int?)v.VendorID).FirstOrDefaultAsync(ct);
+                if (vendorId is int vid)
+                {
+                    await _vendorProducts.RestockWithConditionAsync(
+                        doc.WebsiteID, vid, line.ProductVariantID, remaining,
+                        (byte)condition, line.HealthGrade, ct);
+                    await EnsureUsedGoodsCategoryAsync(doc.WebsiteID, line.ProductVariantID, ct);
+                }
             }
+            await _vendorProducts.SyncInventoryOnHandFromListingsAsync(doc.WebsiteID, line.ProductVariantID, ct);
         }
         else
         {
-            // Defective: physical receipt only for scrap tracking.
-            // Do NOT raise sellable InventoryItem / listings — warehouse bin holds the unit separately.
-            // Optional note movement without on-hand sellable change is intentional.
+            await SyncInventoryFromWarehouseAsync(doc.WebsiteID, line.ProductVariantID, ct);
+        }
+    }
+
+    /// <summary>Ensure product is mapped to site "used-goods" category so non-new stock is discoverable.</summary>
+    private async Task EnsureUsedGoodsCategoryAsync(int websiteId, int productVariantId, CancellationToken ct)
+    {
+        const string slug = "used-goods";
+        var cat = await _context.ProductCategories
+            .FirstOrDefaultAsync(c => c.WebsiteID == websiteId && c.Slug == slug, ct);
+        if (cat is null)
+        {
+            cat = new ProductCategory
+            {
+                WebsiteID = websiteId,
+                Name = "Used / refurbished",
+                Slug = slug,
+                SortOrder = 900,
+                IsActive = true,
+            };
+            _context.ProductCategories.Add(cat);
+            await _context.SaveChangesAsync(ct);
+        }
+
+        var productId = await _context.ProductVariants.AsNoTracking()
+            .Where(v => v.ProductVariantID == productVariantId)
+            .Select(v => v.ProductID)
+            .FirstOrDefaultAsync(ct);
+        if (productId <= 0) return;
+
+        var mapped = await _context.ProductCategoryMaps
+            .AnyAsync(m => m.ProductID == productId && m.ProductCategoryID == cat.ProductCategoryID, ct);
+        if (!mapped)
+        {
+            _context.ProductCategoryMaps.Add(new ProductCategoryMap
+            {
+                ProductID = productId,
+                ProductCategoryID = cat.ProductCategoryID,
+                IsPrimary = false,
+            });
+            await _context.SaveChangesAsync(ct);
         }
     }
 
@@ -539,7 +624,8 @@ public class StockDocumentService : IStockDocumentService
                 UnitCost = l.UnitCost,
                 UnitCostUsd = l.UnitCost,
                 Note = l.Note,
-                ReturnCondition = (byte)StockReturnCondition.Sellable,
+                ReturnCondition = (byte)StockItemCondition.New,
+                HealthGrade = 0,
             });
         }
 
@@ -551,20 +637,28 @@ public class StockDocumentService : IStockDocumentService
     }
 
     public async Task<(bool Success, string? Error)> SetReturnLineConditionAsync(
-        int stockDocumentLineId, StockReturnCondition condition, int? memberId, CancellationToken ct = default)
+        int stockDocumentLineId, StockItemCondition condition, StockHealthGrade healthGrade, int? memberId, CancellationToken ct = default)
     {
         var line = await _context.StockDocumentLines
             .Include(l => l.StockDocument)
             .FirstOrDefaultAsync(l => l.StockDocumentLineID == stockDocumentLineId, ct);
         if (line is null) return (false, "Line not found.");
         if (line.StockDocument.DocumentType != (byte)StockDocumentType.Return)
-            return (false, "Only return document lines have QC condition.");
+            return (false, "Only return document lines have condition/QC.");
         if (line.StockDocument.Status == (byte)StockDocumentStatus.Posted)
-            return (false, "Cannot change QC after post.");
-        if (condition is not (StockReturnCondition.Sellable or StockReturnCondition.Defective))
-            return (false, "Choose Sellable or Defective.");
+            return (false, "Cannot change condition after post. Create a new adjustment/return if needed.");
+        if (condition is StockItemCondition.None)
+            return (false, "Choose a product condition.");
+
+        if (condition is not (StockItemCondition.New or StockItemCondition.Defective)
+            && healthGrade is StockHealthGrade.None)
+            return (false, "Health grade is required for non-new items (LikeNew, OpenBox, Display, Used).");
+
+        if (condition is StockItemCondition.New)
+            healthGrade = StockHealthGrade.None;
 
         line.ReturnCondition = (byte)condition;
+        line.HealthGrade = (byte)healthGrade;
         await _context.SaveChangesAsync(ct);
         return (true, null);
     }

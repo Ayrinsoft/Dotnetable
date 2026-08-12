@@ -3,6 +3,8 @@
 @inject IHrService Hr
 @inject IPageLocalizer L
 @inject NavigationManager Nav
+@inject ISnackbar Snackbar
+@inject AuthenticationStateProvider AuthState
 
 <DNPageTitle Title=@(_e is null ? "Employee" : $"{_e.GivenName} {_e.Surname}") />
 @if (_e is null) { <MudProgressLinear Indeterminate="true" /> }
@@ -16,8 +18,11 @@ else
     </MudPaper>
     <MudPaper Class="app-card pa-4 mb-3">
         <MudText Typo="Typo.subtitle1" Class="mb-2">@L["hr.contracts", "Contracts"]</MudText>
+        <MudText Typo="Typo.caption" Color="Color.Secondary" Class="mb-2">
+            @L["hr.flat_vs_brackets", "Flat rates = percentages on this contract. Brackets = multi-tier rules from HR → Rate brackets (progressive)."]
+        </MudText>
         <MudSimpleTable Dense="true">
-            <thead><tr><th>From</th><th>To</th><th>Salary</th><th>Emp ins</th><th>Er ins</th><th>Tax</th><th>Active</th></tr></thead>
+            <thead><tr><th>From</th><th>To</th><th>Salary</th><th>Emp ins</th><th>Er ins</th><th>Tax</th><th>@L["hr.rate_mode", "Rate mode"]</th><th>Active</th></tr></thead>
             <tbody>
                 @foreach (var c in _e.EmployeeContracts.OrderByDescending(x => x.EffectiveFrom))
                 {
@@ -28,6 +33,18 @@ else
                         <td>@(c.EmployeeInsuranceRate * 100)%</td>
                         <td>@(c.EmployerInsuranceRate * 100)%</td>
                         <td>@(c.IncomeTaxRate * 100)%</td>
+                        <td>
+                            @if (_canEdit)
+                            {
+                                <MudSwitch T="bool" Value="c.UseFlatRates" Color="Color.Primary" Dense="true"
+                                           Label="@(c.UseFlatRates ? L["hr.flat", "Flat"] : L["hr.brackets", "Brackets"])"
+                                           ValueChanged="@(async v => await ToggleFlatAsync(c, v))" />
+                            }
+                            else
+                            {
+                                @(c.UseFlatRates ? L["hr.flat", "Flat"] : L["hr.brackets", "Brackets"])
+                            }
+                        </td>
                         <td>@(c.IsActive ? "Yes" : "")</td>
                     </tr>
                 }
@@ -51,9 +68,20 @@ else
 @code {
     [Parameter] public int EmployeeId { get; set; }
     private Employee? _e;
+    private bool _canEdit;
     protected override async Task OnInitializedAsync()
     {
         await L.EnsureLoadedAsync();
+        var u = (await AuthState.GetAuthenticationStateAsync()).User;
+        _canEdit = AdminPolicies.Allows(u, RoleKeys.HrEdit);
+        _e = await Hr.GetEmployeeAsync(EmployeeId);
+    }
+
+    private async Task ToggleFlatAsync(EmployeeContract c, bool useFlat)
+    {
+        c.UseFlatRates = useFlat;
+        await Hr.UpsertContractAsync(c);
+        Snackbar.Add(L["saved", "Saved."], Severity.Success);
         _e = await Hr.GetEmployeeAsync(EmployeeId);
     }
 }
