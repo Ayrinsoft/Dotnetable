@@ -330,6 +330,14 @@
                     <MudNavLink Href="/finance/ledger" Icon="@Icons.Material.Filled.AccountBalanceWallet">@L["ledger", "Financial ledger"]</MudNavLink>
                     <MudNavLink Href="/finance/settlements" Icon="@Icons.Material.Filled.Handshake">@L["settlements", "Settlements"]</MudNavLink>
                 </AuthorizeView>
+                <AuthorizeView Policy="@RoleKeys.AccountingView" Context="acc">
+                    <MudNavLink Href="/finance/coa" Icon="@Icons.Material.Filled.AccountTree">@L["accounting.coa", "Chart of accounts"]</MudNavLink>
+                    <MudNavLink Href="/finance/journals" Icon="@Icons.Material.Filled.MenuBook">@L["accounting.journals", "Journals"]</MudNavLink>
+                </AuthorizeView>
+                <AuthorizeView Policy="@RoleKeys.AccountingReport" Context="accr">
+                    <MudNavLink Href="/finance/reports/trial-balance" Icon="@Icons.Material.Filled.TableChart">@L["accounting.trial_balance", "Trial balance"]</MudNavLink>
+                    <MudNavLink Href="/finance/reports/pnl" Icon="@Icons.Material.Filled.ShowChart">@L["accounting.pnl", "Profit & loss"]</MudNavLink>
+                </AuthorizeView>
                 <AuthorizeView Policy="@RoleKeys.BankAccountsView" Context="bnk">
                     <MudNavLink Href="/finance/bank-accounts" Icon="@Icons.Material.Filled.AccountBalance">@L["bank_accounts", "Bank Accounts"]</MudNavLink>
                 </AuthorizeView>

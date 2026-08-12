@@ -1,0 +1,119 @@
+@page "/finance/journals/{JournalId:int}"
+@attribute [Authorize(Policy = RoleKeys.AccountingView)]
+@inject IJournalService Journals
+@inject AuthenticationStateProvider AuthState
+@inject ISnackbar Snackbar
+@inject IPageLocalizer L
+@inject NavigationManager Nav
+
+<DNPageTitle Title="@(_j is null ? L["accounting.journals", "Journal"] : _j.EntryNumber)" />
+
+@if (_loading)
+{
+    <MudProgressLinear Indeterminate="true" />
+}
+else if (_j is null)
+{
+    <MudText Color="Color.Error">@L["not_found", "Not found."]</MudText>
+}
+else
+{
+    <MudStack Row="true" Justify="Justify.SpaceBetween" Class="mb-3 flex-wrap gap-2">
+        <MudStack Spacing="0">
+            <MudText Typo="Typo.h5" Class="fw-bold">@_j.EntryNumber</MudText>
+            <MudText Typo="Typo.caption">@_j.EntryDate.ToString("yyyy-MM-dd") · @(_j.SourceType ?? "Manual") · @_j.CurrencyCode</MudText>
+        </MudStack>
+        <MudStack Row="true" Spacing="1">
+            <MudButton Variant="Variant.Text" OnClick="@(() => Nav.NavigateTo("/finance/journals"))">@L["back", "Back"]</MudButton>
+            @if (_canPost && _j.IsPosted && !_j.IsReversed)
+            {
+                <MudButton Variant="Variant.Outlined" Color="Color.Error" OnClick="ReverseAsync">@L["accounting.reverse", "Reverse"]</MudButton>
+            }
+            @if (_canPost && !_j.IsPosted)
+            {
+                <MudButton Variant="Variant.Filled" Color="Color.Primary" OnClick="PostAsync">@L["accounting.post", "Post"]</MudButton>
+            }
+        </MudStack>
+    </MudStack>
+
+    <MudPaper Elevation="0" Class="app-card rounded-lg pa-4 mb-3">
+        <MudText>@(_j.Description ?? "—")</MudText>
+        <MudChip T="string" Class="mt-2" Size="Size.Small" Color="@(_j.IsPosted ? Color.Success : Color.Warning)">
+            @(_j.IsPosted ? L["accounting.posted", "Posted"] : L["accounting.draft", "Draft"])
+        </MudChip>
+        @if (_j.IsReversed)
+        {
+            <MudChip T="string" Size="Size.Small">@L["accounting.reversed", "Reversed"]</MudChip>
+        }
+        <MudChip T="string" Size="Size.Small" Variant="Variant.Outlined" Color="@(_j.ReportToTax ? Color.Success : Color.Default)">
+            @(_j.ReportToTax ? L["orders.report_to_tax", "Report to tax"] : L["orders.no_tax", "Excluded from tax"])
+        </MudChip>
+    </MudPaper>
+
+    <MudPaper Elevation="0" Class="app-card rounded-lg pa-4">
+        <MudSimpleTable Dense="true" Elevation="0">
+            <thead>
+                <tr>
+                    <th>@L["code", "Code"]</th>
+                    <th>@L["account", "Account"]</th>
+                    <th class="text-end">@L["debit", "Debit"]</th>
+                    <th class="text-end">@L["credit", "Credit"]</th>
+                    <th>@L["description", "Description"]</th>
+                </tr>
+            </thead>
+            <tbody>
+                @foreach (var line in _j.Lines)
+                {
+                    <tr>
+                        <td><code>@(line.AccountCode ?? "—")</code></td>
+                        <td>@(line.AccountName ?? line.ChartOfAccountID.ToString())</td>
+                        <td class="text-end">@(line.Debit > 0 ? line.Debit.ToString("0.##") : "")</td>
+                        <td class="text-end">@(line.Credit > 0 ? line.Credit.ToString("0.##") : "")</td>
+                        <td>@(line.Description ?? "")</td>
+                    </tr>
+                }
+                <tr>
+                    <td colspan="2"><strong>@L["total", "Total"]</strong></td>
+                    <td class="text-end"><strong>@_j.TotalDebit.ToString("0.##")</strong></td>
+                    <td class="text-end"><strong>@_j.TotalCredit.ToString("0.##")</strong></td>
+                    <td></td>
+                </tr>
+            </tbody>
+        </MudSimpleTable>
+    </MudPaper>
+}
+
+@code {
+    [Parameter] public int JournalId { get; set; }
+    private bool _loading = true, _canPost;
+    private JournalEntryDto? _j;
+    private int? _memberId;
+
+    protected override async Task OnInitializedAsync()
+    {
+        await L.EnsureLoadedAsync();
+        var user = (await AuthState.GetAuthenticationStateAsync()).User;
+        _canPost = AdminPolicies.Allows(user, RoleKeys.AccountingPost);
+        if (int.TryParse(user.FindFirst(AdminClaimTypes.MemberId)?.Value, out var mid)) _memberId = mid;
+        _j = await Journals.GetByIdAsync(JournalId);
+        _loading = false;
+    }
+
+    private async Task PostAsync()
+    {
+        var (ok, err) = await Journals.PostAsync(JournalId, _memberId);
+        if (ok) { Snackbar.Add(L["saved", "Saved."], Severity.Success); _j = await Journals.GetByIdAsync(JournalId); }
+        else Snackbar.Add(err ?? L["save_failed", "Failed"], Severity.Error);
+    }
+
+    private async Task ReverseAsync()
+    {
+        var (ok, err, rev) = await Journals.ReverseAsync(JournalId, _memberId, null);
+        if (ok && rev is not null)
+        {
+            Snackbar.Add(L["saved", "Saved."], Severity.Success);
+            Nav.NavigateTo($"/finance/journals/{rev.JournalEntryID}");
+        }
+        else Snackbar.Add(err ?? L["save_failed", "Failed"], Severity.Error);
+    }
+}

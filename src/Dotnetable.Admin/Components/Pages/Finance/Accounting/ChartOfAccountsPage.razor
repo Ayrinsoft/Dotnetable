@@ -1,0 +1,92 @@
+@page "/finance/coa"
+@attribute [Authorize(Policy = RoleKeys.AccountingView)]
+@using Dotnetable.Domain.Enums
+@inject IChartOfAccountService Coa
+@inject IWebsiteService WebsiteService
+@inject AuthenticationStateProvider AuthState
+@inject IPageLocalizer L
+
+<DNPageTitle Title=@L["accounting.coa", "Chart of accounts"] />
+
+<MudStack Row="true" Justify="Justify.SpaceBetween" Class="mb-4 flex-wrap gap-2">
+    <MudStack Spacing="0">
+        <MudText Typo="Typo.h5" Class="fw-bold">@L["accounting.coa", "Chart of accounts"]</MudText>
+        <MudText Typo="Typo.body2" Color="Color.Secondary">@L["accounting.coa_hint", "Standard accounts are seeded per website. System accounts can be renamed but not deleted."]</MudText>
+    </MudStack>
+    @if (_isMaster)
+    {
+        <WebsiteSelector Value="_websiteId" ValueChanged="OnWebsite" Websites="_websites" Label="@L["website", "Website"]" Dense="true" Style="min-width:180px" />
+    }
+</MudStack>
+
+@if (_loading)
+{
+    <MudProgressLinear Indeterminate="true" />
+}
+else
+{
+    <MudPaper Elevation="0" Class="app-card rounded-lg pa-4">
+        <MudSimpleTable Dense="true" Hover="true" Elevation="0">
+            <thead>
+                <tr>
+                    <th>@L["code", "Code"]</th>
+                    <th>@L["name", "Name"]</th>
+                    <th>@L["type", "Type"]</th>
+                    <th>@L["active", "Active"]</th>
+                </tr>
+            </thead>
+            <tbody>
+                @foreach (var a in _flat)
+                {
+                    <tr>
+                        <td><code>@a.Code</code> @(a.IsSystem ? "*" : "")</td>
+                        <td>@a.Name</td>
+                        <td>@TypeLabel(a.AccountType)</td>
+                        <td>@(a.IsActive ? L["yes", "Yes"] : L["no", "No"])</td>
+                    </tr>
+                }
+            </tbody>
+        </MudSimpleTable>
+        <MudText Typo="Typo.caption" Color="Color.Secondary" Class="mt-2">* @L["accounting.system_account", "System account"]</MudText>
+    </MudPaper>
+}
+
+@code {
+    private bool _loading = true, _isMaster;
+    private int _websiteId;
+    private List<Website> _websites = new();
+    private List<ChartOfAccount> _flat = new();
+
+    protected override async Task OnInitializedAsync()
+    {
+        await L.EnsureLoadedAsync();
+        var user = (await AuthState.GetAuthenticationStateAsync()).User;
+        _isMaster = user.HasClaim(AdminClaimTypes.Master, "true");
+        int.TryParse(user.FindFirst(AdminClaimTypes.WebsiteId)?.Value, out _websiteId);
+        if (_isMaster) _websites = (await WebsiteService.GetAllAsync()).ToList();
+        await LoadAsync();
+    }
+
+    private async Task OnWebsite(int id) { _websiteId = id; await LoadAsync(); }
+
+    private async Task LoadAsync()
+    {
+        _loading = true;
+        if (_websiteId > 0)
+        {
+            await Coa.EnsureSeededAsync(_websiteId);
+            _flat = (await Coa.GetFlatAsync(_websiteId)).ToList();
+        }
+        _loading = false;
+    }
+
+    private string TypeLabel(byte t) => ((GlAccountType)t) switch
+    {
+        GlAccountType.Asset => L["accounting.type.asset", "Asset"],
+        GlAccountType.Liability => L["accounting.type.liability", "Liability"],
+        GlAccountType.Equity => L["accounting.type.equity", "Equity"],
+        GlAccountType.Income => L["accounting.type.income", "Income"],
+        GlAccountType.Expense => L["accounting.type.expense", "Expense"],
+        _ => t.ToString(),
+    };
+}

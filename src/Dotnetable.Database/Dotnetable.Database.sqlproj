@@ -109,6 +109,8 @@
     <Build Include="MediaSetItems.sql" />
     <Build Include="JournalEntryLines.sql" />
     <Build Include="JournalEntries.sql" />
+    <Build Include="LedgerAccountMaps.sql" />
+    <Build Include="FiscalPeriods.sql" />
     <Build Include="InventoryItems.sql" />
     <Build Include="ChartOfAccounts.sql" />
     <Build Include="BrandTranslations.sql" />

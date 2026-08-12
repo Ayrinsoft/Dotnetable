@@ -1,0 +1,101 @@
+@page "/finance/reports/trial-balance"
+@attribute [Authorize(Policy = RoleKeys.AccountingReport)]
+@inject IAccountingReportService Reports
+@inject IWebsiteService WebsiteService
+@inject AuthenticationStateProvider AuthState
+@inject IPageLocalizer L
+
+<DNPageTitle Title=@L["accounting.trial_balance", "Trial balance"] />
+
+<MudStack Row="true" Justify="Justify.SpaceBetween" Class="mb-4 flex-wrap gap-2">
+    <MudStack Spacing="0">
+        <MudText Typo="Typo.h5" Class="fw-bold">@L["accounting.trial_balance", "Trial balance"]</MudText>
+        <MudText Typo="Typo.body2" Color="Color.Secondary">@L["accounting.tb_hint", "Posted journals only. Toggle tax-reportable to exclude excluded sales."]</MudText>
+    </MudStack>
+    @if (_isMaster)
+    {
+        <WebsiteSelector Value="_websiteId" ValueChanged="OnWebsite" Websites="_websites" Label="@L["website", "Website"]" Dense="true" Style="min-width:180px" />
+    }
+</MudStack>
+
+<MudPaper Elevation="0" Class="app-card rounded-lg pa-4 mb-3">
+    <MudGrid Spacing="2">
+        <MudItem xs="6" sm="3"><MudDatePicker @bind-Date="_from" Label="@L["from", "From"]" Variant="Variant.Outlined" Dense="true" /></MudItem>
+        <MudItem xs="6" sm="3"><MudDatePicker @bind-Date="_to" Label="@L["to", "To"]" Variant="Variant.Outlined" Dense="true" /></MudItem>
+        <MudItem xs="12" sm="3" Class="d-flex align-center">
+            <MudSwitch T="bool" @bind-Value="_taxOnly" Color="Color.Primary" Label="@L["accounting.tax_only", "Tax-reportable only"]" />
+        </MudItem>
+        <MudItem xs="12" sm="3" Class="d-flex align-end">
+            <MudButton Variant="Variant.Filled" Color="Color.Primary" FullWidth="true" OnClick="LoadAsync">@L["run", "Run"]</MudButton>
+        </MudItem>
+    </MudGrid>
+</MudPaper>
+
+@if (_loading)
+{
+    <MudProgressLinear Indeterminate="true" />
+}
+else
+{
+    <MudPaper Elevation="0" Class="app-card rounded-lg pa-4">
+        <MudSimpleTable Dense="true" Elevation="0">
+            <thead>
+                <tr>
+                    <th>@L["code", "Code"]</th>
+                    <th>@L["name", "Name"]</th>
+                    <th class="text-end">@L["debit", "Debit"]</th>
+                    <th class="text-end">@L["credit", "Credit"]</th>
+                    <th class="text-end">@L["balance", "Balance"]</th>
+                </tr>
+            </thead>
+            <tbody>
+                @foreach (var r in _rows)
+                {
+                    <tr>
+                        <td><code>@r.Code</code></td>
+                        <td>@r.Name</td>
+                        <td class="text-end">@r.Debit.ToString("0.##")</td>
+                        <td class="text-end">@r.Credit.ToString("0.##")</td>
+                        <td class="text-end">@r.Balance.ToString("0.##")</td>
+                    </tr>
+                }
+                <tr>
+                    <td colspan="2"><strong>@L["total", "Total"]</strong></td>
+                    <td class="text-end"><strong>@_rows.Sum(r => r.Debit).ToString("0.##")</strong></td>
+                    <td class="text-end"><strong>@_rows.Sum(r => r.Credit).ToString("0.##")</strong></td>
+                    <td></td>
+                </tr>
+            </tbody>
+        </MudSimpleTable>
+    </MudPaper>
+}
+
+@code {
+    private bool _loading, _isMaster, _taxOnly;
+    private int _websiteId;
+    private List<Website> _websites = new();
+    private DateTime? _from = new DateTime(DateTime.Today.Year, 1, 1);
+    private DateTime? _to = DateTime.Today;
+    private List<TrialBalanceRowDto> _rows = new();
+
+    protected override async Task OnInitializedAsync()
+    {
+        await L.EnsureLoadedAsync();
+        var user = (await AuthState.GetAuthenticationStateAsync()).User;
+        _isMaster = user.HasClaim(AdminClaimTypes.Master, "true");
+        int.TryParse(user.FindFirst(AdminClaimTypes.WebsiteId)?.Value, out _websiteId);
+        if (_isMaster) _websites = (await WebsiteService.GetAllAsync()).ToList();
+        await LoadAsync();
+    }
+
+    private async Task OnWebsite(int id) { _websiteId = id; await LoadAsync(); }
+
+    private async Task LoadAsync()
+    {
+        if (_websiteId <= 0 || _from is null || _to is null) return;
+        _loading = true;
+        _rows = (await Reports.GetTrialBalanceAsync(
+            _websiteId, DateOnly.FromDateTime(_from.Value), DateOnly.FromDateTime(_to.Value), _taxOnly)).ToList();
+        _loading = false;
+    }
+}

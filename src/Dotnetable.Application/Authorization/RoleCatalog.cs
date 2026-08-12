@@ -166,6 +166,11 @@ public static class RoleCatalog
         new(RoleKeys.SettlementsView, "View settlements", RoleCategory.Admin),
         new(RoleKeys.SettlementsEdit, "Approve / pay / cancel settlements", RoleCategory.Admin),
 
+        new(RoleKeys.AccountingView, "View chart of accounts & journals", RoleCategory.Admin),
+        new(RoleKeys.AccountingEdit, "Edit chart of accounts & draft journals", RoleCategory.Admin),
+        new(RoleKeys.AccountingPost, "Post / reverse journals", RoleCategory.Admin),
+        new(RoleKeys.AccountingReport, "View trial balance & P&L", RoleCategory.Admin),
+
         // Currency
         new(RoleKeys.CurrencyView, "View currencies & exchange rates", RoleCategory.Admin),
         new(RoleKeys.CurrencyEdit, "Edit currencies & exchange rates", RoleCategory.Admin),

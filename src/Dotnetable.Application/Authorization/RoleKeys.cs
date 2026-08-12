@@ -150,6 +150,12 @@ public static class RoleKeys
     public const string SettlementsView = "settlements.view";
     public const string SettlementsEdit = "settlements.edit";
 
+    // ── General ledger / accounting (admin) ───────────────────────────
+    public const string AccountingView = "accounting.view";
+    public const string AccountingEdit = "accounting.edit";
+    public const string AccountingPost = "accounting.post";
+    public const string AccountingReport = "accounting.report";
+
     // ── Currency master list + per-website rates (admin) ─────────────
     public const string CurrencyView = "currency.view";
     public const string CurrencyEdit = "currency.edit";
