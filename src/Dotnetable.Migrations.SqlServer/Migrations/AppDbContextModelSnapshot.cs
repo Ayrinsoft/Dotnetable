@@ -2480,11 +2480,28 @@ namespace Dotnetable.Migrations.SqlServer.Migrations
                         .HasColumnType("tinyint")
                         .HasDefaultValue((byte)1);
 
+                    b.Property<DateTime?>("ShippedAt")
+                        .HasColumnType("datetime");
+
                     b.Property<int?>("ShippingMethodID")
                         .HasColumnType("int");
 
+                    b.Property<byte>("ShippingStatus")
+                        .ValueGeneratedOnAdd()
+                        .HasColumnType("tinyint")
+                        .HasDefaultValue((byte)0);
+
                     b.Property<decimal>("ShippingTotal")
                         .HasColumnType("decimal(18, 4)");
+
+                    b.Property<string>("ShippingTrackingCode")
+                        .HasMaxLength(100)
+                        .HasColumnType("nvarchar(100)");
+
+                    b.Property<byte>("PreparationStatus")
+                        .ValueGeneratedOnAdd()
+                        .HasColumnType("tinyint")
+                        .HasDefaultValue((byte)0);
 
                     b.Property<byte>("Status")
                         .HasColumnType("tinyint");

@@ -89,6 +89,12 @@ public interface IProductService
     /// <summary>A single published product by slug (base or translated), fully detailed and priced.</summary>
     Task<ProductDetailDto?> GetBySlugAsync(int websiteId, string slug, string? languageCode = null, string? currencyCode = null, CancellationToken ct = default);
 
+    /// <summary>
+    /// Admin product preview: full detail projection by product id, including drafts / inactive /
+    /// out-of-stock variants (not filtered by publish status).
+    /// </summary>
+    Task<ProductDetailDto?> GetDetailByIdAsync(int productId, string? languageCode = null, string? currencyCode = null, CancellationToken ct = default);
+
     /// <summary>Products explicitly related to (or auto-derived from the category of) the given product.</summary>
     Task<List<ProductRefDto>> GetRelatedAsync(int websiteId, string slug, int take, string? languageCode = null, string? currencyCode = null, CancellationToken ct = default);
 }

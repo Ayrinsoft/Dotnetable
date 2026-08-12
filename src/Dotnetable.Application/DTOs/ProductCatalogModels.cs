@@ -206,6 +206,11 @@ public class ProductSummaryDto
 /// <summary>A single published product with full detail (variants, attributes, content, warnings, related).</summary>
 public sealed class ProductDetailDto : ProductSummaryDto
 {
+    /// <summary>Catalog publish status byte (1 = published). Useful for admin preview banners.</summary>
+    public byte Status { get; init; }
+    /// <summary>Whether the product is active in admin (drafts may still be previewed).</summary>
+    public bool IsActive { get; init; }
+
     public IReadOnlyList<ProductCategoryDto> Categories { get; init; } = Array.Empty<ProductCategoryDto>();
     public IReadOnlyList<ProductVariantDto> Variants { get; init; } = Array.Empty<ProductVariantDto>();
     /// <summary>In-stock marketplace sellers for this product (out-of-stock sellers are omitted).</summary>

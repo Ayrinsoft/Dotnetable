@@ -1613,6 +1613,10 @@ public partial class AppDbContext : DbContext
             entity.Property(e => e.PaidAt).HasColumnType("datetime");
             entity.Property(e => e.SalesChannel).HasDefaultValue((byte)1);
             entity.Property(e => e.ReportToTax).HasDefaultValue(true);
+            entity.Property(e => e.PreparationStatus).HasDefaultValue((byte)0);
+            entity.Property(e => e.ShippingStatus).HasDefaultValue((byte)0);
+            entity.Property(e => e.ShippingTrackingCode).HasMaxLength(100);
+            entity.Property(e => e.ShippedAt).HasColumnType("datetime");
             entity.Property(e => e.ShippingTotal).HasColumnType("decimal(18, 4)");
             entity.Property(e => e.SubTotal).HasColumnType("decimal(18, 4)");
             entity.Property(e => e.TaxBreakdownJson).HasMaxLength(4000);

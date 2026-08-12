@@ -356,11 +356,20 @@
     margin: 0 auto 20px;
 }
 
+/* Screen: hide print-only clones; print/PDF: show them (no-print links are stripped). */
+.print-only {
+    display: none !important;
+}
+
 /* ---- Print media (in-page Ctrl+P fallback) ------------------------- */
 
 @media print {
     .no-print {
         display: none !important;
+    }
+
+    .print-only {
+        display: inline !important;
     }
 
     body {

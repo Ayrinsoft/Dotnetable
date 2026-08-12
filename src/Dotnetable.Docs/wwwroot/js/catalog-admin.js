@@ -932,6 +932,10 @@ window.DOCS_ADMIN = {
               fa: "ذخیره. برای کالای فیزیکی موجودی/استوک فروشنده را بگذارید تا قابل‌فروش شود.",
             },
             {
+              en: "Use **Preview** (list eye icon, edit header, or invoice/order line link) at `/catalog/products/{id}/preview?variantId=` — storefront-like view of gallery, description, variants, attributes, warranties. Works for **unpublished / inactive** products so you can QA before publish.",
+              fa: "از **پیش‌نمایش** (آیکون چشم در لیست، هدر ویرایش، یا لینک خط فاکتور/سفارش) در `/catalog/products/{id}/preview?variantId=` استفاده کنید — نمای شبیه فروشگاه: گالری، توضیح، واریانت، ویژگی، گارانتی. برای محصولات **unpublished / غیرفعال** هم کار می‌کند تا قبل از انتشار بررسی کنید.",
+            },
+            {
               en: "Optional: change product code prefix under Websites → edit site (default **DN**).",
               fa: "اختیاری: پیشوند کد کالا را در Websites → ویرایش سایت عوض کنید (پیش‌فرض **DN**).",
             },
@@ -1545,12 +1549,20 @@ window.DOCS_ADMIN = {
               fa: "روند **ثبت سفارش**: انتخاب یا ثبت مشتری → محصول کاتالوگ (**انتخاب واریانت** اگر چندتاست؛ بدون listing هم مجاز بدون موجودی) یا **آیتم آزاد** (فقط عنوان/قیمت) → قیمت دریافتی در برابر کاتالوگ (روکشی) → آدرس → ارسال → کانال → مالیات → پرداخت اختیاری (کارت‌به‌کارت + فیش، نقد، COD).",
             },
             {
-              en: "Open an order to review items (catalog / charged / markup), shipping address, totals, payments, channel, tax flag, and history.",
-              fa: "یک سفارش را برای اقلام (کاتالوگ / دریافتی / روکشی)، آدرس ارسال، جمع‌ها، پرداخت‌ها، کانال، پرچم مالیات و تاریخچه باز کنید.",
+              en: "Open an order to review items (catalog / charged / markup), shipping address, totals, payments, channel, tax flag, and history. Click a catalog line title to open **product preview** (works for unpublished products; `?variantId=` highlights the ordered variant).",
+              fa: "یک سفارش را برای اقلام (کاتالوگ / دریافتی / روکشی)، آدرس ارسال، جمع‌ها، پرداخت‌ها، کانال، پرچم مالیات و تاریخچه باز کنید. روی عنوان خط کاتالوگ کلیک کنید تا **پیش‌نمایش محصول** باز شود (حتی unpublished؛ `?variantId=` واریانت سفارش را مشخص می‌کند).",
             },
             {
               en: "Use **Shipping label** to print receiver name, phone, and address for fulfillment.",
               fa: "با **برچسب ارسال** نام گیرنده، تلفن و آدرس را برای بسته‌بندی چاپ کنید.",
+            },
+            {
+              en: "On the order or **Invoice** page, set **Preparation status** (warehouse), **Shipping status**, and **Tracking code** (up to 100 chars). Customers see these on their account order detail. Saving can sync main order status (Paid→Processing, Processing→Shipped, Shipped→Completed).",
+              fa: "در صفحه سفارش یا **فاکتور** وضعیت **آماده‌سازی** (انبار)، **وضعیت ارسال** و **کد پیگیری** (تا ۱۰۰ کاراکتر) را ست کنید. مشتری این‌ها را در جزئیات سفارش حساب کاربری می‌بیند. ذخیره می‌تواند وضعیت اصلی سفارش را هم هم‌راستا کند (Paid→Processing، Processing→Shipped، Shipped→Completed).",
+            },
+            {
+              en: "When a **tracking code** is set or changed, the customer is notified on every **configured** channel: **email** (template `OrderShipped`, Sales account), **SMS**, and **WhatsApp**. Message language follows the website **default language** (built-in FA/EN). SMS/WhatsApp only send if a real provider is registered (`ISmsSender` / `IWhatsAppSender` with `IsConfigured = true`); stubs log only.",
+              fa: "با **ست یا تغییر کد پیگیری**، مشتری روی هر کانال **فعال** خبر می‌گیرد: **ایمیل** (قالب `OrderShipped`، حساب Sales)، **SMS** و **واتساپ**. زبان پیام = **زبان پیش‌فرض** وب‌سایت (FA/EN داخلی). SMS/واتساپ فقط اگر provider واقعی ثبت شده باشد (`IsConfigured = true`)؛ stub فقط لاگ می‌کند.",
             },
             {
               en: "Use Change Status only with valid transitions for your process (paid → processing → shipped → …).",
@@ -1565,8 +1577,8 @@ window.DOCS_ADMIN = {
               fa: "**برگشت وجه** (نقش payments.refund): بعد از پرداخت Paid — مبلغ با **ارز سفارش/پرداخت** (ارز سایت، مثلاً ریال) است، نه اجباری دلار. اعتبار کیف پول، صف بانکی، یا برگشت نقدی.",
             },
             {
-              en: "Open **Invoice** for a framed customer document (margins/borders). Lines show **product code** (`DN-42` = site prefix + ProductID). Print PDF, or **email / WhatsApp** from that page. Charged unit prices only — markup is folded into price. Orders with **Report to tax = No** are excluded from the VAT report.",
-              fa: "از **فاکتور** سند مشتری با حاشیه و قاب را باز کنید. روی خطوط **کد کالا** (`DN-42` = پیشوند سایت + شناسه محصول) می‌آید. Print PDF یا **ایمیل / واتساپ** از همان صفحه. فقط قیمت فروش — مارک‌آپ داخل قیمت است. سفارش‌هایی که **اعلام به مالیات = خیر** دارند در گزارش VAT نمی‌آیند.",
+              en: "Open **Invoice** for a framed customer document (margins/borders). Lines show **product code** (`DN-42` = site prefix + ProductID) and link to **product preview**. From the same page set preparation / shipping status and tracking code. Print PDF, or **email / WhatsApp**. Charged unit prices only — markup is folded into price. Orders with **Report to tax = No** are excluded from the VAT report.",
+              fa: "از **فاکتور** سند مشتری با حاشیه و قاب را باز کنید. روی خطوط **کد کالا** (`DN-42`) و لینک **پیش‌نمایش محصول** می‌آید. از همان صفحه وضعیت آماده‌سازی/ارسال و کد پیگیری را ست کنید. Print PDF یا **ایمیل / واتساپ**. فقط قیمت فروش — مارک‌آپ داخل قیمت است. سفارش‌هایی که **اعلام به مالیات = خیر** دارند در گزارش VAT نمی‌آیند.",
             },
           ],
           tips: [

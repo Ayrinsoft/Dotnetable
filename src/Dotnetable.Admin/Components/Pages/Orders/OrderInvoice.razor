@@ -1,7 +1,9 @@
 @page "/orders/{OrderId:int}/invoice"
 @attribute [Authorize(Policy = RoleKeys.OrdersView)]
 @inject ITaxReportService TaxReportService
+@inject IOrderService OrderService
 @inject IEmailService EmailService
+@inject AuthenticationStateProvider AuthState
 @inject NavigationManager Nav
 @inject IPageLocalizer L
 @inject IJSRuntime Js
@@ -65,6 +67,61 @@ else
             <MudAlert Severity="Severity.Warning" Dense="true" Class="mt-3" Variant="Variant.Outlined">
                 @L["invoice.email_not_configured", "No sales email account is configured for this website — set one under Email accounts before sending."]
             </MudAlert>
+        }
+    </MudPaper>
+
+    <MudPaper Elevation="0" Class="app-card rounded-lg pa-4 no-print mb-3">
+        <MudText Typo="Typo.subtitle2" Class="mb-1">@L["orders.fulfillment", "Fulfillment & shipping"]</MudText>
+        <MudText Typo="Typo.caption" Color="Color.Secondary" Class="mb-3">
+            @L["orders.fulfillment_hint", "Set warehouse preparation, carrier shipping status, and postal tracking code. Customers see these on their order page."]
+        </MudText>
+        <MudGrid Spacing="2">
+            <MudItem xs="12" sm="6" md="3">
+                <MudSelect T="OrderPreparationStatus" @bind-Value="_prepStatus" Variant="Variant.Outlined" Dense="true"
+                           Label="@L["orders.preparation_status", "Preparation status"]" Disabled="!_canEdit">
+                    @foreach (OrderPreparationStatus s in Enum.GetValues<OrderPreparationStatus>())
+                    {
+                        <MudSelectItem T="OrderPreparationStatus" Value="@s">@PrepLabel(s)</MudSelectItem>
+                    }
+                </MudSelect>
+            </MudItem>
+            <MudItem xs="12" sm="6" md="3">
+                <MudSelect T="OrderShippingStatus" @bind-Value="_shipStatus" Variant="Variant.Outlined" Dense="true"
+                           Label="@L["orders.shipping_status", "Shipping status"]" Disabled="!_canEdit">
+                    @foreach (OrderShippingStatus s in Enum.GetValues<OrderShippingStatus>())
+                    {
+                        <MudSelectItem T="OrderShippingStatus" Value="@s">@ShipLabel(s)</MudSelectItem>
+                    }
+                </MudSelect>
+            </MudItem>
+            <MudItem xs="12" sm="6" md="4">
+                <MudTextField @bind-Value="_trackingCode" Label="@L["orders.tracking_code", "Tracking code"]"
+                              Variant="Variant.Outlined" Dense="true" MaxLength="100" Counter="100"
+                              Disabled="!_canEdit"
+                              HelperText="@L["orders.tracking_code_hint", "Postal / courier tracking (up to 100 characters)."]" />
+            </MudItem>
+            <MudItem xs="12" sm="6" md="2" Class="d-flex align-end">
+                @if (_canEdit)
+                {
+                    <MudButton Variant="Variant.Filled" Color="Color.Primary" FullWidth="true"
+                               OnClick="SaveFulfillmentAsync" Disabled="_savingFulfillment">
+                        @(_savingFulfillment ? L["saving", "Saving…"] : L["save", "Save"])
+                    </MudButton>
+                }
+            </MudItem>
+        </MudGrid>
+        @if (!string.IsNullOrWhiteSpace(_inv.ShippingMethodName) || _inv.ShippedAt is not null)
+        {
+            <MudText Typo="Typo.caption" Color="Color.Secondary" Class="mt-2">
+                @if (!string.IsNullOrWhiteSpace(_inv.ShippingMethodName))
+                {
+                    <span>@L["shipping.method", "Method"]: @_inv.ShippingMethodName</span>
+                }
+                @if (_inv.ShippedAt is DateTime shipped)
+                {
+                    <span> · @L["orders.shipped_at", "Shipped"]: @shipped.ToLocalTime().ToString("g")</span>
+                }
+            </MudText>
         }
     </MudPaper>
 
@@ -154,7 +211,22 @@ else
                     @foreach (var line in _inv.Lines)
                     {
                         <tr>
-                            <td>@line.Title</td>
+                            <td>
+                                @if (line.ProductID is int pid && pid > 0)
+                                {
+                                    <a class="no-print" href="@($"/catalog/products/{pid}/preview{(line.ProductVariantID is int vid ? $"?variantId={vid}" : "")}")"
+                                       style="color:inherit;font-weight:600">@line.Title</a>
+                                    <span class="print-only">@line.Title</span>
+                                    @if (line.ProductVariantID is int v)
+                                    {
+                                        <div class="no-print" style="font-size:0.75rem;opacity:.75">@L["variants.variant_id", "Variant"] #@v</div>
+                                    }
+                                }
+                                else
+                                {
+                                    @line.Title
+                                }
+                            </td>
                             <td><code>@(string.IsNullOrWhiteSpace(line.ProductCode) ? "—" : line.ProductCode)</code></td>
                             <td><code>@(line.Sku ?? "—")</code></td>
                             <td class="text-end">@line.Quantity</td>
@@ -221,18 +293,37 @@ else
     private bool _loading = true;
     private bool _sendingEmail;
     private bool _emailConfigured;
+    private bool _canEdit;
+    private bool _savingFulfillment;
     private OrderInvoiceDto? _inv;
     private string _shareEmail = "";
     private string _sharePhone = "";
+    private OrderPreparationStatus _prepStatus;
+    private OrderShippingStatus _shipStatus;
+    private string? _trackingCode;
+    private int? _memberId;
 
     protected override async Task OnInitializedAsync()
     {
         await L.EnsureLoadedAsync();
+        var user = (await AuthState.GetAuthenticationStateAsync()).User;
+        _canEdit = AdminPolicies.Allows(user, RoleKeys.OrdersEdit);
+        if (int.TryParse(user.FindFirst(AdminClaimTypes.MemberId)?.Value, out var mid))
+            _memberId = mid;
+        await ReloadInvoiceAsync();
+        _loading = false;
+    }
+
+    private async Task ReloadInvoiceAsync()
+    {
         _inv = await TaxReportService.GetOrderInvoiceAsync(OrderId);
         if (_inv is not null)
         {
-            _shareEmail = _inv.Buyer.Email?.Trim() ?? "";
-            _sharePhone = _inv.Buyer.Phone?.Trim() ?? "";
+            _shareEmail = string.IsNullOrWhiteSpace(_shareEmail) ? (_inv.Buyer.Email?.Trim() ?? "") : _shareEmail;
+            _sharePhone = string.IsNullOrWhiteSpace(_sharePhone) ? (_inv.Buyer.Phone?.Trim() ?? "") : _sharePhone;
+            _prepStatus = (OrderPreparationStatus)_inv.PreparationStatus;
+            _shipStatus = (OrderShippingStatus)_inv.ShippingStatus;
+            _trackingCode = _inv.ShippingTrackingCode;
             try
             {
                 _emailConfigured = await EmailService.IsConfiguredAsync(_inv.WebsiteId);
@@ -242,8 +333,46 @@ else
                 _emailConfigured = false;
             }
         }
-        _loading = false;
     }
+
+    private async Task SaveFulfillmentAsync()
+    {
+        if (_inv is null || !_canEdit) return;
+        _savingFulfillment = true;
+        try
+        {
+            var (ok, error) = await OrderService.UpdateFulfillmentAsync(
+                OrderId, _prepStatus, _shipStatus, _trackingCode ?? "",
+                _memberId, note: null, syncOrderStatus: true);
+            if (ok)
+            {
+                Snackbar.Add(L["saved", "Saved."], Severity.Success);
+                await ReloadInvoiceAsync();
+            }
+            else Snackbar.Add(error ?? L["save_failed", "Save failed"], Severity.Error);
+        }
+        finally { _savingFulfillment = false; }
+    }
+
+    private string PrepLabel(OrderPreparationStatus s) => s switch
+    {
+        OrderPreparationStatus.NotStarted => L["orders.prep.not_started", "Not started"],
+        OrderPreparationStatus.Pending => L["orders.prep.pending", "Pending"],
+        OrderPreparationStatus.Preparing => L["orders.prep.preparing", "Preparing / warehouse"],
+        OrderPreparationStatus.ReadyToShip => L["orders.prep.ready", "Ready to ship"],
+        _ => s.ToString(),
+    };
+
+    private string ShipLabel(OrderShippingStatus s) => s switch
+    {
+        OrderShippingStatus.NotShipped => L["orders.ship.not_shipped", "Not shipped"],
+        OrderShippingStatus.PreparingShipment => L["orders.ship.preparing", "Preparing shipment"],
+        OrderShippingStatus.Shipped => L["orders.ship.shipped", "Shipped"],
+        OrderShippingStatus.InTransit => L["orders.ship.in_transit", "In transit"],
+        OrderShippingStatus.Delivered => L["orders.ship.delivered", "Delivered"],
+        OrderShippingStatus.Returned => L["orders.ship.returned", "Returned"],
+        _ => s.ToString(),
+    };
 
     private string StatusLabel(byte status) => ((OrderStatus)status) switch
     {

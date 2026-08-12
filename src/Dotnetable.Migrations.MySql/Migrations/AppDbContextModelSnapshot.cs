@@ -2366,11 +2366,28 @@ namespace Dotnetable.Migrations.MySql.Migrations
                         .HasColumnType("tinyint unsigned")
                         .HasDefaultValue((byte)1);
 
+                    b.Property<DateTime?>("ShippedAt")
+                        .HasColumnType("datetime(6)");
+
                     b.Property<int?>("ShippingMethodID")
                         .HasColumnType("int");
 
+                    b.Property<byte>("ShippingStatus")
+                        .ValueGeneratedOnAdd()
+                        .HasColumnType("tinyint unsigned")
+                        .HasDefaultValue((byte)0);
+
                     b.Property<decimal>("ShippingTotal")
                         .HasColumnType("decimal(18, 4)");
+
+                    b.Property<string>("ShippingTrackingCode")
+                        .HasMaxLength(100)
+                        .HasColumnType("varchar(100)");
+
+                    b.Property<byte>("PreparationStatus")
+                        .ValueGeneratedOnAdd()
+                        .HasColumnType("tinyint unsigned")
+                        .HasDefaultValue((byte)0);
 
                     b.Property<byte>("Status")
                         .HasColumnType("tinyint unsigned");

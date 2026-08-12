@@ -1,0 +1,455 @@
+@page "/catalog/products/{ProductId:int}/preview"
+@using Dotnetable.Domain.Enums
+@attribute [Authorize(Policy = RoleKeys.ProductsView)]
+@inject IProductService ProductService
+@inject NavigationManager Nav
+@inject IPageLocalizer L
+
+<DNPageTitle Title="@(_product is null ? L["products.preview", "Product preview"] : $"{L["products.preview", "Product preview"]} — {_product.Title}")" />
+
+@if (_loading)
+{
+    <MudProgressLinear Indeterminate="true" Color="Color.Primary" />
+}
+else if (_product is null)
+{
+    <MudText Color="Color.Error">@L["products.not_found", "Product not found."]</MudText>
+    <MudButton Class="mt-2" OnClick="@(() => Nav.NavigateTo("/catalog/products"))">@L["back", "Back"]</MudButton>
+}
+else
+{
+    <MudStack Row="true" AlignItems="AlignItems.Center" Justify="Justify.SpaceBetween" Class="mb-3 flex-wrap gap-2">
+        <MudStack Spacing="0">
+            <MudText Typo="Typo.h5" Class="fw-bold">@L["products.preview", "Product preview"]</MudText>
+            <MudText Typo="Typo.caption" Color="Color.Secondary">
+                <code>@_product.ProductCode</code>
+                @if (!string.IsNullOrWhiteSpace(_product.Slug))
+                {
+                    <span> · </span><code>@_product.Slug</code>
+                }
+                @if (_selectedVariantId is int vid)
+                {
+                    <span> · @L["variants.variant_id", "Variant"] #@vid</span>
+                }
+            </MudText>
+        </MudStack>
+        <MudStack Row="true" Spacing="1" Class="flex-wrap">
+            <MudButton Variant="Variant.Text" StartIcon="@Icons.Material.Filled.ArrowBack"
+                       OnClick="@(() => Nav.NavigateTo($"/catalog/products/{ProductId}"))">
+                @L["products.edit", "Edit product"]
+            </MudButton>
+            <MudButton Variant="Variant.Outlined" OnClick="@(() => Nav.NavigateTo("/catalog/products"))">
+                @L["products", "Products"]
+            </MudButton>
+        </MudStack>
+    </MudStack>
+
+    @* Catalog publish status: 1 = published (matches ProductService.PublishedStatus). *@
+    @if (!_product.IsActive || _product.Status != 1)
+    {
+        <MudAlert Severity="Severity.Warning" Dense="true" Class="mb-3" Variant="Variant.Outlined">
+            @if (!_product.IsActive && _product.Status != 1)
+            {
+                @L["products.preview_unpublished_inactive", "This product is inactive and not published — customers cannot see it on the storefront. Preview still shows full catalog data."]
+            }
+            else if (!_product.IsActive)
+            {
+                @L["products.preview_inactive", "This product is inactive — customers cannot buy it. Preview still shows full catalog data."]
+            }
+            else
+            {
+                @L["products.preview_unpublished", "This product is not published yet — customers cannot see it on the storefront. Preview still shows full catalog data."]
+            }
+        </MudAlert>
+    }
+
+    <MudPaper Elevation="0" Class="app-card rounded-lg pa-4 mb-3">
+        <MudGrid Spacing="4">
+            <MudItem xs="12" md="6">
+                @if (!string.IsNullOrEmpty(_heroImage))
+                {
+                    <img src="@_heroImage" alt="@_product.Title"
+                         style="width:100%;max-height:420px;object-fit:contain;border-radius:12px;background:var(--mud-palette-background-grey)" />
+                }
+                else
+                {
+                    <MudPaper Class="d-flex align-center justify-center" Style="height:280px;border-radius:12px" Elevation="0" Outlined="true">
+                        <MudIcon Icon="@Icons.Material.Filled.Image" Size="Size.Large" Color="Color.Secondary" />
+                    </MudPaper>
+                }
+                @if (_gallery.Count > 0)
+                {
+                    <MudStack Row="true" Spacing="1" Class="mt-2 flex-wrap">
+                        @foreach (var url in _gallery)
+                        {
+                            <img src="@url" @onclick="@(() => _heroImage = url)"
+                                 style="width:64px;height:64px;object-fit:cover;border-radius:8px;cursor:pointer;border:2px solid @(_heroImage == url ? "var(--mud-palette-primary)" : "transparent")" />
+                        }
+                    </MudStack>
+                }
+            </MudItem>
+            <MudItem xs="12" md="6">
+                <MudText Typo="Typo.h4" Class="fw-bold mb-1">@_product.Title</MudText>
+                @if (!string.IsNullOrEmpty(_product.VendorName))
+                {
+                    <MudText Typo="Typo.body2" Color="Color.Secondary" Class="mb-1">
+                        <MudIcon Icon="@Icons.Material.Filled.Storefront" Size="Size.Small" Class="me-1" />@_product.VendorName
+                    </MudText>
+                }
+                @if (!string.IsNullOrEmpty(_product.BrandName))
+                {
+                    <MudText Typo="Typo.body2" Color="Color.Secondary" Class="mb-2">@_product.BrandName</MudText>
+                }
+                <MudStack Row="true" AlignItems="AlignItems.Center" Spacing="1" Class="mb-2">
+                    @for (var i = 1; i <= 5; i++)
+                    {
+                        <MudIcon Icon="@(i <= Math.Round(_product.AvgRating) ? Icons.Material.Filled.Star : Icons.Material.Outlined.StarBorder)"
+                                 Color="Color.Warning" Size="Size.Small" />
+                    }
+                    <MudText Typo="Typo.caption" Color="Color.Secondary">(@_product.RatingCount)</MudText>
+                </MudStack>
+                @if (!string.IsNullOrWhiteSpace(_product.ShortDescription))
+                {
+                    <MudText Typo="Typo.body1" Class="mb-3">@_product.ShortDescription</MudText>
+                }
+
+                <MudStack Row="true" Spacing="1" Class="mb-3 flex-wrap">
+                    <MudChip T="string" Size="Size.Small" Color="@(_product.IsInStock ? Color.Success : Color.Default)">
+                        @(_product.IsInStock
+                            ? (_product.DisplayStockQuantity is int left
+                                ? string.Format(L["products.only_left", "Only {0} left"], left)
+                                : L["products.in_stock", "In stock"])
+                            : L["products.out_of_stock", "Out of stock"])
+                    </MudChip>
+                    <MudChip T="string" Size="Size.Small" Variant="Variant.Outlined">
+                        @ProductTypeLabel(_product.ProductType)
+                    </MudChip>
+                    @if (!_product.RequiresShipping)
+                    {
+                        <MudChip T="string" Size="Size.Small" Variant="Variant.Outlined" Color="Color.Info">
+                            @L["products.no_shipping", "No shipping"]
+                        </MudChip>
+                    }
+                </MudStack>
+
+                @if (_selectedVariant is not null)
+                {
+                    <MudPaper Elevation="0" Outlined="true" Class="pa-3 mb-3" Style="border-color:var(--mud-palette-primary)!important">
+                        <MudText Typo="Typo.subtitle2" Class="mb-1">@L["products.selected_variant", "Selected variant"]</MudText>
+                        <MudText Typo="Typo.h6">
+                            @(string.IsNullOrWhiteSpace(_selectedVariant.Title) ? _selectedVariant.Sku : _selectedVariant.Title)
+                        </MudText>
+                        <MudText Typo="Typo.caption" Color="Color.Secondary">
+                            ID @_selectedVariant.ProductVariantID · SKU <code>@_selectedVariant.Sku</code>
+                            @if (!_selectedVariant.IsActive)
+                            {
+                                <span> · @L["inactive", "Inactive"]</span>
+                            }
+                        </MudText>
+                        <MudText Typo="Typo.h5" Class="mt-2">
+                            @MoneyFormat.GroupWithCode(_selectedVariant.Price.Amount, _selectedVariant.Price.CurrencyCode)
+                            @if (_selectedVariant.CompareAtPrice is { } cmp && cmp.Amount > _selectedVariant.Price.Amount)
+                            {
+                                <MudText Typo="Typo.body2" Color="Color.Secondary" Style="text-decoration:line-through;display:inline;margin-inline-start:8px">
+                                    @MoneyFormat.Group(cmp.Amount, cmp.CurrencyCode)
+                                </MudText>
+                            }
+                        </MudText>
+                        @if (_selectedVariant.Attributes.Count > 0)
+                        {
+                            <MudStack Spacing="0" Class="mt-2">
+                                @foreach (var a in _selectedVariant.Attributes)
+                                {
+                                    <MudText Typo="Typo.caption">
+                                        <strong>@a.AttributeName:</strong> @(a.OptionValue ?? a.CustomValue ?? "—")
+                                    </MudText>
+                                }
+                            </MudStack>
+                        }
+                    </MudPaper>
+                }
+                else if (_product.MinPrice is { } min && min.Amount > 0)
+                {
+                    <MudText Typo="Typo.h5" Class="mb-3">
+                        @MoneyFormat.GroupWithCode(min.Amount, min.CurrencyCode)
+                    </MudText>
+                }
+
+                @if (_product.Categories.Count > 0)
+                {
+                    <MudText Typo="Typo.caption" Color="Color.Secondary" Class="mb-1">@L["categories", "Categories"]</MudText>
+                    <MudStack Row="true" Spacing="1" Class="mb-3 flex-wrap">
+                        @foreach (var c in _product.Categories)
+                        {
+                            <MudChip T="string" Size="Size.Small" Variant="Variant.Outlined">@c.Name</MudChip>
+                        }
+                    </MudStack>
+                }
+
+                @foreach (var a in _product.Attributes.Where(x => x.IsFeatured))
+                {
+                    <MudText Typo="Typo.body2">
+                        <strong>@a.AttributeName@(string.IsNullOrEmpty(a.Unit) ? "" : $" ({a.Unit})"):</strong>
+                        @(a.OptionValue ?? a.CustomValue ?? a.NumericValue?.ToString("0.##") ?? "—")
+                    </MudText>
+                }
+            </MudItem>
+        </MudGrid>
+    </MudPaper>
+
+    @if (_product.Variants.Count > 0)
+    {
+        <MudPaper Elevation="0" Class="app-card rounded-lg pa-4 mb-3">
+            <MudText Typo="Typo.subtitle1" Class="mb-2">@L["variants", "Variants"]</MudText>
+            <MudSimpleTable Dense="true" Hover="true" Elevation="0">
+                <thead>
+                    <tr>
+                        <th>@L["title", "Title"]</th>
+                        <th>@L["variants.sku", "SKU"]</th>
+                        <th>ID</th>
+                        <th>@L["variants.price", "Price"]</th>
+                        <th>@L["stock", "Stock"]</th>
+                        <th>@L["active", "Active"]</th>
+                        <th></th>
+                    </tr>
+                </thead>
+                <tbody>
+                    @foreach (var v in _product.Variants)
+                    {
+                        var selected = _selectedVariantId == v.ProductVariantID;
+                        <tr style="@(selected ? "background:rgba(var(--mud-palette-primary-rgb),0.08)" : null)">
+                            <td>
+                                @(string.IsNullOrWhiteSpace(v.Title) ? "—" : v.Title)
+                                @if (v.IsDefault)
+                                {
+                                    <MudChip T="string" Size="Size.Small" Class="ms-1">@L["default", "Default"]</MudChip>
+                                }
+                            </td>
+                            <td><code>@v.Sku</code></td>
+                            <td><code>@v.ProductVariantID</code></td>
+                            <td>@MoneyFormat.GroupWithCode(v.Price.Amount, v.Price.CurrencyCode)</td>
+                            <td>@(v.IsInStock ? (v.DisplayStockQuantity?.ToString() ?? L["products.in_stock", "In stock"]) : L["products.out_of_stock", "Out of stock"])</td>
+                            <td>@(v.IsActive ? L["yes", "Yes"] : L["no", "No"])</td>
+                            <td>
+                                <MudButton Size="Size.Small" Variant="@(selected ? Variant.Filled : Variant.Text)" Color="Color.Primary"
+                                           OnClick="@(() => SelectVariant(v.ProductVariantID))">
+                                    @(selected ? L["selected", "Selected"] : L["select", "Select"])
+                                </MudButton>
+                            </td>
+                        </tr>
+                    }
+                </tbody>
+            </MudSimpleTable>
+        </MudPaper>
+    }
+
+    @if (_product.Attributes.Count > 0)
+    {
+        <MudPaper Elevation="0" Class="app-card rounded-lg pa-4 mb-3">
+            <MudText Typo="Typo.subtitle1" Class="mb-2">@L["attributes", "Attributes"]</MudText>
+            <MudSimpleTable Dense="true" Elevation="0">
+                <tbody>
+                    @foreach (var a in _product.Attributes)
+                    {
+                        <tr>
+                            <td style="width:40%"><strong>@a.AttributeName</strong>@(string.IsNullOrEmpty(a.Unit) ? "" : $" ({a.Unit})")</td>
+                            <td>
+                                @if (!string.IsNullOrEmpty(a.ColorHex))
+                                {
+                                    <span style="display:inline-block;width:14px;height:14px;border-radius:50%;background:@a.ColorHex;vertical-align:middle;margin-inline-end:6px;border:1px solid #ccc"></span>
+                                }
+                                @(a.OptionValue ?? a.CustomValue ?? a.NumericValue?.ToString("0.##") ?? "—")
+                            </td>
+                        </tr>
+                    }
+                </tbody>
+            </MudSimpleTable>
+        </MudPaper>
+    }
+
+    @if (_product.Warnings.Count > 0)
+    {
+        <MudStack Spacing="1" Class="mb-3">
+            @foreach (var w in _product.Warnings)
+            {
+                <MudAlert Severity="Severity.Warning" Dense="true" Variant="Variant.Outlined">@w.Text</MudAlert>
+            }
+        </MudStack>
+    }
+
+    @if (_product.Warranties.Count > 0)
+    {
+        <MudPaper Elevation="0" Class="app-card rounded-lg pa-4 mb-3">
+            <MudText Typo="Typo.subtitle1" Class="mb-2">@L["warranties", "Warranties"]</MudText>
+            <MudList T="string" Dense="true">
+                @foreach (var war in _product.Warranties)
+                {
+                    <MudListItem T="string" Icon="@Icons.Material.Filled.VerifiedUser">
+                        <MudText>@war.Title
+                            @if (war.DurationMonths is int months)
+                            {
+                                <MudText Typo="Typo.caption" Color="Color.Secondary" Style="display:inline"> (@months @L["months", "months"])</MudText>
+                            }
+                        </MudText>
+                        @if (!string.IsNullOrWhiteSpace(war.ProviderName) || !string.IsNullOrWhiteSpace(war.Description))
+                        {
+                            <MudText Typo="Typo.caption" Color="Color.Secondary">
+                                @war.ProviderName
+                                @if (!string.IsNullOrWhiteSpace(war.ProviderName) && !string.IsNullOrWhiteSpace(war.Description)) { <span> — </span> }
+                                @war.Description
+                            </MudText>
+                        }
+                    </MudListItem>
+                }
+            </MudList>
+        </MudPaper>
+    }
+
+    @if (!string.IsNullOrWhiteSpace(_product.Content) || !string.IsNullOrWhiteSpace(_product.ExpertReview))
+    {
+        <MudPaper Elevation="0" Class="app-card rounded-lg pa-4 mb-3">
+            <MudTabs Elevation="0" Rounded="true" ApplyEffectsToContainer="true">
+                @if (!string.IsNullOrWhiteSpace(_product.Content))
+                {
+                    <MudTabPanel Text="@L["products.description", "Description"]">
+                        <div class="product-preview-html pa-2">@((MarkupString)_product.Content)</div>
+                    </MudTabPanel>
+                }
+                @if (!string.IsNullOrWhiteSpace(_product.ExpertReview))
+                {
+                    <MudTabPanel Text="@L["products.expert_review", "Expert review"]">
+                        <div class="product-preview-html pa-2">@((MarkupString)_product.ExpertReview)</div>
+                    </MudTabPanel>
+                }
+            </MudTabs>
+        </MudPaper>
+    }
+
+    @if (_product.Sellers.Count > 0)
+    {
+        <MudPaper Elevation="0" Class="app-card rounded-lg pa-4 mb-3">
+            <MudText Typo="Typo.subtitle1" Class="mb-2">@L["sellers", "Sellers"]</MudText>
+            <MudSimpleTable Dense="true" Elevation="0">
+                <thead>
+                    <tr>
+                        <th>@L["vendor", "Vendor"]</th>
+                        <th>@L["variants", "Variant"]</th>
+                        <th>@L["variants.price", "Price"]</th>
+                        <th>@L["stock", "Stock"]</th>
+                    </tr>
+                </thead>
+                <tbody>
+                    @foreach (var s in _product.Sellers)
+                    {
+                        <tr>
+                            <td>@s.VendorName</td>
+                            <td>@(string.IsNullOrWhiteSpace(s.VariantTitle) ? s.Sku : s.VariantTitle)</td>
+                            <td>@MoneyFormat.GroupWithCode(s.Price.Amount, s.Price.CurrencyCode)</td>
+                            <td>@(s.IsInStock ? (s.DisplayStockQuantity?.ToString() ?? L["products.in_stock", "In stock"]) : L["products.out_of_stock", "Out of stock"])</td>
+                        </tr>
+                    }
+                </tbody>
+            </MudSimpleTable>
+        </MudPaper>
+    }
+
+    @if (_product.RelatedProducts.Count > 0)
+    {
+        <MudPaper Elevation="0" Class="app-card rounded-lg pa-4 mb-3">
+            <MudText Typo="Typo.subtitle1" Class="mb-2">@L["products.related", "Related products"]</MudText>
+            <MudStack Row="true" Spacing="2" Class="flex-wrap">
+                @foreach (var r in _product.RelatedProducts)
+                {
+                    <MudPaper Outlined="true" Class="pa-2" Style="width:140px;cursor:pointer" @onclick="@(() => Nav.NavigateTo($"/catalog/products/{r.ProductID}/preview"))">
+                        @if (!string.IsNullOrEmpty(r.ImageUrl))
+                        {
+                            <img src="@r.ImageUrl" style="width:100%;height:90px;object-fit:cover;border-radius:6px" />
+                        }
+                        <MudText Typo="Typo.caption" Class="mt-1">@r.Title</MudText>
+                    </MudPaper>
+                }
+            </MudStack>
+        </MudPaper>
+    }
+
+    @if (!string.IsNullOrWhiteSpace(_product.DigitalDownloadUrl) || !string.IsNullOrWhiteSpace(_product.DigitalServiceUrl) || !string.IsNullOrWhiteSpace(_product.DigitalDeliveryNote))
+    {
+        <MudPaper Elevation="0" Class="app-card rounded-lg pa-4 mb-3">
+            <MudText Typo="Typo.subtitle1" Class="mb-2">@L["products.digital", "Digital delivery"]</MudText>
+            @if (!string.IsNullOrWhiteSpace(_product.DigitalDownloadUrl))
+            {
+                <MudText Typo="Typo.body2"><strong>@L["products.download_url", "Download URL"]:</strong> @_product.DigitalDownloadUrl</MudText>
+            }
+            @if (!string.IsNullOrWhiteSpace(_product.DigitalServiceUrl))
+            {
+                <MudText Typo="Typo.body2"><strong>@L["products.service_url", "Service URL"]:</strong> @_product.DigitalServiceUrl</MudText>
+            }
+            @if (!string.IsNullOrWhiteSpace(_product.DigitalDeliveryNote))
+            {
+                <MudText Typo="Typo.body2" Class="mt-1">@_product.DigitalDeliveryNote</MudText>
+            }
+        </MudPaper>
+    }
+}
+
+@code {
+    [Parameter] public int ProductId { get; set; }
+    [SupplyParameterFromQuery(Name = "variantId")] public int? VariantId { get; set; }
+
+    private bool _loading = true;
+    private ProductDetailDto? _product;
+    private int? _selectedVariantId;
+    private ProductVariantDto? _selectedVariant;
+    private string? _heroImage;
+    private List<string> _gallery = new();
+
+    protected override async Task OnParametersSetAsync()
+    {
+        await L.EnsureLoadedAsync();
+        _loading = true;
+        _product = await ProductService.GetDetailByIdAsync(ProductId);
+        if (_product is not null)
+        {
+            _gallery = BuildGallery(_product);
+            _heroImage = _product.FeaturedImageUrl ?? _gallery.FirstOrDefault();
+            SelectVariant(VariantId ?? _product.Variants.FirstOrDefault(v => v.IsDefault)?.ProductVariantID
+                          ?? _product.Variants.FirstOrDefault()?.ProductVariantID);
+        }
+        _loading = false;
+    }
+
+    private void SelectVariant(int? variantId)
+    {
+        _selectedVariantId = variantId;
+        _selectedVariant = _product?.Variants.FirstOrDefault(v => v.ProductVariantID == variantId);
+        if (!string.IsNullOrEmpty(_selectedVariant?.ImageUrl))
+            _heroImage = _selectedVariant.ImageUrl;
+    }
+
+    private static List<string> BuildGallery(ProductDetailDto p)
+    {
+        var list = new List<string>();
+        if (!string.IsNullOrEmpty(p.FeaturedImageUrl))
+            list.Add(p.FeaturedImageUrl);
+        foreach (var g in p.GalleryImageUrls)
+        {
+            if (!string.IsNullOrEmpty(g) && !list.Contains(g))
+                list.Add(g);
+        }
+        foreach (var v in p.Variants)
+        {
+            if (!string.IsNullOrEmpty(v.ImageUrl) && !list.Contains(v.ImageUrl))
+                list.Add(v.ImageUrl);
+        }
+        return list;
+    }
+
+    private string ProductTypeLabel(byte t) => ((ProductType)t) switch
+    {
+        ProductType.Physical => L["products.type.physical", "Physical"],
+        ProductType.DigitalDownload => L["products.type.digital_download", "Digital download"],
+        ProductType.DigitalCode => L["products.type.digital_code", "Digital code"],
+        ProductType.DigitalService => L["products.type.digital_service", "Digital service"],
+        _ => t.ToString(),
+    };
+}

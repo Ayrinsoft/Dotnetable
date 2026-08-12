@@ -11,6 +11,15 @@ public sealed class OrderInvoiceDto
     public byte Status { get; init; }
     public string CurrencyCode { get; init; } = "";
 
+    /// <summary><see cref="Interfaces.OrderPreparationStatus"/> warehouse lifecycle.</summary>
+    public byte PreparationStatus { get; init; }
+    /// <summary><see cref="Interfaces.OrderShippingStatus"/> carrier lifecycle.</summary>
+    public byte ShippingStatus { get; init; }
+    public string? ShippingTrackingCode { get; init; }
+    public DateTime? ShippedAt { get; init; }
+    public int? ShippingMethodID { get; init; }
+    public string? ShippingMethodName { get; init; }
+
     public InvoicePartyDto Seller { get; init; } = new();
     public InvoicePartyDto Buyer { get; init; } = new();
 
@@ -50,6 +59,10 @@ public sealed class InvoicePartyDto
 public sealed class InvoiceLineDto
 {
     public string Title { get; init; } = "";
+    /// <summary>Catalog product id when the line maps to a product (for admin preview links).</summary>
+    public int? ProductID { get; init; }
+    /// <summary>Catalog variant id when the line maps to a variant (for admin preview highlight).</summary>
+    public int? ProductVariantID { get; init; }
     /// <summary>Site product code (<c>DN-42</c>), when the line maps to a catalog product.</summary>
     public string? ProductCode { get; init; }
     public string? Sku { get; init; }

@@ -16,6 +16,26 @@ public enum OrderStatus : byte
     Refunded = 7,
 }
 
+/// <summary>Warehouse / preparation lifecycle on <see cref="Order"/>.PreparationStatus.</summary>
+public enum OrderPreparationStatus : byte
+{
+    NotStarted = 0,
+    Pending = 1,
+    Preparing = 2,
+    ReadyToShip = 3,
+}
+
+/// <summary>Carrier shipping lifecycle on <see cref="Order"/>.ShippingStatus.</summary>
+public enum OrderShippingStatus : byte
+{
+    NotShipped = 0,
+    PreparingShipment = 1,
+    Shipped = 2,
+    InTransit = 3,
+    Delivered = 4,
+    Returned = 5,
+}
+
 /// <summary>Statuses that still need admin/fulfillment action (excludes terminal Completed / Cancelled / Refunded).</summary>
 public static class OrderStatusQueues
 {
@@ -63,6 +83,21 @@ public interface IOrderService
     /// entering Paid/Processing decrements reserved stock into real stock movements; on Cancelled/Refunded
     /// releases any still-reserved stock.</summary>
     Task<bool> TransitionStatusAsync(int orderId, OrderStatus newStatus, int? memberId, string? note, CancellationToken ct = default);
+
+    /// <summary>
+    /// Updates warehouse preparation status, shipping status, and/or tracking code.
+    /// Optionally aligns main <see cref="OrderStatus"/> (Paid→Processing, Processing→Shipped, Shipped→Completed)
+    /// when preparation/shipping move forward. Writes a history note when anything changes.
+    /// </summary>
+    Task<(bool Success, string? Error)> UpdateFulfillmentAsync(
+        int orderId,
+        OrderPreparationStatus? preparationStatus,
+        OrderShippingStatus? shippingStatus,
+        string? shippingTrackingCode,
+        int? memberId,
+        string? note = null,
+        bool syncOrderStatus = true,
+        CancellationToken ct = default);
 
     /// <summary>True when the client has a Paid-or-later order containing this product (drives review "verified purchase").</summary>
     Task<bool> ClientHasPaidOrderForProductAsync(int clientId, int productId, CancellationToken ct = default);

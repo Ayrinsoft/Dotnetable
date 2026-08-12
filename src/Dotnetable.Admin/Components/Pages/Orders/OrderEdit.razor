@@ -53,8 +53,29 @@ else
                     <tbody>
                         @foreach (var item in _order.OrderItems)
                         {
+                            var productId = item.ProductVariant?.ProductID;
+                            var variantId = item.ProductVariantID;
                             <tr>
-                                <td>@item.TitleSnapshot</td>
+                                <td>
+                                    @if (productId is int pid && pid > 0)
+                                    {
+                                        <MudLink Href="@($"/catalog/products/{pid}/preview{(variantId is int vid ? $"?variantId={vid}" : "")}")"
+                                                 Typo="Typo.body2">
+                                            @item.TitleSnapshot
+                                        </MudLink>
+                                        <MudText Typo="Typo.caption" Color="Color.Secondary">
+                                            @L["products.preview", "Preview"]
+                                            @if (variantId is int v)
+                                            {
+                                                <span> · @L["variants.variant_id", "Variant"] #@v</span>
+                                            }
+                                        </MudText>
+                                    }
+                                    else
+                                    {
+                                        @item.TitleSnapshot
+                                    }
+                                </td>
                                 <td><code>@item.SkuSnapshot</code></td>
                                 <td>@item.Quantity</td>
                                 <td>@item.CatalogUnitPrice.ToString("0.##")</td>
@@ -177,10 +198,58 @@ else
             <MudPaper Elevation="0" Class="app-card rounded-lg pa-4 mb-3">
                 <MudText Typo="Typo.subtitle1" Class="mb-2">@L["orders.address", "Shipping Address"]</MudText>
                 <MudText Typo="Typo.body2">@_order.AddressSnapshot</MudText>
+                @if (_order.ShippingMethod is not null)
+                {
+                    <MudText Typo="Typo.caption" Color="Color.Secondary" Class="mt-1">
+                        @L["shipping.method", "Method"]: @_order.ShippingMethod.Title
+                    </MudText>
+                }
                 <MudButton Variant="Variant.Text" Size="Size.Small" Class="mt-2" StartIcon="@Icons.Material.Filled.Print"
                            Href="@($"/orders/{OrderId}/shipping-label")">
                     @L["orders.print_address", "Print address label"]
                 </MudButton>
+            </MudPaper>
+
+            <MudPaper Elevation="0" Class="app-card rounded-lg pa-4 mb-3">
+                <MudText Typo="Typo.subtitle1" Class="mb-2">@L["orders.fulfillment", "Fulfillment & shipping"]</MudText>
+                <MudText Typo="Typo.caption" Color="Color.Secondary" Class="mb-2">
+                    @L["orders.fulfillment_hint", "Set warehouse preparation, carrier shipping status, and postal tracking code. Customers see these on their order page."]
+                </MudText>
+                @if (_canEdit)
+                {
+                    <MudSelect T="OrderPreparationStatus" @bind-Value="_prepStatus" Variant="Variant.Outlined" Dense="true" Class="mb-2"
+                               Label="@L["orders.preparation_status", "Preparation status"]">
+                        @foreach (OrderPreparationStatus s in Enum.GetValues<OrderPreparationStatus>())
+                        {
+                            <MudSelectItem T="OrderPreparationStatus" Value="@s">@PrepLabel(s)</MudSelectItem>
+                        }
+                    </MudSelect>
+                    <MudSelect T="OrderShippingStatus" @bind-Value="_shipStatus" Variant="Variant.Outlined" Dense="true" Class="mb-2"
+                               Label="@L["orders.shipping_status", "Shipping status"]">
+                        @foreach (OrderShippingStatus s in Enum.GetValues<OrderShippingStatus>())
+                        {
+                            <MudSelectItem T="OrderShippingStatus" Value="@s">@ShipLabel(s)</MudSelectItem>
+                        }
+                    </MudSelect>
+                    <MudTextField @bind-Value="_trackingCode" Label="@L["orders.tracking_code", "Tracking code"]"
+                                  Variant="Variant.Outlined" Dense="true" Class="mb-2"
+                                  MaxLength="100" Counter="100"
+                                  HelperText="@L["orders.tracking_code_hint", "Postal / courier tracking (up to 100 characters)."]" />
+                    <MudTextField @bind-Value="_fulfillmentNote" Label="@L["orders.note", "Note (optional)"]"
+                                  Variant="Variant.Outlined" Dense="true" Class="mb-2" />
+                    <MudButton Variant="Variant.Filled" Color="Color.Primary" FullWidth="true"
+                               OnClick="SaveFulfillmentAsync" Disabled="_savingFulfillment">
+                        @(_savingFulfillment ? L["saving", "Saving…"] : L["orders.save_fulfillment", "Save fulfillment"])
+                    </MudButton>
+                }
+                else
+                {
+                    <MudStack Spacing="1">
+                        <MudText Typo="Typo.body2">@L["orders.preparation_status", "Preparation"]: @PrepLabel((OrderPreparationStatus)_order.PreparationStatus)</MudText>
+                        <MudText Typo="Typo.body2">@L["orders.shipping_status", "Shipping"]: @ShipLabel((OrderShippingStatus)_order.ShippingStatus)</MudText>
+                        <MudText Typo="Typo.body2">@L["orders.tracking_code", "Tracking"]: @(string.IsNullOrWhiteSpace(_order.ShippingTrackingCode) ? "—" : _order.ShippingTrackingCode)</MudText>
+                    </MudStack>
+                }
             </MudPaper>
 
             @if (_canEdit)
@@ -297,11 +366,15 @@ else
     [Parameter] public int OrderId { get; set; }
 
     private bool _loading = true, _canEdit, _canRefund, _canRecordPayment;
-    private bool _savingReceive, _savingRefund;
+    private bool _savingReceive, _savingRefund, _savingFulfillment;
     private Order? _order;
     private OrderStatus _newStatus;
     private string? _note;
     private int? _currentMemberId;
+    private OrderPreparationStatus _prepStatus;
+    private OrderShippingStatus _shipStatus;
+    private string? _trackingCode;
+    private string? _fulfillmentNote;
 
     private PaymentMethod _receiveMethod = PaymentMethod.CashOnDelivery;
     private decimal _receiveAmount;
@@ -505,6 +578,9 @@ else
         if (_order is not null)
         {
             _newStatus = (OrderStatus)_order.Status;
+            _prepStatus = (OrderPreparationStatus)_order.PreparationStatus;
+            _shipStatus = (OrderShippingStatus)_order.ShippingStatus;
+            _trackingCode = _order.ShippingTrackingCode;
             if (_receiveAmount <= 0) _receiveAmount = _order.GrandTotal;
             // Refund in the order/payment currency (site money), never GrandTotalUsd.
             if (_refundAmount <= 0)
@@ -523,4 +599,44 @@ else
         if (ok) { Snackbar.Add(L["saved", "Saved."], Severity.Success); _note = null; await LoadAsync(); }
         else Snackbar.Add(L["save_failed", "Save failed"], Severity.Error);
     }
+
+    private async Task SaveFulfillmentAsync()
+    {
+        if (_order is null) return;
+        _savingFulfillment = true;
+        try
+        {
+            var (ok, error) = await OrderService.UpdateFulfillmentAsync(
+                _order.OrderID, _prepStatus, _shipStatus, _trackingCode ?? "",
+                _currentMemberId, _fulfillmentNote, syncOrderStatus: true);
+            if (ok)
+            {
+                Snackbar.Add(L["saved", "Saved."], Severity.Success);
+                _fulfillmentNote = null;
+                await LoadAsync();
+            }
+            else Snackbar.Add(error ?? L["save_failed", "Save failed"], Severity.Error);
+        }
+        finally { _savingFulfillment = false; }
+    }
+
+    private string PrepLabel(OrderPreparationStatus s) => s switch
+    {
+        OrderPreparationStatus.NotStarted => L["orders.prep.not_started", "Not started"],
+        OrderPreparationStatus.Pending => L["orders.prep.pending", "Pending"],
+        OrderPreparationStatus.Preparing => L["orders.prep.preparing", "Preparing / warehouse"],
+        OrderPreparationStatus.ReadyToShip => L["orders.prep.ready", "Ready to ship"],
+        _ => s.ToString(),
+    };
+
+    private string ShipLabel(OrderShippingStatus s) => s switch
+    {
+        OrderShippingStatus.NotShipped => L["orders.ship.not_shipped", "Not shipped"],
+        OrderShippingStatus.PreparingShipment => L["orders.ship.preparing", "Preparing shipment"],
+        OrderShippingStatus.Shipped => L["orders.ship.shipped", "Shipped"],
+        OrderShippingStatus.InTransit => L["orders.ship.in_transit", "In transit"],
+        OrderShippingStatus.Delivered => L["orders.ship.delivered", "Delivered"],
+        OrderShippingStatus.Returned => L["orders.ship.returned", "Returned"],
+        _ => s.ToString(),
+    };
 }

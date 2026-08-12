@@ -1,10 +1,12 @@
 using Dotnetable.Application.DTOs;
+using Dotnetable.Application.Email;
 using Dotnetable.Application.Interfaces;
 using Dotnetable.Domain.Entities;
 using Dotnetable.Domain.Enums;
 using Dotnetable.Infrastructure.Data;
 using Dotnetable.Infrastructure.Extensions;
 using Microsoft.EntityFrameworkCore;
+using Microsoft.Extensions.Logging;
 
 namespace Dotnetable.Infrastructure.Services;
 
@@ -21,12 +23,17 @@ public class OrderService : IOrderService
     private readonly IAdminNotificationService _notifications;
     private readonly IVendorCreditService _vendorCredit;
     private readonly IDigitalDeliveryService _digitalDelivery;
+    private readonly IEmailService _email;
+    private readonly ISmsSender _sms;
+    private readonly IWhatsAppSender _whatsApp;
+    private readonly ILogger<OrderService> _logger;
 
     public OrderService(
         AppDbContext context, IInventoryService inventory, IVendorProductService vendorProducts,
         IShippingService shipping, ITaxService tax, ICouponService coupons, ICurrencyConversionService currency,
         ICartService cart, IAdminNotificationService notifications, IVendorCreditService vendorCredit,
-        IDigitalDeliveryService digitalDelivery)
+        IDigitalDeliveryService digitalDelivery,
+        IEmailService email, ISmsSender sms, IWhatsAppSender whatsApp, ILogger<OrderService> logger)
     {
         _context = context;
         _inventory = inventory;
@@ -39,6 +46,10 @@ public class OrderService : IOrderService
         _notifications = notifications;
         _vendorCredit = vendorCredit;
         _digitalDelivery = digitalDelivery;
+        _email = email;
+        _sms = sms;
+        _whatsApp = whatsApp;
+        _logger = logger;
     }
 
     public async Task<CheckoutResult> CheckoutAsync(
@@ -313,6 +324,7 @@ public class OrderService : IOrderService
     {
         var query = _context.Orders
             .Include(o => o.OrderItems).ThenInclude(i => i.Vendor)
+            .Include(o => o.OrderItems).ThenInclude(i => i.ProductVariant)
             .Include(o => o.OrderStatusHistories)
             .Include(o => o.Payments).ThenInclude(p => p.CreatedByMember)
             .Include(o => o.Payments).ThenInclude(p => p.VerifiedByMember)
@@ -445,6 +457,255 @@ public class OrderService : IOrderService
 
         await _context.SaveChangesAsync(ct);
         return true;
+    }
+
+    public async Task<(bool Success, string? Error)> UpdateFulfillmentAsync(
+        int orderId,
+        OrderPreparationStatus? preparationStatus,
+        OrderShippingStatus? shippingStatus,
+        string? shippingTrackingCode,
+        int? memberId,
+        string? note = null,
+        bool syncOrderStatus = true,
+        CancellationToken ct = default)
+    {
+        var order = await _context.Orders.FirstOrDefaultAsync(o => o.OrderID == orderId, ct);
+        if (order is null)
+            return (false, "Order not found.");
+
+        var previousTracking = order.ShippingTrackingCode;
+        var changes = new List<string>();
+        var fromOrderStatus = (OrderStatus)order.Status;
+
+        if (preparationStatus is OrderPreparationStatus prep
+            && order.PreparationStatus != (byte)prep)
+        {
+            changes.Add($"Preparation: {(OrderPreparationStatus)order.PreparationStatus} → {prep}");
+            order.PreparationStatus = (byte)prep;
+        }
+
+        if (shippingStatus is OrderShippingStatus ship
+            && order.ShippingStatus != (byte)ship)
+        {
+            changes.Add($"Shipping: {(OrderShippingStatus)order.ShippingStatus} → {ship}");
+            order.ShippingStatus = (byte)ship;
+            if (ship is OrderShippingStatus.Shipped or OrderShippingStatus.InTransit or OrderShippingStatus.Delivered
+                && order.ShippedAt is null)
+            {
+                order.ShippedAt = DateTime.UtcNow;
+            }
+        }
+
+        if (shippingTrackingCode is not null)
+        {
+            var code = shippingTrackingCode.Trim();
+            if (code.Length > 100)
+                return (false, "Tracking code is too long (max 100 characters).");
+
+            var normalized = string.IsNullOrWhiteSpace(code) ? null : code;
+            if (!string.Equals(order.ShippingTrackingCode, normalized, StringComparison.Ordinal))
+            {
+                changes.Add(normalized is null
+                    ? "Tracking code cleared"
+                    : $"Tracking code set to {normalized}");
+                order.ShippingTrackingCode = normalized;
+            }
+        }
+
+        // Align main order lifecycle when fulfillment moves forward (optional).
+        if (syncOrderStatus
+            && fromOrderStatus is not (OrderStatus.Cancelled or OrderStatus.Refunded))
+        {
+            OrderStatus? target = null;
+            if (order.ShippingStatus is (byte)OrderShippingStatus.Delivered
+                && fromOrderStatus is OrderStatus.Paid or OrderStatus.Processing or OrderStatus.Shipped)
+            {
+                target = OrderStatus.Completed;
+            }
+            else if (order.ShippingStatus is (byte)OrderShippingStatus.Shipped
+                         or (byte)OrderShippingStatus.InTransit
+                     && fromOrderStatus is OrderStatus.Paid or OrderStatus.Processing)
+            {
+                target = OrderStatus.Shipped;
+            }
+            else if (order.PreparationStatus is (byte)OrderPreparationStatus.Preparing
+                         or (byte)OrderPreparationStatus.ReadyToShip
+                         or (byte)OrderPreparationStatus.Pending
+                     && fromOrderStatus is OrderStatus.Paid)
+            {
+                target = OrderStatus.Processing;
+            }
+
+            if (target is OrderStatus next && next != fromOrderStatus)
+            {
+                var syncNoteParts = changes.Count > 0
+                    ? string.Join("; ", changes)
+                    : "Fulfillment update";
+                if (!string.IsNullOrWhiteSpace(note))
+                    syncNoteParts = $"{syncNoteParts}. {note}";
+                if (syncNoteParts.Length > 480)
+                    syncNoteParts = syncNoteParts[..480];
+
+                // Reuse stock / digital side-effects of the lifecycle transition.
+                var ok = await TransitionStatusAsync(orderId, next, memberId, syncNoteParts, ct);
+                if (!ok)
+                    return (false, "Could not sync order status.");
+
+                // TransitionStatusAsync saves Status; re-apply fulfillment fields on the tracked row.
+                order = await _context.Orders.FirstOrDefaultAsync(o => o.OrderID == orderId, ct);
+                if (order is null)
+                    return (false, "Order not found.");
+
+                if (preparationStatus is OrderPreparationStatus prep2)
+                    order.PreparationStatus = (byte)prep2;
+                if (shippingStatus is OrderShippingStatus ship2)
+                {
+                    order.ShippingStatus = (byte)ship2;
+                    if (ship2 is OrderShippingStatus.Shipped or OrderShippingStatus.InTransit or OrderShippingStatus.Delivered
+                        && order.ShippedAt is null)
+                        order.ShippedAt = DateTime.UtcNow;
+                }
+                if (shippingTrackingCode is not null)
+                {
+                    var code = shippingTrackingCode.Trim();
+                    order.ShippingTrackingCode = string.IsNullOrWhiteSpace(code) ? null : code;
+                }
+
+                await _context.SaveChangesAsync(ct);
+                await NotifyTrackingCodeIfChangedAsync(orderId, previousTracking, order.ShippingTrackingCode, ct);
+                return (true, null);
+            }
+        }
+
+        if (changes.Count == 0 && string.IsNullOrWhiteSpace(note))
+            return (true, null);
+
+        var historyNote = string.IsNullOrWhiteSpace(note)
+            ? string.Join("; ", changes)
+            : string.IsNullOrEmpty(string.Join("; ", changes))
+                ? note!
+                : $"{string.Join("; ", changes)}. {note}";
+
+        // Fulfillment-only change: same order Status, note still useful on the timeline.
+        _context.OrderStatusHistories.Add(new OrderStatusHistory
+        {
+            OrderID = orderId,
+            FromStatus = order.Status,
+            ToStatus = order.Status,
+            Note = historyNote.Length > 500 ? historyNote[..500] : historyNote,
+            CreatedByMemberID = memberId,
+            CreatedAt = DateTime.UtcNow,
+        });
+
+        await _context.SaveChangesAsync(ct);
+        await NotifyTrackingCodeIfChangedAsync(orderId, previousTracking, order.ShippingTrackingCode, ct);
+        return (true, null);
+    }
+
+    /// <summary>
+    /// When a non-empty tracking code is newly set or changed, notify the customer on every
+    /// configured channel (email / SMS / WhatsApp). Failures are logged and never fail fulfillment.
+    /// Message language follows the website default language.
+    /// </summary>
+    private async Task NotifyTrackingCodeIfChangedAsync(
+        int orderId, string? previousTracking, string? newTracking, CancellationToken ct)
+    {
+        if (string.IsNullOrWhiteSpace(newTracking))
+            return;
+        if (string.Equals(previousTracking?.Trim(), newTracking.Trim(), StringComparison.Ordinal))
+            return;
+
+        try
+        {
+            await NotifyShipmentTrackingAsync(orderId, newTracking.Trim(), ct);
+        }
+        catch (Exception ex)
+        {
+            _logger.LogError(ex, "Failed to send shipment tracking notifications for order {OrderId}", orderId);
+        }
+    }
+
+    private async Task NotifyShipmentTrackingAsync(int orderId, string trackingCode, CancellationToken ct)
+    {
+        var order = await _context.Orders.AsNoTracking()
+            .Include(o => o.WebsiteClient)
+            .Include(o => o.Website)
+            .Include(o => o.ShippingMethod)
+            .FirstOrDefaultAsync(o => o.OrderID == orderId, ct);
+        if (order?.WebsiteClient is null || order.Website is null)
+            return;
+
+        var client = order.WebsiteClient;
+        var website = order.Website;
+        var lang = website.DefaultLanguageCode;
+        var siteName = website.BrandName ?? website.TradeName ?? string.Empty;
+        var customerName = string.Join(' ', new[] { client.Givenname, client.Surname }.Where(x => !string.IsNullOrWhiteSpace(x)));
+        if (string.IsNullOrWhiteSpace(customerName))
+            customerName = client.Email ?? client.Cellphone ?? string.Empty;
+
+        var shippingMethod = order.ShippingMethod is null
+            ? "—"
+            : (!string.IsNullOrWhiteSpace(order.ShippingMethod.Title)
+                ? order.ShippingMethod.Title
+                : (order.ShippingMethod.CarrierName ?? "—"));
+
+        // ── Email (Sales account / OrderShipped template) ─────────────
+        if (!string.IsNullOrWhiteSpace(client.Email) && await _email.IsConfiguredAsync(order.WebsiteID, ct))
+        {
+            try
+            {
+                await _email.SendTemplateAsync(
+                    order.WebsiteID,
+                    EmailTemplateKeys.OrderShipped,
+                    client.Email!,
+                    new Dictionary<string, string>
+                    {
+                        ["Name"] = customerName,
+                        ["OrderNumber"] = order.OrderNumber,
+                        ["TrackingCode"] = trackingCode,
+                        ["ShippingMethod"] = shippingMethod,
+                    },
+                    languageCode: null, // → website DefaultLanguageCode (+ FA built-in when applicable)
+                    ct);
+            }
+            catch (Exception ex)
+            {
+                _logger.LogWarning(ex, "Shipment tracking email failed for order {OrderId}", orderId);
+            }
+        }
+
+        var plain = OrderShipmentMessages.PlainText(
+            lang, siteName, customerName, order.OrderNumber, trackingCode,
+            string.IsNullOrWhiteSpace(shippingMethod) || shippingMethod == "—" ? null : shippingMethod);
+
+        var country = client.CountryCode ?? string.Empty;
+        var phone = client.Cellphone;
+
+        // ── SMS ───────────────────────────────────────────────────────
+        if (_sms.IsConfigured && !string.IsNullOrWhiteSpace(phone))
+        {
+            try
+            {
+                await _sms.SendAsync(country, phone!, plain, ct);
+            }
+            catch (Exception ex)
+            {
+                _logger.LogWarning(ex, "Shipment tracking SMS failed for order {OrderId}", orderId);
+            }
+        }
+
+        // ── WhatsApp ──────────────────────────────────────────────────
+        if (_whatsApp.IsConfigured && !string.IsNullOrWhiteSpace(phone))
+        {
+            try
+            {
+                await _whatsApp.SendAsync(country, phone!, plain, ct);
+            }
+            catch (Exception ex)
+            {
+                _logger.LogWarning(ex, "Shipment tracking WhatsApp failed for order {OrderId}", orderId);
+            }
+        }
     }
 
     public async Task<bool> ClientHasPaidOrderForProductAsync(int clientId, int productId, CancellationToken ct = default) =>

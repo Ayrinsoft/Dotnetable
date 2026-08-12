@@ -82,6 +82,21 @@ public class EmailTemplateService : IEmailTemplateService
             }
         }
 
+        // Built-in FA (etc.) defaults when the site has no own override and no matching translation.
+        if (!info.IsOverride
+            && !string.IsNullOrWhiteSpace(languageCode)
+            && EmailTemplateDefaults.TryGetLocalizedDefault(templateKey, languageCode, out var locSubject, out var locBody))
+        {
+            var hasTranslation = row?.EmailTemplateTranslations.Any(t =>
+                string.Equals(t.LanguageCode, languageCode, StringComparison.OrdinalIgnoreCase)
+                && !string.IsNullOrWhiteSpace(t.Subject)) == true;
+            if (!hasTranslation)
+            {
+                info.Subject = locSubject;
+                info.HtmlBody = locBody;
+            }
+        }
+
         return info;
     }
 
