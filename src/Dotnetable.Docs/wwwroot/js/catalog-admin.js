@@ -1561,8 +1561,8 @@ window.DOCS_ADMIN = {
               fa: "**ثبت دریافت وجه** (نقش payments.verify): COD، نقد، کارتخوان، یا **کارت‌به‌کارت/بانکی** با حساب و فیش اختیاری. پرداخت Paid می‌سازد و PendingPayment → Paid می‌کند.",
             },
             {
-              en: "**Refund** (needs payments.refund): after a Paid payment exists — credit wallet, queue a bank refund, or mark cash hand-back completed.",
-              fa: "**برگشت وجه** (نقش payments.refund): بعد از وجود پرداخت Paid — اعتبار کیف پول، صف استرداد بانکی، یا ثبت برگشت نقدی.",
+              en: "**Refund** (needs payments.refund): after a Paid payment exists — amount is in **order/payment currency** (site money, e.g. IRR), never forced to USD. Wallet credit, bank queue, or cash hand-back.",
+              fa: "**برگشت وجه** (نقش payments.refund): بعد از پرداخت Paid — مبلغ با **ارز سفارش/پرداخت** (ارز سایت، مثلاً ریال) است، نه اجباری دلار. اعتبار کیف پول، صف بانکی، یا برگشت نقدی.",
             },
             {
               en: "Open **Invoice** for a framed customer document (margins/borders). Lines show **product code** (`DN-42` = site prefix + ProductID). Print PDF, or **email / WhatsApp** from that page. Charged unit prices only — markup is folded into price. Orders with **Report to tax = No** are excluded from the VAT report.",
@@ -1680,7 +1680,7 @@ window.DOCS_ADMIN = {
           },
           howTo: [
             {
-              en: "Start refunds from order detail: wallet (instant), bank (appears here), or cash/manual (completed immediately).",
+              en: "Start refunds from order detail in the **payment currency** (same as order total): wallet (instant, same currency ledger), bank (appears here), or cash/manual (completed immediately).",
               fa: "استرداد را از جزئیات سفارش شروع کنید: کیف پول (فوری)، بانک (اینجا ظاهر می‌شود)، یا نقدی/دستی (فوری تکمیل).",
             },
             {

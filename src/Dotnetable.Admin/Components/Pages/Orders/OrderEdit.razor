@@ -259,7 +259,11 @@ else
                     <MudText Typo="Typo.caption" Color="Color.Secondary" Class="mb-2">
                         @L["payments.refund_hint", "Record money returned to the customer: wallet credit, bank transfer (queue), or cash/manual hand-back."]
                     </MudText>
-                    <MudNumericField T="decimal" @bind-Value="_refundAmount" Label="@L["orders.total", "Amount (USD)"]" Variant="Variant.Outlined" Dense="true" Min="0" Class="mb-2" />
+                    <MudNumericField T="decimal" @bind-Value="_refundAmount"
+                                     Label="@($"{L["orders.total", "Amount"]} ({_order.CurrencyCode})")"
+                                     Variant="Variant.Outlined" Dense="true" Min="0" Class="mb-2"
+                                     Format="@MoneyFormat.FieldFormat(_order.CurrencyCode)"
+                                     Culture="@MoneyFormat.DisplayCulture" />
                     <MudTextField @bind-Value="_refundReason" Label="@L["payments.reason", "Reason"]" Variant="Variant.Outlined" Dense="true" Class="mb-2" />
                     <MudSelect T="string" @bind-Value="_refundDestination" Variant="Variant.Outlined" Dense="true" Class="mb-2"
                                Label="@L["payments.refund_destination", "Refund destination"]">
@@ -502,7 +506,12 @@ else
         {
             _newStatus = (OrderStatus)_order.Status;
             if (_receiveAmount <= 0) _receiveAmount = _order.GrandTotal;
-            if (_refundAmount <= 0) _refundAmount = _order.GrandTotalUsd;
+            // Refund in the order/payment currency (site money), never GrandTotalUsd.
+            if (_refundAmount <= 0)
+            {
+                var paid = _order.Payments.FirstOrDefault(p => p.Status == (byte)PaymentStatus.Paid);
+                _refundAmount = paid?.Amount > 0 ? paid.Amount : _order.GrandTotal;
+            }
         }
         _loading = false;
     }

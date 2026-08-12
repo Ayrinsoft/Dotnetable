@@ -106,12 +106,15 @@ public interface IPaymentService
     Task<IReadOnlyDictionary<byte, int>> GetManualStatusCountsAsync(int? websiteId, CancellationToken ct = default);
 
     /// <summary>
-    /// Refunds a paid payment. Destination is exactly one of:
-    /// wallet credit (instant), bank account (Pending until marked completed), or cash/manual
+    /// Refunds a paid payment. <paramref name="amount"/> is in the payment's own currency
+    /// (site currency for storefront/admin orders — same unit as <see cref="Payment.Amount"/>),
+    /// not USD. Dual USD on the payment is reporting-only.
+    /// Destination is exactly one of: wallet credit (instant, same currency), bank account
+    /// (Pending until marked completed), or cash/manual
     /// (<paramref name="toWallet"/> false and <paramref name="bankAccountId"/> null — completed immediately).
     /// </summary>
     Task<(bool Success, string? Error, PaymentRefund? Refund)> RefundAsync(
-        int paymentId, decimal amountUsd, string? reason, bool toWallet, int? bankAccountId, int memberId, CancellationToken ct = default);
+        int paymentId, decimal amount, string? reason, bool toWallet, int? bankAccountId, int memberId, CancellationToken ct = default);
 
     Task<bool> CompleteBankRefundAsync(int paymentRefundId, int memberId, CancellationToken ct = default);
 
