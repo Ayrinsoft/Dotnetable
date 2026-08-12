@@ -50,7 +50,7 @@ else
         </MudChip>
     </MudPaper>
 
-    <MudPaper Elevation="0" Class="app-card rounded-lg pa-4">
+    <MudPaper Elevation="0" Class="app-card rounded-lg pa-4 mb-3">
         <MudSimpleTable Dense="true" Elevation="0">
             <thead>
                 <tr>
@@ -81,6 +81,12 @@ else
             </tbody>
         </MudSimpleTable>
     </MudPaper>
+
+    <RecordAttachmentsPanel WebsiteId="_j.WebsiteID"
+                           EntityType="@Dotnetable.Application.RecordAttachments.RecordEntityTypes.JournalEntry"
+                           EntityId="_j.JournalEntryID"
+                           CanEdit="_canPost"
+                           Title="@L["attachments.journal", "Journal source documents"]" />
 }
 
 @code {

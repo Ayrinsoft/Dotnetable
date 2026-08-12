@@ -27,6 +27,7 @@ public class OrderService : IOrderService
     private readonly ISmsSender _sms;
     private readonly IWhatsAppSender _whatsApp;
     private readonly IFinancialLedgerService _ledger;
+    private readonly IStockDocumentService _stockDocs;
     private readonly ILogger<OrderService> _logger;
 
     public OrderService(
@@ -35,7 +36,7 @@ public class OrderService : IOrderService
         ICartService cart, IAdminNotificationService notifications, IVendorCreditService vendorCredit,
         IDigitalDeliveryService digitalDelivery,
         IEmailService email, ISmsSender sms, IWhatsAppSender whatsApp,
-        IFinancialLedgerService ledger, ILogger<OrderService> logger)
+        IFinancialLedgerService ledger, IStockDocumentService stockDocs, ILogger<OrderService> logger)
     {
         _context = context;
         _inventory = inventory;
@@ -52,6 +53,7 @@ public class OrderService : IOrderService
         _sms = sms;
         _whatsApp = whatsApp;
         _ledger = ledger;
+        _stockDocs = stockDocs;
         _logger = logger;
     }
 
@@ -406,6 +408,10 @@ public class OrderService : IOrderService
 
         if (newStatus is OrderStatus.Paid or OrderStatus.Processing && fromStatus is OrderStatus.PendingPayment)
         {
+            // When WMS warehouses exist: create Submitted outbound pick doc and skip immediate inventory leave
+            // (stock leaves when outbound is Posted — typically on ship).
+            var useWms = await _stockDocs.WebsiteHasWarehouseAsync(order.WebsiteID, ct);
+
             foreach (var item in order.OrderItems)
             {
                 // Free-form / no-listing admin lines skip inventory.
@@ -420,13 +426,44 @@ public class OrderService : IOrderService
                 if (item.VendorProductID is null)
                     continue;
 
+                if (useWms)
+                    continue;
+
                 var stockSite = ResolveStockSite(item, order);
                 await _inventory.DecrementOnFulfillAsync(stockSite, item.ProductVariantID.Value, item.Quantity, order.OrderID, item.OrderItemID, memberId, ct);
                 await _vendorProducts.SyncInventoryOnHandFromListingsAsync(order.WebsiteID, item.ProductVariantID.Value, ct);
             }
 
+            if (useWms)
+            {
+                try
+                {
+                    var (ok, err, _) = await _stockDocs.EnsureOutboundForOrderAsync(orderId, memberId, ct);
+                    if (!ok)
+                        _logger.LogWarning("EnsureOutboundForOrder {OrderId} failed: {Error}", orderId, err);
+                }
+                catch (Exception ex)
+                {
+                    _logger.LogError(ex, "EnsureOutboundForOrder {OrderId} threw", orderId);
+                }
+            }
+
             // Permanent digital library entitlements (idempotent).
             await _digitalDelivery.GrantForOrderAsync(orderId, ct);
+        }
+        else if (newStatus == OrderStatus.Shipped
+                 && (fromStatus is OrderStatus.Paid or OrderStatus.Processing))
+        {
+            try
+            {
+                var (ok, err) = await _stockDocs.PostOutboundForOrderAsync(orderId, memberId, ct);
+                if (!ok)
+                    _logger.LogWarning("PostOutboundForOrder {OrderId} failed: {Error}", orderId, err);
+            }
+            catch (Exception ex)
+            {
+                _logger.LogError(ex, "PostOutboundForOrder {OrderId} threw", orderId);
+            }
         }
         else if (newStatus is OrderStatus.Cancelled or OrderStatus.Refunded)
         {
@@ -446,6 +483,25 @@ public class OrderService : IOrderService
                     var stockSite = ResolveStockSite(item, order);
                     await _inventory.ReleaseReservationAsync(stockSite, item.ProductVariantID.Value, item.Quantity, ct);
                 }
+            }
+
+            // Cancel unposted WMS outbound pick for this order (posted stock is not auto-reversed).
+            try
+            {
+                var outbound = await _stockDocs.GetOutboundForOrderAsync(orderId, ct);
+                if (outbound is not null
+                    && outbound.Status is not (
+                        (byte)StockDocumentStatus.Posted
+                        or (byte)StockDocumentStatus.Cancelled
+                        or (byte)StockDocumentStatus.Rejected))
+                {
+                    await _stockDocs.CancelAsync(outbound.StockDocumentID, memberId,
+                        $"Order {(OrderStatus)newStatus}", ct);
+                }
+            }
+            catch (Exception ex)
+            {
+                _logger.LogWarning(ex, "Could not cancel outbound for order {OrderId}", orderId);
             }
 
             // Revoke permanent digital access on cancel/refund.
@@ -575,6 +631,7 @@ public class OrderService : IOrderService
                 }
 
                 await _context.SaveChangesAsync(ct);
+                await TryPostOutboundOnShipAsync(orderId, order.ShippingStatus, memberId, ct);
                 await NotifyTrackingCodeIfChangedAsync(orderId, previousTracking, order.ShippingTrackingCode, ct);
                 return (true, null);
             }
@@ -601,8 +658,29 @@ public class OrderService : IOrderService
         });
 
         await _context.SaveChangesAsync(ct);
+        await TryPostOutboundOnShipAsync(orderId, order.ShippingStatus, memberId, ct);
         await NotifyTrackingCodeIfChangedAsync(orderId, previousTracking, order.ShippingTrackingCode, ct);
         return (true, null);
+    }
+
+    /// <summary>When shipping advances, post the WMS outbound (idempotent if already posted).</summary>
+    private async Task TryPostOutboundOnShipAsync(int orderId, byte shippingStatus, int? memberId, CancellationToken ct)
+    {
+        if (shippingStatus is not (
+            (byte)OrderShippingStatus.Shipped
+            or (byte)OrderShippingStatus.InTransit
+            or (byte)OrderShippingStatus.Delivered))
+            return;
+        try
+        {
+            var (ok, err) = await _stockDocs.PostOutboundForOrderAsync(orderId, memberId, ct);
+            if (!ok)
+                _logger.LogWarning("PostOutboundForOrder {OrderId} on fulfillment failed: {Error}", orderId, err);
+        }
+        catch (Exception ex)
+        {
+            _logger.LogError(ex, "PostOutboundForOrder {OrderId} on fulfillment threw", orderId);
+        }
     }
 
     /// <summary>

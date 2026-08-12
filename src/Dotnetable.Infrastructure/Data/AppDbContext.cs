@@ -137,6 +137,7 @@ public partial class AppDbContext : DbContext
     public virtual DbSet<StockDocument> StockDocuments { get; set; }
     public virtual DbSet<StockDocumentLine> StockDocumentLines { get; set; }
     public virtual DbSet<StockDocumentHistory> StockDocumentHistories { get; set; }
+    public virtual DbSet<RecordAttachment> RecordAttachments { get; set; }
     public virtual DbSet<OrgUnit> OrgUnits { get; set; }
     public virtual DbSet<Employee> Employees { get; set; }
     public virtual DbSet<EmployeeContract> EmployeeContracts { get; set; }
@@ -639,6 +640,21 @@ public partial class AppDbContext : DbContext
             entity.Property(e => e.Note).HasMaxLength(500);
             entity.HasOne(d => d.StockDocument).WithMany(p => p.StockDocumentHistories).HasForeignKey(d => d.StockDocumentID).OnDelete(DeleteBehavior.ClientSetNull);
             entity.HasOne(d => d.CreatedByMember).WithMany().HasForeignKey(d => d.CreatedByMemberID);
+        });
+        modelBuilder.Entity<RecordAttachment>(entity =>
+        {
+            entity.HasKey(e => e.RecordAttachmentID);
+            entity.HasIndex(e => new { e.WebsiteID, e.EntityType, e.EntityID }, "IX_RecordAttachments_Entity");
+            entity.HasIndex(e => e.FileRecordID, "IX_RecordAttachments_File");
+            entity.Property(e => e.EntityType).HasMaxLength(64);
+            entity.Property(e => e.Title).HasMaxLength(200);
+            entity.Property(e => e.Note).HasMaxLength(500);
+            entity.HasOne(d => d.Website).WithMany().HasForeignKey(d => d.WebsiteID).OnDelete(DeleteBehavior.ClientSetNull)
+                .HasConstraintName("FK_RecordAttachments_Websites");
+            entity.HasOne(d => d.FileRecord).WithMany().HasForeignKey(d => d.FileRecordID).OnDelete(DeleteBehavior.ClientSetNull)
+                .HasConstraintName("FK_RecordAttachments_Files");
+            entity.HasOne(d => d.CreatedByMember).WithMany().HasForeignKey(d => d.CreatedByMemberID)
+                .HasConstraintName("FK_RecordAttachments_Members");
         });
         modelBuilder.Entity<OrgUnit>(entity =>
         {

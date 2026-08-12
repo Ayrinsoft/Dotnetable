@@ -1,0 +1,193 @@
+@using Dotnetable.Application.RecordAttachments
+@inject IRecordAttachmentService Attachments
+@inject IDialogService DialogService
+@inject ISnackbar Snackbar
+@inject IPageLocalizer L
+@inject AuthenticationStateProvider AuthState
+
+<MudPaper Elevation="0" Class="app-card rounded-lg pa-4 mb-3">
+    <MudStack Row="true" AlignItems="AlignItems.Center" Justify="Justify.SpaceBetween" Class="mb-2 flex-wrap gap-2">
+        <MudStack Spacing="0">
+            <MudText Typo="Typo.subtitle1">@TitleOrDefault</MudText>
+            <MudText Typo="Typo.caption" Color="Color.Secondary">
+                @L["attachments.hint", "Attach scanned invoices, contracts, receipts, tax forms, or other paper references."]
+            </MudText>
+        </MudStack>
+        @if (CanEdit && WebsiteId > 0 && EntityId > 0)
+        {
+            <MudButton Variant="Variant.Outlined" Color="Color.Primary" Size="Size.Small"
+                       StartIcon="@Icons.Material.Filled.AttachFile"
+                       OnClick="PickAndAttachAsync" Disabled="_busy">
+                @L["attachments.add", "Attach scan"]
+            </MudButton>
+        }
+    </MudStack>
+
+    @if (_loading)
+    {
+        <MudProgressLinear Indeterminate="true" Color="Color.Primary" Class="mb-2" />
+    }
+    else if (_items.Count == 0)
+    {
+        <MudText Typo="Typo.body2" Color="Color.Secondary">@L["attachments.empty", "No scanned documents attached yet."]</MudText>
+    }
+    else
+    {
+        <MudSimpleTable Dense="true" Hover="true" Elevation="0">
+            <thead>
+                <tr>
+                    <th></th>
+                    <th>@L["title", "Title"]</th>
+                    <th>@L["file", "File"]</th>
+                    <th>@L["date", "Date"]</th>
+                    @if (CanEdit) { <th></th> }
+                </tr>
+            </thead>
+            <tbody>
+                @foreach (var a in _items)
+                {
+                    <tr>
+                        <td style="width:40px">
+                            @if (!string.IsNullOrWhiteSpace(a.ThumbnailUrl))
+                            {
+                                <MudAvatar Size="Size.Small" Style="border-radius:4px;">
+                                    <MudImage Src="@a.ThumbnailUrl" Alt="" ObjectFit="ObjectFit.Cover" />
+                                </MudAvatar>
+                            }
+                            else
+                            {
+                                <MudIcon Icon="@Icons.Material.Filled.InsertDriveFile" Color="Color.Secondary" />
+                            }
+                        </td>
+                        <td>
+                            <MudText Typo="Typo.body2">@(string.IsNullOrWhiteSpace(a.Title) ? "—" : a.Title)</MudText>
+                            @if (!string.IsNullOrWhiteSpace(a.Note))
+                            {
+                                <MudText Typo="Typo.caption" Color="Color.Secondary">@a.Note</MudText>
+                            }
+                        </td>
+                        <td>
+                            @if (!string.IsNullOrWhiteSpace(a.Url))
+                            {
+                                <MudLink Href="@a.Url" Target="_blank" Typo="Typo.body2">@(a.FileName ?? L["open", "Open"])</MudLink>
+                            }
+                            else
+                            {
+                                <MudText Typo="Typo.body2">@(a.FileName ?? "—")</MudText>
+                            }
+                        </td>
+                        <td><MudText Typo="Typo.caption">@a.CreatedAt.ToLocalTime().ToString("g")</MudText></td>
+                        @if (CanEdit)
+                        {
+                            <td style="width:48px">
+                                <MudIconButton Icon="@Icons.Material.Filled.Delete" Size="Size.Small" Color="Color.Error"
+                                               OnClick="@(() => RemoveAsync(a))" Disabled="_busy"
+                                               title="@L["delete", "Delete"]" />
+                            </td>
+                        }
+                    </tr>
+                }
+            </tbody>
+        </MudSimpleTable>
+    }
+</MudPaper>
+
+@code {
+    [Parameter] public int WebsiteId { get; set; }
+    [Parameter] public string EntityType { get; set; } = "";
+    [Parameter] public long EntityId { get; set; }
+    [Parameter] public bool CanEdit { get; set; } = true;
+    [Parameter] public string? Title { get; set; }
+    [Parameter] public FileCategory? PreferredCategory { get; set; } = FileCategory.Document;
+
+    private string TitleOrDefault => string.IsNullOrWhiteSpace(Title)
+        ? L["attachments", "Scanned documents"]
+        : Title;
+
+    private List<RecordAttachmentDto> _items = new();
+    private bool _loading = true;
+    private bool _busy;
+    private int? _memberId;
+
+    protected override async Task OnParametersSetAsync()
+    {
+        await L.EnsureLoadedAsync();
+        var auth = await AuthState.GetAuthenticationStateAsync();
+        if (int.TryParse(auth.User.FindFirst(AdminClaimTypes.MemberId)?.Value, out var mid))
+            _memberId = mid;
+        await LoadAsync();
+    }
+
+    private async Task LoadAsync()
+    {
+        _loading = true;
+        try
+        {
+            if (string.IsNullOrWhiteSpace(EntityType) || EntityId <= 0)
+            {
+                _items = new();
+                return;
+            }
+            _items = (await Attachments.ListAsync(EntityType, EntityId)).ToList();
+        }
+        finally
+        {
+            _loading = false;
+        }
+    }
+
+    private async Task PickAndAttachAsync()
+    {
+        if (WebsiteId <= 0 || EntityId <= 0 || string.IsNullOrWhiteSpace(EntityType)) return;
+
+        var parameters = new DialogParameters
+        {
+            [nameof(FilePickerDialog.WebsiteId)] = WebsiteId,
+            [nameof(FilePickerDialog.Category)] = PreferredCategory ?? FileCategory.Document,
+        };
+        var dialog = await DialogService.ShowAsync<FilePickerDialog>(
+            L["select_file", "Select a file"], parameters,
+            new DialogOptions { MaxWidth = MaxWidth.Large, FullWidth = true });
+        var result = await dialog.Result;
+        if (result is not { Canceled: false, Data: FileRecord file }) return;
+
+        _busy = true;
+        try
+        {
+            var (ok, err, _) = await Attachments.AttachAsync(
+                WebsiteId, EntityType, EntityId, file.FileRecordID,
+                file.Title ?? file.OriginalFileName, null, _memberId);
+            if (ok)
+            {
+                Snackbar.Add(L["attachments.added", "Document attached."], Severity.Success);
+                await LoadAsync();
+            }
+            else
+                Snackbar.Add(err ?? L["save_failed", "Save failed"], Severity.Error);
+        }
+        finally
+        {
+            _busy = false;
+        }
+    }
+
+    private async Task RemoveAsync(RecordAttachmentDto a)
+    {
+        _busy = true;
+        try
+        {
+            var (ok, err) = await Attachments.RemoveAsync(a.RecordAttachmentID, _memberId);
+            if (ok)
+            {
+                Snackbar.Add(L["attachments.removed", "Attachment removed."], Severity.Success);
+                await LoadAsync();
+            }
+            else
+                Snackbar.Add(err ?? L["save_failed", "Save failed"], Severity.Error);
+        }
+        finally
+        {
+            _busy = false;
+        }
+    }
+}

@@ -252,6 +252,7 @@ public class FileService : IFileService
         await AddOptionalAsync("Website logos", _context.Websites.CountAsync(x => x.LogoFileID == id, ct));
         await AddOptionalAsync("Website favicons", _context.Websites.CountAsync(x => x.FaveIconFileID == id, ct));
         await AddOptionalAsync("Watermark images", _context.WebsiteWatermarkSettings.CountAsync(x => x.WatermarkFileID == id, ct));
+        await AddOptionalAsync("Record attachments (scans)", _context.RecordAttachments.CountAsync(x => x.FileRecordID == id, ct));
 
         // Required FK: primary slideshow image — deleting the file removes those slides.
         var requiredSlides = await _context.SlideshowSlides.AsNoTracking()
@@ -316,6 +317,7 @@ public class FileService : IFileService
 
         // Junction rows (no optional FK — must delete).
         await _context.FileRecordTags.Where(t => t.FileRecordID == id).ExecuteDeleteAsync(ct);
+        await _context.RecordAttachments.Where(a => a.FileRecordID == id).ExecuteDeleteAsync(ct);
 
         // Slideshow slides require a primary FileID; without the image the slide is unusable.
         await _context.SlideshowSlides.Where(s => s.FileID == id).ExecuteDeleteAsync(ct);

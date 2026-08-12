@@ -24,4 +24,18 @@ public interface IStockDocumentService
     Task<(bool Success, string? Error)> RejectAsync(int documentId, int? memberId, string? note, CancellationToken ct = default);
     Task<(bool Success, string? Error)> PostAsync(int documentId, int? memberId, CancellationToken ct = default);
     Task<(bool Success, string? Error)> CancelAsync(int documentId, int? memberId, string? note, CancellationToken ct = default);
+
+    /// <summary>
+    /// Creates a Submitted outbound pick document from a paid order (physical lines only). Idempotent per order.
+    /// </summary>
+    Task<(bool Success, string? Error, StockDocument? Doc)> EnsureOutboundForOrderAsync(int orderId, int? memberId, CancellationToken ct = default);
+
+    /// <summary>Approves (if needed) and posts the order's outbound document — stock leaves warehouse.</summary>
+    Task<(bool Success, string? Error)> PostOutboundForOrderAsync(int orderId, int? memberId, CancellationToken ct = default);
+
+    /// <summary>True when website has at least one active warehouse (WMS path for orders).</summary>
+    Task<bool> WebsiteHasWarehouseAsync(int websiteId, CancellationToken ct = default);
+
+    /// <summary>Active (non-cancelled) outbound document linked to an order, if any.</summary>
+    Task<StockDocument?> GetOutboundForOrderAsync(int orderId, CancellationToken ct = default);
 }

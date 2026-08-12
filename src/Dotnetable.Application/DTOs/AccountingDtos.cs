@@ -26,6 +26,7 @@ public sealed class JournalLineDto
 public sealed class JournalEntryDto
 {
     public int JournalEntryID { get; init; }
+    public int WebsiteID { get; init; }
     public string EntryNumber { get; init; } = "";
     public DateOnly EntryDate { get; init; }
     public string? Description { get; init; }
