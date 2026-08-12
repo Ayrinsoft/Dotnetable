@@ -90,6 +90,10 @@ public class DatabaseUpdateService : IDatabaseUpdateService
                 m.Contains("MultiCurrencyWallets", StringComparison.OrdinalIgnoreCase));
             await MarkAppliedAsync(context, history, multi, productVersion, ct);
         }
+
+        pending = (await context.Database.GetPendingMigrationsAsync(ct)).ToList();
+        await BaselineIfColumnExistsAsync(context, history, pending, productVersion,
+            "ProductCodePrefix", "Websites", "ProductCodePrefix", ct);
     }
 
     private static async Task BaselineIfColumnExistsAsync(

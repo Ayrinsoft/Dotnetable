@@ -97,6 +97,12 @@ public partial class Website
     /// <summary>USD dual / conversion bridge for <see cref="FreeShippingMinOrderAmount"/>.</summary>
     public decimal FreeShippingMinOrderAmountUsd { get; set; }
 
+    /// <summary>
+    /// 1–3 Latin letters used as the product code prefix for this site (<c>{prefix}-{ProductID}</c>).
+    /// Default <c>DN</c>. Normalized via <see cref="Dotnetable.Domain.ProductCode.NormalizePrefix"/>.
+    /// </summary>
+    public string ProductCodePrefix { get; set; } = "DN";
+
     public virtual ICollection<AdminNotification> AdminNotifications { get; set; } = new List<AdminNotification>();
 
     public virtual ICollection<AttributeDefinition> AttributeDefinitions { get; set; } = new List<AttributeDefinition>();

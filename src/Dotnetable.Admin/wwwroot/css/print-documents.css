@@ -58,21 +58,53 @@
 }
 
 .invoice-doc .print-doc-badge {
-    display: inline-block;
-    border: 1px solid #333;
-    padding: 4px 12px;
+    display: inline-flex;
+    align-items: center;
+    justify-content: center;
+    border-radius: 999px;
+    border: 1px solid #c5cad0;
+    background: #f4f6f8;
+    color: #2d353c;
+    padding: 6px 14px;
     font-size: .78rem;
-    font-weight: 700;
-    text-transform: uppercase;
-    letter-spacing: .04em;
+    font-weight: 600;
+    letter-spacing: .02em;
     white-space: nowrap;
+    line-height: 1.2;
+    min-width: 4.5rem;
+    text-align: center;
+}
+
+.invoice-doc .print-doc-badge-success {
+    border-color: #a8d5b5;
+    background: #eef8f1;
+    color: #1b5e20;
+}
+
+.invoice-doc .print-doc-badge-warn {
+    border-color: #e6c98a;
+    background: #fff8e8;
+    color: #8a6d1d;
+}
+
+.invoice-doc .print-doc-badge-info {
+    border-color: #b7d4ef;
+    background: #eef5fc;
+    color: #1a5276;
+}
+
+.invoice-doc .print-doc-badge-muted {
+    border-color: #d0d4d8;
+    background: #f3f4f5;
+    color: #5a6168;
 }
 
 .invoice-doc .print-doc-parties {
     display: grid;
-    grid-template-columns: 1fr 1fr;
+    grid-template-columns: minmax(0, 1fr) minmax(0, 1fr);
     gap: 16px;
     margin-bottom: 24px;
+    align-items: stretch;
 }
 
 @media (max-width: 640px) {
@@ -85,6 +117,9 @@
     border: 1px solid #333;
     padding: 14px 16px;
     min-height: 120px;
+    min-width: 0;
+    overflow: hidden;
+    box-sizing: border-box;
 }
 
 .invoice-doc .print-doc-party-label {
@@ -101,27 +136,47 @@
 .invoice-doc .print-doc-party-name {
     font-size: 1rem;
     font-weight: 700;
-    margin: 0 0 8px;
+    margin: 0 0 10px;
     color: #111;
+    word-break: break-word;
 }
 
-.invoice-doc .print-doc-party table {
-    width: 100%;
-    border-collapse: collapse;
+.invoice-doc .print-doc-party-fields {
+    display: flex;
+    flex-direction: column;
+    gap: 8px;
+}
+
+.invoice-doc .print-doc-party-row {
+    display: grid;
+    grid-template-columns: 6.5rem minmax(0, 1fr);
+    gap: 8px 12px;
+    align-items: start;
     font-size: .88rem;
 }
 
-.invoice-doc .print-doc-party td {
-    padding: 2px 0;
-    vertical-align: top;
-    border: none;
-    color: #111;
+.invoice-doc .print-doc-party-row .k {
+    color: #444;
+    font-weight: 600;
+    line-height: 1.4;
 }
 
-.invoice-doc .print-doc-party td:first-child {
-    width: 38%;
-    color: #333;
-    padding-right: 8px;
+.invoice-doc .print-doc-party-row .v {
+    color: #111;
+    line-height: 1.45;
+    word-break: break-word;
+    overflow-wrap: anywhere;
+    min-width: 0;
+}
+
+/* Long address: label on its own line, full width for the value */
+.invoice-doc .print-doc-party-row-block {
+    grid-template-columns: 1fr;
+    gap: 4px;
+}
+
+.invoice-doc .print-doc-party-row-block .k {
+    display: block;
 }
 
 .invoice-doc .print-doc-lines {

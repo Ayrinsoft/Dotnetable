@@ -412,6 +412,10 @@ window.DOCS_ADMIN = {
               fa: "هویت و پیش‌فرض‌های عملیاتی را بگذارید؛ بعد زبان/SEO را از زیرمنوی Website همان زمینه تنظیم کنید.",
             },
             {
+              en: "Set **Product code prefix** (1–3 letters, default `DN`) so products are addressed as `DN-{ProductID}` on invoices and storefront URLs.",
+              fa: "**پیشوند کد کالا** (۱–۳ حرف، پیش‌فرض `DN`) را بگذارید تا کالاها به شکل `DN-{ProductID}` در فاکتور و آدرس فروشگاه قابل آدرس‌دهی باشند.",
+            },
+            {
               en: "Under **Tax & seller registration**, set tax flags and **Report offline / social orders to tax by default** (when off, Instagram/WhatsApp admin orders default to excluded from VAT filings; each order can override).",
               fa: "در **مالیات و ثبت فروشنده**، پرچم‌های مالیات و **اعلام پیش‌فرض سفارش‌های آفلاین/اجتماعی به مالیات** را تنظیم کنید (اگر خاموش باشد، سفارش‌های اینستاگرام/واتساپ ادمین پیش‌فرض از VAT خارج‌اند؛ هر سفارش override دارد).",
             },
@@ -906,6 +910,10 @@ window.DOCS_ADMIN = {
               fa: "واریانت‌ها SKU دارند و به موجودی و لیستینگ فروشنده وصل می‌شوند.",
             },
             {
+              en: "Each product has a stable **product code** `{prefix}-{ProductID}` (default `DN-42`) — not the variant SKU. Prefix is set on the website (1–3 letters). Usable in admin search, invoices, and storefront URLs `/product/DN-42`.",
+              fa: "هر کالا یک **کد کالا** پایدار `{پیشوند}-{ProductID}` دارد (پیش‌فرض `DN-42`) — نه SKU واریانت. پیشوند در وب‌سایت (۱–۳ حرف) تنظیم می‌شود. در جستجوی ادمین، فاکتور و آدرس `/product/DN-42` قابل استفاده است.",
+            },
+            {
               en: "Pricing supports compare-at and history tools from the product editor.",
               fa: "قیمت‌گذاری compare-at و ابزار تاریخچه را از ادیتور محصول پشتیبانی می‌کند.",
             },
@@ -922,6 +930,10 @@ window.DOCS_ADMIN = {
             {
               en: "Save. For physical goods, ensure inventory/vendor stock is set so items are sellable.",
               fa: "ذخیره. برای کالای فیزیکی موجودی/استوک فروشنده را بگذارید تا قابل‌فروش شود.",
+            },
+            {
+              en: "Optional: change product code prefix under Websites → edit site (default **DN**).",
+              fa: "اختیاری: پیشوند کد کالا را در Websites → ویرایش سایت عوض کنید (پیش‌فرض **DN**).",
             },
           ],
           sections: [
@@ -1553,8 +1565,8 @@ window.DOCS_ADMIN = {
               fa: "**برگشت وجه** (نقش payments.refund): بعد از وجود پرداخت Paid — اعتبار کیف پول، صف استرداد بانکی، یا ثبت برگشت نقدی.",
             },
             {
-              en: "Open **Invoice** for a framed customer document (margins/borders). Print PDF, or **email / WhatsApp** the same totals from that page (edit recipient first). Charged unit prices only — markup is folded into price. Orders with **Report to tax = No** are excluded from the VAT report.",
-              fa: "از **فاکتور** سند مشتری با حاشیه و قاب مرتب را باز کنید. Print PDF، یا از همان صفحه **ایمیل / واتساپ** (گیرنده قابل ویرایش). فقط قیمت فروش — مارک‌آپ داخل قیمت است. سفارش‌هایی که **اعلام به مالیات = خیر** دارند در گزارش VAT نمی‌آیند.",
+              en: "Open **Invoice** for a framed customer document (margins/borders). Lines show **product code** (`DN-42` = site prefix + ProductID). Print PDF, or **email / WhatsApp** from that page. Charged unit prices only — markup is folded into price. Orders with **Report to tax = No** are excluded from the VAT report.",
+              fa: "از **فاکتور** سند مشتری با حاشیه و قاب را باز کنید. روی خطوط **کد کالا** (`DN-42` = پیشوند سایت + شناسه محصول) می‌آید. Print PDF یا **ایمیل / واتساپ** از همان صفحه. فقط قیمت فروش — مارک‌آپ داخل قیمت است. سفارش‌هایی که **اعلام به مالیات = خیر** دارند در گزارش VAT نمی‌آیند.",
             },
           ],
           tips: [

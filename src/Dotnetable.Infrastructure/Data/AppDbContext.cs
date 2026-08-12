@@ -3157,6 +3157,10 @@ public partial class AppDbContext : DbContext
             entity.Property(e => e.ReportOfflineOrdersToTax).HasDefaultValue(false);
             entity.Property(e => e.FreeShippingMinOrderAmount).HasColumnType("decimal(18, 4)");
             entity.Property(e => e.FreeShippingMinOrderAmountUsd).HasColumnType("decimal(18, 4)");
+            entity.Property(e => e.ProductCodePrefix)
+                .HasMaxLength(3)
+                .HasDefaultValue("DN")
+                .HasComment("1–3 letter product code prefix; codes are {prefix}-{ProductID}.");
             entity.Property(e => e.StorePricesInUsd)
                 .HasDefaultValue(false)
                 .HasComment("When true, also persist USD dual columns; default site currency is always operational authority.");

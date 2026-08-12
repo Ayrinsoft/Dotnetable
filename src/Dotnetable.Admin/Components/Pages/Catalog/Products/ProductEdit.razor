@@ -29,9 +29,15 @@ else
     <MudStack Row="true" AlignItems="AlignItems.Center" Justify="Justify.SpaceBetween" Class="mb-4">
         <MudStack Spacing="0">
             <MudText Typo="Typo.h5" Class="fw-bold">@(_isNew ? L["products.new", "New Product"] : Model.Title)</MudText>
-            @if (!_isNew && !string.IsNullOrWhiteSpace(Model.Slug))
+            @if (!_isNew)
             {
-                <MudText Typo="Typo.caption" Color="Color.Secondary"><code>@Model.Slug</code></MudText>
+                <MudText Typo="Typo.caption" Color="Color.Secondary">
+                    <code>@_productCode</code>
+                    @if (!string.IsNullOrWhiteSpace(Model.Slug))
+                    {
+                        <span> · </span><code>@Model.Slug</code>
+                    }
+                </MudText>
             }
         </MudStack>
         <MudStack Row="true" Spacing="2">
@@ -1023,6 +1029,7 @@ else
     private string[]? _formErrors;
     private bool _showFieldErrors;
     private int _websiteId;
+    private string _productCode = "";
     private int? _memberId;
     private int? _vendorId;
     private string _defaultLanguageCode = "en";
@@ -1182,6 +1189,8 @@ else
             }
             Model = product;
             _websiteId = product.WebsiteID;
+            var site = await WebsiteService.GetByIdAsync(_websiteId);
+            _productCode = Dotnetable.Domain.ProductCode.Format(site?.ProductCodePrefix, product.ProductID);
             _variants = product.ProductVariants.ToList();
             _slugManuallyEdited = !string.IsNullOrWhiteSpace(product.Slug);
             if (_vendorId is null)

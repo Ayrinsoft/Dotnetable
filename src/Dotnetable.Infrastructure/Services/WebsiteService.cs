@@ -82,6 +82,7 @@ public class WebsiteService : IWebsiteService
     public async Task<Website> CreateAsync(Website website, CancellationToken ct = default)
     {
         await using var context = await _contextFactory.CreateDbContextAsync(ct);
+        website.ProductCodePrefix = Domain.ProductCode.NormalizePrefix(website.ProductCodePrefix);
         // Dual USD is opt-in; default operational mode is single site currency.
         context.Websites.Add(website);
 
@@ -136,6 +137,7 @@ public class WebsiteService : IWebsiteService
     public async Task UpdateAsync(Website website, CancellationToken ct = default)
     {
         await using var context = await _contextFactory.CreateDbContextAsync(ct);
+        website.ProductCodePrefix = Domain.ProductCode.NormalizePrefix(website.ProductCodePrefix);
         context.Websites.Update(website);
         await context.SaveChangesAsync(ct);
     }

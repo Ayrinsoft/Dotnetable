@@ -88,7 +88,11 @@
                             <img src="@p.FeaturedImageUrl" style="width:36px;height:36px;object-fit:cover;border-radius:6px" />
                         }
                     </td>
-                    <td>@p.Title <MudText Typo="Typo.caption" Color="Color.Secondary">@p.Slug</MudText></td>
+                    <td>
+                        <MudText Typo="Typo.caption" Class="fw-bold">@p.ProductCode</MudText>
+                        @p.Title
+                        <MudText Typo="Typo.caption" Color="Color.Secondary">@p.Slug</MudText>
+                    </td>
                     <td>@(p.BrandName ?? "-")</td>
                     <td>@FormatMinPrice(p.MinPrice ?? p.MinPriceUsd)</td>
                     <td>@(p.IsActive ? L["yes", "Yes"] : L["no", "No"])</td>
@@ -146,7 +150,7 @@
             HeaderItems = new()
             {
                 new() { ColumnTitle = "", ColumnName = "" },
-                new() { ColumnTitle = L["title", "Title"], ColumnName = nameof(ProductListItemDto.Title), HasSort = true, HasSearch = true },
+                new() { ColumnTitle = L["products.code_title", "Code / Title"], ColumnName = nameof(ProductListItemDto.Title), HasSort = true, HasSearch = true },
                 new() { ColumnTitle = L["brand", "Brand"], ColumnName = nameof(ProductListItemDto.BrandName), HasSort = true },
                 new() { ColumnTitle = L["products.min_price", "Min price"], ColumnName = "" },
                 new() { ColumnTitle = L["active", "Active"], ColumnName = nameof(ProductListItemDto.IsActive), HasSort = true },
