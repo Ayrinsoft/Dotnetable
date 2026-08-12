@@ -174,18 +174,20 @@ public class PaymentServiceTests : IDisposable
             500, OrderStatus.Refunded, 10, "Returned COD goods", It.IsAny<CancellationToken>()), Times.Once);
         _wallet.Verify(w => w.ApplyAsync(
             It.IsAny<int>(), It.IsAny<int>(), It.IsAny<byte>(), It.IsAny<decimal>(),
-            It.IsAny<byte?>(), It.IsAny<int?>(), It.IsAny<string?>(), It.IsAny<int?>(), It.IsAny<CancellationToken>()), Times.Never);
+            It.IsAny<byte?>(), It.IsAny<int?>(), It.IsAny<string?>(), It.IsAny<int?>(),
+            It.IsAny<string?>(), It.IsAny<CancellationToken>()), Times.Never);
     }
 
     [Fact]
-    public async Task Refund_Wallet_CreditsCustomer()
+    public async Task Refund_Wallet_CreditsCustomer_InPaymentCurrency()
     {
         await _service.RecordReceivedPaymentAsync(500, PaymentMethod.Manual, null, null, null, 10);
         var paid = await _context.Payments.SingleAsync();
 
         _wallet.Setup(w => w.ApplyAsync(
-                It.IsAny<int>(), It.IsAny<int>(), It.IsAny<byte>(), It.IsAny<decimal>(),
-                It.IsAny<byte?>(), It.IsAny<int?>(), It.IsAny<string?>(), It.IsAny<int?>(), It.IsAny<CancellationToken>()))
+                1, 100, (byte)ClientWalletTransactionType.RefundCredit, 100m,
+                (byte)ClientWalletSourceType.PaymentRefund, paid.PaymentID, "Goodwill", 10,
+                "USD", It.IsAny<CancellationToken>()))
             .ReturnsAsync(new ClientWalletTransaction
             {
                 ClientWalletTransactionID = 9,
@@ -202,7 +204,27 @@ public class PaymentServiceTests : IDisposable
 
         success.Should().BeTrue();
         refund!.Status.Should().Be((byte)PaymentRefundStatus.Completed);
+        refund.Amount.Should().Be(100m);
         refund.ClientWalletTransactionID.Should().Be(9);
+
+        // Must credit wallet with the payment amount as-is — no USD→local multiply.
+        _wallet.Verify(w => w.ApplyAsync(
+            1, 100, (byte)ClientWalletTransactionType.RefundCredit, 100m,
+            (byte)ClientWalletSourceType.PaymentRefund, paid.PaymentID, "Goodwill", 10,
+            "USD", It.IsAny<CancellationToken>()), Times.Once);
+    }
+
+    [Fact]
+    public async Task Refund_RejectsAmountAbovePaid()
+    {
+        await _service.RecordReceivedPaymentAsync(500, PaymentMethod.CashOnDelivery, null, null, null, 10);
+        var paid = await _context.Payments.SingleAsync();
+
+        var (success, error, _) = await _service.RefundAsync(
+            paid.PaymentID, 999m, "Too much", toWallet: false, bankAccountId: null, memberId: 10);
+
+        success.Should().BeFalse();
+        error.Should().Contain("exceed");
     }
 
     public void Dispose() => _context.Dispose();

@@ -51,7 +51,7 @@
                     <td>@r.Payment.Order?.OrderNumber</td>
                     <td>@($"{r.Payment.WebsiteClient?.Givenname} {r.Payment.WebsiteClient?.Surname}".Trim())</td>
                     <td>@r.BankAccount?.Bank.Name — @(r.BankAccount?.IBAN ?? r.BankAccount?.CardNumber)</td>
-                    <td>@r.Amount.ToString("0.##")</td>
+                    <td>@MoneyFormat.GroupWithCode(r.Amount, r.Payment.CurrencyCode)</td>
                     <td>@((PaymentRefundStatus)r.Status)</td>
                     <td>@r.Reason</td>
                     <td>@RefundRecordedByLabel(r)</td>

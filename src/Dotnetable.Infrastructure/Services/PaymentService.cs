@@ -202,8 +202,12 @@ public class PaymentService : IPaymentService
             // Align order.PaidAt with the admin-entered payment time (transition may have set UtcNow).
             if (effectivePaidAt is DateTime at)
             {
-                await _context.Orders.Where(o => o.OrderID == orderId)
-                    .ExecuteUpdateAsync(s => s.SetProperty(o => o.PaidAt, at), ct);
+                var trackedOrder = await _context.Orders.FirstOrDefaultAsync(o => o.OrderID == orderId, ct);
+                if (trackedOrder is not null)
+                {
+                    trackedOrder.PaidAt = at;
+                    await _context.SaveChangesAsync(ct);
+                }
             }
         }
 
@@ -304,11 +308,14 @@ public class PaymentService : IPaymentService
     }
 
     public async Task<(bool Success, string? Error, PaymentRefund? Refund)> RefundAsync(
-        int paymentId, decimal amountUsd, string? reason, bool toWallet, int? bankAccountId, int memberId, CancellationToken ct = default)
+        int paymentId, decimal amount, string? reason, bool toWallet, int? bankAccountId, int memberId, CancellationToken ct = default)
     {
         var payment = await _context.Payments.FirstOrDefaultAsync(p => p.PaymentID == paymentId, ct);
         if (payment is null || payment.Status != (byte)PaymentStatus.Paid) return (false, "Payment is not eligible for refund.", null);
-        if (amountUsd <= 0) return (false, "Refund amount must be greater than zero.", null);
+        if (amount <= 0) return (false, "Refund amount must be greater than zero.", null);
+        // amount is in the payment currency (site operational money), same unit as Payment.Amount — never treat as USD.
+        if (amount > payment.Amount)
+            return (false, $"Refund amount cannot exceed the paid amount ({payment.Amount:0.####} {payment.CurrencyCode}).", null);
         if (toWallet && bankAccountId is not null)
             return (false, "Choose wallet, bank account, or cash/manual — not wallet and bank together.", null);
 
@@ -318,12 +325,9 @@ public class PaymentService : IPaymentService
         int? walletTxId = null;
         if (toWallet)
         {
-            // Credit the wallet in the payment's currency (amountUsd is still the API param name; convert via snapshot rate).
-            var amountLocal = payment.ExchangeRateToUsd > 0
-                ? Math.Round(amountUsd * payment.ExchangeRateToUsd, 4, MidpointRounding.AwayFromZero)
-                : amountUsd;
+            // Credit the same currency the customer paid in (separate wallet ledger per currency).
             var tx = await _wallet.ApplyAsync(
-                payment.WebsiteID, payment.WebsiteClientID, (byte)ClientWalletTransactionType.RefundCredit, amountLocal,
+                payment.WebsiteID, payment.WebsiteClientID, (byte)ClientWalletTransactionType.RefundCredit, amount,
                 (byte)ClientWalletSourceType.PaymentRefund, paymentId, reason, memberId,
                 payment.CurrencyCode, ct);
             walletTxId = tx.ClientWalletTransactionID;
@@ -333,7 +337,7 @@ public class PaymentService : IPaymentService
         var refund = new PaymentRefund
         {
             PaymentID = paymentId,
-            Amount = amountUsd,
+            Amount = amount,
             Reason = reason,
             Status = (byte)(completedNow ? PaymentRefundStatus.Completed : PaymentRefundStatus.Pending),
             BankAccountID = bankAccountId,

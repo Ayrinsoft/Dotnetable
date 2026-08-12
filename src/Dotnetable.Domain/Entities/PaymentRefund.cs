@@ -9,6 +9,10 @@ public partial class PaymentRefund
 
     public int PaymentID { get; set; }
 
+    /// <summary>
+    /// Refund amount in the payment's currency (same unit as <see cref="Payment.Amount"/> / site operational money).
+    /// Not USD unless the payment itself was in USD.
+    /// </summary>
     public decimal Amount { get; set; }
 
     public string? Reason { get; set; }
