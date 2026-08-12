@@ -126,6 +126,8 @@ public partial class AppDbContext : DbContext
 
     public virtual DbSet<Order> Orders { get; set; }
 
+    public virtual DbSet<FinancialLedgerEntry> FinancialLedgerEntries { get; set; }
+
     public virtual DbSet<OrderDigitalAsset> OrderDigitalAssets { get; set; }
 
     public virtual DbSet<OrderItem> OrderItems { get; set; }
@@ -1579,6 +1581,68 @@ public partial class AppDbContext : DbContext
                 .HasForeignKey(d => d.WebsiteID)
                 .OnDelete(DeleteBehavior.ClientSetNull)
                 .HasConstraintName("FK_OrderDigitalAssets_Websites");
+        });
+
+        modelBuilder.Entity<FinancialLedgerEntry>(entity =>
+        {
+            entity.HasIndex(e => e.CreatedByMemberID, "IX_FinancialLedgerEntries_CreatedByMemberID");
+            entity.HasIndex(e => e.CurrencyCode, "IX_FinancialLedgerEntries_CurrencyCode");
+            entity.HasIndex(e => e.EventGroupId, "IX_FinancialLedgerEntries_EventGroup");
+            entity.HasIndex(e => e.OrderID, "IX_FinancialLedgerEntries_OrderID");
+            entity.HasIndex(e => e.OrderItemID, "IX_FinancialLedgerEntries_OrderItemID");
+            entity.HasIndex(e => e.PaymentID, "IX_FinancialLedgerEntries_PaymentID");
+            entity.HasIndex(e => e.SettlementID, "IX_FinancialLedgerEntries_SettlementID");
+            entity.HasIndex(e => e.SupersedesEntryID, "IX_FinancialLedgerEntries_Supersedes");
+            entity.HasIndex(e => e.WebsiteClientID, "IX_FinancialLedgerEntries_WebsiteClientID");
+            entity.HasIndex(e => new { e.VendorID, e.VendorVisible, e.IsCurrent }, "IX_FinancialLedgerEntries_VendorID");
+            entity.HasIndex(e => new { e.WebsiteID, e.OccurredDate, e.IsCurrent }, "IX_FinancialLedgerEntries_Website_Date");
+            entity.HasIndex(e => new { e.WebsiteID, e.TransactionType, e.IsCurrent }, "IX_FinancialLedgerEntries_Type");
+
+            entity.Property(e => e.Amount).HasColumnType("decimal(18, 4)");
+            entity.Property(e => e.AmountUsd).HasColumnType("decimal(18, 4)");
+            entity.Property(e => e.CurrencyCode).HasMaxLength(3).IsUnicode(false).IsFixedLength();
+            entity.Property(e => e.Description).HasMaxLength(1000);
+            entity.Property(e => e.Title).HasMaxLength(300);
+            entity.Property(e => e.TransactionType).HasMaxLength(64);
+            entity.Property(e => e.ChangeNote).HasMaxLength(500);
+            entity.Property(e => e.MetaJson).HasMaxLength(2000);
+            entity.Property(e => e.ReportToTax).HasDefaultValue(true);
+            entity.Property(e => e.VendorVisible).HasDefaultValue(false);
+            entity.Property(e => e.IsCurrent).HasDefaultValue(true);
+            entity.Property(e => e.Version).HasDefaultValue(1);
+
+            entity.HasOne(d => d.CreatedByMember).WithMany()
+                .HasForeignKey(d => d.CreatedByMemberID)
+                .HasConstraintName("FK_FinancialLedgerEntries_Members");
+            entity.HasOne(d => d.CurrencyCodeNavigation).WithMany()
+                .HasForeignKey(d => d.CurrencyCode)
+                .OnDelete(DeleteBehavior.ClientSetNull)
+                .HasConstraintName("FK_FinancialLedgerEntries_Currencies");
+            entity.HasOne(d => d.Order).WithMany()
+                .HasForeignKey(d => d.OrderID)
+                .HasConstraintName("FK_FinancialLedgerEntries_Orders");
+            entity.HasOne(d => d.OrderItem).WithMany()
+                .HasForeignKey(d => d.OrderItemID)
+                .HasConstraintName("FK_FinancialLedgerEntries_OrderItems");
+            entity.HasOne(d => d.Payment).WithMany()
+                .HasForeignKey(d => d.PaymentID)
+                .HasConstraintName("FK_FinancialLedgerEntries_Payments");
+            entity.HasOne(d => d.Settlement).WithMany()
+                .HasForeignKey(d => d.SettlementID)
+                .HasConstraintName("FK_FinancialLedgerEntries_Settlements");
+            entity.HasOne(d => d.SupersedesEntry).WithMany()
+                .HasForeignKey(d => d.SupersedesEntryID)
+                .HasConstraintName("FK_FinancialLedgerEntries_Supersedes");
+            entity.HasOne(d => d.Vendor).WithMany()
+                .HasForeignKey(d => d.VendorID)
+                .HasConstraintName("FK_FinancialLedgerEntries_Vendors");
+            entity.HasOne(d => d.WebsiteClient).WithMany()
+                .HasForeignKey(d => d.WebsiteClientID)
+                .HasConstraintName("FK_FinancialLedgerEntries_WebsiteClients");
+            entity.HasOne(d => d.Website).WithMany()
+                .HasForeignKey(d => d.WebsiteID)
+                .OnDelete(DeleteBehavior.ClientSetNull)
+                .HasConstraintName("FK_FinancialLedgerEntries_Websites");
         });
 
         modelBuilder.Entity<Order>(entity =>

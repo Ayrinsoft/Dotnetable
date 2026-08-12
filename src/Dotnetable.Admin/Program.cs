@@ -67,11 +67,7 @@ using (var scope = app.Services.CreateScope())
             var updater = scope.ServiceProvider.GetRequiredService<IDatabaseUpdateService>();
             var pending = await updater.GetPendingUpdatesAsync();
             if (pending.Count > 0)
-            {
-                app.Logger.LogInformation("Applying {Count} pending database update(s): {Updates}",
-                    pending.Count, string.Join(", ", pending));
                 await updater.ApplyUpdatesAsync();
-            }
 
             // Top up any permission keys a prior version did not seed (additive, idempotent).
             var setup = scope.ServiceProvider.GetRequiredService<ISetupService>();

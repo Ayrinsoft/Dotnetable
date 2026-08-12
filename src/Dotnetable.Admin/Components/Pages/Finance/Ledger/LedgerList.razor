@@ -1,0 +1,173 @@
+@page "/finance/ledger"
+@attribute [Authorize(Policy = RoleKeys.SettlementsView)]
+@using Dotnetable.Application.Financial
+@inject IFinancialLedgerService Ledger
+@inject IWebsiteService WebsiteService
+@inject AuthenticationStateProvider AuthState
+@inject NavigationManager Nav
+@inject IPageLocalizer L
+
+<DNPageTitle Title=@L["ledger", "Financial ledger"] />
+
+<MudStack Row="true" AlignItems="AlignItems.Center" Justify="Justify.SpaceBetween" Class="mb-4 flex-wrap gap-2">
+    <MudStack Spacing="0">
+        <MudText Typo="Typo.h5" Class="fw-bold">@L["ledger", "Financial ledger"]</MudText>
+        <MudText Typo="Typo.body2" Color="Color.Secondary">
+            @L["ledger.subtitle", "All receipts, payments, and invoice components (shipping, markup, cost, profit, tax). Types are extensible."]
+        </MudText>
+    </MudStack>
+    @if (_isMaster)
+    {
+        <WebsiteSelector Value="_websiteId" ValueChanged="OnWebsiteChanged" Websites="_websites"
+                         Label="@L["website", "Website"]" Variant="Variant.Outlined"
+                         Dense="true" Style="min-width:180px" />
+    }
+</MudStack>
+
+<MudPaper Elevation="0" Class="app-card rounded-lg pa-4 mb-3">
+    <MudGrid Spacing="2">
+        <MudItem xs="12" sm="3">
+            <MudTextField @bind-Value="_search" Label="@L["search", "Search"]" Variant="Variant.Outlined" Dense="true"
+                          Adornment="Adornment.End" AdornmentIcon="@Icons.Material.Filled.Search" OnAdornmentClick="ReloadAsync"
+                          OnKeyUp="OnSearchKey" />
+        </MudItem>
+        <MudItem xs="12" sm="3">
+            <MudTextField @bind-Value="_typeFilter" Label="@L["ledger.type", "Transaction type"]" Variant="Variant.Outlined" Dense="true"
+                          HelperText="@L["ledger.type_hint", "e.g. CustomerPayment, OrderMarkup"]" />
+        </MudItem>
+        <MudItem xs="6" sm="2">
+            <MudDatePicker @bind-Date="_from" Label="@L["from", "From date"]" Variant="Variant.Outlined" Dense="true" Editable="true" />
+        </MudItem>
+        <MudItem xs="6" sm="2">
+            <MudDatePicker @bind-Date="_to" Label="@L["to", "To date"]" Variant="Variant.Outlined" Dense="true" Editable="true" />
+        </MudItem>
+        <MudItem xs="12" sm="2" Class="d-flex align-end">
+            <MudButton Variant="Variant.Filled" Color="Color.Primary" FullWidth="true" OnClick="ReloadAsync">@L["filter", "Filter"]</MudButton>
+        </MudItem>
+    </MudGrid>
+</MudPaper>
+
+<MudPaper Elevation="0" Class="app-card rounded-lg pa-4">
+    @if (_loading)
+    {
+        <MudProgressLinear Indeterminate="true" Color="Color.Primary" Class="mb-3" />
+    }
+    <DNGridView GridHeaderParams="_grid" OnSearchChanged="OnGridChanged">
+        @if (_items.Count == 0)
+        {
+            <tr>
+                <td colspan="10" style="text-align:center;padding:32px">
+                    <MudText Color="Color.Secondary">@L["ledger.empty", "No ledger entries yet. They appear when orders are paid."]
+                    </MudText>
+                </td>
+            </tr>
+        }
+        else
+        {
+            @foreach (var e in _items)
+            {
+                <tr>
+                    <td>@e.OccurredDate.ToString("yyyy-MM-dd")</td>
+                    <td>@e.OccurredTime.ToString("HH:mm")</td>
+                    <td><code>@e.TransactionType</code></td>
+                    <td>@FlowLabel(e.Flow)</td>
+                    <td>@e.Title
+                        @if (!string.IsNullOrEmpty(e.OrderNumber))
+                        {
+                            <div>
+                                <MudLink Typo="Typo.caption" Href="@($"/orders/{e.OrderID}")">@e.OrderNumber</MudLink>
+                            </div>
+                        }
+                    </td>
+                    <td class="text-end">
+                        <span class="@(e.Flow == FinancialFlow.Out ? "mud-error-text" : "")">
+                            @(e.Flow == FinancialFlow.Out ? "−" : e.Flow == FinancialFlow.In ? "+" : "")@MoneyFormat.Group(e.Amount, e.CurrencyCode)
+                        </span>
+                    </td>
+                    <td>
+                        <MudChip T="string" Size="Size.Small" Color="@(e.ReportToTax ? Color.Success : Color.Default)">
+                            @(e.ReportToTax ? L["tax.yes", "Tax"] : L["tax.no", "No tax"])
+                        </MudChip>
+                    </td>
+                    <td>@(e.VendorName ?? (e.VendorVisible ? "—" : ""))</td>
+                    <td>v@e.Version</td>
+                    <td>
+                        @if (e.OrderID is int oid)
+                        {
+                            <MudIconButton Icon="@Icons.Material.Filled.Receipt" Size="Size.Small"
+                                           OnClick="@(() => Nav.NavigateTo($"/orders/{oid}"))" />
+                        }
+                    </td>
+                </tr>
+            }
+        }
+    </DNGridView>
+</MudPaper>
+
+@code {
+    private bool _loading = true, _isMaster;
+    private int _websiteId;
+    private List<Website> _websites = new();
+    private List<FinancialLedgerEntryDto> _items = new();
+    private GridViewHeaderParameters _grid = new();
+    private string? _search, _typeFilter;
+    private DateTime? _from, _to;
+
+    protected override async Task OnInitializedAsync()
+    {
+        await L.EnsureLoadedAsync();
+        var user = (await AuthState.GetAuthenticationStateAsync()).User;
+        _isMaster = user.HasClaim(AdminClaimTypes.Master, "true");
+        int.TryParse(user.FindFirst(AdminClaimTypes.WebsiteId)?.Value, out _websiteId);
+        if (_isMaster) _websites = (await WebsiteService.GetAllAsync()).ToList();
+
+        _grid = new GridViewHeaderParameters
+        {
+            Pagination = new PaginationModel { PageSize = 50 },
+            HeaderItems = new()
+            {
+                new() { ColumnTitle = L["date", "Date"], ColumnName = "OccurredDate" },
+                new() { ColumnTitle = L["time", "Time"], ColumnName = "OccurredTime" },
+                new() { ColumnTitle = L["type", "Type"], ColumnName = "TransactionType" },
+                new() { ColumnTitle = L["flow", "Flow"], ColumnName = "Flow" },
+                new() { ColumnTitle = L["title", "Title"], ColumnName = "Title" },
+                new() { ColumnTitle = L["amount", "Amount"], ColumnName = "Amount" },
+                new() { ColumnTitle = L["tax", "Tax"], ColumnName = "ReportToTax" },
+                new() { ColumnTitle = L["vendor", "Vendor"], ColumnName = "Vendor" },
+                new() { ColumnTitle = L["version", "Ver"], ColumnName = "Version" },
+                new() { ColumnTitle = "", ColumnName = "" },
+            }
+        };
+        await ReloadAsync();
+    }
+
+    private async Task OnWebsiteChanged(int id) { _websiteId = id; await ReloadAsync(); }
+    private Task OnGridChanged(GridViewHeaderParameters _) => ReloadAsync();
+    private Task OnSearchKey(KeyboardEventArgs e) => e.Key == "Enter" ? ReloadAsync() : Task.CompletedTask;
+
+    private async Task ReloadAsync()
+    {
+        _loading = true;
+        var filter = new FinancialLedgerFilter
+        {
+            WebsiteId = _websiteId > 0 ? _websiteId : null,
+            TransactionType = string.IsNullOrWhiteSpace(_typeFilter) ? null : _typeFilter.Trim(),
+            Search = _search,
+            FromDate = _from is DateTime f ? DateOnly.FromDateTime(f) : null,
+            ToDate = _to is DateTime t ? DateOnly.FromDateTime(t) : null,
+            CurrentOnly = true,
+        };
+        var result = await Ledger.GetPagedAsync(filter, _grid.ToQuery());
+        _items = result.Items.ToList();
+        _grid.Pagination.MaxLength = result.TotalCount;
+        _loading = false;
+    }
+
+    private string FlowLabel(byte f) => f switch
+    {
+        FinancialFlow.In => L["ledger.flow.in", "In"],
+        FinancialFlow.Out => L["ledger.flow.out", "Out"],
+        FinancialFlow.Component => L["ledger.flow.component", "Component"],
+        _ => f.ToString(),
+    };
+}

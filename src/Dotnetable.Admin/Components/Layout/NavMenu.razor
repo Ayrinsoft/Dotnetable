@@ -37,6 +37,7 @@
         {
             <AuthorizeView Policy="@RoleKeys.OrdersView" Context="ord">
                 <MudNavLink Href="/orders" Icon="@Icons.Material.Filled.ReceiptLong">@L["orders", "Orders"]</MudNavLink>
+                <MudNavLink Href="/finance/my-earnings" Icon="@Icons.Material.Filled.Payments">@L["ledger.my_earnings", "My settlements"]</MudNavLink>
             </AuthorizeView>
             <AuthorizeView Policy="@RoleKeys.SupportView" Context="supd">
                 <MudNavLink Href="/support" Icon="@Icons.Material.Filled.SupportAgent">@L["support.desk", "Support Desk"]</MudNavLink>
@@ -326,6 +327,7 @@
                     <MudNavLink Href="/wallets/withdrawals" Icon="@Icons.Material.Filled.AccountBalanceWallet">@L["wallets.withdrawals", "Withdrawals"]</MudNavLink>
                 </AuthorizeView>
                 <AuthorizeView Policy="@RoleKeys.SettlementsView" Context="stl">
+                    <MudNavLink Href="/finance/ledger" Icon="@Icons.Material.Filled.AccountBalanceWallet">@L["ledger", "Financial ledger"]</MudNavLink>
                     <MudNavLink Href="/finance/settlements" Icon="@Icons.Material.Filled.Handshake">@L["settlements", "Settlements"]</MudNavLink>
                 </AuthorizeView>
                 <AuthorizeView Policy="@RoleKeys.BankAccountsView" Context="bnk">

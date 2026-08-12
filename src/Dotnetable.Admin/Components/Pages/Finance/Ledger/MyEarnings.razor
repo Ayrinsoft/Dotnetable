@@ -1,0 +1,97 @@
+@page "/finance/my-earnings"
+@attribute [Authorize(Policy = RoleKeys.OrdersView)]
+@using Dotnetable.Application.Financial
+@inject IFinancialLedgerService Ledger
+@inject AuthenticationStateProvider AuthState
+@inject IPageLocalizer L
+@inject NavigationManager Nav
+
+<DNPageTitle Title=@L["ledger.my_earnings", "My settlements"] />
+
+<MudStack Row="true" AlignItems="AlignItems.Center" Justify="Justify.SpaceBetween" Class="mb-4">
+    <MudStack Spacing="0">
+        <MudText Typo="Typo.h5" Class="fw-bold">@L["ledger.my_earnings", "My settlements"]</MudText>
+        <MudText Typo="Typo.body2" Color="Color.Secondary">
+            @L["ledger.my_earnings_hint", "Amounts settled with you for sales. Markup and store profit are not shown."]
+        </MudText>
+    </MudStack>
+</MudStack>
+
+@if (_vendorId is null)
+{
+    <MudAlert Severity="Severity.Info">@L["ledger.not_vendor", "This page is for marketplace seller accounts."]</MudAlert>
+}
+else if (_loading)
+{
+    <MudProgressLinear Indeterminate="true" Color="Color.Primary" />
+}
+else
+{
+    <MudPaper Elevation="0" Class="app-card rounded-lg pa-4 mb-3">
+        <MudStack Row="true" Justify="Justify.SpaceBetween">
+            <MudText Typo="Typo.subtitle1">@L["ledger.settled_total", "Total settled (visible)"]</MudText>
+            <MudText Typo="Typo.h5">@_total.ToString("0.##")</MudText>
+        </MudStack>
+    </MudPaper>
+
+    <MudPaper Elevation="0" Class="app-card rounded-lg pa-4">
+        @if (_items.Count == 0)
+        {
+            <MudText Color="Color.Secondary">@L["ledger.empty_vendor", "No settlement rows yet."]</MudText>
+        }
+        else
+        {
+            <MudSimpleTable Dense="true" Hover="true" Elevation="0">
+                <thead>
+                    <tr>
+                        <th>@L["date", "Date"]</th>
+                        <th>@L["time", "Time"]</th>
+                        <th>@L["title", "Title"]</th>
+                        <th>@L["order", "Order"]</th>
+                        <th class="text-end">@L["amount", "Amount"]</th>
+                    </tr>
+                </thead>
+                <tbody>
+                    @foreach (var e in _items)
+                    {
+                        <tr>
+                            <td>@e.OccurredDate.ToString("yyyy-MM-dd")</td>
+                            <td>@e.OccurredTime.ToString("HH:mm")</td>
+                            <td>@e.Title</td>
+                            <td>
+                                @if (e.OrderID is int oid)
+                                {
+                                    <MudLink Href="@($"/orders/{oid}")">@(e.OrderNumber ?? $"#{oid}")</MudLink>
+                                }
+                                else { <span>—</span> }
+                            </td>
+                            <td class="text-end">@MoneyFormat.Group(e.Amount, e.CurrencyCode)</td>
+                        </tr>
+                    }
+                </tbody>
+            </MudSimpleTable>
+        }
+    </MudPaper>
+}
+
+@code {
+    private bool _loading = true;
+    private int? _vendorId;
+    private List<FinancialLedgerEntryDto> _items = new();
+    private decimal _total;
+
+    protected override async Task OnInitializedAsync()
+    {
+        await L.EnsureLoadedAsync();
+        var user = (await AuthState.GetAuthenticationStateAsync()).User;
+        if (int.TryParse(user.FindFirst(AdminClaimTypes.VendorId)?.Value, out var vid) && vid > 0)
+            _vendorId = vid;
+
+        if (_vendorId is int id)
+        {
+            _items = (await Ledger.GetVendorVisibleAsync(id)).ToList();
+            _total = _items.Sum(e => e.Amount);
+        }
+        _loading = false;
+    }
+}

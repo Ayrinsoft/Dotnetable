@@ -18,19 +18,22 @@ public class VendorCreditService : IVendorCreditService
     private readonly ICurrencyConversionService _currency;
     private readonly ISupplierService _suppliers;
     private readonly ITaxService _tax;
+    private readonly IFinancialLedgerService _ledger;
 
     public VendorCreditService(
         AppDbContext context,
         IVendorService vendors,
         ICurrencyConversionService currency,
         ISupplierService suppliers,
-        ITaxService tax)
+        ITaxService tax,
+        IFinancialLedgerService ledger)
     {
         _fallback = context;
         _vendors = vendors;
         _currency = currency;
         _suppliers = suppliers;
         _tax = tax;
+        _ledger = ledger;
     }
 
     public async Task<VendorCreditBalanceDto> GetBalanceAsync(int vendorId, CancellationToken ct = default)
@@ -242,6 +245,17 @@ public class VendorCreditService : IVendorCreditService
                     Description = line.TitleSnapshot,
                 });
             }
+
+            try
+            {
+                // Vendor-visible settlement only (cost/payable) — no markup/profit.
+                await _ledger.PostVendorSettlementAsync(
+                    order.WebsiteID, vendor.VendorID, hostSettlement.SettlementID, order.OrderID,
+                    group.First().OrderItemID, amountLocal, order.CurrencyCode, amountUsd,
+                    $"Settlement for order {order.OrderNumber} → {vendor.Name}",
+                    order.ReportToTax, null, ct);
+            }
+            catch { /* ledger optional */ }
 
             if (vendor.VendorType == (byte)VendorType.Site && vendor.LinkedWebsiteID is int sourceWebsiteId)
             {

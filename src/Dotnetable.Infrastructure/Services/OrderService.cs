@@ -26,6 +26,7 @@ public class OrderService : IOrderService
     private readonly IEmailService _email;
     private readonly ISmsSender _sms;
     private readonly IWhatsAppSender _whatsApp;
+    private readonly IFinancialLedgerService _ledger;
     private readonly ILogger<OrderService> _logger;
 
     public OrderService(
@@ -33,7 +34,8 @@ public class OrderService : IOrderService
         IShippingService shipping, ITaxService tax, ICouponService coupons, ICurrencyConversionService currency,
         ICartService cart, IAdminNotificationService notifications, IVendorCreditService vendorCredit,
         IDigitalDeliveryService digitalDelivery,
-        IEmailService email, ISmsSender sms, IWhatsAppSender whatsApp, ILogger<OrderService> logger)
+        IEmailService email, ISmsSender sms, IWhatsAppSender whatsApp,
+        IFinancialLedgerService ledger, ILogger<OrderService> logger)
     {
         _context = context;
         _inventory = inventory;
@@ -49,6 +51,7 @@ public class OrderService : IOrderService
         _email = email;
         _sms = sms;
         _whatsApp = whatsApp;
+        _ledger = ledger;
         _logger = logger;
     }
 
@@ -1150,6 +1153,14 @@ public class OrderService : IOrderService
                         tracked.PaidAt = at;
                     await _context.SaveChangesAsync(ct);
                 }
+
+                var payId = await _context.Payments.AsNoTracking()
+                    .Where(p => p.OrderID == order.OrderID && p.Status == (byte)PaymentStatus.Paid)
+                    .OrderByDescending(p => p.PaymentID)
+                    .Select(p => (int?)p.PaymentID)
+                    .FirstOrDefaultAsync(ct);
+                try { await _ledger.PostOrderPaidBreakdownAsync(order.OrderID, payId, memberId, ct); }
+                catch { /* ledger optional */ }
             }
         }
 
