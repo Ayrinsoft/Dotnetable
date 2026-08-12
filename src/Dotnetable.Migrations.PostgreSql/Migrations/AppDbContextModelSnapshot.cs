@@ -2479,11 +2479,28 @@ namespace Dotnetable.Migrations.PostgreSql.Migrations
                         .HasColumnType("smallint")
                         .HasDefaultValue((byte)1);
 
+                    b.Property<DateTime?>("ShippedAt")
+                        .HasColumnType("timestamp without time zone");
+
                     b.Property<int?>("ShippingMethodID")
                         .HasColumnType("integer");
 
+                    b.Property<byte>("ShippingStatus")
+                        .ValueGeneratedOnAdd()
+                        .HasColumnType("smallint")
+                        .HasDefaultValue((byte)0);
+
                     b.Property<decimal>("ShippingTotal")
                         .HasColumnType("decimal(18, 4)");
+
+                    b.Property<string>("ShippingTrackingCode")
+                        .HasMaxLength(100)
+                        .HasColumnType("character varying(100)");
+
+                    b.Property<byte>("PreparationStatus")
+                        .ValueGeneratedOnAdd()
+                        .HasColumnType("smallint")
+                        .HasDefaultValue((byte)0);
 
                     b.Property<byte>("Status")
                         .HasColumnType("smallint");

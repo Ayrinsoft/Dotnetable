@@ -10,6 +10,8 @@ public static class EmailTemplateKeys
     public const string ClientOtpPasswordReset = "ClientOtpPasswordReset";
     public const string Welcome = "Welcome";
     public const string OrderConfirmation = "OrderConfirmation";
+    /// <summary>Customer notification when a shipping tracking code is set on the order.</summary>
+    public const string OrderShipped = "OrderShipped";
     public const string Invoice = "Invoice";
     public const string TicketReply = "TicketReply";
     public const string Newsletter = "Newsletter";
@@ -128,6 +130,20 @@ public static class EmailTemplateDefaults
                 $"<p style=\"margin:0;color:{TextMuted};font-size:13px;\">We'll let you know as soon as it ships.</p>"),
             EmailAccountType.Sales),
 
+        new(EmailTemplateKeys.OrderShipped, "Order Shipped / Tracking",
+            "Your {{SiteName}} order #{{OrderNumber}} has shipped — tracking {{TrackingCode}}",
+            Layout("Order shipped",
+                "<p style=\"margin:0 0 12px;\">Hello <strong>{{Name}}</strong>,</p>" +
+                "<p style=\"margin:0 0 18px;\">Great news — your order is on its way. Details below:</p>" +
+                $"<table role=\"presentation\" width=\"100%\" cellpadding=\"0\" cellspacing=\"0\" style=\"background-color:{PanelBg};border-radius:6px;margin:0 0 18px;\"><tr><td style=\"padding:16px 20px;\">" +
+                "<table role=\"presentation\" width=\"100%\" cellpadding=\"0\" cellspacing=\"0\">" +
+                $"<tr><td style=\"color:{TextMuted};font-size:13px;padding:4px 0;\">Order Number</td><td align=\"right\" style=\"color:{DarkColor};font-size:13px;font-weight:600;\">#{{{{OrderNumber}}}}</td></tr>" +
+                $"<tr><td style=\"color:{TextMuted};font-size:13px;padding:4px 0;\">Tracking code</td><td align=\"right\" style=\"color:{AccentColor};font-size:13px;font-weight:700;letter-spacing:0.5px;\">{{{{TrackingCode}}}}</td></tr>" +
+                $"<tr><td style=\"color:{TextMuted};font-size:13px;padding:4px 0;\">Shipping method</td><td align=\"right\" style=\"color:{DarkColor};font-size:13px;font-weight:600;\">{{{{ShippingMethod}}}}</td></tr>" +
+                "</table></td></tr></table>" +
+                $"<p style=\"margin:0;color:{TextMuted};font-size:13px;\">You can track preparation and shipping status in your account.</p>"),
+            EmailAccountType.Sales),
+
         new(EmailTemplateKeys.Invoice, "Invoice",
             "Invoice for your {{SiteName}} order #{{OrderNumber}}",
             Layout("Invoice",
@@ -167,4 +183,22 @@ public static class EmailTemplateDefaults
                 Button("{{ActionUrl}}", "Open in admin")),
             EmailAccountType.Info),
     ];
+
+    /// <summary>
+    /// Language-specific built-in subject/body when the site has no DB override/translation.
+    /// Used so Persian (fa) default sites get FA copy for shipment tracking without seeding DB rows.
+    /// </summary>
+    public static bool TryGetLocalizedDefault(string templateKey, string? languageCode, out string subject, out string htmlBody)
+    {
+        subject = string.Empty;
+        htmlBody = string.Empty;
+        if (!string.Equals(templateKey, EmailTemplateKeys.OrderShipped, StringComparison.OrdinalIgnoreCase))
+            return false;
+        if (!OrderShipmentMessages.IsPersian(languageCode))
+            return false;
+        if (!OrderShipmentMessages.TryGetEmailDefault(languageCode, out subject, out var inner))
+            return false;
+        htmlBody = Layout("سفارش ارسال شد", inner);
+        return true;
+    }
 }

@@ -45,6 +45,24 @@ public partial class Order
 
     public int? ShippingMethodID { get; set; }
 
+    /// <summary>
+    /// Warehouse / pick-pack lifecycle for physical goods.
+    /// See <c>OrderPreparationStatus</c> on the order service.
+    /// </summary>
+    public byte PreparationStatus { get; set; }
+
+    /// <summary>
+    /// Carrier shipping lifecycle (independent of payment <see cref="Status"/>).
+    /// See <c>OrderShippingStatus</c> on the order service.
+    /// </summary>
+    public byte ShippingStatus { get; set; }
+
+    /// <summary>Postal / courier tracking code (barcode, AWB, etc.).</summary>
+    public string? ShippingTrackingCode { get; set; }
+
+    /// <summary>When the order was marked shipped (UTC), if known.</summary>
+    public DateTime? ShippedAt { get; set; }
+
     public string? Note { get; set; }
 
     /// <summary>

@@ -226,8 +226,9 @@ public static class ServiceCollectionExtensions
         services.AddScoped<IEmailTemplateService, EmailTemplateService>();
         services.AddScoped<IAdminNotificationService, AdminNotificationService>();
         services.AddScoped<IPasswordResetService, PasswordResetService>();
-        // SMS delivery for customer OTP/reset codes. No real gateway yet — the stub logs the message.
+        // SMS / WhatsApp for OTP and order shipment tracking. Stubs log only until a real gateway is registered.
         services.AddSingleton<ISmsSender, NoOpSmsSender>();
+        services.AddSingleton<IWhatsAppSender, NoOpWhatsAppSender>();
 
         // Provider-specific connection test / database creation used by the Setup page.
         services.AddSingleton<IDatabaseProvisioner, SqlServerProvisioner>();

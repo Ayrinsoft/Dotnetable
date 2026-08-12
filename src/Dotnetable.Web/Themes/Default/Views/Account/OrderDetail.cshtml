@@ -1,17 +1,99 @@
 @using Dotnetable.Application.DTOs
 @using Dotnetable.Domain.Entities
+@using Dotnetable.Application.Interfaces
 @model Order
 @{
     ViewData["Title"] = $"Order {Model.OrderNumber}";
     Layout = "/Themes/Default/Views/Shared/_Layout.cshtml";
     var digitalItems = ViewBag.DigitalItems as IReadOnlyList<DigitalLibraryItemDto> ?? Array.Empty<DigitalLibraryItemDto>();
+    string OrderStatusLabel(OrderStatus s) => s switch
+    {
+        OrderStatus.PendingPayment => "Pending payment",
+        OrderStatus.Paid => "Paid",
+        OrderStatus.Processing => "Processing",
+        OrderStatus.Shipped => "Shipped",
+        OrderStatus.Completed => "Completed",
+        OrderStatus.Cancelled => "Cancelled",
+        OrderStatus.Refunded => "Refunded",
+        _ => s.ToString(),
+    };
+    string PrepLabel(OrderPreparationStatus s) => s switch
+    {
+        OrderPreparationStatus.NotStarted => "Not started",
+        OrderPreparationStatus.Pending => "Pending",
+        OrderPreparationStatus.Preparing => "Preparing / warehouse",
+        OrderPreparationStatus.ReadyToShip => "Ready to ship",
+        _ => s.ToString(),
+    };
+    string ShipLabel(OrderShippingStatus s) => s switch
+    {
+        OrderShippingStatus.NotShipped => "Not shipped",
+        OrderShippingStatus.PreparingShipment => "Preparing shipment",
+        OrderShippingStatus.Shipped => "Shipped",
+        OrderShippingStatus.InTransit => "In transit",
+        OrderShippingStatus.Delivered => "Delivered",
+        OrderShippingStatus.Returned => "Returned",
+        _ => s.ToString(),
+    };
+    var orderStatus = (OrderStatus)Model.Status;
+    var prepStatus = (OrderPreparationStatus)Model.PreparationStatus;
+    var shipStatus = (OrderShippingStatus)Model.ShippingStatus;
 }
 
 @await Html.PartialAsync("_PageHeader", ($"Order {Model.OrderNumber}", "Account"))
 
 <section class="site-section">
     <div class="container" style="max-width:720px">
-        <p><strong>Status:</strong> @((Dotnetable.Application.Interfaces.OrderStatus)Model.Status)</p>
+        <div class="card border-0 shadow-sm mb-4">
+            <div class="card-body">
+                <div class="d-flex flex-wrap gap-2 align-items-center mb-3">
+                    <span class="badge text-bg-primary">@OrderStatusLabel(orderStatus)</span>
+                    @if (Model.PaidAt is DateTime paid)
+                    {
+                        <span class="text-muted small">Paid @paid.ToLocalTime().ToString("g")</span>
+                    }
+                </div>
+                <div class="row g-3">
+                    <div class="col-md-6">
+                        <div class="text-muted small">Preparation</div>
+                        <div class="fw-semibold">@PrepLabel(prepStatus)</div>
+                    </div>
+                    <div class="col-md-6">
+                        <div class="text-muted small">Shipping</div>
+                        <div class="fw-semibold">@ShipLabel(shipStatus)</div>
+                    </div>
+                    @if (Model.ShippingMethod is not null)
+                    {
+                        <div class="col-md-6">
+                            <div class="text-muted small">Shipping method</div>
+                            <div>@Model.ShippingMethod.Title</div>
+                        </div>
+                    }
+                    @if (!string.IsNullOrWhiteSpace(Model.ShippingTrackingCode))
+                    {
+                        <div class="col-md-6">
+                            <div class="text-muted small">Tracking code</div>
+                            <div><code class="user-select-all">@Model.ShippingTrackingCode</code></div>
+                        </div>
+                    }
+                    @if (Model.ShippedAt is DateTime shipped)
+                    {
+                        <div class="col-md-6">
+                            <div class="text-muted small">Shipped at</div>
+                            <div>@shipped.ToLocalTime().ToString("g")</div>
+                        </div>
+                    }
+                    @if (!string.IsNullOrWhiteSpace(Model.AddressSnapshot))
+                    {
+                        <div class="col-12">
+                            <div class="text-muted small">Shipping address</div>
+                            <div>@Model.AddressSnapshot</div>
+                        </div>
+                    }
+                </div>
+            </div>
+        </div>
+
         <table class="table">
             <thead><tr><th>Item</th><th>Qty</th><th>Total</th></tr></thead>
             <tbody>
@@ -23,6 +105,10 @@
                             @if (item.Vendor is not null)
                             {
                                 <div class="small text-muted">Sold by @item.Vendor.Name</div>
+                            }
+                            @if (item.ProductVariantID is int vid)
+                            {
+                                <div class="small text-muted">Variant #@vid · SKU @item.SkuSnapshot</div>
                             }
                         </td>
                         <td>@item.Quantity</td>
@@ -53,9 +139,13 @@
             </div>
         }
 
-        @if (Model.Status == (byte)Dotnetable.Application.Interfaces.OrderStatus.PendingPayment)
+        @if (Model.Status == (byte)OrderStatus.PendingPayment)
         {
             <a asp-controller="Checkout" asp-action="Payment" asp-route-orderId="@Model.OrderID" class="btn btn-primary mt-3">Complete payment</a>
         }
+
+        <div class="mt-3">
+            <a asp-controller="Account" asp-action="Orders" class="btn btn-link px-0">← Back to orders</a>
+        </div>
     </div>
 </section>

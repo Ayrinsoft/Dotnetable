@@ -139,6 +139,7 @@ public class TaxReportService : ITaxReportService
             .Include(o => o.OrderItems).ThenInclude(i => i.ProductVariant)
             .Include(o => o.WebsiteClient)
             .Include(o => o.Website)
+            .Include(o => o.ShippingMethod)
             .FirstOrDefaultAsync(o => o.OrderID == orderId, ct);
         if (order is null) return null;
 
@@ -155,6 +156,12 @@ public class TaxReportService : ITaxReportService
             PaidAt = order.PaidAt,
             Status = order.Status,
             CurrencyCode = order.CurrencyCode,
+            PreparationStatus = order.PreparationStatus,
+            ShippingStatus = order.ShippingStatus,
+            ShippingTrackingCode = order.ShippingTrackingCode,
+            ShippedAt = order.ShippedAt,
+            ShippingMethodID = order.ShippingMethodID,
+            ShippingMethodName = order.ShippingMethod?.Title,
             Seller = new InvoicePartyDto
             {
                 Name = w.BrandName,
@@ -176,6 +183,8 @@ public class TaxReportService : ITaxReportService
             Lines = order.OrderItems.Select(i => new InvoiceLineDto
             {
                 Title = i.TitleSnapshot,
+                ProductID = i.ProductVariant is { ProductID: > 0 } p ? p.ProductID : null,
+                ProductVariantID = i.ProductVariantID,
                 ProductCode = i.ProductVariant is { ProductID: > 0 } pv
                     ? Domain.ProductCode.Format(codePrefix, pv.ProductID)
                     : null,

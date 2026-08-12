@@ -871,6 +871,15 @@ public class ProductService : IProductService
         return new PagedResult<ProductSummaryDto> { Items = items, TotalCount = total };
     }
 
+    public async Task<ProductDetailDto?> GetDetailByIdAsync(int productId, string? languageCode = null, string? currencyCode = null, CancellationToken ct = default)
+    {
+        // Admin preview: ignore publish/active filters so drafts and unpublished products are visible.
+        var product = await AdminDetailQuery()
+            .FirstOrDefaultAsync(p => p.ProductID == productId, ct);
+        if (product is null) return null;
+        return await ProjectDetailAsync(product, languageCode, currencyCode, ct, null, product.WebsiteID, adminPreview: true);
+    }
+
     public async Task<ProductDetailDto?> GetBySlugAsync(int websiteId, string slug, string? languageCode = null, string? currencyCode = null, CancellationToken ct = default)
     {
         // Product code URL: /product/DN-42 (prefix from owning site; id is ProductID, not variant).
@@ -970,9 +979,8 @@ public class ProductService : IProductService
             .Include(p => p.ProductTranslations)
             .Include(p => p.ProductVariants);
 
-    private IQueryable<Product> DetailQuery(int websiteId) =>
-        PublishedQuery(websiteId)
-            .Include(p => p.ProductVariants).ThenInclude(v => v.ImageFile)
+    private IQueryable<Product> DetailIncludes(IQueryable<Product> q) =>
+        q.Include(p => p.ProductVariants).ThenInclude(v => v.ImageFile)
             .Include(p => p.ProductVariants).ThenInclude(v => v.InventoryItems)
             .Include(p => p.ProductVariants).ThenInclude(v => v.VariantAttributeValues).ThenInclude(a => a.AttributeDefinition).ThenInclude(a => a.AttributeDefinitionTranslations)
             .Include(p => p.ProductVariants).ThenInclude(v => v.VariantAttributeValues).ThenInclude(a => a.AttributeOption).ThenInclude(o => o.AttributeOptionTranslations)
@@ -985,6 +993,17 @@ public class ProductService : IProductService
             .Include(p => p.ProductRelationProducts).ThenInclude(r => r.RelatedProduct).ThenInclude(rp => rp.FeaturedImageFile)
             .Include(p => p.ProductRelationProducts).ThenInclude(r => r.RelatedProduct).ThenInclude(rp => rp.ProductVariants)
             .Include(p => p.ProductMedia).ThenInclude(m => m.MediaSet).ThenInclude(ms => ms.MediaSetItems).ThenInclude(i => i.File);
+
+    private IQueryable<Product> DetailQuery(int websiteId) =>
+        DetailIncludes(PublishedQuery(websiteId));
+
+    /// <summary>Full product graph for admin preview (any status / active flag).</summary>
+    private IQueryable<Product> AdminDetailQuery() =>
+        DetailIncludes(_context.Products.AsNoTracking()
+            .Include(p => p.Brand)
+            .Include(p => p.FeaturedImageFile)
+            .Include(p => p.ProductTranslations)
+            .Include(p => p.ProductVariants));
 
     /// <summary>
     /// Products owned by linked websites (Product.WebsiteID == LinkedWebsiteID only — never re-share).
@@ -1206,7 +1225,7 @@ public class ProductService : IProductService
     }
 
     private async Task<ProductDetailDto> ProjectDetailAsync(
-        Product p, string? lang, string? currencyCode, CancellationToken ct, Vendor? vendor = null, int? hostWebsiteId = null)
+        Product p, string? lang, string? currencyCode, CancellationToken ct, Vendor? vendor = null, int? hostWebsiteId = null, bool adminPreview = false)
     {
         var priceWebsiteId = hostWebsiteId ?? vendor?.WebsiteID ?? p.WebsiteID;
         var hostId = hostWebsiteId ?? vendor?.WebsiteID ?? p.WebsiteID;
@@ -1221,32 +1240,35 @@ public class ProductService : IProductService
         if (vendor is not null)
         {
             focusedListings = await _context.VendorProducts.AsNoTracking()
-                .Where(vp => vp.VendorID == vendor.VendorID && vp.IsActive)
+                .Where(vp => vp.VendorID == vendor.VendorID && (adminPreview || vp.IsActive))
                 .ToDictionaryAsync(vp => vp.ProductVariantID, ct);
         }
 
-        // Marketplace sellers on the host for this product — only in-stock (available) listings are returned.
-        var variantIds = p.ProductVariants.Where(v => v.IsActive).Select(v => v.ProductVariantID).ToList();
+        // Marketplace sellers on the host for this product — storefront omits OOS; admin preview keeps them.
+        var sourceVariants = adminPreview
+            ? p.ProductVariants.ToList()
+            : p.ProductVariants.Where(v => v.IsActive).ToList();
+        var variantIds = sourceVariants.Select(v => v.ProductVariantID).ToList();
         // StockQuantity < 0 = unlimited digital; otherwise available = on-hand − reserved.
         var sellerRows = vendor is null && variantIds.Count > 0
             ? await _context.VendorProducts.AsNoTracking()
                 .Include(vp => vp.Vendor)
                 .Include(vp => vp.ProductVariant)
                 .Where(vp => vp.WebsiteID == hostId
-                             && vp.IsActive
-                             && (vp.StockQuantity < 0 || vp.StockQuantity - vp.QuantityReserved > 0)
+                             && (adminPreview || vp.IsActive)
+                             && (adminPreview || vp.StockQuantity < 0 || vp.StockQuantity - vp.QuantityReserved > 0)
                              && variantIds.Contains(vp.ProductVariantID)
-                             && vp.Vendor.IsActive)
+                             && (adminPreview || vp.Vendor.IsActive))
                 .OrderBy(vp => vp.Vendor.Name)
                 .ThenBy(vp => vp.ProductVariant.Title)
                 .ToListAsync(ct)
             : new List<VendorProduct>();
 
-        // When viewing a single site-linked vendor, only that vendor's in-stock offers.
+        // When viewing a single site-linked vendor, only that vendor's offers (in-stock unless admin preview).
         if (vendor is not null && focusedListings is not null)
         {
             sellerRows = focusedListings.Values
-                .Where(vp => vp.IsActive && IVendorProductService.Available(vp) > 0)
+                .Where(vp => (adminPreview || vp.IsActive) && (adminPreview || IVendorProductService.Available(vp) > 0))
                 .ToList();
             // Attach navigation if missing (from dictionary query without Include).
             if (sellerRows.Count > 0 && sellerRows[0].Vendor is null)
@@ -1254,8 +1276,8 @@ public class ProductService : IProductService
                 var reloaded = await _context.VendorProducts.AsNoTracking()
                     .Include(vp => vp.Vendor)
                     .Include(vp => vp.ProductVariant)
-                    .Where(vp => vp.VendorID == vendor.VendorID && vp.IsActive
-                                 && (vp.StockQuantity < 0 || vp.StockQuantity - vp.QuantityReserved > 0)
+                    .Where(vp => vp.VendorID == vendor.VendorID && (adminPreview || vp.IsActive)
+                                 && (adminPreview || vp.StockQuantity < 0 || vp.StockQuantity - vp.QuantityReserved > 0)
                                  && variantIds.Contains(vp.ProductVariantID))
                     .ToListAsync(ct);
                 sellerRows = reloaded;
@@ -1296,7 +1318,7 @@ public class ProductService : IProductService
             .ToDictionary(g => g.Key, g => StockDisplay.Aggregate(g.Select(x => x.StockQuantity)));
 
         var variants = new List<ProductVariantDto>();
-        foreach (var v in p.ProductVariants.Where(v => v.IsActive))
+        foreach (var v in sourceVariants)
         {
             VendorProduct? listing = null;
             focusedListings?.TryGetValue(v.ProductVariantID, out listing);
@@ -1306,9 +1328,8 @@ public class ProductService : IProductService
                 ? (listing is not null ? PublicStock(IVendorProductService.Available(listing)) : 0)
                 : sellerStockByVariant.GetValueOrDefault(v.ProductVariantID);
 
-            // Hide fully unavailable variants when other sellable options exist; keep at least one row for OOS products.
-            // Always include variants that have stock; OOS variants are omitted so they are not offered for sale.
-            if (!StockDisplay.IsInStock(stock))
+            // Storefront: hide OOS variants. Admin preview keeps every variant (including inactive / OOS).
+            if (!adminPreview && !StockDisplay.IsInStock(stock))
                 continue;
 
             var unitLocal = listing?.OverridePriceLocal
@@ -1334,7 +1355,7 @@ public class ProductService : IProductService
                 CompareAtPrice = compareAt,
                 Weight = v.Weight, Barcode = v.Barcode, IsActive = v.IsActive,
                 StockQuantity = stock,
-                IsInStock = true,
+                IsInStock = StockDisplay.IsInStock(stock),
                 DisplayStockQuantity = StockDisplay.ExactCountOrNull(stock),
                 VendorProductID = listing?.VendorProductID,
                 VendorID = vendor?.VendorID,
@@ -1370,18 +1391,18 @@ public class ProductService : IProductService
             IsFeatured = a.IsFeatured,
         }).ToList();
 
-        var warnings = p.ProductWarnings.Where(w => w.IsActive).Select(w => new ProductWarningDto
+        var warnings = p.ProductWarnings.Where(w => adminPreview || w.IsActive).Select(w => new ProductWarningDto
         {
             ProductWarningID = w.ProductWarningID, Severity = w.Severity, Text = LocalizedWarningText(w, lang),
         }).ToList();
 
-        var warranties = p.ProductWarranties.Where(w => w.IsActive).OrderBy(w => w.SortOrder)
+        var warranties = p.ProductWarranties.Where(w => adminPreview || w.IsActive).OrderBy(w => w.SortOrder)
             .Select(w => ResolveWarrantyDto(w, lang))
             .Where(w => !string.IsNullOrWhiteSpace(w.Title) || !string.IsNullOrWhiteSpace(w.Description))
             .ToList();
 
         var related = new List<ProductRefDto>();
-        foreach (var r in p.ProductRelationProducts.Where(r => r.RelatedProduct.IsActive).OrderBy(r => r.SortOrder))
+        foreach (var r in p.ProductRelationProducts.Where(r => adminPreview || r.RelatedProduct.IsActive).OrderBy(r => r.SortOrder))
             related.Add(await ProjectRefAsync(r.RelatedProduct, r.RelationType, lang, currencyCode, ct));
 
         var gallery = p.ProductMedia
@@ -1394,12 +1415,16 @@ public class ProductService : IProductService
 
         return new ProductDetailDto
         {
-            ProductID = summary.ProductID, Slug = summary.Slug, Title = summary.Title, ShortDescription = summary.ShortDescription,
+            ProductID = summary.ProductID,
+            ProductCode = summary.ProductCode,
+            Slug = summary.Slug, Title = summary.Title, ShortDescription = summary.ShortDescription,
             FeaturedImageUrl = summary.FeaturedImageUrl, BrandName = summary.BrandName, DefaultSku = summary.DefaultSku,
             MinPrice = summary.MinPrice, AvgRating = summary.AvgRating, RatingCount = summary.RatingCount, HasVariants = summary.HasVariants,
             ProductType = summary.ProductType, RequiresShipping = summary.RequiresShipping, IsUnlimitedStock = summary.IsUnlimitedStock,
             IsInStock = summary.IsInStock, StockQuantity = summary.StockQuantity, DisplayStockQuantity = summary.DisplayStockQuantity,
             VendorID = summary.VendorID, VendorName = summary.VendorName, VendorProductID = summary.VendorProductID,
+            Status = p.Status,
+            IsActive = p.IsActive,
             Categories = categories, Variants = variants, Sellers = sellers, Attributes = attributes,
             Content = LocalizedContent(p, lang),
             ExpertReview = LocalizedExpertReview(p, lang),

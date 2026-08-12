@@ -42,6 +42,14 @@ else
         </MudStack>
         <MudStack Row="true" Spacing="2">
             <MudButton OnClick="@(() => Nav.NavigateTo("/catalog/products"))">@L["back", "Back"]</MudButton>
+            @if (!_isNew && ProductId > 0)
+            {
+                <MudButton Variant="Variant.Outlined" Color="Color.Info"
+                           StartIcon="@Icons.Material.Filled.Visibility"
+                           OnClick="@(() => Nav.NavigateTo($"/catalog/products/{ProductId}/preview"))">
+                    @L["products.preview", "Preview"]
+                </MudButton>
+            }
             @if (_canEdit)
             {
                 <MudButton Variant="Variant.Filled" Color="Color.Primary" OnClick="SaveAsync"

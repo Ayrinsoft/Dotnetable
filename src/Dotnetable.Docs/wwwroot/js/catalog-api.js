@@ -815,8 +815,8 @@ window.DOCS_API = {
           id: "orders",
           title: { en: "Orders", fa: "سفارش‌های من" },
           summary: {
-            en: "Customer’s own order history and detail (ClientPurchase).",
-            fa: "تاریخچه و جزئیات سفارش خود مشتری (ClientPurchase).",
+            en: "Customer’s own order history and detail (ClientPurchase). Detail includes preparation status, shipping status, and tracking code set by admin after purchase.",
+            fa: "تاریخچه و جزئیات سفارش خود مشتری (ClientPurchase). جزئیات شامل وضعیت آماده‌سازی، وضعیت ارسال و کد پیگیری است که ادمین بعد از خرید ست می‌کند.",
           },
           relatedAdmin: ["orders"],
           related: ["checkout", "payments", "digital"],
@@ -844,7 +844,16 @@ window.DOCS_API = {
               request: { body: "GET /api/Orders/500" },
               response: {
                 status: 200,
-                body: { orderId: 500, items: [], grandTotal: 2650000, currencyCode: "IRR" },
+                body: {
+                  orderId: 500,
+                  status: 3,
+                  preparationStatus: 2,
+                  shippingStatus: 2,
+                  shippingTrackingCode: "1234567890123456789012345",
+                  items: [],
+                  grandTotal: 2650000,
+                  currencyCode: "IRR",
+                },
               },
             },
           ],

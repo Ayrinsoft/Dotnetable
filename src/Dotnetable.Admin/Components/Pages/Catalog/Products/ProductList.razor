@@ -97,6 +97,9 @@
                     <td>@FormatMinPrice(p.MinPrice ?? p.MinPriceUsd)</td>
                     <td>@(p.IsActive ? L["yes", "Yes"] : L["no", "No"])</td>
                     <td @onclick:stopPropagation="true">
+                        <MudIconButton Icon="@Icons.Material.Filled.Visibility" Size="Size.Small" Color="Color.Info"
+                                       Title="@L["products.preview", "Product preview"]"
+                                       OnClick="@(() => Nav.NavigateTo($"/catalog/products/{p.ProductID}/preview"))" />
                         @if (_canDelete)
                         {
                             <MudIconButton Icon="@Icons.Material.Filled.Delete" Size="Size.Small" Color="Color.Error" OnClick="@(() => DeleteAsync(p.ProductID))" />
