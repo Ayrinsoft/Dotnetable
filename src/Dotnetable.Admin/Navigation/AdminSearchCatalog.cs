@@ -91,6 +91,7 @@ public static class AdminSearchCatalog
         new AdminSearchPage("hr.payroll", "Payroll", "/hr/payroll", Icons.Material.Filled.Payments, "nav.hr", "HR", RoleKeys.PayrollView, NavArea: AdminNavArea.Finance, VendorMemberAllowed: false),
         new AdminSearchPage("hr.payroll_reports", "Payroll reports", "/hr/payroll/reports", Icons.Material.Filled.Assessment, "nav.hr", "HR", RoleKeys.PayrollView, NavArea: AdminNavArea.Finance, VendorMemberAllowed: false),
         new AdminSearchPage("hr.rate_brackets", "Payroll rate brackets", "/hr/payroll/rate-brackets", Icons.Material.Filled.StackedLineChart, "nav.hr", "HR", RoleKeys.PayrollRun, NavArea: AdminNavArea.Finance, VendorMemberAllowed: false),
+        new AdminSearchPage("tax.periods", "Tax periods", "/sales/tax/periods", Icons.Material.Filled.DateRange, "nav.promotions", "Tax", RoleKeys.TaxView, NavArea: AdminNavArea.Promotions, VendorMemberAllowed: false),
 
         new AdminSearchPage("payments", "Payments", "/payments", Icons.Material.Filled.CreditCard, "nav.finance", "Finance", RoleKeys.PaymentsView, NavArea: AdminNavArea.Finance, VendorMemberAllowed: false),
         new AdminSearchPage("payments.refunds", "Bank Refunds", "/payments/refunds", Icons.Material.Filled.AssignmentReturn, "nav.finance", "Finance", RoleKeys.PaymentsRefund, NavArea: AdminNavArea.Finance, VendorMemberAllowed: false),

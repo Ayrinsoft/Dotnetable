@@ -144,6 +144,7 @@ public partial class AppDbContext : DbContext
     public virtual DbSet<PayrollRun> PayrollRuns { get; set; }
     public virtual DbSet<PayrollLine> PayrollLines { get; set; }
     public virtual DbSet<PayrollRateBracket> PayrollRateBrackets { get; set; }
+    public virtual DbSet<TaxPeriod> TaxPeriods { get; set; }
 
     public virtual DbSet<OrderDigitalAsset> OrderDigitalAssets { get; set; }
 
@@ -637,8 +638,22 @@ public partial class AppDbContext : DbContext
             entity.Property(e => e.Note).HasMaxLength(300);
             entity.Property(e => e.ReturnCondition).HasDefaultValue((byte)0);
             entity.Property(e => e.HealthGrade).HasDefaultValue((byte)0);
+            entity.Property(e => e.BookQuantity).HasDefaultValue(0);
             entity.HasOne(d => d.StockDocument).WithMany(p => p.StockDocumentLines).HasForeignKey(d => d.StockDocumentID).OnDelete(DeleteBehavior.ClientSetNull);
             entity.HasOne(d => d.ProductVariant).WithMany().HasForeignKey(d => d.ProductVariantID).OnDelete(DeleteBehavior.ClientSetNull);
+        });
+        modelBuilder.Entity<TaxPeriod>(entity =>
+        {
+            entity.HasIndex(e => new { e.WebsiteID, e.PeriodCode }, "IX_TaxPeriods_Website_Code").IsUnique();
+            entity.HasIndex(e => new { e.WebsiteID, e.Status, e.FromDate }, "IX_TaxPeriods_Website_Status");
+            entity.Property(e => e.PeriodCode).HasMaxLength(30);
+            entity.Property(e => e.Note).HasMaxLength(1000);
+            entity.Property(e => e.OutputTaxSnapshot).HasColumnType("decimal(18,4)");
+            entity.Property(e => e.SettlementTaxSnapshot).HasColumnType("decimal(18,4)");
+            entity.Property(e => e.NetTaxSnapshot).HasColumnType("decimal(18,4)");
+            entity.HasOne(d => d.Website).WithMany().HasForeignKey(d => d.WebsiteID).OnDelete(DeleteBehavior.ClientSetNull);
+            entity.HasOne(d => d.CreatedByMember).WithMany().HasForeignKey(d => d.CreatedByMemberID);
+            entity.HasOne(d => d.ClosedByMember).WithMany().HasForeignKey(d => d.ClosedByMemberID);
         });
         modelBuilder.Entity<StockDocumentHistory>(entity =>
         {

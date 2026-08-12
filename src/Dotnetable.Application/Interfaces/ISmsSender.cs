@@ -1,13 +1,14 @@
 namespace Dotnetable.Application.Interfaces;
 
 /// <summary>
-/// Sends transactional SMS (activation / password-reset codes) to website customers.
-/// No real provider ships yet — <c>NoOpSmsSender</c> only logs the message. Swap in a real
-/// implementation (Kavenegar, Twilio, …) later without touching the auth flow.
+/// Transactional SMS (OTP, shipment tracking, etc.).
+/// No gateway is shipped yet — runtime uses a no-op that only logs.
+/// A site-scoped provider factory (same idea as storage backends) will select the active gateway
+/// from website settings when real providers are added later.
 /// </summary>
 public interface ISmsSender
 {
-    /// <summary>True when a real SMS gateway is configured. The stub returns false.</summary>
+    /// <summary>True when a real SMS gateway is configured for the current send path. The no-op returns false.</summary>
     bool IsConfigured { get; }
 
     /// <summary>Sends <paramref name="message"/> to a phone number (country code + national number).</summary>

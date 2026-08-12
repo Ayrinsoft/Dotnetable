@@ -7,6 +7,7 @@ namespace Dotnetable.Application.Interfaces;
 public sealed class StockDocumentLineRequest
 {
     public int ProductVariantID { get; set; }
+    /// <summary>Movement qty (Transfer/Inbound/…) or counted qty when creating Count lines.</summary>
     public int Quantity { get; set; }
     public decimal UnitCost { get; set; }
     public string? Note { get; set; }
@@ -14,6 +15,10 @@ public sealed class StockDocumentLineRequest
     public byte ReturnCondition { get; set; }
     /// <summary><see cref="StockHealthGrade"/> required for non-new conditions.</summary>
     public byte HealthGrade { get; set; }
+    /// <summary>Optional book snapshot for Count (filled by server if 0).</summary>
+    public int BookQuantity { get; set; }
+    /// <summary>Optional counted qty for Count (defaults to Quantity when creating Count).</summary>
+    public int? CountedQuantity { get; set; }
 }
 
 /// <summary>Row for the warehouse worker pick queue.</summary>
@@ -85,4 +90,18 @@ public interface IStockDocumentService
 
     /// <summary>Submitted → Approved (Ready to pick).</summary>
     Task<(bool Success, string? Error)> MarkReadyToPickAsync(int documentId, int? memberId, CancellationToken ct = default);
+
+    /// <summary>
+    /// Creates a Draft Count document pre-filled from warehouse on-hand (book = on-hand, counted = book).
+    /// </summary>
+    Task<(bool Success, string? Error, StockDocument? Doc)> CreateCountFromWarehouseAsync(
+        int websiteId, int warehouseId, string? note, int? memberId, CancellationToken ct = default);
+
+    /// <summary>Update counted qty on a Count line (recomputes variance into Quantity).</summary>
+    Task<(bool Success, string? Error)> SetCountedQuantityAsync(
+        int stockDocumentLineId, int countedQuantity, int? memberId, CancellationToken ct = default);
+
+    /// <summary>Add a line to a Draft document (Transfer multi-line etc.).</summary>
+    Task<(bool Success, string? Error)> AddLineAsync(
+        int documentId, StockDocumentLineRequest line, int? memberId, CancellationToken ct = default);
 }

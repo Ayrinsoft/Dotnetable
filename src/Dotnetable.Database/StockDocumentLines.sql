@@ -3,6 +3,8 @@ CREATE TABLE [dbo].[StockDocumentLines] (
     [StockDocumentID]     INT             NOT NULL,
     [ProductVariantID]    INT             NOT NULL,
     [Quantity]            INT             NOT NULL,
+    [BookQuantity]        INT             NOT NULL CONSTRAINT [DF_StockDocumentLines_BookQuantity] DEFAULT ((0)),
+    [CountedQuantity]     INT             NULL,
     [UnitCost]            DECIMAL (18, 4) NOT NULL,
     [UnitCostUsd]         DECIMAL (18, 4) NOT NULL,
     [Note]                NVARCHAR (300)  NULL,

@@ -1,3 +1,4 @@
+using Dotnetable.Application.Authorization;
 using Dotnetable.Application.DTOs;
 using Dotnetable.Application.Financial;
 using Dotnetable.Application.Interfaces;
@@ -16,16 +17,18 @@ public class PayrollService : IPayrollService
     private readonly IFinancialLedgerService _ledger;
     private readonly IChartOfAccountService _coa;
     private readonly IJournalService _journals;
+    private readonly IAdminNotificationService _notifications;
 
     public PayrollService(
         AppDbContext context, IHrService hr, IFinancialLedgerService ledger,
-        IChartOfAccountService coa, IJournalService journals)
+        IChartOfAccountService coa, IJournalService journals, IAdminNotificationService notifications)
     {
         _context = context;
         _hr = hr;
         _ledger = ledger;
         _coa = coa;
         _journals = journals;
+        _notifications = notifications;
     }
 
     public async Task<PagedResult<PayrollRun>> GetRunsAsync(int websiteId, GridQuery query, CancellationToken ct = default)
@@ -114,6 +117,19 @@ public class PayrollService : IPayrollService
         if (run.Status != (byte)PayrollRunStatus.Draft) return (false, "Only draft runs can be submitted.");
         run.Status = (byte)PayrollRunStatus.Submitted;
         await _context.SaveChangesAsync(ct);
+        try
+        {
+            await _notifications.NotifyRoleAsync(
+                run.WebsiteID,
+                [RoleKeys.PayrollView, RoleKeys.PayrollApprove, RoleKeys.HrView],
+                AdminNotificationType.PayrollPending,
+                "Payroll submitted",
+                $"Run {run.RunNumber} net {run.TotalNet:0.##} {run.CurrencyCode} awaits approval.",
+                $"/hr/payroll/{run.PayrollRunID}",
+                run.PayrollRunID,
+                ct);
+        }
+        catch { /* ignore */ }
         return (true, null);
     }
 

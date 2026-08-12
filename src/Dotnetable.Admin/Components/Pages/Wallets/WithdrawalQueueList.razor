@@ -60,9 +60,9 @@
                         <RecordAttachmentsPanel WebsiteId="w.WebsiteID"
                                                EntityType="@RecordEntityTypes.ClientWalletWithdrawal"
                                                EntityId="w.ClientWalletWithdrawalID"
-                                               CanEdit="_canApprove"
+                                               CanEdit="true"
                                                Compact="true"
-                                               Title="@L["attachments.withdrawal", "Bank payout receipt"]" />
+                                               Title="@L["attachments.withdrawal", "Bank payout receipt scan"]" />
                     </td>
                     <td>
                         @if (w.Status == (byte)ClientWalletWithdrawalStatus.Pending && _canApprove)

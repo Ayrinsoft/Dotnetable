@@ -1553,8 +1553,16 @@ window.DOCS_ADMIN = {
               fa: "سند را باز کنید → QC خطوط برگشت را بگذارید → Approve / Post. برگه بسته‌بندی را با **Upload scan** پیوست کنید.",
             },
             {
+              en: "**Transfer:** pick From + To warehouses → Create transfer → add lines (qty). **Count:** pick warehouse → Physical count (loads book on-hand) → edit Counted → Variance = Counted − Book posts as adjustment only.",
+              fa: "**انتقال:** انبار مبدأ/مقصد → Create transfer → افزودن خطوط. **شمارش:** انبار → Physical count (بارگذاری موجودی دفتری) → Counted را اصلاح کنید → Variance = Counted − Book فقط اختلاف را Post می‌کند.",
+            },
+            {
               en: "Set **condition** on each return line: New, Like new, Open box, Display, Used, Defective. Non-new (except Defective) **require a health grade** A–F. New restocks original listing; Open box / Display / Used restock a used-channel listing and map the product to category slug `used-goods`; Defective is scrap-only.",
               fa: "روی هر خط برگشت **وضعیت** بگذارید: نو، در حد نو، جعبه باز، ویترینی، کارکرده، معیوب. غیر از نو (به‌جز معیوب) **گرید سلامت A–F اجباری** است. نو → لیستینگ اصلی؛ جعبه باز/ویترینی/کارکرده → لیستینگ کانال کارکرده + دسته `used-goods`؛ معیوب فقط ضایعات.",
+            },
+            {
+              en: "Submit/approve/post warehouse docs notify members with warehouse roles (in-app + email + WhatsApp when gateway configured).",
+              fa: "Submit/Approve/Post اسناد انبار به نقش‌های انبار نوتیف می‌دهد (داخل ادمین + ایمیل + واتساپ در صورت پیکربندی).",
             },
           ],
           related: ["warehouses", "warehouse-tasks", "orders", "payments-refunds", "inventory-stock"],
@@ -1960,8 +1968,8 @@ window.DOCS_ADMIN = {
           },
           howTo: [
             {
-              en: "Create a run for a period → Submit → Approve → Mark paid (posts GL).",
-              fa: "برای بازه Create run → Submit → Approve → Mark paid (ثبت حسابداری).",
+              en: "Create a run for a period → Submit → Approve → Mark paid (posts GL). Submit notifies HR/payroll roles (email + WhatsApp when configured).",
+              fa: "برای بازه Create run → Submit → Approve → Mark paid (ثبت حسابداری). Submit به نقش‌های HR/حقوق نوتیف می‌دهد.",
             },
             {
               en: "Export Excel from run detail or **Payroll reports** (insurance payable / tax payable / full statutory).",
@@ -1972,7 +1980,23 @@ window.DOCS_ADMIN = {
               fa: "پله‌ها را در **Rate brackets** بگذارید. روی قرارداد **Use flat rates** را خاموش کنید تا پله‌ها اعمال شوند (وگرنه درصد ثابت قرارداد).",
             },
           ],
-          related: ["settlements", "bank-accounts"],
+          related: ["settlements", "bank-accounts", "tax-periods"],
+        },
+        {
+          id: "tax-periods",
+          title: { en: "Tax periods", fa: "دوره‌های مالیاتی" },
+          adminPath: "/sales/tax/periods",
+          summary: {
+            en: "Persisted filing windows with VAT snapshots (output + settlement). Attach authority letters. Separate from live VAT report and GL fiscal periods.",
+            fa: "بازه‌های اظهارنامه با اسنپ‌شات VAT (خروجی + تسویه). پیوست نامه سازمان. جدا از گزارش زنده VAT و دوره حسابداری.",
+          },
+          howTo: [
+            {
+              en: "Create period with code + dates → Generate snapshot or Close (auto-snapshots) → Mark filed. Upload scans on the period detail.",
+              fa: "دوره با کد و تاریخ بسازید → Generate snapshot یا Close → Mark filed. اسکن‌ها را روی جزئیات دوره آپلود کنید.",
+            },
+          ],
+          related: ["payroll", "settlements"],
         },
         {
           id: "bank-accounts",
