@@ -46,6 +46,7 @@ public class ChartOfAccountService : IChartOfAccountService
             ("2300", "Insurance payable", GlAccountType.Liability, 70),
             ("2400", "Payroll payable", GlAccountType.Liability, 80),
             ("3100", "Equity", GlAccountType.Equity, 90),
+            ("3200", "Retained earnings", GlAccountType.Equity, 95),
             ("4100", "Sales", GlAccountType.Income, 100),
             ("4200", "Shipping income", GlAccountType.Income, 110),
             ("4300", "Markup income", GlAccountType.Income, 120),

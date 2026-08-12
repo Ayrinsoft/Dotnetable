@@ -590,6 +590,7 @@ public partial class AppDbContext : DbContext
         modelBuilder.Entity<FiscalPeriod>(entity =>
         {
             entity.HasIndex(e => new { e.WebsiteID, e.PeriodFrom }, "IX_FiscalPeriods_WebsiteID");
+            entity.HasIndex(e => new { e.WebsiteID, e.IsClosed, e.PeriodFrom }, "IX_FiscalPeriods_Website_Closed");
             entity.Property(e => e.Name).HasMaxLength(100);
             entity.Property(e => e.IsClosed).HasDefaultValue(false);
             entity.HasOne(d => d.ClosedByMember).WithMany()
@@ -599,6 +600,12 @@ public partial class AppDbContext : DbContext
                 .HasForeignKey(d => d.WebsiteID)
                 .OnDelete(DeleteBehavior.ClientSetNull)
                 .HasConstraintName("FK_FiscalPeriods_Websites");
+            entity.HasOne(d => d.OpeningJournalEntry).WithMany()
+                .HasForeignKey(d => d.OpeningJournalEntryID)
+                .OnDelete(DeleteBehavior.ClientSetNull);
+            entity.HasOne(d => d.ClosingJournalEntry).WithMany()
+                .HasForeignKey(d => d.ClosingJournalEntryID)
+                .OnDelete(DeleteBehavior.ClientSetNull);
         });
 
         modelBuilder.Entity<Warehouse>(entity =>
@@ -3443,6 +3450,10 @@ public partial class AppDbContext : DbContext
             entity.Property(e => e.SellerVatNumber).HasMaxLength(50);
             entity.Property(e => e.AllowCashOnDelivery).HasDefaultValue(true);
             entity.Property(e => e.ReportOfflineOrdersToTax).HasDefaultValue(false);
+            entity.Property(e => e.FiscalPeriodCadence).HasDefaultValue((byte)3);
+            entity.Property(e => e.FiscalYearStartMonth).HasDefaultValue((byte)1);
+            entity.Property(e => e.FiscalWeekStartDay).HasDefaultValue((byte)1);
+            entity.Property(e => e.FiscalCloseDueDays).HasDefaultValue(5);
             entity.Property(e => e.FreeShippingMinOrderAmount).HasColumnType("decimal(18, 4)");
             entity.Property(e => e.FreeShippingMinOrderAmountUsd).HasColumnType("decimal(18, 4)");
             entity.Property(e => e.ProductCodePrefix)

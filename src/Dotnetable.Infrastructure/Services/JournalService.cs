@@ -53,14 +53,15 @@ public class JournalService : IJournalService
             && await _context.JournalEntries.AnyAsync(j => j.WebsiteID == websiteId && j.SourceKey == sourceKey, ct))
             return (false, "Journal already exists for this source.", null);
 
-        var closed = await _context.FiscalPeriods.AnyAsync(p =>
-            p.WebsiteID == websiteId && p.IsClosed && p.PeriodFrom <= entryDate && p.PeriodTo >= entryDate, ct);
-        if (closed) return (false, "Fiscal period is closed for this date.", null);
-
-        var periodId = await _context.FiscalPeriods.AsNoTracking()
+        var period = await _context.FiscalPeriods.AsNoTracking()
             .Where(p => p.WebsiteID == websiteId && p.PeriodFrom <= entryDate && p.PeriodTo >= entryDate)
-            .Select(p => (int?)p.FiscalPeriodID)
+            .OrderByDescending(p => p.PeriodFrom)
             .FirstOrDefaultAsync(ct);
+        if (period is null)
+            return (false, "No fiscal period covers this date. Generate periods under Finance → Fiscal periods.", null);
+        if (period.IsClosed)
+            return (false, "Fiscal period is closed for this date. Closed periods are report-only.", null);
+        var periodId = (int?)period.FiscalPeriodID;
 
         var seq = await _context.JournalEntries.CountAsync(j => j.WebsiteID == websiteId, ct) + 1;
         var entry = new JournalEntry

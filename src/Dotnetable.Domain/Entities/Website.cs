@@ -103,6 +103,20 @@ public partial class Website
     /// </summary>
     public string ProductCodePrefix { get; set; } = "DN";
 
+    /// <summary><see cref="Enums.FiscalPeriodCadence"/> — day / week / month / year accounting periods.</summary>
+    public byte FiscalPeriodCadence { get; set; } = 3; // Monthly
+
+    /// <summary>Month (1–12) when the fiscal year starts (used for yearly/monthly generation).</summary>
+    public byte FiscalYearStartMonth { get; set; } = 1;
+
+    /// <summary>Day of week for weekly periods: 0 = Sunday … 6 = Saturday.</summary>
+    public byte FiscalWeekStartDay { get; set; } = 1; // Monday
+
+    /// <summary>
+    /// Days after <c>PeriodTo</c> when the period is due to be closed (soft deadline for the site owner).
+    /// </summary>
+    public int FiscalCloseDueDays { get; set; } = 5;
+
     public virtual ICollection<AdminNotification> AdminNotifications { get; set; } = new List<AdminNotification>();
 
     public virtual ICollection<AttributeDefinition> AttributeDefinitions { get; set; } = new List<AttributeDefinition>();
