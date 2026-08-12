@@ -103,6 +103,7 @@
     <Build Include="PaymentGateways.sql" />
     <Build Include="OrderStatusHistories.sql" />
     <Build Include="Orders.sql" />
+    <Build Include="FinancialLedgerEntries.sql" />
     <Build Include="OrderItems.sql" />
     <Build Include="MediaSets.sql" />
     <Build Include="MediaSetItems.sql" />

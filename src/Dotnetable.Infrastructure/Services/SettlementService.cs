@@ -11,8 +11,13 @@ namespace Dotnetable.Infrastructure.Services;
 public class SettlementService : ISettlementService
 {
     private readonly AppDbContext _context;
+    private readonly IFinancialLedgerService _ledger;
 
-    public SettlementService(AppDbContext context) => _context = context;
+    public SettlementService(AppDbContext context, IFinancialLedgerService ledger)
+    {
+        _context = context;
+        _ledger = ledger;
+    }
 
     public async Task<PagedResult<Settlement>> GetPagedAsync(int websiteId, GridQuery query, CancellationToken ct = default)
     {
@@ -71,6 +76,28 @@ public class SettlementService : ISettlementService
         s.PaidAt = DateTime.UtcNow;
         s.ApprovedByMemberID ??= memberId;
         await _context.SaveChangesAsync(ct);
+
+        try
+        {
+            await _ledger.PostAsync(new PostFinancialEntryRequest
+            {
+                WebsiteId = s.WebsiteID,
+                TransactionType = Application.Financial.FinancialTransactionTypes.SettlementPaid,
+                Flow = Application.Financial.FinancialFlow.Out,
+                Amount = s.TotalAmount,
+                AmountUsd = s.TotalAmount,
+                CurrencyCode = s.CurrencyCode,
+                Title = $"Settlement S-{s.SettlementID} paid",
+                Description = s.PaymentRefNumber,
+                ReportToTax = true,
+                VendorVisible = true,
+                VendorId = s.VendorID,
+                SettlementId = s.SettlementID,
+                MemberId = memberId,
+            }, ct);
+        }
+        catch { /* ignore */ }
+
         return true;
     }
 

@@ -1512,6 +1512,48 @@ window.DOCS_ADMIN = {
       ],
     },
 
+    /* ───────────────────── Finance ledger ───────────────────── */
+    {
+      id: "finance-ledger",
+      title: { en: "Finance", fa: "مالی" },
+      summary: {
+        en: "Operational money ledger, settlements, payments.",
+        fa: "دفتر کل عملیاتی پول، تسویه، پرداخت‌ها.",
+      },
+      pages: [
+        {
+          id: "ledger",
+          title: { en: "Financial ledger", fa: "دفتر کل مالی" },
+          adminPath: "/finance/ledger",
+          summary: {
+            en: "All inflows/outflows and invoice components: payment, shipping, markup, line revenue/cost/profit, vendor settlement, refunds, additional charges. Date+time separate. Editable rows keep history.",
+            fa: "همه دریافت/پرداخت و اجزای فاکتور: پرداخت، ارسال، روکشی، درآمد/هزینه/سود خط، تسویه فروشنده، استرداد، هزینه اضافه. تاریخ و زمان جدا. ویرایش تاریخچه نگه می‌دارد.",
+          },
+          purpose: [
+            {
+              en: "Report every money behavior on the site without locking transaction types (string codes).",
+              fa: "گزارش هر رفتار پولی سایت بدون محدود کردن نوع تراکنش (کد رشته‌ای).",
+            },
+            {
+              en: "Invoice screen shows final totals + additional charges; tax flag per line.",
+              fa: "صفحه سفارش جمع نهایی + هزینه اضافه را نشان می‌دهد؛ پرچم مالیات روی هر خط.",
+            },
+          ],
+          howTo: [
+            {
+              en: "Open Finance → Financial ledger. Filter by date/type. Paid orders auto-post a breakdown.",
+              fa: "Finance → Financial ledger. فیلتر تاریخ/نوع. سفارش‌های پرداخت‌شده breakdown می‌گیرند.",
+            },
+            {
+              en: "On an order, open Financial breakdown to review components; use Additional charge for extra amounts. Sellers open My settlements (vendor-visible amounts only). Ledger rows are created automatically when payment is recorded — no backfill UI.",
+              fa: "روی سفارش Financial breakdown را برای اجزا ببینید؛ برای مبلغ اضافه Additional charge. فروشنده: My settlements (فقط مبلغ تسویه). ردیف‌های دفتر کل با ثبت پرداخت خودکار ساخته می‌شوند — بدون UI بازسازی سفارش‌های قدیم.",
+            },
+          ],
+          related: ["orders", "settlements", "payments"],
+        },
+      ],
+    },
+
     /* ───────────────────── Orders & Support ───────────────────── */
     {
       id: "orders-support",

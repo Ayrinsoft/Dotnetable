@@ -3,12 +3,14 @@
 @inject IOrderService OrderService
 @inject IPaymentService PaymentService
 @inject IBankAccountService BankAccountService
+@inject IFinancialLedgerService Ledger
 @inject AuthenticationStateProvider AuthState
 @inject IDialogService DialogService
 @inject ISnackbar Snackbar
 @inject NavigationManager Nav
 @inject IPageLocalizer L
 @using Dotnetable.Domain.Enums
+@using Dotnetable.Application.Financial
 
 <DNPageTitle Title="@(_order is null ? "" : $"{L["orders.order", "Order"]} {_order.OrderNumber}")" />
 
@@ -87,6 +89,86 @@ else
                     </tbody>
                 </MudSimpleTable>
             </MudPaper>
+
+            @if (_fin is not null)
+            {
+                <MudPaper Elevation="0" Class="app-card rounded-lg pa-4 mb-3">
+                    <MudText Typo="Typo.subtitle1" Class="mb-2">@L["ledger.order_finance", "Financial breakdown"]</MudText>
+                    <MudGrid Spacing="2" Class="mb-3">
+                        <MudItem xs="6" sm="4"><MudText Typo="Typo.caption">@L["orders.grand_total", "Invoice total"]</MudText><MudText>@MoneyFormat.GroupWithCode(_fin.OrderGrandTotalSnapshot, _fin.CurrencyCode)</MudText></MudItem>
+                        <MudItem xs="6" sm="4"><MudText Typo="Typo.caption">@L["ledger.net_received", "Net received"]</MudText><MudText>@MoneyFormat.GroupWithCode(_fin.NetReceived, _fin.CurrencyCode)</MudText></MudItem>
+                        <MudItem xs="6" sm="4"><MudText Typo="Typo.caption">@L["ledger.additional", "Additional charges"]</MudText><MudText>@MoneyFormat.GroupWithCode(_fin.AdditionalChargesTotal, _fin.CurrencyCode)</MudText></MudItem>
+                        <MudItem xs="6" sm="4"><MudText Typo="Typo.caption">@L["shipping", "Shipping"]</MudText><MudText>@MoneyFormat.Group(_fin.ShippingTotal, _fin.CurrencyCode)</MudText></MudItem>
+                        <MudItem xs="6" sm="4"><MudText Typo="Typo.caption">@L["orders.markup", "Markup"]</MudText><MudText>@MoneyFormat.Group(_fin.MarkupTotal, _fin.CurrencyCode)</MudText></MudItem>
+                        <MudItem xs="6" sm="4"><MudText Typo="Typo.caption">@L["ledger.product_revenue", "Product revenue"]</MudText><MudText>@MoneyFormat.Group(_fin.ProductRevenueTotal, _fin.CurrencyCode)</MudText></MudItem>
+                        <MudItem xs="6" sm="4"><MudText Typo="Typo.caption">@L["ledger.product_cost", "Product cost / settle"]</MudText><MudText>@MoneyFormat.Group(_fin.ProductCostTotal, _fin.CurrencyCode)</MudText></MudItem>
+                        <MudItem xs="6" sm="4"><MudText Typo="Typo.caption">@L["ledger.product_profit", "Product profit"]</MudText><MudText>@MoneyFormat.Group(_fin.ProductProfitTotal, _fin.CurrencyCode)</MudText></MudItem>
+                        <MudItem xs="6" sm="4"><MudText Typo="Typo.caption">@L["ledger.vendor_settled", "Vendor settlements"]</MudText><MudText>@MoneyFormat.Group(_fin.VendorSettlementTotal, _fin.CurrencyCode)</MudText></MudItem>
+                        <MudItem xs="6" sm="4">
+                            <MudText Typo="Typo.caption">@L["orders.report_to_tax", "Report to tax"]</MudText>
+                            <MudChip T="string" Size="Size.Small" Color="@(_fin.ReportToTax ? Color.Success : Color.Warning)">
+                                @(_fin.ReportToTax ? L["yes", "Yes"] : L["no", "No"])
+                            </MudChip>
+                        </MudItem>
+                    </MudGrid>
+                    @if (_fin.Lines.Count > 0)
+                    {
+                        <MudSimpleTable Dense="true" Elevation="0" Class="mb-2">
+                            <thead>
+                                <tr>
+                                    <th>@L["date", "Date"]</th>
+                                    <th>@L["time", "Time"]</th>
+                                    <th>@L["type", "Type"]</th>
+                                    <th>@L["title", "Title"]</th>
+                                    <th class="text-end">@L["amount", "Amount"]</th>
+                                    <th>@L["tax", "Tax"]</th>
+                                </tr>
+                            </thead>
+                            <tbody>
+                                @foreach (var line in _fin.Lines)
+                                {
+                                    <tr>
+                                        <td>@line.OccurredDate.ToString("yyyy-MM-dd")</td>
+                                        <td>@line.OccurredTime.ToString("HH:mm")</td>
+                                        <td><code>@line.TransactionType</code></td>
+                                        <td>@line.Title</td>
+                                        <td class="text-end">@MoneyFormat.Group(line.Amount, line.CurrencyCode)</td>
+                                        <td>@(line.ReportToTax ? L["yes", "Yes"] : L["no", "No"])</td>
+                                    </tr>
+                                }
+                            </tbody>
+                        </MudSimpleTable>
+                    }
+                    @if (_fin.History.Count > 0)
+                    {
+                        <MudText Typo="Typo.caption" Color="Color.Secondary" Class="mb-1">@L["ledger.history", "Previous versions"]</MudText>
+                        @foreach (var h in _fin.History.Take(20))
+                        {
+                            <MudText Typo="Typo.caption">v@h.Version · @h.TransactionType · @h.Amount.ToString("0.##") · @(h.ChangeNote ?? "")</MudText>
+                        }
+                    }
+                    @if (_canEdit)
+                    {
+                        <MudDivider Class="my-3" />
+                        <MudText Typo="Typo.subtitle2" Class="mb-2">@L["ledger.add_charge", "Additional charge"]</MudText>
+                        <MudGrid Spacing="2">
+                            <MudItem xs="12" sm="4">
+                                <DNMoneyField @bind-Value="_extraAmount" Label="@L["amount", "Amount"]" Min="0" />
+                            </MudItem>
+                            <MudItem xs="12" sm="4">
+                                <MudTextField @bind-Value="_extraTitle" Label="@L["title", "Title"]" Variant="Variant.Outlined" Dense="true" />
+                            </MudItem>
+                            <MudItem xs="12" sm="4" Class="d-flex align-end">
+                                <MudButton Variant="Variant.Filled" Color="Color.Secondary" OnClick="AddChargeAsync" Disabled="_savingExtra">
+                                    @L["ledger.record_charge", "Record charge"]
+                                </MudButton>
+                            </MudItem>
+                        </MudGrid>
+                        <MudSwitch T="bool" @bind-Value="_extraRecordPayment" Color="Color.Primary" Class="mt-2"
+                                   Label="@L["ledger.also_payment", "Also record as received payment"]" />
+                    }
+                </MudPaper>
+            }
 
             <MudPaper Elevation="0" Class="app-card rounded-lg pa-4 mb-3">
                 <MudText Typo="Typo.subtitle1" Class="mb-2">@L["payments", "Payments"]</MudText>
@@ -375,6 +457,11 @@ else
     private OrderShippingStatus _shipStatus;
     private string? _trackingCode;
     private string? _fulfillmentNote;
+    private OrderFinancialSummaryDto? _fin;
+    private decimal _extraAmount;
+    private string? _extraTitle;
+    private bool _extraRecordPayment = true;
+    private bool _savingExtra;
 
     private PaymentMethod _receiveMethod = PaymentMethod.CashOnDelivery;
     private decimal _receiveAmount;
@@ -575,6 +662,7 @@ else
     {
         _loading = true;
         _order = await OrderService.GetByIdAsync(OrderId);
+        _fin = await Ledger.GetOrderSummaryAsync(OrderId);
         if (_order is not null)
         {
             _newStatus = (OrderStatus)_order.Status;
@@ -639,4 +727,35 @@ else
         OrderShippingStatus.Returned => L["orders.ship.returned", "Returned"],
         _ => s.ToString(),
     };
+
+    private async Task AddChargeAsync()
+    {
+        if (_order is null || _extraAmount <= 0)
+        {
+            Snackbar.Add(L["payments.amount_required", "Enter a valid amount."], Severity.Warning);
+            return;
+        }
+        _savingExtra = true;
+        try
+        {
+            var (ok, error, _) = await Ledger.PostAdditionalChargeAsync(new PostAdditionalChargeRequest
+            {
+                OrderId = _order.OrderID,
+                Amount = _extraAmount,
+                Title = string.IsNullOrWhiteSpace(_extraTitle) ? "Additional charge" : _extraTitle!,
+                ReportToTax = _order.ReportToTax,
+                RecordPayment = _extraRecordPayment,
+                MemberId = _currentMemberId,
+            });
+            if (ok)
+            {
+                Snackbar.Add(L["saved", "Saved."], Severity.Success);
+                _extraAmount = 0;
+                _extraTitle = null;
+                await LoadAsync();
+            }
+            else Snackbar.Add(error ?? L["save_failed", "Save failed"], Severity.Error);
+        }
+        finally { _savingExtra = false; }
+    }
 }

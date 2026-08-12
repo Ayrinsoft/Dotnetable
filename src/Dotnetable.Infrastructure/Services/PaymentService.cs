@@ -14,15 +14,17 @@ public class PaymentService : IPaymentService
     private readonly IClientWalletService _wallet;
     private readonly IOrderService _orders;
     private readonly IAdminNotificationService _notifications;
+    private readonly IFinancialLedgerService _ledger;
 
     public PaymentService(
         AppDbContext context, IClientWalletService wallet, IOrderService orders,
-        IAdminNotificationService notifications)
+        IAdminNotificationService notifications, IFinancialLedgerService ledger)
     {
         _context = context;
         _wallet = wallet;
         _orders = orders;
         _notifications = notifications;
+        _ledger = ledger;
     }
 
     public async Task<(bool Success, string? Error, Payment? Payment)> PayWithWalletAsync(int websiteId, int clientId, int orderId, CancellationToken ct = default)
@@ -64,6 +66,8 @@ public class PaymentService : IPaymentService
         await _context.SaveChangesAsync(ct);
 
         await _orders.TransitionStatusAsync(orderId, OrderStatus.Paid, null, "Paid with wallet balance.", ct);
+        try { await _ledger.PostOrderPaidBreakdownAsync(orderId, payment.PaymentID, null, ct); }
+        catch { /* ledger must not block payment */ }
 
         await _notifications.NotifySiteAdminsAsync(
             websiteId,
@@ -209,6 +213,15 @@ public class PaymentService : IPaymentService
                     await _context.SaveChangesAsync(ct);
                 }
             }
+
+            try { await _ledger.PostOrderPaidBreakdownAsync(orderId, payment.PaymentID, memberId, ct); }
+            catch { /* ledger must not block payment */ }
+        }
+        else if (paid)
+        {
+            // Order already Paid (e.g. additional recording path) — still refresh ledger.
+            try { await _ledger.PostOrderPaidBreakdownAsync(orderId, payment.PaymentID, memberId, ct); }
+            catch { /* ignore */ }
         }
 
         await _notifications.NotifySiteAdminsAsync(
@@ -236,7 +249,11 @@ public class PaymentService : IPaymentService
         await _context.SaveChangesAsync(ct);
 
         if (approve && payment.OrderID is int orderId)
+        {
             await _orders.TransitionStatusAsync(orderId, OrderStatus.Paid, memberId, note ?? "Bank transfer verified.", ct);
+            try { await _ledger.PostOrderPaidBreakdownAsync(orderId, payment.PaymentID, memberId, ct); }
+            catch { /* ignore */ }
+        }
 
         return true;
     }
@@ -352,7 +369,14 @@ public class PaymentService : IPaymentService
         await _context.SaveChangesAsync(ct);
 
         if (payment.OrderID is int orderId)
+        {
             await _orders.TransitionStatusAsync(orderId, OrderStatus.Refunded, memberId, reason, ct);
+            if (completedNow)
+            {
+                try { await _ledger.PostCustomerRefundAsync(orderId, paymentId, amount, reason, memberId, ct); }
+                catch { /* ignore */ }
+            }
+        }
 
         return (true, null, refund);
     }
@@ -365,6 +389,15 @@ public class PaymentService : IPaymentService
         refund.Status = (byte)PaymentRefundStatus.Completed;
         refund.RefundedAt = DateTime.UtcNow;
         await _context.SaveChangesAsync(ct);
+
+        var payment = await _context.Payments.AsNoTracking()
+            .FirstOrDefaultAsync(p => p.PaymentID == refund.PaymentID, ct);
+        if (payment?.OrderID is int orderId)
+        {
+            try { await _ledger.PostCustomerRefundAsync(orderId, payment.PaymentID, refund.Amount, refund.Reason, memberId, ct); }
+            catch { /* ignore */ }
+        }
+
         return true;
     }
 

@@ -97,7 +97,9 @@ public static class AdminSearchCatalog
         new AdminSearchPage("shipping", "Shipping", "/sales/shipping", Icons.Material.Filled.LocalShipping, "nav.promotions", "Promotions & Shipping", RoleKeys.ShippingView, NavArea: AdminNavArea.Promotions, VendorMemberAllowed: false),
         new AdminSearchPage("tax", "Tax", "/sales/tax", Icons.Material.Filled.Percent, "nav.promotions", "Promotions & Shipping", RoleKeys.TaxView, NavArea: AdminNavArea.Promotions, VendorMemberAllowed: false),
         new AdminSearchPage("vat_report", "VAT report", "/sales/tax/report", Icons.Material.Filled.Assessment, "nav.promotions", "Promotions & Shipping", RoleKeys.TaxView, NavArea: AdminNavArea.Promotions, VendorMemberAllowed: false),
+        new AdminSearchPage("ledger", "Financial ledger", "/finance/ledger", Icons.Material.Filled.AccountBalanceWallet, "nav.finance", "Finance", RoleKeys.SettlementsView, NavArea: AdminNavArea.Finance, VendorMemberAllowed: false),
         new AdminSearchPage("settlements", "Settlements", "/finance/settlements", Icons.Material.Filled.Handshake, "nav.finance", "Finance", RoleKeys.SettlementsView, NavArea: AdminNavArea.Finance, VendorMemberAllowed: false),
+        new AdminSearchPage("ledger.my_earnings", "My settlements", "/finance/my-earnings", Icons.Material.Filled.Payments, "nav.finance", "Finance", RoleKeys.OrdersView, NavArea: AdminNavArea.Orders, VendorMemberAllowed: true),
 
         new AdminSearchPage("contact_messages", "Contact Messages", "/messages/contacts", Icons.Material.Filled.ContactMail, "messages", "Messages", RoleKeys.MessagesView, NavArea: AdminNavArea.Messages),
         new AdminSearchPage("email_accounts", "Email Accounts", "/messages/email-accounts", Icons.Material.Filled.AlternateEmail, "messages", "Messages", RoleKeys.WebsiteEdit, NavArea: AdminNavArea.Messages, VendorMemberAllowed: false),
