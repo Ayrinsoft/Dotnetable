@@ -1983,6 +1983,26 @@ window.DOCS_ADMIN = {
           related: ["settlements", "bank-accounts", "tax-periods"],
         },
         {
+          id: "fiscal-periods",
+          title: { en: "Fiscal periods", fa: "دوره‌های مالی / حسابرسی" },
+          adminPath: "/finance/periods",
+          summary: {
+            en: "Site owner sets day/week/month/year calendar and close due dates. Closing carries balance-sheet opening balances into the next period; closed periods are report-only.",
+            fa: "صاحب سایت تقویم روز/هفته/ماه/سال و سررسید بستن را تعیین می‌کند. با بستن، مانده ترازنامه به دوره بعد می‌رود؛ دوره‌های بسته فقط در گزارش دیده می‌شوند.",
+          },
+          howTo: [
+            {
+              en: "Save calendar settings → Generate periods for a year → Close & carry balances on the earliest open period when due.",
+              fa: "تنظیمات تقویم را ذخیره کنید → Generate periods → وقتی سررسید شد Close & carry balances روی قدیمی‌ترین دوره باز.",
+            },
+            {
+              en: "Journals only post into open periods. Toggle Show closed to review history and open trial balance for that range.",
+              fa: "سند حسابداری فقط در دوره باز ثبت می‌شود. Show closed برای تاریخچه و Trial balance همان بازه.",
+            },
+          ],
+          related: ["tax-periods", "settlements"],
+        },
+        {
           id: "tax-periods",
           title: { en: "Tax periods", fa: "دوره‌های مالیاتی" },
           adminPath: "/sales/tax/periods",

@@ -1,55 +1,154 @@
 @page "/finance/periods"
+@using Dotnetable.Domain.Enums
 @attribute [Authorize(Policy = RoleKeys.AccountingEdit)]
 @inject IFiscalPeriodService Periods
 @inject IWebsiteService WebsiteService
 @inject AuthenticationStateProvider AuthState
 @inject ISnackbar Snackbar
 @inject IPageLocalizer L
+@inject NavigationManager Nav
 
 <DNPageTitle Title=@L["accounting.periods", "Fiscal periods"] />
 
-<MudStack Row="true" Justify="Justify.SpaceBetween" Class="mb-4">
-    <MudText Typo="Typo.h5" Class="fw-bold">@L["accounting.periods", "Fiscal periods"]</MudText>
-    <MudStack Row="true">
-        @if (_isMaster)
-        {
-            <WebsiteSelector Value="_websiteId" ValueChanged="OnWebsite" Websites="_websites" Dense="true" Style="min-width:160px" />
-        }
-        <MudNumericField T="int" @bind-Value="_year" Label="@L["year", "Year"]" Variant="Variant.Outlined" Dense="true" Style="width:100px" />
-        <MudButton Variant="Variant.Filled" Color="Color.Primary" OnClick="EnsureYear">@L["accounting.ensure_year", "Ensure year"]</MudButton>
+<MudStack Row="true" Justify="Justify.SpaceBetween" Class="mb-4 flex-wrap gap-2">
+    <MudStack Spacing="0">
+        <MudText Typo="Typo.h5" Class="fw-bold">@L["accounting.periods", "Fiscal periods"]</MudText>
+        <MudText Typo="Typo.body2" Color="Color.Secondary">
+            @L["accounting.periods.subtitle", "Site owner defines day/week/month/year calendar. Close carries balance-sheet opening balances into the next period. Closed periods stay in reports only."]
+        </MudText>
     </MudStack>
+    @if (_isMaster)
+    {
+        <WebsiteSelector Value="_websiteId" ValueChanged="OnWebsite" Websites="_websites" Dense="true" Style="min-width:160px" />
+    }
 </MudStack>
 
-<MudPaper Elevation="0" Class="app-card rounded-lg pa-4">
-    <MudSimpleTable Dense="true">
-        <thead><tr><th>@L["name", "Name"]</th><th>@L["from", "From"]</th><th>@L["to", "To"]</th><th>@L["status", "Status"]</th><th></th></tr></thead>
-        <tbody>
-            @foreach (var p in _items)
+@if (_websiteId > 0)
+{
+    <MudPaper Elevation="0" Class="app-card rounded-lg pa-4 mb-3">
+        <MudText Typo="Typo.subtitle1" Class="mb-2">@L["accounting.calendar_settings", "Accounting calendar (site owner)"]</MudText>
+        <MudStack Row="true" Class="flex-wrap gap-2 mb-2">
+            <MudSelect T="FiscalPeriodCadence" @bind-Value="_cadence" Dense="true" Style="min-width:160px"
+                       Label="@L["accounting.cadence", "Period length"]">
+                <MudSelectItem T="FiscalPeriodCadence" Value="FiscalPeriodCadence.Daily">@L["accounting.cadence.daily", "Daily"]</MudSelectItem>
+                <MudSelectItem T="FiscalPeriodCadence" Value="FiscalPeriodCadence.Weekly">@L["accounting.cadence.weekly", "Weekly"]</MudSelectItem>
+                <MudSelectItem T="FiscalPeriodCadence" Value="FiscalPeriodCadence.Monthly">@L["accounting.cadence.monthly", "Monthly"]</MudSelectItem>
+                <MudSelectItem T="FiscalPeriodCadence" Value="FiscalPeriodCadence.Yearly">@L["accounting.cadence.yearly", "Yearly"]</MudSelectItem>
+            </MudSelect>
+            <MudNumericField T="int" @bind-Value="_yearStartMonth" Label="@L["accounting.fy_start_month", "FY start month"]" Dense="true" Min="1" Max="12" Style="width:120px" />
+            <MudSelect T="int" @bind-Value="_weekStart" Dense="true" Style="min-width:140px" Label="@L["accounting.week_start", "Week starts"]">
+                <MudSelectItem T="int" Value="0">@L["day.sun", "Sunday"]</MudSelectItem>
+                <MudSelectItem T="int" Value="1">@L["day.mon", "Monday"]</MudSelectItem>
+                <MudSelectItem T="int" Value="6">@L["day.sat", "Saturday"]</MudSelectItem>
+            </MudSelect>
+            <MudNumericField T="int" @bind-Value="_dueDays" Label="@L["accounting.close_due_days", "Close due (days after end)"]" Dense="true" Min="0" Max="90" Style="width:180px" />
+            <MudButton Variant="Variant.Filled" Color="Color.Primary" OnClick="SaveSettings">@L["save", "Save"]</MudButton>
+        </MudStack>
+        <MudText Typo="Typo.caption" Color="Color.Secondary">
+            @L["accounting.calendar_hint", "After period end, the owner should close by the due date. Closing posts opening balances into the next open period; closed books no longer accept journals."]
+        </MudText>
+    </MudPaper>
+
+    <MudPaper Elevation="0" Class="app-card rounded-lg pa-3 mb-3">
+        <MudStack Row="true" Class="flex-wrap gap-2 align-center">
+            <MudNumericField T="int" @bind-Value="_year" Label="@L["year", "Year"]" Variant="Variant.Outlined" Dense="true" Style="width:100px" />
+            <MudButton Variant="Variant.Filled" Color="Color.Primary" OnClick="Generate">@L["accounting.generate_periods", "Generate periods"]</MudButton>
+            <MudSwitch T="bool" Value="_showClosed" Color="Color.Primary"
+                       Label="@L["accounting.show_closed", "Show closed (report history)"]"
+                       ValueChanged="OnShowClosed" />
+        </MudStack>
+    </MudPaper>
+
+    @if (_current is not null)
+    {
+        <MudAlert Severity="Severity.Info" Dense="true" Class="mb-3" Variant="Variant.Outlined">
+            @L["accounting.current_open", "Current open period"]: <strong>@_current.Name</strong>
+            (@_current.PeriodFrom → @_current.PeriodTo)
+            @if (_current.CloseDueDate is DateOnly due)
             {
-                <tr>
-                    <td>@p.Name</td>
-                    <td>@p.PeriodFrom</td>
-                    <td>@p.PeriodTo</td>
-                    <td>@(p.IsClosed ? L["accounting.closed", "Closed"] : L["accounting.open", "Open"])</td>
-                    <td>
-                        @if (p.IsClosed)
-                        {
-                            <MudButton Size="Size.Small" OnClick="@(() => Reopen(p.FiscalPeriodID))">@L["accounting.reopen", "Reopen"]</MudButton>
-                        }
-                        else
-                        {
-                            <MudButton Size="Size.Small" Color="Color.Warning" OnClick="@(() => Close(p.FiscalPeriodID))">@L["accounting.close", "Close"]</MudButton>
-                        }
-                    </td>
-                </tr>
+                <span> · @L["accounting.due", "Due"]: @due
+                    @if (due < DateOnly.FromDateTime(DateTime.Today))
+                    {
+                        <MudChip T="string" Size="Size.Small" Color="Color.Error" Class="ms-1">@L["accounting.overdue", "Overdue"]</MudChip>
+                    }
+                </span>
             }
-        </tbody>
-    </MudSimpleTable>
-</MudPaper>
+        </MudAlert>
+    }
+
+    <MudPaper Elevation="0" Class="app-card rounded-lg pa-4">
+        <MudSimpleTable Dense="true" Hover="true">
+            <thead>
+                <tr>
+                    <th>@L["name", "Name"]</th>
+                    <th>@L["from", "From"]</th>
+                    <th>@L["to", "To"]</th>
+                    <th>@L["accounting.due", "Due"]</th>
+                    <th>@L["status", "Status"]</th>
+                    <th></th>
+                </tr>
+            </thead>
+            <tbody>
+                @foreach (var p in _items)
+                {
+                    <tr>
+                        <td>
+                            @p.Name
+                            @if (p.OpeningJournalEntryID is not null)
+                            {
+                                <MudChip T="string" Size="Size.Small" Class="ms-1">@L["accounting.has_ob", "OB"]</MudChip>
+                            }
+                        </td>
+                        <td>@p.PeriodFrom</td>
+                        <td>@p.PeriodTo</td>
+                        <td>
+                            @(p.CloseDueDate?.ToString() ?? "—")
+                            @if (!p.IsClosed && p.CloseDueDate is DateOnly d && d < DateOnly.FromDateTime(DateTime.Today))
+                            {
+                                <MudIcon Icon="@Icons.Material.Filled.Warning" Color="Color.Error" Size="Size.Small" />
+                            }
+                        </td>
+                        <td>
+                            @if (p.IsClosed)
+                            {
+                                <MudChip T="string" Size="Size.Small" Color="Color.Default">@L["accounting.closed", "Closed — report only"]</MudChip>
+                            }
+                            else
+                            {
+                                <MudChip T="string" Size="Size.Small" Color="Color.Success">@L["accounting.open", "Open"]</MudChip>
+                            }
+                        </td>
+                        <td>
+                            @if (p.IsClosed)
+                            {
+                                <MudButton Size="Size.Small" OnClick="@(() => Reopen(p.FiscalPeriodID))">@L["accounting.reopen", "Reopen"]</MudButton>
+                                <MudButton Size="Size.Small" Variant="Variant.Text" Href="@($"/finance/reports/trial-balance?from={p.PeriodFrom:yyyy-MM-dd}&to={p.PeriodTo:yyyy-MM-dd}")">
+                                    @L["accounting.view_report", "Report"]
+                                </MudButton>
+                            }
+                            else
+                            {
+                                <MudButton Size="Size.Small" Color="Color.Warning" Variant="Variant.Filled"
+                                           OnClick="@(() => Close(p.FiscalPeriodID))">
+                                    @L["accounting.close_carry", "Close & carry balances"]
+                                </MudButton>
+                            }
+                        </td>
+                    </tr>
+                }
+            </tbody>
+        </MudSimpleTable>
+    </MudPaper>
+}
 
 @code {
-    private bool _isMaster; private int _websiteId, _year = DateTime.Today.Year, _memberId;
-    private List<Website> _websites = new(); private List<FiscalPeriod> _items = new();
+    private bool _isMaster, _showClosed;
+    private int _websiteId, _year = DateTime.Today.Year, _memberId;
+    private int _yearStartMonth = 1, _weekStart = 1, _dueDays = 5;
+    private FiscalPeriodCadence _cadence = FiscalPeriodCadence.Monthly;
+    private List<Website> _websites = new();
+    private List<FiscalPeriod> _items = new();
+    private FiscalPeriod? _current;
 
     protected override async Task OnInitializedAsync()
     {
@@ -59,11 +158,74 @@
         int.TryParse(u.FindFirst(AdminClaimTypes.WebsiteId)?.Value, out _websiteId);
         int.TryParse(u.FindFirst(AdminClaimTypes.MemberId)?.Value, out _memberId);
         if (_isMaster) _websites = (await WebsiteService.GetAllAsync()).ToList();
+        await LoadSettings();
         await Reload();
     }
-    private async Task OnWebsite(int id) { _websiteId = id; await Reload(); }
-    private async Task Reload() { if (_websiteId > 0) _items = (await Periods.GetAllAsync(_websiteId)).ToList(); }
-    private async Task EnsureYear() { if (_websiteId > 0) { await Periods.EnsureYearAsync(_websiteId, _year); await Reload(); } }
-    private async Task Close(int id) { var (ok, e) = await Periods.CloseAsync(id, _memberId); Snackbar.Add(ok ? L["saved", "Saved."] : e!, ok ? Severity.Success : Severity.Error); await Reload(); }
-    private async Task Reopen(int id) { var (ok, e) = await Periods.ReopenAsync(id, _memberId); Snackbar.Add(ok ? L["saved", "Saved."] : e!, ok ? Severity.Success : Severity.Error); await Reload(); }
+
+    private async Task OnWebsite(int id)
+    {
+        _websiteId = id;
+        await LoadSettings();
+        await Reload();
+    }
+
+    private async Task LoadSettings()
+    {
+        if (_websiteId <= 0) return;
+        var s = await Periods.GetCalendarSettingsAsync(_websiteId);
+        _cadence = s.Cadence;
+        _yearStartMonth = s.FiscalYearStartMonth;
+        _weekStart = s.FiscalWeekStartDay;
+        _dueDays = s.CloseDueDays;
+    }
+
+    private async Task SaveSettings()
+    {
+        var (ok, err) = await Periods.SaveCalendarSettingsAsync(_websiteId, new FiscalCalendarSettingsDto
+        {
+            Cadence = _cadence,
+            FiscalYearStartMonth = (byte)_yearStartMonth,
+            FiscalWeekStartDay = (byte)_weekStart,
+            CloseDueDays = _dueDays,
+        });
+        Snackbar.Add(ok ? L["saved", "Saved."] : err!, ok ? Severity.Success : Severity.Error);
+        await Reload();
+    }
+
+    private async Task OnShowClosed(bool v)
+    {
+        _showClosed = v;
+        await Reload();
+    }
+
+    private async Task Reload()
+    {
+        if (_websiteId <= 0) return;
+        // null = all; false = open only (active books). Closed periods are report history.
+        _items = (await Periods.GetAllAsync(_websiteId, _showClosed ? null : false)).ToList();
+        _current = await Periods.GetCurrentOpenAsync(_websiteId);
+    }
+
+    private async Task Generate()
+    {
+        var (ok, err, n) = await Periods.GenerateForYearAsync(_websiteId, _year);
+        if (ok) Snackbar.Add(string.Format(L["accounting.generated_n", "Created {0} period(s)."], n), Severity.Success);
+        else Snackbar.Add(err ?? "Failed", Severity.Error);
+        await Reload();
+    }
+
+    private async Task Close(int id)
+    {
+        var (ok, e) = await Periods.CloseAsync(id, _memberId);
+        Snackbar.Add(ok ? L["accounting.closed_ob", "Period closed. Opening balances carried to next period."] : e!,
+            ok ? Severity.Success : Severity.Error);
+        await Reload();
+    }
+
+    private async Task Reopen(int id)
+    {
+        var (ok, e) = await Periods.ReopenAsync(id, _memberId);
+        Snackbar.Add(ok ? L["saved", "Saved."] : e!, ok ? Severity.Success : Severity.Error);
+        await Reload();
+    }
 }
