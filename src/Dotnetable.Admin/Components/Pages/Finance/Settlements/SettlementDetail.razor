@@ -139,6 +139,12 @@ else
                 </MudStack>
             </MudPaper>
 
+            <RecordAttachmentsPanel WebsiteId="_s.WebsiteID"
+                                   EntityType="@Dotnetable.Application.RecordAttachments.RecordEntityTypes.Settlement"
+                                   EntityId="_s.SettlementID"
+                                   CanEdit="_canEdit"
+                                   Title="@L["attachments.settlement", "Settlement payment proofs"]" />
+
             @if (_canEdit && _s.Status != (byte)SettlementStatus.Paid && _s.Status != (byte)SettlementStatus.Cancelled)
             {
                 <MudPaper Elevation="0" Class="app-card rounded-lg pa-4">

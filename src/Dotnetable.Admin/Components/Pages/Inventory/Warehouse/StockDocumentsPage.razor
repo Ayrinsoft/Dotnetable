@@ -32,7 +32,14 @@
             @if (_canPost && (_doc.Status == (byte)StockDocumentStatus.Approved || _doc.Status == (byte)StockDocumentStatus.Submitted))
             { <MudButton Color="Color.Primary" Variant="Variant.Filled" OnClick="Post">@L["post", "Post to stock"]</MudButton> }
         </MudStack>
-        <MudPaper Class="app-card pa-4">
+        <MudPaper Class="app-card pa-4 mb-3">
+            @if (_doc.OrderID is int oid)
+            {
+                <MudText Class="mb-2" Typo="Typo.caption">
+                    @L["orders.order", "Order"]:
+                    <MudLink Href="@($"/orders/{oid}")">#@oid</MudLink>
+                </MudText>
+            }
             <MudSimpleTable Dense="true">
                 <thead><tr><th>Variant</th><th>Qty</th><th>Unit cost</th></tr></thead>
                 <tbody>
@@ -47,6 +54,11 @@
                 </tbody>
             </MudSimpleTable>
         </MudPaper>
+        <RecordAttachmentsPanel WebsiteId="_doc.WebsiteID"
+                               EntityType="@Dotnetable.Application.RecordAttachments.RecordEntityTypes.StockDocument"
+                               EntityId="_doc.StockDocumentID"
+                               CanEdit="@(_canReceive || _canIssue || _canPost)"
+                               Title="@L["attachments.stock_doc", "Document scans / packing slips"]" />
     }
 }
 else

@@ -31,7 +31,7 @@
         <MudPaper Class="app-card pa-4 mb-3">
             <MudText>Gross @_run.TotalGross.ToString("0.##") · Emp ins @_run.TotalEmployeeInsurance.ToString("0.##") · Er ins @_run.TotalEmployerInsurance.ToString("0.##") · Tax @_run.TotalIncomeTax.ToString("0.##") · Net @_run.TotalNet.ToString("0.##") @_run.CurrencyCode</MudText>
         </MudPaper>
-        <MudPaper Class="app-card pa-4">
+        <MudPaper Class="app-card pa-4 mb-3">
             <MudSimpleTable Dense="true">
                 <thead><tr><th>Employee</th><th>Gross</th><th>Emp ins</th><th>Er ins</th><th>Tax</th><th>Net</th><th>Employer cost</th></tr></thead>
                 <tbody>
@@ -50,6 +50,11 @@
                 </tbody>
             </MudSimpleTable>
         </MudPaper>
+        <RecordAttachmentsPanel WebsiteId="_run.WebsiteID"
+                               EntityType="@Dotnetable.Application.RecordAttachments.RecordEntityTypes.PayrollRun"
+                               EntityId="_run.PayrollRunID"
+                               CanEdit="@(_canRun || _canApprove)"
+                               Title="@L["attachments.payroll", "Payroll slips / bank payment proofs"]" />
     }
 }
 else

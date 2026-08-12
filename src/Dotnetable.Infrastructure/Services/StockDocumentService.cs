@@ -208,6 +208,136 @@ public class StockDocumentService : IStockDocumentService
         await _context.SaveChangesAsync(ct);
     }
 
+    public async Task<bool> WebsiteHasWarehouseAsync(int websiteId, CancellationToken ct = default)
+    {
+        if (websiteId <= 0) return false;
+        // Do not auto-create: WMS order path only when the site already has a warehouse row.
+        return await _context.Warehouses.AsNoTracking()
+            .AnyAsync(w => w.WebsiteID == websiteId && w.IsActive, ct);
+    }
+
+    public Task<StockDocument?> GetOutboundForOrderAsync(int orderId, CancellationToken ct = default) =>
+        _context.StockDocuments.AsNoTracking()
+            .Where(d => d.OrderID == orderId
+                && d.DocumentType == (byte)StockDocumentType.Outbound
+                && d.Status != (byte)StockDocumentStatus.Cancelled
+                && d.Status != (byte)StockDocumentStatus.Rejected)
+            .OrderByDescending(d => d.StockDocumentID)
+            .FirstOrDefaultAsync(ct);
+
+    public async Task<(bool Success, string? Error, StockDocument? Doc)> EnsureOutboundForOrderAsync(
+        int orderId, int? memberId, CancellationToken ct = default)
+    {
+        var order = await _context.Orders
+            .Include(o => o.OrderItems).ThenInclude(i => i.ProductVariant).ThenInclude(v => v!.Product)
+            .FirstOrDefaultAsync(o => o.OrderID == orderId, ct);
+        if (order is null) return (false, "Order not found.", null);
+
+        var existing = await _context.StockDocuments
+            .Include(d => d.StockDocumentLines)
+            .FirstOrDefaultAsync(d =>
+                d.OrderID == orderId
+                && d.DocumentType == (byte)StockDocumentType.Outbound
+                && d.Status != (byte)StockDocumentStatus.Cancelled
+                && d.Status != (byte)StockDocumentStatus.Rejected, ct);
+        if (existing is not null)
+            return (true, null, existing);
+
+        if (!await WebsiteHasWarehouseAsync(order.WebsiteID, ct))
+            return (true, null, null); // No WMS — caller keeps legacy inventory path.
+
+        var physical = order.OrderItems
+            .Where(i => i.ProductVariantID is int)
+            .Where(i =>
+            {
+                var p = i.ProductVariant?.Product;
+                if (p is null) return true; // variant free-form with id only: treat as stockable
+                return p.RequiresShipping || p.ProductType == (byte)ProductType.Physical;
+            })
+            .GroupBy(i => i.ProductVariantID!.Value)
+            .Select(g => new StockDocumentLineRequest
+            {
+                ProductVariantID = g.Key,
+                Quantity = g.Sum(x => x.Quantity),
+                UnitCost = g.Max(x => x.UnitCostUsd),
+                Note = g.First().SkuSnapshot,
+            })
+            .Where(l => l.Quantity > 0)
+            .ToList();
+
+        if (physical.Count == 0)
+            return (true, null, null); // Digital-only order.
+
+        var fromWh = await DefaultWarehouseId(order.WebsiteID, ct);
+        var seq = await _context.StockDocuments.CountAsync(d => d.WebsiteID == order.WebsiteID, ct) + 1;
+        var doc = new StockDocument
+        {
+            WebsiteID = order.WebsiteID,
+            DocumentNumber = $"OUT-{order.OrderNumber}",
+            DocumentType = (byte)StockDocumentType.Outbound,
+            Status = (byte)StockDocumentStatus.Submitted,
+            FromWarehouseID = fromWh,
+            OrderID = order.OrderID,
+            Note = $"Auto pick for order {order.OrderNumber}",
+            RequestedByMemberID = memberId,
+            SubmittedAt = DateTime.UtcNow,
+            CreatedAt = DateTime.UtcNow,
+        };
+        // Unique-ish number if collision
+        if (await _context.StockDocuments.AnyAsync(d => d.WebsiteID == order.WebsiteID && d.DocumentNumber == doc.DocumentNumber, ct))
+            doc.DocumentNumber = $"OUT-{order.OrderNumber}-{seq:D4}";
+
+        foreach (var l in physical)
+        {
+            doc.StockDocumentLines.Add(new StockDocumentLine
+            {
+                ProductVariantID = l.ProductVariantID,
+                Quantity = l.Quantity,
+                UnitCost = l.UnitCost,
+                UnitCostUsd = l.UnitCost,
+                Note = l.Note,
+            });
+        }
+
+        _context.StockDocuments.Add(doc);
+        AddHistory(doc, 0, (byte)StockDocumentStatus.Submitted, $"Created from order {order.OrderNumber}", memberId);
+        await _context.SaveChangesAsync(ct);
+        return (true, null, doc);
+    }
+
+    public async Task<(bool Success, string? Error)> PostOutboundForOrderAsync(int orderId, int? memberId, CancellationToken ct = default)
+    {
+        var ensure = await EnsureOutboundForOrderAsync(orderId, memberId, ct);
+        if (!ensure.Success) return (false, ensure.Error);
+        if (ensure.Doc is null) return (true, null); // No WMS / no physical lines.
+
+        var doc = ensure.Doc;
+        if (doc.Status == (byte)StockDocumentStatus.Posted)
+            return (true, null);
+
+        if (doc.Status == (byte)StockDocumentStatus.Draft)
+        {
+            var submit = await SubmitAsync(doc.StockDocumentID, memberId, ct);
+            if (!submit.Success) return submit;
+            doc = (await GetByIdAsync(doc.StockDocumentID, ct))!;
+        }
+
+        if (doc.Status == (byte)StockDocumentStatus.Submitted)
+        {
+            var approve = await ApproveAsync(doc.StockDocumentID, memberId, ct);
+            if (!approve.Success) return approve;
+        }
+
+        // Re-load status after transitions
+        var current = await _context.StockDocuments.AsNoTracking()
+            .FirstOrDefaultAsync(d => d.StockDocumentID == doc.StockDocumentID, ct);
+        if (current is null) return (false, "Outbound document not found.");
+        if (current.Status == (byte)StockDocumentStatus.Posted)
+            return (true, null);
+
+        return await PostAsync(current.StockDocumentID, memberId, ct);
+    }
+
     private async Task<int> DefaultWarehouseId(int websiteId, CancellationToken ct)
     {
         await _warehouses.EnsureDefaultAsync(websiteId, ct);

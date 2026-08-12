@@ -125,6 +125,14 @@ else
         }
     </MudPaper>
 
+    <div class="no-print">
+        <RecordAttachmentsPanel WebsiteId="_inv.WebsiteId"
+                               EntityType="@Dotnetable.Application.RecordAttachments.RecordEntityTypes.Order"
+                               EntityId="_inv.OrderId"
+                               CanEdit="_canEdit"
+                               Title="@L["attachments.order", "Order scans / documents"]" />
+    </div>
+
     <div id="order-invoice-print" class="print-doc invoice-doc">
         <div class="print-doc-sheet">
             <header class="print-doc-header">

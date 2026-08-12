@@ -179,6 +179,7 @@ public class JournalService : IJournalService
         return new JournalEntryDto
         {
             JournalEntryID = j.JournalEntryID,
+            WebsiteID = j.WebsiteID,
             EntryNumber = j.EntryNumber,
             EntryDate = j.EntryDate,
             Description = j.Description,

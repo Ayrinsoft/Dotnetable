@@ -14,7 +14,7 @@ else
         <MudText>@( _e.JobTitle ?? "—" ) · @( _e.OrgUnit?.Name ?? "—" )</MudText>
         <MudText Typo="Typo.caption">Hire @_e.HireDate · @_e.Email · @_e.Phone</MudText>
     </MudPaper>
-    <MudPaper Class="app-card pa-4">
+    <MudPaper Class="app-card pa-4 mb-3">
         <MudText Typo="Typo.subtitle1" Class="mb-2">@L["hr.contracts", "Contracts"]</MudText>
         <MudSimpleTable Dense="true">
             <thead><tr><th>From</th><th>To</th><th>Salary</th><th>Emp ins</th><th>Er ins</th><th>Tax</th><th>Active</th></tr></thead>
@@ -34,6 +34,19 @@ else
             </tbody>
         </MudSimpleTable>
     </MudPaper>
+    <RecordAttachmentsPanel WebsiteId="_e.WebsiteID"
+                           EntityType="@Dotnetable.Application.RecordAttachments.RecordEntityTypes.Employee"
+                           EntityId="_e.EmployeeID"
+                           CanEdit="true"
+                           Title="@L["attachments.employee", "Employee documents / ID scans"]" />
+    @foreach (var c in _e.EmployeeContracts.OrderByDescending(x => x.EffectiveFrom))
+    {
+        <RecordAttachmentsPanel WebsiteId="_e.WebsiteID"
+                               EntityType="@Dotnetable.Application.RecordAttachments.RecordEntityTypes.EmployeeContract"
+                               EntityId="c.EmployeeContractID"
+                               CanEdit="true"
+                               Title="@($"{L["attachments.contract", "Contract scan"]} · {c.EffectiveFrom:yyyy-MM-dd}")" />
+    }
 }
 @code {
     [Parameter] public int EmployeeId { get; set; }

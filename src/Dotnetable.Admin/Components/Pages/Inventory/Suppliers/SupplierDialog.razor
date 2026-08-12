@@ -105,6 +105,16 @@
 
             <DNValidationSummary Errors="_formErrors" />
         </MudForm>
+        @if (!IsNew && Model.SupplierID > 0)
+        {
+            <div class="mt-3">
+                <RecordAttachmentsPanel WebsiteId="Model.WebsiteID"
+                                       EntityType="@Dotnetable.Application.RecordAttachments.RecordEntityTypes.Supplier"
+                                       EntityId="Model.SupplierID"
+                                       CanEdit="true"
+                                       Title="@L["attachments.supplier", "Purchase contracts / invoices"]" />
+            </div>
+        }
     </DialogContent>
     <DialogActions>
         <MudButton OnClick="Cancel">@L["cancel", "Cancel"]</MudButton>

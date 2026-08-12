@@ -154,6 +154,7 @@ public static class ServiceCollectionExtensions
         services.AddScoped<IFiscalPeriodService, FiscalPeriodService>();
         services.AddScoped<IWarehouseService, WarehouseService>();
         services.AddScoped<IStockDocumentService, StockDocumentService>();
+        services.AddScoped<IRecordAttachmentService, RecordAttachmentService>();
         services.AddScoped<IHrService, HrService>();
         services.AddScoped<IPayrollService, PayrollService>();
 
