@@ -11,7 +11,7 @@
 
 <DNPageTitle Title=@L["currency_rates", "Exchange Rates"] />
 
-<MudStack Row="true" AlignItems="AlignItems.Center" Justify="Justify.SpaceBetween" Class="mb-4">
+<MudStack Row="true" AlignItems="AlignItems.Center" Justify="Justify.SpaceBetween" Class="mb-4 flex-wrap gap-2">
     <MudStack Spacing="0">
         <MudText Typo="Typo.h5" Class="fw-bold">@L["currency_rates", "Exchange Rates"]</MudText>
         <MudText Typo="Typo.body2" Color="Color.Secondary">
@@ -20,7 +20,7 @@
                 : L["currency_rates.subtitle_single", "Products and money operate in the site default currency. Enable product multi-currency (USD dual) only if you need multi-rate storefront conversion. Wallets always use separate accounts per currency."])
         </MudText>
     </MudStack>
-    <MudStack Row="true" Spacing="2" AlignItems="AlignItems.Center">
+    <MudStack Row="true" Spacing="2" AlignItems="AlignItems.Center" Class="flex-wrap">
         @if (_isMaster)
         {
             <WebsiteSelector Value="_websiteId" ValueChanged="OnWebsiteChanged" Websites="_websites"
@@ -77,7 +77,7 @@
 @if (_websiteId > 0)
 {
     <MudPaper Elevation="0" Class="border rounded-lg pa-4 mb-4">
-        <MudStack Row="true" AlignItems="AlignItems.Center" Justify="Justify.SpaceBetween" Class="mb-2">
+        <MudStack Row="true" AlignItems="AlignItems.Center" Justify="Justify.SpaceBetween" Class="mb-2 flex-wrap gap-2">
             <MudStack Spacing="1">
                 <MudText Typo="Typo.subtitle1" Class="fw-bold">@L["wallets.currencies", "Customer wallet currencies"]</MudText>
                 <MudText Typo="Typo.caption" Color="Color.Secondary">
@@ -86,7 +86,7 @@
             </MudStack>
             @if (_canEdit)
             {
-                <MudStack Row="true" Spacing="2">
+                <MudStack Row="true" Spacing="2" Class="flex-wrap" AlignItems="AlignItems.End">
                     <MudSelect T="string" @bind-Value="_walletCurrencyToAdd" Label="@L["currency", "Currency"]" Variant="Variant.Outlined"
                                Dense="true" Style="min-width:140px">
                         @foreach (var c in _currencies.Where(x => x.IsActive && !_walletCurrencies.Any(w => w.CurrencyCode == x.CurrencyCode && w.IsActive)))

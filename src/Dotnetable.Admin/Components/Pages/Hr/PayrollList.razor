@@ -83,11 +83,19 @@ else
     @if (_canRun)
     {
         <MudPaper Class="app-card pa-3 mb-3">
-            <MudStack Row="true" Class="gap-2">
-                <MudDatePicker @bind-Date="_from" Label="From" Dense="true" />
-                <MudDatePicker @bind-Date="_to" Label="To" Dense="true" />
-                <MudButton Variant="Variant.Filled" Color="Color.Primary" OnClick="Create">Create run</MudButton>
-            </MudStack>
+            <MudGrid Spacing="2" Class="dn-filter-bar">
+                <MudItem xs="12" sm="6" md="4">
+                    <MudDatePicker @bind-Date="_from" Label="@L["from", "From"]" Variant="Variant.Outlined" Dense="true" />
+                </MudItem>
+                <MudItem xs="12" sm="6" md="4">
+                    <MudDatePicker @bind-Date="_to" Label="@L["to", "To"]" Variant="Variant.Outlined" Dense="true" />
+                </MudItem>
+                <MudItem xs="12" md="4">
+                    <div class="dn-filter-actions">
+                        <MudButton Variant="Variant.Filled" Color="Color.Primary" OnClick="Create">@L["hr.create_run", "Create run"]</MudButton>
+                    </div>
+                </MudItem>
+            </MudGrid>
         </MudPaper>
     }
     <MudPaper Class="app-card pa-4">

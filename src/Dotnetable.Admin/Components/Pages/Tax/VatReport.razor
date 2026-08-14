@@ -14,33 +14,36 @@
         .no-print { display: none !important; }
         .app-card { box-shadow: none !important; border: 1px solid #ccc; }
     }
-    /* Keep date-picker popover full calendar width (input can stay narrow). */
-    .vat-date-picker { max-width: 170px; }
 </style>
 
-<MudStack Row="true" AlignItems="AlignItems.Center" Justify="Justify.SpaceBetween" Class="mb-4 no-print">
-    <MudStack Spacing="0">
-        <MudText Typo="Typo.h5" Class="fw-bold">@L["vat_report", "VAT / Tax report"]</MudText>
-        <MudText Typo="Typo.body2" Color="Color.Secondary">
-            @L["vat_report.subtitle", "Output tax on sales plus settlement tax for the selected period (per website settings)."]
-        </MudText>
-    </MudStack>
-    <MudStack Row="true" Spacing="2" AlignItems="AlignItems.Center">
+<MudStack Spacing="2" Class="mb-4 no-print">
+    <MudText Typo="Typo.h5" Class="fw-bold">@L["vat_report", "VAT / Tax report"]</MudText>
+    <MudText Typo="Typo.body2" Color="Color.Secondary">
+        @L["vat_report.subtitle", "Output tax on sales plus settlement tax for the selected period (per website settings)."]
+    </MudText>
+    <MudGrid Spacing="2" Class="dn-filter-bar">
         @if (_isMaster)
         {
-            <WebsiteSelector Value="_websiteId" ValueChanged="OnWebsiteChanged" Websites="_websites"
-                             Label="@L["website", "Website"]" Variant="Variant.Outlined"
-                             Dense="true" Style="min-width:160px" />
+            <MudItem xs="12" sm="6" md="3">
+                <WebsiteSelector Value="_websiteId" ValueChanged="OnWebsiteChanged" Websites="_websites"
+                                 Label="@L["website", "Website"]" Variant="Variant.Outlined" Dense="true" />
+            </MudItem>
         }
-        <MudDatePicker @bind-Date="_from" Label="@L["from", "From"]" Variant="Variant.Outlined" Dense="true"
-                       Class="vat-date-picker" />
-        <MudDatePicker @bind-Date="_to" Label="@L["to", "To"]" Variant="Variant.Outlined" Dense="true"
-                       Class="vat-date-picker" />
-        <MudButton Variant="Variant.Filled" Color="Color.Primary" OnClick="LoadAsync" Disabled="_loading">@L["run", "Run"]</MudButton>
-        <MudButton Variant="Variant.Outlined" StartIcon="@Icons.Material.Filled.PictureAsPdf" OnClick="PrintAsync" Disabled="@(_report is null)">
-            @L["print_pdf", "Print PDF"]
-        </MudButton>
-    </MudStack>
+        <MudItem xs="12" sm="6" md="2">
+            <MudDatePicker @bind-Date="_from" Label="@L["from", "From"]" Variant="Variant.Outlined" Dense="true" />
+        </MudItem>
+        <MudItem xs="12" sm="6" md="2">
+            <MudDatePicker @bind-Date="_to" Label="@L["to", "To"]" Variant="Variant.Outlined" Dense="true" />
+        </MudItem>
+        <MudItem xs="12" md="5">
+            <div class="dn-filter-actions">
+                <MudButton Variant="Variant.Filled" Color="Color.Primary" OnClick="LoadAsync" Disabled="_loading">@L["run", "Run"]</MudButton>
+                <MudButton Variant="Variant.Outlined" StartIcon="@Icons.Material.Filled.PictureAsPdf" OnClick="PrintAsync" Disabled="@(_report is null)">
+                    @L["print_pdf", "Print PDF"]
+                </MudButton>
+            </div>
+        </MudItem>
+    </MudGrid>
 </MudStack>
 
 @if (_loading)
