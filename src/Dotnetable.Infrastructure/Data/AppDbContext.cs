@@ -2764,6 +2764,8 @@ public partial class AppDbContext : DbContext
 
             entity.HasIndex(e => e.CurrencyCode, "IX_Settlements_CurrencyCode");
 
+            entity.HasIndex(e => e.SourceCurrencyCode, "IX_Settlements_SourceCurrencyCode");
+
             entity.HasIndex(e => e.SupplierID, "IX_Settlements_SupplierID");
 
             entity.HasIndex(e => e.TargetWebsiteID, "IX_Settlements_TargetWebsiteID");
@@ -2777,7 +2779,17 @@ public partial class AppDbContext : DbContext
                 .HasMaxLength(3)
                 .IsUnicode(false)
                 .IsFixedLength();
+            entity.Property(e => e.SourceCurrencyCode)
+                .HasMaxLength(3)
+                .IsUnicode(false)
+                .IsFixedLength();
             entity.Property(e => e.NetAmount).HasColumnType("decimal(18, 4)");
+            entity.Property(e => e.SourceNetAmount).HasColumnType("decimal(18, 4)");
+            entity.Property(e => e.SourceTaxAmount).HasColumnType("decimal(18, 4)");
+            entity.Property(e => e.SourceTotalAmount).HasColumnType("decimal(18, 4)");
+            entity.Property(e => e.BridgeUsdAmount).HasColumnType("decimal(18, 4)");
+            entity.Property(e => e.ExchangeRateToUsd).HasColumnType("decimal(18, 6)");
+            entity.Property(e => e.ExchangeRateUsdToSettle).HasColumnType("decimal(18, 6)");
             entity.Property(e => e.Note).HasMaxLength(500);
             entity.Property(e => e.PaidAt).HasColumnType("datetime");
             entity.Property(e => e.PaymentRefNumber).HasMaxLength(100);
@@ -2801,6 +2813,10 @@ public partial class AppDbContext : DbContext
                 .HasForeignKey(d => d.CurrencyCode)
                 .OnDelete(DeleteBehavior.ClientSetNull)
                 .HasConstraintName("FK_Settlements_Currencies");
+
+            entity.HasOne(d => d.SourceCurrency).WithMany(p => p.SettlementsSourced)
+                .HasForeignKey(d => d.SourceCurrencyCode)
+                .HasConstraintName("FK_Settlements_Currencies_Source");
 
             entity.HasOne(d => d.Supplier).WithMany(p => p.Settlements)
                 .HasForeignKey(d => d.SupplierID)
@@ -3271,6 +3287,8 @@ public partial class AppDbContext : DbContext
 
             entity.HasIndex(e => e.WebsiteID, "IX_Vendors_WebsiteID");
 
+            entity.HasIndex(e => e.SettlementCurrencyCode, "IX_Vendors_SettlementCurrencyCode");
+
             entity.Property(e => e.AvailableCredit).HasColumnType("decimal(18, 4)");
             entity.Property(e => e.AvailableCreditUsd).HasColumnType("decimal(18, 4)");
             entity.Property(e => e.CreditDays).HasComment("number of days after the settlement period ends before payment is due; only meaningful when SettlementMode = Credit");
@@ -3282,6 +3300,10 @@ public partial class AppDbContext : DbContext
             entity.Property(e => e.Rating).HasColumnType("decimal(3, 2)");
             entity.Property(e => e.SettlementMode).HasComment("0 = Immediate: every purchase from this vendor is settled instantly like a normal cash purchase. 1 = Credit: purchases accrue as credit and are batched into a periodic Settlements record due on CreditDays");
             entity.Property(e => e.Slug).HasMaxLength(200);
+            entity.Property(e => e.SettlementCurrencyCode)
+                .HasMaxLength(3)
+                .IsUnicode(false)
+                .IsFixedLength();
             entity.Property(e => e.VendorType).HasComment("0 = Display-only title, 1 = Member login (manage own catalog), 2 = Linked website (inter-site virtual credit)");
 
             entity.HasOne(d => d.LinkedWebsite).WithMany(p => p.VendorLinkedWebsites)
@@ -3295,6 +3317,10 @@ public partial class AppDbContext : DbContext
             entity.HasOne(d => d.Member).WithOne(p => p.Vendor)
                 .HasForeignKey<Vendor>(d => d.MemberID)
                 .HasConstraintName("FK_Vendors_Members");
+
+            entity.HasOne(d => d.SettlementCurrency).WithMany(p => p.VendorSettlementCurrencies)
+                .HasForeignKey(d => d.SettlementCurrencyCode)
+                .HasConstraintName("FK_Vendors_Currencies_Settlement");
 
             entity.HasOne(d => d.Website).WithMany(p => p.VendorWebsites)
                 .HasForeignKey(d => d.WebsiteID)

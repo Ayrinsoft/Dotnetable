@@ -27,6 +27,10 @@ public partial class Currency
 
     public virtual ICollection<Settlement> Settlements { get; set; } = new List<Settlement>();
 
+    public virtual ICollection<Settlement> SettlementsSourced { get; set; } = new List<Settlement>();
+
+    public virtual ICollection<Vendor> VendorSettlementCurrencies { get; set; } = new List<Vendor>();
+
     public virtual ICollection<StockMovement> StockMovements { get; set; } = new List<StockMovement>();
 
     public virtual ICollection<Supplier> Suppliers { get; set; } = new List<Supplier>();

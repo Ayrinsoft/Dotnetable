@@ -25,7 +25,8 @@ public class VendorServiceTests : IDisposable
             .UseInMemoryDatabase(Guid.NewGuid().ToString())
             .Options;
         _context = new AppDbContext(opts);
-        _vendors = new VendorService(_context);
+        var fx = new CurrencyConversionService(_context);
+        _vendors = new VendorService(_context, fx);
         _listings = new VendorProductService(_context);
         var currency = new CurrencyConversionService(_context);
         var suppliers = new SupplierService(_context);
@@ -100,6 +101,27 @@ public class VendorServiceTests : IDisposable
             VendorType = (byte)VendorType.Site, LinkedWebsiteID = _host.WebsiteID,
         });
         await act.Should().ThrowAsync<InvalidOperationException>();
+    }
+
+    [Fact]
+    public async Task Create_Vendor_OtherCurrency_WithoutRate_Throws()
+    {
+        _context.Currencies.Add(new Currency
+        {
+            CurrencyCode = "KRW", Name = "Won", Symbol = "₩", DecimalDigits = 0, IsActive = true,
+        });
+        await _context.SaveChangesAsync();
+
+        var act = async () => await _vendors.CreateAsync(new Vendor
+        {
+            WebsiteID = _host.WebsiteID, Name = "KRW seller",
+            IsActive = true, VendorType = (byte)VendorType.Display,
+            SettlementCurrencyCode = "KRW",
+        });
+
+        var ex = await act.Should().ThrowAsync<InvalidOperationException>();
+        ex.Which.Message.Should().Contain("KRW");
+        ex.Which.Message.Should().Contain("Exchange Rates");
     }
 
     [Fact]

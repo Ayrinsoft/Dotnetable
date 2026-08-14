@@ -84,9 +84,9 @@ public class SettlementService : ISettlementService
                 WebsiteId = s.WebsiteID,
                 TransactionType = Application.Financial.FinancialTransactionTypes.SettlementPaid,
                 Flow = Application.Financial.FinancialFlow.Out,
-                Amount = s.TotalAmount,
-                AmountUsd = s.TotalAmount,
-                CurrencyCode = s.CurrencyCode,
+                Amount = s.SourceTotalAmount > 0 ? s.SourceTotalAmount : s.TotalAmount,
+                AmountUsd = s.BridgeUsdAmount,
+                CurrencyCode = s.SourceCurrencyCode ?? s.CurrencyCode,
                 Title = $"Settlement S-{s.SettlementID} paid",
                 Description = s.PaymentRefNumber,
                 ReportToTax = true,
@@ -113,5 +113,55 @@ public class SettlementService : ISettlementService
         s.ApprovedByMemberID ??= memberId;
         await _context.SaveChangesAsync(ct);
         return true;
+    }
+
+    public async Task<IReadOnlyList<SettlementFxReportRow>> GetFxReportAsync(
+        int websiteId, DateOnly? from, DateOnly? to, int? vendorId, CancellationToken ct = default)
+    {
+        var q = _context.Settlements.AsNoTracking()
+            .Include(s => s.Vendor)
+            .Include(s => s.Supplier)
+            .Include(s => s.TargetWebsite)
+            .Where(s => s.WebsiteID == websiteId
+                        && s.Status != (byte)SettlementStatus.Cancelled);
+
+        if (from is DateOnly f)
+        {
+            var fromDt = f.ToDateTime(TimeOnly.MinValue);
+            q = q.Where(s => s.CreatedAt >= fromDt);
+        }
+        if (to is DateOnly t)
+        {
+            var toDt = t.ToDateTime(TimeOnly.MaxValue);
+            q = q.Where(s => s.CreatedAt <= toDt);
+        }
+        if (vendorId is int vid)
+            q = q.Where(s => s.VendorID == vid);
+
+        var rows = await q
+            .OrderByDescending(s => s.CreatedAt)
+            .Take(500)
+            .ToListAsync(ct);
+
+        return rows.Select(s => new SettlementFxReportRow
+        {
+            SettlementID = s.SettlementID,
+            CreatedAt = s.CreatedAt,
+            VendorName = s.Vendor?.Name,
+            PartyLabel = s.Vendor?.Name ?? s.Supplier?.Name ?? s.TargetWebsite?.BrandName,
+            Status = s.Status,
+            SourceCurrencyCode = s.SourceCurrencyCode ?? s.CurrencyCode,
+            SourceNetAmount = s.SourceNetAmount,
+            SourceTaxAmount = s.SourceTaxAmount,
+            SourceTotalAmount = s.SourceTotalAmount > 0 ? s.SourceTotalAmount : s.TotalAmount,
+            BridgeUsdAmount = s.BridgeUsdAmount,
+            SettleCurrencyCode = s.CurrencyCode,
+            NetAmount = s.NetAmount,
+            TaxAmount = s.TaxAmount,
+            TotalAmount = s.TotalAmount,
+            ExchangeRateToUsd = s.ExchangeRateToUsd,
+            ExchangeRateUsdToSettle = s.ExchangeRateUsdToSettle,
+            Note = s.Note,
+        }).ToList();
     }
 }

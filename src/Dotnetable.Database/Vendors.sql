@@ -15,11 +15,13 @@
     [AvailableCreditUsd] DECIMAL (18, 4) NOT NULL,
     [AvailableCredit]    DECIMAL (18, 4) DEFAULT ((0.0)) NOT NULL,
     [CreditLimit]        DECIMAL (18, 4) NULL,
+    [SettlementCurrencyCode] CHAR (3)    NULL,
     CONSTRAINT [PK_Vendors] PRIMARY KEY CLUSTERED ([VendorID] ASC),
     CONSTRAINT [FK_Vendors_FileRecords] FOREIGN KEY ([LogoFileID]) REFERENCES [dbo].[FileRecords] ([FileRecordID]),
     CONSTRAINT [FK_Vendors_LinkedWebsites] FOREIGN KEY ([LinkedWebsiteID]) REFERENCES [dbo].[Websites] ([WebsiteID]),
     CONSTRAINT [FK_Vendors_Members] FOREIGN KEY ([MemberID]) REFERENCES [dbo].[Members] ([MemberID]),
-    CONSTRAINT [FK_Vendors_Websites] FOREIGN KEY ([WebsiteID]) REFERENCES [dbo].[Websites] ([WebsiteID])
+    CONSTRAINT [FK_Vendors_Websites] FOREIGN KEY ([WebsiteID]) REFERENCES [dbo].[Websites] ([WebsiteID]),
+    CONSTRAINT [FK_Vendors_Currencies_Settlement] FOREIGN KEY ([SettlementCurrencyCode]) REFERENCES [dbo].[Currencies] ([CurrencyCode])
 );
 
 
@@ -51,3 +53,7 @@ GO
 
 CREATE NONCLUSTERED INDEX [IX_Vendors_LinkedWebsiteID]
     ON [dbo].[Vendors] ([LinkedWebsiteID] ASC);
+GO
+
+CREATE NONCLUSTERED INDEX [IX_Vendors_SettlementCurrencyCode]
+    ON [dbo].[Vendors] ([SettlementCurrencyCode] ASC);

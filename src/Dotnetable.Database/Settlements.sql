@@ -20,9 +20,17 @@
     [NetAmount]          DECIMAL (18, 4) DEFAULT ((0.0)) NOT NULL,
     [TaxAmount]          DECIMAL (18, 4) DEFAULT ((0.0)) NOT NULL,
     [TaxRateSnapshot]    DECIMAL (9, 6)  NULL,
+    [SourceCurrencyCode] CHAR (3)        NULL,
+    [SourceNetAmount]    DECIMAL (18, 4) DEFAULT ((0.0)) NOT NULL,
+    [SourceTaxAmount]    DECIMAL (18, 4) DEFAULT ((0.0)) NOT NULL,
+    [SourceTotalAmount]  DECIMAL (18, 4) DEFAULT ((0.0)) NOT NULL,
+    [BridgeUsdAmount]    DECIMAL (18, 4) DEFAULT ((0.0)) NOT NULL,
+    [ExchangeRateToUsd]  DECIMAL (18, 6) NULL,
+    [ExchangeRateUsdToSettle] DECIMAL (18, 6) NULL,
     CONSTRAINT [PK_Settlements] PRIMARY KEY CLUSTERED ([SettlementID] ASC),
     CONSTRAINT [FK_Settlements_BankAccounts] FOREIGN KEY ([BankAccountID]) REFERENCES [dbo].[BankAccounts] ([BankAccountID]),
     CONSTRAINT [FK_Settlements_Currencies] FOREIGN KEY ([CurrencyCode]) REFERENCES [dbo].[Currencies] ([CurrencyCode]),
+    CONSTRAINT [FK_Settlements_Currencies_Source] FOREIGN KEY ([SourceCurrencyCode]) REFERENCES [dbo].[Currencies] ([CurrencyCode]),
     CONSTRAINT [FK_Settlements_Member1] FOREIGN KEY ([ApprovedByMemberID]) REFERENCES [dbo].[Members] ([MemberID]),
     CONSTRAINT [FK_Settlements_Members] FOREIGN KEY ([CreatedByMemberID]) REFERENCES [dbo].[Members] ([MemberID]),
     CONSTRAINT [FK_Settlements_Suppliers] FOREIGN KEY ([SupplierID]) REFERENCES [dbo].[Suppliers] ([SupplierID]),
@@ -48,6 +56,10 @@ GO
 
 CREATE NONCLUSTERED INDEX [IX_Settlements_CurrencyCode]
     ON [dbo].[Settlements] ([CurrencyCode] ASC);
+GO
+
+CREATE NONCLUSTERED INDEX [IX_Settlements_SourceCurrencyCode]
+    ON [dbo].[Settlements] ([SourceCurrencyCode] ASC);
 GO
 
 CREATE NONCLUSTERED INDEX [IX_Settlements_SupplierID]

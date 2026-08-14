@@ -15,12 +15,17 @@
             @L["settlements.subtitle", "Vendor / inter-site / supplier settlements with net, tax and gross amounts."]
         </MudText>
     </MudStack>
-    @if (_isMaster)
-    {
-        <WebsiteSelector Value="_websiteId" ValueChanged="OnWebsiteChanged" Websites="_websites"
-                         Label="@L["website", "Website"]" Variant="Variant.Outlined"
-                         Dense="true" Style="min-width:180px" />
-    }
+    <MudStack Row="true" Spacing="2" AlignItems="AlignItems.Center" Class="flex-wrap">
+        <MudButton Variant="Variant.Outlined" Href="/finance/settlements/report" StartIcon="@Icons.Material.Filled.Assessment">
+            @L["settlements.fx_report", "FX / cost report"]
+        </MudButton>
+        @if (_isMaster)
+        {
+            <WebsiteSelector Value="_websiteId" ValueChanged="OnWebsiteChanged" Websites="_websites"
+                             Label="@L["website", "Website"]" Variant="Variant.Outlined"
+                             Dense="true" Style="min-width:180px" />
+        }
+    </MudStack>
 </MudStack>
 
 <MudPaper Elevation="0" Class="app-card rounded-lg pa-4">
@@ -32,7 +37,7 @@
         @if (_items.Count == 0)
         {
             <tr>
-                <td colspan="9" style="text-align:center; padding:32px;">
+                <td colspan="8" style="text-align:center; padding:32px;">
                     <MudText Color="Color.Secondary">@L["settlements.empty", "No settlements yet."]</MudText>
                 </td>
             </tr>
@@ -45,9 +50,20 @@
                     <td>S-@s.SettlementID</td>
                     <td>@TargetLabel(s)</td>
                     <td>@s.PeriodFrom.ToString("yyyy-MM-dd") → @s.PeriodTo.ToString("yyyy-MM-dd")</td>
-                    <td class="text-end">@s.NetAmount.ToString("0.##")</td>
-                    <td class="text-end">@s.TaxAmount.ToString("0.##")</td>
-                    <td class="text-end"><strong>@s.TotalAmount.ToString("0.##")</strong> @s.CurrencyCode</td>
+                    <td class="text-end">@s.NetAmount.ToString("0.##") @s.CurrencyCode</td>
+                    <td class="text-end">
+                        <strong>@s.TotalAmount.ToString("0.##")</strong> @s.CurrencyCode
+                        @if (!string.IsNullOrEmpty(s.SourceCurrencyCode)
+                             && !string.Equals(s.SourceCurrencyCode, s.CurrencyCode, StringComparison.OrdinalIgnoreCase)
+                             && s.SourceTotalAmount > 0)
+                        {
+                            <div>
+                                <MudText Typo="Typo.caption" Color="Color.Secondary">
+                                    @L["settlements.cost", "Cost"]: @s.SourceTotalAmount.ToString("0.##") @s.SourceCurrencyCode
+                                </MudText>
+                            </div>
+                        }
+                    </td>
                     <td>
                         <MudChip T="string" Size="Size.Small" Color="@StatusColor(s.Status)">@StatusLabel(s.Status)</MudChip>
                     </td>
@@ -87,7 +103,6 @@
                 new() { ColumnTitle = L["settlements.party", "Party"], ColumnName = "" },
                 new() { ColumnTitle = L["settlements.period", "Period"], ColumnName = nameof(Settlement.PeriodFrom), HasSort = true },
                 new() { ColumnTitle = L["settlements.net", "Net"], ColumnName = nameof(Settlement.NetAmount), HasSort = true },
-                new() { ColumnTitle = L["settlements.tax", "Tax"], ColumnName = nameof(Settlement.TaxAmount), HasSort = true },
                 new() { ColumnTitle = L["settlements.gross", "Gross"], ColumnName = nameof(Settlement.TotalAmount), HasSort = true },
                 new() { ColumnTitle = L["status", "Status"], ColumnName = nameof(Settlement.Status), HasSort = true },
                 new() { ColumnTitle = L["created", "Created"], ColumnName = nameof(Settlement.CreatedAt), HasSort = true },

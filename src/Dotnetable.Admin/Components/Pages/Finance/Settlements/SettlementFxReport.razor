@@ -1,0 +1,165 @@
+@page "/finance/settlements/report"
+@attribute [Authorize(Policy = RoleKeys.SettlementsView)]
+@inject ISettlementService SettlementService
+@inject IVendorService VendorService
+@inject IWebsiteService WebsiteService
+@inject AuthenticationStateProvider AuthState
+@inject NavigationManager Nav
+@inject IPageLocalizer L
+
+<DNPageTitle Title=@L["settlements.fx_report", "Settlement FX / cost report"] />
+
+<MudStack Row="true" AlignItems="AlignItems.Center" Justify="Justify.SpaceBetween" Class="mb-4 flex-wrap gap-2">
+    <MudStack Spacing="0">
+        <MudText Typo="Typo.h5" Class="fw-bold">@L["settlements.fx_report", "Settlement FX / cost report"]</MudText>
+        <MudText Typo="Typo.body2" Color="Color.Secondary">
+            @L["settlements.fx_report.hint", "How much site currency was spent to pay vendors in their settlement currency (via USD when needed)."]
+        </MudText>
+    </MudStack>
+    <MudButton Variant="Variant.Outlined" Href="/finance/settlements">@L["back", "Back"]</MudButton>
+</MudStack>
+
+<MudPaper Elevation="0" Class="app-card rounded-lg pa-4 mb-3">
+    <MudGrid Spacing="2" Class="dn-filter-bar">
+        @if (_isMaster)
+        {
+            <MudItem xs="12" sm="6" md="3">
+                <WebsiteSelector Value="_websiteId" ValueChanged="OnWebsiteChanged" Websites="_websites"
+                                 Label="@L["website", "Website"]" Variant="Variant.Outlined" Dense="true" />
+            </MudItem>
+        }
+        <MudItem xs="12" sm="6" md="2">
+            <MudDatePicker @bind-Date="_from" Label="@L["from", "From"]" Variant="Variant.Outlined" Dense="true" />
+        </MudItem>
+        <MudItem xs="12" sm="6" md="2">
+            <MudDatePicker @bind-Date="_to" Label="@L["to", "To"]" Variant="Variant.Outlined" Dense="true" />
+        </MudItem>
+        <MudItem xs="12" sm="6" md="3">
+            <MudSelect T="int?" @bind-Value="_vendorId" Label="@L["vendors", "Vendor"]" Variant="Variant.Outlined" Dense="true" Clearable="true">
+                @foreach (var v in _vendors)
+                {
+                    <MudSelectItem T="int?" Value="@v.VendorID">@v.Name</MudSelectItem>
+                }
+            </MudSelect>
+        </MudItem>
+        <MudItem xs="12" md="2">
+            <div class="dn-filter-actions">
+                <MudButton Variant="Variant.Filled" Color="Color.Primary" OnClick="LoadAsync">@L["run", "Run"]</MudButton>
+            </div>
+        </MudItem>
+    </MudGrid>
+</MudPaper>
+
+@if (_loading)
+{
+    <MudProgressLinear Indeterminate="true" Color="Color.Primary" Class="mb-3" />
+}
+else
+{
+    <MudPaper Elevation="0" Class="app-card rounded-lg pa-4 mb-3">
+        <MudStack Row="true" Spacing="4" Class="flex-wrap">
+            <MudStack Spacing="0">
+                <MudText Typo="Typo.caption">@L["settlements.fx_report.rows", "Rows"]</MudText>
+                <MudText Typo="Typo.h6">@_rows.Count</MudText>
+            </MudStack>
+            @foreach (var g in _rows.GroupBy(r => r.SourceCurrencyCode))
+            {
+                <MudStack Spacing="0">
+                    <MudText Typo="Typo.caption">@L["settlements.source_spent", "Spent"] (@g.Key)</MudText>
+                    <MudText Typo="Typo.h6">@g.Sum(x => x.SourceTotalAmount).ToString("0.##") @g.Key</MudText>
+                </MudStack>
+            }
+            @foreach (var g in _rows.GroupBy(r => r.SettleCurrencyCode))
+            {
+                <MudStack Spacing="0">
+                    <MudText Typo="Typo.caption">@L["settlements.payable", "Payable"] (@g.Key)</MudText>
+                    <MudText Typo="Typo.h6">@g.Sum(x => x.TotalAmount).ToString("0.##") @g.Key</MudText>
+                </MudStack>
+            }
+        </MudStack>
+    </MudPaper>
+
+    <MudPaper Elevation="0" Class="app-card rounded-lg pa-4">
+        @if (_rows.Count == 0)
+        {
+            <MudText Color="Color.Secondary">@L["settlements.empty", "No settlements yet."]</MudText>
+        }
+        else
+        {
+            <MudSimpleTable Dense="true" Hover="true" Elevation="0">
+                <thead>
+                    <tr>
+                        <th>@L["id", "ID"]</th>
+                        <th>@L["date", "Date"]</th>
+                        <th>@L["settlements.party", "Party"]</th>
+                        <th class="text-end">@L["settlements.source_spent", "Spent"]</th>
+                        <th class="text-end">USD</th>
+                        <th class="text-end">@L["settlements.payable", "Payable"]</th>
+                        <th>@L["status", "Status"]</th>
+                    </tr>
+                </thead>
+                <tbody>
+                    @foreach (var r in _rows)
+                    {
+                        <tr style="cursor:pointer" @onclick="@(() => Nav.NavigateTo($"/finance/settlements/{r.SettlementID}"))">
+                            <td>S-@r.SettlementID</td>
+                            <td>@r.CreatedAt.ToLocalTime().ToString("yyyy-MM-dd")</td>
+                            <td>@(r.PartyLabel ?? "—")</td>
+                            <td class="text-end">@r.SourceTotalAmount.ToString("0.##") @r.SourceCurrencyCode</td>
+                            <td class="text-end">@(r.BridgeUsdAmount > 0 ? r.BridgeUsdAmount.ToString("0.####") : "—")</td>
+                            <td class="text-end">@r.TotalAmount.ToString("0.##") @r.SettleCurrencyCode</td>
+                            <td>@((SettlementStatus)r.Status)</td>
+                        </tr>
+                    }
+                </tbody>
+            </MudSimpleTable>
+        }
+    </MudPaper>
+}
+
+@code {
+    private bool _loading = true;
+    private bool _isMaster;
+    private int _websiteId;
+    private int? _vendorId;
+    private DateTime? _from = DateTime.Today.AddMonths(-1);
+    private DateTime? _to = DateTime.Today;
+    private List<Website> _websites = new();
+    private List<Vendor> _vendors = new();
+    private List<SettlementFxReportRow> _rows = new();
+
+    protected override async Task OnInitializedAsync()
+    {
+        await L.EnsureLoadedAsync();
+        var user = (await AuthState.GetAuthenticationStateAsync()).User;
+        _isMaster = user.HasClaim(AdminClaimTypes.Master, "true");
+        int.TryParse(user.FindFirst(AdminClaimTypes.WebsiteId)?.Value, out _websiteId);
+        if (_isMaster) _websites = (await WebsiteService.GetAllAsync()).ToList();
+        await LoadVendorsAsync();
+        await LoadAsync();
+    }
+
+    private async Task OnWebsiteChanged(int id)
+    {
+        _websiteId = id;
+        _vendorId = null;
+        await LoadVendorsAsync();
+        await LoadAsync();
+    }
+
+    private async Task LoadVendorsAsync()
+    {
+        if (_websiteId <= 0) { _vendors = new(); return; }
+        _vendors = await VendorService.GetAllAsync(_websiteId);
+    }
+
+    private async Task LoadAsync()
+    {
+        if (_websiteId <= 0) { _rows = new(); _loading = false; return; }
+        _loading = true;
+        DateOnly? from = _from is DateTime f ? DateOnly.FromDateTime(f) : null;
+        DateOnly? to = _to is DateTime t ? DateOnly.FromDateTime(t) : null;
+        _rows = (await SettlementService.GetFxReportAsync(_websiteId, from, to, _vendorId)).ToList();
+        _loading = false;
+    }
+}

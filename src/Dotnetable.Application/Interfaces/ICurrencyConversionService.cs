@@ -38,6 +38,30 @@ public interface ICurrencyConversionService
     /// <summary>Converts a display-currency amount back into USD using the given (or default) rate.</summary>
     Task<decimal> ToUsdAsync(int websiteId, decimal amount, string? currencyCode = null, CancellationToken ct = default);
 
+    /// <summary>
+    /// Converts <paramref name="amount"/> from <paramref name="fromCurrencyCode"/> to
+    /// <paramref name="toCurrencyCode"/> using this website's <see cref="CurrencyRate"/> rows
+    /// as a USD bridge (source → USD → dest). Unlike storefront display, this does <b>not</b>
+    /// freeze on the site default when product multi-currency is off — vendor settlement still
+    /// needs real FX. Throws when a required rate is missing.
+    /// </summary>
+    /// <summary>
+    /// Currency codes in <paramref name="currencyCodes"/> that have no
+    /// <see cref="CurrencyRate"/> on this website. USD is never reported missing
+    /// (synthetic 1:1). Codes matching the site default still need a real rate
+    /// when used as one side of a cross-currency bridge.
+    /// </summary>
+    Task<IReadOnlyList<string>> FindMissingFxRatesAsync(
+        int websiteId, IEnumerable<string> currencyCodes, CancellationToken ct = default);
+
+    Task<FxViaUsdQuote> ConvertViaUsdAsync(
+        int websiteId,
+        decimal amount,
+        string fromCurrencyCode,
+        string toCurrencyCode,
+        decimal? usdHint = null,
+        CancellationToken ct = default);
+
     /// <summary>Whether the website dual-persists USD columns.</summary>
     Task<bool> GetStorePricesInUsdAsync(int websiteId, CancellationToken ct = default);
 
