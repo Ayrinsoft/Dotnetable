@@ -20,17 +20,17 @@
 </MudStack>
 
 <MudPaper Elevation="0" Class="app-card rounded-lg pa-4 mb-3">
-    <MudGrid Spacing="2">
-        <MudItem xs="6" sm="3"><MudDatePicker @bind-Date="_from" Label="@L["from", "From"]" Variant="Variant.Outlined" Dense="true" /></MudItem>
-        <MudItem xs="6" sm="3"><MudDatePicker @bind-Date="_to" Label="@L["to", "To"]" Variant="Variant.Outlined" Dense="true" /></MudItem>
-        <MudItem xs="12" sm="3" Class="d-flex align-center">
+    <MudGrid Spacing="2" Class="dn-filter-bar">
+        <MudItem xs="12" sm="6" md="3"><MudDatePicker @bind-Date="_from" Label="@L["from", "From"]" Variant="Variant.Outlined" Dense="true" /></MudItem>
+        <MudItem xs="12" sm="6" md="3"><MudDatePicker @bind-Date="_to" Label="@L["to", "To"]" Variant="Variant.Outlined" Dense="true" /></MudItem>
+        <MudItem xs="12" md="3" Class="d-flex align-end">
             <MudSwitch T="bool" @bind-Value="_taxOnly" Color="Color.Primary" Label="@L["accounting.tax_only", "Tax-reportable only"]" />
         </MudItem>
-        <MudItem xs="6" sm="2" Class="d-flex align-end">
-            <MudButton Variant="Variant.Filled" Color="Color.Primary" FullWidth="true" OnClick="LoadAsync">@L["run", "Run"]</MudButton>
-        </MudItem>
-        <MudItem xs="6" sm="1" Class="d-flex align-end">
-            <MudButton Variant="Variant.Outlined" FullWidth="true" OnClick="ExportAsync">Excel</MudButton>
+        <MudItem xs="12" md="3">
+            <div class="dn-filter-actions">
+                <MudButton Variant="Variant.Filled" Color="Color.Primary" OnClick="LoadAsync">@L["run", "Run"]</MudButton>
+                <MudButton Variant="Variant.Outlined" OnClick="ExportAsync">Excel</MudButton>
+            </div>
         </MudItem>
     </MudGrid>
 </MudPaper>

@@ -25,24 +25,26 @@
 </MudStack>
 
 <MudPaper Elevation="0" Class="app-card rounded-lg pa-4 mb-3">
-    <MudGrid Spacing="2">
-        <MudItem xs="12" sm="3">
+    <MudGrid Spacing="2" Class="dn-filter-bar">
+        <MudItem xs="12" md="3">
             <MudTextField @bind-Value="_search" Label="@L["search", "Search"]" Variant="Variant.Outlined" Dense="true"
                           Adornment="Adornment.End" AdornmentIcon="@Icons.Material.Filled.Search" OnAdornmentClick="ReloadAsync"
                           OnKeyUp="OnSearchKey" />
         </MudItem>
-        <MudItem xs="12" sm="3">
+        <MudItem xs="12" md="3">
             <MudTextField @bind-Value="_typeFilter" Label="@L["ledger.type", "Transaction type"]" Variant="Variant.Outlined" Dense="true"
                           HelperText="@L["ledger.type_hint", "e.g. CustomerPayment, OrderMarkup"]" />
         </MudItem>
-        <MudItem xs="6" sm="2">
+        <MudItem xs="12" sm="6" md="2">
             <MudDatePicker @bind-Date="_from" Label="@L["from", "From date"]" Variant="Variant.Outlined" Dense="true" Editable="true" />
         </MudItem>
-        <MudItem xs="6" sm="2">
+        <MudItem xs="12" sm="6" md="2">
             <MudDatePicker @bind-Date="_to" Label="@L["to", "To date"]" Variant="Variant.Outlined" Dense="true" Editable="true" />
         </MudItem>
-        <MudItem xs="12" sm="2" Class="d-flex align-end">
-            <MudButton Variant="Variant.Filled" Color="Color.Primary" FullWidth="true" OnClick="ReloadAsync">@L["filter", "Filter"]</MudButton>
+        <MudItem xs="12" md="2">
+            <div class="dn-filter-actions">
+                <MudButton Variant="Variant.Filled" Color="Color.Primary" OnClick="ReloadAsync">@L["filter", "Filter"]</MudButton>
+            </div>
         </MudItem>
     </MudGrid>
 </MudPaper>

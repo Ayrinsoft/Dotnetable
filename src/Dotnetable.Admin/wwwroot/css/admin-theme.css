@@ -231,10 +231,17 @@ html, body {
     color: var(--mud-palette-primary);
 }
 
-.dn-grid-search th { background: var(--mud-palette-surface); }
+.dn-grid-search th {
+    background: var(--mud-palette-surface);
+    min-width: 0;
+    overflow: visible;
+}
 
 .dn-grid-input {
     width: 100%;
+    max-width: 100%;
+    min-width: 0;
+    box-sizing: border-box;
     padding: 5px 8px;
     border: 1px solid var(--mud-palette-lines-default);
     border-radius: 4px;
@@ -242,6 +249,11 @@ html, body {
     color: var(--mud-palette-text-primary);
     font-size: .8rem;
     outline: none;
+}
+
+.dn-grid-input[type="date"] {
+    min-width: 0;
+    max-width: 100%;
 }
 
 .dn-grid-input:focus {
@@ -567,19 +579,69 @@ html, body {
     display: inline;
 }
 
-/* ---- Date picker calendar width (avoid half-width popovers) -------------- */
-.mud-picker-datepicker-toolbar,
-.mud-picker-calendar-header,
-.mud-picker-calendar-container,
-.mud-picker-month-container {
-    min-width: 310px;
+/* Date *input* must shrink to its grid cell. The 320px min-width used to live on
+   .mud-picker-inline (the field itself) so From/To calendars overlapped and
+   covered Filter/Run buttons on finance pages. */
+.mud-picker.mud-picker-inline,
+.mud-input-control.mud-picker {
+    min-width: 0 !important;
+    max-width: 100%;
 }
 
+/* Calendar popover only — keep the month grid readable */
 .mud-popover .mud-picker,
-.mud-picker.mud-picker-inline {
-    min-width: 320px !important;
+.mud-popover .mud-picker-content,
+.mud-popover .mud-picker-datepicker-toolbar,
+.mud-popover .mud-picker-calendar-header,
+.mud-popover .mud-picker-calendar-container,
+.mud-popover .mud-picker-month-container {
+    min-width: 280px;
+    width: auto;
 }
 
-.mud-picker .mud-picker-content {
-    min-width: 310px;
+/* Filter toolbars (search + dates + actions) */
+.dn-filter-bar .mud-grid-item {
+    min-width: 0;
+}
+
+.dn-filter-bar .mud-input-control,
+.dn-filter-bar .mud-select,
+.dn-filter-bar .mud-picker {
+    width: 100%;
+    max-width: 100%;
+}
+
+.dn-filter-bar .dn-filter-actions {
+    display: flex;
+    flex-wrap: wrap;
+    align-items: flex-end;
+    gap: 8px;
+    width: 100%;
+    padding-block-start: 4px;
+}
+
+.dn-filter-bar .dn-filter-actions .mud-button {
+    flex: 1 1 auto;
+    min-width: 5.5rem;
+}
+
+.dn-filter-row {
+    display: flex;
+    flex-wrap: wrap;
+    align-items: flex-end;
+    gap: 12px;
+}
+
+.dn-filter-row > * {
+    flex: 1 1 160px;
+    min-width: 0;
+    max-width: 100%;
+}
+
+.dn-filter-row .dn-filter-actions {
+    flex: 0 1 auto;
+    display: flex;
+    flex-wrap: wrap;
+    gap: 8px;
+    align-items: flex-end;
 }

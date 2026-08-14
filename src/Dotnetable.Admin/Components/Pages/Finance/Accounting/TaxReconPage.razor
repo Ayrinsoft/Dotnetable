@@ -17,11 +17,21 @@
 {
     <WebsiteSelector Value="_websiteId" ValueChanged="async id => { _websiteId = id; await Load(); }" Websites="_websites" Class="mb-3" Style="max-width:220px" />
 }
-<MudStack Row="true" Class="mb-3 gap-2">
-    <MudDatePicker @bind-Date="_from" Label="@L["from", "From"]" Variant="Variant.Outlined" Dense="true" />
-    <MudDatePicker @bind-Date="_to" Label="@L["to", "To"]" Variant="Variant.Outlined" Dense="true" />
-    <MudButton Variant="Variant.Filled" Color="Color.Primary" OnClick="Load">@L["run", "Run"]</MudButton>
-</MudStack>
+<MudPaper Elevation="0" Class="app-card rounded-lg pa-4 mb-3">
+    <MudGrid Spacing="2" Class="dn-filter-bar">
+        <MudItem xs="12" sm="6" md="4">
+            <MudDatePicker @bind-Date="_from" Label="@L["from", "From"]" Variant="Variant.Outlined" Dense="true" />
+        </MudItem>
+        <MudItem xs="12" sm="6" md="4">
+            <MudDatePicker @bind-Date="_to" Label="@L["to", "To"]" Variant="Variant.Outlined" Dense="true" />
+        </MudItem>
+        <MudItem xs="12" md="4">
+            <div class="dn-filter-actions">
+                <MudButton Variant="Variant.Filled" Color="Color.Primary" OnClick="Load">@L["run", "Run"]</MudButton>
+            </div>
+        </MudItem>
+    </MudGrid>
+</MudPaper>
 
 @if (_dto is not null)
 {

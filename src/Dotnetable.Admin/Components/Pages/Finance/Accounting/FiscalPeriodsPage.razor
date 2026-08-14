@@ -27,7 +27,7 @@
 {
     <MudPaper Elevation="0" Class="app-card rounded-lg pa-4 mb-3">
         <MudText Typo="Typo.subtitle1" Class="mb-2">@L["accounting.calendar_settings", "Accounting calendar (site owner)"]</MudText>
-        <MudStack Row="true" Class="flex-wrap gap-2 mb-2">
+        <MudStack Row="true" Class="dn-filter-row mb-2">
             <MudSelect T="FiscalPeriodCadence" @bind-Value="_cadence" Dense="true" Style="min-width:160px"
                        Label="@L["accounting.cadence", "Period length"]">
                 <MudSelectItem T="FiscalPeriodCadence" Value="FiscalPeriodCadence.Daily">@L["accounting.cadence.daily", "Daily"]</MudSelectItem>
@@ -42,7 +42,9 @@
                 <MudSelectItem T="int" Value="6">@L["day.sat", "Saturday"]</MudSelectItem>
             </MudSelect>
             <MudNumericField T="int" @bind-Value="_dueDays" Label="@L["accounting.close_due_days", "Close due (days after end)"]" Dense="true" Min="0" Max="90" Style="width:180px" />
-            <MudButton Variant="Variant.Filled" Color="Color.Primary" OnClick="SaveSettings">@L["save", "Save"]</MudButton>
+            <div class="dn-filter-actions">
+                <MudButton Variant="Variant.Filled" Color="Color.Primary" OnClick="SaveSettings">@L["save", "Save"]</MudButton>
+            </div>
         </MudStack>
         <MudText Typo="Typo.caption" Color="Color.Secondary">
             @L["accounting.calendar_hint", "After period end, the owner should close by the due date. Closing posts opening balances into the next open period; closed books no longer accept journals."]
@@ -50,9 +52,11 @@
     </MudPaper>
 
     <MudPaper Elevation="0" Class="app-card rounded-lg pa-3 mb-3">
-        <MudStack Row="true" Class="flex-wrap gap-2 align-center">
+        <MudStack Row="true" Class="dn-filter-row">
             <MudNumericField T="int" @bind-Value="_year" Label="@L["year", "Year"]" Variant="Variant.Outlined" Dense="true" Style="width:100px" />
-            <MudButton Variant="Variant.Filled" Color="Color.Primary" OnClick="Generate">@L["accounting.generate_periods", "Generate periods"]</MudButton>
+            <div class="dn-filter-actions">
+                <MudButton Variant="Variant.Filled" Color="Color.Primary" OnClick="Generate">@L["accounting.generate_periods", "Generate periods"]</MudButton>
+            </div>
             <MudSwitch T="bool" Value="_showClosed" Color="Color.Primary"
                        Label="@L["accounting.show_closed", "Show closed (report history)"]"
                        ValueChanged="OnShowClosed" />
