@@ -20,6 +20,9 @@ public interface IWebsiteClientService
     /// <summary>Server-side paged/sorted/searched customers. <paramref name="websiteId"/> null = all websites (master only).</summary>
     Task<PagedResult<WebsiteClient>> GetPagedAsync(int? websiteId, GridQuery query, CancellationToken ct = default);
 
+    /// <summary>Quick lookup for admin pickers (email, phone, or name contains <paramref name="term"/>).</summary>
+    Task<IReadOnlyList<WebsiteClient>> SearchAsync(int? websiteId, string? term, int take = 20, CancellationToken ct = default);
+
     Task SetActiveAsync(int id, bool active, CancellationToken ct = default);
     Task SetLevelAsync(int id, ClientLevel level, CancellationToken ct = default);
 

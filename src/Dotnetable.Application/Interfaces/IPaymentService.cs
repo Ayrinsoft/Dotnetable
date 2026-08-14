@@ -1,3 +1,4 @@
+using Dotnetable.Application.DTOs;
 using Dotnetable.Domain.Entities;
 
 namespace Dotnetable.Application.Interfaces;
@@ -87,6 +88,15 @@ public interface IPaymentService
         int memberId, int? bankAccountId = null, int? receiptFileId = null, bool markAsPaid = true,
         DateTime? paidAtUtc = null, CancellationToken ct = default);
 
+    /// <summary>
+    /// Admin records money received for a customer with no order (wallet top-up). Creates a Paid
+    /// payment (CreatedByMemberID set) and credits the matching currency wallet.
+    /// </summary>
+    Task<(bool Success, string? Error, Payment? Payment)> RecordWalletDepositAsync(
+        int websiteId, int clientId, decimal amount, string? currencyCode,
+        int? bankAccountId, string? description, string? reference, int? receiptFileId,
+        int memberId, DateTime? paidAtUtc = null, CancellationToken ct = default);
+
     /// <summary>Admin verification of a pending manual payment: approve marks it Paid and transitions the
     /// order to Paid; reject marks it Rejected and leaves the order unpaid (customer may resubmit).</summary>
     Task<bool> VerifyAsync(int paymentId, int memberId, bool approve, string? note, CancellationToken ct = default);
@@ -97,10 +107,10 @@ public interface IPaymentService
 
     /// <summary>Pending bank-transfer receipts awaiting verification. Prefer
     /// <see cref="GetManualPagedAsync"/> when a status filter is needed.</summary>
-    Task<Application.DTOs.PagedResult<Payment>> GetPendingAsync(int? websiteId, Application.DTOs.GridQuery query, CancellationToken ct = default);
+    Task<PagedResult<Payment>> GetPendingAsync(int? websiteId, GridQuery query, CancellationToken ct = default);
 
     /// <summary>Bank-transfer payments for the admin verification queue, optionally filtered by status.</summary>
-    Task<Application.DTOs.PagedResult<Payment>> GetManualPagedAsync(int? websiteId, byte? status, Application.DTOs.GridQuery query, CancellationToken ct = default);
+    Task<PagedResult<Payment>> GetManualPagedAsync(int? websiteId, byte? status, GridQuery query, CancellationToken ct = default);
 
     /// <summary>Counts of bank-transfer payments per <see cref="Payment"/>.Status for the optional website scope.</summary>
     Task<IReadOnlyDictionary<byte, int>> GetManualStatusCountsAsync(int? websiteId, CancellationToken ct = default);
@@ -114,16 +124,21 @@ public interface IPaymentService
     /// (<paramref name="toWallet"/> false and <paramref name="bankAccountId"/> null — completed immediately).
     /// </summary>
     Task<(bool Success, string? Error, PaymentRefund? Refund)> RefundAsync(
-        int paymentId, decimal amount, string? reason, bool toWallet, int? bankAccountId, int memberId, CancellationToken ct = default);
+        int paymentId, decimal amount, string? reason, bool toWallet, int? bankAccountId, int memberId,
+        bool markCompleted = false, CancellationToken ct = default);
+
+    /// <summary>Paid (or partially refunded) payments that still have a refundable remainder.</summary>
+    Task<IReadOnlyList<RefundablePaymentDto>> GetRefundablePaymentsAsync(
+        int websiteId, int clientId, CancellationToken ct = default);
 
     Task<bool> CompleteBankRefundAsync(int paymentRefundId, int memberId, CancellationToken ct = default);
 
     /// <summary>Bank refunds awaiting the admin to perform the manual outgoing transfer and mark it done.
     /// Prefer <see cref="GetBankRefundsPagedAsync"/> when a status filter is needed.</summary>
-    Task<Application.DTOs.PagedResult<PaymentRefund>> GetPendingRefundsAsync(int? websiteId, Application.DTOs.GridQuery query, CancellationToken ct = default);
+    Task<PagedResult<PaymentRefund>> GetPendingRefundsAsync(int? websiteId, GridQuery query, CancellationToken ct = default);
 
     /// <summary>Manual bank refunds for the admin queue, optionally filtered by status (only rows with a bank account).</summary>
-    Task<Application.DTOs.PagedResult<PaymentRefund>> GetBankRefundsPagedAsync(int? websiteId, byte? status, Application.DTOs.GridQuery query, CancellationToken ct = default);
+    Task<PagedResult<PaymentRefund>> GetBankRefundsPagedAsync(int? websiteId, byte? status, GridQuery query, CancellationToken ct = default);
 
     /// <summary>Counts of bank refunds per <see cref="PaymentRefund"/>.Status for the optional website scope.</summary>
     Task<IReadOnlyDictionary<byte, int>> GetBankRefundStatusCountsAsync(int? websiteId, CancellationToken ct = default);

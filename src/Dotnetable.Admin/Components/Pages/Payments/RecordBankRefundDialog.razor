@@ -1,0 +1,252 @@
+@using Dotnetable.Application.RecordAttachments
+@inject IPaymentService PaymentService
+@inject IWebsiteClientService ClientService
+@inject IBankAccountService BankAccountService
+@inject IRecordAttachmentService Attachments
+@inject IDialogService DialogService
+@inject ISnackbar Snackbar
+@inject IPageLocalizer L
+
+<MudDialog>
+    <DialogContent>
+        <MudText Typo="Typo.body2" Color="Color.Secondary" Class="mb-3">
+            @L["payments.refunds.register_hint", "Register an outgoing bank refund against a paid payment. It appears on this queue until you mark it completed — or mark it done now if the transfer already happened."]
+        </MudText>
+        <MudForm @ref="_form">
+            <MudGrid Spacing="3">
+                <MudItem xs="12">
+                    <MudAutocomplete T="WebsiteClient" Value="_client" ValueChanged="OnClientChanged"
+                                     SearchFunc="SearchClients" ToStringFunc="ClientLabel"
+                                     Label="@L["clients", "Customer"]" Variant="Variant.Outlined"
+                                     Dense="true" Required="true" ResetValueOnEmptyText="true"
+                                     CoerceText="false" />
+                </MudItem>
+                <MudItem xs="12">
+                    <MudSelect T="int?" Value="_paymentId" ValueChanged="OnPaymentChanged"
+                               Label="@L["payments.refunds.against", "Against payment"]"
+                               Variant="Variant.Outlined" Dense="true" Required="true"
+                               Disabled="@(_client is null)">
+                        @foreach (var p in _payments)
+                        {
+                            <MudSelectItem T="int?" Value="@p.PaymentID">@PaymentLabel(p)</MudSelectItem>
+                        }
+                    </MudSelect>
+                    @if (_client is not null && _payments.Count == 0 && !_loadingPayments)
+                    {
+                        <MudText Typo="Typo.caption" Color="Color.Warning">
+                            @L["payments.refunds.none_refundable", "This customer has no paid amount left to refund."]
+                        </MudText>
+                    }
+                </MudItem>
+                <MudItem xs="12">
+                    <DNMoneyField @bind-Value="_amount"
+                                  Label="@AmountLabel"
+                                  DecimalDigits="@MoneyFormat.EffectiveDigits(_currencyCode)"
+                                  Min="0" Required="true" />
+                </MudItem>
+                <MudItem xs="12">
+                    <MudAutocomplete T="BankAccount" Value="@GetBankAccount()" ValueChanged="OnBankChanged"
+                                     SearchFunc="SearchBankAccounts" ToStringFunc="BankLabel"
+                                     Label="@L["payments.refunds.from_account", "Sent from (company bank account)"]"
+                                     Variant="Variant.Outlined" Dense="true"
+                                     CoerceText="false" ResetValueOnEmptyText="true" />
+                </MudItem>
+                <MudItem xs="12">
+                    <MudTextField @bind-Value="_reason" Label="@L["wallets.payment_description", "Payment description"]"
+                                  Variant="Variant.Outlined" Lines="2" Required="true" MaxLength="500"
+                                  RequiredError="@L["required", "This field is required."]" />
+                </MudItem>
+                <MudItem xs="12">
+                    <MudSwitch T="bool" @bind-Value="_alreadySent" Color="Color.Primary"
+                               Label="@L["payments.refunds.already_sent", "Transfer already sent — mark completed now"]" />
+                </MudItem>
+                <MudItem xs="12">
+                    <MudStack Row="true" AlignItems="AlignItems.Center" Spacing="2">
+                        <MudButton Variant="Variant.Outlined" Size="Size.Small" StartIcon="@Icons.Material.Filled.UploadFile"
+                                   OnClick="PickReceiptAsync">
+                            @L["wallets.invoice_photo", "Invoice / receipt photo"]
+                        </MudButton>
+                        @if (_receiptFileId is not null)
+                        {
+                            <MudChip T="string" Size="Size.Small" OnClose="() => _receiptFileId = null">
+                                #@_receiptFileId
+                            </MudChip>
+                        }
+                    </MudStack>
+                </MudItem>
+            </MudGrid>
+            <DNValidationSummary Errors="_formErrors" />
+        </MudForm>
+    </DialogContent>
+    <DialogActions>
+        <MudButton OnClick="Cancel">@L["cancel", "Cancel"]</MudButton>
+        <MudButton Variant="Variant.Filled" Color="Color.Primary" OnClick="SaveAsync" Disabled="@_saving">
+            @L["payments.refunds.register", "Register bank refund"]
+        </MudButton>
+    </DialogActions>
+</MudDialog>
+
+@code {
+    [CascadingParameter] private IMudDialogInstance MudDialog { get; set; } = null!;
+    [Parameter] public int WebsiteId { get; set; }
+    [Parameter] public int MemberId { get; set; }
+
+    private MudForm _form = null!;
+    private bool _saving, _loadingPayments, _alreadySent;
+    private string[]? _formErrors;
+    private WebsiteClient? _client;
+    private int? _paymentId;
+    private decimal _amount;
+    private string _currencyCode = "";
+    private string? _reason;
+    private int? _bankAccountId;
+    private int? _receiptFileId;
+    private List<RefundablePaymentDto> _payments = new();
+    private List<BankAccount> _bankAccounts = new();
+
+    private string AmountLabel => string.IsNullOrEmpty(_currencyCode)
+        ? L["amount", "Amount"]
+        : $"{L["amount", "Amount"]} ({_currencyCode})";
+
+    protected override async Task OnInitializedAsync()
+    {
+        await L.EnsureLoadedAsync();
+        _bankAccounts = await BankAccountService.GetByWebsiteAsync(WebsiteId);
+    }
+
+    private void Cancel() => MudDialog.Cancel();
+
+    private static string ClientLabel(WebsiteClient? c)
+    {
+        if (c is null) return "";
+        var name = $"{c.Givenname} {c.Surname}".Trim();
+        if (string.IsNullOrEmpty(name)) name = c.Email ?? c.Cellphone ?? $"#{c.WebsiteClientID}";
+        return string.IsNullOrEmpty(c.Cellphone) ? name : $"{name} — {c.Cellphone}";
+    }
+
+    private string PaymentLabel(RefundablePaymentDto p)
+    {
+        var head = !string.IsNullOrEmpty(p.OrderNumber)
+            ? p.OrderNumber
+            : $"{L["wallets.deposit", "Wallet deposit"]} #{p.PaymentID}";
+        return $"{head} — {MoneyFormat.GroupWithCode(p.RemainingAmount, p.CurrencyCode)} {L["payments.refunds.remaining", "remaining"]}";
+    }
+
+    private async Task<IEnumerable<WebsiteClient>> SearchClients(string value, CancellationToken ct) =>
+        await ClientService.SearchAsync(WebsiteId, value, 20, ct);
+
+    private async Task OnClientChanged(WebsiteClient? client)
+    {
+        _client = client;
+        _paymentId = null;
+        _payments.Clear();
+        _amount = 0;
+        _currencyCode = "";
+        if (client is null) return;
+
+        var siteId = client.WebsiteID > 0 ? client.WebsiteID : WebsiteId;
+        if (siteId != WebsiteId)
+            _bankAccounts = await BankAccountService.GetByWebsiteAsync(siteId);
+
+        _loadingPayments = true;
+        try
+        {
+            _payments = (await PaymentService.GetRefundablePaymentsAsync(siteId, client.WebsiteClientID)).ToList();
+            var first = _payments.FirstOrDefault();
+            if (first is not null)
+                ApplyPayment(first);
+        }
+        finally { _loadingPayments = false; }
+    }
+
+    private void OnPaymentChanged(int? id)
+    {
+        _paymentId = id;
+        var p = _payments.FirstOrDefault(x => x.PaymentID == id);
+        if (p is not null)
+            ApplyPayment(p);
+    }
+
+    private void ApplyPayment(RefundablePaymentDto p)
+    {
+        _paymentId = p.PaymentID;
+        _amount = p.RemainingAmount;
+        _currencyCode = p.CurrencyCode;
+    }
+
+    private BankAccount? GetBankAccount() =>
+        _bankAccountId is int id ? _bankAccounts.FirstOrDefault(b => b.BankAccountID == id) : null;
+
+    private void OnBankChanged(BankAccount? account) => _bankAccountId = account?.BankAccountID;
+
+    private string BankLabel(BankAccount? b) =>
+        b is null ? string.Empty : $"{b.Bank?.Name ?? "Bank"} — {b.Title}";
+
+    private Task<IEnumerable<BankAccount>> SearchBankAccounts(string value, CancellationToken ct)
+    {
+        IEnumerable<BankAccount> q = _bankAccounts.OrderBy(b => b.Title);
+        if (!string.IsNullOrWhiteSpace(value))
+        {
+            var needle = value.Trim();
+            q = q.Where(b =>
+                b.Title.Contains(needle, StringComparison.OrdinalIgnoreCase)
+                || (b.Bank?.Name?.Contains(needle, StringComparison.OrdinalIgnoreCase) ?? false));
+        }
+        return Task.FromResult(q);
+    }
+
+    private async Task PickReceiptAsync()
+    {
+        var siteId = _client?.WebsiteID > 0 ? _client.WebsiteID : WebsiteId;
+        var parameters = new DialogParameters
+        {
+            [nameof(FilePickerDialog.WebsiteId)] = siteId,
+            [nameof(FilePickerDialog.Category)] = FileCategory.Image,
+        };
+        var dialog = await DialogService.ShowAsync<FilePickerDialog>(L["select_file", "Select a file"], parameters,
+            new DialogOptions { MaxWidth = MaxWidth.Large, FullWidth = true });
+        var result = await dialog.Result;
+        if (result is { Canceled: false, Data: FileRecord file })
+            _receiptFileId = file.FileRecordID;
+    }
+
+    private async Task SaveAsync()
+    {
+        await _form.Validate();
+        _formErrors = _form.Errors;
+        if (!_form.IsValid || _client is null || _paymentId is null || _amount <= 0 || string.IsNullOrWhiteSpace(_reason))
+            return;
+        if (_bankAccountId is null)
+        {
+            Snackbar.Add(L["payments.bank_account_required", "Select a bank account."], Severity.Warning);
+            return;
+        }
+
+        _saving = true;
+        try
+        {
+            var (ok, error, refund) = await PaymentService.RefundAsync(
+                _paymentId.Value, _amount, _reason, toWallet: false, _bankAccountId, MemberId,
+                markCompleted: _alreadySent);
+            if (!ok || refund is null)
+            {
+                Snackbar.Add(error ?? L["save_failed", "Save failed"], Severity.Error);
+                return;
+            }
+
+            if (_receiptFileId is int fileId)
+            {
+                await Attachments.AttachAsync(
+                    _client.WebsiteID, RecordEntityTypes.PaymentRefund, refund.PaymentRefundID,
+                    fileId, L["wallets.invoice_photo", "Invoice / receipt photo"], _reason, MemberId);
+            }
+
+            MudDialog.Close(DialogResult.Ok(true));
+        }
+        catch (Exception ex)
+        {
+            Snackbar.Add($"{L["save_failed", "Save failed"]}: {ex.Message}", Severity.Error);
+        }
+        finally { _saving = false; }
+    }
+}

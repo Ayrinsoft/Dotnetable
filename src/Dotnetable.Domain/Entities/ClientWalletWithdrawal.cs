@@ -34,6 +34,14 @@ public partial class ClientWalletWithdrawal
 
     public string? PaymentRefNumber { get; set; }
 
+    /// <summary>Free-text payout description (bank slip note, reason, etc.).</summary>
+    public string? Note { get; set; }
+
+    /// <summary>
+    /// Admin who created this row. Null means the customer requested the cash-out themselves.
+    /// </summary>
+    public int? CreatedByMemberID { get; set; }
+
     public DateTime? PaidAt { get; set; }
 
     public DateTime RequestedAt { get; set; }
@@ -41,6 +49,8 @@ public partial class ClientWalletWithdrawal
     public virtual ClientBankAccount ClientBankAccount { get; set; } = null!;
 
     public virtual ClientWallet ClientWallet { get; set; } = null!;
+
+    public virtual Member? CreatedByMember { get; set; }
 
     public virtual Member? ReviewedByMember { get; set; }
 

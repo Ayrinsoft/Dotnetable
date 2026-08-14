@@ -93,6 +93,8 @@ public class ClientWalletWithdrawalService : IClientWalletWithdrawalService
         var q = _context.ClientWalletWithdrawals.AsNoTracking()
             .Include(w => w.WebsiteClient)
             .Include(w => w.ClientBankAccount)
+            .Include(w => w.CreatedByMember)
+            .Include(w => w.ReviewedByMember)
             .AsQueryable();
 
         if (websiteId is int wid)
@@ -186,5 +188,95 @@ public class ClientWalletWithdrawalService : IClientWalletWithdrawalService
 
         await _context.SaveChangesAsync(ct);
         return true;
+    }
+
+    public async Task<(bool Success, string? Error, ClientWalletWithdrawal? Withdrawal)> RecordAdminPayoutAsync(
+        int websiteId, int clientId, int clientBankAccountId, decimal amount,
+        string? currencyCode, string? note, string? paymentRef, int memberId,
+        DateTime? paidAtUtc = null, CancellationToken ct = default)
+    {
+        if (amount <= 0)
+            return (false, "Withdrawal amount must be greater than zero.", null);
+        if (string.IsNullOrWhiteSpace(note))
+            return (false, "Payment description is required.", null);
+
+        var clientOk = await _context.WebsiteClients.AsNoTracking()
+            .AnyAsync(c => c.WebsiteClientID == clientId && c.WebsiteID == websiteId, ct);
+        if (!clientOk)
+            return (false, "Customer not found.", null);
+
+        var bankAccount = await _context.ClientBankAccounts.AsNoTracking()
+            .FirstOrDefaultAsync(a => a.ClientBankAccountID == clientBankAccountId
+                                      && a.WebsiteClientID == clientId
+                                      && a.IsActive, ct);
+        if (bankAccount is null)
+            return (false, "Customer bank account not found.", null);
+
+        var paidAt = NormalizeUtc(paidAtUtc) ?? DateTime.UtcNow;
+        var desc = note.Trim();
+        if (desc.Length > 500) desc = desc[..500];
+
+        ClientWalletTransaction holdTransaction;
+        try
+        {
+            holdTransaction = await _wallets.ApplyAsync(
+                websiteId, clientId,
+                (byte)ClientWalletTransactionType.WithdrawalHold,
+                -amount,
+                (byte)ClientWalletSourceType.ClientWalletWithdrawal,
+                null,
+                desc,
+                memberId,
+                currencyCode,
+                ct);
+        }
+        catch (InvalidOperationException ex)
+        {
+            return (false, ex.Message, null);
+        }
+
+        var wallet = await _context.ClientWallets.AsNoTracking()
+            .FirstAsync(w => w.ClientWalletID == holdTransaction.ClientWalletID, ct);
+
+        decimal amountUsdDual = 0;
+        if (await _currency.GetStorePricesInUsdAsync(websiteId, ct))
+        {
+            try { amountUsdDual = await _currency.ToUsdAsync(websiteId, amount, wallet.CurrencyCode, ct); }
+            catch (InvalidOperationException) { amountUsdDual = 0; }
+        }
+
+        var withdrawal = new ClientWalletWithdrawal
+        {
+            WebsiteID = websiteId,
+            WebsiteClientID = clientId,
+            ClientWalletID = holdTransaction.ClientWalletID,
+            ClientBankAccountID = clientBankAccountId,
+            CurrencyCode = wallet.CurrencyCode,
+            Amount = amount,
+            AmountUsd = amountUsdDual,
+            Status = (byte)ClientWalletWithdrawalStatus.Paid,
+            Note = desc,
+            PaymentRefNumber = string.IsNullOrWhiteSpace(paymentRef) ? null : paymentRef.Trim(),
+            CreatedByMemberID = memberId,
+            ReviewedByMemberID = memberId,
+            ReviewedAt = paidAt,
+            PaidAt = paidAt,
+            RequestedAt = paidAt,
+        };
+        _context.ClientWalletWithdrawals.Add(withdrawal);
+        await _context.SaveChangesAsync(ct);
+
+        holdTransaction.SourceId = withdrawal.ClientWalletWithdrawalID;
+        await _context.SaveChangesAsync(ct);
+
+        return (true, null, withdrawal);
+    }
+
+    private static DateTime? NormalizeUtc(DateTime? value)
+    {
+        if (value is null) return null;
+        return value.Value.Kind == DateTimeKind.Unspecified
+            ? DateTime.SpecifyKind(value.Value, DateTimeKind.Utc)
+            : value.Value.ToUniversalTime();
     }
 }

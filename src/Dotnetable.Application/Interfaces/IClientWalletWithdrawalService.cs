@@ -37,4 +37,14 @@ public interface IClientWalletWithdrawalService
 
     /// <summary>Rejects a pending withdrawal and reverses the held funds back into the wallet.</summary>
     Task<bool> RejectAsync(int withdrawalId, int memberId, string reason, CancellationToken ct = default);
+
+    /// <summary>
+    /// Admin records that money was already taken from the customer wallet and paid out to the
+    /// customer's bank account. Debits the wallet immediately and inserts a Paid row labeled
+    /// as created by <paramref name="memberId"/>.
+    /// </summary>
+    Task<(bool Success, string? Error, ClientWalletWithdrawal? Withdrawal)> RecordAdminPayoutAsync(
+        int websiteId, int clientId, int clientBankAccountId, decimal amount,
+        string? currencyCode, string? note, string? paymentRef, int memberId,
+        DateTime? paidAtUtc = null, CancellationToken ct = default);
 }

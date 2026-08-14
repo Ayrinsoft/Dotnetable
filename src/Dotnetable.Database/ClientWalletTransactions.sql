@@ -21,7 +21,7 @@
 
 
 -- Append-only ledger in the wallet's CurrencyCode. Amount is signed (+credit / -debit).
--- Type: 1=RefundCredit, 2=PurchaseUse, 3=WithdrawalHold, 4=WithdrawalReversed, 5=AdminAdjustment.
+-- Type: 1=RefundCredit, 2=PurchaseUse, 3=WithdrawalHold, 4=WithdrawalReversed, 5=AdminAdjustment, 6=AdminDeposit.
 -- AmountUsd/BalanceAfterUsd are optional reporting mirrors only.
 GO
 

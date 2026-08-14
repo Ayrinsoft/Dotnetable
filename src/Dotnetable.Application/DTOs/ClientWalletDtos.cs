@@ -11,6 +11,8 @@ public enum ClientWalletTransactionType : byte
     WithdrawalHold = 3,
     WithdrawalReversed = 4,
     AdminAdjustment = 5,
+    /// <summary>Admin-recorded incoming money (wallet top-up / deposit).</summary>
+    AdminDeposit = 6,
 }
 
 /// <summary>
@@ -131,6 +133,8 @@ public sealed class WithdrawalDto
     public DateTime? ReviewedAt { get; set; }
     public string? RejectReason { get; set; }
     public string? PaymentRefNumber { get; set; }
+    public string? Note { get; set; }
+    public int? CreatedByMemberID { get; set; }
     public DateTime? PaidAt { get; set; }
     public DateTime RequestedAt { get; set; }
 }

@@ -933,6 +933,8 @@ public partial class AppDbContext : DbContext
 
             entity.HasIndex(e => e.ReviewedByMemberID, "IX_ClientWalletWithdrawals_ReviewedByMemberID");
 
+            entity.HasIndex(e => e.CreatedByMemberID, "IX_ClientWalletWithdrawals_CreatedByMemberID");
+
             entity.HasIndex(e => e.WebsiteClientID, "IX_ClientWalletWithdrawals_WebsiteClientID");
 
             entity.HasIndex(e => e.WebsiteID, "IX_ClientWalletWithdrawals_WebsiteID");
@@ -945,6 +947,7 @@ public partial class AppDbContext : DbContext
             entity.Property(e => e.AmountUsd).HasColumnType("decimal(18, 4)");
             entity.Property(e => e.PaidAt).HasPrecision(0);
             entity.Property(e => e.PaymentRefNumber).HasMaxLength(100);
+            entity.Property(e => e.Note).HasMaxLength(500);
             entity.Property(e => e.RejectReason).HasMaxLength(500);
             entity.Property(e => e.RequestedAt).HasPrecision(0);
             entity.Property(e => e.ReviewedAt).HasPrecision(0);
@@ -958,6 +961,10 @@ public partial class AppDbContext : DbContext
                 .HasForeignKey(d => d.ClientWalletID)
                 .OnDelete(DeleteBehavior.ClientSetNull)
                 .HasConstraintName("FK_ClientWalletWithdrawals_ClientWallets");
+
+            entity.HasOne(d => d.CreatedByMember).WithMany()
+                .HasForeignKey(d => d.CreatedByMemberID)
+                .HasConstraintName("FK_ClientWalletWithdrawals_Members_CreatedBy");
 
             entity.HasOne(d => d.ReviewedByMember).WithMany(p => p.ClientWalletWithdrawals)
                 .HasForeignKey(d => d.ReviewedByMemberID)

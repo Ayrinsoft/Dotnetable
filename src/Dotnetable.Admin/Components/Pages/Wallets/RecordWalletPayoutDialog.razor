@@ -1,0 +1,263 @@
+@using Dotnetable.Application.RecordAttachments
+@inject IClientWalletWithdrawalService WithdrawalService
+@inject IClientWalletService WalletService
+@inject IWebsiteClientService ClientService
+@inject IClientBankAccountService ClientBankAccountService
+@inject IRecordAttachmentService Attachments
+@inject IDialogService DialogService
+@inject ISnackbar Snackbar
+@inject IPageLocalizer L
+
+<MudDialog>
+    <DialogContent>
+        <MudText Typo="Typo.body2" Color="Color.Secondary" Class="mb-3">
+            @L["wallets.payout.hint", "Record money taken from the customer wallet and paid out to their bank account. Labeled as registered by admin."]
+        </MudText>
+        <MudForm @ref="_form">
+            <MudGrid Spacing="3">
+                <MudItem xs="12">
+                    <MudAutocomplete T="WebsiteClient" Value="_client" ValueChanged="OnClientChanged"
+                                     SearchFunc="SearchClients" ToStringFunc="ClientLabel"
+                                     Label="@L["clients", "Customer"]" Variant="Variant.Outlined"
+                                     Dense="true" Required="true" ResetValueOnEmptyText="true"
+                                     CoerceText="false" />
+                </MudItem>
+                @if (_client is not null)
+                {
+                    <MudItem xs="12">
+                        <MudText Typo="Typo.caption" Color="Color.Secondary">
+                            @L["wallets.current_balance", "Current balance"]:
+                            @string.Join(" · ", _balances.Select(w => MoneyFormat.GroupWithCode(w.Balance, w.CurrencyCode)))
+                        </MudText>
+                    </MudItem>
+                }
+                <MudItem xs="12" sm="6">
+                    <MudSelect T="string" @bind-Value="_currencyCode" Label="@L["currency", "Currency"]"
+                               Variant="Variant.Outlined" Dense="true" Required="true">
+                        @foreach (var c in _currencies)
+                        {
+                            <MudSelectItem T="string" Value="@c.CurrencyCode">
+                                @c.CurrencyCode @(c.IsDefault ? $"({L["default", "Default"]})" : "")
+                            </MudSelectItem>
+                        }
+                    </MudSelect>
+                </MudItem>
+                <MudItem xs="12" sm="6">
+                    <DNMoneyField @bind-Value="_amount"
+                                  Label="@L["amount", "Amount"]"
+                                  DecimalDigits="@MoneyFormat.EffectiveDigits(_currencyCode)"
+                                  Min="0" Required="true" />
+                </MudItem>
+                <MudItem xs="12">
+                    <MudSelect T="int?" @bind-Value="_clientBankAccountId"
+                               Label="@L["wallets.payout.to_account", "Paid out to (customer account)"]"
+                               Variant="Variant.Outlined" Dense="true" Required="true">
+                        @foreach (var a in _clientBanks)
+                        {
+                            <MudSelectItem T="int?" Value="@a.ClientBankAccountID">
+                                @BankSummary(a)
+                            </MudSelectItem>
+                        }
+                    </MudSelect>
+                </MudItem>
+                @if (_client is not null && _clientBanks.Count == 0)
+                {
+                    <MudItem xs="12">
+                        <MudAlert Severity="Severity.Warning" Dense="true" Class="mb-2">
+                            @L["wallets.payout.no_bank", "This customer has no saved bank account. Enter one below."]
+                        </MudAlert>
+                        <MudTextField @bind-Value="_newOwner" Label="@L["wallets.bank_owner", "Account owner"]"
+                                      Variant="Variant.Outlined" Dense="true" Class="mb-2" />
+                        <MudTextField @bind-Value="_newIban" Label="IBAN" Variant="Variant.Outlined" Dense="true" Class="mb-2" />
+                        <MudTextField @bind-Value="_newAccount" Label="@L["wallets.account_number", "Account number"]"
+                                      Variant="Variant.Outlined" Dense="true" Class="mb-2" />
+                        <MudTextField @bind-Value="_newCard" Label="@L["wallets.card_number", "Card number"]"
+                                      Variant="Variant.Outlined" Dense="true" />
+                    </MudItem>
+                }
+                <MudItem xs="12">
+                    <MudTextField @bind-Value="_description" Label="@L["wallets.payment_description", "Payment description"]"
+                                  Variant="Variant.Outlined" Lines="2" Required="true" MaxLength="500"
+                                  RequiredError="@L["required", "This field is required."]" />
+                </MudItem>
+                <MudItem xs="12">
+                    <MudTextField @bind-Value="_reference" Label="@L["wallets.payment_ref", "Payment reference (optional)"]"
+                                  Variant="Variant.Outlined" Dense="true" />
+                </MudItem>
+                <MudItem xs="12">
+                    <MudStack Row="true" AlignItems="AlignItems.Center" Spacing="2">
+                        <MudButton Variant="Variant.Outlined" Size="Size.Small" StartIcon="@Icons.Material.Filled.UploadFile"
+                                   OnClick="PickReceiptAsync">
+                            @L["wallets.invoice_photo", "Invoice / receipt photo"]
+                        </MudButton>
+                        @if (_receiptFileId is not null)
+                        {
+                            <MudChip T="string" Size="Size.Small" OnClose="() => _receiptFileId = null">
+                                #@_receiptFileId
+                            </MudChip>
+                        }
+                    </MudStack>
+                </MudItem>
+            </MudGrid>
+            <DNValidationSummary Errors="_formErrors" />
+        </MudForm>
+    </DialogContent>
+    <DialogActions>
+        <MudButton OnClick="Cancel">@L["cancel", "Cancel"]</MudButton>
+        <MudButton Variant="Variant.Filled" Color="Color.Primary" OnClick="SaveAsync" Disabled="@_saving">
+            @L["wallets.payout.save", "Register payout"]
+        </MudButton>
+    </DialogActions>
+</MudDialog>
+
+@code {
+    [CascadingParameter] private IMudDialogInstance MudDialog { get; set; } = null!;
+    [Parameter] public int WebsiteId { get; set; }
+    [Parameter] public int MemberId { get; set; }
+
+    private MudForm _form = null!;
+    private bool _saving;
+    private string[]? _formErrors;
+    private WebsiteClient? _client;
+    private decimal _amount;
+    private string _currencyCode = "";
+    private string? _description;
+    private string? _reference;
+    private int? _clientBankAccountId;
+    private int? _receiptFileId;
+    private string? _newOwner, _newIban, _newAccount, _newCard;
+    private List<WebsiteWalletCurrency> _currencies = new();
+    private List<ClientBankAccount> _clientBanks = new();
+    private List<ClientWallet> _balances = new();
+
+    protected override async Task OnInitializedAsync()
+    {
+        await L.EnsureLoadedAsync();
+        _currencies = (await WalletService.GetEnabledWalletCurrenciesAsync(WebsiteId)).ToList();
+        _currencyCode = _currencies.FirstOrDefault(c => c.IsDefault)?.CurrencyCode
+                        ?? _currencies.FirstOrDefault()?.CurrencyCode ?? "";
+    }
+
+    private void Cancel() => MudDialog.Cancel();
+
+    private static string ClientLabel(WebsiteClient? c)
+    {
+        if (c is null) return "";
+        var name = $"{c.Givenname} {c.Surname}".Trim();
+        if (string.IsNullOrEmpty(name)) name = c.Email ?? c.Cellphone ?? $"#{c.WebsiteClientID}";
+        return string.IsNullOrEmpty(c.Cellphone) ? name : $"{name} — {c.Cellphone}";
+    }
+
+    private static string BankSummary(ClientBankAccount a)
+    {
+        var dest = a.IBAN ?? a.AccountNumber ?? a.CardNumber ?? "—";
+        return $"{a.OwnerName} — {dest}";
+    }
+
+    private async Task<IEnumerable<WebsiteClient>> SearchClients(string value, CancellationToken ct)
+    {
+        return await ClientService.SearchAsync(WebsiteId, value, 20, ct);
+    }
+
+    private async Task OnClientChanged(WebsiteClient? client)
+    {
+        _client = client;
+        _clientBankAccountId = null;
+        _clientBanks.Clear();
+        _balances.Clear();
+        if (client is null) return;
+
+        if (client.WebsiteID != WebsiteId && client.WebsiteID > 0)
+        {
+            _currencies = (await WalletService.GetEnabledWalletCurrenciesAsync(client.WebsiteID)).ToList();
+            if (_currencies.All(c => c.CurrencyCode != _currencyCode))
+                _currencyCode = _currencies.FirstOrDefault(c => c.IsDefault)?.CurrencyCode
+                                ?? _currencies.FirstOrDefault()?.CurrencyCode ?? _currencyCode;
+        }
+
+        _clientBanks = await ClientBankAccountService.GetByClientIdAsync(client.WebsiteClientID);
+        _clientBankAccountId = _clientBanks.FirstOrDefault(a => a.IsDefault)?.ClientBankAccountID
+                               ?? _clientBanks.FirstOrDefault()?.ClientBankAccountID;
+        _balances = (await WalletService.ListForClientAsync(client.WebsiteID, client.WebsiteClientID)).ToList();
+    }
+
+    private async Task PickReceiptAsync()
+    {
+        var siteId = _client?.WebsiteID > 0 ? _client.WebsiteID : WebsiteId;
+        var parameters = new DialogParameters
+        {
+            [nameof(FilePickerDialog.WebsiteId)] = siteId,
+            [nameof(FilePickerDialog.Category)] = FileCategory.Image,
+        };
+        var dialog = await DialogService.ShowAsync<FilePickerDialog>(L["select_file", "Select a file"], parameters,
+            new DialogOptions { MaxWidth = MaxWidth.Large, FullWidth = true });
+        var result = await dialog.Result;
+        if (result is { Canceled: false, Data: FileRecord file })
+            _receiptFileId = file.FileRecordID;
+    }
+
+    private async Task SaveAsync()
+    {
+        await _form.Validate();
+        _formErrors = _form.Errors;
+        if (!_form.IsValid || _client is null || _amount <= 0 || string.IsNullOrWhiteSpace(_description))
+            return;
+
+        _saving = true;
+        try
+        {
+            var bankId = _clientBankAccountId;
+            if (bankId is null)
+            {
+                if (string.IsNullOrWhiteSpace(_newOwner)
+                    || (string.IsNullOrWhiteSpace(_newIban) && string.IsNullOrWhiteSpace(_newAccount) && string.IsNullOrWhiteSpace(_newCard)))
+                {
+                    Snackbar.Add(L["wallets.payout.bank_required", "Select or enter a customer bank account."], Severity.Warning);
+                    return;
+                }
+
+                var created = new ClientBankAccount
+                {
+                    WebsiteID = _client.WebsiteID,
+                    WebsiteClientID = _client.WebsiteClientID,
+                    OwnerName = _newOwner.Trim(),
+                    IBAN = string.IsNullOrWhiteSpace(_newIban) ? null : _newIban.Trim(),
+                    AccountNumber = string.IsNullOrWhiteSpace(_newAccount) ? null : _newAccount.Trim(),
+                    CardNumber = string.IsNullOrWhiteSpace(_newCard) ? null : _newCard.Trim(),
+                    IsDefault = true,
+                };
+                var save = await ClientBankAccountService.CreateAsync(created);
+                if (save != BankAccountSaveResult.Success)
+                {
+                    Snackbar.Add(L["wallets.payout.bank_failed", "Could not save the customer bank account."], Severity.Error);
+                    return;
+                }
+                bankId = created.ClientBankAccountID;
+            }
+
+            var (ok, error, withdrawal) = await WithdrawalService.RecordAdminPayoutAsync(
+                _client.WebsiteID, _client.WebsiteClientID, bankId.Value, _amount,
+                _currencyCode, _description, _reference, MemberId);
+            if (!ok || withdrawal is null)
+            {
+                Snackbar.Add(error ?? L["save_failed", "Save failed"], Severity.Error);
+                return;
+            }
+
+            if (_receiptFileId is int fileId)
+            {
+                await Attachments.AttachAsync(
+                    _client.WebsiteID, RecordEntityTypes.ClientWalletWithdrawal,
+                    withdrawal.ClientWalletWithdrawalID, fileId,
+                    L["wallets.invoice_photo", "Invoice / receipt photo"], _description, MemberId);
+            }
+
+            MudDialog.Close(DialogResult.Ok(true));
+        }
+        catch (Exception ex)
+        {
+            Snackbar.Add($"{L["save_failed", "Save failed"]}: {ex.Message}", Severity.Error);
+        }
+        finally { _saving = false; }
+    }
+}
