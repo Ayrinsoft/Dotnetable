@@ -136,6 +136,34 @@ else
                         <MudText Typo="Typo.subtitle2">@L["settlements.gross", "Gross"]</MudText>
                         <MudText Typo="Typo.subtitle2">@_s.TotalAmount.ToString("0.##") @_s.CurrencyCode</MudText>
                     </MudStack>
+                    @if (!string.IsNullOrEmpty(_s.SourceCurrencyCode))
+                    {
+                        <MudDivider />
+                        <MudText Typo="Typo.caption" Color="Color.Secondary" Class="mb-1">
+                            @L["settlements.fx_breakdown", "What this cost us"]
+                        </MudText>
+                        <MudStack Row="true" Justify="Justify.SpaceBetween">
+                            <MudText>@L["settlements.source_spent", "Spent"]</MudText>
+                            <MudText>@_s.SourceTotalAmount.ToString("0.##") @_s.SourceCurrencyCode</MudText>
+                        </MudStack>
+                        @if (_s.BridgeUsdAmount > 0)
+                        {
+                            <MudStack Row="true" Justify="Justify.SpaceBetween">
+                                <MudText>USD</MudText>
+                                <MudText>@_s.BridgeUsdAmount.ToString("0.####") USD</MudText>
+                            </MudStack>
+                        }
+                        @if (_s.ExchangeRateToUsd is decimal r1 && r1 > 0)
+                        {
+                            <MudText Typo="Typo.caption" Color="Color.Secondary">
+                                1 USD = @r1.ToString("0.####") @_s.SourceCurrencyCode
+                                @if (_s.ExchangeRateUsdToSettle is decimal r2 && r2 > 0)
+                                {
+                                    <text> · 1 USD = @r2.ToString("0.####") @_s.CurrencyCode</text>
+                                }
+                            </MudText>
+                        }
+                    }
                 </MudStack>
             </MudPaper>
 

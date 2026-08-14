@@ -156,12 +156,12 @@ public class VendorCreditService : IVendorCreditService
         {
             if (!vendors.TryGetValue(group.Key, out var vendor)) continue;
 
-            var amountUsd = group.Sum(i => i.UnitPriceUsd * i.Quantity - i.DiscountAmount);
-            if (amountUsd < 0) amountUsd = 0;
-            var amountLocal = group.Sum(i => i.UnitPrice * i.Quantity - i.DiscountAmount);
+            var amountLocal = group.Sum(VendorLineAmount);
             if (amountLocal < 0) amountLocal = 0;
-            if (amountLocal <= 0 && amountUsd > 0)
-                amountLocal = amountUsd; // legacy
+            var amountUsd = group.Sum(VendorLineAmountUsd);
+            if (amountUsd < 0) amountUsd = 0;
+            if (amountUsd <= 0 && amountLocal > 0)
+                amountUsd = UsdMirror(order, amountLocal);
 
             // Credit-mode site vendors: require and debit available credit.
             if (vendor.VendorType == (byte)VendorType.Site && vendor.SettlementMode == 1)
@@ -203,13 +203,21 @@ public class VendorCreditService : IVendorCreditService
                     order.WebsiteID, linkedSiteIdForSupplier, vendor.Name, ct);
             }
 
-            // B2B settlement tax: each site applies its own tax settings on the settlement net.
-            var hostTax = await _tax.ComputeTaxDetailedAsync(order.WebsiteID, null, null, amountUsd, 0, ct);
-            var hostNet = amountUsd;
-            var hostTaxAmt = hostTax.PricesIncludeTax ? hostTax.TaxAmount : hostTax.TaxAmount;
-            // Settlement payable is always net merchandise; tax is recorded for reporting.
-            // If exclusive tax, TotalAmount may include tax when the parties settle gross — use net+tax as gross.
-            var hostGross = hostTax.PricesIncludeTax ? hostNet : hostNet + hostTaxAmt;
+            var sourceCurrency = string.IsNullOrWhiteSpace(order.CurrencyCode)
+                ? "USD"
+                : order.CurrencyCode.Trim().ToUpperInvariant();
+            var destCurrency = string.IsNullOrWhiteSpace(vendor.SettlementCurrencyCode)
+                ? sourceCurrency
+                : vendor.SettlementCurrencyCode.Trim().ToUpperInvariant();
+
+            var hostTax = await _tax.ComputeTaxDetailedAsync(order.WebsiteID, null, null, amountLocal, 0, ct);
+            var sourceNet = amountLocal;
+            var sourceTaxAmt = hostTax.TaxAmount;
+            var sourceGross = hostTax.PricesIncludeTax ? sourceNet : sourceNet + sourceTaxAmt;
+
+            var fx = await ConvertPayableAsync(
+                order.WebsiteID, sourceCurrency, destCurrency, sourceNet, sourceTaxAmt, sourceGross,
+                amountUsd > 0 ? amountUsd : null, ct);
 
             var hostSettlement = new Settlement
             {
@@ -222,13 +230,23 @@ public class VendorCreditService : IVendorCreditService
                 SupplierID = hostSupplierId,
                 PeriodFrom = today,
                 PeriodTo = today,
-                NetAmount = hostNet,
-                TaxAmount = hostTaxAmt,
-                TotalAmount = hostGross,
+                NetAmount = fx.DestNet,
+                TaxAmount = fx.DestTax,
+                TotalAmount = fx.DestGross,
                 TaxRateSnapshot = hostTax.Lines.Count > 0 ? hostTax.Lines.Sum(l => l.Rate) : null,
-                CurrencyCode = "USD",
+                CurrencyCode = destCurrency,
+                SourceCurrencyCode = sourceCurrency,
+                SourceNetAmount = sourceNet,
+                SourceTaxAmount = sourceTaxAmt,
+                SourceTotalAmount = sourceGross,
+                BridgeUsdAmount = fx.Usd,
+                ExchangeRateToUsd = fx.RateFromPerUsd,
+                ExchangeRateUsdToSettle = fx.RateToPerUsd,
                 Status = 1,
                 Note = $"Host order {order.OrderNumber}" +
+                       (sourceCurrency != destCurrency
+                           ? $" | {sourceGross:0.####} {sourceCurrency} → {fx.Usd:0.####} USD → {fx.DestGross:0.####} {destCurrency}"
+                           : "") +
                        (hostTax.BreakdownJson is not null ? $" | tax:{hostTax.BreakdownJson}" : ""),
                 CreatedAt = DateTime.UtcNow,
             };
@@ -237,11 +255,13 @@ public class VendorCreditService : IVendorCreditService
 
             foreach (var line in group)
             {
+                var lineSrc = VendorLineAmount(line);
+                var lineDest = sourceNet == 0 ? 0 : Math.Round(lineSrc * (fx.DestNet / sourceNet), 4, MidpointRounding.AwayFromZero);
                 _context.SettlementItems.Add(new SettlementItem
                 {
                     SettlementID = hostSettlement.SettlementID,
                     OrderItemID = line.OrderItemID,
-                    Amount = line.UnitPriceUsd * line.Quantity - line.DiscountAmount,
+                    Amount = lineDest,
                     Description = line.TitleSnapshot,
                 });
             }
@@ -261,10 +281,13 @@ public class VendorCreditService : IVendorCreditService
             {
                 var mirrorOrderId = await CreateMirrorOrderAsync(order, group.ToList(), sourceWebsiteId, vendor, ct);
 
-                var sourceTax = await _tax.ComputeTaxDetailedAsync(sourceWebsiteId, null, null, amountUsd, 0, ct);
-                var sourceNet = amountUsd;
-                var sourceTaxAmt = sourceTax.TaxAmount;
-                var sourceGross = sourceTax.PricesIncludeTax ? sourceNet : sourceNet + sourceTaxAmt;
+                var sourceTax = await _tax.ComputeTaxDetailedAsync(sourceWebsiteId, null, null, amountLocal, 0, ct);
+                var recvNet = amountLocal;
+                var recvTaxAmt = sourceTax.TaxAmount;
+                var recvGross = sourceTax.PricesIncludeTax ? recvNet : recvNet + recvTaxAmt;
+                var recvFx = await ConvertPayableAsync(
+                    order.WebsiteID, sourceCurrency, destCurrency, recvNet, recvTaxAmt, recvGross,
+                    amountUsd > 0 ? amountUsd : null, ct);
 
                 var sourceSettlement = new Settlement
                 {
@@ -274,11 +297,18 @@ public class VendorCreditService : IVendorCreditService
                     VendorID = null,
                     PeriodFrom = today,
                     PeriodTo = today,
-                    NetAmount = sourceNet,
-                    TaxAmount = sourceTaxAmt,
-                    TotalAmount = sourceGross,
+                    NetAmount = recvFx.DestNet,
+                    TaxAmount = recvFx.DestTax,
+                    TotalAmount = recvFx.DestGross,
                     TaxRateSnapshot = sourceTax.Lines.Count > 0 ? sourceTax.Lines.Sum(l => l.Rate) : null,
-                    CurrencyCode = "USD",
+                    CurrencyCode = destCurrency,
+                    SourceCurrencyCode = sourceCurrency,
+                    SourceNetAmount = recvNet,
+                    SourceTaxAmount = recvTaxAmt,
+                    SourceTotalAmount = recvGross,
+                    BridgeUsdAmount = recvFx.Usd,
+                    ExchangeRateToUsd = recvFx.RateFromPerUsd,
+                    ExchangeRateUsdToSettle = recvFx.RateToPerUsd,
                     Status = 1,
                     Note = $"Mirror of host order {order.OrderNumber} (host site {order.WebsiteID})" +
                            (sourceTax.BreakdownJson is not null ? $" | tax:{sourceTax.BreakdownJson}" : ""),
@@ -303,7 +333,7 @@ public class VendorCreditService : IVendorCreditService
                     {
                         SettlementID = sourceSettlement.SettlementID,
                         OrderItemID = line.OrderItemID,
-                        Amount = line.UnitPriceUsd * line.Quantity - line.DiscountAmount,
+                        Amount = sourceNet == 0 ? 0 : Math.Round(VendorLineAmount(line) * (recvFx.DestNet / sourceNet), 4, MidpointRounding.AwayFromZero),
                         Description = $"{line.TitleSnapshot} (from host {order.OrderNumber})",
                     });
                 }
@@ -378,12 +408,24 @@ public class VendorCreditService : IVendorCreditService
         Order hostOrder, List<OrderItem> lines, int sourceWebsiteId, Vendor vendor, CancellationToken ct)
     {
         var client = await GetOrCreateInterSiteClientAsync(sourceWebsiteId, hostOrder.WebsiteID, ct);
-        var amountUsd = lines.Sum(i => i.UnitPriceUsd * i.Quantity - i.DiscountAmount);
+        var amountLocal = lines.Sum(VendorLineAmount);
+        var amountUsd = lines.Sum(VendorLineAmountUsd);
+        if (amountUsd <= 0 && amountLocal > 0)
+            amountUsd = UsdMirror(hostOrder, amountLocal);
 
-        // Source site books the sale under its own tax settings (dual tax: host already taxed the customer).
-        var sourceTax = await _tax.ComputeTaxDetailedAsync(sourceWebsiteId, null, null, amountUsd, 0, ct);
-        var taxUsd = sourceTax.TaxAmount;
-        var grandUsd = sourceTax.PricesIncludeTax ? amountUsd : amountUsd + taxUsd;
+        var sourceCurrency = string.IsNullOrWhiteSpace(hostOrder.CurrencyCode)
+            ? "USD"
+            : hostOrder.CurrencyCode.Trim().ToUpperInvariant();
+        var destCurrency = string.IsNullOrWhiteSpace(vendor.SettlementCurrencyCode)
+            ? sourceCurrency
+            : vendor.SettlementCurrencyCode.Trim().ToUpperInvariant();
+
+        var sourceTax = await _tax.ComputeTaxDetailedAsync(sourceWebsiteId, null, null, amountLocal, 0, ct);
+        var taxLocal = sourceTax.TaxAmount;
+        var grandLocal = sourceTax.PricesIncludeTax ? amountLocal : amountLocal + taxLocal;
+        var fx = await ConvertPayableAsync(
+            hostOrder.WebsiteID, sourceCurrency, destCurrency, amountLocal, taxLocal, grandLocal,
+            amountUsd > 0 ? amountUsd : null, ct);
 
         var mirror = new Order
         {
@@ -391,16 +433,16 @@ public class VendorCreditService : IVendorCreditService
             OrderNumber = $"M{hostOrder.WebsiteID}-{hostOrder.OrderNumber}",
             WebsiteClientID = client.WebsiteClientID,
             Status = (byte)OrderStatus.Paid,
-            CurrencyCode = "USD",
-            ExchangeRateToUsd = 1,
-            SubTotal = amountUsd,
+            CurrencyCode = destCurrency,
+            ExchangeRateToUsd = fx.RateToPerUsd > 0 ? fx.RateToPerUsd : (hostOrder.ExchangeRateToUsd <= 0 ? 1 : hostOrder.ExchangeRateToUsd),
+            SubTotal = fx.DestNet,
             DiscountTotal = 0,
             ShippingTotal = 0,
-            TaxTotal = taxUsd,
+            TaxTotal = fx.DestTax,
             PricesIncludeTax = sourceTax.PricesIncludeTax,
             TaxBreakdownJson = sourceTax.BreakdownJson,
-            GrandTotal = grandUsd,
-            GrandTotalUsd = grandUsd,
+            GrandTotal = fx.DestGross,
+            GrandTotalUsd = fx.Usd,
             AddressSnapshot = hostOrder.AddressSnapshot,
             Note = $"Inter-site sale via host order {hostOrder.OrderNumber} (vendor {vendor.Name})",
             CreatedAt = DateTime.UtcNow,
@@ -422,11 +464,13 @@ public class VendorCreditService : IVendorCreditService
                 TitleSnapshot = line.TitleSnapshot,
                 SkuSnapshot = line.SkuSnapshot,
                 Quantity = line.Quantity,
-                UnitPrice = line.UnitPriceUsd,
+                UnitPrice = amountLocal == 0 ? 0 : Math.Round(VendorUnitAmount(line) * (fx.DestNet / amountLocal), 4, MidpointRounding.AwayFromZero),
                 UnitPriceUsd = line.UnitPriceUsd,
                 UnitCostUsd = line.UnitCostUsd,
-                DiscountAmount = line.DiscountAmount,
-                TotalPrice = line.UnitPriceUsd * line.Quantity - line.DiscountAmount,
+                CatalogUnitPrice = amountLocal == 0 ? 0 : Math.Round(VendorUnitAmount(line) * (fx.DestNet / amountLocal), 4, MidpointRounding.AwayFromZero),
+                UnitMarkup = 0,
+                DiscountAmount = 0,
+                TotalPrice = amountLocal == 0 ? 0 : Math.Round(VendorLineAmount(line) * (fx.DestNet / amountLocal), 4, MidpointRounding.AwayFromZero),
             });
         }
 
@@ -441,6 +485,60 @@ public class VendorCreditService : IVendorCreditService
 
         await _context.SaveChangesAsync(ct);
         return mirror.OrderID;
+    }
+
+    private sealed record PayableFx(
+        decimal DestNet, decimal DestTax, decimal DestGross, decimal Usd,
+        decimal RateFromPerUsd, decimal RateToPerUsd);
+
+    private async Task<PayableFx> ConvertPayableAsync(
+        int websiteId, string sourceCurrency, string destCurrency,
+        decimal sourceNet, decimal sourceTax, decimal sourceGross,
+        decimal? usdHint, CancellationToken ct)
+    {
+        if (string.Equals(sourceCurrency, destCurrency, StringComparison.OrdinalIgnoreCase))
+        {
+            var ident = await _currency.ConvertViaUsdAsync(websiteId, sourceGross, sourceCurrency, destCurrency, usdHint, ct);
+            return new PayableFx(sourceNet, sourceTax, sourceGross, ident.UsdAmount, ident.RateFromPerUsd, ident.RateToPerUsd);
+        }
+
+        var netQ = await _currency.ConvertViaUsdAsync(websiteId, sourceNet, sourceCurrency, destCurrency, usdHint, ct);
+        var taxQ = sourceTax == 0
+            ? null
+            : await _currency.ConvertViaUsdAsync(websiteId, sourceTax, sourceCurrency, destCurrency, null, ct);
+        var destTax = taxQ?.ToAmount ?? 0;
+        var destGross = netQ.ToAmount + destTax;
+        return new PayableFx(netQ.ToAmount, destTax, destGross, netQ.UsdAmount, netQ.RateFromPerUsd, netQ.RateToPerUsd);
+    }
+
+    /// <summary>Vendor payable unit in the order currency (catalog / list, excluding store markup).</summary>
+    private static decimal VendorUnitAmount(OrderItem i) =>
+        i.CatalogUnitPrice > 0 ? i.CatalogUnitPrice : i.UnitPrice;
+
+    /// <summary>Vendor payable line in the order currency.</summary>
+    private static decimal VendorLineAmount(OrderItem i)
+    {
+        var line = VendorUnitAmount(i) * i.Quantity - i.DiscountAmount;
+        return line < 0 ? 0 : line;
+    }
+
+    private static decimal VendorLineAmountUsd(OrderItem i)
+    {
+        var line = i.UnitPriceUsd * i.Quantity;
+        return line < 0 ? 0 : line;
+    }
+
+    /// <summary>
+    /// Optional USD mirror. <see cref="Order.ExchangeRateToUsd"/> is site units per 1 USD
+    /// (same convention as payment recording).
+    /// </summary>
+    private static decimal UsdMirror(Order order, decimal amountLocal)
+    {
+        if (string.Equals(order.CurrencyCode, "USD", StringComparison.OrdinalIgnoreCase))
+            return amountLocal;
+        var rate = order.ExchangeRateToUsd;
+        if (rate <= 0) return 0;
+        return Math.Round(amountLocal / rate, 4, MidpointRounding.AwayFromZero);
     }
 
     private async Task<WebsiteClient> GetOrCreateInterSiteClientAsync(int sourceWebsiteId, int hostWebsiteId, CancellationToken ct)

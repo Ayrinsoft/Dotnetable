@@ -41,7 +41,7 @@
         @if (_items.Count == 0)
         {
             <tr>
-                <td colspan="6" style="text-align:center; padding:32px;">
+                <td colspan="7" style="text-align:center; padding:32px;">
                     <MudText Color="Color.Secondary">@L["vendors.empty", "No vendors yet."]</MudText>
                 </td>
             </tr>
@@ -55,6 +55,7 @@
                     <td><code>@v.Slug</code></td>
                     <td>@TypeLabel(v.VendorType)</td>
                     <td>@(v.SettlementMode == 1 ? L["vendors.credit", "Credit"] : L["vendors.immediate", "Immediate"])</td>
+                    <td>@(string.IsNullOrEmpty(v.SettlementCurrencyCode) ? L["vendors.settle_currency.order", "Order currency"] : v.SettlementCurrencyCode)</td>
                     <td>@(v.IsActive ? L["yes", "Yes"] : L["no", "No"])</td>
                     <td>
                         <MudStack Row="true" Spacing="0">
@@ -116,6 +117,7 @@
                 new() { ColumnTitle = L["slug", "Slug"], ColumnName = nameof(Vendor.Slug), HasSort = true, HasSearch = true },
                 new() { ColumnTitle = L["vendors.type", "Type"], ColumnName = nameof(Vendor.VendorType), HasSort = true },
                 new() { ColumnTitle = L["vendors.settlement", "Settlement"], ColumnName = nameof(Vendor.SettlementMode), HasSort = true },
+                new() { ColumnTitle = L["vendors.settle_currency", "Settle in"], ColumnName = nameof(Vendor.SettlementCurrencyCode) },
                 new() { ColumnTitle = L["active", "Active"], ColumnName = nameof(Vendor.IsActive), HasSort = true },
                 new() { ColumnTitle = "", ColumnName = "" },
             }

@@ -48,6 +48,12 @@ public partial class Vendor
 
     public int? LinkedWebsiteID { get; set; }
 
+    /// <summary>
+    /// Currency this vendor is paid in. Null = same as the sale/order currency (no FX).
+    /// Linked sites typically use their operational currency (e.g. KRW) while catalog stays USD.
+    /// </summary>
+    public string? SettlementCurrencyCode { get; set; }
+
     /// <summary>Available inter-site / credit balance in site currency.</summary>
     public decimal AvailableCredit { get; set; }
 
@@ -74,6 +80,8 @@ public partial class Vendor
     public virtual ICollection<VendorProduct> VendorProducts { get; set; } = new List<VendorProduct>();
 
     public virtual ICollection<VendorTranslation> VendorTranslations { get; set; } = new List<VendorTranslation>();
+
+    public virtual Currency? SettlementCurrency { get; set; }
 
     public virtual Website Website { get; set; } = null!;
 }

@@ -8,6 +8,9 @@
 @inject ISnackbar Snackbar
 @inject IPageLocalizer L
 @inject ILanguageService LanguageService
+@inject ICurrencyService CurrencyService
+@inject ICurrencyConversionService Fx
+@inject NavigationManager Nav
 
 <MudDialog>
     <DialogContent>
@@ -50,6 +53,36 @@
                                 <MudSelectItem T="byte" Value="(byte)1">@L["vendors.credit", "Credit"]</MudSelectItem>
                             </MudSelect>
                         </MudItem>
+                        <MudItem xs="12" sm="6">
+                            <MudSelect T="string" Value="_settleCurrency" ValueChanged="OnSettleCurrencyChanged!"
+                                       Label="@L["vendors.settle_currency", "Settle in"]"
+                                       Variant="Variant.Outlined" Clearable="true">
+                                <MudSelectItem T="string" Value="@("")">@L["vendors.settle_currency.order", "Same as order / site currency"]</MudSelectItem>
+                                @foreach (var c in _currencies)
+                                {
+                                    <MudSelectItem T="string" Value="@c.CurrencyCode">@c.CurrencyCode — @c.Name</MudSelectItem>
+                                }
+                            </MudSelect>
+                            <MudText Typo="Typo.caption" Color="Color.Secondary">
+                                @L["vendors.settle_currency.hint", "Linked sites: catalog can stay USD; settlement converts sale currency → USD → this currency. External vendors: pick the currency you pay them in."]
+                            </MudText>
+                        </MudItem>
+                        @if (!string.IsNullOrEmpty(_fxWarning))
+                        {
+                            <MudItem xs="12">
+                                <MudAlert Severity="Severity.Warning" Dense="true" Variant="Variant.Outlined"
+                                          Class="mt-1">
+                                    <MudStack Spacing="1">
+                                        <MudText>@_fxWarning</MudText>
+                                        <MudButton Size="Size.Small" Variant="Variant.Filled" Color="Color.Warning"
+                                                   StartIcon="@Icons.Material.Filled.CurrencyExchange"
+                                                   Href="/finance/currency-rates">
+                                            @L["vendors.go_rates", "Open Exchange Rates"]
+                                        </MudButton>
+                                    </MudStack>
+                                </MudAlert>
+                            </MudItem>
+                        }
                         <MudItem xs="12" sm="6">
                             <MudSwitch T="bool" @bind-Value="Model.IsActive" Label="@L["active", "Active"]" Color="Color.Primary" />
                         </MudItem>
@@ -132,6 +165,10 @@
     private readonly Dictionary<string, string> _tr = new(StringComparer.OrdinalIgnoreCase);
     private List<Member> _members = new();
     private List<Website> _websites = new();
+    private List<Currency> _currencies = new();
+    private string _settleCurrency = "";
+    private string? _hostCurrency;
+    private string? _fxWarning;
 
     private (string Code, string Label)[] _languages = Array.Empty<(string, string)>();
 
@@ -152,6 +189,11 @@
             .Where(w => w.Active && w.WebsiteID != websiteId)
             .OrderBy(w => w.TradeName)
             .ToList();
+        _currencies = (await CurrencyService.GetAllAsync()).Where(c => c.IsActive).OrderBy(c => c.CurrencyCode).ToList();
+        _settleCurrency = Model.SettlementCurrencyCode ?? "";
+        var host = await WebsiteService.GetByIdAsync(websiteId);
+        _hostCurrency = host?.DefaultCurrencyCode;
+        await RefreshFxWarningAsync();
     }
 
     private string Name(string code) => _tr.TryGetValue(code, out var v) ? v : string.Empty;
@@ -190,8 +232,47 @@
     private Website? GetSelectedLinkedWebsite() =>
         Model.LinkedWebsiteID is int id ? _websites.FirstOrDefault(w => w.WebsiteID == id) : null;
 
-    private void OnLinkedWebsiteChanged(Website? website) =>
+    private async Task OnLinkedWebsiteChanged(Website? website)
+    {
         Model.LinkedWebsiteID = website?.WebsiteID;
+        if (website is not null && string.IsNullOrWhiteSpace(_settleCurrency) && !string.IsNullOrWhiteSpace(website.DefaultCurrencyCode))
+            _settleCurrency = website.DefaultCurrencyCode;
+        await RefreshFxWarningAsync();
+    }
+
+    private async Task OnSettleCurrencyChanged(string value)
+    {
+        _settleCurrency = value ?? "";
+        await RefreshFxWarningAsync();
+    }
+
+    private async Task RefreshFxWarningAsync()
+    {
+        _fxWarning = null;
+        if (Model.WebsiteID <= 0) return;
+
+        var dest = string.IsNullOrWhiteSpace(_settleCurrency) ? null : _settleCurrency.Trim().ToUpperInvariant();
+        if (string.IsNullOrEmpty(dest) && Model.VendorType == (byte)VendorType.Site)
+        {
+            var linked = GetSelectedLinkedWebsite();
+            if (!string.IsNullOrWhiteSpace(linked?.DefaultCurrencyCode))
+                dest = linked.DefaultCurrencyCode.Trim().ToUpperInvariant();
+        }
+
+        var host = string.IsNullOrWhiteSpace(_hostCurrency) ? null : _hostCurrency.Trim().ToUpperInvariant();
+        dest ??= host;
+        if (string.IsNullOrEmpty(dest) || string.IsNullOrEmpty(host)
+            || string.Equals(dest, host, StringComparison.OrdinalIgnoreCase))
+            return;
+
+        var missing = await Fx.FindMissingFxRatesAsync(Model.WebsiteID, [host, dest]);
+        if (missing.Count == 0) return;
+
+        var codes = string.Join(", ", missing);
+        _fxWarning = string.Format(
+            L["vendors.fx_missing", "Exchange rate for {0} is not set. Open Exchange Rates and add how many {0} equal 1 USD, then come back and save."],
+            codes);
+    }
 
     private Task<IEnumerable<Website>> SearchWebsites(string value, CancellationToken ct)
     {
@@ -232,6 +313,13 @@
         if (!_form.IsValid) return;
         if (string.IsNullOrWhiteSpace(Model.Slug)) Model.Slug = Model.Name.Trim();
         if (Model.SettlementMode != 1) { Model.CreditDays = null; }
+        Model.SettlementCurrencyCode = string.IsNullOrWhiteSpace(_settleCurrency) ? null : _settleCurrency.Trim().ToUpperInvariant();
+        await RefreshFxWarningAsync();
+        if (!string.IsNullOrEmpty(_fxWarning))
+        {
+            Snackbar.Add(_fxWarning, Severity.Warning);
+            return;
+        }
 
         _saving = true;
         try

@@ -33,7 +33,26 @@ public partial class Settlement
     /// <summary>Optional snapshot of rate fraction used when TaxAmount was computed.</summary>
     public decimal? TaxRateSnapshot { get; set; }
 
+    /// <summary>Currency paid to the vendor (destination).</summary>
     public string CurrencyCode { get; set; } = null!;
+
+    /// <summary>Site / order currency we spent to fund this settlement.</summary>
+    public string? SourceCurrencyCode { get; set; }
+
+    public decimal SourceNetAmount { get; set; }
+
+    public decimal SourceTaxAmount { get; set; }
+
+    public decimal SourceTotalAmount { get; set; }
+
+    /// <summary>USD bridge amount used for FX (reporting).</summary>
+    public decimal BridgeUsdAmount { get; set; }
+
+    /// <summary>Source-currency units per 1 USD at settlement time.</summary>
+    public decimal? ExchangeRateToUsd { get; set; }
+
+    /// <summary>Destination-currency units per 1 USD at settlement time.</summary>
+    public decimal? ExchangeRateUsdToSettle { get; set; }
 
     public byte Status { get; set; }
 
@@ -58,6 +77,8 @@ public partial class Settlement
     public virtual Member? CreatedByMember { get; set; }
 
     public virtual Currency CurrencyCodeNavigation { get; set; } = null!;
+
+    public virtual Currency? SourceCurrency { get; set; }
 
     public virtual ICollection<SettlementItem> SettlementItems { get; set; } = new List<SettlementItem>();
 

@@ -335,6 +335,7 @@
                 <AuthorizeView Policy="@RoleKeys.SettlementsView" Context="stl">
                     <MudNavLink Href="/finance/ledger" Icon="@Icons.Material.Filled.AccountBalanceWallet">@L["ledger", "Financial ledger"]</MudNavLink>
                     <MudNavLink Href="/finance/settlements" Icon="@Icons.Material.Filled.Handshake">@L["settlements", "Settlements"]</MudNavLink>
+                    <MudNavLink Href="/finance/settlements/report" Icon="@Icons.Material.Filled.Assessment">@L["settlements.fx_report", "FX / cost report"]</MudNavLink>
                 </AuthorizeView>
                 <AuthorizeView Policy="@RoleKeys.AccountingView" Context="acc">
                     <MudNavLink Href="/finance/coa" Icon="@Icons.Material.Filled.AccountTree">@L["accounting.coa", "Chart of accounts"]</MudNavLink>

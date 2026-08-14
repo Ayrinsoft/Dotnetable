@@ -1097,6 +1097,10 @@ window.DOCS_ADMIN = {
               fa: "قیمت و استوک لیستینگ را نگه دارید؛ on-hand موجودی در صورت کاربرد از لیستینگ‌ها sync می‌شود.",
             },
             {
+              en: "Set **Settle in** (KRW, USD, IRR, …). Linked sites: catalog can stay USD; payout converts sale currency → USD → settle currency. Empty = same as the order. If the conversion rate is missing, save is blocked and you are sent to **Exchange Rates** to add units per 1 USD.",
+              fa: "**ارز تسویه** را بگذارید (کرون، دلار، ریال، …). سایت لینک‌شده: کاتالوگ دلار بماند؛ پرداخت ریال → دلار → ارز تسویه. خالی = همان ارز سفارش. اگر نرخ تبدیل نباشد ذخیره قفل است و باید در **نرخ ارز** واحد به‌ازای ۱ دلار را ثبت کنید.",
+            },
+            {
               en: "Use vendor credit screens when the business model uses internal credit (separate from formal Settlements).",
               fa: "اگر مدل کسب‌وکار اعتبار داخلی دارد از صفحات اعتبار فروشنده استفاده کنید (جدا از Settlements رسمی).",
             },
@@ -1999,10 +2003,14 @@ window.DOCS_ADMIN = {
             fa: "تسویه فروشنده / بین‌سایتی / تأمین‌کننده با مبالغ خالص، مالیات و ناخالص.",
           },
           purpose: {
-            en: "Formalize money owed between parties (marketplace sellers, linked sites, suppliers) including tax lines.",
-            fa: "رسمی‌کردن پول بین طرف‌ها (فروشنده مارکت‌پلیس، سایت لینک‌شده، تأمین‌کننده) شامل خطوط مالیاتی.",
+            en: "Formalize money owed between parties (marketplace sellers, linked sites, suppliers) including tax lines. Amounts follow the **sale/order currency** (e.g. IRR). Vendors have no separate FX — USD on a settlement is only a reporting mirror, never the payable currency unless the order itself was USD.",
+            fa: "رسمی‌کردن پول بین طرف‌ها (فروشنده مارکت‌پلیس، سایت لینک‌شده، تأمین‌کننده) شامل خطوط مالیاتی. مبلغ با **ارز سفارش/فروش** است (مثلاً ریال). وندور ارز جدا ندارد — دلار فقط آینهٔ گزارش است مگر خود سفارش دلار باشد.",
           },
           howTo: [
+            {
+              en: "Set **Settle in** on the vendor (catalog → Vendors). Null = order/site currency. Linked KRW sites: keep catalog USD; settlement converts sale currency → USD → KRW. Each row stores source cost, USD bridge, dest payable, and rate snapshots. Report: Finance → FX / cost report.",
+              fa: "روی وندور **ارز تسویه** را بگذارید. خالی = ارز سفارش. سایت لینک‌شده کرون: کاتالوگ دلار بماند؛ تسویه ریال → دلار → کرون. هر ردیف هزینه مبدأ، پل دلار، مبلغ مقصد و نرخ‌ها را نگه می‌دارد. گزارش: مالی → گزارش تبدیل / هزینه.",
+            },
             {
               en: "Open Settlements list → open a settlement detail for counterparty, lines, amounts, actions.",
               fa: "فهرست Settlements → جزئیات یک تسویه برای طرف، خطوط، مبالغ، اقدامات.",

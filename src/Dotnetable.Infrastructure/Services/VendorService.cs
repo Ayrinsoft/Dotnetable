@@ -11,8 +11,13 @@ namespace Dotnetable.Infrastructure.Services;
 public class VendorService : IVendorService
 {
     private readonly AppDbContext _context;
+    private readonly ICurrencyConversionService _fx;
 
-    public VendorService(AppDbContext context) => _context = context;
+    public VendorService(AppDbContext context, ICurrencyConversionService fx)
+    {
+        _context = context;
+        _fx = fx;
+    }
 
     public async Task<List<Vendor>> GetAllAsync(int? websiteId, CancellationToken ct = default)
     {
@@ -57,6 +62,7 @@ public class VendorService : IVendorService
     {
         NormalizeAndValidate(vendor);
         await EnsureLinksValidAsync(vendor, ct);
+        await EnsureFxRatesAsync(vendor, ct);
         _context.Vendors.Add(vendor);
         await _context.SaveChangesAsync(ct);
         return vendor;
@@ -66,6 +72,7 @@ public class VendorService : IVendorService
     {
         NormalizeAndValidate(vendor);
         await EnsureLinksValidAsync(vendor, ct);
+        await EnsureFxRatesAsync(vendor, ct);
         _context.Vendors.Update(vendor);
         await _context.SaveChangesAsync(ct);
     }
@@ -248,5 +255,44 @@ public class VendorService : IVendorService
             if (dup)
                 throw new InvalidOperationException("That website is already linked as a vendor on this host.");
         }
+    }
+
+    /// <summary>
+    /// When the vendor (or linked site) settles in a different currency than the host,
+    /// both sides of the USD bridge must have a CurrencyRate row.
+    /// </summary>
+    private async Task EnsureFxRatesAsync(Vendor vendor, CancellationToken ct)
+    {
+        var host = await _context.Websites.AsNoTracking()
+            .Where(w => w.WebsiteID == vendor.WebsiteID)
+            .Select(w => new { w.DefaultCurrencyCode })
+            .FirstOrDefaultAsync(ct);
+        var hostCode = (host?.DefaultCurrencyCode ?? "USD").Trim().ToUpperInvariant();
+
+        var dest = string.IsNullOrWhiteSpace(vendor.SettlementCurrencyCode)
+            ? null
+            : vendor.SettlementCurrencyCode.Trim().ToUpperInvariant();
+
+        if (vendor.VendorType == (byte)VendorType.Site && vendor.LinkedWebsiteID is int lid)
+        {
+            var linkedCode = await _context.Websites.AsNoTracking()
+                .Where(w => w.WebsiteID == lid)
+                .Select(w => w.DefaultCurrencyCode)
+                .FirstOrDefaultAsync(ct);
+            if (!string.IsNullOrWhiteSpace(linkedCode))
+                dest ??= linkedCode.Trim().ToUpperInvariant();
+        }
+
+        dest ??= hostCode;
+        if (string.Equals(dest, hostCode, StringComparison.OrdinalIgnoreCase))
+            return;
+
+        var missing = await _fx.FindMissingFxRatesAsync(vendor.WebsiteID, [hostCode, dest], ct);
+        if (missing.Count == 0) return;
+
+        var codes = string.Join(", ", missing);
+        throw new InvalidOperationException(
+            $"Exchange rate for {codes} is not configured on this website. " +
+            $"Open Finance → Exchange Rates and add {codes} (how many units per 1 USD) before saving this vendor.");
     }
 }
