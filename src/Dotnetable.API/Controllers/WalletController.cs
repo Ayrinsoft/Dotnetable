@@ -169,6 +169,8 @@ public class WalletController : BaseController
         ReviewedAt = w.ReviewedAt,
         RejectReason = w.RejectReason,
         PaymentRefNumber = w.PaymentRefNumber,
+        Note = w.Note,
+        CreatedByMemberID = w.CreatedByMemberID,
         PaidAt = w.PaidAt,
         RequestedAt = w.RequestedAt,
     };

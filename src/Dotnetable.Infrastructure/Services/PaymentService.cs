@@ -241,6 +241,97 @@ public class PaymentService : IPaymentService
         return (true, null, payment);
     }
 
+    public async Task<(bool Success, string? Error, Payment? Payment)> RecordWalletDepositAsync(
+        int websiteId, int clientId, decimal amount, string? currencyCode,
+        int? bankAccountId, string? description, string? reference, int? receiptFileId,
+        int memberId, DateTime? paidAtUtc = null, CancellationToken ct = default)
+    {
+        if (amount <= 0) return (false, "Amount must be greater than zero.", null);
+        if (string.IsNullOrWhiteSpace(description))
+            return (false, "Payment description is required.", null);
+
+        var client = await _context.WebsiteClients.AsNoTracking()
+            .FirstOrDefaultAsync(c => c.WebsiteClientID == clientId && c.WebsiteID == websiteId, ct);
+        if (client is null) return (false, "Customer not found.", null);
+
+        var website = await _context.Websites.AsNoTracking()
+            .FirstOrDefaultAsync(w => w.WebsiteID == websiteId, ct);
+        if (website is null) return (false, "Website not found.", null);
+
+        var code = string.IsNullOrWhiteSpace(currencyCode)
+            ? website.DefaultCurrencyCode
+            : currencyCode.Trim().ToUpperInvariant();
+        if (code.Length > 3) code = code[..3];
+
+        if (bankAccountId is int baId)
+        {
+            var accountOk = await _context.BankAccounts.AnyAsync(
+                a => a.BankAccountID == baId && a.WebsiteID == websiteId && a.IsActive, ct);
+            if (!accountOk)
+                return (false, "Bank account not found or inactive for this website.", null);
+        }
+
+        if (receiptFileId is int fileId)
+        {
+            var fileOk = await _context.FileRecords.AnyAsync(
+                f => f.FileRecordID == fileId && f.WebsiteID == websiteId && !f.IsDeleted, ct);
+            if (!fileOk)
+                return (false, "Receipt file not found for this website.", null);
+        }
+
+        var desc = description.Trim();
+        if (desc.Length > 100) desc = desc[..100];
+        var paidAt = paidAtUtc.HasValue
+            ? (paidAtUtc.Value.Kind == DateTimeKind.Unspecified
+                ? DateTime.SpecifyKind(paidAtUtc.Value, DateTimeKind.Utc)
+                : paidAtUtc.Value.ToUniversalTime())
+            : DateTime.UtcNow;
+
+        ClientWalletTransaction walletTx;
+        try
+        {
+            walletTx = await _wallet.ApplyAsync(
+                websiteId, clientId, (byte)ClientWalletTransactionType.AdminDeposit, amount,
+                (byte)ClientWalletSourceType.Payment, null, desc, memberId, code, ct);
+        }
+        catch (InvalidOperationException ex)
+        {
+            return (false, ex.Message, null);
+        }
+
+        var rate = 1m;
+        var amountUsd = string.Equals(code, "USD", StringComparison.OrdinalIgnoreCase) ? amount : 0m;
+
+        var payment = new Payment
+        {
+            WebsiteID = websiteId,
+            OrderID = null,
+            WebsiteClientID = clientId,
+            Method = (byte)PaymentMethod.BankTransfer,
+            BankAccountID = bankAccountId,
+            ReceiptFileID = receiptFileId,
+            ClientWalletTransactionID = walletTx.ClientWalletTransactionID,
+            Amount = amount,
+            CurrencyCode = code,
+            ExchangeRateToUsd = rate,
+            AmountUsd = amountUsd,
+            Status = (byte)PaymentStatus.Paid,
+            TrackingCode = string.IsNullOrWhiteSpace(reference) ? null : reference.Trim(),
+            GatewayRefNumber = desc,
+            PaidAt = paidAt,
+            CreatedByMemberID = memberId,
+            VerifiedByMemberID = memberId,
+            CreatedAt = DateTime.UtcNow,
+        };
+        _context.Payments.Add(payment);
+        await _context.SaveChangesAsync(ct);
+
+        walletTx.SourceId = payment.PaymentID;
+        await _context.SaveChangesAsync(ct);
+
+        return (true, null, payment);
+    }
+
     public async Task<bool> VerifyAsync(int paymentId, int memberId, bool approve, string? note, CancellationToken ct = default)
     {
         var payment = await _context.Payments.FirstOrDefaultAsync(p => p.PaymentID == paymentId, ct);
@@ -256,6 +347,23 @@ public class PaymentService : IPaymentService
             await _orders.TransitionStatusAsync(orderId, OrderStatus.Paid, memberId, note ?? "Bank transfer verified.", ct);
             try { await _ledger.PostOrderPaidBreakdownAsync(orderId, payment.PaymentID, memberId, ct); }
             catch { /* ignore */ }
+        }
+        else if (approve && payment.OrderID is null && payment.ClientWalletTransactionID is null)
+        {
+            try
+            {
+                var tx = await _wallet.ApplyAsync(
+                    payment.WebsiteID, payment.WebsiteClientID,
+                    (byte)ClientWalletTransactionType.AdminDeposit, payment.Amount,
+                    (byte)ClientWalletSourceType.Payment, payment.PaymentID,
+                    note ?? payment.GatewayRefNumber, memberId, payment.CurrencyCode, ct);
+                payment.ClientWalletTransactionID = tx.ClientWalletTransactionID;
+                await _context.SaveChangesAsync(ct);
+            }
+            catch (InvalidOperationException)
+            {
+                return false;
+            }
         }
 
         return true;
@@ -302,7 +410,8 @@ public class PaymentService : IPaymentService
     public async Task<IReadOnlyDictionary<byte, int>> GetManualStatusCountsAsync(int? websiteId, CancellationToken ct = default)
     {
         var q = _context.Payments.AsNoTracking()
-            .Where(p => p.Method == (byte)PaymentMethod.BankTransfer);
+            .Where(p => p.Method == (byte)PaymentMethod.BankTransfer
+                        || (p.OrderID == null && p.CreatedByMemberID != null));
         if (websiteId is int wid) q = q.Where(p => p.WebsiteID == wid);
 
         var rows = await q
@@ -322,30 +431,49 @@ public class PaymentService : IPaymentService
             .Include(p => p.ReceiptFile)
             .Include(p => p.CreatedByMember)
             .Include(p => p.VerifiedByMember)
-            .Where(p => p.Method == (byte)PaymentMethod.BankTransfer);
+            .Where(p => p.Method == (byte)PaymentMethod.BankTransfer
+                        || (p.OrderID == null && p.CreatedByMemberID != null));
         if (websiteId is int wid) q = q.Where(p => p.WebsiteID == wid);
         return q;
     }
 
     public async Task<(bool Success, string? Error, PaymentRefund? Refund)> RefundAsync(
-        int paymentId, decimal amount, string? reason, bool toWallet, int? bankAccountId, int memberId, CancellationToken ct = default)
+        int paymentId, decimal amount, string? reason, bool toWallet, int? bankAccountId, int memberId,
+        bool markCompleted = false, CancellationToken ct = default)
     {
         var payment = await _context.Payments.FirstOrDefaultAsync(p => p.PaymentID == paymentId, ct);
-        if (payment is null || payment.Status != (byte)PaymentStatus.Paid) return (false, "Payment is not eligible for refund.", null);
+        if (payment is null) return (false, "Payment is not eligible for refund.", null);
+        if (payment.Status is not ((byte)PaymentStatus.Paid or (byte)PaymentStatus.Refunded))
+            return (false, "Payment is not eligible for refund.", null);
         if (amount <= 0) return (false, "Refund amount must be greater than zero.", null);
-        // amount is in the payment currency (site operational money), same unit as Payment.Amount — never treat as USD.
-        if (amount > payment.Amount)
-            return (false, $"Refund amount cannot exceed the paid amount ({payment.Amount:0.####} {payment.CurrencyCode}).", null);
+
+        var alreadyRefunded = await _context.PaymentRefunds.AsNoTracking()
+            .Where(r => r.PaymentID == paymentId)
+            .SumAsync(r => (decimal?)r.Amount, ct) ?? 0m;
+        var remaining = payment.Amount - alreadyRefunded;
+        if (remaining <= 0)
+            return (false, "Payment has already been fully refunded.", null);
+        if (amount > remaining)
+            return (false, $"Refund amount cannot exceed the remaining paid amount ({remaining:0.####} {payment.CurrencyCode}).", null);
+
         if (toWallet && bankAccountId is not null)
             return (false, "Choose wallet, bank account, or cash/manual — not wallet and bank together.", null);
 
-        // Destination: wallet (instant), bank (pending manual transfer), or cash/manual (instant, no ledger).
+        if (bankAccountId is int baId)
+        {
+            var accountOk = await _context.BankAccounts.AnyAsync(
+                a => a.BankAccountID == baId && a.WebsiteID == payment.WebsiteID && a.IsActive, ct);
+            if (!accountOk)
+                return (false, "Bank account not found or inactive for this website.", null);
+        }
+
+        // Destination: wallet (instant), bank (pending unless already transferred), or cash/manual (instant).
         var isCashManual = !toWallet && bankAccountId is null;
+        var completedNow = toWallet || isCashManual || (bankAccountId is not null && markCompleted);
 
         int? walletTxId = null;
         if (toWallet)
         {
-            // Credit the same currency the customer paid in (separate wallet ledger per currency).
             var tx = await _wallet.ApplyAsync(
                 payment.WebsiteID, payment.WebsiteClientID, (byte)ClientWalletTransactionType.RefundCredit, amount,
                 (byte)ClientWalletSourceType.PaymentRefund, paymentId, reason, memberId,
@@ -353,7 +481,6 @@ public class PaymentService : IPaymentService
             walletTxId = tx.ClientWalletTransactionID;
         }
 
-        var completedNow = toWallet || isCashManual;
         var refund = new PaymentRefund
         {
             PaymentID = paymentId,
@@ -368,12 +495,15 @@ public class PaymentService : IPaymentService
         };
         _context.PaymentRefunds.Add(refund);
 
-        payment.Status = (byte)PaymentStatus.Refunded;
+        var fullyRefunded = amount >= remaining;
+        if (fullyRefunded)
+            payment.Status = (byte)PaymentStatus.Refunded;
         await _context.SaveChangesAsync(ct);
 
         if (payment.OrderID is int orderId)
         {
-            await _orders.TransitionStatusAsync(orderId, OrderStatus.Refunded, memberId, reason, ct);
+            if (fullyRefunded)
+                await _orders.TransitionStatusAsync(orderId, OrderStatus.Refunded, memberId, reason, ct);
 
             // After goods left stock: auto create Return document for warehouse QC + restock.
             try
@@ -393,6 +523,42 @@ public class PaymentService : IPaymentService
         }
 
         return (true, null, refund);
+    }
+
+    public async Task<IReadOnlyList<RefundablePaymentDto>> GetRefundablePaymentsAsync(
+        int websiteId, int clientId, CancellationToken ct = default)
+    {
+        var rows = await _context.Payments.AsNoTracking()
+            .Where(p => p.WebsiteID == websiteId
+                        && p.WebsiteClientID == clientId
+                        && (p.Status == (byte)PaymentStatus.Paid || p.Status == (byte)PaymentStatus.Refunded))
+            .Select(p => new
+            {
+                p.PaymentID,
+                p.OrderID,
+                OrderNumber = p.Order != null ? p.Order.OrderNumber : null,
+                p.CurrencyCode,
+                p.Amount,
+                RefundedAmount = p.PaymentRefunds.Sum(r => (decimal?)r.Amount) ?? 0m,
+                p.CreatedAt,
+            })
+            .OrderByDescending(p => p.CreatedAt)
+            .ToListAsync(ct);
+
+        return rows
+            .Select(p => new RefundablePaymentDto
+            {
+                PaymentID = p.PaymentID,
+                OrderID = p.OrderID,
+                OrderNumber = p.OrderNumber,
+                CurrencyCode = p.CurrencyCode,
+                Amount = p.Amount,
+                RefundedAmount = p.RefundedAmount,
+                RemainingAmount = p.Amount - p.RefundedAmount,
+                CreatedAt = p.CreatedAt,
+            })
+            .Where(p => p.RemainingAmount > 0)
+            .ToList();
     }
 
     public async Task<bool> CompleteBankRefundAsync(int paymentRefundId, int memberId, CancellationToken ct = default)

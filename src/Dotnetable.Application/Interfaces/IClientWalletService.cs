@@ -30,6 +30,9 @@ public interface IClientWalletService
     /// <summary>All wallet accounts for a customer on a website.</summary>
     Task<IReadOnlyList<ClientWallet>> ListForClientAsync(int websiteId, int clientId, CancellationToken ct = default);
 
+    /// <summary>Admin list of customer wallets (balances). <paramref name="websiteId"/> null = all sites (master).</summary>
+    Task<PagedResult<ClientWallet>> GetPagedAsync(int? websiteId, GridQuery query, CancellationToken ct = default);
+
     /// <summary>Balance in the given currency (0 when no wallet). Null currency = site default.</summary>
     Task<decimal> GetBalanceAsync(int websiteId, int clientId, string? currencyCode = null, CancellationToken ct = default);
 

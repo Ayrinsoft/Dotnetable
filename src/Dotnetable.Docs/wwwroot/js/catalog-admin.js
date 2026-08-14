@@ -1791,8 +1791,12 @@ window.DOCS_ADMIN = {
               en: "Open Support Desk for the overview, then drill into tickets/sessions.",
               fa: "Support Desk را برای نمای کلی باز کنید، سپس به تیکت/نشست بروید.",
             },
+            {
+              en: "After looking up a customer, open the **Wallet / transactions** tab to see balances and ledger rows (including admin-registered deposits and payouts).",
+              fa: "بعد از پیدا کردن مشتری، تب **کیف پول / تراکنش‌ها** را باز کنید تا مانده و دفتر (از جمله واریز و برداشت ثبت‌شده ادمین) را ببینید.",
+            },
           ],
-          related: ["support-tickets", "orders", "contact-messages"],
+          related: ["support-tickets", "orders", "contact-messages", "wallets", "wallet-detail"],
         },
         {
           id: "support-tickets",
@@ -1831,14 +1835,18 @@ window.DOCS_ADMIN = {
           title: { en: "Payments", fa: "پرداخت‌ها" },
           adminPath: "/payments",
           summary: {
-            en: "Bank-transfer receipt queue; offline/COD receipts are recorded on the order detail page.",
-            fa: "صف فیش کارت‌به‌کارت؛ دریافت وجه نقد/پرداخت در محل از جزئیات سفارش ثبت می‌شود.",
+            en: "Bank-transfer receipt queue plus admin-registered wallet deposits (no order). Offline/COD for orders is still recorded on the order detail page.",
+            fa: "صف فیش کارت‌به‌کارت به‌علاوه واریز دستی به کیف پول (بدون سفارش). نقد/پرداخت در محل سفارش همچنان از جزئیات سفارش ثبت می‌شود.",
           },
           purpose: {
-            en: "Human-in-the-loop confirmation for customer-uploaded bank receipts. Cash, COD, and other offline collection are recorded by admin on Orders → order detail (Record payment received).",
-            fa: "تأیید دستی فیش‌های بانکی آپلودشده مشتری. نقد، پرداخت در محل و سایر وصول‌های آفلاین را ادمین در Orders → جزئیات سفارش (ثبت دریافت وجه) ثبت می‌کند.",
+            en: "Confirm customer-uploaded bank receipts, and register money already received for a customer wallet (invoice photo + description, labeled as registered by admin).",
+            fa: "تأیید فیش بانکی مشتری، و ثبت پولی که برای کیف پول مشتری گرفته شده (عکس فاکتور + توضیحات، با برچسب ثبت دستی ادمین).",
           },
           howTo: [
+            {
+              en: "Use **Register deposit** to credit a customer wallet: pick customer, amount, company bank account, description, and optional receipt. Creates a Paid payment labeled *Registered by admin*.",
+              fa: "با **ثبت واریز** کیف پول مشتری را شارژ کنید: مشتری، مبلغ، حساب بانکی شرکت، توضیحات و فیش اختیاری. پرداخت Paid با برچسب *ثبت‌شده توسط ادمین* ساخته می‌شود.",
+            },
             {
               en: "Open Payments queue, inspect each pending bank receipt, approve or reject.",
               fa: "صف Payments را باز کنید، هر فیش بانکی معلق را ببینید، تأیید یا رد کنید.",
@@ -1856,24 +1864,28 @@ window.DOCS_ADMIN = {
               fa: "برای وصول COD/نقد/کارتخوان، سفارش را باز کنید و **ثبت دریافت وجه** (payments.verify) را بزنید — نه این صف.",
             },
           ],
-          related: ["orders", "payments-refunds", "bank-accounts"],
+          related: ["orders", "payments-refunds", "bank-accounts", "wallets", "withdrawals"],
         },
         {
           id: "payments-refunds",
           title: { en: "Bank refunds", fa: "استرداد بانکی" },
           adminPath: "/payments/refunds",
           summary: {
-            en: "Queue for refunds that must be paid out via bank transfer (started from order detail).",
-            fa: "صف استردادهایی که باید با حواله بانکی پرداخت شوند (شروع از جزئیات سفارش).",
+            en: "Queue for outgoing bank refunds. Register them here, or start from order detail, then mark completed after the transfer.",
+            fa: "صف استرداد خروجی بانکی. همین‌جا ثبت کنید یا از جزئیات سفارش شروع کنید؛ بعد از حواله Mark completed بزنید.",
           },
           purpose: {
-            en: "After an admin starts a bank-destination refund on an order, this queue tracks the offline outgoing transfer until Mark completed.",
-            fa: "بعد از شروع استرداد مقصد بانکی روی سفارش، این صف حواله خروجی آفلاین را تا Mark completed پیگیری می‌کند.",
+            en: "Track offline outgoing bank refunds until Mark completed. New rows can be created on this page (customer + paid payment + company bank + description + receipt).",
+            fa: "حواله خروجی آفلاین را تا Mark completed پیگیری کنید. ردیف جدید را همین صفحه بسازید (مشتری + پرداخت Paid + حساب شرکت + توضیحات + فیش).",
           },
           howTo: [
             {
-              en: "Start refunds from order detail in the **payment currency** (same as order total): wallet (instant, same currency ledger), bank (appears here), or cash/manual (completed immediately). Default amount is the full paid amount; you may enter a lower partial refund (capped at paid).",
-              fa: "استرداد را از جزئیات سفارش به **ارز پرداخت** شروع کنید: کیف پول (فوری)، بانک (این صف)، یا نقدی/دستی (فوری). مبلغ پیش‌فرض کل پرداخت است؛ می‌توانید مبلغ جزئی کمتر وارد کنید (سقف = مبلغ پرداخت‌شده).",
+              en: "Use **Register bank refund** on this page: pick customer, the paid payment (order or wallet deposit), company bank account, description, optional receipt. Leave pending for later confirmation, or tick “already sent” to complete now.",
+              fa: "روی همین صفحه **ثبت استرداد بانکی** را بزنید: مشتری، پرداخت Paid (سفارش یا واریز کیف پول)، حساب بانکی شرکت، توضیحات، فیش اختیاری. معلق بماند برای تأیید بعدی، یا «حواله ارسال شده» را بزنید تا همان لحظه کامل شود.",
+            },
+            {
+              en: "You can still start refunds from order detail in the **payment currency**: wallet (instant), bank (appears here), or cash/manual (completed immediately).",
+              fa: "همچنان می‌توانید از جزئیات سفارش به **ارز پرداخت** استرداد را شروع کنید: کیف پول (فوری)، بانک (این صف)، یا نقدی/دستی (فوری).",
             },
             {
               en: "After goods left stock (posted outbound / shipped), refund auto-creates a warehouse **Return** document. Warehouse sets QC Sellable vs Defective, then Posts to restock (or scrap).",
@@ -1895,8 +1907,8 @@ window.DOCS_ADMIN = {
           title: { en: "Wallet withdrawals", fa: "برداشت کیف پول" },
           adminPath: "/wallets/withdrawals",
           summary: {
-            en: "Customer cash-out requests from client wallets; approve holds funds flow, reject reverses hold. Attach bank payout receipts on the row.",
-            fa: "درخواست برداشت مشتری از کیف پول؛ تأیید جریان hold را جلو می‌برد، رد hold را برمی‌گرداند. رسید بانکی پرداخت را روی ردیف پیوست کنید.",
+            en: "Customer cash-out queue plus admin-registered payouts (money already sent to a customer bank account).",
+            fa: "صف برداشت مشتری به‌علاوه ثبت دستی پرداخت به حساب بانکی مشتری (پولی که قبلاً واریز شده).",
           },
           purpose: [
             {
@@ -1909,6 +1921,10 @@ window.DOCS_ADMIN = {
             },
           ],
           howTo: [
+            {
+              en: "Use **Register payout** when finance already transferred money: customer, amount, destination bank, description, invoice photo. Debits the wallet immediately and labels the row *Registered by admin*.",
+              fa: "وقتی پول از قبل واریز شده **ثبت برداشت** بزنید: مشتری، مبلغ، حساب مقصد، توضیحات، عکس فاکتور. کیف پول فوراً کم می‌شود و ردیف برچسب *ثبت‌شده توسط ادمین* می‌گیرد.",
+            },
             {
               en: "Open Withdrawals queue; review amount, client, bank account.",
               fa: "صف Withdrawals را باز کنید؛ مبلغ، مشتری، حساب بانکی را ببینید.",
@@ -1924,12 +1940,36 @@ window.DOCS_ADMIN = {
               fa: "مانده کیف پول فقط از مسیر دفتر Apply عوض می‌شود — انتظار ویرایش بی‌صدا نداشته باشید.",
             },
           ],
-          related: ["clients", "bank-accounts", "wallet-detail"],
+          related: ["clients", "bank-accounts", "wallets", "wallet-detail"],
+        },
+        {
+          id: "wallets",
+          title: { en: "Customer wallets", fa: "کیف پول مشتریان" },
+          adminPath: "/wallets",
+          summary: {
+            en: "List of customer wallet balances by currency. Open a row for the ledger (deposits, withdrawals, adjustments).",
+            fa: "فهرست مانده کیف پول مشتریان به تفکیک ارز. برای دفتر تراکنش (واریز، برداشت، تعدیل) ردیف را باز کنید.",
+          },
+          purpose: {
+            en: "Find a customer wallet without hunting through the withdrawal queue. Support can also read the same ledger on Support Desk.",
+            fa: "بدون گشتن در صف برداشت، کیف پول مشتری را پیدا کنید. پشتیبانی همان دفتر را در میز پشتیبانی هم می‌بیند.",
+          },
+          howTo: [
+            {
+              en: "Finance → Customer wallets. Search by name, email, or phone. Open Transaction history.",
+              fa: "مالی → کیف پول مشتریان. با نام، ایمیل یا موبایل جستجو کنید. تاریخچه تراکنش را باز کنید.",
+            },
+            {
+              en: "Register incoming money from Payments → Register deposit. Register outgoing money from Withdrawals → Register payout.",
+              fa: "ورود پول: Payments → ثبت واریز. خروج پول: Withdrawals → ثبت برداشت.",
+            },
+          ],
+          related: ["withdrawals", "payments", "wallet-detail", "support-desk", "clients"],
         },
         {
           id: "wallet-detail",
           title: { en: "Client wallet detail", fa: "جزئیات کیف پول مشتری" },
-          adminPath: "/clients/{id} (wallet)",
+          adminPath: "/wallets/client",
           summary: {
             en: "Per-client wallet balance and transaction ledger; admin adjust when permitted.",
             fa: "مانده و دفتر تراکنش per مشتری؛ تعدیل ادمین در صورت مجوز.",

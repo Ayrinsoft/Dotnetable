@@ -141,7 +141,7 @@ public static class RoleCatalog
 
         // Customer wallets
         new(RoleKeys.WalletsView, "View customer wallets", RoleCategory.Admin),
-        new(RoleKeys.WalletsApprove, "Approve / reject wallet withdrawals", RoleCategory.Admin),
+        new(RoleKeys.WalletsApprove, "Approve / reject wallet withdrawals and register admin payouts", RoleCategory.Admin),
         new(RoleKeys.WalletsAdjust, "Manually adjust wallet balances", RoleCategory.Admin),
 
         // Coupons
@@ -193,7 +193,7 @@ public static class RoleCatalog
 
         // Payments
         new(RoleKeys.PaymentsView, "View payments", RoleCategory.Admin),
-        new(RoleKeys.PaymentsVerify, "Verify bank receipts and record offline/COD payments received", RoleCategory.Admin),
+        new(RoleKeys.PaymentsVerify, "Verify bank receipts, record offline/COD payments, and register wallet deposits", RoleCategory.Admin),
         new(RoleKeys.PaymentsRefund, "Process refunds (wallet, bank, or cash)", RoleCategory.Admin),
 
         // Website's own bank accounts

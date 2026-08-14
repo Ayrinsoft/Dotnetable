@@ -1,6 +1,7 @@
 @page "/support"
 @attribute [Authorize(Policy = RoleKeys.SupportView)]
 @inject ISupportDeskService SupportDeskService
+@inject IClientWalletService WalletService
 @inject IWebsiteService WebsiteService
 @inject AuthenticationStateProvider AuthState
 @inject NavigationManager Nav
@@ -138,13 +139,17 @@
                                StartIcon="@Icons.Material.Filled.Person">
                         @L["support.full_profile", "Full profile"]
                     </MudButton>
+                    <MudButton Size="Size.Small" Variant="Variant.Text" Href="@($"/wallets/client?ClientId={_c360.WebsiteClientID}")"
+                               StartIcon="@Icons.Material.Filled.AccountBalanceWallet">
+                        @L["wallets.client_wallet", "Customer Wallet"]
+                    </MudButton>
                 </MudStack>
             </MudStack>
             <MudStack Row="true" Spacing="2" Style="flex-wrap:wrap;">
                 <StatChip Label="@L["orders", "Orders"]" Value="@_c360.OrderCount.ToString()" Color="Color.Primary" />
                 <StatChip Label="@L["support.in_progress_orders", "In progress"]" Value="@_c360.InProgressOrderCount.ToString()" Color="Color.Warning" />
                 <StatChip Label="@L["support.open_tickets", "Open tickets"]" Value="@_c360.OpenSessionCount.ToString()" Color="Color.Info" />
-                <StatChip Label="@L["support.wallet", "Wallet USD"]" Value="@(_c360.WalletBalanceUsd?.ToString("0.##") ?? "—")" Color="Color.Success" />
+                <StatChip Label="@L["support.wallet", "Wallet"]" Value="@WalletSummary()" Color="Color.Success" />
             </MudStack>
         </MudStack>
 
@@ -234,6 +239,73 @@
                             }
                         </tbody>
                     </MudSimpleTable>
+                }
+            </MudPaper>
+        </MudTabPanel>
+
+        <MudTabPanel Text="@L["support.tab.wallet", "Wallet / transactions"]" Icon="@Icons.Material.Filled.AccountBalanceWallet">
+            <MudPaper Elevation="0" Class="app-card rounded-lg pa-4">
+                @if (_walletLoading)
+                {
+                    <MudProgressLinear Indeterminate="true" Color="Color.Primary" Class="mb-3" />
+                }
+                @if (_wallets.Count == 0)
+                {
+                    <MudText Color="Color.Secondary">@L["wallets.history.empty", "No transactions yet."]</MudText>
+                }
+                else
+                {
+                    <MudStack Row="true" Spacing="2" Class="mb-3" Style="flex-wrap:wrap;">
+                        @foreach (var w in _wallets)
+                        {
+                            <MudChip T="string" Size="Size.Small"
+                                     Color="@(_walletCurrency == w.CurrencyCode ? Color.Primary : Color.Default)"
+                                     Variant="@(_walletCurrency == w.CurrencyCode ? Variant.Filled : Variant.Outlined)"
+                                     OnClick="@(() => SelectWalletCurrencyAsync(w.CurrencyCode))">
+                                @MoneyFormat.GroupWithCode(w.Balance, w.CurrencyCode)
+                            </MudChip>
+                        }
+                    </MudStack>
+                    @if (_walletTx.Count == 0)
+                    {
+                        <MudText Color="Color.Secondary">@L["wallets.history.empty", "No transactions yet."]</MudText>
+                    }
+                    else
+                    {
+                        <MudSimpleTable Dense="true" Hover="true" Elevation="0">
+                            <thead>
+                                <tr>
+                                    <th>@L["id", "ID"]</th>
+                                    <th>@L["type", "Type"]</th>
+                                    <th>@L["amount", "Amount"]</th>
+                                    <th>@L["wallets.balance_after", "Balance After"]</th>
+                                    <th>@L["note", "Note"]</th>
+                                    <th>@L["wallets.date", "Date"]</th>
+                                </tr>
+                            </thead>
+                            <tbody>
+                                @foreach (var t in _walletTx)
+                                {
+                                    <tr>
+                                        <td>@t.ClientWalletTransactionID</td>
+                                        <td>
+                                            @WalletTypeName(t.Type)
+                                            @if (t.CreatedByMemberID is not null)
+                                            {
+                                                <MudChip T="string" Size="Size.Small" Color="Color.Secondary" Variant="Variant.Outlined" Class="ms-1">
+                                                    @L["wallets.manual_admin", "Registered by admin"]
+                                                </MudChip>
+                                            }
+                                        </td>
+                                        <td>@(t.Amount < 0 ? "" : "+")@MoneyFormat.Group(t.Amount, _walletCurrency)</td>
+                                        <td>@MoneyFormat.Group(t.BalanceAfter, _walletCurrency)</td>
+                                        <td>@(t.Note ?? "—")</td>
+                                        <td>@t.CreatedAt.ToLocalTime().ToString("g")</td>
+                                    </tr>
+                                }
+                            </tbody>
+                        </MudSimpleTable>
+                    }
                 }
             </MudPaper>
         </MudTabPanel>
@@ -419,6 +491,10 @@
     private SupportMobileLookupResult? _lookup;
     private Customer360Dto? _c360;
     private SupportDeskStatsDto? _stats;
+    private bool _walletLoading;
+    private List<ClientWallet> _wallets = new();
+    private List<ClientWalletTransaction> _walletTx = new();
+    private string _walletCurrency = "";
 
     private SupportChannel _newChannel = SupportChannel.InboundCall;
     private SupportPriority _newPriority = SupportPriority.Normal;
@@ -459,6 +535,8 @@
         _c360 = null;
         _lookup = null;
         _searched = false;
+        _wallets.Clear();
+        _walletTx.Clear();
         await RefreshStatsAsync();
     }
 
@@ -478,9 +556,15 @@
             int? wid = _isMaster && _websiteId <= 0 ? null : _websiteId;
             _lookup = await SupportDeskService.LookupByMobileAsync(wid, _mobile);
             if (_lookup.Customer360 is not null)
+            {
                 _c360 = _lookup.Customer360;
+                await LoadWalletAsync();
+            }
             else if (_lookup.Matches.Count == 1)
+            {
                 _c360 = await SupportDeskService.GetCustomer360Async(_lookup.Matches[0].WebsiteClientID);
+                await LoadWalletAsync();
+            }
         }
         finally
         {
@@ -495,6 +579,7 @@
         {
             _c360 = await SupportDeskService.GetCustomer360Async(clientId);
             _lookup = null;
+            await LoadWalletAsync();
         }
         finally
         {
@@ -583,6 +668,63 @@
             _starting = false;
         }
     }
+
+    private async Task LoadWalletAsync()
+    {
+        _wallets.Clear();
+        _walletTx.Clear();
+        _walletCurrency = "";
+        if (_c360 is null) return;
+        _walletLoading = true;
+        try
+        {
+            _wallets = (await WalletService.ListForClientAsync(_c360.WebsiteID, _c360.WebsiteClientID)).ToList();
+            _walletCurrency = _wallets.FirstOrDefault()?.CurrencyCode ?? "";
+            if (!string.IsNullOrEmpty(_walletCurrency))
+            {
+                var hist = await WalletService.GetHistoryAsync(
+                    _c360.WebsiteID, _c360.WebsiteClientID,
+                    new GridQuery { PageSize = 25 }, _walletCurrency);
+                _walletTx = hist.Items.ToList();
+            }
+        }
+        finally { _walletLoading = false; }
+    }
+
+    private async Task SelectWalletCurrencyAsync(string code)
+    {
+        if (_c360 is null) return;
+        _walletCurrency = code;
+        _walletLoading = true;
+        try
+        {
+            var hist = await WalletService.GetHistoryAsync(
+                _c360.WebsiteID, _c360.WebsiteClientID,
+                new GridQuery { PageSize = 25 }, code);
+            _walletTx = hist.Items.ToList();
+        }
+        finally { _walletLoading = false; }
+    }
+
+    private string WalletSummary()
+    {
+        if (_wallets.Count > 0)
+            return string.Join(" · ", _wallets.Select(w => MoneyFormat.GroupWithCode(w.Balance, w.CurrencyCode)));
+        if (_c360?.WalletBalanceUsd is decimal b)
+            return b.ToString("0.##");
+        return "—";
+    }
+
+    private string WalletTypeName(byte type) => (ClientWalletTransactionType)type switch
+    {
+        ClientWalletTransactionType.RefundCredit => L["wallets.type.refund_credit", "Refund Credit"],
+        ClientWalletTransactionType.PurchaseUse => L["wallets.type.purchase_use", "Purchase Use"],
+        ClientWalletTransactionType.WithdrawalHold => L["wallets.type.withdrawal_hold", "Withdrawal Hold"],
+        ClientWalletTransactionType.WithdrawalReversed => L["wallets.type.withdrawal_reversed", "Withdrawal Reversed"],
+        ClientWalletTransactionType.AdminAdjustment => L["wallets.type.admin_adjustment", "Admin Adjustment"],
+        ClientWalletTransactionType.AdminDeposit => L["wallets.type.admin_deposit", "Admin deposit"],
+        _ => type.ToString(),
+    };
 
     private static string Initials(string name)
     {

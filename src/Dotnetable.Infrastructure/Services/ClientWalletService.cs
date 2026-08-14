@@ -142,6 +142,33 @@ public class ClientWalletService : IClientWalletService
             .ToListAsync(ct);
     }
 
+    public async Task<PagedResult<ClientWallet>> GetPagedAsync(int? websiteId, GridQuery query, CancellationToken ct = default)
+    {
+        var q = _context.ClientWallets.AsNoTracking()
+            .Include(w => w.WebsiteClient)
+            .AsQueryable();
+
+        if (websiteId is int wid)
+            q = q.Where(w => w.WebsiteID == wid);
+
+        if (query.GetSearch("Email") is string email)
+            q = q.Where(w => w.WebsiteClient.Email != null && w.WebsiteClient.Email.Contains(email));
+        if (query.GetSearch("Cellphone") is string cell)
+            q = q.Where(w => w.WebsiteClient.Cellphone != null && w.WebsiteClient.Cellphone.Contains(cell));
+        if (query.GetSearch("Fullname") is string fullname)
+            q = q.Where(w => ((w.WebsiteClient.Givenname ?? "") + " " + (w.WebsiteClient.Surname ?? "")).Contains(fullname));
+        if (query.GetSearch(nameof(ClientWallet.CurrencyCode)) is string code)
+            q = q.Where(w => w.CurrencyCode == code);
+
+        var total = await q.CountAsync(ct);
+        var items = await q
+            .ApplyOrderBy(query.OrderBy, nameof(ClientWallet.ClientWalletID), fallbackDescending: true)
+            .Skip(query.Skip).Take(query.Take)
+            .ToListAsync(ct);
+
+        return new PagedResult<ClientWallet> { Items = items, TotalCount = total };
+    }
+
     public async Task<decimal> GetBalanceAsync(
         int websiteId, int clientId, string? currencyCode = null, CancellationToken ct = default)
     {
@@ -156,6 +183,7 @@ public class ClientWalletService : IClientWalletService
     {
         var code = await ResolveCurrencyCodeAsync(websiteId, currencyCode, ct);
         var q = _context.ClientWalletTransactions.AsNoTracking()
+            .Include(t => t.CreatedByMember)
             .Where(t => t.ClientWallet.WebsiteClientID == clientId
                         && t.ClientWallet.CurrencyCode == code
                         && t.WebsiteID == websiteId);

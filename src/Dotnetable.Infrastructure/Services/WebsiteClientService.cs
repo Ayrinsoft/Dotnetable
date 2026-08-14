@@ -50,6 +50,32 @@ public class WebsiteClientService : IWebsiteClientService
         return new PagedResult<WebsiteClient> { Items = items, TotalCount = total };
     }
 
+    public async Task<IReadOnlyList<WebsiteClient>> SearchAsync(int? websiteId, string? term, int take = 20, CancellationToken ct = default)
+    {
+        var q = _context.WebsiteClients.AsNoTracking().Where(c => c.Active);
+        if (websiteId is int wid)
+            q = q.Where(c => c.WebsiteID == wid);
+
+        if (!string.IsNullOrWhiteSpace(term))
+        {
+            var t = term.Trim();
+            q = q.Where(c =>
+                (c.Email != null && c.Email.Contains(t))
+                || (c.Cellphone != null && c.Cellphone.Contains(t))
+                || (c.Givenname != null && c.Givenname.Contains(t))
+                || (c.Surname != null && c.Surname.Contains(t))
+                || ((c.Givenname ?? "") + " " + (c.Surname ?? "")).Contains(t));
+        }
+
+        var limit = take < 1 ? 20 : Math.Min(take, 50);
+        return await q
+            .OrderBy(c => c.Surname)
+            .ThenBy(c => c.Givenname)
+            .ThenBy(c => c.WebsiteClientID)
+            .Take(limit)
+            .ToListAsync(ct);
+    }
+
     public async Task SetActiveAsync(int id, bool active, CancellationToken ct = default) =>
         await _context.WebsiteClients.Where(c => c.WebsiteClientID == id)
             .ExecuteUpdateAsync(s => s.SetProperty(c => c.Active, active), ct);

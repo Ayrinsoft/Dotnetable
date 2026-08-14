@@ -137,6 +137,14 @@ else if (_client is not null)
                        StartIcon="@Icons.Material.Filled.ArrowBack" Href="/clients">
                 @L["cancel", "Cancel"]
             </MudButton>
+            @if (!_isNew && _canViewWallet)
+            {
+                <MudButton Variant="Variant.Outlined" Color="Color.Primary"
+                           StartIcon="@Icons.Material.Filled.AccountBalanceWallet"
+                           Href="@($"/wallets/client?ClientId={Id}")">
+                    @L["wallets.client_wallet", "Customer Wallet"]
+                </MudButton>
+            }
         </MudStack>
     </MudForm>
 
@@ -302,6 +310,7 @@ else if (_client is not null)
     private bool _saving;
     private bool _isMaster;
     private bool _canEdit;
+    private bool _canViewWallet;
     private int _websiteId;
     private string? _defaultPhoneCountryCode;
     private List<Website> _websites = new();
@@ -339,6 +348,7 @@ else if (_client is not null)
         _isMaster = user.HasClaim(AdminClaimTypes.Master, "true");
         // Creating requires the insert permission; editing an existing customer requires edit.
         _canEdit = AdminPolicies.Allows(user, _isNew ? RoleKeys.ClientsInsert : RoleKeys.ClientsEdit);
+        _canViewWallet = AdminPolicies.Allows(user, RoleKeys.WalletsView);
         int.TryParse(user.FindFirst(AdminClaimTypes.WebsiteId)?.Value, out _websiteId);
 
         if (_isNew)

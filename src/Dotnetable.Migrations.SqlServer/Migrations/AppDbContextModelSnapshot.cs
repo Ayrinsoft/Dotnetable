@@ -869,6 +869,13 @@ namespace Dotnetable.Migrations.SqlServer.Migrations
                         .HasPrecision(0)
                         .HasColumnType("datetime2(0)");
 
+                    b.Property<int?>("CreatedByMemberID")
+                        .HasColumnType("int");
+
+                    b.Property<string>("Note")
+                        .HasMaxLength(500)
+                        .HasColumnType("nvarchar(500)");
+
                     b.Property<string>("PaymentRefNumber")
                         .HasMaxLength(100)
                         .HasColumnType("nvarchar(100)");
@@ -902,6 +909,8 @@ namespace Dotnetable.Migrations.SqlServer.Migrations
                     b.HasIndex(new[] { "ClientBankAccountID" }, "IX_ClientWalletWithdrawals_ClientBankAccountID");
 
                     b.HasIndex(new[] { "ClientWalletID" }, "IX_ClientWalletWithdrawals_ClientWalletID");
+
+                    b.HasIndex(new[] { "CreatedByMemberID" }, "IX_ClientWalletWithdrawals_CreatedByMemberID");
 
                     b.HasIndex(new[] { "ReviewedByMemberID" }, "IX_ClientWalletWithdrawals_ReviewedByMemberID");
 
@@ -7480,6 +7489,11 @@ namespace Dotnetable.Migrations.SqlServer.Migrations
                         .IsRequired()
                         .HasConstraintName("FK_ClientWalletWithdrawals_ClientWallets");
 
+                    b.HasOne("Dotnetable.Domain.Entities.Member", "CreatedByMember")
+                        .WithMany()
+                        .HasForeignKey("CreatedByMemberID")
+                        .HasConstraintName("FK_ClientWalletWithdrawals_Members_CreatedBy");
+
                     b.HasOne("Dotnetable.Domain.Entities.Member", "ReviewedByMember")
                         .WithMany("ClientWalletWithdrawals")
                         .HasForeignKey("ReviewedByMemberID")
@@ -7500,6 +7514,8 @@ namespace Dotnetable.Migrations.SqlServer.Migrations
                     b.Navigation("ClientBankAccount");
 
                     b.Navigation("ClientWallet");
+
+                    b.Navigation("CreatedByMember");
 
                     b.Navigation("ReviewedByMember");
 

@@ -229,5 +229,62 @@ public class PaymentServiceTests : IDisposable
         error.Should().Contain("exceed");
     }
 
+    [Fact]
+    public async Task Refund_Bank_CreatesPendingQueueItem()
+    {
+        _context.BankAccounts.Add(new BankAccount
+        {
+            BankAccountID = 3,
+            BankID = 1,
+            WebsiteID = 1,
+            Title = "Shop IRR",
+            AccountNumber = "123",
+            IsActive = true,
+            CreatedByMemberId = 10,
+        });
+        await _context.SaveChangesAsync();
+
+        await _service.RecordReceivedPaymentAsync(500, PaymentMethod.Manual, null, null, null, 10);
+        var paid = await _context.Payments.SingleAsync();
+
+        var (success, error, refund) = await _service.RefundAsync(
+            paid.PaymentID, 40m, "Return by bank", toWallet: false, bankAccountId: 3, memberId: 10);
+
+        success.Should().BeTrue(error);
+        refund.Should().NotBeNull();
+        refund!.Status.Should().Be((byte)PaymentRefundStatus.Pending);
+        refund.BankAccountID.Should().Be(3);
+        refund.CreatedByMemberID.Should().Be(10);
+
+        var listed = await _service.GetRefundablePaymentsAsync(1, 100);
+        listed.Should().ContainSingle(p => p.PaymentID == paid.PaymentID && p.RemainingAmount == 60m);
+    }
+
+    [Fact]
+    public async Task Refund_Bank_MarkCompleted_SkipsQueue()
+    {
+        _context.BankAccounts.Add(new BankAccount
+        {
+            BankAccountID = 4,
+            BankID = 1,
+            WebsiteID = 1,
+            Title = "Shop USD",
+            IsActive = true,
+            CreatedByMemberId = 10,
+        });
+        await _context.SaveChangesAsync();
+
+        await _service.RecordReceivedPaymentAsync(500, PaymentMethod.Manual, null, null, null, 10);
+        var paid = await _context.Payments.SingleAsync();
+
+        var (success, error, refund) = await _service.RefundAsync(
+            paid.PaymentID, 100m, "Already wired", toWallet: false, bankAccountId: 4, memberId: 10,
+            markCompleted: true);
+
+        success.Should().BeTrue(error);
+        refund!.Status.Should().Be((byte)PaymentRefundStatus.Completed);
+        refund.RefundedAt.Should().NotBeNull();
+    }
+
     public void Dispose() => _context.Dispose();
 }

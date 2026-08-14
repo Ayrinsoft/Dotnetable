@@ -95,7 +95,8 @@ public static class AdminSearchCatalog
 
         new AdminSearchPage("payments", "Payments", "/payments", Icons.Material.Filled.CreditCard, "nav.finance", "Finance", RoleKeys.PaymentsView, NavArea: AdminNavArea.Finance, VendorMemberAllowed: false),
         new AdminSearchPage("payments.refunds", "Bank Refunds", "/payments/refunds", Icons.Material.Filled.AssignmentReturn, "nav.finance", "Finance", RoleKeys.PaymentsRefund, NavArea: AdminNavArea.Finance, VendorMemberAllowed: false),
-        new AdminSearchPage("wallets.withdrawals", "Withdrawals", "/wallets/withdrawals", Icons.Material.Filled.AccountBalanceWallet, "nav.finance", "Finance", RoleKeys.WalletsView, NavArea: AdminNavArea.Finance, VendorMemberAllowed: false),
+        new AdminSearchPage("wallets", "Customer wallets", "/wallets", Icons.Material.Filled.AccountBalanceWallet, "nav.finance", "Finance", RoleKeys.WalletsView, NavArea: AdminNavArea.Finance, VendorMemberAllowed: false),
+        new AdminSearchPage("wallets.withdrawals", "Withdrawals", "/wallets/withdrawals", Icons.Material.Filled.Outbound, "nav.finance", "Finance", RoleKeys.WalletsView, NavArea: AdminNavArea.Finance, VendorMemberAllowed: false),
         new AdminSearchPage("bank_accounts", "Bank Accounts", "/finance/bank-accounts", Icons.Material.Filled.AccountBalance, "nav.finance", "Finance", RoleKeys.BankAccountsView, NavArea: AdminNavArea.Finance, VendorMemberAllowed: false),
         new AdminSearchPage("currency_rates", "Exchange Rates", "/finance/currency-rates", Icons.Material.Filled.CurrencyExchange, "nav.finance", "Finance", RoleKeys.CurrencyView, NavArea: AdminNavArea.Finance, VendorMemberAllowed: false),
         new AdminSearchPage("banks", "Banks", "/finance/banks", Icons.Material.Filled.AccountBalance, "nav.finance", "Finance", null, SuperAdminOnly: true, VendorMemberAllowed: false),

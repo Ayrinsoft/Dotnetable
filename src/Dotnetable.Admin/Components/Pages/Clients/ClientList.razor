@@ -44,6 +44,12 @@
                     <td>
                         <MudIconButton Icon="@Icons.Material.Filled.Edit" Size="Size.Small"
                                        Color="Color.Primary" Href="@($"/clients/{c.WebsiteClientID}")" />
+                        @if (_canViewWallet)
+                        {
+                            <MudIconButton Icon="@Icons.Material.Filled.AccountBalanceWallet" Size="Size.Small"
+                                           Color="Color.Default" Href="@($"/wallets/client?ClientId={c.WebsiteClientID}")"
+                                           title="@L["wallets.client_wallet", "Customer Wallet"]" />
+                        }
                     </td>
                     <td>@c.WebsiteClientID</td>
                     <td>@(string.IsNullOrWhiteSpace(c.Email) ? "—" : c.Email)</td>
@@ -82,6 +88,7 @@
     private bool _isMaster;
     private bool _canEdit;
     private bool _canInsert;
+    private bool _canViewWallet;
     private int _websiteId;
     private List<WebsiteClient> _clients = new();
     private HashSet<int> _toggling = new();
@@ -107,6 +114,7 @@
         _isMaster = user.HasClaim(AdminClaimTypes.Master, "true");
         _canEdit = AdminPolicies.Allows(user, RoleKeys.ClientsEdit);
         _canInsert = AdminPolicies.Allows(user, RoleKeys.ClientsInsert);
+        _canViewWallet = AdminPolicies.Allows(user, RoleKeys.WalletsView);
         int.TryParse(user.FindFirst(AdminClaimTypes.WebsiteId)?.Value, out _websiteId);
 
         _grid = new GridViewHeaderParameters

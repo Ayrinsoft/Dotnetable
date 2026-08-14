@@ -90,7 +90,15 @@ else
                 {
                     <tr>
                         <td>@t.ClientWalletTransactionID</td>
-                        <td>@TypeName(t.Type)</td>
+                        <td>
+                            @TypeName(t.Type)
+                            @if (t.CreatedByMemberID is not null)
+                            {
+                                <MudChip T="string" Size="Size.Small" Color="Color.Secondary" Variant="Variant.Outlined" Class="ms-1">
+                                    @L["wallets.manual_admin", "Registered by admin"]
+                                </MudChip>
+                            }
+                        </td>
                         <td style="color:@(t.Amount < 0 ? "var(--mud-palette-error)" : "var(--mud-palette-success)")">
                             @(t.Amount < 0 ? "" : "+")@MoneyFormat.Group(t.Amount, _selectedCurrency)
                         </td>
@@ -120,7 +128,7 @@ else
     private List<BreadcrumbItem> _breadcrumbs => new()
     {
         new(L["dashboard", "Dashboard"], "/"),
-        new(L["wallets.withdrawals", "Withdrawal Requests"], "/wallets/withdrawals"),
+        new(L["wallets", "Customer wallets"], "/wallets"),
         new($"#{ClientId}", null, true),
     };
 
@@ -190,6 +198,7 @@ else
         ClientWalletTransactionType.WithdrawalHold => L["wallets.type.withdrawal_hold", "Withdrawal Hold"],
         ClientWalletTransactionType.WithdrawalReversed => L["wallets.type.withdrawal_reversed", "Withdrawal Reversed"],
         ClientWalletTransactionType.AdminAdjustment => L["wallets.type.admin_adjustment", "Admin Adjustment"],
+        ClientWalletTransactionType.AdminDeposit => L["wallets.type.admin_deposit", "Admin deposit"],
         _ => type.ToString(),
     };
 
