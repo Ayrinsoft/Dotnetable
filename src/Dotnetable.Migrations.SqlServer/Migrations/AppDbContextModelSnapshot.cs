@@ -858,6 +858,9 @@ namespace Dotnetable.Migrations.SqlServer.Migrations
                     b.Property<int>("ClientWalletID")
                         .HasColumnType("int");
 
+                    b.Property<int?>("CreatedByMemberID")
+                        .HasColumnType("int");
+
                     b.Property<string>("CurrencyCode")
                         .IsRequired()
                         .HasMaxLength(3)
@@ -865,16 +868,13 @@ namespace Dotnetable.Migrations.SqlServer.Migrations
                         .HasColumnType("char(3)")
                         .IsFixedLength();
 
-                    b.Property<DateTime?>("PaidAt")
-                        .HasPrecision(0)
-                        .HasColumnType("datetime2(0)");
-
-                    b.Property<int?>("CreatedByMemberID")
-                        .HasColumnType("int");
-
                     b.Property<string>("Note")
                         .HasMaxLength(500)
                         .HasColumnType("nvarchar(500)");
+
+                    b.Property<DateTime?>("PaidAt")
+                        .HasPrecision(0)
+                        .HasColumnType("datetime2(0)");
 
                     b.Property<string>("PaymentRefNumber")
                         .HasMaxLength(100)
@@ -4740,6 +4740,9 @@ namespace Dotnetable.Migrations.SqlServer.Migrations
                     b.Property<int?>("BankAccountID")
                         .HasColumnType("int");
 
+                    b.Property<decimal>("BridgeUsdAmount")
+                        .HasColumnType("decimal(18, 4)");
+
                     b.Property<DateTime>("CreatedAt")
                         .HasColumnType("datetime");
 
@@ -4752,6 +4755,12 @@ namespace Dotnetable.Migrations.SqlServer.Migrations
                         .IsUnicode(false)
                         .HasColumnType("char(3)")
                         .IsFixedLength();
+
+                    b.Property<decimal?>("ExchangeRateToUsd")
+                        .HasColumnType("decimal(18, 6)");
+
+                    b.Property<decimal?>("ExchangeRateUsdToSettle")
+                        .HasColumnType("decimal(18, 6)");
 
                     b.Property<decimal>("NetAmount")
                         .HasColumnType("decimal(18, 4)");
@@ -4772,6 +4781,21 @@ namespace Dotnetable.Migrations.SqlServer.Migrations
 
                     b.Property<DateOnly>("PeriodTo")
                         .HasColumnType("date");
+
+                    b.Property<string>("SourceCurrencyCode")
+                        .HasMaxLength(3)
+                        .IsUnicode(false)
+                        .HasColumnType("char(3)")
+                        .IsFixedLength();
+
+                    b.Property<decimal>("SourceNetAmount")
+                        .HasColumnType("decimal(18, 4)");
+
+                    b.Property<decimal>("SourceTaxAmount")
+                        .HasColumnType("decimal(18, 4)");
+
+                    b.Property<decimal>("SourceTotalAmount")
+                        .HasColumnType("decimal(18, 4)");
 
                     b.Property<byte>("Status")
                         .HasColumnType("tinyint");
@@ -4809,6 +4833,8 @@ namespace Dotnetable.Migrations.SqlServer.Migrations
                     b.HasIndex(new[] { "CreatedByMemberID" }, "IX_Settlements_CreatedByMemberID");
 
                     b.HasIndex(new[] { "CurrencyCode" }, "IX_Settlements_CurrencyCode");
+
+                    b.HasIndex(new[] { "SourceCurrencyCode" }, "IX_Settlements_SourceCurrencyCode");
 
                     b.HasIndex(new[] { "SupplierID" }, "IX_Settlements_SupplierID");
 
@@ -5955,6 +5981,12 @@ namespace Dotnetable.Migrations.SqlServer.Migrations
                     b.Property<decimal>("Rating")
                         .HasColumnType("decimal(3, 2)");
 
+                    b.Property<string>("SettlementCurrencyCode")
+                        .HasMaxLength(3)
+                        .IsUnicode(false)
+                        .HasColumnType("char(3)")
+                        .IsFixedLength();
+
                     b.Property<byte>("SettlementMode")
                         .HasColumnType("tinyint")
                         .HasComment("0 = Immediate: every purchase from this vendor is settled instantly like a normal cash purchase. 1 = Credit: purchases accrue as credit and are batched into a periodic Settlements record due on CreditDays");
@@ -5980,6 +6012,8 @@ namespace Dotnetable.Migrations.SqlServer.Migrations
                     b.HasIndex(new[] { "MemberID" }, "IX_Vendors_MemberID")
                         .IsUnique()
                         .HasFilter("([MemberID] IS NOT NULL)");
+
+                    b.HasIndex(new[] { "SettlementCurrencyCode" }, "IX_Vendors_SettlementCurrencyCode");
 
                     b.HasIndex(new[] { "WebsiteID" }, "IX_Vendors_WebsiteID");
 
@@ -9232,6 +9266,11 @@ namespace Dotnetable.Migrations.SqlServer.Migrations
                         .IsRequired()
                         .HasConstraintName("FK_Settlements_Currencies");
 
+                    b.HasOne("Dotnetable.Domain.Entities.Currency", "SourceCurrency")
+                        .WithMany("SettlementsSourced")
+                        .HasForeignKey("SourceCurrencyCode")
+                        .HasConstraintName("FK_Settlements_Currencies_Source");
+
                     b.HasOne("Dotnetable.Domain.Entities.Supplier", "Supplier")
                         .WithMany("Settlements")
                         .HasForeignKey("SupplierID")
@@ -9260,6 +9299,8 @@ namespace Dotnetable.Migrations.SqlServer.Migrations
                     b.Navigation("CreatedByMember");
 
                     b.Navigation("CurrencyCodeNavigation");
+
+                    b.Navigation("SourceCurrency");
 
                     b.Navigation("Supplier");
 
@@ -9773,6 +9814,11 @@ namespace Dotnetable.Migrations.SqlServer.Migrations
                         .HasForeignKey("Dotnetable.Domain.Entities.Vendor", "MemberID")
                         .HasConstraintName("FK_Vendors_Members");
 
+                    b.HasOne("Dotnetable.Domain.Entities.Currency", "SettlementCurrency")
+                        .WithMany("VendorSettlementCurrencies")
+                        .HasForeignKey("SettlementCurrencyCode")
+                        .HasConstraintName("FK_Vendors_Currencies_Settlement");
+
                     b.HasOne("Dotnetable.Domain.Entities.Website", "Website")
                         .WithMany("VendorWebsites")
                         .HasForeignKey("WebsiteID")
@@ -9784,6 +9830,8 @@ namespace Dotnetable.Migrations.SqlServer.Migrations
                     b.Navigation("LogoFile");
 
                     b.Navigation("Member");
+
+                    b.Navigation("SettlementCurrency");
 
                     b.Navigation("Website");
                 });
@@ -10332,9 +10380,13 @@ namespace Dotnetable.Migrations.SqlServer.Migrations
 
                     b.Navigation("Settlements");
 
+                    b.Navigation("SettlementsSourced");
+
                     b.Navigation("StockMovements");
 
                     b.Navigation("Suppliers");
+
+                    b.Navigation("VendorSettlementCurrencies");
 
                     b.Navigation("WebsiteWalletCurrencies");
 

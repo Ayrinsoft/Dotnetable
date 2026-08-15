@@ -9,10 +9,10 @@ CREATE TABLE [dbo].[BankAccounts] (
     [CardNumber]          VARCHAR (20)  NULL,
     [IsForOfflinePayment] BIT NOT NULL,
     [IsActive]            BIT NOT NULL,
-    [CreatedByMemberID]   INT           NOT NULL,
+    [CreatedByMemberId]   INT           NOT NULL,
     CONSTRAINT [PK_BankAccounts] PRIMARY KEY CLUSTERED ([BankAccountID] ASC),
     CONSTRAINT [FK_BankAccounts_Banks] FOREIGN KEY ([BankID]) REFERENCES [dbo].[Banks] ([BankID]),
-    CONSTRAINT [FK_BankAccounts_Members] FOREIGN KEY ([CreatedByMemberID]) REFERENCES [dbo].[Members] ([MemberID]),
+    CONSTRAINT [FK_BankAccounts_Members] FOREIGN KEY ([CreatedByMemberId]) REFERENCES [dbo].[Members] ([MemberID]),
     CONSTRAINT [FK_BankAccounts_Websites] FOREIGN KEY ([WebsiteID]) REFERENCES [dbo].[Websites] ([WebsiteID])
 );
 GO
