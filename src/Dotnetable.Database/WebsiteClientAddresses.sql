@@ -3,8 +3,8 @@ CREATE TABLE [dbo].[WebsiteClientAddresses] (
     [WebsiteClientID]        INT               NOT NULL,
     [Title]                  NVARCHAR (100)    NULL,
     [ReceiverName]           NVARCHAR (200)    NULL,
-    [CountryID]              INT               NULL,
-    [CityID]                 INT               NULL,
+    [CountryId]              INT               NULL,
+    [CityId]                 INT               NULL,
     [AddressLine]            NVARCHAR (500)    NOT NULL,
     [PostalCode]             NVARCHAR (20)     NULL,
     [Phone]                  NVARCHAR (20)     NULL,
@@ -12,8 +12,8 @@ CREATE TABLE [dbo].[WebsiteClientAddresses] (
     [Latitude]               DECIMAL (9, 6)    NULL,
     [Longitude]              DECIMAL (9, 6)    NULL,
     CONSTRAINT [PK_WebsiteClientAddresses] PRIMARY KEY CLUSTERED ([WebsiteClientAddressID] ASC),
-    CONSTRAINT [FK_WebsiteClientAddresses_Cities] FOREIGN KEY ([CityID]) REFERENCES [dbo].[Cities] ([CityID]),
-    CONSTRAINT [FK_WebsiteClientAddresses_Countries] FOREIGN KEY ([CountryID]) REFERENCES [dbo].[Countries] ([CountryID]),
+    CONSTRAINT [FK_WebsiteClientAddresses_Cities] FOREIGN KEY ([CityId]) REFERENCES [dbo].[Cities] ([CityID]),
+    CONSTRAINT [FK_WebsiteClientAddresses_Countries] FOREIGN KEY ([CountryId]) REFERENCES [dbo].[Countries] ([CountryID]),
     CONSTRAINT [FK_WebsiteClientAddresses_WebsiteClients] FOREIGN KEY ([WebsiteClientID]) REFERENCES [dbo].[WebsiteClients] ([WebsiteClientID])
 );
 GO

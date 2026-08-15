@@ -17,7 +17,7 @@ namespace Dotnetable.Migrations.PostgreSql.Migrations
         {
 #pragma warning disable 612, 618
             modelBuilder
-                .HasAnnotation("ProductVersion", "10.0.10")
+                .HasAnnotation("ProductVersion", "10.0.11")
                 .HasAnnotation("Relational:MaxIdentifierLength", 63);
 
             NpgsqlModelBuilderExtensions.UseIdentityByDefaultColumns(modelBuilder);
@@ -563,6 +563,11 @@ namespace Dotnetable.Migrations.PostgreSql.Migrations
                     b.Property<bool>("IsActive")
                         .HasColumnType("boolean");
 
+                    b.Property<bool>("IsSystem")
+                        .ValueGeneratedOnAdd()
+                        .HasColumnType("boolean")
+                        .HasDefaultValue(false);
+
                     b.Property<string>("Name")
                         .IsRequired()
                         .HasMaxLength(200)
@@ -570,6 +575,11 @@ namespace Dotnetable.Migrations.PostgreSql.Migrations
 
                     b.Property<int?>("ParentAccountID")
                         .HasColumnType("integer");
+
+                    b.Property<int>("SortOrder")
+                        .ValueGeneratedOnAdd()
+                        .HasColumnType("integer")
+                        .HasDefaultValue(0);
 
                     b.Property<int>("WebsiteID")
                         .HasColumnType("integer");
@@ -579,6 +589,9 @@ namespace Dotnetable.Migrations.PostgreSql.Migrations
                     b.HasIndex(new[] { "ParentAccountID" }, "IX_ChartOfAccounts_ParentAccountID");
 
                     b.HasIndex(new[] { "WebsiteID" }, "IX_ChartOfAccounts_WebsiteID");
+
+                    b.HasIndex(new[] { "WebsiteID", "Code" }, "IX_ChartOfAccounts_Website_Code")
+                        .IsUnique();
 
                     b.ToTable("ChartOfAccounts");
                 });
@@ -844,6 +857,9 @@ namespace Dotnetable.Migrations.PostgreSql.Migrations
                     b.Property<int>("ClientWalletID")
                         .HasColumnType("integer");
 
+                    b.Property<int?>("CreatedByMemberID")
+                        .HasColumnType("integer");
+
                     b.Property<string>("CurrencyCode")
                         .IsRequired()
                         .HasMaxLength(3)
@@ -851,16 +867,13 @@ namespace Dotnetable.Migrations.PostgreSql.Migrations
                         .HasColumnType("character(3)")
                         .IsFixedLength();
 
-                    b.Property<DateTime?>("PaidAt")
-                        .HasPrecision(0)
-                        .HasColumnType("timestamp(0) with time zone");
-
-                    b.Property<int?>("CreatedByMemberID")
-                        .HasColumnType("integer");
-
                     b.Property<string>("Note")
                         .HasMaxLength(500)
                         .HasColumnType("character varying(500)");
+
+                    b.Property<DateTime?>("PaidAt")
+                        .HasPrecision(0)
+                        .HasColumnType("timestamp(0) with time zone");
 
                     b.Property<string>("PaymentRefNumber")
                         .HasMaxLength(100)
@@ -1430,6 +1443,133 @@ namespace Dotnetable.Migrations.PostgreSql.Migrations
                     b.ToTable("EmailTemplateTranslations");
                 });
 
+            modelBuilder.Entity("Dotnetable.Domain.Entities.Employee", b =>
+                {
+                    b.Property<int>("EmployeeID")
+                        .ValueGeneratedOnAdd()
+                        .HasColumnType("integer");
+
+                    NpgsqlPropertyBuilderExtensions.UseIdentityByDefaultColumn(b.Property<int>("EmployeeID"));
+
+                    b.Property<DateTime>("CreatedAt")
+                        .HasColumnType("timestamp with time zone");
+
+                    b.Property<string>("Email")
+                        .HasColumnType("text");
+
+                    b.Property<string>("EmployeeCode")
+                        .IsRequired()
+                        .HasMaxLength(30)
+                        .HasColumnType("character varying(30)");
+
+                    b.Property<string>("GivenName")
+                        .IsRequired()
+                        .HasMaxLength(100)
+                        .HasColumnType("character varying(100)");
+
+                    b.Property<DateOnly>("HireDate")
+                        .HasColumnType("date");
+
+                    b.Property<string>("JobTitle")
+                        .HasColumnType("text");
+
+                    b.Property<int?>("MemberID")
+                        .HasColumnType("integer");
+
+                    b.Property<string>("NationalId")
+                        .HasColumnType("text");
+
+                    b.Property<int?>("OrgUnitID")
+                        .HasColumnType("integer");
+
+                    b.Property<string>("Phone")
+                        .HasColumnType("text");
+
+                    b.Property<byte>("Status")
+                        .HasColumnType("smallint");
+
+                    b.Property<string>("Surname")
+                        .IsRequired()
+                        .HasMaxLength(100)
+                        .HasColumnType("character varying(100)");
+
+                    b.Property<DateOnly?>("TerminationDate")
+                        .HasColumnType("date");
+
+                    b.Property<int>("WebsiteID")
+                        .HasColumnType("integer");
+
+                    b.HasKey("EmployeeID");
+
+                    b.HasIndex("MemberID");
+
+                    b.HasIndex("OrgUnitID");
+
+                    b.HasIndex(new[] { "WebsiteID", "EmployeeCode" }, "IX_Employees_Website_Code")
+                        .IsUnique();
+
+                    b.ToTable("Employees");
+                });
+
+            modelBuilder.Entity("Dotnetable.Domain.Entities.EmployeeContract", b =>
+                {
+                    b.Property<int>("EmployeeContractID")
+                        .ValueGeneratedOnAdd()
+                        .HasColumnType("integer");
+
+                    NpgsqlPropertyBuilderExtensions.UseIdentityByDefaultColumn(b.Property<int>("EmployeeContractID"));
+
+                    b.Property<decimal>("BaseSalary")
+                        .HasColumnType("decimal(18,4)");
+
+                    b.Property<DateTime>("CreatedAt")
+                        .HasColumnType("timestamp with time zone");
+
+                    b.Property<string>("CurrencyCode")
+                        .IsRequired()
+                        .HasMaxLength(3)
+                        .IsUnicode(false)
+                        .HasColumnType("character(3)")
+                        .IsFixedLength();
+
+                    b.Property<DateOnly>("EffectiveFrom")
+                        .HasColumnType("date");
+
+                    b.Property<DateOnly?>("EffectiveTo")
+                        .HasColumnType("date");
+
+                    b.Property<int>("EmployeeID")
+                        .HasColumnType("integer");
+
+                    b.Property<decimal>("EmployeeInsuranceRate")
+                        .HasColumnType("decimal(9,6)");
+
+                    b.Property<decimal>("EmployerInsuranceRate")
+                        .HasColumnType("decimal(9,6)");
+
+                    b.Property<decimal>("IncomeTaxRate")
+                        .HasColumnType("decimal(9,6)");
+
+                    b.Property<bool>("IsActive")
+                        .HasColumnType("boolean");
+
+                    b.Property<byte>("PayFrequency")
+                        .HasColumnType("smallint");
+
+                    b.Property<bool>("UseFlatRates")
+                        .ValueGeneratedOnAdd()
+                        .HasColumnType("boolean")
+                        .HasDefaultValue(true);
+
+                    b.HasKey("EmployeeContractID");
+
+                    b.HasIndex("CurrencyCode");
+
+                    b.HasIndex("EmployeeID");
+
+                    b.ToTable("EmployeeContracts");
+                });
+
             modelBuilder.Entity("Dotnetable.Domain.Entities.FileFolder", b =>
                 {
                     b.Property<int>("FileFolderID")
@@ -1612,6 +1752,203 @@ namespace Dotnetable.Migrations.PostgreSql.Migrations
                     b.HasIndex(new[] { "WebsiteID" }, "IX_FileTags_WebsiteID");
 
                     b.ToTable("FileTags");
+                });
+
+            modelBuilder.Entity("Dotnetable.Domain.Entities.FinancialLedgerEntry", b =>
+                {
+                    b.Property<long>("FinancialLedgerEntryID")
+                        .ValueGeneratedOnAdd()
+                        .HasColumnType("bigint");
+
+                    NpgsqlPropertyBuilderExtensions.UseIdentityByDefaultColumn(b.Property<long>("FinancialLedgerEntryID"));
+
+                    b.Property<decimal>("Amount")
+                        .HasColumnType("decimal(18, 4)");
+
+                    b.Property<decimal>("AmountUsd")
+                        .HasColumnType("decimal(18, 4)");
+
+                    b.Property<string>("ChangeNote")
+                        .HasMaxLength(500)
+                        .HasColumnType("character varying(500)");
+
+                    b.Property<DateTime>("CreatedAt")
+                        .HasColumnType("timestamp with time zone");
+
+                    b.Property<int?>("CreatedByMemberID")
+                        .HasColumnType("integer");
+
+                    b.Property<string>("CurrencyCode")
+                        .IsRequired()
+                        .HasMaxLength(3)
+                        .IsUnicode(false)
+                        .HasColumnType("character(3)")
+                        .IsFixedLength();
+
+                    b.Property<string>("Description")
+                        .HasMaxLength(1000)
+                        .HasColumnType("character varying(1000)");
+
+                    b.Property<Guid>("EventGroupId")
+                        .HasColumnType("uuid");
+
+                    b.Property<byte>("Flow")
+                        .HasColumnType("smallint");
+
+                    b.Property<bool>("IsCurrent")
+                        .ValueGeneratedOnAdd()
+                        .HasColumnType("boolean")
+                        .HasDefaultValue(true);
+
+                    b.Property<string>("MetaJson")
+                        .HasMaxLength(2000)
+                        .HasColumnType("character varying(2000)");
+
+                    b.Property<DateTime>("OccurredAtUtc")
+                        .HasColumnType("timestamp with time zone");
+
+                    b.Property<DateOnly>("OccurredDate")
+                        .HasColumnType("date");
+
+                    b.Property<TimeOnly>("OccurredTime")
+                        .HasColumnType("time without time zone");
+
+                    b.Property<int?>("OrderID")
+                        .HasColumnType("integer");
+
+                    b.Property<int?>("OrderItemID")
+                        .HasColumnType("integer");
+
+                    b.Property<int?>("PaymentID")
+                        .HasColumnType("integer");
+
+                    b.Property<bool>("ReportToTax")
+                        .ValueGeneratedOnAdd()
+                        .HasColumnType("boolean")
+                        .HasDefaultValue(true);
+
+                    b.Property<int?>("SettlementID")
+                        .HasColumnType("integer");
+
+                    b.Property<long?>("SupersedesEntryID")
+                        .HasColumnType("bigint");
+
+                    b.Property<string>("Title")
+                        .IsRequired()
+                        .HasMaxLength(300)
+                        .HasColumnType("character varying(300)");
+
+                    b.Property<string>("TransactionType")
+                        .IsRequired()
+                        .HasMaxLength(64)
+                        .HasColumnType("character varying(64)");
+
+                    b.Property<int?>("VendorID")
+                        .HasColumnType("integer");
+
+                    b.Property<bool>("VendorVisible")
+                        .ValueGeneratedOnAdd()
+                        .HasColumnType("boolean")
+                        .HasDefaultValue(false);
+
+                    b.Property<int>("Version")
+                        .ValueGeneratedOnAdd()
+                        .HasColumnType("integer")
+                        .HasDefaultValue(1);
+
+                    b.Property<int?>("WebsiteClientID")
+                        .HasColumnType("integer");
+
+                    b.Property<int>("WebsiteID")
+                        .HasColumnType("integer");
+
+                    b.HasKey("FinancialLedgerEntryID");
+
+                    b.HasIndex(new[] { "CreatedByMemberID" }, "IX_FinancialLedgerEntries_CreatedByMemberID");
+
+                    b.HasIndex(new[] { "CurrencyCode" }, "IX_FinancialLedgerEntries_CurrencyCode");
+
+                    b.HasIndex(new[] { "EventGroupId" }, "IX_FinancialLedgerEntries_EventGroup");
+
+                    b.HasIndex(new[] { "OrderID" }, "IX_FinancialLedgerEntries_OrderID");
+
+                    b.HasIndex(new[] { "OrderItemID" }, "IX_FinancialLedgerEntries_OrderItemID");
+
+                    b.HasIndex(new[] { "PaymentID" }, "IX_FinancialLedgerEntries_PaymentID");
+
+                    b.HasIndex(new[] { "SettlementID" }, "IX_FinancialLedgerEntries_SettlementID");
+
+                    b.HasIndex(new[] { "SupersedesEntryID" }, "IX_FinancialLedgerEntries_Supersedes");
+
+                    b.HasIndex(new[] { "WebsiteID", "TransactionType", "IsCurrent" }, "IX_FinancialLedgerEntries_Type");
+
+                    b.HasIndex(new[] { "VendorID", "VendorVisible", "IsCurrent" }, "IX_FinancialLedgerEntries_VendorID");
+
+                    b.HasIndex(new[] { "WebsiteClientID" }, "IX_FinancialLedgerEntries_WebsiteClientID");
+
+                    b.HasIndex(new[] { "WebsiteID", "OccurredDate", "IsCurrent" }, "IX_FinancialLedgerEntries_Website_Date");
+
+                    b.ToTable("FinancialLedgerEntries");
+                });
+
+            modelBuilder.Entity("Dotnetable.Domain.Entities.FiscalPeriod", b =>
+                {
+                    b.Property<int>("FiscalPeriodID")
+                        .ValueGeneratedOnAdd()
+                        .HasColumnType("integer");
+
+                    NpgsqlPropertyBuilderExtensions.UseIdentityByDefaultColumn(b.Property<int>("FiscalPeriodID"));
+
+                    b.Property<DateOnly?>("CloseDueDate")
+                        .HasColumnType("date");
+
+                    b.Property<DateTime?>("ClosedAt")
+                        .HasColumnType("timestamp with time zone");
+
+                    b.Property<int?>("ClosedByMemberID")
+                        .HasColumnType("integer");
+
+                    b.Property<int?>("ClosingJournalEntryID")
+                        .HasColumnType("integer");
+
+                    b.Property<DateTime>("CreatedAt")
+                        .HasColumnType("timestamp with time zone");
+
+                    b.Property<bool>("IsClosed")
+                        .ValueGeneratedOnAdd()
+                        .HasColumnType("boolean")
+                        .HasDefaultValue(false);
+
+                    b.Property<string>("Name")
+                        .IsRequired()
+                        .HasMaxLength(100)
+                        .HasColumnType("character varying(100)");
+
+                    b.Property<int?>("OpeningJournalEntryID")
+                        .HasColumnType("integer");
+
+                    b.Property<DateOnly>("PeriodFrom")
+                        .HasColumnType("date");
+
+                    b.Property<DateOnly>("PeriodTo")
+                        .HasColumnType("date");
+
+                    b.Property<int>("WebsiteID")
+                        .HasColumnType("integer");
+
+                    b.HasKey("FiscalPeriodID");
+
+                    b.HasIndex("ClosedByMemberID");
+
+                    b.HasIndex("ClosingJournalEntryID");
+
+                    b.HasIndex("OpeningJournalEntryID");
+
+                    b.HasIndex(new[] { "WebsiteID", "PeriodFrom" }, "IX_FiscalPeriods_WebsiteID");
+
+                    b.HasIndex(new[] { "WebsiteID", "IsClosed", "PeriodFrom" }, "IX_FiscalPeriods_Website_Closed");
+
+                    b.ToTable("FiscalPeriods");
                 });
 
             modelBuilder.Entity("Dotnetable.Domain.Entities.Form", b =>
@@ -1872,7 +2209,17 @@ namespace Dotnetable.Migrations.PostgreSql.Migrations
                     NpgsqlPropertyBuilderExtensions.UseIdentityByDefaultColumn(b.Property<int>("JournalEntryID"));
 
                     b.Property<DateTime>("CreatedAt")
-                        .HasColumnType("datetime");
+                        .HasColumnType("datetime2");
+
+                    b.Property<int?>("CreatedByMemberID")
+                        .HasColumnType("integer");
+
+                    b.Property<string>("CurrencyCode")
+                        .IsRequired()
+                        .HasMaxLength(3)
+                        .IsUnicode(false)
+                        .HasColumnType("character(3)")
+                        .IsFixedLength();
 
                     b.Property<string>("Description")
                         .HasMaxLength(500)
@@ -1886,21 +2233,64 @@ namespace Dotnetable.Migrations.PostgreSql.Migrations
                         .HasMaxLength(30)
                         .HasColumnType("character varying(30)");
 
+                    b.Property<int?>("FiscalPeriodID")
+                        .HasColumnType("integer");
+
                     b.Property<bool>("IsPosted")
                         .HasColumnType("boolean");
+
+                    b.Property<bool>("IsReversed")
+                        .ValueGeneratedOnAdd()
+                        .HasColumnType("boolean")
+                        .HasDefaultValue(false);
+
+                    b.Property<DateTime?>("PostedAt")
+                        .HasColumnType("timestamp with time zone");
+
+                    b.Property<int?>("PostedByMemberID")
+                        .HasColumnType("integer");
+
+                    b.Property<bool>("ReportToTax")
+                        .ValueGeneratedOnAdd()
+                        .HasColumnType("boolean")
+                        .HasDefaultValue(true);
+
+                    b.Property<int?>("ReversesJournalEntryID")
+                        .HasColumnType("integer");
 
                     b.Property<int?>("SourceId")
                         .HasColumnType("integer");
 
-                    b.Property<byte?>("SourceType")
-                        .HasColumnType("smallint");
+                    b.Property<string>("SourceKey")
+                        .HasMaxLength(80)
+                        .HasColumnType("character varying(80)");
+
+                    b.Property<string>("SourceType")
+                        .HasMaxLength(40)
+                        .HasColumnType("character varying(40)");
 
                     b.Property<int>("WebsiteID")
                         .HasColumnType("integer");
 
                     b.HasKey("JournalEntryID");
 
+                    b.HasIndex("CreatedByMemberID");
+
+                    b.HasIndex("CurrencyCode");
+
+                    b.HasIndex("PostedByMemberID");
+
+                    b.HasIndex("ReversesJournalEntryID");
+
+                    b.HasIndex(new[] { "WebsiteID", "EntryDate", "IsPosted" }, "IX_JournalEntries_EntryDate");
+
+                    b.HasIndex(new[] { "FiscalPeriodID" }, "IX_JournalEntries_FiscalPeriodID");
+
                     b.HasIndex(new[] { "WebsiteID" }, "IX_JournalEntries_WebsiteID");
+
+                    b.HasIndex(new[] { "WebsiteID", "SourceKey" }, "IX_JournalEntries_Website_SourceKey")
+                        .IsUnique()
+                        .HasFilter("[SourceKey] IS NOT NULL");
 
                     b.ToTable("JournalEntries");
                 });
@@ -1991,6 +2381,47 @@ namespace Dotnetable.Migrations.PostgreSql.Migrations
                         .HasFilter("([WebsiteID] IS NOT NULL)");
 
                     b.ToTable("Languages");
+                });
+
+            modelBuilder.Entity("Dotnetable.Domain.Entities.LedgerAccountMap", b =>
+                {
+                    b.Property<int>("LedgerAccountMapID")
+                        .ValueGeneratedOnAdd()
+                        .HasColumnType("integer");
+
+                    NpgsqlPropertyBuilderExtensions.UseIdentityByDefaultColumn(b.Property<int>("LedgerAccountMapID"));
+
+                    b.Property<int>("CreditAccountID")
+                        .HasColumnType("integer");
+
+                    b.Property<int>("DebitAccountID")
+                        .HasColumnType("integer");
+
+                    b.Property<byte?>("Flow")
+                        .HasColumnType("smallint");
+
+                    b.Property<bool>("IsActive")
+                        .ValueGeneratedOnAdd()
+                        .HasColumnType("boolean")
+                        .HasDefaultValue(true);
+
+                    b.Property<string>("TransactionType")
+                        .IsRequired()
+                        .HasMaxLength(64)
+                        .HasColumnType("character varying(64)");
+
+                    b.Property<int>("WebsiteID")
+                        .HasColumnType("integer");
+
+                    b.HasKey("LedgerAccountMapID");
+
+                    b.HasIndex("CreditAccountID");
+
+                    b.HasIndex("DebitAccountID");
+
+                    b.HasIndex(new[] { "WebsiteID", "TransactionType", "IsActive" }, "IX_LedgerAccountMaps_Website_Type");
+
+                    b.ToTable("LedgerAccountMaps");
                 });
 
             modelBuilder.Entity("Dotnetable.Domain.Entities.LocalizationKey", b =>
@@ -2475,6 +2906,11 @@ namespace Dotnetable.Migrations.PostgreSql.Migrations
                     b.Property<DateTime?>("PaidAt")
                         .HasColumnType("datetime");
 
+                    b.Property<byte>("PreparationStatus")
+                        .ValueGeneratedOnAdd()
+                        .HasColumnType("smallint")
+                        .HasDefaultValue((byte)0);
+
                     b.Property<bool>("PricesIncludeTax")
                         .HasColumnType("boolean");
 
@@ -2489,7 +2925,7 @@ namespace Dotnetable.Migrations.PostgreSql.Migrations
                         .HasDefaultValue((byte)1);
 
                     b.Property<DateTime?>("ShippedAt")
-                        .HasColumnType("timestamp without time zone");
+                        .HasColumnType("datetime");
 
                     b.Property<int?>("ShippingMethodID")
                         .HasColumnType("integer");
@@ -2505,11 +2941,6 @@ namespace Dotnetable.Migrations.PostgreSql.Migrations
                     b.Property<string>("ShippingTrackingCode")
                         .HasMaxLength(100)
                         .HasColumnType("character varying(100)");
-
-                    b.Property<byte>("PreparationStatus")
-                        .ValueGeneratedOnAdd()
-                        .HasColumnType("smallint")
-                        .HasDefaultValue((byte)0);
 
                     b.Property<byte>("Status")
                         .HasColumnType("smallint");
@@ -2728,6 +3159,46 @@ namespace Dotnetable.Migrations.PostgreSql.Migrations
                     b.HasIndex(new[] { "OrderID" }, "IX_OrderStatusHistories_OrderID");
 
                     b.ToTable("OrderStatusHistories");
+                });
+
+            modelBuilder.Entity("Dotnetable.Domain.Entities.OrgUnit", b =>
+                {
+                    b.Property<int>("OrgUnitID")
+                        .ValueGeneratedOnAdd()
+                        .HasColumnType("integer");
+
+                    NpgsqlPropertyBuilderExtensions.UseIdentityByDefaultColumn(b.Property<int>("OrgUnitID"));
+
+                    b.Property<string>("Code")
+                        .IsRequired()
+                        .HasMaxLength(20)
+                        .HasColumnType("character varying(20)");
+
+                    b.Property<bool>("IsActive")
+                        .HasColumnType("boolean");
+
+                    b.Property<string>("Name")
+                        .IsRequired()
+                        .HasMaxLength(200)
+                        .HasColumnType("character varying(200)");
+
+                    b.Property<int?>("ParentOrgUnitID")
+                        .HasColumnType("integer");
+
+                    b.Property<int>("SortOrder")
+                        .HasColumnType("integer");
+
+                    b.Property<int>("WebsiteID")
+                        .HasColumnType("integer");
+
+                    b.HasKey("OrgUnitID");
+
+                    b.HasIndex("ParentOrgUnitID");
+
+                    b.HasIndex(new[] { "WebsiteID", "Code" }, "IX_OrgUnits_Website_Code")
+                        .IsUnique();
+
+                    b.ToTable("OrgUnits");
                 });
 
             modelBuilder.Entity("Dotnetable.Domain.Entities.Page", b =>
@@ -3027,6 +3498,169 @@ namespace Dotnetable.Migrations.PostgreSql.Migrations
                     b.HasIndex(new[] { "PaymentID" }, "IX_PaymentRefunds_PaymentID");
 
                     b.ToTable("PaymentRefunds");
+                });
+
+            modelBuilder.Entity("Dotnetable.Domain.Entities.PayrollLine", b =>
+                {
+                    b.Property<int>("PayrollLineID")
+                        .ValueGeneratedOnAdd()
+                        .HasColumnType("integer");
+
+                    NpgsqlPropertyBuilderExtensions.UseIdentityByDefaultColumn(b.Property<int>("PayrollLineID"));
+
+                    b.Property<int>("EmployeeID")
+                        .HasColumnType("integer");
+
+                    b.Property<decimal>("EmployeeInsurance")
+                        .HasColumnType("decimal(18,4)");
+
+                    b.Property<decimal>("EmployerCost")
+                        .HasColumnType("decimal(18,4)");
+
+                    b.Property<decimal>("EmployerInsurance")
+                        .HasColumnType("decimal(18,4)");
+
+                    b.Property<decimal>("Gross")
+                        .HasColumnType("decimal(18,4)");
+
+                    b.Property<decimal>("IncomeTax")
+                        .HasColumnType("decimal(18,4)");
+
+                    b.Property<decimal>("Net")
+                        .HasColumnType("decimal(18,4)");
+
+                    b.Property<string>("Note")
+                        .HasColumnType("text");
+
+                    b.Property<int>("PayrollRunID")
+                        .HasColumnType("integer");
+
+                    b.HasKey("PayrollLineID");
+
+                    b.HasIndex("EmployeeID");
+
+                    b.HasIndex("PayrollRunID");
+
+                    b.ToTable("PayrollLines");
+                });
+
+            modelBuilder.Entity("Dotnetable.Domain.Entities.PayrollRateBracket", b =>
+                {
+                    b.Property<int>("PayrollRateBracketID")
+                        .ValueGeneratedOnAdd()
+                        .HasColumnType("integer");
+
+                    NpgsqlPropertyBuilderExtensions.UseIdentityByDefaultColumn(b.Property<int>("PayrollRateBracketID"));
+
+                    b.Property<DateTime>("CreatedAt")
+                        .HasColumnType("timestamp with time zone");
+
+                    b.Property<decimal>("FromAmount")
+                        .HasColumnType("decimal(18,4)");
+
+                    b.Property<bool>("IsActive")
+                        .ValueGeneratedOnAdd()
+                        .HasColumnType("boolean")
+                        .HasDefaultValue(true);
+
+                    b.Property<byte>("Kind")
+                        .HasColumnType("smallint");
+
+                    b.Property<decimal>("Rate")
+                        .HasColumnType("decimal(9,6)");
+
+                    b.Property<int>("SortOrder")
+                        .HasColumnType("integer");
+
+                    b.Property<decimal?>("ToAmount")
+                        .HasColumnType("decimal(18,4)");
+
+                    b.Property<int>("WebsiteID")
+                        .HasColumnType("integer");
+
+                    b.HasKey("PayrollRateBracketID");
+
+                    b.HasIndex(new[] { "WebsiteID", "Kind", "SortOrder" }, "IX_PayrollRateBrackets_Website_Kind");
+
+                    b.ToTable("PayrollRateBrackets");
+                });
+
+            modelBuilder.Entity("Dotnetable.Domain.Entities.PayrollRun", b =>
+                {
+                    b.Property<int>("PayrollRunID")
+                        .ValueGeneratedOnAdd()
+                        .HasColumnType("integer");
+
+                    NpgsqlPropertyBuilderExtensions.UseIdentityByDefaultColumn(b.Property<int>("PayrollRunID"));
+
+                    b.Property<DateTime?>("ApprovedAt")
+                        .HasColumnType("timestamp with time zone");
+
+                    b.Property<int?>("ApprovedByMemberID")
+                        .HasColumnType("integer");
+
+                    b.Property<DateTime>("CreatedAt")
+                        .HasColumnType("timestamp with time zone");
+
+                    b.Property<int?>("CreatedByMemberID")
+                        .HasColumnType("integer");
+
+                    b.Property<string>("CurrencyCode")
+                        .IsRequired()
+                        .HasMaxLength(3)
+                        .IsUnicode(false)
+                        .HasColumnType("character(3)")
+                        .IsFixedLength();
+
+                    b.Property<string>("Note")
+                        .HasColumnType("text");
+
+                    b.Property<DateTime?>("PaidAt")
+                        .HasColumnType("timestamp with time zone");
+
+                    b.Property<DateOnly>("PeriodFrom")
+                        .HasColumnType("date");
+
+                    b.Property<DateOnly>("PeriodTo")
+                        .HasColumnType("date");
+
+                    b.Property<string>("RunNumber")
+                        .IsRequired()
+                        .HasMaxLength(40)
+                        .HasColumnType("character varying(40)");
+
+                    b.Property<byte>("Status")
+                        .HasColumnType("smallint");
+
+                    b.Property<decimal>("TotalEmployeeInsurance")
+                        .HasColumnType("decimal(18,4)");
+
+                    b.Property<decimal>("TotalEmployerInsurance")
+                        .HasColumnType("decimal(18,4)");
+
+                    b.Property<decimal>("TotalGross")
+                        .HasColumnType("decimal(18,4)");
+
+                    b.Property<decimal>("TotalIncomeTax")
+                        .HasColumnType("decimal(18,4)");
+
+                    b.Property<decimal>("TotalNet")
+                        .HasColumnType("decimal(18,4)");
+
+                    b.Property<int>("WebsiteID")
+                        .HasColumnType("integer");
+
+                    b.HasKey("PayrollRunID");
+
+                    b.HasIndex("ApprovedByMemberID");
+
+                    b.HasIndex("CreatedByMemberID");
+
+                    b.HasIndex("CurrencyCode");
+
+                    b.HasIndex("WebsiteID");
+
+                    b.ToTable("PayrollRuns");
                 });
 
             modelBuilder.Entity("Dotnetable.Domain.Entities.Policy", b =>
@@ -4013,6 +4647,53 @@ namespace Dotnetable.Migrations.PostgreSql.Migrations
                     b.ToTable("ProductWarranties");
                 });
 
+            modelBuilder.Entity("Dotnetable.Domain.Entities.RecordAttachment", b =>
+                {
+                    b.Property<long>("RecordAttachmentID")
+                        .ValueGeneratedOnAdd()
+                        .HasColumnType("bigint");
+
+                    NpgsqlPropertyBuilderExtensions.UseIdentityByDefaultColumn(b.Property<long>("RecordAttachmentID"));
+
+                    b.Property<DateTime>("CreatedAt")
+                        .HasColumnType("timestamp with time zone");
+
+                    b.Property<int?>("CreatedByMemberID")
+                        .HasColumnType("integer");
+
+                    b.Property<long>("EntityID")
+                        .HasColumnType("bigint");
+
+                    b.Property<string>("EntityType")
+                        .IsRequired()
+                        .HasMaxLength(64)
+                        .HasColumnType("character varying(64)");
+
+                    b.Property<int>("FileRecordID")
+                        .HasColumnType("integer");
+
+                    b.Property<string>("Note")
+                        .HasMaxLength(500)
+                        .HasColumnType("character varying(500)");
+
+                    b.Property<string>("Title")
+                        .HasMaxLength(200)
+                        .HasColumnType("character varying(200)");
+
+                    b.Property<int>("WebsiteID")
+                        .HasColumnType("integer");
+
+                    b.HasKey("RecordAttachmentID");
+
+                    b.HasIndex("CreatedByMemberID");
+
+                    b.HasIndex(new[] { "WebsiteID", "EntityType", "EntityID" }, "IX_RecordAttachments_Entity");
+
+                    b.HasIndex(new[] { "FileRecordID" }, "IX_RecordAttachments_File");
+
+                    b.ToTable("RecordAttachments");
+                });
+
             modelBuilder.Entity("Dotnetable.Domain.Entities.Role", b =>
                 {
                     b.Property<short>("RoleID")
@@ -4058,6 +4739,9 @@ namespace Dotnetable.Migrations.PostgreSql.Migrations
                     b.Property<int?>("BankAccountID")
                         .HasColumnType("integer");
 
+                    b.Property<decimal>("BridgeUsdAmount")
+                        .HasColumnType("decimal(18, 4)");
+
                     b.Property<DateTime>("CreatedAt")
                         .HasColumnType("datetime");
 
@@ -4070,6 +4754,12 @@ namespace Dotnetable.Migrations.PostgreSql.Migrations
                         .IsUnicode(false)
                         .HasColumnType("character(3)")
                         .IsFixedLength();
+
+                    b.Property<decimal?>("ExchangeRateToUsd")
+                        .HasColumnType("decimal(18, 6)");
+
+                    b.Property<decimal?>("ExchangeRateUsdToSettle")
+                        .HasColumnType("decimal(18, 6)");
 
                     b.Property<decimal>("NetAmount")
                         .HasColumnType("decimal(18, 4)");
@@ -4090,6 +4780,21 @@ namespace Dotnetable.Migrations.PostgreSql.Migrations
 
                     b.Property<DateOnly>("PeriodTo")
                         .HasColumnType("date");
+
+                    b.Property<string>("SourceCurrencyCode")
+                        .HasMaxLength(3)
+                        .IsUnicode(false)
+                        .HasColumnType("character(3)")
+                        .IsFixedLength();
+
+                    b.Property<decimal>("SourceNetAmount")
+                        .HasColumnType("decimal(18, 4)");
+
+                    b.Property<decimal>("SourceTaxAmount")
+                        .HasColumnType("decimal(18, 4)");
+
+                    b.Property<decimal>("SourceTotalAmount")
+                        .HasColumnType("decimal(18, 4)");
 
                     b.Property<byte>("Status")
                         .HasColumnType("smallint");
@@ -4127,6 +4832,8 @@ namespace Dotnetable.Migrations.PostgreSql.Migrations
                     b.HasIndex(new[] { "CreatedByMemberID" }, "IX_Settlements_CreatedByMemberID");
 
                     b.HasIndex(new[] { "CurrencyCode" }, "IX_Settlements_CurrencyCode");
+
+                    b.HasIndex(new[] { "SourceCurrencyCode" }, "IX_Settlements_SourceCurrencyCode");
 
                     b.HasIndex(new[] { "SupplierID" }, "IX_Settlements_SupplierID");
 
@@ -4464,6 +5171,181 @@ namespace Dotnetable.Migrations.PostgreSql.Migrations
                     b.HasIndex(new[] { "StateID" }, "IX_StateTranslations_StateID");
 
                     b.ToTable("StateTranslations");
+                });
+
+            modelBuilder.Entity("Dotnetable.Domain.Entities.StockDocument", b =>
+                {
+                    b.Property<int>("StockDocumentID")
+                        .ValueGeneratedOnAdd()
+                        .HasColumnType("integer");
+
+                    NpgsqlPropertyBuilderExtensions.UseIdentityByDefaultColumn(b.Property<int>("StockDocumentID"));
+
+                    b.Property<DateTime?>("ApprovedAt")
+                        .HasColumnType("timestamp with time zone");
+
+                    b.Property<int?>("ApprovedByMemberID")
+                        .HasColumnType("integer");
+
+                    b.Property<DateTime>("CreatedAt")
+                        .HasColumnType("timestamp with time zone");
+
+                    b.Property<string>("DocumentNumber")
+                        .IsRequired()
+                        .HasMaxLength(40)
+                        .HasColumnType("character varying(40)");
+
+                    b.Property<byte>("DocumentType")
+                        .HasColumnType("smallint");
+
+                    b.Property<int?>("FromWarehouseID")
+                        .HasColumnType("integer");
+
+                    b.Property<string>("Note")
+                        .HasMaxLength(1000)
+                        .HasColumnType("character varying(1000)");
+
+                    b.Property<int?>("OrderID")
+                        .HasColumnType("integer");
+
+                    b.Property<int?>("PaymentRefundID")
+                        .HasColumnType("integer");
+
+                    b.Property<DateTime?>("PostedAt")
+                        .HasColumnType("timestamp with time zone");
+
+                    b.Property<int?>("PostedByMemberID")
+                        .HasColumnType("integer");
+
+                    b.Property<int?>("RequestedByMemberID")
+                        .HasColumnType("integer");
+
+                    b.Property<byte>("Status")
+                        .HasColumnType("smallint");
+
+                    b.Property<DateTime?>("SubmittedAt")
+                        .HasColumnType("timestamp with time zone");
+
+                    b.Property<int?>("SupplierID")
+                        .HasColumnType("integer");
+
+                    b.Property<int?>("ToWarehouseID")
+                        .HasColumnType("integer");
+
+                    b.Property<int>("WebsiteID")
+                        .HasColumnType("integer");
+
+                    b.HasKey("StockDocumentID");
+
+                    b.HasIndex("ApprovedByMemberID");
+
+                    b.HasIndex("FromWarehouseID");
+
+                    b.HasIndex("OrderID");
+
+                    b.HasIndex("PostedByMemberID");
+
+                    b.HasIndex("RequestedByMemberID");
+
+                    b.HasIndex("SupplierID");
+
+                    b.HasIndex("ToWarehouseID");
+
+                    b.HasIndex("WebsiteID");
+
+                    b.HasIndex(new[] { "PaymentRefundID" }, "IX_StockDocuments_PaymentRefundID");
+
+                    b.ToTable("StockDocuments");
+                });
+
+            modelBuilder.Entity("Dotnetable.Domain.Entities.StockDocumentHistory", b =>
+                {
+                    b.Property<int>("StockDocumentHistoryID")
+                        .ValueGeneratedOnAdd()
+                        .HasColumnType("integer");
+
+                    NpgsqlPropertyBuilderExtensions.UseIdentityByDefaultColumn(b.Property<int>("StockDocumentHistoryID"));
+
+                    b.Property<DateTime>("CreatedAt")
+                        .HasColumnType("timestamp with time zone");
+
+                    b.Property<int?>("CreatedByMemberID")
+                        .HasColumnType("integer");
+
+                    b.Property<byte>("FromStatus")
+                        .HasColumnType("smallint");
+
+                    b.Property<string>("Note")
+                        .HasMaxLength(500)
+                        .HasColumnType("character varying(500)");
+
+                    b.Property<int>("StockDocumentID")
+                        .HasColumnType("integer");
+
+                    b.Property<byte>("ToStatus")
+                        .HasColumnType("smallint");
+
+                    b.HasKey("StockDocumentHistoryID");
+
+                    b.HasIndex("CreatedByMemberID");
+
+                    b.HasIndex("StockDocumentID");
+
+                    b.ToTable("StockDocumentHistories");
+                });
+
+            modelBuilder.Entity("Dotnetable.Domain.Entities.StockDocumentLine", b =>
+                {
+                    b.Property<int>("StockDocumentLineID")
+                        .ValueGeneratedOnAdd()
+                        .HasColumnType("integer");
+
+                    NpgsqlPropertyBuilderExtensions.UseIdentityByDefaultColumn(b.Property<int>("StockDocumentLineID"));
+
+                    b.Property<int>("BookQuantity")
+                        .ValueGeneratedOnAdd()
+                        .HasColumnType("integer")
+                        .HasDefaultValue(0);
+
+                    b.Property<int?>("CountedQuantity")
+                        .HasColumnType("integer");
+
+                    b.Property<byte>("HealthGrade")
+                        .ValueGeneratedOnAdd()
+                        .HasColumnType("smallint")
+                        .HasDefaultValue((byte)0);
+
+                    b.Property<string>("Note")
+                        .HasMaxLength(300)
+                        .HasColumnType("character varying(300)");
+
+                    b.Property<int>("ProductVariantID")
+                        .HasColumnType("integer");
+
+                    b.Property<int>("Quantity")
+                        .HasColumnType("integer");
+
+                    b.Property<byte>("ReturnCondition")
+                        .ValueGeneratedOnAdd()
+                        .HasColumnType("smallint")
+                        .HasDefaultValue((byte)0);
+
+                    b.Property<int>("StockDocumentID")
+                        .HasColumnType("integer");
+
+                    b.Property<decimal>("UnitCost")
+                        .HasColumnType("decimal(18,4)");
+
+                    b.Property<decimal>("UnitCostUsd")
+                        .HasColumnType("decimal(18,4)");
+
+                    b.HasKey("StockDocumentLineID");
+
+                    b.HasIndex("ProductVariantID");
+
+                    b.HasIndex("StockDocumentID");
+
+                    b.ToTable("StockDocumentLines");
                 });
 
             modelBuilder.Entity("Dotnetable.Domain.Entities.StockMovement", b =>
@@ -4908,6 +5790,79 @@ namespace Dotnetable.Migrations.PostgreSql.Migrations
                     b.ToTable("TagTranslations");
                 });
 
+            modelBuilder.Entity("Dotnetable.Domain.Entities.TaxPeriod", b =>
+                {
+                    b.Property<int>("TaxPeriodID")
+                        .ValueGeneratedOnAdd()
+                        .HasColumnType("integer");
+
+                    NpgsqlPropertyBuilderExtensions.UseIdentityByDefaultColumn(b.Property<int>("TaxPeriodID"));
+
+                    b.Property<DateTime?>("ClosedAt")
+                        .HasColumnType("timestamp with time zone");
+
+                    b.Property<int?>("ClosedByMemberID")
+                        .HasColumnType("integer");
+
+                    b.Property<DateTime>("CreatedAt")
+                        .HasColumnType("timestamp with time zone");
+
+                    b.Property<int?>("CreatedByMemberID")
+                        .HasColumnType("integer");
+
+                    b.Property<DateOnly>("FromDate")
+                        .HasColumnType("date");
+
+                    b.Property<decimal>("NetTaxSnapshot")
+                        .HasColumnType("decimal(18,4)");
+
+                    b.Property<string>("Note")
+                        .HasMaxLength(1000)
+                        .HasColumnType("character varying(1000)");
+
+                    b.Property<int>("OutputOrderCount")
+                        .HasColumnType("integer");
+
+                    b.Property<decimal>("OutputTaxSnapshot")
+                        .HasColumnType("decimal(18,4)");
+
+                    b.Property<string>("PeriodCode")
+                        .IsRequired()
+                        .HasMaxLength(30)
+                        .HasColumnType("character varying(30)");
+
+                    b.Property<int>("SettlementCount")
+                        .HasColumnType("integer");
+
+                    b.Property<decimal>("SettlementTaxSnapshot")
+                        .HasColumnType("decimal(18,4)");
+
+                    b.Property<DateTime?>("SnapshotAt")
+                        .HasColumnType("timestamp with time zone");
+
+                    b.Property<byte>("Status")
+                        .HasColumnType("smallint");
+
+                    b.Property<DateOnly>("ToDate")
+                        .HasColumnType("date");
+
+                    b.Property<int>("WebsiteID")
+                        .HasColumnType("integer");
+
+                    b.HasKey("TaxPeriodID");
+
+                    b.HasIndex("ClosedByMemberID");
+
+                    b.HasIndex("CreatedByMemberID");
+
+                    b.HasIndex(new[] { "WebsiteID", "PeriodCode" }, "IX_TaxPeriods_Website_Code")
+                        .IsUnique();
+
+                    b.HasIndex(new[] { "WebsiteID", "Status", "FromDate" }, "IX_TaxPeriods_Website_Status");
+
+                    b.ToTable("TaxPeriods");
+                });
+
             modelBuilder.Entity("Dotnetable.Domain.Entities.TaxRate", b =>
                 {
                     b.Property<int>("TaxRateID")
@@ -5025,6 +5980,12 @@ namespace Dotnetable.Migrations.PostgreSql.Migrations
                     b.Property<decimal>("Rating")
                         .HasColumnType("decimal(3, 2)");
 
+                    b.Property<string>("SettlementCurrencyCode")
+                        .HasMaxLength(3)
+                        .IsUnicode(false)
+                        .HasColumnType("character(3)")
+                        .IsFixedLength();
+
                     b.Property<byte>("SettlementMode")
                         .HasColumnType("smallint")
                         .HasComment("0 = Immediate: every purchase from this vendor is settled instantly like a normal cash purchase. 1 = Credit: purchases accrue as credit and are batched into a periodic Settlements record due on CreditDays");
@@ -5050,6 +6011,8 @@ namespace Dotnetable.Migrations.PostgreSql.Migrations
                     b.HasIndex(new[] { "MemberID" }, "IX_Vendors_MemberID")
                         .IsUnique()
                         .HasFilter("([MemberID] IS NOT NULL)");
+
+                    b.HasIndex(new[] { "SettlementCurrencyCode" }, "IX_Vendors_SettlementCurrencyCode");
 
                     b.HasIndex(new[] { "WebsiteID" }, "IX_Vendors_WebsiteID");
 
@@ -5128,8 +6091,18 @@ namespace Dotnetable.Migrations.PostgreSql.Migrations
                     b.Property<int>("DeliveryDays")
                         .HasColumnType("integer");
 
+                    b.Property<byte>("HealthGrade")
+                        .ValueGeneratedOnAdd()
+                        .HasColumnType("smallint")
+                        .HasDefaultValue((byte)0);
+
                     b.Property<bool>("IsActive")
                         .HasColumnType("boolean");
+
+                    b.Property<byte>("ItemCondition")
+                        .ValueGeneratedOnAdd()
+                        .HasColumnType("smallint")
+                        .HasDefaultValue((byte)1);
 
                     b.Property<decimal?>("OverridePrice")
                         .HasColumnType("decimal(18, 4)");
@@ -5197,6 +6170,84 @@ namespace Dotnetable.Migrations.PostgreSql.Migrations
                     b.HasIndex(new[] { "VendorID" }, "IX_VendorTranslations_VendorID");
 
                     b.ToTable("VendorTranslations");
+                });
+
+            modelBuilder.Entity("Dotnetable.Domain.Entities.Warehouse", b =>
+                {
+                    b.Property<int>("WarehouseID")
+                        .ValueGeneratedOnAdd()
+                        .HasColumnType("integer");
+
+                    NpgsqlPropertyBuilderExtensions.UseIdentityByDefaultColumn(b.Property<int>("WarehouseID"));
+
+                    b.Property<string>("Address")
+                        .HasMaxLength(500)
+                        .HasColumnType("character varying(500)");
+
+                    b.Property<string>("Code")
+                        .IsRequired()
+                        .HasMaxLength(20)
+                        .HasColumnType("character varying(20)");
+
+                    b.Property<DateTime>("CreatedAt")
+                        .HasColumnType("timestamp with time zone");
+
+                    b.Property<bool>("IsActive")
+                        .HasColumnType("boolean");
+
+                    b.Property<bool>("IsDefault")
+                        .HasColumnType("boolean");
+
+                    b.Property<string>("Name")
+                        .IsRequired()
+                        .HasMaxLength(200)
+                        .HasColumnType("character varying(200)");
+
+                    b.Property<int>("WebsiteID")
+                        .HasColumnType("integer");
+
+                    b.HasKey("WarehouseID");
+
+                    b.HasIndex(new[] { "WebsiteID", "Code" }, "IX_Warehouses_Website_Code")
+                        .IsUnique();
+
+                    b.ToTable("Warehouses");
+                });
+
+            modelBuilder.Entity("Dotnetable.Domain.Entities.WarehouseStock", b =>
+                {
+                    b.Property<int>("WarehouseStockID")
+                        .ValueGeneratedOnAdd()
+                        .HasColumnType("integer");
+
+                    NpgsqlPropertyBuilderExtensions.UseIdentityByDefaultColumn(b.Property<int>("WarehouseStockID"));
+
+                    b.Property<int>("ProductVariantID")
+                        .HasColumnType("integer");
+
+                    b.Property<int>("QuantityOnHand")
+                        .HasColumnType("integer");
+
+                    b.Property<int>("QuantityReserved")
+                        .HasColumnType("integer");
+
+                    b.Property<byte[]>("RowVersion")
+                        .IsConcurrencyToken()
+                        .IsRequired()
+                        .ValueGeneratedOnAddOrUpdate()
+                        .HasColumnType("bytea");
+
+                    b.Property<int>("WarehouseID")
+                        .HasColumnType("integer");
+
+                    b.HasKey("WarehouseStockID");
+
+                    b.HasIndex("ProductVariantID");
+
+                    b.HasIndex(new[] { "WarehouseID", "ProductVariantID" }, "IX_WarehouseStocks_Warehouse_Variant")
+                        .IsUnique();
+
+                    b.ToTable("WarehouseStocks");
                 });
 
             modelBuilder.Entity("Dotnetable.Domain.Entities.Warranty", b =>
@@ -5328,6 +6379,26 @@ namespace Dotnetable.Migrations.PostgreSql.Migrations
                     b.Property<int?>("FaveIconFileID")
                         .HasColumnType("integer");
 
+                    b.Property<int>("FiscalCloseDueDays")
+                        .ValueGeneratedOnAdd()
+                        .HasColumnType("integer")
+                        .HasDefaultValue(5);
+
+                    b.Property<byte>("FiscalPeriodCadence")
+                        .ValueGeneratedOnAdd()
+                        .HasColumnType("smallint")
+                        .HasDefaultValue((byte)3);
+
+                    b.Property<byte>("FiscalWeekStartDay")
+                        .ValueGeneratedOnAdd()
+                        .HasColumnType("smallint")
+                        .HasDefaultValue((byte)1);
+
+                    b.Property<byte>("FiscalYearStartMonth")
+                        .ValueGeneratedOnAdd()
+                        .HasColumnType("smallint")
+                        .HasDefaultValue((byte)1);
+
                     b.Property<decimal>("FreeShippingMinOrderAmount")
                         .HasColumnType("decimal(18, 4)");
 
@@ -5354,14 +6425,6 @@ namespace Dotnetable.Migrations.PostgreSql.Migrations
                     b.Property<bool>("PricesIncludeTax")
                         .HasColumnType("boolean");
 
-                    b.Property<DateOnly>("RegisterDate")
-                        .HasColumnType("date");
-
-                    b.Property<bool>("ReportOfflineOrdersToTax")
-                        .ValueGeneratedOnAdd()
-                        .HasColumnType("boolean")
-                        .HasDefaultValue(false);
-
                     b.Property<string>("ProductCodePrefix")
                         .IsRequired()
                         .ValueGeneratedOnAdd()
@@ -5369,6 +6432,14 @@ namespace Dotnetable.Migrations.PostgreSql.Migrations
                         .HasColumnType("character varying(3)")
                         .HasDefaultValue("DN")
                         .HasComment("1–3 letter product code prefix; codes are {prefix}-{ProductID}.");
+
+                    b.Property<DateOnly>("RegisterDate")
+                        .HasColumnType("date");
+
+                    b.Property<bool>("ReportOfflineOrdersToTax")
+                        .ValueGeneratedOnAdd()
+                        .HasColumnType("boolean")
+                        .HasDefaultValue(false);
 
                     b.Property<string>("SellerEconomicCode")
                         .HasMaxLength(50)
@@ -6651,6 +7722,45 @@ namespace Dotnetable.Migrations.PostgreSql.Migrations
                     b.Navigation("EmailTemplate");
                 });
 
+            modelBuilder.Entity("Dotnetable.Domain.Entities.Employee", b =>
+                {
+                    b.HasOne("Dotnetable.Domain.Entities.Member", "Member")
+                        .WithMany()
+                        .HasForeignKey("MemberID");
+
+                    b.HasOne("Dotnetable.Domain.Entities.OrgUnit", "OrgUnit")
+                        .WithMany("Employees")
+                        .HasForeignKey("OrgUnitID");
+
+                    b.HasOne("Dotnetable.Domain.Entities.Website", "Website")
+                        .WithMany()
+                        .HasForeignKey("WebsiteID")
+                        .IsRequired();
+
+                    b.Navigation("Member");
+
+                    b.Navigation("OrgUnit");
+
+                    b.Navigation("Website");
+                });
+
+            modelBuilder.Entity("Dotnetable.Domain.Entities.EmployeeContract", b =>
+                {
+                    b.HasOne("Dotnetable.Domain.Entities.Currency", "CurrencyCodeNavigation")
+                        .WithMany()
+                        .HasForeignKey("CurrencyCode")
+                        .IsRequired();
+
+                    b.HasOne("Dotnetable.Domain.Entities.Employee", "Employee")
+                        .WithMany("EmployeeContracts")
+                        .HasForeignKey("EmployeeID")
+                        .IsRequired();
+
+                    b.Navigation("CurrencyCodeNavigation");
+
+                    b.Navigation("Employee");
+                });
+
             modelBuilder.Entity("Dotnetable.Domain.Entities.FileFolder", b =>
                 {
                     b.HasOne("Dotnetable.Domain.Entities.FileFolder", "ParentFolder")
@@ -6735,6 +7845,111 @@ namespace Dotnetable.Migrations.PostgreSql.Migrations
                         .HasForeignKey("WebsiteID")
                         .IsRequired()
                         .HasConstraintName("FK_FileTags_Websites");
+
+                    b.Navigation("Website");
+                });
+
+            modelBuilder.Entity("Dotnetable.Domain.Entities.FinancialLedgerEntry", b =>
+                {
+                    b.HasOne("Dotnetable.Domain.Entities.Member", "CreatedByMember")
+                        .WithMany()
+                        .HasForeignKey("CreatedByMemberID")
+                        .HasConstraintName("FK_FinancialLedgerEntries_Members");
+
+                    b.HasOne("Dotnetable.Domain.Entities.Currency", "CurrencyCodeNavigation")
+                        .WithMany()
+                        .HasForeignKey("CurrencyCode")
+                        .IsRequired()
+                        .HasConstraintName("FK_FinancialLedgerEntries_Currencies");
+
+                    b.HasOne("Dotnetable.Domain.Entities.Order", "Order")
+                        .WithMany()
+                        .HasForeignKey("OrderID")
+                        .HasConstraintName("FK_FinancialLedgerEntries_Orders");
+
+                    b.HasOne("Dotnetable.Domain.Entities.OrderItem", "OrderItem")
+                        .WithMany()
+                        .HasForeignKey("OrderItemID")
+                        .HasConstraintName("FK_FinancialLedgerEntries_OrderItems");
+
+                    b.HasOne("Dotnetable.Domain.Entities.Payment", "Payment")
+                        .WithMany()
+                        .HasForeignKey("PaymentID")
+                        .HasConstraintName("FK_FinancialLedgerEntries_Payments");
+
+                    b.HasOne("Dotnetable.Domain.Entities.Settlement", "Settlement")
+                        .WithMany()
+                        .HasForeignKey("SettlementID")
+                        .HasConstraintName("FK_FinancialLedgerEntries_Settlements");
+
+                    b.HasOne("Dotnetable.Domain.Entities.FinancialLedgerEntry", "SupersedesEntry")
+                        .WithMany()
+                        .HasForeignKey("SupersedesEntryID")
+                        .HasConstraintName("FK_FinancialLedgerEntries_Supersedes");
+
+                    b.HasOne("Dotnetable.Domain.Entities.Vendor", "Vendor")
+                        .WithMany()
+                        .HasForeignKey("VendorID")
+                        .HasConstraintName("FK_FinancialLedgerEntries_Vendors");
+
+                    b.HasOne("Dotnetable.Domain.Entities.WebsiteClient", "WebsiteClient")
+                        .WithMany()
+                        .HasForeignKey("WebsiteClientID")
+                        .HasConstraintName("FK_FinancialLedgerEntries_WebsiteClients");
+
+                    b.HasOne("Dotnetable.Domain.Entities.Website", "Website")
+                        .WithMany()
+                        .HasForeignKey("WebsiteID")
+                        .IsRequired()
+                        .HasConstraintName("FK_FinancialLedgerEntries_Websites");
+
+                    b.Navigation("CreatedByMember");
+
+                    b.Navigation("CurrencyCodeNavigation");
+
+                    b.Navigation("Order");
+
+                    b.Navigation("OrderItem");
+
+                    b.Navigation("Payment");
+
+                    b.Navigation("Settlement");
+
+                    b.Navigation("SupersedesEntry");
+
+                    b.Navigation("Vendor");
+
+                    b.Navigation("Website");
+
+                    b.Navigation("WebsiteClient");
+                });
+
+            modelBuilder.Entity("Dotnetable.Domain.Entities.FiscalPeriod", b =>
+                {
+                    b.HasOne("Dotnetable.Domain.Entities.Member", "ClosedByMember")
+                        .WithMany()
+                        .HasForeignKey("ClosedByMemberID")
+                        .HasConstraintName("FK_FiscalPeriods_Members");
+
+                    b.HasOne("Dotnetable.Domain.Entities.JournalEntry", "ClosingJournalEntry")
+                        .WithMany()
+                        .HasForeignKey("ClosingJournalEntryID");
+
+                    b.HasOne("Dotnetable.Domain.Entities.JournalEntry", "OpeningJournalEntry")
+                        .WithMany()
+                        .HasForeignKey("OpeningJournalEntryID");
+
+                    b.HasOne("Dotnetable.Domain.Entities.Website", "Website")
+                        .WithMany()
+                        .HasForeignKey("WebsiteID")
+                        .IsRequired()
+                        .HasConstraintName("FK_FiscalPeriods_Websites");
+
+                    b.Navigation("ClosedByMember");
+
+                    b.Navigation("ClosingJournalEntry");
+
+                    b.Navigation("OpeningJournalEntry");
 
                     b.Navigation("Website");
                 });
@@ -6830,11 +8045,47 @@ namespace Dotnetable.Migrations.PostgreSql.Migrations
 
             modelBuilder.Entity("Dotnetable.Domain.Entities.JournalEntry", b =>
                 {
+                    b.HasOne("Dotnetable.Domain.Entities.Member", "CreatedByMember")
+                        .WithMany()
+                        .HasForeignKey("CreatedByMemberID")
+                        .HasConstraintName("FK_JournalEntries_CreatedBy");
+
+                    b.HasOne("Dotnetable.Domain.Entities.Currency", "CurrencyCodeNavigation")
+                        .WithMany()
+                        .HasForeignKey("CurrencyCode")
+                        .IsRequired()
+                        .HasConstraintName("FK_JournalEntries_Currencies");
+
+                    b.HasOne("Dotnetable.Domain.Entities.FiscalPeriod", "FiscalPeriod")
+                        .WithMany("JournalEntries")
+                        .HasForeignKey("FiscalPeriodID")
+                        .HasConstraintName("FK_JournalEntries_FiscalPeriods");
+
+                    b.HasOne("Dotnetable.Domain.Entities.Member", "PostedByMember")
+                        .WithMany()
+                        .HasForeignKey("PostedByMemberID")
+                        .HasConstraintName("FK_JournalEntries_PostedBy");
+
+                    b.HasOne("Dotnetable.Domain.Entities.JournalEntry", "ReversesJournalEntry")
+                        .WithMany()
+                        .HasForeignKey("ReversesJournalEntryID")
+                        .HasConstraintName("FK_JournalEntries_Reverses");
+
                     b.HasOne("Dotnetable.Domain.Entities.Website", "Website")
                         .WithMany("JournalEntries")
                         .HasForeignKey("WebsiteID")
                         .IsRequired()
                         .HasConstraintName("FK_JournalEntries_Websites");
+
+                    b.Navigation("CreatedByMember");
+
+                    b.Navigation("CurrencyCodeNavigation");
+
+                    b.Navigation("FiscalPeriod");
+
+                    b.Navigation("PostedByMember");
+
+                    b.Navigation("ReversesJournalEntry");
 
                     b.Navigation("Website");
                 });
@@ -6864,6 +8115,33 @@ namespace Dotnetable.Migrations.PostgreSql.Migrations
                         .WithMany("Languages")
                         .HasForeignKey("WebsiteID")
                         .HasConstraintName("FK_Languages_Websites");
+
+                    b.Navigation("Website");
+                });
+
+            modelBuilder.Entity("Dotnetable.Domain.Entities.LedgerAccountMap", b =>
+                {
+                    b.HasOne("Dotnetable.Domain.Entities.ChartOfAccount", "CreditAccount")
+                        .WithMany("LedgerAccountMapCredits")
+                        .HasForeignKey("CreditAccountID")
+                        .IsRequired()
+                        .HasConstraintName("FK_LedgerAccountMaps_Credit");
+
+                    b.HasOne("Dotnetable.Domain.Entities.ChartOfAccount", "DebitAccount")
+                        .WithMany("LedgerAccountMapDebits")
+                        .HasForeignKey("DebitAccountID")
+                        .IsRequired()
+                        .HasConstraintName("FK_LedgerAccountMaps_Debit");
+
+                    b.HasOne("Dotnetable.Domain.Entities.Website", "Website")
+                        .WithMany()
+                        .HasForeignKey("WebsiteID")
+                        .IsRequired()
+                        .HasConstraintName("FK_LedgerAccountMaps_Websites");
+
+                    b.Navigation("CreditAccount");
+
+                    b.Navigation("DebitAccount");
 
                     b.Navigation("Website");
                 });
@@ -7226,6 +8504,22 @@ namespace Dotnetable.Migrations.PostgreSql.Migrations
                     b.Navigation("Order");
                 });
 
+            modelBuilder.Entity("Dotnetable.Domain.Entities.OrgUnit", b =>
+                {
+                    b.HasOne("Dotnetable.Domain.Entities.OrgUnit", "ParentOrgUnit")
+                        .WithMany("InverseParentOrgUnit")
+                        .HasForeignKey("ParentOrgUnitID");
+
+                    b.HasOne("Dotnetable.Domain.Entities.Website", "Website")
+                        .WithMany()
+                        .HasForeignKey("WebsiteID")
+                        .IsRequired();
+
+                    b.Navigation("ParentOrgUnit");
+
+                    b.Navigation("Website");
+                });
+
             modelBuilder.Entity("Dotnetable.Domain.Entities.Page", b =>
                 {
                     b.HasOne("Dotnetable.Domain.Entities.Member", "CreatedByMember")
@@ -7379,6 +8673,62 @@ namespace Dotnetable.Migrations.PostgreSql.Migrations
                     b.Navigation("CreatedByMember");
 
                     b.Navigation("Payment");
+                });
+
+            modelBuilder.Entity("Dotnetable.Domain.Entities.PayrollLine", b =>
+                {
+                    b.HasOne("Dotnetable.Domain.Entities.Employee", "Employee")
+                        .WithMany("PayrollLines")
+                        .HasForeignKey("EmployeeID")
+                        .IsRequired();
+
+                    b.HasOne("Dotnetable.Domain.Entities.PayrollRun", "PayrollRun")
+                        .WithMany("PayrollLines")
+                        .HasForeignKey("PayrollRunID")
+                        .IsRequired();
+
+                    b.Navigation("Employee");
+
+                    b.Navigation("PayrollRun");
+                });
+
+            modelBuilder.Entity("Dotnetable.Domain.Entities.PayrollRateBracket", b =>
+                {
+                    b.HasOne("Dotnetable.Domain.Entities.Website", "Website")
+                        .WithMany()
+                        .HasForeignKey("WebsiteID")
+                        .IsRequired();
+
+                    b.Navigation("Website");
+                });
+
+            modelBuilder.Entity("Dotnetable.Domain.Entities.PayrollRun", b =>
+                {
+                    b.HasOne("Dotnetable.Domain.Entities.Member", "ApprovedByMember")
+                        .WithMany()
+                        .HasForeignKey("ApprovedByMemberID");
+
+                    b.HasOne("Dotnetable.Domain.Entities.Member", "CreatedByMember")
+                        .WithMany()
+                        .HasForeignKey("CreatedByMemberID");
+
+                    b.HasOne("Dotnetable.Domain.Entities.Currency", "CurrencyCodeNavigation")
+                        .WithMany()
+                        .HasForeignKey("CurrencyCode")
+                        .IsRequired();
+
+                    b.HasOne("Dotnetable.Domain.Entities.Website", "Website")
+                        .WithMany()
+                        .HasForeignKey("WebsiteID")
+                        .IsRequired();
+
+                    b.Navigation("ApprovedByMember");
+
+                    b.Navigation("CreatedByMember");
+
+                    b.Navigation("CurrencyCodeNavigation");
+
+                    b.Navigation("Website");
                 });
 
             modelBuilder.Entity("Dotnetable.Domain.Entities.Policy", b =>
@@ -7866,6 +9216,32 @@ namespace Dotnetable.Migrations.PostgreSql.Migrations
                     b.Navigation("Warranty");
                 });
 
+            modelBuilder.Entity("Dotnetable.Domain.Entities.RecordAttachment", b =>
+                {
+                    b.HasOne("Dotnetable.Domain.Entities.Member", "CreatedByMember")
+                        .WithMany()
+                        .HasForeignKey("CreatedByMemberID")
+                        .HasConstraintName("FK_RecordAttachments_Members");
+
+                    b.HasOne("Dotnetable.Domain.Entities.FileRecord", "FileRecord")
+                        .WithMany()
+                        .HasForeignKey("FileRecordID")
+                        .IsRequired()
+                        .HasConstraintName("FK_RecordAttachments_Files");
+
+                    b.HasOne("Dotnetable.Domain.Entities.Website", "Website")
+                        .WithMany()
+                        .HasForeignKey("WebsiteID")
+                        .IsRequired()
+                        .HasConstraintName("FK_RecordAttachments_Websites");
+
+                    b.Navigation("CreatedByMember");
+
+                    b.Navigation("FileRecord");
+
+                    b.Navigation("Website");
+                });
+
             modelBuilder.Entity("Dotnetable.Domain.Entities.Settlement", b =>
                 {
                     b.HasOne("Dotnetable.Domain.Entities.Member", "ApprovedByMember")
@@ -7888,6 +9264,11 @@ namespace Dotnetable.Migrations.PostgreSql.Migrations
                         .HasForeignKey("CurrencyCode")
                         .IsRequired()
                         .HasConstraintName("FK_Settlements_Currencies");
+
+                    b.HasOne("Dotnetable.Domain.Entities.Currency", "SourceCurrency")
+                        .WithMany("SettlementsSourced")
+                        .HasForeignKey("SourceCurrencyCode")
+                        .HasConstraintName("FK_Settlements_Currencies_Source");
 
                     b.HasOne("Dotnetable.Domain.Entities.Supplier", "Supplier")
                         .WithMany("Settlements")
@@ -7917,6 +9298,8 @@ namespace Dotnetable.Migrations.PostgreSql.Migrations
                     b.Navigation("CreatedByMember");
 
                     b.Navigation("CurrencyCodeNavigation");
+
+                    b.Navigation("SourceCurrency");
 
                     b.Navigation("Supplier");
 
@@ -8066,6 +9449,97 @@ namespace Dotnetable.Migrations.PostgreSql.Migrations
                         .HasConstraintName("FK_StateTranslations_States");
 
                     b.Navigation("State");
+                });
+
+            modelBuilder.Entity("Dotnetable.Domain.Entities.StockDocument", b =>
+                {
+                    b.HasOne("Dotnetable.Domain.Entities.Member", "ApprovedByMember")
+                        .WithMany()
+                        .HasForeignKey("ApprovedByMemberID");
+
+                    b.HasOne("Dotnetable.Domain.Entities.Warehouse", "FromWarehouse")
+                        .WithMany("StockDocumentFromWarehouses")
+                        .HasForeignKey("FromWarehouseID");
+
+                    b.HasOne("Dotnetable.Domain.Entities.Order", "Order")
+                        .WithMany()
+                        .HasForeignKey("OrderID");
+
+                    b.HasOne("Dotnetable.Domain.Entities.PaymentRefund", "PaymentRefund")
+                        .WithMany()
+                        .HasForeignKey("PaymentRefundID");
+
+                    b.HasOne("Dotnetable.Domain.Entities.Member", "PostedByMember")
+                        .WithMany()
+                        .HasForeignKey("PostedByMemberID");
+
+                    b.HasOne("Dotnetable.Domain.Entities.Member", "RequestedByMember")
+                        .WithMany()
+                        .HasForeignKey("RequestedByMemberID");
+
+                    b.HasOne("Dotnetable.Domain.Entities.Supplier", "Supplier")
+                        .WithMany()
+                        .HasForeignKey("SupplierID");
+
+                    b.HasOne("Dotnetable.Domain.Entities.Warehouse", "ToWarehouse")
+                        .WithMany("StockDocumentToWarehouses")
+                        .HasForeignKey("ToWarehouseID");
+
+                    b.HasOne("Dotnetable.Domain.Entities.Website", "Website")
+                        .WithMany()
+                        .HasForeignKey("WebsiteID")
+                        .IsRequired();
+
+                    b.Navigation("ApprovedByMember");
+
+                    b.Navigation("FromWarehouse");
+
+                    b.Navigation("Order");
+
+                    b.Navigation("PaymentRefund");
+
+                    b.Navigation("PostedByMember");
+
+                    b.Navigation("RequestedByMember");
+
+                    b.Navigation("Supplier");
+
+                    b.Navigation("ToWarehouse");
+
+                    b.Navigation("Website");
+                });
+
+            modelBuilder.Entity("Dotnetable.Domain.Entities.StockDocumentHistory", b =>
+                {
+                    b.HasOne("Dotnetable.Domain.Entities.Member", "CreatedByMember")
+                        .WithMany()
+                        .HasForeignKey("CreatedByMemberID");
+
+                    b.HasOne("Dotnetable.Domain.Entities.StockDocument", "StockDocument")
+                        .WithMany("StockDocumentHistories")
+                        .HasForeignKey("StockDocumentID")
+                        .IsRequired();
+
+                    b.Navigation("CreatedByMember");
+
+                    b.Navigation("StockDocument");
+                });
+
+            modelBuilder.Entity("Dotnetable.Domain.Entities.StockDocumentLine", b =>
+                {
+                    b.HasOne("Dotnetable.Domain.Entities.ProductVariant", "ProductVariant")
+                        .WithMany()
+                        .HasForeignKey("ProductVariantID")
+                        .IsRequired();
+
+                    b.HasOne("Dotnetable.Domain.Entities.StockDocument", "StockDocument")
+                        .WithMany("StockDocumentLines")
+                        .HasForeignKey("StockDocumentID")
+                        .IsRequired();
+
+                    b.Navigation("ProductVariant");
+
+                    b.Navigation("StockDocument");
                 });
 
             modelBuilder.Entity("Dotnetable.Domain.Entities.StockMovement", b =>
@@ -8248,6 +9722,28 @@ namespace Dotnetable.Migrations.PostgreSql.Migrations
                     b.Navigation("Tag");
                 });
 
+            modelBuilder.Entity("Dotnetable.Domain.Entities.TaxPeriod", b =>
+                {
+                    b.HasOne("Dotnetable.Domain.Entities.Member", "ClosedByMember")
+                        .WithMany()
+                        .HasForeignKey("ClosedByMemberID");
+
+                    b.HasOne("Dotnetable.Domain.Entities.Member", "CreatedByMember")
+                        .WithMany()
+                        .HasForeignKey("CreatedByMemberID");
+
+                    b.HasOne("Dotnetable.Domain.Entities.Website", "Website")
+                        .WithMany()
+                        .HasForeignKey("WebsiteID")
+                        .IsRequired();
+
+                    b.Navigation("ClosedByMember");
+
+                    b.Navigation("CreatedByMember");
+
+                    b.Navigation("Website");
+                });
+
             modelBuilder.Entity("Dotnetable.Domain.Entities.TaxRate", b =>
                 {
                     b.HasOne("Dotnetable.Domain.Entities.Country", "Country")
@@ -8317,6 +9813,11 @@ namespace Dotnetable.Migrations.PostgreSql.Migrations
                         .HasForeignKey("Dotnetable.Domain.Entities.Vendor", "MemberID")
                         .HasConstraintName("FK_Vendors_Members");
 
+                    b.HasOne("Dotnetable.Domain.Entities.Currency", "SettlementCurrency")
+                        .WithMany("VendorSettlementCurrencies")
+                        .HasForeignKey("SettlementCurrencyCode")
+                        .HasConstraintName("FK_Vendors_Currencies_Settlement");
+
                     b.HasOne("Dotnetable.Domain.Entities.Website", "Website")
                         .WithMany("VendorWebsites")
                         .HasForeignKey("WebsiteID")
@@ -8328,6 +9829,8 @@ namespace Dotnetable.Migrations.PostgreSql.Migrations
                     b.Navigation("LogoFile");
 
                     b.Navigation("Member");
+
+                    b.Navigation("SettlementCurrency");
 
                     b.Navigation("Website");
                 });
@@ -8408,6 +9911,33 @@ namespace Dotnetable.Migrations.PostgreSql.Migrations
                         .HasConstraintName("FK_VendorTranslations_Vendors");
 
                     b.Navigation("Vendor");
+                });
+
+            modelBuilder.Entity("Dotnetable.Domain.Entities.Warehouse", b =>
+                {
+                    b.HasOne("Dotnetable.Domain.Entities.Website", "Website")
+                        .WithMany()
+                        .HasForeignKey("WebsiteID")
+                        .IsRequired();
+
+                    b.Navigation("Website");
+                });
+
+            modelBuilder.Entity("Dotnetable.Domain.Entities.WarehouseStock", b =>
+                {
+                    b.HasOne("Dotnetable.Domain.Entities.ProductVariant", "ProductVariant")
+                        .WithMany()
+                        .HasForeignKey("ProductVariantID")
+                        .IsRequired();
+
+                    b.HasOne("Dotnetable.Domain.Entities.Warehouse", "Warehouse")
+                        .WithMany("WarehouseStocks")
+                        .HasForeignKey("WarehouseID")
+                        .IsRequired();
+
+                    b.Navigation("ProductVariant");
+
+                    b.Navigation("Warehouse");
                 });
 
             modelBuilder.Entity("Dotnetable.Domain.Entities.Warranty", b =>
@@ -8775,6 +10305,10 @@ namespace Dotnetable.Migrations.PostgreSql.Migrations
                     b.Navigation("InverseParentAccount");
 
                     b.Navigation("JournalEntryLines");
+
+                    b.Navigation("LedgerAccountMapCredits");
+
+                    b.Navigation("LedgerAccountMapDebits");
                 });
 
             modelBuilder.Entity("Dotnetable.Domain.Entities.City", b =>
@@ -8845,9 +10379,13 @@ namespace Dotnetable.Migrations.PostgreSql.Migrations
 
                     b.Navigation("Settlements");
 
+                    b.Navigation("SettlementsSourced");
+
                     b.Navigation("StockMovements");
 
                     b.Navigation("Suppliers");
+
+                    b.Navigation("VendorSettlementCurrencies");
 
                     b.Navigation("WebsiteWalletCurrencies");
 
@@ -8857,6 +10395,13 @@ namespace Dotnetable.Migrations.PostgreSql.Migrations
             modelBuilder.Entity("Dotnetable.Domain.Entities.EmailTemplate", b =>
                 {
                     b.Navigation("EmailTemplateTranslations");
+                });
+
+            modelBuilder.Entity("Dotnetable.Domain.Entities.Employee", b =>
+                {
+                    b.Navigation("EmployeeContracts");
+
+                    b.Navigation("PayrollLines");
                 });
 
             modelBuilder.Entity("Dotnetable.Domain.Entities.FileFolder", b =>
@@ -8910,6 +10455,11 @@ namespace Dotnetable.Migrations.PostgreSql.Migrations
             modelBuilder.Entity("Dotnetable.Domain.Entities.FileTag", b =>
                 {
                     b.Navigation("FileRecordTags");
+                });
+
+            modelBuilder.Entity("Dotnetable.Domain.Entities.FiscalPeriod", b =>
+                {
+                    b.Navigation("JournalEntries");
                 });
 
             modelBuilder.Entity("Dotnetable.Domain.Entities.Form", b =>
@@ -9050,6 +10600,13 @@ namespace Dotnetable.Migrations.PostgreSql.Migrations
                     b.Navigation("VendorCreditTransactions");
                 });
 
+            modelBuilder.Entity("Dotnetable.Domain.Entities.OrgUnit", b =>
+                {
+                    b.Navigation("Employees");
+
+                    b.Navigation("InverseParentOrgUnit");
+                });
+
             modelBuilder.Entity("Dotnetable.Domain.Entities.Page", b =>
                 {
                     b.Navigation("InverseParentPage");
@@ -9069,6 +10626,11 @@ namespace Dotnetable.Migrations.PostgreSql.Migrations
             modelBuilder.Entity("Dotnetable.Domain.Entities.PaymentGateway", b =>
                 {
                     b.Navigation("Payments");
+                });
+
+            modelBuilder.Entity("Dotnetable.Domain.Entities.PayrollRun", b =>
+                {
+                    b.Navigation("PayrollLines");
                 });
 
             modelBuilder.Entity("Dotnetable.Domain.Entities.Policy", b =>
@@ -9209,6 +10771,13 @@ namespace Dotnetable.Migrations.PostgreSql.Migrations
                     b.Navigation("TaxRates");
                 });
 
+            modelBuilder.Entity("Dotnetable.Domain.Entities.StockDocument", b =>
+                {
+                    b.Navigation("StockDocumentHistories");
+
+                    b.Navigation("StockDocumentLines");
+                });
+
             modelBuilder.Entity("Dotnetable.Domain.Entities.StockMovement", b =>
                 {
                     b.Navigation("SettlementItems");
@@ -9255,6 +10824,15 @@ namespace Dotnetable.Migrations.PostgreSql.Migrations
                     b.Navigation("CartItems");
 
                     b.Navigation("OrderItems");
+                });
+
+            modelBuilder.Entity("Dotnetable.Domain.Entities.Warehouse", b =>
+                {
+                    b.Navigation("StockDocumentFromWarehouses");
+
+                    b.Navigation("StockDocumentToWarehouses");
+
+                    b.Navigation("WarehouseStocks");
                 });
 
             modelBuilder.Entity("Dotnetable.Domain.Entities.Warranty", b =>
