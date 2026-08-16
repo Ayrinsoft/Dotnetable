@@ -1,4 +1,4 @@
-@page "/inventory/returns/{DocumentId:int}"
+@page "/inventory/returns/wms/{DocumentId:int}"
 @using Dotnetable.Domain.Enums
 @attribute [Authorize(Policy = RoleKeys.WarehouseView)]
 @inject IStockDocumentService Docs

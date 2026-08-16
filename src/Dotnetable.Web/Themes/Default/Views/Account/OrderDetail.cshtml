@@ -144,6 +144,11 @@
             <a asp-controller="Checkout" asp-action="Payment" asp-route-orderId="@Model.OrderID" class="btn btn-primary mt-3">Complete payment</a>
         }
 
+        <div class="mt-3 d-flex flex-wrap gap-2">
+            <a asp-controller="Account" asp-action="ReturnNew" asp-route-orderId="@Model.OrderID" class="btn btn-outline-secondary">Request a return</a>
+            <a asp-controller="Account" asp-action="Returns" class="btn btn-outline-secondary">My returns</a>
+        </div>
+
         <div class="mt-3">
             <a asp-controller="Account" asp-action="Orders" class="btn btn-link px-0">← Back to orders</a>
         </div>

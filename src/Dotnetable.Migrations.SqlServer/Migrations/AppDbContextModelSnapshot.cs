@@ -1222,6 +1222,179 @@ namespace Dotnetable.Migrations.SqlServer.Migrations
                     b.ToTable("CurrencyRates");
                 });
 
+            modelBuilder.Entity("Dotnetable.Domain.Entities.CustomerReturnRequest", b =>
+                {
+                    b.Property<int>("CustomerReturnRequestID")
+                        .ValueGeneratedOnAdd()
+                        .HasColumnType("int");
+
+                    SqlServerPropertyBuilderExtensions.UseIdentityColumn(b.Property<int>("CustomerReturnRequestID"));
+
+                    b.Property<decimal>("ApprovedRefundTotal")
+                        .ValueGeneratedOnAdd()
+                        .HasColumnType("decimal(18,4)")
+                        .HasDefaultValue(0m);
+
+                    b.Property<DateTime>("CreatedAt")
+                        .HasColumnType("datetime2");
+
+                    b.Property<string>("CurrencyCode")
+                        .IsRequired()
+                        .HasMaxLength(3)
+                        .HasColumnType("nvarchar(3)");
+
+                    b.Property<string>("Description")
+                        .HasMaxLength(2000)
+                        .HasColumnType("nvarchar(2000)");
+
+                    b.Property<int>("OrderID")
+                        .HasColumnType("int");
+
+                    b.Property<byte>("Reason")
+                        .HasColumnType("tinyint");
+
+                    b.Property<string>("ReasonNote")
+                        .HasMaxLength(200)
+                        .HasColumnType("nvarchar(200)");
+
+                    b.Property<decimal>("RequestedRefundTotal")
+                        .HasColumnType("decimal(18,4)");
+
+                    b.Property<string>("ReviewNote")
+                        .HasMaxLength(1000)
+                        .HasColumnType("nvarchar(1000)");
+
+                    b.Property<DateTime?>("ReviewedAt")
+                        .HasColumnType("datetime2");
+
+                    b.Property<int?>("ReviewedByMemberID")
+                        .HasColumnType("int");
+
+                    b.Property<string>("ShipMethod")
+                        .HasMaxLength(100)
+                        .HasColumnType("nvarchar(100)");
+
+                    b.Property<DateTime?>("ShippedAt")
+                        .HasColumnType("datetime2");
+
+                    b.Property<byte>("ShippingPayer")
+                        .ValueGeneratedOnAdd()
+                        .HasColumnType("tinyint")
+                        .HasDefaultValue((byte)0);
+
+                    b.Property<byte>("Status")
+                        .HasColumnType("tinyint");
+
+                    b.Property<int?>("StockDocumentID")
+                        .HasColumnType("int");
+
+                    b.Property<string>("TrackingCode")
+                        .HasMaxLength(100)
+                        .HasColumnType("nvarchar(100)");
+
+                    b.Property<DateTime?>("UpdatedAt")
+                        .HasColumnType("datetime2");
+
+                    b.Property<int>("WebsiteClientID")
+                        .HasColumnType("int");
+
+                    b.Property<int>("WebsiteID")
+                        .HasColumnType("int");
+
+                    b.HasKey("CustomerReturnRequestID");
+
+                    b.HasIndex("ReviewedByMemberID");
+
+                    b.HasIndex("StockDocumentID");
+
+                    b.HasIndex(new[] { "WebsiteClientID", "CreatedAt" }, "IX_CustomerReturnRequests_Client");
+
+                    b.HasIndex(new[] { "OrderID" }, "IX_CustomerReturnRequests_Order");
+
+                    b.HasIndex(new[] { "WebsiteID", "Status", "CreatedAt" }, "IX_CustomerReturnRequests_Website_Status");
+
+                    b.ToTable("CustomerReturnRequests");
+                });
+
+            modelBuilder.Entity("Dotnetable.Domain.Entities.CustomerReturnRequestHistory", b =>
+                {
+                    b.Property<int>("CustomerReturnRequestHistoryID")
+                        .ValueGeneratedOnAdd()
+                        .HasColumnType("int");
+
+                    SqlServerPropertyBuilderExtensions.UseIdentityColumn(b.Property<int>("CustomerReturnRequestHistoryID"));
+
+                    b.Property<DateTime>("CreatedAt")
+                        .HasColumnType("datetime2");
+
+                    b.Property<int?>("CreatedByClientID")
+                        .HasColumnType("int");
+
+                    b.Property<int?>("CreatedByMemberID")
+                        .HasColumnType("int");
+
+                    b.Property<int>("CustomerReturnRequestID")
+                        .HasColumnType("int");
+
+                    b.Property<byte>("FromStatus")
+                        .HasColumnType("tinyint");
+
+                    b.Property<string>("Note")
+                        .HasMaxLength(500)
+                        .HasColumnType("nvarchar(500)");
+
+                    b.Property<byte>("ToStatus")
+                        .HasColumnType("tinyint");
+
+                    b.HasKey("CustomerReturnRequestHistoryID");
+
+                    b.HasIndex("CreatedByMemberID");
+
+                    b.HasIndex(new[] { "CustomerReturnRequestID", "CreatedAt" }, "IX_CustomerReturnRequestHistories_Request");
+
+                    b.ToTable("CustomerReturnRequestHistories");
+                });
+
+            modelBuilder.Entity("Dotnetable.Domain.Entities.CustomerReturnRequestLine", b =>
+                {
+                    b.Property<int>("CustomerReturnRequestLineID")
+                        .ValueGeneratedOnAdd()
+                        .HasColumnType("int");
+
+                    SqlServerPropertyBuilderExtensions.UseIdentityColumn(b.Property<int>("CustomerReturnRequestLineID"));
+
+                    b.Property<int>("CustomerReturnRequestID")
+                        .HasColumnType("int");
+
+                    b.Property<int>("OrderItemID")
+                        .HasColumnType("int");
+
+                    b.Property<int?>("ProductVariantID")
+                        .HasColumnType("int");
+
+                    b.Property<int>("Quantity")
+                        .HasColumnType("int");
+
+                    b.Property<decimal>("UnitPricePaid")
+                        .HasColumnType("decimal(18,4)");
+
+                    b.Property<decimal>("UnitRefundApproved")
+                        .ValueGeneratedOnAdd()
+                        .HasColumnType("decimal(18,4)")
+                        .HasDefaultValue(0m);
+
+                    b.Property<decimal>("UnitRefundRequested")
+                        .HasColumnType("decimal(18,4)");
+
+                    b.HasKey("CustomerReturnRequestLineID");
+
+                    b.HasIndex(new[] { "OrderItemID" }, "IX_CustomerReturnRequestLines_OrderItem");
+
+                    b.HasIndex(new[] { "CustomerReturnRequestID" }, "IX_CustomerReturnRequestLines_Request");
+
+                    b.ToTable("CustomerReturnRequestLines");
+                });
+
             modelBuilder.Entity("Dotnetable.Domain.Entities.DigitalAccessLog", b =>
                 {
                     b.Property<long>("DigitalAccessLogID")
@@ -6442,6 +6615,21 @@ namespace Dotnetable.Migrations.SqlServer.Migrations
                         .HasColumnType("bit")
                         .HasDefaultValue(false);
 
+                    b.Property<int>("ReturnWindowDays")
+                        .ValueGeneratedOnAdd()
+                        .HasColumnType("int")
+                        .HasDefaultValue(7);
+
+                    b.Property<byte>("ReturnWindowFrom")
+                        .ValueGeneratedOnAdd()
+                        .HasColumnType("tinyint")
+                        .HasDefaultValue((byte)0);
+
+                    b.Property<bool>("ReturnsEnabled")
+                        .ValueGeneratedOnAdd()
+                        .HasColumnType("bit")
+                        .HasDefaultValue(true);
+
                     b.Property<string>("SellerEconomicCode")
                         .HasMaxLength(50)
                         .HasColumnType("nvarchar(50)");
@@ -7642,6 +7830,75 @@ namespace Dotnetable.Migrations.SqlServer.Migrations
                     b.Navigation("CurrencyCodeNavigation");
 
                     b.Navigation("Website");
+                });
+
+            modelBuilder.Entity("Dotnetable.Domain.Entities.CustomerReturnRequest", b =>
+                {
+                    b.HasOne("Dotnetable.Domain.Entities.Order", "Order")
+                        .WithMany()
+                        .HasForeignKey("OrderID")
+                        .IsRequired();
+
+                    b.HasOne("Dotnetable.Domain.Entities.Member", "ReviewedByMember")
+                        .WithMany()
+                        .HasForeignKey("ReviewedByMemberID");
+
+                    b.HasOne("Dotnetable.Domain.Entities.StockDocument", "StockDocument")
+                        .WithMany()
+                        .HasForeignKey("StockDocumentID");
+
+                    b.HasOne("Dotnetable.Domain.Entities.WebsiteClient", "WebsiteClient")
+                        .WithMany()
+                        .HasForeignKey("WebsiteClientID")
+                        .IsRequired();
+
+                    b.HasOne("Dotnetable.Domain.Entities.Website", "Website")
+                        .WithMany()
+                        .HasForeignKey("WebsiteID")
+                        .IsRequired();
+
+                    b.Navigation("Order");
+
+                    b.Navigation("ReviewedByMember");
+
+                    b.Navigation("StockDocument");
+
+                    b.Navigation("Website");
+
+                    b.Navigation("WebsiteClient");
+                });
+
+            modelBuilder.Entity("Dotnetable.Domain.Entities.CustomerReturnRequestHistory", b =>
+                {
+                    b.HasOne("Dotnetable.Domain.Entities.Member", "CreatedByMember")
+                        .WithMany()
+                        .HasForeignKey("CreatedByMemberID");
+
+                    b.HasOne("Dotnetable.Domain.Entities.CustomerReturnRequest", "ReturnRequest")
+                        .WithMany("Histories")
+                        .HasForeignKey("CustomerReturnRequestID")
+                        .IsRequired();
+
+                    b.Navigation("CreatedByMember");
+
+                    b.Navigation("ReturnRequest");
+                });
+
+            modelBuilder.Entity("Dotnetable.Domain.Entities.CustomerReturnRequestLine", b =>
+                {
+                    b.HasOne("Dotnetable.Domain.Entities.CustomerReturnRequest", "ReturnRequest")
+                        .WithMany("Lines")
+                        .HasForeignKey("CustomerReturnRequestID")
+                        .IsRequired();
+
+                    b.HasOne("Dotnetable.Domain.Entities.OrderItem", "OrderItem")
+                        .WithMany()
+                        .HasForeignKey("OrderItemID")
+                        .IsRequired();
+
+                    b.Navigation("OrderItem");
+
+                    b.Navigation("ReturnRequest");
                 });
 
             modelBuilder.Entity("Dotnetable.Domain.Entities.DigitalAccessLog", b =>
@@ -10391,6 +10648,13 @@ namespace Dotnetable.Migrations.SqlServer.Migrations
                     b.Navigation("WebsiteWalletCurrencies");
 
                     b.Navigation("Websites");
+                });
+
+            modelBuilder.Entity("Dotnetable.Domain.Entities.CustomerReturnRequest", b =>
+                {
+                    b.Navigation("Histories");
+
+                    b.Navigation("Lines");
                 });
 
             modelBuilder.Entity("Dotnetable.Domain.Entities.EmailTemplate", b =>

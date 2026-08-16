@@ -1592,8 +1592,8 @@ window.DOCS_ADMIN = {
           title: { en: "Customer returns", fa: "برگشت مشتری" },
           adminPath: "/inventory/returns",
           summary: {
-            en: "RMA workflow like an order page: register a customer return, receive at QC, inspect condition, restock the right warehouse, then refund. Every step is logged.",
-            fa: "جریان برگشت مثل صفحه سفارش: ثبت برگشت مشتری، دریافت در QC، بازرسی وضعیت، ورود به انبار درست، بعد استرداد وجه. هر مرحله لاگ می‌شود.",
+            en: "Storefront + admin RMA: customer opens a **pre-request** (reason, photos, description, selected lines). Admin reviews, sets **who pays return shipping** and the **approved refund per unit** (can differ from paid price), then the customer ships with a tracking code.",
+            fa: "برگشت از سایت و ادمین: مشتری **پیش‌درخواست** می‌دهد (علت، عکس، توضیح، خطوط انتخابی). ادمین بررسی می‌کند، **هزینه حمل برگشت** و **مبلغ تأییدشده هر واحد** را می‌گذارد (می‌تواند با قیمت خرید فرق کند)، بعد مشتری با کد رهگیری ارسال می‌کند.",
           },
           access: {
             en: "warehouse.view to open; warehouse.receive / issue / approve / post for the warehouse steps; payments.refund to refund",
@@ -1611,12 +1611,16 @@ window.DOCS_ADMIN = {
           ],
           howTo: [
             {
-              en: "Open **Inventory → Customer returns** → **New return**. Search the order, pick lines/qty and the QC warehouse.",
-              fa: "**Inventory → برگشت مشتری** → **برگشت جدید**. سفارش را جستجو کنید، خطوط/تعداد و انبار QC را انتخاب کنید.",
+              en: "Set the return window on **Websites → edit**: days after **ship date** or **delivered** status. Partial qty is allowed; leftover units can be returned later.",
+              fa: "مهلت برگشت را در **وب‌سایت → ویرایش** بگذارید: چند روز بعد از **تاریخ ارسال** یا وضعیت **تحویل**. تعداد جزئی مجاز است؛ باقی‌مانده بعداً هم برمی‌گردد.",
             },
             {
-              en: "On the return page walk the chips: receive, inspect each line, approve, post (choose restock warehouse), then refund. The left timeline is the full log.",
-              fa: "روی صفحه برگشت مراحل را بروید: دریافت، بازرسی هر خط، تأیید، ثبت به انبار (انبار مقصد را انتخاب کنید)، بعد استرداد. تایم‌لاین سمت چپ کل لاگ است.",
+              en: "Open **Inventory → Customer returns**. Approve only after photos/reason look right, and you must choose site vs customer shipping cost plus approved refund per unit.",
+              fa: "**Inventory → برگشت مشتری** را باز کنید. فقط بعد از دیدن عکس/علت تأیید کنید و باید هزینه حمل (سایت یا مشتری) و مبلغ تأیید هر واحد را بگذارید.",
+            },
+            {
+              en: "After the customer ships, mark received and open **Warehouse QC / restock** for condition and stock. Tracking can be updated until received.",
+              fa: "بعد از ارسال مشتری، دریافت را بزنید و **QC انبار** را برای وضعیت کالا باز کنید. کد رهگیری تا زمان دریافت قابل به‌روزرسانی است.",
             },
           ],
           related: ["stock-documents", "orders", "payments-refunds", "warehouses"],

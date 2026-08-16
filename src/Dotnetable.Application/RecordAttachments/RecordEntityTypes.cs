@@ -8,6 +8,7 @@ public static class RecordEntityTypes
     public const string PaymentRefund = "PaymentRefund";
     public const string Settlement = "Settlement";
     public const string StockDocument = "StockDocument";
+    public const string CustomerReturnRequest = "CustomerReturnRequest";
     public const string Warehouse = "Warehouse";
     public const string JournalEntry = "JournalEntry";
     public const string FinancialLedgerEntry = "FinancialLedgerEntry";

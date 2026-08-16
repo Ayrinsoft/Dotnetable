@@ -342,6 +342,115 @@ public class AccountController : Controller
         return result.Ok ? Ok() : BadRequest(result.Message);
     }
 
+    // ── Customer returns ─────────────────────────────────────────────
+
+    [HttpGet]
+    public async Task<IActionResult> Returns(int page = 1, CancellationToken ct = default)
+    {
+        if (!Request.Cookies.ContainsKey(ClientAuth.TokenCookie))
+            return RedirectToAction(nameof(HomeController.Index), "Home");
+        return View(await _api.GetReturnsAsync(page, 10, ct));
+    }
+
+    [HttpGet]
+    public async Task<IActionResult> ReturnNew(int orderId, CancellationToken ct = default)
+    {
+        if (!Request.Cookies.ContainsKey(ClientAuth.TokenCookie))
+            return RedirectToAction(nameof(HomeController.Index), "Home");
+        var elig = await _api.GetReturnEligibilityAsync(orderId, ct);
+        if (elig is null) return NotFound();
+        return View(elig);
+    }
+
+    public sealed class ReturnCreateInput
+    {
+        public int OrderId { get; set; }
+        public byte Reason { get; set; }
+        public string? ReasonNote { get; set; }
+        public string? Description { get; set; }
+        public string? ShipMethod { get; set; }
+        public int[]? OrderItemId { get; set; }
+        public int[]? Qty { get; set; }
+        public decimal[]? UnitRefund { get; set; }
+        public List<IFormFile>? Photos { get; set; }
+    }
+
+    [HttpPost]
+    [RequestSizeLimit(20 * 1024 * 1024)]
+    public async Task<IActionResult> ReturnNew([FromForm] ReturnCreateInput input, CancellationToken ct = default)
+    {
+        if (!Request.Cookies.ContainsKey(ClientAuth.TokenCookie))
+            return RedirectToAction(nameof(HomeController.Index), "Home");
+
+        var lines = new List<CustomerReturnLineInput>();
+        if (input.OrderItemId is not null)
+        {
+            for (var i = 0; i < input.OrderItemId.Length; i++)
+            {
+                var qty = input.Qty is not null && i < input.Qty.Length ? input.Qty[i] : 0;
+                if (qty <= 0) continue;
+                lines.Add(new CustomerReturnLineInput
+                {
+                    OrderItemID = input.OrderItemId[i],
+                    Quantity = qty,
+                    UnitRefundRequested = input.UnitRefund is not null && i < input.UnitRefund.Length ? input.UnitRefund[i] : 0,
+                });
+            }
+        }
+
+        var (ok, row, err) = await _api.CreateReturnAsync(new
+        {
+            orderId = input.OrderId,
+            reason = input.Reason,
+            reasonNote = input.ReasonNote,
+            description = input.Description,
+            shipMethod = input.ShipMethod,
+            lines,
+        }, ct);
+        if (!ok || row is null)
+        {
+            TempData["ReturnError"] = err ?? "Could not create the return.";
+            return RedirectToAction(nameof(ReturnNew), new { orderId = input.OrderId });
+        }
+
+        if (input.Photos is { Count: > 0 })
+        {
+            foreach (var photo in input.Photos.Where(p => p.Length > 0).Take(8))
+                await _api.UploadReturnPhotoAsync(row.CustomerReturnRequestID, photo, ct);
+        }
+
+        return RedirectToAction(nameof(ReturnDetail), new { id = row.CustomerReturnRequestID });
+    }
+
+    [HttpGet]
+    public async Task<IActionResult> ReturnDetail(int id, CancellationToken ct = default)
+    {
+        if (!Request.Cookies.ContainsKey(ClientAuth.TokenCookie))
+            return RedirectToAction(nameof(HomeController.Index), "Home");
+        var row = await _api.GetReturnAsync(id, ct);
+        return row is null ? NotFound() : View(row);
+    }
+
+    [HttpPost]
+    public async Task<IActionResult> ReturnShip(int id, string trackingCode, string? shipMethod, CancellationToken ct = default)
+    {
+        if (!Request.Cookies.ContainsKey(ClientAuth.TokenCookie))
+            return RedirectToAction(nameof(HomeController.Index), "Home");
+        var result = await _api.ShipReturnAsync(id, trackingCode, shipMethod, ct);
+        if (!result.Ok) TempData["ReturnError"] = result.Message;
+        return RedirectToAction(nameof(ReturnDetail), new { id });
+    }
+
+    [HttpPost]
+    public async Task<IActionResult> ReturnTracking(int id, string trackingCode, string? shipMethod, CancellationToken ct = default)
+    {
+        if (!Request.Cookies.ContainsKey(ClientAuth.TokenCookie))
+            return RedirectToAction(nameof(HomeController.Index), "Home");
+        var result = await _api.UpdateReturnTrackingAsync(id, trackingCode, shipMethod, ct);
+        if (!result.Ok) TempData["ReturnError"] = result.Message;
+        return RedirectToAction(nameof(ReturnDetail), new { id });
+    }
+
     // ── Wallet ───────────────────────────────────────────────────────
 
     public sealed record WalletView(WalletBalanceDto Balance, PagedResult<WalletTransactionDto> Transactions, IReadOnlyList<ClientBankAccountDto> BankAccounts);

@@ -70,6 +70,41 @@ public enum StockDocumentStatus : byte
     Cancelled = 5,
 }
 
+public enum CustomerReturnStatus : byte
+{
+    PreRequest = 0,
+    Rejected = 1,
+    ApprovedAwaitingShipment = 2,
+    Shipped = 3,
+    Received = 4,
+    Completed = 5,
+    Cancelled = 6,
+}
+
+public enum CustomerReturnReason : byte
+{
+    Damaged = 1,
+    WrongItem = 2,
+    NotAsDescribed = 3,
+    ChangedMind = 4,
+    Defective = 5,
+    Other = 9,
+}
+
+public enum ReturnShippingPayer : byte
+{
+    Unset = 0,
+    Site = 1,
+    Customer = 2,
+}
+
+/// <summary>When the return countdown starts.</summary>
+public enum ReturnWindowFrom : byte
+{
+    ShippedAt = 0,
+    Delivered = 1,
+}
+
 public enum PayrollRunStatus : byte
 {
     Draft = 0,
