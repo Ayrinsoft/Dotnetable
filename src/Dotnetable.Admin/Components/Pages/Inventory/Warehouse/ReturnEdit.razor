@@ -1,0 +1,407 @@
+@page "/inventory/returns/{DocumentId:int}"
+@using Dotnetable.Domain.Enums
+@attribute [Authorize(Policy = RoleKeys.WarehouseView)]
+@inject IStockDocumentService Docs
+@inject IWarehouseService Warehouses
+@inject IPaymentService PaymentService
+@inject IBankAccountService BankAccountService
+@inject AuthenticationStateProvider AuthState
+@inject ISnackbar Snackbar
+@inject NavigationManager Nav
+@inject IPageLocalizer L
+
+<DNPageTitle Title="@(_doc is null ? L["returns.title", "Customer returns"] : _doc.DocumentNumber)" />
+
+@if (_loading)
+{
+    <MudProgressLinear Indeterminate="true" Color="Color.Primary" />
+}
+else if (_doc is null)
+{
+    <MudText Color="Color.Error">@L["returns.not_found", "Return not found."]</MudText>
+}
+else
+{
+    <MudStack Row="true" AlignItems="AlignItems.Center" Justify="Justify.SpaceBetween" Class="mb-4">
+        <MudStack Spacing="0">
+            <MudText Typo="Typo.h5" Class="fw-bold">@_doc.DocumentNumber</MudText>
+            <MudText Typo="Typo.body2" Color="Color.Secondary">
+                @if (_doc.OrderID is int oid)
+                {
+                    <MudLink Href="@($"/orders/{oid}")">@(_doc.Order?.OrderNumber ?? $"#{oid}")</MudLink>
+                }
+                @if (_doc.Order?.WebsiteClient is not null)
+                {
+                    <span> · @_doc.Order.WebsiteClient.Givenname @_doc.Order.WebsiteClient.Surname</span>
+                }
+            </MudText>
+        </MudStack>
+        <MudStack Row="true" Spacing="2" AlignItems="AlignItems.Center">
+            <MudChip T="string" Color="Color.Primary">@((StockDocumentStatus)_doc.Status)</MudChip>
+            <MudButton OnClick="@(() => Nav.NavigateTo("/inventory/returns"))">@L["back", "Back"]</MudButton>
+        </MudStack>
+    </MudStack>
+
+    <MudStack Row="true" Class="flex-wrap gap-1 mb-4">
+        @for (var i = 0; i < _steps.Length; i++)
+        {
+            var idx = i;
+            <MudChip T="string" Size="Size.Small"
+                     Color="@(idx < CurrentStep ? Color.Success : idx == CurrentStep ? Color.Primary : Color.Default)"
+                     Variant="@(idx == CurrentStep ? Variant.Filled : Variant.Outlined)">
+                @(idx + 1). @_steps[idx]
+            </MudChip>
+        }
+    </MudStack>
+
+    <MudGrid Spacing="3">
+        <MudItem xs="12" md="8">
+            <MudPaper Elevation="0" Class="app-card rounded-lg pa-4 mb-3">
+                <MudText Typo="Typo.subtitle1" Class="mb-2">@L["returns.lines", "Returned items"]</MudText>
+                <MudSimpleTable Dense="true" Elevation="0">
+                    <thead>
+                        <tr>
+                            <th>@L["variant", "Variant"]</th>
+                            <th>@L["qty", "Qty"]</th>
+                            <th>@L["warehouse.item_condition", "Condition"]</th>
+                            <th>@L["warehouse.health_grade", "Health grade"]</th>
+                        </tr>
+                    </thead>
+                    <tbody>
+                        @foreach (var l in _doc.StockDocumentLines)
+                        {
+                            <tr>
+                                <td>
+                                    @(l.ProductVariant?.Sku ?? l.Note) — @(l.ProductVariant?.Product?.Title ?? "")
+                                </td>
+                                <td>@l.Quantity</td>
+                                <td>
+                                    @if (CanInspect)
+                                    {
+                                        <MudSelect T="byte" Value="l.ReturnCondition" Variant="Variant.Outlined" Dense="true" Style="min-width:150px"
+                                                   ValueChanged="@(async v => await SetConditionAsync(l, v, l.HealthGrade))">
+                                            <MudSelectItem T="byte" Value="@((byte)StockItemCondition.New)">@L["warehouse.cond.new", "New"]</MudSelectItem>
+                                            <MudSelectItem T="byte" Value="@((byte)StockItemCondition.LikeNew)">@L["warehouse.cond.like_new", "Like new"]</MudSelectItem>
+                                            <MudSelectItem T="byte" Value="@((byte)StockItemCondition.OpenBox)">@L["warehouse.cond.open_box", "Open box"]</MudSelectItem>
+                                            <MudSelectItem T="byte" Value="@((byte)StockItemCondition.Display)">@L["warehouse.cond.display", "Display / showcase"]</MudSelectItem>
+                                            <MudSelectItem T="byte" Value="@((byte)StockItemCondition.Used)">@L["warehouse.cond.used", "Used"]</MudSelectItem>
+                                            <MudSelectItem T="byte" Value="@((byte)StockItemCondition.Defective)">@L["warehouse.cond.defective", "Defective"]</MudSelectItem>
+                                        </MudSelect>
+                                    }
+                                    else
+                                    {
+                                        @ConditionLabel((StockItemCondition)l.ReturnCondition)
+                                    }
+                                </td>
+                                <td>
+                                    @if (CanInspect && l.ReturnCondition is not ((byte)StockItemCondition.New or (byte)StockItemCondition.Defective))
+                                    {
+                                        <MudSelect T="byte" Value="l.HealthGrade" Variant="Variant.Outlined" Dense="true" Style="min-width:110px"
+                                                   ValueChanged="@(async v => await SetConditionAsync(l, l.ReturnCondition, v))">
+                                            <MudSelectItem T="byte" Value="@((byte)StockHealthGrade.A)">A</MudSelectItem>
+                                            <MudSelectItem T="byte" Value="@((byte)StockHealthGrade.B)">B</MudSelectItem>
+                                            <MudSelectItem T="byte" Value="@((byte)StockHealthGrade.C)">C</MudSelectItem>
+                                            <MudSelectItem T="byte" Value="@((byte)StockHealthGrade.D)">D</MudSelectItem>
+                                            <MudSelectItem T="byte" Value="@((byte)StockHealthGrade.F)">F</MudSelectItem>
+                                        </MudSelect>
+                                    }
+                                    else if (l.HealthGrade > 0)
+                                    {
+                                        @($"G{l.HealthGrade}")
+                                    }
+                                    else { <span>—</span> }
+                                </td>
+                            </tr>
+                        }
+                    </tbody>
+                </MudSimpleTable>
+                @if (!string.IsNullOrWhiteSpace(_doc.Note))
+                {
+                    <MudText Typo="Typo.caption" Color="Color.Secondary" Class="mt-2">@_doc.Note</MudText>
+                }
+            </MudPaper>
+
+            <RecordAttachmentsPanel WebsiteId="_doc.WebsiteID"
+                                   EntityType="@Dotnetable.Application.RecordAttachments.RecordEntityTypes.StockDocument"
+                                   EntityId="_doc.StockDocumentID"
+                                   CanEdit="@(_canReceive || _canIssue || _canPost)"
+                                   Title="@L["returns.attachments", "Return photos / QC scans"]" />
+
+            <MudPaper Elevation="0" Class="app-card rounded-lg pa-4">
+                <MudText Typo="Typo.subtitle1" Class="mb-2">@L["returns.log", "Activity log"]</MudText>
+                @if (_doc.StockDocumentHistories.Count == 0)
+                {
+                    <MudText Typo="Typo.body2" Color="Color.Secondary">@L["returns.log_empty", "No history yet."]</MudText>
+                }
+                else
+                {
+                    <MudTimeline>
+                        @foreach (var h in _doc.StockDocumentHistories.OrderBy(x => x.CreatedAt))
+                        {
+                            <MudTimelineItem Size="Size.Small">
+                                <MudText Typo="Typo.body2">@((StockDocumentStatus)h.ToStatus) — @h.CreatedAt.ToLocalTime().ToString("g")</MudText>
+                                @if (!string.IsNullOrEmpty(h.Note))
+                                {
+                                    <MudText Typo="Typo.caption" Color="Color.Secondary">@h.Note</MudText>
+                                }
+                            </MudTimelineItem>
+                        }
+                    </MudTimeline>
+                }
+            </MudPaper>
+        </MudItem>
+
+        <MudItem xs="12" md="4">
+            <MudPaper Elevation="0" Class="app-card rounded-lg pa-4 mb-3">
+                <MudText Typo="Typo.subtitle1" Class="mb-2">@L["returns.next", "Next step"]</MudText>
+                <MudText Typo="Typo.caption" Color="Color.Secondary" Class="mb-3">@_stepHint</MudText>
+
+                @if (_doc.Status != (byte)StockDocumentStatus.Posted)
+                {
+                    <MudSelect T="int?" Value="_warehouseId" ValueChanged="OnWarehouseChanged"
+                               Label="@L["returns.restock_warehouse", "Restock warehouse"]"
+                               Variant="Variant.Outlined" Dense="true" Class="mb-3">
+                        @foreach (var w in _wh)
+                        {
+                            <MudSelectItem T="int?" Value="@w.WarehouseID">@w.Name</MudSelectItem>
+                        }
+                    </MudSelect>
+                }
+                else
+                {
+                    <MudText Typo="Typo.body2" Class="mb-3">
+                        @L["warehouse.to", "To"]: @(_doc.ToWarehouse?.Name ?? "—")
+                    </MudText>
+                }
+
+                @if (_canIssue && _doc.Status == (byte)StockDocumentStatus.Draft)
+                {
+                    <MudButton Variant="Variant.Filled" Color="Color.Primary" FullWidth="true" Class="mb-2" OnClick="Submit">
+                        @L["returns.receive_qc", "Receive at QC"]
+                    </MudButton>
+                }
+                @if (_canApprove && _doc.Status == (byte)StockDocumentStatus.Submitted)
+                {
+                    <MudButton Variant="Variant.Filled" Color="Color.Success" FullWidth="true" Class="mb-2" OnClick="Approve">
+                        @L["returns.approve_qc", "Approve QC"]
+                    </MudButton>
+                    <MudButton Variant="Variant.Outlined" Color="Color.Error" FullWidth="true" Class="mb-2" OnClick="Reject">
+                        @L["reject", "Reject"]
+                    </MudButton>
+                }
+                @if (_canPost && (_doc.Status == (byte)StockDocumentStatus.Approved || _doc.Status == (byte)StockDocumentStatus.Submitted))
+                {
+                    <MudButton Variant="Variant.Filled" Color="Color.Primary" FullWidth="true" Class="mb-2" OnClick="Post">
+                        @L["returns.restock", "Post to warehouse"]
+                    </MudButton>
+                }
+                @if (_canIssue && _doc.Status is (byte)StockDocumentStatus.Draft or (byte)StockDocumentStatus.Submitted or (byte)StockDocumentStatus.Approved)
+                {
+                    <MudButton Variant="Variant.Text" Color="Color.Error" FullWidth="true" OnClick="CancelDoc">
+                        @L["cancel", "Cancel"]
+                    </MudButton>
+                }
+            </MudPaper>
+
+            @if (_doc.PaymentRefundID is int rid)
+            {
+                <MudAlert Severity="Severity.Success" Dense="true" Class="mb-3" Variant="Variant.Outlined">
+                    @L["payments.refund", "Refund"]: #@rid
+                    <MudLink Href="/payments/refunds" Class="ms-1">@L["payments.refunds", "Bank refunds"]</MudLink>
+                </MudAlert>
+            }
+            else if (_canRefund && CanShowRefund)
+            {
+                <MudPaper Elevation="0" Class="app-card rounded-lg pa-4 mb-3">
+                    <MudText Typo="Typo.subtitle1" Class="mb-2">@L["payments.refund", "Refund"]</MudText>
+                    <MudText Typo="Typo.caption" Color="Color.Secondary" Class="mb-2">
+                        @L["returns.refund_hint", "After QC you can return money to the customer wallet, bank, or cash. This is logged on the order and linked to this return."]
+                    </MudText>
+                    <MudNumericField T="decimal" @bind-Value="_refundAmount"
+                                     Label="@($"{L["amount", "Amount"]} ({_orderCurrency})")"
+                                     Variant="Variant.Outlined" Dense="true" Min="0" Class="mb-2"
+                                     Format="@MoneyFormat.FieldFormat(_orderCurrency)"
+                                     Culture="@MoneyFormat.DisplayCulture" />
+                    <MudTextField @bind-Value="_refundReason" Label="@L["payments.reason", "Reason"]" Variant="Variant.Outlined" Dense="true" Class="mb-2" />
+                    <MudSelect T="string" @bind-Value="_refundDestination" Variant="Variant.Outlined" Dense="true" Class="mb-2"
+                               Label="@L["payments.refund_destination", "Refund destination"]">
+                        <MudSelectItem T="string" Value="@("wallet")">@L["payments.refund_to_wallet", "Customer wallet"]</MudSelectItem>
+                        <MudSelectItem T="string" Value="@("bank")">@L["payments.refund_to_bank", "Bank transfer (manual)"]</MudSelectItem>
+                        <MudSelectItem T="string" Value="@("cash")">@L["payments.refund_to_cash", "Cash / manual hand-back"]</MudSelectItem>
+                    </MudSelect>
+                    @if (_refundDestination == "bank")
+                    {
+                        <MudSelect T="int?" @bind-Value="_refundBankAccountId" Label="@L["bank_accounts", "Bank Account"]"
+                                   Variant="Variant.Outlined" Dense="true" Class="mb-2">
+                            @foreach (var a in _bankAccounts)
+                            {
+                                <MudSelectItem T="int?" Value="@a.BankAccountID">@a.Title</MudSelectItem>
+                            }
+                        </MudSelect>
+                    }
+                    <MudButton Variant="Variant.Filled" Color="Color.Error" FullWidth="true" OnClick="RefundAsync" Disabled="_savingRefund">
+                        @L["payments.refund", "Refund"]
+                    </MudButton>
+                </MudPaper>
+            }
+        </MudItem>
+    </MudGrid>
+}
+
+@code {
+    [Parameter] public int DocumentId { get; set; }
+
+    private bool _loading = true, _canReceive, _canIssue, _canApprove, _canPost, _canRefund, _savingRefund;
+    private int _memberId;
+    private int? _warehouseId;
+    private StockDocument? _doc;
+    private List<Warehouse> _wh = new();
+    private List<BankAccount> _bankAccounts = new();
+    private decimal _refundAmount;
+    private string? _refundReason;
+    private string _refundDestination = "wallet";
+    private int? _refundBankAccountId;
+
+    private string[] _steps = [];
+
+    private int CurrentStep
+    {
+        get
+        {
+            if (_doc is null) return 0;
+            if (_doc.PaymentRefundID is not null) return 4;
+            return (StockDocumentStatus)_doc.Status switch
+            {
+                StockDocumentStatus.Draft => 0,
+                StockDocumentStatus.Submitted => 1,
+                StockDocumentStatus.Approved => 2,
+                StockDocumentStatus.Posted => 3,
+                StockDocumentStatus.Rejected or StockDocumentStatus.Cancelled => 0,
+                _ => 0,
+            };
+        }
+    }
+
+    private bool CanInspect =>
+        _doc is not null
+        && _doc.Status != (byte)StockDocumentStatus.Posted
+        && (_canReceive || _canPost || _canApprove);
+
+    private bool CanShowRefund =>
+        _doc?.Order is { } o
+        && o.Status is not ((byte)OrderStatus.Cancelled)
+        && o.Payments.Any(p => p.Status == (byte)PaymentStatus.Paid);
+
+    private string _orderCurrency => _doc?.Order?.CurrencyCode ?? "USD";
+
+    private string _stepHint => CurrentStep switch
+    {
+        0 => L["returns.hint.draft", "Goods are registered. Receive them at the QC warehouse to start inspection."],
+        1 => L["returns.hint.qc", "Set condition and health grade on each line, then approve QC."],
+        2 => L["returns.hint.approved", "QC passed. Post to put the units into the restock warehouse."],
+        3 => L["returns.hint.posted", "Stock is back. Refund the customer if money is still outstanding."],
+        4 => L["returns.hint.done", "Return and refund are linked. History is on the left."],
+        _ => "",
+    };
+
+    protected override async Task OnParametersSetAsync() => await LoadAsync();
+
+    private async Task LoadAsync()
+    {
+        _loading = true;
+        await L.EnsureLoadedAsync();
+        _steps =
+        [
+            L["returns.step.register", "Registered"],
+            L["returns.step.qc", "QC receive"],
+            L["returns.step.inspect", "Inspected"],
+            L["returns.step.restock", "Restocked"],
+            L["returns.step.refund", "Refunded"],
+        ];
+        var u = (await AuthState.GetAuthenticationStateAsync()).User;
+        _canReceive = AdminPolicies.Allows(u, RoleKeys.WarehouseReceive);
+        _canIssue = AdminPolicies.Allows(u, RoleKeys.WarehouseIssue);
+        _canApprove = AdminPolicies.Allows(u, RoleKeys.WarehouseApprove);
+        _canPost = AdminPolicies.Allows(u, RoleKeys.WarehousePost);
+        _canRefund = AdminPolicies.Allows(u, RoleKeys.PaymentsRefund);
+        int.TryParse(u.FindFirst(AdminClaimTypes.MemberId)?.Value, out _memberId);
+
+        _doc = await Docs.GetByIdAsync(DocumentId);
+        if (_doc is not null)
+        {
+            _wh = (await Warehouses.GetAllAsync(_doc.WebsiteID)).ToList();
+            _warehouseId = _doc.ToWarehouseID;
+            if (_canRefund)
+                _bankAccounts = await BankAccountService.GetByWebsiteAsync(_doc.WebsiteID);
+            var paid = _doc.Order?.Payments.FirstOrDefault(p => p.Status == (byte)PaymentStatus.Paid);
+            if (paid is not null && _refundAmount <= 0)
+                _refundAmount = paid.Amount;
+        }
+        _loading = false;
+    }
+
+    private async Task OnWarehouseChanged(int? id)
+    {
+        _warehouseId = id;
+        if (id is int wid && wid > 0)
+            await After(await Docs.SetDestinationWarehouseAsync(DocumentId, wid, MemberOrNull()));
+    }
+
+    private async Task Submit() => await After(await Docs.SubmitAsync(DocumentId, MemberOrNull()));
+    private async Task Approve() => await After(await Docs.ApproveAsync(DocumentId, MemberOrNull()));
+    private async Task Reject() => await After(await Docs.RejectAsync(DocumentId, MemberOrNull(), "QC rejected"));
+    private async Task Post() => await After(await Docs.PostAsync(DocumentId, MemberOrNull()));
+    private async Task CancelDoc() => await After(await Docs.CancelAsync(DocumentId, MemberOrNull(), "Return cancelled"));
+
+    private async Task SetConditionAsync(StockDocumentLine line, byte condition, byte grade)
+    {
+        if (condition is not ((byte)StockItemCondition.New or (byte)StockItemCondition.Defective) && grade == 0)
+            grade = (byte)StockHealthGrade.B;
+        await After(await Docs.SetReturnLineConditionAsync(line.StockDocumentLineID, (StockItemCondition)condition, (StockHealthGrade)grade, MemberOrNull()));
+    }
+
+    private async Task RefundAsync()
+    {
+        var payment = _doc?.Order?.Payments.FirstOrDefault(p => p.Status == (byte)PaymentStatus.Paid);
+        if (payment is null || _memberId <= 0) return;
+        if (_refundAmount <= 0)
+        {
+            Snackbar.Add(L["payments.amount_required", "Enter a valid amount."], Severity.Warning);
+            return;
+        }
+        if (_refundDestination == "bank" && _refundBankAccountId is null)
+        {
+            Snackbar.Add(L["payments.bank_account_required", "Select a bank account."], Severity.Warning);
+            return;
+        }
+        _savingRefund = true;
+        try
+        {
+            var toWallet = _refundDestination == "wallet";
+            int? bankId = _refundDestination == "bank" ? _refundBankAccountId : null;
+            var (ok, err, _) = await PaymentService.RefundAsync(payment.PaymentID, _refundAmount, _refundReason, toWallet, bankId, _memberId);
+            if (ok) { Snackbar.Add(L["saved", "Saved."], Severity.Success); await LoadAsync(); }
+            else Snackbar.Add(err ?? L["save_failed", "Save failed"], Severity.Error);
+        }
+        finally { _savingRefund = false; }
+    }
+
+    private int? MemberOrNull() => _memberId > 0 ? _memberId : null;
+
+    private async Task After((bool Success, string? Error) result)
+    {
+        if (result.Success) { Snackbar.Add(L["saved", "Saved."], Severity.Success); await LoadAsync(); }
+        else Snackbar.Add(result.Error ?? L["save_failed", "Save failed"], Severity.Error);
+    }
+
+    private string ConditionLabel(StockItemCondition c) => c switch
+    {
+        StockItemCondition.New => L["warehouse.cond.new", "New"],
+        StockItemCondition.LikeNew => L["warehouse.cond.like_new", "Like new"],
+        StockItemCondition.OpenBox => L["warehouse.cond.open_box", "Open box"],
+        StockItemCondition.Display => L["warehouse.cond.display", "Display / showcase"],
+        StockItemCondition.Used => L["warehouse.cond.used", "Used"],
+        StockItemCondition.Defective => L["warehouse.cond.defective", "Defective"],
+        _ => c.ToString(),
+    };
+}

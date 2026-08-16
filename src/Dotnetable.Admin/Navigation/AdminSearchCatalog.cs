@@ -80,6 +80,7 @@ public static class AdminSearchCatalog
         new AdminSearchPage("warehouse.list", "Warehouses", "/inventory/warehouses", Icons.Material.Filled.HomeWork, "nav.inventory", "Inventory", RoleKeys.WarehouseView, NavArea: AdminNavArea.Inventory, VendorMemberAllowed: false),
         new AdminSearchPage("warehouse.tasks", "Warehouse my tasks", "/inventory/my-tasks", Icons.Material.Filled.Checklist, "nav.inventory", "Inventory", RoleKeys.WarehouseView, NavArea: AdminNavArea.Inventory, VendorMemberAllowed: false),
         new AdminSearchPage("warehouse.docs", "Stock documents", "/inventory/stock-documents", Icons.Material.Filled.Assignment, "nav.inventory", "Inventory", RoleKeys.WarehouseView, NavArea: AdminNavArea.Inventory, VendorMemberAllowed: false),
+        new AdminSearchPage("returns.title", "Customer returns", "/inventory/returns", Icons.Material.Filled.AssignmentReturn, "nav.inventory", "Inventory", RoleKeys.WarehouseView, NavArea: AdminNavArea.Inventory, VendorMemberAllowed: false),
         new AdminSearchPage("suppliers", "Suppliers", "/inventory/suppliers", Icons.Material.Filled.LocalShipping, "nav.inventory", "Inventory", RoleKeys.SuppliersView, NavArea: AdminNavArea.Inventory, VendorMemberAllowed: false),
 
         new AdminSearchPage("orders", "Orders", "/orders", Icons.Material.Filled.ReceiptLong, "orders", "Orders", RoleKeys.OrdersView, NavArea: AdminNavArea.Orders),

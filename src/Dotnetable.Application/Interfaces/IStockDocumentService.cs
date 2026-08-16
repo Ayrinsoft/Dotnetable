@@ -39,7 +39,7 @@ public sealed class WarehousePickTaskDto
 
 public interface IStockDocumentService
 {
-    Task<PagedResult<StockDocument>> GetPagedAsync(int websiteId, byte? status, byte? type, GridQuery query, CancellationToken ct = default);
+    Task<PagedResult<StockDocument>> GetPagedAsync(int websiteId, byte? status, byte? type, GridQuery query, CancellationToken ct = default, bool excludeReturns = false);
     Task<StockDocument?> GetByIdAsync(int documentId, CancellationToken ct = default);
     Task<(bool Success, string? Error, StockDocument? Doc)> CreateAsync(
         int websiteId, StockDocumentType type, int? fromWarehouseId, int? toWarehouseId,
@@ -74,8 +74,20 @@ public interface IStockDocumentService
     Task<StockDocument?> GetReturnForOrderAsync(int orderId, CancellationToken ct = default);
 
     /// <summary>
+    /// Registers a customer return (RMA) from an order <em>before</em> refund. Draft Return at the QC warehouse.
+    /// Fails when the order already has an open (not posted/cancelled) return.
+    /// </summary>
+    Task<(bool Success, string? Error, StockDocument? Doc)> CreateCustomerReturnAsync(
+        int orderId, int? toWarehouseId, IReadOnlyList<StockDocumentLineRequest>? lines, string? note, int? memberId,
+        CancellationToken ct = default);
+
+    /// <summary>Change receive / restock warehouse on a return that is not yet posted.</summary>
+    Task<(bool Success, string? Error)> SetDestinationWarehouseAsync(
+        int documentId, int toWarehouseId, int? memberId, CancellationToken ct = default);
+
+    /// <summary>
     /// After refund when goods already left stock: create Submitted Return doc for QC + restock.
-    /// Idempotent per refund / order return.
+    /// Idempotent per refund / order return. Links the refund onto an existing RMA when one exists.
     /// </summary>
     Task<(bool Success, string? Error, StockDocument? Doc)> EnsureReturnForRefundAsync(
         int orderId, int paymentRefundId, int? memberId, CancellationToken ct = default);
