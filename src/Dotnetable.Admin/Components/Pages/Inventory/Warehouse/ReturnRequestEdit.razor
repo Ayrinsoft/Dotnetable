@@ -1,0 +1,308 @@
+@page "/inventory/returns/{ReturnRequestId:int}"
+@using Dotnetable.Domain.Enums
+@attribute [Authorize(Policy = RoleKeys.WarehouseView)]
+@inject ICustomerReturnService Returns
+@inject AuthenticationStateProvider AuthState
+@inject ISnackbar Snackbar
+@inject NavigationManager Nav
+@inject IPageLocalizer L
+
+<DNPageTitle Title="@(_row is null ? L["returns.title", "Customer returns"] : $"{L["returns.title", "Return"]} #{ReturnRequestId}")" />
+
+@if (_loading)
+{
+    <MudProgressLinear Indeterminate="true" Color="Color.Primary" />
+}
+else if (_row is null)
+{
+    <MudText Color="Color.Error">@L["returns.not_found", "Return not found."]</MudText>
+}
+else
+{
+    <MudStack Row="true" AlignItems="AlignItems.Center" Justify="Justify.SpaceBetween" Class="mb-4">
+        <MudStack Spacing="0">
+            <MudText Typo="Typo.h5" Class="fw-bold">@L["returns.title", "Return"] #@_row.CustomerReturnRequestID</MudText>
+            <MudText Typo="Typo.body2" Color="Color.Secondary">
+                <MudLink Href="@($"/orders/{_row.OrderID}")">@_row.OrderNumber</MudLink>
+                @if (!string.IsNullOrWhiteSpace(_row.ClientName))
+                {
+                    <span> · @_row.ClientName</span>
+                }
+            </MudText>
+        </MudStack>
+        <MudStack Row="true" Spacing="2" AlignItems="AlignItems.Center">
+            <MudChip T="string" Color="Color.Primary">@StatusLabel((CustomerReturnStatus)_row.Status)</MudChip>
+            <MudButton OnClick="@(() => Nav.NavigateTo("/inventory/returns"))">@L["back", "Back"]</MudButton>
+        </MudStack>
+    </MudStack>
+
+    <MudGrid Spacing="3">
+        <MudItem xs="12" md="8">
+            <MudPaper Elevation="0" Class="app-card rounded-lg pa-4 mb-3">
+                <MudText Typo="Typo.subtitle1" Class="mb-2">@L["returns.pre", "Pre-request"]</MudText>
+                <MudGrid Spacing="2" Class="mb-3">
+                    <MudItem xs="12" sm="6">
+                        <MudText Typo="Typo.caption">@L["returns.reason", "Reason"]</MudText>
+                        <MudText>@ReasonLabel((CustomerReturnReason)_row.Reason)</MudText>
+                        @if (!string.IsNullOrWhiteSpace(_row.ReasonNote))
+                        {
+                            <MudText Typo="Typo.caption" Color="Color.Secondary">@_row.ReasonNote</MudText>
+                        }
+                    </MudItem>
+                    <MudItem xs="12" sm="6">
+                        <MudText Typo="Typo.caption">@L["returns.ship_method", "How it will be sent"]</MudText>
+                        <MudText>@(_row.ShipMethod ?? "—")</MudText>
+                    </MudItem>
+                    <MudItem xs="12">
+                        <MudText Typo="Typo.caption">@L["returns.description", "Description"]</MudText>
+                        <MudText>@(_row.Description ?? "—")</MudText>
+                    </MudItem>
+                </MudGrid>
+                @if (_row.Photos.Count > 0)
+                {
+                    <MudText Typo="Typo.subtitle2" Class="mb-2">@L["returns.photos", "Photos"]</MudText>
+                    <MudStack Row="true" Class="flex-wrap gap-2 mb-3">
+                        @foreach (var p in _row.Photos)
+                        {
+                            var src = p.ThumbnailUrl ?? p.Url;
+                            if (!string.IsNullOrWhiteSpace(src))
+                            {
+                                <a href="@p.Url" target="_blank">
+                                    <img src="@src" alt="@p.Title" style="width:88px;height:88px;object-fit:cover;border-radius:8px;" />
+                                </a>
+                            }
+                        }
+                    </MudStack>
+                }
+                else
+                {
+                    <MudText Typo="Typo.caption" Color="Color.Secondary" Class="mb-3">@L["returns.no_photos", "No photos attached."]</MudText>
+                }
+
+                <MudText Typo="Typo.subtitle2" Class="mb-2">@L["returns.lines", "Items"]</MudText>
+                <MudSimpleTable Dense="true" Elevation="0">
+                    <thead>
+                        <tr>
+                            <th>@L["title", "Title"]</th>
+                            <th>@L["qty", "Qty"]</th>
+                            <th>@L["returns.paid", "Paid"]</th>
+                            <th>@L["returns.refund_asked", "Asked"]</th>
+                            <th>@L["returns.refund_approved", "Approved / unit"]</th>
+                        </tr>
+                    </thead>
+                    <tbody>
+                        @foreach (var l in _approvals)
+                        {
+                            <tr>
+                                <td>@l.Title <code>@l.Sku</code></td>
+                                <td>@l.Quantity</td>
+                                <td>@l.UnitPricePaid.ToString("0.##")</td>
+                                <td>@l.UnitRefundRequested.ToString("0.##")</td>
+                                <td>
+                                    @if (_row.Status == (byte)CustomerReturnStatus.PreRequest && _canApprove)
+                                    {
+                                        <MudNumericField T="decimal" @bind-Value="l.UnitRefundApproved" Variant="Variant.Outlined" Dense="true" Min="0" Style="max-width:120px" />
+                                    }
+                                    else
+                                    {
+                                        @l.UnitRefundApproved.ToString("0.##")
+                                    }
+                                </td>
+                            </tr>
+                        }
+                    </tbody>
+                </MudSimpleTable>
+                <MudText Typo="Typo.caption" Class="mt-2">
+                    @L["returns.requested", "Requested"]: @MoneyFormat.Group(_row.RequestedRefundTotal, _row.CurrencyCode)
+                    @if (_row.ApprovedRefundTotal > 0)
+                    {
+                        <span> · @L["returns.approved_total", "Approved"]: @MoneyFormat.Group(_row.ApprovedRefundTotal, _row.CurrencyCode)</span>
+                    }
+                </MudText>
+            </MudPaper>
+
+            <MudPaper Elevation="0" Class="app-card rounded-lg pa-4">
+                <MudText Typo="Typo.subtitle1" Class="mb-2">@L["returns.log", "Activity log"]</MudText>
+                <MudTimeline>
+                    @foreach (var h in _row.Histories)
+                    {
+                        <MudTimelineItem Size="Size.Small">
+                            <MudText Typo="Typo.body2">@StatusLabel((CustomerReturnStatus)h.ToStatus) — @h.CreatedAt.ToLocalTime().ToString("g")</MudText>
+                            @if (!string.IsNullOrEmpty(h.Note))
+                            {
+                                <MudText Typo="Typo.caption" Color="Color.Secondary">@h.Note</MudText>
+                            }
+                        </MudTimelineItem>
+                    }
+                </MudTimeline>
+            </MudPaper>
+        </MudItem>
+
+        <MudItem xs="12" md="4">
+            <MudPaper Elevation="0" Class="app-card rounded-lg pa-4 mb-3">
+                <MudText Typo="Typo.subtitle1" Class="mb-2">@L["returns.next", "Next step"]</MudText>
+                <MudText Typo="Typo.caption" Color="Color.Secondary" Class="mb-3">@_hint</MudText>
+
+                @if (!string.IsNullOrWhiteSpace(_row.TrackingCode))
+                {
+                    <MudText Typo="Typo.body2" Class="mb-2">
+                        @L["orders.tracking_code", "Tracking"]: <code>@_row.TrackingCode</code>
+                    </MudText>
+                }
+
+                @if (_row.StockDocumentID is int sid)
+                {
+                    <MudButton Variant="Variant.Outlined" FullWidth="true" Class="mb-2"
+                               Href="@($"/inventory/returns/wms/{sid}")">
+                        @L["returns.open_wms", "Warehouse QC / restock"]
+                    </MudButton>
+                }
+
+                @if (_canApprove && _row.Status == (byte)CustomerReturnStatus.PreRequest)
+                {
+                    <MudSelect T="ReturnShippingPayer" @bind-Value="_payer" Variant="Variant.Outlined" Dense="true" Class="mb-2"
+                               Label="@L["returns.who_pays", "Who pays return shipping"]">
+                        <MudSelectItem T="ReturnShippingPayer" Value="ReturnShippingPayer.Site">@L["returns.payer.site", "Site pays"]</MudSelectItem>
+                        <MudSelectItem T="ReturnShippingPayer" Value="ReturnShippingPayer.Customer">@L["returns.payer.customer", "Customer pays"]</MudSelectItem>
+                    </MudSelect>
+                    <MudTextField @bind-Value="_reviewNote" Label="@L["returns.review_note", "Review note"]" Variant="Variant.Outlined" Dense="true" Class="mb-2" />
+                    <MudButton Variant="Variant.Filled" Color="Color.Success" FullWidth="true" Class="mb-2" OnClick="ApproveAsync" Disabled="_busy">
+                        @L["returns.approve", "Approve pre-request"]
+                    </MudButton>
+                    <MudButton Variant="Variant.Outlined" Color="Color.Error" FullWidth="true" OnClick="RejectAsync" Disabled="_busy">
+                        @L["reject", "Reject"]
+                    </MudButton>
+                }
+
+                @if (_canApprove && _row.Status == (byte)CustomerReturnStatus.Shipped)
+                {
+                    <MudButton Variant="Variant.Filled" Color="Color.Primary" FullWidth="true" Class="mb-2" OnClick="ReceiveAsync" Disabled="_busy">
+                        @L["returns.mark_received", "Mark received"]
+                    </MudButton>
+                }
+                @if (_canApprove && _row.Status is (byte)CustomerReturnStatus.Received or (byte)CustomerReturnStatus.Shipped)
+                {
+                    <MudButton Variant="Variant.Filled" Color="Color.Success" FullWidth="true" OnClick="CompleteAsync" Disabled="_busy">
+                        @L["returns.complete", "Mark completed"]
+                    </MudButton>
+                }
+            </MudPaper>
+        </MudItem>
+    </MudGrid>
+}
+
+@code {
+    [Parameter] public int ReturnRequestId { get; set; }
+
+    private bool _loading = true, _canApprove, _busy;
+    private int _memberId;
+    private CustomerReturnDto? _row;
+    private List<CustomerReturnLineDto> _approvals = new();
+    private ReturnShippingPayer _payer = ReturnShippingPayer.Customer;
+    private string? _reviewNote;
+
+    private string _hint => _row is null ? "" : (CustomerReturnStatus)_row.Status switch
+    {
+        CustomerReturnStatus.PreRequest => L["returns.hint.pre", "Review photos, description and reason. Set who pays shipping and the approved refund per unit, then approve."],
+        CustomerReturnStatus.ApprovedAwaitingShipment => L["returns.hint.wait_ship", "Waiting for the customer to ship and enter a tracking code."],
+        CustomerReturnStatus.Shipped => L["returns.hint.shipped", "Parcel is on the way. Mark received, then continue warehouse QC."],
+        CustomerReturnStatus.Received => L["returns.hint.received", "Continue QC / restock on the warehouse document, then complete."],
+        _ => "",
+    };
+
+    protected override async Task OnParametersSetAsync() => await LoadAsync();
+
+    private async Task LoadAsync()
+    {
+        _loading = true;
+        await L.EnsureLoadedAsync();
+        var u = (await AuthState.GetAuthenticationStateAsync()).User;
+        _canApprove = AdminPolicies.Allows(u, RoleKeys.WarehouseApprove) || AdminPolicies.Allows(u, RoleKeys.WarehouseReceive);
+        int.TryParse(u.FindFirst(AdminClaimTypes.MemberId)?.Value, out _memberId);
+        _row = await Returns.GetByIdAsync(ReturnRequestId);
+        _approvals = _row?.Lines.Select(l => new CustomerReturnLineDto
+        {
+            CustomerReturnRequestLineID = l.CustomerReturnRequestLineID,
+            OrderItemID = l.OrderItemID,
+            ProductVariantID = l.ProductVariantID,
+            Title = l.Title,
+            Sku = l.Sku,
+            Quantity = l.Quantity,
+            OrderedQty = l.OrderedQty,
+            RemainingQty = l.RemainingQty,
+            UnitPricePaid = l.UnitPricePaid,
+            UnitRefundRequested = l.UnitRefundRequested,
+            UnitRefundApproved = l.UnitRefundApproved > 0 ? l.UnitRefundApproved : l.UnitRefundRequested,
+        }).ToList() ?? new();
+        _loading = false;
+    }
+
+    private async Task ApproveAsync()
+    {
+        if (_memberId <= 0) return;
+        _busy = true;
+        try
+        {
+            var (ok, err) = await Returns.ApproveAsync(ReturnRequestId, _payer, _reviewNote,
+                _approvals.Select(l => new CustomerReturnLineApproval
+                {
+                    CustomerReturnRequestLineID = l.CustomerReturnRequestLineID,
+                    UnitRefundApproved = l.UnitRefundApproved,
+                }).ToList(), _memberId);
+            await After(ok, err);
+        }
+        finally { _busy = false; }
+    }
+
+    private async Task RejectAsync()
+    {
+        if (_memberId <= 0) return;
+        _busy = true;
+        try { var r = await Returns.RejectAsync(ReturnRequestId, _reviewNote ?? "Rejected", _memberId); await After(r.Success, r.Error); }
+        finally { _busy = false; }
+    }
+
+    private async Task ReceiveAsync()
+    {
+        if (_memberId <= 0) return;
+        _busy = true;
+        try { var r = await Returns.MarkReceivedAsync(ReturnRequestId, _memberId); await After(r.Success, r.Error); }
+        finally { _busy = false; }
+    }
+
+    private async Task CompleteAsync()
+    {
+        if (_memberId <= 0) return;
+        _busy = true;
+        try { var r = await Returns.MarkCompletedAsync(ReturnRequestId, _memberId); await After(r.Success, r.Error); }
+        finally { _busy = false; }
+    }
+
+    private async Task After(bool ok, string? err)
+    {
+        if (ok) { Snackbar.Add(L["saved", "Saved."], Severity.Success); await LoadAsync(); }
+        else Snackbar.Add(err ?? L["save_failed", "Save failed"], Severity.Error);
+    }
+
+    private string StatusLabel(CustomerReturnStatus s) => s switch
+    {
+        CustomerReturnStatus.PreRequest => L["returns.status.pre", "Pre-request"],
+        CustomerReturnStatus.Rejected => L["returns.status.rejected", "Rejected"],
+        CustomerReturnStatus.ApprovedAwaitingShipment => L["returns.status.approved", "Awaiting shipment"],
+        CustomerReturnStatus.Shipped => L["returns.status.shipped", "Shipped"],
+        CustomerReturnStatus.Received => L["returns.status.received", "Received"],
+        CustomerReturnStatus.Completed => L["returns.status.completed", "Completed"],
+        CustomerReturnStatus.Cancelled => L["returns.status.cancelled", "Cancelled"],
+        _ => s.ToString(),
+    };
+
+    private string ReasonLabel(CustomerReturnReason r) => r switch
+    {
+        CustomerReturnReason.Damaged => L["returns.reason.damaged", "Damaged"],
+        CustomerReturnReason.WrongItem => L["returns.reason.wrong", "Wrong item"],
+        CustomerReturnReason.NotAsDescribed => L["returns.reason.not_described", "Not as described"],
+        CustomerReturnReason.ChangedMind => L["returns.reason.changed_mind", "Changed mind"],
+        CustomerReturnReason.Defective => L["returns.reason.defective", "Defective"],
+        _ => L["returns.reason.other", "Other"],
+    };
+}

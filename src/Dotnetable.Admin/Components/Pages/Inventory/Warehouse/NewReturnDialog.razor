@@ -1,13 +1,12 @@
 @inject IOrderService Orders
-@inject IWarehouseService Warehouses
-@inject IStockDocumentService Docs
+@inject ICustomerReturnService Returns
 @inject ISnackbar Snackbar
 @inject IPageLocalizer L
 
 <MudDialog>
     <DialogContent>
         <MudText Typo="Typo.body2" Color="Color.Secondary" Class="mb-3">
-            @L["returns.new_hint", "Pick a customer order, choose lines and qty, and send the goods to a QC warehouse. Refund happens later on the return page after inspection."]
+            @L["returns.new_hint", "Register a pre-request for selected lines. Refund per unit can differ from the paid price. You review photos and shipping payer on the next page."]
         </MudText>
         <MudGrid Spacing="2">
             <MudItem xs="12" sm="8">
@@ -19,17 +18,23 @@
             <MudItem xs="12" sm="4" Class="d-flex align-end">
                 <MudButton Variant="Variant.Outlined" OnClick="SearchOrderAsync" FullWidth="true">@L["search", "Search"]</MudButton>
             </MudItem>
-            <MudItem xs="12">
-                <MudSelect T="int?" @bind-Value="_warehouseId" Label="@L["returns.qc_warehouse", "QC / receive warehouse"]"
+            <MudItem xs="12" sm="6">
+                <MudSelect T="CustomerReturnReason" @bind-Value="_reason" Label="@L["returns.reason", "Reason"]"
                            Variant="Variant.Outlined" Dense="true">
-                    @foreach (var w in _wh)
-                    {
-                        <MudSelectItem T="int?" Value="@w.WarehouseID">@w.Name</MudSelectItem>
-                    }
+                    <MudSelectItem T="CustomerReturnReason" Value="CustomerReturnReason.Damaged">@L["returns.reason.damaged", "Damaged"]</MudSelectItem>
+                    <MudSelectItem T="CustomerReturnReason" Value="CustomerReturnReason.WrongItem">@L["returns.reason.wrong", "Wrong item"]</MudSelectItem>
+                    <MudSelectItem T="CustomerReturnReason" Value="CustomerReturnReason.NotAsDescribed">@L["returns.reason.not_described", "Not as described"]</MudSelectItem>
+                    <MudSelectItem T="CustomerReturnReason" Value="CustomerReturnReason.ChangedMind">@L["returns.reason.changed_mind", "Changed mind"]</MudSelectItem>
+                    <MudSelectItem T="CustomerReturnReason" Value="CustomerReturnReason.Defective">@L["returns.reason.defective", "Defective"]</MudSelectItem>
+                    <MudSelectItem T="CustomerReturnReason" Value="CustomerReturnReason.Other">@L["returns.reason.other", "Other"]</MudSelectItem>
                 </MudSelect>
             </MudItem>
+            <MudItem xs="12" sm="6">
+                <MudTextField @bind-Value="_shipMethod" Label="@L["returns.ship_method", "How it will be sent"]"
+                              Variant="Variant.Outlined" Dense="true" />
+            </MudItem>
             <MudItem xs="12">
-                <MudTextField @bind-Value="_note" Label="@L["orders.note", "Note (optional)"]"
+                <MudTextField @bind-Value="_description" Label="@L["returns.description", "Description"]"
                               Variant="Variant.Outlined" Dense="true" Lines="2" />
             </MudItem>
         </MudGrid>
@@ -38,36 +43,40 @@
         {
             <MudProgressLinear Indeterminate="true" Class="mt-3" />
         }
-        else if (_order is not null)
+        else if (_elig is not null)
         {
-            <MudText Typo="Typo.subtitle2" Class="mt-4 mb-2">
-                @_order.OrderNumber · @((OrderStatus)_order.Status)
-                @if (_order.WebsiteClient is not null)
-                {
-                    <span> · @_order.WebsiteClient.Givenname @_order.WebsiteClient.Surname</span>
-                }
-            </MudText>
+            @if (!_elig.Eligible)
+            {
+                <MudAlert Severity="Severity.Warning" Dense="true" Class="mt-3" Variant="Variant.Outlined">@_elig.BlockReason</MudAlert>
+            }
+            <MudText Typo="Typo.subtitle2" Class="mt-4 mb-2">@_elig.OrderNumber</MudText>
             <MudSimpleTable Dense="true" Elevation="0">
                 <thead>
                     <tr>
                         <th></th>
                         <th>@L["title", "Title"]</th>
-                        <th>@L["variants.sku", "SKU"]</th>
-                        <th>@L["quantity", "Ordered"]</th>
-                        <th>@L["returns.qty", "Return qty"]</th>
+                        <th>@L["returns.remaining", "Left"]</th>
+                        <th>@L["returns.qty", "Qty"]</th>
+                        <th>@L["returns.paid", "Paid"]</th>
+                        <th>@L["returns.refund_unit", "Refund / unit"]</th>
                     </tr>
                 </thead>
                 <tbody>
                     @foreach (var row in _lines)
                     {
                         <tr>
-                            <td><MudCheckBox T="bool" @bind-Value="row.Selected" Dense="true" /></td>
-                            <td>@row.Title</td>
-                            <td><code>@row.Sku</code></td>
-                            <td>@row.OrderedQty</td>
+                            <td><MudCheckBox T="bool" @bind-Value="row.Selected" Dense="true" Disabled="@(row.RemainingQty <= 0)" /></td>
+                            <td>@row.Title <code class="ms-1">@row.Sku</code></td>
+                            <td>@row.RemainingQty / @row.OrderedQty</td>
                             <td>
                                 <MudNumericField T="int" @bind-Value="row.Qty" Variant="Variant.Outlined" Dense="true"
-                                                 Min="1" Max="row.OrderedQty" Style="max-width:100px" />
+                                                 Min="1" Max="Math.Max(1, row.RemainingQty)" Style="max-width:90px"
+                                                 Disabled="@(row.RemainingQty <= 0)" />
+                            </td>
+                            <td>@row.UnitPricePaid.ToString("0.##")</td>
+                            <td>
+                                <MudNumericField T="decimal" @bind-Value="row.UnitRefund" Variant="Variant.Outlined" Dense="true"
+                                                 Min="0" Style="max-width:110px" />
                             </td>
                         </tr>
                     }
@@ -84,7 +93,7 @@
     <DialogActions>
         <MudButton OnClick="Cancel">@L["cancel", "Cancel"]</MudButton>
         <MudButton Variant="Variant.Filled" Color="Color.Primary" OnClick="SaveAsync"
-                   Disabled="@(_saving || _order is null || !_lines.Any(x => x.Selected && x.Qty > 0))">
+                   Disabled="@(_saving || _elig is null || !_elig.Eligible || !_lines.Any(x => x.Selected && x.Qty > 0))">
             @L["returns.register", "Register return"]
         </MudButton>
     </DialogActions>
@@ -95,22 +104,12 @@
     [Parameter] public int WebsiteId { get; set; }
     [Parameter] public int? MemberId { get; set; }
 
-    private string _orderSearch = "";
-    private string? _note;
-    private int? _warehouseId;
+    private string _orderSearch = "", _description = "", _shipMethod = "";
+    private CustomerReturnReason _reason = CustomerReturnReason.Damaged;
     private bool _searching, _searched, _saving;
-    private Order? _order;
-    private List<Warehouse> _wh = new();
+    private ReturnEligibilityDto? _elig;
+    private int _clientId;
     private List<LinePick> _lines = new();
-
-    protected override async Task OnInitializedAsync()
-    {
-        if (WebsiteId > 0)
-        {
-            _wh = (await Warehouses.GetAllAsync(WebsiteId)).ToList();
-            _warehouseId = _wh.FirstOrDefault(w => w.IsDefault)?.WarehouseID ?? _wh.FirstOrDefault()?.WarehouseID;
-        }
-    }
 
     private void Cancel() => MudDialog.Cancel();
 
@@ -131,59 +130,69 @@
         if (hit is null && int.TryParse(_orderSearch.Trim().TrimStart('#'), out var id))
             hit = await Orders.GetByIdAsync(id);
 
-        _order = hit is null ? null : await Orders.GetByIdAsync(hit.OrderID);
-        _lines = _order?.OrderItems
-            .Where(i => i.ProductVariantID is > 0)
-            .Select(i => new LinePick
-            {
-                ProductVariantID = i.ProductVariantID!.Value,
-                Title = i.TitleSnapshot,
-                Sku = i.SkuSnapshot,
-                OrderedQty = i.Quantity,
-                Qty = i.Quantity,
-                UnitCost = i.UnitCostUsd,
-                Selected = true,
-            }).ToList() ?? new();
+        if (hit is null)
+        {
+            _elig = null;
+            _lines = new();
+            _searching = false;
+            return;
+        }
+
+        _clientId = hit.WebsiteClientID;
+        _elig = await Returns.GetEligibilityAsync(hit.OrderID, hit.WebsiteClientID);
+        _lines = _elig.Lines.Select(i => new LinePick
+        {
+            OrderItemID = i.OrderItemID,
+            Title = i.Title,
+            Sku = i.Sku,
+            OrderedQty = i.OrderedQty,
+            RemainingQty = i.RemainingQty,
+            Qty = Math.Max(1, i.RemainingQty),
+            UnitPricePaid = i.UnitPricePaid,
+            UnitRefund = i.UnitPricePaid,
+            Selected = i.RemainingQty > 0,
+        }).ToList();
         _searching = false;
     }
 
     private async Task SaveAsync()
     {
-        if (_order is null) return;
-        var selected = _lines.Where(x => x.Selected && x.Qty > 0).ToList();
+        if (_elig is null || !_elig.Eligible) return;
+        var selected = _lines.Where(x => x.Selected && x.Qty > 0 && x.RemainingQty > 0).ToList();
         if (selected.Count == 0) return;
         _saving = true;
         try
         {
-            var (ok, err, doc) = await Docs.CreateCustomerReturnAsync(
-                _order.OrderID, _warehouseId,
-                selected.Select(x => new StockDocumentLineRequest
+            var (ok, err, row) = await Returns.CreateAsync(
+                WebsiteId, _clientId, _elig.OrderID, _reason, null, _description, _shipMethod,
+                selected.Select(x => new CustomerReturnLineInput
                 {
-                    ProductVariantID = x.ProductVariantID,
+                    OrderItemID = x.OrderItemID,
                     Quantity = x.Qty,
-                    UnitCost = x.UnitCost,
-                    Note = x.Sku,
+                    UnitRefundRequested = x.UnitRefund,
                 }).ToList(),
-                _note, MemberId);
-            if (!ok || doc is null)
+                null);
+            if (!ok || row is null)
             {
                 Snackbar.Add(err ?? L["save_failed", "Save failed"], Severity.Error);
                 return;
             }
             Snackbar.Add(L["saved", "Saved."], Severity.Success);
-            MudDialog.Close(DialogResult.Ok(doc.StockDocumentID));
+            MudDialog.Close(DialogResult.Ok(row.CustomerReturnRequestID));
         }
         finally { _saving = false; }
     }
 
     private sealed class LinePick
     {
-        public int ProductVariantID { get; set; }
+        public int OrderItemID { get; set; }
         public string Title { get; set; } = "";
         public string Sku { get; set; } = "";
         public int OrderedQty { get; set; }
+        public int RemainingQty { get; set; }
         public int Qty { get; set; }
-        public decimal UnitCost { get; set; }
+        public decimal UnitPricePaid { get; set; }
+        public decimal UnitRefund { get; set; }
         public bool Selected { get; set; }
     }
 }

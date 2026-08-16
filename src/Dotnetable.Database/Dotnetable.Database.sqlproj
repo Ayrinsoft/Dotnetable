@@ -113,6 +113,9 @@
     <Build Include="StockDocumentHistories.sql" />
     <Build Include="StockDocumentLines.sql" />
     <Build Include="StockDocuments.sql" />
+    <Build Include="CustomerReturnRequests.sql" />
+    <Build Include="CustomerReturnRequestLines.sql" />
+    <Build Include="CustomerReturnRequestHistories.sql" />
     <Build Include="RecordAttachments.sql" />
     <Build Include="WarehouseStocks.sql" />
     <Build Include="Warehouses.sql" />

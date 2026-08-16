@@ -1,0 +1,101 @@
+@using Dotnetable.Application.DTOs
+@using Dotnetable.Domain.Enums
+@model ReturnEligibilityDto
+@{
+    ViewData["Title"] = "Request a return";
+    Layout = "/Themes/Default/Views/Shared/_Layout.cshtml";
+}
+
+@await Html.PartialAsync("_PageHeader", ($"Return {Model.OrderNumber}", "Account"))
+
+<section class="site-section">
+    <div class="container" style="max-width:760px">
+        @if (TempData["ReturnError"] is string err)
+        {
+            <div class="alert alert-danger">@err</div>
+        }
+
+        @if (!Model.Eligible)
+        {
+            <div class="alert alert-warning">@(Model.BlockReason ?? "This order cannot be returned.")</div>
+            <a asp-action="OrderDetail" asp-route-id="@Model.OrderID" class="btn btn-link px-0">← Back to order</a>
+        }
+        else
+        {
+            <p class="text-muted">
+                Return window: @Model.ReturnWindowDays days from
+                @(Model.ReturnWindowFrom == (byte)ReturnWindowFrom.Delivered ? "delivery" : "ship date").
+                @if (Model.WindowEndUtc is DateTime end)
+                {
+                    <span>Ends @end.ToLocalTime().ToString("g").</span>
+                }
+                You can return only some items, and the refund per unit can differ from the paid price.
+            </p>
+
+            <form asp-action="ReturnNew" method="post" enctype="multipart/form-data">
+                <input type="hidden" name="OrderId" value="@Model.OrderID" />
+                <div class="mb-3">
+                    <label class="form-label">Reason</label>
+                    <select name="Reason" class="form-select" required>
+                        <option value="1">Damaged</option>
+                        <option value="2">Wrong item</option>
+                        <option value="3">Not as described</option>
+                        <option value="4">Changed mind</option>
+                        <option value="5">Defective</option>
+                        <option value="9">Other</option>
+                    </select>
+                </div>
+                <div class="mb-3">
+                    <label class="form-label">More about the reason (optional)</label>
+                    <input name="ReasonNote" class="form-control" maxlength="200" />
+                </div>
+                <div class="mb-3">
+                    <label class="form-label">Description</label>
+                    <textarea name="Description" class="form-control" rows="3" maxlength="2000" required></textarea>
+                </div>
+                <div class="mb-3">
+                    <label class="form-label">How you will send it</label>
+                    <input name="ShipMethod" class="form-control" maxlength="100" placeholder="Post, courier, …" />
+                </div>
+                <div class="mb-3">
+                    <label class="form-label">Photos</label>
+                    <input type="file" name="Photos" class="form-control" accept="image/*" multiple />
+                    <div class="form-text">Up to 8 images. Admin reviews these before approving.</div>
+                </div>
+
+                <h6 class="mt-4">Items</h6>
+                <p class="small text-muted">Set qty to 0 to skip a line. You can open another return later for leftover units.</p>
+                <table class="table">
+                    <thead>
+                        <tr><th>Item</th><th>Left</th><th>Qty</th><th>Paid</th><th>Refund / unit</th></tr>
+                    </thead>
+                    <tbody>
+                        @for (var i = 0; i < Model.Lines.Count; i++)
+                        {
+                            var line = Model.Lines[i];
+                            <tr>
+                                <td>
+                                    @line.Title <div class="small text-muted">@line.Sku</div>
+                                    <input type="hidden" name="OrderItemId[@i]" value="@line.OrderItemID" />
+                                </td>
+                                <td>@line.RemainingQty / @line.OrderedQty</td>
+                                <td>
+                                    <input type="number" name="Qty[@i]" class="form-control" min="0" max="@line.RemainingQty"
+                                           value="@(line.RemainingQty > 0 ? line.RemainingQty : 0)" @(line.RemainingQty <= 0 ? "readonly" : null) />
+                                </td>
+                                <td>@line.UnitPricePaid.ToString("0.##")</td>
+                                <td>
+                                    <input type="number" name="UnitRefund[@i]" class="form-control" min="0" step="0.01"
+                                           value="@line.UnitPricePaid.ToString("0.##")" @(line.RemainingQty <= 0 ? "readonly" : null) />
+                                </td>
+                            </tr>
+                        }
+                    </tbody>
+                </table>
+
+                <button type="submit" class="btn btn-primary">Submit pre-request</button>
+                <a asp-action="OrderDetail" asp-route-id="@Model.OrderID" class="btn btn-link">Cancel</a>
+            </form>
+        }
+    </div>
+</section>

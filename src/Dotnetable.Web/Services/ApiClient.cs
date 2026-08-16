@@ -535,6 +535,73 @@ public class ApiClient
         return await GetOrNullAsync<Order>($"api/orders/{id}", ct);
     }
 
+    public async Task<PagedResult<CustomerReturnDto>> GetReturnsAsync(int page = 1, int pageSize = 10, CancellationToken ct = default)
+    {
+        try
+        {
+            return await _http.GetFromJsonAsync<PagedResult<CustomerReturnDto>>($"api/returns?page={page}&pageSize={pageSize}", ct)
+                ?? new PagedResult<CustomerReturnDto>();
+        }
+        catch (HttpRequestException) { return new PagedResult<CustomerReturnDto>(); }
+    }
+
+    public Task<CustomerReturnDto?> GetReturnAsync(int id, CancellationToken ct = default) =>
+        GetOrNullAsync<CustomerReturnDto>($"api/returns/{id}", ct);
+
+    public Task<ReturnEligibilityDto?> GetReturnEligibilityAsync(int orderId, CancellationToken ct = default) =>
+        GetOrNullAsync<ReturnEligibilityDto>($"api/returns/eligible/{orderId}", ct);
+
+    public async Task<(bool Ok, CustomerReturnDto? Row, string? Error)> CreateReturnAsync(object payload, CancellationToken ct = default)
+    {
+        try
+        {
+            var response = await _http.PostAsJsonAsync("api/returns", payload, ct);
+            if (!response.IsSuccessStatusCode)
+            {
+                var err = await response.Content.ReadFromJsonAsync<Dictionary<string, string>>(cancellationToken: ct);
+                return (false, null, err?.GetValueOrDefault("message") ?? "Request failed.");
+            }
+            var row = await response.Content.ReadFromJsonAsync<CustomerReturnDto>(cancellationToken: ct);
+            return (true, row, null);
+        }
+        catch (HttpRequestException) { return (false, null, "Service is unavailable."); }
+    }
+
+    public Task<AuthApiResult> ShipReturnAsync(int id, string trackingCode, string? shipMethod, CancellationToken ct = default) =>
+        PostAsync($"api/returns/{id}/ship", new { trackingCode, shipMethod }, ct);
+
+    public async Task<AuthApiResult> UpdateReturnTrackingAsync(int id, string trackingCode, string? shipMethod, CancellationToken ct = default)
+    {
+        try
+        {
+            var response = await _http.PutAsJsonAsync($"api/returns/{id}/tracking", new { trackingCode, shipMethod }, ct);
+            return await ToResultAsync(response, ct);
+        }
+        catch (HttpRequestException) { return Unreachable(); }
+    }
+
+    public async Task<(bool Ok, int? FileId, string? Error)> UploadReturnPhotoAsync(int returnId, IFormFile file, CancellationToken ct = default)
+    {
+        using var content = new MultipartFormDataContent();
+        using var stream = file.OpenReadStream();
+        using var streamContent = new StreamContent(stream);
+        if (!string.IsNullOrEmpty(file.ContentType))
+            streamContent.Headers.ContentType = System.Net.Http.Headers.MediaTypeHeaderValue.Parse(file.ContentType);
+        content.Add(streamContent, "file", file.FileName);
+        try
+        {
+            var response = await _http.PostAsync($"api/returns/{returnId}/photos", content, ct);
+            if (!response.IsSuccessStatusCode)
+            {
+                var err = await response.Content.ReadFromJsonAsync<Dictionary<string, string>>(cancellationToken: ct);
+                return (false, null, err?.GetValueOrDefault("message"));
+            }
+            var ok = await response.Content.ReadFromJsonAsync<Dictionary<string, int>>(cancellationToken: ct);
+            return (true, ok?.GetValueOrDefault("fileId"), null);
+        }
+        catch (HttpRequestException) { return (false, null, "Service is unavailable."); }
+    }
+
     // ── Digital library (post-purchase downloads / codes / service URLs) ──
 
     public async Task<PagedResult<DigitalLibraryItemDto>> GetDigitalLibraryAsync(int page = 1, int pageSize = 20, CancellationToken ct = default)

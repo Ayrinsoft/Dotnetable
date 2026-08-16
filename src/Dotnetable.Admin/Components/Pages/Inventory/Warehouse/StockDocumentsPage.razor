@@ -387,7 +387,7 @@ else
     private void OpenDoc(StockDocument d)
     {
         if (d.DocumentType == (byte)StockDocumentType.Return)
-            Nav.NavigateTo($"/inventory/returns/{d.StockDocumentID}");
+            Nav.NavigateTo($"/inventory/returns/wms/{d.StockDocumentID}");
         else
             Nav.NavigateTo($"/inventory/stock-documents/{d.StockDocumentID}");
     }

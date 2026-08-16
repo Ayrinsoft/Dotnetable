@@ -117,6 +117,15 @@ public partial class Website
     /// </summary>
     public int FiscalCloseDueDays { get; set; } = 5;
 
+    /// <summary>When false, storefront customers cannot open a return request.</summary>
+    public bool ReturnsEnabled { get; set; } = true;
+
+    /// <summary>Days after the window start (ship or delivered) when a customer may request a return.</summary>
+    public int ReturnWindowDays { get; set; } = 7;
+
+    /// <summary><see cref="Enums.ReturnWindowFrom"/> — 0 = shipped at, 1 = marked delivered.</summary>
+    public byte ReturnWindowFrom { get; set; }
+
     public virtual ICollection<AdminNotification> AdminNotifications { get; set; } = new List<AdminNotification>();
 
     public virtual ICollection<AttributeDefinition> AttributeDefinitions { get; set; } = new List<AttributeDefinition>();

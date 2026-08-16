@@ -1,7 +1,7 @@
 @page "/inventory/returns"
 @using Dotnetable.Domain.Enums
 @attribute [Authorize(Policy = RoleKeys.WarehouseView)]
-@inject IStockDocumentService Docs
+@inject ICustomerReturnService Returns
 @inject IWebsiteService WebsiteService
 @inject AuthenticationStateProvider AuthState
 @inject IDialogService DialogService
@@ -14,7 +14,7 @@
     <MudStack Spacing="0">
         <MudText Typo="Typo.h5" Class="fw-bold">@L["returns.title", "Customer returns"]</MudText>
         <MudText Typo="Typo.body2" Color="Color.Secondary">
-            @L["returns.subtitle", "Customer product returns: register, receive at QC, inspect, restock, then refund. Each step is logged."]
+            @L["returns.subtitle", "Pre-requests from the storefront: review photos and reason, set who pays shipping, then wait for the customer to ship."]
         </MudText>
     </MudStack>
     <MudStack Row="true" Spacing="2" AlignItems="AlignItems.Center">
@@ -43,7 +43,7 @@
         @if (_items.Count == 0)
         {
             <tr>
-                <td colspan="6" style="text-align:center; padding:32px;">
+                <td colspan="7" style="text-align:center; padding:32px;">
                     <MudText Color="Color.Secondary">@L["returns.empty", "No customer returns yet."]</MudText>
                 </td>
             </tr>
@@ -52,18 +52,15 @@
         {
             @foreach (var d in _items)
             {
-                <tr style="cursor:pointer" @onclick="@(() => Nav.NavigateTo($"/inventory/returns/{d.StockDocumentID}"))">
-                    <td><code>@d.DocumentNumber</code></td>
+                <tr style="cursor:pointer" @onclick="@(() => Nav.NavigateTo($"/inventory/returns/{d.CustomerReturnRequestID}"))">
+                    <td>#@d.CustomerReturnRequestID</td>
                     <td>
-                        @if (d.OrderID is int oid)
-                        {
-                            <MudLink Href="@($"/orders/{oid}")" @onclick:stopPropagation="true">@(d.Order?.OrderNumber ?? $"#{oid}")</MudLink>
-                        }
-                        else { <span>—</span> }
+                        <MudLink Href="@($"/orders/{d.OrderID}")" @onclick:stopPropagation="true">@d.OrderNumber</MudLink>
                     </td>
-                    <td>@((StockDocumentStatus)d.Status)</td>
-                    <td>@(d.ToWarehouse?.Name ?? "—")</td>
-                    <td>@(d.PaymentRefundID is int ? L["yes", "Yes"] : L["no", "No"])</td>
+                    <td>@(d.ClientName ?? "—")</td>
+                    <td>@StatusLabel((CustomerReturnStatus)d.Status)</td>
+                    <td>@MoneyFormat.Group(d.RequestedRefundTotal, d.CurrencyCode)</td>
+                    <td>@(d.TrackingCode ?? "—")</td>
                     <td>@d.CreatedAt.ToLocalTime().ToString("g")</td>
                 </tr>
             }
@@ -75,7 +72,7 @@
     private bool _loading = true, _isMaster, _canCreate;
     private int _websiteId, _memberId;
     private List<Website> _websites = new();
-    private List<StockDocument> _items = new();
+    private List<CustomerReturnDto> _items = new();
     private GridViewHeaderParameters _grid = new();
 
     protected override async Task OnInitializedAsync()
@@ -93,26 +90,39 @@
             Pagination = new PaginationModel { PageSize = 25 },
             HeaderItems = new()
             {
-                new() { ColumnTitle = L["number", "Number"], ColumnName = nameof(StockDocument.DocumentNumber), HasSort = true, HasSearch = true },
+                new() { ColumnTitle = L["id", "ID"], ColumnName = nameof(CustomerReturnDto.CustomerReturnRequestID), HasSort = true },
                 new() { ColumnTitle = L["orders.order", "Order"], ColumnName = "OrderNumber", HasSearch = true },
+                new() { ColumnTitle = L["client", "Customer"], ColumnName = "" },
                 new()
                 {
                     ColumnTitle = L["status", "Status"],
-                    ColumnName = nameof(StockDocument.Status),
+                    ColumnName = nameof(CustomerReturnDto.Status),
                     HasSort = true,
                     HasSearch = true,
                     SearchType = SearchColumnType.DropDown,
-                    OtherDropDownValues = Enum.GetValues<StockDocumentStatus>()
-                        .ToDictionary(s => s.ToString(), s => ((byte)s).ToString())
+                    OtherDropDownValues = Enum.GetValues<CustomerReturnStatus>()
+                        .ToDictionary(s => StatusLabel(s), s => ((byte)s).ToString())
                 },
-                new() { ColumnTitle = L["returns.qc_warehouse", "Warehouse"], ColumnName = nameof(StockDocument.ToWarehouseID), HasSort = true },
-                new() { ColumnTitle = L["payments.refund", "Refund"], ColumnName = nameof(StockDocument.PaymentRefundID) },
-                new() { ColumnTitle = L["created", "Created"], ColumnName = nameof(StockDocument.CreatedAt), HasSort = true },
+                new() { ColumnTitle = L["returns.requested", "Requested"], ColumnName = nameof(CustomerReturnDto.RequestedRefundTotal), HasSort = true },
+                new() { ColumnTitle = L["orders.tracking_code", "Tracking"], ColumnName = nameof(CustomerReturnDto.TrackingCode), HasSearch = true },
+                new() { ColumnTitle = L["created", "Created"], ColumnName = nameof(CustomerReturnDto.CreatedAt), HasSort = true },
             }
         };
 
         await LoadAsync();
     }
+
+    private string StatusLabel(CustomerReturnStatus s) => s switch
+    {
+        CustomerReturnStatus.PreRequest => L["returns.status.pre", "Pre-request"],
+        CustomerReturnStatus.Rejected => L["returns.status.rejected", "Rejected"],
+        CustomerReturnStatus.ApprovedAwaitingShipment => L["returns.status.approved", "Awaiting shipment"],
+        CustomerReturnStatus.Shipped => L["returns.status.shipped", "Shipped"],
+        CustomerReturnStatus.Received => L["returns.status.received", "Received"],
+        CustomerReturnStatus.Completed => L["returns.status.completed", "Completed"],
+        CustomerReturnStatus.Cancelled => L["returns.status.cancelled", "Cancelled"],
+        _ => s.ToString(),
+    };
 
     private async Task OnWebsiteChanged(int id) { _websiteId = id; _grid.Pagination.PageIndex = 1; await LoadAsync(); }
     private Task OnGridChanged(GridViewHeaderParameters _) => LoadAsync();
@@ -122,7 +132,7 @@
         _loading = true;
         if (_websiteId > 0)
         {
-            var result = await Docs.GetPagedAsync(_websiteId, null, (byte)StockDocumentType.Return, _grid.ToQuery());
+            var result = await Returns.GetPagedAsync(_websiteId, null, null, _grid.ToQuery());
             _items = result.Items.ToList();
             _grid.Pagination.MaxLength = result.TotalCount;
         }

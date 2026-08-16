@@ -300,6 +300,23 @@ else if (_website is not null)
                                           Label="@L["website.free_shipping_min", "Free shipping min order (site currency)"]"
                                           HelperText="@L["website.free_shipping_min_help", "0 = disabled. When cart reaches this amount, all shipping methods are free (in addition to per-method thresholds)."]" />
                         </MudItem>
+                        <MudItem xs="12" sm="4">
+                            <MudSwitch T="bool" @bind-Value="_website.ReturnsEnabled" Color="Color.Primary"
+                                       Label="@L["website.returns_enabled", "Allow customer returns"]" />
+                        </MudItem>
+                        <MudItem xs="12" sm="4">
+                            <MudNumericField T="int" @bind-Value="_website.ReturnWindowDays" Min="0" Max="365"
+                                             Variant="Variant.Outlined" Dense="true"
+                                             Label="@L["website.return_window_days", "Return window (days)"]"
+                                             HelperText="@L["website.return_window_days_help", "Days after ship or delivery when the customer may open a return."]" />
+                        </MudItem>
+                        <MudItem xs="12" sm="4">
+                            <MudSelect T="byte" @bind-Value="_website.ReturnWindowFrom" Variant="Variant.Outlined" Dense="true"
+                                       Label="@L["website.return_window_from", "Window starts from"]">
+                                <MudSelectItem T="byte" Value="@((byte)0)">@L["website.return_from.shipped", "Ship date"]</MudSelectItem>
+                                <MudSelectItem T="byte" Value="@((byte)1)">@L["website.return_from.delivered", "Delivered status"]</MudSelectItem>
+                            </MudSelect>
+                        </MudItem>
                         <MudItem xs="12">
                             <MudStack Row="true" AlignItems="AlignItems.Center" Justify="Justify.SpaceBetween" Class="mb-2">
                                 <MudText Typo="Typo.subtitle2">@L["website.shipping_methods", "Shipping methods for this site"]</MudText>
@@ -427,6 +444,8 @@ else if (_website is not null)
                 Active = true,
                 TaxEnabled = true,
                 AllowCashOnDelivery = true,
+                ReturnsEnabled = true,
+                ReturnWindowDays = 7,
                 DefaultLanguageCode = "en",
                 ProductCodePrefix = Dotnetable.Domain.ProductCode.DefaultPrefix,
                 DefaultCurrencyCode = _currencies.FirstOrDefault()?.CurrencyCode ?? string.Empty,

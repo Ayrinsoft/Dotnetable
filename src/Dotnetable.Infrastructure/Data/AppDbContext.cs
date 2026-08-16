@@ -137,6 +137,9 @@ public partial class AppDbContext : DbContext
     public virtual DbSet<StockDocument> StockDocuments { get; set; }
     public virtual DbSet<StockDocumentLine> StockDocumentLines { get; set; }
     public virtual DbSet<StockDocumentHistory> StockDocumentHistories { get; set; }
+    public virtual DbSet<CustomerReturnRequest> CustomerReturnRequests { get; set; }
+    public virtual DbSet<CustomerReturnRequestLine> CustomerReturnRequestLines { get; set; }
+    public virtual DbSet<CustomerReturnRequestHistory> CustomerReturnRequestHistories { get; set; }
     public virtual DbSet<RecordAttachment> RecordAttachments { get; set; }
     public virtual DbSet<OrgUnit> OrgUnits { get; set; }
     public virtual DbSet<Employee> Employees { get; set; }
@@ -666,6 +669,43 @@ public partial class AppDbContext : DbContext
         {
             entity.Property(e => e.Note).HasMaxLength(500);
             entity.HasOne(d => d.StockDocument).WithMany(p => p.StockDocumentHistories).HasForeignKey(d => d.StockDocumentID).OnDelete(DeleteBehavior.ClientSetNull);
+            entity.HasOne(d => d.CreatedByMember).WithMany().HasForeignKey(d => d.CreatedByMemberID);
+        });
+        modelBuilder.Entity<CustomerReturnRequest>(entity =>
+        {
+            entity.Property(e => e.ReasonNote).HasMaxLength(200);
+            entity.Property(e => e.Description).HasMaxLength(2000);
+            entity.Property(e => e.ShipMethod).HasMaxLength(100);
+            entity.Property(e => e.TrackingCode).HasMaxLength(100);
+            entity.Property(e => e.CurrencyCode).HasMaxLength(3);
+            entity.Property(e => e.ReviewNote).HasMaxLength(1000);
+            entity.Property(e => e.RequestedRefundTotal).HasColumnType("decimal(18,4)");
+            entity.Property(e => e.ApprovedRefundTotal).HasColumnType("decimal(18,4)").HasDefaultValue(0m);
+            entity.Property(e => e.ShippingPayer).HasDefaultValue((byte)0);
+            entity.HasIndex(e => new { e.WebsiteID, e.Status, e.CreatedAt }, "IX_CustomerReturnRequests_Website_Status");
+            entity.HasIndex(e => e.OrderID, "IX_CustomerReturnRequests_Order");
+            entity.HasIndex(e => new { e.WebsiteClientID, e.CreatedAt }, "IX_CustomerReturnRequests_Client");
+            entity.HasOne(d => d.Website).WithMany().HasForeignKey(d => d.WebsiteID).OnDelete(DeleteBehavior.ClientSetNull);
+            entity.HasOne(d => d.Order).WithMany().HasForeignKey(d => d.OrderID).OnDelete(DeleteBehavior.ClientSetNull);
+            entity.HasOne(d => d.WebsiteClient).WithMany().HasForeignKey(d => d.WebsiteClientID).OnDelete(DeleteBehavior.ClientSetNull);
+            entity.HasOne(d => d.StockDocument).WithMany().HasForeignKey(d => d.StockDocumentID);
+            entity.HasOne(d => d.ReviewedByMember).WithMany().HasForeignKey(d => d.ReviewedByMemberID);
+        });
+        modelBuilder.Entity<CustomerReturnRequestLine>(entity =>
+        {
+            entity.Property(e => e.UnitPricePaid).HasColumnType("decimal(18,4)");
+            entity.Property(e => e.UnitRefundRequested).HasColumnType("decimal(18,4)");
+            entity.Property(e => e.UnitRefundApproved).HasColumnType("decimal(18,4)").HasDefaultValue(0m);
+            entity.HasIndex(e => e.CustomerReturnRequestID, "IX_CustomerReturnRequestLines_Request");
+            entity.HasIndex(e => e.OrderItemID, "IX_CustomerReturnRequestLines_OrderItem");
+            entity.HasOne(d => d.ReturnRequest).WithMany(p => p.Lines).HasForeignKey(d => d.CustomerReturnRequestID).OnDelete(DeleteBehavior.ClientSetNull);
+            entity.HasOne(d => d.OrderItem).WithMany().HasForeignKey(d => d.OrderItemID).OnDelete(DeleteBehavior.ClientSetNull);
+        });
+        modelBuilder.Entity<CustomerReturnRequestHistory>(entity =>
+        {
+            entity.Property(e => e.Note).HasMaxLength(500);
+            entity.HasIndex(e => new { e.CustomerReturnRequestID, e.CreatedAt }, "IX_CustomerReturnRequestHistories_Request");
+            entity.HasOne(d => d.ReturnRequest).WithMany(p => p.Histories).HasForeignKey(d => d.CustomerReturnRequestID).OnDelete(DeleteBehavior.ClientSetNull);
             entity.HasOne(d => d.CreatedByMember).WithMany().HasForeignKey(d => d.CreatedByMemberID);
         });
         modelBuilder.Entity<RecordAttachment>(entity =>
@@ -3487,6 +3527,9 @@ public partial class AppDbContext : DbContext
             entity.Property(e => e.FiscalYearStartMonth).HasDefaultValue((byte)1);
             entity.Property(e => e.FiscalWeekStartDay).HasDefaultValue((byte)1);
             entity.Property(e => e.FiscalCloseDueDays).HasDefaultValue(5);
+            entity.Property(e => e.ReturnsEnabled).HasDefaultValue(true);
+            entity.Property(e => e.ReturnWindowDays).HasDefaultValue(7);
+            entity.Property(e => e.ReturnWindowFrom).HasDefaultValue((byte)0);
             entity.Property(e => e.FreeShippingMinOrderAmount).HasColumnType("decimal(18, 4)");
             entity.Property(e => e.FreeShippingMinOrderAmountUsd).HasColumnType("decimal(18, 4)");
             entity.Property(e => e.ProductCodePrefix)

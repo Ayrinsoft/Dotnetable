@@ -1,0 +1,49 @@
+@using Dotnetable.Application.DTOs
+@using Dotnetable.Domain.Enums
+@model PagedResult<CustomerReturnDto>
+@{
+    ViewData["Title"] = "My returns";
+    Layout = "/Themes/Default/Views/Shared/_Layout.cshtml";
+    string StatusLabel(CustomerReturnStatus s) => s switch
+    {
+        CustomerReturnStatus.PreRequest => "Waiting for review",
+        CustomerReturnStatus.Rejected => "Rejected",
+        CustomerReturnStatus.ApprovedAwaitingShipment => "Approved — ship the parcel",
+        CustomerReturnStatus.Shipped => "Shipped",
+        CustomerReturnStatus.Received => "Received",
+        CustomerReturnStatus.Completed => "Completed",
+        CustomerReturnStatus.Cancelled => "Cancelled",
+        _ => s.ToString(),
+    };
+}
+
+@await Html.PartialAsync("_PageHeader", ("My returns", "Account"))
+
+<section class="site-section">
+    <div class="container">
+        @if (Model.Items.Count == 0)
+        {
+            <p class="text-muted">You have not requested a return yet. Open an order to start one.</p>
+        }
+        else
+        {
+            <table class="table">
+                <thead>
+                    <tr><th>#</th><th>Order</th><th>Status</th><th>Requested</th><th></th></tr>
+                </thead>
+                <tbody>
+                    @foreach (var r in Model.Items)
+                    {
+                        <tr>
+                            <td>@r.CustomerReturnRequestID</td>
+                            <td>@r.OrderNumber</td>
+                            <td>@StatusLabel((CustomerReturnStatus)r.Status)</td>
+                            <td>@r.RequestedRefundTotal.ToString("0.##") @r.CurrencyCode</td>
+                            <td><a class="btn btn-sm btn-outline-primary" asp-action="ReturnDetail" asp-route-id="@r.CustomerReturnRequestID">View</a></td>
+                        </tr>
+                    }
+                </tbody>
+            </table>
+        }
+    </div>
+</section>
