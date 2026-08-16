@@ -1529,6 +1529,14 @@ window.DOCS_ADMIN = {
               fa: "**Inventory → Warehouses** را باز کنید. انبار پیش‌فرض MAIN را داشته باشید (با اولین استفاده WMS ساخته می‌شود).",
             },
             {
+              en: "The list uses the shared admin grid: sort by Code, Name, Default, or Status. Open the filter row to search by code/name or restrict to default / active warehouses.",
+              fa: "لیست از گرید مشترک ادمین استفاده می‌کند: مرتب‌سازی روی کد، نام، پیش‌فرض یا وضعیت. ردیف فیلتر را باز کنید تا با کد/نام جستجو کنید یا فقط انبار پیش‌فرض / فعال را ببینید.",
+            },
+            {
+              en: "**New Warehouse** or the row edit icon opens a dialog for code, name, address, default, and active. Code must be unique on the site. Marking one warehouse as default clears default on the others.",
+              fa: "**انبار جدید** یا آیکون ویرایش ردیف دیالوگ کد، نام، آدرس، پیش‌فرض و فعال را باز می‌کند. کد در سایت باید یکتا باشد. اگر یکی را پیش‌فرض کنید، پیش‌فرض بقیه برداشته می‌شود.",
+            },
+            {
               en: "Receive stock with **Inbound** stock documents; sell via order outbound pick; returns create **Return** documents after refund.",
               fa: "ورود کالا با سند **Inbound**؛ فروش با برداشت خروجی سفارش؛ برگشت بعد از استرداد سند **Return** می‌سازد.",
             },

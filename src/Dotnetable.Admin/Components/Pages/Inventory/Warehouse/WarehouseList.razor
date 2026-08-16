@@ -3,47 +3,92 @@
 @inject IWarehouseService Warehouses
 @inject IWebsiteService WebsiteService
 @inject AuthenticationStateProvider AuthState
-@inject ISnackbar Snackbar
+@inject IDialogService DialogService
 @inject IPageLocalizer L
-@inject NavigationManager Nav
 
 <DNPageTitle Title=@L["warehouse", "Warehouses"] />
-<MudStack Row="true" Justify="Justify.SpaceBetween" Class="mb-4">
-    <MudText Typo="Typo.h5" Class="fw-bold">@L["warehouse", "Warehouses"]</MudText>
-    @if (_isMaster) { <WebsiteSelector Value="_websiteId" ValueChanged="async id=>{_websiteId=id;await Load();}" Websites="_websites" Dense="true" Style="min-width:160px" /> }
+
+<MudStack Row="true" AlignItems="AlignItems.Center" Justify="Justify.SpaceBetween" Class="mb-4">
+    <MudStack Spacing="0">
+        <MudText Typo="Typo.h5" Class="fw-bold">@L["warehouse", "Warehouses"]</MudText>
+        <MudText Typo="Typo.body2" Color="Color.Secondary">
+            @L["warehouse.subtitle", "Physical warehouse locations for this site. Use column filters and sort to find a warehouse."]
+        </MudText>
+    </MudStack>
+    <MudStack Row="true" Spacing="2" AlignItems="AlignItems.Center">
+        @if (_isMaster)
+        {
+            <WebsiteSelector Value="_websiteId" ValueChanged="OnWebsiteChanged" Websites="_websites"
+                             Label="@L["website", "Website"]" Variant="Variant.Outlined"
+                             Dense="true" Style="min-width:180px" />
+        }
+        @if (_canEdit)
+        {
+            <MudButton Variant="Variant.Filled" Color="Color.Primary" StartIcon="@Icons.Material.Filled.Add" OnClick="CreateAsync">
+                @L["warehouse.new", "New Warehouse"]
+            </MudButton>
+        }
+    </MudStack>
 </MudStack>
-@if (_canEdit)
-{
-    <MudPaper Class="app-card pa-3 mb-3">
-        <MudStack Row="true" Class="flex-wrap gap-2">
-            <MudTextField @bind-Value="_code" Label="Code" Dense="true" Style="width:100px" />
-            <MudTextField @bind-Value="_name" Label="Name" Dense="true" Style="min-width:180px" />
-            <MudSwitch T="bool" @bind-Value="_isDefault" Label="Default" Color="Color.Primary" />
-            <MudButton Variant="Variant.Filled" Color="Color.Primary" OnClick="Save">@L["save", "Save"]</MudButton>
-        </MudStack>
-    </MudPaper>
-}
-<MudPaper Class="app-card pa-4">
-    <MudSimpleTable Dense="true">
-        <thead><tr><th>Code</th><th>Name</th><th>Default</th><th>Active</th><th></th></tr></thead>
-        <tbody>
+
+<MudPaper Elevation="0" Class="app-card rounded-lg pa-4">
+    @if (_loading)
+    {
+        <MudProgressLinear Indeterminate="true" Color="Color.Primary" Class="mb-3" />
+    }
+    <DNGridView GridHeaderParams="_grid" OnSearchChanged="OnGridChanged"
+                SearchPlaceholder="@L["search", "Search…"]" AllText="@L["all", "All"]">
+        @if (_items.Count == 0)
+        {
+            <tr>
+                <td colspan="5" style="text-align:center; padding:32px;">
+                    <MudText Color="Color.Secondary">@L["warehouse.empty", "No warehouses found."]</MudText>
+                </td>
+            </tr>
+        }
+        else
+        {
             @foreach (var w in _items)
             {
                 <tr>
                     <td><code>@w.Code</code></td>
                     <td>@w.Name</td>
-                    <td>@(w.IsDefault ? "Yes" : "")</td>
-                    <td>@(w.IsActive ? "Yes" : "No")</td>
-                    <td><MudButton Size="Size.Small" Href="@($"/inventory/stock-documents?warehouseId={w.WarehouseID}")">Docs</MudButton></td>
+                    <td>
+                        @if (w.IsDefault)
+                        {
+                            <MudChip T="string" Size="Size.Small" Color="Color.Primary">@L["warehouse.default", "Default"]</MudChip>
+                        }
+                    </td>
+                    <td>
+                        <MudChip T="string" Size="Size.Small" Color="@(w.IsActive ? Color.Success : Color.Default)">
+                            @(w.IsActive ? L["active", "Active"] : L["inactive", "Inactive"])
+                        </MudChip>
+                    </td>
+                    <td>
+                        <MudStack Row="true" Spacing="0">
+                            @if (_canEdit)
+                            {
+                                <MudIconButton Icon="@Icons.Material.Filled.Edit" Size="Size.Small" OnClick="@(() => EditAsync(w))" />
+                            }
+                            <MudIconButton Icon="@Icons.Material.Filled.Description" Size="Size.Small" Color="Color.Primary"
+                                           Href="@($"/inventory/stock-documents?warehouseId={w.WarehouseID}")"
+                                           title="@L["warehouse.docs", "Docs"]" />
+                        </MudStack>
+                    </td>
                 </tr>
             }
-        </tbody>
-    </MudSimpleTable>
+        }
+    </DNGridView>
 </MudPaper>
+
 @code {
-    private bool _isMaster, _canEdit, _isDefault; private int _websiteId;
-    private List<Website> _websites = new(); private List<Warehouse> _items = new();
-    private string _code = "", _name = "";
+    private bool _loading = true;
+    private bool _isMaster, _canEdit;
+    private int _websiteId;
+    private List<Website> _websites = new();
+    private List<Warehouse> _items = new();
+    private GridViewHeaderParameters _grid = new();
+
     protected override async Task OnInitializedAsync()
     {
         await L.EnsureLoadedAsync();
@@ -52,15 +97,98 @@
         _canEdit = AdminPolicies.Allows(u, RoleKeys.WarehouseReceive) || AdminPolicies.Allows(u, RoleKeys.InventoryEdit);
         int.TryParse(u.FindFirst(AdminClaimTypes.WebsiteId)?.Value, out _websiteId);
         if (_isMaster) _websites = (await WebsiteService.GetAllAsync()).ToList();
-        await Load();
+
+        _grid = new GridViewHeaderParameters
+        {
+            Pagination = new PaginationModel { PageSize = 25 },
+            HeaderItems = new()
+            {
+                new() { ColumnTitle = L["warehouse.code", "Code"], ColumnName = nameof(Warehouse.Code), HasSort = true, HasSearch = true },
+                new() { ColumnTitle = L["name", "Name"], ColumnName = nameof(Warehouse.Name), HasSort = true, HasSearch = true },
+                new()
+                {
+                    ColumnTitle = L["warehouse.default", "Default"],
+                    ColumnName = nameof(Warehouse.IsDefault),
+                    HasSort = true,
+                    HasSearch = true,
+                    SearchType = SearchColumnType.DropDown,
+                    OtherDropDownValues = new() { [L["yes", "Yes"]] = "true", [L["no", "No"]] = "false" }
+                },
+                new()
+                {
+                    ColumnTitle = L["status", "Status"],
+                    ColumnName = nameof(Warehouse.IsActive),
+                    HasSort = true,
+                    HasSearch = true,
+                    SearchType = SearchColumnType.DropDown,
+                    OtherDropDownValues = new() { [L["active", "Active"]] = "true", [L["inactive", "Inactive"]] = "false" }
+                },
+                new() { ColumnTitle = "", ColumnName = "" },
+            }
+        };
+
+        await LoadAsync();
     }
-    private async Task Load() { if (_websiteId > 0) _items = (await Warehouses.GetAllAsync(_websiteId)).ToList(); }
-    private async Task Save()
+
+    private async Task OnWebsiteChanged(int id)
     {
-        if (_websiteId <= 0 || string.IsNullOrWhiteSpace(_code) || string.IsNullOrWhiteSpace(_name)) return;
-        await Warehouses.UpsertAsync(new Warehouse { WebsiteID = _websiteId, Code = _code.Trim(), Name = _name.Trim(), IsDefault = _isDefault, IsActive = true });
-        _code = _name = ""; _isDefault = false;
-        Snackbar.Add(L["saved", "Saved."], Severity.Success);
-        await Load();
+        _websiteId = id;
+        _grid.Pagination.PageIndex = 1;
+        await LoadAsync();
+    }
+
+    private Task OnGridChanged(GridViewHeaderParameters _) => LoadAsync();
+
+    private async Task LoadAsync()
+    {
+        _loading = true;
+        if (_websiteId > 0)
+        {
+            var result = await Warehouses.GetPagedAsync(_websiteId, _grid.ToQuery());
+            _items = result.Items.ToList();
+            _grid.Pagination.MaxLength = result.TotalCount;
+        }
+        else
+        {
+            _items = new();
+            _grid.Pagination.MaxLength = 0;
+        }
+        _loading = false;
+    }
+
+    private async Task CreateAsync()
+    {
+        if (_websiteId <= 0) return;
+        if (await ShowDialogAsync(new Warehouse
+            {
+                WebsiteID = _websiteId,
+                IsActive = true,
+            }, true))
+            await LoadAsync();
+    }
+
+    private async Task EditAsync(Warehouse w)
+    {
+        var copy = new Warehouse
+        {
+            WarehouseID = w.WarehouseID,
+            WebsiteID = w.WebsiteID,
+            Code = w.Code,
+            Name = w.Name,
+            Address = w.Address,
+            IsDefault = w.IsDefault,
+            IsActive = w.IsActive,
+            CreatedAt = w.CreatedAt,
+        };
+        if (await ShowDialogAsync(copy, false)) await LoadAsync();
+    }
+
+    private async Task<bool> ShowDialogAsync(Warehouse model, bool isNew)
+    {
+        var parameters = new DialogParameters<WarehouseDialog> { { x => x.Model, model }, { x => x.IsNew, isNew } };
+        var dialog = await DialogService.ShowAsync<WarehouseDialog>(
+            isNew ? L["warehouse.new", "New Warehouse"] : L["warehouse.edit", "Edit Warehouse"], parameters);
+        var result = await dialog.Result;
+        return result is not null && !result.Canceled;
     }
 }

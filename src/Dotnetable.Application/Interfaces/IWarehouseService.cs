@@ -1,3 +1,4 @@
+using Dotnetable.Application.DTOs;
 using Dotnetable.Domain.Entities;
 
 namespace Dotnetable.Application.Interfaces;
@@ -5,6 +6,7 @@ namespace Dotnetable.Application.Interfaces;
 public interface IWarehouseService
 {
     Task<IReadOnlyList<Warehouse>> GetAllAsync(int websiteId, CancellationToken ct = default);
+    Task<PagedResult<Warehouse>> GetPagedAsync(int websiteId, GridQuery query, CancellationToken ct = default);
     Task<Warehouse> UpsertAsync(Warehouse warehouse, CancellationToken ct = default);
     Task EnsureDefaultAsync(int websiteId, CancellationToken ct = default);
     Task<IReadOnlyList<WarehouseStock>> GetStockAsync(int warehouseId, CancellationToken ct = default);
