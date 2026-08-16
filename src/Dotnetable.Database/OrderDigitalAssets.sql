@@ -7,11 +7,11 @@
     [ProductID]           INT             NOT NULL,
     [ProductType]         TINYINT         NOT NULL,
     [TitleSnapshot]       NVARCHAR (400)  NOT NULL,
+    [DigitalDownloadUrl]  NVARCHAR (1000) NULL,
     [DigitalServiceUrl]   NVARCHAR (1000) NULL,
     [DigitalDeliveryNote] NVARCHAR (2000) NULL,
     [IsActive]            BIT             NOT NULL,
     [GrantedAt]           DATETIME        NOT NULL,
-    [DigitalDownloadUrl]  NVARCHAR (1000) NULL,
     CONSTRAINT [PK_OrderDigitalAssets] PRIMARY KEY CLUSTERED ([OrderDigitalAssetID] ASC),
     CONSTRAINT [FK_OrderDigitalAssets_OrderItems] FOREIGN KEY ([OrderItemID]) REFERENCES [dbo].[OrderItems] ([OrderItemID]),
     CONSTRAINT [FK_OrderDigitalAssets_Orders] FOREIGN KEY ([OrderID]) REFERENCES [dbo].[Orders] ([OrderID]),
@@ -19,6 +19,8 @@
     CONSTRAINT [FK_OrderDigitalAssets_WebsiteClients] FOREIGN KEY ([WebsiteClientID]) REFERENCES [dbo].[WebsiteClients] ([WebsiteClientID]),
     CONSTRAINT [FK_OrderDigitalAssets_Websites] FOREIGN KEY ([WebsiteID]) REFERENCES [dbo].[Websites] ([WebsiteID])
 );
+
+
 
 
 GO

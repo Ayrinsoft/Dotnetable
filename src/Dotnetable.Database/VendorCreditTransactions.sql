@@ -2,7 +2,9 @@
     [VendorCreditTransactionID] INT             IDENTITY (1, 1) NOT NULL,
     [VendorID]                  INT             NOT NULL,
     [WebsiteID]                 INT             NOT NULL,
+    [Amount]                    DECIMAL (18, 4) NOT NULL,
     [AmountUsd]                 DECIMAL (18, 4) NOT NULL,
+    [BalanceAfter]              DECIMAL (18, 4) NOT NULL,
     [BalanceAfterUsd]           DECIMAL (18, 4) NOT NULL,
     [SourceType]                TINYINT         NOT NULL,
     [SourceOrderItemID]         INT             NULL,
@@ -10,8 +12,6 @@
     [Note]                      NVARCHAR (500)  NULL,
     [CreatedByMemberID]         INT             NULL,
     [CreatedAt]                 DATETIME        NOT NULL,
-    [Amount]                    DECIMAL (18, 4) DEFAULT ((0.0)) NOT NULL,
-    [BalanceAfter]              DECIMAL (18, 4) DEFAULT ((0.0)) NOT NULL,
     CONSTRAINT [PK_VendorCreditTransactions] PRIMARY KEY CLUSTERED ([VendorCreditTransactionID] ASC),
     CONSTRAINT [FK_VendorCreditTransactions_Members] FOREIGN KEY ([CreatedByMemberID]) REFERENCES [dbo].[Members] ([MemberID]),
     CONSTRAINT [FK_VendorCreditTransactions_OrderItems] FOREIGN KEY ([SourceOrderItemID]) REFERENCES [dbo].[OrderItems] ([OrderItemID]),
@@ -19,6 +19,8 @@
     CONSTRAINT [FK_VendorCreditTransactions_Vendors] FOREIGN KEY ([VendorID]) REFERENCES [dbo].[Vendors] ([VendorID]),
     CONSTRAINT [FK_VendorCreditTransactions_Websites] FOREIGN KEY ([WebsiteID]) REFERENCES [dbo].[Websites] ([WebsiteID])
 );
+
+
 
 
 GO

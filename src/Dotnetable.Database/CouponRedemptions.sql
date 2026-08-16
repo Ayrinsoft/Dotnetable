@@ -3,14 +3,16 @@
     [CouponID]           INT             NOT NULL,
     [OrderID]            INT             NOT NULL,
     [WebsiteClientID]    INT             NOT NULL,
+    [DiscountAmount]     DECIMAL (18, 4) NOT NULL,
     [DiscountAmountUsd]  DECIMAL (18, 4) NOT NULL,
     [RedeemedAt]         DATETIME2 (0)   NOT NULL,
-    [DiscountAmount]     DECIMAL (18, 4) DEFAULT ((0.0)) NOT NULL,
     CONSTRAINT [PK_CouponRedemptions] PRIMARY KEY CLUSTERED ([CouponRedemptionID] ASC),
     CONSTRAINT [FK_CouponRedemptions_Coupons] FOREIGN KEY ([CouponID]) REFERENCES [dbo].[Coupons] ([CouponID]),
     CONSTRAINT [FK_CouponRedemptions_Orders] FOREIGN KEY ([OrderID]) REFERENCES [dbo].[Orders] ([OrderID]),
     CONSTRAINT [FK_CouponRedemptions_WebsiteClients] FOREIGN KEY ([WebsiteClientID]) REFERENCES [dbo].[WebsiteClients] ([WebsiteClientID])
 );
+
+
 
 
 

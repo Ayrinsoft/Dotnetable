@@ -17,19 +17,19 @@
     [FaveIconFileID]                INT              NULL,
     [DefaultCurrencyCode]           CHAR (3)         NOT NULL,
     [StorePricesInUsd]              BIT              DEFAULT (CONVERT([bit],(0))) NOT NULL,
-    [PricesIncludeTax]              BIT              DEFAULT (CONVERT([bit],(0))) NOT NULL,
-    [SellerEconomicCode]            NVARCHAR (50)    NULL,
-    [SellerLegalName]               NVARCHAR (200)   NULL,
-    [SellerRegistrationNumber]      NVARCHAR (50)    NULL,
-    [SellerTaxId]                   NVARCHAR (50)    NULL,
-    [SellerVatNumber]               NVARCHAR (50)    NULL,
-    [TaxCountryID]                  INT              NULL,
     [TaxEnabled]                    BIT              DEFAULT (CONVERT([bit],(1))) NOT NULL,
-    [TaxOnShipping]                 BIT              DEFAULT (CONVERT([bit],(0))) NOT NULL,
+    [PricesIncludeTax]              BIT              NOT NULL,
+    [TaxOnShipping]                 BIT              NOT NULL,
+    [TaxCountryID]                  INT              NULL,
+    [SellerLegalName]               NVARCHAR (200)   NULL,
+    [SellerTaxId]                   NVARCHAR (50)    NULL,
+    [SellerEconomicCode]            NVARCHAR (50)    NULL,
+    [SellerVatNumber]               NVARCHAR (50)    NULL,
+    [SellerRegistrationNumber]      NVARCHAR (50)    NULL,
     [AllowCashOnDelivery]           BIT              DEFAULT (CONVERT([bit],(1))) NOT NULL,
-    [FreeShippingMinOrderAmount]    DECIMAL (18, 4)  DEFAULT ((0.0)) NOT NULL,
-    [FreeShippingMinOrderAmountUsd] DECIMAL (18, 4)  DEFAULT ((0.0)) NOT NULL,
     [ReportOfflineOrdersToTax]      BIT              DEFAULT (CONVERT([bit],(0))) NOT NULL,
+    [FreeShippingMinOrderAmount]    DECIMAL (18, 4)  NOT NULL,
+    [FreeShippingMinOrderAmountUsd] DECIMAL (18, 4)  NOT NULL,
     [ProductCodePrefix]             NVARCHAR (3)     DEFAULT (N'DN') NOT NULL,
     [FiscalPeriodCadence]           TINYINT          DEFAULT (CONVERT([tinyint],(3))) NOT NULL,
     [FiscalYearStartMonth]          TINYINT          DEFAULT (CONVERT([tinyint],(1))) NOT NULL,
@@ -41,6 +41,8 @@
     CONSTRAINT [FK_Websites_FileRecords] FOREIGN KEY ([LogoFileID]) REFERENCES [dbo].[FileRecords] ([FileRecordID]),
     CONSTRAINT [FK_Websites_TaxCountries] FOREIGN KEY ([TaxCountryID]) REFERENCES [dbo].[Countries] ([CountryID])
 );
+
+
 
 
 
@@ -68,4 +70,8 @@ CREATE NONCLUSTERED INDEX [IX_Websites_TaxCountryID]
 
 GO
 EXECUTE sp_addextendedproperty @name = N'MS_Description', @value = N'When true, also persist USD dual columns; default site currency is always operational authority.', @level0type = N'SCHEMA', @level0name = N'dbo', @level1type = N'TABLE', @level1name = N'Websites', @level2type = N'COLUMN', @level2name = N'StorePricesInUsd';
+
+
+GO
+EXECUTE sp_addextendedproperty @name = N'MS_Description', @value = N'1–3 letter product code prefix; codes are {prefix}-{ProductID}.', @level0type = N'SCHEMA', @level0name = N'dbo', @level1type = N'TABLE', @level1name = N'Websites', @level2type = N'COLUMN', @level2name = N'ProductCodePrefix';
 

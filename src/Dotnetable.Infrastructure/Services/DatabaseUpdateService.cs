@@ -58,59 +58,14 @@ public class DatabaseUpdateService : IDatabaseUpdateService
 
         var productVersion = ProductVersion(context);
 
-        // 1) InitialCreate already materialized as tables.
+        // Squashed InitialCreate: existing databases already have tables; only record history.
         var initial = pending.FirstOrDefault(m =>
             m.Contains("InitialCreate", StringComparison.OrdinalIgnoreCase));
         if (initial is not null
             && (await TableExistsAsync(context, "Websites", ct) || await TableExistsAsync(context, "Countries", ct)))
         {
             await MarkAppliedAsync(context, history, initial, productVersion, ct);
-            pending = (await context.Database.GetPendingMigrationsAsync(ct)).ToList();
         }
-
-        // 2) Additive migrations already partially applied (column present from a failed mid-run
-        //    or schema applied out-of-band via SSDT Schema Compare).
-        await BaselineIfColumnExistsAsync(context, history, pending, productVersion,
-            "SiteCurrencyPricing", "Websites", "StorePricesInUsd", ct);
-        pending = (await context.Database.GetPendingMigrationsAsync(ct)).ToList();
-        await BaselineIfColumnExistsAsync(context, history, pending, productVersion,
-            "SiteCurrencyMoneyEverywhere", "ShippingRates", "Price", ct);
-        pending = (await context.Database.GetPendingMigrationsAsync(ct)).ToList();
-
-        // MultiCurrencyWallets: SSDT/schema-compare often ships ClientWallets.CurrencyCode +
-        // WebsiteWalletCurrencies without writing __EFMigrationsHistory. Re-running the migration
-        // fails on DropIndex(UQ_ClientWallets_WebsiteClientID) because that index is already gone.
-        await BaselineIfColumnExistsAsync(context, history, pending, productVersion,
-            "MultiCurrencyWallets", "ClientWallets", "CurrencyCode", ct);
-        pending = (await context.Database.GetPendingMigrationsAsync(ct)).ToList();
-        if (pending.Any(m => m.Contains("MultiCurrencyWallets", StringComparison.OrdinalIgnoreCase))
-            && await TableExistsAsync(context, "WebsiteWalletCurrencies", ct))
-        {
-            var multi = pending.First(m =>
-                m.Contains("MultiCurrencyWallets", StringComparison.OrdinalIgnoreCase));
-            await MarkAppliedAsync(context, history, multi, productVersion, ct);
-        }
-
-        pending = (await context.Database.GetPendingMigrationsAsync(ct)).ToList();
-        await BaselineIfColumnExistsAsync(context, history, pending, productVersion,
-            "ProductCodePrefix", "Websites", "ProductCodePrefix", ct);
-    }
-
-    private static async Task BaselineIfColumnExistsAsync(
-        AppDbContext context,
-        IHistoryRepository history,
-        IReadOnlyList<string> pending,
-        string productVersion,
-        string migrationNameContains,
-        string table,
-        string column,
-        CancellationToken ct)
-    {
-        var migrationId = pending.FirstOrDefault(m =>
-            m.Contains(migrationNameContains, StringComparison.OrdinalIgnoreCase));
-        if (migrationId is null) return;
-        if (!await ColumnExistsAsync(context, table, column, ct)) return;
-        await MarkAppliedAsync(context, history, migrationId, productVersion, ct);
     }
 
     private static async Task MarkAppliedAsync(
@@ -160,38 +115,6 @@ public class DatabaseUpdateService : IDatabaseUpdateService
             p.ParameterName = "@t";
             p.Value = table;
             cmd.Parameters.Add(p);
-            var result = await cmd.ExecuteScalarAsync(ct);
-            return Convert.ToInt32(result) == 1;
-        }
-        catch
-        {
-            return false;
-        }
-    }
-
-    private static async Task<bool> ColumnExistsAsync(AppDbContext context, string table, string column, CancellationToken ct)
-    {
-        try
-        {
-            var conn = context.Database.GetDbConnection();
-            if (conn.State != System.Data.ConnectionState.Open)
-                await conn.OpenAsync(ct);
-
-            await using var cmd = conn.CreateCommand();
-            cmd.CommandText = """
-                SELECT CASE WHEN EXISTS (
-                    SELECT 1 FROM INFORMATION_SCHEMA.COLUMNS
-                    WHERE TABLE_NAME = @t AND COLUMN_NAME = @c
-                ) THEN 1 ELSE 0 END
-                """;
-            var pt = cmd.CreateParameter();
-            pt.ParameterName = "@t";
-            pt.Value = table;
-            cmd.Parameters.Add(pt);
-            var pc = cmd.CreateParameter();
-            pc.ParameterName = "@c";
-            pc.Value = column;
-            cmd.Parameters.Add(pc);
             var result = await cmd.ExecuteScalarAsync(ct);
             return Convert.ToInt32(result) == 1;
         }

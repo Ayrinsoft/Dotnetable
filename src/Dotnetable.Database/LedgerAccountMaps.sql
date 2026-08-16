@@ -7,12 +7,22 @@ CREATE TABLE [dbo].[LedgerAccountMaps] (
     [CreditAccountID]    INT           NOT NULL,
     [IsActive]           BIT           DEFAULT (CONVERT([bit],(1))) NOT NULL,
     CONSTRAINT [PK_LedgerAccountMaps] PRIMARY KEY CLUSTERED ([LedgerAccountMapID] ASC),
-    CONSTRAINT [FK_LedgerAccountMaps_Websites] FOREIGN KEY ([WebsiteID]) REFERENCES [dbo].[Websites] ([WebsiteID]),
+    CONSTRAINT [FK_LedgerAccountMaps_Credit] FOREIGN KEY ([CreditAccountID]) REFERENCES [dbo].[ChartOfAccounts] ([ChartOfAccountID]),
     CONSTRAINT [FK_LedgerAccountMaps_Debit] FOREIGN KEY ([DebitAccountID]) REFERENCES [dbo].[ChartOfAccounts] ([ChartOfAccountID]),
-    CONSTRAINT [FK_LedgerAccountMaps_Credit] FOREIGN KEY ([CreditAccountID]) REFERENCES [dbo].[ChartOfAccounts] ([ChartOfAccountID])
+    CONSTRAINT [FK_LedgerAccountMaps_Websites] FOREIGN KEY ([WebsiteID]) REFERENCES [dbo].[Websites] ([WebsiteID])
 );
+
+
 GO
 
 CREATE NONCLUSTERED INDEX [IX_LedgerAccountMaps_Website_Type]
     ON [dbo].[LedgerAccountMaps] ([WebsiteID] ASC, [TransactionType] ASC, [IsActive] ASC);
 GO
+CREATE NONCLUSTERED INDEX [IX_LedgerAccountMaps_DebitAccountID]
+    ON [dbo].[LedgerAccountMaps]([DebitAccountID] ASC);
+
+
+GO
+CREATE NONCLUSTERED INDEX [IX_LedgerAccountMaps_CreditAccountID]
+    ON [dbo].[LedgerAccountMaps]([CreditAccountID] ASC);
+

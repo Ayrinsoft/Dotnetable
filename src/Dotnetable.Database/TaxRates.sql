@@ -2,19 +2,21 @@
     [TaxRateID]       INT            IDENTITY (1, 1) NOT NULL,
     [WebsiteID]       INT            NOT NULL,
     [Title]           NVARCHAR (100) NOT NULL,
+    [TaxCode]         NVARCHAR (30)  NULL,
+    [TaxKind]         TINYINT        NOT NULL,
     [Rate]            DECIMAL (9, 6) NOT NULL,
     [CountryID]       INT            NULL,
     [StateID]         INT            NULL,
     [Priority]        INT            NOT NULL,
+    [ApplyToShipping] BIT            NOT NULL,
     [IsActive]        BIT            NOT NULL,
-    [ApplyToShipping] BIT            DEFAULT (CONVERT([bit],(0))) NOT NULL,
-    [TaxCode]         NVARCHAR (30)  NULL,
-    [TaxKind]         TINYINT        DEFAULT (CONVERT([tinyint],(0))) NOT NULL,
     CONSTRAINT [PK_TaxRates] PRIMARY KEY CLUSTERED ([TaxRateID] ASC),
     CONSTRAINT [FK_TaxRates_Countries] FOREIGN KEY ([CountryID]) REFERENCES [dbo].[Countries] ([CountryID]),
     CONSTRAINT [FK_TaxRates_States] FOREIGN KEY ([StateID]) REFERENCES [dbo].[States] ([StateID]),
     CONSTRAINT [FK_TaxRates_Websites] FOREIGN KEY ([WebsiteID]) REFERENCES [dbo].[Websites] ([WebsiteID])
 );
+
+
 
 
 

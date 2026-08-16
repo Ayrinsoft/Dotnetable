@@ -3,21 +3,23 @@
     [WebsiteID]          INT             NOT NULL,
     [VendorID]           INT             NOT NULL,
     [ProductVariantID]   INT             NOT NULL,
+    [ReferencePrice]     DECIMAL (18, 4) NOT NULL,
+    [OverridePriceLocal] DECIMAL (18, 4) NULL,
     [ReferencePriceUsd]  DECIMAL (18, 4) NOT NULL,
     [OverridePrice]      DECIMAL (18, 4) NULL,
     [StockQuantity]      INT             NOT NULL,
+    [QuantityReserved]   INT             NOT NULL,
     [DeliveryDays]       INT             NOT NULL,
     [IsActive]           BIT             NOT NULL,
-    [OverridePriceLocal] DECIMAL (18, 4) NULL,
-    [ReferencePrice]     DECIMAL (18, 4) DEFAULT ((0.0)) NOT NULL,
-    [QuantityReserved]   INT             DEFAULT ((0)) NOT NULL,
-    [ItemCondition]      TINYINT         DEFAULT ((1)) NOT NULL,
-    [HealthGrade]        TINYINT         DEFAULT ((0)) NOT NULL,
+    [ItemCondition]      TINYINT         DEFAULT (CONVERT([tinyint],(1))) NOT NULL,
+    [HealthGrade]        TINYINT         DEFAULT (CONVERT([tinyint],(0))) NOT NULL,
     CONSTRAINT [PK_VendorProducts] PRIMARY KEY CLUSTERED ([VendorProductID] ASC),
     CONSTRAINT [FK_VendorProducts_ProductVariants] FOREIGN KEY ([ProductVariantID]) REFERENCES [dbo].[ProductVariants] ([ProductVariantID]),
     CONSTRAINT [FK_VendorProducts_Vendors] FOREIGN KEY ([VendorID]) REFERENCES [dbo].[Vendors] ([VendorID]),
     CONSTRAINT [FK_VendorProducts_Websites] FOREIGN KEY ([WebsiteID]) REFERENCES [dbo].[Websites] ([WebsiteID])
 );
+
+
 
 
 GO

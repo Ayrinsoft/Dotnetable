@@ -4,7 +4,9 @@
     [Code]                 VARCHAR (40)    NOT NULL,
     [DiscountType]         TINYINT         NOT NULL,
     [DiscountValue]        DECIMAL (18, 4) NOT NULL,
+    [MinOrderAmount]       DECIMAL (18, 4) NOT NULL,
     [MinOrderAmountUsd]    DECIMAL (18, 4) NOT NULL,
+    [MaxDiscountAmount]    DECIMAL (18, 4) NULL,
     [MaxDiscountAmountUsd] DECIMAL (18, 4) NULL,
     [UsageLimitTotal]      INT             NULL,
     [UsageLimitPerClient]  INT             NULL,
@@ -14,12 +16,12 @@
     [IsActive]             BIT             NOT NULL,
     [CreatedByMemberID]    INT             NULL,
     [CreatedAt]            DATETIME2 (0)   NOT NULL,
-    [MaxDiscountAmount]    DECIMAL (18, 4) NULL,
-    [MinOrderAmount]       DECIMAL (18, 4) DEFAULT ((0.0)) NOT NULL,
     CONSTRAINT [PK_Coupons] PRIMARY KEY CLUSTERED ([CouponID] ASC),
     CONSTRAINT [FK_Coupons_Members] FOREIGN KEY ([CreatedByMemberID]) REFERENCES [dbo].[Members] ([MemberID]),
     CONSTRAINT [FK_Coupons_Websites] FOREIGN KEY ([WebsiteID]) REFERENCES [dbo].[Websites] ([WebsiteID])
 );
+
+
 
 
 

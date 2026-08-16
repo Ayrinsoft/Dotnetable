@@ -19,15 +19,15 @@
     [FirstResponseAt]      DATETIME       NULL,
     [ResolvedAt]           DATETIME       NULL,
     [ClosedAt]             DATETIME       NULL,
+    [FirstResponseDueAt]   DATETIME       NULL,
+    [ResolveDueAt]         DATETIME       NULL,
+    [CallbackAt]           DATETIME       NULL,
+    [CallbackNote]         NVARCHAR (500) NULL,
     [CreatedAt]            DATETIME       NOT NULL,
     [UpdatedAt]            DATETIME       NOT NULL,
     [LastInteractionAt]    DATETIME       NULL,
     [SatisfactionRating]   TINYINT        NULL,
     [Archive]              BIT            NOT NULL,
-    [CallbackAt]           DATETIME       NULL,
-    [CallbackNote]         NVARCHAR (500) NULL,
-    [FirstResponseDueAt]   DATETIME       NULL,
-    [ResolveDueAt]         DATETIME       NULL,
     CONSTRAINT [PK_SupportSessions] PRIMARY KEY CLUSTERED ([SupportSessionID] ASC),
     CONSTRAINT [FK_SupportSessions_AssignedMembers] FOREIGN KEY ([AssignedMemberID]) REFERENCES [dbo].[Members] ([MemberID]),
     CONSTRAINT [FK_SupportSessions_CreatedByMembers] FOREIGN KEY ([CreatedByMemberID]) REFERENCES [dbo].[Members] ([MemberID]),
@@ -35,6 +35,8 @@
     CONSTRAINT [FK_SupportSessions_WebsiteClients] FOREIGN KEY ([WebsiteClientID]) REFERENCES [dbo].[WebsiteClients] ([WebsiteClientID]),
     CONSTRAINT [FK_SupportSessions_Websites] FOREIGN KEY ([WebsiteID]) REFERENCES [dbo].[Websites] ([WebsiteID])
 );
+
+
 
 
 GO
