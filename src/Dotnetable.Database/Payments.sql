@@ -16,9 +16,9 @@
     [TrackingCode]              NVARCHAR (100)  NULL,
     [ReceiptFileID]             INT             NULL,
     [PaidAt]                    DATETIME2 (0)   NULL,
+    [CreatedByMemberID]         INT             NULL,
     [VerifiedByMemberID]        INT             NULL,
     [CreatedAt]                 DATETIME2 (0)   NOT NULL,
-    [CreatedByMemberID]         INT             NULL,
     CONSTRAINT [PK_Payments] PRIMARY KEY CLUSTERED ([PaymentID] ASC),
     CONSTRAINT [FK_Payments_BankAccounts] FOREIGN KEY ([BankAccountID]) REFERENCES [dbo].[BankAccounts] ([BankAccountID]),
     CONSTRAINT [FK_Payments_ClientWalletTransactions] FOREIGN KEY ([ClientWalletTransactionID]) REFERENCES [dbo].[ClientWalletTransactions] ([ClientWalletTransactionID]),
@@ -31,6 +31,8 @@
     CONSTRAINT [FK_Payments_WebsiteClients] FOREIGN KEY ([WebsiteClientID]) REFERENCES [dbo].[WebsiteClients] ([WebsiteClientID]),
     CONSTRAINT [FK_Payments_Websites] FOREIGN KEY ([WebsiteID]) REFERENCES [dbo].[Websites] ([WebsiteID])
 );
+
+
 
 
 

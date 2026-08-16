@@ -8,6 +8,11 @@
     [Content]             NVARCHAR (MAX)  NULL,
     [ExpertReview]        NVARCHAR (MAX)  NULL,
     [FeaturedImageFileID] INT             NULL,
+    [ProductType]         TINYINT         NOT NULL,
+    [RequiresShipping]    BIT             NOT NULL,
+    [DigitalDownloadUrl]  NVARCHAR (1000) NULL,
+    [DigitalServiceUrl]   NVARCHAR (1000) NULL,
+    [DigitalDeliveryNote] NVARCHAR (2000) NULL,
     [IsCatalogOnly]       BIT             NOT NULL,
     [HasVariants]         BIT             NOT NULL,
     [AvgRating]           DECIMAL (3, 2)  NOT NULL,
@@ -18,17 +23,14 @@
     [CreatedByMemberID]   INT             NULL,
     [CreatedAt]           DATETIME        NOT NULL,
     [UpdatedAt]           DATETIME        NOT NULL,
-    [DigitalDeliveryNote] NVARCHAR (2000) NULL,
-    [DigitalServiceUrl]   NVARCHAR (1000) NULL,
-    [ProductType]         TINYINT         DEFAULT (CONVERT([tinyint],(0))) NOT NULL,
-    [RequiresShipping]    BIT             DEFAULT (CONVERT([bit],(1))) NOT NULL,
-    [DigitalDownloadUrl]  NVARCHAR (1000) NULL,
     CONSTRAINT [PK_Products] PRIMARY KEY CLUSTERED ([ProductID] ASC),
     CONSTRAINT [FK_Products_Brands] FOREIGN KEY ([BrandID]) REFERENCES [dbo].[Brands] ([BrandID]),
     CONSTRAINT [FK_Products_FileRecords] FOREIGN KEY ([FeaturedImageFileID]) REFERENCES [dbo].[FileRecords] ([FileRecordID]),
     CONSTRAINT [FK_Products_Members] FOREIGN KEY ([CreatedByMemberID]) REFERENCES [dbo].[Members] ([MemberID]),
     CONSTRAINT [FK_Products_Websites] FOREIGN KEY ([WebsiteID]) REFERENCES [dbo].[Websites] ([WebsiteID])
 );
+
+
 
 
 GO

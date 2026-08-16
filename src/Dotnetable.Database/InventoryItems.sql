@@ -5,13 +5,15 @@
     [QuantityOnHand]   INT             NOT NULL,
     [QuantityReserved] INT             NOT NULL,
     [ReorderLevel]     INT             NOT NULL,
+    [AvgCost]          DECIMAL (18, 4) NOT NULL,
     [AvgCostUsd]       DECIMAL (18, 4) NOT NULL,
     [RowVersion]       ROWVERSION      NOT NULL,
-    [AvgCost]          DECIMAL (18, 4) DEFAULT ((0.0)) NOT NULL,
     CONSTRAINT [PK_InventoryItems] PRIMARY KEY CLUSTERED ([InventoryItemID] ASC),
     CONSTRAINT [FK_InventoryItems_ProductVariants] FOREIGN KEY ([ProductVariantID]) REFERENCES [dbo].[ProductVariants] ([ProductVariantID]),
     CONSTRAINT [FK_InventoryItems_Websites] FOREIGN KEY ([WebsiteID]) REFERENCES [dbo].[Websites] ([WebsiteID])
 );
+
+
 
 
 GO

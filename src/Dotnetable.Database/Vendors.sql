@@ -1,28 +1,30 @@
 ﻿CREATE TABLE [dbo].[Vendors] (
-    [VendorID]           INT             IDENTITY (1, 1) NOT NULL,
-    [WebsiteID]          INT             NOT NULL,
-    [Name]               NVARCHAR (200)  NOT NULL,
-    [Slug]               NVARCHAR (200)  NOT NULL,
-    [LogoFileID]         INT             NULL,
-    [Rating]             DECIMAL (3, 2)  NOT NULL,
-    [IsActive]           BIT             NOT NULL,
-    [SettlementMode]     TINYINT         NOT NULL,
-    [CreditDays]         INT             NULL,
-    [CreditLimitUsd]     DECIMAL (18, 4) NULL,
-    [VendorType]         TINYINT         NOT NULL,
-    [MemberID]           INT             NULL,
-    [LinkedWebsiteID]    INT             NULL,
-    [AvailableCreditUsd] DECIMAL (18, 4) NOT NULL,
-    [AvailableCredit]    DECIMAL (18, 4) DEFAULT ((0.0)) NOT NULL,
-    [CreditLimit]        DECIMAL (18, 4) NULL,
-    [SettlementCurrencyCode] CHAR (3)    NULL,
+    [VendorID]               INT             IDENTITY (1, 1) NOT NULL,
+    [WebsiteID]              INT             NOT NULL,
+    [Name]                   NVARCHAR (200)  NOT NULL,
+    [Slug]                   NVARCHAR (200)  NOT NULL,
+    [LogoFileID]             INT             NULL,
+    [Rating]                 DECIMAL (3, 2)  NOT NULL,
+    [IsActive]               BIT             NOT NULL,
+    [SettlementMode]         TINYINT         NOT NULL,
+    [CreditDays]             INT             NULL,
+    [CreditLimit]            DECIMAL (18, 4) NULL,
+    [CreditLimitUsd]         DECIMAL (18, 4) NULL,
+    [VendorType]             TINYINT         NOT NULL,
+    [MemberID]               INT             NULL,
+    [LinkedWebsiteID]        INT             NULL,
+    [SettlementCurrencyCode] CHAR (3)        NULL,
+    [AvailableCredit]        DECIMAL (18, 4) NOT NULL,
+    [AvailableCreditUsd]     DECIMAL (18, 4) NOT NULL,
     CONSTRAINT [PK_Vendors] PRIMARY KEY CLUSTERED ([VendorID] ASC),
+    CONSTRAINT [FK_Vendors_Currencies_Settlement] FOREIGN KEY ([SettlementCurrencyCode]) REFERENCES [dbo].[Currencies] ([CurrencyCode]),
     CONSTRAINT [FK_Vendors_FileRecords] FOREIGN KEY ([LogoFileID]) REFERENCES [dbo].[FileRecords] ([FileRecordID]),
     CONSTRAINT [FK_Vendors_LinkedWebsites] FOREIGN KEY ([LinkedWebsiteID]) REFERENCES [dbo].[Websites] ([WebsiteID]),
     CONSTRAINT [FK_Vendors_Members] FOREIGN KEY ([MemberID]) REFERENCES [dbo].[Members] ([MemberID]),
-    CONSTRAINT [FK_Vendors_Websites] FOREIGN KEY ([WebsiteID]) REFERENCES [dbo].[Websites] ([WebsiteID]),
-    CONSTRAINT [FK_Vendors_Currencies_Settlement] FOREIGN KEY ([SettlementCurrencyCode]) REFERENCES [dbo].[Currencies] ([CurrencyCode])
+    CONSTRAINT [FK_Vendors_Websites] FOREIGN KEY ([WebsiteID]) REFERENCES [dbo].[Websites] ([WebsiteID])
 );
+
+
 
 
 

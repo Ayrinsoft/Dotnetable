@@ -10,6 +10,8 @@
     [DiscountTotal]          DECIMAL (18, 4) NOT NULL,
     [ShippingTotal]          DECIMAL (18, 4) NOT NULL,
     [TaxTotal]               DECIMAL (18, 4) NOT NULL,
+    [PricesIncludeTax]       BIT             NOT NULL,
+    [TaxBreakdownJson]       NVARCHAR (4000) NULL,
     [GrandTotal]             DECIMAL (18, 4) NOT NULL,
     [GrandTotalUsd]          DECIMAL (18, 4) NOT NULL,
     [WebsiteClientAddressID] INT             NULL,
@@ -21,14 +23,12 @@
     [ShippingTrackingCode]   NVARCHAR (100)  NULL,
     [ShippedAt]              DATETIME        NULL,
     [Note]                   NVARCHAR (1000) NULL,
+    [SalesChannel]           TINYINT         DEFAULT (CONVERT([tinyint],(1))) NOT NULL,
+    [ReportToTax]            BIT             DEFAULT (CONVERT([bit],(1))) NOT NULL,
+    [MarkupTotal]            DECIMAL (18, 4) NOT NULL,
     [CreatedByMemberID]      INT             NULL,
     [CreatedAt]              DATETIME        NOT NULL,
     [PaidAt]                 DATETIME        NULL,
-    [PricesIncludeTax]       BIT             DEFAULT (CONVERT([bit],(0))) NOT NULL,
-    [TaxBreakdownJson]       NVARCHAR (4000) NULL,
-    [MarkupTotal]            DECIMAL (18, 4) DEFAULT ((0.0)) NOT NULL,
-    [ReportToTax]            BIT             DEFAULT (CONVERT([bit],(1))) NOT NULL,
-    [SalesChannel]           TINYINT         DEFAULT (CONVERT([tinyint],(1))) NOT NULL,
     CONSTRAINT [PK_Orders] PRIMARY KEY CLUSTERED ([OrderID] ASC),
     CONSTRAINT [FK_Orders_Coupons] FOREIGN KEY ([CouponID]) REFERENCES [dbo].[Coupons] ([CouponID]),
     CONSTRAINT [FK_Orders_Currencies] FOREIGN KEY ([CurrencyCode]) REFERENCES [dbo].[Currencies] ([CurrencyCode]),
@@ -38,6 +38,8 @@
     CONSTRAINT [FK_Orders_WebsiteClients] FOREIGN KEY ([WebsiteClientID]) REFERENCES [dbo].[WebsiteClients] ([WebsiteClientID]),
     CONSTRAINT [FK_Orders_Websites] FOREIGN KEY ([WebsiteID]) REFERENCES [dbo].[Websites] ([WebsiteID])
 );
+
+
 
 
 GO

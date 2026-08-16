@@ -9,10 +9,12 @@ CREATE TABLE [dbo].[RecordAttachments] (
     [CreatedByMemberID]  INT            NULL,
     [CreatedAt]          DATETIME2 (7)  NOT NULL,
     CONSTRAINT [PK_RecordAttachments] PRIMARY KEY CLUSTERED ([RecordAttachmentID] ASC),
-    CONSTRAINT [FK_RecordAttachments_Websites] FOREIGN KEY ([WebsiteID]) REFERENCES [dbo].[Websites] ([WebsiteID]),
     CONSTRAINT [FK_RecordAttachments_Files] FOREIGN KEY ([FileRecordID]) REFERENCES [dbo].[FileRecords] ([FileRecordID]),
-    CONSTRAINT [FK_RecordAttachments_Members] FOREIGN KEY ([CreatedByMemberID]) REFERENCES [dbo].[Members] ([MemberID])
+    CONSTRAINT [FK_RecordAttachments_Members] FOREIGN KEY ([CreatedByMemberID]) REFERENCES [dbo].[Members] ([MemberID]),
+    CONSTRAINT [FK_RecordAttachments_Websites] FOREIGN KEY ([WebsiteID]) REFERENCES [dbo].[Websites] ([WebsiteID])
 );
+
+
 GO
 
 CREATE NONCLUSTERED INDEX [IX_RecordAttachments_Entity]
@@ -22,3 +24,6 @@ GO
 CREATE NONCLUSTERED INDEX [IX_RecordAttachments_File]
     ON [dbo].[RecordAttachments] ([FileRecordID] ASC);
 GO
+CREATE NONCLUSTERED INDEX [IX_RecordAttachments_CreatedByMemberID]
+    ON [dbo].[RecordAttachments]([CreatedByMemberID] ASC);
+

@@ -443,7 +443,9 @@ namespace Dotnetable.Migrations.PostgreSql.Migrations
                     Code = table.Column<string>(type: "character varying(20)", maxLength: 20, nullable: false),
                     Name = table.Column<string>(type: "character varying(200)", maxLength: 200, nullable: false),
                     AccountType = table.Column<byte>(type: "smallint", nullable: false),
-                    IsActive = table.Column<bool>(type: "boolean", nullable: false)
+                    IsActive = table.Column<bool>(type: "boolean", nullable: false),
+                    IsSystem = table.Column<bool>(type: "boolean", nullable: false, defaultValue: false),
+                    SortOrder = table.Column<int>(type: "integer", nullable: false, defaultValue: 0)
                 },
                 constraints: table =>
                 {
@@ -490,6 +492,8 @@ namespace Dotnetable.Migrations.PostgreSql.Migrations
                         .Annotation("Npgsql:ValueGenerationStrategy", NpgsqlValueGenerationStrategy.IdentityByDefaultColumn),
                     WebsiteID = table.Column<int>(type: "integer", nullable: false),
                     WebsiteClientID = table.Column<int>(type: "integer", nullable: false),
+                    CurrencyCode = table.Column<string>(type: "character(3)", unicode: false, fixedLength: true, maxLength: 3, nullable: false),
+                    Balance = table.Column<decimal>(type: "numeric(18,4)", nullable: false),
                     BalanceUsd = table.Column<decimal>(type: "numeric(18,4)", nullable: false),
                     IsActive = table.Column<bool>(type: "boolean", nullable: false),
                     RowVersion = table.Column<byte[]>(type: "bytea", rowVersion: true, nullable: false),
@@ -498,6 +502,11 @@ namespace Dotnetable.Migrations.PostgreSql.Migrations
                 constraints: table =>
                 {
                     table.PrimaryKey("PK_ClientWallets", x => x.ClientWalletID);
+                    table.ForeignKey(
+                        name: "FK_ClientWallets_Currencies",
+                        column: x => x.CurrencyCode,
+                        principalTable: "Currencies",
+                        principalColumn: "CurrencyCode");
                 });
 
             migrationBuilder.CreateTable(
@@ -509,7 +518,9 @@ namespace Dotnetable.Migrations.PostgreSql.Migrations
                     WebsiteID = table.Column<int>(type: "integer", nullable: false),
                     ClientWalletID = table.Column<int>(type: "integer", nullable: false),
                     Type = table.Column<byte>(type: "smallint", nullable: false),
+                    Amount = table.Column<decimal>(type: "numeric(18,4)", nullable: false),
                     AmountUsd = table.Column<decimal>(type: "numeric(18,4)", nullable: false),
+                    BalanceAfter = table.Column<decimal>(type: "numeric(18,4)", nullable: false),
                     BalanceAfterUsd = table.Column<decimal>(type: "numeric(18,4)", nullable: false),
                     SourceType = table.Column<byte>(type: "smallint", nullable: true),
                     SourceId = table.Column<int>(type: "integer", nullable: true),
@@ -537,12 +548,16 @@ namespace Dotnetable.Migrations.PostgreSql.Migrations
                     WebsiteClientID = table.Column<int>(type: "integer", nullable: false),
                     ClientWalletID = table.Column<int>(type: "integer", nullable: false),
                     ClientBankAccountID = table.Column<int>(type: "integer", nullable: false),
+                    CurrencyCode = table.Column<string>(type: "character(3)", unicode: false, fixedLength: true, maxLength: 3, nullable: false),
+                    Amount = table.Column<decimal>(type: "numeric(18,4)", nullable: false),
                     AmountUsd = table.Column<decimal>(type: "numeric(18,4)", nullable: false),
                     Status = table.Column<byte>(type: "smallint", nullable: false),
                     ReviewedByMemberID = table.Column<int>(type: "integer", nullable: true),
                     ReviewedAt = table.Column<DateTime>(type: "timestamp(0) with time zone", precision: 0, nullable: true),
                     RejectReason = table.Column<string>(type: "character varying(500)", maxLength: 500, nullable: true),
                     PaymentRefNumber = table.Column<string>(type: "character varying(100)", maxLength: 100, nullable: true),
+                    Note = table.Column<string>(type: "character varying(500)", maxLength: 500, nullable: true),
+                    CreatedByMemberID = table.Column<int>(type: "integer", nullable: true),
                     PaidAt = table.Column<DateTime>(type: "timestamp(0) with time zone", precision: 0, nullable: true),
                     RequestedAt = table.Column<DateTime>(type: "timestamp(0) with time zone", precision: 0, nullable: false)
                 },
@@ -591,6 +606,7 @@ namespace Dotnetable.Migrations.PostgreSql.Migrations
                     CouponID = table.Column<int>(type: "integer", nullable: false),
                     OrderID = table.Column<int>(type: "integer", nullable: false),
                     WebsiteClientID = table.Column<int>(type: "integer", nullable: false),
+                    DiscountAmount = table.Column<decimal>(type: "numeric(18,4)", nullable: false),
                     DiscountAmountUsd = table.Column<decimal>(type: "numeric(18,4)", nullable: false),
                     RedeemedAt = table.Column<DateTime>(type: "timestamp(0) with time zone", precision: 0, nullable: false)
                 },
@@ -609,7 +625,9 @@ namespace Dotnetable.Migrations.PostgreSql.Migrations
                     Code = table.Column<string>(type: "character varying(40)", unicode: false, maxLength: 40, nullable: false),
                     DiscountType = table.Column<byte>(type: "smallint", nullable: false),
                     DiscountValue = table.Column<decimal>(type: "numeric(18,4)", nullable: false),
+                    MinOrderAmount = table.Column<decimal>(type: "numeric(18,4)", nullable: false),
                     MinOrderAmountUsd = table.Column<decimal>(type: "numeric(18,4)", nullable: false),
+                    MaxDiscountAmount = table.Column<decimal>(type: "numeric(18,4)", nullable: true),
                     MaxDiscountAmountUsd = table.Column<decimal>(type: "numeric(18,4)", nullable: true),
                     UsageLimitTotal = table.Column<int>(type: "integer", nullable: true),
                     UsageLimitPerClient = table.Column<int>(type: "integer", nullable: true),
@@ -645,6 +663,25 @@ namespace Dotnetable.Migrations.PostgreSql.Migrations
                         column: x => x.CurrencyCode,
                         principalTable: "Currencies",
                         principalColumn: "CurrencyCode");
+                });
+
+            migrationBuilder.CreateTable(
+                name: "DigitalAccessLogs",
+                columns: table => new
+                {
+                    DigitalAccessLogID = table.Column<long>(type: "bigint", nullable: false)
+                        .Annotation("Npgsql:ValueGenerationStrategy", NpgsqlValueGenerationStrategy.IdentityByDefaultColumn),
+                    OrderDigitalAssetID = table.Column<int>(type: "integer", nullable: false),
+                    WebsiteClientID = table.Column<int>(type: "integer", nullable: false),
+                    WebsiteID = table.Column<int>(type: "integer", nullable: false),
+                    AccessType = table.Column<byte>(type: "smallint", nullable: false),
+                    IpAddress = table.Column<string>(type: "character varying(64)", maxLength: 64, nullable: true),
+                    UserAgent = table.Column<string>(type: "character varying(500)", maxLength: 500, nullable: true),
+                    AccessedAt = table.Column<DateTime>(type: "datetime", nullable: false)
+                },
+                constraints: table =>
+                {
+                    table.PrimaryKey("PK_DigitalAccessLogs", x => x.DigitalAccessLogID);
                 });
 
             migrationBuilder.CreateTable(
@@ -730,6 +767,61 @@ namespace Dotnetable.Migrations.PostgreSql.Migrations
                 });
 
             migrationBuilder.CreateTable(
+                name: "EmployeeContracts",
+                columns: table => new
+                {
+                    EmployeeContractID = table.Column<int>(type: "integer", nullable: false)
+                        .Annotation("Npgsql:ValueGenerationStrategy", NpgsqlValueGenerationStrategy.IdentityByDefaultColumn),
+                    EmployeeID = table.Column<int>(type: "integer", nullable: false),
+                    EffectiveFrom = table.Column<DateOnly>(type: "date", nullable: false),
+                    EffectiveTo = table.Column<DateOnly>(type: "date", nullable: true),
+                    BaseSalary = table.Column<decimal>(type: "numeric(18,4)", nullable: false),
+                    CurrencyCode = table.Column<string>(type: "character(3)", unicode: false, fixedLength: true, maxLength: 3, nullable: false),
+                    PayFrequency = table.Column<byte>(type: "smallint", nullable: false),
+                    EmployeeInsuranceRate = table.Column<decimal>(type: "numeric(9,6)", nullable: false),
+                    EmployerInsuranceRate = table.Column<decimal>(type: "numeric(9,6)", nullable: false),
+                    IncomeTaxRate = table.Column<decimal>(type: "numeric(9,6)", nullable: false),
+                    UseFlatRates = table.Column<bool>(type: "boolean", nullable: false, defaultValue: true),
+                    IsActive = table.Column<bool>(type: "boolean", nullable: false),
+                    CreatedAt = table.Column<DateTime>(type: "timestamp with time zone", nullable: false)
+                },
+                constraints: table =>
+                {
+                    table.PrimaryKey("PK_EmployeeContracts", x => x.EmployeeContractID);
+                    table.ForeignKey(
+                        name: "FK_EmployeeContracts_Currencies_CurrencyCode",
+                        column: x => x.CurrencyCode,
+                        principalTable: "Currencies",
+                        principalColumn: "CurrencyCode");
+                });
+
+            migrationBuilder.CreateTable(
+                name: "Employees",
+                columns: table => new
+                {
+                    EmployeeID = table.Column<int>(type: "integer", nullable: false)
+                        .Annotation("Npgsql:ValueGenerationStrategy", NpgsqlValueGenerationStrategy.IdentityByDefaultColumn),
+                    WebsiteID = table.Column<int>(type: "integer", nullable: false),
+                    EmployeeCode = table.Column<string>(type: "character varying(30)", maxLength: 30, nullable: false),
+                    GivenName = table.Column<string>(type: "character varying(100)", maxLength: 100, nullable: false),
+                    Surname = table.Column<string>(type: "character varying(100)", maxLength: 100, nullable: false),
+                    NationalId = table.Column<string>(type: "text", nullable: true),
+                    Email = table.Column<string>(type: "text", nullable: true),
+                    Phone = table.Column<string>(type: "text", nullable: true),
+                    OrgUnitID = table.Column<int>(type: "integer", nullable: true),
+                    JobTitle = table.Column<string>(type: "text", nullable: true),
+                    MemberID = table.Column<int>(type: "integer", nullable: true),
+                    Status = table.Column<byte>(type: "smallint", nullable: false),
+                    HireDate = table.Column<DateOnly>(type: "date", nullable: false),
+                    TerminationDate = table.Column<DateOnly>(type: "date", nullable: true),
+                    CreatedAt = table.Column<DateTime>(type: "timestamp with time zone", nullable: false)
+                },
+                constraints: table =>
+                {
+                    table.PrimaryKey("PK_Employees", x => x.EmployeeID);
+                });
+
+            migrationBuilder.CreateTable(
                 name: "FileFolders",
                 columns: table => new
                 {
@@ -810,7 +902,26 @@ namespace Dotnetable.Migrations.PostgreSql.Migrations
                     BrandName = table.Column<string>(type: "character varying(60)", maxLength: 60, nullable: false, comment: "show in title of pages"),
                     LogoFileID = table.Column<int>(type: "integer", nullable: true),
                     FaveIconFileID = table.Column<int>(type: "integer", nullable: true),
-                    DefaultCurrencyCode = table.Column<string>(type: "character(3)", unicode: false, fixedLength: true, maxLength: 3, nullable: false)
+                    DefaultCurrencyCode = table.Column<string>(type: "character(3)", unicode: false, fixedLength: true, maxLength: 3, nullable: false),
+                    StorePricesInUsd = table.Column<bool>(type: "boolean", nullable: false, defaultValue: false, comment: "When true, also persist USD dual columns; default site currency is always operational authority."),
+                    TaxEnabled = table.Column<bool>(type: "boolean", nullable: false, defaultValue: true),
+                    PricesIncludeTax = table.Column<bool>(type: "boolean", nullable: false),
+                    TaxOnShipping = table.Column<bool>(type: "boolean", nullable: false),
+                    TaxCountryID = table.Column<int>(type: "integer", nullable: true),
+                    SellerLegalName = table.Column<string>(type: "character varying(200)", maxLength: 200, nullable: true),
+                    SellerTaxId = table.Column<string>(type: "character varying(50)", maxLength: 50, nullable: true),
+                    SellerEconomicCode = table.Column<string>(type: "character varying(50)", maxLength: 50, nullable: true),
+                    SellerVatNumber = table.Column<string>(type: "character varying(50)", maxLength: 50, nullable: true),
+                    SellerRegistrationNumber = table.Column<string>(type: "character varying(50)", maxLength: 50, nullable: true),
+                    AllowCashOnDelivery = table.Column<bool>(type: "boolean", nullable: false, defaultValue: true),
+                    ReportOfflineOrdersToTax = table.Column<bool>(type: "boolean", nullable: false, defaultValue: false),
+                    FreeShippingMinOrderAmount = table.Column<decimal>(type: "numeric(18,4)", nullable: false),
+                    FreeShippingMinOrderAmountUsd = table.Column<decimal>(type: "numeric(18,4)", nullable: false),
+                    ProductCodePrefix = table.Column<string>(type: "character varying(3)", maxLength: 3, nullable: false, defaultValue: "DN", comment: "1–3 letter product code prefix; codes are {prefix}-{ProductID}."),
+                    FiscalPeriodCadence = table.Column<byte>(type: "smallint", nullable: false, defaultValue: (byte)3),
+                    FiscalYearStartMonth = table.Column<byte>(type: "smallint", nullable: false, defaultValue: (byte)1),
+                    FiscalWeekStartDay = table.Column<byte>(type: "smallint", nullable: false, defaultValue: (byte)1),
+                    FiscalCloseDueDays = table.Column<int>(type: "integer", nullable: false, defaultValue: 5)
                 },
                 constraints: table =>
                 {
@@ -830,6 +941,11 @@ namespace Dotnetable.Migrations.PostgreSql.Migrations
                         column: x => x.LogoFileID,
                         principalTable: "FileRecords",
                         principalColumn: "FileRecordID");
+                    table.ForeignKey(
+                        name: "FK_Websites_TaxCountries",
+                        column: x => x.TaxCountryID,
+                        principalTable: "Countries",
+                        principalColumn: "CountryID");
                 });
 
             migrationBuilder.CreateTable(
@@ -884,31 +1000,6 @@ namespace Dotnetable.Migrations.PostgreSql.Migrations
                 });
 
             migrationBuilder.CreateTable(
-                name: "JournalEntries",
-                columns: table => new
-                {
-                    JournalEntryID = table.Column<int>(type: "integer", nullable: false)
-                        .Annotation("Npgsql:ValueGenerationStrategy", NpgsqlValueGenerationStrategy.IdentityByDefaultColumn),
-                    WebsiteID = table.Column<int>(type: "integer", nullable: false),
-                    EntryNumber = table.Column<string>(type: "character varying(30)", maxLength: 30, nullable: false),
-                    EntryDate = table.Column<DateOnly>(type: "date", nullable: false),
-                    Description = table.Column<string>(type: "character varying(500)", maxLength: 500, nullable: true),
-                    SourceType = table.Column<byte>(type: "smallint", nullable: true),
-                    SourceId = table.Column<int>(type: "integer", nullable: true),
-                    IsPosted = table.Column<bool>(type: "boolean", nullable: false),
-                    CreatedAt = table.Column<DateTime>(type: "datetime", nullable: false)
-                },
-                constraints: table =>
-                {
-                    table.PrimaryKey("PK_JournalEntries", x => x.JournalEntryID);
-                    table.ForeignKey(
-                        name: "FK_JournalEntries_Websites",
-                        column: x => x.WebsiteID,
-                        principalTable: "Websites",
-                        principalColumn: "WebsiteID");
-                });
-
-            migrationBuilder.CreateTable(
                 name: "Languages",
                 columns: table => new
                 {
@@ -928,6 +1019,39 @@ namespace Dotnetable.Migrations.PostgreSql.Migrations
                     table.PrimaryKey("PK_Languages", x => x.LanguageID);
                     table.ForeignKey(
                         name: "FK_Languages_Websites",
+                        column: x => x.WebsiteID,
+                        principalTable: "Websites",
+                        principalColumn: "WebsiteID");
+                });
+
+            migrationBuilder.CreateTable(
+                name: "LedgerAccountMaps",
+                columns: table => new
+                {
+                    LedgerAccountMapID = table.Column<int>(type: "integer", nullable: false)
+                        .Annotation("Npgsql:ValueGenerationStrategy", NpgsqlValueGenerationStrategy.IdentityByDefaultColumn),
+                    WebsiteID = table.Column<int>(type: "integer", nullable: false),
+                    TransactionType = table.Column<string>(type: "character varying(64)", maxLength: 64, nullable: false),
+                    Flow = table.Column<byte>(type: "smallint", nullable: true),
+                    DebitAccountID = table.Column<int>(type: "integer", nullable: false),
+                    CreditAccountID = table.Column<int>(type: "integer", nullable: false),
+                    IsActive = table.Column<bool>(type: "boolean", nullable: false, defaultValue: true)
+                },
+                constraints: table =>
+                {
+                    table.PrimaryKey("PK_LedgerAccountMaps", x => x.LedgerAccountMapID);
+                    table.ForeignKey(
+                        name: "FK_LedgerAccountMaps_Credit",
+                        column: x => x.CreditAccountID,
+                        principalTable: "ChartOfAccounts",
+                        principalColumn: "ChartOfAccountID");
+                    table.ForeignKey(
+                        name: "FK_LedgerAccountMaps_Debit",
+                        column: x => x.DebitAccountID,
+                        principalTable: "ChartOfAccounts",
+                        principalColumn: "ChartOfAccountID");
+                    table.ForeignKey(
+                        name: "FK_LedgerAccountMaps_Websites",
                         column: x => x.WebsiteID,
                         principalTable: "Websites",
                         principalColumn: "WebsiteID");
@@ -1018,6 +1142,34 @@ namespace Dotnetable.Migrations.PostgreSql.Migrations
                 });
 
             migrationBuilder.CreateTable(
+                name: "OrgUnits",
+                columns: table => new
+                {
+                    OrgUnitID = table.Column<int>(type: "integer", nullable: false)
+                        .Annotation("Npgsql:ValueGenerationStrategy", NpgsqlValueGenerationStrategy.IdentityByDefaultColumn),
+                    WebsiteID = table.Column<int>(type: "integer", nullable: false),
+                    ParentOrgUnitID = table.Column<int>(type: "integer", nullable: true),
+                    Code = table.Column<string>(type: "character varying(20)", maxLength: 20, nullable: false),
+                    Name = table.Column<string>(type: "character varying(200)", maxLength: 200, nullable: false),
+                    SortOrder = table.Column<int>(type: "integer", nullable: false),
+                    IsActive = table.Column<bool>(type: "boolean", nullable: false)
+                },
+                constraints: table =>
+                {
+                    table.PrimaryKey("PK_OrgUnits", x => x.OrgUnitID);
+                    table.ForeignKey(
+                        name: "FK_OrgUnits_OrgUnits_ParentOrgUnitID",
+                        column: x => x.ParentOrgUnitID,
+                        principalTable: "OrgUnits",
+                        principalColumn: "OrgUnitID");
+                    table.ForeignKey(
+                        name: "FK_OrgUnits_Websites_WebsiteID",
+                        column: x => x.WebsiteID,
+                        principalTable: "Websites",
+                        principalColumn: "WebsiteID");
+                });
+
+            migrationBuilder.CreateTable(
                 name: "PaymentGateways",
                 columns: table => new
                 {
@@ -1038,6 +1190,31 @@ namespace Dotnetable.Migrations.PostgreSql.Migrations
                     table.PrimaryKey("PK_PaymentGateways", x => x.PaymentGatewayID);
                     table.ForeignKey(
                         name: "FK_PaymentGateways_Websites",
+                        column: x => x.WebsiteID,
+                        principalTable: "Websites",
+                        principalColumn: "WebsiteID");
+                });
+
+            migrationBuilder.CreateTable(
+                name: "PayrollRateBrackets",
+                columns: table => new
+                {
+                    PayrollRateBracketID = table.Column<int>(type: "integer", nullable: false)
+                        .Annotation("Npgsql:ValueGenerationStrategy", NpgsqlValueGenerationStrategy.IdentityByDefaultColumn),
+                    WebsiteID = table.Column<int>(type: "integer", nullable: false),
+                    Kind = table.Column<byte>(type: "smallint", nullable: false),
+                    FromAmount = table.Column<decimal>(type: "numeric(18,4)", nullable: false),
+                    ToAmount = table.Column<decimal>(type: "numeric(18,4)", nullable: true),
+                    Rate = table.Column<decimal>(type: "numeric(9,6)", nullable: false),
+                    SortOrder = table.Column<int>(type: "integer", nullable: false),
+                    IsActive = table.Column<bool>(type: "boolean", nullable: false, defaultValue: true),
+                    CreatedAt = table.Column<DateTime>(type: "timestamp with time zone", nullable: false)
+                },
+                constraints: table =>
+                {
+                    table.PrimaryKey("PK_PayrollRateBrackets", x => x.PayrollRateBracketID);
+                    table.ForeignKey(
+                        name: "FK_PayrollRateBrackets_Websites_WebsiteID",
                         column: x => x.WebsiteID,
                         principalTable: "Websites",
                         principalColumn: "WebsiteID");
@@ -1130,12 +1307,26 @@ namespace Dotnetable.Migrations.PostgreSql.Migrations
                     WebsiteID = table.Column<int>(type: "integer", nullable: false),
                     Title = table.Column<string>(type: "character varying(100)", maxLength: 100, nullable: false),
                     CarrierName = table.Column<string>(type: "character varying(100)", maxLength: 100, nullable: true),
+                    LogoFileID = table.Column<int>(type: "integer", nullable: true),
+                    SupportsPrepaid = table.Column<bool>(type: "boolean", nullable: false),
+                    SupportsCod = table.Column<bool>(type: "boolean", nullable: false),
+                    PrepaidMinPrice = table.Column<decimal>(type: "numeric(18,4)", nullable: false),
+                    PrepaidMinPriceUsd = table.Column<decimal>(type: "numeric(18,4)", nullable: false),
+                    CodMinPrice = table.Column<decimal>(type: "numeric(18,4)", nullable: false),
+                    CodMinPriceUsd = table.Column<decimal>(type: "numeric(18,4)", nullable: false),
+                    FreeShippingMinOrderAmount = table.Column<decimal>(type: "numeric(18,4)", nullable: false),
+                    FreeShippingMinOrderAmountUsd = table.Column<decimal>(type: "numeric(18,4)", nullable: false),
                     IsActive = table.Column<bool>(type: "boolean", nullable: false),
                     SortOrder = table.Column<int>(type: "integer", nullable: false)
                 },
                 constraints: table =>
                 {
                     table.PrimaryKey("PK_ShippingMethods", x => x.ShippingMethodID);
+                    table.ForeignKey(
+                        name: "FK_ShippingMethods_FileRecords",
+                        column: x => x.LogoFileID,
+                        principalTable: "FileRecords",
+                        principalColumn: "FileRecordID");
                     table.ForeignKey(
                         name: "FK_ShippingMethods_Websites",
                         column: x => x.WebsiteID,
@@ -1173,27 +1364,6 @@ namespace Dotnetable.Migrations.PostgreSql.Migrations
                 });
 
             migrationBuilder.CreateTable(
-                name: "Suppliers",
-                columns: table => new
-                {
-                    SupplierID = table.Column<int>(type: "integer", nullable: false)
-                        .Annotation("Npgsql:ValueGenerationStrategy", NpgsqlValueGenerationStrategy.IdentityByDefaultColumn),
-                    WebsiteID = table.Column<int>(type: "integer", nullable: false),
-                    Name = table.Column<string>(type: "character varying(200)", maxLength: 200, nullable: false),
-                    Phone = table.Column<string>(type: "character varying(20)", maxLength: 20, nullable: true),
-                    IsActive = table.Column<bool>(type: "boolean", nullable: false)
-                },
-                constraints: table =>
-                {
-                    table.PrimaryKey("PK_Suppliers", x => x.SupplierID);
-                    table.ForeignKey(
-                        name: "FK_Suppliers_Websites",
-                        column: x => x.WebsiteID,
-                        principalTable: "Websites",
-                        principalColumn: "WebsiteID");
-                });
-
-            migrationBuilder.CreateTable(
                 name: "Tags",
                 columns: table => new
                 {
@@ -1221,10 +1391,13 @@ namespace Dotnetable.Migrations.PostgreSql.Migrations
                         .Annotation("Npgsql:ValueGenerationStrategy", NpgsqlValueGenerationStrategy.IdentityByDefaultColumn),
                     WebsiteID = table.Column<int>(type: "integer", nullable: false),
                     Title = table.Column<string>(type: "character varying(100)", maxLength: 100, nullable: false),
+                    TaxCode = table.Column<string>(type: "character varying(30)", maxLength: 30, nullable: true),
+                    TaxKind = table.Column<byte>(type: "smallint", nullable: false),
                     Rate = table.Column<decimal>(type: "numeric(9,6)", nullable: false),
                     CountryID = table.Column<int>(type: "integer", nullable: true),
                     StateID = table.Column<int>(type: "integer", nullable: true),
                     Priority = table.Column<int>(type: "integer", nullable: false),
+                    ApplyToShipping = table.Column<bool>(type: "boolean", nullable: false),
                     IsActive = table.Column<bool>(type: "boolean", nullable: false)
                 },
                 constraints: table =>
@@ -1242,6 +1415,30 @@ namespace Dotnetable.Migrations.PostgreSql.Migrations
                         principalColumn: "StateID");
                     table.ForeignKey(
                         name: "FK_TaxRates_Websites",
+                        column: x => x.WebsiteID,
+                        principalTable: "Websites",
+                        principalColumn: "WebsiteID");
+                });
+
+            migrationBuilder.CreateTable(
+                name: "Warehouses",
+                columns: table => new
+                {
+                    WarehouseID = table.Column<int>(type: "integer", nullable: false)
+                        .Annotation("Npgsql:ValueGenerationStrategy", NpgsqlValueGenerationStrategy.IdentityByDefaultColumn),
+                    WebsiteID = table.Column<int>(type: "integer", nullable: false),
+                    Code = table.Column<string>(type: "character varying(20)", maxLength: 20, nullable: false),
+                    Name = table.Column<string>(type: "character varying(200)", maxLength: 200, nullable: false),
+                    Address = table.Column<string>(type: "character varying(500)", maxLength: 500, nullable: true),
+                    IsDefault = table.Column<bool>(type: "boolean", nullable: false),
+                    IsActive = table.Column<bool>(type: "boolean", nullable: false),
+                    CreatedAt = table.Column<DateTime>(type: "timestamp with time zone", nullable: false)
+                },
+                constraints: table =>
+                {
+                    table.PrimaryKey("PK_Warehouses", x => x.WarehouseID);
+                    table.ForeignKey(
+                        name: "FK_Warehouses_Websites_WebsiteID",
                         column: x => x.WebsiteID,
                         principalTable: "Websites",
                         principalColumn: "WebsiteID");
@@ -1518,6 +1715,33 @@ namespace Dotnetable.Migrations.PostgreSql.Migrations
                 });
 
             migrationBuilder.CreateTable(
+                name: "WebsiteWalletCurrencies",
+                columns: table => new
+                {
+                    WebsiteWalletCurrencyID = table.Column<int>(type: "integer", nullable: false)
+                        .Annotation("Npgsql:ValueGenerationStrategy", NpgsqlValueGenerationStrategy.IdentityByDefaultColumn),
+                    WebsiteID = table.Column<int>(type: "integer", nullable: false),
+                    CurrencyCode = table.Column<string>(type: "character(3)", unicode: false, fixedLength: true, maxLength: 3, nullable: false),
+                    IsDefault = table.Column<bool>(type: "boolean", nullable: false),
+                    IsActive = table.Column<bool>(type: "boolean", nullable: false),
+                    CreatedAt = table.Column<DateTime>(type: "timestamp(0) with time zone", precision: 0, nullable: false)
+                },
+                constraints: table =>
+                {
+                    table.PrimaryKey("PK_WebsiteWalletCurrencies", x => x.WebsiteWalletCurrencyID);
+                    table.ForeignKey(
+                        name: "FK_WebsiteWalletCurrencies_Currencies",
+                        column: x => x.CurrencyCode,
+                        principalTable: "Currencies",
+                        principalColumn: "CurrencyCode");
+                    table.ForeignKey(
+                        name: "FK_WebsiteWalletCurrencies_Websites",
+                        column: x => x.WebsiteID,
+                        principalTable: "Websites",
+                        principalColumn: "WebsiteID");
+                });
+
+            migrationBuilder.CreateTable(
                 name: "WebsiteWatermarkSettings",
                 columns: table => new
                 {
@@ -1594,33 +1818,6 @@ namespace Dotnetable.Migrations.PostgreSql.Migrations
                         column: x => x.FormID,
                         principalTable: "Forms",
                         principalColumn: "FormID");
-                });
-
-            migrationBuilder.CreateTable(
-                name: "JournalEntryLines",
-                columns: table => new
-                {
-                    JournalEntryLineID = table.Column<int>(type: "integer", nullable: false)
-                        .Annotation("Npgsql:ValueGenerationStrategy", NpgsqlValueGenerationStrategy.IdentityByDefaultColumn),
-                    JournalEntryID = table.Column<int>(type: "integer", nullable: false),
-                    ChartOfAccountID = table.Column<int>(type: "integer", nullable: false),
-                    Debit = table.Column<decimal>(type: "numeric(18,4)", nullable: false),
-                    Credit = table.Column<decimal>(type: "numeric(18,4)", nullable: false),
-                    Description = table.Column<string>(type: "character varying(300)", maxLength: 300, nullable: true)
-                },
-                constraints: table =>
-                {
-                    table.PrimaryKey("PK_JournalEntryLines", x => x.JournalEntryLineID);
-                    table.ForeignKey(
-                        name: "FK_JournalEntryLines_ChartOfAccounts",
-                        column: x => x.ChartOfAccountID,
-                        principalTable: "ChartOfAccounts",
-                        principalColumn: "ChartOfAccountID");
-                    table.ForeignKey(
-                        name: "FK_JournalEntryLines_JournalEntries",
-                        column: x => x.JournalEntryID,
-                        principalTable: "JournalEntries",
-                        principalColumn: "JournalEntryID");
                 });
 
             migrationBuilder.CreateTable(
@@ -1744,6 +1941,29 @@ namespace Dotnetable.Migrations.PostgreSql.Migrations
                 });
 
             migrationBuilder.CreateTable(
+                name: "ProductCategoryAttributes",
+                columns: table => new
+                {
+                    ProductCategoryID = table.Column<int>(type: "integer", nullable: false),
+                    AttributeDefinitionID = table.Column<int>(type: "integer", nullable: false),
+                    SortOrder = table.Column<int>(type: "integer", nullable: false)
+                },
+                constraints: table =>
+                {
+                    table.PrimaryKey("PK_ProductCategoryAttributes", x => new { x.ProductCategoryID, x.AttributeDefinitionID });
+                    table.ForeignKey(
+                        name: "FK_ProductCategoryAttributes_AttributeDefinitions",
+                        column: x => x.AttributeDefinitionID,
+                        principalTable: "AttributeDefinitions",
+                        principalColumn: "AttributeDefinitionID");
+                    table.ForeignKey(
+                        name: "FK_ProductCategoryAttributes_ProductCategories",
+                        column: x => x.ProductCategoryID,
+                        principalTable: "ProductCategories",
+                        principalColumn: "ProductCategoryID");
+                });
+
+            migrationBuilder.CreateTable(
                 name: "ProductCategoryTranslations",
                 columns: table => new
                 {
@@ -1776,6 +1996,7 @@ namespace Dotnetable.Migrations.PostgreSql.Migrations
                     CityID = table.Column<int>(type: "integer", nullable: true),
                     MinWeightKg = table.Column<decimal>(type: "numeric(10,3)", nullable: true),
                     MaxWeightKg = table.Column<decimal>(type: "numeric(10,3)", nullable: true),
+                    Price = table.Column<decimal>(type: "numeric(18,4)", nullable: false),
                     PriceUsd = table.Column<decimal>(type: "numeric(18,4)", nullable: false),
                     IsActive = table.Column<bool>(type: "boolean", nullable: false)
                 },
@@ -2077,6 +2298,55 @@ namespace Dotnetable.Migrations.PostgreSql.Migrations
                 });
 
             migrationBuilder.CreateTable(
+                name: "PayrollRuns",
+                columns: table => new
+                {
+                    PayrollRunID = table.Column<int>(type: "integer", nullable: false)
+                        .Annotation("Npgsql:ValueGenerationStrategy", NpgsqlValueGenerationStrategy.IdentityByDefaultColumn),
+                    WebsiteID = table.Column<int>(type: "integer", nullable: false),
+                    RunNumber = table.Column<string>(type: "character varying(40)", maxLength: 40, nullable: false),
+                    PeriodFrom = table.Column<DateOnly>(type: "date", nullable: false),
+                    PeriodTo = table.Column<DateOnly>(type: "date", nullable: false),
+                    Status = table.Column<byte>(type: "smallint", nullable: false),
+                    TotalGross = table.Column<decimal>(type: "numeric(18,4)", nullable: false),
+                    TotalEmployeeInsurance = table.Column<decimal>(type: "numeric(18,4)", nullable: false),
+                    TotalEmployerInsurance = table.Column<decimal>(type: "numeric(18,4)", nullable: false),
+                    TotalIncomeTax = table.Column<decimal>(type: "numeric(18,4)", nullable: false),
+                    TotalNet = table.Column<decimal>(type: "numeric(18,4)", nullable: false),
+                    CurrencyCode = table.Column<string>(type: "character(3)", unicode: false, fixedLength: true, maxLength: 3, nullable: false),
+                    Note = table.Column<string>(type: "text", nullable: true),
+                    CreatedByMemberID = table.Column<int>(type: "integer", nullable: true),
+                    ApprovedByMemberID = table.Column<int>(type: "integer", nullable: true),
+                    ApprovedAt = table.Column<DateTime>(type: "timestamp with time zone", nullable: true),
+                    PaidAt = table.Column<DateTime>(type: "timestamp with time zone", nullable: true),
+                    CreatedAt = table.Column<DateTime>(type: "timestamp with time zone", nullable: false)
+                },
+                constraints: table =>
+                {
+                    table.PrimaryKey("PK_PayrollRuns", x => x.PayrollRunID);
+                    table.ForeignKey(
+                        name: "FK_PayrollRuns_Currencies_CurrencyCode",
+                        column: x => x.CurrencyCode,
+                        principalTable: "Currencies",
+                        principalColumn: "CurrencyCode");
+                    table.ForeignKey(
+                        name: "FK_PayrollRuns_Members_ApprovedByMemberID",
+                        column: x => x.ApprovedByMemberID,
+                        principalTable: "Members",
+                        principalColumn: "MemberID");
+                    table.ForeignKey(
+                        name: "FK_PayrollRuns_Members_CreatedByMemberID",
+                        column: x => x.CreatedByMemberID,
+                        principalTable: "Members",
+                        principalColumn: "MemberID");
+                    table.ForeignKey(
+                        name: "FK_PayrollRuns_Websites_WebsiteID",
+                        column: x => x.WebsiteID,
+                        principalTable: "Websites",
+                        principalColumn: "WebsiteID");
+                });
+
+            migrationBuilder.CreateTable(
                 name: "Posts",
                 columns: table => new
                 {
@@ -2139,6 +2409,11 @@ namespace Dotnetable.Migrations.PostgreSql.Migrations
                     Content = table.Column<string>(type: "text", nullable: true),
                     ExpertReview = table.Column<string>(type: "text", nullable: true),
                     FeaturedImageFileID = table.Column<int>(type: "integer", nullable: true),
+                    ProductType = table.Column<byte>(type: "smallint", nullable: false),
+                    RequiresShipping = table.Column<bool>(type: "boolean", nullable: false),
+                    DigitalDownloadUrl = table.Column<string>(type: "character varying(1000)", maxLength: 1000, nullable: true),
+                    DigitalServiceUrl = table.Column<string>(type: "character varying(1000)", maxLength: 1000, nullable: true),
+                    DigitalDeliveryNote = table.Column<string>(type: "character varying(2000)", maxLength: 2000, nullable: true),
                     IsCatalogOnly = table.Column<bool>(type: "boolean", nullable: false),
                     HasVariants = table.Column<bool>(type: "boolean", nullable: false),
                     AvgRating = table.Column<decimal>(type: "numeric(3,2)", nullable: false),
@@ -2176,6 +2451,84 @@ namespace Dotnetable.Migrations.PostgreSql.Migrations
                 });
 
             migrationBuilder.CreateTable(
+                name: "RecordAttachments",
+                columns: table => new
+                {
+                    RecordAttachmentID = table.Column<long>(type: "bigint", nullable: false)
+                        .Annotation("Npgsql:ValueGenerationStrategy", NpgsqlValueGenerationStrategy.IdentityByDefaultColumn),
+                    WebsiteID = table.Column<int>(type: "integer", nullable: false),
+                    EntityType = table.Column<string>(type: "character varying(64)", maxLength: 64, nullable: false),
+                    EntityID = table.Column<long>(type: "bigint", nullable: false),
+                    FileRecordID = table.Column<int>(type: "integer", nullable: false),
+                    Title = table.Column<string>(type: "character varying(200)", maxLength: 200, nullable: true),
+                    Note = table.Column<string>(type: "character varying(500)", maxLength: 500, nullable: true),
+                    CreatedByMemberID = table.Column<int>(type: "integer", nullable: true),
+                    CreatedAt = table.Column<DateTime>(type: "timestamp with time zone", nullable: false)
+                },
+                constraints: table =>
+                {
+                    table.PrimaryKey("PK_RecordAttachments", x => x.RecordAttachmentID);
+                    table.ForeignKey(
+                        name: "FK_RecordAttachments_Files",
+                        column: x => x.FileRecordID,
+                        principalTable: "FileRecords",
+                        principalColumn: "FileRecordID");
+                    table.ForeignKey(
+                        name: "FK_RecordAttachments_Members",
+                        column: x => x.CreatedByMemberID,
+                        principalTable: "Members",
+                        principalColumn: "MemberID");
+                    table.ForeignKey(
+                        name: "FK_RecordAttachments_Websites",
+                        column: x => x.WebsiteID,
+                        principalTable: "Websites",
+                        principalColumn: "WebsiteID");
+                });
+
+            migrationBuilder.CreateTable(
+                name: "TaxPeriods",
+                columns: table => new
+                {
+                    TaxPeriodID = table.Column<int>(type: "integer", nullable: false)
+                        .Annotation("Npgsql:ValueGenerationStrategy", NpgsqlValueGenerationStrategy.IdentityByDefaultColumn),
+                    WebsiteID = table.Column<int>(type: "integer", nullable: false),
+                    PeriodCode = table.Column<string>(type: "character varying(30)", maxLength: 30, nullable: false),
+                    FromDate = table.Column<DateOnly>(type: "date", nullable: false),
+                    ToDate = table.Column<DateOnly>(type: "date", nullable: false),
+                    Status = table.Column<byte>(type: "smallint", nullable: false),
+                    OutputTaxSnapshot = table.Column<decimal>(type: "numeric(18,4)", nullable: false),
+                    SettlementTaxSnapshot = table.Column<decimal>(type: "numeric(18,4)", nullable: false),
+                    NetTaxSnapshot = table.Column<decimal>(type: "numeric(18,4)", nullable: false),
+                    OutputOrderCount = table.Column<int>(type: "integer", nullable: false),
+                    SettlementCount = table.Column<int>(type: "integer", nullable: false),
+                    Note = table.Column<string>(type: "character varying(1000)", maxLength: 1000, nullable: true),
+                    CreatedByMemberID = table.Column<int>(type: "integer", nullable: true),
+                    ClosedByMemberID = table.Column<int>(type: "integer", nullable: true),
+                    ClosedAt = table.Column<DateTime>(type: "timestamp with time zone", nullable: true),
+                    SnapshotAt = table.Column<DateTime>(type: "timestamp with time zone", nullable: true),
+                    CreatedAt = table.Column<DateTime>(type: "timestamp with time zone", nullable: false)
+                },
+                constraints: table =>
+                {
+                    table.PrimaryKey("PK_TaxPeriods", x => x.TaxPeriodID);
+                    table.ForeignKey(
+                        name: "FK_TaxPeriods_Members_ClosedByMemberID",
+                        column: x => x.ClosedByMemberID,
+                        principalTable: "Members",
+                        principalColumn: "MemberID");
+                    table.ForeignKey(
+                        name: "FK_TaxPeriods_Members_CreatedByMemberID",
+                        column: x => x.CreatedByMemberID,
+                        principalTable: "Members",
+                        principalColumn: "MemberID");
+                    table.ForeignKey(
+                        name: "FK_TaxPeriods_Websites_WebsiteID",
+                        column: x => x.WebsiteID,
+                        principalTable: "Websites",
+                        principalColumn: "WebsiteID");
+                });
+
+            migrationBuilder.CreateTable(
                 name: "Vendors",
                 columns: table => new
                 {
@@ -2189,15 +2542,23 @@ namespace Dotnetable.Migrations.PostgreSql.Migrations
                     IsActive = table.Column<bool>(type: "boolean", nullable: false),
                     SettlementMode = table.Column<byte>(type: "smallint", nullable: false, comment: "0 = Immediate: every purchase from this vendor is settled instantly like a normal cash purchase. 1 = Credit: purchases accrue as credit and are batched into a periodic Settlements record due on CreditDays"),
                     CreditDays = table.Column<int>(type: "integer", nullable: true, comment: "number of days after the settlement period ends before payment is due; only meaningful when SettlementMode = Credit"),
+                    CreditLimit = table.Column<decimal>(type: "numeric(18,4)", nullable: true),
                     CreditLimitUsd = table.Column<decimal>(type: "numeric(18,4)", nullable: true, comment: "maximum outstanding credit balance allowed for this vendor, in USD; only meaningful when SettlementMode = Credit"),
                     VendorType = table.Column<byte>(type: "smallint", nullable: false, comment: "0 = Display-only title, 1 = Member login (manage own catalog), 2 = Linked website (inter-site virtual credit)"),
                     MemberID = table.Column<int>(type: "integer", nullable: true),
                     LinkedWebsiteID = table.Column<int>(type: "integer", nullable: true),
+                    SettlementCurrencyCode = table.Column<string>(type: "character(3)", unicode: false, fixedLength: true, maxLength: 3, nullable: true),
+                    AvailableCredit = table.Column<decimal>(type: "numeric(18,4)", nullable: false),
                     AvailableCreditUsd = table.Column<decimal>(type: "numeric(18,4)", nullable: false)
                 },
                 constraints: table =>
                 {
                     table.PrimaryKey("PK_Vendors", x => x.VendorID);
+                    table.ForeignKey(
+                        name: "FK_Vendors_Currencies_Settlement",
+                        column: x => x.SettlementCurrencyCode,
+                        principalTable: "Currencies",
+                        principalColumn: "CurrencyCode");
                     table.ForeignKey(
                         name: "FK_Vendors_FileRecords",
                         column: x => x.LogoFileID,
@@ -2261,13 +2622,22 @@ namespace Dotnetable.Migrations.PostgreSql.Migrations
                     DiscountTotal = table.Column<decimal>(type: "numeric(18,4)", nullable: false),
                     ShippingTotal = table.Column<decimal>(type: "numeric(18,4)", nullable: false),
                     TaxTotal = table.Column<decimal>(type: "numeric(18,4)", nullable: false),
+                    PricesIncludeTax = table.Column<bool>(type: "boolean", nullable: false),
+                    TaxBreakdownJson = table.Column<string>(type: "character varying(4000)", maxLength: 4000, nullable: true),
                     GrandTotal = table.Column<decimal>(type: "numeric(18,4)", nullable: false),
                     GrandTotalUsd = table.Column<decimal>(type: "numeric(18,4)", nullable: false),
                     WebsiteClientAddressID = table.Column<int>(type: "integer", nullable: true),
                     AddressSnapshot = table.Column<string>(type: "character varying(1000)", maxLength: 1000, nullable: true),
                     CouponID = table.Column<int>(type: "integer", nullable: true),
                     ShippingMethodID = table.Column<int>(type: "integer", nullable: true),
+                    PreparationStatus = table.Column<byte>(type: "smallint", nullable: false, defaultValue: (byte)0),
+                    ShippingStatus = table.Column<byte>(type: "smallint", nullable: false, defaultValue: (byte)0),
+                    ShippingTrackingCode = table.Column<string>(type: "character varying(100)", maxLength: 100, nullable: true),
+                    ShippedAt = table.Column<DateTime>(type: "datetime", nullable: true),
                     Note = table.Column<string>(type: "character varying(1000)", maxLength: 1000, nullable: true),
+                    SalesChannel = table.Column<byte>(type: "smallint", nullable: false, defaultValue: (byte)1),
+                    ReportToTax = table.Column<bool>(type: "boolean", nullable: false, defaultValue: true),
+                    MarkupTotal = table.Column<decimal>(type: "numeric(18,4)", nullable: false),
                     CreatedByMemberID = table.Column<int>(type: "integer", nullable: true),
                     CreatedAt = table.Column<DateTime>(type: "datetime", nullable: false),
                     PaidAt = table.Column<DateTime>(type: "datetime", nullable: true)
@@ -2332,6 +2702,37 @@ namespace Dotnetable.Migrations.PostgreSql.Migrations
                         column: x => x.PageID,
                         principalTable: "Pages",
                         principalColumn: "PageID");
+                });
+
+            migrationBuilder.CreateTable(
+                name: "PayrollLines",
+                columns: table => new
+                {
+                    PayrollLineID = table.Column<int>(type: "integer", nullable: false)
+                        .Annotation("Npgsql:ValueGenerationStrategy", NpgsqlValueGenerationStrategy.IdentityByDefaultColumn),
+                    PayrollRunID = table.Column<int>(type: "integer", nullable: false),
+                    EmployeeID = table.Column<int>(type: "integer", nullable: false),
+                    Gross = table.Column<decimal>(type: "numeric(18,4)", nullable: false),
+                    EmployeeInsurance = table.Column<decimal>(type: "numeric(18,4)", nullable: false),
+                    EmployerInsurance = table.Column<decimal>(type: "numeric(18,4)", nullable: false),
+                    IncomeTax = table.Column<decimal>(type: "numeric(18,4)", nullable: false),
+                    Net = table.Column<decimal>(type: "numeric(18,4)", nullable: false),
+                    EmployerCost = table.Column<decimal>(type: "numeric(18,4)", nullable: false),
+                    Note = table.Column<string>(type: "text", nullable: true)
+                },
+                constraints: table =>
+                {
+                    table.PrimaryKey("PK_PayrollLines", x => x.PayrollLineID);
+                    table.ForeignKey(
+                        name: "FK_PayrollLines_Employees_EmployeeID",
+                        column: x => x.EmployeeID,
+                        principalTable: "Employees",
+                        principalColumn: "EmployeeID");
+                    table.ForeignKey(
+                        name: "FK_PayrollLines_PayrollRuns_PayrollRunID",
+                        column: x => x.PayrollRunID,
+                        principalTable: "PayrollRuns",
+                        principalColumn: "PayrollRunID");
                 });
 
             migrationBuilder.CreateTable(
@@ -2600,6 +3001,8 @@ namespace Dotnetable.Migrations.PostgreSql.Migrations
                     Title = table.Column<string>(type: "character varying(200)", maxLength: 200, nullable: false),
                     IsDefault = table.Column<bool>(type: "boolean", nullable: false),
                     ImageFileID = table.Column<int>(type: "integer", nullable: true),
+                    ReferencePrice = table.Column<decimal>(type: "numeric(18,4)", nullable: false),
+                    CompareAtPrice = table.Column<decimal>(type: "numeric(18,4)", nullable: true),
                     ReferencePriceUsd = table.Column<decimal>(type: "numeric(18,4)", nullable: false),
                     CompareAtPriceUsd = table.Column<decimal>(type: "numeric(18,4)", nullable: true),
                     OverridePrice = table.Column<decimal>(type: "numeric(18,4)", nullable: true),
@@ -2752,69 +3155,61 @@ namespace Dotnetable.Migrations.PostgreSql.Migrations
                 });
 
             migrationBuilder.CreateTable(
-                name: "Settlements",
+                name: "Suppliers",
                 columns: table => new
                 {
-                    SettlementID = table.Column<int>(type: "integer", nullable: false)
+                    SupplierID = table.Column<int>(type: "integer", nullable: false)
                         .Annotation("Npgsql:ValueGenerationStrategy", NpgsqlValueGenerationStrategy.IdentityByDefaultColumn),
                     WebsiteID = table.Column<int>(type: "integer", nullable: false),
-                    TargetType = table.Column<byte>(type: "smallint", nullable: false),
-                    VendorID = table.Column<int>(type: "integer", nullable: true),
-                    TargetWebsiteID = table.Column<int>(type: "integer", nullable: true),
-                    SupplierID = table.Column<int>(type: "integer", nullable: true),
-                    PeriodFrom = table.Column<DateOnly>(type: "date", nullable: false),
-                    PeriodTo = table.Column<DateOnly>(type: "date", nullable: false),
-                    TotalAmount = table.Column<decimal>(type: "numeric(18,4)", nullable: false),
-                    CurrencyCode = table.Column<string>(type: "character(3)", unicode: false, fixedLength: true, maxLength: 3, nullable: false),
-                    Status = table.Column<byte>(type: "smallint", nullable: false),
-                    BankAccountID = table.Column<int>(type: "integer", nullable: true),
-                    PaymentRefNumber = table.Column<string>(type: "character varying(100)", maxLength: 100, nullable: true),
-                    Note = table.Column<string>(type: "character varying(500)", maxLength: 500, nullable: true),
-                    CreatedByMemberID = table.Column<int>(type: "integer", nullable: true),
-                    ApprovedByMemberID = table.Column<int>(type: "integer", nullable: true),
-                    PaidAt = table.Column<DateTime>(type: "datetime", nullable: true),
+                    Name = table.Column<string>(type: "character varying(200)", maxLength: 200, nullable: false),
+                    LegalName = table.Column<string>(type: "character varying(200)", maxLength: 200, nullable: true),
+                    Phone = table.Column<string>(type: "character varying(20)", maxLength: 20, nullable: true),
+                    Email = table.Column<string>(type: "character varying(120)", maxLength: 120, nullable: true),
+                    AddressLine = table.Column<string>(type: "character varying(500)", maxLength: 500, nullable: true),
+                    CityName = table.Column<string>(type: "character varying(100)", maxLength: 100, nullable: true),
+                    PostalCode = table.Column<string>(type: "character varying(20)", maxLength: 20, nullable: true),
+                    CountryID = table.Column<int>(type: "integer", nullable: true),
+                    TaxIdentificationNumber = table.Column<string>(type: "character varying(50)", maxLength: 50, nullable: true),
+                    EconomicCode = table.Column<string>(type: "character varying(50)", maxLength: 50, nullable: true),
+                    VatNumber = table.Column<string>(type: "character varying(50)", maxLength: 50, nullable: true),
+                    RegistrationNumber = table.Column<string>(type: "character varying(50)", maxLength: 50, nullable: true),
+                    IsVatRegistered = table.Column<bool>(type: "boolean", nullable: false),
+                    BankName = table.Column<string>(type: "character varying(100)", maxLength: 100, nullable: true),
+                    BankIban = table.Column<string>(type: "character varying(34)", maxLength: 34, nullable: true),
+                    BankAccountNumber = table.Column<string>(type: "character varying(50)", maxLength: 50, nullable: true),
+                    DefaultCurrencyCode = table.Column<string>(type: "character(3)", unicode: false, fixedLength: true, maxLength: 3, nullable: true),
+                    SupplierType = table.Column<byte>(type: "smallint", nullable: false),
+                    LinkedWebsiteID = table.Column<int>(type: "integer", nullable: true),
+                    LinkedVendorID = table.Column<int>(type: "integer", nullable: true),
+                    Notes = table.Column<string>(type: "character varying(1000)", maxLength: 1000, nullable: true),
+                    IsActive = table.Column<bool>(type: "boolean", nullable: false),
                     CreatedAt = table.Column<DateTime>(type: "datetime", nullable: false)
                 },
                 constraints: table =>
                 {
-                    table.PrimaryKey("PK_Settlements", x => x.SettlementID);
+                    table.PrimaryKey("PK_Suppliers", x => x.SupplierID);
                     table.ForeignKey(
-                        name: "FK_Settlements_BankAccounts",
-                        column: x => x.BankAccountID,
-                        principalTable: "BankAccounts",
-                        principalColumn: "BankAccountID");
+                        name: "FK_Suppliers_Countries",
+                        column: x => x.CountryID,
+                        principalTable: "Countries",
+                        principalColumn: "CountryID");
                     table.ForeignKey(
-                        name: "FK_Settlements_Currencies",
-                        column: x => x.CurrencyCode,
+                        name: "FK_Suppliers_Currencies",
+                        column: x => x.DefaultCurrencyCode,
                         principalTable: "Currencies",
                         principalColumn: "CurrencyCode");
                     table.ForeignKey(
-                        name: "FK_Settlements_Member1",
-                        column: x => x.ApprovedByMemberID,
-                        principalTable: "Members",
-                        principalColumn: "MemberID");
-                    table.ForeignKey(
-                        name: "FK_Settlements_Members",
-                        column: x => x.CreatedByMemberID,
-                        principalTable: "Members",
-                        principalColumn: "MemberID");
-                    table.ForeignKey(
-                        name: "FK_Settlements_Suppliers",
-                        column: x => x.SupplierID,
-                        principalTable: "Suppliers",
-                        principalColumn: "SupplierID");
-                    table.ForeignKey(
-                        name: "FK_Settlements_Vendors",
-                        column: x => x.VendorID,
-                        principalTable: "Vendors",
-                        principalColumn: "VendorID");
-                    table.ForeignKey(
-                        name: "FK_Settlements_Website1",
-                        column: x => x.TargetWebsiteID,
+                        name: "FK_Suppliers_LinkedWebsites",
+                        column: x => x.LinkedWebsiteID,
                         principalTable: "Websites",
                         principalColumn: "WebsiteID");
                     table.ForeignKey(
-                        name: "FK_Settlements_Websites",
+                        name: "FK_Suppliers_Vendors",
+                        column: x => x.LinkedVendorID,
+                        principalTable: "Vendors",
+                        principalColumn: "VendorID");
+                    table.ForeignKey(
+                        name: "FK_Suppliers_Websites",
                         column: x => x.WebsiteID,
                         principalTable: "Websites",
                         principalColumn: "WebsiteID");
@@ -2890,6 +3285,7 @@ namespace Dotnetable.Migrations.PostgreSql.Migrations
                     TrackingCode = table.Column<string>(type: "character varying(100)", maxLength: 100, nullable: true),
                     ReceiptFileID = table.Column<int>(type: "integer", nullable: true),
                     PaidAt = table.Column<DateTime>(type: "timestamp(0) with time zone", precision: 0, nullable: true),
+                    CreatedByMemberID = table.Column<int>(type: "integer", nullable: true),
                     VerifiedByMemberID = table.Column<int>(type: "integer", nullable: true),
                     CreatedAt = table.Column<DateTime>(type: "timestamp(0) with time zone", precision: 0, nullable: false)
                 },
@@ -2922,6 +3318,11 @@ namespace Dotnetable.Migrations.PostgreSql.Migrations
                         principalTable: "Members",
                         principalColumn: "MemberID");
                     table.ForeignKey(
+                        name: "FK_Payments_Members_CreatedBy",
+                        column: x => x.CreatedByMemberID,
+                        principalTable: "Members",
+                        principalColumn: "MemberID");
+                    table.ForeignKey(
                         name: "FK_Payments_Orders",
                         column: x => x.OrderID,
                         principalTable: "Orders",
@@ -2938,6 +3339,71 @@ namespace Dotnetable.Migrations.PostgreSql.Migrations
                         principalColumn: "WebsiteClientID");
                     table.ForeignKey(
                         name: "FK_Payments_Websites",
+                        column: x => x.WebsiteID,
+                        principalTable: "Websites",
+                        principalColumn: "WebsiteID");
+                });
+
+            migrationBuilder.CreateTable(
+                name: "SupportSessions",
+                columns: table => new
+                {
+                    SupportSessionID = table.Column<int>(type: "integer", nullable: false)
+                        .Annotation("Npgsql:ValueGenerationStrategy", NpgsqlValueGenerationStrategy.IdentityByDefaultColumn),
+                    WebsiteID = table.Column<int>(type: "integer", nullable: false),
+                    WebsiteClientID = table.Column<int>(type: "integer", nullable: true),
+                    SessionNumber = table.Column<string>(type: "character varying(30)", maxLength: 30, nullable: false),
+                    Status = table.Column<byte>(type: "smallint", nullable: false),
+                    Priority = table.Column<byte>(type: "smallint", nullable: false),
+                    Channel = table.Column<byte>(type: "smallint", nullable: false),
+                    Category = table.Column<byte>(type: "smallint", nullable: false),
+                    Subject = table.Column<string>(type: "character varying(256)", maxLength: 256, nullable: true),
+                    Tags = table.Column<string>(type: "character varying(256)", maxLength: 256, nullable: true),
+                    CellphoneSnapshot = table.Column<string>(type: "character varying(16)", unicode: false, maxLength: 16, nullable: true),
+                    CountryCodeSnapshot = table.Column<string>(type: "character varying(3)", unicode: false, maxLength: 3, nullable: true),
+                    EmailSnapshot = table.Column<string>(type: "character varying(64)", unicode: false, maxLength: 64, nullable: true),
+                    CustomerNameSnapshot = table.Column<string>(type: "character varying(128)", maxLength: 128, nullable: true),
+                    RelatedOrderID = table.Column<int>(type: "integer", nullable: true),
+                    AssignedMemberID = table.Column<int>(type: "integer", nullable: true),
+                    CreatedByMemberID = table.Column<int>(type: "integer", nullable: true),
+                    FirstResponseAt = table.Column<DateTime>(type: "datetime", nullable: true),
+                    ResolvedAt = table.Column<DateTime>(type: "datetime", nullable: true),
+                    ClosedAt = table.Column<DateTime>(type: "datetime", nullable: true),
+                    FirstResponseDueAt = table.Column<DateTime>(type: "datetime", nullable: true),
+                    ResolveDueAt = table.Column<DateTime>(type: "datetime", nullable: true),
+                    CallbackAt = table.Column<DateTime>(type: "datetime", nullable: true),
+                    CallbackNote = table.Column<string>(type: "character varying(500)", maxLength: 500, nullable: true),
+                    CreatedAt = table.Column<DateTime>(type: "datetime", nullable: false),
+                    UpdatedAt = table.Column<DateTime>(type: "datetime", nullable: false),
+                    LastInteractionAt = table.Column<DateTime>(type: "datetime", nullable: true),
+                    SatisfactionRating = table.Column<byte>(type: "smallint", nullable: true),
+                    Archive = table.Column<bool>(type: "boolean", nullable: false)
+                },
+                constraints: table =>
+                {
+                    table.PrimaryKey("PK_SupportSessions", x => x.SupportSessionID);
+                    table.ForeignKey(
+                        name: "FK_SupportSessions_AssignedMembers",
+                        column: x => x.AssignedMemberID,
+                        principalTable: "Members",
+                        principalColumn: "MemberID");
+                    table.ForeignKey(
+                        name: "FK_SupportSessions_CreatedByMembers",
+                        column: x => x.CreatedByMemberID,
+                        principalTable: "Members",
+                        principalColumn: "MemberID");
+                    table.ForeignKey(
+                        name: "FK_SupportSessions_Orders",
+                        column: x => x.RelatedOrderID,
+                        principalTable: "Orders",
+                        principalColumn: "OrderID");
+                    table.ForeignKey(
+                        name: "FK_SupportSessions_WebsiteClients",
+                        column: x => x.WebsiteClientID,
+                        principalTable: "WebsiteClients",
+                        principalColumn: "WebsiteClientID");
+                    table.ForeignKey(
+                        name: "FK_SupportSessions_Websites",
                         column: x => x.WebsiteID,
                         principalTable: "Websites",
                         principalColumn: "WebsiteID");
@@ -3009,6 +3475,7 @@ namespace Dotnetable.Migrations.PostgreSql.Migrations
                     QuantityOnHand = table.Column<int>(type: "integer", nullable: false),
                     QuantityReserved = table.Column<int>(type: "integer", nullable: false),
                     ReorderLevel = table.Column<int>(type: "integer", nullable: false),
+                    AvgCost = table.Column<decimal>(type: "numeric(18,4)", nullable: false),
                     AvgCostUsd = table.Column<decimal>(type: "numeric(18,4)", nullable: false),
                     RowVersion = table.Column<byte[]>(type: "bytea", rowVersion: true, nullable: false)
                 },
@@ -3081,6 +3548,8 @@ namespace Dotnetable.Migrations.PostgreSql.Migrations
                     ProductVariantPriceHistoryID = table.Column<long>(type: "bigint", nullable: false)
                         .Annotation("Npgsql:ValueGenerationStrategy", NpgsqlValueGenerationStrategy.IdentityByDefaultColumn),
                     ProductVariantID = table.Column<int>(type: "integer", nullable: false),
+                    ReferencePrice = table.Column<decimal>(type: "numeric(18,4)", nullable: false),
+                    CompareAtPrice = table.Column<decimal>(type: "numeric(18,4)", nullable: true),
                     ReferencePriceUsd = table.Column<decimal>(type: "numeric(18,4)", nullable: false),
                     CompareAtPriceUsd = table.Column<decimal>(type: "numeric(18,4)", nullable: true),
                     RecordedAt = table.Column<DateTime>(type: "datetime", nullable: false),
@@ -3138,11 +3607,16 @@ namespace Dotnetable.Migrations.PostgreSql.Migrations
                     WebsiteID = table.Column<int>(type: "integer", nullable: false),
                     VendorID = table.Column<int>(type: "integer", nullable: false),
                     ProductVariantID = table.Column<int>(type: "integer", nullable: false),
+                    ReferencePrice = table.Column<decimal>(type: "numeric(18,4)", nullable: false),
+                    OverridePriceLocal = table.Column<decimal>(type: "numeric(18,4)", nullable: true),
                     ReferencePriceUsd = table.Column<decimal>(type: "numeric(18,4)", nullable: false),
                     OverridePrice = table.Column<decimal>(type: "numeric(18,4)", nullable: true),
                     StockQuantity = table.Column<int>(type: "integer", nullable: false),
+                    QuantityReserved = table.Column<int>(type: "integer", nullable: false),
                     DeliveryDays = table.Column<int>(type: "integer", nullable: false),
-                    IsActive = table.Column<bool>(type: "boolean", nullable: false)
+                    IsActive = table.Column<bool>(type: "boolean", nullable: false),
+                    ItemCondition = table.Column<byte>(type: "smallint", nullable: false, defaultValue: (byte)1),
+                    HealthGrade = table.Column<byte>(type: "smallint", nullable: false, defaultValue: (byte)0)
                 },
                 constraints: table =>
                 {
@@ -3162,6 +3636,33 @@ namespace Dotnetable.Migrations.PostgreSql.Migrations
                         column: x => x.WebsiteID,
                         principalTable: "Websites",
                         principalColumn: "WebsiteID");
+                });
+
+            migrationBuilder.CreateTable(
+                name: "WarehouseStocks",
+                columns: table => new
+                {
+                    WarehouseStockID = table.Column<int>(type: "integer", nullable: false)
+                        .Annotation("Npgsql:ValueGenerationStrategy", NpgsqlValueGenerationStrategy.IdentityByDefaultColumn),
+                    WarehouseID = table.Column<int>(type: "integer", nullable: false),
+                    ProductVariantID = table.Column<int>(type: "integer", nullable: false),
+                    QuantityOnHand = table.Column<int>(type: "integer", nullable: false),
+                    QuantityReserved = table.Column<int>(type: "integer", nullable: false),
+                    RowVersion = table.Column<byte[]>(type: "bytea", rowVersion: true, nullable: false)
+                },
+                constraints: table =>
+                {
+                    table.PrimaryKey("PK_WarehouseStocks", x => x.WarehouseStockID);
+                    table.ForeignKey(
+                        name: "FK_WarehouseStocks_ProductVariants_ProductVariantID",
+                        column: x => x.ProductVariantID,
+                        principalTable: "ProductVariants",
+                        principalColumn: "ProductVariantID");
+                    table.ForeignKey(
+                        name: "FK_WarehouseStocks_Warehouses_WarehouseID",
+                        column: x => x.WarehouseID,
+                        principalTable: "Warehouses",
+                        principalColumn: "WarehouseID");
                 });
 
             migrationBuilder.CreateTable(
@@ -3230,6 +3731,90 @@ namespace Dotnetable.Migrations.PostgreSql.Migrations
                 });
 
             migrationBuilder.CreateTable(
+                name: "Settlements",
+                columns: table => new
+                {
+                    SettlementID = table.Column<int>(type: "integer", nullable: false)
+                        .Annotation("Npgsql:ValueGenerationStrategy", NpgsqlValueGenerationStrategy.IdentityByDefaultColumn),
+                    WebsiteID = table.Column<int>(type: "integer", nullable: false),
+                    TargetType = table.Column<byte>(type: "smallint", nullable: false),
+                    VendorID = table.Column<int>(type: "integer", nullable: true),
+                    TargetWebsiteID = table.Column<int>(type: "integer", nullable: true),
+                    SupplierID = table.Column<int>(type: "integer", nullable: true),
+                    PeriodFrom = table.Column<DateOnly>(type: "date", nullable: false),
+                    PeriodTo = table.Column<DateOnly>(type: "date", nullable: false),
+                    NetAmount = table.Column<decimal>(type: "numeric(18,4)", nullable: false),
+                    TaxAmount = table.Column<decimal>(type: "numeric(18,4)", nullable: false),
+                    TotalAmount = table.Column<decimal>(type: "numeric(18,4)", nullable: false),
+                    TaxRateSnapshot = table.Column<decimal>(type: "numeric(9,6)", nullable: true),
+                    CurrencyCode = table.Column<string>(type: "character(3)", unicode: false, fixedLength: true, maxLength: 3, nullable: false),
+                    SourceCurrencyCode = table.Column<string>(type: "character(3)", unicode: false, fixedLength: true, maxLength: 3, nullable: true),
+                    SourceNetAmount = table.Column<decimal>(type: "numeric(18,4)", nullable: false),
+                    SourceTaxAmount = table.Column<decimal>(type: "numeric(18,4)", nullable: false),
+                    SourceTotalAmount = table.Column<decimal>(type: "numeric(18,4)", nullable: false),
+                    BridgeUsdAmount = table.Column<decimal>(type: "numeric(18,4)", nullable: false),
+                    ExchangeRateToUsd = table.Column<decimal>(type: "numeric(18,6)", nullable: true),
+                    ExchangeRateUsdToSettle = table.Column<decimal>(type: "numeric(18,6)", nullable: true),
+                    Status = table.Column<byte>(type: "smallint", nullable: false),
+                    BankAccountID = table.Column<int>(type: "integer", nullable: true),
+                    PaymentRefNumber = table.Column<string>(type: "character varying(100)", maxLength: 100, nullable: true),
+                    Note = table.Column<string>(type: "character varying(500)", maxLength: 500, nullable: true),
+                    CreatedByMemberID = table.Column<int>(type: "integer", nullable: true),
+                    ApprovedByMemberID = table.Column<int>(type: "integer", nullable: true),
+                    PaidAt = table.Column<DateTime>(type: "datetime", nullable: true),
+                    CreatedAt = table.Column<DateTime>(type: "datetime", nullable: false)
+                },
+                constraints: table =>
+                {
+                    table.PrimaryKey("PK_Settlements", x => x.SettlementID);
+                    table.ForeignKey(
+                        name: "FK_Settlements_BankAccounts",
+                        column: x => x.BankAccountID,
+                        principalTable: "BankAccounts",
+                        principalColumn: "BankAccountID");
+                    table.ForeignKey(
+                        name: "FK_Settlements_Currencies",
+                        column: x => x.CurrencyCode,
+                        principalTable: "Currencies",
+                        principalColumn: "CurrencyCode");
+                    table.ForeignKey(
+                        name: "FK_Settlements_Currencies_Source",
+                        column: x => x.SourceCurrencyCode,
+                        principalTable: "Currencies",
+                        principalColumn: "CurrencyCode");
+                    table.ForeignKey(
+                        name: "FK_Settlements_Member1",
+                        column: x => x.ApprovedByMemberID,
+                        principalTable: "Members",
+                        principalColumn: "MemberID");
+                    table.ForeignKey(
+                        name: "FK_Settlements_Members",
+                        column: x => x.CreatedByMemberID,
+                        principalTable: "Members",
+                        principalColumn: "MemberID");
+                    table.ForeignKey(
+                        name: "FK_Settlements_Suppliers",
+                        column: x => x.SupplierID,
+                        principalTable: "Suppliers",
+                        principalColumn: "SupplierID");
+                    table.ForeignKey(
+                        name: "FK_Settlements_Vendors",
+                        column: x => x.VendorID,
+                        principalTable: "Vendors",
+                        principalColumn: "VendorID");
+                    table.ForeignKey(
+                        name: "FK_Settlements_Website1",
+                        column: x => x.TargetWebsiteID,
+                        principalTable: "Websites",
+                        principalColumn: "WebsiteID");
+                    table.ForeignKey(
+                        name: "FK_Settlements_Websites",
+                        column: x => x.WebsiteID,
+                        principalTable: "Websites",
+                        principalColumn: "WebsiteID");
+                });
+
+            migrationBuilder.CreateTable(
                 name: "PaymentRefunds",
                 columns: table => new
                 {
@@ -3271,6 +3856,44 @@ namespace Dotnetable.Migrations.PostgreSql.Migrations
                 });
 
             migrationBuilder.CreateTable(
+                name: "SupportInteractions",
+                columns: table => new
+                {
+                    SupportInteractionID = table.Column<int>(type: "integer", nullable: false)
+                        .Annotation("Npgsql:ValueGenerationStrategy", NpgsqlValueGenerationStrategy.IdentityByDefaultColumn),
+                    SupportSessionID = table.Column<int>(type: "integer", nullable: false),
+                    InteractionType = table.Column<byte>(type: "smallint", nullable: false),
+                    Body = table.Column<string>(type: "character varying(4000)", maxLength: 4000, nullable: true),
+                    DurationSeconds = table.Column<int>(type: "integer", nullable: true),
+                    CallOutcome = table.Column<byte>(type: "smallint", nullable: true),
+                    FromStatus = table.Column<byte>(type: "smallint", nullable: true),
+                    ToStatus = table.Column<byte>(type: "smallint", nullable: true),
+                    RelatedOrderID = table.Column<int>(type: "integer", nullable: true),
+                    CreatedByMemberID = table.Column<int>(type: "integer", nullable: true),
+                    IsInternal = table.Column<bool>(type: "boolean", nullable: false),
+                    CreatedAt = table.Column<DateTime>(type: "datetime", nullable: false)
+                },
+                constraints: table =>
+                {
+                    table.PrimaryKey("PK_SupportInteractions", x => x.SupportInteractionID);
+                    table.ForeignKey(
+                        name: "FK_SupportInteractions_Members",
+                        column: x => x.CreatedByMemberID,
+                        principalTable: "Members",
+                        principalColumn: "MemberID");
+                    table.ForeignKey(
+                        name: "FK_SupportInteractions_Orders",
+                        column: x => x.RelatedOrderID,
+                        principalTable: "Orders",
+                        principalColumn: "OrderID");
+                    table.ForeignKey(
+                        name: "FK_SupportInteractions_SupportSessions",
+                        column: x => x.SupportSessionID,
+                        principalTable: "SupportSessions",
+                        principalColumn: "SupportSessionID");
+                });
+
+            migrationBuilder.CreateTable(
                 name: "OrderItems",
                 columns: table => new
                 {
@@ -3279,7 +3902,7 @@ namespace Dotnetable.Migrations.PostgreSql.Migrations
                     OrderID = table.Column<int>(type: "integer", nullable: false),
                     WebsiteID = table.Column<int>(type: "integer", nullable: false),
                     SourceWebsiteID = table.Column<int>(type: "integer", nullable: false),
-                    ProductVariantID = table.Column<int>(type: "integer", nullable: false),
+                    ProductVariantID = table.Column<int>(type: "integer", nullable: true),
                     VendorProductID = table.Column<int>(type: "integer", nullable: true),
                     VendorID = table.Column<int>(type: "integer", nullable: true),
                     TitleSnapshot = table.Column<string>(type: "character varying(300)", maxLength: 300, nullable: false),
@@ -3288,6 +3911,8 @@ namespace Dotnetable.Migrations.PostgreSql.Migrations
                     UnitPrice = table.Column<decimal>(type: "numeric(18,4)", nullable: false),
                     UnitPriceUsd = table.Column<decimal>(type: "numeric(18,4)", nullable: false),
                     UnitCostUsd = table.Column<decimal>(type: "numeric(18,4)", nullable: false),
+                    CatalogUnitPrice = table.Column<decimal>(type: "numeric(18,4)", nullable: false),
+                    UnitMarkup = table.Column<decimal>(type: "numeric(18,4)", nullable: false),
                     DiscountAmount = table.Column<decimal>(type: "numeric(18,4)", nullable: false),
                     TotalPrice = table.Column<decimal>(type: "numeric(18,4)", nullable: false)
                 },
@@ -3327,6 +3952,218 @@ namespace Dotnetable.Migrations.PostgreSql.Migrations
                 });
 
             migrationBuilder.CreateTable(
+                name: "StockDocuments",
+                columns: table => new
+                {
+                    StockDocumentID = table.Column<int>(type: "integer", nullable: false)
+                        .Annotation("Npgsql:ValueGenerationStrategy", NpgsqlValueGenerationStrategy.IdentityByDefaultColumn),
+                    WebsiteID = table.Column<int>(type: "integer", nullable: false),
+                    DocumentNumber = table.Column<string>(type: "character varying(40)", maxLength: 40, nullable: false),
+                    DocumentType = table.Column<byte>(type: "smallint", nullable: false),
+                    Status = table.Column<byte>(type: "smallint", nullable: false),
+                    FromWarehouseID = table.Column<int>(type: "integer", nullable: true),
+                    ToWarehouseID = table.Column<int>(type: "integer", nullable: true),
+                    SupplierID = table.Column<int>(type: "integer", nullable: true),
+                    OrderID = table.Column<int>(type: "integer", nullable: true),
+                    PaymentRefundID = table.Column<int>(type: "integer", nullable: true),
+                    Note = table.Column<string>(type: "character varying(1000)", maxLength: 1000, nullable: true),
+                    RequestedByMemberID = table.Column<int>(type: "integer", nullable: true),
+                    ApprovedByMemberID = table.Column<int>(type: "integer", nullable: true),
+                    PostedByMemberID = table.Column<int>(type: "integer", nullable: true),
+                    SubmittedAt = table.Column<DateTime>(type: "timestamp with time zone", nullable: true),
+                    ApprovedAt = table.Column<DateTime>(type: "timestamp with time zone", nullable: true),
+                    PostedAt = table.Column<DateTime>(type: "timestamp with time zone", nullable: true),
+                    CreatedAt = table.Column<DateTime>(type: "timestamp with time zone", nullable: false)
+                },
+                constraints: table =>
+                {
+                    table.PrimaryKey("PK_StockDocuments", x => x.StockDocumentID);
+                    table.ForeignKey(
+                        name: "FK_StockDocuments_Members_ApprovedByMemberID",
+                        column: x => x.ApprovedByMemberID,
+                        principalTable: "Members",
+                        principalColumn: "MemberID");
+                    table.ForeignKey(
+                        name: "FK_StockDocuments_Members_PostedByMemberID",
+                        column: x => x.PostedByMemberID,
+                        principalTable: "Members",
+                        principalColumn: "MemberID");
+                    table.ForeignKey(
+                        name: "FK_StockDocuments_Members_RequestedByMemberID",
+                        column: x => x.RequestedByMemberID,
+                        principalTable: "Members",
+                        principalColumn: "MemberID");
+                    table.ForeignKey(
+                        name: "FK_StockDocuments_Orders_OrderID",
+                        column: x => x.OrderID,
+                        principalTable: "Orders",
+                        principalColumn: "OrderID");
+                    table.ForeignKey(
+                        name: "FK_StockDocuments_PaymentRefunds_PaymentRefundID",
+                        column: x => x.PaymentRefundID,
+                        principalTable: "PaymentRefunds",
+                        principalColumn: "PaymentRefundID");
+                    table.ForeignKey(
+                        name: "FK_StockDocuments_Suppliers_SupplierID",
+                        column: x => x.SupplierID,
+                        principalTable: "Suppliers",
+                        principalColumn: "SupplierID");
+                    table.ForeignKey(
+                        name: "FK_StockDocuments_Warehouses_FromWarehouseID",
+                        column: x => x.FromWarehouseID,
+                        principalTable: "Warehouses",
+                        principalColumn: "WarehouseID");
+                    table.ForeignKey(
+                        name: "FK_StockDocuments_Warehouses_ToWarehouseID",
+                        column: x => x.ToWarehouseID,
+                        principalTable: "Warehouses",
+                        principalColumn: "WarehouseID");
+                    table.ForeignKey(
+                        name: "FK_StockDocuments_Websites_WebsiteID",
+                        column: x => x.WebsiteID,
+                        principalTable: "Websites",
+                        principalColumn: "WebsiteID");
+                });
+
+            migrationBuilder.CreateTable(
+                name: "FinancialLedgerEntries",
+                columns: table => new
+                {
+                    FinancialLedgerEntryID = table.Column<long>(type: "bigint", nullable: false)
+                        .Annotation("Npgsql:ValueGenerationStrategy", NpgsqlValueGenerationStrategy.IdentityByDefaultColumn),
+                    WebsiteID = table.Column<int>(type: "integer", nullable: false),
+                    TransactionType = table.Column<string>(type: "character varying(64)", maxLength: 64, nullable: false),
+                    Flow = table.Column<byte>(type: "smallint", nullable: false),
+                    Amount = table.Column<decimal>(type: "numeric(18,4)", nullable: false),
+                    AmountUsd = table.Column<decimal>(type: "numeric(18,4)", nullable: false),
+                    CurrencyCode = table.Column<string>(type: "character(3)", unicode: false, fixedLength: true, maxLength: 3, nullable: false),
+                    OccurredDate = table.Column<DateOnly>(type: "date", nullable: false),
+                    OccurredTime = table.Column<TimeOnly>(type: "time without time zone", nullable: false),
+                    OccurredAtUtc = table.Column<DateTime>(type: "timestamp with time zone", nullable: false),
+                    Title = table.Column<string>(type: "character varying(300)", maxLength: 300, nullable: false),
+                    Description = table.Column<string>(type: "character varying(1000)", maxLength: 1000, nullable: true),
+                    ReportToTax = table.Column<bool>(type: "boolean", nullable: false, defaultValue: true),
+                    VendorVisible = table.Column<bool>(type: "boolean", nullable: false, defaultValue: false),
+                    VendorID = table.Column<int>(type: "integer", nullable: true),
+                    OrderID = table.Column<int>(type: "integer", nullable: true),
+                    OrderItemID = table.Column<int>(type: "integer", nullable: true),
+                    PaymentID = table.Column<int>(type: "integer", nullable: true),
+                    SettlementID = table.Column<int>(type: "integer", nullable: true),
+                    WebsiteClientID = table.Column<int>(type: "integer", nullable: true),
+                    EventGroupId = table.Column<Guid>(type: "uuid", nullable: false),
+                    Version = table.Column<int>(type: "integer", nullable: false, defaultValue: 1),
+                    SupersedesEntryID = table.Column<long>(type: "bigint", nullable: true),
+                    IsCurrent = table.Column<bool>(type: "boolean", nullable: false, defaultValue: true),
+                    ChangeNote = table.Column<string>(type: "character varying(500)", maxLength: 500, nullable: true),
+                    CreatedByMemberID = table.Column<int>(type: "integer", nullable: true),
+                    CreatedAt = table.Column<DateTime>(type: "timestamp with time zone", nullable: false),
+                    MetaJson = table.Column<string>(type: "character varying(2000)", maxLength: 2000, nullable: true)
+                },
+                constraints: table =>
+                {
+                    table.PrimaryKey("PK_FinancialLedgerEntries", x => x.FinancialLedgerEntryID);
+                    table.ForeignKey(
+                        name: "FK_FinancialLedgerEntries_Currencies",
+                        column: x => x.CurrencyCode,
+                        principalTable: "Currencies",
+                        principalColumn: "CurrencyCode");
+                    table.ForeignKey(
+                        name: "FK_FinancialLedgerEntries_Members",
+                        column: x => x.CreatedByMemberID,
+                        principalTable: "Members",
+                        principalColumn: "MemberID");
+                    table.ForeignKey(
+                        name: "FK_FinancialLedgerEntries_OrderItems",
+                        column: x => x.OrderItemID,
+                        principalTable: "OrderItems",
+                        principalColumn: "OrderItemID");
+                    table.ForeignKey(
+                        name: "FK_FinancialLedgerEntries_Orders",
+                        column: x => x.OrderID,
+                        principalTable: "Orders",
+                        principalColumn: "OrderID");
+                    table.ForeignKey(
+                        name: "FK_FinancialLedgerEntries_Payments",
+                        column: x => x.PaymentID,
+                        principalTable: "Payments",
+                        principalColumn: "PaymentID");
+                    table.ForeignKey(
+                        name: "FK_FinancialLedgerEntries_Settlements",
+                        column: x => x.SettlementID,
+                        principalTable: "Settlements",
+                        principalColumn: "SettlementID");
+                    table.ForeignKey(
+                        name: "FK_FinancialLedgerEntries_Supersedes",
+                        column: x => x.SupersedesEntryID,
+                        principalTable: "FinancialLedgerEntries",
+                        principalColumn: "FinancialLedgerEntryID");
+                    table.ForeignKey(
+                        name: "FK_FinancialLedgerEntries_Vendors",
+                        column: x => x.VendorID,
+                        principalTable: "Vendors",
+                        principalColumn: "VendorID");
+                    table.ForeignKey(
+                        name: "FK_FinancialLedgerEntries_WebsiteClients",
+                        column: x => x.WebsiteClientID,
+                        principalTable: "WebsiteClients",
+                        principalColumn: "WebsiteClientID");
+                    table.ForeignKey(
+                        name: "FK_FinancialLedgerEntries_Websites",
+                        column: x => x.WebsiteID,
+                        principalTable: "Websites",
+                        principalColumn: "WebsiteID");
+                });
+
+            migrationBuilder.CreateTable(
+                name: "OrderDigitalAssets",
+                columns: table => new
+                {
+                    OrderDigitalAssetID = table.Column<int>(type: "integer", nullable: false)
+                        .Annotation("Npgsql:ValueGenerationStrategy", NpgsqlValueGenerationStrategy.IdentityByDefaultColumn),
+                    WebsiteID = table.Column<int>(type: "integer", nullable: false),
+                    WebsiteClientID = table.Column<int>(type: "integer", nullable: false),
+                    OrderID = table.Column<int>(type: "integer", nullable: false),
+                    OrderItemID = table.Column<int>(type: "integer", nullable: false),
+                    ProductID = table.Column<int>(type: "integer", nullable: false),
+                    ProductType = table.Column<byte>(type: "smallint", nullable: false),
+                    TitleSnapshot = table.Column<string>(type: "character varying(400)", maxLength: 400, nullable: false),
+                    DigitalDownloadUrl = table.Column<string>(type: "character varying(1000)", maxLength: 1000, nullable: true),
+                    DigitalServiceUrl = table.Column<string>(type: "character varying(1000)", maxLength: 1000, nullable: true),
+                    DigitalDeliveryNote = table.Column<string>(type: "character varying(2000)", maxLength: 2000, nullable: true),
+                    IsActive = table.Column<bool>(type: "boolean", nullable: false),
+                    GrantedAt = table.Column<DateTime>(type: "datetime", nullable: false)
+                },
+                constraints: table =>
+                {
+                    table.PrimaryKey("PK_OrderDigitalAssets", x => x.OrderDigitalAssetID);
+                    table.ForeignKey(
+                        name: "FK_OrderDigitalAssets_OrderItems",
+                        column: x => x.OrderItemID,
+                        principalTable: "OrderItems",
+                        principalColumn: "OrderItemID");
+                    table.ForeignKey(
+                        name: "FK_OrderDigitalAssets_Orders",
+                        column: x => x.OrderID,
+                        principalTable: "Orders",
+                        principalColumn: "OrderID");
+                    table.ForeignKey(
+                        name: "FK_OrderDigitalAssets_Products",
+                        column: x => x.ProductID,
+                        principalTable: "Products",
+                        principalColumn: "ProductID");
+                    table.ForeignKey(
+                        name: "FK_OrderDigitalAssets_WebsiteClients",
+                        column: x => x.WebsiteClientID,
+                        principalTable: "WebsiteClients",
+                        principalColumn: "WebsiteClientID");
+                    table.ForeignKey(
+                        name: "FK_OrderDigitalAssets_Websites",
+                        column: x => x.WebsiteID,
+                        principalTable: "Websites",
+                        principalColumn: "WebsiteID");
+                });
+
+            migrationBuilder.CreateTable(
                 name: "StockMovements",
                 columns: table => new
                 {
@@ -3336,7 +4173,9 @@ namespace Dotnetable.Migrations.PostgreSql.Migrations
                     ProductVariantID = table.Column<int>(type: "integer", nullable: false),
                     Type = table.Column<byte>(type: "smallint", nullable: false),
                     Quantity = table.Column<int>(type: "integer", nullable: false),
+                    UnitCost = table.Column<decimal>(type: "numeric(18,4)", nullable: false),
                     UnitCostUsd = table.Column<decimal>(type: "numeric(18,4)", nullable: false),
+                    UnitSalePrice = table.Column<decimal>(type: "numeric(18,4)", nullable: true),
                     UnitSalePriceUsd = table.Column<decimal>(type: "numeric(18,4)", nullable: true),
                     CurrencyCode = table.Column<string>(type: "character(3)", unicode: false, fixedLength: true, maxLength: 3, nullable: false),
                     ExchangeRateToUsd = table.Column<decimal>(type: "numeric(18,6)", nullable: false, comment: "website's local currency rate snapshotted at the moment of this stock entry/exit, so accounting and reports can be reconstructed in local currency at that point in time"),
@@ -3395,7 +4234,9 @@ namespace Dotnetable.Migrations.PostgreSql.Migrations
                         .Annotation("Npgsql:ValueGenerationStrategy", NpgsqlValueGenerationStrategy.IdentityByDefaultColumn),
                     VendorID = table.Column<int>(type: "integer", nullable: false),
                     WebsiteID = table.Column<int>(type: "integer", nullable: false),
+                    Amount = table.Column<decimal>(type: "numeric(18,4)", nullable: false),
                     AmountUsd = table.Column<decimal>(type: "numeric(18,4)", nullable: false),
+                    BalanceAfter = table.Column<decimal>(type: "numeric(18,4)", nullable: false),
                     BalanceAfterUsd = table.Column<decimal>(type: "numeric(18,4)", nullable: false),
                     SourceType = table.Column<byte>(type: "smallint", nullable: false, comment: "1 = Grant, 2 = Sale, 3 = Adjustment, 4 = Refund"),
                     SourceOrderItemID = table.Column<int>(type: "integer", nullable: true),
@@ -3435,6 +4276,66 @@ namespace Dotnetable.Migrations.PostgreSql.Migrations
                 });
 
             migrationBuilder.CreateTable(
+                name: "StockDocumentHistories",
+                columns: table => new
+                {
+                    StockDocumentHistoryID = table.Column<int>(type: "integer", nullable: false)
+                        .Annotation("Npgsql:ValueGenerationStrategy", NpgsqlValueGenerationStrategy.IdentityByDefaultColumn),
+                    StockDocumentID = table.Column<int>(type: "integer", nullable: false),
+                    FromStatus = table.Column<byte>(type: "smallint", nullable: false),
+                    ToStatus = table.Column<byte>(type: "smallint", nullable: false),
+                    Note = table.Column<string>(type: "character varying(500)", maxLength: 500, nullable: true),
+                    CreatedByMemberID = table.Column<int>(type: "integer", nullable: true),
+                    CreatedAt = table.Column<DateTime>(type: "timestamp with time zone", nullable: false)
+                },
+                constraints: table =>
+                {
+                    table.PrimaryKey("PK_StockDocumentHistories", x => x.StockDocumentHistoryID);
+                    table.ForeignKey(
+                        name: "FK_StockDocumentHistories_Members_CreatedByMemberID",
+                        column: x => x.CreatedByMemberID,
+                        principalTable: "Members",
+                        principalColumn: "MemberID");
+                    table.ForeignKey(
+                        name: "FK_StockDocumentHistories_StockDocuments_StockDocumentID",
+                        column: x => x.StockDocumentID,
+                        principalTable: "StockDocuments",
+                        principalColumn: "StockDocumentID");
+                });
+
+            migrationBuilder.CreateTable(
+                name: "StockDocumentLines",
+                columns: table => new
+                {
+                    StockDocumentLineID = table.Column<int>(type: "integer", nullable: false)
+                        .Annotation("Npgsql:ValueGenerationStrategy", NpgsqlValueGenerationStrategy.IdentityByDefaultColumn),
+                    StockDocumentID = table.Column<int>(type: "integer", nullable: false),
+                    ProductVariantID = table.Column<int>(type: "integer", nullable: false),
+                    Quantity = table.Column<int>(type: "integer", nullable: false),
+                    BookQuantity = table.Column<int>(type: "integer", nullable: false, defaultValue: 0),
+                    CountedQuantity = table.Column<int>(type: "integer", nullable: true),
+                    UnitCost = table.Column<decimal>(type: "numeric(18,4)", nullable: false),
+                    UnitCostUsd = table.Column<decimal>(type: "numeric(18,4)", nullable: false),
+                    Note = table.Column<string>(type: "character varying(300)", maxLength: 300, nullable: true),
+                    ReturnCondition = table.Column<byte>(type: "smallint", nullable: false, defaultValue: (byte)0),
+                    HealthGrade = table.Column<byte>(type: "smallint", nullable: false, defaultValue: (byte)0)
+                },
+                constraints: table =>
+                {
+                    table.PrimaryKey("PK_StockDocumentLines", x => x.StockDocumentLineID);
+                    table.ForeignKey(
+                        name: "FK_StockDocumentLines_ProductVariants_ProductVariantID",
+                        column: x => x.ProductVariantID,
+                        principalTable: "ProductVariants",
+                        principalColumn: "ProductVariantID");
+                    table.ForeignKey(
+                        name: "FK_StockDocumentLines_StockDocuments_StockDocumentID",
+                        column: x => x.StockDocumentID,
+                        principalTable: "StockDocuments",
+                        principalColumn: "StockDocumentID");
+                });
+
+            migrationBuilder.CreateTable(
                 name: "SettlementItems",
                 columns: table => new
                 {
@@ -3470,6 +4371,125 @@ namespace Dotnetable.Migrations.PostgreSql.Migrations
                         column: x => x.StockMovementID,
                         principalTable: "StockMovements",
                         principalColumn: "StockMovementID");
+                });
+
+            migrationBuilder.CreateTable(
+                name: "FiscalPeriods",
+                columns: table => new
+                {
+                    FiscalPeriodID = table.Column<int>(type: "integer", nullable: false)
+                        .Annotation("Npgsql:ValueGenerationStrategy", NpgsqlValueGenerationStrategy.IdentityByDefaultColumn),
+                    WebsiteID = table.Column<int>(type: "integer", nullable: false),
+                    Name = table.Column<string>(type: "character varying(100)", maxLength: 100, nullable: false),
+                    PeriodFrom = table.Column<DateOnly>(type: "date", nullable: false),
+                    PeriodTo = table.Column<DateOnly>(type: "date", nullable: false),
+                    CloseDueDate = table.Column<DateOnly>(type: "date", nullable: true),
+                    IsClosed = table.Column<bool>(type: "boolean", nullable: false, defaultValue: false),
+                    ClosedAt = table.Column<DateTime>(type: "timestamp with time zone", nullable: true),
+                    ClosedByMemberID = table.Column<int>(type: "integer", nullable: true),
+                    OpeningJournalEntryID = table.Column<int>(type: "integer", nullable: true),
+                    ClosingJournalEntryID = table.Column<int>(type: "integer", nullable: true),
+                    CreatedAt = table.Column<DateTime>(type: "timestamp with time zone", nullable: false)
+                },
+                constraints: table =>
+                {
+                    table.PrimaryKey("PK_FiscalPeriods", x => x.FiscalPeriodID);
+                    table.ForeignKey(
+                        name: "FK_FiscalPeriods_Members",
+                        column: x => x.ClosedByMemberID,
+                        principalTable: "Members",
+                        principalColumn: "MemberID");
+                    table.ForeignKey(
+                        name: "FK_FiscalPeriods_Websites",
+                        column: x => x.WebsiteID,
+                        principalTable: "Websites",
+                        principalColumn: "WebsiteID");
+                });
+
+            migrationBuilder.CreateTable(
+                name: "JournalEntries",
+                columns: table => new
+                {
+                    JournalEntryID = table.Column<int>(type: "integer", nullable: false)
+                        .Annotation("Npgsql:ValueGenerationStrategy", NpgsqlValueGenerationStrategy.IdentityByDefaultColumn),
+                    WebsiteID = table.Column<int>(type: "integer", nullable: false),
+                    EntryNumber = table.Column<string>(type: "character varying(30)", maxLength: 30, nullable: false),
+                    EntryDate = table.Column<DateOnly>(type: "date", nullable: false),
+                    Description = table.Column<string>(type: "character varying(500)", maxLength: 500, nullable: true),
+                    SourceType = table.Column<string>(type: "character varying(40)", maxLength: 40, nullable: true),
+                    SourceId = table.Column<int>(type: "integer", nullable: true),
+                    SourceKey = table.Column<string>(type: "character varying(80)", maxLength: 80, nullable: true),
+                    CurrencyCode = table.Column<string>(type: "character(3)", unicode: false, fixedLength: true, maxLength: 3, nullable: false),
+                    ReportToTax = table.Column<bool>(type: "boolean", nullable: false, defaultValue: true),
+                    FiscalPeriodID = table.Column<int>(type: "integer", nullable: true),
+                    IsPosted = table.Column<bool>(type: "boolean", nullable: false),
+                    PostedAt = table.Column<DateTime>(type: "timestamp with time zone", nullable: true),
+                    PostedByMemberID = table.Column<int>(type: "integer", nullable: true),
+                    IsReversed = table.Column<bool>(type: "boolean", nullable: false, defaultValue: false),
+                    ReversesJournalEntryID = table.Column<int>(type: "integer", nullable: true),
+                    CreatedByMemberID = table.Column<int>(type: "integer", nullable: true),
+                    CreatedAt = table.Column<DateTime>(type: "datetime2", nullable: false)
+                },
+                constraints: table =>
+                {
+                    table.PrimaryKey("PK_JournalEntries", x => x.JournalEntryID);
+                    table.ForeignKey(
+                        name: "FK_JournalEntries_CreatedBy",
+                        column: x => x.CreatedByMemberID,
+                        principalTable: "Members",
+                        principalColumn: "MemberID");
+                    table.ForeignKey(
+                        name: "FK_JournalEntries_Currencies",
+                        column: x => x.CurrencyCode,
+                        principalTable: "Currencies",
+                        principalColumn: "CurrencyCode");
+                    table.ForeignKey(
+                        name: "FK_JournalEntries_FiscalPeriods",
+                        column: x => x.FiscalPeriodID,
+                        principalTable: "FiscalPeriods",
+                        principalColumn: "FiscalPeriodID");
+                    table.ForeignKey(
+                        name: "FK_JournalEntries_PostedBy",
+                        column: x => x.PostedByMemberID,
+                        principalTable: "Members",
+                        principalColumn: "MemberID");
+                    table.ForeignKey(
+                        name: "FK_JournalEntries_Reverses",
+                        column: x => x.ReversesJournalEntryID,
+                        principalTable: "JournalEntries",
+                        principalColumn: "JournalEntryID");
+                    table.ForeignKey(
+                        name: "FK_JournalEntries_Websites",
+                        column: x => x.WebsiteID,
+                        principalTable: "Websites",
+                        principalColumn: "WebsiteID");
+                });
+
+            migrationBuilder.CreateTable(
+                name: "JournalEntryLines",
+                columns: table => new
+                {
+                    JournalEntryLineID = table.Column<int>(type: "integer", nullable: false)
+                        .Annotation("Npgsql:ValueGenerationStrategy", NpgsqlValueGenerationStrategy.IdentityByDefaultColumn),
+                    JournalEntryID = table.Column<int>(type: "integer", nullable: false),
+                    ChartOfAccountID = table.Column<int>(type: "integer", nullable: false),
+                    Debit = table.Column<decimal>(type: "numeric(18,4)", nullable: false),
+                    Credit = table.Column<decimal>(type: "numeric(18,4)", nullable: false),
+                    Description = table.Column<string>(type: "character varying(300)", maxLength: 300, nullable: true)
+                },
+                constraints: table =>
+                {
+                    table.PrimaryKey("PK_JournalEntryLines", x => x.JournalEntryLineID);
+                    table.ForeignKey(
+                        name: "FK_JournalEntryLines_ChartOfAccounts",
+                        column: x => x.ChartOfAccountID,
+                        principalTable: "ChartOfAccounts",
+                        principalColumn: "ChartOfAccountID");
+                    table.ForeignKey(
+                        name: "FK_JournalEntryLines_JournalEntries",
+                        column: x => x.JournalEntryID,
+                        principalTable: "JournalEntries",
+                        principalColumn: "JournalEntryID");
                 });
 
             migrationBuilder.CreateIndex(
@@ -3600,6 +4620,12 @@ namespace Dotnetable.Migrations.PostgreSql.Migrations
                 column: "ParentAccountID");
 
             migrationBuilder.CreateIndex(
+                name: "IX_ChartOfAccounts_Website_Code",
+                table: "ChartOfAccounts",
+                columns: new[] { "WebsiteID", "Code" },
+                unique: true);
+
+            migrationBuilder.CreateIndex(
                 name: "IX_ChartOfAccounts_WebsiteID",
                 table: "ChartOfAccounts",
                 column: "WebsiteID");
@@ -3635,14 +4661,19 @@ namespace Dotnetable.Migrations.PostgreSql.Migrations
                 column: "WebsiteID");
 
             migrationBuilder.CreateIndex(
+                name: "IX_ClientWallets_CurrencyCode",
+                table: "ClientWallets",
+                column: "CurrencyCode");
+
+            migrationBuilder.CreateIndex(
                 name: "IX_ClientWallets_WebsiteID",
                 table: "ClientWallets",
                 column: "WebsiteID");
 
             migrationBuilder.CreateIndex(
-                name: "UQ_ClientWallets_WebsiteClientID",
+                name: "UQ_ClientWallets_Client_Currency",
                 table: "ClientWallets",
-                column: "WebsiteClientID",
+                columns: new[] { "WebsiteClientID", "CurrencyCode" },
                 unique: true);
 
             migrationBuilder.CreateIndex(
@@ -3669,6 +4700,11 @@ namespace Dotnetable.Migrations.PostgreSql.Migrations
                 name: "IX_ClientWalletWithdrawals_ClientWalletID",
                 table: "ClientWalletWithdrawals",
                 column: "ClientWalletID");
+
+            migrationBuilder.CreateIndex(
+                name: "IX_ClientWalletWithdrawals_CreatedByMemberID",
+                table: "ClientWalletWithdrawals",
+                column: "CreatedByMemberID");
 
             migrationBuilder.CreateIndex(
                 name: "IX_ClientWalletWithdrawals_ReviewedByMemberID",
@@ -3733,6 +4769,26 @@ namespace Dotnetable.Migrations.PostgreSql.Migrations
                 column: "WebsiteID");
 
             migrationBuilder.CreateIndex(
+                name: "IX_DigitalAccessLogs_AccessedAt",
+                table: "DigitalAccessLogs",
+                column: "AccessedAt");
+
+            migrationBuilder.CreateIndex(
+                name: "IX_DigitalAccessLogs_OrderDigitalAssetID",
+                table: "DigitalAccessLogs",
+                column: "OrderDigitalAssetID");
+
+            migrationBuilder.CreateIndex(
+                name: "IX_DigitalAccessLogs_WebsiteClientID",
+                table: "DigitalAccessLogs",
+                column: "WebsiteClientID");
+
+            migrationBuilder.CreateIndex(
+                name: "IX_DigitalAccessLogs_WebsiteID",
+                table: "DigitalAccessLogs",
+                column: "WebsiteID");
+
+            migrationBuilder.CreateIndex(
                 name: "IX_EmailAccounts_WebsiteID",
                 table: "EmailAccounts",
                 column: "WebsiteID");
@@ -3757,6 +4813,32 @@ namespace Dotnetable.Migrations.PostgreSql.Migrations
                 name: "IX_EmailTemplateTranslations_EmailTemplateID_LanguageCode",
                 table: "EmailTemplateTranslations",
                 columns: new[] { "EmailTemplateID", "LanguageCode" },
+                unique: true);
+
+            migrationBuilder.CreateIndex(
+                name: "IX_EmployeeContracts_CurrencyCode",
+                table: "EmployeeContracts",
+                column: "CurrencyCode");
+
+            migrationBuilder.CreateIndex(
+                name: "IX_EmployeeContracts_EmployeeID",
+                table: "EmployeeContracts",
+                column: "EmployeeID");
+
+            migrationBuilder.CreateIndex(
+                name: "IX_Employees_MemberID",
+                table: "Employees",
+                column: "MemberID");
+
+            migrationBuilder.CreateIndex(
+                name: "IX_Employees_OrgUnitID",
+                table: "Employees",
+                column: "OrgUnitID");
+
+            migrationBuilder.CreateIndex(
+                name: "IX_Employees_Website_Code",
+                table: "Employees",
+                columns: new[] { "WebsiteID", "EmployeeCode" },
                 unique: true);
 
             migrationBuilder.CreateIndex(
@@ -3810,6 +4892,91 @@ namespace Dotnetable.Migrations.PostgreSql.Migrations
                 column: "WebsiteID");
 
             migrationBuilder.CreateIndex(
+                name: "IX_FinancialLedgerEntries_CreatedByMemberID",
+                table: "FinancialLedgerEntries",
+                column: "CreatedByMemberID");
+
+            migrationBuilder.CreateIndex(
+                name: "IX_FinancialLedgerEntries_CurrencyCode",
+                table: "FinancialLedgerEntries",
+                column: "CurrencyCode");
+
+            migrationBuilder.CreateIndex(
+                name: "IX_FinancialLedgerEntries_EventGroup",
+                table: "FinancialLedgerEntries",
+                column: "EventGroupId");
+
+            migrationBuilder.CreateIndex(
+                name: "IX_FinancialLedgerEntries_OrderID",
+                table: "FinancialLedgerEntries",
+                column: "OrderID");
+
+            migrationBuilder.CreateIndex(
+                name: "IX_FinancialLedgerEntries_OrderItemID",
+                table: "FinancialLedgerEntries",
+                column: "OrderItemID");
+
+            migrationBuilder.CreateIndex(
+                name: "IX_FinancialLedgerEntries_PaymentID",
+                table: "FinancialLedgerEntries",
+                column: "PaymentID");
+
+            migrationBuilder.CreateIndex(
+                name: "IX_FinancialLedgerEntries_SettlementID",
+                table: "FinancialLedgerEntries",
+                column: "SettlementID");
+
+            migrationBuilder.CreateIndex(
+                name: "IX_FinancialLedgerEntries_Supersedes",
+                table: "FinancialLedgerEntries",
+                column: "SupersedesEntryID");
+
+            migrationBuilder.CreateIndex(
+                name: "IX_FinancialLedgerEntries_Type",
+                table: "FinancialLedgerEntries",
+                columns: new[] { "WebsiteID", "TransactionType", "IsCurrent" });
+
+            migrationBuilder.CreateIndex(
+                name: "IX_FinancialLedgerEntries_VendorID",
+                table: "FinancialLedgerEntries",
+                columns: new[] { "VendorID", "VendorVisible", "IsCurrent" });
+
+            migrationBuilder.CreateIndex(
+                name: "IX_FinancialLedgerEntries_Website_Date",
+                table: "FinancialLedgerEntries",
+                columns: new[] { "WebsiteID", "OccurredDate", "IsCurrent" });
+
+            migrationBuilder.CreateIndex(
+                name: "IX_FinancialLedgerEntries_WebsiteClientID",
+                table: "FinancialLedgerEntries",
+                column: "WebsiteClientID");
+
+            migrationBuilder.CreateIndex(
+                name: "IX_FiscalPeriods_ClosedByMemberID",
+                table: "FiscalPeriods",
+                column: "ClosedByMemberID");
+
+            migrationBuilder.CreateIndex(
+                name: "IX_FiscalPeriods_ClosingJournalEntryID",
+                table: "FiscalPeriods",
+                column: "ClosingJournalEntryID");
+
+            migrationBuilder.CreateIndex(
+                name: "IX_FiscalPeriods_OpeningJournalEntryID",
+                table: "FiscalPeriods",
+                column: "OpeningJournalEntryID");
+
+            migrationBuilder.CreateIndex(
+                name: "IX_FiscalPeriods_Website_Closed",
+                table: "FiscalPeriods",
+                columns: new[] { "WebsiteID", "IsClosed", "PeriodFrom" });
+
+            migrationBuilder.CreateIndex(
+                name: "IX_FiscalPeriods_WebsiteID",
+                table: "FiscalPeriods",
+                columns: new[] { "WebsiteID", "PeriodFrom" });
+
+            migrationBuilder.CreateIndex(
                 name: "IX_FormFieldOptions_FormFieldID",
                 table: "FormFieldOptions",
                 column: "FormFieldID");
@@ -3855,6 +5022,43 @@ namespace Dotnetable.Migrations.PostgreSql.Migrations
                 column: "WebsiteID");
 
             migrationBuilder.CreateIndex(
+                name: "IX_JournalEntries_CreatedByMemberID",
+                table: "JournalEntries",
+                column: "CreatedByMemberID");
+
+            migrationBuilder.CreateIndex(
+                name: "IX_JournalEntries_CurrencyCode",
+                table: "JournalEntries",
+                column: "CurrencyCode");
+
+            migrationBuilder.CreateIndex(
+                name: "IX_JournalEntries_EntryDate",
+                table: "JournalEntries",
+                columns: new[] { "WebsiteID", "EntryDate", "IsPosted" });
+
+            migrationBuilder.CreateIndex(
+                name: "IX_JournalEntries_FiscalPeriodID",
+                table: "JournalEntries",
+                column: "FiscalPeriodID");
+
+            migrationBuilder.CreateIndex(
+                name: "IX_JournalEntries_PostedByMemberID",
+                table: "JournalEntries",
+                column: "PostedByMemberID");
+
+            migrationBuilder.CreateIndex(
+                name: "IX_JournalEntries_ReversesJournalEntryID",
+                table: "JournalEntries",
+                column: "ReversesJournalEntryID");
+
+            migrationBuilder.CreateIndex(
+                name: "IX_JournalEntries_Website_SourceKey",
+                table: "JournalEntries",
+                columns: new[] { "WebsiteID", "SourceKey" },
+                unique: true,
+                filter: "[SourceKey] IS NOT NULL");
+
+            migrationBuilder.CreateIndex(
                 name: "IX_JournalEntries_WebsiteID",
                 table: "JournalEntries",
                 column: "WebsiteID");
@@ -3882,6 +5086,21 @@ namespace Dotnetable.Migrations.PostgreSql.Migrations
                 columns: new[] { "WebsiteID", "LanguageCode" },
                 unique: true,
                 filter: "([WebsiteID] IS NOT NULL)");
+
+            migrationBuilder.CreateIndex(
+                name: "IX_LedgerAccountMaps_CreditAccountID",
+                table: "LedgerAccountMaps",
+                column: "CreditAccountID");
+
+            migrationBuilder.CreateIndex(
+                name: "IX_LedgerAccountMaps_DebitAccountID",
+                table: "LedgerAccountMaps",
+                column: "DebitAccountID");
+
+            migrationBuilder.CreateIndex(
+                name: "IX_LedgerAccountMaps_Website_Type",
+                table: "LedgerAccountMaps",
+                columns: new[] { "WebsiteID", "TransactionType", "IsActive" });
 
             migrationBuilder.CreateIndex(
                 name: "IX_LocalizationKeys_WebsiteID",
@@ -4008,6 +5227,32 @@ namespace Dotnetable.Migrations.PostgreSql.Migrations
                 column: "WebsiteID");
 
             migrationBuilder.CreateIndex(
+                name: "IX_OrderDigitalAssets_OrderID",
+                table: "OrderDigitalAssets",
+                column: "OrderID");
+
+            migrationBuilder.CreateIndex(
+                name: "IX_OrderDigitalAssets_ProductID",
+                table: "OrderDigitalAssets",
+                column: "ProductID");
+
+            migrationBuilder.CreateIndex(
+                name: "IX_OrderDigitalAssets_WebsiteClientID",
+                table: "OrderDigitalAssets",
+                column: "WebsiteClientID");
+
+            migrationBuilder.CreateIndex(
+                name: "IX_OrderDigitalAssets_WebsiteID",
+                table: "OrderDigitalAssets",
+                column: "WebsiteID");
+
+            migrationBuilder.CreateIndex(
+                name: "UQ_OrderDigitalAssets_OrderItemID",
+                table: "OrderDigitalAssets",
+                column: "OrderItemID",
+                unique: true);
+
+            migrationBuilder.CreateIndex(
                 name: "IX_OrderItems_OrderID",
                 table: "OrderItems",
                 column: "OrderID");
@@ -4083,6 +5328,17 @@ namespace Dotnetable.Migrations.PostgreSql.Migrations
                 column: "OrderID");
 
             migrationBuilder.CreateIndex(
+                name: "IX_OrgUnits_ParentOrgUnitID",
+                table: "OrgUnits",
+                column: "ParentOrgUnitID");
+
+            migrationBuilder.CreateIndex(
+                name: "IX_OrgUnits_Website_Code",
+                table: "OrgUnits",
+                columns: new[] { "WebsiteID", "Code" },
+                unique: true);
+
+            migrationBuilder.CreateIndex(
                 name: "IX_Pages_CreatedByMemberID",
                 table: "Pages",
                 column: "CreatedByMemberID");
@@ -4138,6 +5394,11 @@ namespace Dotnetable.Migrations.PostgreSql.Migrations
                 column: "ClientWalletTransactionID");
 
             migrationBuilder.CreateIndex(
+                name: "IX_Payments_CreatedByMemberID",
+                table: "Payments",
+                column: "CreatedByMemberID");
+
+            migrationBuilder.CreateIndex(
                 name: "IX_Payments_CurrencyCode",
                 table: "Payments",
                 column: "CurrencyCode");
@@ -4170,6 +5431,41 @@ namespace Dotnetable.Migrations.PostgreSql.Migrations
             migrationBuilder.CreateIndex(
                 name: "IX_Payments_WebsiteID",
                 table: "Payments",
+                column: "WebsiteID");
+
+            migrationBuilder.CreateIndex(
+                name: "IX_PayrollLines_EmployeeID",
+                table: "PayrollLines",
+                column: "EmployeeID");
+
+            migrationBuilder.CreateIndex(
+                name: "IX_PayrollLines_PayrollRunID",
+                table: "PayrollLines",
+                column: "PayrollRunID");
+
+            migrationBuilder.CreateIndex(
+                name: "IX_PayrollRateBrackets_Website_Kind",
+                table: "PayrollRateBrackets",
+                columns: new[] { "WebsiteID", "Kind", "SortOrder" });
+
+            migrationBuilder.CreateIndex(
+                name: "IX_PayrollRuns_ApprovedByMemberID",
+                table: "PayrollRuns",
+                column: "ApprovedByMemberID");
+
+            migrationBuilder.CreateIndex(
+                name: "IX_PayrollRuns_CreatedByMemberID",
+                table: "PayrollRuns",
+                column: "CreatedByMemberID");
+
+            migrationBuilder.CreateIndex(
+                name: "IX_PayrollRuns_CurrencyCode",
+                table: "PayrollRuns",
+                column: "CurrencyCode");
+
+            migrationBuilder.CreateIndex(
+                name: "IX_PayrollRuns_WebsiteID",
+                table: "PayrollRuns",
                 column: "WebsiteID");
 
             migrationBuilder.CreateIndex(
@@ -4276,6 +5572,11 @@ namespace Dotnetable.Migrations.PostgreSql.Migrations
                 name: "IX_ProductCategories_WebsiteID",
                 table: "ProductCategories",
                 column: "WebsiteID");
+
+            migrationBuilder.CreateIndex(
+                name: "IX_ProductCategoryAttributes_AttributeDefinitionID",
+                table: "ProductCategoryAttributes",
+                column: "AttributeDefinitionID");
 
             migrationBuilder.CreateIndex(
                 name: "IX_ProductCategoryMaps_ProductCategoryID",
@@ -4409,6 +5710,21 @@ namespace Dotnetable.Migrations.PostgreSql.Migrations
                 column: "WarrantyID");
 
             migrationBuilder.CreateIndex(
+                name: "IX_RecordAttachments_CreatedByMemberID",
+                table: "RecordAttachments",
+                column: "CreatedByMemberID");
+
+            migrationBuilder.CreateIndex(
+                name: "IX_RecordAttachments_Entity",
+                table: "RecordAttachments",
+                columns: new[] { "WebsiteID", "EntityType", "EntityID" });
+
+            migrationBuilder.CreateIndex(
+                name: "IX_RecordAttachments_File",
+                table: "RecordAttachments",
+                column: "FileRecordID");
+
+            migrationBuilder.CreateIndex(
                 name: "IX_SettlementItems_OrderItemID",
                 table: "SettlementItems",
                 column: "OrderItemID");
@@ -4449,6 +5765,11 @@ namespace Dotnetable.Migrations.PostgreSql.Migrations
                 column: "CurrencyCode");
 
             migrationBuilder.CreateIndex(
+                name: "IX_Settlements_SourceCurrencyCode",
+                table: "Settlements",
+                column: "SourceCurrencyCode");
+
+            migrationBuilder.CreateIndex(
                 name: "IX_Settlements_SupplierID",
                 table: "Settlements",
                 column: "SupplierID");
@@ -4467,6 +5788,11 @@ namespace Dotnetable.Migrations.PostgreSql.Migrations
                 name: "IX_Settlements_WebsiteID",
                 table: "Settlements",
                 column: "WebsiteID");
+
+            migrationBuilder.CreateIndex(
+                name: "IX_ShippingMethods_LogoFileID",
+                table: "ShippingMethods",
+                column: "LogoFileID");
 
             migrationBuilder.CreateIndex(
                 name: "IX_ShippingMethods_WebsiteID",
@@ -4524,6 +5850,71 @@ namespace Dotnetable.Migrations.PostgreSql.Migrations
                 column: "StateID");
 
             migrationBuilder.CreateIndex(
+                name: "IX_StockDocumentHistories_CreatedByMemberID",
+                table: "StockDocumentHistories",
+                column: "CreatedByMemberID");
+
+            migrationBuilder.CreateIndex(
+                name: "IX_StockDocumentHistories_StockDocumentID",
+                table: "StockDocumentHistories",
+                column: "StockDocumentID");
+
+            migrationBuilder.CreateIndex(
+                name: "IX_StockDocumentLines_ProductVariantID",
+                table: "StockDocumentLines",
+                column: "ProductVariantID");
+
+            migrationBuilder.CreateIndex(
+                name: "IX_StockDocumentLines_StockDocumentID",
+                table: "StockDocumentLines",
+                column: "StockDocumentID");
+
+            migrationBuilder.CreateIndex(
+                name: "IX_StockDocuments_ApprovedByMemberID",
+                table: "StockDocuments",
+                column: "ApprovedByMemberID");
+
+            migrationBuilder.CreateIndex(
+                name: "IX_StockDocuments_FromWarehouseID",
+                table: "StockDocuments",
+                column: "FromWarehouseID");
+
+            migrationBuilder.CreateIndex(
+                name: "IX_StockDocuments_OrderID",
+                table: "StockDocuments",
+                column: "OrderID");
+
+            migrationBuilder.CreateIndex(
+                name: "IX_StockDocuments_PaymentRefundID",
+                table: "StockDocuments",
+                column: "PaymentRefundID");
+
+            migrationBuilder.CreateIndex(
+                name: "IX_StockDocuments_PostedByMemberID",
+                table: "StockDocuments",
+                column: "PostedByMemberID");
+
+            migrationBuilder.CreateIndex(
+                name: "IX_StockDocuments_RequestedByMemberID",
+                table: "StockDocuments",
+                column: "RequestedByMemberID");
+
+            migrationBuilder.CreateIndex(
+                name: "IX_StockDocuments_SupplierID",
+                table: "StockDocuments",
+                column: "SupplierID");
+
+            migrationBuilder.CreateIndex(
+                name: "IX_StockDocuments_ToWarehouseID",
+                table: "StockDocuments",
+                column: "ToWarehouseID");
+
+            migrationBuilder.CreateIndex(
+                name: "IX_StockDocuments_WebsiteID",
+                table: "StockDocuments",
+                column: "WebsiteID");
+
+            migrationBuilder.CreateIndex(
                 name: "IX_StockMovements_CreatedByMemberID",
                 table: "StockMovements",
                 column: "CreatedByMemberID");
@@ -4559,8 +5950,94 @@ namespace Dotnetable.Migrations.PostgreSql.Migrations
                 column: "WebsiteID");
 
             migrationBuilder.CreateIndex(
+                name: "IX_Suppliers_CountryID",
+                table: "Suppliers",
+                column: "CountryID");
+
+            migrationBuilder.CreateIndex(
+                name: "IX_Suppliers_DefaultCurrencyCode",
+                table: "Suppliers",
+                column: "DefaultCurrencyCode");
+
+            migrationBuilder.CreateIndex(
+                name: "IX_Suppliers_LinkedVendorID",
+                table: "Suppliers",
+                column: "LinkedVendorID");
+
+            migrationBuilder.CreateIndex(
+                name: "IX_Suppliers_LinkedWebsiteID",
+                table: "Suppliers",
+                column: "LinkedWebsiteID");
+
+            migrationBuilder.CreateIndex(
                 name: "IX_Suppliers_WebsiteID",
                 table: "Suppliers",
+                column: "WebsiteID");
+
+            migrationBuilder.CreateIndex(
+                name: "IX_SupportInteractions_CreatedAt",
+                table: "SupportInteractions",
+                column: "CreatedAt");
+
+            migrationBuilder.CreateIndex(
+                name: "IX_SupportInteractions_CreatedByMemberID",
+                table: "SupportInteractions",
+                column: "CreatedByMemberID");
+
+            migrationBuilder.CreateIndex(
+                name: "IX_SupportInteractions_RelatedOrderID",
+                table: "SupportInteractions",
+                column: "RelatedOrderID");
+
+            migrationBuilder.CreateIndex(
+                name: "IX_SupportInteractions_SupportSessionID",
+                table: "SupportInteractions",
+                column: "SupportSessionID");
+
+            migrationBuilder.CreateIndex(
+                name: "IX_SupportSessions_AssignedMemberID",
+                table: "SupportSessions",
+                column: "AssignedMemberID");
+
+            migrationBuilder.CreateIndex(
+                name: "IX_SupportSessions_CellphoneSnapshot",
+                table: "SupportSessions",
+                column: "CellphoneSnapshot");
+
+            migrationBuilder.CreateIndex(
+                name: "IX_SupportSessions_CreatedAt",
+                table: "SupportSessions",
+                column: "CreatedAt");
+
+            migrationBuilder.CreateIndex(
+                name: "IX_SupportSessions_CreatedByMemberID",
+                table: "SupportSessions",
+                column: "CreatedByMemberID");
+
+            migrationBuilder.CreateIndex(
+                name: "IX_SupportSessions_RelatedOrderID",
+                table: "SupportSessions",
+                column: "RelatedOrderID");
+
+            migrationBuilder.CreateIndex(
+                name: "IX_SupportSessions_Status",
+                table: "SupportSessions",
+                column: "Status");
+
+            migrationBuilder.CreateIndex(
+                name: "IX_SupportSessions_Website_SessionNumber",
+                table: "SupportSessions",
+                columns: new[] { "WebsiteID", "SessionNumber" },
+                unique: true);
+
+            migrationBuilder.CreateIndex(
+                name: "IX_SupportSessions_WebsiteClientID",
+                table: "SupportSessions",
+                column: "WebsiteClientID");
+
+            migrationBuilder.CreateIndex(
+                name: "IX_SupportSessions_WebsiteID",
+                table: "SupportSessions",
                 column: "WebsiteID");
 
             migrationBuilder.CreateIndex(
@@ -4572,6 +6049,27 @@ namespace Dotnetable.Migrations.PostgreSql.Migrations
                 name: "IX_TagTranslations_TagID",
                 table: "TagTranslations",
                 column: "TagID");
+
+            migrationBuilder.CreateIndex(
+                name: "IX_TaxPeriods_ClosedByMemberID",
+                table: "TaxPeriods",
+                column: "ClosedByMemberID");
+
+            migrationBuilder.CreateIndex(
+                name: "IX_TaxPeriods_CreatedByMemberID",
+                table: "TaxPeriods",
+                column: "CreatedByMemberID");
+
+            migrationBuilder.CreateIndex(
+                name: "IX_TaxPeriods_Website_Code",
+                table: "TaxPeriods",
+                columns: new[] { "WebsiteID", "PeriodCode" },
+                unique: true);
+
+            migrationBuilder.CreateIndex(
+                name: "IX_TaxPeriods_Website_Status",
+                table: "TaxPeriods",
+                columns: new[] { "WebsiteID", "Status", "FromDate" });
 
             migrationBuilder.CreateIndex(
                 name: "IX_TaxRates_CountryID",
@@ -4656,6 +6154,11 @@ namespace Dotnetable.Migrations.PostgreSql.Migrations
                 filter: "([MemberID] IS NOT NULL)");
 
             migrationBuilder.CreateIndex(
+                name: "IX_Vendors_SettlementCurrencyCode",
+                table: "Vendors",
+                column: "SettlementCurrencyCode");
+
+            migrationBuilder.CreateIndex(
                 name: "IX_Vendors_WebsiteID",
                 table: "Vendors",
                 column: "WebsiteID");
@@ -4664,6 +6167,23 @@ namespace Dotnetable.Migrations.PostgreSql.Migrations
                 name: "IX_VendorTranslations_VendorID",
                 table: "VendorTranslations",
                 column: "VendorID");
+
+            migrationBuilder.CreateIndex(
+                name: "IX_Warehouses_Website_Code",
+                table: "Warehouses",
+                columns: new[] { "WebsiteID", "Code" },
+                unique: true);
+
+            migrationBuilder.CreateIndex(
+                name: "IX_WarehouseStocks_ProductVariantID",
+                table: "WarehouseStocks",
+                column: "ProductVariantID");
+
+            migrationBuilder.CreateIndex(
+                name: "IX_WarehouseStocks_Warehouse_Variant",
+                table: "WarehouseStocks",
+                columns: new[] { "WarehouseID", "ProductVariantID" },
+                unique: true);
 
             migrationBuilder.CreateIndex(
                 name: "IX_Warranties_WebsiteID",
@@ -4743,6 +6263,11 @@ namespace Dotnetable.Migrations.PostgreSql.Migrations
                 column: "LogoFileID");
 
             migrationBuilder.CreateIndex(
+                name: "IX_Websites_TaxCountryID",
+                table: "Websites",
+                column: "TaxCountryID");
+
+            migrationBuilder.CreateIndex(
                 name: "IX_WebsiteScripts_WebsiteID",
                 table: "WebsiteScripts",
                 column: "WebsiteID");
@@ -4771,6 +6296,22 @@ namespace Dotnetable.Migrations.PostgreSql.Migrations
                 name: "IX_WebsiteThemes_WebsiteID_Slug",
                 table: "WebsiteThemes",
                 columns: new[] { "WebsiteID", "Slug" },
+                unique: true);
+
+            migrationBuilder.CreateIndex(
+                name: "IX_WebsiteWalletCurrencies_CurrencyCode",
+                table: "WebsiteWalletCurrencies",
+                column: "CurrencyCode");
+
+            migrationBuilder.CreateIndex(
+                name: "IX_WebsiteWalletCurrencies_WebsiteID",
+                table: "WebsiteWalletCurrencies",
+                column: "WebsiteID");
+
+            migrationBuilder.CreateIndex(
+                name: "UQ_WebsiteWalletCurrencies_Website_Currency",
+                table: "WebsiteWalletCurrencies",
+                columns: new[] { "WebsiteID", "CurrencyCode" },
                 unique: true);
 
             migrationBuilder.CreateIndex(
@@ -4988,6 +6529,13 @@ namespace Dotnetable.Migrations.PostgreSql.Migrations
                 principalColumn: "MemberID");
 
             migrationBuilder.AddForeignKey(
+                name: "FK_ClientWalletWithdrawals_Members_CreatedBy",
+                table: "ClientWalletWithdrawals",
+                column: "CreatedByMemberID",
+                principalTable: "Members",
+                principalColumn: "MemberID");
+
+            migrationBuilder.AddForeignKey(
                 name: "FK_ClientWalletWithdrawals_WebsiteClients",
                 table: "ClientWalletWithdrawals",
                 column: "WebsiteClientID",
@@ -5051,6 +6599,27 @@ namespace Dotnetable.Migrations.PostgreSql.Migrations
                 principalColumn: "WebsiteID");
 
             migrationBuilder.AddForeignKey(
+                name: "FK_DigitalAccessLogs_OrderDigitalAssets",
+                table: "DigitalAccessLogs",
+                column: "OrderDigitalAssetID",
+                principalTable: "OrderDigitalAssets",
+                principalColumn: "OrderDigitalAssetID");
+
+            migrationBuilder.AddForeignKey(
+                name: "FK_DigitalAccessLogs_WebsiteClients",
+                table: "DigitalAccessLogs",
+                column: "WebsiteClientID",
+                principalTable: "WebsiteClients",
+                principalColumn: "WebsiteClientID");
+
+            migrationBuilder.AddForeignKey(
+                name: "FK_DigitalAccessLogs_Websites",
+                table: "DigitalAccessLogs",
+                column: "WebsiteID",
+                principalTable: "Websites",
+                principalColumn: "WebsiteID");
+
+            migrationBuilder.AddForeignKey(
                 name: "FK_EmailAccounts_Websites",
                 table: "EmailAccounts",
                 column: "WebsiteID",
@@ -5074,6 +6643,34 @@ namespace Dotnetable.Migrations.PostgreSql.Migrations
             migrationBuilder.AddForeignKey(
                 name: "FK_EmailTemplates_Websites",
                 table: "EmailTemplates",
+                column: "WebsiteID",
+                principalTable: "Websites",
+                principalColumn: "WebsiteID");
+
+            migrationBuilder.AddForeignKey(
+                name: "FK_EmployeeContracts_Employees_EmployeeID",
+                table: "EmployeeContracts",
+                column: "EmployeeID",
+                principalTable: "Employees",
+                principalColumn: "EmployeeID");
+
+            migrationBuilder.AddForeignKey(
+                name: "FK_Employees_Members_MemberID",
+                table: "Employees",
+                column: "MemberID",
+                principalTable: "Members",
+                principalColumn: "MemberID");
+
+            migrationBuilder.AddForeignKey(
+                name: "FK_Employees_OrgUnits_OrgUnitID",
+                table: "Employees",
+                column: "OrgUnitID",
+                principalTable: "OrgUnits",
+                principalColumn: "OrgUnitID");
+
+            migrationBuilder.AddForeignKey(
+                name: "FK_Employees_Websites_WebsiteID",
+                table: "Employees",
                 column: "WebsiteID",
                 principalTable: "Websites",
                 principalColumn: "WebsiteID");
@@ -5112,6 +6709,20 @@ namespace Dotnetable.Migrations.PostgreSql.Migrations
                 column: "WebsiteID",
                 principalTable: "Websites",
                 principalColumn: "WebsiteID");
+
+            migrationBuilder.AddForeignKey(
+                name: "FK_FiscalPeriods_JournalEntries_ClosingJournalEntryID",
+                table: "FiscalPeriods",
+                column: "ClosingJournalEntryID",
+                principalTable: "JournalEntries",
+                principalColumn: "JournalEntryID");
+
+            migrationBuilder.AddForeignKey(
+                name: "FK_FiscalPeriods_JournalEntries_OpeningJournalEntryID",
+                table: "FiscalPeriods",
+                column: "OpeningJournalEntryID",
+                principalTable: "JournalEntries",
+                principalColumn: "JournalEntryID");
         }
 
         /// <inheritdoc />
@@ -5122,12 +6733,32 @@ namespace Dotnetable.Migrations.PostgreSql.Migrations
                 table: "FileRecords");
 
             migrationBuilder.DropForeignKey(
+                name: "FK_FiscalPeriods_Members",
+                table: "FiscalPeriods");
+
+            migrationBuilder.DropForeignKey(
+                name: "FK_JournalEntries_CreatedBy",
+                table: "JournalEntries");
+
+            migrationBuilder.DropForeignKey(
+                name: "FK_JournalEntries_PostedBy",
+                table: "JournalEntries");
+
+            migrationBuilder.DropForeignKey(
                 name: "FK_FileFolders_Websites",
                 table: "FileFolders");
 
             migrationBuilder.DropForeignKey(
                 name: "FK_FileRecords_Websites",
                 table: "FileRecords");
+
+            migrationBuilder.DropForeignKey(
+                name: "FK_FiscalPeriods_Websites",
+                table: "FiscalPeriods");
+
+            migrationBuilder.DropForeignKey(
+                name: "FK_JournalEntries_Websites",
+                table: "JournalEntries");
 
             migrationBuilder.DropForeignKey(
                 name: "FK_WebsiteClients_Websites",
@@ -5140,6 +6771,18 @@ namespace Dotnetable.Migrations.PostgreSql.Migrations
             migrationBuilder.DropForeignKey(
                 name: "FK_WebsiteClients_FileRecords",
                 table: "WebsiteClients");
+
+            migrationBuilder.DropForeignKey(
+                name: "FK_JournalEntries_Currencies",
+                table: "JournalEntries");
+
+            migrationBuilder.DropForeignKey(
+                name: "FK_FiscalPeriods_JournalEntries_ClosingJournalEntryID",
+                table: "FiscalPeriods");
+
+            migrationBuilder.DropForeignKey(
+                name: "FK_FiscalPeriods_JournalEntries_OpeningJournalEntryID",
+                table: "FiscalPeriods");
 
             migrationBuilder.DropTable(
                 name: "AdminNotifications");
@@ -5178,6 +6821,9 @@ namespace Dotnetable.Migrations.PostgreSql.Migrations
                 name: "CurrencyRates");
 
             migrationBuilder.DropTable(
+                name: "DigitalAccessLogs");
+
+            migrationBuilder.DropTable(
                 name: "EmailAccounts");
 
             migrationBuilder.DropTable(
@@ -5187,7 +6833,13 @@ namespace Dotnetable.Migrations.PostgreSql.Migrations
                 name: "EmailTemplateTranslations");
 
             migrationBuilder.DropTable(
+                name: "EmployeeContracts");
+
+            migrationBuilder.DropTable(
                 name: "FileRecordTags");
+
+            migrationBuilder.DropTable(
+                name: "FinancialLedgerEntries");
 
             migrationBuilder.DropTable(
                 name: "FormFieldOptions");
@@ -5203,6 +6855,9 @@ namespace Dotnetable.Migrations.PostgreSql.Migrations
 
             migrationBuilder.DropTable(
                 name: "Languages");
+
+            migrationBuilder.DropTable(
+                name: "LedgerAccountMaps");
 
             migrationBuilder.DropTable(
                 name: "LocalizationValues");
@@ -5226,7 +6881,10 @@ namespace Dotnetable.Migrations.PostgreSql.Migrations
                 name: "PageTranslations");
 
             migrationBuilder.DropTable(
-                name: "PaymentRefunds");
+                name: "PayrollLines");
+
+            migrationBuilder.DropTable(
+                name: "PayrollRateBrackets");
 
             migrationBuilder.DropTable(
                 name: "PolicyRoles");
@@ -5245,6 +6903,9 @@ namespace Dotnetable.Migrations.PostgreSql.Migrations
 
             migrationBuilder.DropTable(
                 name: "ProductAttributeValueTranslations");
+
+            migrationBuilder.DropTable(
+                name: "ProductCategoryAttributes");
 
             migrationBuilder.DropTable(
                 name: "ProductCategoryMaps");
@@ -5277,6 +6938,9 @@ namespace Dotnetable.Migrations.PostgreSql.Migrations
                 name: "ProductWarranties");
 
             migrationBuilder.DropTable(
+                name: "RecordAttachments");
+
+            migrationBuilder.DropTable(
                 name: "SettlementItems");
 
             migrationBuilder.DropTable(
@@ -5289,7 +6953,19 @@ namespace Dotnetable.Migrations.PostgreSql.Migrations
                 name: "StateTranslations");
 
             migrationBuilder.DropTable(
+                name: "StockDocumentHistories");
+
+            migrationBuilder.DropTable(
+                name: "StockDocumentLines");
+
+            migrationBuilder.DropTable(
+                name: "SupportInteractions");
+
+            migrationBuilder.DropTable(
                 name: "TagTranslations");
+
+            migrationBuilder.DropTable(
+                name: "TaxPeriods");
 
             migrationBuilder.DropTable(
                 name: "TaxRates");
@@ -5302,6 +6978,9 @@ namespace Dotnetable.Migrations.PostgreSql.Migrations
 
             migrationBuilder.DropTable(
                 name: "VendorTranslations");
+
+            migrationBuilder.DropTable(
+                name: "WarehouseStocks");
 
             migrationBuilder.DropTable(
                 name: "WarrantyTranslations");
@@ -5334,6 +7013,9 @@ namespace Dotnetable.Migrations.PostgreSql.Migrations
                 name: "WebsiteThemes");
 
             migrationBuilder.DropTable(
+                name: "WebsiteWalletCurrencies");
+
+            migrationBuilder.DropTable(
                 name: "WebsiteWatermarkSettings");
 
             migrationBuilder.DropTable(
@@ -5344,6 +7026,9 @@ namespace Dotnetable.Migrations.PostgreSql.Migrations
 
             migrationBuilder.DropTable(
                 name: "ClientBankAccounts");
+
+            migrationBuilder.DropTable(
+                name: "OrderDigitalAssets");
 
             migrationBuilder.DropTable(
                 name: "EmailTemplates");
@@ -5361,13 +7046,16 @@ namespace Dotnetable.Migrations.PostgreSql.Migrations
                 name: "ChartOfAccounts");
 
             migrationBuilder.DropTable(
-                name: "JournalEntries");
-
-            migrationBuilder.DropTable(
                 name: "LocalizationKeys");
 
             migrationBuilder.DropTable(
                 name: "MenuItems");
+
+            migrationBuilder.DropTable(
+                name: "Employees");
+
+            migrationBuilder.DropTable(
+                name: "PayrollRuns");
 
             migrationBuilder.DropTable(
                 name: "Roles");
@@ -5385,9 +7073,6 @@ namespace Dotnetable.Migrations.PostgreSql.Migrations
                 name: "ProductWarnings");
 
             migrationBuilder.DropTable(
-                name: "Payments");
-
-            migrationBuilder.DropTable(
                 name: "Settlements");
 
             migrationBuilder.DropTable(
@@ -5395,6 +7080,12 @@ namespace Dotnetable.Migrations.PostgreSql.Migrations
 
             migrationBuilder.DropTable(
                 name: "Slideshows");
+
+            migrationBuilder.DropTable(
+                name: "StockDocuments");
+
+            migrationBuilder.DropTable(
+                name: "SupportSessions");
 
             migrationBuilder.DropTable(
                 name: "Tags");
@@ -5424,22 +7115,22 @@ namespace Dotnetable.Migrations.PostgreSql.Migrations
                 name: "ProductCategories");
 
             migrationBuilder.DropTable(
+                name: "OrgUnits");
+
+            migrationBuilder.DropTable(
                 name: "AttributeOptions");
-
-            migrationBuilder.DropTable(
-                name: "ClientWalletTransactions");
-
-            migrationBuilder.DropTable(
-                name: "PaymentGateways");
-
-            migrationBuilder.DropTable(
-                name: "BankAccounts");
 
             migrationBuilder.DropTable(
                 name: "OrderItems");
 
             migrationBuilder.DropTable(
+                name: "PaymentRefunds");
+
+            migrationBuilder.DropTable(
                 name: "Suppliers");
+
+            migrationBuilder.DropTable(
+                name: "Warehouses");
 
             migrationBuilder.DropTable(
                 name: "PostTypes");
@@ -5448,16 +7139,37 @@ namespace Dotnetable.Migrations.PostgreSql.Migrations
                 name: "AttributeDefinitions");
 
             migrationBuilder.DropTable(
-                name: "ClientWallets");
+                name: "VendorProducts");
 
             migrationBuilder.DropTable(
-                name: "Banks");
+                name: "Payments");
+
+            migrationBuilder.DropTable(
+                name: "ProductVariants");
+
+            migrationBuilder.DropTable(
+                name: "Vendors");
+
+            migrationBuilder.DropTable(
+                name: "BankAccounts");
+
+            migrationBuilder.DropTable(
+                name: "ClientWalletTransactions");
 
             migrationBuilder.DropTable(
                 name: "Orders");
 
             migrationBuilder.DropTable(
-                name: "VendorProducts");
+                name: "PaymentGateways");
+
+            migrationBuilder.DropTable(
+                name: "Products");
+
+            migrationBuilder.DropTable(
+                name: "Banks");
+
+            migrationBuilder.DropTable(
+                name: "ClientWallets");
 
             migrationBuilder.DropTable(
                 name: "Coupons");
@@ -5469,25 +7181,13 @@ namespace Dotnetable.Migrations.PostgreSql.Migrations
                 name: "WebsiteClientAddresses");
 
             migrationBuilder.DropTable(
-                name: "ProductVariants");
-
-            migrationBuilder.DropTable(
-                name: "Vendors");
+                name: "Brands");
 
             migrationBuilder.DropTable(
                 name: "Cities");
 
             migrationBuilder.DropTable(
-                name: "Products");
-
-            migrationBuilder.DropTable(
                 name: "States");
-
-            migrationBuilder.DropTable(
-                name: "Brands");
-
-            migrationBuilder.DropTable(
-                name: "Countries");
 
             migrationBuilder.DropTable(
                 name: "Members");
@@ -5499,7 +7199,7 @@ namespace Dotnetable.Migrations.PostgreSql.Migrations
                 name: "Websites");
 
             migrationBuilder.DropTable(
-                name: "Currencies");
+                name: "Countries");
 
             migrationBuilder.DropTable(
                 name: "FileRecords");
@@ -5512,6 +7212,15 @@ namespace Dotnetable.Migrations.PostgreSql.Migrations
 
             migrationBuilder.DropTable(
                 name: "WebsiteStorageSettings");
+
+            migrationBuilder.DropTable(
+                name: "Currencies");
+
+            migrationBuilder.DropTable(
+                name: "JournalEntries");
+
+            migrationBuilder.DropTable(
+                name: "FiscalPeriods");
         }
     }
 }

@@ -3,35 +3,30 @@ using System;
 using Dotnetable.Infrastructure.Data;
 using Microsoft.EntityFrameworkCore;
 using Microsoft.EntityFrameworkCore.Infrastructure;
-using Microsoft.EntityFrameworkCore.Metadata;
 using Microsoft.EntityFrameworkCore.Migrations;
 using Microsoft.EntityFrameworkCore.Storage.ValueConversion;
 
 #nullable disable
 
-namespace Dotnetable.Migrations.SqlServer.Migrations
+namespace Dotnetable.Migrations.MySql.Migrations
 {
     [DbContext(typeof(AppDbContext))]
-    [Migration("20260726154354_SupportDeskSlaCallbacks")]
-    partial class SupportDeskSlaCallbacks
+    [Migration("20260816100905_InitialCreate")]
+    partial class InitialCreate
     {
         /// <inheritdoc />
         protected override void BuildTargetModel(ModelBuilder modelBuilder)
         {
 #pragma warning disable 612, 618
             modelBuilder
-                .HasAnnotation("ProductVersion", "10.0.9")
-                .HasAnnotation("Relational:MaxIdentifierLength", 128);
-
-            SqlServerModelBuilderExtensions.UseIdentityColumns(modelBuilder);
+                .HasAnnotation("ProductVersion", "10.0.11")
+                .HasAnnotation("Relational:MaxIdentifierLength", 64);
 
             modelBuilder.Entity("Dotnetable.Domain.Entities.AdminNotification", b =>
                 {
                     b.Property<int>("AdminNotificationID")
                         .ValueGeneratedOnAdd()
                         .HasColumnType("int");
-
-                    SqlServerPropertyBuilderExtensions.UseIdentityColumn(b.Property<int>("AdminNotificationID"));
 
                     b.Property<string>("ActionUrl")
                         .HasMaxLength(256)
@@ -42,7 +37,7 @@ namespace Dotnetable.Migrations.SqlServer.Migrations
                         .HasColumnType("datetime");
 
                     b.Property<bool>("IsRead")
-                        .HasColumnType("bit");
+                        .HasColumnType("tinyint(1)");
 
                     b.Property<int>("MemberID")
                         .HasColumnType("int");
@@ -50,10 +45,10 @@ namespace Dotnetable.Migrations.SqlServer.Migrations
                     b.Property<string>("Message")
                         .IsRequired()
                         .HasMaxLength(1000)
-                        .HasColumnType("nvarchar(1000)");
+                        .HasColumnType("varchar(1000)");
 
                     b.Property<byte>("NotificationType")
-                        .HasColumnType("tinyint");
+                        .HasColumnType("tinyint unsigned");
 
                     b.Property<int?>("RelatedEntityID")
                         .HasColumnType("int");
@@ -61,7 +56,7 @@ namespace Dotnetable.Migrations.SqlServer.Migrations
                     b.Property<string>("Title")
                         .IsRequired()
                         .HasMaxLength(200)
-                        .HasColumnType("nvarchar(200)");
+                        .HasColumnType("varchar(200)");
 
                     b.Property<int>("WebsiteID")
                         .HasColumnType("int");
@@ -82,42 +77,40 @@ namespace Dotnetable.Migrations.SqlServer.Migrations
                         .ValueGeneratedOnAdd()
                         .HasColumnType("int");
 
-                    SqlServerPropertyBuilderExtensions.UseIdentityColumn(b.Property<int>("AttributeDefinitionID"));
-
                     b.Property<bool>("Active")
-                        .HasColumnType("bit");
+                        .HasColumnType("tinyint(1)");
 
                     b.Property<string>("Code")
                         .IsRequired()
                         .HasMaxLength(100)
-                        .HasColumnType("nvarchar(100)");
+                        .HasColumnType("varchar(100)");
 
                     b.Property<byte>("InputType")
-                        .HasColumnType("tinyint");
+                        .HasColumnType("tinyint unsigned");
 
                     b.Property<bool>("IsComparable")
-                        .HasColumnType("bit");
+                        .HasColumnType("tinyint(1)");
 
                     b.Property<bool>("IsFilterable")
-                        .HasColumnType("bit");
+                        .HasColumnType("tinyint(1)");
 
                     b.Property<bool>("IsVariantAttribute")
-                        .HasColumnType("bit");
+                        .HasColumnType("tinyint(1)");
 
                     b.Property<string>("Name")
                         .IsRequired()
                         .HasMaxLength(200)
-                        .HasColumnType("nvarchar(200)");
+                        .HasColumnType("varchar(200)");
 
                     b.Property<bool>("ShowOnTop")
-                        .HasColumnType("bit");
+                        .HasColumnType("tinyint(1)");
 
                     b.Property<int>("SortOrder")
                         .HasColumnType("int");
 
                     b.Property<string>("Unit")
                         .HasMaxLength(30)
-                        .HasColumnType("nvarchar(30)");
+                        .HasColumnType("varchar(30)");
 
                     b.Property<int>("WebsiteID")
                         .HasColumnType("int");
@@ -135,8 +128,6 @@ namespace Dotnetable.Migrations.SqlServer.Migrations
                         .ValueGeneratedOnAdd()
                         .HasColumnType("int");
 
-                    SqlServerPropertyBuilderExtensions.UseIdentityColumn(b.Property<int>("AttributeDefinitionTranslationID"));
-
                     b.Property<int>("AttributeDefinitionID")
                         .HasColumnType("int");
 
@@ -150,11 +141,11 @@ namespace Dotnetable.Migrations.SqlServer.Migrations
                     b.Property<string>("Name")
                         .IsRequired()
                         .HasMaxLength(200)
-                        .HasColumnType("nvarchar(200)");
+                        .HasColumnType("varchar(200)");
 
                     b.Property<string>("Unit")
                         .HasMaxLength(30)
-                        .HasColumnType("nvarchar(30)");
+                        .HasColumnType("varchar(30)");
 
                     b.HasKey("AttributeDefinitionTranslationID");
 
@@ -168,8 +159,6 @@ namespace Dotnetable.Migrations.SqlServer.Migrations
                     b.Property<int>("AttributeOptionID")
                         .ValueGeneratedOnAdd()
                         .HasColumnType("int");
-
-                    SqlServerPropertyBuilderExtensions.UseIdentityColumn(b.Property<int>("AttributeOptionID"));
 
                     b.Property<int>("AttributeDefinitionID")
                         .HasColumnType("int");
@@ -186,7 +175,7 @@ namespace Dotnetable.Migrations.SqlServer.Migrations
                     b.Property<string>("Value")
                         .IsRequired()
                         .HasMaxLength(2000)
-                        .HasColumnType("nvarchar(2000)");
+                        .HasColumnType("varchar(2000)");
 
                     b.HasKey("AttributeOptionID");
 
@@ -201,8 +190,6 @@ namespace Dotnetable.Migrations.SqlServer.Migrations
                         .ValueGeneratedOnAdd()
                         .HasColumnType("int");
 
-                    SqlServerPropertyBuilderExtensions.UseIdentityColumn(b.Property<int>("AttributeOptionTranslationID"));
-
                     b.Property<int>("AttributeOptionID")
                         .HasColumnType("int");
 
@@ -216,7 +203,7 @@ namespace Dotnetable.Migrations.SqlServer.Migrations
                     b.Property<string>("Value")
                         .IsRequired()
                         .HasMaxLength(2000)
-                        .HasColumnType("nvarchar(2000)");
+                        .HasColumnType("varchar(2000)");
 
                     b.HasKey("AttributeOptionTranslationID");
 
@@ -231,10 +218,8 @@ namespace Dotnetable.Migrations.SqlServer.Migrations
                         .ValueGeneratedOnAdd()
                         .HasColumnType("int");
 
-                    SqlServerPropertyBuilderExtensions.UseIdentityColumn(b.Property<int>("BankID"));
-
                     b.Property<bool>("Active")
-                        .HasColumnType("bit");
+                        .HasColumnType("tinyint(1)");
 
                     b.Property<string>("BankCode")
                         .IsRequired()
@@ -248,7 +233,7 @@ namespace Dotnetable.Migrations.SqlServer.Migrations
                     b.Property<string>("Name")
                         .IsRequired()
                         .HasMaxLength(64)
-                        .HasColumnType("nvarchar(64)");
+                        .HasColumnType("varchar(64)");
 
                     b.Property<int?>("WebsiteID")
                         .HasColumnType("int");
@@ -267,8 +252,6 @@ namespace Dotnetable.Migrations.SqlServer.Migrations
                     b.Property<int>("BankAccountID")
                         .ValueGeneratedOnAdd()
                         .HasColumnType("int");
-
-                    SqlServerPropertyBuilderExtensions.UseIdentityColumn(b.Property<int>("BankAccountID"));
 
                     b.Property<string>("AccountNumber")
                         .HasMaxLength(30)
@@ -292,19 +275,19 @@ namespace Dotnetable.Migrations.SqlServer.Migrations
                         .HasColumnType("varchar(34)");
 
                     b.Property<bool>("IsActive")
-                        .HasColumnType("bit");
+                        .HasColumnType("tinyint(1)");
 
                     b.Property<bool>("IsForOfflinePayment")
-                        .HasColumnType("bit");
+                        .HasColumnType("tinyint(1)");
 
                     b.Property<string>("OwnerName")
                         .HasMaxLength(90)
-                        .HasColumnType("nvarchar(90)");
+                        .HasColumnType("varchar(90)");
 
                     b.Property<string>("Title")
                         .IsRequired()
                         .HasMaxLength(70)
-                        .HasColumnType("nvarchar(70)");
+                        .HasColumnType("varchar(70)");
 
                     b.Property<int>("WebsiteID")
                         .HasColumnType("int");
@@ -326,10 +309,8 @@ namespace Dotnetable.Migrations.SqlServer.Migrations
                         .ValueGeneratedOnAdd()
                         .HasColumnType("int");
 
-                    SqlServerPropertyBuilderExtensions.UseIdentityColumn(b.Property<int>("BrandID"));
-
                     b.Property<bool>("IsActive")
-                        .HasColumnType("bit");
+                        .HasColumnType("tinyint(1)");
 
                     b.Property<int?>("LogoFileID")
                         .HasColumnType("int");
@@ -337,12 +318,12 @@ namespace Dotnetable.Migrations.SqlServer.Migrations
                     b.Property<string>("Name")
                         .IsRequired()
                         .HasMaxLength(200)
-                        .HasColumnType("nvarchar(200)");
+                        .HasColumnType("varchar(200)");
 
                     b.Property<string>("Slug")
                         .IsRequired()
                         .HasMaxLength(200)
-                        .HasColumnType("nvarchar(200)");
+                        .HasColumnType("varchar(200)");
 
                     b.Property<int>("WebsiteID")
                         .HasColumnType("int");
@@ -362,8 +343,6 @@ namespace Dotnetable.Migrations.SqlServer.Migrations
                         .ValueGeneratedOnAdd()
                         .HasColumnType("int");
 
-                    SqlServerPropertyBuilderExtensions.UseIdentityColumn(b.Property<int>("BrandTranslationID"));
-
                     b.Property<int>("BrandID")
                         .HasColumnType("int");
 
@@ -377,12 +356,12 @@ namespace Dotnetable.Migrations.SqlServer.Migrations
                     b.Property<string>("Name")
                         .IsRequired()
                         .HasMaxLength(200)
-                        .HasColumnType("nvarchar(200)");
+                        .HasColumnType("varchar(200)");
 
                     b.Property<string>("Slug")
                         .IsRequired()
                         .HasMaxLength(200)
-                        .HasColumnType("nvarchar(200)");
+                        .HasColumnType("varchar(200)");
 
                     b.HasKey("BrandTranslationID");
 
@@ -397,14 +376,12 @@ namespace Dotnetable.Migrations.SqlServer.Migrations
                         .ValueGeneratedOnAdd()
                         .HasColumnType("int");
 
-                    SqlServerPropertyBuilderExtensions.UseIdentityColumn(b.Property<int>("CartID"));
-
                     b.Property<int?>("CouponID")
                         .HasColumnType("int");
 
                     b.Property<DateTime>("CreatedAt")
                         .HasPrecision(0)
-                        .HasColumnType("datetime2(0)");
+                        .HasColumnType("datetime(0)");
 
                     b.Property<string>("SessionKey")
                         .HasMaxLength(64)
@@ -413,7 +390,7 @@ namespace Dotnetable.Migrations.SqlServer.Migrations
 
                     b.Property<DateTime>("UpdatedAt")
                         .HasPrecision(0)
-                        .HasColumnType("datetime2(0)");
+                        .HasColumnType("datetime(0)");
 
                     b.Property<int?>("WebsiteClientID")
                         .HasColumnType("int");
@@ -438,11 +415,9 @@ namespace Dotnetable.Migrations.SqlServer.Migrations
                         .ValueGeneratedOnAdd()
                         .HasColumnType("int");
 
-                    SqlServerPropertyBuilderExtensions.UseIdentityColumn(b.Property<int>("CartItemID"));
-
                     b.Property<DateTime>("AddedAt")
                         .HasPrecision(0)
-                        .HasColumnType("datetime2(0)");
+                        .HasColumnType("datetime(0)");
 
                     b.Property<int>("CartID")
                         .HasColumnType("int");
@@ -463,8 +438,7 @@ namespace Dotnetable.Migrations.SqlServer.Migrations
                     b.HasIndex(new[] { "VendorProductID" }, "IX_CartItems_VendorProductID");
 
                     b.HasIndex(new[] { "CartID", "ProductVariantID", "VendorProductID" }, "UQ_CartItems_CartID_ProductVariantID_VendorProductID")
-                        .IsUnique()
-                        .HasFilter("[VendorProductID] IS NOT NULL");
+                        .IsUnique();
 
                     b.ToTable("CartItems");
                 });
@@ -475,15 +449,13 @@ namespace Dotnetable.Migrations.SqlServer.Migrations
                         .ValueGeneratedOnAdd()
                         .HasColumnType("int");
 
-                    SqlServerPropertyBuilderExtensions.UseIdentityColumn(b.Property<int>("CategoryID"));
-
                     b.Property<bool>("IsActive")
-                        .HasColumnType("bit");
+                        .HasColumnType("tinyint(1)");
 
                     b.Property<string>("Name")
                         .IsRequired()
                         .HasMaxLength(200)
-                        .HasColumnType("nvarchar(200)");
+                        .HasColumnType("varchar(200)");
 
                     b.Property<int?>("ParentCategoryID")
                         .HasColumnType("int");
@@ -494,7 +466,7 @@ namespace Dotnetable.Migrations.SqlServer.Migrations
                     b.Property<string>("Slug")
                         .IsRequired()
                         .HasMaxLength(200)
-                        .HasColumnType("nvarchar(200)");
+                        .HasColumnType("varchar(200)");
 
                     b.Property<int>("SortOrder")
                         .HasColumnType("int");
@@ -519,8 +491,6 @@ namespace Dotnetable.Migrations.SqlServer.Migrations
                         .ValueGeneratedOnAdd()
                         .HasColumnType("int");
 
-                    SqlServerPropertyBuilderExtensions.UseIdentityColumn(b.Property<int>("CategoryTranslationID"));
-
                     b.Property<int>("CategoryID")
                         .HasColumnType("int");
 
@@ -534,12 +504,12 @@ namespace Dotnetable.Migrations.SqlServer.Migrations
                     b.Property<string>("Name")
                         .IsRequired()
                         .HasMaxLength(200)
-                        .HasColumnType("nvarchar(200)");
+                        .HasColumnType("varchar(200)");
 
                     b.Property<string>("Slug")
                         .IsRequired()
                         .HasMaxLength(200)
-                        .HasColumnType("nvarchar(200)");
+                        .HasColumnType("varchar(200)");
 
                     b.HasKey("CategoryTranslationID");
 
@@ -554,26 +524,34 @@ namespace Dotnetable.Migrations.SqlServer.Migrations
                         .ValueGeneratedOnAdd()
                         .HasColumnType("int");
 
-                    SqlServerPropertyBuilderExtensions.UseIdentityColumn(b.Property<int>("ChartOfAccountID"));
-
                     b.Property<byte>("AccountType")
-                        .HasColumnType("tinyint");
+                        .HasColumnType("tinyint unsigned");
 
                     b.Property<string>("Code")
                         .IsRequired()
                         .HasMaxLength(20)
-                        .HasColumnType("nvarchar(20)");
+                        .HasColumnType("varchar(20)");
 
                     b.Property<bool>("IsActive")
-                        .HasColumnType("bit");
+                        .HasColumnType("tinyint(1)");
+
+                    b.Property<bool>("IsSystem")
+                        .ValueGeneratedOnAdd()
+                        .HasColumnType("tinyint(1)")
+                        .HasDefaultValue(false);
 
                     b.Property<string>("Name")
                         .IsRequired()
                         .HasMaxLength(200)
-                        .HasColumnType("nvarchar(200)");
+                        .HasColumnType("varchar(200)");
 
                     b.Property<int?>("ParentAccountID")
                         .HasColumnType("int");
+
+                    b.Property<int>("SortOrder")
+                        .ValueGeneratedOnAdd()
+                        .HasColumnType("int")
+                        .HasDefaultValue(0);
 
                     b.Property<int>("WebsiteID")
                         .HasColumnType("int");
@@ -584,6 +562,9 @@ namespace Dotnetable.Migrations.SqlServer.Migrations
 
                     b.HasIndex(new[] { "WebsiteID" }, "IX_ChartOfAccounts_WebsiteID");
 
+                    b.HasIndex(new[] { "WebsiteID", "Code" }, "IX_ChartOfAccounts_Website_Code")
+                        .IsUnique();
+
                     b.ToTable("ChartOfAccounts");
                 });
 
@@ -593,10 +574,8 @@ namespace Dotnetable.Migrations.SqlServer.Migrations
                         .ValueGeneratedOnAdd()
                         .HasColumnType("int");
 
-                    SqlServerPropertyBuilderExtensions.UseIdentityColumn(b.Property<int>("CityID"));
-
                     b.Property<bool>("Active")
-                        .HasColumnType("bit");
+                        .HasColumnType("tinyint(1)");
 
                     b.Property<int>("CountryID")
                         .HasColumnType("int");
@@ -609,10 +588,10 @@ namespace Dotnetable.Migrations.SqlServer.Migrations
                         .IsFixedLength();
 
                     b.Property<double?>("Latitude")
-                        .HasColumnType("float");
+                        .HasColumnType("double");
 
                     b.Property<double>("Longitude")
-                        .HasColumnType("float");
+                        .HasColumnType("double");
 
                     b.Property<int?>("StateID")
                         .HasColumnType("int");
@@ -620,7 +599,7 @@ namespace Dotnetable.Migrations.SqlServer.Migrations
                     b.Property<string>("Title")
                         .IsRequired()
                         .HasMaxLength(48)
-                        .HasColumnType("nvarchar(48)");
+                        .HasColumnType("varchar(48)");
 
                     b.HasKey("CityID");
 
@@ -637,8 +616,6 @@ namespace Dotnetable.Migrations.SqlServer.Migrations
                         .ValueGeneratedOnAdd()
                         .HasColumnType("int");
 
-                    SqlServerPropertyBuilderExtensions.UseIdentityColumn(b.Property<int>("CityTranslationID"));
-
                     b.Property<int>("CityID")
                         .HasColumnType("int");
 
@@ -652,7 +629,7 @@ namespace Dotnetable.Migrations.SqlServer.Migrations
                     b.Property<string>("Title")
                         .IsRequired()
                         .HasMaxLength(48)
-                        .HasColumnType("nvarchar(48)");
+                        .HasColumnType("varchar(48)");
 
                     b.HasKey("CityTranslationID");
 
@@ -666,8 +643,6 @@ namespace Dotnetable.Migrations.SqlServer.Migrations
                     b.Property<int>("ClientBankAccountID")
                         .ValueGeneratedOnAdd()
                         .HasColumnType("int");
-
-                    SqlServerPropertyBuilderExtensions.UseIdentityColumn(b.Property<int>("ClientBankAccountID"));
 
                     b.Property<string>("AccountNumber")
                         .HasMaxLength(30)
@@ -684,7 +659,7 @@ namespace Dotnetable.Migrations.SqlServer.Migrations
 
                     b.Property<DateTime>("CreatedAt")
                         .HasPrecision(0)
-                        .HasColumnType("datetime2(0)");
+                        .HasColumnType("datetime(0)");
 
                     b.Property<string>("IBAN")
                         .HasMaxLength(34)
@@ -692,15 +667,15 @@ namespace Dotnetable.Migrations.SqlServer.Migrations
                         .HasColumnType("varchar(34)");
 
                     b.Property<bool>("IsActive")
-                        .HasColumnType("bit");
+                        .HasColumnType("tinyint(1)");
 
                     b.Property<bool>("IsDefault")
-                        .HasColumnType("bit");
+                        .HasColumnType("tinyint(1)");
 
                     b.Property<string>("OwnerName")
                         .IsRequired()
                         .HasMaxLength(90)
-                        .HasColumnType("nvarchar(90)");
+                        .HasColumnType("varchar(90)");
 
                     b.Property<int>("WebsiteClientID")
                         .HasColumnType("int");
@@ -725,8 +700,6 @@ namespace Dotnetable.Migrations.SqlServer.Migrations
                         .ValueGeneratedOnAdd()
                         .HasColumnType("int");
 
-                    SqlServerPropertyBuilderExtensions.UseIdentityColumn(b.Property<int>("ClientWalletID"));
-
                     b.Property<decimal>("Balance")
                         .HasColumnType("decimal(18, 4)");
 
@@ -735,16 +708,23 @@ namespace Dotnetable.Migrations.SqlServer.Migrations
 
                     b.Property<DateTime>("CreatedAt")
                         .HasPrecision(0)
-                        .HasColumnType("datetime2(0)");
+                        .HasColumnType("datetime(0)");
+
+                    b.Property<string>("CurrencyCode")
+                        .IsRequired()
+                        .HasMaxLength(3)
+                        .IsUnicode(false)
+                        .HasColumnType("char(3)")
+                        .IsFixedLength();
 
                     b.Property<bool>("IsActive")
-                        .HasColumnType("bit");
+                        .HasColumnType("tinyint(1)");
 
                     b.Property<byte[]>("RowVersion")
                         .IsConcurrencyToken()
                         .IsRequired()
                         .ValueGeneratedOnAddOrUpdate()
-                        .HasColumnType("rowversion");
+                        .HasColumnType("longblob");
 
                     b.Property<int>("WebsiteClientID")
                         .HasColumnType("int");
@@ -754,9 +734,11 @@ namespace Dotnetable.Migrations.SqlServer.Migrations
 
                     b.HasKey("ClientWalletID");
 
+                    b.HasIndex(new[] { "CurrencyCode" }, "IX_ClientWallets_CurrencyCode");
+
                     b.HasIndex(new[] { "WebsiteID" }, "IX_ClientWallets_WebsiteID");
 
-                    b.HasIndex(new[] { "WebsiteClientID" }, "UQ_ClientWallets_WebsiteClientID")
+                    b.HasIndex(new[] { "WebsiteClientID", "CurrencyCode" }, "UQ_ClientWallets_Client_Currency")
                         .IsUnique();
 
                     b.ToTable("ClientWallets");
@@ -767,8 +749,6 @@ namespace Dotnetable.Migrations.SqlServer.Migrations
                     b.Property<int>("ClientWalletTransactionID")
                         .ValueGeneratedOnAdd()
                         .HasColumnType("int");
-
-                    SqlServerPropertyBuilderExtensions.UseIdentityColumn(b.Property<int>("ClientWalletTransactionID"));
 
                     b.Property<decimal>("Amount")
                         .HasColumnType("decimal(18, 4)");
@@ -787,23 +767,23 @@ namespace Dotnetable.Migrations.SqlServer.Migrations
 
                     b.Property<DateTime>("CreatedAt")
                         .HasPrecision(0)
-                        .HasColumnType("datetime2(0)");
+                        .HasColumnType("datetime(0)");
 
                     b.Property<int?>("CreatedByMemberID")
                         .HasColumnType("int");
 
                     b.Property<string>("Note")
                         .HasMaxLength(500)
-                        .HasColumnType("nvarchar(500)");
+                        .HasColumnType("varchar(500)");
 
                     b.Property<int?>("SourceId")
                         .HasColumnType("int");
 
                     b.Property<byte?>("SourceType")
-                        .HasColumnType("tinyint");
+                        .HasColumnType("tinyint unsigned");
 
                     b.Property<byte>("Type")
-                        .HasColumnType("tinyint");
+                        .HasColumnType("tinyint unsigned");
 
                     b.Property<int>("WebsiteID")
                         .HasColumnType("int");
@@ -825,8 +805,6 @@ namespace Dotnetable.Migrations.SqlServer.Migrations
                         .ValueGeneratedOnAdd()
                         .HasColumnType("int");
 
-                    SqlServerPropertyBuilderExtensions.UseIdentityColumn(b.Property<int>("ClientWalletWithdrawalID"));
-
                     b.Property<decimal>("Amount")
                         .HasColumnType("decimal(18, 4)");
 
@@ -839,31 +817,45 @@ namespace Dotnetable.Migrations.SqlServer.Migrations
                     b.Property<int>("ClientWalletID")
                         .HasColumnType("int");
 
+                    b.Property<int?>("CreatedByMemberID")
+                        .HasColumnType("int");
+
+                    b.Property<string>("CurrencyCode")
+                        .IsRequired()
+                        .HasMaxLength(3)
+                        .IsUnicode(false)
+                        .HasColumnType("char(3)")
+                        .IsFixedLength();
+
+                    b.Property<string>("Note")
+                        .HasMaxLength(500)
+                        .HasColumnType("varchar(500)");
+
                     b.Property<DateTime?>("PaidAt")
                         .HasPrecision(0)
-                        .HasColumnType("datetime2(0)");
+                        .HasColumnType("datetime(0)");
 
                     b.Property<string>("PaymentRefNumber")
                         .HasMaxLength(100)
-                        .HasColumnType("nvarchar(100)");
+                        .HasColumnType("varchar(100)");
 
                     b.Property<string>("RejectReason")
                         .HasMaxLength(500)
-                        .HasColumnType("nvarchar(500)");
+                        .HasColumnType("varchar(500)");
 
                     b.Property<DateTime>("RequestedAt")
                         .HasPrecision(0)
-                        .HasColumnType("datetime2(0)");
+                        .HasColumnType("datetime(0)");
 
                     b.Property<DateTime?>("ReviewedAt")
                         .HasPrecision(0)
-                        .HasColumnType("datetime2(0)");
+                        .HasColumnType("datetime(0)");
 
                     b.Property<int?>("ReviewedByMemberID")
                         .HasColumnType("int");
 
                     b.Property<byte>("Status")
-                        .HasColumnType("tinyint");
+                        .HasColumnType("tinyint unsigned");
 
                     b.Property<int>("WebsiteClientID")
                         .HasColumnType("int");
@@ -876,6 +868,8 @@ namespace Dotnetable.Migrations.SqlServer.Migrations
                     b.HasIndex(new[] { "ClientBankAccountID" }, "IX_ClientWalletWithdrawals_ClientBankAccountID");
 
                     b.HasIndex(new[] { "ClientWalletID" }, "IX_ClientWalletWithdrawals_ClientWalletID");
+
+                    b.HasIndex(new[] { "CreatedByMemberID" }, "IX_ClientWalletWithdrawals_CreatedByMemberID");
 
                     b.HasIndex(new[] { "ReviewedByMemberID" }, "IX_ClientWalletWithdrawals_ReviewedByMemberID");
 
@@ -892,10 +886,8 @@ namespace Dotnetable.Migrations.SqlServer.Migrations
                         .ValueGeneratedOnAdd()
                         .HasColumnType("int");
 
-                    SqlServerPropertyBuilderExtensions.UseIdentityColumn(b.Property<int>("ContactUsMessagesID"));
-
                     b.Property<bool>("Archive")
-                        .HasColumnType("bit");
+                        .HasColumnType("tinyint(1)");
 
                     b.Property<string>("CellphoneNumber")
                         .IsRequired()
@@ -915,12 +907,12 @@ namespace Dotnetable.Migrations.SqlServer.Migrations
                     b.Property<string>("MessageBody")
                         .IsRequired()
                         .HasMaxLength(4000)
-                        .HasColumnType("nvarchar(4000)");
+                        .HasColumnType("varchar(4000)");
 
                     b.Property<string>("MessageSubject")
                         .IsRequired()
                         .HasMaxLength(512)
-                        .HasColumnType("nvarchar(512)");
+                        .HasColumnType("varchar(512)");
 
                     b.Property<string>("SenderIPAddress")
                         .IsRequired()
@@ -931,7 +923,7 @@ namespace Dotnetable.Migrations.SqlServer.Migrations
                     b.Property<string>("SenderName")
                         .IsRequired()
                         .HasMaxLength(64)
-                        .HasColumnType("nvarchar(64)");
+                        .HasColumnType("varchar(64)");
 
                     b.Property<int>("WebsiteID")
                         .HasColumnType("int");
@@ -948,8 +940,6 @@ namespace Dotnetable.Migrations.SqlServer.Migrations
                     b.Property<int>("CountryID")
                         .ValueGeneratedOnAdd()
                         .HasColumnType("int");
-
-                    SqlServerPropertyBuilderExtensions.UseIdentityColumn(b.Property<int>("CountryID"));
 
                     b.Property<string>("CountryCode")
                         .IsRequired()
@@ -974,7 +964,7 @@ namespace Dotnetable.Migrations.SqlServer.Migrations
                     b.Property<string>("Title")
                         .IsRequired()
                         .HasMaxLength(42)
-                        .HasColumnType("nvarchar(42)");
+                        .HasColumnType("varchar(42)");
 
                     b.HasKey("CountryID");
 
@@ -986,8 +976,6 @@ namespace Dotnetable.Migrations.SqlServer.Migrations
                     b.Property<int>("CountryTranslationID")
                         .ValueGeneratedOnAdd()
                         .HasColumnType("int");
-
-                    SqlServerPropertyBuilderExtensions.UseIdentityColumn(b.Property<int>("CountryTranslationID"));
 
                     b.Property<int>("CountryID")
                         .HasColumnType("int");
@@ -1002,7 +990,7 @@ namespace Dotnetable.Migrations.SqlServer.Migrations
                     b.Property<string>("Title")
                         .IsRequired()
                         .HasMaxLength(42)
-                        .HasColumnType("nvarchar(42)");
+                        .HasColumnType("varchar(42)");
 
                     b.HasKey("CountryTranslationID");
 
@@ -1017,8 +1005,6 @@ namespace Dotnetable.Migrations.SqlServer.Migrations
                         .ValueGeneratedOnAdd()
                         .HasColumnType("int");
 
-                    SqlServerPropertyBuilderExtensions.UseIdentityColumn(b.Property<int>("CouponID"));
-
                     b.Property<string>("Code")
                         .IsRequired()
                         .HasMaxLength(40)
@@ -1027,23 +1013,23 @@ namespace Dotnetable.Migrations.SqlServer.Migrations
 
                     b.Property<DateTime>("CreatedAt")
                         .HasPrecision(0)
-                        .HasColumnType("datetime2(0)");
+                        .HasColumnType("datetime(0)");
 
                     b.Property<int?>("CreatedByMemberID")
                         .HasColumnType("int");
 
                     b.Property<byte>("DiscountType")
-                        .HasColumnType("tinyint");
+                        .HasColumnType("tinyint unsigned");
 
                     b.Property<decimal>("DiscountValue")
                         .HasColumnType("decimal(18, 4)");
 
                     b.Property<DateTime?>("EndsAt")
                         .HasPrecision(0)
-                        .HasColumnType("datetime2(0)");
+                        .HasColumnType("datetime(0)");
 
                     b.Property<bool>("IsActive")
-                        .HasColumnType("bit");
+                        .HasColumnType("tinyint(1)");
 
                     b.Property<decimal?>("MaxDiscountAmount")
                         .HasColumnType("decimal(18, 4)");
@@ -1059,7 +1045,7 @@ namespace Dotnetable.Migrations.SqlServer.Migrations
 
                     b.Property<DateTime?>("StartsAt")
                         .HasPrecision(0)
-                        .HasColumnType("datetime2(0)");
+                        .HasColumnType("datetime(0)");
 
                     b.Property<int>("TimesUsed")
                         .HasColumnType("int");
@@ -1089,8 +1075,6 @@ namespace Dotnetable.Migrations.SqlServer.Migrations
                         .ValueGeneratedOnAdd()
                         .HasColumnType("int");
 
-                    SqlServerPropertyBuilderExtensions.UseIdentityColumn(b.Property<int>("CouponRedemptionID"));
-
                     b.Property<int>("CouponID")
                         .HasColumnType("int");
 
@@ -1105,7 +1089,7 @@ namespace Dotnetable.Migrations.SqlServer.Migrations
 
                     b.Property<DateTime>("RedeemedAt")
                         .HasPrecision(0)
-                        .HasColumnType("datetime2(0)");
+                        .HasColumnType("datetime(0)");
 
                     b.Property<int>("WebsiteClientID")
                         .HasColumnType("int");
@@ -1131,20 +1115,20 @@ namespace Dotnetable.Migrations.SqlServer.Migrations
                         .IsFixedLength();
 
                     b.Property<byte>("DecimalDigits")
-                        .HasColumnType("tinyint");
+                        .HasColumnType("tinyint unsigned");
 
                     b.Property<bool>("IsActive")
-                        .HasColumnType("bit");
+                        .HasColumnType("tinyint(1)");
 
                     b.Property<string>("Name")
                         .IsRequired()
                         .HasMaxLength(50)
-                        .HasColumnType("nvarchar(50)");
+                        .HasColumnType("varchar(50)");
 
                     b.Property<string>("Symbol")
                         .IsRequired()
                         .HasMaxLength(10)
-                        .HasColumnType("nvarchar(10)");
+                        .HasColumnType("varchar(10)");
 
                     b.HasKey("CurrencyCode");
 
@@ -1157,8 +1141,6 @@ namespace Dotnetable.Migrations.SqlServer.Migrations
                         .ValueGeneratedOnAdd()
                         .HasColumnType("int");
 
-                    SqlServerPropertyBuilderExtensions.UseIdentityColumn(b.Property<int>("CurrencyRateID"));
-
                     b.Property<string>("CurrencyCode")
                         .IsRequired()
                         .HasMaxLength(3)
@@ -1167,7 +1149,7 @@ namespace Dotnetable.Migrations.SqlServer.Migrations
                         .IsFixedLength();
 
                     b.Property<bool>("IsDefault")
-                        .HasColumnType("bit");
+                        .HasColumnType("tinyint(1)");
 
                     b.Property<DateTime>("LastUpdate")
                         .HasColumnType("datetime");
@@ -1187,19 +1169,59 @@ namespace Dotnetable.Migrations.SqlServer.Migrations
                     b.ToTable("CurrencyRates");
                 });
 
+            modelBuilder.Entity("Dotnetable.Domain.Entities.DigitalAccessLog", b =>
+                {
+                    b.Property<long>("DigitalAccessLogID")
+                        .ValueGeneratedOnAdd()
+                        .HasColumnType("bigint");
+
+                    b.Property<byte>("AccessType")
+                        .HasColumnType("tinyint unsigned");
+
+                    b.Property<DateTime>("AccessedAt")
+                        .HasColumnType("datetime");
+
+                    b.Property<string>("IpAddress")
+                        .HasMaxLength(64)
+                        .HasColumnType("varchar(64)");
+
+                    b.Property<int>("OrderDigitalAssetID")
+                        .HasColumnType("int");
+
+                    b.Property<string>("UserAgent")
+                        .HasMaxLength(500)
+                        .HasColumnType("varchar(500)");
+
+                    b.Property<int>("WebsiteClientID")
+                        .HasColumnType("int");
+
+                    b.Property<int>("WebsiteID")
+                        .HasColumnType("int");
+
+                    b.HasKey("DigitalAccessLogID");
+
+                    b.HasIndex(new[] { "AccessedAt" }, "IX_DigitalAccessLogs_AccessedAt");
+
+                    b.HasIndex(new[] { "OrderDigitalAssetID" }, "IX_DigitalAccessLogs_OrderDigitalAssetID");
+
+                    b.HasIndex(new[] { "WebsiteClientID" }, "IX_DigitalAccessLogs_WebsiteClientID");
+
+                    b.HasIndex(new[] { "WebsiteID" }, "IX_DigitalAccessLogs_WebsiteID");
+
+                    b.ToTable("DigitalAccessLogs");
+                });
+
             modelBuilder.Entity("Dotnetable.Domain.Entities.EmailAccount", b =>
                 {
                     b.Property<int>("EmailAccountID")
                         .ValueGeneratedOnAdd()
                         .HasColumnType("int");
 
-                    SqlServerPropertyBuilderExtensions.UseIdentityColumn(b.Property<int>("EmailAccountID"));
-
                     b.Property<byte>("AccountType")
-                        .HasColumnType("tinyint");
+                        .HasColumnType("tinyint unsigned");
 
                     b.Property<bool>("Active")
-                        .HasColumnType("bit");
+                        .HasColumnType("tinyint(1)");
 
                     b.Property<string>("EmailAddress")
                         .IsRequired()
@@ -1208,15 +1230,15 @@ namespace Dotnetable.Migrations.SqlServer.Migrations
                         .HasColumnType("varchar(64)");
 
                     b.Property<bool>("EnableSSL")
-                        .HasColumnType("bit");
+                        .HasColumnType("tinyint(1)");
 
                     b.Property<bool>("IsDefault")
-                        .HasColumnType("bit");
+                        .HasColumnType("tinyint(1)");
 
                     b.Property<string>("MailName")
                         .IsRequired()
                         .HasMaxLength(64)
-                        .HasColumnType("nvarchar(64)");
+                        .HasColumnType("varchar(64)");
 
                     b.Property<string>("MailServer")
                         .IsRequired()
@@ -1227,12 +1249,12 @@ namespace Dotnetable.Migrations.SqlServer.Migrations
                     b.Property<string>("Name")
                         .IsRequired()
                         .HasMaxLength(64)
-                        .HasColumnType("nvarchar(64)");
+                        .HasColumnType("varchar(64)");
 
                     b.Property<string>("Password")
                         .IsRequired()
                         .HasMaxLength(256)
-                        .HasColumnType("nvarchar(256)");
+                        .HasColumnType("varchar(256)");
 
                     b.Property<int>("SMTPPort")
                         .HasColumnType("int");
@@ -1253,13 +1275,11 @@ namespace Dotnetable.Migrations.SqlServer.Migrations
                         .ValueGeneratedOnAdd()
                         .HasColumnType("int");
 
-                    SqlServerPropertyBuilderExtensions.UseIdentityColumn(b.Property<int>("EmailSubscribeID"));
-
                     b.Property<bool>("Active")
-                        .HasColumnType("bit");
+                        .HasColumnType("tinyint(1)");
 
                     b.Property<bool>("Approved")
-                        .HasColumnType("bit");
+                        .HasColumnType("tinyint(1)");
 
                     b.Property<string>("Email")
                         .IsRequired()
@@ -1291,27 +1311,25 @@ namespace Dotnetable.Migrations.SqlServer.Migrations
                         .ValueGeneratedOnAdd()
                         .HasColumnType("int");
 
-                    SqlServerPropertyBuilderExtensions.UseIdentityColumn(b.Property<int>("EmailTemplateID"));
-
                     b.Property<byte>("AccountType")
-                        .HasColumnType("tinyint");
+                        .HasColumnType("tinyint unsigned");
 
                     b.Property<bool>("Active")
-                        .HasColumnType("bit");
+                        .HasColumnType("tinyint(1)");
 
                     b.Property<string>("HtmlBody")
                         .IsRequired()
-                        .HasColumnType("nvarchar(max)");
+                        .HasColumnType("longtext");
 
                     b.Property<string>("Name")
                         .IsRequired()
                         .HasMaxLength(128)
-                        .HasColumnType("nvarchar(128)");
+                        .HasColumnType("varchar(128)");
 
                     b.Property<string>("Subject")
                         .IsRequired()
                         .HasMaxLength(256)
-                        .HasColumnType("nvarchar(256)");
+                        .HasColumnType("varchar(256)");
 
                     b.Property<string>("TemplateKey")
                         .IsRequired()
@@ -1336,14 +1354,12 @@ namespace Dotnetable.Migrations.SqlServer.Migrations
                         .ValueGeneratedOnAdd()
                         .HasColumnType("int");
 
-                    SqlServerPropertyBuilderExtensions.UseIdentityColumn(b.Property<int>("EmailTemplateTranslationID"));
-
                     b.Property<int>("EmailTemplateID")
                         .HasColumnType("int");
 
                     b.Property<string>("HtmlBody")
                         .IsRequired()
-                        .HasColumnType("nvarchar(max)");
+                        .HasColumnType("longtext");
 
                     b.Property<string>("LanguageCode")
                         .IsRequired()
@@ -1355,7 +1371,7 @@ namespace Dotnetable.Migrations.SqlServer.Migrations
                     b.Property<string>("Subject")
                         .IsRequired()
                         .HasMaxLength(256)
-                        .HasColumnType("nvarchar(256)");
+                        .HasColumnType("varchar(256)");
 
                     b.HasKey("EmailTemplateTranslationID");
 
@@ -1365,25 +1381,146 @@ namespace Dotnetable.Migrations.SqlServer.Migrations
                     b.ToTable("EmailTemplateTranslations");
                 });
 
+            modelBuilder.Entity("Dotnetable.Domain.Entities.Employee", b =>
+                {
+                    b.Property<int>("EmployeeID")
+                        .ValueGeneratedOnAdd()
+                        .HasColumnType("int");
+
+                    b.Property<DateTime>("CreatedAt")
+                        .HasColumnType("datetime(6)");
+
+                    b.Property<string>("Email")
+                        .HasColumnType("longtext");
+
+                    b.Property<string>("EmployeeCode")
+                        .IsRequired()
+                        .HasMaxLength(30)
+                        .HasColumnType("varchar(30)");
+
+                    b.Property<string>("GivenName")
+                        .IsRequired()
+                        .HasMaxLength(100)
+                        .HasColumnType("varchar(100)");
+
+                    b.Property<DateOnly>("HireDate")
+                        .HasColumnType("date");
+
+                    b.Property<string>("JobTitle")
+                        .HasColumnType("longtext");
+
+                    b.Property<int?>("MemberID")
+                        .HasColumnType("int");
+
+                    b.Property<string>("NationalId")
+                        .HasColumnType("longtext");
+
+                    b.Property<int?>("OrgUnitID")
+                        .HasColumnType("int");
+
+                    b.Property<string>("Phone")
+                        .HasColumnType("longtext");
+
+                    b.Property<byte>("Status")
+                        .HasColumnType("tinyint unsigned");
+
+                    b.Property<string>("Surname")
+                        .IsRequired()
+                        .HasMaxLength(100)
+                        .HasColumnType("varchar(100)");
+
+                    b.Property<DateOnly?>("TerminationDate")
+                        .HasColumnType("date");
+
+                    b.Property<int>("WebsiteID")
+                        .HasColumnType("int");
+
+                    b.HasKey("EmployeeID");
+
+                    b.HasIndex("MemberID");
+
+                    b.HasIndex("OrgUnitID");
+
+                    b.HasIndex(new[] { "WebsiteID", "EmployeeCode" }, "IX_Employees_Website_Code")
+                        .IsUnique();
+
+                    b.ToTable("Employees");
+                });
+
+            modelBuilder.Entity("Dotnetable.Domain.Entities.EmployeeContract", b =>
+                {
+                    b.Property<int>("EmployeeContractID")
+                        .ValueGeneratedOnAdd()
+                        .HasColumnType("int");
+
+                    b.Property<decimal>("BaseSalary")
+                        .HasColumnType("decimal(18,4)");
+
+                    b.Property<DateTime>("CreatedAt")
+                        .HasColumnType("datetime(6)");
+
+                    b.Property<string>("CurrencyCode")
+                        .IsRequired()
+                        .HasMaxLength(3)
+                        .IsUnicode(false)
+                        .HasColumnType("char(3)")
+                        .IsFixedLength();
+
+                    b.Property<DateOnly>("EffectiveFrom")
+                        .HasColumnType("date");
+
+                    b.Property<DateOnly?>("EffectiveTo")
+                        .HasColumnType("date");
+
+                    b.Property<int>("EmployeeID")
+                        .HasColumnType("int");
+
+                    b.Property<decimal>("EmployeeInsuranceRate")
+                        .HasColumnType("decimal(9,6)");
+
+                    b.Property<decimal>("EmployerInsuranceRate")
+                        .HasColumnType("decimal(9,6)");
+
+                    b.Property<decimal>("IncomeTaxRate")
+                        .HasColumnType("decimal(9,6)");
+
+                    b.Property<bool>("IsActive")
+                        .HasColumnType("tinyint(1)");
+
+                    b.Property<byte>("PayFrequency")
+                        .HasColumnType("tinyint unsigned");
+
+                    b.Property<bool>("UseFlatRates")
+                        .ValueGeneratedOnAdd()
+                        .HasColumnType("tinyint(1)")
+                        .HasDefaultValue(true);
+
+                    b.HasKey("EmployeeContractID");
+
+                    b.HasIndex("CurrencyCode");
+
+                    b.HasIndex("EmployeeID");
+
+                    b.ToTable("EmployeeContracts");
+                });
+
             modelBuilder.Entity("Dotnetable.Domain.Entities.FileFolder", b =>
                 {
                     b.Property<int>("FileFolderID")
                         .ValueGeneratedOnAdd()
                         .HasColumnType("int");
 
-                    SqlServerPropertyBuilderExtensions.UseIdentityColumn(b.Property<int>("FileFolderID"));
-
                     b.Property<DateTime>("CreateDate")
                         .HasColumnType("datetime");
 
                     b.Property<string>("Description")
                         .HasMaxLength(400)
-                        .HasColumnType("nvarchar(400)");
+                        .HasColumnType("varchar(400)");
 
                     b.Property<string>("Name")
                         .IsRequired()
                         .HasMaxLength(120)
-                        .HasColumnType("nvarchar(120)");
+                        .HasColumnType("varchar(120)");
 
                     b.Property<int?>("ParentFolderID")
                         .HasColumnType("int");
@@ -1406,11 +1543,9 @@ namespace Dotnetable.Migrations.SqlServer.Migrations
                         .ValueGeneratedOnAdd()
                         .HasColumnType("int");
 
-                    SqlServerPropertyBuilderExtensions.UseIdentityColumn(b.Property<int>("FileRecordID"));
-
                     b.Property<string>("AltText")
                         .HasMaxLength(120)
-                        .HasColumnType("nvarchar(120)");
+                        .HasColumnType("varchar(120)");
 
                     b.Property<string>("CDNFileCode")
                         .HasMaxLength(80)
@@ -1419,10 +1554,10 @@ namespace Dotnetable.Migrations.SqlServer.Migrations
 
                     b.Property<string>("CNDUrl")
                         .HasMaxLength(450)
-                        .HasColumnType("nvarchar(450)");
+                        .HasColumnType("varchar(450)");
 
                     b.Property<byte>("FileCategory")
-                        .HasColumnType("tinyint");
+                        .HasColumnType("tinyint unsigned");
 
                     b.Property<int?>("FileFolderID")
                         .HasColumnType("int");
@@ -1431,11 +1566,11 @@ namespace Dotnetable.Migrations.SqlServer.Migrations
                         .HasColumnType("int");
 
                     b.Property<bool>("IsDeleted")
-                        .HasColumnType("bit");
+                        .HasColumnType("tinyint(1)");
 
                     b.Property<string>("MetadataJSON")
                         .HasMaxLength(2000)
-                        .HasColumnType("nvarchar(2000)");
+                        .HasColumnType("varchar(2000)");
 
                     b.Property<string>("MimeType")
                         .IsRequired()
@@ -1446,11 +1581,11 @@ namespace Dotnetable.Migrations.SqlServer.Migrations
                     b.Property<string>("OriginalFileName")
                         .IsRequired()
                         .HasMaxLength(120)
-                        .HasColumnType("nvarchar(120)");
+                        .HasColumnType("varchar(120)");
 
                     b.Property<string>("StoragePath")
                         .HasMaxLength(350)
-                        .HasColumnType("nvarchar(350)");
+                        .HasColumnType("varchar(350)");
 
                     b.Property<short>("StorageProvider")
                         .HasColumnType("smallint");
@@ -1463,15 +1598,15 @@ namespace Dotnetable.Migrations.SqlServer.Migrations
 
                     b.Property<string>("ThumbnailCDN")
                         .HasMaxLength(450)
-                        .HasColumnType("nvarchar(450)");
+                        .HasColumnType("varchar(450)");
 
                     b.Property<string>("ThumbnailStorage")
                         .HasMaxLength(350)
-                        .HasColumnType("nvarchar(350)");
+                        .HasColumnType("varchar(350)");
 
                     b.Property<string>("Title")
                         .HasMaxLength(50)
-                        .HasColumnType("nvarchar(50)");
+                        .HasColumnType("varchar(50)");
 
                     b.Property<DateTime>("UploadDate")
                         .HasColumnType("datetime");
@@ -1509,8 +1644,6 @@ namespace Dotnetable.Migrations.SqlServer.Migrations
                         .ValueGeneratedOnAdd()
                         .HasColumnType("int");
 
-                    SqlServerPropertyBuilderExtensions.UseIdentityColumn(b.Property<int>("FileRecordTagID"));
-
                     b.Property<int>("FileRecordID")
                         .HasColumnType("int");
 
@@ -1532,12 +1665,10 @@ namespace Dotnetable.Migrations.SqlServer.Migrations
                         .ValueGeneratedOnAdd()
                         .HasColumnType("int");
 
-                    SqlServerPropertyBuilderExtensions.UseIdentityColumn(b.Property<int>("FileTagID"));
-
                     b.Property<string>("Name")
                         .IsRequired()
                         .HasMaxLength(60)
-                        .HasColumnType("nvarchar(60)");
+                        .HasColumnType("varchar(60)");
 
                     b.Property<int>("WebsiteID")
                         .HasColumnType("int");
@@ -1549,63 +1680,254 @@ namespace Dotnetable.Migrations.SqlServer.Migrations
                     b.ToTable("FileTags");
                 });
 
+            modelBuilder.Entity("Dotnetable.Domain.Entities.FinancialLedgerEntry", b =>
+                {
+                    b.Property<long>("FinancialLedgerEntryID")
+                        .ValueGeneratedOnAdd()
+                        .HasColumnType("bigint");
+
+                    b.Property<decimal>("Amount")
+                        .HasColumnType("decimal(18, 4)");
+
+                    b.Property<decimal>("AmountUsd")
+                        .HasColumnType("decimal(18, 4)");
+
+                    b.Property<string>("ChangeNote")
+                        .HasMaxLength(500)
+                        .HasColumnType("varchar(500)");
+
+                    b.Property<DateTime>("CreatedAt")
+                        .HasColumnType("datetime(6)");
+
+                    b.Property<int?>("CreatedByMemberID")
+                        .HasColumnType("int");
+
+                    b.Property<string>("CurrencyCode")
+                        .IsRequired()
+                        .HasMaxLength(3)
+                        .IsUnicode(false)
+                        .HasColumnType("char(3)")
+                        .IsFixedLength();
+
+                    b.Property<string>("Description")
+                        .HasMaxLength(1000)
+                        .HasColumnType("varchar(1000)");
+
+                    b.Property<Guid>("EventGroupId")
+                        .HasColumnType("char(36)");
+
+                    b.Property<byte>("Flow")
+                        .HasColumnType("tinyint unsigned");
+
+                    b.Property<bool>("IsCurrent")
+                        .ValueGeneratedOnAdd()
+                        .HasColumnType("tinyint(1)")
+                        .HasDefaultValue(true);
+
+                    b.Property<string>("MetaJson")
+                        .HasMaxLength(2000)
+                        .HasColumnType("varchar(2000)");
+
+                    b.Property<DateTime>("OccurredAtUtc")
+                        .HasColumnType("datetime(6)");
+
+                    b.Property<DateOnly>("OccurredDate")
+                        .HasColumnType("date");
+
+                    b.Property<TimeOnly>("OccurredTime")
+                        .HasColumnType("time");
+
+                    b.Property<int?>("OrderID")
+                        .HasColumnType("int");
+
+                    b.Property<int?>("OrderItemID")
+                        .HasColumnType("int");
+
+                    b.Property<int?>("PaymentID")
+                        .HasColumnType("int");
+
+                    b.Property<bool>("ReportToTax")
+                        .ValueGeneratedOnAdd()
+                        .HasColumnType("tinyint(1)")
+                        .HasDefaultValue(true);
+
+                    b.Property<int?>("SettlementID")
+                        .HasColumnType("int");
+
+                    b.Property<long?>("SupersedesEntryID")
+                        .HasColumnType("bigint");
+
+                    b.Property<string>("Title")
+                        .IsRequired()
+                        .HasMaxLength(300)
+                        .HasColumnType("varchar(300)");
+
+                    b.Property<string>("TransactionType")
+                        .IsRequired()
+                        .HasMaxLength(64)
+                        .HasColumnType("varchar(64)");
+
+                    b.Property<int?>("VendorID")
+                        .HasColumnType("int");
+
+                    b.Property<bool>("VendorVisible")
+                        .ValueGeneratedOnAdd()
+                        .HasColumnType("tinyint(1)")
+                        .HasDefaultValue(false);
+
+                    b.Property<int>("Version")
+                        .ValueGeneratedOnAdd()
+                        .HasColumnType("int")
+                        .HasDefaultValue(1);
+
+                    b.Property<int?>("WebsiteClientID")
+                        .HasColumnType("int");
+
+                    b.Property<int>("WebsiteID")
+                        .HasColumnType("int");
+
+                    b.HasKey("FinancialLedgerEntryID");
+
+                    b.HasIndex(new[] { "CreatedByMemberID" }, "IX_FinancialLedgerEntries_CreatedByMemberID");
+
+                    b.HasIndex(new[] { "CurrencyCode" }, "IX_FinancialLedgerEntries_CurrencyCode");
+
+                    b.HasIndex(new[] { "EventGroupId" }, "IX_FinancialLedgerEntries_EventGroup");
+
+                    b.HasIndex(new[] { "OrderID" }, "IX_FinancialLedgerEntries_OrderID");
+
+                    b.HasIndex(new[] { "OrderItemID" }, "IX_FinancialLedgerEntries_OrderItemID");
+
+                    b.HasIndex(new[] { "PaymentID" }, "IX_FinancialLedgerEntries_PaymentID");
+
+                    b.HasIndex(new[] { "SettlementID" }, "IX_FinancialLedgerEntries_SettlementID");
+
+                    b.HasIndex(new[] { "SupersedesEntryID" }, "IX_FinancialLedgerEntries_Supersedes");
+
+                    b.HasIndex(new[] { "WebsiteID", "TransactionType", "IsCurrent" }, "IX_FinancialLedgerEntries_Type");
+
+                    b.HasIndex(new[] { "VendorID", "VendorVisible", "IsCurrent" }, "IX_FinancialLedgerEntries_VendorID");
+
+                    b.HasIndex(new[] { "WebsiteClientID" }, "IX_FinancialLedgerEntries_WebsiteClientID");
+
+                    b.HasIndex(new[] { "WebsiteID", "OccurredDate", "IsCurrent" }, "IX_FinancialLedgerEntries_Website_Date");
+
+                    b.ToTable("FinancialLedgerEntries");
+                });
+
+            modelBuilder.Entity("Dotnetable.Domain.Entities.FiscalPeriod", b =>
+                {
+                    b.Property<int>("FiscalPeriodID")
+                        .ValueGeneratedOnAdd()
+                        .HasColumnType("int");
+
+                    b.Property<DateOnly?>("CloseDueDate")
+                        .HasColumnType("date");
+
+                    b.Property<DateTime?>("ClosedAt")
+                        .HasColumnType("datetime(6)");
+
+                    b.Property<int?>("ClosedByMemberID")
+                        .HasColumnType("int");
+
+                    b.Property<int?>("ClosingJournalEntryID")
+                        .HasColumnType("int");
+
+                    b.Property<DateTime>("CreatedAt")
+                        .HasColumnType("datetime(6)");
+
+                    b.Property<bool>("IsClosed")
+                        .ValueGeneratedOnAdd()
+                        .HasColumnType("tinyint(1)")
+                        .HasDefaultValue(false);
+
+                    b.Property<string>("Name")
+                        .IsRequired()
+                        .HasMaxLength(100)
+                        .HasColumnType("varchar(100)");
+
+                    b.Property<int?>("OpeningJournalEntryID")
+                        .HasColumnType("int");
+
+                    b.Property<DateOnly>("PeriodFrom")
+                        .HasColumnType("date");
+
+                    b.Property<DateOnly>("PeriodTo")
+                        .HasColumnType("date");
+
+                    b.Property<int>("WebsiteID")
+                        .HasColumnType("int");
+
+                    b.HasKey("FiscalPeriodID");
+
+                    b.HasIndex("ClosedByMemberID");
+
+                    b.HasIndex("ClosingJournalEntryID");
+
+                    b.HasIndex("OpeningJournalEntryID");
+
+                    b.HasIndex(new[] { "WebsiteID", "PeriodFrom" }, "IX_FiscalPeriods_WebsiteID");
+
+                    b.HasIndex(new[] { "WebsiteID", "IsClosed", "PeriodFrom" }, "IX_FiscalPeriods_Website_Closed");
+
+                    b.ToTable("FiscalPeriods");
+                });
+
             modelBuilder.Entity("Dotnetable.Domain.Entities.Form", b =>
                 {
                     b.Property<int>("FormID")
                         .ValueGeneratedOnAdd()
                         .HasColumnType("int");
 
-                    SqlServerPropertyBuilderExtensions.UseIdentityColumn(b.Property<int>("FormID"));
-
                     b.Property<bool>("AllowMultipleSubmissions")
-                        .HasColumnType("bit");
+                        .HasColumnType("tinyint(1)");
 
                     b.Property<DateTime>("CreatedAt")
                         .HasColumnType("datetime");
 
                     b.Property<string>("Description")
                         .HasMaxLength(1000)
-                        .HasColumnType("nvarchar(1000)");
+                        .HasColumnType("varchar(1000)");
 
                     b.Property<DateTime?>("EndAt")
                         .HasColumnType("datetime");
 
                     b.Property<byte>("FormType")
-                        .HasColumnType("tinyint");
+                        .HasColumnType("tinyint unsigned");
 
                     b.Property<bool>("IsActive")
-                        .HasColumnType("bit");
+                        .HasColumnType("tinyint(1)");
 
                     b.Property<string>("NotifyEmail")
                         .HasMaxLength(200)
-                        .HasColumnType("nvarchar(200)");
+                        .HasColumnType("varchar(200)");
 
                     b.Property<bool>("RequireLogin")
-                        .HasColumnType("bit");
+                        .HasColumnType("tinyint(1)");
 
                     b.Property<bool>("ShowResults")
-                        .HasColumnType("bit");
+                        .HasColumnType("tinyint(1)");
 
                     b.Property<string>("Slug")
                         .IsRequired()
                         .HasMaxLength(200)
-                        .HasColumnType("nvarchar(200)");
+                        .HasColumnType("varchar(200)");
 
                     b.Property<DateTime?>("StartAt")
                         .HasColumnType("datetime");
 
                     b.Property<string>("SubmitButtonText")
                         .HasMaxLength(100)
-                        .HasColumnType("nvarchar(100)");
+                        .HasColumnType("varchar(100)");
 
                     b.Property<string>("SuccessMessage")
                         .HasMaxLength(500)
-                        .HasColumnType("nvarchar(500)");
+                        .HasColumnType("varchar(500)");
 
                     b.Property<string>("Title")
                         .IsRequired()
                         .HasMaxLength(200)
-                        .HasColumnType("nvarchar(200)");
+                        .HasColumnType("varchar(200)");
 
                     b.Property<int>("WebsiteID")
                         .HasColumnType("int");
@@ -1623,28 +1945,26 @@ namespace Dotnetable.Migrations.SqlServer.Migrations
                         .ValueGeneratedOnAdd()
                         .HasColumnType("int");
 
-                    SqlServerPropertyBuilderExtensions.UseIdentityColumn(b.Property<int>("FormFieldID"));
-
                     b.Property<byte>("FieldType")
-                        .HasColumnType("tinyint");
+                        .HasColumnType("tinyint unsigned");
 
                     b.Property<int>("FormID")
                         .HasColumnType("int");
 
                     b.Property<string>("HelpText")
                         .HasMaxLength(500)
-                        .HasColumnType("nvarchar(500)");
+                        .HasColumnType("varchar(500)");
 
                     b.Property<bool>("IsActive")
-                        .HasColumnType("bit");
+                        .HasColumnType("tinyint(1)");
 
                     b.Property<bool>("IsRequired")
-                        .HasColumnType("bit");
+                        .HasColumnType("tinyint(1)");
 
                     b.Property<string>("Label")
                         .IsRequired()
                         .HasMaxLength(300)
-                        .HasColumnType("nvarchar(300)");
+                        .HasColumnType("varchar(300)");
 
                     b.Property<int?>("MaxValue")
                         .HasColumnType("int");
@@ -1654,7 +1974,7 @@ namespace Dotnetable.Migrations.SqlServer.Migrations
 
                     b.Property<string>("Placeholder")
                         .HasMaxLength(200)
-                        .HasColumnType("nvarchar(200)");
+                        .HasColumnType("varchar(200)");
 
                     b.Property<int>("SortOrder")
                         .HasColumnType("int");
@@ -1672,22 +1992,20 @@ namespace Dotnetable.Migrations.SqlServer.Migrations
                         .ValueGeneratedOnAdd()
                         .HasColumnType("int");
 
-                    SqlServerPropertyBuilderExtensions.UseIdentityColumn(b.Property<int>("FormFieldOptionID"));
-
                     b.Property<int>("FormFieldID")
                         .HasColumnType("int");
 
                     b.Property<string>("Label")
                         .IsRequired()
                         .HasMaxLength(300)
-                        .HasColumnType("nvarchar(300)");
+                        .HasColumnType("varchar(300)");
 
                     b.Property<int>("SortOrder")
                         .HasColumnType("int");
 
                     b.Property<string>("Value")
                         .HasMaxLength(200)
-                        .HasColumnType("nvarchar(200)");
+                        .HasColumnType("varchar(200)");
 
                     b.HasKey("FormFieldOptionID");
 
@@ -1701,8 +2019,6 @@ namespace Dotnetable.Migrations.SqlServer.Migrations
                     b.Property<int>("FormResponseID")
                         .ValueGeneratedOnAdd()
                         .HasColumnType("int");
-
-                    SqlServerPropertyBuilderExtensions.UseIdentityColumn(b.Property<int>("FormResponseID"));
 
                     b.Property<int>("FormID")
                         .HasColumnType("int");
@@ -1734,8 +2050,6 @@ namespace Dotnetable.Migrations.SqlServer.Migrations
                         .ValueGeneratedOnAdd()
                         .HasColumnType("int");
 
-                    SqlServerPropertyBuilderExtensions.UseIdentityColumn(b.Property<int>("FormResponseValueID"));
-
                     b.Property<int>("FormFieldID")
                         .HasColumnType("int");
 
@@ -1743,7 +2057,7 @@ namespace Dotnetable.Migrations.SqlServer.Migrations
                         .HasColumnType("int");
 
                     b.Property<string>("Value")
-                        .HasColumnType("nvarchar(max)");
+                        .HasColumnType("longtext");
 
                     b.HasKey("FormResponseValueID");
 
@@ -1759,8 +2073,6 @@ namespace Dotnetable.Migrations.SqlServer.Migrations
                     b.Property<int>("InventoryItemID")
                         .ValueGeneratedOnAdd()
                         .HasColumnType("int");
-
-                    SqlServerPropertyBuilderExtensions.UseIdentityColumn(b.Property<int>("InventoryItemID"));
 
                     b.Property<decimal>("AvgCost")
                         .HasColumnType("decimal(18, 4)");
@@ -1784,7 +2096,7 @@ namespace Dotnetable.Migrations.SqlServer.Migrations
                         .IsConcurrencyToken()
                         .IsRequired()
                         .ValueGeneratedOnAddOrUpdate()
-                        .HasColumnType("rowversion");
+                        .HasColumnType("longblob");
 
                     b.Property<int>("WebsiteID")
                         .HasColumnType("int");
@@ -1804,14 +2116,22 @@ namespace Dotnetable.Migrations.SqlServer.Migrations
                         .ValueGeneratedOnAdd()
                         .HasColumnType("int");
 
-                    SqlServerPropertyBuilderExtensions.UseIdentityColumn(b.Property<int>("JournalEntryID"));
-
                     b.Property<DateTime>("CreatedAt")
-                        .HasColumnType("datetime");
+                        .HasColumnType("datetime2");
+
+                    b.Property<int?>("CreatedByMemberID")
+                        .HasColumnType("int");
+
+                    b.Property<string>("CurrencyCode")
+                        .IsRequired()
+                        .HasMaxLength(3)
+                        .IsUnicode(false)
+                        .HasColumnType("char(3)")
+                        .IsFixedLength();
 
                     b.Property<string>("Description")
                         .HasMaxLength(500)
-                        .HasColumnType("nvarchar(500)");
+                        .HasColumnType("varchar(500)");
 
                     b.Property<DateOnly>("EntryDate")
                         .HasColumnType("date");
@@ -1819,23 +2139,66 @@ namespace Dotnetable.Migrations.SqlServer.Migrations
                     b.Property<string>("EntryNumber")
                         .IsRequired()
                         .HasMaxLength(30)
-                        .HasColumnType("nvarchar(30)");
+                        .HasColumnType("varchar(30)");
+
+                    b.Property<int?>("FiscalPeriodID")
+                        .HasColumnType("int");
 
                     b.Property<bool>("IsPosted")
-                        .HasColumnType("bit");
+                        .HasColumnType("tinyint(1)");
+
+                    b.Property<bool>("IsReversed")
+                        .ValueGeneratedOnAdd()
+                        .HasColumnType("tinyint(1)")
+                        .HasDefaultValue(false);
+
+                    b.Property<DateTime?>("PostedAt")
+                        .HasColumnType("datetime(6)");
+
+                    b.Property<int?>("PostedByMemberID")
+                        .HasColumnType("int");
+
+                    b.Property<bool>("ReportToTax")
+                        .ValueGeneratedOnAdd()
+                        .HasColumnType("tinyint(1)")
+                        .HasDefaultValue(true);
+
+                    b.Property<int?>("ReversesJournalEntryID")
+                        .HasColumnType("int");
 
                     b.Property<int?>("SourceId")
                         .HasColumnType("int");
 
-                    b.Property<byte?>("SourceType")
-                        .HasColumnType("tinyint");
+                    b.Property<string>("SourceKey")
+                        .HasMaxLength(80)
+                        .HasColumnType("varchar(80)");
+
+                    b.Property<string>("SourceType")
+                        .HasMaxLength(40)
+                        .HasColumnType("varchar(40)");
 
                     b.Property<int>("WebsiteID")
                         .HasColumnType("int");
 
                     b.HasKey("JournalEntryID");
 
+                    b.HasIndex("CreatedByMemberID");
+
+                    b.HasIndex("CurrencyCode");
+
+                    b.HasIndex("PostedByMemberID");
+
+                    b.HasIndex("ReversesJournalEntryID");
+
+                    b.HasIndex(new[] { "WebsiteID", "EntryDate", "IsPosted" }, "IX_JournalEntries_EntryDate");
+
+                    b.HasIndex(new[] { "FiscalPeriodID" }, "IX_JournalEntries_FiscalPeriodID");
+
                     b.HasIndex(new[] { "WebsiteID" }, "IX_JournalEntries_WebsiteID");
+
+                    b.HasIndex(new[] { "WebsiteID", "SourceKey" }, "IX_JournalEntries_Website_SourceKey")
+                        .IsUnique()
+                        .HasFilter("[SourceKey] IS NOT NULL");
 
                     b.ToTable("JournalEntries");
                 });
@@ -1845,8 +2208,6 @@ namespace Dotnetable.Migrations.SqlServer.Migrations
                     b.Property<int>("JournalEntryLineID")
                         .ValueGeneratedOnAdd()
                         .HasColumnType("int");
-
-                    SqlServerPropertyBuilderExtensions.UseIdentityColumn(b.Property<int>("JournalEntryLineID"));
 
                     b.Property<int>("ChartOfAccountID")
                         .HasColumnType("int");
@@ -1859,7 +2220,7 @@ namespace Dotnetable.Migrations.SqlServer.Migrations
 
                     b.Property<string>("Description")
                         .HasMaxLength(300)
-                        .HasColumnType("nvarchar(300)");
+                        .HasColumnType("varchar(300)");
 
                     b.Property<int>("JournalEntryID")
                         .HasColumnType("int");
@@ -1879,13 +2240,11 @@ namespace Dotnetable.Migrations.SqlServer.Migrations
                         .ValueGeneratedOnAdd()
                         .HasColumnType("int");
 
-                    SqlServerPropertyBuilderExtensions.UseIdentityColumn(b.Property<int>("LanguageID"));
-
                     b.Property<bool>("Active")
-                        .HasColumnType("bit");
+                        .HasColumnType("tinyint(1)");
 
                     b.Property<bool>("IsDefault")
-                        .HasColumnType("bit");
+                        .HasColumnType("tinyint(1)");
 
                     b.Property<string>("LanguageCode")
                         .IsRequired()
@@ -1904,13 +2263,13 @@ namespace Dotnetable.Migrations.SqlServer.Migrations
                     b.Property<string>("Name")
                         .IsRequired()
                         .HasMaxLength(32)
-                        .HasColumnType("nvarchar(32)");
+                        .HasColumnType("varchar(32)");
 
                     b.Property<int>("Priority")
                         .HasColumnType("int");
 
                     b.Property<bool>("RTLDesign")
-                        .HasColumnType("bit");
+                        .HasColumnType("tinyint(1)");
 
                     b.Property<int?>("WebsiteID")
                         .HasColumnType("int");
@@ -1928,18 +2287,55 @@ namespace Dotnetable.Migrations.SqlServer.Migrations
                     b.ToTable("Languages");
                 });
 
+            modelBuilder.Entity("Dotnetable.Domain.Entities.LedgerAccountMap", b =>
+                {
+                    b.Property<int>("LedgerAccountMapID")
+                        .ValueGeneratedOnAdd()
+                        .HasColumnType("int");
+
+                    b.Property<int>("CreditAccountID")
+                        .HasColumnType("int");
+
+                    b.Property<int>("DebitAccountID")
+                        .HasColumnType("int");
+
+                    b.Property<byte?>("Flow")
+                        .HasColumnType("tinyint unsigned");
+
+                    b.Property<bool>("IsActive")
+                        .ValueGeneratedOnAdd()
+                        .HasColumnType("tinyint(1)")
+                        .HasDefaultValue(true);
+
+                    b.Property<string>("TransactionType")
+                        .IsRequired()
+                        .HasMaxLength(64)
+                        .HasColumnType("varchar(64)");
+
+                    b.Property<int>("WebsiteID")
+                        .HasColumnType("int");
+
+                    b.HasKey("LedgerAccountMapID");
+
+                    b.HasIndex("CreditAccountID");
+
+                    b.HasIndex("DebitAccountID");
+
+                    b.HasIndex(new[] { "WebsiteID", "TransactionType", "IsActive" }, "IX_LedgerAccountMaps_Website_Type");
+
+                    b.ToTable("LedgerAccountMaps");
+                });
+
             modelBuilder.Entity("Dotnetable.Domain.Entities.LocalizationKey", b =>
                 {
                     b.Property<int>("LocalizationKeyID")
                         .ValueGeneratedOnAdd()
                         .HasColumnType("int");
 
-                    SqlServerPropertyBuilderExtensions.UseIdentityColumn(b.Property<int>("LocalizationKeyID"));
-
                     b.Property<string>("DefaultValue")
                         .IsRequired()
                         .HasMaxLength(2000)
-                        .HasColumnType("nvarchar(2000)");
+                        .HasColumnType("varchar(2000)");
 
                     b.Property<string>("ItemKey")
                         .IsRequired()
@@ -1971,12 +2367,10 @@ namespace Dotnetable.Migrations.SqlServer.Migrations
                         .ValueGeneratedOnAdd()
                         .HasColumnType("int");
 
-                    SqlServerPropertyBuilderExtensions.UseIdentityColumn(b.Property<int>("LocalizationValueID"));
-
                     b.Property<string>("ItemValue")
                         .IsRequired()
                         .HasMaxLength(2000)
-                        .HasColumnType("nvarchar(2000)");
+                        .HasColumnType("varchar(2000)");
 
                     b.Property<string>("LanguageCode")
                         .IsRequired()
@@ -2001,10 +2395,8 @@ namespace Dotnetable.Migrations.SqlServer.Migrations
                         .ValueGeneratedOnAdd()
                         .HasColumnType("int");
 
-                    SqlServerPropertyBuilderExtensions.UseIdentityColumn(b.Property<int>("LoginTryID"));
-
                     b.Property<bool>("IsSuccess")
-                        .HasColumnType("bit");
+                        .HasColumnType("tinyint(1)");
 
                     b.Property<DateTime>("LogTime")
                         .HasColumnType("datetime");
@@ -2037,18 +2429,16 @@ namespace Dotnetable.Migrations.SqlServer.Migrations
                         .ValueGeneratedOnAdd()
                         .HasColumnType("int");
 
-                    SqlServerPropertyBuilderExtensions.UseIdentityColumn(b.Property<int>("MediaSetID"));
-
                     b.Property<DateTime>("CreatedAt")
                         .HasColumnType("datetime");
 
                     b.Property<bool>("IsShared")
-                        .HasColumnType("bit");
+                        .HasColumnType("tinyint(1)");
 
                     b.Property<string>("Name")
                         .IsRequired()
                         .HasMaxLength(200)
-                        .HasColumnType("nvarchar(200)");
+                        .HasColumnType("varchar(200)");
 
                     b.Property<int>("WebsiteID")
                         .HasColumnType("int");
@@ -2066,11 +2456,9 @@ namespace Dotnetable.Migrations.SqlServer.Migrations
                         .ValueGeneratedOnAdd()
                         .HasColumnType("int");
 
-                    SqlServerPropertyBuilderExtensions.UseIdentityColumn(b.Property<int>("MediaSetItemID"));
-
                     b.Property<string>("ExternalVideoUrl")
                         .HasMaxLength(500)
-                        .HasColumnType("nvarchar(500)");
+                        .HasColumnType("varchar(500)");
 
                     b.Property<int?>("FileID")
                         .HasColumnType("int");
@@ -2101,13 +2489,11 @@ namespace Dotnetable.Migrations.SqlServer.Migrations
                         .ValueGeneratedOnAdd()
                         .HasColumnType("int");
 
-                    SqlServerPropertyBuilderExtensions.UseIdentityColumn(b.Property<int>("MemberID"));
-
                     b.Property<bool>("Active")
-                        .HasColumnType("bit");
+                        .HasColumnType("tinyint(1)");
 
                     b.Property<byte>("AdminUIMode")
-                        .HasColumnType("tinyint")
+                        .HasColumnType("tinyint unsigned")
                         .HasComment("0 = Basic (admin surface reduced to what this member's Website.WebsiteType needs), 1 = General (same admin surface regardless of website type), 2 = Advanced (full surface, e.g. extra-language pages/buttons on an otherwise single-language site)");
 
                     b.Property<int?>("AvatarID")
@@ -2132,18 +2518,18 @@ namespace Dotnetable.Migrations.SqlServer.Migrations
                         .HasColumnType("varchar(64)");
 
                     b.Property<bool?>("Gender")
-                        .HasColumnType("bit");
+                        .HasColumnType("tinyint(1)");
 
                     b.Property<string>("Givenname")
                         .IsRequired()
                         .HasMaxLength(64)
-                        .HasColumnType("nvarchar(64)");
+                        .HasColumnType("varchar(64)");
 
                     b.Property<Guid>("HashKey")
-                        .HasColumnType("uniqueidentifier");
+                        .HasColumnType("char(36)");
 
                     b.Property<bool>("IsSiteAdmin")
-                        .HasColumnType("bit");
+                        .HasColumnType("tinyint(1)");
 
                     b.Property<string>("Password")
                         .IsRequired()
@@ -2160,7 +2546,7 @@ namespace Dotnetable.Migrations.SqlServer.Migrations
                     b.Property<string>("Surname")
                         .IsRequired()
                         .HasMaxLength(64)
-                        .HasColumnType("nvarchar(64)");
+                        .HasColumnType("varchar(64)");
 
                     b.Property<string>("Username")
                         .IsRequired()
@@ -2188,8 +2574,6 @@ namespace Dotnetable.Migrations.SqlServer.Migrations
                         .ValueGeneratedOnAdd()
                         .HasColumnType("int");
 
-                    SqlServerPropertyBuilderExtensions.UseIdentityColumn(b.Property<int>("MemberForgetPasswordID"));
-
                     b.Property<string>("ForgetKey")
                         .IsRequired()
                         .HasMaxLength(8)
@@ -2215,18 +2599,16 @@ namespace Dotnetable.Migrations.SqlServer.Migrations
                         .ValueGeneratedOnAdd()
                         .HasColumnType("int");
 
-                    SqlServerPropertyBuilderExtensions.UseIdentityColumn(b.Property<int>("MenuID"));
-
                     b.Property<bool>("IsActive")
-                        .HasColumnType("bit");
+                        .HasColumnType("tinyint(1)");
 
                     b.Property<byte>("Location")
-                        .HasColumnType("tinyint");
+                        .HasColumnType("tinyint unsigned");
 
                     b.Property<string>("Name")
                         .IsRequired()
                         .HasMaxLength(100)
-                        .HasColumnType("nvarchar(100)");
+                        .HasColumnType("varchar(100)");
 
                     b.Property<int>("WebsiteID")
                         .HasColumnType("int");
@@ -2244,8 +2626,6 @@ namespace Dotnetable.Migrations.SqlServer.Migrations
                         .ValueGeneratedOnAdd()
                         .HasColumnType("int");
 
-                    SqlServerPropertyBuilderExtensions.UseIdentityColumn(b.Property<int>("MenuItemID"));
-
                     b.Property<int?>("BrandID")
                         .HasColumnType("int");
 
@@ -2254,23 +2634,23 @@ namespace Dotnetable.Migrations.SqlServer.Migrations
 
                     b.Property<string>("CssClass")
                         .HasMaxLength(100)
-                        .HasColumnType("nvarchar(100)");
+                        .HasColumnType("varchar(100)");
 
                     b.Property<string>("Icon")
                         .HasMaxLength(100)
-                        .HasColumnType("nvarchar(100)");
+                        .HasColumnType("varchar(100)");
 
                     b.Property<bool>("IsActive")
-                        .HasColumnType("bit");
+                        .HasColumnType("tinyint(1)");
 
                     b.Property<byte>("ItemType")
-                        .HasColumnType("tinyint");
+                        .HasColumnType("tinyint unsigned");
 
                     b.Property<int>("MenuID")
                         .HasColumnType("int");
 
                     b.Property<bool>("OpenInNewTab")
-                        .HasColumnType("bit");
+                        .HasColumnType("tinyint(1)");
 
                     b.Property<int?>("PageID")
                         .HasColumnType("int");
@@ -2293,11 +2673,11 @@ namespace Dotnetable.Migrations.SqlServer.Migrations
                     b.Property<string>("Title")
                         .IsRequired()
                         .HasMaxLength(200)
-                        .HasColumnType("nvarchar(200)");
+                        .HasColumnType("varchar(200)");
 
                     b.Property<string>("Url")
                         .HasMaxLength(500)
-                        .HasColumnType("nvarchar(500)");
+                        .HasColumnType("varchar(500)");
 
                     b.Property<int?>("VendorID")
                         .HasColumnType("int");
@@ -2331,8 +2711,6 @@ namespace Dotnetable.Migrations.SqlServer.Migrations
                         .ValueGeneratedOnAdd()
                         .HasColumnType("int");
 
-                    SqlServerPropertyBuilderExtensions.UseIdentityColumn(b.Property<int>("MenuItemTranslationID"));
-
                     b.Property<string>("LanguageCode")
                         .IsRequired()
                         .HasMaxLength(2)
@@ -2346,7 +2724,7 @@ namespace Dotnetable.Migrations.SqlServer.Migrations
                     b.Property<string>("Title")
                         .IsRequired()
                         .HasMaxLength(200)
-                        .HasColumnType("nvarchar(200)");
+                        .HasColumnType("varchar(200)");
 
                     b.HasKey("MenuItemTranslationID");
 
@@ -2361,11 +2739,9 @@ namespace Dotnetable.Migrations.SqlServer.Migrations
                         .ValueGeneratedOnAdd()
                         .HasColumnType("int");
 
-                    SqlServerPropertyBuilderExtensions.UseIdentityColumn(b.Property<int>("OrderID"));
-
                     b.Property<string>("AddressSnapshot")
                         .HasMaxLength(1000)
-                        .HasColumnType("nvarchar(1000)");
+                        .HasColumnType("varchar(1000)");
 
                     b.Property<int?>("CouponID")
                         .HasColumnType("int");
@@ -2395,29 +2771,66 @@ namespace Dotnetable.Migrations.SqlServer.Migrations
                     b.Property<decimal>("GrandTotalUsd")
                         .HasColumnType("decimal(18, 4)");
 
+                    b.Property<decimal>("MarkupTotal")
+                        .HasColumnType("decimal(18, 4)");
+
                     b.Property<string>("Note")
                         .HasMaxLength(1000)
-                        .HasColumnType("nvarchar(1000)");
+                        .HasColumnType("varchar(1000)");
 
                     b.Property<string>("OrderNumber")
                         .IsRequired()
                         .HasMaxLength(30)
-                        .HasColumnType("nvarchar(30)");
+                        .HasColumnType("varchar(30)");
 
                     b.Property<DateTime?>("PaidAt")
+                        .HasColumnType("datetime");
+
+                    b.Property<byte>("PreparationStatus")
+                        .ValueGeneratedOnAdd()
+                        .HasColumnType("tinyint unsigned")
+                        .HasDefaultValue((byte)0);
+
+                    b.Property<bool>("PricesIncludeTax")
+                        .HasColumnType("tinyint(1)");
+
+                    b.Property<bool>("ReportToTax")
+                        .ValueGeneratedOnAdd()
+                        .HasColumnType("tinyint(1)")
+                        .HasDefaultValue(true);
+
+                    b.Property<byte>("SalesChannel")
+                        .ValueGeneratedOnAdd()
+                        .HasColumnType("tinyint unsigned")
+                        .HasDefaultValue((byte)1);
+
+                    b.Property<DateTime?>("ShippedAt")
                         .HasColumnType("datetime");
 
                     b.Property<int?>("ShippingMethodID")
                         .HasColumnType("int");
 
+                    b.Property<byte>("ShippingStatus")
+                        .ValueGeneratedOnAdd()
+                        .HasColumnType("tinyint unsigned")
+                        .HasDefaultValue((byte)0);
+
                     b.Property<decimal>("ShippingTotal")
                         .HasColumnType("decimal(18, 4)");
 
+                    b.Property<string>("ShippingTrackingCode")
+                        .HasMaxLength(100)
+                        .HasColumnType("varchar(100)");
+
                     b.Property<byte>("Status")
-                        .HasColumnType("tinyint");
+                        .HasColumnType("tinyint unsigned");
 
                     b.Property<decimal>("SubTotal")
                         .HasColumnType("decimal(18, 4)");
+
+                    b.Property<string>("TaxBreakdownJson")
+                        .HasMaxLength(4000)
+                        .HasColumnType("varchar(4000)");
 
                     b.Property<decimal>("TaxTotal")
                         .HasColumnType("decimal(18, 4)");
@@ -2450,13 +2863,77 @@ namespace Dotnetable.Migrations.SqlServer.Migrations
                     b.ToTable("Orders");
                 });
 
+            modelBuilder.Entity("Dotnetable.Domain.Entities.OrderDigitalAsset", b =>
+                {
+                    b.Property<int>("OrderDigitalAssetID")
+                        .ValueGeneratedOnAdd()
+                        .HasColumnType("int");
+
+                    b.Property<string>("DigitalDeliveryNote")
+                        .HasMaxLength(2000)
+                        .HasColumnType("varchar(2000)");
+
+                    b.Property<string>("DigitalDownloadUrl")
+                        .HasMaxLength(1000)
+                        .HasColumnType("varchar(1000)");
+
+                    b.Property<string>("DigitalServiceUrl")
+                        .HasMaxLength(1000)
+                        .HasColumnType("varchar(1000)");
+
+                    b.Property<DateTime>("GrantedAt")
+                        .HasColumnType("datetime");
+
+                    b.Property<bool>("IsActive")
+                        .HasColumnType("tinyint(1)");
+
+                    b.Property<int>("OrderID")
+                        .HasColumnType("int");
+
+                    b.Property<int>("OrderItemID")
+                        .HasColumnType("int");
+
+                    b.Property<int>("ProductID")
+                        .HasColumnType("int");
+
+                    b.Property<byte>("ProductType")
+                        .HasColumnType("tinyint unsigned");
+
+                    b.Property<string>("TitleSnapshot")
+                        .IsRequired()
+                        .HasMaxLength(400)
+                        .HasColumnType("varchar(400)");
+
+                    b.Property<int>("WebsiteClientID")
+                        .HasColumnType("int");
+
+                    b.Property<int>("WebsiteID")
+                        .HasColumnType("int");
+
+                    b.HasKey("OrderDigitalAssetID");
+
+                    b.HasIndex(new[] { "OrderID" }, "IX_OrderDigitalAssets_OrderID");
+
+                    b.HasIndex(new[] { "ProductID" }, "IX_OrderDigitalAssets_ProductID");
+
+                    b.HasIndex(new[] { "WebsiteClientID" }, "IX_OrderDigitalAssets_WebsiteClientID");
+
+                    b.HasIndex(new[] { "WebsiteID" }, "IX_OrderDigitalAssets_WebsiteID");
+
+                    b.HasIndex(new[] { "OrderItemID" }, "UQ_OrderDigitalAssets_OrderItemID")
+                        .IsUnique();
+
+                    b.ToTable("OrderDigitalAssets");
+                });
+
             modelBuilder.Entity("Dotnetable.Domain.Entities.OrderItem", b =>
                 {
                     b.Property<int>("OrderItemID")
                         .ValueGeneratedOnAdd()
                         .HasColumnType("int");
 
-                    SqlServerPropertyBuilderExtensions.UseIdentityColumn(b.Property<int>("OrderItemID"));
+                    b.Property<decimal>("CatalogUnitPrice")
+                        .HasColumnType("decimal(18, 4)");
 
                     b.Property<decimal>("DiscountAmount")
                         .HasColumnType("decimal(18, 4)");
@@ -2464,7 +2941,7 @@ namespace Dotnetable.Migrations.SqlServer.Migrations
                     b.Property<int>("OrderID")
                         .HasColumnType("int");
 
-                    b.Property<int>("ProductVariantID")
+                    b.Property<int?>("ProductVariantID")
                         .HasColumnType("int");
 
                     b.Property<int>("Quantity")
@@ -2473,7 +2950,7 @@ namespace Dotnetable.Migrations.SqlServer.Migrations
                     b.Property<string>("SkuSnapshot")
                         .IsRequired()
                         .HasMaxLength(100)
-                        .HasColumnType("nvarchar(100)");
+                        .HasColumnType("varchar(100)");
 
                     b.Property<int>("SourceWebsiteID")
                         .HasColumnType("int");
@@ -2481,12 +2958,15 @@ namespace Dotnetable.Migrations.SqlServer.Migrations
                     b.Property<string>("TitleSnapshot")
                         .IsRequired()
                         .HasMaxLength(300)
-                        .HasColumnType("nvarchar(300)");
+                        .HasColumnType("varchar(300)");
 
                     b.Property<decimal>("TotalPrice")
                         .HasColumnType("decimal(18, 4)");
 
                     b.Property<decimal>("UnitCostUsd")
+                        .HasColumnType("decimal(18, 4)");
+
+                    b.Property<decimal>("UnitMarkup")
                         .HasColumnType("decimal(18, 4)");
 
                     b.Property<decimal>("UnitPrice")
@@ -2527,8 +3007,6 @@ namespace Dotnetable.Migrations.SqlServer.Migrations
                         .ValueGeneratedOnAdd()
                         .HasColumnType("int");
 
-                    SqlServerPropertyBuilderExtensions.UseIdentityColumn(b.Property<int>("OrderStatusHistoryID"));
-
                     b.Property<DateTime>("CreatedAt")
                         .HasColumnType("datetime");
 
@@ -2536,17 +3014,17 @@ namespace Dotnetable.Migrations.SqlServer.Migrations
                         .HasColumnType("int");
 
                     b.Property<byte?>("FromStatus")
-                        .HasColumnType("tinyint");
+                        .HasColumnType("tinyint unsigned");
 
                     b.Property<string>("Note")
                         .HasMaxLength(500)
-                        .HasColumnType("nvarchar(500)");
+                        .HasColumnType("varchar(500)");
 
                     b.Property<int>("OrderID")
                         .HasColumnType("int");
 
                     b.Property<byte>("ToStatus")
-                        .HasColumnType("tinyint");
+                        .HasColumnType("tinyint unsigned");
 
                     b.HasKey("OrderStatusHistoryID");
 
@@ -2557,29 +3035,65 @@ namespace Dotnetable.Migrations.SqlServer.Migrations
                     b.ToTable("OrderStatusHistories");
                 });
 
+            modelBuilder.Entity("Dotnetable.Domain.Entities.OrgUnit", b =>
+                {
+                    b.Property<int>("OrgUnitID")
+                        .ValueGeneratedOnAdd()
+                        .HasColumnType("int");
+
+                    b.Property<string>("Code")
+                        .IsRequired()
+                        .HasMaxLength(20)
+                        .HasColumnType("varchar(20)");
+
+                    b.Property<bool>("IsActive")
+                        .HasColumnType("tinyint(1)");
+
+                    b.Property<string>("Name")
+                        .IsRequired()
+                        .HasMaxLength(200)
+                        .HasColumnType("varchar(200)");
+
+                    b.Property<int?>("ParentOrgUnitID")
+                        .HasColumnType("int");
+
+                    b.Property<int>("SortOrder")
+                        .HasColumnType("int");
+
+                    b.Property<int>("WebsiteID")
+                        .HasColumnType("int");
+
+                    b.HasKey("OrgUnitID");
+
+                    b.HasIndex("ParentOrgUnitID");
+
+                    b.HasIndex(new[] { "WebsiteID", "Code" }, "IX_OrgUnits_Website_Code")
+                        .IsUnique();
+
+                    b.ToTable("OrgUnits");
+                });
+
             modelBuilder.Entity("Dotnetable.Domain.Entities.Page", b =>
                 {
                     b.Property<int>("PageID")
                         .ValueGeneratedOnAdd()
                         .HasColumnType("int");
 
-                    SqlServerPropertyBuilderExtensions.UseIdentityColumn(b.Property<int>("PageID"));
-
                     b.Property<string>("Content")
-                        .HasColumnType("nvarchar(max)");
+                        .HasColumnType("longtext");
 
                     b.Property<DateTime>("CreatedAt")
                         .HasPrecision(0)
-                        .HasColumnType("datetime2(0)");
+                        .HasColumnType("datetime(0)");
 
                     b.Property<int?>("CreatedByMemberID")
                         .HasColumnType("int");
 
                     b.Property<bool>("IsActive")
-                        .HasColumnType("bit");
+                        .HasColumnType("tinyint(1)");
 
                     b.Property<bool>("IsHomepage")
-                        .HasColumnType("bit");
+                        .HasColumnType("tinyint(1)");
 
                     b.Property<int?>("ParentPageID")
                         .HasColumnType("int");
@@ -2587,26 +3101,26 @@ namespace Dotnetable.Migrations.SqlServer.Migrations
                     b.Property<string>("Slug")
                         .IsRequired()
                         .HasMaxLength(300)
-                        .HasColumnType("nvarchar(300)");
+                        .HasColumnType("varchar(300)");
 
                     b.Property<int>("SortOrder")
                         .HasColumnType("int");
 
                     b.Property<byte>("Status")
-                        .HasColumnType("tinyint");
+                        .HasColumnType("tinyint unsigned");
 
                     b.Property<string>("Template")
                         .HasMaxLength(100)
-                        .HasColumnType("nvarchar(100)");
+                        .HasColumnType("varchar(100)");
 
                     b.Property<string>("Title")
                         .IsRequired()
                         .HasMaxLength(300)
-                        .HasColumnType("nvarchar(300)");
+                        .HasColumnType("varchar(300)");
 
                     b.Property<DateTime>("UpdatedAt")
                         .HasPrecision(0)
-                        .HasColumnType("datetime2(0)");
+                        .HasColumnType("datetime(0)");
 
                     b.Property<int>("WebsiteID")
                         .HasColumnType("int");
@@ -2628,10 +3142,8 @@ namespace Dotnetable.Migrations.SqlServer.Migrations
                         .ValueGeneratedOnAdd()
                         .HasColumnType("int");
 
-                    SqlServerPropertyBuilderExtensions.UseIdentityColumn(b.Property<int>("PageTranslationID"));
-
                     b.Property<string>("Content")
-                        .HasColumnType("nvarchar(max)");
+                        .HasColumnType("longtext");
 
                     b.Property<string>("LanguageCode")
                         .IsRequired()
@@ -2646,12 +3158,12 @@ namespace Dotnetable.Migrations.SqlServer.Migrations
                     b.Property<string>("Slug")
                         .IsRequired()
                         .HasMaxLength(300)
-                        .HasColumnType("nvarchar(300)");
+                        .HasColumnType("varchar(300)");
 
                     b.Property<string>("Title")
                         .IsRequired()
                         .HasMaxLength(300)
-                        .HasColumnType("nvarchar(300)");
+                        .HasColumnType("varchar(300)");
 
                     b.HasKey("PageTranslationID");
 
@@ -2665,8 +3177,6 @@ namespace Dotnetable.Migrations.SqlServer.Migrations
                     b.Property<int>("PaymentID")
                         .ValueGeneratedOnAdd()
                         .HasColumnType("int");
-
-                    SqlServerPropertyBuilderExtensions.UseIdentityColumn(b.Property<int>("PaymentID"));
 
                     b.Property<decimal>("Amount")
                         .HasColumnType("decimal(18, 4)");
@@ -2682,7 +3192,10 @@ namespace Dotnetable.Migrations.SqlServer.Migrations
 
                     b.Property<DateTime>("CreatedAt")
                         .HasPrecision(0)
-                        .HasColumnType("datetime2(0)");
+                        .HasColumnType("datetime(0)");
+
+                    b.Property<int?>("CreatedByMemberID")
+                        .HasColumnType("int");
 
                     b.Property<string>("CurrencyCode")
                         .IsRequired()
@@ -2696,17 +3209,17 @@ namespace Dotnetable.Migrations.SqlServer.Migrations
 
                     b.Property<string>("GatewayRefNumber")
                         .HasMaxLength(100)
-                        .HasColumnType("nvarchar(100)");
+                        .HasColumnType("varchar(100)");
 
                     b.Property<byte>("Method")
-                        .HasColumnType("tinyint");
+                        .HasColumnType("tinyint unsigned");
 
                     b.Property<int?>("OrderID")
                         .HasColumnType("int");
 
                     b.Property<DateTime?>("PaidAt")
                         .HasPrecision(0)
-                        .HasColumnType("datetime2(0)");
+                        .HasColumnType("datetime(0)");
 
                     b.Property<int?>("PaymentGatewayID")
                         .HasColumnType("int");
@@ -2715,11 +3228,11 @@ namespace Dotnetable.Migrations.SqlServer.Migrations
                         .HasColumnType("int");
 
                     b.Property<byte>("Status")
-                        .HasColumnType("tinyint");
+                        .HasColumnType("tinyint unsigned");
 
                     b.Property<string>("TrackingCode")
                         .HasMaxLength(100)
-                        .HasColumnType("nvarchar(100)");
+                        .HasColumnType("varchar(100)");
 
                     b.Property<int?>("VerifiedByMemberID")
                         .HasColumnType("int");
@@ -2735,6 +3248,8 @@ namespace Dotnetable.Migrations.SqlServer.Migrations
                     b.HasIndex(new[] { "BankAccountID" }, "IX_Payments_BankAccountID");
 
                     b.HasIndex(new[] { "ClientWalletTransactionID" }, "IX_Payments_ClientWalletTransactionID");
+
+                    b.HasIndex(new[] { "CreatedByMemberID" }, "IX_Payments_CreatedByMemberID");
 
                     b.HasIndex(new[] { "CurrencyCode" }, "IX_Payments_CurrencyCode");
 
@@ -2759,35 +3274,33 @@ namespace Dotnetable.Migrations.SqlServer.Migrations
                         .ValueGeneratedOnAdd()
                         .HasColumnType("int");
 
-                    SqlServerPropertyBuilderExtensions.UseIdentityColumn(b.Property<int>("PaymentGatewayID"));
-
                     b.Property<string>("ApiKey")
                         .HasMaxLength(500)
-                        .HasColumnType("nvarchar(500)");
+                        .HasColumnType("varchar(500)");
 
                     b.Property<string>("ApiSecret")
                         .HasMaxLength(500)
-                        .HasColumnType("nvarchar(500)");
+                        .HasColumnType("varchar(500)");
 
                     b.Property<bool>("IsActive")
-                        .HasColumnType("bit");
+                        .HasColumnType("tinyint(1)");
 
                     b.Property<bool>("IsSandbox")
-                        .HasColumnType("bit");
+                        .HasColumnType("tinyint(1)");
 
                     b.Property<string>("MerchantID")
                         .HasMaxLength(200)
-                        .HasColumnType("nvarchar(200)");
+                        .HasColumnType("varchar(200)");
 
                     b.Property<string>("Name")
                         .IsRequired()
                         .HasMaxLength(150)
-                        .HasColumnType("nvarchar(150)");
+                        .HasColumnType("varchar(150)");
 
                     b.Property<string>("Provider")
                         .IsRequired()
                         .HasMaxLength(50)
-                        .HasColumnType("nvarchar(50)");
+                        .HasColumnType("varchar(50)");
 
                     b.Property<int>("SortOrder")
                         .HasColumnType("int");
@@ -2807,8 +3320,6 @@ namespace Dotnetable.Migrations.SqlServer.Migrations
                     b.Property<int>("PaymentRefundID")
                         .ValueGeneratedOnAdd()
                         .HasColumnType("int");
-
-                    SqlServerPropertyBuilderExtensions.UseIdentityColumn(b.Property<int>("PaymentRefundID"));
 
                     b.Property<decimal>("Amount")
                         .HasColumnType("decimal(18, 4)");
@@ -2830,13 +3341,13 @@ namespace Dotnetable.Migrations.SqlServer.Migrations
 
                     b.Property<string>("Reason")
                         .HasMaxLength(500)
-                        .HasColumnType("nvarchar(500)");
+                        .HasColumnType("varchar(500)");
 
                     b.Property<DateTime?>("RefundedAt")
                         .HasColumnType("datetime");
 
                     b.Property<byte>("Status")
-                        .HasColumnType("tinyint");
+                        .HasColumnType("tinyint unsigned");
 
                     b.HasKey("PaymentRefundID");
 
@@ -2851,16 +3362,171 @@ namespace Dotnetable.Migrations.SqlServer.Migrations
                     b.ToTable("PaymentRefunds");
                 });
 
+            modelBuilder.Entity("Dotnetable.Domain.Entities.PayrollLine", b =>
+                {
+                    b.Property<int>("PayrollLineID")
+                        .ValueGeneratedOnAdd()
+                        .HasColumnType("int");
+
+                    b.Property<int>("EmployeeID")
+                        .HasColumnType("int");
+
+                    b.Property<decimal>("EmployeeInsurance")
+                        .HasColumnType("decimal(18,4)");
+
+                    b.Property<decimal>("EmployerCost")
+                        .HasColumnType("decimal(18,4)");
+
+                    b.Property<decimal>("EmployerInsurance")
+                        .HasColumnType("decimal(18,4)");
+
+                    b.Property<decimal>("Gross")
+                        .HasColumnType("decimal(18,4)");
+
+                    b.Property<decimal>("IncomeTax")
+                        .HasColumnType("decimal(18,4)");
+
+                    b.Property<decimal>("Net")
+                        .HasColumnType("decimal(18,4)");
+
+                    b.Property<string>("Note")
+                        .HasColumnType("longtext");
+
+                    b.Property<int>("PayrollRunID")
+                        .HasColumnType("int");
+
+                    b.HasKey("PayrollLineID");
+
+                    b.HasIndex("EmployeeID");
+
+                    b.HasIndex("PayrollRunID");
+
+                    b.ToTable("PayrollLines");
+                });
+
+            modelBuilder.Entity("Dotnetable.Domain.Entities.PayrollRateBracket", b =>
+                {
+                    b.Property<int>("PayrollRateBracketID")
+                        .ValueGeneratedOnAdd()
+                        .HasColumnType("int");
+
+                    b.Property<DateTime>("CreatedAt")
+                        .HasColumnType("datetime(6)");
+
+                    b.Property<decimal>("FromAmount")
+                        .HasColumnType("decimal(18,4)");
+
+                    b.Property<bool>("IsActive")
+                        .ValueGeneratedOnAdd()
+                        .HasColumnType("tinyint(1)")
+                        .HasDefaultValue(true);
+
+                    b.Property<byte>("Kind")
+                        .HasColumnType("tinyint unsigned");
+
+                    b.Property<decimal>("Rate")
+                        .HasColumnType("decimal(9,6)");
+
+                    b.Property<int>("SortOrder")
+                        .HasColumnType("int");
+
+                    b.Property<decimal?>("ToAmount")
+                        .HasColumnType("decimal(18,4)");
+
+                    b.Property<int>("WebsiteID")
+                        .HasColumnType("int");
+
+                    b.HasKey("PayrollRateBracketID");
+
+                    b.HasIndex(new[] { "WebsiteID", "Kind", "SortOrder" }, "IX_PayrollRateBrackets_Website_Kind");
+
+                    b.ToTable("PayrollRateBrackets");
+                });
+
+            modelBuilder.Entity("Dotnetable.Domain.Entities.PayrollRun", b =>
+                {
+                    b.Property<int>("PayrollRunID")
+                        .ValueGeneratedOnAdd()
+                        .HasColumnType("int");
+
+                    b.Property<DateTime?>("ApprovedAt")
+                        .HasColumnType("datetime(6)");
+
+                    b.Property<int?>("ApprovedByMemberID")
+                        .HasColumnType("int");
+
+                    b.Property<DateTime>("CreatedAt")
+                        .HasColumnType("datetime(6)");
+
+                    b.Property<int?>("CreatedByMemberID")
+                        .HasColumnType("int");
+
+                    b.Property<string>("CurrencyCode")
+                        .IsRequired()
+                        .HasMaxLength(3)
+                        .IsUnicode(false)
+                        .HasColumnType("char(3)")
+                        .IsFixedLength();
+
+                    b.Property<string>("Note")
+                        .HasColumnType("longtext");
+
+                    b.Property<DateTime?>("PaidAt")
+                        .HasColumnType("datetime(6)");
+
+                    b.Property<DateOnly>("PeriodFrom")
+                        .HasColumnType("date");
+
+                    b.Property<DateOnly>("PeriodTo")
+                        .HasColumnType("date");
+
+                    b.Property<string>("RunNumber")
+                        .IsRequired()
+                        .HasMaxLength(40)
+                        .HasColumnType("varchar(40)");
+
+                    b.Property<byte>("Status")
+                        .HasColumnType("tinyint unsigned");
+
+                    b.Property<decimal>("TotalEmployeeInsurance")
+                        .HasColumnType("decimal(18,4)");
+
+                    b.Property<decimal>("TotalEmployerInsurance")
+                        .HasColumnType("decimal(18,4)");
+
+                    b.Property<decimal>("TotalGross")
+                        .HasColumnType("decimal(18,4)");
+
+                    b.Property<decimal>("TotalIncomeTax")
+                        .HasColumnType("decimal(18,4)");
+
+                    b.Property<decimal>("TotalNet")
+                        .HasColumnType("decimal(18,4)");
+
+                    b.Property<int>("WebsiteID")
+                        .HasColumnType("int");
+
+                    b.HasKey("PayrollRunID");
+
+                    b.HasIndex("ApprovedByMemberID");
+
+                    b.HasIndex("CreatedByMemberID");
+
+                    b.HasIndex("CurrencyCode");
+
+                    b.HasIndex("WebsiteID");
+
+                    b.ToTable("PayrollRuns");
+                });
+
             modelBuilder.Entity("Dotnetable.Domain.Entities.Policy", b =>
                 {
                     b.Property<int>("PolicyID")
                         .ValueGeneratedOnAdd()
                         .HasColumnType("int");
 
-                    SqlServerPropertyBuilderExtensions.UseIdentityColumn(b.Property<int>("PolicyID"));
-
                     b.Property<bool>("Active")
-                        .HasColumnType("bit");
+                        .HasColumnType("tinyint(1)");
 
                     b.Property<string>("Title")
                         .IsRequired()
@@ -2884,10 +3550,8 @@ namespace Dotnetable.Migrations.SqlServer.Migrations
                         .ValueGeneratedOnAdd()
                         .HasColumnType("int");
 
-                    SqlServerPropertyBuilderExtensions.UseIdentityColumn(b.Property<int>("PolicyRoleID"));
-
                     b.Property<bool>("Active")
-                        .HasColumnType("bit");
+                        .HasColumnType("tinyint(1)");
 
                     b.Property<int>("PolicyID")
                         .HasColumnType("int");
@@ -2910,32 +3574,30 @@ namespace Dotnetable.Migrations.SqlServer.Migrations
                         .ValueGeneratedOnAdd()
                         .HasColumnType("int");
 
-                    SqlServerPropertyBuilderExtensions.UseIdentityColumn(b.Property<int>("PostID"));
-
                     b.Property<int?>("AuthorMemberID")
                         .HasColumnType("int");
 
                     b.Property<bool>("CommentsEnabled")
-                        .HasColumnType("bit");
+                        .HasColumnType("tinyint(1)");
 
                     b.Property<string>("Content")
-                        .HasColumnType("nvarchar(max)");
+                        .HasColumnType("longtext");
 
                     b.Property<DateTime>("CreatedAt")
                         .HasColumnType("datetime");
 
                     b.Property<string>("Excerpt")
                         .HasMaxLength(1000)
-                        .HasColumnType("nvarchar(1000)");
+                        .HasColumnType("varchar(1000)");
 
                     b.Property<int?>("FeaturedImageFileID")
                         .HasColumnType("int");
 
                     b.Property<bool>("IsActive")
-                        .HasColumnType("bit");
+                        .HasColumnType("tinyint(1)");
 
                     b.Property<bool>("IsFeatured")
-                        .HasColumnType("bit");
+                        .HasColumnType("tinyint(1)");
 
                     b.Property<int>("PostTypeID")
                         .HasColumnType("int");
@@ -2949,15 +3611,15 @@ namespace Dotnetable.Migrations.SqlServer.Migrations
                     b.Property<string>("Slug")
                         .IsRequired()
                         .HasMaxLength(300)
-                        .HasColumnType("nvarchar(300)");
+                        .HasColumnType("varchar(300)");
 
                     b.Property<byte>("Status")
-                        .HasColumnType("tinyint");
+                        .HasColumnType("tinyint unsigned");
 
                     b.Property<string>("Title")
                         .IsRequired()
                         .HasMaxLength(300)
-                        .HasColumnType("nvarchar(300)");
+                        .HasColumnType("varchar(300)");
 
                     b.Property<DateTime>("UpdatedAt")
                         .HasColumnType("datetime");
@@ -2990,7 +3652,7 @@ namespace Dotnetable.Migrations.SqlServer.Migrations
                         .HasColumnType("int");
 
                     b.Property<bool>("IsPrimary")
-                        .HasColumnType("bit");
+                        .HasColumnType("tinyint(1)");
 
                     b.HasKey("PostID", "CategoryID");
 
@@ -3005,14 +3667,12 @@ namespace Dotnetable.Migrations.SqlServer.Migrations
                         .ValueGeneratedOnAdd()
                         .HasColumnType("int");
 
-                    SqlServerPropertyBuilderExtensions.UseIdentityColumn(b.Property<int>("PostTranslationID"));
-
                     b.Property<string>("Content")
-                        .HasColumnType("nvarchar(max)");
+                        .HasColumnType("longtext");
 
                     b.Property<string>("Excerpt")
                         .HasMaxLength(1000)
-                        .HasColumnType("nvarchar(1000)");
+                        .HasColumnType("varchar(1000)");
 
                     b.Property<string>("LanguageCode")
                         .IsRequired()
@@ -3027,12 +3687,12 @@ namespace Dotnetable.Migrations.SqlServer.Migrations
                     b.Property<string>("Slug")
                         .IsRequired()
                         .HasMaxLength(300)
-                        .HasColumnType("nvarchar(300)");
+                        .HasColumnType("varchar(300)");
 
                     b.Property<string>("Title")
                         .IsRequired()
                         .HasMaxLength(300)
-                        .HasColumnType("nvarchar(300)");
+                        .HasColumnType("varchar(300)");
 
                     b.HasKey("PostTranslationID");
 
@@ -3047,29 +3707,27 @@ namespace Dotnetable.Migrations.SqlServer.Migrations
                         .ValueGeneratedOnAdd()
                         .HasColumnType("int");
 
-                    SqlServerPropertyBuilderExtensions.UseIdentityColumn(b.Property<int>("PostTypeID"));
-
                     b.Property<bool>("CommentsEnabled")
-                        .HasColumnType("bit");
+                        .HasColumnType("tinyint(1)");
 
                     b.Property<bool>("HasAuthor")
-                        .HasColumnType("bit");
+                        .HasColumnType("tinyint(1)");
 
                     b.Property<bool>("HasCategories")
-                        .HasColumnType("bit");
+                        .HasColumnType("tinyint(1)");
 
                     b.Property<bool>("HasTags")
-                        .HasColumnType("bit");
+                        .HasColumnType("tinyint(1)");
 
                     b.Property<string>("Name")
                         .IsRequired()
                         .HasMaxLength(100)
-                        .HasColumnType("nvarchar(100)");
+                        .HasColumnType("varchar(100)");
 
                     b.Property<string>("Slug")
                         .IsRequired()
                         .HasMaxLength(100)
-                        .HasColumnType("nvarchar(100)");
+                        .HasColumnType("varchar(100)");
 
                     b.Property<int>("WebsiteID")
                         .HasColumnType("int");
@@ -3087,8 +3745,6 @@ namespace Dotnetable.Migrations.SqlServer.Migrations
                         .ValueGeneratedOnAdd()
                         .HasColumnType("int");
 
-                    SqlServerPropertyBuilderExtensions.UseIdentityColumn(b.Property<int>("ProductID"));
-
                     b.Property<decimal>("AvgRating")
                         .HasColumnType("decimal(3, 2)");
 
@@ -3096,7 +3752,7 @@ namespace Dotnetable.Migrations.SqlServer.Migrations
                         .HasColumnType("int");
 
                     b.Property<string>("Content")
-                        .HasColumnType("nvarchar(max)");
+                        .HasColumnType("longtext");
 
                     b.Property<DateTime>("CreatedAt")
                         .HasColumnType("datetime");
@@ -3104,43 +3760,61 @@ namespace Dotnetable.Migrations.SqlServer.Migrations
                     b.Property<int?>("CreatedByMemberID")
                         .HasColumnType("int");
 
+                    b.Property<string>("DigitalDeliveryNote")
+                        .HasMaxLength(2000)
+                        .HasColumnType("varchar(2000)");
+
+                    b.Property<string>("DigitalDownloadUrl")
+                        .HasMaxLength(1000)
+                        .HasColumnType("varchar(1000)");
+
+                    b.Property<string>("DigitalServiceUrl")
+                        .HasMaxLength(1000)
+                        .HasColumnType("varchar(1000)");
+
                     b.Property<string>("ExpertReview")
-                        .HasColumnType("nvarchar(max)");
+                        .HasColumnType("longtext");
 
                     b.Property<int?>("FeaturedImageFileID")
                         .HasColumnType("int");
 
                     b.Property<bool>("HasVariants")
-                        .HasColumnType("bit");
+                        .HasColumnType("tinyint(1)");
 
                     b.Property<bool>("IsActive")
-                        .HasColumnType("bit");
+                        .HasColumnType("tinyint(1)");
 
                     b.Property<bool>("IsCatalogOnly")
-                        .HasColumnType("bit");
+                        .HasColumnType("tinyint(1)");
+
+                    b.Property<byte>("ProductType")
+                        .HasColumnType("tinyint unsigned");
 
                     b.Property<int>("RatingCount")
                         .HasColumnType("int");
 
+                    b.Property<bool>("RequiresShipping")
+                        .HasColumnType("tinyint(1)");
+
                     b.Property<string>("ShortDescription")
                         .HasMaxLength(1000)
-                        .HasColumnType("nvarchar(1000)");
+                        .HasColumnType("varchar(1000)");
 
                     b.Property<string>("Slug")
                         .IsRequired()
                         .HasMaxLength(300)
-                        .HasColumnType("nvarchar(300)");
+                        .HasColumnType("varchar(300)");
 
                     b.Property<int>("SortOrder")
                         .HasColumnType("int");
 
                     b.Property<byte>("Status")
-                        .HasColumnType("tinyint");
+                        .HasColumnType("tinyint unsigned");
 
                     b.Property<string>("Title")
                         .IsRequired()
                         .HasMaxLength(300)
-                        .HasColumnType("nvarchar(300)");
+                        .HasColumnType("varchar(300)");
 
                     b.Property<DateTime>("UpdatedAt")
                         .HasColumnType("datetime");
@@ -3167,15 +3841,13 @@ namespace Dotnetable.Migrations.SqlServer.Migrations
                         .ValueGeneratedOnAdd()
                         .HasColumnType("int");
 
-                    SqlServerPropertyBuilderExtensions.UseIdentityColumn(b.Property<int>("ProductAnswerID"));
-
                     b.Property<bool>("Approved")
-                        .HasColumnType("bit");
+                        .HasColumnType("tinyint(1)");
 
                     b.Property<string>("Body")
                         .IsRequired()
                         .HasMaxLength(4000)
-                        .HasColumnType("nvarchar(4000)");
+                        .HasColumnType("varchar(4000)");
 
                     b.Property<DateTime>("CreatedAt")
                         .HasColumnType("datetime");
@@ -3187,7 +3859,7 @@ namespace Dotnetable.Migrations.SqlServer.Migrations
                         .HasColumnType("int");
 
                     b.Property<byte>("Status")
-                        .HasColumnType("tinyint");
+                        .HasColumnType("tinyint unsigned");
 
                     b.Property<int?>("VendorID")
                         .HasColumnType("int");
@@ -3212,8 +3884,6 @@ namespace Dotnetable.Migrations.SqlServer.Migrations
                         .ValueGeneratedOnAdd()
                         .HasColumnType("int");
 
-                    SqlServerPropertyBuilderExtensions.UseIdentityColumn(b.Property<int>("ProductAttributeValueID"));
-
                     b.Property<int>("AttributeDefinitionID")
                         .HasColumnType("int");
 
@@ -3222,10 +3892,10 @@ namespace Dotnetable.Migrations.SqlServer.Migrations
 
                     b.Property<string>("CustomValue")
                         .HasMaxLength(1000)
-                        .HasColumnType("nvarchar(1000)");
+                        .HasColumnType("varchar(1000)");
 
                     b.Property<bool>("IsFeatured")
-                        .HasColumnType("bit");
+                        .HasColumnType("tinyint(1)");
 
                     b.Property<decimal?>("NumericValue")
                         .HasColumnType("decimal(18, 4)");
@@ -3253,12 +3923,10 @@ namespace Dotnetable.Migrations.SqlServer.Migrations
                         .ValueGeneratedOnAdd()
                         .HasColumnType("int");
 
-                    SqlServerPropertyBuilderExtensions.UseIdentityColumn(b.Property<int>("ProductAttributeValueTranslationID"));
-
                     b.Property<string>("CustomValue")
                         .IsRequired()
                         .HasMaxLength(1000)
-                        .HasColumnType("nvarchar(1000)");
+                        .HasColumnType("varchar(1000)");
 
                     b.Property<string>("LanguageCode")
                         .IsRequired()
@@ -3283,18 +3951,16 @@ namespace Dotnetable.Migrations.SqlServer.Migrations
                         .ValueGeneratedOnAdd()
                         .HasColumnType("int");
 
-                    SqlServerPropertyBuilderExtensions.UseIdentityColumn(b.Property<int>("ProductCategoryID"));
-
                     b.Property<int?>("ImageFileID")
                         .HasColumnType("int");
 
                     b.Property<bool>("IsActive")
-                        .HasColumnType("bit");
+                        .HasColumnType("tinyint(1)");
 
                     b.Property<string>("Name")
                         .IsRequired()
                         .HasMaxLength(200)
-                        .HasColumnType("nvarchar(200)");
+                        .HasColumnType("varchar(200)");
 
                     b.Property<int?>("ParentCategoryID")
                         .HasColumnType("int");
@@ -3302,7 +3968,7 @@ namespace Dotnetable.Migrations.SqlServer.Migrations
                     b.Property<string>("Slug")
                         .IsRequired()
                         .HasMaxLength(200)
-                        .HasColumnType("nvarchar(200)");
+                        .HasColumnType("varchar(200)");
 
                     b.Property<int>("SortOrder")
                         .HasColumnType("int");
@@ -3321,6 +3987,24 @@ namespace Dotnetable.Migrations.SqlServer.Migrations
                     b.ToTable("ProductCategories");
                 });
 
+            modelBuilder.Entity("Dotnetable.Domain.Entities.ProductCategoryAttribute", b =>
+                {
+                    b.Property<int>("ProductCategoryID")
+                        .HasColumnType("int");
+
+                    b.Property<int>("AttributeDefinitionID")
+                        .HasColumnType("int");
+
+                    b.Property<int>("SortOrder")
+                        .HasColumnType("int");
+
+                    b.HasKey("ProductCategoryID", "AttributeDefinitionID");
+
+                    b.HasIndex(new[] { "AttributeDefinitionID" }, "IX_ProductCategoryAttributes_AttributeDefinitionID");
+
+                    b.ToTable("ProductCategoryAttributes");
+                });
+
             modelBuilder.Entity("Dotnetable.Domain.Entities.ProductCategoryMap", b =>
                 {
                     b.Property<int>("ProductID")
@@ -3330,7 +4014,7 @@ namespace Dotnetable.Migrations.SqlServer.Migrations
                         .HasColumnType("int");
 
                     b.Property<bool>("IsPrimary")
-                        .HasColumnType("bit");
+                        .HasColumnType("tinyint(1)");
 
                     b.HasKey("ProductID", "ProductCategoryID");
 
@@ -3348,7 +4032,7 @@ namespace Dotnetable.Migrations.SqlServer.Migrations
                         .HasColumnType("int");
 
                     b.Property<byte>("RelationType")
-                        .HasColumnType("tinyint");
+                        .HasColumnType("tinyint unsigned");
 
                     b.Property<int>("MaxItems")
                         .HasColumnType("int");
@@ -3366,8 +4050,6 @@ namespace Dotnetable.Migrations.SqlServer.Migrations
                         .ValueGeneratedOnAdd()
                         .HasColumnType("int");
 
-                    SqlServerPropertyBuilderExtensions.UseIdentityColumn(b.Property<int>("ProductCategoryTranslationID"));
-
                     b.Property<string>("LanguageCode")
                         .IsRequired()
                         .HasMaxLength(2)
@@ -3378,7 +4060,7 @@ namespace Dotnetable.Migrations.SqlServer.Migrations
                     b.Property<string>("Name")
                         .IsRequired()
                         .HasMaxLength(200)
-                        .HasColumnType("nvarchar(200)");
+                        .HasColumnType("varchar(200)");
 
                     b.Property<int>("ProductCategoryID")
                         .HasColumnType("int");
@@ -3386,7 +4068,7 @@ namespace Dotnetable.Migrations.SqlServer.Migrations
                     b.Property<string>("Slug")
                         .IsRequired()
                         .HasMaxLength(200)
-                        .HasColumnType("nvarchar(200)");
+                        .HasColumnType("varchar(200)");
 
                     b.HasKey("ProductCategoryTranslationID");
 
@@ -3419,15 +4101,13 @@ namespace Dotnetable.Migrations.SqlServer.Migrations
                         .ValueGeneratedOnAdd()
                         .HasColumnType("int");
 
-                    SqlServerPropertyBuilderExtensions.UseIdentityColumn(b.Property<int>("ProductQuestionID"));
-
                     b.Property<bool>("Approved")
-                        .HasColumnType("bit");
+                        .HasColumnType("tinyint(1)");
 
                     b.Property<string>("Body")
                         .IsRequired()
                         .HasMaxLength(2000)
-                        .HasColumnType("nvarchar(2000)");
+                        .HasColumnType("varchar(2000)");
 
                     b.Property<DateTime>("CreatedAt")
                         .HasColumnType("datetime");
@@ -3436,7 +4116,7 @@ namespace Dotnetable.Migrations.SqlServer.Migrations
                         .HasColumnType("int");
 
                     b.Property<byte>("Status")
-                        .HasColumnType("tinyint");
+                        .HasColumnType("tinyint unsigned");
 
                     b.Property<int>("WebsiteClientID")
                         .HasColumnType("int");
@@ -3464,7 +4144,7 @@ namespace Dotnetable.Migrations.SqlServer.Migrations
                         .HasColumnType("int");
 
                     b.Property<byte>("RelationType")
-                        .HasColumnType("tinyint");
+                        .HasColumnType("tinyint unsigned");
 
                     b.Property<int>("SortOrder")
                         .HasColumnType("int");
@@ -3482,29 +4162,27 @@ namespace Dotnetable.Migrations.SqlServer.Migrations
                         .ValueGeneratedOnAdd()
                         .HasColumnType("int");
 
-                    SqlServerPropertyBuilderExtensions.UseIdentityColumn(b.Property<int>("ProductReviewID"));
-
                     b.Property<bool>("Approved")
-                        .HasColumnType("bit");
+                        .HasColumnType("tinyint(1)");
 
                     b.Property<string>("Body")
                         .IsRequired()
                         .HasMaxLength(4000)
-                        .HasColumnType("nvarchar(4000)");
+                        .HasColumnType("varchar(4000)");
 
                     b.Property<string>("ConsJson")
                         .HasMaxLength(2000)
-                        .HasColumnType("nvarchar(2000)");
+                        .HasColumnType("varchar(2000)");
 
                     b.Property<DateTime>("CreatedAt")
                         .HasPrecision(0)
-                        .HasColumnType("datetime2(0)");
+                        .HasColumnType("datetime(0)");
 
                     b.Property<int>("DislikeCount")
                         .HasColumnType("int");
 
                     b.Property<bool>("IsVerifiedPurchase")
-                        .HasColumnType("bit");
+                        .HasColumnType("tinyint(1)");
 
                     b.Property<int>("LikeCount")
                         .HasColumnType("int");
@@ -3517,17 +4195,17 @@ namespace Dotnetable.Migrations.SqlServer.Migrations
 
                     b.Property<string>("ProsJson")
                         .HasMaxLength(2000)
-                        .HasColumnType("nvarchar(2000)");
+                        .HasColumnType("varchar(2000)");
 
                     b.Property<byte>("Rating")
-                        .HasColumnType("tinyint");
+                        .HasColumnType("tinyint unsigned");
 
                     b.Property<byte>("Status")
-                        .HasColumnType("tinyint");
+                        .HasColumnType("tinyint unsigned");
 
                     b.Property<string>("Title")
                         .HasMaxLength(200)
-                        .HasColumnType("nvarchar(200)");
+                        .HasColumnType("varchar(200)");
 
                     b.Property<int>("WebsiteClientID")
                         .HasColumnType("int");
@@ -3554,13 +4232,11 @@ namespace Dotnetable.Migrations.SqlServer.Migrations
                         .ValueGeneratedOnAdd()
                         .HasColumnType("int");
 
-                    SqlServerPropertyBuilderExtensions.UseIdentityColumn(b.Property<int>("ProductTranslationID"));
-
                     b.Property<string>("Content")
-                        .HasColumnType("nvarchar(max)");
+                        .HasColumnType("longtext");
 
                     b.Property<string>("ExpertReview")
-                        .HasColumnType("nvarchar(max)");
+                        .HasColumnType("longtext");
 
                     b.Property<string>("LanguageCode")
                         .IsRequired()
@@ -3574,17 +4250,17 @@ namespace Dotnetable.Migrations.SqlServer.Migrations
 
                     b.Property<string>("ShortDescription")
                         .HasMaxLength(1000)
-                        .HasColumnType("nvarchar(1000)");
+                        .HasColumnType("varchar(1000)");
 
                     b.Property<string>("Slug")
                         .IsRequired()
                         .HasMaxLength(300)
-                        .HasColumnType("nvarchar(300)");
+                        .HasColumnType("varchar(300)");
 
                     b.Property<string>("Title")
                         .IsRequired()
                         .HasMaxLength(300)
-                        .HasColumnType("nvarchar(300)");
+                        .HasColumnType("varchar(300)");
 
                     b.HasKey("ProductTranslationID");
 
@@ -3599,11 +4275,9 @@ namespace Dotnetable.Migrations.SqlServer.Migrations
                         .ValueGeneratedOnAdd()
                         .HasColumnType("int");
 
-                    SqlServerPropertyBuilderExtensions.UseIdentityColumn(b.Property<int>("ProductVariantID"));
-
                     b.Property<string>("Barcode")
                         .HasMaxLength(100)
-                        .HasColumnType("nvarchar(100)");
+                        .HasColumnType("varchar(100)");
 
                     b.Property<decimal?>("CompareAtPrice")
                         .HasColumnType("decimal(18, 4)");
@@ -3618,10 +4292,10 @@ namespace Dotnetable.Migrations.SqlServer.Migrations
                         .HasColumnType("int");
 
                     b.Property<bool>("IsActive")
-                        .HasColumnType("bit");
+                        .HasColumnType("tinyint(1)");
 
                     b.Property<bool>("IsDefault")
-                        .HasColumnType("bit");
+                        .HasColumnType("tinyint(1)");
 
                     b.Property<decimal?>("OverridePrice")
                         .HasColumnType("decimal(18, 4)");
@@ -3638,12 +4312,12 @@ namespace Dotnetable.Migrations.SqlServer.Migrations
                     b.Property<string>("Sku")
                         .IsRequired()
                         .HasMaxLength(100)
-                        .HasColumnType("nvarchar(100)");
+                        .HasColumnType("varchar(100)");
 
                     b.Property<string>("Title")
                         .IsRequired()
                         .HasMaxLength(200)
-                        .HasColumnType("nvarchar(200)");
+                        .HasColumnType("varchar(200)");
 
                     b.Property<int>("WebsiteID")
                         .HasColumnType("int");
@@ -3667,8 +4341,6 @@ namespace Dotnetable.Migrations.SqlServer.Migrations
                     b.Property<long>("ProductVariantPriceHistoryID")
                         .ValueGeneratedOnAdd()
                         .HasColumnType("bigint");
-
-                    SqlServerPropertyBuilderExtensions.UseIdentityColumn(b.Property<long>("ProductVariantPriceHistoryID"));
 
                     b.Property<int?>("ChangedByMemberId")
                         .HasColumnType("int");
@@ -3707,10 +4379,8 @@ namespace Dotnetable.Migrations.SqlServer.Migrations
                         .ValueGeneratedOnAdd()
                         .HasColumnType("int");
 
-                    SqlServerPropertyBuilderExtensions.UseIdentityColumn(b.Property<int>("ProductWarningID"));
-
                     b.Property<bool>("IsActive")
-                        .HasColumnType("bit");
+                        .HasColumnType("tinyint(1)");
 
                     b.Property<int>("ProductID")
                         .HasColumnType("int");
@@ -3718,12 +4388,12 @@ namespace Dotnetable.Migrations.SqlServer.Migrations
                     b.Property<string>("Severity")
                         .IsRequired()
                         .HasMaxLength(20)
-                        .HasColumnType("nvarchar(20)");
+                        .HasColumnType("varchar(20)");
 
                     b.Property<string>("Text")
                         .IsRequired()
                         .HasMaxLength(1000)
-                        .HasColumnType("nvarchar(1000)");
+                        .HasColumnType("varchar(1000)");
 
                     b.HasKey("ProductWarningID");
 
@@ -3738,8 +4408,6 @@ namespace Dotnetable.Migrations.SqlServer.Migrations
                         .ValueGeneratedOnAdd()
                         .HasColumnType("int");
 
-                    SqlServerPropertyBuilderExtensions.UseIdentityColumn(b.Property<int>("ProductWarningTranslationID"));
-
                     b.Property<string>("LanguageCode")
                         .IsRequired()
                         .HasMaxLength(2)
@@ -3753,7 +4421,7 @@ namespace Dotnetable.Migrations.SqlServer.Migrations
                     b.Property<string>("Text")
                         .IsRequired()
                         .HasMaxLength(1000)
-                        .HasColumnType("nvarchar(1000)");
+                        .HasColumnType("varchar(1000)");
 
                     b.HasKey("ProductWarningTranslationID");
 
@@ -3768,18 +4436,16 @@ namespace Dotnetable.Migrations.SqlServer.Migrations
                         .ValueGeneratedOnAdd()
                         .HasColumnType("int");
 
-                    SqlServerPropertyBuilderExtensions.UseIdentityColumn(b.Property<int>("ProductWarrantyID"));
-
                     b.Property<string>("CustomDescription")
                         .HasMaxLength(2000)
-                        .HasColumnType("nvarchar(2000)");
+                        .HasColumnType("varchar(2000)");
 
                     b.Property<string>("CustomTitle")
                         .HasMaxLength(200)
-                        .HasColumnType("nvarchar(200)");
+                        .HasColumnType("varchar(200)");
 
                     b.Property<bool>("IsActive")
-                        .HasColumnType("bit");
+                        .HasColumnType("tinyint(1)");
 
                     b.Property<int>("ProductID")
                         .HasColumnType("int");
@@ -3799,19 +4465,62 @@ namespace Dotnetable.Migrations.SqlServer.Migrations
                     b.ToTable("ProductWarranties");
                 });
 
+            modelBuilder.Entity("Dotnetable.Domain.Entities.RecordAttachment", b =>
+                {
+                    b.Property<long>("RecordAttachmentID")
+                        .ValueGeneratedOnAdd()
+                        .HasColumnType("bigint");
+
+                    b.Property<DateTime>("CreatedAt")
+                        .HasColumnType("datetime(6)");
+
+                    b.Property<int?>("CreatedByMemberID")
+                        .HasColumnType("int");
+
+                    b.Property<long>("EntityID")
+                        .HasColumnType("bigint");
+
+                    b.Property<string>("EntityType")
+                        .IsRequired()
+                        .HasMaxLength(64)
+                        .HasColumnType("varchar(64)");
+
+                    b.Property<int>("FileRecordID")
+                        .HasColumnType("int");
+
+                    b.Property<string>("Note")
+                        .HasMaxLength(500)
+                        .HasColumnType("varchar(500)");
+
+                    b.Property<string>("Title")
+                        .HasMaxLength(200)
+                        .HasColumnType("varchar(200)");
+
+                    b.Property<int>("WebsiteID")
+                        .HasColumnType("int");
+
+                    b.HasKey("RecordAttachmentID");
+
+                    b.HasIndex("CreatedByMemberID");
+
+                    b.HasIndex(new[] { "WebsiteID", "EntityType", "EntityID" }, "IX_RecordAttachments_Entity");
+
+                    b.HasIndex(new[] { "FileRecordID" }, "IX_RecordAttachments_File");
+
+                    b.ToTable("RecordAttachments");
+                });
+
             modelBuilder.Entity("Dotnetable.Domain.Entities.Role", b =>
                 {
                     b.Property<short>("RoleID")
                         .ValueGeneratedOnAdd()
                         .HasColumnType("smallint");
 
-                    SqlServerPropertyBuilderExtensions.UseIdentityColumn(b.Property<short>("RoleID"));
-
                     b.Property<bool>("Active")
-                        .HasColumnType("bit");
+                        .HasColumnType("tinyint(1)");
 
                     b.Property<byte>("Category")
-                        .HasColumnType("tinyint");
+                        .HasColumnType("tinyint unsigned");
 
                     b.Property<string>("Description")
                         .IsRequired()
@@ -3836,13 +4545,14 @@ namespace Dotnetable.Migrations.SqlServer.Migrations
                         .ValueGeneratedOnAdd()
                         .HasColumnType("int");
 
-                    SqlServerPropertyBuilderExtensions.UseIdentityColumn(b.Property<int>("SettlementID"));
-
                     b.Property<int?>("ApprovedByMemberID")
                         .HasColumnType("int");
 
                     b.Property<int?>("BankAccountID")
                         .HasColumnType("int");
+
+                    b.Property<decimal>("BridgeUsdAmount")
+                        .HasColumnType("decimal(18, 4)");
 
                     b.Property<DateTime>("CreatedAt")
                         .HasColumnType("datetime");
@@ -3857,16 +4567,25 @@ namespace Dotnetable.Migrations.SqlServer.Migrations
                         .HasColumnType("char(3)")
                         .IsFixedLength();
 
+                    b.Property<decimal?>("ExchangeRateToUsd")
+                        .HasColumnType("decimal(18, 6)");
+
+                    b.Property<decimal?>("ExchangeRateUsdToSettle")
+                        .HasColumnType("decimal(18, 6)");
+
+                    b.Property<decimal>("NetAmount")
+                        .HasColumnType("decimal(18, 4)");
+
                     b.Property<string>("Note")
                         .HasMaxLength(500)
-                        .HasColumnType("nvarchar(500)");
+                        .HasColumnType("varchar(500)");
 
                     b.Property<DateTime?>("PaidAt")
                         .HasColumnType("datetime");
 
                     b.Property<string>("PaymentRefNumber")
                         .HasMaxLength(100)
-                        .HasColumnType("nvarchar(100)");
+                        .HasColumnType("varchar(100)");
 
                     b.Property<DateOnly>("PeriodFrom")
                         .HasColumnType("date");
@@ -3874,17 +4593,38 @@ namespace Dotnetable.Migrations.SqlServer.Migrations
                     b.Property<DateOnly>("PeriodTo")
                         .HasColumnType("date");
 
+                    b.Property<string>("SourceCurrencyCode")
+                        .HasMaxLength(3)
+                        .IsUnicode(false)
+                        .HasColumnType("char(3)")
+                        .IsFixedLength();
+
+                    b.Property<decimal>("SourceNetAmount")
+                        .HasColumnType("decimal(18, 4)");
+
+                    b.Property<decimal>("SourceTaxAmount")
+                        .HasColumnType("decimal(18, 4)");
+
+                    b.Property<decimal>("SourceTotalAmount")
+                        .HasColumnType("decimal(18, 4)");
+
                     b.Property<byte>("Status")
-                        .HasColumnType("tinyint");
+                        .HasColumnType("tinyint unsigned");
 
                     b.Property<int?>("SupplierID")
                         .HasColumnType("int");
 
                     b.Property<byte>("TargetType")
-                        .HasColumnType("tinyint");
+                        .HasColumnType("tinyint unsigned");
 
                     b.Property<int?>("TargetWebsiteID")
                         .HasColumnType("int");
+
+                    b.Property<decimal>("TaxAmount")
+                        .HasColumnType("decimal(18, 4)");
+
+                    b.Property<decimal?>("TaxRateSnapshot")
+                        .HasColumnType("decimal(9, 6)");
 
                     b.Property<decimal>("TotalAmount")
                         .HasColumnType("decimal(18, 4)");
@@ -3905,6 +4645,8 @@ namespace Dotnetable.Migrations.SqlServer.Migrations
 
                     b.HasIndex(new[] { "CurrencyCode" }, "IX_Settlements_CurrencyCode");
 
+                    b.HasIndex(new[] { "SourceCurrencyCode" }, "IX_Settlements_SourceCurrencyCode");
+
                     b.HasIndex(new[] { "SupplierID" }, "IX_Settlements_SupplierID");
 
                     b.HasIndex(new[] { "TargetWebsiteID" }, "IX_Settlements_TargetWebsiteID");
@@ -3922,14 +4664,12 @@ namespace Dotnetable.Migrations.SqlServer.Migrations
                         .ValueGeneratedOnAdd()
                         .HasColumnType("int");
 
-                    SqlServerPropertyBuilderExtensions.UseIdentityColumn(b.Property<int>("SettlementItemID"));
-
                     b.Property<decimal>("Amount")
                         .HasColumnType("decimal(18, 4)");
 
                     b.Property<string>("Description")
                         .HasMaxLength(300)
-                        .HasColumnType("nvarchar(300)");
+                        .HasColumnType("varchar(300)");
 
                     b.Property<int?>("OrderItemID")
                         .HasColumnType("int");
@@ -3962,27 +4702,54 @@ namespace Dotnetable.Migrations.SqlServer.Migrations
                         .ValueGeneratedOnAdd()
                         .HasColumnType("int");
 
-                    SqlServerPropertyBuilderExtensions.UseIdentityColumn(b.Property<int>("ShippingMethodID"));
-
                     b.Property<string>("CarrierName")
                         .HasMaxLength(100)
-                        .HasColumnType("nvarchar(100)");
+                        .HasColumnType("varchar(100)");
+
+                    b.Property<decimal>("CodMinPrice")
+                        .HasColumnType("decimal(18, 4)");
+
+                    b.Property<decimal>("CodMinPriceUsd")
+                        .HasColumnType("decimal(18, 4)");
+
+                    b.Property<decimal>("FreeShippingMinOrderAmount")
+                        .HasColumnType("decimal(18, 4)");
+
+                    b.Property<decimal>("FreeShippingMinOrderAmountUsd")
+                        .HasColumnType("decimal(18, 4)");
 
                     b.Property<bool>("IsActive")
-                        .HasColumnType("bit");
+                        .HasColumnType("tinyint(1)");
+
+                    b.Property<int?>("LogoFileID")
+                        .HasColumnType("int");
+
+                    b.Property<decimal>("PrepaidMinPrice")
+                        .HasColumnType("decimal(18, 4)");
+
+                    b.Property<decimal>("PrepaidMinPriceUsd")
+                        .HasColumnType("decimal(18, 4)");
 
                     b.Property<int>("SortOrder")
                         .HasColumnType("int");
 
+                    b.Property<bool>("SupportsCod")
+                        .HasColumnType("tinyint(1)");
+
+                    b.Property<bool>("SupportsPrepaid")
+                        .HasColumnType("tinyint(1)");
+
                     b.Property<string>("Title")
                         .IsRequired()
                         .HasMaxLength(100)
-                        .HasColumnType("nvarchar(100)");
+                        .HasColumnType("varchar(100)");
 
                     b.Property<int>("WebsiteID")
                         .HasColumnType("int");
 
                     b.HasKey("ShippingMethodID");
+
+                    b.HasIndex(new[] { "LogoFileID" }, "IX_ShippingMethods_LogoFileID");
 
                     b.HasIndex(new[] { "WebsiteID" }, "IX_ShippingMethods_WebsiteID");
 
@@ -3995,8 +4762,6 @@ namespace Dotnetable.Migrations.SqlServer.Migrations
                         .ValueGeneratedOnAdd()
                         .HasColumnType("int");
 
-                    SqlServerPropertyBuilderExtensions.UseIdentityColumn(b.Property<int>("ShippingRateID"));
-
                     b.Property<int?>("CityID")
                         .HasColumnType("int");
 
@@ -4004,7 +4769,7 @@ namespace Dotnetable.Migrations.SqlServer.Migrations
                         .HasColumnType("int");
 
                     b.Property<bool>("IsActive")
-                        .HasColumnType("bit");
+                        .HasColumnType("tinyint(1)");
 
                     b.Property<decimal?>("MaxWeightKg")
                         .HasColumnType("decimal(10, 3)");
@@ -4043,44 +4808,42 @@ namespace Dotnetable.Migrations.SqlServer.Migrations
                         .ValueGeneratedOnAdd()
                         .HasColumnType("int");
 
-                    SqlServerPropertyBuilderExtensions.UseIdentityColumn(b.Property<int>("SlideshowID"));
-
                     b.Property<string>("AspectRatio")
                         .HasMaxLength(20)
-                        .HasColumnType("nvarchar(20)");
+                        .HasColumnType("varchar(20)");
 
                     b.Property<bool>("AutoPlay")
-                        .HasColumnType("bit");
+                        .HasColumnType("tinyint(1)");
 
                     b.Property<DateTime>("CreatedAt")
                         .HasColumnType("datetime");
 
                     b.Property<bool>("EnableLightbox")
-                        .HasColumnType("bit");
+                        .HasColumnType("tinyint(1)");
 
                     b.Property<int>("IntervalMs")
                         .HasColumnType("int");
 
                     b.Property<bool>("IsActive")
-                        .HasColumnType("bit");
+                        .HasColumnType("tinyint(1)");
 
                     b.Property<string>("Name")
                         .IsRequired()
                         .HasMaxLength(150)
-                        .HasColumnType("nvarchar(150)");
+                        .HasColumnType("varchar(150)");
 
                     b.Property<string>("PlacementKey")
                         .HasMaxLength(100)
-                        .HasColumnType("nvarchar(100)");
+                        .HasColumnType("varchar(100)");
 
                     b.Property<bool>("ShowArrows")
-                        .HasColumnType("bit");
+                        .HasColumnType("tinyint(1)");
 
                     b.Property<bool>("ShowDots")
-                        .HasColumnType("bit");
+                        .HasColumnType("tinyint(1)");
 
                     b.Property<byte>("TransitionEffect")
-                        .HasColumnType("tinyint");
+                        .HasColumnType("tinyint unsigned");
 
                     b.Property<int>("WebsiteID")
                         .HasColumnType("int");
@@ -4098,34 +4861,32 @@ namespace Dotnetable.Migrations.SqlServer.Migrations
                         .ValueGeneratedOnAdd()
                         .HasColumnType("int");
 
-                    SqlServerPropertyBuilderExtensions.UseIdentityColumn(b.Property<int>("SlideshowSlideID"));
-
                     b.Property<string>("ButtonText")
                         .HasMaxLength(100)
-                        .HasColumnType("nvarchar(100)");
+                        .HasColumnType("varchar(100)");
 
                     b.Property<string>("Caption")
                         .HasMaxLength(500)
-                        .HasColumnType("nvarchar(500)");
+                        .HasColumnType("varchar(500)");
 
                     b.Property<DateTime?>("EndAt")
-                        .HasColumnType("datetime2");
+                        .HasColumnType("datetime(6)");
 
                     b.Property<int>("FileID")
                         .HasColumnType("int");
 
                     b.Property<bool>("IsActive")
-                        .HasColumnType("bit");
+                        .HasColumnType("tinyint(1)");
 
                     b.Property<string>("LinkUrl")
                         .HasMaxLength(500)
-                        .HasColumnType("nvarchar(500)");
+                        .HasColumnType("varchar(500)");
 
                     b.Property<int?>("MobileFileID")
                         .HasColumnType("int");
 
                     b.Property<bool>("OpenInNewTab")
-                        .HasColumnType("bit");
+                        .HasColumnType("tinyint(1)");
 
                     b.Property<int>("SlideshowID")
                         .HasColumnType("int");
@@ -4134,11 +4895,11 @@ namespace Dotnetable.Migrations.SqlServer.Migrations
                         .HasColumnType("int");
 
                     b.Property<DateTime?>("StartAt")
-                        .HasColumnType("datetime2");
+                        .HasColumnType("datetime(6)");
 
                     b.Property<string>("Title")
                         .HasMaxLength(200)
-                        .HasColumnType("nvarchar(200)");
+                        .HasColumnType("varchar(200)");
 
                     b.HasKey("SlideshowSlideID");
 
@@ -4157,10 +4918,8 @@ namespace Dotnetable.Migrations.SqlServer.Migrations
                         .ValueGeneratedOnAdd()
                         .HasColumnType("int");
 
-                    SqlServerPropertyBuilderExtensions.UseIdentityColumn(b.Property<int>("StateID"));
-
                     b.Property<bool>("Active")
-                        .HasColumnType("bit");
+                        .HasColumnType("tinyint(1)");
 
                     b.Property<int>("CountryID")
                         .HasColumnType("int");
@@ -4175,7 +4934,7 @@ namespace Dotnetable.Migrations.SqlServer.Migrations
                     b.Property<string>("Title")
                         .IsRequired()
                         .HasMaxLength(48)
-                        .HasColumnType("nvarchar(48)");
+                        .HasColumnType("varchar(48)");
 
                     b.HasKey("StateID");
 
@@ -4190,8 +4949,6 @@ namespace Dotnetable.Migrations.SqlServer.Migrations
                         .ValueGeneratedOnAdd()
                         .HasColumnType("int");
 
-                    SqlServerPropertyBuilderExtensions.UseIdentityColumn(b.Property<int>("StateTranslationID"));
-
                     b.Property<string>("LanguageCode")
                         .IsRequired()
                         .HasMaxLength(2)
@@ -4205,7 +4962,7 @@ namespace Dotnetable.Migrations.SqlServer.Migrations
                     b.Property<string>("Title")
                         .IsRequired()
                         .HasMaxLength(48)
-                        .HasColumnType("nvarchar(48)");
+                        .HasColumnType("varchar(48)");
 
                     b.HasKey("StateTranslationID");
 
@@ -4214,17 +4971,184 @@ namespace Dotnetable.Migrations.SqlServer.Migrations
                     b.ToTable("StateTranslations");
                 });
 
+            modelBuilder.Entity("Dotnetable.Domain.Entities.StockDocument", b =>
+                {
+                    b.Property<int>("StockDocumentID")
+                        .ValueGeneratedOnAdd()
+                        .HasColumnType("int");
+
+                    b.Property<DateTime?>("ApprovedAt")
+                        .HasColumnType("datetime(6)");
+
+                    b.Property<int?>("ApprovedByMemberID")
+                        .HasColumnType("int");
+
+                    b.Property<DateTime>("CreatedAt")
+                        .HasColumnType("datetime(6)");
+
+                    b.Property<string>("DocumentNumber")
+                        .IsRequired()
+                        .HasMaxLength(40)
+                        .HasColumnType("varchar(40)");
+
+                    b.Property<byte>("DocumentType")
+                        .HasColumnType("tinyint unsigned");
+
+                    b.Property<int?>("FromWarehouseID")
+                        .HasColumnType("int");
+
+                    b.Property<string>("Note")
+                        .HasMaxLength(1000)
+                        .HasColumnType("varchar(1000)");
+
+                    b.Property<int?>("OrderID")
+                        .HasColumnType("int");
+
+                    b.Property<int?>("PaymentRefundID")
+                        .HasColumnType("int");
+
+                    b.Property<DateTime?>("PostedAt")
+                        .HasColumnType("datetime(6)");
+
+                    b.Property<int?>("PostedByMemberID")
+                        .HasColumnType("int");
+
+                    b.Property<int?>("RequestedByMemberID")
+                        .HasColumnType("int");
+
+                    b.Property<byte>("Status")
+                        .HasColumnType("tinyint unsigned");
+
+                    b.Property<DateTime?>("SubmittedAt")
+                        .HasColumnType("datetime(6)");
+
+                    b.Property<int?>("SupplierID")
+                        .HasColumnType("int");
+
+                    b.Property<int?>("ToWarehouseID")
+                        .HasColumnType("int");
+
+                    b.Property<int>("WebsiteID")
+                        .HasColumnType("int");
+
+                    b.HasKey("StockDocumentID");
+
+                    b.HasIndex("ApprovedByMemberID");
+
+                    b.HasIndex("FromWarehouseID");
+
+                    b.HasIndex("OrderID");
+
+                    b.HasIndex("PostedByMemberID");
+
+                    b.HasIndex("RequestedByMemberID");
+
+                    b.HasIndex("SupplierID");
+
+                    b.HasIndex("ToWarehouseID");
+
+                    b.HasIndex("WebsiteID");
+
+                    b.HasIndex(new[] { "PaymentRefundID" }, "IX_StockDocuments_PaymentRefundID");
+
+                    b.ToTable("StockDocuments");
+                });
+
+            modelBuilder.Entity("Dotnetable.Domain.Entities.StockDocumentHistory", b =>
+                {
+                    b.Property<int>("StockDocumentHistoryID")
+                        .ValueGeneratedOnAdd()
+                        .HasColumnType("int");
+
+                    b.Property<DateTime>("CreatedAt")
+                        .HasColumnType("datetime(6)");
+
+                    b.Property<int?>("CreatedByMemberID")
+                        .HasColumnType("int");
+
+                    b.Property<byte>("FromStatus")
+                        .HasColumnType("tinyint unsigned");
+
+                    b.Property<string>("Note")
+                        .HasMaxLength(500)
+                        .HasColumnType("varchar(500)");
+
+                    b.Property<int>("StockDocumentID")
+                        .HasColumnType("int");
+
+                    b.Property<byte>("ToStatus")
+                        .HasColumnType("tinyint unsigned");
+
+                    b.HasKey("StockDocumentHistoryID");
+
+                    b.HasIndex("CreatedByMemberID");
+
+                    b.HasIndex("StockDocumentID");
+
+                    b.ToTable("StockDocumentHistories");
+                });
+
+            modelBuilder.Entity("Dotnetable.Domain.Entities.StockDocumentLine", b =>
+                {
+                    b.Property<int>("StockDocumentLineID")
+                        .ValueGeneratedOnAdd()
+                        .HasColumnType("int");
+
+                    b.Property<int>("BookQuantity")
+                        .ValueGeneratedOnAdd()
+                        .HasColumnType("int")
+                        .HasDefaultValue(0);
+
+                    b.Property<int?>("CountedQuantity")
+                        .HasColumnType("int");
+
+                    b.Property<byte>("HealthGrade")
+                        .ValueGeneratedOnAdd()
+                        .HasColumnType("tinyint unsigned")
+                        .HasDefaultValue((byte)0);
+
+                    b.Property<string>("Note")
+                        .HasMaxLength(300)
+                        .HasColumnType("varchar(300)");
+
+                    b.Property<int>("ProductVariantID")
+                        .HasColumnType("int");
+
+                    b.Property<int>("Quantity")
+                        .HasColumnType("int");
+
+                    b.Property<byte>("ReturnCondition")
+                        .ValueGeneratedOnAdd()
+                        .HasColumnType("tinyint unsigned")
+                        .HasDefaultValue((byte)0);
+
+                    b.Property<int>("StockDocumentID")
+                        .HasColumnType("int");
+
+                    b.Property<decimal>("UnitCost")
+                        .HasColumnType("decimal(18,4)");
+
+                    b.Property<decimal>("UnitCostUsd")
+                        .HasColumnType("decimal(18,4)");
+
+                    b.HasKey("StockDocumentLineID");
+
+                    b.HasIndex("ProductVariantID");
+
+                    b.HasIndex("StockDocumentID");
+
+                    b.ToTable("StockDocumentLines");
+                });
+
             modelBuilder.Entity("Dotnetable.Domain.Entities.StockMovement", b =>
                 {
                     b.Property<int>("StockMovementID")
                         .ValueGeneratedOnAdd()
                         .HasColumnType("int");
 
-                    SqlServerPropertyBuilderExtensions.UseIdentityColumn(b.Property<int>("StockMovementID"));
-
                     b.Property<DateTime>("CreatedAt")
                         .HasPrecision(0)
-                        .HasColumnType("datetime2(0)");
+                        .HasColumnType("datetime(0)");
 
                     b.Property<int?>("CreatedByMemberID")
                         .HasColumnType("int");
@@ -4242,7 +5166,7 @@ namespace Dotnetable.Migrations.SqlServer.Migrations
 
                     b.Property<string>("Note")
                         .HasMaxLength(500)
-                        .HasColumnType("nvarchar(500)");
+                        .HasColumnType("varchar(500)");
 
                     b.Property<int?>("OrderID")
                         .HasColumnType("int");
@@ -4260,7 +5184,7 @@ namespace Dotnetable.Migrations.SqlServer.Migrations
                         .HasColumnType("int");
 
                     b.Property<byte>("Type")
-                        .HasColumnType("tinyint");
+                        .HasColumnType("tinyint unsigned");
 
                     b.Property<decimal>("UnitCost")
                         .HasColumnType("decimal(18, 4)");
@@ -4302,24 +5226,106 @@ namespace Dotnetable.Migrations.SqlServer.Migrations
                         .ValueGeneratedOnAdd()
                         .HasColumnType("int");
 
-                    SqlServerPropertyBuilderExtensions.UseIdentityColumn(b.Property<int>("SupplierID"));
+                    b.Property<string>("AddressLine")
+                        .HasMaxLength(500)
+                        .HasColumnType("varchar(500)");
+
+                    b.Property<string>("BankAccountNumber")
+                        .HasMaxLength(50)
+                        .HasColumnType("varchar(50)");
+
+                    b.Property<string>("BankIban")
+                        .HasMaxLength(34)
+                        .HasColumnType("varchar(34)");
+
+                    b.Property<string>("BankName")
+                        .HasMaxLength(100)
+                        .HasColumnType("varchar(100)");
+
+                    b.Property<string>("CityName")
+                        .HasMaxLength(100)
+                        .HasColumnType("varchar(100)");
+
+                    b.Property<int?>("CountryID")
+                        .HasColumnType("int");
+
+                    b.Property<DateTime>("CreatedAt")
+                        .HasColumnType("datetime");
+
+                    b.Property<string>("DefaultCurrencyCode")
+                        .HasMaxLength(3)
+                        .IsUnicode(false)
+                        .HasColumnType("char(3)")
+                        .IsFixedLength();
+
+                    b.Property<string>("EconomicCode")
+                        .HasMaxLength(50)
+                        .HasColumnType("varchar(50)");
+
+                    b.Property<string>("Email")
+                        .HasMaxLength(120)
+                        .HasColumnType("varchar(120)");
 
                     b.Property<bool>("IsActive")
-                        .HasColumnType("bit");
+                        .HasColumnType("tinyint(1)");
+
+                    b.Property<bool>("IsVatRegistered")
+                        .HasColumnType("tinyint(1)");
+
+                    b.Property<string>("LegalName")
+                        .HasMaxLength(200)
+                        .HasColumnType("varchar(200)");
+
+                    b.Property<int?>("LinkedVendorID")
+                        .HasColumnType("int");
+
+                    b.Property<int?>("LinkedWebsiteID")
+                        .HasColumnType("int");
 
                     b.Property<string>("Name")
                         .IsRequired()
                         .HasMaxLength(200)
-                        .HasColumnType("nvarchar(200)");
+                        .HasColumnType("varchar(200)");
+
+                    b.Property<string>("Notes")
+                        .HasMaxLength(1000)
+                        .HasColumnType("varchar(1000)");
 
                     b.Property<string>("Phone")
                         .HasMaxLength(20)
-                        .HasColumnType("nvarchar(20)");
+                        .HasColumnType("varchar(20)");
+
+                    b.Property<string>("PostalCode")
+                        .HasMaxLength(20)
+                        .HasColumnType("varchar(20)");
+
+                    b.Property<string>("RegistrationNumber")
+                        .HasMaxLength(50)
+                        .HasColumnType("varchar(50)");
+
+                    b.Property<byte>("SupplierType")
+                        .HasColumnType("tinyint unsigned");
+
+                    b.Property<string>("TaxIdentificationNumber")
+                        .HasMaxLength(50)
+                        .HasColumnType("varchar(50)");
+
+                    b.Property<string>("VatNumber")
+                        .HasMaxLength(50)
+                        .HasColumnType("varchar(50)");
 
                     b.Property<int>("WebsiteID")
                         .HasColumnType("int");
 
                     b.HasKey("SupplierID");
+
+                    b.HasIndex("DefaultCurrencyCode");
+
+                    b.HasIndex(new[] { "CountryID" }, "IX_Suppliers_CountryID");
+
+                    b.HasIndex(new[] { "LinkedVendorID" }, "IX_Suppliers_LinkedVendorID");
+
+                    b.HasIndex(new[] { "LinkedWebsiteID" }, "IX_Suppliers_LinkedWebsiteID");
 
                     b.HasIndex(new[] { "WebsiteID" }, "IX_Suppliers_WebsiteID");
 
@@ -4332,14 +5338,12 @@ namespace Dotnetable.Migrations.SqlServer.Migrations
                         .ValueGeneratedOnAdd()
                         .HasColumnType("int");
 
-                    SqlServerPropertyBuilderExtensions.UseIdentityColumn(b.Property<int>("SupportInteractionID"));
-
                     b.Property<string>("Body")
                         .HasMaxLength(4000)
-                        .HasColumnType("nvarchar(4000)");
+                        .HasColumnType("varchar(4000)");
 
                     b.Property<byte?>("CallOutcome")
-                        .HasColumnType("tinyint");
+                        .HasColumnType("tinyint unsigned");
 
                     b.Property<DateTime>("CreatedAt")
                         .HasColumnType("datetime");
@@ -4351,13 +5355,13 @@ namespace Dotnetable.Migrations.SqlServer.Migrations
                         .HasColumnType("int");
 
                     b.Property<byte?>("FromStatus")
-                        .HasColumnType("tinyint");
+                        .HasColumnType("tinyint unsigned");
 
                     b.Property<byte>("InteractionType")
-                        .HasColumnType("tinyint");
+                        .HasColumnType("tinyint unsigned");
 
                     b.Property<bool>("IsInternal")
-                        .HasColumnType("bit");
+                        .HasColumnType("tinyint(1)");
 
                     b.Property<int?>("RelatedOrderID")
                         .HasColumnType("int");
@@ -4366,7 +5370,7 @@ namespace Dotnetable.Migrations.SqlServer.Migrations
                         .HasColumnType("int");
 
                     b.Property<byte?>("ToStatus")
-                        .HasColumnType("tinyint");
+                        .HasColumnType("tinyint unsigned");
 
                     b.HasKey("SupportInteractionID");
 
@@ -4387,10 +5391,8 @@ namespace Dotnetable.Migrations.SqlServer.Migrations
                         .ValueGeneratedOnAdd()
                         .HasColumnType("int");
 
-                    SqlServerPropertyBuilderExtensions.UseIdentityColumn(b.Property<int>("SupportSessionID"));
-
                     b.Property<bool>("Archive")
-                        .HasColumnType("bit");
+                        .HasColumnType("tinyint(1)");
 
                     b.Property<int?>("AssignedMemberID")
                         .HasColumnType("int");
@@ -4400,10 +5402,10 @@ namespace Dotnetable.Migrations.SqlServer.Migrations
 
                     b.Property<string>("CallbackNote")
                         .HasMaxLength(500)
-                        .HasColumnType("nvarchar(500)");
+                        .HasColumnType("varchar(500)");
 
                     b.Property<byte>("Category")
-                        .HasColumnType("tinyint");
+                        .HasColumnType("tinyint unsigned");
 
                     b.Property<string>("CellphoneSnapshot")
                         .HasMaxLength(16)
@@ -4411,7 +5413,7 @@ namespace Dotnetable.Migrations.SqlServer.Migrations
                         .HasColumnType("varchar(16)");
 
                     b.Property<byte>("Channel")
-                        .HasColumnType("tinyint");
+                        .HasColumnType("tinyint unsigned");
 
                     b.Property<DateTime?>("ClosedAt")
                         .HasColumnType("datetime");
@@ -4429,7 +5431,7 @@ namespace Dotnetable.Migrations.SqlServer.Migrations
 
                     b.Property<string>("CustomerNameSnapshot")
                         .HasMaxLength(128)
-                        .HasColumnType("nvarchar(128)");
+                        .HasColumnType("varchar(128)");
 
                     b.Property<string>("EmailSnapshot")
                         .HasMaxLength(64)
@@ -4446,7 +5448,7 @@ namespace Dotnetable.Migrations.SqlServer.Migrations
                         .HasColumnType("datetime");
 
                     b.Property<byte>("Priority")
-                        .HasColumnType("tinyint");
+                        .HasColumnType("tinyint unsigned");
 
                     b.Property<int?>("RelatedOrderID")
                         .HasColumnType("int");
@@ -4458,23 +5460,23 @@ namespace Dotnetable.Migrations.SqlServer.Migrations
                         .HasColumnType("datetime");
 
                     b.Property<byte?>("SatisfactionRating")
-                        .HasColumnType("tinyint");
+                        .HasColumnType("tinyint unsigned");
 
                     b.Property<string>("SessionNumber")
                         .IsRequired()
                         .HasMaxLength(30)
-                        .HasColumnType("nvarchar(30)");
+                        .HasColumnType("varchar(30)");
 
                     b.Property<byte>("Status")
-                        .HasColumnType("tinyint");
+                        .HasColumnType("tinyint unsigned");
 
                     b.Property<string>("Subject")
                         .HasMaxLength(256)
-                        .HasColumnType("nvarchar(256)");
+                        .HasColumnType("varchar(256)");
 
                     b.Property<string>("Tags")
                         .HasMaxLength(256)
-                        .HasColumnType("nvarchar(256)");
+                        .HasColumnType("varchar(256)");
 
                     b.Property<DateTime>("UpdatedAt")
                         .HasColumnType("datetime");
@@ -4515,17 +5517,15 @@ namespace Dotnetable.Migrations.SqlServer.Migrations
                         .ValueGeneratedOnAdd()
                         .HasColumnType("int");
 
-                    SqlServerPropertyBuilderExtensions.UseIdentityColumn(b.Property<int>("TagID"));
-
                     b.Property<string>("Name")
                         .IsRequired()
                         .HasMaxLength(150)
-                        .HasColumnType("nvarchar(150)");
+                        .HasColumnType("varchar(150)");
 
                     b.Property<string>("Slug")
                         .IsRequired()
                         .HasMaxLength(150)
-                        .HasColumnType("nvarchar(150)");
+                        .HasColumnType("varchar(150)");
 
                     b.Property<int>("WebsiteID")
                         .HasColumnType("int");
@@ -4543,8 +5543,6 @@ namespace Dotnetable.Migrations.SqlServer.Migrations
                         .ValueGeneratedOnAdd()
                         .HasColumnType("int");
 
-                    SqlServerPropertyBuilderExtensions.UseIdentityColumn(b.Property<int>("TagTranslationID"));
-
                     b.Property<string>("LanguageCode")
                         .IsRequired()
                         .HasMaxLength(2)
@@ -4555,12 +5553,12 @@ namespace Dotnetable.Migrations.SqlServer.Migrations
                     b.Property<string>("Name")
                         .IsRequired()
                         .HasMaxLength(150)
-                        .HasColumnType("nvarchar(150)");
+                        .HasColumnType("varchar(150)");
 
                     b.Property<string>("Slug")
                         .IsRequired()
                         .HasMaxLength(150)
-                        .HasColumnType("nvarchar(150)");
+                        .HasColumnType("varchar(150)");
 
                     b.Property<int>("TagID")
                         .HasColumnType("int");
@@ -4572,19 +5570,91 @@ namespace Dotnetable.Migrations.SqlServer.Migrations
                     b.ToTable("TagTranslations");
                 });
 
+            modelBuilder.Entity("Dotnetable.Domain.Entities.TaxPeriod", b =>
+                {
+                    b.Property<int>("TaxPeriodID")
+                        .ValueGeneratedOnAdd()
+                        .HasColumnType("int");
+
+                    b.Property<DateTime?>("ClosedAt")
+                        .HasColumnType("datetime(6)");
+
+                    b.Property<int?>("ClosedByMemberID")
+                        .HasColumnType("int");
+
+                    b.Property<DateTime>("CreatedAt")
+                        .HasColumnType("datetime(6)");
+
+                    b.Property<int?>("CreatedByMemberID")
+                        .HasColumnType("int");
+
+                    b.Property<DateOnly>("FromDate")
+                        .HasColumnType("date");
+
+                    b.Property<decimal>("NetTaxSnapshot")
+                        .HasColumnType("decimal(18,4)");
+
+                    b.Property<string>("Note")
+                        .HasMaxLength(1000)
+                        .HasColumnType("varchar(1000)");
+
+                    b.Property<int>("OutputOrderCount")
+                        .HasColumnType("int");
+
+                    b.Property<decimal>("OutputTaxSnapshot")
+                        .HasColumnType("decimal(18,4)");
+
+                    b.Property<string>("PeriodCode")
+                        .IsRequired()
+                        .HasMaxLength(30)
+                        .HasColumnType("varchar(30)");
+
+                    b.Property<int>("SettlementCount")
+                        .HasColumnType("int");
+
+                    b.Property<decimal>("SettlementTaxSnapshot")
+                        .HasColumnType("decimal(18,4)");
+
+                    b.Property<DateTime?>("SnapshotAt")
+                        .HasColumnType("datetime(6)");
+
+                    b.Property<byte>("Status")
+                        .HasColumnType("tinyint unsigned");
+
+                    b.Property<DateOnly>("ToDate")
+                        .HasColumnType("date");
+
+                    b.Property<int>("WebsiteID")
+                        .HasColumnType("int");
+
+                    b.HasKey("TaxPeriodID");
+
+                    b.HasIndex("ClosedByMemberID");
+
+                    b.HasIndex("CreatedByMemberID");
+
+                    b.HasIndex(new[] { "WebsiteID", "PeriodCode" }, "IX_TaxPeriods_Website_Code")
+                        .IsUnique();
+
+                    b.HasIndex(new[] { "WebsiteID", "Status", "FromDate" }, "IX_TaxPeriods_Website_Status");
+
+                    b.ToTable("TaxPeriods");
+                });
+
             modelBuilder.Entity("Dotnetable.Domain.Entities.TaxRate", b =>
                 {
                     b.Property<int>("TaxRateID")
                         .ValueGeneratedOnAdd()
                         .HasColumnType("int");
 
-                    SqlServerPropertyBuilderExtensions.UseIdentityColumn(b.Property<int>("TaxRateID"));
+                    b.Property<bool>("ApplyToShipping")
+                        .HasColumnType("tinyint(1)");
 
                     b.Property<int?>("CountryID")
                         .HasColumnType("int");
 
                     b.Property<bool>("IsActive")
-                        .HasColumnType("bit");
+                        .HasColumnType("tinyint(1)");
 
                     b.Property<int>("Priority")
                         .HasColumnType("int");
@@ -4595,10 +5665,17 @@ namespace Dotnetable.Migrations.SqlServer.Migrations
                     b.Property<int?>("StateID")
                         .HasColumnType("int");
 
+                    b.Property<string>("TaxCode")
+                        .HasMaxLength(30)
+                        .HasColumnType("varchar(30)");
+
+                    b.Property<byte>("TaxKind")
+                        .HasColumnType("tinyint unsigned");
+
                     b.Property<string>("Title")
                         .IsRequired()
                         .HasMaxLength(100)
-                        .HasColumnType("nvarchar(100)");
+                        .HasColumnType("varchar(100)");
 
                     b.Property<int>("WebsiteID")
                         .HasColumnType("int");
@@ -4640,8 +5717,6 @@ namespace Dotnetable.Migrations.SqlServer.Migrations
                         .ValueGeneratedOnAdd()
                         .HasColumnType("int");
 
-                    SqlServerPropertyBuilderExtensions.UseIdentityColumn(b.Property<int>("VendorID"));
-
                     b.Property<decimal>("AvailableCredit")
                         .HasColumnType("decimal(18, 4)");
 
@@ -4660,7 +5735,7 @@ namespace Dotnetable.Migrations.SqlServer.Migrations
                         .HasComment("maximum outstanding credit balance allowed for this vendor, in USD; only meaningful when SettlementMode = Credit");
 
                     b.Property<bool>("IsActive")
-                        .HasColumnType("bit");
+                        .HasColumnType("tinyint(1)");
 
                     b.Property<int?>("LinkedWebsiteID")
                         .HasColumnType("int");
@@ -4674,22 +5749,28 @@ namespace Dotnetable.Migrations.SqlServer.Migrations
                     b.Property<string>("Name")
                         .IsRequired()
                         .HasMaxLength(200)
-                        .HasColumnType("nvarchar(200)");
+                        .HasColumnType("varchar(200)");
 
                     b.Property<decimal>("Rating")
                         .HasColumnType("decimal(3, 2)");
 
+                    b.Property<string>("SettlementCurrencyCode")
+                        .HasMaxLength(3)
+                        .IsUnicode(false)
+                        .HasColumnType("char(3)")
+                        .IsFixedLength();
+
                     b.Property<byte>("SettlementMode")
-                        .HasColumnType("tinyint")
+                        .HasColumnType("tinyint unsigned")
                         .HasComment("0 = Immediate: every purchase from this vendor is settled instantly like a normal cash purchase. 1 = Credit: purchases accrue as credit and are batched into a periodic Settlements record due on CreditDays");
 
                     b.Property<string>("Slug")
                         .IsRequired()
                         .HasMaxLength(200)
-                        .HasColumnType("nvarchar(200)");
+                        .HasColumnType("varchar(200)");
 
                     b.Property<byte>("VendorType")
-                        .HasColumnType("tinyint")
+                        .HasColumnType("tinyint unsigned")
                         .HasComment("0 = Display-only title, 1 = Member login (manage own catalog), 2 = Linked website (inter-site virtual credit)");
 
                     b.Property<int>("WebsiteID")
@@ -4705,6 +5786,8 @@ namespace Dotnetable.Migrations.SqlServer.Migrations
                         .IsUnique()
                         .HasFilter("([MemberID] IS NOT NULL)");
 
+                    b.HasIndex(new[] { "SettlementCurrencyCode" }, "IX_Vendors_SettlementCurrencyCode");
+
                     b.HasIndex(new[] { "WebsiteID" }, "IX_Vendors_WebsiteID");
 
                     b.ToTable("Vendors");
@@ -4715,8 +5798,6 @@ namespace Dotnetable.Migrations.SqlServer.Migrations
                     b.Property<int>("VendorCreditTransactionID")
                         .ValueGeneratedOnAdd()
                         .HasColumnType("int");
-
-                    SqlServerPropertyBuilderExtensions.UseIdentityColumn(b.Property<int>("VendorCreditTransactionID"));
 
                     b.Property<decimal>("Amount")
                         .HasColumnType("decimal(18, 4)");
@@ -4741,13 +5822,13 @@ namespace Dotnetable.Migrations.SqlServer.Migrations
 
                     b.Property<string>("Note")
                         .HasMaxLength(500)
-                        .HasColumnType("nvarchar(500)");
+                        .HasColumnType("varchar(500)");
 
                     b.Property<int?>("SourceOrderItemID")
                         .HasColumnType("int");
 
                     b.Property<byte>("SourceType")
-                        .HasColumnType("tinyint")
+                        .HasColumnType("tinyint unsigned")
                         .HasComment("1 = Grant, 2 = Sale, 3 = Adjustment, 4 = Refund");
 
                     b.Property<int>("VendorID")
@@ -4777,13 +5858,21 @@ namespace Dotnetable.Migrations.SqlServer.Migrations
                         .ValueGeneratedOnAdd()
                         .HasColumnType("int");
 
-                    SqlServerPropertyBuilderExtensions.UseIdentityColumn(b.Property<int>("VendorProductID"));
-
                     b.Property<int>("DeliveryDays")
                         .HasColumnType("int");
 
+                    b.Property<byte>("HealthGrade")
+                        .ValueGeneratedOnAdd()
+                        .HasColumnType("tinyint unsigned")
+                        .HasDefaultValue((byte)0);
+
                     b.Property<bool>("IsActive")
-                        .HasColumnType("bit");
+                        .HasColumnType("tinyint(1)");
+
+                    b.Property<byte>("ItemCondition")
+                        .ValueGeneratedOnAdd()
+                        .HasColumnType("tinyint unsigned")
+                        .HasDefaultValue((byte)1);
 
                     b.Property<decimal?>("OverridePrice")
                         .HasColumnType("decimal(18, 4)");
@@ -4829,8 +5918,6 @@ namespace Dotnetable.Migrations.SqlServer.Migrations
                         .ValueGeneratedOnAdd()
                         .HasColumnType("int");
 
-                    SqlServerPropertyBuilderExtensions.UseIdentityColumn(b.Property<int>("VendorTranslationID"));
-
                     b.Property<string>("LanguageCode")
                         .IsRequired()
                         .HasMaxLength(2)
@@ -4841,7 +5928,7 @@ namespace Dotnetable.Migrations.SqlServer.Migrations
                     b.Property<string>("Name")
                         .IsRequired()
                         .HasMaxLength(200)
-                        .HasColumnType("nvarchar(200)");
+                        .HasColumnType("varchar(200)");
 
                     b.Property<int>("VendorID")
                         .HasColumnType("int");
@@ -4853,27 +5940,99 @@ namespace Dotnetable.Migrations.SqlServer.Migrations
                     b.ToTable("VendorTranslations");
                 });
 
+            modelBuilder.Entity("Dotnetable.Domain.Entities.Warehouse", b =>
+                {
+                    b.Property<int>("WarehouseID")
+                        .ValueGeneratedOnAdd()
+                        .HasColumnType("int");
+
+                    b.Property<string>("Address")
+                        .HasMaxLength(500)
+                        .HasColumnType("varchar(500)");
+
+                    b.Property<string>("Code")
+                        .IsRequired()
+                        .HasMaxLength(20)
+                        .HasColumnType("varchar(20)");
+
+                    b.Property<DateTime>("CreatedAt")
+                        .HasColumnType("datetime(6)");
+
+                    b.Property<bool>("IsActive")
+                        .HasColumnType("tinyint(1)");
+
+                    b.Property<bool>("IsDefault")
+                        .HasColumnType("tinyint(1)");
+
+                    b.Property<string>("Name")
+                        .IsRequired()
+                        .HasMaxLength(200)
+                        .HasColumnType("varchar(200)");
+
+                    b.Property<int>("WebsiteID")
+                        .HasColumnType("int");
+
+                    b.HasKey("WarehouseID");
+
+                    b.HasIndex(new[] { "WebsiteID", "Code" }, "IX_Warehouses_Website_Code")
+                        .IsUnique();
+
+                    b.ToTable("Warehouses");
+                });
+
+            modelBuilder.Entity("Dotnetable.Domain.Entities.WarehouseStock", b =>
+                {
+                    b.Property<int>("WarehouseStockID")
+                        .ValueGeneratedOnAdd()
+                        .HasColumnType("int");
+
+                    b.Property<int>("ProductVariantID")
+                        .HasColumnType("int");
+
+                    b.Property<int>("QuantityOnHand")
+                        .HasColumnType("int");
+
+                    b.Property<int>("QuantityReserved")
+                        .HasColumnType("int");
+
+                    b.Property<byte[]>("RowVersion")
+                        .IsConcurrencyToken()
+                        .IsRequired()
+                        .ValueGeneratedOnAddOrUpdate()
+                        .HasColumnType("longblob");
+
+                    b.Property<int>("WarehouseID")
+                        .HasColumnType("int");
+
+                    b.HasKey("WarehouseStockID");
+
+                    b.HasIndex("ProductVariantID");
+
+                    b.HasIndex(new[] { "WarehouseID", "ProductVariantID" }, "IX_WarehouseStocks_Warehouse_Variant")
+                        .IsUnique();
+
+                    b.ToTable("WarehouseStocks");
+                });
+
             modelBuilder.Entity("Dotnetable.Domain.Entities.Warranty", b =>
                 {
                     b.Property<int>("WarrantyID")
                         .ValueGeneratedOnAdd()
                         .HasColumnType("int");
 
-                    SqlServerPropertyBuilderExtensions.UseIdentityColumn(b.Property<int>("WarrantyID"));
-
                     b.Property<string>("Description")
                         .HasMaxLength(2000)
-                        .HasColumnType("nvarchar(2000)");
+                        .HasColumnType("varchar(2000)");
 
                     b.Property<int?>("DurationMonths")
                         .HasColumnType("int");
 
                     b.Property<bool>("IsActive")
-                        .HasColumnType("bit");
+                        .HasColumnType("tinyint(1)");
 
                     b.Property<string>("ProviderName")
                         .HasMaxLength(200)
-                        .HasColumnType("nvarchar(200)");
+                        .HasColumnType("varchar(200)");
 
                     b.Property<int>("SortOrder")
                         .HasColumnType("int");
@@ -4881,7 +6040,7 @@ namespace Dotnetable.Migrations.SqlServer.Migrations
                     b.Property<string>("Title")
                         .IsRequired()
                         .HasMaxLength(200)
-                        .HasColumnType("nvarchar(200)");
+                        .HasColumnType("varchar(200)");
 
                     b.Property<int>("WebsiteID")
                         .HasColumnType("int");
@@ -4899,11 +6058,9 @@ namespace Dotnetable.Migrations.SqlServer.Migrations
                         .ValueGeneratedOnAdd()
                         .HasColumnType("int");
 
-                    SqlServerPropertyBuilderExtensions.UseIdentityColumn(b.Property<int>("WarrantyTranslationID"));
-
                     b.Property<string>("Description")
                         .HasMaxLength(2000)
-                        .HasColumnType("nvarchar(2000)");
+                        .HasColumnType("varchar(2000)");
 
                     b.Property<string>("LanguageCode")
                         .IsRequired()
@@ -4914,12 +6071,12 @@ namespace Dotnetable.Migrations.SqlServer.Migrations
 
                     b.Property<string>("ProviderName")
                         .HasMaxLength(200)
-                        .HasColumnType("nvarchar(200)");
+                        .HasColumnType("varchar(200)");
 
                     b.Property<string>("Title")
                         .IsRequired()
                         .HasMaxLength(200)
-                        .HasColumnType("nvarchar(200)");
+                        .HasColumnType("varchar(200)");
 
                     b.Property<int>("WarrantyID")
                         .HasColumnType("int");
@@ -4937,21 +6094,24 @@ namespace Dotnetable.Migrations.SqlServer.Migrations
                         .ValueGeneratedOnAdd()
                         .HasColumnType("int");
 
-                    SqlServerPropertyBuilderExtensions.UseIdentityColumn(b.Property<int>("WebsiteID"));
-
                     b.Property<bool>("Active")
-                        .HasColumnType("bit");
+                        .HasColumnType("tinyint(1)");
 
                     b.Property<bool>("AllowAllIP")
-                        .HasColumnType("bit");
+                        .HasColumnType("tinyint(1)");
+
+                    b.Property<bool>("AllowCashOnDelivery")
+                        .ValueGeneratedOnAdd()
+                        .HasColumnType("tinyint(1)")
+                        .HasDefaultValue(true);
 
                     b.Property<Guid>("AuthCode")
-                        .HasColumnType("uniqueidentifier");
+                        .HasColumnType("char(36)");
 
                     b.Property<string>("BrandName")
                         .IsRequired()
                         .HasMaxLength(60)
-                        .HasColumnType("nvarchar(60)")
+                        .HasColumnType("varchar(60)")
                         .HasComment("show in title of pages");
 
                     b.Property<string>("DefaultCurrencyCode")
@@ -4977,8 +6137,34 @@ namespace Dotnetable.Migrations.SqlServer.Migrations
                     b.Property<int?>("FaveIconFileID")
                         .HasColumnType("int");
 
+                    b.Property<int>("FiscalCloseDueDays")
+                        .ValueGeneratedOnAdd()
+                        .HasColumnType("int")
+                        .HasDefaultValue(5);
+
+                    b.Property<byte>("FiscalPeriodCadence")
+                        .ValueGeneratedOnAdd()
+                        .HasColumnType("tinyint unsigned")
+                        .HasDefaultValue((byte)3);
+
+                    b.Property<byte>("FiscalWeekStartDay")
+                        .ValueGeneratedOnAdd()
+                        .HasColumnType("tinyint unsigned")
+                        .HasDefaultValue((byte)1);
+
+                    b.Property<byte>("FiscalYearStartMonth")
+                        .ValueGeneratedOnAdd()
+                        .HasColumnType("tinyint unsigned")
+                        .HasDefaultValue((byte)1);
+
+                    b.Property<decimal>("FreeShippingMinOrderAmount")
+                        .HasColumnType("decimal(18, 4)");
+
+                    b.Property<decimal>("FreeShippingMinOrderAmountUsd")
+                        .HasColumnType("decimal(18, 4)");
+
                     b.Property<bool>("IsHub")
-                        .HasColumnType("bit");
+                        .HasColumnType("tinyint(1)");
 
                     b.Property<int?>("LogoFileID")
                         .HasColumnType("int");
@@ -4986,7 +6172,7 @@ namespace Dotnetable.Migrations.SqlServer.Migrations
                     b.Property<string>("Manager")
                         .IsRequired()
                         .HasMaxLength(30)
-                        .HasColumnType("nvarchar(30)");
+                        .HasColumnType("varchar(30)");
 
                     b.Property<string>("Mobile")
                         .IsRequired()
@@ -4994,19 +6180,66 @@ namespace Dotnetable.Migrations.SqlServer.Migrations
                         .IsUnicode(false)
                         .HasColumnType("varchar(15)");
 
+                    b.Property<bool>("PricesIncludeTax")
+                        .HasColumnType("tinyint(1)");
+
+                    b.Property<string>("ProductCodePrefix")
+                        .IsRequired()
+                        .ValueGeneratedOnAdd()
+                        .HasMaxLength(3)
+                        .HasColumnType("varchar(3)")
+                        .HasDefaultValue("DN")
+                        .HasComment("1–3 letter product code prefix; codes are {prefix}-{ProductID}.");
+
                     b.Property<DateOnly>("RegisterDate")
                         .HasColumnType("date");
 
+                    b.Property<bool>("ReportOfflineOrdersToTax")
+                        .ValueGeneratedOnAdd()
+                        .HasColumnType("tinyint(1)")
+                        .HasDefaultValue(false);
+
+                    b.Property<string>("SellerEconomicCode")
+                        .HasMaxLength(50)
+                        .HasColumnType("varchar(50)");
+
+                    b.Property<string>("SellerLegalName")
+                        .HasMaxLength(200)
+                        .HasColumnType("varchar(200)");
+
+                    b.Property<string>("SellerRegistrationNumber")
+                        .HasMaxLength(50)
+                        .HasColumnType("varchar(50)");
+
+                    b.Property<string>("SellerTaxId")
+                        .HasMaxLength(50)
+                        .HasColumnType("varchar(50)");
+
+                    b.Property<string>("SellerVatNumber")
+                        .HasMaxLength(50)
+                        .HasColumnType("varchar(50)");
+
                     b.Property<bool>("StorePricesInUsd")
                         .ValueGeneratedOnAdd()
-                        .HasColumnType("bit")
+                        .HasColumnType("tinyint(1)")
                         .HasDefaultValue(false)
                         .HasComment("When true, also persist USD dual columns; default site currency is always operational authority.");
+
+                    b.Property<int?>("TaxCountryID")
+                        .HasColumnType("int");
+
+                    b.Property<bool>("TaxEnabled")
+                        .ValueGeneratedOnAdd()
+                        .HasColumnType("tinyint(1)")
+                        .HasDefaultValue(true);
+
+                    b.Property<bool>("TaxOnShipping")
+                        .HasColumnType("tinyint(1)");
 
                     b.Property<string>("TradeName")
                         .IsRequired()
                         .HasMaxLength(32)
-                        .HasColumnType("nvarchar(32)");
+                        .HasColumnType("varchar(32)");
 
                     b.Property<string>("WebsiteAddress")
                         .IsRequired()
@@ -5015,9 +6248,11 @@ namespace Dotnetable.Migrations.SqlServer.Migrations
                         .HasColumnType("varchar(60)");
 
                     b.Property<byte>("WebsiteType")
-                        .HasColumnType("tinyint");
+                        .HasColumnType("tinyint unsigned");
 
                     b.HasKey("WebsiteID");
+
+                    b.HasIndex("TaxCountryID");
 
                     b.HasIndex(new[] { "DefaultCurrencyCode" }, "IX_Websites_DefaultCurrencyCode");
 
@@ -5034,18 +6269,16 @@ namespace Dotnetable.Migrations.SqlServer.Migrations
                         .ValueGeneratedOnAdd()
                         .HasColumnType("int");
 
-                    SqlServerPropertyBuilderExtensions.UseIdentityColumn(b.Property<int>("WebsiteCaptchaSettingID"));
-
                     b.Property<byte>("Provider")
-                        .HasColumnType("tinyint");
+                        .HasColumnType("tinyint unsigned");
 
                     b.Property<string>("TurnstileSecretKey")
                         .HasMaxLength(200)
-                        .HasColumnType("nvarchar(200)");
+                        .HasColumnType("varchar(200)");
 
                     b.Property<string>("TurnstileSiteKey")
                         .HasMaxLength(200)
-                        .HasColumnType("nvarchar(200)");
+                        .HasColumnType("varchar(200)");
 
                     b.Property<int>("WebsiteID")
                         .HasColumnType("int");
@@ -5064,10 +6297,8 @@ namespace Dotnetable.Migrations.SqlServer.Migrations
                         .ValueGeneratedOnAdd()
                         .HasColumnType("int");
 
-                    SqlServerPropertyBuilderExtensions.UseIdentityColumn(b.Property<int>("WebsiteClientID"));
-
                     b.Property<bool>("Active")
-                        .HasColumnType("bit");
+                        .HasColumnType("tinyint(1)");
 
                     b.Property<int?>("AvatarID")
                         .HasColumnType("int");
@@ -5078,7 +6309,7 @@ namespace Dotnetable.Migrations.SqlServer.Migrations
                         .HasColumnType("varchar(16)");
 
                     b.Property<byte>("ClientLevel")
-                        .HasColumnType("tinyint");
+                        .HasColumnType("tinyint unsigned");
 
                     b.Property<string>("CountryCode")
                         .HasMaxLength(3)
@@ -5091,14 +6322,14 @@ namespace Dotnetable.Migrations.SqlServer.Migrations
                         .HasColumnType("varchar(60)");
 
                     b.Property<bool?>("Gender")
-                        .HasColumnType("bit");
+                        .HasColumnType("tinyint(1)");
 
                     b.Property<string>("Givenname")
                         .HasMaxLength(42)
-                        .HasColumnType("nvarchar(42)");
+                        .HasColumnType("varchar(42)");
 
                     b.Property<Guid>("HashKey")
-                        .HasColumnType("uniqueidentifier");
+                        .HasColumnType("char(36)");
 
                     b.Property<string>("Password")
                         .HasMaxLength(256)
@@ -5110,7 +6341,7 @@ namespace Dotnetable.Migrations.SqlServer.Migrations
 
                     b.Property<string>("Surname")
                         .HasMaxLength(42)
-                        .HasColumnType("nvarchar(42)");
+                        .HasColumnType("varchar(42)");
 
                     b.Property<int>("WebsiteID")
                         .HasColumnType("int");
@@ -5130,12 +6361,10 @@ namespace Dotnetable.Migrations.SqlServer.Migrations
                         .ValueGeneratedOnAdd()
                         .HasColumnType("int");
 
-                    SqlServerPropertyBuilderExtensions.UseIdentityColumn(b.Property<int>("WebsiteClientAddressID"));
-
                     b.Property<string>("AddressLine")
                         .IsRequired()
                         .HasMaxLength(500)
-                        .HasColumnType("nvarchar(500)");
+                        .HasColumnType("varchar(500)");
 
                     b.Property<int?>("CityId")
                         .HasColumnType("int");
@@ -5144,7 +6373,7 @@ namespace Dotnetable.Migrations.SqlServer.Migrations
                         .HasColumnType("int");
 
                     b.Property<bool>("IsDefault")
-                        .HasColumnType("bit");
+                        .HasColumnType("tinyint(1)");
 
                     b.Property<decimal?>("Latitude")
                         .HasColumnType("decimal(9, 6)");
@@ -5154,19 +6383,19 @@ namespace Dotnetable.Migrations.SqlServer.Migrations
 
                     b.Property<string>("Phone")
                         .HasMaxLength(20)
-                        .HasColumnType("nvarchar(20)");
+                        .HasColumnType("varchar(20)");
 
                     b.Property<string>("PostalCode")
                         .HasMaxLength(20)
-                        .HasColumnType("nvarchar(20)");
+                        .HasColumnType("varchar(20)");
 
                     b.Property<string>("ReceiverName")
                         .HasMaxLength(200)
-                        .HasColumnType("nvarchar(200)");
+                        .HasColumnType("varchar(200)");
 
                     b.Property<string>("Title")
                         .HasMaxLength(100)
-                        .HasColumnType("nvarchar(100)");
+                        .HasColumnType("varchar(100)");
 
                     b.Property<int>("WebsiteClientID")
                         .HasColumnType("int");
@@ -5187,8 +6416,6 @@ namespace Dotnetable.Migrations.SqlServer.Migrations
                     b.Property<int>("WebsiteClientForgetPasswordID")
                         .ValueGeneratedOnAdd()
                         .HasColumnType("int");
-
-                    SqlServerPropertyBuilderExtensions.UseIdentityColumn(b.Property<int>("WebsiteClientForgetPasswordID"));
 
                     b.Property<string>("ForgetKey")
                         .IsRequired()
@@ -5215,17 +6442,15 @@ namespace Dotnetable.Migrations.SqlServer.Migrations
                         .ValueGeneratedOnAdd()
                         .HasColumnType("int");
 
-                    SqlServerPropertyBuilderExtensions.UseIdentityColumn(b.Property<int>("WebsiteFeatureID"));
-
                     b.Property<DateTime>("CreatedAt")
                         .HasPrecision(0)
-                        .HasColumnType("datetime2(0)");
+                        .HasColumnType("datetime(0)");
 
                     b.Property<bool>("Enabled")
-                        .HasColumnType("bit");
+                        .HasColumnType("tinyint(1)");
 
                     b.Property<byte>("FeatureKey")
-                        .HasColumnType("tinyint");
+                        .HasColumnType("tinyint unsigned");
 
                     b.Property<int>("WebsiteID")
                         .HasColumnType("int");
@@ -5244,10 +6469,8 @@ namespace Dotnetable.Migrations.SqlServer.Migrations
                         .ValueGeneratedOnAdd()
                         .HasColumnType("int");
 
-                    SqlServerPropertyBuilderExtensions.UseIdentityColumn(b.Property<int>("WebsiteIPID"));
-
                     b.Property<bool>("Active")
-                        .HasColumnType("bit");
+                        .HasColumnType("tinyint(1)");
 
                     b.Property<int?>("CidrPrefix")
                         .HasColumnType("int");
@@ -5260,7 +6483,7 @@ namespace Dotnetable.Migrations.SqlServer.Migrations
                     b.Property<string>("Label")
                         .IsRequired()
                         .HasMaxLength(30)
-                        .HasColumnType("nvarchar(30)");
+                        .HasColumnType("varchar(30)");
 
                     b.Property<string>("StartIP")
                         .IsRequired()
@@ -5284,8 +6507,6 @@ namespace Dotnetable.Migrations.SqlServer.Migrations
                         .ValueGeneratedOnAdd()
                         .HasColumnType("int");
 
-                    SqlServerPropertyBuilderExtensions.UseIdentityColumn(b.Property<int>("WebsiteRedirectID"));
-
                     b.Property<DateTime>("CreatedAt")
                         .HasColumnType("datetime");
 
@@ -5293,15 +6514,15 @@ namespace Dotnetable.Migrations.SqlServer.Migrations
                         .HasColumnType("int");
 
                     b.Property<bool>("IsActive")
-                        .HasColumnType("bit");
+                        .HasColumnType("tinyint(1)");
 
                     b.Property<bool>("IsRegex")
-                        .HasColumnType("bit");
+                        .HasColumnType("tinyint(1)");
 
                     b.Property<string>("SourcePath")
                         .IsRequired()
                         .HasMaxLength(500)
-                        .HasColumnType("nvarchar(500)");
+                        .HasColumnType("varchar(500)");
 
                     b.Property<int>("StatusCode")
                         .HasColumnType("int");
@@ -5309,7 +6530,7 @@ namespace Dotnetable.Migrations.SqlServer.Migrations
                     b.Property<string>("TargetPath")
                         .IsRequired()
                         .HasMaxLength(500)
-                        .HasColumnType("nvarchar(500)");
+                        .HasColumnType("varchar(500)");
 
                     b.Property<int>("WebsiteID")
                         .HasColumnType("int");
@@ -5327,10 +6548,8 @@ namespace Dotnetable.Migrations.SqlServer.Migrations
                         .ValueGeneratedOnAdd()
                         .HasColumnType("int");
 
-                    SqlServerPropertyBuilderExtensions.UseIdentityColumn(b.Property<int>("WebsiteScriptID"));
-
                     b.Property<bool>("Active")
-                        .HasColumnType("bit");
+                        .HasColumnType("tinyint(1)");
 
                     b.Property<DateTime>("LogTime")
                         .HasColumnType("datetime");
@@ -5342,18 +6561,18 @@ namespace Dotnetable.Migrations.SqlServer.Migrations
                         .HasColumnType("varchar(50)");
 
                     b.Property<byte?>("Priority")
-                        .HasColumnType("tinyint");
+                        .HasColumnType("tinyint unsigned");
 
                     b.Property<string>("RawContent")
                         .IsRequired()
                         .HasMaxLength(4000)
-                        .HasColumnType("nvarchar(4000)");
+                        .HasColumnType("varchar(4000)");
 
                     b.Property<byte>("ScriptLoadCondition")
-                        .HasColumnType("tinyint");
+                        .HasColumnType("tinyint unsigned");
 
                     b.Property<byte>("ScriptPosition")
-                        .HasColumnType("tinyint");
+                        .HasColumnType("tinyint unsigned");
 
                     b.Property<int>("WebsiteID")
                         .HasColumnType("int");
@@ -5371,15 +6590,13 @@ namespace Dotnetable.Migrations.SqlServer.Migrations
                         .ValueGeneratedOnAdd()
                         .HasColumnType("int");
 
-                    SqlServerPropertyBuilderExtensions.UseIdentityColumn(b.Property<int>("WebsiteSeoSettingID"));
-
                     b.Property<string>("CustomRobotsTxt")
                         .IsRequired()
-                        .HasColumnType("nvarchar(max)");
+                        .HasColumnType("longtext");
 
                     b.Property<string>("DefaultMetaDescription")
                         .HasMaxLength(158)
-                        .HasColumnType("nvarchar(158)");
+                        .HasColumnType("varchar(158)");
 
                     b.Property<string>("DefaultMetaTitle")
                         .HasMaxLength(40)
@@ -5388,10 +6605,10 @@ namespace Dotnetable.Migrations.SqlServer.Migrations
                         .HasComment("Page | {SiteName}");
 
                     b.Property<bool>("RobotsEnabled")
-                        .HasColumnType("bit");
+                        .HasColumnType("tinyint(1)");
 
                     b.Property<bool>("SitemapEnabled")
-                        .HasColumnType("bit");
+                        .HasColumnType("tinyint(1)");
 
                     b.Property<string>("TitleSeparator")
                         .HasMaxLength(3)
@@ -5415,8 +6632,6 @@ namespace Dotnetable.Migrations.SqlServer.Migrations
                         .ValueGeneratedOnAdd()
                         .HasColumnType("int");
 
-                    SqlServerPropertyBuilderExtensions.UseIdentityColumn(b.Property<int>("WebsiteSocialLinkID"));
-
                     b.Property<string>("SocialIcon")
                         .HasMaxLength(64)
                         .IsUnicode(false)
@@ -5424,15 +6639,15 @@ namespace Dotnetable.Migrations.SqlServer.Migrations
 
                     b.Property<string>("SocialName")
                         .HasMaxLength(64)
-                        .HasColumnType("nvarchar(64)");
+                        .HasColumnType("varchar(64)");
 
                     b.Property<byte>("SocialType")
-                        .HasColumnType("tinyint");
+                        .HasColumnType("tinyint unsigned");
 
                     b.Property<string>("UrlAddress")
                         .IsRequired()
                         .HasMaxLength(80)
-                        .HasColumnType("nvarchar(80)");
+                        .HasColumnType("varchar(80)");
 
                     b.Property<int>("WebsiteID")
                         .HasColumnType("int");
@@ -5450,10 +6665,8 @@ namespace Dotnetable.Migrations.SqlServer.Migrations
                         .ValueGeneratedOnAdd()
                         .HasColumnType("int");
 
-                    SqlServerPropertyBuilderExtensions.UseIdentityColumn(b.Property<int>("WebsiteStorageSettingsID"));
-
                     b.Property<bool>("Active")
-                        .HasColumnType("bit");
+                        .HasColumnType("tinyint(1)");
 
                     b.Property<string>("AllowedExtensions")
                         .HasMaxLength(710)
@@ -5461,7 +6674,7 @@ namespace Dotnetable.Migrations.SqlServer.Migrations
                         .HasColumnType("varchar(710)");
 
                     b.Property<bool>("AutoGenerateThumbnails")
-                        .HasColumnType("bit");
+                        .HasColumnType("tinyint(1)");
 
                     b.Property<long>("MaxFileSizeKB")
                         .HasColumnType("bigint");
@@ -5472,7 +6685,7 @@ namespace Dotnetable.Migrations.SqlServer.Migrations
                     b.Property<string>("StorageSettingsJSON")
                         .IsRequired()
                         .HasMaxLength(2000)
-                        .HasColumnType("nvarchar(2000)");
+                        .HasColumnType("varchar(2000)");
 
                     b.Property<int>("WebsiteID")
                         .HasColumnType("int");
@@ -5490,38 +6703,36 @@ namespace Dotnetable.Migrations.SqlServer.Migrations
                         .ValueGeneratedOnAdd()
                         .HasColumnType("int");
 
-                    SqlServerPropertyBuilderExtensions.UseIdentityColumn(b.Property<int>("WebsiteThemeID"));
-
                     b.Property<string>("Author")
                         .HasMaxLength(100)
-                        .HasColumnType("nvarchar(100)");
+                        .HasColumnType("varchar(100)");
 
                     b.Property<DateTime>("CreatedAt")
                         .HasColumnType("datetime");
 
                     b.Property<string>("Description")
                         .HasMaxLength(500)
-                        .HasColumnType("nvarchar(500)");
+                        .HasColumnType("varchar(500)");
 
                     b.Property<bool>("HasScreenshot")
-                        .HasColumnType("bit");
+                        .HasColumnType("tinyint(1)");
 
                     b.Property<bool>("IsActive")
-                        .HasColumnType("bit");
+                        .HasColumnType("tinyint(1)");
 
                     b.Property<string>("Name")
                         .IsRequired()
                         .HasMaxLength(100)
-                        .HasColumnType("nvarchar(100)");
+                        .HasColumnType("varchar(100)");
 
                     b.Property<string>("Slug")
                         .IsRequired()
                         .HasMaxLength(64)
-                        .HasColumnType("nvarchar(64)");
+                        .HasColumnType("varchar(64)");
 
                     b.Property<string>("Version")
                         .HasMaxLength(50)
-                        .HasColumnType("nvarchar(50)");
+                        .HasColumnType("varchar(50)");
 
                     b.Property<int>("WebsiteID")
                         .HasColumnType("int");
@@ -5536,22 +6747,58 @@ namespace Dotnetable.Migrations.SqlServer.Migrations
                     b.ToTable("WebsiteThemes");
                 });
 
+            modelBuilder.Entity("Dotnetable.Domain.Entities.WebsiteWalletCurrency", b =>
+                {
+                    b.Property<int>("WebsiteWalletCurrencyID")
+                        .ValueGeneratedOnAdd()
+                        .HasColumnType("int");
+
+                    b.Property<DateTime>("CreatedAt")
+                        .HasPrecision(0)
+                        .HasColumnType("datetime(0)");
+
+                    b.Property<string>("CurrencyCode")
+                        .IsRequired()
+                        .HasMaxLength(3)
+                        .IsUnicode(false)
+                        .HasColumnType("char(3)")
+                        .IsFixedLength();
+
+                    b.Property<bool>("IsActive")
+                        .HasColumnType("tinyint(1)");
+
+                    b.Property<bool>("IsDefault")
+                        .HasColumnType("tinyint(1)");
+
+                    b.Property<int>("WebsiteID")
+                        .HasColumnType("int");
+
+                    b.HasKey("WebsiteWalletCurrencyID");
+
+                    b.HasIndex(new[] { "CurrencyCode" }, "IX_WebsiteWalletCurrencies_CurrencyCode");
+
+                    b.HasIndex(new[] { "WebsiteID" }, "IX_WebsiteWalletCurrencies_WebsiteID");
+
+                    b.HasIndex(new[] { "WebsiteID", "CurrencyCode" }, "UQ_WebsiteWalletCurrencies_Website_Currency")
+                        .IsUnique();
+
+                    b.ToTable("WebsiteWalletCurrencies");
+                });
+
             modelBuilder.Entity("Dotnetable.Domain.Entities.WebsiteWatermarkSetting", b =>
                 {
                     b.Property<int>("WebsiteWatermarkSettingID")
                         .ValueGeneratedOnAdd()
                         .HasColumnType("int");
 
-                    SqlServerPropertyBuilderExtensions.UseIdentityColumn(b.Property<int>("WebsiteWatermarkSettingID"));
-
                     b.Property<bool>("Enabled")
-                        .HasColumnType("bit");
+                        .HasColumnType("tinyint(1)");
 
                     b.Property<int>("Opacity")
                         .HasColumnType("int");
 
                     b.Property<byte>("Position")
-                        .HasColumnType("tinyint");
+                        .HasColumnType("tinyint unsigned");
 
                     b.Property<int>("SizePercent")
                         .HasColumnType("int");
@@ -5577,11 +6824,9 @@ namespace Dotnetable.Migrations.SqlServer.Migrations
                         .ValueGeneratedOnAdd()
                         .HasColumnType("int");
 
-                    SqlServerPropertyBuilderExtensions.UseIdentityColumn(b.Property<int>("WishlistID"));
-
                     b.Property<DateTime>("CreatedAt")
                         .HasPrecision(0)
-                        .HasColumnType("datetime2(0)");
+                        .HasColumnType("datetime(0)");
 
                     b.Property<int>("WebsiteClientID")
                         .HasColumnType("int");
@@ -5605,11 +6850,9 @@ namespace Dotnetable.Migrations.SqlServer.Migrations
                         .ValueGeneratedOnAdd()
                         .HasColumnType("int");
 
-                    SqlServerPropertyBuilderExtensions.UseIdentityColumn(b.Property<int>("WishlistItemID"));
-
                     b.Property<DateTime>("AddedAt")
                         .HasPrecision(0)
-                        .HasColumnType("datetime2(0)");
+                        .HasColumnType("datetime(0)");
 
                     b.Property<int>("ProductVariantID")
                         .HasColumnType("int");
@@ -5940,9 +7183,15 @@ namespace Dotnetable.Migrations.SqlServer.Migrations
 
             modelBuilder.Entity("Dotnetable.Domain.Entities.ClientWallet", b =>
                 {
+                    b.HasOne("Dotnetable.Domain.Entities.Currency", "CurrencyCodeNavigation")
+                        .WithMany("ClientWallets")
+                        .HasForeignKey("CurrencyCode")
+                        .IsRequired()
+                        .HasConstraintName("FK_ClientWallets_Currencies");
+
                     b.HasOne("Dotnetable.Domain.Entities.WebsiteClient", "WebsiteClient")
-                        .WithOne("ClientWallet")
-                        .HasForeignKey("Dotnetable.Domain.Entities.ClientWallet", "WebsiteClientID")
+                        .WithMany("ClientWallets")
+                        .HasForeignKey("WebsiteClientID")
                         .IsRequired()
                         .HasConstraintName("FK_ClientWallets_WebsiteClients");
 
@@ -5951,6 +7200,8 @@ namespace Dotnetable.Migrations.SqlServer.Migrations
                         .HasForeignKey("WebsiteID")
                         .IsRequired()
                         .HasConstraintName("FK_ClientWallets_Websites");
+
+                    b.Navigation("CurrencyCodeNavigation");
 
                     b.Navigation("Website");
 
@@ -5997,6 +7248,11 @@ namespace Dotnetable.Migrations.SqlServer.Migrations
                         .IsRequired()
                         .HasConstraintName("FK_ClientWalletWithdrawals_ClientWallets");
 
+                    b.HasOne("Dotnetable.Domain.Entities.Member", "CreatedByMember")
+                        .WithMany()
+                        .HasForeignKey("CreatedByMemberID")
+                        .HasConstraintName("FK_ClientWalletWithdrawals_Members_CreatedBy");
+
                     b.HasOne("Dotnetable.Domain.Entities.Member", "ReviewedByMember")
                         .WithMany("ClientWalletWithdrawals")
                         .HasForeignKey("ReviewedByMemberID")
@@ -6017,6 +7273,8 @@ namespace Dotnetable.Migrations.SqlServer.Migrations
                     b.Navigation("ClientBankAccount");
 
                     b.Navigation("ClientWallet");
+
+                    b.Navigation("CreatedByMember");
 
                     b.Navigation("ReviewedByMember");
 
@@ -6111,6 +7369,33 @@ namespace Dotnetable.Migrations.SqlServer.Migrations
                     b.Navigation("Website");
                 });
 
+            modelBuilder.Entity("Dotnetable.Domain.Entities.DigitalAccessLog", b =>
+                {
+                    b.HasOne("Dotnetable.Domain.Entities.OrderDigitalAsset", "OrderDigitalAsset")
+                        .WithMany("DigitalAccessLogs")
+                        .HasForeignKey("OrderDigitalAssetID")
+                        .IsRequired()
+                        .HasConstraintName("FK_DigitalAccessLogs_OrderDigitalAssets");
+
+                    b.HasOne("Dotnetable.Domain.Entities.WebsiteClient", "WebsiteClient")
+                        .WithMany("DigitalAccessLogs")
+                        .HasForeignKey("WebsiteClientID")
+                        .IsRequired()
+                        .HasConstraintName("FK_DigitalAccessLogs_WebsiteClients");
+
+                    b.HasOne("Dotnetable.Domain.Entities.Website", "Website")
+                        .WithMany("DigitalAccessLogs")
+                        .HasForeignKey("WebsiteID")
+                        .IsRequired()
+                        .HasConstraintName("FK_DigitalAccessLogs_Websites");
+
+                    b.Navigation("OrderDigitalAsset");
+
+                    b.Navigation("Website");
+
+                    b.Navigation("WebsiteClient");
+                });
+
             modelBuilder.Entity("Dotnetable.Domain.Entities.EmailAccount", b =>
                 {
                     b.HasOne("Dotnetable.Domain.Entities.Website", "Website")
@@ -6161,6 +7446,45 @@ namespace Dotnetable.Migrations.SqlServer.Migrations
                         .HasConstraintName("FK_EmailTemplateTranslations_EmailTemplates");
 
                     b.Navigation("EmailTemplate");
+                });
+
+            modelBuilder.Entity("Dotnetable.Domain.Entities.Employee", b =>
+                {
+                    b.HasOne("Dotnetable.Domain.Entities.Member", "Member")
+                        .WithMany()
+                        .HasForeignKey("MemberID");
+
+                    b.HasOne("Dotnetable.Domain.Entities.OrgUnit", "OrgUnit")
+                        .WithMany("Employees")
+                        .HasForeignKey("OrgUnitID");
+
+                    b.HasOne("Dotnetable.Domain.Entities.Website", "Website")
+                        .WithMany()
+                        .HasForeignKey("WebsiteID")
+                        .IsRequired();
+
+                    b.Navigation("Member");
+
+                    b.Navigation("OrgUnit");
+
+                    b.Navigation("Website");
+                });
+
+            modelBuilder.Entity("Dotnetable.Domain.Entities.EmployeeContract", b =>
+                {
+                    b.HasOne("Dotnetable.Domain.Entities.Currency", "CurrencyCodeNavigation")
+                        .WithMany()
+                        .HasForeignKey("CurrencyCode")
+                        .IsRequired();
+
+                    b.HasOne("Dotnetable.Domain.Entities.Employee", "Employee")
+                        .WithMany("EmployeeContracts")
+                        .HasForeignKey("EmployeeID")
+                        .IsRequired();
+
+                    b.Navigation("CurrencyCodeNavigation");
+
+                    b.Navigation("Employee");
                 });
 
             modelBuilder.Entity("Dotnetable.Domain.Entities.FileFolder", b =>
@@ -6247,6 +7571,111 @@ namespace Dotnetable.Migrations.SqlServer.Migrations
                         .HasForeignKey("WebsiteID")
                         .IsRequired()
                         .HasConstraintName("FK_FileTags_Websites");
+
+                    b.Navigation("Website");
+                });
+
+            modelBuilder.Entity("Dotnetable.Domain.Entities.FinancialLedgerEntry", b =>
+                {
+                    b.HasOne("Dotnetable.Domain.Entities.Member", "CreatedByMember")
+                        .WithMany()
+                        .HasForeignKey("CreatedByMemberID")
+                        .HasConstraintName("FK_FinancialLedgerEntries_Members");
+
+                    b.HasOne("Dotnetable.Domain.Entities.Currency", "CurrencyCodeNavigation")
+                        .WithMany()
+                        .HasForeignKey("CurrencyCode")
+                        .IsRequired()
+                        .HasConstraintName("FK_FinancialLedgerEntries_Currencies");
+
+                    b.HasOne("Dotnetable.Domain.Entities.Order", "Order")
+                        .WithMany()
+                        .HasForeignKey("OrderID")
+                        .HasConstraintName("FK_FinancialLedgerEntries_Orders");
+
+                    b.HasOne("Dotnetable.Domain.Entities.OrderItem", "OrderItem")
+                        .WithMany()
+                        .HasForeignKey("OrderItemID")
+                        .HasConstraintName("FK_FinancialLedgerEntries_OrderItems");
+
+                    b.HasOne("Dotnetable.Domain.Entities.Payment", "Payment")
+                        .WithMany()
+                        .HasForeignKey("PaymentID")
+                        .HasConstraintName("FK_FinancialLedgerEntries_Payments");
+
+                    b.HasOne("Dotnetable.Domain.Entities.Settlement", "Settlement")
+                        .WithMany()
+                        .HasForeignKey("SettlementID")
+                        .HasConstraintName("FK_FinancialLedgerEntries_Settlements");
+
+                    b.HasOne("Dotnetable.Domain.Entities.FinancialLedgerEntry", "SupersedesEntry")
+                        .WithMany()
+                        .HasForeignKey("SupersedesEntryID")
+                        .HasConstraintName("FK_FinancialLedgerEntries_Supersedes");
+
+                    b.HasOne("Dotnetable.Domain.Entities.Vendor", "Vendor")
+                        .WithMany()
+                        .HasForeignKey("VendorID")
+                        .HasConstraintName("FK_FinancialLedgerEntries_Vendors");
+
+                    b.HasOne("Dotnetable.Domain.Entities.WebsiteClient", "WebsiteClient")
+                        .WithMany()
+                        .HasForeignKey("WebsiteClientID")
+                        .HasConstraintName("FK_FinancialLedgerEntries_WebsiteClients");
+
+                    b.HasOne("Dotnetable.Domain.Entities.Website", "Website")
+                        .WithMany()
+                        .HasForeignKey("WebsiteID")
+                        .IsRequired()
+                        .HasConstraintName("FK_FinancialLedgerEntries_Websites");
+
+                    b.Navigation("CreatedByMember");
+
+                    b.Navigation("CurrencyCodeNavigation");
+
+                    b.Navigation("Order");
+
+                    b.Navigation("OrderItem");
+
+                    b.Navigation("Payment");
+
+                    b.Navigation("Settlement");
+
+                    b.Navigation("SupersedesEntry");
+
+                    b.Navigation("Vendor");
+
+                    b.Navigation("Website");
+
+                    b.Navigation("WebsiteClient");
+                });
+
+            modelBuilder.Entity("Dotnetable.Domain.Entities.FiscalPeriod", b =>
+                {
+                    b.HasOne("Dotnetable.Domain.Entities.Member", "ClosedByMember")
+                        .WithMany()
+                        .HasForeignKey("ClosedByMemberID")
+                        .HasConstraintName("FK_FiscalPeriods_Members");
+
+                    b.HasOne("Dotnetable.Domain.Entities.JournalEntry", "ClosingJournalEntry")
+                        .WithMany()
+                        .HasForeignKey("ClosingJournalEntryID");
+
+                    b.HasOne("Dotnetable.Domain.Entities.JournalEntry", "OpeningJournalEntry")
+                        .WithMany()
+                        .HasForeignKey("OpeningJournalEntryID");
+
+                    b.HasOne("Dotnetable.Domain.Entities.Website", "Website")
+                        .WithMany()
+                        .HasForeignKey("WebsiteID")
+                        .IsRequired()
+                        .HasConstraintName("FK_FiscalPeriods_Websites");
+
+                    b.Navigation("ClosedByMember");
+
+                    b.Navigation("ClosingJournalEntry");
+
+                    b.Navigation("OpeningJournalEntry");
 
                     b.Navigation("Website");
                 });
@@ -6342,11 +7771,47 @@ namespace Dotnetable.Migrations.SqlServer.Migrations
 
             modelBuilder.Entity("Dotnetable.Domain.Entities.JournalEntry", b =>
                 {
+                    b.HasOne("Dotnetable.Domain.Entities.Member", "CreatedByMember")
+                        .WithMany()
+                        .HasForeignKey("CreatedByMemberID")
+                        .HasConstraintName("FK_JournalEntries_CreatedBy");
+
+                    b.HasOne("Dotnetable.Domain.Entities.Currency", "CurrencyCodeNavigation")
+                        .WithMany()
+                        .HasForeignKey("CurrencyCode")
+                        .IsRequired()
+                        .HasConstraintName("FK_JournalEntries_Currencies");
+
+                    b.HasOne("Dotnetable.Domain.Entities.FiscalPeriod", "FiscalPeriod")
+                        .WithMany("JournalEntries")
+                        .HasForeignKey("FiscalPeriodID")
+                        .HasConstraintName("FK_JournalEntries_FiscalPeriods");
+
+                    b.HasOne("Dotnetable.Domain.Entities.Member", "PostedByMember")
+                        .WithMany()
+                        .HasForeignKey("PostedByMemberID")
+                        .HasConstraintName("FK_JournalEntries_PostedBy");
+
+                    b.HasOne("Dotnetable.Domain.Entities.JournalEntry", "ReversesJournalEntry")
+                        .WithMany()
+                        .HasForeignKey("ReversesJournalEntryID")
+                        .HasConstraintName("FK_JournalEntries_Reverses");
+
                     b.HasOne("Dotnetable.Domain.Entities.Website", "Website")
                         .WithMany("JournalEntries")
                         .HasForeignKey("WebsiteID")
                         .IsRequired()
                         .HasConstraintName("FK_JournalEntries_Websites");
+
+                    b.Navigation("CreatedByMember");
+
+                    b.Navigation("CurrencyCodeNavigation");
+
+                    b.Navigation("FiscalPeriod");
+
+                    b.Navigation("PostedByMember");
+
+                    b.Navigation("ReversesJournalEntry");
 
                     b.Navigation("Website");
                 });
@@ -6376,6 +7841,33 @@ namespace Dotnetable.Migrations.SqlServer.Migrations
                         .WithMany("Languages")
                         .HasForeignKey("WebsiteID")
                         .HasConstraintName("FK_Languages_Websites");
+
+                    b.Navigation("Website");
+                });
+
+            modelBuilder.Entity("Dotnetable.Domain.Entities.LedgerAccountMap", b =>
+                {
+                    b.HasOne("Dotnetable.Domain.Entities.ChartOfAccount", "CreditAccount")
+                        .WithMany("LedgerAccountMapCredits")
+                        .HasForeignKey("CreditAccountID")
+                        .IsRequired()
+                        .HasConstraintName("FK_LedgerAccountMaps_Credit");
+
+                    b.HasOne("Dotnetable.Domain.Entities.ChartOfAccount", "DebitAccount")
+                        .WithMany("LedgerAccountMapDebits")
+                        .HasForeignKey("DebitAccountID")
+                        .IsRequired()
+                        .HasConstraintName("FK_LedgerAccountMaps_Debit");
+
+                    b.HasOne("Dotnetable.Domain.Entities.Website", "Website")
+                        .WithMany()
+                        .HasForeignKey("WebsiteID")
+                        .IsRequired()
+                        .HasConstraintName("FK_LedgerAccountMaps_Websites");
+
+                    b.Navigation("CreditAccount");
+
+                    b.Navigation("DebitAccount");
 
                     b.Navigation("Website");
                 });
@@ -6629,6 +8121,49 @@ namespace Dotnetable.Migrations.SqlServer.Migrations
                     b.Navigation("WebsiteClientAddress");
                 });
 
+            modelBuilder.Entity("Dotnetable.Domain.Entities.OrderDigitalAsset", b =>
+                {
+                    b.HasOne("Dotnetable.Domain.Entities.Order", "Order")
+                        .WithMany("OrderDigitalAssets")
+                        .HasForeignKey("OrderID")
+                        .IsRequired()
+                        .HasConstraintName("FK_OrderDigitalAssets_Orders");
+
+                    b.HasOne("Dotnetable.Domain.Entities.OrderItem", "OrderItem")
+                        .WithOne("OrderDigitalAsset")
+                        .HasForeignKey("Dotnetable.Domain.Entities.OrderDigitalAsset", "OrderItemID")
+                        .IsRequired()
+                        .HasConstraintName("FK_OrderDigitalAssets_OrderItems");
+
+                    b.HasOne("Dotnetable.Domain.Entities.Product", "Product")
+                        .WithMany("OrderDigitalAssets")
+                        .HasForeignKey("ProductID")
+                        .IsRequired()
+                        .HasConstraintName("FK_OrderDigitalAssets_Products");
+
+                    b.HasOne("Dotnetable.Domain.Entities.WebsiteClient", "WebsiteClient")
+                        .WithMany("OrderDigitalAssets")
+                        .HasForeignKey("WebsiteClientID")
+                        .IsRequired()
+                        .HasConstraintName("FK_OrderDigitalAssets_WebsiteClients");
+
+                    b.HasOne("Dotnetable.Domain.Entities.Website", "Website")
+                        .WithMany("OrderDigitalAssets")
+                        .HasForeignKey("WebsiteID")
+                        .IsRequired()
+                        .HasConstraintName("FK_OrderDigitalAssets_Websites");
+
+                    b.Navigation("Order");
+
+                    b.Navigation("OrderItem");
+
+                    b.Navigation("Product");
+
+                    b.Navigation("Website");
+
+                    b.Navigation("WebsiteClient");
+                });
+
             modelBuilder.Entity("Dotnetable.Domain.Entities.OrderItem", b =>
                 {
                     b.HasOne("Dotnetable.Domain.Entities.Order", "Order")
@@ -6640,7 +8175,6 @@ namespace Dotnetable.Migrations.SqlServer.Migrations
                     b.HasOne("Dotnetable.Domain.Entities.ProductVariant", "ProductVariant")
                         .WithMany("OrderItems")
                         .HasForeignKey("ProductVariantID")
-                        .IsRequired()
                         .HasConstraintName("FK_OrderItems_ProductVariants");
 
                     b.HasOne("Dotnetable.Domain.Entities.Website", "SourceWebsite")
@@ -6696,6 +8230,22 @@ namespace Dotnetable.Migrations.SqlServer.Migrations
                     b.Navigation("Order");
                 });
 
+            modelBuilder.Entity("Dotnetable.Domain.Entities.OrgUnit", b =>
+                {
+                    b.HasOne("Dotnetable.Domain.Entities.OrgUnit", "ParentOrgUnit")
+                        .WithMany("InverseParentOrgUnit")
+                        .HasForeignKey("ParentOrgUnitID");
+
+                    b.HasOne("Dotnetable.Domain.Entities.Website", "Website")
+                        .WithMany()
+                        .HasForeignKey("WebsiteID")
+                        .IsRequired();
+
+                    b.Navigation("ParentOrgUnit");
+
+                    b.Navigation("Website");
+                });
+
             modelBuilder.Entity("Dotnetable.Domain.Entities.Page", b =>
                 {
                     b.HasOne("Dotnetable.Domain.Entities.Member", "CreatedByMember")
@@ -6744,6 +8294,11 @@ namespace Dotnetable.Migrations.SqlServer.Migrations
                         .HasForeignKey("ClientWalletTransactionID")
                         .HasConstraintName("FK_Payments_ClientWalletTransactions");
 
+                    b.HasOne("Dotnetable.Domain.Entities.Member", "CreatedByMember")
+                        .WithMany("PaymentsCreated")
+                        .HasForeignKey("CreatedByMemberID")
+                        .HasConstraintName("FK_Payments_Members_CreatedBy");
+
                     b.HasOne("Dotnetable.Domain.Entities.Currency", "CurrencyCodeNavigation")
                         .WithMany("Payments")
                         .HasForeignKey("CurrencyCode")
@@ -6785,6 +8340,8 @@ namespace Dotnetable.Migrations.SqlServer.Migrations
                     b.Navigation("BankAccount");
 
                     b.Navigation("ClientWalletTransaction");
+
+                    b.Navigation("CreatedByMember");
 
                     b.Navigation("CurrencyCodeNavigation");
 
@@ -6842,6 +8399,62 @@ namespace Dotnetable.Migrations.SqlServer.Migrations
                     b.Navigation("CreatedByMember");
 
                     b.Navigation("Payment");
+                });
+
+            modelBuilder.Entity("Dotnetable.Domain.Entities.PayrollLine", b =>
+                {
+                    b.HasOne("Dotnetable.Domain.Entities.Employee", "Employee")
+                        .WithMany("PayrollLines")
+                        .HasForeignKey("EmployeeID")
+                        .IsRequired();
+
+                    b.HasOne("Dotnetable.Domain.Entities.PayrollRun", "PayrollRun")
+                        .WithMany("PayrollLines")
+                        .HasForeignKey("PayrollRunID")
+                        .IsRequired();
+
+                    b.Navigation("Employee");
+
+                    b.Navigation("PayrollRun");
+                });
+
+            modelBuilder.Entity("Dotnetable.Domain.Entities.PayrollRateBracket", b =>
+                {
+                    b.HasOne("Dotnetable.Domain.Entities.Website", "Website")
+                        .WithMany()
+                        .HasForeignKey("WebsiteID")
+                        .IsRequired();
+
+                    b.Navigation("Website");
+                });
+
+            modelBuilder.Entity("Dotnetable.Domain.Entities.PayrollRun", b =>
+                {
+                    b.HasOne("Dotnetable.Domain.Entities.Member", "ApprovedByMember")
+                        .WithMany()
+                        .HasForeignKey("ApprovedByMemberID");
+
+                    b.HasOne("Dotnetable.Domain.Entities.Member", "CreatedByMember")
+                        .WithMany()
+                        .HasForeignKey("CreatedByMemberID");
+
+                    b.HasOne("Dotnetable.Domain.Entities.Currency", "CurrencyCodeNavigation")
+                        .WithMany()
+                        .HasForeignKey("CurrencyCode")
+                        .IsRequired();
+
+                    b.HasOne("Dotnetable.Domain.Entities.Website", "Website")
+                        .WithMany()
+                        .HasForeignKey("WebsiteID")
+                        .IsRequired();
+
+                    b.Navigation("ApprovedByMember");
+
+                    b.Navigation("CreatedByMember");
+
+                    b.Navigation("CurrencyCodeNavigation");
+
+                    b.Navigation("Website");
                 });
 
             modelBuilder.Entity("Dotnetable.Domain.Entities.Policy", b =>
@@ -7065,6 +8678,25 @@ namespace Dotnetable.Migrations.SqlServer.Migrations
                     b.Navigation("ParentCategory");
 
                     b.Navigation("Website");
+                });
+
+            modelBuilder.Entity("Dotnetable.Domain.Entities.ProductCategoryAttribute", b =>
+                {
+                    b.HasOne("Dotnetable.Domain.Entities.AttributeDefinition", "AttributeDefinition")
+                        .WithMany("ProductCategoryAttributes")
+                        .HasForeignKey("AttributeDefinitionID")
+                        .IsRequired()
+                        .HasConstraintName("FK_ProductCategoryAttributes_AttributeDefinitions");
+
+                    b.HasOne("Dotnetable.Domain.Entities.ProductCategory", "ProductCategory")
+                        .WithMany("ProductCategoryAttributes")
+                        .HasForeignKey("ProductCategoryID")
+                        .IsRequired()
+                        .HasConstraintName("FK_ProductCategoryAttributes_ProductCategories");
+
+                    b.Navigation("AttributeDefinition");
+
+                    b.Navigation("ProductCategory");
                 });
 
             modelBuilder.Entity("Dotnetable.Domain.Entities.ProductCategoryMap", b =>
@@ -7310,6 +8942,32 @@ namespace Dotnetable.Migrations.SqlServer.Migrations
                     b.Navigation("Warranty");
                 });
 
+            modelBuilder.Entity("Dotnetable.Domain.Entities.RecordAttachment", b =>
+                {
+                    b.HasOne("Dotnetable.Domain.Entities.Member", "CreatedByMember")
+                        .WithMany()
+                        .HasForeignKey("CreatedByMemberID")
+                        .HasConstraintName("FK_RecordAttachments_Members");
+
+                    b.HasOne("Dotnetable.Domain.Entities.FileRecord", "FileRecord")
+                        .WithMany()
+                        .HasForeignKey("FileRecordID")
+                        .IsRequired()
+                        .HasConstraintName("FK_RecordAttachments_Files");
+
+                    b.HasOne("Dotnetable.Domain.Entities.Website", "Website")
+                        .WithMany()
+                        .HasForeignKey("WebsiteID")
+                        .IsRequired()
+                        .HasConstraintName("FK_RecordAttachments_Websites");
+
+                    b.Navigation("CreatedByMember");
+
+                    b.Navigation("FileRecord");
+
+                    b.Navigation("Website");
+                });
+
             modelBuilder.Entity("Dotnetable.Domain.Entities.Settlement", b =>
                 {
                     b.HasOne("Dotnetable.Domain.Entities.Member", "ApprovedByMember")
@@ -7332,6 +8990,11 @@ namespace Dotnetable.Migrations.SqlServer.Migrations
                         .HasForeignKey("CurrencyCode")
                         .IsRequired()
                         .HasConstraintName("FK_Settlements_Currencies");
+
+                    b.HasOne("Dotnetable.Domain.Entities.Currency", "SourceCurrency")
+                        .WithMany("SettlementsSourced")
+                        .HasForeignKey("SourceCurrencyCode")
+                        .HasConstraintName("FK_Settlements_Currencies_Source");
 
                     b.HasOne("Dotnetable.Domain.Entities.Supplier", "Supplier")
                         .WithMany("Settlements")
@@ -7361,6 +9024,8 @@ namespace Dotnetable.Migrations.SqlServer.Migrations
                     b.Navigation("CreatedByMember");
 
                     b.Navigation("CurrencyCodeNavigation");
+
+                    b.Navigation("SourceCurrency");
 
                     b.Navigation("Supplier");
 
@@ -7405,11 +9070,18 @@ namespace Dotnetable.Migrations.SqlServer.Migrations
 
             modelBuilder.Entity("Dotnetable.Domain.Entities.ShippingMethod", b =>
                 {
+                    b.HasOne("Dotnetable.Domain.Entities.FileRecord", "LogoFile")
+                        .WithMany("ShippingMethods")
+                        .HasForeignKey("LogoFileID")
+                        .HasConstraintName("FK_ShippingMethods_FileRecords");
+
                     b.HasOne("Dotnetable.Domain.Entities.Website", "Website")
                         .WithMany("ShippingMethods")
                         .HasForeignKey("WebsiteID")
                         .IsRequired()
                         .HasConstraintName("FK_ShippingMethods_Websites");
+
+                    b.Navigation("LogoFile");
 
                     b.Navigation("Website");
                 });
@@ -7505,6 +9177,97 @@ namespace Dotnetable.Migrations.SqlServer.Migrations
                     b.Navigation("State");
                 });
 
+            modelBuilder.Entity("Dotnetable.Domain.Entities.StockDocument", b =>
+                {
+                    b.HasOne("Dotnetable.Domain.Entities.Member", "ApprovedByMember")
+                        .WithMany()
+                        .HasForeignKey("ApprovedByMemberID");
+
+                    b.HasOne("Dotnetable.Domain.Entities.Warehouse", "FromWarehouse")
+                        .WithMany("StockDocumentFromWarehouses")
+                        .HasForeignKey("FromWarehouseID");
+
+                    b.HasOne("Dotnetable.Domain.Entities.Order", "Order")
+                        .WithMany()
+                        .HasForeignKey("OrderID");
+
+                    b.HasOne("Dotnetable.Domain.Entities.PaymentRefund", "PaymentRefund")
+                        .WithMany()
+                        .HasForeignKey("PaymentRefundID");
+
+                    b.HasOne("Dotnetable.Domain.Entities.Member", "PostedByMember")
+                        .WithMany()
+                        .HasForeignKey("PostedByMemberID");
+
+                    b.HasOne("Dotnetable.Domain.Entities.Member", "RequestedByMember")
+                        .WithMany()
+                        .HasForeignKey("RequestedByMemberID");
+
+                    b.HasOne("Dotnetable.Domain.Entities.Supplier", "Supplier")
+                        .WithMany()
+                        .HasForeignKey("SupplierID");
+
+                    b.HasOne("Dotnetable.Domain.Entities.Warehouse", "ToWarehouse")
+                        .WithMany("StockDocumentToWarehouses")
+                        .HasForeignKey("ToWarehouseID");
+
+                    b.HasOne("Dotnetable.Domain.Entities.Website", "Website")
+                        .WithMany()
+                        .HasForeignKey("WebsiteID")
+                        .IsRequired();
+
+                    b.Navigation("ApprovedByMember");
+
+                    b.Navigation("FromWarehouse");
+
+                    b.Navigation("Order");
+
+                    b.Navigation("PaymentRefund");
+
+                    b.Navigation("PostedByMember");
+
+                    b.Navigation("RequestedByMember");
+
+                    b.Navigation("Supplier");
+
+                    b.Navigation("ToWarehouse");
+
+                    b.Navigation("Website");
+                });
+
+            modelBuilder.Entity("Dotnetable.Domain.Entities.StockDocumentHistory", b =>
+                {
+                    b.HasOne("Dotnetable.Domain.Entities.Member", "CreatedByMember")
+                        .WithMany()
+                        .HasForeignKey("CreatedByMemberID");
+
+                    b.HasOne("Dotnetable.Domain.Entities.StockDocument", "StockDocument")
+                        .WithMany("StockDocumentHistories")
+                        .HasForeignKey("StockDocumentID")
+                        .IsRequired();
+
+                    b.Navigation("CreatedByMember");
+
+                    b.Navigation("StockDocument");
+                });
+
+            modelBuilder.Entity("Dotnetable.Domain.Entities.StockDocumentLine", b =>
+                {
+                    b.HasOne("Dotnetable.Domain.Entities.ProductVariant", "ProductVariant")
+                        .WithMany()
+                        .HasForeignKey("ProductVariantID")
+                        .IsRequired();
+
+                    b.HasOne("Dotnetable.Domain.Entities.StockDocument", "StockDocument")
+                        .WithMany("StockDocumentLines")
+                        .HasForeignKey("StockDocumentID")
+                        .IsRequired();
+
+                    b.Navigation("ProductVariant");
+
+                    b.Navigation("StockDocument");
+                });
+
             modelBuilder.Entity("Dotnetable.Domain.Entities.StockMovement", b =>
                 {
                     b.HasOne("Dotnetable.Domain.Entities.Member", "CreatedByMember")
@@ -7562,11 +9325,39 @@ namespace Dotnetable.Migrations.SqlServer.Migrations
 
             modelBuilder.Entity("Dotnetable.Domain.Entities.Supplier", b =>
                 {
+                    b.HasOne("Dotnetable.Domain.Entities.Country", "Country")
+                        .WithMany("Suppliers")
+                        .HasForeignKey("CountryID")
+                        .HasConstraintName("FK_Suppliers_Countries");
+
+                    b.HasOne("Dotnetable.Domain.Entities.Currency", "DefaultCurrencyCodeNavigation")
+                        .WithMany("Suppliers")
+                        .HasForeignKey("DefaultCurrencyCode")
+                        .HasConstraintName("FK_Suppliers_Currencies");
+
+                    b.HasOne("Dotnetable.Domain.Entities.Vendor", "LinkedVendor")
+                        .WithMany("LinkedSuppliers")
+                        .HasForeignKey("LinkedVendorID")
+                        .HasConstraintName("FK_Suppliers_Vendors");
+
+                    b.HasOne("Dotnetable.Domain.Entities.Website", "LinkedWebsite")
+                        .WithMany("SupplierLinkedWebsites")
+                        .HasForeignKey("LinkedWebsiteID")
+                        .HasConstraintName("FK_Suppliers_LinkedWebsites");
+
                     b.HasOne("Dotnetable.Domain.Entities.Website", "Website")
                         .WithMany("Suppliers")
                         .HasForeignKey("WebsiteID")
                         .IsRequired()
                         .HasConstraintName("FK_Suppliers_Websites");
+
+                    b.Navigation("Country");
+
+                    b.Navigation("DefaultCurrencyCodeNavigation");
+
+                    b.Navigation("LinkedVendor");
+
+                    b.Navigation("LinkedWebsite");
 
                     b.Navigation("Website");
                 });
@@ -7657,6 +9448,28 @@ namespace Dotnetable.Migrations.SqlServer.Migrations
                     b.Navigation("Tag");
                 });
 
+            modelBuilder.Entity("Dotnetable.Domain.Entities.TaxPeriod", b =>
+                {
+                    b.HasOne("Dotnetable.Domain.Entities.Member", "ClosedByMember")
+                        .WithMany()
+                        .HasForeignKey("ClosedByMemberID");
+
+                    b.HasOne("Dotnetable.Domain.Entities.Member", "CreatedByMember")
+                        .WithMany()
+                        .HasForeignKey("CreatedByMemberID");
+
+                    b.HasOne("Dotnetable.Domain.Entities.Website", "Website")
+                        .WithMany()
+                        .HasForeignKey("WebsiteID")
+                        .IsRequired();
+
+                    b.Navigation("ClosedByMember");
+
+                    b.Navigation("CreatedByMember");
+
+                    b.Navigation("Website");
+                });
+
             modelBuilder.Entity("Dotnetable.Domain.Entities.TaxRate", b =>
                 {
                     b.HasOne("Dotnetable.Domain.Entities.Country", "Country")
@@ -7726,6 +9539,11 @@ namespace Dotnetable.Migrations.SqlServer.Migrations
                         .HasForeignKey("Dotnetable.Domain.Entities.Vendor", "MemberID")
                         .HasConstraintName("FK_Vendors_Members");
 
+                    b.HasOne("Dotnetable.Domain.Entities.Currency", "SettlementCurrency")
+                        .WithMany("VendorSettlementCurrencies")
+                        .HasForeignKey("SettlementCurrencyCode")
+                        .HasConstraintName("FK_Vendors_Currencies_Settlement");
+
                     b.HasOne("Dotnetable.Domain.Entities.Website", "Website")
                         .WithMany("VendorWebsites")
                         .HasForeignKey("WebsiteID")
@@ -7737,6 +9555,8 @@ namespace Dotnetable.Migrations.SqlServer.Migrations
                     b.Navigation("LogoFile");
 
                     b.Navigation("Member");
+
+                    b.Navigation("SettlementCurrency");
 
                     b.Navigation("Website");
                 });
@@ -7819,6 +9639,33 @@ namespace Dotnetable.Migrations.SqlServer.Migrations
                     b.Navigation("Vendor");
                 });
 
+            modelBuilder.Entity("Dotnetable.Domain.Entities.Warehouse", b =>
+                {
+                    b.HasOne("Dotnetable.Domain.Entities.Website", "Website")
+                        .WithMany()
+                        .HasForeignKey("WebsiteID")
+                        .IsRequired();
+
+                    b.Navigation("Website");
+                });
+
+            modelBuilder.Entity("Dotnetable.Domain.Entities.WarehouseStock", b =>
+                {
+                    b.HasOne("Dotnetable.Domain.Entities.ProductVariant", "ProductVariant")
+                        .WithMany()
+                        .HasForeignKey("ProductVariantID")
+                        .IsRequired();
+
+                    b.HasOne("Dotnetable.Domain.Entities.Warehouse", "Warehouse")
+                        .WithMany("WarehouseStocks")
+                        .HasForeignKey("WarehouseID")
+                        .IsRequired();
+
+                    b.Navigation("ProductVariant");
+
+                    b.Navigation("Warehouse");
+                });
+
             modelBuilder.Entity("Dotnetable.Domain.Entities.Warranty", b =>
                 {
                     b.HasOne("Dotnetable.Domain.Entities.Website", "Website")
@@ -7859,11 +9706,18 @@ namespace Dotnetable.Migrations.SqlServer.Migrations
                         .HasForeignKey("LogoFileID")
                         .HasConstraintName("FK_Websites_FileRecords");
 
+                    b.HasOne("Dotnetable.Domain.Entities.Country", "TaxCountry")
+                        .WithMany("TaxJurisdictionWebsites")
+                        .HasForeignKey("TaxCountryID")
+                        .HasConstraintName("FK_Websites_TaxCountries");
+
                     b.Navigation("DefaultCurrencyCodeNavigation");
 
                     b.Navigation("FaveIconFile");
 
                     b.Navigation("LogoFile");
+
+                    b.Navigation("TaxCountry");
                 });
 
             modelBuilder.Entity("Dotnetable.Domain.Entities.WebsiteCaptchaSetting", b =>
@@ -8019,6 +9873,25 @@ namespace Dotnetable.Migrations.SqlServer.Migrations
                     b.Navigation("Website");
                 });
 
+            modelBuilder.Entity("Dotnetable.Domain.Entities.WebsiteWalletCurrency", b =>
+                {
+                    b.HasOne("Dotnetable.Domain.Entities.Currency", "CurrencyCodeNavigation")
+                        .WithMany("WebsiteWalletCurrencies")
+                        .HasForeignKey("CurrencyCode")
+                        .IsRequired()
+                        .HasConstraintName("FK_WebsiteWalletCurrencies_Currencies");
+
+                    b.HasOne("Dotnetable.Domain.Entities.Website", "Website")
+                        .WithMany("WebsiteWalletCurrencies")
+                        .HasForeignKey("WebsiteID")
+                        .IsRequired()
+                        .HasConstraintName("FK_WebsiteWalletCurrencies_Websites");
+
+                    b.Navigation("CurrencyCodeNavigation");
+
+                    b.Navigation("Website");
+                });
+
             modelBuilder.Entity("Dotnetable.Domain.Entities.WebsiteWatermarkSetting", b =>
                 {
                     b.HasOne("Dotnetable.Domain.Entities.FileRecord", "WatermarkFile")
@@ -8098,6 +9971,8 @@ namespace Dotnetable.Migrations.SqlServer.Migrations
 
                     b.Navigation("ProductAttributeValues");
 
+                    b.Navigation("ProductCategoryAttributes");
+
                     b.Navigation("VariantAttributeValues");
                 });
 
@@ -8156,6 +10031,10 @@ namespace Dotnetable.Migrations.SqlServer.Migrations
                     b.Navigation("InverseParentAccount");
 
                     b.Navigation("JournalEntryLines");
+
+                    b.Navigation("LedgerAccountMapCredits");
+
+                    b.Navigation("LedgerAccountMapDebits");
                 });
 
             modelBuilder.Entity("Dotnetable.Domain.Entities.City", b =>
@@ -8196,6 +10075,10 @@ namespace Dotnetable.Migrations.SqlServer.Migrations
 
                     b.Navigation("States");
 
+                    b.Navigation("Suppliers");
+
+                    b.Navigation("TaxJurisdictionWebsites");
+
                     b.Navigation("TaxRates");
 
                     b.Navigation("WebsiteClientAddresses");
@@ -8212,6 +10095,8 @@ namespace Dotnetable.Migrations.SqlServer.Migrations
 
             modelBuilder.Entity("Dotnetable.Domain.Entities.Currency", b =>
                 {
+                    b.Navigation("ClientWallets");
+
                     b.Navigation("CurrencyRates");
 
                     b.Navigation("Orders");
@@ -8220,7 +10105,15 @@ namespace Dotnetable.Migrations.SqlServer.Migrations
 
                     b.Navigation("Settlements");
 
+                    b.Navigation("SettlementsSourced");
+
                     b.Navigation("StockMovements");
+
+                    b.Navigation("Suppliers");
+
+                    b.Navigation("VendorSettlementCurrencies");
+
+                    b.Navigation("WebsiteWalletCurrencies");
 
                     b.Navigation("Websites");
                 });
@@ -8228,6 +10121,13 @@ namespace Dotnetable.Migrations.SqlServer.Migrations
             modelBuilder.Entity("Dotnetable.Domain.Entities.EmailTemplate", b =>
                 {
                     b.Navigation("EmailTemplateTranslations");
+                });
+
+            modelBuilder.Entity("Dotnetable.Domain.Entities.Employee", b =>
+                {
+                    b.Navigation("EmployeeContracts");
+
+                    b.Navigation("PayrollLines");
                 });
 
             modelBuilder.Entity("Dotnetable.Domain.Entities.FileFolder", b =>
@@ -8261,6 +10161,8 @@ namespace Dotnetable.Migrations.SqlServer.Migrations
 
                     b.Navigation("Products");
 
+                    b.Navigation("ShippingMethods");
+
                     b.Navigation("SlideshowSlideFiles");
 
                     b.Navigation("SlideshowSlideMobileFiles");
@@ -8279,6 +10181,11 @@ namespace Dotnetable.Migrations.SqlServer.Migrations
             modelBuilder.Entity("Dotnetable.Domain.Entities.FileTag", b =>
                 {
                     b.Navigation("FileRecordTags");
+                });
+
+            modelBuilder.Entity("Dotnetable.Domain.Entities.FiscalPeriod", b =>
+                {
+                    b.Navigation("JournalEntries");
                 });
 
             modelBuilder.Entity("Dotnetable.Domain.Entities.Form", b =>
@@ -8345,6 +10252,8 @@ namespace Dotnetable.Migrations.SqlServer.Migrations
 
                     b.Navigation("Payments");
 
+                    b.Navigation("PaymentsCreated");
+
                     b.Navigation("Posts");
 
                     b.Navigation("ProductVariantPriceHistories");
@@ -8384,6 +10293,8 @@ namespace Dotnetable.Migrations.SqlServer.Migrations
                 {
                     b.Navigation("CouponRedemption");
 
+                    b.Navigation("OrderDigitalAssets");
+
                     b.Navigation("OrderItems");
 
                     b.Navigation("OrderStatusHistories");
@@ -8399,13 +10310,27 @@ namespace Dotnetable.Migrations.SqlServer.Migrations
                     b.Navigation("VendorCreditTransactionMirrorOrders");
                 });
 
+            modelBuilder.Entity("Dotnetable.Domain.Entities.OrderDigitalAsset", b =>
+                {
+                    b.Navigation("DigitalAccessLogs");
+                });
+
             modelBuilder.Entity("Dotnetable.Domain.Entities.OrderItem", b =>
                 {
+                    b.Navigation("OrderDigitalAsset");
+
                     b.Navigation("SettlementItems");
 
                     b.Navigation("StockMovements");
 
                     b.Navigation("VendorCreditTransactions");
+                });
+
+            modelBuilder.Entity("Dotnetable.Domain.Entities.OrgUnit", b =>
+                {
+                    b.Navigation("Employees");
+
+                    b.Navigation("InverseParentOrgUnit");
                 });
 
             modelBuilder.Entity("Dotnetable.Domain.Entities.Page", b =>
@@ -8427,6 +10352,11 @@ namespace Dotnetable.Migrations.SqlServer.Migrations
             modelBuilder.Entity("Dotnetable.Domain.Entities.PaymentGateway", b =>
                 {
                     b.Navigation("Payments");
+                });
+
+            modelBuilder.Entity("Dotnetable.Domain.Entities.PayrollRun", b =>
+                {
+                    b.Navigation("PayrollLines");
                 });
 
             modelBuilder.Entity("Dotnetable.Domain.Entities.Policy", b =>
@@ -8455,6 +10385,8 @@ namespace Dotnetable.Migrations.SqlServer.Migrations
             modelBuilder.Entity("Dotnetable.Domain.Entities.Product", b =>
                 {
                     b.Navigation("MenuItems");
+
+                    b.Navigation("OrderDigitalAssets");
 
                     b.Navigation("ProductAttributeValues");
 
@@ -8491,6 +10423,8 @@ namespace Dotnetable.Migrations.SqlServer.Migrations
                     b.Navigation("InverseParentCategory");
 
                     b.Navigation("MenuItems");
+
+                    b.Navigation("ProductCategoryAttributes");
 
                     b.Navigation("ProductCategoryMaps");
 
@@ -8563,6 +10497,13 @@ namespace Dotnetable.Migrations.SqlServer.Migrations
                     b.Navigation("TaxRates");
                 });
 
+            modelBuilder.Entity("Dotnetable.Domain.Entities.StockDocument", b =>
+                {
+                    b.Navigation("StockDocumentHistories");
+
+                    b.Navigation("StockDocumentLines");
+                });
+
             modelBuilder.Entity("Dotnetable.Domain.Entities.StockMovement", b =>
                 {
                     b.Navigation("SettlementItems");
@@ -8587,6 +10528,8 @@ namespace Dotnetable.Migrations.SqlServer.Migrations
 
             modelBuilder.Entity("Dotnetable.Domain.Entities.Vendor", b =>
                 {
+                    b.Navigation("LinkedSuppliers");
+
                     b.Navigation("MenuItems");
 
                     b.Navigation("OrderItems");
@@ -8607,6 +10550,15 @@ namespace Dotnetable.Migrations.SqlServer.Migrations
                     b.Navigation("CartItems");
 
                     b.Navigation("OrderItems");
+                });
+
+            modelBuilder.Entity("Dotnetable.Domain.Entities.Warehouse", b =>
+                {
+                    b.Navigation("StockDocumentFromWarehouses");
+
+                    b.Navigation("StockDocumentToWarehouses");
+
+                    b.Navigation("WarehouseStocks");
                 });
 
             modelBuilder.Entity("Dotnetable.Domain.Entities.Warranty", b =>
@@ -8648,6 +10600,8 @@ namespace Dotnetable.Migrations.SqlServer.Migrations
 
                     b.Navigation("CurrencyRates");
 
+                    b.Navigation("DigitalAccessLogs");
+
                     b.Navigation("EmailAccounts");
 
                     b.Navigation("EmailSubscribes");
@@ -8677,6 +10631,8 @@ namespace Dotnetable.Migrations.SqlServer.Migrations
                     b.Navigation("Members");
 
                     b.Navigation("Menus");
+
+                    b.Navigation("OrderDigitalAssets");
 
                     b.Navigation("OrderItemSourceWebsites");
 
@@ -8716,6 +10672,8 @@ namespace Dotnetable.Migrations.SqlServer.Migrations
 
                     b.Navigation("StockMovements");
 
+                    b.Navigation("SupplierLinkedWebsites");
+
                     b.Navigation("Suppliers");
 
                     b.Navigation("SupportSessions");
@@ -8754,6 +10712,8 @@ namespace Dotnetable.Migrations.SqlServer.Migrations
 
                     b.Navigation("WebsiteThemes");
 
+                    b.Navigation("WebsiteWalletCurrencies");
+
                     b.Navigation("WebsiteWatermarkSettings");
 
                     b.Navigation("Wishlists");
@@ -8765,15 +10725,19 @@ namespace Dotnetable.Migrations.SqlServer.Migrations
 
                     b.Navigation("ClientBankAccounts");
 
-                    b.Navigation("ClientWallet");
-
                     b.Navigation("ClientWalletWithdrawals");
 
+                    b.Navigation("ClientWallets");
+
                     b.Navigation("CouponRedemptions");
+
+                    b.Navigation("DigitalAccessLogs");
 
                     b.Navigation("FileRecords");
 
                     b.Navigation("FormResponses");
+
+                    b.Navigation("OrderDigitalAssets");
 
                     b.Navigation("Orders");
 

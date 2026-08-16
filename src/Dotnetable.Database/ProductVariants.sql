@@ -6,6 +6,8 @@
     [Title]             NVARCHAR (200)  NOT NULL,
     [IsDefault]         BIT             NOT NULL,
     [ImageFileID]       INT             NULL,
+    [ReferencePrice]    DECIMAL (18, 4) NOT NULL,
+    [CompareAtPrice]    DECIMAL (18, 4) NULL,
     [ReferencePriceUsd] DECIMAL (18, 4) NOT NULL,
     [CompareAtPriceUsd] DECIMAL (18, 4) NULL,
     [OverridePrice]     DECIMAL (18, 4) NULL,
@@ -13,13 +15,13 @@
     [Barcode]           NVARCHAR (100)  NULL,
     [IsActive]          BIT             NOT NULL,
     [CreatedAt]         DATETIME        NOT NULL,
-    [CompareAtPrice]    DECIMAL (18, 4) NULL,
-    [ReferencePrice]    DECIMAL (18, 4) DEFAULT ((0.0)) NOT NULL,
     CONSTRAINT [PK_ProductVariants] PRIMARY KEY CLUSTERED ([ProductVariantID] ASC),
     CONSTRAINT [FK_ProductVariants_FileRecords] FOREIGN KEY ([ImageFileID]) REFERENCES [dbo].[FileRecords] ([FileRecordID]),
     CONSTRAINT [FK_ProductVariants_Products] FOREIGN KEY ([ProductID]) REFERENCES [dbo].[Products] ([ProductID]),
     CONSTRAINT [FK_ProductVariants_Websites] FOREIGN KEY ([WebsiteID]) REFERENCES [dbo].[Websites] ([WebsiteID])
 );
+
+
 
 
 GO

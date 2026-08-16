@@ -12,10 +12,10 @@
     [UnitPrice]        DECIMAL (18, 4) NOT NULL,
     [UnitPriceUsd]     DECIMAL (18, 4) NOT NULL,
     [UnitCostUsd]      DECIMAL (18, 4) NOT NULL,
+    [CatalogUnitPrice] DECIMAL (18, 4) NOT NULL,
+    [UnitMarkup]       DECIMAL (18, 4) NOT NULL,
     [DiscountAmount]   DECIMAL (18, 4) NOT NULL,
     [TotalPrice]       DECIMAL (18, 4) NOT NULL,
-    [CatalogUnitPrice] DECIMAL (18, 4) DEFAULT ((0.0)) NOT NULL,
-    [UnitMarkup]       DECIMAL (18, 4) DEFAULT ((0.0)) NOT NULL,
     CONSTRAINT [PK_OrderItems] PRIMARY KEY CLUSTERED ([OrderItemID] ASC),
     CONSTRAINT [FK_OrderItems_Orders] FOREIGN KEY ([OrderID]) REFERENCES [dbo].[Orders] ([OrderID]),
     CONSTRAINT [FK_OrderItems_ProductVariants] FOREIGN KEY ([ProductVariantID]) REFERENCES [dbo].[ProductVariants] ([ProductVariantID]),
@@ -24,6 +24,8 @@
     CONSTRAINT [FK_OrderItems_Website1] FOREIGN KEY ([SourceWebsiteID]) REFERENCES [dbo].[Websites] ([WebsiteID]),
     CONSTRAINT [FK_OrderItems_Websites] FOREIGN KEY ([WebsiteID]) REFERENCES [dbo].[Websites] ([WebsiteID])
 );
+
+
 
 
 GO

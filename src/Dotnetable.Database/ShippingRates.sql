@@ -6,15 +6,17 @@
     [CityID]           INT             NULL,
     [MinWeightKg]      DECIMAL (10, 3) NULL,
     [MaxWeightKg]      DECIMAL (10, 3) NULL,
+    [Price]            DECIMAL (18, 4) NOT NULL,
     [PriceUsd]         DECIMAL (18, 4) NOT NULL,
     [IsActive]         BIT             NOT NULL,
-    [Price]            DECIMAL (18, 4) DEFAULT ((0.0)) NOT NULL,
     CONSTRAINT [PK_ShippingRates] PRIMARY KEY CLUSTERED ([ShippingRateID] ASC),
     CONSTRAINT [FK_ShippingRates_Cities] FOREIGN KEY ([CityID]) REFERENCES [dbo].[Cities] ([CityID]),
     CONSTRAINT [FK_ShippingRates_Countries] FOREIGN KEY ([CountryID]) REFERENCES [dbo].[Countries] ([CountryID]),
     CONSTRAINT [FK_ShippingRates_ShippingMethods] FOREIGN KEY ([ShippingMethodID]) REFERENCES [dbo].[ShippingMethods] ([ShippingMethodID]),
     CONSTRAINT [FK_ShippingRates_States] FOREIGN KEY ([StateID]) REFERENCES [dbo].[States] ([StateID])
 );
+
+
 
 
 
