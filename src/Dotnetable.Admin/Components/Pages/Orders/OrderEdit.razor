@@ -324,7 +324,7 @@ else
                 {
                     <MudAlert Severity="Severity.Warning" Dense="true" Class="mb-2" Variant="Variant.Outlined">
                         @L["orders.return_doc", "Warehouse return"]:
-                        <MudLink Href="@($"/inventory/stock-documents/{retId}")">@(_returnDocNumber ?? $"#{retId}")</MudLink>
+                        <MudLink Href="@($"/inventory/returns/{retId}")">@(_returnDocNumber ?? $"#{retId}")</MudLink>
                         @if (!string.IsNullOrWhiteSpace(_returnDocStatus))
                         {
                             <span> · @_returnDocStatus</span>

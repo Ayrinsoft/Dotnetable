@@ -1554,8 +1554,8 @@ window.DOCS_ADMIN = {
           title: { en: "Stock documents", fa: "اسناد انبار" },
           adminPath: "/inventory/stock-documents",
           summary: {
-            en: "WMS documents: Inbound, Outbound, Transfer, Adjustment, Count, **Return**. Only **Posted** docs change balances.",
-            fa: "اسناد WMS: ورود، خروج، انتقال، تعدیل، شمارش، **برگشت**. فقط اسناد **Posted** موجودی را عوض می‌کنند.",
+            en: "WMS documents: Inbound, Outbound, Transfer, Adjustment, Count. Customer product returns live on **Customer returns**. Only **Posted** docs change balances. The list uses the shared admin grid (sort/filter).",
+            fa: "اسناد WMS: ورود، خروج، انتقال، تعدیل، شمارش. برگشت کالای مشتری در **برگشت مشتری** است. فقط اسناد **Posted** موجودی را عوض می‌کنند. لیست از گرید مشترک ادمین است (سورت/فیلتر).",
           },
           purpose: [
             {
@@ -1585,7 +1585,41 @@ window.DOCS_ADMIN = {
               fa: "Submit/Approve/Post اسناد انبار به نقش‌های انبار نوتیف می‌دهد (داخل ادمین + ایمیل + واتساپ در صورت پیکربندی).",
             },
           ],
-          related: ["warehouses", "warehouse-tasks", "orders", "payments-refunds", "inventory-stock"],
+          related: ["customer-returns", "warehouses", "warehouse-tasks", "orders", "payments-refunds", "inventory-stock"],
+        },
+        {
+          id: "customer-returns",
+          title: { en: "Customer returns", fa: "برگشت مشتری" },
+          adminPath: "/inventory/returns",
+          summary: {
+            en: "RMA workflow like an order page: register a customer return, receive at QC, inspect condition, restock the right warehouse, then refund. Every step is logged.",
+            fa: "جریان برگشت مثل صفحه سفارش: ثبت برگشت مشتری، دریافت در QC، بازرسی وضعیت، ورود به انبار درست، بعد استرداد وجه. هر مرحله لاگ می‌شود.",
+          },
+          access: {
+            en: "warehouse.view to open; warehouse.receive / issue / approve / post for the warehouse steps; payments.refund to refund",
+            fa: "warehouse.view برای دیدن؛ receive/issue/approve/post برای مراحل انبار؛ payments.refund برای استرداد",
+          },
+          purpose: [
+            {
+              en: "You can start from the goods (this page) instead of refunding first. If a refund already created a Return, it opens here too.",
+              fa: "می‌توانید از کالا شروع کنید (این صفحه) به‌جای استرداد اول. اگر استرداد قبلاً سند برگشت ساخته باشد، همان اینجا باز می‌شود.",
+            },
+            {
+              en: "Steps: Registered (Draft) → Receive at QC (Submit) → set condition/grade → Approve → Post to warehouse → Refund (wallet / bank / cash).",
+              fa: "مراحل: ثبت (Draft) → دریافت QC (Submit) → وضعیت/گرید → Approve → Post به انبار → استرداد (کیف پول / بانک / نقد).",
+            },
+          ],
+          howTo: [
+            {
+              en: "Open **Inventory → Customer returns** → **New return**. Search the order, pick lines/qty and the QC warehouse.",
+              fa: "**Inventory → برگشت مشتری** → **برگشت جدید**. سفارش را جستجو کنید، خطوط/تعداد و انبار QC را انتخاب کنید.",
+            },
+            {
+              en: "On the return page walk the chips: receive, inspect each line, approve, post (choose restock warehouse), then refund. The left timeline is the full log.",
+              fa: "روی صفحه برگشت مراحل را بروید: دریافت، بازرسی هر خط، تأیید، ثبت به انبار (انبار مقصد را انتخاب کنید)، بعد استرداد. تایم‌لاین سمت چپ کل لاگ است.",
+            },
+          ],
+          related: ["stock-documents", "orders", "payments-refunds", "warehouses"],
         },
         {
           id: "warehouse-tasks",

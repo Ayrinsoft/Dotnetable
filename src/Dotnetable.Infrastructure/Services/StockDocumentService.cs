@@ -35,15 +35,31 @@ public class StockDocumentService : IStockDocumentService
         _ledger = ledger;
     }
 
-    public async Task<PagedResult<StockDocument>> GetPagedAsync(int websiteId, byte? status, byte? type, GridQuery query, CancellationToken ct = default)
+    public async Task<PagedResult<StockDocument>> GetPagedAsync(int websiteId, byte? status, byte? type, GridQuery query, CancellationToken ct = default, bool excludeReturns = false)
     {
         var q = _context.StockDocuments.AsNoTracking()
             .Include(d => d.FromWarehouse).Include(d => d.ToWarehouse)
+            .Include(d => d.Order)
             .Where(d => d.WebsiteID == websiteId);
         if (status is byte s) q = q.Where(d => d.Status == s);
         if (type is byte t) q = q.Where(d => d.DocumentType == t);
+        if (excludeReturns && type is null)
+            q = q.Where(d => d.DocumentType != (byte)StockDocumentType.Return);
+
+        if (query.GetSearch(nameof(StockDocument.DocumentNumber)) is string num)
+            q = q.Where(d => d.DocumentNumber.Contains(num));
+        if (query.GetSearch(nameof(StockDocument.DocumentType)) is string typeText && byte.TryParse(typeText, out var typeFilter))
+            q = q.Where(d => d.DocumentType == typeFilter);
+        if (query.GetSearch(nameof(StockDocument.Status)) is string statusText && byte.TryParse(statusText, out var statusFilter))
+            q = q.Where(d => d.Status == statusFilter);
+        if (query.GetSearch("OrderNumber") is string orderNumber)
+            q = q.Where(d => d.Order != null && d.Order.OrderNumber.Contains(orderNumber));
+
         var total = await q.CountAsync(ct);
-        var items = await q.OrderByDescending(d => d.CreatedAt).Skip(query.Skip).Take(query.Take).ToListAsync(ct);
+        var items = await q
+            .ApplyOrderBy(query.OrderBy, nameof(StockDocument.CreatedAt), fallbackDescending: true)
+            .Skip(query.Skip).Take(query.Take)
+            .ToListAsync(ct);
         return new PagedResult<StockDocument> { Items = items, TotalCount = total };
     }
 
@@ -52,6 +68,10 @@ public class StockDocumentService : IStockDocumentService
             .Include(d => d.StockDocumentLines).ThenInclude(l => l.ProductVariant).ThenInclude(v => v.Product)
             .Include(d => d.FromWarehouse).Include(d => d.ToWarehouse)
             .Include(d => d.StockDocumentHistories)
+            .Include(d => d.PaymentRefund)
+            .Include(d => d.Order).ThenInclude(o => o!.OrderItems).ThenInclude(i => i.ProductVariant).ThenInclude(v => v!.Product)
+            .Include(d => d.Order).ThenInclude(o => o!.Payments)
+            .Include(d => d.Order).ThenInclude(o => o!.WebsiteClient)
             .FirstOrDefaultAsync(d => d.StockDocumentID == documentId, ct);
 
     public async Task<(bool Success, string? Error, StockDocument? Doc)> CreateAsync(
@@ -714,6 +734,103 @@ public class StockDocumentService : IStockDocumentService
         return (true, null);
     }
 
+    public async Task<(bool Success, string? Error, StockDocument? Doc)> CreateCustomerReturnAsync(
+        int orderId, int? toWarehouseId, IReadOnlyList<StockDocumentLineRequest>? lines, string? note, int? memberId,
+        CancellationToken ct = default)
+    {
+        var order = await _context.Orders
+            .Include(o => o.OrderItems).ThenInclude(i => i.ProductVariant).ThenInclude(v => v!.Product)
+            .FirstOrDefaultAsync(o => o.OrderID == orderId, ct);
+        if (order is null) return (false, "Order not found.", null);
+
+        var open = await _context.StockDocuments
+            .Include(d => d.StockDocumentLines)
+            .FirstOrDefaultAsync(d =>
+                d.OrderID == orderId
+                && d.DocumentType == (byte)StockDocumentType.Return
+                && d.Status != (byte)StockDocumentStatus.Cancelled
+                && d.Status != (byte)StockDocumentStatus.Rejected
+                && d.Status != (byte)StockDocumentStatus.Posted, ct);
+        if (open is not null)
+            return (false, "This order already has an open return.", open);
+
+        var physical = lines is { Count: > 0 } ? lines.Where(l => l.Quantity > 0).ToList() : BuildPhysicalLines(order);
+        if (physical.Count == 0)
+            return (false, "No physical lines to return.", null);
+
+        var allowed = BuildPhysicalLines(order).ToDictionary(l => l.ProductVariantID, l => l.Quantity);
+        foreach (var line in physical)
+        {
+            if (!allowed.TryGetValue(line.ProductVariantID, out var maxQty))
+                return (false, $"Variant {line.ProductVariantID} is not on this order.", null);
+            if (line.Quantity > maxQty)
+                return (false, $"Return qty for variant {line.ProductVariantID} cannot exceed ordered qty ({maxQty}).", null);
+            if (line.UnitCost == 0)
+                line.UnitCost = order.OrderItems.Where(i => i.ProductVariantID == line.ProductVariantID).Select(i => i.UnitCostUsd).FirstOrDefault();
+        }
+
+        await _warehouses.EnsureDefaultAsync(order.WebsiteID, ct);
+        toWarehouseId ??= await DefaultWarehouseId(order.WebsiteID, ct);
+
+        var seq = await _context.StockDocuments.CountAsync(d => d.WebsiteID == order.WebsiteID, ct) + 1;
+        var doc = new StockDocument
+        {
+            WebsiteID = order.WebsiteID,
+            DocumentNumber = $"RET-{order.OrderNumber}",
+            DocumentType = (byte)StockDocumentType.Return,
+            Status = (byte)StockDocumentStatus.Draft,
+            ToWarehouseID = toWarehouseId,
+            OrderID = order.OrderID,
+            Note = string.IsNullOrWhiteSpace(note) ? $"Customer return for order {order.OrderNumber}" : note.Trim(),
+            RequestedByMemberID = memberId,
+            CreatedAt = DateTime.UtcNow,
+        };
+        if (await _context.StockDocuments.AnyAsync(d => d.WebsiteID == order.WebsiteID && d.DocumentNumber == doc.DocumentNumber, ct))
+            doc.DocumentNumber = $"RET-{order.OrderNumber}-{seq:D4}";
+
+        foreach (var l in physical)
+        {
+            var cond = l.ReturnCondition == 0 ? (byte)StockItemCondition.New : l.ReturnCondition;
+            doc.StockDocumentLines.Add(new StockDocumentLine
+            {
+                ProductVariantID = l.ProductVariantID,
+                Quantity = l.Quantity,
+                UnitCost = l.UnitCost,
+                UnitCostUsd = l.UnitCost,
+                Note = l.Note,
+                ReturnCondition = cond,
+                HealthGrade = l.HealthGrade,
+            });
+        }
+
+        _context.StockDocuments.Add(doc);
+        AddHistory(doc, 0, (byte)StockDocumentStatus.Draft, "Customer return registered", memberId);
+        await _context.SaveChangesAsync(ct);
+        return (true, null, doc);
+    }
+
+    public async Task<(bool Success, string? Error)> SetDestinationWarehouseAsync(
+        int documentId, int toWarehouseId, int? memberId, CancellationToken ct = default)
+    {
+        if (toWarehouseId <= 0) return (false, "Warehouse is required.");
+        var doc = await _context.StockDocuments.FirstOrDefaultAsync(d => d.StockDocumentID == documentId, ct);
+        if (doc is null) return (false, "Document not found.");
+        if (doc.DocumentType != (byte)StockDocumentType.Return)
+            return (false, "Destination warehouse can only be changed on a return.");
+        if (doc.Status == (byte)StockDocumentStatus.Posted)
+            return (false, "Cannot change warehouse after post.");
+
+        var exists = await _context.Warehouses.AnyAsync(w => w.WarehouseID == toWarehouseId && w.WebsiteID == doc.WebsiteID, ct);
+        if (!exists) return (false, "Warehouse not found on this site.");
+
+        if (doc.ToWarehouseID == toWarehouseId) return (true, null);
+        var from = doc.ToWarehouseID;
+        doc.ToWarehouseID = toWarehouseId;
+        AddHistory(doc, doc.Status, doc.Status, $"Destination warehouse {from} → {toWarehouseId}", memberId);
+        await _context.SaveChangesAsync(ct);
+        return (true, null);
+    }
+
     public async Task<(bool Success, string? Error, StockDocument? Doc)> EnsureReturnForRefundAsync(
         int orderId, int paymentRefundId, int? memberId, CancellationToken ct = default)
     {
@@ -731,6 +848,22 @@ public class StockDocumentService : IStockDocumentService
                 && d.Status != (byte)StockDocumentStatus.Rejected, ct);
         if (existingByRefund is not null)
             return (true, null, existingByRefund);
+
+        var existingRma = await _context.StockDocuments
+            .Include(d => d.StockDocumentLines)
+            .FirstOrDefaultAsync(d =>
+                d.OrderID == orderId
+                && d.DocumentType == (byte)StockDocumentType.Return
+                && d.Status != (byte)StockDocumentStatus.Cancelled
+                && d.Status != (byte)StockDocumentStatus.Rejected, ct);
+        if (existingRma is not null)
+        {
+            if (existingRma.PaymentRefundID is null)
+                existingRma.PaymentRefundID = paymentRefundId;
+            AddHistory(existingRma, existingRma.Status, existingRma.Status, $"Linked refund #{paymentRefundId}", memberId);
+            await _context.SaveChangesAsync(ct);
+            return (true, null, existingRma);
+        }
 
         // Only create return stock when goods left the warehouse or inventory (post-pay fulfill).
         var outbound = await GetOutboundForOrderAsync(orderId, ct);

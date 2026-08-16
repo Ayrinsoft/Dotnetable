@@ -1,0 +1,189 @@
+@inject IOrderService Orders
+@inject IWarehouseService Warehouses
+@inject IStockDocumentService Docs
+@inject ISnackbar Snackbar
+@inject IPageLocalizer L
+
+<MudDialog>
+    <DialogContent>
+        <MudText Typo="Typo.body2" Color="Color.Secondary" Class="mb-3">
+            @L["returns.new_hint", "Pick a customer order, choose lines and qty, and send the goods to a QC warehouse. Refund happens later on the return page after inspection."]
+        </MudText>
+        <MudGrid Spacing="2">
+            <MudItem xs="12" sm="8">
+                <MudTextField @bind-Value="_orderSearch" Label="@L["orders.order_number", "Order number"]"
+                              Variant="Variant.Outlined" Dense="true"
+                              Adornment="Adornment.End" AdornmentIcon="@Icons.Material.Filled.Search"
+                              OnAdornmentClick="SearchOrderAsync" OnKeyDown="OnSearchKey" />
+            </MudItem>
+            <MudItem xs="12" sm="4" Class="d-flex align-end">
+                <MudButton Variant="Variant.Outlined" OnClick="SearchOrderAsync" FullWidth="true">@L["search", "Search"]</MudButton>
+            </MudItem>
+            <MudItem xs="12">
+                <MudSelect T="int?" @bind-Value="_warehouseId" Label="@L["returns.qc_warehouse", "QC / receive warehouse"]"
+                           Variant="Variant.Outlined" Dense="true">
+                    @foreach (var w in _wh)
+                    {
+                        <MudSelectItem T="int?" Value="@w.WarehouseID">@w.Name</MudSelectItem>
+                    }
+                </MudSelect>
+            </MudItem>
+            <MudItem xs="12">
+                <MudTextField @bind-Value="_note" Label="@L["orders.note", "Note (optional)"]"
+                              Variant="Variant.Outlined" Dense="true" Lines="2" />
+            </MudItem>
+        </MudGrid>
+
+        @if (_searching)
+        {
+            <MudProgressLinear Indeterminate="true" Class="mt-3" />
+        }
+        else if (_order is not null)
+        {
+            <MudText Typo="Typo.subtitle2" Class="mt-4 mb-2">
+                @_order.OrderNumber · @((OrderStatus)_order.Status)
+                @if (_order.WebsiteClient is not null)
+                {
+                    <span> · @_order.WebsiteClient.Givenname @_order.WebsiteClient.Surname</span>
+                }
+            </MudText>
+            <MudSimpleTable Dense="true" Elevation="0">
+                <thead>
+                    <tr>
+                        <th></th>
+                        <th>@L["title", "Title"]</th>
+                        <th>@L["variants.sku", "SKU"]</th>
+                        <th>@L["quantity", "Ordered"]</th>
+                        <th>@L["returns.qty", "Return qty"]</th>
+                    </tr>
+                </thead>
+                <tbody>
+                    @foreach (var row in _lines)
+                    {
+                        <tr>
+                            <td><MudCheckBox T="bool" @bind-Value="row.Selected" Dense="true" /></td>
+                            <td>@row.Title</td>
+                            <td><code>@row.Sku</code></td>
+                            <td>@row.OrderedQty</td>
+                            <td>
+                                <MudNumericField T="int" @bind-Value="row.Qty" Variant="Variant.Outlined" Dense="true"
+                                                 Min="1" Max="row.OrderedQty" Style="max-width:100px" />
+                            </td>
+                        </tr>
+                    }
+                </tbody>
+            </MudSimpleTable>
+        }
+        else if (_searched)
+        {
+            <MudAlert Severity="Severity.Info" Dense="true" Class="mt-3" Variant="Variant.Outlined">
+                @L["returns.order_not_found", "No order matched that number."]
+            </MudAlert>
+        }
+    </DialogContent>
+    <DialogActions>
+        <MudButton OnClick="Cancel">@L["cancel", "Cancel"]</MudButton>
+        <MudButton Variant="Variant.Filled" Color="Color.Primary" OnClick="SaveAsync"
+                   Disabled="@(_saving || _order is null || !_lines.Any(x => x.Selected && x.Qty > 0))">
+            @L["returns.register", "Register return"]
+        </MudButton>
+    </DialogActions>
+</MudDialog>
+
+@code {
+    [CascadingParameter] private IMudDialogInstance MudDialog { get; set; } = null!;
+    [Parameter] public int WebsiteId { get; set; }
+    [Parameter] public int? MemberId { get; set; }
+
+    private string _orderSearch = "";
+    private string? _note;
+    private int? _warehouseId;
+    private bool _searching, _searched, _saving;
+    private Order? _order;
+    private List<Warehouse> _wh = new();
+    private List<LinePick> _lines = new();
+
+    protected override async Task OnInitializedAsync()
+    {
+        if (WebsiteId > 0)
+        {
+            _wh = (await Warehouses.GetAllAsync(WebsiteId)).ToList();
+            _warehouseId = _wh.FirstOrDefault(w => w.IsDefault)?.WarehouseID ?? _wh.FirstOrDefault()?.WarehouseID;
+        }
+    }
+
+    private void Cancel() => MudDialog.Cancel();
+
+    private async Task OnSearchKey(KeyboardEventArgs e)
+    {
+        if (e.Key == "Enter") await SearchOrderAsync();
+    }
+
+    private async Task SearchOrderAsync()
+    {
+        if (WebsiteId <= 0 || string.IsNullOrWhiteSpace(_orderSearch)) return;
+        _searching = true;
+        _searched = true;
+        var q = new GridQuery { PageSize = 10 };
+        q.Search[nameof(Order.OrderNumber)] = _orderSearch.Trim();
+        var page = await Orders.GetPagedAsync(WebsiteId, null, q);
+        var hit = page.Items.FirstOrDefault();
+        if (hit is null && int.TryParse(_orderSearch.Trim().TrimStart('#'), out var id))
+            hit = await Orders.GetByIdAsync(id);
+
+        _order = hit is null ? null : await Orders.GetByIdAsync(hit.OrderID);
+        _lines = _order?.OrderItems
+            .Where(i => i.ProductVariantID is > 0)
+            .Select(i => new LinePick
+            {
+                ProductVariantID = i.ProductVariantID!.Value,
+                Title = i.TitleSnapshot,
+                Sku = i.SkuSnapshot,
+                OrderedQty = i.Quantity,
+                Qty = i.Quantity,
+                UnitCost = i.UnitCostUsd,
+                Selected = true,
+            }).ToList() ?? new();
+        _searching = false;
+    }
+
+    private async Task SaveAsync()
+    {
+        if (_order is null) return;
+        var selected = _lines.Where(x => x.Selected && x.Qty > 0).ToList();
+        if (selected.Count == 0) return;
+        _saving = true;
+        try
+        {
+            var (ok, err, doc) = await Docs.CreateCustomerReturnAsync(
+                _order.OrderID, _warehouseId,
+                selected.Select(x => new StockDocumentLineRequest
+                {
+                    ProductVariantID = x.ProductVariantID,
+                    Quantity = x.Qty,
+                    UnitCost = x.UnitCost,
+                    Note = x.Sku,
+                }).ToList(),
+                _note, MemberId);
+            if (!ok || doc is null)
+            {
+                Snackbar.Add(err ?? L["save_failed", "Save failed"], Severity.Error);
+                return;
+            }
+            Snackbar.Add(L["saved", "Saved."], Severity.Success);
+            MudDialog.Close(DialogResult.Ok(doc.StockDocumentID));
+        }
+        finally { _saving = false; }
+    }
+
+    private sealed class LinePick
+    {
+        public int ProductVariantID { get; set; }
+        public string Title { get; set; } = "";
+        public string Sku { get; set; } = "";
+        public int OrderedQty { get; set; }
+        public int Qty { get; set; }
+        public decimal UnitCost { get; set; }
+        public bool Selected { get; set; }
+    }
+}
