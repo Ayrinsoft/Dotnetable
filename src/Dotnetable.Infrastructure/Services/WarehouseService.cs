@@ -1,6 +1,8 @@
+using Dotnetable.Application.DTOs;
 using Dotnetable.Application.Interfaces;
 using Dotnetable.Domain.Entities;
 using Dotnetable.Infrastructure.Data;
+using Dotnetable.Infrastructure.Extensions;
 using Microsoft.EntityFrameworkCore;
 
 namespace Dotnetable.Infrastructure.Services;
@@ -37,8 +39,44 @@ public class WarehouseService : IWarehouseService
             .ToListAsync(ct);
     }
 
+    public async Task<PagedResult<Warehouse>> GetPagedAsync(int websiteId, GridQuery query, CancellationToken ct = default)
+    {
+        await EnsureDefaultAsync(websiteId, ct);
+
+        var q = _context.Warehouses.AsNoTracking()
+            .Where(w => w.WebsiteID == websiteId);
+
+        if (query.GetSearch(nameof(Warehouse.Code)) is string code)
+            q = q.Where(w => w.Code.Contains(code));
+        if (query.GetSearch(nameof(Warehouse.Name)) is string name)
+            q = q.Where(w => w.Name.Contains(name));
+        if (query.GetSearch(nameof(Warehouse.IsDefault)) is string def && bool.TryParse(def, out var isDefault))
+            q = q.Where(w => w.IsDefault == isDefault);
+        if (query.GetSearch(nameof(Warehouse.IsActive)) is string active && bool.TryParse(active, out var isActive))
+            q = q.Where(w => w.IsActive == isActive);
+
+        var total = await q.CountAsync(ct);
+        var ordered = string.IsNullOrWhiteSpace(query.OrderBy)
+            ? q.OrderByDescending(w => w.IsDefault).ThenBy(w => w.Name)
+            : q.ApplyOrderBy(query.OrderBy, nameof(Warehouse.Name));
+        var items = await ordered.Skip(query.Skip).Take(query.Take).ToListAsync(ct);
+
+        return new PagedResult<Warehouse> { Items = items, TotalCount = total };
+    }
+
     public async Task<Warehouse> UpsertAsync(Warehouse warehouse, CancellationToken ct = default)
     {
+        warehouse.Code = warehouse.Code.Trim();
+        warehouse.Name = warehouse.Name.Trim();
+        warehouse.Address = string.IsNullOrWhiteSpace(warehouse.Address) ? null : warehouse.Address.Trim();
+
+        var codeTaken = await _context.Warehouses.AnyAsync(w =>
+            w.WebsiteID == warehouse.WebsiteID
+            && w.WarehouseID != warehouse.WarehouseID
+            && w.Code == warehouse.Code, ct);
+        if (codeTaken)
+            throw new InvalidOperationException("A warehouse with this code already exists on the site.");
+
         if (warehouse.IsDefault)
         {
             var others = await _context.Warehouses

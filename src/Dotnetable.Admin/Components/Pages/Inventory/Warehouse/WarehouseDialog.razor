@@ -1,0 +1,73 @@
+@inject IWarehouseService Warehouses
+@inject ISnackbar Snackbar
+@inject IPageLocalizer L
+
+<MudDialog>
+    <DialogContent>
+        <MudForm @ref="_form">
+            <MudGrid Spacing="3">
+                <MudItem xs="12" sm="4">
+                    <MudTextField @bind-Value="Model.Code" Label="@L["warehouse.code", "Code"]" Variant="Variant.Outlined"
+                                  Required="true" MaxLength="20"
+                                  HelperText="@L["warehouse.code_hint", "Unique on this site, e.g. MAIN"]" />
+                </MudItem>
+                <MudItem xs="12" sm="8">
+                    <MudTextField @bind-Value="Model.Name" Label="@L["name", "Name"]" Variant="Variant.Outlined"
+                                  Required="true" MaxLength="200" />
+                </MudItem>
+                <MudItem xs="12">
+                    <MudTextField @bind-Value="Model.Address" Label="@L["address", "Address"]" Variant="Variant.Outlined"
+                                  MaxLength="500" Lines="2" />
+                </MudItem>
+                <MudItem xs="12" sm="6">
+                    <MudSwitch T="bool" @bind-Value="Model.IsDefault" Label="@L["warehouse.default", "Default"]" Color="Color.Primary" />
+                </MudItem>
+                <MudItem xs="12" sm="6">
+                    <MudSwitch T="bool" @bind-Value="Model.IsActive" Label="@L["active", "Active"]" Color="Color.Success" />
+                </MudItem>
+            </MudGrid>
+            <DNValidationSummary Errors="_formErrors" />
+        </MudForm>
+    </DialogContent>
+    <DialogActions>
+        <MudButton OnClick="Cancel">@L["cancel", "Cancel"]</MudButton>
+        <MudButton Variant="Variant.Filled" Color="Color.Primary" OnClick="SaveAsync" Disabled="@_saving">@L["save", "Save"]</MudButton>
+    </DialogActions>
+</MudDialog>
+
+@code {
+    [CascadingParameter] private IMudDialogInstance MudDialog { get; set; } = null!;
+    [Parameter] public Warehouse Model { get; set; } = new() { IsActive = true };
+    [Parameter] public bool IsNew { get; set; }
+
+    private MudForm _form = null!;
+    private bool _saving;
+    private string[]? _formErrors;
+
+    private void Cancel() => MudDialog.Cancel();
+
+    private async Task SaveAsync()
+    {
+        await _form.Validate();
+        _formErrors = _form.Errors;
+        if (!_form.IsValid) return;
+        if (string.IsNullOrWhiteSpace(Model.Code) || string.IsNullOrWhiteSpace(Model.Name)) return;
+
+        Model.Code = Model.Code.Trim();
+        Model.Name = Model.Name.Trim();
+        Model.Address = string.IsNullOrWhiteSpace(Model.Address) ? null : Model.Address.Trim();
+
+        _saving = true;
+        try
+        {
+            await Warehouses.UpsertAsync(Model);
+            Snackbar.Add(L["saved", "Saved."], Severity.Success);
+            MudDialog.Close(DialogResult.Ok(true));
+        }
+        catch (Exception ex)
+        {
+            Snackbar.Add($"{L["save_failed", "Save failed"]}: {ex.Message}", Severity.Error);
+        }
+        finally { _saving = false; }
+    }
+}
