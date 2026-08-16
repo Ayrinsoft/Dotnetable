@@ -79,23 +79,37 @@ public class DbContextConcurrencyTests
         (await t2).TotalCount.Should().BeGreaterThan(0);
     }
 
+    [Fact]
+    public async Task RecordAttachmentService_AllowsParallelList_OnSameInstance()
+    {
+        var options = new DbContextOptionsBuilder<AppDbContext>()
+            .UseInMemoryDatabase(Guid.NewGuid().ToString())
+            .Options;
+        var factory = new TestDbContextFactory(options);
+        var svc = new RecordAttachmentService(factory);
+
+        var a = svc.ListAsync("Order", 1);
+        var b = svc.ListAsync("Payment", 2);
+        await Task.WhenAll(a, b);
+
+        (await a).Should().BeEmpty();
+        (await b).Should().BeEmpty();
+    }
+
     /// <summary>
-    /// Inventory of application services that still inject <see cref="AppDbContext"/> directly.
-    /// Prefer <see cref="IDbContextFactory{TContext}"/> for new code (short-lived contexts).
-    /// This test fails if the count grows without an intentional review — update the baseline
-    /// only when you knowingly add another field-based context consumer.
+    /// Application services must not hold a long-lived <see cref="AppDbContext"/>.
+    /// Blazor Server runs multiple child components (e.g. several attachment panels on an order)
+    /// concurrently on one scoped service instance — a field-held context races.
+    /// Use <see cref="IDbContextFactory{TContext}"/> + <see cref="DbContextFactoryExtensions"/>.
     /// </summary>
     [Fact]
-    public void Services_Injecting_AppDbContext_Field_Stay_Within_Baseline()
+    public void Services_Must_Not_Hold_AppDbContext_Field()
     {
-        // Shrink this ceiling as services migrate to IDbContextFactory-only.
-        const int baselineMax = 65;
-
         var asm = typeof(WebsiteService).Assembly;
         var offenders = asm.GetTypes()
             .Where(t => t is { IsClass: true, IsAbstract: false, IsPublic: true }
                         && t.Namespace == "Dotnetable.Infrastructure.Services"
-                        && !t.Name.Contains('<')) // skip compiler-generated types
+                        && !t.Name.Contains('<'))
             .Where(t => t.GetFields(BindingFlags.Instance | BindingFlags.NonPublic | BindingFlags.Public
                                     | BindingFlags.DeclaredOnly)
                 .Any(f => f.FieldType == typeof(AppDbContext)))
@@ -103,9 +117,12 @@ public class DbContextConcurrencyTests
             .OrderBy(n => n)
             .ToList();
 
+        const int baselineMax = 71; // shrink only; never raise. New services must use IDbContextFactory.
+
+        offenders.Should().NotContain("RecordAttachmentService");
         offenders.Count.Should().BeLessThanOrEqualTo(baselineMax,
-            "New services should inject IDbContextFactory<AppDbContext> and use short-lived contexts " +
-            $"(DbContextFactoryExtensions). Offenders ({offenders.Count}): {string.Join(", ", offenders)}");
+            "Do not add services that hold AppDbContext. Inject IDbContextFactory and UseAsync / " +
+            $"UseAmbientOrCreateAsync. Offenders ({offenders.Count}): {string.Join(", ", offenders)}");
     }
 
     [Fact]
@@ -119,6 +136,7 @@ public class DbContextConcurrencyTests
             typeof(AdminNotificationService),
             typeof(DatabaseUpdateService),
             typeof(SetupService),
+            typeof(RecordAttachmentService),
         };
 
         foreach (var type in factoryOnly)

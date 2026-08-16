@@ -7,71 +7,78 @@ namespace Dotnetable.Infrastructure.Services;
 
 public class RecordAttachmentService : IRecordAttachmentService
 {
-    private readonly AppDbContext _context;
+    private readonly IDbContextFactory<AppDbContext> _db;
 
-    public RecordAttachmentService(AppDbContext context) => _context = context;
+    public RecordAttachmentService(IDbContextFactory<AppDbContext> db) => _db = db;
 
-    public async Task<IReadOnlyList<RecordAttachmentDto>> ListAsync(string entityType, long entityId, CancellationToken ct = default)
+    public Task<IReadOnlyList<RecordAttachmentDto>> ListAsync(string entityType, long entityId, CancellationToken ct = default)
     {
         if (string.IsNullOrWhiteSpace(entityType) || entityId <= 0)
-            return Array.Empty<RecordAttachmentDto>();
+            return Task.FromResult<IReadOnlyList<RecordAttachmentDto>>(Array.Empty<RecordAttachmentDto>());
 
         var type = entityType.Trim();
-        var rows = await _context.RecordAttachments.AsNoTracking()
-            .Include(a => a.FileRecord)
-            .Where(a => a.EntityType == type && a.EntityID == entityId)
-            .OrderByDescending(a => a.CreatedAt)
-            .ToListAsync(ct);
+        return _db.UseAsync(async (context, token) =>
+        {
+            var rows = await context.RecordAttachments.AsNoTracking()
+                .Include(a => a.FileRecord)
+                .Where(a => a.EntityType == type && a.EntityID == entityId)
+                .OrderByDescending(a => a.CreatedAt)
+                .ToListAsync(token);
 
-        return rows.Select(Map).ToList();
+            return (IReadOnlyList<RecordAttachmentDto>)rows.Select(Map).ToList();
+        }, ct);
     }
 
-    public async Task<(bool Success, string? Error, RecordAttachment? Attachment)> AttachAsync(
+    public Task<(bool Success, string? Error, RecordAttachment? Attachment)> AttachAsync(
         int websiteId, string entityType, long entityId, int fileRecordId,
         string? title, string? note, int? memberId, CancellationToken ct = default)
     {
-        if (websiteId <= 0) return (false, "Website is required.", null);
-        if (string.IsNullOrWhiteSpace(entityType)) return (false, "Entity type is required.", null);
-        if (entityId <= 0) return (false, "Entity id is required.", null);
-        if (fileRecordId <= 0) return (false, "File is required.", null);
+        if (websiteId <= 0) return Task.FromResult<(bool, string?, RecordAttachment?)>((false, "Website is required.", null));
+        if (string.IsNullOrWhiteSpace(entityType)) return Task.FromResult<(bool, string?, RecordAttachment?)>((false, "Entity type is required.", null));
+        if (entityId <= 0) return Task.FromResult<(bool, string?, RecordAttachment?)>((false, "Entity id is required.", null));
+        if (fileRecordId <= 0) return Task.FromResult<(bool, string?, RecordAttachment?)>((false, "File is required.", null));
 
         var type = entityType.Trim();
-        if (type.Length > 64) return (false, "Entity type is too long.", null);
+        if (type.Length > 64) return Task.FromResult<(bool, string?, RecordAttachment?)>((false, "Entity type is too long.", null));
 
-        var file = await _context.FileRecords.AsNoTracking()
-            .FirstOrDefaultAsync(f => f.FileRecordID == fileRecordId && !f.IsDeleted, ct);
-        if (file is null) return (false, "File not found.", null);
-        if (file.WebsiteID != websiteId)
-            return (false, "File belongs to a different website.", null);
-
-        var exists = await _context.RecordAttachments.AnyAsync(
-            a => a.EntityType == type && a.EntityID == entityId && a.FileRecordID == fileRecordId, ct);
-        if (exists) return (false, "This file is already attached.", null);
-
-        var attachment = new RecordAttachment
+        return _db.UseAsync(async (context, token) =>
         {
-            WebsiteID = websiteId,
-            EntityType = type,
-            EntityID = entityId,
-            FileRecordID = fileRecordId,
-            Title = Truncate(title, 200) ?? Truncate(file.Title ?? file.OriginalFileName, 200),
-            Note = Truncate(note, 500),
-            CreatedByMemberID = memberId,
-            CreatedAt = DateTime.UtcNow,
-        };
-        _context.RecordAttachments.Add(attachment);
-        await _context.SaveChangesAsync(ct);
-        return (true, null, attachment);
+            var file = await context.FileRecords.AsNoTracking()
+                .FirstOrDefaultAsync(f => f.FileRecordID == fileRecordId && !f.IsDeleted, token);
+            if (file is null) return (false, "File not found.", (RecordAttachment?)null);
+            if (file.WebsiteID != websiteId)
+                return (false, "File belongs to a different website.", (RecordAttachment?)null);
+
+            var exists = await context.RecordAttachments.AnyAsync(
+                a => a.EntityType == type && a.EntityID == entityId && a.FileRecordID == fileRecordId, token);
+            if (exists) return (false, "This file is already attached.", (RecordAttachment?)null);
+
+            var attachment = new RecordAttachment
+            {
+                WebsiteID = websiteId,
+                EntityType = type,
+                EntityID = entityId,
+                FileRecordID = fileRecordId,
+                Title = Truncate(title, 200) ?? Truncate(file.Title ?? file.OriginalFileName, 200),
+                Note = Truncate(note, 500),
+                CreatedByMemberID = memberId,
+                CreatedAt = DateTime.UtcNow,
+            };
+            context.RecordAttachments.Add(attachment);
+            await context.SaveChangesAsync(token);
+            return (true, (string?)null, attachment);
+        }, ct);
     }
 
-    public async Task<(bool Success, string? Error)> RemoveAsync(long attachmentId, int? memberId, CancellationToken ct = default)
-    {
-        var row = await _context.RecordAttachments.FirstOrDefaultAsync(a => a.RecordAttachmentID == attachmentId, ct);
-        if (row is null) return (false, "Attachment not found.");
-        _context.RecordAttachments.Remove(row);
-        await _context.SaveChangesAsync(ct);
-        return (true, null);
-    }
+    public Task<(bool Success, string? Error)> RemoveAsync(long attachmentId, int? memberId, CancellationToken ct = default)
+        => _db.UseAsync(async (context, token) =>
+        {
+            var row = await context.RecordAttachments.FirstOrDefaultAsync(a => a.RecordAttachmentID == attachmentId, token);
+            if (row is null) return (false, "Attachment not found.");
+            context.RecordAttachments.Remove(row);
+            await context.SaveChangesAsync(token);
+            return (true, (string?)null);
+        }, ct);
 
     private static RecordAttachmentDto Map(RecordAttachment a) => new()
     {

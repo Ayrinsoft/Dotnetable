@@ -1,5 +1,13 @@
 # Agent notes — Dotnetable
 
+## DbContext in services (Blazor Server)
+
+**Never inject `AppDbContext` as a field** on an application service. Blazor runs layout + page + child components (several `RecordAttachmentsPanel`s on an order, nav, etc.) in parallel on one circuit scope. A scoped service holding one context throws `A second operation was started on this context instance`.
+
+**Required pattern:** inject `IDbContextFactory<AppDbContext>` and open a short-lived context per call (`CreateDbContextAsync` / `DbContextFactoryExtensions.UseAsync`). For multi-service transactions, use `UseAmbientOrCreateAsync` so nested work joins `AmbientDbContext` when OrderService (etc.) has pushed one.
+
+Do not add a new service with `private readonly AppDbContext _context`. `DbContextConcurrencyTests.Services_Must_Not_Hold_AppDbContext_Field` must stay empty.
+
 ## Environment (current phase)
 
 **There is no pre-installed production or customer site yet.** Work is still in the **local/test** phase.
