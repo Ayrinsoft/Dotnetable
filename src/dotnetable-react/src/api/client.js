@@ -1,5 +1,5 @@
-// Thin fetch wrapper for the Dotnetable API. Every request carries the per-site key header
-// (X-Website-Key = the website's AuthCode) so the API can resolve the caller website.
+// Thin fetch wrapper for the Dotnetable API. Every request carries the per-site key
+// (X-Website-Key = the website's AuthCode) and pins the contract with X-Api-Version.
 
 const BASE_URL = (import.meta.env.VITE_API_URL || '').replace(/\/+$/, '');
 const WEBSITE_KEY = import.meta.env.VITE_WEBSITE_KEY || '';
@@ -9,6 +9,7 @@ async function request(path, options = {}) {
     ...options,
     headers: {
       'X-Website-Key': WEBSITE_KEY,
+      'X-Api-Version': '1.0',
       ...(options.body ? { 'Content-Type': 'application/json' } : {}),
       ...options.headers,
     },

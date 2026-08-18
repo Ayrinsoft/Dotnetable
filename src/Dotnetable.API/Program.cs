@@ -1,8 +1,8 @@
 using System.Data.Common;
 using System.Security.Claims;
 using System.Text;
-using Asp.Versioning;
 using Dotnetable.API.Auth;
+using Dotnetable.API.Versioning;
 using Dotnetable.Application.Authorization;
 using Dotnetable.Infrastructure.Extensions;
 using Microsoft.AspNetCore.Authentication.JwtBearer;
@@ -41,14 +41,7 @@ builder.Services
 
 builder.Services.AddAuthorization(ApiAuthorization.Register);
 
-// API versioning is driven by the X-Api-Version request header (defaults to 1.0 when absent).
-builder.Services.AddApiVersioning(options =>
-{
-    options.DefaultApiVersion = new ApiVersion(1, 0);
-    options.AssumeDefaultVersionWhenUnspecified = true;
-    options.ReportApiVersions = true; // echoes api-supported-versions in the response headers
-    options.ApiVersionReader = new HeaderApiVersionReader("X-Api-Version");
-});
+builder.Services.AddDotnetableApiVersioning();
 
 // CORS for browser-based front-ends (the React SPA in serverless mode calls the API directly).
 // Allowed origins come from configuration; when none are configured any origin is accepted, since
@@ -94,6 +87,7 @@ app.UseExceptionHandler(errorApp => errorApp.Run(async context =>
 
 app.UseHttpsRedirection();
 app.UseCors();
+app.UseDotnetableApiVersionHeaders();
 app.UseAuthentication();
 app.UseAuthorization();
 app.MapControllers();

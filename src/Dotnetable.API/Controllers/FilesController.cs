@@ -1,3 +1,4 @@
+using Asp.Versioning;
 using Dotnetable.Domain.Enums;
 using Dotnetable.Infrastructure.Data;
 using Dotnetable.Infrastructure.Storage;
@@ -12,6 +13,7 @@ namespace Dotnetable.API.Controllers;
 /// host's disk. Both the admin dashboard and the public site reach local files through this endpoint.
 /// </summary>
 [ApiController]
+[ApiVersionNeutral]
 [Route("api/files")]
 public sealed class FilesController : ControllerBase
 {

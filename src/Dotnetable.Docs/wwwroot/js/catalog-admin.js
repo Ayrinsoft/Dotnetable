@@ -555,6 +555,10 @@ window.DOCS_ADMIN = {
               en: "Update the consuming app configuration immediately after rotation.",
               fa: "بلافاصله بعد از چرخش، پیکربندی اپ مصرف‌کننده را به‌روز کنید.",
             },
+            {
+              en: "Storefront calls also send `X-Api-Version: 1.0` so a later API version does not change this site’s contract.",
+              fa: "فراخوانی استورفرانت `X-Api-Version: 1.0` هم می‌فرستد تا نسخه بعدی API قرارداد این سایت را عوض نکند.",
+            },
           ],
           tips: [
             {
@@ -563,6 +567,7 @@ window.DOCS_ADMIN = {
             },
           ],
           related: ["websites", "settings"],
+          relatedApi: ["auth", "versioning"],
         },
         {
           id: "website-languages",

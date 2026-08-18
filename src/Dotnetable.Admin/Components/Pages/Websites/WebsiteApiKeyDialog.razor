@@ -15,7 +15,7 @@
                       OnAdornmentClick="@(() => CopyAsync(_authCode))" AdornmentAriaLabel="@L["copy", "Copy"]" />
 
         <MudText Typo="Typo.subtitle2" Class="fw-bold mb-2">@L["website_api_key.sample", "Sample Request"]</MudText>
-        <MudTextField Value="@_sampleRequest" T="string" Lines="4" ReadOnly="true"
+        <MudTextField Value="@_sampleRequest" T="string" Lines="6" ReadOnly="true"
                       Variant="Variant.Outlined" Style="font-family: monospace; font-size: 13px;" />
         <MudButton Variant="Variant.Text" Color="Color.Primary" Size="Size.Small" Class="mt-2"
                    StartIcon="@Icons.Material.Filled.ContentCopy"
@@ -38,7 +38,7 @@
     protected override void OnInitialized()
     {
         _authCode = Model.AuthCode.ToString();
-        _sampleRequest = $"curl \"https://your-api-domain/api/siteinfo\" \\\n  -H \"X-Website-Key: {_authCode}\"";
+        _sampleRequest = $"curl \"https://your-api-domain/api/siteinfo\" \\\n  -H \"X-Website-Key: {_authCode}\" \\\n  -H \"X-Api-Version: 1.0\"";
     }
 
     private async Task CopyAsync(string text)
