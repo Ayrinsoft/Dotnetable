@@ -48,8 +48,8 @@ window.DOCS_API = {
           },
           purpose: [
             {
-              en: "Base path pattern: `/api/{Controller}` (version **1.0** via optional header `X-Api-Version`).",
-              fa: "الگوی مسیر: `/api/{Controller}` (نسخه **1.0** با هدر اختیاری `X-Api-Version`).",
+              en: "Base path pattern: `/api/{Controller}`. Version is **not** in the URL — send **`X-Api-Version`** (current **1.0**). Old clients that omit it still get 1.0 after a later version ships.",
+              fa: "الگوی مسیر: `/api/{Controller}`. نسخه داخل URL نیست — هدر **`X-Api-Version`** (فعلی **1.0**). کلاینت قدیمی که هدر ندهد بعد از آمدن نسخه جدید هم 1.0 می‌گیرد.",
             },
             {
               en: "Almost every call needs **`X-Website-Key`** so the server knows which site’s catalog/orders to use. Customer actions also need a JWT — details are only on the Authentication page.",
@@ -70,7 +70,95 @@ window.DOCS_API = {
               fa: "منبع لازم (Products، Cart، Checkout، …) را باز کنید و نمونه request را کپی کنید.",
             },
           ],
-          related: ["auth", "products", "cart", "checkout"],
+          related: ["auth", "versioning", "products", "cart", "checkout"],
+        },
+        {
+          id: "versioning",
+          title: { en: "API versioning", fa: "نسخه‌گذاری API" },
+          summary: {
+            en: "Send the contract version in a header so a storefront built against 1.0 keeps working after 2.0 exists.",
+            fa: "نسخه قرارداد را در هدر بفرستید تا استورفرانت ساخته‌شده روی 1.0 بعد از آمدن 2.0 هم کار کند.",
+          },
+          purpose: [
+            {
+              en: "URLs stay `/api/{Controller}`. The server picks the implementation from **`X-Api-Version`**.",
+              fa: "مسیر همان `/api/{Controller}` می‌ماند. سرور پیاده‌سازی را از **`X-Api-Version`** انتخاب می‌کند.",
+            },
+            {
+              en: "Additive changes (new optional fields, new endpoints) stay on **1.0**. A breaking change is a new version on the same path; v1 is left mapped.",
+              fa: "تغییرات افزودنی (فیلد/اندپوینت جدید اختیاری) روی **1.0** می‌مانند. تغییر شکننده نسخهٔ جدید روی همان مسیر است؛ v1 سر جایش می‌ماند.",
+            },
+            {
+              en: "If the header is omitted, the API assumes **1.0**. First-party Web and React clients always send `1.0` so they stay pinned when a later default is introduced.",
+              fa: "اگر هدر نباشد API **1.0** فرض می‌کند. کلاینت‌های Web و React همیشه `1.0` می‌فرستند تا بعداً هم روی همان قرارداد بمانند.",
+            },
+          ],
+          howTo: [
+            {
+              en: "On every storefront call add `-H \"X-Api-Version: 1.0\"` (together with `X-Website-Key`).",
+              fa: "روی هر فراخوانی استورفرانت `-H \"X-Api-Version: 1.0\"` بگذارید (همراه `X-Website-Key`).",
+            },
+            {
+              en: "Read response header `api-supported-versions` (and `api-deprecated-versions` when a version is being retired).",
+              fa: "هدر پاسخ `api-supported-versions` را بخوانید (و در صورت بازنشستگی نسخه، `api-deprecated-versions`).",
+            },
+            {
+              en: "Unknown versions return **400** with ProblemDetails. The 1.0 contract is unchanged.",
+              fa: "نسخه ناشناخته **400** با ProblemDetails برمی‌گردد. قرارداد 1.0 عوض نمی‌شود.",
+            },
+          ],
+          sections: [
+            {
+              title: { en: "Header", fa: "هدر" },
+              definitions: [
+                {
+                  term: { en: "`X-Api-Version`", fa: "`X-Api-Version`" },
+                  def: {
+                    en: "Required for new integrations. Value is `1.0` today (`1` is accepted as the same version). The negotiated value is echoed on the response as `X-Api-Version`.",
+                    fa: "برای یکپارچه‌سازی جدید لازم است. مقدار امروز `1.0` است (`1` همان نسخه است). مقدار توافق‌شده در پاسخ هم با `X-Api-Version` برمی‌گردد.",
+                  },
+                },
+              ],
+            },
+            {
+              title: { en: "Version-neutral routes", fa: "مسیرهای بدون نسخه" },
+              items: [
+                {
+                  en: "`/api/files/…` — local file download used by `<img>` tags; browsers cannot send custom headers.",
+                  fa: "`/api/files/…` — دانلود فایل محلی برای تگ `<img>`؛ مرورگر هدر سفارشی نمی‌فرستد.",
+                },
+                {
+                  en: "`/api/cache/invalidate` — internal Admin → API cache flush, not a public contract.",
+                  fa: "`/api/cache/invalidate` — پاک‌سازی کش داخلی ادمین → API، قرارداد عمومی نیست.",
+                },
+              ],
+              callout: {
+                tone: "info",
+                text: {
+                  en: "Do not put the version in the path (`/api/v1/…`). Path versioning would break every bookmark, image URL, and already-shipped client.",
+                  fa: "نسخه را در مسیر نگذارید (`/api/v1/…`). نسخه‌گذاری در URL بوکمارک، آدرس تصویر و کلاینت‌های منتشرشده را می‌شکند.",
+                },
+              },
+            },
+          ],
+          endpoints: [
+            {
+              title: { en: "Example (any 1.0 resource)", fa: "نمونه (هر منبع 1.0)" },
+              method: "GET",
+              path: "/api/siteinfo",
+              auth: "website",
+              summary: {
+                en: "Same path for every version; the header selects 1.0.",
+                fa: "برای همه نسخه‌ها همان مسیر؛ هدر نسخه 1.0 را انتخاب می‌کند.",
+              },
+              headers: [
+                { name: "X-Website-Key", desc: { en: "Website AuthCode GUID", fa: "GUID کلید وب‌سایت" } },
+                { name: "X-Api-Version", desc: { en: "1.0", fa: "1.0" } },
+              ],
+            },
+          ],
+          related: ["auth", "home"],
+          relatedAdmin: ["website-api-key"],
         },
         {
           id: "auth",
@@ -121,8 +209,8 @@ window.DOCS_API = {
                 {
                   term: { en: "`X-Api-Version`", fa: "`X-Api-Version`" },
                   def: {
-                    en: "Optional. Default **1.0** when omitted. Sent as a header (not in the URL).",
-                    fa: "اختیاری. اگر نباشد پیش‌فرض **1.0**. به‌صورت هدر (نه در URL).",
+                    en: "Selects the contract. Current value **1.0**. Omitted → 1.0 (old clients keep working). Details on the Versioning page.",
+                    fa: "قرارداد را انتخاب می‌کند. مقدار فعلی **1.0**. نبودن → 1.0 (کلاینت قدیمی کار می‌کند). جزئیات در صفحه نسخه‌گذاری.",
                   },
                 },
               ],
@@ -164,6 +252,7 @@ window.DOCS_API = {
               },
               headers: [
                 { name: "X-Website-Key", desc: { en: "Website AuthCode GUID", fa: "GUID کلید وب‌سایت" } },
+                { name: "X-Api-Version", desc: { en: "1.0", fa: "1.0" } },
                 { name: "Content-Type", desc: { en: "application/json", fa: "application/json" } },
               ],
               request: {
@@ -290,7 +379,7 @@ window.DOCS_API = {
               },
             },
           ],
-          related: ["cart", "checkout", "orders"],
+          related: ["versioning", "cart", "checkout", "orders"],
           relatedAdmin: ["website-api-key", "clients", "email-accounts"],
         },
       ],

@@ -26,6 +26,8 @@
   </ItemGroup>
 
   <ItemGroup>
+    <FrameworkReference Include="Microsoft.AspNetCore.App" />
+    <ProjectReference Include="..\..\src\Dotnetable.API\Dotnetable.API.csproj" />
     <ProjectReference Include="..\..\src\Dotnetable.Application\Dotnetable.Application.csproj" />
     <ProjectReference Include="..\..\src\Dotnetable.Domain\Dotnetable.Domain.csproj" />
     <ProjectReference Include="..\..\src\Dotnetable.Infrastructure\Dotnetable.Infrastructure.csproj" />

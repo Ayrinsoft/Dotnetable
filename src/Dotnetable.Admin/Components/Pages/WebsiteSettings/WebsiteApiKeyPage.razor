@@ -96,7 +96,7 @@ else
         _loading = true;
         var website = await WebsiteService.GetByIdAsync(_websiteId);
         _authCode = website?.AuthCode.ToString() ?? string.Empty;
-        _sampleRequest = $"curl \"https://your-api-domain/api/siteinfo\" \\\n  -H \"X-Website-Key: {_authCode}\"";
+        _sampleRequest = $"curl \"https://your-api-domain/api/siteinfo\" \\\n  -H \"X-Website-Key: {_authCode}\" \\\n  -H \"X-Api-Version: 1.0\"";
         _loading = false;
     }
 

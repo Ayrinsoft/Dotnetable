@@ -1,3 +1,4 @@
+using Asp.Versioning;
 using Dotnetable.Application.Caching;
 using Dotnetable.Application.Interfaces;
 using Microsoft.AspNetCore.Mvc;
@@ -11,6 +12,7 @@ namespace Dotnetable.API.Controllers;
 /// Not for public/client use — guarded by a shared secret, not the customer JWT/website-key scheme.
 /// </summary>
 [ApiController]
+[ApiVersionNeutral]
 [Route("api/cache")]
 public class CacheController : ControllerBase
 {

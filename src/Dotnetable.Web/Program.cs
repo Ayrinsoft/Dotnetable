@@ -37,6 +37,10 @@ builder.Services.AddHttpClient<ApiClient>(client =>
     var websiteKey = builder.Configuration["Api:WebsiteKey"];
     if (!string.IsNullOrWhiteSpace(websiteKey))
         client.DefaultRequestHeaders.Add("X-Website-Key", websiteKey);
+
+    // Pin this storefront to the contract it was built against. New API versions can ship
+    // without changing URLs; old Web deployments keep hitting 1.0.
+    client.DefaultRequestHeaders.TryAddWithoutValidation("X-Api-Version", "1.0");
 })
 .AddHttpMessageHandler<BearerTokenHandler>()
 .AddHttpMessageHandler<CartSessionHandler>();
