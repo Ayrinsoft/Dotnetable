@@ -29,6 +29,10 @@ public static class FinancialTransactionTypes
     public const string SettlementPaid = "SettlementPaid";
     public const string Adjustment = "Adjustment";
     public const string Manual = "Manual";
+    /// <summary>Site-paid share of customer-return shipping (cash/expense).</summary>
+    public const string ReturnShipping = "ReturnShipping";
+    /// <summary>Analytical site profit or loss of a completed customer return (not a second cash movement).</summary>
+    public const string ReturnSiteImpact = "ReturnSiteImpact";
 }
 
 /// <summary>Values for <c>FinancialLedgerEntry.Flow</c>.</summary>

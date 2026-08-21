@@ -104,6 +104,10 @@ public class FinancialLedgerService : IFinancialLedgerService
             TaxTotal = Sum(FinancialTransactionTypes.OrderTax),
             VendorSettlementTotal = Sum(FinancialTransactionTypes.VendorSettlement, FinancialFlow.Out)
                                     + Sum(FinancialTransactionTypes.VendorSettlement, FinancialFlow.Component),
+            ReturnShippingTotal = Sum(FinancialTransactionTypes.ReturnShipping, FinancialFlow.Out),
+            ReturnSiteImpactTotal = current
+                .Where(e => e.TransactionType == FinancialTransactionTypes.ReturnSiteImpact)
+                .Sum(e => e.Flow == FinancialFlow.Out ? -e.Amount : e.Amount),
             OrderGrandTotalSnapshot = order.GrandTotal,
             Lines = current.OrderBy(e => e.OccurredDate).ThenBy(e => e.OccurredTime).Select(MapDto).ToList(),
             History = all.Where(e => !e.IsCurrent).Select(MapDto).ToList(),
@@ -326,6 +330,102 @@ public class FinancialLedgerService : IFinancialLedgerService
             WebsiteClientId = order.WebsiteClientID,
             MemberId = memberId,
         }, ct);
+    }
+
+    public async Task PostCustomerReturnImpactAsync(
+        int orderId, int customerReturnRequestId,
+        decimal siteShippingShare, decimal siteImpactAmount,
+        string currencyCode, string? note, int? vendorId, decimal sellerShippingShare,
+        int? memberId, CancellationToken ct = default)
+    {
+        var order = await _context.Orders.AsNoTracking().FirstOrDefaultAsync(o => o.OrderID == orderId, ct);
+        if (order is null) return;
+
+        var sourceKey = $"RETURN-IMPACT:{customerReturnRequestId}";
+        if (await _context.FinancialLedgerEntries.AnyAsync(
+                e => e.WebsiteID == order.WebsiteID && e.IsCurrent
+                     && e.MetaJson != null && e.MetaJson.Contains(sourceKey), ct))
+            return;
+
+        var groupId = Guid.NewGuid();
+        var rate = order.ExchangeRateToUsd > 0 ? order.ExchangeRateToUsd : 1m;
+        decimal ToUsd(decimal local) => decimal.Round(local * rate, 4);
+        var meta = $"{{\"sourceKey\":\"{sourceKey}\",\"customerReturnRequestId\":{customerReturnRequestId}}}";
+
+        if (siteShippingShare > 0)
+        {
+            await PostAsync(new PostFinancialEntryRequest
+            {
+                WebsiteId = order.WebsiteID,
+                TransactionType = FinancialTransactionTypes.ReturnShipping,
+                Flow = FinancialFlow.Out,
+                Amount = siteShippingShare,
+                AmountUsd = ToUsd(siteShippingShare),
+                CurrencyCode = string.IsNullOrWhiteSpace(currencyCode) ? order.CurrencyCode : currencyCode,
+                Title = $"Return shipping RMA #{customerReturnRequestId}",
+                Description = note,
+                ReportToTax = order.ReportToTax,
+                VendorVisible = false,
+                OrderId = orderId,
+                WebsiteClientId = order.WebsiteClientID,
+                EventGroupId = groupId,
+                MemberId = memberId,
+                MetaJson = meta,
+                SkipGlProjection = true,
+            }, ct);
+        }
+
+        if (sellerShippingShare > 0 && vendorId is int vid && vid > 0)
+        {
+            await PostAsync(new PostFinancialEntryRequest
+            {
+                WebsiteId = order.WebsiteID,
+                TransactionType = FinancialTransactionTypes.ReturnShipping,
+                Flow = FinancialFlow.Component,
+                Amount = sellerShippingShare,
+                AmountUsd = ToUsd(sellerShippingShare),
+                CurrencyCode = string.IsNullOrWhiteSpace(currencyCode) ? order.CurrencyCode : currencyCode,
+                Title = $"Seller return shipping RMA #{customerReturnRequestId}",
+                Description = note,
+                ReportToTax = order.ReportToTax,
+                VendorVisible = true,
+                VendorId = vid,
+                OrderId = orderId,
+                WebsiteClientId = order.WebsiteClientID,
+                EventGroupId = groupId,
+                MemberId = memberId,
+                MetaJson = meta,
+                SkipGlProjection = true,
+            }, ct);
+        }
+
+        if (siteImpactAmount != 0)
+        {
+            await PostAsync(new PostFinancialEntryRequest
+            {
+                WebsiteId = order.WebsiteID,
+                TransactionType = FinancialTransactionTypes.ReturnSiteImpact,
+                Flow = siteImpactAmount < 0 ? FinancialFlow.Out : FinancialFlow.In,
+                Amount = Math.Abs(siteImpactAmount),
+                AmountUsd = ToUsd(Math.Abs(siteImpactAmount)),
+                CurrencyCode = string.IsNullOrWhiteSpace(currencyCode) ? order.CurrencyCode : currencyCode,
+                Title = siteImpactAmount < 0
+                    ? $"Return site loss RMA #{customerReturnRequestId}"
+                    : $"Return site profit RMA #{customerReturnRequestId}",
+                Description = note,
+                ReportToTax = order.ReportToTax,
+                VendorVisible = false,
+                OrderId = orderId,
+                WebsiteClientId = order.WebsiteClientID,
+                EventGroupId = groupId,
+                MemberId = memberId,
+                MetaJson = meta,
+                SkipGlProjection = true,
+            }, ct);
+        }
+
+        try { await _gl.ProjectEventGroupAsync(order.WebsiteID, groupId, ct); }
+        catch { /* never break commercial flows */ }
     }
 
     public async Task PostInventoryCogsForOrderAsync(int orderId, int? stockDocumentId, int? memberId, CancellationToken ct = default)

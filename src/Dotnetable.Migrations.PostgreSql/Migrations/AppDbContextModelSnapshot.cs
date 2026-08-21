@@ -1229,6 +1229,11 @@ namespace Dotnetable.Migrations.PostgreSql.Migrations
 
                     NpgsqlPropertyBuilderExtensions.UseIdentityByDefaultColumn(b.Property<int>("CustomerReturnRequestID"));
 
+                    b.Property<bool>("AcceptedAfterWindowExpired")
+                        .ValueGeneratedOnAdd()
+                        .HasColumnType("boolean")
+                        .HasDefaultValue(false);
+
                     b.Property<decimal>("ApprovedRefundTotal")
                         .ValueGeneratedOnAdd()
                         .HasColumnType("decimal(18,4)")
@@ -1246,6 +1251,9 @@ namespace Dotnetable.Migrations.PostgreSql.Migrations
                         .HasMaxLength(2000)
                         .HasColumnType("character varying(2000)");
 
+                    b.Property<DateTime?>("ImpactPostedAt")
+                        .HasColumnType("timestamp with time zone");
+
                     b.Property<int>("OrderID")
                         .HasColumnType("integer");
 
@@ -1256,8 +1264,21 @@ namespace Dotnetable.Migrations.PostgreSql.Migrations
                         .HasMaxLength(200)
                         .HasColumnType("character varying(200)");
 
+                    b.Property<int?>("ReceivedWarehouseID")
+                        .HasColumnType("integer");
+
+                    b.Property<decimal>("RecoveredInventoryValue")
+                        .ValueGeneratedOnAdd()
+                        .HasColumnType("decimal(18,4)")
+                        .HasDefaultValue(0m);
+
                     b.Property<decimal>("RequestedRefundTotal")
                         .HasColumnType("decimal(18,4)");
+
+                    b.Property<decimal>("ReturnShippingCost")
+                        .ValueGeneratedOnAdd()
+                        .HasColumnType("decimal(18,4)")
+                        .HasDefaultValue(0m);
 
                     b.Property<string>("ReviewNote")
                         .HasMaxLength(1000)
@@ -1280,6 +1301,16 @@ namespace Dotnetable.Migrations.PostgreSql.Migrations
                         .ValueGeneratedOnAdd()
                         .HasColumnType("smallint")
                         .HasDefaultValue((byte)0);
+
+                    b.Property<decimal>("SiteImpactAmount")
+                        .ValueGeneratedOnAdd()
+                        .HasColumnType("decimal(18,4)")
+                        .HasDefaultValue(0m);
+
+                    b.Property<decimal>("SiteShippingShare")
+                        .ValueGeneratedOnAdd()
+                        .HasColumnType("decimal(18,4)")
+                        .HasDefaultValue(0m);
 
                     b.Property<byte>("Status")
                         .HasColumnType("smallint");
@@ -1309,6 +1340,8 @@ namespace Dotnetable.Migrations.PostgreSql.Migrations
                     b.HasIndex(new[] { "WebsiteClientID", "CreatedAt" }, "IX_CustomerReturnRequests_Client");
 
                     b.HasIndex(new[] { "OrderID" }, "IX_CustomerReturnRequests_Order");
+
+                    b.HasIndex(new[] { "ReceivedWarehouseID" }, "IX_CustomerReturnRequests_ReceivedWarehouse");
 
                     b.HasIndex(new[] { "WebsiteID", "Status", "CreatedAt" }, "IX_CustomerReturnRequests_Website_Status");
 
@@ -1365,6 +1398,11 @@ namespace Dotnetable.Migrations.PostgreSql.Migrations
                     b.Property<int>("CustomerReturnRequestID")
                         .HasColumnType("integer");
 
+                    b.Property<byte>("HealthGrade")
+                        .ValueGeneratedOnAdd()
+                        .HasColumnType("smallint")
+                        .HasDefaultValue((byte)0);
+
                     b.Property<int>("OrderItemID")
                         .HasColumnType("integer");
 
@@ -1373,6 +1411,16 @@ namespace Dotnetable.Migrations.PostgreSql.Migrations
 
                     b.Property<int>("Quantity")
                         .HasColumnType("integer");
+
+                    b.Property<byte>("ReceivedCondition")
+                        .ValueGeneratedOnAdd()
+                        .HasColumnType("smallint")
+                        .HasDefaultValue((byte)0);
+
+                    b.Property<decimal>("UnitCost")
+                        .ValueGeneratedOnAdd()
+                        .HasColumnType("decimal(18,4)")
+                        .HasDefaultValue(0m);
 
                     b.Property<decimal>("UnitPricePaid")
                         .HasColumnType("decimal(18,4)");
@@ -7838,6 +7886,10 @@ namespace Dotnetable.Migrations.PostgreSql.Migrations
                         .HasForeignKey("OrderID")
                         .IsRequired();
 
+                    b.HasOne("Dotnetable.Domain.Entities.Warehouse", "ReceivedWarehouse")
+                        .WithMany()
+                        .HasForeignKey("ReceivedWarehouseID");
+
                     b.HasOne("Dotnetable.Domain.Entities.Member", "ReviewedByMember")
                         .WithMany()
                         .HasForeignKey("ReviewedByMemberID");
@@ -7857,6 +7909,8 @@ namespace Dotnetable.Migrations.PostgreSql.Migrations
                         .IsRequired();
 
                     b.Navigation("Order");
+
+                    b.Navigation("ReceivedWarehouse");
 
                     b.Navigation("ReviewedByMember");
 

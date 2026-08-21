@@ -54,6 +54,8 @@ public class ReturnsController : BaseController
         public string? ReasonNote { get; set; }
         public string? Description { get; set; }
         public string? ShipMethod { get; set; }
+        public byte ShippingPayer { get; set; }
+        public bool AcceptExpiredWindow { get; set; }
         public List<CustomerReturnLineInput> Lines { get; set; } = new();
         public List<int>? PhotoFileIds { get; set; }
     }
@@ -65,9 +67,13 @@ public class ReturnsController : BaseController
         var reason = Enum.IsDefined(typeof(CustomerReturnReason), body.Reason)
             ? (CustomerReturnReason)body.Reason
             : CustomerReturnReason.Other;
+        var payer = Enum.IsDefined(typeof(ReturnShippingPayer), body.ShippingPayer)
+                    && body.ShippingPayer != (byte)ReturnShippingPayer.Unset
+            ? (ReturnShippingPayer)body.ShippingPayer
+            : ReturnShippingPayer.Unset;
         var (ok, err, row) = await _returns.CreateAsync(
             CurrentWebsiteId, CurrentClientId, body.OrderId, reason, body.ReasonNote, body.Description,
-            body.ShipMethod, body.Lines, body.PhotoFileIds, ct);
+            body.ShipMethod, body.Lines, body.PhotoFileIds, payer, body.AcceptExpiredWindow, ct);
         return ok ? Ok(row) : BadRequest(new { message = err });
     }
 

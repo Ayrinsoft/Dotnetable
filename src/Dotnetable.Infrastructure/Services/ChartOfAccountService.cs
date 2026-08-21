@@ -105,6 +105,7 @@ public class ChartOfAccountService : IChartOfAccountService
         Map(FinancialTransactionTypes.OrderDiscount, FinancialFlow.Component, "5400", "1300");
         Map(FinancialTransactionTypes.VendorSettlement, FinancialFlow.Out, "5500", "2100");
         Map(FinancialTransactionTypes.SettlementPaid, FinancialFlow.Out, "2100", "1200");
+        Map(FinancialTransactionTypes.ReturnShipping, FinancialFlow.Out, "5600", "1100");
 
         // Ensure current open fiscal period for the year
         var year = DateTime.UtcNow.Year;

@@ -1601,8 +1601,8 @@ window.DOCS_ADMIN = {
           title: { en: "Customer returns", fa: "برگشت مشتری" },
           adminPath: "/inventory/returns",
           summary: {
-            en: "Storefront + admin RMA: customer opens a **pre-request** (reason, photos, description, selected lines). Admin reviews, sets **who pays return shipping** and the **approved refund per unit** (can differ from paid price), then the customer ships with a tracking code.",
-            fa: "برگشت از سایت و ادمین: مشتری **پیش‌درخواست** می‌دهد (علت، عکس، توضیح، خطوط انتخابی). ادمین بررسی می‌کند، **هزینه حمل برگشت** و **مبلغ تأییدشده هر واحد** را می‌گذارد (می‌تواند با قیمت خرید فرق کند)، بعد مشتری با کد رهگیری ارسال می‌کند.",
+            en: "Storefront + admin RMA: customer opens a **pre-request** (reason, photos, description, selected lines, **who pays return shipping**). Admin reviews, sets the **approved refund per unit**, shipping cost, and after receive the **item condition + warehouse**. Completing the return posts site profit/loss to the ledger.",
+            fa: "برگشت از سایت و ادمین: مشتری **پیش‌درخواست** می‌دهد (علت، عکس، توضیح، خطوط، **چه کسی هزینه ارسال را می‌دهد**). ادمین مبلغ تأیید هر واحد، هزینه حمل، و بعد از دریافت **وضعیت کالا + انبار** را می‌گذارد. تکمیل برگشت سود/زیان سایت را در دفتر ثبت می‌کند.",
           },
           access: {
             en: "warehouse.view to open; warehouse.receive / issue / approve / post for the warehouse steps; payments.refund to refund",
@@ -1624,12 +1624,12 @@ window.DOCS_ADMIN = {
               fa: "مهلت برگشت را در **وب‌سایت → ویرایش** بگذارید: چند روز بعد از **تاریخ ارسال** یا وضعیت **تحویل**. تعداد جزئی مجاز است؛ باقی‌مانده بعداً هم برمی‌گردد.",
             },
             {
-              en: "Open **Inventory → Customer returns**. Approve only after photos/reason look right, and you must choose site vs customer shipping cost plus approved refund per unit.",
-              fa: "**Inventory → برگشت مشتری** را باز کنید. فقط بعد از دیدن عکس/علت تأیید کنید و باید هزینه حمل (سایت یا مشتری) و مبلغ تأیید هر واحد را بگذارید.",
+              en: "Open **Inventory → Customer returns**. Who pays shipping is a dropdown: **customer**, **50/50**, **seller**, or **drop-off at a store/center**. Enter the carrier cost so ledgers can split it. After receive, set condition/grade and the restock warehouse. Completing the RMA stores recovered inventory − refund − site shipping as site profit or loss.",
+              fa: "**Inventory → برگشت مشتری**. پرداخت‌کننده حمل از دراپ‌داون است: **مشتری**، **۵۰/۵۰**، **فروشنده**، یا **تحویل به مرکز/مغازه**. مبلغ حمل را بگذارید تا در حساب‌ها درست تقسیم شود. بعد از دریافت وضعیت/گرید و انبار را مشخص کنید. تکمیل برگشت (موجودی برگشتی − استرداد − سهم حمل سایت) را به‌عنوان سود یا زیان سایت نگه می‌دارد.",
             },
             {
-              en: "After the customer ships, mark received and open **Warehouse QC / restock** for condition and stock. Tracking can be updated until received.",
-              fa: "بعد از ارسال مشتری، دریافت را بزنید و **QC انبار** را برای وضعیت کالا باز کنید. کد رهگیری تا زمان دریافت قابل به‌روزرسانی است.",
+              en: "After the customer ships (or drops off), mark received with **condition + warehouse**. Tracking can be updated until received. If the return window has ended, an **acknowledgment checkbox** is required to accept the RMA anyway.",
+              fa: "بعد از ارسال مشتری (یا تحویل به مرکز)، دریافت را با **وضعیت کالا + انبار** بزنید. کد رهگیری تا دریافت قابل به‌روزرسانی است. اگر مهلت برگشت تمام شده، **چک‌باکس تأیید اطلاع از اتمام مهلت** لازم است.",
             },
           ],
           related: ["stock-documents", "orders", "payments-refunds", "warehouses"],

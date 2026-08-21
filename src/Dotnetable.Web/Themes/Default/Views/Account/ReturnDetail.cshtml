@@ -42,7 +42,14 @@
                 {
                     <p class="mb-1">
                         <strong>Return shipping:</strong>
-                        @(Model.ShippingPayer == (byte)ReturnShippingPayer.Site ? "Paid by the shop" : "Paid by you")
+                        @(((ReturnShippingPayer)Model.ShippingPayer) switch
+                        {
+                            ReturnShippingPayer.Customer => "Paid by you",
+                            ReturnShippingPayer.SplitFiftyFifty => "Split 50 / 50",
+                            ReturnShippingPayer.Seller => "Paid by the seller",
+                            ReturnShippingPayer.DropOffAtCenter => "Drop-off at a store / center",
+                            _ => "—",
+                        })
                     </p>
                 }
                 @if (!string.IsNullOrWhiteSpace(Model.ReviewNote))
@@ -82,7 +89,12 @@
             </tbody>
         </table>
 
-        @if (status == CustomerReturnStatus.ApprovedAwaitingShipment || status == CustomerReturnStatus.Shipped)
+        @if (Model.ShippingPayer == (byte)ReturnShippingPayer.DropOffAtCenter
+             && status == CustomerReturnStatus.ApprovedAwaitingShipment)
+        {
+            <div class="alert alert-info">Bring the goods to a store / return center. Tracking is not required.</div>
+        }
+        else if (status == CustomerReturnStatus.ApprovedAwaitingShipment || status == CustomerReturnStatus.Shipped)
         {
             <div class="card border-0 shadow-sm mb-4">
                 <div class="card-body">

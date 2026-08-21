@@ -15,7 +15,7 @@
             <div class="alert alert-danger">@err</div>
         }
 
-        @if (!Model.Eligible)
+        @if (!Model.Eligible && !Model.CanAcceptAfterWindow)
         {
             <div class="alert alert-warning">@(Model.BlockReason ?? "This order cannot be returned.")</div>
             <a asp-action="OrderDetail" asp-route-id="@Model.OrderID" class="btn btn-link px-0">← Back to order</a>
@@ -53,9 +53,24 @@
                     <label class="form-label">Description</label>
                     <textarea name="Description" class="form-control" rows="3" maxlength="2000" required></textarea>
                 </div>
+                @if (Model.CanAcceptAfterWindow)
+                {
+                    <div class="alert alert-warning">@(Model.BlockReason ?? "The return window has ended.")</div>
+                    <div class="form-check mb-3">
+                        <input class="form-check-input" type="checkbox" name="AcceptExpiredWindow" value="true" id="acceptExpired" required />
+                        <label class="form-check-label" for="acceptExpired">
+                            I know the return window has ended and still want this return accepted.
+                        </label>
+                    </div>
+                }
                 <div class="mb-3">
-                    <label class="form-label">How you will send it</label>
-                    <input name="ShipMethod" class="form-control" maxlength="100" placeholder="Post, courier, …" />
+                    <label class="form-label">Who pays return shipping</label>
+                    <select name="ShippingPayer" class="form-select" required>
+                        <option value="1">Customer</option>
+                        <option value="2">50 / 50</option>
+                        <option value="3">Seller</option>
+                        <option value="4">Drop-off at a store / center</option>
+                    </select>
                 </div>
                 <div class="mb-3">
                     <label class="form-label">Photos</label>

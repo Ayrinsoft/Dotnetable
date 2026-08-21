@@ -17,6 +17,13 @@ public sealed class CustomerReturnLineApproval
     public decimal UnitRefundApproved { get; set; }
 }
 
+public sealed class CustomerReturnLineReceive
+{
+    public int CustomerReturnRequestLineID { get; set; }
+    public byte ReceivedCondition { get; set; }
+    public byte HealthGrade { get; set; }
+}
+
 public sealed class CustomerReturnLineDto
 {
     public int CustomerReturnRequestLineID { get; set; }
@@ -28,8 +35,11 @@ public sealed class CustomerReturnLineDto
     public int OrderedQty { get; set; }
     public int RemainingQty { get; set; }
     public decimal UnitPricePaid { get; set; }
+    public decimal UnitCost { get; set; }
     public decimal UnitRefundRequested { get; set; }
     public decimal UnitRefundApproved { get; set; }
+    public byte ReceivedCondition { get; set; }
+    public byte HealthGrade { get; set; }
 }
 
 public sealed class CustomerReturnHistoryDto
@@ -56,12 +66,21 @@ public sealed class CustomerReturnDto
     public string? ShipMethod { get; set; }
     public string? TrackingCode { get; set; }
     public byte ShippingPayer { get; set; }
+    public decimal ReturnShippingCost { get; set; }
+    public decimal SiteShippingShare { get; set; }
+    public decimal RecoveredInventoryValue { get; set; }
+    /// <summary>Recovered inventory − refund − site shipping. Negative = site loss.</summary>
+    public decimal SiteImpactAmount { get; set; }
+    public bool AcceptedAfterWindowExpired { get; set; }
+    public int? ReceivedWarehouseID { get; set; }
+    public string? ReceivedWarehouseName { get; set; }
     public string CurrencyCode { get; set; } = "";
     public decimal RequestedRefundTotal { get; set; }
     public decimal ApprovedRefundTotal { get; set; }
     public string? ReviewNote { get; set; }
     public DateTime? ReviewedAt { get; set; }
     public DateTime? ShippedAt { get; set; }
+    public DateTime? ImpactPostedAt { get; set; }
     public DateTime CreatedAt { get; set; }
     public IReadOnlyList<CustomerReturnLineDto> Lines { get; set; } = Array.Empty<CustomerReturnLineDto>();
     public IReadOnlyList<CustomerReturnHistoryDto> Histories { get; set; } = Array.Empty<CustomerReturnHistoryDto>();
@@ -86,6 +105,9 @@ public sealed class ReturnEligibilityDto
     public string OrderNumber { get; set; } = "";
     public bool Eligible { get; set; }
     public string? BlockReason { get; set; }
+    public bool WindowExpired { get; set; }
+    /// <summary>True when the window has ended but an operator can still accept with acknowledgment.</summary>
+    public bool CanAcceptAfterWindow { get; set; }
     public DateTime? WindowStartUtc { get; set; }
     public DateTime? WindowEndUtc { get; set; }
     public int ReturnWindowDays { get; set; }

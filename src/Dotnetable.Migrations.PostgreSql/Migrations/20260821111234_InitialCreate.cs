@@ -696,7 +696,10 @@ namespace Dotnetable.Migrations.PostgreSql.Migrations
                     Quantity = table.Column<int>(type: "integer", nullable: false),
                     UnitPricePaid = table.Column<decimal>(type: "numeric(18,4)", nullable: false),
                     UnitRefundRequested = table.Column<decimal>(type: "numeric(18,4)", nullable: false),
-                    UnitRefundApproved = table.Column<decimal>(type: "numeric(18,4)", nullable: false, defaultValue: 0m)
+                    UnitRefundApproved = table.Column<decimal>(type: "numeric(18,4)", nullable: false, defaultValue: 0m),
+                    UnitCost = table.Column<decimal>(type: "numeric(18,4)", nullable: false, defaultValue: 0m),
+                    ReceivedCondition = table.Column<byte>(type: "smallint", nullable: false, defaultValue: (byte)0),
+                    HealthGrade = table.Column<byte>(type: "smallint", nullable: false, defaultValue: (byte)0)
                 },
                 constraints: table =>
                 {
@@ -720,6 +723,12 @@ namespace Dotnetable.Migrations.PostgreSql.Migrations
                     ShipMethod = table.Column<string>(type: "character varying(100)", maxLength: 100, nullable: true),
                     TrackingCode = table.Column<string>(type: "character varying(100)", maxLength: 100, nullable: true),
                     ShippingPayer = table.Column<byte>(type: "smallint", nullable: false, defaultValue: (byte)0),
+                    ReturnShippingCost = table.Column<decimal>(type: "numeric(18,4)", nullable: false, defaultValue: 0m),
+                    SiteShippingShare = table.Column<decimal>(type: "numeric(18,4)", nullable: false, defaultValue: 0m),
+                    RecoveredInventoryValue = table.Column<decimal>(type: "numeric(18,4)", nullable: false, defaultValue: 0m),
+                    SiteImpactAmount = table.Column<decimal>(type: "numeric(18,4)", nullable: false, defaultValue: 0m),
+                    AcceptedAfterWindowExpired = table.Column<bool>(type: "boolean", nullable: false, defaultValue: false),
+                    ReceivedWarehouseID = table.Column<int>(type: "integer", nullable: true),
                     CurrencyCode = table.Column<string>(type: "character varying(3)", maxLength: 3, nullable: false),
                     RequestedRefundTotal = table.Column<decimal>(type: "numeric(18,4)", nullable: false),
                     ApprovedRefundTotal = table.Column<decimal>(type: "numeric(18,4)", nullable: false, defaultValue: 0m),
@@ -727,6 +736,7 @@ namespace Dotnetable.Migrations.PostgreSql.Migrations
                     ReviewedByMemberID = table.Column<int>(type: "integer", nullable: true),
                     ReviewedAt = table.Column<DateTime>(type: "timestamp with time zone", nullable: true),
                     ShippedAt = table.Column<DateTime>(type: "timestamp with time zone", nullable: true),
+                    ImpactPostedAt = table.Column<DateTime>(type: "timestamp with time zone", nullable: true),
                     CreatedAt = table.Column<DateTime>(type: "timestamp with time zone", nullable: false),
                     UpdatedAt = table.Column<DateTime>(type: "timestamp with time zone", nullable: true)
                 },
@@ -4872,6 +4882,11 @@ namespace Dotnetable.Migrations.PostgreSql.Migrations
                 column: "OrderID");
 
             migrationBuilder.CreateIndex(
+                name: "IX_CustomerReturnRequests_ReceivedWarehouse",
+                table: "CustomerReturnRequests",
+                column: "ReceivedWarehouseID");
+
+            migrationBuilder.CreateIndex(
                 name: "IX_CustomerReturnRequests_ReviewedByMemberID",
                 table: "CustomerReturnRequests",
                 column: "ReviewedByMemberID");
@@ -6764,6 +6779,13 @@ namespace Dotnetable.Migrations.PostgreSql.Migrations
                 column: "StockDocumentID",
                 principalTable: "StockDocuments",
                 principalColumn: "StockDocumentID");
+
+            migrationBuilder.AddForeignKey(
+                name: "FK_CustomerReturnRequests_Warehouses_ReceivedWarehouseID",
+                table: "CustomerReturnRequests",
+                column: "ReceivedWarehouseID",
+                principalTable: "Warehouses",
+                principalColumn: "WarehouseID");
 
             migrationBuilder.AddForeignKey(
                 name: "FK_CustomerReturnRequests_WebsiteClients_WebsiteClientID",

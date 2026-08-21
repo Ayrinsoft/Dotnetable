@@ -33,6 +33,16 @@ public interface IFinancialLedgerService
     Task PostCustomerRefundAsync(int orderId, int paymentId, decimal amount, string? note, int? memberId, CancellationToken ct = default);
 
     /// <summary>
+    /// Posts site return-shipping expense and an analytical site P&amp;L row for a completed RMA.
+    /// Idempotent per return request.
+    /// </summary>
+    Task PostCustomerReturnImpactAsync(
+        int orderId, int customerReturnRequestId,
+        decimal siteShippingShare, decimal siteImpactAmount,
+        string currencyCode, string? note, int? vendorId, decimal sellerShippingShare,
+        int? memberId, CancellationToken ct = default);
+
+    /// <summary>
     /// Posts inventory COGS to L1 + GL when goods leave stock (WMS outbound post or non-WMS fulfill).
     /// Idempotent per stock document (or per order when <paramref name="stockDocumentId"/> is null).
     /// Analytical <c>OrderLineCost</c> at payment remains for product margins; GL COGS is recognized here so books match warehouse.

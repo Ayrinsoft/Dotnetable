@@ -369,6 +369,8 @@ public class AccountController : Controller
         public string? ReasonNote { get; set; }
         public string? Description { get; set; }
         public string? ShipMethod { get; set; }
+        public byte ShippingPayer { get; set; }
+        public bool AcceptExpiredWindow { get; set; }
         public int[]? OrderItemId { get; set; }
         public int[]? Qty { get; set; }
         public decimal[]? UnitRefund { get; set; }
@@ -405,6 +407,8 @@ public class AccountController : Controller
             reasonNote = input.ReasonNote,
             description = input.Description,
             shipMethod = input.ShipMethod,
+            shippingPayer = input.ShippingPayer,
+            acceptExpiredWindow = input.AcceptExpiredWindow,
             lines,
         }, ct);
         if (!ok || row is null)

@@ -106,6 +106,11 @@ else
                         <MudItem xs="6" sm="4"><MudText Typo="Typo.caption">@L["ledger.product_cost", "Product cost / settle"]</MudText><MudText>@MoneyFormat.Group(_fin.ProductCostTotal, _fin.CurrencyCode)</MudText></MudItem>
                         <MudItem xs="6" sm="4"><MudText Typo="Typo.caption">@L["ledger.product_profit", "Product profit"]</MudText><MudText>@MoneyFormat.Group(_fin.ProductProfitTotal, _fin.CurrencyCode)</MudText></MudItem>
                         <MudItem xs="6" sm="4"><MudText Typo="Typo.caption">@L["ledger.vendor_settled", "Vendor settlements"]</MudText><MudText>@MoneyFormat.Group(_fin.VendorSettlementTotal, _fin.CurrencyCode)</MudText></MudItem>
+                        <MudItem xs="6" sm="4"><MudText Typo="Typo.caption">@L["returns.site_shipping", "Return shipping (site)"]</MudText><MudText>@MoneyFormat.Group(_fin.ReturnShippingTotal, _fin.CurrencyCode)</MudText></MudItem>
+                        <MudItem xs="6" sm="4">
+                            <MudText Typo="Typo.caption">@L["returns.site_impact", "Return profit / (loss)"]</MudText>
+                            <MudText Color="@(_fin.ReturnSiteImpactTotal < 0 ? Color.Error : Color.Default)">@MoneyFormat.Group(_fin.ReturnSiteImpactTotal, _fin.CurrencyCode)</MudText>
+                        </MudItem>
                         <MudItem xs="6" sm="4">
                             <MudText Typo="Typo.caption">@L["orders.report_to_tax", "Report to tax"]</MudText>
                             <MudChip T="string" Size="Size.Small" Color="@(_fin.ReportToTax ? Color.Success : Color.Warning)">
