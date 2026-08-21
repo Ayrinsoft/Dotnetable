@@ -317,6 +317,10 @@ window.DOCS_ADMIN = {
               en: "Toggle the permission keys required, save, then assign the policy to members.",
               fa: "کلیدهای مجوز لازم را روشن کنید، ذخیره کنید، سپس سیاست را به اعضا بدهید.",
             },
+            {
+              en: "The **Administrators** policy is kept in sync with the role catalog on Admin startup: any new permission key is granted automatically. Other policies are not changed.",
+              fa: "سیاست **Administrators** در استارت ادمین با کاتالوگ نقش‌ها هم‌گام می‌شود: هر کلید مجوز جدید خودکار به آن اضافه می‌شود. سیاست‌های دیگر عوض نمی‌شوند.",
+            },
           ],
           tips: [
             {
@@ -1170,8 +1174,8 @@ window.DOCS_ADMIN = {
       id: "inventory",
       title: { en: "Inventory", fa: "موجودی انبار" },
       summary: {
-        en: "Track how many units you can sell, what is reserved for open orders, and who supplies you.",
-        fa: "ببینید چند عدد کالا برای فروش دارید، چندتایش برای سفارش‌های باز قفل شده، و از چه کسانی تأمین می‌کنید.",
+        en: "Track how many units you can sell, what is reserved for open orders, and who supplies you. The admin drawer lists **Orders** and **Customer returns** first under Inventory.",
+        fa: "ببینید چند عدد کالا برای فروش دارید، چندتایش برای سفارش‌های باز قفل شده، و از چه کسانی تأمین می‌کنید. در منوی ادمین **سفارش‌ها** و **برگشت مشتری** اول زیر Inventory می‌آیند.",
       },
       pages: [
         {
@@ -1764,8 +1768,8 @@ window.DOCS_ADMIN = {
           ],
           howTo: [
             {
-              en: "Open Orders, filter by status/date. Use **Create order** (orders.edit) for offline channels.",
-              fa: "Orders را باز کنید، بر اساس وضعیت/تاریخ فیلتر کنید. برای کانال‌های آفلاین **ثبت سفارش** (orders.edit) را بزنید.",
+              en: "Open **Inventory → Orders**, filter by status/date. Use **Create order** (orders.edit) for offline channels.",
+              fa: "**Inventory → سفارش‌ها** را باز کنید، بر اساس وضعیت/تاریخ فیلتر کنید. برای کانال‌های آفلاین **ثبت سفارش** (orders.edit) را بزنید.",
             },
             {
               en: "**Create order** flow: pick or register customer → add catalog products (**variant picker** when several variants; **no listing** still allowed without stock) or a **free-form item** (title/price only) → charged vs catalog price (markup / روکشی) → address → shipping → sales channel → report-to-tax → optional payment (card-to-card + receipt, cash, COD).",

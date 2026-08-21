@@ -281,31 +281,43 @@
             </MudNavGroup>
         }
 
-        @if (NavSurface.Shows(AdminNavArea.Inventory))
+        @if (NavSurface.ShowsAny(AdminNavArea.Inventory, AdminNavArea.Orders)
+             && ((NavSurface.Shows(AdminNavArea.Orders) && _canOrders)
+                 || (NavSurface.Shows(AdminNavArea.Inventory) && (_canInventory || _canWarehouse || _canSuppliers))))
         {
-            <AuthorizeView Policy="@RoleKeys.InventoryView" Context="inv">
-                <MudNavGroup Title="@L["nav.inventory", "Inventory"]" Icon="@Icons.Material.Filled.Warehouse"
-                             Expanded="@IsGroupActive("/inventory")">
-                    <MudNavLink Href="/inventory" Match="NavLinkMatch.All" Icon="@Icons.Material.Filled.Numbers">@L["inventory.stock", "Stock"]</MudNavLink>
+            <MudNavGroup Title="@L["nav.inventory", "Inventory"]" Icon="@Icons.Material.Filled.Warehouse"
+                         Expanded="@IsGroupActive("/inventory", "/orders")">
+                @if (NavSurface.Shows(AdminNavArea.Orders))
+                {
+                    <AuthorizeView Policy="@RoleKeys.OrdersView" Context="ord">
+                        <MudNavLink Href="/orders" Icon="@Icons.Material.Filled.ReceiptLong">@L["orders", "Orders"]</MudNavLink>
+                    </AuthorizeView>
+                }
+                @if (NavSurface.Shows(AdminNavArea.Inventory))
+                {
+                    <AuthorizeView Policy="@RoleKeys.WarehouseView" Context="whret">
+                        <MudNavLink Href="/inventory/returns" Icon="@Icons.Material.Filled.AssignmentReturn">@L["returns.title", "Customer returns"]</MudNavLink>
+                    </AuthorizeView>
+                    <AuthorizeView Policy="@RoleKeys.InventoryView" Context="inv">
+                        <MudNavLink Href="/inventory" Match="NavLinkMatch.All" Icon="@Icons.Material.Filled.Numbers">@L["inventory.stock", "Stock"]</MudNavLink>
+                    </AuthorizeView>
                     <AuthorizeView Policy="@RoleKeys.WarehouseView" Context="wh">
                         <MudNavLink Href="/inventory/warehouses" Icon="@Icons.Material.Filled.HomeWork">@L["warehouse", "Warehouses"]</MudNavLink>
                         <MudNavLink Href="/inventory/my-tasks" Icon="@Icons.Material.Filled.Checklist">@L["warehouse.my_tasks", "My tasks"]</MudNavLink>
                         <MudNavLink Href="/inventory/stock-documents" Icon="@Icons.Material.Filled.Assignment">@L["warehouse.docs", "Stock documents"]</MudNavLink>
-                        <MudNavLink Href="/inventory/returns" Icon="@Icons.Material.Filled.AssignmentReturn">@L["returns.title", "Customer returns"]</MudNavLink>
                     </AuthorizeView>
-                    <MudNavLink Href="/inventory/movements" Icon="@Icons.Material.Filled.History">@L["inventory.movements", "Movements"]</MudNavLink>
+                    <AuthorizeView Policy="@RoleKeys.InventoryView" Context="invm">
+                        <MudNavLink Href="/inventory/movements" Icon="@Icons.Material.Filled.History">@L["inventory.movements", "Movements"]</MudNavLink>
+                    </AuthorizeView>
                     <AuthorizeView Policy="@RoleKeys.SuppliersView" Context="sup">
                         <MudNavLink Href="/inventory/suppliers" Icon="@Icons.Material.Filled.LocalShipping">@L["suppliers", "Suppliers"]</MudNavLink>
                     </AuthorizeView>
-                </MudNavGroup>
-            </AuthorizeView>
+                }
+            </MudNavGroup>
         }
 
         @if (NavSurface.Shows(AdminNavArea.Orders))
         {
-            <AuthorizeView Policy="@RoleKeys.OrdersView" Context="ord">
-                <MudNavLink Href="/orders" Icon="@Icons.Material.Filled.ReceiptLong">@L["orders", "Orders"]</MudNavLink>
-            </AuthorizeView>
             <AuthorizeView Policy="@RoleKeys.SupportView" Context="sup">
                 <MudNavGroup Title="@L["nav.support", "Support"]" Icon="@Icons.Material.Filled.SupportAgent"
                              Expanded="@IsGroupActive("/support")">
@@ -449,6 +461,10 @@
     private bool _canForms;
     private bool _canThemes;
     private bool _canModeration;
+    private bool _canOrders;
+    private bool _canInventory;
+    private bool _canWarehouse;
+    private bool _canSuppliers;
     private int? _websiteId;
     private string _currentPath = "";
 
@@ -479,6 +495,10 @@
             _canForms = AdminPolicies.Allows(user, RoleKeys.FormsView);
             _canThemes = AdminPolicies.Allows(user, RoleKeys.ThemesView);
             _canModeration = AdminPolicies.Allows(user, RoleKeys.ModerationView);
+            _canOrders = AdminPolicies.Allows(user, RoleKeys.OrdersView);
+            _canInventory = AdminPolicies.Allows(user, RoleKeys.InventoryView);
+            _canWarehouse = AdminPolicies.Allows(user, RoleKeys.WarehouseView);
+            _canSuppliers = AdminPolicies.Allows(user, RoleKeys.SuppliersView);
 
             _websiteId = int.TryParse(user.FindFirst(AdminClaimTypes.WebsiteId)?.Value, out var websiteId) ? websiteId : null;
             int? vendorId = int.TryParse(user.FindFirst(AdminClaimTypes.VendorId)?.Value, out var vid) ? vid : null;

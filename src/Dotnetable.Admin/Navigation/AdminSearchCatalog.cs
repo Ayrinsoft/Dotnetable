@@ -75,16 +75,15 @@ public static class AdminSearchCatalog
         new AdminSearchPage("warranties", "Warranties", "/catalog/warranties", Icons.Material.Filled.VerifiedUser, "nav.catalog", "Catalog", RoleKeys.CatalogTaxonomyView, NavArea: AdminNavArea.Catalog, VendorMemberAllowed: false),
         new AdminSearchPage("vendors", "Vendors", "/catalog/vendors", Icons.Material.Filled.Store, "nav.catalog", "Catalog", RoleKeys.VendorsView, NavArea: AdminNavArea.Catalog, VendorMemberAllowed: false),
 
+        new AdminSearchPage("orders", "Orders", "/orders", Icons.Material.Filled.ReceiptLong, "nav.inventory", "Inventory", RoleKeys.OrdersView, NavArea: AdminNavArea.Orders),
+        new AdminSearchPage("orders.create", "Create order", "/orders/new", Icons.Material.Filled.AddShoppingCart, "nav.inventory", "Inventory", RoleKeys.OrdersEdit, NavArea: AdminNavArea.Orders),
+        new AdminSearchPage("returns.title", "Customer returns", "/inventory/returns", Icons.Material.Filled.AssignmentReturn, "nav.inventory", "Inventory", RoleKeys.WarehouseView, NavArea: AdminNavArea.Inventory, VendorMemberAllowed: false),
         new AdminSearchPage("inventory.stock", "Stock", "/inventory", Icons.Material.Filled.Numbers, "nav.inventory", "Inventory", RoleKeys.InventoryView, NavArea: AdminNavArea.Inventory, VendorMemberAllowed: false),
         new AdminSearchPage("inventory.movements", "Movements", "/inventory/movements", Icons.Material.Filled.History, "nav.inventory", "Inventory", RoleKeys.InventoryView, NavArea: AdminNavArea.Inventory, VendorMemberAllowed: false),
         new AdminSearchPage("warehouse.list", "Warehouses", "/inventory/warehouses", Icons.Material.Filled.HomeWork, "nav.inventory", "Inventory", RoleKeys.WarehouseView, NavArea: AdminNavArea.Inventory, VendorMemberAllowed: false),
         new AdminSearchPage("warehouse.tasks", "Warehouse my tasks", "/inventory/my-tasks", Icons.Material.Filled.Checklist, "nav.inventory", "Inventory", RoleKeys.WarehouseView, NavArea: AdminNavArea.Inventory, VendorMemberAllowed: false),
         new AdminSearchPage("warehouse.docs", "Stock documents", "/inventory/stock-documents", Icons.Material.Filled.Assignment, "nav.inventory", "Inventory", RoleKeys.WarehouseView, NavArea: AdminNavArea.Inventory, VendorMemberAllowed: false),
-        new AdminSearchPage("returns.title", "Customer returns", "/inventory/returns", Icons.Material.Filled.AssignmentReturn, "nav.inventory", "Inventory", RoleKeys.WarehouseView, NavArea: AdminNavArea.Inventory, VendorMemberAllowed: false),
         new AdminSearchPage("suppliers", "Suppliers", "/inventory/suppliers", Icons.Material.Filled.LocalShipping, "nav.inventory", "Inventory", RoleKeys.SuppliersView, NavArea: AdminNavArea.Inventory, VendorMemberAllowed: false),
-
-        new AdminSearchPage("orders", "Orders", "/orders", Icons.Material.Filled.ReceiptLong, "orders", "Orders", RoleKeys.OrdersView, NavArea: AdminNavArea.Orders),
-        new AdminSearchPage("orders.create", "Create order", "/orders/new", Icons.Material.Filled.AddShoppingCart, "orders.create", "Create order", RoleKeys.OrdersEdit, NavArea: AdminNavArea.Orders),
 
         new AdminSearchPage("support.desk", "Support Desk", "/support", Icons.Material.Filled.SupportAgent, "nav.support", "Support", RoleKeys.SupportView, NavArea: AdminNavArea.Orders, VendorMemberAllowed: false),
         new AdminSearchPage("support.tickets", "Support Tickets", "/support/tickets", Icons.Material.Filled.ConfirmationNumber, "nav.support", "Support", RoleKeys.SupportView, NavArea: AdminNavArea.Orders, VendorMemberAllowed: false),

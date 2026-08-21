@@ -96,17 +96,58 @@ public class SetupService : ISetupService
         await using var context = await _contextFactory.CreateDbContextAsync(ct);
         if (!await context.Database.CanConnectAsync(ct)) return;
 
-        var existing = (await context.Roles.Select(r => r.RoleKey).ToListAsync(ct)).ToHashSet();
-        var missing = RoleCatalog.All.Where(def => !existing.Contains(def.Key)).ToList();
-        if (missing.Count == 0) return;
-
-        context.Roles.AddRange(missing.Select(def => new Role
+        var existing = await context.Roles.ToListAsync(ct);
+        var existingKeys = existing.Select(r => r.RoleKey).ToHashSet(StringComparer.OrdinalIgnoreCase);
+        var missing = RoleCatalog.All.Where(def => !existingKeys.Contains(def.Key)).ToList();
+        if (missing.Count > 0)
         {
-            RoleKey = def.Key,
-            Description = def.Description,
-            Category = (byte)def.Category,
-            Active = true,
-        }));
+            context.Roles.AddRange(missing.Select(def => new Role
+            {
+                RoleKey = def.Key,
+                Description = def.Description,
+                Category = (byte)def.Category,
+                Active = true,
+            }));
+            await context.SaveChangesAsync(ct);
+            existing = await context.Roles.ToListAsync(ct);
+        }
+
+        // New keys are inserted additively; Administrators must always receive every catalog
+        // permission (same as first-run seed). A prior version that only topped up Roles left
+        // warehouse / accounting / HR / support grants missing on the live admin policy.
+        var catalogKeys = RoleCatalog.All.Select(d => d.Key).ToHashSet(StringComparer.OrdinalIgnoreCase);
+        var catalogRoles = existing.Where(r => catalogKeys.Contains(r.RoleKey)).ToList();
+        if (catalogRoles.Count == 0) return;
+
+        var adminPolicyIds = await context.Policies
+            .Where(p => p.Title == DefaultPolicies.Administrators)
+            .Select(p => p.PolicyID)
+            .ToListAsync(ct);
+        if (adminPolicyIds.Count == 0) return;
+
+        var granted = await context.PolicyRoles
+            .Where(pr => adminPolicyIds.Contains(pr.PolicyID))
+            .Select(pr => new { pr.PolicyID, pr.RoleID })
+            .ToListAsync(ct);
+        var grantedSet = granted.Select(g => (g.PolicyID, g.RoleID)).ToHashSet();
+
+        var toAdd = new List<PolicyRole>();
+        foreach (var policyId in adminPolicyIds)
+        {
+            foreach (var role in catalogRoles)
+            {
+                if (grantedSet.Contains((policyId, role.RoleID))) continue;
+                toAdd.Add(new PolicyRole
+                {
+                    PolicyID = policyId,
+                    RoleID = role.RoleID,
+                    Active = true,
+                });
+            }
+        }
+
+        if (toAdd.Count == 0) return;
+        context.PolicyRoles.AddRange(toAdd);
         await context.SaveChangesAsync(ct);
     }
 }
