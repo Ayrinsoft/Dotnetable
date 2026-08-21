@@ -69,7 +69,7 @@ using (var scope = app.Services.CreateScope())
             if (pending.Count > 0)
                 await updater.ApplyUpdatesAsync();
 
-            // Top up any permission keys a prior version did not seed (additive, idempotent).
+            // Top up catalog permissions a prior version did not seed, and grant them to Administrators.
             var setup = scope.ServiceProvider.GetRequiredService<ISetupService>();
             await setup.SyncRoleCatalogAsync();
         }

@@ -19,8 +19,9 @@ public interface ISetupService
 
     /// <summary>
     /// Inserts any permission keys from the role catalog that a configured database is missing
-    /// (e.g. after a version upgrade that introduced new permissions). Additive and idempotent;
-    /// existing roles and policy grants are left untouched. No-op when not yet configured.
+    /// (e.g. after a version upgrade that introduced new permissions), then grants every catalog
+    /// key to each Administrators policy that does not already have it. Additive and idempotent;
+    /// other policies and extra grants are left untouched. No-op when not yet configured.
     /// </summary>
     Task SyncRoleCatalogAsync(CancellationToken ct = default);
 }
