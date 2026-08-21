@@ -91,11 +91,20 @@ public enum CustomerReturnReason : byte
     Other = 9,
 }
 
+/// <summary>Who bears return shipping. Stored on the RMA so ledgers can split cost.</summary>
 public enum ReturnShippingPayer : byte
 {
     Unset = 0,
-    Site = 1,
-    Customer = 2,
+    /// <summary>Customer pays the carrier (or brings the parcel at their cost).</summary>
+    Customer = 1,
+    /// <summary>Customer and seller split the shipping cost 50/50.</summary>
+    SplitFiftyFifty = 2,
+    /// <summary>Seller / vendor pays. On a 1P shop the site is the seller.</summary>
+    Seller = 3,
+    /// <summary>Customer drops the goods at a store / return center — no carrier invoice.</summary>
+    DropOffAtCenter = 4,
+    /// <summary>Legacy alias — 1P shop paying is the same as <see cref="Seller"/>.</summary>
+    Site = 3,
 }
 
 /// <summary>When the return countdown starts.</summary>

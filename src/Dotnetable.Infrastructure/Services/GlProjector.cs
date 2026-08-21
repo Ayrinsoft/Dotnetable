@@ -80,6 +80,10 @@ public class GlProjector : IGlProjector
         var tax = Sum(FinancialTransactionTypes.OrderTax);
         var discount = Sum(FinancialTransactionTypes.OrderDiscount);
         var vendorSettle = Sum(FinancialTransactionTypes.VendorSettlement) + Sum(FinancialTransactionTypes.SettlementPaid);
+        var returnShip = rows
+            .Where(r => r.TransactionType == FinancialTransactionTypes.ReturnShipping && r.Flow == FinancialFlow.Out)
+            .Sum(r => r.Amount);
+        var opEx = Acc("5600");
 
         if (payment > 0)
         {
@@ -138,6 +142,12 @@ public class GlProjector : IGlProjector
                 lines.Add(Dr(vendorExp, vendorSettle, "Vendor settlement"));
                 lines.Add(Cr(ap, vendorSettle, "Accounts payable"));
             }
+        }
+
+        if (returnShip > 0 && opEx > 0)
+        {
+            lines.Add(Dr(opEx, returnShip, "Return shipping"));
+            lines.Add(Cr(cash, returnShip, "Cash out return shipping"));
         }
 
         lines = CollapseLines(lines);

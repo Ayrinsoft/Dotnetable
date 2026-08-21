@@ -14,15 +14,18 @@ public class CustomerReturnService : ICustomerReturnService
     private readonly IDbContextFactory<AppDbContext> _db;
     private readonly IStockDocumentService _stockDocs;
     private readonly IRecordAttachmentService _attachments;
+    private readonly IFinancialLedgerService _ledger;
 
     public CustomerReturnService(
         IDbContextFactory<AppDbContext> db,
         IStockDocumentService stockDocs,
-        IRecordAttachmentService attachments)
+        IRecordAttachmentService attachments,
+        IFinancialLedgerService ledger)
     {
         _db = db;
         _stockDocs = stockDocs;
         _attachments = attachments;
+        _ledger = ledger;
     }
 
     public Task<PagedResult<CustomerReturnDto>> GetPagedAsync(int websiteId, int? clientId, byte? status, GridQuery query, CancellationToken ct = default)
@@ -60,6 +63,7 @@ public class CustomerReturnService : ICustomerReturnService
         var q = context.CustomerReturnRequests.AsNoTracking()
             .Include(r => r.Order).ThenInclude(o => o.OrderItems)
             .Include(r => r.WebsiteClient)
+            .Include(r => r.ReceivedWarehouse)
             .Include(r => r.Lines).ThenInclude(l => l.OrderItem)
             .Include(r => r.Histories)
             .Where(r => r.CustomerReturnRequestID == returnRequestId);
@@ -84,7 +88,7 @@ public class CustomerReturnService : ICustomerReturnService
 
         var website = order.Website ?? await context.Websites.AsNoTracking().FirstAsync(w => w.WebsiteID == order.WebsiteID, ct);
         var remaining = await RemainingByOrderItemAsync(context, order.OrderID, excludeRequestId: null, ct);
-        var (ok, err, start, end) = EvaluateWindow(order, website);
+        var (ok, err, start, end, expired) = EvaluateWindow(order, website);
         var lines = order.OrderItems.Select(i =>
         {
             remaining.TryGetValue(i.OrderItemID, out var rem);
@@ -103,18 +107,21 @@ public class CustomerReturnService : ICustomerReturnService
         }).ToList();
 
         var anyLeft = lines.Any(l => l.RemainingQty > 0);
+        string? block = err;
         if (ok && !anyLeft)
         {
             ok = false;
-            err = "No remaining quantity to return.";
+            block = "No remaining quantity to return.";
         }
 
         return new ReturnEligibilityDto
         {
             OrderID = order.OrderID,
             OrderNumber = order.OrderNumber,
-            Eligible = ok,
-            BlockReason = err,
+            Eligible = ok && anyLeft && !expired,
+            BlockReason = !ok ? block : !anyLeft ? "No remaining quantity to return." : expired ? err : null,
+            WindowExpired = expired,
+            CanAcceptAfterWindow = ok && anyLeft && expired,
             WindowStartUtc = start,
             WindowEndUtc = end,
             ReturnWindowDays = website.ReturnWindowDays,
@@ -128,10 +135,15 @@ public class CustomerReturnService : ICustomerReturnService
         int websiteId, int clientId, int orderId,
         CustomerReturnReason reason, string? reasonNote, string? description,
         string? shipMethod, IReadOnlyList<CustomerReturnLineInput> lines,
-        IReadOnlyList<int>? photoFileIds, CancellationToken ct = default)
+        IReadOnlyList<int>? photoFileIds,
+        ReturnShippingPayer shippingPayer = ReturnShippingPayer.Unset,
+        bool acceptExpiredWindow = false,
+        CancellationToken ct = default)
     {
         if (lines is null || lines.Count == 0)
             return (false, "Select at least one item to return.", null);
+        if (shippingPayer is ReturnShippingPayer.Unset)
+            return (false, "Choose who pays return shipping.", null);
 
         await using var context = await _db.CreateDbContextAsync(ct);
         var order = await context.Orders
@@ -141,8 +153,10 @@ public class CustomerReturnService : ICustomerReturnService
         if (order is null) return (false, "Order not found.", null);
 
         var website = order.Website ?? await context.Websites.FirstAsync(w => w.WebsiteID == websiteId, ct);
-        var (ok, err, _, _) = EvaluateWindow(order, website);
+        var (ok, err, _, _, expired) = EvaluateWindow(order, website);
         if (!ok) return (false, err, null);
+        if (expired && !acceptExpiredWindow)
+            return (false, "Return window has expired. Confirm you accept it anyway.", null);
 
         var remaining = await RemainingByOrderItemAsync(context, order.OrderID, null, ct);
         var items = new List<CustomerReturnRequestLine>();
@@ -162,6 +176,7 @@ public class CustomerReturnService : ICustomerReturnService
                 ProductVariantID = oi.ProductVariantID,
                 Quantity = input.Quantity,
                 UnitPricePaid = paid,
+                UnitCost = UnitCostLocal(oi),
                 UnitRefundRequested = req,
                 UnitRefundApproved = 0,
             });
@@ -178,13 +193,21 @@ public class CustomerReturnService : ICustomerReturnService
             Reason = (byte)reason,
             ReasonNote = Truncate(reasonNote, 200),
             Description = Truncate(description, 2000),
-            ShipMethod = Truncate(shipMethod, 100),
+            ShipMethod = Truncate(
+                shippingPayer == ReturnShippingPayer.DropOffAtCenter && string.IsNullOrWhiteSpace(shipMethod)
+                    ? "Drop-off at center"
+                    : shipMethod, 100),
+            ShippingPayer = (byte)shippingPayer,
+            AcceptedAfterWindowExpired = expired && acceptExpiredWindow,
             CurrencyCode = order.CurrencyCode,
             RequestedRefundTotal = requestedTotal,
             CreatedAt = DateTime.UtcNow,
         };
         foreach (var line in items) reqRow.Lines.Add(line);
-        reqRow.Histories.Add(History(0, CustomerReturnStatus.PreRequest, "Pre-request submitted", null, clientId));
+        var submitNote = expired && acceptExpiredWindow
+            ? $"Pre-request submitted after return window (accepted). Shipping: {ReturnShippingShare.Label(shippingPayer)}."
+            : $"Pre-request submitted. Shipping: {ReturnShippingShare.Label(shippingPayer)}.";
+        reqRow.Histories.Add(History(0, CustomerReturnStatus.PreRequest, submitNote, null, clientId));
         context.CustomerReturnRequests.Add(reqRow);
         await context.SaveChangesAsync(ct);
 
@@ -213,19 +236,29 @@ public class CustomerReturnService : ICustomerReturnService
 
     public async Task<(bool Success, string? Error)> ApproveAsync(
         int returnRequestId, ReturnShippingPayer shippingPayer, string? reviewNote,
-        IReadOnlyList<CustomerReturnLineApproval> lineApprovals, int memberId, CancellationToken ct = default)
+        IReadOnlyList<CustomerReturnLineApproval> lineApprovals, int memberId,
+        decimal returnShippingCost = 0, int? receivedWarehouseId = null, CancellationToken ct = default)
     {
         if (shippingPayer is ReturnShippingPayer.Unset)
-            return (false, "Choose who pays return shipping (site or customer) before approving.");
+            return (false, "Choose who pays return shipping before approving.");
+        if (shippingPayer is ReturnShippingPayer.DropOffAtCenter)
+            returnShippingCost = 0;
 
         await using var context = await _db.CreateDbContextAsync(ct);
         var row = await context.CustomerReturnRequests
-            .Include(r => r.Lines)
+            .Include(r => r.Lines).ThenInclude(l => l.OrderItem)
             .Include(r => r.Order).ThenInclude(o => o.OrderItems)
             .FirstOrDefaultAsync(r => r.CustomerReturnRequestID == returnRequestId, ct);
         if (row is null) return (false, "Return not found.");
         if (row.Status != (byte)CustomerReturnStatus.PreRequest)
             return (false, "Only a pre-request can be approved.");
+
+        if (receivedWarehouseId is int wid && wid > 0)
+        {
+            var whOk = await context.Warehouses.AnyAsync(w => w.WarehouseID == wid && w.WebsiteID == row.WebsiteID, ct);
+            if (!whOk) return (false, "Warehouse not found on this site.");
+            row.ReceivedWarehouseID = wid;
+        }
 
         decimal approvedTotal = 0;
         foreach (var line in row.Lines)
@@ -244,28 +277,30 @@ public class CustomerReturnService : ICustomerReturnService
             {
                 ProductVariantID = l.ProductVariantID!.Value,
                 Quantity = l.Quantity,
-                UnitCost = l.UnitPricePaid,
+                UnitCost = l.UnitCost > 0 ? l.UnitCost : l.UnitPricePaid,
                 Note = l.OrderItem?.SkuSnapshot,
             }).ToList();
 
         if (wmsLines.Count > 0)
         {
             var (ok, err, doc) = await _stockDocs.CreateCustomerReturnAsync(
-                row.OrderID, null, wmsLines, $"RMA #{row.CustomerReturnRequestID}", memberId, ct);
+                row.OrderID, receivedWarehouseId, wmsLines, $"RMA #{row.CustomerReturnRequestID}", memberId, ct);
             if (!ok) return (false, err ?? "Could not create warehouse return.");
             row.StockDocumentID = doc?.StockDocumentID;
         }
 
         row.ShippingPayer = (byte)shippingPayer;
+        row.ReturnShippingCost = returnShippingCost < 0 ? 0 : decimal.Round(returnShippingCost, 4);
         row.ApprovedRefundTotal = approvedTotal;
         row.ReviewNote = Truncate(reviewNote, 1000);
         row.ReviewedByMemberID = memberId;
         row.ReviewedAt = DateTime.UtcNow;
         row.UpdatedAt = DateTime.UtcNow;
+        ApplyImpact(row);
         var from = row.Status;
         row.Status = (byte)CustomerReturnStatus.ApprovedAwaitingShipment;
         row.Histories.Add(History(from, CustomerReturnStatus.ApprovedAwaitingShipment,
-            $"Approved. Shipping paid by {(shippingPayer == ReturnShippingPayer.Site ? "site" : "customer")}.", memberId, null));
+            $"Approved. Shipping: {ReturnShippingShare.Label(shippingPayer)}.", memberId, null));
         await context.SaveChangesAsync(ct);
         return (true, null);
     }
@@ -320,12 +355,128 @@ public class CustomerReturnService : ICustomerReturnService
         return (true, null);
     }
 
-    public Task<(bool Success, string? Error)> MarkReceivedAsync(int returnRequestId, int memberId, CancellationToken ct = default)
-        => TransitionAsync(returnRequestId, CustomerReturnStatus.Shipped, CustomerReturnStatus.Received, memberId, null, "Received at warehouse", ct);
+    public async Task<(bool Success, string? Error)> MarkReceivedAsync(
+        int returnRequestId, int memberId, int? warehouseId = null,
+        IReadOnlyList<CustomerReturnLineReceive>? lines = null,
+        decimal? returnShippingCost = null, CancellationToken ct = default)
+    {
+        await using var context = await _db.CreateDbContextAsync(ct);
+        var row = await context.CustomerReturnRequests
+            .Include(r => r.Lines).ThenInclude(l => l.OrderItem)
+            .Include(r => r.Order).ThenInclude(o => o.OrderItems)
+            .FirstOrDefaultAsync(r => r.CustomerReturnRequestID == returnRequestId, ct);
+        if (row is null) return (false, "Return not found.");
 
-    public Task<(bool Success, string? Error)> MarkCompletedAsync(int returnRequestId, int memberId, CancellationToken ct = default)
-        => TransitionAsync(returnRequestId, null, CustomerReturnStatus.Completed, memberId, null, "Completed", ct,
-            allowFrom: [(byte)CustomerReturnStatus.Received, (byte)CustomerReturnStatus.Shipped, (byte)CustomerReturnStatus.ApprovedAwaitingShipment]);
+        var dropOff = row.ShippingPayer == (byte)ReturnShippingPayer.DropOffAtCenter;
+        var allowed = dropOff
+            ? new[] { (byte)CustomerReturnStatus.Shipped, (byte)CustomerReturnStatus.ApprovedAwaitingShipment }
+            : new[] { (byte)CustomerReturnStatus.Shipped };
+        if (!allowed.Contains(row.Status))
+            return (false, "Invalid status for this action.");
+
+        if (warehouseId is int wid && wid > 0)
+        {
+            var whOk = await context.Warehouses.AnyAsync(w => w.WarehouseID == wid && w.WebsiteID == row.WebsiteID, ct);
+            if (!whOk) return (false, "Warehouse not found on this site.");
+            row.ReceivedWarehouseID = wid;
+            if (row.StockDocumentID is int docId)
+            {
+                var (whSet, whErr) = await _stockDocs.SetDestinationWarehouseAsync(docId, wid, memberId, ct);
+                if (!whSet) return (false, whErr);
+            }
+        }
+
+        if (returnShippingCost is decimal ship && row.ShippingPayer != (byte)ReturnShippingPayer.DropOffAtCenter)
+            row.ReturnShippingCost = ship < 0 ? 0 : decimal.Round(ship, 4);
+
+        if (lines is { Count: > 0 })
+        {
+            foreach (var recv in lines)
+            {
+                var line = row.Lines.FirstOrDefault(l => l.CustomerReturnRequestLineID == recv.CustomerReturnRequestLineID);
+                if (line is null) continue;
+                line.ReceivedCondition = recv.ReceivedCondition;
+                line.HealthGrade = recv.ReceivedCondition is (byte)StockItemCondition.New or (byte)StockItemCondition.Defective
+                    ? (byte)0
+                    : recv.HealthGrade;
+            }
+
+            if (row.StockDocumentID is int sid)
+            {
+                var wms = await _stockDocs.GetByIdAsync(sid, ct);
+                if (wms is not null)
+                {
+                    foreach (var line in row.Lines.Where(l => l.ProductVariantID is int && l.ReceivedCondition > 0))
+                    {
+                        var wmsLine = wms.StockDocumentLines.FirstOrDefault(sl => sl.ProductVariantID == line.ProductVariantID);
+                        if (wmsLine is null) continue;
+                        var (ok, err) = await _stockDocs.SetReturnLineConditionAsync(
+                            wmsLine.StockDocumentLineID,
+                            (StockItemCondition)line.ReceivedCondition,
+                            (StockHealthGrade)line.HealthGrade,
+                            memberId, ct);
+                        if (!ok) return (false, err);
+                    }
+                }
+            }
+        }
+
+        ApplyImpact(row);
+        var from = row.Status;
+        row.Status = (byte)CustomerReturnStatus.Received;
+        row.UpdatedAt = DateTime.UtcNow;
+        row.Histories.Add(History(from, CustomerReturnStatus.Received,
+            warehouseId is int w ? $"Received at warehouse #{w}" : "Received at warehouse", memberId, null));
+        await context.SaveChangesAsync(ct);
+        return (true, null);
+    }
+
+    public async Task<(bool Success, string? Error)> MarkCompletedAsync(int returnRequestId, int memberId, CancellationToken ct = default)
+    {
+        await using var context = await _db.CreateDbContextAsync(ct);
+        using var ambient = AmbientDbContext.Use(context);
+        var row = await context.CustomerReturnRequests
+            .Include(r => r.Lines).ThenInclude(l => l.OrderItem)
+            .Include(r => r.Order).ThenInclude(o => o.OrderItems)
+            .FirstOrDefaultAsync(r => r.CustomerReturnRequestID == returnRequestId, ct);
+        if (row is null) return (false, "Return not found.");
+        var allowed = new[]
+        {
+            (byte)CustomerReturnStatus.Received,
+            (byte)CustomerReturnStatus.Shipped,
+            (byte)CustomerReturnStatus.ApprovedAwaitingShipment,
+        };
+        if (!allowed.Contains(row.Status))
+            return (false, "Invalid status for this action.");
+
+        ApplyImpact(row);
+        var from = row.Status;
+        row.Status = (byte)CustomerReturnStatus.Completed;
+        row.UpdatedAt = DateTime.UtcNow;
+        row.Histories.Add(History(from, CustomerReturnStatus.Completed,
+            row.SiteImpactAmount < 0
+                ? $"Completed. Site loss {decimal.Round(-row.SiteImpactAmount, 4)} {row.CurrencyCode}."
+                : $"Completed. Site profit {decimal.Round(row.SiteImpactAmount, 4)} {row.CurrencyCode}.",
+            memberId, null));
+        await context.SaveChangesAsync(ct);
+
+        if (row.ImpactPostedAt is null)
+        {
+            var vendorId = row.Order?.OrderItems
+                .FirstOrDefault(i => i.VendorID is > 0)?.VendorID;
+            var siteIsSeller = row.Lines.All(l => l.OrderItem?.VendorID is null or 0);
+            var split = ReturnShippingShare.Split((ReturnShippingPayer)row.ShippingPayer, row.ReturnShippingCost, siteIsSeller);
+            await _ledger.PostCustomerReturnImpactAsync(
+                row.OrderID, row.CustomerReturnRequestID,
+                row.SiteShippingShare, row.SiteImpactAmount,
+                row.CurrencyCode, $"RMA #{row.CustomerReturnRequestID}",
+                vendorId, split.SellerShare, memberId, ct);
+            row.ImpactPostedAt = DateTime.UtcNow;
+            await context.SaveChangesAsync(ct);
+        }
+
+        return (true, null);
+    }
 
     public async Task<(bool Success, string? Error)> CancelAsync(int returnRequestId, int? clientId, int? memberId, string? note, CancellationToken ct = default)
     {
@@ -382,38 +533,64 @@ public class CustomerReturnService : ICustomerReturnService
         return ordered.ToDictionary(o => o.OrderItemID, o => Math.Max(0, o.Quantity - usedMap.GetValueOrDefault(o.OrderItemID)));
     }
 
-    private static (bool Ok, string? Error, DateTime? Start, DateTime? End) EvaluateWindow(Order order, Website website)
+    private static (bool Ok, string? Error, DateTime? Start, DateTime? End, bool WindowExpired) EvaluateWindow(Order order, Website website)
     {
         if (!website.ReturnsEnabled)
-            return (false, "Returns are disabled for this site.", null, null);
+            return (false, "Returns are disabled for this site.", null, null, false);
         if (order.Status is (byte)OrderStatus.Cancelled)
-            return (false, "Cancelled orders cannot be returned.", null, null);
+            return (false, "Cancelled orders cannot be returned.", null, null, false);
         if (order.PaidAt is null)
-            return (false, "Only paid orders can be returned.", null, null);
+            return (false, "Only paid orders can be returned.", null, null, false);
 
         DateTime? start = null;
         if (website.ReturnWindowFrom == (byte)ReturnWindowFrom.Delivered)
         {
             if (order.ShippingStatus != (byte)OrderShippingStatus.Delivered)
-                return (false, "Return window starts after the order is marked delivered.", null, null);
+                return (false, "Return window starts after the order is marked delivered.", null, null, false);
             start = order.ShippedAt ?? order.PaidAt;
         }
         else
         {
             if (order.ShippedAt is null && order.ShippingStatus < (byte)OrderShippingStatus.Shipped)
-                return (false, "Return window starts after the order is shipped.", null, null);
+                return (false, "Return window starts after the order is shipped.", null, null, false);
             start = order.ShippedAt ?? order.PaidAt;
         }
 
         var days = website.ReturnWindowDays < 0 ? 0 : website.ReturnWindowDays;
         var end = start!.Value.AddDays(days);
         if (DateTime.UtcNow > end)
-            return (false, $"Return window ({days} days) has expired.", start, end);
-        return (true, null, start, end);
+            return (true, $"Return window ({days} days) has expired.", start, end, true);
+        return (true, null, start, end, false);
+    }
+
+    private static void ApplyImpact(CustomerReturnRequest row)
+    {
+        var siteIsSeller = row.Lines.All(l => l.OrderItem?.VendorID is null or 0);
+        var (siteShare, _, _) = ReturnShippingShare.Split(
+            (ReturnShippingPayer)row.ShippingPayer, row.ReturnShippingCost, siteIsSeller);
+        row.SiteShippingShare = siteShare;
+
+        decimal recovered = 0;
+        foreach (var line in row.Lines)
+        {
+            if (line.ReceivedCondition == (byte)StockItemCondition.Defective)
+                continue;
+            recovered += line.UnitCost * line.Quantity;
+        }
+        row.RecoveredInventoryValue = decimal.Round(recovered, 4);
+        row.SiteImpactAmount = decimal.Round(row.RecoveredInventoryValue - row.ApprovedRefundTotal - row.SiteShippingShare, 4);
     }
 
     private static decimal UnitPaid(OrderItem i) =>
         i.Quantity > 0 ? decimal.Round(i.TotalPrice / i.Quantity, 4) : i.UnitPrice;
+
+    private static decimal UnitCostLocal(OrderItem item)
+    {
+        if (item.UnitCostUsd <= 0) return 0;
+        if (item.UnitPriceUsd > 0 && item.UnitPrice > 0)
+            return decimal.Round(item.UnitCostUsd * (item.UnitPrice / item.UnitPriceUsd), 4);
+        return item.UnitCostUsd;
+    }
 
     private static CustomerReturnRequestHistory History(byte from, CustomerReturnStatus to, string? note, int? memberId, int? clientId) =>
         new()
@@ -445,12 +622,20 @@ public class CustomerReturnService : ICustomerReturnService
         ShipMethod = r.ShipMethod,
         TrackingCode = r.TrackingCode,
         ShippingPayer = r.ShippingPayer,
+        ReturnShippingCost = r.ReturnShippingCost,
+        SiteShippingShare = r.SiteShippingShare,
+        RecoveredInventoryValue = r.RecoveredInventoryValue,
+        SiteImpactAmount = r.SiteImpactAmount,
+        AcceptedAfterWindowExpired = r.AcceptedAfterWindowExpired,
+        ReceivedWarehouseID = r.ReceivedWarehouseID,
+        ReceivedWarehouseName = r.ReceivedWarehouse?.Name,
         CurrencyCode = r.CurrencyCode,
         RequestedRefundTotal = r.RequestedRefundTotal,
         ApprovedRefundTotal = r.ApprovedRefundTotal,
         ReviewNote = r.ReviewNote,
         ReviewedAt = r.ReviewedAt,
         ShippedAt = r.ShippedAt,
+        ImpactPostedAt = r.ImpactPostedAt,
         CreatedAt = r.CreatedAt,
     };
 
@@ -469,8 +654,11 @@ public class CustomerReturnService : ICustomerReturnService
             OrderedQty = l.OrderItem?.Quantity ?? l.Quantity,
             RemainingQty = remaining.GetValueOrDefault(l.OrderItemID),
             UnitPricePaid = l.UnitPricePaid,
+            UnitCost = l.UnitCost,
             UnitRefundRequested = l.UnitRefundRequested,
             UnitRefundApproved = l.UnitRefundApproved,
+            ReceivedCondition = l.ReceivedCondition,
+            HealthGrade = l.HealthGrade,
         }).ToList();
         dto.Histories = r.Histories.OrderBy(h => h.CreatedAt).Select(h => new CustomerReturnHistoryDto
         {

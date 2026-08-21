@@ -2,6 +2,7 @@
 @using Dotnetable.Domain.Enums
 @attribute [Authorize(Policy = RoleKeys.WarehouseView)]
 @inject ICustomerReturnService Returns
+@inject IWarehouseService Warehouses
 @inject AuthenticationStateProvider AuthState
 @inject ISnackbar Snackbar
 @inject NavigationManager Nav
@@ -50,8 +51,12 @@ else
                         }
                     </MudItem>
                     <MudItem xs="12" sm="6">
-                        <MudText Typo="Typo.caption">@L["returns.ship_method", "How it will be sent"]</MudText>
-                        <MudText>@(_row.ShipMethod ?? "—")</MudText>
+                        <MudText Typo="Typo.caption">@L["returns.who_pays", "Who pays return shipping"]</MudText>
+                        <MudText>@PayerLabel((ReturnShippingPayer)_row.ShippingPayer)</MudText>
+                        @if (!string.IsNullOrWhiteSpace(_row.ShipMethod))
+                        {
+                            <MudText Typo="Typo.caption" Color="Color.Secondary">@_row.ShipMethod</MudText>
+                        }
                     </MudItem>
                     <MudItem xs="12">
                         <MudText Typo="Typo.caption">@L["returns.description", "Description"]</MudText>
@@ -88,6 +93,8 @@ else
                             <th>@L["returns.paid", "Paid"]</th>
                             <th>@L["returns.refund_asked", "Asked"]</th>
                             <th>@L["returns.refund_approved", "Approved / unit"]</th>
+                            <th>@L["warehouse.item_condition", "Condition"]</th>
+                            <th>@L["warehouse.health_grade", "Grade"]</th>
                         </tr>
                     </thead>
                     <tbody>
@@ -108,6 +115,41 @@ else
                                         @l.UnitRefundApproved.ToString("0.##")
                                     }
                                 </td>
+                                <td>
+                                    @if (CanReceiveEdit)
+                                    {
+                                        <MudSelect T="byte" @bind-Value="l.ReceivedCondition" Variant="Variant.Outlined" Dense="true" Style="min-width:140px">
+                                            <MudSelectItem T="byte" Value="@((byte)StockItemCondition.New)">@L["warehouse.cond.new", "New"]</MudSelectItem>
+                                            <MudSelectItem T="byte" Value="@((byte)StockItemCondition.LikeNew)">@L["warehouse.cond.like_new", "Like new"]</MudSelectItem>
+                                            <MudSelectItem T="byte" Value="@((byte)StockItemCondition.OpenBox)">@L["warehouse.cond.open_box", "Open box"]</MudSelectItem>
+                                            <MudSelectItem T="byte" Value="@((byte)StockItemCondition.Display)">@L["warehouse.cond.display", "Display"]</MudSelectItem>
+                                            <MudSelectItem T="byte" Value="@((byte)StockItemCondition.Used)">@L["warehouse.cond.used", "Used"]</MudSelectItem>
+                                            <MudSelectItem T="byte" Value="@((byte)StockItemCondition.Defective)">@L["warehouse.cond.defective", "Defective"]</MudSelectItem>
+                                        </MudSelect>
+                                    }
+                                    else if (l.ReceivedCondition > 0)
+                                    {
+                                        @ConditionLabel((StockItemCondition)l.ReceivedCondition)
+                                    }
+                                    else { <span>—</span> }
+                                </td>
+                                <td>
+                                    @if (CanReceiveEdit && l.ReceivedCondition is not ((byte)StockItemCondition.New or (byte)StockItemCondition.Defective or 0))
+                                    {
+                                        <MudSelect T="byte" @bind-Value="l.HealthGrade" Variant="Variant.Outlined" Dense="true" Style="min-width:90px">
+                                            <MudSelectItem T="byte" Value="@((byte)StockHealthGrade.A)">A</MudSelectItem>
+                                            <MudSelectItem T="byte" Value="@((byte)StockHealthGrade.B)">B</MudSelectItem>
+                                            <MudSelectItem T="byte" Value="@((byte)StockHealthGrade.C)">C</MudSelectItem>
+                                            <MudSelectItem T="byte" Value="@((byte)StockHealthGrade.D)">D</MudSelectItem>
+                                            <MudSelectItem T="byte" Value="@((byte)StockHealthGrade.F)">F</MudSelectItem>
+                                        </MudSelect>
+                                    }
+                                    else if (l.HealthGrade > 0)
+                                    {
+                                        @($"G{l.HealthGrade}")
+                                    }
+                                    else { <span>—</span> }
+                                </td>
                             </tr>
                         }
                     </tbody>
@@ -119,6 +161,22 @@ else
                         <span> · @L["returns.approved_total", "Approved"]: @MoneyFormat.Group(_row.ApprovedRefundTotal, _row.CurrencyCode)</span>
                     }
                 </MudText>
+                @if (_row.ApprovedRefundTotal > 0 || _row.SiteImpactAmount != 0)
+                {
+                    <MudAlert Dense="true" Class="mt-3" Variant="Variant.Outlined"
+                              Severity="@(_row.SiteImpactAmount < 0 ? Severity.Warning : Severity.Info)">
+                        @L["returns.recovered", "Recovered inventory"]: @MoneyFormat.Group(_row.RecoveredInventoryValue, _row.CurrencyCode)
+                        · @L["returns.site_shipping", "Site shipping"]: @MoneyFormat.Group(_row.SiteShippingShare, _row.CurrencyCode)
+                        · @L["returns.site_impact", "Site profit / (loss)"]:
+                        <strong>@MoneyFormat.Group(_row.SiteImpactAmount, _row.CurrencyCode)</strong>
+                    </MudAlert>
+                }
+                @if (_row.AcceptedAfterWindowExpired)
+                {
+                    <MudAlert Severity="Severity.Warning" Dense="true" Class="mt-2" Variant="Variant.Outlined">
+                        @L["returns.window_accepted", "Accepted after the return window expired."]
+                    </MudAlert>
+                }
             </MudPaper>
 
             <MudPaper Elevation="0" Class="app-card rounded-lg pa-4">
@@ -162,9 +220,26 @@ else
                 {
                     <MudSelect T="ReturnShippingPayer" @bind-Value="_payer" Variant="Variant.Outlined" Dense="true" Class="mb-2"
                                Label="@L["returns.who_pays", "Who pays return shipping"]">
-                        <MudSelectItem T="ReturnShippingPayer" Value="ReturnShippingPayer.Site">@L["returns.payer.site", "Site pays"]</MudSelectItem>
-                        <MudSelectItem T="ReturnShippingPayer" Value="ReturnShippingPayer.Customer">@L["returns.payer.customer", "Customer pays"]</MudSelectItem>
+                        <MudSelectItem T="ReturnShippingPayer" Value="ReturnShippingPayer.Customer">@L["returns.payer.customer", "Customer"]</MudSelectItem>
+                        <MudSelectItem T="ReturnShippingPayer" Value="ReturnShippingPayer.SplitFiftyFifty">@L["returns.payer.split", "50 / 50"]</MudSelectItem>
+                        <MudSelectItem T="ReturnShippingPayer" Value="ReturnShippingPayer.Seller">@L["returns.payer.seller", "Seller"]</MudSelectItem>
+                        <MudSelectItem T="ReturnShippingPayer" Value="ReturnShippingPayer.DropOffAtCenter">@L["returns.payer.dropoff", "Drop-off at store / center"]</MudSelectItem>
                     </MudSelect>
+                    @if (_payer != ReturnShippingPayer.DropOffAtCenter)
+                    {
+                        <MudNumericField T="decimal" @bind-Value="_shippingCost" Variant="Variant.Outlined" Dense="true" Min="0" Class="mb-2"
+                                         Label="@L["returns.shipping_cost", "Return shipping cost"]" />
+                    }
+                    @if (_wh.Count > 0)
+                    {
+                        <MudSelect T="int?" @bind-Value="_warehouseId" Variant="Variant.Outlined" Dense="true" Class="mb-2"
+                                   Label="@L["returns.restock_warehouse", "Restock warehouse"]">
+                            @foreach (var w in _wh)
+                            {
+                                <MudSelectItem T="int?" Value="@w.WarehouseID">@w.Name</MudSelectItem>
+                            }
+                        </MudSelect>
+                    }
                     <MudTextField @bind-Value="_reviewNote" Label="@L["returns.review_note", "Review note"]" Variant="Variant.Outlined" Dense="true" Class="mb-2" />
                     <MudButton Variant="Variant.Filled" Color="Color.Success" FullWidth="true" Class="mb-2" OnClick="ApproveAsync" Disabled="_busy">
                         @L["returns.approve", "Approve pre-request"]
@@ -174,8 +249,22 @@ else
                     </MudButton>
                 }
 
-                @if (_canApprove && _row.Status == (byte)CustomerReturnStatus.Shipped)
+                @if (_canApprove && CanReceiveEdit)
                 {
+                    @if (_wh.Count > 0)
+                    {
+                        <MudSelect T="int?" @bind-Value="_warehouseId" Variant="Variant.Outlined" Dense="true" Class="mb-2"
+                                   Label="@L["returns.restock_warehouse", "Receive / restock warehouse"]">
+                            @foreach (var w in _wh)
+                            {
+                                <MudSelectItem T="int?" Value="@w.WarehouseID">@w.Name</MudSelectItem>
+                            }
+                        </MudSelect>
+                    }
+                    else if (!string.IsNullOrWhiteSpace(_row.ReceivedWarehouseName))
+                    {
+                        <MudText Typo="Typo.body2" Class="mb-2">@L["warehouse.to", "To"]: @_row.ReceivedWarehouseName</MudText>
+                    }
                     <MudButton Variant="Variant.Filled" Color="Color.Primary" FullWidth="true" Class="mb-2" OnClick="ReceiveAsync" Disabled="_busy">
                         @L["returns.mark_received", "Mark received"]
                     </MudButton>
@@ -198,14 +287,25 @@ else
     private int _memberId;
     private CustomerReturnDto? _row;
     private List<CustomerReturnLineDto> _approvals = new();
+    private List<Warehouse> _wh = new();
     private ReturnShippingPayer _payer = ReturnShippingPayer.Customer;
+    private decimal _shippingCost;
+    private int? _warehouseId;
     private string? _reviewNote;
+
+    private bool CanReceiveEdit =>
+        _row is not null && _canApprove && (
+            _row.Status == (byte)CustomerReturnStatus.Shipped
+            || (_row.Status == (byte)CustomerReturnStatus.ApprovedAwaitingShipment
+                && _row.ShippingPayer == (byte)ReturnShippingPayer.DropOffAtCenter));
 
     private string _hint => _row is null ? "" : (CustomerReturnStatus)_row.Status switch
     {
         CustomerReturnStatus.PreRequest => L["returns.hint.pre", "Review photos, description and reason. Set who pays shipping and the approved refund per unit, then approve."],
-        CustomerReturnStatus.ApprovedAwaitingShipment => L["returns.hint.wait_ship", "Waiting for the customer to ship and enter a tracking code."],
-        CustomerReturnStatus.Shipped => L["returns.hint.shipped", "Parcel is on the way. Mark received, then continue warehouse QC."],
+        CustomerReturnStatus.ApprovedAwaitingShipment => _row.ShippingPayer == (byte)ReturnShippingPayer.DropOffAtCenter
+            ? L["returns.hint.dropoff", "Waiting for drop-off at a store / center. Mark received and set condition + warehouse."]
+            : L["returns.hint.wait_ship", "Waiting for the customer to ship and enter a tracking code."],
+        CustomerReturnStatus.Shipped => L["returns.hint.shipped", "Parcel is on the way. Mark received, set condition and warehouse, then continue QC."],
         CustomerReturnStatus.Received => L["returns.hint.received", "Continue QC / restock on the warehouse document, then complete."],
         _ => "",
     };
@@ -220,6 +320,15 @@ else
         _canApprove = AdminPolicies.Allows(u, RoleKeys.WarehouseApprove) || AdminPolicies.Allows(u, RoleKeys.WarehouseReceive);
         int.TryParse(u.FindFirst(AdminClaimTypes.MemberId)?.Value, out _memberId);
         _row = await Returns.GetByIdAsync(ReturnRequestId);
+        if (_row is not null)
+        {
+            if (_row.ShippingPayer != 0) _payer = (ReturnShippingPayer)_row.ShippingPayer;
+            _shippingCost = _row.ReturnShippingCost;
+            _warehouseId = _row.ReceivedWarehouseID;
+            _wh = (await Warehouses.GetAllAsync(_row.WebsiteID)).Where(w => w.IsActive).ToList();
+            if (_warehouseId is null && _wh.Count > 0)
+                _warehouseId = _wh.FirstOrDefault(w => w.IsDefault)?.WarehouseID ?? _wh[0].WarehouseID;
+        }
         _approvals = _row?.Lines.Select(l => new CustomerReturnLineDto
         {
             CustomerReturnRequestLineID = l.CustomerReturnRequestLineID,
@@ -231,8 +340,11 @@ else
             OrderedQty = l.OrderedQty,
             RemainingQty = l.RemainingQty,
             UnitPricePaid = l.UnitPricePaid,
+            UnitCost = l.UnitCost,
             UnitRefundRequested = l.UnitRefundRequested,
             UnitRefundApproved = l.UnitRefundApproved > 0 ? l.UnitRefundApproved : l.UnitRefundRequested,
+            ReceivedCondition = l.ReceivedCondition == 0 ? (byte)StockItemCondition.New : l.ReceivedCondition,
+            HealthGrade = l.HealthGrade,
         }).ToList() ?? new();
         _loading = false;
     }
@@ -248,7 +360,7 @@ else
                 {
                     CustomerReturnRequestLineID = l.CustomerReturnRequestLineID,
                     UnitRefundApproved = l.UnitRefundApproved,
-                }).ToList(), _memberId);
+                }).ToList(), _memberId, _shippingCost, _warehouseId);
             await After(ok, err);
         }
         finally { _busy = false; }
@@ -266,7 +378,17 @@ else
     {
         if (_memberId <= 0) return;
         _busy = true;
-        try { var r = await Returns.MarkReceivedAsync(ReturnRequestId, _memberId); await After(r.Success, r.Error); }
+        try
+        {
+            var r = await Returns.MarkReceivedAsync(ReturnRequestId, _memberId, _warehouseId,
+                _approvals.Select(l => new CustomerReturnLineReceive
+                {
+                    CustomerReturnRequestLineID = l.CustomerReturnRequestLineID,
+                    ReceivedCondition = l.ReceivedCondition,
+                    HealthGrade = l.HealthGrade,
+                }).ToList(), _shippingCost);
+            await After(r.Success, r.Error);
+        }
         finally { _busy = false; }
     }
 
@@ -304,5 +426,25 @@ else
         CustomerReturnReason.ChangedMind => L["returns.reason.changed_mind", "Changed mind"],
         CustomerReturnReason.Defective => L["returns.reason.defective", "Defective"],
         _ => L["returns.reason.other", "Other"],
+    };
+
+    private string PayerLabel(ReturnShippingPayer p) => p switch
+    {
+        ReturnShippingPayer.Customer => L["returns.payer.customer", "Customer"],
+        ReturnShippingPayer.SplitFiftyFifty => L["returns.payer.split", "50 / 50"],
+        ReturnShippingPayer.Seller => L["returns.payer.seller", "Seller"],
+        ReturnShippingPayer.DropOffAtCenter => L["returns.payer.dropoff", "Drop-off at store / center"],
+        _ => "—",
+    };
+
+    private string ConditionLabel(StockItemCondition c) => c switch
+    {
+        StockItemCondition.New => L["warehouse.cond.new", "New"],
+        StockItemCondition.LikeNew => L["warehouse.cond.like_new", "Like new"],
+        StockItemCondition.OpenBox => L["warehouse.cond.open_box", "Open box"],
+        StockItemCondition.Display => L["warehouse.cond.display", "Display"],
+        StockItemCondition.Used => L["warehouse.cond.used", "Used"],
+        StockItemCondition.Defective => L["warehouse.cond.defective", "Defective"],
+        _ => "—",
     };
 }

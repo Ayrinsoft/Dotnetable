@@ -1230,6 +1230,11 @@ namespace Dotnetable.Migrations.SqlServer.Migrations
 
                     SqlServerPropertyBuilderExtensions.UseIdentityColumn(b.Property<int>("CustomerReturnRequestID"));
 
+                    b.Property<bool>("AcceptedAfterWindowExpired")
+                        .ValueGeneratedOnAdd()
+                        .HasColumnType("bit")
+                        .HasDefaultValue(false);
+
                     b.Property<decimal>("ApprovedRefundTotal")
                         .ValueGeneratedOnAdd()
                         .HasColumnType("decimal(18,4)")
@@ -1247,6 +1252,9 @@ namespace Dotnetable.Migrations.SqlServer.Migrations
                         .HasMaxLength(2000)
                         .HasColumnType("nvarchar(2000)");
 
+                    b.Property<DateTime?>("ImpactPostedAt")
+                        .HasColumnType("datetime2");
+
                     b.Property<int>("OrderID")
                         .HasColumnType("int");
 
@@ -1257,8 +1265,21 @@ namespace Dotnetable.Migrations.SqlServer.Migrations
                         .HasMaxLength(200)
                         .HasColumnType("nvarchar(200)");
 
+                    b.Property<int?>("ReceivedWarehouseID")
+                        .HasColumnType("int");
+
+                    b.Property<decimal>("RecoveredInventoryValue")
+                        .ValueGeneratedOnAdd()
+                        .HasColumnType("decimal(18,4)")
+                        .HasDefaultValue(0m);
+
                     b.Property<decimal>("RequestedRefundTotal")
                         .HasColumnType("decimal(18,4)");
+
+                    b.Property<decimal>("ReturnShippingCost")
+                        .ValueGeneratedOnAdd()
+                        .HasColumnType("decimal(18,4)")
+                        .HasDefaultValue(0m);
 
                     b.Property<string>("ReviewNote")
                         .HasMaxLength(1000)
@@ -1281,6 +1302,16 @@ namespace Dotnetable.Migrations.SqlServer.Migrations
                         .ValueGeneratedOnAdd()
                         .HasColumnType("tinyint")
                         .HasDefaultValue((byte)0);
+
+                    b.Property<decimal>("SiteImpactAmount")
+                        .ValueGeneratedOnAdd()
+                        .HasColumnType("decimal(18,4)")
+                        .HasDefaultValue(0m);
+
+                    b.Property<decimal>("SiteShippingShare")
+                        .ValueGeneratedOnAdd()
+                        .HasColumnType("decimal(18,4)")
+                        .HasDefaultValue(0m);
 
                     b.Property<byte>("Status")
                         .HasColumnType("tinyint");
@@ -1310,6 +1341,8 @@ namespace Dotnetable.Migrations.SqlServer.Migrations
                     b.HasIndex(new[] { "WebsiteClientID", "CreatedAt" }, "IX_CustomerReturnRequests_Client");
 
                     b.HasIndex(new[] { "OrderID" }, "IX_CustomerReturnRequests_Order");
+
+                    b.HasIndex(new[] { "ReceivedWarehouseID" }, "IX_CustomerReturnRequests_ReceivedWarehouse");
 
                     b.HasIndex(new[] { "WebsiteID", "Status", "CreatedAt" }, "IX_CustomerReturnRequests_Website_Status");
 
@@ -1366,6 +1399,11 @@ namespace Dotnetable.Migrations.SqlServer.Migrations
                     b.Property<int>("CustomerReturnRequestID")
                         .HasColumnType("int");
 
+                    b.Property<byte>("HealthGrade")
+                        .ValueGeneratedOnAdd()
+                        .HasColumnType("tinyint")
+                        .HasDefaultValue((byte)0);
+
                     b.Property<int>("OrderItemID")
                         .HasColumnType("int");
 
@@ -1374,6 +1412,16 @@ namespace Dotnetable.Migrations.SqlServer.Migrations
 
                     b.Property<int>("Quantity")
                         .HasColumnType("int");
+
+                    b.Property<byte>("ReceivedCondition")
+                        .ValueGeneratedOnAdd()
+                        .HasColumnType("tinyint")
+                        .HasDefaultValue((byte)0);
+
+                    b.Property<decimal>("UnitCost")
+                        .ValueGeneratedOnAdd()
+                        .HasColumnType("decimal(18,4)")
+                        .HasDefaultValue(0m);
 
                     b.Property<decimal>("UnitPricePaid")
                         .HasColumnType("decimal(18,4)");
@@ -7839,6 +7887,10 @@ namespace Dotnetable.Migrations.SqlServer.Migrations
                         .HasForeignKey("OrderID")
                         .IsRequired();
 
+                    b.HasOne("Dotnetable.Domain.Entities.Warehouse", "ReceivedWarehouse")
+                        .WithMany()
+                        .HasForeignKey("ReceivedWarehouseID");
+
                     b.HasOne("Dotnetable.Domain.Entities.Member", "ReviewedByMember")
                         .WithMany()
                         .HasForeignKey("ReviewedByMemberID");
@@ -7858,6 +7910,8 @@ namespace Dotnetable.Migrations.SqlServer.Migrations
                         .IsRequired();
 
                     b.Navigation("Order");
+
+                    b.Navigation("ReceivedWarehouse");
 
                     b.Navigation("ReviewedByMember");
 

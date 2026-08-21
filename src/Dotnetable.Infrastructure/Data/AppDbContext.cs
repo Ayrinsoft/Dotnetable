@@ -682,20 +682,30 @@ public partial class AppDbContext : DbContext
             entity.Property(e => e.RequestedRefundTotal).HasColumnType("decimal(18,4)");
             entity.Property(e => e.ApprovedRefundTotal).HasColumnType("decimal(18,4)").HasDefaultValue(0m);
             entity.Property(e => e.ShippingPayer).HasDefaultValue((byte)0);
+            entity.Property(e => e.ReturnShippingCost).HasColumnType("decimal(18,4)").HasDefaultValue(0m);
+            entity.Property(e => e.SiteShippingShare).HasColumnType("decimal(18,4)").HasDefaultValue(0m);
+            entity.Property(e => e.RecoveredInventoryValue).HasColumnType("decimal(18,4)").HasDefaultValue(0m);
+            entity.Property(e => e.SiteImpactAmount).HasColumnType("decimal(18,4)").HasDefaultValue(0m);
+            entity.Property(e => e.AcceptedAfterWindowExpired).HasDefaultValue(false);
             entity.HasIndex(e => new { e.WebsiteID, e.Status, e.CreatedAt }, "IX_CustomerReturnRequests_Website_Status");
             entity.HasIndex(e => e.OrderID, "IX_CustomerReturnRequests_Order");
             entity.HasIndex(e => new { e.WebsiteClientID, e.CreatedAt }, "IX_CustomerReturnRequests_Client");
+            entity.HasIndex(e => e.ReceivedWarehouseID, "IX_CustomerReturnRequests_ReceivedWarehouse");
             entity.HasOne(d => d.Website).WithMany().HasForeignKey(d => d.WebsiteID).OnDelete(DeleteBehavior.ClientSetNull);
             entity.HasOne(d => d.Order).WithMany().HasForeignKey(d => d.OrderID).OnDelete(DeleteBehavior.ClientSetNull);
             entity.HasOne(d => d.WebsiteClient).WithMany().HasForeignKey(d => d.WebsiteClientID).OnDelete(DeleteBehavior.ClientSetNull);
             entity.HasOne(d => d.StockDocument).WithMany().HasForeignKey(d => d.StockDocumentID);
             entity.HasOne(d => d.ReviewedByMember).WithMany().HasForeignKey(d => d.ReviewedByMemberID);
+            entity.HasOne(d => d.ReceivedWarehouse).WithMany().HasForeignKey(d => d.ReceivedWarehouseID);
         });
         modelBuilder.Entity<CustomerReturnRequestLine>(entity =>
         {
             entity.Property(e => e.UnitPricePaid).HasColumnType("decimal(18,4)");
+            entity.Property(e => e.UnitCost).HasColumnType("decimal(18,4)").HasDefaultValue(0m);
             entity.Property(e => e.UnitRefundRequested).HasColumnType("decimal(18,4)");
             entity.Property(e => e.UnitRefundApproved).HasColumnType("decimal(18,4)").HasDefaultValue(0m);
+            entity.Property(e => e.ReceivedCondition).HasDefaultValue((byte)0);
+            entity.Property(e => e.HealthGrade).HasDefaultValue((byte)0);
             entity.HasIndex(e => e.CustomerReturnRequestID, "IX_CustomerReturnRequestLines_Request");
             entity.HasIndex(e => e.OrderItemID, "IX_CustomerReturnRequestLines_OrderItem");
             entity.HasOne(d => d.ReturnRequest).WithMany(p => p.Lines).HasForeignKey(d => d.CustomerReturnRequestID).OnDelete(DeleteBehavior.ClientSetNull);

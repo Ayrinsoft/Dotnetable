@@ -6,7 +6,7 @@
 <MudDialog>
     <DialogContent>
         <MudText Typo="Typo.body2" Color="Color.Secondary" Class="mb-3">
-            @L["returns.new_hint", "Register a pre-request for selected lines. Refund per unit can differ from the paid price. You review photos and shipping payer on the next page."]
+            @L["returns.new_hint", "Register a pre-request for selected lines. Choose who pays return shipping so later ledgers can split the cost."]
         </MudText>
         <MudGrid Spacing="2">
             <MudItem xs="12" sm="8">
@@ -30,8 +30,13 @@
                 </MudSelect>
             </MudItem>
             <MudItem xs="12" sm="6">
-                <MudTextField @bind-Value="_shipMethod" Label="@L["returns.ship_method", "How it will be sent"]"
-                              Variant="Variant.Outlined" Dense="true" />
+                <MudSelect T="ReturnShippingPayer" @bind-Value="_payer" Label="@L["returns.who_pays", "Who pays return shipping"]"
+                           Variant="Variant.Outlined" Dense="true">
+                    <MudSelectItem T="ReturnShippingPayer" Value="ReturnShippingPayer.Customer">@L["returns.payer.customer", "Customer"]</MudSelectItem>
+                    <MudSelectItem T="ReturnShippingPayer" Value="ReturnShippingPayer.SplitFiftyFifty">@L["returns.payer.split", "50 / 50"]</MudSelectItem>
+                    <MudSelectItem T="ReturnShippingPayer" Value="ReturnShippingPayer.Seller">@L["returns.payer.seller", "Seller"]</MudSelectItem>
+                    <MudSelectItem T="ReturnShippingPayer" Value="ReturnShippingPayer.DropOffAtCenter">@L["returns.payer.dropoff", "Drop-off at store / center"]</MudSelectItem>
+                </MudSelect>
             </MudItem>
             <MudItem xs="12">
                 <MudTextField @bind-Value="_description" Label="@L["returns.description", "Description"]"
@@ -45,9 +50,15 @@
         }
         else if (_elig is not null)
         {
-            @if (!_elig.Eligible)
+            @if (!_elig.Eligible && !_elig.CanAcceptAfterWindow)
             {
                 <MudAlert Severity="Severity.Warning" Dense="true" Class="mt-3" Variant="Variant.Outlined">@_elig.BlockReason</MudAlert>
+            }
+            else if (_elig.CanAcceptAfterWindow)
+            {
+                <MudAlert Severity="Severity.Warning" Dense="true" Class="mt-3" Variant="Variant.Outlined">@_elig.BlockReason</MudAlert>
+                <MudCheckBox T="bool" @bind-Value="_acceptExpired" Class="mt-2"
+                             Label="@L["returns.accept_expired", "Accept this return knowing the return window has ended"]" />
             }
             <MudText Typo="Typo.subtitle2" Class="mt-4 mb-2">@_elig.OrderNumber</MudText>
             <MudSimpleTable Dense="true" Elevation="0">
@@ -93,7 +104,7 @@
     <DialogActions>
         <MudButton OnClick="Cancel">@L["cancel", "Cancel"]</MudButton>
         <MudButton Variant="Variant.Filled" Color="Color.Primary" OnClick="SaveAsync"
-                   Disabled="@(_saving || _elig is null || !_elig.Eligible || !_lines.Any(x => x.Selected && x.Qty > 0))">
+                   Disabled="@(_saving || _elig is null || !CanSave || !_lines.Any(x => x.Selected && x.Qty > 0))">
             @L["returns.register", "Register return"]
         </MudButton>
     </DialogActions>
@@ -104,12 +115,17 @@
     [Parameter] public int WebsiteId { get; set; }
     [Parameter] public int? MemberId { get; set; }
 
-    private string _orderSearch = "", _description = "", _shipMethod = "";
+    private string _orderSearch = "", _description = "";
     private CustomerReturnReason _reason = CustomerReturnReason.Damaged;
+    private ReturnShippingPayer _payer = ReturnShippingPayer.Customer;
+    private bool _acceptExpired;
     private bool _searching, _searched, _saving;
     private ReturnEligibilityDto? _elig;
     private int _clientId;
     private List<LinePick> _lines = new();
+
+    private bool CanSave =>
+        _elig is not null && (_elig.Eligible || (_elig.CanAcceptAfterWindow && _acceptExpired));
 
     private void Cancel() => MudDialog.Cancel();
 
@@ -123,6 +139,7 @@
         if (WebsiteId <= 0 || string.IsNullOrWhiteSpace(_orderSearch)) return;
         _searching = true;
         _searched = true;
+        _acceptExpired = false;
         var q = new GridQuery { PageSize = 10 };
         q.Search[nameof(Order.OrderNumber)] = _orderSearch.Trim();
         var page = await Orders.GetPagedAsync(WebsiteId, null, q);
@@ -157,21 +174,21 @@
 
     private async Task SaveAsync()
     {
-        if (_elig is null || !_elig.Eligible) return;
+        if (_elig is null || !CanSave) return;
         var selected = _lines.Where(x => x.Selected && x.Qty > 0 && x.RemainingQty > 0).ToList();
         if (selected.Count == 0) return;
         _saving = true;
         try
         {
             var (ok, err, row) = await Returns.CreateAsync(
-                WebsiteId, _clientId, _elig.OrderID, _reason, null, _description, _shipMethod,
+                WebsiteId, _clientId, _elig.OrderID, _reason, null, _description, null,
                 selected.Select(x => new CustomerReturnLineInput
                 {
                     OrderItemID = x.OrderItemID,
                     Quantity = x.Qty,
                     UnitRefundRequested = x.UnitRefund,
                 }).ToList(),
-                null);
+                null, _payer, _acceptExpired);
             if (!ok || row is null)
             {
                 Snackbar.Add(err ?? L["save_failed", "Save failed"], Severity.Error);

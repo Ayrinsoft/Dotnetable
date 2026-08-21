@@ -72,6 +72,9 @@ public sealed class OrderFinancialSummaryDto
     public decimal DiscountTotal { get; init; }
     public decimal TaxTotal { get; init; }
     public decimal VendorSettlementTotal { get; init; }
+    public decimal ReturnShippingTotal { get; init; }
+    /// <summary>Signed: negative is site loss on customer returns.</summary>
+    public decimal ReturnSiteImpactTotal { get; init; }
 
     public decimal OrderGrandTotalSnapshot { get; init; }
     public IReadOnlyList<FinancialLedgerEntryDto> Lines { get; init; } = Array.Empty<FinancialLedgerEntryDto>();

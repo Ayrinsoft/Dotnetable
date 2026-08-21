@@ -26,6 +26,26 @@ public partial class CustomerReturnRequest
     /// <summary><see cref="Enums.ReturnShippingPayer"/> — required when admin approves.</summary>
     public byte ShippingPayer { get; set; }
 
+    /// <summary>Carrier invoice for this return (order currency). Unused when drop-off at a center.</summary>
+    public decimal ReturnShippingCost { get; set; }
+
+    /// <summary>Share of <see cref="ReturnShippingCost"/> the site actually pays (order currency).</summary>
+    public decimal SiteShippingShare { get; set; }
+
+    /// <summary>Inventory value recovered by restocking non-defective units (order currency).</summary>
+    public decimal RecoveredInventoryValue { get; set; }
+
+    /// <summary>
+    /// Site P&amp;L of this return: recovered inventory − refund − site shipping.
+    /// Negative = loss, positive = profit.
+    /// </summary>
+    public decimal SiteImpactAmount { get; set; }
+
+    /// <summary>Operator accepted the RMA after the website return window had expired.</summary>
+    public bool AcceptedAfterWindowExpired { get; set; }
+
+    public int? ReceivedWarehouseID { get; set; }
+
     public string CurrencyCode { get; set; } = null!;
     public decimal RequestedRefundTotal { get; set; }
     public decimal ApprovedRefundTotal { get; set; }
@@ -34,6 +54,7 @@ public partial class CustomerReturnRequest
     public int? ReviewedByMemberID { get; set; }
     public DateTime? ReviewedAt { get; set; }
     public DateTime? ShippedAt { get; set; }
+    public DateTime? ImpactPostedAt { get; set; }
     public DateTime CreatedAt { get; set; }
     public DateTime? UpdatedAt { get; set; }
 
@@ -41,6 +62,7 @@ public partial class CustomerReturnRequest
     public virtual Order Order { get; set; } = null!;
     public virtual WebsiteClient WebsiteClient { get; set; } = null!;
     public virtual StockDocument? StockDocument { get; set; }
+    public virtual Warehouse? ReceivedWarehouse { get; set; }
     public virtual Member? ReviewedByMember { get; set; }
     public virtual ICollection<CustomerReturnRequestLine> Lines { get; set; } = new List<CustomerReturnRequestLine>();
     public virtual ICollection<CustomerReturnRequestHistory> Histories { get; set; } = new List<CustomerReturnRequestHistory>();
@@ -62,6 +84,15 @@ public partial class CustomerReturnRequestLine
 
     /// <summary>Refund admin approved per unit (set on approve; may differ from paid and requested).</summary>
     public decimal UnitRefundApproved { get; set; }
+
+    /// <summary>Unit cost snapshot in order currency (from the order line at RMA create).</summary>
+    public decimal UnitCost { get; set; }
+
+    /// <summary><see cref="Enums.StockItemCondition"/> after the parcel is received. 0 until QC.</summary>
+    public byte ReceivedCondition { get; set; }
+
+    /// <summary><see cref="Enums.StockHealthGrade"/> after receive. 0 when new / not set.</summary>
+    public byte HealthGrade { get; set; }
 
     public virtual CustomerReturnRequest ReturnRequest { get; set; } = null!;
     public virtual OrderItem OrderItem { get; set; } = null!;
