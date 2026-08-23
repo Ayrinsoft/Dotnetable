@@ -31,4 +31,7 @@ public interface IStaffTaskService
 
     Task<(bool Success, string? Error)> DeleteAsync(
         int staffTaskId, int actorMemberId, bool canManage, CancellationToken ct = default);
+
+    Task<(bool Success, string? Error, StaffTaskNoteDto? Note)> AddNoteAsync(
+        int staffTaskId, string body, int actorMemberId, bool canManage, CancellationToken ct = default);
 }

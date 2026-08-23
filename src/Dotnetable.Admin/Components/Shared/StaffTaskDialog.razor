@@ -12,7 +12,8 @@
                 </MudItem>
                 <MudItem xs="12">
                     <MudTextField @bind-Value="_description" Label="@L["tasks.field.description", "Description"]"
-                                  Variant="Variant.Outlined" Lines="3" MaxLength="2000" />
+                                  Variant="Variant.Outlined" Lines="3" MaxLength="2000"
+                                  HelperText="@L["tasks.field.description_hint", "Shown in the details popup. Add later events from Details → Updates."]" />
                 </MudItem>
                 <MudItem xs="12" sm="6">
                     @if (CanManage && _colleagues.Count > 0)

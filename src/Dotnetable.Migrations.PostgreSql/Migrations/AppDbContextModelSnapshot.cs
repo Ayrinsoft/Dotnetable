@@ -5406,6 +5406,39 @@ namespace Dotnetable.Migrations.PostgreSql.Migrations
                     b.ToTable("StaffTasks");
                 });
 
+            modelBuilder.Entity("Dotnetable.Domain.Entities.StaffTaskNote", b =>
+                {
+                    b.Property<int>("StaffTaskNoteID")
+                        .ValueGeneratedOnAdd()
+                        .HasColumnType("integer");
+
+                    NpgsqlPropertyBuilderExtensions.UseIdentityByDefaultColumn(b.Property<int>("StaffTaskNoteID"));
+
+                    b.Property<string>("Body")
+                        .IsRequired()
+                        .HasMaxLength(2000)
+                        .HasColumnType("character varying(2000)");
+
+                    b.Property<DateTime>("CreatedAt")
+                        .HasColumnType("datetime");
+
+                    b.Property<int>("CreatedByMemberID")
+                        .HasColumnType("integer");
+
+                    b.Property<int>("StaffTaskID")
+                        .HasColumnType("integer");
+
+                    b.HasKey("StaffTaskNoteID");
+
+                    b.HasIndex(new[] { "CreatedAt" }, "IX_StaffTaskNotes_CreatedAt");
+
+                    b.HasIndex(new[] { "CreatedByMemberID" }, "IX_StaffTaskNotes_CreatedByMemberID");
+
+                    b.HasIndex(new[] { "StaffTaskID" }, "IX_StaffTaskNotes_StaffTaskID");
+
+                    b.ToTable("StaffTaskNotes");
+                });
+
             modelBuilder.Entity("Dotnetable.Domain.Entities.State", b =>
                 {
                     b.Property<int>("StateID")
@@ -9842,6 +9875,26 @@ namespace Dotnetable.Migrations.PostgreSql.Migrations
                     b.Navigation("Website");
                 });
 
+            modelBuilder.Entity("Dotnetable.Domain.Entities.StaffTaskNote", b =>
+                {
+                    b.HasOne("Dotnetable.Domain.Entities.Member", "CreatedByMember")
+                        .WithMany("StaffTaskNotes")
+                        .HasForeignKey("CreatedByMemberID")
+                        .IsRequired()
+                        .HasConstraintName("FK_StaffTaskNotes_CreatedByMembers");
+
+                    b.HasOne("Dotnetable.Domain.Entities.StaffTask", "StaffTask")
+                        .WithMany("StaffTaskNotes")
+                        .HasForeignKey("StaffTaskID")
+                        .OnDelete(DeleteBehavior.Cascade)
+                        .IsRequired()
+                        .HasConstraintName("FK_StaffTaskNotes_StaffTasks");
+
+                    b.Navigation("CreatedByMember");
+
+                    b.Navigation("StaffTask");
+                });
+
             modelBuilder.Entity("Dotnetable.Domain.Entities.State", b =>
                 {
                     b.HasOne("Dotnetable.Domain.Entities.Country", "Country")
@@ -10962,6 +11015,8 @@ namespace Dotnetable.Migrations.PostgreSql.Migrations
 
                     b.Navigation("StaffTaskCreatedByMembers");
 
+                    b.Navigation("StaffTaskNotes");
+
                     b.Navigation("StockMovements");
 
                     b.Navigation("SupportInteractions");
@@ -11182,6 +11237,11 @@ namespace Dotnetable.Migrations.PostgreSql.Migrations
             modelBuilder.Entity("Dotnetable.Domain.Entities.Slideshow", b =>
                 {
                     b.Navigation("SlideshowSlides");
+                });
+
+            modelBuilder.Entity("Dotnetable.Domain.Entities.StaffTask", b =>
+                {
+                    b.Navigation("StaffTaskNotes");
                 });
 
             modelBuilder.Entity("Dotnetable.Domain.Entities.State", b =>

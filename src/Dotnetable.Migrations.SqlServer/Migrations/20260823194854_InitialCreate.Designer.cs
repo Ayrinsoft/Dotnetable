@@ -12,7 +12,7 @@ using Microsoft.EntityFrameworkCore.Storage.ValueConversion;
 namespace Dotnetable.Migrations.SqlServer.Migrations
 {
     [DbContext(typeof(AppDbContext))]
-    [Migration("20260823133655_InitialCreate")]
+    [Migration("20260823194854_InitialCreate")]
     partial class InitialCreate
     {
         /// <inheritdoc />
@@ -5410,6 +5410,39 @@ namespace Dotnetable.Migrations.SqlServer.Migrations
                     b.ToTable("StaffTasks");
                 });
 
+            modelBuilder.Entity("Dotnetable.Domain.Entities.StaffTaskNote", b =>
+                {
+                    b.Property<int>("StaffTaskNoteID")
+                        .ValueGeneratedOnAdd()
+                        .HasColumnType("int");
+
+                    SqlServerPropertyBuilderExtensions.UseIdentityColumn(b.Property<int>("StaffTaskNoteID"));
+
+                    b.Property<string>("Body")
+                        .IsRequired()
+                        .HasMaxLength(2000)
+                        .HasColumnType("nvarchar(2000)");
+
+                    b.Property<DateTime>("CreatedAt")
+                        .HasColumnType("datetime");
+
+                    b.Property<int>("CreatedByMemberID")
+                        .HasColumnType("int");
+
+                    b.Property<int>("StaffTaskID")
+                        .HasColumnType("int");
+
+                    b.HasKey("StaffTaskNoteID");
+
+                    b.HasIndex(new[] { "CreatedAt" }, "IX_StaffTaskNotes_CreatedAt");
+
+                    b.HasIndex(new[] { "CreatedByMemberID" }, "IX_StaffTaskNotes_CreatedByMemberID");
+
+                    b.HasIndex(new[] { "StaffTaskID" }, "IX_StaffTaskNotes_StaffTaskID");
+
+                    b.ToTable("StaffTaskNotes");
+                });
+
             modelBuilder.Entity("Dotnetable.Domain.Entities.State", b =>
                 {
                     b.Property<int>("StateID")
@@ -9846,6 +9879,26 @@ namespace Dotnetable.Migrations.SqlServer.Migrations
                     b.Navigation("Website");
                 });
 
+            modelBuilder.Entity("Dotnetable.Domain.Entities.StaffTaskNote", b =>
+                {
+                    b.HasOne("Dotnetable.Domain.Entities.Member", "CreatedByMember")
+                        .WithMany("StaffTaskNotes")
+                        .HasForeignKey("CreatedByMemberID")
+                        .IsRequired()
+                        .HasConstraintName("FK_StaffTaskNotes_CreatedByMembers");
+
+                    b.HasOne("Dotnetable.Domain.Entities.StaffTask", "StaffTask")
+                        .WithMany("StaffTaskNotes")
+                        .HasForeignKey("StaffTaskID")
+                        .OnDelete(DeleteBehavior.Cascade)
+                        .IsRequired()
+                        .HasConstraintName("FK_StaffTaskNotes_StaffTasks");
+
+                    b.Navigation("CreatedByMember");
+
+                    b.Navigation("StaffTask");
+                });
+
             modelBuilder.Entity("Dotnetable.Domain.Entities.State", b =>
                 {
                     b.HasOne("Dotnetable.Domain.Entities.Country", "Country")
@@ -10966,6 +11019,8 @@ namespace Dotnetable.Migrations.SqlServer.Migrations
 
                     b.Navigation("StaffTaskCreatedByMembers");
 
+                    b.Navigation("StaffTaskNotes");
+
                     b.Navigation("StockMovements");
 
                     b.Navigation("SupportInteractions");
@@ -11186,6 +11241,11 @@ namespace Dotnetable.Migrations.SqlServer.Migrations
             modelBuilder.Entity("Dotnetable.Domain.Entities.Slideshow", b =>
                 {
                     b.Navigation("SlideshowSlides");
+                });
+
+            modelBuilder.Entity("Dotnetable.Domain.Entities.StaffTask", b =>
+                {
+                    b.Navigation("StaffTaskNotes");
                 });
 
             modelBuilder.Entity("Dotnetable.Domain.Entities.State", b =>

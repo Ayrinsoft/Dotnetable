@@ -225,8 +225,8 @@ window.DOCS_ADMIN = {
               fa: "از صفحه **سفارش**، **سند انبار** یا **برگشت مشتری** هم می‌توانید تسک بسازید؛ رکورد مرتبط از قبل پر می‌شود.",
             },
             {
-              en: "Use **Start** / **Done** on your row. Task managers (and the creator) can edit or delete.",
-              fa: "روی ردیف خود **Start** / **Done** بزنید. مدیر تسک و سازنده می‌توانند ویرایش یا حذف کنند.",
+              en: "Use **Start** / **Done** on your row. Open the row (or the details icon) for the full description and to **add updates** when something new happens. Task managers (and the creator) can edit or delete.",
+              fa: "روی ردیف **Start** / **Done**. برای متن کامل و **ثبت به‌روزرسانی** وقتی اتفاق جدیدی افتاد، ردیف یا آیکون جزئیات را باز کنید. مدیر تسک و سازنده می‌توانند ویرایش یا حذف کنند.",
             },
           ],
           tips: [

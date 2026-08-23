@@ -23,6 +23,17 @@ public sealed class StaffTaskDto
     public string? RelatedUrl { get; init; }
     public DateTime CreatedAt { get; init; }
     public DateTime UpdatedAt { get; init; }
+    public int NoteCount { get; init; }
+    public IReadOnlyList<StaffTaskNoteDto> Notes { get; init; } = Array.Empty<StaffTaskNoteDto>();
+}
+
+public sealed class StaffTaskNoteDto
+{
+    public int StaffTaskNoteID { get; init; }
+    public int CreatedByMemberID { get; init; }
+    public string CreatedByMemberName { get; init; } = "";
+    public string Body { get; init; } = "";
+    public DateTime CreatedAt { get; init; }
 }
 
 public sealed class StaffTaskColleagueDto

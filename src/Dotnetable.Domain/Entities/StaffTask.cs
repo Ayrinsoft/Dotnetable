@@ -47,4 +47,6 @@ public partial class StaffTask
     public virtual Member AssignedMember { get; set; } = null!;
 
     public virtual Member CreatedByMember { get; set; } = null!;
+
+    public virtual ICollection<StaffTaskNote> StaffTaskNotes { get; set; } = new List<StaffTaskNote>();
 }
