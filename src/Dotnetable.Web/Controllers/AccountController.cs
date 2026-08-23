@@ -530,4 +530,75 @@ public class AccountController : Controller
         await _api.RemoveFromWishlistAsync(variantId, ct);
         return RedirectToAction(nameof(Wishlist));
     }
+
+    // ── Support tickets ──────────────────────────────────────────────
+
+    [HttpGet]
+    public async Task<IActionResult> Tickets(int page = 1, CancellationToken ct = default)
+    {
+        if (!Request.Cookies.ContainsKey(ClientAuth.TokenCookie))
+            return RedirectToAction(nameof(HomeController.Index), "Home");
+        return View(await _api.GetSupportTicketsAsync(page, 10, ct));
+    }
+
+    [HttpGet]
+    public async Task<IActionResult> TicketNew(int? orderId, CancellationToken ct = default)
+    {
+        if (!Request.Cookies.ContainsKey(ClientAuth.TokenCookie))
+            return RedirectToAction(nameof(HomeController.Index), "Home");
+        ViewBag.Orders = (await _api.GetOrdersAsync(1, 50, ct)).Items;
+        ViewBag.OrderId = orderId;
+        if (orderId is int oid)
+        {
+            var order = await _api.GetOrderAsync(oid, ct);
+            ViewBag.OrderNumber = order?.OrderNumber;
+        }
+        return View();
+    }
+
+    public sealed class TicketCreateInput
+    {
+        public string Subject { get; set; } = "";
+        public string Body { get; set; } = "";
+        public int? RelatedOrderId { get; set; }
+    }
+
+    [HttpPost]
+    public async Task<IActionResult> TicketNew(TicketCreateInput input, CancellationToken ct = default)
+    {
+        if (!Request.Cookies.ContainsKey(ClientAuth.TokenCookie))
+            return RedirectToAction(nameof(HomeController.Index), "Home");
+
+        var (ok, row, err) = await _api.CreateSupportTicketAsync(new
+        {
+            subject = input.Subject,
+            body = input.Body,
+            relatedOrderId = input.RelatedOrderId,
+        }, ct);
+        if (!ok || row is null)
+        {
+            TempData["TicketError"] = err ?? "Could not create the ticket.";
+            return RedirectToAction(nameof(TicketNew), new { orderId = input.RelatedOrderId });
+        }
+        return RedirectToAction(nameof(TicketDetail), new { id = row.SupportSessionID });
+    }
+
+    [HttpGet]
+    public async Task<IActionResult> TicketDetail(int id, CancellationToken ct = default)
+    {
+        if (!Request.Cookies.ContainsKey(ClientAuth.TokenCookie))
+            return RedirectToAction(nameof(HomeController.Index), "Home");
+        var row = await _api.GetSupportTicketAsync(id, ct);
+        return row is null ? NotFound() : View(row);
+    }
+
+    [HttpPost]
+    public async Task<IActionResult> TicketReply(int id, string body, CancellationToken ct = default)
+    {
+        if (!Request.Cookies.ContainsKey(ClientAuth.TokenCookie))
+            return RedirectToAction(nameof(HomeController.Index), "Home");
+        var (ok, err) = await _api.ReplySupportTicketAsync(id, body, ct);
+        if (!ok) TempData["TicketError"] = err ?? "Could not send the reply.";
+        return RedirectToAction(nameof(TicketDetail), new { id });
+    }
 }

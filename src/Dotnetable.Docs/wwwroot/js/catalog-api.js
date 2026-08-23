@@ -908,7 +908,7 @@ window.DOCS_API = {
             fa: "تاریخچه و جزئیات سفارش خود مشتری (ClientPurchase). جزئیات شامل وضعیت آماده‌سازی، وضعیت ارسال و کد پیگیری است که ادمین بعد از خرید ست می‌کند.",
           },
           relatedAdmin: ["orders", "customer-returns"],
-          related: ["checkout", "payments", "digital", "returns"],
+          related: ["checkout", "payments", "digital", "returns", "support-tickets"],
           endpoints: [
             {
               title: { en: "List orders", fa: "فهرست سفارش‌ها" },
@@ -955,7 +955,7 @@ window.DOCS_API = {
             fa: "برگشت مشتری (ClientPurchase). پیش‌درخواست با خطوط، علت، عکس و **پرداخت‌کننده حمل** (مشتری / ۵۰-۵۰ / فروشنده / تحویل به مرکز). بعد از تأیید ادمین کد رهگیری می‌آید مگر تحویل حضوری. تعداد جزئی مجاز است. بعد از مهلت باید `acceptExpiredWindow` باشد.",
           },
           relatedAdmin: ["customer-returns", "orders"],
-          related: ["orders", "payments"],
+          related: ["orders", "payments", "support-tickets"],
           endpoints: [
             {
               title: { en: "List my returns", fa: "فهرست برگشت‌های من" },
@@ -1017,6 +1017,54 @@ window.DOCS_API = {
               path: "/api/Returns/{id}/tracking",
               auth: "jwt",
               request: { body: { trackingCode: "TRK-2" } },
+              response: { status: 200, body: {} },
+            },
+          ],
+        },
+        {
+          id: "support-tickets",
+          title: { en: "Support tickets", fa: "تیکت پشتیبانی" },
+          summary: {
+            en: "Signed-in customer opens a ticket about an order (ClientPurchase). Tickets appear in Admin **Support → Ticket queue** (channel Website). Internal agent notes are never returned.",
+            fa: "مشتری واردشده درباره سفارش تیکت باز می‌کند (ClientPurchase). تیکت در ادمین **پشتیبانی → صف تیکت** با کانال Website دیده می‌شود. یادداشت داخلی پشتیبان برنمی‌گردد.",
+          },
+          relatedAdmin: ["support-desk", "support-tickets", "orders"],
+          related: ["orders", "auth"],
+          endpoints: [
+            {
+              title: { en: "List my tickets", fa: "فهرست تیکت‌های من" },
+              method: "GET",
+              path: "/api/Support",
+              auth: "jwt",
+              query: [
+                { name: "page", desc: { en: "Default 1", fa: "پیش‌فرض ۱" } },
+                { name: "pageSize", desc: { en: "Default 10", fa: "پیش‌فرض ۱۰" } },
+              ],
+              request: { body: "GET /api/Support?page=1" },
+              response: { status: 200, body: { items: [{ supportSessionID: 1, sessionNumber: "SUP-20260823-00001", channel: 8, subject: "Where is my package?" }], totalCount: 1 } },
+            },
+            {
+              title: { en: "Ticket + public timeline", fa: "تیکت + تایم‌لاین عمومی" },
+              method: "GET",
+              path: "/api/Support/{id}",
+              auth: "jwt",
+              request: { body: "GET /api/Support/1" },
+              response: { status: 200, body: { ticket: { sessionNumber: "SUP-20260823-00001" }, interactions: [{ interactionType: 11, body: "Order still not here." }] } },
+            },
+            {
+              title: { en: "Create ticket", fa: "ثبت تیکت" },
+              method: "POST",
+              path: "/api/Support",
+              auth: "jwt",
+              request: { body: { subject: "Where is my package?", body: "Shipped 5 days ago.", relatedOrderId: 500, category: 4 } },
+              response: { status: 200, body: { supportSessionID: 1, sessionNumber: "SUP-20260823-00001" } },
+            },
+            {
+              title: { en: "Reply", fa: "پاسخ" },
+              method: "POST",
+              path: "/api/Support/{id}/replies",
+              auth: "jwt",
+              request: { body: { body: "Still waiting." } },
               response: { status: 200, body: {} },
             },
           ],

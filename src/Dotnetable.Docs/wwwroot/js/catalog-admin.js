@@ -1906,13 +1906,17 @@ window.DOCS_ADMIN = {
             fa: "نمای کلی فضای پشتیبانی برای مراقبت از مشتری.",
           },
           purpose: {
-            en: "Entry point for support agents — sessions/tickets and related stats.",
-            fa: "نقطه ورود پشتیبان‌ها — نشست/تیکت و آمار مرتبط.",
+            en: "Entry point for support agents — Customer 360 (orders, tickets, returns, contact messages, wallet) plus stats.",
+            fa: "نقطه ورود پشتیبان‌ها — پرونده مشتری (سفارش، تیکت، برگشت، پیام تماس، کیف پول) و آمار.",
           },
           howTo: [
             {
-              en: "Open Support Desk for the overview, then drill into tickets/sessions.",
-              fa: "Support Desk را برای نمای کلی باز کنید، سپس به تیکت/نشست بروید.",
+              en: "Look up the customer by mobile, or open a ticket from the queue — **Customer 360** shows purchases, tickets, returns, and contact form history.",
+              fa: "مشتری را با موبایل پیدا کنید، یا تیکت را از صف باز کنید — **Customer 360** خریدها، تیکت‌ها، برگشت‌ها و سابقه فرم تماس را نشان می‌دهد.",
+            },
+            {
+              en: "Storefront tickets (channel **Website**) land in the same queue as phone tickets; they stay unassigned until an agent claims them.",
+              fa: "تیکت‌های فروشگاه (کانال **Website**) در همان صف تماس‌ها می‌آیند و تا وقتی پشتیبان برندارد بدون مسئول می‌مانند.",
             },
             {
               en: "After looking up a customer, open the **Wallet / transactions** tab to see balances and ledger rows (including admin-registered deposits and payouts).",
@@ -1926,8 +1930,8 @@ window.DOCS_ADMIN = {
           title: { en: "Support tickets / sessions", fa: "تیکت‌ها / نشست‌های پشتیبانی" },
           adminPath: "/support/tickets",
           summary: {
-            en: "Ticket/session list and detail editing for customer support threads.",
-            fa: "فهرست تیکت/نشست و ویرایش جزئیات رشته‌های پشتیبانی.",
+            en: "Ticket/session list and detail. Includes storefront tickets the customer opened from **My account → Support tickets** (or **Get support** on an order).",
+            fa: "فهرست تیکت/نشست و جزئیات. شامل تیکت‌هایی که مشتری از **حساب من → تیکت پشتیبانی** (یا **Get support** روی سفارش) ثبت کرده.",
           },
           purpose: {
             en: "Track conversations with customers until resolution.",
@@ -1940,6 +1944,7 @@ window.DOCS_ADMIN = {
             },
           ],
           related: ["support-desk", "orders", "email-templates"],
+          relatedApi: ["support-tickets"],
         },
       ],
     },

@@ -535,6 +535,50 @@ public class ApiClient
         return await GetOrNullAsync<Order>($"api/orders/{id}", ct);
     }
 
+    public async Task<PagedResult<SupportSessionSummaryDto>> GetSupportTicketsAsync(int page = 1, int pageSize = 10, CancellationToken ct = default)
+    {
+        try
+        {
+            return await _http.GetFromJsonAsync<PagedResult<SupportSessionSummaryDto>>($"api/support?page={page}&pageSize={pageSize}", ct)
+                ?? new PagedResult<SupportSessionSummaryDto>();
+        }
+        catch (HttpRequestException) { return new PagedResult<SupportSessionSummaryDto>(); }
+    }
+
+    public Task<ClientSupportTicketDetailDto?> GetSupportTicketAsync(int id, CancellationToken ct = default) =>
+        GetOrNullAsync<ClientSupportTicketDetailDto>($"api/support/{id}", ct);
+
+    public async Task<(bool Ok, SupportSessionSummaryDto? Row, string? Error)> CreateSupportTicketAsync(object payload, CancellationToken ct = default)
+    {
+        try
+        {
+            var response = await _http.PostAsJsonAsync("api/support", payload, ct);
+            if (!response.IsSuccessStatusCode)
+            {
+                var err = await response.Content.ReadFromJsonAsync<Dictionary<string, string>>(cancellationToken: ct);
+                return (false, null, err?.GetValueOrDefault("message") ?? "Request failed.");
+            }
+            var row = await response.Content.ReadFromJsonAsync<SupportSessionSummaryDto>(cancellationToken: ct);
+            return (true, row, null);
+        }
+        catch (HttpRequestException) { return (false, null, "Service is unavailable."); }
+    }
+
+    public async Task<(bool Ok, string? Error)> ReplySupportTicketAsync(int id, string body, CancellationToken ct = default)
+    {
+        try
+        {
+            var response = await _http.PostAsJsonAsync($"api/support/{id}/replies", new { body }, ct);
+            if (!response.IsSuccessStatusCode)
+            {
+                var err = await response.Content.ReadFromJsonAsync<Dictionary<string, string>>(cancellationToken: ct);
+                return (false, err?.GetValueOrDefault("message") ?? "Request failed.");
+            }
+            return (true, null);
+        }
+        catch (HttpRequestException) { return (false, "Service is unavailable."); }
+    }
+
     public async Task<PagedResult<CustomerReturnDto>> GetReturnsAsync(int page = 1, int pageSize = 10, CancellationToken ct = default)
     {
         try

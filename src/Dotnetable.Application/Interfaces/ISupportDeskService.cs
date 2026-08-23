@@ -5,7 +5,7 @@ namespace Dotnetable.Application.Interfaces;
 
 /// <summary>
 /// Customer support desk: mobile lookup, Customer 360, tickets (sessions), and interaction timeline.
-/// Admin-only; Blazor injects this service directly (no public API surface required).
+/// Admin Blazor injects this directly; storefront tickets go through the public API using the customer methods.
 /// </summary>
 public interface ISupportDeskService
 {
@@ -65,4 +65,17 @@ public interface ISupportDeskService
 
     /// <summary>Schedule or clear a customer callback; logs an interaction.</summary>
     Task<bool> ScheduleCallbackAsync(int sessionId, DateTime? callbackAt, string? note, int memberId, CancellationToken ct = default);
+
+    Task<(bool Success, string? Error, SupportSession? Session)> CreateCustomerTicketAsync(
+        int websiteId, int websiteClientId, string subject, string body, int? relatedOrderId, SupportCategory? category, CancellationToken ct = default);
+
+    Task<PagedResult<SupportSessionSummaryDto>> GetClientSessionsPagedAsync(
+        int websiteClientId, GridQuery query, CancellationToken ct = default);
+
+    Task<SupportSessionSummaryDto?> GetClientSessionAsync(int sessionId, int websiteClientId, CancellationToken ct = default);
+
+    Task<IReadOnlyList<SupportInteractionDto>> GetClientInteractionsAsync(int sessionId, int websiteClientId, CancellationToken ct = default);
+
+    Task<(bool Success, string? Error)> AddCustomerReplyAsync(
+        int sessionId, int websiteClientId, string body, CancellationToken ct = default);
 }
