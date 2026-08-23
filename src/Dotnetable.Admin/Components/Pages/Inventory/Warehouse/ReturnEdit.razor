@@ -38,6 +38,11 @@ else
         </MudStack>
         <MudStack Row="true" Spacing="2" AlignItems="AlignItems.Center">
             <MudChip T="string" Color="Color.Primary">@((StockDocumentStatus)_doc.Status)</MudChip>
+            <CreateStaffTaskButton WebsiteId="_doc.WebsiteID"
+                                   RelatedKind="@((byte)StaffTaskRelatedKind.StockReturn)"
+                                   RelatedEntityId="DocumentId"
+                                   RelatedLabel="@_doc.DocumentNumber"
+                                   DefaultTitle="@($"{L["warehouse.return", "Warehouse return"]} {_doc.DocumentNumber}")" />
             <MudButton OnClick="@(() => Nav.NavigateTo("/inventory/returns"))">@L["back", "Back"]</MudButton>
         </MudStack>
     </MudStack>

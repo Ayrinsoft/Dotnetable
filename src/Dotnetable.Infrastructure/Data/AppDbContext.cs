@@ -137,6 +137,7 @@ public partial class AppDbContext : DbContext
     public virtual DbSet<StockDocument> StockDocuments { get; set; }
     public virtual DbSet<StockDocumentLine> StockDocumentLines { get; set; }
     public virtual DbSet<StockDocumentHistory> StockDocumentHistories { get; set; }
+    public virtual DbSet<StaffTask> StaffTasks { get; set; }
     public virtual DbSet<CustomerReturnRequest> CustomerReturnRequests { get; set; }
     public virtual DbSet<CustomerReturnRequestLine> CustomerReturnRequestLines { get; set; }
     public virtual DbSet<CustomerReturnRequestHistory> CustomerReturnRequestHistories { get; set; }
@@ -670,6 +671,36 @@ public partial class AppDbContext : DbContext
             entity.Property(e => e.Note).HasMaxLength(500);
             entity.HasOne(d => d.StockDocument).WithMany(p => p.StockDocumentHistories).HasForeignKey(d => d.StockDocumentID).OnDelete(DeleteBehavior.ClientSetNull);
             entity.HasOne(d => d.CreatedByMember).WithMany().HasForeignKey(d => d.CreatedByMemberID);
+        });
+        modelBuilder.Entity<StaffTask>(entity =>
+        {
+            entity.Property(e => e.Title).HasMaxLength(200);
+            entity.Property(e => e.Description).HasMaxLength(2000);
+            entity.Property(e => e.RelatedLabel).HasMaxLength(200);
+            entity.Property(e => e.Status).HasDefaultValue((byte)0);
+            entity.Property(e => e.Priority).HasDefaultValue((byte)0);
+            entity.Property(e => e.RelatedKind).HasDefaultValue((byte)0);
+            entity.Property(e => e.DueAt).HasColumnType("datetime");
+            entity.Property(e => e.CompletedAt).HasColumnType("datetime");
+            entity.Property(e => e.CreatedAt).HasColumnType("datetime");
+            entity.Property(e => e.UpdatedAt).HasColumnType("datetime");
+            entity.HasIndex(e => e.WebsiteID, "IX_StaffTasks_WebsiteID");
+            entity.HasIndex(e => e.AssignedMemberID, "IX_StaffTasks_AssignedMemberID");
+            entity.HasIndex(e => e.CreatedByMemberID, "IX_StaffTasks_CreatedByMemberID");
+            entity.HasIndex(e => new { e.WebsiteID, e.AssignedMemberID, e.Status }, "IX_StaffTasks_Website_Assigned_Status");
+            entity.HasIndex(e => new { e.RelatedKind, e.RelatedEntityID }, "IX_StaffTasks_Related");
+            entity.HasOne(d => d.Website).WithMany(p => p.StaffTasks)
+                .HasForeignKey(d => d.WebsiteID)
+                .OnDelete(DeleteBehavior.ClientSetNull)
+                .HasConstraintName("FK_StaffTasks_Websites");
+            entity.HasOne(d => d.AssignedMember).WithMany(p => p.StaffTaskAssignedMembers)
+                .HasForeignKey(d => d.AssignedMemberID)
+                .OnDelete(DeleteBehavior.ClientSetNull)
+                .HasConstraintName("FK_StaffTasks_AssignedMembers");
+            entity.HasOne(d => d.CreatedByMember).WithMany(p => p.StaffTaskCreatedByMembers)
+                .HasForeignKey(d => d.CreatedByMemberID)
+                .OnDelete(DeleteBehavior.ClientSetNull)
+                .HasConstraintName("FK_StaffTasks_CreatedByMembers");
         });
         modelBuilder.Entity<CustomerReturnRequest>(entity =>
         {

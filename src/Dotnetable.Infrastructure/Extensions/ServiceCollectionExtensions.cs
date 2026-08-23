@@ -177,6 +177,7 @@ public static class ServiceCollectionExtensions
 
         // Live admin work queues (dashboard / notifications task panel).
         services.AddScoped<IAdminTaskService, AdminTaskService>();
+        services.AddScoped<IStaffTaskService, StaffTaskService>();
 
         // E-commerce: product reviews and Q&A.
         services.AddScoped<IProductReviewService, ProductReviewService>();

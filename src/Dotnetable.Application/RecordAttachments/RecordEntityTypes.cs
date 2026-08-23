@@ -22,4 +22,5 @@ public static class RecordEntityTypes
     public const string Supplier = "Supplier";
     public const string Vendor = "Vendor";
     public const string Refund = "PaymentRefund";
+    public const string StaffTask = "StaffTask";
 }

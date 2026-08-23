@@ -59,6 +59,7 @@ else if (ShowEmpty)
         "wallets.withdrawals.pending" => L["tasks.withdrawals.pending", "Withdrawal requests"],
         "orders.fulfillment" => L["tasks.orders.fulfillment", "Orders to process"],
         "orders.pending_payment" => L["tasks.orders.pending_payment", "Orders awaiting payment"],
+        "staff.assigned" => L["tasks.staff.assigned", "Tasks assigned to me"],
         _ => key,
     };
 
@@ -69,6 +70,7 @@ else if (ShowEmpty)
         "wallets.withdrawals.pending" => L["tasks.withdrawals.pending_sub", "Customer cash-out requests awaiting review"],
         "orders.fulfillment" => L["tasks.orders.fulfillment_sub", "Paid, processing, or shipped orders still open"],
         "orders.pending_payment" => L["tasks.orders.pending_payment_sub", "Placed orders that are not paid yet"],
+        "staff.assigned" => L["tasks.staff.assigned_sub", "Open staff tasks you created or were assigned"],
         _ => "",
     };
 
@@ -79,6 +81,7 @@ else if (ShowEmpty)
         "wallets.withdrawals.pending" => Icons.Material.Filled.AccountBalanceWallet,
         "orders.fulfillment" => Icons.Material.Filled.LocalShipping,
         "orders.pending_payment" => Icons.Material.Filled.HourglassTop,
+        "staff.assigned" => Icons.Material.Filled.Checklist,
         _ => Icons.Material.Filled.TaskAlt,
     };
 }

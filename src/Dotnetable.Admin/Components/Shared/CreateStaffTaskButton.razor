@@ -1,0 +1,59 @@
+@inject AuthenticationStateProvider AuthState
+@inject IDialogService DialogService
+@inject IPageLocalizer L
+
+@if (_canView && _websiteId > 0 && _memberId > 0)
+{
+    <MudButton Variant="@Variant" Color="@Color" Size="@Size" StartIcon="@Icons.Material.Filled.AddTask"
+               OnClick="OpenAsync">
+        @L["tasks.new", "New task"]
+    </MudButton>
+}
+
+@code {
+    [Parameter] public int WebsiteId { get; set; }
+    [Parameter] public byte RelatedKind { get; set; }
+    [Parameter] public int RelatedEntityId { get; set; }
+    [Parameter] public string? RelatedLabel { get; set; }
+    [Parameter] public string? DefaultTitle { get; set; }
+    [Parameter] public Variant Variant { get; set; } = Variant.Outlined;
+    [Parameter] public Color Color { get; set; } = Color.Default;
+    [Parameter] public Size Size { get; set; } = Size.Small;
+
+    private bool _canView, _canManage;
+    private int _websiteId, _memberId;
+
+    protected override async Task OnInitializedAsync()
+    {
+        await L.EnsureLoadedAsync();
+        var user = (await AuthState.GetAuthenticationStateAsync()).User;
+        _canView = AdminPolicies.Allows(user, RoleKeys.TasksView);
+        _canManage = AdminPolicies.Allows(user, RoleKeys.TasksManage);
+        int.TryParse(user.FindFirst(AdminClaimTypes.MemberId)?.Value, out _memberId);
+        _websiteId = WebsiteId;
+        if (_websiteId <= 0)
+            int.TryParse(user.FindFirst(AdminClaimTypes.WebsiteId)?.Value, out _websiteId);
+    }
+
+    protected override void OnParametersSet()
+    {
+        if (WebsiteId > 0) _websiteId = WebsiteId;
+    }
+
+    private async Task OpenAsync()
+    {
+        var parameters = new DialogParameters<StaffTaskDialog>
+        {
+            { x => x.WebsiteId, _websiteId },
+            { x => x.ActorMemberId, _memberId },
+            { x => x.CanManage, _canManage },
+            { x => x.PrefillRelatedKind, RelatedKind },
+            { x => x.PrefillRelatedId, RelatedEntityId },
+            { x => x.PrefillRelatedLabel, RelatedLabel },
+            { x => x.PrefillTitle, DefaultTitle },
+        };
+        await DialogService.ShowAsync<StaffTaskDialog>(
+            L["tasks.new", "New task"], parameters,
+            new DialogOptions { MaxWidth = MaxWidth.Small, FullWidth = true });
+    }
+}

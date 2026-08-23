@@ -137,6 +137,7 @@ public class DbContextConcurrencyTests
             typeof(DatabaseUpdateService),
             typeof(SetupService),
             typeof(RecordAttachmentService),
+            typeof(StaffTaskService),
         };
 
         foreach (var type in factoryOnly)

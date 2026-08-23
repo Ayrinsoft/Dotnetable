@@ -197,6 +197,10 @@ public static class RoleKeys
     public const string SupportView = "support.view";
     public const string SupportEdit = "support.edit";
 
+    // ── Staff tasks (admin) ──────────────────────────────────────────
+    public const string TasksView = "tasks.view";
+    public const string TasksManage = "tasks.manage";
+
     // ── Client (website customers) — never used in the admin panel ──
     public const string ClientAccess = "client.access";
     public const string ClientPurchase = "client.purchase";

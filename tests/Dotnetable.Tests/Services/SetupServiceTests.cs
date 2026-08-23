@@ -74,6 +74,22 @@ public class SetupServiceTests : IDisposable
         count.Should().Be(RoleCatalog.All.Count);
     }
 
+    [Fact]
+    public async Task SyncRoleCatalogAsync_GrantsMissingStaffTemplateRoles()
+    {
+        await SeedAdminPolicyWithRoles(RoleCatalog.All.ToList());
+        var view = await _context.Roles.SingleAsync(r => r.RoleKey == RoleKeys.TasksView);
+        var warehouse = new Policy { Title = DefaultPolicies.WarehouseStaff, Active = true, WebsiteID = 1 };
+        _context.Policies.Add(warehouse);
+        await _context.SaveChangesAsync();
+
+        await _service.SyncRoleCatalogAsync();
+
+        var granted = await _context.PolicyRoles
+            .AnyAsync(pr => pr.PolicyID == warehouse.PolicyID && pr.RoleID == view.RoleID && pr.Active);
+        granted.Should().BeTrue();
+    }
+
     private async Task SeedAdminPolicyWithRoles(IReadOnlyList<RoleDefinition> defs)
     {
         _context.Roles.AddRange(defs.Select(def => new Role

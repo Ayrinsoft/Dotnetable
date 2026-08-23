@@ -34,6 +34,11 @@ else
                        Href="@($"/orders/{OrderId}/invoice")">@L["invoice", "Invoice"]</MudButton>
             <MudButton Variant="Variant.Outlined" StartIcon="@Icons.Material.Filled.LocalShipping"
                        Href="@($"/orders/{OrderId}/shipping-label")">@L["orders.shipping_label", "Shipping label"]</MudButton>
+            <CreateStaffTaskButton WebsiteId="_order.WebsiteID"
+                                   RelatedKind="@((byte)StaffTaskRelatedKind.Order)"
+                                   RelatedEntityId="OrderId"
+                                   RelatedLabel="@_order.OrderNumber"
+                                   DefaultTitle="@($"{L["orders.order", "Order"]} {_order.OrderNumber}")" />
             <MudButton OnClick="@(() => Nav.NavigateTo("/orders"))">@L["back", "Back"]</MudButton>
         </MudStack>
     </MudStack>
