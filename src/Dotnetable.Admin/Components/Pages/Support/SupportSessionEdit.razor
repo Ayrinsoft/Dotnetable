@@ -443,10 +443,10 @@ else
                         .OrderBy(m => m.Givenname)
                         .ToList();
 
-                    if (entity.WebsiteClientID is int cid)
+                    if (entity.WebsiteClientID is int clientId)
                     {
                         var oq = new GridQuery { PageIndex = 1, PageSize = 50 };
-                        var orders = await OrderService.GetClientHistoryAsync(cid, oq);
+                        var orders = await OrderService.GetClientHistoryAsync(clientId, oq);
                         _clientOrders = orders.Items.ToList();
                     }
                 }
