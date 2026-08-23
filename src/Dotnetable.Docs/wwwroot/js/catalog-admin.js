@@ -231,8 +231,8 @@ window.DOCS_ADMIN = {
           ],
           tips: [
             {
-              en: "Warehouse pick queue (Submitted / Ready to pick) still appears on the same page if you have warehouse access.",
-              fa: "اگر دسترسی انبار دارید، صف برداشت (Submitted / Ready to pick) همچنان پایین همین صفحه است.",
+              en: "With warehouse access the page has two tabs: **Staff tasks** and **Warehouse picks** (Submitted / Ready to pick).",
+              fa: "اگر دسترسی انبار دارید صفحه دو تب دارد: **تسک‌های پرسنل** و **برداشت انبار** (Submitted / Ready to pick).",
             },
             {
               en: "Master users pick the website first; assignees must belong to that website (you may still assign to yourself).",
@@ -1699,13 +1699,13 @@ window.DOCS_ADMIN = {
           title: { en: "My warehouse tasks", fa: "کارهای من (انبار)" },
           adminPath: "/inventory/my-tasks",
           summary: {
-            en: "Same screen as **My tasks** (`/tasks`): staff to-dos plus the outbound pick queue (**Submitted** / **Ready to pick**).",
-            fa: "همان صفحه **کارهای من** (`/tasks`): تسک‌های پرسنل به‌علاوه صف برداشت خروجی (**Submitted** / **Ready to pick**).",
+            en: "Same screen as **My tasks** (`/tasks`), second tab: outbound pick queue (**Submitted** / **Ready to pick**).",
+            fa: "همان صفحه **کارهای من** (`/tasks`)، تب دوم: صف برداشت خروجی (**Submitted** / **Ready to pick**).",
           },
           howTo: [
             {
-              en: "Staff tasks are at the top — create for yourself, or for colleagues with `tasks.manage`. Link to inbound, outbound, orders, returns, …",
-              fa: "تسک‌های پرسنل بالای صفحه است — برای خودتان بسازید، یا با `tasks.manage` به همکاران. می‌توانید به ورود/خروج انبار، سفارش، برگشت و … وصل کنید.",
+              en: "Open the **Staff tasks** tab to create work for yourself (or colleagues with `tasks.manage`). Link to inbound, outbound, orders, returns, …",
+              fa: "تب **تسک‌های پرسنل** را باز کنید و برای خودتان بسازید (یا با `tasks.manage` به همکاران). می‌توانید به ورود/خروج انبار، سفارش، برگشت و … وصل کنید.",
             },
             {
               en: "Warehouse pick chips: **Ready to pick** to approve → **Pick & post** when goods leave the bin.",
