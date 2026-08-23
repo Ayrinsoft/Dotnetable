@@ -14,7 +14,7 @@
     <MudStack Spacing="0">
         <MudText Typo="Typo.h5" Class="fw-bold">@L["support.desk", "Support Desk"]</MudText>
         <MudText Typo="Typo.body2" Color="Color.Secondary">
-            @L["support.desk.subtitle", "Look up a customer by mobile — see orders, call history, and log every interaction."]
+            @L["support.desk.subtitle", "Look up a customer by mobile — see orders, tickets, returns, contact history, and log every interaction."]
         </MudText>
     </MudStack>
     <MudStack Row="true" Spacing="2" AlignItems="AlignItems.Center">
@@ -234,6 +234,44 @@
                                             <MudButton Size="Size.Small" Variant="Variant.Text"
                                                        OnClick="@(() => StartForOrderAsync(o))">@L["support.ticket_for_order", "Ticket"]</MudButton>
                                         }
+                                    </td>
+                                </tr>
+                            }
+                        </tbody>
+                    </MudSimpleTable>
+                }
+            </MudPaper>
+        </MudTabPanel>
+
+        <MudTabPanel Text="@L["support.tab.returns", "Returns"]" Icon="@Icons.Material.Filled.AssignmentReturn">
+            <MudPaper Elevation="0" Class="app-card rounded-lg pa-4">
+                @if (_c360.Returns.Count == 0)
+                {
+                    <MudText Color="Color.Secondary">@L["returns.empty", "No customer returns yet."]</MudText>
+                }
+                else
+                {
+                    <MudSimpleTable Dense="true" Hover="true" Elevation="0">
+                        <thead>
+                            <tr>
+                                <th>@L["returns.title", "Return"]</th>
+                                <th>@L["orders.order", "Order"]</th>
+                                <th>@L["status", "Status"]</th>
+                                <th>@L["date", "Date"]</th>
+                                <th></th>
+                            </tr>
+                        </thead>
+                        <tbody>
+                            @foreach (var r in _c360.Returns)
+                            {
+                                <tr>
+                                    <td>#@r.CustomerReturnRequestID</td>
+                                    <td><MudLink Href="@($"/orders/{r.OrderID}")">@r.OrderNumber</MudLink></td>
+                                    <td><MudChip T="string" Size="Size.Small">@r.StatusName</MudChip></td>
+                                    <td>@r.CreatedAt.ToLocalTime().ToString("g")</td>
+                                    <td>
+                                        <MudButton Size="Size.Small" Variant="Variant.Text" Color="Color.Primary"
+                                                   Href="@($"/inventory/returns/{r.CustomerReturnRequestID}")">@L["details", "Details"]</MudButton>
                                     </td>
                                 </tr>
                             }
@@ -774,6 +812,7 @@
         SupportInteractionType.InternalNote => Color.Secondary,
         SupportInteractionType.StatusChange => Color.Info,
         SupportInteractionType.Assignment => Color.Warning,
+        SupportInteractionType.CustomerReply => Color.Success,
         _ => Color.Default,
     };
 
@@ -787,6 +826,7 @@
         SupportInteractionType.StatusChange => Icons.Material.Filled.SwapHoriz,
         SupportInteractionType.Assignment => Icons.Material.Filled.PersonAdd,
         SupportInteractionType.OrderLinked => Icons.Material.Filled.Link,
+        SupportInteractionType.CustomerReply => Icons.Material.Filled.Forum,
         _ => Icons.Material.Filled.Notes,
     };
 }

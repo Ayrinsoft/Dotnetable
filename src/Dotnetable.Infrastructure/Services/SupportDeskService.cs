@@ -1,4 +1,5 @@
 using System.Text.RegularExpressions;
+using Dotnetable.Application.Authorization;
 using Dotnetable.Application.DTOs;
 using Dotnetable.Application.Interfaces;
 using Dotnetable.Domain.Entities;
@@ -187,6 +188,33 @@ public class SupportDeskService : ISupportDeskService
             contactQ = contactQ.Where(_ => false);
         }
 
+        var returnRows = await _context.CustomerReturnRequests.AsNoTracking()
+            .Where(r => r.WebsiteClientID == websiteClientId)
+            .OrderByDescending(r => r.CreatedAt)
+            .Take(20)
+            .Select(r => new
+            {
+                r.CustomerReturnRequestID,
+                r.OrderID,
+                OrderNumber = r.Order.OrderNumber,
+                r.Status,
+                r.RequestedRefundTotal,
+                r.CurrencyCode,
+                r.CreatedAt,
+            })
+            .ToListAsync(ct);
+        var returns = returnRows.Select(r => new SupportReturnSummaryDto
+        {
+            CustomerReturnRequestID = r.CustomerReturnRequestID,
+            OrderID = r.OrderID,
+            OrderNumber = r.OrderNumber,
+            Status = r.Status,
+            StatusName = ((CustomerReturnStatus)r.Status).ToString(),
+            RequestedRefundTotal = r.RequestedRefundTotal,
+            CurrencyCode = r.CurrencyCode,
+            CreatedAt = r.CreatedAt,
+        }).ToList();
+
         var contacts = await contactQ
             .OrderByDescending(m => m.LogTime)
             .Take(20)
@@ -257,6 +285,7 @@ public class SupportDeskService : ISupportDeskService
                 };
             }).ToList(),
             ContactMessages = contacts,
+            Returns = returns,
             Addresses = client.WebsiteClientAddresses.Select(a => new SupportAddressDto
             {
                 WebsiteClientAddressID = a.WebsiteClientAddressID,
@@ -437,8 +466,8 @@ public class SupportDeskService : ISupportDeskService
             EmailSnapshot = Truncate(email, 64),
             CustomerNameSnapshot = Truncate(name, 128),
             RelatedOrderID = request.RelatedOrderID,
-            CreatedByMemberID = memberId,
-            AssignedMemberID = request.AssignToSelf ? memberId : null,
+            CreatedByMemberID = memberId > 0 ? memberId : null,
+            AssignedMemberID = request.AssignToSelf && memberId > 0 ? memberId : null,
             CreatedAt = now,
             UpdatedAt = now,
             LastInteractionAt = now,
@@ -473,14 +502,15 @@ public class SupportDeskService : ISupportDeskService
             DurationSeconds = request.DurationSeconds,
             CallOutcome = (byte?)request.CallOutcome,
             RelatedOrderID = request.RelatedOrderID,
-            CreatedByMemberID = memberId,
+            CreatedByMemberID = memberId > 0 ? memberId : null,
             IsInternal = request.OpeningNoteInternal || openType == SupportInteractionType.InternalNote,
             CreatedAt = now,
         };
         _context.SupportInteractions.Add(interaction);
 
         // Agent who opens the ticket while on the call counts as first response.
-        session.FirstResponseAt = now;
+        if (memberId > 0)
+            session.FirstResponseAt = now;
         if (request.CallOutcome == SupportCallOutcome.CallbackScheduled && request.CallbackAt is null)
         {
             // Default callback window: 2 hours if outcome is scheduled but no time given.
@@ -489,13 +519,16 @@ public class SupportDeskService : ISupportDeskService
 
         await _context.SaveChangesAsync(ct);
 
-        await NotifyTicketAsync(
-            session,
-            title: $"Support ticket {session.SessionNumber}",
-            message: $"{session.CustomerNameSnapshot ?? session.CellphoneSnapshot ?? "Customer"} — {session.Subject ?? request.Channel.ToString()} [{(SupportPriority)session.Priority}]",
-            notifyAllAdmins: !request.AssignToSelf || request.Priority is SupportPriority.Urgent or SupportPriority.High,
-            notifyMemberId: request.AssignToSelf ? null : null,
-            ct);
+        if (memberId > 0)
+        {
+            await NotifyTicketAsync(
+                session,
+                title: $"Support ticket {session.SessionNumber}",
+                message: $"{session.CustomerNameSnapshot ?? session.CellphoneSnapshot ?? "Customer"} — {session.Subject ?? request.Channel.ToString()} [{(SupportPriority)session.Priority}]",
+                notifyAllAdmins: !request.AssignToSelf || request.Priority is SupportPriority.Urgent or SupportPriority.High,
+                notifyMemberId: null,
+                ct);
+        }
 
         return session;
     }
@@ -824,6 +857,194 @@ public class SupportDeskService : ISupportDeskService
         return true;
     }
 
+    public async Task<(bool Success, string? Error, SupportSession? Session)> CreateCustomerTicketAsync(
+        int websiteId, int websiteClientId, string subject, string body, int? relatedOrderId, SupportCategory? category, CancellationToken ct = default)
+    {
+        var title = subject?.Trim() ?? "";
+        var message = body?.Trim() ?? "";
+        if (title.Length == 0) return (false, "Subject is required.", null);
+        if (message.Length == 0) return (false, "Please describe the issue.", null);
+        if (title.Length > 256) return (false, "Subject is too long.", null);
+
+        var client = await _context.WebsiteClients.FirstOrDefaultAsync(
+            c => c.WebsiteClientID == websiteClientId && c.WebsiteID == websiteId && c.Active, ct);
+        if (client is null) return (false, "Customer not found.", null);
+
+        int? orderId = null;
+        if (relatedOrderId is int oid && oid > 0)
+        {
+            var order = await _context.Orders.AsNoTracking()
+                .FirstOrDefaultAsync(o => o.OrderID == oid && o.WebsiteID == websiteId && o.WebsiteClientID == websiteClientId, ct);
+            if (order is null) return (false, "Order not found.", null);
+            orderId = order.OrderID;
+        }
+
+        var cat = category ?? (orderId is null ? SupportCategory.General : SupportCategory.Order);
+        var session = await StartSessionAsync(new StartSupportSessionRequest
+        {
+            WebsiteID = websiteId,
+            WebsiteClientID = websiteClientId,
+            Cellphone = client.Cellphone,
+            CountryCode = client.CountryCode,
+            Email = client.Email,
+            CustomerName = DisplayName(client.Givenname, client.Surname, client.Email, client.Cellphone),
+            Channel = SupportChannel.Website,
+            Priority = SupportPriority.Normal,
+            Category = cat,
+            Subject = title,
+            RelatedOrderID = orderId,
+            OpeningNote = message,
+            AssignToSelf = false,
+        }, memberId: 0, ct);
+
+        var opening = await _context.SupportInteractions
+            .Where(i => i.SupportSessionID == session.SupportSessionID)
+            .OrderBy(i => i.CreatedAt)
+            .FirstOrDefaultAsync(ct);
+        if (opening is not null)
+        {
+            opening.InteractionType = (byte)SupportInteractionType.CustomerReply;
+            opening.IsInternal = false;
+            await _context.SaveChangesAsync(ct);
+        }
+
+        try
+        {
+            await _notifications.NotifyRoleAsync(
+                session.WebsiteID,
+                [RoleKeys.SupportView],
+                AdminNotificationType.SupportTicket,
+                $"Storefront ticket {session.SessionNumber}",
+                $"{session.CustomerNameSnapshot ?? "Customer"} — {session.Subject}",
+                $"/support/tickets/{session.SupportSessionID}",
+                session.SupportSessionID,
+                ct);
+        }
+        catch
+        {
+            // Notifications must never break ticket create.
+        }
+
+        return (true, null, session);
+    }
+
+    public async Task<PagedResult<SupportSessionSummaryDto>> GetClientSessionsPagedAsync(
+        int websiteClientId, GridQuery query, CancellationToken ct = default)
+    {
+        var q = _context.SupportSessions.AsNoTracking()
+            .Include(s => s.AssignedMember)
+            .Include(s => s.RelatedOrder)
+            .Where(s => s.WebsiteClientID == websiteClientId && !s.Archive);
+
+        var total = await q.CountAsync(ct);
+        var items = await q
+            .OrderByDescending(s => s.LastInteractionAt ?? s.CreatedAt)
+            .Skip(query.Skip).Take(query.Take)
+            .ToListAsync(ct);
+
+        var ids = items.Select(i => i.SupportSessionID).ToList();
+        var counts = await _context.SupportInteractions.AsNoTracking()
+            .Where(i => ids.Contains(i.SupportSessionID) && !i.IsInternal)
+            .GroupBy(i => i.SupportSessionID)
+            .Select(g => new { g.Key, Count = g.Count() })
+            .ToDictionaryAsync(x => x.Key, x => x.Count, ct);
+
+        var dtos = items.Select(s =>
+        {
+            var dto = MapSessionSummary(s);
+            dto.InteractionCount = counts.GetValueOrDefault(s.SupportSessionID);
+            return dto;
+        }).ToList();
+
+        return new PagedResult<SupportSessionSummaryDto> { Items = dtos, TotalCount = total };
+    }
+
+    public async Task<SupportSessionSummaryDto?> GetClientSessionAsync(int sessionId, int websiteClientId, CancellationToken ct = default)
+    {
+        var dto = await GetSessionSummaryByIdAsync(sessionId, ct);
+        if (dto is null || dto.WebsiteClientID != websiteClientId || dto.Archive) return null;
+        dto.InteractionCount = await _context.SupportInteractions.CountAsync(
+            i => i.SupportSessionID == sessionId && !i.IsInternal, ct);
+        return dto;
+    }
+
+    public async Task<IReadOnlyList<SupportInteractionDto>> GetClientInteractionsAsync(
+        int sessionId, int websiteClientId, CancellationToken ct = default)
+    {
+        var owned = await _context.SupportSessions.AsNoTracking()
+            .AnyAsync(s => s.SupportSessionID == sessionId && s.WebsiteClientID == websiteClientId && !s.Archive, ct);
+        if (!owned) return Array.Empty<SupportInteractionDto>();
+
+        var items = await _context.SupportInteractions.AsNoTracking()
+            .Where(i => i.SupportSessionID == sessionId && !i.IsInternal)
+            .OrderBy(i => i.CreatedAt)
+            .Include(i => i.CreatedByMember)
+            .Include(i => i.RelatedOrder)
+            .ToListAsync(ct);
+        return items.Select(MapInteraction).ToList();
+    }
+
+    public async Task<(bool Success, string? Error)> AddCustomerReplyAsync(
+        int sessionId, int websiteClientId, string body, CancellationToken ct = default)
+    {
+        var text = body?.Trim() ?? "";
+        if (text.Length == 0) return (false, "Please enter a message.");
+
+        var session = await _context.SupportSessions
+            .FirstOrDefaultAsync(s => s.SupportSessionID == sessionId && s.WebsiteClientID == websiteClientId && !s.Archive, ct);
+        if (session is null) return (false, "Ticket not found.");
+
+        var now = DateTime.UtcNow;
+        _context.SupportInteractions.Add(new SupportInteraction
+        {
+            SupportSessionID = session.SupportSessionID,
+            InteractionType = (byte)SupportInteractionType.CustomerReply,
+            Body = Truncate(text, 4000),
+            RelatedOrderID = session.RelatedOrderID,
+            CreatedByMemberID = null,
+            IsInternal = false,
+            CreatedAt = now,
+        });
+
+        session.LastInteractionAt = now;
+        session.UpdatedAt = now;
+        if (session.Status is (byte)SupportSessionStatus.Resolved or (byte)SupportSessionStatus.Closed
+            or (byte)SupportSessionStatus.WaitingCustomer)
+        {
+            session.Status = (byte)SupportSessionStatus.Open;
+            session.ResolvedAt = null;
+            session.ClosedAt = null;
+            session.Archive = false;
+            SupportSlaPolicy.RefreshResolveDueOnReopen(session, now);
+        }
+
+        await _context.SaveChangesAsync(ct);
+
+        if (session.AssignedMemberID is int mid)
+        {
+            await NotifyTicketAsync(session, $"Reply on {session.SessionNumber}", Truncate(text, 200) ?? text,
+                notifyAllAdmins: false, notifyMemberId: mid, ct);
+        }
+        else
+        {
+            try
+            {
+                await _notifications.NotifyRoleAsync(
+                    session.WebsiteID,
+                    [RoleKeys.SupportView],
+                    AdminNotificationType.SupportTicket,
+                    $"Reply on {session.SessionNumber}",
+                    Truncate(text, 200) ?? text,
+                    $"/support/tickets/{session.SupportSessionID}",
+                    session.SupportSessionID,
+                    ct);
+            }
+            catch { /* ignore */ }
+        }
+
+        return (true, null);
+    }
+
     // ── Helpers ──────────────────────────────────────────────────────
 
     private async Task NotifyTicketAsync(
@@ -969,7 +1190,7 @@ public class SupportDeskService : ISupportDeskService
         RelatedOrderNumber = i.RelatedOrder?.OrderNumber,
         CreatedByMemberID = i.CreatedByMemberID,
         CreatedByMemberName = i.CreatedByMember is null
-            ? null
+            ? (i.InteractionType == (byte)SupportInteractionType.CustomerReply ? "Customer" : null)
             : $"{i.CreatedByMember.Givenname} {i.CreatedByMember.Surname}".Trim(),
         IsInternal = i.IsInternal,
         CreatedAt = i.CreatedAt,

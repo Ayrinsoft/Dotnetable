@@ -1,0 +1,54 @@
+@using Dotnetable.Domain.Entities
+@{
+    ViewData["Title"] = "New support ticket";
+    Layout = "/Themes/Default/Views/Shared/_Layout.cshtml";
+    var orders = ViewBag.Orders as IReadOnlyList<Order> ?? Array.Empty<Order>();
+    int? selectedOrder = ViewBag.OrderId as int?;
+}
+
+@await Html.PartialAsync("_PageHeader", ("New support ticket", "Account"))
+
+<section class="site-section">
+    <div class="container" style="max-width:720px">
+        @if (TempData["TicketError"] is string err)
+        {
+            <div class="alert alert-danger">@err</div>
+        }
+        @if (ViewBag.OrderNumber is string orderNo)
+        {
+            <p class="text-muted">This ticket will be linked to order <strong>@orderNo</strong>.</p>
+        }
+
+        <form asp-action="TicketNew" method="post">
+            <div class="mb-3">
+                <label class="form-label">Related order</label>
+                <select name="RelatedOrderId" class="form-select">
+                    <option value="">No specific order</option>
+                    @foreach (var o in orders)
+                    {
+                        if (selectedOrder == o.OrderID)
+                        {
+                            <option value="@o.OrderID" selected>@o.OrderNumber</option>
+                        }
+                        else
+                        {
+                            <option value="@o.OrderID">@o.OrderNumber</option>
+                        }
+                    }
+                </select>
+            </div>
+            <div class="mb-3">
+                <label class="form-label">Subject</label>
+                <input name="Subject" class="form-control" required maxlength="200"
+                       placeholder="e.g. Missing item on my order" />
+            </div>
+            <div class="mb-3">
+                <label class="form-label">Message</label>
+                <textarea name="Body" class="form-control" rows="6" required
+                          placeholder="Describe what happened and what you need."></textarea>
+            </div>
+            <button type="submit" class="btn btn-primary">Submit ticket</button>
+            <a asp-action="Tickets" class="btn btn-link">Cancel</a>
+        </form>
+    </div>
+</section>

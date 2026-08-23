@@ -322,5 +322,61 @@ public class SupportDeskServiceTests : IDisposable
         state.Should().Be(SupportSlaState.FirstResponseBreached);
     }
 
+    [Fact]
+    public async Task CustomerTicket_Unassigned_InQueue_AndLinkedToOrder()
+    {
+        var (ok, err, session) = await _service.CreateCustomerTicketAsync(
+            1, 100, "Where is my package?", "Order still not here.", 500, null);
+
+        ok.Should().BeTrue(err);
+        session!.Channel.Should().Be((byte)SupportChannel.Website);
+        session.AssignedMemberID.Should().BeNull();
+        session.CreatedByMemberID.Should().BeNull();
+        session.FirstResponseAt.Should().BeNull();
+        session.RelatedOrderID.Should().Be(500);
+        session.Category.Should().Be((byte)SupportCategory.Order);
+
+        var queue = await _service.GetSessionsPagedAsync(1, SupportSessionStatus.Open, null, null, false, new GridQuery { PageSize = 20 });
+        queue.Items.Should().Contain(s => s.SupportSessionID == session.SupportSessionID && s.Channel == (byte)SupportChannel.Website);
+
+        var mine = await _service.GetClientSessionsPagedAsync(100, new GridQuery { PageSize = 20 });
+        mine.Items.Should().ContainSingle(s => s.SupportSessionID == session.SupportSessionID);
+
+        var publicIx = await _service.GetClientInteractionsAsync(session.SupportSessionID, 100);
+        publicIx.Should().ContainSingle(i => i.InteractionType == (byte)SupportInteractionType.CustomerReply);
+    }
+
+    [Fact]
+    public async Task CustomerTicket_WrongOrder_Fails()
+    {
+        var (ok, err, _) = await _service.CreateCustomerTicketAsync(1, 100, "Help", "Please", 999, null);
+        ok.Should().BeFalse();
+        err.Should().Contain("Order");
+    }
+
+    [Fact]
+    public async Task CustomerReply_HidesInternal_AndReopensResolved()
+    {
+        var created = await _service.CreateCustomerTicketAsync(1, 100, "Help", "Need help", 500, null);
+        var id = created.Session!.SupportSessionID;
+        await _service.AddInteractionAsync(new AddSupportInteractionRequest
+        {
+            SupportSessionID = id,
+            InteractionType = SupportInteractionType.InternalNote,
+            Body = "Internal only",
+            IsInternal = true,
+        }, 10);
+        await _service.TransitionStatusAsync(id, SupportSessionStatus.Resolved, 10, "Done");
+
+        var publicIx = await _service.GetClientInteractionsAsync(id, 100);
+        publicIx.Should().NotContain(i => i.IsInternal);
+        publicIx.Should().NotContain(i => i.Body == "Internal only");
+
+        var (ok, err) = await _service.AddCustomerReplyAsync(id, 100, "Still waiting");
+        ok.Should().BeTrue(err);
+        var row = await _service.GetClientSessionAsync(id, 100);
+        row!.Status.Should().Be((byte)SupportSessionStatus.Open);
+    }
+
     public void Dispose() => _context.Dispose();
 }

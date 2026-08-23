@@ -31,6 +31,8 @@ public enum SupportChannel : byte
     Manual = 5,
     WalkIn = 6,
     Sms = 7,
+    /// <summary>Opened by the signed-in customer from the storefront.</summary>
+    Website = 8,
 }
 
 /// <summary>High-level reason for the contact.</summary>
@@ -60,6 +62,8 @@ public enum SupportInteractionType : byte
     Assignment = 8,
     OrderLinked = 9,
     System = 10,
+    /// <summary>Message posted by the customer from the storefront.</summary>
+    CustomerReply = 11,
 }
 
 /// <summary>Result of a phone attempt.</summary>
@@ -330,6 +334,25 @@ public sealed class Customer360Dto
     public IReadOnlyList<SupportAgentActivityDto> AgentsWhoHelped { get; set; } = Array.Empty<SupportAgentActivityDto>();
     public IReadOnlyList<SupportContactMessageDto> ContactMessages { get; set; } = Array.Empty<SupportContactMessageDto>();
     public IReadOnlyList<SupportAddressDto> Addresses { get; set; } = Array.Empty<SupportAddressDto>();
+    public IReadOnlyList<SupportReturnSummaryDto> Returns { get; set; } = Array.Empty<SupportReturnSummaryDto>();
+}
+
+public sealed class ClientSupportTicketDetailDto
+{
+    public SupportSessionSummaryDto Ticket { get; set; } = new();
+    public IReadOnlyList<SupportInteractionDto> Interactions { get; set; } = Array.Empty<SupportInteractionDto>();
+}
+
+public sealed class SupportReturnSummaryDto
+{
+    public int CustomerReturnRequestID { get; set; }
+    public int OrderID { get; set; }
+    public string OrderNumber { get; set; } = string.Empty;
+    public byte Status { get; set; }
+    public string StatusName { get; set; } = string.Empty;
+    public decimal RequestedRefundTotal { get; set; }
+    public string CurrencyCode { get; set; } = string.Empty;
+    public DateTime CreatedAt { get; set; }
 }
 
 public sealed class SupportContactMessageDto

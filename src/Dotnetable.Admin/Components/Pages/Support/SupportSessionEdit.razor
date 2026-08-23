@@ -267,6 +267,88 @@ else
             }
         </MudItem>
     </MudGrid>
+
+    @if (_c360 is not null)
+    {
+        <MudText Typo="Typo.subtitle1" Class="fw-bold mt-4 mb-2">@L["support.customer_360", "Customer 360"]</MudText>
+        <MudText Typo="Typo.body2" Color="Color.Secondary" Class="mb-3">
+            @_c360.DisplayName · @_c360.PhoneDisplay
+            @if (!string.IsNullOrEmpty(_c360.Email)) { <text> · @_c360.Email</text> }
+        </MudText>
+        <MudTabs Elevation="0" Rounded="true" ApplyEffectsToContainer="true" PanelClass="pt-3">
+            <MudTabPanel Text="@L["orders", "Orders"]" BadgeData="@_c360.OrderCount" BadgeColor="Color.Primary">
+                <MudPaper Elevation="0" Class="app-card rounded-lg pa-3">
+                    @if (_c360.Orders.Count == 0)
+                    {
+                        <MudText Color="Color.Secondary">@L["orders.empty", "No orders yet."]</MudText>
+                    }
+                    else
+                    {
+                        <MudSimpleTable Dense="true" Hover="true" Elevation="0">
+                            <tbody>
+                                @foreach (var o in _c360.Orders)
+                                {
+                                    <tr>
+                                        <td><MudLink Href="@($"/orders/{o.OrderID}")">@o.OrderNumber</MudLink></td>
+                                        <td>@o.StatusName</td>
+                                        <td>@o.GrandTotal.ToString("0.##") @o.CurrencyCode</td>
+                                        <td>@o.CreatedAt.ToLocalTime().ToString("d")</td>
+                                    </tr>
+                                }
+                            </tbody>
+                        </MudSimpleTable>
+                    }
+                </MudPaper>
+            </MudTabPanel>
+            <MudTabPanel Text="@L["support.tickets", "Tickets"]" BadgeData="@_c360.TotalSessionCount" BadgeColor="Color.Info">
+                <MudPaper Elevation="0" Class="app-card rounded-lg pa-3">
+                    @foreach (var s in _c360.Sessions)
+                    {
+                        <MudStack Row="true" Justify="Justify.SpaceBetween" Class="mb-2">
+                            <MudLink Href="@($"/support/tickets/{s.SupportSessionID}")">@s.SessionNumber</MudLink>
+                            <span>@(s.Subject ?? "—") · @s.StatusName</span>
+                        </MudStack>
+                    }
+                </MudPaper>
+            </MudTabPanel>
+            <MudTabPanel Text="@L["returns.title", "Returns"]" BadgeData="@_c360.Returns.Count">
+                <MudPaper Elevation="0" Class="app-card rounded-lg pa-3">
+                    @if (_c360.Returns.Count == 0)
+                    {
+                        <MudText Color="Color.Secondary">@L["returns.empty", "No customer returns yet."]</MudText>
+                    }
+                    else
+                    {
+                        @foreach (var r in _c360.Returns)
+                        {
+                            <MudStack Row="true" Justify="Justify.SpaceBetween" Class="mb-2">
+                                <MudLink Href="@($"/inventory/returns/{r.CustomerReturnRequestID}")">#@r.CustomerReturnRequestID</MudLink>
+                                <span>@r.OrderNumber · @r.StatusName</span>
+                            </MudStack>
+                        }
+                    }
+                </MudPaper>
+            </MudTabPanel>
+            <MudTabPanel Text="@L["contact_messages", "Contact Messages"]" BadgeData="@_c360.ContactMessages.Count">
+                <MudPaper Elevation="0" Class="app-card rounded-lg pa-3">
+                    @if (_c360.ContactMessages.Count == 0)
+                    {
+                        <MudText Color="Color.Secondary">@L["contact.empty", "No messages found."]</MudText>
+                    }
+                    else
+                    {
+                        @foreach (var m in _c360.ContactMessages)
+                        {
+                            <MudStack Spacing="0" Class="mb-2" Style="cursor:pointer" @onclick="@(() => Nav.NavigateTo($"/messages/contacts/{m.ContactUsMessagesID}"))">
+                                <MudText Typo="Typo.subtitle2">@m.MessageSubject</MudText>
+                                <MudText Typo="Typo.caption">@m.LogTime.ToLocalTime().ToString("g")</MudText>
+                            </MudStack>
+                        }
+                    }
+                </MudPaper>
+            </MudTabPanel>
+        </MudTabs>
+    }
 }
 
 @code {
@@ -288,6 +370,7 @@ else
     private List<SupportInteractionDto> _interactions = new();
     private List<Member> _members = new();
     private List<Order> _clientOrders = new();
+    private Customer360Dto? _c360;
 
     private SupportInteractionType _ixType = SupportInteractionType.Note;
     private string? _ixBody;
@@ -327,6 +410,9 @@ else
             if (_summary is null) return;
 
             _interactions = (await SupportDeskService.GetInteractionsAsync(SessionId)).ToList();
+            _c360 = _summary.WebsiteClientID is int cid
+                ? await SupportDeskService.GetCustomer360Async(cid)
+                : null;
             _newStatus = (SupportSessionStatus)_summary.Status;
             _newPriority = (SupportPriority)_summary.Priority;
             _metaSubject = _summary.Subject;
@@ -563,6 +649,7 @@ else
         SupportInteractionType.InternalNote => Color.Secondary,
         SupportInteractionType.StatusChange => Color.Info,
         SupportInteractionType.Assignment => Color.Warning,
+        SupportInteractionType.CustomerReply => Color.Success,
         _ => Color.Default,
     };
 
@@ -576,6 +663,7 @@ else
         SupportInteractionType.StatusChange => Icons.Material.Filled.SwapHoriz,
         SupportInteractionType.Assignment => Icons.Material.Filled.PersonAdd,
         SupportInteractionType.OrderLinked => Icons.Material.Filled.Link,
+        SupportInteractionType.CustomerReply => Icons.Material.Filled.Forum,
         _ => Icons.Material.Filled.Notes,
     };
 }
