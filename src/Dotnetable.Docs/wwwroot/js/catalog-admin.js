@@ -149,7 +149,7 @@ window.DOCS_ADMIN = {
               fa: "داشبورد هاب است نه مرکز گزارش کامل؛ کار اصلی داخل هر ماژول انجام می‌شود.",
             },
           ],
-          related: ["inbox", "orders", "payments", "withdrawals"],
+          related: ["inbox", "staff-tasks", "orders", "payments", "withdrawals"],
         },
         {
           id: "inbox",
@@ -183,7 +183,67 @@ window.DOCS_ADMIN = {
               fa: "اعلان‌ها را باز/خوانده کنید تا شمارنده خوانده‌نشده داشبورد کم شود.",
             },
           ],
-          related: ["notifications", "dashboard"],
+          related: ["notifications", "dashboard", "staff-tasks"],
+        },
+        {
+          id: "staff-tasks",
+          title: { en: "My tasks", fa: "کارهای من" },
+          adminPath: "/tasks",
+          summary: {
+            en: "Personal to-dos you create for yourself or, with **tasks.manage**, assign to colleagues on the same website. Link a task to an order, warehouse in/out, return, payment, or refund.",
+            fa: "کارهای شخصی که برای خودتان می‌سازید یا با دسترسی **مدیر تسک** (`tasks.manage`) به همکاران همان وب‌سایت می‌سپارید. می‌توانید تسک را به سفارش، ورود/خروج انبار، برگشت، پرداخت یا استرداد وصل کنید.",
+          },
+          access: {
+            en: "`tasks.view` to open the page and create tasks for yourself. `tasks.manage` to assign to any active colleague on the same website and see everyone’s tasks.",
+            fa: "`tasks.view` برای دیدن صفحه و ساخت تسک برای خودتان. `tasks.manage` برای سپردن کار به هر همکار فعال همان وب‌سایت و دیدن همه تسک‌ها.",
+          },
+          purpose: [
+            {
+              en: "Staff-created work items, separate from system queues in Inbox (bank payments, fulfillment, …).",
+              fa: "کارهایی که خودِ پرسنل ثبت می‌کنند؛ جدا از صف‌های سیستمی Inbox (پرداخت بانکی، آماده‌سازی سفارش و …).",
+            },
+            {
+              en: "Optional link to an existing record: order, warehouse inbound/outbound/transfer/return/count/adjustment, customer RMA, payment, or refund.",
+              fa: "اختیاری: وصل به رکورد موجود — سفارش، ورود/خروج/انتقال/برگشت/شمارش/اصلاح انبار، درخواست برگشت مشتری، پرداخت یا استرداد.",
+            },
+          ],
+          howTo: [
+            {
+              en: "Open **My tasks** (`/tasks`). Click **New task**, fill title (and optional due date / description).",
+              fa: "**کارهای من** (`/tasks`) را باز کنید. **New task**، عنوان (و در صورت نیاز موعد / توضیح) را پر کنید.",
+            },
+            {
+              en: "Without task-manager permission the assignee is always you. With `tasks.manage`, pick any colleague on this website.",
+              fa: "بدون دسترسی مدیر تسک، مسئول همیشه خودتان هستید. با `tasks.manage` می‌توانید هر همکار همین وب‌سایت را انتخاب کنید.",
+            },
+            {
+              en: "Under **Related to**, pick the record type then search by number (order no., stock document no., return id, …).",
+              fa: "در **Related to** نوع رکورد را انتخاب کنید و با شماره جستجو کنید (شماره سفارش، سند انبار، شناسه برگشت و …).",
+            },
+            {
+              en: "You can also start a task from an **order**, **stock document**, or **customer return** page — the related record is pre-filled.",
+              fa: "از صفحه **سفارش**، **سند انبار** یا **برگشت مشتری** هم می‌توانید تسک بسازید؛ رکورد مرتبط از قبل پر می‌شود.",
+            },
+            {
+              en: "Use **Start** / **Done** on your row. Task managers (and the creator) can edit or delete.",
+              fa: "روی ردیف خود **Start** / **Done** بزنید. مدیر تسک و سازنده می‌توانند ویرایش یا حذف کنند.",
+            },
+          ],
+          tips: [
+            {
+              en: "Warehouse pick queue (Submitted / Ready to pick) still appears on the same page if you have warehouse access.",
+              fa: "اگر دسترسی انبار دارید، صف برداشت (Submitted / Ready to pick) همچنان پایین همین صفحه است.",
+            },
+            {
+              en: "Master users pick the website first; assignees must belong to that website (you may still assign to yourself).",
+              fa: "کاربر مستر اول وب‌سایت را انتخاب می‌کند؛ مسئول باید عضو همان سایت باشد (واگذاری به خودتان همیشه مجاز است).",
+            },
+            {
+              en: "Grant `tasks.manage` on Access Levels to a team lead. Administrators already have every permission.",
+              fa: "به سرپرست تیم در Access Levels مقدار `tasks.manage` بدهید. Administrators همه دسترسی‌ها را دارند.",
+            },
+          ],
+          related: ["inbox", "dashboard", "warehouse-tasks", "orders", "stock-documents", "customer-returns"],
         },
         {
           id: "notifications",
@@ -1639,20 +1699,24 @@ window.DOCS_ADMIN = {
           title: { en: "My warehouse tasks", fa: "کارهای من (انبار)" },
           adminPath: "/inventory/my-tasks",
           summary: {
-            en: "Worker queue of outbound picks: **Submitted** (new) and **Ready to pick** (Approved).",
-            fa: "صف کار انباردار برای برداشت‌های خروجی: **Submitted** (جدید) و **Ready to pick** (تأییدشده).",
+            en: "Same screen as **My tasks** (`/tasks`): staff to-dos plus the outbound pick queue (**Submitted** / **Ready to pick**).",
+            fa: "همان صفحه **کارهای من** (`/tasks`): تسک‌های پرسنل به‌علاوه صف برداشت خروجی (**Submitted** / **Ready to pick**).",
           },
           howTo: [
             {
-              en: "Filter by status chips → **Ready to pick** to approve → **Pick & post** when goods leave the bin.",
-              fa: "با چیپ وضعیت فیلتر کنید → **Ready to pick** برای تأیید → **Pick & post** وقتی کالا از قفسه خارج شد.",
+              en: "Staff tasks are at the top — create for yourself, or for colleagues with `tasks.manage`. Link to inbound, outbound, orders, returns, …",
+              fa: "تسک‌های پرسنل بالای صفحه است — برای خودتان بسازید، یا با `tasks.manage` به همکاران. می‌توانید به ورود/خروج انبار، سفارش، برگشت و … وصل کنید.",
+            },
+            {
+              en: "Warehouse pick chips: **Ready to pick** to approve → **Pick & post** when goods leave the bin.",
+              fa: "چیپ‌های برداشت انبار: **Ready to pick** برای تأیید → **Pick & post** وقتی کالا از قفسه خارج شد.",
             },
             {
               en: "Open the linked order if stock is missing — ship will stay blocked until inbound restock or customer refund.",
               fa: "اگر موجودی نیست سفارش را باز کنید — ارسال تا inbound یا استرداد مشتری قفل می‌ماند.",
             },
           ],
-          related: ["stock-documents", "warehouses", "orders"],
+          related: ["staff-tasks", "stock-documents", "warehouses", "orders"],
         },
         {
           id: "suppliers",

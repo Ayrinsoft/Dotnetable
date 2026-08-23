@@ -18,6 +18,11 @@
     <MudNavLink Href="/inbox" Icon="@Icons.Material.Filled.Inbox">
         @L["inbox", "Inbox"]
     </MudNavLink>
+    <AuthorizeView Policy="@RoleKeys.TasksView" Context="mytasks">
+        <MudNavLink Href="/tasks" Icon="@Icons.Material.Filled.Checklist">
+            @L["tasks.mine", "My tasks"]
+        </MudNavLink>
+    </AuthorizeView>
 
     @* ── Marketplace seller (Member vendor): compact menu only ── *@
     @if (NavSurface.IsVendorMember && NavSurface.VendorId is int sellerVendorId)
@@ -43,6 +48,9 @@
                 <MudNavLink Href="/support" Icon="@Icons.Material.Filled.SupportAgent">@L["support.desk", "Support Desk"]</MudNavLink>
             </AuthorizeView>
         }
+        <AuthorizeView Policy="@RoleKeys.TasksView" Context="vtasks">
+            <MudNavLink Href="/tasks" Icon="@Icons.Material.Filled.Checklist">@L["tasks.mine", "My tasks"]</MudNavLink>
+        </AuthorizeView>
         @if (NavSurface.Shows(AdminNavArea.Media))
         {
             <AuthorizeView Policy="@RoleKeys.MediaView" Context="md">
@@ -303,7 +311,6 @@
                     </AuthorizeView>
                     <AuthorizeView Policy="@RoleKeys.WarehouseView" Context="wh">
                         <MudNavLink Href="/inventory/warehouses" Icon="@Icons.Material.Filled.HomeWork">@L["warehouse", "Warehouses"]</MudNavLink>
-                        <MudNavLink Href="/inventory/my-tasks" Icon="@Icons.Material.Filled.Checklist">@L["warehouse.my_tasks", "My tasks"]</MudNavLink>
                         <MudNavLink Href="/inventory/stock-documents" Icon="@Icons.Material.Filled.Assignment">@L["warehouse.docs", "Stock documents"]</MudNavLink>
                     </AuthorizeView>
                     <AuthorizeView Policy="@RoleKeys.InventoryView" Context="invm">

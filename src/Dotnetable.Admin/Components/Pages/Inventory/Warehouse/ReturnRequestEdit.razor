@@ -33,6 +33,11 @@ else
         </MudStack>
         <MudStack Row="true" Spacing="2" AlignItems="AlignItems.Center">
             <MudChip T="string" Color="Color.Primary">@StatusLabel((CustomerReturnStatus)_row.Status)</MudChip>
+            <CreateStaffTaskButton WebsiteId="_row.WebsiteID"
+                                   RelatedKind="@((byte)StaffTaskRelatedKind.CustomerReturn)"
+                                   RelatedEntityId="ReturnRequestId"
+                                   RelatedLabel="@($"#{ReturnRequestId} · {_row.OrderNumber}")"
+                                   DefaultTitle="@($"{L["returns.title", "Return"]} #{ReturnRequestId}")" />
             <MudButton OnClick="@(() => Nav.NavigateTo("/inventory/returns"))">@L["back", "Back"]</MudButton>
         </MudStack>
     </MudStack>

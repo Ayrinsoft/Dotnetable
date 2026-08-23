@@ -16,4 +16,6 @@ public enum AdminNotificationType : byte
     PayrollPending = 10,
     /// <summary>Tax period closed or ready to file.</summary>
     TaxPeriod = 11,
+    /// <summary>A staff task was assigned to this member.</summary>
+    StaffTask = 12,
 }

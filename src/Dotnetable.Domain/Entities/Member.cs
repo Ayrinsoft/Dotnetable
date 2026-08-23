@@ -94,6 +94,10 @@ public partial class Member
 
     public virtual ICollection<SupportSession> SupportSessionCreatedByMembers { get; set; } = new List<SupportSession>();
 
+    public virtual ICollection<StaffTask> StaffTaskAssignedMembers { get; set; } = new List<StaffTask>();
+
+    public virtual ICollection<StaffTask> StaffTaskCreatedByMembers { get; set; } = new List<StaffTask>();
+
     public virtual ICollection<VendorCreditTransaction> VendorCreditTransactions { get; set; } = new List<VendorCreditTransaction>();
 
     public virtual Vendor? Vendor { get; set; }

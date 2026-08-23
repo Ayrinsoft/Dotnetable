@@ -117,37 +117,74 @@ public class SetupService : ISetupService
         // warehouse / accounting / HR / support grants missing on the live admin policy.
         var catalogKeys = RoleCatalog.All.Select(d => d.Key).ToHashSet(StringComparer.OrdinalIgnoreCase);
         var catalogRoles = existing.Where(r => catalogKeys.Contains(r.RoleKey)).ToList();
-        if (catalogRoles.Count == 0) return;
 
         var adminPolicyIds = await context.Policies
             .Where(p => p.Title == DefaultPolicies.Administrators)
             .Select(p => p.PolicyID)
             .ToListAsync(ct);
-        if (adminPolicyIds.Count == 0) return;
 
-        var granted = await context.PolicyRoles
-            .Where(pr => adminPolicyIds.Contains(pr.PolicyID))
-            .Select(pr => new { pr.PolicyID, pr.RoleID })
-            .ToListAsync(ct);
-        var grantedSet = granted.Select(g => (g.PolicyID, g.RoleID)).ToHashSet();
-
-        var toAdd = new List<PolicyRole>();
-        foreach (var policyId in adminPolicyIds)
+        if (catalogRoles.Count > 0 && adminPolicyIds.Count > 0)
         {
-            foreach (var role in catalogRoles)
+            var granted = await context.PolicyRoles
+                .Where(pr => adminPolicyIds.Contains(pr.PolicyID))
+                .Select(pr => new { pr.PolicyID, pr.RoleID })
+                .ToListAsync(ct);
+            var grantedSet = granted.Select(g => (g.PolicyID, g.RoleID)).ToHashSet();
+
+            var toAdd = new List<PolicyRole>();
+            foreach (var policyId in adminPolicyIds)
             {
-                if (grantedSet.Contains((policyId, role.RoleID))) continue;
-                toAdd.Add(new PolicyRole
+                foreach (var role in catalogRoles)
                 {
-                    PolicyID = policyId,
-                    RoleID = role.RoleID,
-                    Active = true,
-                });
+                    if (grantedSet.Contains((policyId, role.RoleID))) continue;
+                    toAdd.Add(new PolicyRole
+                    {
+                        PolicyID = policyId,
+                        RoleID = role.RoleID,
+                        Active = true,
+                    });
+                }
+            }
+
+            if (toAdd.Count > 0)
+            {
+                context.PolicyRoles.AddRange(toAdd);
+                await context.SaveChangesAsync(ct);
             }
         }
 
-        if (toAdd.Count == 0) return;
-        context.PolicyRoles.AddRange(toAdd);
-        await context.SaveChangesAsync(ct);
+        // Additive top-up of seeded staff templates (Warehouse / Sales / Finance / HR) so
+        // existing sites pick up new keys such as tasks.view without hand-editing policies.
+        var roleIdByKey = existing.ToDictionary(r => r.RoleKey, r => r.RoleID, StringComparer.OrdinalIgnoreCase);
+        foreach (var (title, keys) in DefaultPolicies.StaffTemplates)
+        {
+            var staffPolicyIds = await context.Policies
+                .Where(p => p.Title == title)
+                .Select(p => p.PolicyID)
+                .ToListAsync(ct);
+            if (staffPolicyIds.Count == 0) continue;
+
+            var staffGranted = await context.PolicyRoles
+                .Where(pr => staffPolicyIds.Contains(pr.PolicyID))
+                .Select(pr => new { pr.PolicyID, pr.RoleID })
+                .ToListAsync(ct);
+            var staffGrantedSet = staffGranted.Select(g => (g.PolicyID, g.RoleID)).ToHashSet();
+
+            var staffAdd = new List<PolicyRole>();
+            foreach (var policyId in staffPolicyIds)
+            {
+                foreach (var key in keys)
+                {
+                    if (!roleIdByKey.TryGetValue(key, out var roleId)) continue;
+                    if (staffGrantedSet.Contains((policyId, roleId))) continue;
+                    staffAdd.Add(new PolicyRole { PolicyID = policyId, RoleID = roleId, Active = true });
+                    staffGrantedSet.Add((policyId, roleId));
+                }
+            }
+
+            if (staffAdd.Count == 0) continue;
+            context.PolicyRoles.AddRange(staffAdd);
+            await context.SaveChangesAsync(ct);
+        }
     }
 }

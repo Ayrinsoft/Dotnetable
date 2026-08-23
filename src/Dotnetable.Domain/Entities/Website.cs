@@ -206,6 +206,8 @@ public partial class Website
 
     public virtual ICollection<SupportSession> SupportSessions { get; set; } = new List<SupportSession>();
 
+    public virtual ICollection<StaffTask> StaffTasks { get; set; } = new List<StaffTask>();
+
     public virtual ICollection<Page> Pages { get; set; } = new List<Page>();
 
     public virtual ICollection<PaymentGateway> PaymentGateways { get; set; } = new List<PaymentGateway>();

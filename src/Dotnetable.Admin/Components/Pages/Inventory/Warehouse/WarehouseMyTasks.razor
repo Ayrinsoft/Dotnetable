@@ -1,28 +1,52 @@
 @page "/inventory/my-tasks"
+@page "/tasks"
 @using Dotnetable.Domain.Enums
-@attribute [Authorize(Policy = RoleKeys.WarehouseView)]
+@attribute [Authorize(Policy = RoleKeys.TasksView)]
+@inject IStaffTaskService StaffTasks
 @inject IStockDocumentService Docs
 @inject IWebsiteService WebsiteService
 @inject AuthenticationStateProvider AuthState
+@inject IDialogService DialogService
 @inject ISnackbar Snackbar
 @inject IPageLocalizer L
 @inject NavigationManager Nav
 
-<DNPageTitle Title=@L["warehouse.my_tasks", "My warehouse tasks"] />
+<DNPageTitle Title=@L["tasks.mine", "My tasks"] />
 
 <MudStack Row="true" AlignItems="AlignItems.Center" Justify="Justify.SpaceBetween" Class="mb-4 flex-wrap gap-2">
     <MudStack Spacing="0">
-        <MudText Typo="Typo.h5" Class="fw-bold">@L["warehouse.my_tasks", "My warehouse tasks"]</MudText>
+        <MudText Typo="Typo.h5" Class="fw-bold">@L["tasks.mine", "My tasks"]</MudText>
         <MudText Typo="Typo.body2" Color="Color.Secondary">
-            @L["warehouse.my_tasks.subtitle", "Outbound picks waiting for warehouse workers: Submitted (new) and Ready to pick (approved)."]
+            @(_canManage
+                ? L["tasks.subtitle.manage", "Create tasks for yourself or any colleague on this website."]
+                : L["tasks.subtitle.self", "Create tasks for yourself. A task manager can assign work to colleagues."])
         </MudText>
     </MudStack>
-    @if (_isMaster)
-    {
-        <WebsiteSelector Value="_websiteId" ValueChanged="OnWebsiteChanged" Websites="_websites"
-                         Label="@L["website", "Website"]" Variant="Variant.Outlined"
-                         Dense="true" Style="min-width:180px" />
-    }
+    <MudStack Row="true" Spacing="2" AlignItems="AlignItems.Center" Class="flex-wrap">
+        @if (_isMaster)
+        {
+            <WebsiteSelector Value="_websiteId" ValueChanged="OnWebsiteChanged" Websites="_websites"
+                             Label="@L["website", "Website"]" Variant="Variant.Outlined"
+                             Dense="true" Style="min-width:180px" />
+        }
+        @if (_canManage && _colleagues.Count > 0)
+        {
+            <MudSelect T="int?" Value="_assigneeFilter" ValueChanged="OnAssigneeFilterChanged"
+                       Label="@L["tasks.field.assignee", "Assign to"]" Variant="Variant.Outlined"
+                       Dense="true" Clearable="true" Style="min-width:180px">
+                <MudSelectItem T="int?" Value="@((int?)null)">@L["tasks.filter.all_assignees", "All colleagues"]</MudSelectItem>
+                <MudSelectItem T="int?" Value="@((int?)_memberId)">@L["tasks.filter.mine", "Assigned to me"]</MudSelectItem>
+                @foreach (var c in _colleagues.Where(c => c.MemberID != _memberId))
+                {
+                    <MudSelectItem T="int?" Value="@c.MemberID">@c.Name</MudSelectItem>
+                }
+            </MudSelect>
+        }
+        <MudButton Variant="Variant.Filled" Color="Color.Primary" StartIcon="@Icons.Material.Filled.AddTask"
+                   OnClick="CreateAsync">
+            @L["tasks.new", "New task"]
+        </MudButton>
+    </MudStack>
 </MudStack>
 
 <StatusQueueBar Items="_statusChips"
@@ -31,72 +55,90 @@
                 ShowAll="true"
                 AllLabel="@L["all", "All"]"
                 ShowAllCount="true"
-                AllCount="_total" />
+                AllCount="_staffTotal" />
 
-<MudPaper Elevation="0" Class="app-card rounded-lg pa-4">
-    @if (_loading)
+<MudPaper Elevation="0" Class="app-card rounded-lg pa-4 mb-4">
+    @if (_loadingStaff)
     {
         <MudProgressLinear Indeterminate="true" Color="Color.Primary" Class="mb-3" />
     }
-    else if (_items.Count == 0)
+    else if (_staffItems.Count == 0)
     {
-        <MudText Color="Color.Secondary">@L["warehouse.my_tasks.empty", "No pick tasks right now."]</MudText>
+        <MudText Color="Color.Secondary">@L["tasks.empty_list", "No tasks yet. Create one for yourself or a colleague."]</MudText>
     }
     else
     {
         <MudSimpleTable Dense="true" Hover="true">
             <thead>
                 <tr>
-                    <th>@L["warehouse.doc_number", "Document"]</th>
-                    <th>@L["orders.order", "Order"]</th>
+                    <th>@L["tasks.field.title", "Title"]</th>
                     <th>@L["status", "Status"]</th>
-                    <th>@L["warehouse", "Warehouse"]</th>
-                    <th>@L["qty", "Qty"]</th>
-                    <th>@L["date", "Date"]</th>
+                    <th>@L["tasks.field.priority", "Priority"]</th>
+                    <th>@L["tasks.field.assignee", "Assign to"]</th>
+                    <th>@L["tasks.field.related", "Related to"]</th>
+                    <th>@L["tasks.field.due", "Due date"]</th>
                     <th></th>
                 </tr>
             </thead>
             <tbody>
-                @foreach (var t in _items)
+                @foreach (var t in _staffItems)
                 {
                     <tr>
                         <td>
-                            <MudLink Href="@($"/inventory/stock-documents/{t.StockDocumentID}")">@t.DocumentNumber</MudLink>
+                            <MudText Typo="Typo.body2" Class="fw-bold">@t.Title</MudText>
+                            @if (!string.IsNullOrWhiteSpace(t.Description))
+                            {
+                                <MudText Typo="Typo.caption" Color="Color.Secondary">@t.Description</MudText>
+                            }
                         </td>
                         <td>
-                            @if (t.OrderID is int oid)
+                            <MudChip T="string" Size="Size.Small" Color="@StatusColor(t.Status)">@StatusLabel(t.Status)</MudChip>
+                        </td>
+                        <td>@PriorityLabel(t.Priority)</td>
+                        <td>@t.AssignedMemberName</td>
+                        <td>
+                            @if (!string.IsNullOrWhiteSpace(t.RelatedUrl) && !string.IsNullOrWhiteSpace(t.RelatedLabel))
                             {
-                                <MudLink Href="@($"/orders/{oid}")">@(t.OrderNumber ?? $"#{oid}")</MudLink>
+                                <MudLink Href="@t.RelatedUrl">@RelatedKindLabel(t.RelatedKind) · @t.RelatedLabel</MudLink>
+                            }
+                            else if (!string.IsNullOrWhiteSpace(t.RelatedLabel))
+                            {
+                                <span>@RelatedKindLabel(t.RelatedKind) · @t.RelatedLabel</span>
                             }
                             else { <span>—</span> }
                         </td>
                         <td>
-                            <MudChip T="string" Size="Size.Small" Color="@(t.Status == (byte)StockDocumentStatus.Approved ? Color.Success : Color.Info)">
-                                @StatusLabel(t.Status)
-                            </MudChip>
+                            @if (t.DueAt is DateTime due)
+                            {
+                                <MudText Color="@(t.Status < (byte)StaffTaskStatus.Done && due.Date < DateTime.Today ? Color.Error : Color.Default)">
+                                    @due.ToLocalTime().ToString("d")
+                                </MudText>
+                            }
+                            else { <span>—</span> }
                         </td>
-                        <td>@(t.FromWarehouseName ?? "—")</td>
-                        <td>@t.TotalQuantity (@t.LineCount @L["lines", "lines"])</td>
-                        <td>@((t.SubmittedAt ?? t.CreatedAt).ToLocalTime().ToString("g"))</td>
                         <td>
-                            <MudStack Row="true" Spacing="1">
-                                @if (t.Status == (byte)StockDocumentStatus.Submitted && _canApprove)
+                            <MudStack Row="true" Spacing="0">
+                                @if (t.Status == (byte)StaffTaskStatus.Open)
                                 {
-                                    <MudButton Size="Size.Small" Variant="Variant.Outlined" Color="Color.Primary"
-                                               OnClick="@(() => MarkReadyAsync(t.StockDocumentID))">
-                                        @L["warehouse.ready_to_pick", "Ready to pick"]
+                                    <MudButton Size="Size.Small" Variant="Variant.Text"
+                                               OnClick="@(() => SetStatusAsync(t, StaffTaskStatus.InProgress))">
+                                        @L["tasks.start", "Start"]
                                     </MudButton>
                                 }
-                                @if (_canPost && t.Status is (byte)StockDocumentStatus.Submitted or (byte)StockDocumentStatus.Approved)
+                                @if (t.Status is (byte)StaffTaskStatus.Open or (byte)StaffTaskStatus.InProgress)
                                 {
-                                    <MudButton Size="Size.Small" Variant="Variant.Filled" Color="Color.Primary"
-                                               OnClick="@(() => PostAsync(t.StockDocumentID))">
-                                        @L["warehouse.pick_post", "Pick & post"]
+                                    <MudButton Size="Size.Small" Variant="Variant.Text" Color="Color.Success"
+                                               OnClick="@(() => SetStatusAsync(t, StaffTaskStatus.Done))">
+                                        @L["tasks.done", "Done"]
                                     </MudButton>
                                 }
-                                <MudIconButton Icon="@Icons.Material.Filled.OpenInNew" Size="Size.Small"
-                                               Href="@($"/inventory/stock-documents/{t.StockDocumentID}")"
-                                               title="@L["open", "Open"]" />
+                                <MudIconButton Icon="@Icons.Material.Filled.Edit" Size="Size.Small"
+                                               OnClick="@(() => EditAsync(t))" />
+                                @if (_canManage || t.CreatedByMemberID == _memberId)
+                                {
+                                    <MudIconButton Icon="@Icons.Material.Filled.Delete" Size="Size.Small" Color="Color.Error"
+                                                   OnClick="@(() => DeleteAsync(t))" />
+                                }
                             </MudStack>
                         </td>
                     </tr>
@@ -106,20 +148,121 @@
     }
 </MudPaper>
 
+@if (_canWarehouse)
+{
+    <MudText Typo="Typo.subtitle1" Class="fw-bold mb-2">@L["warehouse.my_tasks", "My warehouse tasks"]</MudText>
+    <MudText Typo="Typo.body2" Color="Color.Secondary" Class="mb-3">
+        @L["warehouse.my_tasks.subtitle", "Outbound picks waiting for warehouse workers: Submitted (new) and Ready to pick (approved)."]
+    </MudText>
+
+    <StatusQueueBar Items="_pickChips"
+                    SelectedValue="_pickStatusFilter"
+                    SelectedValueChanged="OnPickStatusChanged"
+                    ShowAll="true"
+                    AllLabel="@L["all", "All"]"
+                    ShowAllCount="true"
+                    AllCount="_pickTotal" />
+
+    <MudPaper Elevation="0" Class="app-card rounded-lg pa-4">
+        @if (_loadingPick)
+        {
+            <MudProgressLinear Indeterminate="true" Color="Color.Primary" Class="mb-3" />
+        }
+        else if (_pickItems.Count == 0)
+        {
+            <MudText Color="Color.Secondary">@L["warehouse.my_tasks.empty", "No pick tasks right now."]</MudText>
+        }
+        else
+        {
+            <MudSimpleTable Dense="true" Hover="true">
+                <thead>
+                    <tr>
+                        <th>@L["warehouse.doc_number", "Document"]</th>
+                        <th>@L["orders.order", "Order"]</th>
+                        <th>@L["status", "Status"]</th>
+                        <th>@L["warehouse", "Warehouse"]</th>
+                        <th>@L["qty", "Qty"]</th>
+                        <th>@L["date", "Date"]</th>
+                        <th></th>
+                    </tr>
+                </thead>
+                <tbody>
+                    @foreach (var t in _pickItems)
+                    {
+                        <tr>
+                            <td>
+                                <MudLink Href="@($"/inventory/stock-documents/{t.StockDocumentID}")">@t.DocumentNumber</MudLink>
+                            </td>
+                            <td>
+                                @if (t.OrderID is int oid)
+                                {
+                                    <MudLink Href="@($"/orders/{oid}")">@(t.OrderNumber ?? $"#{oid}")</MudLink>
+                                }
+                                else { <span>—</span> }
+                            </td>
+                            <td>
+                                <MudChip T="string" Size="Size.Small" Color="@(t.Status == (byte)StockDocumentStatus.Approved ? Color.Success : Color.Info)">
+                                    @PickStatusLabel(t.Status)
+                                </MudChip>
+                            </td>
+                            <td>@(t.FromWarehouseName ?? "—")</td>
+                            <td>@t.TotalQuantity (@t.LineCount @L["lines", "lines"])</td>
+                            <td>@((t.SubmittedAt ?? t.CreatedAt).ToLocalTime().ToString("g"))</td>
+                            <td>
+                                <MudStack Row="true" Spacing="1">
+                                    @if (t.Status == (byte)StockDocumentStatus.Submitted && _canApprove)
+                                    {
+                                        <MudButton Size="Size.Small" Variant="Variant.Outlined" Color="Color.Primary"
+                                                   OnClick="@(() => MarkReadyAsync(t.StockDocumentID))">
+                                            @L["warehouse.ready_to_pick", "Ready to pick"]
+                                        </MudButton>
+                                    }
+                                    @if (_canPost && t.Status is (byte)StockDocumentStatus.Submitted or (byte)StockDocumentStatus.Approved)
+                                    {
+                                        <MudButton Size="Size.Small" Variant="Variant.Filled" Color="Color.Primary"
+                                                   OnClick="@(() => PostAsync(t.StockDocumentID))">
+                                            @L["warehouse.pick_post", "Pick & post"]
+                                        </MudButton>
+                                    }
+                                    <CreateStaffTaskButton WebsiteId="_websiteId"
+                                                           RelatedKind="@((byte)StaffTaskRelatedKind.StockOutbound)"
+                                                           RelatedEntityId="t.StockDocumentID"
+                                                           RelatedLabel="@t.DocumentNumber"
+                                                           DefaultTitle="@($"{L["warehouse.outbound", "Warehouse outbound"]} {t.DocumentNumber}")" />
+                                    <MudIconButton Icon="@Icons.Material.Filled.OpenInNew" Size="Size.Small"
+                                                   Href="@($"/inventory/stock-documents/{t.StockDocumentID}")"
+                                                   title="@L["open", "Open"]" />
+                                </MudStack>
+                            </td>
+                        </tr>
+                    }
+                </tbody>
+            </MudSimpleTable>
+        }
+    </MudPaper>
+}
+
 @code {
-    private bool _loading = true, _isMaster, _canApprove, _canPost;
+    private bool _loadingStaff = true, _loadingPick = true;
+    private bool _isMaster, _canManage, _canWarehouse, _canApprove, _canPost;
     private int _websiteId, _memberId;
-    private byte? _statusFilter;
+    private byte? _statusFilter, _pickStatusFilter;
+    private int? _assigneeFilter;
     private List<Website> _websites = new();
-    private List<WarehousePickTaskDto> _items = new();
+    private List<StaffTaskColleagueDto> _colleagues = new();
+    private List<StaffTaskDto> _staffItems = new();
+    private List<WarehousePickTaskDto> _pickItems = new();
     private List<StatusQueueBar.Item> _statusChips = new();
-    private int _total;
+    private List<StatusQueueBar.Item> _pickChips = new();
+    private int _staffTotal, _pickTotal;
 
     protected override async Task OnInitializedAsync()
     {
         await L.EnsureLoadedAsync();
         var u = (await AuthState.GetAuthenticationStateAsync()).User;
         _isMaster = u.HasClaim(AdminClaimTypes.Master, "true");
+        _canManage = AdminPolicies.Allows(u, RoleKeys.TasksManage);
+        _canWarehouse = AdminPolicies.Allows(u, RoleKeys.WarehouseView);
         _canApprove = AdminPolicies.Allows(u, RoleKeys.WarehouseApprove);
         _canPost = AdminPolicies.Allows(u, RoleKeys.WarehousePost);
         int.TryParse(u.FindFirst(AdminClaimTypes.WebsiteId)?.Value, out _websiteId);
@@ -131,60 +274,223 @@
     private async Task OnWebsiteChanged(int id)
     {
         _websiteId = id;
+        _assigneeFilter = null;
         await LoadAsync();
     }
 
     private async Task OnStatusChipChanged(byte? status)
     {
         _statusFilter = status;
-        await LoadAsync();
+        await LoadStaffAsync();
+    }
+
+    private async Task OnPickStatusChanged(byte? status)
+    {
+        _pickStatusFilter = status;
+        await LoadPickAsync();
+    }
+
+    private async Task OnAssigneeFilterChanged(int? id)
+    {
+        _assigneeFilter = id;
+        await LoadStaffAsync();
     }
 
     private async Task LoadAsync()
     {
-        _loading = true;
+        if (_websiteId > 0 && _canManage)
+            _colleagues = (await StaffTasks.ListColleaguesAsync(_websiteId, _memberId)).ToList();
+        else
+            _colleagues = new();
+        await LoadStaffAsync();
+        await LoadPickAsync();
+    }
+
+    private StaffTaskListFilter Filter() => new()
+    {
+        WebsiteID = _websiteId,
+        ActorMemberID = _memberId,
+        CanManage = _canManage,
+        Status = _statusFilter,
+        AssignedMemberID = _canManage ? _assigneeFilter : null,
+    };
+
+    private async Task LoadStaffAsync()
+    {
+        _loadingStaff = true;
         try
         {
             if (_websiteId <= 0)
             {
-                _items = new();
+                _staffItems = new();
                 _statusChips = new();
-                _total = 0;
+                _staffTotal = 0;
+                return;
+            }
+
+            var counts = await StaffTasks.CountByStatusAsync(Filter());
+            int C(StaffTaskStatus s) => counts.FirstOrDefault(x => x.Status == (byte)s).Count;
+            var open = C(StaffTaskStatus.Open);
+            var progress = C(StaffTaskStatus.InProgress);
+            var done = C(StaffTaskStatus.Done);
+            var cancelled = C(StaffTaskStatus.Cancelled);
+            _statusChips =
+            [
+                new StatusQueueBar.Item((byte)StaffTaskStatus.Open, L["tasks.status.open", "Open"], open),
+                new StatusQueueBar.Item((byte)StaffTaskStatus.InProgress, L["tasks.status.in_progress", "In progress"], progress),
+                new StatusQueueBar.Item((byte)StaffTaskStatus.Done, L["tasks.status.done", "Done"], done),
+                new StatusQueueBar.Item((byte)StaffTaskStatus.Cancelled, L["tasks.status.cancelled", "Cancelled"], cancelled),
+            ];
+            _staffTotal = open + progress + done + cancelled;
+            _staffItems = (await StaffTasks.ListAsync(Filter())).ToList();
+        }
+        finally { _loadingStaff = false; }
+    }
+
+    private async Task LoadPickAsync()
+    {
+        if (!_canWarehouse)
+        {
+            _loadingPick = false;
+            _pickItems = new();
+            _pickChips = new();
+            _pickTotal = 0;
+            return;
+        }
+
+        _loadingPick = true;
+        try
+        {
+            if (_websiteId <= 0)
+            {
+                _pickItems = new();
+                _pickChips = new();
+                _pickTotal = 0;
                 return;
             }
 
             var all = await Docs.GetPickQueueAsync(_websiteId, null);
             var submitted = all.Count(t => t.Status == (byte)StockDocumentStatus.Submitted);
             var ready = all.Count(t => t.Status == (byte)StockDocumentStatus.Approved);
-            _statusChips =
+            _pickChips =
             [
                 new StatusQueueBar.Item((byte)StockDocumentStatus.Submitted, L["warehouse.status.submitted", "Submitted"], submitted),
                 new StatusQueueBar.Item((byte)StockDocumentStatus.Approved, L["warehouse.status.ready_pick", "Ready to pick"], ready),
             ];
-            _total = submitted + ready;
-            _items = (await Docs.GetPickQueueAsync(_websiteId, _statusFilter)).ToList();
+            _pickTotal = submitted + ready;
+            _pickItems = (await Docs.GetPickQueueAsync(_websiteId, _pickStatusFilter)).ToList();
         }
-        finally { _loading = false; }
+        finally { _loadingPick = false; }
     }
 
     private string StatusLabel(byte status) => status switch
+    {
+        (byte)StaffTaskStatus.Open => L["tasks.status.open", "Open"],
+        (byte)StaffTaskStatus.InProgress => L["tasks.status.in_progress", "In progress"],
+        (byte)StaffTaskStatus.Done => L["tasks.status.done", "Done"],
+        (byte)StaffTaskStatus.Cancelled => L["tasks.status.cancelled", "Cancelled"],
+        _ => status.ToString(),
+    };
+
+    private static Color StatusColor(byte status) => status switch
+    {
+        (byte)StaffTaskStatus.Open => Color.Info,
+        (byte)StaffTaskStatus.InProgress => Color.Warning,
+        (byte)StaffTaskStatus.Done => Color.Success,
+        _ => Color.Default,
+    };
+
+    private string PriorityLabel(byte p) => p switch
+    {
+        (byte)StaffTaskPriority.Low => L["tasks.priority.low", "Low"],
+        (byte)StaffTaskPriority.High => L["tasks.priority.high", "High"],
+        (byte)StaffTaskPriority.Urgent => L["tasks.priority.urgent", "Urgent"],
+        _ => L["tasks.priority.normal", "Normal"],
+    };
+
+    private string RelatedKindLabel(byte kind) => ((StaffTaskRelatedKind)kind) switch
+    {
+        StaffTaskRelatedKind.Order => L["orders.order", "Order"],
+        StaffTaskRelatedKind.StockInbound => L["warehouse.inbound", "Inbound"],
+        StaffTaskRelatedKind.StockOutbound => L["warehouse.outbound", "Outbound"],
+        StaffTaskRelatedKind.StockTransfer => L["warehouse.transfer", "Transfer"],
+        StaffTaskRelatedKind.StockReturn => L["warehouse.return", "Return"],
+        StaffTaskRelatedKind.StockAdjustment => L["warehouse.adjustment", "Adjustment"],
+        StaffTaskRelatedKind.StockCount => L["warehouse.count", "Count"],
+        StaffTaskRelatedKind.CustomerReturn => L["returns.title", "Customer return"],
+        StaffTaskRelatedKind.Payment => L["payments", "Payment"],
+        StaffTaskRelatedKind.PaymentRefund => L["payments.refund", "Refund"],
+        _ => "",
+    };
+
+    private string PickStatusLabel(byte status) => status switch
     {
         (byte)StockDocumentStatus.Submitted => L["warehouse.status.submitted", "Submitted"],
         (byte)StockDocumentStatus.Approved => L["warehouse.status.ready_pick", "Ready to pick"],
         _ => ((StockDocumentStatus)status).ToString(),
     };
 
+    private async Task CreateAsync()
+    {
+        var parameters = new DialogParameters<StaffTaskDialog>
+        {
+            { x => x.WebsiteId, _websiteId },
+            { x => x.ActorMemberId, _memberId },
+            { x => x.CanManage, _canManage },
+        };
+        var dialog = await DialogService.ShowAsync<StaffTaskDialog>(
+            L["tasks.new", "New task"], parameters,
+            new DialogOptions { MaxWidth = MaxWidth.Small, FullWidth = true });
+        var result = await dialog.Result;
+        if (result is not null && !result.Canceled) await LoadStaffAsync();
+    }
+
+    private async Task EditAsync(StaffTaskDto t)
+    {
+        var parameters = new DialogParameters<StaffTaskDialog>
+        {
+            { x => x.WebsiteId, _websiteId },
+            { x => x.ActorMemberId, _memberId },
+            { x => x.CanManage, _canManage },
+            { x => x.Existing, t },
+        };
+        var dialog = await DialogService.ShowAsync<StaffTaskDialog>(
+            L["tasks.edit", "Edit task"], parameters,
+            new DialogOptions { MaxWidth = MaxWidth.Small, FullWidth = true });
+        var result = await dialog.Result;
+        if (result is not null && !result.Canceled) await LoadStaffAsync();
+    }
+
+    private async Task SetStatusAsync(StaffTaskDto t, StaffTaskStatus status)
+    {
+        var (ok, err) = await StaffTasks.SetStatusAsync(t.StaffTaskID, status, _memberId, _canManage);
+        if (ok) { Snackbar.Add(L["saved", "Saved."], Severity.Success); await LoadStaffAsync(); }
+        else Snackbar.Add(err ?? L["save_failed", "Save failed"], Severity.Error);
+    }
+
+    private async Task DeleteAsync(StaffTaskDto t)
+    {
+        var confirmed = await DialogService.ShowMessageBoxAsync(
+            L["tasks.delete", "Delete task"],
+            L["tasks.delete_confirm", "Delete this task?"],
+            yesText: L["delete", "Delete"], cancelText: L["cancel", "Cancel"]);
+        if (confirmed != true) return;
+        var (ok, err) = await StaffTasks.DeleteAsync(t.StaffTaskID, _memberId, _canManage);
+        if (ok) { Snackbar.Add(L["deleted", "Deleted."], Severity.Success); await LoadStaffAsync(); }
+        else Snackbar.Add(err ?? L["save_failed", "Save failed"], Severity.Error);
+    }
+
     private async Task MarkReadyAsync(int id)
     {
         var (ok, err) = await Docs.MarkReadyToPickAsync(id, _memberId);
-        if (ok) { Snackbar.Add(L["saved", "Saved."], Severity.Success); await LoadAsync(); }
+        if (ok) { Snackbar.Add(L["saved", "Saved."], Severity.Success); await LoadPickAsync(); }
         else Snackbar.Add(err ?? L["save_failed", "Save failed"], Severity.Error);
     }
 
     private async Task PostAsync(int id)
     {
         var (ok, err) = await Docs.PostAsync(id, _memberId);
-        if (ok) { Snackbar.Add(L["warehouse.posted", "Posted to stock."], Severity.Success); await LoadAsync(); }
+        if (ok) { Snackbar.Add(L["warehouse.posted", "Posted to stock."], Severity.Success); await LoadPickAsync(); }
         else Snackbar.Add(err ?? L["save_failed", "Save failed"], Severity.Error);
     }
 }

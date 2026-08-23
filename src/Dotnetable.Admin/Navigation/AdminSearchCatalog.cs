@@ -38,6 +38,7 @@ public static class AdminSearchCatalog
     {
         new AdminSearchPage("dashboard", "Dashboard", "/", Icons.Material.Filled.Dashboard, "nav.navigation", "Navigation", null),
         new AdminSearchPage("inbox", "Inbox", "/inbox", Icons.Material.Filled.Inbox, "nav.navigation", "Navigation", null),
+        new AdminSearchPage("tasks.mine", "My tasks", "/tasks", Icons.Material.Filled.Checklist, "nav.navigation", "Navigation", RoleKeys.TasksView),
         new AdminSearchPage("notifications", "Notifications", "/notifications", Icons.Material.Filled.Notifications, "nav.navigation", "Navigation", null),
 
         new AdminSearchPage("members", "Members", "/members", Icons.Material.Filled.PersonOutline, "nav.user_management", "User Management", RoleKeys.MembersView, NavArea: AdminNavArea.Users, VendorMemberAllowed: false),
@@ -81,7 +82,7 @@ public static class AdminSearchCatalog
         new AdminSearchPage("inventory.stock", "Stock", "/inventory", Icons.Material.Filled.Numbers, "nav.inventory", "Inventory", RoleKeys.InventoryView, NavArea: AdminNavArea.Inventory, VendorMemberAllowed: false),
         new AdminSearchPage("inventory.movements", "Movements", "/inventory/movements", Icons.Material.Filled.History, "nav.inventory", "Inventory", RoleKeys.InventoryView, NavArea: AdminNavArea.Inventory, VendorMemberAllowed: false),
         new AdminSearchPage("warehouse.list", "Warehouses", "/inventory/warehouses", Icons.Material.Filled.HomeWork, "nav.inventory", "Inventory", RoleKeys.WarehouseView, NavArea: AdminNavArea.Inventory, VendorMemberAllowed: false),
-        new AdminSearchPage("warehouse.tasks", "Warehouse my tasks", "/inventory/my-tasks", Icons.Material.Filled.Checklist, "nav.inventory", "Inventory", RoleKeys.WarehouseView, NavArea: AdminNavArea.Inventory, VendorMemberAllowed: false),
+        new AdminSearchPage("warehouse.tasks", "Warehouse pick queue", "/inventory/my-tasks", Icons.Material.Filled.Inventory, "nav.inventory", "Inventory", RoleKeys.TasksView, NavArea: AdminNavArea.Inventory, VendorMemberAllowed: false),
         new AdminSearchPage("warehouse.docs", "Stock documents", "/inventory/stock-documents", Icons.Material.Filled.Assignment, "nav.inventory", "Inventory", RoleKeys.WarehouseView, NavArea: AdminNavArea.Inventory, VendorMemberAllowed: false),
         new AdminSearchPage("suppliers", "Suppliers", "/inventory/suppliers", Icons.Material.Filled.LocalShipping, "nav.inventory", "Inventory", RoleKeys.SuppliersView, NavArea: AdminNavArea.Inventory, VendorMemberAllowed: false),
 

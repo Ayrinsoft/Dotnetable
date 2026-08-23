@@ -3,6 +3,7 @@
 @attribute [Authorize]
 @inject IAdminNotificationService NotificationService
 @inject IAdminTaskService TaskService
+@inject IStaffTaskService StaffTaskService
 @inject AuthenticationStateProvider AuthState
 @inject ISnackbar Snackbar
 @inject NavigationManager Nav
@@ -140,8 +141,20 @@
             int? scope = _isMaster || _websiteId <= 0 ? null : _websiteId;
             _openTasks = await TaskService.GetOpenTasksAsync(
                 scope, includeOrders, includePayments, includeRefunds, includeWithdrawals);
-            _openTaskCount = _openTasks.Sum(t => t.Count);
         }
+
+        if (_memberId > 0 && _websiteId > 0 && (_isMaster || AdminPolicies.Allows(user, RoleKeys.TasksView)))
+        {
+            var staffOpen = await StaffTaskService.CountOpenAsync(
+                _websiteId, _memberId, _isMaster || AdminPolicies.Allows(user, RoleKeys.TasksManage));
+            if (staffOpen > 0)
+            {
+                _openTasks = _openTasks.Prepend(new AdminOpenTask("staff.assigned", staffOpen, "/tasks")).ToList();
+                _showTasksPanel = true;
+            }
+        }
+
+        _openTaskCount = _openTasks.Sum(t => t.Count);
 
         _grid = new GridViewHeaderParameters
         {

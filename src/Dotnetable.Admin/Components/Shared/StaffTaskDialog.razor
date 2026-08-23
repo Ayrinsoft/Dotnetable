@@ -1,0 +1,202 @@
+@inject IStaffTaskService Tasks
+@inject ISnackbar Snackbar
+@inject IPageLocalizer L
+
+<MudDialog>
+    <DialogContent>
+        <MudForm @ref="_form">
+            <MudGrid Spacing="3">
+                <MudItem xs="12">
+                    <MudTextField @bind-Value="_title" Label="@L["tasks.field.title", "Title"]" Variant="Variant.Outlined"
+                                  Required="true" MaxLength="200" />
+                </MudItem>
+                <MudItem xs="12">
+                    <MudTextField @bind-Value="_description" Label="@L["tasks.field.description", "Description"]"
+                                  Variant="Variant.Outlined" Lines="3" MaxLength="2000" />
+                </MudItem>
+                <MudItem xs="12" sm="6">
+                    @if (CanManage && _colleagues.Count > 0)
+                    {
+                        <MudSelect T="int" @bind-Value="_assignedMemberId" Label="@L["tasks.field.assignee", "Assign to"]"
+                                   Variant="Variant.Outlined">
+                            @foreach (var c in _colleagues)
+                            {
+                                <MudSelectItem T="int" Value="@c.MemberID">
+                                    @(string.IsNullOrWhiteSpace(c.Name) ? c.Username : $"{c.Name} ({c.Username})")
+                                </MudSelectItem>
+                            }
+                        </MudSelect>
+                    }
+                    else
+                    {
+                        <MudTextField Value="@L["tasks.assignee.self", "Me"]" Label="@L["tasks.field.assignee", "Assign to"]"
+                                      Variant="Variant.Outlined" Disabled="true" />
+                    }
+                </MudItem>
+                <MudItem xs="12" sm="6">
+                    <MudSelect T="byte" @bind-Value="_priority" Label="@L["tasks.field.priority", "Priority"]" Variant="Variant.Outlined">
+                        <MudSelectItem T="byte" Value="@((byte)StaffTaskPriority.Low)">@L["tasks.priority.low", "Low"]</MudSelectItem>
+                        <MudSelectItem T="byte" Value="@((byte)StaffTaskPriority.Normal)">@L["tasks.priority.normal", "Normal"]</MudSelectItem>
+                        <MudSelectItem T="byte" Value="@((byte)StaffTaskPriority.High)">@L["tasks.priority.high", "High"]</MudSelectItem>
+                        <MudSelectItem T="byte" Value="@((byte)StaffTaskPriority.Urgent)">@L["tasks.priority.urgent", "Urgent"]</MudSelectItem>
+                    </MudSelect>
+                </MudItem>
+                <MudItem xs="12" sm="6">
+                    <MudDatePicker @bind-Date="_dueAt" Label="@L["tasks.field.due", "Due date"]" Variant="Variant.Outlined"
+                                   Clearable="true" Editable="true" />
+                </MudItem>
+                <MudItem xs="12" sm="6">
+                    <MudSelect T="byte" Value="_relatedKind" ValueChanged="OnRelatedKindChanged"
+                               Label="@L["tasks.field.related", "Related to"]" Variant="Variant.Outlined">
+                        <MudSelectItem T="byte" Value="@((byte)StaffTaskRelatedKind.None)">@L["tasks.related.none", "Nothing"]</MudSelectItem>
+                        <MudSelectItem T="byte" Value="@((byte)StaffTaskRelatedKind.Order)">@L["orders.order", "Order"]</MudSelectItem>
+                        <MudSelectItem T="byte" Value="@((byte)StaffTaskRelatedKind.StockInbound)">@L["warehouse.inbound", "Warehouse inbound"]</MudSelectItem>
+                        <MudSelectItem T="byte" Value="@((byte)StaffTaskRelatedKind.StockOutbound)">@L["warehouse.outbound", "Warehouse outbound"]</MudSelectItem>
+                        <MudSelectItem T="byte" Value="@((byte)StaffTaskRelatedKind.StockTransfer)">@L["warehouse.transfer", "Warehouse transfer"]</MudSelectItem>
+                        <MudSelectItem T="byte" Value="@((byte)StaffTaskRelatedKind.StockReturn)">@L["warehouse.return", "Warehouse return"]</MudSelectItem>
+                        <MudSelectItem T="byte" Value="@((byte)StaffTaskRelatedKind.StockAdjustment)">@L["warehouse.adjustment", "Stock adjustment"]</MudSelectItem>
+                        <MudSelectItem T="byte" Value="@((byte)StaffTaskRelatedKind.StockCount)">@L["warehouse.count", "Stock count"]</MudSelectItem>
+                        <MudSelectItem T="byte" Value="@((byte)StaffTaskRelatedKind.CustomerReturn)">@L["returns.title", "Customer return"]</MudSelectItem>
+                        <MudSelectItem T="byte" Value="@((byte)StaffTaskRelatedKind.Payment)">@L["payments", "Payment"]</MudSelectItem>
+                        <MudSelectItem T="byte" Value="@((byte)StaffTaskRelatedKind.PaymentRefund)">@L["payments.refund", "Refund"]</MudSelectItem>
+                    </MudSelect>
+                </MudItem>
+                @if (_relatedKind != (byte)StaffTaskRelatedKind.None)
+                {
+                    <MudItem xs="12">
+                        <MudAutocomplete T="StaffTaskRelatedHitDto" Value="_relatedHit" ValueChanged="OnRelatedHitChanged"
+                                         SearchFunc="SearchRelatedAsync" ToStringFunc="HitLabel"
+                                         Label="@L["tasks.field.related_record", "Record"]"
+                                         Variant="Variant.Outlined" Clearable="true"
+                                         CoerceText="false" ResetValueOnEmptyText="true"
+                                         HelperText="@L["tasks.related.search_hint", "Search by number"]" />
+                    </MudItem>
+                }
+            </MudGrid>
+            <DNValidationSummary Errors="_formErrors" />
+        </MudForm>
+    </DialogContent>
+    <DialogActions>
+        <MudButton OnClick="Cancel">@L["cancel", "Cancel"]</MudButton>
+        <MudButton Variant="Variant.Filled" Color="Color.Primary" OnClick="SaveAsync" Disabled="@_saving">
+            @L["save", "Save"]
+        </MudButton>
+    </DialogActions>
+</MudDialog>
+
+@code {
+    [CascadingParameter] private IMudDialogInstance MudDialog { get; set; } = null!;
+    [Parameter] public int WebsiteId { get; set; }
+    [Parameter] public int ActorMemberId { get; set; }
+    [Parameter] public bool CanManage { get; set; }
+    [Parameter] public StaffTaskDto? Existing { get; set; }
+    [Parameter] public byte PrefillRelatedKind { get; set; }
+    [Parameter] public int PrefillRelatedId { get; set; }
+    [Parameter] public string? PrefillRelatedLabel { get; set; }
+    [Parameter] public string? PrefillTitle { get; set; }
+
+    private MudForm _form = null!;
+    private bool _saving;
+    private string[]? _formErrors;
+    private string _title = "";
+    private string? _description;
+    private int _assignedMemberId;
+    private byte _priority = (byte)StaffTaskPriority.Normal;
+    private DateTime? _dueAt;
+    private byte _relatedKind;
+    private StaffTaskRelatedHitDto? _relatedHit;
+    private List<StaffTaskColleagueDto> _colleagues = new();
+
+    protected override async Task OnInitializedAsync()
+    {
+        await L.EnsureLoadedAsync();
+        if (CanManage)
+            _colleagues = (await Tasks.ListColleaguesAsync(WebsiteId, ActorMemberId)).ToList();
+
+        if (Existing is not null)
+        {
+            _title = Existing.Title;
+            _description = Existing.Description;
+            _assignedMemberId = Existing.AssignedMemberID;
+            _priority = Existing.Priority;
+            _dueAt = Existing.DueAt;
+            _relatedKind = Existing.RelatedKind;
+            if (Existing.RelatedEntityID is int rid && rid > 0)
+                _relatedHit = new StaffTaskRelatedHitDto { Id = rid, Label = Existing.RelatedLabel ?? $"#{rid}" };
+        }
+        else
+        {
+            _assignedMemberId = ActorMemberId;
+            _title = PrefillTitle ?? "";
+            _relatedKind = PrefillRelatedKind;
+            if (PrefillRelatedId > 0)
+                _relatedHit = new StaffTaskRelatedHitDto { Id = PrefillRelatedId, Label = PrefillRelatedLabel ?? $"#{PrefillRelatedId}" };
+        }
+
+        if (_assignedMemberId <= 0) _assignedMemberId = ActorMemberId;
+        if (CanManage && _colleagues.All(c => c.MemberID != _assignedMemberId) && _assignedMemberId > 0)
+        {
+            _colleagues.Insert(0, new StaffTaskColleagueDto
+            {
+                MemberID = _assignedMemberId,
+                Name = Existing?.AssignedMemberName ?? L["tasks.assignee.self", "Me"],
+                Username = "",
+            });
+        }
+    }
+
+    private void Cancel() => MudDialog.Cancel();
+
+    private async Task OnRelatedKindChanged(byte kind)
+    {
+        _relatedKind = kind;
+        _relatedHit = null;
+        await Task.CompletedTask;
+    }
+
+    private void OnRelatedHitChanged(StaffTaskRelatedHitDto? hit) => _relatedHit = hit;
+
+    private static string HitLabel(StaffTaskRelatedHitDto? h) => h?.Label ?? "";
+
+    private async Task<IEnumerable<StaffTaskRelatedHitDto>> SearchRelatedAsync(string value, CancellationToken ct)
+    {
+        if (_relatedKind == (byte)StaffTaskRelatedKind.None) return Array.Empty<StaffTaskRelatedHitDto>();
+        return await Tasks.SearchRelatedAsync(WebsiteId, (StaffTaskRelatedKind)_relatedKind, value, ct);
+    }
+
+    private async Task SaveAsync()
+    {
+        await _form.Validate();
+        _formErrors = _form.Errors;
+        if (!_form.IsValid) return;
+        if (string.IsNullOrWhiteSpace(_title)) return;
+
+        _saving = true;
+        try
+        {
+            var req = new StaffTaskWriteRequest
+            {
+                WebsiteID = WebsiteId,
+                Title = _title,
+                Description = _description,
+                Priority = _priority,
+                AssignedMemberID = CanManage ? _assignedMemberId : ActorMemberId,
+                DueAt = _dueAt,
+                RelatedKind = _relatedKind,
+                RelatedEntityID = _relatedKind == (byte)StaffTaskRelatedKind.None ? null : _relatedHit?.Id,
+            };
+
+            var (ok, err, _) = Existing is null
+                ? await Tasks.CreateAsync(req, ActorMemberId, CanManage)
+                : await Tasks.UpdateAsync(Existing.StaffTaskID, req, ActorMemberId, CanManage);
+
+            if (ok) MudDialog.Close(DialogResult.Ok(true));
+            else
+            {
+                Snackbar.Add(err ?? L["save_failed", "Save failed"], Severity.Error);
+                _formErrors = [err ?? L["save_failed", "Save failed"]];
+            }
+        }
+        finally { _saving = false; }
+    }
+}
