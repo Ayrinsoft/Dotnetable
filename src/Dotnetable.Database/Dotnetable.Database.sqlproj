@@ -207,6 +207,7 @@
     <Build Include="SupportInteractions.sql" />
     <Build Include="SupportSessions.sql" />
     <Build Include="StaffTasks.sql" />
+    <Build Include="StaffTaskNotes.sql" />
     <Build Include="VendorCreditTransactions.sql" />
     <Build Include="WebsiteWalletCurrencies.sql" />
   </ItemGroup>

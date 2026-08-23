@@ -132,12 +132,14 @@ else
                     <tbody>
                         @foreach (var t in _staffItems)
                         {
-                            <tr>
+                            <tr style="cursor:pointer" @onclick="@(() => OpenDetailsAsync(t))">
                                 <td>
                                     <MudText Typo="Typo.body2" Class="fw-bold">@t.Title</MudText>
-                                    @if (!string.IsNullOrWhiteSpace(t.Description))
+                                    @if (t.NoteCount > 0)
                                     {
-                                        <MudText Typo="Typo.caption" Color="Color.Secondary">@t.Description</MudText>
+                                        <MudChip T="string" Size="Size.Small" Variant="Variant.Outlined">
+                                            @t.NoteCount @L["tasks.updates.short", "updates"]
+                                        </MudChip>
                                     }
                                 </td>
                                 <td>
@@ -145,7 +147,7 @@ else
                                 </td>
                                 <td>@PriorityLabel(t.Priority)</td>
                                 <td>@t.AssignedMemberName</td>
-                                <td>
+                                <td @onclick:stopPropagation="true">
                                     @if (!string.IsNullOrWhiteSpace(t.RelatedUrl) && !string.IsNullOrWhiteSpace(t.RelatedLabel))
                                     {
                                         <MudLink Href="@t.RelatedUrl">@RelatedKindLabel(t.RelatedKind) · @t.RelatedLabel</MudLink>
@@ -165,7 +167,7 @@ else
                                     }
                                     else { <span>—</span> }
                                 </td>
-                                <td>
+                                <td @onclick:stopPropagation="true">
                                     <MudStack Row="true" Spacing="0">
                                         @if (t.Status == (byte)StaffTaskStatus.Open)
                                         {
@@ -181,6 +183,9 @@ else
                                                 @L["tasks.done", "Done"]
                                             </MudButton>
                                         }
+                                        <MudIconButton Icon="@Icons.Material.Filled.OpenInNew" Size="Size.Small"
+                                                       OnClick="@(() => OpenDetailsAsync(t))"
+                                                       title="@L["tasks.details", "Details"]" />
                                         <MudIconButton Icon="@Icons.Material.Filled.Edit" Size="Size.Small"
                                                        OnClick="@(() => EditAsync(t))" />
                                         @if (_canManage || t.CreatedByMemberID == _memberId)
@@ -480,6 +485,28 @@ else
             new DialogOptions { MaxWidth = MaxWidth.Small, FullWidth = true });
         var result = await dialog.Result;
         if (result is not null && !result.Canceled) await LoadStaffAsync();
+    }
+
+    private async Task OpenDetailsAsync(StaffTaskDto t)
+    {
+        var parameters = new DialogParameters<StaffTaskDetailDialog>
+        {
+            { x => x.StaffTaskId, t.StaffTaskID },
+            { x => x.ActorMemberId, _memberId },
+            { x => x.CanManage, _canManage },
+        };
+        var dialog = await DialogService.ShowAsync<StaffTaskDetailDialog>(
+            t.Title, parameters,
+            new DialogOptions { MaxWidth = MaxWidth.Medium, FullWidth = true });
+        var result = await dialog.Result;
+        if (result is null || result.Canceled) return;
+        if (result.Data is string s && s == "edit")
+        {
+            var fresh = await StaffTasks.GetByIdAsync(t.StaffTaskID) ?? t;
+            await EditAsync(fresh);
+            return;
+        }
+        await LoadStaffAsync();
     }
 
     private async Task EditAsync(StaffTaskDto t)

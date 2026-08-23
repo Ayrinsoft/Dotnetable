@@ -1,0 +1,159 @@
+@inject IStaffTaskService Tasks
+@inject ISnackbar Snackbar
+@inject IPageLocalizer L
+
+<MudDialog>
+    <DialogContent>
+        @if (_loading || _task is null)
+        {
+            <MudProgressLinear Indeterminate="true" Color="Color.Primary" />
+        }
+        else
+        {
+            <MudStack Spacing="2">
+                <MudStack Row="true" Spacing="1" AlignItems="AlignItems.Center" Class="flex-wrap">
+                    <MudChip T="string" Size="Size.Small" Color="@StatusColor(_task.Status)">@StatusLabel(_task.Status)</MudChip>
+                    <MudChip T="string" Size="Size.Small" Variant="Variant.Outlined">@PriorityLabel(_task.Priority)</MudChip>
+                    @if (_task.DueAt is DateTime due)
+                    {
+                        <MudChip T="string" Size="Size.Small" Variant="Variant.Outlined"
+                                 Color="@(_task.Status < (byte)StaffTaskStatus.Done && due.Date < DateTime.Today ? Color.Error : Color.Default)">
+                            @L["tasks.field.due", "Due date"] @due.ToLocalTime().ToString("d")
+                        </MudChip>
+                    }
+                </MudStack>
+                <MudText Typo="Typo.body2">
+                    <strong>@L["tasks.field.assignee", "Assign to"]:</strong> @_task.AssignedMemberName
+                    · <strong>@L["tasks.created_by", "Created by"]:</strong> @_task.CreatedByMemberName
+                </MudText>
+                @if (!string.IsNullOrWhiteSpace(_task.RelatedLabel))
+                {
+                    <MudText Typo="Typo.body2">
+                        @if (!string.IsNullOrWhiteSpace(_task.RelatedUrl))
+                        {
+                            <MudLink Href="@_task.RelatedUrl">@_task.RelatedLabel</MudLink>
+                        }
+                        else { @_task.RelatedLabel }
+                    </MudText>
+                }
+                <MudText Typo="Typo.subtitle2">@L["tasks.field.description", "Description"]</MudText>
+                <MudText Typo="Typo.body2" Style="white-space:pre-wrap;">
+                    @(string.IsNullOrWhiteSpace(_task.Description) ? "—" : _task.Description)
+                </MudText>
+
+                <MudDivider Class="my-2" />
+                <MudText Typo="Typo.subtitle2">@L["tasks.updates", "Updates"]</MudText>
+                @if (_task.Notes.Count == 0)
+                {
+                    <MudText Color="Color.Secondary">@L["tasks.updates.empty", "No follow-up yet."]</MudText>
+                }
+                else
+                {
+                    <MudTimeline TimelinePosition="TimelinePosition.Start">
+                        @foreach (var n in _task.Notes)
+                        {
+                            <MudTimelineItem Color="Color.Primary" Size="Size.Small" Icon="@Icons.Material.Filled.Comment">
+                                <ItemContent>
+                                    <MudText Typo="Typo.body2" Style="white-space:pre-wrap;">@n.Body</MudText>
+                                    <MudText Typo="Typo.caption" Color="Color.Secondary">
+                                        @n.CreatedByMemberName · @n.CreatedAt.ToLocalTime().ToString("g")
+                                    </MudText>
+                                </ItemContent>
+                            </MudTimelineItem>
+                        }
+                    </MudTimeline>
+                }
+
+                <MudTextField @bind-Value="_note" Label="@L["tasks.updates.add", "Add an update"]"
+                              Variant="Variant.Outlined" Lines="3" MaxLength="2000"
+                              HelperText="@L["tasks.updates.hint", "What happened, what you did, or what is needed next."]" />
+                <MudButton Variant="Variant.Filled" Color="Color.Primary" Disabled="@_saving"
+                           OnClick="AddNoteAsync" StartIcon="@Icons.Material.Filled.AddComment">
+                    @L["tasks.updates.save", "Add update"]
+                </MudButton>
+            </MudStack>
+        }
+    </DialogContent>
+    <DialogActions>
+        <MudButton OnClick="Close">@L["close", "Close"]</MudButton>
+        <MudButton Variant="Variant.Outlined" OnClick="OpenEditAsync">@L["tasks.edit", "Edit task"]</MudButton>
+    </DialogActions>
+</MudDialog>
+
+@code {
+    [CascadingParameter] private IMudDialogInstance MudDialog { get; set; } = null!;
+    [Parameter] public int StaffTaskId { get; set; }
+    [Parameter] public int ActorMemberId { get; set; }
+    [Parameter] public bool CanManage { get; set; }
+
+    private bool _loading = true, _saving;
+    private StaffTaskDto? _task;
+    private string? _note;
+    private bool _changed;
+
+    protected override async Task OnInitializedAsync()
+    {
+        await L.EnsureLoadedAsync();
+        await ReloadAsync();
+    }
+
+    private async Task ReloadAsync()
+    {
+        _loading = true;
+        try { _task = await Tasks.GetByIdAsync(StaffTaskId); }
+        finally { _loading = false; }
+    }
+
+    private void Close() => MudDialog.Close(_changed ? DialogResult.Ok(true) : DialogResult.Cancel());
+
+    private void OpenEditAsync() => MudDialog.Close(DialogResult.Ok("edit"));
+
+    private async Task AddNoteAsync()
+    {
+        if (string.IsNullOrWhiteSpace(_note))
+        {
+            Snackbar.Add(L["tasks.updates.required", "Enter an update."], Severity.Warning);
+            return;
+        }
+        _saving = true;
+        try
+        {
+            var (ok, err, _) = await Tasks.AddNoteAsync(StaffTaskId, _note, ActorMemberId, CanManage);
+            if (!ok)
+            {
+                Snackbar.Add(err ?? L["save_failed", "Save failed"], Severity.Error);
+                return;
+            }
+            _note = null;
+            _changed = true;
+            Snackbar.Add(L["saved", "Saved."], Severity.Success);
+            await ReloadAsync();
+        }
+        finally { _saving = false; }
+    }
+
+    private string StatusLabel(byte status) => status switch
+    {
+        (byte)StaffTaskStatus.Open => L["tasks.status.open", "Open"],
+        (byte)StaffTaskStatus.InProgress => L["tasks.status.in_progress", "In progress"],
+        (byte)StaffTaskStatus.Done => L["tasks.status.done", "Done"],
+        (byte)StaffTaskStatus.Cancelled => L["tasks.status.cancelled", "Cancelled"],
+        _ => status.ToString(),
+    };
+
+    private static Color StatusColor(byte status) => status switch
+    {
+        (byte)StaffTaskStatus.Open => Color.Info,
+        (byte)StaffTaskStatus.InProgress => Color.Warning,
+        (byte)StaffTaskStatus.Done => Color.Success,
+        _ => Color.Default,
+    };
+
+    private string PriorityLabel(byte p) => p switch
+    {
+        (byte)StaffTaskPriority.Low => L["tasks.priority.low", "Low"],
+        (byte)StaffTaskPriority.High => L["tasks.priority.high", "High"],
+        (byte)StaffTaskPriority.Urgent => L["tasks.priority.urgent", "Urgent"],
+        _ => L["tasks.priority.normal", "Normal"],
+    };
+}

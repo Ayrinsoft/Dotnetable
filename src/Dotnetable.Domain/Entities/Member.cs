@@ -98,6 +98,8 @@ public partial class Member
 
     public virtual ICollection<StaffTask> StaffTaskCreatedByMembers { get; set; } = new List<StaffTask>();
 
+    public virtual ICollection<StaffTaskNote> StaffTaskNotes { get; set; } = new List<StaffTaskNote>();
+
     public virtual ICollection<VendorCreditTransaction> VendorCreditTransactions { get; set; } = new List<VendorCreditTransaction>();
 
     public virtual Vendor? Vendor { get; set; }

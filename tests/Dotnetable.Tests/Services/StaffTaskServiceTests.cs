@@ -217,4 +217,27 @@ public class StaffTaskServiceTests : IDisposable
         row!.Status.Should().Be((byte)StaffTaskStatus.Done);
         row.CompletedAt.Should().NotBeNull();
     }
+
+    [Fact]
+    public async Task AddNote_AppearsOnGetById_AndListCount()
+    {
+        var created = await _service.CreateAsync(Req(11), 10, true);
+        var id = created.Task!.StaffTaskID;
+
+        var (ok, err, note) = await _service.AddNoteAsync(id, "Customer called; waiting on inbound.", 11, false);
+        ok.Should().BeTrue(err);
+        note!.Body.Should().Contain("inbound");
+
+        var detail = await _service.GetByIdAsync(id);
+        detail!.Notes.Should().ContainSingle(n => n.Body.Contains("inbound"));
+        detail.NoteCount.Should().Be(1);
+
+        var list = await _service.ListAsync(new StaffTaskListFilter
+        {
+            WebsiteID = 1,
+            ActorMemberID = 11,
+            CanManage = false,
+        });
+        list.Should().Contain(t => t.StaffTaskID == id && t.NoteCount == 1);
+    }
 }

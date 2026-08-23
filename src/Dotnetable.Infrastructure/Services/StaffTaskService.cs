@@ -157,7 +157,15 @@ public class StaffTaskService : IStaffTaskService
                 .ThenByDescending(t => t.CreatedAt)
                 .Take(200)
                 .ToListAsync(token);
-            return (IReadOnlyList<StaffTaskDto>)rows.Select(Map).ToList();
+            var ids = rows.Select(t => t.StaffTaskID).ToList();
+            var noteCounts = await context.StaffTaskNotes.AsNoTracking()
+                .Where(n => ids.Contains(n.StaffTaskID))
+                .GroupBy(n => n.StaffTaskID)
+                .Select(g => new { g.Key, Count = g.Count() })
+                .ToDictionaryAsync(x => x.Key, x => x.Count, token);
+            return (IReadOnlyList<StaffTaskDto>)rows
+                .Select(t => Map(t, noteCounts.GetValueOrDefault(t.StaffTaskID)))
+                .ToList();
         }, ct);
 
     public Task<IReadOnlyList<(byte Status, int Count)>> CountByStatusAsync(
@@ -187,8 +195,9 @@ public class StaffTaskService : IStaffTaskService
             var row = await context.StaffTasks.AsNoTracking()
                 .Include(t => t.AssignedMember)
                 .Include(t => t.CreatedByMember)
+                .Include(t => t.StaffTaskNotes).ThenInclude(n => n.CreatedByMember)
                 .FirstOrDefaultAsync(t => t.StaffTaskID == staffTaskId, token);
-            return row is null ? null : Map(row);
+            return row is null ? null : Map(row, includeNotes: true);
         }, ct);
 
     public Task<(bool Success, string? Error, StaffTaskDto? Task)> CreateAsync(
@@ -292,6 +301,59 @@ public class StaffTaskService : IStaffTaskService
             context.StaffTasks.Remove(row);
             await context.SaveChangesAsync(token);
             return (true, (string?)null);
+        }, ct);
+
+    public Task<(bool Success, string? Error, StaffTaskNoteDto? Note)> AddNoteAsync(
+        int staffTaskId, string body, int actorMemberId, bool canManage, CancellationToken ct = default)
+        => _db.UseAsync(async (context, token) =>
+        {
+            var text = body?.Trim() ?? "";
+            if (text.Length == 0) return (false, "Please enter an update.", (StaffTaskNoteDto?)null);
+
+            var row = await context.StaffTasks.FirstOrDefaultAsync(t => t.StaffTaskID == staffTaskId, token);
+            if (row is null) return (false, "Task not found.", (StaffTaskNoteDto?)null);
+            if (!CanEdit(row, actorMemberId, canManage))
+                return (false, "You cannot update this task.", (StaffTaskNoteDto?)null);
+
+            var now = DateTime.UtcNow;
+            var note = new StaffTaskNote
+            {
+                StaffTaskID = row.StaffTaskID,
+                CreatedByMemberID = actorMemberId,
+                Body = Truncate(text, 2000) ?? text,
+                CreatedAt = now,
+            };
+            context.StaffTaskNotes.Add(note);
+            row.UpdatedAt = now;
+            await context.SaveChangesAsync(token);
+
+            if (row.AssignedMemberID != actorMemberId)
+            {
+                try
+                {
+                    await _notifications.NotifyMemberAsync(
+                        row.AssignedMemberID,
+                        row.WebsiteID,
+                        AdminNotificationType.StaffTask,
+                        "Task update",
+                        Truncate(row.Title + ": " + text, 200) ?? text,
+                        "/tasks",
+                        row.StaffTaskID,
+                        token);
+                }
+                catch { /* note is saved */ }
+            }
+
+            var author = await context.Members.AsNoTracking()
+                .FirstOrDefaultAsync(m => m.MemberID == actorMemberId, token);
+            return (true, (string?)null, new StaffTaskNoteDto
+            {
+                StaffTaskNoteID = note.StaffTaskNoteID,
+                CreatedByMemberID = actorMemberId,
+                CreatedByMemberName = NameOf(author),
+                Body = note.Body,
+                CreatedAt = note.CreatedAt,
+            });
         }, ct);
 
     private static IQueryable<StaffTask> ApplyFilter(IQueryable<StaffTask> q, StaffTaskListFilter filter)
@@ -420,9 +482,22 @@ public class StaffTaskService : IStaffTaskService
         }
     }
 
-    private static StaffTaskDto Map(StaffTask t)
+    private static StaffTaskDto Map(StaffTask t, int noteCount = 0, bool includeNotes = false)
     {
         var kind = (StaffTaskRelatedKind)t.RelatedKind;
+        var notes = includeNotes
+            ? t.StaffTaskNotes
+                .OrderBy(n => n.CreatedAt)
+                .Select(n => new StaffTaskNoteDto
+                {
+                    StaffTaskNoteID = n.StaffTaskNoteID,
+                    CreatedByMemberID = n.CreatedByMemberID,
+                    CreatedByMemberName = NameOf(n.CreatedByMember),
+                    Body = n.Body,
+                    CreatedAt = n.CreatedAt,
+                })
+                .ToList()
+            : new List<StaffTaskNoteDto>();
         return new StaffTaskDto
         {
             StaffTaskID = t.StaffTaskID,
@@ -443,6 +518,8 @@ public class StaffTaskService : IStaffTaskService
             RelatedUrl = StaffTaskRelated.Url(kind, t.RelatedEntityID),
             CreatedAt = t.CreatedAt,
             UpdatedAt = t.UpdatedAt,
+            NoteCount = includeNotes ? notes.Count : noteCount,
+            Notes = notes,
         };
     }
 

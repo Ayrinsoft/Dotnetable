@@ -138,6 +138,7 @@ public partial class AppDbContext : DbContext
     public virtual DbSet<StockDocumentLine> StockDocumentLines { get; set; }
     public virtual DbSet<StockDocumentHistory> StockDocumentHistories { get; set; }
     public virtual DbSet<StaffTask> StaffTasks { get; set; }
+    public virtual DbSet<StaffTaskNote> StaffTaskNotes { get; set; }
     public virtual DbSet<CustomerReturnRequest> CustomerReturnRequests { get; set; }
     public virtual DbSet<CustomerReturnRequestLine> CustomerReturnRequestLines { get; set; }
     public virtual DbSet<CustomerReturnRequestHistory> CustomerReturnRequestHistories { get; set; }
@@ -701,6 +702,22 @@ public partial class AppDbContext : DbContext
                 .HasForeignKey(d => d.CreatedByMemberID)
                 .OnDelete(DeleteBehavior.ClientSetNull)
                 .HasConstraintName("FK_StaffTasks_CreatedByMembers");
+        });
+        modelBuilder.Entity<StaffTaskNote>(entity =>
+        {
+            entity.Property(e => e.Body).HasMaxLength(2000);
+            entity.Property(e => e.CreatedAt).HasColumnType("datetime");
+            entity.HasIndex(e => e.StaffTaskID, "IX_StaffTaskNotes_StaffTaskID");
+            entity.HasIndex(e => e.CreatedByMemberID, "IX_StaffTaskNotes_CreatedByMemberID");
+            entity.HasIndex(e => e.CreatedAt, "IX_StaffTaskNotes_CreatedAt");
+            entity.HasOne(d => d.StaffTask).WithMany(p => p.StaffTaskNotes)
+                .HasForeignKey(d => d.StaffTaskID)
+                .OnDelete(DeleteBehavior.Cascade)
+                .HasConstraintName("FK_StaffTaskNotes_StaffTasks");
+            entity.HasOne(d => d.CreatedByMember).WithMany(p => p.StaffTaskNotes)
+                .HasForeignKey(d => d.CreatedByMemberID)
+                .OnDelete(DeleteBehavior.ClientSetNull)
+                .HasConstraintName("FK_StaffTaskNotes_CreatedByMembers");
         });
         modelBuilder.Entity<CustomerReturnRequest>(entity =>
         {
