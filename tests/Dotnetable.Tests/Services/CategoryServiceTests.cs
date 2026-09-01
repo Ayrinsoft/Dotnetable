@@ -20,7 +20,10 @@ public class CategoryServiceTests : IDisposable
             .UseInMemoryDatabase(Guid.NewGuid().ToString())
             .Options;
         _context = new AppDbContext(opts);
-        _service = new CategoryService(_context);
+        // Services open a context per call now, so they get a factory over the same options;
+        // the fixture keeps its own _context for seeding and asserting.
+        var factory = new TestDbContextFactory(opts);
+        _service = new CategoryService(factory);
         _website = new Website
         {
             TradeName = "Test", WebsiteAddress = "test.com", AuthCode = Guid.NewGuid(),

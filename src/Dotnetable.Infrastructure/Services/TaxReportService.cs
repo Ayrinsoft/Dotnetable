@@ -9,12 +9,14 @@ namespace Dotnetable.Infrastructure.Services;
 
 public class TaxReportService : ITaxReportService
 {
-    private readonly AppDbContext _context;
+    private readonly IDbContextFactory<AppDbContext> _contextFactory;
 
-    public TaxReportService(AppDbContext context) => _context = context;
+    public TaxReportService(IDbContextFactory<AppDbContext> contextFactory) => _contextFactory = contextFactory;
 
     public async Task<VatReportDto> GetVatReportAsync(VatReportRequest request, CancellationToken ct = default)
     {
+        await using var _context = await _contextFactory.CreateDbContextAsync(ct);
+
         var website = await _context.Websites.AsNoTracking()
             .FirstOrDefaultAsync(w => w.WebsiteID == request.WebsiteId, ct)
             ?? throw new InvalidOperationException("Website not found.");
@@ -135,6 +137,8 @@ public class TaxReportService : ITaxReportService
 
     public async Task<OrderInvoiceDto?> GetOrderInvoiceAsync(int orderId, CancellationToken ct = default)
     {
+        await using var _context = await _contextFactory.CreateDbContextAsync(ct);
+
         var order = await _context.Orders.AsNoTracking()
             .Include(o => o.OrderItems).ThenInclude(i => i.ProductVariant)
             .Include(o => o.WebsiteClient)

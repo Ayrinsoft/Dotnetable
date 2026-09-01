@@ -10,17 +10,19 @@ namespace Dotnetable.Infrastructure.Services;
 
 public class SettlementService : ISettlementService
 {
-    private readonly AppDbContext _context;
+    private readonly IDbContextFactory<AppDbContext> _contextFactory;
     private readonly IFinancialLedgerService _ledger;
 
-    public SettlementService(AppDbContext context, IFinancialLedgerService ledger)
+    public SettlementService(IDbContextFactory<AppDbContext> contextFactory, IFinancialLedgerService ledger)
     {
-        _context = context;
+        _contextFactory = contextFactory;
         _ledger = ledger;
     }
 
     public async Task<PagedResult<Settlement>> GetPagedAsync(int websiteId, GridQuery query, CancellationToken ct = default)
     {
+        await using var _context = await _contextFactory.CreateDbContextAsync(ct);
+
         var q = _context.Settlements.AsNoTracking()
             .Include(s => s.Vendor)
             .Include(s => s.Supplier)
@@ -41,17 +43,23 @@ public class SettlementService : ISettlementService
         return new PagedResult<Settlement> { Items = items, TotalCount = total };
     }
 
-    public async Task<Settlement?> GetByIdAsync(int settlementId, CancellationToken ct = default) =>
-        await _context.Settlements.AsNoTracking()
+    public async Task<Settlement?> GetByIdAsync(int settlementId, CancellationToken ct = default)
+    {
+        await using var _context = await _contextFactory.CreateDbContextAsync(ct);
+
+        return await _context.Settlements.AsNoTracking()
             .Include(s => s.Vendor)
             .Include(s => s.Supplier)
             .Include(s => s.TargetWebsite)
             .Include(s => s.BankAccount)
             .Include(s => s.SettlementItems)
             .FirstOrDefaultAsync(s => s.SettlementID == settlementId, ct);
+    }
 
     public async Task<bool> ApproveAsync(int settlementId, int? memberId, CancellationToken ct = default)
     {
+        await using var _context = await _contextFactory.CreateDbContextAsync(ct);
+
         var s = await _context.Settlements.FirstOrDefaultAsync(x => x.SettlementID == settlementId, ct);
         if (s is null) return false;
         if (s.Status is not ((byte)SettlementStatus.Open or (byte)SettlementStatus.Draft))
@@ -65,6 +73,8 @@ public class SettlementService : ISettlementService
 
     public async Task<bool> MarkPaidAsync(int settlementId, int? bankAccountId, string? paymentRef, int? memberId, CancellationToken ct = default)
     {
+        await using var _context = await _contextFactory.CreateDbContextAsync(ct);
+
         var s = await _context.Settlements.FirstOrDefaultAsync(x => x.SettlementID == settlementId, ct);
         if (s is null) return false;
         if (s.Status is (byte)SettlementStatus.Paid or (byte)SettlementStatus.Cancelled)
@@ -103,6 +113,8 @@ public class SettlementService : ISettlementService
 
     public async Task<bool> CancelAsync(int settlementId, string? note, int? memberId, CancellationToken ct = default)
     {
+        await using var _context = await _contextFactory.CreateDbContextAsync(ct);
+
         var s = await _context.Settlements.FirstOrDefaultAsync(x => x.SettlementID == settlementId, ct);
         if (s is null) return false;
         if (s.Status == (byte)SettlementStatus.Paid) return false;
@@ -118,6 +130,8 @@ public class SettlementService : ISettlementService
     public async Task<IReadOnlyList<SettlementFxReportRow>> GetFxReportAsync(
         int websiteId, DateOnly? from, DateOnly? to, int? vendorId, CancellationToken ct = default)
     {
+        await using var _context = await _contextFactory.CreateDbContextAsync(ct);
+
         var q = _context.Settlements.AsNoTracking()
             .Include(s => s.Vendor)
             .Include(s => s.Supplier)

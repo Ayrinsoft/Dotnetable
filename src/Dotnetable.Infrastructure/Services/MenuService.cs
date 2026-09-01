@@ -10,14 +10,16 @@ namespace Dotnetable.Infrastructure.Services;
 
 public class MenuService : IMenuService
 {
-    private readonly AppDbContext _context;
+    private readonly IDbContextFactory<AppDbContext> _contextFactory;
 
-    public MenuService(AppDbContext context) => _context = context;
+    public MenuService(IDbContextFactory<AppDbContext> contextFactory) => _contextFactory = contextFactory;
 
     // ── Menus ───────────────────────────────────────────────────────
 
     public async Task<List<Menu>> GetMenusAsync(int? websiteId, CancellationToken ct = default)
     {
+        await using var _context = await _contextFactory.CreateDbContextAsync(ct);
+
         var q = _context.Menus.AsNoTracking();
         if (websiteId is int wid)
             q = q.Where(m => m.WebsiteID == wid);
@@ -26,6 +28,8 @@ public class MenuService : IMenuService
 
     public async Task<PagedResult<Menu>> GetMenusPagedAsync(int? websiteId, GridQuery query, CancellationToken ct = default)
     {
+        await using var _context = await _contextFactory.CreateDbContextAsync(ct);
+
         var q = _context.Menus.AsNoTracking().Include(m => m.MenuItems).AsQueryable();
         if (websiteId is int wid)
             q = q.Where(m => m.WebsiteID == wid);
@@ -46,12 +50,17 @@ public class MenuService : IMenuService
         return new PagedResult<Menu> { Items = items, TotalCount = total };
     }
 
-    public async Task<Menu?> GetMenuAsync(int menuId, CancellationToken ct = default) =>
-        await _context.Menus.FindAsync([menuId], ct);
+    public async Task<Menu?> GetMenuAsync(int menuId, CancellationToken ct = default)
+    {
+        await using var _context = await _contextFactory.CreateDbContextAsync(ct);
+
+        return await _context.Menus.FindAsync([menuId], ct);
+    }
 
     public async Task<Menu> CreateMenuAsync(Menu menu, CancellationToken ct = default)
     {
-        DetachTracked(_context.Menus, menu.MenuID, m => m.MenuID);
+        await using var _context = await _contextFactory.CreateDbContextAsync(ct);
+
         _context.Menus.Add(menu);
         await _context.SaveChangesAsync(ct);
         return menu;
@@ -59,13 +68,16 @@ public class MenuService : IMenuService
 
     public async Task UpdateMenuAsync(Menu menu, CancellationToken ct = default)
     {
-        DetachTracked(_context.Menus, menu.MenuID, m => m.MenuID);
+        await using var _context = await _contextFactory.CreateDbContextAsync(ct);
+
         _context.Menus.Update(menu);
         await _context.SaveChangesAsync(ct);
     }
 
     public async Task DeleteMenuAsync(int menuId, CancellationToken ct = default)
     {
+        await using var _context = await _contextFactory.CreateDbContextAsync(ct);
+
         var menu = await _context.Menus
             .Include(m => m.MenuItems).ThenInclude(i => i.MenuItemTranslations)
             .FirstOrDefaultAsync(m => m.MenuID == menuId, ct);
@@ -81,18 +93,27 @@ public class MenuService : IMenuService
 
     // ── Items ───────────────────────────────────────────────────────
 
-    public async Task<List<MenuItem>> GetItemsAsync(int menuId, CancellationToken ct = default) =>
-        await _context.MenuItems.AsNoTracking()
+    public async Task<List<MenuItem>> GetItemsAsync(int menuId, CancellationToken ct = default)
+    {
+        await using var _context = await _contextFactory.CreateDbContextAsync(ct);
+
+        return await _context.MenuItems.AsNoTracking()
             .Where(i => i.MenuID == menuId)
             .OrderBy(i => i.SortOrder).ThenBy(i => i.MenuItemID)
             .ToListAsync(ct);
+    }
 
-    public async Task<MenuItem?> GetItemAsync(int itemId, CancellationToken ct = default) =>
-        await _context.MenuItems.FindAsync([itemId], ct);
+    public async Task<MenuItem?> GetItemAsync(int itemId, CancellationToken ct = default)
+    {
+        await using var _context = await _contextFactory.CreateDbContextAsync(ct);
+
+        return await _context.MenuItems.FindAsync([itemId], ct);
+    }
 
     public async Task<MenuItem> CreateItemAsync(MenuItem item, CancellationToken ct = default)
     {
-        DetachTracked(_context.MenuItems, item.MenuItemID, i => i.MenuItemID);
+        await using var _context = await _contextFactory.CreateDbContextAsync(ct);
+
         _context.MenuItems.Add(item);
         await _context.SaveChangesAsync(ct);
         return item;
@@ -100,13 +121,16 @@ public class MenuService : IMenuService
 
     public async Task UpdateItemAsync(MenuItem item, CancellationToken ct = default)
     {
-        DetachTracked(_context.MenuItems, item.MenuItemID, i => i.MenuItemID);
+        await using var _context = await _contextFactory.CreateDbContextAsync(ct);
+
         _context.MenuItems.Update(item);
         await _context.SaveChangesAsync(ct);
     }
 
     public async Task DeleteItemAsync(int itemId, CancellationToken ct = default)
     {
+        await using var _context = await _contextFactory.CreateDbContextAsync(ct);
+
         var item = await _context.MenuItems
             .Include(i => i.MenuItemTranslations)
             .Include(i => i.InverseParentItem)
@@ -124,13 +148,19 @@ public class MenuService : IMenuService
 
     // ── Translations ────────────────────────────────────────────────
 
-    public async Task<List<MenuItemTranslation>> GetItemTranslationsAsync(int itemId, CancellationToken ct = default) =>
-        await _context.MenuItemTranslations.AsNoTracking()
+    public async Task<List<MenuItemTranslation>> GetItemTranslationsAsync(int itemId, CancellationToken ct = default)
+    {
+        await using var _context = await _contextFactory.CreateDbContextAsync(ct);
+
+        return await _context.MenuItemTranslations.AsNoTracking()
             .Where(t => t.MenuItemID == itemId)
             .ToListAsync(ct);
+    }
 
     public async Task SetItemTranslationsAsync(int itemId, IReadOnlyDictionary<string, string> titlesByLanguage, CancellationToken ct = default)
     {
+        await using var _context = await _contextFactory.CreateDbContextAsync(ct);
+
         var existing = await _context.MenuItemTranslations
             .Where(t => t.MenuItemID == itemId)
             .ToListAsync(ct);
@@ -164,18 +194,24 @@ public class MenuService : IMenuService
 
     public async Task<MenuDto?> GetByLocationAsync(int websiteId, MenuLocation location, string? languageCode = null, CancellationToken ct = default)
     {
-        var menu = await LoadActiveMenusQuery(websiteId)
+        await using var _context = await _contextFactory.CreateDbContextAsync(ct);
+
+        var menu = await LoadActiveMenusQuery(_context, websiteId)
             .FirstOrDefaultAsync(m => m.Location == (byte)location, ct);
         return menu is null ? null : Project(menu, languageCode);
     }
 
     public async Task<List<MenuDto>> GetActiveMenusAsync(int websiteId, string? languageCode = null, CancellationToken ct = default)
     {
-        var menus = await LoadActiveMenusQuery(websiteId).ToListAsync(ct);
+        await using var _context = await _contextFactory.CreateDbContextAsync(ct);
+
+        var menus = await LoadActiveMenusQuery(_context, websiteId).ToListAsync(ct);
         return menus.Select(m => Project(m, languageCode)).ToList();
     }
 
-    private IQueryable<Menu> LoadActiveMenusQuery(int websiteId) =>
+    // Takes the caller's context: an IQueryable is only valid while the context that built it is
+    // alive, so it must not open one of its own.
+    private static IQueryable<Menu> LoadActiveMenusQuery(AppDbContext _context, int websiteId) =>
         _context.Menus.AsNoTracking()
             .Where(m => m.WebsiteID == websiteId && m.IsActive)
             .Include(m => m.MenuItems.Where(i => i.IsActive))
@@ -249,14 +285,4 @@ public class MenuService : IMenuService
         };
     }
 
-    /// <summary>Detaches any stale tracked instance with the same key before an Add/Update. AppDbContext is
-    /// scoped per Blazor Server circuit (not per request), so an entity saved earlier in the same session
-    /// stays tracked and would otherwise collide with a fresh detached copy carrying the same primary key.</summary>
-    private void DetachTracked<TEntity>(DbSet<TEntity> set, int key, Func<TEntity, int> keySelector) where TEntity : class
-    {
-        if (key == 0) return; // 0 = not-yet-persisted; there's no real identity to collide on.
-        var local = set.Local.FirstOrDefault(e => keySelector(e) == key);
-        if (local is not null)
-            _context.Entry(local).State = EntityState.Detached;
-    }
 }

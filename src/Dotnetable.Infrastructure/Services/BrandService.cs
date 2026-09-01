@@ -9,12 +9,14 @@ namespace Dotnetable.Infrastructure.Services;
 
 public class BrandService : IBrandService
 {
-    private readonly AppDbContext _context;
+    private readonly IDbContextFactory<AppDbContext> _contextFactory;
 
-    public BrandService(AppDbContext context) => _context = context;
+    public BrandService(IDbContextFactory<AppDbContext> contextFactory) => _contextFactory = contextFactory;
 
     public async Task<List<Brand>> GetAllAsync(int? websiteId, CancellationToken ct = default)
     {
+        await using var _context = await _contextFactory.CreateDbContextAsync(ct);
+
         var q = _context.Brands.AsNoTracking();
         if (websiteId is int wid)
             q = q.Where(b => b.WebsiteID == wid);
@@ -23,6 +25,8 @@ public class BrandService : IBrandService
 
     public async Task<PagedResult<Brand>> GetPagedAsync(int? websiteId, GridQuery query, CancellationToken ct = default)
     {
+        await using var _context = await _contextFactory.CreateDbContextAsync(ct);
+
         var q = _context.Brands.AsNoTracking();
         if (websiteId is int wid)
             q = q.Where(b => b.WebsiteID == wid);
@@ -41,11 +45,17 @@ public class BrandService : IBrandService
         return new PagedResult<Brand> { Items = items, TotalCount = total };
     }
 
-    public async Task<Brand?> GetByIdAsync(int brandId, CancellationToken ct = default) =>
-        await _context.Brands.FindAsync([brandId], ct);
+    public async Task<Brand?> GetByIdAsync(int brandId, CancellationToken ct = default)
+    {
+        await using var _context = await _contextFactory.CreateDbContextAsync(ct);
+
+        return await _context.Brands.FindAsync([brandId], ct);
+    }
 
     public async Task<Brand> CreateAsync(Brand brand, CancellationToken ct = default)
     {
+        await using var _context = await _contextFactory.CreateDbContextAsync(ct);
+
         _context.Brands.Add(brand);
         await _context.SaveChangesAsync(ct);
         return brand;
@@ -53,12 +63,16 @@ public class BrandService : IBrandService
 
     public async Task UpdateAsync(Brand brand, CancellationToken ct = default)
     {
+        await using var _context = await _contextFactory.CreateDbContextAsync(ct);
+
         _context.Brands.Update(brand);
         await _context.SaveChangesAsync(ct);
     }
 
     public async Task DeleteAsync(int brandId, CancellationToken ct = default)
     {
+        await using var _context = await _contextFactory.CreateDbContextAsync(ct);
+
         var brand = await _context.Brands
             .Include(b => b.BrandTranslations)
             .Include(b => b.Products)
@@ -72,13 +86,19 @@ public class BrandService : IBrandService
         await _context.SaveChangesAsync(ct);
     }
 
-    public async Task<List<BrandTranslation>> GetTranslationsAsync(int brandId, CancellationToken ct = default) =>
-        await _context.BrandTranslations.AsNoTracking()
+    public async Task<List<BrandTranslation>> GetTranslationsAsync(int brandId, CancellationToken ct = default)
+    {
+        await using var _context = await _contextFactory.CreateDbContextAsync(ct);
+
+        return await _context.BrandTranslations.AsNoTracking()
             .Where(t => t.BrandID == brandId)
             .ToListAsync(ct);
+    }
 
     public async Task SetTranslationsAsync(int brandId, IReadOnlyDictionary<string, (string Name, string Slug)> byLanguage, CancellationToken ct = default)
     {
+        await using var _context = await _contextFactory.CreateDbContextAsync(ct);
+
         var existing = await _context.BrandTranslations
             .Where(t => t.BrandID == brandId)
             .ToListAsync(ct);
@@ -115,6 +135,8 @@ public class BrandService : IBrandService
 
     public async Task<List<BrandDto>> GetActiveAsync(int websiteId, string? languageCode = null, CancellationToken ct = default)
     {
+        await using var _context = await _contextFactory.CreateDbContextAsync(ct);
+
         var brands = await _context.Brands.AsNoTracking()
             .Where(b => b.WebsiteID == websiteId && b.IsActive)
             .Include(b => b.BrandTranslations)

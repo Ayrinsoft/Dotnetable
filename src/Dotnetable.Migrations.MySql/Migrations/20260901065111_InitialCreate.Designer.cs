@@ -11,7 +11,7 @@ using Microsoft.EntityFrameworkCore.Storage.ValueConversion;
 namespace Dotnetable.Migrations.MySql.Migrations
 {
     [DbContext(typeof(AppDbContext))]
-    [Migration("20260831165708_InitialCreate")]
+    [Migration("20260901065111_InitialCreate")]
     partial class InitialCreate
     {
         /// <inheritdoc />
@@ -7848,29 +7848,35 @@ namespace Dotnetable.Migrations.MySql.Migrations
                     b.HasOne("Dotnetable.Domain.Entities.Order", "Order")
                         .WithMany()
                         .HasForeignKey("OrderID")
-                        .IsRequired();
+                        .IsRequired()
+                        .HasConstraintName("FK_CustomerReturnRequests_Orders");
 
                     b.HasOne("Dotnetable.Domain.Entities.Warehouse", "ReceivedWarehouse")
                         .WithMany()
-                        .HasForeignKey("ReceivedWarehouseID");
+                        .HasForeignKey("ReceivedWarehouseID")
+                        .HasConstraintName("FK_CustomerReturnRequests_ReceivedWarehouse");
 
                     b.HasOne("Dotnetable.Domain.Entities.Member", "ReviewedByMember")
                         .WithMany()
-                        .HasForeignKey("ReviewedByMemberID");
+                        .HasForeignKey("ReviewedByMemberID")
+                        .HasConstraintName("FK_CustomerReturnRequests_Members");
 
                     b.HasOne("Dotnetable.Domain.Entities.StockDocument", "StockDocument")
                         .WithMany()
-                        .HasForeignKey("StockDocumentID");
+                        .HasForeignKey("StockDocumentID")
+                        .HasConstraintName("FK_CustomerReturnRequests_StockDocuments");
 
                     b.HasOne("Dotnetable.Domain.Entities.WebsiteClient", "WebsiteClient")
                         .WithMany()
                         .HasForeignKey("WebsiteClientID")
-                        .IsRequired();
+                        .IsRequired()
+                        .HasConstraintName("FK_CustomerReturnRequests_WebsiteClients");
 
                     b.HasOne("Dotnetable.Domain.Entities.Website", "Website")
                         .WithMany()
                         .HasForeignKey("WebsiteID")
-                        .IsRequired();
+                        .IsRequired()
+                        .HasConstraintName("FK_CustomerReturnRequests_Websites");
 
                     b.Navigation("Order");
 
@@ -7889,12 +7895,14 @@ namespace Dotnetable.Migrations.MySql.Migrations
                 {
                     b.HasOne("Dotnetable.Domain.Entities.Member", "CreatedByMember")
                         .WithMany()
-                        .HasForeignKey("CreatedByMemberID");
+                        .HasForeignKey("CreatedByMemberID")
+                        .HasConstraintName("FK_CustomerReturnRequestHistories_Members");
 
                     b.HasOne("Dotnetable.Domain.Entities.CustomerReturnRequest", "ReturnRequest")
                         .WithMany("Histories")
                         .HasForeignKey("CustomerReturnRequestID")
-                        .IsRequired();
+                        .IsRequired()
+                        .HasConstraintName("FK_CustomerReturnRequestHistories_Requests");
 
                     b.Navigation("CreatedByMember");
 
@@ -7906,12 +7914,14 @@ namespace Dotnetable.Migrations.MySql.Migrations
                     b.HasOne("Dotnetable.Domain.Entities.CustomerReturnRequest", "ReturnRequest")
                         .WithMany("Lines")
                         .HasForeignKey("CustomerReturnRequestID")
-                        .IsRequired();
+                        .IsRequired()
+                        .HasConstraintName("FK_CustomerReturnRequestLines_Requests");
 
                     b.HasOne("Dotnetable.Domain.Entities.OrderItem", "OrderItem")
                         .WithMany()
                         .HasForeignKey("OrderItemID")
-                        .IsRequired();
+                        .IsRequired()
+                        .HasConstraintName("FK_CustomerReturnRequestLines_OrderItems");
 
                     b.Navigation("OrderItem");
 

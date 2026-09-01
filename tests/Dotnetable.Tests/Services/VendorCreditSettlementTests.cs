@@ -14,6 +14,7 @@ namespace Dotnetable.Tests.Services;
 public class VendorCreditSettlementTests : IDisposable
 {
     private readonly AppDbContext _context;
+    private readonly TestDbContextFactory _factory;
     private readonly VendorCreditService _service;
 
     public VendorCreditSettlementTests()
@@ -23,6 +24,9 @@ public class VendorCreditSettlementTests : IDisposable
             .ConfigureWarnings(w => w.Ignore(Microsoft.EntityFrameworkCore.Diagnostics.InMemoryEventId.TransactionIgnoredWarning))
             .Options;
         _context = new AppDbContext(opts);
+        // Services open a context per call now, so they get a _factory over the same options;
+        // the fixture keeps its own _context for seeding and asserting.
+        _factory = new TestDbContextFactory(opts);
 
         var tax = new Mock<ITaxService>();
         tax.Setup(t => t.ComputeTaxDetailedAsync(
@@ -54,7 +58,7 @@ public class VendorCreditSettlementTests : IDisposable
                 It.IsAny<bool>(), It.IsAny<int?>(), It.IsAny<CancellationToken>()))
             .Returns(Task.CompletedTask);
 
-        _service = new VendorCreditService(_context, vendors.Object, currency.Object, suppliers.Object, tax.Object, ledger.Object);
+        _service = new VendorCreditService(_factory, vendors.Object, currency.Object, suppliers.Object, tax.Object, ledger.Object);
         Seed();
     }
 
@@ -196,7 +200,7 @@ public class VendorCreditSettlementTests : IDisposable
                 };
             });
         var service = new VendorCreditService(
-            _context, new Mock<IVendorService>().Object, currency.Object,
+            _factory, new Mock<IVendorService>().Object, currency.Object,
             new Mock<ISupplierService>().Object, tax.Object, new Mock<IFinancialLedgerService>().Object);
 
         await service.SettleHostOrderAsync(50);

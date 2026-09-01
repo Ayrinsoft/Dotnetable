@@ -10,20 +10,28 @@ namespace Dotnetable.Infrastructure.Services;
 
 public class SupplierService : ISupplierService
 {
-    // Prefer ambient UoW context when OrderService (etc.) has an open multi-service transaction.
-    private readonly AppDbContext _fallback;
-    private AppDbContext _context => AmbientDbContext.Current ?? _fallback;
+    // Contexts come from DbLease per operation: it joins an ambient transaction when one is in
+    // flight and otherwise opens a short-lived context, so nothing is shared across a circuit.
+    private readonly IDbContextFactory<AppDbContext> _contextFactory;
 
-    public SupplierService(AppDbContext context) => _fallback = context;
+    public SupplierService(IDbContextFactory<AppDbContext> contextFactory) => _contextFactory = contextFactory;
 
-    public async Task<List<Supplier>> GetAllAsync(int websiteId, CancellationToken ct = default) =>
-        await _context.Suppliers.AsNoTracking()
+    public async Task<List<Supplier>> GetAllAsync(int websiteId, CancellationToken ct = default)
+    {
+        await using var _lease = await DbLease.OpenAsync(_contextFactory, ct);
+        var _context = _lease.Context;
+
+        return await _context.Suppliers.AsNoTracking()
             .Where(s => s.WebsiteID == websiteId)
             .OrderBy(s => s.Name)
             .ToListAsync(ct);
+    }
 
     public async Task<PagedResult<Supplier>> GetPagedAsync(int websiteId, GridQuery query, CancellationToken ct = default)
     {
+        await using var _lease = await DbLease.OpenAsync(_contextFactory, ct);
+        var _context = _lease.Context;
+
         var q = _context.Suppliers.AsNoTracking()
             .Include(s => s.Country)
             .Include(s => s.LinkedWebsite)
@@ -43,15 +51,23 @@ public class SupplierService : ISupplierService
         return new PagedResult<Supplier> { Items = items, TotalCount = total };
     }
 
-    public async Task<Supplier?> GetByIdAsync(int id, CancellationToken ct = default) =>
-        await _context.Suppliers
+    public async Task<Supplier?> GetByIdAsync(int id, CancellationToken ct = default)
+    {
+        await using var _lease = await DbLease.OpenAsync(_contextFactory, ct);
+        var _context = _lease.Context;
+
+        return await _context.Suppliers
             .Include(s => s.Country)
             .Include(s => s.LinkedWebsite)
             .Include(s => s.LinkedVendor)
             .FirstOrDefaultAsync(s => s.SupplierID == id, ct);
+    }
 
     public async Task<Supplier> CreateAsync(Supplier supplier, CancellationToken ct = default)
     {
+        await using var _lease = await DbLease.OpenAsync(_contextFactory, ct);
+        var _context = _lease.Context;
+
         Normalize(supplier);
         if (supplier.CreatedAt == default)
             supplier.CreatedAt = DateTime.UtcNow;
@@ -62,6 +78,9 @@ public class SupplierService : ISupplierService
 
     public async Task UpdateAsync(Supplier supplier, CancellationToken ct = default)
     {
+        await using var _lease = await DbLease.OpenAsync(_contextFactory, ct);
+        var _context = _lease.Context;
+
         var existing = await _context.Suppliers.FirstOrDefaultAsync(s => s.SupplierID == supplier.SupplierID, ct);
         if (existing is null) return;
 
@@ -95,6 +114,9 @@ public class SupplierService : ISupplierService
 
     public async Task DeleteAsync(int id, CancellationToken ct = default)
     {
+        await using var _lease = await DbLease.OpenAsync(_contextFactory, ct);
+        var _context = _lease.Context;
+
         var entity = await _context.Suppliers.FindAsync([id], ct);
         if (entity is null) return;
         _context.Suppliers.Remove(entity);
@@ -108,6 +130,9 @@ public class SupplierService : ISupplierService
     public async Task<int> EnsureLinkedWebsiteSupplierAsync(
         int hostWebsiteId, int sourceWebsiteId, string? displayName, CancellationToken ct = default)
     {
+        await using var _lease = await DbLease.OpenAsync(_contextFactory, ct);
+        var _context = _lease.Context;
+
         var existing = await _context.Suppliers.FirstOrDefaultAsync(s =>
             s.WebsiteID == hostWebsiteId
             && s.SupplierType == (byte)SupplierType.LinkedWebsite

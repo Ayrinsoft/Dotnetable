@@ -4,11 +4,44 @@
 
 **Never inject `AppDbContext` as a field** on an application service. Blazor runs layout + page + child components (several `RecordAttachmentsPanel`s on an order, nav, etc.) in parallel on one circuit scope. A scoped service holding one context throws `A second operation was started on this context instance`.
 
-**Required pattern:** inject `IDbContextFactory<AppDbContext>` and open a short-lived context per call (`CreateDbContextAsync` / `DbContextFactoryExtensions.UseAsync`). For multi-service transactions, use `UseAmbientOrCreateAsync` so nested work joins `AmbientDbContext` when OrderService (etc.) has pushed one.
+**Every service now follows this.** The conversion is done — the only remaining holders are `UnitOfWork` and `GenericRepository<T>`, both registered in DI and resolved by nothing.
 
-Do not add a new service with `private readonly AppDbContext _context`. `DbContextFieldTests.No_New_Service_May_Hold_An_AppDbContext_Field` enforces this.
+**Required pattern**, one of two:
 
-That test carries a **baseline** of the ~70 services written before the rule. The list may shrink, never grow: convert a service to the factory and delete its name (a stale entry fails `Baseline_Contains_No_Stale_Entries`). Adding a name to the baseline to make a new service compile defeats the entire guard.
+```csharp
+// Ordinary service: a short-lived context per call.
+public async Task<X> GetAsync(int id, CancellationToken ct = default)
+{
+    await using var _context = await _contextFactory.CreateDbContextAsync(ct);
+    return await _context.Xs.FirstOrDefaultAsync(...);
+}
+
+// Service that takes part in cross-service transactions (inventory, wallet, ledger, stock docs):
+public async Task<X> GetAsync(int id, CancellationToken ct = default)
+{
+    await using var _lease = await DbLease.OpenAsync(_contextFactory, ct);
+    var _context = _lease.Context;
+    ...
+}
+```
+
+`DbLease` joins `AmbientDbContext.Current` when a caller has pushed one (so the work lands inside their transaction) and otherwise opens its own, disposing only what it created. The local is named `_context` on purpose: it keeps method bodies uniform and makes the lifetime obvious at the top of each method.
+
+### Private helpers must take the caller's context
+
+```csharp
+private static async Task<Row> EnsureRowAsync(AppDbContext _context, int id, CancellationToken ct)
+```
+
+A private helper that opens **its own** context and is called from another method is silently broken: whatever it stages is discarded when its context is disposed, and whatever it returns is detached from the caller's change tracker. `EmailTemplateService.EnsureOwnRowAsync` was exactly this — it built a template row that no `SaveChanges` ever wrote. The compiler cannot catch it, so the rule is mechanical: **if a private helper touches the context and is called from anywhere else in the class, it takes `AppDbContext _context` as its first parameter.**
+
+The same applies to any helper returning `IQueryable` — the query is only valid while the context that built it is alive.
+
+Do not add a new service with `private readonly AppDbContext _context`. `DbContextFieldTests.No_New_Service_May_Hold_An_AppDbContext_Field` enforces this, with a baseline that may shrink and never grow (a stale entry fails `Baseline_Contains_No_Stale_Entries`). Adding a name to the baseline to make a new service compile defeats the entire guard.
+
+### What this changed for tests
+
+Services write through their own context, so a fixture that seeds and asserts through its own `_context` will read stale entities out of its identity map. Call `_context.ChangeTracker.Clear()` between the act and the assert, or read back through a fresh context.
 
 ## Concurrency on contended counters
 

@@ -11,8 +11,9 @@ namespace Dotnetable.Infrastructure.Services;
 
 public class StockDocumentService : IStockDocumentService
 {
-    private readonly AppDbContext _fallback;
-    private AppDbContext _context => AmbientDbContext.Current ?? _fallback;
+    // Contexts come from DbLease per operation: it joins an ambient transaction when one is in
+    // flight and otherwise opens a short-lived context, so nothing is shared across a circuit.
+    private readonly IDbContextFactory<AppDbContext> _contextFactory;
     private readonly IWarehouseService _warehouses;
     private readonly IInventoryService _inventory;
     private readonly IVendorProductService _vendorProducts;
@@ -20,14 +21,14 @@ public class StockDocumentService : IStockDocumentService
     private readonly IFinancialLedgerService _ledger;
 
     public StockDocumentService(
-        AppDbContext context,
+        IDbContextFactory<AppDbContext> contextFactory,
         IWarehouseService warehouses,
         IInventoryService inventory,
         IVendorProductService vendorProducts,
         IAdminNotificationService notifications,
         IFinancialLedgerService ledger)
     {
-        _fallback = context;
+        _contextFactory = contextFactory;
         _warehouses = warehouses;
         _inventory = inventory;
         _vendorProducts = vendorProducts;
@@ -37,6 +38,9 @@ public class StockDocumentService : IStockDocumentService
 
     public async Task<PagedResult<StockDocument>> GetPagedAsync(int websiteId, byte? status, byte? type, GridQuery query, CancellationToken ct = default, bool excludeReturns = false)
     {
+        await using var _lease = await DbLease.OpenAsync(_contextFactory, ct);
+        var _context = _lease.Context;
+
         var q = _context.StockDocuments.AsNoTracking()
             .Include(d => d.FromWarehouse).Include(d => d.ToWarehouse)
             .Include(d => d.Order)
@@ -63,8 +67,12 @@ public class StockDocumentService : IStockDocumentService
         return new PagedResult<StockDocument> { Items = items, TotalCount = total };
     }
 
-    public async Task<StockDocument?> GetByIdAsync(int documentId, CancellationToken ct = default) =>
-        await _context.StockDocuments.AsNoTracking()
+    public async Task<StockDocument?> GetByIdAsync(int documentId, CancellationToken ct = default)
+    {
+        await using var _lease = await DbLease.OpenAsync(_contextFactory, ct);
+        var _context = _lease.Context;
+
+        return await _context.StockDocuments.AsNoTracking()
             .Include(d => d.StockDocumentLines).ThenInclude(l => l.ProductVariant).ThenInclude(v => v.Product)
             .Include(d => d.FromWarehouse).Include(d => d.ToWarehouse)
             .Include(d => d.StockDocumentHistories)
@@ -73,22 +81,26 @@ public class StockDocumentService : IStockDocumentService
             .Include(d => d.Order).ThenInclude(o => o!.Payments)
             .Include(d => d.Order).ThenInclude(o => o!.WebsiteClient)
             .FirstOrDefaultAsync(d => d.StockDocumentID == documentId, ct);
+    }
 
     public async Task<(bool Success, string? Error, StockDocument? Doc)> CreateAsync(
         int websiteId, StockDocumentType type, int? fromWarehouseId, int? toWarehouseId,
         int? supplierId, string? note, IReadOnlyList<StockDocumentLineRequest> lines, int? memberId, CancellationToken ct = default)
     {
+        await using var _lease = await DbLease.OpenAsync(_contextFactory, ct);
+        var _context = _lease.Context;
+
         await _warehouses.EnsureDefaultAsync(websiteId, ct);
         if (lines.Count == 0 || lines.Any(l => l.Quantity <= 0))
             return (false, "At least one line with positive quantity is required.", null);
 
         if (type is StockDocumentType.Inbound or StockDocumentType.Adjustment or StockDocumentType.Count or StockDocumentType.Return)
-            toWarehouseId ??= await DefaultWarehouseId(websiteId, ct);
+            toWarehouseId ??= await DefaultWarehouseId(_context, websiteId, ct);
         if (type is StockDocumentType.Outbound)
-            fromWarehouseId ??= await DefaultWarehouseId(websiteId, ct);
+            fromWarehouseId ??= await DefaultWarehouseId(_context, websiteId, ct);
         if (type == StockDocumentType.Transfer)
         {
-            fromWarehouseId ??= await DefaultWarehouseId(websiteId, ct);
+            fromWarehouseId ??= await DefaultWarehouseId(_context, websiteId, ct);
             if (toWarehouseId is null || toWarehouseId == fromWarehouseId)
                 return (false, "Transfer requires a different destination warehouse.", null);
         }
@@ -126,7 +138,7 @@ public class StockDocumentService : IStockDocumentService
                 var whId = toWarehouseId ?? fromWarehouseId;
                 book = l.BookQuantity > 0
                     ? l.BookQuantity
-                    : await GetWarehouseOnHandAsync(whId, l.ProductVariantID, ct);
+                    : await GetWarehouseOnHandAsync(_context, whId, l.ProductVariantID, ct);
                 counted = l.CountedQuantity ?? l.Quantity;
                 qty = counted.Value - book; // variance for post
             }
@@ -145,22 +157,26 @@ public class StockDocumentService : IStockDocumentService
             });
         }
         _context.StockDocuments.Add(doc);
-        AddHistory(doc, 0, (byte)StockDocumentStatus.Draft, "Created", memberId);
+        AddHistory(_context, doc, 0, (byte)StockDocumentStatus.Draft, "Created", memberId);
         await _context.SaveChangesAsync(ct);
         return (true, null, doc);
     }
 
     public async Task<(bool Success, string? Error)> SubmitAsync(int documentId, int? memberId, CancellationToken ct = default)
     {
+        await using var _context = await _contextFactory.CreateDbContextAsync(ct);
+
         var result = await TransitionAsync(documentId, StockDocumentStatus.Draft, StockDocumentStatus.Submitted, memberId, "Submitted", ct);
-        if (result.Success) await NotifyWarehouseAsync(documentId, "submitted", ct);
+        if (result.Success) await NotifyWarehouseAsync(_context, documentId, "submitted", ct);
         return result;
     }
 
     public async Task<(bool Success, string? Error)> ApproveAsync(int documentId, int? memberId, CancellationToken ct = default)
     {
+        await using var _context = await _contextFactory.CreateDbContextAsync(ct);
+
         var result = await TransitionAsync(documentId, StockDocumentStatus.Submitted, StockDocumentStatus.Approved, memberId, "Approved / ready to pick", ct, approve: true);
-        if (result.Success) await NotifyWarehouseAsync(documentId, "approved / ready", ct);
+        if (result.Success) await NotifyWarehouseAsync(_context, documentId, "approved / ready", ct);
         return result;
     }
 
@@ -176,6 +192,9 @@ public class StockDocumentService : IStockDocumentService
 
     public async Task<(bool Success, string? Error)> PostAsync(int documentId, int? memberId, CancellationToken ct = default)
     {
+        await using var _lease = await DbLease.OpenAsync(_contextFactory, ct);
+        var _context = _lease.Context;
+
         var doc = await _context.StockDocuments
             .Include(d => d.StockDocumentLines)
             .FirstOrDefaultAsync(d => d.StockDocumentID == documentId, ct);
@@ -192,7 +211,7 @@ public class StockDocumentService : IStockDocumentService
                 {
                     case StockDocumentType.Inbound:
                     case StockDocumentType.Adjustment when line.Quantity > 0:
-                        await AdjustWarehouseAsync(doc.ToWarehouseID ?? doc.FromWarehouseID, line.ProductVariantID, Math.Abs(line.Quantity), clearReserved: 0, ct);
+                        await AdjustWarehouseAsync(_context, doc.ToWarehouseID ?? doc.FromWarehouseID, line.ProductVariantID, Math.Abs(line.Quantity), clearReserved: 0, ct);
                         await _inventory.AdjustAsync(doc.WebsiteID, line.ProductVariantID, Math.Abs(line.Quantity), line.UnitCost,
                             $"Stock doc {doc.DocumentNumber}", memberId ?? 0, ct);
                         await SyncInventoryFromWarehouseAsync(doc.WebsiteID, line.ProductVariantID, ct);
@@ -201,7 +220,7 @@ public class StockDocumentService : IStockDocumentService
                         // Quantity is variance (Counted − Book). Zero variance = no stock change.
                         if (line.Quantity != 0)
                         {
-                            await AdjustWarehouseAsync(doc.ToWarehouseID ?? doc.FromWarehouseID, line.ProductVariantID, line.Quantity, clearReserved: 0, ct);
+                            await AdjustWarehouseAsync(_context, doc.ToWarehouseID ?? doc.FromWarehouseID, line.ProductVariantID, line.Quantity, clearReserved: 0, ct);
                             await _inventory.AdjustAsync(doc.WebsiteID, line.ProductVariantID, line.Quantity, line.UnitCost,
                                 $"Count {doc.DocumentNumber} variance {line.Quantity} (book {line.BookQuantity} → counted {line.CountedQuantity})",
                                 memberId ?? 0, ct);
@@ -210,7 +229,7 @@ public class StockDocumentService : IStockDocumentService
                         break;
                     case StockDocumentType.Outbound:
                     case StockDocumentType.Adjustment when line.Quantity < 0:
-                        await AdjustWarehouseAsync(doc.FromWarehouseID, line.ProductVariantID, -Math.Abs(line.Quantity),
+                        await AdjustWarehouseAsync(_context, doc.FromWarehouseID, line.ProductVariantID, -Math.Abs(line.Quantity),
                             clearReserved: Math.Abs(line.Quantity), ct);
                         // Clear reservation + on-hand (sale) when this is an order pick; otherwise adjustment.
                         if (doc.OrderID is not null)
@@ -228,12 +247,12 @@ public class StockDocumentService : IStockDocumentService
                     case StockDocumentType.Transfer:
                         if (line.Quantity <= 0)
                             throw new InvalidOperationException("Transfer quantity must be positive.");
-                        await AdjustWarehouseAsync(doc.FromWarehouseID, line.ProductVariantID, -line.Quantity, clearReserved: 0, ct);
-                        await AdjustWarehouseAsync(doc.ToWarehouseID, line.ProductVariantID, line.Quantity, clearReserved: 0, ct);
+                        await AdjustWarehouseAsync(_context, doc.FromWarehouseID, line.ProductVariantID, -line.Quantity, clearReserved: 0, ct);
+                        await AdjustWarehouseAsync(_context, doc.ToWarehouseID, line.ProductVariantID, line.Quantity, clearReserved: 0, ct);
                         await SyncInventoryFromWarehouseAsync(doc.WebsiteID, line.ProductVariantID, ct);
                         break;
                     case StockDocumentType.Return:
-                        await PostReturnLineAsync(doc, line, memberId, ct);
+                        await PostReturnLineAsync(_context, doc, line, memberId, ct);
                         break;
                 }
             }
@@ -247,7 +266,7 @@ public class StockDocumentService : IStockDocumentService
         doc.Status = (byte)StockDocumentStatus.Posted;
         doc.PostedAt = DateTime.UtcNow;
         doc.PostedByMemberID = memberId;
-        AddHistory(doc, from, (byte)StockDocumentStatus.Posted, "Posted", memberId);
+        AddHistory(_context, doc, from, (byte)StockDocumentStatus.Posted, "Posted", memberId);
         await _context.SaveChangesAsync(ct);
 
         // Align GL inventory with warehouse: COGS on outbound, reverse COGS on sellable return.
@@ -266,7 +285,7 @@ public class StockDocumentService : IStockDocumentService
             }
         }
 
-        await NotifyWarehouseAsync(documentId, "posted", ct);
+        await NotifyWarehouseAsync(_context, documentId, "posted", ct);
         return (true, null);
     }
 
@@ -297,6 +316,9 @@ public class StockDocumentService : IStockDocumentService
     public async Task<(bool Success, string? Error)> SetCountedQuantityAsync(
         int stockDocumentLineId, int countedQuantity, int? memberId, CancellationToken ct = default)
     {
+        await using var _lease = await DbLease.OpenAsync(_contextFactory, ct);
+        var _context = _lease.Context;
+
         if (countedQuantity < 0) return (false, "Counted quantity cannot be negative.");
         var line = await _context.StockDocumentLines
             .Include(l => l.StockDocument)
@@ -316,6 +338,9 @@ public class StockDocumentService : IStockDocumentService
     public async Task<(bool Success, string? Error)> AddLineAsync(
         int documentId, StockDocumentLineRequest line, int? memberId, CancellationToken ct = default)
     {
+        await using var _lease = await DbLease.OpenAsync(_contextFactory, ct);
+        var _context = _lease.Context;
+
         if (line.ProductVariantID <= 0 || line.Quantity <= 0 && line.CountedQuantity is null)
             return (false, "Variant and quantity are required.");
         var doc = await _context.StockDocuments
@@ -333,7 +358,7 @@ public class StockDocumentService : IStockDocumentService
         {
             book = line.BookQuantity > 0
                 ? line.BookQuantity
-                : await GetWarehouseOnHandAsync(doc.ToWarehouseID ?? doc.FromWarehouseID, line.ProductVariantID, ct);
+                : await GetWarehouseOnHandAsync(_context, doc.ToWarehouseID ?? doc.FromWarehouseID, line.ProductVariantID, ct);
             counted = line.CountedQuantity ?? line.Quantity;
             qty = counted.Value - book;
         }
@@ -356,7 +381,7 @@ public class StockDocumentService : IStockDocumentService
         return (true, null);
     }
 
-    private async Task<int> GetWarehouseOnHandAsync(int? warehouseId, int variantId, CancellationToken ct)
+    private async Task<int> GetWarehouseOnHandAsync(AppDbContext _context, int? warehouseId, int variantId, CancellationToken ct)
     {
         if (warehouseId is null or <= 0) return 0;
         return await _context.WarehouseStocks.AsNoTracking()
@@ -365,7 +390,7 @@ public class StockDocumentService : IStockDocumentService
             .FirstOrDefaultAsync(ct);
     }
 
-    private async Task NotifyWarehouseAsync(int documentId, string action, CancellationToken ct)
+    private async Task NotifyWarehouseAsync(AppDbContext _context, int documentId, string action, CancellationToken ct)
     {
         try
         {
@@ -389,7 +414,7 @@ public class StockDocumentService : IStockDocumentService
         }
     }
 
-    private async Task PostReturnLineAsync(StockDocument doc, StockDocumentLine line, int? memberId, CancellationToken ct)
+    private async Task PostReturnLineAsync(AppDbContext _context, StockDocument doc, StockDocumentLine line, int? memberId, CancellationToken ct)
     {
         var condition = (StockItemCondition)line.ReturnCondition;
         if (condition == StockItemCondition.None)
@@ -402,7 +427,7 @@ public class StockDocumentService : IStockDocumentService
 
         var whId = doc.ToWarehouseID ?? doc.FromWarehouseID;
         // Always receive into warehouse (returned goods location = default warehouse).
-        await AdjustWarehouseAsync(whId, line.ProductVariantID, Math.Abs(line.Quantity), clearReserved: 0, ct);
+        await AdjustWarehouseAsync(_context, whId, line.ProductVariantID, Math.Abs(line.Quantity), clearReserved: 0, ct);
 
         if (condition == StockItemCondition.Defective)
         {
@@ -442,7 +467,7 @@ public class StockDocumentService : IStockDocumentService
                         await _vendorProducts.RestockWithConditionAsync(
                             doc.WebsiteID, vid, line.ProductVariantID, take,
                             (byte)condition, line.HealthGrade, ct);
-                        await EnsureUsedGoodsCategoryAsync(doc.WebsiteID, line.ProductVariantID, ct);
+                        await EnsureUsedGoodsCategoryAsync(_context, doc.WebsiteID, line.ProductVariantID, ct);
                     }
                 }
                 remaining -= take;
@@ -461,7 +486,7 @@ public class StockDocumentService : IStockDocumentService
                     await _vendorProducts.RestockWithConditionAsync(
                         doc.WebsiteID, vid, line.ProductVariantID, remaining,
                         (byte)condition, line.HealthGrade, ct);
-                    await EnsureUsedGoodsCategoryAsync(doc.WebsiteID, line.ProductVariantID, ct);
+                    await EnsureUsedGoodsCategoryAsync(_context, doc.WebsiteID, line.ProductVariantID, ct);
                 }
             }
             await _vendorProducts.SyncInventoryOnHandFromListingsAsync(doc.WebsiteID, line.ProductVariantID, ct);
@@ -473,7 +498,7 @@ public class StockDocumentService : IStockDocumentService
     }
 
     /// <summary>Ensure product is mapped to site "used-goods" category so non-new stock is discoverable.</summary>
-    private async Task EnsureUsedGoodsCategoryAsync(int websiteId, int productVariantId, CancellationToken ct)
+    private async Task EnsureUsedGoodsCategoryAsync(AppDbContext _context, int websiteId, int productVariantId, CancellationToken ct)
     {
         const string slug = "used-goods";
         var cat = await _context.ProductCategories
@@ -522,6 +547,9 @@ public class StockDocumentService : IStockDocumentService
         int documentId, StockDocumentStatus? requiredFrom, StockDocumentStatus to, int? memberId, string note,
         CancellationToken ct, bool approve = false, byte[]? allowFrom = null)
     {
+        await using var _lease = await DbLease.OpenAsync(_contextFactory, ct);
+        var _context = _lease.Context;
+
         var doc = await _context.StockDocuments.FirstOrDefaultAsync(d => d.StockDocumentID == documentId, ct);
         if (doc is null) return (false, "Document not found.");
         if (doc.Status == (byte)StockDocumentStatus.Posted)
@@ -541,12 +569,12 @@ public class StockDocumentService : IStockDocumentService
             doc.ApprovedAt = DateTime.UtcNow;
             doc.ApprovedByMemberID = memberId;
         }
-        AddHistory(doc, from, (byte)to, note, memberId);
+        AddHistory(_context, doc, from, (byte)to, note, memberId);
         await _context.SaveChangesAsync(ct);
         return (true, null);
     }
 
-    private async Task AdjustWarehouseAsync(int? warehouseId, int variantId, int delta, int clearReserved, CancellationToken ct)
+    private async Task AdjustWarehouseAsync(AppDbContext _context, int? warehouseId, int variantId, int delta, int clearReserved, CancellationToken ct)
     {
         if (warehouseId is null or <= 0) throw new InvalidOperationException("Warehouse is required.");
         var stock = await _context.WarehouseStocks
@@ -577,32 +605,48 @@ public class StockDocumentService : IStockDocumentService
 
     public async Task<bool> WebsiteHasWarehouseAsync(int websiteId, CancellationToken ct = default)
     {
+        await using var _lease = await DbLease.OpenAsync(_contextFactory, ct);
+        var _context = _lease.Context;
+
         if (websiteId <= 0) return false;
         return await _context.Warehouses.AsNoTracking()
             .AnyAsync(w => w.WebsiteID == websiteId && w.IsActive, ct);
     }
 
-    public Task<StockDocument?> GetOutboundForOrderAsync(int orderId, CancellationToken ct = default) =>
-        _context.StockDocuments.AsNoTracking()
+    public async Task<StockDocument?> GetOutboundForOrderAsync(int orderId, CancellationToken ct = default)
+    {
+        await using var _lease = await DbLease.OpenAsync(_contextFactory, ct);
+        var _context = _lease.Context;
+
+        return await _context.StockDocuments.AsNoTracking()
             .Where(d => d.OrderID == orderId
                 && d.DocumentType == (byte)StockDocumentType.Outbound
                 && d.Status != (byte)StockDocumentStatus.Cancelled
                 && d.Status != (byte)StockDocumentStatus.Rejected)
             .OrderByDescending(d => d.StockDocumentID)
             .FirstOrDefaultAsync(ct);
+    }
 
-    public Task<StockDocument?> GetReturnForOrderAsync(int orderId, CancellationToken ct = default) =>
-        _context.StockDocuments.AsNoTracking()
+    public async Task<StockDocument?> GetReturnForOrderAsync(int orderId, CancellationToken ct = default)
+    {
+        await using var _lease = await DbLease.OpenAsync(_contextFactory, ct);
+        var _context = _lease.Context;
+
+        return await _context.StockDocuments.AsNoTracking()
             .Where(d => d.OrderID == orderId
                 && d.DocumentType == (byte)StockDocumentType.Return
                 && d.Status != (byte)StockDocumentStatus.Cancelled
                 && d.Status != (byte)StockDocumentStatus.Rejected)
             .OrderByDescending(d => d.StockDocumentID)
             .FirstOrDefaultAsync(ct);
+    }
 
     public async Task<(bool Success, string? Error, StockDocument? Doc)> EnsureOutboundForOrderAsync(
         int orderId, int? memberId, CancellationToken ct = default)
     {
+        await using var _lease = await DbLease.OpenAsync(_contextFactory, ct);
+        var _context = _lease.Context;
+
         var order = await _context.Orders
             .Include(o => o.OrderItems).ThenInclude(i => i.ProductVariant).ThenInclude(v => v!.Product)
             .FirstOrDefaultAsync(o => o.OrderID == orderId, ct);
@@ -625,7 +669,7 @@ public class StockDocumentService : IStockDocumentService
         if (physical.Count == 0)
             return (true, null, null);
 
-        var fromWh = await DefaultWarehouseId(order.WebsiteID, ct);
+        var fromWh = await DefaultWarehouseId(_context, order.WebsiteID, ct);
         var seq = await _context.StockDocuments.CountAsync(d => d.WebsiteID == order.WebsiteID, ct) + 1;
         var doc = new StockDocument
         {
@@ -657,13 +701,16 @@ public class StockDocumentService : IStockDocumentService
         }
 
         _context.StockDocuments.Add(doc);
-        AddHistory(doc, 0, (byte)StockDocumentStatus.Submitted, $"Created from order {order.OrderNumber}", memberId);
+        AddHistory(_context, doc, 0, (byte)StockDocumentStatus.Submitted, $"Created from order {order.OrderNumber}", memberId);
         await _context.SaveChangesAsync(ct);
         return (true, null, doc);
     }
 
     public async Task<(bool Success, string? Error)> PostOutboundForOrderAsync(int orderId, int? memberId, CancellationToken ct = default)
     {
+        await using var _lease = await DbLease.OpenAsync(_contextFactory, ct);
+        var _context = _lease.Context;
+
         var ensure = await EnsureOutboundForOrderAsync(orderId, memberId, ct);
         if (!ensure.Success) return (false, ensure.Error);
         if (ensure.Doc is null) return (true, null);
@@ -696,6 +743,9 @@ public class StockDocumentService : IStockDocumentService
 
     public async Task<(bool CanShip, string? Error)> CanShipOrderAsync(int orderId, CancellationToken ct = default)
     {
+        await using var _lease = await DbLease.OpenAsync(_contextFactory, ct);
+        var _context = _lease.Context;
+
         var order = await _context.Orders
             .Include(o => o.OrderItems).ThenInclude(i => i.ProductVariant).ThenInclude(v => v!.Product)
             .FirstOrDefaultAsync(o => o.OrderID == orderId, ct);
@@ -708,7 +758,7 @@ public class StockDocumentService : IStockDocumentService
         if (outbound is { Status: (byte)StockDocumentStatus.Posted })
             return (true, null);
 
-        var fromWh = outbound?.FromWarehouseID ?? await DefaultWarehouseId(order.WebsiteID, ct);
+        var fromWh = outbound?.FromWarehouseID ?? await DefaultWarehouseId(_context, order.WebsiteID, ct);
         var physical = BuildPhysicalLines(order);
         foreach (var line in physical)
         {
@@ -738,6 +788,9 @@ public class StockDocumentService : IStockDocumentService
         int orderId, int? toWarehouseId, IReadOnlyList<StockDocumentLineRequest>? lines, string? note, int? memberId,
         CancellationToken ct = default)
     {
+        await using var _lease = await DbLease.OpenAsync(_contextFactory, ct);
+        var _context = _lease.Context;
+
         var order = await _context.Orders
             .Include(o => o.OrderItems).ThenInclude(i => i.ProductVariant).ThenInclude(v => v!.Product)
             .FirstOrDefaultAsync(o => o.OrderID == orderId, ct);
@@ -770,7 +823,7 @@ public class StockDocumentService : IStockDocumentService
         }
 
         await _warehouses.EnsureDefaultAsync(order.WebsiteID, ct);
-        toWarehouseId ??= await DefaultWarehouseId(order.WebsiteID, ct);
+        toWarehouseId ??= await DefaultWarehouseId(_context, order.WebsiteID, ct);
 
         var seq = await _context.StockDocuments.CountAsync(d => d.WebsiteID == order.WebsiteID, ct) + 1;
         var doc = new StockDocument
@@ -804,7 +857,7 @@ public class StockDocumentService : IStockDocumentService
         }
 
         _context.StockDocuments.Add(doc);
-        AddHistory(doc, 0, (byte)StockDocumentStatus.Draft, "Customer return registered", memberId);
+        AddHistory(_context, doc, 0, (byte)StockDocumentStatus.Draft, "Customer return registered", memberId);
         await _context.SaveChangesAsync(ct);
         return (true, null, doc);
     }
@@ -812,6 +865,9 @@ public class StockDocumentService : IStockDocumentService
     public async Task<(bool Success, string? Error)> SetDestinationWarehouseAsync(
         int documentId, int toWarehouseId, int? memberId, CancellationToken ct = default)
     {
+        await using var _lease = await DbLease.OpenAsync(_contextFactory, ct);
+        var _context = _lease.Context;
+
         if (toWarehouseId <= 0) return (false, "Warehouse is required.");
         var doc = await _context.StockDocuments.FirstOrDefaultAsync(d => d.StockDocumentID == documentId, ct);
         if (doc is null) return (false, "Document not found.");
@@ -826,7 +882,7 @@ public class StockDocumentService : IStockDocumentService
         if (doc.ToWarehouseID == toWarehouseId) return (true, null);
         var from = doc.ToWarehouseID;
         doc.ToWarehouseID = toWarehouseId;
-        AddHistory(doc, doc.Status, doc.Status, $"Destination warehouse {from} → {toWarehouseId}", memberId);
+        AddHistory(_context, doc, doc.Status, doc.Status, $"Destination warehouse {from} → {toWarehouseId}", memberId);
         await _context.SaveChangesAsync(ct);
         return (true, null);
     }
@@ -834,6 +890,9 @@ public class StockDocumentService : IStockDocumentService
     public async Task<(bool Success, string? Error, StockDocument? Doc)> EnsureReturnForRefundAsync(
         int orderId, int paymentRefundId, int? memberId, CancellationToken ct = default)
     {
+        await using var _lease = await DbLease.OpenAsync(_contextFactory, ct);
+        var _context = _lease.Context;
+
         var order = await _context.Orders
             .Include(o => o.OrderItems).ThenInclude(i => i.ProductVariant).ThenInclude(v => v!.Product)
             .FirstOrDefaultAsync(o => o.OrderID == orderId, ct);
@@ -860,7 +919,7 @@ public class StockDocumentService : IStockDocumentService
         {
             if (existingRma.PaymentRefundID is null)
                 existingRma.PaymentRefundID = paymentRefundId;
-            AddHistory(existingRma, existingRma.Status, existingRma.Status, $"Linked refund #{paymentRefundId}", memberId);
+            AddHistory(_context, existingRma, existingRma.Status, existingRma.Status, $"Linked refund #{paymentRefundId}", memberId);
             await _context.SaveChangesAsync(ct);
             return (true, null, existingRma);
         }
@@ -902,12 +961,12 @@ public class StockDocumentService : IStockDocumentService
         // Ensure WMS warehouse exists for return receive when site already has warehouses.
         int? toWh = null;
         if (await WebsiteHasWarehouseAsync(order.WebsiteID, ct))
-            toWh = await DefaultWarehouseId(order.WebsiteID, ct);
+            toWh = await DefaultWarehouseId(_context, order.WebsiteID, ct);
         else
         {
             // Non-WMS: still create Return doc so QC exists; posting will create default warehouse.
             await _warehouses.EnsureDefaultAsync(order.WebsiteID, ct);
-            toWh = await DefaultWarehouseId(order.WebsiteID, ct);
+            toWh = await DefaultWarehouseId(_context, order.WebsiteID, ct);
         }
 
         var seq = await _context.StockDocuments.CountAsync(d => d.WebsiteID == order.WebsiteID, ct) + 1;
@@ -943,7 +1002,7 @@ public class StockDocumentService : IStockDocumentService
         }
 
         _context.StockDocuments.Add(doc);
-        AddHistory(doc, 0, (byte)StockDocumentStatus.Submitted,
+        AddHistory(_context, doc, 0, (byte)StockDocumentStatus.Submitted,
             $"Created from refund #{paymentRefundId}", memberId);
         await _context.SaveChangesAsync(ct);
         return (true, null, doc);
@@ -952,6 +1011,9 @@ public class StockDocumentService : IStockDocumentService
     public async Task<(bool Success, string? Error)> SetReturnLineConditionAsync(
         int stockDocumentLineId, StockItemCondition condition, StockHealthGrade healthGrade, int? memberId, CancellationToken ct = default)
     {
+        await using var _lease = await DbLease.OpenAsync(_contextFactory, ct);
+        var _context = _lease.Context;
+
         var line = await _context.StockDocumentLines
             .Include(l => l.StockDocument)
             .FirstOrDefaultAsync(l => l.StockDocumentLineID == stockDocumentLineId, ct);
@@ -979,6 +1041,9 @@ public class StockDocumentService : IStockDocumentService
     public async Task<IReadOnlyList<WarehousePickTaskDto>> GetPickQueueAsync(
         int websiteId, byte? statusFilter, CancellationToken ct = default)
     {
+        await using var _lease = await DbLease.OpenAsync(_contextFactory, ct);
+        var _context = _lease.Context;
+
         var q = _context.StockDocuments.AsNoTracking()
             .Include(d => d.FromWarehouse)
             .Include(d => d.Order)
@@ -1028,14 +1093,15 @@ public class StockDocumentService : IStockDocumentService
             .Where(l => l.Quantity > 0)
             .ToList();
 
-    private async Task<int> DefaultWarehouseId(int websiteId, CancellationToken ct)
+    private async Task<int> DefaultWarehouseId(AppDbContext _context, int websiteId, CancellationToken ct)
     {
         await _warehouses.EnsureDefaultAsync(websiteId, ct);
         return await _context.Warehouses.Where(w => w.WebsiteID == websiteId && w.IsDefault)
             .Select(w => w.WarehouseID).FirstAsync(ct);
     }
 
-    private void AddHistory(StockDocument doc, byte from, byte to, string? note, int? memberId) =>
+    // Takes the caller's context: this only stages the row and the caller's SaveChanges writes it.
+    private static void AddHistory(AppDbContext _context, StockDocument doc, byte from, byte to, string? note, int? memberId) =>
         _context.StockDocumentHistories.Add(new StockDocumentHistory
         {
             StockDocument = doc,

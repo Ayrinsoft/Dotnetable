@@ -12,12 +12,14 @@ namespace Dotnetable.Infrastructure.Services;
 /// <inheritdoc cref="IEmailTemplateService"/>
 public class EmailTemplateService : IEmailTemplateService
 {
-    private readonly AppDbContext _context;
+    private readonly IDbContextFactory<AppDbContext> _contextFactory;
 
-    public EmailTemplateService(AppDbContext context) => _context = context;
+    public EmailTemplateService(IDbContextFactory<AppDbContext> contextFactory) => _contextFactory = contextFactory;
 
     public async Task<List<EmailTemplateInfo>> GetForWebsiteAsync(int websiteId, CancellationToken ct = default)
     {
+        await using var _context = await _contextFactory.CreateDbContextAsync(ct);
+
         var rows = await _context.EmailTemplates
             .AsNoTracking()
             .Include(t => t.EmailTemplateTranslations)
@@ -43,6 +45,8 @@ public class EmailTemplateService : IEmailTemplateService
     public async Task<EmailTemplateInfo?> GetAsync(
         int websiteId, string templateKey, string? languageCode = null, CancellationToken ct = default)
     {
+        await using var _context = await _contextFactory.CreateDbContextAsync(ct);
+
         var def = EmailTemplateDefaults.All.FirstOrDefault(d => d.Key == templateKey);
         if (def is null) return null;
 
@@ -102,7 +106,9 @@ public class EmailTemplateService : IEmailTemplateService
 
     public async Task SaveAsync(int websiteId, EmailTemplateInfo template, CancellationToken ct = default)
     {
-        var row = await EnsureOwnRowAsync(websiteId, template.TemplateKey, ct);
+        await using var _context = await _contextFactory.CreateDbContextAsync(ct);
+
+        var row = await EnsureOwnRowAsync(_context, websiteId, template.TemplateKey, ct);
 
         row.Name = template.Name;
         row.Subject = template.Subject;
@@ -119,7 +125,9 @@ public class EmailTemplateService : IEmailTemplateService
         IReadOnlyDictionary<string, (string Subject, string HtmlBody)> byLanguage,
         CancellationToken ct = default)
     {
-        var row = await EnsureOwnRowAsync(websiteId, templateKey, ct);
+        await using var _context = await _contextFactory.CreateDbContextAsync(ct);
+
+        var row = await EnsureOwnRowAsync(_context, websiteId, templateKey, ct);
         // EnsureOwnRow may have added a new tracked entity without an ID until save.
         if (row.EmailTemplateID == 0)
             await _context.SaveChangesAsync(ct);
@@ -162,6 +170,8 @@ public class EmailTemplateService : IEmailTemplateService
 
     public async Task ResetToDefaultAsync(int websiteId, string templateKey, CancellationToken ct = default)
     {
+        await using var _context = await _contextFactory.CreateDbContextAsync(ct);
+
         var row = await _context.EmailTemplates
             .Include(t => t.EmailTemplateTranslations)
             .FirstOrDefaultAsync(t => t.WebsiteID == websiteId && t.TemplateKey == templateKey, ct);
@@ -171,7 +181,7 @@ public class EmailTemplateService : IEmailTemplateService
         await _context.SaveChangesAsync(ct);
     }
 
-    private async Task<EmailTemplate> EnsureOwnRowAsync(int websiteId, string templateKey, CancellationToken ct)
+    private async Task<EmailTemplate> EnsureOwnRowAsync(AppDbContext _context, int websiteId, string templateKey, CancellationToken ct)
     {
         var row = await _context.EmailTemplates
             .FirstOrDefaultAsync(t => t.WebsiteID == websiteId && t.TemplateKey == templateKey, ct);

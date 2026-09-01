@@ -24,7 +24,10 @@ public class FormServiceTests : IDisposable
             .UseInMemoryDatabase(Guid.NewGuid().ToString())
             .Options;
         _context = new AppDbContext(opts);
-        _service = new FormService(_context, new Mock<IAdminNotificationService>().Object);
+        // Services open a context per call now, so they get a factory over the same options;
+        // the fixture keeps its own _context for seeding and asserting.
+        var factory = new TestDbContextFactory(opts);
+        _service = new FormService(factory, new Mock<IAdminNotificationService>().Object);
 
         _website = NewWebsite("Test", "test.com");
         _context.Websites.Add(_website);

@@ -9,19 +9,21 @@ namespace Dotnetable.Infrastructure.Services;
 
 public class FiscalPeriodService : IFiscalPeriodService
 {
-    private readonly AppDbContext _context;
+    private readonly IDbContextFactory<AppDbContext> _contextFactory;
     private readonly IChartOfAccountService _coa;
     private readonly IJournalService _journals;
 
-    public FiscalPeriodService(AppDbContext context, IChartOfAccountService coa, IJournalService journals)
+    public FiscalPeriodService(IDbContextFactory<AppDbContext> contextFactory, IChartOfAccountService coa, IJournalService journals)
     {
-        _context = context;
+        _contextFactory = contextFactory;
         _coa = coa;
         _journals = journals;
     }
 
     public async Task<IReadOnlyList<FiscalPeriod>> GetAllAsync(int websiteId, bool? closedOnly = null, CancellationToken ct = default)
     {
+        await using var _context = await _contextFactory.CreateDbContextAsync(ct);
+
         var q = _context.FiscalPeriods.AsNoTracking().Where(p => p.WebsiteID == websiteId);
         if (closedOnly is bool c) q = q.Where(p => p.IsClosed == c);
         return await q.OrderByDescending(p => p.PeriodFrom).ToListAsync(ct);
@@ -29,6 +31,8 @@ public class FiscalPeriodService : IFiscalPeriodService
 
     public async Task<FiscalPeriod?> GetCurrentOpenAsync(int websiteId, DateOnly? asOf = null, CancellationToken ct = default)
     {
+        await using var _context = await _contextFactory.CreateDbContextAsync(ct);
+
         var day = asOf ?? DateOnly.FromDateTime(DateTime.UtcNow);
         return await _context.FiscalPeriods.AsNoTracking()
             .Where(p => p.WebsiteID == websiteId && !p.IsClosed && p.PeriodFrom <= day && p.PeriodTo >= day)
@@ -38,6 +42,8 @@ public class FiscalPeriodService : IFiscalPeriodService
 
     public async Task<FiscalCalendarSettingsDto> GetCalendarSettingsAsync(int websiteId, CancellationToken ct = default)
     {
+        await using var _context = await _contextFactory.CreateDbContextAsync(ct);
+
         var w = await _context.Websites.AsNoTracking().FirstOrDefaultAsync(x => x.WebsiteID == websiteId, ct);
         if (w is null)
             return new FiscalCalendarSettingsDto();
@@ -55,6 +61,8 @@ public class FiscalPeriodService : IFiscalPeriodService
     public async Task<(bool Success, string? Error)> SaveCalendarSettingsAsync(
         int websiteId, FiscalCalendarSettingsDto settings, CancellationToken ct = default)
     {
+        await using var _context = await _contextFactory.CreateDbContextAsync(ct);
+
         var w = await _context.Websites.FirstOrDefaultAsync(x => x.WebsiteID == websiteId, ct);
         if (w is null) return (false, "Website not found.");
         if (settings.FiscalYearStartMonth is < 1 or > 12)
@@ -81,6 +89,8 @@ public class FiscalPeriodService : IFiscalPeriodService
     public async Task<(bool Success, string? Error, int Created)> GenerateForYearAsync(
         int websiteId, int year, CancellationToken ct = default)
     {
+        await using var _context = await _contextFactory.CreateDbContextAsync(ct);
+
         if (websiteId <= 0 || year is < 2000 or > 2100)
             return (false, "Invalid website or year.", 0);
 
@@ -121,6 +131,8 @@ public class FiscalPeriodService : IFiscalPeriodService
 
     public async Task<FiscalPeriod> EnsureYearAsync(int websiteId, int year, CancellationToken ct = default)
     {
+        await using var _context = await _contextFactory.CreateDbContextAsync(ct);
+
         await GenerateForYearAsync(websiteId, year, ct);
         var first = await _context.FiscalPeriods
             .FirstOrDefaultAsync(p => p.WebsiteID == websiteId && p.PeriodFrom.Year == year, ct);
@@ -144,6 +156,8 @@ public class FiscalPeriodService : IFiscalPeriodService
 
     public async Task<(bool Success, string? Error)> CloseAsync(int fiscalPeriodId, int? memberId, CancellationToken ct = default)
     {
+        await using var _context = await _contextFactory.CreateDbContextAsync(ct);
+
         var p = await _context.FiscalPeriods.FirstOrDefaultAsync(x => x.FiscalPeriodID == fiscalPeriodId, ct);
         if (p is null) return (false, "Period not found.");
         if (p.IsClosed) return (true, null);
@@ -161,7 +175,7 @@ public class FiscalPeriodService : IFiscalPeriodService
             return (false, "Close or post all draft journals in the period first.");
 
         await _coa.EnsureSeededAsync(p.WebsiteID, ct);
-        await EnsureRetainedEarningsAccountAsync(p.WebsiteID, ct);
+        await EnsureRetainedEarningsAccountAsync(_context, p.WebsiteID, ct);
 
         // Account balances from all posted journals up to PeriodTo (includes prior opening + activity).
         var balances = await GetAccountBalancesThroughAsync(p.WebsiteID, p.PeriodTo, ct);
@@ -171,18 +185,18 @@ public class FiscalPeriodService : IFiscalPeriodService
             .FirstOrDefaultAsync(ct) ?? "USD";
 
         // Net P&L for THIS period only (income − expense activity in range, excluding opening balance journals).
-        var periodPl = await GetPeriodProfitAndLossAsync(p.WebsiteID, p.PeriodFrom, p.PeriodTo, ct);
+        var periodPl = await GetPeriodProfitAndLossAsync(_context, p.WebsiteID, p.PeriodFrom, p.PeriodTo, ct);
 
         int? closingJeId = null;
         // Closing entry on last day: zero P&L into retained earnings (for this period's net).
         if (periodPl != 0)
         {
-            var reId = await GetAccountIdByCodeAsync(p.WebsiteID, "3200", ct)
-                       ?? await GetAccountIdByCodeAsync(p.WebsiteID, "3100", ct);
+            var reId = await GetAccountIdByCodeAsync(_context, p.WebsiteID, "3200", ct)
+                       ?? await GetAccountIdByCodeAsync(_context, p.WebsiteID, "3100", ct);
             if (reId is null)
                 return (false, "Equity account (3200/3100) missing.");
 
-            var plLines = await BuildPlCloseLinesAsync(p.WebsiteID, p.PeriodFrom, p.PeriodTo, reId.Value, periodPl, ct);
+            var plLines = await BuildPlCloseLinesAsync(_context, p.WebsiteID, p.PeriodFrom, p.PeriodTo, reId.Value, periodPl, ct);
             if (plLines.Count >= 2)
             {
                 var (okC, errC, closing) = await _journals.CreateDraftAsync(
@@ -247,6 +261,8 @@ public class FiscalPeriodService : IFiscalPeriodService
 
     public async Task<(bool Success, string? Error)> ReopenAsync(int fiscalPeriodId, int? memberId, CancellationToken ct = default)
     {
+        await using var _context = await _contextFactory.CreateDbContextAsync(ct);
+
         var p = await _context.FiscalPeriods.FirstOrDefaultAsync(x => x.FiscalPeriodID == fiscalPeriodId, ct);
         if (p is null) return (false, "Period not found.");
         if (!p.IsClosed) return (true, null);
@@ -283,7 +299,7 @@ public class FiscalPeriodService : IFiscalPeriodService
         return (true, null);
     }
 
-    private async Task EnsureRetainedEarningsAccountAsync(int websiteId, CancellationToken ct)
+    private async Task EnsureRetainedEarningsAccountAsync(AppDbContext _context, int websiteId, CancellationToken ct)
     {
         if (await _context.ChartOfAccounts.AnyAsync(a => a.WebsiteID == websiteId && a.Code == "3200", ct))
             return;
@@ -300,15 +316,19 @@ public class FiscalPeriodService : IFiscalPeriodService
         await _context.SaveChangesAsync(ct);
     }
 
-    private async Task<int?> GetAccountIdByCodeAsync(int websiteId, string code, CancellationToken ct) =>
-        await _context.ChartOfAccounts.AsNoTracking()
+    private async Task<int?> GetAccountIdByCodeAsync(AppDbContext _context, int websiteId, string code, CancellationToken ct)
+    {
+        return await _context.ChartOfAccounts.AsNoTracking()
             .Where(a => a.WebsiteID == websiteId && a.Code == code)
             .Select(a => (int?)a.ChartOfAccountID)
             .FirstOrDefaultAsync(ct);
+    }
 
     private async Task<Dictionary<int, (byte Type, decimal Balance)>> GetAccountBalancesThroughAsync(
         int websiteId, DateOnly through, CancellationToken ct)
     {
+        await using var _context = await _contextFactory.CreateDbContextAsync(ct);
+
         var accounts = await _context.ChartOfAccounts.AsNoTracking()
             .Where(a => a.WebsiteID == websiteId && a.IsActive)
             .Select(a => new { a.ChartOfAccountID, a.AccountType })
@@ -339,7 +359,7 @@ public class FiscalPeriodService : IFiscalPeriodService
         return result;
     }
 
-    private async Task<decimal> GetPeriodProfitAndLossAsync(int websiteId, DateOnly from, DateOnly to, CancellationToken ct)
+    private async Task<decimal> GetPeriodProfitAndLossAsync(AppDbContext _context, int websiteId, DateOnly from, DateOnly to, CancellationToken ct)
     {
         // Net income for period activity excluding opening-balance journals (those are BS only).
         var lines = await _context.JournalEntryLines.AsNoTracking()
@@ -363,7 +383,7 @@ public class FiscalPeriodService : IFiscalPeriodService
         return income - expense;
     }
 
-    private async Task<List<JournalLineDto>> BuildPlCloseLinesAsync(
+    private async Task<List<JournalLineDto>> BuildPlCloseLinesAsync(AppDbContext _context, 
         int websiteId, DateOnly from, DateOnly to, int retainedEarningsId, decimal netProfit, CancellationToken ct)
     {
         // Zero out each income/expense account for the period into RE.

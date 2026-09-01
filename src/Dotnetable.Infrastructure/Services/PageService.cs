@@ -9,14 +9,16 @@ namespace Dotnetable.Infrastructure.Services;
 
 public class PageService : IPageService
 {
-    private readonly AppDbContext _context;
+    private readonly IDbContextFactory<AppDbContext> _contextFactory;
 
-    public PageService(AppDbContext context) => _context = context;
+    public PageService(IDbContextFactory<AppDbContext> contextFactory) => _contextFactory = contextFactory;
 
     // ── Admin management ────────────────────────────────────────────
 
     public async Task<PagedResult<Page>> GetPagedAsync(int? websiteId, GridQuery query, CancellationToken ct = default)
     {
+        await using var _context = await _contextFactory.CreateDbContextAsync(ct);
+
         var q = _context.Pages.AsNoTracking();
         if (websiteId is int wid)
             q = q.Where(p => p.WebsiteID == wid);
@@ -37,20 +39,28 @@ public class PageService : IPageService
 
     public async Task<List<Page>> GetAllAsync(int? websiteId, CancellationToken ct = default)
     {
+        await using var _context = await _contextFactory.CreateDbContextAsync(ct);
+
         var q = _context.Pages.AsNoTracking();
         if (websiteId is int wid)
             q = q.Where(p => p.WebsiteID == wid);
         return await q.OrderBy(p => p.SortOrder).ThenBy(p => p.Title).ToListAsync(ct);
     }
 
-    public async Task<Page?> GetByIdAsync(int pageId, CancellationToken ct = default) =>
-        await _context.Pages.FindAsync([pageId], ct);
+    public async Task<Page?> GetByIdAsync(int pageId, CancellationToken ct = default)
+    {
+        await using var _context = await _contextFactory.CreateDbContextAsync(ct);
+
+        return await _context.Pages.FindAsync([pageId], ct);
+    }
 
     public async Task<Page> CreateAsync(Page page, CancellationToken ct = default)
     {
+        await using var _context = await _contextFactory.CreateDbContextAsync(ct);
+
         page.CreatedAt = page.UpdatedAt = DateTime.UtcNow;
         if (page.IsHomepage)
-            await ClearHomepageAsync(page.WebsiteID, ct);
+            await ClearHomepageAsync(_context, page.WebsiteID, ct);
         _context.Pages.Add(page);
         await _context.SaveChangesAsync(ct);
         return page;
@@ -58,15 +68,19 @@ public class PageService : IPageService
 
     public async Task UpdateAsync(Page page, CancellationToken ct = default)
     {
+        await using var _context = await _contextFactory.CreateDbContextAsync(ct);
+
         page.UpdatedAt = DateTime.UtcNow;
         if (page.IsHomepage)
-            await ClearHomepageAsync(page.WebsiteID, ct, exceptPageId: page.PageID);
+            await ClearHomepageAsync(_context, page.WebsiteID, ct, exceptPageId: page.PageID);
         _context.Pages.Update(page);
         await _context.SaveChangesAsync(ct);
     }
 
     public async Task DeleteAsync(int pageId, CancellationToken ct = default)
     {
+        await using var _context = await _contextFactory.CreateDbContextAsync(ct);
+
         var page = await _context.Pages
             .Include(p => p.PageTranslations)
             .Include(p => p.InverseParentPage)
@@ -84,24 +98,36 @@ public class PageService : IPageService
         await _context.SaveChangesAsync(ct);
     }
 
-    public async Task SetActiveAsync(int pageId, bool active, CancellationToken ct = default) =>
+    public async Task SetActiveAsync(int pageId, bool active, CancellationToken ct = default)
+    {
+        await using var _context = await _contextFactory.CreateDbContextAsync(ct);
+
         await _context.Pages.Where(p => p.PageID == pageId)
             .ExecuteUpdateAsync(s => s.SetProperty(p => p.IsActive, active), ct);
+    }
 
-    private async Task ClearHomepageAsync(int websiteId, CancellationToken ct, int? exceptPageId = null) =>
+    private async Task ClearHomepageAsync(AppDbContext _context, int websiteId, CancellationToken ct, int? exceptPageId = null)
+    {
         await _context.Pages
             .Where(p => p.WebsiteID == websiteId && p.IsHomepage && (exceptPageId == null || p.PageID != exceptPageId))
             .ExecuteUpdateAsync(s => s.SetProperty(p => p.IsHomepage, false), ct);
+    }
 
     // ── Translations ────────────────────────────────────────────────
 
-    public async Task<List<PageTranslation>> GetTranslationsAsync(int pageId, CancellationToken ct = default) =>
-        await _context.PageTranslations.AsNoTracking()
+    public async Task<List<PageTranslation>> GetTranslationsAsync(int pageId, CancellationToken ct = default)
+    {
+        await using var _context = await _contextFactory.CreateDbContextAsync(ct);
+
+        return await _context.PageTranslations.AsNoTracking()
             .Where(t => t.PageID == pageId)
             .ToListAsync(ct);
+    }
 
     public async Task SetTranslationsAsync(int pageId, IReadOnlyList<PageTranslation> translations, CancellationToken ct = default)
     {
+        await using var _context = await _contextFactory.CreateDbContextAsync(ct);
+
         var existing = await _context.PageTranslations.Where(t => t.PageID == pageId).ToListAsync(ct);
 
         // Remove languages that are no longer present or were cleared.
@@ -142,6 +168,8 @@ public class PageService : IPageService
 
     public async Task<List<PageDto>> GetTreeAsync(int websiteId, string? languageCode = null, CancellationToken ct = default)
     {
+        await using var _context = await _contextFactory.CreateDbContextAsync(ct);
+
         var pages = await _context.Pages.AsNoTracking()
             .Where(p => p.WebsiteID == websiteId && p.IsActive && p.Status == 1)
             .Include(p => p.PageTranslations)
@@ -154,6 +182,8 @@ public class PageService : IPageService
 
     public async Task<PageDto?> GetBySlugAsync(int websiteId, string slug, string? languageCode = null, CancellationToken ct = default)
     {
+        await using var _context = await _contextFactory.CreateDbContextAsync(ct);
+
         var page = await _context.Pages.AsNoTracking()
             .Include(p => p.PageTranslations)
             .FirstOrDefaultAsync(p => p.WebsiteID == websiteId && p.IsActive && p.Status == 1 &&
@@ -163,6 +193,8 @@ public class PageService : IPageService
 
     public async Task<PageDto?> GetHomepageAsync(int websiteId, string? languageCode = null, CancellationToken ct = default)
     {
+        await using var _context = await _contextFactory.CreateDbContextAsync(ct);
+
         var page = await _context.Pages.AsNoTracking()
             .Include(p => p.PageTranslations)
             .FirstOrDefaultAsync(p => p.WebsiteID == websiteId && p.IsActive && p.Status == 1 && p.IsHomepage, ct);

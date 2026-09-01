@@ -10,14 +10,17 @@ namespace Dotnetable.Infrastructure.Services;
 
 public class DigitalDeliveryService : IDigitalDeliveryService
 {
-    // Prefer ambient UoW context when OrderService (etc.) has an open multi-service transaction.
-    private readonly AppDbContext _fallback;
-    private AppDbContext _context => AmbientDbContext.Current ?? _fallback;
+    // Contexts come from DbLease per operation: it joins an ambient transaction when one is in
+    // flight and otherwise opens a short-lived context, so nothing is shared across a circuit.
+    private readonly IDbContextFactory<AppDbContext> _contextFactory;
 
-    public DigitalDeliveryService(AppDbContext context) => _fallback = context;
+    public DigitalDeliveryService(IDbContextFactory<AppDbContext> contextFactory) => _contextFactory = contextFactory;
 
     public async Task GrantForOrderAsync(int orderId, CancellationToken ct = default)
     {
+        await using var _lease = await DbLease.OpenAsync(_contextFactory, ct);
+        var _context = _lease.Context;
+
         var order = await _context.Orders
             .Include(o => o.OrderItems).ThenInclude(i => i.ProductVariant).ThenInclude(v => v.Product)
             .FirstOrDefaultAsync(o => o.OrderID == orderId, ct);
@@ -71,6 +74,9 @@ public class DigitalDeliveryService : IDigitalDeliveryService
     public async Task<PagedResult<DigitalLibraryItemDto>> GetClientLibraryAsync(
         int websiteId, int clientId, GridQuery query, CancellationToken ct = default)
     {
+        await using var _lease = await DbLease.OpenAsync(_contextFactory, ct);
+        var _context = _lease.Context;
+
         var q = _context.OrderDigitalAssets.AsNoTracking()
             .Where(a => a.WebsiteID == websiteId && a.WebsiteClientID == clientId && a.IsActive);
 
@@ -97,6 +103,9 @@ public class DigitalDeliveryService : IDigitalDeliveryService
     public async Task<IReadOnlyList<DigitalLibraryItemDto>> GetByOrderAsync(
         int websiteId, int clientId, int orderId, CancellationToken ct = default)
     {
+        await using var _lease = await DbLease.OpenAsync(_contextFactory, ct);
+        var _context = _lease.Context;
+
         var items = await _context.OrderDigitalAssets.AsNoTracking()
             .Where(a => a.WebsiteID == websiteId && a.WebsiteClientID == clientId
                         && a.OrderID == orderId && a.IsActive)
@@ -116,6 +125,9 @@ public class DigitalDeliveryService : IDigitalDeliveryService
     public async Task<DigitalLibraryDetailDto?> GetDetailAsync(
         int websiteId, int clientId, int orderDigitalAssetId, CancellationToken ct = default)
     {
+        await using var _lease = await DbLease.OpenAsync(_contextFactory, ct);
+        var _context = _lease.Context;
+
         var asset = await _context.OrderDigitalAssets.AsNoTracking()
             .Include(a => a.Order)
             .FirstOrDefaultAsync(a =>
@@ -167,6 +179,9 @@ public class DigitalDeliveryService : IDigitalDeliveryService
         int websiteId, int clientId, int orderDigitalAssetId, DigitalAccessType accessType,
         string? ipAddress, string? userAgent, CancellationToken ct = default)
     {
+        await using var _lease = await DbLease.OpenAsync(_contextFactory, ct);
+        var _context = _lease.Context;
+
         var asset = await _context.OrderDigitalAssets
             .FirstOrDefaultAsync(a =>
                 a.OrderDigitalAssetID == orderDigitalAssetId
@@ -175,7 +190,7 @@ public class DigitalDeliveryService : IDigitalDeliveryService
                 && a.IsActive, ct);
         if (asset is null) return (false, "Digital item not found.");
 
-        await WriteLogAsync(asset, accessType, ipAddress, userAgent, ct);
+        await WriteLogAsync(_context, asset, accessType, ipAddress, userAgent, ct);
         return (true, null);
     }
 
@@ -183,6 +198,9 @@ public class DigitalDeliveryService : IDigitalDeliveryService
         int websiteId, int clientId, int orderDigitalAssetId,
         string? ipAddress, string? userAgent, CancellationToken ct = default)
     {
+        await using var _lease = await DbLease.OpenAsync(_contextFactory, ct);
+        var _context = _lease.Context;
+
         var asset = await _context.OrderDigitalAssets
             .FirstOrDefaultAsync(a =>
                 a.OrderDigitalAssetID == orderDigitalAssetId
@@ -193,11 +211,12 @@ public class DigitalDeliveryService : IDigitalDeliveryService
         if (string.IsNullOrWhiteSpace(asset.DigitalDownloadUrl))
             return DigitalDownloadResult.Fail("No download link for this item.");
 
-        await WriteLogAsync(asset, DigitalAccessType.Download, ipAddress, userAgent, ct);
+        await WriteLogAsync(_context, asset, DigitalAccessType.Download, ipAddress, userAgent, ct);
         return DigitalDownloadResult.Ok(asset.DigitalDownloadUrl.Trim());
     }
 
-    private async Task WriteLogAsync(
+    private static async Task WriteLogAsync(
+        AppDbContext _context,
         OrderDigitalAsset asset, DigitalAccessType accessType,
         string? ipAddress, string? userAgent, CancellationToken ct)
     {

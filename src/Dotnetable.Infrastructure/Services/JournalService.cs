@@ -9,13 +9,15 @@ namespace Dotnetable.Infrastructure.Services;
 
 public class JournalService : IJournalService
 {
-    private readonly AppDbContext _context;
+    private readonly IDbContextFactory<AppDbContext> _contextFactory;
 
-    public JournalService(AppDbContext context) => _context = context;
+    public JournalService(IDbContextFactory<AppDbContext> contextFactory) => _contextFactory = contextFactory;
 
     public async Task<PagedResult<JournalEntryDto>> GetPagedAsync(
         int websiteId, DateOnly? from, DateOnly? to, bool? posted, GridQuery query, CancellationToken ct = default)
     {
+        await using var _context = await _contextFactory.CreateDbContextAsync(ct);
+
         var q = _context.JournalEntries.AsNoTracking()
             .Include(j => j.JournalEntryLines)
             .Where(j => j.WebsiteID == websiteId);
@@ -35,6 +37,8 @@ public class JournalService : IJournalService
 
     public async Task<JournalEntryDto?> GetByIdAsync(int journalEntryId, CancellationToken ct = default)
     {
+        await using var _context = await _contextFactory.CreateDbContextAsync(ct);
+
         var j = await _context.JournalEntries.AsNoTracking()
             .Include(x => x.JournalEntryLines).ThenInclude(l => l.ChartOfAccount)
             .FirstOrDefaultAsync(x => x.JournalEntryID == journalEntryId, ct);
@@ -46,6 +50,8 @@ public class JournalService : IJournalService
         bool reportToTax, IReadOnlyList<JournalLineDto> lines, int? memberId,
         string? sourceType = null, string? sourceKey = null, CancellationToken ct = default)
     {
+        await using var _context = await _contextFactory.CreateDbContextAsync(ct);
+
         var (ok, err) = ValidateLines(lines);
         if (!ok) return (false, err, null);
 
@@ -96,6 +102,8 @@ public class JournalService : IJournalService
 
     public async Task<(bool Success, string? Error)> PostAsync(int journalEntryId, int? memberId, CancellationToken ct = default)
     {
+        await using var _context = await _contextFactory.CreateDbContextAsync(ct);
+
         var entry = await _context.JournalEntries
             .Include(j => j.JournalEntryLines)
             .FirstOrDefaultAsync(j => j.JournalEntryID == journalEntryId, ct);
@@ -123,6 +131,8 @@ public class JournalService : IJournalService
     public async Task<(bool Success, string? Error, JournalEntry? Reversal)> ReverseAsync(
         int journalEntryId, int? memberId, string? note, CancellationToken ct = default)
     {
+        await using var _context = await _contextFactory.CreateDbContextAsync(ct);
+
         var original = await _context.JournalEntries
             .Include(j => j.JournalEntryLines)
             .FirstOrDefaultAsync(j => j.JournalEntryID == journalEntryId, ct);

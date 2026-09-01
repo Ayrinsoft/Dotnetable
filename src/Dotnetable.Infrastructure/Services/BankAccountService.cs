@@ -9,19 +9,25 @@ namespace Dotnetable.Infrastructure.Services;
 
 public class BankAccountService : IBankAccountService
 {
-    private readonly AppDbContext _context;
+    private readonly IDbContextFactory<AppDbContext> _contextFactory;
 
-    public BankAccountService(AppDbContext context) => _context = context;
+    public BankAccountService(IDbContextFactory<AppDbContext> contextFactory) => _contextFactory = contextFactory;
 
-    public async Task<List<BankAccount>> GetByWebsiteAsync(int websiteId, CancellationToken ct = default) =>
-        await _context.BankAccounts.AsNoTracking()
+    public async Task<List<BankAccount>> GetByWebsiteAsync(int websiteId, CancellationToken ct = default)
+    {
+        await using var _context = await _contextFactory.CreateDbContextAsync(ct);
+
+        return await _context.BankAccounts.AsNoTracking()
             .Include(a => a.Bank)
             .Where(a => a.WebsiteID == websiteId)
             .OrderBy(a => a.Title)
             .ToListAsync(ct);
+    }
 
     public async Task<PagedResult<BankAccount>> GetPagedAsync(int websiteId, GridQuery query, CancellationToken ct = default)
     {
+        await using var _context = await _contextFactory.CreateDbContextAsync(ct);
+
         var q = _context.BankAccounts.AsNoTracking()
             .Include(a => a.Bank)
             .Where(a => a.WebsiteID == websiteId);
@@ -42,13 +48,19 @@ public class BankAccountService : IBankAccountService
         return new PagedResult<BankAccount> { Items = items, TotalCount = total };
     }
 
-    public async Task<BankAccount?> GetByIdAsync(int bankAccountId, CancellationToken ct = default) =>
-        await _context.BankAccounts.AsNoTracking()
+    public async Task<BankAccount?> GetByIdAsync(int bankAccountId, CancellationToken ct = default)
+    {
+        await using var _context = await _contextFactory.CreateDbContextAsync(ct);
+
+        return await _context.BankAccounts.AsNoTracking()
             .Include(a => a.Bank)
             .FirstOrDefaultAsync(a => a.BankAccountID == bankAccountId, ct);
+    }
 
     public async Task<BankAccount> CreateAsync(BankAccount account, CancellationToken ct = default)
     {
+        await using var _context = await _contextFactory.CreateDbContextAsync(ct);
+
         _context.BankAccounts.Add(account);
         await _context.SaveChangesAsync(ct);
         return account;
@@ -56,6 +68,8 @@ public class BankAccountService : IBankAccountService
 
     public async Task<bool> UpdateAsync(BankAccount account, CancellationToken ct = default)
     {
+        await using var _context = await _contextFactory.CreateDbContextAsync(ct);
+
         var existing = await _context.BankAccounts
             .FirstOrDefaultAsync(a => a.BankAccountID == account.BankAccountID && a.WebsiteID == account.WebsiteID, ct);
         if (existing is null) return false;
@@ -75,6 +89,8 @@ public class BankAccountService : IBankAccountService
 
     public async Task<bool> DeleteAsync(int bankAccountId, int websiteId, CancellationToken ct = default)
     {
+        await using var _context = await _contextFactory.CreateDbContextAsync(ct);
+
         var existing = await _context.BankAccounts
             .FirstOrDefaultAsync(a => a.BankAccountID == bankAccountId && a.WebsiteID == websiteId, ct);
         if (existing is null) return false;
@@ -84,10 +100,14 @@ public class BankAccountService : IBankAccountService
         return true;
     }
 
-    public async Task<List<BankAccount>> GetOfflinePaymentAccountsAsync(int websiteId, CancellationToken ct = default) =>
-        await _context.BankAccounts.AsNoTracking()
+    public async Task<List<BankAccount>> GetOfflinePaymentAccountsAsync(int websiteId, CancellationToken ct = default)
+    {
+        await using var _context = await _contextFactory.CreateDbContextAsync(ct);
+
+        return await _context.BankAccounts.AsNoTracking()
             .Include(a => a.Bank)
             .Where(a => a.WebsiteID == websiteId && a.IsActive && a.IsForOfflinePayment)
             .OrderBy(a => a.Title)
             .ToListAsync(ct);
+    }
 }

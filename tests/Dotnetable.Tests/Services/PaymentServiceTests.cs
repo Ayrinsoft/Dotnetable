@@ -27,7 +27,10 @@ public class PaymentServiceTests : IDisposable
             .UseInMemoryDatabase(Guid.NewGuid().ToString())
             .Options;
         _context = new AppDbContext(opts);
-        _service = new PaymentService(_context, _wallet.Object, _orders.Object, _notifications.Object, _ledger.Object, _stockDocs.Object);
+        // Services open a context per call now, so they get a factory over the same options;
+        // the fixture keeps its own _context for seeding and asserting.
+        var factory = new TestDbContextFactory(opts);
+        _service = new PaymentService(factory, _wallet.Object, _orders.Object, _notifications.Object, _ledger.Object, _stockDocs.Object);
         SeedBasics();
     }
 
@@ -157,6 +160,10 @@ public class PaymentServiceTests : IDisposable
     public async Task Refund_CashManual_CompletesWithoutWalletOrBank()
     {
         await _service.RecordReceivedPaymentAsync(500, PaymentMethod.CashOnDelivery, null, null, null, 10);
+        // The service wrote through its own short-lived context, so this fixture's context must
+        // re-read rather than answer from entities it is still tracking.
+        _context.ChangeTracker.Clear();
+
         var paid = await _context.Payments.SingleAsync();
 
         var (success, error, refund) = await _service.RefundAsync(
@@ -168,6 +175,10 @@ public class PaymentServiceTests : IDisposable
         refund.BankAccountID.Should().BeNull();
         refund.ClientWalletTransactionID.Should().BeNull();
         refund.RefundedAt.Should().NotBeNull();
+
+        // The refund was written through the service's own context; re-read rather than answer
+        // from the entity this fixture is still tracking.
+        _context.ChangeTracker.Clear();
 
         paid = await _context.Payments.SingleAsync();
         paid.Status.Should().Be((byte)PaymentStatus.Refunded);

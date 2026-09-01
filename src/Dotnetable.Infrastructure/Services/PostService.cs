@@ -12,14 +12,16 @@ public class PostService : IPostService
     /// <summary>Post.Status value that marks a post as publicly published.</summary>
     public const byte PublishedStatus = 1;
 
-    private readonly AppDbContext _context;
+    private readonly IDbContextFactory<AppDbContext> _contextFactory;
 
-    public PostService(AppDbContext context) => _context = context;
+    public PostService(IDbContextFactory<AppDbContext> contextFactory) => _contextFactory = contextFactory;
 
     // ── Admin management ────────────────────────────────────────────
 
     public async Task<PagedResult<Post>> GetPagedAsync(int? websiteId, PostFilter filter, GridQuery query, CancellationToken ct = default)
     {
+        await using var _context = await _contextFactory.CreateDbContextAsync(ct);
+
         var q = _context.Posts.AsNoTracking().Include(p => p.PostType).AsQueryable();
         if (websiteId is int wid)
             q = q.Where(p => p.WebsiteID == wid);
@@ -44,16 +46,22 @@ public class PostService : IPostService
         return new PagedResult<Post> { Items = items, TotalCount = total };
     }
 
-    public async Task<Post?> GetByIdAsync(int postId, CancellationToken ct = default) =>
-        await _context.Posts
+    public async Task<Post?> GetByIdAsync(int postId, CancellationToken ct = default)
+    {
+        await using var _context = await _contextFactory.CreateDbContextAsync(ct);
+
+        return await _context.Posts
             .Include(p => p.PostTranslations)
             .Include(p => p.PostCategories)
             .Include(p => p.Tags)
             .Include(p => p.FeaturedImageFile)
             .FirstOrDefaultAsync(p => p.PostID == postId, ct);
+    }
 
     public async Task<Post> CreateAsync(Post post, CancellationToken ct = default)
     {
+        await using var _context = await _contextFactory.CreateDbContextAsync(ct);
+
         post.CreatedAt = post.UpdatedAt = DateTime.UtcNow;
         if (post.Status == PublishedStatus && post.PublishedAt is null)
             post.PublishedAt = DateTime.UtcNow;
@@ -64,6 +72,8 @@ public class PostService : IPostService
 
     public async Task UpdateAsync(Post post, CancellationToken ct = default)
     {
+        await using var _context = await _contextFactory.CreateDbContextAsync(ct);
+
         post.UpdatedAt = DateTime.UtcNow;
         if (post.Status == PublishedStatus && post.PublishedAt is null)
             post.PublishedAt = DateTime.UtcNow;
@@ -73,6 +83,8 @@ public class PostService : IPostService
 
     public async Task DeleteAsync(int postId, CancellationToken ct = default)
     {
+        await using var _context = await _contextFactory.CreateDbContextAsync(ct);
+
         var post = await _context.Posts
             .Include(p => p.PostTranslations)
             .Include(p => p.PostCategories)
@@ -90,19 +102,29 @@ public class PostService : IPostService
         await _context.SaveChangesAsync(ct);
     }
 
-    public async Task SetActiveAsync(int postId, bool active, CancellationToken ct = default) =>
+    public async Task SetActiveAsync(int postId, bool active, CancellationToken ct = default)
+    {
+        await using var _context = await _contextFactory.CreateDbContextAsync(ct);
+
         await _context.Posts.Where(p => p.PostID == postId)
             .ExecuteUpdateAsync(s => s.SetProperty(p => p.IsActive, active), ct);
+    }
 
     // ── Translations ────────────────────────────────────────────────
 
-    public async Task<List<PostTranslation>> GetTranslationsAsync(int postId, CancellationToken ct = default) =>
-        await _context.PostTranslations.AsNoTracking()
+    public async Task<List<PostTranslation>> GetTranslationsAsync(int postId, CancellationToken ct = default)
+    {
+        await using var _context = await _contextFactory.CreateDbContextAsync(ct);
+
+        return await _context.PostTranslations.AsNoTracking()
             .Where(t => t.PostID == postId)
             .ToListAsync(ct);
+    }
 
     public async Task SetTranslationsAsync(int postId, IReadOnlyList<PostTranslation> translations, CancellationToken ct = default)
     {
+        await using var _context = await _contextFactory.CreateDbContextAsync(ct);
+
         var existing = await _context.PostTranslations.Where(t => t.PostID == postId).ToListAsync(ct);
 
         var keepLanguages = translations
@@ -142,14 +164,20 @@ public class PostService : IPostService
 
     // ── Category / tag assignment ───────────────────────────────────
 
-    public async Task<List<int>> GetCategoryIdsAsync(int postId, CancellationToken ct = default) =>
-        await _context.PostCategories.AsNoTracking()
+    public async Task<List<int>> GetCategoryIdsAsync(int postId, CancellationToken ct = default)
+    {
+        await using var _context = await _contextFactory.CreateDbContextAsync(ct);
+
+        return await _context.PostCategories.AsNoTracking()
             .Where(pc => pc.PostID == postId)
             .Select(pc => pc.CategoryID)
             .ToListAsync(ct);
+    }
 
     public async Task SetCategoriesAsync(int postId, IReadOnlyList<int> categoryIds, int? primaryCategoryId, CancellationToken ct = default)
     {
+        await using var _context = await _contextFactory.CreateDbContextAsync(ct);
+
         var existing = await _context.PostCategories.Where(pc => pc.PostID == postId).ToListAsync(ct);
         var wanted = categoryIds.Distinct().ToList();
 
@@ -168,14 +196,20 @@ public class PostService : IPostService
         await _context.SaveChangesAsync(ct);
     }
 
-    public async Task<List<int>> GetTagIdsAsync(int postId, CancellationToken ct = default) =>
-        await _context.Posts.AsNoTracking()
+    public async Task<List<int>> GetTagIdsAsync(int postId, CancellationToken ct = default)
+    {
+        await using var _context = await _contextFactory.CreateDbContextAsync(ct);
+
+        return await _context.Posts.AsNoTracking()
             .Where(p => p.PostID == postId)
             .SelectMany(p => p.Tags.Select(t => t.TagID))
             .ToListAsync(ct);
+    }
 
     public async Task SetTagsAsync(int postId, IReadOnlyList<int> tagIds, CancellationToken ct = default)
     {
+        await using var _context = await _contextFactory.CreateDbContextAsync(ct);
+
         var post = await _context.Posts.Include(p => p.Tags).FirstOrDefaultAsync(p => p.PostID == postId, ct);
         if (post is null) return;
 
@@ -200,8 +234,10 @@ public class PostService : IPostService
         int websiteId, string? postTypeSlug, string? categorySlug, string? tagSlug,
         int pageIndex, int pageSize, string? languageCode = null, CancellationToken ct = default)
     {
+        await using var _context = await _contextFactory.CreateDbContextAsync(ct);
+
         var now = DateTime.UtcNow;
-        var q = PublishedQuery(websiteId, now);
+        var q = PublishedQuery(_context, websiteId, now);
 
         if (!string.IsNullOrWhiteSpace(postTypeSlug))
             q = q.Where(p => p.PostType.Slug == postTypeSlug);
@@ -230,8 +266,10 @@ public class PostService : IPostService
 
     public async Task<PostDetailDto?> GetBySlugAsync(int websiteId, string slug, string? languageCode = null, CancellationToken ct = default)
     {
+        await using var _context = await _contextFactory.CreateDbContextAsync(ct);
+
         var now = DateTime.UtcNow;
-        var post = await PublishedQuery(websiteId, now)
+        var post = await PublishedQuery(_context, websiteId, now)
             .FirstOrDefaultAsync(p => p.Slug == slug || p.PostTranslations.Any(t => t.Slug == slug), ct);
         if (post is null) return null;
 
@@ -248,8 +286,10 @@ public class PostService : IPostService
 
     public async Task<List<PostSummaryDto>> GetFeaturedAsync(int websiteId, int take, string? languageCode = null, CancellationToken ct = default)
     {
+        await using var _context = await _contextFactory.CreateDbContextAsync(ct);
+
         var now = DateTime.UtcNow;
-        var posts = await PublishedQuery(websiteId, now)
+        var posts = await PublishedQuery(_context, websiteId, now)
             .Where(p => p.IsFeatured)
             .OrderByDescending(p => p.PublishedAt ?? p.CreatedAt)
             .Take(take < 1 ? 4 : take)
@@ -257,7 +297,8 @@ public class PostService : IPostService
         return posts.Select(p => ProjectSummary(p, languageCode)).ToList();
     }
 
-    private IQueryable<Post> PublishedQuery(int websiteId, DateTime now) =>
+    // Takes the caller's context: an IQueryable is only valid while the context that built it is alive.
+    private static IQueryable<Post> PublishedQuery(AppDbContext _context, int websiteId, DateTime now) =>
         _context.Posts.AsNoTracking()
             .Where(p => p.WebsiteID == websiteId && p.IsActive && p.Status == PublishedStatus &&
                 (p.PublishedAt == null || p.PublishedAt <= now))

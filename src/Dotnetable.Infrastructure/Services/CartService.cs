@@ -8,16 +8,16 @@ namespace Dotnetable.Infrastructure.Services;
 
 public class CartService : ICartService
 {
-    private readonly AppDbContext _context;
+    private readonly IDbContextFactory<AppDbContext> _contextFactory;
     private readonly ICurrencyConversionService _currency;
     private readonly ICouponService _coupons;
     private readonly IVendorProductService _vendorProducts;
 
     public CartService(
-        AppDbContext context, ICurrencyConversionService currency, ICouponService coupons,
+        IDbContextFactory<AppDbContext> contextFactory, ICurrencyConversionService currency, ICouponService coupons,
         IVendorProductService vendorProducts)
     {
-        _context = context;
+        _contextFactory = contextFactory;
         _currency = currency;
         _coupons = coupons;
         _vendorProducts = vendorProducts;
@@ -25,6 +25,8 @@ public class CartService : ICartService
 
     public async Task<Cart> GetOrCreateAsync(int websiteId, int? clientId, string? sessionKey, CancellationToken ct = default)
     {
+        await using var _context = await _contextFactory.CreateDbContextAsync(ct);
+
         Cart? cart = clientId is int cid
             ? await _context.Carts.FirstOrDefaultAsync(c => c.WebsiteID == websiteId && c.WebsiteClientID == cid, ct)
             : !string.IsNullOrEmpty(sessionKey)
@@ -48,6 +50,8 @@ public class CartService : ICartService
 
     public async Task<CartViewDto> GetCartViewAsync(int websiteId, int cartId, string? currencyCode = null, CancellationToken ct = default)
     {
+        await using var _context = await _contextFactory.CreateDbContextAsync(ct);
+
         var cart = await _context.Carts
             .Include(c => c.Coupon)
             .Include(c => c.CartItems).ThenInclude(i => i.ProductVariant).ThenInclude(v => v.Product)
@@ -157,6 +161,8 @@ public class CartService : ICartService
 
     public async Task AddItemAsync(int websiteId, int cartId, int variantId, int quantity, int? vendorProductId = null, int? vendorId = null, CancellationToken ct = default)
     {
+        await using var _context = await _contextFactory.CreateDbContextAsync(ct);
+
         if (quantity < 1) quantity = 1;
 
         if (vendorProductId is null && vendorId is int vid)
@@ -200,11 +206,13 @@ public class CartService : ICartService
             });
         }
 
-        await TouchAsync(cartId, ct);
+        await TouchAsync(_context, cartId, ct);
     }
 
     public async Task UpdateQuantityAsync(int cartId, int cartItemId, int quantity, CancellationToken ct = default)
     {
+        await using var _context = await _contextFactory.CreateDbContextAsync(ct);
+
         var item = await _context.CartItems.FirstOrDefaultAsync(i => i.CartItemID == cartItemId && i.CartID == cartId, ct);
         if (item is null) return;
 
@@ -213,31 +221,37 @@ public class CartService : ICartService
         else
             item.Quantity = quantity;
 
-        await TouchAsync(cartId, ct);
+        await TouchAsync(_context, cartId, ct);
     }
 
     public async Task RemoveItemAsync(int cartId, int cartItemId, CancellationToken ct = default)
     {
+        await using var _context = await _contextFactory.CreateDbContextAsync(ct);
+
         var item = await _context.CartItems.FirstOrDefaultAsync(i => i.CartItemID == cartItemId && i.CartID == cartId, ct);
         if (item is null) return;
 
         _context.CartItems.Remove(item);
-        await TouchAsync(cartId, ct);
+        await TouchAsync(_context, cartId, ct);
     }
 
     public async Task ClearAsync(int cartId, CancellationToken ct = default)
     {
+        await using var _context = await _contextFactory.CreateDbContextAsync(ct);
+
         var items = await _context.CartItems.Where(i => i.CartID == cartId).ToListAsync(ct);
         _context.CartItems.RemoveRange(items);
 
         var cart = await _context.Carts.FirstOrDefaultAsync(c => c.CartID == cartId, ct);
         if (cart is not null) cart.CouponID = null;
 
-        await TouchAsync(cartId, ct);
+        await TouchAsync(_context, cartId, ct);
     }
 
     public async Task MergeGuestCartAsync(int websiteId, string sessionKey, int clientId, CancellationToken ct = default)
     {
+        await using var _context = await _contextFactory.CreateDbContextAsync(ct);
+
         var guestCart = await _context.Carts
             .Include(c => c.CartItems)
             .FirstOrDefaultAsync(c => c.WebsiteID == websiteId && c.SessionKey == sessionKey && c.WebsiteClientID == null, ct);
@@ -268,11 +282,13 @@ public class CartService : ICartService
 
         _context.CartItems.RemoveRange(guestCart.CartItems);
         _context.Carts.Remove(guestCart);
-        await TouchAsync(clientCart.CartID, ct);
+        await TouchAsync(_context, clientCart.CartID, ct);
     }
 
     public async Task<(bool Success, string? Error)> ApplyCouponAsync(int websiteId, int cartId, string code, int? clientId, CancellationToken ct = default)
     {
+        await using var _context = await _contextFactory.CreateDbContextAsync(ct);
+
         var cart = await _context.Carts
             .Include(c => c.CartItems).ThenInclude(i => i.ProductVariant)
             .Include(c => c.CartItems).ThenInclude(i => i.VendorProduct)
@@ -301,19 +317,21 @@ public class CartService : ICartService
         if (!valid) return (false, error);
 
         cart.CouponID = coupon.CouponID;
-        await TouchAsync(cartId, ct);
+        await TouchAsync(_context, cartId, ct);
         return (true, null);
     }
 
     public async Task RemoveCouponAsync(int cartId, CancellationToken ct = default)
     {
+        await using var _context = await _contextFactory.CreateDbContextAsync(ct);
+
         var cart = await _context.Carts.FirstOrDefaultAsync(c => c.CartID == cartId, ct);
         if (cart is null) return;
         cart.CouponID = null;
-        await TouchAsync(cartId, ct);
+        await TouchAsync(_context, cartId, ct);
     }
 
-    private async Task TouchAsync(int cartId, CancellationToken ct)
+    private async Task TouchAsync(AppDbContext _context, int cartId, CancellationToken ct)
     {
         var cart = await _context.Carts.FirstOrDefaultAsync(c => c.CartID == cartId, ct);
         if (cart is not null) cart.UpdatedAt = DateTime.UtcNow;

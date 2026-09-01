@@ -9,26 +9,36 @@ namespace Dotnetable.Infrastructure.Services;
 
 public class StorageSettingService : IStorageSettingService
 {
-    private readonly AppDbContext _context;
+    private readonly IDbContextFactory<AppDbContext> _contextFactory;
     private readonly IFileStorageProviderRegistry _providers;
 
-    public StorageSettingService(AppDbContext context, IFileStorageProviderRegistry providers)
+    public StorageSettingService(IDbContextFactory<AppDbContext> contextFactory, IFileStorageProviderRegistry providers)
     {
-        _context = context;
+        _contextFactory = contextFactory;
         _providers = providers;
     }
 
-    public async Task<IReadOnlyList<WebsiteStorageSetting>> GetForWebsiteAsync(int websiteId, CancellationToken ct = default) =>
-        await _context.WebsiteStorageSettings.AsNoTracking()
+    public async Task<IReadOnlyList<WebsiteStorageSetting>> GetForWebsiteAsync(int websiteId, CancellationToken ct = default)
+    {
+        await using var _context = await _contextFactory.CreateDbContextAsync(ct);
+
+        return await _context.WebsiteStorageSettings.AsNoTracking()
             .Where(s => s.WebsiteID == websiteId)
             .OrderBy(s => s.WebsiteStorageSettingsID)
             .ToListAsync(ct);
+    }
 
-    public async Task<WebsiteStorageSetting?> GetByIdAsync(int id, CancellationToken ct = default) =>
-        await _context.WebsiteStorageSettings.FindAsync([id], ct);
+    public async Task<WebsiteStorageSetting?> GetByIdAsync(int id, CancellationToken ct = default)
+    {
+        await using var _context = await _contextFactory.CreateDbContextAsync(ct);
+
+        return await _context.WebsiteStorageSettings.FindAsync([id], ct);
+    }
 
     public async Task<IReadOnlyList<StorageSettingInfo>> GetActiveForWebsiteAsync(int websiteId, CancellationToken ct = default)
     {
+        await using var _context = await _contextFactory.CreateDbContextAsync(ct);
+
         var settings = await _context.WebsiteStorageSettings.AsNoTracking()
             .Where(s => s.WebsiteID == websiteId && s.Active)
             .OrderBy(s => s.WebsiteStorageSettingsID)
@@ -42,14 +52,18 @@ public class StorageSettingService : IStorageSettingService
 
     public async Task<StorageQuota> GetQuotaAsync(int id, CancellationToken ct = default)
     {
+        await using var _context = await _contextFactory.CreateDbContextAsync(ct);
+
         var setting = await _context.WebsiteStorageSettings.AsNoTracking()
             .FirstOrDefaultAsync(s => s.WebsiteStorageSettingsID == id, ct)
             ?? throw new InvalidOperationException($"Storage setting {id} not found.");
-        return await ResolveQuotaAsync(setting, ct);
+        return await ResolveQuotaAsync(_context, setting, ct);
     }
 
     public async Task<WebsiteStorageSetting> CreateAsync(WebsiteStorageSetting setting, CancellationToken ct = default)
     {
+        await using var _context = await _contextFactory.CreateDbContextAsync(ct);
+
         _context.WebsiteStorageSettings.Add(setting);
         await _context.SaveChangesAsync(ct);
         return setting;
@@ -57,17 +71,27 @@ public class StorageSettingService : IStorageSettingService
 
     public async Task UpdateAsync(WebsiteStorageSetting setting, CancellationToken ct = default)
     {
+        await using var _context = await _contextFactory.CreateDbContextAsync(ct);
+
         _context.WebsiteStorageSettings.Update(setting);
         await _context.SaveChangesAsync(ct);
     }
 
-    public async Task SetActiveAsync(int id, bool active, CancellationToken ct = default) =>
+    public async Task SetActiveAsync(int id, bool active, CancellationToken ct = default)
+    {
+        await using var _context = await _contextFactory.CreateDbContextAsync(ct);
+
         await _context.WebsiteStorageSettings.Where(s => s.WebsiteStorageSettingsID == id)
             .ExecuteUpdateAsync(s => s.SetProperty(x => x.Active, active), ct);
+    }
 
-    public async Task DeleteAsync(int id, CancellationToken ct = default) =>
+    public async Task DeleteAsync(int id, CancellationToken ct = default)
+    {
+        await using var _context = await _contextFactory.CreateDbContextAsync(ct);
+
         await _context.WebsiteStorageSettings.Where(s => s.WebsiteStorageSettingsID == id)
             .ExecuteDeleteAsync(ct);
+    }
 
     public async Task<bool> TestAsync(int id, CancellationToken ct = default)
     {
@@ -79,7 +103,7 @@ public class StorageSettingService : IStorageSettingService
         await _providers.Get(ctx.Provider).TestConnectionAsync(ctx, ct);
 
     /// <summary>Live quota: provider value, falling back to summed DB usage when the backend reports none.</summary>
-    private async Task<StorageQuota> ResolveQuotaAsync(WebsiteStorageSetting setting, CancellationToken ct)
+    private async Task<StorageQuota> ResolveQuotaAsync(AppDbContext _context, WebsiteStorageSetting setting, CancellationToken ct)
     {
         StorageQuota providerQuota;
         try
@@ -105,9 +129,11 @@ public class StorageSettingService : IStorageSettingService
 
     private async Task<StorageSettingInfo> ToInfoAsync(WebsiteStorageSetting s, CancellationToken ct)
     {
+        await using var _context = await _contextFactory.CreateDbContextAsync(ct);
+
         var provider = (StorageProviderType)s.StorageProvider;
         StorageQuota? quota = null;
-        try { quota = await ResolveQuotaAsync(s, ct); } catch { /* surface as null quota */ }
+        try { quota = await ResolveQuotaAsync(_context, s, ct); } catch { /* surface as null quota */ }
 
         return new StorageSettingInfo
         {

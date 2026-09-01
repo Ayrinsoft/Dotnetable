@@ -43,20 +43,20 @@ public class WebsiteClientAuthService : IWebsiteClientAuthService
     /// <summary>How long an account stays locked after <see cref="MaxLoginAttempts"/> failures.</summary>
     private static readonly TimeSpan LockoutWindow = TimeSpan.FromMinutes(15);
 
-    private readonly AppDbContext _context;
+    private readonly IDbContextFactory<AppDbContext> _contextFactory;
     private readonly IEmailService _email;
     private readonly ISmsSender _sms;
     private readonly IPasswordHasher<WebsiteClient> _hasher;
     private readonly IAdminNotificationService _notifications;
 
     public WebsiteClientAuthService(
-        AppDbContext context,
+        IDbContextFactory<AppDbContext> contextFactory,
         IEmailService email,
         ISmsSender sms,
         IPasswordHasher<WebsiteClient> hasher,
         IAdminNotificationService notifications)
     {
-        _context = context;
+        _contextFactory = contextFactory;
         _email = email;
         _sms = sms;
         _hasher = hasher;
@@ -65,6 +65,8 @@ public class WebsiteClientAuthService : IWebsiteClientAuthService
 
     public async Task<ClientRegisterResponse> RegisterAsync(ClientRegistration registration, CancellationToken ct = default)
     {
+        await using var _context = await _contextFactory.CreateDbContextAsync(ct);
+
         var email = Normalize(registration.Email);
         var cellphone = Normalize(registration.Cellphone);
         var countryCode = Normalize(registration.CountryCode);
@@ -92,7 +94,7 @@ public class WebsiteClientAuthService : IWebsiteClientAuthService
         // The code has to be deliverable before an account is created for it — otherwise the customer
         // is left with an inactive account and no way to activate it. This is also what stops
         // mobile-only sign-up on a site with no SMS gateway configured.
-        if (!await CanDeliverAsync(registration.WebsiteId, channel, ct))
+        if (!await CanDeliverAsync(_context, registration.WebsiteId, channel, ct))
             return new ClientRegisterResponse(ClientRegisterResult.DeliveryNotConfigured, channel, identifier);
 
         // Every existing customer in this website that already owns the email or the mobile.
@@ -168,33 +170,37 @@ public class WebsiteClientAuthService : IWebsiteClientAuthService
     public async Task<(ClientVerifyResult Result, WebsiteClient? Client)> VerifyOtpAsync(
         int websiteId, string identifier, string code, CancellationToken ct = default)
     {
-        var client = await FindAsync(websiteId, Normalize(identifier) ?? string.Empty, ct);
+        await using var _context = await _contextFactory.CreateDbContextAsync(ct);
+
+        var client = await FindAsync(_context, websiteId, Normalize(identifier) ?? string.Empty, ct);
         if (client is null) return (ClientVerifyResult.NotFound, null);
         if (client.Active) return (ClientVerifyResult.AlreadyActive, client);
 
-        var check = await CheckCodeAsync(client.WebsiteClientID, code, ct);
+        var check = await CheckCodeAsync(_context, client.WebsiteClientID, code, ct);
         if (check == CodeCheck.TooManyAttempts) return (ClientVerifyResult.TooManyAttempts, null);
         if (check == CodeCheck.Invalid) return (ClientVerifyResult.InvalidCode, null);
 
         client.Active = true;
         client.FailedLoginCount = 0;
         client.LockoutEndUtc = null;
-        await ClearCodesAsync(client.WebsiteClientID, ct);
+        await ClearCodesAsync(_context, client.WebsiteClientID, ct);
         await _context.SaveChangesAsync(ct);
         return (ClientVerifyResult.Success, client);
     }
 
     public async Task<ClientResendResult> ResendOtpAsync(int websiteId, string identifier, CancellationToken ct = default)
     {
-        var client = await FindAsync(websiteId, Normalize(identifier) ?? string.Empty, ct);
+        await using var _context = await _contextFactory.CreateDbContextAsync(ct);
+
+        var client = await FindAsync(_context, websiteId, Normalize(identifier) ?? string.Empty, ct);
         if (client is null) return ClientResendResult.NotFound;
         if (client.Active) return ClientResendResult.AlreadyActive;
 
         var (channel, target) = ChannelFor(client);
-        if (!await CanDeliverAsync(client.WebsiteID, channel, ct))
+        if (!await CanDeliverAsync(_context, client.WebsiteID, channel, ct))
             return ClientResendResult.DeliveryNotConfigured;
 
-        if (await IsWithinResendCooldownAsync(client.WebsiteClientID, ct))
+        if (await IsWithinResendCooldownAsync(_context, client.WebsiteClientID, ct))
             return ClientResendResult.TooSoon;
 
         var code = await IssueCodeAsync(client.WebsiteClientID, ct);
@@ -205,7 +211,9 @@ public class WebsiteClientAuthService : IWebsiteClientAuthService
     public async Task<(ClientLoginStatus Status, WebsiteClient? Client)> ValidateCredentialsAsync(
         int websiteId, string identifier, string password, CancellationToken ct = default)
     {
-        var client = await FindAsync(websiteId, Normalize(identifier) ?? string.Empty, ct);
+        await using var _context = await _contextFactory.CreateDbContextAsync(ct);
+
+        var client = await FindAsync(_context, websiteId, Normalize(identifier) ?? string.Empty, ct);
         if (client is null || string.IsNullOrEmpty(client.Password))
             return (ClientLoginStatus.InvalidCredentials, null);
 
@@ -249,16 +257,18 @@ public class WebsiteClientAuthService : IWebsiteClientAuthService
 
     public async Task<ClientResetRequestResult> RequestPasswordResetAsync(int websiteId, string identifier, CancellationToken ct = default)
     {
-        var client = await FindAsync(websiteId, Normalize(identifier) ?? string.Empty, ct);
+        await using var _context = await _contextFactory.CreateDbContextAsync(ct);
+
+        var client = await FindAsync(_context, websiteId, Normalize(identifier) ?? string.Empty, ct);
         if (client is null) return ClientResetRequestResult.NotFound;
 
         var (channel, target) = ChannelFor(client);
-        if (!await CanDeliverAsync(client.WebsiteID, channel, ct))
+        if (!await CanDeliverAsync(_context, client.WebsiteID, channel, ct))
             return ClientResetRequestResult.DeliveryNotConfigured;
 
         // Silently succeed inside the cooldown: the caller reports a generic "if the account exists"
         // message either way, so this neither leaks existence nor re-sends.
-        if (await IsWithinResendCooldownAsync(client.WebsiteClientID, ct))
+        if (await IsWithinResendCooldownAsync(_context, client.WebsiteClientID, ct))
             return ClientResetRequestResult.OtpSent;
 
         var code = await IssueCodeAsync(client.WebsiteClientID, ct);
@@ -269,10 +279,12 @@ public class WebsiteClientAuthService : IWebsiteClientAuthService
     public async Task<ClientResetResult> ResetPasswordAsync(
         int websiteId, string identifier, string code, string newPassword, CancellationToken ct = default)
     {
-        var client = await FindAsync(websiteId, Normalize(identifier) ?? string.Empty, ct);
+        await using var _context = await _contextFactory.CreateDbContextAsync(ct);
+
+        var client = await FindAsync(_context, websiteId, Normalize(identifier) ?? string.Empty, ct);
         if (client is null) return ClientResetResult.NotFound;
 
-        var check = await CheckCodeAsync(client.WebsiteClientID, code, ct);
+        var check = await CheckCodeAsync(_context, client.WebsiteClientID, code, ct);
         if (check == CodeCheck.TooManyAttempts) return ClientResetResult.TooManyAttempts;
         if (check == CodeCheck.Invalid) return ClientResetResult.InvalidCode;
 
@@ -289,15 +301,17 @@ public class WebsiteClientAuthService : IWebsiteClientAuthService
         client.LockoutEndUtc = null;
         // Activate the account too — proving control of the email/mobile is enough.
         client.Active = true;
-        await ClearCodesAsync(client.WebsiteClientID, ct);
-        await RevokeAllRefreshTokensAsync(client.WebsiteClientID, ct);
+        await ClearCodesAsync(_context, client.WebsiteClientID, ct);
+        await RevokeAllRefreshTokensAsync(_context, client.WebsiteClientID, ct);
         await _context.SaveChangesAsync(ct);
         return ClientResetResult.Success;
     }
 
     // ── Helpers ─────────────────────────────────────────────────────
 
-    private Task<WebsiteClient?> FindAsync(int websiteId, string needle, CancellationToken ct) =>
+    // Takes the caller's context: the entity it returns is tracked, and every caller mutates it and
+    // saves through that same context.
+    private static Task<WebsiteClient?> FindAsync(AppDbContext _context, int websiteId, string needle, CancellationToken ct) =>
         _context.WebsiteClients.FirstOrDefaultAsync(
             c => c.WebsiteID == websiteId && (c.Email == needle || c.Cellphone == needle), ct);
 
@@ -307,7 +321,7 @@ public class WebsiteClientAuthService : IWebsiteClientAuthService
             : (OtpChannel.Sms, client.Cellphone ?? string.Empty);
 
     /// <summary>True when a code sent over <paramref name="channel"/> would actually reach the customer.</summary>
-    private async Task<bool> CanDeliverAsync(int websiteId, OtpChannel channel, CancellationToken ct) =>
+    private async Task<bool> CanDeliverAsync(AppDbContext _context, int websiteId, OtpChannel channel, CancellationToken ct) =>
         channel == OtpChannel.Email
             ? await _email.IsConfiguredAsync(websiteId, ct)
             : await _sms.IsConfiguredAsync(websiteId, ct);
@@ -315,7 +329,9 @@ public class WebsiteClientAuthService : IWebsiteClientAuthService
     /// <summary>Replaces any outstanding code for the customer with a fresh 6-digit one.</summary>
     private async Task<string> IssueCodeAsync(int clientId, CancellationToken ct)
     {
-        await ClearCodesAsync(clientId, ct);
+        await using var _context = await _contextFactory.CreateDbContextAsync(ct);
+
+        await ClearCodesAsync(_context, clientId, ct);
         var code = GenerateCode();
         _context.WebsiteClientForgetPasswords.Add(new WebsiteClientForgetPassword
         {
@@ -329,7 +345,7 @@ public class WebsiteClientAuthService : IWebsiteClientAuthService
         return code;
     }
 
-    private async Task<bool> IsWithinResendCooldownAsync(int clientId, CancellationToken ct)
+    private async Task<bool> IsWithinResendCooldownAsync(AppDbContext _context, int clientId, CancellationToken ct)
     {
         var since = DateTime.UtcNow - ResendCooldown;
         return await _context.WebsiteClientForgetPasswords
@@ -343,7 +359,7 @@ public class WebsiteClientAuthService : IWebsiteClientAuthService
     /// The comparison is length-constant so timing cannot be used to learn a prefix, and the code is
     /// destroyed once the attempt budget is spent.
     /// </summary>
-    private async Task<CodeCheck> CheckCodeAsync(int clientId, string code, CancellationToken ct)
+    private async Task<CodeCheck> CheckCodeAsync(AppDbContext _context, int clientId, string code, CancellationToken ct)
     {
         var normalized = Normalize(code);
         var cutoff = DateTime.UtcNow - CodeLifetime;
@@ -373,14 +389,14 @@ public class WebsiteClientAuthService : IWebsiteClientAuthService
         return row.LockedUntil is not null ? CodeCheck.TooManyAttempts : CodeCheck.Invalid;
     }
 
-    private async Task ClearCodesAsync(int clientId, CancellationToken ct)
+    private async Task ClearCodesAsync(AppDbContext _context, int clientId, CancellationToken ct)
     {
         var stale = _context.WebsiteClientForgetPasswords.Where(f => f.WebsiteClientID == clientId);
         _context.WebsiteClientForgetPasswords.RemoveRange(stale);
         await _context.SaveChangesAsync(ct);
     }
 
-    private Task RevokeAllRefreshTokensAsync(int clientId, CancellationToken ct) =>
+    private static Task RevokeAllRefreshTokensAsync(AppDbContext _context, int clientId, CancellationToken ct) =>
         _context.WebsiteClientRefreshTokens
             .Where(t => t.WebsiteClientID == clientId && t.RevokedAt == null)
             .ExecuteUpdateAsync(s => s.SetProperty(t => t.RevokedAt, (DateTime?)DateTime.UtcNow), ct);

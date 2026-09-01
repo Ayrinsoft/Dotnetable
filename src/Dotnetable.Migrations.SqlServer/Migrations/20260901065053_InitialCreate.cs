@@ -6929,70 +6929,70 @@ namespace Dotnetable.Migrations.SqlServer.Migrations
                 principalColumn: "WebsiteID");
 
             migrationBuilder.AddForeignKey(
-                name: "FK_CustomerReturnRequestHistories_CustomerReturnRequests_CustomerReturnRequestID",
-                table: "CustomerReturnRequestHistories",
-                column: "CustomerReturnRequestID",
-                principalTable: "CustomerReturnRequests",
-                principalColumn: "CustomerReturnRequestID");
-
-            migrationBuilder.AddForeignKey(
-                name: "FK_CustomerReturnRequestHistories_Members_CreatedByMemberID",
+                name: "FK_CustomerReturnRequestHistories_Members",
                 table: "CustomerReturnRequestHistories",
                 column: "CreatedByMemberID",
                 principalTable: "Members",
                 principalColumn: "MemberID");
 
             migrationBuilder.AddForeignKey(
-                name: "FK_CustomerReturnRequestLines_CustomerReturnRequests_CustomerReturnRequestID",
-                table: "CustomerReturnRequestLines",
+                name: "FK_CustomerReturnRequestHistories_Requests",
+                table: "CustomerReturnRequestHistories",
                 column: "CustomerReturnRequestID",
                 principalTable: "CustomerReturnRequests",
                 principalColumn: "CustomerReturnRequestID");
 
             migrationBuilder.AddForeignKey(
-                name: "FK_CustomerReturnRequestLines_OrderItems_OrderItemID",
+                name: "FK_CustomerReturnRequestLines_OrderItems",
                 table: "CustomerReturnRequestLines",
                 column: "OrderItemID",
                 principalTable: "OrderItems",
                 principalColumn: "OrderItemID");
 
             migrationBuilder.AddForeignKey(
-                name: "FK_CustomerReturnRequests_Members_ReviewedByMemberID",
+                name: "FK_CustomerReturnRequestLines_Requests",
+                table: "CustomerReturnRequestLines",
+                column: "CustomerReturnRequestID",
+                principalTable: "CustomerReturnRequests",
+                principalColumn: "CustomerReturnRequestID");
+
+            migrationBuilder.AddForeignKey(
+                name: "FK_CustomerReturnRequests_Members",
                 table: "CustomerReturnRequests",
                 column: "ReviewedByMemberID",
                 principalTable: "Members",
                 principalColumn: "MemberID");
 
             migrationBuilder.AddForeignKey(
-                name: "FK_CustomerReturnRequests_Orders_OrderID",
+                name: "FK_CustomerReturnRequests_Orders",
                 table: "CustomerReturnRequests",
                 column: "OrderID",
                 principalTable: "Orders",
                 principalColumn: "OrderID");
 
             migrationBuilder.AddForeignKey(
-                name: "FK_CustomerReturnRequests_StockDocuments_StockDocumentID",
-                table: "CustomerReturnRequests",
-                column: "StockDocumentID",
-                principalTable: "StockDocuments",
-                principalColumn: "StockDocumentID");
-
-            migrationBuilder.AddForeignKey(
-                name: "FK_CustomerReturnRequests_Warehouses_ReceivedWarehouseID",
+                name: "FK_CustomerReturnRequests_ReceivedWarehouse",
                 table: "CustomerReturnRequests",
                 column: "ReceivedWarehouseID",
                 principalTable: "Warehouses",
                 principalColumn: "WarehouseID");
 
             migrationBuilder.AddForeignKey(
-                name: "FK_CustomerReturnRequests_WebsiteClients_WebsiteClientID",
+                name: "FK_CustomerReturnRequests_StockDocuments",
+                table: "CustomerReturnRequests",
+                column: "StockDocumentID",
+                principalTable: "StockDocuments",
+                principalColumn: "StockDocumentID");
+
+            migrationBuilder.AddForeignKey(
+                name: "FK_CustomerReturnRequests_WebsiteClients",
                 table: "CustomerReturnRequests",
                 column: "WebsiteClientID",
                 principalTable: "WebsiteClients",
                 principalColumn: "WebsiteClientID");
 
             migrationBuilder.AddForeignKey(
-                name: "FK_CustomerReturnRequests_Websites_WebsiteID",
+                name: "FK_CustomerReturnRequests_Websites",
                 table: "CustomerReturnRequests",
                 column: "WebsiteID",
                 principalTable: "Websites",

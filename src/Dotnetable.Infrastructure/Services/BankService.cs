@@ -9,15 +9,21 @@ namespace Dotnetable.Infrastructure.Services;
 
 public class BankService : IBankService
 {
-    private readonly AppDbContext _context;
+    private readonly IDbContextFactory<AppDbContext> _contextFactory;
 
-    public BankService(AppDbContext context) => _context = context;
+    public BankService(IDbContextFactory<AppDbContext> contextFactory) => _contextFactory = contextFactory;
 
-    public async Task<List<Bank>> GetAllAsync(CancellationToken ct = default) =>
-        await _context.Banks.AsNoTracking().OrderBy(b => b.Name).ToListAsync(ct);
+    public async Task<List<Bank>> GetAllAsync(CancellationToken ct = default)
+    {
+        await using var _context = await _contextFactory.CreateDbContextAsync(ct);
+
+        return await _context.Banks.AsNoTracking().OrderBy(b => b.Name).ToListAsync(ct);
+    }
 
     public async Task<PagedResult<Bank>> GetPagedAsync(GridQuery query, CancellationToken ct = default)
     {
+        await using var _context = await _contextFactory.CreateDbContextAsync(ct);
+
         IQueryable<Bank> q = _context.Banks.AsNoTracking().Include(b => b.LogoFile);
 
         if (query.GetSearch(nameof(Bank.Name)) is string name)
@@ -36,11 +42,17 @@ public class BankService : IBankService
         return new PagedResult<Bank> { Items = items, TotalCount = total };
     }
 
-    public async Task<Bank?> GetByIdAsync(int bankId, CancellationToken ct = default) =>
-        await _context.Banks.FindAsync([bankId], ct);
+    public async Task<Bank?> GetByIdAsync(int bankId, CancellationToken ct = default)
+    {
+        await using var _context = await _contextFactory.CreateDbContextAsync(ct);
+
+        return await _context.Banks.FindAsync([bankId], ct);
+    }
 
     public async Task<Bank> CreateAsync(Bank bank, CancellationToken ct = default)
     {
+        await using var _context = await _contextFactory.CreateDbContextAsync(ct);
+
         _context.Banks.Add(bank);
         await _context.SaveChangesAsync(ct);
         return bank;
@@ -48,6 +60,8 @@ public class BankService : IBankService
 
     public async Task<bool> UpdateAsync(Bank bank, CancellationToken ct = default)
     {
+        await using var _context = await _contextFactory.CreateDbContextAsync(ct);
+
         var existing = await _context.Banks.FirstOrDefaultAsync(b => b.BankID == bank.BankID, ct);
         if (existing is null) return false;
 
@@ -62,6 +76,8 @@ public class BankService : IBankService
 
     public async Task<bool> DeleteAsync(int bankId, CancellationToken ct = default)
     {
+        await using var _context = await _contextFactory.CreateDbContextAsync(ct);
+
         var existing = await _context.Banks.FirstOrDefaultAsync(b => b.BankID == bankId, ct);
         if (existing is null) return false;
 

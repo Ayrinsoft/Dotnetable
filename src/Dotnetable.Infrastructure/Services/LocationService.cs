@@ -9,14 +9,16 @@ namespace Dotnetable.Infrastructure.Services;
 
 public class LocationService : ILocationService
 {
-    private readonly AppDbContext _context;
+    private readonly IDbContextFactory<AppDbContext> _contextFactory;
 
-    public LocationService(AppDbContext context) => _context = context;
+    public LocationService(IDbContextFactory<AppDbContext> contextFactory) => _contextFactory = contextFactory;
 
     // ── Countries ────────────────────────────────────────────────────
 
     public async Task<PagedResult<Country>> GetCountriesPagedAsync(GridQuery query, CancellationToken ct = default)
     {
+        await using var _context = await _contextFactory.CreateDbContextAsync(ct);
+
         var q = _context.Countries.AsNoTracking();
 
         if (query.GetSearch(nameof(Country.Title)) is string title)
@@ -33,14 +35,24 @@ public class LocationService : ILocationService
         return new PagedResult<Country> { Items = items, TotalCount = total };
     }
 
-    public async Task<IEnumerable<Country>> GetAllCountriesAsync(CancellationToken ct = default) =>
-        await _context.Countries.AsNoTracking().OrderBy(c => c.Title).ToListAsync(ct);
+    public async Task<IEnumerable<Country>> GetAllCountriesAsync(CancellationToken ct = default)
+    {
+        await using var _context = await _contextFactory.CreateDbContextAsync(ct);
 
-    public async Task<Country?> GetCountryByIdAsync(int id, CancellationToken ct = default) =>
-        await _context.Countries.FindAsync([id], ct);
+        return await _context.Countries.AsNoTracking().OrderBy(c => c.Title).ToListAsync(ct);
+    }
+
+    public async Task<Country?> GetCountryByIdAsync(int id, CancellationToken ct = default)
+    {
+        await using var _context = await _contextFactory.CreateDbContextAsync(ct);
+
+        return await _context.Countries.FindAsync([id], ct);
+    }
 
     public async Task<bool> CountryExistsAsync(string countryCode, string title, int? excludeId = null, CancellationToken ct = default)
     {
+        await using var _context = await _contextFactory.CreateDbContextAsync(ct);
+
         var code = (countryCode ?? string.Empty).Trim();
         if (string.IsNullOrEmpty(code))
             return false;
@@ -56,6 +68,8 @@ public class LocationService : ILocationService
 
     public async Task<Country> CreateCountryAsync(Country country, CancellationToken ct = default)
     {
+        await using var _context = await _contextFactory.CreateDbContextAsync(ct);
+
         NormalizeCountry(country);
         if (await CountryExistsAsync(country.CountryCode, country.Title, null, ct))
             throw new InvalidOperationException("A country with this code already exists.");
@@ -67,6 +81,8 @@ public class LocationService : ILocationService
 
     public async Task UpdateCountryAsync(Country country, CancellationToken ct = default)
     {
+        await using var _context = await _contextFactory.CreateDbContextAsync(ct);
+
         NormalizeCountry(country);
         if (await CountryExistsAsync(country.CountryCode, country.Title, country.CountryID, ct))
             throw new InvalidOperationException("A country with this code already exists.");
@@ -77,6 +93,8 @@ public class LocationService : ILocationService
 
     public async Task DeleteCountryAsync(int id, CancellationToken ct = default)
     {
+        await using var _context = await _contextFactory.CreateDbContextAsync(ct);
+
         var entity = await _context.Countries.FindAsync([id], ct);
         if (entity is null) return;
         _context.Countries.Remove(entity);
@@ -91,6 +109,8 @@ public class LocationService : ILocationService
 
     public async Task<LocationImportResult> ImportCountriesAsync(Stream excel, CancellationToken ct = default)
     {
+        await using var _context = await _contextFactory.CreateDbContextAsync(ct);
+
         var rows = ExcelWorkbook.Read(excel);
 
         int added = 0, skipped = 0;
@@ -161,6 +181,8 @@ public class LocationService : ILocationService
 
     public async Task<PagedResult<State>> GetStatesPagedAsync(int? countryId, GridQuery query, CancellationToken ct = default)
     {
+        await using var _context = await _contextFactory.CreateDbContextAsync(ct);
+
         IQueryable<State> q = _context.States.AsNoTracking().Include(s => s.Country);
 
         if (countryId.HasValue)
@@ -179,17 +201,27 @@ public class LocationService : ILocationService
         return new PagedResult<State> { Items = items, TotalCount = total };
     }
 
-    public async Task<IEnumerable<State>> GetStatesByCountryAsync(int countryId, CancellationToken ct = default) =>
-        await _context.States.AsNoTracking()
+    public async Task<IEnumerable<State>> GetStatesByCountryAsync(int countryId, CancellationToken ct = default)
+    {
+        await using var _context = await _contextFactory.CreateDbContextAsync(ct);
+
+        return await _context.States.AsNoTracking()
             .Where(s => s.CountryID == countryId && s.Active)
             .OrderBy(s => s.Title)
             .ToListAsync(ct);
+    }
 
-    public async Task<State?> GetStateByIdAsync(int id, CancellationToken ct = default) =>
-        await _context.States.FindAsync([id], ct);
+    public async Task<State?> GetStateByIdAsync(int id, CancellationToken ct = default)
+    {
+        await using var _context = await _contextFactory.CreateDbContextAsync(ct);
+
+        return await _context.States.FindAsync([id], ct);
+    }
 
     public async Task<bool> StateExistsAsync(int countryId, string title, int? excludeId = null, CancellationToken ct = default)
     {
+        await using var _context = await _contextFactory.CreateDbContextAsync(ct);
+
         var name = (title ?? string.Empty).Trim();
         if (string.IsNullOrEmpty(name)) return false;
 
@@ -202,6 +234,8 @@ public class LocationService : ILocationService
 
     public async Task<State> CreateStateAsync(State state, CancellationToken ct = default)
     {
+        await using var _context = await _contextFactory.CreateDbContextAsync(ct);
+
         NormalizeState(state);
         if (await StateExistsAsync(state.CountryID, state.Title, null, ct))
             throw new InvalidOperationException("A state with this title already exists in the selected country.");
@@ -213,6 +247,8 @@ public class LocationService : ILocationService
 
     public async Task UpdateStateAsync(State state, CancellationToken ct = default)
     {
+        await using var _context = await _contextFactory.CreateDbContextAsync(ct);
+
         NormalizeState(state);
         if (await StateExistsAsync(state.CountryID, state.Title, state.StateID, ct))
             throw new InvalidOperationException("A state with this title already exists in the selected country.");
@@ -223,6 +259,8 @@ public class LocationService : ILocationService
 
     public async Task DeleteStateAsync(int id, CancellationToken ct = default)
     {
+        await using var _context = await _contextFactory.CreateDbContextAsync(ct);
+
         var entity = await _context.States.FindAsync([id], ct);
         if (entity is null) return;
         _context.States.Remove(entity);
@@ -237,6 +275,8 @@ public class LocationService : ILocationService
 
     public async Task<LocationImportResult> ImportStatesAsync(Stream excel, CancellationToken ct = default)
     {
+        await using var _context = await _contextFactory.CreateDbContextAsync(ct);
+
         var rows = ExcelWorkbook.Read(excel);
 
         int added = 0, skipped = 0;
@@ -315,14 +355,20 @@ public class LocationService : ILocationService
 
     // ── Cities ───────────────────────────────────────────────────────
 
-    public async Task<IEnumerable<City>> GetCitiesByCountryAsync(int countryId, CancellationToken ct = default) =>
-        await _context.Cities.AsNoTracking()
+    public async Task<IEnumerable<City>> GetCitiesByCountryAsync(int countryId, CancellationToken ct = default)
+    {
+        await using var _context = await _contextFactory.CreateDbContextAsync(ct);
+
+        return await _context.Cities.AsNoTracking()
             .Where(c => c.CountryID == countryId && c.Active)
             .OrderBy(c => c.Title)
             .ToListAsync(ct);
+    }
 
     public async Task<PagedResult<City>> GetCitiesPagedAsync(int? countryId, int? stateId, GridQuery query, CancellationToken ct = default)
     {
+        await using var _context = await _contextFactory.CreateDbContextAsync(ct);
+
         IQueryable<City> q = _context.Cities.AsNoTracking()
             .Include(c => c.Country)
             .Include(c => c.State);
@@ -345,11 +391,17 @@ public class LocationService : ILocationService
         return new PagedResult<City> { Items = items, TotalCount = total };
     }
 
-    public async Task<City?> GetCityByIdAsync(int id, CancellationToken ct = default) =>
-        await _context.Cities.FindAsync([id], ct);
+    public async Task<City?> GetCityByIdAsync(int id, CancellationToken ct = default)
+    {
+        await using var _context = await _contextFactory.CreateDbContextAsync(ct);
+
+        return await _context.Cities.FindAsync([id], ct);
+    }
 
     public async Task<bool> CityExistsAsync(int countryId, string title, int? excludeId = null, CancellationToken ct = default)
     {
+        await using var _context = await _contextFactory.CreateDbContextAsync(ct);
+
         var name = (title ?? string.Empty).Trim();
         if (string.IsNullOrEmpty(name)) return false;
 
@@ -363,6 +415,8 @@ public class LocationService : ILocationService
 
     public async Task<City> CreateCityAsync(City city, CancellationToken ct = default)
     {
+        await using var _context = await _contextFactory.CreateDbContextAsync(ct);
+
         NormalizeCity(city);
         if (await CityExistsAsync(city.CountryID, city.Title, null, ct))
             throw new InvalidOperationException("A city with this title already exists in the selected country.");
@@ -374,6 +428,8 @@ public class LocationService : ILocationService
 
     public async Task UpdateCityAsync(City city, CancellationToken ct = default)
     {
+        await using var _context = await _contextFactory.CreateDbContextAsync(ct);
+
         NormalizeCity(city);
         if (await CityExistsAsync(city.CountryID, city.Title, city.CityID, ct))
             throw new InvalidOperationException("A city with this title already exists in the selected country.");
@@ -384,6 +440,8 @@ public class LocationService : ILocationService
 
     public async Task DeleteCityAsync(int id, CancellationToken ct = default)
     {
+        await using var _context = await _contextFactory.CreateDbContextAsync(ct);
+
         var entity = await _context.Cities.FindAsync([id], ct);
         if (entity is null) return;
         _context.Cities.Remove(entity);
@@ -398,6 +456,8 @@ public class LocationService : ILocationService
 
     public async Task<LocationImportResult> ImportCitiesAsync(Stream excel, CancellationToken ct = default)
     {
+        await using var _context = await _contextFactory.CreateDbContextAsync(ct);
+
         var rows = ExcelWorkbook.Read(excel);
 
         int added = 0, skipped = 0;

@@ -8,17 +8,19 @@ namespace Dotnetable.Infrastructure.Services;
 
 public class CurrencyConversionService : ICurrencyConversionService
 {
-    // Prefer ambient UoW context when OrderService (etc.) has an open multi-service transaction.
-    private readonly AppDbContext _fallback;
-    private AppDbContext _context => AmbientDbContext.Current ?? _fallback;
+    // Contexts come from DbLease per operation: it joins an ambient transaction when one is in
+    // flight and otherwise opens a short-lived context, so nothing is shared across a circuit.
+    private readonly IDbContextFactory<AppDbContext> _contextFactory;
 
-    public CurrencyConversionService(AppDbContext context) => _fallback = context;
+    public CurrencyConversionService(IDbContextFactory<AppDbContext> contextFactory) => _contextFactory = contextFactory;
 
     public async Task<MoneyDto> ToDisplayAsync(int websiteId, decimal amountUsd, string? currencyCode = null, CancellationToken ct = default)
     {
+        await using var _context = await _contextFactory.CreateDbContextAsync(ct);
+
         var storeUsd = await GetStorePricesInUsdAsync(websiteId, ct);
-        var rate = await ResolveRateAsync(websiteId, currencyCode, storeUsd, ct);
-        var digits = await GetDecimalDigitsAsync(rate.CurrencyCode, ct);
+        var rate = await ResolveRateAsync(_context, websiteId, currencyCode, storeUsd, ct);
+        var digits = await GetDecimalDigitsAsync(_context, rate.CurrencyCode, ct);
 
         // Single-currency sites: amountUsd may actually be "site units" when rate is synthetic 1.
         return new MoneyDto
@@ -37,8 +39,10 @@ public class CurrencyConversionService : ICurrencyConversionService
         decimal? amountUsdHint = null,
         CancellationToken ct = default)
     {
+        await using var _context = await _contextFactory.CreateDbContextAsync(ct);
+
         var storeUsd = await GetStorePricesInUsdAsync(websiteId, ct);
-        var fromRate = await ResolveRateAsync(websiteId, fromCurrencyCode, storeUsd, ct);
+        var fromRate = await ResolveRateAsync(_context, websiteId, fromCurrencyCode, storeUsd, ct);
 
         // Multi-currency display only when the site opted into USD dual / FX. Otherwise always site currency.
         string? effectiveTo = toCurrencyCode;
@@ -47,9 +51,9 @@ public class CurrencyConversionService : ICurrencyConversionService
 
         var toRate = effectiveTo is null || string.Equals(effectiveTo, fromRate.CurrencyCode, StringComparison.OrdinalIgnoreCase)
             ? fromRate
-            : await ResolveRateAsync(websiteId, effectiveTo, storeUsd, ct);
+            : await ResolveRateAsync(_context, websiteId, effectiveTo, storeUsd, ct);
 
-        var digitsSame = await GetDecimalDigitsAsync(fromRate.CurrencyCode, ct);
+        var digitsSame = await GetDecimalDigitsAsync(_context, fromRate.CurrencyCode, ct);
 
         if (string.Equals(fromRate.CurrencyCode, toRate.CurrencyCode, StringComparison.OrdinalIgnoreCase))
         {
@@ -72,7 +76,7 @@ public class CurrencyConversionService : ICurrencyConversionService
             ? stored
             : (fromRate.USDToCurrency == 0 ? 0 : amountLocal / fromRate.USDToCurrency);
 
-        var digits = await GetDecimalDigitsAsync(toRate.CurrencyCode, ct);
+        var digits = await GetDecimalDigitsAsync(_context, toRate.CurrencyCode, ct);
         return new MoneyDto
         {
             AmountUsd = amountUsd,
@@ -83,13 +87,18 @@ public class CurrencyConversionService : ICurrencyConversionService
 
     public async Task<(string CurrencyCode, decimal UsdToCurrency)> GetActiveRateAsync(int websiteId, string? currencyCode = null, CancellationToken ct = default)
     {
+        await using var _context = await _contextFactory.CreateDbContextAsync(ct);
+
         var storeUsd = await GetStorePricesInUsdAsync(websiteId, ct);
-        var rate = await ResolveRateAsync(websiteId, currencyCode, storeUsd, ct);
+        var rate = await ResolveRateAsync(_context, websiteId, currencyCode, storeUsd, ct);
         return (rate.CurrencyCode, rate.USDToCurrency);
     }
 
     public async Task<List<CurrencyRate>> GetActiveRatesAsync(int websiteId, CancellationToken ct = default)
     {
+        await using var _lease = await DbLease.OpenAsync(_contextFactory, ct);
+        var _context = _lease.Context;
+
         var storeUsd = await GetStorePricesInUsdAsync(websiteId, ct);
         var rates = await _context.CurrencyRates.AsNoTracking()
             .Include(r => r.CurrencyCodeNavigation)
@@ -101,7 +110,7 @@ public class CurrencyConversionService : ICurrencyConversionService
         if (rates.Count == 0)
         {
             // Synthetic default so admin/storefront never hard-fail without FX config.
-            var synth = await BuildSyntheticDefaultRateAsync(websiteId, ct);
+            var synth = await BuildSyntheticDefaultRateAsync(_context, websiteId, ct);
             return [synth];
         }
 
@@ -118,6 +127,9 @@ public class CurrencyConversionService : ICurrencyConversionService
     public async Task<IReadOnlyList<string>> FindMissingFxRatesAsync(
         int websiteId, IEnumerable<string> currencyCodes, CancellationToken ct = default)
     {
+        await using var _lease = await DbLease.OpenAsync(_contextFactory, ct);
+        var _context = _lease.Context;
+
         var needed = currencyCodes
             .Select(NormalizeCode)
             .Where(c => c is not null && !string.Equals(c, "USD", StringComparison.OrdinalIgnoreCase))
@@ -142,13 +154,15 @@ public class CurrencyConversionService : ICurrencyConversionService
         decimal? usdHint = null,
         CancellationToken ct = default)
     {
+        await using var _context = await _contextFactory.CreateDbContextAsync(ct);
+
         var from = NormalizeCode(fromCurrencyCode) ?? throw new InvalidOperationException("Source currency is required.");
         var to = NormalizeCode(toCurrencyCode) ?? from;
-        var digitsTo = await GetDecimalDigitsAsync(to, ct);
+        var digitsTo = await GetDecimalDigitsAsync(_context, to, ct);
 
         if (string.Equals(from, to, StringComparison.OrdinalIgnoreCase))
         {
-            var sameRate = await TryGetFxRateAsync(websiteId, from, ct);
+            var sameRate = await TryGetFxRateAsync(_context, websiteId, from, ct);
             var usdSame = usdHint is > 0
                 ? usdHint.Value
                 : (sameRate is { USDToCurrency: > 0 } r ? amount / r.USDToCurrency : 0);
@@ -164,9 +178,9 @@ public class CurrencyConversionService : ICurrencyConversionService
             };
         }
 
-        var fromRate = await TryGetFxRateAsync(websiteId, from, ct)
+        var fromRate = await TryGetFxRateAsync(_context, websiteId, from, ct)
                        ?? throw new InvalidOperationException(MissingRateMessage(from));
-        var toRate = await TryGetFxRateAsync(websiteId, to, ct)
+        var toRate = await TryGetFxRateAsync(_context, websiteId, to, ct)
                      ?? throw new InvalidOperationException(MissingRateMessage(to));
 
         var usd = usdHint is > 0
@@ -188,19 +202,26 @@ public class CurrencyConversionService : ICurrencyConversionService
 
     public async Task<decimal> ToUsdAsync(int websiteId, decimal amount, string? currencyCode = null, CancellationToken ct = default)
     {
+        await using var _context = await _contextFactory.CreateDbContextAsync(ct);
+
         var storeUsd = await GetStorePricesInUsdAsync(websiteId, ct);
         if (!storeUsd)
             return amount; // single-currency: USD dual columns mirror site amounts
 
-        var rate = await ResolveRateAsync(websiteId, currencyCode, storeUsd: true, ct);
+        var rate = await ResolveRateAsync(_context, websiteId, currencyCode, storeUsd: true, ct);
         return rate.USDToCurrency == 0 ? 0 : amount / rate.USDToCurrency;
     }
 
-    public async Task<bool> GetStorePricesInUsdAsync(int websiteId, CancellationToken ct = default) =>
-        await _context.Websites.AsNoTracking()
+    public async Task<bool> GetStorePricesInUsdAsync(int websiteId, CancellationToken ct = default)
+    {
+        await using var _lease = await DbLease.OpenAsync(_contextFactory, ct);
+        var _context = _lease.Context;
+
+        return await _context.Websites.AsNoTracking()
             .Where(w => w.WebsiteID == websiteId)
             .Select(w => w.StorePricesInUsd)
             .FirstOrDefaultAsync(ct);
+    }
 
     public async Task<decimal> ResolveCatalogUnitUsdAsync(
         int websiteId,
@@ -253,13 +274,15 @@ public class CurrencyConversionService : ICurrencyConversionService
         return (referencePriceUsd, code);
     }
 
-    private async Task<byte> GetDecimalDigitsAsync(string currencyCode, CancellationToken ct) =>
-        await _context.Currencies.AsNoTracking()
+    private async Task<byte> GetDecimalDigitsAsync(AppDbContext _context, string currencyCode, CancellationToken ct)
+    {
+        return await _context.Currencies.AsNoTracking()
             .Where(c => c.CurrencyCode == currencyCode)
             .Select(c => (byte?)c.DecimalDigits)
             .FirstOrDefaultAsync(ct) ?? 2;
+    }
 
-    private async Task<CurrencyRate> ResolveRateAsync(int websiteId, string? currencyCode, bool storeUsd, CancellationToken ct)
+    private async Task<CurrencyRate> ResolveRateAsync(AppDbContext _context, int websiteId, string? currencyCode, bool storeUsd, CancellationToken ct)
     {
         var query = _context.CurrencyRates.AsNoTracking().Where(r => r.WebsiteID == websiteId);
 
@@ -276,14 +299,14 @@ public class CurrencyConversionService : ICurrencyConversionService
         if (rate is not null)
             return rate;
 
-        return await BuildSyntheticDefaultRateAsync(websiteId, ct);
+        return await BuildSyntheticDefaultRateAsync(_context, websiteId, ct);
     }
 
     /// <summary>
     /// When no CurrencyRates rows exist, fall back to Website.DefaultCurrencyCode with rate 1.
     /// Single-currency shops (e.g. KRW-only) work without configuring FX against USD.
     /// </summary>
-    private async Task<CurrencyRate?> TryGetFxRateAsync(int websiteId, string code, CancellationToken ct)
+    private async Task<CurrencyRate?> TryGetFxRateAsync(AppDbContext _context, int websiteId, string code, CancellationToken ct)
     {
         var rate = await _context.CurrencyRates.AsNoTracking()
             .FirstOrDefaultAsync(r => r.WebsiteID == websiteId && r.CurrencyCode == code, ct);
@@ -314,7 +337,7 @@ public class CurrencyConversionService : ICurrencyConversionService
         return c.Length == 0 ? null : (c.Length > 3 ? c[..3] : c);
     }
 
-    private async Task<CurrencyRate> BuildSyntheticDefaultRateAsync(int websiteId, CancellationToken ct)
+    private async Task<CurrencyRate> BuildSyntheticDefaultRateAsync(AppDbContext _context, int websiteId, CancellationToken ct)
     {
         var site = await _context.Websites.AsNoTracking()
             .Where(w => w.WebsiteID == websiteId)

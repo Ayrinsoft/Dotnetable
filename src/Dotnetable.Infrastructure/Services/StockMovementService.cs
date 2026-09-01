@@ -9,12 +9,14 @@ namespace Dotnetable.Infrastructure.Services;
 
 public class StockMovementService : IStockMovementService
 {
-    private readonly AppDbContext _context;
+    private readonly IDbContextFactory<AppDbContext> _contextFactory;
 
-    public StockMovementService(AppDbContext context) => _context = context;
+    public StockMovementService(IDbContextFactory<AppDbContext> contextFactory) => _contextFactory = contextFactory;
 
     public async Task<PagedResult<StockMovement>> GetPagedAsync(int websiteId, GridQuery query, int? variantId, CancellationToken ct = default)
     {
+        await using var _context = await _contextFactory.CreateDbContextAsync(ct);
+
         var q = _context.StockMovements.AsNoTracking()
             .Include(m => m.Supplier)
             .Include(m => m.ProductVariant).ThenInclude(v => v.Product)

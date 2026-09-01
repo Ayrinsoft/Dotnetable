@@ -8,25 +8,35 @@ namespace Dotnetable.Infrastructure.Services;
 
 public class ClientBankAccountService : IClientBankAccountService
 {
-    private readonly AppDbContext _context;
+    private readonly IDbContextFactory<AppDbContext> _contextFactory;
 
-    public ClientBankAccountService(AppDbContext context) => _context = context;
+    public ClientBankAccountService(IDbContextFactory<AppDbContext> contextFactory) => _contextFactory = contextFactory;
 
-    public async Task<List<ClientBankAccount>> GetByClientIdAsync(int clientId, CancellationToken ct = default) =>
-        await _context.ClientBankAccounts.AsNoTracking()
+    public async Task<List<ClientBankAccount>> GetByClientIdAsync(int clientId, CancellationToken ct = default)
+    {
+        await using var _context = await _contextFactory.CreateDbContextAsync(ct);
+
+        return await _context.ClientBankAccounts.AsNoTracking()
             .Include(a => a.Bank)
             .Where(a => a.WebsiteClientID == clientId && a.IsActive)
             .OrderByDescending(a => a.IsDefault)
             .ThenBy(a => a.ClientBankAccountID)
             .ToListAsync(ct);
+    }
 
-    public async Task<ClientBankAccount?> GetByIdAsync(int bankAccountId, int clientId, CancellationToken ct = default) =>
-        await _context.ClientBankAccounts.AsNoTracking()
+    public async Task<ClientBankAccount?> GetByIdAsync(int bankAccountId, int clientId, CancellationToken ct = default)
+    {
+        await using var _context = await _contextFactory.CreateDbContextAsync(ct);
+
+        return await _context.ClientBankAccounts.AsNoTracking()
             .Include(a => a.Bank)
             .FirstOrDefaultAsync(a => a.ClientBankAccountID == bankAccountId && a.WebsiteClientID == clientId && a.IsActive, ct);
+    }
 
     public async Task<BankAccountSaveResult> CreateAsync(ClientBankAccount account, CancellationToken ct = default)
     {
+        await using var _context = await _contextFactory.CreateDbContextAsync(ct);
+
         var count = await _context.ClientBankAccounts
             .CountAsync(a => a.WebsiteClientID == account.WebsiteClientID && a.IsActive, ct);
         if (count >= AppConstants.MaxClientBankAccounts)
@@ -35,7 +45,7 @@ public class ClientBankAccountService : IClientBankAccountService
         account.IsActive = true;
         account.CreatedAt = DateTime.UtcNow;
         if (account.IsDefault)
-            await ClearDefaultAsync(account.WebsiteClientID, ct);
+            await ClearDefaultAsync(_context, account.WebsiteClientID, ct);
         else if (count == 0)
             account.IsDefault = true; // first bank account is always the default
 
@@ -46,6 +56,8 @@ public class ClientBankAccountService : IClientBankAccountService
 
     public async Task<BankAccountSaveResult> UpdateAsync(ClientBankAccount account, CancellationToken ct = default)
     {
+        await using var _context = await _contextFactory.CreateDbContextAsync(ct);
+
         var existing = await _context.ClientBankAccounts
             .FirstOrDefaultAsync(a => a.ClientBankAccountID == account.ClientBankAccountID
                                        && a.WebsiteClientID == account.WebsiteClientID && a.IsActive, ct);
@@ -59,7 +71,7 @@ public class ClientBankAccountService : IClientBankAccountService
         existing.CardNumber = account.CardNumber;
 
         if (account.IsDefault && !existing.IsDefault)
-            await ClearDefaultAsync(account.WebsiteClientID, ct);
+            await ClearDefaultAsync(_context, account.WebsiteClientID, ct);
         existing.IsDefault = account.IsDefault;
 
         await _context.SaveChangesAsync(ct);
@@ -68,6 +80,8 @@ public class ClientBankAccountService : IClientBankAccountService
 
     public async Task<bool> DeleteAsync(int bankAccountId, int clientId, CancellationToken ct = default)
     {
+        await using var _context = await _contextFactory.CreateDbContextAsync(ct);
+
         var account = await _context.ClientBankAccounts
             .FirstOrDefaultAsync(a => a.ClientBankAccountID == bankAccountId && a.WebsiteClientID == clientId && a.IsActive, ct);
         if (account is null) return false;
@@ -98,18 +112,22 @@ public class ClientBankAccountService : IClientBankAccountService
 
     public async Task<bool> SetDefaultAsync(int bankAccountId, int clientId, CancellationToken ct = default)
     {
+        await using var _context = await _contextFactory.CreateDbContextAsync(ct);
+
         var account = await _context.ClientBankAccounts
             .FirstOrDefaultAsync(a => a.ClientBankAccountID == bankAccountId && a.WebsiteClientID == clientId && a.IsActive, ct);
         if (account is null) return false;
 
-        await ClearDefaultAsync(clientId, ct);
+        await ClearDefaultAsync(_context, clientId, ct);
         account.IsDefault = true;
         await _context.SaveChangesAsync(ct);
         return true;
     }
 
-    private async Task ClearDefaultAsync(int clientId, CancellationToken ct) =>
+    private async Task ClearDefaultAsync(AppDbContext _context, int clientId, CancellationToken ct)
+    {
         await _context.ClientBankAccounts
             .Where(a => a.WebsiteClientID == clientId && a.IsDefault)
             .ExecuteUpdateAsync(s => s.SetProperty(a => a.IsDefault, false), ct);
+    }
 }

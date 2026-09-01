@@ -9,19 +9,24 @@ namespace Dotnetable.Infrastructure.Services;
 
 public class ClientWalletService : IClientWalletService
 {
-    private readonly AppDbContext _context;
+    // Contexts come from DbLease per operation: it joins an ambient transaction when one is in
+    // flight and otherwise opens a short-lived context, so nothing is shared across a circuit.
+    private readonly IDbContextFactory<AppDbContext> _contextFactory;
     private readonly ICurrencyConversionService _currency;
 
-    public ClientWalletService(AppDbContext context, ICurrencyConversionService currency)
+    public ClientWalletService(IDbContextFactory<AppDbContext> contextFactory, ICurrencyConversionService currency)
     {
-        _context = context;
+        _contextFactory = contextFactory;
         _currency = currency;
     }
 
     public async Task<IReadOnlyList<WebsiteWalletCurrency>> GetEnabledWalletCurrenciesAsync(
         int websiteId, CancellationToken ct = default)
     {
-        await EnsureDefaultWalletCurrencyAsync(websiteId, ct);
+        await using var _lease = await DbLease.OpenAsync(_contextFactory, ct);
+        var _context = _lease.Context;
+
+        await EnsureDefaultWalletCurrencyAsync(_context, websiteId, ct);
         return await _context.WebsiteWalletCurrencies.AsNoTracking()
             .Include(c => c.CurrencyCodeNavigation)
             .Where(c => c.WebsiteID == websiteId && c.IsActive)
@@ -33,7 +38,10 @@ public class ClientWalletService : IClientWalletService
     public async Task<(bool Success, string? Error)> EnableWalletCurrencyAsync(
         int websiteId, string currencyCode, CancellationToken ct = default)
     {
-        await EnsureDefaultWalletCurrencyAsync(websiteId, ct);
+        await using var _lease = await DbLease.OpenAsync(_contextFactory, ct);
+        var _context = _lease.Context;
+
+        await EnsureDefaultWalletCurrencyAsync(_context, websiteId, ct);
         var code = NormalizeCode(currencyCode);
         if (code is null)
             return (false, "Currency code is required.");
@@ -67,6 +75,9 @@ public class ClientWalletService : IClientWalletService
     public async Task<(bool Success, string? Error)> DisableWalletCurrencyAsync(
         int websiteId, string currencyCode, CancellationToken ct = default)
     {
+        await using var _lease = await DbLease.OpenAsync(_contextFactory, ct);
+        var _context = _lease.Context;
+
         var code = NormalizeCode(currencyCode);
         if (code is null)
             return (false, "Currency code is required.");
@@ -91,14 +102,17 @@ public class ClientWalletService : IClientWalletService
     public async Task<ClientWallet> GetOrCreateAsync(
         int websiteId, int clientId, string? currencyCode = null, CancellationToken ct = default)
     {
-        var code = await ResolveCurrencyCodeAsync(websiteId, currencyCode, ct);
+        await using var _lease = await DbLease.OpenAsync(_contextFactory, ct);
+        var _context = _lease.Context;
+
+        var code = await ResolveCurrencyCodeAsync(_context, websiteId, currencyCode, ct);
 
         var wallet = await _context.ClientWallets
             .FirstOrDefaultAsync(w => w.WebsiteClientID == clientId && w.CurrencyCode == code, ct);
         if (wallet is not null)
             return wallet;
 
-        var enabled = await IsCurrencyEnabledAsync(websiteId, code, ct);
+        var enabled = await IsCurrencyEnabledAsync(_context, websiteId, code, ct);
         if (!enabled)
             throw new InvalidOperationException($"Wallet currency {code} is not enabled for this website.");
 
@@ -131,7 +145,10 @@ public class ClientWalletService : IClientWalletService
     public async Task<IReadOnlyList<ClientWallet>> ListForClientAsync(
         int websiteId, int clientId, CancellationToken ct = default)
     {
-        await EnsureDefaultWalletCurrencyAsync(websiteId, ct);
+        await using var _lease = await DbLease.OpenAsync(_contextFactory, ct);
+        var _context = _lease.Context;
+
+        await EnsureDefaultWalletCurrencyAsync(_context, websiteId, ct);
         // Ensure default wallet exists so UI always shows at least one account.
         await GetOrCreateAsync(websiteId, clientId, null, ct);
 
@@ -144,6 +161,9 @@ public class ClientWalletService : IClientWalletService
 
     public async Task<PagedResult<ClientWallet>> GetPagedAsync(int? websiteId, GridQuery query, CancellationToken ct = default)
     {
+        await using var _lease = await DbLease.OpenAsync(_contextFactory, ct);
+        var _context = _lease.Context;
+
         var q = _context.ClientWallets.AsNoTracking()
             .Include(w => w.WebsiteClient)
             .AsQueryable();
@@ -172,7 +192,10 @@ public class ClientWalletService : IClientWalletService
     public async Task<decimal> GetBalanceAsync(
         int websiteId, int clientId, string? currencyCode = null, CancellationToken ct = default)
     {
-        var code = await ResolveCurrencyCodeAsync(websiteId, currencyCode, ct);
+        await using var _lease = await DbLease.OpenAsync(_contextFactory, ct);
+        var _context = _lease.Context;
+
+        var code = await ResolveCurrencyCodeAsync(_context, websiteId, currencyCode, ct);
         var wallet = await _context.ClientWallets.AsNoTracking()
             .FirstOrDefaultAsync(w => w.WebsiteClientID == clientId && w.CurrencyCode == code, ct);
         return wallet?.Balance ?? 0m;
@@ -181,7 +204,10 @@ public class ClientWalletService : IClientWalletService
     public async Task<PagedResult<ClientWalletTransaction>> GetHistoryAsync(
         int websiteId, int clientId, GridQuery query, string? currencyCode = null, CancellationToken ct = default)
     {
-        var code = await ResolveCurrencyCodeAsync(websiteId, currencyCode, ct);
+        await using var _lease = await DbLease.OpenAsync(_contextFactory, ct);
+        var _context = _lease.Context;
+
+        var code = await ResolveCurrencyCodeAsync(_context, websiteId, currencyCode, ct);
         var q = _context.ClientWalletTransactions.AsNoTracking()
             .Include(t => t.CreatedByMember)
             .Where(t => t.ClientWallet.WebsiteClientID == clientId
@@ -222,80 +248,29 @@ public class ClientWalletService : IClientWalletService
         string? currencyCode,
         CancellationToken ct)
     {
+        await using var _lease = await DbLease.OpenAsync(_contextFactory, ct);
+        var _context = _lease.Context;
+
+        // When a caller (checkout) already has a transaction open on an ambient context, this work
+        // belongs inside it: opening a second transaction on the same context would throw, and opening
+        // one on a second connection would deadlock against the caller's uncommitted rows.
+        if (AmbientDbContext.Current is not null)
+            return await ApplyCoreAsync(_context, websiteId, clientId, type, signedAmount, sourceType, sourceId, note, memberId, currencyCode, ct);
+
         var strategy = _context.Database.CreateExecutionStrategy();
         return await strategy.ExecuteAsync(async () =>
         {
             await using var tx = await _context.Database.BeginTransactionAsync(ct);
+
+            // Publish this context so the nested GetOrCreate / ResolveCurrencyCode calls join the
+            // transaction instead of opening their own connection and blocking on its uncommitted rows.
+            using var ambient = AmbientDbContext.Use(_context);
+
             try
             {
-                var code = await ResolveCurrencyCodeAsync(websiteId, currencyCode, ct);
-                var wallet = await GetOrCreateAsync(websiteId, clientId, code, ct);
-                if (_context.Entry(wallet).State == EntityState.Detached)
-                {
-                    wallet = await _context.ClientWallets
-                        .FirstAsync(w => w.WebsiteClientID == clientId && w.CurrencyCode == code, ct);
-                }
-                var walletId = wallet.ClientWalletID;
+                var transaction = await ApplyCoreAsync(
+                    _context, websiteId, clientId, type, signedAmount, sourceType, sourceId, note, memberId, currencyCode, ct);
 
-                // Move the balance with one conditional UPDATE instead of read-modify-write. The
-                // RowVersion token this used to rely on is only server-maintained on SQL Server, so
-                // on MySQL/PostgreSQL two concurrent debits could each read the same balance and
-                // both commit — a real double-spend. `WHERE Balance + delta >= 0` is atomic on every
-                // provider and the affected-row count is the insufficient-funds check.
-                var applied = await _context.ClientWallets
-                    .Where(w => w.ClientWalletID == walletId && w.Balance + signedAmount >= 0m)
-                    .ExecuteUpdateAsync(s => s.SetProperty(w => w.Balance, w => w.Balance + signedAmount), ct);
-
-                if (applied == 0)
-                    throw new InvalidOperationException("Insufficient wallet balance.");
-
-                // The tracked entity still holds the pre-update balance; drop it so the authoritative
-                // post-state is read back from the row we just moved.
-                _context.Entry(wallet).State = EntityState.Detached;
-
-                var balanceAfter = await _context.ClientWallets.AsNoTracking()
-                    .Where(w => w.ClientWalletID == walletId)
-                    .Select(w => w.Balance)
-                    .FirstAsync(ct);
-
-                // Optional USD mirror only for sites that dual-store product prices (reporting).
-                decimal amountUsd = 0, balanceAfterUsd = 0;
-                if (await _currency.GetStorePricesInUsdAsync(websiteId, ct))
-                {
-                    try
-                    {
-                        amountUsd = await _currency.ToUsdAsync(websiteId, signedAmount, code, ct);
-                        balanceAfterUsd = await _currency.ToUsdAsync(websiteId, balanceAfter, code, ct);
-                    }
-                    catch (InvalidOperationException)
-                    {
-                        amountUsd = 0;
-                        balanceAfterUsd = 0;
-                    }
-                }
-
-                var transaction = new ClientWalletTransaction
-                {
-                    WebsiteID = websiteId,
-                    ClientWalletID = walletId,
-                    Type = type,
-                    Amount = signedAmount,
-                    AmountUsd = amountUsd,
-                    BalanceAfter = balanceAfter,
-                    BalanceAfterUsd = balanceAfterUsd,
-                    SourceType = sourceType,
-                    SourceId = sourceId,
-                    Note = note,
-                    CreatedByMemberID = memberId,
-                    CreatedAt = DateTime.UtcNow,
-                };
-                _context.ClientWalletTransactions.Add(transaction);
-
-                await _context.ClientWallets
-                    .Where(w => w.ClientWalletID == walletId)
-                    .ExecuteUpdateAsync(s => s.SetProperty(w => w.BalanceUsd, balanceAfterUsd), ct);
-
-                await _context.SaveChangesAsync(ct);
                 await tx.CommitAsync(ct);
                 return transaction;
             }
@@ -307,7 +282,96 @@ public class ClientWalletService : IClientWalletService
         });
     }
 
-    private async Task EnsureDefaultWalletCurrencyAsync(int websiteId, CancellationToken ct)
+    /// <summary>
+    /// Moves the balance and records the transaction on <paramref name="_context"/>. Deliberately owns
+    /// no transaction of its own: the caller decides whether this is a standalone operation or one
+    /// step inside a larger one.
+    /// </summary>
+    private async Task<ClientWalletTransaction> ApplyCoreAsync(
+        AppDbContext _context,
+        int websiteId,
+        int clientId,
+        byte type,
+        decimal signedAmount,
+        byte? sourceType,
+        int? sourceId,
+        string? note,
+        int? memberId,
+        string? currencyCode,
+        CancellationToken ct)
+    {
+        var code = await ResolveCurrencyCodeAsync(_context, websiteId, currencyCode, ct);
+        var wallet = await GetOrCreateAsync(websiteId, clientId, code, ct);
+        if (_context.Entry(wallet).State == EntityState.Detached)
+        {
+            wallet = await _context.ClientWallets
+                .FirstAsync(w => w.WebsiteClientID == clientId && w.CurrencyCode == code, ct);
+        }
+        var walletId = wallet.ClientWalletID;
+
+        // Move the balance with one conditional UPDATE instead of read-modify-write. The RowVersion
+        // token this used to rely on is only server-maintained on SQL Server, so on MySQL/PostgreSQL
+        // two concurrent debits could each read the same balance and both commit — a real
+        // double-spend. `WHERE Balance + delta >= 0` is atomic on every provider and the affected-row
+        // count is the insufficient-funds check.
+        var applied = await _context.ClientWallets
+            .Where(w => w.ClientWalletID == walletId && w.Balance + signedAmount >= 0m)
+            .ExecuteUpdateAsync(s => s.SetProperty(w => w.Balance, w => w.Balance + signedAmount), ct);
+
+        if (applied == 0)
+            throw new InvalidOperationException("Insufficient wallet balance.");
+
+        // The tracked entity still holds the pre-update balance; drop it so the authoritative
+        // post-state is read back from the row we just moved.
+        _context.Entry(wallet).State = EntityState.Detached;
+
+        var balanceAfter = await _context.ClientWallets.AsNoTracking()
+            .Where(w => w.ClientWalletID == walletId)
+            .Select(w => w.Balance)
+            .FirstAsync(ct);
+
+        // Optional USD mirror only for sites that dual-store product prices (reporting).
+        decimal amountUsd = 0, balanceAfterUsd = 0;
+        if (await _currency.GetStorePricesInUsdAsync(websiteId, ct))
+        {
+            try
+            {
+                amountUsd = await _currency.ToUsdAsync(websiteId, signedAmount, code, ct);
+                balanceAfterUsd = await _currency.ToUsdAsync(websiteId, balanceAfter, code, ct);
+            }
+            catch (InvalidOperationException)
+            {
+                amountUsd = 0;
+                balanceAfterUsd = 0;
+            }
+        }
+
+        var transaction = new ClientWalletTransaction
+        {
+            WebsiteID = websiteId,
+            ClientWalletID = walletId,
+            Type = type,
+            Amount = signedAmount,
+            AmountUsd = amountUsd,
+            BalanceAfter = balanceAfter,
+            BalanceAfterUsd = balanceAfterUsd,
+            SourceType = sourceType,
+            SourceId = sourceId,
+            Note = note,
+            CreatedByMemberID = memberId,
+            CreatedAt = DateTime.UtcNow,
+        };
+        _context.ClientWalletTransactions.Add(transaction);
+
+        await _context.ClientWallets
+            .Where(w => w.ClientWalletID == walletId)
+            .ExecuteUpdateAsync(s => s.SetProperty(w => w.BalanceUsd, balanceAfterUsd), ct);
+
+        await _context.SaveChangesAsync(ct);
+        return transaction;
+    }
+
+    private async Task EnsureDefaultWalletCurrencyAsync(AppDbContext _context, int websiteId, CancellationToken ct)
     {
         var website = await _context.Websites.AsNoTracking()
             .FirstOrDefaultAsync(w => w.WebsiteID == websiteId, ct)
@@ -351,9 +415,9 @@ public class ClientWalletService : IClientWalletService
         await _context.SaveChangesAsync(ct);
     }
 
-    private async Task<string> ResolveCurrencyCodeAsync(int websiteId, string? currencyCode, CancellationToken ct)
+    private async Task<string> ResolveCurrencyCodeAsync(AppDbContext _context, int websiteId, string? currencyCode, CancellationToken ct)
     {
-        await EnsureDefaultWalletCurrencyAsync(websiteId, ct);
+        await EnsureDefaultWalletCurrencyAsync(_context, websiteId, ct);
         var code = NormalizeCode(currencyCode);
         if (code is not null)
             return code;
@@ -370,9 +434,11 @@ public class ClientWalletService : IClientWalletService
         return website.DefaultCurrencyCode;
     }
 
-    private Task<bool> IsCurrencyEnabledAsync(int websiteId, string code, CancellationToken ct) =>
-        _context.WebsiteWalletCurrencies.AsNoTracking()
+    private async Task<bool> IsCurrencyEnabledAsync(AppDbContext _context, int websiteId, string code, CancellationToken ct)
+    {
+        return await _context.WebsiteWalletCurrencies.AsNoTracking()
             .AnyAsync(c => c.WebsiteID == websiteId && c.CurrencyCode == code && c.IsActive, ct);
+    }
 
     private static string? NormalizeCode(string? code)
     {

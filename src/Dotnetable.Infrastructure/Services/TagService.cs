@@ -9,12 +9,14 @@ namespace Dotnetable.Infrastructure.Services;
 
 public class TagService : ITagService
 {
-    private readonly AppDbContext _context;
+    private readonly IDbContextFactory<AppDbContext> _contextFactory;
 
-    public TagService(AppDbContext context) => _context = context;
+    public TagService(IDbContextFactory<AppDbContext> contextFactory) => _contextFactory = contextFactory;
 
     public async Task<List<Tag>> GetAllAsync(int? websiteId, CancellationToken ct = default)
     {
+        await using var _context = await _contextFactory.CreateDbContextAsync(ct);
+
         var q = _context.Tags.AsNoTracking();
         if (websiteId is int wid)
             q = q.Where(t => t.WebsiteID == wid);
@@ -23,6 +25,8 @@ public class TagService : ITagService
 
     public async Task<PagedResult<Tag>> GetPagedAsync(int? websiteId, GridQuery query, CancellationToken ct = default)
     {
+        await using var _context = await _contextFactory.CreateDbContextAsync(ct);
+
         var q = _context.Tags.AsNoTracking();
         if (websiteId is int wid)
             q = q.Where(t => t.WebsiteID == wid);
@@ -41,11 +45,17 @@ public class TagService : ITagService
         return new PagedResult<Tag> { Items = items, TotalCount = total };
     }
 
-    public async Task<Tag?> GetByIdAsync(int tagId, CancellationToken ct = default) =>
-        await _context.Tags.FindAsync([tagId], ct);
+    public async Task<Tag?> GetByIdAsync(int tagId, CancellationToken ct = default)
+    {
+        await using var _context = await _contextFactory.CreateDbContextAsync(ct);
+
+        return await _context.Tags.FindAsync([tagId], ct);
+    }
 
     public async Task<Tag> CreateAsync(Tag tag, CancellationToken ct = default)
     {
+        await using var _context = await _contextFactory.CreateDbContextAsync(ct);
+
         _context.Tags.Add(tag);
         await _context.SaveChangesAsync(ct);
         return tag;
@@ -53,12 +63,16 @@ public class TagService : ITagService
 
     public async Task UpdateAsync(Tag tag, CancellationToken ct = default)
     {
+        await using var _context = await _contextFactory.CreateDbContextAsync(ct);
+
         _context.Tags.Update(tag);
         await _context.SaveChangesAsync(ct);
     }
 
     public async Task DeleteAsync(int tagId, CancellationToken ct = default)
     {
+        await using var _context = await _contextFactory.CreateDbContextAsync(ct);
+
         var tag = await _context.Tags
             .Include(t => t.TagTranslations)
             .Include(t => t.Posts)
@@ -72,13 +86,19 @@ public class TagService : ITagService
         await _context.SaveChangesAsync(ct);
     }
 
-    public async Task<List<TagTranslation>> GetTranslationsAsync(int tagId, CancellationToken ct = default) =>
-        await _context.TagTranslations.AsNoTracking()
+    public async Task<List<TagTranslation>> GetTranslationsAsync(int tagId, CancellationToken ct = default)
+    {
+        await using var _context = await _contextFactory.CreateDbContextAsync(ct);
+
+        return await _context.TagTranslations.AsNoTracking()
             .Where(t => t.TagID == tagId)
             .ToListAsync(ct);
+    }
 
     public async Task SetTranslationsAsync(int tagId, IReadOnlyDictionary<string, (string Name, string Slug)> byLanguage, CancellationToken ct = default)
     {
+        await using var _context = await _contextFactory.CreateDbContextAsync(ct);
+
         var existing = await _context.TagTranslations
             .Where(t => t.TagID == tagId)
             .ToListAsync(ct);

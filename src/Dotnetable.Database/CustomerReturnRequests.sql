@@ -51,3 +51,12 @@ CREATE NONCLUSTERED INDEX [IX_CustomerReturnRequests_Client]
 GO
 CREATE NONCLUSTERED INDEX [IX_CustomerReturnRequests_ReceivedWarehouse]
     ON [dbo].[CustomerReturnRequests] ([ReceivedWarehouseID] ASC);
+
+GO
+-- EF creates an index for every foreign key; these two are declared explicitly so the SSDT
+-- project, the migrations and a live database describe the same set.
+CREATE NONCLUSTERED INDEX [IX_CustomerReturnRequests_ReviewedByMemberID]
+    ON [dbo].[CustomerReturnRequests] ([ReviewedByMemberID] ASC);
+GO
+CREATE NONCLUSTERED INDEX [IX_CustomerReturnRequests_StockDocumentID]
+    ON [dbo].[CustomerReturnRequests] ([StockDocumentID] ASC);

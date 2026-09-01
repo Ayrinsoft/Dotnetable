@@ -19,7 +19,10 @@ public class RoleServiceTests : IDisposable
             .UseInMemoryDatabase(Guid.NewGuid().ToString())
             .Options;
         _context = new AppDbContext(opts);
-        _service = new RoleService(_context);
+        // Services open a context per call now, so they get a factory over the same options;
+        // the fixture keeps its own _context for seeding and asserting.
+        var factory = new TestDbContextFactory(opts);
+        _service = new RoleService(factory);
     }
 
     private static Role NewRole(string key = "test.role", string desc = "Test Role", bool active = true) => new()
@@ -159,6 +162,10 @@ public class RoleServiceTests : IDisposable
         var role = NewRole(); _context.Roles.Add(role); await _context.SaveChangesAsync();
 
         await _service.DeleteAsync(role.RoleID);
+
+        // The service wrote through its own short-lived context, so this fixture's context must
+        // re-read rather than answer from entities it is still tracking.
+        _context.ChangeTracker.Clear();
 
         (await _context.Roles.FindAsync(role.RoleID)).Should().BeNull();
     }

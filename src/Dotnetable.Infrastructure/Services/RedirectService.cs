@@ -10,14 +10,16 @@ namespace Dotnetable.Infrastructure.Services;
 
 public class RedirectService : IRedirectService
 {
-    private readonly AppDbContext _context;
+    private readonly IDbContextFactory<AppDbContext> _contextFactory;
 
-    public RedirectService(AppDbContext context) => _context = context;
+    public RedirectService(IDbContextFactory<AppDbContext> contextFactory) => _contextFactory = contextFactory;
 
     // ── Admin management ────────────────────────────────────────────
 
     public async Task<PagedResult<WebsiteRedirect>> GetPagedAsync(int? websiteId, GridQuery query, CancellationToken ct = default)
     {
+        await using var _context = await _contextFactory.CreateDbContextAsync(ct);
+
         var q = _context.WebsiteRedirects.AsNoTracking();
         if (websiteId is int wid)
             q = q.Where(r => r.WebsiteID == wid);
@@ -38,11 +40,17 @@ public class RedirectService : IRedirectService
         return new PagedResult<WebsiteRedirect> { Items = items, TotalCount = total };
     }
 
-    public async Task<WebsiteRedirect?> GetByIdAsync(int id, CancellationToken ct = default) =>
-        await _context.WebsiteRedirects.FindAsync([id], ct);
+    public async Task<WebsiteRedirect?> GetByIdAsync(int id, CancellationToken ct = default)
+    {
+        await using var _context = await _contextFactory.CreateDbContextAsync(ct);
+
+        return await _context.WebsiteRedirects.FindAsync([id], ct);
+    }
 
     public async Task<WebsiteRedirect> CreateAsync(WebsiteRedirect redirect, CancellationToken ct = default)
     {
+        await using var _context = await _contextFactory.CreateDbContextAsync(ct);
+
         redirect.CreatedAt = DateTime.UtcNow;
         if (redirect.StatusCode == 0)
             redirect.StatusCode = 301;
@@ -53,26 +61,36 @@ public class RedirectService : IRedirectService
 
     public async Task UpdateAsync(WebsiteRedirect redirect, CancellationToken ct = default)
     {
+        await using var _context = await _contextFactory.CreateDbContextAsync(ct);
+
         _context.WebsiteRedirects.Update(redirect);
         await _context.SaveChangesAsync(ct);
     }
 
     public async Task DeleteAsync(int id, CancellationToken ct = default)
     {
+        await using var _context = await _contextFactory.CreateDbContextAsync(ct);
+
         var entity = await _context.WebsiteRedirects.FindAsync([id], ct);
         if (entity is null) return;
         _context.WebsiteRedirects.Remove(entity);
         await _context.SaveChangesAsync(ct);
     }
 
-    public async Task SetActiveAsync(int id, bool active, CancellationToken ct = default) =>
+    public async Task SetActiveAsync(int id, bool active, CancellationToken ct = default)
+    {
+        await using var _context = await _contextFactory.CreateDbContextAsync(ct);
+
         await _context.WebsiteRedirects.Where(r => r.WebsiteRedirectID == id)
             .ExecuteUpdateAsync(s => s.SetProperty(r => r.IsActive, active), ct);
+    }
 
     // ── Runtime resolution ──────────────────────────────────────────
 
     public async Task<RedirectResultDto?> ResolveAsync(int websiteId, string sourcePath, CancellationToken ct = default)
     {
+        await using var _context = await _contextFactory.CreateDbContextAsync(ct);
+
         if (string.IsNullOrWhiteSpace(sourcePath)) return null;
         var normalized = Normalize(sourcePath);
 

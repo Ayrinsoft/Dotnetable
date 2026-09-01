@@ -11,19 +11,21 @@ namespace Dotnetable.Infrastructure.Services;
 
 public class TaxPeriodService : ITaxPeriodService
 {
-    private readonly AppDbContext _context;
+    private readonly IDbContextFactory<AppDbContext> _contextFactory;
     private readonly ITaxReportService _reports;
     private readonly IAdminNotificationService _notifications;
 
-    public TaxPeriodService(AppDbContext context, ITaxReportService reports, IAdminNotificationService notifications)
+    public TaxPeriodService(IDbContextFactory<AppDbContext> contextFactory, ITaxReportService reports, IAdminNotificationService notifications)
     {
-        _context = context;
+        _contextFactory = contextFactory;
         _reports = reports;
         _notifications = notifications;
     }
 
     public async Task<PagedResult<TaxPeriod>> GetPagedAsync(int websiteId, byte? status, GridQuery query, CancellationToken ct = default)
     {
+        await using var _context = await _contextFactory.CreateDbContextAsync(ct);
+
         var q = _context.TaxPeriods.AsNoTracking().Where(p => p.WebsiteID == websiteId);
         if (status is byte s) q = q.Where(p => p.Status == s);
         var total = await q.CountAsync(ct);
@@ -31,12 +33,19 @@ public class TaxPeriodService : ITaxPeriodService
         return new PagedResult<TaxPeriod> { Items = items, TotalCount = total };
     }
 
-    public Task<TaxPeriod?> GetByIdAsync(int taxPeriodId, CancellationToken ct = default) =>
-        _context.TaxPeriods.AsNoTracking().FirstOrDefaultAsync(p => p.TaxPeriodID == taxPeriodId, ct);
+    public async Task<TaxPeriod?> GetByIdAsync(int taxPeriodId, CancellationToken ct = default)
+    {
+        await using var _context = await _contextFactory.CreateDbContextAsync(ct);
+
+        return await _context.TaxPeriods.AsNoTracking()
+            .FirstOrDefaultAsync(p => p.TaxPeriodID == taxPeriodId, ct);
+    }
 
     public async Task<(bool Success, string? Error, TaxPeriod? Period)> CreateAsync(
         int websiteId, string periodCode, DateOnly from, DateOnly to, string? note, int? memberId, CancellationToken ct = default)
     {
+        await using var _context = await _contextFactory.CreateDbContextAsync(ct);
+
         if (websiteId <= 0) return (false, "Website is required.", null);
         if (to < from) return (false, "Invalid date range.", null);
         var code = (periodCode ?? "").Trim();
@@ -65,6 +74,8 @@ public class TaxPeriodService : ITaxPeriodService
     public async Task<(bool Success, string? Error)> UpdateStatusAsync(
         int taxPeriodId, TaxPeriodStatus status, int? memberId, CancellationToken ct = default)
     {
+        await using var _context = await _contextFactory.CreateDbContextAsync(ct);
+
         var p = await _context.TaxPeriods.FirstOrDefaultAsync(x => x.TaxPeriodID == taxPeriodId, ct);
         if (p is null) return (false, "Period not found.");
         if (p.Status == (byte)TaxPeriodStatus.Filed && status != TaxPeriodStatus.Filed)
@@ -82,6 +93,8 @@ public class TaxPeriodService : ITaxPeriodService
     public async Task<(bool Success, string? Error, TaxPeriod? Period)> GenerateSnapshotAsync(
         int taxPeriodId, int? memberId, CancellationToken ct = default)
     {
+        await using var _context = await _contextFactory.CreateDbContextAsync(ct);
+
         var p = await _context.TaxPeriods.FirstOrDefaultAsync(x => x.TaxPeriodID == taxPeriodId, ct);
         if (p is null) return (false, "Period not found.", null);
         if (p.Status == (byte)TaxPeriodStatus.Filed)
@@ -107,6 +120,8 @@ public class TaxPeriodService : ITaxPeriodService
 
     public async Task<(bool Success, string? Error)> CloseAsync(int taxPeriodId, int? memberId, CancellationToken ct = default)
     {
+        await using var _context = await _contextFactory.CreateDbContextAsync(ct);
+
         var snap = await GenerateSnapshotAsync(taxPeriodId, memberId, ct);
         if (!snap.Success) return (snap.Success, snap.Error);
 

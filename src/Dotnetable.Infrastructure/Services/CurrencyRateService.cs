@@ -9,20 +9,26 @@ namespace Dotnetable.Infrastructure.Services;
 
 public class CurrencyRateService : ICurrencyRateService
 {
-    private readonly AppDbContext _context;
+    private readonly IDbContextFactory<AppDbContext> _contextFactory;
 
-    public CurrencyRateService(AppDbContext context) => _context = context;
+    public CurrencyRateService(IDbContextFactory<AppDbContext> contextFactory) => _contextFactory = contextFactory;
 
-    public async Task<List<CurrencyRate>> GetByWebsiteAsync(int websiteId, CancellationToken ct = default) =>
-        await _context.CurrencyRates.AsNoTracking()
+    public async Task<List<CurrencyRate>> GetByWebsiteAsync(int websiteId, CancellationToken ct = default)
+    {
+        await using var _context = await _contextFactory.CreateDbContextAsync(ct);
+
+        return await _context.CurrencyRates.AsNoTracking()
             .Include(r => r.CurrencyCodeNavigation)
             .Where(r => r.WebsiteID == websiteId)
             .OrderByDescending(r => r.IsDefault)
             .ThenBy(r => r.CurrencyCode)
             .ToListAsync(ct);
+    }
 
     public async Task<PagedResult<CurrencyRate>> GetPagedAsync(int websiteId, GridQuery query, CancellationToken ct = default)
     {
+        await using var _context = await _contextFactory.CreateDbContextAsync(ct);
+
         var q = _context.CurrencyRates.AsNoTracking()
             .Include(r => r.CurrencyCodeNavigation)
             .Where(r => r.WebsiteID == websiteId);
@@ -41,10 +47,12 @@ public class CurrencyRateService : ICurrencyRateService
 
     public async Task CreateAsync(CurrencyRate rate, CancellationToken ct = default)
     {
+        await using var _context = await _contextFactory.CreateDbContextAsync(ct);
+
         ValidateRate(rate);
         rate.LastUpdate = DateTime.UtcNow;
         if (rate.IsDefault)
-            await ClearDefaultAsync(rate.WebsiteID, ct);
+            await ClearDefaultAsync(_context, rate.WebsiteID, ct);
         else if (!await _context.CurrencyRates.AnyAsync(r => r.WebsiteID == rate.WebsiteID, ct))
             rate.IsDefault = true; // first rate for a website is always the default
 
@@ -54,6 +62,8 @@ public class CurrencyRateService : ICurrencyRateService
 
     public async Task<bool> UpdateAsync(CurrencyRate rate, CancellationToken ct = default)
     {
+        await using var _context = await _contextFactory.CreateDbContextAsync(ct);
+
         ValidateRate(rate);
         var existing = await _context.CurrencyRates
             .FirstOrDefaultAsync(r => r.CurrencyRateID == rate.CurrencyRateID && r.WebsiteID == rate.WebsiteID, ct);
@@ -64,7 +74,7 @@ public class CurrencyRateService : ICurrencyRateService
         existing.LastUpdate = DateTime.UtcNow;
 
         if (rate.IsDefault && !existing.IsDefault)
-            await ClearDefaultAsync(rate.WebsiteID, ct);
+            await ClearDefaultAsync(_context, rate.WebsiteID, ct);
         existing.IsDefault = rate.IsDefault;
 
         await _context.SaveChangesAsync(ct);
@@ -73,6 +83,8 @@ public class CurrencyRateService : ICurrencyRateService
 
     public async Task<bool> DeleteAsync(int currencyRateId, int websiteId, CancellationToken ct = default)
     {
+        await using var _context = await _contextFactory.CreateDbContextAsync(ct);
+
         var existing = await _context.CurrencyRates
             .FirstOrDefaultAsync(r => r.CurrencyRateID == currencyRateId && r.WebsiteID == websiteId, ct);
         if (existing is null) return false;
@@ -98,20 +110,24 @@ public class CurrencyRateService : ICurrencyRateService
 
     public async Task<bool> SetDefaultAsync(int currencyRateId, int websiteId, CancellationToken ct = default)
     {
+        await using var _context = await _contextFactory.CreateDbContextAsync(ct);
+
         var existing = await _context.CurrencyRates
             .FirstOrDefaultAsync(r => r.CurrencyRateID == currencyRateId && r.WebsiteID == websiteId, ct);
         if (existing is null) return false;
 
-        await ClearDefaultAsync(websiteId, ct);
+        await ClearDefaultAsync(_context, websiteId, ct);
         existing.IsDefault = true;
         await _context.SaveChangesAsync(ct);
         return true;
     }
 
-    private async Task ClearDefaultAsync(int websiteId, CancellationToken ct) =>
+    private async Task ClearDefaultAsync(AppDbContext _context, int websiteId, CancellationToken ct)
+    {
         await _context.CurrencyRates
             .Where(r => r.WebsiteID == websiteId && r.IsDefault)
             .ExecuteUpdateAsync(s => s.SetProperty(r => r.IsDefault, false), ct);
+    }
 
     /// <summary>
     /// Rates are stored as "how many units of local currency equal 1 USD" (USDToCurrency).

@@ -24,12 +24,16 @@ public class ClientWalletManualOpsTests : IDisposable
         // provider cannot execute at all. See RelationalTestDb.
         _db = new RelationalTestDb();
         _context = _db.NewContext();
-        var currency = new CurrencyConversionService(_context);
-        _wallets = new ClientWalletService(_context, currency);
+        // Services open a context per call now; the factory points at the same database so the
+        // fixture can still seed and assert through its own _context.
+        var factory = new TestDbContextFactory(_db.Options);
+
+        var currency = new CurrencyConversionService(factory);
+        _wallets = new ClientWalletService(factory, currency);
         _withdrawals = new ClientWalletWithdrawalService(
-            _context, _wallets, new Mock<IAdminNotificationService>().Object, currency);
+            factory, _wallets, new Mock<IAdminNotificationService>().Object, currency);
         _payments = new PaymentService(
-            _context, _wallets, new Mock<IOrderService>().Object,
+            factory, _wallets, new Mock<IOrderService>().Object,
             new Mock<IAdminNotificationService>().Object,
             new Mock<IFinancialLedgerService>().Object,
             new Mock<IStockDocumentService>().Object);

@@ -12,19 +12,21 @@ namespace Dotnetable.Infrastructure.Services;
 
 public class FileService : IFileService
 {
-    private readonly AppDbContext _context;
+    private readonly IDbContextFactory<AppDbContext> _contextFactory;
     private readonly IFileStorageProviderRegistry _providers;
     private readonly IHttpClientFactory _httpClientFactory;
 
-    public FileService(AppDbContext context, IFileStorageProviderRegistry providers, IHttpClientFactory httpClientFactory)
+    public FileService(IDbContextFactory<AppDbContext> contextFactory, IFileStorageProviderRegistry providers, IHttpClientFactory httpClientFactory)
     {
-        _context = context;
+        _contextFactory = contextFactory;
         _providers = providers;
         _httpClientFactory = httpClientFactory;
     }
 
     public async Task<PagedResult<FileRecord>> GetPagedAsync(int? websiteId, FileFilter filter, GridQuery query, CancellationToken ct = default)
     {
+        await using var _context = await _contextFactory.CreateDbContextAsync(ct);
+
         var q = _context.FileRecords.AsNoTracking()
             .Include(f => f.FileFolder)
             .Include(f => f.FileRecordTags).ThenInclude(t => t.FileTag)
@@ -72,14 +74,20 @@ public class FileService : IFileService
         return new PagedResult<FileRecord> { Items = items, TotalCount = total };
     }
 
-    public async Task<FileRecord?> GetByIdAsync(int id, CancellationToken ct = default) =>
-        await _context.FileRecords
+    public async Task<FileRecord?> GetByIdAsync(int id, CancellationToken ct = default)
+    {
+        await using var _context = await _contextFactory.CreateDbContextAsync(ct);
+
+        return await _context.FileRecords
             .Include(f => f.FileFolder)
             .Include(f => f.FileRecordTags).ThenInclude(t => t.FileTag)
             .FirstOrDefaultAsync(f => f.FileRecordID == id, ct);
+    }
 
     public async Task<FileRecord> UploadAsync(FileUploadRequest request, CancellationToken ct = default)
     {
+        await using var _context = await _contextFactory.CreateDbContextAsync(ct);
+
         var setting = await _context.WebsiteStorageSettings.AsNoTracking()
             .FirstOrDefaultAsync(s => s.WebsiteStorageSettingsID == request.StorageSettingID
                 && s.WebsiteID == request.WebsiteID, ct)
@@ -115,7 +123,7 @@ public class FileService : IFileService
         var isRasterProcessable = category == FileCategory.Image && ext is not (".svg" or ".gif");
         if (isRasterProcessable)
         {
-            var options = await BuildProcessingOptionsAsync(request, ct);
+            var options = await BuildProcessingOptionsAsync(_context, request, ct);
             var alreadyWebp = string.Equals(mime, "image/webp", StringComparison.OrdinalIgnoreCase);
             // Re-encode when transforming, or when converting another format to WebP.
             // Already-WebP files with no transforms are stored as uploaded.
@@ -206,6 +214,8 @@ public class FileService : IFileService
     public async Task UpdateMetadataAsync(int id, string? title, string? altText, int? folderId,
         IReadOnlyList<int> tagIds, CancellationToken ct = default)
     {
+        await using var _context = await _contextFactory.CreateDbContextAsync(ct);
+
         var record = await _context.FileRecords
             .Include(f => f.FileRecordTags)
             .FirstOrDefaultAsync(f => f.FileRecordID == id, ct)
@@ -227,6 +237,8 @@ public class FileService : IFileService
 
     public async Task<FileUsageSummary> GetUsageAsync(int id, CancellationToken ct = default)
     {
+        await using var _context = await _contextFactory.CreateDbContextAsync(ct);
+
         var items = new List<FileUsageItem>();
 
         async Task AddOptionalAsync(string label, Task<int> countTask)
@@ -288,6 +300,8 @@ public class FileService : IFileService
     /// </summary>
     public async Task SoftDeleteAsync(int id, CancellationToken ct = default)
     {
+        await using var _context = await _contextFactory.CreateDbContextAsync(ct);
+
         var record = await _context.FileRecords
             .Include(f => f.WebsiteStorageSettings)
             .FirstOrDefaultAsync(f => f.FileRecordID == id, ct)
@@ -313,7 +327,7 @@ public class FileService : IFileService
             }
         }
 
-        await ClearFileReferencesAsync(id, ct);
+        await ClearFileReferencesAsync(_context, id, ct);
 
         // Junction rows (no optional FK — must delete).
         await _context.FileRecordTags.Where(t => t.FileRecordID == id).ExecuteDeleteAsync(ct);
@@ -327,7 +341,7 @@ public class FileService : IFileService
     }
 
     /// <summary>Sets every optional FileRecord FK to null so the row can be hard-deleted.</summary>
-    private async Task ClearFileReferencesAsync(int fileId, CancellationToken ct)
+    private async Task ClearFileReferencesAsync(AppDbContext _context, int fileId, CancellationToken ct)
     {
         await _context.Banks.Where(x => x.LogoFileID == fileId)
             .ExecuteUpdateAsync(s => s.SetProperty(x => x.LogoFileID, (int?)null), ct);
@@ -412,14 +426,20 @@ public class FileService : IFileService
     }
 
     // ── Virtual folders ──────────────────────────────────────
-    public async Task<IReadOnlyList<FileFolder>> GetFoldersAsync(int websiteId, CancellationToken ct = default) =>
-        await _context.FileFolders.AsNoTracking()
+    public async Task<IReadOnlyList<FileFolder>> GetFoldersAsync(int websiteId, CancellationToken ct = default)
+    {
+        await using var _context = await _contextFactory.CreateDbContextAsync(ct);
+
+        return await _context.FileFolders.AsNoTracking()
             .Where(f => f.WebsiteID == websiteId)
             .OrderBy(f => f.Name)
             .ToListAsync(ct);
+    }
 
     public async Task<PagedResult<FileFolder>> GetFoldersPagedAsync(int websiteId, GridQuery query, CancellationToken ct = default)
     {
+        await using var _context = await _contextFactory.CreateDbContextAsync(ct);
+
         var q = _context.FileFolders.AsNoTracking()
             .Where(f => f.WebsiteID == websiteId);
 
@@ -439,8 +459,10 @@ public class FileService : IFileService
 
     public async Task<FileFolder> CreateFolderAsync(int websiteId, string name, string? description, int? parentFolderId = null, CancellationToken ct = default)
     {
+        await using var _context = await _contextFactory.CreateDbContextAsync(ct);
+
         if (parentFolderId is int parentId)
-            await EnsureFolderBelongsToWebsiteAsync(parentId, websiteId, ct);
+            await EnsureFolderBelongsToWebsiteAsync(_context, parentId, websiteId, ct);
 
         var folder = new FileFolder
         {
@@ -457,6 +479,8 @@ public class FileService : IFileService
 
     public async Task UpdateFolderAsync(int folderId, string name, string? description, int? parentFolderId, CancellationToken ct = default)
     {
+        await using var _context = await _contextFactory.CreateDbContextAsync(ct);
+
         var folder = await _context.FileFolders.FirstOrDefaultAsync(f => f.FileFolderID == folderId, ct)
             ?? throw new InvalidOperationException($"Folder {folderId} not found.");
 
@@ -465,8 +489,8 @@ public class FileService : IFileService
 
         if (parentFolderId is int parentId)
         {
-            await EnsureFolderBelongsToWebsiteAsync(parentId, folder.WebsiteID, ct);
-            if (await IsDescendantAsync(folderId, parentId, ct))
+            await EnsureFolderBelongsToWebsiteAsync(_context, parentId, folder.WebsiteID, ct);
+            if (await IsDescendantAsync(_context, folderId, parentId, ct))
                 throw new InvalidOperationException("Cannot move a folder under one of its descendants.");
         }
 
@@ -478,6 +502,8 @@ public class FileService : IFileService
 
     public async Task DeleteFolderAsync(int folderId, CancellationToken ct = default)
     {
+        await using var _context = await _contextFactory.CreateDbContextAsync(ct);
+
         var folder = await _context.FileFolders.FirstOrDefaultAsync(f => f.FileFolderID == folderId, ct)
             ?? throw new InvalidOperationException($"Folder {folderId} not found.");
 
@@ -494,7 +520,7 @@ public class FileService : IFileService
         await _context.FileFolders.Where(f => f.FileFolderID == folderId).ExecuteDeleteAsync(ct);
     }
 
-    private async Task EnsureFolderBelongsToWebsiteAsync(int folderId, int websiteId, CancellationToken ct)
+    private async Task EnsureFolderBelongsToWebsiteAsync(AppDbContext _context, int folderId, int websiteId, CancellationToken ct)
     {
         var ok = await _context.FileFolders.AsNoTracking()
             .AnyAsync(f => f.FileFolderID == folderId && f.WebsiteID == websiteId, ct);
@@ -503,7 +529,7 @@ public class FileService : IFileService
     }
 
     /// <summary>True when <paramref name="candidateId"/> is under <paramref name="ancestorId"/> in the tree.</summary>
-    private async Task<bool> IsDescendantAsync(int ancestorId, int candidateId, CancellationToken ct)
+    private async Task<bool> IsDescendantAsync(AppDbContext _context, int ancestorId, int candidateId, CancellationToken ct)
     {
         var parentById = await _context.FileFolders.AsNoTracking()
             .Select(f => new { f.FileFolderID, f.ParentFolderID })
@@ -520,14 +546,20 @@ public class FileService : IFileService
     }
 
     // ── Tags ─────────────────────────────────────────────────
-    public async Task<IReadOnlyList<FileTag>> GetTagsAsync(int websiteId, CancellationToken ct = default) =>
-        await _context.FileTags.AsNoTracking()
+    public async Task<IReadOnlyList<FileTag>> GetTagsAsync(int websiteId, CancellationToken ct = default)
+    {
+        await using var _context = await _contextFactory.CreateDbContextAsync(ct);
+
+        return await _context.FileTags.AsNoTracking()
             .Where(t => t.WebsiteID == websiteId)
             .OrderBy(t => t.Name)
             .ToListAsync(ct);
+    }
 
     public async Task<PagedResult<FileTag>> GetTagsPagedAsync(int websiteId, GridQuery query, CancellationToken ct = default)
     {
+        await using var _context = await _contextFactory.CreateDbContextAsync(ct);
+
         var q = _context.FileTags.AsNoTracking()
             .Where(t => t.WebsiteID == websiteId);
 
@@ -545,24 +577,32 @@ public class FileService : IFileService
 
     public async Task<FileTag> CreateTagAsync(int websiteId, string name, CancellationToken ct = default)
     {
+        await using var _context = await _contextFactory.CreateDbContextAsync(ct);
+
         var tag = new FileTag { WebsiteID = websiteId, Name = Truncate(name, 60)! };
         _context.FileTags.Add(tag);
         await _context.SaveChangesAsync(ct);
         return tag;
     }
 
-    public async Task RenameTagAsync(int tagId, string name, CancellationToken ct = default) =>
+    public async Task RenameTagAsync(int tagId, string name, CancellationToken ct = default)
+    {
+        await using var _context = await _contextFactory.CreateDbContextAsync(ct);
+
         await _context.FileTags.Where(t => t.FileTagID == tagId)
             .ExecuteUpdateAsync(s => s.SetProperty(t => t.Name, Truncate(name, 60)!), ct);
+    }
 
     public async Task DeleteTagAsync(int tagId, CancellationToken ct = default)
     {
+        await using var _context = await _contextFactory.CreateDbContextAsync(ct);
+
         await _context.FileRecordTags.Where(t => t.FileTagID == tagId).ExecuteDeleteAsync(ct);
         await _context.FileTags.Where(t => t.FileTagID == tagId).ExecuteDeleteAsync(ct);
     }
 
     // ── Image processing ────────────────────────────────────────
-    private async Task<ImageProcessingOptions> BuildProcessingOptionsAsync(FileUploadRequest request, CancellationToken ct)
+    private async Task<ImageProcessingOptions> BuildProcessingOptionsAsync(AppDbContext _context, FileUploadRequest request, CancellationToken ct)
     {
         WatermarkOptions? watermark = null;
 

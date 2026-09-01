@@ -10,12 +10,14 @@ namespace Dotnetable.Infrastructure.Services;
 
 public class PolicyService : IPolicyService
 {
-    private readonly AppDbContext _context;
+    private readonly IDbContextFactory<AppDbContext> _contextFactory;
 
-    public PolicyService(AppDbContext context) => _context = context;
+    public PolicyService(IDbContextFactory<AppDbContext> contextFactory) => _contextFactory = contextFactory;
 
     public async Task<PagedResult<Policy>> GetPagedAsync(int? websiteId, GridQuery query, CancellationToken ct = default)
     {
+        await using var _context = await _contextFactory.CreateDbContextAsync(ct);
+
         var q = _context.Policies.AsNoTracking();
 
         if (websiteId is int wid)
@@ -35,23 +37,37 @@ public class PolicyService : IPolicyService
         return new PagedResult<Policy> { Items = items, TotalCount = total };
     }
 
-    public async Task<Policy?> GetByIdAsync(int id, CancellationToken ct = default) =>
-        await _context.Policies
+    public async Task<Policy?> GetByIdAsync(int id, CancellationToken ct = default)
+    {
+        await using var _context = await _contextFactory.CreateDbContextAsync(ct);
+
+        return await _context.Policies
             .Include(p => p.PolicyRoles)
             .FirstOrDefaultAsync(p => p.PolicyID == id, ct);
+    }
 
-    public async Task<IReadOnlyList<Policy>> GetByWebsiteAsync(int websiteId, CancellationToken ct = default) =>
-        await _context.Policies.AsNoTracking()
+    public async Task<IReadOnlyList<Policy>> GetByWebsiteAsync(int websiteId, CancellationToken ct = default)
+    {
+        await using var _context = await _contextFactory.CreateDbContextAsync(ct);
+
+        return await _context.Policies.AsNoTracking()
             .Where(p => p.WebsiteID == websiteId && p.Active)
             .OrderBy(p => p.Title)
             .ToListAsync(ct);
+    }
 
-    public async Task<Policy?> GetDefaultMemberPolicyAsync(int websiteId, CancellationToken ct = default) =>
-        await _context.Policies.AsNoTracking()
+    public async Task<Policy?> GetDefaultMemberPolicyAsync(int websiteId, CancellationToken ct = default)
+    {
+        await using var _context = await _contextFactory.CreateDbContextAsync(ct);
+
+        return await _context.Policies.AsNoTracking()
             .FirstOrDefaultAsync(p => p.WebsiteID == websiteId && p.Active && p.Title == DefaultPolicies.Users, ct);
+    }
 
     public async Task<Policy> CreateAsync(Policy policy, IEnumerable<short> roleIds, CancellationToken ct = default)
     {
+        await using var _context = await _contextFactory.CreateDbContextAsync(ct);
+
         _context.Policies.Add(policy);
         await _context.SaveChangesAsync(ct);
 
@@ -64,6 +80,8 @@ public class PolicyService : IPolicyService
 
     public async Task UpdateAsync(Policy policy, IEnumerable<short> roleIds, CancellationToken ct = default)
     {
+        await using var _context = await _contextFactory.CreateDbContextAsync(ct);
+
         _context.Policies.Update(policy);
 
         var desired = roleIds.Distinct().ToHashSet();
@@ -83,12 +101,16 @@ public class PolicyService : IPolicyService
 
     public async Task SetActiveAsync(int id, bool active, CancellationToken ct = default)
     {
+        await using var _context = await _contextFactory.CreateDbContextAsync(ct);
+
         await _context.Policies.Where(p => p.PolicyID == id)
             .ExecuteUpdateAsync(s => s.SetProperty(p => p.Active, active), ct);
     }
 
     public async Task DeleteAsync(int id, CancellationToken ct = default)
     {
+        await using var _context = await _contextFactory.CreateDbContextAsync(ct);
+
         var policy = await _context.Policies.FindAsync([id], ct);
         if (policy is null) return;
         _context.Policies.Remove(policy);
@@ -97,6 +119,8 @@ public class PolicyService : IPolicyService
 
     public async Task<IReadOnlyList<Role>> GetAssignableRolesAsync(int memberId, bool isMaster, CancellationToken ct = default)
     {
+        await using var _context = await _contextFactory.CreateDbContextAsync(ct);
+
         // The admin policy editor only deals with admin-panel permissions; client permissions
         // (Category 1) belong to website customers and are managed elsewhere.
         const byte adminCategory = (byte)RoleCategory.Admin;
@@ -123,6 +147,8 @@ public class PolicyService : IPolicyService
 
     public async Task<IReadOnlyList<Policy>> GetGrantablePoliciesAsync(int websiteId, int granterMemberId, bool isMaster, CancellationToken ct = default)
     {
+        await using var _context = await _contextFactory.CreateDbContextAsync(ct);
+
         var policies = await GetByWebsiteAsync(websiteId, ct);
         if (isMaster) return policies;
 

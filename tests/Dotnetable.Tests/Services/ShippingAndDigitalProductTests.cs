@@ -14,6 +14,7 @@ namespace Dotnetable.Tests.Services;
 public class ShippingAndDigitalProductTests : IDisposable
 {
     private readonly AppDbContext _context;
+    private readonly TestDbContextFactory _factory;
     private readonly ShippingService _shipping;
     private readonly VendorProductService _listings;
     private readonly Website _website;
@@ -24,6 +25,9 @@ public class ShippingAndDigitalProductTests : IDisposable
             .UseInMemoryDatabase(Guid.NewGuid().ToString())
             .Options;
         _context = new AppDbContext(options);
+        // Services open a context per call now; the _factory points at the same database so the
+        // fixture can still seed and assert through its own _context.
+        _factory = new TestDbContextFactory(options);
         _website = new Website
         {
             TradeName = "Test",
@@ -50,8 +54,8 @@ public class ShippingAndDigitalProductTests : IDisposable
             .ReturnsAsync((int _, decimal usd, string? _, CancellationToken _) =>
                 new MoneyDto { Amount = usd, AmountUsd = usd, CurrencyCode = "USD" });
 
-        _shipping = new ShippingService(_context, currency.Object);
-        _listings = new VendorProductService(_context);
+        _shipping = new ShippingService(_factory, currency.Object);
+        _listings = new VendorProductService(_factory);
     }
 
     public void Dispose() => _context.Dispose();

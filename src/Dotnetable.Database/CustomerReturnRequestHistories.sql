@@ -15,3 +15,7 @@ CREATE TABLE [dbo].[CustomerReturnRequestHistories] (
 GO
 CREATE NONCLUSTERED INDEX [IX_CustomerReturnRequestHistories_Request]
     ON [dbo].[CustomerReturnRequestHistories] ([CustomerReturnRequestID] ASC, [CreatedAt] ASC);
+
+GO
+CREATE NONCLUSTERED INDEX [IX_CustomerReturnRequestHistories_CreatedByMemberID]
+    ON [dbo].[CustomerReturnRequestHistories] ([CreatedByMemberID] ASC);

@@ -37,7 +37,7 @@ public class SecurityHardeningTests : IDisposable
             .ReturnsAsync(false);
 
         _auth = new WebsiteClientAuthService(
-            _context, email.Object, _sms.Object,
+            new TestDbContextFactory(_db.Options), email.Object, _sms.Object,
             new PlainTextHasher(), new Mock<IAdminNotificationService>().Object);
     }
 

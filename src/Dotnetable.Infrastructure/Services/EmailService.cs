@@ -15,17 +15,19 @@ namespace Dotnetable.Infrastructure.Services;
 /// </summary>
 public partial class EmailService : IEmailService
 {
-    private readonly AppDbContext _context;
+    private readonly IDbContextFactory<AppDbContext> _contextFactory;
     private readonly IEmailTemplateService _templates;
 
-    public EmailService(AppDbContext context, IEmailTemplateService templates)
+    public EmailService(IDbContextFactory<AppDbContext> contextFactory, IEmailTemplateService templates)
     {
-        _context = context;
+        _contextFactory = contextFactory;
         _templates = templates;
     }
 
     public async Task<bool> IsConfiguredAsync(int websiteId, CancellationToken ct = default)
     {
+        await using var _context = await _contextFactory.CreateDbContextAsync(ct);
+
         var row = await EmailAccountService.ResolveAsync(_context, websiteId, EmailAccountType.NoReply, ct);
         return row is not null && !string.IsNullOrWhiteSpace(row.MailServer) && !string.IsNullOrWhiteSpace(row.EmailAddress);
     }
@@ -34,6 +36,8 @@ public partial class EmailService : IEmailService
         int websiteId, EmailAccountType accountType, string toAddress, string subject, string htmlBody,
         CancellationToken ct = default)
     {
+        await using var _context = await _contextFactory.CreateDbContextAsync(ct);
+
         var row = await EmailAccountService.ResolveAsync(_context, websiteId, accountType, ct)
             ?? throw new InvalidOperationException("Email has not been configured.");
         if (string.IsNullOrWhiteSpace(row.MailServer) || string.IsNullOrWhiteSpace(row.EmailAddress))
@@ -46,6 +50,8 @@ public partial class EmailService : IEmailService
         int websiteId, string templateKey, string toAddress, IDictionary<string, string>? tokens = null,
         string? languageCode = null, CancellationToken ct = default)
     {
+        await using var _context = await _contextFactory.CreateDbContextAsync(ct);
+
         var website = await _context.Websites.AsNoTracking()
             .FirstOrDefaultAsync(w => w.WebsiteID == websiteId, ct);
 

@@ -22,16 +22,13 @@ public class LanguageService : ILanguageService
         ("ar", "ar-SA", "العربية",  true),
     ];
 
-    private readonly AppDbContext _context;
     private readonly IDbContextFactory<AppDbContext> _contextFactory;
     private readonly LanguageCatalogCache _cache;
 
     public LanguageService(
-        AppDbContext context,
         IDbContextFactory<AppDbContext> contextFactory,
         LanguageCatalogCache cache)
     {
-        _context = context;
         _contextFactory = contextFactory;
         _cache = cache;
     }
@@ -71,7 +68,7 @@ public class LanguageService : ILanguageService
         if (catalog.Count > 0) return catalog;
 
         // Seed through the circuit-scoped context (writes + cache invalidation stay on primary path).
-        return await SeedAdminCatalogAsync(ct);
+        return await SeedAdminCatalogAsync(context, ct);
     }
 
     public async Task<List<Language>> GetActiveCatalogAsync(CancellationToken ct = default) =>
@@ -82,11 +79,13 @@ public class LanguageService : ILanguageService
 
     public async Task<Language> CreateAsync(Language language, CancellationToken ct = default)
     {
+        await using var _context = await _contextFactory.CreateDbContextAsync(ct);
+
         language.WebsiteID = null;
         language.LanguageCode = language.LanguageCode.Trim().ToLowerInvariant();
 
         if (language.IsDefault)
-            await ClearExistingDefaultAsync(null, ct);
+            await ClearExistingDefaultAsync(_context, null, ct);
 
         _context.Languages.Add(language);
         await _context.SaveChangesAsync(ct);
@@ -96,12 +95,14 @@ public class LanguageService : ILanguageService
 
     public async Task<bool> UpdateAsync(Language language, CancellationToken ct = default)
     {
+        await using var _context = await _contextFactory.CreateDbContextAsync(ct);
+
         var existing = await _context.Languages.FirstOrDefaultAsync(
             l => l.LanguageID == language.LanguageID && l.WebsiteID == null, ct);
         if (existing is null) return false;
 
         if (language.IsDefault && !existing.IsDefault)
-            await ClearExistingDefaultAsync(null, ct);
+            await ClearExistingDefaultAsync(_context, null, ct);
 
         if (existing.IsDefault || language.IsDefault)
             language.Active = true;
@@ -120,6 +121,8 @@ public class LanguageService : ILanguageService
 
     public async Task<bool> SetActiveAsync(int languageId, bool active, CancellationToken ct = default)
     {
+        await using var _context = await _contextFactory.CreateDbContextAsync(ct);
+
         var existing = await _context.Languages.FirstOrDefaultAsync(
             l => l.LanguageID == languageId && l.WebsiteID == null, ct);
         if (existing is null) return false;
@@ -154,7 +157,9 @@ public class LanguageService : ILanguageService
 
     private async Task<List<Language>> LoadForWebsiteAsync(int websiteId, CancellationToken ct)
     {
-        await EnsureWebsiteDefaultLanguageAsync(websiteId, ct);
+        await using var _context = await _contextFactory.CreateDbContextAsync(ct);
+
+        await EnsureWebsiteDefaultLanguageAsync(_context, websiteId, ct);
 
         await using var context = await _contextFactory.CreateDbContextAsync(ct);
         return await context.Languages
@@ -167,6 +172,8 @@ public class LanguageService : ILanguageService
 
     public async Task<Language> AddWebsiteLanguageAsync(int websiteId, Language language, CancellationToken ct = default)
     {
+        await using var _context = await _contextFactory.CreateDbContextAsync(ct);
+
         language.WebsiteID = websiteId;
         language.LanguageCode = language.LanguageCode.Trim().ToLowerInvariant();
         language.LanguageCodeISO = string.IsNullOrWhiteSpace(language.LanguageCodeISO)
@@ -184,7 +191,7 @@ public class LanguageService : ILanguageService
         {
             if (language.IsDefault || !hasDefault)
             {
-                await ClearExistingDefaultAsync(websiteId, ct);
+                await ClearExistingDefaultAsync(_context, websiteId, ct);
                 language.IsDefault = true;
             }
         }
@@ -206,12 +213,14 @@ public class LanguageService : ILanguageService
 
     public async Task<bool> UpdateWebsiteLanguageAsync(int websiteId, Language language, CancellationToken ct = default)
     {
+        await using var _context = await _contextFactory.CreateDbContextAsync(ct);
+
         var existing = await _context.Languages.FirstOrDefaultAsync(
             l => l.LanguageID == language.LanguageID && l.WebsiteID == websiteId, ct);
         if (existing is null) return false;
 
         if (language.IsDefault && !existing.IsDefault)
-            await ClearExistingDefaultAsync(websiteId, ct);
+            await ClearExistingDefaultAsync(_context, websiteId, ct);
 
         if (existing.IsDefault || language.IsDefault)
             language.Active = true;
@@ -230,6 +239,8 @@ public class LanguageService : ILanguageService
 
     public async Task<bool> SetWebsiteLanguageActiveAsync(int websiteId, int languageId, bool active, CancellationToken ct = default)
     {
+        await using var _context = await _contextFactory.CreateDbContextAsync(ct);
+
         var existing = await _context.Languages.FirstOrDefaultAsync(
             l => l.LanguageID == languageId && l.WebsiteID == websiteId, ct);
         if (existing is null) return false;
@@ -245,11 +256,13 @@ public class LanguageService : ILanguageService
 
     public async Task<bool> SetWebsiteDefaultLanguageAsync(int websiteId, int languageId, CancellationToken ct = default)
     {
+        await using var _context = await _contextFactory.CreateDbContextAsync(ct);
+
         var existing = await _context.Languages.FirstOrDefaultAsync(
             l => l.LanguageID == languageId && l.WebsiteID == websiteId, ct);
         if (existing is null) return false;
 
-        await ClearExistingDefaultAsync(websiteId, ct);
+        await ClearExistingDefaultAsync(_context, websiteId, ct);
         existing.IsDefault = true;
         existing.Active = true;
 
@@ -264,6 +277,8 @@ public class LanguageService : ILanguageService
 
     public async Task<bool> RemoveWebsiteLanguageAsync(int websiteId, string languageCode, CancellationToken ct = default)
     {
+        await using var _context = await _contextFactory.CreateDbContextAsync(ct);
+
         var code = languageCode.Trim().ToLowerInvariant();
         var existing = await _context.Languages.FirstOrDefaultAsync(
             l => l.WebsiteID == websiteId && l.LanguageCode == code, ct);
@@ -286,7 +301,7 @@ public class LanguageService : ILanguageService
     /// When a website has no language rows yet, create a single active default from
     /// <see cref="Website.DefaultLanguageCode"/> (or "en"). Never copies the admin catalog.
     /// </summary>
-    private async Task EnsureWebsiteDefaultLanguageAsync(int websiteId, CancellationToken ct)
+    private async Task EnsureWebsiteDefaultLanguageAsync(AppDbContext _context, int websiteId, CancellationToken ct)
     {
         var any = await _context.Languages.AnyAsync(l => l.WebsiteID == websiteId, ct);
         if (any) return;
@@ -325,7 +340,11 @@ public class LanguageService : ILanguageService
     }
 
     /// <param name="websiteId">Null clears default on the admin catalog; non-null on that website only.</param>
-    private async Task ClearExistingDefaultAsync(int? websiteId, CancellationToken ct)
+    /// <remarks>
+    /// Takes the caller's context rather than opening its own: it only marks entities dirty and
+    /// leaves the SaveChanges to the caller, so it has to be the same change tracker.
+    /// </remarks>
+    private static async Task ClearExistingDefaultAsync(AppDbContext _context, int? websiteId, CancellationToken ct)
     {
         var current = await _context.Languages
             .Where(l => l.WebsiteID == websiteId && l.IsDefault)
@@ -333,7 +352,7 @@ public class LanguageService : ILanguageService
         foreach (var l in current) l.IsDefault = false;
     }
 
-    private async Task<List<Language>> SeedAdminCatalogAsync(CancellationToken ct)
+    private static async Task<List<Language>> SeedAdminCatalogAsync(AppDbContext _context, CancellationToken ct)
     {
         // Re-check under the same context: another request may have filled the catalog
         // between LoadCatalogAsync and this seed (setup seeder + first UI load race).

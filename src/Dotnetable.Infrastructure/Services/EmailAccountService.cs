@@ -11,25 +11,33 @@ namespace Dotnetable.Infrastructure.Services;
 /// <inheritdoc cref="IEmailAccountService"/>
 public class EmailAccountService : IEmailAccountService
 {
-    private readonly AppDbContext _context;
+    private readonly IDbContextFactory<AppDbContext> _contextFactory;
 
-    public EmailAccountService(AppDbContext context) => _context = context;
+    public EmailAccountService(IDbContextFactory<AppDbContext> contextFactory) => _contextFactory = contextFactory;
 
-    public async Task<List<EmailAccountInfo>> GetForWebsiteAsync(int websiteId, CancellationToken ct = default) =>
-        await _context.EmailAccounts
+    public async Task<List<EmailAccountInfo>> GetForWebsiteAsync(int websiteId, CancellationToken ct = default)
+    {
+        await using var _context = await _contextFactory.CreateDbContextAsync(ct);
+
+        return await _context.EmailAccounts
             .Where(a => a.WebsiteID == websiteId)
             .OrderByDescending(a => a.EmailAccountID)
             .Select(a => ToInfo(a))
             .ToListAsync(ct);
+    }
 
     public async Task<EmailAccountInfo?> GetByIdAsync(int emailAccountId, CancellationToken ct = default)
     {
+        await using var _context = await _contextFactory.CreateDbContextAsync(ct);
+
         var row = await _context.EmailAccounts.FirstOrDefaultAsync(a => a.EmailAccountID == emailAccountId, ct);
         return row is null ? null : ToInfo(row);
     }
 
     public async Task<int> SaveAsync(EmailAccountInfo account, CancellationToken ct = default)
     {
+        await using var _context = await _contextFactory.CreateDbContextAsync(ct);
+
         EmailAccount row;
         if (account.EmailAccountID == 0)
         {
@@ -68,6 +76,8 @@ public class EmailAccountService : IEmailAccountService
 
     public async Task DeleteAsync(int emailAccountId, CancellationToken ct = default)
     {
+        await using var _context = await _contextFactory.CreateDbContextAsync(ct);
+
         var row = await _context.EmailAccounts.FirstOrDefaultAsync(a => a.EmailAccountID == emailAccountId, ct);
         if (row is null) return;
         _context.EmailAccounts.Remove(row);
@@ -76,6 +86,8 @@ public class EmailAccountService : IEmailAccountService
 
     public async Task<bool> IsConfiguredAsync(int websiteId, CancellationToken ct = default)
     {
+        await using var _context = await _contextFactory.CreateDbContextAsync(ct);
+
         var row = await ResolveAsync(_context, websiteId, EmailAccountType.NoReply, ct);
         return row is not null && !string.IsNullOrWhiteSpace(row.MailServer) && !string.IsNullOrWhiteSpace(row.EmailAddress);
     }

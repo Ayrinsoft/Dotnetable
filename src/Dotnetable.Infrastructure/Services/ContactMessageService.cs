@@ -10,17 +10,19 @@ namespace Dotnetable.Infrastructure.Services;
 
 public class ContactMessageService : IContactMessageService
 {
-    private readonly AppDbContext _context;
+    private readonly IDbContextFactory<AppDbContext> _contextFactory;
     private readonly IAdminNotificationService _notifications;
 
-    public ContactMessageService(AppDbContext context, IAdminNotificationService notifications)
+    public ContactMessageService(IDbContextFactory<AppDbContext> contextFactory, IAdminNotificationService notifications)
     {
-        _context = context;
+        _contextFactory = contextFactory;
         _notifications = notifications;
     }
 
     public async Task<PagedResult<ContactUsMessage>> GetPagedAsync(int? websiteId, GridQuery query, CancellationToken ct = default)
     {
+        await using var _context = await _contextFactory.CreateDbContextAsync(ct);
+
         var q = _context.ContactUsMessages.AsNoTracking();
 
         if (websiteId.HasValue)
@@ -44,11 +46,17 @@ public class ContactMessageService : IContactMessageService
         return new PagedResult<ContactUsMessage> { Items = items, TotalCount = total };
     }
 
-    public async Task<ContactUsMessage?> GetByIdAsync(int id, CancellationToken ct = default) =>
-        await _context.ContactUsMessages.FindAsync([id], ct);
+    public async Task<ContactUsMessage?> GetByIdAsync(int id, CancellationToken ct = default)
+    {
+        await using var _context = await _contextFactory.CreateDbContextAsync(ct);
+
+        return await _context.ContactUsMessages.FindAsync([id], ct);
+    }
 
     public async Task<ContactUsMessage> CreateAsync(ContactUsMessage message, CancellationToken ct = default)
     {
+        await using var _context = await _contextFactory.CreateDbContextAsync(ct);
+
         message.LogTime = DateTime.UtcNow;
         _context.ContactUsMessages.Add(message);
         await _context.SaveChangesAsync(ct);
@@ -66,12 +74,18 @@ public class ContactMessageService : IContactMessageService
         return message;
     }
 
-    public async Task SetArchiveAsync(int id, bool archive, CancellationToken ct = default) =>
+    public async Task SetArchiveAsync(int id, bool archive, CancellationToken ct = default)
+    {
+        await using var _context = await _contextFactory.CreateDbContextAsync(ct);
+
         await _context.ContactUsMessages.Where(m => m.ContactUsMessagesID == id)
             .ExecuteUpdateAsync(s => s.SetProperty(m => m.Archive, archive), ct);
+    }
 
     public async Task DeleteAsync(int id, CancellationToken ct = default)
     {
+        await using var _context = await _contextFactory.CreateDbContextAsync(ct);
+
         var entity = await _context.ContactUsMessages.FindAsync([id], ct);
         if (entity is null) return;
         _context.ContactUsMessages.Remove(entity);

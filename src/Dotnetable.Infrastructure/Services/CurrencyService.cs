@@ -9,15 +9,21 @@ namespace Dotnetable.Infrastructure.Services;
 
 public class CurrencyService : ICurrencyService
 {
-    private readonly AppDbContext _context;
+    private readonly IDbContextFactory<AppDbContext> _contextFactory;
 
-    public CurrencyService(AppDbContext context) => _context = context;
+    public CurrencyService(IDbContextFactory<AppDbContext> contextFactory) => _contextFactory = contextFactory;
 
-    public async Task<List<Currency>> GetAllAsync(CancellationToken ct = default) =>
-        await _context.Currencies.AsNoTracking().OrderBy(c => c.CurrencyCode).ToListAsync(ct);
+    public async Task<List<Currency>> GetAllAsync(CancellationToken ct = default)
+    {
+        await using var _context = await _contextFactory.CreateDbContextAsync(ct);
+
+        return await _context.Currencies.AsNoTracking().OrderBy(c => c.CurrencyCode).ToListAsync(ct);
+    }
 
     public async Task<PagedResult<Currency>> GetPagedAsync(GridQuery query, CancellationToken ct = default)
     {
+        await using var _context = await _contextFactory.CreateDbContextAsync(ct);
+
         var q = _context.Currencies.AsNoTracking();
 
         if (query.GetSearch(nameof(Currency.CurrencyCode)) is string code)
@@ -36,17 +42,25 @@ public class CurrencyService : ICurrencyService
         return new PagedResult<Currency> { Items = items, TotalCount = total };
     }
 
-    public async Task<Currency?> GetByCodeAsync(string currencyCode, CancellationToken ct = default) =>
-        await _context.Currencies.AsNoTracking().FirstOrDefaultAsync(c => c.CurrencyCode == currencyCode, ct);
+    public async Task<Currency?> GetByCodeAsync(string currencyCode, CancellationToken ct = default)
+    {
+        await using var _context = await _contextFactory.CreateDbContextAsync(ct);
+
+        return await _context.Currencies.AsNoTracking().FirstOrDefaultAsync(c => c.CurrencyCode == currencyCode, ct);
+    }
 
     public async Task CreateAsync(Currency currency, CancellationToken ct = default)
     {
+        await using var _context = await _contextFactory.CreateDbContextAsync(ct);
+
         _context.Currencies.Add(currency);
         await _context.SaveChangesAsync(ct);
     }
 
     public async Task<bool> UpdateAsync(Currency currency, CancellationToken ct = default)
     {
+        await using var _context = await _contextFactory.CreateDbContextAsync(ct);
+
         var existing = await _context.Currencies.FirstOrDefaultAsync(c => c.CurrencyCode == currency.CurrencyCode, ct);
         if (existing is null) return false;
 
@@ -61,6 +75,8 @@ public class CurrencyService : ICurrencyService
 
     public async Task<bool> DeleteAsync(string currencyCode, CancellationToken ct = default)
     {
+        await using var _context = await _contextFactory.CreateDbContextAsync(ct);
+
         var existing = await _context.Currencies.FirstOrDefaultAsync(c => c.CurrencyCode == currencyCode, ct);
         if (existing is null) return false;
 
