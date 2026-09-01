@@ -289,11 +289,26 @@ public class MemberServiceTests : IDisposable
         var m = NewMember(pw: "HASHED:old"); _context.Members.Add(m); await _context.SaveChangesAsync();
         var oldKey = m.HashKey;
 
-        await _service.ChangePasswordAsync(m.MemberID, "new");
+        // Must satisfy PasswordPolicy.ValidateAdmin: 12+ characters over three character classes.
+        const string newPassword = "Nx7!qWer-Tuv2";
+        await _service.ChangePasswordAsync(m.MemberID, newPassword);
 
         var updated = await _context.Members.FindAsync(m.MemberID);
-        updated!.Password.Should().Be("HASHED:new");
+        updated!.Password.Should().Be($"HASHED:{newPassword}");
         updated.HashKey.Should().NotBe(oldKey);
+    }
+
+    [Fact]
+    public async Task ChangePasswordAsync_RejectsPasswordBelowAdminPolicy()
+    {
+        var m = NewMember(pw: "HASHED:old"); _context.Members.Add(m); await _context.SaveChangesAsync();
+
+        // An admin member can read every order in the shop, so the policy is enforced in the service
+        // rather than only in the page that happens to call it today.
+        await _service.Invoking(s => s.ChangePasswordAsync(m.MemberID, "new"))
+            .Should().ThrowAsync<InvalidOperationException>();
+
+        (await _context.Members.FindAsync(m.MemberID))!.Password.Should().Be("HASHED:old");
     }
 
     [Fact]

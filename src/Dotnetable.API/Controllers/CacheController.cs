@@ -1,3 +1,5 @@
+using System.Security.Cryptography;
+using System.Text;
 using Asp.Versioning;
 using Dotnetable.Application.Caching;
 using Dotnetable.Application.Interfaces;
@@ -31,7 +33,7 @@ public class CacheController : ControllerBase
         var expected = _configuration["Internal:SyncSecret"];
         if (string.IsNullOrEmpty(expected) ||
             !Request.Headers.TryGetValue(CacheSyncContracts.InternalKeyHeader, out var provided) ||
-            provided != expected)
+            !FixedTimeEquals(provided.ToString(), expected))
             return Unauthorized();
 
         if (string.IsNullOrWhiteSpace(request.Tag))
@@ -40,4 +42,13 @@ public class CacheController : ControllerBase
         _cache.RemoveByTag(request.Tag);
         return NoContent();
     }
+
+    /// <summary>
+    /// Length-constant comparison. Ordinary string equality returns as soon as two bytes differ, so
+    /// the time it takes leaks how much of the secret a guess got right — enough, over many requests,
+    /// to recover it a character at a time.
+    /// </summary>
+    private static bool FixedTimeEquals(string provided, string expected) =>
+        CryptographicOperations.FixedTimeEquals(
+            Encoding.UTF8.GetBytes(provided), Encoding.UTF8.GetBytes(expected));
 }

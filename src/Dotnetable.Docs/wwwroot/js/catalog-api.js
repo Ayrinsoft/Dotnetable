@@ -239,6 +239,52 @@ window.DOCS_API = {
                 },
               },
             },
+            {
+              title: { en: "Sessions and refresh tokens", fa: "نشست و توکن تمدید" },
+              items: [
+                {
+                  en: "Login / verify-otp return **two** tokens: a short-lived `accessToken` (2 hours) you send as `Bearer`, and a long-lived `refreshToken` (30 days) you keep to get a new pair.",
+                  fa: "login و verify-otp **دو** توکن برمی‌گردانند: `accessToken` کوتاه‌عمر (۲ ساعت) که به‌عنوان `Bearer` می‌فرستید، و `refreshToken` بلندعمر (۳۰ روز) که برای گرفتن جفت جدید نگه می‌دارید.",
+                },
+                {
+                  en: "Refresh tokens **rotate**: every exchange revokes the one you presented and issues a replacement. Always store the new value and never reuse the old one.",
+                  fa: "توکن تمدید **چرخشی** است: هر تعویض، توکن ارائه‌شده را باطل و یکی تازه صادر می‌کند. همیشه مقدار جدید را ذخیره کنید و قبلی را دوباره نفرستید.",
+                },
+                {
+                  en: "Presenting an already-spent refresh token is treated as theft and revokes **every** session for that customer — so do not retry a failed refresh with the same value; sign in again instead.",
+                  fa: "ارائه‌ی توکن مصرف‌شده به‌عنوان سرقت تلقی می‌شود و **همه** نشست‌های آن مشتری باطل می‌شود — پس refresh ناموفق را با همان مقدار retry نکنید؛ دوباره وارد شوید.",
+                },
+                {
+                  en: "A password reset revokes all refresh tokens, so a session stolen before the reset cannot outlive it.",
+                  fa: "بازنشانی رمز همه توکن‌های تمدید را باطل می‌کند، پس نشستی که پیش از بازنشانی دزدیده شده دوام نمی‌آورد.",
+                },
+              ],
+            },
+            {
+              title: { en: "Limits, captcha and password rules", fa: "محدودیت‌ها، کپچا و قواعد رمز" },
+              items: [
+                {
+                  en: "**Captcha.** register, login, resend-otp and forgot-password accept `captchaToken` / `captchaAnswer` (see the Captcha page). They are enforced only when the website has captcha configured in Admin, so a site that never enabled it keeps working unchanged.",
+                  fa: "**کپچا.** اندپوینت‌های register، login، resend-otp و forgot-password فیلدهای `captchaToken` / `captchaAnswer` می‌گیرند (صفحه Captcha). فقط وقتی اجباری‌اند که سایت در ادمین کپچا را تنظیم کرده باشد.",
+                },
+                {
+                  en: "**Rate limits (per IP).** All auth endpoints: 10 per minute. The code-sending ones (register, resend-otp, forgot-password): 5 per 15 minutes, because each one costs the site an email or an SMS. Over the limit → **429** with `Retry-After`.",
+                  fa: "**محدودیت نرخ (به ازای IP).** همه اندپوینت‌های احراز: ۱۰ در دقیقه. آن‌هایی که کد می‌فرستند (register، resend-otp، forgot-password): ۵ در ۱۵ دقیقه، چون هرکدام برای سایت ایمیل یا پیامک خرج دارد. عبور از حد → **429** با `Retry-After`.",
+                },
+                {
+                  en: "**Account limits.** A one-time code dies after 5 wrong attempts — **429**, request a new code. Repeated wrong passwords lock the account for 15 minutes — **423**, and the correct password is refused while the lock stands. A new code cannot be requested more than once a minute.",
+                  fa: "**محدودیت حساب.** کد یک‌بارمصرف بعد از ۵ تلاش نادرست می‌میرد — **429**، کد جدید بگیرید. رمز اشتباه مکرر حساب را ۱۵ دقیقه قفل می‌کند — **423**، و تا پایان قفل حتی رمز درست هم رد می‌شود. کد جدید بیش از یک‌بار در دقیقه صادر نمی‌شود.",
+                },
+                {
+                  en: "**Password policy.** At least 10 characters mixing three of: uppercase, lowercase, digits, symbols; not a common password; not containing the account's own email or mobile. A rejected password returns **400** with the reason.",
+                  fa: "**سیاست رمز.** حداقل ۱۰ کاراکتر با ترکیب سه مورد از: بزرگ، کوچک، رقم، نماد؛ نه رمز رایج؛ و نه شامل ایمیل یا موبایل خود حساب. رمز ردشده **400** با دلیل برمی‌گرداند.",
+                },
+                {
+                  en: "**Mobile-only sign-up** requires an SMS gateway configured for the website (Admin → SMS gateways). Without one, register returns **503** rather than reporting success for a code that would never arrive.",
+                  fa: "**ثبت‌نام فقط با موبایل** به درگاه پیامک تنظیم‌شده برای سایت نیاز دارد (ادمین → درگاه‌های پیامک). بدون آن register کد **503** برمی‌گرداند، به‌جای گزارش موفقیت برای کدی که هرگز نمی‌رسد.",
+                },
+              ],
+            },
           ],
           endpoints: [
             {
@@ -377,6 +423,46 @@ window.DOCS_API = {
                 status: 200,
                 body: { success: true, message: "If the account exists, a reset code has been sent." },
               },
+            },
+            {
+              title: { en: "Refresh session", fa: "تمدید نشست" },
+              method: "POST",
+              path: "/api/Auth/refresh",
+              auth: "website",
+              summary: {
+                en: "Exchange a refresh token for a new access + refresh pair. Single use: the presented token is revoked here.",
+                fa: "تعویض refresh token با یک جفت access + refresh تازه. یک‌بارمصرف: توکن ارائه‌شده همین‌جا باطل می‌شود.",
+              },
+              headers: [
+                { name: "X-Website-Key", desc: { en: "Website AuthCode GUID", fa: "GUID کلید وب‌سایت" } },
+              ],
+              request: { body: { refreshToken: "Rk9vQmFyLi4u" } },
+              response: {
+                status: 200,
+                body: {
+                  accessToken: "eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9...",
+                  expiresAtUtc: "2026-09-01T14:00:00Z",
+                  tokenType: "Bearer",
+                  refreshToken: "TmV3VG9rZW4uLi4=",
+                  refreshExpiresAtUtc: "2026-10-01T12:00:00Z",
+                },
+                note: {
+                  en: "Store the NEW refreshToken and discard the old one. Presenting a spent token is treated as theft and revokes every session for that customer, so never retry a refresh with the same value.",
+                  fa: "refreshToken جدید را ذخیره و قبلی را دور بیندازید. ارائه‌ی توکن مصرف‌شده به‌عنوان سرقت تلقی می‌شود و همه نشست‌های آن مشتری باطل می‌شود؛ پس هرگز refresh را با همان مقدار retry نکنید.",
+                },
+              },
+            },
+            {
+              title: { en: "Sign out", fa: "خروج" },
+              method: "POST",
+              path: "/api/Auth/logout  ·  /api/Auth/logout-all",
+              auth: "website",
+              summary: {
+                en: "logout revokes the presented refresh token (this device). logout-all needs a JWT and revokes every session for the customer.",
+                fa: "logout توکن ارائه‌شده را باطل می‌کند (همین دستگاه). logout-all به JWT نیاز دارد و همه نشست‌های مشتری را باطل می‌کند.",
+              },
+              request: { body: { refreshToken: "Rk9vQmFyLi4u" } },
+              response: { status: 200, body: { success: true } },
             },
           ],
           related: ["versioning", "cart", "checkout", "orders"],
@@ -1073,12 +1159,129 @@ window.DOCS_API = {
           id: "payments",
           title: { en: "Payments", fa: "پرداخت" },
           summary: {
-            en: "Wallet pay, offline bank accounts, upload receipt, payment status.",
-            fa: "پرداخت با کیف پول، حساب‌های بانکی آفلاین، آپلود فیش، وضعیت پرداخت.",
+            en: "Online gateway redirect, wallet pay, offline bank accounts, upload receipt, payment status.",
+            fa: "پرداخت آنلاین با درگاه، پرداخت با کیف پول، حساب‌های بانکی آفلاین، آپلود فیش، وضعیت پرداخت.",
           },
           relatedAdmin: ["payments", "bank-accounts", "wallets"],
           related: ["orders", "wallet", "checkout"],
+          sections: [
+            {
+              title: { en: "How an online payment completes", fa: "روند تکمیل پرداخت آنلاین" },
+              items: [
+                {
+                  en: "**1.** `GET /api/Payments/gateways` — the gateways this website has configured and can actually take money through. A gateway missing its credentials is never listed.",
+                  fa: "**۱.** `GET /api/Payments/gateways` — درگاه‌هایی که این سایت تنظیم کرده و واقعاً می‌تواند با آن‌ها پول بگیرد. درگاه بدون اعتبارنامه هرگز فهرست نمی‌شود.",
+                },
+                {
+                  en: "**2.** `POST /api/Payments/online/start` — creates a pending `Payment` and returns `redirectUrl`. Send the payer there. `returnUrl` must be an absolute URL on **this website's own host**, or the call is refused.",
+                  fa: "**۲.** `POST /api/Payments/online/start` — یک `Payment` در وضعیت pending می‌سازد و `redirectUrl` برمی‌گرداند. پرداخت‌کننده را به آنجا بفرستید. `returnUrl` باید URL مطلق روی **هاست خود همین سایت** باشد وگرنه رد می‌شود.",
+                },
+                {
+                  en: "**3.** The gateway sends the payer back to your `returnUrl`. Forward what it sent (query string and/or form) to `/api/Payments/online/callback`. The API then asks the gateway **server to server** whether the money actually moved, and only marks the order paid on that answer.",
+                  fa: "**۳.** درگاه پرداخت‌کننده را به `returnUrl` شما برمی‌گرداند. آنچه فرستاده (query یا فرم) را به `/api/Payments/online/callback` بدهید. API سپس **سرور به سرور** از درگاه می‌پرسد پول واقعاً جابه‌جا شده یا نه و فقط بر اساس همان پاسخ سفارش را پرداخت‌شده می‌کند.",
+                },
+              ],
+              callout: {
+                tone: "warn",
+                text: {
+                  en: "Never mark an order paid from the callback's own query string. A return URL is something the payer's browser is redirected to, so its values can be forged; only the server-to-server verify in step 3 is evidence. Calling the callback twice is safe — the second call returns the first outcome instead of crediting the order again.",
+                  fa: "هرگز سفارش را بر اساس query string خود callback پرداخت‌شده نکنید. return URL چیزی است که مرورگر پرداخت‌کننده به آن هدایت می‌شود، پس مقادیرش جعل‌پذیر است؛ فقط تأیید سرور-به-سرور مرحله ۳ سند است. صدا زدن دوباره‌ی callback امن است — بار دوم همان نتیجه‌ی اول را برمی‌گرداند و سفارش را دوباره شارژ نمی‌کند.",
+                },
+              },
+            },
+            {
+              title: { en: "Supported gateways", fa: "درگاه‌های پشتیبانی‌شده" },
+              items: [
+                {
+                  en: "**Iranian:** ZarinPal, Zibal, IDPay, NextPay, Pay.ir, PayPing.",
+                  fa: "**ایرانی:** زرین‌پال، زیبال، آیدی‌پی، نکست‌پی، pay.ir، پی‌پینگ.",
+                },
+                {
+                  en: "**International:** Stripe (hosted Checkout), PayPal (Orders v2).",
+                  fa: "**بین‌المللی:** Stripe (Checkout میزبان‌شده)، PayPal (Orders v2).",
+                },
+                {
+                  en: "**Custom HTTP gateway** — any PSP whose start/verify calls are plain HTTP can be wired up from Admin alone by filling in URLs, bodies and headers, with no new build.",
+                  fa: "**درگاه HTTP سفارشی** — هر PSP که فراخوانی شروع/تأیید آن HTTP ساده باشد، فقط با پر کردن آدرس‌ها، بدنه و هدرها در ادمین اضافه می‌شود، بدون نیاز به بیلد جدید.",
+                },
+                {
+                  en: "Amounts are converted per gateway: most Iranian aggregators bill in **Rial** while the shop prices in Toman, PayPing bills in Toman, Stripe in minor units. The storefront always sends the order total in the site currency and the gateway's own unit is applied server-side.",
+                  fa: "مبلغ برای هر درگاه تبدیل می‌شود: بیشتر واسط‌های ایرانی به **ریال** صورتحساب می‌دهند در حالی که فروشگاه به تومان قیمت می‌گذارد، پی‌پینگ به تومان، و Stripe به واحد خرد. استورفرانت همیشه جمع سفارش را به ارز سایت می‌فرستد و واحد درگاه سمت سرور اعمال می‌شود.",
+                },
+              ],
+            },
+          ],
           endpoints: [
+            {
+              title: { en: "Available gateways", fa: "درگاه‌های در دسترس" },
+              method: "GET",
+              path: "/api/Payments/gateways",
+              auth: "jwt",
+              summary: {
+                en: "Gateways this website can take payment through, for the checkout picker.",
+                fa: "درگاه‌هایی که این سایت می‌تواند با آن‌ها پول بگیرد، برای انتخابگر تسویه.",
+              },
+              request: { body: "GET /api/Payments/gateways" },
+              response: {
+                status: 200,
+                body: [
+                  { paymentGatewayID: 3, name: "ZarinPal", provider: "Zarinpal", providerDisplayName: "ZarinPal", isSandbox: false },
+                ],
+              },
+            },
+            {
+              title: { en: "Start an online payment", fa: "شروع پرداخت آنلاین" },
+              method: "POST",
+              path: "/api/Payments/online/start",
+              auth: "jwt",
+              summary: {
+                en: "Creates a pending payment and returns the gateway URL to send the payer to.",
+                fa: "یک پرداخت در انتظار می‌سازد و آدرس درگاه را برای هدایت پرداخت‌کننده برمی‌گرداند.",
+              },
+              request: {
+                body: {
+                  orderId: 1042,
+                  gatewayId: 3,
+                  returnUrl: "https://shop.example.com/checkout/callback",
+                },
+              },
+              response: {
+                status: 200,
+                body: { redirectUrl: "https://payment.zarinpal.com/pg/StartPay/A0000000000000000000000000000123" },
+                note: {
+                  en: "The order is untouched here — it stays PendingPayment until the callback verifies. **400** when the order is not yours, not awaiting payment, or `returnUrl` is not on this website's host.",
+                  fa: "سفارش اینجا دست‌نخورده می‌ماند و تا تأیید callback در PendingPayment است. **400** وقتی سفارش مال شما نیست، در انتظار پرداخت نیست، یا `returnUrl` روی هاست این سایت نیست.",
+                },
+              },
+            },
+            {
+              title: { en: "Gateway callback", fa: "بازگشت از درگاه" },
+              method: "POST",
+              path: "/api/Payments/online/callback",
+              auth: "website",
+              summary: {
+                en: "Verifies the payment server to server and marks the order paid. Also accepts GET. Anonymous, because the payer arrives via the PSP and may not carry their token.",
+                fa: "پرداخت را سرور-به-سرور تأیید و سفارش را پرداخت‌شده می‌کند. GET هم می‌پذیرد. ناشناس است چون پرداخت‌کننده از مسیر PSP می‌آید و ممکن است توکن نداشته باشد.",
+              },
+              headers: [
+                { name: "X-Website-Key", desc: { en: "Website AuthCode GUID", fa: "GUID کلید وب‌سایت" } },
+              ],
+              request: {
+                body: { Authority: "A0000000000000000000000000000123", Status: "OK" },
+                note: {
+                  en: "Pass through whatever the gateway sent; field names differ per PSP and the matching provider picks the ones it needs.",
+                  fa: "هرچه درگاه فرستاده را عیناً بدهید؛ نام فیلدها در هر PSP فرق دارد و provider مربوطه خودش موردنیازش را برمی‌دارد.",
+                },
+              },
+              response: {
+                status: 200,
+                body: { paid: true, referenceNumber: "123456789" },
+                note: {
+                  en: "**400** with `paid: false` when the gateway did not confirm, when it was unreachable, or when the amount it confirmed does not match the order — in that last case the order is deliberately left unpaid.",
+                  fa: "**400** با `paid: false` وقتی درگاه تأیید نکرده، در دسترس نبوده، یا مبلغ تأییدشده با سفارش نمی‌خواند — در حالت آخر سفارش عمداً پرداخت‌نشده می‌ماند.",
+                },
+              },
+            },
             {
               title: { en: "Offline bank accounts", fa: "حساب‌های کارت‌به‌کارت" },
               method: "GET",

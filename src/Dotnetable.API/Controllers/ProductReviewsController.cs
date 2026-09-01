@@ -3,11 +3,14 @@ using Dotnetable.Application.DTOs;
 using Dotnetable.Application.Interfaces;
 using Microsoft.AspNetCore.Authorization;
 using Microsoft.AspNetCore.Mvc;
+using Microsoft.AspNetCore.RateLimiting;
+using Dotnetable.Hosting;
 
 namespace Dotnetable.API.Controllers;
 
 /// <summary>Public reads (approved reviews) + client-authenticated writes for product reviews.</summary>
 [Route("api/products/{productId:int}/reviews")]
+[EnableRateLimiting(RateLimiting.PublicWritePolicy)]
 public class ProductReviewsController : BaseController
 {
     private readonly IProductReviewService _reviews;

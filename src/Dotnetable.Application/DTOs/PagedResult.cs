@@ -10,6 +10,13 @@ public sealed class PagedResult<T>
 /// <summary>Server-side paging / sorting / per-column search request, produced from the grid state.</summary>
 public sealed class GridQuery
 {
+    /// <summary>
+    /// Largest page any caller can ask for. Public API endpoints pass a query-string value straight
+    /// into <see cref="PageSize"/>, so without a ceiling <c>?pageSize=10000000</c> is an unauthenticated
+    /// request to materialise an entire table — the cheapest denial of service the product offers.
+    /// </summary>
+    public const int MaxPageSize = 100;
+
     public int PageIndex { get; set; } = 1;
     public int PageSize { get; set; } = 10;
 
@@ -20,7 +27,16 @@ public sealed class GridQuery
     public Dictionary<string, string> Search { get; set; } = new(StringComparer.OrdinalIgnoreCase);
 
     public int Skip => (PageIndex < 1 ? 0 : PageIndex - 1) * Take;
-    public int Take => PageSize < 1 ? 10 : PageSize;
+
+    /// <summary>The page size actually applied: defaulted when unset and clamped to <see cref="MaxPageSize"/>.</summary>
+    public int Take => PageSize < 1 ? 10 : Math.Min(PageSize, MaxPageSize);
+
+    /// <summary>
+    /// Clamps a caller-supplied page size for callers that do not build a <see cref="GridQuery"/>
+    /// (endpoints taking a bare <c>take</c> or <c>pageSize</c> parameter).
+    /// </summary>
+    public static int ClampPageSize(int requested, int fallback = 20) =>
+        requested < 1 ? fallback : Math.Min(requested, MaxPageSize);
 
     /// <summary>Trimmed search value for a column, or null when absent/blank.</summary>
     public string? GetSearch(string column) =>

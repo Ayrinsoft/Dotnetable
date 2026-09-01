@@ -13,6 +13,7 @@
 
   <ItemGroup>
     <ProjectReference Include="..\Dotnetable.Application\Dotnetable.Application.csproj" />
+    <ProjectReference Include="..\Dotnetable.Hosting\Dotnetable.Hosting.csproj" />
   </ItemGroup>
 
 </Project>

@@ -21,12 +21,6 @@ public abstract class BaseController : ControllerBase
     /// <summary>Header that selects the API contract. See <see cref="ApiVersions.HeaderName"/>.</summary>
     public const string ApiVersionHeader = ApiVersions.HeaderName;
 
-    /// <summary>Website scope for the request, taken from the <c>X-Website-Id</c> header.</summary>
-    protected int CurrentWebsiteId =>
-        Request.Headers.TryGetValue("X-Website-Id", out var value) && int.TryParse(value, out var websiteId)
-            ? websiteId
-            : throw new InvalidOperationException("X-Website-Id header is missing or invalid.");
-
     /// <summary>Resolves the caller's active website from the <c>X-Website-Key</c> header (its AuthCode),
     /// or null when the header is missing/invalid or the website is inactive.</summary>
     protected async Task<Website?> ResolveWebsiteAsync(IWebsiteService websiteService, CancellationToken ct)

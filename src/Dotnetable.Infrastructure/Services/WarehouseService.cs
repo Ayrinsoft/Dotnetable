@@ -133,56 +133,45 @@ public class WarehouseService : IWarehouseService
         return Math.Max(0, stock.QuantityOnHand - stock.QuantityReserved);
     }
 
+    // Atomic conditional UPDATE — see the note on InventoryService.ReserveAsync.
     public async Task<bool> ReserveAsync(int warehouseId, int productVariantId, int qty, CancellationToken ct = default)
     {
         if (qty <= 0) return true;
-        for (var attempt = 0; attempt < 2; attempt++)
-        {
-            var stock = await _context.WarehouseStocks
-                .FirstOrDefaultAsync(s => s.WarehouseID == warehouseId && s.ProductVariantID == productVariantId, ct);
-            if (stock is null) return false;
 
-            var available = stock.QuantityOnHand - stock.QuantityReserved;
-            if (available < qty) return false;
+        var affected = await _context.WarehouseStocks
+            .Where(s => s.WarehouseID == warehouseId
+                        && s.ProductVariantID == productVariantId
+                        && s.QuantityOnHand - s.QuantityReserved >= qty)
+            .ExecuteUpdateAsync(u => u.SetProperty(s => s.QuantityReserved, s => s.QuantityReserved + qty), ct);
 
-            stock.QuantityReserved += qty;
-            try
-            {
-                await _context.SaveChangesAsync(ct);
-                return true;
-            }
-            catch (DbUpdateConcurrencyException)
-            {
-                foreach (var entry in _context.ChangeTracker.Entries().Where(e => e.State != EntityState.Unchanged))
-                    entry.State = EntityState.Detached;
-                if (attempt == 1) return false;
-            }
-        }
-        return false;
+        if (affected > 0) await RefreshTrackedAsync(warehouseId, productVariantId, ct);
+        return affected > 0;
     }
 
     public async Task ReleaseReservationAsync(int warehouseId, int productVariantId, int qty, CancellationToken ct = default)
     {
         if (qty <= 0) return;
-        for (var attempt = 0; attempt < 2; attempt++)
-        {
-            var stock = await _context.WarehouseStocks
-                .FirstOrDefaultAsync(s => s.WarehouseID == warehouseId && s.ProductVariantID == productVariantId, ct);
-            if (stock is null) return;
 
-            stock.QuantityReserved = Math.Max(0, stock.QuantityReserved - qty);
-            try
-            {
-                await _context.SaveChangesAsync(ct);
-                return;
-            }
-            catch (DbUpdateConcurrencyException)
-            {
-                foreach (var entry in _context.ChangeTracker.Entries().Where(e => e.State != EntityState.Unchanged))
-                    entry.State = EntityState.Detached;
-                if (attempt == 1) return;
-            }
-        }
+        await _context.WarehouseStocks
+            .Where(s => s.WarehouseID == warehouseId && s.ProductVariantID == productVariantId)
+            .ExecuteUpdateAsync(u => u.SetProperty(
+                s => s.QuantityReserved,
+                s => s.QuantityReserved > qty ? s.QuantityReserved - qty : 0), ct);
+
+        await RefreshTrackedAsync(warehouseId, productVariantId, ct);
+    }
+
+    /// <summary>
+    /// ExecuteUpdate bypasses the change tracker, so a WarehouseStock this context already loaded
+    /// would keep serving the pre-reservation counter. See InventoryService.RefreshTrackedAsync.
+    /// </summary>
+    private async Task RefreshTrackedAsync(int warehouseId, int productVariantId, CancellationToken ct)
+    {
+        var tracked = _context.ChangeTracker.Entries<WarehouseStock>()
+            .FirstOrDefault(e => e.Entity.WarehouseID == warehouseId && e.Entity.ProductVariantID == productVariantId);
+
+        if (tracked is not null)
+            await tracked.ReloadAsync(ct);
     }
 
     public async Task<int> SumOnHandForVariantAsync(int websiteId, int productVariantId, CancellationToken ct = default)

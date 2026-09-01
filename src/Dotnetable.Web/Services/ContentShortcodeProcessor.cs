@@ -1,3 +1,4 @@
+using Dotnetable.Application.Security;
 using System.Text.RegularExpressions;
 using Microsoft.AspNetCore.Http;
 
@@ -29,6 +30,12 @@ public partial class ContentShortcodeProcessor
     public async Task<string> ExpandAsync(string? content, CancellationToken ct = default)
     {
         if (string.IsNullOrEmpty(content)) return content ?? string.Empty;
+
+        // Admin-authored HTML is rendered with @Html.Raw, so it is stripped of scripts and event
+        // handlers here — the single point every CMS page, post and home body passes through on its
+        // way to a view. Shortcodes are expanded afterwards so the widget markup this class generates
+        // itself (which is not user input) is not re-parsed by the sanitizer.
+        content = ContentSanitizer.Sanitize(content) ?? string.Empty;
 
         var matches = ShortcodePattern().Matches(content);
         if (matches.Count == 0) return content;

@@ -6,7 +6,44 @@
 
 **Required pattern:** inject `IDbContextFactory<AppDbContext>` and open a short-lived context per call (`CreateDbContextAsync` / `DbContextFactoryExtensions.UseAsync`). For multi-service transactions, use `UseAmbientOrCreateAsync` so nested work joins `AmbientDbContext` when OrderService (etc.) has pushed one.
 
-Do not add a new service with `private readonly AppDbContext _context`. `DbContextConcurrencyTests.Services_Must_Not_Hold_AppDbContext_Field` must stay empty.
+Do not add a new service with `private readonly AppDbContext _context`. `DbContextFieldTests.No_New_Service_May_Hold_An_AppDbContext_Field` enforces this.
+
+That test carries a **baseline** of the ~70 services written before the rule. The list may shrink, never grow: convert a service to the factory and delete its name (a stale entry fails `Baseline_Contains_No_Stale_Entries`). Adding a name to the baseline to make a new service compile defeats the entire guard.
+
+## Concurrency on contended counters
+
+Stock reservations (`InventoryService`, `VendorProductService`, `WarehouseService`) and wallet balances (`ClientWalletService`) move with a single atomic `ExecuteUpdateAsync` carrying the check in its `WHERE` clause, e.g. `WHERE QuantityOnHand - QuantityReserved >= qty`, treating the affected-row count as the answer.
+
+**Do not "simplify" these back into read-modify-write.** `IsRowVersion()` is only server-maintained on SQL Server; on MySQL (`longblob`) and PostgreSQL (`bytea`) the column never changes, so EF's `WHERE RowVersion = @old` always matches and the optimistic concurrency silently degrades to last-write-wins — two buyers reserving the same unit, two debits spending the same balance. `ConcurrencyModelExtensions` therefore only declares the token where the engine can maintain it.
+
+`ExecuteUpdate` bypasses the change tracker, so each of those methods calls a `RefreshTrackedAsync` helper afterwards to reload the entity if this context already had it loaded. Keep that when adding a similar path, or a tracked entity will serve the pre-update value and overwrite it on the next `SaveChanges`.
+
+Tests touching these paths must use `RelationalTestDb` (SQLite in memory), not `UseInMemoryDatabase` — the InMemory provider has no SQL and throws on `ExecuteUpdate`.
+
+## Security invariants
+
+Do not weaken these without saying so explicitly; each one closes a hole that was open before launch.
+
+| Invariant | Where |
+|-----------|-------|
+| One-time codes have an attempt budget and are destroyed when it is spent | `WebsiteClientAuthService.CheckCodeAsync` |
+| Sign-in lockout after repeated failures, for customers **and** admin members | `WebsiteClientAuthService`, `MemberService.ValidateSignInAsync` |
+| Passwords go through `PasswordPolicy` — never a bare length check | `Dotnetable.Application.Security.PasswordPolicy` |
+| Every public write endpoint is rate limited per IP | `[EnableRateLimiting]` + `Dotnetable.Hosting.RateLimiting` |
+| Secrets fail the boot outside Development rather than falling back to a placeholder | `StartupValidation.ValidateProductionSecrets` |
+| Admin-authored HTML is sanitised before rendering | `ContentSanitizer`, called from `ContentShortcodeProcessor` |
+| Uploads are checked against a deny-list that overrides any configured allow-list | `FileService.ValidateExtension` |
+| Files are served with a MIME derived from the stored extension, not the uploader's header | `FilesController` |
+| An order is marked paid only on a server-to-server verify, never on a callback query string | `OnlinePaymentService.CompleteAsync` |
+| Page sizes are clamped to `GridQuery.MaxPageSize` | `GridQuery.Take`, `GridQuery.ClampPageSize` |
+
+## Provider frameworks (SMS, payment gateways)
+
+SMS senders and payment gateways follow the same shape as storage backends: an interface with a string `Key`, one class per provider, a registry that resolves by key, and per-website rows (`WebsiteSmsSettings`, `PaymentGateways`) holding a provider key plus a settings JSON blob.
+
+Adding a gateway is **a new class and a DI line** — never a change to checkout, orders or auth. Each also ships a template-driven provider (`GenericHttpSmsProvider`, `GenericRedirectGatewayProvider`) so a panel that needs no bespoke code can be configured from the admin UI alone.
+
+Payment providers must declare `AmountUnit`: the shop prices in the site currency's major unit, most Iranian aggregators bill in Rial, PayPing bills in Toman and Stripe in minor units. Getting this wrong charges the customer ten or a hundred times the order total.
 
 ## Environment (current phase)
 

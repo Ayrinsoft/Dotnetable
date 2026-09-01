@@ -195,6 +195,9 @@ public class OrderService : IOrderService
                 OrderNumber = GenerateOrderNumber(websiteId),
                 WebsiteClientID = clientId,
                 Status = (byte)OrderStatus.PendingPayment,
+                // Unpaid orders hold their stock reservation only for this window; OrderExpiryService
+                // cancels them past it and gives the stock back. Cleared once the order is paid.
+                ReservationExpiresAt = DateTime.UtcNow.Add(OrderExpiryService.DefaultReservationWindow),
                 CurrencyCode = resolvedCurrency,
                 ExchangeRateToUsd = rate,
                 SubTotal = subtotalUsd * rate,
@@ -445,6 +448,12 @@ public class OrderService : IOrderService
         order.Status = (byte)newStatus;
         if (newStatus == OrderStatus.Paid && order.PaidAt is null)
             order.PaidAt = DateTime.UtcNow;
+
+        // Once the order leaves PendingPayment it is no longer a candidate for the expiry sweep —
+        // clearing the deadline is what stops a paid order from being auto-cancelled out from under
+        // the customer if a status transition is ever retried.
+        if (newStatus != OrderStatus.PendingPayment)
+            order.ReservationExpiresAt = null;
 
         _context.OrderStatusHistories.Add(new OrderStatusHistory
         {
@@ -886,11 +895,11 @@ public class OrderService : IOrderService
         var phone = client.Cellphone;
 
         // ── SMS ───────────────────────────────────────────────────────
-        if (_sms.IsConfigured && !string.IsNullOrWhiteSpace(phone))
+        if (!string.IsNullOrWhiteSpace(phone) && await _sms.IsConfiguredAsync(order.WebsiteID, ct))
         {
             try
             {
-                await _sms.SendAsync(country, phone!, plain, ct);
+                await _sms.SendAsync(order.WebsiteID, country, phone!, plain, ct);
             }
             catch (Exception ex)
             {

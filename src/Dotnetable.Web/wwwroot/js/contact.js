@@ -136,7 +136,7 @@
         submitBtn.disabled = true;
         fetch('/Home/ContactSubmit', {
             method: 'POST',
-            headers: { 'Content-Type': 'application/json' },
+            headers: window.dnAntiforgeryHeaders({ 'Content-Type': 'application/json' }),
             body: JSON.stringify(payload),
         })
             .then(function (r) { return r.json().catch(function () { return {}; }).then(function (body) { return { ok: r.ok, body: body }; }); })

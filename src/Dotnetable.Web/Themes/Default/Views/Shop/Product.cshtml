@@ -3,6 +3,12 @@
 @{
     ViewData["Title"] = Model.Title;
     Layout = "/Themes/Default/Views/Shared/_Layout.cshtml";
+
+    // Product-specific social card, so a shared link shows the item rather than the site logo.
+    ViewData["OgType"] = "product";
+    ViewData["OgImage"] = Model.FeaturedImageUrl;
+    ViewData["MetaDescription"] = Model.ShortDescription;
+
     var reviews = ViewBag.Reviews as PagedResult<Dotnetable.Domain.Entities.ProductReview>;
     var questions = ViewBag.Questions as PagedResult<Dotnetable.Domain.Entities.ProductQuestion>;
     var isLoggedIn = Context.Request.Cookies.ContainsKey(Dotnetable.Web.Services.ClientAuth.TokenCookie);
@@ -239,13 +245,13 @@
                     @if (hasDescription)
                     {
                         <div class="tab-pane fade show active" id="product-pane-desc" role="tabpanel" aria-labelledby="product-tab-desc">
-                            <div class="product-content">@Html.Raw(Model.Content)</div>
+                            <div class="product-content">@Html.Raw(Dotnetable.Application.Security.ContentSanitizer.Sanitize(Model.Content))</div>
                         </div>
                     }
                     @if (hasExpertReview)
                     {
                         <div class="tab-pane fade @(hasDescription ? null : "show active")" id="product-pane-expert" role="tabpanel" aria-labelledby="product-tab-expert">
-                            <div class="product-content">@Html.Raw(Model.ExpertReview)</div>
+                            <div class="product-content">@Html.Raw(Dotnetable.Application.Security.ContentSanitizer.Sanitize(Model.ExpertReview))</div>
                         </div>
                     }
                 </div>

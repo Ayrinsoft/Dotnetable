@@ -33,6 +33,12 @@ public partial class WebsiteClient
 
     public byte ClientLevel { get; set; }
 
+    /// <summary>Consecutive failed sign-ins since the last success. Reset to 0 on a successful sign-in.</summary>
+    public int FailedLoginCount { get; set; }
+
+    /// <summary>When set and in the future, sign-in is refused regardless of the password being correct.</summary>
+    public DateTime? LockoutEndUtc { get; set; }
+
     public virtual FileRecord? Avatar { get; set; }
 
     public virtual ICollection<Cart> Carts { get; set; } = new List<Cart>();
@@ -70,6 +76,8 @@ public partial class WebsiteClient
     public virtual ICollection<WebsiteClientAddress> WebsiteClientAddresses { get; set; } = new List<WebsiteClientAddress>();
 
     public virtual ICollection<WebsiteClientForgetPassword> WebsiteClientForgetPasswords { get; set; } = new List<WebsiteClientForgetPassword>();
+
+    public virtual ICollection<WebsiteClientRefreshToken> WebsiteClientRefreshTokens { get; set; } = new List<WebsiteClientRefreshToken>();
 
     public virtual Wishlist? Wishlist { get; set; }
 }

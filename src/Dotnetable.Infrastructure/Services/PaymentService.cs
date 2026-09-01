@@ -379,9 +379,9 @@ public class PaymentService : IPaymentService
             .Include(p => p.VerifiedByMember)
             .FirstOrDefaultAsync(p => p.PaymentID == paymentId, ct);
 
-    public async Task<Payment?> GetLatestForOrderAsync(int orderId, CancellationToken ct = default) =>
+    public async Task<Payment?> GetLatestForOrderAsync(int orderId, int? clientId = null, CancellationToken ct = default) =>
         await _context.Payments.AsNoTracking()
-            .Where(p => p.OrderID == orderId)
+            .Where(p => p.OrderID == orderId && (clientId == null || p.WebsiteClientID == clientId))
             .OrderByDescending(p => p.CreatedAt)
             .FirstOrDefaultAsync(ct);
 

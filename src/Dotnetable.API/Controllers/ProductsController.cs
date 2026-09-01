@@ -31,7 +31,7 @@ public class ProductsController : BaseController
         if (website is null) return NotFound(new { message = "Website could not be resolved." });
 
         var result = await _productService.GetPublishedAsync(
-            website.WebsiteID, categorySlug, brandSlug, search, minPrice, maxPrice, page, pageSize, lang, currency, inStock, attributeOptionIds, ct);
+            website.WebsiteID, categorySlug, brandSlug, search, minPrice, maxPrice, page, GridQuery.ClampPageSize(pageSize), lang, currency, inStock, attributeOptionIds, ct);
         return Ok(result);
     }
 
@@ -56,7 +56,7 @@ public class ProductsController : BaseController
         var website = await ResolveWebsiteAsync(_websiteService, ct);
         if (website is null) return NotFound(new { message = "Website could not be resolved." });
 
-        var related = await _productService.GetRelatedAsync(website.WebsiteID, slug, take, lang, currency, ct);
+        var related = await _productService.GetRelatedAsync(website.WebsiteID, slug, GridQuery.ClampPageSize(take, 8), lang, currency, ct);
         return Ok(related);
     }
 }

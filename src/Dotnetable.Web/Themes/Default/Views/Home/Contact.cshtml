@@ -13,7 +13,7 @@
                 <span class="site-eyebrow">Get in touch</span>
                 <h2 class="site-section-title">We'd love to hear from you</h2>
                 <div class="page-content text-muted">
-                    @Html.Raw(Model.ContentHtml)
+                    @Html.Raw(Dotnetable.Application.Security.ContentSanitizer.Sanitize(Model.ContentHtml))
                 </div>
             </div>
             <div class="col-lg-7">

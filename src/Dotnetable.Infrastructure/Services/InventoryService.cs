@@ -63,55 +63,56 @@ public class InventoryService : IInventoryService
         return result;
     }
 
+    // Reservation counters move with a single conditional UPDATE rather than a read-modify-write
+    // guarded by a concurrency token. Two reasons: VendorProducts carries no RowVersion at all, and
+    // `IsRowVersion()` only auto-increments on SQL Server — on MySQL (longblob) and PostgreSQL
+    // (bytea) the column never changes, so optimistic concurrency silently degraded to "last write
+    // wins" and two buyers could reserve the same unit. `UPDATE ... WHERE OnHand - Reserved >= qty`
+    // is atomic on all three providers: the row lock is held for the statement and the affected-row
+    // count tells us whether we won.
     public async Task<bool> ReserveAsync(int websiteId, int variantId, int qty, CancellationToken ct = default)
     {
-        for (var attempt = 0; attempt < 2; attempt++)
-        {
-            var item = await _context.InventoryItems
-                .FirstOrDefaultAsync(i => i.WebsiteID == websiteId && i.ProductVariantID == variantId, ct);
-            if (item is null) return false;
+        if (qty <= 0) return true;
 
-            var available = item.QuantityOnHand - item.QuantityReserved;
-            if (available < qty) return false;
+        var affected = await _context.InventoryItems
+            .Where(i => i.WebsiteID == websiteId
+                        && i.ProductVariantID == variantId
+                        && i.QuantityOnHand - i.QuantityReserved >= qty)
+            .ExecuteUpdateAsync(s => s.SetProperty(i => i.QuantityReserved, i => i.QuantityReserved + qty), ct);
 
-            item.QuantityReserved += qty;
-            try
-            {
-                await _context.SaveChangesAsync(ct);
-                return true;
-            }
-            catch (DbUpdateConcurrencyException)
-            {
-                foreach (var entry in _context.ChangeTracker.Entries().Where(e => e.State != EntityState.Unchanged))
-                    entry.State = EntityState.Detached;
-                if (attempt == 1) return false;
-            }
-        }
-        return false;
+        if (affected > 0) await RefreshTrackedAsync(websiteId, variantId, ct);
+        return affected > 0;
     }
 
     public async Task ReleaseReservationAsync(int websiteId, int variantId, int qty, CancellationToken ct = default)
     {
-        for (var attempt = 0; attempt < 2; attempt++)
-        {
-            var item = await _context.InventoryItems
-                .FirstOrDefaultAsync(i => i.WebsiteID == websiteId && i.ProductVariantID == variantId, ct);
-            if (item is null) return;
+        if (qty <= 0) return;
 
-            item.QuantityReserved = Math.Max(0, item.QuantityReserved - qty);
-            try
-            {
-                await _context.SaveChangesAsync(ct);
-                return;
-            }
-            catch (DbUpdateConcurrencyException)
-            {
-                foreach (var entry in _context.ChangeTracker.Entries().Where(e => e.State != EntityState.Unchanged))
-                    entry.State = EntityState.Detached;
-                if (attempt == 1) return;
-            }
-        }
+        // Clamp at zero in SQL so a double-release can never drive the counter negative.
+        await _context.InventoryItems
+            .Where(i => i.WebsiteID == websiteId && i.ProductVariantID == variantId)
+            .ExecuteUpdateAsync(s => s.SetProperty(
+                i => i.QuantityReserved,
+                i => i.QuantityReserved > qty ? i.QuantityReserved - qty : 0), ct);
+
+        await RefreshTrackedAsync(websiteId, variantId, ct);
     }
+
+    /// <summary>
+    /// ExecuteUpdate writes straight to the database and never touches the change tracker, so an
+    /// InventoryItem this context already loaded would keep serving the pre-reservation counter and
+    /// could overwrite it on the next SaveChanges. Reloading the tracked entry keeps the atomic write
+    /// and the in-memory graph agreeing.
+    /// </summary>
+    private async Task RefreshTrackedAsync(int websiteId, int variantId, CancellationToken ct)
+    {
+        var tracked = _context.ChangeTracker.Entries<InventoryItem>()
+            .FirstOrDefault(e => e.Entity.WebsiteID == websiteId && e.Entity.ProductVariantID == variantId);
+
+        if (tracked is not null)
+            await tracked.ReloadAsync(ct);
+    }
+
 
     public async Task DecrementOnFulfillAsync(int websiteId, int variantId, int qty, int? orderId, int? orderItemId, int? memberId, CancellationToken ct = default)
     {

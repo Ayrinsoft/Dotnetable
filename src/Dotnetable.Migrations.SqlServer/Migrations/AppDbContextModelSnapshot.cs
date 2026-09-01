@@ -2849,6 +2849,9 @@ namespace Dotnetable.Migrations.SqlServer.Migrations
                         .IsUnicode(false)
                         .HasColumnType("varchar(64)");
 
+                    b.Property<int>("FailedLoginCount")
+                        .HasColumnType("int");
+
                     b.Property<bool?>("Gender")
                         .HasColumnType("bit");
 
@@ -2862,6 +2865,10 @@ namespace Dotnetable.Migrations.SqlServer.Migrations
 
                     b.Property<bool>("IsSiteAdmin")
                         .HasColumnType("bit");
+
+                    b.Property<DateTime?>("LockoutEndUtc")
+                        .HasPrecision(0)
+                        .HasColumnType("datetime2(0)");
 
                     b.Property<string>("Password")
                         .IsRequired()
@@ -2879,6 +2886,19 @@ namespace Dotnetable.Migrations.SqlServer.Migrations
                         .IsRequired()
                         .HasMaxLength(64)
                         .HasColumnType("nvarchar(64)");
+
+                    b.Property<bool>("TwoFactorEnabled")
+                        .HasColumnType("bit");
+
+                    b.Property<string>("TwoFactorRecoveryCodes")
+                        .HasMaxLength(1000)
+                        .IsUnicode(false)
+                        .HasColumnType("varchar(1000)");
+
+                    b.Property<string>("TwoFactorSecret")
+                        .HasMaxLength(128)
+                        .IsUnicode(false)
+                        .HasColumnType("varchar(128)");
 
                     b.Property<string>("Username")
                         .IsRequired()
@@ -3140,6 +3160,9 @@ namespace Dotnetable.Migrations.SqlServer.Migrations
                         .ValueGeneratedOnAdd()
                         .HasColumnType("bit")
                         .HasDefaultValue(true);
+
+                    b.Property<DateTime?>("ReservationExpiresAt")
+                        .HasColumnType("datetime");
 
                     b.Property<byte>("SalesChannel")
                         .ValueGeneratedOnAdd()
@@ -3563,6 +3586,10 @@ namespace Dotnetable.Migrations.SqlServer.Migrations
                     b.Property<decimal>("ExchangeRateToUsd")
                         .HasColumnType("decimal(18, 6)");
 
+                    b.Property<string>("GatewayAuthority")
+                        .HasMaxLength(256)
+                        .HasColumnType("nvarchar(256)");
+
                     b.Property<string>("GatewayRefNumber")
                         .HasMaxLength(100)
                         .HasColumnType("nvarchar(100)");
@@ -3640,6 +3667,10 @@ namespace Dotnetable.Migrations.SqlServer.Migrations
                         .HasMaxLength(500)
                         .HasColumnType("nvarchar(500)");
 
+                    b.Property<string>("CallbackUrl")
+                        .HasMaxLength(500)
+                        .HasColumnType("nvarchar(500)");
+
                     b.Property<bool>("IsActive")
                         .HasColumnType("bit");
 
@@ -3659,6 +3690,10 @@ namespace Dotnetable.Migrations.SqlServer.Migrations
                         .IsRequired()
                         .HasMaxLength(50)
                         .HasColumnType("nvarchar(50)");
+
+                    b.Property<string>("SettingsJSON")
+                        .HasMaxLength(4000)
+                        .HasColumnType("nvarchar(4000)");
 
                     b.Property<int>("SortOrder")
                         .HasColumnType("int");
@@ -6912,6 +6947,9 @@ namespace Dotnetable.Migrations.SqlServer.Migrations
                         .IsUnicode(false)
                         .HasColumnType("varchar(60)");
 
+                    b.Property<int>("FailedLoginCount")
+                        .HasColumnType("int");
+
                     b.Property<bool?>("Gender")
                         .HasColumnType("bit");
 
@@ -6921,6 +6959,10 @@ namespace Dotnetable.Migrations.SqlServer.Migrations
 
                     b.Property<Guid>("HashKey")
                         .HasColumnType("uniqueidentifier");
+
+                    b.Property<DateTime?>("LockoutEndUtc")
+                        .HasPrecision(0)
+                        .HasColumnType("datetime2(0)");
 
                     b.Property<string>("Password")
                         .HasMaxLength(256)
@@ -7012,11 +7054,18 @@ namespace Dotnetable.Migrations.SqlServer.Migrations
 
                     SqlServerPropertyBuilderExtensions.UseIdentityColumn(b.Property<int>("WebsiteClientForgetPasswordID"));
 
+                    b.Property<int>("FailedAttempts")
+                        .HasColumnType("int");
+
                     b.Property<string>("ForgetKey")
                         .IsRequired()
                         .HasMaxLength(8)
                         .IsUnicode(false)
                         .HasColumnType("varchar(8)");
+
+                    b.Property<DateTime?>("LockedUntil")
+                        .HasPrecision(0)
+                        .HasColumnType("datetime2(0)");
 
                     b.Property<DateTime>("LogTime")
                         .HasColumnType("datetime");
@@ -7029,6 +7078,58 @@ namespace Dotnetable.Migrations.SqlServer.Migrations
                     b.HasIndex(new[] { "WebsiteClientID" }, "IX_WebsiteClientForgetPasswords_WebsiteClientID");
 
                     b.ToTable("WebsiteClientForgetPasswords");
+                });
+
+            modelBuilder.Entity("Dotnetable.Domain.Entities.WebsiteClientRefreshToken", b =>
+                {
+                    b.Property<int>("WebsiteClientRefreshTokenID")
+                        .ValueGeneratedOnAdd()
+                        .HasColumnType("int");
+
+                    SqlServerPropertyBuilderExtensions.UseIdentityColumn(b.Property<int>("WebsiteClientRefreshTokenID"));
+
+                    b.Property<DateTime>("CreatedAt")
+                        .HasPrecision(0)
+                        .HasColumnType("datetime2(0)");
+
+                    b.Property<string>("CreatedByIp")
+                        .HasMaxLength(45)
+                        .IsUnicode(false)
+                        .HasColumnType("varchar(45)");
+
+                    b.Property<DateTime>("ExpiresAt")
+                        .HasPrecision(0)
+                        .HasColumnType("datetime2(0)");
+
+                    b.Property<int?>("ReplacedByTokenID")
+                        .HasColumnType("int");
+
+                    b.Property<DateTime?>("RevokedAt")
+                        .HasPrecision(0)
+                        .HasColumnType("datetime2(0)");
+
+                    b.Property<string>("TokenHash")
+                        .IsRequired()
+                        .HasMaxLength(64)
+                        .IsUnicode(false)
+                        .HasColumnType("varchar(64)");
+
+                    b.Property<int>("WebsiteClientID")
+                        .HasColumnType("int");
+
+                    b.Property<int>("WebsiteID")
+                        .HasColumnType("int");
+
+                    b.HasKey("WebsiteClientRefreshTokenID");
+
+                    b.HasIndex(new[] { "WebsiteClientID" }, "IX_WebsiteClientRefreshTokens_WebsiteClientID");
+
+                    b.HasIndex(new[] { "WebsiteID" }, "IX_WebsiteClientRefreshTokens_WebsiteID");
+
+                    b.HasIndex(new[] { "TokenHash" }, "UQ_WebsiteClientRefreshTokens_TokenHash")
+                        .IsUnique();
+
+                    b.ToTable("WebsiteClientRefreshTokens");
                 });
 
             modelBuilder.Entity("Dotnetable.Domain.Entities.WebsiteFeature", b =>
@@ -7229,6 +7330,55 @@ namespace Dotnetable.Migrations.SqlServer.Migrations
                     b.HasIndex(new[] { "WebsiteID" }, "IX_WebsiteSeoSettings_WebsiteID");
 
                     b.ToTable("WebsiteSeoSettings");
+                });
+
+            modelBuilder.Entity("Dotnetable.Domain.Entities.WebsiteSmsSetting", b =>
+                {
+                    b.Property<int>("WebsiteSmsSettingID")
+                        .ValueGeneratedOnAdd()
+                        .HasColumnType("int");
+
+                    SqlServerPropertyBuilderExtensions.UseIdentityColumn(b.Property<int>("WebsiteSmsSettingID"));
+
+                    b.Property<DateTime>("CreatedAt")
+                        .HasPrecision(0)
+                        .HasColumnType("datetime2(0)");
+
+                    b.Property<bool>("IsActive")
+                        .HasColumnType("bit");
+
+                    b.Property<string>("Provider")
+                        .IsRequired()
+                        .HasMaxLength(50)
+                        .IsUnicode(false)
+                        .HasColumnType("varchar(50)");
+
+                    b.Property<string>("SenderNumber")
+                        .HasMaxLength(32)
+                        .IsUnicode(false)
+                        .HasColumnType("varchar(32)");
+
+                    b.Property<string>("SettingsJSON")
+                        .IsRequired()
+                        .HasMaxLength(4000)
+                        .HasColumnType("nvarchar(4000)");
+
+                    b.Property<int>("SortOrder")
+                        .HasColumnType("int");
+
+                    b.Property<string>("Title")
+                        .IsRequired()
+                        .HasMaxLength(150)
+                        .HasColumnType("nvarchar(150)");
+
+                    b.Property<int>("WebsiteID")
+                        .HasColumnType("int");
+
+                    b.HasKey("WebsiteSmsSettingID");
+
+                    b.HasIndex(new[] { "WebsiteID" }, "IX_WebsiteSmsSettings_WebsiteID");
+
+                    b.ToTable("WebsiteSmsSettings");
                 });
 
             modelBuilder.Entity("Dotnetable.Domain.Entities.WebsiteSocialLink", b =>
@@ -10526,6 +10676,25 @@ namespace Dotnetable.Migrations.SqlServer.Migrations
                     b.Navigation("WebsiteClient");
                 });
 
+            modelBuilder.Entity("Dotnetable.Domain.Entities.WebsiteClientRefreshToken", b =>
+                {
+                    b.HasOne("Dotnetable.Domain.Entities.WebsiteClient", "WebsiteClient")
+                        .WithMany("WebsiteClientRefreshTokens")
+                        .HasForeignKey("WebsiteClientID")
+                        .IsRequired()
+                        .HasConstraintName("FK_WebsiteClientRefreshTokens_WebsiteClients");
+
+                    b.HasOne("Dotnetable.Domain.Entities.Website", "Website")
+                        .WithMany("WebsiteClientRefreshTokens")
+                        .HasForeignKey("WebsiteID")
+                        .IsRequired()
+                        .HasConstraintName("FK_WebsiteClientRefreshTokens_Websites");
+
+                    b.Navigation("Website");
+
+                    b.Navigation("WebsiteClient");
+                });
+
             modelBuilder.Entity("Dotnetable.Domain.Entities.WebsiteFeature", b =>
                 {
                     b.HasOne("Dotnetable.Domain.Entities.Website", "Website")
@@ -10577,6 +10746,17 @@ namespace Dotnetable.Migrations.SqlServer.Migrations
                         .HasForeignKey("WebsiteID")
                         .IsRequired()
                         .HasConstraintName("FK_WebsiteSeoSettings_Websites");
+
+                    b.Navigation("Website");
+                });
+
+            modelBuilder.Entity("Dotnetable.Domain.Entities.WebsiteSmsSetting", b =>
+                {
+                    b.HasOne("Dotnetable.Domain.Entities.Website", "Website")
+                        .WithMany("WebsiteSmsSettings")
+                        .HasForeignKey("WebsiteID")
+                        .IsRequired()
+                        .HasConstraintName("FK_WebsiteSmsSettings_Websites");
 
                     b.Navigation("Website");
                 });
@@ -11455,6 +11635,8 @@ namespace Dotnetable.Migrations.SqlServer.Migrations
 
                     b.Navigation("WebsiteCaptchaSetting");
 
+                    b.Navigation("WebsiteClientRefreshTokens");
+
                     b.Navigation("WebsiteClients");
 
                     b.Navigation("WebsiteFeatures");
@@ -11466,6 +11648,8 @@ namespace Dotnetable.Migrations.SqlServer.Migrations
                     b.Navigation("WebsiteScripts");
 
                     b.Navigation("WebsiteSeoSettings");
+
+                    b.Navigation("WebsiteSmsSettings");
 
                     b.Navigation("WebsiteSocialLinks");
 
@@ -11515,6 +11699,8 @@ namespace Dotnetable.Migrations.SqlServer.Migrations
                     b.Navigation("WebsiteClientAddresses");
 
                     b.Navigation("WebsiteClientForgetPasswords");
+
+                    b.Navigation("WebsiteClientRefreshTokens");
 
                     b.Navigation("Wishlist");
                 });

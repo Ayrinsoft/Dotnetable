@@ -12,6 +12,7 @@ namespace Dotnetable.Tests.Services;
 
 public class ClientWalletManualOpsTests : IDisposable
 {
+    private readonly RelationalTestDb _db;
     private readonly AppDbContext _context;
     private readonly ClientWalletService _wallets;
     private readonly ClientWalletWithdrawalService _withdrawals;
@@ -19,11 +20,10 @@ public class ClientWalletManualOpsTests : IDisposable
 
     public ClientWalletManualOpsTests()
     {
-        var opts = new DbContextOptionsBuilder<AppDbContext>()
-            .UseInMemoryDatabase(Guid.NewGuid().ToString())
-            .ConfigureWarnings(w => w.Ignore(Microsoft.EntityFrameworkCore.Diagnostics.InMemoryEventId.TransactionIgnoredWarning))
-            .Options;
-        _context = new AppDbContext(opts);
+        // Relational: the wallet balance now moves with a conditional UPDATE, which the InMemory
+        // provider cannot execute at all. See RelationalTestDb.
+        _db = new RelationalTestDb();
+        _context = _db.NewContext();
         var currency = new CurrencyConversionService(_context);
         _wallets = new ClientWalletService(_context, currency);
         _withdrawals = new ClientWalletWithdrawalService(
@@ -207,5 +207,9 @@ public class ClientWalletManualOpsTests : IDisposable
         page.Items.Should().Contain(w => w.WebsiteClientID == 100 && w.Balance == 12);
     }
 
-    public void Dispose() => _context.Dispose();
+    public void Dispose()
+    {
+        _context.Dispose();
+        _db.Dispose();
+    }
 }

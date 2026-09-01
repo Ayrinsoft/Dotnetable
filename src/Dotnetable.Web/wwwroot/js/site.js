@@ -6,6 +6,16 @@
 (function () {
     "use strict";
 
+    // Antiforgery. Every state-changing POST is validated by AutoValidateAntiforgeryToken, and a
+    // fetch has no form to carry a hidden field, so the token published by _Layout as a meta tag is
+    // sent as a header instead. Exposed globally so addresses.js and contact.js use the same one.
+    window.dnAntiforgeryHeaders = function (extra) {
+        var meta = document.querySelector('meta[name="request-verification-token"]');
+        var headers = extra || {};
+        if (meta && meta.content) headers["RequestVerificationToken"] = meta.content;
+        return headers;
+    };
+
     var authModalEl = document.getElementById("authModal");
     var authModal = authModalEl ? new bootstrap.Modal(authModalEl) : null;
 
@@ -62,7 +72,7 @@
         try {
             var res = await fetch(url, {
                 method: "POST",
-                headers: { "Content-Type": "application/json" },
+                headers: window.dnAntiforgeryHeaders({ "Content-Type": "application/json" }),
                 body: JSON.stringify(body)
             });
             var data = await res.json().catch(function () { return {}; });
@@ -197,7 +207,9 @@
 
     // --- Logout --------------------------------------------------------
     window.doLogout = async function () {
-        try { await fetch("/Account/Logout", { method: "POST" }); } catch (_) {}
+        try {
+            await fetch("/Account/Logout", { method: "POST", headers: window.dnAntiforgeryHeaders() });
+        } catch (_) {}
         window.location.reload();
     };
 

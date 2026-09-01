@@ -1,3 +1,4 @@
+using Dotnetable.Application.Security;
 using Dotnetable.Application.Authorization;
 using Dotnetable.Application.DTOs;
 using Dotnetable.Application.Interfaces;
@@ -52,8 +53,24 @@ public class SetupService : ISetupService
 
     public async Task CompleteSetupAsync(SetupRequest request, CancellationToken ct = default)
     {
+        // Two independent gates, because they fail in opposite directions.
+        //
+        // IsSetupCompletedAsync answers "does a website row exist?", and deliberately reports false
+        // when the database is unreachable — which is right for the redirect, but wrong here: during
+        // a database outage it would let an anonymous visitor re-run first-run setup on /setup,
+        // point localsettings.json at a database of their own and create themselves an administrator.
+        // The presence of a stored connection is the durable fact and survives the outage, so it is
+        // checked first and on its own.
+        if (_configStore.IsConfigured)
+            throw new InvalidOperationException("Setup has already been completed.");
+
         if (await IsSetupCompletedAsync(ct))
             throw new InvalidOperationException("Setup has already been completed.");
+
+        var adminPassword = PasswordPolicy.ValidateAdmin(
+            request.Password, request.Username, request.Email);
+        if (!adminPassword.Ok)
+            throw new InvalidOperationException(adminPassword.Error);
 
         var provisioner = _provisioners.Get(request.Database.Provider);
 

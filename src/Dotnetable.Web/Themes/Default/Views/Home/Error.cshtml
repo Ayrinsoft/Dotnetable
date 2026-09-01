@@ -1,0 +1,27 @@
+@model Dotnetable.Web.Models.ErrorViewModel
+@{
+    ViewData["Title"] = Model.Title;
+}
+
+<section class="container py-5">
+    <div class="row justify-content-center">
+        <div class="col-lg-7 text-center">
+            <p class="display-1 fw-bold text-body-tertiary mb-2">@Model.StatusCode</p>
+            <h1 class="h3 fw-bold mb-3">@Model.Title</h1>
+            <p class="text-muted mb-4">@Model.Message</p>
+
+            <div class="d-flex gap-2 justify-content-center flex-wrap">
+                <a class="btn btn-primary" asp-controller="Home" asp-action="Index">Back to home</a>
+                <a class="btn btn-outline-secondary" asp-controller="Shop" asp-action="Index">Browse the shop</a>
+            </div>
+
+            @if (Model.ShowRequestId)
+            {
+                @* Quoted by the visitor, matched against the request log by the operator. *@
+                <p class="text-body-tertiary small mt-4 mb-0">
+                    Reference: <code>@Model.RequestId</code>
+                </p>
+            }
+        </div>
+    </div>
+</section>

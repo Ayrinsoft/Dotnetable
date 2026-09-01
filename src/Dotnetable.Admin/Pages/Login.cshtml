@@ -12,24 +12,52 @@
     <div class="alert alert-error">@Model.ErrorMessage</div>
 }
 
-<form method="post">
-    <div class="field">
-        <label asp-for="Input.Username">@Model.S.UsernameLabel</label>
-        <input asp-for="Input.Username" type="text" autocomplete="username" autofocus />
-        <span asp-validation-for="Input.Username" class="field-error"></span>
-    </div>
+@if (Model.AwaitingTwoFactor)
+{
+    @* Password already accepted; nothing is signed in until this code checks out. *@
+    <form method="post" asp-page-handler="Verify">
+        <p class="auth-subtitle">
+            Enter the 6-digit code from your authenticator app, or one of your recovery codes.
+        </p>
 
-    <div class="field">
-        <label asp-for="Input.Password">@Model.S.PasswordLabel</label>
-        <input asp-for="Input.Password" type="password" autocomplete="current-password" />
-        <span asp-validation-for="Input.Password" class="field-error"></span>
-    </div>
+        <div class="field">
+            <label asp-for="TwoFactorCode">Authentication code</label>
+            <input asp-for="TwoFactorCode"
+                   type="text"
+                   inputmode="numeric"
+                   autocomplete="one-time-code"
+                   maxlength="16"
+                   autofocus />
+        </div>
 
-    <partial name="_Captcha" model="Model" />
+        <button type="submit" class="btn">Verify</button>
 
-    <button type="submit" class="btn">@Model.S.SignIn</button>
+        <div class="auth-links">
+            <a asp-page="/Login">Start over</a>
+        </div>
+    </form>
+}
+else
+{
+    <form method="post">
+        <div class="field">
+            <label asp-for="Input.Username">@Model.S.UsernameLabel</label>
+            <input asp-for="Input.Username" type="text" autocomplete="username" autofocus />
+            <span asp-validation-for="Input.Username" class="field-error"></span>
+        </div>
 
-    <div class="auth-links">
-        <a asp-page="/ForgotPassword">@Model.S.ForgotPasswordLink</a>
-    </div>
-</form>
+        <div class="field">
+            <label asp-for="Input.Password">@Model.S.PasswordLabel</label>
+            <input asp-for="Input.Password" type="password" autocomplete="current-password" />
+            <span asp-validation-for="Input.Password" class="field-error"></span>
+        </div>
+
+        <partial name="_Captcha" model="Model" />
+
+        <button type="submit" class="btn">@Model.S.SignIn</button>
+
+        <div class="auth-links">
+            <a asp-page="/ForgotPassword">@Model.S.ForgotPasswordLink</a>
+        </div>
+    </form>
+}

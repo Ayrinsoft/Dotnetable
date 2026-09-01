@@ -52,7 +52,70 @@ public sealed class FilesController : ControllerBase
 
         if (!System.IO.File.Exists(full)) return NotFound();
 
-        var mime = isThumbnail ? "image/jpeg" : (record.MimeType ?? "application/octet-stream");
+        // The stored MIME type came from the uploader's own Content-Type header, so it cannot be
+        // trusted to describe the bytes. Serve the type implied by the stored extension instead —
+        // the extension is the value the upload allow/deny list actually vetted.
+        var mime = isThumbnail ? "image/webp" : MimeForExtension(Path.GetExtension(fileName));
+
+        // Anything that is not an image or a video is sent as a download rather than rendered
+        // inline, so a document that a browser would otherwise interpret cannot execute on this
+        // origin. Combined with the nosniff header from UseDotnetableSecurityHeaders, an uploaded
+        // file can no longer become script on the API domain.
+        var renderInline = mime.StartsWith("image/", StringComparison.Ordinal)
+                           || mime.StartsWith("video/", StringComparison.Ordinal)
+                           || mime.StartsWith("audio/", StringComparison.Ordinal)
+                           || mime == "application/pdf";
+
+        if (!renderInline)
+        {
+            var downloadName = string.IsNullOrWhiteSpace(record.OriginalFileName)
+                ? fileName
+                : Path.GetFileName(record.OriginalFileName);
+            return PhysicalFile(full, mime, downloadName);
+        }
+
         return PhysicalFile(full, mime);
     }
+
+    /// <summary>
+    /// Extension-to-MIME map covering the types the upload allow-list accepts. Anything unrecognised
+    /// falls back to <c>application/octet-stream</c>, which browsers always download and never run.
+    /// </summary>
+    private static string MimeForExtension(string? extension) =>
+        extension?.TrimStart('.').ToLowerInvariant() switch
+        {
+            "jpg" or "jpeg" => "image/jpeg",
+            "png" => "image/png",
+            "gif" => "image/gif",
+            "webp" => "image/webp",
+            "avif" => "image/avif",
+            "bmp" => "image/bmp",
+            "ico" => "image/x-icon",
+            "pdf" => "application/pdf",
+            "txt" => "text/plain",
+            "csv" => "text/csv",
+            "doc" => "application/msword",
+            "docx" => "application/vnd.openxmlformats-officedocument.wordprocessingml.document",
+            "xls" => "application/vnd.ms-excel",
+            "xlsx" => "application/vnd.openxmlformats-officedocument.spreadsheetml.sheet",
+            "ppt" => "application/vnd.ms-powerpoint",
+            "pptx" => "application/vnd.openxmlformats-officedocument.presentationml.presentation",
+            "zip" => "application/zip",
+            "rar" => "application/vnd.rar",
+            "7z" => "application/x-7z-compressed",
+            "mp3" => "audio/mpeg",
+            "wav" => "audio/wav",
+            "ogg" => "audio/ogg",
+            "m4a" => "audio/mp4",
+            "mp4" => "video/mp4",
+            "webm" => "video/webm",
+            "mov" => "video/quicktime",
+            "avi" => "video/x-msvideo",
+            "mkv" => "video/x-matroska",
+            "ttf" => "font/ttf",
+            "otf" => "font/otf",
+            "woff" => "font/woff",
+            "woff2" => "font/woff2",
+            _ => "application/octet-stream",
+        };
 }

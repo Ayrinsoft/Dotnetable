@@ -4,11 +4,14 @@ using Dotnetable.Application.Interfaces;
 using Dotnetable.Domain.Enums;
 using Microsoft.AspNetCore.Authorization;
 using Microsoft.AspNetCore.Mvc;
+using Microsoft.AspNetCore.RateLimiting;
+using Dotnetable.Hosting;
 
 namespace Dotnetable.API.Controllers;
 
 /// <summary>Signed-in customer return (RMA) pre-requests and shipment updates.</summary>
 [Authorize(Policy = RoleKeys.ClientPurchase)]
+[EnableRateLimiting(RateLimiting.PublicWritePolicy)]
 public class ReturnsController : BaseController
 {
     private readonly ICustomerReturnService _returns;
@@ -31,7 +34,10 @@ public class ReturnsController : BaseController
     [HttpGet]
     public async Task<IActionResult> List([FromQuery] int page = 1, [FromQuery] int pageSize = 10, CancellationToken ct = default)
     {
-        var result = await _returns.GetPagedAsync(CurrentWebsiteId, CurrentClientId, null,
+        var website = await ResolveWebsiteAsync(_websites, ct);
+        if (website is null) return NotFound(new { message = "Website could not be resolved." });
+
+        var result = await _returns.GetPagedAsync(website.WebsiteID, CurrentClientId, null,
             new GridQuery { PageIndex = page, PageSize = pageSize }, ct);
         return Ok(result);
     }
@@ -71,8 +77,11 @@ public class ReturnsController : BaseController
                     && body.ShippingPayer != (byte)ReturnShippingPayer.Unset
             ? (ReturnShippingPayer)body.ShippingPayer
             : ReturnShippingPayer.Unset;
+        var website = await ResolveWebsiteAsync(_websites, ct);
+        if (website is null) return NotFound(new { message = "Website could not be resolved." });
+
         var (ok, err, row) = await _returns.CreateAsync(
-            CurrentWebsiteId, CurrentClientId, body.OrderId, reason, body.ReasonNote, body.Description,
+            website.WebsiteID, CurrentClientId, body.OrderId, reason, body.ReasonNote, body.Description,
             body.ShipMethod, body.Lines, body.PhotoFileIds, payer, body.AcceptExpiredWindow, ct);
         return ok ? Ok(row) : BadRequest(new { message = err });
     }

@@ -626,13 +626,55 @@ public class FileService : IFileService
         return FileCategory.Other;
     }
 
+    /// <summary>
+    /// Extensions that are never accepted, whatever a storage's allow-list says.
+    ///
+    /// <para>Uploaded files are served back from the API origin, so an <c>.html</c> or <c>.svg</c>
+    /// upload is script execution on that origin — the customer-facing receipt and return-photo
+    /// endpoints let any signed-in customer reach this path. The rest are executables and server-side
+    /// scripts that only matter if the storage directory is ever exposed by a web server, which is
+    /// exactly the mistake this list is cheap insurance against.</para>
+    /// </summary>
+    private static readonly HashSet<string> AlwaysBlockedExtensions = new(StringComparer.OrdinalIgnoreCase)
+    {
+        "html", "htm", "xhtml", "shtml", "svg", "svgz", "xml", "xsl", "xslt", "mhtml", "mht",
+        "js", "mjs", "jsx", "vbs", "wsf", "hta",
+        "php", "php3", "php4", "php5", "phtml", "asp", "aspx", "ascx", "ashx", "asmx", "cshtml",
+        "jsp", "jspx", "cgi", "pl", "py", "rb", "sh", "bash", "ps1", "psm1",
+        "exe", "dll", "com", "bat", "cmd", "msi", "scr", "jar", "apk", "app", "deb", "rpm",
+        "config", "cer", "pfx", "p12", "key", "pem",
+    };
+
+    /// <summary>
+    /// Default allow-list applied when a storage has none configured. Previously an empty setting
+    /// meant "accept anything", so a storage registered without touching the extensions field was an
+    /// unrestricted upload endpoint.
+    /// </summary>
+    private const string DefaultAllowedExtensions =
+        "jpg,jpeg,png,gif,webp,avif,bmp,ico," +
+        "pdf,doc,docx,xls,xlsx,ppt,pptx,csv,txt,rtf,odt,ods," +
+        "zip,rar,7z," +
+        "mp3,wav,ogg,m4a,mp4,webm,mov,avi,mkv," +
+        "ttf,otf,woff,woff2";
+
     private static void ValidateExtension(string? allowed, string ext)
     {
-        if (string.IsNullOrWhiteSpace(allowed)) return;
-        var normalized = ext.TrimStart('.');
-        var ok = allowed.Split(new[] { ',', ';', ' ' }, StringSplitOptions.RemoveEmptyEntries)
+        var normalized = ext.TrimStart('.').ToLowerInvariant();
+
+        if (normalized.Length == 0)
+            throw new InvalidOperationException("Files must have an extension.");
+
+        // The deny-list wins over any configured allow-list: an administrator adding "svg" to a
+        // storage's allowed extensions should not be able to re-open stored XSS by accident.
+        if (AlwaysBlockedExtensions.Contains(normalized))
+            throw new InvalidOperationException($"File type '{ext}' is not allowed.");
+
+        var effective = string.IsNullOrWhiteSpace(allowed) ? DefaultAllowedExtensions : allowed;
+
+        var ok = effective.Split([',', ';', ' '], StringSplitOptions.RemoveEmptyEntries)
             .Select(e => e.Trim().TrimStart('.').ToLowerInvariant())
             .Contains(normalized);
+
         if (!ok)
             throw new InvalidOperationException($"File type '{ext}' is not allowed for this storage.");
     }

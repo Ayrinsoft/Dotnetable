@@ -2488,6 +2488,56 @@ window.DOCS_ADMIN = {
           ],
           related: ["email-accounts", "orders", "support-tickets"],
         },
+        {
+          id: "sms-gateways",
+          title: { en: "SMS gateways", fa: "درگاه‌های پیامک" },
+          adminPath: "/messages/sms-gateways",
+          summary: {
+            en: "Per-website SMS providers used for one-time codes and shipment notices.",
+            fa: "درگاه‌های پیامک هر وب‌سایت برای کد یک‌بارمصرف و اطلاع ارسال مرسوله.",
+          },
+          purpose: {
+            en: "Register the SMS provider a website sends through. Until one exists, mobile-only sign-up and mobile password reset are **refused** rather than silently failing — the customer would otherwise be told a code was sent that never arrives.",
+            fa: "ثبت درگاهی که وب‌سایت با آن پیامک می‌فرستد. تا وقتی یکی نباشد، ثبت‌نام و بازیابی رمز فقط-با-موبایل **رد می‌شود** نه اینکه بی‌صدا شکست بخورد — وگرنه به مشتری گفته می‌شود کدی فرستاده شده که هرگز نمی‌رسد.",
+          },
+          howTo: [
+            {
+              en: "Add a gateway, pick the provider, paste its credentials, and use **Test** to send yourself a probe message before enabling it.",
+              fa: "یک درگاه اضافه کنید، provider را انتخاب و اعتبارنامه‌اش را وارد کنید، و پیش از فعال‌سازی با **آزمایش** یک پیام به خودتان بفرستید.",
+            },
+            {
+              en: "Several gateways can be registered; the active one with the lowest sort order sends. A gateway missing a required credential is skipped, so a half-filled row cannot silently take over sending.",
+              fa: "می‌توان چند درگاه ثبت کرد؛ فعالِ با کمترین ترتیب می‌فرستد. درگاهی که اعتبارنامه لازم را ندارد رد می‌شود، پس یک ردیف ناقص نمی‌تواند بی‌صدا ارسال را در دست بگیرد.",
+            },
+          ],
+          sections: [
+            {
+              title: { en: "Built-in providers", fa: "providerهای آماده" },
+              items: [
+                {
+                  en: "**Iranian:** Kavenegar, SMS.ir, MelliPayamak / Farapayamak, Ghasedak, IPPanel / FarazSMS.",
+                  fa: "**ایرانی:** کاوه‌نگار، SMS.ir، ملی‌پیامک/فراپیامک، قاصدک، آی‌پی‌پنل/فراز اس‌ام‌اس.",
+                },
+                {
+                  en: "**International:** Twilio, Vonage (Nexmo).",
+                  fa: "**بین‌المللی:** Twilio، Vonage (نکسمو).",
+                },
+                {
+                  en: "**Custom HTTP gateway** — any panel that accepts a plain GET or POST can be configured here with a URL, body and headers using the `{to}`, `{from}`, `{text}` and `{countryCode}` placeholders. No new build is needed to add a provider this way.",
+                  fa: "**درگاه HTTP سفارشی** — هر پنلی که GET یا POST ساده می‌پذیرد با آدرس، بدنه و هدر و placeholderهای `{to}`، `{from}`، `{text}` و `{countryCode}` تنظیم می‌شود. برای افزودن provider از این راه نیازی به بیلد جدید نیست.",
+                },
+              ],
+            },
+          ],
+          tips: [
+            {
+              en: "Message bodies are never written to the log — they carry one-time codes. If a send fails, the log records the provider and the gateway's error, not the text.",
+              fa: "متن پیام هرگز در لاگ نوشته نمی‌شود چون حاوی کد یک‌بارمصرف است. اگر ارسال شکست بخورد، لاگ نام provider و خطای درگاه را ثبت می‌کند، نه متن را.",
+            },
+          ],
+          related: ["email-accounts", "clients", "settings"],
+          relatedApi: ["auth"],
+        },
       ],
     },
 

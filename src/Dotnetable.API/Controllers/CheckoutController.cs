@@ -2,11 +2,14 @@ using Dotnetable.Application.Authorization;
 using Dotnetable.Application.Interfaces;
 using Microsoft.AspNetCore.Authorization;
 using Microsoft.AspNetCore.Mvc;
+using Microsoft.AspNetCore.RateLimiting;
+using Dotnetable.Hosting;
 
 namespace Dotnetable.API.Controllers;
 
 /// <summary>Converts the signed-in customer's cart into an order.</summary>
 [Authorize(Policy = RoleKeys.ClientPurchase)]
+[EnableRateLimiting(RateLimiting.CheckoutPolicy)]
 public class CheckoutController : BaseController
 {
     private readonly IOrderService _orderService;

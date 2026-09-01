@@ -2,6 +2,8 @@ using Dotnetable.Application.Authorization;
 using Dotnetable.Application.DTOs;
 using Dotnetable.Application.Interfaces;
 using Microsoft.AspNetCore.Mvc;
+using Microsoft.AspNetCore.RateLimiting;
+using Dotnetable.Hosting;
 
 namespace Dotnetable.API.Controllers;
 
@@ -11,6 +13,7 @@ namespace Dotnetable.API.Controllers;
 /// <c>[form:ID]</c> shortcode embedded in Post/Page content); submissions are validated and stored
 /// server-side. Building forms and reading reports happens in the Admin app, not through this API.
 /// </summary>
+[EnableRateLimiting(RateLimiting.PublicWritePolicy)]
 public class FormsController : BaseController
 {
     private readonly IFormService _formService;

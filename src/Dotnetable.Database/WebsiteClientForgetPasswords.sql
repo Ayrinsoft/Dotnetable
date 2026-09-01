@@ -3,6 +3,8 @@
     [ForgetKey]                     VARCHAR (8) NOT NULL,
     [WebsiteClientID]               INT         NOT NULL,
     [LogTime]                       DATETIME    NOT NULL,
+    [FailedAttempts]                INT           NOT NULL,
+    [LockedUntil]                   DATETIME2 (0) NULL,
     CONSTRAINT [PK_WebsiteClientForgetPasswords] PRIMARY KEY CLUSTERED ([WebsiteClientForgetPasswordID] ASC),
     CONSTRAINT [FK_WebsiteClientForgetPasswords_WebsiteClients] FOREIGN KEY ([WebsiteClientID]) REFERENCES [dbo].[WebsiteClients] ([WebsiteClientID])
 );

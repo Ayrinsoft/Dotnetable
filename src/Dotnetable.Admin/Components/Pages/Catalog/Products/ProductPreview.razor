@@ -312,13 +312,13 @@ else
                 @if (!string.IsNullOrWhiteSpace(_product.Content))
                 {
                     <MudTabPanel Text="@L["products.description", "Description"]">
-                        <div class="product-preview-html pa-2">@((MarkupString)_product.Content)</div>
+                        <div class="product-preview-html pa-2">@((MarkupString)(Dotnetable.Application.Security.ContentSanitizer.Sanitize(_product.Content) ?? string.Empty))</div>
                     </MudTabPanel>
                 }
                 @if (!string.IsNullOrWhiteSpace(_product.ExpertReview))
                 {
                     <MudTabPanel Text="@L["products.expert_review", "Expert review"]">
-                        <div class="product-preview-html pa-2">@((MarkupString)_product.ExpertReview)</div>
+                        <div class="product-preview-html pa-2">@((MarkupString)(Dotnetable.Application.Security.ContentSanitizer.Sanitize(_product.ExpertReview) ?? string.Empty))</div>
                     </MudTabPanel>
                 }
             </MudTabs>

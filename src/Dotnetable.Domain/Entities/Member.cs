@@ -42,6 +42,21 @@ public partial class Member
 
     public bool IsSiteAdmin { get; set; }
 
+    /// <summary>Consecutive failed sign-ins since the last success. Reset to 0 on a successful sign-in.</summary>
+    public int FailedLoginCount { get; set; }
+
+    /// <summary>When set and in the future, sign-in is refused regardless of the password being correct.</summary>
+    public DateTime? LockoutEndUtc { get; set; }
+
+    /// <summary>TOTP second factor is required for this member.</summary>
+    public bool TwoFactorEnabled { get; set; }
+
+    /// <summary>Base32 TOTP shared secret. Null until the member completes enrolment.</summary>
+    public string? TwoFactorSecret { get; set; }
+
+    /// <summary>Newline-separated single-use recovery codes (hashed), for when the authenticator is lost.</summary>
+    public string? TwoFactorRecoveryCodes { get; set; }
+
     public virtual ICollection<AdminNotification> AdminNotifications { get; set; } = new List<AdminNotification>();
 
     public virtual FileRecord? Avatar { get; set; }

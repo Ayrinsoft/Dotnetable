@@ -13,6 +13,8 @@ CREATE TABLE [dbo].[WebsiteClients] (
     [Surname]         NVARCHAR (42)    NULL,
     [HashKey]         UNIQUEIDENTIFIER NOT NULL,
     [ClientLevel]     TINYINT          NOT NULL,
+    [FailedLoginCount] INT             NOT NULL,
+    [LockoutEndUtc]    DATETIME2 (0)   NULL,
     CONSTRAINT [PK_WebsiteClients] PRIMARY KEY CLUSTERED ([WebsiteClientID] ASC),
     CONSTRAINT [FK_WebsiteClients_FileRecords] FOREIGN KEY ([AvatarID]) REFERENCES [dbo].[FileRecords] ([FileRecordID]),
     CONSTRAINT [FK_WebsiteClients_Websites] FOREIGN KEY ([WebsiteID]) REFERENCES [dbo].[Websites] ([WebsiteID])
