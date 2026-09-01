@@ -24,6 +24,9 @@ public class PasswordResetServiceTests : IDisposable
             .UseInMemoryDatabase(Guid.NewGuid().ToString())
             .Options;
         _context = new AppDbContext(opts);
+        // Services open a context per call now, so they get a factory over the same options;
+        // the fixture keeps its own _context for seeding and asserting.
+        var factory = new TestDbContextFactory(opts);
 
         _emailMock = new Mock<IEmailService>();
         _emailMock.Setup(e => e.IsConfiguredAsync(It.IsAny<int>(), It.IsAny<CancellationToken>())).ReturnsAsync(true);
@@ -36,7 +39,7 @@ public class PasswordResetServiceTests : IDisposable
         _hasherMock.Setup(h => h.HashPassword(It.IsAny<Member>(), It.IsAny<string>()))
             .Returns<Member, string>((_, pw) => $"HASHED:{pw}");
 
-        _service = new PasswordResetService(_context, _emailMock.Object, _hasherMock.Object);
+        _service = new PasswordResetService(factory, _emailMock.Object, _hasherMock.Object);
     }
 
     private async Task<Member> SeedMemberAsync(string username = "alice", string email = "alice@test.com")
@@ -148,6 +151,10 @@ public class PasswordResetServiceTests : IDisposable
         var result = await _service.ResetPasswordAsync(key, "newpassword");
 
         result.Should().BeTrue();
+        // The service wrote through its own short-lived context, so this fixture's context must
+        // re-read rather than answer from entities it is still tracking.
+        _context.ChangeTracker.Clear();
+
         var updated = await _context.Members.FindAsync(member.MemberID);
         updated!.Password.Should().Be("HASHED:newpassword");
         updated.HashKey.Should().NotBe(oldHashKey);

@@ -13,17 +13,21 @@ namespace Dotnetable.Infrastructure.Services;
 
 public class MemberService : IMemberService
 {
-    private readonly AppDbContext _context;
+    private readonly IDbContextFactory<AppDbContext> _contextFactory;
     private readonly IPasswordHasher<Member> _hasher;
 
-    public MemberService(AppDbContext context, IPasswordHasher<Member> hasher)
+    public MemberService(IDbContextFactory<AppDbContext> contextFactory, IPasswordHasher<Member> hasher)
     {
-        _context = context;
+        _contextFactory = contextFactory;
         _hasher = hasher;
     }
 
-    public async Task<Member?> GetByIdAsync(int id, CancellationToken ct = default) =>
-        await _context.Members.FindAsync([id], ct);
+    public async Task<Member?> GetByIdAsync(int id, CancellationToken ct = default)
+    {
+        await using var _context = await _contextFactory.CreateDbContextAsync(ct);
+
+        return await _context.Members.FindAsync([id], ct);
+    }
 
     /// <summary>Wrong passwords tolerated before the account is locked.</summary>
     private const int MaxLoginAttempts = 5;
@@ -43,6 +47,8 @@ public class MemberService : IMemberService
 
     public async Task<MemberSignInResult> ValidateSignInAsync(string username, string password, CancellationToken ct = default)
     {
+        await using var _context = await _contextFactory.CreateDbContextAsync(ct);
+
         var member = await _context.Members
             .Include(m => m.Policy)
                 .ThenInclude(p => p.PolicyRoles)
@@ -96,6 +102,8 @@ public class MemberService : IMemberService
 
     public async Task<MemberSignInResult> VerifyTwoFactorAsync(int memberId, string code, CancellationToken ct = default)
     {
+        await using var _context = await _contextFactory.CreateDbContextAsync(ct);
+
         var member = await _context.Members
             .Include(m => m.Policy)
                 .ThenInclude(p => p.PolicyRoles)
@@ -149,6 +157,8 @@ public class MemberService : IMemberService
     public async Task<IReadOnlyList<string>?> ConfirmTwoFactorAsync(
         int memberId, string secret, string code, CancellationToken ct = default)
     {
+        await using var _context = await _contextFactory.CreateDbContextAsync(ct);
+
         if (!Totp.Verify(secret, code)) return null;
 
         var member = await _context.Members.FirstOrDefaultAsync(m => m.MemberID == memberId, ct);
@@ -159,7 +169,7 @@ public class MemberService : IMemberService
         member.TwoFactorSecret = secret;
         member.TwoFactorEnabled = true;
         // Stored as hashes: a database read must not hand over a working bypass for every admin.
-        member.TwoFactorRecoveryCodes = string.Join('\n', recoveryCodes.Select(HashRecoveryCode));
+        member.TwoFactorRecoveryCodes = string.Join('\n', recoveryCodes.Select(c => HashRecoveryCode(c)));
         await _context.SaveChangesAsync(ct);
 
         return recoveryCodes;
@@ -167,6 +177,8 @@ public class MemberService : IMemberService
 
     public async Task DisableTwoFactorAsync(int memberId, CancellationToken ct = default)
     {
+        await using var _context = await _contextFactory.CreateDbContextAsync(ct);
+
         var member = await _context.Members.FirstOrDefaultAsync(m => m.MemberID == memberId, ct);
         if (member is null) return;
 
@@ -216,23 +228,41 @@ public class MemberService : IMemberService
         Convert.ToHexString(SHA256.HashData(
             Encoding.UTF8.GetBytes(code.Replace(" ", "").Replace("-", "").ToUpperInvariant())));
 
-    public async Task<bool> ExistsAsync(string username, string email, CancellationToken ct = default) =>
-        await _context.Members.AnyAsync(m => m.Username == username || m.Email == email, ct);
+    public async Task<bool> ExistsAsync(string username, string email, CancellationToken ct = default)
+    {
+        await using var _context = await _contextFactory.CreateDbContextAsync(ct);
 
-    public async Task<int?> GetWebsiteIdByUsernameAsync(string username, CancellationToken ct = default) =>
-        await _context.Members
+        return await _context.Members.AnyAsync(m => m.Username == username || m.Email == email, ct);
+    }
+
+    public async Task<int?> GetWebsiteIdByUsernameAsync(string username, CancellationToken ct = default)
+    {
+        await using var _context = await _contextFactory.CreateDbContextAsync(ct);
+
+        return await _context.Members
             .Where(m => m.Username == username)
             .Select(m => (int?)m.WebsiteID)
             .FirstOrDefaultAsync(ct);
+    }
 
-    public async Task<IEnumerable<Member>> GetByWebsiteAsync(int websiteId, CancellationToken ct = default) =>
-        await _context.Members.Where(m => m.WebsiteID == websiteId).ToListAsync(ct);
+    public async Task<IEnumerable<Member>> GetByWebsiteAsync(int websiteId, CancellationToken ct = default)
+    {
+        await using var _context = await _contextFactory.CreateDbContextAsync(ct);
 
-    public async Task<IEnumerable<Member>> GetAllAsync(CancellationToken ct = default) =>
-        await _context.Members.ToListAsync(ct);
+        return await _context.Members.Where(m => m.WebsiteID == websiteId).ToListAsync(ct);
+    }
+
+    public async Task<IEnumerable<Member>> GetAllAsync(CancellationToken ct = default)
+    {
+        await using var _context = await _contextFactory.CreateDbContextAsync(ct);
+
+        return await _context.Members.ToListAsync(ct);
+    }
 
     public async Task<PagedResult<Member>> GetPagedAsync(int? websiteId, GridQuery query, CancellationToken ct = default)
     {
+        await using var _context = await _contextFactory.CreateDbContextAsync(ct);
+
         var q = _context.Members.AsNoTracking();
 
         if (websiteId is int wid)
@@ -258,12 +288,16 @@ public class MemberService : IMemberService
 
     public async Task SetActiveAsync(int id, bool active, CancellationToken ct = default)
     {
+        await using var _context = await _contextFactory.CreateDbContextAsync(ct);
+
         await _context.Members.Where(m => m.MemberID == id)
             .ExecuteUpdateAsync(s => s.SetProperty(m => m.Active, active), ct);
     }
 
     public async Task<Member> CreateAsync(Member member, string plainPassword, CancellationToken ct = default)
     {
+        await using var _context = await _contextFactory.CreateDbContextAsync(ct);
+
         if (member.HashKey == Guid.Empty) member.HashKey = Guid.NewGuid();
         member.Password = _hasher.HashPassword(member, plainPassword);
         _context.Members.Add(member);
@@ -273,12 +307,16 @@ public class MemberService : IMemberService
 
     public async Task UpdateAsync(Member member, CancellationToken ct = default)
     {
+        await using var _context = await _contextFactory.CreateDbContextAsync(ct);
+
         _context.Members.Update(member);
         await _context.SaveChangesAsync(ct);
     }
 
     public async Task ChangePasswordAsync(int memberId, string newPassword, CancellationToken ct = default)
     {
+        await using var _context = await _contextFactory.CreateDbContextAsync(ct);
+
         var member = await _context.Members.FindAsync([memberId], ct)
             ?? throw new KeyNotFoundException($"Member {memberId} not found.");
 
@@ -297,18 +335,24 @@ public class MemberService : IMemberService
 
     public async Task DeleteAsync(int id, CancellationToken ct = default)
     {
+        await using var _context = await _contextFactory.CreateDbContextAsync(ct);
+
         var member = await _context.Members.FindAsync([id], ct);
         if (member is null) return;
         _context.Members.Remove(member);
         await _context.SaveChangesAsync(ct);
     }
 
-    public async Task<IReadOnlyList<string>> GetRoleKeysAsync(int memberId, CancellationToken ct = default) =>
-        await _context.Members
+    public async Task<IReadOnlyList<string>> GetRoleKeysAsync(int memberId, CancellationToken ct = default)
+    {
+        await using var _context = await _contextFactory.CreateDbContextAsync(ct);
+
+        return await _context.Members
             .Where(m => m.MemberID == memberId)
             .SelectMany(m => m.Policy.PolicyRoles)
             .Where(pr => pr.Active && pr.Role.Active)
             .Select(pr => pr.Role.RoleKey)
             .Distinct()
             .ToListAsync(ct);
+    }
 }

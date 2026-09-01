@@ -21,7 +21,7 @@ public class LocalizationServiceTests : IDisposable
 
         _context = new AppDbContext(options);
         _cache = new TranslationCache();
-        _service = new LocalizationService(_context, new TestDbContextFactory(options), _cache);
+        _service = new LocalizationService(new TestDbContextFactory(options), _cache);
     }
 
     [Fact]

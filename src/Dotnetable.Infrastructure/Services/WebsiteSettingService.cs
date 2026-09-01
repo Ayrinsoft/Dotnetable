@@ -9,14 +9,16 @@ namespace Dotnetable.Infrastructure.Services;
 
 public class WebsiteSettingService : IWebsiteSettingService
 {
-    private readonly AppDbContext _context;
+    private readonly IDbContextFactory<AppDbContext> _contextFactory;
 
-    public WebsiteSettingService(AppDbContext context) => _context = context;
+    public WebsiteSettingService(IDbContextFactory<AppDbContext> contextFactory) => _contextFactory = contextFactory;
 
     // ── IPs ──────────────────────────────────────────────────────────
 
     public async Task<PagedResult<WebsiteIP>> GetIPsPagedAsync(int websiteId, GridQuery query, CancellationToken ct = default)
     {
+        await using var _context = await _contextFactory.CreateDbContextAsync(ct);
+
         var q = _context.WebsiteIPs.AsNoTracking().Where(x => x.WebsiteID == websiteId);
 
         if (query.GetSearch(nameof(WebsiteIP.Label)) is string label)
@@ -33,14 +35,24 @@ public class WebsiteSettingService : IWebsiteSettingService
         return new PagedResult<WebsiteIP> { Items = items, TotalCount = total };
     }
 
-    public async Task<int> GetIPCountAsync(int websiteId, CancellationToken ct = default) =>
-        await _context.WebsiteIPs.CountAsync(x => x.WebsiteID == websiteId, ct);
+    public async Task<int> GetIPCountAsync(int websiteId, CancellationToken ct = default)
+    {
+        await using var _context = await _contextFactory.CreateDbContextAsync(ct);
 
-    public async Task<WebsiteIP?> GetIPByIdAsync(int id, CancellationToken ct = default) =>
-        await _context.WebsiteIPs.FindAsync([id], ct);
+        return await _context.WebsiteIPs.CountAsync(x => x.WebsiteID == websiteId, ct);
+    }
+
+    public async Task<WebsiteIP?> GetIPByIdAsync(int id, CancellationToken ct = default)
+    {
+        await using var _context = await _contextFactory.CreateDbContextAsync(ct);
+
+        return await _context.WebsiteIPs.FindAsync([id], ct);
+    }
 
     public async Task<WebsiteIP> CreateIPAsync(WebsiteIP ip, CancellationToken ct = default)
     {
+        await using var _context = await _contextFactory.CreateDbContextAsync(ct);
+
         _context.WebsiteIPs.Add(ip);
         await _context.SaveChangesAsync(ct);
         return ip;
@@ -48,26 +60,36 @@ public class WebsiteSettingService : IWebsiteSettingService
 
     public async Task UpdateIPAsync(WebsiteIP ip, CancellationToken ct = default)
     {
+        await using var _context = await _contextFactory.CreateDbContextAsync(ct);
+
         _context.WebsiteIPs.Update(ip);
         await _context.SaveChangesAsync(ct);
     }
 
     public async Task DeleteIPAsync(int id, CancellationToken ct = default)
     {
+        await using var _context = await _contextFactory.CreateDbContextAsync(ct);
+
         var entity = await _context.WebsiteIPs.FindAsync([id], ct);
         if (entity is null) return;
         _context.WebsiteIPs.Remove(entity);
         await _context.SaveChangesAsync(ct);
     }
 
-    public async Task SetIPActiveAsync(int id, bool active, CancellationToken ct = default) =>
+    public async Task SetIPActiveAsync(int id, bool active, CancellationToken ct = default)
+    {
+        await using var _context = await _contextFactory.CreateDbContextAsync(ct);
+
         await _context.WebsiteIPs.Where(x => x.WebsiteIPID == id)
             .ExecuteUpdateAsync(s => s.SetProperty(x => x.Active, active), ct);
+    }
 
     // ── Scripts ──────────────────────────────────────────────────────
 
     public async Task<PagedResult<WebsiteScript>> GetScriptsPagedAsync(int websiteId, GridQuery query, CancellationToken ct = default)
     {
+        await using var _context = await _contextFactory.CreateDbContextAsync(ct);
+
         var q = _context.WebsiteScripts.AsNoTracking().Where(x => x.WebsiteID == websiteId);
 
         if (query.GetSearch(nameof(WebsiteScript.Name)) is string name)
@@ -84,11 +106,17 @@ public class WebsiteSettingService : IWebsiteSettingService
         return new PagedResult<WebsiteScript> { Items = items, TotalCount = total };
     }
 
-    public async Task<WebsiteScript?> GetScriptByIdAsync(int id, CancellationToken ct = default) =>
-        await _context.WebsiteScripts.FindAsync([id], ct);
+    public async Task<WebsiteScript?> GetScriptByIdAsync(int id, CancellationToken ct = default)
+    {
+        await using var _context = await _contextFactory.CreateDbContextAsync(ct);
+
+        return await _context.WebsiteScripts.FindAsync([id], ct);
+    }
 
     public async Task<WebsiteScript> CreateScriptAsync(WebsiteScript script, CancellationToken ct = default)
     {
+        await using var _context = await _contextFactory.CreateDbContextAsync(ct);
+
         script.LogTime = DateTime.UtcNow;
         _context.WebsiteScripts.Add(script);
         await _context.SaveChangesAsync(ct);
@@ -97,29 +125,43 @@ public class WebsiteSettingService : IWebsiteSettingService
 
     public async Task UpdateScriptAsync(WebsiteScript script, CancellationToken ct = default)
     {
+        await using var _context = await _contextFactory.CreateDbContextAsync(ct);
+
         _context.WebsiteScripts.Update(script);
         await _context.SaveChangesAsync(ct);
     }
 
     public async Task DeleteScriptAsync(int id, CancellationToken ct = default)
     {
+        await using var _context = await _contextFactory.CreateDbContextAsync(ct);
+
         var entity = await _context.WebsiteScripts.FindAsync([id], ct);
         if (entity is null) return;
         _context.WebsiteScripts.Remove(entity);
         await _context.SaveChangesAsync(ct);
     }
 
-    public async Task SetScriptActiveAsync(int id, bool active, CancellationToken ct = default) =>
+    public async Task SetScriptActiveAsync(int id, bool active, CancellationToken ct = default)
+    {
+        await using var _context = await _contextFactory.CreateDbContextAsync(ct);
+
         await _context.WebsiteScripts.Where(x => x.WebsiteScriptID == id)
             .ExecuteUpdateAsync(s => s.SetProperty(x => x.Active, active), ct);
+    }
 
     // ── SEO ──────────────────────────────────────────────────────────
 
-    public async Task<WebsiteSeoSetting?> GetSeoSettingAsync(int websiteId, CancellationToken ct = default) =>
-        await _context.WebsiteSeoSettings.FirstOrDefaultAsync(x => x.WebsiteID == websiteId, ct);
+    public async Task<WebsiteSeoSetting?> GetSeoSettingAsync(int websiteId, CancellationToken ct = default)
+    {
+        await using var _context = await _contextFactory.CreateDbContextAsync(ct);
+
+        return await _context.WebsiteSeoSettings.FirstOrDefaultAsync(x => x.WebsiteID == websiteId, ct);
+    }
 
     public async Task SaveSeoSettingAsync(WebsiteSeoSetting setting, CancellationToken ct = default)
     {
+        await using var _context = await _contextFactory.CreateDbContextAsync(ct);
+
         var existing = await _context.WebsiteSeoSettings
             .FirstOrDefaultAsync(x => x.WebsiteID == setting.WebsiteID, ct);
 
@@ -147,6 +189,8 @@ public class WebsiteSettingService : IWebsiteSettingService
 
     public async Task<PagedResult<WebsiteSocialLink>> GetSocialLinksPagedAsync(int websiteId, GridQuery query, CancellationToken ct = default)
     {
+        await using var _context = await _contextFactory.CreateDbContextAsync(ct);
+
         var q = _context.WebsiteSocialLinks.AsNoTracking().Where(x => x.WebsiteID == websiteId);
 
         if (query.GetSearch(nameof(WebsiteSocialLink.SocialName)) is string name)
@@ -161,12 +205,17 @@ public class WebsiteSettingService : IWebsiteSettingService
         return new PagedResult<WebsiteSocialLink> { Items = items, TotalCount = total };
     }
 
-    public async Task<WebsiteSocialLink?> GetSocialLinkByIdAsync(int id, CancellationToken ct = default) =>
-        await _context.WebsiteSocialLinks.FindAsync([id], ct);
+    public async Task<WebsiteSocialLink?> GetSocialLinkByIdAsync(int id, CancellationToken ct = default)
+    {
+        await using var _context = await _contextFactory.CreateDbContextAsync(ct);
+
+        return await _context.WebsiteSocialLinks.FindAsync([id], ct);
+    }
 
     public async Task<WebsiteSocialLink> CreateSocialLinkAsync(WebsiteSocialLink link, CancellationToken ct = default)
     {
-        DetachTracked(_context.WebsiteSocialLinks, link.WebsiteSocialLinkID, x => x.WebsiteSocialLinkID);
+        await using var _context = await _contextFactory.CreateDbContextAsync(ct);
+
         _context.WebsiteSocialLinks.Add(link);
         await _context.SaveChangesAsync(ct);
         return link;
@@ -174,13 +223,16 @@ public class WebsiteSettingService : IWebsiteSettingService
 
     public async Task UpdateSocialLinkAsync(WebsiteSocialLink link, CancellationToken ct = default)
     {
-        DetachTracked(_context.WebsiteSocialLinks, link.WebsiteSocialLinkID, x => x.WebsiteSocialLinkID);
+        await using var _context = await _contextFactory.CreateDbContextAsync(ct);
+
         _context.WebsiteSocialLinks.Update(link);
         await _context.SaveChangesAsync(ct);
     }
 
     public async Task DeleteSocialLinkAsync(int id, CancellationToken ct = default)
     {
+        await using var _context = await _contextFactory.CreateDbContextAsync(ct);
+
         var entity = await _context.WebsiteSocialLinks.FindAsync([id], ct);
         if (entity is null) return;
         _context.WebsiteSocialLinks.Remove(entity);
@@ -189,13 +241,19 @@ public class WebsiteSettingService : IWebsiteSettingService
 
     // ── Watermark ────────────────────────────────────────────────────
 
-    public async Task<WebsiteWatermarkSetting?> GetWatermarkSettingAsync(int websiteId, CancellationToken ct = default) =>
-        await _context.WebsiteWatermarkSettings
+    public async Task<WebsiteWatermarkSetting?> GetWatermarkSettingAsync(int websiteId, CancellationToken ct = default)
+    {
+        await using var _context = await _contextFactory.CreateDbContextAsync(ct);
+
+        return await _context.WebsiteWatermarkSettings
             .Include(x => x.WatermarkFile)
             .FirstOrDefaultAsync(x => x.WebsiteID == websiteId, ct);
+    }
 
     public async Task SaveWatermarkSettingAsync(WebsiteWatermarkSetting setting, CancellationToken ct = default)
     {
+        await using var _context = await _contextFactory.CreateDbContextAsync(ct);
+
         var existing = await _context.WebsiteWatermarkSettings
             .FirstOrDefaultAsync(x => x.WebsiteID == setting.WebsiteID, ct);
 
@@ -215,14 +273,4 @@ public class WebsiteSettingService : IWebsiteSettingService
         await _context.SaveChangesAsync(ct);
     }
 
-    /// <summary>Detaches any stale tracked instance with the same key before an Add/Update. AppDbContext is
-    /// scoped per Blazor Server circuit (not per request), so an entity saved earlier in the same session
-    /// stays tracked and would otherwise collide with a fresh detached copy carrying the same primary key.</summary>
-    private void DetachTracked<TEntity>(DbSet<TEntity> set, int key, Func<TEntity, int> keySelector) where TEntity : class
-    {
-        if (key == 0) return; // 0 = not-yet-persisted; there's no real identity to collide on.
-        var local = set.Local.FirstOrDefault(e => keySelector(e) == key);
-        if (local is not null)
-            _context.Entry(local).State = EntityState.Detached;
-    }
 }

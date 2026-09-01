@@ -7,17 +7,23 @@ namespace Dotnetable.Infrastructure.Services;
 
 public class HrService : IHrService
 {
-    private readonly AppDbContext _context;
-    public HrService(AppDbContext context) => _context = context;
+    private readonly IDbContextFactory<AppDbContext> _contextFactory;
+    public HrService(IDbContextFactory<AppDbContext> contextFactory) => _contextFactory = contextFactory;
 
-    public async Task<IReadOnlyList<OrgUnit>> GetOrgUnitsAsync(int websiteId, CancellationToken ct = default) =>
-        await _context.OrgUnits.AsNoTracking()
+    public async Task<IReadOnlyList<OrgUnit>> GetOrgUnitsAsync(int websiteId, CancellationToken ct = default)
+    {
+        await using var _context = await _contextFactory.CreateDbContextAsync(ct);
+
+        return await _context.OrgUnits.AsNoTracking()
             .Where(o => o.WebsiteID == websiteId)
             .OrderBy(o => o.SortOrder).ThenBy(o => o.Name)
             .ToListAsync(ct);
+    }
 
     public async Task<OrgUnit> UpsertOrgUnitAsync(OrgUnit unit, CancellationToken ct = default)
     {
+        await using var _context = await _contextFactory.CreateDbContextAsync(ct);
+
         if (unit.OrgUnitID == 0) _context.OrgUnits.Add(unit);
         else
         {
@@ -30,21 +36,31 @@ public class HrService : IHrService
         return unit;
     }
 
-    public async Task<IReadOnlyList<Employee>> GetEmployeesAsync(int websiteId, CancellationToken ct = default) =>
-        await _context.Employees.AsNoTracking()
+    public async Task<IReadOnlyList<Employee>> GetEmployeesAsync(int websiteId, CancellationToken ct = default)
+    {
+        await using var _context = await _contextFactory.CreateDbContextAsync(ct);
+
+        return await _context.Employees.AsNoTracking()
             .Include(e => e.OrgUnit)
             .Where(e => e.WebsiteID == websiteId)
             .OrderBy(e => e.Surname).ThenBy(e => e.GivenName)
             .ToListAsync(ct);
+    }
 
-    public async Task<Employee?> GetEmployeeAsync(int employeeId, CancellationToken ct = default) =>
-        await _context.Employees.AsNoTracking()
+    public async Task<Employee?> GetEmployeeAsync(int employeeId, CancellationToken ct = default)
+    {
+        await using var _context = await _contextFactory.CreateDbContextAsync(ct);
+
+        return await _context.Employees.AsNoTracking()
             .Include(e => e.OrgUnit)
             .Include(e => e.EmployeeContracts)
             .FirstOrDefaultAsync(e => e.EmployeeID == employeeId, ct);
+    }
 
     public async Task<Employee> UpsertEmployeeAsync(Employee employee, CancellationToken ct = default)
     {
+        await using var _context = await _contextFactory.CreateDbContextAsync(ct);
+
         if (employee.EmployeeID == 0)
         {
             employee.CreatedAt = DateTime.UtcNow;
@@ -73,6 +89,8 @@ public class HrService : IHrService
 
     public async Task<EmployeeContract> UpsertContractAsync(EmployeeContract contract, CancellationToken ct = default)
     {
+        await using var _context = await _contextFactory.CreateDbContextAsync(ct);
+
         if (contract.IsActive)
         {
             var others = await _context.EmployeeContracts
@@ -104,11 +122,15 @@ public class HrService : IHrService
         return contract;
     }
 
-    public async Task<EmployeeContract?> GetActiveContractAsync(int employeeId, DateOnly asOf, CancellationToken ct = default) =>
-        await _context.EmployeeContracts.AsNoTracking()
+    public async Task<EmployeeContract?> GetActiveContractAsync(int employeeId, DateOnly asOf, CancellationToken ct = default)
+    {
+        await using var _context = await _contextFactory.CreateDbContextAsync(ct);
+
+        return await _context.EmployeeContracts.AsNoTracking()
             .Where(c => c.EmployeeID == employeeId && c.IsActive
                         && c.EffectiveFrom <= asOf
                         && (c.EffectiveTo == null || c.EffectiveTo >= asOf))
             .OrderByDescending(c => c.EffectiveFrom)
             .FirstOrDefaultAsync(ct);
+    }
 }

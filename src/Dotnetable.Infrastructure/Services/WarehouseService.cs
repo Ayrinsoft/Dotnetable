@@ -9,14 +9,17 @@ namespace Dotnetable.Infrastructure.Services;
 
 public class WarehouseService : IWarehouseService
 {
-    // Prefer ambient UoW context when OrderService has an open multi-service transaction.
-    private readonly AppDbContext _fallback;
-    private AppDbContext _context => AmbientDbContext.Current ?? _fallback;
+    // Contexts come from DbLease per operation: it joins an ambient transaction when one is in
+    // flight and otherwise opens a short-lived context, so nothing is shared across a circuit.
+    private readonly IDbContextFactory<AppDbContext> _contextFactory;
 
-    public WarehouseService(AppDbContext context) => _fallback = context;
+    public WarehouseService(IDbContextFactory<AppDbContext> contextFactory) => _contextFactory = contextFactory;
 
     public async Task EnsureDefaultAsync(int websiteId, CancellationToken ct = default)
     {
+        await using var _lease = await DbLease.OpenAsync(_contextFactory, ct);
+        var _context = _lease.Context;
+
         if (await _context.Warehouses.AnyAsync(w => w.WebsiteID == websiteId, ct)) return;
         _context.Warehouses.Add(new Warehouse
         {
@@ -32,6 +35,9 @@ public class WarehouseService : IWarehouseService
 
     public async Task<IReadOnlyList<Warehouse>> GetAllAsync(int websiteId, CancellationToken ct = default)
     {
+        await using var _lease = await DbLease.OpenAsync(_contextFactory, ct);
+        var _context = _lease.Context;
+
         await EnsureDefaultAsync(websiteId, ct);
         return await _context.Warehouses.AsNoTracking()
             .Where(w => w.WebsiteID == websiteId)
@@ -41,6 +47,9 @@ public class WarehouseService : IWarehouseService
 
     public async Task<PagedResult<Warehouse>> GetPagedAsync(int websiteId, GridQuery query, CancellationToken ct = default)
     {
+        await using var _lease = await DbLease.OpenAsync(_contextFactory, ct);
+        var _context = _lease.Context;
+
         await EnsureDefaultAsync(websiteId, ct);
 
         var q = _context.Warehouses.AsNoTracking()
@@ -66,6 +75,9 @@ public class WarehouseService : IWarehouseService
 
     public async Task<Warehouse> UpsertAsync(Warehouse warehouse, CancellationToken ct = default)
     {
+        await using var _lease = await DbLease.OpenAsync(_contextFactory, ct);
+        var _context = _lease.Context;
+
         warehouse.Code = warehouse.Code.Trim();
         warehouse.Name = warehouse.Name.Trim();
         warehouse.Address = string.IsNullOrWhiteSpace(warehouse.Address) ? null : warehouse.Address.Trim();
@@ -104,15 +116,23 @@ public class WarehouseService : IWarehouseService
         return warehouse;
     }
 
-    public async Task<IReadOnlyList<WarehouseStock>> GetStockAsync(int warehouseId, CancellationToken ct = default) =>
-        await _context.WarehouseStocks.AsNoTracking()
+    public async Task<IReadOnlyList<WarehouseStock>> GetStockAsync(int warehouseId, CancellationToken ct = default)
+    {
+        await using var _lease = await DbLease.OpenAsync(_contextFactory, ct);
+        var _context = _lease.Context;
+
+        return await _context.WarehouseStocks.AsNoTracking()
             .Include(s => s.ProductVariant).ThenInclude(v => v.Product)
             .Where(s => s.WarehouseID == warehouseId)
             .OrderBy(s => s.ProductVariant.Sku)
             .ToListAsync(ct);
+    }
 
     public async Task<int?> GetDefaultWarehouseIdAsync(int websiteId, CancellationToken ct = default)
     {
+        await using var _lease = await DbLease.OpenAsync(_contextFactory, ct);
+        var _context = _lease.Context;
+
         var hasAny = await _context.Warehouses.AsNoTracking()
             .AnyAsync(w => w.WebsiteID == websiteId && w.IsActive, ct);
         if (!hasAny) return null;
@@ -127,6 +147,9 @@ public class WarehouseService : IWarehouseService
 
     public async Task<int> GetAvailableAsync(int warehouseId, int productVariantId, CancellationToken ct = default)
     {
+        await using var _lease = await DbLease.OpenAsync(_contextFactory, ct);
+        var _context = _lease.Context;
+
         var stock = await _context.WarehouseStocks.AsNoTracking()
             .FirstOrDefaultAsync(s => s.WarehouseID == warehouseId && s.ProductVariantID == productVariantId, ct);
         if (stock is null) return 0;
@@ -136,6 +159,9 @@ public class WarehouseService : IWarehouseService
     // Atomic conditional UPDATE — see the note on InventoryService.ReserveAsync.
     public async Task<bool> ReserveAsync(int warehouseId, int productVariantId, int qty, CancellationToken ct = default)
     {
+        await using var _lease = await DbLease.OpenAsync(_contextFactory, ct);
+        var _context = _lease.Context;
+
         if (qty <= 0) return true;
 
         var affected = await _context.WarehouseStocks
@@ -144,12 +170,15 @@ public class WarehouseService : IWarehouseService
                         && s.QuantityOnHand - s.QuantityReserved >= qty)
             .ExecuteUpdateAsync(u => u.SetProperty(s => s.QuantityReserved, s => s.QuantityReserved + qty), ct);
 
-        if (affected > 0) await RefreshTrackedAsync(warehouseId, productVariantId, ct);
+        if (affected > 0) await RefreshTrackedAsync(_context, warehouseId, productVariantId, ct);
         return affected > 0;
     }
 
     public async Task ReleaseReservationAsync(int warehouseId, int productVariantId, int qty, CancellationToken ct = default)
     {
+        await using var _lease = await DbLease.OpenAsync(_contextFactory, ct);
+        var _context = _lease.Context;
+
         if (qty <= 0) return;
 
         await _context.WarehouseStocks
@@ -158,14 +187,14 @@ public class WarehouseService : IWarehouseService
                 s => s.QuantityReserved,
                 s => s.QuantityReserved > qty ? s.QuantityReserved - qty : 0), ct);
 
-        await RefreshTrackedAsync(warehouseId, productVariantId, ct);
+        await RefreshTrackedAsync(_context, warehouseId, productVariantId, ct);
     }
 
     /// <summary>
     /// ExecuteUpdate bypasses the change tracker, so a WarehouseStock this context already loaded
     /// would keep serving the pre-reservation counter. See InventoryService.RefreshTrackedAsync.
     /// </summary>
-    private async Task RefreshTrackedAsync(int warehouseId, int productVariantId, CancellationToken ct)
+    private async Task RefreshTrackedAsync(AppDbContext _context, int warehouseId, int productVariantId, CancellationToken ct)
     {
         var tracked = _context.ChangeTracker.Entries<WarehouseStock>()
             .FirstOrDefault(e => e.Entity.WarehouseID == warehouseId && e.Entity.ProductVariantID == productVariantId);
@@ -176,6 +205,9 @@ public class WarehouseService : IWarehouseService
 
     public async Task<int> SumOnHandForVariantAsync(int websiteId, int productVariantId, CancellationToken ct = default)
     {
+        await using var _lease = await DbLease.OpenAsync(_contextFactory, ct);
+        var _context = _lease.Context;
+
         return await _context.WarehouseStocks.AsNoTracking()
             .Where(s => s.Warehouse.WebsiteID == websiteId && s.ProductVariantID == productVariantId)
             .SumAsync(s => (int?)s.QuantityOnHand, ct) ?? 0;

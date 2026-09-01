@@ -27,17 +27,19 @@ public class SupportDeskService : ISupportDeskService
         (byte)OrderStatus.Shipped,
     ];
 
-    private readonly AppDbContext _context;
+    private readonly IDbContextFactory<AppDbContext> _contextFactory;
     private readonly IAdminNotificationService _notifications;
 
-    public SupportDeskService(AppDbContext context, IAdminNotificationService notifications)
+    public SupportDeskService(IDbContextFactory<AppDbContext> contextFactory, IAdminNotificationService notifications)
     {
-        _context = context;
+        _contextFactory = contextFactory;
         _notifications = notifications;
     }
 
     public async Task<SupportMobileLookupResult> LookupByMobileAsync(int? websiteId, string mobile, CancellationToken ct = default)
     {
+        await using var _context = await _contextFactory.CreateDbContextAsync(ct);
+
         var query = mobile?.Trim() ?? string.Empty;
         var digits = DigitsOnly(query);
         // Common paste forms: +98912… → 98912… → also try national 0912… / 912…
@@ -108,6 +110,8 @@ public class SupportDeskService : ISupportDeskService
 
     public async Task<Customer360Dto?> GetCustomer360Async(int websiteClientId, CancellationToken ct = default)
     {
+        await using var _context = await _contextFactory.CreateDbContextAsync(ct);
+
         var client = await _context.WebsiteClients.AsNoTracking()
             .Include(c => c.ClientWallets)
             .Include(c => c.WebsiteClientAddresses)
@@ -310,6 +314,8 @@ public class SupportDeskService : ISupportDeskService
         bool? callbackDueOnly = null,
         CancellationToken ct = default)
     {
+        await using var _context = await _contextFactory.CreateDbContextAsync(ct);
+
         var now = DateTime.UtcNow;
         var q = _context.SupportSessions.AsNoTracking()
             .Include(s => s.AssignedMember)
@@ -373,6 +379,8 @@ public class SupportDeskService : ISupportDeskService
 
     public async Task<SupportDeskStatsDto> GetDeskStatsAsync(int? websiteId, int? memberId, CancellationToken ct = default)
     {
+        await using var _context = await _contextFactory.CreateDbContextAsync(ct);
+
         var now = DateTime.UtcNow;
         var today = now.Date;
         var q = _context.SupportSessions.AsNoTracking().AsQueryable();
@@ -399,8 +407,11 @@ public class SupportDeskService : ISupportDeskService
         };
     }
 
-    public async Task<SupportSession?> GetSessionEntityByIdAsync(int sessionId, CancellationToken ct = default) =>
-        await _context.SupportSessions
+    public async Task<SupportSession?> GetSessionEntityByIdAsync(int sessionId, CancellationToken ct = default)
+    {
+        await using var _context = await _contextFactory.CreateDbContextAsync(ct);
+
+        return await _context.SupportSessions
             .Include(s => s.AssignedMember)
             .Include(s => s.CreatedByMember)
             .Include(s => s.RelatedOrder)
@@ -410,9 +421,12 @@ public class SupportDeskService : ISupportDeskService
             .Include(s => s.SupportInteractions)
                 .ThenInclude(i => i.RelatedOrder)
             .FirstOrDefaultAsync(s => s.SupportSessionID == sessionId, ct);
+    }
 
     public async Task<SupportSessionSummaryDto?> GetSessionSummaryByIdAsync(int sessionId, CancellationToken ct = default)
     {
+        await using var _context = await _contextFactory.CreateDbContextAsync(ct);
+
         var s = await _context.SupportSessions.AsNoTracking()
             .Include(s => s.AssignedMember)
             .Include(s => s.RelatedOrder)
@@ -425,6 +439,8 @@ public class SupportDeskService : ISupportDeskService
 
     public async Task<IReadOnlyList<SupportInteractionDto>> GetInteractionsAsync(int sessionId, CancellationToken ct = default)
     {
+        await using var _context = await _contextFactory.CreateDbContextAsync(ct);
+
         var items = await _context.SupportInteractions.AsNoTracking()
             .Where(i => i.SupportSessionID == sessionId)
             .OrderByDescending(i => i.CreatedAt)
@@ -436,6 +452,8 @@ public class SupportDeskService : ISupportDeskService
 
     public async Task<SupportSession> StartSessionAsync(StartSupportSessionRequest request, int memberId, CancellationToken ct = default)
     {
+        await using var _context = await _contextFactory.CreateDbContextAsync(ct);
+
         WebsiteClient? client = null;
         if (request.WebsiteClientID is int cid)
             client = await _context.WebsiteClients.FirstOrDefaultAsync(c => c.WebsiteClientID == cid, ct);
@@ -454,7 +472,7 @@ public class SupportDeskService : ISupportDeskService
         {
             WebsiteID = request.WebsiteID,
             WebsiteClientID = client?.WebsiteClientID ?? request.WebsiteClientID,
-            SessionNumber = await NextSessionNumberAsync(request.WebsiteID, now, ct),
+            SessionNumber = await NextSessionNumberAsync(_context, request.WebsiteID, now, ct),
             Status = (byte)SupportSessionStatus.Open,
             Priority = (byte)request.Priority,
             Channel = (byte)request.Channel,
@@ -535,6 +553,8 @@ public class SupportDeskService : ISupportDeskService
 
     public async Task<SupportInteraction> AddInteractionAsync(AddSupportInteractionRequest request, int memberId, CancellationToken ct = default)
     {
+        await using var _context = await _contextFactory.CreateDbContextAsync(ct);
+
         var session = await _context.SupportSessions.FirstOrDefaultAsync(s => s.SupportSessionID == request.SupportSessionID, ct)
             ?? throw new InvalidOperationException("Support session not found.");
 
@@ -599,6 +619,8 @@ public class SupportDeskService : ISupportDeskService
 
     public async Task<bool> TransitionStatusAsync(int sessionId, SupportSessionStatus newStatus, int memberId, string? note, CancellationToken ct = default)
     {
+        await using var _context = await _contextFactory.CreateDbContextAsync(ct);
+
         var session = await _context.SupportSessions.FirstOrDefaultAsync(s => s.SupportSessionID == sessionId, ct);
         if (session is null) return false;
 
@@ -672,6 +694,8 @@ public class SupportDeskService : ISupportDeskService
 
     public async Task<bool> AssignAsync(int sessionId, int? assignedMemberId, int actorMemberId, CancellationToken ct = default)
     {
+        await using var _context = await _contextFactory.CreateDbContextAsync(ct);
+
         var session = await _context.SupportSessions.FirstOrDefaultAsync(s => s.SupportSessionID == sessionId, ct);
         if (session is null) return false;
 
@@ -720,6 +744,8 @@ public class SupportDeskService : ISupportDeskService
 
     public async Task<bool> SetPriorityAsync(int sessionId, SupportPriority priority, int memberId, CancellationToken ct = default)
     {
+        await using var _context = await _contextFactory.CreateDbContextAsync(ct);
+
         var session = await _context.SupportSessions.FirstOrDefaultAsync(s => s.SupportSessionID == sessionId, ct);
         if (session is null) return false;
 
@@ -759,6 +785,8 @@ public class SupportDeskService : ISupportDeskService
 
     public async Task<bool> LinkOrderAsync(int sessionId, int? orderId, int memberId, CancellationToken ct = default)
     {
+        await using var _context = await _contextFactory.CreateDbContextAsync(ct);
+
         var session = await _context.SupportSessions.FirstOrDefaultAsync(s => s.SupportSessionID == sessionId, ct);
         if (session is null) return false;
 
@@ -796,6 +824,8 @@ public class SupportDeskService : ISupportDeskService
 
     public async Task SetArchiveAsync(int sessionId, bool archive, CancellationToken ct = default)
     {
+        await using var _context = await _contextFactory.CreateDbContextAsync(ct);
+
         var session = await _context.SupportSessions.FirstOrDefaultAsync(s => s.SupportSessionID == sessionId, ct);
         if (session is null) return;
         session.Archive = archive;
@@ -805,6 +835,8 @@ public class SupportDeskService : ISupportDeskService
 
     public async Task SetSatisfactionAsync(int sessionId, byte? rating, CancellationToken ct = default)
     {
+        await using var _context = await _contextFactory.CreateDbContextAsync(ct);
+
         var session = await _context.SupportSessions.FirstOrDefaultAsync(s => s.SupportSessionID == sessionId, ct);
         if (session is null) return;
         if (rating is byte r && (r < 1 || r > 5)) return;
@@ -820,6 +852,8 @@ public class SupportDeskService : ISupportDeskService
         string? tags,
         CancellationToken ct = default)
     {
+        await using var _context = await _contextFactory.CreateDbContextAsync(ct);
+
         var session = await _context.SupportSessions.FirstOrDefaultAsync(s => s.SupportSessionID == sessionId, ct);
         if (session is null) return;
         if (subject is not null) session.Subject = Truncate(subject, 256);
@@ -831,6 +865,8 @@ public class SupportDeskService : ISupportDeskService
 
     public async Task<bool> ScheduleCallbackAsync(int sessionId, DateTime? callbackAt, string? note, int memberId, CancellationToken ct = default)
     {
+        await using var _context = await _contextFactory.CreateDbContextAsync(ct);
+
         var session = await _context.SupportSessions.FirstOrDefaultAsync(s => s.SupportSessionID == sessionId, ct);
         if (session is null) return false;
 
@@ -860,6 +896,8 @@ public class SupportDeskService : ISupportDeskService
     public async Task<(bool Success, string? Error, SupportSession? Session)> CreateCustomerTicketAsync(
         int websiteId, int websiteClientId, string subject, string body, int? relatedOrderId, SupportCategory? category, CancellationToken ct = default)
     {
+        await using var _context = await _contextFactory.CreateDbContextAsync(ct);
+
         var title = subject?.Trim() ?? "";
         var message = body?.Trim() ?? "";
         if (title.Length == 0) return (false, "Subject is required.", null);
@@ -931,6 +969,8 @@ public class SupportDeskService : ISupportDeskService
     public async Task<PagedResult<SupportSessionSummaryDto>> GetClientSessionsPagedAsync(
         int websiteClientId, GridQuery query, CancellationToken ct = default)
     {
+        await using var _context = await _contextFactory.CreateDbContextAsync(ct);
+
         var q = _context.SupportSessions.AsNoTracking()
             .Include(s => s.AssignedMember)
             .Include(s => s.RelatedOrder)
@@ -961,6 +1001,8 @@ public class SupportDeskService : ISupportDeskService
 
     public async Task<SupportSessionSummaryDto?> GetClientSessionAsync(int sessionId, int websiteClientId, CancellationToken ct = default)
     {
+        await using var _context = await _contextFactory.CreateDbContextAsync(ct);
+
         var dto = await GetSessionSummaryByIdAsync(sessionId, ct);
         if (dto is null || dto.WebsiteClientID != websiteClientId || dto.Archive) return null;
         dto.InteractionCount = await _context.SupportInteractions.CountAsync(
@@ -971,6 +1013,8 @@ public class SupportDeskService : ISupportDeskService
     public async Task<IReadOnlyList<SupportInteractionDto>> GetClientInteractionsAsync(
         int sessionId, int websiteClientId, CancellationToken ct = default)
     {
+        await using var _context = await _contextFactory.CreateDbContextAsync(ct);
+
         var owned = await _context.SupportSessions.AsNoTracking()
             .AnyAsync(s => s.SupportSessionID == sessionId && s.WebsiteClientID == websiteClientId && !s.Archive, ct);
         if (!owned) return Array.Empty<SupportInteractionDto>();
@@ -987,6 +1031,8 @@ public class SupportDeskService : ISupportDeskService
     public async Task<(bool Success, string? Error)> AddCustomerReplyAsync(
         int sessionId, int websiteClientId, string body, CancellationToken ct = default)
     {
+        await using var _context = await _contextFactory.CreateDbContextAsync(ct);
+
         var text = body?.Trim() ?? "";
         if (text.Length == 0) return (false, "Please enter a message.");
 
@@ -1089,7 +1135,7 @@ public class SupportDeskService : ISupportDeskService
         }
     }
 
-    private async Task<string> NextSessionNumberAsync(int websiteId, DateTime now, CancellationToken ct)
+    private async Task<string> NextSessionNumberAsync(AppDbContext _context, int websiteId, DateTime now, CancellationToken ct)
     {
         var day = now.ToString("yyyyMMdd");
         var prefix = $"SUP-{day}-";

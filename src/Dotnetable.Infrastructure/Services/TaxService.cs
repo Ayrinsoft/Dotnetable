@@ -10,21 +10,29 @@ namespace Dotnetable.Infrastructure.Services;
 
 public class TaxService : ITaxService
 {
-    // Prefer ambient UoW context when OrderService (etc.) has an open multi-service transaction.
-    private readonly AppDbContext _fallback;
-    private AppDbContext _context => AmbientDbContext.Current ?? _fallback;
+    // Contexts come from DbLease per operation: it joins an ambient transaction when one is in
+    // flight and otherwise opens a short-lived context, so nothing is shared across a circuit.
+    private readonly IDbContextFactory<AppDbContext> _contextFactory;
 
-    public TaxService(AppDbContext context) => _fallback = context;
+    public TaxService(IDbContextFactory<AppDbContext> contextFactory) => _contextFactory = contextFactory;
 
-    public async Task<List<TaxRate>> GetAllAsync(int websiteId, CancellationToken ct = default) =>
-        await _context.TaxRates.AsNoTracking()
+    public async Task<List<TaxRate>> GetAllAsync(int websiteId, CancellationToken ct = default)
+    {
+        await using var _lease = await DbLease.OpenAsync(_contextFactory, ct);
+        var _context = _lease.Context;
+
+        return await _context.TaxRates.AsNoTracking()
             .Include(r => r.Country).Include(r => r.State)
             .Where(r => r.WebsiteID == websiteId)
             .OrderBy(r => r.Priority).ThenBy(r => r.Title)
             .ToListAsync(ct);
+    }
 
     public async Task<PagedResult<TaxRate>> GetPagedAsync(int websiteId, GridQuery query, CancellationToken ct = default)
     {
+        await using var _lease = await DbLease.OpenAsync(_contextFactory, ct);
+        var _context = _lease.Context;
+
         var q = _context.TaxRates.AsNoTracking()
             .Include(r => r.Country).Include(r => r.State)
             .Where(r => r.WebsiteID == websiteId);
@@ -43,11 +51,19 @@ public class TaxService : ITaxService
         return new PagedResult<TaxRate> { Items = items, TotalCount = total };
     }
 
-    public async Task<TaxRate?> GetByIdAsync(int taxRateId, CancellationToken ct = default) =>
-        await _context.TaxRates.FindAsync([taxRateId], ct);
+    public async Task<TaxRate?> GetByIdAsync(int taxRateId, CancellationToken ct = default)
+    {
+        await using var _lease = await DbLease.OpenAsync(_contextFactory, ct);
+        var _context = _lease.Context;
+
+        return await _context.TaxRates.FindAsync([taxRateId], ct);
+    }
 
     public async Task<TaxRate> CreateAsync(TaxRate rate, CancellationToken ct = default)
     {
+        await using var _lease = await DbLease.OpenAsync(_contextFactory, ct);
+        var _context = _lease.Context;
+
         _context.TaxRates.Add(rate);
         await _context.SaveChangesAsync(ct);
         return rate;
@@ -55,6 +71,9 @@ public class TaxService : ITaxService
 
     public async Task<bool> UpdateAsync(TaxRate rate, CancellationToken ct = default)
     {
+        await using var _lease = await DbLease.OpenAsync(_contextFactory, ct);
+        var _context = _lease.Context;
+
         var existing = await _context.TaxRates.FirstOrDefaultAsync(r => r.TaxRateID == rate.TaxRateID, ct);
         if (existing is null) return false;
 
@@ -74,6 +93,9 @@ public class TaxService : ITaxService
 
     public async Task<bool> DeleteAsync(int taxRateId, CancellationToken ct = default)
     {
+        await using var _lease = await DbLease.OpenAsync(_contextFactory, ct);
+        var _context = _lease.Context;
+
         var existing = await _context.TaxRates.FindAsync([taxRateId], ct);
         if (existing is null) return false;
         _context.TaxRates.Remove(existing);
@@ -95,6 +117,9 @@ public class TaxService : ITaxService
         decimal shippingAmount = 0,
         CancellationToken ct = default)
     {
+        await using var _lease = await DbLease.OpenAsync(_contextFactory, ct);
+        var _context = _lease.Context;
+
         var website = await _context.Websites.AsNoTracking()
             .FirstOrDefaultAsync(w => w.WebsiteID == websiteId, ct);
 

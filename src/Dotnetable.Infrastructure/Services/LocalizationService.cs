@@ -9,16 +9,13 @@ namespace Dotnetable.Infrastructure.Services;
 
 public class LocalizationService : ILocalizationService
 {
-    private readonly AppDbContext _context;
     private readonly IDbContextFactory<AppDbContext> _contextFactory;
     private readonly TranslationCache _cache;
 
     public LocalizationService(
-        AppDbContext context,
         IDbContextFactory<AppDbContext> contextFactory,
         TranslationCache cache)
     {
-        _context = context;
         _contextFactory = contextFactory;
         _cache = cache;
     }
@@ -63,6 +60,8 @@ public class LocalizationService : ILocalizationService
 
     public async Task<PagedResult<TranslationEntry>> GetPagedAsync(int? websiteId, string languageCode, GridQuery query, CancellationToken ct = default)
     {
+        await using var _context = await _contextFactory.CreateDbContextAsync(ct);
+
         var projected = _context.LocalizationKeys
             .Where(k => k.WebsiteID == websiteId)
             .Select(k => new
@@ -91,6 +90,8 @@ public class LocalizationService : ILocalizationService
 
     public async Task SetAsync(int? websiteId, string languageCode, string key, string value, CancellationToken ct = default)
     {
+        await using var _context = await _contextFactory.CreateDbContextAsync(ct);
+
         var localizationKey = await _context.LocalizationKeys
             .Include(k => k.LocalizationValues)
             .FirstOrDefaultAsync(k => k.WebsiteID == websiteId && k.ItemKey == key, ct);
@@ -115,6 +116,8 @@ public class LocalizationService : ILocalizationService
 
     public async Task SetDefaultValueAsync(int? websiteId, string key, string defaultValue, CancellationToken ct = default)
     {
+        await using var _context = await _contextFactory.CreateDbContextAsync(ct);
+
         var localizationKey = await _context.LocalizationKeys
             .FirstOrDefaultAsync(k => k.WebsiteID == websiteId && k.ItemKey == key, ct);
 
@@ -141,6 +144,8 @@ public class LocalizationService : ILocalizationService
 
     public async Task<byte[]> ExportExcelAsync(int? websiteId, string languageCode, bool untranslatedOnly = false, CancellationToken ct = default)
     {
+        await using var _context = await _contextFactory.CreateDbContextAsync(ct);
+
         var query = _context.LocalizationKeys.Where(k => k.WebsiteID == websiteId);
 
         if (untranslatedOnly)
@@ -167,6 +172,8 @@ public class LocalizationService : ILocalizationService
 
     public async Task<LocalizationImportResult> ImportExcelAsync(int? websiteId, string languageCode, Stream excel, CancellationToken ct = default)
     {
+        await using var _context = await _contextFactory.CreateDbContextAsync(ct);
+
         var rows = ExcelWorkbook.Read(excel);
 
         var keys = await _context.LocalizationKeys

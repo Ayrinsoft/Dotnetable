@@ -19,6 +19,7 @@ namespace Dotnetable.Tests.Services;
 public class OrderWarehouseAndGlProjectorTests : IDisposable
 {
     private readonly AppDbContext _context;
+    private readonly TestDbContextFactory _factory;
     private readonly Mock<IWarehouseService> _warehouses = new();
     private readonly Mock<IInventoryService> _inventory = new();
     private readonly Mock<IVendorProductService> _vendorProducts = new();
@@ -36,6 +37,9 @@ public class OrderWarehouseAndGlProjectorTests : IDisposable
             .UseInMemoryDatabase(Guid.NewGuid().ToString())
             .Options;
         _context = new AppDbContext(opts);
+        // Services open a context per call now, so they get a _factory over the same options;
+        // the fixture keeps its own _context for seeding and asserting.
+        _factory = new TestDbContextFactory(opts);
 
         _coa.Setup(c => c.EnsureSeededAsync(It.IsAny<int>(), It.IsAny<CancellationToken>()))
             .Returns(async (int websiteId, CancellationToken ct) =>
@@ -99,8 +103,8 @@ public class OrderWarehouseAndGlProjectorTests : IDisposable
         _journals.Setup(j => j.PostAsync(It.IsAny<int>(), It.IsAny<int?>(), It.IsAny<CancellationToken>()))
             .ReturnsAsync((true, (string?)null));
 
-        _projector = new GlProjector(_context, _coa.Object, _journals.Object, NullLogger<GlProjector>.Instance);
-        _ledger = new FinancialLedgerService(_context, _projector);
+        _projector = new GlProjector(_factory, _coa.Object, _journals.Object, NullLogger<GlProjector>.Instance);
+        _ledger = new FinancialLedgerService(_factory, _projector);
 
         _warehouses.Setup(w => w.EnsureDefaultAsync(It.IsAny<int>(), It.IsAny<CancellationToken>()))
             .Returns(Task.CompletedTask);
@@ -139,7 +143,7 @@ public class OrderWarehouseAndGlProjectorTests : IDisposable
             .Returns(Task.CompletedTask);
 
         _stockDocs = new StockDocumentService(
-            _context, _warehouses.Object, _inventory.Object, _vendorProducts.Object,
+            _factory, _warehouses.Object, _inventory.Object, _vendorProducts.Object,
             _notifications.Object, _ledger);
 
         SeedCatalog();
@@ -440,7 +444,7 @@ public class OrderWarehouseAndGlProjectorTests : IDisposable
         var wa = new Mock<IWhatsAppSender>();
 
         return new OrderService(
-            _context, _inventory.Object, _vendorProducts.Object, shipping.Object, tax.Object, coupons.Object,
+            _factory, _inventory.Object, _vendorProducts.Object, shipping.Object, tax.Object, coupons.Object,
             currency.Object, cart.Object, _notifications.Object, credit.Object, digital.Object,
             email.Object, sms.Object, wa.Object, _ledger, _stockDocs, _warehouses.Object,
             NullLogger<OrderService>.Instance);

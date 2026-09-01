@@ -9,14 +9,16 @@ namespace Dotnetable.Infrastructure.Services;
 
 public class ProductCategoryService : IProductCategoryService
 {
-    private readonly AppDbContext _context;
+    private readonly IDbContextFactory<AppDbContext> _contextFactory;
 
-    public ProductCategoryService(AppDbContext context) => _context = context;
+    public ProductCategoryService(IDbContextFactory<AppDbContext> contextFactory) => _contextFactory = contextFactory;
 
     // ── Admin management ────────────────────────────────────────────
 
     public async Task<List<ProductCategory>> GetAllAsync(int? websiteId, CancellationToken ct = default)
     {
+        await using var _context = await _contextFactory.CreateDbContextAsync(ct);
+
         var q = _context.ProductCategories.AsNoTracking();
         if (websiteId is int wid)
             q = q.Where(c => c.WebsiteID == wid);
@@ -25,6 +27,8 @@ public class ProductCategoryService : IProductCategoryService
 
     public async Task<PagedResult<ProductCategory>> GetPagedAsync(int? websiteId, GridQuery query, CancellationToken ct = default)
     {
+        await using var _context = await _contextFactory.CreateDbContextAsync(ct);
+
         var q = _context.ProductCategories.AsNoTracking();
         if (websiteId is int wid)
             q = q.Where(c => c.WebsiteID == wid);
@@ -45,13 +49,18 @@ public class ProductCategoryService : IProductCategoryService
         return new PagedResult<ProductCategory> { Items = items, TotalCount = total };
     }
 
-    public async Task<ProductCategory?> GetByIdAsync(int productCategoryId, CancellationToken ct = default) =>
-        await _context.ProductCategories.FindAsync([productCategoryId], ct);
+    public async Task<ProductCategory?> GetByIdAsync(int productCategoryId, CancellationToken ct = default)
+    {
+        await using var _context = await _contextFactory.CreateDbContextAsync(ct);
+
+        return await _context.ProductCategories.FindAsync([productCategoryId], ct);
+    }
 
     public async Task<ProductCategory> CreateAsync(ProductCategory category, CancellationToken ct = default)
     {
+        await using var _context = await _contextFactory.CreateDbContextAsync(ct);
+
         NormalizeOptionalFks(category);
-        DetachTracked(_context.ProductCategories, category.ProductCategoryID, c => c.ProductCategoryID);
         _context.ProductCategories.Add(category);
         await _context.SaveChangesAsync(ct);
         // Blazor Server keeps AppDbContext for the whole circuit; detach so a later
@@ -62,8 +71,9 @@ public class ProductCategoryService : IProductCategoryService
 
     public async Task UpdateAsync(ProductCategory category, CancellationToken ct = default)
     {
+        await using var _context = await _contextFactory.CreateDbContextAsync(ct);
+
         NormalizeOptionalFks(category);
-        DetachTracked(_context.ProductCategories, category.ProductCategoryID, c => c.ProductCategoryID);
         _context.ProductCategories.Update(category);
         await _context.SaveChangesAsync(ct);
         _context.Entry(category).State = EntityState.Detached;
@@ -71,7 +81,8 @@ public class ProductCategoryService : IProductCategoryService
 
     public async Task DeleteAsync(int productCategoryId, CancellationToken ct = default)
     {
-        DetachTracked(_context.ProductCategories, productCategoryId, c => c.ProductCategoryID);
+        await using var _context = await _contextFactory.CreateDbContextAsync(ct);
+
         var category = await _context.ProductCategories
             .Include(c => c.ProductCategoryTranslations)
             .Include(c => c.ProductCategoryMaps)
@@ -97,26 +108,22 @@ public class ProductCategoryService : IProductCategoryService
         if (category.ParentCategoryID is 0) category.ParentCategoryID = null;
     }
 
-    /// <summary>Detaches any stale tracked instance with the same key before an Add/Update. AppDbContext is
-    /// scoped per Blazor Server circuit (not per request), so an entity saved earlier in the same session
-    /// stays tracked and would otherwise collide with a fresh detached copy carrying the same primary key.</summary>
-    private void DetachTracked<TEntity>(DbSet<TEntity> set, int key, Func<TEntity, int> keySelector) where TEntity : class
-    {
-        if (key == 0) return;
-        var local = set.Local.FirstOrDefault(e => keySelector(e) == key);
-        if (local is not null)
-            _context.Entry(local).State = EntityState.Detached;
-    }
 
     // ── Translations ────────────────────────────────────────────────
 
-    public async Task<List<ProductCategoryTranslation>> GetTranslationsAsync(int productCategoryId, CancellationToken ct = default) =>
-        await _context.ProductCategoryTranslations.AsNoTracking()
+    public async Task<List<ProductCategoryTranslation>> GetTranslationsAsync(int productCategoryId, CancellationToken ct = default)
+    {
+        await using var _context = await _contextFactory.CreateDbContextAsync(ct);
+
+        return await _context.ProductCategoryTranslations.AsNoTracking()
             .Where(t => t.ProductCategoryID == productCategoryId)
             .ToListAsync(ct);
+    }
 
     public async Task SetTranslationsAsync(int productCategoryId, IReadOnlyDictionary<string, (string Name, string Slug)> byLanguage, CancellationToken ct = default)
     {
+        await using var _context = await _contextFactory.CreateDbContextAsync(ct);
+
         var existing = await _context.ProductCategoryTranslations
             .Where(t => t.ProductCategoryID == productCategoryId)
             .ToListAsync(ct);
@@ -153,18 +160,24 @@ public class ProductCategoryService : IProductCategoryService
 
     // ── Category ↔ attribute definitions ────────────────────────────
 
-    public async Task<List<int>> GetAttributeDefinitionIdsAsync(int productCategoryId, CancellationToken ct = default) =>
-        await _context.ProductCategoryAttributes.AsNoTracking()
+    public async Task<List<int>> GetAttributeDefinitionIdsAsync(int productCategoryId, CancellationToken ct = default)
+    {
+        await using var _context = await _contextFactory.CreateDbContextAsync(ct);
+
+        return await _context.ProductCategoryAttributes.AsNoTracking()
             .Where(a => a.ProductCategoryID == productCategoryId)
             .OrderBy(a => a.SortOrder)
             .Select(a => a.AttributeDefinitionID)
             .ToListAsync(ct);
+    }
 
     public async Task SetAttributeDefinitionIdsAsync(
         int productCategoryId,
         IReadOnlyList<int> attributeDefinitionIds,
         CancellationToken ct = default)
     {
+        await using var _context = await _contextFactory.CreateDbContextAsync(ct);
+
         var existing = await _context.ProductCategoryAttributes
             .Where(a => a.ProductCategoryID == productCategoryId)
             .ToListAsync(ct);
@@ -224,8 +237,10 @@ public class ProductCategoryService : IProductCategoryService
         bool includeAncestors = true,
         CancellationToken ct = default)
     {
+        await using var _context = await _contextFactory.CreateDbContextAsync(ct);
+
         var categoryIds = includeAncestors
-            ? await ResolveCategoryAncestorChainAsync(productCategoryId, ct)
+            ? await ResolveCategoryAncestorChainAsync(_context, productCategoryId, ct)
             : new List<int> { productCategoryId };
         if (categoryIds.Count == 0) return new List<AttributeDefinition>();
 
@@ -269,6 +284,8 @@ public class ProductCategoryService : IProductCategoryService
         string? languageCode = null,
         CancellationToken ct = default)
     {
+        await using var _context = await _contextFactory.CreateDbContextAsync(ct);
+
         if (string.IsNullOrWhiteSpace(categorySlug)) return new List<CategoryAttributeFilterDto>();
 
         var category = await _context.ProductCategories.AsNoTracking()
@@ -307,7 +324,7 @@ public class ProductCategoryService : IProductCategoryService
     }
 
     /// <summary>Category + ancestors from leaf to root (leaf first).</summary>
-    private async Task<List<int>> ResolveCategoryAncestorChainAsync(int productCategoryId, CancellationToken ct)
+    private async Task<List<int>> ResolveCategoryAncestorChainAsync(AppDbContext _context, int productCategoryId, CancellationToken ct)
     {
         var result = new List<int>();
         var currentId = (int?)productCategoryId;
@@ -339,6 +356,8 @@ public class ProductCategoryService : IProductCategoryService
 
     public async Task<List<ProductCategoryDto>> GetTreeAsync(int websiteId, string? languageCode = null, CancellationToken ct = default)
     {
+        await using var _context = await _contextFactory.CreateDbContextAsync(ct);
+
         var categories = await _context.ProductCategories.AsNoTracking()
             .Where(c => c.WebsiteID == websiteId && c.IsActive)
             .Include(c => c.ProductCategoryTranslations)
@@ -353,6 +372,8 @@ public class ProductCategoryService : IProductCategoryService
 
     public async Task<ProductCategoryDto?> GetBySlugAsync(int websiteId, string slug, string? languageCode = null, CancellationToken ct = default)
     {
+        await using var _context = await _contextFactory.CreateDbContextAsync(ct);
+
         var category = await _context.ProductCategories.AsNoTracking()
             .Include(c => c.ProductCategoryTranslations)
             .Include(c => c.ImageFile)

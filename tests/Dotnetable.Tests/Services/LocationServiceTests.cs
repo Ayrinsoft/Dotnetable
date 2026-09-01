@@ -18,7 +18,7 @@ public class LocationServiceTests : IDisposable
             .UseInMemoryDatabase(Guid.NewGuid().ToString())
             .Options;
         _context = new AppDbContext(options);
-        _service = new LocationService(_context);
+        _service = new LocationService(new TestDbContextFactory(options));
     }
 
     [Fact]

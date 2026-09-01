@@ -746,12 +746,21 @@ public partial class AppDbContext : DbContext
             entity.HasIndex(e => e.OrderID, "IX_CustomerReturnRequests_Order");
             entity.HasIndex(e => new { e.WebsiteClientID, e.CreatedAt }, "IX_CustomerReturnRequests_Client");
             entity.HasIndex(e => e.ReceivedWarehouseID, "IX_CustomerReturnRequests_ReceivedWarehouse");
-            entity.HasOne(d => d.Website).WithMany().HasForeignKey(d => d.WebsiteID).OnDelete(DeleteBehavior.ClientSetNull);
-            entity.HasOne(d => d.Order).WithMany().HasForeignKey(d => d.OrderID).OnDelete(DeleteBehavior.ClientSetNull);
-            entity.HasOne(d => d.WebsiteClient).WithMany().HasForeignKey(d => d.WebsiteClientID).OnDelete(DeleteBehavior.ClientSetNull);
-            entity.HasOne(d => d.StockDocument).WithMany().HasForeignKey(d => d.StockDocumentID);
-            entity.HasOne(d => d.ReviewedByMember).WithMany().HasForeignKey(d => d.ReviewedByMemberID);
-            entity.HasOne(d => d.ReceivedWarehouse).WithMany().HasForeignKey(d => d.ReceivedWarehouseID);
+            // Constraint names are pinned so the model, the SSDT scripts and a live database all agree.
+            // Without them EF invents its own long defaults and Schema Compare sees every one of these
+            // as a rename against the short names the .sql files declare.
+            entity.HasOne(d => d.Website).WithMany().HasForeignKey(d => d.WebsiteID).OnDelete(DeleteBehavior.ClientSetNull)
+                .HasConstraintName("FK_CustomerReturnRequests_Websites");
+            entity.HasOne(d => d.Order).WithMany().HasForeignKey(d => d.OrderID).OnDelete(DeleteBehavior.ClientSetNull)
+                .HasConstraintName("FK_CustomerReturnRequests_Orders");
+            entity.HasOne(d => d.WebsiteClient).WithMany().HasForeignKey(d => d.WebsiteClientID).OnDelete(DeleteBehavior.ClientSetNull)
+                .HasConstraintName("FK_CustomerReturnRequests_WebsiteClients");
+            entity.HasOne(d => d.StockDocument).WithMany().HasForeignKey(d => d.StockDocumentID)
+                .HasConstraintName("FK_CustomerReturnRequests_StockDocuments");
+            entity.HasOne(d => d.ReviewedByMember).WithMany().HasForeignKey(d => d.ReviewedByMemberID)
+                .HasConstraintName("FK_CustomerReturnRequests_Members");
+            entity.HasOne(d => d.ReceivedWarehouse).WithMany().HasForeignKey(d => d.ReceivedWarehouseID)
+                .HasConstraintName("FK_CustomerReturnRequests_ReceivedWarehouse");
         });
         modelBuilder.Entity<CustomerReturnRequestLine>(entity =>
         {
@@ -763,15 +772,19 @@ public partial class AppDbContext : DbContext
             entity.Property(e => e.HealthGrade).HasDefaultValue((byte)0);
             entity.HasIndex(e => e.CustomerReturnRequestID, "IX_CustomerReturnRequestLines_Request");
             entity.HasIndex(e => e.OrderItemID, "IX_CustomerReturnRequestLines_OrderItem");
-            entity.HasOne(d => d.ReturnRequest).WithMany(p => p.Lines).HasForeignKey(d => d.CustomerReturnRequestID).OnDelete(DeleteBehavior.ClientSetNull);
-            entity.HasOne(d => d.OrderItem).WithMany().HasForeignKey(d => d.OrderItemID).OnDelete(DeleteBehavior.ClientSetNull);
+            entity.HasOne(d => d.ReturnRequest).WithMany(p => p.Lines).HasForeignKey(d => d.CustomerReturnRequestID).OnDelete(DeleteBehavior.ClientSetNull)
+                .HasConstraintName("FK_CustomerReturnRequestLines_Requests");
+            entity.HasOne(d => d.OrderItem).WithMany().HasForeignKey(d => d.OrderItemID).OnDelete(DeleteBehavior.ClientSetNull)
+                .HasConstraintName("FK_CustomerReturnRequestLines_OrderItems");
         });
         modelBuilder.Entity<CustomerReturnRequestHistory>(entity =>
         {
             entity.Property(e => e.Note).HasMaxLength(500);
             entity.HasIndex(e => new { e.CustomerReturnRequestID, e.CreatedAt }, "IX_CustomerReturnRequestHistories_Request");
-            entity.HasOne(d => d.ReturnRequest).WithMany(p => p.Histories).HasForeignKey(d => d.CustomerReturnRequestID).OnDelete(DeleteBehavior.ClientSetNull);
-            entity.HasOne(d => d.CreatedByMember).WithMany().HasForeignKey(d => d.CreatedByMemberID);
+            entity.HasOne(d => d.ReturnRequest).WithMany(p => p.Histories).HasForeignKey(d => d.CustomerReturnRequestID).OnDelete(DeleteBehavior.ClientSetNull)
+                .HasConstraintName("FK_CustomerReturnRequestHistories_Requests");
+            entity.HasOne(d => d.CreatedByMember).WithMany().HasForeignKey(d => d.CreatedByMemberID)
+                .HasConstraintName("FK_CustomerReturnRequestHistories_Members");
         });
         modelBuilder.Entity<RecordAttachment>(entity =>
         {

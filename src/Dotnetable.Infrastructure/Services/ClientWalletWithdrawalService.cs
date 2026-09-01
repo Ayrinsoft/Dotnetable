@@ -10,16 +10,16 @@ namespace Dotnetable.Infrastructure.Services;
 
 public class ClientWalletWithdrawalService : IClientWalletWithdrawalService
 {
-    private readonly AppDbContext _context;
+    private readonly IDbContextFactory<AppDbContext> _contextFactory;
     private readonly IClientWalletService _wallets;
     private readonly IAdminNotificationService _notifications;
     private readonly ICurrencyConversionService _currency;
 
     public ClientWalletWithdrawalService(
-        AppDbContext context, IClientWalletService wallets, IAdminNotificationService notifications,
+        IDbContextFactory<AppDbContext> contextFactory, IClientWalletService wallets, IAdminNotificationService notifications,
         ICurrencyConversionService currency)
     {
-        _context = context;
+        _contextFactory = contextFactory;
         _wallets = wallets;
         _notifications = notifications;
         _currency = currency;
@@ -29,6 +29,8 @@ public class ClientWalletWithdrawalService : IClientWalletWithdrawalService
         int websiteId, int clientId, int clientBankAccountId, decimal amount,
         string? currencyCode = null, CancellationToken ct = default)
     {
+        await using var _context = await _contextFactory.CreateDbContextAsync(ct);
+
         if (amount <= 0)
             throw new InvalidOperationException("Withdrawal amount must be greater than zero.");
 
@@ -90,6 +92,8 @@ public class ClientWalletWithdrawalService : IClientWalletWithdrawalService
 
     public async Task<PagedResult<ClientWalletWithdrawal>> GetPagedAsync(int? websiteId, byte? status, GridQuery query, CancellationToken ct = default)
     {
+        await using var _context = await _contextFactory.CreateDbContextAsync(ct);
+
         var q = _context.ClientWalletWithdrawals.AsNoTracking()
             .Include(w => w.WebsiteClient)
             .Include(w => w.ClientBankAccount)
@@ -115,6 +119,8 @@ public class ClientWalletWithdrawalService : IClientWalletWithdrawalService
 
     public async Task<IReadOnlyDictionary<byte, int>> GetStatusCountsAsync(int? websiteId, CancellationToken ct = default)
     {
+        await using var _context = await _contextFactory.CreateDbContextAsync(ct);
+
         var q = _context.ClientWalletWithdrawals.AsNoTracking().AsQueryable();
         if (websiteId is int wid)
             q = q.Where(w => w.WebsiteID == wid);
@@ -129,6 +135,8 @@ public class ClientWalletWithdrawalService : IClientWalletWithdrawalService
 
     public async Task<PagedResult<ClientWalletWithdrawal>> GetByClientIdAsync(int clientId, GridQuery query, CancellationToken ct = default)
     {
+        await using var _context = await _contextFactory.CreateDbContextAsync(ct);
+
         var q = _context.ClientWalletWithdrawals.AsNoTracking()
             .Include(w => w.ClientBankAccount)
             .Where(w => w.WebsiteClientID == clientId);
@@ -144,6 +152,8 @@ public class ClientWalletWithdrawalService : IClientWalletWithdrawalService
 
     public async Task<bool> ApproveAsync(int withdrawalId, int memberId, string? paymentRefNumber, CancellationToken ct = default)
     {
+        await using var _context = await _contextFactory.CreateDbContextAsync(ct);
+
         var withdrawal = await _context.ClientWalletWithdrawals
             .FirstOrDefaultAsync(w => w.ClientWalletWithdrawalID == withdrawalId, ct);
         if (withdrawal is null || withdrawal.Status != (byte)ClientWalletWithdrawalStatus.Pending)
@@ -161,6 +171,8 @@ public class ClientWalletWithdrawalService : IClientWalletWithdrawalService
 
     public async Task<bool> RejectAsync(int withdrawalId, int memberId, string reason, CancellationToken ct = default)
     {
+        await using var _context = await _contextFactory.CreateDbContextAsync(ct);
+
         var withdrawal = await _context.ClientWalletWithdrawals
             .FirstOrDefaultAsync(w => w.ClientWalletWithdrawalID == withdrawalId, ct);
         if (withdrawal is null || withdrawal.Status != (byte)ClientWalletWithdrawalStatus.Pending)
@@ -195,6 +207,8 @@ public class ClientWalletWithdrawalService : IClientWalletWithdrawalService
         string? currencyCode, string? note, string? paymentRef, int memberId,
         DateTime? paidAtUtc = null, CancellationToken ct = default)
     {
+        await using var _context = await _contextFactory.CreateDbContextAsync(ct);
+
         if (amount <= 0)
             return (false, "Withdrawal amount must be greater than zero.", null);
         if (string.IsNullOrWhiteSpace(note))

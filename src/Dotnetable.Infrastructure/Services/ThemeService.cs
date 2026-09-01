@@ -23,19 +23,19 @@ public class ThemeService : IThemeService
 
     private static readonly Regex SlugRegex = new(@"^[a-zA-Z0-9][a-zA-Z0-9_-]{0,63}$", RegexOptions.Compiled);
 
-    private readonly AppDbContext _context;
+    private readonly IDbContextFactory<AppDbContext> _contextFactory;
     private readonly string _themesRoot;
 
-    public ThemeService(AppDbContext context, IConfiguration configuration, IHostEnvironment env)
+    public ThemeService(IDbContextFactory<AppDbContext> contextFactory, IConfiguration configuration, IHostEnvironment env)
     {
-        _context = context;
+        _contextFactory = contextFactory;
         _themesRoot = ResolveThemesRoot(configuration, env.ContentRootPath);
     }
 
     /// <summary>Test-friendly constructor with an explicit themes root.</summary>
-    public ThemeService(AppDbContext context, string themesRoot)
+    public ThemeService(IDbContextFactory<AppDbContext> contextFactory, string themesRoot)
     {
-        _context = context;
+        _contextFactory = contextFactory;
         _themesRoot = Path.GetFullPath(themesRoot);
     }
 
@@ -53,6 +53,8 @@ public class ThemeService : IThemeService
 
     public async Task<List<ThemePackageDto>> GetThemesAsync(int websiteId, CancellationToken ct = default)
     {
+        await using var _context = await _contextFactory.CreateDbContextAsync(ct);
+
         var packages = await _context.WebsiteThemes.AsNoTracking()
             .Where(t => t.WebsiteID == websiteId)
             .OrderByDescending(t => t.IsActive)
@@ -74,6 +76,8 @@ public class ThemeService : IThemeService
 
     public async Task<ThemePackageDto?> GetThemeAsync(int websiteId, string slug, CancellationToken ct = default)
     {
+        await using var _context = await _contextFactory.CreateDbContextAsync(ct);
+
         if (IsBuiltin(slug))
         {
             var anyActive = await _context.WebsiteThemes.AsNoTracking()
@@ -86,11 +90,20 @@ public class ThemeService : IThemeService
         return entity is null ? null : ToDto(entity);
     }
 
-    public Task<WebsiteTheme?> GetThemeEntityAsync(int themeId, CancellationToken ct = default) =>
-        _context.WebsiteThemes.FirstOrDefaultAsync(t => t.WebsiteThemeID == themeId, ct);
+    public async Task<WebsiteTheme?> GetThemeEntityAsync(int themeId, CancellationToken ct = default)
+    {
+        await using var _context = await _contextFactory.CreateDbContextAsync(ct);
+
+        // AsNoTracking because the context closes with this method: a tracked entity handed back to a
+        // caller that then edits it would have nowhere to save.
+        return await _context.WebsiteThemes.AsNoTracking()
+            .FirstOrDefaultAsync(t => t.WebsiteThemeID == themeId, ct);
+    }
 
     public async Task ActivateThemeAsync(int websiteId, string slug, CancellationToken ct = default)
     {
+        await using var _context = await _contextFactory.CreateDbContextAsync(ct);
+
         slug = NormalizeSlug(slug);
 
         var packages = await _context.WebsiteThemes
@@ -117,6 +130,8 @@ public class ThemeService : IThemeService
 
     public async Task DeleteThemeAsync(int websiteId, string slug, CancellationToken ct = default)
     {
+        await using var _context = await _contextFactory.CreateDbContextAsync(ct);
+
         slug = NormalizeSlug(slug);
         if (IsBuiltin(slug))
             throw new InvalidOperationException("The built-in Default theme cannot be deleted.");
@@ -138,6 +153,8 @@ public class ThemeService : IThemeService
     public async Task<ThemePackageDto> InstallFromZipAsync(
         int websiteId, Stream zipStream, string? originalFileName = null, CancellationToken ct = default)
     {
+        await using var _context = await _contextFactory.CreateDbContextAsync(ct);
+
         Directory.CreateDirectory(_themesRoot);
 
         var tempRoot = Path.Combine(Path.GetTempPath(), "dn-theme-" + Guid.NewGuid().ToString("N"));
@@ -229,6 +246,8 @@ public class ThemeService : IThemeService
     public async Task<(byte[] Bytes, string FileName)> ExportZipAsync(
         int websiteId, string slug, CancellationToken ct = default)
     {
+        await using var _context = await _contextFactory.CreateDbContextAsync(ct);
+
         slug = NormalizeSlug(slug);
         string sourceDir;
         string fileName;
@@ -260,6 +279,8 @@ public class ThemeService : IThemeService
 
     public async Task<ActiveThemeDto> GetActiveThemeAsync(int websiteId, CancellationToken ct = default)
     {
+        await using var _context = await _contextFactory.CreateDbContextAsync(ct);
+
         var active = await _context.WebsiteThemes.AsNoTracking()
             .FirstOrDefaultAsync(t => t.WebsiteID == websiteId && t.IsActive, ct);
 

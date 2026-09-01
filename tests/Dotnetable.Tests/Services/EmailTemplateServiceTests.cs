@@ -24,7 +24,10 @@ public class EmailTemplateServiceTests : IDisposable
             .UseInMemoryDatabase(Guid.NewGuid().ToString())
             .Options;
         _context = new AppDbContext(opts);
-        _service = new EmailTemplateService(_context);
+        // Services open a context per call now, so they get a factory over the same options;
+        // the fixture keeps its own _context for seeding and asserting.
+        var factory = new TestDbContextFactory(opts);
+        _service = new EmailTemplateService(factory);
 
         _context.Websites.Add(new Website
         {
@@ -70,6 +73,10 @@ public class EmailTemplateServiceTests : IDisposable
             ["fa"] = ("خوش آمدید", "<p dir=\"rtl\">سلام</p>"),
         });
 
+        // The service wrote through its own short-lived context, so this fixture's context must
+        // re-read rather than answer from entities it is still tracking.
+        _context.ChangeTracker.Clear();
+
         var own = await _context.EmailTemplates.SingleAsync(t => t.WebsiteID == WebsiteId && t.TemplateKey == EmailTemplateKeys.Welcome);
         own.Subject.Should().Be("Welcome EN"); // cloned from master
 
@@ -95,6 +102,10 @@ public class EmailTemplateServiceTests : IDisposable
             ["fa"] = ("", ""),
         });
 
+        // The service wrote through its own short-lived context, so this fixture's context must
+        // re-read rather than answer from entities it is still tracking.
+        _context.ChangeTracker.Clear();
+
         (await _context.EmailTemplateTranslations.CountAsync()).Should().Be(0);
         var fa = await _service.GetAsync(WebsiteId, EmailTemplateKeys.Welcome, "fa");
         fa!.Subject.Should().Be("Welcome EN");
@@ -118,6 +129,10 @@ public class EmailTemplateServiceTests : IDisposable
         });
 
         await _service.ResetToDefaultAsync(WebsiteId, EmailTemplateKeys.Welcome);
+
+        // The service wrote through its own short-lived context, so this fixture's context must
+        // re-read rather than answer from entities it is still tracking.
+        _context.ChangeTracker.Clear();
 
         (await _context.EmailTemplates.AnyAsync(t => t.WebsiteID == WebsiteId)).Should().BeFalse();
         (await _context.EmailTemplateTranslations.CountAsync()).Should().Be(0);

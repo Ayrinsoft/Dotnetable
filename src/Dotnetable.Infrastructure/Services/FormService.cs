@@ -15,12 +15,12 @@ public class FormService : IFormService
     /// <summary>Free-text sample size shown per field in the aggregate report.</summary>
     private const int TextSampleCount = 10;
 
-    private readonly AppDbContext _context;
+    private readonly IDbContextFactory<AppDbContext> _contextFactory;
     private readonly IAdminNotificationService _notifications;
 
-    public FormService(AppDbContext context, IAdminNotificationService notifications)
+    public FormService(IDbContextFactory<AppDbContext> contextFactory, IAdminNotificationService notifications)
     {
-        _context = context;
+        _contextFactory = contextFactory;
         _notifications = notifications;
     }
 
@@ -28,6 +28,8 @@ public class FormService : IFormService
 
     public async Task<List<Form>> GetFormsAsync(int? websiteId, CancellationToken ct = default)
     {
+        await using var _context = await _contextFactory.CreateDbContextAsync(ct);
+
         var q = _context.Forms.AsNoTracking();
         if (websiteId is int wid)
             q = q.Where(f => f.WebsiteID == wid);
@@ -55,6 +57,8 @@ public class FormService : IFormService
 
     public async Task<PagedResult<Form>> GetPagedAsync(int? websiteId, GridQuery query, CancellationToken ct = default)
     {
+        await using var _context = await _contextFactory.CreateDbContextAsync(ct);
+
         var q = _context.Forms.AsNoTracking();
         if (websiteId is int wid)
             q = q.Where(f => f.WebsiteID == wid);
@@ -96,14 +100,20 @@ public class FormService : IFormService
         return new PagedResult<Form> { Items = items, TotalCount = total };
     }
 
-    public async Task<Form?> GetFormAsync(int formId, CancellationToken ct = default) =>
-        await _context.Forms.AsNoTracking()
+    public async Task<Form?> GetFormAsync(int formId, CancellationToken ct = default)
+    {
+        await using var _context = await _contextFactory.CreateDbContextAsync(ct);
+
+        return await _context.Forms.AsNoTracking()
             .Include(f => f.FormFields.OrderBy(x => x.SortOrder).ThenBy(x => x.FormFieldID))
                 .ThenInclude(x => x.FormFieldOptions.OrderBy(o => o.SortOrder).ThenBy(o => o.FormFieldOptionID))
             .FirstOrDefaultAsync(f => f.FormID == formId, ct);
+    }
 
     public async Task<Form> CreateFormAsync(Form form, CancellationToken ct = default)
     {
+        await using var _context = await _contextFactory.CreateDbContextAsync(ct);
+
         form.Slug = NormalizeSlug(form.Slug, form.Title);
         form.CreatedAt = DateTime.UtcNow;
         _context.Forms.Add(form);
@@ -113,6 +123,8 @@ public class FormService : IFormService
 
     public async Task UpdateFormAsync(Form form, CancellationToken ct = default)
     {
+        await using var _context = await _contextFactory.CreateDbContextAsync(ct);
+
         form.Slug = NormalizeSlug(form.Slug, form.Title);
         _context.Forms.Update(form);
         await _context.SaveChangesAsync(ct);
@@ -120,6 +132,8 @@ public class FormService : IFormService
 
     public async Task DeleteFormAsync(int formId, CancellationToken ct = default)
     {
+        await using var _context = await _contextFactory.CreateDbContextAsync(ct);
+
         var form = await _context.Forms
             .Include(f => f.FormFields).ThenInclude(x => x.FormFieldOptions)
             .Include(f => f.FormResponses).ThenInclude(r => r.FormResponseValues)
@@ -136,15 +150,21 @@ public class FormService : IFormService
 
     // ── Admin: fields ───────────────────────────────────────────────
 
-    public async Task<List<FormField>> GetFieldsAsync(int formId, CancellationToken ct = default) =>
-        await _context.FormFields.AsNoTracking()
+    public async Task<List<FormField>> GetFieldsAsync(int formId, CancellationToken ct = default)
+    {
+        await using var _context = await _contextFactory.CreateDbContextAsync(ct);
+
+        return await _context.FormFields.AsNoTracking()
             .Include(x => x.FormFieldOptions.OrderBy(o => o.SortOrder).ThenBy(o => o.FormFieldOptionID))
             .Where(x => x.FormID == formId)
             .OrderBy(x => x.SortOrder).ThenBy(x => x.FormFieldID)
             .ToListAsync(ct);
+    }
 
     public async Task<FormField> SaveFieldAsync(FormField field, List<FormFieldOption> options, CancellationToken ct = default)
     {
+        await using var _context = await _contextFactory.CreateDbContextAsync(ct);
+
         if (field.FormFieldID == 0)
         {
             if (field.SortOrder == 0)
@@ -179,6 +199,8 @@ public class FormService : IFormService
 
     public async Task DeleteFieldAsync(int fieldId, CancellationToken ct = default)
     {
+        await using var _context = await _contextFactory.CreateDbContextAsync(ct);
+
         var field = await _context.FormFields
             .Include(x => x.FormFieldOptions)
             .Include(x => x.FormResponseValues)
@@ -193,6 +215,8 @@ public class FormService : IFormService
 
     public async Task ReorderFieldsAsync(int formId, List<int> orderedFieldIds, CancellationToken ct = default)
     {
+        await using var _context = await _contextFactory.CreateDbContextAsync(ct);
+
         var fields = await _context.FormFields.Where(x => x.FormID == formId).ToListAsync(ct);
         for (int i = 0; i < orderedFieldIds.Count; i++)
         {
@@ -206,6 +230,8 @@ public class FormService : IFormService
 
     public async Task<FormReportDto?> GetReportAsync(int formId, CancellationToken ct = default)
     {
+        await using var _context = await _contextFactory.CreateDbContextAsync(ct);
+
         var form = await GetFormAsync(formId, ct);
         if (form is null) return null;
 
@@ -241,6 +267,8 @@ public class FormService : IFormService
 
     public async Task<PagedResult<FormResponseListItemDto>> GetResponsesAsync(int formId, int page, int pageSize, CancellationToken ct = default)
     {
+        await using var _context = await _contextFactory.CreateDbContextAsync(ct);
+
         var q = _context.FormResponses.AsNoTracking().Where(r => r.FormID == formId);
         var total = await q.CountAsync(ct);
 
@@ -278,6 +306,8 @@ public class FormService : IFormService
 
     public async Task DeleteResponseAsync(int responseId, CancellationToken ct = default)
     {
+        await using var _context = await _contextFactory.CreateDbContextAsync(ct);
+
         var response = await _context.FormResponses
             .Include(r => r.FormResponseValues)
             .FirstOrDefaultAsync(r => r.FormResponseID == responseId, ct);
@@ -290,6 +320,8 @@ public class FormService : IFormService
 
     public async Task<byte[]> ExportResponsesExcelAsync(int formId, CancellationToken ct = default)
     {
+        await using var _context = await _contextFactory.CreateDbContextAsync(ct);
+
         var form = await GetFormAsync(formId, ct)
             ?? throw new InvalidOperationException($"Form {formId} not found.");
 
@@ -336,20 +368,26 @@ public class FormService : IFormService
 
     public async Task<FormDto?> GetPublicFormAsync(int websiteId, string slug, CancellationToken ct = default)
     {
-        var form = await LoadPublicFormQuery(websiteId)
+        await using var _context = await _contextFactory.CreateDbContextAsync(ct);
+
+        var form = await LoadPublicFormQuery(_context, websiteId)
             .FirstOrDefaultAsync(f => f.Slug == slug, ct);
         return form is null ? null : ProjectPublic(form);
     }
 
     public async Task<FormDto?> GetPublicFormByIdAsync(int websiteId, int formId, CancellationToken ct = default)
     {
-        var form = await LoadPublicFormQuery(websiteId)
+        await using var _context = await _contextFactory.CreateDbContextAsync(ct);
+
+        var form = await LoadPublicFormQuery(_context, websiteId)
             .FirstOrDefaultAsync(f => f.FormID == formId, ct);
         return form is null ? null : ProjectPublic(form);
     }
 
     public async Task<FormSubmissionResult> SubmitAsync(int websiteId, int formId, int? websiteClientId, string senderIp, FormSubmissionRequest request, CancellationToken ct = default)
     {
+        await using var _context = await _contextFactory.CreateDbContextAsync(ct);
+
         var form = await _context.Forms.AsNoTracking()
             .Include(f => f.FormFields.Where(x => x.IsActive))
                 .ThenInclude(x => x.FormFieldOptions)
@@ -429,6 +467,8 @@ public class FormService : IFormService
 
     public async Task<FormPublicResultsDto?> GetPublicResultsAsync(int websiteId, int formId, CancellationToken ct = default)
     {
+        await using var _context = await _contextFactory.CreateDbContextAsync(ct);
+
         var allowed = await _context.Forms.AsNoTracking()
             .AnyAsync(f => f.FormID == formId && f.WebsiteID == websiteId && f.IsActive && f.ShowResults, ct);
         if (!allowed) return null;
@@ -459,7 +499,8 @@ public class FormService : IFormService
 
     // ── Helpers ─────────────────────────────────────────────────────
 
-    private IQueryable<Form> LoadPublicFormQuery(int websiteId) =>
+    // Takes the caller's context: an IQueryable is only usable while the context that built it is alive.
+    private static IQueryable<Form> LoadPublicFormQuery(AppDbContext _context, int websiteId) =>
         _context.Forms.AsNoTracking()
             .Where(f => f.WebsiteID == websiteId && f.IsActive)
             .Include(f => f.FormFields.Where(x => x.IsActive))

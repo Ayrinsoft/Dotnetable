@@ -8,12 +8,12 @@ namespace Dotnetable.Infrastructure.Services;
 
 public class ProductReviewService : IProductReviewService
 {
-    private readonly AppDbContext _context;
+    private readonly IDbContextFactory<AppDbContext> _contextFactory;
     private readonly IOrderService _orders;
 
-    public ProductReviewService(AppDbContext context, IOrderService orders)
+    public ProductReviewService(IDbContextFactory<AppDbContext> contextFactory, IOrderService orders)
     {
-        _context = context;
+        _contextFactory = contextFactory;
         _orders = orders;
     }
 
@@ -21,6 +21,8 @@ public class ProductReviewService : IProductReviewService
         int websiteId, int clientId, int productId, int? variantId, byte rating,
         string? title, string body, string? prosJson, string? consJson, CancellationToken ct = default)
     {
+        await using var _context = await _contextFactory.CreateDbContextAsync(ct);
+
         var isVerified = await _orders.ClientHasPaidOrderForProductAsync(clientId, productId, ct);
 
         var review = new ProductReview
@@ -46,6 +48,8 @@ public class ProductReviewService : IProductReviewService
 
     public async Task<PagedResult<ProductReview>> GetApprovedAsync(int productId, GridQuery query, CancellationToken ct = default)
     {
+        await using var _context = await _contextFactory.CreateDbContextAsync(ct);
+
         var q = _context.ProductReviews.AsNoTracking()
             .Include(r => r.WebsiteClient)
             .Where(r => r.ProductID == productId && r.Approved);
@@ -56,6 +60,8 @@ public class ProductReviewService : IProductReviewService
 
     public async Task<PagedResult<ProductReview>> GetPendingAsync(int? websiteId, GridQuery query, CancellationToken ct = default)
     {
+        await using var _context = await _contextFactory.CreateDbContextAsync(ct);
+
         var q = _context.ProductReviews.AsNoTracking()
             .Include(r => r.Product).Include(r => r.WebsiteClient)
             .Where(r => r.Status == (byte)ModerationStatus.Pending);
@@ -68,6 +74,8 @@ public class ProductReviewService : IProductReviewService
 
     public async Task<bool> ModerateAsync(int reviewId, bool approve, CancellationToken ct = default)
     {
+        await using var _context = await _contextFactory.CreateDbContextAsync(ct);
+
         var review = await _context.ProductReviews.FirstOrDefaultAsync(r => r.ProductReviewID == reviewId, ct);
         if (review is null) return false;
 
@@ -75,12 +83,14 @@ public class ProductReviewService : IProductReviewService
         review.Status = (byte)(approve ? ModerationStatus.Approved : ModerationStatus.Rejected);
         await _context.SaveChangesAsync(ct);
 
-        await RecomputeRatingAsync(review.ProductID, ct);
+        await RecomputeRatingAsync(_context, review.ProductID, ct);
         return true;
     }
 
     public async Task<bool> DeleteAsync(int reviewId, CancellationToken ct = default)
     {
+        await using var _context = await _contextFactory.CreateDbContextAsync(ct);
+
         var review = await _context.ProductReviews.FirstOrDefaultAsync(r => r.ProductReviewID == reviewId, ct);
         if (review is null) return false;
 
@@ -88,19 +98,27 @@ public class ProductReviewService : IProductReviewService
         _context.ProductReviews.Remove(review);
         await _context.SaveChangesAsync(ct);
 
-        await RecomputeRatingAsync(productId, ct);
+        await RecomputeRatingAsync(_context, productId, ct);
         return true;
     }
 
-    public async Task LikeAsync(int reviewId, CancellationToken ct = default) =>
+    public async Task LikeAsync(int reviewId, CancellationToken ct = default)
+    {
+        await using var _context = await _contextFactory.CreateDbContextAsync(ct);
+
         await _context.ProductReviews.Where(r => r.ProductReviewID == reviewId)
             .ExecuteUpdateAsync(s => s.SetProperty(r => r.LikeCount, r => r.LikeCount + 1), ct);
+    }
 
-    public async Task DislikeAsync(int reviewId, CancellationToken ct = default) =>
+    public async Task DislikeAsync(int reviewId, CancellationToken ct = default)
+    {
+        await using var _context = await _contextFactory.CreateDbContextAsync(ct);
+
         await _context.ProductReviews.Where(r => r.ProductReviewID == reviewId)
             .ExecuteUpdateAsync(s => s.SetProperty(r => r.DislikeCount, r => r.DislikeCount + 1), ct);
+    }
 
-    private async Task RecomputeRatingAsync(int productId, CancellationToken ct)
+    private async Task RecomputeRatingAsync(AppDbContext _context, int productId, CancellationToken ct)
     {
         var approved = await _context.ProductReviews.AsNoTracking()
             .Where(r => r.ProductID == productId && r.Approved)

@@ -24,8 +24,11 @@ public class EmailServiceTests : IDisposable
             .UseInMemoryDatabase(Guid.NewGuid().ToString())
             .Options;
         _context = new AppDbContext(opts);
-        _accounts = new EmailAccountService(_context);
-        _service = new EmailService(_context, new EmailTemplateService(_context));
+        // Services open a context per call now, so they get a factory over the same options;
+        // the fixture keeps its own _context for seeding and asserting.
+        var factory = new TestDbContextFactory(opts);
+        _accounts = new EmailAccountService(factory);
+        _service = new EmailService(factory, new EmailTemplateService(factory));
     }
 
     private static EmailAccount FullRow(int websiteId, EmailAccountType type = EmailAccountType.NoReply, bool isDefault = true) => new()
@@ -193,6 +196,10 @@ public class EmailServiceTests : IDisposable
             Active = true,
         };
         await _accounts.SaveAsync(info);
+
+        // The service wrote through its own short-lived context, so this fixture's context must
+        // re-read rather than answer from entities it is still tracking.
+        _context.ChangeTracker.Clear();
 
         _context.EmailAccounts.Single(a => a.EmailAccountID == first.EmailAccountID).IsDefault.Should().BeFalse();
         _context.EmailAccounts.Count(a => a.IsDefault).Should().Be(1);

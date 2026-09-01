@@ -9,12 +9,14 @@ namespace Dotnetable.Infrastructure.Services;
 
 public class LoginLogService : ILoginLogService
 {
-    private readonly AppDbContext _context;
+    private readonly IDbContextFactory<AppDbContext> _contextFactory;
 
-    public LoginLogService(AppDbContext context) => _context = context;
+    public LoginLogService(IDbContextFactory<AppDbContext> contextFactory) => _contextFactory = contextFactory;
 
     public async Task<PagedResult<LoginTry>> GetPagedAsync(int? websiteId, GridQuery query, CancellationToken ct = default)
     {
+        await using var _context = await _contextFactory.CreateDbContextAsync(ct);
+
         var q = _context.LoginTries.AsNoTracking();
 
         if (websiteId is int wid)
@@ -38,6 +40,8 @@ public class LoginLogService : ILoginLogService
 
     public async Task RecordAsync(string username, int websiteId, bool success, string ip, CancellationToken ct = default)
     {
+        await using var _context = await _contextFactory.CreateDbContextAsync(ct);
+
         _context.LoginTries.Add(new LoginTry
         {
             Username = username.Length > 64 ? username[..64] : username,

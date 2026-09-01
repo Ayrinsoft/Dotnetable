@@ -26,27 +26,17 @@ namespace Dotnetable.Tests.Architecture;
 public class DbContextFieldTests
 {
     /// <summary>
-    /// Services written before the factory rule. Every entry is a service still to be converted to
-    /// <c>IDbContextFactory</c>. Delete names from this list as they are converted; never add one.
+    /// What is left of the pre-rule code. Every entry is a type still to be converted to
+    /// <c>IDbContextFactory</c>. Delete names as they are converted; never add one.
+    ///
+    /// <para><c>GenericRepository</c> and <c>UnitOfWork</c> are registered in DI but resolved by
+    /// nothing, so they cannot cause the circuit race today. They stay listed rather than deleted
+    /// because the moment someone starts using them the problem is back.</para>
     /// </summary>
     private static readonly HashSet<string> Baseline = new(StringComparer.Ordinal)
     {
-        "AccountingReportService", "AttributeDefinitionService", "BankAccountService", "BankService",
-        "BrandService", "CartService", "CategoryService", "ChartOfAccountService", "ClientBankAccountService",
-        "ClientWalletService", "ClientWalletWithdrawalService", "ContactMessageService", "CouponService",
-        "CurrencyConversionService", "CurrencyRateService", "CurrencyService", "DigitalDeliveryService",
-        "EmailAccountService", "EmailService", "EmailTemplateService", "FileService", "FinancialLedgerService",
-        "FiscalPeriodService", "FormService", "GenericRepository`1", "GlProjector", "HrService",
-        "InventoryService", "JournalService", "LanguageService", "LocalizationService", "LocationService",
-        "LoginLogService", "MemberService", "MenuService", "OrderService", "PageService", "PasswordResetService",
-        "PaymentService", "PayrollService", "PolicyService", "PostService", "PostTypeService",
-        "ProductCategoryService", "ProductQuestionService", "ProductReviewService", "ProductService",
-        "RedirectService", "RoleService", "SettlementService", "ShippingService", "SlideshowService",
-        "StockDocumentService", "StockMovementService", "StorageSettingService", "SupplierService",
-        "SupportDeskService", "TagService", "TaxPeriodService", "TaxReportService", "TaxService", "ThemeService",
-        "UnitOfWork", "VendorCreditService", "VendorProductService", "VendorService", "WarehouseService",
-        "WarrantyService", "WebsiteClientAddressService", "WebsiteClientAuthService", "WebsiteClientService",
-        "WebsiteSettingService", "WishlistService",
+        "GenericRepository`1",
+        "UnitOfWork",
     };
 
     [Fact]

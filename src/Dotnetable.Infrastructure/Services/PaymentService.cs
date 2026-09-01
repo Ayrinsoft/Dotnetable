@@ -10,7 +10,7 @@ namespace Dotnetable.Infrastructure.Services;
 
 public class PaymentService : IPaymentService
 {
-    private readonly AppDbContext _context;
+    private readonly IDbContextFactory<AppDbContext> _contextFactory;
     private readonly IClientWalletService _wallet;
     private readonly IOrderService _orders;
     private readonly IAdminNotificationService _notifications;
@@ -18,11 +18,11 @@ public class PaymentService : IPaymentService
     private readonly IStockDocumentService _stockDocs;
 
     public PaymentService(
-        AppDbContext context, IClientWalletService wallet, IOrderService orders,
+        IDbContextFactory<AppDbContext> contextFactory, IClientWalletService wallet, IOrderService orders,
         IAdminNotificationService notifications, IFinancialLedgerService ledger,
         IStockDocumentService stockDocs)
     {
-        _context = context;
+        _contextFactory = contextFactory;
         _wallet = wallet;
         _orders = orders;
         _notifications = notifications;
@@ -32,6 +32,8 @@ public class PaymentService : IPaymentService
 
     public async Task<(bool Success, string? Error, Payment? Payment)> PayWithWalletAsync(int websiteId, int clientId, int orderId, CancellationToken ct = default)
     {
+        await using var _context = await _contextFactory.CreateDbContextAsync(ct);
+
         var order = await _context.Orders.FirstOrDefaultAsync(o => o.OrderID == orderId && o.WebsiteClientID == clientId, ct);
         if (order is null) return (false, "Order not found.", null);
         if (order.Status != (byte)OrderStatus.PendingPayment) return (false, "Order is not awaiting payment.", null);
@@ -87,6 +89,8 @@ public class PaymentService : IPaymentService
     public async Task<(bool Success, string? Error, Payment? Payment)> SubmitBankReceiptAsync(
         int websiteId, int clientId, int orderId, int bankAccountId, int receiptFileId, CancellationToken ct = default)
     {
+        await using var _context = await _contextFactory.CreateDbContextAsync(ct);
+
         var order = await _context.Orders.FirstOrDefaultAsync(o => o.OrderID == orderId && o.WebsiteClientID == clientId, ct);
         if (order is null) return (false, "Order not found.", null);
         if (order.Status != (byte)OrderStatus.PendingPayment) return (false, "Order is not awaiting payment.", null);
@@ -126,6 +130,8 @@ public class PaymentService : IPaymentService
         int memberId, int? bankAccountId = null, int? receiptFileId = null, bool markAsPaid = true,
         DateTime? paidAtUtc = null, CancellationToken ct = default)
     {
+        await using var _context = await _contextFactory.CreateDbContextAsync(ct);
+
         if (method is not (PaymentMethod.Manual or PaymentMethod.CashOnDelivery or PaymentMethod.BankTransfer))
             return (false, "Only Manual, CashOnDelivery, or BankTransfer methods can be recorded by admin.", null);
 
@@ -246,6 +252,8 @@ public class PaymentService : IPaymentService
         int? bankAccountId, string? description, string? reference, int? receiptFileId,
         int memberId, DateTime? paidAtUtc = null, CancellationToken ct = default)
     {
+        await using var _context = await _contextFactory.CreateDbContextAsync(ct);
+
         if (amount <= 0) return (false, "Amount must be greater than zero.", null);
         if (string.IsNullOrWhiteSpace(description))
             return (false, "Payment description is required.", null);
@@ -334,6 +342,8 @@ public class PaymentService : IPaymentService
 
     public async Task<bool> VerifyAsync(int paymentId, int memberId, bool approve, string? note, CancellationToken ct = default)
     {
+        await using var _context = await _contextFactory.CreateDbContextAsync(ct);
+
         var payment = await _context.Payments.FirstOrDefaultAsync(p => p.PaymentID == paymentId, ct);
         if (payment is null || payment.Status != (byte)PaymentStatus.Pending) return false;
 
@@ -369,8 +379,11 @@ public class PaymentService : IPaymentService
         return true;
     }
 
-    public async Task<Payment?> GetByIdAsync(int paymentId, CancellationToken ct = default) =>
-        await _context.Payments
+    public async Task<Payment?> GetByIdAsync(int paymentId, CancellationToken ct = default)
+    {
+        await using var _context = await _contextFactory.CreateDbContextAsync(ct);
+
+        return await _context.Payments
             .Include(p => p.BankAccount).ThenInclude(a => a!.Bank)
             .Include(p => p.ReceiptFile)
             .Include(p => p.Order)
@@ -378,19 +391,26 @@ public class PaymentService : IPaymentService
             .Include(p => p.CreatedByMember)
             .Include(p => p.VerifiedByMember)
             .FirstOrDefaultAsync(p => p.PaymentID == paymentId, ct);
+    }
 
-    public async Task<Payment?> GetLatestForOrderAsync(int orderId, int? clientId = null, CancellationToken ct = default) =>
-        await _context.Payments.AsNoTracking()
+    public async Task<Payment?> GetLatestForOrderAsync(int orderId, int? clientId = null, CancellationToken ct = default)
+    {
+        await using var _context = await _contextFactory.CreateDbContextAsync(ct);
+
+        return await _context.Payments.AsNoTracking()
             .Where(p => p.OrderID == orderId && (clientId == null || p.WebsiteClientID == clientId))
             .OrderByDescending(p => p.CreatedAt)
             .FirstOrDefaultAsync(ct);
+    }
 
     public Task<PagedResult<Payment>> GetPendingAsync(int? websiteId, GridQuery query, CancellationToken ct = default) =>
         GetManualPagedAsync(websiteId, (byte)PaymentStatus.Pending, query, ct);
 
     public async Task<PagedResult<Payment>> GetManualPagedAsync(int? websiteId, byte? status, GridQuery query, CancellationToken ct = default)
     {
-        var q = ManualBankTransfers(websiteId);
+        await using var _context = await _contextFactory.CreateDbContextAsync(ct);
+
+        var q = ManualBankTransfers(_context, websiteId);
         if (status is byte s)
             q = q.Where(p => p.Status == s);
         else if (query.GetSearch(nameof(Payment.Status)) is string statusText && byte.TryParse(statusText, out var statusByte))
@@ -409,6 +429,8 @@ public class PaymentService : IPaymentService
 
     public async Task<IReadOnlyDictionary<byte, int>> GetManualStatusCountsAsync(int? websiteId, CancellationToken ct = default)
     {
+        await using var _context = await _contextFactory.CreateDbContextAsync(ct);
+
         var q = _context.Payments.AsNoTracking()
             .Where(p => p.Method == (byte)PaymentMethod.BankTransfer
                         || (p.OrderID == null && p.CreatedByMemberID != null));
@@ -422,7 +444,8 @@ public class PaymentService : IPaymentService
         return rows.ToDictionary(r => r.Status, r => r.Count);
     }
 
-    private IQueryable<Payment> ManualBankTransfers(int? websiteId)
+    // Takes the caller's context: an IQueryable is only usable while the context that built it is alive.
+    private static IQueryable<Payment> ManualBankTransfers(AppDbContext _context, int? websiteId)
     {
         var q = _context.Payments.AsNoTracking()
             .Include(p => p.Order)
@@ -441,6 +464,8 @@ public class PaymentService : IPaymentService
         int paymentId, decimal amount, string? reason, bool toWallet, int? bankAccountId, int memberId,
         bool markCompleted = false, CancellationToken ct = default)
     {
+        await using var _context = await _contextFactory.CreateDbContextAsync(ct);
+
         var payment = await _context.Payments.FirstOrDefaultAsync(p => p.PaymentID == paymentId, ct);
         if (payment is null) return (false, "Payment is not eligible for refund.", null);
         if (payment.Status is not ((byte)PaymentStatus.Paid or (byte)PaymentStatus.Refunded))
@@ -528,6 +553,8 @@ public class PaymentService : IPaymentService
     public async Task<IReadOnlyList<RefundablePaymentDto>> GetRefundablePaymentsAsync(
         int websiteId, int clientId, CancellationToken ct = default)
     {
+        await using var _context = await _contextFactory.CreateDbContextAsync(ct);
+
         var rows = await _context.Payments.AsNoTracking()
             .Where(p => p.WebsiteID == websiteId
                         && p.WebsiteClientID == clientId
@@ -563,6 +590,8 @@ public class PaymentService : IPaymentService
 
     public async Task<bool> CompleteBankRefundAsync(int paymentRefundId, int memberId, CancellationToken ct = default)
     {
+        await using var _context = await _contextFactory.CreateDbContextAsync(ct);
+
         var refund = await _context.PaymentRefunds.FirstOrDefaultAsync(r => r.PaymentRefundID == paymentRefundId, ct);
         if (refund is null || refund.Status != (byte)PaymentRefundStatus.Pending) return false;
 
@@ -586,7 +615,9 @@ public class PaymentService : IPaymentService
 
     public async Task<PagedResult<PaymentRefund>> GetBankRefundsPagedAsync(int? websiteId, byte? status, GridQuery query, CancellationToken ct = default)
     {
-        var q = BankRefunds(websiteId);
+        await using var _context = await _contextFactory.CreateDbContextAsync(ct);
+
+        var q = BankRefunds(_context, websiteId);
         if (status is byte s)
             q = q.Where(r => r.Status == s);
         else if (query.GetSearch(nameof(PaymentRefund.Status)) is string statusText && byte.TryParse(statusText, out var statusByte))
@@ -605,6 +636,8 @@ public class PaymentService : IPaymentService
 
     public async Task<IReadOnlyDictionary<byte, int>> GetBankRefundStatusCountsAsync(int? websiteId, CancellationToken ct = default)
     {
+        await using var _context = await _contextFactory.CreateDbContextAsync(ct);
+
         var q = _context.PaymentRefunds.AsNoTracking()
             .Where(r => r.BankAccountID != null);
         if (websiteId is int wid)
@@ -618,7 +651,8 @@ public class PaymentService : IPaymentService
         return rows.ToDictionary(r => r.Status, r => r.Count);
     }
 
-    private IQueryable<PaymentRefund> BankRefunds(int? websiteId)
+    // Takes the caller's context: an IQueryable is only usable while the context that built it is alive.
+    private static IQueryable<PaymentRefund> BankRefunds(AppDbContext _context, int? websiteId)
     {
         var q = _context.PaymentRefunds.AsNoTracking()
             .Include(r => r.Payment).ThenInclude(p => p.Order)

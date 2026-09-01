@@ -8,12 +8,14 @@ namespace Dotnetable.Infrastructure.Services;
 
 public class ProductQuestionService : IProductQuestionService
 {
-    private readonly AppDbContext _context;
+    private readonly IDbContextFactory<AppDbContext> _contextFactory;
 
-    public ProductQuestionService(AppDbContext context) => _context = context;
+    public ProductQuestionService(IDbContextFactory<AppDbContext> contextFactory) => _contextFactory = contextFactory;
 
     public async Task<ProductQuestion> AskAsync(int websiteId, int clientId, int productId, string body, CancellationToken ct = default)
     {
+        await using var _context = await _contextFactory.CreateDbContextAsync(ct);
+
         var question = new ProductQuestion
         {
             WebsiteID = websiteId,
@@ -31,6 +33,8 @@ public class ProductQuestionService : IProductQuestionService
 
     public async Task<ProductAnswer> AnswerAsync(int questionId, int? clientId, int? vendorId, string body, CancellationToken ct = default)
     {
+        await using var _context = await _contextFactory.CreateDbContextAsync(ct);
+
         var answer = new ProductAnswer
         {
             ProductQuestionID = questionId,
@@ -48,6 +52,8 @@ public class ProductQuestionService : IProductQuestionService
 
     public async Task<PagedResult<ProductQuestion>> GetApprovedAsync(int productId, GridQuery query, CancellationToken ct = default)
     {
+        await using var _context = await _contextFactory.CreateDbContextAsync(ct);
+
         var q = _context.ProductQuestions.AsNoTracking()
             .Include(qn => qn.WebsiteClient)
             .Include(qn => qn.ProductAnswers.Where(a => a.Approved))
@@ -59,6 +65,8 @@ public class ProductQuestionService : IProductQuestionService
 
     public async Task<PagedResult<ProductQuestion>> GetPendingAsync(int? websiteId, GridQuery query, CancellationToken ct = default)
     {
+        await using var _context = await _contextFactory.CreateDbContextAsync(ct);
+
         var q = _context.ProductQuestions.AsNoTracking()
             .Include(qn => qn.Product).Include(qn => qn.WebsiteClient).Include(qn => qn.ProductAnswers)
             .Where(qn => qn.Status == (byte)ModerationStatus.Pending || qn.ProductAnswers.Any(a => a.Status == (byte)ModerationStatus.Pending));
@@ -71,6 +79,8 @@ public class ProductQuestionService : IProductQuestionService
 
     public async Task<bool> ModerateQuestionAsync(int questionId, bool approve, CancellationToken ct = default)
     {
+        await using var _context = await _contextFactory.CreateDbContextAsync(ct);
+
         var question = await _context.ProductQuestions.FirstOrDefaultAsync(qn => qn.ProductQuestionID == questionId, ct);
         if (question is null) return false;
 
@@ -82,6 +92,8 @@ public class ProductQuestionService : IProductQuestionService
 
     public async Task<bool> ModerateAnswerAsync(int answerId, bool approve, CancellationToken ct = default)
     {
+        await using var _context = await _contextFactory.CreateDbContextAsync(ct);
+
         var answer = await _context.ProductAnswers.FirstOrDefaultAsync(a => a.ProductAnswerID == answerId, ct);
         if (answer is null) return false;
 
@@ -91,7 +103,11 @@ public class ProductQuestionService : IProductQuestionService
         return true;
     }
 
-    public async Task LikeAnswerAsync(int answerId, CancellationToken ct = default) =>
+    public async Task LikeAnswerAsync(int answerId, CancellationToken ct = default)
+    {
+        await using var _context = await _contextFactory.CreateDbContextAsync(ct);
+
         await _context.ProductAnswers.Where(a => a.ProductAnswerID == answerId)
             .ExecuteUpdateAsync(s => s.SetProperty(a => a.LikeCount, a => a.LikeCount + 1), ct);
+    }
 }

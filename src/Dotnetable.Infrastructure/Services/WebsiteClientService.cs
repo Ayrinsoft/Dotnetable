@@ -11,20 +11,26 @@ namespace Dotnetable.Infrastructure.Services;
 
 public class WebsiteClientService : IWebsiteClientService
 {
-    private readonly AppDbContext _context;
+    private readonly IDbContextFactory<AppDbContext> _contextFactory;
     private readonly IPasswordHasher<WebsiteClient> _hasher;
 
-    public WebsiteClientService(AppDbContext context, IPasswordHasher<WebsiteClient> hasher)
+    public WebsiteClientService(IDbContextFactory<AppDbContext> contextFactory, IPasswordHasher<WebsiteClient> hasher)
     {
-        _context = context;
+        _contextFactory = contextFactory;
         _hasher = hasher;
     }
 
-    public async Task<WebsiteClient?> GetByIdAsync(int id, CancellationToken ct = default) =>
-        await _context.WebsiteClients.FindAsync([id], ct);
+    public async Task<WebsiteClient?> GetByIdAsync(int id, CancellationToken ct = default)
+    {
+        await using var _context = await _contextFactory.CreateDbContextAsync(ct);
+
+        return await _context.WebsiteClients.FindAsync([id], ct);
+    }
 
     public async Task<PagedResult<WebsiteClient>> GetPagedAsync(int? websiteId, GridQuery query, CancellationToken ct = default)
     {
+        await using var _context = await _contextFactory.CreateDbContextAsync(ct);
+
         var q = _context.WebsiteClients.AsNoTracking();
 
         if (websiteId is int wid)
@@ -52,6 +58,8 @@ public class WebsiteClientService : IWebsiteClientService
 
     public async Task<IReadOnlyList<WebsiteClient>> SearchAsync(int? websiteId, string? term, int take = 20, CancellationToken ct = default)
     {
+        await using var _context = await _contextFactory.CreateDbContextAsync(ct);
+
         var q = _context.WebsiteClients.AsNoTracking().Where(c => c.Active);
         if (websiteId is int wid)
             q = q.Where(c => c.WebsiteID == wid);
@@ -76,17 +84,27 @@ public class WebsiteClientService : IWebsiteClientService
             .ToListAsync(ct);
     }
 
-    public async Task SetActiveAsync(int id, bool active, CancellationToken ct = default) =>
+    public async Task SetActiveAsync(int id, bool active, CancellationToken ct = default)
+    {
+        await using var _context = await _contextFactory.CreateDbContextAsync(ct);
+
         await _context.WebsiteClients.Where(c => c.WebsiteClientID == id)
             .ExecuteUpdateAsync(s => s.SetProperty(c => c.Active, active), ct);
+    }
 
-    public async Task SetLevelAsync(int id, ClientLevel level, CancellationToken ct = default) =>
+    public async Task SetLevelAsync(int id, ClientLevel level, CancellationToken ct = default)
+    {
+        await using var _context = await _contextFactory.CreateDbContextAsync(ct);
+
         await _context.WebsiteClients.Where(c => c.WebsiteClientID == id)
             .ExecuteUpdateAsync(s => s.SetProperty(c => c.ClientLevel, (byte)level), ct);
+    }
 
     public async Task<(ClientSaveResult Result, WebsiteClient Client)> CreateAsync(WebsiteClient client, string password, CancellationToken ct = default)
     {
-        if (await IsDuplicateAsync(client.WebsiteID, client.Email, client.Cellphone, excludeClientId: 0, ct))
+        await using var _context = await _contextFactory.CreateDbContextAsync(ct);
+
+        if (await IsDuplicateAsync(_context, client.WebsiteID, client.Email, client.Cellphone, excludeClientId: 0, ct))
             return (ClientSaveResult.Duplicate, client);
 
         client.HashKey = Guid.NewGuid();
@@ -99,7 +117,9 @@ public class WebsiteClientService : IWebsiteClientService
 
     public async Task<ClientSaveResult> UpdateAsync(WebsiteClient client, CancellationToken ct = default)
     {
-        if (await IsDuplicateAsync(client.WebsiteID, client.Email, client.Cellphone, client.WebsiteClientID, ct))
+        await using var _context = await _contextFactory.CreateDbContextAsync(ct);
+
+        if (await IsDuplicateAsync(_context, client.WebsiteID, client.Email, client.Cellphone, client.WebsiteClientID, ct))
             return ClientSaveResult.Duplicate;
 
         _context.WebsiteClients.Update(client);
@@ -108,13 +128,17 @@ public class WebsiteClientService : IWebsiteClientService
     }
 
     /// <summary>True when another customer on the same website already owns the email or the cellphone.</summary>
-    private Task<bool> IsDuplicateAsync(int websiteId, string? email, string? cellphone, int excludeClientId, CancellationToken ct) =>
+    // Takes the caller's context so the duplicate check and the insert that follows see the same
+    // snapshot of the table.
+    private static Task<bool> IsDuplicateAsync(AppDbContext _context, int websiteId, string? email, string? cellphone, int excludeClientId, CancellationToken ct) =>
         _context.WebsiteClients.AnyAsync(c =>
             c.WebsiteID == websiteId && c.WebsiteClientID != excludeClientId &&
             ((email != null && c.Email == email) || (cellphone != null && c.Cellphone == cellphone)), ct);
 
     public async Task DeleteAsync(int id, CancellationToken ct = default)
     {
+        await using var _context = await _contextFactory.CreateDbContextAsync(ct);
+
         var client = await _context.WebsiteClients.FindAsync([id], ct);
         if (client is null) return;
         // Remove dependent rows first (FK to WebsiteClient): activation/reset codes and saved addresses.

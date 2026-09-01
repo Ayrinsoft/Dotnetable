@@ -24,6 +24,9 @@ public class MemberServiceTests : IDisposable
             .UseInMemoryDatabase(Guid.NewGuid().ToString())
             .Options;
         _context = new AppDbContext(opts);
+        // Services open a context per call now, so they get a factory over the same options;
+        // the fixture keeps its own _context for seeding and asserting.
+        var factory = new TestDbContextFactory(opts);
 
         _hasher = new Mock<IPasswordHasher<Member>>();
         _hasher.Setup(h => h.HashPassword(It.IsAny<Member>(), It.IsAny<string>()))
@@ -32,7 +35,7 @@ public class MemberServiceTests : IDisposable
             .Returns<Member, string, string>((_, hash, pw) =>
                 hash == $"HASHED:{pw}" ? PasswordVerificationResult.Success : PasswordVerificationResult.Failed);
 
-        _service = new MemberService(_context, _hasher.Object);
+        _service = new MemberService(factory, _hasher.Object);
 
         _website = new Website
         {
@@ -293,6 +296,10 @@ public class MemberServiceTests : IDisposable
         const string newPassword = "Nx7!qWer-Tuv2";
         await _service.ChangePasswordAsync(m.MemberID, newPassword);
 
+        // The service wrote through its own short-lived context, so this fixture's context must
+        // re-read rather than answer from entities it is still tracking.
+        _context.ChangeTracker.Clear();
+
         var updated = await _context.Members.FindAsync(m.MemberID);
         updated!.Password.Should().Be($"HASHED:{newPassword}");
         updated.HashKey.Should().NotBe(oldKey);
@@ -324,6 +331,10 @@ public class MemberServiceTests : IDisposable
         var m = NewMember(); _context.Members.Add(m); await _context.SaveChangesAsync();
 
         await _service.DeleteAsync(m.MemberID);
+
+        // The service wrote through its own short-lived context, so this fixture's context must
+        // re-read rather than answer from entities it is still tracking.
+        _context.ChangeTracker.Clear();
 
         (await _context.Members.FindAsync(m.MemberID)).Should().BeNull();
     }

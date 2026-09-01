@@ -12,7 +12,9 @@ namespace Dotnetable.Infrastructure.Services;
 
 public class OrderService : IOrderService
 {
-    private readonly AppDbContext _context;
+    // Contexts come from DbLease per operation: it joins an ambient transaction when one is in
+    // flight and otherwise opens a short-lived context, so nothing is shared across a circuit.
+    private readonly IDbContextFactory<AppDbContext> _contextFactory;
     private readonly IInventoryService _inventory;
     private readonly IVendorProductService _vendorProducts;
     private readonly IShippingService _shipping;
@@ -32,7 +34,7 @@ public class OrderService : IOrderService
     private readonly ILogger<OrderService> _logger;
 
     public OrderService(
-        AppDbContext context, IInventoryService inventory, IVendorProductService vendorProducts,
+        IDbContextFactory<AppDbContext> contextFactory, IInventoryService inventory, IVendorProductService vendorProducts,
         IShippingService shipping, ITaxService tax, ICouponService coupons, ICurrencyConversionService currency,
         ICartService cart, IAdminNotificationService notifications, IVendorCreditService vendorCredit,
         IDigitalDeliveryService digitalDelivery,
@@ -40,7 +42,7 @@ public class OrderService : IOrderService
         IFinancialLedgerService ledger, IStockDocumentService stockDocs, IWarehouseService warehouses,
         ILogger<OrderService> logger)
     {
-        _context = context;
+        _contextFactory = contextFactory;
         _inventory = inventory;
         _vendorProducts = vendorProducts;
         _shipping = shipping;
@@ -64,6 +66,9 @@ public class OrderService : IOrderService
         int websiteId, int clientId, int cartId, int addressId, int shippingMethodId,
         string? currencyCode = null, string? note = null, CancellationToken ct = default)
     {
+        await using var _lease = await DbLease.OpenAsync(_contextFactory, ct);
+        var _context = _lease.Context;
+
         var cart = await _context.Carts
             .Include(c => c.CartItems).ThenInclude(i => i.ProductVariant).ThenInclude(v => v.Product)
             .Include(c => c.CartItems).ThenInclude(i => i.ProductVariant).ThenInclude(v => v.InventoryItems)
@@ -184,8 +189,11 @@ public class OrderService : IOrderService
         var strategy = _context.Database.CreateExecutionStrategy();
         return await strategy.ExecuteAsync(async () =>
         {
-            await using var tx = await _context.Database.BeginTransactionAsync(ct);
-            // AppDbContext is Transient — nested services get their own connection unless ambient is set.
+            // Only start a transaction when this context is ours. If a caller already has one open on
+            // an ambient context, beginning a second one on it throws — join theirs instead.
+            await using var tx = _context.Database.CurrentTransaction is null
+                ? await _context.Database.BeginTransactionAsync(ct)
+                : null;
             // Without this, SettleHostOrderAsync blocks on the uncommitted order row until SQL timeout.
             using var ambient = AmbientDbContext.Use(_context);
 
@@ -257,7 +265,7 @@ public class OrderService : IOrderService
                 {
                     if (!await _vendorProducts.ReserveAsync(vp.VendorProductID, item.Quantity, ct))
                     {
-                        await tx.RollbackAsync(ct);
+                        if (tx is not null) await tx.RollbackAsync(ct);
                         return new CheckoutResult(false, $"Insufficient vendor stock for {item.ProductVariant.Product.Title}.", null, null);
                     }
 
@@ -274,7 +282,7 @@ public class OrderService : IOrderService
                     if (!await _inventory.ReserveAsync(reserveSiteId, variant.ProductVariantID, item.Quantity, ct))
                     {
                         await _vendorProducts.ReleaseReservationAsync(vp.VendorProductID, item.Quantity, ct);
-                        await tx.RollbackAsync(ct);
+                        if (tx is not null) await tx.RollbackAsync(ct);
                         return new CheckoutResult(false, $"Insufficient stock for {item.ProductVariant.Product.Title}.", null, null);
                     }
 
@@ -288,7 +296,7 @@ public class OrderService : IOrderService
                             {
                                 await _inventory.ReleaseReservationAsync(reserveSiteId, variant.ProductVariantID, item.Quantity, ct);
                                 await _vendorProducts.ReleaseReservationAsync(vp.VendorProductID, item.Quantity, ct);
-                                await tx.RollbackAsync(ct);
+                                if (tx is not null) await tx.RollbackAsync(ct);
                                 return new CheckoutResult(false,
                                     $"Insufficient warehouse stock for {item.ProductVariant.Product.Title}.", null, null);
                             }
@@ -297,7 +305,7 @@ public class OrderService : IOrderService
                 }
                 else
                 {
-                    await tx.RollbackAsync(ct);
+                    if (tx is not null) await tx.RollbackAsync(ct);
                     return new CheckoutResult(false, $"No store stock assigned for {item.ProductVariant.Product.Title}.", null, null);
                 }
             }
@@ -318,7 +326,7 @@ public class OrderService : IOrderService
             // Dual settlement + inter-site credit debit + mirror orders (buyer only sees host order).
             await _vendorCredit.SettleHostOrderAsync(order.OrderID, ct);
 
-            await tx.CommitAsync(ct);
+            if (tx is not null) await tx.CommitAsync(ct);
 
             await _cart.ClearAsync(cartId, ct);
 
@@ -350,6 +358,9 @@ public class OrderService : IOrderService
 
     public async Task<Order?> GetByIdAsync(int orderId, int? clientId = null, CancellationToken ct = default)
     {
+        await using var _lease = await DbLease.OpenAsync(_contextFactory, ct);
+        var _context = _lease.Context;
+
         var query = _context.Orders
             .Include(o => o.OrderItems).ThenInclude(i => i.Vendor)
             .Include(o => o.OrderItems).ThenInclude(i => i.ProductVariant)
@@ -368,6 +379,9 @@ public class OrderService : IOrderService
 
     public async Task<PagedResult<Order>> GetPagedAsync(int? websiteId, byte? status, GridQuery query, CancellationToken ct = default)
     {
+        await using var _lease = await DbLease.OpenAsync(_contextFactory, ct);
+        var _context = _lease.Context;
+
         var q = _context.Orders.AsNoTracking().Include(o => o.WebsiteClient).AsQueryable();
         if (websiteId is int wid) q = q.Where(o => o.WebsiteID == wid);
         if (status is byte s) q = q.Where(o => o.Status == s);
@@ -385,6 +399,9 @@ public class OrderService : IOrderService
 
     public async Task<IReadOnlyDictionary<byte, int>> GetStatusCountsAsync(int? websiteId, CancellationToken ct = default)
     {
+        await using var _lease = await DbLease.OpenAsync(_contextFactory, ct);
+        var _context = _lease.Context;
+
         var q = _context.Orders.AsNoTracking().AsQueryable();
         if (websiteId is int wid) q = q.Where(o => o.WebsiteID == wid);
 
@@ -398,6 +415,9 @@ public class OrderService : IOrderService
 
     public async Task<PagedResult<Order>> GetClientHistoryAsync(int clientId, GridQuery query, CancellationToken ct = default)
     {
+        await using var _lease = await DbLease.OpenAsync(_contextFactory, ct);
+        var _context = _lease.Context;
+
         var q = _context.Orders.AsNoTracking().Where(o => o.WebsiteClientID == clientId);
         var total = await q.CountAsync(ct);
         var items = await q.OrderByDescending(o => o.CreatedAt).Skip(query.Skip).Take(query.Take).ToListAsync(ct);
@@ -406,6 +426,9 @@ public class OrderService : IOrderService
 
     public async Task<bool> TransitionStatusAsync(int orderId, OrderStatus newStatus, int? memberId, string? note, CancellationToken ct = default)
     {
+        await using var _lease = await DbLease.OpenAsync(_contextFactory, ct);
+        var _context = _lease.Context;
+
         // Share one context with inventory / digital / credit services (Transient AppDbContext).
         using var ambient = AmbientDbContext.Use(_context);
 
@@ -631,6 +654,9 @@ public class OrderService : IOrderService
         bool syncOrderStatus = true,
         CancellationToken ct = default)
     {
+        await using var _lease = await DbLease.OpenAsync(_contextFactory, ct);
+        var _context = _lease.Context;
+
         var order = await _context.Orders.FirstOrDefaultAsync(o => o.OrderID == orderId, ct);
         if (order is null)
             return (false, "Order not found.");
@@ -823,6 +849,8 @@ public class OrderService : IOrderService
     private async Task NotifyTrackingCodeIfChangedAsync(
         int orderId, string? previousTracking, string? newTracking, CancellationToken ct)
     {
+        await using var _context = await _contextFactory.CreateDbContextAsync(ct);
+
         if (string.IsNullOrWhiteSpace(newTracking))
             return;
         if (string.Equals(previousTracking?.Trim(), newTracking.Trim(), StringComparison.Ordinal))
@@ -830,7 +858,7 @@ public class OrderService : IOrderService
 
         try
         {
-            await NotifyShipmentTrackingAsync(orderId, newTracking.Trim(), ct);
+            await NotifyShipmentTrackingAsync(_context, orderId, newTracking.Trim(), ct);
         }
         catch (Exception ex)
         {
@@ -838,7 +866,7 @@ public class OrderService : IOrderService
         }
     }
 
-    private async Task NotifyShipmentTrackingAsync(int orderId, string trackingCode, CancellationToken ct)
+    private async Task NotifyShipmentTrackingAsync(AppDbContext _context, int orderId, string trackingCode, CancellationToken ct)
     {
         var order = await _context.Orders.AsNoTracking()
             .Include(o => o.WebsiteClient)
@@ -921,11 +949,16 @@ public class OrderService : IOrderService
         }
     }
 
-    public async Task<bool> ClientHasPaidOrderForProductAsync(int clientId, int productId, CancellationToken ct = default) =>
-        await _context.Orders
+    public async Task<bool> ClientHasPaidOrderForProductAsync(int clientId, int productId, CancellationToken ct = default)
+    {
+        await using var _lease = await DbLease.OpenAsync(_contextFactory, ct);
+        var _context = _lease.Context;
+
+        return await _context.Orders
             .Where(o => o.WebsiteClientID == clientId && o.Status >= (byte)OrderStatus.Paid)
             .SelectMany(o => o.OrderItems)
             .AnyAsync(i => i.ProductVariantID != null && i.ProductVariant!.ProductID == productId, ct);
+    }
 
     private sealed record AdminPreparedLine(
         AdminOrderLineRequest Req,
@@ -954,6 +987,9 @@ public class OrderService : IOrderService
     public async Task<AdminCreateOrderResult> AdminCreateAsync(
         AdminCreateOrderRequest request, int memberId, CancellationToken ct = default)
     {
+        await using var _lease = await DbLease.OpenAsync(_contextFactory, ct);
+        var _context = _lease.Context;
+
         if (request.WebsiteId <= 0)
             return new AdminCreateOrderResult(false, "Website is required.", null, null);
         if (request.WebsiteClientId <= 0)
@@ -1186,8 +1222,10 @@ public class OrderService : IOrderService
         var strategy = _context.Database.CreateExecutionStrategy();
         return await strategy.ExecuteAsync(async () =>
         {
-        await using var tx = await _context.Database.BeginTransactionAsync(ct);
-        // AppDbContext is Transient — nested services get their own connection unless ambient is set.
+        // Only start a transaction when this context is ours; see CheckoutAsync.
+        await using var tx = _context.Database.CurrentTransaction is null
+            ? await _context.Database.BeginTransactionAsync(ct)
+            : null;
         // Without this, SettleHostOrderAsync blocks on the uncommitted order row until SQL timeout.
         using var ambient = AmbientDbContext.Use(_context);
 
@@ -1250,7 +1288,7 @@ public class OrderService : IOrderService
 
             if (!await _vendorProducts.ReserveAsync(p.Vp.VendorProductID, p.Req.Quantity, ct))
             {
-                await tx.RollbackAsync(ct);
+                if (tx is not null) await tx.RollbackAsync(ct);
                 return new AdminCreateOrderResult(false, $"Insufficient vendor stock for {p.Title}.", null, null);
             }
 
@@ -1264,7 +1302,7 @@ public class OrderService : IOrderService
                 if (!await _inventory.ReserveAsync(reserveSiteId, p.Variant.ProductVariantID, p.Req.Quantity, ct))
                 {
                     await _vendorProducts.ReleaseReservationAsync(p.Vp.VendorProductID, p.Req.Quantity, ct);
-                    await tx.RollbackAsync(ct);
+                    if (tx is not null) await tx.RollbackAsync(ct);
                     return new AdminCreateOrderResult(false, $"Insufficient stock for {p.Title}.", null, null);
                 }
 
@@ -1276,7 +1314,7 @@ public class OrderService : IOrderService
                     {
                         await _inventory.ReleaseReservationAsync(reserveSiteId, p.Variant.ProductVariantID, p.Req.Quantity, ct);
                         await _vendorProducts.ReleaseReservationAsync(p.Vp.VendorProductID, p.Req.Quantity, ct);
-                        await tx.RollbackAsync(ct);
+                        if (tx is not null) await tx.RollbackAsync(ct);
                         return new AdminCreateOrderResult(false, $"Insufficient warehouse stock for {p.Title}.", null, null);
                     }
                 }
@@ -1302,7 +1340,7 @@ public class OrderService : IOrderService
             var method = (PaymentMethod)payReq.Method;
             if (method is not (PaymentMethod.Manual or PaymentMethod.CashOnDelivery or PaymentMethod.BankTransfer))
             {
-                await tx.RollbackAsync(ct);
+                if (tx is not null) await tx.RollbackAsync(ct);
                 return new AdminCreateOrderResult(false, "Unsupported payment method for admin order.", null, null);
             }
 
@@ -1312,7 +1350,7 @@ public class OrderService : IOrderService
                     a => a.BankAccountID == baId && a.WebsiteID == request.WebsiteId && a.IsActive, ct);
                 if (!accountOk)
                 {
-                    await tx.RollbackAsync(ct);
+                    if (tx is not null) await tx.RollbackAsync(ct);
                     return new AdminCreateOrderResult(false, "Bank account not found or inactive.", null, null);
                 }
             }
@@ -1323,7 +1361,7 @@ public class OrderService : IOrderService
                     f => f.FileRecordID == fileId && f.WebsiteID == request.WebsiteId && !f.IsDeleted, ct);
                 if (!fileOk)
                 {
-                    await tx.RollbackAsync(ct);
+                    if (tx is not null) await tx.RollbackAsync(ct);
                     return new AdminCreateOrderResult(false, "Receipt file not found.", null, null);
                 }
             }
@@ -1387,7 +1425,7 @@ public class OrderService : IOrderService
             }
         }
 
-        await tx.CommitAsync(ct);
+        if (tx is not null) await tx.CommitAsync(ct);
 
         await _notifications.NotifySiteAdminsAsync(
             request.WebsiteId,

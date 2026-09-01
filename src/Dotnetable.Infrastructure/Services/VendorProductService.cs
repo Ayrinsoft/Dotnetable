@@ -10,14 +10,17 @@ namespace Dotnetable.Infrastructure.Services;
 
 public class VendorProductService : IVendorProductService
 {
-    // Prefer ambient UoW context when OrderService (etc.) has an open multi-service transaction.
-    private readonly AppDbContext _fallback;
-    private AppDbContext _context => AmbientDbContext.Current ?? _fallback;
+    // Contexts come from DbLease per operation: it joins an ambient transaction when one is in
+    // flight and otherwise opens a short-lived context, so nothing is shared across a circuit.
+    private readonly IDbContextFactory<AppDbContext> _contextFactory;
 
-    public VendorProductService(AppDbContext context) => _fallback = context;
+    public VendorProductService(IDbContextFactory<AppDbContext> contextFactory) => _contextFactory = contextFactory;
 
     public async Task<PagedResult<VendorProductListItemDto>> GetPagedAsync(int vendorId, GridQuery query, CancellationToken ct = default)
     {
+        await using var _lease = await DbLease.OpenAsync(_contextFactory, ct);
+        var _context = _lease.Context;
+
         var q = _context.VendorProducts.AsNoTracking()
             .Where(vp => vp.VendorID == vendorId)
             .Include(vp => vp.Vendor)
@@ -60,6 +63,9 @@ public class VendorProductService : IVendorProductService
 
     public async Task<List<VendorProductListItemDto>> GetByProductIdAsync(int productId, CancellationToken ct = default)
     {
+        await using var _lease = await DbLease.OpenAsync(_contextFactory, ct);
+        var _context = _lease.Context;
+
         var items = await _context.VendorProducts.AsNoTracking()
             .Where(vp => vp.ProductVariant.ProductID == productId)
             .Include(vp => vp.Vendor)
@@ -97,6 +103,9 @@ public class VendorProductService : IVendorProductService
     public async Task<List<VendorVariantPickDto>> SearchEligibleVariantsAsync(
         int vendorId, string? search, int take = 25, bool includeAlreadyListed = false, CancellationToken ct = default)
     {
+        await using var _lease = await DbLease.OpenAsync(_contextFactory, ct);
+        var _context = _lease.Context;
+
         var vendor = await _context.Vendors.AsNoTracking()
             .FirstOrDefaultAsync(v => v.VendorID == vendorId, ct);
         if (vendor is null) return new List<VendorVariantPickDto>();
@@ -165,19 +174,32 @@ public class VendorProductService : IVendorProductService
         }).ToList();
     }
 
-    public async Task<VendorProduct?> GetByIdAsync(int vendorProductId, CancellationToken ct = default) =>
-        await _context.VendorProducts
+    public async Task<VendorProduct?> GetByIdAsync(int vendorProductId, CancellationToken ct = default)
+    {
+        await using var _lease = await DbLease.OpenAsync(_contextFactory, ct);
+        var _context = _lease.Context;
+
+        return await _context.VendorProducts
             .Include(vp => vp.Vendor)
             .Include(vp => vp.ProductVariant).ThenInclude(v => v.Product)
             .FirstOrDefaultAsync(vp => vp.VendorProductID == vendorProductId, ct);
+    }
 
-    public async Task<VendorProduct?> FindAsync(int vendorId, int productVariantId, CancellationToken ct = default) =>
-        await _context.VendorProducts
+    public async Task<VendorProduct?> FindAsync(int vendorId, int productVariantId, CancellationToken ct = default)
+    {
+        await using var _lease = await DbLease.OpenAsync(_contextFactory, ct);
+        var _context = _lease.Context;
+
+        return await _context.VendorProducts
             .FirstOrDefaultAsync(vp => vp.VendorID == vendorId && vp.ProductVariantID == productVariantId, ct);
+    }
 
     public async Task<(bool Success, string? Error, VendorProduct? Item)> UpsertAsync(
         VendorProduct model, int? actingMemberId = null, CancellationToken ct = default)
     {
+        await using var _lease = await DbLease.OpenAsync(_contextFactory, ct);
+        var _context = _lease.Context;
+
         var vendor = await _context.Vendors.FirstOrDefaultAsync(v => v.VendorID == model.VendorID, ct);
         if (vendor is null) return (false, "Vendor not found.", null);
 
@@ -260,6 +282,9 @@ public class VendorProductService : IVendorProductService
 
     public async Task<(bool Success, string? Error)> DeleteAsync(int vendorProductId, int? actingMemberId = null, CancellationToken ct = default)
     {
+        await using var _lease = await DbLease.OpenAsync(_contextFactory, ct);
+        var _context = _lease.Context;
+
         var entity = await _context.VendorProducts
             .Include(vp => vp.Vendor)
             .FirstOrDefaultAsync(vp => vp.VendorProductID == vendorProductId, ct);
@@ -285,6 +310,9 @@ public class VendorProductService : IVendorProductService
     public async Task<VendorProduct?> EnsureListingForVariantAsync(
         int hostWebsiteId, int vendorId, int productVariantId, CancellationToken ct = default)
     {
+        await using var _lease = await DbLease.OpenAsync(_contextFactory, ct);
+        var _context = _lease.Context;
+
         var vendor = await _context.Vendors.FirstOrDefaultAsync(v => v.VendorID == vendorId && v.WebsiteID == hostWebsiteId, ct);
         if (vendor is null || !vendor.IsActive) return null;
 
@@ -326,17 +354,25 @@ public class VendorProductService : IVendorProductService
         return listing;
     }
 
-    public async Task<List<VendorProduct>> GetActiveByVendorAsync(int vendorId, CancellationToken ct = default) =>
-        await _context.VendorProducts.AsNoTracking()
+    public async Task<List<VendorProduct>> GetActiveByVendorAsync(int vendorId, CancellationToken ct = default)
+    {
+        await using var _lease = await DbLease.OpenAsync(_contextFactory, ct);
+        var _context = _lease.Context;
+
+        return await _context.VendorProducts.AsNoTracking()
             .Where(vp => vp.VendorID == vendorId && vp.IsActive)
             .Include(vp => vp.ProductVariant).ThenInclude(v => v.Product)
             .ToListAsync(ct);
+    }
 
     // Atomic conditional UPDATE — see the note on InventoryService.ReserveAsync. This path had no
     // concurrency guard at all (VendorProducts has no RowVersion column), so two concurrent
     // checkouts could each read the same QuantityReserved and both succeed.
     public async Task<bool> ReserveAsync(int vendorProductId, int qty, CancellationToken ct = default)
     {
+        await using var _lease = await DbLease.OpenAsync(_contextFactory, ct);
+        var _context = _lease.Context;
+
         if (qty <= 0) return true;
 
         // Unlimited digital stock (StockQuantity < 0): sales never deplete, so nothing to reserve —
@@ -353,12 +389,15 @@ public class VendorProductService : IVendorProductService
                          && vp.StockQuantity - vp.QuantityReserved >= qty)
             .ExecuteUpdateAsync(s => s.SetProperty(vp => vp.QuantityReserved, vp => vp.QuantityReserved + qty), ct);
 
-        if (affected > 0) await RefreshTrackedAsync(vendorProductId, ct);
+        if (affected > 0) await RefreshTrackedAsync(_context, vendorProductId, ct);
         return affected > 0;
     }
 
     public async Task ReleaseReservationAsync(int vendorProductId, int qty, CancellationToken ct = default)
     {
+        await using var _lease = await DbLease.OpenAsync(_contextFactory, ct);
+        var _context = _lease.Context;
+
         if (qty <= 0) return;
 
         await _context.VendorProducts
@@ -367,7 +406,7 @@ public class VendorProductService : IVendorProductService
                 vp => vp.QuantityReserved,
                 vp => vp.QuantityReserved > qty ? vp.QuantityReserved - qty : 0), ct);
 
-        await RefreshTrackedAsync(vendorProductId, ct);
+        await RefreshTrackedAsync(_context, vendorProductId, ct);
     }
 
     /// <summary>
@@ -376,7 +415,7 @@ public class VendorProductService : IVendorProductService
     /// serving the pre-reservation counter and could overwrite it on the next SaveChanges. Reloading
     /// the tracked entry is what keeps the atomic write and the in-memory graph agreeing.
     /// </summary>
-    private async Task RefreshTrackedAsync(int vendorProductId, CancellationToken ct)
+    private async Task RefreshTrackedAsync(AppDbContext _context, int vendorProductId, CancellationToken ct)
     {
         var tracked = _context.ChangeTracker.Entries<VendorProduct>()
             .FirstOrDefault(e => e.Entity.VendorProductID == vendorProductId);
@@ -387,6 +426,9 @@ public class VendorProductService : IVendorProductService
 
     public async Task CommitSaleAsync(int vendorProductId, int qty, CancellationToken ct = default)
     {
+        await using var _lease = await DbLease.OpenAsync(_contextFactory, ct);
+        var _context = _lease.Context;
+
         if (qty <= 0) return;
         var item = await _context.VendorProducts.FirstOrDefaultAsync(vp => vp.VendorProductID == vendorProductId, ct);
         if (item is null) return;
@@ -403,6 +445,9 @@ public class VendorProductService : IVendorProductService
 
     public async Task RestockAsync(int vendorProductId, int qty, CancellationToken ct = default)
     {
+        await using var _lease = await DbLease.OpenAsync(_contextFactory, ct);
+        var _context = _lease.Context;
+
         if (qty <= 0) return;
         var item = await _context.VendorProducts.FirstOrDefaultAsync(vp => vp.VendorProductID == vendorProductId, ct);
         if (item is null || IVendorProductService.IsUnlimited(item)) return;
@@ -415,6 +460,9 @@ public class VendorProductService : IVendorProductService
         int websiteId, int vendorId, int productVariantId, int qty,
         byte itemCondition, byte healthGrade, CancellationToken ct = default)
     {
+        await using var _lease = await DbLease.OpenAsync(_contextFactory, ct);
+        var _context = _lease.Context;
+
         if (qty <= 0) return;
 
         // Prefer an existing listing with the same commercial condition.
@@ -462,6 +510,9 @@ public class VendorProductService : IVendorProductService
 
     public async Task SyncInventoryOnHandFromListingsAsync(int websiteId, int productVariantId, CancellationToken ct = default)
     {
+        await using var _lease = await DbLease.OpenAsync(_contextFactory, ct);
+        var _context = _lease.Context;
+
         var listings = await _context.VendorProducts
             .Where(vp => vp.WebsiteID == websiteId && vp.ProductVariantID == productVariantId)
             .ToListAsync(ct);
@@ -518,7 +569,9 @@ public class VendorProductService : IVendorProductService
     public async Task<byte[]> ExportListingsExcelAsync(
         int websiteId, int? vendorId = null, int? actingMemberId = null, CancellationToken ct = default)
     {
-        var q = await BuildScopedListingsQueryAsync(websiteId, vendorId, actingMemberId, ct);
+        await using var _context = await _contextFactory.CreateDbContextAsync(ct);
+
+        var q = await BuildScopedListingsQueryAsync(_context, websiteId, vendorId, actingMemberId, ct);
         if (q is null)
             return ExcelWorkbook.Write("Listings", ListingExcelHeaders, Array.Empty<IReadOnlyList<object?>>());
 
@@ -567,6 +620,9 @@ public class VendorProductService : IVendorProductService
     public async Task<VendorListingImportResult> ImportListingsExcelAsync(
         int websiteId, Stream excel, int? vendorId = null, int? actingMemberId = null, CancellationToken ct = default)
     {
+        await using var _lease = await DbLease.OpenAsync(_contextFactory, ct);
+        var _context = _lease.Context;
+
         var rows = ExcelWorkbook.Read(excel);
         if (rows.Count == 0)
             return new VendorListingImportResult(0, 0, 0, ["Excel file is empty."]);
@@ -590,7 +646,7 @@ public class VendorProductService : IVendorProductService
         var syncKeys = new HashSet<(int WebsiteId, int VariantId)>();
 
         // Preload listings in scope for fast lookup + security boundary.
-        var scoped = await BuildScopedListingsQueryAsync(websiteId, vendorId, actingMemberId, ct);
+        var scoped = await BuildScopedListingsQueryAsync(_context, websiteId, vendorId, actingMemberId, ct);
         if (scoped is null)
             return new VendorListingImportResult(0, 0, 0, ["No vendor listings available for this scope."]);
 
@@ -733,7 +789,7 @@ public class VendorProductService : IVendorProductService
         return new VendorListingImportResult(updated, unchanged, skipped, errors);
     }
 
-    private async Task<IQueryable<VendorProduct>?> BuildScopedListingsQueryAsync(
+    private async Task<IQueryable<VendorProduct>?> BuildScopedListingsQueryAsync(AppDbContext _context, 
         int websiteId, int? vendorId, int? actingMemberId, CancellationToken ct)
     {
         if (websiteId <= 0) return null;

@@ -9,14 +9,16 @@ namespace Dotnetable.Infrastructure.Services;
 
 public class CategoryService : ICategoryService
 {
-    private readonly AppDbContext _context;
+    private readonly IDbContextFactory<AppDbContext> _contextFactory;
 
-    public CategoryService(AppDbContext context) => _context = context;
+    public CategoryService(IDbContextFactory<AppDbContext> contextFactory) => _contextFactory = contextFactory;
 
     // ── Admin management ────────────────────────────────────────────
 
     public async Task<List<Category>> GetAllAsync(int? websiteId, CancellationToken ct = default)
     {
+        await using var _context = await _contextFactory.CreateDbContextAsync(ct);
+
         var q = _context.Categories.AsNoTracking();
         if (websiteId is int wid)
             q = q.Where(c => c.WebsiteID == wid);
@@ -25,6 +27,8 @@ public class CategoryService : ICategoryService
 
     public async Task<PagedResult<Category>> GetPagedAsync(int? websiteId, GridQuery query, CancellationToken ct = default)
     {
+        await using var _context = await _contextFactory.CreateDbContextAsync(ct);
+
         var q = _context.Categories.AsNoTracking();
         if (websiteId is int wid)
             q = q.Where(c => c.WebsiteID == wid);
@@ -45,13 +49,18 @@ public class CategoryService : ICategoryService
         return new PagedResult<Category> { Items = items, TotalCount = total };
     }
 
-    public async Task<Category?> GetByIdAsync(int categoryId, CancellationToken ct = default) =>
-        await _context.Categories.FindAsync([categoryId], ct);
+    public async Task<Category?> GetByIdAsync(int categoryId, CancellationToken ct = default)
+    {
+        await using var _context = await _contextFactory.CreateDbContextAsync(ct);
+
+        return await _context.Categories.FindAsync([categoryId], ct);
+    }
 
     public async Task<Category> CreateAsync(Category category, CancellationToken ct = default)
     {
+        await using var _context = await _contextFactory.CreateDbContextAsync(ct);
+
         NormalizeOptionalFks(category);
-        DetachTracked(_context.Categories, category.CategoryID, c => c.CategoryID);
         _context.Categories.Add(category);
         await _context.SaveChangesAsync(ct);
         // Blazor Server keeps AppDbContext for the whole circuit; detach so a later
@@ -62,8 +71,9 @@ public class CategoryService : ICategoryService
 
     public async Task UpdateAsync(Category category, CancellationToken ct = default)
     {
+        await using var _context = await _contextFactory.CreateDbContextAsync(ct);
+
         NormalizeOptionalFks(category);
-        DetachTracked(_context.Categories, category.CategoryID, c => c.CategoryID);
         _context.Categories.Update(category);
         await _context.SaveChangesAsync(ct);
         _context.Entry(category).State = EntityState.Detached;
@@ -71,7 +81,8 @@ public class CategoryService : ICategoryService
 
     public async Task DeleteAsync(int categoryId, CancellationToken ct = default)
     {
-        DetachTracked(_context.Categories, categoryId, c => c.CategoryID);
+        await using var _context = await _contextFactory.CreateDbContextAsync(ct);
+
         var category = await _context.Categories
             .Include(c => c.CategoryTranslations)
             .Include(c => c.PostCategories)
@@ -97,26 +108,22 @@ public class CategoryService : ICategoryService
         if (category.PostTypeID is 0) category.PostTypeID = null;
     }
 
-    /// <summary>Detaches any stale tracked instance with the same key before an Add/Update. AppDbContext is
-    /// scoped per Blazor Server circuit (not per request), so an entity saved earlier in the same session
-    /// stays tracked and would otherwise collide with a fresh detached copy carrying the same primary key.</summary>
-    private void DetachTracked<TEntity>(DbSet<TEntity> set, int key, Func<TEntity, int> keySelector) where TEntity : class
-    {
-        if (key == 0) return; // 0 = not-yet-persisted; there's no real identity to collide on.
-        var local = set.Local.FirstOrDefault(e => keySelector(e) == key);
-        if (local is not null)
-            _context.Entry(local).State = EntityState.Detached;
-    }
 
     // ── Translations ────────────────────────────────────────────────
 
-    public async Task<List<CategoryTranslation>> GetTranslationsAsync(int categoryId, CancellationToken ct = default) =>
-        await _context.CategoryTranslations.AsNoTracking()
+    public async Task<List<CategoryTranslation>> GetTranslationsAsync(int categoryId, CancellationToken ct = default)
+    {
+        await using var _context = await _contextFactory.CreateDbContextAsync(ct);
+
+        return await _context.CategoryTranslations.AsNoTracking()
             .Where(t => t.CategoryID == categoryId)
             .ToListAsync(ct);
+    }
 
     public async Task SetTranslationsAsync(int categoryId, IReadOnlyDictionary<string, (string Name, string Slug)> byLanguage, CancellationToken ct = default)
     {
+        await using var _context = await _contextFactory.CreateDbContextAsync(ct);
+
         var existing = await _context.CategoryTranslations
             .Where(t => t.CategoryID == categoryId)
             .ToListAsync(ct);
@@ -155,6 +162,8 @@ public class CategoryService : ICategoryService
 
     public async Task<List<CategoryDto>> GetTreeAsync(int websiteId, int? postTypeId = null, string? languageCode = null, CancellationToken ct = default)
     {
+        await using var _context = await _contextFactory.CreateDbContextAsync(ct);
+
         var q = _context.Categories.AsNoTracking()
             .Where(c => c.WebsiteID == websiteId && c.IsActive)
             .Include(c => c.CategoryTranslations)
@@ -171,6 +180,8 @@ public class CategoryService : ICategoryService
 
     public async Task<CategoryDto?> GetBySlugAsync(int websiteId, string slug, string? languageCode = null, CancellationToken ct = default)
     {
+        await using var _context = await _contextFactory.CreateDbContextAsync(ct);
+
         var category = await _context.Categories.AsNoTracking()
             .Include(c => c.CategoryTranslations)
             .FirstOrDefaultAsync(c => c.WebsiteID == websiteId && c.IsActive &&

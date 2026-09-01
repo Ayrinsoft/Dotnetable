@@ -20,6 +20,9 @@ public class WebsiteServiceTests : IDisposable
             .UseInMemoryDatabase(Guid.NewGuid().ToString())
             .Options;
         _context = new AppDbContext(opts);
+        // Services open a context per call now, so they get a factory over the same options;
+        // the fixture keeps its own _context for seeding and asserting.
+        var factory = new TestDbContextFactory(opts);
         _service = new WebsiteService(new TestDbContextFactory(opts));
     }
 

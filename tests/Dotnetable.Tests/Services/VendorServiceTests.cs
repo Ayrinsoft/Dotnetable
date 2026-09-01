@@ -26,14 +26,18 @@ public class VendorServiceTests : IDisposable
         // provider cannot execute at all. See RelationalTestDb.
         _db = new RelationalTestDb();
         _context = _db.NewContext();
-        var fx = new CurrencyConversionService(_context);
-        _vendors = new VendorService(_context, fx);
-        _listings = new VendorProductService(_context);
-        var currency = new CurrencyConversionService(_context);
-        var suppliers = new SupplierService(_context);
-        var tax = new TaxService(_context);
+        // Services open a context per call now; the factory points at the same database so the
+        // fixture can still seed and assert through its own _context.
+        var factory = new TestDbContextFactory(_db.Options);
+
+        var fx = new CurrencyConversionService(factory);
+        _vendors = new VendorService(factory, fx);
+        _listings = new VendorProductService(factory);
+        var currency = new CurrencyConversionService(factory);
+        var suppliers = new SupplierService(factory);
+        var tax = new TaxService(factory);
         var ledger = new Mock<IFinancialLedgerService>();
-        _credit = new VendorCreditService(_context, _vendors, currency, suppliers, tax, ledger.Object);
+        _credit = new VendorCreditService(factory, _vendors, currency, suppliers, tax, ledger.Object);
 
         _host = NewWebsite("Host", "host.test");
         _source = NewWebsite("Source", "source.test");
@@ -278,6 +282,10 @@ public class VendorServiceTests : IDisposable
 
         await _listings.CommitSaleAsync(listing1.VendorProductID, 2);
         await _listings.SyncInventoryOnHandFromListingsAsync(_host.WebsiteID, variant.ProductVariantID);
+
+        // The service wrote through its own short-lived context, so this fixture's context must
+        // re-read rather than answer from entities it is still tracking.
+        _context.ChangeTracker.Clear();
 
         reserved = await _context.VendorProducts.SingleAsync(x => x.VendorProductID == listing1.VendorProductID);
         reserved.StockQuantity.Should().Be(3);

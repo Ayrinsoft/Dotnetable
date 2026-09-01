@@ -9,12 +9,14 @@ namespace Dotnetable.Infrastructure.Services;
 
 public class WarrantyService : IWarrantyService
 {
-    private readonly AppDbContext _context;
+    private readonly IDbContextFactory<AppDbContext> _contextFactory;
 
-    public WarrantyService(AppDbContext context) => _context = context;
+    public WarrantyService(IDbContextFactory<AppDbContext> contextFactory) => _contextFactory = contextFactory;
 
     public async Task<List<Warranty>> GetAllAsync(int? websiteId, bool activeOnly = false, CancellationToken ct = default)
     {
+        await using var _context = await _contextFactory.CreateDbContextAsync(ct);
+
         var q = _context.Warranties.AsNoTracking().AsQueryable();
         if (websiteId is int wid)
             q = q.Where(w => w.WebsiteID == wid);
@@ -25,6 +27,8 @@ public class WarrantyService : IWarrantyService
 
     public async Task<PagedResult<Warranty>> GetPagedAsync(int? websiteId, GridQuery query, CancellationToken ct = default)
     {
+        await using var _context = await _contextFactory.CreateDbContextAsync(ct);
+
         var q = _context.Warranties.AsNoTracking().AsQueryable();
         if (websiteId is int wid)
             q = q.Where(w => w.WebsiteID == wid);
@@ -43,11 +47,17 @@ public class WarrantyService : IWarrantyService
         return new PagedResult<Warranty> { Items = items, TotalCount = total };
     }
 
-    public async Task<Warranty?> GetByIdAsync(int warrantyId, CancellationToken ct = default) =>
-        await _context.Warranties.FindAsync([warrantyId], ct);
+    public async Task<Warranty?> GetByIdAsync(int warrantyId, CancellationToken ct = default)
+    {
+        await using var _context = await _contextFactory.CreateDbContextAsync(ct);
+
+        return await _context.Warranties.FindAsync([warrantyId], ct);
+    }
 
     public async Task<Warranty> CreateAsync(Warranty warranty, CancellationToken ct = default)
     {
+        await using var _context = await _contextFactory.CreateDbContextAsync(ct);
+
         _context.Warranties.Add(warranty);
         await _context.SaveChangesAsync(ct);
         return warranty;
@@ -55,12 +65,16 @@ public class WarrantyService : IWarrantyService
 
     public async Task UpdateAsync(Warranty warranty, CancellationToken ct = default)
     {
+        await using var _context = await _contextFactory.CreateDbContextAsync(ct);
+
         _context.Warranties.Update(warranty);
         await _context.SaveChangesAsync(ct);
     }
 
     public async Task DeleteAsync(int warrantyId, CancellationToken ct = default)
     {
+        await using var _context = await _contextFactory.CreateDbContextAsync(ct);
+
         var warranty = await _context.Warranties
             .Include(w => w.WarrantyTranslations)
             .Include(w => w.ProductWarranties)
@@ -82,16 +96,22 @@ public class WarrantyService : IWarrantyService
         await _context.SaveChangesAsync(ct);
     }
 
-    public async Task<List<WarrantyTranslation>> GetTranslationsAsync(int warrantyId, CancellationToken ct = default) =>
-        await _context.WarrantyTranslations.AsNoTracking()
+    public async Task<List<WarrantyTranslation>> GetTranslationsAsync(int warrantyId, CancellationToken ct = default)
+    {
+        await using var _context = await _contextFactory.CreateDbContextAsync(ct);
+
+        return await _context.WarrantyTranslations.AsNoTracking()
             .Where(t => t.WarrantyID == warrantyId)
             .ToListAsync(ct);
+    }
 
     public async Task SetTranslationsAsync(
         int warrantyId,
         IReadOnlyDictionary<string, (string Title, string? Description, string? ProviderName)> byLanguage,
         CancellationToken ct = default)
     {
+        await using var _context = await _contextFactory.CreateDbContextAsync(ct);
+
         var existing = await _context.WarrantyTranslations
             .Where(t => t.WarrantyID == warrantyId)
             .ToListAsync(ct);

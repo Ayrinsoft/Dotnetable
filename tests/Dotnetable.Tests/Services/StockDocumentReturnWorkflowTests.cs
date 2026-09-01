@@ -22,6 +22,9 @@ public class StockDocumentReturnWorkflowTests : IDisposable
             .UseInMemoryDatabase(Guid.NewGuid().ToString())
             .Options;
         _context = new AppDbContext(opts);
+        // Services open a context per call now, so they get a factory over the same options;
+        // the fixture keeps its own _context for seeding and asserting.
+        var factory = new TestDbContextFactory(opts);
 
         var warehouses = new Mock<IWarehouseService>();
         warehouses.Setup(w => w.EnsureDefaultAsync(It.IsAny<int>(), It.IsAny<CancellationToken>()))
@@ -36,7 +39,7 @@ public class StockDocumentReturnWorkflowTests : IDisposable
             .Returns(Task.CompletedTask);
         var ledger = new Mock<IFinancialLedgerService>();
 
-        _docs = new StockDocumentService(_context, warehouses.Object, inventory.Object, vendors.Object, notes.Object, ledger.Object);
+        _docs = new StockDocumentService(factory, warehouses.Object, inventory.Object, vendors.Object, notes.Object, ledger.Object);
         Seed();
     }
 

@@ -9,18 +9,20 @@ namespace Dotnetable.Infrastructure.Services;
 
 public class AccountingReportService : IAccountingReportService
 {
-    private readonly AppDbContext _context;
+    private readonly IDbContextFactory<AppDbContext> _contextFactory;
     private readonly IChartOfAccountService _coa;
 
-    public AccountingReportService(AppDbContext context, IChartOfAccountService coa)
+    public AccountingReportService(IDbContextFactory<AppDbContext> contextFactory, IChartOfAccountService coa)
     {
-        _context = context;
+        _contextFactory = contextFactory;
         _coa = coa;
     }
 
     public async Task<IReadOnlyList<TrialBalanceRowDto>> GetTrialBalanceAsync(
         int websiteId, DateOnly from, DateOnly to, bool taxOnly = false, CancellationToken ct = default)
     {
+        await using var _context = await _contextFactory.CreateDbContextAsync(ct);
+
         await _coa.EnsureSeededAsync(websiteId, ct);
         var accounts = await _context.ChartOfAccounts.AsNoTracking()
             .Where(a => a.WebsiteID == websiteId && a.IsActive)
@@ -66,6 +68,8 @@ public class AccountingReportService : IAccountingReportService
     public async Task<ProfitAndLossDto> GetProfitAndLossAsync(
         int websiteId, DateOnly from, DateOnly to, bool taxOnly = false, CancellationToken ct = default)
     {
+        await using var _context = await _contextFactory.CreateDbContextAsync(ct);
+
         var tb = await GetTrialBalanceAsync(websiteId, from, to, taxOnly, ct);
         var income = tb.Where(r => r.AccountType == (byte)GlAccountType.Income).ToList();
         var expenses = tb.Where(r => r.AccountType == (byte)GlAccountType.Expense).ToList();
@@ -93,6 +97,8 @@ public class AccountingReportService : IAccountingReportService
     public async Task<TaxReconciliationDto> GetTaxReconciliationAsync(
         int websiteId, DateOnly from, DateOnly to, CancellationToken ct = default)
     {
+        await using var _context = await _contextFactory.CreateDbContextAsync(ct);
+
         var fromDt = from.ToDateTime(TimeOnly.MinValue, DateTimeKind.Utc);
         var toDt = to.ToDateTime(new TimeOnly(23, 59, 59), DateTimeKind.Utc);
 
@@ -167,6 +173,8 @@ public class AccountingReportService : IAccountingReportService
 
     public async Task<byte[]> ExportJournalsExcelAsync(int websiteId, DateOnly from, DateOnly to, bool taxOnly = false, CancellationToken ct = default)
     {
+        await using var _context = await _contextFactory.CreateDbContextAsync(ct);
+
         var q = _context.JournalEntryLines.AsNoTracking()
             .Include(l => l.JournalEntry)
             .Include(l => l.ChartOfAccount)

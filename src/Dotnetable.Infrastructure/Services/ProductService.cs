@@ -13,13 +13,13 @@ public class ProductService : IProductService
     /// <summary>Product.Status value that marks a product as publicly published.</summary>
     public const byte PublishedStatus = 1;
 
-    private readonly AppDbContext _context;
+    private readonly IDbContextFactory<AppDbContext> _contextFactory;
     private readonly ICurrencyConversionService _currency;
     private readonly IVendorService _vendors;
 
-    public ProductService(AppDbContext context, ICurrencyConversionService currency, IVendorService vendors)
+    public ProductService(IDbContextFactory<AppDbContext> contextFactory, ICurrencyConversionService currency, IVendorService vendors)
     {
-        _context = context;
+        _contextFactory = contextFactory;
         _currency = currency;
         _vendors = vendors;
     }
@@ -28,6 +28,8 @@ public class ProductService : IProductService
 
     public async Task<PagedResult<ProductListItemDto>> GetPagedAsync(int? websiteId, ProductFilter filter, GridQuery query, string? search, int? createdByMemberId = null, CancellationToken ct = default)
     {
+        await using var _context = await _contextFactory.CreateDbContextAsync(ct);
+
         var q = _context.Products.AsNoTracking()
             .Include(p => p.Brand)
             .Include(p => p.FeaturedImageFile)
@@ -102,8 +104,11 @@ public class ProductService : IProductService
         return new PagedResult<ProductListItemDto> { Items = dtos, TotalCount = total };
     }
 
-    public async Task<Product?> GetByIdAsync(int productId, CancellationToken ct = default) =>
-        await _context.Products
+    public async Task<Product?> GetByIdAsync(int productId, CancellationToken ct = default)
+    {
+        await using var _context = await _contextFactory.CreateDbContextAsync(ct);
+
+        return await _context.Products
             .Include(p => p.ProductTranslations)
             .Include(p => p.ProductVariants).ThenInclude(v => v.VariantAttributeValues).ThenInclude(a => a.AttributeOption)
             .Include(p => p.ProductCategoryMaps)
@@ -116,9 +121,12 @@ public class ProductService : IProductService
             .Include(p => p.ProductRelationProducts).ThenInclude(r => r.RelatedProduct)
             .Include(p => p.FeaturedImageFile)
             .FirstOrDefaultAsync(p => p.ProductID == productId, ct);
+    }
 
     public async Task<int> CreateSimpleMediaSetAsync(int websiteId, int fileId, CancellationToken ct = default)
     {
+        await using var _context = await _contextFactory.CreateDbContextAsync(ct);
+
         var set = new MediaSet { WebsiteID = websiteId, Name = "Product gallery item", IsShared = false, CreatedAt = DateTime.UtcNow };
         _context.MediaSets.Add(set);
         await _context.SaveChangesAsync(ct);
@@ -129,6 +137,8 @@ public class ProductService : IProductService
 
     public async Task<Product> CreateAsync(Product product, CancellationToken ct = default)
     {
+        await using var _context = await _contextFactory.CreateDbContextAsync(ct);
+
         NormalizeProductFulfillment(product);
         NormalizeProductRichText(product);
         product.CreatedAt = product.UpdatedAt = DateTime.UtcNow;
@@ -139,6 +149,8 @@ public class ProductService : IProductService
 
     public async Task UpdateAsync(Product product, CancellationToken ct = default)
     {
+        await using var _context = await _contextFactory.CreateDbContextAsync(ct);
+
         NormalizeProductFulfillment(product);
         NormalizeProductRichText(product);
         product.UpdatedAt = DateTime.UtcNow;
@@ -196,6 +208,8 @@ public class ProductService : IProductService
 
     public async Task DeleteAsync(int productId, CancellationToken ct = default)
     {
+        await using var _context = await _contextFactory.CreateDbContextAsync(ct);
+
         var product = await _context.Products
             .Include(p => p.ProductTranslations)
             .Include(p => p.ProductVariants)
@@ -232,19 +246,29 @@ public class ProductService : IProductService
         await _context.SaveChangesAsync(ct);
     }
 
-    public async Task SetActiveAsync(int productId, bool active, CancellationToken ct = default) =>
+    public async Task SetActiveAsync(int productId, bool active, CancellationToken ct = default)
+    {
+        await using var _context = await _contextFactory.CreateDbContextAsync(ct);
+
         await _context.Products.Where(p => p.ProductID == productId)
             .ExecuteUpdateAsync(s => s.SetProperty(p => p.IsActive, active), ct);
+    }
 
     // ── Translations ────────────────────────────────────────────────
 
-    public async Task<List<ProductTranslation>> GetTranslationsAsync(int productId, CancellationToken ct = default) =>
-        await _context.ProductTranslations.AsNoTracking()
+    public async Task<List<ProductTranslation>> GetTranslationsAsync(int productId, CancellationToken ct = default)
+    {
+        await using var _context = await _contextFactory.CreateDbContextAsync(ct);
+
+        return await _context.ProductTranslations.AsNoTracking()
             .Where(t => t.ProductID == productId)
             .ToListAsync(ct);
+    }
 
     public async Task SetTranslationsAsync(int productId, IReadOnlyList<ProductTranslation> translations, CancellationToken ct = default)
     {
+        await using var _context = await _contextFactory.CreateDbContextAsync(ct);
+
         var existing = await _context.ProductTranslations.Where(t => t.ProductID == productId).ToListAsync(ct);
 
         var keepLanguages = translations
@@ -286,14 +310,20 @@ public class ProductService : IProductService
 
     // ── Categories ───────────────────────────────────────────────────
 
-    public async Task<List<int>> GetCategoryIdsAsync(int productId, CancellationToken ct = default) =>
-        await _context.ProductCategoryMaps.AsNoTracking()
+    public async Task<List<int>> GetCategoryIdsAsync(int productId, CancellationToken ct = default)
+    {
+        await using var _context = await _contextFactory.CreateDbContextAsync(ct);
+
+        return await _context.ProductCategoryMaps.AsNoTracking()
             .Where(m => m.ProductID == productId)
             .Select(m => m.ProductCategoryID)
             .ToListAsync(ct);
+    }
 
     public async Task SetCategoriesAsync(int productId, IReadOnlyList<int> categoryIds, int? primaryCategoryId, CancellationToken ct = default)
     {
+        await using var _context = await _contextFactory.CreateDbContextAsync(ct);
+
         var existing = await _context.ProductCategoryMaps.Where(m => m.ProductID == productId).ToListAsync(ct);
         var wanted = categoryIds.Distinct().ToList();
 
@@ -322,6 +352,8 @@ public class ProductService : IProductService
         IReadOnlyList<IReadOnlyList<(int AttributeDefinitionID, int AttributeOptionID)>>? variantAttributeOptions = null,
         CancellationToken ct = default)
     {
+        await using var _context = await _contextFactory.CreateDbContextAsync(ct);
+
         var product = await _context.Products.AsNoTracking()
             .Where(p => p.ProductID == productId).Select(p => new { p.WebsiteID }).FirstOrDefaultAsync(ct);
         if (product is null) return;
@@ -432,7 +464,7 @@ public class ProductService : IProductService
                 current.IsActive = v.IsActive;
 
                 if (priceChanged)
-                    AppendPriceHistory(current.ProductVariantID, v.ReferencePrice, v.CompareAtPrice, v.ReferencePriceUsd, v.CompareAtPriceUsd, now, changedByMemberId);
+                    AppendPriceHistory(_context, current.ProductVariantID, v.ReferencePrice, v.CompareAtPrice, v.ReferencePriceUsd, v.CompareAtPriceUsd, now, changedByMemberId);
 
                 pendingVariantAttributes.Add((current, wantedAttrs));
             }
@@ -442,9 +474,9 @@ public class ProductService : IProductService
 
         // New variants get an ID after SaveChanges — log their initial price and sync attribute options.
         foreach (var created in newVariantsNeedingHistory)
-            AppendPriceHistory(created.ProductVariantID, created.ReferencePrice, created.CompareAtPrice, created.ReferencePriceUsd, created.CompareAtPriceUsd, now, changedByMemberId);
+            AppendPriceHistory(_context, created.ProductVariantID, created.ReferencePrice, created.CompareAtPrice, created.ReferencePriceUsd, created.CompareAtPriceUsd, now, changedByMemberId);
 
-        await SyncVariantAttributeValuesAsync(pendingVariantAttributes, ct);
+        await SyncVariantAttributeValuesAsync(_context, pendingVariantAttributes, ct);
 
         if (newVariantsNeedingHistory.Count > 0 || pendingVariantAttributes.Count > 0)
             await _context.SaveChangesAsync(ct);
@@ -488,7 +520,8 @@ public class ProductService : IProductService
     /// <summary>
     /// Replace-all attribute options for the given variants (composite key: variant + definition).
     /// </summary>
-    private async Task SyncVariantAttributeValuesAsync(
+    private static async Task SyncVariantAttributeValuesAsync(
+        AppDbContext _context,
         IReadOnlyList<(ProductVariant Target, List<(int AttributeDefinitionID, int AttributeOptionID)> Attrs)> pending,
         CancellationToken ct)
     {
@@ -538,6 +571,8 @@ public class ProductService : IProductService
     public async Task<List<ProductVariantPriceHistoryDto>> GetVariantPriceHistoryAsync(
         int productVariantId, int months = 12, CancellationToken ct = default)
     {
+        await using var _context = await _contextFactory.CreateDbContextAsync(ct);
+
         if (months < 1) months = 1;
         if (months > 36) months = 36;
         var from = DateTime.UtcNow.AddMonths(-months);
@@ -590,7 +625,10 @@ public class ProductService : IProductService
         }
     }
 
-    private void AppendPriceHistory(
+    // Takes the caller's context so the new row joins the same change tracker and is written by
+    // the caller's SaveChanges.
+    private static void AppendPriceHistory(
+        AppDbContext _context,
         int productVariantId,
         decimal referencePrice,
         decimal? compareAtPrice,
@@ -615,6 +653,8 @@ public class ProductService : IProductService
 
     public async Task SetMediaAsync(int productId, IReadOnlyList<int> mediaSetIds, CancellationToken ct = default)
     {
+        await using var _context = await _contextFactory.CreateDbContextAsync(ct);
+
         var existing = await _context.ProductMedia.Where(m => m.ProductID == productId).ToListAsync(ct);
         _context.ProductMedia.RemoveRange(existing);
 
@@ -629,6 +669,8 @@ public class ProductService : IProductService
 
     public async Task SetAttributeValuesAsync(int productId, IReadOnlyList<ProductAttributeValue> values, CancellationToken ct = default)
     {
+        await using var _context = await _contextFactory.CreateDbContextAsync(ct);
+
         // Empty values mean "this attribute does not apply to the product" — do not persist them.
         var meaningful = values
             .Where(HasMeaningfulAttributeValue)
@@ -656,7 +698,7 @@ public class ProductService : IProductService
                 {
                     ProductID = productId,
                     AttributeDefinitionID = v.AttributeDefinitionID,
-                    AttributeOptionID = NormalizeOptionId(v.AttributeOptionID),
+                    AttributeOptionID = NormalizeOptionId(_context, v.AttributeOptionID),
                     CustomValue = NormalizeCustomValue(v.CustomValue),
                     NumericValue = v.NumericValue,
                     IsFeatured = v.IsFeatured,
@@ -665,7 +707,7 @@ public class ProductService : IProductService
             }
             else
             {
-                current.AttributeOptionID = NormalizeOptionId(v.AttributeOptionID);
+                current.AttributeOptionID = NormalizeOptionId(_context, v.AttributeOptionID);
                 current.CustomValue = NormalizeCustomValue(v.CustomValue);
                 current.NumericValue = v.NumericValue;
                 current.IsFeatured = v.IsFeatured;
@@ -686,7 +728,7 @@ public class ProductService : IProductService
         return false;
     }
 
-    private static int? NormalizeOptionId(int? optionId) =>
+    private static int? NormalizeOptionId(AppDbContext _context, int? optionId) =>
         optionId is int id && id > 0 ? id : null;
 
     private static string? NormalizeCustomValue(string? value) =>
@@ -696,6 +738,8 @@ public class ProductService : IProductService
 
     public async Task SetWarningsAsync(int productId, IReadOnlyList<ProductWarning> warnings, CancellationToken ct = default)
     {
+        await using var _context = await _contextFactory.CreateDbContextAsync(ct);
+
         var existing = await _context.ProductWarnings
             .Include(w => w.ProductWarningTranslations)
             .Where(w => w.ProductID == productId).ToListAsync(ct);
@@ -734,6 +778,8 @@ public class ProductService : IProductService
 
     public async Task SetWarrantiesAsync(int productId, IReadOnlyList<ProductWarranty> warranties, CancellationToken ct = default)
     {
+        await using var _context = await _contextFactory.CreateDbContextAsync(ct);
+
         var existing = await _context.ProductWarranties.Where(w => w.ProductID == productId).ToListAsync(ct);
         var wantedIds = warranties.Where(w => w.ProductWarrantyID != 0).Select(w => w.ProductWarrantyID).ToHashSet();
 
@@ -778,6 +824,8 @@ public class ProductService : IProductService
 
     public async Task SetRelatedProductsAsync(int productId, IReadOnlyList<(int RelatedProductID, byte RelationType, int SortOrder)> related, CancellationToken ct = default)
     {
+        await using var _context = await _contextFactory.CreateDbContextAsync(ct);
+
         var existing = await _context.ProductRelations.Where(r => r.ProductID == productId).ToListAsync(ct);
         var wanted = related.Select(r => r.RelatedProductID).Distinct().ToHashSet();
 
@@ -812,8 +860,10 @@ public class ProductService : IProductService
         int pageIndex, int pageSize, string? languageCode = null, string? currencyCode = null,
         bool? inStock = null, IReadOnlyList<int>? attributeOptionIds = null, CancellationToken ct = default)
     {
+        await using var _context = await _contextFactory.CreateDbContextAsync(ct);
+
         // Own products of the host site (include inventory for availability).
-        IQueryable<Product> q = PublishedQuery(websiteId)
+        IQueryable<Product> q = PublishedQuery(_context, websiteId)
             .Include(p => p.ProductVariants).ThenInclude(v => v.InventoryItems);
 
         if (!string.IsNullOrWhiteSpace(categorySlug))
@@ -835,7 +885,7 @@ public class ProductService : IProductService
             .ToListAsync(ct);
 
         // Site-linked vendors: only products owned by the linked website (never re-shared imports).
-        var linked = await LoadLinkedSiteProductsAsync(websiteId, categorySlug, brandSlug, search, minPriceUsd, maxPriceUsd, attributeOptionIds, ct);
+        var linked = await LoadLinkedSiteProductsAsync(_context, websiteId, categorySlug, brandSlug, search, minPriceUsd, maxPriceUsd, attributeOptionIds, ct);
 
         var combined = new List<(Product Product, Vendor? Vendor)>(localProducts.Count + linked.Count);
         combined.AddRange(localProducts.Select(p => ((Product Product, Vendor? Vendor))(p, null)));
@@ -848,7 +898,7 @@ public class ProductService : IProductService
             combined = combined
                 .Where(x =>
                 {
-                    var key = ListingKey(x.Product.ProductID, x.Vendor?.VendorID);
+                    var key = ListingKey(_context, x.Product.ProductID, x.Vendor?.VendorID);
                     var available = stockByKey.GetValueOrDefault(key);
                     return wantInStock ? StockDisplay.IsInStock(available) : !StockDisplay.IsInStock(available);
                 })
@@ -863,7 +913,7 @@ public class ProductService : IProductService
         var items = new List<ProductSummaryDto>(page.Count);
         foreach (var (p, vendor) in page)
         {
-            var available = stockByKey.GetValueOrDefault(ListingKey(p.ProductID, vendor?.VendorID));
+            var available = stockByKey.GetValueOrDefault(ListingKey(_context, p.ProductID, vendor?.VendorID));
             var dto = await ProjectSummaryAsync(p, languageCode, currencyCode, ct, vendor, available);
             items.Add(dto);
         }
@@ -873,25 +923,29 @@ public class ProductService : IProductService
 
     public async Task<ProductDetailDto?> GetDetailByIdAsync(int productId, string? languageCode = null, string? currencyCode = null, CancellationToken ct = default)
     {
+        await using var _context = await _contextFactory.CreateDbContextAsync(ct);
+
         // Admin preview: ignore publish/active filters so drafts and unpublished products are visible.
-        var product = await AdminDetailQuery()
+        var product = await AdminDetailQuery(_context)
             .FirstOrDefaultAsync(p => p.ProductID == productId, ct);
         if (product is null) return null;
-        return await ProjectDetailAsync(product, languageCode, currencyCode, ct, null, product.WebsiteID, adminPreview: true);
+        return await ProjectDetailAsync(_context, product, languageCode, currencyCode, ct, null, product.WebsiteID, adminPreview: true);
     }
 
     public async Task<ProductDetailDto?> GetBySlugAsync(int websiteId, string slug, string? languageCode = null, string? currencyCode = null, CancellationToken ct = default)
     {
+        await using var _context = await _contextFactory.CreateDbContextAsync(ct);
+
         // Product code URL: /product/DN-42 (prefix from owning site; id is ProductID, not variant).
         if (Domain.ProductCode.TryParse(slug, out var codePrefix, out var codeProductId))
         {
-            var hostPrefix = await GetProductCodePrefixAsync(websiteId, ct);
+            var hostPrefix = await GetProductCodePrefixAsync(_context, websiteId, ct);
             if (string.Equals(hostPrefix, codePrefix, StringComparison.OrdinalIgnoreCase))
             {
-                var byCode = await DetailQuery(websiteId)
+                var byCode = await DetailQuery(_context, websiteId)
                     .FirstOrDefaultAsync(p => p.ProductID == codeProductId, ct);
                 if (byCode is not null)
-                    return await ProjectDetailAsync(byCode, languageCode, currencyCode, ct, null, websiteId);
+                    return await ProjectDetailAsync(_context, byCode, languageCode, currencyCode, ct, null, websiteId);
             }
 
             // Linked-site product codes (source website prefix + product id).
@@ -899,19 +953,19 @@ public class ProductService : IProductService
             foreach (var v in siteVendorsForCode)
             {
                 if (v.LinkedWebsiteID is not int lid) continue;
-                var sourcePrefix = await GetProductCodePrefixAsync(lid, ct);
+                var sourcePrefix = await GetProductCodePrefixAsync(_context, lid, ct);
                 if (!string.Equals(sourcePrefix, codePrefix, StringComparison.OrdinalIgnoreCase))
                     continue;
 
-                var linked = await DetailQuery(lid)
+                var linked = await DetailQuery(_context, lid)
                     .FirstOrDefaultAsync(p => p.ProductID == codeProductId && p.WebsiteID == lid, ct);
                 if (linked is not null)
-                    return await ProjectDetailAsync(linked, languageCode, currencyCode, ct, v, websiteId);
+                    return await ProjectDetailAsync(_context, linked, languageCode, currencyCode, ct, v, websiteId);
             }
         }
 
         // Prefer host-owned product.
-        var product = await DetailQuery(websiteId)
+        var product = await DetailQuery(_context, websiteId)
             .FirstOrDefaultAsync(p => p.Slug == slug || p.ProductTranslations.Any(t => t.Slug == slug), ct);
         Vendor? vendor = null;
 
@@ -926,7 +980,7 @@ public class ProductService : IProductService
                 if (slug.StartsWith(v.Slug + "--", StringComparison.OrdinalIgnoreCase))
                     productSlug = slug[(v.Slug.Length + 2)..];
 
-                product = await DetailQuery(lid)
+                product = await DetailQuery(_context, lid)
                     .FirstOrDefaultAsync(p => p.Slug == productSlug || p.ProductTranslations.Any(t => t.Slug == productSlug), ct);
                 if (product is not null)
                 {
@@ -939,10 +993,10 @@ public class ProductService : IProductService
         }
 
         if (product is null) return null;
-        return await ProjectDetailAsync(product, languageCode, currencyCode, ct, vendor, websiteId);
+        return await ProjectDetailAsync(_context, product, languageCode, currencyCode, ct, vendor, websiteId);
     }
 
-    private async Task<string> GetProductCodePrefixAsync(int websiteId, CancellationToken ct)
+    private async Task<string> GetProductCodePrefixAsync(AppDbContext _context, int websiteId, CancellationToken ct)
     {
         var prefix = await _context.Websites.AsNoTracking()
             .Where(w => w.WebsiteID == websiteId)
@@ -953,7 +1007,9 @@ public class ProductService : IProductService
 
     public async Task<List<ProductRefDto>> GetRelatedAsync(int websiteId, string slug, int take, string? languageCode = null, string? currencyCode = null, CancellationToken ct = default)
     {
-        var product = await PublishedQuery(websiteId)
+        await using var _context = await _contextFactory.CreateDbContextAsync(ct);
+
+        var product = await PublishedQuery(_context, websiteId)
             .Include(p => p.ProductRelationProducts).ThenInclude(r => r.RelatedProduct).ThenInclude(rp => rp.FeaturedImageFile)
             .Include(p => p.ProductRelationProducts).ThenInclude(r => r.RelatedProduct).ThenInclude(rp => rp.ProductVariants)
             .FirstOrDefaultAsync(p => p.Slug == slug || p.ProductTranslations.Any(t => t.Slug == slug), ct);
@@ -971,7 +1027,8 @@ public class ProductService : IProductService
         return result;
     }
 
-    private IQueryable<Product> PublishedQuery(int websiteId) =>
+    // Takes the caller's context: an IQueryable is only usable while the context that built it is alive.
+    private static IQueryable<Product> PublishedQuery(AppDbContext _context, int websiteId) =>
         _context.Products.AsNoTracking()
             .Where(p => p.WebsiteID == websiteId && p.IsActive && p.Status == PublishedStatus)
             .Include(p => p.Brand)
@@ -979,7 +1036,7 @@ public class ProductService : IProductService
             .Include(p => p.ProductTranslations)
             .Include(p => p.ProductVariants);
 
-    private IQueryable<Product> DetailIncludes(IQueryable<Product> q) =>
+    private static IQueryable<Product> DetailIncludes(IQueryable<Product> q) =>
         q.Include(p => p.ProductVariants).ThenInclude(v => v.ImageFile)
             .Include(p => p.ProductVariants).ThenInclude(v => v.InventoryItems)
             .Include(p => p.ProductVariants).ThenInclude(v => v.VariantAttributeValues).ThenInclude(a => a.AttributeDefinition).ThenInclude(a => a.AttributeDefinitionTranslations)
@@ -994,11 +1051,11 @@ public class ProductService : IProductService
             .Include(p => p.ProductRelationProducts).ThenInclude(r => r.RelatedProduct).ThenInclude(rp => rp.ProductVariants)
             .Include(p => p.ProductMedia).ThenInclude(m => m.MediaSet).ThenInclude(ms => ms.MediaSetItems).ThenInclude(i => i.File);
 
-    private IQueryable<Product> DetailQuery(int websiteId) =>
-        DetailIncludes(PublishedQuery(websiteId));
+    private static IQueryable<Product> DetailQuery(AppDbContext _context, int websiteId) =>
+        DetailIncludes(PublishedQuery(_context, websiteId));
 
     /// <summary>Full product graph for admin preview (any status / active flag).</summary>
-    private IQueryable<Product> AdminDetailQuery() =>
+    private static IQueryable<Product> AdminDetailQuery(AppDbContext _context) =>
         DetailIncludes(_context.Products.AsNoTracking()
             .Include(p => p.Brand)
             .Include(p => p.FeaturedImageFile)
@@ -1008,7 +1065,10 @@ public class ProductService : IProductService
     /// <summary>
     /// Products owned by linked websites (Product.WebsiteID == LinkedWebsiteID only — never re-share).
     /// </summary>
+    // Takes the caller's context so the linked-site query runs on the same connection as the host
+    // query it is merged with.
     private async Task<List<(Product Product, Vendor Vendor)>> LoadLinkedSiteProductsAsync(
+        AppDbContext _context,
         int hostWebsiteId, string? categorySlug, string? brandSlug, string? search,
         decimal? minPriceUsd, decimal? maxPriceUsd,
         IReadOnlyList<int>? attributeOptionIds,
@@ -1019,7 +1079,7 @@ public class ProductService : IProductService
         foreach (var vendor in siteVendors)
         {
             if (vendor.LinkedWebsiteID is not int lid) continue;
-            IQueryable<Product> q = PublishedQuery(lid)
+            IQueryable<Product> q = PublishedQuery(_context, lid)
                 .Include(p => p.ProductVariants).ThenInclude(v => v.InventoryItems);
             // Ownership guard: only source-owned products.
             q = q.Where(p => p.WebsiteID == lid);
@@ -1069,7 +1129,7 @@ public class ProductService : IProductService
         return q;
     }
 
-    private static string ListingKey(int productId, int? vendorId) => $"{productId}:{vendorId?.ToString() ?? "0"}";
+    private static string ListingKey(AppDbContext _context, int productId, int? vendorId) => $"{productId}:{vendorId?.ToString() ?? "0"}";
 
     /// <summary>
     /// Total available units for a catalog listing: sum of store listing available stock only.
@@ -1078,6 +1138,8 @@ public class ProductService : IProductService
     private async Task<Dictionary<string, int>> ResolveListingStockBulkAsync(
         int hostWebsiteId, List<(Product Product, Vendor? Vendor)> listings, CancellationToken ct)
     {
+        await using var _context = await _contextFactory.CreateDbContextAsync(ct);
+
         var result = new Dictionary<string, int>(StringComparer.Ordinal);
         if (listings.Count == 0) return result;
 
@@ -1121,7 +1183,7 @@ public class ProductService : IProductService
 
         foreach (var (product, vendor) in listings)
         {
-            var key = ListingKey(product.ProductID, vendor?.VendorID);
+            var key = ListingKey(_context, product.ProductID, vendor?.VendorID);
             var activeVariants = product.ProductVariants.Where(v => v.IsActive).ToList();
             if (activeVariants.Count == 0)
             {
@@ -1155,6 +1217,8 @@ public class ProductService : IProductService
     private async Task<ProductSummaryDto> ProjectSummaryAsync(
         Product p, string? lang, string? currencyCode, CancellationToken ct, Vendor? vendor = null, int? availableStock = null)
     {
+        await using var _context = await _contextFactory.CreateDbContextAsync(ct);
+
         var (title, slug, shortDescription) = LocalizedCore(p, lang);
         var activeVariants = p.ProductVariants.Where(v => v.IsActive).ToList();
         var defaultVariant = activeVariants.FirstOrDefault(v => v.IsDefault) ?? activeVariants.FirstOrDefault();
@@ -1176,7 +1240,7 @@ public class ProductService : IProductService
                 minPrice = await _currency.ToDisplayFromLocalAsync(priceWebsiteId, minLocal, null, currencyCode, minUsd > 0 ? minUsd : null, ct);
         }
 
-        var codePrefix = await GetProductCodePrefixAsync(p.WebsiteID, ct);
+        var codePrefix = await GetProductCodePrefixAsync(_context, p.WebsiteID, ct);
         return new ProductSummaryDto
         {
             ProductID = p.ProductID,
@@ -1200,6 +1264,8 @@ public class ProductService : IProductService
 
     private async Task<ProductRefDto> ProjectRefAsync(Product p, byte relationType, string? lang, string? currencyCode, CancellationToken ct)
     {
+        await using var _context = await _contextFactory.CreateDbContextAsync(ct);
+
         var (title, slug, _) = LocalizedCore(p, lang);
         var activeVariants = p.ProductVariants.Where(v => v.IsActive).ToList();
         MoneyDto? minPrice = null;
@@ -1213,7 +1279,7 @@ public class ProductService : IProductService
                 minPrice = await _currency.ToDisplayFromLocalAsync(p.WebsiteID, minLocal, null, currencyCode, minUsd > 0 ? minUsd : null, ct);
         }
 
-        var codePrefix = await GetProductCodePrefixAsync(p.WebsiteID, ct);
+        var codePrefix = await GetProductCodePrefixAsync(_context, p.WebsiteID, ct);
         return new ProductRefDto
         {
             ProductID = p.ProductID,
@@ -1224,7 +1290,7 @@ public class ProductService : IProductService
         };
     }
 
-    private async Task<ProductDetailDto> ProjectDetailAsync(
+    private async Task<ProductDetailDto> ProjectDetailAsync(AppDbContext _context, 
         Product p, string? lang, string? currencyCode, CancellationToken ct, Vendor? vendor = null, int? hostWebsiteId = null, bool adminPreview = false)
     {
         var priceWebsiteId = hostWebsiteId ?? vendor?.WebsiteID ?? p.WebsiteID;

@@ -7,20 +7,26 @@ namespace Dotnetable.Infrastructure.Services;
 
 public class WishlistService : IWishlistService
 {
-    private readonly AppDbContext _context;
+    private readonly IDbContextFactory<AppDbContext> _contextFactory;
 
-    public WishlistService(AppDbContext context) => _context = context;
+    public WishlistService(IDbContextFactory<AppDbContext> contextFactory) => _contextFactory = contextFactory;
 
-    public async Task<List<WishlistItem>> GetItemsAsync(int clientId, CancellationToken ct = default) =>
-        await _context.WishlistItems.AsNoTracking()
+    public async Task<List<WishlistItem>> GetItemsAsync(int clientId, CancellationToken ct = default)
+    {
+        await using var _context = await _contextFactory.CreateDbContextAsync(ct);
+
+        return await _context.WishlistItems.AsNoTracking()
             .Include(i => i.ProductVariant).ThenInclude(v => v.Product)
             .Include(i => i.ProductVariant).ThenInclude(v => v.ImageFile)
             .Where(i => i.Wishlist.WebsiteClientID == clientId)
             .OrderByDescending(i => i.AddedAt)
             .ToListAsync(ct);
+    }
 
     public async Task AddItemAsync(int websiteId, int clientId, int variantId, CancellationToken ct = default)
     {
+        await using var _context = await _contextFactory.CreateDbContextAsync(ct);
+
         var wishlist = await _context.Wishlists.FirstOrDefaultAsync(w => w.WebsiteClientID == clientId, ct);
         if (wishlist is null)
         {
@@ -38,6 +44,8 @@ public class WishlistService : IWishlistService
 
     public async Task RemoveItemAsync(int clientId, int variantId, CancellationToken ct = default)
     {
+        await using var _context = await _contextFactory.CreateDbContextAsync(ct);
+
         var item = await _context.WishlistItems
             .FirstOrDefaultAsync(i => i.Wishlist.WebsiteClientID == clientId && i.ProductVariantID == variantId, ct);
         if (item is null) return;

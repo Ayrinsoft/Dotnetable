@@ -10,19 +10,23 @@ namespace Dotnetable.Infrastructure.Services;
 
 public class FinancialLedgerService : IFinancialLedgerService
 {
-    private readonly AppDbContext _fallback;
-    private AppDbContext _context => AmbientDbContext.Current ?? _fallback;
+    // Contexts come from DbLease per operation: it joins an ambient transaction when one is in
+    // flight and otherwise opens a short-lived context, so nothing is shared across a circuit.
+    private readonly IDbContextFactory<AppDbContext> _contextFactory;
     private readonly IGlProjector _gl;
 
-    public FinancialLedgerService(AppDbContext context, IGlProjector gl)
+    public FinancialLedgerService(IDbContextFactory<AppDbContext> contextFactory, IGlProjector gl)
     {
-        _fallback = context;
+        _contextFactory = contextFactory;
         _gl = gl;
     }
 
     public async Task<PagedResult<FinancialLedgerEntryDto>> GetPagedAsync(
         FinancialLedgerFilter filter, GridQuery query, CancellationToken ct = default)
     {
+        await using var _lease = await DbLease.OpenAsync(_contextFactory, ct);
+        var _context = _lease.Context;
+
         var q = ApplyFilter(_context.FinancialLedgerEntries.AsNoTracking(), filter);
         var total = await q.CountAsync(ct);
         var items = await q
@@ -43,6 +47,9 @@ public class FinancialLedgerService : IFinancialLedgerService
     public async Task<IReadOnlyList<FinancialLedgerEntryDto>> GetByOrderAsync(
         int orderId, bool currentOnly = true, bool includeHistory = false, CancellationToken ct = default)
     {
+        await using var _lease = await DbLease.OpenAsync(_contextFactory, ct);
+        var _context = _lease.Context;
+
         var q = _context.FinancialLedgerEntries.AsNoTracking()
             .Include(e => e.Vendor)
             .Include(e => e.Order)
@@ -64,6 +71,9 @@ public class FinancialLedgerService : IFinancialLedgerService
 
     public async Task<OrderFinancialSummaryDto?> GetOrderSummaryAsync(int orderId, CancellationToken ct = default)
     {
+        await using var _lease = await DbLease.OpenAsync(_contextFactory, ct);
+        var _context = _lease.Context;
+
         var order = await _context.Orders.AsNoTracking().FirstOrDefaultAsync(o => o.OrderID == orderId, ct);
         if (order is null) return null;
 
@@ -117,6 +127,9 @@ public class FinancialLedgerService : IFinancialLedgerService
     public async Task<IReadOnlyList<FinancialLedgerEntryDto>> GetVendorVisibleAsync(
         int vendorId, DateOnly? from = null, DateOnly? to = null, CancellationToken ct = default)
     {
+        await using var _lease = await DbLease.OpenAsync(_contextFactory, ct);
+        var _context = _lease.Context;
+
         var q = _context.FinancialLedgerEntries.AsNoTracking()
             .Include(e => e.Order)
             .Where(e => e.VendorID == vendorId && e.VendorVisible && e.IsCurrent);
@@ -131,6 +144,9 @@ public class FinancialLedgerService : IFinancialLedgerService
 
     public async Task<FinancialLedgerEntry> PostAsync(PostFinancialEntryRequest request, CancellationToken ct = default)
     {
+        await using var _lease = await DbLease.OpenAsync(_contextFactory, ct);
+        var _context = _lease.Context;
+
         if (string.IsNullOrWhiteSpace(request.TransactionType))
             throw new ArgumentException("TransactionType is required.");
         if (request.Amount < 0)
@@ -180,6 +196,9 @@ public class FinancialLedgerService : IFinancialLedgerService
 
     public async Task PostOrderPaidBreakdownAsync(int orderId, int? paymentId, int? memberId, CancellationToken ct = default)
     {
+        await using var _lease = await DbLease.OpenAsync(_contextFactory, ct);
+        var _context = _lease.Context;
+
         var order = await _context.Orders
             .Include(o => o.OrderItems)
             .FirstOrDefaultAsync(o => o.OrderID == orderId, ct);
@@ -234,29 +253,29 @@ public class FinancialLedgerService : IFinancialLedgerService
             }
         }
 
-        AddEntry(order, groupId, FinancialTransactionTypes.CustomerPayment, FinancialFlow.In,
+        AddEntry(_context, order, groupId, FinancialTransactionTypes.CustomerPayment, FinancialFlow.In,
             payAmount, payUsd,
             $"Payment for order {order.OrderNumber}",
             "Customer receipt", reportTax, vendorVisible: false, paymentId, null, null, memberId, nowLocal);
 
         // Components (memo)
         if (order.ShippingTotal > 0)
-            AddEntry(order, groupId, FinancialTransactionTypes.OrderShipping, FinancialFlow.Component,
+            AddEntry(_context, order, groupId, FinancialTransactionTypes.OrderShipping, FinancialFlow.Component,
                 order.ShippingTotal, ToUsd(order.ShippingTotal),
                 "Shipping", null, reportTax, false, paymentId, null, null, memberId, nowLocal);
 
         if (order.TaxTotal > 0)
-            AddEntry(order, groupId, FinancialTransactionTypes.OrderTax, FinancialFlow.Component,
+            AddEntry(_context, order, groupId, FinancialTransactionTypes.OrderTax, FinancialFlow.Component,
                 order.TaxTotal, ToUsd(order.TaxTotal),
                 "Tax", null, reportTax, false, paymentId, null, null, memberId, nowLocal);
 
         if (order.DiscountTotal > 0)
-            AddEntry(order, groupId, FinancialTransactionTypes.OrderDiscount, FinancialFlow.Component,
+            AddEntry(_context, order, groupId, FinancialTransactionTypes.OrderDiscount, FinancialFlow.Component,
                 order.DiscountTotal, ToUsd(order.DiscountTotal),
                 "Discount", null, reportTax, false, paymentId, null, null, memberId, nowLocal);
 
         if (order.MarkupTotal > 0)
-            AddEntry(order, groupId, FinancialTransactionTypes.OrderMarkup, FinancialFlow.Component,
+            AddEntry(_context, order, groupId, FinancialTransactionTypes.OrderMarkup, FinancialFlow.Component,
                 order.MarkupTotal, ToUsd(order.MarkupTotal),
                 "Instant markup (روکشی)", null, reportTax, false, paymentId, null, null, memberId, nowLocal);
 
@@ -273,26 +292,26 @@ public class FinancialLedgerService : IFinancialLedgerService
             var lineProfit = Math.Max(0, lineCatalog - lineCost);
 
             if (lineCatalog > 0)
-                AddEntry(order, groupId, FinancialTransactionTypes.OrderLineRevenue, FinancialFlow.Component,
+                AddEntry(_context, order, groupId, FinancialTransactionTypes.OrderLineRevenue, FinancialFlow.Component,
                     lineCatalog, ToUsd(lineCatalog),
                     $"Product revenue: {item.TitleSnapshot}",
                     $"SKU {item.SkuSnapshot} × {qty}", reportTax, false, paymentId, item.OrderItemID, item.VendorID, memberId, nowLocal);
 
             if (lineCost > 0)
-                AddEntry(order, groupId, FinancialTransactionTypes.OrderLineCost, FinancialFlow.Component,
+                AddEntry(_context, order, groupId, FinancialTransactionTypes.OrderLineCost, FinancialFlow.Component,
                     lineCost, item.UnitCostUsd > 0 ? item.UnitCostUsd * qty : ToUsd(lineCost),
                     $"Product cost: {item.TitleSnapshot}",
                     null, reportTax, vendorVisible: false, paymentId, item.OrderItemID, item.VendorID, memberId, nowLocal);
 
             if (lineProfit > 0)
-                AddEntry(order, groupId, FinancialTransactionTypes.OrderLineProfit, FinancialFlow.Component,
+                AddEntry(_context, order, groupId, FinancialTransactionTypes.OrderLineProfit, FinancialFlow.Component,
                     lineProfit, ToUsd(lineProfit),
                     $"Product profit: {item.TitleSnapshot}",
                     null, reportTax, false, paymentId, item.OrderItemID, item.VendorID, memberId, nowLocal);
 
             // Markup already at order level; if per-line markup and order markup is 0, post per line
             if (order.MarkupTotal <= 0 && lineMarkup > 0)
-                AddEntry(order, groupId, FinancialTransactionTypes.OrderMarkup, FinancialFlow.Component,
+                AddEntry(_context, order, groupId, FinancialTransactionTypes.OrderMarkup, FinancialFlow.Component,
                     lineMarkup, ToUsd(lineMarkup),
                     $"Markup: {item.TitleSnapshot}",
                     null, reportTax, false, paymentId, item.OrderItemID, item.VendorID, memberId, nowLocal);
@@ -305,6 +324,9 @@ public class FinancialLedgerService : IFinancialLedgerService
 
     public async Task PostCustomerRefundAsync(int orderId, int paymentId, decimal amount, string? note, int? memberId, CancellationToken ct = default)
     {
+        await using var _lease = await DbLease.OpenAsync(_contextFactory, ct);
+        var _context = _lease.Context;
+
         if (amount <= 0) return;
         var order = await _context.Orders.AsNoTracking().FirstOrDefaultAsync(o => o.OrderID == orderId, ct);
         if (order is null) return;
@@ -338,6 +360,9 @@ public class FinancialLedgerService : IFinancialLedgerService
         string currencyCode, string? note, int? vendorId, decimal sellerShippingShare,
         int? memberId, CancellationToken ct = default)
     {
+        await using var _lease = await DbLease.OpenAsync(_contextFactory, ct);
+        var _context = _lease.Context;
+
         var order = await _context.Orders.AsNoTracking().FirstOrDefaultAsync(o => o.OrderID == orderId, ct);
         if (order is null) return;
 
@@ -430,6 +455,9 @@ public class FinancialLedgerService : IFinancialLedgerService
 
     public async Task PostInventoryCogsForOrderAsync(int orderId, int? stockDocumentId, int? memberId, CancellationToken ct = default)
     {
+        await using var _lease = await DbLease.OpenAsync(_contextFactory, ct);
+        var _context = _lease.Context;
+
         var order = await _context.Orders
             .Include(o => o.OrderItems)
             .FirstOrDefaultAsync(o => o.OrderID == orderId, ct);
@@ -480,6 +508,9 @@ public class FinancialLedgerService : IFinancialLedgerService
 
     public async Task PostInventoryCogsReversalForReturnAsync(int orderId, int stockDocumentId, int? memberId, CancellationToken ct = default)
     {
+        await using var _lease = await DbLease.OpenAsync(_contextFactory, ct);
+        var _context = _lease.Context;
+
         var order = await _context.Orders.AsNoTracking().FirstOrDefaultAsync(o => o.OrderID == orderId, ct);
         if (order is null) return;
 
@@ -569,6 +600,9 @@ public class FinancialLedgerService : IFinancialLedgerService
     public async Task<(bool Success, string? Error, FinancialLedgerEntry? Entry)> PostAdditionalChargeAsync(
         PostAdditionalChargeRequest request, CancellationToken ct = default)
     {
+        await using var _lease = await DbLease.OpenAsync(_contextFactory, ct);
+        var _context = _lease.Context;
+
         if (request.Amount <= 0)
             return (false, "Amount must be positive.", null);
 
@@ -632,6 +666,9 @@ public class FinancialLedgerService : IFinancialLedgerService
         long entryId, decimal newAmount, string? newTitle, string? newDescription,
         bool? reportToTax, string changeNote, int? memberId, CancellationToken ct = default)
     {
+        await using var _lease = await DbLease.OpenAsync(_contextFactory, ct);
+        var _context = _lease.Context;
+
         if (newAmount < 0) return (false, "Amount must be >= 0.", null);
         var old = await _context.FinancialLedgerEntries.FirstOrDefaultAsync(e => e.FinancialLedgerEntryID == entryId, ct);
         if (old is null) return (false, "Entry not found.", null);
@@ -681,7 +718,9 @@ public class FinancialLedgerService : IFinancialLedgerService
 
     // ── helpers ──────────────────────────────────────────────────────
 
-    private void AddEntry(
+    // Takes the caller's context: this only stages the row and the caller's SaveChanges writes it.
+    private static void AddEntry(
+        AppDbContext _context,
         Order order, Guid groupId, string type, byte flow,
         decimal amount, decimal amountUsd, string title, string? description,
         bool reportToTax, bool vendorVisible, int? paymentId, int? orderItemId, int? vendorId,

@@ -9,12 +9,14 @@ namespace Dotnetable.Infrastructure.Services;
 
 public class PostTypeService : IPostTypeService
 {
-    private readonly AppDbContext _context;
+    private readonly IDbContextFactory<AppDbContext> _contextFactory;
 
-    public PostTypeService(AppDbContext context) => _context = context;
+    public PostTypeService(IDbContextFactory<AppDbContext> contextFactory) => _contextFactory = contextFactory;
 
     public async Task<List<PostType>> GetAllAsync(int? websiteId, CancellationToken ct = default)
     {
+        await using var _context = await _contextFactory.CreateDbContextAsync(ct);
+
         var q = _context.PostTypes.AsNoTracking();
         if (websiteId is int wid)
             q = q.Where(t => t.WebsiteID == wid);
@@ -23,6 +25,8 @@ public class PostTypeService : IPostTypeService
 
     public async Task<PagedResult<PostType>> GetPagedAsync(int? websiteId, GridQuery query, CancellationToken ct = default)
     {
+        await using var _context = await _contextFactory.CreateDbContextAsync(ct);
+
         var q = _context.PostTypes.AsNoTracking();
         if (websiteId is int wid)
             q = q.Where(t => t.WebsiteID == wid);
@@ -41,11 +45,17 @@ public class PostTypeService : IPostTypeService
         return new PagedResult<PostType> { Items = items, TotalCount = total };
     }
 
-    public async Task<PostType?> GetByIdAsync(int postTypeId, CancellationToken ct = default) =>
-        await _context.PostTypes.FindAsync([postTypeId], ct);
+    public async Task<PostType?> GetByIdAsync(int postTypeId, CancellationToken ct = default)
+    {
+        await using var _context = await _contextFactory.CreateDbContextAsync(ct);
+
+        return await _context.PostTypes.FindAsync([postTypeId], ct);
+    }
 
     public async Task<PostType> CreateAsync(PostType postType, CancellationToken ct = default)
     {
+        await using var _context = await _contextFactory.CreateDbContextAsync(ct);
+
         _context.PostTypes.Add(postType);
         await _context.SaveChangesAsync(ct);
         return postType;
@@ -53,12 +63,16 @@ public class PostTypeService : IPostTypeService
 
     public async Task UpdateAsync(PostType postType, CancellationToken ct = default)
     {
+        await using var _context = await _contextFactory.CreateDbContextAsync(ct);
+
         _context.PostTypes.Update(postType);
         await _context.SaveChangesAsync(ct);
     }
 
     public async Task DeleteAsync(int postTypeId, CancellationToken ct = default)
     {
+        await using var _context = await _contextFactory.CreateDbContextAsync(ct);
+
         var entity = await _context.PostTypes.FindAsync([postTypeId], ct);
         if (entity is null) return;
         _context.PostTypes.Remove(entity);

@@ -9,26 +9,32 @@ namespace Dotnetable.Infrastructure.Services;
 
 public class ShippingService : IShippingService
 {
-    private readonly AppDbContext _context;
+    private readonly IDbContextFactory<AppDbContext> _contextFactory;
     private readonly ICurrencyConversionService _currency;
 
-    public ShippingService(AppDbContext context, ICurrencyConversionService currency)
+    public ShippingService(IDbContextFactory<AppDbContext> contextFactory, ICurrencyConversionService currency)
     {
-        _context = context;
+        _contextFactory = contextFactory;
         _currency = currency;
     }
 
     // ── Methods ─────────────────────────────────────────────────────
 
-    public async Task<List<ShippingMethod>> GetAllAsync(int websiteId, CancellationToken ct = default) =>
-        await _context.ShippingMethods.AsNoTracking()
+    public async Task<List<ShippingMethod>> GetAllAsync(int websiteId, CancellationToken ct = default)
+    {
+        await using var _context = await _contextFactory.CreateDbContextAsync(ct);
+
+        return await _context.ShippingMethods.AsNoTracking()
             .Include(m => m.LogoFile)
             .Where(m => m.WebsiteID == websiteId)
             .OrderBy(m => m.SortOrder).ThenBy(m => m.Title)
             .ToListAsync(ct);
+    }
 
     public async Task<PagedResult<ShippingMethod>> GetPagedAsync(int websiteId, GridQuery query, CancellationToken ct = default)
     {
+        await using var _context = await _contextFactory.CreateDbContextAsync(ct);
+
         var q = _context.ShippingMethods.AsNoTracking()
             .Include(m => m.LogoFile)
             .Where(m => m.WebsiteID == websiteId);
@@ -49,13 +55,19 @@ public class ShippingService : IShippingService
         return new PagedResult<ShippingMethod> { Items = items, TotalCount = total };
     }
 
-    public async Task<ShippingMethod?> GetByIdAsync(int shippingMethodId, CancellationToken ct = default) =>
-        await _context.ShippingMethods
+    public async Task<ShippingMethod?> GetByIdAsync(int shippingMethodId, CancellationToken ct = default)
+    {
+        await using var _context = await _contextFactory.CreateDbContextAsync(ct);
+
+        return await _context.ShippingMethods
             .Include(m => m.LogoFile)
             .FirstOrDefaultAsync(m => m.ShippingMethodID == shippingMethodId, ct);
+    }
 
     public async Task<ShippingMethod> CreateAsync(ShippingMethod method, CancellationToken ct = default)
     {
+        await using var _context = await _contextFactory.CreateDbContextAsync(ct);
+
         await NormalizeMethodPricesAsync(method, ct);
         _context.ShippingMethods.Add(method);
         await _context.SaveChangesAsync(ct);
@@ -64,6 +76,8 @@ public class ShippingService : IShippingService
 
     public async Task<bool> UpdateAsync(ShippingMethod method, CancellationToken ct = default)
     {
+        await using var _context = await _contextFactory.CreateDbContextAsync(ct);
+
         var existing = await _context.ShippingMethods.FirstOrDefaultAsync(m => m.ShippingMethodID == method.ShippingMethodID, ct);
         if (existing is null) return false;
 
@@ -89,6 +103,8 @@ public class ShippingService : IShippingService
 
     public async Task<bool> DeleteAsync(int shippingMethodId, CancellationToken ct = default)
     {
+        await using var _context = await _contextFactory.CreateDbContextAsync(ct);
+
         var existing = await _context.ShippingMethods.FindAsync([shippingMethodId], ct);
         if (existing is null) return false;
         _context.ShippingMethods.Remove(existing);
@@ -98,15 +114,21 @@ public class ShippingService : IShippingService
 
     // ── Rates ───────────────────────────────────────────────────────
 
-    public async Task<List<ShippingRate>> GetRatesAsync(int shippingMethodId, CancellationToken ct = default) =>
-        await _context.ShippingRates.AsNoTracking()
+    public async Task<List<ShippingRate>> GetRatesAsync(int shippingMethodId, CancellationToken ct = default)
+    {
+        await using var _context = await _contextFactory.CreateDbContextAsync(ct);
+
+        return await _context.ShippingRates.AsNoTracking()
             .Include(r => r.Country).Include(r => r.State).Include(r => r.City)
             .Where(r => r.ShippingMethodID == shippingMethodId)
             .OrderBy(r => r.PriceUsd)
             .ToListAsync(ct);
+    }
 
     public async Task<PagedResult<ShippingRate>> GetRatesPagedAsync(int shippingMethodId, GridQuery query, CancellationToken ct = default)
     {
+        await using var _context = await _contextFactory.CreateDbContextAsync(ct);
+
         var q = _context.ShippingRates.AsNoTracking()
             .Include(r => r.Country).Include(r => r.State).Include(r => r.City)
             .Where(r => r.ShippingMethodID == shippingMethodId);
@@ -125,7 +147,9 @@ public class ShippingService : IShippingService
 
     public async Task<ShippingRate> CreateRateAsync(ShippingRate rate, CancellationToken ct = default)
     {
-        await NormalizeRatePriceAsync(rate, ct);
+        await using var _context = await _contextFactory.CreateDbContextAsync(ct);
+
+        await NormalizeRatePriceAsync(_context, rate, ct);
         _context.ShippingRates.Add(rate);
         await _context.SaveChangesAsync(ct);
         return rate;
@@ -133,10 +157,12 @@ public class ShippingService : IShippingService
 
     public async Task<bool> UpdateRateAsync(ShippingRate rate, CancellationToken ct = default)
     {
+        await using var _context = await _contextFactory.CreateDbContextAsync(ct);
+
         var existing = await _context.ShippingRates.FirstOrDefaultAsync(r => r.ShippingRateID == rate.ShippingRateID, ct);
         if (existing is null) return false;
 
-        await NormalizeRatePriceAsync(rate, ct);
+        await NormalizeRatePriceAsync(_context, rate, ct);
 
         existing.CountryID = rate.CountryID;
         existing.StateID = rate.StateID;
@@ -191,7 +217,7 @@ public class ShippingService : IShippingService
         }
     }
 
-    private async Task NormalizeRatePriceAsync(ShippingRate rate, CancellationToken ct)
+    private async Task NormalizeRatePriceAsync(AppDbContext _context, ShippingRate rate, CancellationToken ct)
     {
         var method = await _context.ShippingMethods.AsNoTracking()
             .FirstOrDefaultAsync(m => m.ShippingMethodID == rate.ShippingMethodID, ct);
@@ -216,6 +242,8 @@ public class ShippingService : IShippingService
 
     public async Task<bool> DeleteRateAsync(int shippingRateId, CancellationToken ct = default)
     {
+        await using var _context = await _contextFactory.CreateDbContextAsync(ct);
+
         var existing = await _context.ShippingRates.FindAsync([shippingRateId], ct);
         if (existing is null) return false;
         _context.ShippingRates.Remove(existing);
@@ -234,6 +262,8 @@ public class ShippingService : IShippingService
         decimal cartSubtotalLocal = 0,
         CancellationToken ct = default)
     {
+        await using var _context = await _contextFactory.CreateDbContextAsync(ct);
+
         var website = await _context.Websites.AsNoTracking()
             .FirstOrDefaultAsync(w => w.WebsiteID == websiteId, ct);
         var allowCod = website?.AllowCashOnDelivery ?? true;

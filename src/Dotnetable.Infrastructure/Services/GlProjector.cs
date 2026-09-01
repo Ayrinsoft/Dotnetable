@@ -15,15 +15,15 @@ namespace Dotnetable.Infrastructure.Services;
 /// </summary>
 public class GlProjector : IGlProjector
 {
-    private readonly AppDbContext _context;
+    private readonly IDbContextFactory<AppDbContext> _contextFactory;
     private readonly IChartOfAccountService _coa;
     private readonly IJournalService _journals;
     private readonly ILogger<GlProjector> _logger;
 
     public GlProjector(
-        AppDbContext context, IChartOfAccountService coa, IJournalService journals, ILogger<GlProjector> logger)
+        IDbContextFactory<AppDbContext> contextFactory, IChartOfAccountService coa, IJournalService journals, ILogger<GlProjector> logger)
     {
-        _context = context;
+        _contextFactory = contextFactory;
         _coa = coa;
         _journals = journals;
         _logger = logger;
@@ -31,6 +31,8 @@ public class GlProjector : IGlProjector
 
     public async Task ProjectEventGroupAsync(int websiteId, Guid eventGroupId, CancellationToken ct = default)
     {
+        await using var _context = await _contextFactory.CreateDbContextAsync(ct);
+
         await _coa.EnsureSeededAsync(websiteId, ct);
         var sourceKey = $"L1:{eventGroupId:N}";
         if (await _context.JournalEntries.AnyAsync(j => j.WebsiteID == websiteId && j.SourceKey == sourceKey, ct))
@@ -194,6 +196,8 @@ public class GlProjector : IGlProjector
 
     public async Task ProjectLedgerEntryAsync(long financialLedgerEntryId, CancellationToken ct = default)
     {
+        await using var _context = await _contextFactory.CreateDbContextAsync(ct);
+
         var row = await _context.FinancialLedgerEntries.AsNoTracking()
             .FirstOrDefaultAsync(e => e.FinancialLedgerEntryID == financialLedgerEntryId, ct);
         if (row is null || !row.IsCurrent) return;

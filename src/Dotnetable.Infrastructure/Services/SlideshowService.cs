@@ -10,14 +10,16 @@ namespace Dotnetable.Infrastructure.Services;
 
 public class SlideshowService : ISlideshowService
 {
-    private readonly AppDbContext _context;
+    private readonly IDbContextFactory<AppDbContext> _contextFactory;
 
-    public SlideshowService(AppDbContext context) => _context = context;
+    public SlideshowService(IDbContextFactory<AppDbContext> contextFactory) => _contextFactory = contextFactory;
 
     // ── Slideshows ──────────────────────────────────────────────────
 
     public async Task<List<Slideshow>> GetSlideshowsAsync(int? websiteId, CancellationToken ct = default)
     {
+        await using var _context = await _contextFactory.CreateDbContextAsync(ct);
+
         var q = _context.Slideshows.AsNoTracking().Include(s => s.SlideshowSlides).AsQueryable();
         if (websiteId is int wid)
             q = q.Where(s => s.WebsiteID == wid);
@@ -26,6 +28,8 @@ public class SlideshowService : ISlideshowService
 
     public async Task<PagedResult<Slideshow>> GetPagedAsync(int? websiteId, GridQuery query, CancellationToken ct = default)
     {
+        await using var _context = await _contextFactory.CreateDbContextAsync(ct);
+
         var q = _context.Slideshows.AsNoTracking().Include(s => s.SlideshowSlides).AsQueryable();
         if (websiteId is int wid)
             q = q.Where(s => s.WebsiteID == wid);
@@ -46,11 +50,17 @@ public class SlideshowService : ISlideshowService
         return new PagedResult<Slideshow> { Items = items, TotalCount = total };
     }
 
-    public async Task<Slideshow?> GetSlideshowAsync(int slideshowId, CancellationToken ct = default) =>
-        await _context.Slideshows.FindAsync([slideshowId], ct);
+    public async Task<Slideshow?> GetSlideshowAsync(int slideshowId, CancellationToken ct = default)
+    {
+        await using var _context = await _contextFactory.CreateDbContextAsync(ct);
+
+        return await _context.Slideshows.FindAsync([slideshowId], ct);
+    }
 
     public async Task<Slideshow> CreateSlideshowAsync(Slideshow slideshow, CancellationToken ct = default)
     {
+        await using var _context = await _contextFactory.CreateDbContextAsync(ct);
+
         slideshow.CreatedAt = DateTime.UtcNow;
         if (slideshow.TransitionEffect == 0) slideshow.TransitionEffect = 1;
         if (slideshow.IntervalMs <= 0) slideshow.IntervalMs = 5000;
@@ -62,12 +72,16 @@ public class SlideshowService : ISlideshowService
 
     public async Task UpdateSlideshowAsync(Slideshow slideshow, CancellationToken ct = default)
     {
+        await using var _context = await _contextFactory.CreateDbContextAsync(ct);
+
         _context.Slideshows.Update(slideshow);
         await _context.SaveChangesAsync(ct);
     }
 
     public async Task DeleteSlideshowAsync(int slideshowId, CancellationToken ct = default)
     {
+        await using var _context = await _contextFactory.CreateDbContextAsync(ct);
+
         var slideshow = await _context.Slideshows
             .Include(s => s.SlideshowSlides)
             .FirstOrDefaultAsync(s => s.SlideshowID == slideshowId, ct);
@@ -80,19 +94,29 @@ public class SlideshowService : ISlideshowService
 
     // ── Slides ──────────────────────────────────────────────────────
 
-    public async Task<List<SlideshowSlide>> GetSlidesAsync(int slideshowId, CancellationToken ct = default) =>
-        await _context.SlideshowSlides.AsNoTracking()
+    public async Task<List<SlideshowSlide>> GetSlidesAsync(int slideshowId, CancellationToken ct = default)
+    {
+        await using var _context = await _contextFactory.CreateDbContextAsync(ct);
+
+        return await _context.SlideshowSlides.AsNoTracking()
             .Include(s => s.File)
             .Include(s => s.MobileFile)
             .Where(s => s.SlideshowID == slideshowId)
             .OrderBy(s => s.SortOrder).ThenBy(s => s.SlideshowSlideID)
             .ToListAsync(ct);
+    }
 
-    public async Task<SlideshowSlide?> GetSlideAsync(int slideId, CancellationToken ct = default) =>
-        await _context.SlideshowSlides.FindAsync([slideId], ct);
+    public async Task<SlideshowSlide?> GetSlideAsync(int slideId, CancellationToken ct = default)
+    {
+        await using var _context = await _contextFactory.CreateDbContextAsync(ct);
+
+        return await _context.SlideshowSlides.FindAsync([slideId], ct);
+    }
 
     public async Task<SlideshowSlide> CreateSlideAsync(SlideshowSlide slide, CancellationToken ct = default)
     {
+        await using var _context = await _contextFactory.CreateDbContextAsync(ct);
+
         _context.SlideshowSlides.Add(slide);
         await _context.SaveChangesAsync(ct);
         return slide;
@@ -100,12 +124,16 @@ public class SlideshowService : ISlideshowService
 
     public async Task UpdateSlideAsync(SlideshowSlide slide, CancellationToken ct = default)
     {
+        await using var _context = await _contextFactory.CreateDbContextAsync(ct);
+
         _context.SlideshowSlides.Update(slide);
         await _context.SaveChangesAsync(ct);
     }
 
     public async Task DeleteSlideAsync(int slideId, CancellationToken ct = default)
     {
+        await using var _context = await _contextFactory.CreateDbContextAsync(ct);
+
         var slide = await _context.SlideshowSlides.FindAsync([slideId], ct);
         if (slide is null) return;
 
@@ -117,19 +145,25 @@ public class SlideshowService : ISlideshowService
 
     public async Task<SlideshowDto?> GetByPlacementAsync(int websiteId, string placementKey, CancellationToken ct = default)
     {
-        var slideshow = await LoadActiveSlideshowsQuery(websiteId)
+        await using var _context = await _contextFactory.CreateDbContextAsync(ct);
+
+        var slideshow = await LoadActiveSlideshowsQuery(_context, websiteId)
             .FirstOrDefaultAsync(s => s.PlacementKey == placementKey, ct);
         return slideshow is null ? null : Project(slideshow);
     }
 
     public async Task<SlideshowDto?> GetByIdAsync(int websiteId, int slideshowId, CancellationToken ct = default)
     {
-        var slideshow = await LoadActiveSlideshowsQuery(websiteId)
+        await using var _context = await _contextFactory.CreateDbContextAsync(ct);
+
+        var slideshow = await LoadActiveSlideshowsQuery(_context, websiteId)
             .FirstOrDefaultAsync(s => s.SlideshowID == slideshowId, ct);
         return slideshow is null ? null : Project(slideshow);
     }
 
-    private IQueryable<Slideshow> LoadActiveSlideshowsQuery(int websiteId)
+    // Takes the caller's context: an IQueryable is only usable while the context that built it
+    // is alive, so this must never open one of its own.
+    private static IQueryable<Slideshow> LoadActiveSlideshowsQuery(AppDbContext _context, int websiteId)
     {
         var now = DateTime.UtcNow;
         return _context.Slideshows.AsNoTracking()

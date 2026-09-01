@@ -12,7 +12,7 @@ namespace Dotnetable.Infrastructure.Services;
 
 public class PayrollService : IPayrollService
 {
-    private readonly AppDbContext _context;
+    private readonly IDbContextFactory<AppDbContext> _contextFactory;
     private readonly IHrService _hr;
     private readonly IFinancialLedgerService _ledger;
     private readonly IChartOfAccountService _coa;
@@ -20,10 +20,10 @@ public class PayrollService : IPayrollService
     private readonly IAdminNotificationService _notifications;
 
     public PayrollService(
-        AppDbContext context, IHrService hr, IFinancialLedgerService ledger,
+        IDbContextFactory<AppDbContext> contextFactory, IHrService hr, IFinancialLedgerService ledger,
         IChartOfAccountService coa, IJournalService journals, IAdminNotificationService notifications)
     {
-        _context = context;
+        _contextFactory = contextFactory;
         _hr = hr;
         _ledger = ledger;
         _coa = coa;
@@ -33,20 +33,28 @@ public class PayrollService : IPayrollService
 
     public async Task<PagedResult<PayrollRun>> GetRunsAsync(int websiteId, GridQuery query, CancellationToken ct = default)
     {
+        await using var _context = await _contextFactory.CreateDbContextAsync(ct);
+
         var q = _context.PayrollRuns.AsNoTracking().Where(r => r.WebsiteID == websiteId);
         var total = await q.CountAsync(ct);
         var items = await q.OrderByDescending(r => r.PeriodFrom).Skip(query.Skip).Take(query.Take).ToListAsync(ct);
         return new PagedResult<PayrollRun> { Items = items, TotalCount = total };
     }
 
-    public async Task<PayrollRun?> GetRunAsync(int payrollRunId, CancellationToken ct = default) =>
-        await _context.PayrollRuns.AsNoTracking()
+    public async Task<PayrollRun?> GetRunAsync(int payrollRunId, CancellationToken ct = default)
+    {
+        await using var _context = await _contextFactory.CreateDbContextAsync(ct);
+
+        return await _context.PayrollRuns.AsNoTracking()
             .Include(r => r.PayrollLines).ThenInclude(l => l.Employee)
             .FirstOrDefaultAsync(r => r.PayrollRunID == payrollRunId, ct);
+    }
 
     public async Task<(bool Success, string? Error, PayrollRun? Run)> CreateRunAsync(
         int websiteId, DateOnly from, DateOnly to, int? memberId, CancellationToken ct = default)
     {
+        await using var _context = await _contextFactory.CreateDbContextAsync(ct);
+
         if (to < from) return (false, "Invalid period.", null);
         var website = await _context.Websites.AsNoTracking().FirstOrDefaultAsync(w => w.WebsiteID == websiteId, ct);
         if (website is null) return (false, "Website not found.", null);
@@ -112,6 +120,8 @@ public class PayrollService : IPayrollService
 
     public async Task<(bool Success, string? Error)> SubmitAsync(int runId, int? memberId, CancellationToken ct = default)
     {
+        await using var _context = await _contextFactory.CreateDbContextAsync(ct);
+
         var run = await _context.PayrollRuns.FirstOrDefaultAsync(r => r.PayrollRunID == runId, ct);
         if (run is null) return (false, "Not found.");
         if (run.Status != (byte)PayrollRunStatus.Draft) return (false, "Only draft runs can be submitted.");
@@ -135,6 +145,8 @@ public class PayrollService : IPayrollService
 
     public async Task<(bool Success, string? Error)> ApproveAsync(int runId, int? memberId, CancellationToken ct = default)
     {
+        await using var _context = await _contextFactory.CreateDbContextAsync(ct);
+
         var run = await _context.PayrollRuns.FirstOrDefaultAsync(r => r.PayrollRunID == runId, ct);
         if (run is null) return (false, "Not found.");
         if (run.Status is not ((byte)PayrollRunStatus.Draft or (byte)PayrollRunStatus.Submitted))
@@ -148,6 +160,8 @@ public class PayrollService : IPayrollService
 
     public async Task<(bool Success, string? Error)> MarkPaidAsync(int runId, int? memberId, CancellationToken ct = default)
     {
+        await using var _context = await _contextFactory.CreateDbContextAsync(ct);
+
         var run = await _context.PayrollRuns
             .Include(r => r.PayrollLines)
             .FirstOrDefaultAsync(r => r.PayrollRunID == runId, ct);
@@ -226,11 +240,19 @@ public class PayrollService : IPayrollService
         }, ct);
     }
 
-    public async Task<IReadOnlyList<PayrollLine>> GetInsuranceReportAsync(int websiteId, DateOnly from, DateOnly to, CancellationToken ct = default) =>
-        await LinesInRange(websiteId, from, to, ct);
+    public async Task<IReadOnlyList<PayrollLine>> GetInsuranceReportAsync(int websiteId, DateOnly from, DateOnly to, CancellationToken ct = default)
+    {
+        await using var _context = await _contextFactory.CreateDbContextAsync(ct);
 
-    public async Task<IReadOnlyList<PayrollLine>> GetTaxReportAsync(int websiteId, DateOnly from, DateOnly to, CancellationToken ct = default) =>
-        await LinesInRange(websiteId, from, to, ct);
+        return await LinesInRange(_context, websiteId, from, to, ct);
+    }
+
+    public async Task<IReadOnlyList<PayrollLine>> GetTaxReportAsync(int websiteId, DateOnly from, DateOnly to, CancellationToken ct = default)
+    {
+        await using var _context = await _contextFactory.CreateDbContextAsync(ct);
+
+        return await LinesInRange(_context, websiteId, from, to, ct);
+    }
 
     public async Task<byte[]> ExportRunExcelAsync(int payrollRunId, CancellationToken ct = default)
     {
@@ -254,7 +276,9 @@ public class PayrollService : IPayrollService
 
     public async Task<byte[]> ExportInsurancePayableExcelAsync(int websiteId, DateOnly from, DateOnly to, CancellationToken ct = default)
     {
-        var lines = await LinesInRange(websiteId, from, to, ct);
+        await using var _context = await _contextFactory.CreateDbContextAsync(ct);
+
+        var lines = await LinesInRange(_context, websiteId, from, to, ct);
         var headers = new[]
         {
             "EmployeeCode", "Employee", "RunNumber", "PeriodFrom", "PeriodTo",
@@ -276,7 +300,9 @@ public class PayrollService : IPayrollService
 
     public async Task<byte[]> ExportTaxPayableExcelAsync(int websiteId, DateOnly from, DateOnly to, CancellationToken ct = default)
     {
-        var lines = await LinesInRange(websiteId, from, to, ct);
+        await using var _context = await _contextFactory.CreateDbContextAsync(ct);
+
+        var lines = await LinesInRange(_context, websiteId, from, to, ct);
         var headers = new[]
         {
             "EmployeeCode", "Employee", "RunNumber", "PeriodFrom", "PeriodTo",
@@ -297,8 +323,10 @@ public class PayrollService : IPayrollService
 
     public async Task<byte[]> ExportStatutoryExcelAsync(int websiteId, DateOnly from, DateOnly to, CancellationToken ct = default)
     {
+        await using var _context = await _contextFactory.CreateDbContextAsync(ct);
+
         // Combined sheet for insurance + tax payable filings.
-        var lines = await LinesInRange(websiteId, from, to, ct);
+        var lines = await LinesInRange(_context, websiteId, from, to, ct);
         var headers = new[]
         {
             "EmployeeCode", "Employee", "RunNumber", "PeriodFrom", "PeriodTo",
@@ -346,6 +374,8 @@ public class PayrollService : IPayrollService
 
     public async Task<string?> BuildPayslipHtmlAsync(int payrollLineId, CancellationToken ct = default)
     {
+        await using var _context = await _contextFactory.CreateDbContextAsync(ct);
+
         var line = await _context.PayrollLines.AsNoTracking()
             .Include(l => l.Employee)
             .Include(l => l.PayrollRun)
@@ -391,6 +421,8 @@ public class PayrollService : IPayrollService
     public async Task<IReadOnlyList<PayrollRateBracket>> GetRateBracketsAsync(
         int websiteId, PayrollRateKind? kind = null, CancellationToken ct = default)
     {
+        await using var _context = await _contextFactory.CreateDbContextAsync(ct);
+
         var q = _context.PayrollRateBrackets.AsNoTracking().Where(b => b.WebsiteID == websiteId);
         if (kind is PayrollRateKind k) q = q.Where(b => b.Kind == (byte)k);
         return await q.OrderBy(b => b.Kind).ThenBy(b => b.SortOrder).ThenBy(b => b.FromAmount).ToListAsync(ct);
@@ -399,6 +431,8 @@ public class PayrollService : IPayrollService
     public async Task<(bool Success, string? Error, PayrollRateBracket? Bracket)> UpsertRateBracketAsync(
         PayrollRateBracket bracket, CancellationToken ct = default)
     {
+        await using var _context = await _contextFactory.CreateDbContextAsync(ct);
+
         if (bracket.WebsiteID <= 0) return (false, "Website is required.", null);
         if (bracket.Rate < 0 || bracket.Rate > 1) return (false, "Rate must be between 0 and 1 (e.g. 0.10 = 10%).", null);
         if (bracket.FromAmount < 0) return (false, "From amount cannot be negative.", null);
@@ -430,6 +464,8 @@ public class PayrollService : IPayrollService
 
     public async Task<(bool Success, string? Error)> DeleteRateBracketAsync(int bracketId, CancellationToken ct = default)
     {
+        await using var _context = await _contextFactory.CreateDbContextAsync(ct);
+
         var e = await _context.PayrollRateBrackets.FirstOrDefaultAsync(b => b.PayrollRateBracketID == bracketId, ct);
         if (e is null) return (false, "Not found.");
         _context.PayrollRateBrackets.Remove(e);
@@ -437,8 +473,9 @@ public class PayrollService : IPayrollService
         return (true, null);
     }
 
-    private async Task<IReadOnlyList<PayrollLine>> LinesInRange(int websiteId, DateOnly from, DateOnly to, CancellationToken ct) =>
-        await _context.PayrollLines.AsNoTracking()
+    private async Task<IReadOnlyList<PayrollLine>> LinesInRange(AppDbContext _context, int websiteId, DateOnly from, DateOnly to, CancellationToken ct)
+    {
+        return await _context.PayrollLines.AsNoTracking()
             .Include(l => l.Employee)
             .Include(l => l.PayrollRun)
             .Where(l => l.PayrollRun.WebsiteID == websiteId
@@ -446,6 +483,7 @@ public class PayrollService : IPayrollService
                         && l.PayrollRun.PeriodFrom >= from && l.PayrollRun.PeriodTo <= to)
             .OrderBy(l => l.Employee.Surname)
             .ToListAsync(ct);
+    }
 
     /// <summary>
     /// Flat contract rates when UseFlatRates; otherwise progressive website brackets (fallback to flat).

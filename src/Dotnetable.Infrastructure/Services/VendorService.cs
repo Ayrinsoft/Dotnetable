@@ -10,17 +10,19 @@ namespace Dotnetable.Infrastructure.Services;
 
 public class VendorService : IVendorService
 {
-    private readonly AppDbContext _context;
+    private readonly IDbContextFactory<AppDbContext> _contextFactory;
     private readonly ICurrencyConversionService _fx;
 
-    public VendorService(AppDbContext context, ICurrencyConversionService fx)
+    public VendorService(IDbContextFactory<AppDbContext> contextFactory, ICurrencyConversionService fx)
     {
-        _context = context;
+        _contextFactory = contextFactory;
         _fx = fx;
     }
 
     public async Task<List<Vendor>> GetAllAsync(int? websiteId, CancellationToken ct = default)
     {
+        await using var _context = await _contextFactory.CreateDbContextAsync(ct);
+
         var q = _context.Vendors.AsNoTracking();
         if (websiteId is int wid)
             q = q.Where(v => v.WebsiteID == wid);
@@ -29,6 +31,8 @@ public class VendorService : IVendorService
 
     public async Task<PagedResult<Vendor>> GetPagedAsync(int? websiteId, GridQuery query, CancellationToken ct = default)
     {
+        await using var _context = await _contextFactory.CreateDbContextAsync(ct);
+
         var q = _context.Vendors.AsNoTracking();
         if (websiteId is int wid)
             q = q.Where(v => v.WebsiteID == wid);
@@ -51,18 +55,28 @@ public class VendorService : IVendorService
         return new PagedResult<Vendor> { Items = items, TotalCount = total };
     }
 
-    public async Task<Vendor?> GetByIdAsync(int vendorId, CancellationToken ct = default) =>
-        await _context.Vendors.FindAsync([vendorId], ct);
+    public async Task<Vendor?> GetByIdAsync(int vendorId, CancellationToken ct = default)
+    {
+        await using var _context = await _contextFactory.CreateDbContextAsync(ct);
 
-    public async Task<Vendor?> GetByMemberIdAsync(int memberId, CancellationToken ct = default) =>
-        await _context.Vendors.AsNoTracking()
+        return await _context.Vendors.FindAsync([vendorId], ct);
+    }
+
+    public async Task<Vendor?> GetByMemberIdAsync(int memberId, CancellationToken ct = default)
+    {
+        await using var _context = await _contextFactory.CreateDbContextAsync(ct);
+
+        return await _context.Vendors.AsNoTracking()
             .FirstOrDefaultAsync(v => v.MemberID == memberId && v.VendorType == (byte)VendorType.Member, ct);
+    }
 
     public async Task<Vendor> CreateAsync(Vendor vendor, CancellationToken ct = default)
     {
+        await using var _context = await _contextFactory.CreateDbContextAsync(ct);
+
         NormalizeAndValidate(vendor);
-        await EnsureLinksValidAsync(vendor, ct);
-        await EnsureFxRatesAsync(vendor, ct);
+        await EnsureLinksValidAsync(_context, vendor, ct);
+        await EnsureFxRatesAsync(_context, vendor, ct);
         _context.Vendors.Add(vendor);
         await _context.SaveChangesAsync(ct);
         return vendor;
@@ -70,15 +84,19 @@ public class VendorService : IVendorService
 
     public async Task UpdateAsync(Vendor vendor, CancellationToken ct = default)
     {
+        await using var _context = await _contextFactory.CreateDbContextAsync(ct);
+
         NormalizeAndValidate(vendor);
-        await EnsureLinksValidAsync(vendor, ct);
-        await EnsureFxRatesAsync(vendor, ct);
+        await EnsureLinksValidAsync(_context, vendor, ct);
+        await EnsureFxRatesAsync(_context, vendor, ct);
         _context.Vendors.Update(vendor);
         await _context.SaveChangesAsync(ct);
     }
 
     public async Task DeleteAsync(int vendorId, CancellationToken ct = default)
     {
+        await using var _context = await _contextFactory.CreateDbContextAsync(ct);
+
         var vendor = await _context.Vendors
             .Include(v => v.VendorTranslations)
             .Include(v => v.VendorProducts)
@@ -93,13 +111,19 @@ public class VendorService : IVendorService
         await _context.SaveChangesAsync(ct);
     }
 
-    public async Task<List<VendorTranslation>> GetTranslationsAsync(int vendorId, CancellationToken ct = default) =>
-        await _context.VendorTranslations.AsNoTracking()
+    public async Task<List<VendorTranslation>> GetTranslationsAsync(int vendorId, CancellationToken ct = default)
+    {
+        await using var _context = await _contextFactory.CreateDbContextAsync(ct);
+
+        return await _context.VendorTranslations.AsNoTracking()
             .Where(t => t.VendorID == vendorId)
             .ToListAsync(ct);
+    }
 
     public async Task SetTranslationsAsync(int vendorId, IReadOnlyDictionary<string, string> nameByLanguage, CancellationToken ct = default)
     {
+        await using var _context = await _contextFactory.CreateDbContextAsync(ct);
+
         var existing = await _context.VendorTranslations
             .Where(t => t.VendorID == vendorId)
             .ToListAsync(ct);
@@ -131,6 +155,8 @@ public class VendorService : IVendorService
 
     public async Task<List<VendorDto>> GetActiveAsync(int websiteId, string? languageCode = null, CancellationToken ct = default)
     {
+        await using var _context = await _contextFactory.CreateDbContextAsync(ct);
+
         var vendors = await _context.Vendors.AsNoTracking()
             .Where(v => v.WebsiteID == websiteId && v.IsActive)
             .Include(v => v.VendorTranslations)
@@ -157,6 +183,8 @@ public class VendorService : IVendorService
 
     public async Task<List<Vendor>> GetActiveSiteLinksAsync(int hostWebsiteId, CancellationToken ct = default)
     {
+        await using var _context = await _contextFactory.CreateDbContextAsync(ct);
+
         var vendors = await _context.Vendors.AsNoTracking()
             .Where(v => v.WebsiteID == hostWebsiteId
                         && v.IsActive
@@ -217,7 +245,7 @@ public class VendorService : IVendorService
         }
     }
 
-    private async Task EnsureLinksValidAsync(Vendor vendor, CancellationToken ct)
+    private async Task EnsureLinksValidAsync(AppDbContext _context, Vendor vendor, CancellationToken ct)
     {
         if (vendor.VendorType == (byte)VendorType.Member)
         {
@@ -261,7 +289,7 @@ public class VendorService : IVendorService
     /// When the vendor (or linked site) settles in a different currency than the host,
     /// both sides of the USD bridge must have a CurrencyRate row.
     /// </summary>
-    private async Task EnsureFxRatesAsync(Vendor vendor, CancellationToken ct)
+    private async Task EnsureFxRatesAsync(AppDbContext _context, Vendor vendor, CancellationToken ct)
     {
         var host = await _context.Websites.AsNoTracking()
             .Where(w => w.WebsiteID == vendor.WebsiteID)

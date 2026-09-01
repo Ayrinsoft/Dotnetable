@@ -10,9 +10,9 @@ namespace Dotnetable.Infrastructure.Services;
 
 public class VendorCreditService : IVendorCreditService
 {
-    // Prefer ambient UoW context when OrderService (etc.) has an open multi-service transaction.
-    private readonly AppDbContext _fallback;
-    private AppDbContext _context => AmbientDbContext.Current ?? _fallback;
+    // Contexts come from DbLease per operation: it joins an ambient transaction when one is in
+    // flight and otherwise opens a short-lived context, so nothing is shared across a circuit.
+    private readonly IDbContextFactory<AppDbContext> _contextFactory;
 
     private readonly IVendorService _vendors;
     private readonly ICurrencyConversionService _currency;
@@ -21,14 +21,14 @@ public class VendorCreditService : IVendorCreditService
     private readonly IFinancialLedgerService _ledger;
 
     public VendorCreditService(
-        AppDbContext context,
+        IDbContextFactory<AppDbContext> contextFactory,
         IVendorService vendors,
         ICurrencyConversionService currency,
         ISupplierService suppliers,
         ITaxService tax,
         IFinancialLedgerService ledger)
     {
-        _fallback = context;
+        _contextFactory = contextFactory;
         _vendors = vendors;
         _currency = currency;
         _suppliers = suppliers;
@@ -38,6 +38,9 @@ public class VendorCreditService : IVendorCreditService
 
     public async Task<VendorCreditBalanceDto> GetBalanceAsync(int vendorId, CancellationToken ct = default)
     {
+        await using var _lease = await DbLease.OpenAsync(_contextFactory, ct);
+        var _context = _lease.Context;
+
         var vendor = await _context.Vendors.AsNoTracking().FirstOrDefaultAsync(v => v.VendorID == vendorId, ct)
                      ?? throw new InvalidOperationException("Vendor not found.");
         return new VendorCreditBalanceDto
@@ -59,6 +62,9 @@ public class VendorCreditService : IVendorCreditService
     public async Task<(bool Success, string? Error, VendorCreditTransaction? Tx)> GrantAsync(
         int vendorId, decimal amountUsd, string? note, int? memberId, CancellationToken ct = default)
     {
+        await using var _lease = await DbLease.OpenAsync(_contextFactory, ct);
+        var _context = _lease.Context;
+
         // amountUsd param: site-currency operational amount (interface name retained).
         var amountLocal = amountUsd;
         if (amountLocal == 0) return (false, "Amount must be non-zero.", null);
@@ -116,6 +122,9 @@ public class VendorCreditService : IVendorCreditService
 
     public async Task<PagedResult<VendorCreditTransaction>> GetHistoryAsync(int vendorId, GridQuery query, CancellationToken ct = default)
     {
+        await using var _lease = await DbLease.OpenAsync(_contextFactory, ct);
+        var _context = _lease.Context;
+
         var q = _context.VendorCreditTransactions.AsNoTracking()
             .Where(t => t.VendorID == vendorId);
         var total = await q.CountAsync(ct);
@@ -128,6 +137,9 @@ public class VendorCreditService : IVendorCreditService
 
     public async Task SettleHostOrderAsync(int hostOrderId, CancellationToken ct = default)
     {
+        await using var _lease = await DbLease.OpenAsync(_contextFactory, ct);
+        var _context = _lease.Context;
+
         var order = await _context.Orders
             .Include(o => o.OrderItems)
             .FirstOrDefaultAsync(o => o.OrderID == hostOrderId, ct);
@@ -279,7 +291,7 @@ public class VendorCreditService : IVendorCreditService
 
             if (vendor.VendorType == (byte)VendorType.Site && vendor.LinkedWebsiteID is int sourceWebsiteId)
             {
-                var mirrorOrderId = await CreateMirrorOrderAsync(order, group.ToList(), sourceWebsiteId, vendor, ct);
+                var mirrorOrderId = await CreateMirrorOrderAsync(_context, order, group.ToList(), sourceWebsiteId, vendor, ct);
 
                 var sourceTax = await _tax.ComputeTaxDetailedAsync(sourceWebsiteId, null, null, amountLocal, 0, ct);
                 var recvNet = amountLocal;
@@ -345,6 +357,9 @@ public class VendorCreditService : IVendorCreditService
 
     public async Task ReverseHostOrderAsync(int hostOrderId, CancellationToken ct = default)
     {
+        await using var _lease = await DbLease.OpenAsync(_contextFactory, ct);
+        var _context = _lease.Context;
+
         var order = await _context.Orders
             .Include(o => o.OrderItems)
             .FirstOrDefaultAsync(o => o.OrderID == hostOrderId, ct);
@@ -404,10 +419,10 @@ public class VendorCreditService : IVendorCreditService
     /// Creates a mirror order on the source website so both sites see a purchase.
     /// Uses a synthetic inter-site system client; buyer wallet stays on the host only.
     /// </summary>
-    private async Task<int> CreateMirrorOrderAsync(
+    private async Task<int> CreateMirrorOrderAsync(AppDbContext _context, 
         Order hostOrder, List<OrderItem> lines, int sourceWebsiteId, Vendor vendor, CancellationToken ct)
     {
-        var client = await GetOrCreateInterSiteClientAsync(sourceWebsiteId, hostOrder.WebsiteID, ct);
+        var client = await GetOrCreateInterSiteClientAsync(_context, sourceWebsiteId, hostOrder.WebsiteID, ct);
         var amountLocal = lines.Sum(VendorLineAmount);
         var amountUsd = lines.Sum(VendorLineAmountUsd);
         if (amountUsd <= 0 && amountLocal > 0)
@@ -541,7 +556,7 @@ public class VendorCreditService : IVendorCreditService
         return Math.Round(amountLocal / rate, 4, MidpointRounding.AwayFromZero);
     }
 
-    private async Task<WebsiteClient> GetOrCreateInterSiteClientAsync(int sourceWebsiteId, int hostWebsiteId, CancellationToken ct)
+    private async Task<WebsiteClient> GetOrCreateInterSiteClientAsync(AppDbContext _context, int sourceWebsiteId, int hostWebsiteId, CancellationToken ct)
     {
         var email = $"intersite+host{hostWebsiteId}@system.local";
         var client = await _context.WebsiteClients

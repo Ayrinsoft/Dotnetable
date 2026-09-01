@@ -10,9 +10,9 @@ namespace Dotnetable.Infrastructure.Services;
 
 public class ChartOfAccountService : IChartOfAccountService
 {
-    private readonly AppDbContext _context;
+    private readonly IDbContextFactory<AppDbContext> _contextFactory;
 
-    public ChartOfAccountService(AppDbContext context) => _context = context;
+    public ChartOfAccountService(IDbContextFactory<AppDbContext> contextFactory) => _contextFactory = contextFactory;
 
     public async Task<IReadOnlyList<ChartAccountDto>> GetTreeAsync(int websiteId, CancellationToken ct = default)
     {
@@ -21,14 +21,20 @@ public class ChartOfAccountService : IChartOfAccountService
         return BuildTree(flat, null);
     }
 
-    public async Task<IReadOnlyList<ChartOfAccount>> GetFlatAsync(int websiteId, CancellationToken ct = default) =>
-        await _context.ChartOfAccounts.AsNoTracking()
+    public async Task<IReadOnlyList<ChartOfAccount>> GetFlatAsync(int websiteId, CancellationToken ct = default)
+    {
+        await using var _context = await _contextFactory.CreateDbContextAsync(ct);
+
+        return await _context.ChartOfAccounts.AsNoTracking()
             .Where(a => a.WebsiteID == websiteId)
             .OrderBy(a => a.SortOrder).ThenBy(a => a.Code)
             .ToListAsync(ct);
+    }
 
     public async Task EnsureSeededAsync(int websiteId, CancellationToken ct = default)
     {
+        await using var _context = await _contextFactory.CreateDbContextAsync(ct);
+
         if (await _context.ChartOfAccounts.AnyAsync(a => a.WebsiteID == websiteId, ct))
             return;
 
@@ -128,6 +134,8 @@ public class ChartOfAccountService : IChartOfAccountService
 
     public async Task<ChartOfAccount> UpsertAsync(ChartOfAccount account, CancellationToken ct = default)
     {
+        await using var _context = await _contextFactory.CreateDbContextAsync(ct);
+
         if (account.ChartOfAccountID == 0)
         {
             account.IsSystem = false;
@@ -160,6 +168,8 @@ public class ChartOfAccountService : IChartOfAccountService
 
     public async Task SetActiveAsync(int accountId, bool active, CancellationToken ct = default)
     {
+        await using var _context = await _contextFactory.CreateDbContextAsync(ct);
+
         var acc = await _context.ChartOfAccounts.FirstOrDefaultAsync(a => a.ChartOfAccountID == accountId, ct);
         if (acc is null) return;
         acc.IsActive = active;

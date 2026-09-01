@@ -22,7 +22,10 @@ public class DigitalDeliveryServiceTests : IDisposable
             .UseInMemoryDatabase(Guid.NewGuid().ToString())
             .Options;
         _context = new AppDbContext(opts);
-        _digital = new DigitalDeliveryService(_context);
+        // Services open a context per call now, so they get a factory over the same options;
+        // the fixture keeps its own _context for seeding and asserting.
+        var factory = new TestDbContextFactory(opts);
+        _digital = new DigitalDeliveryService(factory);
 
         _website = new Website
         {

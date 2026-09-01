@@ -9,12 +9,14 @@ namespace Dotnetable.Infrastructure.Services;
 
 public class AttributeDefinitionService : IAttributeDefinitionService
 {
-    private readonly AppDbContext _context;
+    private readonly IDbContextFactory<AppDbContext> _contextFactory;
 
-    public AttributeDefinitionService(AppDbContext context) => _context = context;
+    public AttributeDefinitionService(IDbContextFactory<AppDbContext> contextFactory) => _contextFactory = contextFactory;
 
     public async Task<List<AttributeDefinition>> GetAllAsync(int? websiteId, CancellationToken ct = default)
     {
+        await using var _context = await _contextFactory.CreateDbContextAsync(ct);
+
         var q = _context.AttributeDefinitions.AsNoTracking();
         if (websiteId is int wid)
             q = q.Where(a => a.WebsiteID == wid);
@@ -23,6 +25,8 @@ public class AttributeDefinitionService : IAttributeDefinitionService
 
     public async Task<PagedResult<AttributeDefinition>> GetPagedAsync(int? websiteId, GridQuery query, CancellationToken ct = default)
     {
+        await using var _context = await _contextFactory.CreateDbContextAsync(ct);
+
         var q = _context.AttributeDefinitions.AsNoTracking();
         if (websiteId is int wid)
             q = q.Where(a => a.WebsiteID == wid);
@@ -43,13 +47,19 @@ public class AttributeDefinitionService : IAttributeDefinitionService
         return new PagedResult<AttributeDefinition> { Items = items, TotalCount = total };
     }
 
-    public async Task<AttributeDefinition?> GetByIdAsync(int attributeDefinitionId, CancellationToken ct = default) =>
-        await _context.AttributeDefinitions.AsNoTracking()
+    public async Task<AttributeDefinition?> GetByIdAsync(int attributeDefinitionId, CancellationToken ct = default)
+    {
+        await using var _context = await _contextFactory.CreateDbContextAsync(ct);
+
+        return await _context.AttributeDefinitions.AsNoTracking()
             .Include(a => a.AttributeOptions.OrderBy(o => o.SortOrder))
             .FirstOrDefaultAsync(a => a.AttributeDefinitionID == attributeDefinitionId, ct);
+    }
 
     public async Task<AttributeDefinition> CreateAsync(AttributeDefinition definition, CancellationToken ct = default)
     {
+        await using var _context = await _contextFactory.CreateDbContextAsync(ct);
+
         _context.AttributeDefinitions.Add(definition);
         await _context.SaveChangesAsync(ct);
         return definition;
@@ -57,12 +67,16 @@ public class AttributeDefinitionService : IAttributeDefinitionService
 
     public async Task UpdateAsync(AttributeDefinition definition, CancellationToken ct = default)
     {
+        await using var _context = await _contextFactory.CreateDbContextAsync(ct);
+
         _context.AttributeDefinitions.Update(definition);
         await _context.SaveChangesAsync(ct);
     }
 
     public async Task DeleteAsync(int attributeDefinitionId, CancellationToken ct = default)
     {
+        await using var _context = await _contextFactory.CreateDbContextAsync(ct);
+
         var definition = await _context.AttributeDefinitions
             .Include(a => a.AttributeDefinitionTranslations)
             .Include(a => a.AttributeOptions).ThenInclude(o => o.AttributeOptionTranslations)
@@ -88,13 +102,19 @@ public class AttributeDefinitionService : IAttributeDefinitionService
 
     // ── Definition translations ─────────────────────────────────────
 
-    public async Task<List<AttributeDefinitionTranslation>> GetTranslationsAsync(int attributeDefinitionId, CancellationToken ct = default) =>
-        await _context.AttributeDefinitionTranslations.AsNoTracking()
+    public async Task<List<AttributeDefinitionTranslation>> GetTranslationsAsync(int attributeDefinitionId, CancellationToken ct = default)
+    {
+        await using var _context = await _contextFactory.CreateDbContextAsync(ct);
+
+        return await _context.AttributeDefinitionTranslations.AsNoTracking()
             .Where(t => t.AttributeDefinitionID == attributeDefinitionId)
             .ToListAsync(ct);
+    }
 
     public async Task SetTranslationsAsync(int attributeDefinitionId, IReadOnlyDictionary<string, (string Name, string? Unit)> byLanguage, CancellationToken ct = default)
     {
+        await using var _context = await _contextFactory.CreateDbContextAsync(ct);
+
         var existing = await _context.AttributeDefinitionTranslations
             .Where(t => t.AttributeDefinitionID == attributeDefinitionId)
             .ToListAsync(ct);
@@ -130,14 +150,20 @@ public class AttributeDefinitionService : IAttributeDefinitionService
 
     // ── Options ──────────────────────────────────────────────────────
 
-    public async Task<List<AttributeOption>> GetOptionsAsync(int attributeDefinitionId, CancellationToken ct = default) =>
-        await _context.AttributeOptions.AsNoTracking()
+    public async Task<List<AttributeOption>> GetOptionsAsync(int attributeDefinitionId, CancellationToken ct = default)
+    {
+        await using var _context = await _contextFactory.CreateDbContextAsync(ct);
+
+        return await _context.AttributeOptions.AsNoTracking()
             .Where(o => o.AttributeDefinitionID == attributeDefinitionId)
             .OrderBy(o => o.SortOrder)
             .ToListAsync(ct);
+    }
 
     public async Task SetOptionsAsync(int attributeDefinitionId, IReadOnlyList<AttributeOption> options, CancellationToken ct = default)
     {
+        await using var _context = await _contextFactory.CreateDbContextAsync(ct);
+
         var existing = await _context.AttributeOptions
             .Where(o => o.AttributeDefinitionID == attributeDefinitionId)
             .ToListAsync(ct);
@@ -185,6 +211,8 @@ public class AttributeDefinitionService : IAttributeDefinitionService
         string? colorHex = null,
         CancellationToken ct = default)
     {
+        await using var _context = await _contextFactory.CreateDbContextAsync(ct);
+
         value = (value ?? string.Empty).Trim();
         if (string.IsNullOrEmpty(value))
             throw new ArgumentException("Option value is required.", nameof(value));
@@ -247,13 +275,19 @@ public class AttributeDefinitionService : IAttributeDefinitionService
         return "#" + s.ToUpperInvariant();
     }
 
-    public async Task<List<AttributeOptionTranslation>> GetOptionTranslationsAsync(int attributeOptionId, CancellationToken ct = default) =>
-        await _context.AttributeOptionTranslations.AsNoTracking()
+    public async Task<List<AttributeOptionTranslation>> GetOptionTranslationsAsync(int attributeOptionId, CancellationToken ct = default)
+    {
+        await using var _context = await _contextFactory.CreateDbContextAsync(ct);
+
+        return await _context.AttributeOptionTranslations.AsNoTracking()
             .Where(t => t.AttributeOptionID == attributeOptionId)
             .ToListAsync(ct);
+    }
 
     public async Task SetOptionTranslationsAsync(int attributeOptionId, IReadOnlyDictionary<string, string> valueByLanguage, CancellationToken ct = default)
     {
+        await using var _context = await _contextFactory.CreateDbContextAsync(ct);
+
         var existing = await _context.AttributeOptionTranslations
             .Where(t => t.AttributeOptionID == attributeOptionId)
             .ToListAsync(ct);

@@ -9,19 +9,22 @@ namespace Dotnetable.Infrastructure.Services;
 
 public class InventoryService : IInventoryService
 {
-    // Prefer ambient UoW context when OrderService (etc.) has an open multi-service transaction.
-    private readonly AppDbContext _fallback;
-    private AppDbContext _context => AmbientDbContext.Current ?? _fallback;
+    // Contexts come from DbLease per operation: it joins an ambient transaction when one is in
+    // flight and otherwise opens a short-lived context, so nothing is shared across a circuit.
+    private readonly IDbContextFactory<AppDbContext> _contextFactory;
     private readonly ICurrencyConversionService _currency;
 
-    public InventoryService(AppDbContext context, ICurrencyConversionService currency)
+    public InventoryService(IDbContextFactory<AppDbContext> contextFactory, ICurrencyConversionService currency)
     {
-        _fallback = context;
+        _contextFactory = contextFactory;
         _currency = currency;
     }
 
     public async Task<StockAvailability> GetAvailabilityAsync(int websiteId, int variantId, CancellationToken ct = default)
     {
+        await using var _lease = await DbLease.OpenAsync(_contextFactory, ct);
+        var _context = _lease.Context;
+
         // Sellable stock is the sum of store listings only (not a free-floating warehouse row).
         var rows = await _context.VendorProducts.AsNoTracking()
             .Where(vp => vp.WebsiteID == websiteId && vp.ProductVariantID == variantId && vp.IsActive)
@@ -40,6 +43,9 @@ public class InventoryService : IInventoryService
 
     public async Task<Dictionary<int, StockAvailability>> GetAvailabilityBulkAsync(int websiteId, IEnumerable<int> variantIds, CancellationToken ct = default)
     {
+        await using var _lease = await DbLease.OpenAsync(_contextFactory, ct);
+        var _context = _lease.Context;
+
         var ids = variantIds.Distinct().ToList();
         var result = ids.ToDictionary(id => id, _ => new StockAvailability(0, 0, 0));
         if (ids.Count == 0) return result;
@@ -72,6 +78,9 @@ public class InventoryService : IInventoryService
     // count tells us whether we won.
     public async Task<bool> ReserveAsync(int websiteId, int variantId, int qty, CancellationToken ct = default)
     {
+        await using var _lease = await DbLease.OpenAsync(_contextFactory, ct);
+        var _context = _lease.Context;
+
         if (qty <= 0) return true;
 
         var affected = await _context.InventoryItems
@@ -80,12 +89,15 @@ public class InventoryService : IInventoryService
                         && i.QuantityOnHand - i.QuantityReserved >= qty)
             .ExecuteUpdateAsync(s => s.SetProperty(i => i.QuantityReserved, i => i.QuantityReserved + qty), ct);
 
-        if (affected > 0) await RefreshTrackedAsync(websiteId, variantId, ct);
+        if (affected > 0) await RefreshTrackedAsync(_context, websiteId, variantId, ct);
         return affected > 0;
     }
 
     public async Task ReleaseReservationAsync(int websiteId, int variantId, int qty, CancellationToken ct = default)
     {
+        await using var _lease = await DbLease.OpenAsync(_contextFactory, ct);
+        var _context = _lease.Context;
+
         if (qty <= 0) return;
 
         // Clamp at zero in SQL so a double-release can never drive the counter negative.
@@ -95,7 +107,7 @@ public class InventoryService : IInventoryService
                 i => i.QuantityReserved,
                 i => i.QuantityReserved > qty ? i.QuantityReserved - qty : 0), ct);
 
-        await RefreshTrackedAsync(websiteId, variantId, ct);
+        await RefreshTrackedAsync(_context, websiteId, variantId, ct);
     }
 
     /// <summary>
@@ -104,7 +116,7 @@ public class InventoryService : IInventoryService
     /// could overwrite it on the next SaveChanges. Reloading the tracked entry keeps the atomic write
     /// and the in-memory graph agreeing.
     /// </summary>
-    private async Task RefreshTrackedAsync(int websiteId, int variantId, CancellationToken ct)
+    private async Task RefreshTrackedAsync(AppDbContext _context, int websiteId, int variantId, CancellationToken ct)
     {
         var tracked = _context.ChangeTracker.Entries<InventoryItem>()
             .FirstOrDefault(e => e.Entity.WebsiteID == websiteId && e.Entity.ProductVariantID == variantId);
@@ -116,9 +128,12 @@ public class InventoryService : IInventoryService
 
     public async Task DecrementOnFulfillAsync(int websiteId, int variantId, int qty, int? orderId, int? orderItemId, int? memberId, CancellationToken ct = default)
     {
+        await using var _lease = await DbLease.OpenAsync(_contextFactory, ct);
+        var _context = _lease.Context;
+
         for (var attempt = 0; attempt < 2; attempt++)
         {
-            var item = await GetOrCreateAsync(websiteId, variantId, ct);
+            var item = await GetOrCreateAsync(_context, websiteId, variantId, ct);
             var (currencyCode, rate) = await ResolveSiteRateAsync(websiteId, ct);
 
             item.QuantityOnHand -= qty;
@@ -159,9 +174,12 @@ public class InventoryService : IInventoryService
 
     public async Task AdjustAsync(int websiteId, int variantId, int delta, decimal? unitCost, string? note, int memberId, CancellationToken ct = default)
     {
+        await using var _lease = await DbLease.OpenAsync(_contextFactory, ct);
+        var _context = _lease.Context;
+
         for (var attempt = 0; attempt < 2; attempt++)
         {
-            var item = await GetOrCreateAsync(websiteId, variantId, ct);
+            var item = await GetOrCreateAsync(_context, websiteId, variantId, ct);
             var (currencyCode, rate) = await ResolveSiteRateAsync(websiteId, ct);
 
             decimal? unitCostUsd = null;
@@ -215,12 +233,15 @@ public class InventoryService : IInventoryService
 
     public async Task SetOnHandAsync(int websiteId, int variantId, int quantityOnHand, string? note, int memberId, CancellationToken ct = default)
     {
+        await using var _lease = await DbLease.OpenAsync(_contextFactory, ct);
+        var _context = _lease.Context;
+
         if (quantityOnHand < 0)
             throw new ArgumentOutOfRangeException(nameof(quantityOnHand), "Stock quantity cannot be negative.");
 
         for (var attempt = 0; attempt < 2; attempt++)
         {
-            var item = await GetOrCreateAsync(websiteId, variantId, ct);
+            var item = await GetOrCreateAsync(_context, websiteId, variantId, ct);
 
             if (quantityOnHand < item.QuantityReserved)
                 throw new InvalidOperationException(
@@ -270,6 +291,9 @@ public class InventoryService : IInventoryService
 
     public async Task<PagedResult<InventoryItem>> GetPagedAsync(int websiteId, GridQuery query, CancellationToken ct = default)
     {
+        await using var _lease = await DbLease.OpenAsync(_contextFactory, ct);
+        var _context = _lease.Context;
+
         var q = _context.InventoryItems.AsNoTracking()
             .Include(i => i.ProductVariant).ThenInclude(v => v.Product)
             .Where(i => i.WebsiteID == websiteId);
@@ -288,22 +312,30 @@ public class InventoryService : IInventoryService
         return new PagedResult<InventoryItem> { Items = items, TotalCount = total };
     }
 
-    public async Task<List<InventoryItem>> GetLowStockAsync(int websiteId, CancellationToken ct = default) =>
-        await _context.InventoryItems.AsNoTracking()
+    public async Task<List<InventoryItem>> GetLowStockAsync(int websiteId, CancellationToken ct = default)
+    {
+        await using var _lease = await DbLease.OpenAsync(_contextFactory, ct);
+        var _context = _lease.Context;
+
+        return await _context.InventoryItems.AsNoTracking()
             .Include(i => i.ProductVariant).ThenInclude(v => v.Product)
             .Where(i => i.WebsiteID == websiteId && i.QuantityOnHand <= i.ReorderLevel)
             .OrderBy(i => i.QuantityOnHand)
             .ToListAsync(ct);
+    }
 
     public async Task SyncOnHandFromVendorListingsAsync(int websiteId, int productVariantId, CancellationToken ct = default)
     {
+        await using var _lease = await DbLease.OpenAsync(_contextFactory, ct);
+        var _context = _lease.Context;
+
         var listings = await _context.VendorProducts.AsNoTracking()
             .Where(vp => vp.WebsiteID == websiteId && vp.ProductVariantID == productVariantId)
             .Select(vp => vp.StockQuantity)
             .ToListAsync(ct);
 
         var sumOnHand = listings.Sum(q => Math.Max(0, q));
-        var item = await GetOrCreateAsync(websiteId, productVariantId, ct);
+        var item = await GetOrCreateAsync(_context, websiteId, productVariantId, ct);
         // Store listings are the only source of on-hand; no listings ⇒ on-hand collapses to reserved floor.
         item.QuantityOnHand = Math.Max(sumOnHand, item.QuantityReserved);
         await _context.SaveChangesAsync(ct);
@@ -311,11 +343,14 @@ public class InventoryService : IInventoryService
 
     public async Task RestockReturnAsync(int websiteId, int variantId, int qty, decimal? unitCost, string? note, int memberId, CancellationToken ct = default)
     {
+        await using var _lease = await DbLease.OpenAsync(_contextFactory, ct);
+        var _context = _lease.Context;
+
         if (qty <= 0) return;
 
         for (var attempt = 0; attempt < 2; attempt++)
         {
-            var item = await GetOrCreateAsync(websiteId, variantId, ct);
+            var item = await GetOrCreateAsync(_context, websiteId, variantId, ct);
             var (currencyCode, rate) = await ResolveSiteRateAsync(websiteId, ct);
 
             decimal? unitCostUsd = null;
@@ -364,7 +399,10 @@ public class InventoryService : IInventoryService
 
     public async Task SyncOnHandFromWarehousesAsync(int websiteId, int productVariantId, int warehouseOnHandSum, CancellationToken ct = default)
     {
-        var item = await GetOrCreateAsync(websiteId, productVariantId, ct);
+        await using var _lease = await DbLease.OpenAsync(_contextFactory, ct);
+        var _context = _lease.Context;
+
+        var item = await GetOrCreateAsync(_context, websiteId, productVariantId, ct);
         // Physical warehouse book is authoritative when WMS is used; never drop below reserved.
         item.QuantityOnHand = Math.Max(Math.Max(0, warehouseOnHandSum), item.QuantityReserved);
         await _context.SaveChangesAsync(ct);
@@ -382,7 +420,7 @@ public class InventoryService : IInventoryService
         }
     }
 
-    private async Task<InventoryItem> GetOrCreateAsync(int websiteId, int variantId, CancellationToken ct)
+    private async Task<InventoryItem> GetOrCreateAsync(AppDbContext _context, int websiteId, int variantId, CancellationToken ct)
     {
         var item = await _context.InventoryItems
             .FirstOrDefaultAsync(i => i.WebsiteID == websiteId && i.ProductVariantID == variantId, ct);

@@ -20,12 +20,15 @@ public class ThemeServiceTests : IDisposable
             .UseInMemoryDatabase(Guid.NewGuid().ToString())
             .Options;
         _context = new AppDbContext(opts);
+        // Services open a context per call now, so they get a factory over the same options;
+        // the fixture keeps its own _context for seeding and asserting.
+        var factory = new TestDbContextFactory(opts);
         _themesRoot = Path.Combine(Path.GetTempPath(), "dn-theme-tests-" + Guid.NewGuid().ToString("N"));
         Directory.CreateDirectory(Path.Combine(_themesRoot, ThemeService.BuiltinSlug, "Views"));
         File.WriteAllText(Path.Combine(_themesRoot, ThemeService.BuiltinSlug, "theme.json"),
             """{"name":"Default","slug":"Default","version":"1.0.0"}""");
 
-        _service = new ThemeService(_context, _themesRoot);
+        _service = new ThemeService(factory, _themesRoot);
 
         _website = NewWebsite("Test", "test.com");
         _context.Websites.Add(_website);
@@ -111,6 +114,10 @@ public class ThemeServiceTests : IDisposable
         await SeedPackageAsync("foreign", "Foreign", active: true, websiteId: other.WebsiteID);
 
         await _service.ActivateThemeAsync(_website.WebsiteID, "b");
+
+        // The service wrote through its own short-lived context, so this fixture's context must
+        // re-read rather than answer from entities it is still tracking.
+        _context.ChangeTracker.Clear();
 
         (await _context.WebsiteThemes.SingleAsync(t => t.Slug == "a")).IsActive.Should().BeFalse();
         (await _context.WebsiteThemes.SingleAsync(t => t.Slug == "b")).IsActive.Should().BeTrue();

@@ -9,12 +9,14 @@ namespace Dotnetable.Infrastructure.Services;
 
 public class RoleService : IRoleService
 {
-    private readonly AppDbContext _context;
+    private readonly IDbContextFactory<AppDbContext> _contextFactory;
 
-    public RoleService(AppDbContext context) => _context = context;
+    public RoleService(IDbContextFactory<AppDbContext> contextFactory) => _contextFactory = contextFactory;
 
     public async Task<PagedResult<Role>> GetPagedAsync(GridQuery query, CancellationToken ct = default)
     {
+        await using var _context = await _contextFactory.CreateDbContextAsync(ct);
+
         var q = _context.Roles.AsNoTracking();
 
         if (query.GetSearch("RoleKey") is string key)
@@ -33,14 +35,24 @@ public class RoleService : IRoleService
         return new PagedResult<Role> { Items = items, TotalCount = total };
     }
 
-    public async Task<Role?> GetByIdAsync(short id, CancellationToken ct = default) =>
-        await _context.Roles.FindAsync([id], ct);
+    public async Task<Role?> GetByIdAsync(short id, CancellationToken ct = default)
+    {
+        await using var _context = await _contextFactory.CreateDbContextAsync(ct);
 
-    public async Task<IReadOnlyList<Role>> GetAllActiveAsync(CancellationToken ct = default) =>
-        await _context.Roles.AsNoTracking().Where(r => r.Active).OrderBy(r => r.RoleKey).ToListAsync(ct);
+        return await _context.Roles.FindAsync([id], ct);
+    }
+
+    public async Task<IReadOnlyList<Role>> GetAllActiveAsync(CancellationToken ct = default)
+    {
+        await using var _context = await _contextFactory.CreateDbContextAsync(ct);
+
+        return await _context.Roles.AsNoTracking().Where(r => r.Active).OrderBy(r => r.RoleKey).ToListAsync(ct);
+    }
 
     public async Task<Role> CreateAsync(Role role, CancellationToken ct = default)
     {
+        await using var _context = await _contextFactory.CreateDbContextAsync(ct);
+
         _context.Roles.Add(role);
         await _context.SaveChangesAsync(ct);
         return role;
@@ -48,18 +60,24 @@ public class RoleService : IRoleService
 
     public async Task UpdateAsync(Role role, CancellationToken ct = default)
     {
+        await using var _context = await _contextFactory.CreateDbContextAsync(ct);
+
         _context.Roles.Update(role);
         await _context.SaveChangesAsync(ct);
     }
 
     public async Task SetActiveAsync(short id, bool active, CancellationToken ct = default)
     {
+        await using var _context = await _contextFactory.CreateDbContextAsync(ct);
+
         await _context.Roles.Where(r => r.RoleID == id)
             .ExecuteUpdateAsync(s => s.SetProperty(r => r.Active, active), ct);
     }
 
     public async Task DeleteAsync(short id, CancellationToken ct = default)
     {
+        await using var _context = await _contextFactory.CreateDbContextAsync(ct);
+
         var role = await _context.Roles.FindAsync([id], ct);
         if (role is null) return;
         _context.Roles.Remove(role);

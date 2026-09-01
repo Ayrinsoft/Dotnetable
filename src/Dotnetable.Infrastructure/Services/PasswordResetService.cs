@@ -18,13 +18,13 @@ public class PasswordResetService : IPasswordResetService
     private const string KeyAlphabet = "ABCDEFGHJKLMNPQRSTUVWXYZ23456789";
     private static readonly TimeSpan KeyLifetime = TimeSpan.FromMinutes(30);
 
-    private readonly AppDbContext _context;
+    private readonly IDbContextFactory<AppDbContext> _contextFactory;
     private readonly IEmailService _email;
     private readonly IPasswordHasher<Member> _hasher;
 
-    public PasswordResetService(AppDbContext context, IEmailService email, IPasswordHasher<Member> hasher)
+    public PasswordResetService(IDbContextFactory<AppDbContext> contextFactory, IEmailService email, IPasswordHasher<Member> hasher)
     {
-        _context = context;
+        _contextFactory = contextFactory;
         _email = email;
         _hasher = hasher;
     }
@@ -32,6 +32,8 @@ public class PasswordResetService : IPasswordResetService
     public async Task<PasswordResetRequestResult> RequestResetAsync(
         string emailOrUsername, Func<string, string> resetUrlBuilder, CancellationToken ct = default)
     {
+        await using var _context = await _contextFactory.CreateDbContextAsync(ct);
+
         var needle = emailOrUsername.Trim();
         var member = await _context.Members
             .FirstOrDefaultAsync(m => m.Active && (m.Username == needle || m.Email == needle), ct);
@@ -58,12 +60,18 @@ public class PasswordResetService : IPasswordResetService
         return PasswordResetRequestResult.Sent;
     }
 
-    public async Task<bool> IsKeyValidAsync(string key, CancellationToken ct = default) =>
-        await FindValidAsync(key, ct) is not null;
+    public async Task<bool> IsKeyValidAsync(string key, CancellationToken ct = default)
+    {
+        await using var _context = await _contextFactory.CreateDbContextAsync(ct);
+
+        return await FindValidAsync(_context, key, ct) is not null;
+    }
 
     public async Task<bool> ResetPasswordAsync(string key, string newPassword, CancellationToken ct = default)
     {
-        var entry = await FindValidAsync(key, ct);
+        await using var _context = await _contextFactory.CreateDbContextAsync(ct);
+
+        var entry = await FindValidAsync(_context, key, ct);
         if (entry is null) return false;
 
         var member = await _context.Members.FirstOrDefaultAsync(m => m.MemberID == entry.MemberID, ct);
@@ -80,7 +88,7 @@ public class PasswordResetService : IPasswordResetService
         return true;
     }
 
-    private async Task<MemberForgetPassword?> FindValidAsync(string key, CancellationToken ct)
+    private async Task<MemberForgetPassword?> FindValidAsync(AppDbContext _context, string key, CancellationToken ct)
     {
         if (string.IsNullOrWhiteSpace(key)) return null;
         var normalized = key.Trim().ToUpperInvariant();

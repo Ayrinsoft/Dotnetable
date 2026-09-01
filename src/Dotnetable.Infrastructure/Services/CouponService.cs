@@ -9,19 +9,22 @@ namespace Dotnetable.Infrastructure.Services;
 
 public class CouponService : ICouponService
 {
-    // Prefer ambient UoW context when OrderService (etc.) has an open multi-service transaction.
-    private readonly AppDbContext _fallback;
-    private AppDbContext _context => AmbientDbContext.Current ?? _fallback;
+    // Contexts come from DbLease per operation: it joins an ambient transaction when one is in
+    // flight and otherwise opens a short-lived context, so nothing is shared across a circuit.
+    private readonly IDbContextFactory<AppDbContext> _contextFactory;
     private readonly ICurrencyConversionService _currency;
 
-    public CouponService(AppDbContext context, ICurrencyConversionService currency)
+    public CouponService(IDbContextFactory<AppDbContext> contextFactory, ICurrencyConversionService currency)
     {
-        _fallback = context;
+        _contextFactory = contextFactory;
         _currency = currency;
     }
 
     public async Task<PagedResult<Coupon>> GetPagedAsync(int websiteId, GridQuery query, CancellationToken ct = default)
     {
+        await using var _lease = await DbLease.OpenAsync(_contextFactory, ct);
+        var _context = _lease.Context;
+
         var q = _context.Coupons.AsNoTracking().Where(c => c.WebsiteID == websiteId);
 
         if (query.GetSearch(nameof(Coupon.Code)) is string code)
@@ -38,11 +41,19 @@ public class CouponService : ICouponService
         return new PagedResult<Coupon> { Items = items, TotalCount = total };
     }
 
-    public async Task<Coupon?> GetByIdAsync(int couponId, CancellationToken ct = default) =>
-        await _context.Coupons.FindAsync([couponId], ct);
+    public async Task<Coupon?> GetByIdAsync(int couponId, CancellationToken ct = default)
+    {
+        await using var _lease = await DbLease.OpenAsync(_contextFactory, ct);
+        var _context = _lease.Context;
+
+        return await _context.Coupons.FindAsync([couponId], ct);
+    }
 
     public async Task<Coupon> CreateAsync(Coupon coupon, CancellationToken ct = default)
     {
+        await using var _lease = await DbLease.OpenAsync(_contextFactory, ct);
+        var _context = _lease.Context;
+
         await NormalizeCouponAmountsAsync(coupon, ct);
         coupon.CreatedAt = DateTime.UtcNow;
         coupon.TimesUsed = 0;
@@ -53,6 +64,9 @@ public class CouponService : ICouponService
 
     public async Task<bool> UpdateAsync(Coupon coupon, CancellationToken ct = default)
     {
+        await using var _lease = await DbLease.OpenAsync(_contextFactory, ct);
+        var _context = _lease.Context;
+
         var existing = await _context.Coupons.FirstOrDefaultAsync(c => c.CouponID == coupon.CouponID, ct);
         if (existing is null) return false;
 
@@ -77,6 +91,9 @@ public class CouponService : ICouponService
 
     public async Task<bool> DeleteAsync(int couponId, CancellationToken ct = default)
     {
+        await using var _lease = await DbLease.OpenAsync(_contextFactory, ct);
+        var _context = _lease.Context;
+
         var existing = await _context.Coupons.FindAsync([couponId], ct);
         if (existing is null) return false;
         _context.Coupons.Remove(existing);
@@ -87,6 +104,9 @@ public class CouponService : ICouponService
     public async Task<(bool Valid, string? Error, decimal DiscountUsd)> ValidateAndComputeAsync(
         int websiteId, string code, int? clientId, decimal cartSubtotalUsd, CancellationToken ct = default)
     {
+        await using var _lease = await DbLease.OpenAsync(_contextFactory, ct);
+        var _context = _lease.Context;
+
         var coupon = await _context.Coupons.AsNoTracking()
             .FirstOrDefaultAsync(c => c.WebsiteID == websiteId && c.Code == code, ct);
 
@@ -155,6 +175,9 @@ public class CouponService : ICouponService
 
     public async Task RedeemAsync(int couponId, int orderId, int? clientId, decimal discountAmountUsd, CancellationToken ct = default)
     {
+        await using var _lease = await DbLease.OpenAsync(_contextFactory, ct);
+        var _context = _lease.Context;
+
         var coupon = await _context.Coupons.AsNoTracking().FirstOrDefaultAsync(c => c.CouponID == couponId, ct);
         decimal discountLocal = discountAmountUsd;
         if (coupon is not null)

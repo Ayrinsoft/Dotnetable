@@ -26,9 +26,13 @@ public class TwoFactorAndRefreshTokenTests : IDisposable
     {
         _db = new RelationalTestDb();
         _context = _db.NewContext();
-        _members = new MemberService(_context, new PlainTextHasher());
+        // Services open a context per call now; the factory points at the same database so the
+        // fixture can still seed and assert through its own _context.
+        var factory = new TestDbContextFactory(_db.Options);
+
+        _members = new MemberService(factory, new PlainTextHasher());
         _refreshTokens = new RefreshTokenService(
-            new TestDbContextFactory(_db.Options), NullLogger<RefreshTokenService>.Instance);
+            factory, NullLogger<RefreshTokenService>.Instance);
     }
 
     // ── TOTP ────────────────────────────────────────────────────────
@@ -81,12 +85,20 @@ public class TwoFactorAndRefreshTokenTests : IDisposable
         // A wrong confirmation code must leave 2FA off — enabling it on an unproven secret would lock
         // the member out of their own panel permanently.
         (await _members.ConfirmTwoFactorAsync(member.MemberID, enrolment.Secret, "000000")).Should().BeNull();
+        // The service wrote through its own short-lived context, so this fixture's context must
+        // re-read rather than answer from entities it is still tracking.
+        _context.ChangeTracker.Clear();
+
         (await _context.Members.FindAsync(member.MemberID))!.TwoFactorEnabled.Should().BeFalse();
 
         var recoveryCodes = await _members.ConfirmTwoFactorAsync(
             member.MemberID, enrolment.Secret, CodeFor(enrolment.Secret, DateTime.UtcNow));
 
         recoveryCodes.Should().NotBeNull().And.HaveCount(10);
+
+        // The first assertion above loaded the member into this context; clear again so the second
+        // one sees the enrolment the service just wrote rather than that cached copy.
+        _context.ChangeTracker.Clear();
         (await _context.Members.FindAsync(member.MemberID))!.TwoFactorEnabled.Should().BeTrue();
     }
 
@@ -204,27 +216,51 @@ public class TwoFactorAndRefreshTokenTests : IDisposable
     // ── Helpers ─────────────────────────────────────────────────────
 
     /// <summary>
-    /// Produces the code an authenticator app would show at <paramref name="when"/>, by asking
-    /// <see cref="Totp.Verify"/> which of the million candidates matches. Slow but exact, and it
-    /// keeps the test independent of the implementation's internals.
+    /// The code an authenticator app would show at <paramref name="when"/>, computed straight from
+    /// RFC 6238 here rather than by searching through <see cref="Totp.Verify"/>.
     ///
-    /// <para>Verify accepts one step of drift either way, so three different codes pass at any given
-    /// instant. Requiring the candidate to pass at <paramref name="when"/> and at 30 seconds either
-    /// side pins it to the code for that exact step — which is what a drift test has to start from.</para>
+    /// <para>Two reasons. It is an independent implementation, so a test that passes is evidence the
+    /// production code follows the spec rather than merely agreeing with itself. And it is instant:
+    /// searching a million candidates took long enough that the 30-second step rolled over between
+    /// generating a code and using it, which made the enrolment tests fail at random.</para>
     /// </summary>
     private static string CodeFor(string secret, DateTime when)
     {
-        for (var candidate = 0; candidate < 1_000_000; candidate++)
-        {
-            var code = candidate.ToString("D6");
+        var key = FromBase32(secret);
+        var step = (long)(when.ToUniversalTime() - DateTime.UnixEpoch).TotalSeconds / 30;
 
-            if (Totp.Verify(secret, code, when)
-                && Totp.Verify(secret, code, when.AddSeconds(30))
-                && Totp.Verify(secret, code, when.AddSeconds(-30)))
-                return code;
+        var counter = BitConverter.GetBytes(step);
+        if (BitConverter.IsLittleEndian) Array.Reverse(counter);
+
+        var hash = System.Security.Cryptography.HMACSHA1.HashData(key, counter);
+        var offset = hash[^1] & 0x0F;
+        var binary = ((hash[offset] & 0x7F) << 24)
+                     | ((hash[offset + 1] & 0xFF) << 16)
+                     | ((hash[offset + 2] & 0xFF) << 8)
+                     | (hash[offset + 3] & 0xFF);
+
+        return (binary % 1_000_000).ToString("D6");
+    }
+
+    private static byte[] FromBase32(string value)
+    {
+        const string alphabet = "ABCDEFGHIJKLMNOPQRSTUVWXYZ234567";
+        var normalized = value.Replace(" ", "").Replace("-", "").TrimEnd('=').ToUpperInvariant();
+
+        var bytes = new List<byte>(normalized.Length * 5 / 8);
+        int buffer = 0, bitsLeft = 0;
+
+        foreach (var c in normalized)
+        {
+            buffer = (buffer << 5) | alphabet.IndexOf(c);
+            bitsLeft += 5;
+            if (bitsLeft < 8) continue;
+
+            bytes.Add((byte)((buffer >> (bitsLeft - 8)) & 0xFF));
+            bitsLeft -= 8;
         }
 
-        throw new InvalidOperationException("No TOTP code matched, which means Verify is broken.");
+        return bytes.ToArray();
     }
 
     private async Task<Member> SeedMemberAsync()
