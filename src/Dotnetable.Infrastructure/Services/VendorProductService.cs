@@ -332,30 +332,57 @@ public class VendorProductService : IVendorProductService
             .Include(vp => vp.ProductVariant).ThenInclude(v => v.Product)
             .ToListAsync(ct);
 
+    // Atomic conditional UPDATE — see the note on InventoryService.ReserveAsync. This path had no
+    // concurrency guard at all (VendorProducts has no RowVersion column), so two concurrent
+    // checkouts could each read the same QuantityReserved and both succeed.
     public async Task<bool> ReserveAsync(int vendorProductId, int qty, CancellationToken ct = default)
     {
         if (qty <= 0) return true;
-        var item = await _context.VendorProducts.FirstOrDefaultAsync(vp => vp.VendorProductID == vendorProductId, ct);
-        if (item is null || !item.IsActive) return false;
-        if (IVendorProductService.Available(item) < qty) return false;
 
-        // Unlimited digital stock: no reservation bookkeeping (sales never deplete).
-        if (IVendorProductService.IsUnlimited(item))
-            return true;
+        // Unlimited digital stock (StockQuantity < 0): sales never deplete, so nothing to reserve —
+        // but the listing must still exist and be active.
+        var unlimited = await _context.VendorProducts
+            .Where(vp => vp.VendorProductID == vendorProductId && vp.IsActive && vp.StockQuantity < 0)
+            .AnyAsync(ct);
+        if (unlimited) return true;
 
-        item.QuantityReserved += qty;
-        await _context.SaveChangesAsync(ct);
-        return true;
+        var affected = await _context.VendorProducts
+            .Where(vp => vp.VendorProductID == vendorProductId
+                         && vp.IsActive
+                         && vp.StockQuantity >= 0
+                         && vp.StockQuantity - vp.QuantityReserved >= qty)
+            .ExecuteUpdateAsync(s => s.SetProperty(vp => vp.QuantityReserved, vp => vp.QuantityReserved + qty), ct);
+
+        if (affected > 0) await RefreshTrackedAsync(vendorProductId, ct);
+        return affected > 0;
     }
 
     public async Task ReleaseReservationAsync(int vendorProductId, int qty, CancellationToken ct = default)
     {
         if (qty <= 0) return;
-        var item = await _context.VendorProducts.FirstOrDefaultAsync(vp => vp.VendorProductID == vendorProductId, ct);
-        if (item is null || IVendorProductService.IsUnlimited(item)) return;
 
-        item.QuantityReserved = Math.Max(0, item.QuantityReserved - qty);
-        await _context.SaveChangesAsync(ct);
+        await _context.VendorProducts
+            .Where(vp => vp.VendorProductID == vendorProductId && vp.StockQuantity >= 0)
+            .ExecuteUpdateAsync(s => s.SetProperty(
+                vp => vp.QuantityReserved,
+                vp => vp.QuantityReserved > qty ? vp.QuantityReserved - qty : 0), ct);
+
+        await RefreshTrackedAsync(vendorProductId, ct);
+    }
+
+    /// <summary>
+    /// <c>ExecuteUpdate</c> writes straight to the database and never touches the change tracker, so
+    /// a listing this context already loaded — checkout loads them through the cart — would keep
+    /// serving the pre-reservation counter and could overwrite it on the next SaveChanges. Reloading
+    /// the tracked entry is what keeps the atomic write and the in-memory graph agreeing.
+    /// </summary>
+    private async Task RefreshTrackedAsync(int vendorProductId, CancellationToken ct)
+    {
+        var tracked = _context.ChangeTracker.Entries<VendorProduct>()
+            .FirstOrDefault(e => e.Entity.VendorProductID == vendorProductId);
+
+        if (tracked is not null)
+            await tracked.ReloadAsync(ct);
     }
 
     public async Task CommitSaleAsync(int vendorProductId, int qty, CancellationToken ct = default)

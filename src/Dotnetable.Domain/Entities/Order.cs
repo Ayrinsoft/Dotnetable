@@ -86,6 +86,9 @@ public partial class Order
 
     public DateTime CreatedAt { get; set; }
 
+    /// <summary>When an unpaid order's stock reservation lapses. The expiry job cancels the order and releases stock past this instant. Null once paid.</summary>
+    public DateTime? ReservationExpiresAt { get; set; }
+
     public DateTime? PaidAt { get; set; }
 
     public virtual Coupon? Coupon { get; set; }

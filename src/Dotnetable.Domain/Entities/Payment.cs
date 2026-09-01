@@ -33,6 +33,9 @@ public partial class Payment
 
     public string? GatewayRefNumber { get; set; }
 
+    /// <summary>Pre-verification handle the PSP issued when the payment started (Zarinpal authority, Stripe PaymentIntent id, ...). Used to verify the callback.</summary>
+    public string? GatewayAuthority { get; set; }
+
     public string? TrackingCode { get; set; }
 
     public int? ReceiptFileID { get; set; }

@@ -2,11 +2,14 @@ using Dotnetable.Application.DTOs;
 using Dotnetable.Application.Interfaces;
 using Dotnetable.Domain.Entities;
 using Microsoft.AspNetCore.Mvc;
+using Microsoft.AspNetCore.RateLimiting;
+using Dotnetable.Hosting;
 using Microsoft.Extensions.Caching.Memory;
 
 namespace Dotnetable.API.Controllers;
 
 /// <summary>Public contact-form submission for the website front-end (resolved from the <c>X-Website-Key</c> header).</summary>
+[EnableRateLimiting(RateLimiting.PublicWritePolicy)]
 public class ContactController : BaseController
 {
     // Blocks rapid-fire scripted submissions from the same IP without punishing a human who

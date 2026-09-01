@@ -29,6 +29,7 @@
     [CreatedByMemberID]      INT             NULL,
     [CreatedAt]              DATETIME        NOT NULL,
     [PaidAt]                 DATETIME        NULL,
+    [ReservationExpiresAt]   DATETIME        NULL,
     CONSTRAINT [PK_Orders] PRIMARY KEY CLUSTERED ([OrderID] ASC),
     CONSTRAINT [FK_Orders_Coupons] FOREIGN KEY ([CouponID]) REFERENCES [dbo].[Coupons] ([CouponID]),
     CONSTRAINT [FK_Orders_Currencies] FOREIGN KEY ([CurrencyCode]) REFERENCES [dbo].[Currencies] ([CurrencyCode]),

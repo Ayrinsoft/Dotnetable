@@ -12,7 +12,7 @@ using Npgsql.EntityFrameworkCore.PostgreSQL.Metadata;
 namespace Dotnetable.Migrations.PostgreSql.Migrations
 {
     [DbContext(typeof(AppDbContext))]
-    [Migration("20260823194855_InitialCreate")]
+    [Migration("20260831165719_InitialCreate")]
     partial class InitialCreate
     {
         /// <inheritdoc />
@@ -760,9 +760,7 @@ namespace Dotnetable.Migrations.PostgreSql.Migrations
                         .HasColumnType("boolean");
 
                     b.Property<byte[]>("RowVersion")
-                        .IsConcurrencyToken()
-                        .IsRequired()
-                        .ValueGeneratedOnAddOrUpdate()
+                        .HasMaxLength(8)
                         .HasColumnType("bytea");
 
                     b.Property<int>("WebsiteClientID")
@@ -2407,9 +2405,7 @@ namespace Dotnetable.Migrations.PostgreSql.Migrations
                         .HasColumnType("integer");
 
                     b.Property<byte[]>("RowVersion")
-                        .IsConcurrencyToken()
-                        .IsRequired()
-                        .ValueGeneratedOnAddOrUpdate()
+                        .HasMaxLength(8)
                         .HasColumnType("bytea");
 
                     b.Property<int>("WebsiteID")
@@ -2851,6 +2847,9 @@ namespace Dotnetable.Migrations.PostgreSql.Migrations
                         .IsUnicode(false)
                         .HasColumnType("character varying(64)");
 
+                    b.Property<int>("FailedLoginCount")
+                        .HasColumnType("integer");
+
                     b.Property<bool?>("Gender")
                         .HasColumnType("boolean");
 
@@ -2864,6 +2863,10 @@ namespace Dotnetable.Migrations.PostgreSql.Migrations
 
                     b.Property<bool>("IsSiteAdmin")
                         .HasColumnType("boolean");
+
+                    b.Property<DateTime?>("LockoutEndUtc")
+                        .HasPrecision(0)
+                        .HasColumnType("timestamp(0) with time zone");
 
                     b.Property<string>("Password")
                         .IsRequired()
@@ -2881,6 +2884,19 @@ namespace Dotnetable.Migrations.PostgreSql.Migrations
                         .IsRequired()
                         .HasMaxLength(64)
                         .HasColumnType("character varying(64)");
+
+                    b.Property<bool>("TwoFactorEnabled")
+                        .HasColumnType("boolean");
+
+                    b.Property<string>("TwoFactorRecoveryCodes")
+                        .HasMaxLength(1000)
+                        .IsUnicode(false)
+                        .HasColumnType("character varying(1000)");
+
+                    b.Property<string>("TwoFactorSecret")
+                        .HasMaxLength(128)
+                        .IsUnicode(false)
+                        .HasColumnType("character varying(128)");
 
                     b.Property<string>("Username")
                         .IsRequired()
@@ -3142,6 +3158,9 @@ namespace Dotnetable.Migrations.PostgreSql.Migrations
                         .ValueGeneratedOnAdd()
                         .HasColumnType("boolean")
                         .HasDefaultValue(true);
+
+                    b.Property<DateTime?>("ReservationExpiresAt")
+                        .HasColumnType("datetime");
 
                     b.Property<byte>("SalesChannel")
                         .ValueGeneratedOnAdd()
@@ -3565,6 +3584,10 @@ namespace Dotnetable.Migrations.PostgreSql.Migrations
                     b.Property<decimal>("ExchangeRateToUsd")
                         .HasColumnType("decimal(18, 6)");
 
+                    b.Property<string>("GatewayAuthority")
+                        .HasMaxLength(256)
+                        .HasColumnType("character varying(256)");
+
                     b.Property<string>("GatewayRefNumber")
                         .HasMaxLength(100)
                         .HasColumnType("character varying(100)");
@@ -3642,6 +3665,10 @@ namespace Dotnetable.Migrations.PostgreSql.Migrations
                         .HasMaxLength(500)
                         .HasColumnType("character varying(500)");
 
+                    b.Property<string>("CallbackUrl")
+                        .HasMaxLength(500)
+                        .HasColumnType("character varying(500)");
+
                     b.Property<bool>("IsActive")
                         .HasColumnType("boolean");
 
@@ -3661,6 +3688,10 @@ namespace Dotnetable.Migrations.PostgreSql.Migrations
                         .IsRequired()
                         .HasMaxLength(50)
                         .HasColumnType("character varying(50)");
+
+                    b.Property<string>("SettingsJSON")
+                        .HasMaxLength(4000)
+                        .HasColumnType("character varying(4000)");
 
                     b.Property<int>("SortOrder")
                         .HasColumnType("integer");
@@ -6564,9 +6595,7 @@ namespace Dotnetable.Migrations.PostgreSql.Migrations
                         .HasColumnType("integer");
 
                     b.Property<byte[]>("RowVersion")
-                        .IsConcurrencyToken()
-                        .IsRequired()
-                        .ValueGeneratedOnAddOrUpdate()
+                        .HasMaxLength(8)
                         .HasColumnType("bytea");
 
                     b.Property<int>("WarehouseID")
@@ -6914,6 +6943,9 @@ namespace Dotnetable.Migrations.PostgreSql.Migrations
                         .IsUnicode(false)
                         .HasColumnType("character varying(60)");
 
+                    b.Property<int>("FailedLoginCount")
+                        .HasColumnType("integer");
+
                     b.Property<bool?>("Gender")
                         .HasColumnType("boolean");
 
@@ -6923,6 +6955,10 @@ namespace Dotnetable.Migrations.PostgreSql.Migrations
 
                     b.Property<Guid>("HashKey")
                         .HasColumnType("uuid");
+
+                    b.Property<DateTime?>("LockoutEndUtc")
+                        .HasPrecision(0)
+                        .HasColumnType("timestamp(0) with time zone");
 
                     b.Property<string>("Password")
                         .HasMaxLength(256)
@@ -7014,11 +7050,18 @@ namespace Dotnetable.Migrations.PostgreSql.Migrations
 
                     NpgsqlPropertyBuilderExtensions.UseIdentityByDefaultColumn(b.Property<int>("WebsiteClientForgetPasswordID"));
 
+                    b.Property<int>("FailedAttempts")
+                        .HasColumnType("integer");
+
                     b.Property<string>("ForgetKey")
                         .IsRequired()
                         .HasMaxLength(8)
                         .IsUnicode(false)
                         .HasColumnType("character varying(8)");
+
+                    b.Property<DateTime?>("LockedUntil")
+                        .HasPrecision(0)
+                        .HasColumnType("timestamp(0) with time zone");
 
                     b.Property<DateTime>("LogTime")
                         .HasColumnType("datetime");
@@ -7031,6 +7074,58 @@ namespace Dotnetable.Migrations.PostgreSql.Migrations
                     b.HasIndex(new[] { "WebsiteClientID" }, "IX_WebsiteClientForgetPasswords_WebsiteClientID");
 
                     b.ToTable("WebsiteClientForgetPasswords");
+                });
+
+            modelBuilder.Entity("Dotnetable.Domain.Entities.WebsiteClientRefreshToken", b =>
+                {
+                    b.Property<int>("WebsiteClientRefreshTokenID")
+                        .ValueGeneratedOnAdd()
+                        .HasColumnType("integer");
+
+                    NpgsqlPropertyBuilderExtensions.UseIdentityByDefaultColumn(b.Property<int>("WebsiteClientRefreshTokenID"));
+
+                    b.Property<DateTime>("CreatedAt")
+                        .HasPrecision(0)
+                        .HasColumnType("timestamp(0) with time zone");
+
+                    b.Property<string>("CreatedByIp")
+                        .HasMaxLength(45)
+                        .IsUnicode(false)
+                        .HasColumnType("character varying(45)");
+
+                    b.Property<DateTime>("ExpiresAt")
+                        .HasPrecision(0)
+                        .HasColumnType("timestamp(0) with time zone");
+
+                    b.Property<int?>("ReplacedByTokenID")
+                        .HasColumnType("integer");
+
+                    b.Property<DateTime?>("RevokedAt")
+                        .HasPrecision(0)
+                        .HasColumnType("timestamp(0) with time zone");
+
+                    b.Property<string>("TokenHash")
+                        .IsRequired()
+                        .HasMaxLength(64)
+                        .IsUnicode(false)
+                        .HasColumnType("character varying(64)");
+
+                    b.Property<int>("WebsiteClientID")
+                        .HasColumnType("integer");
+
+                    b.Property<int>("WebsiteID")
+                        .HasColumnType("integer");
+
+                    b.HasKey("WebsiteClientRefreshTokenID");
+
+                    b.HasIndex(new[] { "WebsiteClientID" }, "IX_WebsiteClientRefreshTokens_WebsiteClientID");
+
+                    b.HasIndex(new[] { "WebsiteID" }, "IX_WebsiteClientRefreshTokens_WebsiteID");
+
+                    b.HasIndex(new[] { "TokenHash" }, "UQ_WebsiteClientRefreshTokens_TokenHash")
+                        .IsUnique();
+
+                    b.ToTable("WebsiteClientRefreshTokens");
                 });
 
             modelBuilder.Entity("Dotnetable.Domain.Entities.WebsiteFeature", b =>
@@ -7231,6 +7326,55 @@ namespace Dotnetable.Migrations.PostgreSql.Migrations
                     b.HasIndex(new[] { "WebsiteID" }, "IX_WebsiteSeoSettings_WebsiteID");
 
                     b.ToTable("WebsiteSeoSettings");
+                });
+
+            modelBuilder.Entity("Dotnetable.Domain.Entities.WebsiteSmsSetting", b =>
+                {
+                    b.Property<int>("WebsiteSmsSettingID")
+                        .ValueGeneratedOnAdd()
+                        .HasColumnType("integer");
+
+                    NpgsqlPropertyBuilderExtensions.UseIdentityByDefaultColumn(b.Property<int>("WebsiteSmsSettingID"));
+
+                    b.Property<DateTime>("CreatedAt")
+                        .HasPrecision(0)
+                        .HasColumnType("timestamp(0) with time zone");
+
+                    b.Property<bool>("IsActive")
+                        .HasColumnType("boolean");
+
+                    b.Property<string>("Provider")
+                        .IsRequired()
+                        .HasMaxLength(50)
+                        .IsUnicode(false)
+                        .HasColumnType("character varying(50)");
+
+                    b.Property<string>("SenderNumber")
+                        .HasMaxLength(32)
+                        .IsUnicode(false)
+                        .HasColumnType("character varying(32)");
+
+                    b.Property<string>("SettingsJSON")
+                        .IsRequired()
+                        .HasMaxLength(4000)
+                        .HasColumnType("character varying(4000)");
+
+                    b.Property<int>("SortOrder")
+                        .HasColumnType("integer");
+
+                    b.Property<string>("Title")
+                        .IsRequired()
+                        .HasMaxLength(150)
+                        .HasColumnType("character varying(150)");
+
+                    b.Property<int>("WebsiteID")
+                        .HasColumnType("integer");
+
+                    b.HasKey("WebsiteSmsSettingID");
+
+                    b.HasIndex(new[] { "WebsiteID" }, "IX_WebsiteSmsSettings_WebsiteID");
+
+                    b.ToTable("WebsiteSmsSettings");
                 });
 
             modelBuilder.Entity("Dotnetable.Domain.Entities.WebsiteSocialLink", b =>
@@ -10528,6 +10672,25 @@ namespace Dotnetable.Migrations.PostgreSql.Migrations
                     b.Navigation("WebsiteClient");
                 });
 
+            modelBuilder.Entity("Dotnetable.Domain.Entities.WebsiteClientRefreshToken", b =>
+                {
+                    b.HasOne("Dotnetable.Domain.Entities.WebsiteClient", "WebsiteClient")
+                        .WithMany("WebsiteClientRefreshTokens")
+                        .HasForeignKey("WebsiteClientID")
+                        .IsRequired()
+                        .HasConstraintName("FK_WebsiteClientRefreshTokens_WebsiteClients");
+
+                    b.HasOne("Dotnetable.Domain.Entities.Website", "Website")
+                        .WithMany("WebsiteClientRefreshTokens")
+                        .HasForeignKey("WebsiteID")
+                        .IsRequired()
+                        .HasConstraintName("FK_WebsiteClientRefreshTokens_Websites");
+
+                    b.Navigation("Website");
+
+                    b.Navigation("WebsiteClient");
+                });
+
             modelBuilder.Entity("Dotnetable.Domain.Entities.WebsiteFeature", b =>
                 {
                     b.HasOne("Dotnetable.Domain.Entities.Website", "Website")
@@ -10579,6 +10742,17 @@ namespace Dotnetable.Migrations.PostgreSql.Migrations
                         .HasForeignKey("WebsiteID")
                         .IsRequired()
                         .HasConstraintName("FK_WebsiteSeoSettings_Websites");
+
+                    b.Navigation("Website");
+                });
+
+            modelBuilder.Entity("Dotnetable.Domain.Entities.WebsiteSmsSetting", b =>
+                {
+                    b.HasOne("Dotnetable.Domain.Entities.Website", "Website")
+                        .WithMany("WebsiteSmsSettings")
+                        .HasForeignKey("WebsiteID")
+                        .IsRequired()
+                        .HasConstraintName("FK_WebsiteSmsSettings_Websites");
 
                     b.Navigation("Website");
                 });
@@ -11457,6 +11631,8 @@ namespace Dotnetable.Migrations.PostgreSql.Migrations
 
                     b.Navigation("WebsiteCaptchaSetting");
 
+                    b.Navigation("WebsiteClientRefreshTokens");
+
                     b.Navigation("WebsiteClients");
 
                     b.Navigation("WebsiteFeatures");
@@ -11468,6 +11644,8 @@ namespace Dotnetable.Migrations.PostgreSql.Migrations
                     b.Navigation("WebsiteScripts");
 
                     b.Navigation("WebsiteSeoSettings");
+
+                    b.Navigation("WebsiteSmsSettings");
 
                     b.Navigation("WebsiteSocialLinks");
 
@@ -11517,6 +11695,8 @@ namespace Dotnetable.Migrations.PostgreSql.Migrations
                     b.Navigation("WebsiteClientAddresses");
 
                     b.Navigation("WebsiteClientForgetPasswords");
+
+                    b.Navigation("WebsiteClientRefreshTokens");
 
                     b.Navigation("Wishlist");
                 });

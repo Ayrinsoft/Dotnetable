@@ -12,6 +12,7 @@ namespace Dotnetable.Tests.Services;
 
 public class VendorServiceTests : IDisposable
 {
+    private readonly RelationalTestDb _db;
     private readonly AppDbContext _context;
     private readonly VendorService _vendors;
     private readonly VendorProductService _listings;
@@ -21,10 +22,10 @@ public class VendorServiceTests : IDisposable
 
     public VendorServiceTests()
     {
-        var opts = new DbContextOptionsBuilder<AppDbContext>()
-            .UseInMemoryDatabase(Guid.NewGuid().ToString())
-            .Options;
-        _context = new AppDbContext(opts);
+        // Relational: stock reservation now moves with a conditional UPDATE, which the InMemory
+        // provider cannot execute at all. See RelationalTestDb.
+        _db = new RelationalTestDb();
+        _context = _db.NewContext();
         var fx = new CurrencyConversionService(_context);
         _vendors = new VendorService(_context, fx);
         _listings = new VendorProductService(_context);
@@ -48,7 +49,11 @@ public class VendorServiceTests : IDisposable
         DefaultLanguageCode = "en", DefaultCurrencyCode = "USD", BrandName = name,
     };
 
-    public void Dispose() => _context.Dispose();
+    public void Dispose()
+    {
+        _context.Dispose();
+        _db.Dispose();
+    }
 
     [Fact]
     public async Task Create_DisplayVendor_Works()

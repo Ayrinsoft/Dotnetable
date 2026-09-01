@@ -4,6 +4,12 @@
 @{
     ViewData["Title"] = Model.Title;
     Layout = "/Themes/Default/Views/Shared/_Layout.cshtml";
+
+    // Article card: the excerpt and featured image are what a chat app or social preview renders.
+    ViewData["OgType"] = "article";
+    ViewData["OgImage"] = Model.FeaturedImageUrl;
+    ViewData["MetaDescription"] = Model.Excerpt;
+
     var primaryCategory = Model.Categories.FirstOrDefault();
     var content = await Shortcodes.ExpandAsync(Model.Content);
 }

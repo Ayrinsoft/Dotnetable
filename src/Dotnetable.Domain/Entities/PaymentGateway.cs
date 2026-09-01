@@ -25,6 +25,12 @@ public partial class PaymentGateway
 
     public bool IsActive { get; set; }
 
+    /// <summary>Provider-specific credentials/options JSON, parsed by the matching IPaymentGatewayProvider. Preferred over the flat MerchantID/ApiKey/ApiSecret columns.</summary>
+    public string? SettingsJSON { get; set; }
+
+    /// <summary>Absolute return URL the PSP sends the payer back to. Blank falls back to the website address + /checkout/callback.</summary>
+    public string? CallbackUrl { get; set; }
+
     public virtual ICollection<Payment> Payments { get; set; } = new List<Payment>();
 
     public virtual Website Website { get; set; } = null!;

@@ -718,10 +718,8 @@ namespace Dotnetable.Migrations.MySql.Migrations
                         .HasColumnType("tinyint(1)");
 
                     b.Property<byte[]>("RowVersion")
-                        .IsConcurrencyToken()
-                        .IsRequired()
-                        .ValueGeneratedOnAddOrUpdate()
-                        .HasColumnType("longblob");
+                        .HasMaxLength(8)
+                        .HasColumnType("varbinary(8)");
 
                     b.Property<int>("WebsiteClientID")
                         .HasColumnType("int");
@@ -2305,10 +2303,8 @@ namespace Dotnetable.Migrations.MySql.Migrations
                         .HasColumnType("int");
 
                     b.Property<byte[]>("RowVersion")
-                        .IsConcurrencyToken()
-                        .IsRequired()
-                        .ValueGeneratedOnAddOrUpdate()
-                        .HasColumnType("longblob");
+                        .HasMaxLength(8)
+                        .HasColumnType("varbinary(8)");
 
                     b.Property<int>("WebsiteID")
                         .HasColumnType("int");
@@ -2729,6 +2725,9 @@ namespace Dotnetable.Migrations.MySql.Migrations
                         .IsUnicode(false)
                         .HasColumnType("varchar(64)");
 
+                    b.Property<int>("FailedLoginCount")
+                        .HasColumnType("int");
+
                     b.Property<bool?>("Gender")
                         .HasColumnType("tinyint(1)");
 
@@ -2742,6 +2741,10 @@ namespace Dotnetable.Migrations.MySql.Migrations
 
                     b.Property<bool>("IsSiteAdmin")
                         .HasColumnType("tinyint(1)");
+
+                    b.Property<DateTime?>("LockoutEndUtc")
+                        .HasPrecision(0)
+                        .HasColumnType("datetime(0)");
 
                     b.Property<string>("Password")
                         .IsRequired()
@@ -2759,6 +2762,19 @@ namespace Dotnetable.Migrations.MySql.Migrations
                         .IsRequired()
                         .HasMaxLength(64)
                         .HasColumnType("varchar(64)");
+
+                    b.Property<bool>("TwoFactorEnabled")
+                        .HasColumnType("tinyint(1)");
+
+                    b.Property<string>("TwoFactorRecoveryCodes")
+                        .HasMaxLength(1000)
+                        .IsUnicode(false)
+                        .HasColumnType("varchar(1000)");
+
+                    b.Property<string>("TwoFactorSecret")
+                        .HasMaxLength(128)
+                        .IsUnicode(false)
+                        .HasColumnType("varchar(128)");
 
                     b.Property<string>("Username")
                         .IsRequired()
@@ -3010,6 +3026,9 @@ namespace Dotnetable.Migrations.MySql.Migrations
                         .ValueGeneratedOnAdd()
                         .HasColumnType("tinyint(1)")
                         .HasDefaultValue(true);
+
+                    b.Property<DateTime?>("ReservationExpiresAt")
+                        .HasColumnType("datetime");
 
                     b.Property<byte>("SalesChannel")
                         .ValueGeneratedOnAdd()
@@ -3419,6 +3438,10 @@ namespace Dotnetable.Migrations.MySql.Migrations
                     b.Property<decimal>("ExchangeRateToUsd")
                         .HasColumnType("decimal(18, 6)");
 
+                    b.Property<string>("GatewayAuthority")
+                        .HasMaxLength(256)
+                        .HasColumnType("varchar(256)");
+
                     b.Property<string>("GatewayRefNumber")
                         .HasMaxLength(100)
                         .HasColumnType("varchar(100)");
@@ -3494,6 +3517,10 @@ namespace Dotnetable.Migrations.MySql.Migrations
                         .HasMaxLength(500)
                         .HasColumnType("varchar(500)");
 
+                    b.Property<string>("CallbackUrl")
+                        .HasMaxLength(500)
+                        .HasColumnType("varchar(500)");
+
                     b.Property<bool>("IsActive")
                         .HasColumnType("tinyint(1)");
 
@@ -3513,6 +3540,10 @@ namespace Dotnetable.Migrations.MySql.Migrations
                         .IsRequired()
                         .HasMaxLength(50)
                         .HasColumnType("varchar(50)");
+
+                    b.Property<string>("SettingsJSON")
+                        .HasMaxLength(4000)
+                        .HasColumnType("varchar(4000)");
 
                     b.Property<int>("SortOrder")
                         .HasColumnType("int");
@@ -6312,10 +6343,8 @@ namespace Dotnetable.Migrations.MySql.Migrations
                         .HasColumnType("int");
 
                     b.Property<byte[]>("RowVersion")
-                        .IsConcurrencyToken()
-                        .IsRequired()
-                        .ValueGeneratedOnAddOrUpdate()
-                        .HasColumnType("longblob");
+                        .HasMaxLength(8)
+                        .HasColumnType("varbinary(8)");
 
                     b.Property<int>("WarehouseID")
                         .HasColumnType("int");
@@ -6652,6 +6681,9 @@ namespace Dotnetable.Migrations.MySql.Migrations
                         .IsUnicode(false)
                         .HasColumnType("varchar(60)");
 
+                    b.Property<int>("FailedLoginCount")
+                        .HasColumnType("int");
+
                     b.Property<bool?>("Gender")
                         .HasColumnType("tinyint(1)");
 
@@ -6661,6 +6693,10 @@ namespace Dotnetable.Migrations.MySql.Migrations
 
                     b.Property<Guid>("HashKey")
                         .HasColumnType("char(36)");
+
+                    b.Property<DateTime?>("LockoutEndUtc")
+                        .HasPrecision(0)
+                        .HasColumnType("datetime(0)");
 
                     b.Property<string>("Password")
                         .HasMaxLength(256)
@@ -6748,11 +6784,18 @@ namespace Dotnetable.Migrations.MySql.Migrations
                         .ValueGeneratedOnAdd()
                         .HasColumnType("int");
 
+                    b.Property<int>("FailedAttempts")
+                        .HasColumnType("int");
+
                     b.Property<string>("ForgetKey")
                         .IsRequired()
                         .HasMaxLength(8)
                         .IsUnicode(false)
                         .HasColumnType("varchar(8)");
+
+                    b.Property<DateTime?>("LockedUntil")
+                        .HasPrecision(0)
+                        .HasColumnType("datetime(0)");
 
                     b.Property<DateTime>("LogTime")
                         .HasColumnType("datetime");
@@ -6765,6 +6808,56 @@ namespace Dotnetable.Migrations.MySql.Migrations
                     b.HasIndex(new[] { "WebsiteClientID" }, "IX_WebsiteClientForgetPasswords_WebsiteClientID");
 
                     b.ToTable("WebsiteClientForgetPasswords");
+                });
+
+            modelBuilder.Entity("Dotnetable.Domain.Entities.WebsiteClientRefreshToken", b =>
+                {
+                    b.Property<int>("WebsiteClientRefreshTokenID")
+                        .ValueGeneratedOnAdd()
+                        .HasColumnType("int");
+
+                    b.Property<DateTime>("CreatedAt")
+                        .HasPrecision(0)
+                        .HasColumnType("datetime(0)");
+
+                    b.Property<string>("CreatedByIp")
+                        .HasMaxLength(45)
+                        .IsUnicode(false)
+                        .HasColumnType("varchar(45)");
+
+                    b.Property<DateTime>("ExpiresAt")
+                        .HasPrecision(0)
+                        .HasColumnType("datetime(0)");
+
+                    b.Property<int?>("ReplacedByTokenID")
+                        .HasColumnType("int");
+
+                    b.Property<DateTime?>("RevokedAt")
+                        .HasPrecision(0)
+                        .HasColumnType("datetime(0)");
+
+                    b.Property<string>("TokenHash")
+                        .IsRequired()
+                        .HasMaxLength(64)
+                        .IsUnicode(false)
+                        .HasColumnType("varchar(64)");
+
+                    b.Property<int>("WebsiteClientID")
+                        .HasColumnType("int");
+
+                    b.Property<int>("WebsiteID")
+                        .HasColumnType("int");
+
+                    b.HasKey("WebsiteClientRefreshTokenID");
+
+                    b.HasIndex(new[] { "WebsiteClientID" }, "IX_WebsiteClientRefreshTokens_WebsiteClientID");
+
+                    b.HasIndex(new[] { "WebsiteID" }, "IX_WebsiteClientRefreshTokens_WebsiteID");
+
+                    b.HasIndex(new[] { "TokenHash" }, "UQ_WebsiteClientRefreshTokens_TokenHash")
+                        .IsUnique();
+
+                    b.ToTable("WebsiteClientRefreshTokens");
                 });
 
             modelBuilder.Entity("Dotnetable.Domain.Entities.WebsiteFeature", b =>
@@ -6955,6 +7048,53 @@ namespace Dotnetable.Migrations.MySql.Migrations
                     b.HasIndex(new[] { "WebsiteID" }, "IX_WebsiteSeoSettings_WebsiteID");
 
                     b.ToTable("WebsiteSeoSettings");
+                });
+
+            modelBuilder.Entity("Dotnetable.Domain.Entities.WebsiteSmsSetting", b =>
+                {
+                    b.Property<int>("WebsiteSmsSettingID")
+                        .ValueGeneratedOnAdd()
+                        .HasColumnType("int");
+
+                    b.Property<DateTime>("CreatedAt")
+                        .HasPrecision(0)
+                        .HasColumnType("datetime(0)");
+
+                    b.Property<bool>("IsActive")
+                        .HasColumnType("tinyint(1)");
+
+                    b.Property<string>("Provider")
+                        .IsRequired()
+                        .HasMaxLength(50)
+                        .IsUnicode(false)
+                        .HasColumnType("varchar(50)");
+
+                    b.Property<string>("SenderNumber")
+                        .HasMaxLength(32)
+                        .IsUnicode(false)
+                        .HasColumnType("varchar(32)");
+
+                    b.Property<string>("SettingsJSON")
+                        .IsRequired()
+                        .HasMaxLength(4000)
+                        .HasColumnType("varchar(4000)");
+
+                    b.Property<int>("SortOrder")
+                        .HasColumnType("int");
+
+                    b.Property<string>("Title")
+                        .IsRequired()
+                        .HasMaxLength(150)
+                        .HasColumnType("varchar(150)");
+
+                    b.Property<int>("WebsiteID")
+                        .HasColumnType("int");
+
+                    b.HasKey("WebsiteSmsSettingID");
+
+                    b.HasIndex(new[] { "WebsiteID" }, "IX_WebsiteSmsSettings_WebsiteID");
+
+                    b.ToTable("WebsiteSmsSettings");
                 });
 
             modelBuilder.Entity("Dotnetable.Domain.Entities.WebsiteSocialLink", b =>
@@ -10238,6 +10378,25 @@ namespace Dotnetable.Migrations.MySql.Migrations
                     b.Navigation("WebsiteClient");
                 });
 
+            modelBuilder.Entity("Dotnetable.Domain.Entities.WebsiteClientRefreshToken", b =>
+                {
+                    b.HasOne("Dotnetable.Domain.Entities.WebsiteClient", "WebsiteClient")
+                        .WithMany("WebsiteClientRefreshTokens")
+                        .HasForeignKey("WebsiteClientID")
+                        .IsRequired()
+                        .HasConstraintName("FK_WebsiteClientRefreshTokens_WebsiteClients");
+
+                    b.HasOne("Dotnetable.Domain.Entities.Website", "Website")
+                        .WithMany("WebsiteClientRefreshTokens")
+                        .HasForeignKey("WebsiteID")
+                        .IsRequired()
+                        .HasConstraintName("FK_WebsiteClientRefreshTokens_Websites");
+
+                    b.Navigation("Website");
+
+                    b.Navigation("WebsiteClient");
+                });
+
             modelBuilder.Entity("Dotnetable.Domain.Entities.WebsiteFeature", b =>
                 {
                     b.HasOne("Dotnetable.Domain.Entities.Website", "Website")
@@ -10289,6 +10448,17 @@ namespace Dotnetable.Migrations.MySql.Migrations
                         .HasForeignKey("WebsiteID")
                         .IsRequired()
                         .HasConstraintName("FK_WebsiteSeoSettings_Websites");
+
+                    b.Navigation("Website");
+                });
+
+            modelBuilder.Entity("Dotnetable.Domain.Entities.WebsiteSmsSetting", b =>
+                {
+                    b.HasOne("Dotnetable.Domain.Entities.Website", "Website")
+                        .WithMany("WebsiteSmsSettings")
+                        .HasForeignKey("WebsiteID")
+                        .IsRequired()
+                        .HasConstraintName("FK_WebsiteSmsSettings_Websites");
 
                     b.Navigation("Website");
                 });
@@ -11167,6 +11337,8 @@ namespace Dotnetable.Migrations.MySql.Migrations
 
                     b.Navigation("WebsiteCaptchaSetting");
 
+                    b.Navigation("WebsiteClientRefreshTokens");
+
                     b.Navigation("WebsiteClients");
 
                     b.Navigation("WebsiteFeatures");
@@ -11178,6 +11350,8 @@ namespace Dotnetable.Migrations.MySql.Migrations
                     b.Navigation("WebsiteScripts");
 
                     b.Navigation("WebsiteSeoSettings");
+
+                    b.Navigation("WebsiteSmsSettings");
 
                     b.Navigation("WebsiteSocialLinks");
 
@@ -11227,6 +11401,8 @@ namespace Dotnetable.Migrations.MySql.Migrations
                     b.Navigation("WebsiteClientAddresses");
 
                     b.Navigation("WebsiteClientForgetPasswords");
+
+                    b.Navigation("WebsiteClientRefreshTokens");
 
                     b.Navigation("Wishlist");
                 });

@@ -13,6 +13,9 @@ public enum PaymentMethod : byte
     Manual = 3,
     /// <summary>Cash (or card) collected on delivery — recorded by admin after collection.</summary>
     CashOnDelivery = 4,
+
+    /// <summary>Paid through an online PSP redirect. See <see cref="IOnlinePaymentService"/>.</summary>
+    OnlineGateway = 5,
 }
 
 /// <summary>Values for <see cref="Payment"/>.Status (TINYINT).</summary>
@@ -22,6 +25,9 @@ public enum PaymentStatus : byte
     Paid = 2,
     Rejected = 3,
     Refunded = 4,
+
+    /// <summary>The gateway refused the payment, or the payer abandoned it at the PSP.</summary>
+    Failed = 5,
 }
 
 /// <summary>Payment statuses that still need admin action on the offline bank-transfer queue
@@ -103,7 +109,14 @@ public interface IPaymentService
 
     Task<Payment?> GetByIdAsync(int paymentId, CancellationToken ct = default);
 
-    Task<Payment?> GetLatestForOrderAsync(int orderId, CancellationToken ct = default);
+    /// <summary>
+    /// The most recent payment for an order.
+    ///
+    /// <para><paramref name="clientId"/> scopes the lookup to the order owner. It used to be absent,
+    /// so any signed-in customer could read the payment state of any order in the system by walking
+    /// order ids. Admin callers pass null to bypass the ownership filter.</para>
+    /// </summary>
+    Task<Payment?> GetLatestForOrderAsync(int orderId, int? clientId = null, CancellationToken ct = default);
 
     /// <summary>Pending bank-transfer receipts awaiting verification. Prefer
     /// <see cref="GetManualPagedAsync"/> when a status filter is needed.</summary>

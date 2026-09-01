@@ -273,6 +273,8 @@ public partial class AppDbContext : DbContext
 
     public virtual DbSet<WebsiteClientForgetPassword> WebsiteClientForgetPasswords { get; set; }
 
+    public virtual DbSet<WebsiteClientRefreshToken> WebsiteClientRefreshTokens { get; set; }
+
     public virtual DbSet<WebsiteFeature> WebsiteFeatures { get; set; }
 
     public virtual DbSet<WebsiteIP> WebsiteIPs { get; set; }
@@ -282,6 +284,8 @@ public partial class AppDbContext : DbContext
     public virtual DbSet<WebsiteScript> WebsiteScripts { get; set; }
 
     public virtual DbSet<WebsiteSeoSetting> WebsiteSeoSettings { get; set; }
+
+    public virtual DbSet<WebsiteSmsSetting> WebsiteSmsSettings { get; set; }
 
     public virtual DbSet<WebsiteSocialLink> WebsiteSocialLinks { get; set; }
 
@@ -297,6 +301,9 @@ public partial class AppDbContext : DbContext
 
     protected override void OnModelCreating(ModelBuilder modelBuilder)
     {
+        // Optimistic-concurrency tokens differ per database engine; see ConcurrencyModelExtensions.
+        var activeProvider = Database.ProviderName;
+
         modelBuilder.Entity<AdminNotification>(entity =>
         {
             entity.HasIndex(e => new { e.MemberID, e.IsRead, e.CreatedAt }, "IX_AdminNotifications_MemberID_IsRead_CreatedAt").IsDescending(false, false, true);
@@ -624,7 +631,7 @@ public partial class AppDbContext : DbContext
         modelBuilder.Entity<WarehouseStock>(entity =>
         {
             entity.HasIndex(e => new { e.WarehouseID, e.ProductVariantID }, "IX_WarehouseStocks_Warehouse_Variant").IsUnique();
-            entity.Property(e => e.RowVersion).IsRowVersion();
+            entity.ConfigureRowVersion(e => e.RowVersion, activeProvider);
             entity.HasOne(d => d.Warehouse).WithMany(p => p.WarehouseStocks).HasForeignKey(d => d.WarehouseID).OnDelete(DeleteBehavior.ClientSetNull);
             entity.HasOne(d => d.ProductVariant).WithMany().HasForeignKey(d => d.ProductVariantID).OnDelete(DeleteBehavior.ClientSetNull);
         });
@@ -950,9 +957,7 @@ public partial class AppDbContext : DbContext
             entity.Property(e => e.Balance).HasColumnType("decimal(18, 4)");
             entity.Property(e => e.BalanceUsd).HasColumnType("decimal(18, 4)");
             entity.Property(e => e.CreatedAt).HasPrecision(0);
-            entity.Property(e => e.RowVersion)
-                .IsRowVersion()
-                .IsConcurrencyToken();
+            entity.ConfigureRowVersion(e => e.RowVersion, activeProvider);
 
             entity.HasOne(d => d.CurrencyCodeNavigation).WithMany(p => p.ClientWallets)
                 .HasForeignKey(d => d.CurrencyCode)
@@ -1497,9 +1502,7 @@ public partial class AppDbContext : DbContext
 
             entity.Property(e => e.AvgCost).HasColumnType("decimal(18, 4)");
             entity.Property(e => e.AvgCostUsd).HasColumnType("decimal(18, 4)");
-            entity.Property(e => e.RowVersion)
-                .IsRowVersion()
-                .IsConcurrencyToken();
+            entity.ConfigureRowVersion(e => e.RowVersion, activeProvider);
 
             entity.HasOne(d => d.ProductVariant).WithMany(p => p.InventoryItems)
                 .HasForeignKey(d => d.ProductVariantID)
@@ -1716,6 +1719,13 @@ public partial class AppDbContext : DbContext
             entity.Property(e => e.Surname).HasMaxLength(64);
             entity.Property(e => e.Username)
                 .HasMaxLength(64)
+                .IsUnicode(false);
+            entity.Property(e => e.LockoutEndUtc).HasPrecision(0);
+            entity.Property(e => e.TwoFactorSecret)
+                .HasMaxLength(128)
+                .IsUnicode(false);
+            entity.Property(e => e.TwoFactorRecoveryCodes)
+                .HasMaxLength(1000)
                 .IsUnicode(false);
 
             entity.HasOne(d => d.Avatar).WithMany(p => p.Members)
@@ -2004,6 +2014,7 @@ public partial class AppDbContext : DbContext
             entity.Property(e => e.MarkupTotal).HasColumnType("decimal(18, 4)");
             entity.Property(e => e.Note).HasMaxLength(1000);
             entity.Property(e => e.OrderNumber).HasMaxLength(30);
+            entity.Property(e => e.ReservationExpiresAt).HasColumnType("datetime");
             entity.Property(e => e.PaidAt).HasColumnType("datetime");
             entity.Property(e => e.SalesChannel).HasDefaultValue((byte)1);
             entity.Property(e => e.ReportToTax).HasDefaultValue(true);
@@ -2197,6 +2208,7 @@ public partial class AppDbContext : DbContext
                 .IsFixedLength();
             entity.Property(e => e.ExchangeRateToUsd).HasColumnType("decimal(18, 6)");
             entity.Property(e => e.GatewayRefNumber).HasMaxLength(100);
+            entity.Property(e => e.GatewayAuthority).HasMaxLength(256);
             entity.Property(e => e.PaidAt).HasPrecision(0);
             entity.Property(e => e.TrackingCode).HasMaxLength(100);
 
@@ -2253,6 +2265,8 @@ public partial class AppDbContext : DbContext
             entity.Property(e => e.MerchantID).HasMaxLength(200);
             entity.Property(e => e.Name).HasMaxLength(150);
             entity.Property(e => e.Provider).HasMaxLength(50);
+            entity.Property(e => e.SettingsJSON).HasMaxLength(4000);
+            entity.Property(e => e.CallbackUrl).HasMaxLength(500);
 
             entity.HasOne(d => d.Website).WithMany(p => p.PaymentGateways)
                 .HasForeignKey(d => d.WebsiteID)
@@ -3654,6 +3668,7 @@ public partial class AppDbContext : DbContext
                 .HasMaxLength(256)
                 .IsUnicode(false);
             entity.Property(e => e.Surname).HasMaxLength(42);
+            entity.Property(e => e.LockoutEndUtc).HasPrecision(0);
 
             entity.HasOne(d => d.Avatar).WithMany(p => p.WebsiteClients)
                 .HasForeignKey(d => d.AvatarID)
@@ -3703,11 +3718,65 @@ public partial class AppDbContext : DbContext
                 .HasMaxLength(8)
                 .IsUnicode(false);
             entity.Property(e => e.LogTime).HasColumnType("datetime");
+            entity.Property(e => e.LockedUntil).HasPrecision(0);
 
             entity.HasOne(d => d.WebsiteClient).WithMany(p => p.WebsiteClientForgetPasswords)
                 .HasForeignKey(d => d.WebsiteClientID)
                 .OnDelete(DeleteBehavior.ClientSetNull)
                 .HasConstraintName("FK_WebsiteClientForgetPasswords_WebsiteClients");
+        });
+
+        modelBuilder.Entity<WebsiteClientRefreshToken>(entity =>
+        {
+            entity.HasKey(e => e.WebsiteClientRefreshTokenID);
+
+            entity.HasIndex(e => e.WebsiteClientID, "IX_WebsiteClientRefreshTokens_WebsiteClientID");
+
+            entity.HasIndex(e => e.WebsiteID, "IX_WebsiteClientRefreshTokens_WebsiteID");
+
+            entity.HasIndex(e => e.TokenHash, "UQ_WebsiteClientRefreshTokens_TokenHash").IsUnique();
+
+            entity.Property(e => e.TokenHash)
+                .HasMaxLength(64)
+                .IsUnicode(false);
+            entity.Property(e => e.CreatedByIp)
+                .HasMaxLength(45)
+                .IsUnicode(false);
+            entity.Property(e => e.CreatedAt).HasPrecision(0);
+            entity.Property(e => e.ExpiresAt).HasPrecision(0);
+            entity.Property(e => e.RevokedAt).HasPrecision(0);
+
+            entity.HasOne(d => d.WebsiteClient).WithMany(p => p.WebsiteClientRefreshTokens)
+                .HasForeignKey(d => d.WebsiteClientID)
+                .OnDelete(DeleteBehavior.ClientSetNull)
+                .HasConstraintName("FK_WebsiteClientRefreshTokens_WebsiteClients");
+
+            entity.HasOne(d => d.Website).WithMany(p => p.WebsiteClientRefreshTokens)
+                .HasForeignKey(d => d.WebsiteID)
+                .OnDelete(DeleteBehavior.ClientSetNull)
+                .HasConstraintName("FK_WebsiteClientRefreshTokens_Websites");
+        });
+
+        modelBuilder.Entity<WebsiteSmsSetting>(entity =>
+        {
+            entity.HasKey(e => e.WebsiteSmsSettingID);
+
+            entity.HasIndex(e => e.WebsiteID, "IX_WebsiteSmsSettings_WebsiteID");
+
+            entity.Property(e => e.Provider)
+                .HasMaxLength(50)
+                .IsUnicode(false);
+            entity.Property(e => e.Title).HasMaxLength(150);
+            entity.Property(e => e.SettingsJSON).HasMaxLength(4000);
+            entity.Property(e => e.SenderNumber)
+                .HasMaxLength(32)
+                .IsUnicode(false);
+            entity.Property(e => e.CreatedAt).HasPrecision(0);
+
+            entity.HasOne(d => d.Website).WithMany(p => p.WebsiteSmsSettings)
+                .HasForeignKey(d => d.WebsiteID)
+                .OnDelete(DeleteBehavior.ClientSetNull)
+                .HasConstraintName("FK_WebsiteSmsSettings_Websites");
         });
 
         modelBuilder.Entity<WebsiteFeature>(entity =>

@@ -1,4 +1,7 @@
 using Dotnetable.Admin.Auth;
+using Dotnetable.Hosting;
+using Dotnetable.Infrastructure.Data;
+using Microsoft.AspNetCore.HttpOverrides;
 using Dotnetable.Admin.Localization;
 using Dotnetable.Admin.Middleware;
 using Dotnetable.Admin.Services;
@@ -9,6 +12,16 @@ using Microsoft.AspNetCore.Authentication.Cookies;
 using MudBlazor.Services;
 
 var builder = WebApplication.CreateBuilder(args);
+
+// Machine-local overrides (gitignored): the real connection string and secrets for this deployment.
+builder.Configuration.AddJsonFile("localsettings.json", optional: true, reloadOnChange: true);
+
+// The Admin panel pushes cache invalidation to the API with Internal:SyncSecret; a deployment still
+// holding the placeholder committed to source control lets anyone flush the API cache at will.
+StartupValidation.ValidateProductionSecrets(
+    builder.Configuration, builder.Environment, "Internal:SyncSecret");
+
+builder.Host.UseDotnetableLogging("Admin");
 
 // Brand name shown in titles/chrome — single source of truth, overridable via configuration.
 AppBranding.Name = builder.Configuration["Branding:AppName"] ?? AppBranding.Name;
@@ -42,6 +55,28 @@ builder.Services
     });
 
 builder.Services.AddAuthorization(AdminPolicies.Register);
+
+// Holds the half-finished sign-in between the password step and the authenticator-code step.
+// Nothing in it is an authentication on its own — see LoginModel.
+builder.Services.AddSession(options =>
+{
+    options.IdleTimeout = TimeSpan.FromMinutes(20);
+    options.Cookie.Name = "dn-admin-session";
+    options.Cookie.HttpOnly = true;
+    options.Cookie.IsEssential = true;
+    options.Cookie.SameSite = SameSiteMode.Lax;
+    options.Cookie.SecurePolicy = CookieSecurePolicy.SameAsRequest;
+});
+
+builder.Services.AddDotnetableRateLimiting(
+    trustForwardedFor: builder.Configuration.GetValue("Hosting:BehindReverseProxy", false));
+
+// Without persisted keys every deploy signs every administrator out and invalidates every
+// outstanding antiforgery token.
+builder.Services.AddDotnetableDataProtection(
+    builder.Configuration, builder.Environment.ContentRootPath, "Admin");
+
+builder.Services.AddDotnetableHealthChecks<AppDbContext>();
 builder.Services.AddCascadingAuthenticationState();
 
 builder.Services.AddMudServices();
@@ -86,9 +121,25 @@ if (!app.Environment.IsDevelopment())
     app.UseHsts();
 }
 
+if (builder.Configuration.GetValue("Hosting:BehindReverseProxy", false))
+{
+    app.UseForwardedHeaders(new ForwardedHeadersOptions
+    {
+        ForwardedHeaders = ForwardedHeaders.XForwardedFor | ForwardedHeaders.XForwardedProto,
+    });
+}
+
 app.UseHttpsRedirection();
 app.UseStaticFiles();
 app.UseRouting();
+app.UseDotnetableRequestLogging();
+
+// The panel embeds nothing and should never be embedded; framing it is only useful to an attacker
+// overlaying a transparent page on top of a real admin action.
+app.UseDotnetableSecurityHeaders();
+
+app.UseSession();
+app.UseRateLimiter();
 app.UseSetupRedirect();
 app.UseAuthentication();
 app.UseAuthorization();
@@ -173,6 +224,7 @@ app.MapGet("/media/download/{fileId:int}", async (
     return Results.File(stream, contentType: mime, fileDownloadName: fileName);
 }).RequireAuthorization();
 
+app.MapDotnetableHealthChecks();
 app.MapRazorPages();
 app.MapRazorComponents<Dotnetable.Admin.Components.App>()
     .AddInteractiveServerRenderMode();

@@ -3,11 +3,14 @@ using Dotnetable.Application.DTOs;
 using Dotnetable.Application.Interfaces;
 using Microsoft.AspNetCore.Authorization;
 using Microsoft.AspNetCore.Mvc;
+using Microsoft.AspNetCore.RateLimiting;
+using Dotnetable.Hosting;
 
 namespace Dotnetable.API.Controllers;
 
 /// <summary>Signed-in customer support tickets about orders (storefront).</summary>
 [Authorize(Policy = RoleKeys.ClientPurchase)]
+[EnableRateLimiting(RateLimiting.PublicWritePolicy)]
 public class SupportController : BaseController
 {
     private readonly ISupportDeskService _support;

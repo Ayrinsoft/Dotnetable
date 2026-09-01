@@ -13,6 +13,7 @@
     [AmountUsd]                 DECIMAL (18, 4) NOT NULL,
     [Status]                    TINYINT         NOT NULL,
     [GatewayRefNumber]          NVARCHAR (100)  NULL,
+    [GatewayAuthority]          NVARCHAR (256)  NULL,
     [TrackingCode]              NVARCHAR (100)  NULL,
     [ReceiptFileID]             INT             NULL,
     [PaidAt]                    DATETIME2 (0)   NULL,

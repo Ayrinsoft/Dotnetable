@@ -69,6 +69,14 @@ public static class ServiceCollectionExtensions
         // Self-registering localization keys: pages buffer unknown keys, a background service inserts them.
         services.AddSingleton<PendingTranslationKeys>();
         services.AddHostedService<TranslationKeyFlushService>();
+
+        // Scheduled work. Registered here so whichever host runs it gets both; they are idempotent
+        // and safe to have running in more than one process (each pass re-reads what is still due).
+        //
+        // OrderExpiryService is the other half of the checkout transaction: checkout reserves stock
+        // before payment, and without this nothing ever gives it back for orders that are abandoned.
+        services.AddHostedService<OrderExpiryService>();
+        services.AddHostedService<MaintenanceService>();
         services.AddScoped(typeof(IRepository<>), typeof(GenericRepository<>));
         services.AddScoped<IUnitOfWork, UnitOfWork>();
         services.AddScoped<ILocalizationService, LocalizationService>();
@@ -93,6 +101,7 @@ public static class ServiceCollectionExtensions
         configuration.GetSection(JwtSettings.SectionName).Bind(jwtSettings);
         services.AddSingleton(jwtSettings);
         services.AddScoped<IJwtTokenService, JwtTokenService>();
+        services.AddScoped<IRefreshTokenService, RefreshTokenService>();
 
         // Media library: pluggable CDN storage backends + file/album/tag management.
         services.AddHttpClient(); // used by HTTP-based providers (BunnyCDN)
@@ -240,8 +249,35 @@ public static class ServiceCollectionExtensions
         services.AddScoped<IEmailTemplateService, EmailTemplateService>();
         services.AddScoped<IAdminNotificationService, AdminNotificationService>();
         services.AddScoped<IPasswordResetService, PasswordResetService>();
-        // SMS / WhatsApp: no-op only. Real gateways will use a storage-style factory + website settings later.
-        services.AddSingleton<ISmsSender, NoOpSmsSender>();
+        // SMS gateways: one registration per provider, resolved per website from WebsiteSmsSettings
+        // (same shape as the storage backends above). Adding a gateway is a new ISmsProvider class;
+        // GenericHttpSmsProvider covers panels that need no code at all.
+        services.AddScoped<ISmsProvider, Sms.KavenegarSmsProvider>();
+        services.AddScoped<ISmsProvider, Sms.SmsIrProvider>();
+        services.AddScoped<ISmsProvider, Sms.MelliPayamakSmsProvider>();
+        services.AddScoped<ISmsProvider, Sms.GhasedakSmsProvider>();
+        services.AddScoped<ISmsProvider, Sms.IpPanelSmsProvider>();
+        services.AddScoped<ISmsProvider, Sms.TwilioSmsProvider>();
+        services.AddScoped<ISmsProvider, Sms.VonageSmsProvider>();
+        services.AddScoped<ISmsProvider, Sms.GenericHttpSmsProvider>();
+        services.AddScoped<ISmsProviderRegistry, Sms.SmsProviderRegistry>();
+        services.AddScoped<ISmsSender, Sms.SmsSender>();
+        services.AddScoped<ISmsSettingService, Sms.SmsSettingService>();
+
+        // Online payment gateways: one registration per PSP, resolved per website from PaymentGateways.
+        // Adding a gateway is a new IPaymentGatewayProvider class and nothing else; GenericRedirect
+        // covers panels that can be described in configuration alone.
+        services.AddScoped<IPaymentGatewayProvider, Payments.ZarinpalGatewayProvider>();
+        services.AddScoped<IPaymentGatewayProvider, Payments.ZibalGatewayProvider>();
+        services.AddScoped<IPaymentGatewayProvider, Payments.IdPayGatewayProvider>();
+        services.AddScoped<IPaymentGatewayProvider, Payments.NextPayGatewayProvider>();
+        services.AddScoped<IPaymentGatewayProvider, Payments.PayIrGatewayProvider>();
+        services.AddScoped<IPaymentGatewayProvider, Payments.PayPingGatewayProvider>();
+        services.AddScoped<IPaymentGatewayProvider, Payments.StripeGatewayProvider>();
+        services.AddScoped<IPaymentGatewayProvider, Payments.PayPalGatewayProvider>();
+        services.AddScoped<IPaymentGatewayProvider, Payments.GenericRedirectGatewayProvider>();
+        services.AddScoped<IPaymentGatewayProviderRegistry, Payments.PaymentGatewayProviderRegistry>();
+        services.AddScoped<IOnlinePaymentService, Payments.OnlinePaymentService>();
         services.AddSingleton<IWhatsAppSender, NoOpWhatsAppSender>();
 
         // Provider-specific connection test / database creation used by the Setup page.

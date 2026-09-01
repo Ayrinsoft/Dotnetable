@@ -30,10 +30,13 @@ public enum ClientRegisterResult
 
     /// <summary>The delivery channel (SMTP / SMS gateway) is not configured, so no code could be sent.</summary>
     DeliveryNotConfigured = 3,
+
+    /// <summary>The chosen password failed <see cref="Security.PasswordPolicy" />. See <see cref="ClientRegisterResponse.Error" />.</summary>
+    WeakPassword = 4,
 }
 
 /// <summary>Outcome of a registration attempt, including which channel the activation code went to.</summary>
-public sealed record ClientRegisterResponse(ClientRegisterResult Result, OtpChannel Channel, string Identifier);
+public sealed record ClientRegisterResponse(ClientRegisterResult Result, OtpChannel Channel, string Identifier, string? Error = null);
 
 public enum ClientVerifyResult
 {
@@ -41,11 +44,17 @@ public enum ClientVerifyResult
     InvalidCode = 1,
     NotFound = 2,
     AlreadyActive = 3,
+
+    /// <summary>Too many wrong codes were tried; the code is dead and a new one must be requested.</summary>
+    TooManyAttempts = 4,
 }
 
 public enum ClientResendResult
 {
     OtpSent = 0,
+
+    /// <summary>A fresh code was requested too soon after the last one.</summary>
+    TooSoon = 4,
     NotFound = 1,
     AlreadyActive = 2,
     DeliveryNotConfigured = 3,
@@ -55,6 +64,9 @@ public enum ClientLoginStatus
 {
     Success = 0,
     InvalidCredentials = 1,
+
+    /// <summary>Too many consecutive failures; sign-in is refused until the lockout window elapses.</summary>
+    LockedOut = 3,
     /// <summary>Credentials are correct but the account has not completed OTP activation yet.</summary>
     NotActivated = 2,
 }
@@ -71,4 +83,10 @@ public enum ClientResetResult
     Success = 0,
     InvalidCode = 1,
     NotFound = 2,
+
+    /// <summary>Too many wrong codes were tried; the code is dead and a new one must be requested.</summary>
+    TooManyAttempts = 3,
+
+    /// <summary>The chosen password failed <see cref="Security.PasswordPolicy" />.</summary>
+    WeakPassword = 4,
 }

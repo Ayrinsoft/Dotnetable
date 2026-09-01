@@ -1,6 +1,7 @@
 @using Dotnetable.Web.Services
 @using Dotnetable.Application.DTOs
 @inject ApiClient Api
+@inject Microsoft.AspNetCore.Antiforgery.IAntiforgery Antiforgery
 @{
     var isLoggedIn = Context.Request.Cookies.ContainsKey(ClientAuth.TokenCookie);
     string Active(string controller) =>
@@ -28,6 +29,11 @@
     MenuDto? footerMenu = await Api.GetMenuAsync("Footer", menuLang);
 
     var returnUrl = Context.Request.Path + Context.Request.QueryString;
+
+    // Antiforgery token for the JSON fetch calls in site.js / addresses.js / contact.js. Real form
+    // posts get theirs from the tag helper; scripted requests have no form to read one from, so it
+    // is published here and sent back as the RequestVerificationToken header.
+    var antiforgeryToken = Antiforgery.GetAndStoreTokens(Context).RequestToken;
 }
 <!DOCTYPE html>
 <html lang="@(currentLang?.Code ?? site?.DefaultLanguageCode ?? "en")">
@@ -42,6 +48,63 @@
     @if (!string.IsNullOrWhiteSpace(site?.FavIconUrl))
     {
         <link rel="icon" href="@site.FavIconUrl" />
+    }
+
+    @*
+        Canonical + Open Graph.
+
+        Canonical is built from the path only, with the query string dropped, because the shop's
+        filter and sort links generate a different URL for the same page — without this a crawler
+        treats every facet combination as duplicate content and splits the page's ranking across
+        all of them. A page that legitimately varies by query (a search result) sets
+        ViewData["Canonical"] itself.
+
+        Open Graph is what social platforms and chat apps read; with no og:* tags a shared product
+        link renders as a bare URL with no title or image.
+    *@
+    @{
+        var canonicalOverride = ViewData["Canonical"] as string;
+        var canonicalUrl = !string.IsNullOrWhiteSpace(canonicalOverride)
+            ? canonicalOverride
+            : $"{Context.Request.Scheme}://{Context.Request.Host}{Context.Request.Path}";
+
+        var ogTitle = ViewData["Title"] as string;
+        if (string.IsNullOrWhiteSpace(ogTitle)) ogTitle = site?.DefaultMetaTitle ?? brandName;
+
+        var ogDescription = ViewData["MetaDescription"] as string ?? site?.DefaultMetaDescription;
+        var ogImage = ViewData["OgImage"] as string ?? site?.LogoUrl;
+        var ogType = ViewData["OgType"] as string ?? "website";
+
+        // Social crawlers reject relative image URLs, so promote one to absolute.
+        if (!string.IsNullOrWhiteSpace(ogImage) && ogImage.StartsWith('/'))
+            ogImage = $"{Context.Request.Scheme}://{Context.Request.Host}{ogImage}";
+    }
+
+    <meta name="request-verification-token" content="@antiforgeryToken" />
+
+    <link rel="canonical" href="@canonicalUrl" />
+
+    <meta property="og:type" content="@ogType" />
+    <meta property="og:site_name" content="@brandName" />
+    <meta property="og:title" content="@ogTitle" />
+    <meta property="og:url" content="@canonicalUrl" />
+    @if (!string.IsNullOrWhiteSpace(ogDescription))
+    {
+        <meta property="og:description" content="@ogDescription" />
+    }
+    @if (!string.IsNullOrWhiteSpace(ogImage))
+    {
+        <meta property="og:image" content="@ogImage" />
+        <meta name="twitter:card" content="summary_large_image" />
+    }
+    else
+    {
+        <meta name="twitter:card" content="summary" />
+    }
+    <meta name="twitter:title" content="@ogTitle" />
+    @if (!string.IsNullOrWhiteSpace(ogDescription))
+    {
+        <meta name="twitter:description" content="@ogDescription" />
     }
     <link href="~/lib/bootstrap/css/bootstrap.min.css" rel="stylesheet" asp-append-version="true" />
     <link href="~/lib/bootstrap-icons/font/bootstrap-icons.min.css" rel="stylesheet" asp-append-version="true" />

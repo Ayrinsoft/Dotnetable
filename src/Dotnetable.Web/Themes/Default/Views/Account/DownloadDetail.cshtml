@@ -80,7 +80,7 @@ async function logAccess(type) {
     try {
         await fetch('@Url.Action("LogDigitalAccess", "Account", new { id = Model.OrderDigitalAssetID })&accessType=' + encodeURIComponent(type), {
             method: 'POST',
-            headers: { 'RequestVerificationToken': '' }
+            headers: window.dnAntiforgeryHeaders()
         });
     } catch { /* ignore */ }
 }

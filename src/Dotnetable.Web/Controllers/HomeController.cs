@@ -1,3 +1,4 @@
+using System.Diagnostics;
 using Dotnetable.Application.DTOs;
 using Dotnetable.Web.Models;
 using Dotnetable.Web.Services;
@@ -70,5 +71,38 @@ public class HomeController : Controller
     {
         var result = await _api.SubmitContactMessageAsync(request, ct);
         return StatusCode((int)result.Status, new { message = result.Message });
+    }
+
+    /// <summary>
+    /// The production exception page. <c>Program.cs</c> has always pointed <c>UseExceptionHandler</c>
+    /// here, but neither this action nor its view existed — so in production the error handler itself
+    /// 404d and every unhandled exception rendered a blank page.
+    /// </summary>
+    [HttpGet, HttpPost]
+    [ResponseCache(NoStore = true, Location = ResponseCacheLocation.None)]
+    public IActionResult Error()
+    {
+        Response.StatusCode = StatusCodes.Status500InternalServerError;
+        return View(new ErrorViewModel
+        {
+            // Correlates the page the visitor is looking at with the line in the log. Never show the
+            // exception itself: the message can carry connection strings and internal paths.
+            RequestId = Activity.Current?.Id ?? HttpContext.TraceIdentifier,
+            StatusCode = StatusCodes.Status500InternalServerError,
+        });
+    }
+
+    /// <summary>Themed page for status codes that never reached an action — 404 above all.</summary>
+    [HttpGet, HttpPost]
+    [ResponseCache(NoStore = true, Location = ResponseCacheLocation.None)]
+    public IActionResult StatusCode(int? code)
+    {
+        var status = code ?? StatusCodes.Status404NotFound;
+        Response.StatusCode = status;
+        return View("Error", new ErrorViewModel
+        {
+            RequestId = Activity.Current?.Id ?? HttpContext.TraceIdentifier,
+            StatusCode = status,
+        });
     }
 }

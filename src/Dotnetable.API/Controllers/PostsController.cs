@@ -1,3 +1,4 @@
+using Dotnetable.Application.DTOs;
 using Dotnetable.Application.Interfaces;
 using Microsoft.AspNetCore.Mvc;
 
@@ -28,7 +29,7 @@ public class PostsController : BaseController
         var website = await ResolveWebsiteAsync(_websiteService, ct);
         if (website is null) return NotFound(new { message = "Website could not be resolved." });
 
-        var result = await _postService.GetPublishedAsync(website.WebsiteID, type, category, tag, page, pageSize, lang, ct);
+        var result = await _postService.GetPublishedAsync(website.WebsiteID, type, category, tag, page, GridQuery.ClampPageSize(pageSize), lang, ct);
         return Ok(result);
     }
 
@@ -39,7 +40,7 @@ public class PostsController : BaseController
         var website = await ResolveWebsiteAsync(_websiteService, ct);
         if (website is null) return NotFound(new { message = "Website could not be resolved." });
 
-        var posts = await _postService.GetFeaturedAsync(website.WebsiteID, take, lang, ct);
+        var posts = await _postService.GetFeaturedAsync(website.WebsiteID, GridQuery.ClampPageSize(take, 4), lang, ct);
         return Ok(posts);
     }
 

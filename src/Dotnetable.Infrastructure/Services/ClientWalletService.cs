@@ -208,16 +208,7 @@ public class ClientWalletService : IClientWalletService
         int? memberId,
         string? currencyCode = null,
         CancellationToken ct = default)
-    {
-        try
-        {
-            return await ApplyOnceAsync(websiteId, clientId, type, signedAmount, sourceType, sourceId, note, memberId, currencyCode, ct);
-        }
-        catch (DbUpdateConcurrencyException)
-        {
-            return await ApplyOnceAsync(websiteId, clientId, type, signedAmount, sourceType, sourceId, note, memberId, currencyCode, ct);
-        }
-    }
+        => await ApplyOnceAsync(websiteId, clientId, type, signedAmount, sourceType, sourceId, note, memberId, currencyCode, ct);
 
     private async Task<ClientWalletTransaction> ApplyOnceAsync(
         int websiteId,
@@ -244,10 +235,28 @@ public class ClientWalletService : IClientWalletService
                     wallet = await _context.ClientWallets
                         .FirstAsync(w => w.WebsiteClientID == clientId && w.CurrencyCode == code, ct);
                 }
+                var walletId = wallet.ClientWalletID;
 
-                var balanceAfter = wallet.Balance + signedAmount;
-                if (signedAmount < 0 && balanceAfter < 0)
+                // Move the balance with one conditional UPDATE instead of read-modify-write. The
+                // RowVersion token this used to rely on is only server-maintained on SQL Server, so
+                // on MySQL/PostgreSQL two concurrent debits could each read the same balance and
+                // both commit — a real double-spend. `WHERE Balance + delta >= 0` is atomic on every
+                // provider and the affected-row count is the insufficient-funds check.
+                var applied = await _context.ClientWallets
+                    .Where(w => w.ClientWalletID == walletId && w.Balance + signedAmount >= 0m)
+                    .ExecuteUpdateAsync(s => s.SetProperty(w => w.Balance, w => w.Balance + signedAmount), ct);
+
+                if (applied == 0)
                     throw new InvalidOperationException("Insufficient wallet balance.");
+
+                // The tracked entity still holds the pre-update balance; drop it so the authoritative
+                // post-state is read back from the row we just moved.
+                _context.Entry(wallet).State = EntityState.Detached;
+
+                var balanceAfter = await _context.ClientWallets.AsNoTracking()
+                    .Where(w => w.ClientWalletID == walletId)
+                    .Select(w => w.Balance)
+                    .FirstAsync(ct);
 
                 // Optional USD mirror only for sites that dual-store product prices (reporting).
                 decimal amountUsd = 0, balanceAfterUsd = 0;
@@ -268,7 +277,7 @@ public class ClientWalletService : IClientWalletService
                 var transaction = new ClientWalletTransaction
                 {
                     WebsiteID = websiteId,
-                    ClientWalletID = wallet.ClientWalletID,
+                    ClientWalletID = walletId,
                     Type = type,
                     Amount = signedAmount,
                     AmountUsd = amountUsd,
@@ -282,8 +291,9 @@ public class ClientWalletService : IClientWalletService
                 };
                 _context.ClientWalletTransactions.Add(transaction);
 
-                wallet.Balance = balanceAfter;
-                wallet.BalanceUsd = balanceAfterUsd;
+                await _context.ClientWallets
+                    .Where(w => w.ClientWalletID == walletId)
+                    .ExecuteUpdateAsync(s => s.SetProperty(w => w.BalanceUsd, balanceAfterUsd), ct);
 
                 await _context.SaveChangesAsync(ct);
                 await tx.CommitAsync(ct);

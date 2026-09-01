@@ -276,6 +276,10 @@ public partial class Website
 
     public virtual ICollection<WebsiteSocialLink> WebsiteSocialLinks { get; set; } = new List<WebsiteSocialLink>();
 
+    public virtual ICollection<WebsiteSmsSetting> WebsiteSmsSettings { get; set; } = new List<WebsiteSmsSetting>();
+
+    public virtual ICollection<WebsiteClientRefreshToken> WebsiteClientRefreshTokens { get; set; } = new List<WebsiteClientRefreshToken>();
+
     public virtual ICollection<WebsiteStorageSetting> WebsiteStorageSettings { get; set; } = new List<WebsiteStorageSetting>();
 
     public virtual ICollection<WebsiteTheme> WebsiteThemes { get; set; } = new List<WebsiteTheme>();

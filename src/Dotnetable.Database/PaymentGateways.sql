@@ -9,6 +9,8 @@ CREATE TABLE [dbo].[PaymentGateways] (
     [IsSandbox]        BIT NOT NULL,
     [SortOrder]        INT NOT NULL,
     [IsActive]         BIT NOT NULL,
+    [SettingsJSON]     NVARCHAR (4000) NULL,
+    [CallbackUrl]      NVARCHAR (500)  NULL,
     CONSTRAINT [PK_PaymentGateways] PRIMARY KEY CLUSTERED ([PaymentGatewayID] ASC),
     CONSTRAINT [FK_PaymentGateways_Websites] FOREIGN KEY ([WebsiteID]) REFERENCES [dbo].[Websites] ([WebsiteID])
 );
