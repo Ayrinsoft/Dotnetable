@@ -1666,7 +1666,28 @@ window.DOCS_API = {
               request: {
                 body: { name: "Ali", email: "a@b.com", subject: "Hi", body: "…" },
               },
-              response: { status: 200, body: { success: true } },
+              response: { status: 200, body: { message: "Your message has been sent." } },
+            },
+          ],
+        },
+        {
+          id: "subscribe",
+          title: { en: "Newsletter subscribe", fa: "عضویت خبرنامه" },
+          summary: {
+            en: "Public email signup → EmailSubscribes for the resolved website. Honeypot field `website` must stay empty.",
+            fa: "ثبت ایمیل عمومی → EmailSubscribes برای وب‌سایت resolveشده. فیلد honeypot با نام website باید خالی بماند.",
+          },
+          relatedAdmin: [],
+          endpoints: [
+            {
+              title: { en: "Subscribe", fa: "عضویت" },
+              method: "POST",
+              path: "/api/Subscribe",
+              auth: "website",
+              request: {
+                body: { email: "a@b.com", website: "" },
+              },
+              response: { status: 200, body: { message: "Thanks for subscribing." } },
             },
           ],
         },
