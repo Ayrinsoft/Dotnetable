@@ -159,7 +159,7 @@ public class LoginModel : CaptchaPageModel
 
     private async Task SignInAsync(Member member)
     {
-        var claims = MemberClaims.Build(member);
+        var claims = MemberClaims.BuildForCookie(member);
         var identity = new ClaimsIdentity(claims, CookieAuthenticationDefaults.AuthenticationScheme);
         var principal = new ClaimsPrincipal(identity);
 

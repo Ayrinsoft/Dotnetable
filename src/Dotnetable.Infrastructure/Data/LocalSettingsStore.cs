@@ -1,4 +1,5 @@
 using System.Text.Json;
+using System.Text.Json.Nodes;
 using System.Text.Json.Serialization;
 using Dotnetable.Application.DTOs;
 using Dotnetable.Application.Interfaces;
@@ -115,11 +116,34 @@ public class LocalSettingsStore : IDatabaseConfigStore, IAppSettingsStore
         await PersistAsync(ct);
     }
 
+    /// <summary>
+    /// Merges the tracked Database/Security sections into the file on disk instead of overwriting it
+    /// wholesale — this file is also where <c>StartupValidation</c> persists auto-generated secrets
+    /// (<c>Jwt:SigningKey</c>, <c>Internal:SyncSecret</c>); a plain serialize-and-write of <see
+    /// cref="_settings"/> would silently erase those every time Setup or the Settings page saves.
+    /// </summary>
     private async Task PersistAsync(CancellationToken ct)
     {
-        string json;
-        lock (_gate) json = JsonSerializer.Serialize(_settings, JsonOptions);
-        await File.WriteAllTextAsync(_filePath, json, ct);
+        JsonObject root;
+        if (File.Exists(_filePath))
+        {
+            var existing = await File.ReadAllTextAsync(_filePath, ct);
+            root = string.IsNullOrWhiteSpace(existing)
+                ? new JsonObject()
+                : (JsonNode.Parse(existing) as JsonObject ?? new JsonObject());
+        }
+        else
+        {
+            root = new JsonObject();
+        }
+
+        lock (_gate)
+        {
+            root["Database"] = JsonSerializer.SerializeToNode(_settings.Database, JsonOptions);
+            root["Security"] = JsonSerializer.SerializeToNode(_settings.Security, JsonOptions);
+        }
+
+        await File.WriteAllTextAsync(_filePath, root.ToJsonString(JsonOptions), ct);
     }
 
     private sealed class PersistedSettings

@@ -56,4 +56,16 @@ public static class MemberClaims
 
         return claims;
     }
+
+    /// <summary>
+    /// Same identity claims as <see cref="Build"/> but without the per-permission role claims — for
+    /// the admin sign-in cookie only. A member with many granted permissions carried one role claim
+    /// per key inside the cookie itself, which could grow the <c>Cookie</c> request header past IIS/
+    /// Kestrel's header-size limit ("Request Too Long" / 400). The API's JWT still uses
+    /// <see cref="Build"/> as-is — a bearer token has to be self-contained since nothing re-expands it
+    /// per request — while the admin cookie stays slim and a per-request claims transformation
+    /// expands its <see cref="PolicyId"/> claim back into role claims from cache/DB instead.
+    /// </summary>
+    public static IReadOnlyList<Claim> BuildForCookie(Member member) =>
+        Build(member).Where(c => c.Type != ClaimTypes.Role).ToList();
 }

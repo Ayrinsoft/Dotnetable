@@ -8,6 +8,7 @@ using Dotnetable.Admin.Services;
 using Dotnetable.Application;
 using Dotnetable.Application.Interfaces;
 using Dotnetable.Infrastructure.Extensions;
+using Microsoft.AspNetCore.Authentication;
 using Microsoft.AspNetCore.Authentication.Cookies;
 using MudBlazor.Services;
 
@@ -42,6 +43,7 @@ builder.Services.AddHttpClient<RemoteCacheInvalidationNotifier>(client =>
 });
 builder.Services.AddScoped<ICacheInvalidationNotifier>(sp =>
     sp.GetRequiredService<RemoteCacheInvalidationNotifier>());
+builder.Services.AddScoped<SyncSecretProvisioner>();
 
 builder.Services
     .AddAuthentication(CookieAuthenticationDefaults.AuthenticationScheme)
@@ -55,6 +57,10 @@ builder.Services
     });
 
 builder.Services.AddAuthorization(AdminPolicies.Register);
+
+// Expands the slim sign-in cookie's PolicyID claim into role claims per request instead of storing
+// them in the cookie itself — see MemberClaims.BuildForCookie.
+builder.Services.AddScoped<IClaimsTransformation, PolicyRoleClaimsTransformation>();
 
 // Holds the half-finished sign-in between the password step and the authenticator-code step.
 // Nothing in it is an authentication on its own — see LoginModel.

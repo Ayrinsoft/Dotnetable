@@ -1,3 +1,6 @@
+using System.Security.Cryptography;
+using System.Text.Json;
+using System.Text.Json.Nodes;
 using Microsoft.AspNetCore.DataProtection;
 using Microsoft.Extensions.Configuration;
 using Microsoft.Extensions.DependencyInjection;
@@ -21,15 +24,23 @@ public static class StartupValidation
         "dev-only-change-me-cache-sync-secret",
     };
 
+    private const string LocalSettingsFileName = "localsettings.json";
+
     /// <summary>
-    /// Refuses to start outside Development when a required secret is missing or is still the value
-    /// committed to source control.
+    /// Outside Development, replaces any required secret that is missing or still the placeholder
+    /// committed to source control with a freshly generated random value, persisted into
+    /// <c>localsettings.json</c> (created next to the app if it does not exist yet) so the same
+    /// value survives the next restart.
     ///
-    /// <para>This replaces the previous behaviour of substituting a 32-zero-byte JWT key so "startup
-    /// never crashes": a misconfigured production deployment came up healthy and signed tokens with
-    /// a key anyone could guess, which meant any visitor could mint an administrator token. Failing
-    /// the boot is the strictly safer outcome — a service that will not start gets noticed, a
-    /// service that starts wide open does not.</para>
+    /// <para>This used to throw instead: a misconfigured production deployment silently booting
+    /// with a public, guessable secret let any visitor mint an administrator token. Generating and
+    /// persisting a real secret on first run keeps that fixed while removing the manual step —
+    /// deploying just works, and the generated value sticks around in <c>localsettings.json</c>
+    /// rather than changing (and invalidating every session/token) on every restart.</para>
+    ///
+    /// <para>A secret that <em>is</em> configured but fails validation (e.g. a custom signing key
+    /// shorter than 32 characters) is left alone and still fails the boot — that is a deliberate
+    /// value someone set, not an absent one, and silently overwriting it would be surprising.</para>
     /// </summary>
     /// <param name="requiredKeys">Configuration keys that must hold a real value, e.g. <c>Jwt:SigningKey</c>.</param>
     public static void ValidateProductionSecrets(
@@ -39,24 +50,41 @@ public static class StartupValidation
     {
         if (environment.IsDevelopment()) return;
 
+        var toGenerate = new List<string>();
         var problems = new List<string>();
 
         foreach (var key in requiredKeys)
         {
             var value = configuration[key];
+            var missingOrPlaceholder = string.IsNullOrWhiteSpace(value) ||
+                KnownDevelopmentSecrets.Contains(value, StringComparer.Ordinal);
 
-            if (string.IsNullOrWhiteSpace(value))
+            if (missingOrPlaceholder)
             {
-                problems.Add($"'{key}' is not configured.");
+                toGenerate.Add(key);
                 continue;
             }
 
-            if (KnownDevelopmentSecrets.Contains(value, StringComparer.Ordinal))
-                problems.Add($"'{key}' is still the placeholder value committed to source control.");
-
             // HMAC-SHA256 needs a key at least as long as its output to deliver its nominal strength.
-            if (key.EndsWith("SigningKey", StringComparison.OrdinalIgnoreCase) && value.Length < 32)
+            if (key.EndsWith("SigningKey", StringComparison.OrdinalIgnoreCase) && value!.Length < 32)
                 problems.Add($"'{key}' must be at least 32 characters.");
+        }
+
+        if (toGenerate.Count > 0)
+        {
+            foreach (var key in toGenerate)
+            {
+                if (!TrySetLocalSetting(configuration, environment, key, GenerateSecretValue(), out var error))
+                {
+                    problems.Add(error!);
+                    continue;
+                }
+
+                Console.WriteLine(
+                    $"[StartupValidation] Generated and saved '{key}' to localsettings.json because no real " +
+                    "value was configured. Back this file up — losing it invalidates every signed-in session " +
+                    "and issued token.");
+            }
         }
 
         if (problems.Count == 0) return;
@@ -65,6 +93,74 @@ public static class StartupValidation
             "Refusing to start with insecure configuration:" + Environment.NewLine +
             string.Join(Environment.NewLine, problems.Select(p => "  - " + p)) + Environment.NewLine +
             "Set these via environment variables (e.g. Jwt__SigningKey) or localsettings.json before deploying.");
+    }
+
+    /// <summary>Whether <paramref name="value"/> is one of the placeholder secrets shipped in source control.</summary>
+    public static bool IsPlaceholderSecret(string? value) =>
+        !string.IsNullOrWhiteSpace(value) && KnownDevelopmentSecrets.Contains(value, StringComparer.Ordinal);
+
+    /// <summary>32 random bytes as base64 — 44 characters, well past the 32-character minimum any of these keys need.</summary>
+    public static string GenerateSecretValue() => Convert.ToBase64String(RandomNumberGenerator.GetBytes(32));
+
+    /// <summary>
+    /// Merges a single value into <c>localsettings.json</c> on disk (creating the file, and any
+    /// nested sections the key's ":" segments imply, if they do not exist yet) without touching any
+    /// other key already in the file, and reloads <paramref name="configuration"/> so the new value
+    /// is visible immediately — no restart needed. Shared by first-run secret generation and by the
+    /// Admin/API sync-secret bootstrap handshake.
+    /// </summary>
+    public static bool TrySetLocalSetting(
+        IConfiguration configuration,
+        IHostEnvironment environment,
+        string key,
+        string value,
+        out string? error)
+    {
+        var path = Path.Combine(environment.ContentRootPath, LocalSettingsFileName);
+
+        try
+        {
+            JsonObject root;
+            if (File.Exists(path))
+            {
+                var existing = File.ReadAllText(path);
+                root = string.IsNullOrWhiteSpace(existing)
+                    ? new JsonObject()
+                    : (JsonNode.Parse(existing) as JsonObject ?? new JsonObject());
+            }
+            else
+            {
+                root = new JsonObject();
+            }
+
+            var segments = key.Split(':');
+            var node = root;
+            for (var i = 0; i < segments.Length - 1; i++)
+            {
+                if (node[segments[i]] is not JsonObject child)
+                {
+                    child = new JsonObject();
+                    node[segments[i]] = child;
+                }
+                node = child;
+            }
+
+            node[segments[^1]] = value;
+
+            File.WriteAllText(path, root.ToJsonString(new JsonSerializerOptions { WriteIndented = true }));
+
+            // Picks up the file we just wrote (localsettings.json is already a registered source);
+            // without this the freshly written value would not appear until the next process start.
+            if (configuration is IConfigurationRoot configRoot) configRoot.Reload();
+
+            error = null;
+            return true;
+        }
+        catch (Exception ex)
+        {
+            error = $"Could not save '{key}': failed to write '{path}' ({ex.Message}).";
+            return false;
+        }
     }
 
     /// <summary>
