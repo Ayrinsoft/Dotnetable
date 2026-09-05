@@ -4,6 +4,10 @@
     <TargetFramework>net10.0</TargetFramework>
     <Nullable>enable</Nullable>
     <ImplicitUsings>enable</ImplicitUsings>
+    <!-- Skips publishing satellite resource assemblies (localized exception-message strings, e.g.
+         es/Microsoft.Data.SqlClient.resources.dll) for every referenced package's other languages —
+         framework/runtime error text stays in English regardless of the OS locale either way. -->
+    <SatelliteResourceLanguages>en</SatelliteResourceLanguages>
   </PropertyGroup>
 
   <ItemGroup>

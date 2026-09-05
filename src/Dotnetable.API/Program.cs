@@ -2,13 +2,16 @@ using System.Data.Common;
 using System.Security.Claims;
 using System.Text;
 using Dotnetable.API.Auth;
+using Dotnetable.API.Cors;
 using Dotnetable.API.Versioning;
 using Dotnetable.Application.Authorization;
 using Dotnetable.Hosting;
 using Dotnetable.Infrastructure.Data;
 using Dotnetable.Infrastructure.Extensions;
 using Microsoft.AspNetCore.Authentication.JwtBearer;
+using Microsoft.AspNetCore.Cors.Infrastructure;
 using Microsoft.AspNetCore.Diagnostics;
+using Microsoft.AspNetCore.Diagnostics.HealthChecks;
 using Microsoft.AspNetCore.HttpOverrides;
 using Microsoft.AspNetCore.RateLimiting;
 using Microsoft.EntityFrameworkCore.Storage;
@@ -74,29 +77,24 @@ builder.Services.AddDotnetableDataProtection(
 
 // CORS for browser-based front-ends (the React SPA in serverless mode calls the API directly).
 //
-// Allowed origins come from configuration. Outside Development an empty list is a configuration
-// error rather than "allow everything": the website key travels in a header, so a wildcard origin
-// lets any page on the internet drive the API with a visitor's own credentials.
-var corsOrigins = builder.Configuration.GetSection("Cors:AllowedOrigins").Get<string[]>() ?? [];
-if (corsOrigins.Length == 0 && !builder.Environment.IsDevelopment())
-{
-    throw new InvalidOperationException(
-        "Cors:AllowedOrigins is empty. List the storefront origins that may call this API " +
-        "(e.g. [\"https://shop.example.com\"]) — a wildcard origin is not accepted outside Development.");
-}
-
-builder.Services.AddCors(options => options.AddDefaultPolicy(policy =>
-{
-    if (corsOrigins.Length > 0)
-        policy.WithOrigins(corsOrigins).AllowAnyHeader().AllowAnyMethod().AllowCredentials();
-    else
-        policy.AllowAnyOrigin().AllowAnyHeader().AllowAnyMethod();
-}));
+// The allowed-origin list comes from the Websites table (WebsiteAddress) instead of a static
+// Cors:AllowedOrigins config entry that would have to be kept in sync by hand — every storefront the
+// API talks to is already a Website row. Cors:AllowedOrigins is still honored on top for origins that
+// are not a Website row (e.g. a separate marketing site or SPA host). See DynamicCorsOriginProvider.
+builder.Services.AddCors();
+builder.Services.AddSingleton<DynamicCorsOriginProvider>();
+builder.Services.AddSingleton<ICorsPolicyProvider, DynamicCorsPolicyProvider>();
+builder.Services.AddHostedService<CorsOriginRefreshService>();
 
 builder.Services.AddInfrastructure(builder.Configuration, builder.Environment.ContentRootPath);
 builder.Services.AddDotnetableHealthChecks<AppDbContext>();
 
 var app = builder.Build();
+
+// Warm the CORS origin snapshot before accepting requests — CorsOriginRefreshService's own first tick
+// runs concurrently with host startup, which could otherwise let an early request see an empty list
+// (e.g. right after a fresh deploy). Harmless no-op before Setup has configured a database.
+await app.Services.GetRequiredService<DynamicCorsOriginProvider>().RefreshAsync();
 
 // Behind a proxy the remote IP is the proxy's, which would put every visitor in one rate-limit
 // bucket and log one address for everyone. Only honoured when explicitly enabled.
@@ -151,5 +149,11 @@ app.UseAuthorization();
 app.UseRateLimiter();
 app.MapControllers();
 app.MapDotnetableHealthChecks();
+
+// This API has no landing page of its own — hitting its bare root previously 404'd, which reads as
+// "broken" to anyone (a load balancer, a curious human) that just pings the address. Answer the same
+// liveness check /health/live does instead of a 404.
+app.MapHealthChecks("/", new HealthCheckOptions { Predicate = check => check.Tags.Contains("live") })
+    .AllowAnonymous();
 
 app.Run();
