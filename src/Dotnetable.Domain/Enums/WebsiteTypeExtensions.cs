@@ -67,12 +67,12 @@ public static class WebsiteTypeExtensions
         WebsiteType.LandingPage => [WebsiteFeatureKey.ContactForm],
         WebsiteType.Resume => [WebsiteFeatureKey.ContactForm, WebsiteFeatureKey.Resume],
 
-        WebsiteType.ECommerce => [WebsiteFeatureKey.Ecommerce, WebsiteFeatureKey.ContactForm, WebsiteFeatureKey.Newsletter],
-        WebsiteType.DigitalCatalog => [WebsiteFeatureKey.DigitalCatalog, WebsiteFeatureKey.ContactForm],
-        WebsiteType.Auction => [WebsiteFeatureKey.Auction, WebsiteFeatureKey.Ecommerce, WebsiteFeatureKey.ContactForm],
-        WebsiteType.Crowdfunding => [WebsiteFeatureKey.Crowdfunding, WebsiteFeatureKey.ContactForm],
-        WebsiteType.RealEstate => [WebsiteFeatureKey.RealEstate, WebsiteFeatureKey.ContactForm],
-        WebsiteType.Restaurant => [WebsiteFeatureKey.RestaurantMenu, WebsiteFeatureKey.ContactForm],
+        WebsiteType.ECommerce => [WebsiteFeatureKey.Ecommerce, WebsiteFeatureKey.PriceLists, WebsiteFeatureKey.ContactForm, WebsiteFeatureKey.Newsletter],
+        WebsiteType.DigitalCatalog => [WebsiteFeatureKey.DigitalCatalog, WebsiteFeatureKey.PriceLists, WebsiteFeatureKey.ContactForm],
+        WebsiteType.Auction => [WebsiteFeatureKey.Auction, WebsiteFeatureKey.Ecommerce, WebsiteFeatureKey.PriceLists, WebsiteFeatureKey.ContactForm],
+        WebsiteType.Crowdfunding => [WebsiteFeatureKey.Crowdfunding, WebsiteFeatureKey.PriceLists, WebsiteFeatureKey.ContactForm],
+        WebsiteType.RealEstate => [WebsiteFeatureKey.RealEstate, WebsiteFeatureKey.PriceLists, WebsiteFeatureKey.ContactForm],
+        WebsiteType.Restaurant => [WebsiteFeatureKey.RestaurantMenu, WebsiteFeatureKey.PriceLists, WebsiteFeatureKey.ContactForm],
 
         WebsiteType.Gallery => [WebsiteFeatureKey.Gallery, WebsiteFeatureKey.ContactForm],
         WebsiteType.Portfolio => [WebsiteFeatureKey.Portfolio, WebsiteFeatureKey.ContactForm],

@@ -32,6 +32,7 @@ public class HomeController : Controller
             ViewData["HomeContentHtml"] = await _shortcodes.ExpandAsync(homePage.Content, ct);
 
         var latest = await _api.GetPostsAsync(page: 1, pageSize: 3, lang: langOrNull, ct: ct);
+        ViewData["PriceLists"] = await _api.GetPriceListsAsync(ct);
         return View(latest.Items);
     }
 

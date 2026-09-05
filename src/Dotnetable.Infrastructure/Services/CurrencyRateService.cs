@@ -122,6 +122,24 @@ public class CurrencyRateService : ICurrencyRateService
         return true;
     }
 
+    public async Task<CurrencyRate?> UpdateDefaultUsdToCurrencyAsync(int websiteId, decimal usdToCurrency, CancellationToken ct = default)
+    {
+        await using var _context = await _contextFactory.CreateDbContextAsync(ct);
+
+        var existing = await _context.CurrencyRates
+            .Where(r => r.WebsiteID == websiteId)
+            .OrderByDescending(r => r.IsDefault)
+            .ThenBy(r => r.CurrencyRateID)
+            .FirstOrDefaultAsync(ct);
+        if (existing is null) return null;
+
+        existing.USDToCurrency = usdToCurrency;
+        ValidateRate(existing);
+        existing.LastUpdate = DateTime.UtcNow;
+        await _context.SaveChangesAsync(ct);
+        return existing;
+    }
+
     private async Task ClearDefaultAsync(AppDbContext _context, int websiteId, CancellationToken ct)
     {
         await _context.CurrencyRates

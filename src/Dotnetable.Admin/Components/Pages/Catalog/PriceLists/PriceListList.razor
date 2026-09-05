@@ -1,0 +1,231 @@
+@page "/catalog/price-lists"
+@attribute [Authorize(Policy = RoleKeys.PriceListsView)]
+@inject IPriceListService PriceListService
+@inject IWebsiteService WebsiteService
+@inject AuthenticationStateProvider AuthState
+@inject IDialogService DialogService
+@inject ISnackbar Snackbar
+@inject IPageLocalizer L
+
+<DNPageTitle Title=@L["price_lists", "Price lists"] />
+
+<MudStack Row="true" AlignItems="AlignItems.Center" Justify="Justify.SpaceBetween" Class="mb-4">
+    <MudStack Spacing="0">
+        <MudText Typo="Typo.h5" Class="fw-bold">@L["price_lists", "Price lists"]</MudText>
+        <MudText Typo="Typo.body2" Color="Color.Secondary">
+            @L["price_lists.subtitle", "Publish today’s rates as a table — no shop products required. Typical use: steel profiles, sheets, pipes. Optionally follow USD, or pull live rows from products if you have a catalog."]
+        </MudText>
+    </MudStack>
+    <MudStack Row="true" Spacing="2" AlignItems="AlignItems.Center">
+        @if (_isMaster)
+        {
+            <WebsiteSelector Value="_websiteId" ValueChanged="OnWebsiteChanged" Websites="_websites"
+                             Label="@L["website", "Website"]" Variant="Variant.Outlined"
+                             Dense="true" Style="min-width:180px" />
+        }
+        @if (_canInsert)
+        {
+            <MudButton Variant="Variant.Filled" Color="Color.Primary" StartIcon="@Icons.Material.Filled.Add" OnClick="CreateAsync">
+                @L["price_lists.new", "New price list"]
+            </MudButton>
+        }
+    </MudStack>
+</MudStack>
+
+<DNDismissibleAlert StorageKey="price-lists.source-hint" Class="mb-4">
+    @L["price_lists.source_hint", "A steel mill can type profiles and sheets here and publish them. Products are optional. USD follow is optional."]
+</DNDismissibleAlert>
+
+<MudPaper Elevation="0" Class="app-card rounded-lg pa-4">
+    @if (_loading)
+    {
+        <MudProgressLinear Indeterminate="true" Color="Color.Primary" Class="mb-3" />
+    }
+    <DNGridView GridHeaderParams="_grid" OnSearchChanged="OnGridChanged">
+        @if (_items.Count == 0)
+        {
+            <tr>
+                <td colspan="@(_isMaster ? 8 : 7)" style="text-align:center; padding:32px;">
+                    <MudText Color="Color.Secondary">@L["price_lists.empty", "No price lists yet."]</MudText>
+                </td>
+            </tr>
+        }
+        else
+        {
+            @foreach (var list in _items)
+            {
+                <tr>
+                    <td>
+                        <MudIconButton Icon="@Icons.Material.Filled.TableRows" Size="Size.Small"
+                                       Color="Color.Primary" Title="@L["price_lists.manage_items", "Manage items"]"
+                                       Href="@($"/catalog/price-lists/{list.PriceListID}")" />
+                    </td>
+                    <td>@list.Title</td>
+                    <td><code>@list.Slug</code></td>
+                    <td>
+                        <MudChip T="string" Size="Size.Small" Variant="Variant.Outlined">@SourceLabel(list)</MudChip>
+                    </td>
+                    @if (_isMaster)
+                    {
+                        <td>#@list.WebsiteID</td>
+                    }
+                    <td>
+                        @(list.Source == (byte)PriceListSource.CatalogProducts
+                            ? L["price_lists.live", "Live"]
+                            : (list.PriceListItems?.Count ?? 0).ToString())
+                    </td>
+                    <td>
+                        <MudSwitch T="bool" Value="list.IsActive" Color="Color.Success"
+                                   Disabled="@(!_canEdit || _busy.Contains(list.PriceListID))"
+                                   ValueChanged="@(v => ToggleActiveAsync(list, v))" />
+                    </td>
+                    <td>
+                        <MudStack Row="true" Spacing="0">
+                            @if (_canEdit)
+                            {
+                                <MudIconButton Icon="@Icons.Material.Filled.Edit" Size="Size.Small" OnClick="@(() => EditAsync(list))" />
+                            }
+                            @if (_canDelete)
+                            {
+                                <MudIconButton Icon="@Icons.Material.Filled.Delete" Size="Size.Small" Color="Color.Error" OnClick="@(() => DeleteAsync(list))" />
+                            }
+                        </MudStack>
+                    </td>
+                </tr>
+            }
+        }
+    </DNGridView>
+</MudPaper>
+
+@code {
+    private bool _loading = true;
+    private bool _isMaster;
+    private bool _canInsert, _canEdit, _canDelete;
+    private int _websiteId;
+    private List<PriceList> _items = new();
+    private List<Website> _websites = new();
+    private HashSet<int> _busy = new();
+    private GridViewHeaderParameters _grid = new();
+
+    protected override async Task OnInitializedAsync()
+    {
+        await L.EnsureLoadedAsync();
+        var user = (await AuthState.GetAuthenticationStateAsync()).User;
+        _isMaster = user.HasClaim(AdminClaimTypes.Master, "true");
+        _canInsert = AdminPolicies.Allows(user, RoleKeys.PriceListsInsert);
+        _canEdit = AdminPolicies.Allows(user, RoleKeys.PriceListsEdit);
+        _canDelete = AdminPolicies.Allows(user, RoleKeys.PriceListsDelete);
+        int.TryParse(user.FindFirst(AdminClaimTypes.WebsiteId)?.Value, out _websiteId);
+        if (_isMaster) _websites = (await WebsiteService.GetAllAsync()).ToList();
+
+        var headers = new List<GridViewHeaderParameters.HeaderItemDetail>
+        {
+            new() { ColumnTitle = "", ColumnName = "" },
+            new() { ColumnTitle = L["name", "Name"], ColumnName = nameof(PriceList.Title), HasSort = true, HasSearch = true },
+            new() { ColumnTitle = L["slug", "Slug"], ColumnName = nameof(PriceList.Slug), HasSort = true, HasSearch = true },
+            new() { ColumnTitle = L["price_lists.source", "Source"], ColumnName = nameof(PriceList.Source), HasSort = true },
+        };
+        if (_isMaster)
+            headers.Add(new() { ColumnTitle = L["website", "Website"], ColumnName = nameof(PriceList.WebsiteID), HasSort = true });
+        headers.Add(new() { ColumnTitle = L["price_lists.items", "Items"], ColumnName = "" });
+        headers.Add(new() { ColumnTitle = L["status", "Status"], ColumnName = nameof(PriceList.IsActive), HasSort = true });
+        headers.Add(new() { ColumnTitle = "", ColumnName = "" });
+
+        _grid = new GridViewHeaderParameters
+        {
+            Pagination = new PaginationModel { PageSize = 25 },
+            HeaderItems = headers,
+        };
+
+        await LoadAsync();
+    }
+
+    private async Task OnWebsiteChanged(int id) { _websiteId = id; await LoadAsync(); }
+    private Task OnGridChanged(GridViewHeaderParameters _) => LoadAsync();
+
+    private async Task LoadAsync()
+    {
+        _loading = true;
+        var result = await PriceListService.GetPagedAsync(_isMaster ? null : _websiteId, _grid.ToQuery());
+        _items = result.Items.ToList();
+        _grid.Pagination.MaxLength = result.TotalCount;
+        _loading = false;
+    }
+
+    private async Task ToggleActiveAsync(PriceList list, bool value)
+    {
+        if (!_busy.Add(list.PriceListID)) return;
+        list.IsActive = value;
+        try { await PriceListService.UpdateAsync(list); }
+        finally { _busy.Remove(list.PriceListID); }
+    }
+
+    private async Task CreateAsync()
+    {
+        if (await ShowDialogAsync(new PriceList
+            {
+                WebsiteID = _websiteId,
+                IsActive = true,
+                Source = (byte)PriceListSource.Custom,
+                Pricing = (byte)PriceListPricing.SiteCurrency,
+            }, true))
+            await LoadAsync();
+    }
+
+    private string SourceLabel(PriceList list)
+    {
+        if (list.Source == (byte)PriceListSource.CatalogProducts)
+            return L["price_lists.source.catalog", "From shop products (optional)"];
+        return list.Pricing == (byte)PriceListPricing.LinkedToUsd
+            ? L["price_lists.pricing.usd", "Follow USD"]
+            : L["price_lists.source.custom", "Typed list — no products needed"];
+    }
+
+    private async Task EditAsync(PriceList list)
+    {
+        var copy = new PriceList
+        {
+            PriceListID = list.PriceListID,
+            WebsiteID = list.WebsiteID,
+            Title = list.Title,
+            Slug = list.Slug,
+            Description = list.Description,
+            Notes = list.Notes,
+            Source = list.Source,
+            Pricing = list.Pricing,
+            ProductCategoryID = list.ProductCategoryID,
+            BrandID = list.BrandID,
+            SortOrder = list.SortOrder,
+            IsActive = list.IsActive,
+        };
+        if (await ShowDialogAsync(copy, false)) await LoadAsync();
+    }
+
+    private async Task<bool> ShowDialogAsync(PriceList model, bool isNew)
+    {
+        var parameters = new DialogParameters<PriceListDialog>
+        {
+            { x => x.Model, model },
+            { x => x.IsNew, isNew },
+            { x => x.AllowWebsiteEdit, _isMaster },
+            { x => x.Websites, _websites },
+        };
+        var dialog = await DialogService.ShowAsync<PriceListDialog>(
+            isNew ? L["price_lists.new", "New price list"] : L["price_lists.edit", "Edit price list"],
+            parameters, new DialogOptions { MaxWidth = MaxWidth.Medium, FullWidth = true });
+        var result = await dialog.Result;
+        return result is not null && !result.Canceled;
+    }
+
+    private async Task DeleteAsync(PriceList list)
+    {
+        var confirmed = await DialogService.ShowMessageBoxAsync(
+            L["price_lists.delete", "Delete price list"],
+            L["price_lists.delete_confirm", "This deletes the list and all of its rows. Continue?"],
+            yesText: L["delete", "Delete"], cancelText: L["cancel", "Cancel"]);
+        if (confirmed != true) return;
+        await PriceListService.DeleteAsync(list.PriceListID);
+        Snackbar.Add(L["deleted", "Deleted."], Severity.Success);
+        await LoadAsync();
+    }
+}

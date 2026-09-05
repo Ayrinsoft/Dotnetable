@@ -47,6 +47,7 @@ public static class DefaultPolicies
             RoleKeys.OrdersView, RoleKeys.OrdersEdit,
             RoleKeys.PaymentsView, RoleKeys.PaymentsVerify,
             RoleKeys.ClientsView, RoleKeys.ProductsView,
+            RoleKeys.PriceListsView, RoleKeys.PriceListsInsert, RoleKeys.PriceListsEdit,
             RoleKeys.InventoryView, RoleKeys.ShippingView,
             RoleKeys.SupportView, RoleKeys.SupportEdit,
             RoleKeys.WalletsView,

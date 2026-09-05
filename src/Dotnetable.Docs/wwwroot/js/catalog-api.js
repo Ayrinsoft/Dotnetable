@@ -476,8 +476,8 @@ window.DOCS_API = {
       id: "catalog",
       title: { en: "Catalog", fa: "کاتالوگ" },
       summary: {
-        en: "Products, categories, brands, vendors, stock availability for the storefront.",
-        fa: "محصول، دسته، برند، فروشنده، موجودی قابل‌فروش برای استورفرانت.",
+        en: "Products, price lists, categories, brands, vendors, stock availability for the storefront.",
+        fa: "محصول، لیست قیمت، دسته، برند، فروشنده، موجودی قابل‌فروش برای استورفرانت.",
       },
       pages: [
         {
@@ -493,8 +493,8 @@ window.DOCS_API = {
               fa: "همان چیزی که UI فروشگاه برای نمایش کاتالوگ صدا می‌زند. ادمین محصول می‌سازد/ویرایش می‌کند؛ API فقط **منتشرشده** را می‌خواند.",
             },
           ],
-          relatedAdmin: ["products", "catalog-categories", "brands"],
-          related: ["product-categories", "inventory", "brands", "vendors"],
+          relatedAdmin: ["products", "price-lists", "catalog-categories", "brands"],
+          related: ["price-lists", "product-categories", "inventory", "brands", "vendors"],
           endpoints: [
             {
               title: { en: "List products", fa: "فهرست محصولات" },
@@ -579,6 +579,77 @@ window.DOCS_API = {
               response: {
                 status: 200,
                 body: [{ productId: 11, title: "Sports socks", slug: "sports-socks" }],
+              },
+            },
+          ],
+        },
+        {
+          id: "price-lists",
+          title: { en: "Price lists", fa: "لیست قیمت" },
+          summary: {
+            en: "Rate tables that do not need shop products (steel profiles/sheets). Optional USD follow or live catalog rows.",
+            fa: "جدول نرخ بدون نیاز به محصول فروشگاه (پروفیل/ورق استیل). دنبال‌کردن دلار یا ردیف کاتالوگ اختیاری است.",
+          },
+          purpose: [
+            {
+              en: "Storefront list and detail. `followsUsd` is true only when the list opted into FX. Catalog-sourced rows include `productSlug`.",
+              fa: "فهرست و جزئیات استورفرانت. `followsUsd` فقط وقتی true است که لیست دنبال دلار باشد. ردیف‌های کاتالوگ `productSlug` دارند.",
+            },
+          ],
+          relatedAdmin: ["price-lists"],
+          related: ["products"],
+          endpoints: [
+            {
+              title: { en: "List price lists", fa: "فهرست لیست‌های قیمت" },
+              method: "GET",
+              path: "/api/PriceLists",
+              auth: "website",
+              headers: [
+                { name: "X-Website-Key", desc: { en: "Website AuthCode", fa: "کلید وب‌سایت" } },
+              ],
+              request: { body: "GET /api/PriceLists" },
+              response: {
+                status: 200,
+                body: [
+                  {
+                    priceListID: 1,
+                    title: "Steel",
+                    slug: "steel",
+                    itemCount: 12,
+                    lastUpdatedAt: "2026-09-05T08:00:00Z",
+                    currencyCode: "IRR",
+                  },
+                ],
+              },
+            },
+            {
+              title: { en: "Price list by slug", fa: "لیست قیمت با اسلاگ" },
+              method: "GET",
+              path: "/api/PriceLists/{slug}",
+              auth: "website",
+              request: { body: "GET /api/PriceLists/steel" },
+              response: {
+                status: 200,
+                body: {
+                  title: "Steel",
+                  slug: "steel",
+                  lastUpdatedAt: "2026-09-05T08:00:00Z",
+                  currencyCode: "IRR",
+                  usdToCurrency: 1000000,
+                  groups: [
+                    {
+                      name: "Profiles",
+                      items: [
+                        {
+                          title: "40x40",
+                          unit: "kg",
+                          linkToUsd: true,
+                          price: { amount: 85000000, currencyCode: "IRR", amountUsd: 85 },
+                        },
+                      ],
+                    },
+                  ],
+                },
               },
             },
           ],

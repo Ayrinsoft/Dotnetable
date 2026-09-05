@@ -35,6 +35,8 @@ public partial class ProductCategory
 
     public virtual ICollection<ProductCategoryRelation> ProductCategoryRelations { get; set; } = new List<ProductCategoryRelation>();
 
+    public virtual ICollection<PriceList> PriceLists { get; set; } = new List<PriceList>();
+
     public virtual ICollection<ProductCategoryTranslation> ProductCategoryTranslations { get; set; } = new List<ProductCategoryTranslation>();
 
     public virtual Website Website { get; set; } = null!;

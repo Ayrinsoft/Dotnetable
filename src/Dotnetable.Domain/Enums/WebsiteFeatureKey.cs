@@ -26,4 +26,6 @@ public enum WebsiteFeatureKey : byte
     /// <summary>Reservation/appointment engine shared by <see cref="WebsiteType.Booking"/>,
     /// <see cref="WebsiteType.MedicalBooking"/> and <see cref="WebsiteType.BeautyBooking"/>.</summary>
     Booking = 16,
+    /// <summary>FX-linked published price lists (steel, profiles, sheets, …).</summary>
+    PriceLists = 17,
 }

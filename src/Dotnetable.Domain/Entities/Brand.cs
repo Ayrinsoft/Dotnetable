@@ -23,6 +23,8 @@ public partial class Brand
 
     public virtual ICollection<MenuItem> MenuItems { get; set; } = new List<MenuItem>();
 
+    public virtual ICollection<PriceList> PriceLists { get; set; } = new List<PriceList>();
+
     public virtual ICollection<Product> Products { get; set; } = new List<Product>();
 
     public virtual Website Website { get; set; } = null!;

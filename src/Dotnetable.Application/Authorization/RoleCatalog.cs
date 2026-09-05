@@ -117,6 +117,11 @@ public static class RoleCatalog
         new(RoleKeys.ProductsEdit, "Edit products", RoleCategory.Admin),
         new(RoleKeys.ProductsDelete, "Delete products", RoleCategory.Admin),
 
+        new(RoleKeys.PriceListsView, "View catalog price lists", RoleCategory.Admin),
+        new(RoleKeys.PriceListsInsert, "Create catalog price lists", RoleCategory.Admin),
+        new(RoleKeys.PriceListsEdit, "Edit catalog price lists and USD-linked prices", RoleCategory.Admin),
+        new(RoleKeys.PriceListsDelete, "Delete catalog price lists", RoleCategory.Admin),
+
         // Catalog taxonomy — categories, attributes, brands
         new(RoleKeys.CatalogTaxonomyView, "View catalog categories, attributes & brands", RoleCategory.Admin),
         new(RoleKeys.CatalogTaxonomyInsert, "Create catalog categories, attributes & brands", RoleCategory.Admin),
