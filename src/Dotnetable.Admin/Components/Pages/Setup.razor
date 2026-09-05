@@ -4,8 +4,10 @@
 @using Dotnetable.Application.DTOs
 @using Dotnetable.Admin.Localization
 @using Microsoft.JSInterop
+@using Dotnetable.Admin.Services
 @inject ISetupService SetupService
 @inject IDatabaseConfigStore ConfigStore
+@inject SyncSecretProvisioner SyncSecretProvisioner
 @inject NavigationManager Nav
 @inject ISnackbar Snackbar
 @inject IJSRuntime JS
@@ -432,6 +434,11 @@
         try
         {
             await SetupService.CompleteSetupAsync(_req);
+
+            // Best-effort: hands the API the same Internal:SyncSecret Admin uses, generating one
+            // first if neither side has a real value yet. Never blocks getting into the panel.
+            await SyncSecretProvisioner.EnsureSyncedWithApiAsync();
+
             Nav.NavigateTo("/Login", forceLoad: true);
         }
         catch (Exception ex)
