@@ -116,6 +116,16 @@ app.MapControllerRoute(
     defaults: new { controller = "Page", action = "View" });
 
 app.MapControllerRoute(
+    name: "price-lists",
+    pattern: "price-lists",
+    defaults: new { controller = "PriceList", action = "Index" });
+
+app.MapControllerRoute(
+    name: "price-list-detail",
+    pattern: "price-lists/{slug}",
+    defaults: new { controller = "PriceList", action = "Detail" });
+
+app.MapControllerRoute(
     name: "default",
     pattern: "{controller=Home}/{action=Index}/{id?}");
 

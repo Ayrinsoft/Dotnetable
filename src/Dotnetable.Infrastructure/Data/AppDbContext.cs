@@ -179,6 +179,10 @@ public partial class AppDbContext : DbContext
 
     public virtual DbSet<PostType> PostTypes { get; set; }
 
+    public virtual DbSet<PriceList> PriceLists { get; set; }
+
+    public virtual DbSet<PriceListItem> PriceListItems { get; set; }
+
     public virtual DbSet<Product> Products { get; set; }
 
     public virtual DbSet<ProductAnswer> ProductAnswers { get; set; }
@@ -2452,6 +2456,61 @@ public partial class AppDbContext : DbContext
                 .HasForeignKey(d => d.WebsiteID)
                 .OnDelete(DeleteBehavior.ClientSetNull)
                 .HasConstraintName("FK_PostTypes_Websites");
+        });
+
+        modelBuilder.Entity<PriceList>(entity =>
+        {
+            entity.HasIndex(e => e.WebsiteID, "IX_PriceLists_WebsiteID");
+            entity.HasIndex(e => new { e.WebsiteID, e.Slug }, "UQ_PriceLists_WebsiteID_Slug").IsUnique();
+            entity.HasIndex(e => e.ProductCategoryID, "IX_PriceLists_ProductCategoryID");
+            entity.HasIndex(e => e.BrandID, "IX_PriceLists_BrandID");
+
+            entity.Property(e => e.Title).HasMaxLength(200);
+            entity.Property(e => e.Slug).HasMaxLength(200);
+            entity.Property(e => e.Description).HasMaxLength(2000);
+            entity.Property(e => e.Notes).HasMaxLength(2000);
+            entity.Property(e => e.Source).HasDefaultValue((byte)0);
+            entity.Property(e => e.Pricing).HasDefaultValue((byte)0);
+            entity.Property(e => e.SortOrder).HasDefaultValue(0);
+            entity.Property(e => e.IsActive).HasDefaultValue(true);
+            entity.Property(e => e.CreatedAt).HasColumnType("datetime");
+            entity.Property(e => e.UpdatedAt).HasColumnType("datetime");
+
+            entity.HasOne(d => d.Website).WithMany(p => p.PriceLists)
+                .HasForeignKey(d => d.WebsiteID)
+                .OnDelete(DeleteBehavior.ClientSetNull)
+                .HasConstraintName("FK_PriceLists_Websites");
+
+            entity.HasOne(d => d.ProductCategory).WithMany(p => p.PriceLists)
+                .HasForeignKey(d => d.ProductCategoryID)
+                .HasConstraintName("FK_PriceLists_ProductCategories");
+
+            entity.HasOne(d => d.Brand).WithMany(p => p.PriceLists)
+                .HasForeignKey(d => d.BrandID)
+                .HasConstraintName("FK_PriceLists_Brands");
+        });
+
+        modelBuilder.Entity<PriceListItem>(entity =>
+        {
+            entity.HasIndex(e => e.PriceListID, "IX_PriceListItems_PriceListID");
+
+            entity.Property(e => e.Title).HasMaxLength(300);
+            entity.Property(e => e.GroupName).HasMaxLength(150);
+            entity.Property(e => e.Specification).HasMaxLength(300);
+            entity.Property(e => e.Unit).HasMaxLength(50);
+            entity.Property(e => e.Sku).HasMaxLength(100);
+            entity.Property(e => e.Notes).HasMaxLength(1000);
+            entity.Property(e => e.BasePriceUsd).HasColumnType("decimal(18, 4)").HasDefaultValue(0m);
+            entity.Property(e => e.LinkToUsd).HasDefaultValue(false);
+            entity.Property(e => e.FixedPrice).HasColumnType("decimal(18, 4)");
+            entity.Property(e => e.SortOrder).HasDefaultValue(0);
+            entity.Property(e => e.IsActive).HasDefaultValue(true);
+            entity.Property(e => e.UpdatedAt).HasColumnType("datetime");
+
+            entity.HasOne(d => d.PriceList).WithMany(p => p.PriceListItems)
+                .HasForeignKey(d => d.PriceListID)
+                .OnDelete(DeleteBehavior.Cascade)
+                .HasConstraintName("FK_PriceListItems_PriceLists");
         });
 
         modelBuilder.Entity<Product>(entity =>

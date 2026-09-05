@@ -1,0 +1,170 @@
+@inject IPriceListService PriceListService
+@inject ISnackbar Snackbar
+@inject IPageLocalizer L
+
+<MudDialog>
+    <DialogContent>
+        <MudForm @ref="_form">
+            <MudGrid Spacing="3">
+                <MudItem xs="12" sm="8">
+                    <MudTextField @bind-Value="Model.Title" Label="@L["name", "Name"]"
+                                  Variant="Variant.Outlined" Required="true"
+                                  HelperText="@L["price_lists.item_title_help", "e.g. Profile 40×40"]" />
+                </MudItem>
+                <MudItem xs="12" sm="4">
+                    <MudTextField @bind-Value="Model.GroupName" Label="@L["price_lists.group", "Group"]"
+                                  Variant="Variant.Outlined"
+                                  HelperText="@L["price_lists.group_help", "e.g. Profiles, Sheets"]" />
+                </MudItem>
+                <MudItem xs="12" sm="6">
+                    <MudTextField @bind-Value="Model.Specification" Label="@L["price_lists.spec", "Specification"]"
+                                  Variant="Variant.Outlined" />
+                </MudItem>
+                <MudItem xs="12" sm="3">
+                    <MudTextField @bind-Value="Model.Unit" Label="@L["price_lists.unit", "Unit"]"
+                                  Variant="Variant.Outlined"
+                                  HelperText="@L["price_lists.unit_help", "kg, meter, bar, …"]" />
+                </MudItem>
+                <MudItem xs="12" sm="3">
+                    <MudTextField @bind-Value="Model.Sku" Label="@L["sku", "SKU"]" Variant="Variant.Outlined" />
+                </MudItem>
+
+                @if (AllowUsdLink)
+                {
+                    <MudItem xs="12">
+                        <MudSwitch T="bool" Value="Model.LinkToUsd" ValueChanged="OnLinkChanged" Color="Color.Primary"
+                                   Label="@L["price_lists.link_usd", "Follow USD rate for this row"]" />
+                        <MudText Typo="Typo.caption" Color="Color.Secondary">
+                            @L["price_lists.link_usd_help", "On: store a USD base; the site multiplies by today’s dollar. Off: a local price that does not move with FX."]
+                        </MudText>
+                    </MudItem>
+                }
+
+                @if (AllowUsdLink && Model.LinkToUsd)
+                {
+                    <MudItem xs="12" sm="6">
+                        <MudNumericField T="decimal" Value="Model.BasePriceUsd" ValueChanged="OnUsdChanged"
+                                         Label="@L["price_lists.base_usd", "Base price (USD)"]"
+                                         Variant="Variant.Outlined" Min="0" Step="0.01m" Format="N4" Immediate="true" />
+                    </MudItem>
+                    <MudItem xs="12" sm="6">
+                        <MudNumericField T="decimal" Value="_displayLocal" ValueChanged="OnLocalChanged"
+                                         Label="@string.Format(L["price_lists.today_local", "Today’s price ({0})"], Rate.CurrencyCode)"
+                                         Variant="Variant.Outlined" Min="0" Step="1m"
+                                         Format="@MoneyFormat.FieldFormat(Rate.CurrencyCode, Rate.DecimalDigits)"
+                                         Immediate="true"
+                                         HelperText="@RateHint" />
+                    </MudItem>
+                }
+                else
+                {
+                    <MudItem xs="12" sm="6">
+                        <MudNumericField T="decimal?" @bind-Value="Model.FixedPrice"
+                                         Label="@string.Format(L["price_lists.local_price", "Price ({0})"], Rate.CurrencyCode)"
+                                         Variant="Variant.Outlined" Min="0"
+                                         Format="@MoneyFormat.FieldFormat(Rate.CurrencyCode, Rate.DecimalDigits)" />
+                    </MudItem>
+                }
+
+                <MudItem xs="12" sm="6">
+                    <MudNumericField T="int" @bind-Value="Model.SortOrder" Label="@L["sort_order", "Sort order"]"
+                                     Variant="Variant.Outlined" />
+                </MudItem>
+                <MudItem xs="12" sm="6">
+                    <MudSwitch T="bool" @bind-Value="Model.IsActive" Color="Color.Success"
+                               Label="@(Model.IsActive ? L["active", "Active"] : L["inactive", "Inactive"])" />
+                </MudItem>
+                <MudItem xs="12">
+                    <MudTextField @bind-Value="Model.Notes" Label="@L["notes", "Notes"]"
+                                  Variant="Variant.Outlined" Lines="2" AutoGrow="true" />
+                </MudItem>
+            </MudGrid>
+            <DNValidationSummary Errors="_formErrors" />
+        </MudForm>
+    </DialogContent>
+    <DialogActions>
+        <MudButton OnClick="Cancel">@L["cancel", "Cancel"]</MudButton>
+        <MudButton Variant="Variant.Filled" Color="Color.Primary" OnClick="SaveAsync" Disabled="@_saving">
+            @L["save", "Save"]
+        </MudButton>
+    </DialogActions>
+</MudDialog>
+
+@code {
+    [CascadingParameter] private IMudDialogInstance MudDialog { get; set; } = null!;
+    [Parameter] public PriceListItem Model { get; set; } = new();
+    [Parameter] public bool IsNew { get; set; }
+    [Parameter] public PriceListRateSnapshot Rate { get; set; } = new();
+    [Parameter] public bool AllowUsdLink { get; set; }
+
+    private MudForm _form = null!;
+    private bool _saving;
+    private string[]? _formErrors;
+    private decimal _displayLocal;
+
+    private string RateHint => Rate.HasRate
+        ? string.Format(L["price_lists.rate_is", "1 USD = {0} {1}"], MoneyFormat.Group(Rate.UsdToCurrency, Rate.CurrencyCode, Rate.DecimalDigits), Rate.CurrencyCode)
+        : L["price_lists.no_rate", "No exchange rate is configured yet. Add one under Finance → Exchange Rates."];
+
+    protected override void OnInitialized()
+    {
+        if (!AllowUsdLink) Model.LinkToUsd = false;
+        RecalcLocal();
+    }
+
+    private void OnLinkChanged(bool value)
+    {
+        Model.LinkToUsd = value;
+        RecalcLocal();
+    }
+
+    private void OnUsdChanged(decimal usd)
+    {
+        Model.BasePriceUsd = usd;
+        RecalcLocal();
+    }
+
+    private void OnLocalChanged(decimal local)
+    {
+        _displayLocal = local;
+        if (Rate.UsdToCurrency > 0)
+            Model.BasePriceUsd = decimal.Round(local / Rate.UsdToCurrency, 4, MidpointRounding.AwayFromZero);
+        else
+            Model.BasePriceUsd = local;
+    }
+
+    private void RecalcLocal()
+    {
+        _displayLocal = decimal.Round(Model.BasePriceUsd * (Rate.UsdToCurrency <= 0 ? 1m : Rate.UsdToCurrency),
+            Rate.DecimalDigits, MidpointRounding.AwayFromZero);
+    }
+
+    private void Cancel() => MudDialog.Cancel();
+
+    private async Task SaveAsync()
+    {
+        await _form.Validate();
+        _formErrors = _form.Errors;
+        if (!_form.IsValid) return;
+
+        _saving = true;
+        try
+        {
+            if (!AllowUsdLink) Model.LinkToUsd = false;
+            if (IsNew)
+                await PriceListService.CreateItemAsync(Model);
+            else
+                await PriceListService.UpdateItemAsync(Model);
+            Snackbar.Add(L["saved", "Saved."], Severity.Success);
+            MudDialog.Close(DialogResult.Ok(true));
+        }
+        catch (Exception ex)
+        {
+            Snackbar.Add($"{L["save_failed", "Save failed"]}: {ex.Message}", Severity.Error);
+        }
+        finally
+        {
+            _saving = false;
+        }
+    }
+}

@@ -64,6 +64,8 @@
     <Build Include="PostTranslations.sql" />
     <Build Include="PostTags.sql" />
     <Build Include="Posts.sql" />
+    <Build Include="PriceLists.sql" />
+    <Build Include="PriceListItems.sql" />
     <Build Include="WebsiteRedirects.sql" />
     <Build Include="PageTranslations.sql" />
     <Build Include="Pages.sql" />

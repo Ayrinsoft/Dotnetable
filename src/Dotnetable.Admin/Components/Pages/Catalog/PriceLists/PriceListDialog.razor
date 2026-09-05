@@ -1,0 +1,190 @@
+@inject IPriceListService PriceListService
+@inject IProductCategoryService CategoryService
+@inject IBrandService BrandService
+@inject ISnackbar Snackbar
+@inject IPageLocalizer L
+
+<MudDialog>
+    <DialogContent>
+        <MudForm @ref="_form">
+            <MudGrid Spacing="3">
+                <MudItem xs="12" sm="7">
+                    <MudTextField @bind-Value="Model.Title" Label="@L["name", "Name"]"
+                                  Variant="Variant.Outlined" Required="true"
+                                  HelperText="@L["price_lists.title_help", "e.g. Steel price list"]" />
+                </MudItem>
+                <MudItem xs="12" sm="5">
+                    <MudTextField @bind-Value="Model.Slug" Label="@L["slug", "Slug"]"
+                                  Variant="Variant.Outlined"
+                                  HelperText="@L["price_lists.slug_help", "URL key: /price-lists/{slug}. Leave blank to generate from the name."]" />
+                </MudItem>
+                @if (AllowWebsiteEdit)
+                {
+                    <MudItem xs="12" sm="6">
+                        <WebsiteSelector Value="Model.WebsiteID" ValueChanged="OnWebsiteChanged"
+                                         Websites="Websites" Label="@L["website", "Website"]"
+                                         Variant="Variant.Outlined" Required="true" />
+                    </MudItem>
+                }
+                <MudItem xs="12" sm="6">
+                    <MudNumericField T="int" @bind-Value="Model.SortOrder" Label="@L["sort_order", "Sort order"]"
+                                     Variant="Variant.Outlined" />
+                </MudItem>
+
+                <MudItem xs="12">
+                    <MudSelect T="byte" Value="Model.Source" ValueChanged="OnSourceChanged"
+                               Label="@L["price_lists.source", "What this list is"]" Variant="Variant.Outlined"
+                               HelperText="@L["price_lists.source_help", "Default: type the rows yourself (no products). Example: steel price list with profiles and sheets. Shop products is only if you already have a catalog."]">
+                        <MudSelectItem T="byte" Value="@((byte)PriceListSource.Custom)">
+                            @L["price_lists.source.custom", "Typed list — no products needed"]
+                        </MudSelectItem>
+                        <MudSelectItem T="byte" Value="@((byte)PriceListSource.CatalogProducts)">
+                            @L["price_lists.source.catalog", "From shop products (optional)"]
+                        </MudSelectItem>
+                    </MudSelect>
+                </MudItem>
+
+                @if (Model.Source == (byte)PriceListSource.Custom)
+                {
+                    <MudItem xs="12">
+                        <MudSelect T="byte" @bind-Value="Model.Pricing"
+                                   Label="@L["price_lists.pricing", "How prices work"]" Variant="Variant.Outlined"
+                                   HelperText="@L["price_lists.pricing_help", "Default is the site currency with no FX. USD follow is optional — change the dollar later and only then do linked rows move."]">
+                            <MudSelectItem T="byte" Value="@((byte)PriceListPricing.SiteCurrency)">
+                                @L["price_lists.pricing.local", "Site currency (no dollar)"]
+                            </MudSelectItem>
+                            <MudSelectItem T="byte" Value="@((byte)PriceListPricing.LinkedToUsd)">
+                                @L["price_lists.pricing.usd", "Follow USD exchange rate"]
+                            </MudSelectItem>
+                        </MudSelect>
+                    </MudItem>
+                }
+                else
+                {
+                    <MudItem xs="12" sm="6">
+                        <MudSelect T="int?" @bind-Value="Model.ProductCategoryID" Clearable="true"
+                                   Label="@L["price_lists.category", "Product category (optional)"]" Variant="Variant.Outlined"
+                                   HelperText="@L["price_lists.category_help", "Empty = every published product. A parent includes its children."]">
+                            <MudSelectItem T="int?" Value="@((int?)null)">@L["price_lists.all_categories", "All categories"]</MudSelectItem>
+                            @foreach (var c in _categories)
+                            {
+                                <MudSelectItem T="int?" Value="@c.ProductCategoryID">@c.Name</MudSelectItem>
+                            }
+                        </MudSelect>
+                    </MudItem>
+                    <MudItem xs="12" sm="6">
+                        <MudSelect T="int?" @bind-Value="Model.BrandID" Clearable="true"
+                                   Label="@L["price_lists.brand", "Brand (optional)"]" Variant="Variant.Outlined">
+                            <MudSelectItem T="int?" Value="@((int?)null)">@L["price_lists.all_brands", "All brands"]</MudSelectItem>
+                            @foreach (var b in _brands)
+                            {
+                                <MudSelectItem T="int?" Value="@b.BrandID">@b.Name</MudSelectItem>
+                            }
+                        </MudSelect>
+                    </MudItem>
+                }
+
+                <MudItem xs="12">
+                    <MudTextField @bind-Value="Model.Description" Label="@L["description", "Description"]"
+                                  Variant="Variant.Outlined" Lines="2" AutoGrow="true" />
+                </MudItem>
+                <MudItem xs="12">
+                    <MudTextField @bind-Value="Model.Notes" Label="@L["price_lists.internal_notes", "Internal notes"]"
+                                  Variant="Variant.Outlined" Lines="2" AutoGrow="true" />
+                </MudItem>
+                <MudItem xs="12">
+                    <MudSwitch T="bool" @bind-Value="Model.IsActive" Color="Color.Success"
+                               Label="@(Model.IsActive ? L["active", "Active"] : L["inactive", "Inactive"])" />
+                </MudItem>
+            </MudGrid>
+            <DNValidationSummary Errors="_formErrors" />
+        </MudForm>
+    </DialogContent>
+    <DialogActions>
+        <MudButton OnClick="Cancel">@L["cancel", "Cancel"]</MudButton>
+        <MudButton Variant="Variant.Filled" Color="Color.Primary" OnClick="SaveAsync" Disabled="@_saving">
+            @L["save", "Save"]
+        </MudButton>
+    </DialogActions>
+</MudDialog>
+
+@code {
+    [CascadingParameter] private IMudDialogInstance MudDialog { get; set; } = null!;
+    [Parameter] public PriceList Model { get; set; } = new();
+    [Parameter] public bool IsNew { get; set; }
+    [Parameter] public bool AllowWebsiteEdit { get; set; }
+    [Parameter] public List<Website> Websites { get; set; } = new();
+
+    private MudForm _form = null!;
+    private bool _saving;
+    private string[]? _formErrors;
+    private List<ProductCategory> _categories = new();
+    private List<Brand> _brands = new();
+
+    protected override async Task OnInitializedAsync() => await LoadFiltersAsync();
+
+    private async Task OnWebsiteChanged(int id)
+    {
+        Model.WebsiteID = id;
+        Model.ProductCategoryID = null;
+        Model.BrandID = null;
+        await LoadFiltersAsync();
+    }
+
+    private void OnSourceChanged(byte value)
+    {
+        Model.Source = value;
+        if (value != (byte)PriceListSource.CatalogProducts)
+        {
+            Model.ProductCategoryID = null;
+            Model.BrandID = null;
+        }
+        else
+        {
+            Model.Pricing = (byte)PriceListPricing.SiteCurrency;
+        }
+    }
+
+    private async Task LoadFiltersAsync()
+    {
+        if (Model.WebsiteID <= 0)
+        {
+            _categories = new();
+            _brands = new();
+            return;
+        }
+        _categories = (await CategoryService.GetAllAsync(Model.WebsiteID))
+            .OrderBy(c => c.SortOrder).ThenBy(c => c.Name).ToList();
+        _brands = (await BrandService.GetAllAsync(Model.WebsiteID))
+            .Where(b => b.IsActive)
+            .OrderBy(b => b.Name).ToList();
+    }
+
+    private void Cancel() => MudDialog.Cancel();
+
+    private async Task SaveAsync()
+    {
+        await _form.Validate();
+        _formErrors = _form.Errors;
+        if (!_form.IsValid) return;
+
+        _saving = true;
+        try
+        {
+            if (IsNew)
+                await PriceListService.CreateAsync(Model);
+            else
+                await PriceListService.UpdateAsync(Model);
+            Snackbar.Add(L["saved", "Saved."], Severity.Success);
+            MudDialog.Close(DialogResult.Ok(true));
+        }
+        catch (Exception ex)
+        {
+            Snackbar.Add($"{L["save_failed", "Save failed"]}: {ex.Message}", Severity.Error);
+        }
+        finally
+        {
+            _saving = false;
+        }
+    }
+}

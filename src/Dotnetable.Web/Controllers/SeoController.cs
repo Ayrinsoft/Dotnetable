@@ -63,6 +63,7 @@ public class SeoController : Controller
             await WriteUrlAsync(writer, baseUrl, null, "daily", "1.0");
 
             await WriteUrlAsync(writer, $"{baseUrl}/Shop", null, "daily", "0.9");
+            await WriteUrlAsync(writer, $"{baseUrl}/price-lists", null, "daily", "0.8");
             await WriteUrlAsync(writer, $"{baseUrl}/Blog", null, "daily", "0.7");
 
             // Categories change rarely but anchor the crawl, so they rank above individual products.
@@ -79,6 +80,10 @@ public class SeoController : Controller
 
             foreach (var slug in productSlugs)
                 await WriteUrlAsync(writer, $"{baseUrl}/Shop/Product/{Uri.EscapeDataString(slug)}", null, "weekly", "0.7");
+
+            var priceLists = await SafeAsync(async () => await _api.GetPriceListsAsync(ct));
+            foreach (var list in priceLists.Take(MaxUrlsPerSection))
+                await WriteUrlAsync(writer, $"{baseUrl}/price-lists/{Uri.EscapeDataString(list.Slug)}", list.LastUpdatedAt, "daily", "0.8");
 
             var postSlugs = await SafeAsync(() => CollectAsync(
                 async page => (await _api.GetPostsAsync(page: page, pageSize: 100, ct: ct)).Items.Select(p => p.Slug)));

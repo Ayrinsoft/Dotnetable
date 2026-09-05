@@ -277,6 +277,9 @@
                 <AuthorizeView Policy="@RoleKeys.ProductsView" Context="pr">
                     <MudNavLink Href="/catalog/products" Icon="@Icons.Material.Filled.ShoppingBag">@L["products", "Products"]</MudNavLink>
                 </AuthorizeView>
+                <AuthorizeView Policy="@RoleKeys.PriceListsView" Context="pl">
+                    <MudNavLink Href="/catalog/price-lists" Icon="@Icons.Material.Filled.RequestQuote">@L["price_lists", "Price lists"]</MudNavLink>
+                </AuthorizeView>
                 <AuthorizeView Policy="@RoleKeys.CatalogTaxonomyView" Context="pcat">
                     <MudNavLink Href="/catalog/categories" Icon="@Icons.Material.Filled.Category">@L["categories", "Categories"]</MudNavLink>
                     <MudNavLink Href="/catalog/attributes" Icon="@Icons.Material.Filled.Tune">@L["attributes", "Attributes"]</MudNavLink>

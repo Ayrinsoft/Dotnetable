@@ -1,0 +1,86 @@
+@model Dotnetable.Application.DTOs.PriceListDetailDto
+@{
+    ViewData["Title"] = Model.Title;
+    Layout = "/Themes/Default/Views/Shared/_Layout.cshtml";
+    var digits = Model.DecimalDigits;
+    var format = digits <= 0 ? "N0" : $"N{digits}";
+}
+
+@await Html.PartialAsync("_PageHeader", (Model.Title, "Price lists"))
+
+<section class="site-section">
+    <div class="container">
+        <div class="d-flex flex-wrap justify-content-between align-items-end gap-3 mb-4">
+            <div>
+                @if (!string.IsNullOrWhiteSpace(Model.Description))
+                {
+                    <p class="lead mb-2">@Model.Description</p>
+                }
+                <p class="text-muted mb-0">
+                    Last price update: <strong>@Model.LastUpdatedAt.ToLocalTime().ToString("yyyy-MM-dd HH:mm")</strong>
+                    @if (Model.FollowsUsd && Model.ExchangeRateLastUpdate is DateTime fx)
+                    {
+                        <span> · 1 USD = @Model.UsdToCurrency.ToString(format) @Model.CurrencyCode
+                            (rate @fx.ToLocalTime().ToString("yyyy-MM-dd HH:mm"))</span>
+                    }
+                </p>
+            </div>
+            <a class="btn btn-outline-secondary" asp-controller="PriceList" asp-action="Index">All price lists</a>
+        </div>
+
+        @if (Model.Groups.Count == 0)
+        {
+            <p class="text-muted">This list has no published rows yet.</p>
+        }
+        else
+        {
+            <div class="table-responsive price-list-table-wrap">
+                <table class="table table-striped align-middle price-list-table">
+                    <thead>
+                        <tr>
+                            <th>Item</th>
+                            <th>Specification</th>
+                            <th>Unit</th>
+                            <th class="text-end">Price (@Model.CurrencyCode)</th>
+                        </tr>
+                    </thead>
+                    <tbody>
+                        @foreach (var group in Model.Groups)
+                        {
+                            @if (!string.IsNullOrWhiteSpace(group.Name))
+                            {
+                                <tr class="price-list-group">
+                                    <th colspan="4">@group.Name</th>
+                                </tr>
+                            }
+                            @foreach (var item in group.Items)
+                            {
+                                <tr>
+                                    <td>
+                                        <div class="fw-semibold">
+                                            @if (!string.IsNullOrWhiteSpace(item.ProductSlug))
+                                            {
+                                                <a asp-controller="Shop" asp-action="Product" asp-route-slug="@item.ProductSlug" class="text-reset">@item.Title</a>
+                                            }
+                                            else
+                                            {
+                                                @item.Title
+                                            }
+                                        </div>
+                                        @if (!string.IsNullOrWhiteSpace(item.Sku))
+                                        {
+                                            <div class="small text-muted">@item.Sku</div>
+                                        }
+                                    </td>
+                                    <td>@(item.Specification ?? "—")</td>
+                                    <td>@(item.Unit ?? "—")</td>
+                                    <td class="text-end fw-bold">@item.Price.Amount.ToString(format)</td>
+                                </tr>
+                            }
+                        }
+                    </tbody>
+                </table>
+            </div>
+        }
+    </div>
+</section>

@@ -1,0 +1,416 @@
+@page "/catalog/price-lists/{Id:int}"
+@attribute [Authorize(Policy = RoleKeys.PriceListsView)]
+@inject IPriceListService PriceListService
+@inject AuthenticationStateProvider AuthState
+@inject IDialogService DialogService
+@inject ISnackbar Snackbar
+@inject NavigationManager Nav
+@inject IPageLocalizer L
+
+<DNPageTitle Title=@L["price_lists.manage_items", "Manage items"] />
+
+<MudBreadcrumbs Items="_breadcrumbs" Class="px-0 pb-2" />
+
+@if (_loading)
+{
+    <MudProgressLinear Indeterminate="true" Color="Color.Primary" Class="mb-4" />
+}
+else if (_list is not null)
+{
+    <MudStack Row="true" AlignItems="AlignItems.Center" Justify="Justify.SpaceBetween" Class="mb-4" Wrap="Wrap.Wrap">
+        <MudStack Spacing="0">
+            <MudText Typo="Typo.h5" Class="fw-bold">@_list.Title</MudText>
+            <MudText Typo="Typo.body2" Color="Color.Secondary">
+                <code>/price-lists/@_list.Slug</code>
+                · @(_list.IsActive ? L["active", "Active"] : L["inactive", "Inactive"])
+                · @ModeLabel
+            </MudText>
+        </MudStack>
+        @if (_canEdit && !_isCatalog)
+        {
+            <MudButton Variant="Variant.Filled" Color="Color.Primary"
+                       StartIcon="@Icons.Material.Filled.Add" OnClick="AddItemAsync">
+                @L["price_lists.add_item", "Add row"]
+            </MudButton>
+        }
+    </MudStack>
+
+    @if (_followsUsd)
+    {
+        <MudPaper Elevation="0" Class="border rounded-lg pa-4 mb-4">
+            <MudStack Row="true" AlignItems="AlignItems.Start" Justify="Justify.SpaceBetween" Wrap="Wrap.Wrap" Spacing="3">
+                <MudStack Spacing="1">
+                    <MudText Typo="Typo.subtitle1" Class="fw-bold">@L["price_lists.today_rate", "Today’s USD rate"]</MudText>
+                    @if (_rate.HasRate)
+                    {
+                        <MudText Typo="Typo.body2">
+                            1 USD = @MoneyFormat.Group(_rate.UsdToCurrency, _rate.CurrencyCode, _rate.DecimalDigits) @_rate.CurrencyCode
+                        </MudText>
+                        @if (_rate.LastUpdate is DateTime when)
+                        {
+                            <MudText Typo="Typo.caption" Color="Color.Secondary">
+                                @string.Format(L["price_lists.rate_updated", "Last updated: {0}"], when.ToLocalTime().ToString("g"))
+                            </MudText>
+                        }
+                    }
+                    else
+                    {
+                        <MudAlert Severity="Severity.Warning" Dense="true" Class="mb-0">
+                            @L["price_lists.no_rate", "No exchange rate is configured yet. Add one under Finance → Exchange Rates."]
+                        </MudAlert>
+                    }
+                </MudStack>
+                @if (_canEdit)
+                {
+                    <MudStack Row="true" AlignItems="AlignItems.End" Spacing="2">
+                        <MudNumericField T="decimal" @bind-Value="_editRate" Label="@string.Format(L["price_lists.usd_to_local", "1 USD = ? {0}"], _rate.CurrencyCode)"
+                                         Variant="Variant.Outlined" Min="0" Style="min-width:180px"
+                                         Format="@MoneyFormat.FieldFormat(_rate.CurrencyCode, _rate.DecimalDigits)" />
+                        <MudButton Variant="Variant.Outlined" Color="Color.Primary" OnClick="SaveRateAsync" Disabled="@_savingRate">
+                            @L["price_lists.update_rate", "Update rate"]
+                        </MudButton>
+                        <MudButton Variant="Variant.Text" Color="Color.Primary" Href="/finance/currency-rates"
+                                   StartIcon="@Icons.Material.Filled.OpenInNew">
+                            @L["currency_rates", "Exchange Rates"]
+                        </MudButton>
+                    </MudStack>
+                }
+            </MudStack>
+        </MudPaper>
+    }
+
+    @if (_isCatalog)
+    {
+        <DNDismissibleAlert StorageKey="price-lists.catalog-live" Class="mb-4">
+            @L["price_lists.catalog_live_hint", "This list is a live view of published shop products. Change a product price in Catalog → Products and this table follows it. Use Edit on the list to pick a category or brand."]
+        </DNDismissibleAlert>
+        <MudPaper Elevation="0" Class="app-card rounded-lg pa-4">
+            @if (_preview is null || _preview.Groups.Count == 0)
+            {
+                <div style="text-align:center; padding:32px;">
+                    <MudText Color="Color.Secondary">@L["price_lists.catalog_empty", "No published products match this list yet."]</MudText>
+                </div>
+            }
+            else
+            {
+                @RenderPublishedTable(_preview)
+            }
+        </MudPaper>
+    }
+    else
+    {
+        <MudPaper Elevation="0" Class="app-card rounded-lg pa-4">
+            @if (_items.Count == 0)
+            {
+                <div style="text-align:center; padding:32px;">
+                    <MudText Color="Color.Secondary">@L["price_lists.no_items", "No products needed. Add rows such as Profile 40×40, sheet 2 mm, pipe — then publish."]</MudText>
+                </div>
+            }
+            else
+            {
+                <MudSimpleTable Dense="true" Hover="true" Elevation="0">
+                    <thead>
+                        <tr>
+                            <th>@L["price_lists.group", "Group"]</th>
+                            <th>@L["name", "Name"]</th>
+                            <th>@L["price_lists.spec", "Specification"]</th>
+                            <th>@L["price_lists.unit", "Unit"]</th>
+                            @if (_followsUsd)
+                            {
+                                <th>@L["price_lists.base_usd", "Base USD"]</th>
+                            }
+                            <th>@L["price_lists.display_price", "Display price"]</th>
+                            <th>@L["status", "Status"]</th>
+                            <th style="width:1%; white-space:nowrap"></th>
+                        </tr>
+                    </thead>
+                    <tbody>
+                        @foreach (var item in _items)
+                        {
+                            <tr>
+                                <td>@(string.IsNullOrWhiteSpace(item.GroupName) ? "—" : item.GroupName)</td>
+                                <td>@item.Title</td>
+                                <td>@(item.Specification ?? "—")</td>
+                                <td>@(item.Unit ?? "—")</td>
+                                @if (_followsUsd)
+                                {
+                                    <td>
+                                        @if (item.LinkToUsd)
+                                        {
+                                            @MoneyFormat.Group(item.BasePriceUsd, "USD", 4)
+                                        }
+                                        else
+                                        {
+                                            <MudChip T="string" Size="Size.Small" Variant="Variant.Text">@L["price_lists.fixed", "Fixed"]</MudChip>
+                                        }
+                                    </td>
+                                }
+                                <td>
+                                    <strong>@MoneyFormat.Group(DisplayAmount(item), _rate.CurrencyCode, _rate.DecimalDigits)</strong>
+                                    <MudText Typo="Typo.caption" Color="Color.Secondary">@_rate.CurrencyCode</MudText>
+                                </td>
+                                <td>
+                                    <MudSwitch T="bool" Value="item.IsActive" Color="Color.Success"
+                                               Disabled="@(!_canEdit || _busy.Contains(item.PriceListItemID))"
+                                               ValueChanged="@(v => ToggleActiveAsync(item, v))" />
+                                </td>
+                                <td>
+                                    <MudStack Row="true" Spacing="0">
+                                        <MudIconButton Icon="@Icons.Material.Filled.ArrowUpward" Size="Size.Small"
+                                                       Disabled="@(!_canEdit || _busy.Count > 0)" OnClick="@(() => MoveAsync(item, -1))" />
+                                        <MudIconButton Icon="@Icons.Material.Filled.ArrowDownward" Size="Size.Small"
+                                                       Disabled="@(!_canEdit || _busy.Count > 0)" OnClick="@(() => MoveAsync(item, 1))" />
+                                        @if (_canEdit)
+                                        {
+                                            <MudIconButton Icon="@Icons.Material.Filled.Edit" Size="Size.Small" OnClick="@(() => EditItemAsync(item))" />
+                                        }
+                                        @if (_canDelete)
+                                        {
+                                            <MudIconButton Icon="@Icons.Material.Filled.Delete" Size="Size.Small" Color="Color.Error"
+                                                           OnClick="@(() => DeleteItemAsync(item))" />
+                                        }
+                                    </MudStack>
+                                </td>
+                            </tr>
+                        }
+                    </tbody>
+                </MudSimpleTable>
+            }
+        </MudPaper>
+    }
+}
+
+@code {
+    [Parameter] public int Id { get; set; }
+
+    private bool _loading = true;
+    private bool _isMaster;
+    private bool _canEdit;
+    private bool _canDelete;
+    private bool _savingRate;
+    private int _websiteId;
+    private PriceList? _list;
+    private List<PriceListItem> _items = new();
+    private HashSet<int> _busy = new();
+    private PriceListRateSnapshot _rate = new();
+    private decimal _editRate;
+    private PriceListDetailDto? _preview;
+
+    private bool _isCatalog => _list?.Source == (byte)PriceListSource.CatalogProducts;
+    private bool _followsUsd => !_isCatalog && _list?.Pricing == (byte)PriceListPricing.LinkedToUsd;
+    private string ModeLabel => _isCatalog
+        ? L["price_lists.source.catalog", "From shop products (optional)"]
+        : _followsUsd
+            ? L["price_lists.pricing.usd", "Follow USD"]
+            : L["price_lists.source.custom", "Typed list — no products needed"];
+
+    private List<BreadcrumbItem> _breadcrumbs => new()
+    {
+        new(L["dashboard", "Dashboard"], "/"),
+        new(L["price_lists", "Price lists"], "/catalog/price-lists"),
+        new(_list?.Title ?? $"#{Id}", null, true),
+    };
+
+    protected override async Task OnInitializedAsync()
+    {
+        await L.EnsureLoadedAsync();
+        var user = (await AuthState.GetAuthenticationStateAsync()).User;
+        _isMaster = user.HasClaim(AdminClaimTypes.Master, "true");
+        _canEdit = AdminPolicies.Allows(user, RoleKeys.PriceListsEdit);
+        _canDelete = AdminPolicies.Allows(user, RoleKeys.PriceListsDelete);
+        int.TryParse(user.FindFirst(AdminClaimTypes.WebsiteId)?.Value, out _websiteId);
+
+        _list = await PriceListService.GetAsync(Id);
+        if (_list is null || (!_isMaster && _list.WebsiteID != _websiteId))
+        {
+            Nav.NavigateTo("/catalog/price-lists");
+            return;
+        }
+
+        await ReloadRateAsync();
+        if (_isCatalog)
+            _preview = await PriceListService.GetPublishedBySlugAsync(_list.WebsiteID, _list.Slug);
+        else
+            await LoadItemsCoreAsync();
+        _loading = false;
+    }
+
+    private async Task ReloadRateAsync()
+    {
+        _rate = await PriceListService.GetRateSnapshotAsync(_list!.WebsiteID);
+        _editRate = _rate.UsdToCurrency;
+    }
+
+    private async Task LoadItemsCoreAsync() =>
+        _items = await PriceListService.GetItemsAsync(Id);
+
+    private decimal DisplayAmount(PriceListItem item)
+    {
+        if (!_followsUsd || !item.LinkToUsd)
+            return item.FixedPrice ?? 0m;
+        var rate = _rate.UsdToCurrency <= 0 ? 1m : _rate.UsdToCurrency;
+        return decimal.Round(item.BasePriceUsd * rate, _rate.DecimalDigits, MidpointRounding.AwayFromZero);
+    }
+
+    private RenderFragment RenderPublishedTable(PriceListDetailDto preview) => __builder =>
+    {
+        <MudSimpleTable Dense="true" Hover="true" Elevation="0">
+            <thead>
+                <tr>
+                    <th>@L["price_lists.group", "Group"]</th>
+                    <th>@L["name", "Name"]</th>
+                    <th>@L["price_lists.spec", "Specification"]</th>
+                    <th>@L["sku", "SKU"]</th>
+                    <th>@L["price_lists.display_price", "Display price"]</th>
+                </tr>
+            </thead>
+            <tbody>
+                @foreach (var group in preview.Groups)
+                {
+                    @if (!string.IsNullOrWhiteSpace(group.Name))
+                    {
+                        <tr>
+                            <th colspan="5">@group.Name</th>
+                        </tr>
+                    }
+                    @foreach (var item in group.Items)
+                    {
+                        <tr>
+                            <td>@(string.IsNullOrWhiteSpace(item.GroupName) ? "—" : item.GroupName)</td>
+                            <td>@item.Title</td>
+                            <td>@(item.Specification ?? "—")</td>
+                            <td>@(item.Sku ?? "—")</td>
+                            <td>
+                                <strong>@MoneyFormat.Group(item.Price.Amount, item.Price.CurrencyCode, preview.DecimalDigits)</strong>
+                                <MudText Typo="Typo.caption" Color="Color.Secondary">@item.Price.CurrencyCode</MudText>
+                            </td>
+                        </tr>
+                    }
+                }
+            </tbody>
+        </MudSimpleTable>
+    };
+
+    private async Task SaveRateAsync()
+    {
+        if (_editRate <= 0)
+        {
+            Snackbar.Add(L["price_lists.rate_required", "Enter a USD rate greater than zero."], Severity.Warning);
+            return;
+        }
+        _savingRate = true;
+        try
+        {
+            var updated = await PriceListService.UpdateUsdRateAsync(_list!.WebsiteID, _editRate);
+            if (updated is null)
+            {
+                Snackbar.Add(L["price_lists.no_rate", "No exchange rate is configured yet. Add one under Finance → Exchange Rates."], Severity.Warning);
+                return;
+            }
+            _rate = updated;
+            _editRate = _rate.UsdToCurrency;
+            Snackbar.Add(L["price_lists.rate_saved", "Exchange rate updated. Linked prices on the site now use this rate."], Severity.Success);
+        }
+        catch (Exception ex)
+        {
+            Snackbar.Add($"{L["save_failed", "Save failed"]}: {ex.Message}", Severity.Error);
+        }
+        finally
+        {
+            _savingRate = false;
+        }
+    }
+
+    private async Task ToggleActiveAsync(PriceListItem item, bool value)
+    {
+        if (!_busy.Add(item.PriceListItemID)) return;
+        item.IsActive = value;
+        try { await PriceListService.UpdateItemAsync(item); }
+        finally { _busy.Remove(item.PriceListItemID); }
+    }
+
+    private async Task AddItemAsync()
+    {
+        var item = new PriceListItem
+        {
+            PriceListID = Id,
+            LinkToUsd = _followsUsd,
+            IsActive = true,
+            SortOrder = _items.Count == 0 ? 0 : _items.Max(i => i.SortOrder) + 1,
+        };
+        if (await ShowItemDialogAsync(item, true)) await LoadItemsCoreAsync();
+    }
+
+    private async Task EditItemAsync(PriceListItem item)
+    {
+        var copy = new PriceListItem
+        {
+            PriceListItemID = item.PriceListItemID,
+            PriceListID = item.PriceListID,
+            Title = item.Title,
+            GroupName = item.GroupName,
+            Specification = item.Specification,
+            Unit = item.Unit,
+            Sku = item.Sku,
+            BasePriceUsd = item.BasePriceUsd,
+            LinkToUsd = item.LinkToUsd,
+            FixedPrice = item.FixedPrice,
+            Notes = item.Notes,
+            SortOrder = item.SortOrder,
+            IsActive = item.IsActive,
+        };
+        if (await ShowItemDialogAsync(copy, false)) await LoadItemsCoreAsync();
+    }
+
+    private async Task<bool> ShowItemDialogAsync(PriceListItem item, bool isNew)
+    {
+        var parameters = new DialogParameters<PriceListItemDialog>
+        {
+            { x => x.Model, item },
+            { x => x.IsNew, isNew },
+            { x => x.Rate, _rate },
+            { x => x.AllowUsdLink, _followsUsd },
+        };
+        var dialog = await DialogService.ShowAsync<PriceListItemDialog>(
+            isNew ? L["price_lists.add_item", "Add row"] : L["price_lists.edit_item", "Edit row"],
+            parameters, new DialogOptions { MaxWidth = MaxWidth.Medium, FullWidth = true });
+        var result = await dialog.Result;
+        return result is not null && !result.Canceled;
+    }
+
+    private async Task DeleteItemAsync(PriceListItem item)
+    {
+        var confirmed = await DialogService.ShowMessageBoxAsync(
+            L["price_lists.delete_item", "Delete row"],
+            L["price_lists.delete_item_confirm", "Delete this row?"],
+            yesText: L["delete", "Delete"], cancelText: L["cancel", "Cancel"]);
+        if (confirmed != true) return;
+        await PriceListService.DeleteItemAsync(item.PriceListItemID);
+        Snackbar.Add(L["deleted", "Deleted."], Severity.Success);
+        await LoadItemsCoreAsync();
+    }
+
+    private async Task MoveAsync(PriceListItem item, int direction)
+    {
+        var ordered = _items.OrderBy(i => i.SortOrder).ThenBy(i => i.PriceListItemID).ToList();
+        var index = ordered.FindIndex(i => i.PriceListItemID == item.PriceListItemID);
+        var target = index + direction;
+        if (index < 0 || target < 0 || target >= ordered.Count) return;
+
+        ordered.RemoveAt(index);
+        ordered.Insert(target, item);
+
+        _busy.Add(item.PriceListItemID);
+        try
+        {
+            for (var i = 0; i < ordered.Count; i++)
+            {
+                if (ordered[i].SortOrder == i) continue;
+                ordered[i].SortOrder = i;
+                await PriceListService.UpdateItemAsync(ordered[i]);
+            }
+            await LoadItemsCoreAsync();
+        }
+        finally { _busy.Remove(item.PriceListItemID); }
+    }
+}

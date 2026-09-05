@@ -4150,6 +4150,150 @@ namespace Dotnetable.Migrations.SqlServer.Migrations
                     b.ToTable("PostTypes");
                 });
 
+            modelBuilder.Entity("Dotnetable.Domain.Entities.PriceList", b =>
+                {
+                    b.Property<int>("PriceListID")
+                        .ValueGeneratedOnAdd()
+                        .HasColumnType("int");
+
+                    SqlServerPropertyBuilderExtensions.UseIdentityColumn(b.Property<int>("PriceListID"));
+
+                    b.Property<int?>("BrandID")
+                        .HasColumnType("int");
+
+                    b.Property<DateTime>("CreatedAt")
+                        .HasColumnType("datetime");
+
+                    b.Property<string>("Description")
+                        .HasMaxLength(2000)
+                        .HasColumnType("nvarchar(2000)");
+
+                    b.Property<bool>("IsActive")
+                        .ValueGeneratedOnAdd()
+                        .HasColumnType("bit")
+                        .HasDefaultValue(true);
+
+                    b.Property<string>("Notes")
+                        .HasMaxLength(2000)
+                        .HasColumnType("nvarchar(2000)");
+
+                    b.Property<byte>("Pricing")
+                        .ValueGeneratedOnAdd()
+                        .HasColumnType("tinyint")
+                        .HasDefaultValue((byte)0);
+
+                    b.Property<int?>("ProductCategoryID")
+                        .HasColumnType("int");
+
+                    b.Property<string>("Slug")
+                        .IsRequired()
+                        .HasMaxLength(200)
+                        .HasColumnType("nvarchar(200)");
+
+                    b.Property<int>("SortOrder")
+                        .ValueGeneratedOnAdd()
+                        .HasColumnType("int")
+                        .HasDefaultValue(0);
+
+                    b.Property<byte>("Source")
+                        .ValueGeneratedOnAdd()
+                        .HasColumnType("tinyint")
+                        .HasDefaultValue((byte)0);
+
+                    b.Property<string>("Title")
+                        .IsRequired()
+                        .HasMaxLength(200)
+                        .HasColumnType("nvarchar(200)");
+
+                    b.Property<DateTime>("UpdatedAt")
+                        .HasColumnType("datetime");
+
+                    b.Property<int>("WebsiteID")
+                        .HasColumnType("int");
+
+                    b.HasKey("PriceListID");
+
+                    b.HasIndex(new[] { "BrandID" }, "IX_PriceLists_BrandID");
+
+                    b.HasIndex(new[] { "ProductCategoryID" }, "IX_PriceLists_ProductCategoryID");
+
+                    b.HasIndex(new[] { "WebsiteID" }, "IX_PriceLists_WebsiteID");
+
+                    b.HasIndex(new[] { "WebsiteID", "Slug" }, "UQ_PriceLists_WebsiteID_Slug")
+                        .IsUnique();
+
+                    b.ToTable("PriceLists");
+                });
+
+            modelBuilder.Entity("Dotnetable.Domain.Entities.PriceListItem", b =>
+                {
+                    b.Property<int>("PriceListItemID")
+                        .ValueGeneratedOnAdd()
+                        .HasColumnType("int");
+
+                    SqlServerPropertyBuilderExtensions.UseIdentityColumn(b.Property<int>("PriceListItemID"));
+
+                    b.Property<decimal>("BasePriceUsd")
+                        .ValueGeneratedOnAdd()
+                        .HasColumnType("decimal(18, 4)")
+                        .HasDefaultValue(0m);
+
+                    b.Property<decimal?>("FixedPrice")
+                        .HasColumnType("decimal(18, 4)");
+
+                    b.Property<string>("GroupName")
+                        .HasMaxLength(150)
+                        .HasColumnType("nvarchar(150)");
+
+                    b.Property<bool>("IsActive")
+                        .ValueGeneratedOnAdd()
+                        .HasColumnType("bit")
+                        .HasDefaultValue(true);
+
+                    b.Property<bool>("LinkToUsd")
+                        .ValueGeneratedOnAdd()
+                        .HasColumnType("bit")
+                        .HasDefaultValue(false);
+
+                    b.Property<string>("Notes")
+                        .HasMaxLength(1000)
+                        .HasColumnType("nvarchar(1000)");
+
+                    b.Property<int>("PriceListID")
+                        .HasColumnType("int");
+
+                    b.Property<string>("Sku")
+                        .HasMaxLength(100)
+                        .HasColumnType("nvarchar(100)");
+
+                    b.Property<int>("SortOrder")
+                        .ValueGeneratedOnAdd()
+                        .HasColumnType("int")
+                        .HasDefaultValue(0);
+
+                    b.Property<string>("Specification")
+                        .HasMaxLength(300)
+                        .HasColumnType("nvarchar(300)");
+
+                    b.Property<string>("Title")
+                        .IsRequired()
+                        .HasMaxLength(300)
+                        .HasColumnType("nvarchar(300)");
+
+                    b.Property<string>("Unit")
+                        .HasMaxLength(50)
+                        .HasColumnType("nvarchar(50)");
+
+                    b.Property<DateTime>("UpdatedAt")
+                        .HasColumnType("datetime");
+
+                    b.HasKey("PriceListItemID");
+
+                    b.HasIndex(new[] { "PriceListID" }, "IX_PriceListItems_PriceListID");
+
+                    b.ToTable("PriceListItems");
+                });
+
             modelBuilder.Entity("Dotnetable.Domain.Entities.Product", b =>
                 {
                     b.Property<int>("ProductID")
@@ -9415,6 +9559,43 @@ namespace Dotnetable.Migrations.SqlServer.Migrations
                     b.Navigation("Website");
                 });
 
+            modelBuilder.Entity("Dotnetable.Domain.Entities.PriceList", b =>
+                {
+                    b.HasOne("Dotnetable.Domain.Entities.Brand", "Brand")
+                        .WithMany("PriceLists")
+                        .HasForeignKey("BrandID")
+                        .HasConstraintName("FK_PriceLists_Brands");
+
+                    b.HasOne("Dotnetable.Domain.Entities.ProductCategory", "ProductCategory")
+                        .WithMany("PriceLists")
+                        .HasForeignKey("ProductCategoryID")
+                        .HasConstraintName("FK_PriceLists_ProductCategories");
+
+                    b.HasOne("Dotnetable.Domain.Entities.Website", "Website")
+                        .WithMany("PriceLists")
+                        .HasForeignKey("WebsiteID")
+                        .IsRequired()
+                        .HasConstraintName("FK_PriceLists_Websites");
+
+                    b.Navigation("Brand");
+
+                    b.Navigation("ProductCategory");
+
+                    b.Navigation("Website");
+                });
+
+            modelBuilder.Entity("Dotnetable.Domain.Entities.PriceListItem", b =>
+                {
+                    b.HasOne("Dotnetable.Domain.Entities.PriceList", "PriceList")
+                        .WithMany("PriceListItems")
+                        .HasForeignKey("PriceListID")
+                        .OnDelete(DeleteBehavior.Cascade)
+                        .IsRequired()
+                        .HasConstraintName("FK_PriceListItems_PriceLists");
+
+                    b.Navigation("PriceList");
+                });
+
             modelBuilder.Entity("Dotnetable.Domain.Entities.Product", b =>
                 {
                     b.HasOne("Dotnetable.Domain.Entities.Brand", "Brand")
@@ -10938,6 +11119,8 @@ namespace Dotnetable.Migrations.SqlServer.Migrations
 
                     b.Navigation("MenuItems");
 
+                    b.Navigation("PriceLists");
+
                     b.Navigation("Products");
                 });
 
@@ -11326,6 +11509,11 @@ namespace Dotnetable.Migrations.SqlServer.Migrations
                     b.Navigation("Posts");
                 });
 
+            modelBuilder.Entity("Dotnetable.Domain.Entities.PriceList", b =>
+                {
+                    b.Navigation("PriceListItems");
+                });
+
             modelBuilder.Entity("Dotnetable.Domain.Entities.Product", b =>
                 {
                     b.Navigation("MenuItems");
@@ -11367,6 +11555,8 @@ namespace Dotnetable.Migrations.SqlServer.Migrations
                     b.Navigation("InverseParentCategory");
 
                     b.Navigation("MenuItems");
+
+                    b.Navigation("PriceLists");
 
                     b.Navigation("ProductCategoryAttributes");
 
@@ -11600,6 +11790,8 @@ namespace Dotnetable.Migrations.SqlServer.Migrations
                     b.Navigation("PostTypes");
 
                     b.Navigation("Posts");
+
+                    b.Navigation("PriceLists");
 
                     b.Navigation("ProductCategories");
 

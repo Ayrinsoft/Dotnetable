@@ -101,6 +101,12 @@ public static class RoleKeys
     public const string ProductsEdit = "products.edit";
     public const string ProductsDelete = "products.delete";
 
+    // ── Catalog: FX-linked price lists (admin) ───────────────────────
+    public const string PriceListsView = "pricelists.view";
+    public const string PriceListsInsert = "pricelists.insert";
+    public const string PriceListsEdit = "pricelists.edit";
+    public const string PriceListsDelete = "pricelists.delete";
+
     // ── Catalog taxonomy: categories, attributes, brands (admin) ────
     public const string CatalogTaxonomyView = "catalogtaxonomy.view";
     public const string CatalogTaxonomyInsert = "catalogtaxonomy.insert";

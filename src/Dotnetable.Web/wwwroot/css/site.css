@@ -250,3 +250,34 @@ a { text-decoration: none; }
     display: inline-block;
 }
 
+/* ---------- Price lists ---------- */
+.price-list-card {
+    border: 1px solid var(--site-border);
+    border-radius: var(--site-radius);
+    box-shadow: none;
+    transition: box-shadow .2s ease, transform .2s ease;
+}
+.price-list-card:hover {
+    box-shadow: var(--site-shadow);
+    transform: translateY(-2px);
+}
+.price-list-table-wrap {
+    border: 1px solid var(--site-border);
+    border-radius: var(--site-radius);
+    overflow: hidden;
+}
+.price-list-table {
+    margin-bottom: 0;
+}
+.price-list-table thead th {
+    background: var(--site-light);
+    font-size: .85rem;
+    text-transform: uppercase;
+    letter-spacing: .04em;
+}
+.price-list-group th {
+    background: var(--site-dark);
+    color: #fff;
+    font-weight: 600;
+}
+

@@ -17,4 +17,10 @@ public interface ICurrencyRateService
 
     /// <summary>Marks one rate as the website's default and clears the flag on all others.</summary>
     Task<bool> SetDefaultAsync(int currencyRateId, int websiteId, CancellationToken ct = default);
+
+    /// <summary>
+    /// Updates the default (or first) USD→local rate for a website. Used by catalog price lists
+    /// so operators can change today's dollar without opening the rate grid.
+    /// </summary>
+    Task<CurrencyRate?> UpdateDefaultUsdToCurrencyAsync(int websiteId, decimal usdToCurrency, CancellationToken ct = default);
 }

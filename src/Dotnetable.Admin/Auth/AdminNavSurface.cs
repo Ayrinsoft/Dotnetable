@@ -115,9 +115,10 @@ public static class AdminNavSurface
         WebsiteType.DigitalCatalog or WebsiteType.RealEstate or WebsiteType.Restaurant =>
         [
             // List/prices without full checkout stack in Basic (unlock via Advanced).
+            // Finance is included so the daily USD rate that drives price lists can be updated.
             AdminNavArea.Users, AdminNavArea.Website, AdminNavArea.Messages,
             AdminNavArea.ContentCore, AdminNavArea.Media,
-            AdminNavArea.Catalog, AdminNavArea.Inventory,
+            AdminNavArea.Catalog, AdminNavArea.Inventory, AdminNavArea.Finance,
         ],
 
         WebsiteType.Crowdfunding =>

@@ -965,8 +965,8 @@ window.DOCS_ADMIN = {
       id: "catalog",
       title: { en: "Catalog", fa: "کاتالوگ" },
       summary: {
-        en: "Products, categories, attributes, brands, warranties, vendors.",
-        fa: "محصول، دسته، ویژگی، برند، گارانتی، فروشنده.",
+        en: "Products, price lists, categories, attributes, brands, warranties, vendors.",
+        fa: "محصول، لیست قیمت، دسته، ویژگی، برند، گارانتی، فروشنده.",
       },
       pages: [
         {
@@ -1042,10 +1042,62 @@ window.DOCS_ADMIN = {
               fa: "بدون لیستینگ فروشگاه / موجودی on-hand ممکن است قابل‌فروش نباشد (ببینید Inventory).",
             },
           ],
-          relatedApi: ["products", "inventory"],
-          related: ["catalog-categories", "attributes", "brands", "vendors", "inventory-stock"],
+          relatedApi: ["products", "inventory", "price-lists"],
+          related: ["price-lists", "catalog-categories", "attributes", "brands", "vendors", "inventory-stock"],
           keywords: [
             { en: "sku variant price", fa: "کد کالا واریانت قیمت" },
+          ],
+        },
+        {
+          id: "price-lists",
+          title: { en: "Price lists", fa: "لیست قیمت" },
+          adminPath: "/catalog/price-lists",
+          summary: {
+            en: "Publish a rate table with no shop products (steel profiles, sheets, pipes). Products and USD follow are optional extras.",
+            fa: "جدول نرخ بدون محصول فروشگاه (پروفیل، ورق، لوله استیل). کالا و دنبال‌کردن دلار اختیاری‌اند.",
+          },
+          purpose: [
+            {
+              en: "**No products required.** A steel mill types rows (group, spec, unit, price) and the storefront shows them as a list with last-updated date.",
+              fa: "**محصول لازم نیست.** کارخانه استیل ردیف می‌نویسد (گروه، مشخصات، واحد، قیمت) و سایت همان را به‌صورت لیست با تاریخ آخرین به‌روزرسانی نشان می‌دهد.",
+            },
+            {
+              en: "**USD is optional.** Default is the price you type in site currency. Opt into “Follow USD” only if a dollar base should move with the rate.",
+              fa: "**دلار اختیاری است.** پیش‌فرض همان قیمت ارز سایت است. «دنبال‌کردن دلار» فقط اگر قیمت پایه دلاری با نرخ حرکت کند.",
+            },
+            {
+              en: "**Shop products** is an optional second source if you already have a catalog.",
+              fa: "**کالاهای فروشگاه** منبع دوم اختیاری است اگر کاتالوگ دارید.",
+            },
+          ],
+          howTo: [
+            {
+              en: "Catalog → Price lists → New. Keep “Typed list — no products needed”. Title + slug → `/price-lists/{slug}` and the home page.",
+              fa: "Catalog → Price lists → New. همان «لیست دستی — بدون محصول» را نگه دارید. عنوان و اسلاگ → `/price-lists/{slug}` و صفحهٔ اصلی.",
+            },
+            {
+              en: "Open the list → Add row: e.g. group Profiles, title 40×40, unit kg, price. Repeat for sheets/pipes. Publish.",
+              fa: "لیست را باز کنید → افزودن ردیف: مثلاً گروه پروفیل، عنوان ۴۰×۴۰، واحد کیلو، قیمت. برای ورق و لوله تکرار کنید. منتشر کنید.",
+            },
+            {
+              en: "Optional: Follow USD, or switch the list to shop products later.",
+              fa: "اختیاری: دنبال‌کردن دلار، یا بعداً منبع را به کالاهای فروشگاه عوض کنید.",
+            },
+          ],
+          tips: [
+            {
+              en: "Enabled by default for commerce website types (catalog, store, auction, real estate, restaurant, crowdfunding).",
+              fa: "برای تایپ‌های فروشگاهی (کاتالوگ، فروشگاه، حراج، املاک، رستوران، crowdfunding) به‌صورت پیش‌فرض فعال است.",
+            },
+            {
+              en: "Public API: `GET /api/PriceLists` and `GET /api/PriceLists/{slug}` (website key).",
+              fa: "API عمومی: `GET /api/PriceLists` و `GET /api/PriceLists/{slug}` (کلید وب‌سایت).",
+            },
+          ],
+          relatedApi: ["price-lists"],
+          related: ["products", "currency-rates"],
+          keywords: [
+            { en: "price list steel rates no products", fa: "لیست قیمت استیل بدون محصول" },
           ],
         },
         {

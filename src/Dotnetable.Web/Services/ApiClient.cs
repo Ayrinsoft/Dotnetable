@@ -431,7 +431,23 @@ public class ApiClient
         catch (HttpRequestException) { return Array.Empty<BrandDto>(); }
     }
 
+    // ── Price lists ──────────────────────────────────────────────────
+
+    public async Task<IReadOnlyList<PriceListSummaryDto>> GetPriceListsAsync(CancellationToken ct = default)
+    {
+        try
+        {
+            return await _http.GetFromJsonAsync<List<PriceListSummaryDto>>("api/pricelists", ct)
+                   ?? (IReadOnlyList<PriceListSummaryDto>)Array.Empty<PriceListSummaryDto>();
+        }
+        catch (HttpRequestException) { return Array.Empty<PriceListSummaryDto>(); }
+    }
+
+    public Task<PriceListDetailDto?> GetPriceListAsync(string slug, CancellationToken ct = default) =>
+        GetOrNullAsync<PriceListDetailDto>($"api/pricelists/{Uri.EscapeDataString(slug)}", ct);
+
     // ── Cart ─────────────────────────────────────────────────────────
+
 
     public async Task<CartViewDto?> GetCartAsync(string? currency = null, CancellationToken ct = default)
     {
