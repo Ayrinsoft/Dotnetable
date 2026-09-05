@@ -1,5 +1,6 @@
 using Dotnetable.Infrastructure.Data;
 using Microsoft.EntityFrameworkCore;
+using Microsoft.Extensions.DependencyInjection;
 
 namespace Dotnetable.API.Cors;
 
@@ -15,7 +16,10 @@ namespace Dotnetable.API.Cors;
 /// </summary>
 public class DynamicCorsOriginProvider
 {
-    private readonly IDbContextFactory<AppDbContext> _contextFactory;
+    // IDbContextFactory<AppDbContext> is registered Scoped (its options resolve IDatabaseConfigStore
+    // fresh per scope, so Setup's just-saved connection string is picked up without a restart) — a
+    // Singleton cannot consume it directly, so a scope is opened per refresh instead.
+    private readonly IServiceScopeFactory _scopeFactory;
     private readonly IHostEnvironment _environment;
     private readonly ILogger<DynamicCorsOriginProvider> _logger;
     private readonly HashSet<string> _staticOrigins;
@@ -23,12 +27,12 @@ public class DynamicCorsOriginProvider
     private volatile HashSet<string> _websiteOrigins = new(StringComparer.OrdinalIgnoreCase);
 
     public DynamicCorsOriginProvider(
-        IDbContextFactory<AppDbContext> contextFactory,
+        IServiceScopeFactory scopeFactory,
         IConfiguration configuration,
         IHostEnvironment environment,
         ILogger<DynamicCorsOriginProvider> logger)
     {
-        _contextFactory = contextFactory;
+        _scopeFactory = scopeFactory;
         _environment = environment;
         _logger = logger;
         _staticOrigins = new HashSet<string>(
@@ -55,7 +59,9 @@ public class DynamicCorsOriginProvider
     {
         try
         {
-            await using var context = await _contextFactory.CreateDbContextAsync(ct);
+            using var scope = _scopeFactory.CreateScope();
+            var contextFactory = scope.ServiceProvider.GetRequiredService<IDbContextFactory<AppDbContext>>();
+            await using var context = await contextFactory.CreateDbContextAsync(ct);
             var addresses = await context.Websites
                 .Where(w => w.Active)
                 .Select(w => w.WebsiteAddress)

@@ -27,8 +27,13 @@ public static class Observability
     public static IHostBuilder UseDotnetableLogging(this IHostBuilder host, string applicationName) =>
         host.UseSerilog((context, services, configuration) =>
         {
-            var logDirectory = context.Configuration["Logging:FilePath"]
-                ?? Path.Combine(context.HostingEnvironment.ContentRootPath, "App_Data", "logs");
+            // "" (not just absent) means "use the default" — appsettings.json ships FilePath as ""
+            // so a fresh clone doesn't need to fill it in, so a plain ?? here would pass an empty
+            // path straight to Directory.CreateDirectory and throw.
+            var configuredPath = context.Configuration["Logging:FilePath"];
+            var logDirectory = string.IsNullOrWhiteSpace(configuredPath)
+                ? Path.Combine(context.HostingEnvironment.ContentRootPath, "App_Data", "logs")
+                : configuredPath;
             Directory.CreateDirectory(logDirectory);
 
             configuration
