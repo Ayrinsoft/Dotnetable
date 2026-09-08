@@ -1807,6 +1807,32 @@ window.DOCS_API = {
             },
           ],
         },
+        {
+          id: "feeds",
+          title: { en: "Product feeds", fa: "فید محصولات" },
+          summary: {
+            en: "The crawlable product feed for one marketplace channel (Torob, Emalls, Google Shopping).",
+            fa: "فید قابل کرال محصولات برای یک کانال مارکت‌پلیس (ترب، اِمالز، گوگل شاپینگ).",
+          },
+          relatedAdmin: ["marketplace", "products"],
+          endpoints: [
+            {
+              title: { en: "Get feed", fa: "گرفتن فید" },
+              method: "GET",
+              path: "/feeds/{feedToken}",
+              auth: "none",
+              notes: {
+                en: "The token is generated per channel and shown on its card in Admin → Catalog → Search Engines. It replaces a website id on purpose: a catalog should not be enumerable. An inactive channel or an unknown token returns 404. Content type follows the channel's provider — RSS 2.0 for Google Merchant Center, XML or JSON for a custom feed.",
+                fa: "توکن برای هر کانال ساخته می‌شود و روی کارت همان کانال در ادمین ← کاتالوگ ← موتورهای جستجو نمایش داده می‌شود. عمداً جای شناسه سایت را گرفته است تا کاتالوگ قابل شمارش نباشد. کانال غیرفعال یا توکن ناشناس ۴۰۴ برمی‌گرداند. نوع محتوا تابع Provider کانال است — RSS 2.0 برای گوگل مرچنت سنتر و XML یا JSON برای فید سفارشی.",
+              },
+              request: { body: "GET /feeds/9f2c41ab7d0e4c1b8a35d6e2f0c71b94" },
+              response: {
+                status: 200,
+                body: '<?xml version="1.0" encoding="utf-8"?>\n<rss xmlns:g="http://base.google.com/ns/1.0" version="2.0">\n  <channel>\n    <item>\n      <g:id>SKU-1</g:id>\n      <g:title>Blue Shirt</g:title>\n      <g:price>250000 IRR</g:price>\n      <g:availability>in stock</g:availability>\n    </item>\n  </channel>\n</rss>',
+              },
+            },
+          ],
+        },
       ],
     },
 

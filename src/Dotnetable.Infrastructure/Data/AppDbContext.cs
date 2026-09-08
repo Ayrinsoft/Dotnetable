@@ -112,6 +112,14 @@ public partial class AppDbContext : DbContext
 
     public virtual DbSet<LoginTry> LoginTries { get; set; }
 
+    public virtual DbSet<MarketplaceChannel> MarketplaceChannels { get; set; }
+
+    public virtual DbSet<MarketplaceChannelCategory> MarketplaceChannelCategories { get; set; }
+
+    public virtual DbSet<MarketplaceChannelProduct> MarketplaceChannelProducts { get; set; }
+
+    public virtual DbSet<MarketplaceSyncLog> MarketplaceSyncLogs { get; set; }
+
     public virtual DbSet<MediaSet> MediaSets { get; set; }
 
     public virtual DbSet<MediaSetItem> MediaSetItems { get; set; }
@@ -3827,6 +3835,95 @@ public partial class AppDbContext : DbContext
                 .HasForeignKey(d => d.WebsiteID)
                 .OnDelete(DeleteBehavior.ClientSetNull)
                 .HasConstraintName("FK_WebsiteClientRefreshTokens_Websites");
+        });
+
+        modelBuilder.Entity<MarketplaceChannel>(entity =>
+        {
+            entity.HasKey(e => e.MarketplaceChannelID);
+
+            entity.HasIndex(e => e.WebsiteID, "IX_MarketplaceChannels_WebsiteID");
+            entity.HasIndex(e => e.FeedToken, "UQ_MarketplaceChannels_FeedToken").IsUnique();
+
+            entity.Property(e => e.Provider)
+                .HasMaxLength(50)
+                .IsUnicode(false);
+            entity.Property(e => e.Title).HasMaxLength(150);
+            entity.Property(e => e.SettingsJSON).HasMaxLength(4000);
+            entity.Property(e => e.FeedToken)
+                .HasMaxLength(64)
+                .IsUnicode(false);
+            entity.Property(e => e.IncludeAllProducts).HasDefaultValue(true);
+            entity.Property(e => e.LastSyncMessage).HasMaxLength(1000);
+            entity.Property(e => e.LastSyncAt).HasPrecision(0);
+            entity.Property(e => e.CreatedAt).HasPrecision(0);
+
+            entity.HasOne(d => d.Website).WithMany(p => p.MarketplaceChannels)
+                .HasForeignKey(d => d.WebsiteID)
+                .OnDelete(DeleteBehavior.ClientSetNull)
+                .HasConstraintName("FK_MarketplaceChannels_Websites");
+        });
+
+        modelBuilder.Entity<MarketplaceChannelCategory>(entity =>
+        {
+            entity.HasKey(e => e.MarketplaceChannelCategoryID);
+
+            entity.HasIndex(e => new { e.MarketplaceChannelID, e.ProductCategoryID },
+                "UQ_MarketplaceChannelCategories_Channel_Category").IsUnique();
+
+            entity.Property(e => e.IsIncluded).HasDefaultValue(true);
+            entity.Property(e => e.RemoteCategoryID).HasMaxLength(100);
+            entity.Property(e => e.RemoteCategoryPath).HasMaxLength(400);
+
+            entity.HasOne(d => d.MarketplaceChannel).WithMany(p => p.MarketplaceChannelCategories)
+                .HasForeignKey(d => d.MarketplaceChannelID)
+                .OnDelete(DeleteBehavior.Cascade)
+                .HasConstraintName("FK_MarketplaceChannelCategories_MarketplaceChannels");
+
+            entity.HasOne(d => d.ProductCategory).WithMany(p => p.MarketplaceChannelCategories)
+                .HasForeignKey(d => d.ProductCategoryID)
+                .OnDelete(DeleteBehavior.Cascade)
+                .HasConstraintName("FK_MarketplaceChannelCategories_ProductCategories");
+        });
+
+        modelBuilder.Entity<MarketplaceChannelProduct>(entity =>
+        {
+            entity.HasKey(e => e.MarketplaceChannelProductID);
+
+            entity.HasIndex(e => new { e.MarketplaceChannelID, e.ProductID },
+                "UQ_MarketplaceChannelProducts_Channel_Product").IsUnique();
+
+            entity.Property(e => e.RemoteProductID).HasMaxLength(100);
+            entity.Property(e => e.LastSyncedAt).HasPrecision(0);
+
+            entity.HasOne(d => d.MarketplaceChannel).WithMany(p => p.MarketplaceChannelProducts)
+                .HasForeignKey(d => d.MarketplaceChannelID)
+                .OnDelete(DeleteBehavior.Cascade)
+                .HasConstraintName("FK_MarketplaceChannelProducts_MarketplaceChannels");
+
+            entity.HasOne(d => d.Product).WithMany(p => p.MarketplaceChannelProducts)
+                .HasForeignKey(d => d.ProductID)
+                .OnDelete(DeleteBehavior.Cascade)
+                .HasConstraintName("FK_MarketplaceChannelProducts_Products");
+        });
+
+        modelBuilder.Entity<MarketplaceSyncLog>(entity =>
+        {
+            entity.HasKey(e => e.MarketplaceSyncLogID);
+
+            entity.HasIndex(e => new { e.MarketplaceChannelID, e.MarketplaceSyncLogID },
+                "IX_MarketplaceSyncLogs_Channel");
+
+            entity.Property(e => e.TriggeredBy)
+                .HasMaxLength(20)
+                .IsUnicode(false);
+            entity.Property(e => e.Message).HasMaxLength(1000);
+            entity.Property(e => e.StartedAt).HasPrecision(0);
+            entity.Property(e => e.FinishedAt).HasPrecision(0);
+
+            entity.HasOne(d => d.MarketplaceChannel).WithMany(p => p.MarketplaceSyncLogs)
+                .HasForeignKey(d => d.MarketplaceChannelID)
+                .OnDelete(DeleteBehavior.Cascade)
+                .HasConstraintName("FK_MarketplaceSyncLogs_MarketplaceChannels");
         });
 
         modelBuilder.Entity<WebsiteSmsSetting>(entity =>

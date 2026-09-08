@@ -79,6 +79,8 @@ public partial class Product
 
     public virtual ICollection<ProductAttributeValue> ProductAttributeValues { get; set; } = new List<ProductAttributeValue>();
 
+    public virtual ICollection<MarketplaceChannelProduct> MarketplaceChannelProducts { get; set; } = new List<MarketplaceChannelProduct>();
+
     public virtual ICollection<ProductCategoryMap> ProductCategoryMaps { get; set; } = new List<ProductCategoryMap>();
 
     public virtual ICollection<ProductCategoryRelation> ProductCategoryRelations { get; set; } = new List<ProductCategoryRelation>();

@@ -1187,6 +1187,56 @@ window.DOCS_ADMIN = {
           related: ["products"],
         },
         {
+          id: "marketplace",
+          title: { en: "Search Engines", fa: "موتورهای جستجوی محصول" },
+          adminPath: "/catalog/marketplace",
+          summary: {
+            en: "Product feeds and marketplace pushes: Torob, Emalls, Google Shopping, Digikala, Basalam.",
+            fa: "فید محصولات و ارسال به مارکت‌پلیس‌ها: ترب، اِمالز، گوگل شاپینگ، دیجی‌کالا، باسلام.",
+          },
+          purpose: {
+            en: "Register one channel per engine. Feed channels publish a crawlable URL the engine reads on its own schedule; API channels push the catalog to an engine that issues seller credentials.",
+            fa: "برای هر موتور یک کانال ثبت کنید. کانال‌های فیدی یک آدرس عمومی منتشر می‌کنند که موتور خودش دوره‌ای می‌خواند؛ کانال‌های API کاتالوگ را به موتوری می‌فرستند که به فروشنده کلید داده است.",
+          },
+          howTo: [
+            {
+              en: "Add Channel → pick the engine. Google Merchant Center needs no credentials; its RSS 2.0 feed is built from the spec.",
+              fa: "افزودن کانال → انتخاب موتور. گوگل مرچنت سنتر نیاز به کلید ندارد؛ فید RSS 2.0 آن طبق مشخصات رسمی ساخته می‌شود.",
+            },
+            {
+              en: "For Torob/Emalls pick “Custom product feed” and type the tag names from the schema that engine gave your shop — the field mapping accepts placeholders like {title}, {price}, {availability}, so no code change is needed.",
+              fa: "برای ترب/اِمالز گزینه «فید سفارشی» را انتخاب کنید و نام تگ‌ها را طبق مستنداتی که آن موتور به فروشگاه شما داده وارد کنید — نگاشت فیلد جای‌نگهدارهایی مثل {title}، {price} و {availability} را می‌پذیرد و نیازی به تغییر کد نیست.",
+            },
+            {
+              en: "Copy the Feed URL from the channel card into the engine's seller panel. The URL carries an unguessable token, so the catalog is not readable by website id.",
+              fa: "آدرس فید را از کارت کانال در پنل فروشندگان آن موتور ثبت کنید. این آدرس یک توکن غیرقابل‌حدس دارد، بنابراین کاتالوگ با شناسه سایت قابل خواندن نیست.",
+            },
+            {
+              en: "For Digikala Seller Center or Basalam pick “Marketplace API” and paste the endpoint, token and body template from their seller documentation, then set an auto-sync interval.",
+              fa: "برای دیجی‌کالا سلر سنتر یا باسلام گزینه «API مارکت‌پلیس» را انتخاب کنید و اندپوینت، توکن و قالب بدنه را از مستندات فروشندگی آن‌ها وارد کنید، سپس بازه همگام‌سازی خودکار را تنظیم کنید.",
+            },
+            {
+              en: "Categories opens the per-channel rules: tick which categories are offered (when the channel is not set to send everything) and map each one to the engine's own category id/path.",
+              fa: "دکمه «دسته‌بندی‌ها» قواعد اختصاصی همان کانال را باز می‌کند: انتخاب دسته‌های قابل ارسال (وقتی کانال روی ارسال همه‌چیز نیست) و نگاشت هر دسته به شناسه/مسیر دسته در آن موتور.",
+            },
+            {
+              en: "Sync Now runs the channel immediately and writes a log row; the history icon shows the last runs with item counts and any rejection message.",
+              fa: "«همگام‌سازی فوری» کانال را بی‌درنگ اجرا و یک ردیف لاگ ثبت می‌کند؛ آیکن تاریخچه اجراهای اخیر را با تعداد اقلام و پیام خطای احتمالی نشان می‌دهد.",
+            },
+          ],
+          tips: [
+            {
+              en: "Price divisor exists because most Iranian engines bill in Toman while the shop prices in Rial — set it to 10 there, or the engine shows a ten-times price.",
+              fa: "«تقسیم‌کننده قیمت» برای این است که بیشتر موتورهای ایرانی قیمت را به تومان می‌خواهند در حالی که فروشگاه به ریال قیمت‌گذاری می‌کند — آن را روی ۱۰ بگذارید وگرنه قیمت ده‌برابر نمایش داده می‌شود.",
+            },
+            {
+              en: "Only active, non catalog-only products with an active variant are offered, and stock comes from inventory on hand minus reservations.",
+              fa: "فقط محصولات فعال و غیر «صرفاً کاتالوگ» که واریانت فعال دارند ارسال می‌شوند و موجودی از «موجودی انبار منهای رزروشده» محاسبه می‌شود.",
+            },
+          ],
+          related: ["products", "catalog-categories", "inventory"],
+        },
+        {
           id: "vendors",
           title: { en: "Vendors", fa: "فروشندگان" },
           adminPath: "/catalog/vendors",

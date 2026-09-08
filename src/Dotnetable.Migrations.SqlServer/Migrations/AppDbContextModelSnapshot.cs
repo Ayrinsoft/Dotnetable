@@ -2749,6 +2749,195 @@ namespace Dotnetable.Migrations.SqlServer.Migrations
                     b.ToTable("LoginTries");
                 });
 
+            modelBuilder.Entity("Dotnetable.Domain.Entities.MarketplaceChannel", b =>
+                {
+                    b.Property<int>("MarketplaceChannelID")
+                        .ValueGeneratedOnAdd()
+                        .HasColumnType("int");
+
+                    SqlServerPropertyBuilderExtensions.UseIdentityColumn(b.Property<int>("MarketplaceChannelID"));
+
+                    b.Property<DateTime>("CreatedAt")
+                        .HasPrecision(0)
+                        .HasColumnType("datetime2(0)");
+
+                    b.Property<string>("FeedToken")
+                        .IsRequired()
+                        .HasMaxLength(64)
+                        .IsUnicode(false)
+                        .HasColumnType("varchar(64)");
+
+                    b.Property<bool>("IncludeAllProducts")
+                        .ValueGeneratedOnAdd()
+                        .HasColumnType("bit")
+                        .HasDefaultValue(true);
+
+                    b.Property<bool>("IsActive")
+                        .HasColumnType("bit");
+
+                    b.Property<DateTime?>("LastSyncAt")
+                        .HasPrecision(0)
+                        .HasColumnType("datetime2(0)");
+
+                    b.Property<string>("LastSyncMessage")
+                        .HasMaxLength(1000)
+                        .HasColumnType("nvarchar(1000)");
+
+                    b.Property<byte?>("LastSyncStatus")
+                        .HasColumnType("tinyint");
+
+                    b.Property<string>("Provider")
+                        .IsRequired()
+                        .HasMaxLength(50)
+                        .IsUnicode(false)
+                        .HasColumnType("varchar(50)");
+
+                    b.Property<string>("SettingsJSON")
+                        .IsRequired()
+                        .HasMaxLength(4000)
+                        .HasColumnType("nvarchar(4000)");
+
+                    b.Property<int>("SortOrder")
+                        .HasColumnType("int");
+
+                    b.Property<int>("SyncIntervalMinutes")
+                        .HasColumnType("int");
+
+                    b.Property<string>("Title")
+                        .IsRequired()
+                        .HasMaxLength(150)
+                        .HasColumnType("nvarchar(150)");
+
+                    b.Property<int>("WebsiteID")
+                        .HasColumnType("int");
+
+                    b.HasKey("MarketplaceChannelID");
+
+                    b.HasIndex(new[] { "WebsiteID" }, "IX_MarketplaceChannels_WebsiteID");
+
+                    b.HasIndex(new[] { "FeedToken" }, "UQ_MarketplaceChannels_FeedToken")
+                        .IsUnique();
+
+                    b.ToTable("MarketplaceChannels");
+                });
+
+            modelBuilder.Entity("Dotnetable.Domain.Entities.MarketplaceChannelCategory", b =>
+                {
+                    b.Property<int>("MarketplaceChannelCategoryID")
+                        .ValueGeneratedOnAdd()
+                        .HasColumnType("int");
+
+                    SqlServerPropertyBuilderExtensions.UseIdentityColumn(b.Property<int>("MarketplaceChannelCategoryID"));
+
+                    b.Property<bool>("IsIncluded")
+                        .ValueGeneratedOnAdd()
+                        .HasColumnType("bit")
+                        .HasDefaultValue(true);
+
+                    b.Property<int>("MarketplaceChannelID")
+                        .HasColumnType("int");
+
+                    b.Property<int>("ProductCategoryID")
+                        .HasColumnType("int");
+
+                    b.Property<string>("RemoteCategoryID")
+                        .HasMaxLength(100)
+                        .HasColumnType("nvarchar(100)");
+
+                    b.Property<string>("RemoteCategoryPath")
+                        .HasMaxLength(400)
+                        .HasColumnType("nvarchar(400)");
+
+                    b.HasKey("MarketplaceChannelCategoryID");
+
+                    b.HasIndex("ProductCategoryID");
+
+                    b.HasIndex(new[] { "MarketplaceChannelID", "ProductCategoryID" }, "UQ_MarketplaceChannelCategories_Channel_Category")
+                        .IsUnique();
+
+                    b.ToTable("MarketplaceChannelCategories");
+                });
+
+            modelBuilder.Entity("Dotnetable.Domain.Entities.MarketplaceChannelProduct", b =>
+                {
+                    b.Property<int>("MarketplaceChannelProductID")
+                        .ValueGeneratedOnAdd()
+                        .HasColumnType("int");
+
+                    SqlServerPropertyBuilderExtensions.UseIdentityColumn(b.Property<int>("MarketplaceChannelProductID"));
+
+                    b.Property<bool>("IsIncluded")
+                        .HasColumnType("bit");
+
+                    b.Property<DateTime?>("LastSyncedAt")
+                        .HasPrecision(0)
+                        .HasColumnType("datetime2(0)");
+
+                    b.Property<int>("MarketplaceChannelID")
+                        .HasColumnType("int");
+
+                    b.Property<int>("ProductID")
+                        .HasColumnType("int");
+
+                    b.Property<string>("RemoteProductID")
+                        .HasMaxLength(100)
+                        .HasColumnType("nvarchar(100)");
+
+                    b.HasKey("MarketplaceChannelProductID");
+
+                    b.HasIndex("ProductID");
+
+                    b.HasIndex(new[] { "MarketplaceChannelID", "ProductID" }, "UQ_MarketplaceChannelProducts_Channel_Product")
+                        .IsUnique();
+
+                    b.ToTable("MarketplaceChannelProducts");
+                });
+
+            modelBuilder.Entity("Dotnetable.Domain.Entities.MarketplaceSyncLog", b =>
+                {
+                    b.Property<int>("MarketplaceSyncLogID")
+                        .ValueGeneratedOnAdd()
+                        .HasColumnType("int");
+
+                    SqlServerPropertyBuilderExtensions.UseIdentityColumn(b.Property<int>("MarketplaceSyncLogID"));
+
+                    b.Property<int>("FailedCount")
+                        .HasColumnType("int");
+
+                    b.Property<DateTime?>("FinishedAt")
+                        .HasPrecision(0)
+                        .HasColumnType("datetime2(0)");
+
+                    b.Property<int>("ItemCount")
+                        .HasColumnType("int");
+
+                    b.Property<int>("MarketplaceChannelID")
+                        .HasColumnType("int");
+
+                    b.Property<string>("Message")
+                        .HasMaxLength(1000)
+                        .HasColumnType("nvarchar(1000)");
+
+                    b.Property<DateTime>("StartedAt")
+                        .HasPrecision(0)
+                        .HasColumnType("datetime2(0)");
+
+                    b.Property<byte>("Status")
+                        .HasColumnType("tinyint");
+
+                    b.Property<string>("TriggeredBy")
+                        .IsRequired()
+                        .HasMaxLength(20)
+                        .IsUnicode(false)
+                        .HasColumnType("varchar(20)");
+
+                    b.HasKey("MarketplaceSyncLogID");
+
+                    b.HasIndex(new[] { "MarketplaceChannelID", "MarketplaceSyncLogID" }, "IX_MarketplaceSyncLogs_Channel");
+
+                    b.ToTable("MarketplaceSyncLogs");
+                });
+
             modelBuilder.Entity("Dotnetable.Domain.Entities.MediaSet", b =>
                 {
                     b.Property<int>("MediaSetID")
@@ -8902,6 +9091,71 @@ namespace Dotnetable.Migrations.SqlServer.Migrations
                     b.Navigation("Website");
                 });
 
+            modelBuilder.Entity("Dotnetable.Domain.Entities.MarketplaceChannel", b =>
+                {
+                    b.HasOne("Dotnetable.Domain.Entities.Website", "Website")
+                        .WithMany("MarketplaceChannels")
+                        .HasForeignKey("WebsiteID")
+                        .IsRequired()
+                        .HasConstraintName("FK_MarketplaceChannels_Websites");
+
+                    b.Navigation("Website");
+                });
+
+            modelBuilder.Entity("Dotnetable.Domain.Entities.MarketplaceChannelCategory", b =>
+                {
+                    b.HasOne("Dotnetable.Domain.Entities.MarketplaceChannel", "MarketplaceChannel")
+                        .WithMany("MarketplaceChannelCategories")
+                        .HasForeignKey("MarketplaceChannelID")
+                        .OnDelete(DeleteBehavior.Cascade)
+                        .IsRequired()
+                        .HasConstraintName("FK_MarketplaceChannelCategories_MarketplaceChannels");
+
+                    b.HasOne("Dotnetable.Domain.Entities.ProductCategory", "ProductCategory")
+                        .WithMany("MarketplaceChannelCategories")
+                        .HasForeignKey("ProductCategoryID")
+                        .OnDelete(DeleteBehavior.Cascade)
+                        .IsRequired()
+                        .HasConstraintName("FK_MarketplaceChannelCategories_ProductCategories");
+
+                    b.Navigation("MarketplaceChannel");
+
+                    b.Navigation("ProductCategory");
+                });
+
+            modelBuilder.Entity("Dotnetable.Domain.Entities.MarketplaceChannelProduct", b =>
+                {
+                    b.HasOne("Dotnetable.Domain.Entities.MarketplaceChannel", "MarketplaceChannel")
+                        .WithMany("MarketplaceChannelProducts")
+                        .HasForeignKey("MarketplaceChannelID")
+                        .OnDelete(DeleteBehavior.Cascade)
+                        .IsRequired()
+                        .HasConstraintName("FK_MarketplaceChannelProducts_MarketplaceChannels");
+
+                    b.HasOne("Dotnetable.Domain.Entities.Product", "Product")
+                        .WithMany("MarketplaceChannelProducts")
+                        .HasForeignKey("ProductID")
+                        .OnDelete(DeleteBehavior.Cascade)
+                        .IsRequired()
+                        .HasConstraintName("FK_MarketplaceChannelProducts_Products");
+
+                    b.Navigation("MarketplaceChannel");
+
+                    b.Navigation("Product");
+                });
+
+            modelBuilder.Entity("Dotnetable.Domain.Entities.MarketplaceSyncLog", b =>
+                {
+                    b.HasOne("Dotnetable.Domain.Entities.MarketplaceChannel", "MarketplaceChannel")
+                        .WithMany("MarketplaceSyncLogs")
+                        .HasForeignKey("MarketplaceChannelID")
+                        .OnDelete(DeleteBehavior.Cascade)
+                        .IsRequired()
+                        .HasConstraintName("FK_MarketplaceSyncLogs_MarketplaceChannels");
+
+                    b.Navigation("MarketplaceChannel");
+                });
+
             modelBuilder.Entity("Dotnetable.Domain.Entities.MediaSet", b =>
                 {
                     b.HasOne("Dotnetable.Domain.Entities.Website", "Website")
@@ -11338,6 +11592,15 @@ namespace Dotnetable.Migrations.SqlServer.Migrations
                     b.Navigation("LocalizationValues");
                 });
 
+            modelBuilder.Entity("Dotnetable.Domain.Entities.MarketplaceChannel", b =>
+                {
+                    b.Navigation("MarketplaceChannelCategories");
+
+                    b.Navigation("MarketplaceChannelProducts");
+
+                    b.Navigation("MarketplaceSyncLogs");
+                });
+
             modelBuilder.Entity("Dotnetable.Domain.Entities.MediaSet", b =>
                 {
                     b.Navigation("MediaSetItems");
@@ -11516,6 +11779,8 @@ namespace Dotnetable.Migrations.SqlServer.Migrations
 
             modelBuilder.Entity("Dotnetable.Domain.Entities.Product", b =>
                 {
+                    b.Navigation("MarketplaceChannelProducts");
+
                     b.Navigation("MenuItems");
 
                     b.Navigation("OrderDigitalAssets");
@@ -11553,6 +11818,8 @@ namespace Dotnetable.Migrations.SqlServer.Migrations
             modelBuilder.Entity("Dotnetable.Domain.Entities.ProductCategory", b =>
                 {
                     b.Navigation("InverseParentCategory");
+
+                    b.Navigation("MarketplaceChannelCategories");
 
                     b.Navigation("MenuItems");
 
@@ -11764,6 +12031,8 @@ namespace Dotnetable.Migrations.SqlServer.Migrations
                     b.Navigation("LocalizationKeys");
 
                     b.Navigation("LoginTries");
+
+                    b.Navigation("MarketplaceChannels");
 
                     b.Navigation("MediaSets");
 

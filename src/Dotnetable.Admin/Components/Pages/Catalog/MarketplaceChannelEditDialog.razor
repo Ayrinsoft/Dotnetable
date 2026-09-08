@@ -1,0 +1,308 @@
+@using Dotnetable.Application.DTOs
+@using JsonSerializer = global::System.Text.Json.JsonSerializer
+@inject IMarketplaceChannelService ChannelService
+@inject IMarketplaceProviderRegistry Registry
+@inject ISnackbar Snackbar
+@inject IPageLocalizer L
+
+<MudDialog>
+    <TitleContent>
+        <MudText Typo="Typo.h6">
+            <MudIcon Icon="@Icons.Material.Filled.TravelExplore" Class="me-2" />
+            @(_isNew ? L["marketplace.add", "Add Channel"] : L["marketplace.edit_title", "Edit Channel"])
+        </MudText>
+    </TitleContent>
+    <DialogContent>
+        <MudForm @ref="_form">
+            <MudGrid Spacing="3">
+                <MudItem xs="12" sm="6">
+                    <MudSelect T="string" @bind-Value="_provider" Label="@L["marketplace.provider", "Engine"]"
+                               Variant="Variant.Outlined" Disabled="@(!_isNew)">
+                        @foreach (var p in Registry.All)
+                        {
+                            <MudSelectItem T="string" Value="@p.Key">@p.DisplayName</MudSelectItem>
+                        }
+                    </MudSelect>
+                </MudItem>
+                <MudItem xs="12" sm="6">
+                    <MudTextField @bind-Value="_title" Label="@L["marketplace.title", "Title"]"
+                                  Variant="Variant.Outlined" Required="true"
+                                  HelperText="@L["marketplace.title_hint", "Shown in the admin list only, e.g. Torob"]" />
+                </MudItem>
+
+                @if (_provider == "GoogleShopping")
+                {
+                    <MudItem xs="12" sm="6">
+                        <MudTextField @bind-Value="_google.ShopTitle" Label="@L["marketplace.shop_title", "Shop title"]" Variant="Variant.Outlined" />
+                    </MudItem>
+                    <MudItem xs="12" sm="6">
+                        <MudTextField @bind-Value="_google.CurrencyCode" Label="@L["marketplace.currency", "Currency"]"
+                                      Variant="Variant.Outlined" Placeholder="IRR"
+                                      HelperText="@L["marketplace.currency_hint", "Blank uses the website currency"]" />
+                    </MudItem>
+                    <MudItem xs="12">
+                        <MudTextField @bind-Value="_google.ShopDescription" Label="@L["marketplace.shop_desc", "Shop description"]" Variant="Variant.Outlined" />
+                    </MudItem>
+                    <MudItem xs="12" sm="6">
+                        <MudSelect T="string" @bind-Value="_google.Condition" Label="@L["marketplace.condition", "Condition"]" Variant="Variant.Outlined">
+                            <MudSelectItem T="string" Value="@("new")">new</MudSelectItem>
+                            <MudSelectItem T="string" Value="@("refurbished")">refurbished</MudSelectItem>
+                            <MudSelectItem T="string" Value="@("used")">used</MudSelectItem>
+                        </MudSelect>
+                    </MudItem>
+                    <MudItem xs="12" sm="6">
+                        <MudTextField @bind-Value="_google.DefaultBrand" Label="@L["marketplace.default_brand", "Default brand"]" Variant="Variant.Outlined" />
+                    </MudItem>
+                    <MudItem xs="12">
+                        <MudSwitch T="bool" @bind-Value="_google.IncludeSalePrice" Color="Color.Primary" Label="@L["marketplace.sale_price", "Send discounts as sale_price"]" />
+                        <MudSwitch T="bool" @bind-Value="_google.IncludeGoogleCategory" Color="Color.Primary" Label="@L["marketplace.google_cat", "Send the mapped Google category"]" />
+                        <MudSwitch T="bool" @bind-Value="_google.IncludeOutOfStock" Color="Color.Primary" Label="@L["marketplace.oos", "Keep out-of-stock products in the feed"]" />
+                    </MudItem>
+                }
+                else if (_provider == "GenericFeed")
+                {
+                    <MudItem xs="12">
+                        <MudAlert Severity="Severity.Info" Dense="true" Class="mb-2">
+                            @L["marketplace.generic_feed_hint", "Torob, Emalls and similar engines hand their exact feed schema to registered shops. Enter their tag names here — no code change is needed."]
+                        </MudAlert>
+                    </MudItem>
+                    <MudItem xs="12" sm="4">
+                        <MudSelect T="string" @bind-Value="_feed.Format" Label="@L["marketplace.format", "Format"]" Variant="Variant.Outlined">
+                            <MudSelectItem T="string" Value="@("Xml")">XML</MudSelectItem>
+                            <MudSelectItem T="string" Value="@("Json")">JSON</MudSelectItem>
+                        </MudSelect>
+                    </MudItem>
+                    <MudItem xs="12" sm="4">
+                        <MudTextField @bind-Value="_feed.RootElement" Label="@L["marketplace.root_el", "Root element"]" Variant="Variant.Outlined" />
+                    </MudItem>
+                    <MudItem xs="12" sm="4">
+                        <MudTextField @bind-Value="_feed.ItemElement" Label="@L["marketplace.item_el", "Item element"]" Variant="Variant.Outlined" />
+                    </MudItem>
+                    <MudItem xs="12">
+                        <MudTextField @bind-Value="_fieldMapText" Label="@L["marketplace.field_map", "Field mapping (one per line: tag = template)"]"
+                                      Variant="Variant.Outlined" Lines="8" Class="dn-mono"
+                                      HelperText="@L["marketplace.field_map_hint", "Placeholders: {id} {sku} {barcode} {title} {description} {url} {image} {price} {compareAtPrice} {currency} {availability} {quantity} {brand} {category} {remoteCategoryId} {remoteCategoryPath}"]" />
+                    </MudItem>
+                    <MudItem xs="12" sm="4">
+                        <MudTextField @bind-Value="_feed.InStockValue" Label="@L["marketplace.instock_val", "In-stock value"]" Variant="Variant.Outlined" />
+                    </MudItem>
+                    <MudItem xs="12" sm="4">
+                        <MudTextField @bind-Value="_feed.OutOfStockValue" Label="@L["marketplace.oos_val", "Out-of-stock value"]" Variant="Variant.Outlined" />
+                    </MudItem>
+                    <MudItem xs="12" sm="4">
+                        <MudTextField @bind-Value="_feed.CurrencyCode" Label="@L["marketplace.currency", "Currency"]" Variant="Variant.Outlined" />
+                    </MudItem>
+                    <MudItem xs="12" sm="4">
+                        <MudNumericField T="decimal" @bind-Value="_feed.PriceDivisor" Label="@L["marketplace.price_divisor", "Price divisor"]"
+                                         Variant="Variant.Outlined" Min="0"
+                                         HelperText="@L["marketplace.divisor_hint", "10 turns Rial into Toman"]" />
+                    </MudItem>
+                    <MudItem xs="12" sm="4">
+                        <MudNumericField T="int" @bind-Value="_feed.MaxItems" Label="@L["marketplace.max_items", "Max items (0 = all)"]" Variant="Variant.Outlined" Min="0" />
+                    </MudItem>
+                    <MudItem xs="12" sm="4" Class="d-flex align-center">
+                        <MudSwitch T="bool" @bind-Value="_feed.IncludeOutOfStock" Color="Color.Primary" Label="@L["marketplace.oos", "Keep out-of-stock products"]" />
+                    </MudItem>
+                }
+                else if (_provider == "GenericApi")
+                {
+                    <MudItem xs="12">
+                        <MudAlert Severity="Severity.Warning" Dense="true" Class="mb-2">
+                            @L["marketplace.generic_api_hint", "Digikala Seller Center and Basalam issue the endpoint, token and body schema to approved sellers. Paste those here — nothing is guessed on your behalf."]
+                        </MudAlert>
+                    </MudItem>
+                    <MudItem xs="12" sm="8">
+                        <MudTextField @bind-Value="_api.Url" Label="@L["marketplace.endpoint", "Endpoint URL"]" Variant="Variant.Outlined" Required="true" />
+                    </MudItem>
+                    <MudItem xs="12" sm="4">
+                        <MudSelect T="string" @bind-Value="_api.Method" Label="@L["marketplace.method", "Method"]" Variant="Variant.Outlined">
+                            <MudSelectItem T="string" Value="@("POST")">POST</MudSelectItem>
+                            <MudSelectItem T="string" Value="@("PUT")">PUT</MudSelectItem>
+                            <MudSelectItem T="string" Value="@("PATCH")">PATCH</MudSelectItem>
+                        </MudSelect>
+                    </MudItem>
+                    <MudItem xs="12" sm="6">
+                        <MudTextField @bind-Value="_api.ApiKey" Label="@L["marketplace.api_key", "API key / token"]"
+                                      Variant="Variant.Outlined" InputType="InputType.Password" />
+                    </MudItem>
+                    <MudItem xs="12" sm="6">
+                        <MudTextField @bind-Value="_api.SellerId" Label="@L["marketplace.seller_id", "Seller ID"]" Variant="Variant.Outlined" />
+                    </MudItem>
+                    <MudItem xs="12">
+                        <MudTextField @bind-Value="_headersText" Label="@L["marketplace.headers", "Headers (one per line: name = value)"]"
+                                      Variant="Variant.Outlined" Lines="3" Class="dn-mono"
+                                      HelperText="@L["marketplace.headers_hint", "Placeholders: {apiKey} {sellerId}"]" />
+                    </MudItem>
+                    <MudItem xs="12">
+                        <MudTextField @bind-Value="_api.ItemBodyTemplate" Label="@L["marketplace.body_template", "Item body template"]"
+                                      Variant="Variant.Outlined" Lines="5" Class="dn-mono"
+                                      HelperText="@L["marketplace.body_hint", "Same placeholders as the feed mapping"]" />
+                    </MudItem>
+                    <MudItem xs="12" sm="4">
+                        <MudNumericField T="int" @bind-Value="_api.BatchSize" Label="@L["marketplace.batch_size", "Items per request"]" Variant="Variant.Outlined" Min="1" />
+                    </MudItem>
+                    <MudItem xs="12" sm="8">
+                        <MudTextField @bind-Value="_api.BatchWrapper" Label="@L["marketplace.batch_wrapper", "Batch envelope"]"
+                                      Variant="Variant.Outlined" Class="dn-mono" Disabled="@(_api.BatchSize <= 1)" />
+                    </MudItem>
+                    <MudItem xs="12" sm="6">
+                        <MudTextField @bind-Value="_api.SuccessContains" Label="@L["marketplace.success_contains", "Response must contain"]" Variant="Variant.Outlined" />
+                    </MudItem>
+                    <MudItem xs="12" sm="3">
+                        <MudNumericField T="decimal" @bind-Value="_api.PriceDivisor" Label="@L["marketplace.price_divisor", "Price divisor"]" Variant="Variant.Outlined" Min="0" />
+                    </MudItem>
+                    <MudItem xs="12" sm="3" Class="d-flex align-center">
+                        <MudSwitch T="bool" @bind-Value="_api.IncludeOutOfStock" Color="Color.Primary" Label="@L["marketplace.oos", "Push out-of-stock"]" />
+                    </MudItem>
+                }
+
+                <MudItem xs="12"><MudDivider /></MudItem>
+
+                <MudItem xs="12" sm="4">
+                    <MudNumericField T="int" @bind-Value="_syncIntervalMinutes" Label="@L["marketplace.interval", "Auto-sync every (minutes)"]"
+                                     Variant="Variant.Outlined" Min="0"
+                                     HelperText="@L["marketplace.interval_hint", "0 disables it. Feed channels are pulled by the engine and ignore this."]" />
+                </MudItem>
+                <MudItem xs="12" sm="4">
+                    <MudNumericField T="int" @bind-Value="_sortOrder" Label="@L["sort_order", "Sort order"]" Variant="Variant.Outlined" />
+                </MudItem>
+                <MudItem xs="12" sm="4" Class="d-flex align-center">
+                    <MudSwitch T="bool" @bind-Value="_active" Color="Color.Success" Label="@L["active", "Active"]" />
+                </MudItem>
+                <MudItem xs="12">
+                    <MudSwitch T="bool" @bind-Value="_includeAllProducts" Color="Color.Primary"
+                               Label="@L["marketplace.include_all", "Offer every active product (otherwise only products in categories you include)"]" />
+                </MudItem>
+            </MudGrid>
+        </MudForm>
+    </DialogContent>
+    <DialogActions>
+        <MudButton OnClick="Cancel">@L["cancel", "Cancel"]</MudButton>
+        <MudButton Color="Color.Primary" Variant="Variant.Filled" Disabled="@_busy" OnClick="SaveAsync">
+            @L["save", "Save"]
+        </MudButton>
+    </DialogActions>
+</MudDialog>
+
+@code {
+    [CascadingParameter] private IMudDialogInstance MudDialog { get; set; } = null!;
+
+    [Parameter] public int WebsiteID { get; set; }
+    [Parameter] public MarketplaceChannelInfo? Channel { get; set; }
+
+    private MudForm _form = null!;
+    private bool _busy;
+    private bool _isNew => Channel is null;
+
+    private string _provider = "GenericFeed";
+    private string _title = "";
+    private bool _active = true;
+    private bool _includeAllProducts = true;
+    private int _sortOrder;
+    private int _syncIntervalMinutes;
+
+    private GoogleShoppingFeedSettings _google = new();
+    private GenericFeedSettings _feed = new();
+    private GenericApiChannelSettings _api = new();
+    private string _fieldMapText = "";
+    private string _headersText = "";
+
+    protected override void OnInitialized()
+    {
+        if (Channel is not null)
+        {
+            _provider = Channel.Provider;
+            _title = Channel.Title;
+            _active = Channel.IsActive;
+            _includeAllProducts = Channel.IncludeAllProducts;
+            _sortOrder = Channel.SortOrder;
+            _syncIntervalMinutes = Channel.SyncIntervalMinutes;
+
+            _google = Deserialize<GoogleShoppingFeedSettings>(Channel.SettingsJSON);
+            _feed = Deserialize<GenericFeedSettings>(Channel.SettingsJSON);
+            _api = Deserialize<GenericApiChannelSettings>(Channel.SettingsJSON);
+        }
+
+        _fieldMapText = ToLines(_feed.FieldMap);
+        _headersText = ToLines(_api.Headers);
+    }
+
+    private static T Deserialize<T>(string json) where T : new()
+    {
+        if (string.IsNullOrWhiteSpace(json)) return new T();
+        try
+        {
+            return JsonSerializer.Deserialize<T>(json,
+                new global::System.Text.Json.JsonSerializerOptions { PropertyNameCaseInsensitive = true }) ?? new T();
+        }
+        catch { return new T(); }
+    }
+
+    private static string ToLines(Dictionary<string, string> map) =>
+        string.Join(Environment.NewLine, map.Select(kv => $"{kv.Key} = {kv.Value}"));
+
+    private static Dictionary<string, string> FromLines(string text)
+    {
+        var map = new Dictionary<string, string>();
+        foreach (var line in (text ?? "").Split('\n', StringSplitOptions.RemoveEmptyEntries))
+        {
+            var trimmed = line.Trim();
+            if (trimmed.Length == 0) continue;
+
+            var separator = trimmed.IndexOf('=');
+            if (separator <= 0) continue;
+
+            var key = trimmed[..separator].Trim();
+            var value = trimmed[(separator + 1)..].Trim();
+            if (key.Length > 0) map[key] = value;
+        }
+        return map;
+    }
+
+    private string BuildJson()
+    {
+        switch (_provider)
+        {
+            case "GoogleShopping":
+                return JsonSerializer.Serialize(_google);
+            case "GenericApi":
+                _api.Headers = FromLines(_headersText);
+                return JsonSerializer.Serialize(_api);
+            default:
+                _feed.FieldMap = FromLines(_fieldMapText);
+                return JsonSerializer.Serialize(_feed);
+        }
+    }
+
+    private async Task SaveAsync()
+    {
+        await _form.ValidateAsync();
+        if (!_form.IsValid) return;
+
+        _busy = true;
+        try
+        {
+            var input = new MarketplaceChannelInput
+            {
+                WebsiteID = WebsiteID,
+                Provider = _provider,
+                Title = _title,
+                SettingsJSON = BuildJson(),
+                IncludeAllProducts = _includeAllProducts,
+                IsActive = _active,
+                SortOrder = _sortOrder,
+                SyncIntervalMinutes = _syncIntervalMinutes,
+            };
+
+            if (_isNew) await ChannelService.CreateAsync(input);
+            else await ChannelService.UpdateAsync(Channel!.MarketplaceChannelID, input);
+
+            Snackbar.Add(L["marketplace.saved", "Channel saved."], Severity.Success);
+            MudDialog.Close(DialogResult.Ok(true));
+        }
+        catch (Exception ex) { Snackbar.Add($"{L["save_failed", "Save failed"]}: {ex.Message}", Severity.Error); }
+        finally { _busy = false; }
+    }
+
+    private void Cancel() => MudDialog.Cancel();
+}

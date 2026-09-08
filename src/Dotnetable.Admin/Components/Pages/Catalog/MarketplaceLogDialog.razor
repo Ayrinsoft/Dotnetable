@@ -1,0 +1,71 @@
+@using Dotnetable.Application.DTOs
+@inject IMarketplaceChannelService ChannelService
+@inject IPageLocalizer L
+
+<MudDialog>
+    <TitleContent>
+        <MudText Typo="Typo.h6">
+            <MudIcon Icon="@Icons.Material.Filled.History" Class="me-2" />
+            @L["marketplace.logs_title", "Sync history"] — @Channel.Title
+        </MudText>
+    </TitleContent>
+    <DialogContent>
+        @if (_loading)
+        {
+            <MudProgressLinear Indeterminate="true" Color="Color.Primary" />
+        }
+        else if (_logs.Count == 0)
+        {
+            <MudText Color="Color.Secondary">@L["marketplace.no_logs", "This channel has not run yet."]</MudText>
+        }
+        else
+        {
+            <MudTable Items="_logs" Dense="true" Hover="true">
+                <HeaderContent>
+                    <MudTh>@L["marketplace.started", "Started"]</MudTh>
+                    <MudTh>@L["marketplace.trigger", "Trigger"]</MudTh>
+                    <MudTh>@L["marketplace.status", "Status"]</MudTh>
+                    <MudTh>@L["marketplace.items", "Items"]</MudTh>
+                    <MudTh>@L["marketplace.message", "Message"]</MudTh>
+                </HeaderContent>
+                <RowTemplate>
+                    <MudTd>@context.StartedAt.ToLocalTime().ToString("yyyy-MM-dd HH:mm:ss")</MudTd>
+                    <MudTd>@context.TriggeredBy</MudTd>
+                    <MudTd>
+                        <MudChip T="string" Size="Size.Small" Variant="Variant.Outlined" Color="@StatusColor(context.Status)">
+                            @context.Status
+                        </MudChip>
+                    </MudTd>
+                    <MudTd>@(context.FailedCount > 0 ? $"{context.ItemCount} / {context.FailedCount} failed" : context.ItemCount.ToString())</MudTd>
+                    <MudTd Style="max-width:420px; white-space:normal;">@context.Message</MudTd>
+                </RowTemplate>
+            </MudTable>
+        }
+    </DialogContent>
+    <DialogActions>
+        <MudButton OnClick="@(() => MudDialog.Close())">@L["close", "Close"]</MudButton>
+    </DialogActions>
+</MudDialog>
+
+@code {
+    [CascadingParameter] private IMudDialogInstance MudDialog { get; set; } = null!;
+
+    [Parameter] public MarketplaceChannelInfo Channel { get; set; } = null!;
+
+    private bool _loading = true;
+    private List<MarketplaceSyncLogInfo> _logs = new();
+
+    protected override async Task OnInitializedAsync()
+    {
+        _logs = (await ChannelService.GetLogsAsync(Channel.MarketplaceChannelID, 50)).ToList();
+        _loading = false;
+    }
+
+    private static Color StatusColor(MarketplaceSyncStatus status) => status switch
+    {
+        MarketplaceSyncStatus.Success => Color.Success,
+        MarketplaceSyncStatus.Partial => Color.Warning,
+        MarketplaceSyncStatus.Failed => Color.Error,
+        _ => Color.Default,
+    };
+}

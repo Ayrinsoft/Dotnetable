@@ -186,7 +186,7 @@ dotnet run --project src/Dotnetable.Docs
 
 ### Contributing
 
-This repository is **not currently accepting outside contributions**. Write access (pushing directly, merging pull requests) is limited to the project owner and one collaborator. External pull requests won't be merged at this time.
+Write access (pushing directly, merging pull requests) is limited to the project owner and one collaborator, and external pull requests won't be merged. That doesn't mean feedback is unwelcome — if you find a bug or have a feature/change you'd like to see, please **open an issue** describing it; the maintainers will review it and implement it themselves if it fits.
 
 ### License & Usage Rules
 
@@ -373,7 +373,7 @@ dotnet run --project src/Dotnetable.Docs
 
 ### مشارکت در پروژه
 
-این مخزن در حال حاضر **مشارکت از بیرون تیم را نمی‌پذیرد**. دسترسی نوشتن (پوش مستقیم، مرج کردن Pull Request) فقط در اختیار مالک پروژه و یک همکار است. Pull Request از حساب‌های دیگر در حال حاضر مرج نخواهد شد.
+دسترسی نوشتن (پوش مستقیم، مرج کردن Pull Request) فقط در اختیار مالک پروژه و یک همکار است و Pull Request از حساب‌های دیگر مرج نخواهد شد. این به‌معنای نپذیرفتن بازخورد نیست — اگر باگی پیدا کردید یا قابلیت/تغییری مدنظرتان است، لطفاً یک **Issue** باز کرده و آن را شرح دهید؛ نگهدارنده‌های پروژه آن را بررسی کرده و در صورت هماهنگی با پروژه، خودشان پیاده‌سازی خواهند کرد.
 
 ### لایسنس و قوانین استفاده
 

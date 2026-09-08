@@ -77,6 +77,7 @@ public static class ServiceCollectionExtensions
         // before payment, and without this nothing ever gives it back for orders that are abandoned.
         services.AddHostedService<OrderExpiryService>();
         services.AddHostedService<MaintenanceService>();
+        services.AddHostedService<Marketplace.MarketplaceSyncService>();
         services.AddScoped(typeof(IRepository<>), typeof(GenericRepository<>));
         services.AddScoped<IUnitOfWork, UnitOfWork>();
         services.AddScoped<ILocalizationService, LocalizationService>();
@@ -264,6 +265,17 @@ public static class ServiceCollectionExtensions
         services.AddScoped<ISmsProviderRegistry, Sms.SmsProviderRegistry>();
         services.AddScoped<ISmsSender, Sms.SmsSender>();
         services.AddScoped<ISmsSettingService, Sms.SmsSettingService>();
+
+        // Marketplace / product search engine channels, resolved per website from MarketplaceChannels.
+        // GoogleShopping emits Google's own RSS spec; GenericFeed covers Torob, Emalls and any other
+        // engine that crawls a document, and GenericApi covers Digikala/Basalam-style pushes — both
+        // configured from the admin panel, since those engines publish their schema to sellers only.
+        services.AddScoped<IMarketplaceProvider, Marketplace.GoogleShoppingFeedProvider>();
+        services.AddScoped<IMarketplaceProvider, Marketplace.GenericFeedProvider>();
+        services.AddScoped<IMarketplaceProvider, Marketplace.GenericApiMarketplaceProvider>();
+        services.AddScoped<IMarketplaceProviderRegistry, Marketplace.MarketplaceProviderRegistry>();
+        services.AddScoped<IMarketplaceProductSource, Marketplace.MarketplaceProductSource>();
+        services.AddScoped<IMarketplaceChannelService, Marketplace.MarketplaceChannelService>();
 
         // Online payment gateways: one registration per PSP, resolved per website from PaymentGateways.
         // Adding a gateway is a new IPaymentGatewayProvider class and nothing else; GenericRedirect
