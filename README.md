@@ -1,9 +1,9 @@
 # 🌐 Dotnetable
 
-**A lightweight, modular, open-source admin panel & CMS backend built with .NET 9.**
+**A lightweight, modular, open-source admin panel & CMS backend built with .NET 10.**
 Database-agnostic, cross-platform, and fully extendable — Dotnetable gives you complete control over your backend with maximum flexibility.
 
-[![.NET](https://img.shields.io/badge/.NET-9.0-512BD4?logo=dotnet)](https://dotnet.microsoft.com/)
+[![.NET](https://img.shields.io/badge/.NET-10.0-512BD4?logo=dotnet)](https://dotnet.microsoft.com/)
 [![License](https://img.shields.io/badge/license-see%20LICENSE.txt-blue)](LICENSE.txt)
 [![Repo](https://img.shields.io/badge/GitHub-Ayrinsoft%2FDotnetable-181717?logo=github)](https://github.com/Ayrinsoft/Dotnetable)
 
@@ -37,7 +37,7 @@ Database-agnostic, cross-platform, and fully extendable — Dotnetable gives you
 
 ### Overview
 
-**Dotnetable** is a minimal yet powerful **Admin Panel & CMS backend** written in **C# (.NET 9)**. It runs seamlessly on **Linux**, **Windows**, or inside **Docker containers**.
+**Dotnetable** is a minimal yet powerful **Admin Panel & CMS backend** written in **C# (.NET 10)**. It runs seamlessly on **Linux**, **Windows**, or inside **Docker containers**.
 
 On first launch it walks you through a guided setup that creates the database schema and seeds initial data. You get a full-featured **admin dashboard** for managing content, users, and orders, while all data is exposed through a **RESTful API** that any frontend (React, Blazor, Vue, Angular, mobile, etc.) can consume.
 
@@ -56,13 +56,15 @@ On first launch it walks you through a guided setup that creates the database sc
 
 ### Tech Stack
 
-- .NET 9 / C#
+- .NET 10 / C#
 - ASP.NET Core Web API
 - Entity Framework Core 10
 - Blazor Server (Admin panel)
 - React + TypeScript (sample frontend)
 - JWT Authentication
 - Docker
+
+> All NuGet/npm dependencies are kept on their **latest stable versions**. Run `dotnet list package --outdated` (and `npm outdated` inside `src/dotnetable-react`) periodically to check for updates.
 
 ### Project Structure
 
@@ -87,7 +89,7 @@ Dotnetable/
 
 ### Prerequisites
 
-- [.NET 9 SDK](https://dotnet.microsoft.com/download)
+- [.NET 10 SDK](https://dotnet.microsoft.com/download)
 - One of: SQL Server, PostgreSQL, MySQL, or MariaDB (a local/dev instance is enough to get started)
 - (Optional) [Docker](https://www.docker.com/) if you prefer running in a container
 - (Optional) Node.js 18+ if you want to run the `dotnetable-react` sample frontend
@@ -184,11 +186,19 @@ dotnet run --project src/Dotnetable.Docs
 
 ### Contributing
 
-Issues and pull requests are welcome. Please open an issue first for larger changes so we can discuss the approach before you invest time in it.
+This repository is **not currently accepting outside contributions**. Write access (pushing directly, merging pull requests) is limited to the project owner and one collaborator. External pull requests won't be merged at this time.
 
-### License
+### License & Usage Rules
 
-See [LICENSE.txt](LICENSE.txt) for details.
+Dotnetable is **open source** under the [MIT License](LICENSE.txt): you are free to clone, fork, use, modify, and personalize it for your own projects — including commercially — as long as the original copyright notice is kept.
+
+That permission covers *using the code*, not *write access to this repository*:
+
+- ✅ Anyone may clone or fork this repo and adapt it for themselves.
+- ❌ Only the project owner and their collaborator can push to this repository or merge changes into it.
+- Pull requests from other accounts may be closed without merging — this is a personal/team project, not a community-governed one.
+
+> Repository write access is a GitHub permission setting, not something the license or this README can enforce on its own — see the note at the end of this document for the GitHub settings that back this up.
 
 ---
 ---
@@ -214,7 +224,7 @@ See [LICENSE.txt](LICENSE.txt) for details.
 
 ### معرفی
 
-**Dotnetable** یک **پنل مدیریت و بک‌اند CMS** سبک اما قدرتمند است که با **زبان سی‌شارپ (.NET 9)** نوشته شده. این پروژه به‌صورت کامل **چندسکویی** است و روی **لینوکس**، **ویندوز** یا داخل **کانتینر داکر** بدون مشکل اجرا می‌شود.
+**Dotnetable** یک **پنل مدیریت و بک‌اند CMS** سبک اما قدرتمند است که با **زبان سی‌شارپ (.NET 10)** نوشته شده. این پروژه به‌صورت کامل **چندسکویی** است و روی **لینوکس**، **ویندوز** یا داخل **کانتینر داکر** بدون مشکل اجرا می‌شود.
 
 در اولین اجرا، برنامه شما را در یک فرایند راه‌اندازی گام‌به‌گام همراهی می‌کند: ساخت شمای پایگاه داده و درج داده‌های اولیه به‌صورت خودکار انجام می‌شود. در نتیجه یک **داشبورد مدیریتی کامل** برای مدیریت محتوا، کاربران و سفارش‌ها در اختیار دارید، در حالی که تمام داده‌ها از طریق یک **API مبتنی بر REST** در دسترس هر فرانت‌اندی (React، Blazor، Vue، Angular، موبایل و ...) قرار می‌گیرد.
 
@@ -233,13 +243,15 @@ See [LICENSE.txt](LICENSE.txt) for details.
 
 ### پشته فناوری
 
-- ‎.NET 9 / #C
+- ‎.NET 10 / #C
 - ASP.NET Core Web API
 - Entity Framework Core 10
 - Blazor Server (پنل مدیریت)
 - React + TypeScript (نمونه فرانت‌اند)
 - احراز هویت JWT
 - داکر
+
+> تمام وابستگی‌های NuGet/npm روی **آخرین نسخه پایدار** نگه داشته می‌شوند. برای بررسی به‌روزرسانی‌ها به‌صورت دوره‌ای دستور `dotnet list package --outdated` (و `npm outdated` داخل مسیر `src/dotnetable-react`) را اجرا کنید.
 
 ### ساختار پروژه
 
@@ -264,7 +276,7 @@ Dotnetable/
 
 ### پیش‌نیازها
 
-- [.NET 9 SDK](https://dotnet.microsoft.com/download)
+- [.NET 10 SDK](https://dotnet.microsoft.com/download)
 - یکی از: SQL Server، PostgreSQL، MySQL یا MariaDB (یک نمونه لوکال/توسعه کافی است)
 - (اختیاری) [داکر](https://www.docker.com/) در صورت تمایل به اجرا داخل کانتینر
 - (اختیاری) Node.js نسخه ۱۸ به بالا برای اجرای نمونه فرانت‌اند `dotnetable-react`
@@ -361,10 +373,22 @@ dotnet run --project src/Dotnetable.Docs
 
 ### مشارکت در پروژه
 
-از ایشو و Pull Request استقبال می‌شود. برای تغییرات بزرگ‌تر، لطفاً ابتدا یک ایشو باز کنید تا پیش از صرف زمان، درباره رویکرد آن گفتگو شود.
+این مخزن در حال حاضر **مشارکت از بیرون تیم را نمی‌پذیرد**. دسترسی نوشتن (پوش مستقیم، مرج کردن Pull Request) فقط در اختیار مالک پروژه و یک همکار است. Pull Request از حساب‌های دیگر در حال حاضر مرج نخواهد شد.
 
-### لایسنس
+### لایسنس و قوانین استفاده
 
-برای جزئیات به فایل [LICENSE.txt](LICENSE.txt) مراجعه کنید.
+پروژه Dotnetable تحت [لایسنس MIT](LICENSE.txt) **متن‌باز (Open Source)** است: هرکس می‌تواند آن را کلون یا فورک کند، استفاده کند، تغییر دهد و برای پروژه‌های شخصی خودش (حتی به‌صورت تجاری) شخصی‌سازی کند، به شرطی که اعلامیه کپی‌رایت اصلی حفظ شود.
+
+این اجازه مربوط به **استفاده از کد** است، نه **دسترسی نوشتن به این مخزن**:
+
+- ✅ هرکسی می‌تواند این مخزن را کلون یا فورک کرده و برای خودش شخصی‌سازی کند.
+- ❌ فقط مالک پروژه و همکارش می‌توانند روی این مخزن پوش بزنند یا تغییری را در آن مرج کنند.
+- Pull Request از حساب‌های دیگر ممکن است بدون مرج شدن بسته شود — این یک پروژه شخصی/تیمی است، نه پروژه‌ای با مدیریت جمعی (community-governed).
+
+> دسترسی نوشتن به مخزن یک تنظیم سطح گیت‌هاب است، نه چیزی که لایسنس یا این فایل readme به‌تنهایی بتواند اعمال کند — برای تنظیمات لازم در گیت‌هاب به یادداشت انتهای همین فایل مراجعه کنید.
 
 </div>
+
+---
+
+<sub>GitHub access note / یادداشت دسترسی گیت‌هاب: repository **Settings → Collaborators and teams** should list only the owner and the one collaborator with write access, with no other outside collaborators or teams attached; if the default branch is protected, its branch-protection rule's "restrict who can push" list should match the same two accounts. این تنظیم را در **Settings → Collaborators and teams** انجام دهید و اگر روی شاخه اصلی قانون محافظتی (branch protection) دارید، فهرست "restrict who can push" آن را هم با همین دو حساب هماهنگ کنید.</sub>
