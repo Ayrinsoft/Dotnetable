@@ -31,6 +31,8 @@ public partial class ProductCategory
 
     public virtual ICollection<ProductCategoryAttribute> ProductCategoryAttributes { get; set; } = new List<ProductCategoryAttribute>();
 
+    public virtual ICollection<MarketplaceChannelCategory> MarketplaceChannelCategories { get; set; } = new List<MarketplaceChannelCategory>();
+
     public virtual ICollection<ProductCategoryMap> ProductCategoryMaps { get; set; } = new List<ProductCategoryMap>();
 
     public virtual ICollection<ProductCategoryRelation> ProductCategoryRelations { get; set; } = new List<ProductCategoryRelation>();

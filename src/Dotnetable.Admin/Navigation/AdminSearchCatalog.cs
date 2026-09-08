@@ -76,6 +76,7 @@ public static class AdminSearchCatalog
         new AdminSearchPage("brands", "Brands", "/catalog/brands", Icons.Material.Filled.BrandingWatermark, "nav.catalog", "Catalog", RoleKeys.CatalogTaxonomyView, NavArea: AdminNavArea.Catalog, VendorMemberAllowed: false),
         new AdminSearchPage("warranties", "Warranties", "/catalog/warranties", Icons.Material.Filled.VerifiedUser, "nav.catalog", "Catalog", RoleKeys.CatalogTaxonomyView, NavArea: AdminNavArea.Catalog, VendorMemberAllowed: false),
         new AdminSearchPage("vendors", "Vendors", "/catalog/vendors", Icons.Material.Filled.Store, "nav.catalog", "Catalog", RoleKeys.VendorsView, NavArea: AdminNavArea.Catalog, VendorMemberAllowed: false),
+        new AdminSearchPage("marketplace", "Search engines", "/catalog/marketplace", Icons.Material.Filled.TravelExplore, "nav.catalog", "Catalog", RoleKeys.ProductsEdit, NavArea: AdminNavArea.Catalog, VendorMemberAllowed: false),
 
         new AdminSearchPage("orders", "Orders", "/orders", Icons.Material.Filled.ReceiptLong, "nav.inventory", "Inventory", RoleKeys.OrdersView, NavArea: AdminNavArea.Orders),
         new AdminSearchPage("orders.create", "Create order", "/orders/new", Icons.Material.Filled.AddShoppingCart, "nav.inventory", "Inventory", RoleKeys.OrdersEdit, NavArea: AdminNavArea.Orders),

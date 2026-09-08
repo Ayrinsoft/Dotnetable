@@ -278,6 +278,8 @@ public partial class Website
 
     public virtual ICollection<WebsiteSocialLink> WebsiteSocialLinks { get; set; } = new List<WebsiteSocialLink>();
 
+    public virtual ICollection<MarketplaceChannel> MarketplaceChannels { get; set; } = new List<MarketplaceChannel>();
+
     public virtual ICollection<WebsiteSmsSetting> WebsiteSmsSettings { get; set; } = new List<WebsiteSmsSetting>();
 
     public virtual ICollection<WebsiteClientRefreshToken> WebsiteClientRefreshTokens { get; set; } = new List<WebsiteClientRefreshToken>();

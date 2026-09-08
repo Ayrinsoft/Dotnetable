@@ -1,0 +1,95 @@
+@using Dotnetable.Application.DTOs
+@inject IMarketplaceChannelService ChannelService
+@inject ISnackbar Snackbar
+@inject IPageLocalizer L
+
+<MudDialog>
+    <TitleContent>
+        <MudText Typo="Typo.h6">
+            <MudIcon Icon="@Icons.Material.Filled.Category" Class="me-2" />
+            @L["marketplace.categories_title", "Categories & mapping"] — @Channel.Title
+        </MudText>
+    </TitleContent>
+    <DialogContent>
+        <MudAlert Severity="Severity.Info" Dense="true" Class="mb-3">
+            @if (Channel.IncludeAllProducts)
+            {
+                @L["marketplace.cat_all_hint", "This channel offers every active product, so the include column is ignored — only the mapped category id/path is used."]
+            }
+            else
+            {
+                @L["marketplace.cat_some_hint", "Only products in the categories you tick are offered to this channel."]
+            }
+        </MudAlert>
+
+        @if (_loading)
+        {
+            <MudProgressLinear Indeterminate="true" Color="Color.Primary" />
+        }
+        else if (_rows.Count == 0)
+        {
+            <MudText Color="Color.Secondary">@L["marketplace.no_categories", "This website has no active product categories."]</MudText>
+        }
+        else
+        {
+            <MudTable Items="_rows" Dense="true" Hover="true" FixedHeader="true" Height="55vh">
+                <HeaderContent>
+                    <MudTh>@L["marketplace.category", "Category"]</MudTh>
+                    <MudTh Style="width:110px;">@L["marketplace.included", "Include"]</MudTh>
+                    <MudTh Style="width:220px;">@L["marketplace.remote_id", "Engine category ID"]</MudTh>
+                    <MudTh Style="width:320px;">@L["marketplace.remote_path", "Engine category path"]</MudTh>
+                </HeaderContent>
+                <RowTemplate>
+                    <MudTd DataLabel="@L["marketplace.category", "Category"]">@context.CategoryName</MudTd>
+                    <MudTd DataLabel="@L["marketplace.included", "Include"]">
+                        <MudCheckBox T="bool" @bind-Value="context.IsIncluded" Color="Color.Primary"
+                                     Disabled="@Channel.IncludeAllProducts" />
+                    </MudTd>
+                    <MudTd DataLabel="@L["marketplace.remote_id", "Engine category ID"]">
+                        <MudTextField T="string" @bind-Value="context.RemoteCategoryID" Variant="Variant.Outlined" Margin="Margin.Dense" />
+                    </MudTd>
+                    <MudTd DataLabel="@L["marketplace.remote_path", "Engine category path"]">
+                        <MudTextField T="string" @bind-Value="context.RemoteCategoryPath" Variant="Variant.Outlined" Margin="Margin.Dense" />
+                    </MudTd>
+                </RowTemplate>
+            </MudTable>
+        }
+    </DialogContent>
+    <DialogActions>
+        <MudButton OnClick="Cancel">@L["cancel", "Cancel"]</MudButton>
+        <MudButton Color="Color.Primary" Variant="Variant.Filled" Disabled="@_busy" OnClick="SaveAsync">
+            @L["save", "Save"]
+        </MudButton>
+    </DialogActions>
+</MudDialog>
+
+@code {
+    [CascadingParameter] private IMudDialogInstance MudDialog { get; set; } = null!;
+
+    [Parameter] public MarketplaceChannelInfo Channel { get; set; } = null!;
+
+    private bool _loading = true;
+    private bool _busy;
+    private List<MarketplaceCategoryMapInfo> _rows = new();
+
+    protected override async Task OnInitializedAsync()
+    {
+        _rows = (await ChannelService.GetCategoryMapAsync(Channel.MarketplaceChannelID)).ToList();
+        _loading = false;
+    }
+
+    private async Task SaveAsync()
+    {
+        _busy = true;
+        try
+        {
+            await ChannelService.SaveCategoryMapAsync(Channel.MarketplaceChannelID, _rows);
+            Snackbar.Add(L["marketplace.cat_saved", "Category rules saved."], Severity.Success);
+            MudDialog.Close(DialogResult.Ok(true));
+        }
+        catch (Exception ex) { Snackbar.Add($"{L["save_failed", "Save failed"]}: {ex.Message}", Severity.Error); }
+        finally { _busy = false; }
+    }
+
+    private void Cancel() => MudDialog.Cancel();
+}

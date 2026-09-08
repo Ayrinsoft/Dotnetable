@@ -122,6 +122,10 @@
     <Build Include="WarehouseStocks.sql" />
     <Build Include="Warehouses.sql" />
     <Build Include="OrderItems.sql" />
+    <Build Include="MarketplaceChannels.sql" />
+    <Build Include="MarketplaceChannelCategories.sql" />
+    <Build Include="MarketplaceChannelProducts.sql" />
+    <Build Include="MarketplaceSyncLogs.sql" />
     <Build Include="MediaSets.sql" />
     <Build Include="MediaSetItems.sql" />
     <Build Include="JournalEntryLines.sql" />
