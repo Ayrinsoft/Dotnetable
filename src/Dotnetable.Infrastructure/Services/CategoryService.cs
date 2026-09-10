@@ -197,6 +197,8 @@ public class CategoryService : ICategoryService
         string? languageCode)
     {
         return byParent[parentId]
+            .OrderBy(c => c.SortOrder)
+            .ThenBy(c => c.Name)
             .Select(c => Project(c, BuildChildren(c.CategoryID, byParent, languageCode), languageCode))
             .ToList();
     }

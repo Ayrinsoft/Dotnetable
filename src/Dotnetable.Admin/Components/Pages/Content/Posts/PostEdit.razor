@@ -112,7 +112,7 @@ else if (_model is not null)
                                      Class="mb-3" Clearable="false" CoerceText="false" ResetValueOnEmptyText="true" />
 
                     <MudAutocomplete T="Category" Value="_categoryToAdd" ValueChanged="AddCategory"
-                                     SearchFunc="SearchCategoriesToAdd" ToStringFunc="@(c => c?.Name ?? string.Empty)"
+                                     SearchFunc="SearchCategoriesToAdd" ToStringFunc="CategoryPath"
                                      Label="@L["categories", "Categories"]" Variant="Variant.Outlined" Class="mb-2"
                                      Clearable="true" CoerceText="false" ResetValueOnEmptyText="true"
                                      HelperText="@L["posts.search_to_add_category", "Type to search and add a category"]" />
@@ -122,12 +122,12 @@ else if (_model is not null)
                             @foreach (var id in _selectedCategoryIds)
                             {
                                 <MudChip T="string" Size="Size.Small" Color="Color.Primary" Variant="Variant.Outlined"
-                                         OnClose="@(() => RemoveCategory(id))">@CategoryName(id)</MudChip>
+                                         OnClose="@(() => RemoveCategory(id))">@CategoryPathById(id)</MudChip>
                             }
                         </div>
 
                         <MudAutocomplete T="Category" Value="@GetPrimaryCategory()" ValueChanged="OnPrimaryCategoryChanged"
-                                         SearchFunc="SearchSelectedCategories" ToStringFunc="@(c => c?.Name ?? string.Empty)"
+                                         SearchFunc="SearchSelectedCategories" ToStringFunc="CategoryPath"
                                          Label="@L["posts.primary_category", "Primary category"]" Variant="Variant.Outlined"
                                          Class="mb-3" Clearable="true" CoerceText="false" ResetValueOnEmptyText="true" />
                     }
@@ -273,7 +273,24 @@ else if (_model is not null)
         return Task.FromResult(q);
     }
 
-    private string CategoryName(int id) => _categories.FirstOrDefault(c => c.CategoryID == id)?.Name ?? $"#{id}";
+    private string CategoryPathById(int id) =>
+        CategoryPath(_categories.FirstOrDefault(c => c.CategoryID == id)) is { Length: > 0 } path ? path : $"#{id}";
+
+    private string CategoryPath(Category? category)
+    {
+        if (category is null) return string.Empty;
+        var byId = _categories.ToDictionary(c => c.CategoryID);
+        var parts = new List<string> { category.Name };
+        var current = category;
+        var guard = 0;
+        while (current.ParentCategoryID is int pid && byId.TryGetValue(pid, out var parent) && guard++ < 64)
+        {
+            parts.Insert(0, parent.Name);
+            current = parent;
+        }
+        return string.Join(" / ", parts);
+    }
+
     private string TagName(int id) => _tags.FirstOrDefault(t => t.TagID == id)?.Name ?? $"#{id}";
 
     private Category? GetPrimaryCategory() =>
@@ -284,23 +301,33 @@ else if (_model is not null)
 
     private Task<IEnumerable<Category>> SearchSelectedCategories(string value, CancellationToken ct)
     {
-        IEnumerable<Category> q = _categories.Where(c => _selectedCategoryIds.Contains(c.CategoryID)).OrderBy(c => c.Name);
+        IEnumerable<Category> q = _categories
+            .Where(c => _selectedCategoryIds.Contains(c.CategoryID))
+            .OrderBy(c => c.ParentCategoryID ?? 0)
+            .ThenBy(c => c.SortOrder)
+            .ThenBy(c => c.Name);
         if (!string.IsNullOrWhiteSpace(value))
         {
             var needle = value.Trim();
-            q = q.Where(c => c.Name.Contains(needle, StringComparison.OrdinalIgnoreCase));
+            q = q.Where(c => c.Name.Contains(needle, StringComparison.OrdinalIgnoreCase)
+                             || CategoryPath(c).Contains(needle, StringComparison.OrdinalIgnoreCase));
         }
         return Task.FromResult(q);
     }
 
     private Task<IEnumerable<Category>> SearchCategoriesToAdd(string value, CancellationToken ct)
     {
-        IEnumerable<Category> q = _categories.Where(c => !_selectedCategoryIds.Contains(c.CategoryID)).OrderBy(c => c.Name);
+        IEnumerable<Category> q = _categories
+            .Where(c => !_selectedCategoryIds.Contains(c.CategoryID))
+            .OrderBy(c => c.ParentCategoryID ?? 0)
+            .ThenBy(c => c.SortOrder)
+            .ThenBy(c => c.Name);
         if (!string.IsNullOrWhiteSpace(value))
         {
             var needle = value.Trim();
             q = q.Where(c => c.Name.Contains(needle, StringComparison.OrdinalIgnoreCase)
-                             || c.Slug.Contains(needle, StringComparison.OrdinalIgnoreCase));
+                             || c.Slug.Contains(needle, StringComparison.OrdinalIgnoreCase)
+                             || CategoryPath(c).Contains(needle, StringComparison.OrdinalIgnoreCase));
         }
         return Task.FromResult(q);
     }

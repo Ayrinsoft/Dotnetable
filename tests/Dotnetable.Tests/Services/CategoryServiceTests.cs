@@ -90,6 +90,41 @@ public class CategoryServiceTests : IDisposable
         tr.Should().ContainSingle(t => t.LanguageCode == "fa" && t.Name == "Ø§Ø®Ø¨Ø§Ø±");
     }
 
+    [Fact]
+    public async Task GetTree_Orders_Siblings_By_SortOrder_Not_Globally()
+    {
+        var rootA = await _service.CreateAsync(new Category
+        {
+            WebsiteID = _website.WebsiteID, Name = "A", Slug = "a", IsActive = true, SortOrder = 5,
+        });
+        var rootB = await _service.CreateAsync(new Category
+        {
+            WebsiteID = _website.WebsiteID, Name = "B", Slug = "b", IsActive = true, SortOrder = 2,
+        });
+        await _service.CreateAsync(new Category
+        {
+            WebsiteID = _website.WebsiteID, Name = "A2", Slug = "a2", IsActive = true, SortOrder = 20,
+            ParentCategoryID = rootA.CategoryID,
+        });
+        await _service.CreateAsync(new Category
+        {
+            WebsiteID = _website.WebsiteID, Name = "A1", Slug = "a1", IsActive = true, SortOrder = 1,
+            ParentCategoryID = rootA.CategoryID,
+        });
+        await _service.CreateAsync(new Category
+        {
+            WebsiteID = _website.WebsiteID, Name = "B1", Slug = "b1", IsActive = true, SortOrder = 5,
+            ParentCategoryID = rootB.CategoryID,
+        });
+
+        var tree = await _service.GetTreeAsync(_website.WebsiteID);
+
+        // Sibling sort: B (2) then A (5). A1 (1) stays under A even though 1 is smaller than B.
+        tree.Select(c => c.Name).Should().Equal("B", "A");
+        tree[0].Children.Select(c => c.Name).Should().Equal("B1");
+        tree[1].Children.Select(c => c.Name).Should().Equal("A1", "A2");
+    }
+
     public void Dispose() => _context.Dispose();
 }
 

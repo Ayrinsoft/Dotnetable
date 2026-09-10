@@ -469,7 +469,7 @@ html, body {
 }
 
 /* ============================================================
-   Product category tree (catalog admin)
+   Category tree (post categories + product categories)
    ============================================================ */
 .dn-category-tree-head {
     display: flex;
@@ -501,6 +501,13 @@ html, body {
     color: var(--mud-palette-text-secondary);
 }
 
+.dn-category-tree-col-type {
+    flex: 0 0 120px;
+    max-width: 120px;
+    font-size: .8rem;
+    color: var(--mud-palette-text-secondary);
+}
+
 .dn-category-tree-col-sort {
     flex: 0 0 56px;
     text-align: center;
@@ -520,6 +527,7 @@ html, body {
 
 .dn-category-tree-head .dn-category-tree-col-name { flex: 1 1 auto; }
 .dn-category-tree-head .dn-category-tree-col-slug { flex: 0 0 140px; }
+.dn-category-tree-head .dn-category-tree-col-type { flex: 0 0 120px; }
 .dn-category-tree-head .dn-category-tree-col-sort { flex: 0 0 56px; text-align: center; }
 .dn-category-tree-head .dn-category-tree-col-status { flex: 0 0 96px; text-align: center; }
 .dn-category-tree-head .dn-category-tree-col-actions { flex: 0 0 120px; }

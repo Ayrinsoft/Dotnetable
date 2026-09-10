@@ -24,7 +24,8 @@
         }
         @if (_canInsert)
         {
-            <MudButton Variant="Variant.Filled" Color="Color.Primary" StartIcon="@Icons.Material.Filled.Add" OnClick="CreateAsync">
+            <MudButton Variant="Variant.Filled" Color="Color.Primary" StartIcon="@Icons.Material.Filled.Add"
+                       OnClick="@(() => CreateAsync(null))">
                 @L["categories.new", "New Category"]
             </MudButton>
         }
@@ -38,41 +39,65 @@
     {
         <MudProgressLinear Indeterminate="true" Color="Color.Primary" Class="mb-3" />
     }
-    <DNGridView GridHeaderParams="_grid" OnSearchChanged="OnGridChanged">
-        @if (_items.Count == 0)
-        {
-            <tr>
-                <td colspan="6" style="text-align:center; padding:32px;">
-                    <MudText Color="Color.Secondary">@L["categories.empty", "No categories yet."]</MudText>
-                </td>
-            </tr>
-        }
-        else
-        {
-            @foreach (var c in _items)
+
+    <MudStack Row="true" Spacing="2" AlignItems="AlignItems.Center" Class="mb-3" Style="flex-wrap:wrap;">
+        <MudTextField @bind-Value="_search"
+                      Placeholder="@L["categories.search", "Search categories…"]"
+                      Variant="Variant.Outlined"
+                      Margin="Margin.Dense"
+                      Immediate="true"
+                      Adornment="Adornment.Start"
+                      AdornmentIcon="@Icons.Material.Filled.Search"
+                      Clearable="true"
+                      Style="min-width:220px; max-width:360px;" />
+        <MudSelect T="string" @bind-Value="_sortBy" Label="@L["sort", "Sort"]" Variant="Variant.Outlined"
+                   Margin="Margin.Dense" Dense="true" Style="min-width:160px;">
+            <MudSelectItem T="string" Value="@("SortOrder")">@L["categories.sort", "Sort order"]</MudSelectItem>
+            <MudSelectItem T="string" Value="@("Name")">@L["name", "Name"]</MudSelectItem>
+            <MudSelectItem T="string" Value="@("Slug")">@L["slug", "Slug"]</MudSelectItem>
+            <MudSelectItem T="string" Value="@("Active")">@L["active", "Active"]</MudSelectItem>
+        </MudSelect>
+        <MudToggleIconButton @bind-Toggled="_sortDesc"
+                             Icon="@Icons.Material.Filled.ArrowUpward"
+                             ToggledIcon="@Icons.Material.Filled.ArrowDownward"
+                             title="@L["categories.sort_dir", "Toggle sort direction"]"
+                             Size="Size.Medium" />
+        <MudSpacer />
+        <MudButton Variant="Variant.Text" Size="Size.Small" StartIcon="@Icons.Material.Filled.UnfoldMore"
+                   OnClick="ExpandAll">@L["expand_all", "Expand all"]</MudButton>
+        <MudButton Variant="Variant.Text" Size="Size.Small" StartIcon="@Icons.Material.Filled.UnfoldLess"
+                   OnClick="CollapseAll">@L["collapse_all", "Collapse all"]</MudButton>
+    </MudStack>
+
+    @if (_items.Count == 0)
+    {
+        <MudText Color="Color.Secondary" Class="pa-6" Align="Align.Center">
+            @L["categories.empty", "No categories yet."]
+        </MudText>
+    }
+    else if (VisibleRoots.Count == 0)
+    {
+        <MudText Color="Color.Secondary" Class="pa-6" Align="Align.Center">
+            @L["categories.search_empty", "No categories match your search."]
+        </MudText>
+    }
+    else
+    {
+        <div class="dn-category-tree-head d-none d-md-flex">
+            <span class="dn-category-tree-col-name">@L["name", "Name"]</span>
+            <span class="dn-category-tree-col-slug">@L["slug", "Slug"]</span>
+            <span class="dn-category-tree-col-type">@L["post_type", "Post Type"]</span>
+            <span class="dn-category-tree-col-sort">@L["categories.sort", "Sort"]</span>
+            <span class="dn-category-tree-col-status">@L["status", "Status"]</span>
+            <span class="dn-category-tree-col-actions"></span>
+        </div>
+        <ul class="dn-tree dn-tree-root">
+            @foreach (var c in VisibleRoots)
             {
-                <tr>
-                    <td>@c.Name</td>
-                    <td><code>@c.Slug</code></td>
-                    <td>@(_postTypes.FirstOrDefault(p => p.PostTypeID == c.PostTypeID)?.Name ?? "-")</td>
-                    <td>@c.SortOrder</td>
-                    <td>@(c.IsActive ? L["yes", "Yes"] : L["no", "No"])</td>
-                    <td>
-                        <MudStack Row="true" Spacing="0">
-                            @if (_canEdit)
-                            {
-                                <MudIconButton Icon="@Icons.Material.Filled.Edit" Size="Size.Small" OnClick="@(() => EditAsync(c))" />
-                            }
-                            @if (_canDelete)
-                            {
-                                <MudIconButton Icon="@Icons.Material.Filled.Delete" Size="Size.Small" Color="Color.Error" OnClick="@(() => DeleteAsync(c))" />
-                            }
-                        </MudStack>
-                    </td>
-                </tr>
+                @RenderNode(c, 0)
             }
-        }
-    </DNGridView>
+        </ul>
+    }
 </MudPaper>
 
 @code {
@@ -80,11 +105,26 @@
     private bool _isMaster;
     private bool _canInsert, _canEdit, _canDelete;
     private int _websiteId;
+    private string? _search;
+    private string _sortBy = "SortOrder";
+    private bool _sortDesc;
     private List<Category> _items = new();
     private List<PostType> _postTypes = new();
     private List<Website> _websites = new();
     private List<DNPrerequisiteAlert.Item> _prerequisites = new();
-    private GridViewHeaderParameters _grid = new();
+    private readonly HashSet<int> _expanded = new();
+
+    private IReadOnlyList<Category> VisibleRoots
+    {
+        get
+        {
+            var visible = ComputeVisibleIds();
+            var ids = _items.Select(c => c.CategoryID).ToHashSet();
+            return OrderSiblings(_items.Where(c =>
+                visible.Contains(c.CategoryID) &&
+                (c.ParentCategoryID is null || !ids.Contains(c.ParentCategoryID.Value)))).ToList();
+        }
+    }
 
     protected override async Task OnInitializedAsync()
     {
@@ -95,57 +135,157 @@
         _canEdit = AdminPolicies.Allows(user, RoleKeys.TaxonomyEdit);
         _canDelete = AdminPolicies.Allows(user, RoleKeys.TaxonomyDelete);
         int.TryParse(user.FindFirst(AdminClaimTypes.WebsiteId)?.Value, out _websiteId);
-        if (_isMaster) _websites = (await WebsiteService.GetAllAsync()).ToList();
-
-        _grid = new GridViewHeaderParameters
+        if (_isMaster)
         {
-            Pagination = new PaginationModel { PageSize = 25 },
-            HeaderItems = new()
-            {
-                new() { ColumnTitle = L["name", "Name"], ColumnName = nameof(Category.Name), HasSort = true, HasSearch = true },
-                new() { ColumnTitle = L["slug", "Slug"], ColumnName = nameof(Category.Slug), HasSort = true, HasSearch = true },
-                new() { ColumnTitle = L["post_type", "Post Type"], ColumnName = nameof(Category.PostTypeID), HasSort = true },
-                new() { ColumnTitle = L["categories.sort", "Sort"], ColumnName = nameof(Category.SortOrder), HasSort = true },
-                new() { ColumnTitle = L["active", "Active"], ColumnName = nameof(Category.IsActive), HasSort = true },
-                new() { ColumnTitle = "", ColumnName = "" },
-            }
-        };
+            _websites = (await WebsiteService.GetAllAsync()).ToList();
+            if (_websiteId == 0 && _websites.Count > 0) _websiteId = _websites[0].WebsiteID;
+        }
 
         await LoadAsync();
     }
 
-    private async Task OnWebsiteChanged(int id) { _websiteId = id; await LoadAsync(); }
-    private Task OnGridChanged(GridViewHeaderParameters _) => LoadAsync();
+    private async Task OnWebsiteChanged(int id)
+    {
+        _websiteId = id;
+        await LoadAsync();
+    }
 
     private async Task LoadAsync()
     {
         _loading = true;
-        var result = await CategoryService.GetPagedAsync(_websiteId, _grid.ToQuery());
-        _items = result.Items.ToList();
-        _grid.Pagination.MaxLength = result.TotalCount;
+        _items = await CategoryService.GetAllAsync(_websiteId);
         _postTypes = await PostTypeService.GetAllAsync(_websiteId);
         _prerequisites = ContentPrerequisiteHelper.ForCategories(L, _postTypes.Count);
+        _expanded.Clear();
+        foreach (var root in _items.Where(c => c.ParentCategoryID is null))
+            _expanded.Add(root.CategoryID);
         _loading = false;
     }
 
-    private async Task CreateAsync()
+    private HashSet<int> ComputeVisibleIds()
+    {
+        if (string.IsNullOrWhiteSpace(_search))
+            return _items.Select(c => c.CategoryID).ToHashSet();
+
+        var needle = _search.Trim();
+        var matchIds = _items
+            .Where(c => c.Name.Contains(needle, StringComparison.OrdinalIgnoreCase)
+                        || c.Slug.Contains(needle, StringComparison.OrdinalIgnoreCase)
+                        || PostTypeName(c).Contains(needle, StringComparison.OrdinalIgnoreCase))
+            .Select(c => c.CategoryID)
+            .ToHashSet();
+
+        var byId = _items.ToDictionary(c => c.CategoryID);
+        var visible = new HashSet<int>(matchIds);
+        foreach (var id in matchIds.ToList())
+        {
+            var current = byId.GetValueOrDefault(id);
+            while (current?.ParentCategoryID is int parentId)
+            {
+                visible.Add(parentId);
+                _expanded.Add(parentId);
+                if (!byId.TryGetValue(parentId, out current)) break;
+            }
+        }
+        return visible;
+    }
+
+    private IEnumerable<Category> ChildrenOf(int parentId)
+    {
+        var visible = ComputeVisibleIds();
+        return OrderSiblings(_items.Where(c => c.ParentCategoryID == parentId && visible.Contains(c.CategoryID)));
+    }
+
+    private IEnumerable<Category> OrderSiblings(IEnumerable<Category> source)
+    {
+        if (_sortDesc)
+        {
+            return _sortBy switch
+            {
+                "Name" => source.OrderByDescending(c => c.Name, StringComparer.OrdinalIgnoreCase),
+                "Slug" => source.OrderByDescending(c => c.Slug, StringComparer.OrdinalIgnoreCase),
+                "Active" => source.OrderBy(c => c.IsActive).ThenByDescending(c => c.SortOrder).ThenByDescending(c => c.Name),
+                _ => source.OrderByDescending(c => c.SortOrder).ThenByDescending(c => c.Name, StringComparer.OrdinalIgnoreCase),
+            };
+        }
+
+        return _sortBy switch
+        {
+            "Name" => source.OrderBy(c => c.Name, StringComparer.OrdinalIgnoreCase),
+            "Slug" => source.OrderBy(c => c.Slug, StringComparer.OrdinalIgnoreCase),
+            "Active" => source.OrderByDescending(c => c.IsActive).ThenBy(c => c.SortOrder).ThenBy(c => c.Name),
+            _ => source.OrderBy(c => c.SortOrder).ThenBy(c => c.Name, StringComparer.OrdinalIgnoreCase),
+        };
+    }
+
+    private bool HasChildren(int id) => _items.Any(c => c.ParentCategoryID == id);
+
+    private string PostTypeName(Category c) =>
+        _postTypes.FirstOrDefault(p => p.PostTypeID == c.PostTypeID)?.Name ?? "-";
+
+    private void ToggleExpand(int id)
+    {
+        if (!_expanded.Add(id))
+            _expanded.Remove(id);
+    }
+
+    private void ExpandAll()
+    {
+        foreach (var c in _items)
+            _expanded.Add(c.CategoryID);
+    }
+
+    private void CollapseAll() => _expanded.Clear();
+
+    private string ParentPath(Category c)
+    {
+        if (c.ParentCategoryID is null) return string.Empty;
+        var byId = _items.ToDictionary(x => x.CategoryID);
+        var parts = new List<string>();
+        var current = c;
+        var guard = 0;
+        while (current.ParentCategoryID is int pid && byId.TryGetValue(pid, out var parent) && guard++ < 64)
+        {
+            parts.Insert(0, parent.Name);
+            current = parent;
+        }
+        return string.Join(" / ", parts);
+    }
+
+    private async Task CreateAsync(int? parentCategoryId)
     {
         if (_websiteId <= 0)
         {
             Snackbar.Add(L["website_required", "Select a website first."], Severity.Warning);
             return;
         }
-        if (await ShowDialogAsync(new Category { WebsiteID = _websiteId, IsActive = true }, true))
-            await LoadAsync();
+        var model = new Category
+        {
+            WebsiteID = _websiteId,
+            IsActive = true,
+            ParentCategoryID = parentCategoryId,
+        };
+        if (parentCategoryId is int pid)
+        {
+            var parent = _items.FirstOrDefault(c => c.CategoryID == pid);
+            if (parent is not null)
+                model.PostTypeID = parent.PostTypeID;
+        }
+        if (await ShowDialogAsync(model, true)) await LoadAsync();
     }
 
     private async Task EditAsync(Category c)
     {
         var copy = new Category
         {
-            CategoryID = c.CategoryID, WebsiteID = c.WebsiteID, PostTypeID = c.PostTypeID,
-            ParentCategoryID = c.ParentCategoryID, Name = c.Name, Slug = c.Slug,
-            SortOrder = c.SortOrder, IsActive = c.IsActive,
+            CategoryID = c.CategoryID,
+            WebsiteID = c.WebsiteID,
+            PostTypeID = c.PostTypeID,
+            ParentCategoryID = c.ParentCategoryID,
+            Name = c.Name,
+            Slug = c.Slug,
+            SortOrder = c.SortOrder,
+            IsActive = c.IsActive,
         };
         if (await ShowDialogAsync(copy, false)) await LoadAsync();
     }
@@ -155,11 +295,14 @@
         var allCategories = await CategoryService.GetAllAsync(_websiteId);
         var parameters = new DialogParameters<CategoryDialog>
         {
-            { x => x.Model, model }, { x => x.IsNew, isNew },
-            { x => x.AllCategories, allCategories }, { x => x.PostTypes, _postTypes },
+            { x => x.Model, model },
+            { x => x.IsNew, isNew },
+            { x => x.AllCategories, allCategories },
+            { x => x.PostTypes, _postTypes },
         };
         var dialog = await DialogService.ShowAsync<CategoryDialog>(
-            isNew ? L["categories.new", "New Category"] : L["categories.edit", "Edit Category"], parameters,
+            isNew ? L["categories.new", "New Category"] : L["categories.edit", "Edit Category"],
+            parameters,
             new DialogOptions { MaxWidth = MaxWidth.Medium, FullWidth = true });
         var result = await dialog.Result;
         return result is not null && !result.Canceled;
@@ -176,4 +319,72 @@
         Snackbar.Add(L["deleted", "Deleted."], Severity.Success);
         await LoadAsync();
     }
+
+    private RenderFragment RenderNode(Category c, int depth) => __builder =>
+    {
+        var hasChildren = HasChildren(c.CategoryID);
+        var expanded = _expanded.Contains(c.CategoryID) || !string.IsNullOrWhiteSpace(_search);
+        var indent = depth * 16;
+        var path = ParentPath(c);
+
+        <li class="dn-tree-node">
+            <div class="dn-tree-row dn-category-tree-row" style="@($"padding-inline-start:{10 + indent}px")">
+                @if (hasChildren)
+                {
+                    <MudIconButton Icon="@(expanded ? Icons.Material.Filled.ExpandMore : Icons.Material.Filled.ChevronRight)"
+                                   Size="Size.Small" Class="pa-0"
+                                   OnClick="@(() => ToggleExpand(c.CategoryID))" />
+                }
+                else
+                {
+                    <span style="width:28px;display:inline-block;flex-shrink:0;"></span>
+                }
+                <MudIcon Icon="@Icons.Material.Filled.Category" Size="Size.Small" Color="Color.Primary" />
+                <div class="dn-category-tree-col-name" style="flex:1; min-width:0;">
+                    <MudText Typo="Typo.body2" Class="text-truncate">@c.Name</MudText>
+                    @if (!string.IsNullOrEmpty(path))
+                    {
+                        <MudText Typo="Typo.caption" Color="Color.Secondary" Class="text-truncate">@path</MudText>
+                    }
+                </div>
+                <code class="dn-category-tree-col-slug text-truncate d-none d-md-inline">@c.Slug</code>
+                <span class="dn-category-tree-col-type text-truncate d-none d-md-inline">@PostTypeName(c)</span>
+                <span class="dn-category-tree-col-sort d-none d-md-inline">@c.SortOrder</span>
+                <span class="dn-category-tree-col-status d-none d-md-inline">
+                    <MudChip T="string" Size="Size.Small" Color="@(c.IsActive ? Color.Success : Color.Default)" Variant="Variant.Text">
+                        @(c.IsActive ? L["active", "Active"] : L["inactive", "Inactive"])
+                    </MudChip>
+                </span>
+                <span class="dn-category-tree-col-actions" style="display:flex; gap:0; flex-shrink:0;">
+                    @if (_canInsert)
+                    {
+                        <MudIconButton Icon="@Icons.Material.Filled.Add" Size="Size.Small"
+                                       title="@L["categories.add_child", "Add child category"]"
+                                       OnClick="@(() => CreateAsync(c.CategoryID))" />
+                    }
+                    @if (_canEdit)
+                    {
+                        <MudIconButton Icon="@Icons.Material.Filled.Edit" Size="Size.Small"
+                                       title="@L["edit", "Edit"]"
+                                       OnClick="@(() => EditAsync(c))" />
+                    }
+                    @if (_canDelete)
+                    {
+                        <MudIconButton Icon="@Icons.Material.Filled.Delete" Size="Size.Small" Color="Color.Error"
+                                       title="@L["delete", "Delete"]"
+                                       OnClick="@(() => DeleteAsync(c))" />
+                    }
+                </span>
+            </div>
+            @if (hasChildren && expanded)
+            {
+                <ul class="dn-tree-children">
+                    @foreach (var child in ChildrenOf(c.CategoryID))
+                    {
+                        @RenderNode(child, depth + 1)
+                    }
+                </ul>
+            }
+        </li>
+    };
 }
