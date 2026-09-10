@@ -46,7 +46,8 @@ public enum AdminNavArea
 /// Resolves which admin navigation areas a member should see.
 /// Driven by <see cref="Website.WebsiteType"/> of the website on the login claim (same field as Website edit / list).
 /// Master website (site 1) and Advanced mode always get the full surface (still role-gated in UI).
-/// Member vendors only get seller-relevant areas.
+/// Content and Media are always on for site admins (Basic/General/Advanced); website type only
+/// trims commerce / extra stacks. Member vendors only get seller-relevant areas.
 /// </summary>
 public static class AdminNavSurface
 {
@@ -79,15 +80,28 @@ public static class AdminNavSurface
         var type = websiteType ?? WebsiteType.Corporate;
         var surface = ForWebsiteType(type);
 
+        // Content + Media submenus stay on in Basic/General (still role-gated).
+        // Website type only trims commerce / extra stacks, not CMS.
+        surface.UnionWith(ContentAndMedia);
+
         if (mode == AdminUiMode.General)
             surface.UnionWith(GeneralExtras(type));
 
         return surface;
     }
 
+    private static readonly AdminNavArea[] ContentAndMedia =
+    [
+        AdminNavArea.ContentCore,
+        AdminNavArea.ContentBlog,
+        AdminNavArea.ContentExtra,
+        AdminNavArea.Media,
+    ];
+
     /// <summary>
     /// Basic surface for the exact type chosen on the Website form
     /// (aligned with <see cref="WebsiteTypeExtensions.GetDefaultFeatures"/> families).
+    /// Content and Media are added on top in <see cref="Resolve"/>.
     /// </summary>
     public static HashSet<AdminNavArea> ForWebsiteType(WebsiteType type) => type switch
     {
@@ -181,25 +195,13 @@ public static class AdminNavSurface
     /// </summary>
     private static HashSet<AdminNavArea> GeneralExtras(WebsiteType type) => type switch
     {
-        WebsiteType.ECommerce or WebsiteType.Auction =>
-        [
-            AdminNavArea.ContentBlog, AdminNavArea.ContentExtra,
-        ],
         WebsiteType.DigitalCatalog or WebsiteType.RealEstate or WebsiteType.Restaurant =>
         [
-            AdminNavArea.ContentExtra, AdminNavArea.Orders, AdminNavArea.Finance, AdminNavArea.Promotions,
+            AdminNavArea.Orders, AdminNavArea.Finance, AdminNavArea.Promotions,
         ],
         WebsiteType.Crowdfunding =>
         [
-            AdminNavArea.ContentExtra, AdminNavArea.Promotions, AdminNavArea.Inventory,
-        ],
-        WebsiteType.Blog or WebsiteType.News or WebsiteType.Personal =>
-        [
-            // Still CMS-only; Advanced for shop.
-        ],
-        WebsiteType.Gallery or WebsiteType.Portfolio =>
-        [
-            AdminNavArea.ContentBlog,
+            AdminNavArea.Promotions, AdminNavArea.Inventory,
         ],
         WebsiteType.ELearning or WebsiteType.Membership =>
         [
@@ -207,7 +209,7 @@ public static class AdminNavSurface
         ],
         WebsiteType.Booking or WebsiteType.MedicalBooking or WebsiteType.BeautyBooking =>
         [
-            AdminNavArea.ContentBlog, AdminNavArea.Finance, AdminNavArea.Promotions,
+            AdminNavArea.Finance, AdminNavArea.Promotions,
         ],
         _ => [],
     };
