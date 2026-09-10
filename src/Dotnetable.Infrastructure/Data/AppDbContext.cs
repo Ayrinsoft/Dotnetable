@@ -1678,7 +1678,6 @@ public partial class AppDbContext : DbContext
 
             entity.HasOne(d => d.Website).WithMany(p => p.LoginTries)
                 .HasForeignKey(d => d.WebsiteID)
-                .OnDelete(DeleteBehavior.ClientSetNull)
                 .HasConstraintName("FK_LoginTries_Websites");
         });
 

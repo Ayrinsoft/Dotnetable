@@ -4,7 +4,8 @@ CREATE TABLE [dbo].[LoginTries] (
     [LogTime]    DATETIME     NOT NULL,
     [IsSuccess]  BIT          NOT NULL,
     [TryIP]      VARCHAR (15) NOT NULL,
-    [WebsiteID]  INT NOT NULL,
+    -- NULL = attempt not attributed to a website (unknown username on the admin panel).
+    [WebsiteID]  INT NULL,
     CONSTRAINT [PK_LoginTries] PRIMARY KEY CLUSTERED ([LoginTryID] ASC),
     CONSTRAINT [FK_LoginTries_Websites] FOREIGN KEY ([WebsiteID]) REFERENCES [dbo].[Websites] ([WebsiteID])
 );

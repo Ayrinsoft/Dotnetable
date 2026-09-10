@@ -169,8 +169,9 @@ public class LoginModel : CaptchaPageModel
 
     private async Task RecordFailureAsync(string username, string ip, CancellationToken ct)
     {
-        // Attribute the failed attempt to the matching member's website when one exists (0 = unknown, master-only).
-        var websiteId = await _memberService.GetWebsiteIdByUsernameAsync(username, ct) ?? 0;
+        // Attribute the failed attempt to the matching member's website when one exists.
+        // Unknown usernames stay unattributed (null) — do not send 0; there is no WebsiteID 0.
+        var websiteId = await _memberService.GetWebsiteIdByUsernameAsync(username, ct);
         await _loginLog.RecordAsync(username, websiteId, false, ip, ct);
     }
 

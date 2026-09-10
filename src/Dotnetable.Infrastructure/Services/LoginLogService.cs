@@ -38,14 +38,18 @@ public class LoginLogService : ILoginLogService
         return new PagedResult<LoginTry> { Items = items, TotalCount = total };
     }
 
-    public async Task RecordAsync(string username, int websiteId, bool success, string ip, CancellationToken ct = default)
+    public async Task RecordAsync(string username, int? websiteId, bool success, string ip, CancellationToken ct = default)
     {
         await using var _context = await _contextFactory.CreateDbContextAsync(ct);
+
+        // 0 was historically used as "unknown / master-only" but is not a real WebsiteID, so the
+        // FK_LoginTries_Websites insert failed and blocked admin sign-in.
+        int? siteId = websiteId is > 0 ? websiteId : null;
 
         _context.LoginTries.Add(new LoginTry
         {
             Username = username.Length > 64 ? username[..64] : username,
-            WebsiteID = websiteId,
+            WebsiteID = siteId,
             IsSuccess = success,
             TryIP = ip.Length > 15 ? ip[..15] : ip,
             LogTime = DateTime.UtcNow,

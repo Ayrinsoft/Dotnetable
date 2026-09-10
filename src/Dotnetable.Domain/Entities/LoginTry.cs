@@ -15,7 +15,11 @@ public partial class LoginTry
 
     public string TryIP { get; set; } = null!;
 
-    public int WebsiteID { get; set; }
+    /// <summary>
+    /// Null when the attempt cannot be attributed to a website (unknown username on the admin panel).
+    /// Never 0 — there is no WebsiteID 0, and the FK would reject it.
+    /// </summary>
+    public int? WebsiteID { get; set; }
 
-    public virtual Website Website { get; set; } = null!;
+    public virtual Website? Website { get; set; }
 }
