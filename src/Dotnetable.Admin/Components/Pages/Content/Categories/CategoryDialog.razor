@@ -14,18 +14,40 @@
                     <MudTextField @bind-Value="Model.Slug" Label="@L["slug", "Slug"]" Variant="Variant.Outlined" Required="true" />
                 </MudItem>
                 <MudItem xs="12" sm="6">
-                    <MudAutocomplete T="Category" Value="@GetSelectedParent()" ValueChanged="OnParentChanged"
-                                     SearchFunc="SearchParents" ToStringFunc="@(c => c?.Name ?? string.Empty)"
-                                     Label="@L["categories.parent", "Parent"]" Variant="Variant.Outlined"
-                                     Clearable="true" CoerceText="false" ResetValueOnEmptyText="true"
-                                     HelperText="@L["categories.parent_hint", "Clear for top-level. Type to search."]" />
-                </MudItem>
-                <MudItem xs="12" sm="6">
                     <MudAutocomplete T="PostType" Value="@GetSelectedPostType()" ValueChanged="OnPostTypeChanged"
                                      SearchFunc="SearchPostTypes" ToStringFunc="@(t => t?.Name ?? string.Empty)"
                                      Label="@L["post_type", "Post Type"]" Variant="Variant.Outlined"
                                      Clearable="true" CoerceText="false" ResetValueOnEmptyText="true"
                                      HelperText="@L["categories.any_type_hint", "Clear for any type. Type to search."]" />
+                </MudItem>
+                <MudItem xs="12">
+                    <MudText Typo="Typo.body2" Class="mb-1">@L["categories.parent", "Parent"]</MudText>
+                    <MudText Typo="Typo.caption" Color="Color.Secondary" Class="mb-2">
+                        @L["categories.parent_cascade_hint", "Start with a top-level category, then pick the next level. Leave empty for a root. The last selected item is the parent."]
+                    </MudText>
+                    @if (_parentPath.Count > 0)
+                    {
+                        <MudText Typo="Typo.caption" Class="mb-2">
+                            @L["categories.parent_path", "Parent path"]: @ParentPathText
+                        </MudText>
+                    }
+                    <MudGrid Spacing="2">
+                        @for (var level = 0; level < ParentLevelCount; level++)
+                        {
+                            var lvl = level;
+                            <MudItem xs="12" sm="6">
+                                <MudSelect T="int" Value="@PathId(lvl)" ValueChanged="@(id => OnPathLevelChanged(lvl, id))"
+                                           Label="@ParentLevelLabel(lvl)" Variant="Variant.Outlined"
+                                           Clearable="true" Dense="true"
+                                           @key="@($"parent-level-{lvl}-{PathId(lvl - 1)}")">
+                                    @foreach (var c in OptionsAt(lvl))
+                                    {
+                                        <MudSelectItem T="int" Value="@c.CategoryID">@c.Name</MudSelectItem>
+                                    }
+                                </MudSelect>
+                            </MudItem>
+                        }
+                    </MudGrid>
                 </MudItem>
                 <MudItem xs="6">
                     <MudNumericField T="int" @bind-Value="Model.SortOrder" Label="@L["categories.sort", "Sort order"]" Variant="Variant.Outlined" />
@@ -80,6 +102,7 @@
     private MudForm _form = null!;
     private bool _saving;
     private string[]? _formErrors;
+    private readonly List<int> _parentPath = new();
     private readonly Dictionary<string, (string Name, string Slug)> _tr = new(StringComparer.OrdinalIgnoreCase);
 
     // Exclude self and descendants as parent candidates.
@@ -104,6 +127,8 @@
         if (!IsNew)
             foreach (var t in await CategoryService.GetTranslationsAsync(Model.CategoryID))
                 _tr[t.LanguageCode] = (t.Name, t.Slug);
+
+        RebuildParentPath();
     }
 
     private string Name(string code) => _tr.TryGetValue(code, out var v) ? v.Name : string.Empty;
@@ -111,22 +136,76 @@
     private void SetName(string code, string v) { var c = _tr.GetValueOrDefault(code); _tr[code] = (v ?? string.Empty, c.Slug ?? string.Empty); }
     private void SetSlug(string code, string v) { var c = _tr.GetValueOrDefault(code); _tr[code] = (c.Name ?? string.Empty, v ?? string.Empty); }
 
-    private Category? GetSelectedParent() =>
-        Model.ParentCategoryID is int id ? ParentCandidates.FirstOrDefault(c => c.CategoryID == id) : null;
-
-    private void OnParentChanged(Category? parent) =>
-        Model.ParentCategoryID = parent?.CategoryID;
-
-    private Task<IEnumerable<Category>> SearchParents(string value, CancellationToken ct)
+    private int ParentLevelCount
     {
-        IEnumerable<Category> q = ParentCandidates.OrderBy(c => c.Name);
-        if (!string.IsNullOrWhiteSpace(value))
+        get
         {
-            var needle = value.Trim();
-            q = q.Where(c => c.Name.Contains(needle, StringComparison.OrdinalIgnoreCase)
-                             || c.Slug.Contains(needle, StringComparison.OrdinalIgnoreCase));
+            var extra = OptionsAt(_parentPath.Count).Any() ? 1 : 0;
+            return Math.Max(1, _parentPath.Count + extra);
         }
-        return Task.FromResult(q);
+    }
+
+    private string ParentPathText
+    {
+        get
+        {
+            var byId = AllCategories.ToDictionary(c => c.CategoryID);
+            return string.Join(" / ", _parentPath.Select(id => byId.TryGetValue(id, out var c) ? c.Name : $"#{id}"));
+        }
+    }
+
+    private int PathId(int level) =>
+        level >= 0 && level < _parentPath.Count ? _parentPath[level] : 0;
+
+    private string ParentLevelLabel(int level) =>
+        level == 0
+            ? L["categories.parent_level1", "Top-level parent"]
+            : string.Format(L["categories.parent_level_n", "Level {0}"], level + 1);
+
+    private IEnumerable<Category> OptionsAt(int level)
+    {
+        int? parentId = level == 0 ? null : PathId(level - 1);
+        if (level > 0 && parentId is null or 0) return Array.Empty<Category>();
+        return ParentCandidates
+            .Where(c => c.ParentCategoryID == parentId)
+            .OrderBy(c => c.SortOrder)
+            .ThenBy(c => c.Name, StringComparer.OrdinalIgnoreCase);
+    }
+
+    private void RebuildParentPath()
+    {
+        _parentPath.Clear();
+        if (Model.ParentCategoryID is not int id || id <= 0) return;
+
+        var byId = AllCategories.ToDictionary(c => c.CategoryID);
+        var chain = new List<int>();
+        var current = id;
+        var guard = 0;
+        while (guard++ < 64)
+        {
+            chain.Insert(0, current);
+            if (!byId.TryGetValue(current, out var cat) || cat.ParentCategoryID is not int pid || pid <= 0)
+                break;
+            current = pid;
+        }
+        _parentPath.AddRange(chain);
+    }
+
+    private void OnPathLevelChanged(int level, int selectedId)
+    {
+        if (level < _parentPath.Count)
+            _parentPath.RemoveRange(level, _parentPath.Count - level);
+
+        if (selectedId > 0)
+            _parentPath.Add(selectedId);
+
+        Model.ParentCategoryID = _parentPath.Count > 0 ? _parentPath[^1] : null;
+        if (Model.PostTypeID is null && Model.ParentCategoryID is int pid)
+        {
+            var parent = AllCategories.FirstOrDefault(c => c.CategoryID == pid);
+            if (parent?.PostTypeID is int postTypeId)
+                Model.PostTypeID = postTypeId;
+        }
     }
 
     private PostType? GetSelectedPostType() =>
