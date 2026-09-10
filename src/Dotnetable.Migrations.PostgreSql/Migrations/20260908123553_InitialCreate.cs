@@ -1170,7 +1170,7 @@ namespace Dotnetable.Migrations.PostgreSql.Migrations
                     LogTime = table.Column<DateTime>(type: "datetime", nullable: false),
                     IsSuccess = table.Column<bool>(type: "boolean", nullable: false),
                     TryIP = table.Column<string>(type: "character varying(15)", unicode: false, maxLength: 15, nullable: false),
-                    WebsiteID = table.Column<int>(type: "integer", nullable: false)
+                    WebsiteID = table.Column<int>(type: "integer", nullable: true)
                 },
                 constraints: table =>
                 {

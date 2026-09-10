@@ -40,7 +40,7 @@
                     <td>@l.TryIP</td>
                     @if (_isMaster)
                     {
-                        <td>@(l.WebsiteID == 0 ? "—" : l.WebsiteID.ToString())</td>
+                        <td>@(l.WebsiteID is > 0 ? l.WebsiteID.ToString() : "—")</td>
                     }
                     <td>
                         @if (l.IsSuccess)

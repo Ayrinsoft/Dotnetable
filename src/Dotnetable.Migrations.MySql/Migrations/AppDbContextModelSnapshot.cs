@@ -2621,7 +2621,7 @@ namespace Dotnetable.Migrations.MySql.Migrations
                         .IsUnicode(false)
                         .HasColumnType("varchar(64)");
 
-                    b.Property<int>("WebsiteID")
+                    b.Property<int?>("WebsiteID")
                         .HasColumnType("int");
 
                     b.HasKey("LoginTryID");
@@ -8775,7 +8775,6 @@ namespace Dotnetable.Migrations.MySql.Migrations
                     b.HasOne("Dotnetable.Domain.Entities.Website", "Website")
                         .WithMany("LoginTries")
                         .HasForeignKey("WebsiteID")
-                        .IsRequired()
                         .HasConstraintName("FK_LoginTries_Websites");
 
                     b.Navigation("Website");

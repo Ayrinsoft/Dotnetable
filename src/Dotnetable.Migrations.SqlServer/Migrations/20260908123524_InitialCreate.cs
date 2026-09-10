@@ -1169,7 +1169,7 @@ namespace Dotnetable.Migrations.SqlServer.Migrations
                     LogTime = table.Column<DateTime>(type: "datetime", nullable: false),
                     IsSuccess = table.Column<bool>(type: "bit", nullable: false),
                     TryIP = table.Column<string>(type: "varchar(15)", unicode: false, maxLength: 15, nullable: false),
-                    WebsiteID = table.Column<int>(type: "int", nullable: false)
+                    WebsiteID = table.Column<int>(type: "int", nullable: true)
                 },
                 constraints: table =>
                 {

@@ -38,6 +38,22 @@ public class LoginLogServiceTests : IDisposable
     }
 
     [Fact]
+    public async Task RecordAsync_ZeroWebsiteId_StoresNull()
+    {
+        await _service.RecordAsync("nobody", websiteId: 0, success: false, ip: "1.1.1.1");
+
+        _context.LoginTries.Single().WebsiteID.Should().BeNull();
+    }
+
+    [Fact]
+    public async Task RecordAsync_NullWebsiteId_StoresNull()
+    {
+        await _service.RecordAsync("nobody", websiteId: null, success: false, ip: "1.1.1.1");
+
+        _context.LoginTries.Single().WebsiteID.Should().BeNull();
+    }
+
+    [Fact]
     public async Task RecordAsync_TruncatesUsernameLongerThan64Chars()
     {
         var longName = new string('x', 80);

@@ -440,6 +440,10 @@ window.DOCS_ADMIN = {
               en: "Open Login Logs and filter by date/member when investigating an incident.",
               fa: "Login Logs را باز کنید و هنگام بررسی حادثه بر اساس تاریخ/عضو فیلتر کنید.",
             },
+            {
+              en: "Failed attempts with an unknown username are stored without a website (blank in the Website column). Do not use WebsiteID 0 — that value is not a site and the foreign key rejects it.",
+              fa: "تلاش‌های ناموفق با نام کاربری ناشناس بدون وب‌سایت ذخیره می‌شوند (ستون Website خالی). WebsiteID صفر نگذارید؛ چنین سایتی وجود ندارد و کلید خارجی رد می‌کند.",
+            },
           ],
           related: ["members", "settings"],
         },
