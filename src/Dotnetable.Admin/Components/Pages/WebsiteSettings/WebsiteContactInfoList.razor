@@ -1,5 +1,5 @@
 @page "/website/contact-info"
-@attribute [Authorize(Policy = RoleKeys.WebsiteEdit)]
+@attribute [Authorize(Policy = AdminPolicies.WebsiteContactAccess)]
 @inject IWebsiteSettingService SettingService
 @inject IWebsiteService WebsiteService
 @inject AuthenticationStateProvider AuthState

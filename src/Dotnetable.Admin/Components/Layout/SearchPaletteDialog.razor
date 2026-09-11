@@ -63,7 +63,9 @@
         if (page.SuperAdminOnly) return false;
         if (NavSurface.IsVendorMember && !page.VendorMemberAllowed) return false;
         if (page.NavArea is AdminNavArea area && !NavSurface.Shows(area)) return false;
-        return page.RoleKey is null || _grantedRoleKeys.Contains(page.RoleKey);
+        return page.RoleKey is null
+            || _grantedRoleKeys.Contains(page.RoleKey)
+            || (page.AltRoleKey is not null && _grantedRoleKeys.Contains(page.AltRoleKey));
     }
 
     private void OnQueryChanged()

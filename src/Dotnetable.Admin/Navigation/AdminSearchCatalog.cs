@@ -13,6 +13,8 @@ namespace Dotnetable.Admin.Navigation;
 /// <param name="SuperAdminOnly">True if only master-website members can reach this page.</param>
 /// <param name="NavArea">Optional surface area for Basic/General UiMode filtering (null = always allowed when roles match).</param>
 /// <param name="VendorMemberAllowed">When false, marketplace seller accounts never see this page in search/nav surface.</param>
+/// <param name="AltRoleKey">A second role key that also unlocks this page (either one is enough) — for
+/// pages reachable through a broad legacy key or a narrower one introduced later.</param>
 public sealed record AdminSearchPage(
     string TitleKey,
     string TitleDefault,
@@ -23,7 +25,8 @@ public sealed record AdminSearchPage(
     string? RoleKey,
     bool SuperAdminOnly = false,
     AdminNavArea? NavArea = null,
-    bool VendorMemberAllowed = true);
+    bool VendorMemberAllowed = true,
+    string? AltRoleKey = null);
 
 /// <summary>
 /// Static index of every admin page for the header search palette. Keep this in sync with
@@ -51,8 +54,8 @@ public static class AdminSearchCatalog
         new AdminSearchPage("ip_whitelist", "IP Whitelist", "/website/ips", Icons.Material.Filled.Security, "website", "Website", RoleKeys.WebsiteEdit, NavArea: AdminNavArea.Website, VendorMemberAllowed: false),
         new AdminSearchPage("scripts", "Scripts", "/website/scripts", Icons.Material.Filled.Code, "website", "Website", RoleKeys.WebsiteEdit, NavArea: AdminNavArea.Website, VendorMemberAllowed: false),
         new AdminSearchPage("seo_settings", "SEO Settings", "/website/seo", Icons.Material.Filled.Search, "website", "Website", RoleKeys.WebsiteEdit, NavArea: AdminNavArea.Website, VendorMemberAllowed: false),
-        new AdminSearchPage("social_links", "Social Links", "/website/social", Icons.Material.Filled.Share, "website", "Website", RoleKeys.WebsiteEdit, NavArea: AdminNavArea.Website, VendorMemberAllowed: false),
-        new AdminSearchPage("contact_info", "Contact Info", "/website/contact-info", Icons.Material.Filled.ContactPhone, "website", "Website", RoleKeys.WebsiteEdit, NavArea: AdminNavArea.Website, VendorMemberAllowed: false),
+        new AdminSearchPage("social_links", "Social Links", "/website/social", Icons.Material.Filled.Share, "website", "Website", RoleKeys.WebsiteSocialEdit, NavArea: AdminNavArea.Website, VendorMemberAllowed: false, AltRoleKey: RoleKeys.WebsiteEdit),
+        new AdminSearchPage("contact_info", "Contact Info", "/website/contact-info", Icons.Material.Filled.ContactPhone, "website", "Website", RoleKeys.WebsiteContactEdit, NavArea: AdminNavArea.Website, VendorMemberAllowed: false, AltRoleKey: RoleKeys.WebsiteEdit),
         new AdminSearchPage("website_api_key", "Website API Key", "/website/api-key", Icons.Material.Filled.VpnKey, "website", "Website", RoleKeys.WebsiteEdit, NavArea: AdminNavArea.Website, VendorMemberAllowed: false),
         new AdminSearchPage("website_languages", "Languages", "/website/languages", Icons.Material.Filled.Language, "website", "Website", RoleKeys.LocalizationEdit, NavArea: AdminNavArea.Website, VendorMemberAllowed: false),
         new AdminSearchPage("website_translations", "Translations", "/website/translations", Icons.Material.Filled.Translate, "website", "Website", RoleKeys.LocalizationEdit, NavArea: AdminNavArea.Website, VendorMemberAllowed: false),
