@@ -198,6 +198,8 @@
     <Build Include="Wishlists.sql" />
     <Build Include="SlideshowSlides.sql" />
     <Build Include="Slideshows.sql" />
+    <Build Include="Advertisements.sql" />
+    <Build Include="AdvertisementTranslations.sql" />
     <Build Include="Forms.sql" />
     <Build Include="FormFields.sql" />
     <Build Include="FormFieldOptions.sql" />

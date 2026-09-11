@@ -137,6 +137,17 @@ public class ApiClient
             return await GetOrNullAsync<SlideshowDto>(path, ct);
         });
 
+    /// <summary>Active keyword ads for a location (Header, Footer, Sidebar, Home, Product, Blog, Page).
+    /// Empty list when none are configured or the API is unreachable.</summary>
+    public async Task<IReadOnlyList<AdvertisementDto>> GetAdvertisementsAsync(string location, string? lang = null, CancellationToken ct = default) =>
+        await CachedGetAsync($"ads:{location}:{lang}", async () =>
+        {
+            var path = $"api/advertisement/{Uri.EscapeDataString(location)}";
+            if (!string.IsNullOrWhiteSpace(lang))
+                path += $"?lang={Uri.EscapeDataString(lang)}";
+            return await GetOrNullAsync<IReadOnlyList<AdvertisementDto>>(path, ct);
+        }) ?? Array.Empty<AdvertisementDto>();
+
     // ── Content (posts, pages, categories, redirects) ───────────────
 
     /// <summary>Published posts (paged), optionally filtered by post type / category / tag slug.</summary>

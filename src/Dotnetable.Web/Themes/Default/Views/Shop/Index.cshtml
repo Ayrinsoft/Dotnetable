@@ -1,8 +1,12 @@
+@using Dotnetable.Web.Services
+@using Microsoft.AspNetCore.Mvc.ViewFeatures
 @model Dotnetable.Web.Controllers.ShopController.ShopListView
+@inject ApiClient Api
 @{
     var title = "Shop";
     ViewData["Title"] = title;
     Layout = "/Themes/Default/Views/Shared/_Layout.cshtml";
+    var sidebarAds = await Api.GetAdvertisementsAsync("Sidebar", Context.Request.Cookies["lang"]);
 }
 
 @await Html.PartialAsync("_PageHeader", (title, "Shop"))
@@ -36,6 +40,13 @@
                        asp-route-category="@Model.Category" asp-route-search="@Model.Search" asp-route-inStock="false"
                        class="list-group-item list-group-item-action @(Model.InStock == false ? "active" : "")">Out of stock</a>
                 </div>
+
+                @if (sidebarAds.Count > 0)
+                {
+                    <div class="mt-4">
+                        @await Html.PartialAsync("_Advertisements", sidebarAds, new ViewDataDictionary(ViewData) { ["AdsModifier"] = "sidebar" })
+                    </div>
+                }
             </div>
             <div class="col-lg-9">
                 <form method="get" class="d-flex mb-4 gap-2 flex-wrap">

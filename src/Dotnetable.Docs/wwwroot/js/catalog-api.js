@@ -1542,8 +1542,8 @@ window.DOCS_API = {
       id: "content",
       title: { en: "Content & site shell", fa: "محتوا و پوسته سایت" },
       summary: {
-        en: "Pages, posts, menus, slideshows, theme, site info, forms, contact, redirects, files.",
-        fa: "صفحه، پست، منو، اسلایدشو، تم، اطلاعات سایت، فرم، تماس، ریدایرکت، فایل.",
+        en: "Pages, posts, menus, slideshows, advertisements, theme, site info, forms, contact, redirects, files.",
+        fa: "صفحه، پست، منو، اسلایدشو، تبلیغات، تم، اطلاعات سایت، فرم، تماس، ریدایرکت، فایل.",
       },
       pages: [
         {
@@ -1676,6 +1676,28 @@ window.DOCS_API = {
               response: {
                 status: 200,
                 body: { slides: [{ title: "Sale", imageUrl: "/…", linkUrl: "/products" }] },
+              },
+            },
+          ],
+        },
+        {
+          id: "advertisements",
+          title: { en: "Advertisements", fa: "تبلیغات" },
+          summary: {
+            en: "Active keyword ads for a location, localized by lang.",
+            fa: "تبلیغ‌های کلمه کلیدی فعال برای یک محل نمایش، با زبان.",
+          },
+          relatedAdmin: ["advertisements"],
+          endpoints: [
+            {
+              title: { en: "By location", fa: "با محل نمایش" },
+              method: "GET",
+              path: "/api/Advertisement/{location}",
+              auth: "website",
+              request: { body: "GET /api/Advertisement/Header?lang=fa" },
+              response: {
+                status: 200,
+                body: [{ keyword: "Buy steel", url: "https://example.com", openInNewTab: true }],
               },
             },
           ],

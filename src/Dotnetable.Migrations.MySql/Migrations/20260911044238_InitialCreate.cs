@@ -203,6 +203,49 @@ namespace Dotnetable.Migrations.MySql.Migrations
                 .Annotation("MySQL:Charset", "utf8mb4");
 
             migrationBuilder.CreateTable(
+                name: "Advertisements",
+                columns: table => new
+                {
+                    AdvertisementID = table.Column<int>(type: "int", nullable: false)
+                        .Annotation("MySQL:ValueGenerationStrategy", MySQLValueGenerationStrategy.IdentityColumn),
+                    WebsiteID = table.Column<int>(type: "int", nullable: false),
+                    Location = table.Column<byte>(type: "tinyint unsigned", nullable: false),
+                    Keyword = table.Column<string>(type: "varchar(200)", maxLength: 200, nullable: false),
+                    Url = table.Column<string>(type: "varchar(500)", maxLength: 500, nullable: false),
+                    OpenInNewTab = table.Column<bool>(type: "tinyint(1)", nullable: false),
+                    SortOrder = table.Column<int>(type: "int", nullable: false),
+                    IsActive = table.Column<bool>(type: "tinyint(1)", nullable: false),
+                    CreatedAt = table.Column<DateTime>(type: "datetime", nullable: false)
+                },
+                constraints: table =>
+                {
+                    table.PrimaryKey("PK_Advertisements", x => x.AdvertisementID);
+                })
+                .Annotation("MySQL:Charset", "utf8mb4");
+
+            migrationBuilder.CreateTable(
+                name: "AdvertisementTranslations",
+                columns: table => new
+                {
+                    AdvertisementTranslationID = table.Column<int>(type: "int", nullable: false)
+                        .Annotation("MySQL:ValueGenerationStrategy", MySQLValueGenerationStrategy.IdentityColumn),
+                    AdvertisementID = table.Column<int>(type: "int", nullable: false),
+                    LanguageCode = table.Column<string>(type: "char(2)", unicode: false, fixedLength: true, maxLength: 2, nullable: false),
+                    Keyword = table.Column<string>(type: "varchar(200)", maxLength: 200, nullable: false),
+                    Url = table.Column<string>(type: "varchar(500)", maxLength: 500, nullable: true)
+                },
+                constraints: table =>
+                {
+                    table.PrimaryKey("PK_AdvertisementTranslations", x => x.AdvertisementTranslationID);
+                    table.ForeignKey(
+                        name: "FK_AdvertisementTranslations_Advertisements",
+                        column: x => x.AdvertisementID,
+                        principalTable: "Advertisements",
+                        principalColumn: "AdvertisementID");
+                })
+                .Annotation("MySQL:Charset", "utf8mb4");
+
+            migrationBuilder.CreateTable(
                 name: "AttributeDefinitions",
                 columns: table => new
                 {
@@ -5070,6 +5113,22 @@ namespace Dotnetable.Migrations.MySql.Migrations
                 column: "WebsiteID");
 
             migrationBuilder.CreateIndex(
+                name: "IX_Advertisements_WebsiteID",
+                table: "Advertisements",
+                column: "WebsiteID");
+
+            migrationBuilder.CreateIndex(
+                name: "IX_Advertisements_WebsiteID_Location",
+                table: "Advertisements",
+                columns: new[] { "WebsiteID", "Location" });
+
+            migrationBuilder.CreateIndex(
+                name: "IX_AdvertisementTranslations_AdvertisementID_LanguageCode",
+                table: "AdvertisementTranslations",
+                columns: new[] { "AdvertisementID", "LanguageCode" },
+                unique: true);
+
+            migrationBuilder.CreateIndex(
                 name: "IX_AttributeDefinitions_WebsiteID",
                 table: "AttributeDefinitions",
                 column: "WebsiteID");
@@ -7102,6 +7161,13 @@ namespace Dotnetable.Migrations.MySql.Migrations
                 principalColumn: "WebsiteID");
 
             migrationBuilder.AddForeignKey(
+                name: "FK_Advertisements_Websites",
+                table: "Advertisements",
+                column: "WebsiteID",
+                principalTable: "Websites",
+                principalColumn: "WebsiteID");
+
+            migrationBuilder.AddForeignKey(
                 name: "FK_AttributeDefinitions_Websites",
                 table: "AttributeDefinitions",
                 column: "WebsiteID",
@@ -7599,6 +7665,9 @@ namespace Dotnetable.Migrations.MySql.Migrations
                 name: "AdminNotifications");
 
             migrationBuilder.DropTable(
+                name: "AdvertisementTranslations");
+
+            migrationBuilder.DropTable(
                 name: "AttributeDefinitionTranslations");
 
             migrationBuilder.DropTable(
@@ -7858,6 +7927,9 @@ namespace Dotnetable.Migrations.MySql.Migrations
 
             migrationBuilder.DropTable(
                 name: "WishlistItems");
+
+            migrationBuilder.DropTable(
+                name: "Advertisements");
 
             migrationBuilder.DropTable(
                 name: "Carts");

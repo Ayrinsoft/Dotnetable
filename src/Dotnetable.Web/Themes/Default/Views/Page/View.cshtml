@@ -1,6 +1,8 @@
 @using Dotnetable.Web.Services
+@using Microsoft.AspNetCore.Mvc.ViewFeatures
 @model Dotnetable.Application.DTOs.PageDto
 @inject ContentShortcodeProcessor Shortcodes
+@inject ApiClient Api
 @{
     ViewData["Title"] = Model.Title;
     Layout = "/Themes/Default/Views/Shared/_Layout.cshtml";
@@ -16,6 +18,15 @@
                 <div class="page-content">
                     @Html.Raw(content)
                 </div>
+                @{
+                    var pageAds = await Api.GetAdvertisementsAsync("Page", Context.Request.Cookies["lang"]);
+                }
+                @if (pageAds.Count > 0)
+                {
+                    <div class="mt-4">
+                        @await Html.PartialAsync("_Advertisements", pageAds, new ViewDataDictionary(ViewData) { ["AdsModifier"] = "page" })
+                    </div>
+                }
             </div>
         </div>
     </div>

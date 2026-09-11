@@ -1,5 +1,8 @@
 @using Dotnetable.Application.DTOs
+@using Dotnetable.Web.Services
+@using Microsoft.AspNetCore.Mvc.ViewFeatures
 @model ProductDetailDto
+@inject ApiClient Api
 @{
     ViewData["Title"] = Model.Title;
     Layout = "/Themes/Default/Views/Shared/_Layout.cshtml";
@@ -347,6 +350,15 @@
                 }
             </div>
         </div>
+        @{
+            var productAds = await Api.GetAdvertisementsAsync("Product", Context.Request.Cookies["lang"]);
+        }
+        @if (productAds.Count > 0)
+        {
+            <div class="mt-4">
+                @await Html.PartialAsync("_Advertisements", productAds, new ViewDataDictionary(ViewData) { ["AdsModifier"] = "product" })
+            </div>
+        }
     </div>
 </section>
 

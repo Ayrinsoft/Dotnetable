@@ -57,6 +57,12 @@ public static class RoleKeys
     public const string SlideshowsEdit = "slideshows.edit";
     public const string SlideshowsDelete = "slideshows.delete";
 
+    // ── Advertisements (admin) ──────────────────────────────────────
+    public const string AdvertisementsView = "advertisements.view";
+    public const string AdvertisementsInsert = "advertisements.insert";
+    public const string AdvertisementsEdit = "advertisements.edit";
+    public const string AdvertisementsDelete = "advertisements.delete";
+
     // ── Forms & surveys (admin) ─────────────────────────────────────
     public const string FormsView = "forms.view";
     public const string FormsInsert = "forms.insert";

@@ -73,6 +73,12 @@ public static class RoleCatalog
         new(RoleKeys.SlideshowsEdit, "Edit slideshows", RoleCategory.Admin),
         new(RoleKeys.SlideshowsDelete, "Delete slideshows", RoleCategory.Admin),
 
+        // Advertisements
+        new(RoleKeys.AdvertisementsView, "View advertisements", RoleCategory.Admin),
+        new(RoleKeys.AdvertisementsInsert, "Create advertisements", RoleCategory.Admin),
+        new(RoleKeys.AdvertisementsEdit, "Edit advertisements", RoleCategory.Admin),
+        new(RoleKeys.AdvertisementsDelete, "Delete advertisements", RoleCategory.Admin),
+
         // Forms & surveys
         new(RoleKeys.FormsView, "View forms & surveys", RoleCategory.Admin),
         new(RoleKeys.FormsInsert, "Create forms & surveys", RoleCategory.Admin),

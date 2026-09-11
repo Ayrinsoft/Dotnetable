@@ -1,4 +1,5 @@
 @using Dotnetable.Web.Services
+@using Microsoft.AspNetCore.Mvc.ViewFeatures
 @inject ApiClient Api
 @{
     ViewData["Title"] = "Home";
@@ -6,12 +7,20 @@
 
     // Renders the slideshow assigned to the "home_top" placement key in the admin panel, if any.
     var topSlideshow = await Api.GetSlideshowByPlacementAsync("home_top");
+    var homeAds = await Api.GetAdvertisementsAsync("Home", Context.Request.Cookies["lang"]);
 }
 
 @if (topSlideshow is not null)
 {
     <section class="container mt-4">
         <partial name="_Slideshow" model="topSlideshow" />
+    </section>
+}
+
+@if (homeAds.Count > 0)
+{
+    <section class="container mt-3">
+        @await Html.PartialAsync("_Advertisements", homeAds, new ViewDataDictionary(ViewData) { ["AdsModifier"] = "home" })
     </section>
 }
 

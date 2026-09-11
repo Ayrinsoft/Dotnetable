@@ -73,6 +73,86 @@ namespace Dotnetable.Migrations.PostgreSql.Migrations
                     b.ToTable("AdminNotifications");
                 });
 
+            modelBuilder.Entity("Dotnetable.Domain.Entities.Advertisement", b =>
+                {
+                    b.Property<int>("AdvertisementID")
+                        .ValueGeneratedOnAdd()
+                        .HasColumnType("integer");
+
+                    NpgsqlPropertyBuilderExtensions.UseIdentityByDefaultColumn(b.Property<int>("AdvertisementID"));
+
+                    b.Property<DateTime>("CreatedAt")
+                        .HasColumnType("datetime");
+
+                    b.Property<bool>("IsActive")
+                        .HasColumnType("boolean");
+
+                    b.Property<string>("Keyword")
+                        .IsRequired()
+                        .HasMaxLength(200)
+                        .HasColumnType("character varying(200)");
+
+                    b.Property<byte>("Location")
+                        .HasColumnType("smallint");
+
+                    b.Property<bool>("OpenInNewTab")
+                        .HasColumnType("boolean");
+
+                    b.Property<int>("SortOrder")
+                        .HasColumnType("integer");
+
+                    b.Property<string>("Url")
+                        .IsRequired()
+                        .HasMaxLength(500)
+                        .HasColumnType("character varying(500)");
+
+                    b.Property<int>("WebsiteID")
+                        .HasColumnType("integer");
+
+                    b.HasKey("AdvertisementID");
+
+                    b.HasIndex(new[] { "WebsiteID" }, "IX_Advertisements_WebsiteID");
+
+                    b.HasIndex(new[] { "WebsiteID", "Location" }, "IX_Advertisements_WebsiteID_Location");
+
+                    b.ToTable("Advertisements");
+                });
+
+            modelBuilder.Entity("Dotnetable.Domain.Entities.AdvertisementTranslation", b =>
+                {
+                    b.Property<int>("AdvertisementTranslationID")
+                        .ValueGeneratedOnAdd()
+                        .HasColumnType("integer");
+
+                    NpgsqlPropertyBuilderExtensions.UseIdentityByDefaultColumn(b.Property<int>("AdvertisementTranslationID"));
+
+                    b.Property<int>("AdvertisementID")
+                        .HasColumnType("integer");
+
+                    b.Property<string>("Keyword")
+                        .IsRequired()
+                        .HasMaxLength(200)
+                        .HasColumnType("character varying(200)");
+
+                    b.Property<string>("LanguageCode")
+                        .IsRequired()
+                        .HasMaxLength(2)
+                        .IsUnicode(false)
+                        .HasColumnType("character(2)")
+                        .IsFixedLength();
+
+                    b.Property<string>("Url")
+                        .HasMaxLength(500)
+                        .HasColumnType("character varying(500)");
+
+                    b.HasKey("AdvertisementTranslationID");
+
+                    b.HasIndex(new[] { "AdvertisementID", "LanguageCode" }, "IX_AdvertisementTranslations_AdvertisementID_LanguageCode")
+                        .IsUnique();
+
+                    b.ToTable("AdvertisementTranslations");
+                });
+
             modelBuilder.Entity("Dotnetable.Domain.Entities.AttributeDefinition", b =>
                 {
                     b.Property<int>("AttributeDefinitionID")
@@ -7999,6 +8079,28 @@ namespace Dotnetable.Migrations.PostgreSql.Migrations
                     b.Navigation("Website");
                 });
 
+            modelBuilder.Entity("Dotnetable.Domain.Entities.Advertisement", b =>
+                {
+                    b.HasOne("Dotnetable.Domain.Entities.Website", "Website")
+                        .WithMany("Advertisements")
+                        .HasForeignKey("WebsiteID")
+                        .IsRequired()
+                        .HasConstraintName("FK_Advertisements_Websites");
+
+                    b.Navigation("Website");
+                });
+
+            modelBuilder.Entity("Dotnetable.Domain.Entities.AdvertisementTranslation", b =>
+                {
+                    b.HasOne("Dotnetable.Domain.Entities.Advertisement", "Advertisement")
+                        .WithMany("AdvertisementTranslations")
+                        .HasForeignKey("AdvertisementID")
+                        .IsRequired()
+                        .HasConstraintName("FK_AdvertisementTranslations_Advertisements");
+
+                    b.Navigation("Advertisement");
+                });
+
             modelBuilder.Entity("Dotnetable.Domain.Entities.AttributeDefinition", b =>
                 {
                     b.HasOne("Dotnetable.Domain.Entities.Website", "Website")
@@ -11321,6 +11423,11 @@ namespace Dotnetable.Migrations.PostgreSql.Migrations
                         .HasConstraintName("FK_PostTags_Tags");
                 });
 
+            modelBuilder.Entity("Dotnetable.Domain.Entities.Advertisement", b =>
+                {
+                    b.Navigation("AdvertisementTranslations");
+                });
+
             modelBuilder.Entity("Dotnetable.Domain.Entities.AttributeDefinition", b =>
                 {
                     b.Navigation("AttributeDefinitionTranslations");
@@ -11969,6 +12076,8 @@ namespace Dotnetable.Migrations.PostgreSql.Migrations
             modelBuilder.Entity("Dotnetable.Domain.Entities.Website", b =>
                 {
                     b.Navigation("AdminNotifications");
+
+                    b.Navigation("Advertisements");
 
                     b.Navigation("AttributeDefinitions");
 

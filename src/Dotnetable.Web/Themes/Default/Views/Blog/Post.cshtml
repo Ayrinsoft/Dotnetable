@@ -1,6 +1,8 @@
 @using Dotnetable.Web.Services
+@using Microsoft.AspNetCore.Mvc.ViewFeatures
 @model Dotnetable.Application.DTOs.PostDetailDto
 @inject ContentShortcodeProcessor Shortcodes
+@inject ApiClient Api
 @{
     ViewData["Title"] = Model.Title;
     Layout = "/Themes/Default/Views/Shared/_Layout.cshtml";
@@ -50,6 +52,15 @@
                 <div class="post-content">
                     @Html.Raw(content)
                 </div>
+                @{
+                    var blogAds = await Api.GetAdvertisementsAsync("Blog", Context.Request.Cookies["lang"]);
+                }
+                @if (blogAds.Count > 0)
+                {
+                    <div class="mt-4">
+                        @await Html.PartialAsync("_Advertisements", blogAds, new ViewDataDictionary(ViewData) { ["AdsModifier"] = "blog" })
+                    </div>
+                }
 
                 @if (Model.Tags.Any())
                 {

@@ -166,11 +166,11 @@
         }
 
         @if (NavSurface.ShowsAny(AdminNavArea.ContentCore, AdminNavArea.ContentBlog, AdminNavArea.ContentExtra)
-             && (_canPosts || _canPages || _canTaxonomy || _canRedirects || _canMenus || _canSlideshows || _canForms || _canThemes || _canModeration))
+             && (_canPosts || _canPages || _canTaxonomy || _canRedirects || _canMenus || _canSlideshows || _canAdvertisements || _canForms || _canThemes || _canModeration))
         {
             <span class="app-nav-label">@L["nav.content", "Content"]</span>
             <MudNavGroup Title="@L["content", "Content"]" Icon="@Icons.Material.Filled.Article"
-                         Expanded="@IsGroupActive("/menus", "/content/", "/moderation/", "/slideshows", "/forms", "/themes")">
+                         Expanded="@IsGroupActive("/menus", "/content/", "/moderation/", "/slideshows", "/advertisements", "/forms", "/themes")">
 
                 @if (NavSurface.Shows(AdminNavArea.ContentCore))
                 {
@@ -187,6 +187,11 @@
                     <AuthorizeView Policy="@RoleKeys.SlideshowsView" Context="sl">
                         <MudNavLink Href="/slideshows" Icon="@Icons.Material.Filled.ViewCarousel">
                             @L["slideshows", "Slideshows"]
+                        </MudNavLink>
+                    </AuthorizeView>
+                    <AuthorizeView Policy="@RoleKeys.AdvertisementsView" Context="ad">
+                        <MudNavLink Href="/advertisements" Icon="@Icons.Material.Filled.Campaign">
+                            @L["ads", "Advertisements"]
                         </MudNavLink>
                     </AuthorizeView>
                     <AuthorizeView Policy="@RoleKeys.ThemesView" Context="th">
@@ -468,6 +473,7 @@
     private bool _canRedirects;
     private bool _canMenus;
     private bool _canSlideshows;
+    private bool _canAdvertisements;
     private bool _canForms;
     private bool _canThemes;
     private bool _canModeration;
@@ -502,6 +508,7 @@
             _canRedirects = AdminPolicies.Allows(user, RoleKeys.RedirectsView);
             _canMenus = AdminPolicies.Allows(user, RoleKeys.MenusView);
             _canSlideshows = AdminPolicies.Allows(user, RoleKeys.SlideshowsView);
+            _canAdvertisements = AdminPolicies.Allows(user, RoleKeys.AdvertisementsView);
             _canForms = AdminPolicies.Allows(user, RoleKeys.FormsView);
             _canThemes = AdminPolicies.Allows(user, RoleKeys.ThemesView);
             _canModeration = AdminPolicies.Allows(user, RoleKeys.ModerationView);
