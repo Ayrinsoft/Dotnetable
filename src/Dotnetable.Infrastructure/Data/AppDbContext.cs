@@ -287,6 +287,8 @@ public partial class AppDbContext : DbContext
 
     public virtual DbSet<WebsiteContactInfo> WebsiteContactInfos { get; set; }
 
+    public virtual DbSet<WebsiteContactInfoTranslation> WebsiteContactInfoTranslations { get; set; }
+
     public virtual DbSet<WebsiteClientAddress> WebsiteClientAddresses { get; set; }
 
     public virtual DbSet<WebsiteClientForgetPassword> WebsiteClientForgetPasswords { get; set; }
@@ -3812,6 +3814,24 @@ public partial class AppDbContext : DbContext
                 .HasForeignKey(d => d.WebsiteID)
                 .OnDelete(DeleteBehavior.ClientSetNull)
                 .HasConstraintName("FK_WebsiteContactInfos_Websites");
+        });
+
+        modelBuilder.Entity<WebsiteContactInfoTranslation>(entity =>
+        {
+            entity.HasIndex(e => new { e.WebsiteContactInfoID, e.LanguageCode }, "IX_WebsiteContactInfoTranslations_WebsiteContactInfoID_LanguageCode").IsUnique();
+
+            entity.Property(e => e.LanguageCode)
+                .HasMaxLength(2)
+                .IsUnicode(false)
+                .IsFixedLength();
+            entity.Property(e => e.GroupTitle).HasMaxLength(64);
+            entity.Property(e => e.Title).HasMaxLength(64);
+            entity.Property(e => e.Value).HasMaxLength(256);
+
+            entity.HasOne(d => d.WebsiteContactInfo).WithMany(p => p.WebsiteContactInfoTranslations)
+                .HasForeignKey(d => d.WebsiteContactInfoID)
+                .OnDelete(DeleteBehavior.ClientSetNull)
+                .HasConstraintName("FK_WebsiteContactInfoTranslations_WebsiteContactInfos");
         });
 
         modelBuilder.Entity<WebsiteClientAddress>(entity =>

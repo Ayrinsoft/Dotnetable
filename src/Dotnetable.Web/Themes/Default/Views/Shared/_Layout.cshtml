@@ -9,15 +9,16 @@
         string.Equals(ViewContext.RouteData.Values["controller"]?.ToString(), controller, StringComparison.OrdinalIgnoreCase)
             ? "active" : "";
 
+    // Language switcher + content language for menus/contact info: only languages this website
+    // picked in admin.
+    var currentLangCode = Context.Request.Cookies["lang"];
+    var languages = await Api.GetActiveLanguagesAsync();
+
     // Brand, logo, contact info, socials and SEO defaults are managed in the admin (Websites +
     // Website Settings); the layout only falls back to neutral text when the API is unreachable.
-    SiteInfoDto? site = await Api.GetSiteInfoAsync();
+    SiteInfoDto? site = await Api.GetSiteInfoAsync(currentLangCode);
     var brandName = string.IsNullOrWhiteSpace(site?.BrandName) ? "Website" : site!.BrandName;
     var separator = site?.TitleSeparator ?? "·";
-
-    // Language switcher + content language for menus: only languages this website picked in admin.
-    var languages = await Api.GetActiveLanguagesAsync();
-    var currentLangCode = Context.Request.Cookies["lang"];
     var currentLang = languages.FirstOrDefault(l => l.Code == currentLangCode)
         ?? languages.FirstOrDefault(l => l.IsDefault)
         ?? languages.FirstOrDefault();

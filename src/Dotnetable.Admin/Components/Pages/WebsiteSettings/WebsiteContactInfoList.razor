@@ -3,6 +3,7 @@
 @attribute [Authorize(Policy = AdminPolicies.WebsiteContactAccess)]
 @inject IWebsiteSettingService SettingService
 @inject IWebsiteService WebsiteService
+@inject ILanguageService LanguageService
 @inject AuthenticationStateProvider AuthState
 @inject ISnackbar Snackbar
 @inject IPageLocalizer L
@@ -122,6 +123,36 @@
                                           OnAdornmentClick="PickIconAsync" AdornmentAriaLabel="@L["menus.pick_icon", "Select an icon"]" />
                         </MudStack>
                     </MudItem>
+                    @if (_languages.Length > 0)
+                    {
+                        <MudItem xs="12">
+                            <MudExpansionPanels Elevation="0">
+                                <MudExpansionPanel Text="@L["other_languages", "Other languages"]">
+                                    <MudText Typo="Typo.body2" Color="Color.Secondary" Class="mb-2">
+                                        @L["other_languages.hint", "Main fields above are the site default language. Leave a translation blank to fall back to the default."]
+                                    </MudText>
+                                    @foreach (var (code, label) in _languages)
+                                    {
+                                        <MudGrid Spacing="2" Class="mb-1">
+                                            <MudItem xs="12" sm="4">
+                                                <MudTextField T="string" Value="@GroupTitleTr(code)" ValueChanged="@(v => SetGroupTitleTr(code, v))"
+                                                              Label="@($"{label} — {L["contact_info.group", "Group"]}")" Variant="Variant.Outlined" Margin="Margin.Dense" />
+                                            </MudItem>
+                                            <MudItem xs="12" sm="4">
+                                                <MudTextField T="string" Value="@TitleTr(code)" ValueChanged="@(v => SetTitleTr(code, v))"
+                                                              Label="@($"{label} — {L["title", "Title"]}")" Variant="Variant.Outlined" Margin="Margin.Dense" />
+                                            </MudItem>
+                                            <MudItem xs="12" sm="4">
+                                                <MudTextField T="string" Value="@ValueTr(code)" ValueChanged="@(v => SetValueTr(code, v))"
+                                                              Label="@($"{label} — {L["value", "Value"]}")" Variant="Variant.Outlined" Margin="Margin.Dense"
+                                                              HelperText="@L["contact_info.value_optional", "Leave blank to reuse the default value."]" />
+                                            </MudItem>
+                                        </MudGrid>
+                                    }
+                                </MudExpansionPanel>
+                            </MudExpansionPanels>
+                        </MudItem>
+                    }
                 </MudGrid>
 
                 <DNValidationSummary Errors="_formErrors" />
@@ -152,6 +183,9 @@
     private ContactInfoType _type;
     private MudForm _form = null!;
     private string[]? _formErrors;
+
+    private readonly Dictionary<string, (string Title, string GroupTitle, string Value)> _tr = new(StringComparer.OrdinalIgnoreCase);
+    private (string Code, string Label)[] _languages = Array.Empty<(string, string)>();
 
     /// <summary>Bootstrap Icons class offered by default for each type, used to pre-fill the Icon
     /// field and shown in the grid when no custom icon was set.</summary>
@@ -197,7 +231,7 @@
     private Task OnGridChanged(GridViewHeaderParameters _) => LoadAsync();
     private async Task OnWebsiteChanged(int id) { _websiteId = id; await LoadAsync(); }
 
-    private void OpenAddDialog()
+    private async Task OpenAddDialog()
     {
         _type = ContactInfoType.Phone;
         _editItem = new WebsiteContactInfo
@@ -208,8 +242,23 @@
             Title = TypeLabel(_type),
             Value = string.Empty,
         };
+        _tr.Clear();
+        await LoadLanguagesAsync();
         _dialogOpen = true;
     }
+
+    private async Task LoadLanguagesAsync()
+    {
+        _languages = (await LanguageService.GetOtherActiveForWebsiteAsync(_websiteId))
+            .Select(x => (x.LanguageCode, x.Name)).ToArray();
+    }
+
+    private string GroupTitleTr(string code) => _tr.TryGetValue(code, out var v) ? v.GroupTitle : string.Empty;
+    private string TitleTr(string code) => _tr.TryGetValue(code, out var v) ? v.Title : string.Empty;
+    private string ValueTr(string code) => _tr.TryGetValue(code, out var v) ? v.Value : string.Empty;
+    private void SetGroupTitleTr(string code, string v) { var c = _tr.GetValueOrDefault(code); _tr[code] = (c.Title ?? string.Empty, v ?? string.Empty, c.Value ?? string.Empty); }
+    private void SetTitleTr(string code, string v) { var c = _tr.GetValueOrDefault(code); _tr[code] = (v ?? string.Empty, c.GroupTitle ?? string.Empty, c.Value ?? string.Empty); }
+    private void SetValueTr(string code, string v) { var c = _tr.GetValueOrDefault(code); _tr[code] = (c.Title ?? string.Empty, c.GroupTitle ?? string.Empty, v ?? string.Empty); }
 
     /// <summary>Auto-fills the Icon field with the type's default icon, and the Title field with the
     /// type's label, unless the admin already customized either away from the previous type's default
@@ -238,7 +287,7 @@
             _editItem!.Icon = iconClass;
     }
 
-    private void OpenEditDialog(WebsiteContactInfo c)
+    private async Task OpenEditDialog(WebsiteContactInfo c)
     {
         _type = (ContactInfoType)c.ContactType;
         _editItem = new WebsiteContactInfo
@@ -252,6 +301,12 @@
             Icon = c.Icon,
             SortOrder = c.SortOrder,
         };
+
+        _tr.Clear();
+        await LoadLanguagesAsync();
+        foreach (var t in await SettingService.GetContactInfoTranslationsAsync(c.WebsiteContactInfoID))
+            _tr[t.LanguageCode] = (t.Title, t.GroupTitle ?? string.Empty, t.Value ?? string.Empty);
+
         _dialogOpen = true;
     }
 
@@ -280,6 +335,11 @@
                 await SettingService.UpdateContactInfoAsync(_editItem);
                 Snackbar.Add(L["contact_info.updated", "Contact info updated."], Severity.Success);
             }
+
+            await SettingService.SetContactInfoTranslationsAsync(_editItem.WebsiteContactInfoID, _tr.ToDictionary(
+                kv => kv.Key,
+                kv => (kv.Value.Title, (string?)kv.Value.GroupTitle, (string?)kv.Value.Value)));
+
             _dialogOpen = false;
             await LoadAsync();
         }

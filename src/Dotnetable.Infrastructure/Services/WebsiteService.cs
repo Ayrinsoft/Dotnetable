@@ -216,14 +216,14 @@ public class WebsiteService : IWebsiteService
         await context.SaveChangesAsync(ct);
     }
 
-    public async Task<SiteInfoDto?> GetSiteInfoAsync(int websiteId, CancellationToken ct = default)
+    public async Task<SiteInfoDto?> GetSiteInfoAsync(int websiteId, string? languageCode = null, CancellationToken ct = default)
     {
         await using var context = await _contextFactory.CreateDbContextAsync(ct);
         var website = await context.Websites.AsNoTracking()
             .Include(w => w.LogoFile)
             .Include(w => w.FaveIconFile)
             .Include(w => w.WebsiteSocialLinks)
-            .Include(w => w.WebsiteContactInfos)
+            .Include(w => w.WebsiteContactInfos).ThenInclude(c => c.WebsiteContactInfoTranslations)
             .Include(w => w.WebsiteSeoSettings)
             .FirstOrDefaultAsync(w => w.WebsiteID == websiteId, ct);
         if (website is null) return null;
@@ -252,15 +252,39 @@ public class WebsiteService : IWebsiteService
                 .ToList(),
             ContactInfos = website.WebsiteContactInfos
                 .OrderBy(c => c.SortOrder).ThenBy(c => c.WebsiteContactInfoID)
-                .Select(c => new ContactInfoDto
-                {
-                    Type = c.ContactType,
-                    GroupTitle = c.GroupTitle,
-                    Title = c.Title,
-                    Value = c.Value,
-                    Icon = c.Icon,
-                })
+                .Select(c => ProjectContactInfo(c, languageCode))
                 .ToList(),
+        };
+    }
+
+    /// <summary>Starts from the row's default-language fields, then overlays each field independently
+    /// from the matching translation row (if any) when it's non-blank — so e.g. Title can be
+    /// translated while Value (a phone number) stays the same across languages.</summary>
+    private static ContactInfoDto ProjectContactInfo(WebsiteContactInfo c, string? languageCode)
+    {
+        var groupTitle = c.GroupTitle;
+        var title = c.Title;
+        var value = c.Value;
+
+        if (!string.IsNullOrWhiteSpace(languageCode))
+        {
+            var t = c.WebsiteContactInfoTranslations.FirstOrDefault(x =>
+                string.Equals(x.LanguageCode, languageCode, StringComparison.OrdinalIgnoreCase));
+            if (t is not null)
+            {
+                if (!string.IsNullOrWhiteSpace(t.Title)) title = t.Title;
+                if (!string.IsNullOrWhiteSpace(t.GroupTitle)) groupTitle = t.GroupTitle;
+                if (!string.IsNullOrWhiteSpace(t.Value)) value = t.Value;
+            }
+        }
+
+        return new ContactInfoDto
+        {
+            Type = c.ContactType,
+            GroupTitle = groupTitle,
+            Title = title,
+            Value = value,
+            Icon = c.Icon,
         };
     }
 

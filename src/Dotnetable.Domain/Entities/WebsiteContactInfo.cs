@@ -29,4 +29,6 @@ public partial class WebsiteContactInfo
     public int SortOrder { get; set; }
 
     public virtual Website Website { get; set; } = null!;
+
+    public virtual ICollection<WebsiteContactInfoTranslation> WebsiteContactInfoTranslations { get; set; } = new List<WebsiteContactInfoTranslation>();
 }

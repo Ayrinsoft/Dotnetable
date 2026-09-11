@@ -48,7 +48,7 @@ public class HomeController : Controller
     {
         var lang = Request.Cookies["lang"];
         var page = await _api.GetPageAsync("contact-us", string.IsNullOrWhiteSpace(lang) ? null : lang, ct);
-        var site = await _api.GetSiteInfoAsync(ct);
+        var site = await _api.GetSiteInfoAsync(lang, ct);
         var model = new ContactPageViewModel
         {
             PageTitle = page?.Title ?? "Contact",

@@ -627,6 +627,10 @@ window.DOCS_ADMIN = {
               en: "Save, then check the public Contact Us page renders it under the right group — Phone/Email values render as clickable tel:/mailto: links automatically.",
               fa: "ذخیره کنید و صفحه عمومی تماس با ما را برای نمایش درست زیر گروه بررسی کنید — مقادیر تلفن/ایمیل خودکار به‌صورت لینک قابل‌کلیک tel:/mailto: نمایش داده می‌شوند.",
             },
+            {
+              en: "On a multi-language site, open \"Other languages\" in the dialog to translate Group/Title/Value per language — leave a field blank to fall back to the default-language value (useful for a phone number that doesn't need translating while the title/hours text does).",
+              fa: "در سایت چندزبانه، بخش «سایر زبان‌ها» را در دیالوگ باز کنید تا گروه/عنوان/مقدار برای هر زبان ترجمه شود — برای برگشت به مقدار زبان پیش‌فرض، فیلد را خالی بگذارید (مفید برای شماره تلفنی که نیاز به ترجمه ندارد ولی متن عنوان/ساعات کاری دارد).",
+            },
           ],
           related: ["website-social", "website-seo"],
         },

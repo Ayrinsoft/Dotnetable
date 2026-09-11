@@ -1560,7 +1560,8 @@ window.DOCS_API = {
               method: "GET",
               path: "/api/SiteInfo",
               auth: "website",
-              request: { body: "GET /api/SiteInfo" },
+              query: [{ name: "lang", desc: { en: "Selects translated contact info fields (title/group/value); missing translations fall back to the default language.", fa: "انتخاب فیلدهای ترجمه‌شده‌ی اطلاعات تماس (عنوان/گروه/مقدار)؛ در نبود ترجمه، به زبان پیش‌فرض برمی‌گردد." } }],
+              request: { body: "GET /api/SiteInfo?lang=fa" },
               response: {
                 status: 200,
                 body: {

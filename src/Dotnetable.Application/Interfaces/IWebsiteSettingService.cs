@@ -40,6 +40,12 @@ public interface IWebsiteSettingService
     Task UpdateContactInfoAsync(WebsiteContactInfo info, CancellationToken ct = default);
     Task DeleteContactInfoAsync(int id, CancellationToken ct = default);
 
+    Task<List<WebsiteContactInfoTranslation>> GetContactInfoTranslationsAsync(int contactInfoId, CancellationToken ct = default);
+
+    /// <summary>Replaces the contact info row's translations with the supplied language→(title, groupTitle, value)
+    /// map (a blank title removes that language's translation; a blank value falls back to the row's default value).</summary>
+    Task SetContactInfoTranslationsAsync(int contactInfoId, IReadOnlyDictionary<string, (string Title, string? GroupTitle, string? Value)> byLanguage, CancellationToken ct = default);
+
     // Watermark Settings (one row per website)
     Task<WebsiteWatermarkSetting?> GetWatermarkSettingAsync(int websiteId, CancellationToken ct = default);
     Task SaveWatermarkSettingAsync(WebsiteWatermarkSetting setting, CancellationToken ct = default);
