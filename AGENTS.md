@@ -80,27 +80,31 @@ Payment providers must declare `AmountUnit`: the shop prices in the site currenc
 
 ## Environment (current phase)
 
-**There is no pre-installed production or customer site yet.** Work is still in the **local/test** phase.
+**There is a live production site.** The owner put it into production; treat the deployed database as
+real and shared. This flipped after an incident: an agent kept squashing everything into a single
+regenerated `InitialCreate` (the old policy below), the owner deployed a build with a new table, and
+`DatabaseUpdateService`'s legacy-baseline logic silently marked the *new* `InitialCreate` as "already
+applied" (because core tables already existed) without ever running its `CREATE TABLE` — so the new
+table never got created and the admin panel 500'd on first use. Do not repeat this.
 
 | Phase | Status | Agent rules |
 |-------|--------|-------------|
-| Local test DB | **Active now** | Safe to run migrations, Schema Compare, seed, destructive schema experiments, and full app against the shared **test** database (`Dotnetable` on local SQL). Prefer reversible changes when practical, but do **not** block on “production safety” — this is not a live customer store. |
-| First real test release | **Not yet** | Owner will say when the first semi-real online test site exists. Only then tighten caution for that environment. |
-| Semi-real online test → real production | **Later** | After owner confirms: treat as shared/live; confirm before destructive ops, careful migrations, no casual data wipes. |
+| Local test DB | Done | Was used before the first production deploy. |
+| Production | **Active now** | Confirm before destructive ops; no casual data wipes; every schema change ships as a real migration (below) that gets applied to the live DB deliberately, not assumed. |
 
-Until the owner announces otherwise: **assume only the local test database**; apply EF migrations, SSDT/Schema Compare, and feature work directly on it.
+### EF migrations — real incremental migrations from now on (no more squashing)
 
-### EF migrations — only `InitialCreate` (keep it current)
-
-This phase has **no customer/production upgrade path**. A new database must be born complete from **one** migration.
-
-**Mandatory — do not add incremental / follow-up migrations.**
+**Mandatory — every entity / `AppDbContext` schema change ships its own new migration file.**
+Never delete or regenerate an already-shipped `InitialCreate` (or any other already-shipped
+migration) again — the live database's `__EFMigrationsHistory` already has specific migration IDs
+recorded as applied; replacing those files with regenerated ones under new IDs breaks the history
+match and the change silently never applies (see the incident above).
 
 | Allowed | Forbidden |
 |---------|-----------|
-| Exactly one migration per provider: `InitialCreate` | `dotnet ef migrations add SomeFeature` as a second file |
-| Regenerating `InitialCreate` after a model change | Snapshot-sync / no-op / raw-SQL delta migrations |
-| Editing `InitialCreate` + `AppDbContextModelSnapshot` so they match the model | Leaving schema only in `.sql` or only in entities |
+| `dotnet ef migrations add <FeatureName>` — a new file, on top of history | Deleting/regenerating `InitialCreate` or any other already-committed migration |
+| Exactly one new migration per schema change, per provider | Editing the `Up`/`Down` of a migration that has already been committed/shipped |
+| Keeping all three providers in lockstep (same change, one migration each) | Leaving schema only in `.sql` or only in entities |
 
 Providers (keep all three in lockstep):
 
@@ -108,18 +112,25 @@ Providers (keep all three in lockstep):
 - `src/Dotnetable.Migrations.MySql/Migrations/`
 - `src/Dotnetable.Migrations.PostgreSql/Migrations/`
 
-After **any** entity / `AppDbContext` schema change, **in the same change**, regenerate init:
+After **any** entity / `AppDbContext` schema change, **in the same change**, add one migration per
+provider (never touch existing migration files):
 
 ```bash
-# Delete the current InitialCreate + Designer + AppDbContextModelSnapshot in that project, then:
-dotnet ef migrations add InitialCreate --project src/Dotnetable.Migrations.SqlServer --startup-project src/Dotnetable.Migrations.SqlServer --output-dir Migrations
-dotnet ef migrations add InitialCreate --project src/Dotnetable.Migrations.MySql --startup-project src/Dotnetable.Migrations.MySql --output-dir Migrations
-dotnet ef migrations add InitialCreate --project src/Dotnetable.Migrations.PostgreSql --startup-project src/Dotnetable.Migrations.PostgreSql --output-dir Migrations
+dotnet ef migrations add <FeatureName> --project src/Dotnetable.Migrations.SqlServer --startup-project src/Dotnetable.Migrations.SqlServer --output-dir Migrations
+dotnet ef migrations add <FeatureName> --project src/Dotnetable.Migrations.MySql --startup-project src/Dotnetable.Migrations.MySql --output-dir Migrations
+dotnet ef migrations add <FeatureName> --project src/Dotnetable.Migrations.PostgreSql --startup-project src/Dotnetable.Migrations.PostgreSql --output-dir Migrations
 ```
 
-Confirm `dotnet ef migrations has-pending-model-changes` is clean for SqlServer (and the other providers when you touched them). The new `InitialCreate` must include every new column/table/index/FK (e.g. settlement currency) — never “add it in a later migration”.
+Confirm `dotnet ef migrations has-pending-model-changes` is clean for all three providers you
+touched, and that the generated `Up()` contains only the intended delta (review it — it should not
+try to re-create tables that already exist).
 
-Local test DBs: owner typically **recreates** the database via Admin Setup after an init squash. If tables already exist, `DatabaseUpdateService` only records the new `InitialCreate` in `__EFMigrationsHistory` (does not rebuild tables). Do not rely on leftover incremental history.
+**Applying to the live database:** the Admin panel has a built-in page for this —
+`/system/updates` (`DatabaseUpdates.razor`, `SuperAdminOnly`) lists pending migrations and applies
+them with one click via `IDatabaseUpdateService.ApplyUpdatesAsync()` (`context.Database.MigrateAsync`).
+This is the intended way to roll out a schema change to production after deploying a new build —
+do not assume a deploy alone applies pending migrations; someone (owner or automated pipeline) must
+still trigger apply. Never suggest recreating/dropping the production database.
 
 Prefer `dotnet-ef` tools version aligned with package runtime (currently EF Core **10.0.11**).
 
@@ -147,10 +158,10 @@ Apply this whenever you change any of:
    - Primary keys, unique constraints, indexes, foreign keys
    - New tables: add `TableName.sql` **and** include it in `Dotnetable.Database.sqlproj` (`Build Include=…`)
    - Dropped objects: remove from both the `.sql` file and the `.sqlproj` entry
-3. **Immediately** regenerate `InitialCreate` (+ snapshot) on all three providers so a brand-new DB from Admin Setup matches the model and the `.sql` files.
-4. Only after `.sql` **and** `InitialCreate` match the model: services, API, Admin UI, docs, tests, etc.
+3. **Immediately** add a new migration (+ snapshot update) on all three providers — see "EF migrations" above. Never regenerate/delete an already-shipped migration.
+4. Only after `.sql` **and** the new migration match the model: services, API, Admin UI, docs, tests, etc.
 
-**Why:** If `.sql` lags, Schema Compare treats the live DB as “extra” and **drops** columns the app still uses. If `InitialCreate` lags, a freshly created database is missing columns (`Invalid column name`) even though the model and SSDT look right.
+**Why:** If `.sql` lags, Schema Compare treats the live DB as “extra” and **drops** columns the app still uses. If the migration lags or is missing, the live database never gets the new column/table (`Invalid column name` / `Invalid object name`) even though the model and SSDT look right — this is exactly what caused the `/website/contact-info` 500 in production.
 
 **Shape checklist (mirror EF, not a subset):**
 

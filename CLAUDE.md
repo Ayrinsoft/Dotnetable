@@ -1,5 +1,16 @@
 # Dotnetable — agent notes
 
+## Production is live — database schema changes need a real migration
+
+See `AGENTS.md` ("EF migrations — real incremental migrations from now on") for the full policy
+and the incident that made it mandatory: a squashed/regenerated `InitialCreate` was deployed after
+production already had an older `InitialCreate` recorded in `__EFMigrationsHistory`; the ID
+mismatch made `DatabaseUpdateService`'s legacy-baseline logic silently mark the new migration as
+"already applied" without ever creating the new table, so the feature 500'd in production. **Every
+entity / `AppDbContext` change ships as a brand-new `dotnet ef migrations add <Name>` file on top of
+history, for all three providers — never delete or regenerate an already-shipped migration.**
+Applying to the live DB is a deliberate step: `/system/updates` in the Admin panel (`SuperAdminOnly`).
+
 ## Admin permissions: mandatory checklist for every new admin feature/service
 
 The Admin panel (`src/Dotnetable.Admin`) is role-key based. **Every time a new admin-panel
