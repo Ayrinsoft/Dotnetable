@@ -217,6 +217,11 @@ public static class ServiceCollectionExtensions
             sp.GetRequiredService<SlideshowService>(), sp.GetRequiredService<ICacheService>(),
             sp.GetRequiredService<ICacheInvalidationNotifier>(), sp.GetRequiredService<CacheOptions>()));
 
+        services.AddScoped<AdvertisementService>();
+        services.AddScoped<IAdvertisementService>(sp => new CachedAdvertisementService(
+            sp.GetRequiredService<AdvertisementService>(), sp.GetRequiredService<ICacheService>(),
+            sp.GetRequiredService<ICacheInvalidationNotifier>(), sp.GetRequiredService<CacheOptions>()));
+
         // Content: posts, pages, taxonomy (categories/tags/post types) and redirects.
         services.AddScoped<IPostTypeService, PostTypeService>();
         services.AddScoped<ITagService, TagService>();

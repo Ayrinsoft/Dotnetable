@@ -1,5 +1,6 @@
 @using Dotnetable.Web.Services
 @using Dotnetable.Application.DTOs
+@using Microsoft.AspNetCore.Mvc.ViewFeatures
 @inject ApiClient Api
 @inject Microsoft.AspNetCore.Antiforgery.IAntiforgery Antiforgery
 @{
@@ -27,6 +28,8 @@
     // the site always has navigation before menus are configured.
     MenuDto? headerMenu = await Api.GetMenuAsync("Header", menuLang);
     MenuDto? footerMenu = await Api.GetMenuAsync("Footer", menuLang);
+    var headerAds = await Api.GetAdvertisementsAsync("Header", menuLang);
+    var footerAds = await Api.GetAdvertisementsAsync("Footer", menuLang);
 
     var returnUrl = Context.Request.Path + Context.Request.QueryString;
 
@@ -197,6 +200,15 @@
         </div>
     </nav>
 
+    @if (headerAds.Count > 0)
+    {
+        <div class="site-ads-bar site-ads-bar--header">
+            <div class="container">
+                @await Html.PartialAsync("_Advertisements", headerAds, new ViewDataDictionary(ViewData) { ["AdsModifier"] = "header" })
+            </div>
+        </div>
+    }
+
     <main>
         @RenderBody()
     </main>
@@ -255,6 +267,12 @@
                     <p class="mb-0"><a asp-controller="Home" asp-action="Contact">Send us a message →</a></p>
                 </div>
             </div>
+            @if (footerAds.Count > 0)
+            {
+                <div class="mt-4">
+                    @await Html.PartialAsync("_Advertisements", footerAds, new ViewDataDictionary(ViewData) { ["AdsModifier"] = "footer" })
+                </div>
+            }
             <div class="footer-bottom d-flex flex-column flex-md-row justify-content-between align-items-center gap-2">
                 <span>&copy; @DateTime.Now.Year @brandName. All rights reserved.</span>
             </div>

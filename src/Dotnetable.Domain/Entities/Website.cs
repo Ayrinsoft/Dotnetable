@@ -128,6 +128,8 @@ public partial class Website
 
     public virtual ICollection<AdminNotification> AdminNotifications { get; set; } = new List<AdminNotification>();
 
+    public virtual ICollection<Advertisement> Advertisements { get; set; } = new List<Advertisement>();
+
     public virtual ICollection<AttributeDefinition> AttributeDefinitions { get; set; } = new List<AttributeDefinition>();
 
     public virtual ICollection<BankAccount> BankAccounts { get; set; } = new List<BankAccount>();

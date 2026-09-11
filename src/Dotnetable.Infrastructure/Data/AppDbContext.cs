@@ -14,6 +14,10 @@ public partial class AppDbContext : DbContext
 
     public virtual DbSet<AdminNotification> AdminNotifications { get; set; }
 
+    public virtual DbSet<Advertisement> Advertisements { get; set; }
+
+    public virtual DbSet<AdvertisementTranslation> AdvertisementTranslations { get; set; }
+
     public virtual DbSet<AttributeDefinition> AttributeDefinitions { get; set; }
 
     public virtual DbSet<AttributeDefinitionTranslation> AttributeDefinitionTranslations { get; set; }
@@ -338,6 +342,39 @@ public partial class AppDbContext : DbContext
                 .HasForeignKey(d => d.WebsiteID)
                 .OnDelete(DeleteBehavior.ClientSetNull)
                 .HasConstraintName("FK_AdminNotifications_Websites");
+        });
+
+        modelBuilder.Entity<Advertisement>(entity =>
+        {
+            entity.HasIndex(e => e.WebsiteID, "IX_Advertisements_WebsiteID");
+
+            entity.HasIndex(e => new { e.WebsiteID, e.Location }, "IX_Advertisements_WebsiteID_Location");
+
+            entity.Property(e => e.CreatedAt).HasColumnType("datetime");
+            entity.Property(e => e.Keyword).HasMaxLength(200);
+            entity.Property(e => e.Url).HasMaxLength(500);
+
+            entity.HasOne(d => d.Website).WithMany(p => p.Advertisements)
+                .HasForeignKey(d => d.WebsiteID)
+                .OnDelete(DeleteBehavior.ClientSetNull)
+                .HasConstraintName("FK_Advertisements_Websites");
+        });
+
+        modelBuilder.Entity<AdvertisementTranslation>(entity =>
+        {
+            entity.HasIndex(e => new { e.AdvertisementID, e.LanguageCode }, "IX_AdvertisementTranslations_AdvertisementID_LanguageCode").IsUnique();
+
+            entity.Property(e => e.LanguageCode)
+                .HasMaxLength(2)
+                .IsUnicode(false)
+                .IsFixedLength();
+            entity.Property(e => e.Keyword).HasMaxLength(200);
+            entity.Property(e => e.Url).HasMaxLength(500);
+
+            entity.HasOne(d => d.Advertisement).WithMany(p => p.AdvertisementTranslations)
+                .HasForeignKey(d => d.AdvertisementID)
+                .OnDelete(DeleteBehavior.ClientSetNull)
+                .HasConstraintName("FK_AdvertisementTranslations_Advertisements");
         });
 
         modelBuilder.Entity<AttributeDefinition>(entity =>

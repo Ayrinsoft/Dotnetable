@@ -1,0 +1,150 @@
+@inject IAdvertisementService AdvertisementService
+@inject ISnackbar Snackbar
+@inject IPageLocalizer L
+@inject ILanguageService LanguageService
+
+<MudDialog>
+    <DialogContent>
+        <MudForm @ref="_form">
+            <MudGrid Spacing="3">
+                <MudItem xs="12" sm="6">
+                    <MudSelect T="AdvertisementLocation" Value="_location" ValueChanged="OnLocationChanged"
+                               Label="@L["ads.location", "Location"]" Variant="Variant.Outlined" Required="true">
+                        @foreach (var loc in Enum.GetValues<AdvertisementLocation>())
+                        {
+                            <MudSelectItem T="AdvertisementLocation" Value="@loc">@LocationLabel(loc)</MudSelectItem>
+                        }
+                    </MudSelect>
+                </MudItem>
+                <MudItem xs="12" sm="6">
+                    <MudNumericField T="int" @bind-Value="Model.SortOrder" Label="@L["ads.sort", "Order"]"
+                                     Variant="Variant.Outlined" Min="0" />
+                </MudItem>
+                <MudItem xs="12" sm="6">
+                    <MudTextField @bind-Value="Model.Keyword" Label="@L["ads.keyword", "Keyword"]"
+                                  Variant="Variant.Outlined" Required="true"
+                                  HelperText="@L["ads.keyword_help", "The clickable text shown to visitors (default language)."]" />
+                </MudItem>
+                <MudItem xs="12" sm="6">
+                    <MudTextField @bind-Value="Model.Url" Label="@L["ads.url", "Link URL"]"
+                                  Variant="Variant.Outlined" Required="true"
+                                  HelperText="@L["ads.url_help", "http(s) URL or a site-relative path such as /shop."]" />
+                </MudItem>
+                <MudItem xs="12" sm="6">
+                    <MudSwitch T="bool" @bind-Value="Model.OpenInNewTab" Color="Color.Primary"
+                               Label="@L["ads.new_tab", "Open in a new tab"]" />
+                </MudItem>
+                <MudItem xs="12" sm="6">
+                    <MudSwitch T="bool" @bind-Value="Model.IsActive" Color="Color.Success"
+                               Label="@(Model.IsActive ? L["active", "Active"] : L["inactive", "Inactive"])" />
+                </MudItem>
+                @if (_languages.Length > 0)
+                {
+                    <MudItem xs="12">
+                        <MudExpansionPanels Elevation="0">
+                            <MudExpansionPanel Text="@L["other_languages", "Other languages"]">
+                                <MudText Typo="Typo.body2" Color="Color.Secondary" Class="mb-2">
+                                    @L["other_languages.hint", "Main fields above are the site default language. Leave a translation blank to fall back to the default."]
+                                </MudText>
+                                @foreach (var (code, label) in _languages)
+                                {
+                                    <MudGrid Spacing="2" Class="mb-1">
+                                        <MudItem xs="6">
+                                            <MudTextField T="string" Value="@Keyword(code)" ValueChanged="@(v => SetKeyword(code, v))"
+                                                          Label="@($"{label} — {L["ads.keyword", "Keyword"]}")" Variant="Variant.Outlined" Margin="Margin.Dense" />
+                                        </MudItem>
+                                        <MudItem xs="6">
+                                            <MudTextField T="string" Value="@Url(code)" ValueChanged="@(v => SetUrl(code, v))"
+                                                          Label="@L["ads.url", "Link URL"]" Variant="Variant.Outlined" Margin="Margin.Dense"
+                                                          HelperText="@L["ads.url_optional", "Leave blank to reuse the default URL."]" />
+                                        </MudItem>
+                                    </MudGrid>
+                                }
+                            </MudExpansionPanel>
+                        </MudExpansionPanels>
+                    </MudItem>
+                }
+            </MudGrid>
+
+            <DNValidationSummary Errors="_formErrors" />
+        </MudForm>
+    </DialogContent>
+    <DialogActions>
+        <MudButton OnClick="Cancel">@L["cancel", "Cancel"]</MudButton>
+        <MudButton Variant="Variant.Filled" Color="Color.Primary" OnClick="SaveAsync" Disabled="@_saving">@L["save", "Save"]</MudButton>
+    </DialogActions>
+</MudDialog>
+
+@code {
+    [CascadingParameter] private IMudDialogInstance MudDialog { get; set; } = null!;
+    [Parameter] public Advertisement Model { get; set; } = new();
+    [Parameter] public bool IsNew { get; set; }
+
+    private MudForm _form = null!;
+    private bool _saving;
+    private string[]? _formErrors;
+    private AdvertisementLocation _location;
+    private readonly Dictionary<string, (string Keyword, string Url)> _tr = new(StringComparer.OrdinalIgnoreCase);
+    private (string Code, string Label)[] _languages = Array.Empty<(string, string)>();
+
+    protected override async Task OnInitializedAsync()
+    {
+        _location = Model.Location == 0 ? AdvertisementLocation.Header : (AdvertisementLocation)Model.Location;
+        Model.Location = (byte)_location;
+
+        var websiteId = Model.WebsiteID > 0 ? Model.WebsiteID : L.WebsiteId;
+        _languages = (await LanguageService.GetOtherActiveForWebsiteAsync(websiteId))
+            .Select(x => (x.LanguageCode, x.Name)).ToArray();
+
+        if (!IsNew)
+            foreach (var t in await AdvertisementService.GetTranslationsAsync(Model.AdvertisementID))
+                _tr[t.LanguageCode] = (t.Keyword, t.Url ?? string.Empty);
+    }
+
+    private string LocationLabel(AdvertisementLocation location) => location switch
+    {
+        AdvertisementLocation.Header => L["ads.location.header", "Header"],
+        AdvertisementLocation.Footer => L["ads.location.footer", "Footer"],
+        AdvertisementLocation.Sidebar => L["ads.location.sidebar", "Sidebar"],
+        AdvertisementLocation.Home => L["ads.location.home", "Home"],
+        AdvertisementLocation.Product => L["ads.location.product", "Product page"],
+        AdvertisementLocation.Blog => L["ads.location.blog", "Blog"],
+        AdvertisementLocation.Page => L["ads.location.page", "CMS page"],
+        _ => location.ToString(),
+    };
+
+    private void OnLocationChanged(AdvertisementLocation value)
+    {
+        _location = value;
+        Model.Location = (byte)value;
+    }
+
+    private string Keyword(string code) => _tr.TryGetValue(code, out var v) ? v.Keyword : string.Empty;
+    private string Url(string code) => _tr.TryGetValue(code, out var v) ? v.Url : string.Empty;
+    private void SetKeyword(string code, string v) { var c = _tr.GetValueOrDefault(code); _tr[code] = (v ?? string.Empty, c.Url ?? string.Empty); }
+    private void SetUrl(string code, string v) { var c = _tr.GetValueOrDefault(code); _tr[code] = (c.Keyword ?? string.Empty, v ?? string.Empty); }
+
+    private void Cancel() => MudDialog.Cancel();
+
+    private async Task SaveAsync()
+    {
+        await _form.Validate();
+        _formErrors = _form.Errors;
+        if (!_form.IsValid) return;
+        if (string.IsNullOrWhiteSpace(Model.Keyword) || string.IsNullOrWhiteSpace(Model.Url)) return;
+
+        _saving = true;
+        try
+        {
+            if (IsNew) await AdvertisementService.CreateAsync(Model);
+            else await AdvertisementService.UpdateAsync(Model);
+            await AdvertisementService.SetTranslationsAsync(Model.AdvertisementID, _tr.ToDictionary(
+                kv => kv.Key,
+                kv => (kv.Value.Keyword, (string?)kv.Value.Url)));
+            Snackbar.Add(L["saved", "Saved."], Severity.Success);
+            MudDialog.Close(DialogResult.Ok(true));
+        }
+        catch (Exception ex) { Snackbar.Add($"{L["save_failed", "Save failed"]}: {ex.Message}", Severity.Error); }
+        finally { _saving = false; }
+    }
+}

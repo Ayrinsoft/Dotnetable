@@ -1,14 +1,24 @@
+@using Dotnetable.Web.Services
+@using Microsoft.AspNetCore.Mvc.ViewFeatures
 @model Dotnetable.Web.Controllers.BlogController.BlogListView
+@inject ApiClient Api
 @{
     var title = Model.Heading ?? "Blog";
     ViewData["Title"] = title;
     Layout = "/Themes/Default/Views/Shared/_Layout.cshtml";
+    var blogAds = await Api.GetAdvertisementsAsync("Blog", Context.Request.Cookies["lang"]);
 }
 
 @await Html.PartialAsync("_PageHeader", (title, "Blog"))
 
 <section class="site-section">
     <div class="container">
+        @if (blogAds.Count > 0)
+        {
+            <div class="mb-4">
+                @await Html.PartialAsync("_Advertisements", blogAds, new ViewDataDictionary(ViewData) { ["AdsModifier"] = "blog" })
+            </div>
+        }
         @if (Model.Posts.Count == 0)
         {
             <div class="text-center py-5">

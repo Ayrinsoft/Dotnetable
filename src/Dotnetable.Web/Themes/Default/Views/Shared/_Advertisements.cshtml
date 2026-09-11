@@ -1,0 +1,6 @@
+@model IReadOnlyList<Dotnetable.Application.DTOs.AdvertisementDto>?
+@using Dotnetable.Web.Services
+@{
+    var modifier = ViewData["AdsModifier"] as string;
+}
+@Html.Raw(AdvertisementHtmlRenderer.Render(Model, modifier))

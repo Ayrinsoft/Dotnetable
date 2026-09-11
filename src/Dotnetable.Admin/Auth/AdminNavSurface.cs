@@ -18,7 +18,7 @@ public enum AdminNavArea
     /// <summary>Contact messages, email accounts/templates.</summary>
     Messages,
 
-    /// <summary>Pages, menus, slideshows, themes.</summary>
+    /// <summary>Pages, menus, slideshows, advertisements, themes.</summary>
     ContentCore,
 
     /// <summary>Posts, blog categories/tags/post-types.</summary>

@@ -695,8 +695,8 @@ window.DOCS_ADMIN = {
       id: "content",
       title: { en: "Content", fa: "محتوا" },
       summary: {
-        en: "CMS: pages, posts, menus, slideshows, forms, taxonomy, redirects, themes.",
-        fa: "CMS: صفحه، پست، منو، اسلایدشو، فرم، طبقه‌بندی، ریدایرکت، تم.",
+        en: "CMS: pages, posts, menus, slideshows, advertisements, forms, taxonomy, redirects, themes.",
+        fa: "CMS: صفحه، پست، منو، اسلایدشو، تبلیغات، فرم، طبقه‌بندی، ریدایرکت، تم.",
       },
       pages: [
         {
@@ -835,7 +835,7 @@ window.DOCS_ADMIN = {
               fa: "منو را فعال/منتشر کنید تا تم با کلید/نام بارگذاری‌اش کند.",
             },
           ],
-          related: ["pages", "posts", "slideshows"],
+          related: ["pages", "posts", "slideshows", "advertisements"],
         },
         {
           id: "slideshows",
@@ -855,7 +855,27 @@ window.DOCS_ADMIN = {
               fa: "اسلایدشو بسازید، اسلاید (تصویر، عنوان، لینک) اضافه کنید، مرتب و فعال کنید.",
             },
           ],
-          related: ["media-library", "menus"],
+          related: ["media-library", "menus", "advertisements"],
+        },
+        {
+          id: "advertisements",
+          title: { en: "Advertisements", fa: "تبلیغات" },
+          adminPath: "/advertisements",
+          summary: {
+            en: "Keyword + URL text ads, per language, placed in a site location (header, footer, sidebar, home, product, blog, page).",
+            fa: "تبلیغ متنی کلمه کلیدی + لینک، چندزبانه، با محل نمایش در سایت (هدر، فوتر، سایدبار، خانه، محصول، وبلاگ، صفحه).",
+          },
+          purpose: {
+            en: "Show sponsored or promotional links on the public site without editing the theme.",
+            fa: "نمایش لینک‌های تبلیغاتی در سایت عمومی بدون ویرایش تم.",
+          },
+          howTo: [
+            {
+              en: "Create an ad, set keyword and URL, pick a location, add translations for other site languages, enable.",
+              fa: "تبلیغ بسازید، کلمه کلیدی و لینک را بگذارید، محل نمایش را انتخاب کنید، ترجمه زبان‌های دیگر سایت را اضافه و فعال کنید.",
+            },
+          ],
+          related: ["menus", "slideshows", "pages"],
         },
         {
           id: "forms",

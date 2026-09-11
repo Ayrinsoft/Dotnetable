@@ -281,3 +281,29 @@ a { text-decoration: none; }
     font-weight: 600;
 }
 
+/* ---------- Advertisements (keyword links) ---------- */
+.site-ads-bar {
+    background: var(--site-light);
+    border-bottom: 1px solid var(--site-border);
+    padding: .55rem 0;
+}
+.site-ads-list {
+    list-style: none;
+    margin: 0;
+    padding: 0;
+    display: flex;
+    flex-wrap: wrap;
+    gap: .35rem 1.1rem;
+}
+.site-ads--sidebar .site-ads-list {
+    flex-direction: column;
+    gap: .4rem;
+}
+.site-ads a {
+    color: var(--site-primary);
+    font-weight: 600;
+    font-size: .95rem;
+}
+.site-ads a:hover { text-decoration: underline; }
+.site-footer .site-ads a { color: #fff; }
+
