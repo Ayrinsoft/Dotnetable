@@ -7553,6 +7553,11 @@ namespace Dotnetable.Migrations.SqlServer.Migrations
 
                     SqlServerPropertyBuilderExtensions.UseIdentityColumn(b.Property<int>("WebsiteContactInfoID"));
 
+                    b.Property<byte>("ContactType")
+                        .ValueGeneratedOnAdd()
+                        .HasColumnType("tinyint")
+                        .HasDefaultValue((byte)0);
+
                     b.Property<string>("GroupTitle")
                         .HasMaxLength(64)
                         .HasColumnType("nvarchar(64)");

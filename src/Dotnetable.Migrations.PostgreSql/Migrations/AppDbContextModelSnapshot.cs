@@ -7546,6 +7546,11 @@ namespace Dotnetable.Migrations.PostgreSql.Migrations
 
                     NpgsqlPropertyBuilderExtensions.UseIdentityByDefaultColumn(b.Property<int>("WebsiteContactInfoID"));
 
+                    b.Property<byte>("ContactType")
+                        .ValueGeneratedOnAdd()
+                        .HasColumnType("smallint")
+                        .HasDefaultValue((byte)0);
+
                     b.Property<string>("GroupTitle")
                         .HasMaxLength(64)
                         .HasColumnType("character varying(64)");

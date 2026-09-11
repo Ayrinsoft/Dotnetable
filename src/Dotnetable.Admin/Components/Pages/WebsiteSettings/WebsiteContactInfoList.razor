@@ -1,4 +1,5 @@
 @page "/website/contact-info"
+@using Dotnetable.Domain.Enums
 @attribute [Authorize(Policy = AdminPolicies.WebsiteContactAccess)]
 @inject IWebsiteSettingService SettingService
 @inject IWebsiteService WebsiteService
@@ -56,20 +57,15 @@
                                            Color="Color.Error" OnClick="@(() => DeleteAsync(c))" />
                         </MudStack>
                     </td>
+                    <td>
+                        <MudStack Row="true" Spacing="1" AlignItems="AlignItems.Center">
+                            <i class="@(string.IsNullOrWhiteSpace(c.Icon) ? DefaultIcon((ContactInfoType)c.ContactType) : c.Icon)" style="font-size:1.1rem;"></i>
+                            <MudText Typo="Typo.body2">@TypeLabel((ContactInfoType)c.ContactType)</MudText>
+                        </MudStack>
+                    </td>
                     <td>@(c.GroupTitle ?? "-")</td>
                     <td>@c.Title</td>
                     <td>@c.Value</td>
-                    <td>
-                        @if (!string.IsNullOrWhiteSpace(c.Icon))
-                        {
-                            <i class="@c.Icon" style="font-size:1.15rem; margin-inline-end:6px;"></i>
-                            <MudText Typo="Typo.caption" Color="Color.Secondary" Style="display:inline">@c.Icon</MudText>
-                        }
-                        else
-                        {
-                            @:-
-                        }
-                    </td>
                     <td>@c.SortOrder</td>
                 </tr>
             }
@@ -88,34 +84,40 @@
             <MudForm @ref="_form">
                 <MudGrid Spacing="2">
                     <MudItem xs="12" sm="6">
-                        <MudTextField @bind-Value="_editItem.GroupTitle" Label="@L["contact_info.group", "Group (e.g. Sales Office, Factory)"]"
-                                      Variant="Variant.Outlined" Placeholder="@L["contact_info.group_placeholder", "Sales Office"]" />
+                        <MudSelect T="ContactInfoType" Value="_type" ValueChanged="OnTypeChanged"
+                                   Label="@L["contact_info.type", "Type"]" Variant="Variant.Outlined" Required="true">
+                            @foreach (var t in Enum.GetValues<ContactInfoType>())
+                            {
+                                <MudSelectItem T="ContactInfoType" Value="@t">@TypeLabel(t)</MudSelectItem>
+                            }
+                        </MudSelect>
                     </MudItem>
                     <MudItem xs="12" sm="6">
-                        <MudNumericField @bind-Value="_editItem.SortOrder" Label="@L["contact_info.sort_order", "Sort Order"]"
-                                         Variant="Variant.Outlined" Min="0" />
+                        <MudTextField @bind-Value="_editItem.GroupTitle" Label="@L["contact_info.group", "Group (e.g. Sales Office, Factory)"]"
+                                      Variant="Variant.Outlined" Placeholder="@L["contact_info.group_placeholder", "Sales Office"]" />
                     </MudItem>
                     <MudItem xs="12" sm="6">
                         <MudTextField @bind-Value="_editItem.Title" Label="@L["title", "Title"]"
                                       Variant="Variant.Outlined" Required="true"
                                       RequiredError="@L["required", "This field is required."]"
-                                      Placeholder="@L["contact_info.title_placeholder", "Sales Office Phone"]" />
+                                      HelperText="@L["contact_info.title_help", "Shown next to the value — customize it (e.g. \"Sales Office Phone\") or keep the type's default."]" />
                     </MudItem>
                     <MudItem xs="12" sm="6">
-                        <MudTextField @bind-Value="_editItem.Value" Label="@L["value", "Value"]"
+                        <MudTextField @bind-Value="_editItem.Value" Label="@ValueLabel(_type)"
                                       Variant="Variant.Outlined" Required="true"
                                       RequiredError="@L["required", "This field is required."]"
-                                      Placeholder="@L["contact_info.value_placeholder", "+98 21 1234 5678"]" />
+                                      Placeholder="@ValuePlaceholder(_type)" />
+                    </MudItem>
+                    <MudItem xs="12" sm="6">
+                        <MudNumericField @bind-Value="_editItem.SortOrder" Label="@L["contact_info.sort_order", "Sort Order"]"
+                                         Variant="Variant.Outlined" Min="0" />
                     </MudItem>
                     <MudItem xs="12">
                         <MudStack Row="true" AlignItems="AlignItems.Center" Spacing="2">
-                            @if (!string.IsNullOrWhiteSpace(_editItem.Icon))
-                            {
-                                <i class="@_editItem.Icon" style="font-size:1.4rem;"></i>
-                            }
-                            <MudTextField @bind-Value="_editItem.Icon" Label="@L["contact_info.icon", "Icon CSS Class (optional)"]"
+                            <i class="@(string.IsNullOrWhiteSpace(_editItem.Icon) ? DefaultIcon(_type) : _editItem.Icon)" style="font-size:1.4rem;"></i>
+                            <MudTextField @bind-Value="_editItem.Icon" Label="@L["contact_info.icon", "Icon CSS Class (optional — defaults to the type's icon)"]"
                                           Variant="Variant.Outlined" Class="flex-grow-1"
-                                          Placeholder="bi bi-telephone"
+                                          Placeholder="@DefaultIcon(_type)"
                                           Adornment="Adornment.End" AdornmentIcon="@Icons.Material.Filled.EmojiSymbols"
                                           OnAdornmentClick="PickIconAsync" AdornmentAriaLabel="@L["menus.pick_icon", "Select an icon"]" />
                         </MudStack>
@@ -147,8 +149,21 @@
     private bool _dialogOpen;
     private bool _saving;
     private WebsiteContactInfo? _editItem;
+    private ContactInfoType _type;
     private MudForm _form = null!;
     private string[]? _formErrors;
+
+    /// <summary>Bootstrap Icons class offered by default for each type, used to pre-fill the Icon
+    /// field and shown in the grid when no custom icon was set.</summary>
+    private static readonly Dictionary<ContactInfoType, string> _defaultIcons = new()
+    {
+        [ContactInfoType.Phone] = "bi bi-telephone",
+        [ContactInfoType.Email] = "bi bi-envelope",
+        [ContactInfoType.Address] = "bi bi-geo-alt",
+        [ContactInfoType.Location] = "bi bi-pin-map",
+        [ContactInfoType.WorkingHours] = "bi bi-clock",
+        [ContactInfoType.Other] = "bi bi-info-circle",
+    };
 
     protected override async Task OnInitializedAsync()
     {
@@ -168,10 +183,10 @@
             HeaderItems = new()
             {
                 new() { ColumnTitle = "", ColumnName = "" },
+                new() { ColumnTitle = L["contact_info.type", "Type"], ColumnName = "" },
                 new() { ColumnTitle = L["contact_info.group", "Group"], ColumnName = "" },
                 new() { ColumnTitle = L["title", "Title"], ColumnName = nameof(WebsiteContactInfo.Title), HasSearch = true },
                 new() { ColumnTitle = L["value", "Value"], ColumnName = "" },
-                new() { ColumnTitle = L["icon", "Icon"], ColumnName = "" },
                 new() { ColumnTitle = L["contact_info.sort_order", "Sort Order"], ColumnName = "" },
             }
         };
@@ -184,8 +199,34 @@
 
     private void OpenAddDialog()
     {
-        _editItem = new WebsiteContactInfo { WebsiteContactInfoID = 0, WebsiteID = _websiteId, Title = string.Empty, Value = string.Empty };
+        _type = ContactInfoType.Phone;
+        _editItem = new WebsiteContactInfo
+        {
+            WebsiteContactInfoID = 0,
+            WebsiteID = _websiteId,
+            ContactType = (byte)_type,
+            Title = TypeLabel(_type),
+            Value = string.Empty,
+        };
         _dialogOpen = true;
+    }
+
+    /// <summary>Auto-fills the Icon field with the type's default icon, and the Title field with the
+    /// type's label, unless the admin already customized either away from the previous type's default
+    /// — mirrors the same pattern used for Social Links so switching type doesn't clobber edits.</summary>
+    private void OnTypeChanged(ContactInfoType type)
+    {
+        var previousDefaultIcon = _defaultIcons.GetValueOrDefault(_type);
+        var previousDefaultTitle = TypeLabel(_type);
+
+        _type = type;
+        _editItem!.ContactType = (byte)type;
+
+        if (string.IsNullOrWhiteSpace(_editItem.Icon) || _editItem.Icon == previousDefaultIcon)
+            _editItem.Icon = null; // cleared so the grid/dialog fall back to the new type's default live
+
+        if (string.IsNullOrWhiteSpace(_editItem.Title) || _editItem.Title == previousDefaultTitle)
+            _editItem.Title = TypeLabel(type);
     }
 
     private async Task PickIconAsync()
@@ -199,10 +240,12 @@
 
     private void OpenEditDialog(WebsiteContactInfo c)
     {
+        _type = (ContactInfoType)c.ContactType;
         _editItem = new WebsiteContactInfo
         {
             WebsiteContactInfoID = c.WebsiteContactInfoID,
             WebsiteID = c.WebsiteID,
+            ContactType = c.ContactType,
             GroupTitle = c.GroupTitle,
             Title = c.Title,
             Value = c.Value,
@@ -221,7 +264,12 @@
         _saving = true;
         try
         {
-            if (_editItem!.WebsiteContactInfoID == 0)
+            // Empty icon means "use the type's default" — resolve it now so the public page (which
+            // has no notion of ContactInfoType icon defaults) always gets a concrete icon class.
+            if (string.IsNullOrWhiteSpace(_editItem!.Icon))
+                _editItem.Icon = DefaultIcon(_type);
+
+            if (_editItem.WebsiteContactInfoID == 0)
             {
                 _editItem.WebsiteID = _websiteId;
                 await SettingService.CreateContactInfoAsync(_editItem);
@@ -257,4 +305,37 @@
         _grid.Pagination.MaxLength = result.TotalCount;
         _loading = false;
     }
+
+    private string DefaultIcon(ContactInfoType type) =>
+        _defaultIcons.GetValueOrDefault(type, "bi bi-info-circle");
+
+    private string TypeLabel(ContactInfoType type) => type switch
+    {
+        ContactInfoType.Phone => L["contact_info.type_phone", "Phone"],
+        ContactInfoType.Email => L["contact_info.type_email", "Email"],
+        ContactInfoType.Address => L["contact_info.type_address", "Address"],
+        ContactInfoType.Location => L["contact_info.type_location", "Location"],
+        ContactInfoType.WorkingHours => L["contact_info.type_workinghours", "Working Hours"],
+        _ => L["contact_info.type_other", "Other"],
+    };
+
+    private string ValueLabel(ContactInfoType type) => type switch
+    {
+        ContactInfoType.Phone => L["contact_info.value_phone", "Phone Number"],
+        ContactInfoType.Email => L["contact_info.value_email", "Email Address"],
+        ContactInfoType.Address => L["contact_info.value_address", "Address"],
+        ContactInfoType.Location => L["contact_info.value_location", "Map Link"],
+        ContactInfoType.WorkingHours => L["contact_info.value_workinghours", "Hours"],
+        _ => L["value", "Value"],
+    };
+
+    private string ValuePlaceholder(ContactInfoType type) => type switch
+    {
+        ContactInfoType.Phone => "+98 21 1234 5678",
+        ContactInfoType.Email => "info@example.com",
+        ContactInfoType.Address => L["contact_info.value_address_placeholder", "No. 12, Example St, Tehran"],
+        ContactInfoType.Location => "https://maps.google.com/...",
+        ContactInfoType.WorkingHours => L["contact_info.value_hours_placeholder", "Sat–Wed 9:00–17:00"],
+        _ => "",
+    };
 }

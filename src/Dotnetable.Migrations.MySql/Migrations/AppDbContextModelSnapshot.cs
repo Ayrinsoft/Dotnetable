@@ -7263,6 +7263,11 @@ namespace Dotnetable.Migrations.MySql.Migrations
                         .ValueGeneratedOnAdd()
                         .HasColumnType("int");
 
+                    b.Property<byte>("ContactType")
+                        .ValueGeneratedOnAdd()
+                        .HasColumnType("tinyint unsigned")
+                        .HasDefaultValue((byte)0);
+
                     b.Property<string>("GroupTitle")
                         .HasMaxLength(64)
                         .HasColumnType("varchar(64)");
