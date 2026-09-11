@@ -631,6 +631,10 @@ window.DOCS_ADMIN = {
               en: "On a multi-language site, open \"Other languages\" in the dialog to translate Group/Title/Value per language — leave a field blank to fall back to the default-language value (useful for a phone number that doesn't need translating while the title/hours text does).",
               fa: "در سایت چندزبانه، بخش «سایر زبان‌ها» را در دیالوگ باز کنید تا گروه/عنوان/مقدار برای هر زبان ترجمه شود — برای برگشت به مقدار زبان پیش‌فرض، فیلد را خالی بگذارید (مفید برای شماره تلفنی که نیاز به ترجمه ندارد ولی متن عنوان/ساعات کاری دارد).",
             },
+            {
+              en: "Location rows take a Latitude/Longitude pair instead of a free-text value — plain coordinates, not a Google/other map URL, so the public page can build a link (or embed) for whichever map provider the site uses (OpenStreetMap today) without re-entering the data later.",
+              fa: "ردیف‌های لوکیشن به‌جای مقدار متنی آزاد، یک جفت عرض/طول جغرافیایی می‌گیرند — مختصات ساده، نه لینک گوگل‌مپ یا نقشه دیگر — تا صفحه عمومی بتواند برای هر ارائه‌دهنده نقشه‌ای که سایت استفاده می‌کند (فعلاً OpenStreetMap) لینک یا نقشه بسازد، بدون نیاز به وارد کردن دوباره داده در آینده.",
+            },
           ],
           related: ["website-social", "website-seo"],
         },

@@ -36,6 +36,11 @@ public sealed class ContactInfoDto
     public string? GroupTitle { get; init; }
     public string Title { get; init; } = string.Empty;
     public string Value { get; init; } = string.Empty;
+    /// <summary>Set only for <see cref="Domain.Enums.ContactInfoType.Location"/> rows — plain
+    /// coordinates rather than a provider-specific URL, so any map (OpenStreetMap today, anything
+    /// else later) can render a pin from them.</summary>
+    public decimal? Latitude { get; init; }
+    public decimal? Longitude { get; init; }
     /// <summary>Icon css class (e.g. "bi bi-geo-alt") as configured in the admin.</summary>
     public string? Icon { get; init; }
 }

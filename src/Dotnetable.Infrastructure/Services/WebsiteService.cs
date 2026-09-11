@@ -284,6 +284,8 @@ public class WebsiteService : IWebsiteService
             GroupTitle = groupTitle,
             Title = title,
             Value = value,
+            Latitude = c.Latitude,
+            Longitude = c.Longitude,
             Icon = c.Icon,
         };
     }

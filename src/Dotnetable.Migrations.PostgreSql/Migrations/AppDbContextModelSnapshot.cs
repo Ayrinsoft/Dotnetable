@@ -7559,6 +7559,12 @@ namespace Dotnetable.Migrations.PostgreSql.Migrations
                         .HasMaxLength(64)
                         .HasColumnType("character varying(64)");
 
+                    b.Property<decimal?>("Latitude")
+                        .HasColumnType("decimal(9, 6)");
+
+                    b.Property<decimal?>("Longitude")
+                        .HasColumnType("decimal(9, 6)");
+
                     b.Property<int>("SortOrder")
                         .HasColumnType("integer");
 

@@ -5,6 +5,8 @@ CREATE TABLE [dbo].[WebsiteContactInfos] (
     [GroupTitle]           NVARCHAR (64)  NULL,
     [Title]                NVARCHAR (64)  NOT NULL,
     [Value]                NVARCHAR (256) NOT NULL,
+    [Latitude]             DECIMAL (9, 6) NULL,
+    [Longitude]            DECIMAL (9, 6) NULL,
     [Icon]                 NVARCHAR (64)  NULL,
     [SortOrder]            INT            NOT NULL,
     CONSTRAINT [PK_WebsiteContactInfos] PRIMARY KEY CLUSTERED ([WebsiteContactInfoID] ASC),

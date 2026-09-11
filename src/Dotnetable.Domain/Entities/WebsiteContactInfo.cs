@@ -24,6 +24,13 @@ public partial class WebsiteContactInfo
 
     public string Value { get; set; } = null!;
 
+    /// <summary>Latitude/longitude pair, populated only for <see cref="Enums.ContactInfoType.Location"/>
+    /// rows — kept as two plain numbers (not a provider-specific URL/embed code) so any map provider
+    /// (OpenStreetMap today, anything else later) can render it without a data migration.</summary>
+    public decimal? Latitude { get; set; }
+
+    public decimal? Longitude { get; set; }
+
     public string? Icon { get; set; }
 
     public int SortOrder { get; set; }
