@@ -5,6 +5,9 @@
     [Title]             NVARCHAR (300) NOT NULL,
     [Slug]              NVARCHAR (300) NOT NULL,
     [Content]           NVARCHAR (MAX) NULL,
+    [MetaTitle]         NVARCHAR (300) NULL,
+    [MetaDescription]   NVARCHAR (500) NULL,
+    [MetaKeywords]      NVARCHAR (500) NULL,
     CONSTRAINT [PK_PageTranslations] PRIMARY KEY CLUSTERED ([PageTranslationID] ASC),
     CONSTRAINT [FK_PageTranslations_Pages] FOREIGN KEY ([PageID]) REFERENCES [dbo].[Pages] ([PageID])
 );

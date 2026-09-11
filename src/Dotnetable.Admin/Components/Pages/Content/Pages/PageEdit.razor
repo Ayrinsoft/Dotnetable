@@ -56,6 +56,17 @@ else if (_model is not null)
                                 OnValueChanged="@(v => _model!.Content = v)" />
                 </MudPaper>
 
+                <MudExpansionPanels Elevation="0" Class="mt-4">
+                    <MudExpansionPanel Text="@L["pages.seo", "SEO / Meta"]">
+                        <MudText Typo="Typo.body2" Color="Color.Secondary" Class="mb-2">
+                            @L["pages.seo_hint", "Overrides the browser-tab title and search-result snippet for this page. Leave blank to fall back to the title/site default."]
+                        </MudText>
+                        <MudTextField @bind-Value="_model.MetaTitle" Label="@L["posts.meta_title", "Meta title"]" Variant="Variant.Outlined" Class="mb-3" />
+                        <MudTextField @bind-Value="_model.MetaDescription" Label="@L["posts.meta_description", "Meta description"]" Variant="Variant.Outlined" Lines="2" AutoGrow="true" Class="mb-3" />
+                        <MudTextField @bind-Value="_model.MetaKeywords" Label="@L["posts.meta_keywords", "Meta keywords (comma-separated)"]" Variant="Variant.Outlined" />
+                    </MudExpansionPanel>
+                </MudExpansionPanels>
+
                 @if (_languages.Length > 0)
                 {
                 <MudExpansionPanels Elevation="0" Class="mt-4">
@@ -77,6 +88,9 @@ else if (_model is not null)
                                         <MudTextField T="string" Value="@t.Slug" ValueChanged="@(v => { t.Slug = v; })"
                                                       Label="@L["slug", "Slug"]" Variant="Variant.Outlined" Margin="Margin.Dense" />
                                     </MudItem>
+                                    <MudItem xs="12" sm="6"><MudTextField T="string" Value="@t.MetaTitle" ValueChanged="@(v => { t.MetaTitle = v; })" Label="@L["posts.meta_title", "Meta title"]" Variant="Variant.Outlined" Margin="Margin.Dense" /></MudItem>
+                                    <MudItem xs="12" sm="6"><MudTextField T="string" Value="@t.MetaKeywords" ValueChanged="@(v => { t.MetaKeywords = v; })" Label="@L["posts.meta_keywords", "Meta keywords"]" Variant="Variant.Outlined" Margin="Margin.Dense" /></MudItem>
+                                    <MudItem xs="12"><MudTextField T="string" Value="@t.MetaDescription" ValueChanged="@(v => { t.MetaDescription = v; })" Label="@L["posts.meta_description", "Meta description"]" Variant="Variant.Outlined" Lines="2" AutoGrow="true" Margin="Margin.Dense" /></MudItem>
                                     <MudItem xs="12">
                                         <MudStack Row="true" AlignItems="AlignItems.Center" Justify="Justify.SpaceBetween" Class="mb-1">
                                             <MudText Typo="Typo.caption" Color="Color.Secondary">@L["pages.content", "Content"]</MudText>
@@ -153,7 +167,11 @@ else if (_model is not null)
     private List<Website> _websites = new();
     private string[]? _formErrors;
 
-    private sealed class TranslationModel { public string Title = ""; public string Slug = ""; public string Content = ""; }
+    private sealed class TranslationModel
+    {
+        public string Title = ""; public string Slug = ""; public string Content = "";
+        public string MetaTitle = ""; public string MetaDescription = ""; public string MetaKeywords = "";
+    }
     private readonly Dictionary<string, TranslationModel> _translations = new(StringComparer.OrdinalIgnoreCase);
 
     // ── Standard-page presets ───────────────────────────────────────
@@ -237,7 +255,11 @@ else if (_model is not null)
             _model = await PageService.GetByIdAsync(Id!.Value);
             if (_model is not null)
                 foreach (var t in await PageService.GetTranslationsAsync(_model.PageID))
-                    _translations[t.LanguageCode] = new TranslationModel { Title = t.Title, Slug = t.Slug, Content = t.Content ?? "" };
+                    _translations[t.LanguageCode] = new TranslationModel
+                    {
+                        Title = t.Title, Slug = t.Slug, Content = t.Content ?? "",
+                        MetaTitle = t.MetaTitle ?? "", MetaDescription = t.MetaDescription ?? "", MetaKeywords = t.MetaKeywords ?? "",
+                    };
         }
 
         // Master site (website 1) uses the same per-website language rows as every other site.
@@ -307,6 +329,7 @@ else if (_model is not null)
                 {
                     PageID = _model.PageID, LanguageCode = kv.Key,
                     Title = kv.Value.Title, Slug = kv.Value.Slug, Content = kv.Value.Content,
+                    MetaTitle = kv.Value.MetaTitle, MetaDescription = kv.Value.MetaDescription, MetaKeywords = kv.Value.MetaKeywords,
                 }).ToList();
             await PageService.SetTranslationsAsync(_model.PageID, translations);
 

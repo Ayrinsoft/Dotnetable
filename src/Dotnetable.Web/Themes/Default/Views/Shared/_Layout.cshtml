@@ -45,9 +45,17 @@
     <meta charset="utf-8" />
     <meta name="viewport" content="width=device-width, initial-scale=1.0" />
     <title>@ViewData["Title"] @separator @(site?.DefaultMetaTitle ?? brandName)</title>
-    @if (!string.IsNullOrWhiteSpace(site?.DefaultMetaDescription))
+    @{
+        var metaDescription = ViewData["MetaDescription"] as string ?? site?.DefaultMetaDescription;
+        var metaKeywords = ViewData["MetaKeywords"] as string;
+    }
+    @if (!string.IsNullOrWhiteSpace(metaDescription))
     {
-        <meta name="description" content="@site.DefaultMetaDescription" />
+        <meta name="description" content="@metaDescription" />
+    }
+    @if (!string.IsNullOrWhiteSpace(metaKeywords))
+    {
+        <meta name="keywords" content="@metaKeywords" />
     }
     @if (!string.IsNullOrWhiteSpace(site?.FavIconUrl))
     {

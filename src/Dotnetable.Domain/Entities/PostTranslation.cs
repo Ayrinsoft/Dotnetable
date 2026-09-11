@@ -19,5 +19,11 @@ public partial class PostTranslation
 
     public string? Content { get; set; }
 
+    public string? MetaTitle { get; set; }
+
+    public string? MetaDescription { get; set; }
+
+    public string? MetaKeywords { get; set; }
+
     public virtual Post Post { get; set; } = null!;
 }

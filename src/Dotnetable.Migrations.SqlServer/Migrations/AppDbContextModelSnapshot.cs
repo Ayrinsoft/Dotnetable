@@ -3739,6 +3739,18 @@ namespace Dotnetable.Migrations.SqlServer.Migrations
                     b.Property<bool>("IsHomepage")
                         .HasColumnType("bit");
 
+                    b.Property<string>("MetaDescription")
+                        .HasMaxLength(500)
+                        .HasColumnType("nvarchar(500)");
+
+                    b.Property<string>("MetaKeywords")
+                        .HasMaxLength(500)
+                        .HasColumnType("nvarchar(500)");
+
+                    b.Property<string>("MetaTitle")
+                        .HasMaxLength(300)
+                        .HasColumnType("nvarchar(300)");
+
                     b.Property<int?>("ParentPageID")
                         .HasColumnType("int");
 
@@ -3797,6 +3809,18 @@ namespace Dotnetable.Migrations.SqlServer.Migrations
                         .IsUnicode(false)
                         .HasColumnType("char(2)")
                         .IsFixedLength();
+
+                    b.Property<string>("MetaDescription")
+                        .HasMaxLength(500)
+                        .HasColumnType("nvarchar(500)");
+
+                    b.Property<string>("MetaKeywords")
+                        .HasMaxLength(500)
+                        .HasColumnType("nvarchar(500)");
+
+                    b.Property<string>("MetaTitle")
+                        .HasMaxLength(300)
+                        .HasColumnType("nvarchar(300)");
 
                     b.Property<int>("PageID")
                         .HasColumnType("int");
@@ -4275,6 +4299,18 @@ namespace Dotnetable.Migrations.SqlServer.Migrations
                     b.Property<bool>("IsFeatured")
                         .HasColumnType("bit");
 
+                    b.Property<string>("MetaDescription")
+                        .HasMaxLength(500)
+                        .HasColumnType("nvarchar(500)");
+
+                    b.Property<string>("MetaKeywords")
+                        .HasMaxLength(500)
+                        .HasColumnType("nvarchar(500)");
+
+                    b.Property<string>("MetaTitle")
+                        .HasMaxLength(300)
+                        .HasColumnType("nvarchar(300)");
+
                     b.Property<int>("PostTypeID")
                         .HasColumnType("int");
 
@@ -4358,6 +4394,18 @@ namespace Dotnetable.Migrations.SqlServer.Migrations
                         .IsUnicode(false)
                         .HasColumnType("char(2)")
                         .IsFixedLength();
+
+                    b.Property<string>("MetaDescription")
+                        .HasMaxLength(500)
+                        .HasColumnType("nvarchar(500)");
+
+                    b.Property<string>("MetaKeywords")
+                        .HasMaxLength(500)
+                        .HasColumnType("nvarchar(500)");
+
+                    b.Property<string>("MetaTitle")
+                        .HasMaxLength(300)
+                        .HasColumnType("nvarchar(300)");
 
                     b.Property<int>("PostID")
                         .HasColumnType("int");

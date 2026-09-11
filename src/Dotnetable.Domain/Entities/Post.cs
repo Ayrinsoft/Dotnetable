@@ -21,6 +21,16 @@ public partial class Post
 
     public string? Content { get; set; }
 
+    /// <summary>Overrides the browser-tab/search-result title for this post; falls back to
+    /// <see cref="Title"/> plus the site's default when blank.</summary>
+    public string? MetaTitle { get; set; }
+
+    /// <summary>Overrides the search-result/social-preview description; falls back to
+    /// <see cref="Excerpt"/> when blank.</summary>
+    public string? MetaDescription { get; set; }
+
+    public string? MetaKeywords { get; set; }
+
     public int? FeaturedImageFileID { get; set; }
 
     public byte Status { get; set; }

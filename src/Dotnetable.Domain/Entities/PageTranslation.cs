@@ -17,5 +17,11 @@ public partial class PageTranslation
 
     public string? Content { get; set; }
 
+    public string? MetaTitle { get; set; }
+
+    public string? MetaDescription { get; set; }
+
+    public string? MetaKeywords { get; set; }
+
     public virtual Page Page { get; set; } = null!;
 }

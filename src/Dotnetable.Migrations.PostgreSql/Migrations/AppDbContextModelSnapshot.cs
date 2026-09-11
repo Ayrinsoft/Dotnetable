@@ -3734,6 +3734,18 @@ namespace Dotnetable.Migrations.PostgreSql.Migrations
                     b.Property<bool>("IsHomepage")
                         .HasColumnType("boolean");
 
+                    b.Property<string>("MetaDescription")
+                        .HasMaxLength(500)
+                        .HasColumnType("character varying(500)");
+
+                    b.Property<string>("MetaKeywords")
+                        .HasMaxLength(500)
+                        .HasColumnType("character varying(500)");
+
+                    b.Property<string>("MetaTitle")
+                        .HasMaxLength(300)
+                        .HasColumnType("character varying(300)");
+
                     b.Property<int?>("ParentPageID")
                         .HasColumnType("integer");
 
@@ -3792,6 +3804,18 @@ namespace Dotnetable.Migrations.PostgreSql.Migrations
                         .IsUnicode(false)
                         .HasColumnType("character(2)")
                         .IsFixedLength();
+
+                    b.Property<string>("MetaDescription")
+                        .HasMaxLength(500)
+                        .HasColumnType("character varying(500)");
+
+                    b.Property<string>("MetaKeywords")
+                        .HasMaxLength(500)
+                        .HasColumnType("character varying(500)");
+
+                    b.Property<string>("MetaTitle")
+                        .HasMaxLength(300)
+                        .HasColumnType("character varying(300)");
 
                     b.Property<int>("PageID")
                         .HasColumnType("integer");
@@ -4270,6 +4294,18 @@ namespace Dotnetable.Migrations.PostgreSql.Migrations
                     b.Property<bool>("IsFeatured")
                         .HasColumnType("boolean");
 
+                    b.Property<string>("MetaDescription")
+                        .HasMaxLength(500)
+                        .HasColumnType("character varying(500)");
+
+                    b.Property<string>("MetaKeywords")
+                        .HasMaxLength(500)
+                        .HasColumnType("character varying(500)");
+
+                    b.Property<string>("MetaTitle")
+                        .HasMaxLength(300)
+                        .HasColumnType("character varying(300)");
+
                     b.Property<int>("PostTypeID")
                         .HasColumnType("integer");
 
@@ -4353,6 +4389,18 @@ namespace Dotnetable.Migrations.PostgreSql.Migrations
                         .IsUnicode(false)
                         .HasColumnType("character(2)")
                         .IsFixedLength();
+
+                    b.Property<string>("MetaDescription")
+                        .HasMaxLength(500)
+                        .HasColumnType("character varying(500)");
+
+                    b.Property<string>("MetaKeywords")
+                        .HasMaxLength(500)
+                        .HasColumnType("character varying(500)");
+
+                    b.Property<string>("MetaTitle")
+                        .HasMaxLength(300)
+                        .HasColumnType("character varying(300)");
 
                     b.Property<int>("PostID")
                         .HasColumnType("integer");
