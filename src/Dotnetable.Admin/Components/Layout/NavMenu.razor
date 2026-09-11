@@ -105,7 +105,7 @@
             </MudNavGroup>
         }
 
-        @if (NavSurface.Shows(AdminNavArea.Website) && (_canWebsite || _canLocalization || _isMaster))
+        @if (NavSurface.Shows(AdminNavArea.Website) && (_canWebsite || _canWebsiteSocial || _canWebsiteContact || _canLocalization || _isMaster))
         {
             <MudNavGroup Title="@L["website", "Website"]" Icon="@Icons.Material.Filled.WebAsset"
                          Expanded="@IsGroupActive("/websites", "/website/", "/content-languages")">
@@ -124,18 +124,24 @@
                     <MudNavLink Href="/website/seo" Icon="@Icons.Material.Filled.Search">
                         @L["seo_settings", "SEO Settings"]
                     </MudNavLink>
-                    <MudNavLink Href="/website/social" Icon="@Icons.Material.Filled.Share">
-                        @L["social_links", "Social Links"]
-                    </MudNavLink>
-                    <MudNavLink Href="/website/contact-info" Icon="@Icons.Material.Filled.ContactPhone">
-                        @L["contact_info", "Contact Info"]
-                    </MudNavLink>
                     @if (_isMaster || _websiteId != AppConstants.MasterWebsiteId)
                     {
                         <MudNavLink Href="/website/api-key" Icon="@Icons.Material.Filled.VpnKey">
                             @L["website_api_key", "Website API Key"]
                         </MudNavLink>
                     }
+                </AuthorizeView>
+                @* Granted independently of WebsiteEdit so a site owner can be trusted with just their
+                   own social links / contact info without also getting IP/script access. *@
+                <AuthorizeView Policy="@AdminPolicies.WebsiteSocialAccess" Context="wss">
+                    <MudNavLink Href="/website/social" Icon="@Icons.Material.Filled.Share">
+                        @L["social_links", "Social Links"]
+                    </MudNavLink>
+                </AuthorizeView>
+                <AuthorizeView Policy="@AdminPolicies.WebsiteContactAccess" Context="wsc">
+                    <MudNavLink Href="/website/contact-info" Icon="@Icons.Material.Filled.ContactPhone">
+                        @L["contact_info", "Contact Info"]
+                    </MudNavLink>
                 </AuthorizeView>
                 <AuthorizeView Policy="@RoleKeys.LocalizationEdit" Context="loc">
                     <MudNavLink Href="/website/languages" Icon="@Icons.Material.Filled.Language">
@@ -469,6 +475,8 @@
     private bool _canLoginLogs;
     private bool _canMessages;
     private bool _canWebsite;
+    private bool _canWebsiteSocial;
+    private bool _canWebsiteContact;
     private bool _canLocalization;
     private bool _canPosts;
     private bool _canPages;
@@ -504,6 +512,8 @@
             _canLoginLogs = AdminPolicies.Allows(user, RoleKeys.LoginLogsView);
             _canMessages = AdminPolicies.Allows(user, RoleKeys.MessagesView);
             _canWebsite = AdminPolicies.Allows(user, RoleKeys.WebsiteEdit);
+            _canWebsiteSocial = _canWebsite || AdminPolicies.Allows(user, RoleKeys.WebsiteSocialEdit);
+            _canWebsiteContact = _canWebsite || AdminPolicies.Allows(user, RoleKeys.WebsiteContactEdit);
             _canLocalization = AdminPolicies.Allows(user, RoleKeys.LocalizationEdit);
             _canPosts = AdminPolicies.Allows(user, RoleKeys.PostsView);
             _canPages = AdminPolicies.Allows(user, RoleKeys.PagesView);

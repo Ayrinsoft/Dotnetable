@@ -46,7 +46,9 @@ public static class RoleCatalog
 
         // Website settings
         new(RoleKeys.WebsiteView, "View website settings", RoleCategory.Admin),
-        new(RoleKeys.WebsiteEdit, "Edit website settings", RoleCategory.Admin),
+        new(RoleKeys.WebsiteEdit, "Edit website settings (IP whitelist, scripts, SEO, API key)", RoleCategory.Admin),
+        new(RoleKeys.WebsiteSocialEdit, "Manage social media links", RoleCategory.Admin),
+        new(RoleKeys.WebsiteContactEdit, "Manage contact info (phones, emails, addresses, hours)", RoleCategory.Admin),
 
         // Messages
         new(RoleKeys.MessagesView, "View contact messages", RoleCategory.Admin),

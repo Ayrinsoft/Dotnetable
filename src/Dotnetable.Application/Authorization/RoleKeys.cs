@@ -28,9 +28,16 @@ public static class RoleKeys
     public const string PoliciesEdit = "policies.edit";
     public const string PoliciesDelete = "policies.delete";
 
-    // ── Website settings: IP, scripts, SEO, social, email (admin) ───
+    // ── Website settings: IP, scripts, SEO, email (admin) ───────────
     public const string WebsiteView = "website.view";
     public const string WebsiteEdit = "website.edit";
+
+    // ── Social media links (admin) — its own key (not bundled into WebsiteEdit) so a site owner
+    // can be trusted with their own social profiles without also getting IP/script access ──────
+    public const string WebsiteSocialEdit = "sociallinks.edit";
+
+    // ── Contact info: phones, emails, addresses, hours (admin) — its own key for the same reason ─
+    public const string WebsiteContactEdit = "contactinfo.edit";
 
     // ── Contact messages (admin) ────────────────────────────────────
     public const string MessagesView = "messages.view";

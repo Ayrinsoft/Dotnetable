@@ -12,6 +12,14 @@ public static class AdminPolicies
     /// <summary>Any authenticated member (e.g. the dashboard landing page).</summary>
     public const string AnyEditor = "AnyEditor";
 
+    /// <summary>Social Links page: either the broad website-settings key, or the narrower
+    /// <see cref="RoleKeys.WebsiteSocialEdit"/> a site owner can be granted on its own.</summary>
+    public const string WebsiteSocialAccess = "WebsiteSocialAccess";
+
+    /// <summary>Contact Info page: either the broad website-settings key, or the narrower
+    /// <see cref="RoleKeys.WebsiteContactEdit"/> a site owner can be granted on its own.</summary>
+    public const string WebsiteContactAccess = "WebsiteContactAccess";
+
     public static void Register(AuthorizationOptions options)
     {
         options.AddPolicy(SuperAdminOnly, p =>
@@ -29,6 +37,15 @@ public static class AdminPolicies
             options.AddPolicy(roleKey, p =>
                 p.RequireAssertion(ctx => Allows(ctx.User, roleKey)));
         }
+
+        // Composite policies: a page reachable through more than one permission (a broad legacy
+        // key plus a narrower one introduced later so it can be delegated on its own without
+        // breaking members who already hold the broad key).
+        options.AddPolicy(WebsiteSocialAccess, p =>
+            p.RequireAssertion(ctx => Allows(ctx.User, RoleKeys.WebsiteEdit) || Allows(ctx.User, RoleKeys.WebsiteSocialEdit)));
+
+        options.AddPolicy(WebsiteContactAccess, p =>
+            p.RequireAssertion(ctx => Allows(ctx.User, RoleKeys.WebsiteEdit) || Allows(ctx.User, RoleKeys.WebsiteContactEdit)));
     }
 
     /// <summary>True if the user is a master-website member or holds the given role key.</summary>

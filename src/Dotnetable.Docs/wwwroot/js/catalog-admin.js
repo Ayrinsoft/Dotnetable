@@ -600,7 +600,31 @@ window.DOCS_ADMIN = {
               fa: "ردیف‌های اجتماعی را با URL مطلق درست اضافه/ویرایش کنید.",
             },
           ],
-          related: ["website-seo", "menus"],
+          related: ["website-seo", "menus", "website-contact-info"],
+        },
+        {
+          id: "website-contact-info",
+          title: { en: "Contact info", fa: "اطلاعات تماس" },
+          adminPath: "/website/contact-info",
+          summary: {
+            en: "Admin-defined phone/email/address/hours rows, grouped and shown on the public Contact Us page.",
+            fa: "ردیف‌های تلفن/ایمیل/آدرس/ساعات کاری تعریف‌شده توسط ادمین، گروه‌بندی‌شده و نمایش‌داده‌شده در صفحه عمومی تماس با ما.",
+          },
+          purpose: {
+            en: "Let the site manage its own contact details (grouped by office/department) without editing templates.",
+            fa: "امکان مدیریت اطلاعات تماس سایت (گروه‌بندی‌شده بر اساس دفتر/بخش) بدون ویرایش قالب.",
+          },
+          howTo: [
+            {
+              en: "Add a row: optional group (e.g. \"Sales Office\"), a title and a value, both free text.",
+              fa: "یک ردیف اضافه کنید: گروه اختیاری (مثل «دفتر فروش»)، یک عنوان و یک مقدار، هر دو آزاد.",
+            },
+            {
+              en: "Save, then check the public Contact Us page renders it under the right group.",
+              fa: "ذخیره کنید و صفحه عمومی تماس با ما را برای نمایش درست زیر گروه بررسی کنید.",
+            },
+          ],
+          related: ["website-social", "website-seo"],
         },
         {
           id: "website-api-key",

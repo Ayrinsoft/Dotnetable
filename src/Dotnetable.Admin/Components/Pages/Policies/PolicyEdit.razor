@@ -177,9 +177,12 @@ else if (_policy is not null)
 
         _assignableRoles = (await PolicyService.GetAssignableRolesAsync(_memberId, _isMaster)).ToList();
         // Group by the "area" segment of the key (text before the first dot) to render a tree.
+        // "taxonomy" (categories/tags/post types) is sorted right after "posts" — it's part of the
+        // same content feature even though it's a separate permission key, and admins granting
+        // "full Post access" need to see it next to Posts or they miss it (categories look "missing").
         _roleGroups = _assignableRoles
             .GroupBy(r => r.RoleKey.Split('.', 2)[0])
-            .OrderBy(g => g.Key)
+            .OrderBy(g => GroupSortKey(g.Key))
             .ToList();
 
         if (_isNew)
@@ -254,8 +257,24 @@ else if (_policy is not null)
     }
 
     // "members" -> localized "Members" (falls back to a title-cased key).
-    private string GroupTitle(string groupKey) =>
-        L[$"roles.group.{groupKey}", Capitalize(groupKey)];
+    private string GroupTitle(string groupKey) => groupKey switch
+    {
+        "taxonomy" => L["roles.group.taxonomy", "Categories & Tags (Posts)"],
+        "sociallinks" => L["roles.group.sociallinks", "Social Links"],
+        "contactinfo" => L["roles.group.contactinfo", "Contact Info"],
+        _ => L[$"roles.group.{groupKey}", Capitalize(groupKey)],
+    };
+
+    // Sorts "taxonomy" immediately after "posts" so the categories/tags/post-types permission
+    // group sits next to the Posts group it conceptually belongs to, instead of its alphabetical
+    // spot far down the list where it's easy to miss when granting "full Post access".
+    private static string GroupSortKey(string groupKey) => groupKey switch
+    {
+        "taxonomy" => "posts~taxonomy",
+        "sociallinks" => "website~1sociallinks",
+        "contactinfo" => "website~2contactinfo",
+        _ => groupKey,
+    };
 
     // "members.edit" -> localized "Edit" action label.
     private string RoleActionLabel(string roleKey)
