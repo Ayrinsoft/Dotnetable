@@ -33,6 +33,13 @@ public interface IWebsiteSettingService
     Task UpdateSocialLinkAsync(WebsiteSocialLink link, CancellationToken ct = default);
     Task DeleteSocialLinkAsync(int id, CancellationToken ct = default);
 
+    // Contact Info (free-form title/value rows, admin-grouped — phones, emails, addresses, hours, ...)
+    Task<PagedResult<WebsiteContactInfo>> GetContactInfosPagedAsync(int websiteId, GridQuery query, CancellationToken ct = default);
+    Task<WebsiteContactInfo?> GetContactInfoByIdAsync(int id, CancellationToken ct = default);
+    Task<WebsiteContactInfo> CreateContactInfoAsync(WebsiteContactInfo info, CancellationToken ct = default);
+    Task UpdateContactInfoAsync(WebsiteContactInfo info, CancellationToken ct = default);
+    Task DeleteContactInfoAsync(int id, CancellationToken ct = default);
+
     // Watermark Settings (one row per website)
     Task<WebsiteWatermarkSetting?> GetWatermarkSettingAsync(int websiteId, CancellationToken ct = default);
     Task SaveWatermarkSettingAsync(WebsiteWatermarkSetting setting, CancellationToken ct = default);

@@ -15,6 +15,30 @@
                 <div class="page-content text-muted">
                     @Html.Raw(Dotnetable.Application.Security.ContentSanitizer.Sanitize(Model.ContentHtml))
                 </div>
+
+                @if (Model.ContactInfos.Count > 0)
+                {
+                    <div class="contact-info-groups mt-4">
+                        @foreach (var group in Model.ContactInfos.GroupBy(c => c.GroupTitle))
+                        {
+                            <div class="contact-info-group mb-4">
+                                @if (!string.IsNullOrWhiteSpace(group.Key))
+                                {
+                                    <h6 class="fw-bold mb-2">@group.Key</h6>
+                                }
+                                <ul class="list-unstyled mb-0">
+                                    @foreach (var info in group)
+                                    {
+                                        <li class="d-flex align-items-start gap-2 mb-2">
+                                            <i class="@(string.IsNullOrWhiteSpace(info.Icon) ? "bi bi-info-circle" : info.Icon)"></i>
+                                            <span><strong>@info.Title:</strong> @info.Value</span>
+                                        </li>
+                                    }
+                                </ul>
+                            </div>
+                        }
+                    </div>
+                }
             </div>
             <div class="col-lg-7">
                 <div class="site-card">

@@ -15,6 +15,7 @@ public sealed class SiteInfoDto
     public string? DefaultMetaDescription { get; init; }
     public string TitleSeparator { get; init; } = "·";
     public List<SocialLinkDto> SocialLinks { get; init; } = new();
+    public List<ContactInfoDto> ContactInfos { get; init; } = new();
 }
 
 public sealed class SocialLinkDto
@@ -23,4 +24,15 @@ public sealed class SocialLinkDto
     /// <summary>Icon css class (e.g. "bi bi-instagram") as configured in the admin.</summary>
     public string? Icon { get; init; }
     public string Url { get; init; } = string.Empty;
+}
+
+/// <summary>An admin-defined contact detail (phone, email, address, working hours, ...), grouped by
+/// an admin-chosen category (e.g. "Sales Office", "Factory") for display under Contact Us.</summary>
+public sealed class ContactInfoDto
+{
+    public string? GroupTitle { get; init; }
+    public string Title { get; init; } = string.Empty;
+    public string Value { get; init; } = string.Empty;
+    /// <summary>Icon css class (e.g. "bi bi-geo-alt") as configured in the admin.</summary>
+    public string? Icon { get; init; }
 }

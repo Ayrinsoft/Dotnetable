@@ -285,6 +285,8 @@ public partial class AppDbContext : DbContext
 
     public virtual DbSet<WebsiteClient> WebsiteClients { get; set; }
 
+    public virtual DbSet<WebsiteContactInfo> WebsiteContactInfos { get; set; }
+
     public virtual DbSet<WebsiteClientAddress> WebsiteClientAddresses { get; set; }
 
     public virtual DbSet<WebsiteClientForgetPassword> WebsiteClientForgetPasswords { get; set; }
@@ -3794,6 +3796,21 @@ public partial class AppDbContext : DbContext
                 .HasForeignKey(d => d.WebsiteID)
                 .OnDelete(DeleteBehavior.ClientSetNull)
                 .HasConstraintName("FK_WebsiteClients_Websites");
+        });
+
+        modelBuilder.Entity<WebsiteContactInfo>(entity =>
+        {
+            entity.HasIndex(e => e.WebsiteID, "IX_WebsiteContactInfos_WebsiteID");
+
+            entity.Property(e => e.GroupTitle).HasMaxLength(64);
+            entity.Property(e => e.Title).HasMaxLength(64);
+            entity.Property(e => e.Value).HasMaxLength(256);
+            entity.Property(e => e.Icon).HasMaxLength(64);
+
+            entity.HasOne(d => d.Website).WithMany(p => p.WebsiteContactInfos)
+                .HasForeignKey(d => d.WebsiteID)
+                .OnDelete(DeleteBehavior.ClientSetNull)
+                .HasConstraintName("FK_WebsiteContactInfos_Websites");
         });
 
         modelBuilder.Entity<WebsiteClientAddress>(entity =>

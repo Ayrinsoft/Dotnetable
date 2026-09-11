@@ -140,6 +140,7 @@
     <Build Include="WebsiteSmsSettings.sql" />
     <Build Include="WebsiteClientRefreshTokens.sql" />
     <Build Include="WebsiteSocialLinks.sql" />
+    <Build Include="WebsiteContactInfos.sql" />
     <Build Include="WebsiteSeoSettings.sql" />
     <Build Include="WebsiteScripts.sql" />
     <Build Include="Websites.sql" />

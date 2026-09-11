@@ -268,6 +268,8 @@ public partial class Website
 
     public virtual ICollection<WebsiteClient> WebsiteClients { get; set; } = new List<WebsiteClient>();
 
+    public virtual ICollection<WebsiteContactInfo> WebsiteContactInfos { get; set; } = new List<WebsiteContactInfo>();
+
     public virtual ICollection<WebsiteFeature> WebsiteFeatures { get; set; } = new List<WebsiteFeature>();
 
     public virtual ICollection<WebsiteIP> WebsiteIPs { get; set; } = new List<WebsiteIP>();
