@@ -103,11 +103,23 @@
 }
 
 @functions {
-    // Phone/email rows render as clickable tel:/mailto: links; everything else (address, location,
-    // working hours, ...) is plain text since there's no single universal action for it.
+    // Phone/email rows render as clickable tel:/mailto: links; Location renders as a link to an
+    // OpenStreetMap pin built from the stored lat/lng (not a provider-specific URL, so a future
+    // switch to another map provider only touches this helper); everything else (address, working
+    // hours, ...) is plain text since there's no single universal action for it.
     private Microsoft.AspNetCore.Html.IHtmlContent ContactValueLink(Dotnetable.Application.DTOs.ContactInfoDto info)
     {
         var type = (ContactInfoType)info.Type;
+
+        if (type == ContactInfoType.Location && info.Latitude is decimal lat && info.Longitude is decimal lng)
+        {
+            var latStr = lat.ToString("0.######", System.Globalization.CultureInfo.InvariantCulture);
+            var lngStr = lng.ToString("0.######", System.Globalization.CultureInfo.InvariantCulture);
+            var mapHref = Html.Encode($"https://www.openstreetmap.org/?mlat={latStr}&mlon={lngStr}#map=17/{latStr}/{lngStr}");
+            var label = string.IsNullOrWhiteSpace(info.Value) ? $"{latStr}, {lngStr}" : Html.Encode(info.Value).ToString();
+            return new Microsoft.AspNetCore.Html.HtmlString($"<a href=\"{mapHref}\" target=\"_blank\" rel=\"noopener\">{label}</a>");
+        }
+
         var scheme = type switch
         {
             ContactInfoType.Phone => "tel:",

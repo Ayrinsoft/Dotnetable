@@ -3808,6 +3808,8 @@ public partial class AppDbContext : DbContext
             entity.Property(e => e.GroupTitle).HasMaxLength(64);
             entity.Property(e => e.Title).HasMaxLength(64);
             entity.Property(e => e.Value).HasMaxLength(256);
+            entity.Property(e => e.Latitude).HasColumnType("decimal(9, 6)");
+            entity.Property(e => e.Longitude).HasColumnType("decimal(9, 6)");
             entity.Property(e => e.Icon).HasMaxLength(64);
 
             entity.HasOne(d => d.Website).WithMany(p => p.WebsiteContactInfos)

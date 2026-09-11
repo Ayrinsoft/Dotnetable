@@ -1568,7 +1568,10 @@ window.DOCS_API = {
                   brandName: "My Shop",
                   logoUrl: "/…",
                   socialLinks: [{ name: "Instagram", icon: "bi bi-instagram", url: "…" }],
-                  contactInfos: [{ type: 1, groupTitle: "Sales Office", title: "Phone", value: "+98 21 …", icon: "bi bi-telephone" }],
+                  contactInfos: [
+                    { type: 1, groupTitle: "Sales Office", title: "Phone", value: "+98 21 …", icon: "bi bi-telephone" },
+                    { type: 4, groupTitle: "Head Office", title: "Location", value: "", latitude: 35.715298, longitude: 51.404343, icon: "bi bi-pin-map" },
+                  ],
                 },
               },
             },

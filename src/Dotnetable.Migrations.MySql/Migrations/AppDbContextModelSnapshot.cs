@@ -7276,6 +7276,12 @@ namespace Dotnetable.Migrations.MySql.Migrations
                         .HasMaxLength(64)
                         .HasColumnType("varchar(64)");
 
+                    b.Property<decimal?>("Latitude")
+                        .HasColumnType("decimal(9, 6)");
+
+                    b.Property<decimal?>("Longitude")
+                        .HasColumnType("decimal(9, 6)");
+
                     b.Property<int>("SortOrder")
                         .HasColumnType("int");
 

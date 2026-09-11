@@ -66,7 +66,7 @@
                     </td>
                     <td>@(c.GroupTitle ?? "-")</td>
                     <td>@c.Title</td>
-                    <td>@c.Value</td>
+                    <td>@(c.ContactType == (byte)ContactInfoType.Location ? $"{c.Latitude?.ToString("0.######")}, {c.Longitude?.ToString("0.######")}" : c.Value)</td>
                     <td>@c.SortOrder</td>
                 </tr>
             }
@@ -103,12 +103,30 @@
                                       RequiredError="@L["required", "This field is required."]"
                                       HelperText="@L["contact_info.title_help", "Shown next to the value — customize it (e.g. \"Sales Office Phone\") or keep the type's default."]" />
                     </MudItem>
-                    <MudItem xs="12" sm="6">
-                        <MudTextField @bind-Value="_editItem.Value" Label="@ValueLabel(_type)"
-                                      Variant="Variant.Outlined" Required="true"
-                                      RequiredError="@L["required", "This field is required."]"
-                                      Placeholder="@ValuePlaceholder(_type)" />
-                    </MudItem>
+                    @if (_type == ContactInfoType.Location)
+                    {
+                        <MudItem xs="6" sm="3">
+                            <MudNumericField T="decimal?" @bind-Value="_editItem.Latitude" Label="@L["contact_info.latitude", "Latitude"]"
+                                              Variant="Variant.Outlined" Required="true"
+                                              RequiredError="@L["required", "This field is required."]"
+                                              Format="0.######" Min="-90" Max="90" Placeholder="35.715298" />
+                        </MudItem>
+                        <MudItem xs="6" sm="3">
+                            <MudNumericField T="decimal?" @bind-Value="_editItem.Longitude" Label="@L["contact_info.longitude", "Longitude"]"
+                                              Variant="Variant.Outlined" Required="true"
+                                              RequiredError="@L["required", "This field is required."]"
+                                              Format="0.######" Min="-180" Max="180" Placeholder="51.404343" />
+                        </MudItem>
+                    }
+                    else
+                    {
+                        <MudItem xs="12" sm="6">
+                            <MudTextField @bind-Value="_editItem.Value" Label="@ValueLabel(_type)"
+                                          Variant="Variant.Outlined" Required="true"
+                                          RequiredError="@L["required", "This field is required."]"
+                                          Placeholder="@ValuePlaceholder(_type)" />
+                        </MudItem>
+                    }
                     <MudItem xs="12" sm="6">
                         <MudNumericField @bind-Value="_editItem.SortOrder" Label="@L["contact_info.sort_order", "Sort Order"]"
                                          Variant="Variant.Outlined" Min="0" />
@@ -271,6 +289,16 @@
         _type = type;
         _editItem!.ContactType = (byte)type;
 
+        if (type == ContactInfoType.Location)
+        {
+            _editItem.Value = string.Empty; // coordinates carry the value now, not free text
+        }
+        else if (_editItem.Latitude is not null || _editItem.Longitude is not null)
+        {
+            _editItem.Latitude = null;
+            _editItem.Longitude = null;
+        }
+
         if (string.IsNullOrWhiteSpace(_editItem.Icon) || _editItem.Icon == previousDefaultIcon)
             _editItem.Icon = null; // cleared so the grid/dialog fall back to the new type's default live
 
@@ -298,6 +326,8 @@
             GroupTitle = c.GroupTitle,
             Title = c.Title,
             Value = c.Value,
+            Latitude = c.Latitude,
+            Longitude = c.Longitude,
             Icon = c.Icon,
             SortOrder = c.SortOrder,
         };
