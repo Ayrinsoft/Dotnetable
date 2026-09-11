@@ -24,4 +24,14 @@ public interface ISetupService
     /// other policies and extra grants are left untouched. No-op when not yet configured.
     /// </summary>
     Task SyncRoleCatalogAsync(CancellationToken ct = default);
+
+    /// <summary>
+    /// One-time data fix: re-derives any Category/Post/Page/Tag slug (main row or per-language
+    /// translation) that isn't already URL-safe — e.g. one saved verbatim from a raw title before
+    /// slug sanitizing existed, containing spaces/punctuation that get percent-encoded in public
+    /// URLs — through the same normalizer new writes use, resolving any resulting collision the
+    /// same way. Idempotent: already-clean slugs are left untouched, so this is cheap on repeat
+    /// startups once every row has been fixed once. No-op when not yet configured.
+    /// </summary>
+    Task ReslugifyContentAsync(CancellationToken ct = default);
 }

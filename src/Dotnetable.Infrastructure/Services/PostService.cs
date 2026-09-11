@@ -1,5 +1,6 @@
 using Dotnetable.Application.DTOs;
 using Dotnetable.Application.Interfaces;
+using Dotnetable.Application.Text;
 using Dotnetable.Domain.Entities;
 using Dotnetable.Infrastructure.Data;
 using Dotnetable.Infrastructure.Extensions;
@@ -12,9 +13,26 @@ public class PostService : IPostService
     /// <summary>Post.Status value that marks a post as publicly published.</summary>
     public const byte PublishedStatus = 1;
 
+    private const int SlugMaxLength = 300;
+
     private readonly IDbContextFactory<AppDbContext> _contextFactory;
 
     public PostService(IDbContextFactory<AppDbContext> contextFactory) => _contextFactory = contextFactory;
+
+    /// <summary>All slugs in use by this website's posts (main + translation rows), excluding
+    /// <paramref name="excludePostId"/> — the lookup route matches either, so uniqueness must span
+    /// both.</summary>
+    private static async Task<HashSet<string>> GetUsedSlugsAsync(
+        AppDbContext context, int websiteId, int excludePostId, CancellationToken ct)
+    {
+        var main = await context.Posts.AsNoTracking()
+            .Where(p => p.WebsiteID == websiteId && p.PostID != excludePostId)
+            .Select(p => p.Slug).ToListAsync(ct);
+        var translated = await context.PostTranslations.AsNoTracking()
+            .Where(t => t.Post.WebsiteID == websiteId && t.PostID != excludePostId)
+            .Select(t => t.Slug).ToListAsync(ct);
+        return new HashSet<string>(main.Concat(translated), StringComparer.OrdinalIgnoreCase);
+    }
 
     // ── Admin management ────────────────────────────────────────────
 
@@ -65,6 +83,12 @@ public class PostService : IPostService
         post.CreatedAt = post.UpdatedAt = DateTime.UtcNow;
         if (post.Status == PublishedStatus && post.PublishedAt is null)
             post.PublishedAt = DateTime.UtcNow;
+
+        var used = await GetUsedSlugsAsync(_context, post.WebsiteID, excludePostId: 0, ct);
+        post.Slug = SlugGenerator.MakeUnique(
+            SlugGenerator.Normalize(string.IsNullOrWhiteSpace(post.Slug) ? post.Title : post.Slug, SlugMaxLength),
+            used);
+
         _context.Posts.Add(post);
         await _context.SaveChangesAsync(ct);
         return post;
@@ -77,6 +101,12 @@ public class PostService : IPostService
         post.UpdatedAt = DateTime.UtcNow;
         if (post.Status == PublishedStatus && post.PublishedAt is null)
             post.PublishedAt = DateTime.UtcNow;
+
+        var used = await GetUsedSlugsAsync(_context, post.WebsiteID, post.PostID, ct);
+        post.Slug = SlugGenerator.MakeUnique(
+            SlugGenerator.Normalize(string.IsNullOrWhiteSpace(post.Slug) ? post.Title : post.Slug, SlugMaxLength),
+            used);
+
         _context.Posts.Update(post);
         await _context.SaveChangesAsync(ct);
     }
@@ -125,6 +155,9 @@ public class PostService : IPostService
     {
         await using var _context = await _contextFactory.CreateDbContextAsync(ct);
 
+        var post = await _context.Posts.AsNoTracking().FirstOrDefaultAsync(p => p.PostID == postId, ct);
+        if (post is null) return;
+
         var existing = await _context.PostTranslations.Where(t => t.PostID == postId).ToListAsync(ct);
 
         var keepLanguages = translations
@@ -133,12 +166,17 @@ public class PostService : IPostService
             .ToHashSet(StringComparer.OrdinalIgnoreCase);
         _context.PostTranslations.RemoveRange(existing.Where(t => !keepLanguages.Contains(t.LanguageCode)));
 
+        var used = await GetUsedSlugsAsync(_context, post.WebsiteID, postId, ct);
+
         foreach (var t in translations)
         {
             if (string.IsNullOrWhiteSpace(t.Title)) continue;
             var current = existing.FirstOrDefault(x =>
                 string.Equals(x.LanguageCode, t.LanguageCode, StringComparison.OrdinalIgnoreCase));
-            var slug = string.IsNullOrWhiteSpace(t.Slug) ? t.Title.Trim() : t.Slug.Trim();
+            var slug = SlugGenerator.MakeUnique(
+                SlugGenerator.Normalize(string.IsNullOrWhiteSpace(t.Slug) ? t.Title : t.Slug, SlugMaxLength),
+                used);
+            used.Add(slug);
 
             if (current is null)
                 _context.PostTranslations.Add(new PostTranslation
