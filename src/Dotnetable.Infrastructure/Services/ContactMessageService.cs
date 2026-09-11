@@ -90,5 +90,10 @@ public class ContactMessageService : IContactMessageService
         if (entity is null) return;
         _context.ContactUsMessages.Remove(entity);
         await _context.SaveChangesAsync(ct);
+
+        // The Dashboard's unread badge reads AdminNotifications, a separate table only loosely
+        // linked via RelatedEntityID — without this, a deleted message keeps "You have a message"
+        // showing forever since nothing else ever cleans up its notification rows.
+        await _notifications.DeleteByRelatedEntityAsync(AdminNotificationType.ContactMessage, id, ct);
     }
 }

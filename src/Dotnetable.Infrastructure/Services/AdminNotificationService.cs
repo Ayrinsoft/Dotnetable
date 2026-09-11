@@ -261,6 +261,14 @@ public class AdminNotificationService : IAdminNotificationService
         await context.SaveChangesAsync(ct);
     }
 
+    public async Task DeleteByRelatedEntityAsync(AdminNotificationType type, int relatedEntityId, CancellationToken ct = default)
+    {
+        await using var context = await _contextFactory.CreateDbContextAsync(ct);
+        await context.AdminNotifications
+            .Where(n => n.NotificationType == (byte)type && n.RelatedEntityID == relatedEntityId)
+            .ExecuteDeleteAsync(ct);
+    }
+
     private static string Truncate(string value, int max) =>
         value.Length <= max ? value : value[..max];
 

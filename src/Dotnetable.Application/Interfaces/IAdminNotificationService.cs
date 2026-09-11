@@ -51,4 +51,11 @@ public interface IAdminNotificationService
     Task MarkAllReadAsync(int memberId, CancellationToken ct = default);
 
     Task DeleteAsync(int notificationId, int memberId, CancellationToken ct = default);
+
+    /// <summary>
+    /// Deletes every notification (for every recipient) raised for a given source record — e.g. when
+    /// the contact message / order / ticket a notification pointed at is itself deleted, so the
+    /// Dashboard's unread badge doesn't keep counting a notification whose target no longer exists.
+    /// </summary>
+    Task DeleteByRelatedEntityAsync(AdminNotificationType type, int relatedEntityId, CancellationToken ct = default);
 }
