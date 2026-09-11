@@ -50,6 +50,17 @@ else if (_model is not null)
                                 OnValueChanged="@(v => _model!.Content = v)" />
                 </MudPaper>
 
+                <MudExpansionPanels Elevation="0" Class="mt-4">
+                    <MudExpansionPanel Text="@L["posts.seo", "SEO / Meta"]">
+                        <MudText Typo="Typo.body2" Color="Color.Secondary" Class="mb-2">
+                            @L["posts.seo_hint", "Overrides the browser-tab title and search-result snippet for this post. Leave blank to fall back to the title/excerpt."]
+                        </MudText>
+                        <MudTextField @bind-Value="_model.MetaTitle" Label="@L["posts.meta_title", "Meta title"]" Variant="Variant.Outlined" Class="mb-3" />
+                        <MudTextField @bind-Value="_model.MetaDescription" Label="@L["posts.meta_description", "Meta description"]" Variant="Variant.Outlined" Lines="2" AutoGrow="true" Class="mb-3" />
+                        <MudTextField @bind-Value="_model.MetaKeywords" Label="@L["posts.meta_keywords", "Meta keywords (comma-separated)"]" Variant="Variant.Outlined" />
+                    </MudExpansionPanel>
+                </MudExpansionPanels>
+
                 @if (_languages.Length > 0)
                 {
                 <MudExpansionPanels Elevation="0" Class="mt-4">
@@ -66,6 +77,9 @@ else if (_model is not null)
                                     <MudItem xs="12" sm="7"><MudTextField T="string" Value="@t.Title" ValueChanged="@(v => { t.Title = v; })" Label="@L["title", "Title"]" Variant="Variant.Outlined" Margin="Margin.Dense" /></MudItem>
                                     <MudItem xs="12" sm="5"><MudTextField T="string" Value="@t.Slug" ValueChanged="@(v => { t.Slug = v; })" Label="@L["slug", "Slug"]" Variant="Variant.Outlined" Margin="Margin.Dense" /></MudItem>
                                     <MudItem xs="12"><MudTextField T="string" Value="@t.Excerpt" ValueChanged="@(v => { t.Excerpt = v; })" Label="@L["posts.excerpt", "Excerpt"]" Variant="Variant.Outlined" Lines="2" AutoGrow="true" Margin="Margin.Dense" /></MudItem>
+                                    <MudItem xs="12" sm="6"><MudTextField T="string" Value="@t.MetaTitle" ValueChanged="@(v => { t.MetaTitle = v; })" Label="@L["posts.meta_title", "Meta title"]" Variant="Variant.Outlined" Margin="Margin.Dense" /></MudItem>
+                                    <MudItem xs="12" sm="6"><MudTextField T="string" Value="@t.MetaKeywords" ValueChanged="@(v => { t.MetaKeywords = v; })" Label="@L["posts.meta_keywords", "Meta keywords"]" Variant="Variant.Outlined" Margin="Margin.Dense" /></MudItem>
+                                    <MudItem xs="12"><MudTextField T="string" Value="@t.MetaDescription" ValueChanged="@(v => { t.MetaDescription = v; })" Label="@L["posts.meta_description", "Meta description"]" Variant="Variant.Outlined" Lines="2" AutoGrow="true" Margin="Margin.Dense" /></MudItem>
                                     <MudItem xs="12">
                                         <MudStack Row="true" AlignItems="AlignItems.Center" Justify="Justify.SpaceBetween" Class="mb-1">
                                             <MudText Typo="Typo.caption" Color="Color.Secondary">@L["posts.content", "Content"]</MudText>
@@ -132,11 +146,20 @@ else if (_model is not null)
                                          Class="mb-3" Clearable="true" CoerceText="false" ResetValueOnEmptyText="true" />
                     }
 
-                    <MudAutocomplete T="Tag" Value="_tagToAdd" ValueChanged="AddTag"
+                    <MudAutocomplete T="Tag" @bind-Text="_tagSearchText" Value="_tagToAdd" ValueChanged="AddTag"
                                      SearchFunc="SearchTagsToAdd" ToStringFunc="@(t => t?.Name ?? string.Empty)"
                                      Label="@L["tags", "Tags"]" Variant="Variant.Outlined"
                                      Clearable="true" CoerceText="false" ResetValueOnEmptyText="true"
-                                     HelperText="@L["posts.search_to_add_tag", "Type to search and add a tag"]" />
+                                     HelperText="@L["posts.search_to_add_tag", "Type to search — pick an existing tag, or create a new one below if none matches."]" />
+                    @if (!string.IsNullOrWhiteSpace(_tagSearchText) &&
+                         !_tags.Any(t => string.Equals(t.Name, _tagSearchText.Trim(), StringComparison.OrdinalIgnoreCase)))
+                    {
+                        <MudButton Variant="Variant.Text" Size="Size.Small" Color="Color.Primary"
+                                   StartIcon="@Icons.Material.Filled.Add" Class="mt-1" Disabled="@_addingTag"
+                                   OnClick="CreateAndAddTagAsync">
+                            @string.Format(L["posts.create_tag", "Create tag \"{0}\""], _tagSearchText.Trim())
+                        </MudButton>
+                    }
                     @if (_selectedTagIds.Any())
                     {
                         <div class="d-flex flex-wrap gap-1 mt-2">
@@ -199,8 +222,14 @@ else if (_model is not null)
     private int? _primaryCategoryId;
     private Category? _categoryToAdd;
     private Tag? _tagToAdd;
+    private string _tagSearchText = string.Empty;
+    private bool _addingTag;
 
-    private sealed class TranslationModel { public string Title = ""; public string Slug = ""; public string Excerpt = ""; public string Content = ""; }
+    private sealed class TranslationModel
+    {
+        public string Title = ""; public string Slug = ""; public string Excerpt = ""; public string Content = "";
+        public string MetaTitle = ""; public string MetaDescription = ""; public string MetaKeywords = "";
+    }
     private readonly Dictionary<string, TranslationModel> _translations = new(StringComparer.OrdinalIgnoreCase);
     private int _mainEditorVersion;
     private readonly Dictionary<string, int> _translationEditorVersions = new(StringComparer.OrdinalIgnoreCase);
@@ -231,7 +260,11 @@ else if (_model is not null)
                 _selectedTagIds = (await PostService.GetTagIdsAsync(_model.PostID)).ToHashSet();
                 _primaryCategoryId = _model.PostCategories.FirstOrDefault(pc => pc.IsPrimary)?.CategoryID;
                 foreach (var t in _model.PostTranslations)
-                    _translations[t.LanguageCode] = new TranslationModel { Title = t.Title, Slug = t.Slug, Excerpt = t.Excerpt ?? "", Content = t.Content ?? "" };
+                    _translations[t.LanguageCode] = new TranslationModel
+                    {
+                        Title = t.Title, Slug = t.Slug, Excerpt = t.Excerpt ?? "", Content = t.Content ?? "",
+                        MetaTitle = t.MetaTitle ?? "", MetaDescription = t.MetaDescription ?? "", MetaKeywords = t.MetaKeywords ?? "",
+                    };
             }
         }
 
@@ -361,11 +394,33 @@ else if (_model is not null)
     private void AddTag(Tag? tag)
     {
         _tagToAdd = null;
+        _tagSearchText = string.Empty;
         if (tag is null) return;
         _selectedTagIds.Add(tag.TagID);
     }
 
     private void RemoveTag(int id) => _selectedTagIds.Remove(id);
+
+    /// <summary>Creates the typed tag if this website doesn't already have one with that name
+    /// (case-insensitive), or reuses the existing one — so an editor never has to leave the post to
+    /// set up a tag first, and typos/re-typing an existing name never creates a duplicate.</summary>
+    private async Task CreateAndAddTagAsync()
+    {
+        var name = _tagSearchText.Trim();
+        if (name.Length == 0 || _model is null) return;
+
+        _addingTag = true;
+        try
+        {
+            var tag = await TagService.GetOrCreateAsync(_model.WebsiteID, name);
+            if (!_tags.Any(t => t.TagID == tag.TagID)) _tags.Add(tag);
+            _selectedTagIds.Add(tag.TagID);
+            _tagSearchText = string.Empty;
+            _tagToAdd = null;
+        }
+        catch (Exception ex) { Snackbar.Add($"{L["save_failed", "Save failed"]}: {ex.Message}", Severity.Error); }
+        finally { _addingTag = false; }
+    }
 
     private TranslationModel Translation(string code)
     {
@@ -429,6 +484,7 @@ else if (_model is not null)
                 {
                     PostID = _model.PostID, LanguageCode = kv.Key,
                     Title = kv.Value.Title, Slug = kv.Value.Slug, Excerpt = kv.Value.Excerpt, Content = kv.Value.Content,
+                    MetaTitle = kv.Value.MetaTitle, MetaDescription = kv.Value.MetaDescription, MetaKeywords = kv.Value.MetaKeywords,
                 }).ToList();
             await PostService.SetTranslationsAsync(_model.PostID, translations);
 

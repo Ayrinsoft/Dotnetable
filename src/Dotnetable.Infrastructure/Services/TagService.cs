@@ -69,6 +69,22 @@ public class TagService : ITagService
         await _context.SaveChangesAsync(ct);
     }
 
+    public async Task<Tag> GetOrCreateAsync(int websiteId, string name, CancellationToken ct = default)
+    {
+        var trimmed = name.Trim();
+
+        await using var _context = await _contextFactory.CreateDbContextAsync(ct);
+
+        var existing = await _context.Tags.FirstOrDefaultAsync(
+            t => t.WebsiteID == websiteId && t.Name.ToLower() == trimmed.ToLower(), ct);
+        if (existing is not null) return existing;
+
+        var tag = new Tag { WebsiteID = websiteId, Name = trimmed, Slug = trimmed };
+        _context.Tags.Add(tag);
+        await _context.SaveChangesAsync(ct);
+        return tag;
+    }
+
     public async Task DeleteAsync(int tagId, CancellationToken ct = default)
     {
         await using var _context = await _contextFactory.CreateDbContextAsync(ct);

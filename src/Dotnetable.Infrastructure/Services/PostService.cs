@@ -149,6 +149,9 @@ public class PostService : IPostService
                     Slug = slug,
                     Excerpt = t.Excerpt,
                     Content = t.Content,
+                    MetaTitle = t.MetaTitle,
+                    MetaDescription = t.MetaDescription,
+                    MetaKeywords = t.MetaKeywords,
                 });
             else
             {
@@ -156,6 +159,9 @@ public class PostService : IPostService
                 current.Slug = slug;
                 current.Excerpt = t.Excerpt;
                 current.Content = t.Content;
+                current.MetaTitle = t.MetaTitle;
+                current.MetaDescription = t.MetaDescription;
+                current.MetaKeywords = t.MetaKeywords;
             }
         }
 
@@ -326,6 +332,7 @@ public class PostService : IPostService
     private static PostDetailDto ProjectDetail(Post p, string? lang)
     {
         var (title, slug, excerpt, content) = LocalizedFull(p, lang);
+        var (metaTitle, metaDescription, metaKeywords) = LocalizedMeta(p, lang);
         return new PostDetailDto
         {
             PostID = p.PostID, Slug = slug, Title = title, Excerpt = excerpt,
@@ -333,6 +340,7 @@ public class PostService : IPostService
             AuthorName = AuthorName(p), IsFeatured = p.IsFeatured, ViewCount = p.ViewCount,
             PublishedAt = p.PublishedAt, Categories = Categories(p, lang), Tags = Tags(p, lang),
             Content = content, CommentsEnabled = p.CommentsEnabled,
+            MetaTitle = metaTitle, MetaDescription = metaDescription, MetaKeywords = metaKeywords,
         };
     }
 
@@ -360,6 +368,21 @@ public class PostService : IPostService
                     string.IsNullOrWhiteSpace(t.Content) ? p.Content : t.Content);
         }
         return (p.Title, p.Slug, p.Excerpt, p.Content);
+    }
+
+    private static (string? MetaTitle, string? MetaDescription, string? MetaKeywords) LocalizedMeta(Post p, string? lang)
+    {
+        if (!string.IsNullOrWhiteSpace(lang))
+        {
+            var t = p.PostTranslations.FirstOrDefault(x =>
+                string.Equals(x.LanguageCode, lang, StringComparison.OrdinalIgnoreCase));
+            if (t is not null)
+                return (
+                    string.IsNullOrWhiteSpace(t.MetaTitle) ? p.MetaTitle : t.MetaTitle,
+                    string.IsNullOrWhiteSpace(t.MetaDescription) ? p.MetaDescription : t.MetaDescription,
+                    string.IsNullOrWhiteSpace(t.MetaKeywords) ? p.MetaKeywords : t.MetaKeywords);
+        }
+        return (p.MetaTitle, p.MetaDescription, p.MetaKeywords);
     }
 
     private static CategoryDto LocalizeCategory(Category c, string? lang)

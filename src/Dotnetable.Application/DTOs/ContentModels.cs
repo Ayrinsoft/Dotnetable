@@ -24,6 +24,11 @@ public sealed class PostDetailDto : PostSummaryDto
 {
     public string? Content { get; init; }
     public bool CommentsEnabled { get; init; }
+    /// <summary>Admin override for the browser-tab/search-result title; falls back to <see cref="PostSummaryDto.Title"/>.</summary>
+    public string? MetaTitle { get; init; }
+    /// <summary>Admin override for the search-result/social-preview description; falls back to <see cref="PostSummaryDto.Excerpt"/>.</summary>
+    public string? MetaDescription { get; init; }
+    public string? MetaKeywords { get; init; }
 }
 
 /// <summary>A CMS page projected for public rendering, localized when a translation exists.</summary>
@@ -37,6 +42,10 @@ public sealed class PageDto
     public string? Template { get; init; }
     public bool IsHomepage { get; init; }
     public int SortOrder { get; init; }
+    /// <summary>Admin override for the browser-tab/search-result title; falls back to <see cref="Title"/>.</summary>
+    public string? MetaTitle { get; init; }
+    public string? MetaDescription { get; init; }
+    public string? MetaKeywords { get; init; }
     public IReadOnlyList<PageDto> Children { get; init; } = Array.Empty<PageDto>();
 }
 

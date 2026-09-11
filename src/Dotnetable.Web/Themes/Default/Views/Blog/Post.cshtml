@@ -4,13 +4,14 @@
 @inject ContentShortcodeProcessor Shortcodes
 @inject ApiClient Api
 @{
-    ViewData["Title"] = Model.Title;
+    ViewData["Title"] = string.IsNullOrWhiteSpace(Model.MetaTitle) ? Model.Title : Model.MetaTitle;
     Layout = "/Themes/Default/Views/Shared/_Layout.cshtml";
 
     // Article card: the excerpt and featured image are what a chat app or social preview renders.
     ViewData["OgType"] = "article";
     ViewData["OgImage"] = Model.FeaturedImageUrl;
-    ViewData["MetaDescription"] = Model.Excerpt;
+    ViewData["MetaDescription"] = string.IsNullOrWhiteSpace(Model.MetaDescription) ? Model.Excerpt : Model.MetaDescription;
+    ViewData["MetaKeywords"] = Model.MetaKeywords;
 
     var primaryCategory = Model.Categories.FirstOrDefault();
     var content = await Shortcodes.ExpandAsync(Model.Content);

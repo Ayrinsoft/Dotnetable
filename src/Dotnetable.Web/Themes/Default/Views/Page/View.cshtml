@@ -4,8 +4,10 @@
 @inject ContentShortcodeProcessor Shortcodes
 @inject ApiClient Api
 @{
-    ViewData["Title"] = Model.Title;
+    ViewData["Title"] = string.IsNullOrWhiteSpace(Model.MetaTitle) ? Model.Title : Model.MetaTitle;
     Layout = "/Themes/Default/Views/Shared/_Layout.cshtml";
+    ViewData["MetaDescription"] = Model.MetaDescription;
+    ViewData["MetaKeywords"] = Model.MetaKeywords;
     var content = await Shortcodes.ExpandAsync(Model.Content);
 }
 

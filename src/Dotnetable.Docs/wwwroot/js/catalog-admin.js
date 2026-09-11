@@ -749,8 +749,12 @@ window.DOCS_ADMIN = {
           },
           howTo: [
             {
-              en: "Open Pages → New. Fill title/slug, body (editor), SEO fields, publish state.",
-              fa: "Pages → New. عنوان/اسلاگ، بدنه (ادیتور)، SEO و وضعیت انتشار را پر کنید.",
+              en: "Open Pages → New. Fill title/slug, body (editor), publish state.",
+              fa: "Pages → New. عنوان/اسلاگ، بدنه (ادیتور) و وضعیت انتشار را پر کنید.",
+            },
+            {
+              en: "Open the \"SEO / Meta\" panel to set a meta title/description/keywords for this page — each is optional and falls back to the page title / site default when left blank.",
+              fa: "بخش «SEO / Meta» را باز کنید تا عنوان/توضیحات/کلمات کلیدی متا برای همین صفحه تنظیم شود — هر کدام اختیاری است و در صورت خالی بودن به عنوان صفحه/پیش‌فرض سایت برمی‌گردد.",
             },
             {
               en: "Link the page from Menus when it should appear in navigation.",
@@ -773,12 +777,12 @@ window.DOCS_ADMIN = {
           },
           howTo: [
             {
-              en: "Ensure categories/tags/post types exist first if your workflow needs them.",
-              fa: "اگر لازم است، اول دسته/تگ/نوع پست را بسازید.",
+              en: "Tags don't need to be created ahead of time: type a name in the Tags field on the post editor and, if no existing tag matches (case-insensitive), a \"Create tag ...\" button appears — click it to create and attach it in one step, no separate screen needed.",
+              fa: "لازم نیست از قبل تگ بسازید: در فیلد Tags روی صفحه ویرایش پست یک نام تایپ کنید و اگر تگ مشابهی (بدون توجه به بزرگی/کوچکی حروف) وجود نداشت، دکمه «Create tag ...» ظاهر می‌شود — با کلیک روی آن در همان یک مرحله ساخته و به پست وصل می‌شود، بدون نیاز به صفحه جداگانه.",
             },
             {
-              en: "Create a post, set taxonomy, body, media, SEO, then publish.",
-              fa: "پست بسازید، طبقه‌بندی، بدنه، مدیا، SEO را بگذارید و منتشر کنید.",
+              en: "Create a post, set taxonomy, body, media, then publish. Open \"SEO / Meta\" to override the meta title/description/keywords for this post — optional, falls back to the title/excerpt when blank.",
+              fa: "پست بسازید، طبقه‌بندی، بدنه، مدیا را بگذارید و منتشر کنید. بخش «SEO / Meta» را برای تنظیم عنوان/توضیحات/کلمات کلیدی متای این پست باز کنید — اختیاری است و در صورت خالی بودن به عنوان/خلاصه برمی‌گردد.",
             },
           ],
           related: ["content-categories", "content-tags", "post-types", "media-library"],
@@ -823,8 +827,8 @@ window.DOCS_ADMIN = {
           },
           howTo: [
             {
-              en: "Maintain the tag list; attach tags while editing posts.",
-              fa: "فهرست تگ را نگه دارید؛ هنگام ویرایش پست وصل کنید.",
+              en: "This screen is for bulk cleanup (rename, merge translations, delete) — day-to-day tagging happens right on the post editor, which creates a tag on the fly if it doesn't exist yet.",
+              fa: "این صفحه برای نظافت انبوه (تغییر نام، مدیریت ترجمه‌ها، حذف) است — تگ‌گذاری روزمره همان‌جا در ادیتور پست انجام می‌شود که در صورت نبودن تگ، آن را در لحظه می‌سازد.",
             },
           ],
           related: ["posts", "content-categories"],

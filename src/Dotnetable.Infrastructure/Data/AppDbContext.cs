@@ -2209,6 +2209,9 @@ public partial class AppDbContext : DbContext
             entity.Property(e => e.Slug).HasMaxLength(300);
             entity.Property(e => e.Template).HasMaxLength(100);
             entity.Property(e => e.Title).HasMaxLength(300);
+            entity.Property(e => e.MetaTitle).HasMaxLength(300);
+            entity.Property(e => e.MetaDescription).HasMaxLength(500);
+            entity.Property(e => e.MetaKeywords).HasMaxLength(500);
             entity.Property(e => e.UpdatedAt).HasPrecision(0);
 
             entity.HasOne(d => d.CreatedByMember).WithMany(p => p.Pages)
@@ -2235,6 +2238,9 @@ public partial class AppDbContext : DbContext
                 .IsFixedLength();
             entity.Property(e => e.Slug).HasMaxLength(300);
             entity.Property(e => e.Title).HasMaxLength(300);
+            entity.Property(e => e.MetaTitle).HasMaxLength(300);
+            entity.Property(e => e.MetaDescription).HasMaxLength(500);
+            entity.Property(e => e.MetaKeywords).HasMaxLength(500);
 
             entity.HasOne(d => d.Page).WithMany(p => p.PageTranslations)
                 .HasForeignKey(d => d.PageID)
@@ -2419,6 +2425,9 @@ public partial class AppDbContext : DbContext
             entity.Property(e => e.ScheduledAt).HasColumnType("datetime");
             entity.Property(e => e.Slug).HasMaxLength(300);
             entity.Property(e => e.Title).HasMaxLength(300);
+            entity.Property(e => e.MetaTitle).HasMaxLength(300);
+            entity.Property(e => e.MetaDescription).HasMaxLength(500);
+            entity.Property(e => e.MetaKeywords).HasMaxLength(500);
             entity.Property(e => e.UpdatedAt).HasColumnType("datetime");
 
             entity.HasOne(d => d.AuthorMember).WithMany(p => p.Posts)
@@ -2486,6 +2495,9 @@ public partial class AppDbContext : DbContext
                 .IsFixedLength();
             entity.Property(e => e.Slug).HasMaxLength(300);
             entity.Property(e => e.Title).HasMaxLength(300);
+            entity.Property(e => e.MetaTitle).HasMaxLength(300);
+            entity.Property(e => e.MetaDescription).HasMaxLength(500);
+            entity.Property(e => e.MetaKeywords).HasMaxLength(500);
 
             entity.HasOne(d => d.Post).WithMany(p => p.PostTranslations)
                 .HasForeignKey(d => d.PostID)

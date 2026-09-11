@@ -152,12 +152,18 @@ public class PageService : IPageService
                     Title = t.Title.Trim(),
                     Slug = slug,
                     Content = t.Content,
+                    MetaTitle = t.MetaTitle,
+                    MetaDescription = t.MetaDescription,
+                    MetaKeywords = t.MetaKeywords,
                 });
             else
             {
                 current.Title = t.Title.Trim();
                 current.Slug = slug;
                 current.Content = t.Content;
+                current.MetaTitle = t.MetaTitle;
+                current.MetaDescription = t.MetaDescription;
+                current.MetaKeywords = t.MetaKeywords;
             }
         }
 
@@ -216,6 +222,7 @@ public class PageService : IPageService
     private static PageDto Project(Page p, IReadOnlyList<PageDto> children, string? languageCode)
     {
         var (title, slug, content) = Localized(p, languageCode);
+        var (metaTitle, metaDescription, metaKeywords) = LocalizedMeta(p, languageCode);
         return new PageDto
         {
             PageID = p.PageID,
@@ -226,6 +233,9 @@ public class PageService : IPageService
             Template = p.Template,
             IsHomepage = p.IsHomepage,
             SortOrder = p.SortOrder,
+            MetaTitle = metaTitle,
+            MetaDescription = metaDescription,
+            MetaKeywords = metaKeywords,
             Children = children,
         };
     }
@@ -241,5 +251,20 @@ public class PageService : IPageService
                     string.IsNullOrWhiteSpace(t.Content) ? p.Content : t.Content);
         }
         return (p.Title, p.Slug, p.Content);
+    }
+
+    private static (string? MetaTitle, string? MetaDescription, string? MetaKeywords) LocalizedMeta(Page p, string? languageCode)
+    {
+        if (!string.IsNullOrWhiteSpace(languageCode))
+        {
+            var t = p.PageTranslations.FirstOrDefault(x =>
+                string.Equals(x.LanguageCode, languageCode, StringComparison.OrdinalIgnoreCase));
+            if (t is not null)
+                return (
+                    string.IsNullOrWhiteSpace(t.MetaTitle) ? p.MetaTitle : t.MetaTitle,
+                    string.IsNullOrWhiteSpace(t.MetaDescription) ? p.MetaDescription : t.MetaDescription,
+                    string.IsNullOrWhiteSpace(t.MetaKeywords) ? p.MetaKeywords : t.MetaKeywords);
+        }
+        return (p.MetaTitle, p.MetaDescription, p.MetaKeywords);
     }
 }

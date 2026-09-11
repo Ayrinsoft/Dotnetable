@@ -17,6 +17,14 @@ public partial class Page
 
     public string? Content { get; set; }
 
+    /// <summary>Overrides the browser-tab/search-result title for this page; falls back to
+    /// <see cref="Title"/> plus the site's default when blank.</summary>
+    public string? MetaTitle { get; set; }
+
+    public string? MetaDescription { get; set; }
+
+    public string? MetaKeywords { get; set; }
+
     public string? Template { get; set; }
 
     public bool IsHomepage { get; set; }

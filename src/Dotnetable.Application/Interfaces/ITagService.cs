@@ -16,6 +16,11 @@ public interface ITagService
     Task UpdateAsync(Tag tag, CancellationToken ct = default);
     Task DeleteAsync(int tagId, CancellationToken ct = default);
 
+    /// <summary>Returns the website's existing tag matching <paramref name="name"/> (case-insensitive,
+    /// trimmed) or creates one — lets an editor (e.g. Post edit) add a tag inline by name without a
+    /// duplicate being created if it already exists.</summary>
+    Task<Tag> GetOrCreateAsync(int websiteId, string name, CancellationToken ct = default);
+
     // ── Translations ────────────────────────────────────────────────
     Task<List<TagTranslation>> GetTranslationsAsync(int tagId, CancellationToken ct = default);
 
