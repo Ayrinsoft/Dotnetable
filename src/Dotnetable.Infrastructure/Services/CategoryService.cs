@@ -1,5 +1,6 @@
 using Dotnetable.Application.DTOs;
 using Dotnetable.Application.Interfaces;
+using Dotnetable.Application.Text;
 using Dotnetable.Domain.Entities;
 using Dotnetable.Infrastructure.Data;
 using Dotnetable.Infrastructure.Extensions;
@@ -9,9 +10,26 @@ namespace Dotnetable.Infrastructure.Services;
 
 public class CategoryService : ICategoryService
 {
+    private const int SlugMaxLength = 200;
+
     private readonly IDbContextFactory<AppDbContext> _contextFactory;
 
     public CategoryService(IDbContextFactory<AppDbContext> contextFactory) => _contextFactory = contextFactory;
+
+    /// <summary>All slugs in use by this website's categories (main + translation rows), excluding
+    /// <paramref name="excludeCategoryId"/> — the lookup route matches either, so uniqueness must
+    /// span both. Case-insensitive so "Foo" and "foo" are treated as the same slug.</summary>
+    private static async Task<HashSet<string>> GetUsedSlugsAsync(
+        AppDbContext context, int websiteId, int excludeCategoryId, CancellationToken ct)
+    {
+        var main = await context.Categories.AsNoTracking()
+            .Where(c => c.WebsiteID == websiteId && c.CategoryID != excludeCategoryId)
+            .Select(c => c.Slug).ToListAsync(ct);
+        var translated = await context.CategoryTranslations.AsNoTracking()
+            .Where(t => t.Category.WebsiteID == websiteId && t.CategoryID != excludeCategoryId)
+            .Select(t => t.Slug).ToListAsync(ct);
+        return new HashSet<string>(main.Concat(translated), StringComparer.OrdinalIgnoreCase);
+    }
 
     // ── Admin management ────────────────────────────────────────────
 
@@ -61,6 +79,11 @@ public class CategoryService : ICategoryService
         await using var _context = await _contextFactory.CreateDbContextAsync(ct);
 
         NormalizeOptionalFks(category);
+        var used = await GetUsedSlugsAsync(_context, category.WebsiteID, excludeCategoryId: 0, ct);
+        category.Slug = SlugGenerator.MakeUnique(
+            SlugGenerator.Normalize(string.IsNullOrWhiteSpace(category.Slug) ? category.Name : category.Slug, SlugMaxLength),
+            used);
+
         _context.Categories.Add(category);
         await _context.SaveChangesAsync(ct);
         // Blazor Server keeps AppDbContext for the whole circuit; detach so a later
@@ -74,6 +97,11 @@ public class CategoryService : ICategoryService
         await using var _context = await _contextFactory.CreateDbContextAsync(ct);
 
         NormalizeOptionalFks(category);
+        var used = await GetUsedSlugsAsync(_context, category.WebsiteID, category.CategoryID, ct);
+        category.Slug = SlugGenerator.MakeUnique(
+            SlugGenerator.Normalize(string.IsNullOrWhiteSpace(category.Slug) ? category.Name : category.Slug, SlugMaxLength),
+            used);
+
         _context.Categories.Update(category);
         await _context.SaveChangesAsync(ct);
         _context.Entry(category).State = EntityState.Detached;
@@ -124,9 +152,15 @@ public class CategoryService : ICategoryService
     {
         await using var _context = await _contextFactory.CreateDbContextAsync(ct);
 
+        var category = await _context.Categories.AsNoTracking()
+            .FirstOrDefaultAsync(c => c.CategoryID == categoryId, ct);
+        if (category is null) return;
+
         var existing = await _context.CategoryTranslations
             .Where(t => t.CategoryID == categoryId)
             .ToListAsync(ct);
+
+        var used = await GetUsedSlugsAsync(_context, category.WebsiteID, categoryId, ct);
 
         foreach (var (languageCode, value) in byLanguage)
         {
@@ -139,7 +173,11 @@ public class CategoryService : ICategoryService
                 continue;
             }
 
-            var slug = string.IsNullOrWhiteSpace(value.Slug) ? value.Name.Trim() : value.Slug.Trim();
+            var slug = SlugGenerator.MakeUnique(
+                SlugGenerator.Normalize(string.IsNullOrWhiteSpace(value.Slug) ? value.Name : value.Slug, SlugMaxLength),
+                used);
+            used.Add(slug);
+
             if (current is null)
                 _context.CategoryTranslations.Add(new CategoryTranslation
                 {

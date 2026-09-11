@@ -2,6 +2,7 @@ using Dotnetable.Application.Security;
 using Dotnetable.Application.Authorization;
 using Dotnetable.Application.DTOs;
 using Dotnetable.Application.Interfaces;
+using Dotnetable.Application.Text;
 using Dotnetable.Domain.Entities;
 using Dotnetable.Infrastructure.Data;
 using Dotnetable.Infrastructure.Extensions;
@@ -203,5 +204,124 @@ public class SetupService : ISetupService
             context.PolicyRoles.AddRange(staffAdd);
             await context.SaveChangesAsync(ct);
         }
+    }
+
+    public async Task ReslugifyContentAsync(CancellationToken ct = default)
+    {
+        if (!_configStore.IsConfigured) return;
+
+        await using var context = await _contextFactory.CreateDbContextAsync(ct);
+        if (!await context.Database.CanConnectAsync(ct)) return;
+
+        var categories = await context.Categories.Select(c => new { c.CategoryID, c.WebsiteID, c.Slug }).ToListAsync(ct);
+        var categoryTranslations = await context.CategoryTranslations.Select(t => new { t.CategoryTranslationID, t.CategoryID, t.Slug }).ToListAsync(ct);
+        await ReslugifyAsync(
+            context,
+            main: categories.Select(c => (c.CategoryID, c.WebsiteID, c.Slug)).ToList(),
+            translations: categoryTranslations.Select(t => (t.CategoryTranslationID, t.CategoryID, t.Slug)).ToList(),
+            maxLength: 200,
+            updateMain: (id, slug) => { var e = new Category { CategoryID = id }; context.Categories.Attach(e); e.Slug = slug; context.Entry(e).Property(x => x.Slug).IsModified = true; },
+            updateTranslation: (id, slug) => { var e = new CategoryTranslation { CategoryTranslationID = id }; context.CategoryTranslations.Attach(e); e.Slug = slug; context.Entry(e).Property(x => x.Slug).IsModified = true; },
+            ct);
+
+        var posts = await context.Posts.Select(p => new { p.PostID, p.WebsiteID, p.Slug }).ToListAsync(ct);
+        var postTranslations = await context.PostTranslations.Select(t => new { t.PostTranslationID, t.PostID, t.Slug }).ToListAsync(ct);
+        await ReslugifyAsync(
+            context,
+            main: posts.Select(p => (p.PostID, p.WebsiteID, p.Slug)).ToList(),
+            translations: postTranslations.Select(t => (t.PostTranslationID, t.PostID, t.Slug)).ToList(),
+            maxLength: 300,
+            updateMain: (id, slug) => { var e = new Post { PostID = id }; context.Posts.Attach(e); e.Slug = slug; context.Entry(e).Property(x => x.Slug).IsModified = true; },
+            updateTranslation: (id, slug) => { var e = new PostTranslation { PostTranslationID = id }; context.PostTranslations.Attach(e); e.Slug = slug; context.Entry(e).Property(x => x.Slug).IsModified = true; },
+            ct);
+
+        var pages = await context.Pages.Select(p => new { p.PageID, p.WebsiteID, p.Slug }).ToListAsync(ct);
+        var pageTranslations = await context.PageTranslations.Select(t => new { t.PageTranslationID, t.PageID, t.Slug }).ToListAsync(ct);
+        await ReslugifyAsync(
+            context,
+            main: pages.Select(p => (p.PageID, p.WebsiteID, p.Slug)).ToList(),
+            translations: pageTranslations.Select(t => (t.PageTranslationID, t.PageID, t.Slug)).ToList(),
+            maxLength: 300,
+            updateMain: (id, slug) => { var e = new Page { PageID = id }; context.Pages.Attach(e); e.Slug = slug; context.Entry(e).Property(x => x.Slug).IsModified = true; },
+            updateTranslation: (id, slug) => { var e = new PageTranslation { PageTranslationID = id }; context.PageTranslations.Attach(e); e.Slug = slug; context.Entry(e).Property(x => x.Slug).IsModified = true; },
+            ct);
+
+        var tags = await context.Tags.Select(t => new { t.TagID, t.WebsiteID, t.Slug }).ToListAsync(ct);
+        var tagTranslations = await context.TagTranslations.Select(t => new { t.TagTranslationID, t.TagID, t.Slug }).ToListAsync(ct);
+        await ReslugifyAsync(
+            context,
+            main: tags.Select(t => (t.TagID, t.WebsiteID, t.Slug)).ToList(),
+            translations: tagTranslations.Select(t => (t.TagTranslationID, t.TagID, t.Slug)).ToList(),
+            maxLength: 150,
+            updateMain: (id, slug) => { var e = new Tag { TagID = id }; context.Tags.Attach(e); e.Slug = slug; context.Entry(e).Property(x => x.Slug).IsModified = true; },
+            updateTranslation: (id, slug) => { var e = new TagTranslation { TagTranslationID = id }; context.TagTranslations.Attach(e); e.Slug = slug; context.Entry(e).Property(x => x.Slug).IsModified = true; },
+            ct);
+    }
+
+    /// <summary>Shared re-slugify pass for one entity type: re-normalizes any main/translation row
+    /// whose current slug isn't already in normalized form, resolving collisions per-website the
+    /// same way a live Create/Update would (see <see cref="SlugGenerator"/>). <paramref name="main"/>
+    /// rows carry their own WebsiteID; <paramref name="translations"/> carry their parent's id, which
+    /// is resolved back to a WebsiteID via <paramref name="main"/> so a translation of an
+    /// already-deleted parent (shouldn't happen, but Slug alone doesn't join) is skipped rather than
+    /// throwing.</summary>
+    private static async Task ReslugifyAsync(
+        AppDbContext context,
+        List<(int Id, int WebsiteID, string Slug)> main,
+        List<(int Id, int ParentId, string Slug)> translations,
+        int maxLength,
+        Action<int, string> updateMain,
+        Action<int, string> updateTranslation,
+        CancellationToken ct)
+    {
+        var websiteByParentId = main.ToDictionary(r => r.Id, r => r.WebsiteID);
+
+        var mainWork = main
+            .Select(r => (r.Id, r.WebsiteID, r.Slug, Normalized: SlugGenerator.Normalize(r.Slug, maxLength)))
+            .ToList();
+        var translationWork = translations
+            .Where(t => websiteByParentId.ContainsKey(t.ParentId))
+            .Select(t => (t.Id, WebsiteID: websiteByParentId[t.ParentId], t.Slug, Normalized: SlugGenerator.Normalize(t.Slug, maxLength)))
+            .ToList();
+
+        // A row that's already normalized keeps its exact value, which reserves that slot; a row
+        // that needs fixing never reserves its OLD value (that's the value being abandoned) — doing
+        // so would let one dirty row's stale slug wrongly evict another dirty row's freshly assigned
+        // one when both started out identical (exactly the collision this pass exists to resolve).
+        var reservedByWebsite = mainWork.Where(r => r.Normalized == r.Slug).Select(r => (r.WebsiteID, r.Slug))
+            .Concat(translationWork.Where(r => r.Normalized == r.Slug).Select(r => (r.WebsiteID, r.Slug)))
+            .GroupBy(x => x.WebsiteID)
+            .ToDictionary(g => g.Key, g => new HashSet<string>(g.Select(x => x.Slug), StringComparer.OrdinalIgnoreCase));
+
+        HashSet<string> ReservedFor(int websiteId)
+        {
+            if (!reservedByWebsite.TryGetValue(websiteId, out var set))
+                reservedByWebsite[websiteId] = set = new HashSet<string>(StringComparer.OrdinalIgnoreCase);
+            return set;
+        }
+
+        var changed = false;
+
+        foreach (var row in mainWork.Where(r => r.Normalized != r.Slug))
+        {
+            var used = ReservedFor(row.WebsiteID);
+            var unique = SlugGenerator.MakeUnique(row.Normalized, used);
+            used.Add(unique);
+
+            updateMain(row.Id, unique);
+            changed = true;
+        }
+
+        foreach (var row in translationWork.Where(r => r.Normalized != r.Slug))
+        {
+            var used = ReservedFor(row.WebsiteID);
+            var unique = SlugGenerator.MakeUnique(row.Normalized, used);
+            used.Add(unique);
+
+            updateTranslation(row.Id, unique);
+            changed = true;
+        }
+
+        if (changed) await context.SaveChangesAsync(ct);
     }
 }

@@ -93,6 +93,81 @@ public class SetupServiceTests : IDisposable
         granted.Should().BeTrue();
     }
 
+    [Fact]
+    public async Task ReslugifyContentAsync_Fixes_Raw_Title_Slugs_With_Spaces()
+    {
+        var website = new Website
+        {
+            TradeName = "Test", WebsiteAddress = "test.com", AuthCode = Guid.NewGuid(),
+            Active = true, Manager = "Mgr", Mobile = "123", Email = "admin@test.com",
+            RegisterDate = DateOnly.FromDateTime(DateTime.Today), DefaultLanguageCode = "en",
+            DefaultCurrencyCode = "USD", BrandName = "Test",
+        };
+        _context.Websites.Add(website);
+        await _context.SaveChangesAsync();
+
+        var cat = new Category { WebsiteID = website.WebsiteID, Name = "تجهیز و تعمیر", Slug = "تجهیز و تعمیر", IsActive = true };
+        _context.Categories.Add(cat);
+        await _context.SaveChangesAsync();
+
+        await _service.ReslugifyContentAsync();
+
+        var stored = await _context.Categories.AsNoTracking().SingleAsync(c => c.CategoryID == cat.CategoryID);
+        stored.Slug.Should().Be("تجهیز-و-تعمیر");
+    }
+
+    [Fact]
+    public async Task ReslugifyContentAsync_Resolves_Collision_Between_Two_Bad_Slugs()
+    {
+        var website = new Website
+        {
+            TradeName = "Test", WebsiteAddress = "test.com", AuthCode = Guid.NewGuid(),
+            Active = true, Manager = "Mgr", Mobile = "123", Email = "admin@test.com",
+            RegisterDate = DateOnly.FromDateTime(DateTime.Today), DefaultLanguageCode = "en",
+            DefaultCurrencyCode = "USD", BrandName = "Test",
+        };
+        _context.Websites.Add(website);
+        await _context.SaveChangesAsync();
+
+        // Two categories whose raw title-as-slug values normalize to the exact same slug.
+        var a = new Category { WebsiteID = website.WebsiteID, Name = "News A", Slug = "News", IsActive = true };
+        var b = new Category { WebsiteID = website.WebsiteID, Name = "News B", Slug = "News", IsActive = true };
+        _context.Categories.AddRange(a, b);
+        await _context.SaveChangesAsync();
+
+        await _service.ReslugifyContentAsync();
+
+        var slugs = await _context.Categories.AsNoTracking()
+            .Where(c => c.WebsiteID == website.WebsiteID)
+            .Select(c => c.Slug).ToListAsync();
+        slugs.Should().BeEquivalentTo(new[] { "news", "news-2" });
+    }
+
+    [Fact]
+    public async Task ReslugifyContentAsync_Is_Idempotent()
+    {
+        var website = new Website
+        {
+            TradeName = "Test", WebsiteAddress = "test.com", AuthCode = Guid.NewGuid(),
+            Active = true, Manager = "Mgr", Mobile = "123", Email = "admin@test.com",
+            RegisterDate = DateOnly.FromDateTime(DateTime.Today), DefaultLanguageCode = "en",
+            DefaultCurrencyCode = "USD", BrandName = "Test",
+        };
+        _context.Websites.Add(website);
+        await _context.SaveChangesAsync();
+
+        var cat = new Category { WebsiteID = website.WebsiteID, Name = "News", Slug = "already clean already".Replace(" ", "-"), IsActive = true };
+        _context.Categories.Add(cat);
+        await _context.SaveChangesAsync();
+        var before = cat.Slug;
+
+        await _service.ReslugifyContentAsync();
+        await _service.ReslugifyContentAsync();
+
+        var stored = await _context.Categories.AsNoTracking().SingleAsync(c => c.CategoryID == cat.CategoryID);
+        stored.Slug.Should().Be(before);
+    }
+
     private async Task SeedAdminPolicyWithRoles(IReadOnlyList<RoleDefinition> defs)
     {
         _context.Roles.AddRange(defs.Select(def => new Role

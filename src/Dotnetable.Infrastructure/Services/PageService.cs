@@ -1,5 +1,6 @@
 using Dotnetable.Application.DTOs;
 using Dotnetable.Application.Interfaces;
+using Dotnetable.Application.Text;
 using Dotnetable.Domain.Entities;
 using Dotnetable.Infrastructure.Data;
 using Dotnetable.Infrastructure.Extensions;
@@ -9,9 +10,26 @@ namespace Dotnetable.Infrastructure.Services;
 
 public class PageService : IPageService
 {
+    private const int SlugMaxLength = 300;
+
     private readonly IDbContextFactory<AppDbContext> _contextFactory;
 
     public PageService(IDbContextFactory<AppDbContext> contextFactory) => _contextFactory = contextFactory;
+
+    /// <summary>All slugs in use by this website's pages (main + translation rows), excluding
+    /// <paramref name="excludePageId"/> — the lookup route matches either, so uniqueness must span
+    /// both.</summary>
+    private static async Task<HashSet<string>> GetUsedSlugsAsync(
+        AppDbContext context, int websiteId, int excludePageId, CancellationToken ct)
+    {
+        var main = await context.Pages.AsNoTracking()
+            .Where(p => p.WebsiteID == websiteId && p.PageID != excludePageId)
+            .Select(p => p.Slug).ToListAsync(ct);
+        var translated = await context.PageTranslations.AsNoTracking()
+            .Where(t => t.Page.WebsiteID == websiteId && t.PageID != excludePageId)
+            .Select(t => t.Slug).ToListAsync(ct);
+        return new HashSet<string>(main.Concat(translated), StringComparer.OrdinalIgnoreCase);
+    }
 
     // ── Admin management ────────────────────────────────────────────
 
@@ -61,6 +79,12 @@ public class PageService : IPageService
         page.CreatedAt = page.UpdatedAt = DateTime.UtcNow;
         if (page.IsHomepage)
             await ClearHomepageAsync(_context, page.WebsiteID, ct);
+
+        var used = await GetUsedSlugsAsync(_context, page.WebsiteID, excludePageId: 0, ct);
+        page.Slug = SlugGenerator.MakeUnique(
+            SlugGenerator.Normalize(string.IsNullOrWhiteSpace(page.Slug) ? page.Title : page.Slug, SlugMaxLength),
+            used);
+
         _context.Pages.Add(page);
         await _context.SaveChangesAsync(ct);
         return page;
@@ -73,6 +97,12 @@ public class PageService : IPageService
         page.UpdatedAt = DateTime.UtcNow;
         if (page.IsHomepage)
             await ClearHomepageAsync(_context, page.WebsiteID, ct, exceptPageId: page.PageID);
+
+        var used = await GetUsedSlugsAsync(_context, page.WebsiteID, page.PageID, ct);
+        page.Slug = SlugGenerator.MakeUnique(
+            SlugGenerator.Normalize(string.IsNullOrWhiteSpace(page.Slug) ? page.Title : page.Slug, SlugMaxLength),
+            used);
+
         _context.Pages.Update(page);
         await _context.SaveChangesAsync(ct);
     }
@@ -128,6 +158,9 @@ public class PageService : IPageService
     {
         await using var _context = await _contextFactory.CreateDbContextAsync(ct);
 
+        var page = await _context.Pages.AsNoTracking().FirstOrDefaultAsync(p => p.PageID == pageId, ct);
+        if (page is null) return;
+
         var existing = await _context.PageTranslations.Where(t => t.PageID == pageId).ToListAsync(ct);
 
         // Remove languages that are no longer present or were cleared.
@@ -137,12 +170,17 @@ public class PageService : IPageService
             .ToHashSet(StringComparer.OrdinalIgnoreCase);
         _context.PageTranslations.RemoveRange(existing.Where(t => !keepLanguages.Contains(t.LanguageCode)));
 
+        var used = await GetUsedSlugsAsync(_context, page.WebsiteID, pageId, ct);
+
         foreach (var t in translations)
         {
             if (string.IsNullOrWhiteSpace(t.Title)) continue;
             var current = existing.FirstOrDefault(x =>
                 string.Equals(x.LanguageCode, t.LanguageCode, StringComparison.OrdinalIgnoreCase));
-            var slug = string.IsNullOrWhiteSpace(t.Slug) ? t.Title.Trim() : t.Slug.Trim();
+            var slug = SlugGenerator.MakeUnique(
+                SlugGenerator.Normalize(string.IsNullOrWhiteSpace(t.Slug) ? t.Title : t.Slug, SlugMaxLength),
+                used);
+            used.Add(slug);
 
             if (current is null)
                 _context.PageTranslations.Add(new PageTranslation

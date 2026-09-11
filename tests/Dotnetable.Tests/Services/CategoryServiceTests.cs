@@ -125,6 +125,45 @@ public class CategoryServiceTests : IDisposable
         tree[1].Children.Select(c => c.Name).Should().Equal("A1", "A2");
     }
 
+    [Fact]
+    public async Task Create_Sanitizes_A_Raw_Title_Slug_With_Spaces()
+    {
+        var cat = new Category { WebsiteID = _website.WebsiteID, Name = "تجهیز و تعمیر", Slug = "تجهیز و تعمیر", IsActive = true };
+        await _service.CreateAsync(cat);
+
+        cat.Slug.Should().NotContain(" ");
+        cat.Slug.Should().Be("تجهیز-و-تعمیر");
+    }
+
+    [Fact]
+    public async Task Create_Appends_Suffix_On_Slug_Collision()
+    {
+        await _service.CreateAsync(new Category { WebsiteID = _website.WebsiteID, Name = "News", Slug = "news", IsActive = true });
+        var second = new Category { WebsiteID = _website.WebsiteID, Name = "News Again", Slug = "news", IsActive = true };
+        await _service.CreateAsync(second);
+
+        second.Slug.Should().Be("news-2");
+    }
+
+    [Fact]
+    public async Task SetTranslationsAsync_Sanitizes_And_Dedupes_Translation_Slug()
+    {
+        var cat = new Category { WebsiteID = _website.WebsiteID, Name = "News", Slug = "news", IsActive = true };
+        await _service.CreateAsync(cat);
+        var other = new Category { WebsiteID = _website.WebsiteID, Name = "Other", Slug = "other-fa", IsActive = true };
+        await _service.CreateAsync(other);
+
+        // A translation slug that collides with another category's slug (main or translation) in
+        // the same website must be de-duplicated, and raw spaces must never survive.
+        await _service.SetTranslationsAsync(cat.CategoryID, new Dictionary<string, (string, string)>
+        {
+            ["fa"] = ("اخبار روز", "other fa"),
+        });
+
+        var tr = await _service.GetTranslationsAsync(cat.CategoryID);
+        tr.Should().ContainSingle(t => t.LanguageCode == "fa" && t.Slug == "other-fa-2");
+    }
+
     public void Dispose() => _context.Dispose();
 }
 

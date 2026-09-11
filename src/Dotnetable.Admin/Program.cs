@@ -113,6 +113,10 @@ using (var scope = app.Services.CreateScope())
             // Top up catalog permissions a prior version did not seed, and grant them to Administrators.
             var setup = scope.ServiceProvider.GetRequiredService<ISetupService>();
             await setup.SyncRoleCatalogAsync();
+
+            // One-time (idempotent) fix for slugs saved verbatim from a raw title before slug
+            // sanitizing existed — re-derives anything not already URL-safe.
+            await setup.ReslugifyContentAsync();
         }
         catch (Exception ex)
         {
