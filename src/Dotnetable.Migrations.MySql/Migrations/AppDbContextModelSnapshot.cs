@@ -7257,6 +7257,43 @@ namespace Dotnetable.Migrations.MySql.Migrations
                     b.ToTable("WebsiteClientRefreshTokens");
                 });
 
+            modelBuilder.Entity("Dotnetable.Domain.Entities.WebsiteContactInfo", b =>
+                {
+                    b.Property<int>("WebsiteContactInfoID")
+                        .ValueGeneratedOnAdd()
+                        .HasColumnType("int");
+
+                    b.Property<string>("GroupTitle")
+                        .HasMaxLength(64)
+                        .HasColumnType("varchar(64)");
+
+                    b.Property<string>("Icon")
+                        .HasMaxLength(64)
+                        .HasColumnType("varchar(64)");
+
+                    b.Property<int>("SortOrder")
+                        .HasColumnType("int");
+
+                    b.Property<string>("Title")
+                        .IsRequired()
+                        .HasMaxLength(64)
+                        .HasColumnType("varchar(64)");
+
+                    b.Property<string>("Value")
+                        .IsRequired()
+                        .HasMaxLength(256)
+                        .HasColumnType("varchar(256)");
+
+                    b.Property<int>("WebsiteID")
+                        .HasColumnType("int");
+
+                    b.HasKey("WebsiteContactInfoID");
+
+                    b.HasIndex(new[] { "WebsiteID" }, "IX_WebsiteContactInfos_WebsiteID");
+
+                    b.ToTable("WebsiteContactInfos");
+                });
+
             modelBuilder.Entity("Dotnetable.Domain.Entities.WebsiteFeature", b =>
                 {
                     b.Property<int>("WebsiteFeatureID")
@@ -10927,6 +10964,17 @@ namespace Dotnetable.Migrations.MySql.Migrations
                     b.Navigation("WebsiteClient");
                 });
 
+            modelBuilder.Entity("Dotnetable.Domain.Entities.WebsiteContactInfo", b =>
+                {
+                    b.HasOne("Dotnetable.Domain.Entities.Website", "Website")
+                        .WithMany("WebsiteContactInfos")
+                        .HasForeignKey("WebsiteID")
+                        .IsRequired()
+                        .HasConstraintName("FK_WebsiteContactInfos_Websites");
+
+                    b.Navigation("Website");
+                });
+
             modelBuilder.Entity("Dotnetable.Domain.Entities.WebsiteFeature", b =>
                 {
                     b.HasOne("Dotnetable.Domain.Entities.Website", "Website")
@@ -11903,6 +11951,8 @@ namespace Dotnetable.Migrations.MySql.Migrations
                     b.Navigation("WebsiteClientRefreshTokens");
 
                     b.Navigation("WebsiteClients");
+
+                    b.Navigation("WebsiteContactInfos");
 
                     b.Navigation("WebsiteFeatures");
 
