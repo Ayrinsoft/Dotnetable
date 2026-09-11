@@ -254,6 +254,7 @@ public class WebsiteService : IWebsiteService
                 .OrderBy(c => c.SortOrder).ThenBy(c => c.WebsiteContactInfoID)
                 .Select(c => new ContactInfoDto
                 {
+                    Type = c.ContactType,
                     GroupTitle = c.GroupTitle,
                     Title = c.Title,
                     Value = c.Value,

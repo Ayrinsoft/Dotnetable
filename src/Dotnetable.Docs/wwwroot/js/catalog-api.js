@@ -1553,7 +1553,7 @@ window.DOCS_API = {
             en: "Brand, logo, contact, social, SEO defaults for the website key.",
             fa: "برند، لوگو، تماس، اجتماعی، پیش‌فرض SEO برای کلید وب‌سایت.",
           },
-          relatedAdmin: ["websites", "website-seo", "website-social"],
+          relatedAdmin: ["websites", "website-seo", "website-social", "website-contact-info"],
           endpoints: [
             {
               title: { en: "Get site info", fa: "گرفتن اطلاعات سایت" },
@@ -1563,7 +1563,12 @@ window.DOCS_API = {
               request: { body: "GET /api/SiteInfo" },
               response: {
                 status: 200,
-                body: { name: "My Shop", logoUrl: "/…", social: { instagram: "…" } },
+                body: {
+                  brandName: "My Shop",
+                  logoUrl: "/…",
+                  socialLinks: [{ name: "Instagram", icon: "bi bi-instagram", url: "…" }],
+                  contactInfos: [{ type: 1, groupTitle: "Sales Office", title: "Phone", value: "+98 21 …", icon: "bi bi-telephone" }],
+                },
               },
             },
           ],

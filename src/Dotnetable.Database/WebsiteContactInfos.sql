@@ -1,6 +1,7 @@
 CREATE TABLE [dbo].[WebsiteContactInfos] (
     [WebsiteContactInfoID] INT            IDENTITY (1, 1) NOT NULL,
     [WebsiteID]            INT            NOT NULL,
+    [ContactType]          TINYINT        NOT NULL DEFAULT 0,
     [GroupTitle]           NVARCHAR (64)  NULL,
     [Title]                NVARCHAR (64)  NOT NULL,
     [Value]                NVARCHAR (256) NOT NULL,

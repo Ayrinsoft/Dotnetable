@@ -3802,6 +3802,7 @@ public partial class AppDbContext : DbContext
         {
             entity.HasIndex(e => e.WebsiteID, "IX_WebsiteContactInfos_WebsiteID");
 
+            entity.Property(e => e.ContactType).HasDefaultValue((byte)0);
             entity.Property(e => e.GroupTitle).HasMaxLength(64);
             entity.Property(e => e.Title).HasMaxLength(64);
             entity.Property(e => e.Value).HasMaxLength(256);

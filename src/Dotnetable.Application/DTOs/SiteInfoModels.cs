@@ -30,6 +30,9 @@ public sealed class SocialLinkDto
 /// an admin-chosen category (e.g. "Sales Office", "Factory") for display under Contact Us.</summary>
 public sealed class ContactInfoDto
 {
+    /// <summary><see cref="Domain.Enums.ContactInfoType"/> value — lets the front-end render a
+    /// clickable tel:/mailto: link for phone/email rows instead of plain text.</summary>
+    public byte Type { get; init; }
     public string? GroupTitle { get; init; }
     public string Title { get; init; } = string.Empty;
     public string Value { get; init; } = string.Empty;

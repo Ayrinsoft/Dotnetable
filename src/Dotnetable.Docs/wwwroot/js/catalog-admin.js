@@ -616,12 +616,16 @@ window.DOCS_ADMIN = {
           },
           howTo: [
             {
-              en: "Add a row: optional group (e.g. \"Sales Office\"), a title and a value, both free text.",
-              fa: "یک ردیف اضافه کنید: گروه اختیاری (مثل «دفتر فروش»)، یک عنوان و یک مقدار، هر دو آزاد.",
+              en: "Pick a Type first (Phone / Email / Address / Location / Working Hours / Other) — it fills in a matching default title and icon so the row is unambiguous at a glance.",
+              fa: "اول یک نوع انتخاب کنید (تلفن / ایمیل / آدرس / لوکیشن / ساعات کاری / سایر) — عنوان و آیکون پیش‌فرض متناسب را پر می‌کند تا ردیف در نگاه اول گویا باشد.",
             },
             {
-              en: "Save, then check the public Contact Us page renders it under the right group.",
-              fa: "ذخیره کنید و صفحه عمومی تماس با ما را برای نمایش درست زیر گروه بررسی کنید.",
+              en: "Customize the title if needed (e.g. \"Sales Office Phone\"), enter the value, and optionally set a group (e.g. \"Sales Office\") to cluster related rows.",
+              fa: "در صورت نیاز عنوان را شخصی‌سازی کنید (مثل «تلفن دفتر فروش»)، مقدار را وارد کنید و در صورت تمایل یک گروه (مثل «دفتر فروش») برای دسته‌بندی ردیف‌های مرتبط تنظیم کنید.",
+            },
+            {
+              en: "Save, then check the public Contact Us page renders it under the right group — Phone/Email values render as clickable tel:/mailto: links automatically.",
+              fa: "ذخیره کنید و صفحه عمومی تماس با ما را برای نمایش درست زیر گروه بررسی کنید — مقادیر تلفن/ایمیل خودکار به‌صورت لینک قابل‌کلیک tel:/mailto: نمایش داده می‌شوند.",
             },
           ],
           related: ["website-social", "website-seo"],

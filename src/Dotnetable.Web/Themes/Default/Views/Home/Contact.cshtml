@@ -1,3 +1,4 @@
+@using Dotnetable.Domain.Enums
 @model Dotnetable.Web.Models.ContactPageViewModel
 @{
     ViewData["Title"] = Model.PageTitle;
@@ -31,7 +32,7 @@
                                     {
                                         <li class="d-flex align-items-start gap-2 mb-2">
                                             <i class="@(string.IsNullOrWhiteSpace(info.Icon) ? "bi bi-info-circle" : info.Icon)"></i>
-                                            <span><strong>@info.Title:</strong> @info.Value</span>
+                                            <span><strong>@info.Title:</strong> @ContactValueLink(info)</span>
                                         </li>
                                     }
                                 </ul>
@@ -99,4 +100,26 @@
 
 @section Scripts {
     <script src="~/js/contact.js" asp-append-version="true"></script>
+}
+
+@functions {
+    // Phone/email rows render as clickable tel:/mailto: links; everything else (address, location,
+    // working hours, ...) is plain text since there's no single universal action for it.
+    private Microsoft.AspNetCore.Html.IHtmlContent ContactValueLink(Dotnetable.Application.DTOs.ContactInfoDto info)
+    {
+        var type = (ContactInfoType)info.Type;
+        var scheme = type switch
+        {
+            ContactInfoType.Phone => "tel:",
+            ContactInfoType.Email => "mailto:",
+            _ => null,
+        };
+
+        var encodedValue = Html.Encode(info.Value);
+        if (scheme is null)
+            return new Microsoft.AspNetCore.Html.HtmlString(encodedValue);
+
+        var href = Html.Encode(scheme + info.Value);
+        return new Microsoft.AspNetCore.Html.HtmlString($"<a href=\"{href}\">{encodedValue}</a>");
+    }
 }
