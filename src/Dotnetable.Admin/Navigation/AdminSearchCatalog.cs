@@ -52,6 +52,7 @@ public static class AdminSearchCatalog
         new AdminSearchPage("scripts", "Scripts", "/website/scripts", Icons.Material.Filled.Code, "website", "Website", RoleKeys.WebsiteEdit, NavArea: AdminNavArea.Website, VendorMemberAllowed: false),
         new AdminSearchPage("seo_settings", "SEO Settings", "/website/seo", Icons.Material.Filled.Search, "website", "Website", RoleKeys.WebsiteEdit, NavArea: AdminNavArea.Website, VendorMemberAllowed: false),
         new AdminSearchPage("social_links", "Social Links", "/website/social", Icons.Material.Filled.Share, "website", "Website", RoleKeys.WebsiteEdit, NavArea: AdminNavArea.Website, VendorMemberAllowed: false),
+        new AdminSearchPage("contact_info", "Contact Info", "/website/contact-info", Icons.Material.Filled.ContactPhone, "website", "Website", RoleKeys.WebsiteEdit, NavArea: AdminNavArea.Website, VendorMemberAllowed: false),
         new AdminSearchPage("website_api_key", "Website API Key", "/website/api-key", Icons.Material.Filled.VpnKey, "website", "Website", RoleKeys.WebsiteEdit, NavArea: AdminNavArea.Website, VendorMemberAllowed: false),
         new AdminSearchPage("website_languages", "Languages", "/website/languages", Icons.Material.Filled.Language, "website", "Website", RoleKeys.LocalizationEdit, NavArea: AdminNavArea.Website, VendorMemberAllowed: false),
         new AdminSearchPage("website_translations", "Translations", "/website/translations", Icons.Material.Filled.Translate, "website", "Website", RoleKeys.LocalizationEdit, NavArea: AdminNavArea.Website, VendorMemberAllowed: false),

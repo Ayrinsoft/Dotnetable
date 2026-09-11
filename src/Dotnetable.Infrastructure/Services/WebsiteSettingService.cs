@@ -239,6 +239,60 @@ public class WebsiteSettingService : IWebsiteSettingService
         await _context.SaveChangesAsync(ct);
     }
 
+    // ── Contact Info ─────────────────────────────────────────────────
+
+    public async Task<PagedResult<WebsiteContactInfo>> GetContactInfosPagedAsync(int websiteId, GridQuery query, CancellationToken ct = default)
+    {
+        await using var _context = await _contextFactory.CreateDbContextAsync(ct);
+
+        var q = _context.WebsiteContactInfos.AsNoTracking().Where(x => x.WebsiteID == websiteId);
+
+        if (query.GetSearch(nameof(WebsiteContactInfo.Title)) is string title)
+            q = q.Where(x => x.Title.Contains(title));
+
+        var total = await q.CountAsync(ct);
+        var items = await q
+            .ApplyOrderBy(query.OrderBy, nameof(WebsiteContactInfo.SortOrder))
+            .Skip(query.Skip).Take(query.Take)
+            .ToListAsync(ct);
+
+        return new PagedResult<WebsiteContactInfo> { Items = items, TotalCount = total };
+    }
+
+    public async Task<WebsiteContactInfo?> GetContactInfoByIdAsync(int id, CancellationToken ct = default)
+    {
+        await using var _context = await _contextFactory.CreateDbContextAsync(ct);
+
+        return await _context.WebsiteContactInfos.FindAsync([id], ct);
+    }
+
+    public async Task<WebsiteContactInfo> CreateContactInfoAsync(WebsiteContactInfo info, CancellationToken ct = default)
+    {
+        await using var _context = await _contextFactory.CreateDbContextAsync(ct);
+
+        _context.WebsiteContactInfos.Add(info);
+        await _context.SaveChangesAsync(ct);
+        return info;
+    }
+
+    public async Task UpdateContactInfoAsync(WebsiteContactInfo info, CancellationToken ct = default)
+    {
+        await using var _context = await _contextFactory.CreateDbContextAsync(ct);
+
+        _context.WebsiteContactInfos.Update(info);
+        await _context.SaveChangesAsync(ct);
+    }
+
+    public async Task DeleteContactInfoAsync(int id, CancellationToken ct = default)
+    {
+        await using var _context = await _contextFactory.CreateDbContextAsync(ct);
+
+        var entity = await _context.WebsiteContactInfos.FindAsync([id], ct);
+        if (entity is null) return;
+        _context.WebsiteContactInfos.Remove(entity);
+        await _context.SaveChangesAsync(ct);
+    }
+
     // ── Watermark ────────────────────────────────────────────────────
 
     public async Task<WebsiteWatermarkSetting?> GetWatermarkSettingAsync(int websiteId, CancellationToken ct = default)

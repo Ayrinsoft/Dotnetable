@@ -223,6 +223,7 @@ public class WebsiteService : IWebsiteService
             .Include(w => w.LogoFile)
             .Include(w => w.FaveIconFile)
             .Include(w => w.WebsiteSocialLinks)
+            .Include(w => w.WebsiteContactInfos)
             .Include(w => w.WebsiteSeoSettings)
             .FirstOrDefaultAsync(w => w.WebsiteID == websiteId, ct);
         if (website is null) return null;
@@ -247,6 +248,16 @@ public class WebsiteService : IWebsiteService
                     Name = s.SocialName,
                     Icon = s.SocialIcon,
                     Url = s.UrlAddress,
+                })
+                .ToList(),
+            ContactInfos = website.WebsiteContactInfos
+                .OrderBy(c => c.SortOrder).ThenBy(c => c.WebsiteContactInfoID)
+                .Select(c => new ContactInfoDto
+                {
+                    GroupTitle = c.GroupTitle,
+                    Title = c.Title,
+                    Value = c.Value,
+                    Icon = c.Icon,
                 })
                 .ToList(),
         };
