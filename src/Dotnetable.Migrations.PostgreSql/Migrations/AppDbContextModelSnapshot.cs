@@ -7538,45 +7538,6 @@ namespace Dotnetable.Migrations.PostgreSql.Migrations
                     b.ToTable("WebsiteClientRefreshTokens");
                 });
 
-            modelBuilder.Entity("Dotnetable.Domain.Entities.WebsiteContactInfo", b =>
-                {
-                    b.Property<int>("WebsiteContactInfoID")
-                        .ValueGeneratedOnAdd()
-                        .HasColumnType("integer");
-
-                    NpgsqlPropertyBuilderExtensions.UseIdentityByDefaultColumn(b.Property<int>("WebsiteContactInfoID"));
-
-                    b.Property<string>("GroupTitle")
-                        .HasMaxLength(64)
-                        .HasColumnType("character varying(64)");
-
-                    b.Property<string>("Icon")
-                        .HasMaxLength(64)
-                        .HasColumnType("character varying(64)");
-
-                    b.Property<int>("SortOrder")
-                        .HasColumnType("integer");
-
-                    b.Property<string>("Title")
-                        .IsRequired()
-                        .HasMaxLength(64)
-                        .HasColumnType("character varying(64)");
-
-                    b.Property<string>("Value")
-                        .IsRequired()
-                        .HasMaxLength(256)
-                        .HasColumnType("character varying(256)");
-
-                    b.Property<int>("WebsiteID")
-                        .HasColumnType("integer");
-
-                    b.HasKey("WebsiteContactInfoID");
-
-                    b.HasIndex(new[] { "WebsiteID" }, "IX_WebsiteContactInfos_WebsiteID");
-
-                    b.ToTable("WebsiteContactInfos");
-                });
-
             modelBuilder.Entity("Dotnetable.Domain.Entities.WebsiteFeature", b =>
                 {
                     b.Property<int>("WebsiteFeatureID")
@@ -11273,17 +11234,6 @@ namespace Dotnetable.Migrations.PostgreSql.Migrations
                     b.Navigation("WebsiteClient");
                 });
 
-            modelBuilder.Entity("Dotnetable.Domain.Entities.WebsiteContactInfo", b =>
-                {
-                    b.HasOne("Dotnetable.Domain.Entities.Website", "Website")
-                        .WithMany("WebsiteContactInfos")
-                        .HasForeignKey("WebsiteID")
-                        .IsRequired()
-                        .HasConstraintName("FK_WebsiteContactInfos_Websites");
-
-                    b.Navigation("Website");
-                });
-
             modelBuilder.Entity("Dotnetable.Domain.Entities.WebsiteFeature", b =>
                 {
                     b.HasOne("Dotnetable.Domain.Entities.Website", "Website")
@@ -12260,8 +12210,6 @@ namespace Dotnetable.Migrations.PostgreSql.Migrations
                     b.Navigation("WebsiteClientRefreshTokens");
 
                     b.Navigation("WebsiteClients");
-
-                    b.Navigation("WebsiteContactInfos");
 
                     b.Navigation("WebsiteFeatures");
 
