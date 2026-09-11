@@ -134,10 +134,19 @@
     private async Task LoadAsync()
     {
         _loading = true;
-        var result = await AdvertisementService.GetPagedAsync(_websiteId, _grid.ToQuery());
-        _items = result.Items.ToList();
-        _grid.Pagination.MaxLength = result.TotalCount;
-        _loading = false;
+        try
+        {
+            var result = await AdvertisementService.GetPagedAsync(_websiteId, _grid.ToQuery());
+            _items = result.Items.ToList();
+            _grid.Pagination.MaxLength = result.TotalCount;
+        }
+        catch (Exception ex)
+        {
+            // A pending-but-unapplied migration (see /system/updates) throws here as a missing-table
+            // error — surface it instead of leaving the page stuck on its loading spinner.
+            Snackbar.Add($"{L["load_failed", "Failed to load"]}: {ex.Message}", Severity.Error);
+        }
+        finally { _loading = false; }
     }
 
     private async Task ToggleActiveAsync(Advertisement a, bool value)
