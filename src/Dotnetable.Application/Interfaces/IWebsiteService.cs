@@ -31,8 +31,9 @@ public interface IWebsiteService
     Task SetFeatureAsync(int websiteId, WebsiteFeatureKey featureKey, bool enabled, CancellationToken ct = default);
 
     /// <summary>Public branding/identity bundle (brand, logo, contact, socials, SEO defaults) the
-    /// front-ends render the layout from.</summary>
-    Task<SiteInfoDto?> GetSiteInfoAsync(int websiteId, CancellationToken ct = default);
+    /// front-ends render the layout from. <paramref name="languageCode"/> selects translated contact
+    /// info fields where available; missing translations fall back to the default-language value.</summary>
+    Task<SiteInfoDto?> GetSiteInfoAsync(int websiteId, string? languageCode = null, CancellationToken ct = default);
 
     /// <summary>The website's bot-protection choice for public forms, or null when never configured
     /// (callers should fall back to the math captcha).</summary>

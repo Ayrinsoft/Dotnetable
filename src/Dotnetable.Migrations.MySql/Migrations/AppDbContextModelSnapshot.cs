@@ -7299,6 +7299,43 @@ namespace Dotnetable.Migrations.MySql.Migrations
                     b.ToTable("WebsiteContactInfos");
                 });
 
+            modelBuilder.Entity("Dotnetable.Domain.Entities.WebsiteContactInfoTranslation", b =>
+                {
+                    b.Property<int>("WebsiteContactInfoTranslationID")
+                        .ValueGeneratedOnAdd()
+                        .HasColumnType("int");
+
+                    b.Property<string>("GroupTitle")
+                        .HasMaxLength(64)
+                        .HasColumnType("varchar(64)");
+
+                    b.Property<string>("LanguageCode")
+                        .IsRequired()
+                        .HasMaxLength(2)
+                        .IsUnicode(false)
+                        .HasColumnType("char(2)")
+                        .IsFixedLength();
+
+                    b.Property<string>("Title")
+                        .IsRequired()
+                        .HasMaxLength(64)
+                        .HasColumnType("varchar(64)");
+
+                    b.Property<string>("Value")
+                        .HasMaxLength(256)
+                        .HasColumnType("varchar(256)");
+
+                    b.Property<int>("WebsiteContactInfoID")
+                        .HasColumnType("int");
+
+                    b.HasKey("WebsiteContactInfoTranslationID");
+
+                    b.HasIndex(new[] { "WebsiteContactInfoID", "LanguageCode" }, "IX_WebsiteContactInfoTranslations_WebsiteContactInfoID_LanguageCode")
+                        .IsUnique();
+
+                    b.ToTable("WebsiteContactInfoTranslations");
+                });
+
             modelBuilder.Entity("Dotnetable.Domain.Entities.WebsiteFeature", b =>
                 {
                     b.Property<int>("WebsiteFeatureID")
@@ -10980,6 +11017,17 @@ namespace Dotnetable.Migrations.MySql.Migrations
                     b.Navigation("Website");
                 });
 
+            modelBuilder.Entity("Dotnetable.Domain.Entities.WebsiteContactInfoTranslation", b =>
+                {
+                    b.HasOne("Dotnetable.Domain.Entities.WebsiteContactInfo", "WebsiteContactInfo")
+                        .WithMany("WebsiteContactInfoTranslations")
+                        .HasForeignKey("WebsiteContactInfoID")
+                        .IsRequired()
+                        .HasConstraintName("FK_WebsiteContactInfoTranslations_WebsiteContactInfos");
+
+                    b.Navigation("WebsiteContactInfo");
+                });
+
             modelBuilder.Entity("Dotnetable.Domain.Entities.WebsiteFeature", b =>
                 {
                     b.HasOne("Dotnetable.Domain.Entities.Website", "Website")
@@ -12028,6 +12076,11 @@ namespace Dotnetable.Migrations.MySql.Migrations
             modelBuilder.Entity("Dotnetable.Domain.Entities.WebsiteClientAddress", b =>
                 {
                     b.Navigation("Orders");
+                });
+
+            modelBuilder.Entity("Dotnetable.Domain.Entities.WebsiteContactInfo", b =>
+                {
+                    b.Navigation("WebsiteContactInfoTranslations");
                 });
 
             modelBuilder.Entity("Dotnetable.Domain.Entities.WebsiteStorageSetting", b =>

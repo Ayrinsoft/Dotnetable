@@ -287,9 +287,63 @@ public class WebsiteSettingService : IWebsiteSettingService
     {
         await using var _context = await _contextFactory.CreateDbContextAsync(ct);
 
-        var entity = await _context.WebsiteContactInfos.FindAsync([id], ct);
+        var entity = await _context.WebsiteContactInfos
+            .Include(x => x.WebsiteContactInfoTranslations)
+            .FirstOrDefaultAsync(x => x.WebsiteContactInfoID == id, ct);
         if (entity is null) return;
+
+        _context.WebsiteContactInfoTranslations.RemoveRange(entity.WebsiteContactInfoTranslations);
         _context.WebsiteContactInfos.Remove(entity);
+        await _context.SaveChangesAsync(ct);
+    }
+
+    public async Task<List<WebsiteContactInfoTranslation>> GetContactInfoTranslationsAsync(int contactInfoId, CancellationToken ct = default)
+    {
+        await using var _context = await _contextFactory.CreateDbContextAsync(ct);
+
+        return await _context.WebsiteContactInfoTranslations.AsNoTracking()
+            .Where(t => t.WebsiteContactInfoID == contactInfoId)
+            .ToListAsync(ct);
+    }
+
+    public async Task SetContactInfoTranslationsAsync(int contactInfoId, IReadOnlyDictionary<string, (string Title, string? GroupTitle, string? Value)> byLanguage, CancellationToken ct = default)
+    {
+        await using var _context = await _contextFactory.CreateDbContextAsync(ct);
+
+        var existing = await _context.WebsiteContactInfoTranslations
+            .Where(t => t.WebsiteContactInfoID == contactInfoId)
+            .ToListAsync(ct);
+
+        foreach (var (languageCode, value) in byLanguage)
+        {
+            var current = existing.FirstOrDefault(t =>
+                string.Equals(t.LanguageCode, languageCode, StringComparison.OrdinalIgnoreCase));
+
+            if (string.IsNullOrWhiteSpace(value.Title))
+            {
+                if (current is not null) _context.WebsiteContactInfoTranslations.Remove(current);
+                continue;
+            }
+
+            var groupTitle = string.IsNullOrWhiteSpace(value.GroupTitle) ? null : value.GroupTitle.Trim();
+            var contactValue = string.IsNullOrWhiteSpace(value.Value) ? null : value.Value.Trim();
+            if (current is null)
+                _context.WebsiteContactInfoTranslations.Add(new WebsiteContactInfoTranslation
+                {
+                    WebsiteContactInfoID = contactInfoId,
+                    LanguageCode = languageCode,
+                    Title = value.Title.Trim(),
+                    GroupTitle = groupTitle,
+                    Value = contactValue,
+                });
+            else
+            {
+                current.Title = value.Title.Trim();
+                current.GroupTitle = groupTitle;
+                current.Value = contactValue;
+            }
+        }
+
         await _context.SaveChangesAsync(ct);
     }
 

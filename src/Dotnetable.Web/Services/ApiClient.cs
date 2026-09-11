@@ -226,9 +226,15 @@ public class ApiClient
         GetOrNullAsync<CaptchaChallengeDto>("api/captcha/challenge", ct);
 
     /// <summary>Site branding/identity (brand, logo, contact, socials, SEO defaults) used by the
-    /// layout. Null when the API is unreachable — the layout falls back to neutral defaults.</summary>
-    public Task<SiteInfoDto?> GetSiteInfoAsync(CancellationToken ct = default) =>
-        CachedGetAsync("siteinfo", () => GetOrNullAsync<SiteInfoDto>("api/siteinfo", ct));
+    /// layout. Null when the API is unreachable — the layout falls back to neutral defaults.
+    /// <paramref name="lang"/> selects translated contact info fields where available.</summary>
+    public Task<SiteInfoDto?> GetSiteInfoAsync(string? lang = null, CancellationToken ct = default) =>
+        CachedGetAsync($"siteinfo:{lang}", () =>
+        {
+            var path = "api/siteinfo";
+            if (!string.IsNullOrWhiteSpace(lang)) path += $"?lang={Uri.EscapeDataString(lang)}";
+            return GetOrNullAsync<SiteInfoDto>(path, ct);
+        });
 
     /// <summary>Active WordPress-style theme package (view root under Themes/). Null when the API
     /// is unreachable — Web falls back to Theme:Active / Default.</summary>
