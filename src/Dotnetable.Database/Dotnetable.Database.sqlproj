@@ -52,6 +52,8 @@
   <ItemGroup>
     <!-- Data seed scripts (DML), not part of the schema model. Run manually as needed. -->
     <None Include="Seed\SeedDefaultAccess.sql" />
+    <None Include="Seed\SeedRoleCatalog.sql" />
+    <None Include="Seed\MoveSchema_DtnusrToDbo.sql" />
     <None Include="Seed\Alter_Languages_WebsiteID_Nullable.sql" />
     <None Include="Seed\Alter_LocalizationKeys_WebsiteID_Nullable.sql" />
     <None Include="Dotnetable.Database.dbmdl" />
