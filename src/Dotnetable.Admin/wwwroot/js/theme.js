@@ -39,12 +39,16 @@ window.dotnetableLang = {
         try { localStorage.setItem('dn-lang', value); } catch (e) { }
         document.cookie = 'dn-lang=' + value + ';path=/;max-age=31536000;samesite=lax';
     },
-    // Sets dir/lang on the real <html> element so RTL reaches document.body-portaled content too
-    // (MudBlazor dialogs/menus/snackbars render outside the Blazor component's own DOM subtree).
+    // Sets dir/lang on the real <html> element, and toggles the "lang-fa" class there too (not just
+    // on MudLayout, which admin-theme.css also targets for the Sahel font swap) so RTL AND the
+    // Persian font reach document.body-portaled content too (MudBlazor dialogs/menus/snackbars/
+    // select-popovers render outside the Blazor component's own DOM subtree, as a sibling appended
+    // to <body> — a class on MudLayout never reaches them, but one on <html> does).
     // Called once the Blazor circuit has resolved the language from the DB (see MainLayout).
     setDir: function (rtl, lang) {
         document.documentElement.setAttribute('dir', rtl ? 'rtl' : 'ltr');
         if (lang) document.documentElement.setAttribute('lang', lang);
+        document.documentElement.classList.toggle('lang-fa', lang === 'fa');
     }
 };
 

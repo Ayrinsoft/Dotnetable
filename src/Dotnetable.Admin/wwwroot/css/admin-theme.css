@@ -26,6 +26,15 @@ html, body {
     background-color: var(--mud-palette-background, #e4e7ea);
 }
 
+/* Browsers don't inherit font-family into form controls by default (a long-standing UA-stylesheet
+   quirk) — without this, native <input>/<select>/<button>/<textarea> elements (DNGridView's own
+   search boxes and pagination among others, not just MudBlazor's) silently fall back to the OS's
+   default UI font instead of the page's, which is exactly the "wrong font in some buttons/textboxes"
+   symptom. This alone does not fight MudBlazor's own explicit per-component font rules below. */
+input, button, select, textarea, optgroup {
+    font-family: inherit;
+}
+
 .mud-typography,
 .mud-input-root,
 .mud-button-root,
@@ -34,13 +43,16 @@ html, body {
     font-family: 'Open Sans', sans-serif !important;
 }
 
-/* Persian UI: swap to the Sahel font wherever .lang-fa is applied (see MainLayout/Setup). */
+/* Persian UI: swap to the Sahel font wherever .lang-fa is applied. Set on <html> itself (see
+   theme.js's dotnetableLang.setDir), not just on MudLayout — MudBlazor portals dialogs, menus,
+   snackbars and select/autocomplete popovers onto document.body as siblings of MudLayout, so a
+   class scoped to MudLayout's own subtree never reached them. The blanket "* " selector (rather
+   than an enumerated list of MudBlazor's internal classes, which has already missed components
+   twice) is safe for icons: Bootstrap Icons glyphs are drawn via ::before with their own
+   higher-specificity !important font-family, which this selector does not target, and MudBlazor's
+   icons are inline SVG paths that font-family cannot affect either way. */
 .lang-fa,
-.lang-fa .mud-typography,
-.lang-fa .mud-input-root,
-.lang-fa .mud-button-root,
-.lang-fa .mud-table,
-.lang-fa .mud-nav-link {
+.lang-fa * {
     font-family: 'Sahel', 'Open Sans', sans-serif !important;
 }
 

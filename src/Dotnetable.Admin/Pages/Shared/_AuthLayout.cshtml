@@ -55,6 +55,13 @@
 
         * { box-sizing: border-box; }
 
+        /* Browsers don't inherit font-family into form controls by default, so without this the
+           login form's own <input>/<button> fall back to the OS's default UI font instead of
+           Sahel/Open Sans regardless of the html[lang="fa"] rule above. */
+        input, button, select, textarea {
+            font-family: inherit;
+        }
+
         body {
             margin: 0;
             min-height: 100vh;
