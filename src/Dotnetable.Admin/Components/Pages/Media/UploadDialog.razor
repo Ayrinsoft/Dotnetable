@@ -306,13 +306,13 @@
         }
     }
 
-    /// <summary>Build stored display name: custom base + original extension when the user omitted it.</summary>
+    /// <summary>Build stored display name: custom base + original extension when the user omitted
+    /// one — sanitizing happens in <see cref="IFileService.UploadAsync"/> itself (via
+    /// <see cref="FileNameSanitizer"/>), so the API never accepts an unsafe name even called directly.</summary>
     private static string? ResolveCustomFileName(string? customBase, string originalName)
     {
         if (string.IsNullOrWhiteSpace(customBase)) return null;
         var name = customBase.Trim();
-        if (name.IndexOfAny(Path.GetInvalidFileNameChars()) >= 0)
-            name = string.Concat(name.Select(c => Path.GetInvalidFileNameChars().Contains(c) ? '_' : c));
 
         if (Path.HasExtension(name))
             return name;

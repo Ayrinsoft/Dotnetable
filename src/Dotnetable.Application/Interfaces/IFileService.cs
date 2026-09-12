@@ -82,7 +82,15 @@ public interface IFileService
 
     Task<FileRecord> UploadAsync(FileUploadRequest request, CancellationToken ct = default);
 
-    Task UpdateMetadataAsync(int id, string? title, string? altText, int? folderId, IReadOnlyList<int> tagIds, CancellationToken ct = default);
+    /// <summary>
+    /// Replaces a file's content while keeping its ID and storage key/URL — the storage object is
+    /// overwritten in place, so every existing reference (an FK by ID or a URL already baked into
+    /// published HTML) keeps working. Unlike <see cref="UploadAsync"/>, this never runs the
+    /// raster→WebP conversion pass, since that can change the extension/key.
+    /// </summary>
+    Task<FileRecord> ReplaceContentAsync(int id, Stream content, string originalFileName, string? mimeType, CancellationToken ct = default);
+
+    Task UpdateMetadataAsync(int id, string? title, string? altText, string? fileName, int? folderId, IReadOnlyList<int> tagIds, CancellationToken ct = default);
 
     /// <summary>
     /// Deletes the object (and thumbnail if any) from storage, nulls optional FKs that referenced

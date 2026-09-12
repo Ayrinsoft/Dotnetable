@@ -2737,6 +2737,14 @@ window.DOCS_ADMIN = {
               en: "From product/post editors, use the file picker to attach existing assets.",
               fa: "از ادیتور محصول/پست با file picker دارایی موجود را وصل کنید.",
             },
+            {
+              en: "Uploaded/renamed file names are automatically cleaned up to be URL-safe (spaces and unsafe characters become dashes) — this happens on the server, so it applies however the file was named.",
+              fa: "نام فایل‌های آپلودشده/تغییرنام‌یافته خودکار برای URL امن می‌شوند (فاصله و کاراکترهای ناامن به خط تیره تبدیل می‌شوند) — این کار سمت سرور انجام می‌شود، پس صرف‌نظر از نام اصلی فایل اعمال می‌شود.",
+            },
+            {
+              en: "Open a file's details and use \"Replace file\" to swap its content (e.g. fix a wrong image) without breaking anything that already links to it — the file keeps the exact same ID and URL, only the bytes behind it change.",
+              fa: "جزئیات یک فایل را باز کنید و از «Replace file» برای تعویض محتوای آن استفاده کنید (مثلاً اصلاح یک تصویر اشتباه) بدون این‌که چیزی که از قبل به آن لینک شده خراب شود — فایل دقیقاً همان آیدی و URL را حفظ می‌کند، فقط محتوای پشت آن تغییر می‌کند.",
+            },
           ],
           related: ["media-folders", "media-tags", "storage", "watermark", "products", "posts"],
         },

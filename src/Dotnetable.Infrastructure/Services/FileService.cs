@@ -1,5 +1,6 @@
 using Dotnetable.Application.DTOs;
 using Dotnetable.Application.Interfaces;
+using Dotnetable.Application.Text;
 using Dotnetable.Domain.Entities;
 using Dotnetable.Domain.Enums;
 using Dotnetable.Infrastructure.Data;
@@ -186,9 +187,9 @@ public class FileService : IFileService
             StoragePath = uploaded.StoragePath,
             CNDUrl = uploaded.CdnUrl,
             CDNFileCode = uploaded.CdnFileCode,
-            OriginalFileName = Truncate(webpApplied
+            OriginalFileName = FileNameSanitizer.Normalize(webpApplied
                 ? WithExtension(string.IsNullOrWhiteSpace(request.CustomFileName) ? request.OriginalFileName : request.CustomFileName, ext)
-                : (string.IsNullOrWhiteSpace(request.CustomFileName) ? request.OriginalFileName : request.CustomFileName), 120)!,
+                : (string.IsNullOrWhiteSpace(request.CustomFileName) ? request.OriginalFileName : request.CustomFileName), 120),
             StoredFileName = storedName,
             MimeType = Truncate(mime, 74)!,
             FileSizeKB = sizeKb,
@@ -211,7 +212,91 @@ public class FileService : IFileService
         return record;
     }
 
-    public async Task UpdateMetadataAsync(int id, string? title, string? altText, int? folderId,
+    /// <summary>
+    /// Swaps a file's content in place: the row's <see cref="FileRecord.FileRecordID"/> and its
+    /// storage key (<see cref="FileRecord.StoredFileName"/>, hence <see cref="FileRecord.StoragePath"/>/
+    /// <see cref="FileRecord.CNDUrl"/>) never change, so every existing reference — an FK by ID
+    /// (Post.FeaturedImageFileID, etc.) or a public URL baked into already-published HTML — keeps
+    /// working without anyone having to re-pick or re-save anything. Unlike a fresh upload, this does
+    /// NOT run the raster→WebP conversion pass: that pass can change the file's extension, which
+    /// would change the storage key — exactly what must not happen here. The new bytes are stored
+    /// as-is (the CDN sees their own correct Content-Type either way).
+    /// </summary>
+    public async Task<FileRecord> ReplaceContentAsync(int id, Stream content, string originalFileName,
+        string? mimeType, CancellationToken ct = default)
+    {
+        await using var _context = await _contextFactory.CreateDbContextAsync(ct);
+
+        var record = await _context.FileRecords
+            .Include(f => f.WebsiteStorageSettings)
+            .FirstOrDefaultAsync(f => f.FileRecordID == id, ct)
+            ?? throw new InvalidOperationException("File not found.");
+
+        var setting = record.WebsiteStorageSettings
+            ?? throw new InvalidOperationException("Storage setting not found for this file.");
+        if (!setting.Active)
+            throw new InvalidOperationException("The selected storage is not active.");
+
+        var ext = Path.GetExtension(originalFileName).ToLowerInvariant();
+        ValidateExtension(setting.AllowedExtensions, ext);
+
+        await using var buffer = new MemoryStream();
+        await content.CopyToAsync(buffer, ct);
+        var sizeKb = (int)Math.Ceiling(buffer.Length / 1024d);
+        if (setting.MaxFileSizeKB > 0 && sizeKb > setting.MaxFileSizeKB)
+            throw new InvalidOperationException($"File exceeds the {setting.MaxFileSizeKB} KB limit for this storage.");
+
+        var mime = string.IsNullOrWhiteSpace(mimeType) ? "application/octet-stream" : mimeType!;
+        var category = ClassifyMime(mime);
+
+        var ctx = ToContext(setting);
+        var provider = _providers.Get((StorageProviderType)setting.StorageProvider);
+
+        // Same key as before — this overwrites the existing object rather than creating a new one.
+        buffer.Position = 0;
+        var uploaded = await provider.UploadAsync(ctx, buffer, record.StoredFileName, mime, ct);
+
+        string? thumbStorage = null, thumbCdn = null;
+        if (setting.AutoGenerateThumbnails && category == FileCategory.Image)
+        {
+            buffer.Position = 0;
+            await using var thumb = await ImageThumbnailer.TryCreateAsync(buffer, ct);
+            if (thumb is not null)
+            {
+                // Reuse the existing thumbnail key when there is one, so it overwrites in place too.
+                var thumbName = !string.IsNullOrWhiteSpace(record.ThumbnailStorage)
+                    ? Path.GetFileName(record.ThumbnailStorage)
+                    : "t_" + Path.GetFileNameWithoutExtension(record.StoredFileName) + ".webp";
+                var thumbResult = await provider.UploadAsync(ctx, thumb, thumbName, "image/webp", ct);
+                thumbStorage = thumbResult.StoragePath;
+                thumbCdn = thumbResult.CdnUrl;
+            }
+        }
+        else if (!string.IsNullOrWhiteSpace(record.ThumbnailStorage))
+        {
+            // The new content isn't an image (or thumbnails are off) — a stale thumbnail pointing at
+            // the old picture would be actively misleading, so drop it rather than leave it behind.
+            var thumbKey = ResolveStorageKey(record.ThumbnailStorage, null, null);
+            if (!string.IsNullOrWhiteSpace(thumbKey))
+                await DeleteFromStorageAsync(provider, ctx, thumbKey, ct);
+        }
+
+        record.StoragePath = uploaded.StoragePath;
+        record.CNDUrl = uploaded.CdnUrl;
+        record.CDNFileCode = uploaded.CdnFileCode;
+        record.MimeType = Truncate(mime, 74)!;
+        record.FileSizeKB = sizeKb;
+        record.FileCategory = (byte)category;
+        record.OriginalFileName = FileNameSanitizer.Normalize(originalFileName, 120);
+        record.ThumbnailStorage = thumbStorage;
+        record.ThumbnailCDN = thumbCdn;
+        record.UploadDate = DateTime.UtcNow;
+
+        await _context.SaveChangesAsync(ct);
+        return record;
+    }
+
+    public async Task UpdateMetadataAsync(int id, string? title, string? altText, string? fileName, int? folderId,
         IReadOnlyList<int> tagIds, CancellationToken ct = default)
     {
         await using var _context = await _contextFactory.CreateDbContextAsync(ct);
@@ -223,6 +308,8 @@ public class FileService : IFileService
 
         record.Title = Truncate(title, 50);
         record.AltText = Truncate(altText, 120);
+        if (!string.IsNullOrWhiteSpace(fileName))
+            record.OriginalFileName = FileNameSanitizer.Normalize(fileName, 120);
         record.FileFolderID = folderId;
 
         var desired = tagIds.Distinct().ToHashSet();
