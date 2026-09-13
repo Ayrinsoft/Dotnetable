@@ -57,6 +57,7 @@
     <None Include="Seed\CleanupOrphanedContactMessageNotifications.sql" />
     <None Include="Seed\Alter_Languages_WebsiteID_Nullable.sql" />
     <None Include="Seed\Alter_LocalizationKeys_WebsiteID_Nullable.sql" />
+    <None Include="Seed\CreateMissingAdvertisementsTables.sql" />
     <None Include="Dotnetable.Database.dbmdl" />
     <None Include="Dotnetable.Database.jfm" />
     <None Include="Dotnetable.Database.sqlproj.user" />
