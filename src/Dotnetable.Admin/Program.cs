@@ -54,6 +54,12 @@ builder.Services
         options.AccessDeniedPath = "/AccessDenied";
         options.ExpireTimeSpan = TimeSpan.FromHours(8);
         options.SlidingExpiration = true;
+
+        // Sliding expiration keeps renewing an existing cookie's ticket forever without ever
+        // re-checking its claims — a cookie issued before a claims-shape change (see
+        // MemberClaims.CurrentClaimsVersion) would otherwise sit forever with stale/incompatible
+        // claims, surfacing as authorization failures only a manual cookie-clear fixed.
+        options.Events.OnValidatePrincipal = StaleCookieValidator.ValidateAsync;
     });
 
 builder.Services.AddAuthorization(AdminPolicies.Register);

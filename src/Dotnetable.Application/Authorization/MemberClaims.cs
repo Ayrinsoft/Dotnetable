@@ -23,6 +23,20 @@ public static class MemberClaims
     public const string VendorId = "vid";
 
     /// <summary>
+    /// Shape/version of the claims this class issues. Bump this whenever the set or meaning of
+    /// claims baked into the admin sign-in cookie changes (e.g. adding/removing a claim, or — as in
+    /// the incident that added this — switching whether <see cref="ClaimTypes.Role"/> claims are
+    /// baked into the cookie at all). <see cref="Auth.StaleCookieValidator"/> (Dotnetable.Admin)
+    /// compares this against the cookie's <see cref="ClaimsVersion"/> claim on every request and
+    /// force-signs-out anything that doesn't match, so a session predating a claims-shape change
+    /// never sits on stale/incompatible claims until someone thinks to clear cookies by hand.
+    /// </summary>
+    public const string CurrentClaimsVersion = "2";
+
+    /// <summary>The <see cref="CurrentClaimsVersion"/> this principal's claims were built with.</summary>
+    public const string ClaimsVersion = "cv";
+
+    /// <summary>
     /// Builds the identity + role claims for <paramref name="member"/>. The member must have its
     /// Policy → PolicyRoles → Role graph loaded for the role claims to be populated.
     /// Include <see cref="Member.Vendor"/> when present so <see cref="VendorId"/> is emitted.
@@ -38,6 +52,7 @@ public static class MemberClaims
             new(WebsiteId, member.WebsiteID.ToString()),
             new(PolicyId, member.PolicyID.ToString()),
             new(AdminUiMode, member.AdminUIMode.ToString()),
+            new(ClaimsVersion, CurrentClaimsVersion),
         };
 
         if (member.WebsiteID == AppConstants.MasterWebsiteId)

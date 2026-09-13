@@ -1,0 +1,16 @@
+@page
+@model Dotnetable.Admin.Pages.AccessDeniedModel
+@{
+    Layout = "_AuthLayout";
+    ViewData["Title"] = "Access denied";
+}
+
+<p class="auth-subtitle">
+    Your account doesn't have permission to view that page. If you were signed in before a recent
+    update, signing out and back in refreshes your permissions.
+</p>
+
+<div class="auth-links">
+    <a asp-page="/Logout" class="btn">Sign out</a>
+    <a asp-page="/Login">Back to sign in</a>
+</div>
