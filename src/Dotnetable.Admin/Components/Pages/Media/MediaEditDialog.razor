@@ -40,12 +40,19 @@
             </MudAlert>
         }
 
-        <MudGrid Spacing="2" Class="mt-2">
-            <MudItem xs="6">
-                <MudNumericField T="int?" @bind-Value="_resizeWidth" Label="@L["upload.width", "Width (px)"]" Variant="Variant.Outlined" Min="1" />
+        <MudGrid Spacing="2" Class="mt-2" AlignItems="AlignItems.Center">
+            <MudItem xs="5">
+                <MudNumericField T="int?" Value="_resizeWidth" ValueChanged="OnWidthChanged" Label="@L["upload.width", "Width (px)"]" Variant="Variant.Outlined" Min="1" />
             </MudItem>
-            <MudItem xs="6">
-                <MudNumericField T="int?" @bind-Value="_resizeHeight" Label="@L["upload.height", "Height (px)"]" Variant="Variant.Outlined" Min="1" />
+            <MudItem xs="2" Class="d-flex justify-center">
+                <MudIconButton Icon="@(_linked ? Icons.Material.Filled.Link : Icons.Material.Filled.LinkOff)"
+                               Size="Size.Small"
+                               Color="@(_linked ? Color.Primary : Color.Default)"
+                               OnClick="ToggleLink"
+                               title="@L["upload.link_dimensions", "Keep aspect ratio"]" />
+            </MudItem>
+            <MudItem xs="5">
+                <MudNumericField T="int?" Value="_resizeHeight" ValueChanged="OnHeightChanged" Label="@L["upload.height", "Height (px)"]" Variant="Variant.Outlined" Min="1" />
             </MudItem>
         </MudGrid>
 
@@ -81,6 +88,8 @@
     private bool _initialized;
     private string _aspectKey = "free";
     private bool _editorReady;
+    private bool _linked = true;
+    private double? _aspectRatio;
 
     protected override void OnInitialized()
     {
@@ -111,9 +120,42 @@
         await JS.InvokeVoidAsync("mediaEditor.init", _canvasId, _previewDataUrl, 480, 360);
         _editorReady = true;
         await ApplyAspectToJsAsync(createIfEmpty: false);
+
+        var natural = await JS.InvokeAsync<NaturalSizeResult?>("mediaEditor.naturalSize", _canvasId);
+        if (natural is { Width: > 0, Height: > 0 })
+        {
+            _resizeWidth ??= natural.Width;
+            _resizeHeight ??= natural.Height;
+        }
+
+        if (_resizeWidth is > 0 && _resizeHeight is > 0)
+            _aspectRatio = (double)_resizeWidth.Value / _resizeHeight.Value;
+
+        StateHasChanged();
     }
 
     private async Task ClearCrop() => await JS.InvokeVoidAsync("mediaEditor.clearCrop", _canvasId);
+
+    private void ToggleLink()
+    {
+        _linked = !_linked;
+        if (_linked && _resizeWidth is > 0 && _resizeHeight is > 0)
+            _aspectRatio = (double)_resizeWidth.Value / _resizeHeight.Value;
+    }
+
+    private void OnWidthChanged(int? value)
+    {
+        _resizeWidth = value;
+        if (_linked && value is > 0 && _aspectRatio is > 0)
+            _resizeHeight = Math.Max(1, (int)Math.Round(value.Value / _aspectRatio.Value));
+    }
+
+    private void OnHeightChanged(int? value)
+    {
+        _resizeHeight = value;
+        if (_linked && value is > 0 && _aspectRatio is > 0)
+            _resizeWidth = Math.Max(1, (int)Math.Round(value.Value * _aspectRatio.Value));
+    }
 
     private async Task OnAspectChangedAsync(string value)
     {
@@ -169,5 +211,11 @@
         public double Y { get; set; }
         public double Width { get; set; }
         public double Height { get; set; }
+    }
+
+    private sealed class NaturalSizeResult
+    {
+        public int Width { get; set; }
+        public int Height { get; set; }
     }
 }

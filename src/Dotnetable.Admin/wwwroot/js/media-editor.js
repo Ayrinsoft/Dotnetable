@@ -424,6 +424,12 @@ window.mediaEditor = (function () {
         }
     }
 
+    function naturalSize(canvasId) {
+        const state = states[canvasId];
+        if (!state) return null;
+        return { width: state.img.naturalWidth || state.img.width, height: state.img.naturalHeight || state.img.height };
+    }
+
     function getCrop(canvasId) {
         const state = states[canvasId];
         if (!state || !state.rect || state.rect.w < 4 || state.rect.h < 4) return null;
@@ -464,5 +470,5 @@ window.mediaEditor = (function () {
         delete states[canvasId];
     }
 
-    return { init, getCrop, clearCrop, dispose, setAspectRatio };
+    return { init, getCrop, clearCrop, dispose, setAspectRatio, naturalSize };
 })();
