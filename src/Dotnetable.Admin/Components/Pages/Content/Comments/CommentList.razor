@@ -1,0 +1,345 @@
+@page "/content/comments"
+@attribute [Authorize(Policy = RoleKeys.CommentsView)]
+@inject IContentCommentService CommentService
+@inject IWebsiteService WebsiteService
+@inject AuthenticationStateProvider AuthState
+@inject IDialogService DialogService
+@inject ISnackbar Snackbar
+@inject IPageLocalizer L
+
+<DNPageTitle Title=@L["comments", "Comments"] />
+
+<MudStack Row="true" AlignItems="AlignItems.Center" Justify="Justify.SpaceBetween" Class="mb-4" Wrap="Wrap.Wrap">
+    <MudStack Spacing="0">
+        <MudText Typo="Typo.h5" Class="fw-bold">@L["comments", "Comments"]</MudText>
+        <MudText Typo="Typo.body2" Color="Color.Secondary">
+            @L["comments.subtitle", "Visitor comments on posts and pages. Nothing is shown on the site until it is approved."]
+        </MudText>
+    </MudStack>
+    @if (_isMaster)
+    {
+        <WebsiteSelector Value="_websiteId" ValueChanged="OnWebsiteChanged" Websites="_websites"
+                         Label="@L["website", "Website"]" Variant="Variant.Outlined"
+                         Dense="true" Style="min-width:180px" />
+    }
+</MudStack>
+
+<MudPaper Elevation="0" Class="app-card rounded-lg pa-4 mb-3">
+    <MudGrid Spacing="2">
+        <MudItem xs="12" sm="4" md="3">
+            <MudSelect T="int" Value="_status" ValueChanged="OnStatusChanged" Label="@L["status", "Status"]"
+                       Variant="Variant.Outlined" Dense="true">
+                <MudSelectItem T="int" Value="(int)ModerationStatus.Pending">@L["comments.pending", "Pending"] @(_pendingCount > 0 ? $"({_pendingCount})" : "")</MudSelectItem>
+                <MudSelectItem T="int" Value="(int)ModerationStatus.Approved">@L["comments.approved", "Approved"]</MudSelectItem>
+                <MudSelectItem T="int" Value="(int)ModerationStatus.Rejected">@L["comments.rejected", "Rejected"]</MudSelectItem>
+                <MudSelectItem T="int" Value="0">@L["all", "All"]</MudSelectItem>
+            </MudSelect>
+        </MudItem>
+        <MudItem xs="12" sm="4" md="3">
+            <MudSelect T="int" Value="_target" ValueChanged="OnTargetChanged" Label="@L["comments.on", "On"]"
+                       Variant="Variant.Outlined" Dense="true" Disabled="@(PostId is not null || PageId is not null)">
+                <MudSelectItem T="int" Value="0">@L["comments.posts_and_pages", "Posts & pages"]</MudSelectItem>
+                <MudSelectItem T="int" Value="(int)CommentTarget.Post">@L["posts", "Posts"]</MudSelectItem>
+                <MudSelectItem T="int" Value="(int)CommentTarget.Page">@L["pages", "Pages"]</MudSelectItem>
+            </MudSelect>
+        </MudItem>
+        <MudItem xs="12" sm="4" md="4">
+            <MudTextField T="string" Value="_search" ValueChanged="OnSearchChanged" Label="@L["search", "Search"]"
+                          Placeholder="@L["comments.search_hint", "Text, name or email"]"
+                          Variant="Variant.Outlined" Margin="Margin.Dense" Clearable="true" DebounceInterval="400"
+                          Adornment="Adornment.Start" AdornmentIcon="@Icons.Material.Filled.Search" />
+        </MudItem>
+        <MudItem xs="12" md="2" Class="d-flex align-center">
+            @if (_canModerate && _status == (int)ModerationStatus.Pending && _items.Count > 0)
+            {
+                <MudButton Variant="Variant.Outlined" Color="Color.Success" FullWidth="true"
+                           Disabled="_bulkBusy" OnClick="ApproveAllAsync">
+                    @L["comments.approve_all", "Approve all shown"]
+                </MudButton>
+            }
+        </MudItem>
+    </MudGrid>
+    @if (PostId is not null || PageId is not null)
+    {
+        <MudAlert Severity="Severity.Info" Dense="true" Class="mt-3">
+            @L["comments.filtered", "Showing comments of a single post/page."]
+            <MudLink Href="/content/comments" Class="ms-2">@L["comments.show_all", "Show all"]</MudLink>
+        </MudAlert>
+    }
+</MudPaper>
+
+<MudPaper Elevation="0" Class="app-card rounded-lg pa-4">
+    @if (_loading)
+    {
+        <MudProgressLinear Indeterminate="true" Color="Color.Primary" Class="mb-3" />
+    }
+    @if (!_loading && _items.Count == 0)
+    {
+        <div style="text-align:center; padding:32px;">
+            <MudText Color="Color.Secondary">@L["comments.empty", "No comments here."]</MudText>
+        </div>
+    }
+    @foreach (var c in _items)
+    {
+        <MudPaper Elevation="0" Class="border rounded-lg pa-3 mb-2">
+            <MudStack Row="true" Justify="Justify.SpaceBetween" AlignItems="AlignItems.Start" Wrap="Wrap.Wrap">
+                <MudStack Spacing="1" Style="min-width:0; flex:1 1 360px">
+                    <MudStack Row="true" Spacing="2" AlignItems="AlignItems.Center" Wrap="Wrap.Wrap">
+                        <MudChip T="string" Size="Size.Small" Color="@StatusColor(c.Status)" Variant="Variant.Outlined">@StatusLabel(c.Status)</MudChip>
+                        @if (c.Post is not null)
+                        {
+                            <MudText Typo="Typo.caption" Color="Color.Secondary">@L["post", "Post"]:</MudText>
+                            <MudLink Href="@($"/content/posts/{c.PostID}")" Typo="Typo.subtitle2">@c.Post.Title</MudLink>
+                        }
+                        else if (c.Page is not null)
+                        {
+                            <MudText Typo="Typo.caption" Color="Color.Secondary">@L["page", "Page"]:</MudText>
+                            <MudLink Href="@($"/content/pages/{c.PageID}")" Typo="Typo.subtitle2">@c.Page.Title</MudLink>
+                        }
+                    </MudStack>
+
+                    @if (c.ParentComment is not null)
+                    {
+                        <MudText Typo="Typo.caption" Color="Color.Secondary" Style="border-inline-start:3px solid var(--mud-palette-lines-default); padding-inline-start:8px">
+                            @L["comments.in_reply_to", "In reply to"] @c.ParentComment.AuthorName: “@Excerpt(c.ParentComment.Body)”
+                        </MudText>
+                    }
+
+                    <MudText Typo="Typo.body2" Style="white-space:pre-line; overflow-wrap:anywhere">@c.Body</MudText>
+
+                    <MudText Typo="Typo.caption" Color="Color.Secondary">
+                        <b>@c.AuthorName</b>
+                        @if (c.AuthorMember is not null)
+                        {
+                            <span> — @L["comments.staff", "Staff"]</span>
+                        }
+                        else if (c.WebsiteClient is not null)
+                        {
+                            <span> — @L["comments.customer", "Customer"] #@c.WebsiteClientID</span>
+                        }
+                        else
+                        {
+                            <span> — @L["comments.guest", "Guest"]</span>
+                        }
+                        @if (!string.IsNullOrEmpty(c.AuthorEmail))
+                        {
+                            <span> — @c.AuthorEmail</span>
+                        }
+                        @if (!string.IsNullOrEmpty(c.IpAddress))
+                        {
+                            <span> — IP @c.IpAddress</span>
+                        }
+                        <span> — @c.CreatedAt.ToLocalTime().ToString("g")</span>
+                    </MudText>
+
+                    @if (_replyTo == c.ContentCommentID)
+                    {
+                        <MudTextField T="string" @bind-Value="_replyText" Label="@L["comments.your_reply", "Your reply"]"
+                                      Variant="Variant.Outlined" Lines="3" MaxLength="IContentCommentService.BodyMaxLength" Class="mt-2" />
+                        <MudStack Row="true" Spacing="1">
+                            <MudButton Size="Size.Small" Variant="Variant.Filled" Color="Color.Primary"
+                                       Disabled="@(_busy.Contains(c.ContentCommentID) || string.IsNullOrWhiteSpace(_replyText))"
+                                       OnClick="@(() => SendReplyAsync(c))">
+                                @L["comments.send_reply", "Publish reply"]
+                            </MudButton>
+                            <MudButton Size="Size.Small" OnClick="CancelReply">@L["cancel", "Cancel"]</MudButton>
+                        </MudStack>
+                    }
+                </MudStack>
+
+                <MudStack Row="true" Spacing="1" Wrap="Wrap.Wrap">
+                    @if (_canModerate)
+                    {
+                        @if (c.Status != (byte)ModerationStatus.Approved)
+                        {
+                            <MudButton Size="Size.Small" Color="Color.Success" Variant="Variant.Filled"
+                                       Disabled="@_busy.Contains(c.ContentCommentID)"
+                                       OnClick="@(() => ModerateAsync(c, true))">@L["approve", "Approve"]</MudButton>
+                        }
+                        @if (c.Status != (byte)ModerationStatus.Rejected)
+                        {
+                            <MudButton Size="Size.Small" Color="Color.Warning"
+                                       Disabled="@_busy.Contains(c.ContentCommentID)"
+                                       OnClick="@(() => ModerateAsync(c, false))">@L["reject", "Reject"]</MudButton>
+                        }
+                        <MudButton Size="Size.Small" Color="Color.Primary" StartIcon="@Icons.Material.Filled.Reply"
+                                   OnClick="@(() => StartReply(c))">@L["comments.reply", "Reply"]</MudButton>
+                    }
+                    @if (_canDelete)
+                    {
+                        <MudIconButton Icon="@Icons.Material.Filled.Delete" Size="Size.Small" Color="Color.Error"
+                                       Disabled="@_busy.Contains(c.ContentCommentID)"
+                                       OnClick="@(() => DeleteAsync(c))" />
+                    }
+                </MudStack>
+            </MudStack>
+        </MudPaper>
+    }
+
+    @if (_pageCount > 1)
+    {
+        <MudStack Row="true" Justify="Justify.Center" Class="mt-3">
+            <MudPagination Count="@_pageCount" Selected="@_page" SelectedChanged="OnPageChangedAsync" />
+        </MudStack>
+    }
+</MudPaper>
+
+@code {
+    private const int PageSize = 20;
+
+    /// <summary>Optional pre-filter, used by the "Comments" link on the post/page editors.</summary>
+    [SupplyParameterFromQuery(Name = "postId")] public int? PostId { get; set; }
+    [SupplyParameterFromQuery(Name = "pageId")] public int? PageId { get; set; }
+
+    private bool _loading = true;
+    private bool _isMaster, _canModerate, _canDelete, _bulkBusy;
+    private int _websiteId;
+    private int? _memberId;
+    private int _status = (int)ModerationStatus.Pending;
+    private int _target;
+    private string? _search;
+    private int _page = 1, _pageCount, _pendingCount;
+    private int? _replyTo;
+    private string? _replyText;
+    private List<ContentComment> _items = new();
+    private List<Website> _websites = new();
+    private readonly HashSet<int> _busy = new();
+
+    protected override async Task OnInitializedAsync()
+    {
+        await L.EnsureLoadedAsync();
+        var user = (await AuthState.GetAuthenticationStateAsync()).User;
+        _isMaster = user.HasClaim(AdminClaimTypes.Master, "true");
+        _canModerate = AdminPolicies.Allows(user, RoleKeys.CommentsModerate);
+        _canDelete = AdminPolicies.Allows(user, RoleKeys.CommentsDelete);
+        int.TryParse(user.FindFirst(AdminClaimTypes.WebsiteId)?.Value, out _websiteId);
+        _memberId = int.TryParse(user.FindFirst(AdminClaimTypes.MemberId)?.Value, out var mid) ? mid : null;
+        if (_isMaster) _websites = (await WebsiteService.GetAllAsync()).ToList();
+
+        // Coming from a specific post/page: show its whole thread, not just the pending queue.
+        if (PostId is not null || PageId is not null) _status = 0;
+
+        await LoadAsync();
+    }
+
+    // Non-master staff are always pinned to their own website; the service enforces the same scope.
+    private int? Scope => _isMaster && _websiteId == 0 ? null : _websiteId;
+
+    private async Task LoadAsync()
+    {
+        _loading = true;
+        var filter = new CommentModerationFilter
+        {
+            Status = _status == 0 ? null : (byte)_status,
+            Target = _target == 0 ? null : (CommentTarget)_target,
+            PostId = PostId,
+            PageId = PageId,
+            Search = _search,
+        };
+        var result = await CommentService.GetForModerationAsync(Scope, filter, new GridQuery { PageIndex = _page, PageSize = PageSize });
+        _items = result.Items.ToList();
+        _pageCount = (result.TotalCount + PageSize - 1) / PageSize;
+        if (_page > 1 && _page > _pageCount)
+        {
+            // The last page emptied out (e.g. after approving everything on it) — step back.
+            _page = Math.Max(1, _pageCount);
+            await LoadAsync();
+            return;
+        }
+        _pendingCount = await CommentService.CountPendingAsync(Scope);
+        _loading = false;
+    }
+
+    private async Task OnWebsiteChanged(int id) { _websiteId = id; _page = 1; await LoadAsync(); }
+    private async Task OnStatusChanged(int value) { _status = value; _page = 1; await LoadAsync(); }
+    private async Task OnTargetChanged(int value) { _target = value; _page = 1; await LoadAsync(); }
+    private async Task OnSearchChanged(string? value) { _search = value; _page = 1; await LoadAsync(); }
+    private async Task OnPageChangedAsync(int page) { _page = page; await LoadAsync(); }
+
+    private async Task ModerateAsync(ContentComment c, bool approve)
+    {
+        if (!_busy.Add(c.ContentCommentID)) return;
+        try
+        {
+            var ok = await CommentService.ModerateAsync(Scope, c.ContentCommentID, approve, _memberId);
+            Snackbar.Add(ok ? L["saved", "Saved."] : L["not_found", "Not found."], ok ? Severity.Success : Severity.Warning);
+        }
+        finally { _busy.Remove(c.ContentCommentID); }
+        await LoadAsync();
+    }
+
+    private async Task ApproveAllAsync()
+    {
+        _bulkBusy = true;
+        try
+        {
+            foreach (var c in _items.Where(i => i.Status != (byte)ModerationStatus.Approved).ToList())
+                await CommentService.ModerateAsync(Scope, c.ContentCommentID, true, _memberId);
+            Snackbar.Add(L["saved", "Saved."], Severity.Success);
+        }
+        finally { _bulkBusy = false; }
+        await LoadAsync();
+    }
+
+    private void StartReply(ContentComment c)
+    {
+        _replyTo = c.ContentCommentID;
+        _replyText = null;
+    }
+
+    private void CancelReply()
+    {
+        _replyTo = null;
+        _replyText = null;
+    }
+
+    private async Task SendReplyAsync(ContentComment c)
+    {
+        if (_memberId is not int memberId || string.IsNullOrWhiteSpace(_replyText)) return;
+        if (!_busy.Add(c.ContentCommentID)) return;
+        try
+        {
+            var reply = await CommentService.ReplyAsync(Scope, c.ContentCommentID, memberId, _replyText);
+            if (reply is null)
+            {
+                Snackbar.Add(L["comments.reply_failed", "The reply could not be published."], Severity.Error);
+                return;
+            }
+            Snackbar.Add(L["comments.reply_published", "Reply published."], Severity.Success);
+            CancelReply();
+        }
+        finally { _busy.Remove(c.ContentCommentID); }
+        await LoadAsync();
+    }
+
+    private async Task DeleteAsync(ContentComment c)
+    {
+        var confirmed = await DialogService.ShowMessageBoxAsync(
+            L["comments.delete", "Delete comment"],
+            L["comments.delete_confirm", "Delete this comment and all replies to it? This cannot be undone."],
+            yesText: L["delete", "Delete"], cancelText: L["cancel", "Cancel"]);
+        if (confirmed != true) return;
+
+        await CommentService.DeleteAsync(Scope, c.ContentCommentID);
+        Snackbar.Add(L["deleted", "Deleted."], Severity.Success);
+        await LoadAsync();
+    }
+
+    private static string Excerpt(string text) => text.Length <= 120 ? text : text[..120] + "…";
+
+    private string StatusLabel(byte status) => (ModerationStatus)status switch
+    {
+        ModerationStatus.Pending => L["comments.pending", "Pending"],
+        ModerationStatus.Approved => L["comments.approved", "Approved"],
+        ModerationStatus.Rejected => L["comments.rejected", "Rejected"],
+        _ => status.ToString(),
+    };
+
+    private static Color StatusColor(byte status) => (ModerationStatus)status switch
+    {
+        ModerationStatus.Pending => Color.Warning,
+        ModerationStatus.Approved => Color.Success,
+        ModerationStatus.Rejected => Color.Error,
+        _ => Color.Default,
+    };
+}

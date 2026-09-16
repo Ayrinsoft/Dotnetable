@@ -1,0 +1,34 @@
+@using Microsoft.AspNetCore.Mvc.ViewFeatures
+@model Dotnetable.Application.DTOs.CommentDto
+@{
+    // Indent only the first few levels so a long reply chain doesn't squeeze the text off-screen.
+    var depth = ViewData["CommentDepth"] as int? ?? 0;
+    var initial = string.IsNullOrEmpty(Model.AuthorName) ? "?" : Model.AuthorName[..1].ToUpperInvariant();
+}
+<div class="comment d-flex gap-3 mt-3" id="comment-@Model.CommentID">
+    <div class="comment-avatar flex-shrink-0 @(Model.IsStaff ? "comment-avatar-staff" : "")">@initial</div>
+    <div class="flex-grow-1" style="min-width:0">
+        <div class="d-flex flex-wrap gap-2 align-items-center">
+            <strong>@Model.AuthorName</strong>
+            @if (Model.IsStaff)
+            {
+                <span class="badge bg-primary">Staff</span>
+            }
+            <small class="text-muted">@Model.CreatedAt.ToString("MMMM d, yyyy")</small>
+        </div>
+        <p class="comment-body mb-1">@Model.Body</p>
+        <button type="button" class="btn btn-link btn-sm p-0 text-decoration-none comment-reply"
+                data-comment-id="@Model.CommentID" data-author="@Model.AuthorName">
+            <i class="bi bi-reply me-1"></i>Reply
+        </button>
+        @if (Model.Replies.Count > 0)
+        {
+            <div class="comment-replies @(depth < 3 ? "comment-replies-indent" : "")">
+                @foreach (var reply in Model.Replies)
+                {
+                    <partial name="_CommentItem" model="reply" view-data="@(new ViewDataDictionary(ViewData) { ["CommentDepth"] = depth + 1 })" />
+                }
+            </div>
+        }
+    </div>
+</div>

@@ -1058,6 +1058,87 @@ namespace Dotnetable.Migrations.SqlServer.Migrations
                     b.ToTable("ContactUsMessages");
                 });
 
+            modelBuilder.Entity("Dotnetable.Domain.Entities.ContentComment", b =>
+                {
+                    b.Property<int>("ContentCommentID")
+                        .ValueGeneratedOnAdd()
+                        .HasColumnType("int");
+
+                    SqlServerPropertyBuilderExtensions.UseIdentityColumn(b.Property<int>("ContentCommentID"));
+
+                    b.Property<string>("AuthorEmail")
+                        .HasMaxLength(256)
+                        .HasColumnType("nvarchar(256)");
+
+                    b.Property<int?>("AuthorMemberID")
+                        .HasColumnType("int");
+
+                    b.Property<string>("AuthorName")
+                        .IsRequired()
+                        .HasMaxLength(150)
+                        .HasColumnType("nvarchar(150)");
+
+                    b.Property<string>("Body")
+                        .IsRequired()
+                        .HasMaxLength(4000)
+                        .HasColumnType("nvarchar(4000)");
+
+                    b.Property<DateTime>("CreatedAt")
+                        .HasPrecision(0)
+                        .HasColumnType("datetime2(0)");
+
+                    b.Property<string>("IpAddress")
+                        .HasMaxLength(64)
+                        .HasColumnType("nvarchar(64)");
+
+                    b.Property<DateTime?>("ModeratedAt")
+                        .HasPrecision(0)
+                        .HasColumnType("datetime2(0)");
+
+                    b.Property<int?>("ModeratedByMemberID")
+                        .HasColumnType("int");
+
+                    b.Property<int?>("PageID")
+                        .HasColumnType("int");
+
+                    b.Property<int?>("ParentCommentID")
+                        .HasColumnType("int");
+
+                    b.Property<int?>("PostID")
+                        .HasColumnType("int");
+
+                    b.Property<byte>("Status")
+                        .HasColumnType("tinyint");
+
+                    b.Property<string>("UserAgent")
+                        .HasMaxLength(512)
+                        .HasColumnType("nvarchar(512)");
+
+                    b.Property<int?>("WebsiteClientID")
+                        .HasColumnType("int");
+
+                    b.Property<int>("WebsiteID")
+                        .HasColumnType("int");
+
+                    b.HasKey("ContentCommentID");
+
+                    b.HasIndex(new[] { "AuthorMemberID" }, "IX_ContentComments_AuthorMemberID");
+
+                    b.HasIndex(new[] { "ModeratedByMemberID" }, "IX_ContentComments_ModeratedByMemberID");
+
+                    b.HasIndex(new[] { "PageID" }, "IX_ContentComments_PageID");
+
+                    b.HasIndex(new[] { "ParentCommentID" }, "IX_ContentComments_ParentCommentID");
+
+                    b.HasIndex(new[] { "PostID" }, "IX_ContentComments_PostID");
+
+                    b.HasIndex(new[] { "WebsiteClientID" }, "IX_ContentComments_WebsiteClientID");
+
+                    b.HasIndex(new[] { "WebsiteID", "Status" }, "IX_ContentComments_WebsiteID_Status");
+
+                    b.ToTable("ContentComments");
+                });
+
             modelBuilder.Entity("Dotnetable.Domain.Entities.Country", b =>
                 {
                     b.Property<int>("CountryID")
@@ -3722,6 +3803,9 @@ namespace Dotnetable.Migrations.SqlServer.Migrations
                         .HasColumnType("int");
 
                     SqlServerPropertyBuilderExtensions.UseIdentityColumn(b.Property<int>("PageID"));
+
+                    b.Property<bool>("CommentsEnabled")
+                        .HasColumnType("bit");
 
                     b.Property<string>("Content")
                         .HasColumnType("nvarchar(max)");
@@ -8635,6 +8719,59 @@ namespace Dotnetable.Migrations.SqlServer.Migrations
                     b.Navigation("Website");
                 });
 
+            modelBuilder.Entity("Dotnetable.Domain.Entities.ContentComment", b =>
+                {
+                    b.HasOne("Dotnetable.Domain.Entities.Member", "AuthorMember")
+                        .WithMany()
+                        .HasForeignKey("AuthorMemberID")
+                        .HasConstraintName("FK_ContentComments_Members_Author");
+
+                    b.HasOne("Dotnetable.Domain.Entities.Member", "ModeratedByMember")
+                        .WithMany()
+                        .HasForeignKey("ModeratedByMemberID")
+                        .HasConstraintName("FK_ContentComments_Members_Moderator");
+
+                    b.HasOne("Dotnetable.Domain.Entities.Page", "Page")
+                        .WithMany("ContentComments")
+                        .HasForeignKey("PageID")
+                        .HasConstraintName("FK_ContentComments_Pages");
+
+                    b.HasOne("Dotnetable.Domain.Entities.ContentComment", "ParentComment")
+                        .WithMany("InverseParentComment")
+                        .HasForeignKey("ParentCommentID")
+                        .HasConstraintName("FK_ContentComments_ContentComments");
+
+                    b.HasOne("Dotnetable.Domain.Entities.Post", "Post")
+                        .WithMany("ContentComments")
+                        .HasForeignKey("PostID")
+                        .HasConstraintName("FK_ContentComments_Posts");
+
+                    b.HasOne("Dotnetable.Domain.Entities.WebsiteClient", "WebsiteClient")
+                        .WithMany()
+                        .HasForeignKey("WebsiteClientID")
+                        .HasConstraintName("FK_ContentComments_WebsiteClients");
+
+                    b.HasOne("Dotnetable.Domain.Entities.Website", "Website")
+                        .WithMany()
+                        .HasForeignKey("WebsiteID")
+                        .IsRequired()
+                        .HasConstraintName("FK_ContentComments_Websites");
+
+                    b.Navigation("AuthorMember");
+
+                    b.Navigation("ModeratedByMember");
+
+                    b.Navigation("Page");
+
+                    b.Navigation("ParentComment");
+
+                    b.Navigation("Post");
+
+                    b.Navigation("Website");
+
+                    b.Navigation("WebsiteClient");
+                });
+
             modelBuilder.Entity("Dotnetable.Domain.Entities.CountryTranslation", b =>
                 {
                     b.HasOne("Dotnetable.Domain.Entities.Country", "Country")
@@ -11698,6 +11835,11 @@ namespace Dotnetable.Migrations.SqlServer.Migrations
                     b.Navigation("Payments");
                 });
 
+            modelBuilder.Entity("Dotnetable.Domain.Entities.ContentComment", b =>
+                {
+                    b.Navigation("InverseParentComment");
+                });
+
             modelBuilder.Entity("Dotnetable.Domain.Entities.Country", b =>
                 {
                     b.Navigation("Cities");
@@ -11990,6 +12132,8 @@ namespace Dotnetable.Migrations.SqlServer.Migrations
 
             modelBuilder.Entity("Dotnetable.Domain.Entities.Page", b =>
                 {
+                    b.Navigation("ContentComments");
+
                     b.Navigation("InverseParentPage");
 
                     b.Navigation("MenuItems");
@@ -12023,6 +12167,8 @@ namespace Dotnetable.Migrations.SqlServer.Migrations
 
             modelBuilder.Entity("Dotnetable.Domain.Entities.Post", b =>
                 {
+                    b.Navigation("ContentComments");
+
                     b.Navigation("MenuItems");
 
                     b.Navigation("PostCategories");

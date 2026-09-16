@@ -212,6 +212,12 @@ public static class RoleKeys
     public const string ModerationView = "moderation.view";
     public const string ModerationReview = "moderation.review";
 
+    // ── Post / page comment moderation (admin) — its own keys, separate from product reviews, so a
+    //    blog editor can moderate comments without the shop's review queue and vice versa ──────────
+    public const string CommentsView = "comments.view";
+    public const string CommentsModerate = "comments.moderate";
+    public const string CommentsDelete = "comments.delete";
+
     // ── Support desk / Customer 360 (admin) ──────────────────────────
     public const string SupportView = "support.view";
     public const string SupportEdit = "support.edit";

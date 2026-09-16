@@ -61,6 +61,7 @@ public static class AdminSearchCatalog
         new AdminSearchPage("website_translations", "Translations", "/website/translations", Icons.Material.Filled.Translate, "website", "Website", RoleKeys.LocalizationEdit, NavArea: AdminNavArea.Website, VendorMemberAllowed: false),
 
         new AdminSearchPage("posts", "Posts", "/content/posts", Icons.Material.Filled.Article, "content", "Content", RoleKeys.PostsView, NavArea: AdminNavArea.ContentBlog, VendorMemberAllowed: false),
+        new AdminSearchPage("comments", "Comments", "/content/comments", Icons.Material.Filled.Comment, "content", "Content", RoleKeys.CommentsView, NavArea: AdminNavArea.ContentCore, VendorMemberAllowed: false),
         new AdminSearchPage("pages", "Pages", "/content/pages", Icons.Material.Filled.Description, "content", "Content", RoleKeys.PagesView, NavArea: AdminNavArea.ContentCore, VendorMemberAllowed: false),
         new AdminSearchPage("moderation.reviews", "Reviews", "/moderation/reviews", Icons.Material.Filled.Star, "nav.moderation", "Reviews & Q&A", RoleKeys.ModerationView, NavArea: AdminNavArea.ContentExtra, VendorMemberAllowed: false),
         new AdminSearchPage("moderation.questions", "Questions", "/moderation/questions", Icons.Material.Filled.QuestionAnswer, "nav.moderation", "Reviews & Q&A", RoleKeys.ModerationView, NavArea: AdminNavArea.ContentExtra, VendorMemberAllowed: false),

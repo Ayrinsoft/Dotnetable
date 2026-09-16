@@ -1621,6 +1621,90 @@ window.DOCS_API = {
               },
             },
           ],
+          related: ["comments"],
+        },
+        {
+          id: "comments",
+          title: { en: "Comments (posts & pages)", fa: "نظرات (پست‌ها و صفحات)" },
+          summary: {
+            en: "Read approved comments and submit new ones on a blog post or CMS page. New comments are held for moderation in Admin → Content → Comments. Only available when the post (and its post type) or page has comments enabled — `commentsEnabled` on the post/page payload.",
+            fa: "خواندن نظرات تأییدشده و ثبت نظر جدید روی پست یا صفحه. نظر جدید تا تأیید در ادمین ← محتوا ← نظرات منتظر می‌ماند. فقط وقتی فعال است که پست (و نوع پست) یا صفحه نظرات را فعال کرده باشد — فیلد `commentsEnabled` در خروجی پست/صفحه.",
+          },
+          relatedAdmin: ["content-comments", "posts", "pages"],
+          related: ["posts"],
+          endpoints: [
+            {
+              title: { en: "List approved comments", fa: "لیست نظرات تأییدشده" },
+              method: "GET",
+              path: "/api/posts/{postId}/comments  ·  /api/pages/{pageId}/comments",
+              auth: "website",
+              query: [
+                { name: "page", desc: { en: "1-based page of top-level comments (default 1)", fa: "شماره صفحه نظرات سطح اول (پیش‌فرض ۱)" } },
+                { name: "pageSize", desc: { en: "Top-level comments per page (default 20, max 100)", fa: "تعداد نظر سطح اول در هر صفحه (پیش‌فرض ۲۰، حداکثر ۱۰۰)" } },
+              ],
+              request: { body: "GET /api/posts/12/comments?page=1" },
+              response: {
+                status: 200,
+                body: {
+                  items: [
+                    {
+                      commentID: 41, parentCommentID: null, authorName: "Sara", isStaff: false,
+                      body: "Great article!", createdAt: "2026-09-16T10:12:00",
+                      replies: [
+                        { commentID: 44, parentCommentID: 41, authorName: "Site team", isStaff: true, body: "Thanks!", createdAt: "2026-09-16T11:00:00", replies: [] },
+                      ],
+                    },
+                  ],
+                  totalCount: 1,
+                },
+              },
+              notes: [
+                {
+                  en: "Top-level comments are newest first; replies are nested (oldest first) and are not counted in `totalCount`. Email, IP and customer id are never returned.",
+                  fa: "نظرات سطح اول از جدید به قدیم‌اند؛ پاسخ‌ها تو در تو (قدیمی اول) هستند و در `totalCount` شمرده نمی‌شوند. ایمیل، IP و شناسه مشتری هرگز برگردانده نمی‌شود.",
+                },
+                {
+                  en: "Comments off, unpublished or unknown id → empty page (`items: []`).",
+                  fa: "نظرات خاموش، منتشرنشده یا شناسه نامعتبر ← صفحه خالی (`items: []`).",
+                },
+              ],
+            },
+            {
+              title: { en: "Submit a comment", fa: "ثبت نظر" },
+              method: "POST",
+              path: "/api/posts/{postId}/comments  ·  /api/pages/{pageId}/comments",
+              auth: "optional-jwt",
+              request: {
+                body: {
+                  body: "Great article!",
+                  parentCommentId: null,
+                  authorName: "Sara",
+                  authorEmail: "sara@example.com",
+                  captchaToken: "…",
+                  captchaAnswer: "7",
+                  website: "",
+                },
+              },
+              response: {
+                status: 200,
+                body: { commentId: 45, status: "pending", message: "Thanks! Your comment will appear after it has been reviewed." },
+              },
+              notes: [
+                {
+                  en: "**Guest:** `authorName` required, `authorEmail` optional, captcha required (same challenge as the contact form: `GET /api/captcha/challenge`). **Signed-in customer** (Bearer token with `client.review`): name/email come from the profile and no captcha is needed.",
+                  fa: "**مهمان:** `authorName` الزامی، `authorEmail` اختیاری و کپچا الزامی است (همان چالش فرم تماس: `GET /api/captcha/challenge`). **مشتری واردشده** (توکن Bearer با `client.review`): نام/ایمیل از پروفایل گرفته می‌شود و کپچا لازم نیست.",
+                },
+                {
+                  en: "`parentCommentId` must be an approved comment of the same post/page. `body` is 2–4000 characters. `website` is a honeypot and must stay empty.",
+                  fa: "`parentCommentId` باید نظر تأییدشده‌ای از همان پست/صفحه باشد. `body` بین ۲ تا ۴۰۰۰ کاراکتر است. `website` فیلد honeypot است و باید خالی بماند.",
+                },
+                {
+                  en: "Errors: `400` validation/captcha, `404` comments not available for that post/page, `403` account not allowed to comment, `429` one comment per 15 s per visitor (plus the per-IP public write rate limit).",
+                  fa: "خطاها: `400` اعتبارسنجی/کپچا، `404` نظر برای آن پست/صفحه فعال نیست، `403` حساب اجازه نظر ندارد، `429` هر بازدیدکننده هر ۱۵ ثانیه یک نظر (به‌علاوه محدودیت نرخ عمومی هر IP).",
+                },
+              ],
+            },
+          ],
         },
         {
           id: "content-categories",

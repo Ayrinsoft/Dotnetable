@@ -307,3 +307,29 @@ a { text-decoration: none; }
 .site-ads a:hover { text-decoration: underline; }
 .site-footer .site-ads a { color: #fff; }
 
+
+/* ---------- Post / page comments ---------- */
+.comment-avatar {
+    width: 2.5rem;
+    height: 2.5rem;
+    border-radius: 50%;
+    background: var(--site-light);
+    border: 1px solid var(--site-border);
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    font-weight: 600;
+}
+.comment-avatar-staff {
+    background: var(--site-primary);
+    border-color: var(--site-primary);
+    color: #fff;
+}
+.comment-body {
+    white-space: pre-line;
+    overflow-wrap: anywhere;
+}
+.comment-replies-indent {
+    border-inline-start: 2px solid var(--site-border);
+    padding-inline-start: 1rem;
+}

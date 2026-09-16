@@ -60,6 +60,7 @@ else if (ShowEmpty)
         "orders.fulfillment" => L["tasks.orders.fulfillment", "Orders to process"],
         "orders.pending_payment" => L["tasks.orders.pending_payment", "Orders awaiting payment"],
         "staff.assigned" => L["tasks.staff.assigned", "Tasks assigned to me"],
+        "comments.pending" => L["tasks.comments.pending", "Comments to review"],
         _ => key,
     };
 
@@ -71,6 +72,7 @@ else if (ShowEmpty)
         "orders.fulfillment" => L["tasks.orders.fulfillment_sub", "Paid, processing, or shipped orders still open"],
         "orders.pending_payment" => L["tasks.orders.pending_payment_sub", "Placed orders that are not paid yet"],
         "staff.assigned" => L["tasks.staff.assigned_sub", "Open staff tasks you created or were assigned"],
+        "comments.pending" => L["tasks.comments.pending_sub", "Visitor comments on posts and pages awaiting approval"],
         _ => "",
     };
 
@@ -82,6 +84,7 @@ else if (ShowEmpty)
         "orders.fulfillment" => Icons.Material.Filled.LocalShipping,
         "orders.pending_payment" => Icons.Material.Filled.HourglassTop,
         "staff.assigned" => Icons.Material.Filled.Checklist,
+        "comments.pending" => Icons.Material.Filled.Comment,
         _ => Icons.Material.Filled.TaskAlt,
     };
 }

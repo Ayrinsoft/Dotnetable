@@ -1,0 +1,82 @@
+@using Dotnetable.Application.DTOs
+@using Dotnetable.Web.Services
+@model (CommentTarget Target, int TargetId)
+@inject ApiClient Api
+@*
+    Comment thread + form for a blog post or CMS page. Rendered by Blog/Post.cshtml and Page/View.cshtml
+    only when the content has comments enabled. The first page is server-rendered; js/comments.js
+    handles "load more", replies, captcha and the AJAX submit.
+*@
+@{
+    const int pageSize = 20;
+    var comments = await Api.GetCommentsAsync(Model.Target, Model.TargetId, 1, pageSize);
+    var isLoggedIn = Context.Request.Cookies.ContainsKey(ClientAuth.TokenCookie);
+}
+
+<section class="comments mt-5" id="comments"
+         data-target="@Model.Target" data-target-id="@Model.TargetId"
+         data-page="1" data-page-size="@pageSize" data-total="@comments.TotalCount"
+         data-logged-in="@(isLoggedIn ? "true" : "false")">
+    <h4 class="mb-3">Comments <span class="text-muted fs-6">(@comments.TotalCount)</span></h4>
+
+    <div id="comments-list">
+        @if (comments.Items.Count == 0)
+        {
+            <p class="text-muted" id="comments-empty">No comments yet. Be the first to share your thoughts.</p>
+        }
+        @foreach (var comment in comments.Items)
+        {
+            <partial name="_CommentItem" model="comment" />
+        }
+    </div>
+
+    <button type="button" class="btn btn-outline-secondary btn-sm mt-3 @(comments.TotalCount > comments.Items.Count ? "" : "d-none")" id="comments-more">
+        Load more comments
+    </button>
+
+    <div class="comment-form-wrap mt-5" id="comment-form-wrap">
+        <h5 class="mb-3">Leave a comment</h5>
+        <div class="alert alert-light border py-2 d-none" id="comment-reply-banner">
+            Replying to <strong id="comment-reply-name"></strong>
+            <button type="button" class="btn btn-link btn-sm" id="comment-reply-cancel">Cancel</button>
+        </div>
+        <div id="comment-alert"></div>
+
+        <form id="comment-form" novalidate>
+            <input type="hidden" name="parentCommentId" value="" />
+            <div class="row g-3">
+                @if (!isLoggedIn)
+                {
+                    <div class="col-md-6">
+                        <label class="form-label" for="comment-name">Name</label>
+                        <input class="form-control" id="comment-name" name="authorName" maxlength="150" required />
+                    </div>
+                    <div class="col-md-6">
+                        <label class="form-label" for="comment-email">Email <small class="text-muted">(optional, never published)</small></label>
+                        <input class="form-control" id="comment-email" type="email" name="authorEmail" maxlength="256" />
+                    </div>
+                }
+                <div class="col-12">
+                    <label class="form-label" for="comment-body">Comment</label>
+                    <textarea class="form-control" id="comment-body" rows="4" name="body" maxlength="4000" required></textarea>
+                </div>
+
+                @* Honeypot, hidden off-screen (not display:none) so naive bots still fill it in. *@
+                <div style="position:absolute;left:-9999px;top:-9999px" aria-hidden="true">
+                    <label>Website</label>
+                    <input type="text" name="website" tabindex="-1" autocomplete="off" />
+                </div>
+
+                @if (!isLoggedIn)
+                {
+                    <div class="col-12" id="comment-captcha"></div>
+                }
+
+                <div class="col-12">
+                    <button class="btn btn-primary" type="submit" id="comment-submit">Post comment</button>
+                    <small class="text-muted ms-2">Comments are published after review.</small>
+                </div>
+            </div>
+        </form>
+    </div>
+</section>

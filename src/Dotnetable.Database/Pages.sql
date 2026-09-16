@@ -12,6 +12,7 @@ CREATE TABLE [dbo].[Pages] (
     [IsHomepage]        BIT NOT NULL,
     [Status]            TINYINT NOT NULL,
     [SortOrder]         INT NOT NULL,
+    [CommentsEnabled]   BIT NOT NULL,
     [IsActive]          BIT NOT NULL,
     [CreatedByMemberID] INT            NULL,
     [CreatedAt]         DATETIME2 (0) NOT NULL,

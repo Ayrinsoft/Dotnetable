@@ -843,6 +843,21 @@ public class ApiClient
     public Task<AuthApiResult> AnswerQuestionAsync(int questionId, string body, CancellationToken ct = default) =>
         PostAsync($"api/questions/{questionId}/answers", new { body }, ct);
 
+    // ── Post / page comments ─────────────────────────────────────────
+
+    /// <summary>Approved comments of a post or page (not cached — a newly approved comment should
+    /// show up on the next load). Empty when comments are off or the API is unreachable.</summary>
+    public async Task<PagedResult<CommentDto>> GetCommentsAsync(CommentTarget target, int targetId, int page = 1, int pageSize = 20, CancellationToken ct = default) =>
+        await GetOrNullAsync<PagedResult<CommentDto>>($"{CommentsPath(target, targetId)}?page={page}&pageSize={pageSize}", ct)
+            ?? new PagedResult<CommentDto>();
+
+    /// <summary>Submits a comment; the signed-in customer's token (if any) is attached by the bearer handler.</summary>
+    public Task<AuthApiResult> SubmitCommentAsync(CommentTarget target, int targetId, CommentSubmitRequest request, CancellationToken ct = default) =>
+        PostAsync(CommentsPath(target, targetId), request, ct);
+
+    private static string CommentsPath(CommentTarget target, int targetId) =>
+        target == CommentTarget.Post ? $"api/posts/{targetId}/comments" : $"api/pages/{targetId}/comments";
+
     private static AuthApiResult Unreachable() => new(false, HttpStatusCode.ServiceUnavailable,
         "Service is unavailable. Please try again later.", new Dictionary<string, string>(), null);
 
