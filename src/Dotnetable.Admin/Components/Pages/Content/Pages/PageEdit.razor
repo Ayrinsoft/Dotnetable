@@ -137,8 +137,17 @@ else if (_model is not null)
                     }
 
                     <MudSwitch T="bool" @bind-Value="_model.IsHomepage" Color="Color.Primary" Label="@L["pages.homepage", "Homepage"]" />
+                    <MudSwitch T="bool" @bind-Value="_model.CommentsEnabled" Color="Color.Primary" Label="@L["pages.comments", "Comments enabled"]" />
                     <MudSwitch T="bool" @bind-Value="_model.IsActive" Color="Color.Success"
                                Label="@(_model.IsActive ? L["active", "Active"] : L["inactive", "Inactive"])" />
+                    @if (!_isNew)
+                    {
+                        <AuthorizeView Policy="@RoleKeys.CommentsView" Context="cm">
+                            <MudLink Href="@($"/content/comments?pageId={Id}")" Typo="Typo.body2" Class="d-block mt-2">
+                                <MudIcon Icon="@Icons.Material.Filled.Comment" Size="Size.Small" Class="me-1" />@L["comments.view_for_this", "View comments"]
+                            </MudLink>
+                        </AuthorizeView>
+                    }
 
                     <MudButton Variant="Variant.Filled" Color="Color.Primary" FullWidth="true" Class="mt-4"
                                OnClick="SaveAsync" Disabled="@(_saving || !_canEdit)">@L["save", "Save"]</MudButton>

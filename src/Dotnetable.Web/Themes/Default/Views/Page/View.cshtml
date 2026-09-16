@@ -29,7 +29,19 @@
                         @await Html.PartialAsync("_Advertisements", pageAds, new ViewDataDictionary(ViewData) { ["AdsModifier"] = "page" })
                     </div>
                 }
+
+                @if (Model.CommentsEnabled)
+                {
+                    <partial name="_Comments" model="(Dotnetable.Application.DTOs.CommentTarget.Page, Model.PageID)" />
+                }
             </div>
         </div>
     </div>
 </section>
+
+@section Scripts {
+    @if (Model.CommentsEnabled)
+    {
+        <script src="~/js/comments.js" asp-append-version="true"></script>
+    }
+}

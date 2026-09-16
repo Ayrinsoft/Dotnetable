@@ -785,7 +785,57 @@ window.DOCS_ADMIN = {
               fa: "پست بسازید، طبقه‌بندی، بدنه، مدیا را بگذارید و منتشر کنید. بخش «SEO / Meta» را برای تنظیم عنوان/توضیحات/کلمات کلیدی متای این پست باز کنید — اختیاری است و در صورت خالی بودن به عنوان/خلاصه برمی‌گردد.",
             },
           ],
-          related: ["content-categories", "content-tags", "post-types", "media-library"],
+          related: ["content-categories", "content-tags", "post-types", "media-library", "content-comments"],
+        },
+        {
+          id: "content-comments",
+          title: { en: "Comments (posts & pages)", fa: "نظرات (پست‌ها و صفحات)" },
+          adminPath: "/content/comments",
+          summary: {
+            en: "Moderate visitor comments on blog posts and CMS pages: approve, reject, reply, delete.",
+            fa: "مدیریت نظرات بازدیدکنندگان روی پست‌ها و صفحات: تأیید، رد، پاسخ، حذف.",
+          },
+          purpose: {
+            en: "Every comment submitted on the site is held as **Pending** and is invisible until someone approves it here. Product reviews are a separate queue (Reviews & Q&A).",
+            fa: "هر نظری که در سایت ثبت شود در حالت **در انتظار** می‌ماند و تا وقتی اینجا تأیید نشود نمایش داده نمی‌شود. نظرات محصولات صف جداگانه‌ای دارند (نظرات و پرسش و پاسخ).",
+          },
+          howTo: [
+            {
+              en: "Turn comments on per post (**Comments enabled** in the post editor; the post type must allow comments too) or per page (**Comments enabled** in the page editor — off by default).",
+              fa: "نظرات را برای هر پست (گزینه **Comments enabled** در ویرایش پست؛ نوع پست هم باید نظر را مجاز کرده باشد) یا هر صفحه (گزینه **Comments enabled** در ویرایش صفحه — به‌طور پیش‌فرض خاموش) روشن کنید.",
+            },
+            {
+              en: "Open Content → Comments. The list opens on **Pending** (oldest first). Filter by status, posts/pages, or search text/name/email. **Approve all shown** approves the current page of pending comments.",
+              fa: "به محتوا ← نظرات بروید. لیست روی **در انتظار** (قدیمی‌ترین اول) باز می‌شود. بر اساس وضعیت، پست/صفحه یا متن/نام/ایمیل فیلتر کنید. **Approve all shown** همه نظرات در انتظارِ صفحه فعلی را تأیید می‌کند.",
+            },
+            {
+              en: "**Reply** publishes your answer immediately under the comment, marked as Staff; replying to a pending comment approves it too.",
+              fa: "**Reply** پاسخ شما را فوراً زیر نظر با برچسب Staff منتشر می‌کند؛ پاسخ دادن به نظرِ در انتظار، آن را هم تأیید می‌کند.",
+            },
+            {
+              en: "**Delete** removes the comment together with all replies beneath it. Deleting a post or page also deletes its comments.",
+              fa: "**حذف**، نظر را همراه با تمام پاسخ‌های زیر آن پاک می‌کند. حذف پست یا صفحه هم نظرات آن را حذف می‌کند.",
+            },
+            {
+              en: "From a post or page editor, **View comments** opens this list filtered to that item.",
+              fa: "از صفحه ویرایش پست یا صفحه، **View comments** همین لیست را فقط برای همان مورد باز می‌کند.",
+            },
+          ],
+          tips: [
+            {
+              en: "Permissions: `comments.view` (see the list), `comments.moderate` (approve/reject/reply), `comments.delete`. They are separate from the product-review `moderation.*` keys — grant them in the policy editor under **Comments (Posts & Pages)**.",
+              fa: "دسترسی‌ها: `comments.view` (دیدن لیست)، `comments.moderate` (تأیید/رد/پاسخ)، `comments.delete`. این‌ها از کلیدهای `moderation.*` نظرات محصول جدا هستند — در ویرایش سطح دسترسی زیر گروه **Comments (Posts & Pages)** بدهید.",
+            },
+            {
+              en: "Pending comments also show up in the dashboard's **Needs action** panel for anyone with `comments.moderate`.",
+              fa: "نظرات در انتظار برای هر کسی که `comments.moderate` دارد در پنل **Needs action** داشبورد هم نمایش داده می‌شوند.",
+            },
+            {
+              en: "The commenter's email and IP are only visible here, never on the public site.",
+              fa: "ایمیل و IP نظردهنده فقط اینجا دیده می‌شود و هرگز در سایت عمومی نمایش داده نمی‌شود.",
+            },
+          ],
+          related: ["posts", "pages", "moderation-reviews"],
         },
         {
           id: "content-categories",

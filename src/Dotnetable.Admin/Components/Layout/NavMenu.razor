@@ -175,7 +175,7 @@
         }
 
         @if (NavSurface.ShowsAny(AdminNavArea.ContentCore, AdminNavArea.ContentBlog, AdminNavArea.ContentExtra)
-             && (_canPosts || _canPages || _canTaxonomy || _canRedirects || _canMenus || _canSlideshows || _canAdvertisements || _canForms || _canThemes || _canModeration))
+             && (_canPosts || _canPages || _canTaxonomy || _canRedirects || _canMenus || _canSlideshows || _canAdvertisements || _canForms || _canThemes || _canModeration || _canComments))
         {
             <span class="app-nav-label">@L["nav.content", "Content"]</span>
             <MudNavGroup Title="@L["content", "Content"]" Icon="@Icons.Material.Filled.Article"
@@ -191,6 +191,12 @@
                     <AuthorizeView Policy="@RoleKeys.PagesView" Context="pg">
                         <MudNavLink Href="/content/pages" Icon="@Icons.Material.Filled.Description">
                             @L["pages", "Pages"]
+                        </MudNavLink>
+                    </AuthorizeView>
+                    @* Comments cover posts and pages, so they live in the always-present core area. *@
+                    <AuthorizeView Policy="@RoleKeys.CommentsView" Context="cm">
+                        <MudNavLink Href="/content/comments" Icon="@Icons.Material.Filled.Comment">
+                            @L["comments", "Comments"]
                         </MudNavLink>
                     </AuthorizeView>
                     <AuthorizeView Policy="@RoleKeys.SlideshowsView" Context="sl">
@@ -488,6 +494,7 @@
     private bool _canForms;
     private bool _canThemes;
     private bool _canModeration;
+    private bool _canComments;
     private bool _canOrders;
     private bool _canInventory;
     private bool _canWarehouse;
@@ -525,6 +532,7 @@
             _canForms = AdminPolicies.Allows(user, RoleKeys.FormsView);
             _canThemes = AdminPolicies.Allows(user, RoleKeys.ThemesView);
             _canModeration = AdminPolicies.Allows(user, RoleKeys.ModerationView);
+            _canComments = AdminPolicies.Allows(user, RoleKeys.CommentsView);
             _canOrders = AdminPolicies.Allows(user, RoleKeys.OrdersView);
             _canInventory = AdminPolicies.Allows(user, RoleKeys.InventoryView);
             _canWarehouse = AdminPolicies.Allows(user, RoleKeys.WarehouseView);

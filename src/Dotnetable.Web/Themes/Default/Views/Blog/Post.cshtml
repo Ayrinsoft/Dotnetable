@@ -74,6 +74,11 @@
                     </div>
                 }
 
+                @if (Model.CommentsEnabled)
+                {
+                    <partial name="_Comments" model="(Dotnetable.Application.DTOs.CommentTarget.Post, Model.PostID)" />
+                }
+
                 <hr class="my-4" />
                 <a class="btn btn-outline-secondary" asp-controller="Blog" asp-action="Index">
                     <i class="bi bi-arrow-left me-1"></i>Back to blog
@@ -82,3 +87,10 @@
         </div>
     </div>
 </section>
+
+@section Scripts {
+    @if (Model.CommentsEnabled)
+    {
+        <script src="~/js/comments.js" asp-append-version="true"></script>
+    }
+}

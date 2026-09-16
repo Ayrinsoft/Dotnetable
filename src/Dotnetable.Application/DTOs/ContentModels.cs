@@ -42,6 +42,8 @@ public sealed class PageDto
     public string? Template { get; init; }
     public bool IsHomepage { get; init; }
     public int SortOrder { get; init; }
+    /// <summary>Whether the page shows a comment thread and accepts new comments.</summary>
+    public bool CommentsEnabled { get; init; }
     /// <summary>Admin override for the browser-tab/search-result title; falls back to <see cref="Title"/>.</summary>
     public string? MetaTitle { get; init; }
     public string? MetaDescription { get; init; }

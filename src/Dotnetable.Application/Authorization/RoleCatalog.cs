@@ -219,6 +219,11 @@ public static class RoleCatalog
         new(RoleKeys.ModerationView, "View product reviews & questions", RoleCategory.Admin),
         new(RoleKeys.ModerationReview, "Approve / reject reviews & questions", RoleCategory.Admin),
 
+        // Post / page comments
+        new(RoleKeys.CommentsView, "View visitor comments on posts and pages", RoleCategory.Admin),
+        new(RoleKeys.CommentsModerate, "Approve / reject comments on posts and pages, and reply to them", RoleCategory.Admin),
+        new(RoleKeys.CommentsDelete, "Permanently delete comments on posts and pages", RoleCategory.Admin),
+
         // Support desk / Customer 360
         new(RoleKeys.SupportView, "View support desk, customer 360, tickets", RoleCategory.Admin),
         new(RoleKeys.SupportEdit, "Create/edit support tickets and log interactions", RoleCategory.Admin),

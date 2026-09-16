@@ -53,6 +53,8 @@ public partial class Post
 
     public virtual Member? AuthorMember { get; set; }
 
+    public virtual ICollection<ContentComment> ContentComments { get; set; } = new List<ContentComment>();
+
     public virtual FileRecord? FeaturedImageFile { get; set; }
 
     public virtual ICollection<MenuItem> MenuItems { get; set; } = new List<MenuItem>();

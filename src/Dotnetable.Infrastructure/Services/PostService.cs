@@ -126,6 +126,9 @@ public class PostService : IPostService
         post.Tags.Clear();
         foreach (var mi in post.MenuItems)
             mi.PostID = null;
+        // Comment FKs are NO ACTION; the whole reply tree goes in the same SaveChanges.
+        _context.ContentComments.RemoveRange(
+            await _context.ContentComments.Where(c => c.PostID == postId).ToListAsync(ct));
         _context.PostCategories.RemoveRange(post.PostCategories);
         _context.PostTranslations.RemoveRange(post.PostTranslations);
         _context.Posts.Remove(post);
@@ -377,7 +380,9 @@ public class PostService : IPostService
             FeaturedImageUrl = FeaturedUrl(p), PostTypeSlug = p.PostType?.Slug ?? string.Empty,
             AuthorName = AuthorName(p), IsFeatured = p.IsFeatured, ViewCount = p.ViewCount,
             PublishedAt = p.PublishedAt, Categories = Categories(p, lang), Tags = Tags(p, lang),
-            Content = content, CommentsEnabled = p.CommentsEnabled,
+            Content = content,
+            // The post type can switch comments off for every post of that type.
+            CommentsEnabled = p.CommentsEnabled && (p.PostType?.CommentsEnabled ?? true),
             MetaTitle = metaTitle, MetaDescription = metaDescription, MetaKeywords = metaKeywords,
         };
     }

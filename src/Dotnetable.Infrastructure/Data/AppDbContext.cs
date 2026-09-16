@@ -64,6 +64,8 @@ public partial class AppDbContext : DbContext
 
     public virtual DbSet<ContactUsMessage> ContactUsMessages { get; set; }
 
+    public virtual DbSet<ContentComment> ContentComments { get; set; }
+
     public virtual DbSet<Country> Countries { get; set; }
 
     public virtual DbSet<CountryTranslation> CountryTranslations { get; set; }
@@ -1148,6 +1150,69 @@ public partial class AppDbContext : DbContext
                 .HasForeignKey(d => d.WebsiteID)
                 .OnDelete(DeleteBehavior.ClientSetNull)
                 .HasConstraintName("FK_ClientWalletWithdrawals_Websites");
+        });
+
+        // Every FK is NO ACTION: a self-reference plus two content parents would otherwise give SQL
+        // Server multiple cascade paths, and a SET NULL on the post/page would orphan the comment.
+        // PostService/PageService delete a post's/page's comments explicitly.
+        modelBuilder.Entity<ContentComment>(entity =>
+        {
+            entity.HasIndex(e => new { e.WebsiteID, e.Status }, "IX_ContentComments_WebsiteID_Status");
+
+            entity.HasIndex(e => e.PostID, "IX_ContentComments_PostID");
+
+            entity.HasIndex(e => e.PageID, "IX_ContentComments_PageID");
+
+            entity.HasIndex(e => e.ParentCommentID, "IX_ContentComments_ParentCommentID");
+
+            entity.HasIndex(e => e.WebsiteClientID, "IX_ContentComments_WebsiteClientID");
+
+            entity.HasIndex(e => e.AuthorMemberID, "IX_ContentComments_AuthorMemberID");
+
+            entity.HasIndex(e => e.ModeratedByMemberID, "IX_ContentComments_ModeratedByMemberID");
+
+            entity.Property(e => e.AuthorEmail).HasMaxLength(256);
+            entity.Property(e => e.AuthorName).HasMaxLength(150);
+            entity.Property(e => e.Body).HasMaxLength(4000);
+            entity.Property(e => e.CreatedAt).HasPrecision(0);
+            entity.Property(e => e.IpAddress).HasMaxLength(64);
+            entity.Property(e => e.ModeratedAt).HasPrecision(0);
+            entity.Property(e => e.UserAgent).HasMaxLength(512);
+
+            entity.HasOne(d => d.AuthorMember).WithMany()
+                .HasForeignKey(d => d.AuthorMemberID)
+                .OnDelete(DeleteBehavior.ClientSetNull)
+                .HasConstraintName("FK_ContentComments_Members_Author");
+
+            entity.HasOne(d => d.ModeratedByMember).WithMany()
+                .HasForeignKey(d => d.ModeratedByMemberID)
+                .OnDelete(DeleteBehavior.ClientSetNull)
+                .HasConstraintName("FK_ContentComments_Members_Moderator");
+
+            entity.HasOne(d => d.Page).WithMany(p => p.ContentComments)
+                .HasForeignKey(d => d.PageID)
+                .OnDelete(DeleteBehavior.ClientSetNull)
+                .HasConstraintName("FK_ContentComments_Pages");
+
+            entity.HasOne(d => d.ParentComment).WithMany(p => p.InverseParentComment)
+                .HasForeignKey(d => d.ParentCommentID)
+                .OnDelete(DeleteBehavior.ClientSetNull)
+                .HasConstraintName("FK_ContentComments_ContentComments");
+
+            entity.HasOne(d => d.Post).WithMany(p => p.ContentComments)
+                .HasForeignKey(d => d.PostID)
+                .OnDelete(DeleteBehavior.ClientSetNull)
+                .HasConstraintName("FK_ContentComments_Posts");
+
+            entity.HasOne(d => d.Website).WithMany()
+                .HasForeignKey(d => d.WebsiteID)
+                .OnDelete(DeleteBehavior.ClientSetNull)
+                .HasConstraintName("FK_ContentComments_Websites");
+
+            entity.HasOne(d => d.WebsiteClient).WithMany()
+                .HasForeignKey(d => d.WebsiteClientID)
+                .OnDelete(DeleteBehavior.ClientSetNull)
+                .HasConstraintName("FK_ContentComments_WebsiteClients");
         });
 
         modelBuilder.Entity<ContactUsMessage>(entity =>

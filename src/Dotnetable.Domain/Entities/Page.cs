@@ -33,6 +33,10 @@ public partial class Page
 
     public int SortOrder { get; set; }
 
+    /// <summary>Whether visitors may comment on this page. Off by default — most pages
+    /// (about, terms, contact) are not discussion pages.</summary>
+    public bool CommentsEnabled { get; set; }
+
     public bool IsActive { get; set; }
 
     public int? CreatedByMemberID { get; set; }
@@ -42,6 +46,8 @@ public partial class Page
     public DateTime UpdatedAt { get; set; }
 
     public virtual Member? CreatedByMember { get; set; }
+
+    public virtual ICollection<ContentComment> ContentComments { get; set; } = new List<ContentComment>();
 
     public virtual ICollection<Page> InverseParentPage { get; set; } = new List<Page>();
 
