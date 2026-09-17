@@ -1,0 +1,29 @@
+@page "/my/author-profile"
+@attribute [Authorize(Policy = RoleKeys.AuthorsProfile)]
+@inject AuthenticationStateProvider AuthState
+@inject IPageLocalizer L
+
+<DNPageTitle Title=@L["authors.my_profile", "My author profile"] />
+
+<MudStack Spacing="0" Class="mb-4">
+    <MudText Typo="Typo.h5" Class="fw-bold">@L["authors.my_profile", "My author profile"]</MudText>
+    <MudText Typo="Typo.body2" Color="Color.Secondary">
+        @L["authors.my_profile_subtitle", "Your bio under your posts and your public online résumé page"]
+    </MudText>
+</MudStack>
+
+@if (_memberId > 0)
+{
+    <AuthorProfileEditor MemberId="_memberId" />
+}
+
+@code {
+    private int _memberId;
+
+    protected override async Task OnInitializedAsync()
+    {
+        await L.EnsureLoadedAsync();
+        var user = (await AuthState.GetAuthenticationStateAsync()).User;
+        int.TryParse(user.FindFirst(AdminClaimTypes.MemberId)?.Value, out _memberId);
+    }
+}

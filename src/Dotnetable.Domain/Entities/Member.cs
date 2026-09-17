@@ -61,6 +61,9 @@ public partial class Member
 
     public virtual FileRecord? Avatar { get; set; }
 
+    /// <summary>Public author bio / online résumé, when the member has set one up.</summary>
+    public virtual AuthorProfile? AuthorProfile { get; set; }
+
     public virtual ICollection<BankAccount> BankAccounts { get; set; } = new List<BankAccount>();
 
     public virtual ICollection<ClientWalletTransaction> ClientWalletTransactions { get; set; } = new List<ClientWalletTransaction>();

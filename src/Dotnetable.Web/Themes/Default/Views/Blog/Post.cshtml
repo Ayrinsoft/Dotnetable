@@ -32,7 +32,14 @@
                     <span class="text-muted"><i class="bi bi-calendar3 me-1"></i>@(Model.PublishedAt?.ToString("MMMM d, yyyy") ?? "")</span>
                     @if (!string.IsNullOrEmpty(Model.AuthorName))
                     {
-                        <span class="text-muted"><i class="bi bi-person me-1"></i>@Model.AuthorName</span>
+                        @if (!string.IsNullOrEmpty(Model.Author?.Slug))
+                        {
+                            <a class="text-muted" href="@Url.RouteUrl("author", new { slug = Model.Author.Slug })"><i class="bi bi-person me-1"></i>@Model.AuthorName</a>
+                        }
+                        else
+                        {
+                            <span class="text-muted"><i class="bi bi-person me-1"></i>@Model.AuthorName</span>
+                        }
                     }
                 </div>
 
@@ -72,6 +79,11 @@
                                asp-controller="Blog" asp-action="Tag" asp-route-slug="@tag.Slug">#@tag.Name</a>
                         }
                     </div>
+                }
+
+                @if (Model.Author is not null)
+                {
+                    <partial name="_AuthorBox" model="Model.Author" />
                 }
 
                 @if (Model.CommentsEnabled)

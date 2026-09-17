@@ -88,12 +88,12 @@ public class CachedPostService : IPostService
 
     public Task<PagedResult<PostSummaryDto>> GetPublishedAsync(
         int websiteId, string? postTypeSlug, string? categorySlug, string? tagSlug,
-        int pageIndex, int pageSize, string? languageCode = null, CancellationToken ct = default) =>
+        int pageIndex, int pageSize, string? languageCode = null, string? authorSlug = null, CancellationToken ct = default) =>
         _cache.GetOrCreateAsync(
-            $"post:published:{websiteId}:{postTypeSlug}:{categorySlug}:{tagSlug}:{pageIndex}:{pageSize}:{languageCode}",
+            $"post:published:{websiteId}:{postTypeSlug}:{categorySlug}:{tagSlug}:{authorSlug}:{pageIndex}:{pageSize}:{languageCode}",
             [Tag],
             _ttl,
-            () => _inner.GetPublishedAsync(websiteId, postTypeSlug, categorySlug, tagSlug, pageIndex, pageSize, languageCode, ct));
+            () => _inner.GetPublishedAsync(websiteId, postTypeSlug, categorySlug, tagSlug, pageIndex, pageSize, languageCode, authorSlug, ct));
 
     public Task<PostDetailDto?> GetBySlugAsync(int websiteId, string slug, string? languageCode = null, CancellationToken ct = default) =>
         _inner.GetBySlugAsync(websiteId, slug, languageCode, ct);

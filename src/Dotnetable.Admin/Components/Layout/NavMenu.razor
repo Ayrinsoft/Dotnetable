@@ -175,11 +175,11 @@
         }
 
         @if (NavSurface.ShowsAny(AdminNavArea.ContentCore, AdminNavArea.ContentBlog, AdminNavArea.ContentExtra)
-             && (_canPosts || _canPages || _canTaxonomy || _canRedirects || _canMenus || _canSlideshows || _canAdvertisements || _canForms || _canThemes || _canModeration || _canComments))
+             && (_canPosts || _canPages || _canTaxonomy || _canRedirects || _canMenus || _canSlideshows || _canAdvertisements || _canForms || _canThemes || _canModeration || _canComments || _canAuthors))
         {
             <span class="app-nav-label">@L["nav.content", "Content"]</span>
             <MudNavGroup Title="@L["content", "Content"]" Icon="@Icons.Material.Filled.Article"
-                         Expanded="@IsGroupActive("/menus", "/content/", "/moderation/", "/slideshows", "/advertisements", "/forms", "/themes")">
+                         Expanded="@IsGroupActive("/menus", "/content/", "/my/author-profile", "/moderation/", "/slideshows", "/advertisements", "/forms", "/themes")">
 
                 @if (NavSurface.Shows(AdminNavArea.ContentCore))
                 {
@@ -197,6 +197,17 @@
                     <AuthorizeView Policy="@RoleKeys.CommentsView" Context="cm">
                         <MudNavLink Href="/content/comments" Icon="@Icons.Material.Filled.Comment">
                             @L["comments", "Comments"]
+                        </MudNavLink>
+                    </AuthorizeView>
+                    @* Author bio / résumé: every writer edits their own; site owners manage everyone's. *@
+                    <AuthorizeView Policy="@RoleKeys.AuthorsProfile" Context="ap">
+                        <MudNavLink Href="/my/author-profile" Icon="@Icons.Material.Filled.Badge">
+                            @L["authors.my_profile", "My author profile"]
+                        </MudNavLink>
+                    </AuthorizeView>
+                    <AuthorizeView Policy="@RoleKeys.AuthorsManage" Context="am">
+                        <MudNavLink Href="/content/authors" Icon="@Icons.Material.Filled.RecentActors">
+                            @L["authors", "Authors"]
                         </MudNavLink>
                     </AuthorizeView>
                     <AuthorizeView Policy="@RoleKeys.SlideshowsView" Context="sl">
@@ -495,6 +506,7 @@
     private bool _canThemes;
     private bool _canModeration;
     private bool _canComments;
+    private bool _canAuthors;
     private bool _canOrders;
     private bool _canInventory;
     private bool _canWarehouse;
@@ -533,6 +545,7 @@
             _canThemes = AdminPolicies.Allows(user, RoleKeys.ThemesView);
             _canModeration = AdminPolicies.Allows(user, RoleKeys.ModerationView);
             _canComments = AdminPolicies.Allows(user, RoleKeys.CommentsView);
+            _canAuthors = AdminPolicies.Allows(user, RoleKeys.AuthorsProfile) || AdminPolicies.Allows(user, RoleKeys.AuthorsManage);
             _canOrders = AdminPolicies.Allows(user, RoleKeys.OrdersView);
             _canInventory = AdminPolicies.Allows(user, RoleKeys.InventoryView);
             _canWarehouse = AdminPolicies.Allows(user, RoleKeys.WarehouseView);

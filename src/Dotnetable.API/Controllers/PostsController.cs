@@ -19,17 +19,17 @@ public class PostsController : BaseController
         _websiteService = websiteService;
     }
 
-    /// <summary>Published posts, newest first, optionally filtered by post type / category / tag slug.</summary>
+    /// <summary>Published posts, newest first, optionally filtered by post type / category / tag / author slug.</summary>
     [HttpGet]
     public async Task<IActionResult> GetPublished(
-        [FromQuery] string? type = null, [FromQuery] string? category = null, [FromQuery] string? tag = null,
+        [FromQuery] string? type = null, [FromQuery] string? category = null, [FromQuery] string? tag = null, [FromQuery] string? author = null,
         [FromQuery] int page = 1, [FromQuery] int pageSize = 12, [FromQuery] string? lang = null,
         CancellationToken ct = default)
     {
         var website = await ResolveWebsiteAsync(_websiteService, ct);
         if (website is null) return NotFound(new { message = "Website could not be resolved." });
 
-        var result = await _postService.GetPublishedAsync(website.WebsiteID, type, category, tag, page, GridQuery.ClampPageSize(pageSize), lang, ct);
+        var result = await _postService.GetPublishedAsync(website.WebsiteID, type, category, tag, page, GridQuery.ClampPageSize(pageSize), lang, author, ct);
         return Ok(result);
     }
 

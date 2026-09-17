@@ -1,0 +1,274 @@
+@using Dotnetable.Application.DTOs
+@using Dotnetable.Application.Security
+@model Dotnetable.Web.Controllers.AuthorController.AuthorPageView
+@{
+    var a = Model.Author;
+    ViewData["Title"] = string.IsNullOrEmpty(a.Headline) ? a.Name : $"{a.Name} — {a.Headline}";
+    ViewData["MetaDescription"] = a.Bio;
+    ViewData["OgType"] = "profile";
+    ViewData["OgImage"] = a.PhotoUrl;
+    Layout = "/Themes/Default/Views/Shared/_Layout.cshtml";
+
+    // Written by any admin member who can edit their own profile, so it is sanitised like every other rich text.
+    var about = ContentSanitizer.Sanitize(a.About);
+    var initial = string.IsNullOrWhiteSpace(a.Name) ? "?" : a.Name.Trim()[0].ToString().ToUpperInvariant();
+
+    string SectionTitle(string type) => type switch
+    {
+        "experience" => "Work experience",
+        "education" => "Education",
+        "project" => "Projects & work",
+        "certification" => "Certifications",
+        "award" => "Awards",
+        "publication" => "Publications & talks",
+        "volunteering" => "Volunteering",
+        _ => "More",
+    };
+
+    string TypeIcon(string type) => type switch
+    {
+        "experience" => "bi-briefcase",
+        "education" => "bi-mortarboard",
+        "project" => "bi-kanban",
+        "certification" => "bi-patch-check",
+        "award" => "bi-trophy",
+        "publication" => "bi-journal-text",
+        "volunteering" => "bi-heart",
+        _ => "bi-star",
+    };
+
+    string NetworkIcon(string network) => network switch
+    {
+        "linkedin" => "bi-linkedin",
+        "github" => "bi-github",
+        "x" => "bi-twitter-x",
+        "instagram" => "bi-instagram",
+        "telegram" => "bi-telegram",
+        "youtube" => "bi-youtube",
+        "facebook" => "bi-facebook",
+        "mastodon" => "bi-mastodon",
+        "stackoverflow" => "bi-stack-overflow",
+        "dribbble" => "bi-dribbble",
+        "behance" => "bi-behance",
+        "medium" => "bi-medium",
+        "whatsapp" => "bi-whatsapp",
+        _ => "bi-globe2",
+    };
+
+    string Period(ResumeItemDto i)
+    {
+        var start = i.StartDate?.ToString("MMM yyyy");
+        var end = i.IsCurrent ? "Present" : i.EndDate?.ToString("MMM yyyy");
+        if (start is null) return end ?? "";
+        return end is null || end == start ? start : $"{start} – {end}";
+    }
+}
+
+@await Html.PartialAsync("_PageHeader", (a.Name, "Author"))
+
+<section class="site-section">
+    <div class="container">
+        <div class="row g-5">
+            @* ── Sidebar: identity card ─────────────────────────────── *@
+            <div class="col-lg-4">
+                <div class="author-card text-center">
+                    @if (!string.IsNullOrEmpty(a.PhotoUrl))
+                    {
+                        <img src="@a.PhotoUrl" alt="@a.Name" class="author-photo author-photo-lg mb-3" />
+                    }
+                    else
+                    {
+                        <div class="author-photo author-photo-lg author-photo-initial mx-auto mb-3" aria-hidden="true">@initial</div>
+                    }
+                    <h2 class="h4 mb-1">@a.Name</h2>
+                    @if (!string.IsNullOrEmpty(a.Headline))
+                    {
+                        <div class="text-primary fw-semibold">@a.Headline</div>
+                    }
+                    @if (!string.IsNullOrEmpty(a.Location))
+                    {
+                        <div class="text-muted small mt-2"><i class="bi bi-geo-alt me-1"></i>@a.Location</div>
+                    }
+
+                    @if (a.SocialLinks.Count > 0 || !string.IsNullOrEmpty(a.WebsiteUrl) || !string.IsNullOrEmpty(a.PublicEmail))
+                    {
+                        <div class="author-links d-flex justify-content-center flex-wrap gap-2 mt-3">
+                            @if (!string.IsNullOrEmpty(a.WebsiteUrl))
+                            {
+                                <a href="@a.WebsiteUrl" target="_blank" rel="noopener me" title="Website"><i class="bi bi-globe2"></i></a>
+                            }
+                            @if (!string.IsNullOrEmpty(a.PublicEmail))
+                            {
+                                <a href="mailto:@a.PublicEmail" title="@a.PublicEmail"><i class="bi bi-envelope"></i></a>
+                            }
+                            @foreach (var link in a.SocialLinks)
+                            {
+                                <a href="@link.Url" target="_blank" rel="noopener me" title="@link.Network"><i class="bi @NetworkIcon(link.Network)"></i></a>
+                            }
+                        </div>
+                    }
+
+                    @if (!string.IsNullOrEmpty(a.ResumeFileUrl))
+                    {
+                        <a class="btn btn-primary w-100 mt-4" href="@a.ResumeFileUrl" target="_blank" rel="noopener">
+                            <i class="bi bi-download me-1"></i>Download CV
+                        </a>
+                    }
+
+                    <div class="d-flex justify-content-around mt-4 pt-3 border-top">
+                        <div>
+                            <div class="h5 mb-0">@a.PostCount</div>
+                            <div class="text-muted small">Posts</div>
+                        </div>
+                        <div>
+                            <div class="h5 mb-0">@a.Sections.Sum(s => s.Items.Count)</div>
+                            <div class="text-muted small">Résumé items</div>
+                        </div>
+                    </div>
+                </div>
+
+                @if (a.Skills.Count > 0)
+                {
+                    <div class="author-card mt-4">
+                        <h3 class="h6 text-uppercase text-muted mb-3">Skills</h3>
+                        <div class="d-flex flex-wrap gap-2">
+                            @foreach (var skill in a.Skills)
+                            {
+                                <span class="author-skill">@skill</span>
+                            }
+                        </div>
+                    </div>
+                }
+            </div>
+
+            @* ── Main column ───────────────────────────────────────── *@
+            <div class="col-lg-8">
+                @if (!string.IsNullOrEmpty(a.Bio) || !string.IsNullOrEmpty(about))
+                {
+                    <div class="mb-5">
+                        <h3 class="h4 mb-3">About me</h3>
+                        @if (!string.IsNullOrEmpty(a.Bio))
+                        {
+                            <p class="lead author-bio">@a.Bio</p>
+                        }
+                        @if (!string.IsNullOrEmpty(about))
+                        {
+                            <div class="post-content">@Html.Raw(about)</div>
+                        }
+                    </div>
+                }
+
+                @if (a.Timeline.Count > 0)
+                {
+                    <div class="mb-5">
+                        <h3 class="h4 mb-4"><i class="bi bi-clock-history me-2 text-primary"></i>Timeline</h3>
+                        <ol class="author-timeline">
+                            @foreach (var item in a.Timeline)
+                            {
+                                <li class="author-timeline-item @(item.IsCurrent ? "is-current" : "")">
+                                    <span class="author-timeline-dot"><i class="bi @TypeIcon(item.Type)"></i></span>
+                                    <div class="author-timeline-date">@Period(item)</div>
+                                    <div class="fw-semibold">@item.Title</div>
+                                    @if (!string.IsNullOrEmpty(item.Organization))
+                                    {
+                                        <div class="text-muted small">@item.Organization@(string.IsNullOrEmpty(item.Location) ? "" : $" · {item.Location}")</div>
+                                    }
+                                </li>
+                            }
+                        </ol>
+                    </div>
+                }
+
+                @foreach (var section in a.Sections)
+                {
+                    <div class="mb-5">
+                        <h3 class="h4 mb-3"><i class="bi @TypeIcon(section.Type) me-2 text-primary"></i>@SectionTitle(section.Type)</h3>
+                        <div class="@(section.Type == "project" ? "row g-3" : "")">
+                            @foreach (var item in section.Items)
+                            {
+                                <div class="@(section.Type == "project" ? "col-md-6" : "")">
+                                    <div class="author-resume-item h-100">
+                                        <div class="d-flex justify-content-between gap-2 flex-wrap">
+                                            <h4 class="h6 mb-0">
+                                                @if (!string.IsNullOrEmpty(item.Url))
+                                                {
+                                                    <a href="@item.Url" target="_blank" rel="noopener">@item.Title <i class="bi bi-box-arrow-up-right small"></i></a>
+                                                }
+                                                else
+                                                {
+                                                    @item.Title
+                                                }
+                                            </h4>
+                                            @if (Period(item) is { Length: > 0 } period)
+                                            {
+                                                <span class="text-muted small">@period</span>
+                                            }
+                                        </div>
+                                        @if (!string.IsNullOrEmpty(item.Organization) || !string.IsNullOrEmpty(item.Location))
+                                        {
+                                            <div class="text-primary small fw-semibold">
+                                                @item.Organization@(string.IsNullOrEmpty(item.Organization) || string.IsNullOrEmpty(item.Location) ? "" : " · ")@item.Location
+                                            </div>
+                                        }
+                                        @if (!string.IsNullOrEmpty(item.Description))
+                                        {
+                                            <p class="author-bio text-muted mb-0 mt-2">@item.Description</p>
+                                        }
+                                    </div>
+                                </div>
+                            }
+                        </div>
+                    </div>
+                }
+
+                @if (Model.Posts.Count > 0)
+                {
+                    <div id="posts">
+                        <h3 class="h4 mb-3"><i class="bi bi-pencil-square me-2 text-primary"></i>Posts by @a.Name</h3>
+                        <div class="row g-4">
+                            @foreach (var post in Model.Posts)
+                            {
+                                <div class="col-md-6">
+                                    <article class="blog-card">
+                                        @if (!string.IsNullOrEmpty(post.FeaturedImageUrl))
+                                        {
+                                            <div class="thumb" style="background-image:url('@post.FeaturedImageUrl'); background-size:cover; background-position:center;"></div>
+                                        }
+                                        else
+                                        {
+                                            <div class="thumb" style="background-image:linear-gradient(135deg,#1d2433,#2a3346);"></div>
+                                        }
+                                        <div class="body">
+                                            <h3><a class="text-reset" asp-controller="Blog" asp-action="Post" asp-route-slug="@post.Slug">@post.Title</a></h3>
+                                            @if (!string.IsNullOrEmpty(post.Excerpt))
+                                            {
+                                                <p class="text-muted">@post.Excerpt</p>
+                                            }
+                                            <div class="meta">
+                                                <span><i class="bi bi-calendar3 me-1"></i>@(post.PublishedAt?.ToString("MMM d, yyyy") ?? "")</span>
+                                            </div>
+                                        </div>
+                                    </article>
+                                </div>
+                            }
+                        </div>
+
+                        @if (Model.TotalPages > 1)
+                        {
+                            <nav class="mt-4" aria-label="Author posts pages">
+                                <ul class="pagination justify-content-center">
+                                    @for (var i = 1; i <= Model.TotalPages; i++)
+                                    {
+                                        <li class="page-item @(i == Model.Page ? "active" : "")">
+                                            <a class="page-link" href="@(Url.RouteUrl("author", new { slug = a.Slug, page = i }))#posts">@i</a>
+                                        </li>
+                                    }
+                                </ul>
+                            </nav>
+                        }
+                    </div>
+                }
+            </div>
+        </div>
+    </div>
+</section>

@@ -1,0 +1,588 @@
+@* Author bio + online résumé editor for one member. Hosted by MyAuthorProfile (the signed-in
+   member's own profile) and AuthorEdit (a site owner editing someone else's); the host page does the
+   authorization and passes the member it resolved. *@
+@inject IAuthorProfileService AuthorService
+@inject IMemberService MemberService
+@inject IWebsiteService WebsiteService
+@inject ILanguageService LanguageService
+@inject IDialogService DialogService
+@inject ISnackbar Snackbar
+@inject IPageLocalizer L
+
+@if (_loading)
+{
+    <MudProgressLinear Indeterminate="true" Color="Color.Primary" Class="mb-4" />
+}
+else if (_member is null)
+{
+    <MudAlert Severity="Severity.Warning">@L["authors.member_not_found", "Member not found."]</MudAlert>
+}
+else
+{
+    <MudForm @ref="_form">
+        <MudGrid Spacing="4">
+            <MudItem xs="12" md="8">
+                <MudPaper Elevation="0" Class="app-card rounded-lg pa-4">
+                    <MudText Typo="Typo.subtitle1" Class="fw-bold mb-1">
+                        <MudIcon Icon="@Icons.Material.Filled.Badge" Size="Size.Small" Class="me-1" />@L["authors.bio_section", "Author bio"]
+                    </MudText>
+                    <MudText Typo="Typo.body2" Color="Color.Secondary" Class="mb-3">
+                        @L["authors.bio_hint", "Shown in the \"About the author\" box under every post you write."]
+                    </MudText>
+                    <MudGrid Spacing="2">
+                        <MudItem xs="12" sm="6">
+                            <MudTextField @bind-Value="_model.DisplayName" Label="@L["authors.display_name", "Display name"]"
+                                          Variant="Variant.Outlined" MaxLength="150"
+                                          HelperText="@string.Format(L["authors.display_name_hint", "Leave blank to use \"{0}\"."], MemberFullName)" />
+                        </MudItem>
+                        <MudItem xs="12" sm="6">
+                            <MudTextField @bind-Value="_model.Headline" Label="@L["authors.headline", "Headline / job title"]"
+                                          Variant="Variant.Outlined" MaxLength="200"
+                                          Placeholder="@L["authors.headline_placeholder", "Senior .NET developer"]" />
+                        </MudItem>
+                        <MudItem xs="12">
+                            <MudTextField @bind-Value="_model.Bio" Label="@L["authors.bio", "Short bio"]"
+                                          Variant="Variant.Outlined" Lines="3" AutoGrow="true" MaxLength="1000" Counter="1000" />
+                        </MudItem>
+                        <MudItem xs="12">
+                            <MudSwitch T="bool" @bind-Value="_model.ShowBioOnPosts" Color="Color.Primary"
+                                       Label="@L["authors.show_bio_on_posts", "Show my bio under my posts"]" />
+                        </MudItem>
+                    </MudGrid>
+                </MudPaper>
+
+                <MudPaper Elevation="0" Class="app-card rounded-lg pa-4 mt-4">
+                    <MudText Typo="Typo.subtitle1" Class="fw-bold mb-1">
+                        <MudIcon Icon="@Icons.Material.Filled.ContactPage" Size="Size.Small" Class="me-1" />@L["authors.resume_section", "Online résumé page"]
+                    </MudText>
+                    <MudText Typo="Typo.body2" Color="Color.Secondary" Class="mb-3">
+                        @L["authors.resume_hint", "A public \"About the author\" page with your story, skills, work and a timeline. Visitors reach it from the author box under your posts."]
+                    </MudText>
+                    <MudGrid Spacing="2">
+                        <MudItem xs="12">
+                            <MudSwitch T="bool" @bind-Value="_model.ResumeEnabled" Color="Color.Success"
+                                       Label="@L["authors.resume_enabled", "Publish my résumé page"]" />
+                            @if (_saved is not null && _model.ResumeEnabled && PublicUrl is string url)
+                            {
+                                <MudLink Href="@url" Target="_blank" Typo="Typo.body2" Class="d-block ms-1">
+                                    <MudIcon Icon="@Icons.Material.Filled.OpenInNew" Size="Size.Small" Class="me-1" />@url
+                                </MudLink>
+                            }
+                        </MudItem>
+                        <MudItem xs="12" sm="6">
+                            <MudTextField @bind-Value="_model.Slug" Label="@L["slug", "Slug"]" Variant="Variant.Outlined" MaxLength="100"
+                                          HelperText="@L["authors.slug_hint", "Address of the page: /author/{slug}. Leave blank to generate it from your name."]" />
+                        </MudItem>
+                        <MudItem xs="12" sm="6">
+                            <MudTextField @bind-Value="_model.Location" Label="@L["authors.location", "Location"]" Variant="Variant.Outlined" MaxLength="150" />
+                        </MudItem>
+                        <MudItem xs="12" sm="6">
+                            <MudTextField @bind-Value="_model.PublicEmail" Label="@L["authors.public_email", "Public email"]"
+                                          Variant="Variant.Outlined" InputType="InputType.Email" MaxLength="256"
+                                          HelperText="@L["authors.public_email_hint", "Shown on the page — leave blank to keep it private."]" />
+                        </MudItem>
+                        <MudItem xs="12" sm="6">
+                            <MudTextField @bind-Value="_model.WebsiteUrl" Label="@L["authors.website_url", "Personal website"]"
+                                          Variant="Variant.Outlined" MaxLength="512" Placeholder="https://"
+                                          Validation="@(new Func<string?, string?>(ValidateUrl))" />
+                        </MudItem>
+                        <MudItem xs="12">
+                            <MudTextField @bind-Value="_model.Skills" Label="@L["authors.skills", "Skills"]"
+                                          Variant="Variant.Outlined" MaxLength="1000"
+                                          HelperText="@L["authors.skills_hint", "Comma-separated, e.g. C#, Blazor, SQL Server"]" />
+                        </MudItem>
+                        <MudItem xs="12">
+                            <MudText Typo="Typo.body2" Color="Color.Secondary" Class="mb-1">@L["authors.about", "About me (long description)"]</MudText>
+                            <DNCkEditor ContentLanguage="@_defaultLanguageCode"
+                                        Value="@(_model.About ?? "")"
+                                        OnValueChanged="@(v => _model.About = v)" />
+                        </MudItem>
+                    </MudGrid>
+
+                    <MudText Typo="Typo.subtitle2" Class="mt-4 mb-2">@L["authors.social_links", "Social links"]</MudText>
+                    @foreach (var link in _links)
+                    {
+                        <MudStack Row="true" Spacing="2" AlignItems="AlignItems.Center" Class="mb-2">
+                            <MudSelect T="string" @bind-Value="link.Network" Variant="Variant.Outlined" Margin="Margin.Dense" Style="max-width:170px;">
+                                @foreach (var n in AuthorSocialLinks.Networks)
+                                {
+                                    <MudSelectItem T="string" Value="@n">@NetworkLabel(n)</MudSelectItem>
+                                }
+                            </MudSelect>
+                            <MudTextField @bind-Value="link.Url" Variant="Variant.Outlined" Margin="Margin.Dense" Placeholder="https://"
+                                          Class="flex-grow-1" Validation="@(new Func<string?, string?>(ValidateUrl))" />
+                            <MudIconButton Icon="@Icons.Material.Filled.Delete" Color="Color.Error" Size="Size.Small"
+                                           OnClick="@(() => _links.Remove(link))" />
+                        </MudStack>
+                    }
+                    <MudButton Variant="Variant.Text" Size="Size.Small" StartIcon="@Icons.Material.Filled.Add"
+                               OnClick="@(() => _links.Add(new AuthorSocialLink()))">@L["authors.add_link", "Add link"]</MudButton>
+                </MudPaper>
+
+                @if (_languages.Length > 0)
+                {
+                    <MudExpansionPanels Elevation="0" Class="mt-4">
+                        <MudExpansionPanel Text="@L["other_languages", "Other languages"]">
+                            <MudText Typo="Typo.body2" Color="Color.Secondary" Class="mb-2">
+                                @L["other_languages.hint", "Main fields above are the site default language. Leave a translation blank to fall back to the default."]
+                            </MudText>
+                            @foreach (var (code, label) in _languages)
+                            {
+                                var t = ProfileTranslation(code);
+                                <MudPaper Elevation="0" Class="pa-3 mb-2" Style="border:1px solid var(--mud-palette-lines-default); border-radius:8px;">
+                                    <MudText Typo="Typo.subtitle2" Class="mb-2">@label</MudText>
+                                    <MudGrid Spacing="2">
+                                        <MudItem xs="12" sm="6"><MudTextField T="string" Value="@t.DisplayName" ValueChanged="@(v => t.DisplayName = v)" Label="@L["authors.display_name", "Display name"]" Variant="Variant.Outlined" Margin="Margin.Dense" /></MudItem>
+                                        <MudItem xs="12" sm="6"><MudTextField T="string" Value="@t.Headline" ValueChanged="@(v => t.Headline = v)" Label="@L["authors.headline", "Headline / job title"]" Variant="Variant.Outlined" Margin="Margin.Dense" /></MudItem>
+                                        <MudItem xs="12"><MudTextField T="string" Value="@t.Bio" ValueChanged="@(v => t.Bio = v)" Label="@L["authors.bio", "Short bio"]" Variant="Variant.Outlined" Lines="3" AutoGrow="true" Margin="Margin.Dense" /></MudItem>
+                                        <MudItem xs="12">
+                                            <MudText Typo="Typo.caption" Color="Color.Secondary">@L["authors.about", "About me (long description)"]</MudText>
+                                            <DNCkEditor @key="@($"about_{code}")" ContentLanguage="@(code)"
+                                                        Value="@(t.About ?? "")"
+                                                        OnValueChanged="@(v => t.About = v)" />
+                                        </MudItem>
+                                    </MudGrid>
+                                </MudPaper>
+                            }
+                        </MudExpansionPanel>
+                    </MudExpansionPanels>
+                }
+            </MudItem>
+
+            <MudItem xs="12" md="4">
+                <MudPaper Elevation="0" Class="app-card rounded-lg pa-4 mb-4">
+                    <MudText Typo="Typo.subtitle1" Class="fw-bold mb-3">@L["authors.photo", "Photo"]</MudText>
+                    @if (PhotoPreview is string photo)
+                    {
+                        <img src="@photo" alt="" style="width:120px; height:120px; object-fit:cover; border-radius:50%;" class="mb-2 d-block" />
+                    }
+                    @if (_photoFile is null)
+                    {
+                        <MudText Typo="Typo.caption" Color="Color.Secondary" Class="d-block mb-2">
+                            @L["authors.photo_hint", "Falls back to your account avatar when not set."]
+                        </MudText>
+                    }
+                    <MudStack Row="true" Spacing="2">
+                        <MudButton Variant="Variant.Outlined" StartIcon="@Icons.Material.Filled.Image" OnClick="PickPhotoAsync">@L["posts.choose_image", "Choose"]</MudButton>
+                        @if (_photoFile is not null)
+                        {
+                            <MudButton Variant="Variant.Text" Color="Color.Error" OnClick="@(() => _photoFile = null)">@L["clear", "Clear"]</MudButton>
+                        }
+                    </MudStack>
+
+                    <MudText Typo="Typo.subtitle1" Class="fw-bold mt-5 mb-2">@L["authors.cv_file", "Downloadable CV"]</MudText>
+                    @if (_resumeFile is not null)
+                    {
+                        <MudText Typo="Typo.body2" Class="mb-2">
+                            <MudIcon Icon="@Icons.Material.Filled.AttachFile" Size="Size.Small" Class="me-1" />@_resumeFile.OriginalFileName
+                        </MudText>
+                    }
+                    <MudStack Row="true" Spacing="2">
+                        <MudButton Variant="Variant.Outlined" StartIcon="@Icons.Material.Filled.UploadFile" OnClick="PickResumeFileAsync">@L["posts.choose_image", "Choose"]</MudButton>
+                        @if (_resumeFile is not null)
+                        {
+                            <MudButton Variant="Variant.Text" Color="Color.Error" OnClick="@(() => _resumeFile = null)">@L["clear", "Clear"]</MudButton>
+                        }
+                    </MudStack>
+
+                    <MudButton Variant="Variant.Filled" Color="Color.Primary" FullWidth="true" Class="mt-6"
+                               OnClick="SaveAsync" Disabled="@_saving">@L["save", "Save"]</MudButton>
+                </MudPaper>
+            </MudItem>
+
+            <MudItem xs="12">
+                <MudPaper Elevation="0" Class="app-card rounded-lg pa-4">
+                    <MudStack Row="true" AlignItems="AlignItems.Center" Justify="Justify.SpaceBetween" Class="mb-2">
+                        <MudStack Spacing="0">
+                            <MudText Typo="Typo.subtitle1" Class="fw-bold">
+                                <MudIcon Icon="@Icons.Material.Filled.Timeline" Size="Size.Small" Class="me-1" />@L["authors.items", "Résumé & timeline"]
+                            </MudText>
+                            <MudText Typo="Typo.body2" Color="Color.Secondary">
+                                @L["authors.items_hint", "Jobs, education, projects, awards… Items marked \"timeline\" also appear on the chronological timeline."]
+                            </MudText>
+                        </MudStack>
+                        <MudButton Variant="Variant.Filled" Color="Color.Primary" StartIcon="@Icons.Material.Filled.Add"
+                                   Disabled="@(_saved is null)" OnClick="@(() => OpenItemDialog(null))">@L["authors.add_item", "Add item"]</MudButton>
+                    </MudStack>
+                    @if (_saved is null)
+                    {
+                        <MudAlert Severity="Severity.Info" Dense="true">@L["authors.save_first", "Save your profile once to start adding résumé items."]</MudAlert>
+                    }
+                    else if (_saved.AuthorResumeItems.Count == 0)
+                    {
+                        <MudText Color="Color.Secondary" Class="pa-4" Align="Align.Center">@L["authors.no_items", "No résumé items yet."]</MudText>
+                    }
+                    else
+                    {
+                        <MudSimpleTable Dense="true" Hover="true" Elevation="0">
+                            <thead>
+                                <tr>
+                                    <th style="width:90px;"></th>
+                                    <th>@L["type", "Type"]</th>
+                                    <th>@L["title", "Title"]</th>
+                                    <th>@L["authors.organization", "Organization"]</th>
+                                    <th>@L["authors.period", "Period"]</th>
+                                    <th>@L["authors.timeline", "Timeline"]</th>
+                                    <th>@L["status", "Status"]</th>
+                                </tr>
+                            </thead>
+                            <tbody>
+                                @foreach (var item in OrderedItems)
+                                {
+                                    <tr>
+                                        <td>
+                                            <MudIconButton Icon="@Icons.Material.Filled.Edit" Size="Size.Small" Color="Color.Primary" OnClick="@(() => OpenItemDialog(item))" />
+                                            <MudIconButton Icon="@Icons.Material.Filled.Delete" Size="Size.Small" Color="Color.Error" OnClick="@(() => DeleteItemAsync(item))" />
+                                        </td>
+                                        <td>@TypeLabel((ResumeItemType)item.ItemType)</td>
+                                        <td>@item.Title</td>
+                                        <td>@(item.Organization ?? "-")</td>
+                                        <td>@Period(item)</td>
+                                        <td>@(item.ShowInTimeline ? "✓" : "")</td>
+                                        <td>
+                                            <MudChip T="string" Size="Size.Small" Color="@(item.IsActive ? Color.Success : Color.Default)">
+                                                @(item.IsActive ? L["active", "Active"] : L["inactive", "Inactive"])
+                                            </MudChip>
+                                        </td>
+                                    </tr>
+                                }
+                            </tbody>
+                        </MudSimpleTable>
+                    }
+                </MudPaper>
+            </MudItem>
+        </MudGrid>
+    </MudForm>
+
+    @* ── Résumé item dialog ───────────────────────────────────────────── *@
+    <MudDialog @bind-Visible="_itemDialogOpen" Options="@(new DialogOptions { MaxWidth = MaxWidth.Medium, FullWidth = true })">
+        <TitleContent>
+            <MudText Typo="Typo.h6">@(_item?.AuthorResumeItemID > 0 ? L["authors.edit_item", "Edit résumé item"] : L["authors.add_item", "Add item"])</MudText>
+        </TitleContent>
+        <DialogContent>
+            @if (_item is not null)
+            {
+                <MudForm @ref="_itemForm">
+                    <MudGrid Spacing="2">
+                        <MudItem xs="12" sm="4">
+                            <MudSelect T="byte" @bind-Value="_item.ItemType" Label="@L["type", "Type"]" Variant="Variant.Outlined">
+                                @foreach (var t in Enum.GetValues<ResumeItemType>())
+                                {
+                                    <MudSelectItem T="byte" Value="@((byte)t)">@TypeLabel(t)</MudSelectItem>
+                                }
+                            </MudSelect>
+                        </MudItem>
+                        <MudItem xs="12" sm="8">
+                            <MudTextField @bind-Value="_item.Title" Label="@L["title", "Title"]" Variant="Variant.Outlined" Required="true" MaxLength="200"
+                                          RequiredError="@L["required", "This field is required."]"
+                                          Placeholder="@L["authors.item_title_placeholder", "Backend developer / B.Sc. Computer Engineering / Project name"]" />
+                        </MudItem>
+                        <MudItem xs="12" sm="6">
+                            <MudTextField @bind-Value="_item.Organization" Label="@L["authors.organization", "Organization"]" Variant="Variant.Outlined" MaxLength="200"
+                                          HelperText="@L["authors.organization_hint", "Company, university, client or issuer"]" />
+                        </MudItem>
+                        <MudItem xs="12" sm="6">
+                            <MudTextField @bind-Value="_item.Location" Label="@L["authors.location", "Location"]" Variant="Variant.Outlined" MaxLength="150" />
+                        </MudItem>
+                        <MudItem xs="12" sm="4">
+                            <MudDatePicker @bind-Date="_itemStart" Label="@L["authors.start_date", "Start date"]" Variant="Variant.Outlined" Clearable="true" />
+                        </MudItem>
+                        <MudItem xs="12" sm="4">
+                            <MudDatePicker @bind-Date="_itemEnd" Label="@L["authors.end_date", "End date"]" Variant="Variant.Outlined" Clearable="true"
+                                           Disabled="@_item.IsCurrent" />
+                        </MudItem>
+                        <MudItem xs="12" sm="4" Class="d-flex align-center">
+                            <MudSwitch T="bool" @bind-Value="_item.IsCurrent" Color="Color.Primary" Label="@L["authors.is_current", "Ongoing (present)"]" />
+                        </MudItem>
+                        <MudItem xs="12">
+                            <MudTextField @bind-Value="_item.Url" Label="@L["authors.item_url", "Link (optional)"]" Variant="Variant.Outlined" MaxLength="512"
+                                          Placeholder="https://" Validation="@(new Func<string?, string?>(ValidateUrl))" />
+                        </MudItem>
+                        <MudItem xs="12">
+                            <MudTextField @bind-Value="_item.Description" Label="@L["description", "Description"]" Variant="Variant.Outlined"
+                                          Lines="4" AutoGrow="true" MaxLength="4000" />
+                        </MudItem>
+                        <MudItem xs="12" sm="4">
+                            <MudNumericField T="int" @bind-Value="_item.SortOrder" Label="@L["sort_order", "Sort order"]" Variant="Variant.Outlined"
+                                             HelperText="@L["authors.sort_hint", "Lower first within its section"]" />
+                        </MudItem>
+                        <MudItem xs="12" sm="4" Class="d-flex align-center">
+                            <MudSwitch T="bool" @bind-Value="_item.ShowInTimeline" Color="Color.Primary" Label="@L["authors.show_in_timeline", "Show on timeline"]" />
+                        </MudItem>
+                        <MudItem xs="12" sm="4" Class="d-flex align-center">
+                            <MudSwitch T="bool" @bind-Value="_item.IsActive" Color="Color.Success" Label="@L["active", "Active"]" />
+                        </MudItem>
+
+                        @foreach (var (code, label) in _languages)
+                        {
+                            var t = ItemTranslation(code);
+                            <MudItem xs="12">
+                                <MudPaper Elevation="0" Class="pa-3" Style="border:1px solid var(--mud-palette-lines-default); border-radius:8px;">
+                                    <MudText Typo="Typo.subtitle2" Class="mb-2">@label</MudText>
+                                    <MudGrid Spacing="2">
+                                        <MudItem xs="12" sm="4"><MudTextField T="string" Value="@t.Title" ValueChanged="@(v => t.Title = v)" Label="@L["title", "Title"]" Variant="Variant.Outlined" Margin="Margin.Dense" /></MudItem>
+                                        <MudItem xs="12" sm="4"><MudTextField T="string" Value="@t.Organization" ValueChanged="@(v => t.Organization = v)" Label="@L["authors.organization", "Organization"]" Variant="Variant.Outlined" Margin="Margin.Dense" /></MudItem>
+                                        <MudItem xs="12" sm="4"><MudTextField T="string" Value="@t.Location" ValueChanged="@(v => t.Location = v)" Label="@L["authors.location", "Location"]" Variant="Variant.Outlined" Margin="Margin.Dense" /></MudItem>
+                                        <MudItem xs="12"><MudTextField T="string" Value="@t.Description" ValueChanged="@(v => t.Description = v)" Label="@L["description", "Description"]" Variant="Variant.Outlined" Lines="2" AutoGrow="true" Margin="Margin.Dense" /></MudItem>
+                                    </MudGrid>
+                                </MudPaper>
+                            </MudItem>
+                        }
+                    </MudGrid>
+                </MudForm>
+            }
+        </DialogContent>
+        <DialogActions>
+            <MudButton OnClick="@(() => _itemDialogOpen = false)">@L["cancel", "Cancel"]</MudButton>
+            <MudButton Variant="Variant.Filled" Color="Color.Primary" OnClick="SaveItemAsync" Disabled="@_savingItem">@L["save", "Save"]</MudButton>
+        </DialogActions>
+    </MudDialog>
+}
+
+@code {
+    /// <summary>The member whose profile is edited. The host page is responsible for checking access.</summary>
+    [Parameter, EditorRequired] public int MemberId { get; set; }
+
+    private bool _loading = true;
+    private bool _saving;
+    private bool _savingItem;
+    private Member? _member;
+    private Website? _website;
+    private AuthorProfile? _saved;
+    private AuthorProfile _model = new() { ShowBioOnPosts = true };
+    private FileRecord? _photoFile;
+    private FileRecord? _resumeFile;
+    private List<AuthorSocialLink> _links = new();
+    private MudForm _form = null!;
+    private string _defaultLanguageCode = "en";
+    private (string Code, string Label)[] _languages = Array.Empty<(string, string)>();
+    private readonly Dictionary<string, AuthorProfileTranslation> _translations = new(StringComparer.OrdinalIgnoreCase);
+
+    private bool _itemDialogOpen;
+    private MudForm? _itemForm;
+    private AuthorResumeItem? _item;
+    private DateTime? _itemStart;
+    private DateTime? _itemEnd;
+    private readonly Dictionary<string, AuthorResumeItemTranslation> _itemTranslations = new(StringComparer.OrdinalIgnoreCase);
+
+    private string MemberFullName => _member is null ? "" : $"{_member.Givenname} {_member.Surname}".Trim();
+
+    private string? PhotoPreview =>
+        _photoFile is not null ? _photoFile.ThumbnailCDN ?? _photoFile.CNDUrl
+        : _member?.Avatar is { } avatar ? avatar.ThumbnailCDN ?? avatar.CNDUrl
+        : null;
+
+    private string? PublicUrl
+    {
+        get
+        {
+            if (_saved is null || string.IsNullOrWhiteSpace(_website?.WebsiteAddress)) return null;
+            var host = _website.WebsiteAddress.Trim().TrimEnd('/');
+            if (!host.StartsWith("http", StringComparison.OrdinalIgnoreCase)) host = "https://" + host;
+            return $"{host}/author/{Uri.EscapeDataString(_saved.Slug)}";
+        }
+    }
+
+    private IEnumerable<AuthorResumeItem> OrderedItems =>
+        (_saved?.AuthorResumeItems ?? []).OrderBy(i => i.ItemType).ThenBy(i => i.SortOrder)
+            .ThenByDescending(i => i.IsCurrent).ThenByDescending(i => i.StartDate);
+
+    protected override async Task OnParametersSetAsync()
+    {
+        _loading = true;
+        await L.EnsureLoadedAsync();
+        _member = await MemberService.GetByIdAsync(MemberId);
+        if (_member is not null)
+        {
+            _website = await WebsiteService.GetByIdAsync(_member.WebsiteID);
+            var langs = await LanguageService.GetActiveForWebsiteAsync(_member.WebsiteID);
+            _defaultLanguageCode = langs.FirstOrDefault(l => l.IsDefault)?.LanguageCode ?? langs.FirstOrDefault()?.LanguageCode ?? "en";
+            _languages = langs.Where(l => !l.IsDefault).Select(l => (l.LanguageCode, l.Name)).ToArray();
+            await ReloadAsync();
+        }
+        _loading = false;
+    }
+
+    private async Task ReloadAsync()
+    {
+        _saved = await AuthorService.GetByMemberAsync(MemberId);
+        _translations.Clear();
+        if (_saved is null)
+        {
+            _model = new AuthorProfile { MemberID = MemberId, ShowBioOnPosts = true };
+            _links = new();
+            _photoFile = null;
+            _resumeFile = null;
+            return;
+        }
+
+        _model = new AuthorProfile
+        {
+            MemberID = MemberId, Slug = _saved.Slug, DisplayName = _saved.DisplayName, Headline = _saved.Headline,
+            Bio = _saved.Bio, ShowBioOnPosts = _saved.ShowBioOnPosts, ResumeEnabled = _saved.ResumeEnabled,
+            About = _saved.About, Location = _saved.Location, PublicEmail = _saved.PublicEmail,
+            WebsiteUrl = _saved.WebsiteUrl, Skills = _saved.Skills,
+        };
+        _links = AuthorSocialLinks.Parse(_saved.SocialLinksJson);
+        _photoFile = _saved.PhotoFile is { IsDeleted: false } p ? p : null;
+        _resumeFile = _saved.ResumeFile is { IsDeleted: false } r ? r : null;
+        foreach (var t in _saved.AuthorProfileTranslations)
+            _translations[t.LanguageCode.Trim()] = new AuthorProfileTranslation
+            {
+                LanguageCode = t.LanguageCode.Trim(), DisplayName = t.DisplayName, Headline = t.Headline, Bio = t.Bio, About = t.About,
+            };
+    }
+
+    private AuthorProfileTranslation ProfileTranslation(string code)
+    {
+        if (!_translations.TryGetValue(code, out var t)) { t = new AuthorProfileTranslation { LanguageCode = code }; _translations[code] = t; }
+        return t;
+    }
+
+    private AuthorResumeItemTranslation ItemTranslation(string code)
+    {
+        if (!_itemTranslations.TryGetValue(code, out var t)) { t = new AuthorResumeItemTranslation { LanguageCode = code }; _itemTranslations[code] = t; }
+        return t;
+    }
+
+    private string? ValidateUrl(string? value) =>
+        string.IsNullOrWhiteSpace(value) || AuthorSocialLinks.IsSafeUrl(value)
+            ? null
+            : L["authors.invalid_url", "Enter a full address starting with https://"];
+
+    private async Task SaveAsync()
+    {
+        await _form.Validate();
+        if (!_form.IsValid) return;
+
+        _saving = true;
+        try
+        {
+            _model.MemberID = MemberId;
+            _model.PhotoFileID = _photoFile?.FileRecordID;
+            _model.ResumeFileID = _resumeFile?.FileRecordID;
+            _model.SocialLinksJson = AuthorSocialLinks.Serialize(_links);
+            await AuthorService.SaveAsync(_model, _translations.Values.ToList());
+            await ReloadAsync();
+            Snackbar.Add(L["saved", "Saved."], Severity.Success);
+        }
+        catch (Exception ex) { Snackbar.Add($"{L["save_failed", "Save failed"]}: {ex.Message}", Severity.Error); }
+        finally { _saving = false; }
+    }
+
+    private void OpenItemDialog(AuthorResumeItem? source)
+    {
+        _itemTranslations.Clear();
+        if (source is null)
+        {
+            _item = new AuthorResumeItem { ItemType = (byte)ResumeItemType.Experience, ShowInTimeline = true, IsActive = true };
+            _itemStart = null;
+            _itemEnd = null;
+        }
+        else
+        {
+            _item = new AuthorResumeItem
+            {
+                AuthorResumeItemID = source.AuthorResumeItemID, ItemType = source.ItemType, Title = source.Title,
+                Organization = source.Organization, Location = source.Location, Description = source.Description,
+                Url = source.Url, IsCurrent = source.IsCurrent, ShowInTimeline = source.ShowInTimeline,
+                SortOrder = source.SortOrder, IsActive = source.IsActive,
+            };
+            _itemStart = source.StartDate?.ToDateTime(TimeOnly.MinValue);
+            _itemEnd = source.EndDate?.ToDateTime(TimeOnly.MinValue);
+            foreach (var t in source.AuthorResumeItemTranslations)
+                _itemTranslations[t.LanguageCode.Trim()] = new AuthorResumeItemTranslation
+                {
+                    LanguageCode = t.LanguageCode.Trim(), Title = t.Title, Organization = t.Organization,
+                    Location = t.Location, Description = t.Description,
+                };
+        }
+        _itemDialogOpen = true;
+    }
+
+    private async Task SaveItemAsync()
+    {
+        if (_item is null || _itemForm is null) return;
+        await _itemForm.Validate();
+        if (!_itemForm.IsValid) return;
+
+        _savingItem = true;
+        try
+        {
+            _item.StartDate = _itemStart is DateTime s ? DateOnly.FromDateTime(s) : null;
+            _item.EndDate = _itemEnd is DateTime e ? DateOnly.FromDateTime(e) : null;
+            await AuthorService.SaveResumeItemAsync(MemberId, _item, _itemTranslations.Values.ToList());
+            _itemDialogOpen = false;
+            _saved = await AuthorService.GetByMemberAsync(MemberId);
+            Snackbar.Add(L["saved", "Saved."], Severity.Success);
+        }
+        catch (Exception ex) { Snackbar.Add($"{L["save_failed", "Save failed"]}: {ex.Message}", Severity.Error); }
+        finally { _savingItem = false; }
+    }
+
+    private async Task DeleteItemAsync(AuthorResumeItem item)
+    {
+        var confirmed = await DialogService.ShowMessageBoxAsync(
+            L["authors.delete_item", "Delete résumé item"],
+            string.Format(L["authors.delete_item_confirm", "Delete \"{0}\" from the résumé?"], item.Title),
+            yesText: L["delete", "Delete"], cancelText: L["cancel", "Cancel"]);
+        if (confirmed != true) return;
+        await AuthorService.DeleteResumeItemAsync(MemberId, item.AuthorResumeItemID);
+        _saved = await AuthorService.GetByMemberAsync(MemberId);
+        Snackbar.Add(L["deleted", "Deleted."], Severity.Success);
+    }
+
+    private async Task PickPhotoAsync()
+    {
+        if (await PickFileAsync(FileCategory.Image) is FileRecord file) _photoFile = file;
+    }
+
+    private async Task PickResumeFileAsync()
+    {
+        if (await PickFileAsync(null) is FileRecord file) _resumeFile = file;
+    }
+
+    private async Task<FileRecord?> PickFileAsync(FileCategory? category)
+    {
+        var parameters = new DialogParameters
+        {
+            [nameof(FilePickerDialog.WebsiteId)] = _member!.WebsiteID,
+            [nameof(FilePickerDialog.Category)] = category,
+        };
+        var dialog = await DialogService.ShowAsync<FilePickerDialog>(L["select_file", "Select a file"], parameters,
+            new DialogOptions { MaxWidth = MaxWidth.Medium, FullWidth = true });
+        var result = await dialog.Result;
+        return result is { Canceled: false, Data: FileRecord file } ? file : null;
+    }
+
+    private string Period(AuthorResumeItem i)
+    {
+        var start = i.StartDate?.ToString("yyyy/MM") ?? "?";
+        var end = i.IsCurrent ? L["authors.present", "Present"] : i.EndDate?.ToString("yyyy/MM");
+        return end is null ? start : $"{start} – {end}";
+    }
+
+    private string TypeLabel(ResumeItemType t) => t switch
+    {
+        ResumeItemType.Experience => L["authors.type.experience", "Work experience"],
+        ResumeItemType.Education => L["authors.type.education", "Education"],
+        ResumeItemType.Project => L["authors.type.project", "Project / portfolio"],
+        ResumeItemType.Certification => L["authors.type.certification", "Certification"],
+        ResumeItemType.Award => L["authors.type.award", "Award"],
+        ResumeItemType.Publication => L["authors.type.publication", "Publication / talk"],
+        ResumeItemType.Volunteering => L["authors.type.volunteering", "Volunteering"],
+        _ => L["authors.type.other", "Other"],
+    };
+
+    private string NetworkLabel(string network) => network switch
+    {
+        "website" => L["authors.network.website", "Website"],
+        "linkedin" => "LinkedIn",
+        "github" => "GitHub",
+        "x" => "X (Twitter)",
+        "stackoverflow" => "Stack Overflow",
+        "youtube" => "YouTube",
+        "whatsapp" => "WhatsApp",
+        _ => char.ToUpperInvariant(network[0]) + network[1..],
+    };
+}

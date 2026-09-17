@@ -333,3 +333,114 @@ a { text-decoration: none; }
     border-inline-start: 2px solid var(--site-border);
     padding-inline-start: 1rem;
 }
+
+/* ---------- Author box (under posts) and author résumé page ---------- */
+.author-box {
+    background: var(--site-light);
+    border: 1px solid var(--site-border);
+    border-radius: var(--site-radius);
+    padding: 1.5rem;
+}
+.author-photo {
+    width: 4.5rem;
+    height: 4.5rem;
+    border-radius: 50%;
+    object-fit: cover;
+    flex-shrink: 0;
+}
+.author-photo-lg {
+    width: 8rem;
+    height: 8rem;
+}
+.author-photo-initial {
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    background: var(--site-primary);
+    color: #fff;
+    font-size: 1.75rem;
+    font-weight: 600;
+}
+.author-photo-lg.author-photo-initial { font-size: 3rem; }
+.author-bio {
+    white-space: pre-line;
+    overflow-wrap: anywhere;
+}
+.author-card {
+    border: 1px solid var(--site-border);
+    border-radius: var(--site-radius);
+    padding: 1.75rem 1.5rem;
+    background: #fff;
+}
+.author-links a {
+    width: 2.25rem;
+    height: 2.25rem;
+    border-radius: 50%;
+    display: inline-flex;
+    align-items: center;
+    justify-content: center;
+    background: var(--site-light);
+    color: var(--site-dark);
+    border: 1px solid var(--site-border);
+}
+.author-links a:hover {
+    background: var(--site-primary);
+    border-color: var(--site-primary);
+    color: #fff;
+}
+.author-skill {
+    background: var(--site-light);
+    border: 1px solid var(--site-border);
+    border-radius: 999px;
+    padding: .2rem .75rem;
+    font-size: .875rem;
+}
+.author-resume-item {
+    border: 1px solid var(--site-border);
+    border-radius: var(--site-radius);
+    padding: 1rem 1.25rem;
+    margin-bottom: .75rem;
+}
+.author-resume-item a { color: inherit; }
+.author-resume-item a:hover { color: var(--site-primary); }
+
+/* Vertical timeline; uses logical properties so it mirrors correctly on RTL sites. */
+.author-timeline {
+    list-style: none;
+    margin: 0;
+    padding: 0;
+    position: relative;
+    border-inline-start: 2px solid var(--site-border);
+    margin-inline-start: 1rem;
+}
+.author-timeline-item {
+    position: relative;
+    padding-inline-start: 2rem;
+    padding-bottom: 1.5rem;
+}
+.author-timeline-item:last-child { padding-bottom: 0; }
+.author-timeline-dot {
+    position: absolute;
+    inset-inline-start: -1.05rem;
+    top: 0;
+    width: 2rem;
+    height: 2rem;
+    border-radius: 50%;
+    background: #fff;
+    border: 2px solid var(--site-border);
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    font-size: .9rem;
+    color: var(--site-muted);
+}
+.author-timeline-item.is-current .author-timeline-dot {
+    border-color: var(--site-primary);
+    color: var(--site-primary);
+}
+.author-timeline-date {
+    font-size: .8rem;
+    color: var(--site-muted);
+    text-transform: uppercase;
+    letter-spacing: .03em;
+}

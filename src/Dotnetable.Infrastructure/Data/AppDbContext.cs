@@ -26,6 +26,14 @@ public partial class AppDbContext : DbContext
 
     public virtual DbSet<AttributeOptionTranslation> AttributeOptionTranslations { get; set; }
 
+    public virtual DbSet<AuthorProfile> AuthorProfiles { get; set; }
+
+    public virtual DbSet<AuthorProfileTranslation> AuthorProfileTranslations { get; set; }
+
+    public virtual DbSet<AuthorResumeItem> AuthorResumeItems { get; set; }
+
+    public virtual DbSet<AuthorResumeItemTranslation> AuthorResumeItemTranslations { get; set; }
+
     public virtual DbSet<Bank> Banks { get; set; }
 
     public virtual DbSet<BankAccount> BankAccounts { get; set; }
@@ -1155,6 +1163,105 @@ public partial class AppDbContext : DbContext
         // Every FK is NO ACTION: a self-reference plus two content parents would otherwise give SQL
         // Server multiple cascade paths, and a SET NULL on the post/page would orphan the comment.
         // PostService/PageService delete a post's/page's comments explicitly.
+        modelBuilder.Entity<AuthorProfile>(entity =>
+        {
+            entity.HasIndex(e => e.MemberID, "IX_AuthorProfiles_MemberID").IsUnique();
+
+            entity.HasIndex(e => new { e.WebsiteID, e.Slug }, "IX_AuthorProfiles_WebsiteID_Slug").IsUnique();
+
+            entity.HasIndex(e => e.PhotoFileID, "IX_AuthorProfiles_PhotoFileID");
+
+            entity.HasIndex(e => e.ResumeFileID, "IX_AuthorProfiles_ResumeFileID");
+
+            entity.Property(e => e.Slug).HasMaxLength(100);
+            entity.Property(e => e.DisplayName).HasMaxLength(150);
+            entity.Property(e => e.Headline).HasMaxLength(200);
+            entity.Property(e => e.Bio).HasMaxLength(1000);
+            entity.Property(e => e.Location).HasMaxLength(150);
+            entity.Property(e => e.PublicEmail).HasMaxLength(256);
+            entity.Property(e => e.WebsiteUrl).HasMaxLength(512);
+            entity.Property(e => e.SocialLinksJson).HasMaxLength(4000);
+            entity.Property(e => e.Skills).HasMaxLength(1000);
+            entity.Property(e => e.ShowBioOnPosts).HasDefaultValue(true);
+            entity.Property(e => e.CreatedAt).HasPrecision(0);
+            entity.Property(e => e.UpdatedAt).HasPrecision(0);
+
+            entity.HasOne(d => d.Member).WithOne(p => p.AuthorProfile)
+                .HasForeignKey<AuthorProfile>(d => d.MemberID)
+                .OnDelete(DeleteBehavior.Cascade)
+                .HasConstraintName("FK_AuthorProfiles_Members");
+
+            entity.HasOne(d => d.Website).WithMany()
+                .HasForeignKey(d => d.WebsiteID)
+                .OnDelete(DeleteBehavior.ClientSetNull)
+                .HasConstraintName("FK_AuthorProfiles_Websites");
+
+            entity.HasOne(d => d.PhotoFile).WithMany()
+                .HasForeignKey(d => d.PhotoFileID)
+                .OnDelete(DeleteBehavior.ClientSetNull)
+                .HasConstraintName("FK_AuthorProfiles_FileRecords_Photo");
+
+            entity.HasOne(d => d.ResumeFile).WithMany()
+                .HasForeignKey(d => d.ResumeFileID)
+                .OnDelete(DeleteBehavior.ClientSetNull)
+                .HasConstraintName("FK_AuthorProfiles_FileRecords_Resume");
+        });
+
+        modelBuilder.Entity<AuthorProfileTranslation>(entity =>
+        {
+            entity.HasIndex(e => new { e.AuthorProfileID, e.LanguageCode }, "IX_AuthorProfileTranslations_AuthorProfileID_LanguageCode").IsUnique();
+
+            entity.Property(e => e.LanguageCode)
+                .HasMaxLength(2)
+                .IsUnicode(false)
+                .IsFixedLength();
+            entity.Property(e => e.DisplayName).HasMaxLength(150);
+            entity.Property(e => e.Headline).HasMaxLength(200);
+            entity.Property(e => e.Bio).HasMaxLength(1000);
+
+            entity.HasOne(d => d.AuthorProfile).WithMany(p => p.AuthorProfileTranslations)
+                .HasForeignKey(d => d.AuthorProfileID)
+                .OnDelete(DeleteBehavior.Cascade)
+                .HasConstraintName("FK_AuthorProfileTranslations_AuthorProfiles");
+        });
+
+        modelBuilder.Entity<AuthorResumeItem>(entity =>
+        {
+            entity.HasIndex(e => e.AuthorProfileID, "IX_AuthorResumeItems_AuthorProfileID");
+
+            entity.Property(e => e.Title).HasMaxLength(200);
+            entity.Property(e => e.Organization).HasMaxLength(200);
+            entity.Property(e => e.Location).HasMaxLength(150);
+            entity.Property(e => e.Description).HasMaxLength(4000);
+            entity.Property(e => e.Url).HasMaxLength(512);
+            entity.Property(e => e.ShowInTimeline).HasDefaultValue(true);
+            entity.Property(e => e.IsActive).HasDefaultValue(true);
+
+            entity.HasOne(d => d.AuthorProfile).WithMany(p => p.AuthorResumeItems)
+                .HasForeignKey(d => d.AuthorProfileID)
+                .OnDelete(DeleteBehavior.Cascade)
+                .HasConstraintName("FK_AuthorResumeItems_AuthorProfiles");
+        });
+
+        modelBuilder.Entity<AuthorResumeItemTranslation>(entity =>
+        {
+            entity.HasIndex(e => new { e.AuthorResumeItemID, e.LanguageCode }, "IX_AuthorResumeItemTranslations_AuthorResumeItemID_LanguageCode").IsUnique();
+
+            entity.Property(e => e.LanguageCode)
+                .HasMaxLength(2)
+                .IsUnicode(false)
+                .IsFixedLength();
+            entity.Property(e => e.Title).HasMaxLength(200);
+            entity.Property(e => e.Organization).HasMaxLength(200);
+            entity.Property(e => e.Location).HasMaxLength(150);
+            entity.Property(e => e.Description).HasMaxLength(4000);
+
+            entity.HasOne(d => d.AuthorResumeItem).WithMany(p => p.AuthorResumeItemTranslations)
+                .HasForeignKey(d => d.AuthorResumeItemID)
+                .OnDelete(DeleteBehavior.Cascade)
+                .HasConstraintName("FK_AuthorResumeItemTranslations_AuthorResumeItems");
+        });
+
         modelBuilder.Entity<ContentComment>(entity =>
         {
             entity.HasIndex(e => new { e.WebsiteID, e.Status }, "IX_ContentComments_WebsiteID_Status");

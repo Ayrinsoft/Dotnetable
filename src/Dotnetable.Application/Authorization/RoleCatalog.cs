@@ -98,6 +98,10 @@ public static class RoleCatalog
         new(RoleKeys.PostsEdit, "Edit posts", RoleCategory.Admin),
         new(RoleKeys.PostsDelete, "Delete posts", RoleCategory.Admin),
 
+        // Content — author bio / online résumé
+        new(RoleKeys.AuthorsProfile, "Edit my own author bio and online résumé (shown under my posts and on my author page)", RoleCategory.Admin),
+        new(RoleKeys.AuthorsManage, "Edit the author bio and résumé of any member of this website", RoleCategory.Admin),
+
         // Content — pages
         new(RoleKeys.PagesView, "View pages", RoleCategory.Admin),
         new(RoleKeys.PagesInsert, "Create pages", RoleCategory.Admin),

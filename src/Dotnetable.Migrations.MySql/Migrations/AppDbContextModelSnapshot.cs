@@ -285,6 +285,236 @@ namespace Dotnetable.Migrations.MySql.Migrations
                     b.ToTable("AttributeOptionTranslations");
                 });
 
+            modelBuilder.Entity("Dotnetable.Domain.Entities.AuthorProfile", b =>
+                {
+                    b.Property<int>("AuthorProfileID")
+                        .ValueGeneratedOnAdd()
+                        .HasColumnType("int");
+
+                    b.Property<string>("About")
+                        .HasColumnType("longtext");
+
+                    b.Property<string>("Bio")
+                        .HasMaxLength(1000)
+                        .HasColumnType("varchar(1000)");
+
+                    b.Property<DateTime>("CreatedAt")
+                        .HasPrecision(0)
+                        .HasColumnType("datetime(0)");
+
+                    b.Property<string>("DisplayName")
+                        .HasMaxLength(150)
+                        .HasColumnType("varchar(150)");
+
+                    b.Property<string>("Headline")
+                        .HasMaxLength(200)
+                        .HasColumnType("varchar(200)");
+
+                    b.Property<string>("Location")
+                        .HasMaxLength(150)
+                        .HasColumnType("varchar(150)");
+
+                    b.Property<int>("MemberID")
+                        .HasColumnType("int");
+
+                    b.Property<int?>("PhotoFileID")
+                        .HasColumnType("int");
+
+                    b.Property<string>("PublicEmail")
+                        .HasMaxLength(256)
+                        .HasColumnType("varchar(256)");
+
+                    b.Property<bool>("ResumeEnabled")
+                        .HasColumnType("tinyint(1)");
+
+                    b.Property<int?>("ResumeFileID")
+                        .HasColumnType("int");
+
+                    b.Property<bool>("ShowBioOnPosts")
+                        .ValueGeneratedOnAdd()
+                        .HasColumnType("tinyint(1)")
+                        .HasDefaultValue(true);
+
+                    b.Property<string>("Skills")
+                        .HasMaxLength(1000)
+                        .HasColumnType("varchar(1000)");
+
+                    b.Property<string>("Slug")
+                        .IsRequired()
+                        .HasMaxLength(100)
+                        .HasColumnType("varchar(100)");
+
+                    b.Property<string>("SocialLinksJson")
+                        .HasMaxLength(4000)
+                        .HasColumnType("varchar(4000)");
+
+                    b.Property<DateTime>("UpdatedAt")
+                        .HasPrecision(0)
+                        .HasColumnType("datetime(0)");
+
+                    b.Property<int>("WebsiteID")
+                        .HasColumnType("int");
+
+                    b.Property<string>("WebsiteUrl")
+                        .HasMaxLength(512)
+                        .HasColumnType("varchar(512)");
+
+                    b.HasKey("AuthorProfileID");
+
+                    b.HasIndex(new[] { "MemberID" }, "IX_AuthorProfiles_MemberID")
+                        .IsUnique();
+
+                    b.HasIndex(new[] { "PhotoFileID" }, "IX_AuthorProfiles_PhotoFileID");
+
+                    b.HasIndex(new[] { "ResumeFileID" }, "IX_AuthorProfiles_ResumeFileID");
+
+                    b.HasIndex(new[] { "WebsiteID", "Slug" }, "IX_AuthorProfiles_WebsiteID_Slug")
+                        .IsUnique();
+
+                    b.ToTable("AuthorProfiles");
+                });
+
+            modelBuilder.Entity("Dotnetable.Domain.Entities.AuthorProfileTranslation", b =>
+                {
+                    b.Property<int>("AuthorProfileTranslationID")
+                        .ValueGeneratedOnAdd()
+                        .HasColumnType("int");
+
+                    b.Property<string>("About")
+                        .HasColumnType("longtext");
+
+                    b.Property<int>("AuthorProfileID")
+                        .HasColumnType("int");
+
+                    b.Property<string>("Bio")
+                        .HasMaxLength(1000)
+                        .HasColumnType("varchar(1000)");
+
+                    b.Property<string>("DisplayName")
+                        .HasMaxLength(150)
+                        .HasColumnType("varchar(150)");
+
+                    b.Property<string>("Headline")
+                        .HasMaxLength(200)
+                        .HasColumnType("varchar(200)");
+
+                    b.Property<string>("LanguageCode")
+                        .IsRequired()
+                        .HasMaxLength(2)
+                        .IsUnicode(false)
+                        .HasColumnType("char(2)")
+                        .IsFixedLength();
+
+                    b.HasKey("AuthorProfileTranslationID");
+
+                    b.HasIndex(new[] { "AuthorProfileID", "LanguageCode" }, "IX_AuthorProfileTranslations_AuthorProfileID_LanguageCode")
+                        .IsUnique();
+
+                    b.ToTable("AuthorProfileTranslations");
+                });
+
+            modelBuilder.Entity("Dotnetable.Domain.Entities.AuthorResumeItem", b =>
+                {
+                    b.Property<int>("AuthorResumeItemID")
+                        .ValueGeneratedOnAdd()
+                        .HasColumnType("int");
+
+                    b.Property<int>("AuthorProfileID")
+                        .HasColumnType("int");
+
+                    b.Property<string>("Description")
+                        .HasMaxLength(4000)
+                        .HasColumnType("varchar(4000)");
+
+                    b.Property<DateOnly?>("EndDate")
+                        .HasColumnType("date");
+
+                    b.Property<bool>("IsActive")
+                        .ValueGeneratedOnAdd()
+                        .HasColumnType("tinyint(1)")
+                        .HasDefaultValue(true);
+
+                    b.Property<bool>("IsCurrent")
+                        .HasColumnType("tinyint(1)");
+
+                    b.Property<byte>("ItemType")
+                        .HasColumnType("tinyint unsigned");
+
+                    b.Property<string>("Location")
+                        .HasMaxLength(150)
+                        .HasColumnType("varchar(150)");
+
+                    b.Property<string>("Organization")
+                        .HasMaxLength(200)
+                        .HasColumnType("varchar(200)");
+
+                    b.Property<bool>("ShowInTimeline")
+                        .ValueGeneratedOnAdd()
+                        .HasColumnType("tinyint(1)")
+                        .HasDefaultValue(true);
+
+                    b.Property<int>("SortOrder")
+                        .HasColumnType("int");
+
+                    b.Property<DateOnly?>("StartDate")
+                        .HasColumnType("date");
+
+                    b.Property<string>("Title")
+                        .IsRequired()
+                        .HasMaxLength(200)
+                        .HasColumnType("varchar(200)");
+
+                    b.Property<string>("Url")
+                        .HasMaxLength(512)
+                        .HasColumnType("varchar(512)");
+
+                    b.HasKey("AuthorResumeItemID");
+
+                    b.HasIndex(new[] { "AuthorProfileID" }, "IX_AuthorResumeItems_AuthorProfileID");
+
+                    b.ToTable("AuthorResumeItems");
+                });
+
+            modelBuilder.Entity("Dotnetable.Domain.Entities.AuthorResumeItemTranslation", b =>
+                {
+                    b.Property<int>("AuthorResumeItemTranslationID")
+                        .ValueGeneratedOnAdd()
+                        .HasColumnType("int");
+
+                    b.Property<int>("AuthorResumeItemID")
+                        .HasColumnType("int");
+
+                    b.Property<string>("Description")
+                        .HasMaxLength(4000)
+                        .HasColumnType("varchar(4000)");
+
+                    b.Property<string>("LanguageCode")
+                        .IsRequired()
+                        .HasMaxLength(2)
+                        .IsUnicode(false)
+                        .HasColumnType("char(2)")
+                        .IsFixedLength();
+
+                    b.Property<string>("Location")
+                        .HasMaxLength(150)
+                        .HasColumnType("varchar(150)");
+
+                    b.Property<string>("Organization")
+                        .HasMaxLength(200)
+                        .HasColumnType("varchar(200)");
+
+                    b.Property<string>("Title")
+                        .HasMaxLength(200)
+                        .HasColumnType("varchar(200)");
+
+                    b.HasKey("AuthorResumeItemTranslationID");
+
+                    b.HasIndex(new[] { "AuthorResumeItemID", "LanguageCode" }, "IX_AuthorResumeItemTranslations_AuthorResumeItemID_LanguageCode")
+                        .IsUnique();
+
+                    b.ToTable("AuthorResumeItemTranslations");
+                });
+
             modelBuilder.Entity("Dotnetable.Domain.Entities.Bank", b =>
                 {
                     b.Property<int>("BankID")
@@ -8053,6 +8283,76 @@ namespace Dotnetable.Migrations.MySql.Migrations
                     b.Navigation("AttributeOption");
                 });
 
+            modelBuilder.Entity("Dotnetable.Domain.Entities.AuthorProfile", b =>
+                {
+                    b.HasOne("Dotnetable.Domain.Entities.Member", "Member")
+                        .WithOne("AuthorProfile")
+                        .HasForeignKey("Dotnetable.Domain.Entities.AuthorProfile", "MemberID")
+                        .OnDelete(DeleteBehavior.Cascade)
+                        .IsRequired()
+                        .HasConstraintName("FK_AuthorProfiles_Members");
+
+                    b.HasOne("Dotnetable.Domain.Entities.FileRecord", "PhotoFile")
+                        .WithMany()
+                        .HasForeignKey("PhotoFileID")
+                        .HasConstraintName("FK_AuthorProfiles_FileRecords_Photo");
+
+                    b.HasOne("Dotnetable.Domain.Entities.FileRecord", "ResumeFile")
+                        .WithMany()
+                        .HasForeignKey("ResumeFileID")
+                        .HasConstraintName("FK_AuthorProfiles_FileRecords_Resume");
+
+                    b.HasOne("Dotnetable.Domain.Entities.Website", "Website")
+                        .WithMany()
+                        .HasForeignKey("WebsiteID")
+                        .IsRequired()
+                        .HasConstraintName("FK_AuthorProfiles_Websites");
+
+                    b.Navigation("Member");
+
+                    b.Navigation("PhotoFile");
+
+                    b.Navigation("ResumeFile");
+
+                    b.Navigation("Website");
+                });
+
+            modelBuilder.Entity("Dotnetable.Domain.Entities.AuthorProfileTranslation", b =>
+                {
+                    b.HasOne("Dotnetable.Domain.Entities.AuthorProfile", "AuthorProfile")
+                        .WithMany("AuthorProfileTranslations")
+                        .HasForeignKey("AuthorProfileID")
+                        .OnDelete(DeleteBehavior.Cascade)
+                        .IsRequired()
+                        .HasConstraintName("FK_AuthorProfileTranslations_AuthorProfiles");
+
+                    b.Navigation("AuthorProfile");
+                });
+
+            modelBuilder.Entity("Dotnetable.Domain.Entities.AuthorResumeItem", b =>
+                {
+                    b.HasOne("Dotnetable.Domain.Entities.AuthorProfile", "AuthorProfile")
+                        .WithMany("AuthorResumeItems")
+                        .HasForeignKey("AuthorProfileID")
+                        .OnDelete(DeleteBehavior.Cascade)
+                        .IsRequired()
+                        .HasConstraintName("FK_AuthorResumeItems_AuthorProfiles");
+
+                    b.Navigation("AuthorProfile");
+                });
+
+            modelBuilder.Entity("Dotnetable.Domain.Entities.AuthorResumeItemTranslation", b =>
+                {
+                    b.HasOne("Dotnetable.Domain.Entities.AuthorResumeItem", "AuthorResumeItem")
+                        .WithMany("AuthorResumeItemTranslations")
+                        .HasForeignKey("AuthorResumeItemID")
+                        .OnDelete(DeleteBehavior.Cascade)
+                        .IsRequired()
+                        .HasConstraintName("FK_AuthorResumeItemTranslations_AuthorResumeItems");
+
+                    b.Navigation("AuthorResumeItem");
+                });
+
             modelBuilder.Entity("Dotnetable.Domain.Entities.Bank", b =>
                 {
                     b.HasOne("Dotnetable.Domain.Entities.FileRecord", "LogoFile")
@@ -11433,6 +11733,18 @@ namespace Dotnetable.Migrations.MySql.Migrations
                     b.Navigation("VariantAttributeValues");
                 });
 
+            modelBuilder.Entity("Dotnetable.Domain.Entities.AuthorProfile", b =>
+                {
+                    b.Navigation("AuthorProfileTranslations");
+
+                    b.Navigation("AuthorResumeItems");
+                });
+
+            modelBuilder.Entity("Dotnetable.Domain.Entities.AuthorResumeItem", b =>
+                {
+                    b.Navigation("AuthorResumeItemTranslations");
+                });
+
             modelBuilder.Entity("Dotnetable.Domain.Entities.Bank", b =>
                 {
                     b.Navigation("BankAccounts");
@@ -11698,6 +12010,8 @@ namespace Dotnetable.Migrations.MySql.Migrations
             modelBuilder.Entity("Dotnetable.Domain.Entities.Member", b =>
                 {
                     b.Navigation("AdminNotifications");
+
+                    b.Navigation("AuthorProfile");
 
                     b.Navigation("BankAccounts");
 

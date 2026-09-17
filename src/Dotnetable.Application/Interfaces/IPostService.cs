@@ -36,7 +36,7 @@ public interface IPostService
     /// category slug or tag slug — all localized to <paramref name="languageCode"/>.</summary>
     Task<PagedResult<PostSummaryDto>> GetPublishedAsync(
         int websiteId, string? postTypeSlug, string? categorySlug, string? tagSlug,
-        int pageIndex, int pageSize, string? languageCode = null, CancellationToken ct = default);
+        int pageIndex, int pageSize, string? languageCode = null, string? authorSlug = null, CancellationToken ct = default);
 
     /// <summary>A single published post by slug (base slug or a translated slug). Increments the view count.</summary>
     Task<PostDetailDto?> GetBySlugAsync(int websiteId, string slug, string? languageCode = null, CancellationToken ct = default);

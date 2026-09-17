@@ -158,6 +158,10 @@
     <Build Include="Banks.sql" />
     <Build Include="AttributeOptionTranslations.sql" />
     <Build Include="AttributeOptions.sql" />
+    <Build Include="AuthorProfiles.sql" />
+    <Build Include="AuthorProfileTranslations.sql" />
+    <Build Include="AuthorResumeItems.sql" />
+    <Build Include="AuthorResumeItemTranslations.sql" />
     <Build Include="AttributeDefinitionTranslations.sql" />
     <Build Include="AttributeDefinitions.sql" />
     <Build Include="Categories.sql" />

@@ -44,6 +44,11 @@
                         <MudMenuItem Icon="@Icons.Material.Filled.Person" OnClick="@(() => GoToProfile(authCtx.User))">
                             Profile
                         </MudMenuItem>
+                        <AuthorizeView Policy="@RoleKeys.AuthorsProfile" Context="authorCtx">
+                            <MudMenuItem Icon="@Icons.Material.Filled.Badge" Href="/my/author-profile">
+                                @Loc["authors.my_profile", "My author profile"]
+                            </MudMenuItem>
+                        </AuthorizeView>
                     </ChildContent>
                 </MudMenu>
                 @if (!_isMaster && !_isVendorMember)
