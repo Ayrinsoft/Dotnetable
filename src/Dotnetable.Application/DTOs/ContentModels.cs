@@ -16,6 +16,8 @@ public class PostSummaryDto
     public AuthorCardDto? Author { get; init; }
     public bool IsFeatured { get; init; }
     public int ViewCount { get; init; }
+    /// <summary>Signed-in customers who liked the post (once each).</summary>
+    public int LikeCount { get; init; }
     public DateTime? PublishedAt { get; init; }
     public IReadOnlyList<CategoryDto> Categories { get; init; } = Array.Empty<CategoryDto>();
     public IReadOnlyList<TagDto> Tags { get; init; } = Array.Empty<TagDto>();
@@ -46,6 +48,8 @@ public sealed class PageDto
     public int SortOrder { get; init; }
     /// <summary>Whether the page shows a comment thread and accepts new comments.</summary>
     public bool CommentsEnabled { get; init; }
+    /// <summary>Signed-in customers who liked the page (once each).</summary>
+    public int LikeCount { get; init; }
     /// <summary>Admin override for the browser-tab/search-result title; falls back to <see cref="Title"/>.</summary>
     public string? MetaTitle { get; init; }
     public string? MetaDescription { get; init; }

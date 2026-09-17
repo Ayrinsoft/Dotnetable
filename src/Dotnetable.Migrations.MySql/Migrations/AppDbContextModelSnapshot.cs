@@ -997,6 +997,41 @@ namespace Dotnetable.Migrations.MySql.Migrations
                     b.ToTable("ClientBankAccounts");
                 });
 
+            modelBuilder.Entity("Dotnetable.Domain.Entities.ClientReaction", b =>
+                {
+                    b.Property<int>("ClientReactionID")
+                        .ValueGeneratedOnAdd()
+                        .HasColumnType("int");
+
+                    b.Property<DateTime>("CreatedAt")
+                        .HasPrecision(0)
+                        .HasColumnType("datetime(0)");
+
+                    b.Property<byte>("ReactionType")
+                        .HasColumnType("tinyint unsigned");
+
+                    b.Property<int>("TargetID")
+                        .HasColumnType("int");
+
+                    b.Property<byte>("TargetType")
+                        .HasColumnType("tinyint unsigned");
+
+                    b.Property<int>("WebsiteClientID")
+                        .HasColumnType("int");
+
+                    b.Property<int>("WebsiteID")
+                        .HasColumnType("int");
+
+                    b.HasKey("ClientReactionID");
+
+                    b.HasIndex(new[] { "WebsiteClientID", "TargetType", "TargetID", "ReactionType" }, "IX_ClientReactions_Client_Target_Reaction")
+                        .IsUnique();
+
+                    b.HasIndex(new[] { "WebsiteID", "TargetType", "TargetID", "ReactionType" }, "IX_ClientReactions_WebsiteID_Target");
+
+                    b.ToTable("ClientReactions");
+                });
+
             modelBuilder.Entity("Dotnetable.Domain.Entities.ClientWallet", b =>
                 {
                     b.Property<int>("ClientWalletID")
@@ -3895,6 +3930,11 @@ namespace Dotnetable.Migrations.MySql.Migrations
                     b.Property<bool>("IsHomepage")
                         .HasColumnType("tinyint(1)");
 
+                    b.Property<int>("LikeCount")
+                        .ValueGeneratedOnAdd()
+                        .HasColumnType("int")
+                        .HasDefaultValue(0);
+
                     b.Property<string>("MetaDescription")
                         .HasMaxLength(500)
                         .HasColumnType("varchar(500)");
@@ -4435,6 +4475,11 @@ namespace Dotnetable.Migrations.MySql.Migrations
                     b.Property<bool>("IsFeatured")
                         .HasColumnType("tinyint(1)");
 
+                    b.Property<int>("LikeCount")
+                        .ValueGeneratedOnAdd()
+                        .HasColumnType("int")
+                        .HasDefaultValue(0);
+
                     b.Property<string>("MetaDescription")
                         .HasMaxLength(500)
                         .HasColumnType("varchar(500)");
@@ -4774,6 +4819,11 @@ namespace Dotnetable.Migrations.MySql.Migrations
 
                     b.Property<string>("ExpertReview")
                         .HasColumnType("longtext");
+
+                    b.Property<int>("FavoriteCount")
+                        .ValueGeneratedOnAdd()
+                        .HasColumnType("int")
+                        .HasDefaultValue(0);
 
                     b.Property<int?>("FeaturedImageFileID")
                         .HasColumnType("int");
@@ -8580,6 +8630,26 @@ namespace Dotnetable.Migrations.MySql.Migrations
                         .HasConstraintName("FK_ClientBankAccounts_Websites");
 
                     b.Navigation("Bank");
+
+                    b.Navigation("Website");
+
+                    b.Navigation("WebsiteClient");
+                });
+
+            modelBuilder.Entity("Dotnetable.Domain.Entities.ClientReaction", b =>
+                {
+                    b.HasOne("Dotnetable.Domain.Entities.WebsiteClient", "WebsiteClient")
+                        .WithMany()
+                        .HasForeignKey("WebsiteClientID")
+                        .OnDelete(DeleteBehavior.Cascade)
+                        .IsRequired()
+                        .HasConstraintName("FK_ClientReactions_WebsiteClients");
+
+                    b.HasOne("Dotnetable.Domain.Entities.Website", "Website")
+                        .WithMany()
+                        .HasForeignKey("WebsiteID")
+                        .IsRequired()
+                        .HasConstraintName("FK_ClientReactions_Websites");
 
                     b.Navigation("Website");
 

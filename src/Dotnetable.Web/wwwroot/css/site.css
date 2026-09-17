@@ -444,3 +444,25 @@ a { text-decoration: none; }
     text-transform: uppercase;
     letter-spacing: .03em;
 }
+
+
+/* ---------- Like / favorite / bookmark buttons ---------- */
+.reaction-btn {
+    border: 1px solid var(--site-border);
+    background: #fff;
+    color: var(--site-dark);
+    display: inline-flex;
+    align-items: center;
+    gap: .35rem;
+}
+.reaction-btn:hover { border-color: var(--site-primary); color: var(--site-primary); }
+.reaction-btn.active {
+    border-color: var(--site-primary);
+    color: var(--site-primary);
+    background: color-mix(in srgb, var(--site-primary) 8%, #fff);
+}
+.reaction-count {
+    background: var(--site-light);
+    color: var(--site-dark);
+    font-weight: 600;
+}

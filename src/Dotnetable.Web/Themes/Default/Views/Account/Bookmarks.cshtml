@@ -1,0 +1,86 @@
+@using Dotnetable.Application.DTOs
+@model PagedResult<ClientReactionItemDto>
+@{
+    ViewData["Title"] = "My Bookmarks";
+    Layout = "/Themes/Default/Views/Shared/_Layout.cshtml";
+    var type = ViewBag.Type as string;
+    var page = (int)ViewBag.Page;
+    const int pageSize = 24;
+    var totalPages = (int)Math.Ceiling((double)Model.TotalCount / pageSize);
+
+    string Link(ClientReactionItemDto i) => i.TargetType switch
+    {
+        "product" => Url.Action("Product", "Shop", new { slug = i.Slug })!,
+        "post" => Url.Action("Post", "Blog", new { slug = i.Slug })!,
+        _ => Url.RouteUrl("cms-page", new { slug = i.Slug })!,
+    };
+
+    string TypeLabel(string t) => t switch { "product" => "Product", "post" => "Post", _ => "Page" };
+}
+
+@await Html.PartialAsync("_PageHeader", ("My Bookmarks", "Account"))
+
+<section class="site-section">
+    <div class="container">
+        <ul class="nav nav-pills mb-4">
+            @foreach (var (value, label) in new (string? Value, string Label)[] { (null, "All"), ("product", "Products"), ("post", "Posts"), ("page", "Pages") })
+            {
+                <li class="nav-item">
+                    <a class="nav-link @(value == type ? "active" : "")" asp-controller="Account" asp-action="Bookmarks" asp-route-type="@value">@label</a>
+                </li>
+            }
+        </ul>
+
+        @if (Model.Items.Count == 0)
+        {
+            <p class="text-muted">Nothing bookmarked yet. Use the <i class="bi bi-bookmark"></i> Bookmark button on a product, post or page to keep it here.</p>
+        }
+        else
+        {
+            <div class="row g-4">
+                @foreach (var item in Model.Items)
+                {
+                    <div class="col-sm-6 col-lg-3">
+                        <div class="card h-100">
+                            @if (!string.IsNullOrEmpty(item.ImageUrl))
+                            {
+                                <img src="@item.ImageUrl" class="card-img-top" style="height:160px;object-fit:cover" alt="" />
+                            }
+                            <div class="card-body d-flex flex-column">
+                                <span class="badge text-bg-light align-self-start mb-2">@TypeLabel(item.TargetType)</span>
+                                <h6 class="card-title"><a class="text-reset stretched-link" href="@Link(item)">@item.Title</a></h6>
+                                @if (!string.IsNullOrEmpty(item.Excerpt))
+                                {
+                                    <p class="card-text small text-muted mb-0">@item.Excerpt</p>
+                                }
+                            </div>
+                            <div class="card-footer bg-transparent border-0 position-relative" style="z-index:2">
+                                @* Already bookmarked, so the button starts pressed; clicking it removes the bookmark. *@
+                                <div class="reaction-bar" data-target-type="@item.TargetType" data-target-id="@item.TargetId" data-logged-in="true">
+                                    <button type="button" class="btn btn-sm reaction-btn active" data-kind="bookmark" data-icon="bookmark" aria-pressed="true">
+                                        <i class="bi bi-bookmark-fill"></i><span>Bookmarked</span>
+                                    </button>
+                                    <span class="reaction-feedback small text-danger" role="status"></span>
+                                </div>
+                            </div>
+                        </div>
+                    </div>
+                }
+            </div>
+
+            @if (totalPages > 1)
+            {
+                <nav class="mt-4" aria-label="Bookmark pages">
+                    <ul class="pagination justify-content-center">
+                        @for (var i = 1; i <= totalPages; i++)
+                        {
+                            <li class="page-item @(i == page ? "active" : "")">
+                                <a class="page-link" asp-controller="Account" asp-action="Bookmarks" asp-route-type="@type" asp-route-page="@i">@i</a>
+                            </li>
+                        }
+                    </ul>
+                </nav>
+            }
+        }
+    </div>
+</section>

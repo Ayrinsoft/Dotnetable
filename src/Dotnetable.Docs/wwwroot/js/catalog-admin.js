@@ -320,7 +320,50 @@ window.DOCS_ADMIN = {
               fa: "Members (ادمین) را با Clients/Customers (خریدار فروشگاه) اشتباه نگیرید.",
             },
           ],
-          related: ["clients", "policies", "roles", "login-logs"],
+          related: ["clients", "policies", "roles", "login-logs", "my-account"],
+        },
+        {
+          id: "my-account",
+          title: { en: "My account (own profile & photo)", fa: "حساب من (پروفایل و عکس خودم)" },
+          adminPath: "/my/account",
+          summary: {
+            en: "Every signed-in admin member edits their own photo, name, phone and password — no special permission needed.",
+            fa: "هر عضو واردشده ادمین عکس، نام، تلفن و رمز عبور خودش را ویرایش می‌کند — بدون نیاز به دسترسی خاص.",
+          },
+          access: { en: "Any signed-in member (only ever changes their own account)", fa: "هر عضو واردشده (فقط حساب خودش را تغییر می‌دهد)" },
+          howTo: [
+            {
+              en: "Click your name at the top right → **My account**.",
+              fa: "روی نام خود در بالا سمت راست بزنید ← **My account**.",
+            },
+            {
+              en: "**Upload photo** saves the image straight away (JPG/PNG/WebP/GIF, up to 5 MB, resized to 512 px). Members with `media.view` can also pick an image from the media library. **Remove** clears it.",
+              fa: "**Upload photo** عکس را فوراً ذخیره می‌کند (JPG/PNG/WebP/GIF تا ۵ مگابایت، با عرض ۵۱۲ پیکسل). اعضایی که `media.view` دارند می‌توانند از کتابخانه رسانه هم انتخاب کنند. **Remove** عکس را پاک می‌کند.",
+            },
+            {
+              en: "Edit name, phone and gender and press **Save**. Username and email can only be changed by an administrator under Members.",
+              fa: "نام، تلفن و جنسیت را ویرایش و **Save** را بزنید. نام کاربری و ایمیل فقط توسط مدیر در بخش Members قابل تغییر است.",
+            },
+            {
+              en: "**Change password** needs your current password; the new one must pass the password policy.",
+              fa: "**Change password** رمز فعلی را می‌خواهد و رمز جدید باید با سیاست رمز عبور سازگار باشد.",
+            },
+          ],
+          tips: [
+            {
+              en: "The photo is public: it appears in the \"About the author\" box under your posts (unless your author profile sets its own photo) and next to your staff replies to comments. It also shows in the admin header.",
+              fa: "عکس عمومی است: در کادر «درباره نویسنده» زیر پست‌های شما (مگر پروفایل نویسنده عکس جداگانه داشته باشد) و کنار پاسخ‌های شما به نظرات نمایش داده می‌شود. در هدر ادمین هم دیده می‌شود.",
+            },
+            {
+              en: "Administrators with `members.edit` can also set another member's photo on the member's edit page.",
+              fa: "مدیرانی که `members.edit` دارند می‌توانند عکس عضو دیگری را هم در صفحه ویرایش آن عضو تنظیم کنند.",
+            },
+            {
+              en: "The website needs an active file storage (Media → Storage) for uploads to work.",
+              fa: "برای کار کردن آپلود، سایت باید یک فضای ذخیره‌سازی فعال داشته باشد (Media → Storage).",
+            },
+          ],
+          related: ["members", "content-authors"],
         },
         {
           id: "clients",

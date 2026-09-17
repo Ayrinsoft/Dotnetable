@@ -1,17 +1,17 @@
 @using Dotnetable.Web.Services
 @model IReadOnlyList<WishlistItemView>
 @{
-    ViewData["Title"] = "My Wishlist";
+    ViewData["Title"] = "My Favorites";
     Layout = "/Themes/Default/Views/Shared/_Layout.cshtml";
 }
 
-@await Html.PartialAsync("_PageHeader", ("My Wishlist", "Account"))
+@await Html.PartialAsync("_PageHeader", ("My Favorites", "Account"))
 
 <section class="site-section">
     <div class="container">
         @if (Model.Count == 0)
         {
-            <p class="text-muted">Your wishlist is empty.</p>
+            <p class="text-muted">You have no favorite products yet. Tap the heart on a product to save it here for later.</p>
         }
         else
         {

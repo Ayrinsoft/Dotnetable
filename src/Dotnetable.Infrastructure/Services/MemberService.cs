@@ -333,6 +333,70 @@ public class MemberService : IMemberService
         await _context.SaveChangesAsync(ct);
     }
 
+    public async Task UpdateOwnProfileAsync(int memberId, string givenname, string surname, string? countryCode,
+        string? cellphoneNumber, bool? gender, CancellationToken ct = default)
+    {
+        if (string.IsNullOrWhiteSpace(givenname) || string.IsNullOrWhiteSpace(surname))
+            throw new InvalidOperationException("Given name and surname are required.");
+
+        await using var _context = await _contextFactory.CreateDbContextAsync(ct);
+
+        var member = await _context.Members.FindAsync([memberId], ct)
+            ?? throw new KeyNotFoundException($"Member {memberId} not found.");
+        member.Givenname = givenname.Trim();
+        member.Surname = surname.Trim();
+        member.CountryCode = countryCode?.Trim() ?? string.Empty;
+        member.CellphoneNumber = cellphoneNumber?.Trim() ?? string.Empty;
+        member.Gender = gender;
+        await _context.SaveChangesAsync(ct);
+    }
+
+    public async Task SetAvatarAsync(int memberId, int? fileId, CancellationToken ct = default)
+    {
+        await using var _context = await _contextFactory.CreateDbContextAsync(ct);
+
+        var member = await _context.Members.FindAsync([memberId], ct)
+            ?? throw new KeyNotFoundException($"Member {memberId} not found.");
+
+        if (fileId is int id)
+        {
+            // Only an image that belongs to the member's own website: an avatar is public on the
+            // storefront, so it must never point at another site's (or a private) file.
+            var ok = await _context.FileRecords.AnyAsync(f =>
+                f.FileRecordID == id && f.WebsiteID == member.WebsiteID && !f.IsDeleted
+                && f.FileCategory == (byte)Domain.Enums.FileCategory.Image, ct);
+            if (!ok) throw new InvalidOperationException("The avatar must be an image from this website's media library.");
+        }
+
+        member.AvatarID = fileId;
+        await _context.SaveChangesAsync(ct);
+    }
+
+    public async Task<string?> GetAvatarUrlAsync(int memberId, CancellationToken ct = default)
+    {
+        await using var _context = await _contextFactory.CreateDbContextAsync(ct);
+
+        return await _context.Members.AsNoTracking()
+            .Where(m => m.MemberID == memberId && m.Avatar != null && !m.Avatar.IsDeleted)
+            .Select(m => m.Avatar!.ThumbnailCDN ?? m.Avatar.CNDUrl)
+            .FirstOrDefaultAsync(ct);
+    }
+
+    public async Task<bool> ChangeOwnPasswordAsync(int memberId, string currentPassword, string newPassword, CancellationToken ct = default)
+    {
+        await using (var _context = await _contextFactory.CreateDbContextAsync(ct))
+        {
+            var member = await _context.Members.AsNoTracking().FirstOrDefaultAsync(m => m.MemberID == memberId, ct)
+                ?? throw new KeyNotFoundException($"Member {memberId} not found.");
+            if (string.IsNullOrEmpty(currentPassword)
+                || _hasher.VerifyHashedPassword(member, member.Password, currentPassword) == PasswordVerificationResult.Failed)
+                return false;
+        }
+
+        await ChangePasswordAsync(memberId, newPassword, ct);
+        return true;
+    }
+
     public async Task DeleteAsync(int id, CancellationToken ct = default)
     {
         await using var _context = await _contextFactory.CreateDbContextAsync(ct);

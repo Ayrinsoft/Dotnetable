@@ -233,6 +233,7 @@ public class ProductService : IProductService
             _context.ProductVariantPriceHistories.RemoveRange(
                 _context.ProductVariantPriceHistories.Where(h => variantIds.Contains(h.ProductVariantID)));
 
+        _context.ClientReactions.RemoveRange(await ReactionStore.ForTargetAsync(_context, Dotnetable.Domain.Enums.ReactionTargetType.Product, productId, ct));
         _context.ProductRelations.RemoveRange(product.ProductRelationProducts);
         _context.ProductRelations.RemoveRange(product.ProductRelationRelatedProducts);
         _context.ProductWarnings.RemoveRange(product.ProductWarnings);
@@ -1250,7 +1251,7 @@ public class ProductService : IProductService
             BrandName = p.Brand?.Name,
             DefaultSku = defaultVariant?.Sku,
             MinPrice = minPrice!,
-            AvgRating = p.AvgRating, RatingCount = p.RatingCount, HasVariants = p.HasVariants,
+            AvgRating = p.AvgRating, RatingCount = p.RatingCount, FavoriteCount = p.FavoriteCount, HasVariants = p.HasVariants,
             ProductType = p.ProductType,
             RequiresShipping = p.RequiresShipping,
             IsUnlimitedStock = StockDisplay.IsUnlimited(stock),
@@ -1485,7 +1486,7 @@ public class ProductService : IProductService
             ProductCode = summary.ProductCode,
             Slug = summary.Slug, Title = summary.Title, ShortDescription = summary.ShortDescription,
             FeaturedImageUrl = summary.FeaturedImageUrl, BrandName = summary.BrandName, DefaultSku = summary.DefaultSku,
-            MinPrice = summary.MinPrice, AvgRating = summary.AvgRating, RatingCount = summary.RatingCount, HasVariants = summary.HasVariants,
+            MinPrice = summary.MinPrice, AvgRating = summary.AvgRating, RatingCount = summary.RatingCount, FavoriteCount = summary.FavoriteCount, HasVariants = summary.HasVariants,
             ProductType = summary.ProductType, RequiresShipping = summary.RequiresShipping, IsUnlimitedStock = summary.IsUnlimitedStock,
             IsInStock = summary.IsInStock, StockQuantity = summary.StockQuantity, DisplayStockQuantity = summary.DisplayStockQuantity,
             VendorID = summary.VendorID, VendorName = summary.VendorName, VendorProductID = summary.VendorProductID,

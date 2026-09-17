@@ -70,6 +70,8 @@ public partial class AppDbContext : DbContext
 
     public virtual DbSet<ClientWalletWithdrawal> ClientWalletWithdrawals { get; set; }
 
+    public virtual DbSet<ClientReaction> ClientReactions { get; set; }
+
     public virtual DbSet<ContactUsMessage> ContactUsMessages { get; set; }
 
     public virtual DbSet<ContentComment> ContentComments { get; set; }
@@ -1322,6 +1324,25 @@ public partial class AppDbContext : DbContext
                 .HasConstraintName("FK_ContentComments_WebsiteClients");
         });
 
+        modelBuilder.Entity<ClientReaction>(entity =>
+        {
+            entity.HasIndex(e => new { e.WebsiteClientID, e.TargetType, e.TargetID, e.ReactionType }, "IX_ClientReactions_Client_Target_Reaction").IsUnique();
+
+            entity.HasIndex(e => new { e.WebsiteID, e.TargetType, e.TargetID, e.ReactionType }, "IX_ClientReactions_WebsiteID_Target");
+
+            entity.Property(e => e.CreatedAt).HasPrecision(0);
+
+            entity.HasOne(d => d.Website).WithMany()
+                .HasForeignKey(d => d.WebsiteID)
+                .OnDelete(DeleteBehavior.ClientSetNull)
+                .HasConstraintName("FK_ClientReactions_Websites");
+
+            entity.HasOne(d => d.WebsiteClient).WithMany()
+                .HasForeignKey(d => d.WebsiteClientID)
+                .OnDelete(DeleteBehavior.Cascade)
+                .HasConstraintName("FK_ClientReactions_WebsiteClients");
+        });
+
         modelBuilder.Entity<ContactUsMessage>(entity =>
         {
             entity.HasKey(e => e.ContactUsMessagesID);
@@ -2371,6 +2392,8 @@ public partial class AppDbContext : DbContext
 
         modelBuilder.Entity<Page>(entity =>
         {
+            entity.Property(e => e.LikeCount).HasDefaultValue(0);
+
             entity.HasIndex(e => e.CreatedByMemberID, "IX_Pages_CreatedByMemberID");
 
             entity.HasIndex(e => e.ParentPageID, "IX_Pages_ParentPageID");
@@ -2583,6 +2606,8 @@ public partial class AppDbContext : DbContext
 
         modelBuilder.Entity<Post>(entity =>
         {
+            entity.Property(e => e.LikeCount).HasDefaultValue(0);
+
             entity.HasIndex(e => e.AuthorMemberID, "IX_Posts_AuthorMemberID");
 
             entity.HasIndex(e => e.FeaturedImageFileID, "IX_Posts_FeaturedImageFileID");
@@ -2747,6 +2772,8 @@ public partial class AppDbContext : DbContext
 
         modelBuilder.Entity<Product>(entity =>
         {
+            entity.Property(e => e.FavoriteCount).HasDefaultValue(0);
+
             entity.HasIndex(e => e.BrandID, "IX_Products_BrandID");
 
             entity.HasIndex(e => e.CreatedByMemberID, "IX_Products_CreatedByMemberId");

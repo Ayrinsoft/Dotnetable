@@ -43,6 +43,9 @@ public partial class Post
 
     public int ViewCount { get; set; }
 
+    /// <summary>Number of signed-in customers who liked this post (once per customer).</summary>
+    public int LikeCount { get; set; }
+
     public bool CommentsEnabled { get; set; }
 
     public bool IsActive { get; set; }

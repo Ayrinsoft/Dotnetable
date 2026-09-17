@@ -173,6 +173,7 @@
     <Build Include="ClientWalletTransactions.sql" />
     <Build Include="ClientWalletWithdrawals.sql" />
     <Build Include="ContactUsMessages.sql" />
+    <Build Include="ClientReactions.sql" />
     <Build Include="ContentComments.sql" />
     <Build Include="Countries.sql" />
     <Build Include="CountryTranslations.sql" />

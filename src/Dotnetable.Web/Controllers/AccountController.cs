@@ -531,6 +531,20 @@ public class AccountController : Controller
         return RedirectToAction(nameof(Wishlist));
     }
 
+    // ── Bookmarks ────────────────────────────────────────────────────
+
+    [HttpGet]
+    public async Task<IActionResult> Bookmarks(string? type = null, int page = 1, CancellationToken ct = default)
+    {
+        if (!Request.Cookies.ContainsKey(ClientAuth.TokenCookie))
+            return RedirectToAction(nameof(HomeController.Index), "Home");
+
+        var lang = Request.Cookies["lang"];
+        ViewBag.Type = type;
+        ViewBag.Page = page < 1 ? 1 : page;
+        return View(await _api.GetMyReactionsAsync("bookmark", type, page < 1 ? 1 : page, 24, string.IsNullOrWhiteSpace(lang) ? null : lang, ct));
+    }
+
     // ── Support tickets ──────────────────────────────────────────────
 
     [HttpGet]

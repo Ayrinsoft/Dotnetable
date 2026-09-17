@@ -181,6 +181,8 @@ public class ProductSummaryDto
     public MoneyDto MinPrice { get; init; } = new();
     public decimal AvgRating { get; init; }
     public int RatingCount { get; init; }
+    /// <summary>Signed-in customers who marked the product as a favorite (once each).</summary>
+    public int FavoriteCount { get; init; }
     public bool HasVariants { get; init; }
 
     /// <summary><see cref="Domain.Enums.ProductType"/> value.</summary>

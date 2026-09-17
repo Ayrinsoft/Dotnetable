@@ -41,6 +41,7 @@ public static class AdminSearchCatalog
     {
         new AdminSearchPage("dashboard", "Dashboard", "/", Icons.Material.Filled.Dashboard, "nav.navigation", "Navigation", null),
         new AdminSearchPage("inbox", "Inbox", "/inbox", Icons.Material.Filled.Inbox, "nav.navigation", "Navigation", null),
+        new AdminSearchPage("account.mine", "My account", "/my/account", Icons.Material.Filled.Person, "nav.navigation", "Navigation", null),
         new AdminSearchPage("tasks.mine", "My tasks", "/tasks", Icons.Material.Filled.Checklist, "nav.navigation", "Navigation", RoleKeys.TasksView),
         new AdminSearchPage("notifications", "Notifications", "/notifications", Icons.Material.Filled.Notifications, "nav.navigation", "Navigation", null),
 

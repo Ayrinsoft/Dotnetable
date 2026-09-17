@@ -1,0 +1,149 @@
+@* Avatar picker for an admin member: upload a new image (straight to the website's active storage,
+   no media-library permission needed) or, for members who can see the library, pick an existing one.
+   Saves immediately through IMemberService.SetAvatarAsync. The avatar is public: it is shown under
+   the member's posts and next to their staff replies on the website. *@
+@using Microsoft.AspNetCore.Components.Forms
+@using Dotnetable.Admin.Components.Pages.Media
+@inject IMemberService MemberService
+@inject IFileService FileService
+@inject IStorageSettingService StorageService
+@inject IDialogService DialogService
+@inject ISnackbar Snackbar
+@inject IPageLocalizer L
+
+<MudStack Row="true" Spacing="3" AlignItems="AlignItems.Center">
+    @if (!string.IsNullOrEmpty(_url))
+    {
+        <MudAvatar Style="width:88px;height:88px;">
+            <MudImage Src="@_url" Alt="" ObjectFit="ObjectFit.Cover" />
+        </MudAvatar>
+    }
+    else
+    {
+        <MudAvatar Color="Color.Primary" Style="width:88px;height:88px;font-size:2rem;">@Initial</MudAvatar>
+    }
+    <MudStack Spacing="1">
+        <MudStack Row="true" Spacing="2" Wrap="Wrap.Wrap">
+            <MudFileUpload T="IBrowserFile" FilesChanged="UploadAsync" Accept=".jpg,.jpeg,.png,.webp,.gif" Disabled="@_busy">
+                <CustomContent Context="upload">
+                    <MudButton Variant="Variant.Outlined" Color="Color.Primary" Size="Size.Small"
+                               StartIcon="@Icons.Material.Filled.Upload" Disabled="@_busy"
+                               OnClick="@(() => upload.OpenFilePickerAsync())">
+                        @L["avatar.upload", "Upload photo"]
+                    </MudButton>
+                </CustomContent>
+            </MudFileUpload>
+            @if (CanBrowseLibrary)
+            {
+                <MudButton Variant="Variant.Text" Size="Size.Small" StartIcon="@Icons.Material.Filled.PhotoLibrary"
+                           Disabled="@_busy" OnClick="PickAsync">@L["avatar.from_library", "From media library"]</MudButton>
+            }
+            @if (!string.IsNullOrEmpty(_url))
+            {
+                <MudButton Variant="Variant.Text" Size="Size.Small" Color="Color.Error" Disabled="@_busy"
+                           OnClick="@(() => SaveAsync(null, null))">@L["avatar.remove", "Remove"]</MudButton>
+            }
+        </MudStack>
+        <MudText Typo="Typo.caption" Color="Color.Secondary">
+            @L["avatar.hint", "JPG, PNG, WebP or GIF, up to 5 MB. Shown on the website with your posts and replies."]
+        </MudText>
+        @if (_busy)
+        {
+            <MudProgressLinear Indeterminate="true" Color="Color.Primary" />
+        }
+    </MudStack>
+</MudStack>
+
+@code {
+    private const long MaxBytes = 5 * 1024 * 1024;
+
+    [Parameter, EditorRequired] public int MemberId { get; set; }
+    [Parameter, EditorRequired] public int WebsiteId { get; set; }
+    [Parameter] public string? Name { get; set; }
+    /// <summary>Whether to offer "From media library" (the picker lists every file of the website).</summary>
+    [Parameter] public bool CanBrowseLibrary { get; set; }
+    /// <summary>Raised with the new URL (null when removed) after a successful save.</summary>
+    [Parameter] public EventCallback<string?> OnChanged { get; set; }
+
+    private string? _url;
+    private bool _busy;
+
+    private string Initial => string.IsNullOrWhiteSpace(Name) ? "?" : Name.Trim()[0].ToString().ToUpperInvariant();
+
+    protected override async Task OnParametersSetAsync()
+    {
+        await L.EnsureLoadedAsync();
+        _url = await MemberService.GetAvatarUrlAsync(MemberId);
+    }
+
+    private async Task UploadAsync(IBrowserFile? file)
+    {
+        if (file is null) return;
+        if (!file.ContentType.StartsWith("image/", StringComparison.OrdinalIgnoreCase))
+        {
+            Snackbar.Add(L["avatar.not_image", "Please choose an image file."], Severity.Warning);
+            return;
+        }
+        if (file.Size > MaxBytes)
+        {
+            Snackbar.Add(L["avatar.too_large", "The image is larger than 5 MB."], Severity.Warning);
+            return;
+        }
+
+        _busy = true;
+        try
+        {
+            var storage = (await StorageService.GetActiveForWebsiteAsync(WebsiteId)).FirstOrDefault();
+            if (storage is null)
+            {
+                Snackbar.Add(L["avatar.no_storage", "This website has no active file storage. Ask an administrator to set one up under Media → Storage."], Severity.Error);
+                return;
+            }
+
+            await using var stream = file.OpenReadStream(MaxBytes);
+            var record = await FileService.UploadAsync(new FileUploadRequest
+            {
+                WebsiteID = WebsiteId,
+                StorageSettingID = storage.WebsiteStorageSettingsID,
+                Content = stream,
+                OriginalFileName = file.Name,
+                MimeType = file.ContentType,
+                Title = string.IsNullOrWhiteSpace(Name) ? "Avatar" : $"Avatar — {Name}",
+                AltText = Name,
+                ResizeWidth = 512,
+                ApplyWatermark = false,
+            });
+            await SaveAsync(record.FileRecordID, record.ThumbnailCDN ?? record.CNDUrl);
+        }
+        catch (Exception ex) { Snackbar.Add($"{L["save_failed", "Save failed"]}: {ex.Message}", Severity.Error); }
+        finally { _busy = false; }
+    }
+
+    private async Task PickAsync()
+    {
+        var parameters = new DialogParameters
+        {
+            [nameof(FilePickerDialog.WebsiteId)] = WebsiteId,
+            [nameof(FilePickerDialog.Category)] = FileCategory.Image,
+        };
+        var dialog = await DialogService.ShowAsync<FilePickerDialog>(L["select_file", "Select a file"], parameters,
+            new DialogOptions { MaxWidth = MaxWidth.Medium, FullWidth = true });
+        var result = await dialog.Result;
+        if (result is { Canceled: false, Data: FileRecord file })
+            await SaveAsync(file.FileRecordID, file.ThumbnailCDN ?? file.CNDUrl);
+    }
+
+    private async Task SaveAsync(int? fileId, string? url)
+    {
+        _busy = true;
+        try
+        {
+            await MemberService.SetAvatarAsync(MemberId, fileId);
+            _url = url;
+            Snackbar.Add(L["saved", "Saved."], Severity.Success);
+            await OnChanged.InvokeAsync(url);
+        }
+        catch (Exception ex) { Snackbar.Add($"{L["save_failed", "Save failed"]}: {ex.Message}", Severity.Error); }
+        finally { _busy = false; }
+    }
+}

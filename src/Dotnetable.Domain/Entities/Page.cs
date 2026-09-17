@@ -37,6 +37,9 @@ public partial class Page
     /// (about, terms, contact) are not discussion pages.</summary>
     public bool CommentsEnabled { get; set; }
 
+    /// <summary>Number of signed-in customers who liked this page (once per customer).</summary>
+    public int LikeCount { get; set; }
+
     public bool IsActive { get; set; }
 
     public int? CreatedByMemberID { get; set; }
