@@ -130,6 +130,7 @@ public class PostService : IPostService
         _context.ContentComments.RemoveRange(
             await _context.ContentComments.Where(c => c.PostID == postId).ToListAsync(ct));
         _context.PostCategories.RemoveRange(post.PostCategories);
+        _context.ClientReactions.RemoveRange(await ReactionStore.ForTargetAsync(_context, Dotnetable.Domain.Enums.ReactionTargetType.Post, postId, ct));
         _context.PostTranslations.RemoveRange(post.PostTranslations);
         _context.Posts.Remove(post);
         await _context.SaveChangesAsync(ct);
@@ -370,7 +371,7 @@ public class PostService : IPostService
         {
             PostID = p.PostID, Slug = slug, Title = title, Excerpt = excerpt,
             FeaturedImageUrl = FeaturedUrl(p), PostTypeSlug = p.PostType?.Slug ?? string.Empty,
-            AuthorName = author?.Name, Author = author, IsFeatured = p.IsFeatured, ViewCount = p.ViewCount,
+            AuthorName = author?.Name, Author = author, IsFeatured = p.IsFeatured, ViewCount = p.ViewCount, LikeCount = p.LikeCount,
             PublishedAt = p.PublishedAt, Categories = Categories(p, lang), Tags = Tags(p, lang),
         };
     }
@@ -384,7 +385,7 @@ public class PostService : IPostService
         {
             PostID = p.PostID, Slug = slug, Title = title, Excerpt = excerpt,
             FeaturedImageUrl = FeaturedUrl(p), PostTypeSlug = p.PostType?.Slug ?? string.Empty,
-            AuthorName = author?.Name, Author = author, IsFeatured = p.IsFeatured, ViewCount = p.ViewCount,
+            AuthorName = author?.Name, Author = author, IsFeatured = p.IsFeatured, ViewCount = p.ViewCount, LikeCount = p.LikeCount,
             PublishedAt = p.PublishedAt, Categories = Categories(p, lang), Tags = Tags(p, lang),
             Content = content,
             // The post type can switch comments off for every post of that type.

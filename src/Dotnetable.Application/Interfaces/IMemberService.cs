@@ -58,6 +58,25 @@ public interface IMemberService
     Task ChangePasswordAsync(int memberId, string newPassword, CancellationToken ct = default);
     Task DeleteAsync(int id, CancellationToken ct = default);
 
+    // ── Self-service ("My account") ─────────────────────────────────
+    // Narrow writes a member may make to their own row. They never touch the access level, active
+    // flag, website or username, so the page calling them needs no member-management permission.
+
+    /// <summary>Updates the member's own name, phone and gender.</summary>
+    Task UpdateOwnProfileAsync(int memberId, string givenname, string surname, string? countryCode,
+        string? cellphoneNumber, bool? gender, CancellationToken ct = default);
+
+    /// <summary>Sets (or clears, with null) the member's avatar. The file must be a non-deleted image of
+    /// the member's own website.</summary>
+    Task SetAvatarAsync(int memberId, int? fileId, CancellationToken ct = default);
+
+    /// <summary>The avatar image URL (thumbnail when available), or null.</summary>
+    Task<string?> GetAvatarUrlAsync(int memberId, CancellationToken ct = default);
+
+    /// <summary>Changes the member's own password after checking the current one. Returns false when
+    /// the current password is wrong; throws when the new one fails the password policy.</summary>
+    Task<bool> ChangeOwnPasswordAsync(int memberId, string currentPassword, string newPassword, CancellationToken ct = default);
+
     /// <summary>Permission keys (Role.RoleKey) granted to the member through its policy.</summary>
     Task<IReadOnlyList<string>> GetRoleKeysAsync(int memberId, CancellationToken ct = default);
 }

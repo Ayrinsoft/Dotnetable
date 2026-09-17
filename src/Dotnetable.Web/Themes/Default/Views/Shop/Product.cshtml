@@ -170,13 +170,10 @@
                     <p class="text-muted mt-4 mb-0">This product is currently unavailable.</p>
                 }
 
-                @if (isLoggedIn && defaultVariant is not null)
-                {
-                    <form asp-controller="Account" asp-action="AddToWishlist" method="post" class="mt-2">
-                        <input type="hidden" name="variantId" value="@defaultVariant.ProductVariantID" />
-                        <button type="submit" class="btn btn-outline-secondary btn-sm"><i class="bi bi-heart"></i> Save for later</button>
-                    </form>
-                }
+                @* Favorite = the "save for later" wishlist (counted once per customer) + a private bookmark. *@
+                <div class="mt-3">
+                    <partial name="_ReactionBar" model='@(("product", Model.ProductID, Model.FavoriteCount))' />
+                </div>
 
                 @foreach (var w in Model.Attributes)
                 {

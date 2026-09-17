@@ -126,6 +126,7 @@ public class PageService : IPageService
         // Comment FKs are NO ACTION; the whole reply tree goes in the same SaveChanges.
         _context.ContentComments.RemoveRange(
             await _context.ContentComments.Where(c => c.PageID == pageId).ToListAsync(ct));
+        _context.ClientReactions.RemoveRange(await ReactionStore.ForTargetAsync(_context, Dotnetable.Domain.Enums.ReactionTargetType.Page, pageId, ct));
         _context.PageTranslations.RemoveRange(page.PageTranslations);
         _context.Pages.Remove(page);
         await _context.SaveChangesAsync(ct);
@@ -275,6 +276,7 @@ public class PageService : IPageService
             IsHomepage = p.IsHomepage,
             SortOrder = p.SortOrder,
             CommentsEnabled = p.CommentsEnabled,
+            LikeCount = p.LikeCount,
             MetaTitle = metaTitle,
             MetaDescription = metaDescription,
             MetaKeywords = metaKeywords,

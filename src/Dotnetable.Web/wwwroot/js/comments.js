@@ -31,6 +31,11 @@
         return div.innerHTML;
     }
 
+    // escapeHtml leaves quotes alone, which is fine for text but not inside an attribute value.
+    function escapeAttr(s) {
+        return escapeHtml(s).replace(/"/g, '&quot;').replace(/'/g, '&#39;');
+    }
+
     function showAlert(message, kind) {
         alertBox.innerHTML = message
             ? '<div class="alert alert-' + (kind || 'danger') + ' mb-3">' + escapeHtml(message) + '</div>'
@@ -49,7 +54,9 @@
         var replies = (c.replies || []).map(function (r) { return renderComment(r, depth + 1); }).join('');
         return '' +
             '<div class="comment d-flex gap-3 mt-3" id="comment-' + c.commentID + '">' +
-            '  <div class="comment-avatar flex-shrink-0' + (c.isStaff ? ' comment-avatar-staff' : '') + '">' + escapeHtml(initial) + '</div>' +
+            (c.authorAvatarUrl
+                ? '  <img src="' + escapeAttr(c.authorAvatarUrl) + '" alt="' + escapeAttr(c.authorName) + '" class="comment-avatar comment-avatar-staff flex-shrink-0" loading="lazy" />'
+                : '  <div class="comment-avatar flex-shrink-0' + (c.isStaff ? ' comment-avatar-staff' : '') + '">' + escapeHtml(initial) + '</div>') +
             '  <div class="flex-grow-1" style="min-width:0">' +
             '    <div class="d-flex flex-wrap gap-2 align-items-center">' +
             '      <strong>' + escapeHtml(c.authorName) + '</strong>' +
@@ -58,7 +65,7 @@
             '    </div>' +
             '    <p class="comment-body mb-1">' + escapeHtml(c.body) + '</p>' +
             '    <button type="button" class="btn btn-link btn-sm p-0 text-decoration-none comment-reply"' +
-            '            data-comment-id="' + c.commentID + '" data-author="' + escapeHtml(c.authorName) + '">' +
+            '            data-comment-id="' + c.commentID + '" data-author="' + escapeAttr(c.authorName) + '">' +
             '      <i class="bi bi-reply me-1"></i>Reply</button>' +
             (replies ? '<div class="comment-replies' + (depth < 3 ? ' comment-replies-indent' : '') + '">' + replies + '</div>' : '') +
             '  </div>' +

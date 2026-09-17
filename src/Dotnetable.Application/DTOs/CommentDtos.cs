@@ -16,6 +16,8 @@ public sealed class CommentDto
     public string AuthorName { get; init; } = string.Empty;
     /// <summary>True when the comment was written by site staff from the admin panel.</summary>
     public bool IsStaff { get; init; }
+    /// <summary>Profile photo of the staff member who wrote the comment (their admin avatar); null for visitors.</summary>
+    public string? AuthorAvatarUrl { get; init; }
     public string Body { get; init; } = string.Empty;
     public DateTime CreatedAt { get; init; }
     public IReadOnlyList<CommentDto> Replies { get; init; } = Array.Empty<CommentDto>();

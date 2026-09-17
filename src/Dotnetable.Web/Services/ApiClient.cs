@@ -823,6 +823,39 @@ public class ApiClient
         return await ToResultAsync(response, ct);
     }
 
+    // ── Likes / favorites / bookmarks ────────────────────────────────
+
+    /// <summary>Like counter plus the signed-in customer's own flags (not cached — it is per customer
+    /// and changes on every click). Null when the item is unknown or the API is unreachable.</summary>
+    public Task<ReactionStateDto?> GetReactionStateAsync(string targetType, int targetId, CancellationToken ct = default) =>
+        GetOrNullAsync<ReactionStateDto>($"api/reactions/{Uri.EscapeDataString(targetType)}/{targetId}", ct);
+
+    /// <summary>Turns a like (<paramref name="kind"/> = "like") or bookmark on/off. Returns the HTTP status
+    /// and, on success, the new state.</summary>
+    public async Task<(HttpStatusCode Status, ReactionStateDto? State)> SetReactionAsync(
+        string targetType, int targetId, string kind, bool on, CancellationToken ct = default)
+    {
+        var path = $"api/reactions/{Uri.EscapeDataString(targetType)}/{targetId}/{(kind == "like" ? "like" : "bookmark")}";
+        try
+        {
+            using var response = on ? await _http.PutAsync(path, null, ct) : await _http.DeleteAsync(path, ct);
+            if (!response.IsSuccessStatusCode) return (response.StatusCode, null);
+            return (response.StatusCode, await response.Content.ReadFromJsonAsync<ReactionStateDto>(cancellationToken: ct));
+        }
+        catch (HttpRequestException) { return (HttpStatusCode.ServiceUnavailable, null); }
+        catch (JsonException) { return (HttpStatusCode.BadGateway, null); }
+    }
+
+    /// <summary>The signed-in customer's bookmarks (or likes).</summary>
+    public async Task<PagedResult<ClientReactionItemDto>> GetMyReactionsAsync(
+        string kind = "bookmark", string? type = null, int page = 1, int pageSize = 24, string? lang = null, CancellationToken ct = default)
+    {
+        var path = $"api/reactions/mine?kind={Uri.EscapeDataString(kind)}&page={page}&pageSize={pageSize}";
+        if (!string.IsNullOrWhiteSpace(type)) path += $"&type={Uri.EscapeDataString(type)}";
+        if (!string.IsNullOrWhiteSpace(lang)) path += $"&lang={Uri.EscapeDataString(lang)}";
+        return await GetOrNullAsync<PagedResult<ClientReactionItemDto>>(path, ct) ?? new PagedResult<ClientReactionItemDto>();
+    }
+
     // ── Reviews & Q&A ────────────────────────────────────────────────
 
     public async Task<PagedResult<ProductReview>> GetProductReviewsAsync(int productId, int page = 1, int pageSize = 10, CancellationToken ct = default)

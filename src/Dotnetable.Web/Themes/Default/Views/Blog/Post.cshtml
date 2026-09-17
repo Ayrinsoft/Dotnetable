@@ -81,6 +81,10 @@
                     </div>
                 }
 
+                <div class="mt-4">
+                    <partial name="_ReactionBar" model='@(("post", Model.PostID, Model.LikeCount))' />
+                </div>
+
                 @if (Model.Author is not null)
                 {
                     <partial name="_AuthorBox" model="Model.Author" />

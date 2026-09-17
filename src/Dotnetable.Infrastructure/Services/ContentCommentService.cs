@@ -99,7 +99,9 @@ public class ContentCommentService : IContentCommentService
             return new PagedResult<CommentDto>();
 
         var approved = ForTarget(_context.ContentComments.AsNoTracking(), target, targetId)
-            .Where(c => c.WebsiteID == websiteId && c.Status == (byte)ModerationStatus.Approved);
+            .Where(c => c.WebsiteID == websiteId && c.Status == (byte)ModerationStatus.Approved)
+            // Staff replies show the writer's admin avatar.
+            .Include(c => c.AuthorMember).ThenInclude(m => m!.Avatar);
 
         var roots = approved.Where(c => c.ParentCommentID == null);
         var total = await roots.CountAsync(ct);
@@ -295,6 +297,7 @@ public class ContentCommentService : IContentCommentService
         ParentCommentID = c.ParentCommentID,
         AuthorName = c.AuthorName,
         IsStaff = c.AuthorMemberID != null,
+        AuthorAvatarUrl = c.AuthorMember?.Avatar is { IsDeleted: false } avatar ? avatar.ThumbnailCDN ?? avatar.CNDUrl : null,
         Body = c.Body,
         CreatedAt = c.CreatedAt,
         Replies = depth >= MaxReplyDepth

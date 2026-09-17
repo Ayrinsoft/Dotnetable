@@ -348,6 +348,7 @@ else
     private bool _savingItem;
     private Member? _member;
     private Website? _website;
+    private string? _avatarUrl;
     private AuthorProfile? _saved;
     private AuthorProfile _model = new() { ShowBioOnPosts = true };
     private FileRecord? _photoFile;
@@ -369,7 +370,7 @@ else
 
     private string? PhotoPreview =>
         _photoFile is not null ? _photoFile.ThumbnailCDN ?? _photoFile.CNDUrl
-        : _member?.Avatar is { } avatar ? avatar.ThumbnailCDN ?? avatar.CNDUrl
+        : _avatarUrl is { Length: > 0 } ? _avatarUrl
         : null;
 
     private string? PublicUrl
@@ -395,6 +396,7 @@ else
         if (_member is not null)
         {
             _website = await WebsiteService.GetByIdAsync(_member.WebsiteID);
+            _avatarUrl = await MemberService.GetAvatarUrlAsync(MemberId);
             var langs = await LanguageService.GetActiveForWebsiteAsync(_member.WebsiteID);
             _defaultLanguageCode = langs.FirstOrDefault(l => l.IsDefault)?.LanguageCode ?? langs.FirstOrDefault()?.LanguageCode ?? "en";
             _languages = langs.Where(l => !l.IsDefault).Select(l => (l.LanguageCode, l.Name)).ToArray();

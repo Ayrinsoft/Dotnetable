@@ -16,6 +16,7 @@ CREATE TABLE [dbo].[Posts] (
     [ScheduledAt]         DATETIME        NULL,
     [IsFeatured]          BIT NOT NULL,
     [ViewCount]           INT NOT NULL,
+    [LikeCount]           INT CONSTRAINT [DF_Posts_LikeCount] DEFAULT ((0)) NOT NULL,
     [CommentsEnabled]     BIT NOT NULL,
     [IsActive]            BIT NOT NULL,
     [CreatedAt]           DATETIME NOT NULL,

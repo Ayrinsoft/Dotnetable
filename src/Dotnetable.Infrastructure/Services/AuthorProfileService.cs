@@ -107,8 +107,9 @@ public class AuthorProfileService : IAuthorProfileService
         row.WebsiteUrl = AuthorSocialLinks.IsSafeUrl(profile.WebsiteUrl) ? profile.WebsiteUrl!.Trim() : null;
         row.SocialLinksJson = AuthorSocialLinks.Serialize(AuthorSocialLinks.Parse(profile.SocialLinksJson));
         row.Skills = NormalizeSkills(profile.Skills);
-        row.PhotoFileID = profile.PhotoFileID;
-        row.ResumeFileID = profile.ResumeFileID;
+        // Both files are published on the storefront, so only this website's own, non-deleted files.
+        row.PhotoFileID = await OwnFileAsync(_context, profile.PhotoFileID, member.WebsiteID, ct);
+        row.ResumeFileID = await OwnFileAsync(_context, profile.ResumeFileID, member.WebsiteID, ct);
         row.UpdatedAt = now;
 
         SyncTranslations(_context, row, translations);
@@ -322,6 +323,11 @@ public class AuthorProfileService : IAuthorProfileService
             current.About = Clean(t.About);
         }
     }
+
+    private static async Task<int?> OwnFileAsync(AppDbContext _context, int? fileId, int websiteId, CancellationToken ct) =>
+        fileId is int id && await _context.FileRecords.AnyAsync(f => f.FileRecordID == id && f.WebsiteID == websiteId && !f.IsDeleted, ct)
+            ? id
+            : null;
 
     private static async Task TouchProfileAsync(AppDbContext _context, int profileId, CancellationToken ct)
     {

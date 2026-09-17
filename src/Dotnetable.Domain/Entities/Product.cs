@@ -55,6 +55,9 @@ public partial class Product
 
     public int RatingCount { get; set; }
 
+    /// <summary>Number of signed-in customers who marked this product as a favorite (once per customer).</summary>
+    public int FavoriteCount { get; set; }
+
     public byte Status { get; set; }
 
     public int SortOrder { get; set; }

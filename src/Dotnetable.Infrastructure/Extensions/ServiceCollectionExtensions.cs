@@ -193,6 +193,7 @@ public static class ServiceCollectionExtensions
         // E-commerce: product reviews and Q&A.
         services.AddScoped<IProductReviewService, ProductReviewService>();
         services.AddScoped<IContentCommentService, ContentCommentService>();
+        services.AddScoped<IClientReactionService, ClientReactionService>();
         services.AddScoped<IProductQuestionService, ProductQuestionService>();
 
         // E-commerce: customer wishlist.

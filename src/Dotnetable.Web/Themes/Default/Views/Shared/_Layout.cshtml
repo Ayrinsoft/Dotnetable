@@ -192,7 +192,8 @@
                                 <li><a class="dropdown-item" asp-controller="Account" asp-action="Returns">My Returns</a></li>
                                 <li><a class="dropdown-item" asp-controller="Account" asp-action="Downloads">My Downloads</a></li>
                                 <li><a class="dropdown-item" asp-controller="Account" asp-action="Wallet">My Wallet</a></li>
-                                <li><a class="dropdown-item" asp-controller="Account" asp-action="Wishlist">My Wishlist</a></li>
+                                <li><a class="dropdown-item" asp-controller="Account" asp-action="Wishlist">My Favorites</a></li>
+                                <li><a class="dropdown-item" asp-controller="Account" asp-action="Bookmarks">My Bookmarks</a></li>
                                 <li><a class="dropdown-item" asp-controller="Account" asp-action="Addresses">My Addresses</a></li>
                                 <li><hr class="dropdown-divider" /></li>
                                 <li><button type="button" class="dropdown-item" onclick="doLogout()">Logout</button></li>
@@ -293,6 +294,7 @@
     <script src="~/lib/bootstrap/js/bootstrap.bundle.min.js" asp-append-version="true"></script>
     <script src="~/js/site.js" asp-append-version="true"></script>
     <script src="~/js/slideshow.js" asp-append-version="true"></script>
+    <script src="~/js/reactions.js" asp-append-version="true"></script>
     @await RenderSectionAsync("Scripts", required: false)
 </body>
 </html>

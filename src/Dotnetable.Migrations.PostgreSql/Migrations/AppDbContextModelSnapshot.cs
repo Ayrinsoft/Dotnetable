@@ -1046,6 +1046,43 @@ namespace Dotnetable.Migrations.PostgreSql.Migrations
                     b.ToTable("ClientBankAccounts");
                 });
 
+            modelBuilder.Entity("Dotnetable.Domain.Entities.ClientReaction", b =>
+                {
+                    b.Property<int>("ClientReactionID")
+                        .ValueGeneratedOnAdd()
+                        .HasColumnType("integer");
+
+                    NpgsqlPropertyBuilderExtensions.UseIdentityByDefaultColumn(b.Property<int>("ClientReactionID"));
+
+                    b.Property<DateTime>("CreatedAt")
+                        .HasPrecision(0)
+                        .HasColumnType("timestamp(0) with time zone");
+
+                    b.Property<byte>("ReactionType")
+                        .HasColumnType("smallint");
+
+                    b.Property<int>("TargetID")
+                        .HasColumnType("integer");
+
+                    b.Property<byte>("TargetType")
+                        .HasColumnType("smallint");
+
+                    b.Property<int>("WebsiteClientID")
+                        .HasColumnType("integer");
+
+                    b.Property<int>("WebsiteID")
+                        .HasColumnType("integer");
+
+                    b.HasKey("ClientReactionID");
+
+                    b.HasIndex(new[] { "WebsiteClientID", "TargetType", "TargetID", "ReactionType" }, "IX_ClientReactions_Client_Target_Reaction")
+                        .IsUnique();
+
+                    b.HasIndex(new[] { "WebsiteID", "TargetType", "TargetID", "ReactionType" }, "IX_ClientReactions_WebsiteID_Target");
+
+                    b.ToTable("ClientReactions");
+                });
+
             modelBuilder.Entity("Dotnetable.Domain.Entities.ClientWallet", b =>
                 {
                     b.Property<int>("ClientWalletID")
@@ -4056,6 +4093,11 @@ namespace Dotnetable.Migrations.PostgreSql.Migrations
                     b.Property<bool>("IsHomepage")
                         .HasColumnType("boolean");
 
+                    b.Property<int>("LikeCount")
+                        .ValueGeneratedOnAdd()
+                        .HasColumnType("integer")
+                        .HasDefaultValue(0);
+
                     b.Property<string>("MetaDescription")
                         .HasMaxLength(500)
                         .HasColumnType("character varying(500)");
@@ -4616,6 +4658,11 @@ namespace Dotnetable.Migrations.PostgreSql.Migrations
                     b.Property<bool>("IsFeatured")
                         .HasColumnType("boolean");
 
+                    b.Property<int>("LikeCount")
+                        .ValueGeneratedOnAdd()
+                        .HasColumnType("integer")
+                        .HasDefaultValue(0);
+
                     b.Property<string>("MetaDescription")
                         .HasMaxLength(500)
                         .HasColumnType("character varying(500)");
@@ -4965,6 +5012,11 @@ namespace Dotnetable.Migrations.PostgreSql.Migrations
 
                     b.Property<string>("ExpertReview")
                         .HasColumnType("text");
+
+                    b.Property<int>("FavoriteCount")
+                        .ValueGeneratedOnAdd()
+                        .HasColumnType("integer")
+                        .HasDefaultValue(0);
 
                     b.Property<int?>("FeaturedImageFileID")
                         .HasColumnType("integer");
@@ -8901,6 +8953,26 @@ namespace Dotnetable.Migrations.PostgreSql.Migrations
                         .HasConstraintName("FK_ClientBankAccounts_Websites");
 
                     b.Navigation("Bank");
+
+                    b.Navigation("Website");
+
+                    b.Navigation("WebsiteClient");
+                });
+
+            modelBuilder.Entity("Dotnetable.Domain.Entities.ClientReaction", b =>
+                {
+                    b.HasOne("Dotnetable.Domain.Entities.WebsiteClient", "WebsiteClient")
+                        .WithMany()
+                        .HasForeignKey("WebsiteClientID")
+                        .OnDelete(DeleteBehavior.Cascade)
+                        .IsRequired()
+                        .HasConstraintName("FK_ClientReactions_WebsiteClients");
+
+                    b.HasOne("Dotnetable.Domain.Entities.Website", "Website")
+                        .WithMany()
+                        .HasForeignKey("WebsiteID")
+                        .IsRequired()
+                        .HasConstraintName("FK_ClientReactions_Websites");
 
                     b.Navigation("Website");
 

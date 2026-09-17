@@ -17,6 +17,7 @@
     [HasVariants]         BIT             NOT NULL,
     [AvgRating]           DECIMAL (3, 2)  NOT NULL,
     [RatingCount]         INT             NOT NULL,
+    [FavoriteCount]       INT             CONSTRAINT [DF_Products_FavoriteCount] DEFAULT ((0)) NOT NULL,
     [Status]              TINYINT         NOT NULL,
     [SortOrder]           INT             NOT NULL,
     [IsActive]            BIT             NOT NULL,

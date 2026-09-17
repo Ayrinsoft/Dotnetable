@@ -1,0 +1,179 @@
+@page "/my/account"
+@* Every signed-in admin member manages their own account here — deliberately no permission key:
+   the old "Profile" link pointed at /members/{id}, which needs members.view/edit, so ordinary staff
+   could never change their own name, photo or password. The service methods used below only ever
+   touch the caller's own row and never the access level, active flag, website or username. *@
+@attribute [Authorize]
+@inject IMemberService MemberService
+@inject AuthenticationStateProvider AuthState
+@inject AdminAvatarState AvatarState
+@inject ISnackbar Snackbar
+@inject IPageLocalizer L
+
+<DNPageTitle Title=@L["account.mine", "My account"] />
+
+<MudStack Spacing="0" Class="mb-4">
+    <MudText Typo="Typo.h5" Class="fw-bold">@L["account.mine", "My account"]</MudText>
+    <MudText Typo="Typo.body2" Color="Color.Secondary">@L["account.mine_subtitle", "Your photo, name, phone and password"]</MudText>
+</MudStack>
+
+@if (_loading)
+{
+    <MudProgressLinear Indeterminate="true" Color="Color.Primary" />
+}
+else if (_member is not null)
+{
+    <MudGrid Spacing="4">
+        <MudItem xs="12" md="7">
+            <MudPaper Elevation="0" Class="app-card rounded-lg pa-5 mb-4">
+                <MudText Typo="Typo.subtitle1" Class="fw-bold mb-3">@L["avatar", "Photo"]</MudText>
+                <MemberAvatarField MemberId="_member.MemberID" WebsiteId="_member.WebsiteID" Name="@FullName"
+                                   CanBrowseLibrary="_canBrowseLibrary" OnChanged="@(url => AvatarState.Set(url))" />
+            </MudPaper>
+
+            <MudPaper Elevation="0" Class="app-card rounded-lg pa-5">
+                <MudText Typo="Typo.subtitle1" Class="fw-bold mb-3">@L["profile", "Profile"]</MudText>
+                <MudForm @ref="_profileForm">
+                    <MudGrid Spacing="3">
+                        <MudItem xs="12" sm="6">
+                            <MudTextField Value="@_member.Username" Label="@L["username", "Username"]" Variant="Variant.Outlined" ReadOnly="true" Disabled="true" />
+                        </MudItem>
+                        <MudItem xs="12" sm="6">
+                            <MudTextField Value="@_member.Email" Label="@L["email", "Email"]" Variant="Variant.Outlined" ReadOnly="true" Disabled="true"
+                                          HelperText="@L["account.email_hint", "Ask an administrator to change your username or email."]" />
+                        </MudItem>
+                        <MudItem xs="12" sm="6">
+                            <MudTextField @bind-Value="_givenname" Label="@L["given_name", "Given Name"]" Variant="Variant.Outlined"
+                                          Required="true" RequiredError="@L["required", "This field is required."]" MaxLength="100" />
+                        </MudItem>
+                        <MudItem xs="12" sm="6">
+                            <MudTextField @bind-Value="_surname" Label="@L["surname", "Surname"]" Variant="Variant.Outlined"
+                                          Required="true" RequiredError="@L["required", "This field is required."]" MaxLength="100" />
+                        </MudItem>
+                        <MudItem xs="12" sm="4">
+                            <MudTextField @bind-Value="_countryCode" Label="@L["country_code", "Country Code"]" Variant="Variant.Outlined" MaxLength="3" />
+                        </MudItem>
+                        <MudItem xs="12" sm="4">
+                            <MudTextField @bind-Value="_cellphone" Label="@L["cellphone", "Cellphone"]" Variant="Variant.Outlined" MaxLength="12" />
+                        </MudItem>
+                        <MudItem xs="12" sm="4">
+                            <MudSelect T="bool?" @bind-Value="_gender" Label="@L["gender", "Gender"]" Variant="Variant.Outlined">
+                                <MudSelectItem T="bool?" Value="@((bool?)null)">—</MudSelectItem>
+                                <MudSelectItem T="bool?" Value="@((bool?)true)">@L["male", "Male"]</MudSelectItem>
+                                <MudSelectItem T="bool?" Value="@((bool?)false)">@L["female", "Female"]</MudSelectItem>
+                            </MudSelect>
+                        </MudItem>
+                    </MudGrid>
+                </MudForm>
+                <MudButton Variant="Variant.Filled" Color="Color.Primary" Class="mt-4" StartIcon="@Icons.Material.Filled.Save"
+                           Disabled="@_saving" OnClick="SaveProfileAsync">@L["save", "Save"]</MudButton>
+            </MudPaper>
+        </MudItem>
+
+        <MudItem xs="12" md="5">
+            <MudPaper Elevation="0" Class="app-card rounded-lg pa-5 mb-4">
+                <MudText Typo="Typo.subtitle1" Class="fw-bold mb-3">@L["account.change_password", "Change password"]</MudText>
+                <MudForm @ref="_passwordForm">
+                    <MudTextField @bind-Value="_currentPassword" Label="@L["account.current_password", "Current password"]"
+                                  Variant="Variant.Outlined" InputType="InputType.Password" Class="mb-3"
+                                  Required="true" RequiredError="@L["required", "This field is required."]" />
+                    <MudTextField @bind-Value="_newPassword" Label="@L["account.new_password", "New password"]"
+                                  Variant="Variant.Outlined" InputType="InputType.Password" Class="mb-3"
+                                  Required="true" RequiredError="@L["required", "This field is required."]" />
+                    <MudTextField @bind-Value="_confirmPassword" Label="@L["account.confirm_password", "Repeat new password"]"
+                                  Variant="Variant.Outlined" InputType="InputType.Password"
+                                  Required="true" RequiredError="@L["required", "This field is required."]"
+                                  Validation="@(new Func<string?, string?>(v => v == _newPassword ? null : L["account.password_mismatch", "The passwords do not match."]))" />
+                </MudForm>
+                <MudButton Variant="Variant.Filled" Color="Color.Primary" Class="mt-4" StartIcon="@Icons.Material.Filled.Key"
+                           Disabled="@_savingPassword" OnClick="ChangePasswordAsync">@L["account.change_password", "Change password"]</MudButton>
+            </MudPaper>
+
+            <AuthorizeView Policy="@RoleKeys.AuthorsProfile" Context="ap">
+                <MudPaper Elevation="0" Class="app-card rounded-lg pa-5">
+                    <MudText Typo="Typo.subtitle1" Class="fw-bold mb-1">@L["authors.my_profile", "My author profile"]</MudText>
+                    <MudText Typo="Typo.body2" Color="Color.Secondary" Class="mb-3">
+                        @L["account.author_hint", "Your bio under your posts and your public résumé page."]
+                    </MudText>
+                    <MudButton Variant="Variant.Outlined" Color="Color.Primary" StartIcon="@Icons.Material.Filled.Badge" Href="/my/author-profile">
+                        @L["authors.my_profile", "My author profile"]
+                    </MudButton>
+                </MudPaper>
+            </AuthorizeView>
+        </MudItem>
+    </MudGrid>
+}
+
+@code {
+    private bool _loading = true;
+    private bool _saving;
+    private bool _savingPassword;
+    private bool _canBrowseLibrary;
+    private Member? _member;
+    private MudForm _profileForm = null!;
+    private MudForm _passwordForm = null!;
+    private string _givenname = "";
+    private string _surname = "";
+    private string? _countryCode;
+    private string? _cellphone;
+    private bool? _gender;
+    private string _currentPassword = "";
+    private string _newPassword = "";
+    private string _confirmPassword = "";
+
+    private string FullName => $"{_givenname} {_surname}".Trim();
+
+    protected override async Task OnInitializedAsync()
+    {
+        await L.EnsureLoadedAsync();
+        var user = (await AuthState.GetAuthenticationStateAsync()).User;
+        _canBrowseLibrary = AdminPolicies.Allows(user, RoleKeys.MediaView);
+        if (int.TryParse(user.FindFirst(AdminClaimTypes.MemberId)?.Value, out var memberId))
+            _member = await MemberService.GetByIdAsync(memberId);
+
+        if (_member is not null)
+        {
+            _givenname = _member.Givenname;
+            _surname = _member.Surname;
+            _countryCode = _member.CountryCode;
+            _cellphone = _member.CellphoneNumber;
+            _gender = _member.Gender;
+        }
+        _loading = false;
+    }
+
+    private async Task SaveProfileAsync()
+    {
+        await _profileForm.Validate();
+        if (!_profileForm.IsValid || _member is null) return;
+
+        _saving = true;
+        try
+        {
+            await MemberService.UpdateOwnProfileAsync(_member.MemberID, _givenname, _surname, _countryCode, _cellphone, _gender);
+            Snackbar.Add(L["saved", "Saved."], Severity.Success);
+        }
+        catch (Exception ex) { Snackbar.Add($"{L["save_failed", "Save failed"]}: {ex.Message}", Severity.Error); }
+        finally { _saving = false; }
+    }
+
+    private async Task ChangePasswordAsync()
+    {
+        await _passwordForm.Validate();
+        if (!_passwordForm.IsValid || _member is null) return;
+
+        _savingPassword = true;
+        try
+        {
+            if (!await MemberService.ChangeOwnPasswordAsync(_member.MemberID, _currentPassword, _newPassword))
+            {
+                Snackbar.Add(L["account.wrong_password", "Your current password is not correct."], Severity.Error);
+                return;
+            }
+            _currentPassword = _newPassword = _confirmPassword = "";
+            Snackbar.Add(L["account.password_changed", "Password changed."], Severity.Success);
+        }
+        catch (Exception ex) { Snackbar.Add(ex.Message, Severity.Error); }
+        finally { _savingPassword = false; }
+    }
+}

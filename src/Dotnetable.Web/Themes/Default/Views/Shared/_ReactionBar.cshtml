@@ -1,0 +1,35 @@
+@using Dotnetable.Web.Services
+@model (string TargetType, int TargetId, int LikeCount)
+@inject ApiClient Api
+@*
+    Like (or, for products, "favorite") + bookmark buttons. The counter is public; the pressed state
+    is the signed-in customer's own and is read live. js/reactions.js (loaded by _Layout) handles clicks
+    and opens the sign-in popup for guests.
+*@
+@{
+    var isLoggedIn = Context.Request.Cookies.ContainsKey(ClientAuth.TokenCookie);
+    var state = isLoggedIn ? await Api.GetReactionStateAsync(Model.TargetType, Model.TargetId) : null;
+    var count = state?.LikeCount ?? Model.LikeCount;
+    var isProduct = Model.TargetType == "product";
+    var likeLabel = isProduct ? "Favorite" : "Like";
+    var likeIcon = isProduct ? "heart" : "hand-thumbs-up";
+}
+
+<div class="reaction-bar d-flex gap-2 align-items-center flex-wrap"
+     data-target-type="@Model.TargetType" data-target-id="@Model.TargetId"
+     data-logged-in="@(isLoggedIn ? "true" : "false")">
+    <button type="button" class="btn btn-sm reaction-btn @(state?.Liked == true ? "active" : "")"
+            data-kind="like" data-icon="@likeIcon" aria-pressed="@(state?.Liked == true ? "true" : "false")"
+            title="@(isProduct ? "Save to my favorites for later" : "Like")">
+        <i class="bi bi-@likeIcon@(state?.Liked == true ? "-fill" : "")"></i>
+        <span>@likeLabel</span>
+        <span class="reaction-count badge rounded-pill">@count</span>
+    </button>
+    <button type="button" class="btn btn-sm reaction-btn @(state?.Bookmarked == true ? "active" : "")"
+            data-kind="bookmark" data-icon="bookmark" aria-pressed="@(state?.Bookmarked == true ? "true" : "false")"
+            title="Bookmark">
+        <i class="bi bi-bookmark@(state?.Bookmarked == true ? "-fill" : "")"></i>
+        <span>Bookmark</span>
+    </button>
+    <span class="reaction-feedback small text-danger" role="status"></span>
+</div>

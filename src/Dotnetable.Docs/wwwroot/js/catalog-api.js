@@ -1491,12 +1491,12 @@ window.DOCS_API = {
         },
         {
           id: "wishlist",
-          title: { en: "Wishlist", fa: "علاقه‌مندی" },
+          title: { en: "Wishlist (favorite products)", fa: "علاقه‌مندی (محصولات محبوب)" },
           summary: {
-            en: "Saved variants for the signed-in customer.",
-            fa: "واریانت‌های ذخیره‌شده مشتری واردشده.",
+            en: "Saved variants for the signed-in customer — the \"save for later\" list. A product with at least one saved variant is the customer's favorite and is counted once in `favoriteCount`; adding a variant of another website is ignored.",
+            fa: "واریانت‌های ذخیره‌شده مشتری واردشده — لیست «برای بعد». محصولی که حداقل یک واریانت ذخیره‌شده دارد محبوب مشتری است و یک بار در `favoriteCount` شمرده می‌شود؛ افزودن واریانتِ سایت دیگر نادیده گرفته می‌شود.",
           },
-          related: ["products"],
+          related: ["products", "reactions"],
           endpoints: [
             {
               title: { en: "List / add / remove", fa: "لیست / افزودن / حذف" },
@@ -1508,6 +1508,86 @@ window.DOCS_API = {
                 status: 200,
                 body: [{ variantId: 55, title: "Running shoes 42" }],
               },
+            },
+          ],
+        },
+        {
+          id: "reactions",
+          title: { en: "Likes, favorites & bookmarks", fa: "لایک، علاقه‌مندی و بوکمارک" },
+          summary: {
+            en: "Signed-in customers like posts and pages, favorite products, and bookmark any of the three. `{targetType}` is `product`, `post` or `page`. A like/favorite is counted once per customer (`likeCount` on the post/page payload, `favoriteCount` on products); bookmarks are private and not counted.",
+            fa: "مشتری واردشده پست و صفحه را لایک، محصول را محبوب و هر سه را بوکمارک می‌کند. `{targetType}` یکی از `product`، `post` یا `page` است. لایک/علاقه‌مندی برای هر مشتری یک بار شمرده می‌شود (`likeCount` در خروجی پست/صفحه و `favoriteCount` در محصول)؛ بوکمارک خصوصی است و شمرده نمی‌شود.",
+          },
+          related: ["wishlist", "posts", "products"],
+          endpoints: [
+            {
+              title: { en: "State of one item", fa: "وضعیت یک آیتم" },
+              method: "GET",
+              path: "/api/reactions/{targetType}/{targetId}",
+              auth: "optional-jwt",
+              request: { body: "GET /api/reactions/post/12" },
+              response: {
+                status: 200,
+                body: { targetType: "post", targetId: 12, likeCount: 31, liked: true, bookmarked: false },
+              },
+              notes: [
+                {
+                  en: "`liked` / `bookmarked` are the caller's own flags and are always false without a customer token. `404` when the item is not published on this website.",
+                  fa: "`liked` / `bookmarked` وضعیت خود فراخواننده است و بدون توکن مشتری همیشه false است. اگر آیتم در این سایت منتشر نشده باشد `404` برمی‌گردد.",
+                },
+              ],
+            },
+            {
+              title: { en: "Like / unlike, bookmark / remove", fa: "لایک / برداشتن لایک، بوکمارک / حذف" },
+              method: "PUT · DELETE",
+              path: "/api/reactions/{targetType}/{targetId}/like  ·  /api/reactions/{targetType}/{targetId}/bookmark",
+              auth: "jwt",
+              request: { body: "PUT /api/reactions/product/40/like" },
+              response: {
+                status: 200,
+                body: { targetType: "product", targetId: 40, likeCount: 8, liked: true, bookmarked: false },
+              },
+              notes: [
+                {
+                  en: "Idempotent: repeating a PUT or DELETE changes nothing and never moves the counter twice. Returns the new state.",
+                  fa: "تکرار PUT یا DELETE تغییری نمی‌دهد و شمارنده را دو بار جابه‌جا نمی‌کند. وضعیت جدید برگردانده می‌شود.",
+                },
+                {
+                  en: "For a **product**, `like` is the favorite and is the wishlist: PUT adds the product's default variant to `/api/wishlist` (if no variant is saved yet); DELETE removes all its variants from the wishlist.",
+                  fa: "برای **محصول**، `like` همان علاقه‌مندی و همان wishlist است: PUT واریانت پیش‌فرض محصول را (اگر واریانتی ذخیره نشده باشد) به `/api/wishlist` اضافه می‌کند و DELETE همه واریانت‌های آن را از wishlist حذف می‌کند.",
+                },
+                {
+                  en: "Errors: `401` without a customer token, `404` unknown target type or unpublished item, `429` rate limit.",
+                  fa: "خطاها: `401` بدون توکن مشتری، `404` نوع ناشناخته یا آیتم منتشرنشده، `429` محدودیت نرخ.",
+                },
+              ],
+            },
+            {
+              title: { en: "My bookmarks / likes", fa: "بوکمارک‌ها / لایک‌های من" },
+              method: "GET",
+              path: "/api/reactions/mine",
+              auth: "jwt",
+              query: [
+                { name: "kind", desc: { en: "`bookmark` (default) or `like`", fa: "`bookmark` (پیش‌فرض) یا `like`" } },
+                { name: "type", desc: { en: "Optional: `product`, `post` or `page`", fa: "اختیاری: `product`، `post` یا `page`" } },
+                { name: "page / pageSize / lang", desc: { en: "Paging and title language", fa: "صفحه‌بندی و زبان عنوان" } },
+              ],
+              request: { body: "GET /api/reactions/mine?kind=bookmark&type=post" },
+              response: {
+                status: 200,
+                body: {
+                  items: [
+                    { targetType: "post", targetId: 12, title: "Hello", slug: "hello", imageUrl: "https://cdn.example.com/p.jpg", excerpt: "…", createdAt: "2026-09-17T10:00:00" },
+                  ],
+                  totalCount: 1,
+                },
+              },
+              notes: [
+                {
+                  en: "Newest first. Items that are no longer published are left out.",
+                  fa: "جدیدترین اول. آیتم‌هایی که دیگر منتشر نیستند نمایش داده نمی‌شوند.",
+                },
+              ],
             },
           ],
         },
@@ -1625,7 +1705,7 @@ window.DOCS_API = {
                 body: {
                   items: [
                     {
-                      slug: "hello", title: "Hello", authorName: "Sara Ahmadi",
+                      slug: "hello", title: "Hello", authorName: "Sara Ahmadi", likeCount: 31,
                       author: { name: "Sara Ahmadi", slug: "sara-ahmadi", headline: "Senior .NET developer", bio: "I write about .NET.", photoUrl: "https://cdn.example.com/sara.jpg" },
                     },
                   ],
@@ -1722,10 +1802,10 @@ window.DOCS_API = {
                 body: {
                   items: [
                     {
-                      commentID: 41, parentCommentID: null, authorName: "Sara", isStaff: false,
+                      commentID: 41, parentCommentID: null, authorName: "Sara", isStaff: false, authorAvatarUrl: null,
                       body: "Great article!", createdAt: "2026-09-16T10:12:00",
                       replies: [
-                        { commentID: 44, parentCommentID: 41, authorName: "Site team", isStaff: true, body: "Thanks!", createdAt: "2026-09-16T11:00:00", replies: [] },
+                        { commentID: 44, parentCommentID: 41, authorName: "Site team", isStaff: true, authorAvatarUrl: "https://cdn.example.com/avatar.jpg", body: "Thanks!", createdAt: "2026-09-16T11:00:00", replies: [] },
                       ],
                     },
                   ],

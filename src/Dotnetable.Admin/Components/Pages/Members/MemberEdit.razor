@@ -8,6 +8,7 @@
 @inject NavigationManager Nav
 @inject ISnackbar Snackbar
 @inject IPageLocalizer L
+@inject AdminAvatarState AvatarState
 
 <DNPageTitle Title=@(_isNew ? L["members.new", "New Member"] : L["members.edit", "Edit Member"]) />
 
@@ -111,6 +112,16 @@ else if (_member is not null)
                                 <MudSelectItem T="bool?" Value="@((bool?)false)">@L["female", "Female"]</MudSelectItem>
                             </MudSelect>
                         </MudItem>
+                        @if (!_isNew && _canSave)
+                        {
+                            <MudItem xs="12">
+                                <MudText Typo="Typo.body2" Color="Color.Secondary" Class="mb-2">@L["avatar", "Photo"]</MudText>
+                                @* Saved immediately; OnAvatarChanged copies the new AvatarID into _member so "Save" doesn't write the old one back. *@
+                                <MemberAvatarField MemberId="_member.MemberID" WebsiteId="_member.WebsiteID"
+                                                   Name="@($"{_member.Givenname} {_member.Surname}".Trim())"
+                                                   CanBrowseLibrary="_canBrowseMedia" OnChanged="OnAvatarChanged" />
+                            </MudItem>
+                        }
                     </MudGrid>
                 </MudPaper>
             </MudItem>
@@ -167,6 +178,7 @@ else if (_member is not null)
     private bool _isMaster;
     private bool _canSave;
     private bool _isSelf;
+    private bool _canBrowseMedia;
     private int _websiteId;
     private int _currentMemberId;
     private int _originalPolicyId;
@@ -194,6 +206,7 @@ else if (_member is not null)
         _isMaster = user.HasClaim(AdminClaimTypes.Master, "true");
         // Creating requires the insert permission; editing an existing member requires edit.
         _canSave = AdminPolicies.Allows(user, _isNew ? RoleKeys.MembersInsert : RoleKeys.MembersEdit);
+        _canBrowseMedia = AdminPolicies.Allows(user, RoleKeys.MediaView);
         int.TryParse(user.FindFirst(AdminClaimTypes.WebsiteId)?.Value, out _websiteId);
         int.TryParse(user.FindFirst(AdminClaimTypes.MemberId)?.Value, out _currentMemberId);
 
@@ -266,6 +279,13 @@ else if (_member is not null)
         }
         if (!_policies.Any(p => p.PolicyID == _member.PolicyID))
             _member.PolicyID = _policies.FirstOrDefault()?.PolicyID ?? 0;
+    }
+
+    private async Task OnAvatarChanged(string? _)
+    {
+        var fresh = await MemberService.GetByIdAsync(Id);
+        if (fresh is not null && _member is not null) _member.AvatarID = fresh.AvatarID;
+        if (_isSelf) AvatarState.Set(await MemberService.GetAvatarUrlAsync(Id));
     }
 
     private async Task OnWebsiteChanged(int id)
