@@ -261,6 +261,7 @@ else if (_policy is not null)
     {
         "taxonomy" => L["roles.group.taxonomy", "Categories & Tags (Posts)"],
         "comments" => L["roles.group.comments", "Comments (Posts & Pages)"],
+        "authors" => L["roles.group.authors", "Author Bio & Résumé (Posts)"],
         "sociallinks" => L["roles.group.sociallinks", "Social Links"],
         "contactinfo" => L["roles.group.contactinfo", "Contact Info"],
         _ => L[$"roles.group.{groupKey}", Capitalize(groupKey)],
@@ -270,9 +271,11 @@ else if (_policy is not null)
     // group sits next to the Posts group it conceptually belongs to, instead of its alphabetical
     // spot far down the list where it's easy to miss when granting "full Post access".
     // "comments" (post/page comment moderation) sits right after Posts for the same reason.
+    // "authors" (the bio under posts / author résumé page) likewise belongs next to Posts.
     private static string GroupSortKey(string groupKey) => groupKey switch
     {
         "comments" => "posts~comments",
+        "authors" => "posts~authors",
         "taxonomy" => "posts~taxonomy",
         "sociallinks" => "website~1sociallinks",
         "contactinfo" => "website~2contactinfo",
@@ -282,6 +285,8 @@ else if (_policy is not null)
     // "members.edit" -> localized "Edit" action label.
     private string RoleActionLabel(string roleKey)
     {
+        if (roleKey == RoleKeys.AuthorsProfile) return L["roles.action.authors_profile", "Own bio & résumé"];
+        if (roleKey == RoleKeys.AuthorsManage) return L["roles.action.authors_manage", "Manage all authors"];
         var parts = roleKey.Split('.', 2);
         var action = parts.Length > 1 ? parts[1] : roleKey;
         return L[$"roles.action.{action}", Capitalize(action)];

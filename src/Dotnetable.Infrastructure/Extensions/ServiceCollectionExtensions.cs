@@ -237,6 +237,12 @@ public static class ServiceCollectionExtensions
             sp.GetRequiredService<PostService>(), sp.GetRequiredService<ICacheService>(),
             sp.GetRequiredService<ICacheInvalidationNotifier>(), sp.GetRequiredService<CacheOptions>()));
 
+        // Author bios / online résumés of admin members (author box under posts + /author/{slug}).
+        services.AddScoped<AuthorProfileService>();
+        services.AddScoped<IAuthorProfileService>(sp => new CachedAuthorProfileService(
+            sp.GetRequiredService<AuthorProfileService>(), sp.GetRequiredService<ICacheService>(),
+            sp.GetRequiredService<ICacheInvalidationNotifier>(), sp.GetRequiredService<CacheOptions>()));
+
         services.AddScoped<PageService>();
         services.AddScoped<IPageService>(sp => new CachedPageService(
             sp.GetRequiredService<PageService>(), sp.GetRequiredService<ICacheService>(),

@@ -87,6 +87,11 @@ public static class RoleKeys
     public const string PostsEdit = "posts.edit";
     public const string PostsDelete = "posts.delete";
 
+    // ── Content: author bio / online résumé (admin) — "profile" is the member's own page and
+    //    is meant for every admin who writes; "manage" edits anyone's on the same website ──────
+    public const string AuthorsProfile = "authors.profile";
+    public const string AuthorsManage = "authors.manage";
+
     // ── Content: pages (admin) ──────────────────────────────────────
     public const string PagesView = "pages.view";
     public const string PagesInsert = "pages.insert";

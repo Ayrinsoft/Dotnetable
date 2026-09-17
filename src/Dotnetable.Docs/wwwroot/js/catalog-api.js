@@ -1615,13 +1615,87 @@ window.DOCS_API = {
               path: "/api/Posts  ·  /api/Posts/featured  ·  /api/Posts/{slug}",
               auth: "website",
               request: { body: "GET /api/Posts?page=1&lang=fa" },
+              query: [
+                { name: "type / category / tag", desc: { en: "Filter by post type, category or tag slug", fa: "فیلتر بر اساس اسلاگ نوع پست، دسته یا برچسب" } },
+                { name: "author", desc: { en: "Filter by author slug (see Authors)", fa: "فیلتر بر اساس اسلاگ نویسنده (بخش نویسندگان)" } },
+                { name: "page / pageSize / lang", desc: { en: "Paging and content language", fa: "صفحه‌بندی و زبان محتوا" } },
+              ],
               response: {
                 status: 200,
-                body: { items: [{ slug: "hello", title: "Hello" }], totalCount: 1 },
+                body: {
+                  items: [
+                    {
+                      slug: "hello", title: "Hello", authorName: "Sara Ahmadi",
+                      author: { name: "Sara Ahmadi", slug: "sara-ahmadi", headline: "Senior .NET developer", bio: "I write about .NET.", photoUrl: "https://cdn.example.com/sara.jpg" },
+                    },
+                  ],
+                  totalCount: 1,
+                },
               },
+              notes: [
+                {
+                  en: "`author` is the **About the author** box: `bio` is null when the author has none or hid it from posts; `slug` is null when the author has no public page — only link to `/author/{slug}` when it is set. `author` is null for posts without an author.",
+                  fa: "`author` همان کادر **درباره نویسنده** است: `bio` وقتی نویسنده بیو ندارد یا آن را برای پست‌ها مخفی کرده null است؛ `slug` وقتی نویسنده صفحه عمومی ندارد null است — فقط وقتی مقدار دارد به `/author/{slug}` لینک دهید. برای پست بدون نویسنده `author` برابر null است.",
+                },
+              ],
             },
           ],
-          related: ["comments"],
+          related: ["comments", "authors"],
+        },
+        {
+          id: "authors",
+          title: { en: "Authors (bio & résumé)", fa: "نویسندگان (بیو و رزومه)" },
+          summary: {
+            en: "Public author page: bio, about text, skills, social links, résumé sections and a chronological timeline. List the author's posts with `GET /api/posts?author={slug}`.",
+            fa: "صفحه عمومی نویسنده: بیو، متن درباره، مهارت‌ها، لینک‌های اجتماعی، بخش‌های رزومه و تایملاین زمانی. پست‌های نویسنده را با `GET /api/posts?author={slug}` بگیرید.",
+          },
+          relatedAdmin: ["content-authors"],
+          related: ["posts"],
+          endpoints: [
+            {
+              title: { en: "Author page by slug", fa: "صفحه نویسنده با اسلاگ" },
+              method: "GET",
+              path: "/api/authors/{slug}",
+              auth: "website",
+              query: [
+                { name: "lang", desc: { en: "Language of the translated texts (falls back to the default)", fa: "زبان متن‌های ترجمه‌شده (در صورت نبود، زبان پیش‌فرض)" } },
+              ],
+              request: { body: "GET /api/authors/sara-ahmadi?lang=fa" },
+              response: {
+                status: 200,
+                body: {
+                  slug: "sara-ahmadi", name: "Sara Ahmadi", headline: "Senior .NET developer",
+                  bio: "I write about .NET.", about: "<p>…</p>", location: "Tehran",
+                  publicEmail: null, websiteUrl: "https://sara.dev",
+                  photoUrl: "https://cdn.example.com/sara.jpg", resumeFileUrl: "https://cdn.example.com/cv.pdf",
+                  skills: ["C#", "Blazor"],
+                  socialLinks: [{ network: "github", url: "https://github.com/sara" }],
+                  sections: [
+                    {
+                      type: "experience",
+                      items: [
+                        { itemID: 7, type: "experience", title: "Lead developer", organization: "Acme", location: "Remote", description: "…", url: null, startDate: "2018-02-01", endDate: null, isCurrent: true },
+                      ],
+                    },
+                  ],
+                  timeline: [
+                    { itemID: 7, type: "experience", title: "Lead developer", organization: "Acme", startDate: "2018-02-01", endDate: null, isCurrent: true },
+                  ],
+                  postCount: 12,
+                },
+              },
+              notes: [
+                {
+                  en: "`404` when the slug is unknown, the member is inactive, or the author has not published the page. `about` is HTML written in the admin editor — sanitise it before rendering.",
+                  fa: "اگر اسلاگ ناشناخته، کاربر غیرفعال یا صفحه منتشر نشده باشد `404` برمی‌گردد. `about` HTML نوشته‌شده در ویرایشگر ادمین است — قبل از نمایش آن را sanitize کنید.",
+                },
+                {
+                  en: "`sections` follow a fixed order: experience, education, project, certification, award, publication, volunteering, other. `timeline` holds only items marked for it, ongoing ones first, then newest first.",
+                  fa: "ترتیب `sections` ثابت است: experience، education، project، certification، award، publication، volunteering، other. `timeline` فقط آیتم‌های علامت‌خورده برای تایملاین را دارد؛ اول موارد جاری و بعد جدیدترها.",
+                },
+              ],
+            },
+          ],
         },
         {
           id: "comments",

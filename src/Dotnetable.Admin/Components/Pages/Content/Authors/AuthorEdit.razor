@@ -1,0 +1,53 @@
+@page "/content/authors/{MemberId:int}"
+@attribute [Authorize(Policy = RoleKeys.AuthorsManage)]
+@inject IMemberService MemberService
+@inject AuthenticationStateProvider AuthState
+@inject IPageLocalizer L
+
+<DNPageTitle Title=@L["authors.edit", "Edit author profile"] />
+
+<MudStack Row="true" AlignItems="AlignItems.Center" Justify="Justify.SpaceBetween" Class="mb-4">
+    <MudStack Spacing="0">
+        <MudText Typo="Typo.h5" Class="fw-bold">@L["authors.edit", "Edit author profile"]</MudText>
+        @if (_allowed && _member is not null)
+        {
+            <MudText Typo="Typo.body2" Color="Color.Secondary">@($"{_member.Givenname} {_member.Surname}".Trim()) (@_member.Username)</MudText>
+        }
+    </MudStack>
+    <MudButton Variant="Variant.Text" StartIcon="@Icons.Material.Filled.ArrowBack" Href="/content/authors">@L["back", "Back"]</MudButton>
+</MudStack>
+
+@if (_loading)
+{
+    <MudProgressLinear Indeterminate="true" Color="Color.Primary" />
+}
+else if (!_allowed)
+{
+    <MudAlert Severity="Severity.Warning">@L["authors.member_not_found", "Member not found."]</MudAlert>
+}
+else
+{
+    <AuthorProfileEditor MemberId="MemberId" />
+}
+
+@code {
+    [Parameter] public int MemberId { get; set; }
+
+    private bool _loading = true;
+    private bool _allowed;
+    private Member? _member;
+
+    protected override async Task OnParametersSetAsync()
+    {
+        _loading = true;
+        await L.EnsureLoadedAsync();
+        var user = (await AuthState.GetAuthenticationStateAsync()).User;
+        var isMaster = user.HasClaim(AdminClaimTypes.Master, "true");
+        int.TryParse(user.FindFirst(AdminClaimTypes.WebsiteId)?.Value, out var websiteId);
+
+        // A site owner may only edit authors of their own website; master sees every site.
+        _member = await MemberService.GetByIdAsync(MemberId);
+        _allowed = _member is not null && (isMaster || _member.WebsiteID == websiteId);
+        _loading = false;
+    }
+}

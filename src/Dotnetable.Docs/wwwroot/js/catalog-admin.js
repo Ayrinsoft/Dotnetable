@@ -785,7 +785,58 @@ window.DOCS_ADMIN = {
               fa: "پست بسازید، طبقه‌بندی، بدنه، مدیا را بگذارید و منتشر کنید. بخش «SEO / Meta» را برای تنظیم عنوان/توضیحات/کلمات کلیدی متای این پست باز کنید — اختیاری است و در صورت خالی بودن به عنوان/خلاصه برمی‌گردد.",
             },
           ],
-          related: ["content-categories", "content-tags", "post-types", "media-library", "content-comments"],
+          related: ["content-categories", "content-tags", "post-types", "media-library", "content-comments", "content-authors"],
+        },
+        {
+          id: "content-authors",
+          title: { en: "Author bio & online résumé", fa: "بیو و رزومه آنلاین نویسنده" },
+          adminPath: "/my/author-profile  ·  /content/authors",
+          summary: {
+            en: "Each admin member writes a short bio shown under their posts and can publish a public résumé page with skills, work, education and a timeline.",
+            fa: "هر کاربر ادمین یک بیوی کوتاه برای نمایش زیر پست‌هایش می‌نویسد و می‌تواند یک صفحه رزومه عمومی با مهارت‌ها، سوابق کاری، تحصیلات و تایملاین منتشر کند.",
+          },
+          purpose: {
+            en: "Readers see who wrote a post (the **About the author** box) and can open the author's page at `/author/{slug}` to see their story, their work and every post they wrote.",
+            fa: "خواننده می‌بیند چه کسی پست را نوشته (کادر **درباره نویسنده**) و می‌تواند صفحه نویسنده را در `/author/{slug}` باز کند و داستان، کارها و همه پست‌های او را ببیند.",
+          },
+          howTo: [
+            {
+              en: "Open **My author profile** (Content menu, or your name at the top right). Fill in display name, headline and short bio. Leave **Show my bio under my posts** on to show the bio in the box under your posts.",
+              fa: "**My author profile** را باز کنید (منوی محتوا، یا روی نام خود در بالا سمت راست). نام نمایشی، عنوان شغلی و بیوی کوتاه را پر کنید. گزینه **Show my bio under my posts** را روشن بگذارید تا بیو زیر پست‌هایتان نمایش داده شود.",
+            },
+            {
+              en: "Turn on **Publish my résumé page** to make `/author/{slug}` public. Add location, public email, personal website, social links, skills (comma-separated), a long **About me**, a photo (falls back to your account avatar) and an optional downloadable CV file. Save.",
+              fa: "با روشن کردن **Publish my résumé page** صفحه `/author/{slug}` عمومی می‌شود. موقعیت، ایمیل عمومی، وب‌سایت شخصی، لینک‌های شبکه اجتماعی، مهارت‌ها (با کاما جدا)، متن بلند **About me**، عکس (در صورت خالی بودن آواتار حساب استفاده می‌شود) و در صورت تمایل فایل رزومه قابل دانلود را وارد و ذخیره کنید.",
+            },
+            {
+              en: "After the first save, use **Add item** under **Résumé & timeline** to add jobs, education, projects, certifications, awards, publications or volunteering. Items are grouped by type on the page; those with **Show on timeline** also appear on the chronological timeline (ongoing items first).",
+              fa: "بعد از اولین ذخیره، با **Add item** در بخش **Résumé & timeline** سوابق کاری، تحصیلات، پروژه‌ها، گواهینامه‌ها، جوایز، انتشارات یا فعالیت داوطلبانه را اضافه کنید. آیتم‌ها در صفحه بر اساس نوع گروه‌بندی می‌شوند و آن‌هایی که **Show on timeline** دارند در تایملاین زمانی هم می‌آیند (موارد جاری اول).",
+            },
+            {
+              en: "Multi-language sites: fill **Other languages** on the profile and in each item dialog; blank translations fall back to the default language.",
+              fa: "سایت‌های چندزبانه: بخش **Other languages** را در پروفایل و در پنجره هر آیتم پر کنید؛ ترجمه خالی به زبان پیش‌فرض برمی‌گردد.",
+            },
+            {
+              en: "Site owners with `authors.manage` see every member under Content → **Authors** and can edit anyone's profile on their website.",
+              fa: "مدیر سایت با دسترسی `authors.manage` همه کاربران را در محتوا ← **Authors** می‌بیند و می‌تواند پروفایل هر کاربر سایت خود را ویرایش کند.",
+            },
+          ],
+          tips: [
+            {
+              en: "Permissions: `authors.profile` (edit my own bio & résumé) and `authors.manage` (edit everyone's on this website), in the policy editor group **Author Bio & Résumé (Posts)**. The seeded staff access levels and Administrators get `authors.profile` automatically on startup; custom access levels must be ticked by hand.",
+              fa: "دسترسی‌ها: `authors.profile` (ویرایش بیو و رزومه خودم) و `authors.manage` (ویرایش همه در این سایت)، در گروه **Author Bio & Résumé (Posts)** ویرایشگر سطح دسترسی. سطوح دسترسی پیش‌فرض کارکنان و Administrators هنگام اجرا خودکار `authors.profile` را می‌گیرند؛ سطوح دسترسی سفارشی باید دستی تیک بخورند.",
+            },
+            {
+              en: "Links must start with `http://` or `https://`; anything else is dropped on save. The About text is sanitised before it is shown.",
+              fa: "لینک‌ها باید با `http://` یا `https://` شروع شوند؛ بقیه هنگام ذخیره حذف می‌شوند. متن About قبل از نمایش پاک‌سازی (sanitize) می‌شود.",
+            },
+            {
+              en: "The slug is generated from your name when left blank and is made unique per website (`sara-ahmadi`, `sara-ahmadi-2`).",
+              fa: "اگر اسلاگ خالی بماند از نام شما ساخته می‌شود و در هر سایت یکتا است (`sara-ahmadi`، `sara-ahmadi-2`).",
+            },
+          ],
+          relatedApi: ["authors", "posts"],
+          related: ["posts", "members", "policies"],
         },
         {
           id: "content-comments",

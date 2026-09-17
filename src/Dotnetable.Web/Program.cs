@@ -115,6 +115,12 @@ app.MapControllerRoute(
     pattern: "page/{slug}",
     defaults: new { controller = "Page", action = "View" });
 
+// Public author page (bio, résumé, timeline): /author/{slug}
+app.MapControllerRoute(
+    name: "author",
+    pattern: "author/{slug}",
+    defaults: new { controller = "Author", action = "Profile" });
+
 app.MapControllerRoute(
     name: "price-lists",
     pattern: "price-lists",

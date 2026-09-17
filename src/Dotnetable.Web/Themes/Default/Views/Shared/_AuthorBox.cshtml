@@ -1,0 +1,49 @@
+@model Dotnetable.Application.DTOs.AuthorCardDto
+@*
+    "About the author" box under a blog post. Renders nothing useful beyond the name when the author
+    has no bio (or hid it); links to /author/{slug} only when the author published a résumé page.
+*@
+@{
+    var initial = string.IsNullOrWhiteSpace(Model.Name) ? "?" : Model.Name.Trim()[0].ToString().ToUpperInvariant();
+    var hasPage = !string.IsNullOrEmpty(Model.Slug);
+}
+
+<aside class="author-box mt-5" aria-label="About the author">
+    <div class="d-flex gap-3 align-items-start">
+        @if (!string.IsNullOrEmpty(Model.PhotoUrl))
+        {
+            <img src="@Model.PhotoUrl" alt="@Model.Name" class="author-photo" loading="lazy" />
+        }
+        else
+        {
+            <div class="author-photo author-photo-initial" aria-hidden="true">@initial</div>
+        }
+        <div class="flex-grow-1">
+            <div class="text-muted small text-uppercase fw-semibold mb-1">About the author</div>
+            <h5 class="mb-0">
+                @if (hasPage)
+                {
+                    <a class="text-reset" href="@Url.RouteUrl("author", new { slug = Model.Slug })">@Model.Name</a>
+                }
+                else
+                {
+                    @Model.Name
+                }
+            </h5>
+            @if (!string.IsNullOrEmpty(Model.Headline))
+            {
+                <div class="text-primary small fw-semibold">@Model.Headline</div>
+            }
+            @if (!string.IsNullOrEmpty(Model.Bio))
+            {
+                <p class="author-bio mb-0 mt-2">@Model.Bio</p>
+            }
+            @if (hasPage)
+            {
+                <a class="btn btn-sm btn-outline-secondary mt-3" href="@Url.RouteUrl("author", new { slug = Model.Slug })">
+                    <i class="bi bi-person-badge me-1"></i>View profile &amp; résumé
+                </a>
+            }
+        </div>
+    </div>
+</aside>

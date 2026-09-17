@@ -150,15 +150,16 @@ public class ApiClient
 
     // ── Content (posts, pages, categories, redirects) ───────────────
 
-    /// <summary>Published posts (paged), optionally filtered by post type / category / tag slug.</summary>
+    /// <summary>Published posts (paged), optionally filtered by post type / category / tag / author slug.</summary>
     public async Task<PagedResult<PostSummaryDto>> GetPostsAsync(
-        string? type = null, string? category = null, string? tag = null,
+        string? type = null, string? category = null, string? tag = null, string? author = null,
         int page = 1, int pageSize = 12, string? lang = null, CancellationToken ct = default)
     {
         var query = new List<string> { $"page={page}", $"pageSize={pageSize}" };
         if (!string.IsNullOrWhiteSpace(type)) query.Add($"type={Uri.EscapeDataString(type)}");
         if (!string.IsNullOrWhiteSpace(category)) query.Add($"category={Uri.EscapeDataString(category)}");
         if (!string.IsNullOrWhiteSpace(tag)) query.Add($"tag={Uri.EscapeDataString(tag)}");
+        if (!string.IsNullOrWhiteSpace(author)) query.Add($"author={Uri.EscapeDataString(author)}");
         if (!string.IsNullOrWhiteSpace(lang)) query.Add($"lang={Uri.EscapeDataString(lang)}");
         var cacheKey = $"posts:{string.Join('&', query)}";
 
@@ -193,6 +194,16 @@ public class ApiClient
             catch (HttpRequestException) { return Array.Empty<PostSummaryDto>(); }
             catch (NotSupportedException) { return Array.Empty<PostSummaryDto>(); }
         }) ?? Array.Empty<PostSummaryDto>();
+
+    /// <summary>An author's public page (bio, résumé, timeline), or null when the author is unknown,
+    /// has not published their page, or the API is unreachable.</summary>
+    public Task<AuthorPageDto?> GetAuthorAsync(string slug, string? lang = null, CancellationToken ct = default) =>
+        CachedGetAsync($"author:{slug.ToLowerInvariant()}:{lang}", () =>
+        {
+            var path = $"api/authors/{Uri.EscapeDataString(slug)}";
+            if (!string.IsNullOrWhiteSpace(lang)) path += $"?lang={Uri.EscapeDataString(lang)}";
+            return GetOrNullAsync<AuthorPageDto>(path, ct);
+        });
 
     /// <summary>Active category tree (optionally for a post type).</summary>
     public async Task<IReadOnlyList<CategoryDto>> GetCategoriesAsync(int? postTypeId = null, string? lang = null, CancellationToken ct = default) =>

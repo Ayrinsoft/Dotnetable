@@ -12,6 +12,8 @@ public class PostSummaryDto
     public string? FeaturedImageUrl { get; init; }
     public string PostTypeSlug { get; init; } = string.Empty;
     public string? AuthorName { get; init; }
+    /// <summary>Author box (name, headline, bio, photo, résumé-page slug); null when the post has no author.</summary>
+    public AuthorCardDto? Author { get; init; }
     public bool IsFeatured { get; init; }
     public int ViewCount { get; init; }
     public DateTime? PublishedAt { get; init; }

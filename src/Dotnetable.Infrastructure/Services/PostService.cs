@@ -279,7 +279,7 @@ public class PostService : IPostService
 
     public async Task<PagedResult<PostSummaryDto>> GetPublishedAsync(
         int websiteId, string? postTypeSlug, string? categorySlug, string? tagSlug,
-        int pageIndex, int pageSize, string? languageCode = null, CancellationToken ct = default)
+        int pageIndex, int pageSize, string? languageCode = null, string? authorSlug = null, CancellationToken ct = default)
     {
         await using var _context = await _contextFactory.CreateDbContextAsync(ct);
 
@@ -293,6 +293,8 @@ public class PostService : IPostService
                 pc.Category.Slug == categorySlug || pc.Category.CategoryTranslations.Any(t => t.Slug == categorySlug)));
         if (!string.IsNullOrWhiteSpace(tagSlug))
             q = q.Where(p => p.Tags.Any(t => t.Slug == tagSlug || t.TagTranslations.Any(tt => tt.Slug == tagSlug)));
+        if (!string.IsNullOrWhiteSpace(authorSlug))
+            q = q.Where(p => p.AuthorMember != null && p.AuthorMember.AuthorProfile != null && p.AuthorMember.AuthorProfile.Slug == authorSlug);
 
         var total = await q.CountAsync(ct);
 
@@ -350,7 +352,9 @@ public class PostService : IPostService
             .Where(p => p.WebsiteID == websiteId && p.IsActive && p.Status == PublishedStatus &&
                 (p.PublishedAt == null || p.PublishedAt <= now))
             .Include(p => p.PostType)
-            .Include(p => p.AuthorMember)
+            .Include(p => p.AuthorMember).ThenInclude(m => m!.Avatar)
+            .Include(p => p.AuthorMember).ThenInclude(m => m!.AuthorProfile).ThenInclude(a => a!.PhotoFile)
+            .Include(p => p.AuthorMember).ThenInclude(m => m!.AuthorProfile).ThenInclude(a => a!.AuthorProfileTranslations)
             .Include(p => p.FeaturedImageFile)
             .Include(p => p.PostTranslations)
             .Include(p => p.PostCategories).ThenInclude(pc => pc.Category).ThenInclude(c => c.CategoryTranslations)
@@ -361,11 +365,12 @@ public class PostService : IPostService
     private static PostSummaryDto ProjectSummary(Post p, string? lang)
     {
         var (title, slug, excerpt, _) = LocalizedFull(p, lang);
+        var author = AuthorProjection.Card(p.AuthorMember, lang);
         return new PostSummaryDto
         {
             PostID = p.PostID, Slug = slug, Title = title, Excerpt = excerpt,
             FeaturedImageUrl = FeaturedUrl(p), PostTypeSlug = p.PostType?.Slug ?? string.Empty,
-            AuthorName = AuthorName(p), IsFeatured = p.IsFeatured, ViewCount = p.ViewCount,
+            AuthorName = author?.Name, Author = author, IsFeatured = p.IsFeatured, ViewCount = p.ViewCount,
             PublishedAt = p.PublishedAt, Categories = Categories(p, lang), Tags = Tags(p, lang),
         };
     }
@@ -374,11 +379,12 @@ public class PostService : IPostService
     {
         var (title, slug, excerpt, content) = LocalizedFull(p, lang);
         var (metaTitle, metaDescription, metaKeywords) = LocalizedMeta(p, lang);
+        var author = AuthorProjection.Card(p.AuthorMember, lang);
         return new PostDetailDto
         {
             PostID = p.PostID, Slug = slug, Title = title, Excerpt = excerpt,
             FeaturedImageUrl = FeaturedUrl(p), PostTypeSlug = p.PostType?.Slug ?? string.Empty,
-            AuthorName = AuthorName(p), IsFeatured = p.IsFeatured, ViewCount = p.ViewCount,
+            AuthorName = author?.Name, Author = author, IsFeatured = p.IsFeatured, ViewCount = p.ViewCount,
             PublishedAt = p.PublishedAt, Categories = Categories(p, lang), Tags = Tags(p, lang),
             Content = content,
             // The post type can switch comments off for every post of that type.
@@ -388,9 +394,6 @@ public class PostService : IPostService
     }
 
     private static string? FeaturedUrl(Post p) => p.FeaturedImageFile?.ThumbnailCDN ?? p.FeaturedImageFile?.CNDUrl;
-
-    private static string? AuthorName(Post p) =>
-        p.AuthorMember is null ? null : $"{p.AuthorMember.Givenname} {p.AuthorMember.Surname}".Trim();
 
     private static List<CategoryDto> Categories(Post p, string? lang) =>
         p.PostCategories.Where(pc => pc.Category is not null)
