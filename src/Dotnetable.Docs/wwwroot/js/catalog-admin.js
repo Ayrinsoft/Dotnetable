@@ -2782,7 +2782,17 @@ window.DOCS_ADMIN = {
               fa: "secret را در سورس نگذارید؛ با تغییر نیرو رمز را بچرخانید.",
             },
           ],
-          related: ["email-templates", "settings"],
+          tips: [
+            {
+              en: "**A website with no email account of its own sends through website 1's.** The order tried is: the site's account of the needed type → the site's default account → any active account of the site → then the same three on website 1. So notifications to a site owner still arrive on a site that never configured email. An active account with no mail server or no from-address is skipped instead of breaking the send.",
+              fa: "**سایتی که حساب ایمیل خودش را ندارد، از طریق حساب سایت ۱ ارسال می‌کند.** ترتیب انتخاب: حساب هم‌نوعِ خود سایت ← حساب پیش‌فرض سایت ← هر حساب فعال سایت ← و بعد همین سه مورد روی سایت ۱. پس نوتیفیکیشن صاحب سایتی که ایمیل تنظیم نکرده هم می‌رسد. حساب فعالی که سرور یا آدرس فرستنده ندارد نادیده گرفته می‌شود تا ارسال خراب نشود.",
+            },
+            {
+              en: "SMS does **not** work this way: a site without its own gateway sends no SMS at all (see SMS gateways). WhatsApp is meant to follow the email rule once a gateway ships.",
+              fa: "پیامک این‌طور نیست: سایتی که درگاه خودش را ندارد اصلاً پیامک نمی‌فرستد (به «درگاه‌های پیامک» ببینید). واتس‌اپ قرار است پس از افزوده‌شدن درگاه، از قانون ایمیل پیروی کند.",
+            },
+          ],
+          related: ["email-templates", "sms-gateways", "settings"],
         },
         {
           id: "email-templates",
@@ -2830,6 +2840,10 @@ window.DOCS_ADMIN = {
             {
               en: "Several gateways can be registered; the active one with the lowest sort order sends. A gateway missing a required credential is skipped, so a half-filled row cannot silently take over sending.",
               fa: "می‌توان چند درگاه ثبت کرد؛ فعالِ با کمترین ترتیب می‌فرستد. درگاهی که اعتبارنامه لازم را ندارد رد می‌شود، پس یک ردیف ناقص نمی‌تواند بی‌صدا ارسال را در دست بگیرد.",
+            },
+            {
+              en: "**Every website needs its own gateway — there is no fallback to website 1.** A text goes out under the sender line and billing account of whoever owns the gateway, so one site never borrows another's. Email (and WhatsApp, once it ships) deliberately do fall back to website 1.",
+              fa: "**هر سایت باید درگاه خودش را داشته باشد — هیچ fallback به سایت ۱ وجود ندارد.** پیامک با خط فرستنده و حساب مالی صاحب همان درگاه ارسال می‌شود، پس هیچ سایتی از درگاه سایت دیگر استفاده نمی‌کند. ایمیل (و واتس‌اپ پس از افزوده‌شدن) عمداً به سایت ۱ برمی‌گردند.",
             },
           ],
           sections: [

@@ -31,7 +31,7 @@ public class AdminNotificationServiceTests : IDisposable
 
         var factory = new TestDbContextFactory(_options);
         var wa = new Mock<IWhatsAppSender>();
-        wa.SetupGet(w => w.IsConfigured).Returns(false);
+        wa.Setup(w => w.IsConfiguredAsync(It.IsAny<int>(), It.IsAny<CancellationToken>())).ReturnsAsync(false);
         _service = new AdminNotificationService(factory, _emailMock.Object, wa.Object, NullLogger<AdminNotificationService>.Instance);
 
         _website = new Website

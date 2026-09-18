@@ -83,6 +83,52 @@ public class EmailServiceTests : IDisposable
         (await _service.IsConfiguredAsync(WebsiteId)).Should().BeFalse();
     }
 
+    [Fact]
+    public async Task IsConfiguredAsync_MasterAccountOfAnotherTypeAndNotDefault_StillFallsBack()
+    {
+        // The site owner's notification must not be dropped just because website 1's only account is,
+        // say, a Support mailbox that nobody marked as the default.
+        var master = FullRow(AppConstants.MasterWebsiteId, EmailAccountType.Support, isDefault: false);
+        _context.EmailAccounts.Add(master);
+        await _context.SaveChangesAsync();
+
+        (await _service.IsConfiguredAsync(WebsiteId)).Should().BeTrue();
+    }
+
+    [Fact]
+    public async Task IsConfiguredAsync_MasterAccountWithoutMailServer_ReturnsFalse()
+    {
+        var master = FullRow(AppConstants.MasterWebsiteId);
+        master.MailServer = "   ";
+        _context.EmailAccounts.Add(master);
+        await _context.SaveChangesAsync();
+
+        (await _service.IsConfiguredAsync(WebsiteId)).Should().BeFalse();
+    }
+
+    [Fact]
+    public async Task IsConfiguredAsync_OwnAccountUnusable_FallsBackToMaster()
+    {
+        // An own row that cannot send must not shadow website 1's working account.
+        var own = FullRow(WebsiteId);
+        own.EmailAddress = "   ";
+        _context.EmailAccounts.AddRange(own, FullRow(AppConstants.MasterWebsiteId));
+        await _context.SaveChangesAsync();
+
+        (await _service.IsConfiguredAsync(WebsiteId)).Should().BeTrue();
+    }
+
+    [Fact]
+    public async Task IsConfiguredAsync_MasterInactive_ReturnsFalse()
+    {
+        var master = FullRow(AppConstants.MasterWebsiteId);
+        master.Active = false;
+        _context.EmailAccounts.Add(master);
+        await _context.SaveChangesAsync();
+
+        (await _service.IsConfiguredAsync(WebsiteId)).Should().BeFalse();
+    }
+
     // ── SendAsync ──────────────────────────────────────────────────────────────
 
     [Fact]
